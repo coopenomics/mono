@@ -16,7 +16,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.14">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.15">
     
     
       
@@ -1994,85 +1994,26 @@ __Опциональный провайдер__: `yookassa` - оплата че�
 <p>⚠️ 🛠️ SDK: Queries.Payments.GetPaymentProviders не найден | 🔗 GraphQL API: <a href="/../graphql/index.html#query-getPaymentProviders">Query.getPaymentProviders</a></p>
 <p>Запрос по извлечению списка провайдеров возвращает идентификаторы провайдеров и схемы их данных.</p>
 <h2 id="_5">Вступительный и минимальный паевой взносы<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
-<p>🛠️ SDK: <a href="/sdk/modules/Mutations.Payments.CreateInitialPayment.html">Mutations.Payments.CreateInitialPayment</a> | 🔗 GraphQL API: <a href="/../graphql/index.html#mutation-createInitialPayment">Mutation.createInitialPayment</a></p>
+<p>⚠️ 🛠️ SDK: Mutations.Payments.CreateInitialPayment не найден | 🔗 GraphQL API: <a href="/../graphql/index.html#mutation-createInitialPayment">Mutation.createInitialPayment</a></p>
 <p>В процессе <a href="/documentation/participants">регистрации пайщика</a> необходимо совершить вступительный и минимальный паевый взносы, выполнив регистрационный платеж. Для создания регистрационного платежа необходимо вызвать мутацию CreateInitialPayment. </p>
-<p>Создание объекта регистрационного платежа производится мутацией CreateInitial. Выполнение мутации возвращает идентификатор платежа и данные для его совершения в зависимости от выбранного платежного провайдера.</p>
-<div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Mutations</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
-
-<span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.Payments.CreateInitialPayment.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="nx">data</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя аккаунта пользователя</span>
-<span class="w">  </span><span class="p">};</span>
-<span class="p">};</span>
-
-<span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">[</span><span class="nx">Mutations</span><span class="p">.</span><span class="nx">Payments</span><span class="p">.</span><span class="nx">CreateInitialPayment</span><span class="p">.</span><span class="nx">name</span><span class="p">]</span><span class="o">:</span><span class="w"> </span><span class="nx">result</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">Mutation</span><span class="p">(</span>
-<span class="w">  </span><span class="nx">Mutations</span><span class="p">.</span><span class="nx">Payments</span><span class="p">.</span><span class="nx">CreateInitialPayment</span><span class="p">.</span><span class="nx">mutation</span><span class="p">,</span>
-<span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nx">variables</span><span class="w"> </span><span class="p">}</span>
-<span class="p">);</span>
-</code></pre></div>
+<p>⚠️ Описание для <code>Mutations.Payments.CreateInitialPayment</code> не найдено</p>
+<p>⚠️ <code>Mutations.Payments.CreateInitialPayment</code> не найден</p>
 <h2 id="_6">Паевый взнос<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
-<p>🛠️ SDK: <a href="/sdk/modules/Mutations.Payments.CreateDepositPayment.html">Mutations.Payments.CreateDepositPayment</a> | 🔗 GraphQL API: <a href="/../graphql/index.html#mutation-createDepositPayment">Mutation.createDepositPayment</a></p>
-<p>Создание объекта паевого платежа производится мутацией CreateDeposit. Выполнение мутации возвращает идентификатор платежа и данные для его совершения в зависимости от выбранного платежного провайдера.</p>
-<div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Mutations</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
-
-<span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.Payments.CreateDepositPayment.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="nx">data</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nx">quantity</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Сумма взноса</span>
-<span class="w">    </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя аккаунта пользователя</span>
-<span class="w">  </span><span class="p">};</span>
-<span class="p">};</span>
-
-<span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">[</span><span class="nx">Mutations</span><span class="p">.</span><span class="nx">Payments</span><span class="p">.</span><span class="nx">CreateDepositPayment</span><span class="p">.</span><span class="nx">name</span><span class="p">]</span><span class="o">:</span><span class="w"> </span><span class="nx">result</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">Mutation</span><span class="p">(</span>
-<span class="w">  </span><span class="nx">Mutations</span><span class="p">.</span><span class="nx">Payments</span><span class="p">.</span><span class="nx">CreateDepositPayment</span><span class="p">.</span><span class="nx">mutation</span><span class="p">,</span>
-<span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nx">variables</span><span class="w"> </span><span class="p">}</span>
-<span class="p">);</span>
-</code></pre></div>
+<p>⚠️ 🛠️ SDK: Mutations.Payments.CreateDepositPayment не найден | 🔗 GraphQL API: <a href="/../graphql/index.html#mutation-createDepositPayment">Mutation.createDepositPayment</a></p>
+<p>⚠️ Описание для <code>Mutations.Payments.CreateDepositPayment</code> не найдено</p>
+<p>⚠️ <code>Mutations.Payments.CreateDepositPayment</code> не найден</p>
 <h2 id="_7">Список платежей<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h2>
-<p>🛠️ SDK: <a href="/sdk/modules/Queries.Payments.GetPayments.html">Queries.Payments.GetPayments</a> | 🔗 GraphQL API: <a href="/../graphql/index.html#query-getPayments">Query.getPayments</a></p>
-<p>Получить список платежей</p>
-<div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Queries</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
-
-<span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Queries.Payments.GetPayments.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="nx">data</span><span class="o">?:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nx">blockchain_id</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Идентификатор платежа в блокчейне</span>
-<span class="w">    </span><span class="nx">id</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Идентификатор платежа во внутренней системе</span>
-<span class="w">    </span><span class="nx">status</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="nx">PaymentStatus</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Статус платежа</span>
-<span class="w">    </span><span class="nx">username</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя пользователя для фильтрации платежей</span>
-<span class="w">  </span><span class="p">};</span>
-<span class="w">  </span><span class="nx">options</span><span class="o">?:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nx">limit</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Количество элементов на странице</span>
-<span class="w">    </span><span class="nx">page</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Номер страницы</span>
-<span class="w">    </span><span class="nx">sortBy</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Ключ сортировки (например, &quot;name&quot;)</span>
-<span class="w">    </span><span class="nx">sortOrder</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Направление сортировки (&quot;ASC&quot; или &quot;DESC&quot;)</span>
-<span class="w">  </span><span class="p">};</span>
-<span class="p">};</span>
-
-<span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">[</span><span class="nx">Queries</span><span class="p">.</span><span class="nx">Payments</span><span class="p">.</span><span class="nx">GetPayments</span><span class="p">.</span><span class="nx">name</span><span class="p">]</span><span class="o">:</span><span class="w"> </span><span class="nx">result</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">Query</span><span class="p">(</span>
-<span class="w">  </span><span class="nx">Queries</span><span class="p">.</span><span class="nx">Payments</span><span class="p">.</span><span class="nx">GetPayments</span><span class="p">.</span><span class="nx">query</span><span class="p">,</span>
-<span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nx">variables</span><span class="w"> </span><span class="p">}</span>
-<span class="p">);</span>
-</code></pre></div>
+<p>⚠️ 🛠️ SDK: Queries.Payments.GetPayments не найден | 🔗 GraphQL API: <a href="/../graphql/index.html#query-getPayments">Query.getPayments</a></p>
+<p>⚠️ Описание для <code>Queries.Payments.GetPayments</code> не найдено</p>
+<p>⚠️ <code>Queries.Payments.GetPayments</code> не найден</p>
 <h2 id="_8">Платеж возврата<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h2>
 <p>⚠️ 🛠️ SDK: Mutations.Payments.CreateWithdraw не найден | 🔗 GraphQL API: <a href="/../graphql/index.html#mutation-createWithdraw">Mutation.createWithdraw</a></p>
 <p>⚠️ Описание для <code>Mutations.Payments.CreateWithdraw</code> не найдено</p>
 <p>⚠️ <code>Mutations.Payments.CreateWithdraw</code> не найден</p>
 <h2 id="_9">Управление платежами<a class="headerlink" href="#_9" title="Permanent link">&para;</a></h2>
-<p>🛠️ SDK: <a href="/sdk/modules/Mutations.Payments.SetPaymentStatus.html">Mutations.Payments.SetPaymentStatus</a> | 🔗 GraphQL API: <a href="/../graphql/index.html#mutation-setPaymentStatus">Mutation.setPaymentStatus</a></p>
-<p>Управление статусом платежа осущствляется мутацией setPaymentStatus. При переходе платежа в статус PAID вызывается эффект в блокчейне, который завершает операцию автоматическим переводом платежа в статус COMPLETED. При установке статуса REFUNDED запускается процесс отмены платежа в блокчейне. Остальные статусы не приводят к эффектам в блокчейне.</p>
-<div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Mutations</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
-
-<span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.Payments.SetPaymentStatus.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="nx">data</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nx">id</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Идентификатор платежа, для которого устанавливается статус</span>
-<span class="w">    </span><span class="nx">status</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="nx">PaymentStatus</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Новый статус платежа</span>
-<span class="w">  </span><span class="p">};</span>
-<span class="p">};</span>
-
-<span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">[</span><span class="nx">Mutations</span><span class="p">.</span><span class="nx">Payments</span><span class="p">.</span><span class="nx">SetPaymentStatus</span><span class="p">.</span><span class="nx">name</span><span class="p">]</span><span class="o">:</span><span class="w"> </span><span class="nx">result</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">Mutation</span><span class="p">(</span>
-<span class="w">  </span><span class="nx">Mutations</span><span class="p">.</span><span class="nx">Payments</span><span class="p">.</span><span class="nx">SetPaymentStatus</span><span class="p">.</span><span class="nx">mutation</span><span class="p">,</span>
-<span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nx">variables</span><span class="w"> </span><span class="p">}</span>
-<span class="p">);</span>
-</code></pre></div>
+<p>⚠️ 🛠️ SDK: Mutations.Payments.SetPaymentStatus не найден | 🔗 GraphQL API: <a href="/../graphql/index.html#mutation-setPaymentStatus">Mutation.setPaymentStatus</a></p>
+<p>⚠️ Описание для <code>Mutations.Payments.SetPaymentStatus</code> не найдено</p>
+<p>⚠️ <code>Mutations.Payments.SetPaymentStatus</code> не найден</p>
 
 
 
@@ -2169,7 +2110,7 @@ __Опциональный провайдер__: `yookassa` - оплата че�
       <script id="__config" type="application/json">{"base": "../..", "features": ["content.code.copy", "navigation.path", "navigation.tabs", "navigation.sections", "navigation.instant", "navigation.instant.prefetch", "navigation.expand", "navigation.indexes", "toc.follow", "search.share", "navigation.top", "navigation.footer"], "search": "../../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "\u0421\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u043d\u043e \u0432 \u0431\u0443\u0444\u0435\u0440", "clipboard.copy": "\u041a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0432 \u0431\u0443\u0444\u0435\u0440", "search.result.more.one": "\u0415\u0449\u0451 1 \u043d\u0430 \u044d\u0442\u043e\u0439 \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0435", "search.result.more.other": "\u0415\u0449\u0451 # \u043d\u0430 \u044d\u0442\u043e\u0439 \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0435", "search.result.none": "\u0421\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u0439 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u043e", "search.result.one": "\u041d\u0430\u0439\u0434\u0435\u043d\u043e 1 \u0441\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u0435", "search.result.other": "\u041d\u0430\u0439\u0434\u0435\u043d\u043e \u0441\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u0439: #", "search.result.placeholder": "\u041d\u0430\u0447\u043d\u0438\u0442\u0435 \u043f\u0435\u0447\u0430\u0442\u0430\u0442\u044c \u0434\u043b\u044f \u043f\u043e\u0438\u0441\u043a\u0430", "search.result.term.missing": "\u041e\u0442\u0441\u0443\u0442\u0441\u0442\u0432\u0443\u0435\u0442", "select.version": "\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0432\u0435\u0440\u0441\u0438\u044e"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.13a4f30d.min.js"></script>
+      <script src="../../assets/javascripts/bundle.56ea9cef.min.js"></script>
       
         <script src="../../js/metrika.js"></script>
       
