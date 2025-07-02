@@ -1,6 +1,6 @@
 {
   "name": "@coopenomics/controller",
-  "version": "2025.7.1-1",
+  "version": "2025.7.2",
   "description": "",
   "private": false,
   "bin": "bin/createNodejsApp.js",
