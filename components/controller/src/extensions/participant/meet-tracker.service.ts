@@ -207,6 +207,15 @@ export class MeetTrackerService {
         if (statusChanged) {
           this.logger.info(`Изменение статуса собрания ${meetHash} (№${meetID}): ${oldStatus} -> ${extendedStatus}`);
 
+          if (
+            oldStatus === ExtendedMeetStatus.ONRESTART &&
+            extendedStatus === ExtendedMeetStatus.WAITING_FOR_OPENING &&
+            !trackedMeet.notifications.restartNotification
+          ) {
+            await this.notificationSender.sendRestartNotification(trackedMeet);
+            trackedMeet.notifications.restartNotification = true;
+          }
+
           // При переходе с created на waitingForOpening отправляем начальное уведомление
           if (
             oldStatus === ExtendedMeetStatus.CREATED &&
