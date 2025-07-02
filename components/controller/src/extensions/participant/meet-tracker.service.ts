@@ -50,6 +50,12 @@ export class MeetTrackerService {
   // Основная функция проверки собраний
   async checkMeets(): Promise<void> {
     try {
+      // Подтягиваем актуальный конфиг из базы
+      const repo = await this.extensionRepository.findByName(this.extensionName);
+      if (repo) {
+        this.pluginConfig = repo;
+      }
+
       // Получаем все собрания из блокчейна через порт
       const meets = await this.meetPort.getMeets({ coopname: config.coopname }, undefined);
       if (!meets || meets.length === 0) {
@@ -139,6 +145,8 @@ export class MeetTrackerService {
           if (closedMeetIds.includes(meetID)) {
             continue;
           }
+          // Удаляем все старые собрания с тем же id перед добавлением нового
+          this.pluginConfig.config.trackedMeets = this.pluginConfig.config.trackedMeets.filter((tm) => tm.id !== meetID);
           // Создаем новое отслеживаемое собрание
           const newTrackedMeet: TrackedMeet = {
             id: meetID,
