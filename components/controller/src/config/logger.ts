@@ -19,7 +19,7 @@ const logger = winston.createLogger({
     winston.format.printf(({ timestamp, level, message, context, meta, ...restMeta }) => {
       // Проверяем, является ли meta строкой
       const contextString = typeof meta === 'string' ? `[${meta}]` : context ? `[${context}]` : '';
-      const metaString = typeof meta === 'object' && Object.keys(meta).length ? ` - ${JSON.stringify(meta)}` : '';
+      const metaString = typeof meta === 'object' && meta && Object.keys(meta).length ? ` - ${JSON.stringify(meta)}` : '';
       const additionalMetaString = Object.keys(restMeta).length ? ` - ${JSON.stringify(restMeta)}` : '';
 
       return `${timestamp} ${level}: ${contextString} ${message}${metaString}${additionalMetaString}`;

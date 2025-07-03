@@ -19,7 +19,7 @@ import { DesktopModule } from './desktop/desktop.module';
 import { MeetModule } from './meet/meet.module';
 import { GatewayModule } from './gateway/gateway.module';
 import { WalletModule } from './wallet/wallet.module';
-
+import { NotificationsModule } from './notifications/notifications.module';
 @Module({
   imports: [
     AccountModule,
@@ -41,6 +41,7 @@ import { WalletModule } from './wallet/wallet.module';
     MeetModule,
     GatewayModule,
     WalletModule,
+    NotificationsModule,
   ],
   exports: [
     AccountModule,
@@ -62,6 +63,7 @@ import { WalletModule } from './wallet/wallet.module';
     MeetModule,
     GatewayModule,
     WalletModule,
+    NotificationsModule,
   ],
 })
 export class ApplicationModule {}

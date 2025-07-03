@@ -2,7 +2,7 @@ import { Controller, All, Req, Res, UseGuards, HttpStatus, Next } from '@nestjs/
 import { Request, Response, NextFunction } from 'express';
 import { createProxyMiddleware, RequestHandler } from 'http-proxy-middleware';
 import config from '~/config/config';
-import { GqlJwtAuthGuard } from '~/modules/auth/guards/graphql-jwt-auth.guard';
+import { HttpJwtAuthGuard } from '~/modules/auth/guards/http-jwt-auth.guard';
 import { NotificationsService } from '../services/notifications.service';
 import { CurrentUser } from '~/modules/auth/decorators/current-user.decorator';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
@@ -15,7 +15,7 @@ function isExpressResponse(obj: unknown): obj is Response {
 }
 
 @Controller('notifications')
-@UseGuards(GqlJwtAuthGuard)
+@UseGuards(HttpJwtAuthGuard)
 export class NotificationsController {
   private proxy: RequestHandler;
 

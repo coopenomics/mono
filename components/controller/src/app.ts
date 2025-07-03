@@ -55,8 +55,8 @@ app.use('/v1', routes);
 
 // Обработка остальных маршрутов, включая неизвестные
 app.use((req, res, next) => {
-  if (req.path === '/v1/graphql') {
-    // Пропустить обработку для маршрута /graphql и позволить NestJS обработать запрос
+  if (req.path === '/v1/graphql' || req.path.startsWith('/notifications')) {
+    // Пропустить обработку для маршрута /graphql и /notifications и позволить NestJS обработать запрос
     return next();
   }
   next(new ApiError(httpStatus.NOT_FOUND, 'Not found'));
