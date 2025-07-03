@@ -68,6 +68,7 @@
     "qrcode": "^1.5.4",
     "quasar": "^2.16.0",
     "serialize-javascript": "^6.0.2",
+    "socket.io": "^4.8.1",
     "swiper": "^11.1.7",
     "vite": "2.9.16",
     "vue": "^3.4.18",

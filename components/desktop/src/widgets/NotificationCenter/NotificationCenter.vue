@@ -1,35 +1,44 @@
 <template lang="pug">
-div
-</template>
-<!-- NotificationCenter.vue
-<template lang="pug">
-div#notification-inbox.notification-container
+#notification-inbox.notification-container
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, watch } from 'vue'
-import { NovuUI } from '@novu/js/ui'
-import { dark } from '@novu/js/themes'
-import { useCurrentUser } from 'src/entities/Session'
-import { useQuasar } from 'quasar'
-import { env } from 'src/shared/config'
-const currentUser = useCurrentUser()
+import { useCurrentUser } from 'src/entities/Session';
+import { useQuasar } from 'quasar';
+import { env } from 'src/shared/config';
+import { computed, onMounted, watch } from 'vue';
+import { useSystemStore } from 'src/entities/System/model';
 
-const $q = useQuasar()
-const isDark = computed(() => $q.dark.isActive)
-let novu: any = null
+const currentUser = useCurrentUser();
+const $q = useQuasar();
+const isDark = computed(() => $q.dark.isActive);
+const { info } = useSystemStore();
 
-function mountNovu() {
-  const subscriberId = currentUser.username || '68481006a874d6592b28c530'
-  const el = document.getElementById('notification-inbox')
+let novu: any = null;
 
-  if (el) el.innerHTML = ''
+async function mountNovu() {
+  // Динамический импорт только на клиенте
+  const { NovuUI } = await import('@novu/js/ui');
+  const { dark } = await import('@novu/js/themes');
+
+  const subscriberId = `${info.coopname}-${currentUser.username}`;
+  const el = document.getElementById('notification-inbox');
+  console.log('novuOptions, ', {
+    applicationIdentifier: env.NOVU_APP_ID,
+    subscriberId,
+    // Теперь используем наш бэкенд в качестве прокси
+    backendUrl: `${env.BACKEND_URL}/notifications`,
+    socketUrl: `${env.BACKEND_URL}/notifications`,
+  });
+
+  if (el) el.innerHTML = '';
   novu = new NovuUI({
     options: {
       applicationIdentifier: env.NOVU_APP_ID,
       subscriberId,
-      backendUrl: env.NOVU_BACKEND_URL,
-      socketUrl: env.NOVU_SOCKET_URL,
+      // Используем наш бэкенд в качестве прокси
+      backendUrl: `${env.BACKEND_URL}/notifications`,
+      socketUrl: `${env.BACKEND_URL}/notifications`,
     },
     appearance: {
       baseTheme: isDark.value ? dark : undefined,
@@ -45,7 +54,8 @@ function mountNovu() {
       'notifications.actions.readAll': 'Прочитать все',
       'notifications.actions.archiveAll': 'Архивировать все',
       'notifications.actions.archiveRead': 'Архивировать прочитанные',
-      'notifications.newNotifications': '{{notificationCount}} новое уведомление(ий)',
+      'notifications.newNotifications':
+        '{{notificationCount}} новое уведомление(ий)',
       'notification.actions.read.tooltip': 'Отметить как прочитанное',
       'notification.actions.unread.tooltip': 'Отметить как непрочитанное',
       'notification.actions.archive.tooltip': 'В архив',
@@ -53,28 +63,32 @@ function mountNovu() {
       'preferences.title': 'Настройки',
       'preferences.emptyNotice': 'Пока нет настроек уведомлений.',
       'preferences.global': 'Общие настройки',
-      'preferences.workflow.disabled.notice': 'Обратитесь к администратору для управления подпиской на это важное уведомление.',
-      'preferences.workflow.disabled.tooltip': 'Для изменения обратитесь к администратору',
-      'locale': 'ru-RU',
-      'dynamic': {
-        'comment-on-post': 'Комментарии к записи'
-      }
-    }
-  })
+      'preferences.workflow.disabled.notice':
+        'Обратитесь к администратору для управления подпиской на это важное уведомление.',
+      'preferences.workflow.disabled.tooltip':
+        'Для изменения обратитесь к администратору',
+      locale: 'ru-RU',
+      dynamic: {
+        'comment-on-post': 'Комментарии к записи',
+      },
+    },
+  });
   novu.mountComponent({
     name: 'Inbox',
     props: {},
     element: el as HTMLDivElement,
-  })
+  });
 }
 
 onMounted(() => {
-  mountNovu()
-})
+  if (process.env.CLIENT) {
+    mountNovu();
+  }
+});
 
 watch(isDark, () => {
-  mountNovu()
-})
+  mountNovu();
+});
 </script>
 
 <style scoped>
@@ -89,4 +103,4 @@ watch(isDark, () => {
   height: 24px;
   width: 24px;
 }
-</style> -->
+</style>
