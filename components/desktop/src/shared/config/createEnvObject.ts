@@ -6,9 +6,8 @@ import { EnvVars } from './Environment';
  */
 export function createEnvObject(): EnvVars {
   console.log('DEBUG: createEnvObject() called');
-  console.log('DEBUG: process.env.BACKEND_URL:', process.env.BACKEND_URL);
-  console.log('DEBUG: process.env.NODE_ENV:', process.env.NODE_ENV);
-
+  //ТУТ НИ В КОЕМ СЛУЧАЕ И НЕ ПРИ КАКИХ ОБСТОЯТЕЛЬСТВАХ НЕ ДОЛЖНЫ БЫТЬ УКАЗАНЫ
+  //CLIENT и SERVER, иначе, будет такая запутанная проблема, что хрен ты ее быстро отыщешь.
   const envObj = {
     NODE_ENV: process.env.NODE_ENV as string,
     BACKEND_URL: process.env.BACKEND_URL as string,
@@ -19,10 +18,10 @@ export function createEnvObject(): EnvVars {
     SITE_DESCRIPTION: process.env.SITE_DESCRIPTION as string,
     SITE_IMAGE: process.env.SITE_IMAGE as string,
     STORAGE_URL: process.env.STORAGE_URL as string,
+    // CLIENT: process.env.CLIENT as unknown as boolean,
+    // SERVER: process.env.SERVER as unknown as boolean,
     UPLOAD_URL: process.env.UPLOAD_URL as string,
     TIMEZONE: process.env.TIMEZONE || 'Europe/Moscow',
-    CLIENT: process.env.CLIENT as unknown as boolean,
-    SERVER: process.env.SERVER as unknown as boolean,
     VUE_ROUTER_MODE: process.env.VUE_ROUTER_MODE as string,
     VUE_ROUTER_BASE: process.env.VUE_ROUTER_BASE as string,
     NOVU_APP_ID: process.env.NOVU_APP_ID as string,

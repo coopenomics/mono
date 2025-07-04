@@ -15,13 +15,10 @@ declare namespace NodeJS {
     STORAGE_URL: string;
     UPLOAD_URL: string;
     TIMEZONE: string;
-    CLIENT?: boolean;
-    SERVER?: boolean;
     VUE_ROUTER_MODE: string;
     VUE_ROUTER_BASE: string;
     NOVU_APP_ID: string;
     NOVU_BACKEND_URL: string;
     NOVU_SOCKET_URL: string;
-    [key: string]: string | boolean | undefined;
   }
 }
