@@ -13,12 +13,13 @@ const path = require('path');
 
 module.exports = configure(function (ctx) {
   const isSSR = ctx.mode.ssr;
+  const isPWA = ctx.mode.pwa;
   const isDev = ctx.dev;
 
   // Загружаем переменные окружения всегда в режиме разработки
   // или только для клиентской части в продакшн
   const env =
-    isDev || !isSSR
+    isDev || !isSSR || !isPWA
       ? require('dotenv').config().parsed
       : {
           CLIENT: process.env.CLIENT,
