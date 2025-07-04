@@ -1,5 +1,3 @@
-import { createEnvObject } from './createEnvObject';
-
 // Типы для переменных окружения
 export interface EnvVars {
   NODE_ENV: string;
@@ -35,22 +33,38 @@ declare global {
  * - На сервере (SSR): берем напрямую из process.env
  * - На клиенте (SSR): используем window.__ENV__, инжектированные с сервера
  * - В SPA режиме: переменные заменяются при сборке
- * - В PWA режиме: используем window.__ENV__, инжектированные через boot файл
  */
 function getEnv(): EnvVars {
-  // SSR сервер - сначала проверяем process.env для сервера
-  if (typeof process !== 'undefined' && process.env && process.env.SERVER) {
-    return createEnvObject();
+  // SSR сервер или SPA сборка
+
+  if (typeof process !== 'undefined' && process.env) {
+    // Для SSR сервера - берем реальные переменные
+    // Для SPA - эти значения заменятся при сборке
+    return {
+      NODE_ENV: process.env.NODE_ENV as string,
+      BACKEND_URL: process.env.BACKEND_URL as string,
+      CHAIN_URL: process.env.CHAIN_URL as string,
+      CHAIN_ID: process.env.CHAIN_ID as string,
+      CURRENCY: process.env.CURRENCY as string,
+      COOP_SHORT_NAME: process.env.COOP_SHORT_NAME as string,
+      SITE_DESCRIPTION: process.env.SITE_DESCRIPTION as string,
+      SITE_IMAGE: process.env.SITE_IMAGE as string,
+      STORAGE_URL: process.env.STORAGE_URL as string,
+      UPLOAD_URL: process.env.UPLOAD_URL as string,
+      TIMEZONE: process.env.TIMEZONE || 'Europe/Moscow',
+      CLIENT: process.env.CLIENT as unknown as boolean,
+      SERVER: process.env.SERVER as unknown as boolean,
+      VUE_ROUTER_MODE: process.env.VUE_ROUTER_MODE as string,
+      VUE_ROUTER_BASE: process.env.VUE_ROUTER_BASE as string,
+      NOVU_APP_ID: process.env.NOVU_APP_ID as string,
+      NOVU_BACKEND_URL: process.env.NOVU_BACKEND_URL as string,
+      NOVU_SOCKET_URL: process.env.NOVU_SOCKET_URL as string,
+    };
   }
 
-  // SSR клиент или PWA - проверяем window.__ENV__
+  // SSR клиент - берем из window.__ENV__
   if (typeof window !== 'undefined' && window.__ENV__) {
     return window.__ENV__;
-  }
-
-  // SPA сборка - fallback на process.env
-  if (typeof process !== 'undefined' && process.env) {
-    return createEnvObject();
   }
 
   // Запасной вариант, если ничего не сработало
