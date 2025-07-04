@@ -9,10 +9,11 @@ import { createEnvObject } from '../shared/config/createEnvObject';
 export default boot(({}) => {
   console.log('DEBUG: Boot env.ts started');
   console.log('DEBUG: typeof window:', typeof window);
-  console.log(
-    'DEBUG: window.__ENV__:',
-    typeof window !== 'undefined' ? window.__ENV__ : 'window не определен',
-  );
+
+  const windowEnv =
+    typeof window !== 'undefined' ? window.__ENV__ : 'window не определен';
+  console.log('DEBUG: window.__ENV__:', windowEnv);
+
   console.log('DEBUG: process.env.SERVER:', process.env.SERVER);
   console.log('DEBUG: process.env.MODE:', process.env.MODE);
 
@@ -34,10 +35,11 @@ export default boot(({}) => {
       '  - typeof window !== "undefined":',
       typeof window !== 'undefined',
     );
-    console.log(
-      '  - !window.__ENV__:',
-      typeof window !== 'undefined' ? !window.__ENV__ : 'window не определен',
-    );
+
+    const hasWindowEnv =
+      typeof window !== 'undefined' ? !window.__ENV__ : 'window не определен';
+    console.log('  - !window.__ENV__:', hasWindowEnv);
+
     console.log('  - !process.env.SERVER:', !process.env.SERVER);
   }
 });
