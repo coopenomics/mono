@@ -8,18 +8,13 @@ import { createEnvObject } from '../shared/config/createEnvObject';
  */
 export default boot(({}) => {
   console.log('DEBUG: Boot env.ts started');
-  console.log('DEBUG: typeof window:', typeof window);
-
-  const windowEnv =
-    typeof window !== 'undefined' ? window.__ENV__ : 'window не определен';
-  console.log('DEBUG: window.__ENV__:', windowEnv);
-
+  console.log('DEBUG: window.__ENV__:', window.__ENV__);
   console.log('DEBUG: process.env.SERVER:', process.env.SERVER);
   console.log('DEBUG: process.env.MODE:', process.env.MODE);
 
-  // Проверяем, что мы в браузере и переменные еще не инжектированы
+  // Проверяем, что переменные еще не инжектированы
   // Также проверяем, что мы не в SSR режиме на сервере
-  if (typeof window !== 'undefined' && !window.__ENV__ && !process.env.SERVER) {
+  if (!window.__ENV__ && !process.env.SERVER) {
     console.log('DEBUG: Boot условие сработало, создаем переменные окружения');
 
     // Создаем объект переменных окружения для клиента
@@ -31,15 +26,7 @@ export default boot(({}) => {
     console.log('Boot: Переменные окружения загружены', envForClient);
   } else {
     console.log('DEBUG: Boot условие НЕ сработало:');
-    console.log(
-      '  - typeof window !== "undefined":',
-      typeof window !== 'undefined',
-    );
-
-    const hasWindowEnv =
-      typeof window !== 'undefined' ? !window.__ENV__ : 'window не определен';
-    console.log('  - !window.__ENV__:', hasWindowEnv);
-
+    console.log('  - !window.__ENV__:', !window.__ENV__);
     console.log('  - !process.env.SERVER:', !process.env.SERVER);
   }
 });

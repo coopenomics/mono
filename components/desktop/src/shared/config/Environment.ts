@@ -38,23 +38,22 @@ declare global {
  */
 function getEnv(): EnvVars {
   console.log('DEBUG: getEnv() called');
-  console.log('DEBUG: typeof process:', typeof process);
-  console.log('DEBUG: typeof window:', typeof window);
   console.log('DEBUG: process.env.SERVER:', process.env?.SERVER);
   console.log('DEBUG: process.env.CLIENT:', process.env?.CLIENT);
-  console.log(
-    'DEBUG: window.__ENV__:',
-    typeof window !== 'undefined' ? window.__ENV__ : 'window не определен',
-  );
 
-  // SSR клиент или PWA - сначала проверяем window.__ENV__
-  if (typeof window !== 'undefined' && window.__ENV__) {
-    console.log('DEBUG: Используем window.__ENV__');
-    return window.__ENV__;
+  // Пробуем получить window.__ENV__ (для SSR клиента и PWA)
+  try {
+    if (window && window.__ENV__) {
+      console.log('DEBUG: Используем window.__ENV__');
+      console.log('DEBUG: window.__ENV__:', window.__ENV__);
+      return window.__ENV__;
+    }
+  } catch (e) {
+    console.log('DEBUG: window недоступен (сервер)');
   }
 
-  // SSR сервер или SPA сборка
-  if (typeof process !== 'undefined' && process.env) {
+  // Используем process.env (для SSR сервера и SPA сборки)
+  if (process && process.env) {
     console.log('DEBUG: Используем process.env, создаем через createEnvObject');
     return createEnvObject();
   }
