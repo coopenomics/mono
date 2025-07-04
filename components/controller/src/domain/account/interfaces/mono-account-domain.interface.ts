@@ -22,4 +22,6 @@ export interface MonoAccountDomainInterface {
   role: string;
   is_email_verified: boolean;
   initial_order?: string;
+  subscriber_id: string;
+  subscriber_hash: string;
 }

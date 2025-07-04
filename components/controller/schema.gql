@@ -2717,6 +2717,12 @@ type MonoAccount {
   """Статус пользователя"""
   status: UserStatus!
 
+  """Хэш подписчика для уведомлений"""
+  subscriber_hash: String!
+
+  """Идентификатор подписчика для уведомлений"""
+  subscriber_id: String!
+
   """Тип пользователя"""
   type: String!
 

@@ -63,6 +63,14 @@ export class MonoAccountDTO {
   @Type(() => String)
   public readonly initial_order?: string;
 
+  @Field(() => String, { description: 'Идентификатор подписчика для уведомлений' })
+  @IsString()
+  public readonly subscriber_id: string;
+
+  @Field(() => String, { description: 'Хэш подписчика для уведомлений' })
+  @IsString()
+  public readonly subscriber_hash: string;
+
   constructor(user: MonoAccountDomainInterface) {
     this.username = user.username;
     this.status = user.status;
@@ -76,5 +84,7 @@ export class MonoAccountDTO {
     this.role = user.role;
     this.is_email_verified = user.is_email_verified;
     this.initial_order = user.initial_order;
+    this.subscriber_id = user.subscriber_id;
+    this.subscriber_hash = user.subscriber_hash;
   }
 }

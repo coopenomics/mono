@@ -76,6 +76,14 @@ const userSchema = new Schema<IUser, IUserModel>(
       type: Schema.Types.ObjectId,
       ref: 'Order',
     },
+    subscriber_id: {
+      type: String,
+      default: '',
+    },
+    subscriber_hash: {
+      type: String,
+      default: '',
+    },
   },
   {
     minimize: false,

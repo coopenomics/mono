@@ -25,6 +25,8 @@ export interface IUser {
   role: string;
   is_email_verified: boolean;
   initial_order?: mongoose.Types.ObjectId;
+  subscriber_id: string;
+  subscriber_hash: string;
   // Временное поле для хранения private_data
   _privateData?:
     | Cooperative.Users.IIndividualData
