@@ -173,22 +173,22 @@ module.exports = configure(function (ctx) {
       rootComponent: 'src/app/App.vue',
       router: 'src/app/providers/router',
       //   store: 'src/store/index',
-      //   registerServiceWorker: 'src-pwa/register-service-worker',
-      //   serviceWorker: 'src-pwa/custom-service-worker',
-      //   pwaManifestFile: 'src-pwa/manifest.json',
+      registerServiceWorker: 'src-pwa/register-service-worker',
+      serviceWorker: 'src-pwa/custom-service-worker',
+      pwaManifestFile: 'src-pwa/manifest.json',
       //   electronMain: 'src-electron/electron-main',
       //   electronPreload: 'src-electron/electron-preload'
     },
 
     // https://v2.quasar.dev/quasar-cli-vite/developing-ssr/configuring-ssr
     ssr: {
-      // ssrPwaHtmlFilename: 'offline.html', // do NOT use index.html as name!
+      ssrPwaHtmlFilename: 'offline.html', // do NOT use index.html as name!
       // will mess up SSR
 
       // extendSSRWebserverConf (esbuildConf) {},
       // extendPackageJson (json) {},
 
-      pwa: false,
+      pwa: true,
 
       // manualStoreHydration: true,
       // manualPostHydrationTrigger: true,
@@ -207,7 +207,7 @@ module.exports = configure(function (ctx) {
 
     // https://v2.quasar.dev/quasar-cli-vite/developing-pwa/configuring-pwa
     pwa: {
-      workboxMode: 'generateSW', // or 'injectManifest'
+      workboxMode: 'injectManifest', // or 'generateSW'
       injectPwaMetaTags: true,
       swFilename: 'sw.js',
       manifestFilename: 'manifest.json',
@@ -215,7 +215,18 @@ module.exports = configure(function (ctx) {
       // useFilenameHashes: true,
       // extendGenerateSWOptions (cfg) {}
       // extendInjectManifestOptions (cfg) {},
-      // extendManifestJson (json) {}
+      extendManifestJson(json) {
+        json.name = process.env.COOP_SHORT_NAME || 'Цифровой Кооператив';
+        json.short_name = process.env.COOP_SHORT_NAME || 'Кооператив';
+        json.description =
+          process.env.SITE_DESCRIPTION ||
+          'кооперативная экономика для сообществ и бизнеса';
+        json.start_url = '/';
+        json.display = 'standalone';
+        json.categories = ['business', 'finance', 'productivity'];
+        json.lang = 'ru';
+        json.dir = 'ltr';
+      },
       // extendPWACustomSWConf (esbuildConf) {}
     },
 
