@@ -38,23 +38,31 @@ declare global {
  * - В PWA режиме: используем window.__ENV__, инжектированные через boot файл
  */
 function getEnv(): EnvVars {
-  // SSR сервер - сначала проверяем process.env для сервера
-  if (typeof process !== 'undefined' && process.env && process.env.SERVER) {
-    return createEnvObject();
-  }
+  console.log('DEBUG: getEnv() called');
+  console.log('DEBUG: typeof process:', typeof process);
+  console.log('DEBUG: typeof window:', typeof window);
+  console.log('DEBUG: process.env.SERVER:', process.env?.SERVER);
+  console.log('DEBUG: process.env.CLIENT:', process.env?.CLIENT);
+  console.log(
+    'DEBUG: window.__ENV__:',
+    typeof window !== 'undefined' ? window.__ENV__ : 'window не определен',
+  );
 
-  // SSR клиент или PWA - проверяем window.__ENV__
+  // SSR клиент или PWA - сначала проверяем window.__ENV__
   if (typeof window !== 'undefined' && window.__ENV__) {
+    console.log('DEBUG: Используем window.__ENV__');
     return window.__ENV__;
   }
 
-  // SPA сборка - fallback на process.env
+  // SSR сервер или SPA сборка
   if (typeof process !== 'undefined' && process.env) {
+    console.log('DEBUG: Используем process.env, создаем через createEnvObject');
     return createEnvObject();
   }
 
   // Запасной вариант, если ничего не сработало
   console.warn('Не удалось получить переменные окружения!');
+  console.warn('DEBUG: Все проверки не сработали');
   return {} as EnvVars;
 }
 
