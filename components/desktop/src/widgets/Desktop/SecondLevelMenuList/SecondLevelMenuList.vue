@@ -28,6 +28,7 @@ import { useRouter } from 'vue-router';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSystemStore } from 'src/entities/System/model';
 import type { IRoute } from 'src/entities/Desktop/model/types';
+import { Zeus } from '@coopenomics/sdk/index';
 
 const desktop = useDesktopStore();
 const router = useRouter();
@@ -51,10 +52,11 @@ const evaluateCondition = (
 // Контекст для evaluateCondition и проверки ролей
 const context = computed(() => {
   const isCoop =
-    user.privateAccount.value?.type === 'organization' &&
+    user.privateAccount.value?.type === Zeus.AccountType.organization &&
     user.privateAccount.value?.organization_data &&
     'type' in user.privateAccount.value.organization_data &&
-    user.privateAccount.value.organization_data.type === 'coop';
+    user.privateAccount.value.organization_data.type ===
+      Zeus.OrganizationType.COOP;
   // Роль берем из computed свойств session
   const userRole = user.isChairman
     ? 'chairman'
