@@ -9,14 +9,34 @@
         font-family: 'Roboto', Arial, sans-serif;
         margin: 0;
         padding: 0;
-        background: linear-gradient(135deg, #027be3 0%, #0056b3 100%);
-        color: white;
+        background: #ffffff;
+        color: #333333;
         display: flex;
         justify-content: center;
         align-items: center;
         min-height: 100vh;
         text-align: center;
+        transition:
+          background-color 0.3s ease,
+          color 0.3s ease;
       }
+
+      /* Адаптация под темную тему */
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: #1d1d1d;
+          color: #ffffff;
+        }
+        .retry-btn {
+          background: rgba(255, 255, 255, 0.1) !important;
+          border-color: rgba(255, 255, 255, 0.2) !important;
+        }
+        .retry-btn:hover {
+          background: rgba(255, 255, 255, 0.2) !important;
+          border-color: rgba(255, 255, 255, 0.3) !important;
+        }
+      }
+
       .container {
         max-width: 400px;
         padding: 2rem;
@@ -28,25 +48,27 @@
       h1 {
         font-size: 1.5rem;
         margin-bottom: 1rem;
+        font-weight: 600;
       }
       p {
         font-size: 1rem;
         margin-bottom: 1.5rem;
-        opacity: 0.9;
+        opacity: 0.8;
       }
       .retry-btn {
-        background: rgba(255, 255, 255, 0.2);
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        color: white;
+        background: rgba(0, 0, 0, 0.1);
+        border: 2px solid rgba(0, 0, 0, 0.2);
+        color: inherit;
         padding: 0.75rem 1.5rem;
         border-radius: 8px;
         font-size: 1rem;
         cursor: pointer;
         transition: all 0.3s ease;
+        font-family: inherit;
       }
       .retry-btn:hover {
-        background: rgba(255, 255, 255, 0.3);
-        border-color: rgba(255, 255, 255, 0.5);
+        background: rgba(0, 0, 0, 0.2);
+        border-color: rgba(0, 0, 0, 0.3);
       }
     </style>
   </head>

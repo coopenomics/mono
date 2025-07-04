@@ -29,8 +29,12 @@ import { ContactsFooter } from 'src/shared/ui/Footer';
 import { Loader } from 'src/shared/ui/Loader';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useDefaultLayoutLogic } from './useDefaultLayoutLogic';
+import { usePWAThemeColor } from 'src/shared/lib/composables/usePWAThemeColor';
 
 const desktop = useDesktopStore();
+
+// Настраиваем автоматическое обновление PWA theme-color
+usePWAThemeColor();
 
 const {
   leftDrawerOpen,

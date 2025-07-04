@@ -1,8 +1,14 @@
-/dist
-/src-capacitor
-/src-cordova
-/.quasar
-/node_modules
-.eslintrc.cjs
-/quasar.config.*.temporary.compiled*
-Env-example.ts
+# Exclude ESLint config files
+**/.eslintrc.js
+src-pwa/.eslintrc.js
+
+# Exclude build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Exclude node_modules
+node_modules/
+
+# Exclude generated files
+*.generated.*

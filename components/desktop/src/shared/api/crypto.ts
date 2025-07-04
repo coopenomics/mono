@@ -12,7 +12,7 @@ export const decrypt = async (encryptedData: string, password: string) => {
     passwordBuffer,
     { name: 'PBKDF2' },
     false,
-    ['deriveKey']
+    ['deriveKey'],
   );
   const key = await window.crypto.subtle.deriveKey(
     {
@@ -24,12 +24,12 @@ export const decrypt = async (encryptedData: string, password: string) => {
     keyMaterial,
     { name: 'AES-CBC', length: 256 },
     true,
-    ['decrypt']
+    ['decrypt'],
   );
   const decryptedData = await window.crypto.subtle.decrypt(
     { name: 'AES-CBC', iv },
     key,
-    data
+    data,
   );
   return new TextDecoder().decode(decryptedData);
 };
@@ -45,7 +45,7 @@ export const encrypt = async (data: string, password: string) => {
     passwordBuffer,
     { name: 'PBKDF2' },
     false,
-    ['deriveKey']
+    ['deriveKey'],
   );
   const key = await window.crypto.subtle.deriveKey(
     {
@@ -57,12 +57,12 @@ export const encrypt = async (data: string, password: string) => {
     keyMaterial,
     { name: 'AES-CBC', length: 256 },
     true,
-    ['encrypt', 'decrypt']
+    ['encrypt', 'decrypt'],
   );
   const encryptedData = await window.crypto.subtle.encrypt(
     { name: 'AES-CBC', iv },
     key,
-    dataBuffer
+    dataBuffer,
   );
   const combined = new Uint8Array(iv.length + encryptedData.byteLength);
   combined.set(iv);
@@ -73,7 +73,7 @@ export const encrypt = async (data: string, password: string) => {
 };
 
 export const hashSHA256 = async (
-  message: string | Uint8Array
+  message: string | Uint8Array,
 ): Promise<string> => {
   const msgBuffer =
     message instanceof Uint8Array ? message : new TextEncoder().encode(message);

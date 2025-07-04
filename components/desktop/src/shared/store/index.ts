@@ -24,7 +24,7 @@ interface IGlobalStore {
   hashMessage: (message: string | Uint8Array) => Promise<string>;
   formActionFromAbi: (action: any) => any;
   transact: (
-    actionOrActions: any | any[]
+    actionOrActions: any | any[],
   ) => Promise<TransactResult | undefined>;
 }
 
@@ -36,27 +36,26 @@ export const useGlobalStore = defineStore('global', (): IGlobalStore => {
 
   const password = ''; // это временное намеренное решение. Позже заменим на пользовательский пин-код.
 
-  const { info } = useSystemStore()
+  const { info } = useSystemStore();
 
   // Инициализация
   const init = async () => {
-
     try {
       // Получите зашифрованный ключ и токены из хранилища
       const encryptedKey = await getFromIndexedDB(
         info.coopname,
         'store',
-        'encryptedKey'
+        'encryptedKey',
       );
       const encryptedTokens = await getFromIndexedDB(
         info.coopname,
         'store',
-        'encryptedTokens'
+        'encryptedTokens',
       );
       const encryptedUsername = await getFromIndexedDB(
         info.coopname,
         'store',
-        'encryptedUsername'
+        'encryptedUsername',
       );
 
       // Если ключ или токены не найдены, выбросите ошибку
@@ -77,14 +76,13 @@ export const useGlobalStore = defineStore('global', (): IGlobalStore => {
       // Установите hasCreditials в true
       hasCreditials.value = true;
 
-      if (tokens.value?.access.token){
-        client.setToken(tokens.value.access.token)
+      if (tokens.value?.access.token) {
+        client.setToken(tokens.value.access.token);
       }
 
       if (decryptedKey && decryptedUsername) {
-        client.setWif(decryptedUsername, decryptedKey)
+        client.setWif(decryptedUsername, decryptedKey);
       }
-
     } catch (error: any) {
       await setToIndexedDB(info.coopname, 'store', 'encryptedKey', '');
       await setToIndexedDB(info.coopname, 'store', 'encryptedUsername', '');
@@ -102,7 +100,7 @@ export const useGlobalStore = defineStore('global', (): IGlobalStore => {
       info.coopname,
       'store',
       'encryptedUsername',
-      encryptedUsername
+      encryptedUsername,
     );
 
     wif.value = PrivateKey.fromString(key);
@@ -111,7 +109,12 @@ export const useGlobalStore = defineStore('global', (): IGlobalStore => {
 
   const setTokens = async (newTokens: ITokens) => {
     const encryptedTokens = await encrypt(JSON.stringify(newTokens), password);
-    await setToIndexedDB(info.coopname, 'store', 'encryptedTokens', encryptedTokens);
+    await setToIndexedDB(
+      info.coopname,
+      'store',
+      'encryptedTokens',
+      encryptedTokens,
+    );
     tokens.value = newTokens;
   };
 
@@ -147,7 +150,7 @@ export const useGlobalStore = defineStore('global', (): IGlobalStore => {
 
   async function transact(
     actionOrActions: any | any[],
-    broadcast = true
+    broadcast = true,
   ): Promise<TransactResult | undefined> {
     if (Array.isArray(actionOrActions)) {
       return await sendActions(actionOrActions, broadcast);
@@ -156,7 +159,9 @@ export const useGlobalStore = defineStore('global', (): IGlobalStore => {
     }
   }
   const formActionFromAbi = async (action: any) => {
-    const { abi } = (await readBlockchain?.v1.chain.get_abi(action.account)) ?? {
+    const { abi } = (await readBlockchain?.v1.chain.get_abi(
+      action.account,
+    )) ?? {
       abi: undefined,
     };
     return Action.from(action, abi);
@@ -164,17 +169,24 @@ export const useGlobalStore = defineStore('global', (): IGlobalStore => {
 
   const sendAction = async (action: any, broadcast: boolean) => {
     // Получаем хранилище сессии с помощью импорта, избегая циклической зависимости
-    const sessionStore = (await import('src/entities/Session')).useSessionStore();
+    const sessionStore = (
+      await import('src/entities/Session')
+    ).useSessionStore();
     const formedAction = await formActionFromAbi(action);
 
-    return sessionStore.session?.transact({
-      action: formedAction,
-    }, { broadcast });
+    return sessionStore.session?.transact(
+      {
+        action: formedAction,
+      },
+      { broadcast },
+    );
   };
 
   const sendActions = async (actions: any[], broadcast: boolean) => {
     // Получаем хранилище сессии с помощью импорта, избегая циклической зависимости
-    const sessionStore = (await import('src/entities/Session')).useSessionStore();
+    const sessionStore = (
+      await import('src/entities/Session')
+    ).useSessionStore();
     const data: Action[] = [];
 
     for (const action of actions) {
@@ -182,9 +194,12 @@ export const useGlobalStore = defineStore('global', (): IGlobalStore => {
       data.push(formedAction);
     }
 
-    return sessionStore.session?.transact({
-      actions: data,
-    }, { broadcast });
+    return sessionStore.session?.transact(
+      {
+        actions: data,
+      },
+      { broadcast },
+    );
   };
 
   return {
@@ -199,6 +214,6 @@ export const useGlobalStore = defineStore('global', (): IGlobalStore => {
     signDigest,
     hashMessage,
     transact,
-    formActionFromAbi
+    formActionFromAbi,
   };
 });

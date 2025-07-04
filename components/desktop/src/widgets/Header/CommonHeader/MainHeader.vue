@@ -16,8 +16,7 @@ q-header.header(bordered, :class='headerClass')
         v-if='!loggedIn && coopTitle',
         stretch,
         flat,
-        @click='emitToggleLeftDrawer',
-        :size='isMobile ? "sm" : "lg"'
+        @click='emitToggleLeftDrawer'
       ) {{ coopTitle }}
 
     // Добавляем компонент уведомлений, если пользователь авторизован
@@ -75,7 +74,9 @@ const emit = defineEmits(['toggle-left-drawer']);
 
 // Получаем информацию для навигации назад
 // const coopTitle = computed(() => env.COOP_SHORT_NAME)
-const coopTitle = computed(() => info.vars?.name);
+const coopTitle = computed(() => {
+  return `${info.vars?.short_abbr} ${info.vars?.name}`;
+});
 
 const isClient = computed(() => process.env.CLIENT);
 
