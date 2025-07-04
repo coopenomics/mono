@@ -1231,6 +1231,8 @@ export const ReturnTypes: Record<string,any> = {
 		referer:"String",
 		role:"String",
 		status:"UserStatus",
+		subscriber_hash:"String",
+		subscriber_id:"String",
 		type:"String",
 		username:"String"
 	},

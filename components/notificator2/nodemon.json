@@ -1,0 +1,8 @@
+{
+  "watch": [
+    "dist",
+    "../notifications/dist"
+  ],
+  "ext": "js,json",
+  "exec": "node dist/main.js"
+} 

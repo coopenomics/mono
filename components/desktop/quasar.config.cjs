@@ -11,18 +11,19 @@
 const { configure } = require('quasar/wrappers');
 const path = require('path');
 
-
 module.exports = configure(function (ctx) {
-
   const isSSR = ctx.mode.ssr;
   const isDev = ctx.dev;
 
   // Загружаем переменные окружения всегда в режиме разработки
   // или только для клиентской части в продакшн
-  const env = (isDev || !isSSR) ? require('dotenv').config().parsed : {
-    CLIENT: process.env.CLIENT,
-    SERVER: process.env.SERVER,
-  };
+  const env =
+    isDev || !isSSR
+      ? require('dotenv').config().parsed
+      : {
+          CLIENT: process.env.CLIENT,
+          SERVER: process.env.SERVER,
+        };
 
   return {
     htmlVariables: {
@@ -39,10 +40,7 @@ module.exports = configure(function (ctx) {
     // app boot file (/src/boot)
     // --> boot files are part of "main.js"
     // https://v2.quasar.dev/quasar-cli-vite/boot-files
-    boot: [
-      'init',
-      'i18n', 'axios', 'sentry'
-    ],
+    boot: ['init', 'i18n', 'axios', 'sentry'],
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#css
     css: [
@@ -118,14 +116,14 @@ module.exports = configure(function (ctx) {
             eslint: {
               lintCommand: 'eslint "./**/*.{js,ts,mjs,cjs,vue}"',
             },
-            overlay: true
+            overlay: true,
           },
           { server: false },
         ],
       ],
 
       optimizeDeps: {
-        include: ['@dicebear/core', '@dicebear/collection']
+        include: ['@dicebear/core', '@dicebear/collection'],
       },
     },
 
@@ -135,10 +133,10 @@ module.exports = configure(function (ctx) {
       vueDevtools: false,
       open: false, // opens browser window automatically
       port: 3005,
-      hmr:{
+      hmr: {
         // clientPort: 3005,
-      //   overlay: false
-      }
+        //   overlay: false
+      },
     },
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#framework
@@ -175,22 +173,22 @@ module.exports = configure(function (ctx) {
       rootComponent: 'src/app/App.vue',
       router: 'src/app/providers/router',
       //   store: 'src/store/index',
-      //   registerServiceWorker: 'src-pwa/register-service-worker',
-      //   serviceWorker: 'src-pwa/custom-service-worker',
-      //   pwaManifestFile: 'src-pwa/manifest.json',
+      registerServiceWorker: 'src-pwa/register-service-worker',
+      serviceWorker: 'src-pwa/custom-service-worker',
+      pwaManifestFile: 'src-pwa/manifest.json',
       //   electronMain: 'src-electron/electron-main',
       //   electronPreload: 'src-electron/electron-preload'
     },
 
     // https://v2.quasar.dev/quasar-cli-vite/developing-ssr/configuring-ssr
     ssr: {
-      // ssrPwaHtmlFilename: 'offline.html', // do NOT use index.html as name!
+      ssrPwaHtmlFilename: 'offline.html', // do NOT use index.html as name!
       // will mess up SSR
 
       // extendSSRWebserverConf (esbuildConf) {},
       // extendPackageJson (json) {},
 
-      pwa: false,
+      pwa: true,
 
       // manualStoreHydration: true,
       // manualPostHydrationTrigger: true,
@@ -204,12 +202,12 @@ module.exports = configure(function (ctx) {
       ],
 
       // Не обрабатывать эти модули для SSR
-      noExternal: ['@dicebear/core', '@dicebear/collection']
+      noExternal: ['@dicebear/core', '@dicebear/collection'],
     },
 
     // https://v2.quasar.dev/quasar-cli-vite/developing-pwa/configuring-pwa
     pwa: {
-      workboxMode: 'generateSW', // or 'injectManifest'
+      workboxMode: 'injectManifest', // or 'generateSW'
       injectPwaMetaTags: true,
       swFilename: 'sw.js',
       manifestFilename: 'manifest.json',
@@ -217,7 +215,18 @@ module.exports = configure(function (ctx) {
       // useFilenameHashes: true,
       // extendGenerateSWOptions (cfg) {}
       // extendInjectManifestOptions (cfg) {},
-      // extendManifestJson (json) {}
+      extendManifestJson(json) {
+        json.name = process.env.COOP_SHORT_NAME || 'Цифровой Кооператив';
+        json.short_name = process.env.COOP_SHORT_NAME || 'Кооператив';
+        json.description =
+          process.env.SITE_DESCRIPTION ||
+          'кооперативная экономика для сообществ и бизнеса';
+        json.start_url = '/';
+        json.display = 'standalone';
+        json.categories = ['business', 'finance', 'productivity'];
+        json.lang = 'ru';
+        json.dir = 'ltr';
+      },
       // extendPWACustomSWConf (esbuildConf) {}
     },
 

@@ -2826,6 +2826,10 @@ export type ValueTypes = {
 	role?:boolean | `@${string}`,
 	/** Статус пользователя */
 	status?:boolean | `@${string}`,
+	/** Хэш подписчика для уведомлений */
+	subscriber_hash?:boolean | `@${string}`,
+	/** Идентификатор подписчика для уведомлений */
+	subscriber_id?:boolean | `@${string}`,
 	/** Тип пользователя */
 	type?:boolean | `@${string}`,
 	/** Имя пользователя */
@@ -6227,6 +6231,10 @@ export type ResolverInputTypes = {
 	role?:boolean | `@${string}`,
 	/** Статус пользователя */
 	status?:boolean | `@${string}`,
+	/** Хэш подписчика для уведомлений */
+	subscriber_hash?:boolean | `@${string}`,
+	/** Идентификатор подписчика для уведомлений */
+	subscriber_id?:boolean | `@${string}`,
 	/** Тип пользователя */
 	type?:boolean | `@${string}`,
 	/** Имя пользователя */
@@ -9587,6 +9595,10 @@ export type ModelTypes = {
 	role: string,
 	/** Статус пользователя */
 	status: ModelTypes["UserStatus"],
+	/** Хэш подписчика для уведомлений */
+	subscriber_hash: string,
+	/** Идентификатор подписчика для уведомлений */
+	subscriber_id: string,
 	/** Тип пользователя */
 	type: string,
 	/** Имя пользователя */
@@ -13026,6 +13038,10 @@ export type GraphQLTypes = {
 	role: string,
 	/** Статус пользователя */
 	status: GraphQLTypes["UserStatus"],
+	/** Хэш подписчика для уведомлений */
+	subscriber_hash: string,
+	/** Идентификатор подписчика для уведомлений */
+	subscriber_id: string,
 	/** Тип пользователя */
 	type: string,
 	/** Имя пользователя */

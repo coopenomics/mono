@@ -69,6 +69,12 @@ const envVarsSchema = z.object({
   BLOCKCHAIN_RPC: z.string().min(1, { message: 'Не должно быть пустым' }),
   CHAIN_ID: z.string().min(1, { message: 'Не должно быть пустым' }),
 
+  // Параметры NOVU
+  NOVU_APP_ID: z.string().min(1, { message: 'Не должно быть пустым' }),
+  NOVU_BACKEND_URL: z.string().min(1, { message: 'Не должно быть пустым' }).default('https://novu.coopenomics.world/api'),
+  NOVU_SOCKET_URL: z.string().min(1, { message: 'Не должно быть пустым' }).default('https://novu.coopenomics.world/ws'),
+  NOVU_API_KEY: z.string().min(1, { message: 'Не должно быть пустым' }),
+
   // Параметры блокчейна
   ROOT_SYMBOL: z.string().default('AXON'),
   ROOT_GOVERN_SYMBOL: z.string().default('RUB'),
@@ -152,5 +158,11 @@ export default {
     host: envVars.data.REDIS_HOST,
     port: envVars.data.REDIS_PORT,
     password: envVars.data.REDIS_PASSWORD,
+  },
+  novu: {
+    app_id: envVars.data.NOVU_APP_ID,
+    backend_url: envVars.data.NOVU_BACKEND_URL,
+    socket_url: envVars.data.NOVU_SOCKET_URL,
+    api_key: envVars.data.NOVU_API_KEY,
   },
 };

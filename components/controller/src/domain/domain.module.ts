@@ -19,6 +19,7 @@ import { ControllerWsMeetModule } from './meet/controllers-ws-meet.module';
 import { UserCertificateDomainModule } from './user-certificate/user-certificate.module';
 import { GatewayDomainModule } from './gateway/gateway-domain.module';
 import { WalletDomainModule } from './wallet/wallet-domain.module';
+import { NotificationDomainModule } from './notification/notification-domain.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { WalletDomainModule } from './wallet/wallet-domain.module';
     UserCertificateDomainModule,
     GatewayDomainModule,
     WalletDomainModule,
+    NotificationDomainModule,
   ],
   exports: [
     AuthDomainModule,
@@ -61,6 +63,7 @@ import { WalletDomainModule } from './wallet/wallet-domain.module';
     UserCertificateDomainModule,
     GatewayDomainModule,
     WalletDomainModule,
+    NotificationDomainModule,
   ],
 })
 export class DomainModule {}

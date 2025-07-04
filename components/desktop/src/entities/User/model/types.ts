@@ -1,6 +1,10 @@
 import { RegistratorContract } from 'cooptypes';
 import { AccountResult } from 'eosjs/dist/eosjs-rpc-interfaces';
-import { IEntrepreneurData, IIndividualData, IOrganizationData } from 'src/shared/lib/types/user/IUserData';
+import {
+  IEntrepreneurData,
+  IIndividualData,
+  IOrganizationData,
+} from 'src/shared/lib/types/user/IUserData';
 
 export interface ILoadPrivateProfile {
   coopname: string;
@@ -18,7 +22,14 @@ export interface IPrivateProfile {
 
 export interface IUserAccountData {
   username: string;
-  status: 'created' | 'joined' | 'payed' | 'registered' | 'active' | 'blocked' | 'failed';
+  status:
+    | 'created'
+    | 'joined'
+    | 'payed'
+    | 'registered'
+    | 'active'
+    | 'blocked'
+    | 'failed';
   is_registered: boolean;
   type: 'individual' | 'entrepreneur' | 'organization';
   public_key: string;
@@ -26,6 +37,8 @@ export interface IUserAccountData {
   email: string;
   role: string;
   is_email_verified: boolean;
+  subscriber_id?: string;
+  subscriber_hash?: string;
   private_data: IIndividualData | IEntrepreneurData | IOrganizationData | null;
 }
 

@@ -10,7 +10,15 @@ q-header.header(bordered, :class='headerClass')
       @click='emitToggleLeftDrawer'
     )
     BackButton(v-if='loggedIn')
+
     q-toolbar-title
+      q-btn(
+        v-if='!loggedIn && coopTitle',
+        stretch,
+        flat,
+        @click='emitToggleLeftDrawer',
+        :size='isMobile ? "sm" : "lg"'
+      ) {{ coopTitle }}
 
     // Добавляем компонент уведомлений, если пользователь авторизован
     NotificationCenter(v-if='loggedIn && isClient')
@@ -56,7 +64,6 @@ import { BackButton } from 'src/widgets/Header/BackButton';
 import { NotificationCenter } from 'src/widgets/NotificationCenter';
 import './HeaderStyles.scss';
 import { useSystemStore } from 'src/entities/System/model';
-// import { env } from 'src/shared/config'
 
 const router = useRouter();
 const route = useRoute();
@@ -66,12 +73,11 @@ const session = useSessionStore();
 const { isMobile } = useWindowSize();
 const emit = defineEmits(['toggle-left-drawer']);
 
-const isClient = computed(
-  () => typeof process !== 'undefined' && process.env.CLIENT,
-);
-
 // Получаем информацию для навигации назад
 // const coopTitle = computed(() => env.COOP_SHORT_NAME)
+const coopTitle = computed(() => info.vars?.name);
+
+const isClient = computed(() => process.env.CLIENT);
 
 const isDark = computed(() => $q.dark.isActive);
 const headerClass = computed(() =>

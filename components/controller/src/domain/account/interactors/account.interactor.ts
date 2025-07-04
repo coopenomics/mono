@@ -49,6 +49,8 @@ export class AccountDomainInteractor {
   private readonly logger = new Logger(AccountDomainInteractor.name);
 
   async updateAccount(data: UpdateAccountDomainInterface): Promise<AccountDomainEntity> {
+    this.logger.log(`Начало обновления аккаунта ${data.username}`);
+
     let user;
     if (data.individual_data) {
       const email = data.individual_data.email;
@@ -66,7 +68,13 @@ export class AccountDomainInteractor {
       throw new Error('Не получены входные данные для обновления');
     }
 
+    // Синхронизируем обновленные данные с системой уведомлений
+    await this.accountDomainService.syncAccountWithNotifications(user.username);
+
+    // Получаем финальный аккаунт после синхронизации
     const account = await this.getAccount(user.username);
+
+    this.logger.log(`Успешно обновлен аккаунт ${data.username}`);
 
     const result = new AccountDomainEntity(account);
     return result;

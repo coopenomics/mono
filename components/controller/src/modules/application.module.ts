@@ -19,7 +19,6 @@ import { DesktopModule } from './desktop/desktop.module';
 import { MeetModule } from './meet/meet.module';
 import { GatewayModule } from './gateway/gateway.module';
 import { WalletModule } from './wallet/wallet.module';
-
 @Module({
   imports: [
     AccountModule,

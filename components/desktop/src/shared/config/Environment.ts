@@ -1,23 +1,23 @@
 // Типы для переменных окружения
 export interface EnvVars {
-  NODE_ENV?: string;
-  BACKEND_URL?: string;
-  CHAIN_URL?: string;
-  CHAIN_ID?: string;
-  CURRENCY?: string;
-  COOP_SHORT_NAME?: string;
-  SITE_DESCRIPTION?: string;
-  SITE_IMAGE?: string;
-  STORAGE_URL?: string;
-  UPLOAD_URL?: string;
-  TIMEZONE?: string;
+  NODE_ENV: string;
+  BACKEND_URL: string;
+  CHAIN_URL: string;
+  CHAIN_ID: string;
+  CURRENCY: string;
+  COOP_SHORT_NAME: string;
+  SITE_DESCRIPTION: string;
+  SITE_IMAGE: string;
+  STORAGE_URL: string;
+  UPLOAD_URL: string;
+  TIMEZONE: string;
   CLIENT?: boolean;
   SERVER?: boolean;
-  VUE_ROUTER_MODE?: string;
-  VUE_ROUTER_BASE?: string;
-  NOVU_APP_ID?: string;
-  NOVU_BACKEND_URL?: string;
-  NOVU_SOCKET_URL?: string;
+  VUE_ROUTER_MODE: string;
+  VUE_ROUTER_BASE: string;
+  NOVU_APP_ID: string;
+  NOVU_BACKEND_URL: string;
+  NOVU_SOCKET_URL: string;
   [key: string]: string | boolean | undefined;
 }
 
@@ -41,24 +41,24 @@ function getEnv(): EnvVars {
     // Для SSR сервера - берем реальные переменные
     // Для SPA - эти значения заменятся при сборке
     return {
-      NODE_ENV: process.env.NODE_ENV,
-      BACKEND_URL: process.env.BACKEND_URL,
-      CHAIN_URL: process.env.CHAIN_URL,
-      CHAIN_ID: process.env.CHAIN_ID,
-      CURRENCY: process.env.CURRENCY,
-      COOP_SHORT_NAME: process.env.COOP_SHORT_NAME,
-      SITE_DESCRIPTION: process.env.SITE_DESCRIPTION,
-      SITE_IMAGE: process.env.SITE_IMAGE,
-      STORAGE_URL: process.env.STORAGE_URL,
-      UPLOAD_URL: process.env.UPLOAD_URL,
+      NODE_ENV: process.env.NODE_ENV as string,
+      BACKEND_URL: process.env.BACKEND_URL as string,
+      CHAIN_URL: process.env.CHAIN_URL as string,
+      CHAIN_ID: process.env.CHAIN_ID as string,
+      CURRENCY: process.env.CURRENCY as string,
+      COOP_SHORT_NAME: process.env.COOP_SHORT_NAME as string,
+      SITE_DESCRIPTION: process.env.SITE_DESCRIPTION as string,
+      SITE_IMAGE: process.env.SITE_IMAGE as string,
+      STORAGE_URL: process.env.STORAGE_URL as string,
+      UPLOAD_URL: process.env.UPLOAD_URL as string,
       TIMEZONE: process.env.TIMEZONE || 'Europe/Moscow',
       CLIENT: process.env.CLIENT as unknown as boolean,
       SERVER: process.env.SERVER as unknown as boolean,
-      VUE_ROUTER_MODE: process.env.VUE_ROUTER_MODE,
-      VUE_ROUTER_BASE: process.env.VUE_ROUTER_BASE,
-      NOVU_APP_ID: process.env.NOVU_APP_ID,
-      NOVU_BACKEND_URL: process.env.NOVU_BACKEND_URL,
-      NOVU_SOCKET_URL: process.env.NOVU_SOCKET_URL,
+      VUE_ROUTER_MODE: process.env.VUE_ROUTER_MODE as string,
+      VUE_ROUTER_BASE: process.env.VUE_ROUTER_BASE as string,
+      NOVU_APP_ID: process.env.NOVU_APP_ID as string,
+      NOVU_BACKEND_URL: process.env.NOVU_BACKEND_URL as string,
+      NOVU_SOCKET_URL: process.env.NOVU_SOCKET_URL as string,
     };
   }
 
