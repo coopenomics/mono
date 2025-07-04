@@ -1,3 +1,5 @@
+import { createEnvObject } from './createEnvObject';
+
 // Типы для переменных окружения
 export interface EnvVars {
   NODE_ENV: string;
@@ -35,40 +37,31 @@ declare global {
  * - В SPA режиме: переменные заменяются при сборке
  */
 function getEnv(): EnvVars {
-  // SSR сервер или SPA сборка
+  console.log('DEBUG: getEnv() called');
+  console.log('DEBUG: typeof process:', typeof process);
+  console.log('DEBUG: typeof window:', typeof window);
+  console.log('DEBUG: process.env.SERVER:', process.env?.SERVER);
+  console.log('DEBUG: process.env.CLIENT:', process.env?.CLIENT);
+  console.log(
+    'DEBUG: window.__ENV__:',
+    typeof window !== 'undefined' ? window.__ENV__ : 'window не определен',
+  );
 
-  if (typeof process !== 'undefined' && process.env) {
-    // Для SSR сервера - берем реальные переменные
-    // Для SPA - эти значения заменятся при сборке
-    return {
-      NODE_ENV: process.env.NODE_ENV as string,
-      BACKEND_URL: process.env.BACKEND_URL as string,
-      CHAIN_URL: process.env.CHAIN_URL as string,
-      CHAIN_ID: process.env.CHAIN_ID as string,
-      CURRENCY: process.env.CURRENCY as string,
-      COOP_SHORT_NAME: process.env.COOP_SHORT_NAME as string,
-      SITE_DESCRIPTION: process.env.SITE_DESCRIPTION as string,
-      SITE_IMAGE: process.env.SITE_IMAGE as string,
-      STORAGE_URL: process.env.STORAGE_URL as string,
-      UPLOAD_URL: process.env.UPLOAD_URL as string,
-      TIMEZONE: process.env.TIMEZONE || 'Europe/Moscow',
-      CLIENT: process.env.CLIENT as unknown as boolean,
-      SERVER: process.env.SERVER as unknown as boolean,
-      VUE_ROUTER_MODE: process.env.VUE_ROUTER_MODE as string,
-      VUE_ROUTER_BASE: process.env.VUE_ROUTER_BASE as string,
-      NOVU_APP_ID: process.env.NOVU_APP_ID as string,
-      NOVU_BACKEND_URL: process.env.NOVU_BACKEND_URL as string,
-      NOVU_SOCKET_URL: process.env.NOVU_SOCKET_URL as string,
-    };
+  // SSR клиент или PWA - сначала проверяем window.__ENV__
+  if (typeof window !== 'undefined' && window.__ENV__) {
+    console.log('DEBUG: Используем window.__ENV__');
+    return window.__ENV__;
   }
 
-  // SSR клиент - берем из window.__ENV__
-  if (typeof window !== 'undefined' && window.__ENV__) {
-    return window.__ENV__;
+  // SSR сервер или SPA сборка
+  if (typeof process !== 'undefined' && process.env) {
+    console.log('DEBUG: Используем process.env, создаем через createEnvObject');
+    return createEnvObject();
   }
 
   // Запасной вариант, если ничего не сработало
   console.warn('Не удалось получить переменные окружения!');
+  console.warn('DEBUG: Все проверки не сработали');
   return {} as EnvVars;
 }
 
