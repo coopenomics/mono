@@ -6,7 +6,7 @@ import { useCurrentUser } from 'src/entities/Session';
 import { useRegistratorStore } from 'src/entities/Registrator';
 import type { ITokens } from 'src/shared/lib/types/user';
 import { useInitWalletProcess } from 'src/processes/init-wallet';
-import type { Zeus } from '@coopenomics/sdk/index';
+import type { Zeus } from '@coopenomics/sdk';
 
 export function useLoginUser() {
   const globalStore = useGlobalStore();

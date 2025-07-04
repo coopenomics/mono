@@ -28,7 +28,7 @@ import { useRouter } from 'vue-router';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSystemStore } from 'src/entities/System/model';
 import type { IRoute } from 'src/entities/Desktop/model/types';
-import { Zeus } from '@coopenomics/sdk/index';
+import { Zeus } from '@coopenomics/sdk';
 
 const desktop = useDesktopStore();
 const router = useRouter();
