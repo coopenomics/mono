@@ -11,14 +11,12 @@
           @click='router.push({ name: "lostkey" })'
         ) потеряли ключ?
         q-btn(flat, size='sm', dense, @click='router.push({ name: "signup" })') нет аккаунта?
-    AlreadyRegistered.q-mt-lg(v-else)
 </template>
 <script lang="ts" setup>
 import { useSessionStore } from 'src/entities/Session';
 import { useCurrentUser } from 'src/entities/Session';
 import { SignIn } from 'src/widgets/Registrator/SignIn';
 import { computed } from 'vue';
-import { AlreadyRegistered } from 'src/widgets/Registrator/AlreadyRegistered';
 import { useRouter } from 'vue-router';
 import { useRegistratorStore } from 'src/entities/Registrator';
 const store = useRegistratorStore().state;

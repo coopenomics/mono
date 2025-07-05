@@ -6,23 +6,30 @@
 import { useCurrentUser } from 'src/entities/Session';
 import { useQuasar } from 'quasar';
 import { env } from 'src/shared/config';
-import { computed, onMounted, watch } from 'vue';
+import { NotifyAlert } from 'src/shared/api';
+import { computed, onMounted, onBeforeUnmount, watch, ref } from 'vue';
 
 const currentUser = useCurrentUser();
 const $q = useQuasar();
 const isDark = computed(() => $q.dark.isActive);
 
+let novuUI: any = null;
 let novu: any = null;
+const unsubscribeFunctions = ref<Array<() => void>>([]);
 
 async function mountNovu() {
   try {
+    // Отписываемся от предыдущих подписок при перемонтировании
+    unsubscribeFromNotifications();
+
     // Динамический импорт только на клиенте
     const { NovuUI } = await import('@novu/js/ui');
+    const { Novu } = await import('@novu/js');
     const { dark } = await import('@novu/js/themes');
 
     // Получаем данные подписчика из providerAccount
     const providerAccount = currentUser.providerAccount.value;
-    console.log('providerAccount: ', providerAccount);
+
     if (!providerAccount?.subscriber_id || !providerAccount?.subscriber_hash) {
       console.error(
         'Не удалось получить данные подписчика NOVU из providerAccount. Повторите попытку.',
@@ -31,23 +38,27 @@ async function mountNovu() {
     }
 
     const { subscriber_id, subscriber_hash } = providerAccount;
-    const el = document.getElementById('notification-inbox');
 
-    console.log('novuOptions:', {
+    // Создаем базовый экземпляр Novu для работы с API и событиями
+    novu = new Novu({
       applicationIdentifier: env.NOVU_APP_ID,
-      subscriberId: subscriber_id,
+      subscriber: subscriber_id,
       subscriberHash: subscriber_hash,
-      backendUrl: env.NOVU_BACKEND_URL,
+      apiUrl: env.NOVU_BACKEND_URL,
       socketUrl: env.NOVU_SOCKET_URL,
     });
 
+    const el = document.getElementById('notification-inbox');
     if (el) el.innerHTML = '';
-    novu = new NovuUI({
+
+    // Создаем экземпляр NovuUI и передаем в него экземпляр Novu
+    novuUI = new NovuUI({
+      novu: novu, // Передаем готовый экземпляр Novu
       options: {
         applicationIdentifier: env.NOVU_APP_ID,
-        subscriberId: subscriber_id,
+        subscriber: subscriber_id,
         subscriberHash: subscriber_hash,
-        backendUrl: env.NOVU_BACKEND_URL,
+        apiUrl: env.NOVU_BACKEND_URL,
         socketUrl: env.NOVU_SOCKET_URL,
       },
       appearance: {
@@ -83,20 +94,63 @@ async function mountNovu() {
         },
       },
     });
-    novu.mountComponent({
+
+    novuUI.mountComponent({
       name: 'Inbox',
       props: {},
       element: el as HTMLDivElement,
     });
+
+    // Подписываемся на события уведомлений через базовый экземпляр Novu
+    subscribeToNotifications();
   } catch (error) {
     console.error('Ошибка при монтировании NOVU:', error);
   }
+}
+
+function subscribeToNotifications() {
+  if (!novu) return;
+
+  // Подписываемся на получение новых уведомлений
+  const unsubscribeNotificationReceived = novu.on(
+    'notifications.notification_received',
+    (event: any) => {
+      console.log('🔔 Получено новое уведомление от NOVU:', event);
+      console.log('📄 Тело уведомления:', event.result);
+
+      const notification = event.result;
+
+      // Показываем всплывающее уведомление
+      NotifyAlert(
+        notification.subject || 'Новое уведомление',
+        notification.body || '',
+        notification.avatar,
+      );
+    },
+  );
+
+  // Сохраняем все функции отписки
+  unsubscribeFunctions.value = [unsubscribeNotificationReceived];
+}
+
+function unsubscribeFromNotifications() {
+  // Отписываемся от всех событий
+  unsubscribeFunctions.value.forEach((unsubscribe) => {
+    if (typeof unsubscribe === 'function') {
+      unsubscribe();
+    }
+  });
+  unsubscribeFunctions.value = [];
 }
 
 onMounted(() => {
   if (process.env.CLIENT) {
     mountNovu();
   }
+});
+
+onBeforeUnmount(() => {
+  unsubscribeFromNotifications();
 });
 
 watch(isDark, () => {

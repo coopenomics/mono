@@ -35,6 +35,7 @@ form.full-width(@submit.prevent='submit')
 </template>
 <script lang="ts" setup>
 import { useCurrentUser } from 'src/entities/Session';
+import { useSessionStore } from 'src/entities/Session';
 import { useLoginUser } from 'src/features/User/LoginUser';
 import { FailAlert } from 'src/shared/api';
 import { ref } from 'vue';
@@ -81,26 +82,41 @@ function navigateToSavedUrl() {
 
 const submit = async () => {
   loading.value = true;
+
+  // Включаем лоадер сразу в начале процесса входа
+  const desktops = useDesktopStore();
+  desktops.setWorkspaceChanging(true);
+
   try {
     const { login } = useLoginUser();
     await login(email.value, privateKey.value);
 
     if (!currentUser.isRegistrationComplete.value) {
+      // Если регистрация не завершена, выключаем лоадер и идем на signup
+      desktops.setWorkspaceChanging(false);
       router.push({ name: 'signup' });
     } else {
       // Пробуем перейти по сохраненному URL
       if (!navigateToSavedUrl()) {
         // Если сохраненного URL нет, переходим на страницу по умолчанию
-        const desktops = useDesktopStore();
         desktops.selectDefaultWorkspace();
         desktops.goToDefaultPage(router);
       }
+
+      // Проверяем, если данные уже загружены, выключаем лоадер
+      const session = useSessionStore();
+      if (session.loadComplete) {
+        desktops.setWorkspaceChanging(false);
+      }
+      // Иначе лоадер выключится в init-wallet после завершения инициализации
     }
 
     loading.value = false;
   } catch (e: any) {
     console.error(e);
     loading.value = false;
+    // Выключаем лоадер при ошибке
+    desktops.setWorkspaceChanging(false);
     FailAlert(e);
   }
 };

@@ -13,6 +13,7 @@ const path = require('path');
 
 module.exports = configure(function (ctx) {
   const isDev = ctx.dev;
+
   const isSPA = ctx.mode.spa;
   // Загружаем переменные окружения всегда в режиме разработки
   // или только для клиентской части в продакшн
@@ -172,9 +173,11 @@ module.exports = configure(function (ctx) {
       rootComponent: 'src/app/App.vue',
       router: 'src/app/providers/router',
       //   store: 'src/store/index',
-      registerServiceWorker: 'src-pwa/register-service-worker',
-      serviceWorker: 'src-pwa/custom-service-worker',
-      pwaManifestFile: 'src-pwa/manifest.json',
+      registerServiceWorker: isDev
+        ? undefined
+        : 'src-pwa/register-service-worker',
+      serviceWorker: isDev ? undefined : 'src-pwa/custom-service-worker',
+      pwaManifestFile: isDev ? undefined : 'src-pwa/manifest.json',
       //   electronMain: 'src-electron/electron-main',
       //   electronPreload: 'src-electron/electron-preload'
     },
@@ -187,7 +190,7 @@ module.exports = configure(function (ctx) {
       // extendSSRWebserverConf (esbuildConf) {},
       // extendPackageJson (json) {},
 
-      pwa: true,
+      pwa: !isDev, // Отключаем PWA в dev режиме
 
       // manualStoreHydration: true,
       // manualPostHydrationTrigger: true,
@@ -205,29 +208,31 @@ module.exports = configure(function (ctx) {
     },
 
     // https://v2.quasar.dev/quasar-cli-vite/developing-pwa/configuring-pwa
-    pwa: {
-      workboxMode: 'injectManifest', // or 'generateSW'
-      injectPwaMetaTags: true,
-      swFilename: 'sw.js',
-      manifestFilename: 'manifest.json',
-      useCredentialsForManifestTag: false,
-      // useFilenameHashes: true,
-      // extendGenerateSWOptions (cfg) {}
-      // extendInjectManifestOptions (cfg) {},
-      extendManifestJson(json) {
-        json.name = process.env.COOP_SHORT_NAME || 'Цифровой Кооператив';
-        json.short_name = process.env.COOP_SHORT_NAME || 'Кооператив';
-        json.description =
-          process.env.SITE_DESCRIPTION ||
-          'кооперативная экономика для сообществ и бизнеса';
-        json.start_url = '/';
-        json.display = 'standalone';
-        json.categories = ['business', 'finance', 'productivity'];
-        json.lang = 'ru';
-        json.dir = 'ltr';
-      },
-      // extendPWACustomSWConf (esbuildConf) {}
-    },
+    pwa: isDev
+      ? {}
+      : {
+          workboxMode: 'injectManifest', // or 'generateSW'
+          injectPwaMetaTags: true,
+          swFilename: 'sw.js',
+          manifestFilename: 'manifest.json',
+          useCredentialsForManifestTag: false,
+          // useFilenameHashes: true,
+          // extendGenerateSWOptions (cfg) {}
+          // extendInjectManifestOptions (cfg) {},
+          extendManifestJson(json) {
+            json.name = process.env.COOP_SHORT_NAME || 'Цифровой Кооператив';
+            json.short_name = process.env.COOP_SHORT_NAME || 'Кооператив';
+            json.description =
+              process.env.SITE_DESCRIPTION ||
+              'кооперативная экономика для сообществ и бизнеса';
+            json.start_url = '/';
+            json.display = 'standalone';
+            json.categories = ['business', 'finance', 'productivity'];
+            json.lang = 'ru';
+            json.dir = 'ltr';
+          },
+          // extendPWACustomSWConf (esbuildConf) {}
+        },
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/developing-cordova-apps/configuring-cordova
     cordova: {

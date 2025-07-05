@@ -27,6 +27,30 @@ export function setupNavigationGuard(router: Router) {
   router.beforeEach(async (to, from, next) => {
     await desktops.healthCheck();
 
+    // если требуется установка
+    if (desktops.health?.status === 'install' && to.name !== 'install') {
+      next({ name: 'install', params: { coopname: info.coopname } });
+      return;
+    }
+
+    // Если пользователь авторизован, но данные еще не загружены полностью
+    if (session.isAuth && !session.loadComplete) {
+      console.log('Waiting for user data to load...');
+
+      // Ждем завершения загрузки данных пользователя
+      let attempts = 0;
+      const maxAttempts = 50; // 5 секунд максимум
+
+      while (!session.loadComplete && attempts < maxAttempts) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        attempts++;
+      }
+
+      if (attempts >= maxAttempts) {
+        console.warn('User data loading timeout');
+      }
+    }
+
     // Определяем роль пользователя при каждом запросе
     let userRole: string | null = null;
     if (session.isAuth) {
@@ -38,13 +62,6 @@ export function setupNavigationGuard(router: Router) {
         userRole = 'user'; // Авторизованный пользователь без специальной роли
       }
     }
-
-    // если требуется установка
-    if (desktops.health?.status === 'install' && to.name !== 'install') {
-      next({ name: 'install', params: { coopname: info.coopname } });
-      return;
-    }
-
     // редирект с index
     if (to.name === 'index') {
       // Убеждаемся, что правильный рабочий стол выбран
@@ -55,9 +72,8 @@ export function setupNavigationGuard(router: Router) {
         }
 
         // Переходим на маршрут по умолчанию для выбранного рабочего стола
-        next();
         desktops.goToDefaultPage(router);
-
+        next(false); // Отменяем текущую навигацию, так как goToDefaultPage сама управляет переходом
         return;
       } else {
         // Если пользователь не авторизован, используем nonAuthorizedHome

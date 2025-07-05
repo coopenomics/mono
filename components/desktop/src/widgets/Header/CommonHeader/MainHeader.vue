@@ -16,7 +16,8 @@ q-header.header(bordered, :class='headerClass')
         v-if='!loggedIn && coopTitle',
         stretch,
         flat,
-        @click='emitToggleLeftDrawer'
+        @click='emitToggleLeftDrawer',
+        :size='isMobile ? "md" : "lg"'
       ) {{ coopTitle }}
 
     // Добавляем компонент уведомлений, если пользователь авторизован
@@ -86,12 +87,6 @@ const headerClass = computed(() =>
 );
 const currentUser = useCurrentUser();
 const loggedIn = computed(() => {
-  console.log(
-    'on loggedIn',
-    currentUser.isRegistrationComplete.value,
-    session.isAuth,
-    currentUser,
-  );
   return currentUser.isRegistrationComplete.value && session.isAuth;
 });
 
