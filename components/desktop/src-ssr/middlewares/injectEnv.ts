@@ -41,7 +41,7 @@ export default ssrMiddleware(({ app }) => {
 
     // Переопределяем метод, чтобы вставить наш скрипт перед закрывающим тегом </head>
     res.send = function (html) {
-      if (html && html.replace) {
+      if (typeof html === 'string') {
         html = html.replace('</head>', `${script}</head>`);
       }
       return originalSend.call(this, html);
