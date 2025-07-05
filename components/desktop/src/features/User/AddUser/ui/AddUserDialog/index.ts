@@ -1,1 +1,1 @@
-export {default as AddUserDialog} from './AddUserDialog.vue'
+export { default as AddUserDialog } from './AddUserDialog.vue';

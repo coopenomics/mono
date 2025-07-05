@@ -1,2 +1,3 @@
-export { useWindowSize } from './useWindowSize'
-export { useAgendaPoints } from './useAgendaPoints'
+export * from './useWindowSize';
+export * from './useAgendaPoints';
+export * from './useHeaderActions';

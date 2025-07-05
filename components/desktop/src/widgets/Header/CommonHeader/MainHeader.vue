@@ -11,6 +11,11 @@ q-header.header(bordered, :class='headerClass')
     )
     BackButton(v-if='loggedIn')
 
+    // Инжектированные кнопки действий в группе
+    q-btn-group.q-ml-sm(v-if='headerActions.length > 0', :stretch='isMobile')
+      template(v-for='action in headerActions', :key='action.id')
+        component(:is='action.component', v-bind='action.props')
+
     q-toolbar-title
       q-btn(
         v-if='!loggedIn && coopTitle',
@@ -58,7 +63,7 @@ import { useQuasar } from 'quasar';
 import { useCurrentUser } from 'src/entities/Session';
 import { useSessionStore } from 'src/entities/Session';
 import config from 'src/app/config';
-import { useWindowSize } from 'src/shared/hooks';
+import { useWindowSize, useHeaderActionsReader } from 'src/shared/hooks';
 import { SettingsDropdown } from 'src/widgets/Header/SettingsDropdown';
 import { BackButton } from 'src/widgets/Header/BackButton';
 import { NotificationCenter } from 'src/widgets/NotificationCenter';
@@ -71,6 +76,7 @@ const $q = useQuasar();
 const { info } = useSystemStore();
 const session = useSessionStore();
 const { isMobile } = useWindowSize();
+const { headerActions } = useHeaderActionsReader();
 const emit = defineEmits(['toggle-left-drawer']);
 
 // Получаем информацию для навигации назад

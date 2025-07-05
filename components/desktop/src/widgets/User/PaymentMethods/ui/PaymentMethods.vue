@@ -11,10 +11,6 @@
     .q-mb-lg
       p.text-body2 Указанные реквизиты используются при платежах от кооператива в пользу пайщика
 
-    // Кнопка добавления
-    .q-mb-lg
-      AddPaymentMethodButton.full-width.card-action-btn(:username='username')
-
     // Список способов оплаты
     .profile-section
       .info-content(v-if='wallet.methods && wallet.methods.length > 0')
@@ -85,7 +81,6 @@
 import { useWalletStore } from 'src/entities/Wallet';
 import { useSystemStore } from 'src/entities/System/model';
 import { computed } from 'vue';
-import { AddPaymentMethodButton } from 'src/features/PaymentMethod/AddPaymentMethod';
 import type {
   IBankTransferData,
   ISBPData,

@@ -13,22 +13,32 @@ q-card(flat)
     @vote-for='onVoteFor',
     @vote-against='onVoteAgainst'
   )
-    template(#top)
-      CreateProjectFreeDecisionButton
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, computed, ref } from 'vue';
+import { onBeforeUnmount, computed, ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useCurrentUser } from 'src/entities/Session';
-import { CreateProjectFreeDecisionButton } from 'src/features/Decision/CreateProject';
+import { CreateProjectButton } from 'src/features/Decision/CreateProject';
 import { useDecisionProcessor } from 'src/processes/process-decisions';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { QuestionsTable } from 'src/widgets/Questions';
+import { useHeaderActions } from 'src/shared/hooks';
 
 const route = useRoute();
 const currentUser = useCurrentUser();
 const processingDecisions = ref<Record<number, boolean>>({});
+
+// Инжектим кнопку создания решения в заголовок
+const { registerAction } = useHeaderActions();
+
+onMounted(() => {
+  registerAction({
+    id: 'create-project',
+    component: CreateProjectButton,
+    order: 1,
+  });
+});
 
 // Получаем процесс обработки решений
 const decisionProcessor = useDecisionProcessor();

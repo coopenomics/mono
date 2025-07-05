@@ -1,1 +1,2 @@
-export * from './AddUserDialog'
+export * from './AddUserButton';
+export * from './AddUserDialog';

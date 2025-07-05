@@ -1,1 +1,1 @@
-export {default as AddPaymentMethodButton } from './AddPaymentButton.vue'
+export { default as AddPaymentButton } from './AddPaymentButton.vue';
