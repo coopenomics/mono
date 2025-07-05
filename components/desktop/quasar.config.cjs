@@ -196,7 +196,7 @@ module.exports = configure(function (ctx) {
       // (gets superseded if process.env.PORT is specified at runtime)
 
       middlewares: [
-        'injectEnv', // middleware для инъекции process.env в window.__ENV__
+        'generateConfig', // middleware для генерации config.js с переменными окружения
         'render', // keep this as last one
       ],
 

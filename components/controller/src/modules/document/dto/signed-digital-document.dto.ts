@@ -83,7 +83,7 @@ export class SignedDigitalDocumentDTO implements ExtendedSignedDocumentDomainInt
   ): IndividualCertificateDTO | EntrepreneurCertificateDTO | OrganizationCertificateDTO | null {
     if (!cert) return null;
 
-    if ('inn' in cert && 'ogrn' in cert && 'name' in cert) {
+    if ('inn' in cert && 'ogrn' in cert && 'short_name' in cert) {
       // Organization
       return new OrganizationCertificateDTO({
         type: cert.type,
