@@ -216,9 +216,22 @@ module.exports = configure(function (ctx) {
           swFilename: 'sw.js',
           manifestFilename: 'manifest.json',
           useCredentialsForManifestTag: false,
-          // useFilenameHashes: true,
+          // Отключаем использование хешей в именах файлов для лучшей совместимости
+          useFilenameHashes: false,
           // extendGenerateSWOptions (cfg) {}
-          // extendInjectManifestOptions (cfg) {},
+          extendInjectManifestOptions(cfg) {
+            // Добавляем дополнительные настройки для Workbox
+            cfg.exclude = cfg.exclude || [];
+            cfg.exclude.push(
+              /\.map$/,
+              /^.*\/config\.js$/,
+              /^.*\/config\.default\.js$/,
+            );
+
+            // Настройки для лучшей обработки обновлений
+            cfg.skipWaiting = false; // Управляем этим в custom service worker
+            cfg.clientsClaim = false; // Управляем этим в custom service worker
+          },
           extendManifestJson(json) {
             json.name = process.env.COOP_SHORT_NAME || 'Цифровой Кооператив';
             json.short_name = process.env.COOP_SHORT_NAME || 'Кооператив';
@@ -230,6 +243,9 @@ module.exports = configure(function (ctx) {
             json.categories = ['business', 'finance', 'productivity'];
             json.lang = 'ru';
             json.dir = 'ltr';
+            // Добавляем дополнительные настройки для лучшей работы PWA
+            json.orientation = 'portrait-primary';
+            json.prefer_related_applications = false;
           },
           // extendPWACustomSWConf (esbuildConf) {}
         },

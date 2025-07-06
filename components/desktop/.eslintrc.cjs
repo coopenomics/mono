@@ -82,6 +82,16 @@ module.exports = {
     // does not work with type definitions
     'no-unused-vars': 'off',
 
+    // Allow unused variables that start with underscore
+    '@typescript-eslint/no-unused-vars': [
+      'warn',
+      {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_',
+      },
+    ],
+
     '@typescript-eslint/no-explicit-any': 'off',
 
     // allow debugger during development only

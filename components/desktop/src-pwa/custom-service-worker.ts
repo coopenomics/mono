@@ -1,3 +1,5 @@
+/// <reference lib="webworker" />
+
 /*
  * This file (which will be your service worker)
  * is picked up by the build system ONLY if
@@ -5,7 +7,9 @@
  */
 
 declare const self: ServiceWorkerGlobalScope &
-  typeof globalThis & { skipWaiting: () => void };
+  typeof globalThis & {
+    skipWaiting: () => void;
+  };
 
 import { clientsClaim } from 'workbox-core';
 import {
@@ -16,28 +20,76 @@ import {
 import { registerRoute, NavigationRoute } from 'workbox-routing';
 import { NetworkFirst } from 'workbox-strategies';
 
-self.skipWaiting();
-clientsClaim();
+// Обработка сообщений от клиентов
+self.addEventListener('message', (event) => {
+  console.log('SW: Received message:', event.data);
 
-// Use with precache injection
-precacheAndRoute(self.__WB_MANIFEST);
+  if (event.data?.type === 'SKIP_WAITING') {
+    console.log('SW: Received SKIP_WAITING command');
+    self.skipWaiting();
+  }
+});
 
-cleanupOutdatedCaches();
+// Обработка установки SW
+self.addEventListener('install', (event) => {
+  console.log('SW: Installing new service worker');
+  // Пропускаем waiting phase только после завершения всех операций
+  event.waitUntil(
+    Promise.all([
+      // Убеждаемся что precaching завершен
+      new Promise((resolve) => {
+        precacheAndRoute(self.__WB_MANIFEST);
+        resolve(void 0);
+      }),
+      cleanupOutdatedCaches(),
+    ]).then(() => {
+      console.log('SW: Installation complete, calling skipWaiting');
+      self.skipWaiting();
+    }),
+  );
+});
 
-// Специальные маршруты для конфигурационных файлов - всегда загружать с сервера
+// Обработка активации SW
+self.addEventListener('activate', (event) => {
+  console.log('SW: Activating new service worker');
+  event.waitUntil(
+    Promise.all([
+      clientsClaim(),
+      // Уведомляем всех клиентов об обновлении
+      self.clients.matchAll().then((clients) => {
+        clients.forEach((client) => {
+          client.postMessage({
+            type: 'SW_UPDATED',
+            payload: { timestamp: Date.now() },
+          });
+        });
+      }),
+    ]).then(() => {
+      console.log('SW: Activation complete');
+    }),
+  );
+});
+
+// Стратегия для конфигурационных файлов - всегда с сервера, но с fallback
 registerRoute(
   ({ url }) =>
     url.pathname === '/config.js' || url.pathname === '/config.default.js',
   new NetworkFirst({
     cacheName: 'config-cache',
-    networkTimeoutSeconds: 3,
+    networkTimeoutSeconds: 2, // Сокращаем таймаут до 2 секунд
     plugins: [
       {
         cacheKeyWillBeUsed: async ({ request }) => {
-          // Добавляем timestamp чтобы избежать кэширования
-          const url = new URL(request.url);
-          url.searchParams.set('t', Date.now().toString());
-          return url.toString();
+          // Добавляем timestamp только для запросов с сервера
+          if (
+            request.mode === 'navigate' ||
+            request.destination === 'document'
+          ) {
+            const url = new URL(request.url);
+            url.searchParams.set('t', Date.now().toString());
+            return url.toString();
+          }
+          return request.url;
         },
       },
     ],
