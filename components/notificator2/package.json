@@ -1,6 +1,6 @@
 {
   "name": "@coopenomics/notificator2",
-  "version": "2025.7.6",
+  "version": "2025.7.6-1",
   "description": "NestJS application for managing Novu workflows and push notifications",
   "main": "dist/index.js",
   "scripts": {
