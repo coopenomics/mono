@@ -1,7 +1,7 @@
 {
   "name": "coop-notificator",
   "type": "module",
-  "version": "2025.7.5",
+  "version": "2025.7.6",
   "private": true,
   "packageManager": "pnpm@9.1.1",
   "description": "_description_",
