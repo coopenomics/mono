@@ -7,6 +7,7 @@ q-layout(view='lHh LpR fff')
     v-model='leftDrawerOpen',
     side='left',
     bordered,
+    persistent,
     :width='200'
   )
     LeftDrawerMenu

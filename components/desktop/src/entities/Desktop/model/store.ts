@@ -26,6 +26,7 @@ export const useDesktopStore = defineStore(namespace, () => {
   const health = ref<IHealthResponse>();
   const online = ref<boolean>();
   const isWorkspaceChanging = ref<boolean>(false);
+  const leftDrawerOpen = ref<boolean>(true);
 
   async function loadDesktop(): Promise<void> {
     const newDesktop = await api.getDesktop();
@@ -190,13 +191,32 @@ export const useDesktopStore = defineStore(namespace, () => {
     isWorkspaceChanging.value = value;
   }
 
-  // Новый метод: перейти на маршрут по умолчанию для текущего рабочего стола
-  function goToDefaultPage(router: Router): void {
+  // Методы для управления левым drawer
+  function toggleLeftDrawer() {
+    leftDrawerOpen.value = !leftDrawerOpen.value;
+  }
+
+  function setLeftDrawerOpen(value: boolean) {
+    leftDrawerOpen.value = value;
+  }
+
+  function closeLeftDrawerOnMobile() {
+    // Проверяем, является ли устройство мобильным
+    const isMobile = window.innerWidth < 768;
+    if (isMobile) {
+      leftDrawerOpen.value = false;
+    }
+  }
+
+  // Новый метод: получить данные маршрута по умолчанию без выполнения перехода
+  function getDefaultPageRoute(): {
+    name: string;
+    params: Record<string, any>;
+  } | null {
     const { info } = useSystemStore();
-    console.log('on go. to default workspace');
+
     if (!currentDesktop.value || !activeWorkspaceName.value) {
-      isWorkspaceChanging.value = false;
-      return;
+      return null;
     }
 
     // Найти текущий рабочий стол
@@ -205,22 +225,15 @@ export const useDesktopStore = defineStore(namespace, () => {
     );
 
     if (!currentWorkspace) {
-      isWorkspaceChanging.value = false;
-      return;
+      return null;
     }
 
     // Проверяем наличие defaultRoute
     if ((currentWorkspace as any).defaultRoute) {
-      // Если есть defaultRoute, переходим на него
-      router.push({
+      return {
         name: (currentWorkspace as any).defaultRoute,
         params: { coopname: info.coopname },
-      });
-      // Устанавливаем небольшую задержку для плавного перехода
-      setTimeout(() => {
-        isWorkspaceChanging.value = false;
-      }, 500);
-      return;
+      };
     }
 
     // Если нет defaultRoute, ищем первый маршрут в детях основного маршрута
@@ -234,15 +247,29 @@ export const useDesktopStore = defineStore(namespace, () => {
       ws.mainRoute.children.length > 0
     ) {
       const firstChild = ws.mainRoute.children[0];
-      router.push({
+      return {
         name: firstChild.name as string,
         params: { coopname: info.coopname },
-      });
+      };
+    }
+
+    return null;
+  }
+
+  // Новый метод: перейти на маршрут по умолчанию для текущего рабочего стола
+  function goToDefaultPage(router: Router): void {
+    // Используем новую функцию для получения данных маршрута
+    const defaultPageRoute = getDefaultPageRoute();
+
+    if (defaultPageRoute) {
+      // Если маршрут найден, выполняем переход
+      router.push(defaultPageRoute);
       // Устанавливаем небольшую задержку для плавного перехода
       setTimeout(() => {
         isWorkspaceChanging.value = false;
       }, 500);
     } else {
+      // Если маршрут не найден, просто сбрасываем состояние загрузки
       isWorkspaceChanging.value = false;
     }
   }
@@ -252,6 +279,7 @@ export const useDesktopStore = defineStore(namespace, () => {
     health,
     online,
     isWorkspaceChanging,
+    leftDrawerOpen,
     loadDesktop,
     healthCheck,
     setRoutes,
@@ -262,8 +290,12 @@ export const useDesktopStore = defineStore(namespace, () => {
     activeSecondLevelRoutes,
     registerWorkspaceMenus,
     removeWorkspace,
+    getDefaultPageRoute,
     goToDefaultPage,
     setWorkspaceChanging,
+    toggleLeftDrawer,
+    setLeftDrawerOpen,
+    closeLeftDrawerOnMobile,
     // Новые методы
     setBackNavigationButton,
     removeBackNavigationButton,

@@ -71,9 +71,14 @@ export function setupNavigationGuard(router: Router) {
           desktops.selectDefaultWorkspace();
         }
 
-        // Переходим на маршрут по умолчанию для выбранного рабочего стола
-        desktops.goToDefaultPage(router);
-        next(false); // Отменяем текущую навигацию, так как goToDefaultPage сама управляет переходом
+        // Получаем данные маршрута по умолчанию для выбранного рабочего стола
+        const defaultPageRoute = desktops.getDefaultPageRoute();
+        if (defaultPageRoute) {
+          next(defaultPageRoute);
+        } else {
+          // Если не удалось определить маршрут, используем fallback
+          next({ name: 'somethingBad' });
+        }
         return;
       } else {
         // Если пользователь не авторизован, используем nonAuthorizedHome

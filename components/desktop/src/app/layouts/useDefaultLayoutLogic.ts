@@ -1,4 +1,4 @@
-import { computed, ref, onMounted, watch } from 'vue';
+import { computed, onMounted, watch } from 'vue';
 import { useQuasar } from 'quasar';
 import { useRoute } from 'vue-router';
 import { useWindowSize } from 'vue-window-size';
@@ -6,6 +6,7 @@ import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import { useCurrentUser } from 'src/entities/Session';
 import { useCooperativeStore } from 'src/entities/Cooperative';
+import { useDesktopStore } from 'src/entities/Desktop/model';
 
 export function useDefaultLayoutLogic() {
   const $q = useQuasar();
@@ -15,10 +16,16 @@ export function useDefaultLayoutLogic() {
   const currentUser = useCurrentUser();
   const cooperativeStore = useCooperativeStore();
   const system = useSystemStore();
+  const desktop = useDesktopStore();
 
   cooperativeStore.loadContacts();
 
-  const leftDrawerOpen = ref(true);
+  // Теперь используем состояние из desktop store
+  const leftDrawerOpen = computed({
+    get: () => desktop.leftDrawerOpen,
+    set: (value: boolean) => desktop.setLeftDrawerOpen(value),
+  });
+
   const isMobile = computed(() => width.value < 768);
   const isDark = computed(() => $q.dark.isActive);
   const headerClass = computed(() =>
@@ -46,16 +53,16 @@ export function useDefaultLayoutLogic() {
 
   onMounted(() => {
     if (isMobile.value || !loggedIn.value) {
-      leftDrawerOpen.value = false;
+      desktop.setLeftDrawerOpen(false);
     }
   });
 
   watch(loggedIn, (v) => {
-    leftDrawerOpen.value = v;
+    desktop.setLeftDrawerOpen(v);
   });
 
   const toggleLeftDrawer = () => {
-    leftDrawerOpen.value = !leftDrawerOpen.value;
+    desktop.toggleLeftDrawer();
   };
 
   return {

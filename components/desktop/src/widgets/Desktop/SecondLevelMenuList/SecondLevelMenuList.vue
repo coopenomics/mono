@@ -97,6 +97,9 @@ const navigate = (routeToNavigate: IRoute) => {
     name: routeToNavigate.name,
     params: { coopname: info.coopname },
   });
+
+  // Закрываем drawer в мобильной версии после навигации
+  desktop.closeLeftDrawerOnMobile();
 };
 
 // Ключ для принудительного перерендера при смене маршрутов
