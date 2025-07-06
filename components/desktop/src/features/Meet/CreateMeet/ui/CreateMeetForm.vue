@@ -149,7 +149,7 @@ q-dialog(
 </template>
 
 <script setup lang="ts">
-import { reactive, computed, onMounted } from 'vue';
+import { reactive, computed } from 'vue';
 import { useAgendaPoints } from 'src/shared/hooks/useAgendaPoints';
 import {
   getCurrentLocalDateForForm,
@@ -169,11 +169,6 @@ const props = defineProps<{
   isChairman: boolean;
 }>();
 
-// Отладочная информация при монтировании
-onMounted(() => {
-  console.log('CreateMeetForm mounted, isChairman:', props.isChairman);
-});
-
 const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void;
   (e: 'create', data: any): void;
@@ -183,12 +178,6 @@ const emit = defineEmits<{
 const timezoneLabel = getTimezoneLabel();
 const session = useSessionStore();
 const system = useSystemStore();
-
-// Делаем isChairman доступным в шаблоне напрямую для отладки
-const isChairman = computed(() => {
-  console.log('Вычисляемое свойство isChairman:', props.isChairman);
-  return props.isChairman;
-});
 
 // Опции для выбора типа собрания в зависимости от роли
 const meetTypeOptions = computed(() => {

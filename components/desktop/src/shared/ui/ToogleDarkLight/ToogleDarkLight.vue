@@ -1,5 +1,17 @@
 <template lang="pug">
-q-item(flat, clickable, @click='toggleTheme')
+// Вариант для хедера (кнопка)
+q-btn(
+  v-if='asButton',
+  flat,
+  stretch,
+  :icon='isDark ? "brightness_7" : "brightness_3"',
+  @click='toggleTheme',
+  :size='isMobile ? "sm" : "md"'
+)
+  q-tooltip {{ isDark ? 'Светлая тема' : 'Темная тема' }}
+
+// Вариант для списка (элемент списка)
+q-item(v-else, flat, clickable, @click='toggleTheme')
   q-item-section
     q-item-label
       q-icon.q-mr-sm(:name='isDark ? "brightness_7" : "brightness_3"')
@@ -20,6 +32,11 @@ defineProps({
     required: false,
   },
   showText: {
+    type: Boolean,
+    default: false,
+    required: false,
+  },
+  asButton: {
     type: Boolean,
     default: false,
     required: false,

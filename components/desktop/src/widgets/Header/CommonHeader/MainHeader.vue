@@ -28,11 +28,8 @@ q-header.header(bordered, :class='headerClass')
     // Добавляем компонент уведомлений, если пользователь авторизован
     NotificationCenter(v-if='loggedIn && isClient')
 
-    SettingsDropdown(
-      :isMobile='isMobile',
-      :isChairman='isChairman',
-      :isMember='isMember'
-    )
+    // Компонент переключения темы без текста
+    ToogleDarkLight(:isMobile='isMobile', :showText='false', :asButton='true')
 
     template(v-if='!loggedIn')
       q-btn(
@@ -64,7 +61,7 @@ import { useCurrentUser } from 'src/entities/Session';
 import { useSessionStore } from 'src/entities/Session';
 import config from 'src/app/config';
 import { useWindowSize, useHeaderActionsReader } from 'src/shared/hooks';
-import { SettingsDropdown } from 'src/widgets/Header/SettingsDropdown';
+import { ToogleDarkLight } from 'src/shared/ui/ToogleDarkLight';
 import { BackButton } from 'src/widgets/Header/BackButton';
 import { NotificationCenter } from 'src/widgets/NotificationCenter';
 import './HeaderStyles.scss';
@@ -95,9 +92,6 @@ const currentUser = useCurrentUser();
 const loggedIn = computed(() => {
   return currentUser.isRegistrationComplete.value && session.isAuth;
 });
-
-const isChairman = computed(() => currentUser.isChairman);
-const isMember = computed(() => currentUser.isMember);
 
 const showRegisterButton = computed(() => {
   if (!loggedIn.value) {

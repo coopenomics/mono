@@ -88,7 +88,20 @@ const filteredRoutes = computed<IRoute[]>(() => {
 
 // Проверка активного маршрута
 const isActive = (routeToCheck: IRoute) => {
-  return router.currentRoute.value.name === routeToCheck.name;
+  const currentRoute = router.currentRoute.value;
+
+  // Прямое совпадение имени маршрута
+  if (currentRoute.name === routeToCheck.name) {
+    return true;
+  }
+
+  // Проверка для родительских маршрутов с дочерними
+  // Если текущий маршрут является дочерним для проверяемого маршрута
+  const matchedRoutes = currentRoute.matched;
+
+  return matchedRoutes.some(
+    (matchedRoute) => matchedRoute.name === routeToCheck.name,
+  );
 };
 
 // Навигация при клике

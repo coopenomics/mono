@@ -8,18 +8,7 @@ import { RouteRecordRaw } from 'vue-router';
 import { InstallCooperativePage } from 'src/pages/Union/InstallCooperative';
 import { LostKeyPage } from 'src/pages/Registrator/LostKey/ui';
 import { ResetKeyPage } from 'src/pages/Registrator/ResetKey';
-import CooperativeSettingsPage from 'src/pages/Cooperative/SettingsPage/CooperativeSettingsPage.vue';
-import { AccumulationFunds, ExpenseFunds } from 'src/widgets/Cooperative/Funds';
-import { ChangeRegisterPaymentsPage } from 'src/pages/Cooperative/ChangeRegisterPayments';
-import { ChangeCooperativeContacts } from 'src/pages/Cooperative/ChangeContacts';
-import { MembersPage } from 'src/pages/Cooperative/MembersPage';
-import { InstalledExtensions } from 'src/pages/ExtensionStore/InstalledExtensions';
-import { ExtensionsShowcase } from 'src/pages/ExtensionStore/ExtensionsShowcase';
-import { ExtensionPage } from 'src/pages/ExtensionStore/ExtensionPage';
-import { MemberBranchList } from 'src/pages/Cooperative/MemberBranchList';
-import { ExtensionStoreBase } from 'src/pages/ExtensionStore/BaseRoute';
-import { LoginRedirectPage } from 'src/features/User/LoginRedirect'
-
+import { LoginRedirectPage } from 'src/features/User/LoginRedirect';
 
 const baseRoutes = [
   {
@@ -80,93 +69,8 @@ const baseRoutes = [
           layout: 'default',
           title: 'Вход для доступа к содержимому',
           icon: 'fa-solid fa-lock',
-          roles: []
+          roles: [],
         },
-      },
-      {
-        path: 'settings/cooperative',
-        name: 'cooperative-settings',
-        component: CooperativeSettingsPage,
-        children: [
-          {
-            path: 'accumulation-funds',
-            name: 'accumulation-funds',
-            component: AccumulationFunds,
-            children: [],
-          },
-          {
-            path: 'branches',
-            name: 'branches',
-            component: MemberBranchList,
-            children: [],
-          },
-          {
-            path: 'expense-funds',
-            name: 'expense-funds',
-            component: ExpenseFunds,
-            children: [],
-          },
-          {
-            path: 'expense-funds',
-            name: 'expense-funds',
-            component: ExpenseFunds,
-            children: [],
-          },
-          {
-            path: 'initial-contributions',
-            name: 'initial-contributions',
-            component: ChangeRegisterPaymentsPage,
-            children: [],
-          },
-          {
-            path: 'change-contacts',
-            name: 'change-contacts',
-            component: ChangeCooperativeContacts,
-            children: [],
-          },
-          {
-            path: 'members',
-            name: 'members',
-            component: MembersPage,
-            children: [],
-          },
-        ],
-      },
-      {
-        path: 'extensions',
-        name: 'extstore',
-        component: ExtensionStoreBase,
-        children: [
-          {
-            path: 'showcase',
-            name: 'extstore-showcase',
-            component: ExtensionsShowcase,
-            children: [],
-          },
-          {
-            path: 'installed',
-            name: 'appstore-installed',
-            component: InstalledExtensions,
-            children: [],
-          },
-          {
-            path: 'extension/:name',
-            name: 'one-extension',
-            component: ExtensionPage,
-            children: [
-              {
-                path: 'settings',
-                name: 'extension-settings',
-                component: ExtensionPage,
-              },
-              {
-                path: 'install',
-                name: 'extension-install',
-                component: ExtensionPage,
-              }
-            ],
-          },
-        ],
       },
       {
         path: '/:pathMatch(.*)*',
@@ -259,7 +163,6 @@ const baseRoutes = [
 //         component: SignUpPage,
 //         children: [],
 //       },
-
 
 //       {
 //         path: '/something-bad',
