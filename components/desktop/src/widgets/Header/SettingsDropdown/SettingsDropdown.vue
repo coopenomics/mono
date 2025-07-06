@@ -32,17 +32,8 @@ q-btn-dropdown(
         q-item-label
           q-icon.q-mr-sm(name='fa-solid fa-plus')
           span.font10px МАГАЗИН РАСШИРЕНИЙ
-    hr(v-if='loggedIn')
-
-    q-item(v-if='loggedIn', flat, clickable, v-close-popup, @click='logout')
-      q-item-section
-        q-item-label
-          q-icon.q-mr-sm(name='logout')
-          span.font10px ВЫЙТИ
 </template>
 <script lang="ts" setup>
-import { useLogoutUser } from 'src/features/User/Logout';
-import { FailAlert } from 'src/shared/api';
 import { useRouter } from 'vue-router';
 import { ToogleDarkLight } from '../../../shared/ui/ToogleDarkLight';
 import { useCurrentUser } from 'src/entities/Session';
@@ -73,17 +64,6 @@ defineProps({
 const router = useRouter();
 const open = (name: string) => {
   router.push({ name });
-};
-
-const logout = async () => {
-  const { logout } = useLogoutUser();
-
-  try {
-    await logout();
-    router.push({ name: 'signin' });
-  } catch (e: any) {
-    FailAlert('Ошибка при выходе: ' + e.message);
-  }
 };
 </script>
 

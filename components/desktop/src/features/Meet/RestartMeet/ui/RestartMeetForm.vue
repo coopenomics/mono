@@ -2,97 +2,107 @@
 q-dialog(
   :model-value='modelValue',
   @update:model-value='$emit("update:modelValue", $event)',
-  persistent
+  persistent,
+  :maximized='true'
 )
-  q-card(style='min-width: 500px')
-    q-card-section.row.items-center
-      .text-h6 Перезапустить собрание
-      q-space
-      q-btn(
-        icon='close',
-        flat,
-        round,
-        dense,
-        v-close-popup,
-        @click='$emit("update:modelValue", false)'
-      )
-    q-card-section
-      q-form(@submit='handleSubmit')
-        .text-subtitle1.q-mb-sm Выберите новые даты и ответственных для собрания
-
-        UserSearchSelector.q-mb-md(
-          v-model='formData.new_presider',
-          label='Председатель собрания',
-          :rules='[(val) => !!val || "Обязательное поле"]',
-          dense
-        )
-
-        UserSearchSelector.q-mb-md(
-          v-model='formData.new_secretary',
-          label='Секретарь собрания',
-          :rules='[(val) => !!val || "Обязательное поле"]',
-          dense
-        )
-
-        q-input.q-mb-md(
-          v-model='formData.new_open_at',
-          :label='env.NODE_ENV === "development" ? `Новая дата и время открытия (мин. через 1 минуту, ${timezoneLabel})` : `Новая дата и время открытия (мин. через 15 дней, ${timezoneLabel})`',
-          type='datetime-local',
-          :rules='[(val) => !!val || "Обязательное поле"]',
-          dense
-        )
-        q-input.q-mb-md(
-          v-model='formData.new_close_at',
-          :label='`Новая дата и время закрытия (${timezoneLabel})`',
-          type='datetime-local',
-          :rules='[(val) => !!val || "Обязательное поле"]',
-          dense
-        )
-
-        .text-subtitle1.q-mb-sm При перезапуске собрания будут использованы существующие пункты повестки:
-
-        q-card.q-pa-xs.q-my-sm.rounded-borders.bg-grey-1(
-          bordered,
+  q-card
+    div
+      q-bar.bg-gradient-dark.text-white
+        span Перезапустить собрание
+        q-space
+        q-btn(
+          v-close-popup,
+          dense,
           flat,
-          v-if='meetStore.currentMeet?.processing?.questions?.length'
+          icon='close',
+          @click='$emit("update:modelValue", false)'
         )
-          .q-mb-xs.flex.items-start.q-mb-lg.q-pa-xs(
-            v-for='(question, index) in meetStore.currentMeet.processing.questions',
-            :key='index'
-          )
-            AgendaNumberAvatar.q-mr-xs(:number='index + 1', size='22px')
-            .col
-              .text-body2.text-weight-medium.q-mb-2 {{ question.title }}
-              .text-caption.q-mb-1.q-mt-md
-                span.text-weight-bold.text-black Проект решения:
-                span.text-black.q-ml-xs {{ question.decision }}
-              .text-caption.q-mt-md
-                span.text-weight-bold.text-black Приложения:
-                span.text-black.q-ml-xs(
-                  v-if='question.context',
-                  v-html='parseLinks(question.context)'
-                )
-                span.text-black(v-else) —
+          q-tooltip Закрыть
 
-        .q-pa-sm.q-my-sm.bg-red-1.text-red-8.rounded-borders(v-else)
-          .text-center Вопросы повестки не найдены
+      .q-pa-sm.row.justify-center
+        .q-pa-md(style='max-width: 800px; width: 100%')
+          .text-caption.text-grey.q-mt-md При перезапуске собрания будут использованы существующие пункты повестки.
+            |
+            | Собрание будет назначено на новые даты с новыми ответственными лицами.
 
-    q-card-actions(align='right')
-      q-btn(
-        flat,
-        label='Отмена',
-        v-close-popup,
-        @click='$emit("update:modelValue", false)',
-        :disable='loading'
-      )
-      q-btn(
-        color='primary',
-        label='Перезапустить',
-        type='submit',
-        @click='handleSubmit',
-        :loading='loading',
-        :disable='!meetStore.currentMeet?.processing?.questions?.length'
-      )
+          q-form.q-mt-md(@submit='handleSubmit')
+            .text-subtitle1.q-mb-sm Выберите новые даты и ответственных для собрания
+
+            UserSearchSelector.q-mb-md(
+              v-model='formData.new_presider',
+              label='Председатель собрания',
+              :rules='[(val) => !!val || "Обязательное поле"]',
+              dense,
+              standout='bg-teal text-white'
+            )
+
+            UserSearchSelector.q-mb-md(
+              v-model='formData.new_secretary',
+              label='Секретарь собрания',
+              :rules='[(val) => !!val || "Обязательное поле"]',
+              dense,
+              standout='bg-teal text-white'
+            )
+
+            q-input.q-mb-md(
+              v-model='formData.new_open_at',
+              :label='env.NODE_ENV === "development" ? `Новая дата и время открытия (мин. через 1 минуту, ${timezoneLabel})` : `Новая дата и время открытия (мин. через 15 дней, ${timezoneLabel})`',
+              type='datetime-local',
+              :rules='[(val) => !!val || "Обязательное поле"]',
+              dense,
+              standout='bg-teal text-white'
+            )
+
+            q-input.q-mb-md(
+              v-model='formData.new_close_at',
+              :label='`Новая дата и время закрытия (${timezoneLabel})`',
+              type='datetime-local',
+              :rules='[(val) => !!val || "Обязательное поле"]',
+              dense,
+              standout='bg-teal text-white'
+            )
+
+            .text-subtitle1.q-mb-sm Пункты повестки для перезапуска:
+
+            q-card.q-pa-xs.q-my-sm.rounded-borders(
+              flat,
+              v-if='meetStore.currentMeet?.processing?.questions?.length'
+            )
+              .q-mb-xs.flex.items-start.q-mb-lg.q-pa-xs(
+                v-for='(question, index) in meetStore.currentMeet.processing.questions',
+                :key='index'
+              )
+                AgendaNumberAvatar.q-mr-sm(:number='index + 1', size='22px')
+                .col
+                  .text-body2.text-weight-medium.q-mb-2 {{ question.title }}
+                  .text-caption.q-mb-1.q-mt-md
+                    span.text-weight-bold.text-black Проект решения:
+                    span.text-black.q-ml-xs {{ question.decision }}
+                  .text-caption.q-mt-md
+                    span.text-weight-bold.text-black Приложения:
+                    span.text-black.q-ml-xs(
+                      v-if='question.context',
+                      v-html='parseLinks(question.context)'
+                    )
+                    span.text-black(v-else) —
+
+            .q-pa-sm.q-my-sm.bg-red-1.text-red-8.rounded-borders(v-else)
+              .text-center Вопросы повестки не найдены
+
+          .q-mt-lg
+            q-btn(
+              flat,
+              label='Отмена',
+              @click='$emit("update:modelValue", false)',
+              :disable='loading'
+            )
+            q-btn.q-ml-sm(
+              color='primary',
+              label='Перезапустить',
+              @click='handleSubmit',
+              :loading='loading',
+              :disable='!meetStore.currentMeet?.processing?.questions?.length'
+            )
 </template>
 
 <script setup lang="ts">

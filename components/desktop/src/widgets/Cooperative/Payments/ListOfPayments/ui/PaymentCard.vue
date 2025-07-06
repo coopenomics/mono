@@ -23,30 +23,22 @@
     q-slide-transition
       div(v-show='expanded')
         q-separator
+
+        // Блок с действиями в самом верху разворота
+        q-card-section.actions-section(
+          v-if='!hideActions && hasAvailableActions'
+        )
+          .row.justify-center
+            SetOrderPaidStatusButton(
+              v-if='payment.id && ["PENDING", "FAILED", "EXPIRED"].includes(payment.status)',
+              :id='payment.id'
+            )
+
         q-card-section
           PaymentDetails(:payment='payment')
 
-  .card-actions-external
-    q-btn-dropdown(
-      v-if='!hideActions && payment.can_change_status',
-      dense,
-      size='sm',
-      label='Действия',
-      color='primary',
-      flat,
-      @click.stop
-    )
-      q-list(dense)
-        SetOrderPaidStatusButton(
-          v-if='payment.id && [Zeus.PaymentStatus.PENDING, Zeus.PaymentStatus.FAILED].includes(payment.status)',
-          :id='payment.id',
-          @close='$emit("close-dropdown")'
-        )
-        SetOrderRefundedStatusButton(
-          v-if='payment.id && [Zeus.PaymentStatus.PAID, Zeus.PaymentStatus.COMPLETED].includes(payment.status)',
-          :id='payment.id',
-          @close='$emit("close-dropdown")'
-        )
+  // Только кнопка разворота снаружи
+  .expand-button-external
     q-btn(
       flat,
       dense,
@@ -59,9 +51,9 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 import { useQuasar } from 'quasar';
 import { SetOrderPaidStatusButton } from 'src/features/Payment/SetStatus/ui/SetOrderPaidStatusButton';
-import { SetOrderRefundedStatusButton } from 'src/features/Payment/SetStatus/ui/SetOrderRefundedStatusButton';
 import { getShortNameFromCertificate } from 'src/shared/lib/utils/getNameFromCertificate';
 import 'src/shared/ui/CardStyles/index.scss';
 import { PaymentDetails } from 'src/shared/ui';
@@ -70,13 +62,18 @@ import { Zeus } from '@coopenomics/sdk';
 
 const $q = useQuasar();
 
-defineProps<{
+const props = defineProps<{
   payment: IPayment;
   expanded?: boolean;
   hideActions?: boolean;
 }>();
 
 defineEmits(['toggle-expand', 'close-dropdown']);
+
+// Проверяем наличие доступных действий (аналогично логике в таблице)
+const hasAvailableActions = computed(() => {
+  return ['EXPIRED', 'PENDING', 'FAILED'].includes(props.payment.status || '');
+});
 
 const getDirectionIcon = (direction?: string | null) => {
   return direction === Zeus.PaymentDirection.INCOMING
@@ -156,11 +153,15 @@ const getStatusColor = (status?: string | null) => {
   margin-top: 4px;
 }
 
-.card-actions-external {
+.expand-button-external {
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 4px;
-  gap: 8px;
+}
+
+.actions-section {
+  padding: 12px 16px !important;
+  background-color: rgba(0, 0, 0, 0.02);
 }
 </style>

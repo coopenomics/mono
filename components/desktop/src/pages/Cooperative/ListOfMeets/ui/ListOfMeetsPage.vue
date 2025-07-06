@@ -9,7 +9,7 @@ div
 </template>
 
 <script setup lang="ts">
-import { onMounted, computed, watch } from 'vue';
+import { onMounted, computed, watch, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { MeetCardsList } from 'src/widgets/Meets/MeetCardsList';
 import { CreateMeetButton } from 'src/features/Meet/CreateMeet';
@@ -29,7 +29,10 @@ const meets = computed(() => meetStore.meets);
 const loading = computed(() => meetStore.loading);
 
 // Инжектим кнопку создания собрания в заголовок
-const { registerAction } = useHeaderActions();
+const { registerAction, unregisterAction } = useHeaderActions();
+
+// ID кнопки создания собрания
+const CREATE_MEET_BUTTON_ID = 'create-meet';
 
 // Загрузка списка собраний
 const loadMeets = async () => {
@@ -45,22 +48,35 @@ const canCreateMeet = computed(() => {
   return isMember || isChairman;
 });
 
+// Функция для регистрации кнопки
+const registerCreateMeetButton = () => {
+  if (canCreateMeet.value) {
+    registerAction({
+      id: CREATE_MEET_BUTTON_ID,
+      component: CreateMeetButton,
+      props: {
+        isChairman: isChairman,
+      },
+      order: 1,
+    });
+  }
+};
+
+// Функция для удаления кнопки
+const unregisterCreateMeetButton = () => {
+  unregisterAction(CREATE_MEET_BUTTON_ID);
+};
+
+// Проверяем, находимся ли на странице списка собраний
+const isOnMeetListPage = computed(() => {
+  return route.name === 'user-meets' || route.name === 'meets';
+});
+
 // Загрузка данных при монтировании компонента
 onMounted(() => {
-  if (route.name === 'user-meets' || route.name === 'meets') {
+  if (isOnMeetListPage.value) {
     loadMeets();
-
-    // Добавляем кнопку только если есть права
-    if (canCreateMeet.value) {
-      registerAction({
-        id: 'create-meet',
-        component: CreateMeetButton,
-        props: {
-          isChairman: isChairman,
-        },
-        order: 1,
-      });
-    }
+    registerCreateMeetButton();
   }
 });
 
@@ -68,9 +84,22 @@ onMounted(() => {
 watch(
   () => route.name,
   (newRouteName) => {
-    if (newRouteName === 'user-meets' || newRouteName === 'meets') {
+    const isNowOnListPage =
+      newRouteName === 'user-meets' || newRouteName === 'meets';
+
+    if (isNowOnListPage) {
+      // Переходим на страницу списка - загружаем данные и добавляем кнопку
       loadMeets();
+      registerCreateMeetButton();
+    } else {
+      // Переходим на страницу отдельного собрания - убираем кнопку
+      unregisterCreateMeetButton();
     }
   },
 );
+
+// Очищаем кнопку при размонтировании компонента
+onUnmounted(() => {
+  unregisterCreateMeetButton();
+});
 </script>
