@@ -1,5 +1,5 @@
 <template lang="pug">
-q-dialog(v-model='show', persistent, :maximized='false')
+q-dialog(v-model='show', persistent, :maximized='true')
   q-card
     div
       q-bar.bg-gradient-dark.text-white

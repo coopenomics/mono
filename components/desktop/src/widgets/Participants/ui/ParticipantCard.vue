@@ -1,7 +1,10 @@
 <template lang="pug">
 .participant-card__container
   q-card.participant-card(flat)
-    q-card-section.participant-card__header-section
+    q-card-section.participant-card__header-section(
+      :class='{ "cursor-pointer": $q.screen.lt.md }',
+      @click='$q.screen.lt.md ? $emit("toggle-expand") : undefined'
+    )
       .participant-header
         .participant-icon
           q-icon(name='fa-solid fa-user', size='24px', color='primary')
@@ -26,21 +29,21 @@
             @update='onUpdate'
           )
 
-    q-separator
-
-    q-card-actions.card-actions(align='right')
-      q-btn(
-        flat,
-        size='sm',
-        :icon='expanded ? "expand_less" : "expand_more"',
-        @click='$emit("toggle-expand")',
-        :label='expanded ? "Скрыть" : "Подробнее"',
-        color='primary'
-      )
+  .card-actions-external
+    q-btn(
+      flat,
+      dense,
+      size='sm',
+      :icon='expanded ? "expand_less" : "expand_more"',
+      @click.stop='$emit("toggle-expand")',
+      color='primary',
+      round
+    )
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import { useQuasar } from 'quasar';
 import moment from 'moment-with-locales-es6';
 import ParticipantDetails from './ParticipantDetails.vue';
 import 'src/shared/ui/CardStyles/index.scss';
@@ -51,6 +54,8 @@ import {
   type IOrganizationData,
   type IEntrepreneurData,
 } from 'src/entities/Account/types';
+
+const $q = useQuasar();
 
 const props = defineProps<{
   participant: IAccount;
@@ -139,7 +144,9 @@ const onUpdate = (
   margin-top: 4px;
 }
 
-.card-actions {
-  padding: 4px 8px;
+.card-actions-external {
+  display: flex;
+  justify-content: center;
+  padding: 4px;
 }
 </style>

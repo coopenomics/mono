@@ -1,7 +1,10 @@
 <template lang="pug">
 .payment-card__container
   q-card.payment-card(flat)
-    q-card-section.payment-card__header-section
+    q-card-section.payment-card__header-section(
+      :class='{ "cursor-pointer": $q.screen.lt.md }',
+      @click='$q.screen.lt.md ? $emit("toggle-expand") : undefined'
+    )
       .payment-header
         .payment-icon
           q-icon(
@@ -23,38 +26,40 @@
         q-card-section
           PaymentDetails(:payment='payment')
 
-    q-separator
-
-    q-card-actions.card-actions(align='right')
-      q-btn-dropdown(
-        v-if='!hideActions && payment.can_change_status',
-        size='sm',
-        label='Действия',
-        color='primary',
-        flat
-      )
-        q-list(dense)
-          SetOrderPaidStatusButton(
-            v-if='payment.id && [Zeus.PaymentStatus.PENDING, Zeus.PaymentStatus.FAILED].includes(payment.status)',
-            :id='payment.id',
-            @close='$emit("close-dropdown")'
-          )
-          SetOrderRefundedStatusButton(
-            v-if='payment.id && [Zeus.PaymentStatus.PAID, Zeus.PaymentStatus.COMPLETED].includes(payment.status)',
-            :id='payment.id',
-            @close='$emit("close-dropdown")'
-          )
-      q-btn(
-        flat,
-        size='sm',
-        :icon='expanded ? "expand_less" : "expand_more"',
-        @click='$emit("toggle-expand")',
-        :label='expanded ? "Скрыть" : "Подробнее"',
-        color='primary'
-      )
+  .card-actions-external
+    q-btn-dropdown(
+      v-if='!hideActions && payment.can_change_status',
+      dense,
+      size='sm',
+      label='Действия',
+      color='primary',
+      flat,
+      @click.stop
+    )
+      q-list(dense)
+        SetOrderPaidStatusButton(
+          v-if='payment.id && [Zeus.PaymentStatus.PENDING, Zeus.PaymentStatus.FAILED].includes(payment.status)',
+          :id='payment.id',
+          @close='$emit("close-dropdown")'
+        )
+        SetOrderRefundedStatusButton(
+          v-if='payment.id && [Zeus.PaymentStatus.PAID, Zeus.PaymentStatus.COMPLETED].includes(payment.status)',
+          :id='payment.id',
+          @close='$emit("close-dropdown")'
+        )
+    q-btn(
+      flat,
+      dense,
+      size='sm',
+      :icon='expanded ? "expand_less" : "expand_more"',
+      @click.stop='$emit("toggle-expand")',
+      color='primary',
+      round
+    )
 </template>
 
 <script setup lang="ts">
+import { useQuasar } from 'quasar';
 import { SetOrderPaidStatusButton } from 'src/features/Payment/SetStatus/ui/SetOrderPaidStatusButton';
 import { SetOrderRefundedStatusButton } from 'src/features/Payment/SetStatus/ui/SetOrderRefundedStatusButton';
 import { getShortNameFromCertificate } from 'src/shared/lib/utils/getNameFromCertificate';
@@ -62,6 +67,8 @@ import 'src/shared/ui/CardStyles/index.scss';
 import { PaymentDetails } from 'src/shared/ui';
 import type { IPayment } from 'src/entities/Payment';
 import { Zeus } from '@coopenomics/sdk';
+
+const $q = useQuasar();
 
 defineProps<{
   payment: IPayment;
@@ -149,7 +156,11 @@ const getStatusColor = (status?: string | null) => {
   margin-top: 4px;
 }
 
-.card-actions {
-  padding: 4px 8px;
+.card-actions-external {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 4px;
+  gap: 8px;
 }
 </style>

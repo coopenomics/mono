@@ -90,7 +90,7 @@ const loadMeetDetails = async () => {
 
 const workspace = computed(() => desktopStore.activeWorkspaceName);
 const buttonText = computed(() =>
-  workspace.value === 'soviet' ? 'Собрания' : 'Мои Собрания',
+  workspace.value === 'soviet' ? 'Назад' : 'Назад',
 );
 const targetRouteName = computed(() =>
   workspace.value === 'soviet' ? 'meets' : 'user-meets',

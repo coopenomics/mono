@@ -1,7 +1,10 @@
 <template lang="pug">
 .document-card__container
   q-card.document-card(flat)
-    q-card-section
+    q-card-section(
+      :class='{ "cursor-pointer": $q.screen.lt.md }',
+      @click='$q.screen.lt.md ? $emit("toggle-expand") : undefined'
+    )
       .document-header
         .document-icon
           q-icon(name='fa-solid fa-file-invoice', size='20px', color='primary')
@@ -9,30 +12,31 @@
           .title {{ document.statement?.documentAggregate?.rawDocument?.full_title || 'Документ без заголовка' }}
           .subtitle ID: {{ getDocumentHash(document).substring(0, 10) || 'N/A' }}
 
-    q-separator(v-if='expanded')
-
     q-slide-transition
       div(v-show='expanded')
+        q-separator
         q-card-section
           ComplexDocument(:documents='document')
 
-    q-separator
-
-    q-card-actions.card-actions(align='right')
-      q-btn(
-        flat,
-        size='sm',
-        color='primary',
-        :icon='expanded ? "expand_less" : "expand_more"',
-        @click='$emit("toggle-expand")',
-        :label='expanded ? "Скрыть" : "Подробнее"'
-      )
+  .card-actions-external
+    q-btn(
+      flat,
+      dense,
+      size='sm',
+      :icon='expanded ? "expand_less" : "expand_more"',
+      @click.stop='$emit("toggle-expand")',
+      color='primary',
+      round
+    )
 </template>
 
 <script setup lang="ts">
+import { useQuasar } from 'quasar';
 import { ComplexDocument } from 'src/shared/ui/ComplexDocument';
 import type { IDocumentPackageAggregate } from 'src/entities/Document/model';
 import 'src/shared/ui/CardStyles/index.scss';
+
+const $q = useQuasar();
 
 withDefaults(
   defineProps<{
@@ -111,7 +115,9 @@ function getDocumentHash(doc: IDocumentPackageAggregate) {
   }
 }
 
-.card-actions {
-  padding: 8px 16px;
+.card-actions-external {
+  display: flex;
+  justify-content: center;
+  padding: 4px;
 }
 </style>

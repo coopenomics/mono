@@ -4,10 +4,11 @@ q-btn(
   color='primary',
   push,
   :stretch='isMobile',
-  :size='isMobile ? "sm" : "md"'
+  :size='isMobile ? "sm" : "md"',
+  no-wrap
 )
   i.fa-solid.fa-plus
-  span.q-pl-sm(v-if='!isMobile') добавить
+  span.q-pl-sm добавить
 
 q-dialog(v-model='showDialog', @hide='clear')
   ModalBase(:title='"Добавить метод платежа"')

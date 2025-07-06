@@ -6,26 +6,29 @@
         q-icon.q-mr-md(name='event', size='28px', color='primary')
         .meet-info
           .meet-title Общее собрание № {{ meet.processing?.meet?.id }}
-      .col-auto
-        q-btn.q-px-lg(
-          color='primary',
-          icon='arrow_forward',
-          label='Подробнее',
-          flat,
-          @click.stop='$emit("navigate")'
-        )
+
   .meet-body.q-mb-md
-    .row.q-col-gutter-md
-      .col-6
+    .row
+      .col-md-6.col-xs-12.q-pa-sm
         .balance-card.balance-card-primary
           .balance-label Открытие
           .balance-value {{ meetStatus.formattedOpenDate }} {{ getTimezoneLabel() }}
-      .col-6
+      .col-md-6.col-xs-12.q-pa-sm
         .balance-card.balance-card-primary
           .balance-label Закрытие
           .balance-value {{ meetStatus.formattedCloseDate }} {{ getTimezoneLabel() }}
   .meet-status-row
     MeetStatusBanner(:meet='meet')
+
+  .row.q-mt-lg
+    .col-auto
+      q-btn(
+        color='primary',
+        icon='arrow_forward',
+        label='Подробнее',
+        flat,
+        @click.stop='$emit("navigate")'
+      )
 </template>
 
 <script setup lang="ts">

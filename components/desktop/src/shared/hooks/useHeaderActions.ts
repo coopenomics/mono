@@ -1,4 +1,4 @@
-import { ref, onBeforeUnmount, type Component } from 'vue';
+import { ref, onBeforeUnmount, type Component, markRaw } from 'vue';
 
 export interface HeaderAction {
   id: string;
@@ -18,12 +18,18 @@ export const useHeaderActions = () => {
       (a) => a.id === action.id,
     );
 
+    // Создаем действие с markRaw для компонента
+    const actionWithMarkRaw = {
+      ...action,
+      component: markRaw(action.component),
+    };
+
     if (existingIndex > -1) {
       // Обновляем существующий
-      headerActions.value[existingIndex] = action;
+      headerActions.value[existingIndex] = actionWithMarkRaw;
     } else {
       // Добавляем новый
-      headerActions.value.push(action);
+      headerActions.value.push(actionWithMarkRaw);
     }
 
     // Сортируем по порядку

@@ -4,9 +4,10 @@ q-btn(
   color='primary',
   push,
   :stretch='isMobile',
-  :size='isMobile ? "sm" : "md"'
+  :size='isMobile ? "sm" : "md"',
+  no-wrap
 )
-  span.q-pr-sm(v-if='!isMobile') созвать
+  span.q-pr-sm созвать
   i.fa-solid.fa-plus
 
 CreateMeetForm(

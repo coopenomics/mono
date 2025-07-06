@@ -1,7 +1,10 @@
 <template lang="pug">
 .question-card__container
   q-card.question-card(flat)
-    q-card-section.question-card__header-section
+    q-card-section.question-card__header-section(
+      :class='{ "cursor-pointer": $q.screen.lt.md }',
+      @click='$q.screen.lt.md ? $emit("toggle-expand") : undefined'
+    )
       .question-header
         .question-icon
           q-icon(
@@ -46,21 +49,22 @@
                   push
                 ) Утвердить
           ComplexDocument(:documents='agenda.documents')
-    q-separator
 
-    q-card-actions.card-actions(align='right')
-      q-btn(
-        flat,
-        size='sm',
-        :icon='expanded ? "expand_less" : "expand_more"',
-        @click='$emit("toggle-expand")',
-        :label='expanded ? "Скрыть" : "Подробнее"',
-        color='primary'
-      )
+  .card-actions-external
+    q-btn(
+      flat,
+      dense,
+      size='sm',
+      :icon='expanded ? "expand_less" : "expand_more"',
+      @click.stop='$emit("toggle-expand")',
+      color='primary',
+      round
+    )
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useQuasar } from 'quasar';
 import { ComplexDocument } from 'src/shared/ui/ComplexDocument';
 import { formatToFromNow } from 'src/shared/lib/utils/dates/formatToFromNow';
 import { getShortNameFromCertificate } from 'src/shared/lib/utils/getNameFromCertificate';
@@ -69,6 +73,8 @@ import { useCurrentUser } from 'src/entities/Session';
 import type { IAgenda } from 'src/entities/Agenda/model';
 import { Cooperative } from 'cooptypes';
 import 'src/shared/ui/CardStyles/index.scss';
+
+const $q = useQuasar();
 
 const props = defineProps({
   agenda: {
@@ -149,8 +155,8 @@ const getStatusText = () => {
 
   try {
     if (props.isVotedAny(props.agenda.table)) {
-      if (props.isVotedFor(props.agenda.table)) return 'Голос ЗА';
-      if (props.isVotedAgainst(props.agenda.table)) return 'Голос ПРОТИВ';
+      if (props.isVotedFor(props.agenda.table)) return 'Вы ЗА';
+      if (props.isVotedAgainst(props.agenda.table)) return 'Вы ПРОТИВ';
     }
   } catch (error) {
     console.warn('Ошибка при проверке статуса голосования:', error);
@@ -244,8 +250,10 @@ const getStatusTextColor = () => {
   margin-bottom: 16px;
 }
 
-.card-actions {
-  padding: 4px 8px;
+.card-actions-external {
+  display: flex;
+  justify-content: center;
+  padding: 4px;
   gap: 8px;
 }
 </style>

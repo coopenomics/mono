@@ -21,18 +21,17 @@ function getRedirectUrl(router: Router, to: any): string {
 export function setupNavigationGuard(router: Router) {
   const desktops = useDesktopStore();
   const session = useSessionStore();
-  const currentUser = useCurrentUser();
+
   const { info } = useSystemStore();
 
   router.beforeEach(async (to, from, next) => {
     await desktops.healthCheck();
-
+    const currentUser = useCurrentUser();
     // если требуется установка
     if (desktops.health?.status === 'install' && to.name !== 'install') {
       next({ name: 'install', params: { coopname: info.coopname } });
       return;
     }
-
     // Если пользователь авторизован, но данные еще не загружены полностью
     if (session.isAuth && !session.loadComplete) {
       console.log('Waiting for user data to load...');
@@ -62,6 +61,7 @@ export function setupNavigationGuard(router: Router) {
         userRole = 'user'; // Авторизованный пользователь без специальной роли
       }
     }
+
     // редирект с index
     if (to.name === 'index') {
       // Убеждаемся, что правильный рабочий стол выбран

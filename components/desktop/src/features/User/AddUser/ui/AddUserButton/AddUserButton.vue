@@ -4,9 +4,10 @@ q-btn(
   color='primary',
   push,
   :stretch='isMobile',
-  :size='isMobile ? "sm" : "md"'
+  :size='isMobile ? "sm" : "md"',
+  no-wrap
 )
-  span.q-pr-sm(v-if='!isMobile') добавить
+  span.q-pr-sm добавить
   i.fa-solid.fa-user-plus
 
 AddUserDialog(v-model='showDialog')

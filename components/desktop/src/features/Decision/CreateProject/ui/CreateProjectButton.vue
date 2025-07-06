@@ -3,15 +3,16 @@ q-btn(
   @click='show = true',
   color='primary',
   push,
+  no-wrap,
   :stretch='isMobile',
   :size='isMobile ? "sm" : "md"'
 )
-  span.q-pr-sm(v-if='!isMobile') предложить
+  span.q-pr-sm предложить
   i.fa-solid.fa-plus
 
-q-dialog(v-model='show', persistent, :maximized='false')
+q-dialog(v-model='show', persistent, :maximized='true')
   ModalBase(
-    style='width: 500px; max-width: 100% !important',
+    style='max-width: 100% !important',
     :title='"Предложить повестку"',
     :show_close='true'
   )
