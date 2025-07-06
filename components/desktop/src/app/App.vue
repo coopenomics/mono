@@ -1,5 +1,5 @@
 <template lang="pug">
-.breable-text(v-if='isLoaded')
+div.breable-text(v-if='isLoaded')
   router-view
   RequireAgreements
   SelectBranchOverlay
@@ -15,7 +15,6 @@ import { RequireAgreements } from 'src/widgets/RequireAgreements';
 import { SelectBranchOverlay } from 'src/features/Branch/SelectBranch';
 import { useSystemStore } from 'src/entities/System/model';
 import { useDesktopHealthWatcherProcess } from 'src/processes/watch-desktop-health';
-import { usePWAUpdateMonitor } from 'src/shared/lib/composables/usePWAUpdateMonitor';
 import 'src/shared/ui/CardStyles/index.scss';
 
 const { info } = useSystemStore();
@@ -24,9 +23,6 @@ const isLoaded = ref(false);
 
 // запускаем процесс мониторинга "технического обслуживания"
 useDesktopHealthWatcherProcess();
-
-// запускаем мониторинг PWA обновлений
-usePWAUpdateMonitor();
 
 onMounted(() => {
   try {
