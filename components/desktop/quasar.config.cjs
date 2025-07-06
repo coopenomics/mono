@@ -221,11 +221,11 @@ module.exports = configure(function (ctx) {
           // extendGenerateSWOptions (cfg) {}
           extendInjectManifestOptions(cfg) {
             // Добавляем дополнительные настройки для Workbox
-            cfg.exclude = cfg.exclude || [];
-            cfg.exclude.push(
-              /\.map$/,
-              /^.*\/config\.js$/,
-              /^.*\/config\.default\.js$/,
+            cfg.globIgnores = cfg.globIgnores || [];
+            cfg.globIgnores.push(
+              '**/*.map',
+              '**/config.js',
+              '**/config.default.js',
             );
 
             // Настройки для лучшей обработки обновлений
