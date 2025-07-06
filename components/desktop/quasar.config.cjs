@@ -227,10 +227,6 @@ module.exports = configure(function (ctx) {
               '**/config.js',
               '**/config.default.js',
             );
-
-            // Настройки для лучшей обработки обновлений
-            cfg.skipWaiting = false; // Управляем этим в custom service worker
-            cfg.clientsClaim = false; // Управляем этим в custom service worker
           },
           extendManifestJson(json) {
             json.name = process.env.COOP_SHORT_NAME || 'Цифровой Кооператив';
