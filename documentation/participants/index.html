@@ -1134,6 +1134,12 @@
       
         
       
+        
+      
+        
+      
+        
+      
     
     
     
@@ -1264,6 +1270,29 @@
   
   <span class="md-ellipsis">
     Обзор SDK
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../classes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Классы SDK
     
   </span>
   
@@ -1705,6 +1734,29 @@
   
   
     <li class="md-nav__item">
+      <a href="../meetings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Общие собрания
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../programs/" class="md-nav__link">
         
   
@@ -1803,6 +1855,29 @@
   
   <span class="md-ellipsis">
     Расширения
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../desktop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Рабочий стол
     
   </span>
   
@@ -2174,17 +2249,14 @@
 <p>🛠️ SDK: <a href="/sdk/modules/Mutations.Agreements.GenerateWalletAgreement.html">Mutations.Agreements.GenerateWalletAgreement</a> | 🔗 GraphQL API: <a href="/../graphql/index.html#mutation-generateWalletAgreement">Mutation.generateWalletAgreement</a></p>
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Mutations</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
 
-<span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.Participants.GenerateParticipantApplication.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.Agreements.GenerateWalletAgreement.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="nx">data</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="nx">block_num</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Номер блока, на котором был создан документ</span>
-<span class="w">    </span><span class="nx">braname</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя аккаунта кооперативного участка</span>
 <span class="w">    </span><span class="nx">coopname</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Название кооператива, связанное с документом</span>
 <span class="w">    </span><span class="nx">created_at</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Дата и время создания документа</span>
 <span class="w">    </span><span class="nx">generator</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя генератора, использованного для создания документа</span>
 <span class="w">    </span><span class="nx">lang</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Язык документа</span>
 <span class="w">    </span><span class="nx">links</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="p">[]</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Ссылки, связанные с документом</span>
-<span class="w">    </span><span class="nx">signature</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Изображение собственноручной подписи (base-64)</span>
-<span class="w">    </span><span class="nx">skip_save</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">boolean</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Флаг пропуска сохранения документа (используется для предварительной генерации и демонстрации пользователю)</span>
 <span class="w">    </span><span class="nx">timezone</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Часовой пояс, в котором был создан документ</span>
 <span class="w">    </span><span class="nx">title</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Название документа</span>
 <span class="w">    </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя пользователя, создавшего документ</span>
@@ -2196,8 +2268,8 @@
 <span class="w">  </span><span class="p">};</span>
 <span class="p">};</span>
 
-<span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">[</span><span class="nx">Mutations</span><span class="p">.</span><span class="nx">Participants</span><span class="p">.</span><span class="nx">GenerateParticipantApplication</span><span class="p">.</span><span class="nx">name</span><span class="p">]</span><span class="o">:</span><span class="w"> </span><span class="nx">result</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">Mutation</span><span class="p">(</span>
-<span class="w">  </span><span class="nx">Mutations</span><span class="p">.</span><span class="nx">Participants</span><span class="p">.</span><span class="nx">GenerateParticipantApplication</span><span class="p">.</span><span class="nx">mutation</span><span class="p">,</span>
+<span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">[</span><span class="nx">Mutations</span><span class="p">.</span><span class="nx">Agreements</span><span class="p">.</span><span class="nx">GenerateWalletAgreement</span><span class="p">.</span><span class="nx">name</span><span class="p">]</span><span class="o">:</span><span class="w"> </span><span class="nx">result</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">Mutation</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">Mutations</span><span class="p">.</span><span class="nx">Agreements</span><span class="p">.</span><span class="nx">GenerateWalletAgreement</span><span class="p">.</span><span class="nx">mutation</span><span class="p">,</span>
 <span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nx">variables</span><span class="w"> </span><span class="p">}</span>
 <span class="p">);</span>
 </code></pre></div>
@@ -2205,17 +2277,14 @@
 <p>🛠️ SDK: <a href="/sdk/modules/Mutations.Agreements.GenerateSignatureAgreement.html">Mutations.Agreements.GenerateSignatureAgreement</a> | 🔗 GraphQL API: <a href="/../graphql/index.html#mutation-generateSignatureAgreement">Mutation.generateSignatureAgreement</a></p>
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Mutations</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
 
-<span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.Participants.GenerateParticipantApplication.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.Agreements.GenerateSignatureAgreement.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="nx">data</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="nx">block_num</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Номер блока, на котором был создан документ</span>
-<span class="w">    </span><span class="nx">braname</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя аккаунта кооперативного участка</span>
 <span class="w">    </span><span class="nx">coopname</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Название кооператива, связанное с документом</span>
 <span class="w">    </span><span class="nx">created_at</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Дата и время создания документа</span>
 <span class="w">    </span><span class="nx">generator</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя генератора, использованного для создания документа</span>
 <span class="w">    </span><span class="nx">lang</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Язык документа</span>
 <span class="w">    </span><span class="nx">links</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="p">[]</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Ссылки, связанные с документом</span>
-<span class="w">    </span><span class="nx">signature</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Изображение собственноручной подписи (base-64)</span>
-<span class="w">    </span><span class="nx">skip_save</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">boolean</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Флаг пропуска сохранения документа (используется для предварительной генерации и демонстрации пользователю)</span>
 <span class="w">    </span><span class="nx">timezone</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Часовой пояс, в котором был создан документ</span>
 <span class="w">    </span><span class="nx">title</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Название документа</span>
 <span class="w">    </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя пользователя, создавшего документ</span>
@@ -2227,8 +2296,8 @@
 <span class="w">  </span><span class="p">};</span>
 <span class="p">};</span>
 
-<span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">[</span><span class="nx">Mutations</span><span class="p">.</span><span class="nx">Participants</span><span class="p">.</span><span class="nx">GenerateParticipantApplication</span><span class="p">.</span><span class="nx">name</span><span class="p">]</span><span class="o">:</span><span class="w"> </span><span class="nx">result</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">Mutation</span><span class="p">(</span>
-<span class="w">  </span><span class="nx">Mutations</span><span class="p">.</span><span class="nx">Participants</span><span class="p">.</span><span class="nx">GenerateParticipantApplication</span><span class="p">.</span><span class="nx">mutation</span><span class="p">,</span>
+<span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">[</span><span class="nx">Mutations</span><span class="p">.</span><span class="nx">Agreements</span><span class="p">.</span><span class="nx">GenerateSignatureAgreement</span><span class="p">.</span><span class="nx">name</span><span class="p">]</span><span class="o">:</span><span class="w"> </span><span class="nx">result</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">Mutation</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">Mutations</span><span class="p">.</span><span class="nx">Agreements</span><span class="p">.</span><span class="nx">GenerateSignatureAgreement</span><span class="p">.</span><span class="nx">mutation</span><span class="p">,</span>
 <span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nx">variables</span><span class="w"> </span><span class="p">}</span>
 <span class="p">);</span>
 </code></pre></div>
@@ -2236,17 +2305,14 @@
 <p>🛠️ SDK: <a href="/sdk/modules/Mutations.Agreements.GenerateUserAgreement.html">Mutations.Agreements.GenerateUserAgreement</a> | 🔗 GraphQL API: <a href="/../graphql/index.html#mutation-generateUserAgreement">Mutation.generateUserAgreement</a></p>
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Mutations</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
 
-<span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.Participants.GenerateParticipantApplication.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.Agreements.GenerateUserAgreement.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="nx">data</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="nx">block_num</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Номер блока, на котором был создан документ</span>
-<span class="w">    </span><span class="nx">braname</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя аккаунта кооперативного участка</span>
 <span class="w">    </span><span class="nx">coopname</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Название кооператива, связанное с документом</span>
 <span class="w">    </span><span class="nx">created_at</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Дата и время создания документа</span>
 <span class="w">    </span><span class="nx">generator</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя генератора, использованного для создания документа</span>
 <span class="w">    </span><span class="nx">lang</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Язык документа</span>
 <span class="w">    </span><span class="nx">links</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="p">[]</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Ссылки, связанные с документом</span>
-<span class="w">    </span><span class="nx">signature</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Изображение собственноручной подписи (base-64)</span>
-<span class="w">    </span><span class="nx">skip_save</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">boolean</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Флаг пропуска сохранения документа (используется для предварительной генерации и демонстрации пользователю)</span>
 <span class="w">    </span><span class="nx">timezone</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Часовой пояс, в котором был создан документ</span>
 <span class="w">    </span><span class="nx">title</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Название документа</span>
 <span class="w">    </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя пользователя, создавшего документ</span>
@@ -2258,8 +2324,8 @@
 <span class="w">  </span><span class="p">};</span>
 <span class="p">};</span>
 
-<span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">[</span><span class="nx">Mutations</span><span class="p">.</span><span class="nx">Participants</span><span class="p">.</span><span class="nx">GenerateParticipantApplication</span><span class="p">.</span><span class="nx">name</span><span class="p">]</span><span class="o">:</span><span class="w"> </span><span class="nx">result</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">Mutation</span><span class="p">(</span>
-<span class="w">  </span><span class="nx">Mutations</span><span class="p">.</span><span class="nx">Participants</span><span class="p">.</span><span class="nx">GenerateParticipantApplication</span><span class="p">.</span><span class="nx">mutation</span><span class="p">,</span>
+<span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">[</span><span class="nx">Mutations</span><span class="p">.</span><span class="nx">Agreements</span><span class="p">.</span><span class="nx">GenerateUserAgreement</span><span class="p">.</span><span class="nx">name</span><span class="p">]</span><span class="o">:</span><span class="w"> </span><span class="nx">result</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">Mutation</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">Mutations</span><span class="p">.</span><span class="nx">Agreements</span><span class="p">.</span><span class="nx">GenerateUserAgreement</span><span class="p">.</span><span class="nx">mutation</span><span class="p">,</span>
 <span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nx">variables</span><span class="w"> </span><span class="p">}</span>
 <span class="p">);</span>
 </code></pre></div>
@@ -2267,17 +2333,14 @@
 <p>🛠️ SDK: <a href="/sdk/modules/Mutations.Agreements.GeneratePrivacyAgreement.html">Mutations.Agreements.GeneratePrivacyAgreement</a> | 🔗 GraphQL API: <a href="/../graphql/index.html#mutation-generatePrivacyAgreement">Mutation.generatePrivacyAgreement</a></p>
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Mutations</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
 
-<span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.Participants.GenerateParticipantApplication.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.Agreements.GeneratePrivacyAgreement.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="nx">data</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="nx">block_num</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Номер блока, на котором был создан документ</span>
-<span class="w">    </span><span class="nx">braname</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя аккаунта кооперативного участка</span>
 <span class="w">    </span><span class="nx">coopname</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Название кооператива, связанное с документом</span>
 <span class="w">    </span><span class="nx">created_at</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Дата и время создания документа</span>
 <span class="w">    </span><span class="nx">generator</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя генератора, использованного для создания документа</span>
 <span class="w">    </span><span class="nx">lang</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Язык документа</span>
 <span class="w">    </span><span class="nx">links</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="p">[]</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Ссылки, связанные с документом</span>
-<span class="w">    </span><span class="nx">signature</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Изображение собственноручной подписи (base-64)</span>
-<span class="w">    </span><span class="nx">skip_save</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">boolean</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Флаг пропуска сохранения документа (используется для предварительной генерации и демонстрации пользователю)</span>
 <span class="w">    </span><span class="nx">timezone</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Часовой пояс, в котором был создан документ</span>
 <span class="w">    </span><span class="nx">title</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Название документа</span>
 <span class="w">    </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя пользователя, создавшего документ</span>
@@ -2289,8 +2352,8 @@
 <span class="w">  </span><span class="p">};</span>
 <span class="p">};</span>
 
-<span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">[</span><span class="nx">Mutations</span><span class="p">.</span><span class="nx">Participants</span><span class="p">.</span><span class="nx">GenerateParticipantApplication</span><span class="p">.</span><span class="nx">name</span><span class="p">]</span><span class="o">:</span><span class="w"> </span><span class="nx">result</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">Mutation</span><span class="p">(</span>
-<span class="w">  </span><span class="nx">Mutations</span><span class="p">.</span><span class="nx">Participants</span><span class="p">.</span><span class="nx">GenerateParticipantApplication</span><span class="p">.</span><span class="nx">mutation</span><span class="p">,</span>
+<span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">[</span><span class="nx">Mutations</span><span class="p">.</span><span class="nx">Agreements</span><span class="p">.</span><span class="nx">GeneratePrivacyAgreement</span><span class="p">.</span><span class="nx">name</span><span class="p">]</span><span class="o">:</span><span class="w"> </span><span class="nx">result</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">Mutation</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">Mutations</span><span class="p">.</span><span class="nx">Agreements</span><span class="p">.</span><span class="nx">GeneratePrivacyAgreement</span><span class="p">.</span><span class="nx">mutation</span><span class="p">,</span>
 <span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nx">variables</span><span class="w"> </span><span class="p">}</span>
 <span class="p">);</span>
 </code></pre></div>
@@ -2321,9 +2384,9 @@
 </code></pre></div>
 <p>В результате, у вас будет строковое представление изображения собственноручной подписи пользователя, которое теперь необходимо использовать на основной генерации заявления на вступление в кооператив. </p>
 <h3 id="5">5. Генерация заявления<a class="headerlink" href="#5" title="Permanent link">&para;</a></h3>
-<p>⚠️ 🛠️ SDK: Mutations.Participants.GenerateApplication не найден | 🔗 GraphQL API: <a href="/../graphql/index.html#mutation-generateApplication">Mutation.generateApplication</a></p>
+<p>🛠️ SDK: <a href="/sdk/modules/Mutations.Participants.GenerateParticipantApplication.html">Mutations.Participants.GenerateParticipantApplication</a> | 🔗 GraphQL API: <a href="/../graphql/index.html#mutation-generateParticipantApplication">Mutation.generateParticipantApplication</a></p>
 <p>Основная генерация заявления производится аналогично <a href="/documentation/participants/pregeneration-applicaion">предгенерации</a>, однако, в <code>signature</code> необходимо передать полученную ранее собственноручную подпись, а в массиве <code>links</code> указать хэши всех ранее сгенерированных соглашений. </p>
-<div class="highlight"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.Participants.GenerateApplication.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<div class="highlight"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.Participants.GenerateParticipantApplication.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="nx">data</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="nx">singature</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="nx">полученная</span><span class="w"> </span><span class="nx">ранее</span><span class="w"> </span><span class="nx">строка</span><span class="w"> </span><span class="nx">с</span><span class="w"> </span><span class="nx">изображением</span><span class="w"> </span><span class="nx">подписи</span><span class="w"> </span><span class="nx">в</span><span class="w"> </span><span class="nx">png</span><span class="o">/</span><span class="nx">base64</span><span class="o">&gt;</span><span class="p">,</span>
 <span class="w">      </span><span class="nx">links</span><span class="o">:</span><span class="w"> </span><span class="p">[</span><span class="nx">participantApplication</span><span class="p">.</span><span class="nx">hash</span><span class="p">,</span><span class="w"> </span><span class="nx">signatureAgreement</span><span class="p">.</span><span class="nx">hash</span><span class="p">,</span><span class="w"> </span><span class="nx">userAgreement</span><span class="p">.</span><span class="nx">hash</span><span class="p">,</span><span class="w"> </span><span class="nx">privacyAgreement</span><span class="p">.</span><span class="nx">hash</span><span class="p">]</span>
@@ -2331,8 +2394,8 @@
 <span class="w">      </span><span class="nx">coopname</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="nx">имя</span><span class="w"> </span><span class="nx">аккаунта</span><span class="w"> </span><span class="nx">кооператива</span><span class="o">&gt;</span>
 <span class="w">  </span><span class="p">}</span>
 
-<span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">[</span><span class="nx">Mutations</span><span class="p">.</span><span class="nx">Participants</span><span class="p">.</span><span class="nx">GenerateApplication</span><span class="p">.</span><span class="nx">name</span><span class="p">]</span><span class="o">:</span><span class="w"> </span><span class="nx">participantApplication2</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">Mutation</span><span class="p">(</span>
-<span class="w">  </span><span class="nx">Mutations</span><span class="p">.</span><span class="nx">Participants</span><span class="p">.</span><span class="nx">GenerateApplication</span><span class="p">.</span><span class="nx">mutation</span><span class="p">,</span>
+<span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">[</span><span class="nx">Mutations</span><span class="p">.</span><span class="nx">Participants</span><span class="p">.</span><span class="nx">GenerateParticipantApplication</span><span class="p">.</span><span class="nx">name</span><span class="p">]</span><span class="o">:</span><span class="w"> </span><span class="nx">participantApplication2</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">Mutation</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">Mutations</span><span class="p">.</span><span class="nx">Participants</span><span class="p">.</span><span class="nx">GenerateParticipantApplication</span><span class="p">.</span><span class="nx">mutation</span><span class="p">,</span>
 <span class="w">  </span><span class="p">{</span>
 <span class="w">    </span><span class="nx">variables</span><span class="p">,</span>
 <span class="w">  </span><span class="p">}</span>
@@ -2516,9 +2579,21 @@
 <span class="p">);</span>
 </code></pre></div>
 <h3 id="7">7. Оплата взносов<a class="headerlink" href="#7" title="Permanent link">&para;</a></h3>
-<p>⚠️ 🛠️ SDK: Mutations.Payments.CreateInitialPayment не найден | 🔗 GraphQL API: <a href="/../graphql/index.html#mutation-createInitialPayment">Mutation.createInitialPayment</a></p>
+<p>🛠️ SDK: <a href="/sdk/modules/Mutations.Participants.CreateInitialPayment.html">Mutations.Participants.CreateInitialPayment</a> | 🔗 GraphQL API: <a href="/../graphql/index.html#mutation-createInitialPayment">Mutation.createInitialPayment</a></p>
 <p>Перед тем, как принятые документы будут отправлены в повестку совета на голосование, новому пайщику необходимо оплатить вступительный и минимальный паевый взносы (одним платежом). </p>
-<p>⚠️ <code>Mutations.Payments.CreateInitialPayment</code> не найден</p>
+<div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Mutations</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
+
+<span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.Participants.CreateInitialPayment.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">data</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя аккаунта пользователя</span>
+<span class="w">  </span><span class="p">};</span>
+<span class="p">};</span>
+
+<span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">[</span><span class="nx">Mutations</span><span class="p">.</span><span class="nx">Participants</span><span class="p">.</span><span class="nx">CreateInitialPayment</span><span class="p">.</span><span class="nx">name</span><span class="p">]</span><span class="o">:</span><span class="w"> </span><span class="nx">result</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">Mutation</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">Mutations</span><span class="p">.</span><span class="nx">Participants</span><span class="p">.</span><span class="nx">CreateInitialPayment</span><span class="p">.</span><span class="nx">mutation</span><span class="p">,</span>
+<span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nx">variables</span><span class="w"> </span><span class="p">}</span>
+<span class="p">);</span>
+</code></pre></div>
 <p>Результат:</p>
 <p>⚠️ <code>Mutations.Payments.CreateInitialPayment</code> не найден</p>
 <p>Подробнее о доступных платежных провайдерах и управлении платежами смотри раздел <a href="/documentation/payments">Платежи</a>. После получения подтверждения о поступлении платежа (статус платежа <code>PAID</code>), пользователю будет зарегистрирован аккаунт в блокчейне, а пакет документов пайщика поставлен в повестку голосования совета кооператива.</p>
