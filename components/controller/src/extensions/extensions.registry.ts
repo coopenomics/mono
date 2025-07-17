@@ -10,6 +10,8 @@ import { BuiltinPluginModule, Schema as BuiltinSchema } from './builtin/builtin-
 import { ChairmanPluginModule, Schema as ChairmanSchema } from './chairman/chairman-extension.module';
 import { ParticipantPluginModule } from './participant/participant-extension.module';
 import { Schema as ParticipantSchema } from './participant/types';
+import { MarketplacePluginModule } from './marketplace/marketplace-extension.module';
+import { Schema as MarketplaceSchema } from './marketplace/types';
 /**
  * Основной интерфейс для описания расширения в реестре.
  * Обрати внимание: сохраняем его тут, а не в домене, чтобы не тянуть поля readme, instructions и т.д. в домен.
@@ -172,5 +174,19 @@ export const AppRegistry: INamedExtension = {
     tags: ['платежи'],
     readme: getReadmeContent('./qrpay'),
     instructions: getInstructionsContent('./qrpay'),
+  },
+  marketplace: {
+    is_builtin: true,
+    is_internal: true,
+    is_available: true,
+    is_desktop: true,
+    title: 'Маркетплейс',
+    description: 'Предоставляет стол управления заказами и поставками в кооперативе.',
+    image: 'https://i.ibb.co/marketplace-icon.png',
+    class: MarketplacePluginModule,
+    schema: MarketplaceSchema,
+    tags: ['маркетплейс', 'категории', 'товары', 'ozon'],
+    readme: getReadmeContent('./marketplace'),
+    instructions: getInstructionsContent('./marketplace'),
   },
 };
