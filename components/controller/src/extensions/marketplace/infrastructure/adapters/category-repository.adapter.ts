@@ -116,4 +116,55 @@ export class CategoryRepositoryAdapter implements CategoryDomainRepository {
     });
     return categories.map((cat) => CategoryMapper.toDomain(cat));
   }
+
+  async searchByName(searchTerm: string, limit = 50): Promise<CategoryDomainEntity[]> {
+    const query = this.categoryRepository
+      .createQueryBuilder('category')
+      .where('LOWER(category.categoryName) LIKE LOWER(:searchTerm)', {
+        searchTerm: `%${searchTerm}%`,
+      })
+      .orderBy('category.categoryName', 'ASC')
+      .limit(limit);
+
+    const categories = await query.getMany();
+    return categories.map((cat) => CategoryMapper.toDomain(cat));
+  }
+
+  async searchByNameWithPath(
+    searchTerm: string,
+    limit = 50
+  ): Promise<
+    {
+      category: CategoryDomainEntity;
+      path: CategoryDomainEntity[];
+    }[]
+  > {
+    // Находим категории по поисковому запросу
+    const matchedCategories = await this.searchByName(searchTerm, limit);
+
+    const results: {
+      category: CategoryDomainEntity;
+      path: CategoryDomainEntity[];
+    }[] = [];
+
+    // Для каждой найденной категории строим путь к корню
+    for (const category of matchedCategories) {
+      const path: CategoryDomainEntity[] = [];
+      let current: CategoryDomainEntity | null = category;
+
+      // Строим путь от текущей категории к корню
+      while (current) {
+        path.unshift(current);
+        if (current.parentId) {
+          current = await this.findById(current.parentId);
+        } else {
+          current = null;
+        }
+      }
+
+      results.push({ category, path });
+    }
+
+    return results;
+  }
 }

@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { CategoryDomainEntity } from '../entities/category-domain.entity';
+import { CategoryDomainEntity } from '../entities/category-domain.entity';
 import type { TypeDomainEntity } from '../entities/type-domain.entity';
 import { CategoryDomainRepository, CATEGORY_DOMAIN_REPOSITORY } from '../repositories/category-domain.repository';
 import { TypeDomainRepository, TYPE_DOMAIN_REPOSITORY } from '../repositories/type-domain.repository';
@@ -199,16 +199,6 @@ export class CategoryTreeDomainService {
   }
 
   /**
-   * Поиск категорий по названию с поддержкой частичного совпадения
-   */
-  async searchCategories(searchTerm: string): Promise<CategoryDomainEntity[]> {
-    const allCategories = await this.categoryRepository.findAll();
-
-    const lowerSearchTerm = searchTerm.toLowerCase();
-    return allCategories.filter((category) => category.categoryName.toLowerCase().includes(lowerSearchTerm));
-  }
-
-  /**
    * Получить все типы товаров для категории и её подкатегорий
    */
   async getTypesForCategoryTree(categoryId: number): Promise<TypeDomainEntity[]> {
@@ -245,71 +235,60 @@ export class CategoryTreeDomainService {
 
   /**
    * Поиск по дереву категорий и типов товаров
-   * Возвращает дерево категорий построенное на основе поискового запроса
+   * Универсальный метод поиска - возвращает дерево категорий на основе поискового запроса
    */
-  async searchCategoryTree(searchTerm: string): Promise<{
-    matchedCategories: CategoryDomainEntity[];
-    matchedTypes: TypeDomainEntity[];
-    resultTree: CategoryDomainEntity[];
-  }> {
+  async search(searchTerm: string): Promise<CategoryDomainEntity[]> {
     const lowerSearchTerm = searchTerm.toLowerCase().trim();
 
     if (!lowerSearchTerm) {
-      return {
-        matchedCategories: [],
-        matchedTypes: [],
-        resultTree: [],
-      };
+      return [];
     }
 
-    // Получаем все категории и типы
-    const allCategories = await this.categoryRepository.findAll();
-    const allTypes = await this.typeRepository.findAll();
+    // ИСПРАВЛЕНИЕ: Загружаем ВСЕ данные ОДИН РАЗ в начале
+    const [allCategories, allTypes] = await Promise.all([this.categoryRepository.findAll(), this.typeRepository.findAll()]);
 
-    // Ищем совпадения в категориях
-    const matchedCategories = allCategories.filter((category) =>
-      category.categoryName.toLowerCase().includes(lowerSearchTerm)
-    );
+    const categoryMap = new Map<number, CategoryDomainEntity>();
+    allCategories.forEach((cat) => categoryMap.set(cat.descriptionCategoryId, cat));
 
-    // Ищем совпадения в типах товаров
-    const matchedTypes = allTypes.filter((type) => type.typeName.toLowerCase().includes(lowerSearchTerm));
+    // Используем оптимизированные методы поиска
+    const [matchedCategories, matchedTypes] = await Promise.all([
+      this.categoryRepository.searchByName(lowerSearchTerm, 100),
+      this.typeRepository.searchByName(lowerSearchTerm, 100),
+    ]);
 
     // Собираем все relevant категории (найденные + их родители + категории найденных типов)
     const relevantCategoryIds = new Set<number>();
 
     // Добавляем найденные категории и их путь к корню
     for (const category of matchedCategories) {
-      await this.addCategoryPathToRoot(category.descriptionCategoryId, allCategories, relevantCategoryIds);
+      this.addCategoryPathToRootOptimized(category.descriptionCategoryId, categoryMap, relevantCategoryIds);
     }
 
     // Добавляем категории найденных типов и их путь к корню
     for (const type of matchedTypes) {
-      await this.addCategoryPathToRoot(type.descriptionCategoryId, allCategories, relevantCategoryIds);
+      this.addCategoryPathToRootOptimized(type.descriptionCategoryId, categoryMap, relevantCategoryIds);
     }
 
-    // Строим результирующее дерево только из relevant категорий
+    // Строим результирующее дерево из relevant категорий
     const resultTree = await this.buildFilteredCategoryTree(relevantCategoryIds, allCategories, allTypes, lowerSearchTerm);
 
-    return {
-      matchedCategories,
-      matchedTypes,
-      resultTree,
-    };
+    return resultTree;
   }
 
   /**
-   * Добавляет путь от категории к корню в набор relevant категорий
+   * ОПТИМИЗИРОВАННАЯ версия добавления пути к корню
+   * Использует Map вместо поиска в массиве
    */
-  private async addCategoryPathToRoot(
+  private addCategoryPathToRootOptimized(
     categoryId: number,
-    allCategories: CategoryDomainEntity[],
+    categoryMap: Map<number, CategoryDomainEntity>,
     relevantCategoryIds: Set<number>
-  ): Promise<void> {
+  ): void {
     let currentId: number | undefined = categoryId;
 
     while (currentId !== undefined) {
       relevantCategoryIds.add(currentId);
-      const category = allCategories.find((c) => c.descriptionCategoryId === currentId);
+      const category = categoryMap.get(currentId);
       currentId = category?.parentId;
     }
   }
@@ -373,7 +352,7 @@ export class CategoryTreeDomainService {
     // Возвращаем категорию только если у неё есть дочерние элементы или типы
     if (builtChildren.length > 0 || categoryTypes.length > 0 || category.categoryName.toLowerCase().includes(searchTerm)) {
       // Создаем новую категорию с отфильтрованными данными
-      return new (category.constructor as any)({
+      return new CategoryDomainEntity({
         descriptionCategoryId: category.descriptionCategoryId,
         categoryName: category.categoryName,
         disabled: category.disabled,
@@ -390,102 +369,144 @@ export class CategoryTreeDomainService {
   }
 
   /**
-   * Поиск товаров с показом полного пути к категории
+   * Получить все корневые категории
    */
-  async searchProductsWithCategoryPath(searchTerm: string): Promise<
-    Array<{
-      type: TypeDomainEntity;
-      categoryPath: CategoryDomainEntity[];
-      fullPath: string;
-    }>
-  > {
-    const lowerSearchTerm = searchTerm.toLowerCase().trim();
+  async getRootCategories(): Promise<CategoryDomainEntity[]> {
+    const rootCategories = await this.categoryRepository.findRootCategories();
 
-    if (!lowerSearchTerm) {
-      return [];
+    // Загружаем типы для каждой корневой категории
+    for (const category of rootCategories) {
+      const types = await this.typeRepository.findByCategoryId(category.descriptionCategoryId);
+      (category as any).types = types;
     }
 
-    // Ищем типы товаров
-    const allTypes = await this.typeRepository.findAll();
-    const matchedTypes = allTypes.filter((type) => type.typeName.toLowerCase().includes(lowerSearchTerm));
-
-    const results: Array<{
-      type: TypeDomainEntity;
-      categoryPath: CategoryDomainEntity[];
-      fullPath: string;
-    }> = [];
-
-    for (const type of matchedTypes) {
-      const pathResult = await this.findCategoryWithPath(type.descriptionCategoryId);
-      if (pathResult) {
-        const fullPath = pathResult.path.map((cat) => cat.categoryName).join(' > ') + ` > ${type.typeName}`;
-        results.push({
-          type,
-          categoryPath: pathResult.path,
-          fullPath,
-        });
-      }
-    }
-
-    // Сортируем по полному пути для лучшего UX
-    results.sort((a, b) => a.fullPath.localeCompare(b.fullPath));
-
-    return results;
+    return rootCategories;
   }
 
   /**
-   * Получить категории с их типами, отфильтрованные по поиску
+   * Получить категорию по ID
    */
-  async searchCategoriesWithTypes(searchTerm: string): Promise<
-    Array<{
-      category: CategoryDomainEntity;
-      matchedTypes: TypeDomainEntity[];
-      allTypes: TypeDomainEntity[];
-      categoryPath: CategoryDomainEntity[];
-    }>
-  > {
-    const lowerSearchTerm = searchTerm.toLowerCase().trim();
+  async getCategoryById(categoryId: number): Promise<CategoryDomainEntity | null> {
+    const category = await this.categoryRepository.findById(categoryId);
+    if (!category) return null;
 
-    if (!lowerSearchTerm) {
-      return [];
+    // Загружаем типы товаров для категории
+    const types = await this.typeRepository.findByCategoryId(categoryId);
+    (category as any).types = types;
+    (category as any).children = []; // Пустые дети для простого получения категории
+
+    return category;
+  }
+
+  /**
+   * Получить тип товара по ID
+   */
+  async getTypeById(typeId: number): Promise<TypeDomainEntity | null> {
+    return this.typeRepository.findById(typeId);
+  }
+
+  /**
+   * Построить дерево категорий с опциями
+   */
+  async buildCategoryTreeWithOptions(options?: {
+    rootCategoryId?: number;
+    onlyAvailable?: boolean;
+    includeTypes?: boolean;
+    maxDepth?: number;
+    coopname?: string;
+  }): Promise<CategoryDomainEntity[]> {
+    let domainTree: CategoryDomainEntity[];
+
+    // Строим базовое дерево
+    if (options?.rootCategoryId) {
+      domainTree = await this.buildCategoryTreeFromRoot(options.rootCategoryId);
+    } else {
+      domainTree = await this.buildCategoryTree();
     }
 
-    const allCategories = await this.categoryRepository.findAll();
-    const allTypes = await this.typeRepository.findAll();
+    // Применяем фильтрацию по доступности
+    if (options?.onlyAvailable) {
+      domainTree = await this.filterCategoriesByAvailability(domainTree, options.coopname);
+    }
 
-    // Ищем категории по названию
-    const matchedCategories = allCategories.filter((category) =>
-      category.categoryName.toLowerCase().includes(lowerSearchTerm)
-    );
+    // Исключаем типы товаров если нужно
+    if (options?.includeTypes === false) {
+      domainTree = this.removeTypesFromCategoryTree(domainTree);
+    }
 
-    const results: Array<{
-      category: CategoryDomainEntity;
-      matchedTypes: TypeDomainEntity[];
-      allTypes: TypeDomainEntity[];
-      categoryPath: CategoryDomainEntity[];
-    }> = [];
+    // Ограничиваем глубину дерева если указано
+    if (options?.maxDepth && options.maxDepth > 0) {
+      domainTree = this.limitCategoryTreeDepth(domainTree, options.maxDepth);
+    }
 
-    for (const category of matchedCategories) {
-      // Получаем все типы для категории
-      const categoryTypes = allTypes.filter((type) => type.descriptionCategoryId === category.descriptionCategoryId);
+    return domainTree;
+  }
 
-      // Находим типы, которые также подходят под поиск
-      const matchedTypes = categoryTypes.filter((type) => type.typeName.toLowerCase().includes(lowerSearchTerm));
+  /**
+   * Убрать типы товаров из дерева категорий (доменная логика)
+   */
+  private removeTypesFromCategoryTree(categories: CategoryDomainEntity[]): CategoryDomainEntity[] {
+    return categories.map((category) => {
+      const processedChildren =
+        category.children && category.children.length > 0 ? this.removeTypesFromCategoryTree(category.children) : [];
 
-      // Получаем путь к категории
-      const pathResult = await this.findCategoryWithPath(category.descriptionCategoryId);
+      return new CategoryDomainEntity({
+        descriptionCategoryId: category.descriptionCategoryId,
+        categoryName: category.categoryName,
+        disabled: category.disabled,
+        parentId: category.parentId,
+        parent: category.parent,
+        children: processedChildren,
+        types: [], // Убираем типы товаров
+        createdAt: category.createdAt,
+        updatedAt: category.updatedAt,
+      });
+    });
+  }
 
-      if (pathResult) {
-        results.push({
-          category,
-          matchedTypes,
-          allTypes: categoryTypes,
-          categoryPath: pathResult.path,
+  /**
+   * Ограничить глубину дерева категорий (доменная логика)
+   */
+  private limitCategoryTreeDepth(
+    categories: CategoryDomainEntity[],
+    maxDepth: number,
+    currentDepth = 1
+  ): CategoryDomainEntity[] {
+    if (currentDepth >= maxDepth) {
+      // Удаляем детей на максимальной глубине
+      return categories.map((category) => {
+        return new CategoryDomainEntity({
+          descriptionCategoryId: category.descriptionCategoryId,
+          categoryName: category.categoryName,
+          disabled: category.disabled,
+          parentId: category.parentId,
+          parent: category.parent,
+          children: [], // Убираем детей
+          types: category.types,
+          createdAt: category.createdAt,
+          updatedAt: category.updatedAt,
         });
-      }
+      });
     }
 
-    return results;
+    return categories.map((category) => {
+      const processedChildren =
+        category.children && category.children.length > 0
+          ? this.limitCategoryTreeDepth(category.children, maxDepth, currentDepth + 1)
+          : category.children;
+
+      return new CategoryDomainEntity({
+        descriptionCategoryId: category.descriptionCategoryId,
+        categoryName: category.categoryName,
+        disabled: category.disabled,
+        parentId: category.parentId,
+        parent: category.parent,
+        children: processedChildren,
+        types: category.types,
+        createdAt: category.createdAt,
+        updatedAt: category.updatedAt,
+      });
+    });
   }
 
   /**
@@ -549,10 +570,16 @@ export class CategoryTreeDomainService {
       const hasAvailableChildren = filteredChildren.length > 0;
 
       if (hasAvailableTypes || hasAvailableChildren || isCategoryAvailable) {
-        const filteredCategory = new (category.constructor as any)({
-          ...category,
+        const filteredCategory = new CategoryDomainEntity({
+          descriptionCategoryId: category.descriptionCategoryId,
+          categoryName: category.categoryName,
+          disabled: category.disabled,
+          parentId: category.parentId,
+          parent: category.parent,
           children: filteredChildren,
           types: filteredTypes,
+          createdAt: category.createdAt,
+          updatedAt: category.updatedAt,
         });
         filteredCategories.push(filteredCategory);
       }
@@ -587,26 +614,6 @@ export class CategoryTreeDomainService {
     // Фильтруем по доступности
     const availableCategoryIds = await this.availableCategoryService.getAvailableCategoryIds(currentCoopname);
     return allLeafCategories.filter((category) => availableCategoryIds.includes(category.descriptionCategoryId));
-  }
-
-  /**
-   * Поиск категорий с учетом доступности в кооперативе
-   */
-  async searchAvailableCategories(searchTerm: string, coopname?: string): Promise<CategoryDomainEntity[]> {
-    const currentCoopname = coopname || config.coopname;
-    const allMatchedCategories = await this.searchCategories(searchTerm);
-
-    // Проверяем, есть ли ограничения в кооперативе
-    const hasRestrictions = await this.availableCategoryService.hasAvailabilityRestrictions(currentCoopname);
-
-    // Если нет ограничений, возвращаем все найденные категории
-    if (!hasRestrictions) {
-      return allMatchedCategories;
-    }
-
-    // Фильтруем по доступности
-    const availableCategoryIds = await this.availableCategoryService.getAvailableCategoryIds(currentCoopname);
-    return allMatchedCategories.filter((category) => availableCategoryIds.includes(category.descriptionCategoryId));
   }
 }
 

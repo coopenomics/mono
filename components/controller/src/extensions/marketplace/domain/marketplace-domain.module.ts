@@ -5,15 +5,21 @@ import {
   AvailableCategoryDomainService,
   AVAILABLE_CATEGORY_DOMAIN_SERVICE,
 } from './services/available-category-domain.service';
+import { RequestDomainService, REQUEST_DOMAIN_SERVICE } from './services/request-domain.service';
 import { MarketplaceInfrastructureModule } from '../infrastructure/marketplace-infrastructure.module';
 
 /**
  * Доменный модуль marketplace
  * Содержит бизнес-логику и правила для работы с категориями, типами товаров и атрибутами
+ *
+ * Принцип инверсии зависимостей (DIP):
+ * - Домен определяет интерфейсы репозиториев (абстракции)
+ * - Инфраструктура реализует эти интерфейсы (детали)
+ * - Импорт инфраструктуры нужен только для DI контейнера NestJS
  */
 @Module({
   imports: [
-    MarketplaceInfrastructureModule, // Импортируем инфраструктурный модуль с репозиториями
+    MarketplaceInfrastructureModule, // Предоставляет реализации доменных интерфейсов
   ],
   providers: [
     {
@@ -27,6 +33,11 @@ import { MarketplaceInfrastructureModule } from '../infrastructure/marketplace-i
       useClass: AvailableCategoryDomainService,
     },
     AvailableCategoryDomainService,
+    {
+      provide: REQUEST_DOMAIN_SERVICE,
+      useClass: RequestDomainService,
+    },
+    RequestDomainService,
   ],
   exports: [
     CategoryTreeDomainService,
@@ -34,6 +45,8 @@ import { MarketplaceInfrastructureModule } from '../infrastructure/marketplace-i
     CATEGORY_TREE_DOMAIN_SERVICE,
     AvailableCategoryDomainService,
     AVAILABLE_CATEGORY_DOMAIN_SERVICE,
+    RequestDomainService,
+    REQUEST_DOMAIN_SERVICE,
   ],
 })
 export class MarketplaceDomainModule {}

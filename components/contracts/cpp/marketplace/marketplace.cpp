@@ -1,25 +1,37 @@
 #include "marketplace.hpp"
 #include <eosio/transaction.hpp>
-#include "src/accept.cpp"
-#include "src/addunits.cpp"
-#include "src/authorize.cpp"
-#include "src/cancel.cpp"
-#include "src/change.cpp"
-#include "src/complete.cpp"
-#include "src/decline.cpp"
-#include "src/delivered.cpp"
-#include "src/dispute.cpp"
-#include "src/moderate.cpp"
-#include "src/offer.cpp"
-#include "src/order.cpp"
-#include "src/prohibit.cpp"
-#include "src/publish.cpp"
-#include "src/recieve.cpp"
-#include "src/recievecnfrm.cpp"
-#include "src/supply.cpp"
-#include "src/supplycnfrm.cpp"
-#include "src/unpublish.cpp"
-#include "src/update.cpp"
+
+// Процесс поставки
+#include "src/deliver/accept.cpp"
+#include "src/deliver/authorize.cpp"
+#include "src/deliver/supply.cpp"
+#include "src/deliver/supplycnfrm.cpp"
+#include "src/deliver/delivered.cpp"
+#include "src/deliver/recieve.cpp"
+#include "src/deliver/recievecnfrm.cpp"
+#include "src/deliver/complete.cpp"
+#include "src/deliver/decline.cpp"
+
+// Управление заявками
+#include "src/management/change.cpp"
+#include "src/management/offer.cpp"
+#include "src/management/order.cpp"
+#include "src/management/addunits.cpp"
+#include "src/management/update.cpp"
+#include "src/management/cancel.cpp"
+#include "src/management/publish.cpp"
+#include "src/management/unpublish.cpp"
+
+// Модерация
+#include "src/moderation/moderate.cpp"
+#include "src/moderation/prohibit.cpp"
+
+// Диспуты
+#include "src/dispute/dispute.cpp"
+#include "src/dispute/wauthorize.cpp"
+#include "src/dispute/wreturn.cpp"
+#include "src/dispute/woffer.cpp"
+#include "src/dispute/waccept.cpp"
 
 /**
  * @brief Пустой метод регистрации нового идентификатора

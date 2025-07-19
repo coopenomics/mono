@@ -45,7 +45,7 @@ export class MarketplacePlugin extends BaseExtModule {
 @Module({
   imports: [
     ExtensionPortsModule,
-    MarketplaceDomainModule, // Доменный слой (включает инфраструктуру)
+    MarketplaceDomainModule, // Доменный слой (включает инфраструктуру через DIP)
     MarketplaceApplicationModule, // Слой приложения (GraphQL резолверы и сервисы)
   ],
   providers: [MarketplacePlugin],

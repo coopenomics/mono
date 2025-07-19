@@ -63,6 +63,24 @@ export interface CategoryDomainRepository {
    * Найти доступные категории (не отключенные)
    */
   findAvailable(): Promise<CategoryDomainEntity[]>;
+
+  /**
+   * Поиск категорий по названию (оптимизированный)
+   */
+  searchByName(searchTerm: string, limit?: number): Promise<CategoryDomainEntity[]>;
+
+  /**
+   * Поиск категорий по названию с полным путем
+   */
+  searchByNameWithPath(
+    searchTerm: string,
+    limit?: number
+  ): Promise<
+    {
+      category: CategoryDomainEntity;
+      path: CategoryDomainEntity[];
+    }[]
+  >;
 }
 
 // Токен для внедрения зависимости

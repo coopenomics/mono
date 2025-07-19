@@ -88,4 +88,10 @@
       std::make_tuple(coopname, change -> money_contributor, change -> program_id, change -> membership_fee, memo)
     ).send();     
   }
+
+  // Удаляем сегменты встречной заявки
+  marketplace::delete_segments_by_request(coopname, exchange_id);
+  
+  // Удаляем встречную заявку
+  exchange.erase(change);
 }

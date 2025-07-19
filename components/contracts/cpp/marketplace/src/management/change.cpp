@@ -19,8 +19,6 @@
 //  * - offer => имущественный паевый взнос
 //  */
 
-
-
 /**
  * @brief Создание заявки на обмен
  * 
@@ -43,7 +41,6 @@ void marketplace::create (eosio::name type, const exchange_params& params) {
     marketplace::create_child(type, params);
   };
 };
-
 
 /**
  * @brief Создание родительской заявки
@@ -102,10 +99,7 @@ void marketplace::create_parent(eosio::name type, const exchange_params& params)
     "newid"_n,
     std::make_tuple(id, type)
   ).send();
-  
 };
-
-
 
 /**
  * @brief Создание дочерней заявки
@@ -198,28 +192,18 @@ void marketplace::create_child(eosio::name type, const exchange_params& params) 
     i.supplier_amount = supplier_amount;
     i.total_cost = total_cost;
     
-    // не дублируем информацию
-    // i.data = params.data;
-    // i.meta = params.meta;
-
     i.created_at = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
     i.cancellation_fee_amount = asset(0, params.unit_cost.symbol);
 
-
     if (type == "order"_n) {
-      print("on create child order");
-      i.return_product_statement = *params.document;
       i.money_contributor = params.username;
       i.product_contributor = parent_change -> username;
       i.product_lifecycle_secs = parent_change -> product_lifecycle_secs;
     } else if (type == "offer"_n) {
-      print("on create child offer");
-      i.contribute_product_statement = *params.document;
       i.money_contributor = parent_change -> username;
       i.product_contributor = params.username;  
       i.product_lifecycle_secs = params.product_lifecycle_secs;
     };
-
   });
 
   action(
@@ -228,25 +212,10 @@ void marketplace::create_child(eosio::name type, const exchange_params& params) 
     "newid"_n,
     std::make_tuple(id, type)
   ).send();
-
 };
-
-
-
-
-
-
-
-
 
 /**
  * @brief Отмена родительской заявки.
- *
- * Вызывается из `cancel`, если заявка является родительской.
- * Выполняется проверка, что заявка не имеет заблокированных единиц товара, и удаляется из хранилища.
- *
- * @param username Имя пользователя, осуществляющего отмену заявки.
- * @param exchange_id ID родительской заявки, которую нужно отменить.
  */
 void marketplace::cancel_parent(eosio::name coopname, eosio::name username, uint64_t exchange_id) {
   requests_index exchange(_marketplace, coopname.value);
@@ -259,13 +228,6 @@ void marketplace::cancel_parent(eosio::name coopname, eosio::name username, uint
 
 /**
  * @brief Отмена дочерней заявки.
- *
- * Вызывается из `cancel`, если заявка является дочерней.
- * Обновляет количество оставшихся и заблокированных единиц товара в родительской заявке и удаляет дочернюю заявку из хранилища.
- * В зависимости от статуса и типа заявки возможен возврат токенов "покупателю".
- *
- * @param username Имя пользователя, осуществляющего отмену заявки.
- * @param exchange_id ID дочерней заявки, которую нужно отменить.
  */
 void marketplace::cancel_child(eosio::name coopname, eosio::name username, uint64_t exchange_id) {
   requests_index exchange(_marketplace, coopname.value);
@@ -273,7 +235,6 @@ void marketplace::cancel_child(eosio::name coopname, eosio::name username, uint6
   auto parent_change = exchange.find(change -> parent_id);
   eosio::asset quantity = change -> unit_cost * change -> blocked_units;
 
-  
   // оповещаем совет об отмене и разблокируем средства
   if (change -> type == "order"_n) {
     std::string memo = "Отмена поставки по программе №" + std::to_string(change -> program_id) + " с ID: " + std::to_string(change -> id);
@@ -284,7 +245,6 @@ void marketplace::cancel_child(eosio::name coopname, eosio::name username, uint6
       "unblockbal"_n,
       std::make_tuple(coopname, change -> money_contributor, change -> program_id, change -> total_cost, memo)
     ).send();
-
   };  
 
   if (change -> status == "authorized"_n) {
@@ -300,8 +260,6 @@ void marketplace::cancel_child(eosio::name coopname, eosio::name username, uint6
       c.canceled_at = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
     });
 
-    //удаляем дочернюю заявку
-    // exchange.erase(change);
   } else if (change -> status == "published"_n) {
 
     exchange.modify(change, _marketplace, [&](auto &c){
@@ -309,13 +267,13 @@ void marketplace::cancel_child(eosio::name coopname, eosio::name username, uint6
       c.canceled_at = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
     });
 
-    //удаляем дочернюю заявку
-    // exchange.erase(change);
   } else {
     //TODO здесь должно быть допустимо, но для каждого статуса по-своему
     eosio::check(false, "Заявка находится в недопустимом статусе для отмены");
   }
 
+  // Удаляем сегменты, если они существуют
+  marketplace::delete_segments_by_request(coopname, exchange_id);
 }
 
 

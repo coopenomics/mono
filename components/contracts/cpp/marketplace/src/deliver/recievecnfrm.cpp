@@ -18,7 +18,12 @@
 
   exchange.modify(change, _marketplace, [&](auto &ch) {
     ch.status = "recieved2"_n;
-    ch.product_recieve_act_validation = document;
+  });
+
+  // Сохраняем документ валидации акта получения в return сегменте
+  marketplace::update_segment_by_request_and_type(coopname, exchange_id, "return"_n, [&](auto &s) {
+    s.act_validation = document;
+    s.status = "recieved"_n;
   });
 
   action(

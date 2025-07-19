@@ -19,6 +19,11 @@
   exchange.modify(change, _marketplace, [&](auto &ch) {
     ch.supplied_at = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
     ch.status = "supplied1"_n;
-    ch.product_contribution_act_validation = document;
+  });
+
+  // Сохраняем документ валидации акта в contribute сегменте
+  marketplace::update_segment_by_request_and_type(coopname, exchange_id, "contribute"_n, [&](auto &s) {
+    s.act_validation = document;
+    s.status = "supplied"_n;
   });
 }

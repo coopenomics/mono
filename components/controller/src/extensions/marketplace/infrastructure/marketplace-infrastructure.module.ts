@@ -10,6 +10,9 @@ import { DictionaryEntity } from './entities/dictionary.entity';
 import { DictionaryValueEntity } from './entities/dictionary-value.entity';
 import { CategoryTypeAttributeEntity } from './entities/category-type-attribute.entity';
 import { AvailableCategoryEntity } from './entities/available-category.entity';
+import { RequestEntity } from './entities/request.entity';
+import { RequestAttributeValueEntity } from './entities/request-attribute-value.entity';
+import { RequestImageEntity } from './entities/request-image.entity';
 
 // Repository adapters
 import { CategoryRepositoryAdapter } from './adapters/category-repository.adapter';
@@ -18,6 +21,7 @@ import { AttributeRepositoryAdapter } from './adapters/attribute-repository.adap
 import { DictionaryRepositoryAdapter } from './adapters/dictionary-repository.adapter';
 import { DictionaryValueRepositoryAdapter } from './adapters/dictionary-value-repository.adapter';
 import { AvailableCategoryRepositoryAdapter } from './adapters/available-category-repository.adapter';
+import { RequestRepositoryAdapter } from './adapters/request-repository.adapter';
 
 // Repository tokens
 import { CATEGORY_DOMAIN_REPOSITORY } from '../domain/repositories/category-domain.repository';
@@ -26,6 +30,7 @@ import { ATTRIBUTE_DOMAIN_REPOSITORY } from '../domain/repositories/attribute-do
 import { DICTIONARY_DOMAIN_REPOSITORY } from '../domain/repositories/dictionary-domain.repository';
 import { DICTIONARY_VALUE_DOMAIN_REPOSITORY } from '../domain/repositories/dictionary-value-domain.repository';
 import { AVAILABLE_CATEGORY_DOMAIN_REPOSITORY } from '../domain/repositories/available-category-domain.repository';
+import { REQUEST_DOMAIN_REPOSITORY } from '../domain/repositories/request-domain.repository';
 
 @Module({
   imports: [
@@ -46,6 +51,9 @@ import { AVAILABLE_CATEGORY_DOMAIN_REPOSITORY } from '../domain/repositories/ava
         DictionaryValueEntity,
         CategoryTypeAttributeEntity,
         AvailableCategoryEntity,
+        RequestEntity,
+        RequestAttributeValueEntity,
+        RequestImageEntity,
       ],
       synchronize: true,
       logging: false,
@@ -60,6 +68,9 @@ import { AVAILABLE_CATEGORY_DOMAIN_REPOSITORY } from '../domain/repositories/ava
         DictionaryValueEntity,
         CategoryTypeAttributeEntity,
         AvailableCategoryEntity,
+        RequestEntity,
+        RequestAttributeValueEntity,
+        RequestImageEntity,
       ],
       'marketplace'
     ), // Указываем имя подключения
@@ -89,6 +100,10 @@ import { AVAILABLE_CATEGORY_DOMAIN_REPOSITORY } from '../domain/repositories/ava
       provide: AVAILABLE_CATEGORY_DOMAIN_REPOSITORY,
       useClass: AvailableCategoryRepositoryAdapter,
     },
+    {
+      provide: REQUEST_DOMAIN_REPOSITORY,
+      useClass: RequestRepositoryAdapter,
+    },
   ],
   exports: [
     CATEGORY_DOMAIN_REPOSITORY,
@@ -97,6 +112,7 @@ import { AVAILABLE_CATEGORY_DOMAIN_REPOSITORY } from '../domain/repositories/ava
     DICTIONARY_DOMAIN_REPOSITORY,
     DICTIONARY_VALUE_DOMAIN_REPOSITORY,
     AVAILABLE_CATEGORY_DOMAIN_REPOSITORY,
+    REQUEST_DOMAIN_REPOSITORY,
   ],
 })
 export class MarketplaceInfrastructureModule {}

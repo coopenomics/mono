@@ -1,6 +1,6 @@
 /**
 \ingroup public_actions
-\brief Отказ от предложения.
+\brief Подтверждение поставки.
 **/
 
 [[eosio::action]] void marketplace::supplycnfrm(eosio::name coopname, eosio::name username, uint64_t exchange_id, document2 document) { 
@@ -24,7 +24,12 @@
   //подписываем акт приёма-передачи кооперативу пайщиком
   exchange.modify(change, coopname, [&](auto &ch) {
     ch.status = "supplied2"_n;
-    ch.product_contribution_act = document;
+  });
+  
+  // Сохраняем акт в contribute сегменте
+  marketplace::update_segment_by_request_and_type(coopname, exchange_id, "contribute"_n, [&](auto &s) {
+    s.act = document;
+    s.status = "supplied"_n;
   });
   
   std::string memo = "Приём имущественного паевого взноса по программе №" + std::to_string(change -> program_id) + " с ID: " + std::to_string(change -> id);

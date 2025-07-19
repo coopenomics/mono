@@ -20,13 +20,19 @@
   
   exchange.modify(change, _soviet, [&](auto &o) { 
     o.status = "authorized"_n; 
-    
-    o.contribution_product_decision_id = contribution_product_decision_id;
-    o.contribution_product_authorization = contribution_product_authorization;
-    
-    o.return_product_decision_id = return_product_decision_id;
-    o.return_product_authorization = return_product_authorization;
-
   });
 
+  // Обновляем contribute сегмент
+  marketplace::update_segment_by_request_and_type(coopname, exchange_id, "contribute"_n, [&](auto &s) {
+    s.decision_id = contribution_product_decision_id;
+    s.authorization = contribution_product_authorization;
+    s.status = "authorized"_n;
+  });
+
+  // Обновляем return сегмент  
+  marketplace::update_segment_by_request_and_type(coopname, exchange_id, "return"_n, [&](auto &s) {
+    s.decision_id = return_product_decision_id;
+    s.authorization = return_product_authorization;
+    s.status = "authorized"_n;
+  });
 };

@@ -226,4 +226,92 @@ export class AttributeDomainService {
         (attribute.description && attribute.description.toLowerCase().includes(lowerSearchTerm))
     );
   }
+
+  /**
+   * Поиск атрибутов с фильтрами (доменная логика)
+   */
+  async searchAttributesWithFilters(options: {
+    searchTerm: string;
+    categoryId?: number;
+    typeId?: number;
+    onlyRequired?: boolean;
+    onlyAspect?: boolean;
+    onlyWithDictionary?: boolean;
+    limit?: number;
+  }): Promise<AttributeDomainEntity[]> {
+    let attributes = await this.searchAttributes(options.searchTerm);
+
+    // Дополнительная фильтрация по категории/типу
+    if (options.categoryId && options.typeId) {
+      const categoryTypeAttributes = await this.getAttributesForCategoryType(options.categoryId, options.typeId);
+      const categoryTypeAttributeIds = categoryTypeAttributes.map((attr) => attr.attributeId);
+      attributes = attributes.filter((attr) => categoryTypeAttributeIds.includes(attr.attributeId));
+    }
+
+    // Применяем фильтры
+    if (options.onlyRequired) {
+      attributes = attributes.filter((attr) => attr.isRequired);
+    }
+
+    if (options.onlyAspect) {
+      attributes = attributes.filter((attr) => attr.isAspect);
+    }
+
+    if (options.onlyWithDictionary) {
+      attributes = attributes.filter((attr) => attr.hasDictionary());
+    }
+
+    // Ограничиваем результаты
+    if (options.limit && options.limit > 0) {
+      attributes = attributes.slice(0, options.limit);
+    }
+
+    return attributes;
+  }
+
+  /**
+   * Получить атрибуты для категории и типа с фильтрами (доменная логика)
+   */
+  async getAttributesForCategoryTypeWithFilters(options: {
+    categoryId: number;
+    typeId: number;
+    includeDictionaryValues?: boolean;
+    onlyRequired?: boolean;
+  }): Promise<{
+    attributes: AttributeDomainEntity[];
+    attributesWithValues?: Array<{
+      attribute: AttributeDomainEntity;
+      dictionary?: DictionaryDomainEntity;
+      values?: DictionaryValueDomainEntity[];
+    }>;
+  }> {
+    let attributes: AttributeDomainEntity[];
+    let attributesWithValues:
+      | Array<{
+          attribute: AttributeDomainEntity;
+          dictionary?: DictionaryDomainEntity;
+          values?: DictionaryValueDomainEntity[];
+        }>
+      | undefined;
+
+    if (options.includeDictionaryValues) {
+      const withValues = await this.getAttributesWithDictionaryValues(options.categoryId, options.typeId);
+      attributes = withValues.map((item) => item.attribute);
+      attributesWithValues = withValues;
+    } else {
+      attributes = await this.getAttributesForCategoryType(options.categoryId, options.typeId);
+    }
+
+    if (options.onlyRequired) {
+      attributes = attributes.filter((attr) => attr.isRequired);
+      if (attributesWithValues) {
+        attributesWithValues = attributesWithValues.filter((item) => item.attribute.isRequired);
+      }
+    }
+
+    return {
+      attributes,
+      attributesWithValues,
+    };
+  }
 }

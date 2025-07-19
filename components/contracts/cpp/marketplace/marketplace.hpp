@@ -8,6 +8,8 @@
 
 #include "../lib/common.hpp"
 
+using namespace Marketplace;
+
 /**
  *  \ingroup public_contracts
  *  @brief Класс `marketplace` предоставляет функционал кооперативного маркетплейса, позволяя пользователям
@@ -29,9 +31,96 @@ public:
               eosio::datastream<const char *> ds)
       : eosio::contract(receiver, code, ds) {}
 
-
   void apply(uint64_t receiver, uint64_t code, uint64_t action);
   [[eosio::action]] void migrate();
+  
+  // Утилитарные функции для работы с сегментами
+  static segment get_segment(eosio::name coopname, uint64_t segment_id) {
+    segments_index segments(_marketplace, coopname.value);
+    auto seg = segments.find(segment_id);
+    eosio::check(seg != segments.end(), "Сегмент не найден");
+    return *seg;
+  }
+
+  static segment get_segment_by_request_and_type(eosio::name coopname, uint64_t request_id, eosio::name type) {
+    segments_index segments(_marketplace, coopname.value);
+    auto idx = segments.get_index<"byrequest"_n>();
+    auto lower = idx.lower_bound(request_id);
+    auto upper = idx.upper_bound(request_id);
+    
+    for (auto itr = lower; itr != upper; ++itr) {
+      if (itr->type == type) {
+        return *itr;
+      }
+    }
+    
+    eosio::check(false, "Сегмент не найден для заявки и типа");
+    return segment{}; // никогда не достигнется
+  }
+
+  static uint64_t create_segment(eosio::name coopname, uint64_t request_id, eosio::name type) {
+    segments_index segments(_marketplace, coopname.value);
+    uint64_t id = get_global_id(_marketplace, "segment"_n);
+    
+    segments.emplace(_marketplace, [&](auto &s) {
+      s.id = id;
+      s.request_id = request_id;
+      s.type = type;
+      s.status = "created"_n;
+      s.created_at = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
+      s.updated_at = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
+    });
+    
+    return id;
+  }
+
+  static void update_segment(eosio::name coopname, uint64_t segment_id, std::function<void(segment&)> updater) {
+    segments_index segments(_marketplace, coopname.value);
+    auto seg = segments.find(segment_id);
+    eosio::check(seg != segments.end(), "Сегмент не найден");
+    
+    segments.modify(seg, _marketplace, [&](auto &s) {
+      updater(s);
+      s.updated_at = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
+    });
+  }
+
+  static void update_segment_by_request_and_type(eosio::name coopname, uint64_t request_id, eosio::name type, std::function<void(segment&)> updater) {
+    segments_index segments(_marketplace, coopname.value);
+    auto idx = segments.get_index<"byrequest"_n>();
+    auto lower = idx.lower_bound(request_id);
+    auto upper = idx.upper_bound(request_id);
+    
+    for (auto itr = lower; itr != upper; ++itr) {
+      if (itr->type == type) {
+        idx.modify(itr, _marketplace, [&](auto &s) {
+          updater(s);
+          s.updated_at = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
+        });
+        return;
+      }
+    }
+    
+    eosio::check(false, "Сегмент не найден для обновления");
+  }
+
+  static void delete_segments_by_request(eosio::name coopname, uint64_t request_id) {
+    segments_index segments(_marketplace, coopname.value);
+    auto idx = segments.get_index<"byrequest"_n>();
+    auto lower = idx.lower_bound(request_id);
+    auto upper = idx.upper_bound(request_id);
+    
+    // Создаем вектор для хранения итераторов, чтобы избежать инвалидации
+    std::vector<segments_index::const_iterator> to_delete;
+    for (auto itr = lower; itr != upper; ++itr) {
+      to_delete.push_back(segments.find(itr->id));
+    }
+    
+    // Удаляем все найденные сегменты
+    for (auto itr : to_delete) {
+      segments.erase(itr);
+    }
+  }
   
   // ... определение методов контракта ...
   
@@ -75,8 +164,12 @@ public:
   [[eosio::action]] void unpublish(eosio::name coopname, eosio::name username, uint64_t exchange_id);
   [[eosio::action]] void publish(eosio::name coopname, eosio::name username, uint64_t exchange_id);
 
+  // Методы для работы с диспутом (гарантийный возврат)
+  [[eosio::action]] void wauthorize(eosio::name coopname, uint64_t exchange_id, uint64_t wreturn_decision_id, document2 wreturn_authorization, uint64_t wsupply_decision_id, document2 wsupply_authorization);
+  [[eosio::action]] void wreturn(eosio::name coopname, eosio::name username, uint64_t exchange_id, document2 document);
+  [[eosio::action]] void woffer(eosio::name coopname, eosio::name username, uint64_t exchange_id, document2 document);
+  [[eosio::action]] void waccept(eosio::name coopname, eosio::name username, uint64_t exchange_id, bool accept, document2 document);
 
   struct [[eosio::table, eosio::contract("marketplace")]] balances : balances_base {};
   struct [[eosio::table, eosio::contract("marketplace")]] counts : counts_base {};
-
 };

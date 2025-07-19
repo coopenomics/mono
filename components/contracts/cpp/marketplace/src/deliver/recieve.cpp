@@ -30,13 +30,17 @@
     eosio::check(change -> parent_username == username, "Недостаточно прав доступа для получения имущества");
   };
 
-    //подписываем акт приёма-передачи кооперативу пайщиком
+  //подписываем акт приёма-передачи кооперативу пайщиком
   exchange.modify(change, coopname, [&](auto &ch){
     ch.status = "recieved1"_n;
     ch.recieved_at = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
     ch.warranty_delay_until = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch() + change -> product_lifecycle_secs / 4);
-    ch.product_recieve_act = document;
   });
 
+  // Сохраняем акт получения в return сегменте
+  marketplace::update_segment_by_request_and_type(coopname, exchange_id, "return"_n, [&](auto &s) {
+    s.act = document;
+    s.status = "recieved"_n;
+  });
 }
 

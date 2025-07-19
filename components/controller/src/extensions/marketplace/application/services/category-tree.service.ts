@@ -1,16 +1,11 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { CategoryTreeDomainService, CATEGORY_TREE_DOMAIN_SERVICE } from '../../domain/services/category-tree-domain.service';
-import {
-  CategoryDTO,
-  ProductTypeDTO,
-  CategoryTreeStatsDTO,
-  CategoryTreeSearchResultDTO,
-  ProductWithPathDTO,
-  CategoryWithTypesDTO,
-} from '../dto/category-tree.dto';
+import { CategoryDTO, ProductTypeDTO } from '../dto/category-tree.dto';
+import { CategoryTreeStatsDTO } from '../dto/category-tree.dto';
+import { GetCategoryTreeInput } from '../dto/get-category-tree-input.dto';
 
 /**
- * Application сервис для работы с деревом категорий и поиском
+ * Сервис приложения для работы с деревом категорий
  */
 @Injectable()
 export class CategoryTreeService {
@@ -20,105 +15,70 @@ export class CategoryTreeService {
   ) {}
 
   /**
-   * Построить полное дерево категорий
+   * Получить полное дерево категорий с типами товаров
    */
-  async buildCategoryTree(): Promise<CategoryDTO[]> {
-    const domainTree = await this.categoryTreeDomainService.buildCategoryTree();
-    return domainTree.map((category) => CategoryDTO.fromDomain(category));
-  }
-
-  /**
-   * Построить дерево категорий начиная с конкретной категории
-   */
-  async buildCategoryTreeFromRoot(rootCategoryId: number): Promise<CategoryDTO[]> {
-    const domainTree = await this.categoryTreeDomainService.buildCategoryTreeFromRoot(rootCategoryId);
-    return domainTree.map((category) => CategoryDTO.fromDomain(category));
-  }
-
-  /**
-   * Поиск по дереву категорий и типов товаров
-   */
-  async searchCategoryTree(searchTerm: string): Promise<CategoryTreeSearchResultDTO> {
-    const searchResult = await this.categoryTreeDomainService.searchCategoryTree(searchTerm);
-
-    return new CategoryTreeSearchResultDTO({
-      matchedCategories: searchResult.matchedCategories.map((cat) => CategoryDTO.fromDomain(cat)),
-      matchedTypes: searchResult.matchedTypes.map((type) => ProductTypeDTO.fromDomain(type)),
-      resultTree: searchResult.resultTree.map((cat) => CategoryDTO.fromDomain(cat)),
+  async getCategoryTree(input?: GetCategoryTreeInput): Promise<CategoryDTO[]> {
+    const domainTree = await this.categoryTreeDomainService.buildCategoryTreeWithOptions({
+      rootCategoryId: input?.rootCategoryId,
+      onlyAvailable: input?.onlyAvailable,
+      includeTypes: input?.includeTypes,
+      maxDepth: input?.maxDepth,
     });
+
+    return domainTree.map((category) => CategoryDTO.fromDomain(category));
   }
 
   /**
-   * Поиск товаров с показом полного пути к категории
+   * Получить дерево категорий с фильтрацией по доступности
    */
-  async searchProductsWithPath(searchTerm: string): Promise<ProductWithPathDTO[]> {
-    const searchResults = await this.categoryTreeDomainService.searchProductsWithCategoryPath(searchTerm);
-
-    return searchResults.map(
-      (result) =>
-        new ProductWithPathDTO({
-          type: ProductTypeDTO.fromDomain(result.type),
-          categoryPath: result.categoryPath.map((cat) => CategoryDTO.fromDomain(cat)),
-          fullPath: result.fullPath,
-        })
-    );
+  async getAvailableCategoryTree(coopname?: string): Promise<CategoryDTO[]> {
+    const domainTree = await this.categoryTreeDomainService.buildAvailableCategoryTree(coopname);
+    return domainTree.map((category) => CategoryDTO.fromDomain(category));
   }
 
   /**
-   * Поиск категорий с их типами
+   * Получить все root-категории
    */
-  async searchCategoriesWithTypes(searchTerm: string): Promise<CategoryWithTypesDTO[]> {
-    const searchResults = await this.categoryTreeDomainService.searchCategoriesWithTypes(searchTerm);
-
-    return searchResults.map(
-      (result) =>
-        new CategoryWithTypesDTO({
-          category: CategoryDTO.fromDomain(result.category),
-          matchedTypes: result.matchedTypes.map((type) => ProductTypeDTO.fromDomain(type)),
-          allTypes: result.allTypes.map((type) => ProductTypeDTO.fromDomain(type)),
-          categoryPath: result.categoryPath.map((cat) => CategoryDTO.fromDomain(cat)),
-        })
-    );
+  async getRootCategories(): Promise<CategoryDTO[]> {
+    const rootCategories = await this.categoryTreeDomainService.getRootCategories();
+    return rootCategories.map((category) => CategoryDTO.fromDomain(category));
   }
 
   /**
-   * Найти листовые категории
+   * Получить категорию по ID
    */
-  async findLeafCategories(): Promise<CategoryDTO[]> {
-    const leafCategories = await this.categoryTreeDomainService.findLeafCategories();
-    return leafCategories.map((category) => CategoryDTO.fromDomain(category));
+  async getCategoryById(categoryId: number): Promise<CategoryDTO | null> {
+    const category = await this.categoryTreeDomainService.getCategoryById(categoryId);
+    if (!category) return null;
+
+    return CategoryDTO.fromDomain(category);
   }
 
   /**
-   * Найти категорию с полным путем
+   * Получить тип товара по ID
    */
-  async findCategoryWithPath(categoryId: number): Promise<{ category: CategoryDTO; path: CategoryDTO[] } | null> {
-    const result = await this.categoryTreeDomainService.findCategoryWithPath(categoryId);
+  async getProductTypeById(typeId: number): Promise<ProductTypeDTO | null> {
+    const type = await this.categoryTreeDomainService.getTypeById(typeId);
+    if (!type) return null;
 
-    if (!result) {
-      return null;
-    }
-
-    return {
-      category: CategoryDTO.fromDomain(result.category),
-      path: result.path.map((cat) => CategoryDTO.fromDomain(cat)),
-    };
+    return ProductTypeDTO.fromDomain(type);
   }
 
   /**
-   * Получить статистику дерева категорий
+   * Универсальный поиск по дереву категорий и типов товаров
+   * Возвращает дерево категорий на основе поискового запроса
+   */
+  async search(searchTerm: string): Promise<CategoryDTO[]> {
+    const resultTree = await this.categoryTreeDomainService.search(searchTerm);
+    return resultTree.map((category) => CategoryDTO.fromDomain(category));
+  }
+
+  /**
+   * Получить статистику по дереву категорий
    */
   async getCategoryTreeStats(): Promise<CategoryTreeStatsDTO> {
     const stats = await this.categoryTreeDomainService.getCategoryTreeStats();
     return new CategoryTreeStatsDTO(stats);
-  }
-
-  /**
-   * Поиск категорий по названию
-   */
-  async searchCategories(searchTerm: string): Promise<CategoryDTO[]> {
-    const categories = await this.categoryTreeDomainService.searchCategories(searchTerm);
-    return categories.map((category) => CategoryDTO.fromDomain(category));
   }
 }
 

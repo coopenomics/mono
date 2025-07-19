@@ -13,7 +13,7 @@
 [[eosio::action]] void marketplace::accept(eosio::name coopname, eosio::name username, uint64_t exchange_id, document2 document) { 
   require_auth(coopname);
   
- requests_index exchange(_marketplace, coopname.value);
+  requests_index exchange(_marketplace, coopname.value);
   auto change = exchange.find(exchange_id);
   eosio::check(change != exchange.end(), "Заявка не найдена");
   eosio::check(change -> status == "published"_n, "Только заявка в статусе ожидания может быть принята");
@@ -26,6 +26,10 @@
   // Проверяем подпись документа
   verify_document_or_fail(document);
 
+  // Создаем сегменты на встречной заявке
+  uint64_t contribute_segment_id = marketplace::create_segment(coopname, exchange_id, "contribute"_n);
+  uint64_t return_segment_id = marketplace::create_segment(coopname, exchange_id, "return"_n);
+
   exchange.modify(parent_change, _marketplace, [&](auto &i) {
     i.remain_units -= change -> remain_units;
     i.supplier_amount = (parent_change -> remain_units - change -> remain_units ) * parent_change -> unit_cost;
@@ -37,14 +41,22 @@
     o.blocked_units += change -> remain_units;
     o.remain_units = 0;
     o.accepted_at = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
-
-    if (change -> type == "order"_n) {
-      o.contribute_product_statement = document;
-    } else if (change -> type == "offer"_n) {
-      o.return_product_statement = document;
-    };
-
   });
+
+  // Сохраняем документ в соответствующем сегменте
+  if (change -> type == "order"_n) {
+    // Для заказа сохраняем документ в contribute сегменте
+    marketplace::update_segment(coopname, contribute_segment_id, [&](auto &s) {
+      s.statement = document;
+      s.status = "statement"_n;
+    });
+  } else if (change -> type == "offer"_n) {
+    // Для предложения сохраняем документ в return сегменте
+    marketplace::update_segment(coopname, return_segment_id, [&](auto &s) {
+      s.statement = document;
+      s.status = "statement"_n;
+    });
+  };
 
   action(
     permission_level{ _marketplace, "active"_n},

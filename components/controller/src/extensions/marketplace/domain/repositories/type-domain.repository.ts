@@ -1,4 +1,5 @@
 import type { TypeDomainEntity } from '../entities/type-domain.entity';
+import type { CategoryDomainEntity } from '../entities/category-domain.entity';
 
 /**
  * Интерфейс доменного репозитория для типов товаров marketplace
@@ -58,6 +59,25 @@ export interface TypeDomainRepository {
    * Найти типы товаров по ID категории с атрибутами
    */
   findByCategoryIdWithAttributes(categoryId: number): Promise<TypeDomainEntity[]>;
+
+  /**
+   * Поиск типов товаров по названию (оптимизированный)
+   */
+  searchByName(searchTerm: string, limit?: number): Promise<TypeDomainEntity[]>;
+
+  /**
+   * Поиск типов товаров по названию с информацией о категории
+   */
+  searchByNameWithCategory(
+    searchTerm: string,
+    limit?: number
+  ): Promise<
+    {
+      type: TypeDomainEntity;
+      categoryPath: CategoryDomainEntity[];
+      fullPath: string;
+    }[]
+  >;
 }
 
 // Токен для внедрения зависимости

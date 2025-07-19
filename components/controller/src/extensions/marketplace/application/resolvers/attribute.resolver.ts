@@ -1,20 +1,22 @@
 import { Resolver, Query, Args } from '@nestjs/graphql';
-import { Injectable } from '@nestjs/common';
+import { Injectable, UseGuards } from '@nestjs/common';
+import { GqlJwtAuthGuard } from '~/modules/auth/guards/graphql-jwt-auth.guard';
+import { RolesGuard } from '~/modules/auth/guards/roles.guard';
+import { AuthRoles } from '~/modules/auth/decorators/auth.decorator';
 import { AttributeDomainService } from '../../domain/services/attribute-domain.service';
 import { AttributeDTO, AttributeGroupDTO, AttributeStatsDTO, DictionaryValueDTO } from '../dto/attribute.dto';
-import {
-  GetCategoryAttributesInput,
-  SearchAttributesInput,
-  SearchDictionaryValuesInput,
-  ValidateAttributeValuesInput,
-} from '../dto/inputs.dto';
+import { SearchAttributesInput } from '../dto/search-attributes-input.dto';
+import { GetCategoryAttributesInput } from '../dto/get-category-attributes-input.dto';
+import { SearchDictionaryValuesInput } from '../dto/search-dictionary-values-input.dto';
+import { ValidateAttributeValuesInput } from '../dto/validate-attribute-values-input.dto';
+import { GetRequiredAttributesInput } from '../dto/get-required-attributes-input.dto';
 
 /**
  * Результат валидации атрибута
  */
 import { ObjectType, Field } from '@nestjs/graphql';
 
-@ObjectType('MarketplaceAttributeValidationResult')
+@ObjectType('MarketplaceAttributeValidation')
 export class AttributeValidationResult {
   @Field({ description: 'Результат валидации' })
   isValid!: boolean;
@@ -40,81 +42,82 @@ export class AttributeResolver {
    * Получить атрибуты для категории и типа товара
    */
   @Query(() => [AttributeDTO], {
-    name: 'getMarketplaceCategoryAttributes',
+    name: 'marketplaceCategoryAttributes',
     description: 'Получить атрибуты для конкретной категории и типа товара marketplace',
   })
   async getCategoryAttributes(
     @Args('input', { type: () => GetCategoryAttributesInput })
     input: GetCategoryAttributesInput
   ): Promise<AttributeDTO[]> {
-    let attributes;
+    const result = await this.attributeService.getAttributesForCategoryTypeWithFilters({
+      categoryId: input.categoryId,
+      typeId: input.typeId,
+      includeDictionaryValues: input.includeDictionaryValues,
+      onlyRequired: input.onlyRequired,
+    });
 
-    if (input.includeDictionaryValues) {
-      const attributesWithValues = await this.attributeService.getAttributesWithDictionaryValues(
-        input.categoryId,
-        input.typeId
-      );
-      attributes = attributesWithValues.map((item) => item.attribute);
-    } else {
-      attributes = await this.attributeService.getAttributesForCategoryType(input.categoryId, input.typeId);
-    }
-
-    if (input.onlyRequired) {
-      attributes = attributes.filter((attr) => attr.isRequired);
-    }
-
-    return attributes.map((attr) => AttributeDTO.fromDomain(attr, input.includeDictionaryValues));
+    return result.attributes.map((attr) => AttributeDTO.fromDomain(attr, input.includeDictionaryValues));
   }
 
   /**
    * Получить группированные атрибуты для категории и типа товара
    */
   @Query(() => [AttributeGroupDTO], {
-    name: 'getMarketplaceCategoryAttributesGrouped',
+    name: 'marketplaceCategoryAttributesGrouped',
     description: 'Получить группированные атрибуты для категории и типа товара marketplace',
   })
   async getCategoryAttributesGrouped(
     @Args('input', { type: () => GetCategoryAttributesInput })
     input: GetCategoryAttributesInput
   ): Promise<AttributeGroupDTO[]> {
-    const groupedAttributes = await this.attributeService.getGroupedAttributes(input.categoryId, input.typeId);
+    // Получаем отфильтрованные атрибуты через доменный сервис
+    const result = await this.attributeService.getAttributesForCategoryTypeWithFilters({
+      categoryId: input.categoryId,
+      typeId: input.typeId,
+      includeDictionaryValues: input.includeDictionaryValues,
+      onlyRequired: input.onlyRequired,
+    });
 
-    const result: AttributeGroupDTO[] = [];
-
-    for (const [groupName, attributes] of groupedAttributes.entries()) {
-      let filteredAttributes = attributes;
-
-      if (input.onlyRequired) {
-        filteredAttributes = attributes.filter((attr) => attr.isRequired);
+    // Группируем атрибуты
+    const groupedAttributes = new Map<string, typeof result.attributes>();
+    for (const attribute of result.attributes) {
+      const groupName = attribute.groupName || 'Без группы';
+      if (!groupedAttributes.has(groupName)) {
+        groupedAttributes.set(groupName, []);
       }
+      groupedAttributes.get(groupName)?.push(attribute);
+    }
 
-      if (filteredAttributes.length > 0) {
-        const groupId = filteredAttributes[0].groupId;
-        result.push(
+    // Преобразуем в DTO
+    const resultGroups: AttributeGroupDTO[] = [];
+    for (const [groupName, attributes] of groupedAttributes.entries()) {
+      if (attributes.length > 0) {
+        const groupId = attributes[0].groupId;
+        resultGroups.push(
           new AttributeGroupDTO({
             groupId,
             groupName,
-            attributes: filteredAttributes.map((attr) => AttributeDTO.fromDomain(attr, input.includeDictionaryValues)),
+            attributes: attributes.map((attr) => AttributeDTO.fromDomain(attr, input.includeDictionaryValues)),
           })
         );
       }
     }
 
-    return result;
+    return resultGroups;
   }
 
   /**
    * Получить обязательные атрибуты для категории и типа
    */
   @Query(() => [AttributeDTO], {
-    name: 'getMarketplaceRequiredAttributes',
+    name: 'marketplaceRequiredAttributes',
     description: 'Получить обязательные атрибуты для категории и типа товара marketplace',
   })
   async getRequiredAttributes(
-    @Args('categoryId', { type: () => Number }) categoryId: number,
-    @Args('typeId', { type: () => Number }) typeId: number
+    @Args('data', { type: () => GetRequiredAttributesInput })
+    data: GetRequiredAttributesInput
   ): Promise<AttributeDTO[]> {
-    const attributes = await this.attributeService.getRequiredAttributes(categoryId, typeId);
+    const attributes = await this.attributeService.getRequiredAttributes(data.categoryId, data.typeId);
     return attributes.map((attr) => AttributeDTO.fromDomain(attr));
   }
 
@@ -122,14 +125,14 @@ export class AttributeResolver {
    * Получить аспектные атрибуты для категории и типа
    */
   @Query(() => [AttributeDTO], {
-    name: 'getMarketplaceAspectAttributes',
+    name: 'marketplaceAspectAttributes',
     description: 'Получить аспектные атрибуты для категории и типа товара marketplace',
   })
   async getAspectAttributes(
-    @Args('categoryId', { type: () => Number }) categoryId: number,
-    @Args('typeId', { type: () => Number }) typeId: number
+    @Args('data', { type: () => GetRequiredAttributesInput })
+    data: GetRequiredAttributesInput
   ): Promise<AttributeDTO[]> {
-    const attributes = await this.attributeService.getAspectAttributes(categoryId, typeId);
+    const attributes = await this.attributeService.getAspectAttributes(data.categoryId, data.typeId);
     return attributes.map((attr) => AttributeDTO.fromDomain(attr));
   }
 
@@ -137,42 +140,22 @@ export class AttributeResolver {
    * Поиск атрибутов
    */
   @Query(() => [AttributeDTO], {
-    name: 'searchMarketplaceAttributes',
+    name: 'marketplaceSearchAttributes',
     description: 'Поиск атрибутов marketplace по названию',
   })
   async searchAttributes(
     @Args('input', { type: () => SearchAttributesInput })
     input: SearchAttributesInput
   ): Promise<AttributeDTO[]> {
-    let attributes = await this.attributeService.searchAttributes(input.searchTerm);
-
-    // Дополнительная фильтрация по категории/типу
-    if (input.categoryId && input.typeId) {
-      const categoryTypeAttributes = await this.attributeService.getAttributesForCategoryType(
-        input.categoryId,
-        input.typeId
-      );
-      const categoryTypeAttributeIds = categoryTypeAttributes.map((attr) => attr.attributeId);
-      attributes = attributes.filter((attr) => categoryTypeAttributeIds.includes(attr.attributeId));
-    }
-
-    // Применяем фильтры
-    if (input.onlyRequired) {
-      attributes = attributes.filter((attr) => attr.isRequired);
-    }
-
-    if (input.onlyAspect) {
-      attributes = attributes.filter((attr) => attr.isAspect);
-    }
-
-    if (input.onlyWithDictionary) {
-      attributes = attributes.filter((attr) => attr.hasDictionary());
-    }
-
-    // Ограничиваем результаты
-    if (input.limit && input.limit > 0) {
-      attributes = attributes.slice(0, input.limit);
-    }
+    const attributes = await this.attributeService.searchAttributesWithFilters({
+      searchTerm: input.searchTerm,
+      categoryId: input.categoryId,
+      typeId: input.typeId,
+      onlyRequired: input.onlyRequired,
+      onlyAspect: input.onlyAspect,
+      onlyWithDictionary: input.onlyWithDictionary,
+      limit: input.limit,
+    });
 
     return attributes.map((attr) => AttributeDTO.fromDomain(attr));
   }
@@ -181,7 +164,7 @@ export class AttributeResolver {
    * Поиск значений словаря
    */
   @Query(() => [DictionaryValueDTO], {
-    name: 'searchMarketplaceDictionaryValues',
+    name: 'marketplaceSearchDictionaryValues',
     description: 'Поиск значений словаря marketplace',
   })
   async searchDictionaryValues(
@@ -201,7 +184,7 @@ export class AttributeResolver {
    * Валидация значений атрибута
    */
   @Query(() => AttributeValidationResult, {
-    name: 'validateMarketplaceAttributeValues',
+    name: 'marketplaceValidateAttributeValues',
     description: 'Валидация значений атрибута marketplace',
   })
   async validateAttributeValues(
@@ -217,9 +200,11 @@ export class AttributeResolver {
    * Получить статистику по атрибутам
    */
   @Query(() => AttributeStatsDTO, {
-    name: 'getMarketplaceAttributeStats',
+    name: 'marketplaceAttributeStats',
     description: 'Получить статистику по атрибутам marketplace',
   })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member'])
   async getAttributeStats(): Promise<AttributeStatsDTO> {
     const stats = await this.attributeService.getAttributeStats();
     return new AttributeStatsDTO(stats);

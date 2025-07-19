@@ -3,8 +3,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TypeDomainRepository } from '../../domain/repositories/type-domain.repository';
 import { TypeDomainEntity } from '../../domain/entities/type-domain.entity';
+import { CategoryDomainEntity } from '../../domain/entities/category-domain.entity';
 import { TypeEntity } from '../entities/type.entity';
 import { TypeMapper } from '../mappers/type.mapper';
+import { CategoryMapper } from '../mappers/category.mapper';
 
 @Injectable()
 export class TypeRepositoryAdapter implements TypeDomainRepository {
@@ -98,5 +100,79 @@ export class TypeRepositoryAdapter implements TypeDomainRepository {
       relations: ['category', 'categoryTypeAttributes', 'categoryTypeAttributes.attribute'],
     });
     return types.map((type) => TypeMapper.toDomain(type));
+  }
+
+  async searchByName(searchTerm: string, limit = 50): Promise<TypeDomainEntity[]> {
+    const query = this.typeRepository
+      .createQueryBuilder('type')
+      .leftJoinAndSelect('type.category', 'category')
+      .where('LOWER(type.typeName) LIKE LOWER(:searchTerm)', {
+        searchTerm: `%${searchTerm}%`,
+      })
+      .orderBy('type.typeName', 'ASC')
+      .limit(limit);
+
+    const types = await query.getMany();
+    return types.map((type) => TypeMapper.toDomain(type));
+  }
+
+  async searchByNameWithCategory(
+    searchTerm: string,
+    limit = 50
+  ): Promise<
+    {
+      type: TypeDomainEntity;
+      categoryPath: CategoryDomainEntity[];
+      fullPath: string;
+    }[]
+  > {
+    // Находим типы товаров по поисковому запросу с категорией
+    const query = this.typeRepository
+      .createQueryBuilder('type')
+      .leftJoinAndSelect('type.category', 'category')
+      .where('LOWER(type.typeName) LIKE LOWER(:searchTerm)', {
+        searchTerm: `%${searchTerm}%`,
+      })
+      .orderBy('type.typeName', 'ASC')
+      .limit(limit);
+
+    const typeEntities = await query.getMany();
+    const results: {
+      type: TypeDomainEntity;
+      categoryPath: CategoryDomainEntity[];
+      fullPath: string;
+    }[] = [];
+
+    // Для каждого найденного типа строим путь к корню категории
+    for (const typeEntity of typeEntities) {
+      const type = TypeMapper.toDomain(typeEntity);
+      const categoryPath: CategoryDomainEntity[] = [];
+      let current: any = typeEntity.category;
+
+      // Строим путь от категории типа к корню
+      while (current) {
+        const categoryDomain = CategoryMapper.toDomain(current);
+        categoryPath.unshift(categoryDomain);
+
+        if (current.parentId) {
+          // Загружаем родительскую категорию
+          current = await this.typeRepository.manager.getRepository('CategoryEntity').findOne({
+            where: { descriptionCategoryId: current.parentId },
+          });
+        } else {
+          current = null;
+        }
+      }
+
+      const fullPath = categoryPath.map((cat) => cat.categoryName).join(' > ') + ` > ${type.typeName}`;
+
+      results.push({
+        type,
+        categoryPath,
+        fullPath,
+      });
+    }
+
+    return results;
   }
 }
