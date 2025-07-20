@@ -121,6 +121,23 @@ public:
       segments.erase(itr);
     }
   }
+
+  // Проверка корректности единиц товара (инварианты)
+  static void check_units_invariant(const request& req, const std::string& operation) {
+    // Проверяем, что количество единиц не отрицательное
+    eosio::check(req.remain_units >= 0, 
+      "Инвариант нарушен в операции " + operation + ": remain_units не может быть отрицательным");
+    
+    eosio::check(req.blocked_units >= 0, 
+      "Инвариант нарушен в операции " + operation + ": blocked_units не может быть отрицательным");
+      
+    eosio::check(req.delivered_units >= 0, 
+      "Инвариант нарушен в операции " + operation + ": delivered_units не может быть отрицательным");
+    
+    // Логирование для отладки
+    eosio::print("Units check [", operation, "]: remain=", req.remain_units, 
+                 " blocked=", req.blocked_units, " delivered=", req.delivered_units);
+  }
   
   // ... определение методов контракта ...
   

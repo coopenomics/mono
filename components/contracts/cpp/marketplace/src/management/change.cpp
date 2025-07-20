@@ -247,17 +247,20 @@ void marketplace::cancel_child(eosio::name coopname, eosio::name username, uint6
     ).send();
   };  
 
-  if (change -> status == "authorized"_n) {
-    //возвращаем единицы товара в родительскую заявку
-    exchange.modify(parent_change, _marketplace, [&](auto &e) {
-      e.remain_units += change -> blocked_units;
-      e.blocked_units -= change -> blocked_units;
-      e.supplier_amount += change -> supplier_amount;
-    });
+  if (change -> status == "authorized"_n || change -> status == "accepted"_n) {
+    //возвращаем единицы товара в родительскую заявку для статусов с заблокированными единицами
+    if (change -> blocked_units > 0) {
+      exchange.modify(parent_change, _marketplace, [&](auto &e) {
+        e.remain_units += change -> blocked_units;
+        e.blocked_units -= change -> blocked_units;
+        e.supplier_amount = e.remain_units * e.unit_cost;
+      });
+    }
 
     exchange.modify(change, _marketplace, [&](auto &c){
       c.status = "canceled"_n;
       c.canceled_at = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
+      c.blocked_units = 0; // Обнуляем заблокированные единицы
     });
 
   } else if (change -> status == "published"_n) {

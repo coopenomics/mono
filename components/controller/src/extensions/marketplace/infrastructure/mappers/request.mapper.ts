@@ -19,11 +19,15 @@ export class RequestMapper {
     return new RequestDomainEntity({
       id: entity.id,
       hash: entity.hash,
+      blockchainId: entity.blockchainId,
+      parentId: entity.parentId,
       parentHash: entity.parentHash,
+      parentUsername: entity.parentUsername,
       coopname: entity.coopname,
       username: entity.username,
       type: entity.type as RequestType,
       status: entity.status as RequestStatus,
+      programId: entity.programId,
       name: entity.name,
       articleNumber: entity.articleNumber,
       barcode: entity.barcode,
@@ -31,10 +35,16 @@ export class RequestMapper {
       typeId: entity.typeId,
       category: CategoryMapper.toDomain(entity.category),
       productType: TypeMapper.toDomain(entity.productType),
+      unitCost: entity.unitCost,
       price: entity.price,
       oldPrice: entity.oldPrice,
       currencyCode: entity.currencyCode,
       vat: entity.vat,
+      supplierAmount: entity.supplierAmount,
+      membershipFee: entity.membershipFee,
+      totalCost: entity.totalCost,
+      cancellationFee: entity.cancellationFee,
+      cancellationFeeAmount: entity.cancellationFeeAmount,
       width: entity.width,
       height: entity.height,
       depth: entity.depth,
@@ -42,10 +52,19 @@ export class RequestMapper {
       weight: entity.weight,
       weightUnit: entity.weightUnit,
       units: entity.units,
+      remainUnits: entity.remainUnits,
+      blockedUnits: entity.blockedUnits,
+      deliveredUnits: entity.deliveredUnits,
       availableUnits: entity.availableUnits,
       settledUnits: entity.settledUnits,
       productLifecycleSecs: entity.productLifecycleSecs,
       warrantyDays: entity.warrantyDays,
+      warrantyDelayUntil: entity.warrantyDelayUntil,
+      deadlineForReceipt: entity.deadlineForReceipt,
+      isWarrantyReturn: entity.isWarrantyReturn,
+      warrantyReturnId: entity.warrantyReturnId,
+      productContributor: entity.productContributor,
+      moneyContributor: entity.moneyContributor,
       data: entity.data,
       meta: entity.meta,
       attributes: entity.attributes ? entity.attributes.map((attr) => this.attributeValueToDomain(attr)) : [],
@@ -54,6 +73,14 @@ export class RequestMapper {
       colorImageUrl: entity.colorImageUrl,
       geoNames: entity.geoNames ? JSON.parse(entity.geoNames) : [],
       createdAt: entity.createdAt,
+      acceptedAt: entity.acceptedAt,
+      suppliedAt: entity.suppliedAt,
+      deliveredAt: entity.deliveredAt,
+      receivedAt: entity.receivedAt,
+      completedAt: entity.completedAt,
+      declinedAt: entity.declinedAt,
+      cancelledAt: entity.cancelledAt,
+      disputedAt: entity.disputedAt,
       updatedAt: entity.updatedAt,
     });
   }
@@ -66,20 +93,30 @@ export class RequestMapper {
 
     if (domain.id) entity.id = domain.id;
     entity.hash = domain.hash;
+    entity.blockchainId = domain.blockchainId;
+    entity.parentId = domain.parentId;
     entity.parentHash = domain.parentHash;
+    entity.parentUsername = domain.parentUsername;
     entity.coopname = domain.coopname;
     entity.username = domain.username;
     entity.type = domain.type as 'offer' | 'order';
     entity.status = domain.status;
+    entity.programId = domain.programId;
     entity.name = domain.name;
     entity.articleNumber = domain.articleNumber;
     entity.barcode = domain.barcode;
     entity.descriptionCategoryId = domain.descriptionCategoryId;
     entity.typeId = domain.typeId;
+    entity.unitCost = domain.unitCost;
     entity.price = domain.price;
     entity.oldPrice = domain.oldPrice;
     entity.currencyCode = domain.currencyCode;
     entity.vat = domain.vat;
+    entity.supplierAmount = domain.supplierAmount;
+    entity.membershipFee = domain.membershipFee;
+    entity.totalCost = domain.totalCost;
+    entity.cancellationFee = domain.cancellationFee;
+    entity.cancellationFeeAmount = domain.cancellationFeeAmount;
     entity.width = domain.width;
     entity.height = domain.height;
     entity.depth = domain.depth;
@@ -87,16 +124,33 @@ export class RequestMapper {
     entity.weight = domain.weight;
     entity.weightUnit = domain.weightUnit;
     entity.units = domain.units;
+    entity.remainUnits = domain.remainUnits;
+    entity.blockedUnits = domain.blockedUnits;
+    entity.deliveredUnits = domain.deliveredUnits;
     entity.availableUnits = domain.availableUnits;
     entity.settledUnits = domain.settledUnits;
     entity.productLifecycleSecs = domain.productLifecycleSecs;
     entity.warrantyDays = domain.warrantyDays;
+    entity.warrantyDelayUntil = domain.warrantyDelayUntil;
+    entity.deadlineForReceipt = domain.deadlineForReceipt;
+    entity.isWarrantyReturn = domain.isWarrantyReturn;
+    entity.warrantyReturnId = domain.warrantyReturnId;
+    entity.productContributor = domain.productContributor;
+    entity.moneyContributor = domain.moneyContributor;
     entity.data = domain.data;
     entity.meta = domain.meta;
     entity.primaryImageUrl = domain.primaryImageUrl;
     entity.colorImageUrl = domain.colorImageUrl;
     entity.geoNames = domain.geoNames.length > 0 ? JSON.stringify(domain.geoNames) : undefined;
     entity.createdAt = domain.createdAt;
+    entity.acceptedAt = domain.acceptedAt;
+    entity.suppliedAt = domain.suppliedAt;
+    entity.deliveredAt = domain.deliveredAt;
+    entity.receivedAt = domain.receivedAt;
+    entity.completedAt = domain.completedAt;
+    entity.declinedAt = domain.declinedAt;
+    entity.cancelledAt = domain.cancelledAt;
+    entity.disputedAt = domain.disputedAt;
     entity.updatedAt = domain.updatedAt;
 
     // Преобразование атрибутов

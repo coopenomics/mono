@@ -36,12 +36,20 @@
     i.blocked_units += change -> remain_units;
   });
 
+  // Проверяем инварианты родительской заявки
+  auto updated_parent = exchange.find(change -> parent_id);
+  marketplace::check_units_invariant(*updated_parent, "accept_parent_update");
+
   exchange.modify(change, _marketplace, [&](auto &o){
     o.status = "accepted"_n;
     o.blocked_units += change -> remain_units;
     o.remain_units = 0;
     o.accepted_at = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
   });
+  
+  // Проверяем инварианты дочерней заявки
+  auto updated_change = exchange.find(exchange_id);
+  marketplace::check_units_invariant(*updated_change, "accept_child_update");
 
   // Сохраняем документ в соответствующем сегменте
   if (change -> type == "order"_n) {

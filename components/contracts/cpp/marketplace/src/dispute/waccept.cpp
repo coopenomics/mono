@@ -26,6 +26,18 @@
   // Проверяем подпись документа
   verify_document_or_fail(document);
 
+  // ИСПРАВЛЕНИЕ: Возвращаем заблокированные единицы товара в родительскую заявку
+  auto parent_change = exchange.find(change -> parent_id);
+  eosio::check(parent_change != exchange.end(), "Родительская заявка не найдена");
+
+  if (change -> blocked_units > 0) {
+    exchange.modify(parent_change, _marketplace, [&](auto &e) {
+      e.remain_units += change -> blocked_units;
+      e.blocked_units -= change -> blocked_units;
+      e.supplier_amount = e.remain_units * e.unit_cost;
+    });
+  }
+
   if (accept) {
     // Поставщик принимает товар
     marketplace::update_segment_by_request_and_type(coopname, exchange_id, "wsupply"_n, [&](auto &s) {
@@ -36,6 +48,7 @@
     // Обновляем статус заявки
     exchange.modify(change, _marketplace, [&](auto &ch) {
       ch.status = "wcompleted"_n;
+      ch.blocked_units = 0; // Обнуляем заблокированные единицы
     });
 
   } else {
@@ -48,6 +61,7 @@
     // Обновляем статус заявки
     exchange.modify(change, _marketplace, [&](auto &ch) {
       ch.status = "wdeclined"_n;
+      ch.blocked_units = 0; // Обнуляем заблокированные единицы
     });
   }
 

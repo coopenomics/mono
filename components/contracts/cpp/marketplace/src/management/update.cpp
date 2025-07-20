@@ -26,6 +26,10 @@
   if (change -> data == data && change -> meta == meta) 
     status = change -> status;
 
+  // Проверяем, что новое количество единиц больше или равно заблокированным
+  eosio::check(remain_units >= change -> blocked_units, 
+    "Новое количество единиц не может быть меньше заблокированных единиц");
+
   exchange.modify(change, _marketplace, [&](auto &i) {
     i.status = status;
     i.unit_cost = unit_cost;
@@ -34,4 +38,8 @@
     i.meta = meta;
     i.supplier_amount = remain_units * unit_cost;
   });
+  
+  // Проверяем инварианты после обновления
+  auto updated_change = exchange.find(exchange_id);
+  marketplace::check_units_invariant(*updated_change, "update_units");
 }

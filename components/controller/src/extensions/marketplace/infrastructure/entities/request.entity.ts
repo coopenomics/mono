@@ -32,6 +32,108 @@ export class RequestEntity {
   @Index('idx_request_parent_hash')
   parentHash?: string;
 
+  // Блокчейн поля
+  @Column({ name: 'blockchain_id', type: 'varchar', length: 100, default: 'eos' })
+  @Index('idx_request_blockchain_id')
+  blockchainId!: string;
+
+  @Column({ name: 'parent_id', type: 'integer', nullable: true })
+  parentId?: number;
+
+  @Column({ name: 'parent_username', type: 'varchar', length: 100, nullable: true })
+  parentUsername?: string;
+
+  @Column({ name: 'program_id', type: 'integer', default: 0 })
+  programId!: number;
+
+  // Финансовые поля из блокчейна
+  @Column({ name: 'unit_cost', type: 'decimal', precision: 10, scale: 2, comment: 'Стоимость единицы из блокчейна' })
+  unitCost!: number;
+
+  @Column({ name: 'supplier_amount', type: 'decimal', precision: 10, scale: 2, comment: 'Сумма поставщика' })
+  supplierAmount!: number;
+
+  @Column({ name: 'membership_fee', type: 'decimal', precision: 10, scale: 2, default: 0, comment: 'Членский взнос' })
+  membershipFee!: number;
+
+  @Column({ name: 'total_cost', type: 'decimal', precision: 10, scale: 2, comment: 'Общая стоимость' })
+  totalCost!: number;
+
+  @Column({
+    name: 'cancellation_fee',
+    type: 'decimal',
+    precision: 5,
+    scale: 2,
+    nullable: true,
+    comment: 'Штраф за отмену (%)',
+  })
+  cancellationFee?: number;
+
+  @Column({
+    name: 'cancellation_fee_amount',
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+    comment: 'Сумма штрафа за отмену',
+  })
+  cancellationFeeAmount?: number;
+
+  // Дополнительные блокчейн количества
+  @Column({ name: 'remain_units', type: 'integer', comment: 'Остаток единиц из блокчейна' })
+  remainUnits!: number;
+
+  @Column({ name: 'blocked_units', type: 'integer', default: 0, comment: 'Заблокированные единицы' })
+  blockedUnits!: number;
+
+  @Column({ name: 'delivered_units', type: 'integer', default: 0, comment: 'Доставленные единицы' })
+  deliveredUnits!: number;
+
+  // Временные метки блокчейна
+  @Column({ name: 'accepted_at', type: 'timestamp', nullable: true })
+  acceptedAt?: Date;
+
+  @Column({ name: 'supplied_at', type: 'timestamp', nullable: true })
+  suppliedAt?: Date;
+
+  @Column({ name: 'delivered_at', type: 'timestamp', nullable: true })
+  deliveredAt?: Date;
+
+  @Column({ name: 'received_at', type: 'timestamp', nullable: true })
+  receivedAt?: Date;
+
+  @Column({ name: 'completed_at', type: 'timestamp', nullable: true })
+  completedAt?: Date;
+
+  @Column({ name: 'declined_at', type: 'timestamp', nullable: true })
+  declinedAt?: Date;
+
+  @Column({ name: 'cancelled_at', type: 'timestamp', nullable: true })
+  cancelledAt?: Date;
+
+  @Column({ name: 'disputed_at', type: 'timestamp', nullable: true })
+  disputedAt?: Date;
+
+  // Гарантийные поля
+  @Column({ name: 'warranty_delay_until', type: 'timestamp', nullable: true })
+  warrantyDelayUntil?: Date;
+
+  @Column({ name: 'deadline_for_receipt', type: 'timestamp', nullable: true })
+  deadlineForReceipt?: Date;
+
+  @Column({ name: 'is_warranty_return', type: 'boolean', default: false })
+  isWarrantyReturn!: boolean;
+
+  @Column({ name: 'warranty_return_id', type: 'integer', nullable: true })
+  warrantyReturnId?: number;
+
+  // Участники
+  @Column({ name: 'product_contributor', type: 'varchar', length: 100, nullable: true })
+  productContributor?: string;
+
+  @Column({ name: 'money_contributor', type: 'varchar', length: 100, nullable: true })
+  moneyContributor?: string;
+
   @Column({ name: 'coopname', type: 'varchar', length: 100 })
   @Index('idx_request_coopname')
   coopname!: string;

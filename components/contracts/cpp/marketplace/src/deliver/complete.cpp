@@ -35,12 +35,20 @@
     }; 
   });
 
+  // Проверяем инварианты родительской заявки
+  auto updated_parent = exchange.find(change -> parent_id);
+  marketplace::check_units_invariant(*updated_parent, "complete_parent_update");
+
   exchange.modify(change, _marketplace, [&](auto &o) {
     o.status = "completed"_n;
     o.delivered_units += change -> blocked_units;
     o.blocked_units = 0;
     o.completed_at = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
   });
+  
+  // Проверяем инварианты дочерней заявки перед удалением
+  auto updated_change = exchange.find(exchange_id);
+  marketplace::check_units_invariant(*updated_change, "complete_child_before_delete");
 
   auto program = get_program_or_fail(coopname, change -> program_id);
 
