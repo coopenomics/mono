@@ -483,15 +483,24 @@ export abstract class DocFactory<T extends IGenerate> {
   extractOrganizationName(input: ExternalOrganizationData): string {
     // Регулярное выражение для извлечения названия организации
     // eslint-disable-next-line regexp/no-super-linear-backtracking, regexp/no-obscure-range
-    const regex = /^\s*(?:[А-ЯЁA-Za-z]{2,4}\s+)?["'«»]?([А-ЯЁа-яёA-Za-z0-9\- ]+(?:\s[А-ЯЁа-яёA-Za-z0-9\- ]+)*)["'«»]?\s*$/
+    const regex = /["'«»]([^"'«»]+)["'«»]/
 
     const match = input.short_name.match(regex)
 
-    if (!match) {
+    if (match) {
+      // Если найдены кавычки, извлекаем содержимое
+      return match[1].trim().toUpperCase()
+    }
+
+    // Если кавычек нет, берем последнее слово
+    const words = input.short_name.trim().split(/\s+/)
+    const lastWord = words[words.length - 1]
+
+    if (!lastWord) {
       throw new Error(`Не удалось извлечь имя организации из: "${input.short_name}"`)
     }
 
-    return match[1].toUpperCase()
+    return lastWord.toUpperCase()
   }
 
   extractPersonalAbbreviatedName(input: ExternalIndividualData | ExternalEntrepreneurData): string {

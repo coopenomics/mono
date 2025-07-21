@@ -6,3 +6,5 @@ scripts/changelog-prompt.md
 scripts/changelog-release.md
 scripts/release-info.md
 components/docs/docs/sdk
+dist/
+.env

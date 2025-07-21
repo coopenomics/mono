@@ -1,6 +1,6 @@
 {
   "name": "@coopenomics/contracts",
-  "version": "2025.7.15-1",
+  "version": "2025.7.20",
   "private": true,
   "scripts": {
     "build:all": "./build-all.sh",
