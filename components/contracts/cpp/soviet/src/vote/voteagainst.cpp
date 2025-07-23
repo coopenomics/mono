@@ -45,8 +45,8 @@ void soviet::voteagainst(
     require_auth(username);
   }
   
-  // Проверка соответствия ID решения
-  eosio::check(signed_at <= eosio::current_time_point(), "Время подписи не может быть в будущем");
+  // // Проверка соответствия ID решения
+  // eosio::check(signed_at <= eosio::current_time_point(), "Время подписи не может быть в будущем");
   
   // Проверка подписи
   assert_recover_key(signed_hash, signature, public_key);

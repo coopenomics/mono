@@ -3,7 +3,7 @@ import { $, type GraphQLTypes, type InputType, type ModelTypes, Selector } from 
 export const name = 'setWif'
 
 export const mutation = Selector('Mutation')({
-  [name]: [{ data: $('data', 'Update!') }, true],
+  [name]: [{ data: $('data', 'SetWifInput!') }, true],
 })
 
 export interface IInput {
@@ -15,4 +15,4 @@ export interface IInput {
   data: ModelTypes['SetWifInput']
 }
 
-export type IOutput = InputType<GraphQLTypes['Mutation'], typeof mutation>
+export type IOutput = InputType<GraphQLTypes['Mutation'], typeof mutation> 

@@ -47,7 +47,7 @@ void soviet::votefor(
   eosio::check(version == "1.0.0", "Неверная версия");
   
   // Проверка соответствия ID решения
-  eosio::check(signed_at <= eosio::current_time_point(), "Время подписи не может быть в будущем");
+  // eosio::check(signed_at <= eosio::current_time_point(), "Время подписи не может быть в будущем");
   
   // Проверка подписи
   assert_recover_key(signed_hash, signature, public_key);
