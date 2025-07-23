@@ -6,18 +6,23 @@
 *
 * @param coopname Имя кооператива
 * @param username Имя пользователя, инициирующего заявку
+* @param hash Хэш заявки (уникальный идентификатор)
 * @param units Количество частей (штук) товара или услуги
 * @param unit_cost Цена за единицу (штуку) товара или услуги
 * @param membership_fee_amount Сумма членского взноса
 * @param cancellation_fee_amount Сумма комиссии за отмену заявки
 * @param braname Имя кооперативного участка откуда будет забираться товар
-* @param document Сопутствующий подписанный документ на взнос или возврат взноса
+* @param convert_in Заявление на конвертацию из кошелька в маркетплейс
 * @param meta Метаданные о заявке
 *
 * @note Авторизация требуется от аккаунта: @p coopname
 */
-[[eosio::action]] void marketplace::parentorder(eosio::name coopname, eosio::name braname, eosio::name username, uint64_t units, eosio::asset unit_cost, eosio::asset membership_fee_amount, eosio::asset cancellation_fee_amount, std::string meta) {
+[[eosio::action]] void marketplace::parentorder(eosio::name coopname, eosio::name braname, eosio::name username, checksum256 hash, uint64_t units, eosio::asset unit_cost, eosio::asset membership_fee_amount, eosio::asset cancellation_fee_amount, document2 convert_in, std::string meta) {
   require_auth(coopname);
+
+  // Проверяем, что заявка с таким хэшем не существует
+  auto existing_request = get_request_by_hash(coopname, hash);
+  eosio::check(!existing_request.has_value(), "Заявка с таким хэшем уже существует");
 
   cooperatives2_index coops(_registrator, _registrator.value);
   auto coop = coops.find(coopname.value);
@@ -34,7 +39,7 @@
   get_branch_or_fail(coopname, braname);
 
   requests_index requests(_marketplace, coopname.value);
-  uint64_t id = get_global_id(_marketplace, "requests"_n);
+  uint64_t request_id = get_global_id(_marketplace, "requests"_n);
     
   participants_index participants(_soviet, coopname.value);
   auto participant = participants.find(username.value);      
@@ -49,12 +54,12 @@
   // Проверяем что комиссия за отмену не превышает общую стоимость
   eosio::check(cancellation_fee_amount <= total_cost, "Комиссия за отмену не может превышать общую стоимость заказа");
   
-  // Блокируем средства для заказа включая членский взнос
-  std::string memo = "Создание заказа по программе №" + std::to_string(_marketplace_program_id) + " с ID: " + std::to_string(id);
-  Wallet::block_funds(_marketplace, coopname, username, total_cost, _marketplace_program, memo);
-
+  // Проверяем подпись документа на конвертацию
+  verify_document_or_fail(convert_in);
+  
   requests.emplace(_marketplace, [&](auto &i) {
-    i.id = id;
+    i.id = request_id;
+    i.hash = hash;
     i.type = "order"_n;
     i.username = username;
     i.coopname = coopname;
@@ -71,4 +76,24 @@
     i.braname = braname;
   });
   
+  // Создаем сегмент для родительской заявки поставки из кооператива - заказчику
+  marketplace::create_segment(coopname, request_id, marketplace::valid_segment("c2r"));
+  
+  // Сохраняем заявление на конвертацию в contribute сегменте
+  marketplace::update_segment_by_request_and_type(coopname, request_id, marketplace::valid_segment("s2c"), [&](auto &s) {
+    s.convert_in = convert_in;
+    s.status = "convertin"_n;
+  });
+  
+  // Списываем средства с ЦПП цифрового кошелька
+  std::string convert_memo = "Конвертация средств из ЦПП 'Цифровой Кошелёк' в ЦПП 'Маркетплейс' для заказа №" + std::to_string(request_id);
+  Wallet::sub_available_funds(_marketplace, coopname, username, total_cost, _wallet_program, convert_memo);
+  
+  // Добавляем средства на ЦПП маркетплейса
+  Wallet::add_available_funds(_marketplace, coopname, username, total_cost, _marketplace_program, convert_memo);
+  
+  // Блокируем средства на программе маркетплейса
+  std::string memo = "Создание заказа по программе №" + std::to_string(_marketplace_program_id) + " с ID: " + std::to_string(request_id);
+  Wallet::block_funds(_marketplace, coopname, username, total_cost, _marketplace_program, memo);
+
 }; 

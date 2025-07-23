@@ -40,10 +40,6 @@
   verify_document_or_fail(contribution_document);
   verify_document_or_fail(conversion_document);
 
-  // Создаем сегменты на родительской заявке
-  uint64_t s2c_segment_id = marketplace::create_segment(coopname, change.id, marketplace::valid_segment("s2c"));
-  uint64_t c2r_segment_id = marketplace::create_segment(coopname, change.id, marketplace::valid_segment("c2r"));
-
   // Обновляем родительскую заявку (order)
   auto parent_itr = requests.find(parent_change.id);
   eosio::check(parent_itr != requests.end(), "Родительская заявка не найдена для обновления");
@@ -72,13 +68,13 @@
   marketplace::check_units_invariant(*updated_change, "orderaccept_child_update");
 
   // Сохраняем заявление на конвертацию в contribute сегменте
-  marketplace::update_segment(coopname, s2c_segment_id, [&](auto &s) {
+  marketplace::update_segment_by_request_and_type(coopname, change.id, marketplace::valid_segment("s2c"), [&](auto &s) {
     s.statement = conversion_document;
     s.status = "statement"_n;
   });
 
   // Сохраняем заявление на возврат в return сегменте
-  marketplace::update_segment(coopname, c2r_segment_id, [&](auto &s) {
+  marketplace::update_segment_by_request_and_type(coopname, change.id, marketplace::valid_segment("c2r"), [&](auto &s) {
     s.statement = contribution_document;
     s.status = "statement"_n;
   });

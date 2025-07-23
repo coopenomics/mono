@@ -177,11 +177,12 @@ public:
   
   // ... определение методов контракта ...
 
-  // Новые упрощенные действия для создания заявок
-  [[eosio::action]] void parentoffer(eosio::name coopname, eosio::name braname, eosio::name username, uint64_t units, eosio::asset unit_cost, uint32_t product_lifecycle_secs, eosio::asset membership_fee_amount, eosio::asset cancellation_fee_amount, std::string meta);
-  [[eosio::action]] void parentorder(eosio::name coopname, eosio::name braname, eosio::name username, uint64_t units, eosio::asset unit_cost, eosio::asset membership_fee_amount, eosio::asset cancellation_fee_amount, std::string meta);
-  [[eosio::action]] void childorder(eosio::name coopname, eosio::name braname, eosio::name username, uint64_t parent_id, uint64_t units, eosio::asset unit_cost, document2 document, std::string meta);
-  [[eosio::action]] void childoffer(eosio::name coopname, eosio::name braname, eosio::name username, uint64_t parent_id, uint64_t units, eosio::asset unit_cost, uint32_t product_lifecycle_secs, document2 document, std::string meta);
+  // Действия для создания заявок
+  [[eosio::action]] void parentoffer(eosio::name coopname, eosio::name braname, eosio::name username, checksum256 hash, uint64_t units, eosio::asset unit_cost, uint32_t product_lifecycle_secs, eosio::asset membership_fee_amount, eosio::asset cancellation_fee_amount, std::string meta);
+  [[eosio::action]] void childorder(eosio::name coopname, eosio::name braname, eosio::name username, checksum256 hash, checksum256 parent_hash, uint64_t units, eosio::asset unit_cost, document2 statement, document2 convert_in, std::string meta);
+  
+  [[eosio::action]] void parentorder(eosio::name coopname, eosio::name braname, eosio::name username, checksum256 hash, uint64_t units, eosio::asset unit_cost, eosio::asset membership_fee_amount, eosio::asset cancellation_fee_amount, std::string meta);
+  [[eosio::action]] void childoffer(eosio::name coopname, eosio::name braname, eosio::name username, checksum256 hash, checksum256 parent_hash, uint64_t units, eosio::asset unit_cost, uint32_t product_lifecycle_secs, document2 document, std::string meta);
   static void cancel_parent(eosio::name coopname, eosio::name username, checksum256 request_hash);
   static void cancel_child(eosio::name coopname, eosio::name username, checksum256 request_hash);
   

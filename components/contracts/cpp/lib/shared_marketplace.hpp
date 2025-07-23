@@ -26,11 +26,13 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] segment {
   eosio::name type;               /*!< тип сегмента: "contribute", "return", "wreturn", "wsupply" */
   eosio::name status;             /*!< статус сегмента */
   
+  document2 convert_in;           /*!< заявление на конвертацию из кошелька */
   document2 statement;            /*!< заявление/документ на взнос или возврат */
   uint64_t decision_id;           /*!< идентификатор решения */
   document2 authorization;        /*!< документ авторизации */
   document2 act1;                  /*!< акт приёма-передачи */
   document2 act2;                  /*!< акт приёма-передачи */
+  document2 convert_out;          /*!< заявление на конвертацию в кошелек */
   
   eosio::time_point_sec created_at;
   eosio::time_point_sec updated_at;
