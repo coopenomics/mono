@@ -6,7 +6,7 @@
 struct [[eosio::table, eosio::contract(SOVIET)]] program {
   uint64_t id;                             /*!< идентификатор обмена */
   uint64_t draft_id;                       ///< Ссылка на шаблон условий
-  eosio::name program_type;                /*!< тип кооперативной программы (wallet | market | ...) */
+  eosio::name program_type;                /*!< тип кооперативной программы (wallet | market | capital) */
   
   eosio::name coopname;                    /*!< имя аккаунта кооператива */
   bool is_active;
@@ -17,9 +17,9 @@ struct [[eosio::table, eosio::contract(SOVIET)]] program {
   std::string images;
   std::string meta;
 
-  eosio::name calculation_type;            /*!< тип настройки платежей по программе ( absolute | relative | free ) */
-  uint64_t membership_percent_fee;         /*!< процент комиссии со взноса */
-  eosio::asset fixed_membership_contribution;  /*!< Членский взнос */
+  eosio::name calculation_type;            /*!< LEGACY тип настройки платежей по программе ( absolute | relative | free ) */
+  uint64_t membership_percent_fee;         /*!< LEGACY процент комиссии со взноса */
+  eosio::asset fixed_membership_contribution;  /*!< LEGACY Членский взнос */
   
   eosio::time_point_sec start_at;          /*!< Время открытия */
   eosio::time_point_sec expired_at;        /*!< Временное ограничение */
@@ -120,7 +120,7 @@ struct ProgramInfo {
 
 static const std::map<eosio::name, ProgramInfo> program_map = {
     {_wallet_program, {1, 1}},       // program_id = 1, draft_id = 1
-    {_sosedi_program, {2, 699}},  // program_id = 2, draft_id = 699
+    {_marketplace_program, {2, 699}},  // program_id = 2, draft_id = 699
     {_source_program, {3, 0}},    // program_id = 3, draft_id = 0
     {_capital_program, {4, 1000}}    // program_id = 4, draft_id = 1000
 };

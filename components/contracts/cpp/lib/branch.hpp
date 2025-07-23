@@ -76,6 +76,21 @@ struct [[eosio::table, eosio::contract(BRANCH)]] coobranch {
   bool is_account_in_trusted(const eosio::name& account) const {
     return std::find(trusted.begin(), trusted.end(), account) != trusted.end();
   }
+
+  /**
+   * @brief Проверяет права доступа пользователя к данному кооперативному участку
+   * @param username Имя пользователя для проверки
+   * @return true если пользователь имеет права доступа, false в противном случае
+   */
+  bool is_user_authorized(const eosio::name& username) const {
+    // Проверяем является ли пользователь доверенным лицом (trustee)
+    if (trustee == username) {
+      return true;
+    }
+    
+    // Проверяем находится ли пользователь в списке доверенных (trusted)
+    return is_account_in_trusted(username);
+  }
 };
 
 typedef eosio::multi_index<"branches"_n, coobranch,

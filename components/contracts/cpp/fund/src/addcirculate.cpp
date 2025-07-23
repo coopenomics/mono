@@ -1,8 +1,8 @@
 // атомарные транзакции фондового кошелька
-// паевый счет
+// паевой счет
 [[eosio::action]] void fund::addcirculate(
     eosio::name coopname,
-    eosio::asset quantity)  /// < добавить сумму в паевый фонд
+    eosio::asset quantity)  /// < добавить сумму в паевой фонд
 {
   name payer = check_auth_and_get_payer_or_fail(contracts_whitelist);
   

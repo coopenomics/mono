@@ -14,12 +14,7 @@ void wallet::completedpst(eosio::name coopname, checksum256 deposit_hash) {
     
   Wallet::add_available_funds(_wallet, coopname, deposit -> username, deposit ->quantity, _wallet_program, std::string("Паевой взнос в ЦПП 'Цифровой Кошелёк'"));
 
-  action(
-    permission_level{ _wallet, "active"_n},
-    _fund,
-    "addcirculate"_n,
-    std::make_tuple(coopname, deposit -> quantity)
-  ).send();
+  Fund::add_circulating_funds(_wallet, coopname, deposit -> quantity);
   
   //оповещаем пользователя
   require_recipient(deposit -> username);  

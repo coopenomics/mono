@@ -44,10 +44,10 @@ class [[eosio::contract(FUND)]] fund : public eosio::contract {
                                  eosio::name type, uint64_t fund_id);
 
   // атомарные транзакции фондового кошелька
-  // паевый фонд
+  // паевой фонд
   [[eosio::action]] void addcirculate(
       eosio::name coopname,
-      eosio::asset quantity);  /// < добавить сумму в паевый фонд
+      eosio::asset quantity);  /// < добавить сумму в паевой фонд
   [[eosio::action]] void subcirculate(
       eosio::name coopname,
       eosio::asset quantity,
@@ -64,6 +64,9 @@ class [[eosio::contract(FUND)]] fund : public eosio::contract {
   // счет накопления для списаний
   [[eosio::action]] void addexpense(eosio::name coopname, uint64_t fund_id,
                                     eosio::asset quantity);
+  
+  // добавить членский взнос на накопительный счет кооператива для дальнейшего управления
+  [[eosio::action]] void accumfee(eosio::name coopname, eosio::asset quantity);
   
   //счет вступительных взносов
   [[eosio::action]] void addinitial(eosio::name coopname,

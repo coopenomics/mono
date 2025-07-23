@@ -93,7 +93,7 @@ static constexpr eosio::name _result_action = "result"_n;
 
 //program_types
 static constexpr eosio::name _wallet_program = "wallet"_n;
-static constexpr eosio::name _sosedi_program = "cooplace"_n;
+static constexpr eosio::name _marketplace_program = "marketplace"_n;
 static constexpr eosio::name _source_program = "source"_n;
 static constexpr eosio::name _capital_program = "capital"_n;
 
@@ -117,11 +117,19 @@ static const std::set<eosio::name> soviet_actions = {
 
     //WALLET
     "createwthd"_n, //создать заявление на возврат паевого взноса
+    
+    //LEDGER
+    "ledgerwthd"_n, //заявление на списание со счета через ledger
+    
+    //MARKETPLACE
+    "mpcontrib"_n, //заявление на взнос имуществом
+    "mpconvert"_n, //заявление на конвертацию в цифровой кошелек
+    "mpretrn"_n, //заявление на возврат паевого взноса имуществом
 };
 
 //program_ids
 static constexpr uint64_t _wallet_program_id = 1;
-static constexpr uint64_t _sosedi_program_id = 2;
+static constexpr uint64_t _marketplace_program_id = 2;
 static constexpr uint64_t _capital_program_id = 3;
 
 static constexpr int64_t REWARD_SCALE = 100000000; ///< Масштабный коэффициент для вознаграждений (1e8).
@@ -143,7 +151,10 @@ static constexpr int64_t REWARD_SCALE = 100000000; ///< Масштабный к�
 #define CAPITAL "capital"
 #define WALLET "wallet"
 #define LOAN "loan"
+#define LEDGER "ledger"
 #define MEET "meet"
+#define LEDGER "ledger"
+
 /**
 * @ingroup public_consts
 * @{ 
@@ -164,6 +175,7 @@ static constexpr int64_t REWARD_SCALE = 100000000; ///< Масштабный к�
     static constexpr eosio::name _branch = "branch"_n;
     static constexpr eosio::name _loan = "loan"_n;
     static constexpr eosio::name _meet = "meet"_n;
+    static constexpr eosio::name _ledger = "ledger"_n;
     static constexpr eosio::name _power_account = "eosio.power"_n;
     static constexpr eosio::name _saving_account = "eosio.saving"_n;
     
@@ -188,7 +200,8 @@ static constexpr int64_t REWARD_SCALE = 100000000; ///< Масштабный к�
         "eosio.msig"_n,
         "eosio.wrap"_n,
         "eosio.power"_n,
-        "eosio.saving"_n
+        "eosio.saving"_n,
+        "ledger"_n
         // Добавьте остальные стандартные или пользовательские контракты по необходимости
       };
 

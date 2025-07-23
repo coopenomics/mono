@@ -15,9 +15,9 @@ void soviet::unblock(eosio::name coopname, eosio::name admin, eosio::name userna
   eosio::asset initial = participant -> type.value() == "organization"_n ? cooperative.org_initial.value() : cooperative.initial;
     
   // if (is_registration == true) {
-  //   eosio::check(!participant -> is_minimum && !participant -> is_initial, "Пайщик уже совершил вступительный и минимальный паевый взносы");
+  //   eosio::check(!participant -> is_minimum && !participant -> is_initial, "Пайщик уже совершил вступительный и минимальный паевой взносы");
     
-  //   //добавить мин паевый взнос в паевой фонд
+  //   //добавить мин паевой взнос в паевой фонд
   //   action(
   //     permission_level{ _gateway, "active"_n},
   //     _fund,

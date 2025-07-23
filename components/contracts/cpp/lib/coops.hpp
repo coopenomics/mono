@@ -165,7 +165,7 @@ struct [[eosio::table, eosio::contract(SOVIET)]] participant {
   eosio::name status; //accepted | blocked
 
   bool is_initial = true; ///< флаг, указывающий, внесен ли регистрационный взнос.
-  bool is_minimum = true; ///< флаг, указывающий, внесен ли минимальный паевый взнос.
+  bool is_minimum = true; ///< флаг, указывающий, внесен ли минимальный паевой взнос.
   bool has_vote = true; ///< флаг, указывающий, имеет ли член право голоса.
   
   eosio::binary_extension<eosio::name> type; ///< individual | entrepreneur | organization

@@ -164,10 +164,10 @@ struct org_data {
     std::string announce; ///< Анонс
     std::string description; ///< Описание
     eosio::asset initial; ///< Вступительный взнос физического лица / ип
-    eosio::asset minimum; ///< Минимальный паевый взнос физического лица / ип
+    eosio::asset minimum; ///< Минимальный паевой взнос физического лица / ип
 
     eosio::asset org_initial; ///< Вступительный взнос юридического лица
-    eosio::asset org_minimum; ///< Минимальный паевый взнос юридического лица
+    eosio::asset org_minimum; ///< Минимальный паевой взнос юридического лица
 
 };
 
@@ -192,11 +192,11 @@ struct [[eosio::table, eosio::contract(REGISTRATOR)]] cooperative {
   
   eosio::asset registration; ///< Регистрационный взнос физического лица / ип
   eosio::asset initial; ///< Вступительный членский взнос физического лица / ип
-  eosio::asset minimum; ///< Минимальный паевый взнос физического лица / ип
+  eosio::asset minimum; ///< Минимальный паевой взнос физического лица / ип
   
   eosio::binary_extension<eosio::asset> org_registration; ///< Регистрационный взнос юридического лица
   eosio::binary_extension<eosio::asset> org_initial;  ///< Вступительный членский взнос юридического лица
-  eosio::binary_extension<eosio::asset> org_minimum; ///< Минимальный паевый взнос юридического лица
+  eosio::binary_extension<eosio::asset> org_minimum; ///< Минимальный паевой взнос юридического лица
   
   eosio::binary_extension<eosio::name> status; ///< Статус процесса подключения
   eosio::binary_extension<eosio::time_point_sec> created_at; ///< Дата поступления заявки на подключение (pending | ... | active | blocked)
@@ -303,11 +303,11 @@ struct [[eosio::table, eosio::contract(REGISTRATOR)]] cooperative2 {
   
   eosio::asset registration; ///< Регистрационный взнос физического лица / ип
   eosio::asset initial; ///< Вступительный членский взнос физического лица / ип
-  eosio::asset minimum; ///< Минимальный паевый взнос физического лица / ип
+  eosio::asset minimum; ///< Минимальный паевой взнос физического лица / ип
   
   eosio::binary_extension<eosio::asset> org_registration; ///< Регистрационный взнос юридического лица
   eosio::binary_extension<eosio::asset> org_initial;  ///< Вступительный членский взнос юридического лица
-  eosio::binary_extension<eosio::asset> org_minimum; ///< Минимальный паевый взнос юридического лица
+  eosio::binary_extension<eosio::asset> org_minimum; ///< Минимальный паевой взнос юридического лица
   
   eosio::binary_extension<eosio::name> status; ///< Статус процесса подключения
   eosio::binary_extension<eosio::time_point_sec> created_at; ///< Дата поступления заявки на подключение (pending | ... | active | blocked)

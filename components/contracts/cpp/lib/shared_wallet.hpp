@@ -123,6 +123,33 @@ namespace Wallet {
     
   }
   
+  /**
+   * @brief Добавляет членский взнос в программу для дальнейшего списания
+   * @param contract Контракт-отправитель
+   * @param coopname Имя кооператива
+   * @param username Имя пользователя
+   * @param program_id ID программы
+   * @param amount Сумма членского взноса
+   * @param memo Мемо для операции
+   */
+  inline void add_member_fee(eosio::name contract, eosio::name coopname, eosio::name username, uint64_t program_id, eosio::asset amount, std::string memo) {
+    // Сначала добавляем в программе для учета
+    action(
+        permission_level{ contract, "active"_n },
+        _soviet,
+        "addmemberfee"_n,
+        std::make_tuple(coopname, username, program_id, amount, memo)
+    ).send();
+    
+    // Затем добавляем на накопительный счет кооператива для дальнейшего управления
+    action(
+      permission_level{ contract, "active"_n },
+      _fund,
+      "accumfee"_n,
+      std::make_tuple(coopname, amount)
+    ).send();
+  }
+  
     /**
   * @ingroup public_tables
   * @brief Таблица `deposits` отслеживает депозиты в контракте WALLET.

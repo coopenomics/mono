@@ -8,58 +8,64 @@
 
 @param coopname Имя кооператива
 @param username Имя поставщика
-@param exchange_id Идентификатор встречной заявки с диспутом
+@param request_hash Хэш встречной заявки с диспутом
 @param accept Принимает ли поставщик товар (true/false)
 @param document Документ с решением поставщика
 
 @note Авторизация требуется от аккаунта: @p coopname
 */
-[[eosio::action]] void marketplace::waccept(eosio::name coopname, eosio::name username, uint64_t exchange_id, bool accept, document2 document) {
+[[eosio::action]] void marketplace::waccept(eosio::name coopname, eosio::name username, checksum256 request_hash, bool accept, document2 document) {
   require_auth(coopname);
 
-  requests_index exchange(_marketplace, coopname.value);
-  auto change = exchange.find(exchange_id);
-  eosio::check(change != exchange.end(), "Заявка не найдена");
-  eosio::check(change -> status == "woffered"_n, "Товар должен быть предложен поставщику");
-  eosio::check(change -> product_contributor == username, "Только поставщик может принять решение о товаре");
+  auto change_opt = Marketplace::get_request_by_hash(coopname, request_hash);
+  eosio::check(change_opt.has_value(), "Заявка не найдена");
+  auto change = change_opt.value();
+  
+  eosio::check(change.status == "woffered"_n, "Товар должен быть предложен поставщику");
+  eosio::check(change.product_contributor == username, "Только поставщик может принять решение о товаре");
 
   // Проверяем подпись документа
   verify_document_or_fail(document);
 
   // ИСПРАВЛЕНИЕ: Возвращаем заблокированные единицы товара в родительскую заявку
-  auto parent_change = exchange.find(change -> parent_id);
-  eosio::check(parent_change != exchange.end(), "Родительская заявка не найдена");
+  requests_index requests(_marketplace, coopname.value);
+  auto parent_change = requests.find(change.parent_id);
+  eosio::check(parent_change != requests.end(), "Родительская заявка не найдена");
 
-  if (change -> blocked_units > 0) {
-    exchange.modify(parent_change, _marketplace, [&](auto &e) {
-      e.remain_units += change -> blocked_units;
-      e.blocked_units -= change -> blocked_units;
+  if (change.blocked_units > 0) {
+    requests.modify(parent_change, _marketplace, [&](auto &e) {
+      e.remain_units += change.blocked_units;
+      e.blocked_units -= change.blocked_units;
       e.supplier_amount = e.remain_units * e.unit_cost;
     });
   }
 
   if (accept) {
     // Поставщик принимает товар
-    marketplace::update_segment_by_request_and_type(coopname, exchange_id, "wsupply"_n, [&](auto &s) {
-      s.act_validation = document;
+    marketplace::update_segment_by_request_and_type(coopname, change.id, "wsupply"_n, [&](auto &s) {
+      s.act2 = document;
       s.status = "accepted"_n;
     });
 
     // Обновляем статус заявки
-    exchange.modify(change, _marketplace, [&](auto &ch) {
+    auto change_itr = requests.find(change.id);
+    eosio::check(change_itr != requests.end(), "Заявка не найдена для обновления");
+    requests.modify(change_itr, _marketplace, [&](auto &ch) {
       ch.status = "wcompleted"_n;
       ch.blocked_units = 0; // Обнуляем заблокированные единицы
     });
 
   } else {
     // Поставщик отказывается от товара
-    marketplace::update_segment_by_request_and_type(coopname, exchange_id, "wsupply"_n, [&](auto &s) {
-      s.act_validation = document;
+    marketplace::update_segment_by_request_and_type(coopname, change.id, "wsupply"_n, [&](auto &s) {
+      s.act2 = document;
       s.status = "declined"_n;
     });
 
     // Обновляем статус заявки
-    exchange.modify(change, _marketplace, [&](auto &ch) {
+    auto change_itr = requests.find(change.id);
+    eosio::check(change_itr != requests.end(), "Заявка не найдена для обновления");
+    requests.modify(change_itr, _marketplace, [&](auto &ch) {
       ch.status = "wdeclined"_n;
       ch.blocked_units = 0; // Обнуляем заблокированные единицы
     });

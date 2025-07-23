@@ -35,19 +35,9 @@ void registrator::confirmreg(eosio::name coopname, checksum256 registration_hash
   ).send();
 
   //добавляем   
-  action(
-    permission_level{ _registrator, "active"_n},
-    _fund,
-    "addcirculate"_n,
-    std::make_tuple(coopname, candidate -> minimum)
-  ).send();
+  Fund::add_circulating_funds(_registrator, coopname, candidate -> minimum);
   
-  action(
-    permission_level{ _registrator, "active"_n},
-    _fund,
-    "addinitial"_n,
-    std::make_tuple(coopname, candidate -> initial)
-  ).send();
+  Fund::add_initial_funds(_registrator, coopname, candidate -> initial);
   
   // Увеличиваем счетчик активных пайщиков
   cooperatives2_index cooperatives(_registrator, _registrator.value);
