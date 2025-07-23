@@ -50,9 +50,6 @@
 
 #include "src/fund/fundwithdraw.cpp"
 
-#include "src/marketplace/change.cpp"
-#include "src/marketplace/recieved.cpp"
-
 #include "src/participant/addparticipant.cpp"
 #include "src/participant/block.cpp"
 #include "src/participant/cancelreg.cpp"

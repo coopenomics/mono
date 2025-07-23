@@ -178,4 +178,47 @@ static std::vector<request> get_requests_by_parent_hash(eosio::name coopname, ch
   return result;
 }
 
+/**
+ * @brief Завершает один сегмент, отправляя соответствующие транзакции
+ * @param change Заявка
+ * @param request_hash Хэш заявки
+ * @param segment Сегмент для завершения
+ * @param action Действие (для return - _product_return_action, для contribute - _product_contribution_action)
+ * @param contributor Участник (money_contributor или product_contributor)
+ */
+static void complete_segment(const request& change, checksum256 request_hash, const segment& segment, eosio::name action, eosio::name contributor) {
+  Action::send<newdecision_interface>(
+    _soviet,
+    "newdecision"_n,
+    _marketplace,
+    change.coopname,
+    contributor,
+    action,
+    request_hash,
+    segment.authorization
+  );
+
+  Action::send<newresolved_interface>(
+    _soviet,
+    "newresolved"_n,
+    _marketplace,
+    change.coopname,
+    contributor,
+    action,
+    request_hash,
+    segment.statement
+  );
+  
+  Action::send<newact_interface>(
+    _soviet,
+    "newact"_n,
+    _marketplace,
+    change.coopname,
+    contributor,
+    action,
+    request_hash,
+    segment.act1
+  );
+}
+
 } // namespace Marketplace

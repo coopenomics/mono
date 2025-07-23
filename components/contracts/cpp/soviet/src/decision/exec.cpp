@@ -19,9 +19,7 @@ void soviet::exec(eosio::name executer, eosio::name coopname, uint64_t decision_
   eosio::check(decision != decisions.end(),"Решение не найдено в оперативной памяти");
   eosio::check(decision -> authorized == true, "Только авторизованное решение может быть исполнено");
   
-  if (decision -> type == _change_action){//операция взноса-возврата взноса в маркетплейсе
-    soviet::change_effect(executer, coopname, decision->id, decision->batch_id);
-  } else if (decision -> type == _withdraw_action){//операция возврата паевого взноса из кошелька (вывод)
+  if (decision -> type == _withdraw_action){//операция возврата паевого взноса из кошелька (вывод)
     soviet::withdraw_effect(executer, coopname, decision->id, decision->batch_id);
   } else if (decision -> type == _afund_withdraw_action) {//операция использования фонда накопления
     soviet::subaccum_effect(executer, coopname, decision->id, decision->batch_id);

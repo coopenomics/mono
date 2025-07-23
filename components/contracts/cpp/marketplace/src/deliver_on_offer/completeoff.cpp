@@ -53,6 +53,17 @@
     // Сохраняем членский взнос в программе для дальнейшего списания
     Wallet::add_member_fee(_marketplace, coopname, change.money_contributor, _marketplace_program_id, change.membership_fee_amount, memo);
   }
+  // Извлекаем сегменты для завершения
+  auto return_segment = marketplace::get_segment_by_request_and_type(coopname, change.id, marketplace::valid_segment("return"));
+  auto contribution_segment = marketplace::get_segment_by_request_and_type(coopname, change.id, marketplace::valid_segment("contribute"));
+  
+  // Завершаем сегмент возврата (для заказчика)
+  Marketplace::complete_segment(change, request_hash, return_segment, _product_return_action, change.money_contributor);
+  
+  // Завершаем сегмент взноса (для поставщика)
+  Marketplace::complete_segment(change, request_hash, contribution_segment, _product_contribution_action, change.product_contributor);
+  
   // Удаляем все сегменты, связанные с заявкой
   marketplace::delete_segments_by_request(coopname, change.id);
+
 } 

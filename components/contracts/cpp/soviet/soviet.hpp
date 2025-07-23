@@ -115,12 +115,6 @@ public:
   
   [[eosio::action]] void cancelvote(eosio::name coopname, eosio::name member, uint64_t decision_id);
 
-  //marketplace.cpp
-  [[eosio::action]] void change(eosio::name coopname, eosio::name parent_username, eosio::name username, uint64_t exchange_id, eosio::name money_contributor, eosio::name product_contributor);
-  [[eosio::action]] void recieved (eosio::name coopname, uint64_t exchange_id);
-  static void change_effect(eosio::name executer, eosio::name coopname, uint64_t decision_id, uint64_t batch_id);
-
-
   //programs.cpp
   [[eosio::action]] void createprog(eosio::name coopname, eosio::name username, eosio::name type, std::string title, std::string announce, std::string description, std::string preview, std::string images, eosio::name calculation_type, eosio::asset fixed_membership_contribution, uint64_t membership_percent_fee, bool is_can_coop_spend_share_contributions, std::string meta);
   [[eosio::action]] void editprog(eosio::name coopname, eosio::name username, uint64_t program_id, uint64_t draft_id, std::string title, std::string announce, std::string description, std::string preview, std::string images, std::string meta);
