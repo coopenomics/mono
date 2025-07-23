@@ -2319,7 +2319,7 @@
 <p>В результате успешного выполнения мутации, в хранилище приватных данных кооператива будет добавлена запись об организации, пайщиками которой будут становиться пользователи. </p>
 <h2 id="_2">Установка ключа<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
 <p>Бэкенд приложения <code>MONO</code> хранит приватный ключ кооператива, которым он подписывает транзакции в блокчейне. Ключ хранится в зашифрованном виде в базе данных, извлекается оттуда и расшифровывается для использования только когда это необходимо. Работа системы без приватного ключа невозможна. Чтобы предоставить ключ бэкенду MONO, необходимо выполнить мутацию <code>setWif</code>: </p>
-<p>🛠️ SDK: <a href="/sdk/modules/Mutations.System.SetWif.html">Mutations.System.SetWif</a> | 🔗 GraphQL API: <a href="/../graphql/index.html#mutation-setWif">Mutation.setWif</a></p>
+<p>⚠️ 🛠️ SDK: Mutations.System.SetWif не найден | 🔗 GraphQL API: <a href="/../graphql/index.html#mutation-setWif">Mutation.setWif</a></p>
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Mutations</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s2">&quot;@coopenomics/sdk&quot;</span><span class="p">;</span>
 
 <span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.System.InstallSystem.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
