@@ -14,7 +14,7 @@
 
 @note Авторизация требуется от аккаунта: @p coopname
 **/
-[[eosio::action]] void marketplace::recvoff(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 document) { 
+[[eosio::action]] void marketplace::recvoff(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 act1) { 
   require_auth(coopname);
 
   requests_index requests(_marketplace, coopname.value);
@@ -31,7 +31,7 @@
   
   eosio::check(parent_change.type == "offer"_n, "Родительская заявка должна быть типа offer");
 
-  eosio::check(change.status == "delivered"_n, "Имущество может быть получено только в статусе delivered");
+  eosio::check(change.status == "delivered4"_n, "Имущество может быть получено только в статусе delivered4");
   eosio::check(change.deadline_for_receipt.sec_since_epoch() >= eosio::current_time_point().sec_since_epoch(), "Время на получение имущества истекло");
   
   auto branch = get_branch_or_fail(coopname, change.braname);
@@ -39,8 +39,8 @@
   //Проверяем права доступа на КУ (председатель или доверенное лицо)
   eosio::check(branch.is_user_authorized(username), "Недостаточно прав доступа для выдачи имущества");
   
-  // Проверяем подпись документа
-  verify_document_or_fail(document);
+  // Проверяем подпись документа от председателя или доверенного
+  verify_document_or_fail(act1, { username });
 
   // Обновляем статус и устанавливаем гарантийную задержку
   auto change_itr = requests.find(change.id);
@@ -51,7 +51,8 @@
 
   // Сохраняем акт получения в return сегменте
   marketplace::update_segment_by_request_and_type(coopname, change.id, marketplace::valid_segment("c2r"), [&](auto &s) {
-    s.act1 = document;
-    s.status = "received"_n;
+    s.act1 = act1;
+    s.status = "received1"_n;
+    s.coopactor = username; // Представитель кооператива, который выдал имущество
   });
 } 

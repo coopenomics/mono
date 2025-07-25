@@ -30,6 +30,8 @@ struct document2 {
     // Версия стандарта документа
     std::string version;
     
+    // uint64_t template_id; ///< было бы удобно но этого нет
+    
     // Хэши
     eosio::checksum256 hash;        // общий хэш (doc_hash + meta_hash)
     eosio::checksum256 doc_hash;    // хэш содержимого документа

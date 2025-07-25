@@ -57,5 +57,6 @@
   marketplace::update_segment_by_request_and_type(coopname, change.id, marketplace::valid_segment("c2r"), [&](auto &s) {
     s.act1 = document;
     s.status = "received1"_n;
+    s.coopactor = username; // Представитель кооператива, который выдал имущество
   });
 } 

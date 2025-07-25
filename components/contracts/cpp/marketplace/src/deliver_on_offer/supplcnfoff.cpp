@@ -14,7 +14,7 @@
 
 @note Авторизация требуется от аккаунта: @p coopname
 **/
-[[eosio::action]] void marketplace::supplcnfoff(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 document) {
+[[eosio::action]] void marketplace::supplcnfoff(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 act2) {
   require_auth(coopname);
 
   requests_index requests(_marketplace, coopname.value);
@@ -31,24 +31,23 @@
   
   eosio::check(parent_change.type == "offer"_n, "Родительская заявка должна быть типа offer");
 
-  eosio::check(change.status == "supplied"_n, "Подтверждение поставки возможно только в статусе supplied");
+  eosio::check(change.status == "supplied1"_n, "Подтверждение поставки возможно только в статусе supplied1");
 
   auto branch = get_branch_or_fail(coopname, change.braname);
   
   //Проверяем права доступа на КУ (председатель или доверенное лицо)
   eosio::check(branch.is_user_authorized(username), "Недостаточно прав доступа для приёма имущества");
   
-  // Проверяем подпись документа
-  verify_document_or_fail(document);
+  // Проверяем подписи документа
+  verify_document_or_fail(act2, { username, change.product_contributor });
 
   // Обновляем статус встречной заявки
   auto change_itr = requests.find(change.id);
   eosio::check(change_itr != requests.end(), "Встречная заявка не найдена для обновления");
   requests.modify(change_itr, _marketplace, [&](auto &o) { 
     o.status = "supplied2"_n;
-    o.delivered_at = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
-    o.delivered_units = o.blocked_units;
-    o.deadline_for_receipt = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch() + 3 * 24 * 60 * 60); // 3 дня на подтверждение
+    o.supplied_units = o.blocked_units;
+    // delivered_at и deadline_for_receipt устанавливаются в delivercnfoff согласно ТЗ
   });
 
   // Проверяем инварианты дочерней заявки
@@ -57,7 +56,19 @@
 
   // Сохраняем акт подтверждения поставки в contribute сегменте
   marketplace::update_segment_by_request_and_type(coopname, change.id, marketplace::valid_segment("s2c"), [&](auto &s) {
-    s.act2 = document;
+    s.act2 = act2;
     s.status = "supplied2"_n;
+    s.coopactor = username; // Представитель кооператива, который принял имущество
   });
+  
+  // Пополняем паевой фонд
+  Fund::add_circulating_funds(_marketplace, coopname, change.total_cost);
+  
+  // Пополняем кошелёк поставщика (base_cost, а не total_cost согласно ТЗ)
+  std::string memo = "Имущественный паевой взнос по заявке №" + checksum256_to_hex(change.hash);
+  Wallet::add_available_funds(_marketplace, coopname, change.product_contributor, change.base_cost, _marketplace_program, memo);
+  
+  // Блокируем средства на программе маркетплейса
+  Wallet::block_funds(_marketplace, coopname, change.product_contributor, change.base_cost, _marketplace_program, memo);
+    
 } 

@@ -34,9 +34,9 @@
 
   if (change.blocked_units > 0) {
     requests.modify(parent_change, _marketplace, [&](auto &e) {
-      e.remain_units += change.blocked_units;
+      e.remaining_units += change.blocked_units;
       e.blocked_units -= change.blocked_units;
-      e.supplier_amount = e.remain_units * e.unit_cost;
+      e.base_cost = e.remaining_units * e.unit_cost;
     });
   }
 

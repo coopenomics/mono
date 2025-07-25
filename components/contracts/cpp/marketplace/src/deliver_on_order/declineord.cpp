@@ -37,9 +37,9 @@
     auto parent_itr = requests.find(parent_change.id);
     eosio::check(parent_itr != requests.end(), "Родительская заявка не найдена для обновления");
     requests.modify(parent_itr, _marketplace, [&](auto &e) {
-      e.remain_units += change.blocked_units;
+      e.remaining_units += change.blocked_units;
       e.blocked_units -= change.blocked_units;
-      e.supplier_amount = e.remain_units * e.unit_cost;
+      e.base_cost = e.remaining_units * e.unit_cost;
     });
     
     // Проверяем инварианты после изменения
@@ -67,7 +67,7 @@
   
   // Проверяем равенство количества единиц для определения стратегии удаления
   auto updated_parent = requests.find(parent_change.id);
-  bool units_equal = (change.remain_units == updated_parent->remain_units);
+  bool units_equal = (change.remaining_units == updated_parent->remaining_units);
   
   if (units_equal) {
     // Если количество единиц равно - удаляем обе заявки

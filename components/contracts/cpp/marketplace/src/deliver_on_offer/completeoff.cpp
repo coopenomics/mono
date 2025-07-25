@@ -41,29 +41,19 @@
   auto change_itr = requests.find(change.id);
   requests.erase(change_itr);
   
-  std::string memo = "Возврат паевого взноса по программе №" + std::to_string(_marketplace_program_id) + " с ID: " + std::to_string(change.id);
-  // Заказчику разблокируем баланс и списываем его  
-  Wallet::sub_blocked_funds(_marketplace, coopname, change.money_contributor, change.total_cost, _marketplace_program, memo);
-  
-  // Поставщику разблокируем средства в программе
-  Wallet::unblock_funds(_marketplace, coopname, change.product_contributor, change.supplier_amount, _marketplace_program, memo);
-
-  // Обрабатываем членские взносы
+  // Обрабатываем членские взносы (увеличиваем счёт кооператива согласно ТЗ)
   if (change.membership_fee_amount.amount > 0) {
-    // Сохраняем членский взнос в программе для дальнейшего списания
-    Wallet::add_member_fee(_marketplace, coopname, change.money_contributor, _marketplace_program_id, change.membership_fee_amount, memo);
+    std::string member_fee_memo = "Членский взнос по программе №" + std::to_string(_marketplace_program_id) + " с идентификатором: " + checksum256_to_hex(change.hash);
+    Wallet::add_member_fee(_marketplace, coopname, change.product_contributor, _marketplace_program_id, change.membership_fee_amount, member_fee_memo);
   }
-  // Извлекаем сегменты для завершения
-  auto return_segment = marketplace::get_segment_by_request_and_type(coopname, change.id, marketplace::valid_segment("return"));
-  auto contribution_segment = marketplace::get_segment_by_request_and_type(coopname, change.id, marketplace::valid_segment("contribute"));
-  
-  // Завершаем сегмент возврата (для заказчика)
-  Marketplace::complete_segment(change, request_hash, return_segment, _product_return_action, change.money_contributor);
-  
-  // Завершаем сегмент взноса (для поставщика)
-  Marketplace::complete_segment(change, request_hash, contribution_segment, _product_contribution_action, change.product_contributor);
-  
   // Удаляем все сегменты, связанные с заявкой
   marketplace::delete_segments_by_request(coopname, change.id);
-
+  
+  std::string memo = "Возврат паевого взноса по программе №" + std::to_string(_marketplace_program_id) + " с идентификатором: " + checksum256_to_hex(change.hash) + "в ЦПП 'Цифровой Кошелёк'";
+  
+  // Поставщику списываем средства в программе маркетплейса (base_cost согласно ТЗ)
+  Wallet::sub_blocked_funds(_marketplace, coopname, change.product_contributor, change.base_cost, _marketplace_program, memo);
+  
+  // Поставщику начисляем средства в ЦПП Цифровой Кошелек (base_cost согласно ТЗ)
+  Wallet::add_available_funds(_marketplace, coopname, change.product_contributor, change.base_cost, _wallet_program, memo);
 } 

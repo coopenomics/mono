@@ -122,9 +122,8 @@ static const std::set<eosio::name> soviet_actions = {
     "ledgerwthd"_n, //заявление на списание со счета через ledger
     
     //MARKETPLACE
-    "mpcontrib"_n, //заявление на взнос имуществом
-    "mpconvert"_n, //заявление на конвертацию в цифровой кошелек
-    "mpretrn"_n, //заявление на возврат паевого взноса имуществом
+    "authoffs2c"_n, //заявление на взнос имуществом
+    "authoffc2r"_n, //заявление на возврат паевого взноса имуществом
 };
 
 //program_ids

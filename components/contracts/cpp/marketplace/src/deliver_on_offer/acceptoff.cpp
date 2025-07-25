@@ -12,11 +12,11 @@
 @param username Имя поставщика
 @param request_hash Хэш встречной заявки (order)
 @param conversion_document Заявление на конвертацию
-@param return_document Заявление на возврат
+@param product_contribution_statement Заявление на возврат
 
 @note Авторизация требуется от аккаунта: @p coopname
 **/
-[[eosio::action]] void marketplace::acceptoff(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 conversion_document, document2 return_document) { 
+[[eosio::action]] void marketplace::acceptoff(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 convert_out, document2 product_contribution_statement) { 
   require_auth(coopname);
   
   requests_index requests(_marketplace, coopname.value);
@@ -34,19 +34,20 @@
   
   eosio::check(parent_change.type == "offer"_n, "Родительская заявка должна быть типа offer");
   eosio::check(parent_change.username == username, "Недостаточно прав доступа");
-  eosio::check(parent_change.remain_units >= change.remain_units, "Недостаточно объектов для поставки");
+  eosio::check(parent_change.remaining_units >= change.remaining_units, "Недостаточно объектов для поставки");
   
   // Проверяем подписи документов
-  verify_document_or_fail(conversion_document);
-  verify_document_or_fail(return_document);
+  verify_document_or_fail(convert_out);
+  verify_document_or_fail(product_contribution_statement);
 
   // Обновляем родительскую заявку (offer)
   auto parent_itr = requests.find(parent_change.id);
   eosio::check(parent_itr != requests.end(), "Родительская заявка не найдена для обновления");
+  
   requests.modify(parent_itr, _marketplace, [&](auto &i) {
-    i.remain_units -= change.remain_units;
-    i.supplier_amount = (parent_change.remain_units - change.remain_units) * parent_change.unit_cost;
-    i.blocked_units += change.remain_units;
+    i.remaining_units -= change.remaining_units;
+    i.base_cost = (parent_change.remaining_units - change.remaining_units) * parent_change.unit_cost;
+    i.blocked_units += change.remaining_units;
   });
 
   // Проверяем инварианты родительской заявки
@@ -58,8 +59,8 @@
   eosio::check(change_itr != requests.end(), "Встречная заявка не найдена для обновления");
   requests.modify(change_itr, _marketplace, [&](auto &o){
     o.status = "accepted"_n;
-    o.blocked_units += change.remain_units;
-    o.remain_units = 0;
+    o.blocked_units += change.remaining_units;
+    o.remaining_units = 0;
     o.accepted_at = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
   });
   
@@ -69,13 +70,8 @@
 
   // Сохраняем заявление на конвертацию в contribute сегменте
   marketplace::update_segment_by_request_and_type(coopname, change.id, marketplace::valid_segment("s2c"), [&](auto &s) {
-    s.statement = conversion_document;
-    s.status = "statement"_n;
-  });
-
-  // Сохраняем заявление на возврат в return сегменте
-  marketplace::update_segment_by_request_and_type(coopname, change.id, marketplace::valid_segment("c2r"), [&](auto &s) {
-    s.statement = return_document;
+    s.convert_out = convert_out;
+    s.statement = product_contribution_statement;
     s.status = "statement"_n;
   });
 
@@ -93,10 +89,10 @@
     _marketplace,
     coopname,
     username,
-    get_valid_soviet_action("mpconvert"_n),
+    get_valid_soviet_action("authoffs2c"_n),
     agenda_hash,
     _marketplace,
-    Marketplace::get_valid_marketplace_action("authoffcont"_n),
+    Marketplace::get_valid_marketplace_action("authoffs2c"_n),
     "declineacc"_n,
     s2c_segment.statement,
     std::string("")
@@ -109,10 +105,10 @@
     _marketplace,
     coopname,
     username,
-    get_valid_soviet_action("mpreturn"_n),
+    get_valid_soviet_action("authoffc2r"_n),
     agenda_hash,
     _marketplace,
-    Marketplace::get_valid_marketplace_action("authoffret"_n),
+    Marketplace::get_valid_marketplace_action("authoffc2r"_n),
     "declineacc"_n,
     c2r_segment.statement,
     std::string("")

@@ -39,7 +39,7 @@
   requests.modify(change_itr, _marketplace, [&](auto &o) { 
     o.status = "delivered"_n;
     o.delivered_at = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
-    o.delivered_units = o.blocked_units;
+    o.supplied_units = o.blocked_units;
     o.deadline_for_receipt = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch() + 3 * 24 * 60 * 60); // 3 дня на подтверждение
   });
 

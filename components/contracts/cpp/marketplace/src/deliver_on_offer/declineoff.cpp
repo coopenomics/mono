@@ -37,8 +37,9 @@
     auto parent_itr = requests.find(parent_change.id);
     eosio::check(parent_itr != requests.end(), "Родительская заявка не найдена для обновления");
     requests.modify(parent_itr, _marketplace, [&](auto &p) {
-      p.remain_units += change.blocked_units;
+      p.remaining_units += change.blocked_units;
       p.blocked_units -= change.blocked_units;
+      p.base_cost = p.remaining_units * p.unit_cost;
     });
 
     // Проверяем инварианты родительской заявки
@@ -46,15 +47,34 @@
     marketplace::check_units_invariant(*updated_parent, "offerdecline_parent_update");
   }
 
+  // Разблокируем средства заказчика
+  if (change.total_cost.amount > 0) {
+    std::string memo = "Отклонение встречной заявки поставщиком по программе №" + std::to_string(_marketplace_program_id) + " с ID: " + std::to_string(change.id);
+
+    // Списываем средства с ЦПП маркетплейса
+    Wallet::sub_blocked_funds(_marketplace, coopname, change.money_contributor, change.total_cost, _marketplace_program, memo);
+    // Начисляем средства на ЦПП Цифровой Кошелёк
+    Wallet::add_available_funds(_marketplace, coopname, change.money_contributor, change.total_cost, _wallet_program, memo);
+  }
+
+  // Удаляем сегменты встречной заявки
+  marketplace::delete_segments_by_request(coopname, change.id);
+
+  // Проверяем равенство количества единиц для определения стратегии удаления
+  auto updated_parent = requests.find(parent_change.id);
+  bool units_equal = false;
+  
+  if (updated_parent != requests.end()) {
+    units_equal = (change.remaining_units == updated_parent->remaining_units);
+  }
+
   // Удаляем встречную заявку
   auto change_itr = requests.find(change.id);
   eosio::check(change_itr != requests.end(), "Встречная заявка не найдена для удаления");
   requests.erase(change_itr);
 
-  // Разблокируем средства заказчика
-  if (change.total_cost.amount > 0) {
-    std::string memo = "Отклонение встречной заявки поставщиком по программе №" + std::to_string(_marketplace_program_id) + " с ID: " + std::to_string(change.id);
-
-    Wallet::unblock_funds(_marketplace, coopname, change.money_contributor, change.total_cost, _marketplace_program, memo);
+  // Если количество единиц равно - удаляем также родительскую заявку
+  if (units_equal && updated_parent != requests.end()) {
+    requests.erase(updated_parent);
   }
 } 

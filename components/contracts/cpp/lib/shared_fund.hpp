@@ -46,18 +46,18 @@ namespace Fund {
     ).send();
   }
   
-  /**
-   * @brief Добавляет членский взнос на накопительный счет кооператива для дальнейшего управления
-   * @param contract Контракт-отправитель
-   * @param coopname Имя кооператива
-   * @param amount Сумма членского взноса
-   */
-  inline void accumulate_fee(eosio::name contract, eosio::name coopname, eosio::asset amount) {
-    action(
-        permission_level{ contract, "active"_n },
-        _fund,
-        "accumfee"_n,
-        std::make_tuple(coopname, amount)
-    ).send();
-  }
+  // /**
+  //  * @brief Добавляет членский взнос на накопительный счет кооператива для дальнейшего управления
+  //  * @param contract Контракт-отправитель
+  //  * @param coopname Имя кооператива
+  //  * @param amount Сумма членского взноса
+  //  */
+  // inline void accumulate_fee(eosio::name contract, eosio::name coopname, eosio::asset amount) {
+  //   action(
+  //       permission_level{ contract, "active"_n },
+  //       _fund,
+  //       "accumfee"_n,
+  //       std::make_tuple(coopname, amount)
+  //   ).send();
+  // }
 }

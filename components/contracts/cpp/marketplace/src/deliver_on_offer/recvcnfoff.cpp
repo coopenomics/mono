@@ -14,7 +14,7 @@
 
 @note Авторизация требуется от аккаунта: @p coopname
 **/
-[[eosio::action]] void marketplace::recvcnfoff(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 document) {
+[[eosio::action]] void marketplace::recvcnfoff(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 act2) {
   require_auth(coopname);
 
   requests_index requests(_marketplace, coopname.value);
@@ -36,10 +36,7 @@
   eosio::check(username == change.money_contributor, "Недостаточно прав доступа для подтверждения получения");
   
   // Проверяем подпись документа
-  verify_document_or_fail(document);
-
-  // Уменьшаем паевой фонд на сумму возвращаемой стоимости имущества заказчику
-  Fund::sub_circulating_funds(_marketplace, coopname, change.total_cost, false);
+  verify_document_or_fail(act2, { username });
 
   // Обновляем статус встречной заявки
   auto change_itr = requests.find(change.id);
@@ -47,12 +44,21 @@
   requests.modify(change_itr, _marketplace, [&](auto &ch) {
     ch.status = "received2"_n;
     ch.received_at = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
-    ch.warranty_delay_until = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch() + change.product_lifecycle_secs / 4);
+    ch.warranty_delay_until = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch() + change.warranty_period_secs);
   });
   
   // Сохраняем акт получения в return сегменте
   marketplace::update_segment_by_request_and_type(coopname, change.id, marketplace::valid_segment("c2r"), [&](auto &s) {
-    s.act2 = document;
+    s.act2 = act2;
     s.status = "received2"_n;
   });
+  
+  // Уменьшаем паевой фонд на сумму возвращаемой стоимости имущества заказчику
+  Fund::sub_circulating_funds(_marketplace, coopname, change.total_cost, false);
+  
+  std::string memo = "Возврат паевого взноса по программе №" + std::to_string(_marketplace_program_id) + " с идентификатором: " + checksum256_to_hex(change.hash);
+
+  // Списываем заблокированный баланс заказчика в ЦПП Маркетплейс (base_cost согласно ТЗ)
+  Wallet::sub_blocked_funds(_marketplace, coopname, change.money_contributor, change.base_cost, _marketplace_program, memo);
+  
 } 

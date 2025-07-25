@@ -53,7 +53,10 @@ void marketplace::decline_child_request(eosio::name coopname, const request& chi
   if (child_change.type == "order"_n && child_change.total_cost.amount > 0) {
     std::string memo = "Отклонение заявления советом по программе №" + std::to_string(_marketplace_program_id) + " с ID: " + std::to_string(child_change.id);
     
-    Wallet::unblock_funds(_marketplace, coopname, child_change.money_contributor, child_change.total_cost, _marketplace_program, memo);
+    // Списываем средства с ЦПП маркетплейса
+    Wallet::sub_blocked_funds(_marketplace, coopname, child_change.money_contributor, child_change.total_cost, _marketplace_program, memo);
+    // Начисляем средства на ЦПП Цифровой Кошелёк
+    Wallet::add_available_funds(_marketplace, coopname, child_change.money_contributor, child_change.total_cost, _wallet_program, memo);
   }
   
   // Получаем родительскую заявку
@@ -66,25 +69,25 @@ void marketplace::decline_child_request(eosio::name coopname, const request& chi
       // Возвращаем заблокированные единицы в родительскую заявку
       if (child_change.blocked_units > 0) {
         requests.modify(parent_itr, _marketplace, [&](auto &e) {
-          e.remain_units += child_change.blocked_units;
+          e.remaining_units += child_change.blocked_units;
           e.blocked_units -= child_change.blocked_units;
-          e.supplier_amount = e.remain_units * e.unit_cost;
+          e.base_cost = e.remaining_units * e.unit_cost;
         });
         
         // Получаем обновленную родительскую заявку для проверки единиц
         auto updated_parent = requests.find(parent_change_opt.value().id);
         
         // Проверяем равенство количества единиц для определения стратегии удаления
-        // Сравниваем remain_units дочерней заявки с remain_units обновленной родительской
-        bool units_equal = (child_change.remain_units == updated_parent->remain_units);
+        // Сравниваем remaining_units дочерней заявки с remaining_units обновленной родительской
+        bool units_equal = (child_change.remaining_units == updated_parent->remaining_units);
         
         if (units_equal) {
           // Если количество единиц равно - отмечаем для удаления родительской заявки
           should_cancel_parent = true;
         }
       } else {
-        // Если заблокированных единиц нет, сравниваем remain_units как есть
-        bool units_equal = (child_change.remain_units == parent_itr->remain_units);
+        // Если заблокированных единиц нет, сравниваем remaining_units как есть
+        bool units_equal = (child_change.remaining_units == parent_itr->remaining_units);
         if (units_equal) {
           should_cancel_parent = true;
         }
@@ -100,17 +103,8 @@ void marketplace::decline_child_request(eosio::name coopname, const request& chi
   
   // Удаляем родительскую заявку если количество единиц равно
   if (should_cancel_parent && parent_change_opt.has_value()) {
-    auto parent_itr = requests.find(parent_change_opt.value().id);
-    if (parent_itr != requests.end()) {
-      // Если это родительский заказ, разблокируем средства
-      if (parent_change_opt.value().type == "order"_n && parent_change_opt.value().total_cost.amount > 0 && parent_change_opt.value().parent_id == 0) {
-        std::string memo = "Отклонение заявления советом по программе №" + std::to_string(_marketplace_program_id) + " с ID: " + std::to_string(parent_change_opt.value().id);
-        
-        Wallet::unblock_funds(_marketplace, coopname, parent_change_opt.value().username, parent_change_opt.value().total_cost, _marketplace_program, memo);
-      }
-      
-      requests.erase(parent_itr);
-    }
+    // Используем метод decline_parent_request для консистентности
+    decline_parent_request(coopname, parent_change_opt.value());
   }
 }
 
@@ -128,9 +122,13 @@ void marketplace::decline_parent_request(eosio::name coopname, const request& pa
   
   // Разблокируем средства если это родительский заказ
   if (parent_change.type == "order"_n && parent_change.total_cost.amount > 0 && parent_change.parent_id == 0) {
-    std::string memo = "Отклонение заявления советом по программе №" + std::to_string(_marketplace_program_id) + " с ID: " + std::to_string(parent_change.id);
+    std::string memo = "Отклонение заявления советом по программе №" + std::to_string(_marketplace_program_id) + " с идентификатором: " + checksum256_to_hex(parent_change.hash);
     
-    Wallet::unblock_funds(_marketplace, coopname, parent_change.username, parent_change.total_cost, _marketplace_program, memo);
+    // Списываем средства с ЦПП маркетплейса
+    Wallet::sub_blocked_funds(_marketplace, coopname, parent_change.username, parent_change.total_cost, _marketplace_program, memo);
+    
+    // Начисляем средства на ЦПП Цифровой Кошелёк
+    Wallet::add_available_funds(_marketplace, coopname, parent_change.username, parent_change.total_cost, _wallet_program, memo);
   }
   
   // Удаляем родительскую заявку
@@ -181,9 +179,12 @@ void marketplace::decline_child_simple(eosio::name coopname, const request& chil
   
   // Разблокируем средства если это заказ
   if (child_change.type == "order"_n && child_change.total_cost.amount > 0) {
-    std::string memo = "Отклонение заявления советом по программе №" + std::to_string(_marketplace_program_id) + " с ID: " + std::to_string(child_change.id);
-    
-    Wallet::unblock_funds(_marketplace, coopname, child_change.money_contributor, child_change.total_cost, _marketplace_program, memo);
+    std::string memo = "Отклонение заявления советом по программе №" + std::to_string(_marketplace_program_id) + " с идентификатором: " + checksum256_to_hex(child_change.hash);
+
+    // Списываем средства с ЦПП маркетплейса
+    Wallet::sub_blocked_funds(_marketplace, coopname, child_change.money_contributor, child_change.total_cost, _marketplace_program, memo);
+    // Начисляем средства на ЦПП Цифровой Кошелёк
+    Wallet::add_available_funds(_marketplace, coopname, child_change.money_contributor, child_change.total_cost, _wallet_program, memo);
   }
   
   // Удаляем сегменты дочерней заявки

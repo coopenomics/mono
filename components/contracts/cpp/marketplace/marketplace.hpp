@@ -95,6 +95,23 @@ public:
     return id;
   }
 
+  static uint64_t create_segment(eosio::name coopname, uint64_t request_id, eosio::name type, eosio::name username) {
+    segments_index segments(_marketplace, coopname.value);
+    uint64_t id = get_global_id(_marketplace, "segment"_n);
+    
+    segments.emplace(_marketplace, [&](auto &s) {
+      s.id = id;
+      s.request_id = request_id;
+      s.type = type;
+      s.status = "created"_n;
+      s.username = username;
+      s.created_at = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
+      s.updated_at = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
+    });
+    
+    return id;
+  }
+
   static void update_segment(eosio::name coopname, uint64_t segment_id, std::function<void(segment&)> updater) {
     segments_index segments(_marketplace, coopname.value);
     auto seg = segments.find(segment_id);
@@ -165,24 +182,24 @@ public:
   // Проверка корректности единиц товара (инварианты)
   static void check_units_invariant(const request& req, const std::string& operation) {
     // Проверяем, что количество единиц не отрицательное
-    eosio::check(req.remain_units >= 0, 
-      "Инвариант нарушен в операции " + operation + ": remain_units не может быть отрицательным");
+    eosio::check(req.remaining_units >= 0, 
+      "Инвариант нарушен в операции " + operation + ": remaining_units не может быть отрицательным");
     
     eosio::check(req.blocked_units >= 0, 
       "Инвариант нарушен в операции " + operation + ": blocked_units не может быть отрицательным");
       
-    eosio::check(req.delivered_units >= 0, 
-      "Инвариант нарушен в операции " + operation + ": delivered_units не может быть отрицательным");
+    eosio::check(req.supplied_units >= 0, 
+      "Инвариант нарушен в операции " + operation + ": supplied_units не может быть отрицательным");
   }
   
   // ... определение методов контракта ...
 
   // Действия для создания заявок
-  [[eosio::action]] void parentoffer(eosio::name coopname, eosio::name braname, eosio::name username, checksum256 hash, uint64_t units, eosio::asset unit_cost, uint32_t product_lifecycle_secs, eosio::asset membership_fee_amount, eosio::asset cancellation_fee_amount, std::string meta);
+  [[eosio::action]] void parentoffer(eosio::name coopname, eosio::name braname, eosio::name username, checksum256 hash, uint64_t units, eosio::asset unit_cost, uint32_t product_lifecycle_secs, uint32_t warranty_period_secs, eosio::asset membership_fee_amount, eosio::asset cancellation_fee_amount, std::string meta);
   [[eosio::action]] void childorder(eosio::name coopname, eosio::name braname, eosio::name username, checksum256 hash, checksum256 parent_hash, uint64_t units, eosio::asset unit_cost, document2 statement, document2 convert_in, std::string meta);
   
-  [[eosio::action]] void parentorder(eosio::name coopname, eosio::name braname, eosio::name username, checksum256 hash, uint64_t units, eosio::asset unit_cost, eosio::asset membership_fee_amount, eosio::asset cancellation_fee_amount, std::string meta);
-  [[eosio::action]] void childoffer(eosio::name coopname, eosio::name braname, eosio::name username, checksum256 hash, checksum256 parent_hash, uint64_t units, eosio::asset unit_cost, uint32_t product_lifecycle_secs, document2 document, std::string meta);
+  // [[eosio::action]] void parentorder(eosio::name coopname, eosio::name braname, eosio::name username, checksum256 hash, uint64_t units, eosio::asset unit_cost, eosio::asset membership_fee_amount, eosio::asset cancellation_fee_amount, document2 convert_in, std::string meta);
+  // [[eosio::action]] void childoffer(eosio::name coopname, eosio::name braname, eosio::name username, checksum256 hash, checksum256 parent_hash, uint64_t units, eosio::asset unit_cost, uint32_t product_lifecycle_secs, document2 document, std::string meta);
   static void cancel_parent(eosio::name coopname, eosio::name username, checksum256 request_hash);
   static void cancel_child(eosio::name coopname, eosio::name username, checksum256 request_hash);
   
@@ -193,29 +210,32 @@ public:
   static void decline_child_simple(eosio::name coopname, const request& child_change);
 
   // Методы для направления OFFER → ORDER (deliver_on_offer)
-  [[eosio::action]] void acceptoff(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 conversion_document, document2 return_document);
-  [[eosio::action]] void authoffcont(eosio::name coopname, checksum256 request_hash, document2 authorization);
-  [[eosio::action]] void authoffret(eosio::name coopname, checksum256 request_hash, document2 authorization);
+  [[eosio::action]] void acceptoff(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 convert_out, document2 return_document);
+  [[eosio::action]] void authoffs2c(eosio::name coopname, checksum256 request_hash, document2 authorization);
+  [[eosio::action]] void authoffc2r(eosio::name coopname, checksum256 request_hash, document2 authorization);
   [[eosio::action]] void declineacc(eosio::name coopname, checksum256 hash, std::string reason);
-  [[eosio::action]] void supplyoff(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 document);
-  [[eosio::action]] void supplcnfoff(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 document);
-  [[eosio::action]] void deliveroff(eosio::name coopname, eosio::name username, checksum256 request_hash);
+  [[eosio::action]] void supplyoff(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 act1);
+  [[eosio::action]] void supplcnfoff(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 act2);
+  [[eosio::action]] void deliveroff1(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 transport_act_1);
+  [[eosio::action]] void deliveroff2(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 transport_act_2);
+  [[eosio::action]] void deliveroff3(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 transport_act_3);
+  [[eosio::action]] void deliveroff4(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 transport_act_4);
   [[eosio::action]] void recvoff(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 document);
   [[eosio::action]] void recvcnfoff(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 document);
   [[eosio::action]] void completeoff(eosio::name coopname, eosio::name username, checksum256 request_hash);
   [[eosio::action]] void declineoff(eosio::name coopname, eosio::name username, checksum256 request_hash, std::string meta);
 
   // Методы для направления ORDER → OFFER (deliver_on_order)
-  [[eosio::action]] void acceptord(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 contribution_document, document2 conversion_document);
-  [[eosio::action]] void authordcont(eosio::name coopname, checksum256 request_hash, document2 authorization);
-  [[eosio::action]] void authordret(eosio::name coopname, checksum256 request_hash, document2 authorization);
-  [[eosio::action]] void supplyord(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 document);
-  [[eosio::action]] void supplcnford(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 document);
-  [[eosio::action]] void deliverord(eosio::name coopname, eosio::name username, checksum256 request_hash);
-  [[eosio::action]] void recvord(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 document);
-  [[eosio::action]] void recvcnford(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 document);
-  [[eosio::action]] void completeord(eosio::name coopname, eosio::name username, checksum256 request_hash);
-  [[eosio::action]] void declineord(eosio::name coopname, eosio::name username, checksum256 request_hash, std::string meta);
+  // [[eosio::action]] void acceptord(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 contribution_document, document2 conversion_document);
+  // [[eosio::action]] void authords2c(eosio::name coopname, checksum256 request_hash, document2 authorization);
+  // [[eosio::action]] void authordc2r(eosio::name coopname, checksum256 request_hash, document2 authorization);
+  // [[eosio::action]] void supplyord(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 document);
+  // [[eosio::action]] void supplcnford(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 document);
+  // [[eosio::action]] void deliverord(eosio::name coopname, eosio::name username, checksum256 request_hash);
+  // [[eosio::action]] void recvord(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 document);
+  // [[eosio::action]] void recvcnford(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 document);
+  // [[eosio::action]] void completeord(eosio::name coopname, eosio::name username, checksum256 request_hash);
+  // [[eosio::action]] void declineord(eosio::name coopname, eosio::name username, checksum256 request_hash, std::string meta);
 
   // Диспуты
   [[eosio::action]] void dispute(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 document);

@@ -55,8 +55,8 @@
   // Берем членский взнос и комиссию за отмену из родительского заказа
   eosio::asset membership_fee_amount = parent_change.membership_fee_amount;
   eosio::asset cancellation_fee_amount = parent_change.cancellation_fee_amount;
-  eosio::asset supplier_amount = unit_cost * units;
-  eosio::asset total_cost = supplier_amount + membership_fee_amount;
+  eosio::asset base_cost = unit_cost * units;
+  eosio::asset total_cost = base_cost + membership_fee_amount;
   
   // Проверяем что комиссия за отмену не превышает общую стоимость
   eosio::check(cancellation_fee_amount <= total_cost, "Комиссия за отмену не может превышать общую стоимость заказа");
@@ -65,7 +65,7 @@
   uint64_t request_id = get_global_id(_marketplace, "requests"_n);
   
   requests.emplace(_marketplace, [&](auto &i) {
-    i.id = id;
+    i.id = request_id;
     i.hash = hash;
     i.parent_id = parent_change.id;
     i.parent_hash = parent_hash;
@@ -74,10 +74,10 @@
     i.coopname = coopname;
     i.username = username;
     i.status = "active"_n;
-    i.remain_units = units;
+    i.remaining_units = units;
     i.unit_cost = unit_cost;
     i.membership_fee_amount = membership_fee_amount;
-    i.supplier_amount = supplier_amount;
+    i.base_cost = base_cost;
     i.total_cost = total_cost;
     i.product_lifecycle_secs = product_lifecycle_secs;
     i.money_contributor = parent_change.username;
@@ -88,5 +88,5 @@
   });
 
   // Создаем сегмент для дочерней заявки поставки от пайщика в кооператив
-  marketplace::create_segment(coopname, request_id, marketplace::valid_segment("s2c")); 
+  marketplace::create_segment(coopname, request_id, marketplace::valid_segment("s2c"), username); 
 }; 

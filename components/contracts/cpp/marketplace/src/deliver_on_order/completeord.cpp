@@ -46,7 +46,7 @@
   Wallet::sub_blocked_funds(_marketplace, coopname, change.money_contributor, change.total_cost, _marketplace_program, memo);
   
   // Поставщику разблокируем средства в программе
-  Wallet::unblock_funds(_marketplace, coopname, change.product_contributor, change.supplier_amount, _marketplace_program, memo);
+  Wallet::unblock_funds(_marketplace, coopname, change.product_contributor, change.base_cost, _marketplace_program, memo);
 
   // Обрабатываем членские взносы
   if (change.membership_fee_amount.amount > 0) {
@@ -57,13 +57,7 @@
   // Извлекаем сегменты для завершения
   auto return_segment = marketplace::get_segment_by_request_and_type(coopname, change.id, marketplace::valid_segment("return"));
   auto contribution_segment = marketplace::get_segment_by_request_and_type(coopname, change.id, marketplace::valid_segment("contribute"));
-  
-  // Завершаем сегмент возврата (для заказчика)
-  Marketplace::complete_segment(change, request_hash, return_segment, _product_return_action, change.money_contributor);
-  
-  // Завершаем сегмент взноса (для поставщика)
-  Marketplace::complete_segment(change, request_hash, contribution_segment, _product_contribution_action, change.product_contributor);
-  
+    
   // Удаляем сегменты встречной заявки
   marketplace::delete_segments_by_request(coopname, change.id);
   

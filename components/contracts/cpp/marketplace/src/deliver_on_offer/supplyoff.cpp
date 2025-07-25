@@ -14,7 +14,7 @@
 
 @note Авторизация требуется от аккаунта: @p coopname
 **/
-[[eosio::action]] void marketplace::supplyoff(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 document) {
+[[eosio::action]] void marketplace::supplyoff(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 act1) {
   require_auth(coopname);
   
   requests_index requests(_marketplace, coopname.value);
@@ -34,7 +34,7 @@
   eosio::check(change.product_contributor == username, "Недостаточно прав доступа передачи имущества");
 
   //проводим проверку подписи документа
-  verify_document_or_fail(document);
+  verify_document_or_fail(act1, { username });
 
   // Обновляем статус встречной заявки
   auto change_itr = requests.find(change.id);
@@ -50,7 +50,7 @@
 
   // Сохраняем акт поставки в contribute сегменте
   marketplace::update_segment_by_request_and_type(coopname, change.id, marketplace::valid_segment("s2c"), [&](auto &s) {
-    s.act1 = document;
+    s.act1 = act1;
     s.status = "supplied1"_n;
   });
 } 

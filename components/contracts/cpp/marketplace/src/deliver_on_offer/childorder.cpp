@@ -51,16 +51,16 @@
   // Берем членский взнос и комиссию за отмену из родительского предложения
   eosio::asset membership_fee_amount = parent_change.membership_fee_amount;
   eosio::asset cancellation_fee_amount = parent_change.cancellation_fee_amount;
-  eosio::asset supplier_amount = unit_cost * units;
-  eosio::asset total_cost = supplier_amount + membership_fee_amount;
+  eosio::asset base_cost = unit_cost * units;
+  eosio::asset total_cost = base_cost + membership_fee_amount;
   
   // Проверяем что комиссия за отмену не превышает общую стоимость
   eosio::check(cancellation_fee_amount <= total_cost, "Комиссия за отмену не может превышать общую стоимость заказа");
   
-  std::string memo = "Начало поставки по программе №" + std::to_string(_marketplace_program_id) + " с ID: " + std::to_string(request_id);
-
   requests_index requests(_marketplace, coopname.value);
   uint64_t request_id = get_global_id(_marketplace, "requests"_n);
+  
+  std::string memo = "Начало поставки по программе №" + std::to_string(_marketplace_program_id) + " с ID: " + std::to_string(request_id);
   
   requests.emplace(_marketplace, [&](auto &i) {
     i.id = request_id;
@@ -72,12 +72,13 @@
     i.coopname = coopname;
     i.username = username;
     i.status = "active"_n;
-    i.remain_units = units;
+    i.remaining_units = units;
     i.unit_cost = unit_cost;
     i.membership_fee_amount = membership_fee_amount;
-    i.supplier_amount = supplier_amount;
+    i.base_cost = base_cost;
     i.total_cost = total_cost;
     i.product_lifecycle_secs = parent_change.product_lifecycle_secs;
+    i.warranty_period_secs = parent_change.warranty_period_secs;
     i.money_contributor = username;
     i.product_contributor = parent_change.username;
     i.created_at = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
@@ -86,7 +87,7 @@
   });
 
   // Создаем сегмент для дочерней заявки поставки из кооператива - заказчику
-  marketplace::create_segment(coopname, request_id, marketplace::valid_segment("c2r"));
+  marketplace::create_segment(coopname, request_id, marketplace::valid_segment("c2r"), username);
   
   // Сохраняем заявление на конвертацию и заявление на возврат в contribute сегменте
   marketplace::update_segment_by_request_and_type(coopname, request_id, marketplace::valid_segment("s2c"), [&](auto &s) {

@@ -48,8 +48,8 @@
   auto program = get_program_or_fail(coopname, _marketplace_program_id);
 
   // Для заказа рассчитываем общую стоимость включая членский взнос
-  eosio::asset supplier_amount = unit_cost * units;
-  eosio::asset total_cost = supplier_amount + membership_fee_amount;
+  eosio::asset base_cost = unit_cost * units;
+  eosio::asset total_cost = base_cost + membership_fee_amount;
   
   // Проверяем что комиссия за отмену не превышает общую стоимость
   eosio::check(cancellation_fee_amount <= total_cost, "Комиссия за отмену не может превышать общую стоимость заказа");
@@ -64,9 +64,9 @@
     i.username = username;
     i.coopname = coopname;
     i.status = "active"_n;
-    i.remain_units = units;
+    i.remaining_units = units;
     i.unit_cost = unit_cost;
-    i.supplier_amount = supplier_amount;
+    i.base_cost = base_cost;
     i.total_cost = total_cost;
     i.membership_fee_amount = membership_fee_amount;
     i.product_lifecycle_secs = 0; // Не используется для заказов
@@ -77,7 +77,7 @@
   });
   
   // Создаем сегмент для родительской заявки поставки из кооператива - заказчику
-  marketplace::create_segment(coopname, request_id, marketplace::valid_segment("c2r"));
+  marketplace::create_segment(coopname, request_id, marketplace::valid_segment("c2r"), username);
   
   // Сохраняем заявление на конвертацию в contribute сегменте
   marketplace::update_segment_by_request_and_type(coopname, request_id, marketplace::valid_segment("s2c"), [&](auto &s) {

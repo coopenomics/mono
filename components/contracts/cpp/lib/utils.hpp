@@ -58,3 +58,14 @@ uint64_t generate() {
 
     return seed;
 }
+
+std::string checksum256_to_hex(const eosio::checksum256& hash) {
+    auto hash_bytes = hash.extract_as_byte_array();
+    std::string hash_hex;
+    for (const auto& byte : hash_bytes) {
+        char hex_char[3];
+        sprintf(hex_char, "%02x", byte);
+        hash_hex += hex_char;
+    }
+    return hash_hex;
+}

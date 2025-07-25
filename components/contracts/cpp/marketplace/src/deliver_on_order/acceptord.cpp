@@ -34,7 +34,7 @@
   
   eosio::check(parent_change.type == "order"_n, "Родительская заявка должна быть типа order");
   eosio::check(parent_change.username == username, "Недостаточно прав доступа");
-  eosio::check(parent_change.remain_units >= change.remain_units, "Недостаточно объектов для поставки");
+  eosio::check(parent_change.remaining_units >= change.remaining_units, "Недостаточно объектов для поставки");
   
   // Проверяем подписи документов
   verify_document_or_fail(contribution_document);
@@ -44,9 +44,9 @@
   auto parent_itr = requests.find(parent_change.id);
   eosio::check(parent_itr != requests.end(), "Родительская заявка не найдена для обновления");
   requests.modify(parent_itr, _marketplace, [&](auto &i) {
-    i.remain_units -= change.remain_units;
-    i.supplier_amount = (parent_change.remain_units - change.remain_units) * parent_change.unit_cost;
-    i.blocked_units += change.remain_units;
+    i.remaining_units -= change.remaining_units;
+    i.base_cost = (parent_change.remaining_units - change.remaining_units) * parent_change.unit_cost;
+    i.blocked_units += change.remaining_units;
   });
 
   // Проверяем инварианты родительской заявки
@@ -58,8 +58,8 @@
   eosio::check(change_itr != requests.end(), "Встречная заявка не найдена для обновления");
   requests.modify(change_itr, _marketplace, [&](auto &o){
     o.status = "accepted"_n;
-    o.blocked_units += change.remain_units;
-    o.remain_units = 0;
+    o.blocked_units += change.remaining_units;
+    o.remaining_units = 0;
     o.accepted_at = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
   });
   
@@ -93,10 +93,10 @@
     _marketplace,
     coopname,
     username,
-    get_valid_soviet_action("mpcontrib"_n),
+    get_valid_soviet_action("authords2c"_n),
     agenda_hash,
     _marketplace,
-    Marketplace::get_valid_marketplace_action("authordcont"_n),
+    Marketplace::get_valid_marketplace_action("authords2c"_n),
     "declineacc"_n,
     s2c_segment.statement,
     std::string("")
@@ -109,10 +109,10 @@
     _marketplace,
     coopname,
     username,
-    get_valid_soviet_action("mpconvert"_n),
+    get_valid_soviet_action("authordc2r"_n),
     agenda_hash,
     _marketplace,
-    Marketplace::get_valid_marketplace_action("authordret"_n),
+    Marketplace::get_valid_marketplace_action("authordc2r"_n),
     "declineacc"_n,
     c2r_segment.statement,
     std::string("")

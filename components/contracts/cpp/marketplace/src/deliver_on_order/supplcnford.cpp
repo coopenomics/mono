@@ -45,7 +45,7 @@
   std::string memo = "Поставка имущества по программе №" + std::to_string(_marketplace_program_id) + " с ID: " + std::to_string(change.id);
 
   // Начисляем поставщику заблокированный баланс в цифровой кошелек
-  Wallet::add_blocked_funds(_marketplace, coopname, change.product_contributor, change.supplier_amount, _marketplace_program, memo);
+  Wallet::add_blocked_funds(_marketplace, coopname, change.product_contributor, change.base_cost, _marketplace_program, memo);
 
   // Увеличиваем сумму циркуляции в системе на сумму взноса
   Fund::add_circulating_funds(_marketplace, coopname, parent_change.total_cost);
@@ -65,5 +65,6 @@
   marketplace::update_segment_by_request_and_type(coopname, change.id, marketplace::valid_segment("s2c"), [&](auto &s) {
     s.act2 = document;
     s.status = "supplied1"_n;
+    s.coopactor = username; // Представитель кооператива, который принял имущество
   });
 } 
