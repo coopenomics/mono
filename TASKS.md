@@ -32,7 +32,7 @@
 - [x] CaslAbilityFactory: role-based + granular permissions
 - [x] CaslGuard + @CheckAbility decorator (обратная совместимость с RolesGuard)
 - [x] role в user сохранено (chairman, member, user)
-- [ ] Тесты: unit-тесты для каждой роли
+- [x] Тесты: 22/22 unit-тестов (chairman, member, user, granular permissions)
 
 #### 11.2 Шаринг страниц ✅ (бэкенд)
 - [x] ShareTokenEntity с JWT, guest/member targets
@@ -40,11 +40,12 @@
 - [x] GraphQL: createShareLink, revokeShareLink, getMyShareLinks, getSharedWithMe
 - [x] Два уровня: гости (linkName) и пайщики (targetUsername)
 - [x] Granular allowedActions per share link
-- [ ] Кнопка "Поделиться" в Desktop Header
-- [ ] Диалог управления правами
+- [x] Кнопка "Поделиться" в Desktop Header (ShareHeaderAction)
+- [x] Диалог управления правами (ShareDialog)
 - [ ] Страница "Доступные мне" на рабочем столе Пайщика
 
-#### 11.3 Интеграция в desktop
-- [ ] shareablePermissions в meta маршрутов install.ts
-- [ ] ShareButton + ShareDialog компоненты
-- [ ] Валидация share tokens в route guard
+#### 11.3 Интеграция в desktop ✅
+- [x] useShareButtonProcess: авто-регистрация на всех страницах
+- [x] ShareButton + ShareDialog компоненты
+- [x] Интеграция в init-app process
+- [ ] Валидация share tokens в route guard (frontend)
