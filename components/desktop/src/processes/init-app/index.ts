@@ -68,4 +68,9 @@ export async function useInitAppProcess(router: Router) {
 
   await useInitExtensionsProcess(router);
 
+  // Автоматическая кнопка "Поделиться" на всех страницах
+  if (typeof window !== 'undefined') {
+    const { useShareButtonProcess } = await import('src/processes/share-button-setup');
+    useShareButtonProcess();
+  }
 }
