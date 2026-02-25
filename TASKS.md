@@ -49,3 +49,12 @@
 - [x] ShareButton + ShareDialog компоненты
 - [x] Интеграция в init-app process
 - [ ] Валидация share tokens в route guard (frontend)
+
+### 12. API ключи кооператива ✅
+- [x] ApiKeyEntity: хеш ключа (sha256), префикс, операции, срок
+- [x] ApiKeyService: create, validate, list, revoke
+- [x] ApiKeyGuard: аутентификация через x-api-key header
+- [x] GraphQL: createApiKey, getApiKeys, revokeApiKey (chairman only)
+- [x] Безопасность: ключ показывается ТОЛЬКО при создании, хранится хеш
+- [x] Desktop: ApiKeysPage в chairman extension
+- [x] UI: таблица ключей, создание, отзыв, копирование
