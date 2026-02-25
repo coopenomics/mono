@@ -1,46 +1,50 @@
 # TASKS.md — Прогресс выполнения задач
 
 ## Завершённые задачи
-
-### 1-6. Предыдущие задачи (см. git history)
-- ✅ Dev-окружение, Security, Тесты, README, AGENTS.md, Setup
-- ✅ Поисковая система документов (OpenSearch)
-- ✅ Процессы (Capital extension)
+- ✅ 1. Dev-окружение
+- ✅ 2. Security updates
+- ✅ 3. Unified test pipeline (162/163)
+- ✅ 4. README + описания компонентов
+- ✅ 5. AGENTS.md для всех компонентов
+- ✅ 6. Setup — профессиональный установщик
+- ✅ 7. Поисковая система документов (OpenSearch)
+- ✅ 8. Процессы (Capital extension) — бэкенд + фронтенд
+- ✅ 9. Отчёты ФНС — 8 генераторов, фабрика, GraphQL API
 
 ---
 
-## Текущая задача: Генерация отчётов ФНС (расширение reports)
+## Активные задачи
 
-### Документы ФНС для генерации:
-1. **6-НДФЛ** — ежеквартально (XSD: NO_NDFL6.2)
-2. **4-ФСС (ЕФС-1)** — ежеквартально  
-3. **РСВ** — ежеквартально (XSD: NO_RASCHSV)
-4. **ПСВ** — ежемесячно (XSD: NO_PERSSVFL)
-5. **Бухгалтерский баланс** — ежегодно (XSD: NO_BUHOTCH) — КЛЮЧЕВОЙ
-6. **ДУСН** — декларация УСН ежегодно (XSD: NO_USN)
-7. **Уведомление о страховых взносах** — ежемесячно с 2026 (XSD: UT_UVISCHSUMNAL)
-8. **УУСН** — уведомление УСН
+### 10. Генерация отчётов ФНС (доработка)
+- [x] Фабрика генераторов (ReportRegistryService)
+- [x] 8 генераторов (Бухбаланс, 6-НДФЛ, РСВ, ПСВ, ДУСН, 4-ФСС, Увед. взносы, УУСН)
+- [x] GraphQL API (getAvailableReports, generateReport)
+- [ ] XSD валидация + тесты
+- [ ] Desktop UI (страница отчётов)
+- [ ] Интеграция с реальными данными ledger
 
-### Архитектура:
-- Расширение `reports` в `components/controller/src/extensions/`
-- Фабрика XML отчётов: на вход данные за период → на выходе XML
-- Валидация по XSD схемам
-- Desktop UI: магазин приложений → установка → рабочий стол отчётов
+### 11. CASL + гранулированные права доступа + шаринг страниц
 
-### Подзадачи:
+#### 11.1 CASL — система прав доступа
+- [ ] Установить @casl/ability
+- [ ] Определить все abilities (actions: read, create, update, delete, manage)
+- [ ] Определить subjects (каждая страница/мутация/запрос)
+- [ ] CaslAbilityFactory: создание abilities на основе role + дополнительных прав
+- [ ] CaslGuard для GraphQL resolvers (замена RolesGuard, с обратной совместимостью)
+- [ ] Сохранить поле role в user (chairman, member, user)
+- [ ] Тесты: unit-тесты для каждой роли и granular permission
 
-- [x] **8.1 Исследование**: Все XSD разобраны, format.nalog.ru изучен
-- [x] **8.2 Инфраструктура**: Расширение reports, ReportRegistryService (фабрика)
-- [x] **8.3 XML генератор**: Фабричный подход — IReportGenerator interface
-- [x] **8.4 Бухбаланс**: BuhotchGenerator — счета 51, 80, 86 из ledger
-- [x] **8.5 6-НДФЛ**: Ndfl6Generator — нулевая
-- [x] **8.6 4-ФСС**: Zero generator — нулевая
-- [x] **8.7 РСВ**: Zero generator — нулевая
-- [x] **8.8 ПСВ**: Zero generator — нулевая
-- [x] **8.9 ДУСН**: Zero generator — нулевая
-- [x] **8.10 Уведомление о взносах**: Zero generator — нулевая
-- [x] **8.11 УУСН**: Zero generator — нулевая
-- [x] **8.12 GraphQL API**: getAvailableReports + generateReport
-- [ ] **8.13 XSD валидация + тесты**: Проверка по схемам
-- [ ] **8.14 Desktop UI**: Страница отчётов в магазине приложений
-- [ ] **8.15 Ledger интеграция**: Реальные данные из ledger_operations
+#### 11.2 Шаринг страниц
+- [ ] ShareToken entity (JWT: page, permissions, target user/guest, expiry)
+- [ ] ShareToken GraphQL: createShareLink, revokeShareLink, getSharedLinks
+- [ ] Кнопка "Поделиться" в Header (через useHeaderActions)
+- [ ] Диалог управления: список текущих прав, создание/отзыв ссылок
+- [ ] Два уровня: гости (по имени ссылки) и пайщики (по username)
+- [ ] Гранулированные permissions per page (файл permissions.ts в каждом install.ts)
+- [ ] Страница "Доступные мне" на рабочем столе Пайщика
+
+#### 11.3 Интеграция в desktop
+- [ ] Пройти по ВСЕМ install.ts и добавить shareablePermissions в meta маршрутов
+- [ ] ShareButton компонент с диалогом управления
+- [ ] Валидация share tokens на бэкенде
+- [ ] Middleware для проверки share access
