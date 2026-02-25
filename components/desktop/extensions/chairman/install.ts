@@ -12,6 +12,7 @@ import { ApprovalsPage } from 'app/extensions/chairman/pages/ApprovalsPage';
 import { SystemSettingsPage } from 'app/extensions/chairman/pages/SystemSettingsPage';
 import { PaymentProviderPage } from 'app/extensions/chairman/pages/PaymentProviderPage';
 import { ConnectPage } from 'app/extensions/chairman/pages/ConnectPage';
+import { ApiKeysPage } from 'app/extensions/chairman/pages/ApiKeysPage';
 import { AgendaPresetsPage } from 'app/extensions/chairman/pages/AgendaPresetsPage';
 
 import { agreementsBase } from 'src/shared/lib/consts/workspaces';
@@ -228,6 +229,19 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Контакты кооператива',
               icon: 'fa-solid fa-address-book',
+              roles: ['chairman'],
+              agreements: agreementsBase,
+              requiresAuth: true,
+            },
+            children: [],
+          },
+          {
+            path: 'settings/api-keys',
+            name: 'api-keys',
+            component: markRaw(ApiKeysPage),
+            meta: {
+              title: 'API ключи',
+              icon: 'fa-solid fa-key',
               roles: ['chairman'],
               agreements: agreementsBase,
               requiresAuth: true,

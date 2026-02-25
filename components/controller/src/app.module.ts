@@ -18,6 +18,8 @@ import { DecisionTrackingInfrastructureModule } from './infrastructure/decision-
 import { SearchInfrastructureModule } from './infrastructure/search/search-infrastructure.module';
 import { CaslModule } from './infrastructure/casl/casl.module';
 import { ShareModule } from './infrastructure/share/share.module';
+import { ApiKeyModule } from './infrastructure/api-keys/api-key.module';
+import { ApiKeysAppModule } from './application/api-keys/api-keys.module';
 import { ShareAppModule } from './application/share/share.module';
 
 // Domain modules
@@ -100,6 +102,7 @@ import { MutationLoggingInterceptor } from './application/common/interceptors/mu
     SearchInfrastructureModule,
     CaslModule,
     ShareModule,
+    ApiKeyModule,
     EventsInfrastructureModule,
     FreeDecisionInfrastructureModule,
     DecisionTrackingInfrastructureModule,
@@ -158,6 +161,7 @@ import { MutationLoggingInterceptor } from './application/common/interceptors/mu
     RegistrationModule,
     SearchModule,
     ShareAppModule,
+    ApiKeysAppModule,
     ReportsExtensionModule,
   ],
   providers: [

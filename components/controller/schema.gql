@@ -788,6 +788,30 @@ input AnswerInput {
   vote: String!
 }
 
+type ApiKeyCreated {
+  allowed_operations: [String!]!
+  created_at: DateTime!
+  expires_at: DateTime
+  id: String!
+
+  """Полный ключ — показывается ТОЛЬКО при создании"""
+  key: String!
+  key_prefix: String!
+  name: String!
+}
+
+type ApiKeyInfo {
+  allowed_operations: [String!]!
+  created_at: DateTime!
+  created_by: String!
+  expires_at: DateTime
+  id: String!
+  is_active: Boolean!
+  key_prefix: String!
+  last_used_at: DateTime
+  name: String!
+}
+
 """Одобрение документа председателем совета"""
 type Approval {
   """Дата создания записи"""
@@ -4110,6 +4134,12 @@ input CreateAnnualGeneralMeetInput {
   secretary: String!
 }
 
+input CreateApiKeyInput {
+  allowedOperations: [String!] = ["*"]
+  expiresInDays: Int
+  name: String!
+}
+
 input CreateBranchInput {
   """
   Документ, на основании которого действует Уполномоченный (решение совета №СС-.. от ..)
@@ -7076,6 +7106,11 @@ type Mutation {
   """
   createAnnualGeneralMeet(data: CreateAnnualGeneralMeetInput!): MeetAggregate!
 
+  """
+  Создать API ключ кооператива. Полный ключ показывается только при создании.
+  """
+  createApiKey(data: CreateApiKeyInput!): ApiKeyCreated!
+
   """Создать кооперативный участок"""
   createBranch(data: CreateBranchInput!): Branch!
 
@@ -7288,6 +7323,9 @@ type Mutation {
 
   """Перезапуск общего собрания пайщиков"""
   restartAnnualGeneralMeet(data: RestartAnnualGeneralMeetInput!): MeetAggregate!
+
+  """Отозвать API ключ"""
+  revokeApiKey(id: String!): Boolean!
 
   """Отозвать ссылку доступа"""
   revokeShareLink(id: String!): Boolean!
@@ -8852,6 +8890,9 @@ type Query {
 
   """Получить список вопросов совета кооператива для голосования"""
   getAgenda: [AgendaWithDocuments!]!
+
+  """Получить список API ключей кооператива"""
+  getApiKeys: [ApiKeyInfo!]!
 
   """Получить список доступных типов отчётов"""
   getAvailableReports: [AvailableReport!]!
