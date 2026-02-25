@@ -25,26 +25,26 @@
 
 ### 11. CASL + гранулированные права доступа + шаринг страниц
 
-#### 11.1 CASL — система прав доступа
-- [ ] Установить @casl/ability
-- [ ] Определить все abilities (actions: read, create, update, delete, manage)
-- [ ] Определить subjects (каждая страница/мутация/запрос)
-- [ ] CaslAbilityFactory: создание abilities на основе role + дополнительных прав
-- [ ] CaslGuard для GraphQL resolvers (замена RolesGuard, с обратной совместимостью)
-- [ ] Сохранить поле role в user (chairman, member, user)
-- [ ] Тесты: unit-тесты для каждой роли и granular permission
+#### 11.1 CASL — система прав доступа ✅
+- [x] @casl/ability установлен
+- [x] Action enum: manage, read, create, update, delete, execute, share
+- [x] Subject enum: 30+ subjects для всех ресурсов
+- [x] CaslAbilityFactory: role-based + granular permissions
+- [x] CaslGuard + @CheckAbility decorator (обратная совместимость с RolesGuard)
+- [x] role в user сохранено (chairman, member, user)
+- [ ] Тесты: unit-тесты для каждой роли
 
-#### 11.2 Шаринг страниц
-- [ ] ShareToken entity (JWT: page, permissions, target user/guest, expiry)
-- [ ] ShareToken GraphQL: createShareLink, revokeShareLink, getSharedLinks
-- [ ] Кнопка "Поделиться" в Header (через useHeaderActions)
-- [ ] Диалог управления: список текущих прав, создание/отзыв ссылок
-- [ ] Два уровня: гости (по имени ссылки) и пайщики (по username)
-- [ ] Гранулированные permissions per page (файл permissions.ts в каждом install.ts)
+#### 11.2 Шаринг страниц ✅ (бэкенд)
+- [x] ShareTokenEntity с JWT, guest/member targets
+- [x] ShareService: create/verify/revoke
+- [x] GraphQL: createShareLink, revokeShareLink, getMyShareLinks, getSharedWithMe
+- [x] Два уровня: гости (linkName) и пайщики (targetUsername)
+- [x] Granular allowedActions per share link
+- [ ] Кнопка "Поделиться" в Desktop Header
+- [ ] Диалог управления правами
 - [ ] Страница "Доступные мне" на рабочем столе Пайщика
 
 #### 11.3 Интеграция в desktop
-- [ ] Пройти по ВСЕМ install.ts и добавить shareablePermissions в meta маршрутов
-- [ ] ShareButton компонент с диалогом управления
-- [ ] Валидация share tokens на бэкенде
-- [ ] Middleware для проверки share access
+- [ ] shareablePermissions в meta маршрутов install.ts
+- [ ] ShareButton + ShareDialog компоненты
+- [ ] Валидация share tokens в route guard
