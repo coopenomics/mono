@@ -16,6 +16,9 @@ import { EventsInfrastructureModule } from './infrastructure/events/events.modul
 import { FreeDecisionInfrastructureModule } from './infrastructure/free-decision/free-decision-infrastructure.module';
 import { DecisionTrackingInfrastructureModule } from './infrastructure/decision-tracking/decision-tracking-infrastructure.module';
 import { SearchInfrastructureModule } from './infrastructure/search/search-infrastructure.module';
+import { CaslModule } from './infrastructure/casl/casl.module';
+import { ShareModule } from './infrastructure/share/share.module';
+import { ShareAppModule } from './application/share/share.module';
 
 // Domain modules
 import { AccountDomainModule } from './domain/account/account-domain.module';
@@ -95,6 +98,8 @@ import { MutationLoggingInterceptor } from './application/common/interceptors/mu
     RedisModule,
     NovuModule,
     SearchInfrastructureModule,
+    CaslModule,
+    ShareModule,
     EventsInfrastructureModule,
     FreeDecisionInfrastructureModule,
     DecisionTrackingInfrastructureModule,
@@ -152,6 +157,7 @@ import { MutationLoggingInterceptor } from './application/common/interceptors/mu
     SettingsApplicationModule,
     RegistrationModule,
     SearchModule,
+    ShareAppModule,
     ReportsExtensionModule,
   ],
   providers: [

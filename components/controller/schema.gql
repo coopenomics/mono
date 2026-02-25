@@ -4581,6 +4581,16 @@ input CreateProjectPropertyInput {
   username: String!
 }
 
+input CreateShareLinkInput {
+  allowedActions: [String!]!
+  expiresInDays: Float
+  linkName: String
+  pageName: String!
+  pagePath: String!
+  targetType: ShareTargetType!
+  targetUsername: String
+}
+
 input CreateSovietIndividualDataInput {
   """Дата рождения"""
   birthdate: String!
@@ -7090,6 +7100,9 @@ type Mutation {
   """
   createProjectOfFreeDecision(data: CreateProjectFreeDecisionInput!): CreatedProjectFreeDecision!
 
+  """Создать ссылку доступа к странице"""
+  createShareLink(data: CreateShareLinkInput!): ShareLink!
+
   """Создать веб-пуш подписку для пользователя"""
   createWebPushSubscription(data: CreateSubscriptionInput!): CreateSubscriptionResponse!
 
@@ -7275,6 +7288,9 @@ type Mutation {
 
   """Перезапуск общего собрания пайщиков"""
   restartAnnualGeneralMeet(data: RestartAnnualGeneralMeetInput!): MeetAggregate!
+
+  """Отозвать ссылку доступа"""
+  revokeShareLink(id: String!): Boolean!
 
   """Выбрать кооперативный участок"""
   selectBranch(data: SelectBranchInput!): Boolean!
@@ -8897,6 +8913,9 @@ type Query {
   """Получить список всех собраний кооператива"""
   getMeets(data: GetMeetsInput!): [MeetAggregate!]!
 
+  """Получить созданные мной ссылки доступа"""
+  getMyShareLinks: [ShareLink!]!
+
   """Получить список методов оплаты"""
   getPaymentMethods(data: GetPaymentMethodsInput): PaymentMethodPaginationResult!
 
@@ -8919,6 +8938,9 @@ type Query {
 
   """Получить конфигурацию программ регистрации для кооператива"""
   getRegistrationConfig(account_type: AccountType!, coopname: String!): RegistrationConfig!
+
+  """Получить страницы, к которым мне предоставлен доступ"""
+  getSharedWithMe: [ShareLink!]!
 
   """Получить сводную публичную информацию о системе"""
   getSystemInfo: SystemInfo!
@@ -10026,6 +10048,25 @@ type Settings {
 
   """Дата последнего обновления"""
   updated_at: DateTime!
+}
+
+type ShareLink {
+  allowed_actions: [String!]!
+  created_at: DateTime!
+  expires_at: DateTime
+  id: String!
+  is_active: Boolean!
+  link_name: String
+  page_name: String!
+  page_path: String!
+  target_type: ShareTargetType!
+  target_username: String
+  token: String!
+}
+
+enum ShareTargetType {
+  GUEST
+  MEMBER
 }
 
 input SignActAsChairmanInput {
