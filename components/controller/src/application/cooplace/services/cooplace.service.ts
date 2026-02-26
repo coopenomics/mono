@@ -163,4 +163,24 @@ export class CooplaceService {
     const result = await this.cooplaceInteractor.updateRequest(data);
     return result;
   }
+
+  public async reqReturn(data: any): Promise<TransactionDTO> {
+    return await this.cooplaceInteractor.reqReturn(data);
+  }
+
+  public async coopstock(data: any): Promise<TransactionDTO> {
+    return await this.cooplaceInteractor.coopstock(data);
+  }
+
+  public async acceptStock(data: any): Promise<TransactionDTO> {
+    return await this.cooplaceInteractor.acceptStock(data);
+  }
+
+  public async destroyRequest(data: any): Promise<TransactionDTO> {
+    return await this.cooplaceInteractor.destroyRequest(data);
+  }
+
+  public async reofferRequest(data: any): Promise<TransactionDTO> {
+    return await this.cooplaceInteractor.reofferRequest(data);
+  }
 }

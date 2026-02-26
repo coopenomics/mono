@@ -30,6 +30,11 @@ import { ReceiveOnRequestInputDTO } from '../dto/receive-on-request-input.dto';
 import { SupplyOnRequestInputDTO } from '../dto/supply-on-request-input.dto';
 import { UnpublishRequestInputDTO } from '../dto/unpublish-request-input.dto';
 import { UpdateRequestInputDTO } from '../dto/update-request-input.dto';
+import { ReqReturnInputDTO } from '../dto/req-return-input.dto';
+import { CoopstockInputDTO } from '../dto/coopstock-input.dto';
+import { AcceptStockInputDTO } from '../dto/accept-stock-input.dto';
+import { DestroyRequestInputDTO } from '../dto/destroy-request-input.dto';
+import { ReofferRequestInputDTO } from '../dto/reoffer-request-input.dto';
 import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
 
 @Resolver()
@@ -300,5 +305,70 @@ export class CooplaceResolver {
     @Args('data', { type: () => UpdateRequestInputDTO }) data: UpdateRequestInputDTO
   ): Promise<TransactionDTO> {
     return this.cooplaceService.updateRequest(data);
+  }
+
+  @Mutation(() => TransactionDTO, {
+    name: 'reqReturn',
+    description: 'Запросить возврат паевого взноса имуществом (перед получением)',
+  })
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member', 'user'])
+  async reqReturn(
+    @Args('data', { type: () => ReqReturnInputDTO }) data: ReqReturnInputDTO
+  ): Promise<TransactionDTO> {
+    return this.cooplaceService.reqReturn(data);
+  }
+
+  @Mutation(() => TransactionDTO, {
+    name: 'coopstock',
+    description: 'Создать предложение из запасов кооператива',
+  })
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman'])
+  async coopstock(
+    @Args('data', { type: () => CoopstockInputDTO }) data: CoopstockInputDTO
+  ): Promise<TransactionDTO> {
+    return this.cooplaceService.coopstock(data);
+  }
+
+  @Mutation(() => TransactionDTO, {
+    name: 'acceptStock',
+    description: 'Принять предложение из запасов кооператива',
+  })
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member', 'user'])
+  async acceptStock(
+    @Args('data', { type: () => AcceptStockInputDTO }) data: AcceptStockInputDTO
+  ): Promise<TransactionDTO> {
+    return this.cooplaceService.acceptStock(data);
+  }
+
+  @Mutation(() => TransactionDTO, {
+    name: 'destroyRequest',
+    description: 'Уничтожить просроченное имущество',
+  })
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman'])
+  async destroyRequest(
+    @Args('data', { type: () => DestroyRequestInputDTO }) data: DestroyRequestInputDTO
+  ): Promise<TransactionDTO> {
+    return this.cooplaceService.destroyRequest(data);
+  }
+
+  @Mutation(() => TransactionDTO, {
+    name: 'reofferRequest',
+    description: 'Перепредложить имущество по новой цене',
+  })
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman'])
+  async reofferRequest(
+    @Args('data', { type: () => ReofferRequestInputDTO }) data: ReofferRequestInputDTO
+  ): Promise<TransactionDTO> {
+    return this.cooplaceService.reofferRequest(data);
   }
 }

@@ -11,8 +11,12 @@ import type { CreateChildOrderInputDomainInterface } from '~/domain/cooplace/int
 import type { ReceiveOnRequestInputDomainInterface } from '~/domain/cooplace/interfaces/receive-on-request-input.interface';
 import type { SupplyOnRequestInputDomainInterface } from '~/domain/cooplace/interfaces/supply-on-request-input.interface';
 
+import { config } from '~/config';
+
 @Injectable()
 export class CooplaceInteractor {
+  private readonly config = config;
+
   constructor(
     private readonly documentDomainService: DocumentDomainService,
     @Inject(COOPLACE_BLOCKCHAIN_PORT) private readonly cooplaceBlockchainPort: CooplaceBlockchainPort
@@ -169,5 +173,44 @@ export class CooplaceInteractor {
   public async updateRequest(data: MarketContract.Actions.UpdateRequest.IUpdateRequest): Promise<TransactResult> {
     const result = await this.cooplaceBlockchainPort.updateRequest(data);
     return result;
+  }
+
+  public async reqReturn(data: any): Promise<TransactResult> {
+    return await this.cooplaceBlockchainPort.reqReturn({
+      ...data,
+      coopname: this.config.coopname,
+      return_statement: { ...data.return_statement, meta: JSON.stringify(data.return_statement.meta) },
+    });
+  }
+
+  public async coopstock(data: any): Promise<TransactResult> {
+    return await this.cooplaceBlockchainPort.coopstock({
+      ...data,
+      coopname: this.config.coopname,
+    });
+  }
+
+  public async acceptStock(data: any): Promise<TransactResult> {
+    return await this.cooplaceBlockchainPort.acceptStock({
+      ...data,
+      coopname: this.config.coopname,
+      convert_in: { ...data.convert_in, meta: JSON.stringify(data.convert_in.meta) },
+      return_statement: { ...data.return_statement, meta: JSON.stringify(data.return_statement.meta) },
+    });
+  }
+
+  public async destroyRequest(data: any): Promise<TransactResult> {
+    return await this.cooplaceBlockchainPort.destroy({
+      ...data,
+      coopname: this.config.coopname,
+      destruction_act: { ...data.destruction_act, meta: JSON.stringify(data.destruction_act.meta) },
+    });
+  }
+
+  public async reofferRequest(data: any): Promise<TransactResult> {
+    return await this.cooplaceBlockchainPort.reoffer({
+      ...data,
+      coopname: this.config.coopname,
+    });
   }
 }
