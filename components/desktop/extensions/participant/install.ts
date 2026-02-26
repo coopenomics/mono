@@ -8,6 +8,7 @@ import { MeetDetailsPage } from 'src/pages/Cooperative/MeetDetails';
 import { UserDocumentsPage } from 'src/pages/User/DocumentsPage';
 import { UserPaymentsPage } from 'src/pages/User/PaymentsPage';
 import { SupportTrigger } from 'src/pages/Support';
+import { SharedWithMePage } from './pages/SharedWithMePage';
 import { agreementsBase } from 'src/shared/lib/consts/workspaces';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
 import { markRaw } from 'vue';
@@ -137,6 +138,19 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 },
               },
             ],
+          },
+          {
+            meta: {
+              title: 'Доступные мне',
+              icon: 'fa-solid fa-share-nodes',
+              roles: ['user', 'member', 'chairman'],
+              agreements: agreementsBase,
+              requiresAuth: true,
+            },
+            path: 'shared-with-me',
+            name: 'shared-with-me',
+            component: markRaw(SharedWithMePage),
+            children: [],
           },
           {
             path: '/:coopname/contacts',

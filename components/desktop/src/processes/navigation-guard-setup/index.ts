@@ -10,6 +10,10 @@ function hasAccess(to, userRole) {
   return userRole && to.meta?.roles.includes(userRole);
 }
 
+function hasShareToken(to): boolean {
+  return !!(to.query?.share_token && typeof to.query.share_token === 'string' && to.query.share_token.length > 10);
+}
+
 // Функция для получения URL для редиректа
 function getRedirectUrl(router: Router, to: any): string {
   if (process.env.CLIENT) {
@@ -106,8 +110,8 @@ export function setupNavigationGuard(router: Router) {
       return;
     }
 
-    // проверка по ролям
-    if (hasAccess(to, userRole)) {
+    // проверка по ролям — при наличии share_token пропускаем проверку ролей
+    if (hasAccess(to, userRole) || hasShareToken(to)) {
       next();
     } else {
       next({ name: 'permissionDenied', query: to.query });
