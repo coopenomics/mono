@@ -7,6 +7,11 @@ import type { ReturnByAssetActGenerateDocumentInputDTO } from '../../document/do
 import type { ReturnByAssetDecisionGenerateDocumentInputDTO } from '../../document/documents-dto/return-by-asset-decision-document.dto';
 import type { ReturnByAssetStatementGenerateDocumentInputDTO } from '../../document/documents-dto/return-by-asset-statement-document.dto';
 import { CooplaceInteractor } from '../interactors/cooplace.interactor';
+import type { ReqReturnInputDTO } from '../dto/req-return-input.dto';
+import type { CoopstockInputDTO } from '../dto/coopstock-input.dto';
+import type { AcceptStockInputDTO } from '../dto/accept-stock-input.dto';
+import type { DestroyRequestInputDTO } from '../dto/destroy-request-input.dto';
+import type { ReofferRequestInputDTO } from '../dto/reoffer-request-input.dto';
 import type { AcceptChildOrderInputDTO } from '../dto/accept-child-order-input.dto';
 import type { CancelRequestInputDTO } from '../dto/cancel-request-input.dto';
 import type { CompleteRequestInputDTO } from '../dto/complete-request-input.dto';
@@ -164,23 +169,23 @@ export class CooplaceService {
     return result;
   }
 
-  public async reqReturn(data: any): Promise<TransactionDTO> {
+  public async reqReturn(data: ReqReturnInputDTO): Promise<TransactionDTO> {
     return await this.cooplaceInteractor.reqReturn(data);
   }
 
-  public async coopstock(data: any): Promise<TransactionDTO> {
+  public async coopstock(data: CoopstockInputDTO): Promise<TransactionDTO> {
     return await this.cooplaceInteractor.coopstock(data);
   }
 
-  public async acceptStock(data: any): Promise<TransactionDTO> {
+  public async acceptStock(data: AcceptStockInputDTO): Promise<TransactionDTO> {
     return await this.cooplaceInteractor.acceptStock(data);
   }
 
-  public async destroyRequest(data: any): Promise<TransactionDTO> {
+  public async destroyRequest(data: DestroyRequestInputDTO): Promise<TransactionDTO> {
     return await this.cooplaceInteractor.destroyRequest(data);
   }
 
-  public async reofferRequest(data: any): Promise<TransactionDTO> {
+  public async reofferRequest(data: ReofferRequestInputDTO): Promise<TransactionDTO> {
     return await this.cooplaceInteractor.reofferRequest(data);
   }
 }

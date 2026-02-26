@@ -154,6 +154,9 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] request {
   eosio::time_point_sec warranty_delay_until;
   eosio::time_point_sec deadline_for_receipt;
 
+  eosio::name delivery_type;    /*!< тип доставки: "internal" (между КУ) или "external" (внешний сервис) */
+  eosio::name contribution_type; /*!< тип взноса: "share" (паевой) или "member" (членский - кооператив покупает) */
+  
   bool is_warranty_return = false;
   uint64_t warranty_return_id;
 

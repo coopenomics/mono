@@ -12,6 +12,11 @@ import type { ReceiveOnRequestInputDomainInterface } from '~/domain/cooplace/int
 import type { SupplyOnRequestInputDomainInterface } from '~/domain/cooplace/interfaces/supply-on-request-input.interface';
 
 import { config } from '~/config';
+import type { ReqReturnInputDTO } from '../dto/req-return-input.dto';
+import type { CoopstockInputDTO } from '../dto/coopstock-input.dto';
+import type { AcceptStockInputDTO } from '../dto/accept-stock-input.dto';
+import type { DestroyRequestInputDTO } from '../dto/destroy-request-input.dto';
+import type { ReofferRequestInputDTO } from '../dto/reoffer-request-input.dto';
 
 @Injectable()
 export class CooplaceInteractor {
@@ -175,42 +180,54 @@ export class CooplaceInteractor {
     return result;
   }
 
-  public async reqReturn(data: any): Promise<TransactResult> {
+  public async reqReturn(data: ReqReturnInputDTO): Promise<TransactResult> {
     return await this.cooplaceBlockchainPort.reqReturn({
-      ...data,
       coopname: this.config.coopname,
+      username: data.username,
+      request_hash: data.request_hash,
       return_statement: { ...data.return_statement, meta: JSON.stringify(data.return_statement.meta) },
     });
   }
 
-  public async coopstock(data: any): Promise<TransactResult> {
+  public async coopstock(data: CoopstockInputDTO): Promise<TransactResult> {
     return await this.cooplaceBlockchainPort.coopstock({
-      ...data,
       coopname: this.config.coopname,
+      braname: data.braname,
+      hash: data.hash,
+      units: data.units,
+      unit_cost: data.unit_cost,
+      product_lifecycle_secs: data.product_lifecycle_secs,
+      warranty_period_secs: data.warranty_period_secs,
+      membership_fee_amount: data.membership_fee_amount,
+      meta: data.meta,
     });
   }
 
-  public async acceptStock(data: any): Promise<TransactResult> {
+  public async acceptStock(data: AcceptStockInputDTO): Promise<TransactResult> {
     return await this.cooplaceBlockchainPort.acceptStock({
-      ...data,
       coopname: this.config.coopname,
+      username: data.username,
+      request_hash: data.request_hash,
       convert_in: { ...data.convert_in, meta: JSON.stringify(data.convert_in.meta) },
       return_statement: { ...data.return_statement, meta: JSON.stringify(data.return_statement.meta) },
     });
   }
 
-  public async destroyRequest(data: any): Promise<TransactResult> {
+  public async destroyRequest(data: DestroyRequestInputDTO): Promise<TransactResult> {
     return await this.cooplaceBlockchainPort.destroy({
-      ...data,
       coopname: this.config.coopname,
+      request_hash: data.request_hash,
       destruction_act: { ...data.destruction_act, meta: JSON.stringify(data.destruction_act.meta) },
     });
   }
 
-  public async reofferRequest(data: any): Promise<TransactResult> {
+  public async reofferRequest(data: ReofferRequestInputDTO): Promise<TransactResult> {
     return await this.cooplaceBlockchainPort.reoffer({
-      ...data,
       coopname: this.config.coopname,
+      request_hash: data.request_hash,
+      new_hash: data.new_hash,
+      new_unit_cost: data.new_unit_cost,
+      new_meta: data.new_meta,
     });
   }
 }

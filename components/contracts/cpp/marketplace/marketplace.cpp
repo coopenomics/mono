@@ -27,6 +27,10 @@
 #include "src/shipment/receiveshipm.cpp"
 #include "src/shipment/retransport.cpp"
 
+// ORDER→OFFER direction
+#include "src/deliver_on_order/createorder.cpp"
+#include "src/deliver_on_order/respondoffer.cpp"
+
 // Уничтожение и перепредложение
 #include "src/deliver_on_offer/destroy.cpp"
 #include "src/deliver_on_offer/reoffer.cpp"

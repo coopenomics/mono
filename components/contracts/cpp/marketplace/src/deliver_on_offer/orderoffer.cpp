@@ -21,7 +21,7 @@
 
 @note Авторизация требуется от аккаунта: @p coopname
 */
-[[eosio::action]] void marketplace::orderoffer(eosio::name coopname, eosio::name receiver_braname, eosio::name username, checksum256 hash, uint64_t units, eosio::asset unit_cost, uint32_t product_lifecycle_secs, uint32_t warranty_period_secs, eosio::asset membership_fee_amount, eosio::asset cancellation_fee_amount, document2 convert_in, std::string meta) {
+[[eosio::action]] void marketplace::orderoffer(eosio::name coopname, eosio::name receiver_braname, eosio::name username, checksum256 hash, uint64_t units, eosio::asset unit_cost, uint32_t product_lifecycle_secs, uint32_t warranty_period_secs, eosio::asset membership_fee_amount, eosio::asset cancellation_fee_amount, document2 convert_in, eosio::name delivery_type, eosio::name contribution_type, std::string meta) {
   require_auth(coopname);
   
   auto existing_request = get_request_by_hash(coopname, hash);
@@ -50,6 +50,8 @@
   eosio::asset total_cost = base_cost + membership_fee_amount;
   
   eosio::check(cancellation_fee_amount <= total_cost, "Комиссия за отмену не может превышать общую стоимость");
+  eosio::check(delivery_type == "internal"_n || delivery_type == "external"_n, "Тип доставки: internal или external");
+  eosio::check(contribution_type == "share"_n || contribution_type == "member"_n, "Тип взноса: share или member");
 
   requests_index requests(_marketplace, coopname.value);
   uint64_t request_id = get_global_id(_marketplace, "requests"_n);
@@ -78,6 +80,8 @@
     i.created_at = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
     i.cancellation_fee_amount = cancellation_fee_amount;
     i.receiver_braname = receiver_braname;
+    i.delivery_type = delivery_type;
+    i.contribution_type = contribution_type;
     i.documents = documents;
   });
 
