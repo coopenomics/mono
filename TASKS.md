@@ -58,3 +58,14 @@
 - [x] Безопасность: ключ показывается ТОЛЬКО при создании, хранится хеш
 - [x] Desktop: ApiKeysPage в chairman extension
 - [x] UI: таблица ключей, создание, отзыв, копирование
+
+### 13. GraphQL Subscriptions
+- [x] PubSubModule: глобальный PubSub provider
+- [x] WebSocket support в GraphQL module (graphql-ws)
+- [x] 4 Capital subscriptions: issueUpdated/Created, commitUpdated/Created
+- [x] Filter по project_hash
+- [x] Events publishing в GenerationService
+- [x] SDK: Subscriptions namespace (Capital)
+- [x] Auth через connectionParams.token
+- [ ] Desktop: интеграция подписок в stores
+- [ ] Тесты подписок
