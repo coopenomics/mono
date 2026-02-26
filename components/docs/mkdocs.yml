@@ -104,11 +104,13 @@ nav:
   - Дашборд подключения: new/connection/dashboard.md
   - Разработчикам:
     - new/installation/dev.md
+    - Архитектура: new/installation/dev/architecture.md
     - Быстрый старт: new/installation/dev/quick-start.md
     - Язык API: new/installation/dev/graphql.md
     - SDK: new/installation/dev/sdk.md
     - Аутентификация: new/installation/dev/auth.md
     - Подробный старт: new/installation/dev/init.md
+    - API Reference: new/installation/dev/api-reference.md
     
   - Регистрация пайщика: 
     - new/registration/index.md
