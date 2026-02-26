@@ -59,6 +59,16 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
+    // Проверка: есть ли у пользователя делегированные права (через share tokens)
+    if (user.grantedPermissions && Array.isArray(user.grantedPermissions)) {
+      const hasGranted = user.grantedPermissions.some(
+        (p: any) => p.action === 'read' || p.action === 'manage'
+      );
+      if (hasGranted) {
+        return true;
+      }
+    }
+
     throw new UnauthorizedException(`Недостаточно прав доступа`);
   }
 }
