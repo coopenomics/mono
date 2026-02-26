@@ -3,6 +3,7 @@ import { Global, Module } from '@nestjs/common';
 import { GraphQLModule } from '@nestjs/graphql';
 import config from '~/config/config';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
+import * as jwt from 'jsonwebtoken';
 import { docDirectiveTransformer } from './directives/doc.directive';
 import { GraphQLError, GraphQLFormattedError } from 'graphql';
 import { fieldAuthDirectiveTransformer } from './directives/fieldAuth.directive';
@@ -24,8 +25,16 @@ import logger from '~/config/logger';
           path: '/v1/graphql',
           onConnect: (context: any) => {
             const { connectionParams } = context;
-            // Аутентификация WebSocket через connectionParams.token
-            return { token: connectionParams?.token };
+            const token = connectionParams?.token || connectionParams?.authorization;
+            if (!token) {
+              throw new Error('Необходима аутентификация для WebSocket подписок');
+            }
+            try {
+              const decoded = jwt.verify(token, config.jwt.secret);
+              return { user: decoded, token };
+            } catch {
+              throw new Error('Невалидный токен аутентификации');
+            }
           },
         },
       },

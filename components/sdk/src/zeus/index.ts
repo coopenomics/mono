@@ -1463,6 +1463,29 @@ export type ValueTypes = {
 	/** Голос (за/против/воздержался) */
 	vote: string | Variable<any, string>
 };
+	["ApiKeyCreated"]: AliasType<{
+	allowed_operations?:boolean | `@${string}`,
+	created_at?:boolean | `@${string}`,
+	expires_at?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	/** Полный ключ — показывается ТОЛЬКО при создании */
+	key?:boolean | `@${string}`,
+	key_prefix?:boolean | `@${string}`,
+	name?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["ApiKeyInfo"]: AliasType<{
+	allowed_operations?:boolean | `@${string}`,
+	created_at?:boolean | `@${string}`,
+	created_by?:boolean | `@${string}`,
+	expires_at?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	is_active?:boolean | `@${string}`,
+	key_prefix?:boolean | `@${string}`,
+	last_used_at?:boolean | `@${string}`,
+	name?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	/** Одобрение документа председателем совета */
 ["Approval"]: AliasType<{
 	/** Дата создания записи */
@@ -1702,6 +1725,13 @@ export type ValueTypes = {
 	threshold?:boolean | `@${string}`,
 	/** Вес ожидания */
 	waits?:ValueTypes["WaitWeight"],
+		__typename?: boolean | `@${string}`
+}>;
+	["AvailableReport"]: AliasType<{
+	deadline?:boolean | `@${string}`,
+	name?:boolean | `@${string}`,
+	period?:boolean | `@${string}`,
+	type?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["BankAccount"]: AliasType<{
@@ -3795,6 +3825,11 @@ export type ValueTypes = {
 	/** Имя аккаунта секретаря */
 	secretary: string | Variable<any, string>
 };
+	["CreateApiKeyInput"]: {
+	allowedOperations?: Array<string> | undefined | null | Variable<any, string>,
+	expiresInDays?: number | undefined | null | Variable<any, string>,
+	name: string | Variable<any, string>
+};
 	["CreateBranchInput"]: {
 	/** Документ, на основании которого действует Уполномоченный (решение совета №СС-.. от ..) */
 	based_on: string | Variable<any, string>,
@@ -4117,6 +4152,15 @@ export type ValueTypes = {
 	property_hash: string | Variable<any, string>,
 	/** Имя пользователя */
 	username: string | Variable<any, string>
+};
+	["CreateShareLinkInput"]: {
+	allowedActions: Array<string> | Variable<any, string>,
+	expiresInDays?: number | undefined | null | Variable<any, string>,
+	linkName?: string | undefined | null | Variable<any, string>,
+	pageName: string | Variable<any, string>,
+	pagePath: string | Variable<any, string>,
+	targetType: ValueTypes["ShareTargetType"] | Variable<any, string>,
+	targetUsername?: string | undefined | null | Variable<any, string>
 };
 	["CreateSovietIndividualDataInput"]: {
 	/** Дата рождения */
@@ -4854,6 +4898,11 @@ export type ValueTypes = {
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["GenerateReportInput"]: {
+	period?: number | undefined | null | Variable<any, string>,
+	reportType: ValueTypes["ReportType"] | Variable<any, string>,
+	year: number | Variable<any, string>
+};
 	["GeneratedDocument"]: AliasType<{
 	/** Бинарное содержимое документа (base64) */
 	binary?:boolean | `@${string}`,
@@ -4886,6 +4935,14 @@ export type ValueTypes = {
 	order?:boolean | `@${string}`,
 	/** Название документа */
 	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["GeneratedReport"]: AliasType<{
+	errors?:boolean | `@${string}`,
+	fileName?:boolean | `@${string}`,
+	isValid?:boolean | `@${string}`,
+	reportType?:boolean | `@${string}`,
+	xml?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["GenerationContractGenerateDocumentInput"]: {
@@ -5691,12 +5748,14 @@ confirmAgreement?: [{	data: ValueTypes["ConfirmAgreementInput"] | Variable<any, 
 confirmReceiveOnRequest?: [{	data: ValueTypes["ConfirmReceiveOnRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 confirmSupplyOnRequest?: [{	data: ValueTypes["ConfirmSupplyOnRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 createAnnualGeneralMeet?: [{	data: ValueTypes["CreateAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
+createApiKey?: [{	data: ValueTypes["CreateApiKeyInput"] | Variable<any, string>},ValueTypes["ApiKeyCreated"]],
 createBranch?: [{	data: ValueTypes["CreateBranchInput"] | Variable<any, string>},ValueTypes["Branch"]],
 createChildOrder?: [{	data: ValueTypes["CreateChildOrderInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 createDepositPayment?: [{	data: ValueTypes["CreateDepositPaymentInput"] | Variable<any, string>},ValueTypes["GatewayPayment"]],
 createInitialPayment?: [{	data: ValueTypes["CreateInitialPaymentInput"] | Variable<any, string>},ValueTypes["GatewayPayment"]],
 createParentOffer?: [{	data: ValueTypes["CreateParentOfferInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 createProjectOfFreeDecision?: [{	data: ValueTypes["CreateProjectFreeDecisionInput"] | Variable<any, string>},ValueTypes["CreatedProjectFreeDecision"]],
+createShareLink?: [{	data: ValueTypes["CreateShareLinkInput"] | Variable<any, string>},ValueTypes["ShareLink"]],
 createWebPushSubscription?: [{	data: ValueTypes["CreateSubscriptionInput"] | Variable<any, string>},ValueTypes["CreateSubscriptionResponse"]],
 createWithdraw?: [{	data: ValueTypes["CreateWithdrawInput"] | Variable<any, string>},ValueTypes["CreateWithdrawResponse"]],
 deactivateWebPushSubscriptionById?: [{	data: ValueTypes["DeactivateSubscriptionInput"] | Variable<any, string>},boolean | `@${string}`],
@@ -5723,6 +5782,7 @@ generateParticipantApplicationDecision?: [{	data: ValueTypes["ParticipantApplica
 generatePrivacyAgreement?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateProjectOfFreeDecision?: [{	data: ValueTypes["ProjectFreeDecisionGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateRegistrationDocuments?: [{	data: ValueTypes["GenerateRegistrationDocumentsInput"] | Variable<any, string>},ValueTypes["GenerateRegistrationDocumentsOutput"]],
+generateReport?: [{	data: ValueTypes["GenerateReportInput"] | Variable<any, string>},ValueTypes["GeneratedReport"]],
 generateReturnByAssetAct?: [{	data: ValueTypes["ReturnByAssetActGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateReturnByAssetDecision?: [{	data: ValueTypes["ReturnByAssetDecisionGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateReturnByAssetStatement?: [{	data: ValueTypes["ReturnByAssetStatementGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
@@ -5750,6 +5810,8 @@ registerAccount?: [{	data: ValueTypes["RegisterAccountInput"] | Variable<any, st
 registerParticipant?: [{	data: ValueTypes["RegisterParticipantInput"] | Variable<any, string>},ValueTypes["Account"]],
 resetKey?: [{	data: ValueTypes["ResetKeyInput"] | Variable<any, string>},boolean | `@${string}`],
 restartAnnualGeneralMeet?: [{	data: ValueTypes["RestartAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
+revokeApiKey?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
+revokeShareLink?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
 selectBranch?: [{	data: ValueTypes["SelectBranchInput"] | Variable<any, string>},boolean | `@${string}`],
 sendAgreement?: [{	data: ValueTypes["SendAgreementInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 setPaymentStatus?: [{	data: ValueTypes["SetPaymentStatusInput"] | Variable<any, string>},ValueTypes["GatewayPayment"]],
@@ -6792,6 +6854,10 @@ getAccounts?: [{	data?: ValueTypes["GetAccountsInput"] | undefined | null | Vari
 getActions?: [{	filters?: ValueTypes["ActionFiltersInput"] | undefined | null | Variable<any, string>,	pagination?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedActionsPaginationResult"]],
 	/** Получить список вопросов совета кооператива для голосования */
 	getAgenda?:ValueTypes["AgendaWithDocuments"],
+	/** Получить список API ключей кооператива */
+	getApiKeys?:ValueTypes["ApiKeyInfo"],
+	/** Получить список доступных типов отчётов */
+	getAvailableReports?:ValueTypes["AvailableReport"],
 getBranches?: [{	data: ValueTypes["GetBranchesInput"] | Variable<any, string>},ValueTypes["Branch"]],
 getCapitalIssueLogs?: [{	data: ValueTypes["GetCapitalIssueLogsInput"] | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalLogsPaginationResult"]],
 	/** Получить состояние онбординга capital */
@@ -6813,6 +6879,8 @@ getLedger?: [{	data: ValueTypes["GetLedgerInput"] | Variable<any, string>},Value
 getLedgerHistory?: [{	data: ValueTypes["GetLedgerHistoryInput"] | Variable<any, string>},ValueTypes["LedgerHistoryResponse"]],
 getMeet?: [{	data: ValueTypes["GetMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
 getMeets?: [{	data: ValueTypes["GetMeetsInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
+	/** Получить созданные мной ссылки доступа */
+	getMyShareLinks?:ValueTypes["ShareLink"],
 getPaymentMethods?: [{	data?: ValueTypes["GetPaymentMethodsInput"] | undefined | null | Variable<any, string>},ValueTypes["PaymentMethodPaginationResult"]],
 getPayments?: [{	data?: ValueTypes["PaymentFiltersInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedGatewayPaymentsPaginationResult"]],
 getProgramWallet?: [{	filter: ValueTypes["ProgramWalletFilterInput"] | Variable<any, string>},ValueTypes["ProgramWallet"]],
@@ -6821,6 +6889,8 @@ getProviderSubscriptionById?: [{	id: number | Variable<any, string>},ValueTypes[
 	/** Получить подписки пользователя у провайдера */
 	getProviderSubscriptions?:ValueTypes["ProviderSubscription"],
 getRegistrationConfig?: [{	account_type: ValueTypes["AccountType"] | Variable<any, string>,	coopname: string | Variable<any, string>},ValueTypes["RegistrationConfig"]],
+	/** Получить страницы, к которым мне предоставлен доступ */
+	getSharedWithMe?:ValueTypes["ShareLink"],
 	/** Получить сводную публичную информацию о системе */
 	getSystemInfo?:ValueTypes["SystemInfo"],
 getUserWebPushSubscriptions?: [{	data: ValueTypes["GetUserSubscriptionsInput"] | Variable<any, string>},ValueTypes["WebPushSubscriptionDto"]],
@@ -6989,6 +7059,7 @@ searchPrivateAccounts?: [{	data: ValueTypes["SearchPrivateAccountsInput"] | Vari
 	title?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["ReportType"]:ReportType;
 	["RepresentedBy"]: AliasType<{
 	/** На основании чего действует */
 	based_on?:boolean | `@${string}`,
@@ -7572,6 +7643,21 @@ searchPrivateAccounts?: [{	data: ValueTypes["SearchPrivateAccountsInput"] | Vari
 	updated_at?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["ShareLink"]: AliasType<{
+	allowed_actions?:boolean | `@${string}`,
+	created_at?:boolean | `@${string}`,
+	expires_at?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	is_active?:boolean | `@${string}`,
+	link_name?:boolean | `@${string}`,
+	page_name?:boolean | `@${string}`,
+	page_path?:boolean | `@${string}`,
+	target_type?:boolean | `@${string}`,
+	target_username?:boolean | `@${string}`,
+	token?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["ShareTargetType"]:ShareTargetType;
 	["SignActAsChairmanInput"]: {
 	/** Акт о вкладе результатов */
 	act: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>,
@@ -7734,6 +7820,13 @@ searchPrivateAccounts?: [{	data: ValueTypes["SearchPrivateAccountsInput"] | Vari
 	/** Распределение голосов */
 	votes: Array<ValueTypes["VoteDistributionInput"]> | Variable<any, string>
 };
+	["Subscription"]: AliasType<{
+capitalCommitCreated?: [{	project_hash?: string | undefined | null | Variable<any, string>},ValueTypes["CapitalCommit"]],
+capitalCommitUpdated?: [{	project_hash?: string | undefined | null | Variable<any, string>},ValueTypes["CapitalCommit"]],
+capitalIssueCreated?: [{	project_hash?: string | undefined | null | Variable<any, string>},ValueTypes["CapitalIssue"]],
+capitalIssueUpdated?: [{	project_hash?: string | undefined | null | Variable<any, string>},ValueTypes["CapitalIssue"]],
+		__typename?: boolean | `@${string}`
+}>;
 	["SubscriptionStatsDto"]: AliasType<{
 	/** Количество активных подписок */
 	active?:boolean | `@${string}`,
@@ -8766,6 +8859,29 @@ export type ResolverInputTypes = {
 	/** Голос (за/против/воздержался) */
 	vote: string
 };
+	["ApiKeyCreated"]: AliasType<{
+	allowed_operations?:boolean | `@${string}`,
+	created_at?:boolean | `@${string}`,
+	expires_at?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	/** Полный ключ — показывается ТОЛЬКО при создании */
+	key?:boolean | `@${string}`,
+	key_prefix?:boolean | `@${string}`,
+	name?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["ApiKeyInfo"]: AliasType<{
+	allowed_operations?:boolean | `@${string}`,
+	created_at?:boolean | `@${string}`,
+	created_by?:boolean | `@${string}`,
+	expires_at?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	is_active?:boolean | `@${string}`,
+	key_prefix?:boolean | `@${string}`,
+	last_used_at?:boolean | `@${string}`,
+	name?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	/** Одобрение документа председателем совета */
 ["Approval"]: AliasType<{
 	/** Дата создания записи */
@@ -9005,6 +9121,13 @@ export type ResolverInputTypes = {
 	threshold?:boolean | `@${string}`,
 	/** Вес ожидания */
 	waits?:ResolverInputTypes["WaitWeight"],
+		__typename?: boolean | `@${string}`
+}>;
+	["AvailableReport"]: AliasType<{
+	deadline?:boolean | `@${string}`,
+	name?:boolean | `@${string}`,
+	period?:boolean | `@${string}`,
+	type?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["BankAccount"]: AliasType<{
@@ -11098,6 +11221,11 @@ export type ResolverInputTypes = {
 	/** Имя аккаунта секретаря */
 	secretary: string
 };
+	["CreateApiKeyInput"]: {
+	allowedOperations?: Array<string> | undefined | null,
+	expiresInDays?: number | undefined | null,
+	name: string
+};
 	["CreateBranchInput"]: {
 	/** Документ, на основании которого действует Уполномоченный (решение совета №СС-.. от ..) */
 	based_on: string,
@@ -11420,6 +11548,15 @@ export type ResolverInputTypes = {
 	property_hash: string,
 	/** Имя пользователя */
 	username: string
+};
+	["CreateShareLinkInput"]: {
+	allowedActions: Array<string>,
+	expiresInDays?: number | undefined | null,
+	linkName?: string | undefined | null,
+	pageName: string,
+	pagePath: string,
+	targetType: ResolverInputTypes["ShareTargetType"],
+	targetUsername?: string | undefined | null
 };
 	["CreateSovietIndividualDataInput"]: {
 	/** Дата рождения */
@@ -12157,6 +12294,11 @@ export type ResolverInputTypes = {
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["GenerateReportInput"]: {
+	period?: number | undefined | null,
+	reportType: ResolverInputTypes["ReportType"],
+	year: number
+};
 	["GeneratedDocument"]: AliasType<{
 	/** Бинарное содержимое документа (base64) */
 	binary?:boolean | `@${string}`,
@@ -12189,6 +12331,14 @@ export type ResolverInputTypes = {
 	order?:boolean | `@${string}`,
 	/** Название документа */
 	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["GeneratedReport"]: AliasType<{
+	errors?:boolean | `@${string}`,
+	fileName?:boolean | `@${string}`,
+	isValid?:boolean | `@${string}`,
+	reportType?:boolean | `@${string}`,
+	xml?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["GenerationContractGenerateDocumentInput"]: {
@@ -12994,12 +13144,14 @@ confirmAgreement?: [{	data: ResolverInputTypes["ConfirmAgreementInput"]},Resolve
 confirmReceiveOnRequest?: [{	data: ResolverInputTypes["ConfirmReceiveOnRequestInput"]},ResolverInputTypes["Transaction"]],
 confirmSupplyOnRequest?: [{	data: ResolverInputTypes["ConfirmSupplyOnRequestInput"]},ResolverInputTypes["Transaction"]],
 createAnnualGeneralMeet?: [{	data: ResolverInputTypes["CreateAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
+createApiKey?: [{	data: ResolverInputTypes["CreateApiKeyInput"]},ResolverInputTypes["ApiKeyCreated"]],
 createBranch?: [{	data: ResolverInputTypes["CreateBranchInput"]},ResolverInputTypes["Branch"]],
 createChildOrder?: [{	data: ResolverInputTypes["CreateChildOrderInput"]},ResolverInputTypes["Transaction"]],
 createDepositPayment?: [{	data: ResolverInputTypes["CreateDepositPaymentInput"]},ResolverInputTypes["GatewayPayment"]],
 createInitialPayment?: [{	data: ResolverInputTypes["CreateInitialPaymentInput"]},ResolverInputTypes["GatewayPayment"]],
 createParentOffer?: [{	data: ResolverInputTypes["CreateParentOfferInput"]},ResolverInputTypes["Transaction"]],
 createProjectOfFreeDecision?: [{	data: ResolverInputTypes["CreateProjectFreeDecisionInput"]},ResolverInputTypes["CreatedProjectFreeDecision"]],
+createShareLink?: [{	data: ResolverInputTypes["CreateShareLinkInput"]},ResolverInputTypes["ShareLink"]],
 createWebPushSubscription?: [{	data: ResolverInputTypes["CreateSubscriptionInput"]},ResolverInputTypes["CreateSubscriptionResponse"]],
 createWithdraw?: [{	data: ResolverInputTypes["CreateWithdrawInput"]},ResolverInputTypes["CreateWithdrawResponse"]],
 deactivateWebPushSubscriptionById?: [{	data: ResolverInputTypes["DeactivateSubscriptionInput"]},boolean | `@${string}`],
@@ -13026,6 +13178,7 @@ generateParticipantApplicationDecision?: [{	data: ResolverInputTypes["Participan
 generatePrivacyAgreement?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateProjectOfFreeDecision?: [{	data: ResolverInputTypes["ProjectFreeDecisionGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateRegistrationDocuments?: [{	data: ResolverInputTypes["GenerateRegistrationDocumentsInput"]},ResolverInputTypes["GenerateRegistrationDocumentsOutput"]],
+generateReport?: [{	data: ResolverInputTypes["GenerateReportInput"]},ResolverInputTypes["GeneratedReport"]],
 generateReturnByAssetAct?: [{	data: ResolverInputTypes["ReturnByAssetActGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateReturnByAssetDecision?: [{	data: ResolverInputTypes["ReturnByAssetDecisionGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateReturnByAssetStatement?: [{	data: ResolverInputTypes["ReturnByAssetStatementGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
@@ -13053,6 +13206,8 @@ registerAccount?: [{	data: ResolverInputTypes["RegisterAccountInput"]},ResolverI
 registerParticipant?: [{	data: ResolverInputTypes["RegisterParticipantInput"]},ResolverInputTypes["Account"]],
 resetKey?: [{	data: ResolverInputTypes["ResetKeyInput"]},boolean | `@${string}`],
 restartAnnualGeneralMeet?: [{	data: ResolverInputTypes["RestartAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
+revokeApiKey?: [{	id: string},boolean | `@${string}`],
+revokeShareLink?: [{	id: string},boolean | `@${string}`],
 selectBranch?: [{	data: ResolverInputTypes["SelectBranchInput"]},boolean | `@${string}`],
 sendAgreement?: [{	data: ResolverInputTypes["SendAgreementInput"]},ResolverInputTypes["Transaction"]],
 setPaymentStatus?: [{	data: ResolverInputTypes["SetPaymentStatusInput"]},ResolverInputTypes["GatewayPayment"]],
@@ -14097,6 +14252,10 @@ getAccounts?: [{	data?: ResolverInputTypes["GetAccountsInput"] | undefined | nul
 getActions?: [{	filters?: ResolverInputTypes["ActionFiltersInput"] | undefined | null,	pagination?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedActionsPaginationResult"]],
 	/** Получить список вопросов совета кооператива для голосования */
 	getAgenda?:ResolverInputTypes["AgendaWithDocuments"],
+	/** Получить список API ключей кооператива */
+	getApiKeys?:ResolverInputTypes["ApiKeyInfo"],
+	/** Получить список доступных типов отчётов */
+	getAvailableReports?:ResolverInputTypes["AvailableReport"],
 getBranches?: [{	data: ResolverInputTypes["GetBranchesInput"]},ResolverInputTypes["Branch"]],
 getCapitalIssueLogs?: [{	data: ResolverInputTypes["GetCapitalIssueLogsInput"],	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalLogsPaginationResult"]],
 	/** Получить состояние онбординга capital */
@@ -14118,6 +14277,8 @@ getLedger?: [{	data: ResolverInputTypes["GetLedgerInput"]},ResolverInputTypes["L
 getLedgerHistory?: [{	data: ResolverInputTypes["GetLedgerHistoryInput"]},ResolverInputTypes["LedgerHistoryResponse"]],
 getMeet?: [{	data: ResolverInputTypes["GetMeetInput"]},ResolverInputTypes["MeetAggregate"]],
 getMeets?: [{	data: ResolverInputTypes["GetMeetsInput"]},ResolverInputTypes["MeetAggregate"]],
+	/** Получить созданные мной ссылки доступа */
+	getMyShareLinks?:ResolverInputTypes["ShareLink"],
 getPaymentMethods?: [{	data?: ResolverInputTypes["GetPaymentMethodsInput"] | undefined | null},ResolverInputTypes["PaymentMethodPaginationResult"]],
 getPayments?: [{	data?: ResolverInputTypes["PaymentFiltersInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedGatewayPaymentsPaginationResult"]],
 getProgramWallet?: [{	filter: ResolverInputTypes["ProgramWalletFilterInput"]},ResolverInputTypes["ProgramWallet"]],
@@ -14126,6 +14287,8 @@ getProviderSubscriptionById?: [{	id: number},ResolverInputTypes["ProviderSubscri
 	/** Получить подписки пользователя у провайдера */
 	getProviderSubscriptions?:ResolverInputTypes["ProviderSubscription"],
 getRegistrationConfig?: [{	account_type: ResolverInputTypes["AccountType"],	coopname: string},ResolverInputTypes["RegistrationConfig"]],
+	/** Получить страницы, к которым мне предоставлен доступ */
+	getSharedWithMe?:ResolverInputTypes["ShareLink"],
 	/** Получить сводную публичную информацию о системе */
 	getSystemInfo?:ResolverInputTypes["SystemInfo"],
 getUserWebPushSubscriptions?: [{	data: ResolverInputTypes["GetUserSubscriptionsInput"]},ResolverInputTypes["WebPushSubscriptionDto"]],
@@ -14294,6 +14457,7 @@ searchPrivateAccounts?: [{	data: ResolverInputTypes["SearchPrivateAccountsInput"
 	title?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["ReportType"]:ReportType;
 	["RepresentedBy"]: AliasType<{
 	/** На основании чего действует */
 	based_on?:boolean | `@${string}`,
@@ -14877,6 +15041,21 @@ searchPrivateAccounts?: [{	data: ResolverInputTypes["SearchPrivateAccountsInput"
 	updated_at?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["ShareLink"]: AliasType<{
+	allowed_actions?:boolean | `@${string}`,
+	created_at?:boolean | `@${string}`,
+	expires_at?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	is_active?:boolean | `@${string}`,
+	link_name?:boolean | `@${string}`,
+	page_name?:boolean | `@${string}`,
+	page_path?:boolean | `@${string}`,
+	target_type?:boolean | `@${string}`,
+	target_username?:boolean | `@${string}`,
+	token?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["ShareTargetType"]:ShareTargetType;
 	["SignActAsChairmanInput"]: {
 	/** Акт о вкладе результатов */
 	act: ResolverInputTypes["SignedDigitalDocumentInput"],
@@ -15039,6 +15218,13 @@ searchPrivateAccounts?: [{	data: ResolverInputTypes["SearchPrivateAccountsInput"
 	/** Распределение голосов */
 	votes: Array<ResolverInputTypes["VoteDistributionInput"]>
 };
+	["Subscription"]: AliasType<{
+capitalCommitCreated?: [{	project_hash?: string | undefined | null},ResolverInputTypes["CapitalCommit"]],
+capitalCommitUpdated?: [{	project_hash?: string | undefined | null},ResolverInputTypes["CapitalCommit"]],
+capitalIssueCreated?: [{	project_hash?: string | undefined | null},ResolverInputTypes["CapitalIssue"]],
+capitalIssueUpdated?: [{	project_hash?: string | undefined | null},ResolverInputTypes["CapitalIssue"]],
+		__typename?: boolean | `@${string}`
+}>;
 	["SubscriptionStatsDto"]: AliasType<{
 	/** Количество активных подписок */
 	active?:boolean | `@${string}`,
@@ -15523,6 +15709,7 @@ searchPrivateAccounts?: [{	data: ResolverInputTypes["SearchPrivateAccountsInput"
 	["schema"]: AliasType<{
 	query?:ResolverInputTypes["Query"],
 	mutation?:ResolverInputTypes["Mutation"],
+	subscription?:ResolverInputTypes["Subscription"],
 		__typename?: boolean | `@${string}`
 }>
   }
@@ -16064,6 +16251,27 @@ export type ModelTypes = {
 	/** Голос (за/против/воздержался) */
 	vote: string
 };
+	["ApiKeyCreated"]: {
+		allowed_operations: Array<string>,
+	created_at: ModelTypes["DateTime"],
+	expires_at?: ModelTypes["DateTime"] | undefined | null,
+	id: string,
+	/** Полный ключ — показывается ТОЛЬКО при создании */
+	key: string,
+	key_prefix: string,
+	name: string
+};
+	["ApiKeyInfo"]: {
+		allowed_operations: Array<string>,
+	created_at: ModelTypes["DateTime"],
+	created_by: string,
+	expires_at?: ModelTypes["DateTime"] | undefined | null,
+	id: string,
+	is_active: boolean,
+	key_prefix: string,
+	last_used_at?: ModelTypes["DateTime"] | undefined | null,
+	name: string
+};
 	/** Одобрение документа председателем совета */
 ["Approval"]: {
 		/** Дата создания записи */
@@ -16300,6 +16508,12 @@ export type ModelTypes = {
 	threshold: number,
 	/** Вес ожидания */
 	waits: Array<ModelTypes["WaitWeight"]>
+};
+	["AvailableReport"]: {
+		deadline: string,
+	name: string,
+	period: string,
+	type: ModelTypes["ReportType"]
 };
 	["BankAccount"]: {
 		/** Номер банковского счета */
@@ -18339,6 +18553,11 @@ export type ModelTypes = {
 	/** Имя аккаунта секретаря */
 	secretary: string
 };
+	["CreateApiKeyInput"]: {
+	allowedOperations?: Array<string> | undefined | null,
+	expiresInDays?: number | undefined | null,
+	name: string
+};
 	["CreateBranchInput"]: {
 	/** Документ, на основании которого действует Уполномоченный (решение совета №СС-.. от ..) */
 	based_on: string,
@@ -18661,6 +18880,15 @@ export type ModelTypes = {
 	property_hash: string,
 	/** Имя пользователя */
 	username: string
+};
+	["CreateShareLinkInput"]: {
+	allowedActions: Array<string>,
+	expiresInDays?: number | undefined | null,
+	linkName?: string | undefined | null,
+	pageName: string,
+	pagePath: string,
+	targetType: ModelTypes["ShareTargetType"],
+	targetUsername?: string | undefined | null
 };
 	["CreateSovietIndividualDataInput"]: {
 	/** Дата рождения */
@@ -19370,6 +19598,11 @@ export type ModelTypes = {
 	/** Имя пользователя */
 	username: string
 };
+	["GenerateReportInput"]: {
+	period?: number | undefined | null,
+	reportType: ModelTypes["ReportType"],
+	year: number
+};
 	["GeneratedDocument"]: {
 		/** Бинарное содержимое документа (base64) */
 	binary: string,
@@ -19401,6 +19634,13 @@ export type ModelTypes = {
 	order: number,
 	/** Название документа */
 	title: string
+};
+	["GeneratedReport"]: {
+		errors: Array<string>,
+	fileName: string,
+	isValid: boolean,
+	reportType: ModelTypes["ReportType"],
+	xml: string
 };
 	["GenerationContractGenerateDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
@@ -20272,6 +20512,8 @@ export type ModelTypes = {
 	confirmSupplyOnRequest: ModelTypes["Transaction"],
 	/** Сгенерировать документ предложения повестки очередного общего собрания пайщиков */
 	createAnnualGeneralMeet: ModelTypes["MeetAggregate"],
+	/** Создать API ключ кооператива. Полный ключ показывается только при создании. */
+	createApiKey: ModelTypes["ApiKeyCreated"],
 	/** Создать кооперативный участок */
 	createBranch: ModelTypes["Branch"],
 	/** Создать заявку на поставку имущества по предложению Поставщика */
@@ -20284,6 +20526,8 @@ export type ModelTypes = {
 	createParentOffer: ModelTypes["Transaction"],
 	/** Создать повестку дня и проект решения, и сохранить в хранилище для дальнейшей генерации документа и его публикации */
 	createProjectOfFreeDecision: ModelTypes["CreatedProjectFreeDecision"],
+	/** Создать ссылку доступа к странице */
+	createShareLink: ModelTypes["ShareLink"],
 	/** Создать веб-пуш подписку для пользователя */
 	createWebPushSubscription: ModelTypes["CreateSubscriptionResponse"],
 	/** Создать заявку на вывод средств */
@@ -20336,6 +20580,8 @@ export type ModelTypes = {
 	generateProjectOfFreeDecision: ModelTypes["GeneratedDocument"],
 	/** Генерирует пакет документов для регистрации пайщика. Возвращает список документов с метаданными для отображения на фронтенде. */
 	generateRegistrationDocuments: ModelTypes["GenerateRegistrationDocumentsOutput"],
+	/** Генерация отчёта для ФНС/ФСС */
+	generateReport: ModelTypes["GeneratedReport"],
 	/** Сгенерировать документ акта возврата имущества. */
 	generateReturnByAssetAct: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать документ решения о возврате имущества. */
@@ -20390,6 +20636,10 @@ export type ModelTypes = {
 	resetKey: boolean,
 	/** Перезапуск общего собрания пайщиков */
 	restartAnnualGeneralMeet: ModelTypes["MeetAggregate"],
+	/** Отозвать API ключ */
+	revokeApiKey: boolean,
+	/** Отозвать ссылку доступа */
+	revokeShareLink: boolean,
 	/** Выбрать кооперативный участок */
 	selectBranch: boolean,
 	/** Отправить соглашение */
@@ -21431,6 +21681,10 @@ export type ModelTypes = {
 	getActions: ModelTypes["PaginatedActionsPaginationResult"],
 	/** Получить список вопросов совета кооператива для голосования */
 	getAgenda: Array<ModelTypes["AgendaWithDocuments"]>,
+	/** Получить список API ключей кооператива */
+	getApiKeys: Array<ModelTypes["ApiKeyInfo"]>,
+	/** Получить список доступных типов отчётов */
+	getAvailableReports: Array<ModelTypes["AvailableReport"]>,
 	/** Получить список кооперативных участков */
 	getBranches: Array<ModelTypes["Branch"]>,
 	/** Получить логи событий по задаче */
@@ -21464,6 +21718,8 @@ export type ModelTypes = {
 	getMeet: ModelTypes["MeetAggregate"],
 	/** Получить список всех собраний кооператива */
 	getMeets: Array<ModelTypes["MeetAggregate"]>,
+	/** Получить созданные мной ссылки доступа */
+	getMyShareLinks: Array<ModelTypes["ShareLink"]>,
 	/** Получить список методов оплаты */
 	getPaymentMethods: ModelTypes["PaymentMethodPaginationResult"],
 	/** Получить список платежей с возможностью фильтрации по типу, статусу и направлению. */
@@ -21478,6 +21734,8 @@ export type ModelTypes = {
 	getProviderSubscriptions: Array<ModelTypes["ProviderSubscription"]>,
 	/** Получить конфигурацию программ регистрации для кооператива */
 	getRegistrationConfig: ModelTypes["RegistrationConfig"],
+	/** Получить страницы, к которым мне предоставлен доступ */
+	getSharedWithMe: Array<ModelTypes["ShareLink"]>,
 	/** Получить сводную публичную информацию о системе */
 	getSystemInfo: ModelTypes["SystemInfo"],
 	/** Получить веб-пуш подписки пользователя */
@@ -21644,6 +21902,7 @@ export type ModelTypes = {
 	/** Название программы для отображения */
 	title: string
 };
+	["ReportType"]:ReportType;
 	["RepresentedBy"]: {
 		/** На основании чего действует */
 	based_on: string,
@@ -22218,6 +22477,20 @@ export type ModelTypes = {
 	/** Дата последнего обновления */
 	updated_at: ModelTypes["DateTime"]
 };
+	["ShareLink"]: {
+		allowed_actions: Array<string>,
+	created_at: ModelTypes["DateTime"],
+	expires_at?: ModelTypes["DateTime"] | undefined | null,
+	id: string,
+	is_active: boolean,
+	link_name?: string | undefined | null,
+	page_name: string,
+	page_path: string,
+	target_type: ModelTypes["ShareTargetType"],
+	target_username?: string | undefined | null,
+	token: string
+};
+	["ShareTargetType"]:ShareTargetType;
 	["SignActAsChairmanInput"]: {
 	/** Акт о вкладе результатов */
 	act: ModelTypes["SignedDigitalDocumentInput"],
@@ -22373,6 +22646,16 @@ export type ModelTypes = {
 	project_hash: string,
 	/** Распределение голосов */
 	votes: Array<ModelTypes["VoteDistributionInput"]>
+};
+	["Subscription"]: {
+		/** Подписка на создание коммитов */
+	capitalCommitCreated: ModelTypes["CapitalCommit"],
+	/** Подписка на обновления коммитов */
+	capitalCommitUpdated: ModelTypes["CapitalCommit"],
+	/** Подписка на создание задач */
+	capitalIssueCreated: ModelTypes["CapitalIssue"],
+	/** Подписка на обновления задач */
+	capitalIssueUpdated: ModelTypes["CapitalIssue"]
 };
 	["SubscriptionStatsDto"]: {
 		/** Количество активных подписок */
@@ -22836,7 +23119,8 @@ export type ModelTypes = {
 };
 	["schema"]: {
 	query?: ModelTypes["Query"] | undefined | null,
-	mutation?: ModelTypes["Mutation"] | undefined | null
+	mutation?: ModelTypes["Mutation"] | undefined | null,
+	subscription?: ModelTypes["Subscription"] | undefined | null
 }
     }
 
@@ -23393,6 +23677,29 @@ export type GraphQLTypes = {
 	/** Голос (за/против/воздержался) */
 	vote: string
 };
+	["ApiKeyCreated"]: {
+	__typename: "ApiKeyCreated",
+	allowed_operations: Array<string>,
+	created_at: GraphQLTypes["DateTime"],
+	expires_at?: GraphQLTypes["DateTime"] | undefined | null,
+	id: string,
+	/** Полный ключ — показывается ТОЛЬКО при создании */
+	key: string,
+	key_prefix: string,
+	name: string
+};
+	["ApiKeyInfo"]: {
+	__typename: "ApiKeyInfo",
+	allowed_operations: Array<string>,
+	created_at: GraphQLTypes["DateTime"],
+	created_by: string,
+	expires_at?: GraphQLTypes["DateTime"] | undefined | null,
+	id: string,
+	is_active: boolean,
+	key_prefix: string,
+	last_used_at?: GraphQLTypes["DateTime"] | undefined | null,
+	name: string
+};
 	/** Одобрение документа председателем совета */
 ["Approval"]: {
 	__typename: "Approval",
@@ -23633,6 +23940,13 @@ export type GraphQLTypes = {
 	threshold: number,
 	/** Вес ожидания */
 	waits: Array<GraphQLTypes["WaitWeight"]>
+};
+	["AvailableReport"]: {
+	__typename: "AvailableReport",
+	deadline: string,
+	name: string,
+	period: string,
+	type: GraphQLTypes["ReportType"]
 };
 	["BankAccount"]: {
 	__typename: "BankAccount",
@@ -25725,6 +26039,11 @@ export type GraphQLTypes = {
 	/** Имя аккаунта секретаря */
 	secretary: string
 };
+	["CreateApiKeyInput"]: {
+		allowedOperations?: Array<string> | undefined | null,
+	expiresInDays?: number | undefined | null,
+	name: string
+};
 	["CreateBranchInput"]: {
 		/** Документ, на основании которого действует Уполномоченный (решение совета №СС-.. от ..) */
 	based_on: string,
@@ -26047,6 +26366,15 @@ export type GraphQLTypes = {
 	property_hash: string,
 	/** Имя пользователя */
 	username: string
+};
+	["CreateShareLinkInput"]: {
+		allowedActions: Array<string>,
+	expiresInDays?: number | undefined | null,
+	linkName?: string | undefined | null,
+	pageName: string,
+	pagePath: string,
+	targetType: GraphQLTypes["ShareTargetType"],
+	targetUsername?: string | undefined | null
 };
 	["CreateSovietIndividualDataInput"]: {
 		/** Дата рождения */
@@ -26784,6 +27112,11 @@ export type GraphQLTypes = {
 	/** Имя пользователя */
 	username: string
 };
+	["GenerateReportInput"]: {
+		period?: number | undefined | null,
+	reportType: GraphQLTypes["ReportType"],
+	year: number
+};
 	["GeneratedDocument"]: {
 	__typename: "GeneratedDocument",
 	/** Бинарное содержимое документа (base64) */
@@ -26817,6 +27150,14 @@ export type GraphQLTypes = {
 	order: number,
 	/** Название документа */
 	title: string
+};
+	["GeneratedReport"]: {
+	__typename: "GeneratedReport",
+	errors: Array<string>,
+	fileName: string,
+	isValid: boolean,
+	reportType: GraphQLTypes["ReportType"],
+	xml: string
 };
 	["GenerationContractGenerateDocumentInput"]: {
 		/** Номер блока, на котором был создан документ */
@@ -27710,6 +28051,8 @@ export type GraphQLTypes = {
 	confirmSupplyOnRequest: GraphQLTypes["Transaction"],
 	/** Сгенерировать документ предложения повестки очередного общего собрания пайщиков */
 	createAnnualGeneralMeet: GraphQLTypes["MeetAggregate"],
+	/** Создать API ключ кооператива. Полный ключ показывается только при создании. */
+	createApiKey: GraphQLTypes["ApiKeyCreated"],
 	/** Создать кооперативный участок */
 	createBranch: GraphQLTypes["Branch"],
 	/** Создать заявку на поставку имущества по предложению Поставщика */
@@ -27722,6 +28065,8 @@ export type GraphQLTypes = {
 	createParentOffer: GraphQLTypes["Transaction"],
 	/** Создать повестку дня и проект решения, и сохранить в хранилище для дальнейшей генерации документа и его публикации */
 	createProjectOfFreeDecision: GraphQLTypes["CreatedProjectFreeDecision"],
+	/** Создать ссылку доступа к странице */
+	createShareLink: GraphQLTypes["ShareLink"],
 	/** Создать веб-пуш подписку для пользователя */
 	createWebPushSubscription: GraphQLTypes["CreateSubscriptionResponse"],
 	/** Создать заявку на вывод средств */
@@ -27774,6 +28119,8 @@ export type GraphQLTypes = {
 	generateProjectOfFreeDecision: GraphQLTypes["GeneratedDocument"],
 	/** Генерирует пакет документов для регистрации пайщика. Возвращает список документов с метаданными для отображения на фронтенде. */
 	generateRegistrationDocuments: GraphQLTypes["GenerateRegistrationDocumentsOutput"],
+	/** Генерация отчёта для ФНС/ФСС */
+	generateReport: GraphQLTypes["GeneratedReport"],
 	/** Сгенерировать документ акта возврата имущества. */
 	generateReturnByAssetAct: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать документ решения о возврате имущества. */
@@ -27828,6 +28175,10 @@ export type GraphQLTypes = {
 	resetKey: boolean,
 	/** Перезапуск общего собрания пайщиков */
 	restartAnnualGeneralMeet: GraphQLTypes["MeetAggregate"],
+	/** Отозвать API ключ */
+	revokeApiKey: boolean,
+	/** Отозвать ссылку доступа */
+	revokeShareLink: boolean,
 	/** Выбрать кооперативный участок */
 	selectBranch: boolean,
 	/** Отправить соглашение */
@@ -28937,6 +29288,10 @@ export type GraphQLTypes = {
 	getActions: GraphQLTypes["PaginatedActionsPaginationResult"],
 	/** Получить список вопросов совета кооператива для голосования */
 	getAgenda: Array<GraphQLTypes["AgendaWithDocuments"]>,
+	/** Получить список API ключей кооператива */
+	getApiKeys: Array<GraphQLTypes["ApiKeyInfo"]>,
+	/** Получить список доступных типов отчётов */
+	getAvailableReports: Array<GraphQLTypes["AvailableReport"]>,
 	/** Получить список кооперативных участков */
 	getBranches: Array<GraphQLTypes["Branch"]>,
 	/** Получить логи событий по задаче */
@@ -28970,6 +29325,8 @@ export type GraphQLTypes = {
 	getMeet: GraphQLTypes["MeetAggregate"],
 	/** Получить список всех собраний кооператива */
 	getMeets: Array<GraphQLTypes["MeetAggregate"]>,
+	/** Получить созданные мной ссылки доступа */
+	getMyShareLinks: Array<GraphQLTypes["ShareLink"]>,
 	/** Получить список методов оплаты */
 	getPaymentMethods: GraphQLTypes["PaymentMethodPaginationResult"],
 	/** Получить список платежей с возможностью фильтрации по типу, статусу и направлению. */
@@ -28984,6 +29341,8 @@ export type GraphQLTypes = {
 	getProviderSubscriptions: Array<GraphQLTypes["ProviderSubscription"]>,
 	/** Получить конфигурацию программ регистрации для кооператива */
 	getRegistrationConfig: GraphQLTypes["RegistrationConfig"],
+	/** Получить страницы, к которым мне предоставлен доступ */
+	getSharedWithMe: Array<GraphQLTypes["ShareLink"]>,
 	/** Получить сводную публичную информацию о системе */
 	getSystemInfo: GraphQLTypes["SystemInfo"],
 	/** Получить веб-пуш подписки пользователя */
@@ -29155,6 +29514,7 @@ export type GraphQLTypes = {
 	/** Название программы для отображения */
 	title: string
 };
+	["ReportType"]: ReportType;
 	["RepresentedBy"]: {
 	__typename: "RepresentedBy",
 	/** На основании чего действует */
@@ -29738,6 +30098,21 @@ export type GraphQLTypes = {
 	/** Дата последнего обновления */
 	updated_at: GraphQLTypes["DateTime"]
 };
+	["ShareLink"]: {
+	__typename: "ShareLink",
+	allowed_actions: Array<string>,
+	created_at: GraphQLTypes["DateTime"],
+	expires_at?: GraphQLTypes["DateTime"] | undefined | null,
+	id: string,
+	is_active: boolean,
+	link_name?: string | undefined | null,
+	page_name: string,
+	page_path: string,
+	target_type: GraphQLTypes["ShareTargetType"],
+	target_username?: string | undefined | null,
+	token: string
+};
+	["ShareTargetType"]: ShareTargetType;
 	["SignActAsChairmanInput"]: {
 		/** Акт о вкладе результатов */
 	act: GraphQLTypes["SignedDigitalDocumentInput"],
@@ -29899,6 +30274,17 @@ export type GraphQLTypes = {
 	project_hash: string,
 	/** Распределение голосов */
 	votes: Array<GraphQLTypes["VoteDistributionInput"]>
+};
+	["Subscription"]: {
+	__typename: "Subscription",
+	/** Подписка на создание коммитов */
+	capitalCommitCreated: GraphQLTypes["CapitalCommit"],
+	/** Подписка на обновления коммитов */
+	capitalCommitUpdated: GraphQLTypes["CapitalCommit"],
+	/** Подписка на создание задач */
+	capitalIssueCreated: GraphQLTypes["CapitalIssue"],
+	/** Подписка на обновления задач */
+	capitalIssueUpdated: GraphQLTypes["CapitalIssue"]
 };
 	["SubscriptionStatsDto"]: {
 	__typename: "SubscriptionStatsDto",
@@ -30653,6 +31039,16 @@ export enum ProjectStatus {
 	UNDEFINED = "UNDEFINED",
 	VOTING = "VOTING"
 }
+export enum ReportType {
+	BUHOTCH = "BUHOTCH",
+	DUSN = "DUSN",
+	FSS4 = "FSS4",
+	NDFL6 = "NDFL6",
+	PSV = "PSV",
+	RSV = "RSV",
+	UUSN = "UUSN",
+	UV_VZNOSY = "UV_VZNOSY"
+}
 /** Статус результата в системе CAPITAL */
 export enum ResultStatus {
 	ACT1 = "ACT1",
@@ -30676,6 +31072,10 @@ export enum SegmentStatus {
 	SKIPPED = "SKIPPED",
 	STATEMENT = "STATEMENT",
 	UNDEFINED = "UNDEFINED"
+}
+export enum ShareTargetType {
+	GUEST = "GUEST",
+	MEMBER = "MEMBER"
 }
 /** Статус истории в системе CAPITAL */
 export enum StoryStatus {
@@ -30791,6 +31191,7 @@ type ZEUS_VARIABLES = {
 	["ConvertToAxonStatementSignedMetaDocumentInput"]: ValueTypes["ConvertToAxonStatementSignedMetaDocumentInput"];
 	["Country"]: ValueTypes["Country"];
 	["CreateAnnualGeneralMeetInput"]: ValueTypes["CreateAnnualGeneralMeetInput"];
+	["CreateApiKeyInput"]: ValueTypes["CreateApiKeyInput"];
 	["CreateBranchInput"]: ValueTypes["CreateBranchInput"];
 	["CreateChildOrderInput"]: ValueTypes["CreateChildOrderInput"];
 	["CreateCommitInput"]: ValueTypes["CreateCommitInput"];
@@ -30812,6 +31213,7 @@ type ZEUS_VARIABLES = {
 	["CreateProjectInput"]: ValueTypes["CreateProjectInput"];
 	["CreateProjectInvestInput"]: ValueTypes["CreateProjectInvestInput"];
 	["CreateProjectPropertyInput"]: ValueTypes["CreateProjectPropertyInput"];
+	["CreateShareLinkInput"]: ValueTypes["CreateShareLinkInput"];
 	["CreateSovietIndividualDataInput"]: ValueTypes["CreateSovietIndividualDataInput"];
 	["CreateStoryInput"]: ValueTypes["CreateStoryInput"];
 	["CreateSubscriptionInput"]: ValueTypes["CreateSubscriptionInput"];
@@ -30851,6 +31253,7 @@ type ZEUS_VARIABLES = {
 	["GenerateDocumentInput"]: ValueTypes["GenerateDocumentInput"];
 	["GenerateDocumentOptionsInput"]: ValueTypes["GenerateDocumentOptionsInput"];
 	["GenerateRegistrationDocumentsInput"]: ValueTypes["GenerateRegistrationDocumentsInput"];
+	["GenerateReportInput"]: ValueTypes["GenerateReportInput"];
 	["GenerationContractGenerateDocumentInput"]: ValueTypes["GenerationContractGenerateDocumentInput"];
 	["GenerationContractSignedDocumentInput"]: ValueTypes["GenerationContractSignedDocumentInput"];
 	["GenerationContractSignedMetaDocumentInput"]: ValueTypes["GenerationContractSignedMetaDocumentInput"];
@@ -30946,6 +31349,7 @@ type ZEUS_VARIABLES = {
 	["RegisterAccountInput"]: ValueTypes["RegisterAccountInput"];
 	["RegisterContributorInput"]: ValueTypes["RegisterContributorInput"];
 	["RegisterParticipantInput"]: ValueTypes["RegisterParticipantInput"];
+	["ReportType"]: ValueTypes["ReportType"];
 	["RepresentedByInput"]: ValueTypes["RepresentedByInput"];
 	["ResetKeyInput"]: ValueTypes["ResetKeyInput"];
 	["RestartAnnualGeneralMeetInput"]: ValueTypes["RestartAnnualGeneralMeetInput"];
@@ -30980,6 +31384,7 @@ type ZEUS_VARIABLES = {
 	["SetPlanInput"]: ValueTypes["SetPlanInput"];
 	["SetVarsInput"]: ValueTypes["SetVarsInput"];
 	["SetWifInput"]: ValueTypes["SetWifInput"];
+	["ShareTargetType"]: ValueTypes["ShareTargetType"];
 	["SignActAsChairmanInput"]: ValueTypes["SignActAsChairmanInput"];
 	["SignActAsContributorInput"]: ValueTypes["SignActAsContributorInput"];
 	["SignByPresiderOnAnnualGeneralMeetInput"]: ValueTypes["SignByPresiderOnAnnualGeneralMeetInput"];

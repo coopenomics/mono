@@ -257,6 +257,9 @@ export const AllTypesProps: Record<string,any> = {
 		open_at:"DateTime",
 		proposal:"AnnualGeneralMeetingAgendaSignedDocumentInput"
 	},
+	CreateApiKeyInput:{
+
+	},
 	CreateBranchInput:{
 
 	},
@@ -328,6 +331,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	CreateProjectPropertyInput:{
 
+	},
+	CreateShareLinkInput:{
+		targetType:"ShareTargetType"
 	},
 	CreateSovietIndividualDataInput:{
 		passport:"PassportInput"
@@ -436,6 +442,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	GenerateRegistrationDocumentsInput:{
 		account_type:"AccountType"
+	},
+	GenerateReportInput:{
+		reportType:"ReportType"
 	},
 	GenerationContractGenerateDocumentInput:{
 
@@ -874,6 +883,9 @@ export const AllTypesProps: Record<string,any> = {
 		createAnnualGeneralMeet:{
 			data:"CreateAnnualGeneralMeetInput"
 		},
+		createApiKey:{
+			data:"CreateApiKeyInput"
+		},
 		createBranch:{
 			data:"CreateBranchInput"
 		},
@@ -891,6 +903,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		createProjectOfFreeDecision:{
 			data:"CreateProjectFreeDecisionInput"
+		},
+		createShareLink:{
+			data:"CreateShareLinkInput"
 		},
 		createWebPushSubscription:{
 			data:"CreateSubscriptionInput"
@@ -983,6 +998,9 @@ export const AllTypesProps: Record<string,any> = {
 		generateRegistrationDocuments:{
 			data:"GenerateRegistrationDocumentsInput"
 		},
+		generateReport:{
+			data:"GenerateReportInput"
+		},
 		generateReturnByAssetAct:{
 			data:"ReturnByAssetActGenerateDocumentInput",
 			options:"GenerateDocumentOptionsInput"
@@ -1073,6 +1091,12 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		restartAnnualGeneralMeet:{
 			data:"RestartAnnualGeneralMeetInput"
+		},
+		revokeApiKey:{
+
+		},
+		revokeShareLink:{
+
 		},
 		selectBranch:{
 			data:"SelectBranchInput"
@@ -1487,6 +1511,7 @@ export const AllTypesProps: Record<string,any> = {
 		user_agreement:"SignedDigitalDocumentInput",
 		wallet_agreement:"SignedDigitalDocumentInput"
 	},
+	ReportType: "enum" as const,
 	RepresentedByInput:{
 
 	},
@@ -1596,6 +1621,7 @@ export const AllTypesProps: Record<string,any> = {
 	SetWifInput:{
 
 	},
+	ShareTargetType: "enum" as const,
 	SignActAsChairmanInput:{
 		act:"SignedDigitalDocumentInput"
 	},
@@ -1639,6 +1665,20 @@ export const AllTypesProps: Record<string,any> = {
 	StoryStatus: "enum" as const,
 	SubmitVoteInput:{
 		votes:"VoteDistributionInput"
+	},
+	Subscription:{
+		capitalCommitCreated:{
+
+		},
+		capitalCommitUpdated:{
+
+		},
+		capitalIssueCreated:{
+
+		},
+		capitalIssueUpdated:{
+
+		}
 	},
 	SupplyOnRequestInput:{
 		document:"AssetContributionActSignedDocumentInput"
@@ -1803,6 +1843,26 @@ export const ReturnTypes: Record<string,any> = {
 		protocol_day_month_year:"String",
 		protocol_number:"String"
 	},
+	ApiKeyCreated:{
+		allowed_operations:"String",
+		created_at:"DateTime",
+		expires_at:"DateTime",
+		id:"String",
+		key:"String",
+		key_prefix:"String",
+		name:"String"
+	},
+	ApiKeyInfo:{
+		allowed_operations:"String",
+		created_at:"DateTime",
+		created_by:"String",
+		expires_at:"DateTime",
+		id:"String",
+		is_active:"Boolean",
+		key_prefix:"String",
+		last_used_at:"DateTime",
+		name:"String"
+	},
 	Approval:{
 		_created_at:"DateTime",
 		_id:"String",
@@ -1831,6 +1891,12 @@ export const ReturnTypes: Record<string,any> = {
 		keys:"KeyWeight",
 		threshold:"Int",
 		waits:"WaitWeight"
+	},
+	AvailableReport:{
+		deadline:"String",
+		name:"String",
+		period:"String",
+		type:"ReportType"
 	},
 	BankAccount:{
 		account_number:"String",
@@ -2909,6 +2975,13 @@ export const ReturnTypes: Record<string,any> = {
 		order:"Int",
 		title:"String"
 	},
+	GeneratedReport:{
+		errors:"String",
+		fileName:"String",
+		isValid:"Boolean",
+		reportType:"ReportType",
+		xml:"String"
+	},
 	Individual:{
 		birthdate:"String",
 		email:"String",
@@ -3148,12 +3221,14 @@ export const ReturnTypes: Record<string,any> = {
 		confirmReceiveOnRequest:"Transaction",
 		confirmSupplyOnRequest:"Transaction",
 		createAnnualGeneralMeet:"MeetAggregate",
+		createApiKey:"ApiKeyCreated",
 		createBranch:"Branch",
 		createChildOrder:"Transaction",
 		createDepositPayment:"GatewayPayment",
 		createInitialPayment:"GatewayPayment",
 		createParentOffer:"Transaction",
 		createProjectOfFreeDecision:"CreatedProjectFreeDecision",
+		createShareLink:"ShareLink",
 		createWebPushSubscription:"CreateSubscriptionResponse",
 		createWithdraw:"CreateWithdrawResponse",
 		deactivateWebPushSubscriptionById:"Boolean",
@@ -3180,6 +3255,7 @@ export const ReturnTypes: Record<string,any> = {
 		generatePrivacyAgreement:"GeneratedDocument",
 		generateProjectOfFreeDecision:"GeneratedDocument",
 		generateRegistrationDocuments:"GenerateRegistrationDocumentsOutput",
+		generateReport:"GeneratedReport",
 		generateReturnByAssetAct:"GeneratedDocument",
 		generateReturnByAssetDecision:"GeneratedDocument",
 		generateReturnByAssetStatement:"GeneratedDocument",
@@ -3207,6 +3283,8 @@ export const ReturnTypes: Record<string,any> = {
 		registerParticipant:"Account",
 		resetKey:"Boolean",
 		restartAnnualGeneralMeet:"MeetAggregate",
+		revokeApiKey:"Boolean",
+		revokeShareLink:"Boolean",
 		selectBranch:"Boolean",
 		sendAgreement:"Transaction",
 		setPaymentStatus:"GatewayPayment",
@@ -3648,6 +3726,8 @@ export const ReturnTypes: Record<string,any> = {
 		getAccounts:"AccountsPaginationResult",
 		getActions:"PaginatedActionsPaginationResult",
 		getAgenda:"AgendaWithDocuments",
+		getApiKeys:"ApiKeyInfo",
+		getAvailableReports:"AvailableReport",
 		getBranches:"Branch",
 		getCapitalIssueLogs:"PaginatedCapitalLogsPaginationResult",
 		getCapitalOnboardingState:"CapitalOnboardingState",
@@ -3665,6 +3745,7 @@ export const ReturnTypes: Record<string,any> = {
 		getLedgerHistory:"LedgerHistoryResponse",
 		getMeet:"MeetAggregate",
 		getMeets:"MeetAggregate",
+		getMyShareLinks:"ShareLink",
 		getPaymentMethods:"PaymentMethodPaginationResult",
 		getPayments:"PaginatedGatewayPaymentsPaginationResult",
 		getProgramWallet:"ProgramWallet",
@@ -3672,6 +3753,7 @@ export const ReturnTypes: Record<string,any> = {
 		getProviderSubscriptionById:"ProviderSubscription",
 		getProviderSubscriptions:"ProviderSubscription",
 		getRegistrationConfig:"RegistrationConfig",
+		getSharedWithMe:"ShareLink",
 		getSystemInfo:"SystemInfo",
 		getUserWebPushSubscriptions:"WebPushSubscriptionDto",
 		getWebPushSubscriptionStats:"SubscriptionStatsDto",
@@ -3764,6 +3846,19 @@ export const ReturnTypes: Record<string,any> = {
 		provider_name:"String",
 		updated_at:"DateTime"
 	},
+	ShareLink:{
+		allowed_actions:"String",
+		created_at:"DateTime",
+		expires_at:"DateTime",
+		id:"String",
+		is_active:"Boolean",
+		link_name:"String",
+		page_name:"String",
+		page_path:"String",
+		target_type:"ShareTargetType",
+		target_username:"String",
+		token:"String"
+	},
 	SignatureInfo:{
 		id:"Float",
 		is_valid:"Boolean",
@@ -3798,6 +3893,12 @@ export const ReturnTypes: Record<string,any> = {
 	StatementDetailAggregate:{
 		action:"ExtendedBlockchainAction",
 		documentAggregate:"DocumentAggregate"
+	},
+	Subscription:{
+		capitalCommitCreated:"CapitalCommit",
+		capitalCommitUpdated:"CapitalCommit",
+		capitalIssueCreated:"CapitalIssue",
+		capitalIssueUpdated:"CapitalIssue"
 	},
 	SubscriptionStatsDto:{
 		active:"Int",
@@ -3921,5 +4022,6 @@ export const ReturnTypes: Record<string,any> = {
 
 export const Ops = {
 query: "Query" as const,
-	mutation: "Mutation" as const
+	mutation: "Mutation" as const,
+	subscription: "Subscription" as const
 }
