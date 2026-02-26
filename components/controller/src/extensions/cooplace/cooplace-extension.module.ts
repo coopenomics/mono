@@ -1,34 +1,30 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ProductCardResolver } from './application/resolvers/product-card.resolver';
-import { CategoryResolver } from './application/resolvers/category.resolver';
-import { ProductCardService } from './domain/services/product-card.service';
-import { PRODUCT_CARD_REPOSITORY } from './domain/repositories/product-card.repository';
-import { CATEGORY_REPOSITORY } from './domain/repositories/category.repository';
-import { SUPPLY_ORDER_REPOSITORY } from './domain/repositories/supply-order.repository';
-import { ProductCardTypeormEntity } from './infrastructure/entities/product-card.typeorm-entity';
-import { CategoryTypeormEntity } from './infrastructure/entities/category.typeorm-entity';
-import { SupplyOrderTypeormEntity } from './infrastructure/entities/supply-order.typeorm-entity';
-import { ProductCardTypeormRepository } from './infrastructure/repositories/product-card.typeorm-repository';
-import { CategoryTypeormRepository } from './infrastructure/repositories/category.typeorm-repository';
-import { SupplyOrderTypeormRepository } from './infrastructure/repositories/supply-order.typeorm-repository';
 
+import { MarketplaceSettingsResolver } from './application/resolvers/marketplace-settings.resolver';
+import { MARKETPLACE_SETTINGS_REPOSITORY } from './domain/repositories/marketplace-settings.repository';
+import { MarketplaceSettingsTypeormEntity } from './infrastructure/entities/marketplace-settings.typeorm-entity';
+import { MarketplaceSettingsTypeormRepository } from './infrastructure/adapters/marketplace-settings.typeorm-repository';
+
+/**
+ * CooplaceExtensionModule — бэкенд маркетплейса.
+ *
+ * Содержит:
+ * - Настройки маркетплейса (policies, whitelist, categories)
+ * - Карточки товаров (из marketplace extension) — TODO: подключить resolvers после адаптации импортов
+ * - Категории и атрибуты
+ * - Связь с блокчейном при match
+ */
 @Module({
   imports: [
     TypeOrmModule.forFeature([
-      ProductCardTypeormEntity,
-      CategoryTypeormEntity,
-      SupplyOrderTypeormEntity,
+      MarketplaceSettingsTypeormEntity,
     ]),
   ],
   providers: [
-    ProductCardResolver,
-    CategoryResolver,
-    ProductCardService,
-    { provide: PRODUCT_CARD_REPOSITORY, useClass: ProductCardTypeormRepository },
-    { provide: CATEGORY_REPOSITORY, useClass: CategoryTypeormRepository },
-    { provide: SUPPLY_ORDER_REPOSITORY, useClass: SupplyOrderTypeormRepository },
+    MarketplaceSettingsResolver,
+    { provide: MARKETPLACE_SETTINGS_REPOSITORY, useClass: MarketplaceSettingsTypeormRepository },
   ],
-  exports: [ProductCardService],
+  exports: [],
 })
 export class CooplaceExtensionModule {}
