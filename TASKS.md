@@ -82,6 +82,11 @@
 - [x] delivery_type: internal (между КУ) / external (СДЭК и т.д.) в request struct
 - [x] contribution_type: share (паевой) / member (членский) в request struct
 - [x] Убраны ВСЕ any из controller marketplace (service, interactor)
+- [x] Импортировано 87 файлов marketplace extension из ветки marketplace
+- [x] Domain: 11 entities, 7 repositories, 5 services (БД-first архитектура)
+- [x] Application: 30+ DTOs, 4 resolvers (категории, атрибуты, заявки)
+- [x] Infrastructure: TypeORM entities, mappers, adapters
+- [x] Архитектурный принцип: заявки в БД (draft→published), блокчейн при match
 - [ ] Накопительный характер заявок (min_units threshold) — TODO
 
 #### 15.2 Генерация типов
