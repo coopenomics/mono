@@ -113,6 +113,17 @@
 - [x] ShipmentsPage: таблица перевозок, timeline 4 этапов, создание
 - [x] DisputePage: подача претензии, список, timeline спора, решение совета
 
+#### 15.X Разделение cooplace на бэкенд и фронтенд расширения
+- [x] CooplaceExtensionModule — бэкенд (карточки, категории, blockchain actions)
+- [x] ProductCardResolver: CRUD карточек (draft→published→archived)
+- [x] CategoryResolver: CRUD дерева категорий (chairman)
+- [x] Domain entities: ProductCard (тип, статус, delivery_type, contribution_type), Category, SupplyOrder
+- [x] Repositories: interfaces для карточек, категорий, заявок
+- [x] GraphQL: 3 queries + 6 mutations для карточек/категорий
+- [x] marketplace (desktop) — чистый фронтенд, использует API cooplace
+- [x] market-admin (desktop) — уже существует (extensions/market-admin)
+- [x] Controller стартует, 22+9 = 31 GraphQL endpoints
+
 #### 15.5 Тесты
 - [x] Unit-тесты controller: 8 тестов marketplace actions + statuses (90/90 total)
 - [x] cooptypes собран с новыми actions
