@@ -17,7 +17,7 @@ export class ConfirmSupplyOnRequestInputDTO {
 
   @Field(() => String, { description: 'Идентификатор обмена' })
   @IsNumberString()
-  exchange_id!: string;
+  request_hash!: string;
 
   @Field(() => AssetContributionActSignedDocumentInputDTO, {
     description: 'Подписанный акт приёма-передачи имущества от Поставщика в Кооператив',

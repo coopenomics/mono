@@ -12,8 +12,8 @@ export class DeclineRequestInputDTO {
   username!: string;
 
   @Field(() => Number, { description: 'Идентификатор обмена' })
-  @IsNumber()
-  exchange_id!: number;
+  @IsString()
+  request_hash!: string;
 
   @Field(() => String, { description: 'Причина отказа' })
   @IsString()

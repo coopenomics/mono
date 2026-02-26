@@ -13,5 +13,5 @@ export class CompleteRequestInputDTO {
 
   @Field(() => String, { description: 'Идентификатор обмена' })
   @IsNumberString()
-  exchange_id!: string;
+  request_hash!: string;
 }

@@ -18,7 +18,7 @@ import type { AcceptStockInputDTO } from '../dto/accept-stock-input.dto';
 import type { DestroyRequestInputDTO } from '../dto/destroy-request-input.dto';
 import type { ReofferRequestInputDTO } from '../dto/reoffer-request-input.dto';
 
-function serializeMeta(doc: { meta: any; [key: string]: any }): Interfaces.Marketplace.IDocument2 {
+function serializeMeta(doc: Interfaces.Marketplace.IDocument2): Interfaces.Marketplace.IDocument2 {
   return { ...doc, meta: JSON.stringify(doc.meta) } as Interfaces.Marketplace.IDocument2;
 }
 
@@ -120,7 +120,7 @@ export class CooplaceInteractor {
     });
   }
 
-  public async createParentOffer(data: any): Promise<TransactResult> {
+  public async createParentOffer(data: Interfaces.Marketplace.IOrderoffer): Promise<TransactResult> {
     return await this.cooplaceBlockchainPort.createParentOffer(data);
   }
 
@@ -157,13 +157,12 @@ export class CooplaceInteractor {
   // === New actions ===
 
   public async reqReturn(data: ReqReturnInputDTO): Promise<TransactResult> {
-    const doc: Record<string, any> = { ...(data.return_statement as any) };
-    doc.meta = JSON.stringify(doc.meta);
+    const doc = { ...data.return_statement, meta: JSON.stringify(data.return_statement.meta) } as unknown as Interfaces.Marketplace.IDocument2;
     return await this.cooplaceBlockchainPort.reqReturn({
       coopname: this.config.coopname,
       username: data.username,
       request_hash: data.request_hash,
-      return_statement: doc as Interfaces.Marketplace.IDocument2,
+      return_statement: doc,
     });
   }
 
@@ -182,26 +181,23 @@ export class CooplaceInteractor {
   }
 
   public async acceptStock(data: AcceptStockInputDTO): Promise<TransactResult> {
-    const cin: Record<string, any> = { ...(data.convert_in as any) };
-    cin.meta = JSON.stringify(cin.meta);
-    const rs: Record<string, any> = { ...(data.return_statement as any) };
-    rs.meta = JSON.stringify(rs.meta);
+    const cin = { ...data.convert_in, meta: JSON.stringify(data.convert_in.meta) } as unknown as Interfaces.Marketplace.IDocument2;
+    const rs = { ...data.return_statement, meta: JSON.stringify(data.return_statement.meta) } as unknown as Interfaces.Marketplace.IDocument2;
     return await this.cooplaceBlockchainPort.acceptStock({
       coopname: this.config.coopname,
       username: data.username,
       request_hash: data.request_hash,
-      convert_in: cin as Interfaces.Marketplace.IDocument2,
-      return_statement: rs as Interfaces.Marketplace.IDocument2,
+      convert_in: cin,
+      return_statement: rs,
     });
   }
 
   public async destroyRequest(data: DestroyRequestInputDTO): Promise<TransactResult> {
-    const act: Record<string, any> = { ...(data.destruction_act as any) };
-    act.meta = JSON.stringify(act.meta);
+    const act = { ...data.destruction_act, meta: JSON.stringify(data.destruction_act.meta) } as unknown as Interfaces.Marketplace.IDocument2;
     return await this.cooplaceBlockchainPort.destroy({
       coopname: this.config.coopname,
       request_hash: data.request_hash,
-      destruction_act: act as Interfaces.Marketplace.IDocument2,
+      destruction_act: act,
     });
   }
 

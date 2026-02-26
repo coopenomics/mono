@@ -1,6 +1,7 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { IsString, IsNumber, ValidateNested } from 'class-validator';
 import { GraphQLJSONObject } from 'graphql-type-json';
+import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
 
 @InputType('DisputeOnRequestInput')
 export class DisputeOnRequestInputDTO {
@@ -13,10 +14,10 @@ export class DisputeOnRequestInputDTO {
   username!: string;
 
   @Field(() => Number, { description: 'Идентификатор обмена' })
-  @IsNumber()
-  exchange_id!: number;
+  @IsString()
+  request_hash!: string;
 
   @Field(() => GraphQLJSONObject, { description: 'Документ с аргументами спора' })
   @ValidateNested()
-  document!: any;
+  document!: SignedDigitalDocumentInputDTO;
 }

@@ -1,5 +1,5 @@
 import type { Interfaces } from 'cooptypes';
 
 export type CreateChildOrderInputDomainInterface = Omit<Interfaces.Marketplace.ICreateorder, 'convert_in'> & {
-  convert_in: { meta: any; [key: string]: any };
+  convert_in: Interfaces.Marketplace.IDocument2;
 };

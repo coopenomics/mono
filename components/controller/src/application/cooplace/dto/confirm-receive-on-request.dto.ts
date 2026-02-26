@@ -16,8 +16,8 @@ export class ConfirmReceiveOnRequestInputDTO {
   username!: string;
 
   @Field(() => String, { description: 'Идентификатор обмена' })
-  @IsNumber()
-  exchange_id!: number;
+  @IsString()
+  request_hash!: string;
 
   @Field(() => ReturnByAssetActSignedDocumentInputDTO, {
     description:

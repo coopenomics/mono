@@ -3,16 +3,22 @@
 # ------------------------------------------------------
 
 input AcceptChildOrderInput {
+  """Заявление на конвертацию в кошелёк"""
+  convert_out: SignedDigitalDocumentInput!
+
   """Имя аккаунта кооператива"""
   coopname: String!
 
-  """Подписанное заявление на имущественный паевый взнос"""
-  document: AssetContributionStatementSignedDocumentInput!
+  """Хэш заявки"""
+  request_hash: String!
 
-  """Идентификатор заявки"""
-  exchange_id: String!
+  """Заявление на возврат"""
+  return_document: SignedDigitalDocumentInput!
 
-  """Имя аккаунта пользователя"""
+  """КУ поставщика"""
+  supplier_braname: String!
+
+  """Имя аккаунта поставщика"""
   username: String!
 }
 
@@ -1091,64 +1097,6 @@ input AssetContributionStatementGenerateDocumentInput {
   version: String
 }
 
-input AssetContributionStatementSignedDocumentInput {
-  """Хэш содержимого документа"""
-  doc_hash: String!
-
-  """Общий хэш (doc_hash + meta_hash)"""
-  hash: String!
-
-  """Метаинформация для создания проекта свободного решения"""
-  meta: AssetContributionStatementSignedMetaDocumentInput!
-
-  """Хэш мета-данных"""
-  meta_hash: String!
-
-  """Вектор подписей"""
-  signatures: [SignatureInfoInput!]!
-
-  """Версия стандарта документа"""
-  version: String!
-}
-
-input AssetContributionStatementSignedMetaDocumentInput {
-  """Номер блока, на котором был создан документ"""
-  block_num: Int!
-
-  """Название кооператива, связанное с документом"""
-  coopname: String!
-
-  """Дата и время создания документа"""
-  created_at: String!
-
-  """Имя генератора, использованного для создания документа"""
-  generator: String!
-
-  """Язык документа"""
-  lang: String!
-
-  """Ссылки, связанные с документом"""
-  links: [String!]!
-
-  """ID документа в реестре"""
-  registry_id: Int!
-
-  """Запрос на внесение имущественного паевого взноса"""
-  request: CommonRequestInput!
-
-  """Часовой пояс, в котором был создан документ"""
-  timezone: String!
-
-  """Название документа"""
-  title: String!
-
-  """Имя пользователя, создавшего документ"""
-  username: String!
-
-  """Версия генератора, использованного для создания документа"""
-  version: String!
-}
-
 type AuthSequence {
   account: String!
   sequence: String!
@@ -1616,8 +1564,8 @@ input CancelRequestInput {
   """Имя аккаунта кооператива"""
   coopname: String!
 
-  """Идентификатор заявки"""
-  exchange_id: String!
+  """Хэш заявки"""
+  request_hash: String!
 
   """Имя аккаунта пользователя"""
   username: String!
@@ -3731,7 +3679,7 @@ input CompleteRequestInput {
   coopname: String!
 
   """Идентификатор обмена"""
-  exchange_id: String!
+  request_hash: String!
 
   """Имя аккаунта пользователя"""
   username: String!
@@ -3854,7 +3802,7 @@ input ConfirmReceiveOnRequestInput {
   document: ReturnByAssetActSignedDocumentInput!
 
   """Идентификатор обмена"""
-  exchange_id: String!
+  request_hash: String!
 
   """Имя аккаунта пользователя"""
   username: String!
@@ -3871,7 +3819,7 @@ input ConfirmSupplyOnRequestInput {
   document: AssetContributionActSignedDocumentInput!
 
   """Идентификатор обмена"""
-  exchange_id: String!
+  request_hash: String!
 
   """Имя аккаунта пользователя"""
   username: String!
@@ -4914,11 +4862,11 @@ input DeclineRequestInput {
   """Имя аккаунта кооператива"""
   coopname: String!
 
-  """Идентификатор обмена"""
-  exchange_id: Float!
-
   """Причина отказа"""
   meta: String!
+
+  """Идентификатор обмена"""
+  request_hash: Float!
 
   """Имя аккаунта пользователя"""
   username: String!
@@ -4978,7 +4926,7 @@ input DeliverOnRequestInput {
   coopname: String!
 
   """Идентификатор обмена"""
-  exchange_id: Float!
+  request_hash: Float!
 
   """Имя аккаунта пользователя"""
   username: String!
@@ -5100,7 +5048,7 @@ input DisputeOnRequestInput {
   document: JSONObject!
 
   """Идентификатор обмена"""
-  exchange_id: Float!
+  request_hash: Float!
 
   """Имя аккаунта пользователя"""
   username: String!

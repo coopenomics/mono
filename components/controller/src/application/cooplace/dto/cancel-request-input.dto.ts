@@ -11,7 +11,7 @@ export class CancelRequestInputDTO {
   @IsString()
   username!: string;
 
-  @Field(() => String, { description: 'Идентификатор заявки' })
-  @IsNumber()
-  exchange_id!: number;
+  @Field(() => String, { description: 'Хэш заявки' })
+  @IsString()
+  request_hash!: string;
 }

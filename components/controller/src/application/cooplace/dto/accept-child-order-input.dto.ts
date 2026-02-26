@@ -1,6 +1,6 @@
 import { InputType, Field } from '@nestjs/graphql';
-import { AssetContributionStatementSignedDocumentInputDTO } from '../../document/documents-dto/asset-contribution-statement-document.dto';
-import { IsNumber, IsString } from 'class-validator';
+import { IsString } from 'class-validator';
+import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
 
 @InputType('AcceptChildOrderInput')
 export class AcceptChildOrderInputDTO {
@@ -8,16 +8,21 @@ export class AcceptChildOrderInputDTO {
   @IsString()
   coopname!: string;
 
-  @Field(() => String, { description: 'Имя аккаунта пользователя' })
+  @Field(() => String, { description: 'Имя аккаунта поставщика' })
   @IsString()
   username!: string;
 
-  @Field(() => String, { description: 'Идентификатор заявки' })
-  @IsNumber()
-  exchange_id!: number;
+  @Field(() => String, { description: 'Хэш заявки' })
+  @IsString()
+  request_hash!: string;
 
-  @Field(() => AssetContributionStatementSignedDocumentInputDTO, {
-    description: 'Подписанное заявление на имущественный паевый взнос',
-  })
-  document!: AssetContributionStatementSignedDocumentInputDTO;
+  @Field(() => String, { description: 'КУ поставщика' })
+  @IsString()
+  supplier_braname!: string;
+
+  @Field(() => SignedDigitalDocumentInputDTO, { description: 'Заявление на конвертацию в кошелёк' })
+  convert_out!: SignedDigitalDocumentInputDTO;
+
+  @Field(() => SignedDigitalDocumentInputDTO, { description: 'Заявление на возврат' })
+  return_document!: SignedDigitalDocumentInputDTO;
 }

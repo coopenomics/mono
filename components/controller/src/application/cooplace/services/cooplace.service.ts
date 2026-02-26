@@ -7,6 +7,7 @@ import type { ReturnByAssetActGenerateDocumentInputDTO } from '../../document/do
 import type { ReturnByAssetDecisionGenerateDocumentInputDTO } from '../../document/documents-dto/return-by-asset-decision-document.dto';
 import type { ReturnByAssetStatementGenerateDocumentInputDTO } from '../../document/documents-dto/return-by-asset-statement-document.dto';
 import { CooplaceInteractor } from '../interactors/cooplace.interactor';
+import type { Interfaces } from 'cooptypes';
 import type { ReqReturnInputDTO } from '../dto/req-return-input.dto';
 import type { CoopstockInputDTO } from '../dto/coopstock-input.dto';
 import type { AcceptStockInputDTO } from '../dto/accept-stock-input.dto';
@@ -85,52 +86,52 @@ export class CooplaceService {
   }
 
   public async acceptChildOrder(data: AcceptChildOrderInputDTO): Promise<TransactionDTO> {
-    const result = await this.cooplaceInteractor.acceptChildOrder(data as any);
+    const result = await this.cooplaceInteractor.acceptChildOrder(data as unknown as Parameters<typeof this.cooplaceInteractor.acceptChildOrder>[0]);
     return result;
   }
 
   public async cancelRequest(data: CancelRequestInputDTO): Promise<TransactionDTO> {
-    const result = await this.cooplaceInteractor.cancelRequest(data as any);
+    const result = await this.cooplaceInteractor.cancelRequest({ coopname: data.coopname, username: data.username, request_hash: data.request_hash } as Interfaces.Marketplace.ICancel);
     return result;
   }
 
   public async completeRequest(data: CompleteRequestInputDTO): Promise<TransactionDTO> {
-    const result = await this.cooplaceInteractor.completeRequest(data as any);
+    const result = await this.cooplaceInteractor.completeRequest({ coopname: data.coopname, username: data.username, request_hash: data.request_hash } as Interfaces.Marketplace.IComplete);
     return result;
   }
 
   public async confirmReceiveOnRequest(data: ConfirmReceiveOnRequestInputDTO): Promise<TransactionDTO> {
-    const result = await this.cooplaceInteractor.confirmReceiveOnRequest(data as any);
+    const result = await this.cooplaceInteractor.confirmReceiveOnRequest(data as unknown as Parameters<typeof this.cooplaceInteractor.confirmReceiveOnRequest>[0]);
     return result;
   }
 
   public async confirmSupplyOnRequest(data: ConfirmSupplyOnRequestInputDTO): Promise<TransactionDTO> {
-    const result = await this.cooplaceInteractor.confirmSupplyOnRequest(data as any);
+    const result = await this.cooplaceInteractor.confirmSupplyOnRequest(data as unknown as Parameters<typeof this.cooplaceInteractor.confirmSupplyOnRequest>[0]);
     return result;
   }
 
   public async createChildOrder(data: CreateChildOrderInputDTO): Promise<TransactionDTO> {
-    const result = await this.cooplaceInteractor.createChildOrder(data as any);
+    const result = await this.cooplaceInteractor.createChildOrder(data as unknown as Parameters<typeof this.cooplaceInteractor.createChildOrder>[0]);
     return result;
   }
 
   public async createParentOffer(data: CreateParentOfferInputDTO): Promise<TransactionDTO> {
-    const result = await this.cooplaceInteractor.createParentOffer(data as any);
+    const result = await this.cooplaceInteractor.createParentOffer(data as unknown as Interfaces.Marketplace.IOrderoffer);
     return result;
   }
 
   public async declineRequest(data: DeclineRequestInputDTO): Promise<TransactionDTO> {
-    const result = await this.cooplaceInteractor.declineRequest(data as any);
+    const result = await this.cooplaceInteractor.declineRequest({ coopname: data.coopname, username: data.username, request_hash: data.request_hash, meta: '' } as Interfaces.Marketplace.IDecline);
     return result;
   }
 
   public async deliverOnRequest(data: DeliverOnRequestInputDTO): Promise<TransactionDTO> {
-    const result = await this.cooplaceInteractor.deliverOnRequest(data as any);
+    const result = await this.cooplaceInteractor.deliverOnRequest({ coopname: data.coopname, username: data.username, request_hash: data.request_hash } as Interfaces.Marketplace.IDelivered);
     return result;
   }
 
   public async disputeOnRequest(data: DisputeOnRequestInputDTO): Promise<TransactionDTO> {
-    const result = await this.cooplaceInteractor.disputeOnRequest(data as any);
+    const result = await this.cooplaceInteractor.disputeOnRequest(data as unknown as Interfaces.Marketplace.IDispute);
     return result;
   }
 
@@ -141,12 +142,12 @@ export class CooplaceService {
   // publishRequest: deprecated — removed from blockchain contract
 
   public async receiveOnRequest(data: ReceiveOnRequestInputDTO): Promise<TransactionDTO> {
-    const result = await this.cooplaceInteractor.receiveOnRequest(data as any);
+    const result = await this.cooplaceInteractor.receiveOnRequest(data as unknown as Parameters<typeof this.cooplaceInteractor.receiveOnRequest>[0]);
     return result;
   }
 
   public async supplyOnRequest(data: SupplyOnRequestInputDTO): Promise<TransactionDTO> {
-    const result = await this.cooplaceInteractor.supplyOnRequest(data as any);
+    const result = await this.cooplaceInteractor.supplyOnRequest(data as unknown as Parameters<typeof this.cooplaceInteractor.supplyOnRequest>[0]);
     return result;
   }
 

@@ -12,6 +12,6 @@ export class DeliverOnRequestInputDTO {
   username!: string;
 
   @Field(() => Number, { description: 'Идентификатор обмена' })
-  @IsNumber()
-  exchange_id!: number;
+  @IsString()
+  request_hash!: string;
 }
