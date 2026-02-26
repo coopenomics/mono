@@ -101,8 +101,8 @@
 - [x] RetAuthorizedStep — шаг авторизации возврата советом (step 8)
 - [x] Base.vue: новые статусы (reqreturn, retauthorized), badge coopstock
 - [x] Панель председателя КУ: WarehousePage (склад, выдача, destroy/reoffer)
-- [ ] Управление перевозками (shipments timeline)
-- [ ] Гарантийный возврат UI (претензия, спор, решение)
+- [x] ShipmentsPage: таблица перевозок, timeline 4 этапов, создание
+- [x] DisputePage: подача претензии, список, timeline спора, решение совета
 
 #### 15.5 Тесты
 - [ ] Unit-тесты контроллера
