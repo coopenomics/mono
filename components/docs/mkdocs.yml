@@ -149,6 +149,7 @@ nav:
 
   - Стол совета:
       - Повестка совета: new/council/agenda.md
+      - Копирование голосов: new/council/vote-copy.md
       - Реестр пайщиков: new/council/participants.md
       - Реестр документов: new/council/documents.md
       - Реестр платежей: new/council/payments.md

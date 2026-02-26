@@ -175,6 +175,8 @@
 - [x] SovietExtensionModule подключён в AppModule
 - [x] VoteCopyPage (desktop): управление настройками, кто копирует меня
 - [x] Маршрут /soviet/vote-copy в soviet extension
+- [x] Unit-тесты: 13/13 (create, deactivate, delete, findActiveCopiers, access control)
+- [x] Документация: vote-copy.md (пользовательская + API reference)
 
 ### 19. Страница пакета документов
 - [x] getDocumentPackageByHash query (бэкенд)
