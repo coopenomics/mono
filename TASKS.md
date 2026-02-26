@@ -134,6 +134,14 @@
 - [x] CooplaceExtensionModule: полная DI с TypeORM
 - [x] Исправлен белый экран desktop (vite-plugin-checker + share-button crash)
 
+#### 15.Z Админка маркетплейса (настройки)
+- [x] MarketplaceSettingsEntity: lead_request_policy, publish_access_policy, whitelist, moderation, cycles, delivery, prices
+- [x] MarketplaceSettingsTypeormEntity + TypeORM repository (upsert)
+- [x] MarketplaceSettingsResolver: get/update settings, add/remove whitelist
+- [x] Перенесены ВСЕ DTOs/entities/repositories/services из extensions/marketplace → extensions/cooplace
+- [x] Desktop SettingsPage: radio groups, toggles, whitelist chips, price inputs
+- [x] market-admin: маршрут настроек как дефолтный + модерация + все заказы
+
 #### 15.5 Тесты
 - [x] Unit-тесты controller: 8 тестов marketplace actions + statuses (90/90 total)
 - [x] cooptypes собран с новыми actions
