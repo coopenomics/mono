@@ -78,6 +78,10 @@
 - [x] Система перевозок — уже реализована (shipment/)
 - [x] Гарантийный возврат — уже реализован (dispute_on_offer/)
 - [x] Сборка marketplace.wasm + marketplace.abi (test mode) — OK
+- [x] ORDER→OFFER: createorder + respondoffer (заказчик публикует → поставщики откликаются)
+- [x] delivery_type: internal (между КУ) / external (СДЭК и т.д.) в request struct
+- [x] contribution_type: share (паевой) / member (членский) в request struct
+- [x] Убраны ВСЕ any из controller marketplace (service, interactor)
 - [ ] Накопительный характер заявок (min_units threshold) — TODO
 
 #### 15.2 Генерация типов
