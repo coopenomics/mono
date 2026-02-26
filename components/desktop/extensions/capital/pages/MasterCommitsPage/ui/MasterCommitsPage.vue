@@ -16,9 +16,9 @@ div
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue';
-import { useExpandableState, useDataPoller } from 'src/shared/lib/composables';
-import { POLL_INTERVALS } from 'src/shared/lib/consts';
+import { ref, onMounted } from 'vue';
+import { useExpandableState } from 'src/shared/lib/composables';
+import { useGraphqlSubscription, buildSubscriptionQuery } from 'src/shared/lib/composables';
 import { WindowLoader } from 'src/shared/ui/Loader';
 import { CommitsListWidget } from 'app/extensions/capital/widgets';
 import { useSystemStore } from 'src/entities/System/model';
@@ -75,24 +75,16 @@ const handleCommitsDataLoaded = (commitHashes: string[]) => {
 };
 
 const handlePaginationChanged = (paginationData: { page: number; rowsPerPage: number; sortBy: string; descending: boolean }) => {
-  // Сохраняем текущую пагинацию для poll обновлений
   currentPage.value = paginationData.page;
   currentRowsPerPage.value = paginationData.rowsPerPage;
   currentSortBy.value = paginationData.sortBy;
   currentDescending.value = paginationData.descending;
 };
 
-/**
- * Функция для перезагрузки данных коммитов
- * Используется для poll обновлений
- */
 const reloadCommitsData = async () => {
   try {
-    // Используем store для загрузки данных с текущими параметрами пагинации
     await commitStore.loadCommits({
-      filter: {
-        coopname: info.coopname,
-      },
+      filter: { coopname: info.coopname },
       options: {
         page: currentPage.value,
         limit: currentRowsPerPage.value,
@@ -101,28 +93,22 @@ const reloadCommitsData = async () => {
       },
     });
   } catch (error) {
-    console.warn('Ошибка при перезагрузке данных коммитов в poll:', error);
+    console.warn('Ошибка при перезагрузке коммитов:', error);
   }
 };
 
-// Настраиваем poll обновление данных
-const { start: startCommitsPoll, stop: stopCommitsPoll } = useDataPoller(
-  reloadCommitsData,
-  { interval: POLL_INTERVALS.MEDIUM, immediate: false }
-);
-
-// Инициализация состояния при монтировании
-onMounted(async () => {
-  // Загружаем сохраненное состояние expanded из LocalStorage
-  loadCommitsExpandedState();
-
-  // Запускаем poll обновление данных
-  startCommitsPoll();
+useGraphqlSubscription({
+  query: buildSubscriptionQuery('capitalCommitCreated', null, ['id', 'commit_hash', 'status']),
+  onData: () => { forceReload.value++; reloadCommitsData(); },
 });
 
-// Останавливаем poll при уходе со страницы
-onBeforeUnmount(() => {
-  stopCommitsPoll();
+useGraphqlSubscription({
+  query: buildSubscriptionQuery('capitalCommitUpdated', null, ['id', 'commit_hash', 'status']),
+  onData: () => { forceReload.value++; reloadCommitsData(); },
+});
+
+onMounted(async () => {
+  loadCommitsExpandedState();
 });
 </script>
 

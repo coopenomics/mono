@@ -64,11 +64,10 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, onBeforeUnmount } from 'vue';
+import { computed, onMounted } from 'vue';
 import { ContributorGamificationWidget } from 'app/extensions/capital/widgets/ContributorGamificationWidget';
 import { useContributorStore } from 'app/extensions/capital/entities/Contributor/model';
-import { useDataPoller } from 'src/shared/lib/composables';
-import { POLL_INTERVALS } from 'src/shared/lib/consts';
+import { useGraphqlSubscription, buildSubscriptionQuery } from 'src/shared/lib/composables';
 import { useSessionStore } from 'src/entities/Session/model/store';
 import { useSystemStore } from 'src/entities/System/model';
 import { EditAboutInput, EditHoursPerDayInput, EditRatePerHourInput } from 'app/extensions/capital/features/Contributor/EditContributor';
@@ -178,42 +177,25 @@ const roleContributions = computed(() => {
   ];
 });
 
-/**
- * Функция для перезагрузки данных профиля
- * Используется для poll обновлений
- */
 const reloadProfileData = async () => {
   try {
-    // Для профиля перезагружаем данные участника
     await contributorStore.loadContributor({ username });
   } catch (error) {
-    console.warn('Ошибка при перезагрузке данных профиля в poll:', error);
+    console.warn('Ошибка при перезагрузке данных профиля:', error);
   }
 };
 
-// Обработчик обновления любого поля профиля
 const handleFieldUpdated = () => {
-  // Поле профиля обновлено, данные перезагрузятся автоматически через poll
+  reloadProfileData();
 };
 
-// Настраиваем poll обновление данных
-const { start: startProfilePoll, stop: stopProfilePoll } = useDataPoller(
-  reloadProfileData,
-  { interval: POLL_INTERVALS.SLOW, immediate: false }
-);
-
-// Проверяем при монтировании
-onMounted(async () => {
-  // Загружаем данные текущего участника аналогично CapitalBase
-  await contributorStore.loadSelf({ username });
-  
-  // Запускаем poll обновление данных
-  startProfilePoll();
+useGraphqlSubscription({
+  query: buildSubscriptionQuery('capitalDataChanged', null, ['entity', 'action']),
+  onData: () => { reloadProfileData(); },
 });
 
-// Останавливаем poll при уходе со страницы
-onBeforeUnmount(() => {
-  stopProfilePoll();
+onMounted(async () => {
+  await contributorStore.loadSelf({ username });
 });
 </script>
 

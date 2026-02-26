@@ -38,10 +38,10 @@ div
 </template>
 
 <script lang="ts" setup>
-import { onMounted, onBeforeUnmount, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useSystemStore } from 'src/entities/System/model';
-import { useExpandableState, useDataPoller } from 'src/shared/lib/composables';
-import { POLL_INTERVALS } from 'src/shared/lib/consts';
+import { useExpandableState } from 'src/shared/lib/composables';
+import { useGraphqlSubscription, buildSubscriptionQuery } from 'src/shared/lib/composables';
 import 'src/shared/ui/TitleStyles';
 import { WindowLoader } from 'src/shared/ui/Loader';
 import { ListVotingProjectWidget, ProjectVotingSegmentsWidget, SegmentVotesWidget } from 'app/extensions/capital/widgets';
@@ -123,48 +123,27 @@ const handleVotesChanged = (data: { projectHash: string; voter: string }) => {
   segmentsToReload.value[data.voter] = Date.now();
 };
 
-/**
- * Функция для перезагрузки данных голосования
- * Используется для poll обновлений
- */
-const reloadVotingData = async () => {
-  try {
-    // Для голосований используем принудительную перезагрузку через timestamp
-    // Это заставит виджеты перезагрузить данные
-    const timestamp = Date.now();
-
-    // Обновляем все сегменты для перезагрузки
-    Object.keys(segmentsToReload.value).forEach(key => {
-      segmentsToReload.value[key] = timestamp;
-    });
-
-    // Если нет сегментов, добавляем специальный ключ для принудительной перезагрузки
-    if (Object.keys(segmentsToReload.value).length === 0) {
-      segmentsToReload.value['__force_reload__'] = timestamp;
-    }
-  } catch (error) {
-    console.warn('Ошибка при перезагрузке данных голосования в poll:', error);
+const reloadVotingData = () => {
+  const timestamp = Date.now();
+  Object.keys(segmentsToReload.value).forEach(key => {
+    segmentsToReload.value[key] = timestamp;
+  });
+  if (Object.keys(segmentsToReload.value).length === 0) {
+    segmentsToReload.value['__force_reload__'] = timestamp;
   }
 };
 
-// Настраиваем poll обновление данных
-const { start: startVotingPoll, stop: stopVotingPoll } = useDataPoller(
-  reloadVotingData,
-  { interval: POLL_INTERVALS.FAST, immediate: false }
-);
-
-// Инициализация
-onMounted(async () => {
-  // Загружаем сохраненное состояние expanded из LocalStorage
-  loadProjectsExpandedState();
-  loadSegmentsExpandedState();
-
-  // Запускаем poll обновление данных
-  startVotingPoll();
+useGraphqlSubscription({
+  query: buildSubscriptionQuery('capitalDataChanged', null, ['entity', 'action']),
+  onData: (data: any) => {
+    if (data?.capitalDataChanged?.entity === 'voting') {
+      reloadVotingData();
+    }
+  },
 });
 
-// Останавливаем poll при уходе со страницы
-onBeforeUnmount(() => {
-  stopVotingPoll();
+onMounted(async () => {
+  loadProjectsExpandedState();
+  loadSegmentsExpandedState();
 });
 </script>

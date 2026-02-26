@@ -239,7 +239,7 @@ div(v-if="shouldShowTemporaryStub").q-pt-md
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, onMounted, onBeforeUnmount, onUnmounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useGenerateCapitalRegistrationDocuments } from 'app/extensions/capital/features/Contributor/GenerateCapitalRegistrationDocuments/model';
 import { useCompleteCapitalRegistration } from 'app/extensions/capital/features/Contributor/CompleteCapitalRegistration/model';
@@ -248,8 +248,7 @@ import { DocumentHtmlReader } from 'src/shared/ui/DocumentHtmlReader';
 import { RoleSelector } from 'app/extensions/capital/shared/ui';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
-import { useDataPoller } from 'src/shared/lib/composables';
-import { POLL_INTERVALS } from 'src/shared/lib/consts';
+import { useGraphqlSubscription, buildSubscriptionQuery } from 'src/shared/lib/composables';
 import { useSessionStore } from 'src/entities/Session';
 
 const router = useRouter();
@@ -438,54 +437,36 @@ const updateCurrentStep = () => {
 // Следим за изменениями статуса регистрации
 watch(() => contributorStore.isContributorActiveOrPending, updateCurrentStep);
 
-/**
- * Функция для перезагрузки данных регистрации
- * Используется для poll обновлений
- */
 const reloadRegistrationData = async () => {
   try {
-    // Для страницы регистрации обновляем статус участника
     await contributorStore.loadContributor({ username: session.username });
   } catch (error) {
-    console.warn('Ошибка при перезагрузке данных регистрации в poll:', error);
+    console.warn('Ошибка при перезагрузке данных регистрации:', error);
   }
 };
 
-// Настраиваем poll обновление данных
-const { start: startRegistrationPoll, stop: stopRegistrationPoll } = useDataPoller(
-  reloadRegistrationData,
-  { interval: POLL_INTERVALS.SLOW, immediate: false }
-);
+useGraphqlSubscription({
+  query: buildSubscriptionQuery('capitalDataChanged', null, ['entity', 'action']),
+  onData: () => { reloadRegistrationData(); },
+});
 
-// Инициализация при монтировании
 onMounted(() => {
-  console.log('🎯 CapitalRegistrationPage mounted');
   updateCurrentStep();
 
-  // Запускаем poll обновление данных
-  startRegistrationPoll();
-
-  // Генерация пачки документов Capital при монтировании (только если не показывается временный заглушка)
   if (!shouldShowTemporaryStub.value) {
     generateCapitalDocuments()
       .then((documents) => {
-        console.log('✅ Пачка документов сгенерирована:', {
+        console.log('Пачка документов сгенерирована:', {
           generation_contract: documents?.generation_contract?.hash,
           storage_agreement: documents?.storage_agreement?.hash,
           blagorost_agreement: documents?.blagorost_agreement?.hash,
         });
       })
       .catch((error) => {
-        console.error('❌ Ошибка при генерации пачки документов:', error);
+        console.error('Ошибка при генерации пачки документов:', error);
         FailAlert('Не удалось сгенерировать документы регистрации');
       });
   }
-
-});
-
-// Останавливаем poll при уходе со страницы
-onBeforeUnmount(() => {
-  stopRegistrationPoll();
 });
 
 // Отслеживание размонтирования

@@ -21,7 +21,7 @@ div
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, onBeforeUnmount, markRaw, computed } from 'vue';
+import { ref, onMounted, markRaw, computed, onBeforeUnmount } from 'vue';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import { FailAlert } from 'src/shared/api';
@@ -29,8 +29,7 @@ import { ContributorsListWidget } from 'app/extensions/capital/widgets/Contribut
 import { ImportContributorsButton } from 'app/extensions/capital/widgets/ImportContributorsButton';
 import { ImportContributorButton } from 'app/extensions/capital/features/Contributor/ImportContributor';
 import { useContributorStore } from 'app/extensions/capital/entities/Contributor/model';
-import { useDataPoller } from 'src/shared/lib/composables';
-import { POLL_INTERVALS } from 'src/shared/lib/consts';
+import { useGraphqlSubscription, buildSubscriptionQuery } from 'src/shared/lib/composables';
 import { useHeaderActions } from 'src/shared/hooks';
 
 const contributorStore = useContributorStore();
@@ -110,53 +109,22 @@ const onPageChange = async (page: number) => {
   await loadContributors();
 };
 
-/**
- * Функция для перезагрузки данных участников
- * Используется для poll обновлений
- */
-const reloadContributors = async () => {
-  try {
-    await contributorStore.loadContributors({
-      filter: {
-        coopname: info.coopname,
-      },
-      pagination: {
-        page: pagination.value.page,
-        limit: pagination.value.rowsPerPage,
-        sortBy: pagination.value.sortBy,
-        descending: pagination.value.descending,
-      },
-    });
-  } catch (error) {
-    console.warn('Ошибка при перезагрузке участников в poll:', error);
-  }
-};
+useGraphqlSubscription({
+  query: buildSubscriptionQuery('capitalDataChanged', null, ['entity', 'action']),
+  onData: () => { loadContributors(); },
+});
 
-// Настраиваем poll обновление данных
-const { start: startContributorsPoll, stop: stopContributorsPoll } = useDataPoller(
-  reloadContributors,
-  { interval: POLL_INTERVALS.MEDIUM, immediate: false }
-);
-
-// Регистрируем кнопки меню в header
 const { registerAction: registerHeaderAction, clearActions } = useHeaderActions();
 
-// Инициализация
 onMounted(async () => {
   await loadContributors();
 
-  // Запускаем poll обновление данных
-  startContributorsPoll();
-
-  // Регистрируем кнопки меню в header
   menuButtons.value.forEach(button => {
     registerHeaderAction(button);
   });
 });
 
-// Останавливаем poll и очищаем действия header при уходе со страницы
 onBeforeUnmount(() => {
-  stopContributorsPoll();
   clearActions();
 });
 </script>

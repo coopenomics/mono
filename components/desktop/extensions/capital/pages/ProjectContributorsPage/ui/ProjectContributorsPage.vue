@@ -5,45 +5,20 @@ div
 </template>
 
 <script lang="ts" setup>
-import { onMounted, onBeforeUnmount } from 'vue';
+import { onMounted } from 'vue';
 import { useProjectLoader } from 'app/extensions/capital/entities/Project/model';
 import ProjectContributorsList from 'app/extensions/capital/widgets/ProjectInfoSelectorWidget/ProjectContributorsList.vue';
-import { useDataPoller } from 'src/shared/lib/composables';
-import { POLL_INTERVALS } from 'src/shared/lib/consts';
+import { useGraphqlSubscription, buildSubscriptionQuery } from 'src/shared/lib/composables';
 
-// Используем composable для загрузки проекта
 const { project, loadProject } = useProjectLoader();
 
-/**
- * Функция для перезагрузки данных проекта
- * Используется для poll обновлений
- */
-const reloadProjectData = async () => {
-  try {
-    // Перезагружаем данные текущего проекта
-    await loadProject();
-  } catch (error) {
-    console.warn('Ошибка при перезагрузке данных проекта в poll:', error);
-  }
-};
-
-// Настраиваем poll обновление данных
-const { start: startProjectPoll, stop: stopProjectPoll } = useDataPoller(
-  reloadProjectData,
-  { interval: POLL_INTERVALS.MEDIUM, immediate: false }
-);
-
-// Инициализация
-onMounted(async () => {
-  await loadProject();
-
-  // Запускаем poll обновление данных
-  startProjectPoll();
+useGraphqlSubscription({
+  query: buildSubscriptionQuery('capitalDataChanged', null, ['entity', 'action']),
+  onData: () => { loadProject(); },
 });
 
-// Останавливаем poll при уходе со страницы
-onBeforeUnmount(() => {
-  stopProjectPoll();
+onMounted(async () => {
+  await loadProject();
 });
 </script>
 
