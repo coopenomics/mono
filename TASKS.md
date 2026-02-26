@@ -61,13 +61,15 @@
 - [x] Desktop: ApiKeysPage в chairman extension
 - [x] UI: таблица ключей, создание, отзыв, копирование
 
-### 13. GraphQL Subscriptions
+### 13. GraphQL Subscriptions ✅
 - [x] PubSubModule: глобальный PubSub provider
 - [x] WebSocket support в GraphQL module (graphql-ws)
-- [x] 4 Capital subscriptions: issueUpdated/Created, commitUpdated/Created
+- [x] 5 Capital subscriptions: issueUpdated/Created, commitCreated/Updated, dataChanged
 - [x] Filter по project_hash
-- [x] Events publishing в GenerationService
+- [x] Events publishing: GenerationService, ProjectManagementService, VotingService
 - [x] SDK: Subscriptions namespace (Capital)
 - [x] Auth через connectionParams.token
-- [x] Desktop: SDK subscriptions namespace ready for store integration
-- [x] Тесты: 34/34 security tests (CASL + API keys), WebSocket JWT auth verified
+- [x] `useGraphqlSubscription` composable на фронтенде
+- [x] **7 страниц Capital переведены с polling на WebSocket подписки**
+- [x] 0 использований useDataPoller в Capital extension
+- [x] Тесты: 82/82 (CASL + API keys + Reports)
