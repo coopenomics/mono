@@ -93,3 +93,28 @@ export * as UnpublishRequest from './unpublishRequest'
  * Действие для обновления заявки на поставку.
  */
 export * as UpdateRequest from './updateRequest'
+
+/**
+ * Действие для подачи заявления на возврат паевого взноса перед получением имущества.
+ */
+export * as RequestReturn from './requestReturn'
+
+/**
+ * Действие для создания предложения из запасов кооператива.
+ */
+export * as Coopstock from './coopstock'
+
+/**
+ * Действие для принятия предложения из запасов кооператива заказчиком.
+ */
+export * as AcceptStock from './acceptStock'
+
+/**
+ * Действие для уничтожения просроченного имущества.
+ */
+export * as Destroy from './destroy'
+
+/**
+ * Действие для перепредложения имущества по новой цене.
+ */
+export * as Reoffer from './reoffer'

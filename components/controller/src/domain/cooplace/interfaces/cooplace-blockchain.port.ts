@@ -19,6 +19,13 @@ export interface CooplaceBlockchainPort {
   supplyOnRequest(data: MarketContract.Actions.SupplyOnRequest.ISupplyOnRequest): Promise<TransactResult>;
   unpublishRequest(data: MarketContract.Actions.UnpublishRequest.IUnpublishRequest): Promise<TransactResult>;
   updateRequest(data: MarketContract.Actions.UpdateRequest.IUpdateRequest): Promise<TransactResult>;
+  
+  // Новые actions
+  requestReturn(data: MarketContract.Actions.RequestReturn.IRequestReturn): Promise<TransactResult>;
+  coopstock(data: MarketContract.Actions.Coopstock.ICoopstock): Promise<TransactResult>;
+  acceptStock(data: MarketContract.Actions.AcceptStock.IAcceptStock): Promise<TransactResult>;
+  destroy(data: MarketContract.Actions.Destroy.IDestroy): Promise<TransactResult>;
+  reoffer(data: MarketContract.Actions.Reoffer.IReoffer): Promise<TransactResult>;
 }
 
 export const COOPLACE_BLOCKCHAIN_PORT = Symbol('CooplaceBlockchainPort');
