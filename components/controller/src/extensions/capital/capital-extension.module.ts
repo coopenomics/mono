@@ -218,6 +218,7 @@ import { ProcessInstanceTypeormRepository } from './infrastructure/repositories/
 import { PROCESS_TEMPLATE_REPOSITORY, PROCESS_INSTANCE_REPOSITORY } from './domain/repositories/process.repository';
 import { ProcessService } from './application/services/process.service';
 import { ProcessResolver } from './application/resolvers/process.resolver';
+import { CapitalSubscriptionResolver } from './application/resolvers/capital-subscription.resolver';
 import { ProcessTemplateTypeormEntity } from './infrastructure/entities/process-template.entity';
 import { ProcessInstanceTypeormEntity } from './infrastructure/entities/process-instance.entity';
 import { CommentTypeormRepository } from './infrastructure/repositories/comment.typeorm-repository';
@@ -673,6 +674,7 @@ IssueIdGenerationService,
     },
     ProcessService,
     ProcessResolver,
+    CapitalSubscriptionResolver,
     {
       provide: COMMENT_REPOSITORY,
       useClass: CommentTypeormRepository,

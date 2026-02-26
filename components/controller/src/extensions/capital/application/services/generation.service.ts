@@ -1,4 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
+import { PubSub } from 'graphql-subscriptions';
+import { PUB_SUB } from '~/infrastructure/pubsub/pubsub.module';
+import { CAPITAL_EVENTS } from '../resolvers/capital-subscription.resolver';
 import { generateUniqueHash } from '~/utils/generate-hash.util';
 import { GenerationInteractor } from '../use-cases/generation.interactor';
 import type { CreateCommitInputDTO } from '../dto/generation/create-commit-input.dto';
@@ -57,6 +60,7 @@ import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mon
 @Injectable()
 export class GenerationService {
   constructor(
+    @Inject(PUB_SUB) private readonly pubSub: PubSub,
     private readonly generationInteractor: GenerationInteractor,
     @Inject(STORY_REPOSITORY)
     private readonly storyRepository: StoryRepository,
@@ -424,11 +428,14 @@ export class GenerationService {
     // Рассчитываем права доступа для задачи
     const permissions = await this.permissionsService.calculateIssuePermissions(savedIssue, currentUser);
 
-    // Возвращаем задачу с правами доступа
-    return {
-      ...savedIssue,
-      permissions,
-    } as IssueOutputDTO;
+    const issueResult = { ...savedIssue, permissions } as IssueOutputDTO;
+
+    // Публикуем событие для подписчиков
+    this.pubSub.publish(CAPITAL_EVENTS.ISSUE_CREATED, {
+      [CAPITAL_EVENTS.ISSUE_CREATED]: issueResult,
+    });
+
+    return issueResult;
   }
 
   /**
@@ -552,11 +559,14 @@ export class GenerationService {
     // Рассчитываем права доступа для задачи
     const permissions = await this.permissionsService.calculateIssuePermissions(updatedIssue, currentUser);
 
-    // Возвращаем задачу с правами доступа
-    return {
-      ...updatedIssue,
-      permissions,
-    } as IssueOutputDTO;
+    const issueResult = { ...updatedIssue, permissions } as IssueOutputDTO;
+
+    // Публикуем событие для подписчиков
+    this.pubSub.publish(CAPITAL_EVENTS.ISSUE_UPDATED, {
+      [CAPITAL_EVENTS.ISSUE_UPDATED]: issueResult,
+    });
+
+    return issueResult;
   }
 
   /**

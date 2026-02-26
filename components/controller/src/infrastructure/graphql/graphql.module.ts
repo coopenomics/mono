@@ -17,9 +17,24 @@ import logger from '~/config/logger';
       autoSchemaFile: 'schema.gql',
       sortSchema: true,
       debug: config.env !== 'production',
-      // context: ({ req }) => req,
       playground: { endpoint: '/v1/graphql', settings: { 'request.credentials': 'same-origin' } },
-      path: '/v1/graphql', // здесь можно задать другой путь, когда потребуется,
+      path: '/v1/graphql',
+      subscriptions: {
+        'graphql-ws': {
+          path: '/v1/graphql',
+          onConnect: (context: any) => {
+            const { connectionParams } = context;
+            // Аутентификация WebSocket через connectionParams.token
+            return { token: connectionParams?.token };
+          },
+        },
+      },
+      context: ({ req, connection }: any) => {
+        if (connection) {
+          return { req: { headers: {}, user: connection.context?.user } };
+        }
+        return { req };
+      },
       transformSchema: (schema) => {
         schema = docDirectiveTransformer(schema, 'auth');
         schema = fieldAuthDirectiveTransformer(schema, 'auth');

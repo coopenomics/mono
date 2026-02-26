@@ -17,6 +17,7 @@ import { FreeDecisionInfrastructureModule } from './infrastructure/free-decision
 import { DecisionTrackingInfrastructureModule } from './infrastructure/decision-tracking/decision-tracking-infrastructure.module';
 import { SearchInfrastructureModule } from './infrastructure/search/search-infrastructure.module';
 import { CaslModule } from './infrastructure/casl/casl.module';
+import { PubSubModule } from './infrastructure/pubsub/pubsub.module';
 import { ShareModule } from './infrastructure/share/share.module';
 import { ApiKeyModule } from './infrastructure/api-keys/api-key.module';
 import { ApiKeysAppModule } from './application/api-keys/api-keys.module';
@@ -101,6 +102,7 @@ import { MutationLoggingInterceptor } from './application/common/interceptors/mu
     NovuModule,
     SearchInfrastructureModule,
     CaslModule,
+    PubSubModule,
     ShareModule,
     ApiKeyModule,
     EventsInfrastructureModule,

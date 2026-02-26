@@ -10326,6 +10326,20 @@ input SubmitVoteInput {
   votes: [VoteDistributionInput!]!
 }
 
+type Subscription {
+  """Подписка на создание коммитов"""
+  capitalCommitCreated(project_hash: String): CapitalCommit!
+
+  """Подписка на обновления коммитов"""
+  capitalCommitUpdated(project_hash: String): CapitalCommit!
+
+  """Подписка на создание задач"""
+  capitalIssueCreated(project_hash: String): CapitalIssue!
+
+  """Подписка на обновления задач"""
+  capitalIssueUpdated(project_hash: String): CapitalIssue!
+}
+
 type SubscriptionStatsDto {
   """Количество активных подписок"""
   active: Int!
