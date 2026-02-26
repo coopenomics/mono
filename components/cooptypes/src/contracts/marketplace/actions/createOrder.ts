@@ -16,4 +16,4 @@ export const actionName = 'order'
 /**
  * @interface
  */
-export type ICreateOrder = Marketplace.IOrder
+export type ICreateOrder = Marketplace.ICreateorder
