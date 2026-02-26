@@ -76,6 +76,36 @@ pnpm run reboot
   ```
 - **Duplicate transaction** — в boot-тестах EOSIO отклоняет транзакции с одинаковым хешем (TAPOS block + action data). При повторном вызове `refreshSegment` для того же участника — добавить `await sleep(500)` перед ним. Паттерн уже используется (см. комментарий на строке ~720 capital.test.ts).
 
+### Архитектура расширений (Extension System)
+
+Платформа использует модульную архитектуру с тремя типами модулей:
+
+**1. Core-модули** — встроены в ядро (`controller/src/extensions/`), распространяются вместе с платформой.
+
+**2. Приватные расширения** — отдельные npm-пакеты `@coopenomics/ext-*`, устанавливаемые в node_modules. Загружаются динамически через `ExtensionLoaderService` при старте.
+
+**3. Внешние приложения** — подключаются по URL через iframe.
+
+**Пакет `@coopenomics/interops`** (`components/interops/`) — связующий контракт:
+- Доменные порты (`IAccountDataPort`, `IDocumentDataPort`, `IWalletDomainPort`, ...)
+- Контракт расширения (`IExtensionModule`, `IExtensionMetadata`)
+- Контракт загрузчика (`IExtensionLoader`)
+- Shared-типы (`IPaginationInput`, `IBaseDatabaseData`)
+
+**Как создать расширение:**
+1. Создать npm-пакет `@coopenomics/ext-<name>`
+2. Зависимость: `@coopenomics/interops`
+3. Экспортировать default объект, реализующий `IExtensionModule`
+4. `getMetadata()` — метаданные (имя, версия, иконка, десктопы)
+5. `getBackendModule()` — NestJS DynamicModule
+6. `getFrontendManifest()` — опционально, маршруты для desktop
+
+**Динамическая загрузка:**
+- `ExtensionLoaderService` сканирует `node_modules/@coopenomics/ext-*`
+- Вызывает `require(packageName)` → `getMetadata()` → `getBackendModule()`
+- Подключает NestJS-модуль к AppModule при старте
+- GraphQL-схема обновляется при перезапуске сервера
+
 ### Критические gotchas
 
 - **SHiP порт 8070** — `state-history-endpoint = 0.0.0.0:8070` в config.ini. Парсер: `SHIP=ws://node:8070`.

@@ -61,6 +61,16 @@
 - [x] Desktop: ApiKeysPage в chairman extension
 - [x] UI: таблица ключей, создание, отзыв, копирование
 
+### 14. Модульная архитектура — @coopenomics/interops + система расширений
+- [x] Пакет @coopenomics/interops: доменные порты, интерфейсы, shared-типы
+- [x] IExtensionModule, IExtensionLoader, IExtensionMetadata контракты
+- [x] ExtensionLoaderService — динамическое обнаружение @coopenomics/ext-* пакетов
+- [ ] Подключение interops как зависимости controller
+- [ ] Вынос capital в отдельный пакет @coopenomics/ext-capital
+- [ ] Динамическая загрузка capital через ExtensionLoader
+- [ ] Desktop: динамическая регистрация расширений через манифест
+- [ ] AGENTS.md с описанием архитектуры расширений
+
 ### 13. GraphQL Subscriptions ✅
 - [x] PubSubModule: глобальный PubSub provider
 - [x] WebSocket support в GraphQL module (graphql-ws)
