@@ -1,4 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { PubSub } from 'graphql-subscriptions';
+import { PUB_SUB } from '~/infrastructure/pubsub/pubsub.module';
+import { CAPITAL_EVENTS } from '../resolvers/capital-subscription.resolver';
 import { ProjectManagementInteractor } from '../use-cases/project-management.interactor';
 import type { CreateProjectInputDTO } from '../dto/project_management';
 import type { TransactResult } from '@wharfkit/session';
@@ -22,30 +25,37 @@ import { DocumentInteractor } from '~/application/document/interactors/document.
 import { ProjectMapperService } from './project-mapper.service';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 
-/**
- * Сервис уровня приложения для управления проектами CAPITAL
- * Обрабатывает запросы от ProjectManagementResolver
- */
 @Injectable()
 export class ProjectManagementService {
   constructor(
     private readonly projectManagementInteractor: ProjectManagementInteractor,
     private readonly documentInteractor: DocumentInteractor,
-    private readonly projectMapperService: ProjectMapperService
+    private readonly projectMapperService: ProjectMapperService,
+    @Inject(PUB_SUB) private readonly pubSub: PubSub,
   ) {}
+
+  private notifyDataChanged(entity: string, action: string, id?: string) {
+    this.pubSub.publish(CAPITAL_EVENTS.DATA_CHANGED, {
+      [CAPITAL_EVENTS.DATA_CHANGED]: { entity, action, id },
+    });
+  }
 
   /**
    * Создание проекта в CAPITAL контракте
    */
   async createProject(data: CreateProjectInputDTO, currentUser: MonoAccountDomainInterface): Promise<TransactResult> {
-    return await this.projectManagementInteractor.createProject(data, currentUser);
+    const result = await this.projectManagementInteractor.createProject(data, currentUser);
+    this.notifyDataChanged('project', 'created');
+    return result;
   }
 
   /**
    * Редактирование проекта в CAPITAL контракте
    */
   async editProject(data: EditProjectInputDTO): Promise<TransactResult> {
-    return await this.projectManagementInteractor.editProject(data);
+    const result = await this.projectManagementInteractor.editProject(data);
+    this.notifyDataChanged('project', 'updated');
+    return result;
   }
 
   /**

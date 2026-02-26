@@ -1,5 +1,6 @@
 import { forwardRef, Module } from '@nestjs/common';
 import { BaseExtModule } from '../base.extension.module';
+import { PubSubModule } from '~/infrastructure/pubsub/pubsub.module';
 import { CapitalDatabaseModule } from './infrastructure/database/capital-database.module';
 import { RegistrationInfrastructureModule } from '~/infrastructure/registration/registration-infrastructure.module';
 import { Injectable } from '@nestjs/common';
@@ -521,6 +522,7 @@ export class CapitalPlugin extends BaseExtModule {
     forwardRef(() => RegistrationModule),
     RegistrationInfrastructureModule,
     EventEmitterModule.forRoot(),
+    PubSubModule,
   ],
   providers: [
     // Plugin

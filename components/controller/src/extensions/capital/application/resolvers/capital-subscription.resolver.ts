@@ -1,18 +1,29 @@
-import { Resolver, Subscription, Args } from '@nestjs/graphql';
+import { Resolver, Subscription, Args, ObjectType, Field } from '@nestjs/graphql';
 import { Inject } from '@nestjs/common';
 import { PubSub } from 'graphql-subscriptions';
 import { PUB_SUB } from '~/infrastructure/pubsub/pubsub.module';
 import { IssueOutputDTO } from '../dto/generation/issue.dto';
 import { CommitOutputDTO } from '../dto/generation/commit.dto';
 
-// Subscription event names
 export const CAPITAL_EVENTS = {
   ISSUE_UPDATED: 'capitalIssueUpdated',
   ISSUE_CREATED: 'capitalIssueCreated',
   COMMIT_CREATED: 'capitalCommitCreated',
   COMMIT_UPDATED: 'capitalCommitUpdated',
-  PROJECT_UPDATED: 'capitalProjectUpdated',
+  DATA_CHANGED: 'capitalDataChanged',
 };
+
+@ObjectType('CapitalDataChange')
+export class CapitalDataChangeDTO {
+  @Field(() => String)
+  entity!: string;
+
+  @Field(() => String)
+  action!: string;
+
+  @Field(() => String, { nullable: true })
+  id?: string;
+}
 
 @Resolver()
 export class CapitalSubscriptionResolver {
@@ -80,5 +91,13 @@ export class CapitalSubscriptionResolver {
     @Args('project_hash', { nullable: true }) _projectHash?: string,
   ) {
     return this.pubSub.asyncIterableIterator(CAPITAL_EVENTS.COMMIT_UPDATED);
+  }
+
+  @Subscription(() => CapitalDataChangeDTO, {
+    name: 'capitalDataChanged',
+    description: 'Уведомление об изменении данных Capital (проекты, участники, голосования)',
+  })
+  capitalDataChanged() {
+    return this.pubSub.asyncIterableIterator(CAPITAL_EVENTS.DATA_CHANGED);
   }
 }

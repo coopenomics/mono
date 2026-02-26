@@ -2013,6 +2013,12 @@ input CapitalCycleFilter {
   status: CycleStatus
 }
 
+type CapitalDataChange {
+  action: String!
+  entity: String!
+  id: String
+}
+
 """Долг в системе CAPITAL"""
 type CapitalDebt {
   """Дата создания записи"""
@@ -10349,6 +10355,11 @@ type Subscription {
 
   """Подписка на обновления коммитов"""
   capitalCommitUpdated(project_hash: String): CapitalCommit!
+
+  """
+  Уведомление об изменении данных Capital (проекты, участники, голосования)
+  """
+  capitalDataChanged: CapitalDataChange!
 
   """Подписка на создание задач"""
   capitalIssueCreated(project_hash: String): CapitalIssue!

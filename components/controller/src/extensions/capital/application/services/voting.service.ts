@@ -1,4 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { PubSub } from 'graphql-subscriptions';
+import { PUB_SUB } from '~/infrastructure/pubsub/pubsub.module';
+import { CAPITAL_EVENTS } from '../resolvers/capital-subscription.resolver';
 import { VotingInteractor } from '../use-cases/voting.interactor';
 import type { StartVotingInputDTO } from '../dto/voting/start-voting-input.dto';
 import type { SubmitVoteInputDTO } from '../dto/voting/submit-vote-input.dto';
@@ -12,33 +15,45 @@ import type { PaginationInputDomainInterface } from '~/domain/common/interfaces/
 import { SegmentMapper } from '../../infrastructure/mappers/segment.mapper';
 import { SegmentOutputDTO } from '../dto/segments/segment.dto';
 
-/**
- * Сервис уровня приложения для голосования в CAPITAL
- * Обрабатывает запросы от VotingResolver
- */
 @Injectable()
 export class VotingService {
-  constructor(private readonly votingInteractor: VotingInteractor, private readonly segmentMapper: SegmentMapper) {}
+  constructor(
+    private readonly votingInteractor: VotingInteractor,
+    private readonly segmentMapper: SegmentMapper,
+    @Inject(PUB_SUB) private readonly pubSub: PubSub,
+  ) {}
+
+  private notifyDataChanged(entity: string, action: string) {
+    this.pubSub.publish(CAPITAL_EVENTS.DATA_CHANGED, {
+      [CAPITAL_EVENTS.DATA_CHANGED]: { entity, action },
+    });
+  }
 
   /**
    * Запуск голосования в CAPITAL контракте
    */
   async startVoting(data: StartVotingInputDTO): Promise<TransactResult> {
-    return await this.votingInteractor.startVoting(data);
+    const result = await this.votingInteractor.startVoting(data);
+    this.notifyDataChanged('voting', 'started');
+    return result;
   }
 
   /**
    * Голосование в CAPITAL контракте
    */
   async submitVote(data: SubmitVoteInputDTO, username: string): Promise<TransactResult> {
-    return await this.votingInteractor.submitVote({ ...data, voter: username });
+    const result = await this.votingInteractor.submitVote({ ...data, voter: username });
+    this.notifyDataChanged('voting', 'voted');
+    return result;
   }
 
   /**
    * Завершение голосования в CAPITAL контракте
    */
   async completeVoting(data: CompleteVotingInputDTO): Promise<TransactResult> {
-    return await this.votingInteractor.completeVoting(data);
+    const result = await this.votingInteractor.completeVoting(data);
+    this.notifyDataChanged('voting', 'completed');
+    return result;
   }
 
   /**

@@ -88,7 +88,13 @@ export class GenerationService {
    */
   async createCommit(data: CreateCommitInputDTO, currentUser: MonoAccountDomainInterface): Promise<CommitOutputDTO> {
     const commitEntity = await this.generationInteractor.createCommit(data, currentUser);
-    return await this.commitMapperService.toDTO(commitEntity, currentUser);
+    const result = await this.commitMapperService.toDTO(commitEntity, currentUser);
+
+    this.pubSub.publish(CAPITAL_EVENTS.COMMIT_CREATED, {
+      [CAPITAL_EVENTS.COMMIT_CREATED]: result,
+    });
+
+    return result;
   }
 
   /**
@@ -101,7 +107,13 @@ export class GenerationService {
     };
 
     const commitEntity = await this.generationInteractor.approveCommit(domainInput);
-    return await this.commitMapperService.toDTO(commitEntity, currentUser);
+    const result = await this.commitMapperService.toDTO(commitEntity, currentUser);
+
+    this.pubSub.publish(CAPITAL_EVENTS.COMMIT_UPDATED, {
+      [CAPITAL_EVENTS.COMMIT_UPDATED]: result,
+    });
+
+    return result;
   }
 
   /**
@@ -113,8 +125,15 @@ export class GenerationService {
       master: currentUser.username,
     };
 
+
     const commitEntity = await this.generationInteractor.declineCommit(domainInput);
-    return await this.commitMapperService.toDTO(commitEntity, currentUser);
+    const result = await this.commitMapperService.toDTO(commitEntity, currentUser);
+
+    this.pubSub.publish(CAPITAL_EVENTS.COMMIT_UPDATED, {
+      [CAPITAL_EVENTS.COMMIT_UPDATED]: result,
+    });
+
+    return result;
   }
 
   // ============ STORY METHODS ============
