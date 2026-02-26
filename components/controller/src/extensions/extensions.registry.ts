@@ -12,8 +12,35 @@ import { ChairmanPluginModule, ChairmanPlugin, Schema as ChairmanSchema } from '
 import { ParticipantPluginModule } from './participant/participant-extension.module';
 import { Schema as ParticipantSchema } from './participant/types';
 import { OneCoopPluginModule, OneCoopPlugin, Schema as OneCoopSchema } from './1ccoop/oneccoop-extension.module';
-import { CapitalPluginModule, CapitalPlugin, Schema as CapitalSchema } from './capital/capital-extension.module';
 import { ReportsExtensionModule } from './reports/reports-extension.module';
+
+// Capital загружается динамически — из пакета @coopenomics/ext-capital или встроенного
+let CapitalPluginModule: any = BuiltinPluginModule;
+let CapitalPlugin: any = BuiltinPlugin;
+let CapitalSchema: any = BuiltinSchema;
+
+try {
+  const capitalExt = require('@coopenomics/ext-capital');
+  const mod = capitalExt.default || capitalExt;
+  if (mod.getBackendModule) {
+    CapitalPluginModule = mod.getBackendModule();
+    CapitalPlugin = mod.getPluginClass?.() || BuiltinPlugin;
+    CapitalSchema = mod.getConfigSchema?.() || BuiltinSchema;
+  } else if (capitalExt.CapitalPluginModule) {
+    CapitalPluginModule = capitalExt.CapitalPluginModule;
+    CapitalPlugin = capitalExt.CapitalPlugin || BuiltinPlugin;
+    CapitalSchema = capitalExt.Schema || BuiltinSchema;
+  }
+} catch {
+  try {
+    const built = require('./capital/capital-extension.module');
+    CapitalPluginModule = built.CapitalPluginModule;
+    CapitalPlugin = built.CapitalPlugin;
+    CapitalSchema = built.Schema;
+  } catch {
+    // Capital не доступен
+  }
+}
 
 /**
  * Конфигурация рабочего стола (workspace), который предоставляет расширение

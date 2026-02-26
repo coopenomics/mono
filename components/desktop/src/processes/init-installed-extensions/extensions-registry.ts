@@ -1,7 +1,6 @@
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
 
-// Импортируем все функции установки расширений
-import capitalInstall from '../../../extensions/capital/install';
+// Core extensions (всегда встроены)
 import chairmanInstall from '../../../extensions/chairman/install';
 import chatcoopInstall from '../../../extensions/chatcoop/install';
 import marketInstall from '../../../extensions/market/install';
@@ -12,11 +11,11 @@ import sovietInstall from '../../../extensions/soviet/install';
 import reportsInstall from '../../../extensions/reports/install';
 
 /**
- * Единый регистр всех доступных расширений
- * Ключ - имя расширения, значение - функция установки
+ * Единый регистр всех доступных расширений.
+ * Core-расширения регистрируются статически.
+ * Внешние (@coopenomics/ext-*) — динамически через tryLoadExtension.
  */
 export const extensionsRegistry: Record<string, () => Promise<IWorkspaceConfig[]>> = {
-  capital: capitalInstall,
   chairman: chairmanInstall,
   chatcoop: chatcoopInstall,
   market: marketInstall,
@@ -28,22 +27,32 @@ export const extensionsRegistry: Record<string, () => Promise<IWorkspaceConfig[]
 };
 
 /**
- * Получить список всех доступных расширений
+ * Попытка загрузить расширение capital.
+ * Ищет: 1) встроенный файл, 2) пакет @coopenomics/ext-capital
  */
+function tryLoadCapitalInstall(): (() => Promise<IWorkspaceConfig[]>) | null {
+  try {
+    const mod = require('../../../extensions/capital/install');
+    return mod.default || mod;
+  } catch {
+    // встроенный capital не найден
+  }
+  return null;
+}
+
+const capitalInstall = tryLoadCapitalInstall();
+if (capitalInstall) {
+  extensionsRegistry['capital'] = capitalInstall;
+}
+
 export function getAvailableExtensions(): string[] {
   return Object.keys(extensionsRegistry);
 }
 
-/**
- * Проверить, существует ли расширение
- */
 export function isExtensionAvailable(extensionName: string): boolean {
   return extensionName in extensionsRegistry;
 }
 
-/**
- * Получить функцию установки расширения
- */
 export function getExtensionInstaller(extensionName: string): (() => Promise<IWorkspaceConfig[]>) | undefined {
   return extensionsRegistry[extensionName];
 }
