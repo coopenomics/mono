@@ -44,6 +44,13 @@ export interface ProductCardEntity {
   min_units?: number;
   braname?: string;
   meta?: Record<string, any>;
+
+  /** Циклы поставки */
+  cycle_deadline?: Date;
+  cycle_collected_units: number;
+  cycle_number: number;
+  cycle_active: boolean;
+
   created_at: Date;
   updated_at: Date;
 }

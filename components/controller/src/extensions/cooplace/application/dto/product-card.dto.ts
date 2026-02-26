@@ -74,6 +74,10 @@ export class CreateProductCardInputDTO {
   @IsOptional()
   @IsInt()
   min_units?: number;
+
+  @Field(() => Date, { nullable: true, description: 'Дедлайн текущего цикла сбора заказов' })
+  @IsOptional()
+  cycle_deadline?: Date;
 }
 
 @ObjectType('ProductCard')
@@ -131,6 +135,21 @@ export class ProductCardDTO {
 
   @Field(() => String, { nullable: true })
   braname?: string;
+
+  @Field(() => Int, { nullable: true })
+  min_units?: number;
+
+  @Field(() => Date, { nullable: true })
+  cycle_deadline?: Date;
+
+  @Field(() => Int)
+  cycle_collected_units!: number;
+
+  @Field(() => Int)
+  cycle_number!: number;
+
+  @Field(() => Boolean)
+  cycle_active!: boolean;
 
   @Field(() => Date)
   created_at!: Date;

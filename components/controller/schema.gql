@@ -4570,6 +4570,9 @@ input CreateProductCardInput {
   cancellation_fee_amount: String
   category_id: String
   contribution_type: ContributionType!
+
+  """Дедлайн текущего цикла сбора заказов"""
+  cycle_deadline: DateTime
   delivery_type: DeliveryType!
   description: String!
   images: [String!]
@@ -6917,6 +6920,9 @@ type Mutation {
   """Добавить доверенное лицо кооперативного участка"""
   addTrustedAccount(data: AddTrustedAccountInput!): Branch!
 
+  """Одобрить карточку (модерация → публикация)"""
+  approveProductCard(id: String!): ProductCard!
+
   """Архивировать карточку"""
   archiveProductCard(id: String!): Boolean!
 
@@ -7218,7 +7224,7 @@ type Mutation {
   """Создать предложение на поставку имущества"""
   createParentOffer(data: CreateParentOfferInput!): Transaction!
 
-  """Создать карточку товара/услуги"""
+  """Создать карточку товара/услуги (черновик)"""
   createProductCard(data: CreateProductCardInput!): ProductCard!
 
   """
@@ -7394,9 +7400,6 @@ type Mutation {
   """Отклонить модерацию по заявке"""
   prohibitRequest(data: ProhibitRequestInput!): Transaction!
 
-  """Опубликовать карточку"""
-  publishProductCard(id: String!): Boolean!
-
   """
   Опубликовать предложенную повестку и проект решения для дальнейшего голосования совета по нему
   """
@@ -7420,6 +7423,9 @@ type Mutation {
   Зарегистрировать заявление и подписанные положения, подготовив пакет документов к отправке в совет на голосование после поступления оплаты.
   """
   registerParticipant(data: RegisterParticipantInput!): Account!
+
+  """Отклонить карточку (вернуть в черновик)"""
+  rejectProductCard(id: String!): ProductCard!
 
   """Перепредложить имущество по новой цене"""
   reofferRequest(data: ReofferRequestInput!): Transaction!
@@ -7468,6 +7474,9 @@ type Mutation {
   Выслать токен для замены приватного ключа аккаунта на электронную почту
   """
   startResetKey(data: StartResetKeyInput!): Boolean!
+
+  """Отправить карточку на модерацию"""
+  submitProductCardForModeration(id: String!): ProductCard!
 
   """
   Подтвердить поставку имущества Поставщиком по заявке Заказчика и акту приёма-передачи
@@ -8538,11 +8547,16 @@ type ProductCard {
   contribution_type: ContributionType!
   coopname: String!
   created_at: DateTime!
+  cycle_active: Boolean!
+  cycle_collected_units: Int!
+  cycle_deadline: DateTime
+  cycle_number: Int!
   delivery_type: DeliveryType!
   description: String!
   id: String!
   images: [String!]!
   membership_fee_amount: String
+  min_units: Int
   product_lifecycle_secs: Int!
   status: ProductCardStatus!
   title: String!
@@ -9118,7 +9132,7 @@ type Query {
   """Получить список всех собраний кооператива"""
   getMeets(data: GetMeetsInput!): [MeetAggregate!]!
 
-  """Мои карточки"""
+  """Мои карточки (все статусы)"""
   getMyProductCards: [ProductCard!]!
 
   """Получить созданные мной ссылки доступа"""
@@ -9135,8 +9149,8 @@ type Query {
   """Получить карточку по ID"""
   getProductCard(id: String!): ProductCard
 
-  """Получить карточки товаров/услуг"""
-  getProductCards(category_id: String, limit: Int = 20, page: Int = 1, search: String, status: ProductCardStatus, type: ProductCardType): [ProductCard!]!
+  """Получить опубликованные карточки товаров/услуг"""
+  getProductCards(category_id: String, limit: Int = 20, page: Int = 1, search: String, type: ProductCardType): [ProductCard!]!
 
   """Получить один программный кошелек по фильтру"""
   getProgramWallet(filter: ProgramWalletFilterInput!): ProgramWallet
