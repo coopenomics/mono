@@ -77,6 +77,7 @@
 - [x] Перепредложение (reoffer) — закрытие старой заявки, создание coopstock с новой ценой
 - [x] Система перевозок — уже реализована (shipment/)
 - [x] Гарантийный возврат — уже реализован (dispute_on_offer/)
+- [x] Сборка marketplace.wasm + marketplace.abi (test mode) — OK
 - [ ] Накопительный характер заявок (min_units threshold) — TODO
 
 #### 15.2 Генерация типов
