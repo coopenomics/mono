@@ -1,0 +1,394 @@
+<?xml version="1.0" encoding="windows-1251"?>
+<!-- edited with XMLSpy v2013 (http://www.altova.com) by  () -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:sch="http://purl.oclc.org/dsdl/schematron" xmlns:usch="http://www.unisoftware.ru/schematron-extensions" xmlns:sql="urn:schemas-microsoft-com:mapping-schema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:element name="Файл">
+		<xs:annotation>
+			<!---*******************************************************************************************************************************************************-->
+			<xs:appinfo>
+				<sch:pattern name="Проверка имени файла на соответствие значению атрибута @ИдФайл">
+					<sch:rule context="Файл">
+						<!--  Проверка имени файла на соответствие ИдФайл  -->
+						<sch:assert test="usch:getFileName() = @ИдФайл">
+							<usch:error code="0400400007" path="@ИдФайл" value-of-select="@ИдФайл" doc-id-path="usch:getFileName()" doc-id-caption="Файл">Имя файла обмена "<usch:value-of select="usch:getFileName()"/>" не совпадает со значением элемента ИдФайл "<usch:value-of select="@ИдФайл"/>"</usch:error>
+						</sch:assert>
+					</sch:rule>
+				</sch:pattern>
+			</xs:appinfo>
+			<!---*******************************************************************************************************************************************************-->
+			<xs:documentation>Файл обмена</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Документ">
+					<xs:annotation>
+						<xs:documentation>Состав и структура документа</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="СвНП">
+								<xs:annotation>
+									<xs:documentation>Сведения о налогоплательщике, плательщике сборов, плательщике страховых взносов, налоговом агенте</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:choice>
+										<xs:element name="НПЮЛ">
+											<xs:annotation>
+												<xs:documentation>Налогоплательщик, плательщик сборов, плательщик страховых взносов, налоговый агент - организация</xs:documentation>
+											</xs:annotation>
+											<xs:complexType>
+												<xs:attribute name="ИННЮЛ" type="ИННЮЛТип" use="required">
+													<xs:annotation>
+														<xs:documentation>ИНН организации</xs:documentation>
+													</xs:annotation>
+												</xs:attribute>
+												<xs:attribute name="КПП" type="КППТип" use="required">
+													<xs:annotation>
+														<xs:documentation>КПП</xs:documentation>
+													</xs:annotation>
+												</xs:attribute>
+											</xs:complexType>
+										</xs:element>
+										<xs:element name="НПИП">
+											<xs:annotation>
+												<xs:documentation>Налогоплательщик, плательщик сборов, плательщик страховых взносов, налоговый агент - индивидуальный предприниматель</xs:documentation>
+											</xs:annotation>
+											<xs:complexType>
+												<xs:attribute name="ИННФЛ" type="ИННФЛТип" use="required">
+													<xs:annotation>
+														<xs:documentation>ИНН физического лица</xs:documentation>
+													</xs:annotation>
+												</xs:attribute>
+											</xs:complexType>
+										</xs:element>
+									</xs:choice>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="Подписант">
+								<xs:annotation>
+									<!---*******************************************************************************************************************************************************-->
+									<!---*******************************************************************************************************************************************************-->
+									<!---*******************************************************************************************************************************************************-->
+									<xs:appinfo>
+										<sch:pattern name="Присутствие сведений о представителе в  зависимости  от  значения  ПрПодп">
+											<sch:rule context="Подписант">
+												<!-- Контроль обязательности присутствия Сведений о представителе налогоплательщика в зависимости от значения ПрПодп -->
+												<sch:assert test="usch:iif(@ПрПодп=2, count(СвПред)!=0, (count(СвПред)!=0 or count(СвПред)=0))">
+													<usch:error code="0400300003" path="@ПрПодп" value-of-select="@ПрПодп">Не выполнено условие присутствия (отсутствия) элемента Файл/Документ/Подписант/СвПред при значении элемента ПрПодп, равном "<usch:value-of select="@ПрПодп"/>".</usch:error>
+												</sch:assert>
+											</sch:rule>
+										</sch:pattern>
+									</xs:appinfo>
+									<!---*******************************************************************************************************************************************************-->
+									<xs:documentation>Сведения о лице, подписавшем документ</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="ФИО" type="ФИОТип">
+											<xs:annotation>
+												<xs:documentation>Фамилия, имя, отчество физического лица</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="СвПред" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Сведения о представителе налогоплательщика, плательщика сборов, плательщика страховых взносов, налогового агента</xs:documentation>
+											</xs:annotation>
+											<xs:complexType>
+												<xs:attribute name="НаимДок" use="required">
+													<xs:annotation>
+														<xs:documentation>Наименование и реквизиты документа, подтверждающего полномочия представителя налогоплательщика, плательщика сборов, плательщика страховых взносов, налогового агента</xs:documentation>
+													</xs:annotation>
+													<xs:simpleType>
+														<xs:restriction base="xs:string">
+															<xs:minLength value="1"/>
+															<xs:maxLength value="120"/>
+														</xs:restriction>
+													</xs:simpleType>
+												</xs:attribute>
+												<xs:attribute name="НаимОрг" use="optional">
+													<xs:annotation>
+														<xs:documentation>Наименование организации – представителя налогоплательщика, плательщика сборов, плательщика страховых взносов, налогового агента</xs:documentation>
+													</xs:annotation>
+													<xs:simpleType>
+														<xs:restriction base="xs:string">
+															<xs:minLength value="1"/>
+															<xs:maxLength value="1000"/>
+														</xs:restriction>
+													</xs:simpleType>
+												</xs:attribute>
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+									<xs:attribute name="ПрПодп" use="required">
+										<xs:annotation>
+											<xs:documentation>Признак лица, подписавшего документ</xs:documentation>
+										</xs:annotation>
+										<xs:simpleType>
+											<xs:restriction base="xs:string">
+												<xs:length value="1"/>
+												<xs:enumeration value="1"/>
+												<xs:enumeration value="2"/>
+											</xs:restriction>
+										</xs:simpleType>
+									</xs:attribute>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="УвИсчСумНалог" maxOccurs="unbounded">
+								<xs:annotation>
+									<!---***********************************************************************************************************************************************************************-->
+									<xs:appinfo>
+										<sch:pattern name="Проверка наличия КППДекл">
+											<sch:rule context="УвИсчСумНалог">
+												<!--         Обязательность присутствия КППДекл при наличии НПЮЛ        -->
+												<sch:assert test="(@КППДекл and ../СвНП/НПЮЛ) or (not(../СвНП/НПЮЛ))                     ">
+													<usch:error code="0400300003" path="" value-of-select="">
+                                                                          Отсутствует элемент Файл/Документ/УвИсчСумНалог/@КППДекл при наличии элемента Файл/Документ/СвНП/НПЮЛ
+                                                                   </usch:error>
+												</sch:assert>
+											</sch:rule>
+										</sch:pattern>
+									</xs:appinfo>
+									<!---***********************************************************************************************************************************************************************-->
+									<xs:documentation>Уведомление об исчисленных суммах налогов, авансовых платежей по налогам, сборов, страховых взносов</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:attribute name="КППДекл" type="КППТип" use="optional">
+										<xs:annotation>
+											<xs:documentation>КПП, указанный в соответствующей налоговой декларации (расчете)</xs:documentation>
+										</xs:annotation>
+									</xs:attribute>
+									<xs:attribute name="ОКТМО" type="ОКТМОТип" use="required">
+										<xs:annotation>
+											<xs:documentation>Код по ОКТМО</xs:documentation>
+										</xs:annotation>
+									</xs:attribute>
+									<xs:attribute name="КБК" type="КБКТип" use="required">
+										<xs:annotation>
+											<xs:documentation>Код бюджетной классификации</xs:documentation>
+										</xs:annotation>
+									</xs:attribute>
+									<xs:attribute name="СумНалогАванс" use="required">
+										<xs:annotation>
+											<xs:documentation>Сумма налога, авансовых платежей по налогу, сбора, страховых взносов</xs:documentation>
+										</xs:annotation>
+										<xs:simpleType>
+											<xs:restriction base="xs:decimal">
+												<xs:totalDigits value="17"/>
+												<xs:fractionDigits value="2"/>
+											</xs:restriction>
+										</xs:simpleType>
+									</xs:attribute>
+									<xs:attribute name="Период" use="required">
+										<xs:annotation>
+											<xs:documentation>Отчетный (налоговый) период</xs:documentation>
+										</xs:annotation>
+										<xs:simpleType>
+											<xs:restriction base="xs:string">
+												<xs:length value="2"/>
+												<xs:enumeration value="21"/>
+												<xs:enumeration value="31"/>
+												<xs:enumeration value="33"/>
+												<xs:enumeration value="34"/>
+											</xs:restriction>
+										</xs:simpleType>
+									</xs:attribute>
+									<xs:attribute name="НомерМесКварт" use="required">
+										<xs:annotation>
+											<xs:documentation>Номер месяца (квартала)</xs:documentation>
+										</xs:annotation>
+										<xs:simpleType>
+											<xs:restriction base="xs:string">
+												<xs:length value="2"/>
+												<xs:enumeration value="01"/>
+												<xs:enumeration value="02"/>
+												<xs:enumeration value="03"/>
+												<xs:enumeration value="04"/>
+												<xs:enumeration value="11"/>
+												<xs:enumeration value="12"/>
+												<xs:enumeration value="13"/>
+											</xs:restriction>
+										</xs:simpleType>
+									</xs:attribute>
+									<xs:attribute name="Год" use="required">
+										<xs:annotation>
+											<xs:documentation>Отчетный (календарный) год</xs:documentation>
+										</xs:annotation>
+										<xs:simpleType>
+											<xs:restriction base="xs:gYear"/>
+										</xs:simpleType>
+									</xs:attribute>
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+						<xs:attribute name="КНД" use="required">
+							<xs:annotation>
+								<xs:documentation>Код формы отчетности по КНД</xs:documentation>
+							</xs:annotation>
+							<xs:simpleType>
+								<xs:restriction base="КНДТип">
+									<xs:enumeration value="1110355"/>
+								</xs:restriction>
+							</xs:simpleType>
+						</xs:attribute>
+						<xs:attribute name="ДатаДок" type="ДатаТип" use="required">
+							<xs:annotation>
+								<xs:documentation>Дата формирования документа</xs:documentation>
+							</xs:annotation>
+						</xs:attribute>
+						<xs:attribute name="КодНО" type="СОНОТип" use="required">
+							<xs:annotation>
+								<xs:documentation>Код налогового органа</xs:documentation>
+							</xs:annotation>
+						</xs:attribute>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+			<xs:attribute name="ИдФайл" use="required">
+				<xs:annotation>
+					<xs:documentation>Идентификатор файла</xs:documentation>
+					<xs:documentation>Содержит (повторяет) имя сформированного файла (без расширения)</xs:documentation>
+				</xs:annotation>
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:minLength value="1"/>
+						<xs:maxLength value="255"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:attribute>
+			<xs:attribute name="ВерсПрог" use="required">
+				<xs:annotation>
+					<xs:documentation>Версия программы, с помощью которой сформирован файл</xs:documentation>
+				</xs:annotation>
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:minLength value="1"/>
+						<xs:maxLength value="40"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:attribute>
+			<xs:attribute name="ВерсФорм" use="required">
+				<xs:annotation>
+					<xs:documentation>Версия формата</xs:documentation>
+				</xs:annotation>
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:minLength value="1"/>
+						<xs:maxLength value="5"/>
+						<xs:enumeration value="5.03"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:attribute>
+		</xs:complexType>
+	</xs:element>
+	<xs:complexType name="ФИОТип">
+		<xs:annotation>
+			<xs:documentation>Фамилия, имя, отчество</xs:documentation>
+		</xs:annotation>
+		<xs:attribute name="Фамилия" use="required">
+			<xs:annotation>
+				<xs:documentation>Фамилия</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:minLength value="1"/>
+					<xs:maxLength value="60"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="Имя" use="required">
+			<xs:annotation>
+				<xs:documentation>Имя</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:minLength value="1"/>
+					<xs:maxLength value="60"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="Отчество" use="optional">
+			<xs:annotation>
+				<xs:documentation>Отчество</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:minLength value="1"/>
+					<xs:maxLength value="60"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+	</xs:complexType>
+	<xs:simpleType name="КППТип">
+		<xs:annotation>
+			<xs:documentation>Код причины постановки на учет (КПП) - 5 и 6 знаки от 0-9 и A-Z</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:length value="9"/>
+			<xs:pattern value="([0-9]{1}[1-9]{1}|[1-9]{1}[0-9]{1})([0-9]{2})([0-9A-Z]{2})([0-9]{3})"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ИННЮЛТип">
+		<xs:annotation>
+			<xs:documentation>Идентификационный номер налогоплательщика - организации</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:length value="10"/>
+			<xs:pattern value="([0-9]{1}[1-9]{1}|[1-9]{1}[0-9]{1})[0-9]{8}"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="КНДТип">
+		<xs:annotation>
+			<xs:documentation>Код из Классификатора налоговой документации</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:length value="7"/>
+			<xs:pattern value="[0-9]{7}"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ДатаТип">
+		<xs:annotation>
+			<xs:documentation>Дата в формате ДД.ММ.ГГГГ (01.01.1900 - 31.12.2099)</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:length value="10"/>
+			<xs:pattern value="((((0[1-9]{1}|1[0-9]{1}|2[0-8]{1})\.(0[1-9]{1}|1[0-2]{1}))|((29|30)\.(01|0[3-9]{1}|1[0-2]{1}))|(31\.(01|03|05|07|08|10|12)))\.((19|20)[0-9]{2}))|(29\.02\.((19|20)(((0|2|4|6|8)(0|4|8))|((1|3|5|7|9)(2|6)))))"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="СОНОТип">
+		<xs:annotation>
+			<xs:documentation>Коды из Классификатора системы обозначений налоговых органов</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:length value="4"/>
+			<xs:pattern value="[0-9]{4}"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ОКТМОТип">
+		<xs:annotation>
+			<xs:documentation>Код из Общероссийского классификатора территорий муниципальных образований</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:minLength value="8"/>
+			<xs:maxLength value="11"/>
+			<xs:pattern value="[0-9]{8}"/>
+			<xs:pattern value="[0-9]{11}"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ИННФЛТип">
+		<xs:annotation>
+			<xs:documentation>Идентификационный номер налогоплательщика - физического лица</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:length value="12"/>
+			<xs:pattern value="([0-9]{1}[1-9]{1}|[1-9]{1}[0-9]{1})[0-9]{10}"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="КБКТип">
+		<xs:annotation>
+			<xs:documentation>Код из Классификатора доходов в бюджет </xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:length value="20"/>
+			<xs:pattern value="[0-9]{20}"/>
+		</xs:restriction>
+	</xs:simpleType>
+</xs:schema>

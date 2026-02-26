@@ -16,4 +16,4 @@ export const actionName = 'offer'
 /**
  * @interface
  */
-export type ICreateOffer = Marketplace.IOffer
+export type ICreateOffer = Marketplace.IWoffer

@@ -16,4 +16,4 @@ export const actionName = 'recievecnfrm'
 /**
  * @interface
  */
-export type IConfirmReceive = Marketplace.IRecievecnfrm
+export type IConfirmReceive = Marketplace.IReceivecnf

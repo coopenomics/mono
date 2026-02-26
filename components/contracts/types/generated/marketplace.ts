@@ -11,25 +11,37 @@ export type IUint64 = number | string
 
 export interface IAccept {
   coopname: IName
+  supplier_braname: IName
   username: IName
-  exchange_id: IUint64
-  document: IDocument2
+  request_hash: IChecksum256
+  convert_out: IDocument2
+  return_document: IDocument2
 }
 
-export interface IAddunits {
+export interface IAcceptstock {
   coopname: IName
   username: IName
-  exchange_id: IUint64
-  units: IUint64
+  request_hash: IChecksum256
+  convert_in: IDocument2
+  return_statement: IDocument2
 }
 
-export interface IAuthorize {
+export interface IArrived {
   coopname: IName
-  exchange_id: IUint64
-  contribution_product_decision_id: IUint64
-  contribution_product_authorization: IDocument2
-  return_product_decision_id: IUint64
-  return_product_authorization: IDocument2
+  hash: IChecksum256
+  transport_act_delivery: IDocument2
+}
+
+export interface IAuthcontrib {
+  coopname: IName
+  request_hash: IChecksum256
+  authorization: IDocument2
+}
+
+export interface IAuthreturn {
+  coopname: IName
+  request_hash: IChecksum256
+  authorization: IDocument2
 }
 
 export interface IBalances extends IBalancesBase {
@@ -44,13 +56,25 @@ export interface IBalancesBase {
 export interface ICancel {
   coopname: IName
   username: IName
-  exchange_id: IUint64
+  request_hash: IChecksum256
 }
 
 export interface IComplete {
   coopname: IName
   username: IName
-  exchange_id: IUint64
+  request_hash: IChecksum256
+}
+
+export interface ICoopstock {
+  coopname: IName
+  braname: IName
+  hash: IChecksum256
+  units: IUint64
+  unit_cost: IAsset
+  product_lifecycle_secs: IUint32
+  warranty_period_secs: IUint32
+  membership_fee_amount: IAsset
+  meta: string
 }
 
 export interface ICounts extends ICountsBase {
@@ -62,23 +86,61 @@ export interface ICountsBase {
   value: IUint64
 }
 
+export interface ICreateorder {
+  coopname: IName
+  receiver_braname: IName
+  username: IName
+  hash: IChecksum256
+  units: IUint64
+  unit_cost: IAsset
+  product_lifecycle_secs: IUint32
+  warranty_period_secs: IUint32
+  membership_fee_amount: IAsset
+  cancellation_fee_amount: IAsset
+  convert_in: IDocument2
+  delivery_type: IName
+  meta: string
+}
+
+export interface ICreateship {
+  coopname: IName
+  hash: IChecksum256
+  driver_username: IName
+  source_braname: IName
+  destination_braname: IName
+  request_hashes: IChecksum256[]
+  transport_act_sender: IDocument2
+}
+
 export interface IDecline {
   coopname: IName
   username: IName
-  exchange_id: IUint64
+  request_hash: IChecksum256
   meta: string
+}
+
+export interface IDeclineacc {
+  coopname: IName
+  hash: IChecksum256
+  reason: string
 }
 
 export interface IDelivered {
   coopname: IName
   username: IName
-  exchange_id: IUint64
+  request_hash: IChecksum256
+}
+
+export interface IDestroy {
+  coopname: IName
+  request_hash: IChecksum256
+  destruction_act: IDocument2
 }
 
 export interface IDispute {
   coopname: IName
   username: IName
-  exchange_id: IUint64
+  request_hash: IChecksum256
   document: IDocument2
 }
 
@@ -91,116 +153,167 @@ export interface IDocument2 {
   signatures: ISignatureInfo[]
 }
 
-export interface IExchangeParams {
-  username: IName
-  parent_id: IUint64
-  program_id: IUint64
-  coopname: IName
-  units: IUint64
-  unit_cost: IAsset
-  product_lifecycle_secs: IUint64
-  document?: IDocument2
-  data: string
-  meta: string
-}
-
 export interface IMigrate {
 }
 
-export interface IModerate {
+export interface INamedDocument {
+  name: IName
+  document: IDocument2
+}
+
+export interface IOrderoffer {
   coopname: IName
+  receiver_braname: IName
   username: IName
-  exchange_id: IUint64
-  cancellation_fee: IUint64
-}
-
-export interface INewid {
-  id: IUint64
-  type: IName
-}
-
-export interface IOffer {
-  params: IExchangeParams
-}
-
-export interface IOrder {
-  params: IExchangeParams
-}
-
-export interface IProhibit {
-  coopname: IName
-  username: IName
-  exchange_id: IUint64
+  hash: IChecksum256
+  units: IUint64
+  unit_cost: IAsset
+  product_lifecycle_secs: IUint32
+  warranty_period_secs: IUint32
+  membership_fee_amount: IAsset
+  cancellation_fee_amount: IAsset
+  convert_in: IDocument2
+  delivery_type: IName
+  contribution_type: IName
   meta: string
 }
 
-export interface IPublish {
+export interface IReceive {
   coopname: IName
   username: IName
-  exchange_id: IUint64
-}
-
-export interface IRecieve {
-  coopname: IName
-  username: IName
-  exchange_id: IUint64
+  request_hash: IChecksum256
   document: IDocument2
 }
 
-export interface IRecievecnfrm {
+export interface IReceivecnf {
   coopname: IName
   username: IName
-  exchange_id: IUint64
+  request_hash: IChecksum256
   document: IDocument2
+}
+
+export interface IReceiveshipm {
+  coopname: IName
+  hash: IChecksum256
+  warehouse_receipt_act: IDocument2
+}
+
+export interface IReoffer {
+  coopname: IName
+  request_hash: IChecksum256
+  new_hash: IChecksum256
+  new_unit_cost: IAsset
+  new_meta: string
+}
+
+export interface IReqreturn {
+  coopname: IName
+  username: IName
+  request_hash: IChecksum256
+  return_statement: IDocument2
 }
 
 export interface IRequest {
   id: IUint64
-  parent_id: IUint64
-  program_id: IUint64
+  hash: IChecksum256
   coopname: IName
   type: IName
   status: IName
   username: IName
-  parent_username: IName
+  braname: IName
+  warehouse: IName
   token_contract: IName
+  receiver_braname: IName
+  supplier_braname: IName
   unit_cost: IAsset
-  supplier_amount: IAsset
+  base_cost: IAsset
+  membership_fee_amount: IAsset
   total_cost: IAsset
-  membership_fee: IAsset
-  remain_units: IUint64
-  blocked_units: IUint64
-  delivered_units: IUint64
-  data: string
+  units: IUint64
   meta: string
   money_contributor: IName
   product_contributor: IName
-  contribute_product_statement: IDocument2
-  return_product_statement: IDocument2
-  contribution_product_decision_id: IUint64
-  contribution_product_authorization: IDocument2
-  return_product_decision_id: IUint64
-  return_product_authorization: IDocument2
-  product_contribution_act_validation: IDocument2
-  product_contribution_act: IDocument2
-  product_recieve_act: IDocument2
-  product_recieve_act_validation: IDocument2
+  documents: INamedDocument[]
   product_lifecycle_secs: IUint64
-  cancellation_fee: IUint64
+  warranty_period_secs: IUint64
   cancellation_fee_amount: IAsset
+  warranty_delay_until: ITimePointSec
+  deadline_for_receipt: ITimePointSec
+  delivery_type: IName
+  contribution_type: IName
+  is_warranty_return: boolean
+  warranty_return_id: IUint64
   created_at: ITimePointSec
   accepted_at: ITimePointSec
   supplied_at: ITimePointSec
   delivered_at: ITimePointSec
-  recieved_at: ITimePointSec
+  received_at: ITimePointSec
   completed_at: ITimePointSec
   declined_at: ITimePointSec
   disputed_at: ITimePointSec
   canceled_at: ITimePointSec
-  warranty_delay_until: ITimePointSec
-  deadline_for_receipt: ITimePointSec
-  is_warranty_return: boolean
-  warranty_return_id: IUint64
+}
+
+export interface IRespondoffer {
+  coopname: IName
+  supplier_braname: IName
+  username: IName
+  order_hash: IChecksum256
+  offer_hash: IChecksum256
+  units: IUint64
+  product_lifecycle_secs: IUint32
+  contribution_statement: IDocument2
+  convert_out: IDocument2
+}
+
+export interface IRetransport {
+  coopname: IName
+  completed_hash: IChecksum256
+  new_driver_username: IName
+  source_braname: IName
+  new_destination_braname: IName
+  request_hashes: IChecksum256[]
+  transport_act_sender: IDocument2
+}
+
+export interface ISegment {
+  id: IUint64
+  request_id: IUint64
+  type: IName
+  status: IName
+  convert_in: IDocument2
+  statement: IDocument2
+  decision_id: IUint64
+  authorization: IDocument2
+  act1: IDocument2
+  act2: IDocument2
+  convert_out: IDocument2
+  transport_act_1: IDocument2
+  transport_act_2: IDocument2
+  transport_act_3: IDocument2
+  transport_act_4: IDocument2
+  coopactor: IName
+  username: IName
+  driver_username: IName
+  receive_from_driver_coopactor: IName
+  created_at: ITimePointSec
+  updated_at: ITimePointSec
+}
+
+export interface IShipment {
+  id: IUint64
+  hash: IChecksum256
+  coopname: IName
+  driver_username: IName
+  source_braname: IName
+  destination_braname: IName
+  status: IName
+  request_hashes: IChecksum256[]
+  documents: INamedDocument[]
+  created_at: ITimePointSec
+  loaded_at: ITimePointSec
+  delivered_at: ITimePointSec
+  completed_at: ITimePointSec
 }
 
 export interface ISignatureInfo {
@@ -213,33 +326,54 @@ export interface ISignatureInfo {
   meta: string
 }
 
+export interface ISignbydriver {
+  coopname: IName
+  hash: IChecksum256
+  transport_act_driver: IDocument2
+}
+
+export interface ISupplcnf {
+  coopname: IName
+  username: IName
+  request_hash: IChecksum256
+  act: IDocument2
+}
+
 export interface ISupply {
   coopname: IName
   username: IName
-  exchange_id: IUint64
+  request_hash: IChecksum256
+  act: IDocument2
+}
+
+export interface IWaccept {
+  coopname: IName
+  username: IName
+  request_hash: IChecksum256
+  accept: boolean
   document: IDocument2
 }
 
-export interface ISupplycnfrm {
+export interface IWauthorize {
+  coopname: IName
+  request_hash: IChecksum256
+  wreturn_decision_id: IUint64
+  wreturn_authorization: IDocument2
+  wsupply_decision_id: IUint64
+  wsupply_authorization: IDocument2
+}
+
+export interface IWoffer {
   coopname: IName
   username: IName
-  exchange_id: IUint64
+  request_hash: IChecksum256
   document: IDocument2
 }
 
-export interface IUnpublish {
+export interface IWreturn {
   coopname: IName
   username: IName
-  exchange_id: IUint64
-}
-
-export interface IUpdate {
-  coopname: IName
-  username: IName
-  exchange_id: IUint64
-  remain_units: IUint64
-  unit_cost: IAsset
-  data: string
-  meta: string
+  request_hash: IChecksum256
+  document: IDocument2
 }
 

@@ -610,6 +610,7 @@ export interface IPlanPool {
   total_received_investments: IAsset
   total_generation_pool: IAsset
   total: IAsset
+  total_with_investments: IAsset
 }
 
 export interface IProgramInvest {

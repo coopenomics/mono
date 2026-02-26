@@ -4,6 +4,10 @@ export const AllTypesProps: Record<string,any> = {
 	AcceptChildOrderInput:{
 		document:"AssetContributionStatementSignedDocumentInput"
 	},
+	AcceptStockInput:{
+		convert_in:"SignedDigitalDocumentInput",
+		return_statement:"SignedDigitalDocumentInput"
+	},
 	AccountType: "enum" as const,
 	ActionFiltersInput:{
 
@@ -250,6 +254,9 @@ export const AllTypesProps: Record<string,any> = {
 	ConvertToAxonStatementSignedMetaDocumentInput:{
 
 	},
+	CoopstockInput:{
+
+	},
 	Country: "enum" as const,
 	CreateAnnualGeneralMeetInput:{
 		agenda:"AgendaGeneralMeetPointInput",
@@ -335,6 +342,9 @@ export const AllTypesProps: Record<string,any> = {
 	CreateShareLinkInput:{
 		targetType:"ShareTargetType"
 	},
+	CreateShipmentInput:{
+		transport_act:"SignedDigitalDocumentInput"
+	},
 	CreateSovietIndividualDataInput:{
 		passport:"PassportInput"
 	},
@@ -391,6 +401,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	DeltaFiltersInput:{
 
+	},
+	DestroyRequestInput:{
+		destruction_act:"SignedDigitalDocumentInput"
 	},
 	DisputeOnRequestInput:{
 		document:"JSONObject"
@@ -581,6 +594,7 @@ export const AllTypesProps: Record<string,any> = {
 	IssueStatus: "enum" as const,
 	JSON: `scalar.JSON` as const,
 	JSONObject: `scalar.JSONObject` as const,
+	LeadRequestPolicy: "enum" as const,
 	LogEntityType: "enum" as const,
 	LogEventType: "enum" as const,
 	LoginInput:{
@@ -599,11 +613,17 @@ export const AllTypesProps: Record<string,any> = {
 		acceptChildOrder:{
 			data:"AcceptChildOrderInput"
 		},
+		acceptStock:{
+			data:"AcceptStockInput"
+		},
 		addParticipant:{
 			data:"AddParticipantInput"
 		},
 		addPaymentMethod:{
 			data:"AddPaymentMethodInput"
+		},
+		addToPublishWhitelist:{
+
 		},
 		addTrustedAccount:{
 			data:"AddTrustedAccountInput"
@@ -880,6 +900,9 @@ export const AllTypesProps: Record<string,any> = {
 		confirmSupplyOnRequest:{
 			data:"ConfirmSupplyOnRequestInput"
 		},
+		coopstock:{
+			data:"CoopstockInput"
+		},
 		createAnnualGeneralMeet:{
 			data:"CreateAnnualGeneralMeetInput"
 		},
@@ -907,6 +930,9 @@ export const AllTypesProps: Record<string,any> = {
 		createShareLink:{
 			data:"CreateShareLinkInput"
 		},
+		createShipment:{
+			data:"CreateShipmentInput"
+		},
 		createWebPushSubscription:{
 			data:"CreateSubscriptionInput"
 		},
@@ -933,6 +959,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		deliverOnRequest:{
 			data:"DeliverOnRequestInput"
+		},
+		destroyRequest:{
+			data:"DestroyRequestInput"
 		},
 		disputeOnRequest:{
 			data:"DisputeOnRequestInput"
@@ -999,7 +1028,8 @@ export const AllTypesProps: Record<string,any> = {
 			data:"GenerateRegistrationDocumentsInput"
 		},
 		generateReport:{
-			data:"GenerateReportInput"
+			data:"GenerateReportInput",
+			organization:"OrganizationDataInput"
 		},
 		generateReturnByAssetAct:{
 			data:"ReturnByAssetActGenerateDocumentInput",
@@ -1077,6 +1107,9 @@ export const AllTypesProps: Record<string,any> = {
 		receiveOnRequest:{
 			data:"ReceiveOnRequestInput"
 		},
+		receiveShipment:{
+			data:"SignShipmentInput"
+		},
 		refresh:{
 			data:"RefreshInput"
 		},
@@ -1085,6 +1118,15 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		registerParticipant:{
 			data:"RegisterParticipantInput"
+		},
+		removeFromPublishWhitelist:{
+
+		},
+		reofferRequest:{
+			data:"ReofferRequestInput"
+		},
+		reqReturn:{
+			data:"ReqReturnInput"
 		},
 		resetKey:{
 			data:"ResetKeyInput"
@@ -1110,11 +1152,17 @@ export const AllTypesProps: Record<string,any> = {
 		setWif:{
 			data:"SetWifInput"
 		},
+		shipmentArrived:{
+			data:"SignShipmentInput"
+		},
 		signByPresiderOnAnnualGeneralMeet:{
 			data:"SignByPresiderOnAnnualGeneralMeetInput"
 		},
 		signBySecretaryOnAnnualGeneralMeet:{
 			data:"SignBySecretaryOnAnnualGeneralMeetInput"
+		},
+		signShipmentByDriver:{
+			data:"SignShipmentInput"
 		},
 		startInstall:{
 			data:"StartInstallInput"
@@ -1143,6 +1191,9 @@ export const AllTypesProps: Record<string,any> = {
 		updateExtension:{
 			data:"ExtensionInput"
 		},
+		updateMarketplaceSettings:{
+			data:"UpdateMarketplaceSettingsInput"
+		},
 		updateRequest:{
 			data:"UpdateRequestInput"
 		},
@@ -1166,6 +1217,9 @@ export const AllTypesProps: Record<string,any> = {
 		notification:"AnnualGeneralMeetingNotificationSignedDocumentInput"
 	},
 	OpenProjectInput:{
+
+	},
+	OrganizationDataInput:{
 
 	},
 	OrganizationDetailsInput:{
@@ -1237,6 +1291,7 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	ProjectStatus: "enum" as const,
+	PublishAccessPolicy: "enum" as const,
 	PublishProjectFreeDecisionInput:{
 		document:"ProjectFreeDecisionSignedDocumentInput"
 	},
@@ -1511,9 +1566,15 @@ export const AllTypesProps: Record<string,any> = {
 		user_agreement:"SignedDigitalDocumentInput",
 		wallet_agreement:"SignedDigitalDocumentInput"
 	},
+	ReofferRequestInput:{
+
+	},
 	ReportType: "enum" as const,
 	RepresentedByInput:{
 
+	},
+	ReqReturnInput:{
+		return_statement:"SignedDigitalDocumentInput"
 	},
 	ResetKeyInput:{
 
@@ -1634,6 +1695,9 @@ export const AllTypesProps: Record<string,any> = {
 	SignBySecretaryOnAnnualGeneralMeetInput:{
 		secretary_decision:"AnnualGeneralMeetingDecisionSignedDocumentInput"
 	},
+	SignShipmentInput:{
+		document:"SignedDigitalDocumentInput"
+	},
 	SignatureInfoInput:{
 
 	},
@@ -1717,6 +1781,10 @@ export const AllTypesProps: Record<string,any> = {
 	UpdateIssueInput:{
 		priority:"IssuePriority",
 		status:"IssueStatus"
+	},
+	UpdateMarketplaceSettingsInput:{
+		lead_request_policy:"LeadRequestPolicy",
+		publish_access_policy:"PublishAccessPolicy"
 	},
 	UpdateOrganizationDataInput:{
 		details:"OrganizationDetailsInput",
@@ -2211,6 +2279,11 @@ export const ReturnTypes: Record<string,any> = {
 		present:"Boolean",
 		start_date:"DateTime",
 		status:"CycleStatus"
+	},
+	CapitalDataChange:{
+		action:"String",
+		entity:"String",
+		id:"String"
 	},
 	CapitalDebt:{
 		_created_at:"DateTime",
@@ -3032,6 +3105,21 @@ export const ReturnTypes: Record<string,any> = {
 		chartOfAccounts:"ChartOfAccountsItem",
 		coopname:"String"
 	},
+	MarketplaceSettings:{
+		allowed_category_ids:"String",
+		coopname:"String",
+		cycles_enabled:"Boolean",
+		external_delivery_enabled:"Boolean",
+		id:"String",
+		internal_delivery_enabled:"Boolean",
+		lead_request_policy:"LeadRequestPolicy",
+		max_cycle_days:"Int",
+		max_unit_cost:"String",
+		min_unit_cost:"String",
+		moderation_required:"Boolean",
+		publish_access_policy:"PublishAccessPolicy",
+		publish_whitelist:"String"
+	},
 	MatrixAccountStatusResponseDTO:{
 		hasAccount:"Boolean",
 		iframeUrl:"String",
@@ -3134,8 +3222,10 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	Mutation:{
 		acceptChildOrder:"Transaction",
+		acceptStock:"Transaction",
 		addParticipant:"Account",
 		addPaymentMethod:"PaymentMethod",
+		addToPublishWhitelist:"Boolean",
 		addTrustedAccount:"Branch",
 		cancelRequest:"Transaction",
 		capitalAddAuthor:"CapitalProject",
@@ -3220,6 +3310,7 @@ export const ReturnTypes: Record<string,any> = {
 		confirmAgreement:"Transaction",
 		confirmReceiveOnRequest:"Transaction",
 		confirmSupplyOnRequest:"Transaction",
+		coopstock:"Transaction",
 		createAnnualGeneralMeet:"MeetAggregate",
 		createApiKey:"ApiKeyCreated",
 		createBranch:"Branch",
@@ -3229,6 +3320,7 @@ export const ReturnTypes: Record<string,any> = {
 		createParentOffer:"Transaction",
 		createProjectOfFreeDecision:"CreatedProjectFreeDecision",
 		createShareLink:"ShareLink",
+		createShipment:"Transaction",
 		createWebPushSubscription:"CreateSubscriptionResponse",
 		createWithdraw:"CreateWithdrawResponse",
 		deactivateWebPushSubscriptionById:"Boolean",
@@ -3238,6 +3330,7 @@ export const ReturnTypes: Record<string,any> = {
 		deletePaymentMethod:"Boolean",
 		deleteTrustedAccount:"Branch",
 		deliverOnRequest:"Transaction",
+		destroyRequest:"Transaction",
 		disputeOnRequest:"Transaction",
 		editBranch:"Branch",
 		generateAnnualGeneralMeetAgendaDocument:"GeneratedDocument",
@@ -3278,9 +3371,13 @@ export const ReturnTypes: Record<string,any> = {
 		publishProjectOfFreeDecision:"Boolean",
 		publishRequest:"Transaction",
 		receiveOnRequest:"Transaction",
+		receiveShipment:"Transaction",
 		refresh:"RegisteredAccount",
 		registerAccount:"RegisteredAccount",
 		registerParticipant:"Account",
+		removeFromPublishWhitelist:"Boolean",
+		reofferRequest:"Transaction",
+		reqReturn:"Transaction",
 		resetKey:"Boolean",
 		restartAnnualGeneralMeet:"MeetAggregate",
 		revokeApiKey:"Boolean",
@@ -3289,8 +3386,10 @@ export const ReturnTypes: Record<string,any> = {
 		sendAgreement:"Transaction",
 		setPaymentStatus:"GatewayPayment",
 		setWif:"Boolean",
+		shipmentArrived:"Transaction",
 		signByPresiderOnAnnualGeneralMeet:"MeetAggregate",
 		signBySecretaryOnAnnualGeneralMeet:"MeetAggregate",
+		signShipmentByDriver:"Transaction",
 		startInstall:"StartInstallResult",
 		startResetKey:"Boolean",
 		supplyOnRequest:"Transaction",
@@ -3300,6 +3399,7 @@ export const ReturnTypes: Record<string,any> = {
 		updateAccount:"Account",
 		updateBankAccount:"PaymentMethod",
 		updateExtension:"Extension",
+		updateMarketplaceSettings:"MarketplaceSettings",
 		updateRequest:"Transaction",
 		updateSettings:"Settings",
 		updateSystem:"SystemInfo",
@@ -3743,6 +3843,7 @@ export const ReturnTypes: Record<string,any> = {
 		getInstallationStatus:"InstallationStatus",
 		getLedger:"LedgerState",
 		getLedgerHistory:"LedgerHistoryResponse",
+		getMarketplaceSettings:"MarketplaceSettings",
 		getMeet:"MeetAggregate",
 		getMeets:"MeetAggregate",
 		getMyShareLinks:"ShareLink",
@@ -3886,6 +3987,10 @@ export const ReturnTypes: Record<string,any> = {
 		signatures:"SignatureInfo",
 		version:"String"
 	},
+	SovietDataChange:{
+		action:"String",
+		entity:"String"
+	},
 	StartInstallResult:{
 		coopname:"String",
 		install_code:"String"
@@ -3897,8 +4002,11 @@ export const ReturnTypes: Record<string,any> = {
 	Subscription:{
 		capitalCommitCreated:"CapitalCommit",
 		capitalCommitUpdated:"CapitalCommit",
+		capitalDataChanged:"CapitalDataChange",
 		capitalIssueCreated:"CapitalIssue",
-		capitalIssueUpdated:"CapitalIssue"
+		capitalIssueUpdated:"CapitalIssue",
+		sovietDataChanged:"SovietDataChange",
+		systemStatusChanged:"SystemStatusChange"
 	},
 	SubscriptionStatsDto:{
 		active:"Int",
@@ -3930,6 +4038,10 @@ export const ReturnTypes: Record<string,any> = {
 		system_status:"SystemStatus",
 		union_link:"String",
 		vars:"Vars"
+	},
+	SystemStatusChange:{
+		message:"String",
+		status:"String"
 	},
 	Token:{
 		expires:"DateTime",

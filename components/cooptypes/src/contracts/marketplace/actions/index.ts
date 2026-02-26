@@ -4,12 +4,6 @@
 export * as AcceptRequest from './acceptRequest'
 
 /**
- * Действие вызывается автоматически после принятия решения советом для оповещения смарт-контракта маркетплейса.
- * @private
- */
-export * as Authorize from './authorize'
-
-/**
  * Действие для отмены заявки на поставку.
  */
 export * as CancelRequest from './cancelRequest'
@@ -48,11 +42,6 @@ export * as DeclineRequest from './declineRequest'
  * Действие для подтверждения готовности выполнить поставку по входящей заявке.
  */
 export * as DeliverOnRequest from './deliverOnRequest'
-
-/**
- * Действие для модерации заявки на поставку.
- */
-export * as ModerateRequest from './moderateRequest'
 
 /**
  * Приватное действие для возврата нового идентификатора заявки на поставку после создания заявки.
