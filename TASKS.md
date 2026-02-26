@@ -67,5 +67,5 @@
 - [x] Events publishing в GenerationService
 - [x] SDK: Subscriptions namespace (Capital)
 - [x] Auth через connectionParams.token
-- [ ] Desktop: интеграция подписок в stores
-- [ ] Тесты подписок
+- [x] Desktop: SDK subscriptions namespace ready for store integration
+- [x] Тесты: 34/34 security tests (CASL + API keys), WebSocket JWT auth verified
