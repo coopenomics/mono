@@ -73,6 +73,10 @@ public:
   [[eosio::action]] void receiveshipm(eosio::name coopname, checksum256 hash, document2 warehouse_receipt_act);
   [[eosio::action]] void retransport(eosio::name coopname, checksum256 completed_hash, eosio::name new_driver_username, eosio::name source_braname, eosio::name new_destination_braname, std::vector<checksum256> request_hashes, document2 transport_act_sender);
   
+  // Имущество из запасов кооператива
+  [[eosio::action]] void coopstock(eosio::name coopname, eosio::name braname, checksum256 hash, uint64_t units, eosio::asset unit_cost, uint32_t product_lifecycle_secs, uint32_t warranty_period_secs, eosio::asset membership_fee_amount, std::string meta);
+  [[eosio::action]] void acceptstock(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 convert_in, document2 return_statement);
+  
   // Запрос возврата перед получением
   [[eosio::action]] void requestreturn(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 return_statement);
   

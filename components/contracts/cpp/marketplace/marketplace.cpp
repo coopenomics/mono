@@ -10,6 +10,8 @@
 #include "src/deliver_on_offer/supply.cpp"
 #include "src/deliver_on_offer/supplcnf.cpp"
 
+#include "src/deliver_on_offer/coopstock.cpp"
+#include "src/deliver_on_offer/acceptstock.cpp"
 #include "src/deliver_on_offer/requestreturn.cpp"
 #include "src/deliver_on_offer/delivered.cpp"
 #include "src/deliver_on_offer/receive.cpp"
