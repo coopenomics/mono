@@ -26,6 +26,18 @@ namespace Document {
   inline void add_document(std::vector<named_document>& docs, const name& name, const document2& doc) {
     docs.push_back({name, doc});
   }
+
+  /**
+   * @brief Удалить документ по имени (если существует)
+   * @param docs Вектор документов
+   * @param name Имя документа для удаления
+   */
+  inline void remove_document(std::vector<named_document>& docs, const name& name) {
+    docs.erase(
+      std::remove_if(docs.begin(), docs.end(), [&](const named_document& nd) { return nd.name == name; }),
+      docs.end()
+    );
+  }
   
   /**
    * @brief Найти документ по имени

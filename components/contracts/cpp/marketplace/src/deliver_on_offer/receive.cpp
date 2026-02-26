@@ -2,12 +2,14 @@
 \ingroup public_actions
 \brief Получение товара заказчиком.
 
-@details Заказчик приходит на КУ для получения имущества. Председатель КУ подписывает акт и передаёт имущество заказчику.
+@details Заказчик приходит на КУ для получения имущества. 
+Председатель КУ подписывает акт и передаёт имущество заказчику.
+Получение возможно ТОЛЬКО после авторизации возврата советом (статус retauthorized).
 
 @param coopname Имя кооператива
-@param username Имя заказчика
+@param username Имя заказчика (председатель КУ подписывает от лица кооператива)
 @param request_hash Хэш заявки
-@param document Акт получения имущества
+@param document Акт получения имущества (подпись председателя КУ)
 
 @note Авторизация требуется от аккаунта: @p coopname
 **/
@@ -19,21 +21,17 @@
   eosio::check(change_opt.has_value(), "Заявка не найдена");
   auto change = change_opt.value();
   
-  eosio::check(change.status == "delivered"_n, "Получение возможно только после статуса delivered");
+  // Получение возможно только после авторизации возврата советом
+  eosio::check(change.status == "retauthorized"_n, "Получение возможно только после авторизации возврата советом");
   eosio::check(change.money_contributor == username, "Недостаточно прав доступа");
   
-  // Проверяем подпись документа
   verify_document_or_fail(document);
-  
-  // Валидируем документ по registry_id (пока что ноль)
   Document::validate_registry_id(document, 0);
 
-  // Обновляем заявку
   auto change_itr = requests.find(change.id);
   eosio::check(change_itr != requests.end(), "Заявка не найдена для обновления");
   requests.modify(change_itr, _marketplace, [&](auto &o){
     o.status = "received1"_n;
-    // Добавляем акт получения с именем
     Document::add_document(o.documents, DocumentNames::RECEIVE_ACT, document);
   });
 }; 

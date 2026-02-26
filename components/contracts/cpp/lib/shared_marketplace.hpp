@@ -234,7 +234,9 @@ typedef eosio::multi_index<
 > requests_index;
 
 static const std::set<eosio::name> marketplace_callback_actions = {
-  "authoffs2c"_n, // авторизация сегмента contribute для направления OFFER → ORDER
+  "authcontrib"_n, // авторизация взноса имуществом
+  "authreturn"_n,  // авторизация возврата имуществом
+  "authoffs2c"_n,  // авторизация сегмента contribute для направления OFFER → ORDER
   "authoffc2r"_n,  // авторизация сегмента return для направления OFFER → ORDER
   "authordcont"_n, // авторизация сегмента contribute для направления ORDER → OFFER
   "authordret"_n,  // авторизация сегмента return для направления ORDER → OFFER
