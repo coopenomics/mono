@@ -134,20 +134,11 @@ export class CooplaceService {
     return result;
   }
 
-  public async moderateRequest(data: ModerateRequestInputDTO): Promise<TransactionDTO> {
-    const result = await this.cooplaceInteractor.moderateRequest(data);
-    return result;
-  }
+  // moderateRequest: deprecated — removed from blockchain contract
 
-  public async prohibitRequest(data: ProhibitRequestInputDTO): Promise<TransactionDTO> {
-    const result = await this.cooplaceInteractor.prohibitRequest(data);
-    return result;
-  }
+  // prohibitRequest: deprecated — removed from blockchain contract
 
-  public async publishRequest(data: PublishRequestInputDTO): Promise<TransactionDTO> {
-    const result = await this.cooplaceInteractor.publishRequest(data);
-    return result;
-  }
+  // publishRequest: deprecated — removed from blockchain contract
 
   public async receiveOnRequest(data: ReceiveOnRequestInputDTO): Promise<TransactionDTO> {
     const result = await this.cooplaceInteractor.receiveOnRequest(data);
@@ -159,15 +150,9 @@ export class CooplaceService {
     return result;
   }
 
-  public async unpublishRequest(data: UnpublishRequestInputDTO): Promise<TransactionDTO> {
-    const result = await this.cooplaceInteractor.unpublishRequest(data);
-    return result;
-  }
+  // unpublishRequest: deprecated — removed from blockchain contract
 
-  public async updateRequest(data: UpdateRequestInputDTO): Promise<TransactionDTO> {
-    const result = await this.cooplaceInteractor.updateRequest(data);
-    return result;
-  }
+  // updateRequest: deprecated — removed from blockchain contract
 
   public async reqReturn(data: ReqReturnInputDTO): Promise<TransactionDTO> {
     return await this.cooplaceInteractor.reqReturn(data);

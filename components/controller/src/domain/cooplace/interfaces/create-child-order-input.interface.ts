@@ -1,8 +1,5 @@
-import type { MarketContract } from 'cooptypes';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { Interfaces } from 'cooptypes';
 
-export type CreateChildOrderInputDomainInterface = {
-  params: Omit<MarketContract.Actions.CreateOrder.ICreateOrder['params'], 'document'> & {
-    document: ISignedDocumentDomainInterface;
-  };
+export type CreateChildOrderInputDomainInterface = Omit<Interfaces.Marketplace.ICreateorder, 'convert_in'> & {
+  convert_in: { meta: any; [key: string]: any };
 };

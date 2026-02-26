@@ -1,9 +1,5 @@
-import type { MarketContract } from 'cooptypes';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { Interfaces } from 'cooptypes';
 
-export type SupplyOnRequestInputDomainInterface = Omit<
-  MarketContract.Actions.SupplyOnRequest.ISupplyOnRequest,
-  'document'
-> & {
-  document: ISignedDocumentDomainInterface;
+export type SupplyOnRequestInputDomainInterface = Omit<Interfaces.Marketplace.ISupply, 'act'> & {
+  act: { meta: any; [key: string]: any };
 };

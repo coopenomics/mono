@@ -1,9 +1,5 @@
-import type { MarketContract } from 'cooptypes';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { Interfaces } from 'cooptypes';
 
-export type ConfirmReceiveOnRequestInputDomainInterface = Omit<
-  MarketContract.Actions.ConfirmReceive.IConfirmReceive,
-  'document'
-> & {
-  document: ISignedDocumentDomainInterface;
+export type ConfirmReceiveOnRequestInputDomainInterface = Omit<Interfaces.Marketplace.IReceivecnf, 'document'> & {
+  document: { meta: any; [key: string]: any };
 };

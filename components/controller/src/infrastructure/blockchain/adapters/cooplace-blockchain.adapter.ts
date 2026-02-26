@@ -129,17 +129,17 @@ export class CooplaceBlockchainAdapter implements CooplaceBlockchainPort {
   }
 
   async createChildOrder(data: MarketContract.Actions.CreateOrder.ICreateOrder): Promise<TransactResult> {
-    const wif = await this.vaultDomainService.getWif(data.params.coopname);
+    const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
-    this.blockchainService.initialize(data.params.coopname, wif);
+    this.blockchainService.initialize(data.coopname, wif);
 
     return await this.blockchainService.transact({
       account: MarketContract.contractName.production,
       name: MarketContract.Actions.CreateOrder.actionName,
       authorization: [
         {
-          actor: data.params.coopname,
+          actor: data.coopname,
           permission: 'active',
         },
       ],
@@ -148,17 +148,17 @@ export class CooplaceBlockchainAdapter implements CooplaceBlockchainPort {
   }
 
   async createParentOffer(data: MarketContract.Actions.CreateOffer.ICreateOffer): Promise<TransactResult> {
-    const wif = await this.vaultDomainService.getWif(data.params.coopname);
+    const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
-    this.blockchainService.initialize(data.params.coopname, wif);
+    this.blockchainService.initialize(data.coopname, wif);
 
     return await this.blockchainService.transact({
       account: MarketContract.contractName.production,
       name: MarketContract.Actions.CreateOffer.actionName,
       authorization: [
         {
-          actor: data.params.coopname,
+          actor: data.coopname,
           permission: 'active',
         },
       ],
