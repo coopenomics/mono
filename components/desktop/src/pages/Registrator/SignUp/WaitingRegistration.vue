@@ -14,48 +14,28 @@ div
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, watch, onBeforeUnmount, onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useSessionStore } from 'src/entities/Session';
 import { Loader } from 'src/shared/ui/Loader';
 import { useRegistratorStore } from 'src/entities/Registrator';
+import { useGraphqlSubscription, buildSubscriptionQuery } from 'src/shared/lib/composables';
 
 const store = useRegistratorStore();
-
-const currentStep = store.steps.WaitingRegistration;
-
-const step = computed(() => store.state.step);
-const interval = ref();
-
-watch(step, (newValue) => {
-  if (newValue === currentStep) {
-    interval.value = setInterval(() => update(), 10000);
-    update();
-  }
-});
-
 const session = useSessionStore();
-
 const participantAccount = computed(() => session.participantAccount);
 
 onMounted(() => {
-  if (participantAccount.value && step.value === currentStep) store.next();
-});
-
-onBeforeUnmount(() => {
-  if (interval.value) {
-    clearInterval(interval.value);
+  if (participantAccount.value && store.state.step === store.steps.WaitingRegistration) {
+    store.next();
   }
 });
 
-const update = async () => {
-  if (store.state.account.username && !participantAccount.value) {
-    // Убираю loadProfile - данные уже загружены
-    // await currentUser.loadProfile(
-    //   store.state.account.username,
-    //   info.coopname,
-    // );
-  } else {
-    clearInterval(interval.value);
-  }
-};
+useGraphqlSubscription({
+  query: buildSubscriptionQuery('sovietDataChanged', null, ['entity', 'action']),
+  onData: () => {
+    if (participantAccount.value) {
+      store.next();
+    }
+  },
+});
 </script>

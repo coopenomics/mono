@@ -88,20 +88,9 @@ export function useProviderSubscriptions() {
     }
   };
 
-  /**
-   * Автоматическая загрузка с интервалом
-   */
-  const startAutoRefresh = (intervalMs = 60000) => { // 1 минута по умолчанию
-    loadSubscriptions(); // Первая загрузка
-
-    const interval = setInterval(() => {
-      loadSubscriptions();
-    }, intervalMs);
-
-    // Функция для остановки автообновления
-    const stop = () => clearInterval(interval);
-
-    return stop;
+  const startAutoRefresh = () => {
+    loadSubscriptions();
+    return () => {};
   };
 
   return {

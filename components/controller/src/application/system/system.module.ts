@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { SystemService } from './services/system.service';
 import { SystemResolver } from './resolvers/system.resolver';
+import { SystemSubscriptionResolver } from './resolvers/system-subscription.resolver';
 import { SystemDomainModule } from '~/domain/system/system-domain.module';
 import { ProviderModule } from '~/application/provider/provider.module';
 import { SystemInteractor } from './interactors/system.interactor';
@@ -16,6 +17,7 @@ import { PaymentMethodInfrastructureModule } from '~/infrastructure/payment-meth
 import { AccountDomainModule } from '~/domain/account/account-domain.module';
 import { SettingsInfrastructureModule } from '~/infrastructure/settings/settings-infrastructure.module';
 import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
+import { PubSubModule } from '~/infrastructure/pubsub/pubsub.module';
 
 @Module({
   imports: [
@@ -27,11 +29,13 @@ import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
     PaymentMethodInfrastructureModule,
     AccountDomainModule,
     SettingsInfrastructureModule,
+    PubSubModule,
   ],
   controllers: [],
   providers: [
     SystemService,
     SystemResolver,
+    SystemSubscriptionResolver,
     SystemInteractor,
     LoadContactsInteractor,
     WifInteractor,

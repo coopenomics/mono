@@ -170,17 +170,9 @@ export const useConnectionAgreementStore = defineStore(namespace, () => {
     }
   }
 
-  const startInstanceAutoRefresh = async (intervalMs = 30000) => { // 30 секунд по умолчанию
-    await loadCurrentInstance() // Первая загрузка
-
-    const interval = setInterval(() => {
-      loadCurrentInstance()
-    }, intervalMs)
-
-    // Функция для остановки автообновления
-    const stop = () => clearInterval(interval)
-
-    return stop
+  const startInstanceAutoRefresh = async () => {
+    await loadCurrentInstance()
+    return () => {}
   }
 
   const reset = () => {

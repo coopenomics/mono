@@ -1,13 +1,16 @@
 // application/meet/services/meet-event.service.ts
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
+import { PubSub } from 'graphql-subscriptions';
 import { MeetInteractor } from '../interactors/meet.interactor';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 import type { MeetDecisionDomainInterface } from '~/domain/meet/interfaces/meet-decision-domain.interface';
 import { MeetContract } from 'cooptypes';
 import type { IAction } from '~/types';
+import { PUB_SUB } from '~/infrastructure/pubsub/pubsub.module';
+import { SOVIET_EVENTS } from '../resolvers/meet-subscription.resolver';
 
 /**
  * Сервис обработки событий собраний
@@ -15,8 +18,18 @@ import type { IAction } from '~/types';
  */
 @Injectable()
 export class MeetEventService {
-  constructor(private readonly meetInteractor: MeetInteractor, private readonly logger: WinstonLoggerService) {
+  constructor(
+    private readonly meetInteractor: MeetInteractor,
+    private readonly logger: WinstonLoggerService,
+    @Inject(PUB_SUB) private readonly pubSub: PubSub,
+  ) {
     this.logger.setContext(MeetEventService.name);
+  }
+
+  private notifySovietChanged(entity: string, action: string) {
+    this.pubSub.publish(SOVIET_EVENTS.DATA_CHANGED, {
+      sovietDataChanged: { entity, action },
+    });
   }
 
   /**
@@ -51,6 +64,7 @@ export class MeetEventService {
       });
 
       this.logger.info(`Processed meet decision for ${event.data.hash}`);
+      this.notifySovietChanged('decision', 'processed');
     } catch (error: any) {
       this.logger.error(`Error processing meet decision: ${error.message}`, error.stack);
     }

@@ -1,4 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
+import { PubSub } from 'graphql-subscriptions';
 import { SystemInfoDTO } from '../dto/system.dto';
 import { SystemInteractor } from '../interactors/system.interactor';
 import { ProviderService } from '~/application/provider/services/provider.service';
@@ -20,6 +21,8 @@ import {
   AGREEMENT_CONFIGURATION_SERVICE,
 } from '~/domain/registration/services/agreement-configuration.service';
 import type { AccountType } from '~/application/account/enum/account-type.enum';
+import { PUB_SUB } from '~/infrastructure/pubsub/pubsub.module';
+import { SYSTEM_EVENTS } from '../resolvers/system-subscription.resolver';
 
 @Injectable()
 export class SystemService {
@@ -27,7 +30,8 @@ export class SystemService {
     private readonly systemInteractor: SystemInteractor,
     private readonly providerService: ProviderService,
     @Inject(AGREEMENT_CONFIGURATION_SERVICE)
-    private readonly agreementConfigService: AgreementConfigurationService
+    private readonly agreementConfigService: AgreementConfigurationService,
+    @Inject(PUB_SUB) private readonly pubSub: PubSub,
   ) {}
 
   public async getInfo(): Promise<SystemInfoDTO> {

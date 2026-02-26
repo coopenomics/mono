@@ -38,7 +38,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, computed, onUnmounted } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { MeetDetailsInfo } from 'src/widgets/Meets/MeetDetailsInfo';
 import { MeetDetailsActions } from 'src/widgets/Meets/MeetDetailsActions';
@@ -51,6 +51,7 @@ import { useBackButton } from 'src/shared/lib/navigation';
 import { useVoteOnMeet } from 'src/features/Meet/VoteOnMeet';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert } from 'src/shared/api';
+import { useGraphqlSubscription, buildSubscriptionQuery } from 'src/shared/lib/composables';
 
 const route = useRoute();
 const meetStore = useMeetStore();
@@ -71,8 +72,6 @@ const showAgenda = computed(
 );
 
 const { isVotingNow, setMeet } = useVoteOnMeet();
-
-let intervalId: ReturnType<typeof setInterval> | null = null;
 
 const loadMeetDetails = async () => {
   try {
@@ -103,16 +102,13 @@ useBackButton({
   componentId: 'meet-details-' + meetHash.value,
 });
 
-onMounted(() => {
-  loadMeetDetails();
-  intervalId = setInterval(loadMeetDetails, 15000);
+useGraphqlSubscription({
+  query: buildSubscriptionQuery('sovietDataChanged', null, ['entity', 'action']),
+  onData: () => { loadMeetDetails(); },
 });
 
-onUnmounted(() => {
-  if (intervalId) {
-    clearInterval(intervalId);
-    intervalId = null;
-  }
+onMounted(() => {
+  loadMeetDetails();
 });
 </script>
 

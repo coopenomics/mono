@@ -16,7 +16,7 @@ q-card(flat)
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, computed, ref, onMounted } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useSessionStore } from 'src/entities/Session';
 import { CreateProjectButton } from 'src/features/Decision/CreateProject';
@@ -24,6 +24,7 @@ import { useDecisionProcessor } from 'src/processes/process-decisions';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { QuestionsTable } from 'src/widgets/Questions';
 import { useHeaderActions } from 'src/shared/hooks';
+import { useGraphqlSubscription, buildSubscriptionQuery } from 'src/shared/lib/composables';
 
 const route = useRoute();
 const session = useSessionStore();
@@ -120,13 +121,10 @@ const onVoteAgainst = async (row) => {
   }
 };
 
-// Инициализация
 loadDecisions(route.params.coopname as string);
 
-// Периодическое обновление данных
-const interval = setInterval(
-  () => loadDecisions(route.params.coopname as string, true),
-  10000,
-);
-onBeforeUnmount(() => clearInterval(interval));
+useGraphqlSubscription({
+  query: buildSubscriptionQuery('sovietDataChanged', null, ['entity', 'action']),
+  onData: () => { loadDecisions(route.params.coopname as string, true); },
+});
 </script>
