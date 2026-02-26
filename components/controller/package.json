@@ -70,7 +70,9 @@
   "dependencies": {
     "@a2seven/yoo-checkout": "^1.1.4",
     "@casl/ability": "^6.8.0",
+    "@coopenomics/ext-capital": "link:../../extensions/capital",
     "@coopenomics/factory": "workspace:*",
+    "@coopenomics/interops": "workspace:^",
     "@coopenomics/notifications": "workspace:*",
     "@coopenomics/provider-client": "2025.11.12-alpha-1",
     "@coopenomics/sdk": "workspace:*",

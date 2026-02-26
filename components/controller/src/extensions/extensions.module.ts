@@ -18,6 +18,7 @@ const logger = new Logger('ExtensionsModule');
  * Если пакет не установлен — capital пропускается (graceful degradation).
  */
 function tryLoadCapital(): any | null {
+  // 1) Внешний пакет @coopenomics/ext-capital (приоритет)
   try {
     const capitalExt = require('@coopenomics/ext-capital');
     const mod = capitalExt.default || capitalExt;
@@ -29,18 +30,21 @@ function tryLoadCapital(): any | null {
       logger.log('Расширение Capital загружено (legacy export)');
       return capitalExt.CapitalPluginModule;
     }
-  } catch {
-    // Пакет не установлен — fallback на встроенный
+  } catch (e: any) {
+    logger.debug(`Пакет @coopenomics/ext-capital не найден: ${e.code || e.message?.substring(0, 80)}`);
   }
 
+  // 2) Встроенный capital (fallback для dev-режима)
   try {
     const { CapitalPluginModule } = require('./capital/capital-extension.module');
     logger.log('Расширение Capital загружено из встроенного ядра');
     return CapitalPluginModule;
-  } catch {
-    logger.warn('Расширение Capital не найдено — ни как пакет, ни встроенное');
-    return null;
+  } catch (e: any) {
+    logger.debug(`Встроенный capital не найден: ${e.code || e.message?.substring(0, 80)}`);
   }
+
+  logger.warn('Расширение Capital не найдено — платформа запущена без Capital');
+  return null;
 }
 
 @Module({})

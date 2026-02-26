@@ -10271,6 +10271,11 @@ input SignedDigitalDocumentInput {
   version: String!
 }
 
+type SovietDataChange {
+  action: String!
+  entity: String!
+}
+
 input SovietMemberInput {
   individual_data: CreateSovietIndividualDataInput!
   role: String!
@@ -10366,6 +10371,12 @@ type Subscription {
 
   """Подписка на обновления задач"""
   capitalIssueUpdated(project_hash: String): CapitalIssue!
+
+  """Уведомление об изменениях собраний, решений, повестки"""
+  sovietDataChanged: SovietDataChange!
+
+  """Уведомление об изменении состояния системы (статус, конфигурация)"""
+  systemStatusChanged: SystemStatusChange!
 }
 
 type SubscriptionStatsDto {
@@ -10467,6 +10478,11 @@ enum SystemStatus {
   initialized
   install
   maintenance
+}
+
+type SystemStatusChange {
+  message: String
+  status: String!
 }
 
 type Token {
