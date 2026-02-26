@@ -1,19 +1,10 @@
 import * as Permissions from '../../../common/permissions'
-import type * as Marketplace from '../../../interfaces/marketplace'
 import { Actors } from '../../../common'
 
-/**
- * Имя действия
- * Требуется авторизация {@link Actors._username | аккаунта пользователя}.
- */
-export const authorizations = [{ permissions: [Permissions.active], actor: Actors._username }] as const
+export const authorizations = [{ permissions: [Permissions.active], actor: Actors._coopname }] as const
+export const actionName = 'updateRequest'
 
-/**
- * Имя действия
- */
-export const actionName = 'update'
-
-/**
- * @interface
- */
-export type IUpdateRequest = Marketplace.IUpdate
+export interface IUpdateRequest {
+  coopname: string
+  [key: string]: unknown
+}

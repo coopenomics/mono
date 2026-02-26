@@ -163,6 +163,12 @@
 - [x] mkdocs.yml nav обновлён с «Стол заказов»
 - [x] .gitignore для typedoc.json (генерируется при сборке)
 
+### 17. Строгая типизация marketplace из ABI
+- [x] marketplace.ts сгенерирован из ABI (38 интерфейсов: 31 action + 5 tables + 2 docs)
+- [x] CooplaceBlockchainPort: все типы через Interfaces.Marketplace.* (0 any)
+- [x] Adapter: 6 новых методов (shipments + ORDER→OFFER)
+- [x] cooptypes собран (6.39 MB)
+
 ### 13. GraphQL Subscriptions ✅
 - [x] PubSubModule: глобальный PubSub provider
 - [x] WebSocket support в GraphQL module (graphql-ws)

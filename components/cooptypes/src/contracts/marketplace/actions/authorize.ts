@@ -16,4 +16,4 @@ export const actionName = 'authorize'
 /**
  * @interface
  */
-export type IAuthorize = Marketplace.IAuthorize
+export type IWauthorize = Marketplace.IWauthorize

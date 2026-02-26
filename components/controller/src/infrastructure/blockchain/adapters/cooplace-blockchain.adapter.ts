@@ -392,3 +392,75 @@ export class CooplaceBlockchainAdapter implements CooplaceBlockchainPort {
     });
   }
 }
+
+  async createShipment(data: any): Promise<TransactResult> {
+    const wif = await this.vaultDomainService.getWif(data.coopname);
+    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ');
+    this.blockchainService.initialize(data.coopname, wif);
+    return await this.blockchainService.transact({
+      account: MarketContract.contractName.production,
+      name: 'createship',
+      authorization: [{ actor: data.coopname, permission: 'active' }],
+      data,
+    });
+  }
+
+  async signByDriver(data: any): Promise<TransactResult> {
+    const wif = await this.vaultDomainService.getWif(data.coopname);
+    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ');
+    this.blockchainService.initialize(data.coopname, wif);
+    return await this.blockchainService.transact({
+      account: MarketContract.contractName.production,
+      name: 'signbydriver',
+      authorization: [{ actor: data.coopname, permission: 'active' }],
+      data,
+    });
+  }
+
+  async arrived(data: any): Promise<TransactResult> {
+    const wif = await this.vaultDomainService.getWif(data.coopname);
+    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ');
+    this.blockchainService.initialize(data.coopname, wif);
+    return await this.blockchainService.transact({
+      account: MarketContract.contractName.production,
+      name: 'arrived',
+      authorization: [{ actor: data.coopname, permission: 'active' }],
+      data,
+    });
+  }
+
+  async receiveShipment(data: any): Promise<TransactResult> {
+    const wif = await this.vaultDomainService.getWif(data.coopname);
+    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ');
+    this.blockchainService.initialize(data.coopname, wif);
+    return await this.blockchainService.transact({
+      account: MarketContract.contractName.production,
+      name: 'receiveshipm',
+      authorization: [{ actor: data.coopname, permission: 'active' }],
+      data,
+    });
+  }
+
+  async createOrder(data: any): Promise<TransactResult> {
+    const wif = await this.vaultDomainService.getWif(data.coopname);
+    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ');
+    this.blockchainService.initialize(data.coopname, wif);
+    return await this.blockchainService.transact({
+      account: MarketContract.contractName.production,
+      name: 'createorder',
+      authorization: [{ actor: data.coopname, permission: 'active' }],
+      data,
+    });
+  }
+
+  async respondOffer(data: any): Promise<TransactResult> {
+    const wif = await this.vaultDomainService.getWif(data.coopname);
+    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ');
+    this.blockchainService.initialize(data.coopname, wif);
+    return await this.blockchainService.transact({
+      account: MarketContract.contractName.production,
+      name: 'respondoffer',
+      authorization: [{ actor: data.coopname, permission: 'active' }],
+      data,
+    });
+  }

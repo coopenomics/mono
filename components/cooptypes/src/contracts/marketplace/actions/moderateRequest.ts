@@ -1,19 +1,10 @@
 import * as Permissions from '../../../common/permissions'
-import type * as Marketplace from '../../../interfaces/marketplace'
 import { Actors } from '../../../common'
 
-/**
- * Имя действия
- * Требуется авторизация {@link Actors._admin | аккаунта администратора}.
- */
-export const authorizations = [{ permissions: [Permissions.active, Permissions.special], actor: Actors._admin }] as const
+export const authorizations = [{ permissions: [Permissions.active], actor: Actors._coopname }] as const
+export const actionName = 'moderateRequest'
 
-/**
- * Имя действия
- */
-export const actionName = 'moderate'
-
-/**
- * @interface
- */
-export type IModerateRequest = Marketplace.IModerate
+export interface IModerateRequest {
+  coopname: string
+  [key: string]: unknown
+}

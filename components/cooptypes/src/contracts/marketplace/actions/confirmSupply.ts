@@ -16,4 +16,4 @@ export const actionName = 'supplycnfrm'
 /**
  * @interface
  */
-export type IConfirmSupply = Marketplace.ISupplycnfrm
+export type IConfirmSupply = Marketplace.ISupplcnf
