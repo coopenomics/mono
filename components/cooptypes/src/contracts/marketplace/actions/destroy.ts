@@ -1,11 +1,16 @@
-import type { IDocument } from '../../common'
+import * as Permissions from '../../../common/permissions'
+import { Actors } from '../../../common'
 
-export namespace Destroy {
-  export const actionName = 'destroy'
+export const authorizations = [{ permissions: [Permissions.active], actor: Actors._coopname }] as const
+export const actionName = 'destroy'
 
-  export interface IDestroy {
-    coopname: string
-    request_hash: string
-    destruction_act: IDocument
+export interface IDestroy {
+  coopname: string
+  request_hash: string
+  destruction_act: {
+    hash: string
+    public_key: string
+    signature: string
+    meta: string
   }
 }

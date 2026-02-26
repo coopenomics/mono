@@ -105,8 +105,10 @@
 - [x] DisputePage: подача претензии, список, timeline спора, решение совета
 
 #### 15.5 Тесты
-- [ ] Unit-тесты контроллера
-- [ ] Boot-тесты (интеграционные)
+- [x] Unit-тесты controller: 8 тестов marketplace actions + statuses (90/90 total)
+- [x] cooptypes собран с новыми actions
+- [x] Boot интеграционный тест: marketplace.test.ts (orderoffer + coopstock flows)
+- [ ] Запуск boot тестов на полной инфраструктуре
 
 ### 13. GraphQL Subscriptions ✅
 - [x] PubSubModule: глобальный PubSub provider
