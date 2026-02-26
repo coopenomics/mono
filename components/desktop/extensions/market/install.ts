@@ -5,6 +5,7 @@ import { UserParentOffersPage } from 'src/pages/Marketplace/UserParentOffers'
 import { UserSuppliesListPage } from 'src/pages/Marketplace/UserSuppliesList'
 import { OfferPage } from 'src/pages/Marketplace/OfferPage'
 import { ModerationPage } from 'src/pages/Marketplace/Moderation'
+import { WarehousePage } from 'src/pages/Marketplace/WarehousePage'
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace'
 import { agreementsBase } from 'src/shared/lib/consts/workspaces'
 
@@ -97,6 +98,18 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               title: 'Мои заказы',
               icon: 'fa-solid fa-cart-shopping',
               roles: [],
+              requiresAuth: true,
+              agreements: agreementsBase,
+            },
+          },
+          {
+            path: 'warehouse',
+            name: 'marketplace-warehouse',
+            component: markRaw(WarehousePage),
+            meta: {
+              title: 'Склад',
+              icon: 'fa-solid fa-warehouse',
+              roles: ['chairman'],
               requiresAuth: true,
               agreements: agreementsBase,
             },
