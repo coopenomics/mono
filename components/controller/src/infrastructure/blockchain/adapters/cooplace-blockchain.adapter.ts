@@ -391,7 +391,7 @@ export class CooplaceBlockchainAdapter implements CooplaceBlockchainPort {
       data,
     });
   }
-}
+
 
   async createShipment(data: any): Promise<TransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
@@ -464,3 +464,4 @@ export class CooplaceBlockchainAdapter implements CooplaceBlockchainPort {
       data,
     });
   }
+}
