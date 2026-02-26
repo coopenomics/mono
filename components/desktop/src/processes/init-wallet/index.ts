@@ -77,10 +77,7 @@ export function useInitWalletProcess() {
       }
     }
 
-    // фоновая проверка каждые 10 сек (только если это не принудительная перезагрузка)
-    if (!forceReload) {
-      setTimeout(run, 10_000);
-    }
+    // Единократная загрузка — обновления через WebSocket подписки
   };
 
   return { run };

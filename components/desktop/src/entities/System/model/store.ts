@@ -3,10 +3,12 @@ import { ref, Ref, triggerRef, computed, ComputedRef } from 'vue';
 import { api } from '../api';
 import type { ISystemInfo } from '../types';
 import { Zeus } from '@coopenomics/sdk';
-import { createClient } from 'graphql-ws';
-import { env } from 'src/shared/config';
 
 const namespace = 'systemStore';
+
+const BASE_INTERVAL_MS = 30000;
+const MAX_INTERVAL_MS = 300000;
+const BACKOFF_MULTIPLIER = 2;
 
 interface ISystemStore {
   info: Ref<ISystemInfo>;
@@ -29,8 +31,10 @@ export const useSystemStore = defineStore(namespace, (): ISystemStore => {
   const backendAvailable = ref<boolean>(true);
   const maintenanceCounter = ref<number>(0);
 
+  let monitoringTimeout: ReturnType<typeof setTimeout> | null = null;
   let isLoading = false;
-  let wsUnsubscribe: (() => void) | null = null;
+  let currentInterval = BASE_INTERVAL_MS;
+  let consecutiveErrors = 0;
 
   const loadSystemInfo = async () => {
     if (isLoading) return;
@@ -40,81 +44,51 @@ export const useSystemStore = defineStore(namespace, (): ISystemStore => {
       info.value = await api.loadSystemInfo();
       backendAvailable.value = true;
       triggerRef(info);
+      consecutiveErrors = 0;
+      currentInterval = BASE_INTERVAL_MS;
     } catch (error) {
       console.warn('Failed to load system info:', error);
       backendAvailable.value = false;
       info.value.system_status = Zeus.SystemStatus.maintenance;
+      consecutiveErrors++;
+      currentInterval = Math.min(
+        BASE_INTERVAL_MS * Math.pow(BACKOFF_MULTIPLIER, consecutiveErrors),
+        MAX_INTERVAL_MS
+      );
       throw error;
     } finally {
       isLoading = false;
     }
   };
 
-  const startSystemMonitoring = () => {
+  const scheduleNextCheck = () => {
     if (typeof window === 'undefined') return;
     stopSystemMonitoring();
 
-    try {
-      const wsUrl = (env.BACKEND_URL + '/v1/graphql').replace(/^http/, 'ws');
+    monitoringTimeout = setTimeout(async () => {
+      try {
+        await loadSystemInfo();
+      } catch {
+        backendAvailable.value = false;
+        info.value.system_status = Zeus.SystemStatus.maintenance;
+        maintenanceCounter.value++;
+      }
+      scheduleNextCheck();
+    }, currentInterval);
+  };
 
-      const wsClient = createClient({
-        url: wsUrl,
-        connectionParams: () => {
-          try {
-            const globalStore = (window as any).__pinia?.state?.value?.global;
-            const token = globalStore?.tokens?.access?.token;
-            return token ? { token } : {};
-          } catch {
-            return {};
-          }
-        },
-        retryAttempts: Infinity,
-        shouldRetry: () => true,
-        retryWait: async (retries) => {
-          const delay = Math.min(1000 * Math.pow(2, retries), 60000);
-          await new Promise(resolve => setTimeout(resolve, delay));
-        },
-        on: {
-          connected: () => {
-            if (!backendAvailable.value) {
-              backendAvailable.value = true;
-              loadSystemInfo().catch(() => {});
-            }
-          },
-          closed: () => { /* connection closed */
-            backendAvailable.value = false;
-            info.value.system_status = Zeus.SystemStatus.maintenance;
-            maintenanceCounter.value++;
-          },
-        },
-      });
-
-      wsUnsubscribe = wsClient.subscribe(
-        { query: 'subscription { systemStatusChanged { status message } }' },
-        {
-          next(value) {
-            if (value.data) {
-              backendAvailable.value = true;
-              loadSystemInfo().catch(() => {});
-            }
-          },
-          error() { /* subscription error */
-            backendAvailable.value = false;
-            info.value.system_status = Zeus.SystemStatus.maintenance;
-            maintenanceCounter.value++;
-          },
-          complete() { /* done */ },
-        },
-      );
-    } catch (e) {
-      console.warn('Failed to start system monitoring subscription:', e);
-    }
+  const startSystemMonitoring = () => {
+    if (typeof window === 'undefined') return;
+    stopSystemMonitoring();
+    consecutiveErrors = 0;
+    currentInterval = BASE_INTERVAL_MS;
+    scheduleNextCheck();
   };
 
   const stopSystemMonitoring = () => {
-    if (wsUnsubscribe) {
-      wsUnsubscribe();
-      wsUnsubscribe = null;
+    if (monitoringTimeout) {
+      clearTimeout(monitoringTimeout);
+      monitoringTimeout = null;
     }
   };
 

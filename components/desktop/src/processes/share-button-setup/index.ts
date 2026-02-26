@@ -4,19 +4,22 @@ import { useSessionStore } from 'src/entities/Session'
 import { useHeaderActions } from 'src/shared/hooks'
 import { ShareHeaderAction } from 'src/features/PageShare'
 
-/**
- * Автоматически регистрирует кнопку "Поделиться" в header
- * на страницах где meta.shareable === true.
- * Доступна только chairman и member.
- */
 export function useShareButtonProcess() {
-  const route = useRoute()
+  let route: ReturnType<typeof useRoute> | undefined
+  try {
+    route = useRoute()
+  } catch {
+    return
+  }
+  if (!route) return
+
   const session = useSessionStore()
   const { registerAction, unregisterAction } = useHeaderActions()
 
   watch(
-    () => route.fullPath,
+    () => route?.fullPath,
     () => {
+      if (!route) return
       const canShare = session.isChairman || session.isMember
       const isShareable = route.meta?.shareable !== false
 

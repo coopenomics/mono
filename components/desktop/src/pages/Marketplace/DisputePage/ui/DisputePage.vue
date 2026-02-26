@@ -78,8 +78,8 @@ div.page-shell
   q-card.q-mt-md(flat v-if="mode === 'detail' && selectedDispute")
     q-card-section
       .row.items-center
-        q-btn(flat icon="fa-solid fa-arrow-left" @click="mode = 'list'")
-        .text-h6.q-ml-sm Претензия #{{ selectedDispute.id }}
+        q-btn(flat icon="fa-solid fa-arrow-left" @click="goToList")
+        .text-h6.q-ml-sm Претензия {{ selectedDispute.id }}
 
     q-separator
 
@@ -177,6 +177,10 @@ function formatDate(d: string) {
 function selectDispute(d: any) {
   selectedDispute.value = d
   mode.value = 'detail'
+}
+
+function goToList() {
+  mode.value = 'list'
 }
 
 function submitDispute() {
