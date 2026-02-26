@@ -65,11 +65,15 @@
 - [x] Пакет @coopenomics/interops: доменные порты, интерфейсы, shared-типы
 - [x] IExtensionModule, IExtensionLoader, IExtensionMetadata контракты
 - [x] ExtensionLoaderService — динамическое обнаружение @coopenomics/ext-* пакетов
-- [ ] Подключение interops как зависимости controller
-- [ ] Вынос capital в отдельный пакет @coopenomics/ext-capital
-- [ ] Динамическая загрузка capital через ExtensionLoader
-- [ ] Desktop: динамическая регистрация расширений через манифест
-- [ ] AGENTS.md с описанием архитектуры расширений
+- [x] Пакет @coopenomics/ext-capital создан (components/ext-capital/, 449 файлов)
+- [x] ext-capital реализует IExtensionModule (index.ts)
+- [x] ExtensionsModule: динамическая загрузка capital (ext-capital → builtin → skip)
+- [x] extensions.registry.ts: опциональный импорт capital с fallback
+- [x] Desktop extensions-registry: tryLoadCapitalInstall() с graceful degradation
+- [x] AGENTS.md: архитектура расширений описана
+- [ ] Полная изоляция импортов ext-capital от ~/domain/* (замена на @coopenomics/interops)
+- [ ] Удаление capital из controller/src/extensions/ (после стабилизации)
+- [ ] Приватизация ext-capital (отдельный npm registry)
 
 ### 13. GraphQL Subscriptions ✅
 - [x] PubSubModule: глобальный PubSub provider
