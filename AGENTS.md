@@ -76,6 +76,19 @@ pnpm run reboot
   ```
 - **Duplicate transaction** — в boot-тестах EOSIO отклоняет транзакции с одинаковым хешем (TAPOS block + action data). При повторном вызове `refreshSegment` для того же участника — добавить `await sleep(500)` перед ним. Паттерн уже используется (см. комментарий на строке ~720 capital.test.ts).
 
+### Маркетплейс (cooplace extension)
+
+**Архитектура:**
+- `cooplace` = бэкенд маркетплейса (карточки, категории, настройки, match, cycles)
+- `marketplace` = фронтенд расширение (витрина, заказы — использует API cooplace)
+- `market-admin` = фронтенд админки (настройки, модерация)
+
+**Ключевой принцип:** Каждая встречная заявка сразу в блокчейн → блокировка средств. Карточки в БД, заявки в blockchain.
+
+**Циклы:** min_units/deadline — порог для supply, не для match. При истечении → cancel через blockchain.
+
+**Настройки** (MarketplaceSettings): lead_request_policy (offers_only/orders_only/both), publish_access_policy (all_members/whitelist/council_only), moderation, cycles, delivery types.
+
 ### Критические gotchas
 
 - **SHiP порт 8070** — `state-history-endpoint = 0.0.0.0:8070` в config.ini. Парсер: `SHIP=ws://node:8070`.

@@ -142,6 +142,13 @@
 - [x] Desktop SettingsPage: radio groups, toggles, whitelist chips, price inputs
 - [x] market-admin: маршрут настроек как дефолтный + модерация + все заказы
 
+#### 15.W Правильная логика match + cycles
+- [x] MatchService: каждая встречная заявка → сразу в блокчейн (блокировка средств смарт-контрактом)
+- [x] CycleService: min_units/deadline → порог для supply, НЕ для match
+- [x] CycleService: cron каждые 5 мин — проверка истёкших циклов → cancel через блокчейн
+- [x] MARKET-LOGIC.md обновлён с правильным принципом
+- [x] AGENTS.md обновлён с описанием маркетплейса
+
 #### 15.5 Тесты
 - [x] Unit-тесты controller: 8 тестов marketplace actions + statuses (90/90 total)
 - [x] cooptypes собран с новыми actions
