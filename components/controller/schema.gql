@@ -6823,22 +6823,6 @@ type MeetQuestionResult {
   votes_for: Int!
 }
 
-input ModerateRequestInput {
-  """
-  Размер комиссии за отмену в формате "10.0000 RUB"
-  """
-  cancellation_fee: String!
-
-  """Имя аккаунта кооператива"""
-  coopname: String!
-
-  """Идентификатор обмена"""
-  exchange_id: Float!
-
-  """Имя аккаунта пользователя"""
-  username: String!
-}
-
 type MonoAccount {
   """Электронная почта пользователя"""
   email: String!
@@ -7355,9 +7339,6 @@ type Mutation {
   """Выйти из системы и заблокировать JWT-токены"""
   logout(data: LogoutInput!): Boolean!
 
-  """Модерировать заявку"""
-  moderateRequest(data: ModerateRequestInput!): Transaction!
-
   """Уведомление о проведении общего собрания пайщиков"""
   notifyOnAnnualGeneralMeet(data: NotifyOnAnnualGeneralMeetInput!): MeetAggregate!
 
@@ -7366,16 +7347,10 @@ type Mutation {
   """
   processConvertToAxonStatement(data: ProcessConvertToAxonStatementInput!): Boolean!
 
-  """Отклонить модерацию по заявке"""
-  prohibitRequest(data: ProhibitRequestInput!): Transaction!
-
   """
   Опубликовать предложенную повестку и проект решения для дальнейшего голосования совета по нему
   """
   publishProjectOfFreeDecision(data: PublishProjectFreeDecisionInput!): Boolean!
-
-  """Опубликовать заявку"""
-  publishRequest(data: PublishRequestInput!): Transaction!
 
   """
   Подтвердить получение имущества Уполномоченным лицом от Заказчика по акту приёмки-передачи
@@ -7466,9 +7441,6 @@ type Mutation {
   """Удалить расширение"""
   uninstallExtension(data: UninstallExtensionInput!): Boolean!
 
-  """Снять с публикации заявку"""
-  unpublishRequest(data: UnpublishRequestInput!): Transaction!
-
   """
   Обновить аккаунт в системе провайдера. Обновление аккаунта пользователя производится по username. Мутация позволяет изменить приватные данные пользователя, а также, адрес электронной почты в MONO. Использовать мутацию может только председатель совета.
   """
@@ -7482,9 +7454,6 @@ type Mutation {
 
   """Обновить настройки маркетплейса (только chairman)"""
   updateMarketplaceSettings(data: UpdateMarketplaceSettingsInput!): MarketplaceSettings!
-
-  """Обновить заявку"""
-  updateRequest(data: UpdateRequestInput!): Transaction!
 
   """Обновить настройки системы (рабочие столы и маршруты по умолчанию)"""
   updateSettings(data: UpdateSettingsInput!): Settings!
@@ -8599,20 +8568,6 @@ type ProgramWalletsPaginationResult {
   totalPages: Int!
 }
 
-input ProhibitRequestInput {
-  """Имя аккаунта кооператива"""
-  coopname: String!
-
-  """Идентификатор обмена"""
-  exchange_id: Float!
-
-  """Дополнительная информация о отклоненной модерации"""
-  meta: String!
-
-  """Имя аккаунта пользователя"""
-  username: String!
-}
-
 input ProjectFreeDecisionGenerateDocumentInput {
   """Номер блока, на котором был создан документ"""
   block_num: Int
@@ -8835,17 +8790,6 @@ input PublishProjectFreeDecisionInput {
 
   """Строка мета-информации"""
   meta: String!
-
-  """Имя аккаунта пользователя"""
-  username: String!
-}
-
-input PublishRequestInput {
-  """Имя аккаунта кооператива"""
-  coopname: String!
-
-  """Идентификатор заявки"""
-  exchange_id: Float!
 
   """Имя аккаунта пользователя"""
   username: String!
@@ -10680,17 +10624,6 @@ input UninstallExtensionInput {
   name: String!
 }
 
-input UnpublishRequestInput {
-  """Имя аккаунта кооператива"""
-  coopname: String!
-
-  """Идентификатор обмена"""
-  exchange_id: Float!
-
-  """Имя аккаунта пользователя"""
-  username: String!
-}
-
 input Update {
   """Собственные данные кооператива, обслуживающего экземпляр платформы"""
   organization_data: UpdateOrganizationDataInput
@@ -10896,31 +10829,6 @@ input UpdateProcessTemplateInput {
   status: ProcessTemplateStatus
   steps: [ProcessStepTemplateInput!]
   title: String
-}
-
-input UpdateRequestInput {
-  """Имя аккаунта кооператива"""
-  coopname: String!
-
-  """Дополнительные данные"""
-  data: String!
-
-  """Идентификатор обмена"""
-  exchange_id: Float!
-
-  """Дополнительная информация"""
-  meta: String!
-
-  """Оставшееся количество единиц"""
-  remain_units: String!
-
-  """
-  Стоимость за единицу в формате "10.0000 RUB"
-  """
-  unit_cost: String!
-
-  """Имя аккаунта пользователя"""
-  username: String!
 }
 
 input UpdateSettingsInput {

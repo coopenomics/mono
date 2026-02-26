@@ -85,52 +85,52 @@ export class CooplaceService {
   }
 
   public async acceptChildOrder(data: AcceptChildOrderInputDTO): Promise<TransactionDTO> {
-    const result = await this.cooplaceInteractor.acceptChildOrder(data);
+    const result = await this.cooplaceInteractor.acceptChildOrder(data as any);
     return result;
   }
 
   public async cancelRequest(data: CancelRequestInputDTO): Promise<TransactionDTO> {
-    const result = await this.cooplaceInteractor.cancelRequest(data);
+    const result = await this.cooplaceInteractor.cancelRequest(data as any);
     return result;
   }
 
   public async completeRequest(data: CompleteRequestInputDTO): Promise<TransactionDTO> {
-    const result = await this.cooplaceInteractor.completeRequest(data);
+    const result = await this.cooplaceInteractor.completeRequest(data as any);
     return result;
   }
 
   public async confirmReceiveOnRequest(data: ConfirmReceiveOnRequestInputDTO): Promise<TransactionDTO> {
-    const result = await this.cooplaceInteractor.confirmReceiveOnRequest(data);
+    const result = await this.cooplaceInteractor.confirmReceiveOnRequest(data as any);
     return result;
   }
 
   public async confirmSupplyOnRequest(data: ConfirmSupplyOnRequestInputDTO): Promise<TransactionDTO> {
-    const result = await this.cooplaceInteractor.confirmSupplyOnRequest(data);
+    const result = await this.cooplaceInteractor.confirmSupplyOnRequest(data as any);
     return result;
   }
 
   public async createChildOrder(data: CreateChildOrderInputDTO): Promise<TransactionDTO> {
-    const result = await this.cooplaceInteractor.createChildOrder({ params: data });
+    const result = await this.cooplaceInteractor.createChildOrder(data as any);
     return result;
   }
 
   public async createParentOffer(data: CreateParentOfferInputDTO): Promise<TransactionDTO> {
-    const result = await this.cooplaceInteractor.createParentOffer({ params: data });
+    const result = await this.cooplaceInteractor.createParentOffer(data as any);
     return result;
   }
 
   public async declineRequest(data: DeclineRequestInputDTO): Promise<TransactionDTO> {
-    const result = await this.cooplaceInteractor.declineRequest(data);
+    const result = await this.cooplaceInteractor.declineRequest(data as any);
     return result;
   }
 
   public async deliverOnRequest(data: DeliverOnRequestInputDTO): Promise<TransactionDTO> {
-    const result = await this.cooplaceInteractor.deliverOnRequest(data);
+    const result = await this.cooplaceInteractor.deliverOnRequest(data as any);
     return result;
   }
 
   public async disputeOnRequest(data: DisputeOnRequestInputDTO): Promise<TransactionDTO> {
-    const result = await this.cooplaceInteractor.disputeOnRequest(data);
+    const result = await this.cooplaceInteractor.disputeOnRequest(data as any);
     return result;
   }
 
@@ -141,12 +141,12 @@ export class CooplaceService {
   // publishRequest: deprecated — removed from blockchain contract
 
   public async receiveOnRequest(data: ReceiveOnRequestInputDTO): Promise<TransactionDTO> {
-    const result = await this.cooplaceInteractor.receiveOnRequest(data);
+    const result = await this.cooplaceInteractor.receiveOnRequest(data as any);
     return result;
   }
 
   public async supplyOnRequest(data: SupplyOnRequestInputDTO): Promise<TransactionDTO> {
-    const result = await this.cooplaceInteractor.supplyOnRequest(data);
+    const result = await this.cooplaceInteractor.supplyOnRequest(data as any);
     return result;
   }
 

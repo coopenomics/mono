@@ -23,13 +23,8 @@ import { CreateParentOfferInputDTO } from '../dto/create-parent-offer-input.dto'
 import { DeclineRequestInputDTO } from '../dto/decline-request-input.dto';
 import { DeliverOnRequestInputDTO } from '../dto/deliver-on-request-input.dto';
 import { DisputeOnRequestInputDTO } from '../dto/dispute-on-request-input.dto';
-import { ModerateRequestInputDTO } from '../dto/moderate-request-input.dto';
-import { ProhibitRequestInputDTO } from '../dto/prohibit-request-input.dto';
-import { PublishRequestInputDTO } from '../dto/publish-request-input.dto';
 import { ReceiveOnRequestInputDTO } from '../dto/receive-on-request-input.dto';
 import { SupplyOnRequestInputDTO } from '../dto/supply-on-request-input.dto';
-import { UnpublishRequestInputDTO } from '../dto/unpublish-request-input.dto';
-import { UpdateRequestInputDTO } from '../dto/update-request-input.dto';
 import { ReqReturnInputDTO } from '../dto/req-return-input.dto';
 import { CoopstockInputDTO } from '../dto/coopstock-input.dto';
 import { AcceptStockInputDTO } from '../dto/accept-stock-input.dto';
@@ -238,36 +233,6 @@ export class CooplaceResolver {
   }
 
   @Mutation(() => TransactionDTO, {
-    name: 'moderateRequest',
-    description: 'Модерировать заявку',
-  })
-  async moderateRequest(
-    @Args('data', { type: () => ModerateRequestInputDTO }) data: ModerateRequestInputDTO
-  ): Promise<TransactionDTO> {
-    return this.cooplaceService.moderateRequest(data);
-  }
-
-  @Mutation(() => TransactionDTO, {
-    name: 'prohibitRequest',
-    description: 'Отклонить модерацию по заявке',
-  })
-  async prohibitRequest(
-    @Args('data', { type: () => ProhibitRequestInputDTO }) data: ProhibitRequestInputDTO
-  ): Promise<TransactionDTO> {
-    return this.cooplaceService.prohibitRequest(data);
-  }
-
-  @Mutation(() => TransactionDTO, {
-    name: 'publishRequest',
-    description: 'Опубликовать заявку',
-  })
-  async publishRequest(
-    @Args('data', { type: () => PublishRequestInputDTO }) data: PublishRequestInputDTO
-  ): Promise<TransactionDTO> {
-    return this.cooplaceService.publishRequest(data);
-  }
-
-  @Mutation(() => TransactionDTO, {
     name: 'receiveOnRequest',
     description: 'Подтвердить получение имущества Уполномоченным лицом от Заказчика по акту приёмки-передачи',
   })
@@ -285,26 +250,6 @@ export class CooplaceResolver {
     @Args('data', { type: () => SupplyOnRequestInputDTO }) data: SupplyOnRequestInputDTO
   ): Promise<TransactionDTO> {
     return this.cooplaceService.supplyOnRequest(data);
-  }
-
-  @Mutation(() => TransactionDTO, {
-    name: 'unpublishRequest',
-    description: 'Снять с публикации заявку',
-  })
-  async unpublishRequest(
-    @Args('data', { type: () => UnpublishRequestInputDTO }) data: UnpublishRequestInputDTO
-  ): Promise<TransactionDTO> {
-    return this.cooplaceService.unpublishRequest(data);
-  }
-
-  @Mutation(() => TransactionDTO, {
-    name: 'updateRequest',
-    description: 'Обновить заявку',
-  })
-  async updateRequest(
-    @Args('data', { type: () => UpdateRequestInputDTO }) data: UpdateRequestInputDTO
-  ): Promise<TransactionDTO> {
-    return this.cooplaceService.updateRequest(data);
   }
 
   @Mutation(() => TransactionDTO, {

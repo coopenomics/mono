@@ -1,8 +1,8 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { DocumentDomainService } from '~/domain/document/services/document-aggregation.service';
+import { DocumentInteractor } from '~/application/document/interactors/document.interactor';
 import { COOPLACE_BLOCKCHAIN_PORT, type CooplaceBlockchainPort } from '~/domain/cooplace/interfaces/cooplace-blockchain.port';
 import { MarketContract, Cooperative } from 'cooptypes';
-import { DocumentDomainEntity } from '~/domain/document/services/document-aggregation.service';
+
 import type { AcceptChildOrderInputDomainInterface } from '~/domain/cooplace/interfaces/accept-child-order-input.interface';
 import type { ConfirmReceiveOnRequestInputDomainInterface } from '~/domain/cooplace/interfaces/confirm-receive-on-request-input.interface';
 import type { ConfirmSupplyOnRequestInputDomainInterface } from '~/domain/cooplace/interfaces/confirm-supply-on-request-input.interface';
@@ -27,40 +27,40 @@ export class CooplaceInteractor {
   private readonly config = config;
 
   constructor(
-    private readonly documentDomainService: DocumentDomainService,
+    private readonly documentInteractor: DocumentInteractor,
     @Inject(COOPLACE_BLOCKCHAIN_PORT) private readonly cooplaceBlockchainPort: CooplaceBlockchainPort
   ) {}
 
   // === Document generation ===
 
-  async generateAssetContributionStatementDocument(data: Cooperative.Registry.AssetContributionStatement.Action, options: Cooperative.Document.IGenerationOptions): Promise<DocumentDomainEntity> {
+  async generateAssetContributionStatementDocument(data: Cooperative.Registry.AssetContributionStatement.Action, options: Cooperative.Document.IGenerationOptions): Promise<any> {
     data.registry_id = Cooperative.Registry.AssetContributionStatement.registry_id;
-    return await this.documentDomainService.generateDocument({ data, options });
+    return await this.documentInteractor.generateDocument({ data, options });
   }
 
-  async generateAssetContributionDecisionDocument(data: Cooperative.Registry.AssetContributionDecision.Action, options: Cooperative.Document.IGenerationOptions): Promise<DocumentDomainEntity> {
+  async generateAssetContributionDecisionDocument(data: Cooperative.Registry.AssetContributionDecision.Action, options: Cooperative.Document.IGenerationOptions): Promise<any> {
     data.registry_id = Cooperative.Registry.AssetContributionDecision.registry_id;
-    return await this.documentDomainService.generateDocument({ data, options });
+    return await this.documentInteractor.generateDocument({ data, options });
   }
 
-  async generateAssetContributionActDocument(data: Cooperative.Registry.AssetContributionAct.Action, options: Cooperative.Document.IGenerationOptions): Promise<DocumentDomainEntity> {
+  async generateAssetContributionActDocument(data: Cooperative.Registry.AssetContributionAct.Action, options: Cooperative.Document.IGenerationOptions): Promise<any> {
     data.registry_id = Cooperative.Registry.AssetContributionAct.registry_id;
-    return await this.documentDomainService.generateDocument({ data, options });
+    return await this.documentInteractor.generateDocument({ data, options });
   }
 
-  async generateReturnByAssetStatementDocument(data: Cooperative.Registry.ReturnByAssetStatement.Action, options: Cooperative.Document.IGenerationOptions): Promise<DocumentDomainEntity> {
+  async generateReturnByAssetStatementDocument(data: Cooperative.Registry.ReturnByAssetStatement.Action, options: Cooperative.Document.IGenerationOptions): Promise<any> {
     data.registry_id = Cooperative.Registry.ReturnByAssetStatement.registry_id;
-    return await this.documentDomainService.generateDocument({ data, options });
+    return await this.documentInteractor.generateDocument({ data, options });
   }
 
-  async generateReturnByAssetDecisionDocument(data: Cooperative.Registry.ReturnByAssetDecision.Action, options: Cooperative.Document.IGenerationOptions): Promise<DocumentDomainEntity> {
+  async generateReturnByAssetDecisionDocument(data: Cooperative.Registry.ReturnByAssetDecision.Action, options: Cooperative.Document.IGenerationOptions): Promise<any> {
     data.registry_id = Cooperative.Registry.ReturnByAssetDecision.registry_id;
-    return await this.documentDomainService.generateDocument({ data, options });
+    return await this.documentInteractor.generateDocument({ data, options });
   }
 
-  async generateReturnByAssetActDocument(data: Cooperative.Registry.ReturnByAssetAct.Action, options: Cooperative.Document.IGenerationOptions): Promise<DocumentDomainEntity> {
+  async generateReturnByAssetActDocument(data: Cooperative.Registry.ReturnByAssetAct.Action, options: Cooperative.Document.IGenerationOptions): Promise<any> {
     data.registry_id = Cooperative.Registry.ReturnByAssetAct.registry_id;
-    return await this.documentDomainService.generateDocument({ data, options });
+    return await this.documentInteractor.generateDocument({ data, options });
   }
 
   // === Blockchain actions (OFFER→ORDER) ===
