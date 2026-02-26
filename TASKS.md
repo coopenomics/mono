@@ -85,9 +85,11 @@
 - [ ] Запуск contracts/types генератора для полной синхронизации
 
 #### 15.3 Controller (бэкенд)
-- [x] CooplaceBlockchainPort: добавлены 5 новых портов
-- [ ] Реализация новых портов в blockchain adapter
-- [ ] GraphQL resolvers: requestReturn, coopstock, acceptStock, destroy, reoffer
+- [x] CooplaceBlockchainPort: 5 новых портов
+- [x] CooplaceBlockchainAdapter: 5 реализаций (reqReturn, coopstock, acceptStock, destroy, reoffer)
+- [x] DTOs: ReqReturnInput, CoopstockInput, AcceptStockInput, DestroyRequestInput, ReofferRequestInput
+- [x] GraphQL resolvers: 5 новых мутаций с авторизацией
+- [x] Service + Interactor: проброс до blockchain
 - [ ] GraphQL resolvers: перевозки (shipments)
 - [ ] Интеграция с документами (factory)
 - [ ] Синхронизация с блокчейном через parser events
