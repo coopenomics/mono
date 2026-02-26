@@ -98,7 +98,7 @@ const { [Mutations.System.InitSystem.name]: result } = await client.Mutation(
 ## Установка ключа
 Бэкенд приложения `MONO` хранит приватный ключ кооператива, которым он подписывает транзакции в блокчейне. Ключ хранится в зашифрованном виде в базе данных, извлекается оттуда и расшифровывается для использования только когда это необходимо. Работа системы без приватного ключа невозможна. Чтобы предоставить ключ бэкенду MONO, необходимо выполнить мутацию `setWif`: 
 
-{{ get_sdk_doc("Mutations", "System", "SetWif") }} | {{ get_graphql_doc("Mutation.setWif") }}
+{{ get_sdk_doc("Mutations", "System", "SaveWif") }} | {{ get_graphql_doc("Mutation.setWif") }}
 
 ```typescript
 import { Mutations } from "@coopenomics/sdk";

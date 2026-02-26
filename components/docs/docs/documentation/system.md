@@ -47,12 +47,12 @@
 Обновить параметры системы.
 
 ## Сохранение приватного ключа
-{{ get_sdk_doc("Mutations", "System", "SetWif") }} | {{ get_graphql_doc("Mutation.setWif") }}
+{{ get_sdk_doc("Mutations", "System", "SaveWif") }} | {{ get_graphql_doc("Mutation.setWif") }}
 
-{{ get_typedoc_input("Mutations.System.SetWif") }}
+{{ get_typedoc_input("Mutations.System.SaveWif") }}
 
 Результат:
 
-{{ get_typedoc_definition("Mutations.System.SetWif", "IOutput") }}
+{{ get_typedoc_definition("Mutations.System.SaveWif", "IOutput") }}
 
 Сохранить приватный ключ в зашифрованном серверном хранилище.

@@ -98,11 +98,11 @@ tags:
 | 901 | Решение совета о возврате паевого взноса | {{ get_sdk_doc("Mutations", "Wallet", "GenerateReturnByMoneyDecisionDocument") }} | {{ get_graphql_doc("Mutation.generateReturnByMoneyDecisionDocument") }} |
 | 1000 | Оферта по капитализации | {{ get_sdk_doc("Mutations", "Capital", "GenerateCapitalizationAgreement") }} | {{ get_graphql_doc("Mutation.capitalGenerateCapitalizationAgreement") }} |
 | 1001 | Договор участия в хозяйственной деятельности | {{ get_sdk_doc("Mutations", "Capital", "GenerateGenerationContract") }} | {{ get_graphql_doc("Mutation.capitalGenerateGenerationContract") }} |
-| 1002 | Приложение к договору участия | {{ get_sdk_doc("Mutations", "Capital", "GenerateAppendixGenerationContract") }} | {{ get_graphql_doc("Mutation.capitalGenerateAppendixGenerationContract") }} |
+| 1002 | Приложение к договору участия | <!-- SDK: Capital.GenerateAppendixGenerationContract (не реализован) --> | {{ get_graphql_doc("Mutation.capitalGenerateAppendixGenerationContract") }} |
 | 1010 | Заявление о расходах | {{ get_sdk_doc("Mutations", "Capital", "GenerateExpenseStatement") }} | {{ get_graphql_doc("Mutation.capitalGenerateExpenseStatement") }} |
 | 1011 | Решение совета о расходах | {{ get_sdk_doc("Mutations", "Capital", "GenerateExpenseDecision") }} | {{ get_graphql_doc("Mutation.capitalGenerateExpenseDecision") }} |
 | 1020 | Заявление об инвестировании денежных средств в генерацию | {{ get_sdk_doc("Mutations", "Capital", "GenerateGenerationMoneyInvestStatement") }} | {{ get_graphql_doc("Mutation.capitalGenerateGenerationMoneyInvestStatement") }} |
-| 1025 | Заявление о возврате неиспользованных средств генерации | {{ get_sdk_doc("Mutations", "Capital", "GenerateGenerationMoneyReturnUnusedStatement") }} | {{ get_graphql_doc("Mutation.capitalGenerateGenerationMoneyReturnUnusedStatement") }} |
+| 1025 | Заявление о возврате неиспользованных средств генерации | <!-- SDK: Capital.GenerateGenerationMoneyReturnUnusedStatement (не реализован) --> | {{ get_graphql_doc("Mutation.capitalGenerateGenerationMoneyReturnUnusedStatement") }} |
 | 1030 | Заявление об инвестировании средств в капитализацию | {{ get_sdk_doc("Mutations", "Capital", "GenerateCapitalizationMoneyInvestStatement") }} | {{ get_graphql_doc("Mutation.capitalGenerateCapitalizationMoneyInvestStatement") }} |
 | 1040 | Заявление на внесение результата интеллектуальной деятельности | {{ get_sdk_doc("Mutations", "Capital", "GenerateResultContributionStatement") }} | {{ get_graphql_doc("Mutation.capitalGenerateResultContributionStatement") }} |
 | 1041 | Решение совета об инвестициях по результатам | {{ get_sdk_doc("Mutations", "Capital", "GenerateResultContributionDecision") }} | {{ get_graphql_doc("Mutation.capitalGenerateResultContributionDecision") }} |

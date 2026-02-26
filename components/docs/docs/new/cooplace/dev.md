@@ -9,7 +9,7 @@ Cooplace предоставляет GraphQL API для работы с карт�
 
 Получение текущих настроек:
 
-{{ get_sdk_doc("Queries", "Cooplace", "GetMarketplaceSettings") }} | {{ get_graphql_doc("Query.getMarketplaceSettings") }}
+{{ get_graphql_doc("Query.getMarketplaceSettings") }}
 
 ```graphql
 query {
