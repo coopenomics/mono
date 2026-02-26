@@ -80,15 +80,14 @@
 - [ ] Накопительный характер заявок (min_units threshold) — TODO
 
 #### 15.2 Генерация типов
-- [ ] Запуск contracts/types генератора для marketplace
-- [ ] Обновление cooptypes с новыми интерфейсами
+- [x] Интерфейсы cooptypes: RequestReturn, Coopstock, AcceptStock, Destroy, Reoffer
+- [ ] Запуск contracts/types генератора для полной синхронизации
 
 #### 15.3 Controller (бэкенд)
-- [ ] Порты в @coopenomics/interops для marketplace
-- [ ] Реализация портов в расширении marketplace (NestJS module)
-- [ ] GraphQL resolvers: заявки, принятие, поставка, получение, завершение
+- [x] CooplaceBlockchainPort: добавлены 5 новых портов
+- [ ] Реализация новых портов в blockchain adapter
+- [ ] GraphQL resolvers: requestReturn, coopstock, acceptStock, destroy, reoffer
 - [ ] GraphQL resolvers: перевозки (shipments)
-- [ ] GraphQL resolvers: гарантийный возврат (disputes)
 - [ ] Интеграция с документами (factory)
 - [ ] Синхронизация с блокчейном через parser events
 
