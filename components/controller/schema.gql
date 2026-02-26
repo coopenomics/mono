@@ -16,6 +16,13 @@ input AcceptChildOrderInput {
   username: String!
 }
 
+input AcceptStockInput {
+  convert_in: SignedDigitalDocumentInput!
+  request_hash: String!
+  return_statement: SignedDigitalDocumentInput!
+  username: String!
+}
+
 type Account {
   """
   объект аккаунта в блокчейне содержит системную информацию, такую как публичные ключи доступа, доступные вычислительные ресурсы, информация об установленном смарт-контракте, и т.д. и т.п. Это системный уровень обслуживания, где у каждого пайщика есть аккаунт, но не каждый аккаунт может быть пайщиком в каком-либо кооперативе. Все смарт-контракты устанавливаются и исполняются на этом уровне.
@@ -4109,6 +4116,17 @@ type CooperativeOperatorAccount {
   verifications: [Verification!]!
 }
 
+input CoopstockInput {
+  braname: String!
+  hash: String!
+  membership_fee_amount: String!
+  meta: String!
+  product_lifecycle_secs: Int!
+  unit_cost: String!
+  units: Int!
+  warranty_period_secs: Int!
+}
+
 """Страна регистрации пользователя"""
 enum Country {
   Russia
@@ -5058,6 +5076,11 @@ type DesktopWorkspace {
 
   """Отображаемое название workspace"""
   title: String!
+}
+
+input DestroyRequestInput {
+  destruction_act: SignedDigitalDocumentInput!
+  request_hash: String!
 }
 
 input DisputeOnRequestInput {
@@ -6833,6 +6856,9 @@ type Mutation {
   """Подтвердить поставку имущества на заявку"""
   acceptChildOrder(data: AcceptChildOrderInput!): Transaction!
 
+  """Принять предложение из запасов кооператива"""
+  acceptStock(data: AcceptStockInput!): Transaction!
+
   """
   Добавить активного пайщика, который вступил в кооператив, не используя платформу (заполнив заявление собственноручно, оплатив вступительный и минимальный паевый взносы, и получив протокол решения совета)
   """
@@ -7107,6 +7133,9 @@ type Mutation {
   """
   confirmSupplyOnRequest(data: ConfirmSupplyOnRequestInput!): Transaction!
 
+  """Создать предложение из запасов кооператива"""
+  coopstock(data: CoopstockInput!): Transaction!
+
   """
   Сгенерировать документ предложения повестки очередного общего собрания пайщиков
   """
@@ -7170,6 +7199,9 @@ type Mutation {
 
   """Подтвердить доставку имущества Заказчику по заявке"""
   deliverOnRequest(data: DeliverOnRequestInput!): Transaction!
+
+  """Уничтожить просроченное имущество"""
+  destroyRequest(data: DestroyRequestInput!): Transaction!
 
   """Открыть спор по заявке"""
   disputeOnRequest(data: DisputeOnRequestInput!): Transaction!
@@ -7323,6 +7355,12 @@ type Mutation {
   Зарегистрировать заявление и подписанные положения, подготовив пакет документов к отправке в совет на голосование после поступления оплаты.
   """
   registerParticipant(data: RegisterParticipantInput!): Account!
+
+  """Перепредложить имущество по новой цене"""
+  reofferRequest(data: ReofferRequestInput!): Transaction!
+
+  """Запросить возврат паевого взноса имуществом (перед получением)"""
+  reqReturn(data: ReqReturnInput!): Transaction!
 
   """Заменить приватный ключ аккаунта"""
   resetKey(data: ResetKeyInput!): Boolean!
@@ -9266,6 +9304,13 @@ type RegistrationProgram {
   title: String!
 }
 
+input ReofferRequestInput {
+  new_hash: String!
+  new_meta: String!
+  new_unit_cost: String!
+  request_hash: String!
+}
+
 enum ReportType {
   BUHOTCH
   DUSN
@@ -9314,6 +9359,12 @@ input RepresentedByInput {
   last_name: String!
   middle_name: String!
   position: String!
+}
+
+input ReqReturnInput {
+  request_hash: String!
+  return_statement: SignedDigitalDocumentInput!
+  username: String!
 }
 
 input ResetKeyInput {
@@ -10271,6 +10322,11 @@ input SignedDigitalDocumentInput {
   version: String!
 }
 
+type SovietDataChange {
+  action: String!
+  entity: String!
+}
+
 input SovietMemberInput {
   individual_data: CreateSovietIndividualDataInput!
   role: String!
@@ -10366,6 +10422,12 @@ type Subscription {
 
   """Подписка на обновления задач"""
   capitalIssueUpdated(project_hash: String): CapitalIssue!
+
+  """Уведомление об изменениях собраний, решений, повестки"""
+  sovietDataChanged: SovietDataChange!
+
+  """Уведомление об изменении состояния системы (статус, конфигурация)"""
+  systemStatusChanged: SystemStatusChange!
 }
 
 type SubscriptionStatsDto {
@@ -10467,6 +10529,11 @@ enum SystemStatus {
   initialized
   install
   maintenance
+}
+
+type SystemStatusChange {
+  message: String
+  status: String!
 }
 
 type Token {

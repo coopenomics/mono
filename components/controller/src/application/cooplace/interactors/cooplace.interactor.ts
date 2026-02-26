@@ -181,11 +181,13 @@ export class CooplaceInteractor {
   }
 
   public async reqReturn(data: ReqReturnInputDTO): Promise<TransactResult> {
+    const doc: Record<string, any> = { ...(data.return_statement as any) };
+    doc.meta = JSON.stringify(doc.meta);
     return await this.cooplaceBlockchainPort.reqReturn({
       coopname: this.config.coopname,
       username: data.username,
       request_hash: data.request_hash,
-      return_statement: { ...data.return_statement, meta: JSON.stringify(data.return_statement.meta) },
+      return_statement: doc,
     });
   }
 
@@ -204,20 +206,26 @@ export class CooplaceInteractor {
   }
 
   public async acceptStock(data: AcceptStockInputDTO): Promise<TransactResult> {
+    const cin: Record<string, any> = { ...(data.convert_in as any) };
+    cin.meta = JSON.stringify(cin.meta);
+    const rs: Record<string, any> = { ...(data.return_statement as any) };
+    rs.meta = JSON.stringify(rs.meta);
     return await this.cooplaceBlockchainPort.acceptStock({
       coopname: this.config.coopname,
       username: data.username,
       request_hash: data.request_hash,
-      convert_in: { ...data.convert_in, meta: JSON.stringify(data.convert_in.meta) },
-      return_statement: { ...data.return_statement, meta: JSON.stringify(data.return_statement.meta) },
+      convert_in: cin,
+      return_statement: rs,
     });
   }
 
   public async destroyRequest(data: DestroyRequestInputDTO): Promise<TransactResult> {
+    const act: Record<string, any> = { ...(data.destruction_act as any) };
+    act.meta = JSON.stringify(act.meta);
     return await this.cooplaceBlockchainPort.destroy({
       coopname: this.config.coopname,
       request_hash: data.request_hash,
-      destruction_act: { ...data.destruction_act, meta: JSON.stringify(data.destruction_act.meta) },
+      destruction_act: act,
     });
   }
 

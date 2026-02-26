@@ -1,6 +1,8 @@
 import { MarketContract } from 'cooptypes';
 import type { TransactResult } from '@wharfkit/session';
 
+type DocumentInput = any;
+
 export interface CooplaceBlockchainPort {
   acceptRequest(data: MarketContract.Actions.AcceptRequest.IAcceptRequest): Promise<TransactResult>;
   cancelRequest(data: MarketContract.Actions.CancelRequest.ICancelRequest): Promise<TransactResult>;
@@ -21,11 +23,11 @@ export interface CooplaceBlockchainPort {
   updateRequest(data: MarketContract.Actions.UpdateRequest.IUpdateRequest): Promise<TransactResult>;
   
   // Новые actions
-  reqReturn(data: MarketContract.Actions.ReqReturn.IReqReturn): Promise<TransactResult>;
-  coopstock(data: MarketContract.Actions.Coopstock.ICoopstock): Promise<TransactResult>;
-  acceptStock(data: MarketContract.Actions.AcceptStock.IAcceptStock): Promise<TransactResult>;
-  destroy(data: MarketContract.Actions.Destroy.IDestroy): Promise<TransactResult>;
-  reoffer(data: MarketContract.Actions.Reoffer.IReoffer): Promise<TransactResult>;
+  reqReturn(data: { coopname: string; username: string; request_hash: string; return_statement: DocumentInput }): Promise<TransactResult>;
+  coopstock(data: { coopname: string; braname: string; hash: string; units: number; unit_cost: string; product_lifecycle_secs: number; warranty_period_secs: number; membership_fee_amount: string; meta: string }): Promise<TransactResult>;
+  acceptStock(data: { coopname: string; username: string; request_hash: string; convert_in: DocumentInput; return_statement: DocumentInput }): Promise<TransactResult>;
+  destroy(data: { coopname: string; request_hash: string; destruction_act: DocumentInput }): Promise<TransactResult>;
+  reoffer(data: { coopname: string; request_hash: string; new_hash: string; new_unit_cost: string; new_meta: string }): Promise<TransactResult>;
 }
 
 export const COOPLACE_BLOCKCHAIN_PORT = Symbol('CooplaceBlockchainPort');
