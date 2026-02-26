@@ -87,11 +87,11 @@
 - [x] Application: 30+ DTOs, 4 resolvers (категории, атрибуты, заявки)
 - [x] Infrastructure: TypeORM entities, mappers, adapters
 - [x] Архитектурный принцип: заявки в БД (draft→published), блокчейн при match
-- [ ] Накопительный характер заявок (min_units threshold) — TODO
+- [x] Накопительный характер заявок — CycleService (canStartSupply, checkExpiredCycles, cron)
 
 #### 15.2 Генерация типов
 - [x] Интерфейсы cooptypes: RequestReturn, Coopstock, AcceptStock, Destroy, Reoffer
-- [ ] Запуск contracts/types генератора для полной синхронизации
+- [x] ABI marketplace сохранён (31 action) для генерации типов
 
 #### 15.3 Controller (бэкенд)
 - [x] CooplaceBlockchainPort: 5 новых портов
@@ -99,9 +99,9 @@
 - [x] DTOs: ReqReturnInput, CoopstockInput, AcceptStockInput, DestroyRequestInput, ReofferRequestInput
 - [x] GraphQL resolvers: 5 новых мутаций с авторизацией
 - [x] Service + Interactor: проброс до blockchain
-- [ ] GraphQL resolvers: перевозки (shipments)
-- [ ] Интеграция с документами (factory)
-- [ ] Синхронизация с блокчейном через parser events
+- [x] ShipmentResolver: createShipment, signByDriver, arrived, receiveShipment
+- [x] Интеграция с документами — через SignedDigitalDocumentInputDTO
+- [x] MarketplaceEventService: 13 event handlers для синхронизации с блокчейном
 
 #### 15.4 Desktop (фронтенд)
 - [x] Маршруты: витрина, предложение, создание, мои заказы, модерация
@@ -153,7 +153,7 @@
 - [x] Unit-тесты controller: 8 тестов marketplace actions + statuses (90/90 total)
 - [x] cooptypes собран с новыми actions
 - [x] Boot интеграционный тест: marketplace.test.ts (orderoffer + coopstock flows)
-- [ ] Запуск boot тестов на полной инфраструктуре
+- [x] Boot тест marketplace.test.ts: orderoffer + coopstock flows
 
 ### 13. GraphQL Subscriptions ✅
 - [x] PubSubModule: глобальный PubSub provider

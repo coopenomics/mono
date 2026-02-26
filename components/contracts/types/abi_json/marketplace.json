@@ -1,1 +1,1428 @@
-{"account_name":"marketplace","abi":{"version":"eosio::abi/1.2","types":[],"structs":[{"name":"accept","base":"","fields":[{"name":"coopname","type":"name"},{"name":"username","type":"name"},{"name":"exchange_id","type":"uint64"},{"name":"document","type":"document"}]},{"name":"addunits","base":"","fields":[{"name":"coopname","type":"name"},{"name":"username","type":"name"},{"name":"exchange_id","type":"uint64"},{"name":"units","type":"uint64"}]},{"name":"authorize","base":"","fields":[{"name":"coopname","type":"name"},{"name":"exchange_id","type":"uint64"},{"name":"contribution_product_decision_id","type":"uint64"},{"name":"contribution_product_authorization","type":"document"},{"name":"return_product_decision_id","type":"uint64"},{"name":"return_product_authorization","type":"document"}]},{"name":"balances","base":"balances_base","fields":[]},{"name":"balances_base","base":"","fields":[{"name":"id","type":"uint64"},{"name":"contract","type":"name"},{"name":"quantity","type":"asset"}]},{"name":"cancel","base":"","fields":[{"name":"coopname","type":"name"},{"name":"username","type":"name"},{"name":"exchange_id","type":"uint64"}]},{"name":"complete","base":"","fields":[{"name":"coopname","type":"name"},{"name":"username","type":"name"},{"name":"exchange_id","type":"uint64"}]},{"name":"counts","base":"counts_base","fields":[]},{"name":"counts_base","base":"","fields":[{"name":"key","type":"name"},{"name":"secondary_key","type":"name"},{"name":"value","type":"uint64"}]},{"name":"decline","base":"","fields":[{"name":"coopname","type":"name"},{"name":"username","type":"name"},{"name":"exchange_id","type":"uint64"},{"name":"meta","type":"string"}]},{"name":"delivered","base":"","fields":[{"name":"coopname","type":"name"},{"name":"username","type":"name"},{"name":"exchange_id","type":"uint64"}]},{"name":"dispute","base":"","fields":[{"name":"coopname","type":"name"},{"name":"username","type":"name"},{"name":"exchange_id","type":"uint64"},{"name":"document","type":"document"}]},{"name":"document","base":"","fields":[{"name":"hash","type":"checksum256"},{"name":"public_key","type":"public_key"},{"name":"signature","type":"signature"},{"name":"meta","type":"string"}]},{"name":"exchange_params","base":"","fields":[{"name":"username","type":"name"},{"name":"parent_id","type":"uint64"},{"name":"program_id","type":"uint64"},{"name":"coopname","type":"name"},{"name":"units","type":"uint64"},{"name":"unit_cost","type":"asset"},{"name":"product_lifecycle_secs","type":"uint64"},{"name":"document","type":"document?"},{"name":"data","type":"string"},{"name":"meta","type":"string"}]},{"name":"migrate","base":"","fields":[]},{"name":"moderate","base":"","fields":[{"name":"coopname","type":"name"},{"name":"username","type":"name"},{"name":"exchange_id","type":"uint64"},{"name":"cancellation_fee","type":"uint64"}]},{"name":"newid","base":"","fields":[{"name":"id","type":"uint64"},{"name":"type","type":"name"}]},{"name":"offer","base":"","fields":[{"name":"params","type":"exchange_params"}]},{"name":"order","base":"","fields":[{"name":"params","type":"exchange_params"}]},{"name":"prohibit","base":"","fields":[{"name":"coopname","type":"name"},{"name":"username","type":"name"},{"name":"exchange_id","type":"uint64"},{"name":"meta","type":"string"}]},{"name":"publish","base":"","fields":[{"name":"coopname","type":"name"},{"name":"username","type":"name"},{"name":"exchange_id","type":"uint64"}]},{"name":"recieve","base":"","fields":[{"name":"coopname","type":"name"},{"name":"username","type":"name"},{"name":"exchange_id","type":"uint64"},{"name":"document","type":"document"}]},{"name":"recievecnfrm","base":"","fields":[{"name":"coopname","type":"name"},{"name":"username","type":"name"},{"name":"exchange_id","type":"uint64"},{"name":"document","type":"document"}]},{"name":"request","base":"","fields":[{"name":"id","type":"uint64"},{"name":"parent_id","type":"uint64"},{"name":"program_id","type":"uint64"},{"name":"coopname","type":"name"},{"name":"type","type":"name"},{"name":"status","type":"name"},{"name":"username","type":"name"},{"name":"parent_username","type":"name"},{"name":"token_contract","type":"name"},{"name":"unit_cost","type":"asset"},{"name":"supplier_amount","type":"asset"},{"name":"total_cost","type":"asset"},{"name":"membership_fee","type":"asset"},{"name":"remain_units","type":"uint64"},{"name":"blocked_units","type":"uint64"},{"name":"delivered_units","type":"uint64"},{"name":"data","type":"string"},{"name":"meta","type":"string"},{"name":"money_contributor","type":"name"},{"name":"product_contributor","type":"name"},{"name":"contribute_product_statement","type":"document"},{"name":"return_product_statement","type":"document"},{"name":"contribution_product_decision_id","type":"uint64"},{"name":"contribution_product_authorization","type":"document"},{"name":"return_product_decision_id","type":"uint64"},{"name":"return_product_authorization","type":"document"},{"name":"product_contribution_act_validation","type":"document"},{"name":"product_contribution_act","type":"document"},{"name":"product_recieve_act","type":"document"},{"name":"product_recieve_act_validation","type":"document"},{"name":"product_lifecycle_secs","type":"uint64"},{"name":"cancellation_fee","type":"uint64"},{"name":"cancellation_fee_amount","type":"asset"},{"name":"created_at","type":"time_point_sec"},{"name":"accepted_at","type":"time_point_sec"},{"name":"supplied_at","type":"time_point_sec"},{"name":"delivered_at","type":"time_point_sec"},{"name":"recieved_at","type":"time_point_sec"},{"name":"completed_at","type":"time_point_sec"},{"name":"declined_at","type":"time_point_sec"},{"name":"disputed_at","type":"time_point_sec"},{"name":"canceled_at","type":"time_point_sec"},{"name":"warranty_delay_until","type":"time_point_sec"},{"name":"deadline_for_receipt","type":"time_point_sec"},{"name":"is_warranty_return","type":"bool"},{"name":"warranty_return_id","type":"uint64"}]},{"name":"supply","base":"","fields":[{"name":"coopname","type":"name"},{"name":"username","type":"name"},{"name":"exchange_id","type":"uint64"},{"name":"document","type":"document"}]},{"name":"supplycnfrm","base":"","fields":[{"name":"coopname","type":"name"},{"name":"username","type":"name"},{"name":"exchange_id","type":"uint64"},{"name":"document","type":"document"}]},{"name":"unpublish","base":"","fields":[{"name":"coopname","type":"name"},{"name":"username","type":"name"},{"name":"exchange_id","type":"uint64"}]},{"name":"update","base":"","fields":[{"name":"coopname","type":"name"},{"name":"username","type":"name"},{"name":"exchange_id","type":"uint64"},{"name":"remain_units","type":"uint64"},{"name":"unit_cost","type":"asset"},{"name":"data","type":"string"},{"name":"meta","type":"string"}]}],"actions":[{"name":"accept","type":"accept","ricardian_contract":""},{"name":"addunits","type":"addunits","ricardian_contract":""},{"name":"authorize","type":"authorize","ricardian_contract":""},{"name":"cancel","type":"cancel","ricardian_contract":""},{"name":"complete","type":"complete","ricardian_contract":""},{"name":"decline","type":"decline","ricardian_contract":""},{"name":"delivered","type":"delivered","ricardian_contract":""},{"name":"dispute","type":"dispute","ricardian_contract":""},{"name":"migrate","type":"migrate","ricardian_contract":""},{"name":"moderate","type":"moderate","ricardian_contract":""},{"name":"newid","type":"newid","ricardian_contract":""},{"name":"offer","type":"offer","ricardian_contract":""},{"name":"order","type":"order","ricardian_contract":""},{"name":"prohibit","type":"prohibit","ricardian_contract":""},{"name":"publish","type":"publish","ricardian_contract":""},{"name":"recieve","type":"recieve","ricardian_contract":""},{"name":"recievecnfrm","type":"recievecnfrm","ricardian_contract":""},{"name":"supply","type":"supply","ricardian_contract":""},{"name":"supplycnfrm","type":"supplycnfrm","ricardian_contract":""},{"name":"unpublish","type":"unpublish","ricardian_contract":""},{"name":"update","type":"update","ricardian_contract":""}],"tables":[{"name":"balances","index_type":"i64","key_names":[],"key_types":[],"type":"balances"},{"name":"counts","index_type":"i64","key_names":[],"key_types":[],"type":"counts"},{"name":"requests","index_type":"i64","key_names":[],"key_types":[],"type":"request"}],"ricardian_clauses":[],"error_messages":[],"abi_extensions":[],"variants":[],"action_results":[]}}
+{
+  "version": "eosio::abi/1.2",
+  "types": [],
+  "structs": [
+    {
+      "name": "accept",
+      "base": "",
+      "fields": [
+        {
+          "name": "coopname",
+          "type": "name"
+        },
+        {
+          "name": "supplier_braname",
+          "type": "name"
+        },
+        {
+          "name": "username",
+          "type": "name"
+        },
+        {
+          "name": "request_hash",
+          "type": "checksum256"
+        },
+        {
+          "name": "convert_out",
+          "type": "document2"
+        },
+        {
+          "name": "return_document",
+          "type": "document2"
+        }
+      ]
+    },
+    {
+      "name": "acceptstock",
+      "base": "",
+      "fields": [
+        {
+          "name": "coopname",
+          "type": "name"
+        },
+        {
+          "name": "username",
+          "type": "name"
+        },
+        {
+          "name": "request_hash",
+          "type": "checksum256"
+        },
+        {
+          "name": "convert_in",
+          "type": "document2"
+        },
+        {
+          "name": "return_statement",
+          "type": "document2"
+        }
+      ]
+    },
+    {
+      "name": "arrived",
+      "base": "",
+      "fields": [
+        {
+          "name": "coopname",
+          "type": "name"
+        },
+        {
+          "name": "hash",
+          "type": "checksum256"
+        },
+        {
+          "name": "transport_act_delivery",
+          "type": "document2"
+        }
+      ]
+    },
+    {
+      "name": "authcontrib",
+      "base": "",
+      "fields": [
+        {
+          "name": "coopname",
+          "type": "name"
+        },
+        {
+          "name": "request_hash",
+          "type": "checksum256"
+        },
+        {
+          "name": "authorization",
+          "type": "document2"
+        }
+      ]
+    },
+    {
+      "name": "authreturn",
+      "base": "",
+      "fields": [
+        {
+          "name": "coopname",
+          "type": "name"
+        },
+        {
+          "name": "request_hash",
+          "type": "checksum256"
+        },
+        {
+          "name": "authorization",
+          "type": "document2"
+        }
+      ]
+    },
+    {
+      "name": "balances",
+      "base": "balances_base",
+      "fields": []
+    },
+    {
+      "name": "balances_base",
+      "base": "",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uint64"
+        },
+        {
+          "name": "contract",
+          "type": "name"
+        },
+        {
+          "name": "quantity",
+          "type": "asset"
+        }
+      ]
+    },
+    {
+      "name": "cancel",
+      "base": "",
+      "fields": [
+        {
+          "name": "coopname",
+          "type": "name"
+        },
+        {
+          "name": "username",
+          "type": "name"
+        },
+        {
+          "name": "request_hash",
+          "type": "checksum256"
+        }
+      ]
+    },
+    {
+      "name": "complete",
+      "base": "",
+      "fields": [
+        {
+          "name": "coopname",
+          "type": "name"
+        },
+        {
+          "name": "username",
+          "type": "name"
+        },
+        {
+          "name": "request_hash",
+          "type": "checksum256"
+        }
+      ]
+    },
+    {
+      "name": "coopstock",
+      "base": "",
+      "fields": [
+        {
+          "name": "coopname",
+          "type": "name"
+        },
+        {
+          "name": "braname",
+          "type": "name"
+        },
+        {
+          "name": "hash",
+          "type": "checksum256"
+        },
+        {
+          "name": "units",
+          "type": "uint64"
+        },
+        {
+          "name": "unit_cost",
+          "type": "asset"
+        },
+        {
+          "name": "product_lifecycle_secs",
+          "type": "uint32"
+        },
+        {
+          "name": "warranty_period_secs",
+          "type": "uint32"
+        },
+        {
+          "name": "membership_fee_amount",
+          "type": "asset"
+        },
+        {
+          "name": "meta",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "counts",
+      "base": "counts_base",
+      "fields": []
+    },
+    {
+      "name": "counts_base",
+      "base": "",
+      "fields": [
+        {
+          "name": "key",
+          "type": "name"
+        },
+        {
+          "name": "secondary_key",
+          "type": "name"
+        },
+        {
+          "name": "value",
+          "type": "uint64"
+        }
+      ]
+    },
+    {
+      "name": "createorder",
+      "base": "",
+      "fields": [
+        {
+          "name": "coopname",
+          "type": "name"
+        },
+        {
+          "name": "receiver_braname",
+          "type": "name"
+        },
+        {
+          "name": "username",
+          "type": "name"
+        },
+        {
+          "name": "hash",
+          "type": "checksum256"
+        },
+        {
+          "name": "units",
+          "type": "uint64"
+        },
+        {
+          "name": "unit_cost",
+          "type": "asset"
+        },
+        {
+          "name": "product_lifecycle_secs",
+          "type": "uint32"
+        },
+        {
+          "name": "warranty_period_secs",
+          "type": "uint32"
+        },
+        {
+          "name": "membership_fee_amount",
+          "type": "asset"
+        },
+        {
+          "name": "cancellation_fee_amount",
+          "type": "asset"
+        },
+        {
+          "name": "convert_in",
+          "type": "document2"
+        },
+        {
+          "name": "delivery_type",
+          "type": "name"
+        },
+        {
+          "name": "meta",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "createship",
+      "base": "",
+      "fields": [
+        {
+          "name": "coopname",
+          "type": "name"
+        },
+        {
+          "name": "hash",
+          "type": "checksum256"
+        },
+        {
+          "name": "driver_username",
+          "type": "name"
+        },
+        {
+          "name": "source_braname",
+          "type": "name"
+        },
+        {
+          "name": "destination_braname",
+          "type": "name"
+        },
+        {
+          "name": "request_hashes",
+          "type": "checksum256[]"
+        },
+        {
+          "name": "transport_act_sender",
+          "type": "document2"
+        }
+      ]
+    },
+    {
+      "name": "decline",
+      "base": "",
+      "fields": [
+        {
+          "name": "coopname",
+          "type": "name"
+        },
+        {
+          "name": "username",
+          "type": "name"
+        },
+        {
+          "name": "request_hash",
+          "type": "checksum256"
+        },
+        {
+          "name": "meta",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "declineacc",
+      "base": "",
+      "fields": [
+        {
+          "name": "coopname",
+          "type": "name"
+        },
+        {
+          "name": "hash",
+          "type": "checksum256"
+        },
+        {
+          "name": "reason",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "delivered",
+      "base": "",
+      "fields": [
+        {
+          "name": "coopname",
+          "type": "name"
+        },
+        {
+          "name": "username",
+          "type": "name"
+        },
+        {
+          "name": "request_hash",
+          "type": "checksum256"
+        }
+      ]
+    },
+    {
+      "name": "destroy",
+      "base": "",
+      "fields": [
+        {
+          "name": "coopname",
+          "type": "name"
+        },
+        {
+          "name": "request_hash",
+          "type": "checksum256"
+        },
+        {
+          "name": "destruction_act",
+          "type": "document2"
+        }
+      ]
+    },
+    {
+      "name": "dispute",
+      "base": "",
+      "fields": [
+        {
+          "name": "coopname",
+          "type": "name"
+        },
+        {
+          "name": "username",
+          "type": "name"
+        },
+        {
+          "name": "request_hash",
+          "type": "checksum256"
+        },
+        {
+          "name": "document",
+          "type": "document2"
+        }
+      ]
+    },
+    {
+      "name": "document2",
+      "base": "",
+      "fields": [
+        {
+          "name": "version",
+          "type": "string"
+        },
+        {
+          "name": "hash",
+          "type": "checksum256"
+        },
+        {
+          "name": "doc_hash",
+          "type": "checksum256"
+        },
+        {
+          "name": "meta_hash",
+          "type": "checksum256"
+        },
+        {
+          "name": "meta",
+          "type": "string"
+        },
+        {
+          "name": "signatures",
+          "type": "signature_info[]"
+        }
+      ]
+    },
+    {
+      "name": "migrate",
+      "base": "",
+      "fields": []
+    },
+    {
+      "name": "named_document",
+      "base": "",
+      "fields": [
+        {
+          "name": "name",
+          "type": "name"
+        },
+        {
+          "name": "document",
+          "type": "document2"
+        }
+      ]
+    },
+    {
+      "name": "orderoffer",
+      "base": "",
+      "fields": [
+        {
+          "name": "coopname",
+          "type": "name"
+        },
+        {
+          "name": "receiver_braname",
+          "type": "name"
+        },
+        {
+          "name": "username",
+          "type": "name"
+        },
+        {
+          "name": "hash",
+          "type": "checksum256"
+        },
+        {
+          "name": "units",
+          "type": "uint64"
+        },
+        {
+          "name": "unit_cost",
+          "type": "asset"
+        },
+        {
+          "name": "product_lifecycle_secs",
+          "type": "uint32"
+        },
+        {
+          "name": "warranty_period_secs",
+          "type": "uint32"
+        },
+        {
+          "name": "membership_fee_amount",
+          "type": "asset"
+        },
+        {
+          "name": "cancellation_fee_amount",
+          "type": "asset"
+        },
+        {
+          "name": "convert_in",
+          "type": "document2"
+        },
+        {
+          "name": "delivery_type",
+          "type": "name"
+        },
+        {
+          "name": "contribution_type",
+          "type": "name"
+        },
+        {
+          "name": "meta",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "receive",
+      "base": "",
+      "fields": [
+        {
+          "name": "coopname",
+          "type": "name"
+        },
+        {
+          "name": "username",
+          "type": "name"
+        },
+        {
+          "name": "request_hash",
+          "type": "checksum256"
+        },
+        {
+          "name": "document",
+          "type": "document2"
+        }
+      ]
+    },
+    {
+      "name": "receivecnf",
+      "base": "",
+      "fields": [
+        {
+          "name": "coopname",
+          "type": "name"
+        },
+        {
+          "name": "username",
+          "type": "name"
+        },
+        {
+          "name": "request_hash",
+          "type": "checksum256"
+        },
+        {
+          "name": "document",
+          "type": "document2"
+        }
+      ]
+    },
+    {
+      "name": "receiveshipm",
+      "base": "",
+      "fields": [
+        {
+          "name": "coopname",
+          "type": "name"
+        },
+        {
+          "name": "hash",
+          "type": "checksum256"
+        },
+        {
+          "name": "warehouse_receipt_act",
+          "type": "document2"
+        }
+      ]
+    },
+    {
+      "name": "reoffer",
+      "base": "",
+      "fields": [
+        {
+          "name": "coopname",
+          "type": "name"
+        },
+        {
+          "name": "request_hash",
+          "type": "checksum256"
+        },
+        {
+          "name": "new_hash",
+          "type": "checksum256"
+        },
+        {
+          "name": "new_unit_cost",
+          "type": "asset"
+        },
+        {
+          "name": "new_meta",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "reqreturn",
+      "base": "",
+      "fields": [
+        {
+          "name": "coopname",
+          "type": "name"
+        },
+        {
+          "name": "username",
+          "type": "name"
+        },
+        {
+          "name": "request_hash",
+          "type": "checksum256"
+        },
+        {
+          "name": "return_statement",
+          "type": "document2"
+        }
+      ]
+    },
+    {
+      "name": "request",
+      "base": "",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uint64"
+        },
+        {
+          "name": "hash",
+          "type": "checksum256"
+        },
+        {
+          "name": "coopname",
+          "type": "name"
+        },
+        {
+          "name": "type",
+          "type": "name"
+        },
+        {
+          "name": "status",
+          "type": "name"
+        },
+        {
+          "name": "username",
+          "type": "name"
+        },
+        {
+          "name": "braname",
+          "type": "name"
+        },
+        {
+          "name": "warehouse",
+          "type": "name"
+        },
+        {
+          "name": "token_contract",
+          "type": "name"
+        },
+        {
+          "name": "receiver_braname",
+          "type": "name"
+        },
+        {
+          "name": "supplier_braname",
+          "type": "name"
+        },
+        {
+          "name": "unit_cost",
+          "type": "asset"
+        },
+        {
+          "name": "base_cost",
+          "type": "asset"
+        },
+        {
+          "name": "membership_fee_amount",
+          "type": "asset"
+        },
+        {
+          "name": "total_cost",
+          "type": "asset"
+        },
+        {
+          "name": "units",
+          "type": "uint64"
+        },
+        {
+          "name": "meta",
+          "type": "string"
+        },
+        {
+          "name": "money_contributor",
+          "type": "name"
+        },
+        {
+          "name": "product_contributor",
+          "type": "name"
+        },
+        {
+          "name": "documents",
+          "type": "named_document[]"
+        },
+        {
+          "name": "product_lifecycle_secs",
+          "type": "uint64"
+        },
+        {
+          "name": "warranty_period_secs",
+          "type": "uint64"
+        },
+        {
+          "name": "cancellation_fee_amount",
+          "type": "asset"
+        },
+        {
+          "name": "warranty_delay_until",
+          "type": "time_point_sec"
+        },
+        {
+          "name": "deadline_for_receipt",
+          "type": "time_point_sec"
+        },
+        {
+          "name": "delivery_type",
+          "type": "name"
+        },
+        {
+          "name": "contribution_type",
+          "type": "name"
+        },
+        {
+          "name": "is_warranty_return",
+          "type": "bool"
+        },
+        {
+          "name": "warranty_return_id",
+          "type": "uint64"
+        },
+        {
+          "name": "created_at",
+          "type": "time_point_sec"
+        },
+        {
+          "name": "accepted_at",
+          "type": "time_point_sec"
+        },
+        {
+          "name": "supplied_at",
+          "type": "time_point_sec"
+        },
+        {
+          "name": "delivered_at",
+          "type": "time_point_sec"
+        },
+        {
+          "name": "received_at",
+          "type": "time_point_sec"
+        },
+        {
+          "name": "completed_at",
+          "type": "time_point_sec"
+        },
+        {
+          "name": "declined_at",
+          "type": "time_point_sec"
+        },
+        {
+          "name": "disputed_at",
+          "type": "time_point_sec"
+        },
+        {
+          "name": "canceled_at",
+          "type": "time_point_sec"
+        }
+      ]
+    },
+    {
+      "name": "respondoffer",
+      "base": "",
+      "fields": [
+        {
+          "name": "coopname",
+          "type": "name"
+        },
+        {
+          "name": "supplier_braname",
+          "type": "name"
+        },
+        {
+          "name": "username",
+          "type": "name"
+        },
+        {
+          "name": "order_hash",
+          "type": "checksum256"
+        },
+        {
+          "name": "offer_hash",
+          "type": "checksum256"
+        },
+        {
+          "name": "units",
+          "type": "uint64"
+        },
+        {
+          "name": "product_lifecycle_secs",
+          "type": "uint32"
+        },
+        {
+          "name": "contribution_statement",
+          "type": "document2"
+        },
+        {
+          "name": "convert_out",
+          "type": "document2"
+        }
+      ]
+    },
+    {
+      "name": "retransport",
+      "base": "",
+      "fields": [
+        {
+          "name": "coopname",
+          "type": "name"
+        },
+        {
+          "name": "completed_hash",
+          "type": "checksum256"
+        },
+        {
+          "name": "new_driver_username",
+          "type": "name"
+        },
+        {
+          "name": "source_braname",
+          "type": "name"
+        },
+        {
+          "name": "new_destination_braname",
+          "type": "name"
+        },
+        {
+          "name": "request_hashes",
+          "type": "checksum256[]"
+        },
+        {
+          "name": "transport_act_sender",
+          "type": "document2"
+        }
+      ]
+    },
+    {
+      "name": "segment",
+      "base": "",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uint64"
+        },
+        {
+          "name": "request_id",
+          "type": "uint64"
+        },
+        {
+          "name": "type",
+          "type": "name"
+        },
+        {
+          "name": "status",
+          "type": "name"
+        },
+        {
+          "name": "convert_in",
+          "type": "document2"
+        },
+        {
+          "name": "statement",
+          "type": "document2"
+        },
+        {
+          "name": "decision_id",
+          "type": "uint64"
+        },
+        {
+          "name": "authorization",
+          "type": "document2"
+        },
+        {
+          "name": "act1",
+          "type": "document2"
+        },
+        {
+          "name": "act2",
+          "type": "document2"
+        },
+        {
+          "name": "convert_out",
+          "type": "document2"
+        },
+        {
+          "name": "transport_act_1",
+          "type": "document2"
+        },
+        {
+          "name": "transport_act_2",
+          "type": "document2"
+        },
+        {
+          "name": "transport_act_3",
+          "type": "document2"
+        },
+        {
+          "name": "transport_act_4",
+          "type": "document2"
+        },
+        {
+          "name": "coopactor",
+          "type": "name"
+        },
+        {
+          "name": "username",
+          "type": "name"
+        },
+        {
+          "name": "driver_username",
+          "type": "name"
+        },
+        {
+          "name": "receive_from_driver_coopactor",
+          "type": "name"
+        },
+        {
+          "name": "created_at",
+          "type": "time_point_sec"
+        },
+        {
+          "name": "updated_at",
+          "type": "time_point_sec"
+        }
+      ]
+    },
+    {
+      "name": "shipment",
+      "base": "",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uint64"
+        },
+        {
+          "name": "hash",
+          "type": "checksum256"
+        },
+        {
+          "name": "coopname",
+          "type": "name"
+        },
+        {
+          "name": "driver_username",
+          "type": "name"
+        },
+        {
+          "name": "source_braname",
+          "type": "name"
+        },
+        {
+          "name": "destination_braname",
+          "type": "name"
+        },
+        {
+          "name": "status",
+          "type": "name"
+        },
+        {
+          "name": "request_hashes",
+          "type": "checksum256[]"
+        },
+        {
+          "name": "documents",
+          "type": "named_document[]"
+        },
+        {
+          "name": "created_at",
+          "type": "time_point_sec"
+        },
+        {
+          "name": "loaded_at",
+          "type": "time_point_sec"
+        },
+        {
+          "name": "delivered_at",
+          "type": "time_point_sec"
+        },
+        {
+          "name": "completed_at",
+          "type": "time_point_sec"
+        }
+      ]
+    },
+    {
+      "name": "signature_info",
+      "base": "",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uint32"
+        },
+        {
+          "name": "signed_hash",
+          "type": "checksum256"
+        },
+        {
+          "name": "signer",
+          "type": "name"
+        },
+        {
+          "name": "public_key",
+          "type": "public_key"
+        },
+        {
+          "name": "signature",
+          "type": "signature"
+        },
+        {
+          "name": "signed_at",
+          "type": "time_point_sec"
+        },
+        {
+          "name": "meta",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "signbydriver",
+      "base": "",
+      "fields": [
+        {
+          "name": "coopname",
+          "type": "name"
+        },
+        {
+          "name": "hash",
+          "type": "checksum256"
+        },
+        {
+          "name": "transport_act_driver",
+          "type": "document2"
+        }
+      ]
+    },
+    {
+      "name": "supplcnf",
+      "base": "",
+      "fields": [
+        {
+          "name": "coopname",
+          "type": "name"
+        },
+        {
+          "name": "username",
+          "type": "name"
+        },
+        {
+          "name": "request_hash",
+          "type": "checksum256"
+        },
+        {
+          "name": "act",
+          "type": "document2"
+        }
+      ]
+    },
+    {
+      "name": "supply",
+      "base": "",
+      "fields": [
+        {
+          "name": "coopname",
+          "type": "name"
+        },
+        {
+          "name": "username",
+          "type": "name"
+        },
+        {
+          "name": "request_hash",
+          "type": "checksum256"
+        },
+        {
+          "name": "act",
+          "type": "document2"
+        }
+      ]
+    },
+    {
+      "name": "waccept",
+      "base": "",
+      "fields": [
+        {
+          "name": "coopname",
+          "type": "name"
+        },
+        {
+          "name": "username",
+          "type": "name"
+        },
+        {
+          "name": "request_hash",
+          "type": "checksum256"
+        },
+        {
+          "name": "accept",
+          "type": "bool"
+        },
+        {
+          "name": "document",
+          "type": "document2"
+        }
+      ]
+    },
+    {
+      "name": "wauthorize",
+      "base": "",
+      "fields": [
+        {
+          "name": "coopname",
+          "type": "name"
+        },
+        {
+          "name": "request_hash",
+          "type": "checksum256"
+        },
+        {
+          "name": "wreturn_decision_id",
+          "type": "uint64"
+        },
+        {
+          "name": "wreturn_authorization",
+          "type": "document2"
+        },
+        {
+          "name": "wsupply_decision_id",
+          "type": "uint64"
+        },
+        {
+          "name": "wsupply_authorization",
+          "type": "document2"
+        }
+      ]
+    },
+    {
+      "name": "woffer",
+      "base": "",
+      "fields": [
+        {
+          "name": "coopname",
+          "type": "name"
+        },
+        {
+          "name": "username",
+          "type": "name"
+        },
+        {
+          "name": "request_hash",
+          "type": "checksum256"
+        },
+        {
+          "name": "document",
+          "type": "document2"
+        }
+      ]
+    },
+    {
+      "name": "wreturn",
+      "base": "",
+      "fields": [
+        {
+          "name": "coopname",
+          "type": "name"
+        },
+        {
+          "name": "username",
+          "type": "name"
+        },
+        {
+          "name": "request_hash",
+          "type": "checksum256"
+        },
+        {
+          "name": "document",
+          "type": "document2"
+        }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "name": "accept",
+      "type": "accept",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "acceptstock",
+      "type": "acceptstock",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "arrived",
+      "type": "arrived",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "authcontrib",
+      "type": "authcontrib",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "authreturn",
+      "type": "authreturn",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "cancel",
+      "type": "cancel",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "complete",
+      "type": "complete",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "coopstock",
+      "type": "coopstock",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "createorder",
+      "type": "createorder",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "createship",
+      "type": "createship",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "decline",
+      "type": "decline",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "declineacc",
+      "type": "declineacc",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "delivered",
+      "type": "delivered",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "destroy",
+      "type": "destroy",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "dispute",
+      "type": "dispute",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "migrate",
+      "type": "migrate",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "orderoffer",
+      "type": "orderoffer",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "receive",
+      "type": "receive",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "receivecnf",
+      "type": "receivecnf",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "receiveshipm",
+      "type": "receiveshipm",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "reoffer",
+      "type": "reoffer",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "reqreturn",
+      "type": "reqreturn",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "respondoffer",
+      "type": "respondoffer",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "retransport",
+      "type": "retransport",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "signbydriver",
+      "type": "signbydriver",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "supplcnf",
+      "type": "supplcnf",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "supply",
+      "type": "supply",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "waccept",
+      "type": "waccept",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "wauthorize",
+      "type": "wauthorize",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "woffer",
+      "type": "woffer",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "wreturn",
+      "type": "wreturn",
+      "ricardian_contract": ""
+    }
+  ],
+  "tables": [
+    {
+      "name": "balances",
+      "index_type": "i64",
+      "key_names": [],
+      "key_types": [],
+      "type": "balances"
+    },
+    {
+      "name": "counts",
+      "index_type": "i64",
+      "key_names": [],
+      "key_types": [],
+      "type": "counts"
+    },
+    {
+      "name": "requests",
+      "index_type": "i64",
+      "key_names": [],
+      "key_types": [],
+      "type": "request"
+    },
+    {
+      "name": "segments",
+      "index_type": "i64",
+      "key_names": [],
+      "key_types": [],
+      "type": "segment"
+    },
+    {
+      "name": "shipments",
+      "index_type": "i64",
+      "key_names": [],
+      "key_types": [],
+      "type": "shipment"
+    }
+  ],
+  "ricardian_clauses": [],
+  "error_messages": [],
+  "abi_extensions": [],
+  "variants": [],
+  "action_results": []
+}

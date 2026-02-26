@@ -4645,6 +4645,15 @@ input CreateShareLinkInput {
   targetUsername: String
 }
 
+input CreateShipmentInput {
+  destination_braname: String!
+  driver_username: String!
+  hash: String!
+  request_hashes: [String!]!
+  source_braname: String!
+  transport_act: SignedDigitalDocumentInput!
+}
+
 input CreateSovietIndividualDataInput {
   """Дата рождения"""
   birthdate: String!
@@ -7198,6 +7207,9 @@ type Mutation {
   """Создать ссылку доступа к странице"""
   createShareLink(data: CreateShareLinkInput!): ShareLink!
 
+  """Создать перевозку (КУ отправителя)"""
+  createShipment(data: CreateShipmentInput!): Transaction!
+
   """Создать веб-пуш подписку для пользователя"""
   createWebPushSubscription(data: CreateSubscriptionInput!): CreateSubscriptionResponse!
 
@@ -7370,6 +7382,9 @@ type Mutation {
   """
   receiveOnRequest(data: ReceiveOnRequestInput!): Transaction!
 
+  """Приём перевозки на складе КУ получателя"""
+  receiveShipment(data: SignShipmentInput!): Transaction!
+
   """Обновить токен доступа аккаунта"""
   refresh(data: RefreshInput!): RegisteredAccount!
 
@@ -7416,11 +7431,17 @@ type Mutation {
   """Сохранить приватный ключ в зашифрованном серверном хранилище"""
   setWif(data: SetWifInput!): Boolean!
 
+  """Водитель отмечает прибытие"""
+  shipmentArrived(data: SignShipmentInput!): Transaction!
+
   """Подписание решения председателем на общем собрании пайщиков"""
   signByPresiderOnAnnualGeneralMeet(data: SignByPresiderOnAnnualGeneralMeetInput!): MeetAggregate!
 
   """Подписание решения секретарём на общем собрании пайщиков"""
   signBySecretaryOnAnnualGeneralMeet(data: SignBySecretaryOnAnnualGeneralMeetInput!): MeetAggregate!
+
+  """Подпись водителя на перевозке"""
+  signShipmentByDriver(data: SignShipmentInput!): Transaction!
 
   """
   Начать процесс установки кооператива, установить ключ и получить код установки
@@ -10274,6 +10295,11 @@ input SignBySecretaryOnAnnualGeneralMeetInput {
 
   """Имя аккаунта пользователя"""
   username: String!
+}
+
+input SignShipmentInput {
+  document: SignedDigitalDocumentInput!
+  hash: String!
 }
 
 type SignatureInfo {
