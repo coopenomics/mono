@@ -6,6 +6,8 @@ import { UserSuppliesListPage } from 'src/pages/Marketplace/UserSuppliesList'
 import { OfferPage } from 'src/pages/Marketplace/OfferPage'
 import { ModerationPage } from 'src/pages/Marketplace/Moderation'
 import { WarehousePage } from 'src/pages/Marketplace/WarehousePage'
+import { ShipmentsPage } from 'src/pages/Marketplace/ShipmentsPage'
+import { DisputePage } from 'src/pages/Marketplace/DisputePage'
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace'
 import { agreementsBase } from 'src/shared/lib/consts/workspaces'
 
@@ -97,6 +99,30 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Мои заказы',
               icon: 'fa-solid fa-cart-shopping',
+              roles: [],
+              requiresAuth: true,
+              agreements: agreementsBase,
+            },
+          },
+          {
+            path: 'shipments',
+            name: 'marketplace-shipments',
+            component: markRaw(ShipmentsPage),
+            meta: {
+              title: 'Перевозки',
+              icon: 'fa-solid fa-truck',
+              roles: ['chairman'],
+              requiresAuth: true,
+              agreements: agreementsBase,
+            },
+          },
+          {
+            path: 'disputes',
+            name: 'marketplace-disputes',
+            component: markRaw(DisputePage),
+            meta: {
+              title: 'Претензии',
+              icon: 'fa-solid fa-shield-halved',
               roles: [],
               requiresAuth: true,
               agreements: agreementsBase,
