@@ -12,7 +12,7 @@
 {{ get_typedoc_definition("Queries.PaymentMethods.GetPaymentMethods", "IOutput") }}
 
 ## Добавить банковский счёт
-{{ get_sdk_doc("Mutations", "PaymentMethods", "CreateBankAccount") }} | {{ get_graphql_doc("Mutation.createBankAccount") }}
+{{ get_sdk_doc("Mutations", "PaymentMethods", "AddPaymentMethod") }} | {{ get_graphql_doc("Mutation.createBankAccount") }}
 
 {{ get_typedoc_input("Mutations.PaymentMethods.CreateBankAccount") }}
 
@@ -49,7 +49,7 @@
 
 
 ## Добавить банковский счёт
-{{ get_sdk_doc("Mutations", "PaymentMethods", "CreateBankAccount") }} | {{ get_graphql_doc("Mutation.createBankAccount") }}
+{{ get_sdk_doc("Mutations", "PaymentMethods", "AddPaymentMethod") }} | {{ get_graphql_doc("Mutation.createBankAccount") }}
 
 {{ get_typedoc_input("Mutations.PaymentMethods.CreateBankAccount") }}
 

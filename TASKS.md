@@ -155,6 +155,14 @@
 - [x] Boot интеграционный тест: marketplace.test.ts (orderoffer + coopstock flows)
 - [x] Boot тест marketplace.test.ts: orderoffer + coopstock flows
 
+### 16. Документация (docs)
+- [x] Раздел Cooplace: обзор архитектуры, жизненный цикл карточки, match, циклы
+- [x] Раздел Cooplace/dev: GraphQL API reference (настройки, карточки, поставки, перевозки, диспуты)
+- [x] Раздел Marketplace: пользовательская документация (витрина, заказ, администрирование)
+- [x] TypeDoc JSON сгенерирован из SDK (137MB)
+- [x] mkdocs.yml nav обновлён с «Стол заказов»
+- [x] .gitignore для typedoc.json (генерируется при сборке)
+
 ### 13. GraphQL Subscriptions ✅
 - [x] PubSubModule: глобальный PubSub provider
 - [x] WebSocket support в GraphQL module (graphql-ws)

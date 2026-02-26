@@ -1,3 +1,6 @@
 site
 node_modules
 __pycache__
+docs/sdk/typedoc.json
+# TypeDoc JSON generated at build time
+docs/sdk/
