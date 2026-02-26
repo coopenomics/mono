@@ -1,16 +1,22 @@
 import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
-import { UseGuards } from '@nestjs/common';
+import { UseGuards, Inject, Logger } from '@nestjs/common';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
 import { RolesGuard } from '~/application/auth/guards/roles.guard';
 import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
 import { ReportRegistryService } from '../../domain/services/report-registry.service';
-import { AvailableReportDTO, GenerateReportInputDTO, GeneratedReportDTO } from '../dto/report.dto';
+import { AvailableReportDTO, GenerateReportInputDTO, GeneratedReportDTO, OrganizationDataInputDTO } from '../dto/report.dto';
 import { config } from '~/config';
 import type { ReportInput, LedgerAccountData } from '../../domain/interfaces/report-generator.interface';
+import { LedgerInteractor } from '~/application/ledger/interactors/ledger.interactor';
 
 @Resolver()
 export class ReportResolver {
-  constructor(private readonly reportRegistry: ReportRegistryService) {}
+  private readonly logger = new Logger(ReportResolver.name);
+
+  constructor(
+    private readonly reportRegistry: ReportRegistryService,
+    private readonly ledgerInteractor: LedgerInteractor,
+  ) {}
 
   @Query(() => [AvailableReportDTO], {
     name: 'getAvailableReports',
@@ -29,30 +35,55 @@ export class ReportResolver {
   @AuthRoles(['chairman'])
   async generateReport(
     @Args('data') data: GenerateReportInputDTO,
+    @Args('organization') org: OrganizationDataInputDTO,
   ): Promise<GeneratedReportDTO> {
+    const coopname = config.coopname;
+
+    let ledgerData: LedgerAccountData[] = [];
+    try {
+      const ledgerState = await this.ledgerInteractor.getLedger({ coopname });
+      ledgerData = ledgerState.chartOfAccounts.map(acc => {
+        const amount = this.parseAmount(acc.available);
+        return {
+          accountId: acc.id,
+          name: acc.name,
+          balanceCurrent: amount,
+          balancePrevious: 0,
+          balancePrePrevious: 0,
+        };
+      });
+    } catch (e: any) {
+      this.logger.warn(`Не удалось загрузить данные ledger: ${e.message}`);
+    }
+
     const input: ReportInput = {
       reportType: data.reportType,
       year: data.year,
       period: data.period,
-      inn: '9728130611',
-      kpp: '772801001',
-      orgName: 'Потребительский Кооператив "ВОСХОД"',
-      ogrn: '1247700283346',
-      okved: '94.99',
-      okfs: '16',
-      okopf: '20200',
-      signerFio: { lastName: 'Иванов', firstName: 'Иван', middleName: 'Иванович' },
-      ledgerData: [],
+      inn: org.inn,
+      kpp: org.kpp,
+      orgName: org.orgName,
+      ogrn: org.ogrn,
+      okved: org.okved,
+      okfs: org.okfs || '16',
+      okopf: org.okopf || '20200',
+      oktmo: org.oktmo,
+      address: org.address,
+      phone: org.phone,
+      signerFio: {
+        lastName: org.signerLastName,
+        firstName: org.signerFirstName,
+        middleName: org.signerMiddleName,
+      },
+      signerSnils: org.signerSnils,
+      ledgerData,
     };
 
-    // TODO: загрузить реальные данные из ledger
-    // Пока используем тестовые данные
-    input.ledgerData = [
-      { accountId: 51, name: 'Расчётный счёт', available: 100000, blocked: 0 },
-      { accountId: 80, name: 'Паевой фонд', available: 50000, blocked: 0 },
-      { accountId: 86, name: 'Целевое финансирование', available: 30000, blocked: 0 },
-    ];
-
     return this.reportRegistry.generate(input);
+  }
+
+  private parseAmount(amountStr: string): number {
+    const match = amountStr.match(/([\d.]+)/);
+    return match ? parseFloat(match[1]) : 0;
   }
 }

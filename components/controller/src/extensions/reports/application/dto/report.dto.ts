@@ -36,6 +36,71 @@ export class GenerateReportInputDTO {
   period?: number;
 }
 
+@InputType('OrganizationDataInput')
+export class OrganizationDataInputDTO {
+  @Field(() => String)
+  @IsString()
+  inn!: string;
+
+  @Field(() => String)
+  @IsString()
+  kpp!: string;
+
+  @Field(() => String)
+  @IsString()
+  orgName!: string;
+
+  @Field(() => String)
+  @IsString()
+  ogrn!: string;
+
+  @Field(() => String)
+  @IsString()
+  okved!: string;
+
+  @Field(() => String)
+  @IsString()
+  oktmo!: string;
+
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsString()
+  okfs?: string;
+
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsString()
+  okopf?: string;
+
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsString()
+  address?: string;
+
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @Field(() => String)
+  @IsString()
+  signerLastName!: string;
+
+  @Field(() => String)
+  @IsString()
+  signerFirstName!: string;
+
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsString()
+  signerMiddleName?: string;
+
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsString()
+  signerSnils?: string;
+}
+
 @ObjectType('GeneratedReport')
 export class GeneratedReportDTO {
   @Field(() => ReportType)

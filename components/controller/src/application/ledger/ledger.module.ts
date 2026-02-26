@@ -12,5 +12,6 @@ import { LedgerDomainModule } from '~/domain/ledger/ledger-domain.module';
 @Module({
   imports: [LedgerDomainModule],
   providers: [LedgerResolver, LedgerService, LedgerEventService, LedgerInteractor],
+  exports: [LedgerInteractor],
 })
 export class LedgerModule {}
