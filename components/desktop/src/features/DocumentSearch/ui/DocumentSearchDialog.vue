@@ -107,8 +107,10 @@ function onSearch(query: string | number | null) {
   }, 300)
 }
 
-function openDocument(result: any) {
+function openDocument(result: { hash: string }) {
   close()
+  const coopname = useSystemStore().info.coopname
+  window.location.hash = `#/${coopname}/user/documents/${result.hash}`
 }
 
 function close() {

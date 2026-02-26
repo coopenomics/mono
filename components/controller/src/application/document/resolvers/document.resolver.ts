@@ -29,6 +29,18 @@ export class DocumentResolver {
     return this.documentService.getDocumentsAggregate(data);
   }
 
+  @Query(() => DocumentPackageAggregateDTO, {
+    name: 'getDocumentPackageByHash',
+    description: 'Получить пакет документов по хешу (заявление + решение + акты)',
+    nullable: true,
+  })
+  @UseGuards(GqlJwtAuthGuard)
+  async getDocumentPackageByHash(
+    @Args('hash', { type: () => String }) hash: string
+  ): Promise<DocumentPackageAggregateDTO | null> {
+    return this.documentService.getDocumentPackageByHash(hash);
+  }
+
   @Mutation(() => GeneratedDocumentDTO, {
     name: 'generateDocument',
     description: 'Универсальная генерация документа с произвольными данными (только для председателя)',

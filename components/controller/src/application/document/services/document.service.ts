@@ -39,4 +39,18 @@ export class DocumentService {
       options: input.options,
     });
   }
+
+  async getDocumentPackageByHash(hash: string): Promise<any | null> {
+    try {
+      const result = await this.documentInteractor.getDocumentsAggregate({
+        query: { hash },
+        page: 1,
+        limit: 1,
+        type: 'newsubmitted',
+      });
+      return result.items?.[0] || null;
+    } catch {
+      return null;
+    }
+  }
 }

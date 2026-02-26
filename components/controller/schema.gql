@@ -8938,6 +8938,9 @@ type Query {
 
   """Получить состав приложений рабочего стола"""
   getDesktop: Desktop!
+
+  """Получить пакет документов по хешу (заявление + решение + акты)"""
+  getDocumentPackageByHash(hash: String!): DocumentPackageAggregate
   getDocuments(data: GetDocumentsInput!): DocumentsAggregatePaginationResult!
 
   """Получить логи расширений с фильтрацией и пагинацией"""

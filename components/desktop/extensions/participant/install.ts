@@ -9,6 +9,7 @@ import { UserDocumentsPage } from 'src/pages/User/DocumentsPage';
 import { UserPaymentsPage } from 'src/pages/User/PaymentsPage';
 import { SupportTrigger } from 'src/pages/Support';
 import { SharedWithMePage } from './pages/SharedWithMePage';
+import { DocumentPackagePage } from 'src/pages/User/DocumentPackagePage';
 import { agreementsBase } from 'src/shared/lib/consts/workspaces';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
 import { markRaw } from 'vue';
@@ -151,6 +152,18 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'shared-with-me',
             component: markRaw(SharedWithMePage),
             children: [],
+          },
+          {
+            path: 'documents/:hash/:docHash?',
+            name: 'document-package',
+            component: markRaw(DocumentPackagePage),
+            meta: {
+              title: 'Пакет документов',
+              icon: 'fa-solid fa-file-lines',
+              roles: [],
+              requiresAuth: true,
+              hidden: true,
+            },
           },
           {
             path: '/:coopname/contacts',
