@@ -97,8 +97,9 @@
 #### 15.4 Desktop (фронтенд)
 - [x] Маршруты: витрина, предложение, создание, мои заказы, модерация
 - [x] install.ts расширения market обновлён с agreementsBase и roles
-- [ ] Расширение виджета SupplyOrderRequestCard (новые шаги requestreturn/authreturn)
-- [ ] Карточка предложения coopstock
+- [x] ReqReturnStep — шаг подачи заявления на возврат (step 7)
+- [x] RetAuthorizedStep — шаг авторизации возврата советом (step 8)
+- [x] Base.vue: новые статусы (reqreturn, retauthorized), badge coopstock
 - [ ] Управление перевозками (shipments timeline)
 - [ ] Гарантийный возврат UI (претензия, спор, решение)
 - [ ] Панель председателя КУ (склад, выдача, destroy/reoffer)
