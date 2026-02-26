@@ -65,11 +65,15 @@
 - [x] PubSubModule: глобальный PubSub provider
 - [x] WebSocket support в GraphQL module (graphql-ws)
 - [x] 5 Capital subscriptions: issueUpdated/Created, commitCreated/Updated, dataChanged
-- [x] Filter по project_hash
-- [x] Events publishing: GenerationService, ProjectManagementService, VotingService
+- [x] systemStatusChanged — подписка на статус системы (install/init/update)
+- [x] sovietDataChanged — подписка на события собраний/решений
+- [x] Events publishing: GenerationService, ProjectManagementService, VotingService, SystemService, MeetEventService
 - [x] SDK: Subscriptions namespace (Capital)
 - [x] Auth через connectionParams.token
 - [x] `useGraphqlSubscription` composable на фронтенде
-- [x] **7 страниц Capital переведены с polling на WebSocket подписки**
-- [x] 0 использований useDataPoller в Capital extension
-- [x] Тесты: 82/82 (CASL + API keys + Reports)
+- [x] **7 страниц Capital** переведены с polling на подписки
+- [x] **System store** — WebSocket мониторинг вместо setTimeout
+- [x] **init-wallet** — удалён рекурсивный setTimeout(run, 10_000)
+- [x] **MeetDetails, ListOfAgenda, WaitingRegistration** — подписки вместо setInterval
+- [x] **Provider, ConnectionAgreement** — удалён setInterval polling
+- [x] 0 использований setInterval в прикладном коде (только UI-анимация энергии)
