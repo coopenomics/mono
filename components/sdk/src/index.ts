@@ -12,6 +12,7 @@ export * as Classes from './classes'
 export * as Mutations from './mutations'
 export * as Queries from './queries'
 export * as Selectors from './selectors'
+export * as Subscriptions from './subscriptions'
 
 export * as Types from './types'
 
