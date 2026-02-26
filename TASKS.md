@@ -36,7 +36,7 @@
 - [x] role в user сохранено (chairman, member, user)
 - [x] Тесты: 22/22 unit-тестов (chairman, member, user, granular permissions)
 
-#### 11.2 Шаринг страниц ✅ (бэкенд)
+#### 11.2 Шаринг страниц ✅
 - [x] ShareTokenEntity с JWT, guest/member targets
 - [x] ShareService: create/verify/revoke
 - [x] GraphQL: createShareLink, revokeShareLink, getMyShareLinks, getSharedWithMe
@@ -44,13 +44,13 @@
 - [x] Granular allowedActions per share link
 - [x] Кнопка "Поделиться" в Desktop Header (ShareHeaderAction)
 - [x] Диалог управления правами (ShareDialog)
-- [ ] Страница "Доступные мне" на рабочем столе Пайщика
+- [x] Страница "Доступные мне" на рабочем столе Пайщика (SharedWithMePage)
 
 #### 11.3 Интеграция в desktop ✅
 - [x] useShareButtonProcess: авто-регистрация на всех страницах
 - [x] ShareButton + ShareDialog компоненты
 - [x] Интеграция в init-app process
-- [ ] Валидация share tokens в route guard (frontend)
+- [x] Валидация share tokens в route guard (frontend) — bypass ролей при наличии share_token
 
 ### 12. API ключи кооператива ✅
 - [x] ApiKeyEntity: хеш ключа (sha256), префикс, операции, срок
