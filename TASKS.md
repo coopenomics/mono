@@ -162,6 +162,10 @@
 - [x] TypeDoc JSON сгенерирован из SDK (137MB)
 - [x] mkdocs.yml nav обновлён с «Стол заказов»
 - [x] .gitignore для typedoc.json (генерируется при сборке)
+- [x] architecture.md: архитектурный brief (слои, поток данных, расширения, контракты)
+- [x] quick-start.md: расширен (prerequisites, pnpm run setup, reboot, сборка, тесты)
+- [x] api-reference.md: полный API reference (82 queries + 179 mutations из live GraphQL)
+- [x] nav обновлён: Архитектура + API Reference
 
 ### 17. Строгая типизация marketplace из ABI
 - [x] marketplace.ts сгенерирован из ABI (38 интерфейсов: 31 action + 5 tables + 2 docs)
