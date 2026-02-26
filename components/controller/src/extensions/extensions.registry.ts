@@ -13,6 +13,7 @@ import { ParticipantPluginModule } from './participant/participant-extension.mod
 import { Schema as ParticipantSchema } from './participant/types';
 import { OneCoopPluginModule, OneCoopPlugin, Schema as OneCoopSchema } from './1ccoop/oneccoop-extension.module';
 import { CapitalPluginModule, CapitalPlugin, Schema as CapitalSchema } from './capital/capital-extension.module';
+import { ReportsExtensionModule } from './reports/reports-extension.module';
 
 /**
  * Конфигурация рабочего стола (workspace), который предоставляет расширение
@@ -301,6 +302,30 @@ export const AppRegistry: INamedExtension = {
     tags: ['интеграция', 'бухгалтерия', '1с'],
     readme: getReadmeContent('./1ccoop'),
     instructions: getInstructionsContent('./1ccoop'),
+    get is_desktop() {
+      return !!this.desktops && this.desktops.length > 0;
+    },
+  },
+  reports: {
+    is_builtin: false,
+    is_internal: true,
+    is_available: true,
+    desktops: [
+      {
+        name: 'reports',
+        title: 'Отчёты ФНС',
+        icon: 'fa-solid fa-file-invoice',
+      },
+    ],
+    title: 'Отчёты ФНС',
+    description: 'Генерация налоговых отчётов для ФНС: бухбаланс, 6-НДФЛ, РСВ, ПСВ, декларация УСН и уведомления.',
+    image: 'https://i.ibb.co/6C5F3kD/Chat-GPT-Image-10-2025-20-42-42.png',
+    class: ReportsExtensionModule,
+    pluginClass: BuiltinPlugin,
+    schema: BuiltinSchema,
+    tags: ['бухгалтерия', 'отчётность', 'ФНС'],
+    readme: getReadmeContent('./reports'),
+    instructions: getInstructionsContent('./reports'),
     get is_desktop() {
       return !!this.desktops && this.desktops.length > 0;
     },

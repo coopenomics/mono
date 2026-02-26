@@ -7223,7 +7223,7 @@ type Mutation {
   generateRegistrationDocuments(data: GenerateRegistrationDocumentsInput!): GenerateRegistrationDocumentsOutput!
 
   """Генерация отчёта для ФНС/ФСС"""
-  generateReport(data: GenerateReportInput!): GeneratedReport!
+  generateReport(data: GenerateReportInput!, organization: OrganizationDataInput!): GeneratedReport!
 
   """Сгенерировать документ акта возврата имущества."""
   generateReturnByAssetAct(data: ReturnByAssetActGenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
@@ -7513,6 +7513,23 @@ type OrganizationCertificate {
 
   """Имя аккаунта"""
   username: String!
+}
+
+input OrganizationDataInput {
+  address: String
+  inn: String!
+  kpp: String!
+  ogrn: String!
+  okfs: String
+  okopf: String
+  oktmo: String!
+  okved: String!
+  orgName: String!
+  phone: String
+  signerFirstName: String!
+  signerLastName: String!
+  signerMiddleName: String
+  signerSnils: String
 }
 
 type OrganizationDetails {
