@@ -21,7 +21,7 @@ export interface CooplaceBlockchainPort {
   updateRequest(data: MarketContract.Actions.UpdateRequest.IUpdateRequest): Promise<TransactResult>;
   
   // Новые actions
-  requestReturn(data: MarketContract.Actions.RequestReturn.IRequestReturn): Promise<TransactResult>;
+  reqReturn(data: MarketContract.Actions.ReqReturn.IReqReturn): Promise<TransactResult>;
   coopstock(data: MarketContract.Actions.Coopstock.ICoopstock): Promise<TransactResult>;
   acceptStock(data: MarketContract.Actions.AcceptStock.IAcceptStock): Promise<TransactResult>;
   destroy(data: MarketContract.Actions.Destroy.IDestroy): Promise<TransactResult>;

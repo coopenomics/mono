@@ -45,7 +45,12 @@
     }
     
     if (change.cancellation_fee_amount.amount > 0) {
-      Wallet::add_member_fee(coopname, change.cancellation_fee_amount);
+      eosio::action(
+        eosio::permission_level{ _marketplace, "active"_n },
+        _fund,
+        "spreadamount"_n,
+        std::make_tuple(coopname, change.cancellation_fee_amount)
+      ).send();
     }
   }
   

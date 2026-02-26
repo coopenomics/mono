@@ -78,7 +78,7 @@ public:
   [[eosio::action]] void acceptstock(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 convert_in, document2 return_statement);
   
   // Запрос возврата перед получением
-  [[eosio::action]] void requestreturn(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 return_statement);
+  [[eosio::action]] void reqreturn(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 return_statement);
   
   // Доставка заказчику
   [[eosio::action]] void delivered(eosio::name coopname, eosio::name username, checksum256 request_hash);

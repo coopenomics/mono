@@ -15,7 +15,7 @@
 
 @note Авторизация требуется от аккаунта: @p coopname
 **/
-[[eosio::action]] void marketplace::requestreturn(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 return_statement) {
+[[eosio::action]] void marketplace::reqreturn(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 return_statement) {
   require_auth(coopname);
   
   requests_index requests(_marketplace, coopname.value);

@@ -97,7 +97,7 @@ export * as UpdateRequest from './updateRequest'
 /**
  * Действие для подачи заявления на возврат паевого взноса перед получением имущества.
  */
-export * as RequestReturn from './requestReturn'
+export * as ReqReturn from './reqReturn'
 
 /**
  * Действие для создания предложения из запасов кооператива.

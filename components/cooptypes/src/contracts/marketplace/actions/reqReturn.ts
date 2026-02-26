@@ -1,9 +1,9 @@
 import type { IDocument } from '../../common'
 
-export namespace RequestReturn {
-  export const actionName = 'requestreturn'
+export namespace ReqReturn {
+  export const actionName = 'reqreturn'
 
-  export interface IRequestReturn {
+  export interface IReqReturn {
     coopname: string
     username: string
     request_hash: string
