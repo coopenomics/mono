@@ -1,0 +1,30 @@
+{
+  "name": "@coopenomics/interops",
+  "version": "0.1.0",
+  "description": "Связующий контракт между ядром и расширениями платформы coopenomics — интерфейсы, порты, типы",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "keywords": ["coopenomics", "interops", "platform-interfaces", "extensions"],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  },
+  "peerDependencies": {
+    "@nestjs/common": ">=10.0.0",
+    "@nestjs/graphql": ">=12.0.0",
+    "graphql": ">=16.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@nestjs/common": { "optional": true },
+    "@nestjs/graphql": { "optional": true },
+    "graphql": { "optional": true }
+  }
+}
