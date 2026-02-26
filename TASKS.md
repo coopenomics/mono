@@ -124,6 +124,16 @@
 - [x] market-admin (desktop) — уже существует (extensions/market-admin)
 - [x] Controller стартует, 22+9 = 31 GraphQL endpoints
 
+#### 15.Y Бэкенд карточек с циклами
+- [x] TypeORM entities: ProductCard (циклы), Category, SupplyOrder
+- [x] Repository adapters: CRUD + фильтры для всех entities
+- [x] ProductCardService: модерация (draft→moderation→published), циклы (min_units, deadline)
+- [x] addOrderToCard: инкремент cycle_collected_units, проверка min_units
+- [x] checkCycleDeadline: истечение → возврат → новый цикл (cycle_number++)
+- [x] ProductCardResolver: 9 queries/mutations с реальной БД логикой
+- [x] CooplaceExtensionModule: полная DI с TypeORM
+- [x] Исправлен белый экран desktop (vite-plugin-checker + share-button crash)
+
 #### 15.5 Тесты
 - [x] Unit-тесты controller: 8 тестов marketplace actions + statuses (90/90 total)
 - [x] cooptypes собран с новыми actions
