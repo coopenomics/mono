@@ -169,6 +169,11 @@ nav:
     - Настройки аренды ресурсов: new/resources/settings.md
     - Лог ресурсов: new/resources/log.md
     
+  - Стол заказов:
+    - Обзор: new/cooplace/index.md
+    - Маркетплейс: new/cooplace/marketplace.md
+    - Разработчикам: new/cooplace/dev.md
+    
   - Общие собрания: new/meet/index.md
   - Бухгалтерия: new/buh/index.md
   
