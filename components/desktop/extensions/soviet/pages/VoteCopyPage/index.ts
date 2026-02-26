@@ -1,0 +1,1 @@
+export { VoteCopyPage } from './ui'

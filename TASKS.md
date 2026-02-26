@@ -165,6 +165,22 @@
 - [x] architecture.md: архитектурный brief (слои, поток данных, расширения, контракты)
 - [x] quick-start.md: расширен (prerequisites, pnpm run setup, reboot, сборка, тесты)
 - [x] api-reference.md: полный API reference (82 queries + 179 mutations из live GraphQL)
+
+### 18. Сервис копирования голосов (Vote Copy)
+- [x] VoteCopySettingEntity: copier_username, source_username, decision_types, copyvote_public_key
+- [x] TypeORM entity + repository
+- [x] VoteCopyService: create, deactivate, delete, findActiveCopiers
+- [x] VoteCopyEventService: слушает votefor/voteagainst, копирует голоса
+- [x] VoteCopyResolver: 3 queries + 3 mutations (member/chairman)
+- [x] SovietExtensionModule подключён в AppModule
+- [x] VoteCopyPage (desktop): управление настройками, кто копирует меня
+- [x] Маршрут /soviet/vote-copy в soviet extension
+
+### 19. Страница пакета документов
+- [x] getDocumentPackageByHash query (бэкенд)
+- [x] DocumentPackagePage: заявление + решение + акты + связанные документы
+- [x] Маршрут /:coopname/user/documents/:hash/:docHash?
+- [x] Поиск → навигация на страницу пакета документов
 - [x] nav обновлён: Архитектура + API Reference
 
 ### 17. Строгая типизация marketplace из ABI

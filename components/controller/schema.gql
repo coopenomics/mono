@@ -4676,6 +4676,14 @@ type CreateSubscriptionResponse {
   success: Boolean!
 }
 
+input CreateVoteCopyInput {
+  """Типы решений (пусто = все)"""
+  decision_types: [String!]
+
+  """Чей голос копировать (член совета)"""
+  source_username: String!
+}
+
 input CreateWithdrawInput {
   """Имя аккаунта кооператива"""
   coopname: String!
@@ -7142,11 +7150,17 @@ type Mutation {
   """Создать перевозку (КУ отправителя)"""
   createShipment(data: CreateShipmentInput!): Transaction!
 
+  """Настроить копирование голоса члена совета"""
+  createVoteCopy(data: CreateVoteCopyInput!): VoteCopySetting!
+
   """Создать веб-пуш подписку для пользователя"""
   createWebPushSubscription(data: CreateSubscriptionInput!): CreateSubscriptionResponse!
 
   """Создать заявку на вывод средств"""
   createWithdraw(data: CreateWithdrawInput!): CreateWithdrawResponse!
+
+  """Деактивировать копирование голоса"""
+  deactivateVoteCopy(id: String!): VoteCopySetting!
 
   """Деактивировать веб-пуш подписку по ID"""
   deactivateWebPushSubscriptionById(data: DeactivateSubscriptionInput!): Boolean!
@@ -7165,6 +7179,9 @@ type Mutation {
 
   """Удалить доверенное лицо кооперативного участка"""
   deleteTrustedAccount(data: DeleteTrustedAccountInput!): Branch!
+
+  """Удалить настройку копирования"""
+  deleteVoteCopy(id: String!): Boolean!
 
   """Подтвердить доставку имущества Заказчику по заявке"""
   deliverOnRequest(data: DeliverOnRequestInput!): Transaction!
@@ -8902,6 +8919,9 @@ type Query {
   """Получить список вопросов совета кооператива для голосования"""
   getAgenda: [AgendaWithDocuments!]!
 
+  """Все настройки копирования голосов совета"""
+  getAllVoteCopySettings: [VoteCopySetting!]!
+
   """Получить список API ключей кооператива"""
   getApiKeys: [ApiKeyInfo!]!
 
@@ -8974,6 +8994,9 @@ type Query {
   """Получить созданные мной ссылки доступа"""
   getMyShareLinks: [ShareLink!]!
 
+  """Мои настройки копирования голосов"""
+  getMyVoteCopySettings: [VoteCopySetting!]!
+
   """Получить список методов оплаты"""
   getPaymentMethods(data: GetPaymentMethodsInput): PaymentMethodPaginationResult!
 
@@ -9008,6 +9031,9 @@ type Query {
 
   """Получить статистику веб-пуш подписок (только для председателя)"""
   getWebPushSubscriptionStats: SubscriptionStatsDto!
+
+  """Кто копирует мои голоса"""
+  getWhoCopiesToMe: [VoteCopySetting!]!
 
   """
   Получение документов кооператива для синхронизации с 1С. Требует секретный ключ в заголовке x-onecoop-secret-key.
@@ -10931,6 +10957,18 @@ type Verification {
 input VerifyEmailInputDTO {
   """Токен верификации email"""
   token: String!
+}
+
+type VoteCopySetting {
+  coopname: String!
+  copier_username: String!
+  copyvote_public_key: String
+  created_at: DateTime!
+  decision_types: [String!]!
+  id: String!
+  is_active: Boolean!
+  source_username: String!
+  updated_at: DateTime!
 }
 
 input VoteDistributionInput {

@@ -80,6 +80,7 @@ import { RegistrationModule } from './application/registration/registration.modu
 import { SearchModule } from './application/search/search.module';
 import { ReportsExtensionModule } from './extensions/reports/reports-extension.module';
 import { CooplaceExtensionModule } from './extensions/cooplace/cooplace-extension.module';
+import { SovietExtensionModule } from './extensions/soviet/soviet-extension.module';
 import { MutationLoggingInterceptor } from './application/common/interceptors/mutation-logging.interceptor';
 
 @Module({
@@ -167,6 +168,7 @@ import { MutationLoggingInterceptor } from './application/common/interceptors/mu
     ApiKeysAppModule,
     ReportsExtensionModule,
     CooplaceExtensionModule,
+    SovietExtensionModule,
   ],
   providers: [
     {

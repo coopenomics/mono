@@ -1,4 +1,5 @@
 import { markRaw } from 'vue';
+import { VoteCopyPage } from './pages/VoteCopyPage';
 import { ListOfAgendaQuestions } from 'src/pages/Cooperative/ListOfAgenda';
 import { ListOfParticipantsPage } from 'src/pages/Cooperative/ListOfParticipants';
 import { ListOfDocumentsPage } from 'src/pages/Cooperative/ListOfDocuments';
@@ -115,6 +116,16 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 },
               },
             ],
+          },
+          {
+            path: 'vote-copy',
+            name: 'vote-copy',
+            component: markRaw(VoteCopyPage),
+            meta: {
+              title: 'Копирование голосов',
+              icon: 'fa-solid fa-copy',
+              roles: ['chairman', 'member'],
+            },
           },
           {
             path: 'union/cooperatives',
