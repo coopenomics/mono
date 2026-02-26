@@ -3580,6 +3580,17 @@ type CapitalVote {
   voter_display_name: String
 }
 
+type Category {
+  coopname: String!
+  description: String
+  icon: String
+  id: String!
+  is_active: Boolean!
+  name: String!
+  parent_id: String
+  sort_order: Int!
+}
+
 input ChairmanOnboardingAgendaInput {
   decision: String!
   question: String!
@@ -3884,6 +3895,11 @@ type ContactsDTO {
   full_address: String!
   full_name: String!
   phone: String!
+}
+
+enum ContributionType {
+  MEMBER
+  SHARE
 }
 
 """Параметры документов участника из UData"""
@@ -4193,6 +4209,14 @@ input CreateBranchInput {
 
   """Имя аккаунта уполномоченного (председателя) кооперативного участка"""
   trustee: String!
+}
+
+input CreateCategoryInput {
+  description: String
+  icon: String
+  name: String!
+  parent_id: String
+  sort_order: Int
 }
 
 input CreateChildOrderInput {
@@ -4539,6 +4563,24 @@ input CreateProcessTemplateInput {
   description: String
   project_hash: String!
   title: String!
+}
+
+input CreateProductCardInput {
+  braname: String
+  cancellation_fee_amount: String
+  category_id: String
+  contribution_type: ContributionType!
+  delivery_type: DeliveryType!
+  description: String!
+  images: [String!]
+  membership_fee_amount: String
+  min_units: Int
+  product_lifecycle_secs: Int!
+  title: String!
+  type: ProductCardType!
+  unit_cost: String!
+  units: Int!
+  warranty_period_secs: Int!
 }
 
 input CreateProgramPropertyInput {
@@ -4973,6 +5015,11 @@ input DeliverOnRequestInput {
 
   """Имя аккаунта пользователя"""
   username: String!
+}
+
+enum DeliveryType {
+  EXTERNAL
+  INTERNAL
 }
 
 type Delta {
@@ -6870,6 +6917,9 @@ type Mutation {
   """Добавить доверенное лицо кооперативного участка"""
   addTrustedAccount(data: AddTrustedAccountInput!): Branch!
 
+  """Архивировать карточку"""
+  archiveProductCard(id: String!): Boolean!
+
   """Отменить заявку"""
   cancelRequest(data: CancelRequestInput!): Transaction!
 
@@ -7149,6 +7199,9 @@ type Mutation {
   """Создать кооперативный участок"""
   createBranch(data: CreateBranchInput!): Branch!
 
+  """Создать категорию (админ)"""
+  createCategory(data: CreateCategoryInput!): Category!
+
   """Создать заявку на поставку имущества по предложению Поставщика"""
   createChildOrder(data: CreateChildOrderInput!): Transaction!
 
@@ -7164,6 +7217,9 @@ type Mutation {
 
   """Создать предложение на поставку имущества"""
   createParentOffer(data: CreateParentOfferInput!): Transaction!
+
+  """Создать карточку товара/услуги"""
+  createProductCard(data: CreateProductCardInput!): ProductCard!
 
   """
   Создать повестку дня и проект решения, и сохранить в хранилище для дальнейшей генерации документа и его публикации
@@ -7191,8 +7247,14 @@ type Mutation {
   """Удалить кооперативный участок"""
   deleteBranch(data: DeleteBranchInput!): Boolean!
 
+  """Удалить категорию (админ)"""
+  deleteCategory(id: String!): Boolean!
+
   """Удалить метод оплаты"""
   deletePaymentMethod(data: DeletePaymentMethodInput!): Boolean!
+
+  """Удалить черновик карточки"""
+  deleteProductCard(id: String!): Boolean!
 
   """Удалить доверенное лицо кооперативного участка"""
   deleteTrustedAccount(data: DeleteTrustedAccountInput!): Branch!
@@ -7331,6 +7393,9 @@ type Mutation {
 
   """Отклонить модерацию по заявке"""
   prohibitRequest(data: ProhibitRequestInput!): Transaction!
+
+  """Опубликовать карточку"""
+  publishProductCard(id: String!): Boolean!
 
   """
   Опубликовать предложенную повестку и проект решения для дальнейшего голосования совета по нему
@@ -8466,6 +8531,41 @@ enum ProcessTemplateStatus {
   DRAFT
 }
 
+type ProductCard {
+  braname: String
+  cancellation_fee_amount: String
+  category_id: String
+  contribution_type: ContributionType!
+  coopname: String!
+  created_at: DateTime!
+  delivery_type: DeliveryType!
+  description: String!
+  id: String!
+  images: [String!]!
+  membership_fee_amount: String
+  product_lifecycle_secs: Int!
+  status: ProductCardStatus!
+  title: String!
+  type: ProductCardType!
+  unit_cost: String!
+  units: Int!
+  updated_at: DateTime!
+  username: String!
+  warranty_period_secs: Int!
+}
+
+enum ProductCardStatus {
+  ARCHIVED
+  DRAFT
+  MODERATION
+  PUBLISHED
+}
+
+enum ProductCardType {
+  OFFER
+  ORDER
+}
+
 """Статус программной инвестиции в системе CAPITAL"""
 enum ProgramInvestStatus {
   CREATED
@@ -8970,6 +9070,9 @@ type Query {
   """Получить логи событий по проекту с фильтрацией и пагинацией"""
   getCapitalProjectLogs(data: GetCapitalLogsInput!): PaginatedCapitalLogsPaginationResult!
 
+  """Получить дерево категорий"""
+  getCategories: [Category!]!
+
   """Получить состояние онбординга председателя"""
   getChairmanOnboardingState: ChairmanOnboardingState!
 
@@ -9015,6 +9118,9 @@ type Query {
   """Получить список всех собраний кооператива"""
   getMeets(data: GetMeetsInput!): [MeetAggregate!]!
 
+  """Мои карточки"""
+  getMyProductCards: [ProductCard!]!
+
   """Получить созданные мной ссылки доступа"""
   getMyShareLinks: [ShareLink!]!
 
@@ -9025,6 +9131,12 @@ type Query {
   Получить список платежей с возможностью фильтрации по типу, статусу и направлению.
   """
   getPayments(data: PaymentFiltersInput, options: PaginationInput): PaginatedGatewayPaymentsPaginationResult!
+
+  """Получить карточку по ID"""
+  getProductCard(id: String!): ProductCard
+
+  """Получить карточки товаров/услуг"""
+  getProductCards(category_id: String, limit: Int = 20, page: Int = 1, search: String, status: ProductCardStatus, type: ProductCardType): [ProductCard!]!
 
   """Получить один программный кошелек по фильтру"""
   getProgramWallet(filter: ProgramWalletFilterInput!): ProgramWallet
