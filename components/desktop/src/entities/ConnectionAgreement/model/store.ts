@@ -172,7 +172,7 @@ export const useConnectionAgreementStore = defineStore(namespace, () => {
 
   const startInstanceAutoRefresh = async () => {
     await loadCurrentInstance()
-    return () => {}
+    return () => { /* noop */ }
   }
 
   const reset = () => {

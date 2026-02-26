@@ -90,7 +90,7 @@ export function useProviderSubscriptions() {
 
   const startAutoRefresh = () => {
     loadSubscriptions();
-    return () => {};
+    return () => { /* noop */ };
   };
 
   return {

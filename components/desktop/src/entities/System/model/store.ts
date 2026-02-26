@@ -81,7 +81,7 @@ export const useSystemStore = defineStore(namespace, (): ISystemStore => {
               loadSystemInfo().catch(() => {});
             }
           },
-          closed: () => {
+          closed: () => { /* connection closed */
             backendAvailable.value = false;
             info.value.system_status = Zeus.SystemStatus.maintenance;
             maintenanceCounter.value++;
@@ -98,12 +98,12 @@ export const useSystemStore = defineStore(namespace, (): ISystemStore => {
               loadSystemInfo().catch(() => {});
             }
           },
-          error() {
+          error() { /* subscription error */
             backendAvailable.value = false;
             info.value.system_status = Zeus.SystemStatus.maintenance;
             maintenanceCounter.value++;
           },
-          complete() {},
+          complete() { /* done */ },
         },
       );
     } catch (e) {
