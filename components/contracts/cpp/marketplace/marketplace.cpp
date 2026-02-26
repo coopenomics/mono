@@ -27,6 +27,10 @@
 #include "src/shipment/receiveshipm.cpp"
 #include "src/shipment/retransport.cpp"
 
+// Уничтожение и перепредложение
+#include "src/deliver_on_offer/destroy.cpp"
+#include "src/deliver_on_offer/reoffer.cpp"
+
 // Диспуты
 #include "src/dispute_on_offer/dispute.cpp"
 #include "src/dispute_on_offer/wauthorize.cpp"

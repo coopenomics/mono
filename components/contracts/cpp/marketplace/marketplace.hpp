@@ -88,6 +88,10 @@ public:
   [[eosio::action]] void decline(eosio::name coopname, eosio::name username, checksum256 request_hash, std::string meta);
   [[eosio::action]] void cancel(eosio::name coopname, eosio::name username, checksum256 request_hash);
     
+  // Уничтожение и перепредложение
+  [[eosio::action]] void destroy(eosio::name coopname, checksum256 request_hash, document2 destruction_act);
+  [[eosio::action]] void reoffer(eosio::name coopname, checksum256 request_hash, checksum256 new_hash, eosio::asset new_unit_cost, std::string new_meta);
+  
   // Методы для работы с диспутом (гарантийный возврат)
   [[eosio::action]] void dispute(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 document);
   [[eosio::action]] void wauthorize(eosio::name coopname, checksum256 request_hash, uint64_t wreturn_decision_id, document2 wreturn_authorization, uint64_t wsupply_decision_id, document2 wsupply_authorization);

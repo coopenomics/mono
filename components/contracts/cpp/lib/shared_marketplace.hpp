@@ -318,6 +318,9 @@ namespace DocumentNames {
   static constexpr const name WRETURN_ACT = "wreturnact"_n;        // акт гарантийного возврата
   static constexpr const name WOFFER_ACT = "wofferact"_n;          // акт предложения товара поставщику
   static constexpr const name WACCEPT_ACT = "wacceptact"_n;        // акт принятия/отказа поставщика
+  
+  // Документы уничтожения
+  static constexpr const name DESTROY_ACT = "destroyact"_n;        // акт уничтожения имущества
 }
 
 } // namespace Marketplace
