@@ -2049,6 +2049,135 @@
   
   
   
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_18" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../new/cooplace/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Стол заказов
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_18" id="__nav_18_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_18_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_18">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Стол заказов
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../new/cooplace/marketplace/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Маркетплейс
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../new/cooplace/dev/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Разработчикам
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
     <li class="md-nav__item">
       <a href="../../new/meet/" class="md-nav__link">
         
@@ -3336,10 +3465,27 @@
 </code></pre></div>
 <p>Обновить параметры системы.</p>
 <h2 id="_6">Сохранение приватного ключа<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
-<p>⚠️ 🛠️ SDK: Mutations.System.SetWif не найден | 🔗 GraphQL API: <a href="/../graphql/index.html#mutation-setWif">Mutation.setWif</a></p>
-<p>⚠️ <code>Mutations.System.SetWif</code> не найден</p>
+<p>🛠️ SDK: <a href="/sdk/modules/Mutations.System.SaveWif.html">Mutations.System.SaveWif</a> | 🔗 GraphQL API: <a href="/../graphql/index.html#mutation-setWif">Mutation.setWif</a></p>
+<div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Mutations</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
+
+<span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.System.SaveWif.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">data</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">permission</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Тип разрешения ключа</span>
+<span class="w">    </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя пользователя, чей ключ</span>
+<span class="w">    </span><span class="nx">wif</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Приватный ключ</span>
+<span class="w">  </span><span class="p">};</span>
+<span class="p">};</span>
+
+<span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">[</span><span class="nx">Mutations</span><span class="p">.</span><span class="nx">System</span><span class="p">.</span><span class="nx">SaveWif</span><span class="p">.</span><span class="nx">name</span><span class="p">]</span><span class="o">:</span><span class="w"> </span><span class="nx">result</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">Mutation</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">Mutations</span><span class="p">.</span><span class="nx">System</span><span class="p">.</span><span class="nx">SaveWif</span><span class="p">.</span><span class="nx">mutation</span><span class="p">,</span>
+<span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nx">variables</span><span class="w"> </span><span class="p">}</span>
+<span class="p">);</span>
+</code></pre></div>
 <p>Результат:</p>
-<p>⚠️ <code>Mutations.System.SetWif</code> не найден</p>
+<div class="highlight"><pre><span></span><code><span class="kd">interface</span><span class="w"> </span><span class="nx">IOutput</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">setWif</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">boolean</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Сохранить приватный ключ в зашифрованном серверном хранилище</span>
+<span class="p">}</span>
+</code></pre></div>
 <p>Сохранить приватный ключ в зашифрованном серверном хранилище.</p>
 
 
