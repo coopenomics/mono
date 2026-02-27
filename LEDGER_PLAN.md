@@ -6,9 +6,6 @@
 ```
 id | name | available | blocked | writeoff
 ```
-- `available` — доступные средства
-- `blocked` — заблокированные средства
-- `writeoff` — списанные средства
 
 ### Текущие операции
 | Операция | Что делает |
@@ -17,189 +14,213 @@ id | name | available | blocked | writeoff
 | `sub(account_id, amount)` | `available -= amount` |
 | `block(account_id, amount)` | `available -= amount, blocked += amount` |
 | `unblock(account_id, amount)` | `blocked -= amount, available += amount` |
-| `writeoff(account_id, amount)` | `available -= amount, writeoff += amount` |
-| `writeoffcnsl(account_id, amount)` | `writeoff -= amount, available += amount` |
-| `transfer(from, to, amount)` | `add(from) + sub(to)` — СЕМАНТИЧЕСКИ НЕВЕРНО! |
+| `writeoff/writeoffcnsl` | Списание/отмена |
 
 ### Проблемы
-1. **Нет двойной записи** — каждая операция затрагивает один счёт
-2. **`blocked` на бухгалтерских счетах** — избыточно, блокировка только на кошельках
-3. **`writeoff` как отдельное поле** — можно заменить проводкой на счёт расходов
-4. **Избыточные методы**: `add_membership_fee`, `sub_membership_fee`, `block_membership_fee` — это просто add/sub/block с конкретным account_id
-5. **`transfer` неверно**: add на `from` и sub на `to` (перевёрнуто)
+1. Нет двойной записи — каждая операция затрагивает один счёт
+2. `blocked` на бухгалтерских счетах — избыточно
+3. Номера счетов жёстко прошиты в каждом контракте (51, 80, 86...)
+4. INT id с преобразованием 861→86.1 на фронтенде — ограничения
 
 ---
 
-## 2. Все вызовы Ledger из контрактов
+## 2. Принципы новой системы
 
-### registrator (confirmreg, adduser)
-| Операция | Дебет | Кредит | Сумма | Когда |
-|----------|-------|--------|-------|-------|
-| Паевой взнос при регистрации | 51 (Банк) | 80 (Паевой фонд) | minimum | confirmreg/adduser |
-| Вступительный взнос | 51 (Банк) | 86.1 (Вступительные) | initial | confirmreg/adduser |
+### Принцип 1: Номера счетов НЕ в контрактах
 
-### wallet (deposit, withdraw)
-| Операция | Дебет | Кредит | Сумма | Когда |
-|----------|-------|--------|-------|-------|
-| Пополнение кошелька | 51 (Банк) | 80 (Паевой фонд) | quantity | completedpst |
-| Вывод из кошелька | 80 (Паевой фонд) | 51 (Банк) | quantity | completewthd |
+Контракты **не знают** номера счетов. Они знают только **тип операции** (op_type). Маппинг `op_type → (debit_account, credit_account)` хранится в одном месте — `shared_ledger.hpp`. При смене плана счетов (Россия → Беларусь) — меняется только маппинг.
 
-### marketplace (supplcnf, receivecnf)
-| Операция | Дебет | Кредит | Сумма | Когда |
-|----------|-------|--------|-------|-------|
-| Подтверждение поставки | 51 (Банк) | 80 (Паевой фонд) | total_cost | supplcnf |
-| Подтверждение получения | 80 (Паевой фонд) | 51 (Банк) | base_cost | receivecnf |
+### Принцип 2: Строковые ID счетов
 
-### soviet (converttoaxn)
-| Операция | Дебет | Кредит | Сумма | Когда |
-|----------|-------|--------|-------|-------|
-| Конвертация в AXON | 80 (Паевой фонд) | 86.7 (Делегатские) | amount | converttoaxn |
+Счета идентифицируются строками, не числами: `"51"`, `"80"`, `"86.1"`, `"86.2"`. Это снимает ограничение на int→float преобразование.
 
-### capital
-| Операция | Дебет | Кредит | Сумма | Когда |
-|----------|-------|--------|-------|-------|
-| Имущественный взнос | — | 80 (Паевой фонд) | amount | act2pgprp |
-| Долг | — | 67 (Долгоср. займы) | amount | debtpaycnfrm |
-| Результат | — | 80 (Паевой фонд) | amount | signact2 |
-| Погашение долга | 67 (Долгоср. займы) | — | amount | signact2 |
-| Импорт участника | — | 80 (Паевой фонд) | amount | importcontr |
+### Принцип 3: Всегда двойная запись
+
+Каждая операция — это `debit` + `credit`. Одинарных записей нет. `block`/`unblock` на счетах — убирается.
 
 ---
 
-## 3. Новая система (двойная запись)
+## 3. Архитектура
 
-### Новая структура счёта (laccount_v2)
-```
-id | name | account_type | debit_balance | credit_balance
-```
-- `account_type`: `active` (А), `passive` (П), `active_passive` (АП)
-- `debit_balance` — дебетовый оборот
-- `credit_balance` — кредитовый оборот
-
-Активный счёт: сальдо = debit - credit (растёт по дебету)
-Пассивный счёт: сальдо = credit - debit (растёт по кредиту)
-
-### Классификация счетов
-
-| Счёт | Код | Тип | Описание |
-|------|-----|-----|----------|
-| Основные средства | 01 | А | Имущество |
-| Касса | 50 | А | Наличные |
-| **Расчётный счёт** | **51** | **А** | Денежные средства в банке |
-| Расчёты по займам | 58.3 | А | Выданные займы |
-| Резервы | 63 | П | Резервы |
-| Расчёты по налогам | 68 | П | Обязательства |
-| Зарплата | 70 | П | Обязательства |
-| Расчёты с пайщиками | 75 | АП | Дебиторка/кредиторка |
-| **Паевой фонд** | **80** | **П** | Собственный капитал |
-| Добавочный капитал | 83 | П | Капитал |
-| **Целевые поступления** | **86** | **П** | Фонды кооператива |
-| Прочие доходы/расходы | 91 | АП | Финансовый результат |
-
-### Новый единый action: `posting`
+### shared_ledger.hpp — единый файл маппинга
 
 ```cpp
-void ledger::posting(
-  name coopname,
-  name op_type,        // тип операции (имя из namespace)
-  uint64_t debit_id,   // счёт дебета
-  uint64_t credit_id,  // счёт кредита
-  asset amount,
-  string comment,
-  checksum256 hash,
-  name username
-);
+namespace Ledger {
+  // План счетов (меняется при смене юрисдикции)
+  namespace chart {
+    static constexpr const char* BANK_ACCOUNT = "51";
+    static constexpr const char* SHARE_FUND = "80";
+    static constexpr const char* ENTRANCE_FEES = "86.1";
+    static constexpr const char* RESERVE_FUND = "86.2";
+    static constexpr const char* TARGET_RECEIPTS = "86";
+    static constexpr const char* LONG_TERM_LOANS = "67";
+    static constexpr const char* MATERIALS = "10";
+    static constexpr const char* DELEGATE_FEES = "86.7";
+    static constexpr const char* EXPENSES = "91";
+    // ... остальные
+  }
+
+  // Тип счёта
+  enum class AccountType { ACTIVE, PASSIVE, ACTIVE_PASSIVE };
+
+  // Реестр проводок — ЕДИНСТВЕННОЕ МЕСТО маппинга
+  struct PostingDef {
+    const char* debit;
+    const char* credit;
+  };
+
+  // Все типы проводок и их маппинг на счета
+  static const std::map<eosio::name, PostingDef> POSTING_MAP = {
+    {"regshare"_n,   {chart::BANK_ACCOUNT, chart::SHARE_FUND}},
+    {"regentry"_n,   {chart::BANK_ACCOUNT, chart::ENTRANCE_FEES}},
+    {"deposit"_n,    {chart::BANK_ACCOUNT, chart::SHARE_FUND}},
+    {"withdraw"_n,   {chart::SHARE_FUND,   chart::BANK_ACCOUNT}},
+    {"supplcnf"_n,   {chart::BANK_ACCOUNT, chart::SHARE_FUND}},
+    {"receivecnf"_n, {chart::SHARE_FUND,   chart::BANK_ACCOUNT}},
+    {"convertaxn"_n, {chart::SHARE_FUND,   chart::DELEGATE_FEES}},
+    {"propcontrib"_n,{chart::MATERIALS,     chart::SHARE_FUND}},
+    {"debtpay"_n,    {chart::BANK_ACCOUNT, chart::LONG_TERM_LOANS}},
+    {"debtclose"_n,  {chart::LONG_TERM_LOANS, chart::BANK_ACCOUNT}},
+    {"spreadadd"_n,  {chart::TARGET_RECEIPTS, chart::TARGET_RECEIPTS}}, // внутренний
+    {"writeoff"_n,   {chart::EXPENSES,     ""}},  // второй счёт указывается при вызове
+  };
+
+  // Единый вызов из любого контракта
+  static void posting(
+    eosio::name actor,
+    eosio::name coopname,
+    eosio::name op_type,
+    eosio::asset amount,
+    std::string comment,
+    checksum256 hash,
+    eosio::name username
+  );
+}
 ```
 
-`op_type` — семантический тип операции:
+### Вызов из контрактов
 
-| op_type | Дебет | Кредит | Описание |
-|---------|-------|--------|----------|
-| `regshare` | 51 | 80 | Паевой взнос при регистрации |
-| `regentry` | 51 | 86.1 | Вступительный взнос |
-| `deposit` | 51 | 80 | Пополнение кошелька |
-| `withdraw` | 80 | 51 | Вывод из кошелька |
-| `supplcnf` | 51 | 80 | Поставка подтверждена |
-| `receivecnf` | 80 | 51 | Получение подтверждено |
-| `convertaxn` | 80 | 86.7 | Конвертация в AXON |
-| `propcontrib` | 10 | 80 | Имущественный взнос |
-| `debtpay` | 51 | 67 | Погашение долга |
-| `resultadd` | — | 80 | Начисление результата |
-| `spreadadd` | 86 | 86.x | Распределение по фондам |
-| `writeoff` | 91 | XX | Списание на расходы |
-
-### Убираемые операции
-- ❌ `block` / `unblock` — блокировка только на кошельках (wallet контракт)
-- ❌ `writeoff` / `writeoffcnsl` как отдельные операции — заменяются проводкой на счёт 91
-- ❌ `add_membership_fee` / `sub_membership_fee` / `block_membership_fee` / `unblock_membership_fee` — заменяются `posting`
-- ❌ `transfer` — заменяется `posting`
-
-### Новая таблица проводок (postings)
-```
-id | coopname | op_type | debit_id | credit_id | amount | comment | hash | username | created_at
-```
-
----
-
-## 4. План миграции
-
-### Этап 1: Новые таблицы
-- Создать `laccount_v2` с полями: `id, name, account_type, debit_balance, credit_balance`
-- Создать `postings` для журнала проводок
-- Инициализировать счета из ACCOUNT_MAP с указанием типа (А/П/АП)
-
-### Этап 2: Action `posting`
-- Один action вместо 8 (`add`, `sub`, `block`, `unblock`, `writeoff`, `writeoffcnsl`, `transfer`, `create`)
-- Валидация: `debit_id != credit_id`, оба счёта существуют, amount > 0
-- Обновление балансов:
-  - `debit_account.debit_balance += amount`
-  - `credit_account.credit_balance += amount`
-- Запись в journal `postings`
-
-### Этап 3: Миграция данных (в `migrate` action)
-```
-Для каждого laccount:
-  1. Создать laccount_v2 с тем же id
-  2. debit_balance = available (для активных) или 0 (для пассивных)
-  3. credit_balance = 0 (для активных) или available (для пассивных)
-  4. Игнорировать blocked (переносится в wallet)
-```
-
-### Этап 4: Обновление вызывающих контрактов
-Заменить во всех контрактах:
 ```cpp
-// БЫЛО:
-Ledger::add(actor, coopname, 80, amount, memo, hash, username);
-Ledger::add(actor, coopname, 51, amount, memo, hash, username);
+// БЫЛО (registrator/confirmreg.cpp):
+Ledger::add(_registrator, coopname, Ledger::accounts::SHARE_FUND, amount, memo, hash, username);
+Ledger::add(_registrator, coopname, Ledger::accounts::BANK_ACCOUNT, amount, memo, hash, username);
 
 // СТАЛО:
-Ledger::posting(actor, coopname, "deposit"_n, 51, 80, amount, memo, hash, username);
+Ledger::posting(_registrator, coopname, "regshare"_n, amount, memo, hash, username);
 ```
 
-### Этап 5: Бэкенд (controller)
-- Обновить парсер: слушать `action::ledger::posting` вместо `add`/`sub`
-- Обновить `LedgerInteractor`: работать с `debit_balance`/`credit_balance`
-- Обновить `ChartOfAccountsEntity`: добавить `account_type`
-- Обновить DTO: `available` → `saldo` (debit - credit или credit - debit)
-
-### Этап 6: Фронтенд (desktop)
-- Обновить страницу реестра счетов: показать дебет/кредит/сальдо
-- Обновить историю: показать проводки с двумя счетами
-- Обновить отчёты ФНС: использовать новые балансы
+Один вызов вместо двух. Номера счетов в контракте НЕ фигурируют.
 
 ---
 
-## 5. Зависимости и риски
+## 4. Новые таблицы блокчейна
 
-| Контракт | Вызовы Ledger | Изменений |
-|----------|--------------|-----------|
-| registrator | 4 (add) | 2 posting |
-| wallet | 4 (add, sub) | 2 posting |
-| marketplace | 2 (add, sub) | 2 posting |
-| soviet | 2 (sub, add) | 1 posting |
-| capital | 4 (add, sub) | 3 posting |
-| ledger (writeoff) | 1 (block) | Переделать |
+### laccount_v2 (scope: coopname)
+```
+id (string) | name | account_type | debit_total | credit_total
+```
+- `id` — строка: "51", "80", "86.1", "86.2"
+- `account_type` — active/passive/active_passive
+- `debit_total` — сумма всех дебетов
+- `credit_total` — сумма всех кредитов
+- Сальдо: для А = debit - credit, для П = credit - debit
 
-**Риск**: Все контракты используют `Ledger::add/sub` через inline actions. Миграция требует обновления ВСЕХ контрактов одновременно.
+### journal (scope: coopname)
+```
+id | op_type | debit_id | credit_id | amount | comment | hash | username | created_at
+```
 
-**Митигация**: `migrate` action выполняется атомарно, после чего старые методы отключаются.
+---
+
+## 5. Все проводки по контрактам
+
+### registrator
+| op_type | Дебет | Кредит | Когда |
+|---------|-------|--------|-------|
+| `regshare` | 51 (Банк) | 80 (Паевой фонд) | confirmreg, adduser |
+| `regentry` | 51 (Банк) | 86.1 (Вступительные) | confirmreg, adduser |
+
+### wallet
+| op_type | Дебет | Кредит | Когда |
+|---------|-------|--------|-------|
+| `deposit` | 51 (Банк) | 80 (Паевой фонд) | completedpst |
+| `withdraw` | 80 (Паевой фонд) | 51 (Банк) | completewthd |
+
+### marketplace
+| op_type | Дебет | Кредит | Когда |
+|---------|-------|--------|-------|
+| `supplcnf` | 51 (Банк) | 80 (Паевой фонд) | supplcnf |
+| `receivecnf` | 80 (Паевой фонд) | 51 (Банк) | receivecnf |
+
+### soviet
+| op_type | Дебет | Кредит | Когда |
+|---------|-------|--------|-------|
+| `convertaxn` | 80 (Паевой фонд) | 86.7 (Делегатские) | converttoaxn |
+
+### capital
+| op_type | Дебет | Кредит | Когда |
+|---------|-------|--------|-------|
+| `propcontrib` | 10 (Материалы) | 80 (Паевой фонд) | act2pgprp |
+| `debtpay` | 51 (Банк) | 67 (Долгоср. займы) | debtpaycnfrm |
+| `debtclose` | 67 (Долгоср. займы) | 80 (Паевой фонд) | signact2 |
+| `resultadd` | 51 (Банк) | 80 (Паевой фонд) | signact2 |
+| `importcontr` | 51 (Банк) | 80 (Паевой фонд) | importcontr |
+
+---
+
+## 6. Убираемый функционал
+
+- ❌ `block()` / `unblock()` — блокировка только в wallet контракте
+- ❌ `writeoff()` / `writeoffcnsl()` как отдельные — заменяются проводкой
+- ❌ `add_membership_fee()` / `sub_membership_fee()` / `block_membership_fee()` / `unblock_membership_fee()` — всё через `posting`
+- ❌ `transfer()` — заменяется `posting`
+- ❌ Числовые ID счетов в вызовах — только op_type
+
+---
+
+## 7. Этапы реализации
+
+### Этап 1: shared_ledger.hpp v2
+- Новый namespace `Ledger::chart` со строковыми ID
+- `POSTING_MAP` — маппинг op_type → (debit, credit)
+- Функция `posting()` — единый action
+- `AccountType` enum
+
+### Этап 2: ledger контракт v2
+- Новые таблицы `laccount_v2` и `journal`
+- Action `posting` — проверяет op_type в POSTING_MAP, обновляет оба счёта, пишет в journal
+- Action `init_v2` — создаёт счета из ACCOUNT_MAP с account_type
+
+### Этап 3: migrate action
+- Читает все laccount → создаёт laccount_v2 с debit_total/credit_total
+- Для активных: debit_total = available
+- Для пассивных: credit_total = available
+- Игнорирует blocked (убирается)
+
+### Этап 4: Обновление контрактов
+- registrator: 2 вызова → 2 posting
+- wallet: 4 вызова → 2 posting
+- marketplace: 2 вызова → 2 posting
+- soviet: 2 вызова → 1 posting
+- capital: 5 вызовов → 4 posting
+
+### Этап 5: Бэкенд
+- Parser: слушать `action::ledger::posting`
+- LedgerInteractor: debit_total/credit_total → saldo
+- ChartOfAccountsEntity: строковые ID + account_type
+- API: getJournal query для истории проводок
+
+### Этап 6: Фронтенд
+- Реестр счетов: строковые ID, дебет/кредит/сальдо
+- История: журнал проводок (op_type, дебет→кредит, сумма)
+- Убрать int→float преобразование ID
+
+---
+
+## 8. Смена юрисдикции
+
+Для перехода РФ → РБ:
+1. Изменить `Ledger::chart` — новые номера счетов
+2. Обновить `POSTING_MAP` если нужны другие счета
+3. Запустить `init_v2` с новым планом
+4. **Контракты НЕ меняются** — они знают только op_type
