@@ -54,11 +54,16 @@ div.page-shell
 
   //- Диалог создания
   q-dialog(v-model="showCreate")
-    q-card(style="min-width: 400px")
+    q-card(style="min-width: 450px")
       q-card-section
         .text-h6 Копировать голос
       q-card-section
-        q-input(v-model="newSource" label="Username члена совета" dense outlined autofocus)
+        UserSearchSelector(
+          v-model="newSource"
+          label="Выберите члена совета"
+          outlined
+          dense
+        )
         .text-caption.text-grey.q-mt-sm Голос этого члена совета будет автоматически копироваться при голосовании
       q-card-actions(align="right")
         q-btn(flat label="Отмена" @click="showCreate = false")
@@ -69,6 +74,7 @@ div.page-shell
 import { ref, onMounted } from 'vue'
 import { client } from 'src/shared/api/client'
 import { Notify } from 'quasar'
+import UserSearchSelector from 'src/shared/ui/UserSearchSelector/UserSearchSelector.vue'
 
 const mySettings = ref<{ id: string; source_username: string; decision_types: string[]; is_active: boolean }[]>([])
 const copiesToMe = ref<{ id: string; copier_username: string; is_active: boolean }[]>([])

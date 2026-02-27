@@ -88,9 +88,11 @@ import { ProgramWalletDeltaMapper } from './blockchain/mappers/program-wallet-de
       password: config.postgres.password,
       database: config.postgres.database,
       entities: [
-        'src/infrastructure/**/entities/*entity.{ts,js}',
-        'src/extensions/**/entities/*entity.{ts,js}',
-        'src/shared/**/entities/*entity.{ts,js}',
+        'src/infrastructure/**/*entity.{ts,js}',
+        'src/infrastructure/**/*-entity.{ts,js}',
+        'src/extensions/**/*entity.{ts,js}',
+        'src/extensions/**/*-entity.{ts,js}',
+        'src/shared/**/*entity.{ts,js}',
       ],
       //      synchronize: config.env === 'development', // Используем миграции для production
       synchronize: true, // Временно всегда синхронизируем
