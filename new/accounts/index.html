@@ -19,7 +19,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.3">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
     
     
       
@@ -445,10 +445,6 @@
       
         
       
-        
-      
-        
-      
     
     
     
@@ -495,34 +491,6 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../installation/dev/architecture/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Архитектура
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
             
               
                 
@@ -651,34 +619,6 @@
     
   
     Подробный старт
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../installation/dev/api-reference/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    API Reference
   
 
     
@@ -1507,8 +1447,6 @@
       
         
       
-        
-      
     
     
     
@@ -1564,34 +1502,6 @@
     
   
     Повестка совета
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../council/vote-copy/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Копирование голосов
   
 
     
@@ -2230,135 +2140,6 @@
   
   
   
-    
-    
-      
-        
-          
-        
-      
-        
-      
-        
-      
-    
-    
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_18" >
-        
-          
-          <div class="md-nav__link md-nav__container">
-            <a href="../cooplace/" class="md-nav__link ">
-              
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Стол заказов
-  
-
-    
-  </span>
-  
-  
-
-            </a>
-            
-              
-              <label class="md-nav__link " for="__nav_18" id="__nav_18_label" tabindex="0">
-                <span class="md-nav__icon md-icon"></span>
-              </label>
-            
-          </div>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_18_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_18">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Стол заказов
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../cooplace/marketplace/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Маркетплейс
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../cooplace/dev/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Разработчикам
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
     <li class="md-nav__item">
       <a href="../meet/" class="md-nav__link">
         
@@ -2561,186 +2342,6 @@
 
 
 <div class="highlight"><pre><span></span><code><span class="kd">interface</span><span class="w"> </span><span class="nx">IOutput</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="nx">getAccount</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nx">blockchain_account</span><span class="o">?:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nx">account_name</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя аккаунта</span>
-<span class="w">      </span><span class="nx">core_liquid_balance</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Баланс</span>
-<span class="w">      </span><span class="nx">cpu_limit</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nx">available</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Доступные ресурсы</span>
-<span class="w">        </span><span class="nx">current_used</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Текущее использование ресурсов</span>
-<span class="w">        </span><span class="nx">last_usage_update_time</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Время последнего обновления использования ресурсов</span>
-<span class="w">        </span><span class="nx">max</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Максимальное количество ресурсов</span>
-<span class="w">        </span><span class="nx">used</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Использовано ресурсов</span>
-<span class="w">      </span><span class="p">};</span>
-<span class="w">      </span><span class="nx">cpu_weight</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Вес CPU</span>
-<span class="w">      </span><span class="nx">created</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Дата создания</span>
-<span class="w">      </span><span class="nx">head_block_num</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Номер последнего блока</span>
-<span class="w">      </span><span class="nx">head_block_time</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Время последнего блока</span>
-<span class="w">      </span><span class="nx">last_code_update</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Время последнего обновления кода</span>
-<span class="w">      </span><span class="nx">net_limit</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nx">available</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Доступные ресурсы</span>
-<span class="w">        </span><span class="nx">current_used</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Текущее использование ресурсов</span>
-<span class="w">        </span><span class="nx">last_usage_update_time</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Время последнего обновления использования ресурсов</span>
-<span class="w">        </span><span class="nx">max</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Максимальное количество ресурсов</span>
-<span class="w">        </span><span class="nx">used</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Использовано ресурсов</span>
-<span class="w">      </span><span class="p">};</span>
-<span class="w">      </span><span class="nx">net_weight</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Вес сети</span>
-<span class="w">      </span><span class="nx">permissions</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="p">{</span>
-<span class="w">          </span><span class="nx">parent</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Родительское разрешение</span>
-<span class="w">          </span><span class="nx">perm_name</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя разрешения</span>
-<span class="w">          </span><span class="nx">required_auth</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="nx">accounts</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="p">{</span>
-<span class="w">                </span><span class="nx">permission</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                  </span><span class="nx">actor</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Актор</span>
-<span class="w">                  </span><span class="nx">permission</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Разрешение</span>
-<span class="w">                </span><span class="p">};</span>
-<span class="w">                </span><span class="nx">weight</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Вес</span>
-<span class="w">              </span><span class="p">}[]</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Уровни разрешений</span>
-<span class="w">            </span><span class="nx">keys</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="p">{</span>
-<span class="w">                </span><span class="nx">key</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Ключ</span>
-<span class="w">                </span><span class="nx">weight</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Вес</span>
-<span class="w">              </span><span class="p">}[]</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Ключи</span>
-<span class="w">            </span><span class="nx">threshold</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Порог</span>
-<span class="w">            </span><span class="nx">waits</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="p">{</span>
-<span class="w">                </span><span class="nx">wait_sec</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Время ожидания в секундах</span>
-<span class="w">                </span><span class="nx">weight</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Вес</span>
-<span class="w">              </span><span class="p">}[]</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Вес ожидания</span>
-<span class="w">          </span><span class="p">};</span>
-<span class="w">        </span><span class="p">}[]</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Разрешения</span>
-<span class="w">      </span><span class="nx">privileged</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">boolean</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Флаг привилегий</span>
-<span class="w">      </span><span class="nx">ram_quota</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Квота RAM</span>
-<span class="w">      </span><span class="nx">ram_usage</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Использование RAM</span>
-<span class="w">      </span><span class="nx">refund_request</span><span class="o">?:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nx">cpu_amount</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Сумма CPU</span>
-<span class="w">        </span><span class="nx">net_amount</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Сумма сети</span>
-<span class="w">        </span><span class="nx">owner</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Владелец</span>
-<span class="w">        </span><span class="nx">request_time</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Время запроса</span>
-<span class="w">      </span><span class="p">};</span>
-<span class="w">      </span><span class="nx">rex_info</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Информация о REX</span>
-<span class="w">      </span><span class="nx">self_delegated_bandwidth</span><span class="o">?:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nx">cpu_weight</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Вес CPU</span>
-<span class="w">        </span><span class="kr">from</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Отправитель</span>
-<span class="w">        </span><span class="nx">net_weight</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Вес сети</span>
-<span class="w">        </span><span class="nx">to</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Получатель</span>
-<span class="w">      </span><span class="p">};</span>
-<span class="w">      </span><span class="nx">total_resources</span><span class="o">?:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nx">cpu_weight</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Вес CPU</span>
-<span class="w">        </span><span class="nx">net_weight</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Вес сети</span>
-<span class="w">        </span><span class="nx">owner</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Владелец</span>
-<span class="w">        </span><span class="nx">ram_bytes</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Используемая RAM</span>
-<span class="w">      </span><span class="p">};</span>
-<span class="w">      </span><span class="nx">voter_info</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Информация о голосовании</span>
-<span class="w">    </span><span class="p">};</span>
-<span class="w">    </span><span class="nx">participant_account</span><span class="o">?:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nx">braname</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя кооперативного участка</span>
-<span class="w">      </span><span class="nx">created_at</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="nx">unknown</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Время создания записи о члене</span>
-<span class="w">      </span><span class="nx">has_vote</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">boolean</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// LEGACY Флаг, имеет ли член право голоса</span>
-<span class="w">      </span><span class="nx">initial_amount</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Сумма вступительного взноса</span>
-<span class="w">      </span><span class="nx">is_initial</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">boolean</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// LEGACY Флаг, внесен ли регистрационный взнос</span>
-<span class="w">      </span><span class="nx">is_minimum</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">boolean</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// LEGACY Флаг, внесен ли минимальный паевый взнос</span>
-<span class="w">      </span><span class="nx">last_min_pay</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="nx">unknown</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Время последнего минимального платежа</span>
-<span class="w">      </span><span class="nx">last_update</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="nx">unknown</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Время последнего обновления информации о члене</span>
-<span class="w">      </span><span class="nx">minimum_amount</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Сумма минимального паевого взноса</span>
-<span class="w">      </span><span class="nx">status</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Статус члена кооператива (accepted | blocked)</span>
-<span class="w">      </span><span class="kr">type</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Тип участника (individual | entrepreneur | organization)</span>
-<span class="w">      </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Уникальное имя члена кооператива</span>
-<span class="w">    </span><span class="p">};</span>
-<span class="w">    </span><span class="nx">private_account</span><span class="o">?:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nx">entrepreneur_data</span><span class="o">?:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nx">birthdate</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Дата рождения</span>
-<span class="w">        </span><span class="nx">city</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Город</span>
-<span class="w">        </span><span class="nx">country</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Страна</span>
-<span class="w">        </span><span class="nx">details</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">          </span><span class="nx">inn</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// ИНН</span>
-<span class="w">          </span><span class="nx">ogrn</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// ОГРН</span>
-<span class="w">        </span><span class="p">};</span>
-<span class="w">        </span><span class="nx">email</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Email</span>
-<span class="w">        </span><span class="nx">first_name</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя</span>
-<span class="w">        </span><span class="nx">full_address</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Юридический адрес</span>
-<span class="w">        </span><span class="nx">last_name</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Фамилия</span>
-<span class="w">        </span><span class="nx">middle_name</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Отчество</span>
-<span class="w">        </span><span class="nx">phone</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Телефон</span>
-<span class="w">        </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя аккаунта</span>
-<span class="w">      </span><span class="p">};</span>
-<span class="w">      </span><span class="nx">individual_data</span><span class="o">?:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nx">birthdate</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Дата рождения</span>
-<span class="w">        </span><span class="nx">email</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Email</span>
-<span class="w">        </span><span class="nx">first_name</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя</span>
-<span class="w">        </span><span class="nx">full_address</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Полный адрес</span>
-<span class="w">        </span><span class="nx">last_name</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Фамилия</span>
-<span class="w">        </span><span class="nx">middle_name</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Отчество</span>
-<span class="w">        </span><span class="nx">passport</span><span class="o">?:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">          </span><span class="nx">code</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Код подразделения</span>
-<span class="w">          </span><span class="nx">issued_at</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Дата выдачи</span>
-<span class="w">          </span><span class="nx">issued_by</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Кем выдан</span>
-<span class="w">          </span><span class="kt">number</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Номер паспорта</span>
-<span class="w">          </span><span class="nx">series</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Серия паспорта</span>
-<span class="w">        </span><span class="p">};</span>
-<span class="w">        </span><span class="nx">phone</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Телефон</span>
-<span class="w">        </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя аккаунта</span>
-<span class="w">      </span><span class="p">};</span>
-<span class="w">      </span><span class="nx">organization_data</span><span class="o">?:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nx">city</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Город</span>
-<span class="w">        </span><span class="nx">country</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Страна</span>
-<span class="w">        </span><span class="nx">details</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">          </span><span class="nx">inn</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// ИНН</span>
-<span class="w">          </span><span class="nx">kpp</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// КПП</span>
-<span class="w">          </span><span class="nx">ogrn</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// ОГРН</span>
-<span class="w">        </span><span class="p">};</span>
-<span class="w">        </span><span class="nx">email</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Email</span>
-<span class="w">        </span><span class="nx">fact_address</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Фактический адрес</span>
-<span class="w">        </span><span class="nx">full_address</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Юридический адрес</span>
-<span class="w">        </span><span class="nx">full_name</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Полное название</span>
-<span class="w">        </span><span class="nx">phone</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Телефон</span>
-<span class="w">        </span><span class="nx">represented_by</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">          </span><span class="nx">based_on</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// На основании чего действует</span>
-<span class="w">          </span><span class="nx">first_name</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя</span>
-<span class="w">          </span><span class="nx">last_name</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Фамилия</span>
-<span class="w">          </span><span class="nx">middle_name</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Отчество</span>
-<span class="w">          </span><span class="nx">position</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Должность</span>
-<span class="w">        </span><span class="p">};</span>
-<span class="w">        </span><span class="nx">short_name</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Краткое название</span>
-<span class="w">        </span><span class="kr">type</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Тип организации</span>
-<span class="w">        </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя аккаунта организации</span>
-<span class="w">      </span><span class="p">};</span>
-<span class="w">      </span><span class="kr">type</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="nx">AccountType</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Тип аккаунта</span>
-<span class="w">    </span><span class="p">};</span>
-<span class="w">    </span><span class="nx">provider_account</span><span class="o">?:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nx">email</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Электронная почта пользователя</span>
-<span class="w">      </span><span class="nx">has_account</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">boolean</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Есть ли у пользователя аккаунт</span>
-<span class="w">      </span><span class="nx">initial_order</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// ID начального заказа</span>
-<span class="w">      </span><span class="nx">is_email_verified</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">boolean</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Подтверждена ли электронная почта</span>
-<span class="w">      </span><span class="nx">is_registered</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">boolean</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Зарегистрирован ли пользователь</span>
-<span class="w">      </span><span class="nx">message</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Сообщение</span>
-<span class="w">      </span><span class="nx">public_key</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Публичный ключ пользователя</span>
-<span class="w">      </span><span class="nx">referer</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Реферер пользователя</span>
-<span class="w">      </span><span class="nx">role</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Роль пользователя</span>
-<span class="w">      </span><span class="nx">status</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="nx">UserStatus</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Статус пользователя</span>
-<span class="w">      </span><span class="nx">subscriber_hash</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Хэш подписчика для уведомлений</span>
-<span class="w">      </span><span class="nx">subscriber_id</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Идентификатор подписчика для уведомлений</span>
-<span class="w">      </span><span class="kr">type</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Тип пользователя</span>
-<span class="w">      </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя пользователя</span>
-<span class="w">    </span><span class="p">};</span>
-<span class="w">    </span><span class="nx">user_account</span><span class="o">?:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nx">meta</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Метаинформация</span>
-<span class="w">      </span><span class="nx">referer</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Реферал</span>
-<span class="w">      </span><span class="nx">registered_at</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Дата регистрации</span>
-<span class="w">      </span><span class="nx">registrator</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Регистратор</span>
-<span class="w">      </span><span class="nx">status</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Статус аккаунта</span>
-<span class="w">      </span><span class="nx">storages</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="p">[]</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Список хранилищ</span>
-<span class="w">      </span><span class="kr">type</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Тип учетной записи</span>
-<span class="w">      </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя аккаунта</span>
-<span class="w">      </span><span class="nx">verifications</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="p">{</span>
-<span class="w">          </span><span class="nx">created_at</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Дата создания верификации</span>
-<span class="w">          </span><span class="nx">is_verified</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">boolean</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Флаг верификации</span>
-<span class="w">          </span><span class="nx">last_update</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Дата последнего обновления верификации</span>
-<span class="w">          </span><span class="nx">notice</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Заметка верификации</span>
-<span class="w">          </span><span class="nx">procedure</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Процедура верификации</span>
-<span class="w">          </span><span class="nx">verificator</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя верификатора</span>
-<span class="w">        </span><span class="p">}[]</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Дата регистрации</span>
-<span class="w">    </span><span class="p">};</span>
-<span class="w">    </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя аккаунта кооператива</span>
-<span class="w">  </span><span class="p">};</span>
 <span class="p">}</span>
 </code></pre></div>
 </details>
@@ -2751,12 +2352,12 @@
 
 <span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Queries.Accounts.GetAccounts.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="nx">data</span><span class="o">?:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nx">role</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="w">    </span><span class="nx">role</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="o">&gt;</span><span class="p">;</span>
 <span class="w">  </span><span class="p">};</span>
 <span class="w">  </span><span class="nx">options</span><span class="o">?:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="nx">limit</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Количество элементов на странице</span>
 <span class="w">    </span><span class="nx">page</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Номер страницы</span>
-<span class="w">    </span><span class="nx">sortBy</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Ключ сортировки (например, &quot;name&quot;)</span>
+<span class="w">    </span><span class="nx">sortBy</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Ключ сортировки (например, &quot;name&quot;)</span>
 <span class="w">    </span><span class="nx">sortOrder</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Направление сортировки (&quot;ASC&quot; или &quot;DESC&quot;)</span>
 <span class="w">  </span><span class="p">};</span>
 <span class="p">};</span>
@@ -2771,191 +2372,6 @@
 
 
 <div class="highlight"><pre><span></span><code><span class="kd">interface</span><span class="w"> </span><span class="nx">IOutput</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="nx">getAccounts</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nx">currentPage</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Текущая страница</span>
-<span class="w">    </span><span class="nx">items</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="p">{</span>
-<span class="w">        </span><span class="nx">blockchain_account</span><span class="o">?:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">          </span><span class="nx">account_name</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя аккаунта</span>
-<span class="w">          </span><span class="nx">core_liquid_balance</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Баланс</span>
-<span class="w">          </span><span class="nx">cpu_limit</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="nx">available</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Доступные ресурсы</span>
-<span class="w">            </span><span class="nx">current_used</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Текущее использование ресурсов</span>
-<span class="w">            </span><span class="nx">last_usage_update_time</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Время последнего обновления использования ресурсов</span>
-<span class="w">            </span><span class="nx">max</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Максимальное количество ресурсов</span>
-<span class="w">            </span><span class="nx">used</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Использовано ресурсов</span>
-<span class="w">          </span><span class="p">};</span>
-<span class="w">          </span><span class="nx">cpu_weight</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Вес CPU</span>
-<span class="w">          </span><span class="nx">created</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Дата создания</span>
-<span class="w">          </span><span class="nx">head_block_num</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Номер последнего блока</span>
-<span class="w">          </span><span class="nx">head_block_time</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Время последнего блока</span>
-<span class="w">          </span><span class="nx">last_code_update</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Время последнего обновления кода</span>
-<span class="w">          </span><span class="nx">net_limit</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="nx">available</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Доступные ресурсы</span>
-<span class="w">            </span><span class="nx">current_used</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Текущее использование ресурсов</span>
-<span class="w">            </span><span class="nx">last_usage_update_time</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Время последнего обновления использования ресурсов</span>
-<span class="w">            </span><span class="nx">max</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Максимальное количество ресурсов</span>
-<span class="w">            </span><span class="nx">used</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Использовано ресурсов</span>
-<span class="w">          </span><span class="p">};</span>
-<span class="w">          </span><span class="nx">net_weight</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Вес сети</span>
-<span class="w">          </span><span class="nx">permissions</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="p">{</span>
-<span class="w">              </span><span class="nx">parent</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Родительское разрешение</span>
-<span class="w">              </span><span class="nx">perm_name</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя разрешения</span>
-<span class="w">              </span><span class="nx">required_auth</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                </span><span class="nx">accounts</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="p">{</span>
-<span class="w">                    </span><span class="nx">permission</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                      </span><span class="nx">actor</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="p">...</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Актор</span>
-<span class="w">                      </span><span class="nx">permission</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="p">...</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Разрешение</span>
-<span class="w">                    </span><span class="p">};</span>
-<span class="w">                    </span><span class="nx">weight</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Вес</span>
-<span class="w">                  </span><span class="p">}[]</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Уровни разрешений</span>
-<span class="w">                </span><span class="nx">keys</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="p">{</span>
-<span class="w">                    </span><span class="nx">key</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Ключ</span>
-<span class="w">                    </span><span class="nx">weight</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Вес</span>
-<span class="w">                  </span><span class="p">}[]</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Ключи</span>
-<span class="w">                </span><span class="nx">threshold</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Порог</span>
-<span class="w">                </span><span class="nx">waits</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="p">{</span>
-<span class="w">                    </span><span class="nx">wait_sec</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Время ожидания в секундах</span>
-<span class="w">                    </span><span class="nx">weight</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Вес</span>
-<span class="w">                  </span><span class="p">}[]</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Вес ожидания</span>
-<span class="w">              </span><span class="p">};</span>
-<span class="w">            </span><span class="p">}[]</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Разрешения</span>
-<span class="w">          </span><span class="nx">privileged</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">boolean</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Флаг привилегий</span>
-<span class="w">          </span><span class="nx">ram_quota</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Квота RAM</span>
-<span class="w">          </span><span class="nx">ram_usage</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Использование RAM</span>
-<span class="w">          </span><span class="nx">refund_request</span><span class="o">?:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="nx">cpu_amount</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Сумма CPU</span>
-<span class="w">            </span><span class="nx">net_amount</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Сумма сети</span>
-<span class="w">            </span><span class="nx">owner</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Владелец</span>
-<span class="w">            </span><span class="nx">request_time</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Время запроса</span>
-<span class="w">          </span><span class="p">};</span>
-<span class="w">          </span><span class="nx">rex_info</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Информация о REX</span>
-<span class="w">          </span><span class="nx">self_delegated_bandwidth</span><span class="o">?:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="nx">cpu_weight</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Вес CPU</span>
-<span class="w">            </span><span class="kr">from</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Отправитель</span>
-<span class="w">            </span><span class="nx">net_weight</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Вес сети</span>
-<span class="w">            </span><span class="nx">to</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Получатель</span>
-<span class="w">          </span><span class="p">};</span>
-<span class="w">          </span><span class="nx">total_resources</span><span class="o">?:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="nx">cpu_weight</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Вес CPU</span>
-<span class="w">            </span><span class="nx">net_weight</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Вес сети</span>
-<span class="w">            </span><span class="nx">owner</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Владелец</span>
-<span class="w">            </span><span class="nx">ram_bytes</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Используемая RAM</span>
-<span class="w">          </span><span class="p">};</span>
-<span class="w">          </span><span class="nx">voter_info</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Информация о голосовании</span>
-<span class="w">        </span><span class="p">};</span>
-<span class="w">        </span><span class="nx">participant_account</span><span class="o">?:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">          </span><span class="nx">braname</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя кооперативного участка</span>
-<span class="w">          </span><span class="nx">created_at</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="nx">unknown</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Время создания записи о члене</span>
-<span class="w">          </span><span class="nx">has_vote</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">boolean</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// LEGACY Флаг, имеет ли член право голоса</span>
-<span class="w">          </span><span class="nx">initial_amount</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Сумма вступительного взноса</span>
-<span class="w">          </span><span class="nx">is_initial</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">boolean</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// LEGACY Флаг, внесен ли регистрационный взнос</span>
-<span class="w">          </span><span class="nx">is_minimum</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">boolean</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// LEGACY Флаг, внесен ли минимальный паевый взнос</span>
-<span class="w">          </span><span class="nx">last_min_pay</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="nx">unknown</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Время последнего минимального платежа</span>
-<span class="w">          </span><span class="nx">last_update</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="nx">unknown</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Время последнего обновления информации о члене</span>
-<span class="w">          </span><span class="nx">minimum_amount</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Сумма минимального паевого взноса</span>
-<span class="w">          </span><span class="nx">status</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Статус члена кооператива (accepted | blocked)</span>
-<span class="w">          </span><span class="kr">type</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Тип участника (individual | entrepreneur | organization)</span>
-<span class="w">          </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Уникальное имя члена кооператива</span>
-<span class="w">        </span><span class="p">};</span>
-<span class="w">        </span><span class="nx">private_account</span><span class="o">?:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">          </span><span class="nx">entrepreneur_data</span><span class="o">?:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="nx">birthdate</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Дата рождения</span>
-<span class="w">            </span><span class="nx">city</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Город</span>
-<span class="w">            </span><span class="nx">country</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Страна</span>
-<span class="w">            </span><span class="nx">details</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">              </span><span class="nx">inn</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// ИНН</span>
-<span class="w">              </span><span class="nx">ogrn</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// ОГРН</span>
-<span class="w">            </span><span class="p">};</span>
-<span class="w">            </span><span class="nx">email</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Email</span>
-<span class="w">            </span><span class="nx">first_name</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя</span>
-<span class="w">            </span><span class="nx">full_address</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Юридический адрес</span>
-<span class="w">            </span><span class="nx">last_name</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Фамилия</span>
-<span class="w">            </span><span class="nx">middle_name</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Отчество</span>
-<span class="w">            </span><span class="nx">phone</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Телефон</span>
-<span class="w">            </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя аккаунта</span>
-<span class="w">          </span><span class="p">};</span>
-<span class="w">          </span><span class="nx">individual_data</span><span class="o">?:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="nx">birthdate</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Дата рождения</span>
-<span class="w">            </span><span class="nx">email</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Email</span>
-<span class="w">            </span><span class="nx">first_name</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя</span>
-<span class="w">            </span><span class="nx">full_address</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Полный адрес</span>
-<span class="w">            </span><span class="nx">last_name</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Фамилия</span>
-<span class="w">            </span><span class="nx">middle_name</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Отчество</span>
-<span class="w">            </span><span class="nx">passport</span><span class="o">?:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">              </span><span class="nx">code</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Код подразделения</span>
-<span class="w">              </span><span class="nx">issued_at</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Дата выдачи</span>
-<span class="w">              </span><span class="nx">issued_by</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Кем выдан</span>
-<span class="w">              </span><span class="kt">number</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Номер паспорта</span>
-<span class="w">              </span><span class="nx">series</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Серия паспорта</span>
-<span class="w">            </span><span class="p">};</span>
-<span class="w">            </span><span class="nx">phone</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Телефон</span>
-<span class="w">            </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя аккаунта</span>
-<span class="w">          </span><span class="p">};</span>
-<span class="w">          </span><span class="nx">organization_data</span><span class="o">?:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="nx">city</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Город</span>
-<span class="w">            </span><span class="nx">country</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Страна</span>
-<span class="w">            </span><span class="nx">details</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">              </span><span class="nx">inn</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// ИНН</span>
-<span class="w">              </span><span class="nx">kpp</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// КПП</span>
-<span class="w">              </span><span class="nx">ogrn</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// ОГРН</span>
-<span class="w">            </span><span class="p">};</span>
-<span class="w">            </span><span class="nx">email</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Email</span>
-<span class="w">            </span><span class="nx">fact_address</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Фактический адрес</span>
-<span class="w">            </span><span class="nx">full_address</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Юридический адрес</span>
-<span class="w">            </span><span class="nx">full_name</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Полное название</span>
-<span class="w">            </span><span class="nx">phone</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Телефон</span>
-<span class="w">            </span><span class="nx">represented_by</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">              </span><span class="nx">based_on</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// На основании чего действует</span>
-<span class="w">              </span><span class="nx">first_name</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя</span>
-<span class="w">              </span><span class="nx">last_name</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Фамилия</span>
-<span class="w">              </span><span class="nx">middle_name</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Отчество</span>
-<span class="w">              </span><span class="nx">position</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Должность</span>
-<span class="w">            </span><span class="p">};</span>
-<span class="w">            </span><span class="nx">short_name</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Краткое название</span>
-<span class="w">            </span><span class="kr">type</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Тип организации</span>
-<span class="w">            </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя аккаунта организации</span>
-<span class="w">          </span><span class="p">};</span>
-<span class="w">          </span><span class="kr">type</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="nx">AccountType</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Тип аккаунта</span>
-<span class="w">        </span><span class="p">};</span>
-<span class="w">        </span><span class="nx">provider_account</span><span class="o">?:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">          </span><span class="nx">email</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Электронная почта пользователя</span>
-<span class="w">          </span><span class="nx">has_account</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">boolean</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Есть ли у пользователя аккаунт</span>
-<span class="w">          </span><span class="nx">initial_order</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// ID начального заказа</span>
-<span class="w">          </span><span class="nx">is_email_verified</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">boolean</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Подтверждена ли электронная почта</span>
-<span class="w">          </span><span class="nx">is_registered</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">boolean</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Зарегистрирован ли пользователь</span>
-<span class="w">          </span><span class="nx">message</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Сообщение</span>
-<span class="w">          </span><span class="nx">public_key</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Публичный ключ пользователя</span>
-<span class="w">          </span><span class="nx">referer</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Реферер пользователя</span>
-<span class="w">          </span><span class="nx">role</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Роль пользователя</span>
-<span class="w">          </span><span class="nx">status</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="nx">UserStatus</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Статус пользователя</span>
-<span class="w">          </span><span class="nx">subscriber_hash</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Хэш подписчика для уведомлений</span>
-<span class="w">          </span><span class="nx">subscriber_id</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Идентификатор подписчика для уведомлений</span>
-<span class="w">          </span><span class="kr">type</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Тип пользователя</span>
-<span class="w">          </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя пользователя</span>
-<span class="w">        </span><span class="p">};</span>
-<span class="w">        </span><span class="nx">user_account</span><span class="o">?:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">          </span><span class="nx">meta</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Метаинформация</span>
-<span class="w">          </span><span class="nx">referer</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Реферал</span>
-<span class="w">          </span><span class="nx">registered_at</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Дата регистрации</span>
-<span class="w">          </span><span class="nx">registrator</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Регистратор</span>
-<span class="w">          </span><span class="nx">status</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Статус аккаунта</span>
-<span class="w">          </span><span class="nx">storages</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="p">[]</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Список хранилищ</span>
-<span class="w">          </span><span class="kr">type</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Тип учетной записи</span>
-<span class="w">          </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя аккаунта</span>
-<span class="w">          </span><span class="nx">verifications</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="p">{</span>
-<span class="w">              </span><span class="nx">created_at</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Дата создания верификации</span>
-<span class="w">              </span><span class="nx">is_verified</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">boolean</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Флаг верификации</span>
-<span class="w">              </span><span class="nx">last_update</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Дата последнего обновления верификации</span>
-<span class="w">              </span><span class="nx">notice</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Заметка верификации</span>
-<span class="w">              </span><span class="nx">procedure</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Процедура верификации</span>
-<span class="w">              </span><span class="nx">verificator</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя верификатора</span>
-<span class="w">            </span><span class="p">}[]</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Дата регистрации</span>
-<span class="w">        </span><span class="p">};</span>
-<span class="w">        </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя аккаунта кооператива</span>
-<span class="w">      </span><span class="p">}[]</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Элементы текущей страницы</span>
-<span class="w">    </span><span class="nx">totalCount</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Общее количество элементов</span>
-<span class="w">    </span><span class="nx">totalPages</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Общее количество страниц</span>
-<span class="w">  </span><span class="p">};</span>
 <span class="p">}</span>
 </code></pre></div>
 </details>
@@ -2981,12 +2397,6 @@
 
 
 <div class="highlight"><pre><span></span><code><span class="kd">interface</span><span class="w"> </span><span class="nx">IOutput</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="nx">searchPrivateAccounts</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="p">{</span>
-<span class="w">      </span><span class="nx">data</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="nx">unknown</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Данные найденного аккаунта</span>
-<span class="w">      </span><span class="nx">highlightedFields</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="p">[]</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Поля, в которых найдены совпадения</span>
-<span class="w">      </span><span class="nx">score</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Оценка релевантности результата</span>
-<span class="w">      </span><span class="kr">type</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Тип аккаунта</span>
-<span class="w">    </span><span class="p">}[]</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Поиск приватных данных аккаунтов по запросу. Поиск осуществляется по полям ФИО, ИНН, ОГРН, наименованию организации и другим приватным данным.</span>
 <span class="p">}</span>
 </code></pre></div>
 </details>

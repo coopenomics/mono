@@ -15,7 +15,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.3">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
     
     
       
@@ -441,10 +441,6 @@
       
         
       
-        
-      
-        
-      
     
     
     
@@ -491,34 +487,6 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../new/installation/dev/architecture/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Архитектура
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
             
               
                 
@@ -647,34 +615,6 @@
     
   
     Подробный старт
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../new/installation/dev/api-reference/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    API Reference
   
 
     
@@ -1416,8 +1356,6 @@
       
         
       
-        
-      
     
     
     
@@ -1473,34 +1411,6 @@
     
   
     Повестка совета
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../new/council/vote-copy/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Копирование голосов
   
 
     
@@ -2139,135 +2049,6 @@
   
   
   
-    
-    
-      
-        
-          
-        
-      
-        
-      
-        
-      
-    
-    
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_18" >
-        
-          
-          <div class="md-nav__link md-nav__container">
-            <a href="../../new/cooplace/" class="md-nav__link ">
-              
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Стол заказов
-  
-
-    
-  </span>
-  
-  
-
-            </a>
-            
-              
-              <label class="md-nav__link " for="__nav_18" id="__nav_18_label" tabindex="0">
-                <span class="md-nav__icon md-icon"></span>
-              </label>
-            
-          </div>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_18_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_18">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Стол заказов
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../new/cooplace/marketplace/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Маркетплейс
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../new/cooplace/dev/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Разработчикам
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
     <li class="md-nav__item">
       <a href="../../new/meet/" class="md-nav__link">
         
@@ -2504,44 +2285,6 @@
 </code></pre></div>
 <p>Результат:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">interface</span><span class="w"> </span><span class="nx">IOutput</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="nx">createDepositPayment</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nx">blockchain_data</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="nx">unknown</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Данные из блокчейна</span>
-<span class="w">    </span><span class="nx">can_change_status</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">boolean</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Можно ли изменить статус</span>
-<span class="w">    </span><span class="nx">coopname</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Название кооператива</span>
-<span class="w">    </span><span class="nx">created_at</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="nx">unknown</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Дата создания</span>
-<span class="w">    </span><span class="nx">direction</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="nx">PaymentDirection</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Направление платежа</span>
-<span class="w">    </span><span class="nx">direction_label</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Человекочитаемое направление платежа</span>
-<span class="w">    </span><span class="nx">expired_at</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="nx">unknown</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Дата истечения</span>
-<span class="w">    </span><span class="nx">formatted_amount</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Форматированная сумма</span>
-<span class="w">    </span><span class="nx">hash</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Хеш платежа</span>
-<span class="w">    </span><span class="nx">id</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Уникальный идентификатор платежа</span>
-<span class="w">    </span><span class="nx">income_hash</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Хеш входящего платежа (устарело)</span>
-<span class="w">    </span><span class="nx">is_final</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">boolean</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Завершен ли платеж окончательно</span>
-<span class="w">    </span><span class="nx">memo</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Дополнительная информация</span>
-<span class="w">    </span><span class="nx">message</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Сообщение</span>
-<span class="w">    </span><span class="nx">outcome_hash</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Хеш исходящего платежа (устарело)</span>
-<span class="w">    </span><span class="nx">payment_details</span><span class="o">?:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nx">amount_plus_fee</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Сумма платежа с учетом комиссии</span>
-<span class="w">      </span><span class="nx">amount_without_fee</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Сумма платежа без учета комиссии</span>
-<span class="w">      </span><span class="nx">data</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="nx">unknown</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Данные платежа (QR-код, токен, реквизиты и т.д.)</span>
-<span class="w">      </span><span class="nx">fact_fee_percent</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Фактический процент комиссии</span>
-<span class="w">      </span><span class="nx">fee_amount</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Размер комиссии в абсолютных значениях</span>
-<span class="w">      </span><span class="nx">fee_percent</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Процент комиссии</span>
-<span class="w">      </span><span class="nx">tolerance_percent</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Допустимый процент отклонения</span>
-<span class="w">    </span><span class="p">};</span>
-<span class="w">    </span><span class="nx">payment_method_id</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// ID платежного метода</span>
-<span class="w">    </span><span class="nx">provider</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Провайдер платежа</span>
-<span class="w">    </span><span class="nx">quantity</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Количество/сумма</span>
-<span class="w">    </span><span class="nx">statement</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="nx">unknown</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Подписанный документ заявления</span>
-<span class="w">    </span><span class="nx">status</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="nx">PaymentStatus</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Статус платежа</span>
-<span class="w">    </span><span class="nx">status_label</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Человекочитаемый статус</span>
-<span class="w">    </span><span class="nx">symbol</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Символ валюты</span>
-<span class="w">    </span><span class="kr">type</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="nx">PaymentType</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Тип платежа</span>
-<span class="w">    </span><span class="nx">type_label</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Человекочитаемый тип платежа</span>
-<span class="w">    </span><span class="nx">updated_at</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="nx">unknown</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Дата обновления</span>
-<span class="w">    </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя пользователя</span>
-<span class="w">    </span><span class="nx">username_certificate</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="p">({</span><span class="w"> </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w"> </span><span class="kr">type</span><span class="o">:</span><span class="w"> </span><span class="nx">AccountType</span><span class="p">;</span><span class="w"> </span><span class="nx">first_name</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w"> </span><span class="nx">last_name</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w"> </span><span class="nx">middle_name?</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">undefined</span><span class="p">;</span><span class="w"> </span><span class="nx">inn</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w"> </span><span class="kr">type</span><span class="o">:</span><span class="w"> </span><span class="nx">AccountType</span><span class="p">;</span><span class="w"> </span><span class="nx">first_name</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w"> </span><span class="nx">last_name</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w"> </span><span class="nx">middle_name?</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="nx">more</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">undefined</span><span class="p">;</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...;</span><span class="w"> </span><span class="p">})</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="p">{}</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Сертификат пользователя, создавшего платеж</span>
-<span class="w">  </span><span class="p">};</span>
 <span class="p">}</span>
 </code></pre></div>
 <p>Создание объекта паевого платежа производится мутацией createDepositPayment. Выполнение мутации возвращает идентификатор платежа и данные для его совершения в зависимости от выбранного платежного провайдера.</p>
@@ -2613,24 +2356,24 @@
 
 <span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.Wallet.GenerateReturnByMoneyStatementDocument.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="nx">data</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nx">block_num</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Номер блока, на котором был создан документ</span>
+<span class="w">    </span><span class="nx">block_num</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Номер блока, на котором был создан документ</span>
 <span class="w">    </span><span class="nx">coopname</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Название кооператива, связанное с документом</span>
-<span class="w">    </span><span class="nx">created_at</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Дата и время создания документа</span>
+<span class="w">    </span><span class="nx">created_at</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Дата и время создания документа</span>
 <span class="w">    </span><span class="nx">currency</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Валюта</span>
-<span class="w">    </span><span class="nx">generator</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя генератора, использованного для создания документа</span>
-<span class="w">    </span><span class="nx">lang</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Язык документа</span>
-<span class="w">    </span><span class="nx">links</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="p">[]</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Ссылки, связанные с документом</span>
+<span class="w">    </span><span class="nx">generator</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя генератора, использованного для создания документа</span>
+<span class="w">    </span><span class="nx">lang</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Язык документа</span>
+<span class="w">    </span><span class="nx">links</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="p">[]</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Ссылки, связанные с документом</span>
 <span class="w">    </span><span class="nx">method_id</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// ID платежного метода</span>
 <span class="w">    </span><span class="nx">payment_hash</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Хеш платежа для связи с withdraw</span>
 <span class="w">    </span><span class="nx">quantity</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Количество средств к возврату</span>
-<span class="w">    </span><span class="nx">timezone</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Часовой пояс, в котором был создан документ</span>
-<span class="w">    </span><span class="nx">title</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Название документа</span>
+<span class="w">    </span><span class="nx">timezone</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Часовой пояс, в котором был создан документ</span>
+<span class="w">    </span><span class="nx">title</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Название документа</span>
 <span class="w">    </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя пользователя, создавшего документ</span>
-<span class="w">    </span><span class="nx">version</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Версия генератора, использованного для создания документа</span>
+<span class="w">    </span><span class="nx">version</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Версия генератора, использованного для создания документа</span>
 <span class="w">  </span><span class="p">};</span>
 <span class="w">  </span><span class="nx">options</span><span class="o">?:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nx">lang</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Язык документа</span>
-<span class="w">    </span><span class="nx">skip_save</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">boolean</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Пропустить сохранение</span>
+<span class="w">    </span><span class="nx">lang</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Язык документа</span>
+<span class="w">    </span><span class="nx">skip_save</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">boolean</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Пропустить сохранение</span>
 <span class="w">  </span><span class="p">};</span>
 <span class="p">};</span>
 
@@ -2651,24 +2394,24 @@
 
 <span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.Wallet.GenerateReturnByMoneyDecisionDocument.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="nx">data</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nx">block_num</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Номер блока, на котором был создан документ</span>
+<span class="w">    </span><span class="nx">block_num</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Номер блока, на котором был создан документ</span>
 <span class="w">    </span><span class="nx">coopname</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Название кооператива, связанное с документом</span>
-<span class="w">    </span><span class="nx">created_at</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Дата и время создания документа</span>
+<span class="w">    </span><span class="nx">created_at</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Дата и время создания документа</span>
 <span class="w">    </span><span class="nx">currency</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Валюта</span>
 <span class="w">    </span><span class="nx">decision_id</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// ID решения совета</span>
-<span class="w">    </span><span class="nx">generator</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя генератора, использованного для создания документа</span>
-<span class="w">    </span><span class="nx">lang</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Язык документа</span>
-<span class="w">    </span><span class="nx">links</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="p">[]</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Ссылки, связанные с документом</span>
+<span class="w">    </span><span class="nx">generator</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя генератора, использованного для создания документа</span>
+<span class="w">    </span><span class="nx">lang</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Язык документа</span>
+<span class="w">    </span><span class="nx">links</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="p">[]</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Ссылки, связанные с документом</span>
 <span class="w">    </span><span class="nx">payment_hash</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Хэш платежа</span>
 <span class="w">    </span><span class="nx">quantity</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Количество средств к возврату</span>
-<span class="w">    </span><span class="nx">timezone</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Часовой пояс, в котором был создан документ</span>
-<span class="w">    </span><span class="nx">title</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Название документа</span>
+<span class="w">    </span><span class="nx">timezone</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Часовой пояс, в котором был создан документ</span>
+<span class="w">    </span><span class="nx">title</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Название документа</span>
 <span class="w">    </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя пользователя, создавшего документ</span>
-<span class="w">    </span><span class="nx">version</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Версия генератора, использованного для создания документа</span>
+<span class="w">    </span><span class="nx">version</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Версия генератора, использованного для создания документа</span>
 <span class="w">  </span><span class="p">};</span>
 <span class="w">  </span><span class="nx">options</span><span class="o">?:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nx">lang</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Язык документа</span>
-<span class="w">    </span><span class="nx">skip_save</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">boolean</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Пропустить сохранение</span>
+<span class="w">    </span><span class="nx">lang</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Язык документа</span>
+<span class="w">    </span><span class="nx">skip_save</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">boolean</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Пропустить сохранение</span>
 <span class="w">  </span><span class="p">};</span>
 <span class="p">};</span>
 

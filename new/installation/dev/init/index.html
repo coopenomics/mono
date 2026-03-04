@@ -12,14 +12,14 @@
         <link rel="prev" href="../auth/">
       
       
-        <link rel="next" href="../api-reference/">
+        <link rel="next" href="../../../registration/">
       
       
         
       
       
       <link rel="icon" href="../../../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.3">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
     
     
       
@@ -447,10 +447,6 @@
       
         
       
-        
-      
-        
-      
     
     
     
@@ -497,34 +493,6 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../architecture/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Архитектура
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
             
               
                 
@@ -748,34 +716,6 @@
   
 </nav>
       
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../api-reference/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    API Reference
-  
-
-    
-  </span>
-  
-  
-
-      </a>
     </li>
   
 
@@ -1509,8 +1449,6 @@
       
         
       
-        
-      
     
     
     
@@ -1566,34 +1504,6 @@
     
   
     Повестка совета
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../council/vote-copy/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Копирование голосов
   
 
     
@@ -2232,135 +2142,6 @@
   
   
   
-    
-    
-      
-        
-          
-        
-      
-        
-      
-        
-      
-    
-    
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_18" >
-        
-          
-          <div class="md-nav__link md-nav__container">
-            <a href="../../../cooplace/" class="md-nav__link ">
-              
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Стол заказов
-  
-
-    
-  </span>
-  
-  
-
-            </a>
-            
-              
-              <label class="md-nav__link " for="__nav_18" id="__nav_18_label" tabindex="0">
-                <span class="md-nav__icon md-icon"></span>
-              </label>
-            
-          </div>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_18_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_18">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Стол заказов
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../cooplace/marketplace/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Маркетплейс
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../cooplace/dev/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Разработчикам
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
     <li class="md-nav__item">
       <a href="../../../meet/" class="md-nav__link">
         
@@ -2520,7 +2301,7 @@
     
     
       <li class="md-path__item">
-        <a href="../architecture/" class="md-path__link">
+        <a href="../quick-start/" class="md-path__link">
           
   <span class="md-ellipsis">
     Разработчикам
@@ -2636,7 +2417,7 @@
 <p>В результате успешного выполнения мутации, в хранилище приватных данных кооператива будет добавлена запись об организации, пайщиками которой будут становиться пользователи. </p>
 <h2 id="_2">Установка ключа<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
 <p>Бэкенд приложения <code>MONO</code> хранит приватный ключ кооператива, которым он подписывает транзакции в блокчейне. Ключ хранится в зашифрованном виде в базе данных, извлекается оттуда и расшифровывается для использования только когда это необходимо. Работа системы без приватного ключа невозможна. Чтобы предоставить ключ бэкенду MONO, необходимо выполнить мутацию <code>setWif</code>: </p>
-<p>🛠️ SDK: <a href="/sdk/modules/Mutations.System.SaveWif.html">Mutations.System.SaveWif</a> | 🔗 GraphQL API: <a href="/../graphql/index.html#mutation-setWif">Mutation.setWif</a></p>
+<p>⚠️ 🛠️ SDK: Mutations.System.SetWif не найден | 🔗 GraphQL API: <a href="/../graphql/index.html#mutation-setWif">Mutation.setWif</a></p>
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Mutations</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s2">&quot;@coopenomics/sdk&quot;</span><span class="p">;</span>
 
 <span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.System.InstallSystem.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
@@ -2776,13 +2557,13 @@
         
         
           
-          <a href="../api-reference/" class="md-footer__link md-footer__link--next" aria-label="Вперед: API Reference">
+          <a href="../../../registration/" class="md-footer__link md-footer__link--next" aria-label="Вперед: Регистрация пайщика">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Вперед
               </span>
               <div class="md-ellipsis">
-                API Reference
+                Регистрация пайщика
               </div>
             </div>
             <div class="md-footer__button md-icon">
