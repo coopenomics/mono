@@ -112,6 +112,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#_1" class="md-skip">
+          Перейти к содержанию
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -1791,6 +1796,24 @@
       
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Регистрационные взносы
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
@@ -1807,6 +1830,62 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Содержание">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Содержание
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Разработчикам
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Разработчикам">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Где хранятся суммы взносов
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Запись (как в UI председателя)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -2124,6 +2203,53 @@
   
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Содержание
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Разработчикам
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Разработчикам">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Где хранятся суммы взносов
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Запись (как в UI председателя)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -2199,6 +2325,18 @@
         <span class="md-tag md-tag-icon md-tag--chairman">Председатель</span>
       
     
+      
+      
+      
+        
+        
+          
+        
+      
+      
+        <span class="md-tag md-tag-icon md-tag--dev">Разработчик</span>
+      
+    
   </nav>
 
 
@@ -2210,6 +2348,13 @@
 
 <p>Страница управления позволяет изменить размер вступительных и минимальных паевых взносов отдельно для юридических лиц и отдельно для физических лиц и индивидуальных предпринимателей. Изменения должны иметь юридические основания. Обычно, размер взносов прописывается в Уставе кооператива. </p>
 <p><img alt="управление платежами" src="/assets/new/chairman_fees_1.png" /></p>
+<h2 id="_1">Разработчикам<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<p>Канонические имена полей и типов — в файле <code>components/controller/schema.gql</code> монорепозитория; интерактивно — в <a href="/graphql">документации GraphQL-API</a>.</p>
+<h3 id="_2">Где хранятся суммы взносов<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h3>
+<p>Отдельной мутации GraphQL «только взносы» в схеме нет. Величины хранятся в строке кооператива в таблице <code>coops</code> контракта <code>registrator</code> (поля <code>initial</code>, <code>minimum</code>, <code>org_initial</code>, <code>org_minimum</code> в <code>cooptypes</code>: <code>RegistratorContract.Tables.Cooperatives.ICooperative</code>). Рабочий стол читает их через RPC (<code>fetchTable</code> → <code>src/entities/Cooperative/api</code>).</p>
+<h3 id="ui">Запись (как в UI председателя)<a class="headerlink" href="#ui" title="Permanent link">&para;</a></h3>
+<p>Действие <code>updatecoop</code> контракта <code>registrator</code>, тип <code>RegistratorContract.Actions.UpdateCoop</code> (<code>src/features/Cooperative/UpdateCoop</code> на десктопе).</p>
+<p>Часть шагов (голос по решению совета, исполнение ряда решений) выполняется <strong>подписью и отправкой транзакции</strong> в блокчейн через <code>Client.Blockchain</code> / класс <code>Blockchain</code> в пакете <code>@coopenomics/sdk</code>, а не отдельной мутацией GraphQL; см. 🛠️ <a href="/sdk/classes/Classes.html#Blockchain"><code>Classes.Blockchain</code></a> и 🛠️ <a href="/sdk/classes/Classes.html#Client"><code>Classes.Client</code></a>.</p>
 
 
 

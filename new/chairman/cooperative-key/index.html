@@ -112,6 +112,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#_1" class="md-skip">
+          Перейти к содержанию
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -1819,6 +1824,24 @@
       
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ключ кооператива
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
@@ -1835,6 +1858,51 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Содержание">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Содержание
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Разработчикам
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Разработчикам">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#wif-setwif" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Сохранить WIF кооператива (setWif)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -2124,6 +2192,42 @@
   
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Содержание
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Разработчикам
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Разработчикам">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#wif-setwif" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Сохранить WIF кооператива (setWif)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -2199,6 +2303,18 @@
         <span class="md-tag md-tag-icon md-tag--chairman">Председатель</span>
       
     
+      
+      
+      
+        
+        
+          
+        
+      
+      
+        <span class="md-tag md-tag-icon md-tag--dev">Разработчик</span>
+      
+    
   </nav>
 
 
@@ -2215,6 +2331,30 @@
 <p class="admonition-title">Почему пайщики не подписывают транзакции?</p>
 <p>Это архитектурное решение, которое обуслувлено двумя причинами: возникающая повышенная сложность приложений для разработчиков и необходимость следить за собственными вычислительными ресурсами у пайщиков. Блокчейн кооперативной экономики служит бизнес-ядром для кооперативов, но не для пайщиков. Пайщики и разработчики в своей деятельности опираются на функционал цифрового кооператива, который скрывает избыточную сложность от них и упрощает взаимодействие с платформой кооперативной экономики. </p>
 </div>
+<h2 id="_1">Разработчикам<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<p>Канонические имена полей и типов — в файле <code>components/controller/schema.gql</code> монорепозитория; интерактивно — в <a href="/graphql">документации GraphQL-API</a>.</p>
+<h3 id="wif-setwif">Сохранить WIF кооператива (<code>setWif</code>)<a class="headerlink" href="#wif-setwif" title="Permanent link">&para;</a></h3>
+<p>⚠️ 🛠️ SDK: Mutations.System.SetWif не найден | <a href="/graphql/index.html#mutation-setWif">Mutation.setWif</a></p>
+<div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Mutations</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
+
+<span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.System.SetWif.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">data</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">permission</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Тип разрешения ключа</span>
+<span class="w">    </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя пользователя, чей ключ</span>
+<span class="w">    </span><span class="nx">wif</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Приватный ключ</span>
+<span class="w">  </span><span class="p">};</span>
+<span class="p">};</span>
+
+<span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">[</span><span class="nx">Mutations</span><span class="p">.</span><span class="nx">System</span><span class="p">.</span><span class="nx">SetWif</span><span class="p">.</span><span class="nx">name</span><span class="p">]</span><span class="o">:</span><span class="w"> </span><span class="nx">result</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">Mutation</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">Mutations</span><span class="p">.</span><span class="nx">System</span><span class="p">.</span><span class="nx">SetWif</span><span class="p">.</span><span class="nx">mutation</span><span class="p">,</span>
+<span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nx">variables</span><span class="w"> </span><span class="p">}</span>
+<span class="p">);</span>
+</code></pre></div>
+<p>Результат:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">interface</span><span class="w"> </span><span class="nx">IOutput</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">setWif</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">boolean</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Сохранить приватный ключ в зашифрованном серверном хранилище</span>
+<span class="p">}</span>
+</code></pre></div>
 
 
 

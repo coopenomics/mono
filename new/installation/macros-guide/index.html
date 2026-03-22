@@ -2163,7 +2163,7 @@
 <p>Эти макросы подключаются через <code>main.py</code> и работают прямо в MD-файлах MkDocs.</p>
 <ul>
 <li><code>🛠️ SDK: [Mutations.Gateway.CreateDepositPayment](/sdk/modules/Mutations.Gateway.CreateDepositPayment.html)</code> — ссылка на SDK. Используется полное имя из <code>docs/sdk/modules/*.html</code> без <code>.html</code>. Структура: <code>root namespace</code> (<code>Mutations</code>/<code>Queries</code>/<code>Classes</code>) → <code>подпространство</code> → <code>метод</code>.</li>
-<li><code>🔗 GraphQL API: [Mutation.createDepositPayment](/../graphql/index.html#mutation-createDepositPayment)</code> — ссылка на SpectaQL. Формат: <code>Mutation|Query|Subscription.&lt;имя_поля_как_в_схеме&gt;</code>.</li>
+<li><code>[Mutation.createDepositPayment](/graphql/index.html#mutation-createDepositPayment)</code> — ссылка на SpectaQL. Формат: <code>Mutation|Query|Subscription.&lt;имя_поля_как_в_схеме&gt;</code>.</li>
 <li>`</li>
 </ul>
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Mutations</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
@@ -2185,6 +2185,44 @@
 
 <span class="sb">```</span><span class="nx">typescript</span>
 <span class="kd">interface</span><span class="w"> </span><span class="nx">IOutput</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">createDepositPayment</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">blockchain_data</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="nx">unknown</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Данные из блокчейна</span>
+<span class="w">    </span><span class="nx">can_change_status</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">boolean</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Можно ли изменить статус</span>
+<span class="w">    </span><span class="nx">coopname</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Название кооператива</span>
+<span class="w">    </span><span class="nx">created_at</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="nx">unknown</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Дата создания</span>
+<span class="w">    </span><span class="nx">direction</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="nx">PaymentDirection</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Направление платежа</span>
+<span class="w">    </span><span class="nx">direction_label</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Человекочитаемое направление платежа</span>
+<span class="w">    </span><span class="nx">expired_at</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="nx">unknown</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Дата истечения</span>
+<span class="w">    </span><span class="nx">formatted_amount</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Форматированная сумма</span>
+<span class="w">    </span><span class="nx">hash</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Хеш платежа</span>
+<span class="w">    </span><span class="nx">id</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Уникальный идентификатор платежа</span>
+<span class="w">    </span><span class="nx">income_hash</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Хеш входящего платежа (устарело)</span>
+<span class="w">    </span><span class="nx">is_final</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">boolean</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Завершен ли платеж окончательно</span>
+<span class="w">    </span><span class="nx">memo</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Дополнительная информация</span>
+<span class="w">    </span><span class="nx">message</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Сообщение</span>
+<span class="w">    </span><span class="nx">outcome_hash</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Хеш исходящего платежа (устарело)</span>
+<span class="w">    </span><span class="nx">payment_details</span><span class="o">?:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nx">amount_plus_fee</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Сумма платежа с учетом комиссии</span>
+<span class="w">      </span><span class="nx">amount_without_fee</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Сумма платежа без учета комиссии</span>
+<span class="w">      </span><span class="nx">data</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="nx">unknown</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Данные платежа (QR-код, токен, реквизиты и т.д.)</span>
+<span class="w">      </span><span class="nx">fact_fee_percent</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Фактический процент комиссии</span>
+<span class="w">      </span><span class="nx">fee_amount</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Размер комиссии в абсолютных значениях</span>
+<span class="w">      </span><span class="nx">fee_percent</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Процент комиссии</span>
+<span class="w">      </span><span class="nx">tolerance_percent</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Допустимый процент отклонения</span>
+<span class="w">    </span><span class="p">};</span>
+<span class="w">    </span><span class="nx">payment_method_id</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// ID платежного метода</span>
+<span class="w">    </span><span class="nx">provider</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Провайдер платежа</span>
+<span class="w">    </span><span class="nx">quantity</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Количество/сумма</span>
+<span class="w">    </span><span class="nx">statement</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="nx">unknown</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Подписанный документ заявления</span>
+<span class="w">    </span><span class="nx">status</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="nx">PaymentStatus</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Статус платежа</span>
+<span class="w">    </span><span class="nx">status_label</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Человекочитаемый статус</span>
+<span class="w">    </span><span class="nx">symbol</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Символ валюты</span>
+<span class="w">    </span><span class="kr">type</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="nx">PaymentType</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Тип платежа</span>
+<span class="w">    </span><span class="nx">type_label</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Человекочитаемый тип платежа</span>
+<span class="w">    </span><span class="nx">updated_at</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="nx">unknown</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Дата обновления</span>
+<span class="w">    </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя пользователя</span>
+<span class="w">    </span><span class="nx">username_certificate</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="p">({</span><span class="w"> </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w"> </span><span class="kr">type</span><span class="o">:</span><span class="w"> </span><span class="nx">AccountType</span><span class="p">;</span><span class="w"> </span><span class="nx">first_name</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w"> </span><span class="nx">last_name</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w"> </span><span class="nx">middle_name?</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">undefined</span><span class="p">;</span><span class="w"> </span><span class="nx">inn</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w"> </span><span class="kr">type</span><span class="o">:</span><span class="w"> </span><span class="nx">AccountType</span><span class="p">;</span><span class="w"> </span><span class="nx">first_name</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w"> </span><span class="nx">last_name</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w"> </span><span class="nx">middle_name?</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="nx">more</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">undefined</span><span class="p">;</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...;</span><span class="w"> </span><span class="p">})</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="p">{}</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Сертификат пользователя, создавшего платеж</span>
+<span class="w">  </span><span class="p">};</span>
 <span class="p">}</span>
 <span class="sb">````</span><span class="w"> </span><span class="err">—</span><span class="w"> </span><span class="nx">структура</span><span class="w"> </span><span class="nx">интерфейса</span><span class="w"> </span><span class="p">(</span><span class="nx">или</span><span class="w"> </span><span class="nx">любого</span><span class="w"> </span><span class="nx">указанного</span><span class="w"> </span><span class="nx">имени</span><span class="p">).</span>
 <span class="o">-</span><span class="w"> </span><span class="sb">`Класс</span>
@@ -2245,6 +2283,198 @@
 
 ```typescript
 interface IOutput {
+  registerAccount: {
+    account: {
+      blockchain_account?: {
+        account_name: <string>; // Имя аккаунта
+        core_liquid_balance?: <null | string>; // Баланс
+        cpu_limit: {
+          available: <string>; // Доступные ресурсы
+          current_used?: <null | string>; // Текущее использование ресурсов
+          last_usage_update_time?: <null | string>; // Время последнего обновления использования ресурсов
+          max: <string>; // Максимальное количество ресурсов
+          used: <string>; // Использовано ресурсов
+        };
+        cpu_weight: <string>; // Вес CPU
+        created: <string>; // Дата создания
+        head_block_num: <number>; // Номер последнего блока
+        head_block_time: <string>; // Время последнего блока
+        last_code_update: <string>; // Время последнего обновления кода
+        net_limit: {
+          available: <string>; // Доступные ресурсы
+          current_used?: <null | string>; // Текущее использование ресурсов
+          last_usage_update_time?: <null | string>; // Время последнего обновления использования ресурсов
+          max: <string>; // Максимальное количество ресурсов
+          used: <string>; // Использовано ресурсов
+        };
+        net_weight: <string>; // Вес сети
+        permissions: <{
+            parent: <string>; // Родительское разрешение
+            perm_name: <string>; // Имя разрешения
+            required_auth: {
+              accounts: <{
+                  permission: {
+                    actor: <string>; // Актор
+                    permission: <string>; // Разрешение
+                  };
+                  weight: <number>; // Вес
+                }[]>; // Уровни разрешений
+              keys: <{
+                  key: <string>; // Ключ
+                  weight: <number>; // Вес
+                }[]>; // Ключи
+              threshold: <number>; // Порог
+              waits: <{
+                  wait_sec: <number>; // Время ожидания в секундах
+                  weight: <number>; // Вес
+                }[]>; // Вес ожидания
+            };
+          }[]>; // Разрешения
+        privileged: <boolean>; // Флаг привилегий
+        ram_quota: <number>; // Квота RAM
+        ram_usage: <number>; // Использование RAM
+        refund_request?: {
+          cpu_amount: <string>; // Сумма CPU
+          net_amount: <string>; // Сумма сети
+          owner: <string>; // Владелец
+          request_time: <string>; // Время запроса
+        };
+        rex_info?: <null | string>; // Информация о REX
+        self_delegated_bandwidth?: {
+          cpu_weight: <string>; // Вес CPU
+          from: <string>; // Отправитель
+          net_weight: <string>; // Вес сети
+          to: <string>; // Получатель
+        };
+        total_resources?: {
+          cpu_weight: <string>; // Вес CPU
+          net_weight: <string>; // Вес сети
+          owner: <string>; // Владелец
+          ram_bytes: <number>; // Используемая RAM
+        };
+        voter_info?: <null | string>; // Информация о голосовании
+      };
+      participant_account?: {
+        braname?: <null | string>; // Имя кооперативного участка
+        created_at: <unknown>; // Время создания записи о члене
+        has_vote: <boolean>; // LEGACY Флаг, имеет ли член право голоса
+        initial_amount?: <null | string>; // Сумма вступительного взноса
+        is_initial: <boolean>; // LEGACY Флаг, внесен ли регистрационный взнос
+        is_minimum: <boolean>; // LEGACY Флаг, внесен ли минимальный паевый взнос
+        last_min_pay: <unknown>; // Время последнего минимального платежа
+        last_update: <unknown>; // Время последнего обновления информации о члене
+        minimum_amount?: <null | string>; // Сумма минимального паевого взноса
+        status: <string>; // Статус члена кооператива (accepted | blocked)
+        type?: <null | string>; // Тип участника (individual | entrepreneur | organization)
+        username: <string>; // Уникальное имя члена кооператива
+      };
+      private_account?: {
+        entrepreneur_data?: {
+          birthdate: <string>; // Дата рождения
+          city: <string>; // Город
+          country: <string>; // Страна
+          details: {
+            inn: <string>; // ИНН
+            ogrn: <string>; // ОГРН
+          };
+          email: <string>; // Email
+          first_name: <string>; // Имя
+          full_address: <string>; // Юридический адрес
+          last_name: <string>; // Фамилия
+          middle_name: <string>; // Отчество
+          phone: <string>; // Телефон
+          username: <string>; // Имя аккаунта
+        };
+        individual_data?: {
+          birthdate: <string>; // Дата рождения
+          email: <string>; // Email
+          first_name: <string>; // Имя
+          full_address: <string>; // Полный адрес
+          last_name: <string>; // Фамилия
+          middle_name: <string>; // Отчество
+          passport?: {
+            code: <string>; // Код подразделения
+            issued_at: <string>; // Дата выдачи
+            issued_by: <string>; // Кем выдан
+            number: <number>; // Номер паспорта
+            series: <number>; // Серия паспорта
+          };
+          phone: <string>; // Телефон
+          username: <string>; // Имя аккаунта
+        };
+        organization_data?: {
+          city: <string>; // Город
+          country: <string>; // Страна
+          details: {
+            inn: <string>; // ИНН
+            kpp: <string>; // КПП
+            ogrn: <string>; // ОГРН
+          };
+          email: <string>; // Email
+          fact_address: <string>; // Фактический адрес
+          full_address: <string>; // Юридический адрес
+          full_name: <string>; // Полное название
+          phone: <string>; // Телефон
+          represented_by: {
+            based_on: <string>; // На основании чего действует
+            first_name: <string>; // Имя
+            last_name: <string>; // Фамилия
+            middle_name: <string>; // Отчество
+            position: <string>; // Должность
+          };
+          short_name: <string>; // Краткое название
+          type: <string>; // Тип организации
+          username: <string>; // Имя аккаунта организации
+        };
+        type: <AccountType>; // Тип аккаунта
+      };
+      provider_account?: {
+        email: <string>; // Электронная почта пользователя
+        has_account: <boolean>; // Есть ли у пользователя аккаунт
+        initial_order?: <null | string>; // ID начального заказа
+        is_email_verified: <boolean>; // Подтверждена ли электронная почта
+        is_registered: <boolean>; // Зарегистрирован ли пользователь
+        message?: <null | string>; // Сообщение
+        public_key: <string>; // Публичный ключ пользователя
+        referer: <string>; // Реферер пользователя
+        role: <string>; // Роль пользователя
+        status: <UserStatus>; // Статус пользователя
+        subscriber_hash: <string>; // Хэш подписчика для уведомлений
+        subscriber_id: <string>; // Идентификатор подписчика для уведомлений
+        type: <string>; // Тип пользователя
+        username: <string>; // Имя пользователя
+      };
+      user_account?: {
+        meta: <string>; // Метаинформация
+        referer: <string>; // Реферал
+        registered_at: <string>; // Дата регистрации
+        registrator: <string>; // Регистратор
+        status: <string>; // Статус аккаунта
+        storages: <string[]>; // Список хранилищ
+        type: <string>; // Тип учетной записи
+        username: <string>; // Имя аккаунта
+        verifications: <{
+            created_at: <string>; // Дата создания верификации
+            is_verified: <boolean>; // Флаг верификации
+            last_update: <string>; // Дата последнего обновления верификации
+            notice: <string>; // Заметка верификации
+            procedure: <string>; // Процедура верификации
+            verificator: <string>; // Имя верификатора
+          }[]>; // Дата регистрации
+      };
+      username: <string>; // Имя аккаунта кооператива
+    };
+    tokens: {
+      access: {
+        expires: <unknown>; // Дата истечения токена доступа
+        token: <string>; // Токен доступа
+      };
+      refresh: {
+        expires: <unknown>; // Дата истечения токена доступа
+        token: <string>; // Токен доступа
+      };
+    };
+  };
 }
 ```
 

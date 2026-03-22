@@ -1626,6 +1626,67 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Разработчикам
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Разработчикам">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ledger" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        План счетов (ledger)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        История операций по счетам
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Программные кошельки (список)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Программный кошелёк (один)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2214,6 +2275,67 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Разработчикам
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Разработчикам">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ledger" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        План счетов (ledger)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        История операций по счетам
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Программные кошельки (список)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Программный кошелёк (один)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2300,6 +2422,18 @@
         
       
       
+        <span class="md-tag md-tag-icon md-tag--dev">Разработчик</span>
+      
+    
+      
+      
+      
+        
+        
+          
+        
+      
+      
         <span class="md-tag md-tag-icon md-tag--member">Член совета</span>
       
     
@@ -2336,6 +2470,168 @@
 <p>На основе этих действий формируются наборы данных, которые содержат в себе необходиму информацию для совершения бухгалтерских проводок. </p>
 <p>Средства в кошельке 86 могут быть использованы для списания по целевым фондам кооператива (идентификаторы 86.1-86.5). </p>
 <p>При создании членом совета служебной записки на расход средств членских взносов по фонду обеспечения хозяйственной деятельности (86.4), </p>
+<h2 id="_3">Разработчикам<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
+<p>Канонические имена полей и типов — в файле <code>components/controller/schema.gql</code> монорепозитория; интерактивно — в <a href="/graphql">документации GraphQL-API</a>.</p>
+<h3 id="ledger">План счетов (ledger)<a class="headerlink" href="#ledger" title="Permanent link">&para;</a></h3>
+<p>🛠️ SDK: <a href="/sdk/modules/Queries.Ledger.GetLedger.html">Queries.Ledger.GetLedger</a> | <a href="/graphql/index.html#query-getLedger">Query.getLedger</a></p>
+<p>Получить полное состояние плана счетов кооператива. Возвращает все счета из стандартного плана счетов с актуальными данными из блокчейна. Если счет не активен в блокчейне, возвращает нулевые значения.</p>
+<div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Queries</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
+
+<span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Queries.Ledger.GetLedger.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">data</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">coopname</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя кооператива для получения состояния ledger</span>
+<span class="w">  </span><span class="p">};</span>
+<span class="p">};</span>
+
+<span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">[</span><span class="nx">Queries</span><span class="p">.</span><span class="nx">Ledger</span><span class="p">.</span><span class="nx">GetLedger</span><span class="p">.</span><span class="nx">name</span><span class="p">]</span><span class="o">:</span><span class="w"> </span><span class="nx">result</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">Query</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">Queries</span><span class="p">.</span><span class="nx">Ledger</span><span class="p">.</span><span class="nx">GetLedger</span><span class="p">.</span><span class="nx">query</span><span class="p">,</span>
+<span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nx">variables</span><span class="w"> </span><span class="p">}</span>
+<span class="p">);</span>
+</code></pre></div>
+<p>Результат:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">interface</span><span class="w"> </span><span class="nx">IOutput</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">getLedger</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">chartOfAccounts</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="p">{</span>
+<span class="w">        </span><span class="nx">available</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Доступные средства</span>
+<span class="w">        </span><span class="nx">blocked</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Заблокированные средства</span>
+<span class="w">        </span><span class="nx">displayId</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Идентификатор счета для отображения (может быть дробным, например &quot;86.6&quot;)</span>
+<span class="w">        </span><span class="nx">id</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Идентификатор счета</span>
+<span class="w">        </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Название счета</span>
+<span class="w">        </span><span class="nx">writeoff</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Списанные средства</span>
+<span class="w">      </span><span class="p">}[]</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// План счетов с актуальными данными</span>
+<span class="w">    </span><span class="nx">coopname</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя кооператива</span>
+<span class="w">  </span><span class="p">};</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="_4">История операций по счетам<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h3>
+<p>🛠️ SDK: <a href="/sdk/modules/Queries.Ledger.GetLedgerHistory.html">Queries.Ledger.GetLedgerHistory</a> | <a href="/graphql/index.html#query-getLedgerHistory">Query.getLedgerHistory</a></p>
+<p>Получить историю операций по счетам кооператива. Возвращает список операций с возможностью фильтрации по account_id и пагинацией. Операции сортируются по дате создания (новые первыми).</p>
+<div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Queries</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
+
+<span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Queries.Ledger.GetLedgerHistory.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">data</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">account_id</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// ID счета для фильтрации. Если не указан, возвращаются операции по всем счетам</span>
+<span class="w">    </span><span class="nx">coopname</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя кооператива</span>
+<span class="w">    </span><span class="nx">limit</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Количество записей на странице (по умолчанию 10, максимум 100)</span>
+<span class="w">    </span><span class="nx">page</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Номер страницы (по умолчанию 1)</span>
+<span class="w">    </span><span class="nx">sortBy</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Поле для сортировки (created_at, global_sequence)</span>
+<span class="w">    </span><span class="nx">sortOrder</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Направление сортировки (ASC или DESC)</span>
+<span class="w">  </span><span class="p">};</span>
+<span class="p">};</span>
+
+<span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">[</span><span class="nx">Queries</span><span class="p">.</span><span class="nx">Ledger</span><span class="p">.</span><span class="nx">GetLedgerHistory</span><span class="p">.</span><span class="nx">name</span><span class="p">]</span><span class="o">:</span><span class="w"> </span><span class="nx">result</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">Query</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">Queries</span><span class="p">.</span><span class="nx">Ledger</span><span class="p">.</span><span class="nx">GetLedgerHistory</span><span class="p">.</span><span class="nx">query</span><span class="p">,</span>
+<span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nx">variables</span><span class="w"> </span><span class="p">}</span>
+<span class="p">);</span>
+</code></pre></div>
+<p>Результат:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">interface</span><span class="w"> </span><span class="nx">IOutput</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">getLedgerHistory</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">currentPage</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Текущая страница</span>
+<span class="w">    </span><span class="nx">items</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="p">{</span>
+<span class="w">        </span><span class="nx">account_id</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// ID счета</span>
+<span class="w">        </span><span class="nx">action</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Тип операции</span>
+<span class="w">        </span><span class="nx">comment</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Комментарий к операции</span>
+<span class="w">        </span><span class="nx">coopname</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя кооператива</span>
+<span class="w">        </span><span class="nx">created_at</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="nx">unknown</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Дата и время создания операции</span>
+<span class="w">        </span><span class="nx">global_sequence</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Номер глобальной последовательности блокчейна</span>
+<span class="w">        </span><span class="nx">hash</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Хеш пакета документов операции</span>
+<span class="w">        </span><span class="nx">quantity</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Сумма операции</span>
+<span class="w">        </span><span class="nx">username</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя пользователя, совершившего операцию</span>
+<span class="w">      </span><span class="p">}[]</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Список операций</span>
+<span class="w">    </span><span class="nx">totalCount</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Общее количество операций</span>
+<span class="w">    </span><span class="nx">totalPages</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Общее количество страниц</span>
+<span class="w">  </span><span class="p">};</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="_5">Программные кошельки (список)<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h3>
+<p>🛠️ SDK: <a href="/sdk/modules/Queries.Wallet.GetProgramWallets.html">Queries.Wallet.GetProgramWallets</a> | <a href="/graphql/index.html#query-getProgramWallets">Query.getProgramWallets</a></p>
+<p>Получить список программных кошельков с фильтрацией и пагинацией</p>
+<div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Queries</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
+
+<span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Queries.Wallet.GetProgramWallets.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">filter</span><span class="o">?:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">coopname</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Фильтр по имени кооператива</span>
+<span class="w">    </span><span class="nx">program_id</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Фильтр по ID программы</span>
+<span class="w">    </span><span class="nx">program_type</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="nx">ProgramType</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Фильтр по типу программы</span>
+<span class="w">    </span><span class="nx">username</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Фильтр по имени пользователя</span>
+<span class="w">  </span><span class="p">};</span>
+<span class="w">  </span><span class="nx">options</span><span class="o">?:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">limit</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Количество элементов на странице</span>
+<span class="w">    </span><span class="nx">page</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Номер страницы</span>
+<span class="w">    </span><span class="nx">sortBy</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Ключ сортировки (например, &quot;name&quot;)</span>
+<span class="w">    </span><span class="nx">sortOrder</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Направление сортировки (&quot;ASC&quot; или &quot;DESC&quot;)</span>
+<span class="w">  </span><span class="p">};</span>
+<span class="p">};</span>
+
+<span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">[</span><span class="nx">Queries</span><span class="p">.</span><span class="nx">Wallet</span><span class="p">.</span><span class="nx">GetProgramWallets</span><span class="p">.</span><span class="nx">name</span><span class="p">]</span><span class="o">:</span><span class="w"> </span><span class="nx">result</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">Query</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">Queries</span><span class="p">.</span><span class="nx">Wallet</span><span class="p">.</span><span class="nx">GetProgramWallets</span><span class="p">.</span><span class="nx">query</span><span class="p">,</span>
+<span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nx">variables</span><span class="w"> </span><span class="p">}</span>
+<span class="p">);</span>
+</code></pre></div>
+<p>Результат:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">interface</span><span class="w"> </span><span class="nx">IOutput</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">getProgramWallets</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">currentPage</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Текущая страница</span>
+<span class="w">    </span><span class="nx">items</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="p">{</span>
+<span class="w">        </span><span class="nx">agreement_id</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Идентификатор соглашения</span>
+<span class="w">        </span><span class="nx">available</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Доступный баланс (формат: &quot;100.0000 RUB&quot;)</span>
+<span class="w">        </span><span class="nx">blockNum</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Номер блока последнего обновления</span>
+<span class="w">        </span><span class="nx">blocked</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Заблокированный баланс (формат: &quot;100.0000 RUB&quot;)</span>
+<span class="w">        </span><span class="nx">coopname</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя кооператива</span>
+<span class="w">        </span><span class="nx">id</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Уникальный идентификатор кошелька в блокчейне</span>
+<span class="w">        </span><span class="nx">membership_contribution</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Паевой взнос (формат: &quot;100.0000 RUB&quot;)</span>
+<span class="w">        </span><span class="nx">program_id</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Идентификатор программы</span>
+<span class="w">        </span><span class="nx">program_type</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="nx">ProgramType</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Тип программы</span>
+<span class="w">        </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя пользователя</span>
+<span class="w">      </span><span class="p">}[]</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Элементы текущей страницы</span>
+<span class="w">    </span><span class="nx">totalCount</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Общее количество элементов</span>
+<span class="w">    </span><span class="nx">totalPages</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Общее количество страниц</span>
+<span class="w">  </span><span class="p">};</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="_6">Программный кошелёк (один)<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h3>
+<p>🛠️ SDK: <a href="/sdk/modules/Queries.Wallet.GetProgramWallet.html">Queries.Wallet.GetProgramWallet</a> | <a href="/graphql/index.html#query-getProgramWallet">Query.getProgramWallet</a></p>
+<p>Получить один программный кошелек по фильтру</p>
+<div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Queries</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
+
+<span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Queries.Wallet.GetProgramWallet.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">filter</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">coopname</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Фильтр по имени кооператива</span>
+<span class="w">    </span><span class="nx">program_id</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Фильтр по ID программы</span>
+<span class="w">    </span><span class="nx">program_type</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="nx">ProgramType</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Фильтр по типу программы</span>
+<span class="w">    </span><span class="nx">username</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Фильтр по имени пользователя</span>
+<span class="w">  </span><span class="p">};</span>
+<span class="w">  </span><span class="nx">options</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">limit</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Количество элементов на странице</span>
+<span class="w">    </span><span class="nx">page</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Номер страницы</span>
+<span class="w">    </span><span class="nx">sortBy</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Ключ сортировки (например, &quot;name&quot;)</span>
+<span class="w">    </span><span class="nx">sortOrder</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Направление сортировки (&quot;ASC&quot; или &quot;DESC&quot;)</span>
+<span class="w">  </span><span class="p">};</span>
+<span class="p">};</span>
+
+<span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">[</span><span class="nx">Queries</span><span class="p">.</span><span class="nx">Wallet</span><span class="p">.</span><span class="nx">GetProgramWallet</span><span class="p">.</span><span class="nx">name</span><span class="p">]</span><span class="o">:</span><span class="w"> </span><span class="nx">result</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">Query</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">Queries</span><span class="p">.</span><span class="nx">Wallet</span><span class="p">.</span><span class="nx">GetProgramWallet</span><span class="p">.</span><span class="nx">query</span><span class="p">,</span>
+<span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nx">variables</span><span class="w"> </span><span class="p">}</span>
+<span class="p">);</span>
+</code></pre></div>
+<p>Результат:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">interface</span><span class="w"> </span><span class="nx">IOutput</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">getProgramWallet</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">undefined</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nx">agreement_id</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Идентификатор соглашения</span>
+<span class="w">      </span><span class="nx">available</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Доступный баланс (формат: &quot;100.0000 RUB&quot;)</span>
+<span class="w">      </span><span class="nx">blockNum</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Номер блока последнего обновления</span>
+<span class="w">      </span><span class="nx">blocked</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Заблокированный баланс (формат: &quot;100.0000 RUB&quot;)</span>
+<span class="w">      </span><span class="nx">coopname</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя кооператива</span>
+<span class="w">      </span><span class="nx">id</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Уникальный идентификатор кошелька в блокчейне</span>
+<span class="w">      </span><span class="nx">membership_contribution</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Паевой взнос (формат: &quot;100.0000 RUB&quot;)</span>
+<span class="w">      </span><span class="nx">program_id</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Идентификатор программы</span>
+<span class="w">      </span><span class="nx">program_type</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="nx">ProgramType</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Тип программы</span>
+<span class="w">      </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя пользователя</span>
+<span class="w">    </span><span class="p">}</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Получить один программный кошелек по фильтру</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Часть шагов (голос по решению совета, исполнение ряда решений) выполняется <strong>подписью и отправкой транзакции</strong> в блокчейн через <code>Client.Blockchain</code> / класс <code>Blockchain</code> в пакете <code>@coopenomics/sdk</code>, а не отдельной мутацией GraphQL; см. 🛠️ <a href="/sdk/classes/Classes.html#Blockchain"><code>Classes.Blockchain</code></a> и 🛠️ <a href="/sdk/classes/Classes.html#Client"><code>Classes.Client</code></a>.</p>
 
 
 

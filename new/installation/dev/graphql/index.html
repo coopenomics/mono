@@ -2379,7 +2379,7 @@
   <h1>Язык API</h1>
 
 <h2 id="graphql-api">GraphQL - язык API<a class="headerlink" href="#graphql-api" title="Permanent link">&para;</a></h2>
-<p>Всё взаимодействие между компонентами ЦК осуществляется через <a href="/graphql">GraphQL-API</a>. Он предоставляет язык запросов и среду их выполнения, позволяя клиентам запрашивать только необходимые данные и минимизируя избыточную передачу информации. Кроме того, единая схема API объединяет в себе все сервисы, включая запросы, мутации и подписки на данные как самого приложения ЦК, так и его <a href="/documentation/extensions">приложений</a>.</p>
+<p>Всё взаимодействие между компонентами ЦК осуществляется через <a href="/graphql">GraphQL-API</a>. Он предоставляет язык запросов и среду их выполнения, позволяя клиентам запрашивать только необходимые данные и минимизируя избыточную передачу информации. Кроме того, единая схема API объединяет в себе все сервисы, включая запросы, мутации и подписки на данные как самого приложения ЦК, так и его <a href="/new/chairman/app-store/">расширений и приложений</a>.</p>
 <p>Язык запросов GraphQL-API позволяет сократить количество отдельных методов на бэкенде ЦК, которые обычно предназначены для получения или обновления информации о небольших аспектах одной рабочей сущности. В традиционном подходе количество методов API и сопутствующего кода постоянно растёт, но полезная нагрузка каждого вызова становится всё меньше. GraphQL решает эту проблему, предоставляя единую схему запросов, которая позволяет клиенту определять только те данные, которые ему действительно нужны.</p>
 <p>Язык <a href="/graphql">GraphQL-API</a> позволяет объединить все внутренние и внешние сервисы (включая сторонние) в единую конечную точку. Это упрощает интеграцию сервисов, даже если они написаны на разных языках программирования, и создаёт единую динамичную документацию, которая автоматически обновляется в реальном времени на основе схем объектов из программного кода.</p>
 <p>С помощью языка <a href="/graphql">GraphQL-API</a> мы можем накладывать требования прав доступа не только на вызов отдельных методов запросов, мутаций и подписок, но и на конкретные поля, доступные для каждого уровня прав. Например, один и тот же запрос может быть использован как пайщиком, так и председателем совета, при этом председатель получит доступ к большему числу полей.</p>
@@ -2393,7 +2393,7 @@
 <p>Песочница - это визуальный инструмент, где вы пишете и тестируете запросы, мутации, подписки. Справа находится вкладка Docs. В ней перечислены все доступные типы, поля и операции, а также их описания и требования к ролям для выполнения.</p>
 <p>Также, вся документация ко всем запросам, мутациям и подпискам доступна по ссылке: <a href="/graphql">GraphQL-API</a>. </p>
 <h3 id="_2">Запросы<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h3>
-<p>Например, мы хотим извлечь информацию об аккаунте с помощью запроса getAccount. Ссылка на схему в документации 🔗 GraphQL API: <a href="/../graphql/index.html#query-getAccount">Query.getAccount</a></p>
+<p>Например, мы хотим извлечь информацию об аккаунте с помощью запроса getAccount. Ссылка на схему в документации <a href="/graphql/index.html#query-getAccount">Query.getAccount</a></p>
 <p>Запрос getAccount, согласно схеме, возвращает объект Account, в котором есть следующие поля:</p>
 <div class="highlight"><pre><span></span><code>username: String! — имя аккаунта кооператива
 blockchain_account: BlockchainAccount — системный аккаунт в блокчейне
@@ -2436,12 +2436,13 @@ user_account: UserAccount — пользовательский аккаунт к
 <p>Все методы, которым требуется авторизацию ролью помечены в GraphQL-API соответствующей подписью, например: <code>требуемые роли: 'chairman'</code>, что означает - только председатель может выполить вызов. </p>
 <p>После отправки запроса, в ответе вы получите только те поля, которые запросили. Если появится ошибка о недостатке прав, убедитесь, что ваш пользователь имеет требуемую роль (например, chairman, member и т.п.). </p>
 <h3 id="_3">Мутации<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h3>
-<p>Для изменения или добавления данных GraphQL использует мутации. Например, мутация createDepositPayment создаёт объект платёжа паевого взноса. Ссылка на схему в документации 🔗 GraphQL API: <a href="/../graphql/index.html#mutation-createDepositPayment">Mutation.createDepositPayment</a></p>
+<p>Для изменения или добавления данных GraphQL использует мутации. Например, мутация createDepositPayment создаёт объект платёжа паевого взноса. Ссылка на схему в документации <a href="/graphql/index.html#mutation-createDepositPayment">Mutation.createDepositPayment</a></p>
 <p>Пример:</p>
-<div class="highlight"><pre><span></span><code><span class="k">mutation</span><span class="w"> </span><span class="nf">createDepositExample</span><span class="p">(</span><span class="nv">$username</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">!,</span><span class="w"> </span><span class="nv">$quantity</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">!)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="n">createDeposit</span><span class="p">(</span><span class="n">data</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span>
+<div class="highlight"><pre><span></span><code><span class="k">mutation</span><span class="w"> </span><span class="nf">createDepositExample</span><span class="p">(</span><span class="nv">$username</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">!,</span><span class="w"> </span><span class="nv">$quantity</span><span class="p">:</span><span class="w"> </span><span class="nb">Float</span><span class="p">!,</span><span class="w"> </span><span class="nv">$symbol</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">!)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">createDepositPayment</span><span class="p">(</span><span class="n">data</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span>
 <span class="w">    </span><span class="n">username</span><span class="p">:</span><span class="w"> </span><span class="nv">$username</span>
 <span class="w">    </span><span class="n">quantity</span><span class="p">:</span><span class="w"> </span><span class="nv">$quantity</span>
+<span class="w">    </span><span class="n">symbol</span><span class="p">:</span><span class="w"> </span><span class="nv">$symbol</span>
 <span class="w">  </span><span class="p">})</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">id</span>
 <span class="w">    </span><span class="n">amount</span>
@@ -2454,7 +2455,8 @@ user_account: UserAccount — пользовательский аккаунт к
 <p>И передаём переменные через Variables в <code>Playground</code>:
 <div class="highlight"><pre><span></span><code>{
   &quot;username&quot;: &quot;voskhod&quot;,
-  &quot;quantity&quot;: &quot;100.00 RUB&quot;
+  &quot;quantity&quot;: 100,
+  &quot;symbol&quot;: &quot;RUB&quot;
 }
 </code></pre></div></p>
 <p>Результат вернёт новый объект Payment, поля которого мы выбрали (id, amount, status, data)</p>
