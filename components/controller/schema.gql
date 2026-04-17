@@ -31,7 +31,7 @@ type Account {
   private_account: PrivateAccount
 
   """
-  объект аккаунта в системе учёта провайдера, т.е. MONO. Здесь хранится приватная информация о пайщике кооператива, которая содержит его приватные данные. Эти данные не публикуются в блокчейне и не выходят за пределы базы данных провайдера. Они используются для заполнения шаблонов документов при нажатии соответствующих кнопок на платформе.
+  объект аккаунта в системе учёта провайдера, т.е. MONO. Здесь хранится приватная информация о пайщике кооператива, которая содержит его приватные данные. Эти данные не публикуются в блокчейне и не выходят за пределы базы данных провайдера. Они используются для заполнения шаблонов документов при нажатии соответствующих кнопок на платформе. 
   """
   provider_account: MonoAccount
 
@@ -2337,7 +2337,9 @@ type CapitalIssuePermissions {
   """Может ли редактировать задачу (название, описание, приоритет и т.д.)"""
   can_edit_issue: Boolean!
 
-  """Может ли инициировать перенос задачи в другой компонент"""
+  """
+  Может ли инициировать перенос задачи в другой компонент того же проекта
+  """
   can_move_issue: Boolean!
 
   """Может ли устанавливать статус DONE (выполнена)"""
@@ -4257,7 +4259,7 @@ input CreateCommitInput {
   coopname: String!
 
   """
-  Данные коммита (массив структурированных объектов). Можно опустить, если есть проиндексированные Git-коммиты с маркерами (PRD 78).
+  Данные коммита для БД (git, contribution_feedback и др.). В блокчейн не передаётся. Взнос без Git: можно пустой data — commit_hash строится off-chain.
   """
   data: JSON
 
@@ -6908,7 +6910,7 @@ input MoveCapitalIssueToComponentInput {
   """Хеш задачи"""
   issue_hash: String!
 
-  """Хеш целевого компонента (project_hash)"""
+  """project_hash компонента, в который переносим задачу"""
   target_project_hash: String!
 }
 
@@ -7107,7 +7109,7 @@ type Mutation {
   capitalMakeClearance(data: MakeClearanceInput!): Transaction!
 
   """
-  Перенос задачи между компонентами (без закоммиченного времени и использованных Git-привязок)
+  Перенос задачи между компонентами одного проекта (без закоммиченного времени и использованных Git-привязок)
   """
   capitalMoveIssueToComponent(data: MoveCapitalIssueToComponentInput!): CapitalIssue!
 
@@ -9209,6 +9211,11 @@ type Query {
   Поиск приватных данных аккаунтов по запросу. Поиск осуществляется по полям ФИО, ИНН, ОГРН, наименованию организации и другим приватным данным.
   """
   searchPrivateAccounts(data: SearchPrivateAccountsInput!): [PrivateAccountSearchResult!]!
+
+  """
+  Проверить инвариант Dr=Cr по журналу двойных проводок контракта ledger2 в заданном диапазоне дат. Возвращает суммарные обороты и флаг ok.
+  """
+  validateJournalInvariant(data: ValidateJournalInvariantInput!): ValidateJournalInvariantResult!
 }
 
 """Вопрос повестки собрания с результатами голосования"""
@@ -11048,6 +11055,45 @@ enum UserStatus {
   Payed
   Refunded
   Registered
+}
+
+input ValidateJournalInvariantInput {
+  """Имя кооператива (scope таблицы journal в контракте ledger2)"""
+  coopname: String!
+
+  """
+  Нижняя граница диапазона по created_at включительно (ISO-8601). Если не указана — с начала журнала.
+  """
+  fromDate: DateTime
+
+  """
+  Верхняя граница диапазона по created_at включительно (ISO-8601). Если не указана — до конца журнала.
+  """
+  toDate: DateTime
+}
+
+type ValidateJournalInvariantResult {
+  coopname: String!
+
+  """Разница totalDebit - totalCredit (ожидается "0")"""
+  difference: String!
+
+  """Количество записей журнала в диапазоне"""
+  entriesCount: Int!
+  fromDate: DateTime
+
+  """true, если инвариант Dr=Cr соблюдён"""
+  ok: Boolean!
+
+  """Символ актива (обычно RUB), null если диапазон пуст"""
+  symbol: String
+  toDate: DateTime
+
+  """Сумма кредитовых оборотов (в минимальных единицах актива)"""
+  totalCredit: String!
+
+  """Сумма дебетовых оборотов (в минимальных единицах актива)"""
+  totalDebit: String!
 }
 
 type Vars {
