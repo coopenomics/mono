@@ -37,6 +37,13 @@ export class UvVznosyGenerator implements IReportGenerator {
     const idFile = this.generateFileName(input);
     const kodNO = getTaxOfficeCode(input.kpp);
     const month = input.period || 1;
+    // По XSD (UT_UVISCHSUMNAL v5.03):
+    //   Период ∈ {21,31,33,34} — код квартала подачи,
+    //   НомерМесКварт ∈ {11,12,13} — порядковый месяц внутри квартала (для
+    //   ежемесячных уведомлений о взносах).
+    const quarter = Math.ceil(month / 3);
+    const periodByQuarter: Record<number, string> = { 1: '21', 2: '31', 3: '33', 4: '34' };
+    const monthInQuarter = ((month - 1) % 3) + 1;
 
     const doc = createXmlDoc()
       .ele('Файл')
@@ -63,8 +70,8 @@ export class UvVznosyGenerator implements IReportGenerator {
       .att('ОКТМО', input.oktmo)
       .att('КБК', '18210202000011000160')
       .att('СумНалогАванс', '0')
-      .att('Период', '21/01')
-      .att('НомерМесКварт', String(month))
+      .att('Период', periodByQuarter[quarter])
+      .att('НомерМесКварт', String(10 + monthInQuarter))
       .att('Год', String(input.year))
     .up();
 

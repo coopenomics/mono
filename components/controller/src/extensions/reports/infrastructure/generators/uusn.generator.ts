@@ -57,13 +57,17 @@ export class UusnGenerator implements IReportGenerator {
 
     addSigner(dokument, input.signerFio);
 
+    // По XSD (UT_UVISCHSUMNAL v5.03):
+    //   Период ∈ {21,31,33,34}, НомерМесКварт ∈ {01..04} — номер квартала
+    //   (для ежеквартальных уведомлений по УСН).
+    const periodByQuarter: Record<number, string> = { 1: '21', 2: '31', 3: '33', 4: '34' };
     dokument.ele('УвИсчСумНалог')
       .att('КППДекл', input.kpp)
       .att('ОКТМО', input.oktmo)
       .att('КБК', '18210501021011000110')
       .att('СумНалогАванс', '0')
-      .att('Период', '21/01')
-      .att('НомерМесКварт', String(quarter))
+      .att('Период', periodByQuarter[quarter] ?? '21')
+      .att('НомерМесКварт', String(quarter).padStart(2, '0'))
       .att('Год', String(input.year))
     .up();
 

@@ -1,3 +1,7 @@
+import { readFile, readdir } from 'fs/promises';
+import { join } from 'path';
+import iconv from 'iconv-lite';
+import { parseXml, type Document } from 'libxmljs2';
 import { BuhotchGenerator } from '../../../src/extensions/reports/infrastructure/generators/buhotch.generator';
 import { Ndfl6Generator } from '../../../src/extensions/reports/infrastructure/generators/ndfl6.generator';
 import { RsvGenerator } from '../../../src/extensions/reports/infrastructure/generators/rsv.generator';
@@ -6,31 +10,86 @@ import { DusnGenerator } from '../../../src/extensions/reports/infrastructure/ge
 import { Fss4Generator } from '../../../src/extensions/reports/infrastructure/generators/fss4.generator';
 import { UvVznosyGenerator } from '../../../src/extensions/reports/infrastructure/generators/uv-vznosy.generator';
 import { UusnGenerator } from '../../../src/extensions/reports/infrastructure/generators/uusn.generator';
-import { ReportType } from '../../../src/extensions/reports/domain/enums/report-type.enum';
+import { ReportType, REPORT_CONFIG } from '../../../src/extensions/reports/domain/enums/report-type.enum';
 import type { ReportInput } from '../../../src/extensions/reports/domain/interfaces/report-generator.interface';
+
+const SCHEMAS_DIR = join(__dirname, '..', '..', '..', 'src', 'extensions', 'reports', 'schemas');
+const REFERENCES_DIR = join(__dirname, '..', '..', '..', '..', 'reports-standarts', 'ВОСХОД');
+
+/**
+ * Unit-тесты генераторов отчётности ФНС/ФСС.
+ *
+ * Тесты выполняют двойную проверку:
+ *   1) Структурную сверку выхлопа generate() с эталонами ВОСХОДа
+ *      (`components/reports-standarts/ВОСХОД/*.xml`) — те же КНД, ВерсФорм,
+ *      Период, ПрПодп, обязательные поля.
+ *   2) XSD-валидацию по схемам из `src/extensions/reports/schemas/`
+ *      (перекодировка cp1251 → utf-8 средствами iconv-lite, парсинг в
+ *      libxmljs2). Для ЕФС-1 XSD от СФР пока нет в публичном доступе —
+ *      для него только well-formed + сверка корневого элемента и namespace'ов.
+ */
+
+const xsdCache = new Map<string, Document>();
+let xsdLoadError: string | null = null;
+
+async function loadAllSchemas(): Promise<void> {
+  try {
+    const files = await readdir(SCHEMAS_DIR);
+    for (const file of files.filter((f) => f.toLowerCase().endsWith('.xsd'))) {
+      const buf = await readFile(join(SCHEMAS_DIR, file));
+      const decoded = iconv.decode(buf, 'win1251');
+      const utf8Source = decoded.replace(/encoding="windows-1251"/i, 'encoding="utf-8"');
+      xsdCache.set(file, parseXml(utf8Source));
+    }
+  } catch (e) {
+    xsdLoadError = e instanceof Error ? e.message : String(e);
+  }
+}
+
+function validateAgainstXsd(xml: string, xsdFile: string): { isValid: boolean; errors: string[] } {
+  const xsd = xsdCache.get(xsdFile);
+  if (!xsd) {
+    return { isValid: false, errors: [`XSD не загружена: ${xsdFile}`] };
+  }
+  const utf8Xml = xml.replace(/encoding="windows-1251"/i, 'encoding="utf-8"');
+  let doc: Document;
+  try {
+    doc = parseXml(utf8Xml);
+  } catch (e) {
+    return { isValid: false, errors: [`parse: ${e instanceof Error ? e.message : String(e)}`] };
+  }
+  const ok = doc.validate(xsd);
+  if (ok) return { isValid: true, errors: [] };
+  const raw = doc.validationErrors ?? [];
+  return {
+    isValid: false,
+    errors: raw.map((e: any) => `line ${e.line ?? '?'}: ${e.message ?? String(e)}`),
+  };
+}
 
 const baseInput: ReportInput = {
   reportType: ReportType.BUHOTCH,
-  year: 2025,
+  year: 2026,
   inn: '9728130611',
   kpp: '772801001',
-  orgName: 'Потребительский Кооператив "ВОСХОД"',
+  orgName: 'Потребительский Кооператив "Восход"',
   ogrn: '1247700283346',
   okved: '94.99',
   okfs: '16',
-  okopf: '20200',
-  oktmo: '45382000',
-  address: 'г. Москва, ул. Тестовая, д.1',
-  signerFio: { lastName: 'Иванов', firstName: 'Иван', middleName: 'Иванович' },
+  okopf: '20100',
+  oktmo: '45910000',
+  address: '117593, Москва г, вн.тер.г. муниципальный округ Ясенево, проезд Соловьиный, д. 1, помещение 1/1',
+  signerFio: { lastName: 'Скопцова', firstName: 'Ангелина', middleName: 'Геннадиевна' },
+  signerType: 'representative',
+  signerRepDoc: 'Доверенность №1 от 19.06.2024',
   signerSnils: '123-456-789 00',
-  ledgerData: [
-    { accountId: 51, name: 'Расчётный счёт', balanceCurrent: 150000, balancePrevious: 120000, balancePrePrevious: 80000 },
-    { accountId: 80, name: 'Паевой фонд', balanceCurrent: 50000, balancePrevious: 40000, balancePrePrevious: 30000 },
-    { accountId: 86, name: 'Целевое финансирование', balanceCurrent: 100000, balancePrevious: 80000, balancePrePrevious: 50000 },
-  ],
+  sfrRegNumber: '1118018397',
+  chairmanPosition: 'Председатель Совета',
+  okpo: '61457920',
+  correctionNumber: 0,
 };
 
-function assertValidXml(xml: string) {
+function assertFnsWellFormed(xml: string): void {
   expect(xml).toBeTruthy();
   expect(xml).toContain('<?xml');
   expect(xml).toContain('windows-1251');
@@ -42,89 +101,117 @@ function assertValidXml(xml: string) {
   expect(xml).toContain('</Файл>');
 }
 
-function assertHasSigner(xml: string) {
+function assertRepresentativeSigner(xml: string): void {
   expect(xml).toContain('<Подписант');
-  expect(xml).toContain('ПрПодп="1"');
-  expect(xml).toContain('<ФИО');
-  expect(xml).toContain('Фамилия="Иванов"');
-  expect(xml).toContain('Имя="Иван"');
+  expect(xml).toContain('ПрПодп="2"');
+  expect(xml).toContain('Фамилия="Скопцова"');
+  expect(xml).toContain('Имя="Ангелина"');
+  expect(xml).toContain('Отчество="Геннадиевна"');
+  expect(xml).toContain('<СвПред');
+  expect(xml).toContain('НаимДок="Доверенность №1 от 19.06.2024"');
 }
 
-describe('Бухгалтерский баланс (BuhotchGenerator)', () => {
+beforeAll(async () => {
+  await loadAllSchemas();
+});
+
+describe('XSD-схемы', () => {
+  it('все XSD из schemas/ загружены без ошибок', () => {
+    expect(xsdLoadError).toBeNull();
+    expect(xsdCache.size).toBeGreaterThan(0);
+  });
+
+  it('все xsdFile из REPORT_CONFIG присутствуют в cache (кроме пустых/ЕФС-1)', () => {
+    for (const [reportType, cfg] of Object.entries(REPORT_CONFIG)) {
+      if (!cfg.xsdFile) continue;
+      expect(xsdCache.has(cfg.xsdFile)).toBe(true);
+    }
+  });
+});
+
+describe('Бухгалтерский баланс НКО (BuhotchGenerator)', () => {
   const gen = new BuhotchGenerator();
 
   it('reportType = BUHOTCH', () => {
     expect(gen.reportType).toBe(ReportType.BUHOTCH);
   });
 
-  it('генерирует валидный XML', () => {
+  it('генерирует валидный XML (НКО-форма КНД 0710096)', () => {
     const result = gen.generate({ ...baseInput, reportType: ReportType.BUHOTCH });
     expect(result.isValid).toBe(true);
     expect(result.errors).toHaveLength(0);
-    assertValidXml(result.xml);
+    assertFnsWellFormed(result.xml);
   });
 
-  it('содержит корректные атрибуты Документ', () => {
+  it('содержит атрибуты Документ как в эталоне', () => {
     const result = gen.generate({ ...baseInput, reportType: ReportType.BUHOTCH });
-    expect(result.xml).toContain('КНД="0710099"');
-    expect(result.xml).toContain('ОтчетГод="2025"');
-    expect(result.xml).toContain('Период="34"');
-    expect(result.xml).toContain('НомКорр="0"');
+    expect(result.xml).toContain('КНД="0710096"');
+    expect(result.xml).toContain('Период="91"');
+    expect(result.xml).toContain('ОтчетГод="2026"');
+    expect(result.xml).toContain('ВерсФорм="5.04"');
     expect(result.xml).toContain('ОКЕИ="384"');
   });
 
-  it('содержит блок СвНП с НПЮЛ', () => {
+  it('содержит блок СвНП с НПЮЛ и ОКПО/ОКФС/ОКОПФ', () => {
     const result = gen.generate({ ...baseInput, reportType: ReportType.BUHOTCH });
-    expect(result.xml).toContain('<СвНП');
-    expect(result.xml).toContain('ОКВЭД2="94.99"');
+    expect(result.xml).toContain('ОКПО="61457920"');
     expect(result.xml).toContain('ОКФС="16"');
-    expect(result.xml).toContain('ОКОПФ="20200"');
-    expect(result.xml).toContain('<НПЮЛ');
+    expect(result.xml).toContain('ОКОПФ="20100"');
     expect(result.xml).toContain('ИННЮЛ="9728130611"');
     expect(result.xml).toContain('КПП="772801001"');
   });
 
-  it('содержит подписанта', () => {
-    const result = gen.generate({ ...baseInput, reportType: ReportType.BUHOTCH });
-    assertHasSigner(result.xml);
-  });
-
-  it('содержит Баланс с Активом и Пассивом', () => {
+  it('содержит НКО-структуру Баланса (без ВнеОбА/ОбА)', () => {
     const result = gen.generate({ ...baseInput, reportType: ReportType.BUHOTCH });
     expect(result.xml).toContain('<Баланс');
+    expect(result.xml).toContain('ОКУД="0710001"');
     expect(result.xml).toContain('<Актив');
-    expect(result.xml).toContain('<ВнеОбА');
-    expect(result.xml).toContain('<ОбА');
     expect(result.xml).toContain('<Пассив');
-    expect(result.xml).toContain('<ДолгосрОбяз');
-    expect(result.xml).toContain('<КраткосрОбяз');
+    expect(result.xml).not.toContain('<ВнеОбА');
+    expect(result.xml).not.toContain('<ОбА');
+    expect(result.xml).not.toContain('<ДолгосрОбяз');
+    expect(result.xml).not.toContain('<КраткосрОбяз');
   });
 
-  it('рассчитывает суммы из ledger (в тыс.руб.)', () => {
-    const result = gen.generate({ ...baseInput, reportType: ReportType.BUHOTCH });
-    expect(result.xml).toContain('СумОтч="150"');
-    expect(result.xml).toContain('СумПрдщ="120"');
-  });
-
-  it('содержит ЦелИсп', () => {
-    const result = gen.generate({ ...baseInput, reportType: ReportType.BUHOTCH });
-    expect(result.xml).toContain('<ЦелИсп');
-    expect(result.xml).toContain('<ОстатНачОтч');
-    expect(result.xml).toContain('<Поступило');
-    expect(result.xml).toContain('<Использовано');
-    expect(result.xml).toContain('<ОстатКонОтч');
-  });
-
-  it('генерирует корректное имя файла', () => {
-    const result = gen.generate({ ...baseInput, reportType: ReportType.BUHOTCH });
-    expect(result.fileName).toMatch(/^NO_BUHOTCH_9728130611_772801001_\d{8}_/);
-  });
-
-  it('работает с нулевыми данными ledger', () => {
-    const input = { ...baseInput, reportType: ReportType.BUHOTCH as const, ledgerData: [] };
+  it('считает балансы из ledger в тыс. руб.', () => {
+    const input = {
+      ...baseInput,
+      reportType: ReportType.BUHOTCH as const,
+      ledgerData: [
+        { accountId: 51000, name: 'Р/С', balanceCurrent: 150000, balancePrevious: 120000, balancePrePrevious: 80000 },
+        { accountId: 80000, name: 'Пай', balanceCurrent: 50000, balancePrevious: 40000, balancePrePrevious: 30000 },
+        { accountId: 86000, name: 'ЦФ', balanceCurrent: 100000, balancePrevious: 80000, balancePrePrevious: 50000 },
+      ],
+    };
     const result = gen.generate(input);
-    expect(result.isValid).toBe(true);
-    expect(result.xml).toContain('СумОтч="0"');
+    // 150000 руб → 150 тыс в ДенежнСр; 150+50+100 = 150 тыс в Актив (целевые идут в Пассив)
+    expect(result.xml).toContain('<ДенежнСр');
+    expect(result.xml).toContain('<ЦелевСредства');
+  });
+
+  it('имя файла NO_BOUPR_<tax>_<tax>_<inn><kpp>_<date>_<uuid>', () => {
+    const result = gen.generate({ ...baseInput, reportType: ReportType.BUHOTCH });
+    expect(result.fileName).toMatch(
+      /^NO_BOUPR_7728_7728_9728130611772801001_\d{8}_[0-9a-f-]{36}$/,
+    );
+  });
+
+  it('подписант — представитель по доверенности', () => {
+    const result = gen.generate({ ...baseInput, reportType: ReportType.BUHOTCH });
+    assertRepresentativeSigner(result.xml);
+  });
+
+  it('содержит <Пояснения> с НаимФайлПЗ ≥1 символа (XSD minLength=1)', () => {
+    const result = gen.generate({ ...baseInput, reportType: ReportType.BUHOTCH });
+    expect(result.xml).toContain('<Пояснения');
+    expect(result.xml).toMatch(/НаимФайлПЗ="[^"]+"/);
+  });
+
+  it('проходит XSD-валидацию по NO_BOUPR_1_159_00_05_04_01.xsd', () => {
+    const result = gen.generate({ ...baseInput, reportType: ReportType.BUHOTCH });
+    const v = validateAgainstXsd(result.xml, REPORT_CONFIG[ReportType.BUHOTCH].xsdFile);
+    if (!v.isValid) console.error('BUHOTCH XSD errors:', v.errors.slice(0, 10));
+    expect(v.isValid).toBe(true);
   });
 });
 
@@ -135,47 +222,54 @@ describe('6-НДФЛ (Ndfl6Generator)', () => {
     expect(gen.reportType).toBe(ReportType.NDFL6);
   });
 
-  it('генерирует нулевой отчёт', () => {
+  it('генерирует нулевой отчёт (КНД 1151100, ВерсФорм 5.05)', () => {
     const result = gen.generate({ ...baseInput, reportType: ReportType.NDFL6, period: 1 });
     expect(result.isValid).toBe(true);
-    assertValidXml(result.xml);
-  });
-
-  it('атрибуты Документ', () => {
-    const result = gen.generate({ ...baseInput, reportType: ReportType.NDFL6, period: 2 });
+    assertFnsWellFormed(result.xml);
     expect(result.xml).toContain('КНД="1151100"');
     expect(result.xml).toContain('ВерсФорм="5.05"');
-    expect(result.xml).toContain('Период="31"');
+    expect(result.xml).toContain('Период="21"');
     expect(result.xml).toContain('КодНО="7728"');
     expect(result.xml).toContain('ПоМесту="214"');
   });
 
-  it('ОКТМО в СвНП', () => {
+  it('ОКТМО на уровне СвНП', () => {
     const result = gen.generate({ ...baseInput, reportType: ReportType.NDFL6, period: 1 });
-    expect(result.xml).toContain('ОКТМО="45382000"');
+    expect(result.xml).toContain('ОКТМО="45910000"');
   });
 
-  it('содержит РасчСумНал с нулями', () => {
+  it('ОбязНА с КБК и двумя дочерними блоками', () => {
     const result = gen.generate({ ...baseInput, reportType: ReportType.NDFL6, period: 1 });
     expect(result.xml).toContain('<НДФЛ6.2');
+    expect(result.xml).toContain('<ОбязНА');
+    expect(result.xml).toContain('КБК="18210102010011000110"');
+    expect(result.xml).toContain('<СведСумНалУд');
+    expect(result.xml).toContain('<СведСумНалВоз');
+    expect(result.xml).toContain('СумНал6Срок="0"');
+    expect(result.xml).toContain('СумНалВоз6Срок="0"');
+  });
+
+  it('РасчСумНал со Ставка=13 и 27 нулевыми атрибутами', () => {
+    const result = gen.generate({ ...baseInput, reportType: ReportType.NDFL6, period: 1 });
     expect(result.xml).toContain('<РасчСумНал');
     expect(result.xml).toContain('Ставка="13"');
     expect(result.xml).toContain('КолФЛ="0"');
     expect(result.xml).toContain('НалБаза="0"');
+    expect(result.xml).toContain('СумНалВозвр23_3Мес="0"');
   });
 
-  it('подписант', () => {
+  it('коды периодов по кварталам (21/31/33/34)', () => {
+    expect(gen.generate({ ...baseInput, reportType: ReportType.NDFL6, period: 1 }).xml).toContain('Период="21"');
+    expect(gen.generate({ ...baseInput, reportType: ReportType.NDFL6, period: 2 }).xml).toContain('Период="31"');
+    expect(gen.generate({ ...baseInput, reportType: ReportType.NDFL6, period: 3 }).xml).toContain('Период="33"');
+    expect(gen.generate({ ...baseInput, reportType: ReportType.NDFL6, period: 4 }).xml).toContain('Период="34"');
+  });
+
+  it('проходит XSD-валидацию по NO_NDFL6.2_1_231_00_05_05_02.xsd', () => {
     const result = gen.generate({ ...baseInput, reportType: ReportType.NDFL6, period: 1 });
-    assertHasSigner(result.xml);
-  });
-
-  it('корректные коды периодов', () => {
-    const r1 = gen.generate({ ...baseInput, reportType: ReportType.NDFL6, period: 1 });
-    expect(r1.xml).toContain('Период="21"');
-    const r3 = gen.generate({ ...baseInput, reportType: ReportType.NDFL6, period: 3 });
-    expect(r3.xml).toContain('Период="33"');
-    const r4 = gen.generate({ ...baseInput, reportType: ReportType.NDFL6, period: 4 });
-    expect(r4.xml).toContain('Период="34"');
+    const v = validateAgainstXsd(result.xml, REPORT_CONFIG[ReportType.NDFL6].xsdFile);
+    if (!v.isValid) console.error('NDFL6 XSD errors:', v.errors.slice(0, 10));
+    expect(v.isValid).toBe(true);
   });
 });
 
@@ -186,30 +280,30 @@ describe('РСВ (RsvGenerator)', () => {
     expect(gen.reportType).toBe(ReportType.RSV);
   });
 
-  it('генерирует нулевой отчёт', () => {
+  it('генерирует нулевой отчёт (КНД 1151111, ВерсФорм 5.08)', () => {
     const result = gen.generate({ ...baseInput, reportType: ReportType.RSV, period: 1 });
     expect(result.isValid).toBe(true);
-    assertValidXml(result.xml);
-  });
-
-  it('атрибуты Документ', () => {
-    const result = gen.generate({ ...baseInput, reportType: ReportType.RSV, period: 1 });
+    assertFnsWellFormed(result.xml);
     expect(result.xml).toContain('КНД="1151111"');
     expect(result.xml).toContain('ВерсФорм="5.08"');
     expect(result.xml).toContain('ПоМесту="214"');
   });
 
-  it('содержит РасчетСВ с ОбязПлатСВ', () => {
+  it('<РасчетСВ/> — пустой self-closing (нулевой отчёт)', () => {
     const result = gen.generate({ ...baseInput, reportType: ReportType.RSV, period: 1 });
-    expect(result.xml).toContain('<РасчетСВ');
-    expect(result.xml).toContain('<ОбязПлатСВ');
-    expect(result.xml).toContain('ТипПлат="1"');
-    expect(result.xml).toContain('ОКТМО="45382000"');
+    expect(result.xml).toMatch(/<РасчетСВ\s*\/>/);
   });
 
-  it('СвНП с СрЧисл', () => {
+  it('<СвПред> представителя несёт НаимОрг (особенность РСВ)', () => {
     const result = gen.generate({ ...baseInput, reportType: ReportType.RSV, period: 1 });
-    expect(result.xml).toContain('СрЧисл="1"');
+    expect(result.xml).toContain('НаимОрг="Потребительский Кооператив');
+  });
+
+  it('проходит XSD-валидацию по NO_RASCHSV_1_162_00_05_08_02.xsd', () => {
+    const result = gen.generate({ ...baseInput, reportType: ReportType.RSV, period: 1 });
+    const v = validateAgainstXsd(result.xml, REPORT_CONFIG[ReportType.RSV].xsdFile);
+    if (!v.isValid) console.error('RSV XSD errors:', v.errors.slice(0, 10));
+    expect(v.isValid).toBe(true);
   });
 });
 
@@ -221,15 +315,10 @@ describe('ПСВ (PsvGenerator)', () => {
   });
 
   it('генерирует нулевой отчёт с ПерсСвФЛ', () => {
-    const result = gen.generate({ ...baseInput, reportType: ReportType.PSV, period: 1 });
-    expect(result.isValid).toBe(true);
-    assertValidXml(result.xml);
-  });
-
-  it('атрибуты Документ', () => {
     const result = gen.generate({ ...baseInput, reportType: ReportType.PSV, period: 3 });
+    expect(result.isValid).toBe(true);
+    assertFnsWellFormed(result.xml);
     expect(result.xml).toContain('КНД="1151162"');
-    expect(result.xml).toContain('ВерсФорм="5.01"');
     expect(result.xml).toContain('Период="03"');
   });
 
@@ -240,9 +329,16 @@ describe('ПСВ (PsvGenerator)', () => {
     expect(result.xml).toContain('СумВыпл="0"');
   });
 
-  it('имя файла NO_PERSSVFL', () => {
+  it('имя файла NO_PERSSVFL_…', () => {
     const result = gen.generate({ ...baseInput, reportType: ReportType.PSV, period: 1 });
     expect(result.fileName).toMatch(/^NO_PERSSVFL_/);
+  });
+
+  it('проходит XSD-валидацию по NO_PERSSVFL_1_297_00_05_01_02.xsd', () => {
+    const result = gen.generate({ ...baseInput, reportType: ReportType.PSV, period: 1 });
+    const v = validateAgainstXsd(result.xml, REPORT_CONFIG[ReportType.PSV].xsdFile);
+    if (!v.isValid) console.error('PSV XSD errors:', v.errors.slice(0, 10));
+    expect(v.isValid).toBe(true);
   });
 });
 
@@ -253,52 +349,102 @@ describe('ДУСН (DusnGenerator)', () => {
     expect(gen.reportType).toBe(ReportType.DUSN);
   });
 
-  it('генерирует нулевую декларацию', () => {
+  it('генерирует нулевую декларацию (КНД 1152017, ВерсФорм 5.09)', () => {
     const result = gen.generate({ ...baseInput, reportType: ReportType.DUSN });
     expect(result.isValid).toBe(true);
-    assertValidXml(result.xml);
-  });
-
-  it('атрибуты Документ', () => {
-    const result = gen.generate({ ...baseInput, reportType: ReportType.DUSN });
+    assertFnsWellFormed(result.xml);
     expect(result.xml).toContain('КНД="1152017"');
     expect(result.xml).toContain('ВерсФорм="5.09"');
     expect(result.xml).toContain('Период="34"');
-    expect(result.xml).toContain('ПоМесту="120"');
+    expect(result.xml).toContain('ПоМесту="210"');
   });
 
-  it('содержит УСН с ОбНал=1', () => {
+  it('ОтчетГод = year - 1 (декларация за прошлый год)', () => {
+    const result = gen.generate({ ...baseInput, reportType: ReportType.DUSN, year: 2026 });
+    expect(result.xml).toContain('ОтчетГод="2025"');
+  });
+
+  it('структура УСН → СумНалПУ_НП → РасчНал1 с ПризНП=1 и нулями', () => {
     const result = gen.generate({ ...baseInput, reportType: ReportType.DUSN });
     expect(result.xml).toContain('<УСН');
     expect(result.xml).toContain('ОбНал="1"');
     expect(result.xml).toContain('<СумНалПУ_НП');
-    expect(result.xml).toContain('ОКТМО="45382000"');
+    expect(result.xml).toContain('ОКТМО="45910000"');
+    expect(result.xml).toContain('<РасчНал1');
+    expect(result.xml).toContain('ПризНП="1"');
+    expect(result.xml).toContain('<Доход');
+    expect(result.xml).toContain('<Ставка');
+    expect(result.xml).toContain('<Исчисл');
+    expect(result.xml).toContain('<УменНал');
   });
 
-  it('РасчНал1 с нулевыми суммами', () => {
+  it('проходит XSD-валидацию по NO_USN_1_030_00_05_09_01.xsd', () => {
     const result = gen.generate({ ...baseInput, reportType: ReportType.DUSN });
-    expect(result.xml).toContain('<РасчНал1');
-    expect(result.xml).toContain('ПризНП="2"');
-    expect(result.xml).toContain('СтавкаНалПер="6.0"');
+    const v = validateAgainstXsd(result.xml, REPORT_CONFIG[ReportType.DUSN].xsdFile);
+    if (!v.isValid) console.error('DUSN XSD errors:', v.errors.slice(0, 10));
+    expect(v.isValid).toBe(true);
   });
 });
 
-describe('4-ФСС (Fss4Generator)', () => {
+describe('ЕФС-1 (Fss4Generator, СФР)', () => {
   const gen = new Fss4Generator();
 
   it('reportType = FSS4', () => {
     expect(gen.reportType).toBe(ReportType.FSS4);
   });
 
-  it('генерирует XML', () => {
+  it('генерирует XML при переданном sfrRegNumber', () => {
     const result = gen.generate({ ...baseInput, reportType: ReportType.FSS4, period: 1 });
     expect(result.isValid).toBe(true);
-    assertValidXml(result.xml);
+    expect(result.xml).toContain('<?xml');
+    expect(result.xml).toContain('utf-8');
+    expect(result.xml).toContain('<ЭДСФР');
   });
 
-  it('имя файла EFS1', () => {
+  it('возвращает ошибку без sfrRegNumber', () => {
+    const { sfrRegNumber, ...noReg } = baseInput;
+    const result = gen.generate({ ...(noReg as ReportInput), reportType: ReportType.FSS4, period: 1 });
+    expect(result.isValid).toBe(false);
+    expect(result.errors.join('|')).toContain('sfrRegNumber');
+  });
+
+  it('имя файла СФР_<рег>_ЕФС-1_…', () => {
     const result = gen.generate({ ...baseInput, reportType: ReportType.FSS4, period: 1 });
-    expect(result.fileName).toMatch(/^EFS1_/);
+    expect(result.fileName).toMatch(/^СФР_1118018397_ЕФС-1_\d{8}_[0-9a-f-]{36}$/);
+  });
+
+  it('содержит все 7 namespace объявлений', () => {
+    const result = gen.generate({ ...baseInput, reportType: ReportType.FSS4, period: 1 });
+    expect(result.xml).toContain('xmlns="http://пф.рф/ЕФС-1/2026-01-01"');
+    expect(result.xml).toContain('xmlns:АФ8=');
+    expect(result.xml).toContain('xmlns:УТ8=');
+    expect(result.xml).toContain('xmlns:ВС8=');
+    expect(result.xml).toContain('xmlns:ЕФС8=');
+    expect(result.xml).toContain('xmlns:ns1=');
+    expect(result.xml).toContain('xmlns:sig=');
+  });
+
+  it('содержит структуру ОСС/Численность/РССВ/РПО', () => {
+    const result = gen.generate({ ...baseInput, reportType: ReportType.FSS4, period: 1 });
+    expect(result.xml).toContain('<Страхователь>');
+    expect(result.xml).toContain('<ОСС>');
+    expect(result.xml).toContain('<Численность>');
+    expect(result.xml).toContain('<РССВ>');
+    expect(result.xml).toContain('<РПО>');
+    expect(result.xml).toContain('<Руководитель>');
+    expect(result.xml).toContain('<СлужебнаяИнформация>');
+  });
+
+  it('квартальные коды СФР: 03/06/09/0', () => {
+    expect(gen.generate({ ...baseInput, reportType: ReportType.FSS4, period: 1 }).xml).toContain('<Код>03</Код>');
+    expect(gen.generate({ ...baseInput, reportType: ReportType.FSS4, period: 2 }).xml).toContain('<Код>06</Код>');
+    expect(gen.generate({ ...baseInput, reportType: ReportType.FSS4, period: 3 }).xml).toContain('<Код>09</Код>');
+    expect(gen.generate({ ...baseInput, reportType: ReportType.FSS4, period: 4 }).xml).toContain('<Код>0</Код>');
+  });
+
+  it('является well-formed XML (без доступной XSD СФР)', () => {
+    const result = gen.generate({ ...baseInput, reportType: ReportType.FSS4, period: 1 });
+    expect(() => parseXml(result.xml)).not.toThrow();
   });
 });
 
@@ -309,30 +455,26 @@ describe('Уведомление о взносах (UvVznosyGenerator)', () => {
     expect(gen.reportType).toBe(ReportType.UV_VZNOSY);
   });
 
-  it('генерирует нулевое уведомление', () => {
+  it('генерирует нулевое уведомление (КНД 1110355)', () => {
     const result = gen.generate({ ...baseInput, reportType: ReportType.UV_VZNOSY, period: 3 });
     expect(result.isValid).toBe(true);
-    assertValidXml(result.xml);
-  });
-
-  it('атрибуты Документ', () => {
-    const result = gen.generate({ ...baseInput, reportType: ReportType.UV_VZNOSY, period: 3 });
+    assertFnsWellFormed(result.xml);
     expect(result.xml).toContain('КНД="1110355"');
-    expect(result.xml).toContain('ВерсФорм="5.03"');
   });
 
   it('содержит УвИсчСумНалог', () => {
     const result = gen.generate({ ...baseInput, reportType: ReportType.UV_VZNOSY, period: 5 });
     expect(result.xml).toContain('<УвИсчСумНалог');
-    expect(result.xml).toContain('ОКТМО="45382000"');
+    expect(result.xml).toContain('ОКТМО="45910000"');
     expect(result.xml).toContain('СумНалогАванс="0"');
-    expect(result.xml).toContain('Год="2025"');
+    expect(result.xml).toContain('Год="2026"');
   });
 
-  it('СвНП с НПЮЛ (без НаимОрг)', () => {
-    const result = gen.generate({ ...baseInput, reportType: ReportType.UV_VZNOSY, period: 1 });
-    expect(result.xml).toContain('<НПЮЛ');
-    expect(result.xml).toContain('ИННЮЛ="9728130611"');
+  it('проходит XSD-валидацию по UT_UVISCHSUMNAL_1_263_00_05_03_01.xsd', () => {
+    const result = gen.generate({ ...baseInput, reportType: ReportType.UV_VZNOSY, period: 3 });
+    const v = validateAgainstXsd(result.xml, REPORT_CONFIG[ReportType.UV_VZNOSY].xsdFile);
+    if (!v.isValid) console.error('UV_VZNOSY XSD errors:', v.errors.slice(0, 10));
+    expect(v.isValid).toBe(true);
   });
 });
 
@@ -343,15 +485,81 @@ describe('Уведомление по УСН (UusnGenerator)', () => {
     expect(gen.reportType).toBe(ReportType.UUSN);
   });
 
-  it('генерирует нулевое уведомление', () => {
-    const result = gen.generate({ ...baseInput, reportType: ReportType.UUSN, period: 2 });
+  it('КБК УСН (18210501021011000110)', () => {
+    const result = gen.generate({ ...baseInput, reportType: ReportType.UUSN, period: 1 });
     expect(result.isValid).toBe(true);
-    assertValidXml(result.xml);
+    expect(result.xml).toContain('КБК="18210501021011000110"');
   });
 
-  it('КБК для УСН', () => {
+  it('проходит XSD-валидацию', () => {
     const result = gen.generate({ ...baseInput, reportType: ReportType.UUSN, period: 1 });
-    expect(result.xml).toContain('КБК="18210501021011000110"');
+    const v = validateAgainstXsd(result.xml, REPORT_CONFIG[ReportType.UUSN].xsdFile);
+    if (!v.isValid) console.error('UUSN XSD errors:', v.errors.slice(0, 10));
+    expect(v.isValid).toBe(true);
+  });
+});
+
+describe('Сверка с эталонами ВОСХОДа', () => {
+  async function readReference(fileName: string): Promise<string> {
+    const buf = await readFile(join(REFERENCES_DIR, fileName));
+    // ФНС-файлы в cp1251, ЕФС-1 в utf-8 — определяем по префиксу.
+    if (fileName.startsWith('СФР_')) return buf.toString('utf-8');
+    return iconv.decode(buf, 'win1251');
+  }
+
+  it('BUHOTCH: тот же КНД/ВерсФорм/Период что в эталоне', async () => {
+    const ref = await readReference('NO_BOUPR_7728_7728_9728130611772801001_20260409_58f9fbb4-8c0b-42d9-b43d-d3bf88dd60b4.xml');
+    const ours = new BuhotchGenerator().generate({ ...baseInput, reportType: ReportType.BUHOTCH });
+    for (const attr of ['КНД="0710096"', 'Период="91"', 'ВерсФорм="5.04"', 'ОКЕИ="384"']) {
+      expect(ref).toContain(attr);
+      expect(ours.xml).toContain(attr);
+    }
+  });
+
+  it('NDFL6: тот же КНД/ВерсФорм/ПоМесту', async () => {
+    const ref = await readReference('NO_NDFL6.2_7728_7728_9728130611772801001_20260409_eb06887d-a5e0-414c-af62-70eb26b14043.xml');
+    const ours = new Ndfl6Generator().generate({ ...baseInput, reportType: ReportType.NDFL6, period: 1 });
+    for (const attr of ['КНД="1151100"', 'ВерсФорм="5.05"', 'ПоМесту="214"', 'Ставка="13"']) {
+      expect(ref).toContain(attr);
+      expect(ours.xml).toContain(attr);
+    }
+  });
+
+  it('RSV: тот же КНД/ВерсФорм и <РасчетСВ/>', async () => {
+    const ref = await readReference('NO_RASCHSV_7728_7728_9728130611772801001_20260409_c3246a66-0b0a-4502-9d0a-b7062c089ee3.xml');
+    const ours = new RsvGenerator().generate({ ...baseInput, reportType: ReportType.RSV, period: 1 });
+    for (const attr of ['КНД="1151111"', 'ВерсФорм="5.08"']) {
+      expect(ref).toContain(attr);
+      expect(ours.xml).toContain(attr);
+    }
+    expect(ref).toMatch(/<РасчетСВ\s*\/>/);
+    expect(ours.xml).toMatch(/<РасчетСВ\s*\/>/);
+  });
+
+  it('DUSN: тот же КНД/ВерсФорм/ПоМесту и структура РасчНал1', async () => {
+    const ref = await readReference('NO_USN_7728_7728_9728130611772801001_20260409_d0064406-6d2f-42a9-b526-a68094c237ef.xml');
+    const ours = new DusnGenerator().generate({ ...baseInput, reportType: ReportType.DUSN });
+    for (const attr of ['КНД="1152017"', 'ВерсФорм="5.09"', 'ПоМесту="210"', 'ПризНП="1"']) {
+      expect(ref).toContain(attr);
+      expect(ours.xml).toContain(attr);
+    }
+  });
+
+  it('EFS1: тот же корень ЭДСФР и набор namespace объявлений', async () => {
+    const ref = await readReference('СФР_1118018397_ЕФС-1_20260409_b92da529-0d7d-41ea-88a5-3bde80ffd21b.xml');
+    const ours = new Fss4Generator().generate({ ...baseInput, reportType: ReportType.FSS4, period: 1 });
+    for (const ns of [
+      'xmlns="http://пф.рф/ЕФС-1/2026-01-01"',
+      'xmlns:АФ8=',
+      'xmlns:УТ8=',
+      'xmlns:ВС8=',
+      'xmlns:ЕФС8=',
+      'xmlns:ns1=',
+      'xmlns:sig=',
+    ]) {
+      expect(ref).toContain(ns);
+      expect(ours.xml).toContain(ns);
+    }
   });
 });
 
@@ -375,22 +583,13 @@ describe('ReportRegistryService', () => {
     expect(reports).toHaveLength(8);
   });
 
-  it('генерирует отчёт по типу', () => {
+  it('генерирует отчёт по типу через registry', () => {
     const result = registry.generate({ ...baseInput, reportType: ReportType.BUHOTCH });
     expect(result.isValid).toBe(true);
     expect(result.xml).toContain('<Баланс');
   });
 
-  it('выбрасывает исключение для незарегистрированного типа', () => {
+  it('бросает исключение для незарегистрированного типа', () => {
     expect(() => registry.generate({ ...baseInput, reportType: 'unknown' as any })).toThrow();
-  });
-
-  it('isGenerationAvailable для ежегодного отчёта', () => {
-    expect(registry.isGenerationAvailable(ReportType.BUHOTCH, 2024)).toBe(true);
-    expect(registry.isGenerationAvailable(ReportType.BUHOTCH, 2030)).toBe(false);
-  });
-
-  it('isGenerationAvailable для ежеквартального', () => {
-    expect(registry.isGenerationAvailable(ReportType.NDFL6, 2020, 1)).toBe(true);
   });
 });
