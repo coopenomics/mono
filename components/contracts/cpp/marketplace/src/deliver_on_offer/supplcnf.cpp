@@ -41,8 +41,8 @@
   // Проводки по кошельку
   std::string memo = "Подтверждение поставки для заказа №" + std::to_string(change.id);
   
-  // Паевой фонд - увеличиваем циркуляцию
-  Ledger::add(_marketplace, coopname, Ledger::accounts::SHARE_FUND, change.total_cost, memo, request_hash, username);
+  // Паевой фонд - увеличиваем циркуляцию через ledger2 (ISSUE в SHARE_FUND)
+  Ledger2::apply(_marketplace, coopname, ledger2_ops::SUPPLY_CONFIRM, change.total_cost, username, request_hash, memo);
   
   // Поставщик - начисляем и блокируем средства
   Wallet::add_available_funds(_marketplace, coopname, change.product_contributor, change.base_cost, _marketplace_program, memo);

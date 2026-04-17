@@ -64,7 +64,7 @@ void capital::importcontrib(eosio::name coopname, eosio::name username, checksum
   
   Wallet::add_blocked_funds(_capital, coopname, username, contribution_amount, _capital_program, internal_memo);
   
-  // Увеличиваем паевой фонд через бухгалтерский учет
-  Ledger::add(_capital, coopname, Ledger::accounts::SHARE_FUND, contribution_amount, internal_memo, contributor_hash, username);
+  // Увеличиваем паевой фонд через ledger2 (двойные проводки + движение кошелька)
+  Ledger2::apply(_capital, coopname, ledger2_ops::CAPITAL_IMPORT, contribution_amount, username, contributor_hash, internal_memo);
   
 }

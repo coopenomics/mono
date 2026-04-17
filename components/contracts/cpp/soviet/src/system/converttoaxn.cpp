@@ -27,9 +27,9 @@ void soviet::converttoaxn(eosio::name coopname, eosio::asset amount, document2 s
   // Уменьшаем паевой кошелёк провайдера
   checksum256 hash = statement.hash;
   
-  Ledger::sub(_soviet, _provider, Ledger::accounts::SHARE_FUND, amount, memo, hash, coopname);
-
-  Ledger::add(_soviet, _provider, Ledger::accounts::DELEGATE_FEES_FUND, amount, memo, hash, coopname);
+  // Перенос паевых средств провайдера в фонд делегатских взносов через ledger2
+  // (TRANSFER SHARE_FUND → DELEGATE_FEES внутри кошелька _provider)
+  Ledger2::apply(_soviet, _provider, ledger2_ops::CONVERT_TO_AXN, amount, coopname, hash, memo);
 
   // Вызываем инъекцию AXON токенов на кооператив
   action(

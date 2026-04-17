@@ -12,6 +12,7 @@
 #include "wallet/wallet.hpp"
 #include "gateway/gateway.hpp"
 #include "ledger/ledger.hpp"
+#include "ledger2/ledger2.hpp"
 #include "registrator/registrator.hpp"
 #include "loan/loan.hpp"
 #include "branch/branch.hpp"

@@ -48,14 +48,14 @@ void capital::signact2(eosio::name coopname, eosio::name chairman, checksum256 r
   // Начисляем заблокированные средства в кошелек программы генерации
   if (segment.available_for_program.amount > 0) {
     Wallet::add_blocked_funds(_capital, coopname, result -> username, segment.available_for_program, _source_program, memo);
-    
-    // Увеличиваем паевой фонд за вычетом ссуммы долга
-    Ledger::add(_capital, coopname, Ledger::accounts::SHARE_FUND, segment.available_for_program, memo, result_hash, result -> username);
+
+    // Увеличиваем паевой фонд за счёт результата участника через ledger2 (ISSUE в SHARE_FUND)
+    Ledger2::apply(_capital, coopname, ledger2_ops::ACT2_SHARE, segment.available_for_program, result -> username, result_hash, memo);
   }
-  
-  // Уменьшаем сумму выданных ссуд кооператива
+
+  // Уменьшаем сумму выданных ссуд кооператива (TRANSFER LONG_TERM_LOANS → DEBT_CLOSED_SINK)
   if (result -> debt_amount.amount > 0){
-    Ledger::sub(_capital, coopname, Ledger::accounts::LONG_TERM_LOANS, result -> debt_amount, memo, result_hash, result -> username);
+    Ledger2::apply(_capital, coopname, ledger2_ops::ACT2_LOAN, result -> debt_amount, result -> username, result_hash, memo);
   }
   
   // Обновляем накопительные показатели контрибьютора на основе его ролей в сегменте

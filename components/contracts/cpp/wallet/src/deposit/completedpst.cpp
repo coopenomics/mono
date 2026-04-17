@@ -14,8 +14,7 @@ void wallet::completedpst(eosio::name coopname, checksum256 deposit_hash) {
   std::string memo = "Паевой взнос по целевой потребительской программе 'Цифровой Кошелёк' пайщика с username=" + deposit -> username.to_string();
   Wallet::add_available_funds(_wallet, coopname, deposit -> username, deposit ->quantity, _wallet_program, memo);
 
-  Ledger::add(_wallet, coopname, Ledger::accounts::SHARE_FUND, deposit -> quantity, memo, deposit_hash, deposit -> username);
-  Ledger::add(_wallet, coopname, Ledger::accounts::BANK_ACCOUNT, deposit -> quantity, memo, deposit_hash, deposit -> username);
+  Ledger2::apply(_wallet, coopname, ledger2_ops::DEPOSIT_COMPLETE, deposit -> quantity, deposit -> username, deposit_hash, memo);
   
   //оповещаем пользователя
   require_recipient(deposit -> username);  

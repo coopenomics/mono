@@ -96,6 +96,10 @@ export default {
       code_permissions_to: ['ledger'],
     },
     {
+      name: 'ledger2',
+      code_permissions_to: ['ledger2'],
+    },
+    {
       name: 'test',
       code_permissions_to: ['test'],
     },

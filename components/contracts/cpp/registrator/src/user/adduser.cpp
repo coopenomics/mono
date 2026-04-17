@@ -75,13 +75,13 @@
   std::string username_str = username.to_string();
   checksum256 username_hash = eosio::sha256(username_str.data(), username_str.size());
   
-  Ledger::add(_registrator, coopname, Ledger::accounts::SHARE_FUND, minimum, memo, username_hash, username);
-  Ledger::add(_registrator, coopname, Ledger::accounts::BANK_ACCOUNT, minimum, memo, username_hash, username);
+  // Минимальный паевой взнос через ledger2 (ISSUE в SHARE_FUND, Dr: BANK_ACCOUNT, Cr: SHARE_FUND)
+  Ledger2::apply(_registrator, coopname, ledger2_ops::INITIAL_SHARE, minimum, username, username_hash, memo);
 
   if (spread_initial) {
     memo = "Вступительный взнос при вступлении пайщика с username=" + username.to_string();
-    Ledger::add(_registrator, coopname, Ledger::accounts::ENTRANCE_FEES, initial, memo, username_hash, username);
-    Ledger::add(_registrator, coopname, Ledger::accounts::BANK_ACCOUNT, initial, memo, username_hash, username);
+    // Вступительный взнос через ledger2 (ISSUE в ENTRANCE_FEES, Dr: BANK_ACCOUNT, Cr: ENTRANCE_FEES)
+    Ledger2::apply(_registrator, coopname, ledger2_ops::ENTRANCE_FEE, initial, username, username_hash, memo);
   }
   
   // Увеличиваем счётчик активных пайщиков

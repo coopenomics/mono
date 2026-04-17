@@ -47,8 +47,8 @@ void capital::act2pgprp(eosio::name coopname, eosio::name username, checksum256 
   // Начисляем заблокированные средства в кошелек программы благороста
   Wallet::add_blocked_funds(_capital, coopname, property.username, property.property_amount, _capital_program, memo);
   
-  // Увеличиваем паевой фонд через бухгалтерский учет
-  Ledger::add(_capital, coopname, Ledger::accounts::SHARE_FUND, property.property_amount, memo, property_hash, property.username);
+  // Увеличиваем паевой фонд через ledger2 (ISSUE в SHARE_FUND)
+  Ledger2::apply(_capital, coopname, ledger2_ops::ACT2_PROGRAM_PROP, property.property_amount, property.username, property_hash, memo);
   
   // Удаляем предложение после успешной обработки
   Capital::ProgramProperties::delete_program_property(coopname, property.id);

@@ -71,6 +71,11 @@ export default [
     target: 'ledger',
   },
   {
+    name: 'ledger2',
+    path: path.resolve(process.cwd(), '../contracts/build/contracts/ledger2'),
+    target: 'ledger2',
+  },
+  {
     name: 'test',
     path: path.resolve(process.cwd(), '../contracts/build/contracts/test'),
     target: 'test',
