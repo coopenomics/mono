@@ -151,6 +151,22 @@ export class OrganizationDataInputDTO {
   @IsOptional()
   @IsString()
   signerSnils?: string;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Регистрационный номер страхователя в СФР (для ЕФС-1)',
+  })
+  @IsOptional()
+  @IsString()
+  sfrRegNumber?: string;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Должность руководителя, указывается в ЕФС-1 (по умолчанию «Председатель Совета»)',
+  })
+  @IsOptional()
+  @IsString()
+  chairmanPosition?: string;
 }
 
 @ObjectType('GeneratedReport')

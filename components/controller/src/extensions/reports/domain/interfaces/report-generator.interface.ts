@@ -47,6 +47,10 @@ export interface ReportInput {
   correctionNumber?: number;
   /** СНИЛС председателя (для ПСВ) */
   signerSnils?: string;
+  /** Регистрационный номер страхователя в СФР/ПФР (для ЕФС-1). */
+  sfrRegNumber?: string;
+  /** Должность руководителя для подачи в СФР (по умолчанию «Председатель Совета»). */
+  chairmanPosition?: string;
 }
 
 export interface LedgerAccountData {

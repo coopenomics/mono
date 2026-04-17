@@ -159,6 +159,8 @@ export class ReportResolver {
       signerType: org.signerType ?? 'chairman',
       signerRepDoc: org.signerRepDoc,
       signerSnils: org.signerSnils,
+      sfrRegNumber: org.sfrRegNumber,
+      chairmanPosition: org.chairmanPosition,
       ledgerData,
       corrections: effectiveCorrections,
     };
