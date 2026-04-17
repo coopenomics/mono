@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema version="2.0" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns="http://ns.efs.ru/VS/types/2025-01-01" xmlns:АФ4="http://ns.efs.ru/AF-old/2017-08-21" xmlns:УТ2="http://ns.efs.ru/UT/2025-01-01" targetNamespace="http://ns.efs.ru/VS/types/2025-01-01" elementFormDefault="qualified">
+	<xs:import namespace="http://ns.efs.ru/UT/2025-01-01" schemaLocation="unif-types.xsd" />
+	<xs:import namespace="http://ns.efs.ru/AF-old/2017-08-21" schemaLocation="af-old-types.xsd" />
+	<xs:annotation>
+		<xs:documentation>Общие типы данных для информационного обмена "Взаимодействие со страхователями"</xs:documentation>
+		<xs:documentation>Рекомендуемый префикс для пространства имен http://пф.рф/ВС/типы/2014-01-01 - ВС</xs:documentation>
+	</xs:annotation>
+	<xs:complexType name="ТипСлужебнаяИнформацияВС">
+		<xs:complexContent>
+			<xs:extension base="АФ4:ТипСлужебнаяИнформация">
+				<xs:sequence>
+					<xs:element name="ИсточникДанных" type="xs:normalizedString">
+						<xs:annotation>
+							<xs:documentation>Составитель файла</xs:documentation>
+						</xs:annotation>
+					</xs:element>
+					<xs:element name="СпособПередачи" type="xs:normalizedString" minOccurs="0">
+						<xs:annotation>
+							<xs:documentation>Способ передачи документа</xs:documentation>
+						</xs:annotation>
+					</xs:element>
+					<xs:element name="Составитель" type="УТ2:ТипОрганизация" />
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:simpleType name="ТипКодОтчПериода">
+		<xs:annotation>
+			<xs:documentation>Тип, используемый для представления кода отчетного периода : 3 - 1 квартал, 6 - полугодие, 9 - 9 месяцев, 0 - год</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:integer">
+			<xs:enumeration value="3" />
+			<xs:enumeration value="6" />
+			<xs:enumeration value="9" />
+			<xs:enumeration value="0" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:group name="ГрВыработка">
+		<xs:annotation>
+			<xs:documentation>Группа элементов, которыми может быть представлена выработка</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:choice>
+				<xs:annotation>
+					<xs:documentation>Выбор между выработкой в часах и выработкой календарной</xs:documentation>
+				</xs:annotation>
+				<xs:element name="ВыработкаВчасах" minOccurs="0">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:group ref="ГрПериодВчасах">
+								<xs:annotation>
+									<xs:documentation>Группа элементов со сведениям о выработке в часах</xs:documentation>
+								</xs:annotation>
+							</xs:group>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="ВыработкаКалендарная" minOccurs="0">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:group ref="ГрПериодКалендарныйДо12">
+								<xs:annotation>
+									<xs:documentation>Группа элементов со сведениям о выработке в месяцах и днях</xs:documentation>
+								</xs:annotation>
+							</xs:group>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+			</xs:choice>
+		</xs:sequence>
+	</xs:group>
+	<xs:group name="ГрПериодВчасах">
+		<xs:annotation>
+			<xs:documentation>Группа элементов со сведениям о выработке в часах</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="Часы" minOccurs="0" type="xs:integer">
+				<xs:annotation>
+					<xs:documentation>Количество часов</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="Минуты" minOccurs="0" type="УТ2:ТипМинута">
+				<xs:annotation>
+					<xs:documentation>Количество минут</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:group>
+	<xs:group name="ГрПериодКалендарный">
+		<xs:annotation>
+			<xs:documentation>Группа элементов со сведениям о выработке в месяцах и днях</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="ВсеМесяцы" minOccurs="0" type="УТ2:ТипКоличествоМесяцев">
+				<xs:annotation>
+					<xs:documentation>Количество месяцев</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="ВсеДни" minOccurs="0" type="УТ2:ТипКоличествоДней">
+				<xs:annotation>
+					<xs:documentation>Количество дней</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:group>
+	<xs:group name="ГрПериодКалендарныйДо12">
+		<xs:annotation>
+			<xs:documentation>Группа элементов со сведениям о выработке в месяцах и днях</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="ВсеМесяцы" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Количество месяцев</xs:documentation>
+				</xs:annotation>
+				<xs:simpleType>
+					<xs:restriction base="xs:integer">
+						<xs:maxInclusive value="12" />
+						<xs:minInclusive value="0" />
+						<xs:pattern value="\d+" />
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="ВсеДни" minOccurs="0" type="УТ2:ТипКоличествоДней">
+				<xs:annotation>
+					<xs:documentation>Количество дней</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:group>
+	<xs:simpleType name="ТипДоляСтавки">
+		<xs:annotation>
+			<xs:documentation>Доля ставки</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:decimal">
+			<xs:minInclusive value="0.00" />
+			<xs:maxInclusive value="2.00" />
+			<xs:fractionDigits value="2" />
+			<xs:totalDigits value="3" />
+			<xs:pattern value="\d{1}\.\d{2}" />
+		</xs:restriction>
+	</xs:simpleType>
+</xs:schema>

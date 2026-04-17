@@ -62,7 +62,9 @@ export const REPORT_CONFIG: Record<ReportType, {
   [ReportType.FSS4]: {
     name: '4-ФСС (ЕФС-1)',
     period: ReportPeriodType.QUARTERLY,
-    xsdFile: '',
+    // XSD 2024-01-01 со страницы СФР, пропатченная под формат 2026-01-01
+    // (см. schemas/efs1/README.md).
+    xsdFile: 'efs1/efs1.xsd',
     deadlineDescription: 'До 25 числа следующего за кварталом месяца',
   },
   [ReportType.UV_VZNOSY]: {

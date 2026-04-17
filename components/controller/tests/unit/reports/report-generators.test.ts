@@ -28,23 +28,49 @@ const REFERENCES_DIR = join(__dirname, '..', '..', 'fixtures', 'reports-referenc
  *   1) Структурную сверку выхлопа generate() с эталонами ВОСХОДа
  *      (`components/reports-standarts/ВОСХОД/*.xml`) — те же КНД, ВерсФорм,
  *      Период, ПрПодп, обязательные поля.
- *   2) XSD-валидацию по схемам из `src/extensions/reports/schemas/`
- *      (перекодировка cp1251 → utf-8 средствами iconv-lite, парсинг в
- *      libxmljs2). Для ЕФС-1 XSD от СФР пока нет в публичном доступе —
- *      для него только well-formed + сверка корневого элемента и namespace'ов.
+ *   2) XSD-валидацию: для ФНС (cp1251) — прямо из `schemas/*.xsd`, для
+ *      ЕФС-1 (utf-8 + multi-file imports) — из `schemas/efs1/` с chdir в
+ *      эту директорию на время validate (libxml2 резолвит `xs:import
+ *      schemaLocation` относительно CWD) + подменой кириллических
+ *      namespace'ов в XML на ASCII-safe (см. `schemas/efs1/README.md`).
  */
+
+const EFS1_DIR = join(SCHEMAS_DIR, 'efs1');
+const EFS1_MAIN_XSD = 'efs1.xsd';
+const EFS1_XSD_KEY = 'efs1/efs1.xsd';
+
+// Синхронно с XsdValidatorService.EFS1_XML_NS_MAP: подменяем кириллические
+// namespace'ы в XML ЕФС-1 на ASCII-safe перед валидацией.
+const EFS1_XML_NS_MAP: [string, string][] = [
+  ['http://пф.рф/ВС/ЕФС/2026-01-01', 'http://ns.efs.ru/VS/EFS/2026-01-01'],
+  ['http://пф.рф/ЕФС-1/2026-01-01',  'http://ns.efs.ru/EFS-1/2026-01-01'],
+  ['http://пф.рф/ВС/типы/2025-01-01','http://ns.efs.ru/VS/types/2025-01-01'],
+  ['http://пф.рф/АФ/2025-01-01',     'http://ns.efs.ru/AF/2025-01-01'],
+  ['http://пф.рф/УТ/2025-01-01',     'http://ns.efs.ru/UT/2025-01-01'],
+];
 
 const xsdCache = new Map<string, Document>();
 let xsdLoadError: string | null = null;
 
 async function loadAllSchemas(): Promise<void> {
   try {
-    const files = await readdir(SCHEMAS_DIR);
-    for (const file of files.filter((f) => f.toLowerCase().endsWith('.xsd'))) {
-      const buf = await readFile(join(SCHEMAS_DIR, file));
+    // ФНС — в корне schemas/, cp1251.
+    const files = await readdir(SCHEMAS_DIR, { withFileTypes: true });
+    for (const d of files.filter((f) => f.isFile() && f.name.toLowerCase().endsWith('.xsd'))) {
+      const buf = await readFile(join(SCHEMAS_DIR, d.name));
       const decoded = iconv.decode(buf, 'win1251');
       const utf8Source = decoded.replace(/encoding="windows-1251"/i, 'encoding="utf-8"');
-      xsdCache.set(file, parseXml(utf8Source));
+      xsdCache.set(d.name, parseXml(utf8Source));
+    }
+    // ЕФС-1 — в schemas/efs1/, utf-8, с xs:import'ами. Парсинг требует CWD
+    // = efs1/ чтобы libxml2 нашёл зависимые xsd.
+    const origCwd = process.cwd();
+    try {
+      process.chdir(EFS1_DIR);
+      const buf = await readFile(EFS1_MAIN_XSD);
+      xsdCache.set(EFS1_XSD_KEY, parseXml(buf.toString('utf-8')));
+    } finally {
+      process.chdir(origCwd);
     }
   } catch (e) {
     xsdLoadError = e instanceof Error ? e.message : String(e);
@@ -56,20 +82,33 @@ function validateAgainstXsd(xml: string, xsdFile: string): { isValid: boolean; e
   if (!xsd) {
     return { isValid: false, errors: [`XSD не загружена: ${xsdFile}`] };
   }
-  const utf8Xml = xml.replace(/encoding="windows-1251"/i, 'encoding="utf-8"');
+  // Для ЕФС-1: подменяем namespace'ы в XML + chdir на время validate.
+  const isEfs1 = xsdFile === EFS1_XSD_KEY;
+  let source = xml.replace(/encoding="windows-1251"/i, 'encoding="utf-8"');
+  if (isEfs1) {
+    for (const [cyr, ascii] of EFS1_XML_NS_MAP) {
+      source = source.split(cyr).join(ascii);
+    }
+  }
   let doc: Document;
   try {
-    doc = parseXml(utf8Xml);
+    doc = parseXml(source);
   } catch (e) {
     return { isValid: false, errors: [`parse: ${e instanceof Error ? e.message : String(e)}`] };
   }
-  const ok = doc.validate(xsd);
-  if (ok) return { isValid: true, errors: [] };
-  const raw = doc.validationErrors ?? [];
-  return {
-    isValid: false,
-    errors: raw.map((e: any) => `line ${e.line ?? '?'}: ${e.message ?? String(e)}`),
-  };
+  const origCwd = process.cwd();
+  try {
+    if (isEfs1) process.chdir(EFS1_DIR);
+    const ok = doc.validate(xsd);
+    if (ok) return { isValid: true, errors: [] };
+    const raw = doc.validationErrors ?? [];
+    return {
+      isValid: false,
+      errors: raw.map((e: any) => `line ${e.line ?? '?'}: ${e.message ?? String(e)}`),
+    };
+  } finally {
+    if (isEfs1) process.chdir(origCwd);
+  }
 }
 
 // Все реквизиты — вымышленные (ПК "Ромашка"), совпадают с фикстурами.
@@ -127,11 +166,15 @@ describe('XSD-схемы', () => {
     expect(xsdCache.size).toBeGreaterThan(0);
   });
 
-  it('все xsdFile из REPORT_CONFIG присутствуют в cache (кроме пустых/ЕФС-1)', () => {
+  it('все xsdFile из REPORT_CONFIG присутствуют в cache', () => {
     for (const [reportType, cfg] of Object.entries(REPORT_CONFIG)) {
       if (!cfg.xsdFile) continue;
       expect(xsdCache.has(cfg.xsdFile)).toBe(true);
     }
+  });
+
+  it('XSD ЕФС-1 загружена из subdir efs1/', () => {
+    expect(xsdCache.has(EFS1_XSD_KEY)).toBe(true);
   });
 });
 
@@ -451,9 +494,21 @@ describe('ЕФС-1 (Fss4Generator, СФР)', () => {
     expect(gen.generate({ ...baseInput, reportType: ReportType.FSS4, period: 4 }).xml).toContain('<Код>0</Код>');
   });
 
-  it('является well-formed XML (без доступной XSD СФР)', () => {
+  it('является well-formed XML', () => {
     const result = gen.generate({ ...baseInput, reportType: ReportType.FSS4, period: 1 });
     expect(() => parseXml(result.xml)).not.toThrow();
+  });
+
+  it('содержит ДатаЗаполнения в формате YYYY-MM-DD (требование XSD)', () => {
+    const result = gen.generate({ ...baseInput, reportType: ReportType.FSS4, period: 1 });
+    expect(result.xml).toMatch(/<ДатаЗаполнения>\d{4}-\d{2}-\d{2}<\/ДатаЗаполнения>/);
+  });
+
+  it('проходит XSD-валидацию по efs1/efs1.xsd (patched 2024→2026)', () => {
+    const result = gen.generate({ ...baseInput, reportType: ReportType.FSS4, period: 1 });
+    const v = validateAgainstXsd(result.xml, REPORT_CONFIG[ReportType.FSS4].xsdFile);
+    if (!v.isValid) console.error('FSS4 XSD errors:', v.errors.slice(0, 10));
+    expect(v.isValid).toBe(true);
   });
 });
 

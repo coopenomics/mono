@@ -167,7 +167,11 @@ export class Fss4Generator implements IReportGenerator {
     ruk.ele('УТ8:Должность').txt(input.chairmanPosition ?? 'Председатель Совета').up();
     ruk.up();
 
-    efs1.ele('ДатаЗаполнения').up();
+    // ДатаЗаполнения: xs:date + pattern \d{4}-\d{2}-\d{2} по XSD ЕФС-1.
+    // Эталон КОНТУР-ЭКСТЕРН оставляет её пустой, но тогда XSD-валидация падает.
+    const dPad = (n: number) => String(n).padStart(2, '0');
+    const fillDate = `${now.getFullYear()}-${dPad(now.getMonth() + 1)}-${dPad(now.getDate())}`;
+    efs1.ele('ДатаЗаполнения').txt(fillDate).up();
     efs1.up();
 
     const sluzh = edsfr.ele('СлужебнаяИнформация');
