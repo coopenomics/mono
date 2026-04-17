@@ -12,3 +12,7 @@ dist/
 _blago/
 blago/
 components/reports-standarts/ВОСХОД/
+# Реальные XML-образцы отчётности ПК "Восход" (ИНН 9728130611, рег.СФР 1118018397)
+# могут появляться в любых подпапках reports-standarts/ — не пушим.
+components/reports-standarts/**/NO_*_9728130611772801001_*.xml
+components/reports-standarts/**/СФР_1118018397_*.xml

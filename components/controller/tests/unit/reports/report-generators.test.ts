@@ -14,7 +14,12 @@ import { ReportType, REPORT_CONFIG } from '../../../src/extensions/reports/domai
 import type { ReportInput } from '../../../src/extensions/reports/domain/interfaces/report-generator.interface';
 
 const SCHEMAS_DIR = join(__dirname, '..', '..', '..', 'src', 'extensions', 'reports', 'schemas');
-const REFERENCES_DIR = join(__dirname, '..', '..', '..', '..', 'reports-standarts', 'ВОСХОД');
+// Санитизированные фикстуры ПК "Ромашка". Реальные отчёты ВОСХОДа лежат в
+// `components/reports-standarts/ВОСХОД/` — они в .gitignore, т.к. содержат
+// живые ИНН/КПП/ОГРН/ФИО. Для публичных тестов все реквизиты заменены на
+// вымышленные; структура XML и атрибуты (КНД, ВерсФорм, Период, коды НО)
+// сохранены как у эталонов ФНС/СФР — мы сверяем именно их, а не данные.
+const REFERENCES_DIR = join(__dirname, '..', '..', 'fixtures', 'reports-references');
 
 /**
  * Unit-тесты генераторов отчётности ФНС/ФСС.
@@ -67,25 +72,26 @@ function validateAgainstXsd(xml: string, xsdFile: string): { isValid: boolean; e
   };
 }
 
+// Все реквизиты — вымышленные (ПК "Ромашка"), совпадают с фикстурами.
 const baseInput: ReportInput = {
   reportType: ReportType.BUHOTCH,
   year: 2026,
-  inn: '9728130611',
-  kpp: '772801001',
-  orgName: 'Потребительский Кооператив "Восход"',
-  ogrn: '1247700283346',
+  inn: '7701234567',
+  kpp: '770101001',
+  orgName: 'Потребительский Кооператив "Ромашка"',
+  ogrn: '1237700000001',
   okved: '94.99',
   okfs: '16',
   okopf: '20100',
-  oktmo: '45910000',
-  address: '117593, Москва г, вн.тер.г. муниципальный округ Ясенево, проезд Соловьиный, д. 1, помещение 1/1',
-  signerFio: { lastName: 'Скопцова', firstName: 'Ангелина', middleName: 'Геннадиевна' },
+  oktmo: '45000000',
+  address: '101000, Москва г, ул. Тестовая, д. 1',
+  signerFio: { lastName: 'Петров', firstName: 'Пётр', middleName: 'Петрович' },
   signerType: 'representative',
-  signerRepDoc: 'Доверенность №1 от 19.06.2024',
+  signerRepDoc: 'Доверенность №1 от 01.01.2024',
   signerSnils: '123-456-789 00',
-  sfrRegNumber: '1118018397',
+  sfrRegNumber: '7701234567',
   chairmanPosition: 'Председатель Совета',
-  okpo: '61457920',
+  okpo: '12345678',
   correctionNumber: 0,
 };
 
@@ -104,11 +110,11 @@ function assertFnsWellFormed(xml: string): void {
 function assertRepresentativeSigner(xml: string): void {
   expect(xml).toContain('<Подписант');
   expect(xml).toContain('ПрПодп="2"');
-  expect(xml).toContain('Фамилия="Скопцова"');
-  expect(xml).toContain('Имя="Ангелина"');
-  expect(xml).toContain('Отчество="Геннадиевна"');
+  expect(xml).toContain('Фамилия="Петров"');
+  expect(xml).toContain('Имя="Пётр"');
+  expect(xml).toContain('Отчество="Петрович"');
   expect(xml).toContain('<СвПред');
-  expect(xml).toContain('НаимДок="Доверенность №1 от 19.06.2024"');
+  expect(xml).toContain('НаимДок="Доверенность №1 от 01.01.2024"');
 }
 
 beforeAll(async () => {
@@ -154,11 +160,11 @@ describe('Бухгалтерский баланс НКО (BuhotchGenerator)', ()
 
   it('содержит блок СвНП с НПЮЛ и ОКПО/ОКФС/ОКОПФ', () => {
     const result = gen.generate({ ...baseInput, reportType: ReportType.BUHOTCH });
-    expect(result.xml).toContain('ОКПО="61457920"');
+    expect(result.xml).toContain('ОКПО="12345678"');
     expect(result.xml).toContain('ОКФС="16"');
     expect(result.xml).toContain('ОКОПФ="20100"');
-    expect(result.xml).toContain('ИННЮЛ="9728130611"');
-    expect(result.xml).toContain('КПП="772801001"');
+    expect(result.xml).toContain('ИННЮЛ="7701234567"');
+    expect(result.xml).toContain('КПП="770101001"');
   });
 
   it('содержит НКО-структуру Баланса (без ВнеОбА/ОбА)', () => {
@@ -192,7 +198,7 @@ describe('Бухгалтерский баланс НКО (BuhotchGenerator)', ()
   it('имя файла NO_BOUPR_<tax>_<tax>_<inn><kpp>_<date>_<uuid>', () => {
     const result = gen.generate({ ...baseInput, reportType: ReportType.BUHOTCH });
     expect(result.fileName).toMatch(
-      /^NO_BOUPR_7728_7728_9728130611772801001_\d{8}_[0-9a-f-]{36}$/,
+      /^NO_BOUPR_7701_7701_7701234567770101001_\d{8}_[0-9a-f-]{36}$/,
     );
   });
 
@@ -229,13 +235,13 @@ describe('6-НДФЛ (Ndfl6Generator)', () => {
     expect(result.xml).toContain('КНД="1151100"');
     expect(result.xml).toContain('ВерсФорм="5.05"');
     expect(result.xml).toContain('Период="21"');
-    expect(result.xml).toContain('КодНО="7728"');
+    expect(result.xml).toContain('КодНО="7701"');
     expect(result.xml).toContain('ПоМесту="214"');
   });
 
   it('ОКТМО на уровне СвНП', () => {
     const result = gen.generate({ ...baseInput, reportType: ReportType.NDFL6, period: 1 });
-    expect(result.xml).toContain('ОКТМО="45910000"');
+    expect(result.xml).toContain('ОКТМО="45000000"');
   });
 
   it('ОбязНА с КБК и двумя дочерними блоками', () => {
@@ -296,7 +302,10 @@ describe('РСВ (RsvGenerator)', () => {
 
   it('<СвПред> представителя несёт НаимОрг (особенность РСВ)', () => {
     const result = gen.generate({ ...baseInput, reportType: ReportType.RSV, period: 1 });
-    expect(result.xml).toContain('НаимОрг="Потребительский Кооператив');
+    // НаимОрг встречается и в НПЮЛ, и в СвПред — проверяем именно второе.
+    const matches = result.xml.match(/НаимОрг="[^"]+"/g) ?? [];
+    expect(matches.length).toBeGreaterThanOrEqual(2);
+    expect(result.xml).toContain('<СвПред');
   });
 
   it('проходит XSD-валидацию по NO_RASCHSV_1_162_00_05_08_02.xsd', () => {
@@ -369,7 +378,7 @@ describe('ДУСН (DusnGenerator)', () => {
     expect(result.xml).toContain('<УСН');
     expect(result.xml).toContain('ОбНал="1"');
     expect(result.xml).toContain('<СумНалПУ_НП');
-    expect(result.xml).toContain('ОКТМО="45910000"');
+    expect(result.xml).toContain('ОКТМО="45000000"');
     expect(result.xml).toContain('<РасчНал1');
     expect(result.xml).toContain('ПризНП="1"');
     expect(result.xml).toContain('<Доход');
@@ -410,7 +419,7 @@ describe('ЕФС-1 (Fss4Generator, СФР)', () => {
 
   it('имя файла СФР_<рег>_ЕФС-1_…', () => {
     const result = gen.generate({ ...baseInput, reportType: ReportType.FSS4, period: 1 });
-    expect(result.fileName).toMatch(/^СФР_1118018397_ЕФС-1_\d{8}_[0-9a-f-]{36}$/);
+    expect(result.fileName).toMatch(/^СФР_7701234567_ЕФС-1_\d{8}_[0-9a-f-]{36}$/);
   });
 
   it('содержит все 7 namespace объявлений', () => {
@@ -465,7 +474,7 @@ describe('Уведомление о взносах (UvVznosyGenerator)', () => {
   it('содержит УвИсчСумНалог', () => {
     const result = gen.generate({ ...baseInput, reportType: ReportType.UV_VZNOSY, period: 5 });
     expect(result.xml).toContain('<УвИсчСумНалог');
-    expect(result.xml).toContain('ОКТМО="45910000"');
+    expect(result.xml).toContain('ОКТМО="45000000"');
     expect(result.xml).toContain('СумНалогАванс="0"');
     expect(result.xml).toContain('Год="2026"');
   });
@@ -499,16 +508,13 @@ describe('Уведомление по УСН (UusnGenerator)', () => {
   });
 });
 
-describe('Сверка с эталонами ВОСХОДа', () => {
+describe('Сверка с эталонами (ПК "Ромашка", санитизированные фикстуры)', () => {
   async function readReference(fileName: string): Promise<string> {
-    const buf = await readFile(join(REFERENCES_DIR, fileName));
-    // ФНС-файлы в cp1251, ЕФС-1 в utf-8 — определяем по префиксу.
-    if (fileName.startsWith('СФР_')) return buf.toString('utf-8');
-    return iconv.decode(buf, 'win1251');
+    return (await readFile(join(REFERENCES_DIR, fileName))).toString('utf-8');
   }
 
   it('BUHOTCH: тот же КНД/ВерсФорм/Период что в эталоне', async () => {
-    const ref = await readReference('NO_BOUPR_7728_7728_9728130611772801001_20260409_58f9fbb4-8c0b-42d9-b43d-d3bf88dd60b4.xml');
+    const ref = await readReference('NO_BOUPR_romashka.xml');
     const ours = new BuhotchGenerator().generate({ ...baseInput, reportType: ReportType.BUHOTCH });
     for (const attr of ['КНД="0710096"', 'Период="91"', 'ВерсФорм="5.04"', 'ОКЕИ="384"']) {
       expect(ref).toContain(attr);
@@ -517,7 +523,7 @@ describe('Сверка с эталонами ВОСХОДа', () => {
   });
 
   it('NDFL6: тот же КНД/ВерсФорм/ПоМесту', async () => {
-    const ref = await readReference('NO_NDFL6.2_7728_7728_9728130611772801001_20260409_eb06887d-a5e0-414c-af62-70eb26b14043.xml');
+    const ref = await readReference('NO_NDFL6.2_romashka.xml');
     const ours = new Ndfl6Generator().generate({ ...baseInput, reportType: ReportType.NDFL6, period: 1 });
     for (const attr of ['КНД="1151100"', 'ВерсФорм="5.05"', 'ПоМесту="214"', 'Ставка="13"']) {
       expect(ref).toContain(attr);
@@ -526,7 +532,7 @@ describe('Сверка с эталонами ВОСХОДа', () => {
   });
 
   it('RSV: тот же КНД/ВерсФорм и <РасчетСВ/>', async () => {
-    const ref = await readReference('NO_RASCHSV_7728_7728_9728130611772801001_20260409_c3246a66-0b0a-4502-9d0a-b7062c089ee3.xml');
+    const ref = await readReference('NO_RASCHSV_romashka.xml');
     const ours = new RsvGenerator().generate({ ...baseInput, reportType: ReportType.RSV, period: 1 });
     for (const attr of ['КНД="1151111"', 'ВерсФорм="5.08"']) {
       expect(ref).toContain(attr);
@@ -537,7 +543,7 @@ describe('Сверка с эталонами ВОСХОДа', () => {
   });
 
   it('DUSN: тот же КНД/ВерсФорм/ПоМесту и структура РасчНал1', async () => {
-    const ref = await readReference('NO_USN_7728_7728_9728130611772801001_20260409_d0064406-6d2f-42a9-b526-a68094c237ef.xml');
+    const ref = await readReference('NO_USN_romashka.xml');
     const ours = new DusnGenerator().generate({ ...baseInput, reportType: ReportType.DUSN });
     for (const attr of ['КНД="1152017"', 'ВерсФорм="5.09"', 'ПоМесту="210"', 'ПризНП="1"']) {
       expect(ref).toContain(attr);
@@ -546,7 +552,7 @@ describe('Сверка с эталонами ВОСХОДа', () => {
   });
 
   it('EFS1: тот же корень ЭДСФР и набор namespace объявлений', async () => {
-    const ref = await readReference('СФР_1118018397_ЕФС-1_20260409_b92da529-0d7d-41ea-88a5-3bde80ffd21b.xml');
+    const ref = await readReference('EFS1_romashka.xml');
     const ours = new Fss4Generator().generate({ ...baseInput, reportType: ReportType.FSS4, period: 1 });
     for (const ns of [
       'xmlns="http://пф.рф/ЕФС-1/2026-01-01"',
@@ -559,6 +565,32 @@ describe('Сверка с эталонами ВОСХОДа', () => {
     ]) {
       expect(ref).toContain(ns);
       expect(ours.xml).toContain(ns);
+    }
+  });
+
+  it('EFS1: та же вложенная структура ОСС (Численность/РССВ/РПО) что в эталоне', async () => {
+    const ref = await readReference('EFS1_romashka.xml');
+    const ours = new Fss4Generator().generate({ ...baseInput, reportType: ReportType.FSS4, period: 1 });
+    for (const el of [
+      '<ОСС>',
+      '<НомерКорректировки>',
+      '<Период>',
+      '<Численность>',
+      '<РССВ>',
+      '<СуммаВыплИн>',
+      '<БазаИсч>',
+      '<СтраховойТариф>',
+      '<ИсчислСтрахВзн>',
+      '<РПО>',
+      '<ОбщЧисл>',
+      '<Результат>',
+      '<Классы>',
+      '<Подкласс3.1>',
+      '<Руководитель>',
+      '<СлужебнаяИнформация>',
+    ]) {
+      expect(ref).toContain(el);
+      expect(ours.xml).toContain(el);
     }
   });
 });
