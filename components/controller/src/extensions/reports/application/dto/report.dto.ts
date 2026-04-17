@@ -25,6 +25,12 @@ export class AvailableReportDTO {
 
   @Field(() => Date, { nullable: true, description: 'Ближайшая дата подачи в ФНС/СФР' })
   nextDeadlineDate?: Date;
+
+  @Field(() => Boolean, { description: 'Готовы ли реквизиты для генерации этой формы' })
+  readyToGenerate!: boolean;
+
+  @Field(() => [String], { description: 'Ключи недостающих полей (пусто, если ready=true)' })
+  missingFields!: string[];
 }
 
 @ObjectType('ReportPreviewField')

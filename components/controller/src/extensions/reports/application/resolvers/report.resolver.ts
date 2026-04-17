@@ -7,6 +7,7 @@ import { CurrentUser } from '~/application/auth/decorators/current-user.decorato
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 import { ReportRegistryService } from '../../domain/services/report-registry.service';
 import { ReportPreviewService } from '../../domain/services/report-preview.service';
+import { ReportRequisitesService, type MergedRequisites } from '../../domain/services/report-requisites.service';
 import { XsdValidatorService } from '../../infrastructure/services/xsd-validator.service';
 import { ReportType } from '../../domain/enums/report-type.enum';
 import {
@@ -52,6 +53,7 @@ export class ReportResolver {
   constructor(
     private readonly reportRegistry: ReportRegistryService,
     private readonly previewService: ReportPreviewService,
+    private readonly requisitesService: ReportRequisitesService,
     private readonly ledgerInteractor: LedgerInteractor,
     private readonly xsdValidator: XsdValidatorService,
     @Inject(GENERATED_REPORT_REPOSITORY)
@@ -72,10 +74,15 @@ export class ReportResolver {
 
     const enriched: AvailableReportDTO[] = [];
     for (const r of visible) {
-      const latest = await this.reportRepo.findLatest(coopname, r.type, new Date().getFullYear(), null);
+      const [latest, readiness] = await Promise.all([
+        this.reportRepo.findLatest(coopname, r.type, new Date().getFullYear(), null),
+        this.requisitesService.checkReadiness(coopname, r.type),
+      ]);
       enriched.push({
         ...r,
         lastGeneratedAt: latest?.created_at,
+        readyToGenerate: readiness.ready,
+        missingFields: readiness.missingFields.map((m) => m.key),
       });
     }
     return enriched;
@@ -187,46 +194,58 @@ export class ReportResolver {
 
   @Mutation(() => GeneratedReportDTO, {
     name: 'generateReport',
-    description: 'Генерация отчёта для ФНС/ФСС с сохранением истории',
+    description: 'Генерация отчёта для ФНС/ФСС с сохранением истории. organization-параметр опционален — если не передан, реквизиты берутся из getReportRequisites.',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman'])
   async generateReport(
     @Args('data') data: GenerateReportInputDTO,
-    @Args('organization') org: OrganizationDataInputDTO,
     @CurrentUser() currentUser: MonoAccountDomainInterface,
+    @Args('organization', { nullable: true, type: () => OrganizationDataInputDTO })
+    org?: OrganizationDataInputDTO,
   ): Promise<GeneratedReportDTO> {
     const coopname = config.coopname;
 
+    // Readiness-проверка: если не хватает обязательных полей — сразу ошибка,
+    // ни генерации, ни записи в БД не происходит (FR-R-15).
+    const readiness = await this.requisitesService.checkReadiness(coopname, data.reportType);
+    if (!readiness.ready) {
+      const missing = readiness.missingFields
+        .map((m) => `${m.label} (${m.source === 'blockchain' ? 'блокчейн' : 'ручной ввод'})`)
+        .join('; ');
+      throw new Error(
+        `Нельзя сгенерировать ${data.reportType}: не заполнены обязательные поля — ${missing}. Заполните их в настройках и повторите.`
+      );
+    }
+
+    const merged = await this.requisitesService.getMerged(coopname);
     const ledgerData = await this.loadLedger(coopname);
     const effectiveCorrections = await this.resolveCorrections(coopname, data.year, data.corrections);
+
+    const resolved = this.resolveOrgFields(merged, org);
 
     const input: ReportInput = {
       reportType: data.reportType,
       year: data.year,
       period: data.period,
       correctionNumber: data.correctionNumber ?? 0,
-      inn: org.inn,
-      kpp: org.kpp,
-      orgName: org.orgName,
-      ogrn: org.ogrn,
-      okved: org.okved,
-      okpo: org.okpo,
-      okfs: org.okfs || '16',
-      okopf: org.okopf || '20200',
-      oktmo: org.oktmo,
-      address: org.address,
-      phone: org.phone,
-      signerFio: {
-        lastName: org.signerLastName,
-        firstName: org.signerFirstName,
-        middleName: org.signerMiddleName,
-      },
-      signerType: org.signerType ?? 'chairman',
-      signerRepDoc: org.signerRepDoc,
-      signerSnils: org.signerSnils,
-      sfrRegNumber: org.sfrRegNumber,
-      chairmanPosition: org.chairmanPosition,
+      inn: resolved.inn,
+      kpp: resolved.kpp,
+      orgName: resolved.orgName,
+      ogrn: resolved.ogrn,
+      okved: resolved.okved,
+      okpo: resolved.okpo,
+      okfs: resolved.okfs || '16',
+      okopf: resolved.okopf || '20100',
+      oktmo: resolved.oktmo,
+      address: resolved.address,
+      phone: resolved.phone,
+      signerFio: resolved.signerFio,
+      signerType: resolved.signerType,
+      signerRepDoc: resolved.signerRepDoc,
+      signerSnils: resolved.signerSnils,
+      sfrRegNumber: resolved.sfrRegNumber,
+      chairmanPosition: resolved.chairmanPosition,
       ledgerData,
       corrections: effectiveCorrections,
     };
@@ -264,7 +283,7 @@ export class ReportResolver {
       file_name: generated.fileName,
       is_valid: finalIsValid,
       validation_errors: combinedErrors.length ? combinedErrors : null,
-      organization_snapshot: org,
+      organization_snapshot: resolved,
       corrections_snapshot: data.corrections ?? null,
       generated_by: currentUser?.username ?? 'system',
     });
@@ -347,5 +366,42 @@ export class ReportResolver {
     if (!raw) return [];
     if (Array.isArray(raw)) return raw.map((e) => String(e));
     return [String(raw)];
+  }
+
+  /**
+   * Строит итоговый набор реквизитов из merged-view (ончейн + ручные),
+   * с возможностью точечного переопределения через опциональный
+   * input-параметр `organization` (удобно для отладки и переиспользования
+   * старым фронтом, который всё ещё шлёт поля руками).
+   */
+  private resolveOrgFields(merged: MergedRequisites, org?: OrganizationDataInputDTO) {
+    const v = (key: keyof MergedRequisites, fallback = ''): string => {
+      const field = merged[key] as { value: string | null } | undefined;
+      return (field?.value ?? fallback);
+    };
+    const orNone = (s: string): string | undefined => (s ? s : undefined);
+    return {
+      inn: org?.inn ?? v('inn'),
+      kpp: org?.kpp ?? v('kpp'),
+      ogrn: org?.ogrn ?? v('ogrn'),
+      orgName: org?.orgName ?? v('orgName'),
+      okved: org?.okved ?? v('okved'),
+      okpo: org?.okpo ?? orNone(v('okpo')),
+      okfs: org?.okfs ?? v('okfs'),
+      okopf: org?.okopf ?? v('okopf'),
+      oktmo: org?.oktmo ?? v('oktmo'),
+      address: org?.address ?? orNone(v('address')),
+      phone: org?.phone ?? orNone(v('phone')),
+      signerFio: {
+        lastName: org?.signerLastName ?? v('signerLastName'),
+        firstName: org?.signerFirstName ?? v('signerFirstName'),
+        middleName: org?.signerMiddleName ?? orNone(v('signerMiddleName')),
+      },
+      signerType: (org?.signerType ?? 'chairman') as 'chairman' | 'representative',
+      signerRepDoc: org?.signerRepDoc ?? orNone(v('signerRepDoc')),
+      signerSnils: org?.signerSnils ?? orNone(v('signerSnils')),
+      sfrRegNumber: org?.sfrRegNumber ?? orNone(v('sfrRegNumber')),
+      chairmanPosition: org?.chairmanPosition ?? (v('chairmanPosition') || orNone(v('chairmanPositionFromOrg'))),
+    };
   }
 }
