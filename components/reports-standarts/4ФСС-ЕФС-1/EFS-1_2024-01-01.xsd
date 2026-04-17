@@ -1,0 +1,1499 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns="http://пф.рф/ЕФС-1/2024-01-01"
+	xmlns:ВС2="http://пф.рф/ВС/типы/2017-10-23" xmlns:АФ5="http://пф.рф/АФ/2018-12-07"
+	xmlns:УТ2="http://пф.рф/УТ/2017-08-21" xmlns:ЕФС="http://пф.рф/ВС/ЕФС/2024-01-01"
+	targetNamespace="http://пф.рф/ЕФС-1/2024-01-01" elementFormDefault="qualified" version="2.0">
+	<xs:import namespace="http://пф.рф/УТ/2017-08-21" schemaLocation="../../УнифТипы_2017-08-21.xsd"/>
+	<xs:import namespace="http://пф.рф/АФ/2018-12-07" schemaLocation="../../ТипыАФ_2018-12-07.xsd"/>
+	<xs:import namespace="http://пф.рф/ВС/типы/2017-10-23" schemaLocation="../ТипыВС_2017-10-23.xsd"/>
+	<xs:import namespace="http://пф.рф/ВС/ЕФС/2024-01-01" schemaLocation="ТипыЕФС_2024-01-01.xsd"/>
+	<xs:import namespace="http://www.w3.org/2000/09/xmldsig#"
+		schemaLocation="../../xmldsig_core_schema.xsd"/>
+	<xs:annotation>
+		<xs:documentation>Сведения для ведения индивидуального (персонифицированного) учета и сведения о начисленных страховых взносах на обязательное социальное страхование от несчастных случаев на производстве и профессиональных заболеваний</xs:documentation>
+	</xs:annotation>
+	<xs:element name="ЭДПФР">
+		<xs:annotation>
+			<xs:documentation>Корневой элемент. Электронный документ ЕФС-1. Содержит сведения самого документа и служебную информацию об электронном документе.</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:all>
+				<xs:element name="ЕФС-1">
+					<xs:annotation>
+						<xs:documentation>Сведения для ведения индивидуального (персонифицированного) учета и сведения о начисленных страховых взносах на обязательное социальное страхование от несчастных случаев на производстве и профессиональных заболеваний</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Страхователь" type="ЕФС:ТипСтрахователь">
+								<xs:annotation>
+									<xs:documentation>Блок сведений о страхователе</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="СтраховательЗаКоторого" type="ЕФС:ТипСтрахователь"
+								minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Блок сведений о страхователе, за которого предоставляются сведения</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="СЗВ" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Блок сведений о трудовой (иной) деятельности, страховом стаже, заработной плате и дополнительных страховых взносах на накопительную пенсию</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="ЗЛ" minOccurs="0" maxOccurs="unbounded">
+											<xs:annotation>
+												<xs:documentation>Сведения о трудовой (иной) деятельности, страховом стаже, заработной плате и дополнительных страховых взносах на накопительную пенсию</xs:documentation>
+											</xs:annotation>
+											<xs:complexType>
+												<xs:sequence>
+												<xs:element ref="УТ2:СНИЛС">
+												<xs:annotation>
+												<xs:documentation>Страховой номер индивидуального лицевого счета зарегистрированного лица</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element name="ИНН" type="УТ2:ТипИНН_ФЛ"
+												minOccurs="0">
+												<xs:annotation>
+												<xs:documentation>Идентификационный номер налогоплательщика</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element ref="УТ2:ФИО">
+												<xs:annotation>
+												<xs:documentation>Фамилия, имя, отчество (при наличии) зарегистрированного лица</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:group ref="УТ2:ГрДатаРождения">
+												<xs:annotation>
+												<xs:documentation>Группа, содержащая сведения о дате рождения</xs:documentation>
+												</xs:annotation>
+												</xs:group>
+												<xs:element name="СтатусЗЛ">
+												<xs:annotation>
+												<xs:documentation>Статус зарегистрированного лица. Возможные значения:
+ГРФ - граждане Российской Федерации; 
+ПЖИГ - иностранные граждане или лица без гражданства, постоянно проживающие на территории Российской Федерации 
+ВЖИГ - иностранные граждане или лица безгражданства, временно проживающие на территорииРоссийской Федерации, а также временно пребывающиена территории Российской Федерации иностранныеграждане или лица без гражданства, которымпредоставлено временное убежище в соответствии сФедеральным законом от 19 февраля 1993 г. № 4528-1«О беженцах» (Ведомости Съезда народных депутатовРоссийской Федерации и Верховного СоветаРоссийской Федерации, 1993, № 12, ст. 425;Собрание законодательства Российской Федерации,2022, № 29, ст. 5309); 
+ВПИГ - иностранные гражданеили лица без гражданства (за исключениемвысококвалифицированных специалистов всоответствии с Федеральным законом от 25 июля 2002г. № 115-ФЗ «О правовом положении иностранныхграждан в Российской Федерации» (Собраниезаконодательства Российской Федерации, 2002, № 30,ст. 3032, 2022, № 29, ст. 5298), временнопребывающие на территории Российской Федерации;
+ВКС - иностранные граждане или лица безгражданства из числа высококвалифицированныхспециалистов в соответствии с Федеральным закономот 25 июля 2002 г. № 115-ФЗ «О правовом положениииностранных граждан в Российской Федерации»,временно пребывающие на территории РоссийскойФедерации</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:string">
+												<xs:enumeration value="ГРФ"/>
+												<xs:enumeration value="ПЖИГ"/>
+												<xs:enumeration value="ВЖИГ"/>
+												<xs:enumeration value="ВПИГ"/>
+												<xs:enumeration value="ВКС"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												<xs:element name="Гражданство"
+												type="УТ2:ТипКодСтраны">
+												<xs:annotation>
+												<xs:documentation>Код страны согласно
+												Общероссийскому классификатору стран мира,
+												гражданином которой является зарегистрированное
+												лицо. Для лиц без гражданства указывается код
+												«000»</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element name="СЗВ-ТД" minOccurs="0">
+												<xs:annotation>
+												<xs:documentation>Блок сведений о трудовой (иной) деятельности</xs:documentation>
+												</xs:annotation>
+												<xs:complexType>
+												<xs:sequence>
+												<xs:element name="Заявления" minOccurs="0">
+												<xs:annotation>
+												<xs:documentation>Блок сведений о заявлениях</xs:documentation>
+												</xs:annotation>
+												<xs:complexType>
+												<xs:sequence>
+												<xs:element name="ЗаявлениеОПродолжении"
+												minOccurs="0">
+												<xs:annotation>
+												<xs:documentation>Заявление о продолжении ведения трудовой книжки</xs:documentation>
+												</xs:annotation>
+												<xs:complexType>
+												<xs:sequence>
+												<xs:element name="Дата" type="xs:date"
+												minOccurs="0">
+												<xs:annotation>
+												<xs:documentation>Дата подачи заявления</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element name="СтатусЗаявления"
+												type="xs:boolean">
+												<xs:annotation>
+												<xs:documentation>Статус заявления. Возможные значения: 1 - подано; 0 - отменено</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												</xs:sequence>
+												</xs:complexType>
+												</xs:element>
+												<xs:element name="ЗаявлениеОПредоставлении"
+												minOccurs="0">
+												<xs:annotation>
+												<xs:documentation>Заявление о представлении сведений о трудовой деятельности</xs:documentation>
+												</xs:annotation>
+												<xs:complexType>
+												<xs:sequence>
+												<xs:element name="Дата" type="xs:date"
+												minOccurs="0">
+												<xs:annotation>
+												<xs:documentation>Дата подачи заявления</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element name="СтатусЗаявления"
+												type="xs:boolean">
+												<xs:annotation>
+												<xs:documentation>Статус заявления. Возможные значения: 1 - подано; 0 - отменено</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												</xs:sequence>
+												</xs:complexType>
+												</xs:element>
+												</xs:sequence>
+												</xs:complexType>
+												</xs:element>
+												<xs:element name="ТД" minOccurs="0">
+												<xs:annotation>
+												<xs:documentation>Блок сведений о мероприятии кадрового учета</xs:documentation>
+												</xs:annotation>
+												<xs:complexType>
+												<xs:choice maxOccurs="unbounded">
+												<xs:annotation>
+												<xs:documentation>Сведения о мероприятиях или об отменяемых мероприятиях кадрового учета. Может быть указано несколько блоков</xs:documentation>
+												</xs:annotation>
+												<xs:element name="Мероприятие" type="ЕФС:ТипТД">
+												<xs:annotation>
+												<xs:documentation>Блок сведений о мероприятии кадрового учета</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element name="МероприятиеОтменяемое"
+												type="ЕФС:ТипМероприятиеОтменяемое">
+												<xs:annotation>
+												<xs:documentation>Сведения об отменяемом мероприятии кадрового учета</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												</xs:choice>
+												</xs:complexType>
+												</xs:element>
+												</xs:sequence>
+												</xs:complexType>
+												</xs:element>
+												<xs:element name="СЗВ-СТАЖ" minOccurs="0"
+												maxOccurs="unbounded">
+												<xs:annotation>
+												<xs:documentation>Блок сведений о страховом стаже</xs:documentation>
+												</xs:annotation>
+												<xs:complexType>
+												<xs:sequence>
+												<xs:element name="ОтчетныйПериод">
+												<xs:annotation>
+												<xs:documentation>Отчетный период, за который предоставляются сведения</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:gYear">
+												<xs:minInclusive value="2023"/>
+												<xs:pattern value="\d{4}"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												<xs:element name="Тип">
+												<xs:annotation>
+												<xs:documentation>Тип сведений. Возможные значения: 1 - исходная; 2 - назначение пенсии; 3 - корректирующая; 4 - отменяющая; 5 - назначение выплат по ОСС</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:integer">
+												<xs:minInclusive value="1"/>
+												<xs:maxInclusive value="5"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												<xs:element name="КоррОтмПериод" minOccurs="0">
+												<xs:annotation>
+												<xs:documentation>Указывается год, за который	 корректируются или отменяются сведения</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:gYear">
+												<xs:minInclusive value="2023"/>
+												<xs:pattern value="\d{4}"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												<xs:element name="СтажевыйПериод"
+												maxOccurs="unbounded" minOccurs="0">
+												<xs:annotation>
+												<xs:documentation>Блок сведений о периодах работы зарегистрированного лица</xs:documentation>
+												</xs:annotation>
+												<xs:complexType>
+												<xs:sequence>
+												<xs:element name="Период"
+												type="УТ2:ТипВременнойПериод">
+												<xs:annotation>
+												<xs:documentation>Дата начала и дата окончания стажа работы зарегистрированного лица</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element name="ЛьготныйСтаж"
+												type="ЕФС:ТипЛьготныйСтаж" minOccurs="0"
+												maxOccurs="unbounded">
+												<xs:annotation>
+												<xs:documentation>Сведения о льготном стаже и особенностях учета стажа работы зарегистрированного лица</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												</xs:sequence>
+												</xs:complexType>
+												</xs:element>
+												</xs:sequence>
+												</xs:complexType>
+												</xs:element>
+												<xs:element name="СЗПГос" minOccurs="0"
+												maxOccurs="unbounded">
+												<xs:annotation>
+												<xs:documentation>Блок сведений о заработной плате и условиях осуществления деятельности работников государственных (муниципальных) учреждений</xs:documentation>
+												</xs:annotation>
+												<xs:complexType>
+												<xs:sequence>
+												<xs:element name="ОтчетныйПериод">
+												<xs:annotation>
+												<xs:documentation>Блок сведений об отчетном периоде</xs:documentation>
+												</xs:annotation>
+												<xs:complexType>
+												<xs:sequence>
+												<xs:element name="Месяц" type="УТ2:ТипМесяц">
+												<xs:annotation>
+												<xs:documentation>Месяц отчетного периода</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element name="Год">
+												<xs:annotation>
+												<xs:documentation>Год отчетного периода</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:gYear">
+												<xs:minInclusive value="2023"/>
+												<xs:pattern value="\d{4}"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												</xs:sequence>
+												</xs:complexType>
+												</xs:element>
+												<xs:element name="Тип">
+												<xs:annotation>
+												<xs:documentation>Тип сведений. Возможные значения: 1 - исходная; 2 - корректирующая; 3 -отменяющая </xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:integer">
+												<xs:minInclusive value="1"/>
+												<xs:maxInclusive value="3"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												<xs:element name="КоррОтмПериод" minOccurs="0">
+												<xs:annotation>
+												<xs:documentation>Указывается период, за который корректируются (отменяются) сведения</xs:documentation>
+												</xs:annotation>
+												<xs:complexType>
+												<xs:sequence>
+												<xs:element name="Месяц" type="УТ2:ТипМесяц">
+												<xs:annotation>
+												<xs:documentation>Месяц, за который корректируются или отменяются сведения</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element name="Год">
+												<xs:annotation>
+												<xs:documentation>Год, за который корректируются или отменяются сведения</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:gYear">
+												<xs:minInclusive value="2023"/>
+												<xs:pattern value="\d{4}"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												</xs:sequence>
+												</xs:complexType>
+												</xs:element>
+												<xs:element name="Организация">
+												<xs:annotation>
+												<xs:documentation>Блок сведений об отчитывающейся организации</xs:documentation>
+												</xs:annotation>
+												<xs:complexType>
+												<xs:sequence>
+												<xs:element ref="ЕФС:КодКТО"/>
+												<xs:element name="ТОСП" minOccurs="0">
+												<xs:annotation>
+												<xs:documentation>Указывается цифровой код, состоящий из 14 цифр, в том случае, если отчитывающаяся организация является территориально обособленным структурным подразделением. В ином случае поле необходимо оставить пустым. Необходимо вводить только цифры без иных символов, в том числе без символов пробела или переноса.</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:string">
+												<xs:pattern value="\d{14}"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												<xs:element name="OID"
+												type="УТ2:ТипНепустаяСтрока" minOccurs="0">
+												<xs:annotation>
+												<xs:documentation>Номер OID медицинской организации (уникальный идентификатор организации) в точном соответствии с соответствующим полем федерального регистра медицинских организаций</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												</xs:sequence>
+												</xs:complexType>
+												</xs:element>
+												<xs:element name="УЗиЗП" maxOccurs="unbounded"
+												minOccurs="0">
+												<xs:annotation>
+												<xs:documentation>Блок сведений об условиях занятости и заработной плате</xs:documentation>
+												</xs:annotation>
+												<xs:complexType>
+												<xs:sequence>
+												<xs:element name="Период"
+												type="УТ2:ТипВременнойПериод">
+												<xs:annotation>
+												<xs:documentation>Период работы в отчетном месяце</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element name="СтруктурноеПодразделение">
+												<xs:annotation>
+												<xs:documentation>Сведения о структурном подразделении</xs:documentation>
+												</xs:annotation>
+												<xs:complexType>
+												<xs:sequence>
+												<xs:element name="Наименование"
+												type="УТ2:ТипНепустаяСтрока">
+												<xs:annotation>
+												<xs:documentation>Наименование структурного подразделения</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element name="OID"
+												type="УТ2:ТипНепустаяСтрока" minOccurs="0">
+												<xs:annotation>
+												<xs:documentation>Номер OID. Заполняется в случае если отчитывается медицинская организация</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												</xs:sequence>
+												</xs:complexType>
+												</xs:element>
+												<xs:element ref="ЕФС:КодДолжности"/>
+												<xs:element ref="ЕФС:КодККП"/>
+												<xs:element name="Звание">
+												<xs:annotation>
+												<xs:documentation>Блок сведений о звании (степени)</xs:documentation>
+												</xs:annotation>
+												<xs:complexType>
+												<xs:choice>
+												<xs:annotation>
+												<xs:documentation>Блок выбора между заполнением сведений о званиях (степенях) и их отсутствием</xs:documentation>
+												</xs:annotation>
+												<xs:element name="НетЗваний" type="xs:boolean"
+												fixed="0">
+												<xs:annotation>
+												<xs:documentation>Отметка об отсутствии у зарегистрированного лица степеней (званий)</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:sequence>
+												<xs:element name="УченаяСтепень" minOccurs="0">
+												<xs:annotation>
+												<xs:documentation>Ученая степень работника. Возможные значения: КН - кандидат наук; ДН - доктор наук</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:string">
+												<xs:enumeration value="КН"/>
+												<xs:enumeration value="ДН"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												<xs:element ref="ЕФС:КодУчЗвание" minOccurs="0"/>
+												<xs:element ref="ЕФС:ПчЗвание" minOccurs="0"/>
+												</xs:sequence>
+												</xs:choice>
+												</xs:complexType>
+												</xs:element>
+												<xs:element name="СоУЗ" maxOccurs="unbounded">
+												<xs:annotation>
+												<xs:documentation>Сведения о специальных (отраслевых) условиях занятости</xs:documentation>
+												</xs:annotation>
+												<xs:complexType>
+												<xs:sequence>
+												<xs:element name="Код">
+												<xs:annotation>
+												<xs:documentation>Код условий занятости работников
+												медицинских организаций. Возможные значения: ВМП -
+												Вид медицинской помощи (один из основных видов
+												оказываемой медицинской помощи в соответствии со
+												ст. 32 Федерального закона от 21 ноября 2011 г. №
+												323-ФЗ «Об основах охраны здоровья граждан в
+												Российской Федерации»); УОМП - Условие оказания
+												медицинской помощи (одно из условий оказания
+												медицинской помощи в соответствии со ст. 32
+												Федерального закона от 21 ноября 2011 г. № 323-ФЗ
+												«Об основах охраны здоровья граждан в Российской
+												Федерации»); ПС - Профиль стационара; ФМП - Форма
+												оказания медицинской помощи; РМБ - Работа в
+												составе мобильных бригад; РСМП - Работа в
+												специализированных станциях (отделениях) скорой
+												медицинской помощи, бригадах экстренного
+												реагирования службы медицины катастрофы,
+												отделениях экстренной консультативной помощи
+												(санитарная авиация); ФАП - Работа в
+												фельдшерско-акушерском пункте (ФАП). Для
+												работников других отраслей указывается «0»
+												</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:string">
+												<xs:enumeration value="ВМП"/>
+												<xs:enumeration value="УОМП"/>
+												<xs:enumeration value="ПС"/>
+												<xs:enumeration value="ФМП"/>
+												<xs:enumeration value="РМБ"/>
+												<xs:enumeration value="РСМП"/>
+												<xs:enumeration value="ФАП"/>
+												<xs:enumeration value="0"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												<xs:element name="Значение">
+												<xs:annotation>
+												<xs:documentation>Значение кода специальных (отраслевых) условий занятости. Заполняется в соответствии со справочником «Классификатор кодов и значений условий занятости работников медицинских организаций». Для работников других отраслей указывается «0» </xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:integer">
+												<xs:minInclusive value="0"/>
+												<xs:maxInclusive value="4"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												</xs:sequence>
+												</xs:complexType>
+												</xs:element>
+												<xs:element name="Договор">
+												<xs:annotation>
+												<xs:documentation>Сведения о договоре</xs:documentation>
+												</xs:annotation>
+												<xs:complexType>
+												<xs:sequence>
+												<xs:element name="Вид">
+												<xs:annotation>
+												<xs:documentation>Вид договора. Возможные
+												значения: 1 - трудовой договор, работа является
+												для работника основной; 2 - трудовой договор,
+												работа является для работника работой по
+												совместительству, внутреннее совместительство; 3 -
+												трудовой договор, работа является для работника
+												работой по совместительству, внешнее
+												совместительство (случай приема на работу по
+												совместительству из другой организации, то есть у
+												работника основное место работы в другой
+												организации</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:integer">
+												<xs:minInclusive value="1"/>
+												<xs:maxInclusive value="3"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												<xs:element name="Срок">
+												<xs:annotation>
+												<xs:documentation>Срок договора. Возможные
+												значения: 1 - трудовой договор, заключенный на
+												неопределенный срок; 2 - срочный трудовой
+												договор</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:integer">
+												<xs:minInclusive value="1"/>
+												<xs:maxInclusive value="2"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												</xs:sequence>
+												</xs:complexType>
+												</xs:element>
+												<xs:element name="Квалификация">
+												<xs:annotation>
+												<xs:documentation>Блок сведений о квалификации</xs:documentation>
+												</xs:annotation>
+												<xs:complexType>
+												<xs:sequence>
+												<xs:element ref="ЕФС:КодКУ"/>
+												<xs:element name="Уровень">
+												<xs:annotation>
+												<xs:documentation>Квалификационный уровень, соответствующий должности (профессии). Заполняется в соответствии со справочником «Справочник профессиональных квалификационных групп и квалификационных уровней»</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:integer">
+												<xs:minInclusive value="0"/>
+												<xs:maxInclusive value="11"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												<xs:element name="Вредность">
+												<xs:annotation>
+												<xs:documentation>Класс (подкласс) условий труда
+												по степени вредности и (или) опасности.
+												Заполняется в соответствии со справочником «Коды
+												специальной оценки условий труда». Если информация
+												о присвоенном классе (подклассе) условий труда
+												отсутствует - указывается ноль
+												(0)</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:string">
+												<xs:enumeration value="4"/>
+												<xs:enumeration value="3.4"/>
+												<xs:enumeration value="3.3"/>
+												<xs:enumeration value="3.2"/>
+												<xs:enumeration value="3.1"/>
+												<xs:enumeration value="2"/>
+												<xs:enumeration value="1"/>
+												<xs:enumeration value="0"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												<xs:element name="Аттестация">
+												<xs:annotation>
+												<xs:documentation>Квалификационная категория,
+												присвоенная по итогам аттестации. Возможные
+												значения: 0 - категория отсутствует; 1 - вторая
+												квалификационная категория; 2 - первая
+												квалификационная категория; 3 - высшая
+												квалификационная категория</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:integer">
+												<xs:minInclusive value="0"/>
+												<xs:maxInclusive value="3"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												<xs:element name="ШтатЕд">
+												<xs:annotation>
+												<xs:documentation>Число занятых штатных единиц (по должности (профессии))</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:decimal">
+												<xs:totalDigits value="4"/>
+												<xs:fractionDigits value="3"/>
+												<xs:minInclusive value="0.010"/>
+												<xs:maxInclusive value="2.000"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												<xs:element name="СистемаОплаты">
+												<xs:annotation>
+												<xs:documentation>Система оплаты труда работника
+												по трудовому договору. Возможные значения: 1 -
+												сдельная; 2 - повременная (работнику установлен
+												оклад, должностной оклад, месячная ставка); 3 -
+												повременная (работнику установлена часовая
+												ставка); 4 - иная</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:integer">
+												<xs:minInclusive value="1"/>
+												<xs:maxInclusive value="4"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												<xs:element name="РазмерФЧ" type="УТ2:ТипДеньги">
+												<xs:annotation>
+												<xs:documentation>Размер фиксированной части в соответствии с трудовым договором (оклад, сдельная расценка за единицу выработки, часовая тарифная ставка, размер разовой концертной ставки). Если система оплаты труда сдельная, и работнику установлено несколько сдельных расценок за единицу выработки, то сведения о начисленных выплатах заполняются в отношении каждого размера сдельной расценки за единицу работы</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element name="РабВремяНорма">
+												<xs:annotation>
+												<xs:documentation>Норма рабочих часов (выступлений, постановок) в отчетном месяце в соответствии с установленным режимом рабочего времени</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:decimal">
+												<xs:fractionDigits value="2"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												<xs:element name="РабВремяФакт">
+												<xs:annotation>
+												<xs:documentation>Количество фактически отработанных рабочих часов (выступлений, постановок) в отчетном месяце</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:decimal">
+												<xs:fractionDigits value="2"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												<xs:element name="КолСпецЧасовРаб"
+												maxOccurs="unbounded">
+												<xs:annotation>
+												<xs:documentation>Сведения о количестве специальных часов работы</xs:documentation>
+												</xs:annotation>
+												<xs:complexType>
+												<xs:sequence>
+												<xs:element name="КодСпецЧ">
+												<xs:annotation>
+												<xs:documentation>Код специальных часов работы. Возможные значения:
+																								СРПР - количество часов сверхурочной работы, оплаченной не менее чем в полуторном размере;
+																								СРДР - количество часов сверхурочной работы, оплаченной не менее чем в двойном размере;
+																								ВПДН - количество часов, отработанных в выходные и праздничные дни, входящих в норму времени по графику;
+																								ВПДС - количество часов, отработанных в выходные и праздничные дни, сверх нормы времени по графику;
+																								КЧНВ - количество часов, отработанных в ночное время;
+																								КЧДД - количество часов дежурства на дому (если не включаются в норму времени по графику);
+																								КЧДЧ - количество отработанных часов за дни, в которые было разделение рабочего дня на части;
+																								0 - при отсутствии у работника в течение отчетного месяца специальных часов работы</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:string">
+												<xs:enumeration value="СРПР"/>
+												<xs:enumeration value="СРДР"/>
+												<xs:enumeration value="ВПДН"/>
+												<xs:enumeration value="ВПДС"/>
+												<xs:enumeration value="КЧНВ"/>
+												<xs:enumeration value="КЧДД"/>
+												<xs:enumeration value="КЧДЧ"/>
+												<xs:enumeration value="0"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												<xs:element name="КоличСпецЧ">
+												<xs:annotation>
+												<xs:documentation>Количество специальных часов работы. При отсутствии у работника в течение отчетного месяца специальных часов работы ставится ноль (0)</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:decimal">
+												<xs:fractionDigits value="2"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												</xs:sequence>
+												</xs:complexType>
+												</xs:element>
+												<xs:element name="СведОЗаработПлате"
+												maxOccurs="unbounded">
+												<xs:annotation>
+												<xs:documentation>Сведения о заработной плате зарегистрированного лица</xs:documentation>
+												</xs:annotation>
+												<xs:complexType>
+												<xs:sequence>
+												<xs:element ref="ЕФС:КодВыплаты"/>
+												<xs:element name="Сумма" type="УТ2:ТипДеньги">
+												<xs:annotation>
+												<xs:documentation>Размер выплаты, соответствующей коду выплаты</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												</xs:sequence>
+												</xs:complexType>
+												</xs:element>
+												<xs:element name="Итого" type="УТ2:ТипДеньги">
+												<xs:annotation>
+												<xs:documentation>Общая сумма всех выплат</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												</xs:sequence>
+												</xs:complexType>
+												</xs:element>
+												<xs:element minOccurs="1" name="РабНеВклРасчЧисл"
+												type="xs:boolean">
+												<xs:annotation>
+												<xs:documentation>Возможные значения: 
+1 - да, работник не включается в расчет среднесписочной численности; 
+0 - нет, не относится к этой категории.</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												</xs:sequence>
+												</xs:complexType>
+												</xs:element>
+												</xs:sequence>
+												</xs:complexType>
+												</xs:element>
+												</xs:sequence>
+											</xs:complexType>
+										</xs:element>
+										<xs:element name="ДНП" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Основание для отражения данных о
+												периодах работы застрахованного лица в условиях,
+												дающих право на досрочное назначение пенсии в
+												соответствии с частью 1 статьи 30 и статьей 31
+												Федерального закона от 28.12.2013 № 400-ФЗ «О
+												страховых пенсиях</xs:documentation>
+											</xs:annotation>
+											<xs:complexType>
+												<xs:sequence>
+												<xs:element name="ОтчетныйПериод">
+												<xs:annotation>
+												<xs:documentation>Отчетный период, за который предоставляются сведения</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:gYear">
+												<xs:minInclusive value="2023"/>
+												<xs:pattern value="\d{4}"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												<xs:element name="Тип">
+												<xs:annotation>
+												<xs:documentation>Тип сведений. Возможные
+												значения: 1 - исходная; 2 - корректирующая; 3 -
+												отменяющая </xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:integer">
+												<xs:minInclusive value="1"/>
+												<xs:maxInclusive value="3"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												<xs:element name="КоррОтмПериод" minOccurs="0">
+												<xs:annotation>
+												<xs:documentation>Указывается год, за который корректируются или отменяются сведения</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:gYear">
+												<xs:minInclusive value="2023"/>
+												<xs:pattern value="\d{4}"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												<xs:element name="ОснованиеДНП"
+												type="ЕФС:ТипОснованиеДНП" maxOccurs="unbounded"
+												minOccurs="0">
+												<xs:annotation>
+												<xs:documentation>Блок со сведениями об основании для отражения данных о периодах работы застрахованного лица в условиях, дающих право на досрочное назначение пенсии в соответствии со статьями 30 и 31 Федерального закона от 28.12.2013 № 400–ФЗ «О страховых пенсиях»</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:group ref="ЕФС:ГрИтогоДНП" minOccurs="0"/>
+												</xs:sequence>
+											</xs:complexType>
+										</xs:element>
+										<xs:element name="ДСВ" minOccurs="0" maxOccurs="unbounded">
+											<xs:annotation>
+												<xs:documentation>Сведения о застрахованных лицах, за которых перечислены дополнительные страховые взносы на накопительную пенсию и уплачены взносы работодателя</xs:documentation>
+											</xs:annotation>
+											<xs:complexType>
+												<xs:sequence>
+												<xs:element name="ПлатежноеПоручение">
+												<xs:annotation>
+												<xs:documentation>Блок сведений о платежном поручении</xs:documentation>
+												</xs:annotation>
+												<xs:complexType>
+												<xs:sequence>
+												<xs:element name="Реквизиты">
+												<xs:annotation>
+												<xs:documentation>Номер и дата платежного поручения</xs:documentation>
+												</xs:annotation>
+												<xs:complexType>
+												<xs:sequence>
+												<xs:element name="Дата" type="xs:date">
+												<xs:annotation>
+												<xs:documentation>Дата поручения</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element name="Номер"
+												type="УТ2:ТипНепустаяСтрока">
+												<xs:annotation>
+												<xs:documentation>Номер поручения</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												</xs:sequence>
+												</xs:complexType>
+												</xs:element>
+												<xs:element name="ДатаИсполнения" type="xs:date">
+												<xs:annotation>
+												<xs:documentation>Дата исполнения платежного поручения</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element name="СуммаИтогоПП"
+												type="УТ2:ТипДеньги">
+												<xs:annotation>
+												<xs:documentation>Общая сумма перечисленных средств по платежному поручению</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												</xs:sequence>
+												</xs:complexType>
+												</xs:element>
+												<xs:element name="Период" type="xs:gYear">
+												<xs:annotation>
+												<xs:documentation>Год, за который перечислены дополнительные страховые взносы на накопительную пенсию и взносы работодателя за застрахованных лиц</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element name="НомерРеестра">
+												<xs:annotation>
+												<xs:documentation>Номер реестра в рамках года</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:integer">
+												<xs:minInclusive value="1"/>
+												<xs:maxInclusive value="99999"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												<xs:choice>
+												<xs:element name="СуммаВсегоДСВРаботника"
+												type="УТ2:ТипДеньги">
+												<xs:annotation>
+												<xs:documentation>Общая сумма ДСВ работника (руб.)</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element name="СуммаВсегоВзносовРаботодателя"
+												type="УТ2:ТипДеньги">
+												<xs:annotation>
+												<xs:documentation>Общая сумма взносов работодателя (руб.)</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												</xs:choice>
+												<xs:element name="КоличествоЗЛвРеестре">
+												<xs:annotation>
+												<xs:documentation>Количество ЗЛ в реестре ДСВ</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:integer">
+												<xs:minInclusive value="1"/>
+												<xs:maxInclusive value="99999"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												<xs:element name="РеестрДСВ">
+												<xs:annotation>
+												<xs:documentation>Реестр застрахованных лиц, за которых перечислены дополнительные страховые взносы</xs:documentation>
+												</xs:annotation>
+												<xs:complexType>
+												<xs:sequence>
+												<xs:element name="ЗЛ" maxOccurs="99999">
+												<xs:annotation>
+												<xs:documentation>Блок сведений о застрахованном лице и суммах дополнительных страховых взносов</xs:documentation>
+												</xs:annotation>
+												<xs:complexType>
+												<xs:sequence>
+												<xs:element ref="УТ2:ФИО">
+												<xs:annotation>
+												<xs:documentation>Фамилия, имя, отчество (при наличии) зарегистрированного лица</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element ref="УТ2:СНИЛС">
+												<xs:annotation>
+												<xs:documentation>Страховой номер индивидуального лицевого счета зарегистрированного лица</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:choice>
+												<xs:element name="СуммаДСВРаботника"
+												type="УТ2:ТипДеньги">
+												<xs:annotation>
+												<xs:documentation>Сумма перечисленных дополнительных страховых взносов на накопительную пенсию</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element name="СуммаВзносовРаботодателя"
+												type="УТ2:ТипДеньги">
+												<xs:annotation>
+												<xs:documentation>Сумма уплаченных взносов работодателя</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												</xs:choice>
+												</xs:sequence>
+												</xs:complexType>
+												</xs:element>
+												</xs:sequence>
+												</xs:complexType>
+												</xs:element>
+												</xs:sequence>
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+								<xs:unique name="УникальныйНомерПП">
+									<xs:annotation>
+										<xs:documentation>Номер реестра и номер платежного поручения должен быть уникальным</xs:documentation>
+									</xs:annotation>
+									<xs:selector xpath="ДСВ"/>
+									<xs:field xpath="НомерРеестра"/>
+									<xs:field xpath="ПлатежноеПоручение/Реквизиты/Номер"/>
+								</xs:unique>
+							</xs:element>
+							<xs:element name="ОСС" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Сведения о начисленных страховых взносах на обязательное социальное страхование от несчастных случаев на производстве и профессиональных заболеваний</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="НомерКорректировки">
+											<xs:annotation>
+												<xs:documentation>Номер корректировки. При первичном представлении указывается код 000. При представлении изменений проставляется номер, указывающий, какие по счету уточненные сведения о начисленных страховых взносах с учетом внесенных изменений и дополнений представляются страхователем (001, 002 и т.д.)</xs:documentation>
+											</xs:annotation>
+											<xs:simpleType>
+												<xs:restriction base="xs:string">
+												<xs:pattern value="\d{3}"/>
+												</xs:restriction>
+											</xs:simpleType>
+										</xs:element>
+										<xs:element name="Период">
+											<xs:annotation>
+												<xs:documentation>Сведения о расчетном периоде</xs:documentation>
+											</xs:annotation>
+											<xs:complexType>
+												<xs:sequence>
+												<xs:element name="Код">
+												<xs:annotation>
+												<xs:documentation>Код периода, за который предоставляются сведения. Возможные значения: 03 - первый квартал; 06 - полугодие; 09 - девять месяцев календарного года; 12 - год</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:string">
+												<xs:enumeration value="03"/>
+												<xs:enumeration value="06"/>
+												<xs:enumeration value="09"/>
+												<xs:enumeration value="12"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												<xs:element name="Год">
+												<!-- убрал type="xs:gYear", добавил <xs:simpleType> для ограничения года -->
+												<xs:annotation>
+												<xs:documentation>Календарный год, за расчетный период которого предоставляются сведения</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:gYear">
+												<xs:minInclusive value="2023"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												</xs:sequence>
+											</xs:complexType>
+										</xs:element>
+										<xs:element name="ОтметкаОПрекращении" type="xs:boolean"
+											fixed="1" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Заполняется в случае прекращения деятельности организации в связи с ликвидацией либо прекращением физическим лицом деятельности в качестве индивидуального предпринимателя в соответствии с пунктом 15 статьи 22 Федерального закона от 24 июля 1998 г. № 125-ФЗ</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="Численность">
+											<xs:annotation>
+												<xs:documentation>Блок сведений о численности
+												работников</xs:documentation>
+											</xs:annotation>
+											<xs:complexType>
+												<xs:sequence>
+												<xs:element name="Среднесписочная" maxOccurs="1">
+												<xs:annotation>
+												<xs:documentation>Указывается среднесписочная численность работников, рассчитанная в соответствии с утвержденными уполномоченным Правительством Российской Федерации федеральным органом исполнительной власти формами федерального статистического наблюдения и указаниями по их заполнению за период с начала года</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:nonNegativeInteger">
+												<xs:maxInclusive value="999999"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												<xs:element name="РабПоОбСоцСтрах" maxOccurs="1">
+												<xs:annotation>
+												<xs:documentation>Численность работающих застрахованных лиц по обязательному социальному страхованию от несчастных случаев на производстве и профессиональных заболеваний</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:nonNegativeInteger">
+												<xs:maxInclusive value="999999"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												<xs:element name="РабИнв" minOccurs="0"
+												maxOccurs="1">
+												<xs:annotation>
+												<xs:documentation>Численность работающих инвалидов</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:nonNegativeInteger">
+												<xs:maxInclusive value="999999"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												<xs:element name="РабОпас" minOccurs="0"
+												maxOccurs="1">
+												<xs:annotation>
+												<xs:documentation>Численность работников, занятых на работах с вредными и (или) опасными производственными факторами</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:nonNegativeInteger">
+												<xs:maxInclusive value="999999"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												</xs:sequence>
+											</xs:complexType>
+										</xs:element>
+										<xs:element name="РССВ">
+											<xs:annotation>
+												<xs:documentation>Расчет сумм страховых взносов</xs:documentation>
+											</xs:annotation>
+											<xs:complexType>
+												<xs:sequence>
+												<xs:element name="СуммаВыплИн"
+												type="ЕФС:ТипСуммыЗаПериоды">
+												<xs:annotation>
+												<xs:documentation>Суммы выплат и иных вознаграждений, начисленных в пользу физических лиц в соответствии со статьей 201 Федерального закона от 24 июля 1998 г. № 125-ФЗ «Об обязательном социальном страховании от несчастных случаев на производстве и профессиональных заболеваний»</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element name="СуммаНеПодлОбл"
+												type="ЕФС:ТипСуммыЗаПериоды" minOccurs="0">
+												<xs:annotation>
+												<xs:documentation>Суммы, не подлежащие обложению страховыми взносами в соответствии со статьей 20.2 Федерального закона от 24 июля 1998 г. № 125-ФЗ «Об обязательном социальном страховании от несчастных случаев на производстве и профессиональных заболеваний»</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element name="БазаИсч"
+												type="ЕФС:ТипСуммыЗаПериоды">
+												<xs:annotation>
+												<xs:documentation>База для исчисления страховых взносов (стр. 1 - стр. 2)</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element name="СуммаИнв"
+												type="ЕФС:ТипСуммыЗаПериоды" minOccurs="0">
+												<xs:annotation>
+												<xs:documentation>Суммы выплат из них в пользу работающих инвалидов</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element name="СтраховойТариф"
+												type="ЕФС:ТипТариф" minOccurs="0">
+												<xs:annotation>
+												<xs:documentation>Размер страхового тарифа в соответствии с классом профессионального риска (%)</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element name="СкидкаТариф" type="ЕФС:ТипТариф"
+												minOccurs="0">
+												<xs:annotation>
+												<xs:documentation>Скидка к страховому тарифу (%)</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element name="НадбавкаТариф"
+												type="ЕФС:ТипТариф" minOccurs="0">
+												<xs:annotation>
+												<xs:documentation>Надбавка к страховому тарифу (%)</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element name="Льгота" type="xs:boolean"
+												minOccurs="0">
+												<xs:annotation>
+												<xs:documentation>Наличие права на уменьшение действующих тарифов по взносам на травматизм на 60% отдельными категориями страхователей.
+
+																Возможные значения:
+																1 – да, льгота есть;
+																0 – нет, льготы нет.
+
+																Отсутствие элемента соответствует «нет»</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element name="ТарифУчСкидНадб" minOccurs="0">
+												<xs:annotation>
+												<xs:documentation>Размер страхового тарифа с учетом скидки (надбавки) (%) (заполняется с тремя десятичными знаками после запятой)</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:decimal">
+												<xs:pattern value="[0-9]+\.\d{3}"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												<xs:element name="ИсчислСтрахВзн"
+												type="ЕФС:ТипСуммыЗаПериоды">
+												<xs:annotation>
+												<xs:documentation>Исчислено страховых взносов</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element name="ОблБаза" minOccurs="0">
+												<xs:annotation>
+												<xs:documentation>Сведения об облагаемой базе для исчисления страховых взносов и исчисленных страховых взносах для организаций с выделенными самостоятельными классификационными единицами (СКЕ) или для организаций - государственных (муниципальных) учреждений, часть деятельности которых финансируется из бюджетов всех уровней и приравненных к ним источников (частичное финансирование), а также страхователей, исчисляющих страховые вносы по нескольким основаниям</xs:documentation>
+												</xs:annotation>
+												<xs:complexType>
+												<xs:sequence>
+												<xs:element name="Тип">
+												<xs:annotation>
+												<xs:documentation>Тип страхователя. Возможные значения: 1 - СКЕ; 2 - Частичное финансирование; 3 - Страхователь, исчисляющий страховые взносы по
+												нескольким основаниям</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:integer">
+												<xs:minInclusive value="1"/>
+												<xs:maxInclusive value="3"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												<xs:element name="Всего">
+												<xs:annotation>
+												<xs:documentation>Итоговые данные. Всего, в т.ч.</xs:documentation>
+												</xs:annotation>
+												<xs:complexType>
+												<xs:sequence>
+												<xs:group ref="ЕФС:ГрСуммыВЭД">
+												<xs:annotation>
+												<xs:documentation>Сведения о базе для исчисления страховых взносов</xs:documentation>
+												</xs:annotation>
+												</xs:group>
+												</xs:sequence>
+												</xs:complexType>
+												</xs:element>
+												<xs:element name="ОсновнойВЭД"
+												maxOccurs="unbounded">
+												<xs:annotation>
+												<xs:documentation>Указываются данные, относящиеся к той части производства (деятельности), которая осуществляется в соответствии с основным видом
+												экономической деятельности страхователя и не выделена в самостоятельную классификационную единицу (СКЕ) или не финансируется из бюджетов всех уровней и приравненных к ним
+												источников</xs:documentation>
+												</xs:annotation>
+												<xs:complexType>
+												<xs:sequence>
+												<xs:group ref="ЕФС:ГрВЭД">
+												<xs:annotation>
+												<xs:documentation>Сведения о базе для исчисления страховых взносов</xs:documentation>
+												</xs:annotation>
+												</xs:group>
+												<xs:element name="СкидкаТариф" type="ЕФС:ТипТариф"
+												minOccurs="0">
+												<xs:annotation>
+												<xs:documentation>Скидка к страховому тарифу (%)</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element name="НадбавкаТариф"
+												type="ЕФС:ТипТариф" minOccurs="0">
+												<xs:annotation>
+												<xs:documentation>Надбавка к страховому тарифу (%)</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element name="ТарифУчСкидНадб" minOccurs="0">
+												<xs:annotation>
+												<xs:documentation>Размер страхового тарифа с учетом скидки (надбавки) (%) (заполняется с тремя десятичными знаками после запятой)</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:decimal">
+												<xs:pattern value="[0-9]+\.\d{3}"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												<xs:group ref="ЕФС:ГрСуммыВЭД">
+												<xs:annotation>
+												<xs:documentation>Сведения о базе для исчисления страховых взносов</xs:documentation>
+												</xs:annotation>
+												</xs:group>
+												</xs:sequence>
+												</xs:complexType>
+												</xs:element>
+												<xs:element name="СКЕ" maxOccurs="unbounded"
+												minOccurs="0">
+												<xs:annotation>
+												<xs:documentation>Указываются данные, относящиеся к той части производства (деятельности), которая выделена в самостоятельные классификационные
+												единицы (СКЕ) и осуществляется в соответствии с видом экономической деятельности самостоятельных классификационных единиц (СКЕ).</xs:documentation>
+												</xs:annotation>
+												<xs:complexType>
+												<xs:sequence>
+												<xs:group ref="ЕФС:ГрВЭД">
+												<xs:annotation>
+												<xs:documentation>Сведения о базе для исчисления страховых взносов</xs:documentation>
+												</xs:annotation>
+												</xs:group>
+												<xs:group ref="ЕФС:ГрСуммыВЭД">
+												<xs:annotation>
+												<xs:documentation>Сведения о базе для исчисления страховых взносов</xs:documentation>
+												</xs:annotation>
+												</xs:group>
+												</xs:sequence>
+												</xs:complexType>
+												</xs:element>
+												</xs:sequence>
+												</xs:complexType>
+												</xs:element>
+												</xs:sequence>
+											</xs:complexType>
+										</xs:element>
+										<xs:element name="ИсчСтрахВзнос" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Сведения, необходимые для исчисления страховых взносов страхователями, указанными в пункте 21 статьи 22 Федерального закона от 24 июля 1998 г. № 125-ФЗ «Об обязательном социальном страховании от несчастных случаев на производстве и профессиональных заболеваний</xs:documentation>
+											</xs:annotation>
+											<xs:complexType>
+												<xs:sequence>
+												<xs:element name="Запись" maxOccurs="unbounded">
+												<xs:annotation>
+												<xs:documentation>Запись о временном направлении работников по договору о предоставлении труда работников (персонала) в случаях и на условиях, которые установлены Трудовым кодексом Российской Федерации, Законом Российской Федерации от 19 апреля 1991 г. № 1032-1 «О занятости населения в Российской Федерации», другими федеральными законами, для работы у другого юридического лица или индивидуального предпринимателя</xs:documentation>
+												</xs:annotation>
+												<xs:complexType>
+												<xs:sequence>
+												<xs:element name="Организация">
+												<xs:annotation>
+												<xs:documentation>Сведения о принимающей организации</xs:documentation>
+												</xs:annotation>
+												<xs:complexType>
+												<xs:sequence>
+												<xs:element name="РегНомер"
+												type="ЕФС:ТипРегНомерОбщ">
+												<xs:annotation>
+												<xs:documentation>Действующий регистрационный номер страхователя </xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element ref="УТ2:ИНН">
+												<xs:annotation>
+												<xs:documentation>Идентификационный номер налогоплательщика</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element ref="УТ2:КПП" minOccurs="0">
+												<xs:annotation>
+												<xs:documentation>Код причины постановки на учет</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element ref="УТ2:КодПоОКВЭД"/>
+												</xs:sequence>
+												</xs:complexType>
+												</xs:element>
+												<xs:element name="РабОбщ"
+												type="xs:nonNegativeInteger">
+												<xs:annotation>
+												<xs:documentation>Общая численность работников, временно направленных по договору для работы у конкретного юридического лица или индивидуального
+												предпринимателя</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element name="РабИнв"
+												type="xs:nonNegativeInteger" minOccurs="0">
+												<xs:annotation>
+												<xs:documentation>Общая численность работающих инвалидов, временно направленных по договору для работы у конкретного юридического лица или индивидуального предпринимателя</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element name="СНачала" type="ЕФС:ТипВыплаты">
+												<xs:annotation>
+												<xs:documentation>С начала расчетного периода, нарастающим итогом соответственно за первый квартал, полугодие, 9 месяцев текущего периода и год, руб., коп.</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element name="ПервыйМесяц"
+												type="ЕФС:ТипВыплаты">
+												<xs:annotation>
+												<xs:documentation>Выплаты за последние три месяца отчетного периода, первый месяц, руб., коп.</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element name="ВторойМесяц"
+												type="ЕФС:ТипВыплаты">
+												<xs:annotation>
+												<xs:documentation>Выплаты за последние три месяца отчетного периода, второй месяц, руб., коп.</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element name="ТретийМесяц"
+												type="ЕФС:ТипВыплаты">
+												<xs:annotation>
+												<xs:documentation>Выплаты за последние три месяца отчетного периода, третий месяц, руб., коп.</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element name="СтраховойТариф"
+												type="ЕФС:ТипТариф" minOccurs="0">
+												<xs:annotation>
+												<xs:documentation>Размер страхового тарифа в соответствии с классом профессионального риска, к которому относится принимающее работников юридическое лицо или индивидуальный предприниматель (%)</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element name="СкидкаТариф" type="ЕФС:ТипТариф"
+												minOccurs="0">
+												<xs:annotation>
+												<xs:documentation>Скидка к страховому тарифу, установленная территориальным органом Фонда на текущий календарный год в соответствии с Правилами
+												от 30 мая 2012 г. № 524 (%)</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element name="НадбавкаТариф"
+												type="ЕФС:ТипТариф" minOccurs="0">
+												<xs:annotation>
+												<xs:documentation>Надбавка к страховому тарифу, установленная территориальным органом Фонда на текущий календарный год в соответствии с Правилами
+												от 30 мая 2012 г. № 524 (%)</xs:documentation>
+												</xs:annotation>
+												</xs:element>
+												<xs:element name="ТарифУчСкидНадб" minOccurs="0">
+												<xs:annotation>
+												<xs:documentation>Размер страхового тарифа принимающего юридического лица или индивидуального предпринимателя с учетом скидки (надбавки) (%)
+												(заполняется с тремя десятичными знаками после запятой)</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:decimal">
+												<xs:pattern value="[0-9]+\.\d{3}"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												</xs:sequence>
+												</xs:complexType>
+												</xs:element>
+												</xs:sequence>
+											</xs:complexType>
+										</xs:element>
+										<xs:element name="РПО">
+											<xs:annotation>
+												<xs:documentation>Сведения о результатах проведенных обязательных предварительных и периодических медицинских осмотров работников и проведенной специальной оценки условий труда на начало года</xs:documentation>
+											</xs:annotation>
+											<xs:complexType>
+												<xs:sequence>
+												<xs:element name="ОбщЧисл" maxOccurs="1">
+												<xs:annotation>
+												<xs:documentation>Общая численность работников, подлежащих обязательным предварительным и периодическим медицинским осмотрам (чел.)</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:nonNegativeInteger">
+												<xs:maxInclusive value="999999"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												<xs:element name="ПрошЧисл" maxOccurs="1">
+												<xs:annotation>
+												<xs:documentation>Численность работников, прошедших обязательные предварительные и периодические медицинские осмотры (чел.)</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:nonNegativeInteger">
+												<xs:maxInclusive value="999999"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												<xs:element name="Результат">
+												<xs:annotation>
+												<xs:documentation>Результат проведения специальной оценки условий труда</xs:documentation>
+												</xs:annotation>
+												<xs:complexType>
+												<xs:sequence>
+												<xs:element name="КоличРабМест" maxOccurs="1">
+												<xs:annotation>
+												<xs:documentation>Общее количество рабочих мест страхователя</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:nonNegativeInteger">
+												<xs:maxInclusive value="999999"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												<xs:element name="Оценки">
+												<xs:annotation>
+												<xs:documentation>Блок сведений о количестве рабочих мест, в отношении которых проведена специальная оценка условий труда</xs:documentation>
+												</xs:annotation>
+												<xs:complexType>
+												<xs:sequence>
+												<xs:element name="Всего" maxOccurs="1">
+												<xs:annotation>
+												<xs:documentation>Количество рабочих мест, в отношении которых проведена специальная оценка условий труда, всего</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:nonNegativeInteger">
+												<xs:maxInclusive value="999999"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												<xs:element name="Классы">
+												<xs:annotation>
+												<xs:documentation>Количество рабочих мест, отнесенных к классам условий труда</xs:documentation>
+												</xs:annotation>
+												<xs:complexType>
+												<xs:sequence>
+												<xs:element name="Класс1" maxOccurs="1">
+												<xs:annotation>
+												<xs:documentation>Количество рабочих мест, отнесенных к 1 классу</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:nonNegativeInteger">
+												<xs:maxInclusive value="999999"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												<xs:element name="Класс2" maxOccurs="1">
+												<xs:annotation>
+												<xs:documentation>Количество рабочих мест, отнесенных к 2 классу</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:nonNegativeInteger">
+												<xs:maxInclusive value="999999"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												<xs:element name="Класс3">
+												<xs:annotation>
+												<xs:documentation>Количество рабочих мест, отнесенных к подклассам 3 класса</xs:documentation>
+												</xs:annotation>
+												<xs:complexType>
+												<xs:sequence>
+												<xs:element name="Подкласс3.1" maxOccurs="1">
+												<xs:annotation>
+												<xs:documentation>Количество рабочих мест, отнесенных к подклассу 3.1</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:nonNegativeInteger">
+												<xs:maxInclusive value="999999"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												<xs:element name="Подкласс3.2" maxOccurs="1">
+												<xs:annotation>
+												<xs:documentation>Количество рабочих мест, отнесенных к подклассу 3.2</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:nonNegativeInteger">
+												<xs:maxInclusive value="999999"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												<xs:element name="Подкласс3.3" maxOccurs="1">
+												<xs:annotation>
+												<xs:documentation>Количество рабочих мест, отнесенных к подклассу 3.3</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:nonNegativeInteger">
+												<xs:maxInclusive value="999999"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												<xs:element name="Подкласс3.4" maxOccurs="1">
+												<xs:annotation>
+												<xs:documentation>Количество рабочих мест, отнесенных к подклассу 3.3</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:nonNegativeInteger">
+												<xs:maxInclusive value="999999"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												</xs:sequence>
+												</xs:complexType>
+												</xs:element>
+												<xs:element name="Класс4" maxOccurs="1">
+												<xs:annotation>
+												<xs:documentation>Количество рабочих мест, отнесенных к 4 классу</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+												<xs:restriction base="xs:nonNegativeInteger">
+												<xs:maxInclusive value="999999"/>
+												</xs:restriction>
+												</xs:simpleType>
+												</xs:element>
+												</xs:sequence>
+												</xs:complexType>
+												</xs:element>
+												</xs:sequence>
+												</xs:complexType>
+												</xs:element>
+												</xs:sequence>
+												</xs:complexType>
+												</xs:element>
+												</xs:sequence>
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="Руководитель" type="УТ2:ТипДолжностноеЛицо">
+								<xs:annotation>
+									<xs:documentation>Сведения о руководителе (уполномоченном представителе страхователя)</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="ДатаЗаполнения">
+								<xs:annotation>
+									<xs:documentation>Дата заполнения</xs:documentation>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:date">
+										<xs:pattern value="\d{4}-\d{2}-\d{2}"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="СлужебнаяИнформация" type="АФ5:ТипСлужебнаяИнформацияППЭД">
+					<xs:annotation>
+						<xs:documentation>Служебная информация об электронном документе.</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element ref="Signature" xmlns="http://www.w3.org/2000/09/xmldsig#" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Электронная подпись (ЭП). Электронный документ, для которого законодательством Российской Федерации предусмотрена юридически значимая подпись, должен быть подписан усиленной квалифицированной электронной подписью в соответствии со спецификацией XMLDSig.</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+			</xs:all>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>
