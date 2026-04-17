@@ -1,0 +1,2275 @@
+<?xml version="1.0" encoding="windows-1251"?>
+<!-- edited with XMLSpy v2011 sp1 (http://www.altova.com) by Shakeev (FGUP GNIVC FNS Russia) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:sch="http://purl.oclc.org/dsdl/schematron" xmlns:usch="http://www.unisoftware.ru/schematron-extensions" xmlns:sql="urn:schemas-microsoft-com:mapping-schema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:element name="Файл">
+		<xs:annotation>
+			<!---**************************************************************************************************************************************************************************-->
+			<xs:appinfo>
+				<sch:pattern name="Проверка имени файла на соответствие значению атрибута @ИдФайл">
+					<sch:rule context="Файл">
+						<!--  Проверка имени файла на соответствие ИдФайл                                                                             -->
+						<sch:assert test="usch:getFileName() = @ИдФайл">
+							<usch:error code="0400400007" path="@ИдФайл" value-of-select="@ИдФайл" doc-id-path="usch:getFileName()" doc-id-caption="Файл">Имя файла обмена "<usch:value-of select="usch:getFileName()"/>" не совпадает со значением элемента ИдФайл "<usch:value-of select="@ИдФайл"/>"</usch:error>
+						</sch:assert>
+					</sch:rule>
+				</sch:pattern>
+			</xs:appinfo>
+			<!---**************************************************************************************************************************************************************************-->
+			<xs:documentation>Файл обмена</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Документ">
+					<xs:annotation>
+						<xs:documentation>Состав и структура документа</xs:documentation>
+												<!---*********************************************************************************************************************************************************-->
+						<xs:appinfo>
+							<sch:pattern name="Присутствие сведений об аудиторе">
+								<sch:rule context="Документ">
+									<!-- 3. Контроль  обязательности  присутствия  Сведений  об  аудиторе  в  зависимости  от  значения  ПрАудит  -->
+									<sch:assert test="usch:iif(@ПрАудит=0, count(СвАудит)=0, (count(СвАудит)!=0 or count(СвАудит)=0))">
+										<usch:error code="0400300003" path="@ПрАудит" value-of-select="@ПрАудит">Не выполнено условие присутствия (отсутствия) элемента Файл/Документ/СвАудит при значении элемента ПрАудит, равном "<usch:value-of select="@ПрАудит"/>".</usch:error>
+									</sch:assert>
+								</sch:rule>
+							</sch:pattern>
+						</xs:appinfo>
+						<!---*********************************************************************************************************************************************************-->
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="СвНП">
+								<xs:annotation>
+									<xs:documentation>Сведения об организации</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="НПЮЛ">
+											<xs:annotation>
+												<xs:documentation>Организация</xs:documentation>
+											</xs:annotation>
+											<xs:complexType>
+												<xs:attribute name="НаимОрг" use="required">
+													<xs:annotation>
+														<xs:documentation>Наименование организации</xs:documentation>
+													</xs:annotation>
+													<xs:simpleType>
+														<xs:restriction base="xs:string">
+															<xs:minLength value="1"/>
+															<xs:maxLength value="1000"/>
+														</xs:restriction>
+													</xs:simpleType>
+												</xs:attribute>
+												<xs:attribute name="ИННЮЛ" type="ИННЮЛТип" use="required">
+													<xs:annotation>
+														<xs:documentation>ИНН организации</xs:documentation>
+													</xs:annotation>
+												</xs:attribute>
+												<xs:attribute name="КПП" type="КППТип" use="required">
+													<xs:annotation>
+														<xs:documentation>КПП организации</xs:documentation>
+													</xs:annotation>
+												</xs:attribute>
+												<xs:attribute name="АдрМН" use="required">
+													<xs:annotation>
+														<xs:documentation>Адрес в пределах места нахождения</xs:documentation>
+													</xs:annotation>
+													<xs:simpleType>
+														<xs:restriction base="xs:string">
+															<xs:minLength value="1"/>
+															<xs:maxLength value="255"/>
+														</xs:restriction>
+													</xs:simpleType>
+												</xs:attribute>
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+									<xs:attribute name="ОКПО" type="ОКПОТип" use="optional">
+										<xs:annotation>
+											<xs:documentation>Организация (по ОКПО)</xs:documentation>
+										</xs:annotation>
+									</xs:attribute>
+									<xs:attribute name="ОКФС" type="ОКФСТип" use="required">
+										<xs:annotation>
+											<xs:documentation>Форма собственности (по ОКФС)</xs:documentation>
+										</xs:annotation>
+									</xs:attribute>
+									<xs:attribute name="ОКОПФ" type="ОКОПФ5Тип" use="required">
+										<xs:annotation>
+											<xs:documentation>Организационно - правовая форма (по ОКОПФ)</xs:documentation>
+										</xs:annotation>
+									</xs:attribute>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="СвАудит" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Сведения об аудиторской организации</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:attribute name="НаимОрг" use="required">
+										<xs:annotation>
+											<xs:documentation>Наименование аудиторской организации</xs:documentation>
+										</xs:annotation>
+										<xs:simpleType>
+											<xs:restriction base="xs:string">
+												<xs:minLength value="1"/>
+												<xs:maxLength value="1000"/>
+											</xs:restriction>
+										</xs:simpleType>
+									</xs:attribute>
+									<xs:attribute name="ИННЮЛ" type="ИННЮЛТип" use="required">
+										<xs:annotation>
+											<xs:documentation>ИНН аудиторской организации </xs:documentation>
+										</xs:annotation>
+									</xs:attribute>
+									<xs:attribute name="ОГРН" type="ОГРНТип" use="required">
+										<xs:annotation>
+											<xs:documentation>ОГРН аудиторской организации</xs:documentation>
+										</xs:annotation>
+									</xs:attribute>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="Подписант">
+								<xs:annotation>
+									<!---*******************************************************************************************************************************************************-->
+									<xs:appinfo>
+										<sch:pattern name="Присутствие сведений о представителе">
+											<sch:rule context="Подписант">
+												<!-- Табл.4.5. Контроль  обязательности  присутствия  Сведений  о  представителе  налогоплательщика  в  зависимости  от  значения  ПрПодп          -->
+												<sch:assert test="usch:iif(@ПрПодп=2, count(СвПред)!=0, (count(СвПред)!=0 or count(СвПред)=0))">
+													<usch:error code="0400300003" path="@ПрПодп" value-of-select="@ПрПодп">Не выполнено условие присутствия (отсутствия) элемента Файл/Документ/Подписант/СвПред при значении элемента ПрПодп, равном "<usch:value-of select="@ПрПодп"/>".</usch:error>
+												</sch:assert>
+											</sch:rule>
+										</sch:pattern>
+									</xs:appinfo>
+									<!---*******************************************************************************************************************************************************-->
+									<xs:documentation>Сведения о лице, подписавшем документ</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="ФИО" type="ФИОТип">
+											<xs:annotation>
+												<xs:documentation>Фамилия, имя, отчество руководителя (уполномоченного представителя)</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="СвПред" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Сведения об уполномоченном представителе</xs:documentation>
+												<xs:documentation><![CDATA[Элемент обязателен при <ПрПодп>=2]]></xs:documentation>
+											</xs:annotation>
+											<xs:complexType>
+												<xs:attribute name="НаимДок" use="required">
+													<xs:annotation>
+														<xs:documentation>Наименование и реквизиты документа, подтверждающего полномочия уполномоченного представителя</xs:documentation>
+													</xs:annotation>
+													<xs:simpleType>
+														<xs:restriction base="xs:string">
+															<xs:minLength value="1"/>
+															<xs:maxLength value="120"/>
+														</xs:restriction>
+													</xs:simpleType>
+												</xs:attribute>
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+									<xs:attribute name="ПрПодп" use="required">
+										<xs:annotation>
+											<xs:documentation>Признак лица, подписавшего документ</xs:documentation>
+											<xs:documentation>Принимает значение:
+1 – руководитель   |
+2 – уполномоченный представитель</xs:documentation>
+										</xs:annotation>
+										<xs:simpleType>
+											<xs:restriction base="xs:string">
+												<xs:length value="1"/>
+												<xs:enumeration value="1"/>
+												<xs:enumeration value="2"/>
+											</xs:restriction>
+										</xs:simpleType>
+									</xs:attribute>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="Баланс">
+								<xs:annotation>
+									<xs:documentation>Бухгалтерский баланс</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="Актив">
+											<xs:annotation>
+												<xs:documentation>Актив</xs:documentation>
+											</xs:annotation>
+											<xs:complexType>
+												<xs:sequence>
+													<xs:element name="МатВнеАкт" type="ОПП_ВПТип" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Материальные внеоборотные активы </xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="ВписПоказ1150" type="ВписПоказТип" minOccurs="0" maxOccurs="20">
+														<xs:annotation>
+															<xs:documentation>Вписываемый показатель</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="НеМатФинАкт" type="ОПП_ВПТип" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Нематериальные, финансовые и другие внеоборотные активы</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="ВписПоказ1170" type="ВписПоказТип" minOccurs="0" maxOccurs="20">
+														<xs:annotation>
+															<xs:documentation>Вписываемый показатель</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="Запасы" type="ОПП_ВПТип" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Запасы</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="ВписПоказ1210" type="ВписПоказТип" minOccurs="0" maxOccurs="20">
+														<xs:annotation>
+															<xs:documentation>Вписываемый показатель</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="ДенежнСр" type="ОПП_ВПТип" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Денежные средства и денежные эквиваленты</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="ВписПоказ1250" type="ВписПоказТип" minOccurs="0" maxOccurs="20">
+														<xs:annotation>
+															<xs:documentation>Вписываемый показатель</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="ФинВлож" type="ОПП_ВПТип" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Финансовые и другие оборотные активы</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="ВписПоказ1240" type="ВписПоказТип" minOccurs="0" maxOccurs="20">
+														<xs:annotation>
+															<xs:documentation>Вписываемый показатель</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+												</xs:sequence>
+												<xs:attribute name="Пояснения" use="optional">
+													<xs:annotation>
+														<xs:documentation>Номер соответствующего пояснения, баланс</xs:documentation>
+													</xs:annotation>
+													<xs:simpleType>
+														<xs:restriction base="xs:string">
+															<xs:minLength value="1"/>
+															<xs:maxLength value="4"/>
+														</xs:restriction>
+													</xs:simpleType>
+												</xs:attribute>
+												<xs:attribute name="СумОтч" use="required">
+													<xs:annotation>
+														<xs:documentation>На отчетную дату</xs:documentation>
+													</xs:annotation>
+													<xs:simpleType>
+														<xs:restriction base="xs:integer">
+															<xs:totalDigits value="12"/>
+														</xs:restriction>
+													</xs:simpleType>
+												</xs:attribute>
+												<xs:attribute name="СумПрдщ" use="required">
+													<xs:annotation>
+														<xs:documentation>На 31 декабря предыдущего года</xs:documentation>
+													</xs:annotation>
+													<xs:simpleType>
+														<xs:restriction base="xs:integer">
+															<xs:totalDigits value="12"/>
+														</xs:restriction>
+													</xs:simpleType>
+												</xs:attribute>
+												<xs:attribute name="СумПрдшв" use="required">
+													<xs:annotation>
+														<xs:documentation>На 31 декабря года, предшествующего предыдущему</xs:documentation>
+													</xs:annotation>
+													<xs:simpleType>
+														<xs:restriction base="xs:integer">
+															<xs:totalDigits value="12"/>
+														</xs:restriction>
+													</xs:simpleType>
+												</xs:attribute>
+											</xs:complexType>
+										</xs:element>
+										<xs:element name="Пассив">
+											<xs:annotation>
+												<xs:documentation>Пассив</xs:documentation>
+											</xs:annotation>
+											<xs:complexType>
+												<xs:sequence>
+													<xs:choice>
+														<xs:sequence>
+															<xs:element name="КапРез" type="ОПП_ВПТип" minOccurs="0">
+																<xs:annotation>
+																	<xs:documentation>Капитал</xs:documentation>
+																</xs:annotation>
+															</xs:element>
+															<xs:element name="ВписПоказ1300" type="ВписПоказТип" minOccurs="0" maxOccurs="20">
+																<xs:annotation>
+																	<xs:documentation>Вписываемый показатель</xs:documentation>
+																</xs:annotation>
+															</xs:element>
+														</xs:sequence>
+														<xs:sequence>
+															<xs:element name="ЦелевСредства" type="ОПП_ВПТип" minOccurs="0">
+																<xs:annotation>
+																	<xs:documentation>Целевые средства</xs:documentation>
+																</xs:annotation>
+															</xs:element>
+															<xs:element name="ВписПоказ1350" type="ВписПоказТип" minOccurs="0" maxOccurs="20">
+																<xs:annotation>
+																	<xs:documentation>Вписываемый показатель</xs:documentation>
+																</xs:annotation>
+															</xs:element>
+														</xs:sequence>
+													</xs:choice>
+													<xs:element name="ДлгЗаемСредств" type="ОПП_ВПТип" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Долгосрочные заемные средства</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="ВписПоказ1410" type="ВписПоказТип" minOccurs="0" maxOccurs="20">
+														<xs:annotation>
+															<xs:documentation>Вписываемый показатель</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="ДрДолгосрОбяз" type="ОПП_ВПТип" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Другие долгосрочные обязательства</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="ВписПоказ1450" type="ВписПоказТип" minOccurs="0" maxOccurs="20">
+														<xs:annotation>
+															<xs:documentation>Вписываемый показатель</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="КртЗаемСредств" type="ОПП_ВПТип" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Краткосрочные заемные средства</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="ВписПоказ1510" type="ВписПоказТип" minOccurs="0" maxOccurs="20">
+														<xs:annotation>
+															<xs:documentation>Вписываемый показатель</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="КредитЗадолж" type="ОПП_ВПТип" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Краткосрочная кредиторская задолженность</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="ВписПоказ1520" type="ВписПоказТип" minOccurs="0" maxOccurs="20">
+														<xs:annotation>
+															<xs:documentation>Вписываемый показатель</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="ДрКраткосрОбяз" type="ОПП_ВПТип" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Другие краткосрочные обязательства</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="ВписПоказ1550" type="ВписПоказТип" minOccurs="0" maxOccurs="20">
+														<xs:annotation>
+															<xs:documentation>Вписываемый показатель</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+												</xs:sequence>
+												<xs:attribute name="Пояснения" use="optional">
+													<xs:annotation>
+														<xs:documentation>Номер соответствующего пояснения, баланс</xs:documentation>
+													</xs:annotation>
+													<xs:simpleType>
+														<xs:restriction base="xs:string">
+															<xs:minLength value="1"/>
+															<xs:maxLength value="4"/>
+														</xs:restriction>
+													</xs:simpleType>
+												</xs:attribute>
+												<xs:attribute name="СумОтч" use="required">
+													<xs:annotation>
+														<xs:documentation>На отчетную дату</xs:documentation>
+													</xs:annotation>
+													<xs:simpleType>
+														<xs:restriction base="xs:integer">
+															<xs:totalDigits value="12"/>
+														</xs:restriction>
+													</xs:simpleType>
+												</xs:attribute>
+												<xs:attribute name="СумПрдщ" use="required">
+													<xs:annotation>
+														<xs:documentation>На 31 декабря предыдущего года</xs:documentation>
+													</xs:annotation>
+													<xs:simpleType>
+														<xs:restriction base="xs:integer">
+															<xs:totalDigits value="12"/>
+														</xs:restriction>
+													</xs:simpleType>
+												</xs:attribute>
+												<xs:attribute name="СумПрдшв" use="required">
+													<xs:annotation>
+														<xs:documentation>На 31 декабря года, предшествующего предыдущему</xs:documentation>
+													</xs:annotation>
+													<xs:simpleType>
+														<xs:restriction base="xs:integer">
+															<xs:totalDigits value="12"/>
+														</xs:restriction>
+													</xs:simpleType>
+												</xs:attribute>
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+									<xs:attribute name="ОКУД" use="required">
+										<xs:annotation>
+											<xs:documentation>Код формы по ОКУД</xs:documentation>
+										</xs:annotation>
+										<xs:simpleType>
+											<xs:restriction base="КНДТип">
+												<xs:enumeration value="0710001"/>
+											</xs:restriction>
+										</xs:simpleType>
+									</xs:attribute>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="ФинРез" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Отчет о финансовых результатах</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="Выруч" type="ОтчПредНДопТип" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Выручка</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="ВписПоказ2110" type="ВписПоказОтчТип" minOccurs="0" maxOccurs="20">
+											<xs:annotation>
+												<xs:documentation>Вписываемый показатель</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="РасхОбДеят" type="ОтчПредНДопТип" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Расходы по обычным видам деятельности</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="ВписПоказ2120" type="ВписПоказОтчТип" minOccurs="0" maxOccurs="20">
+											<xs:annotation>
+												<xs:documentation>Вписываемый показатель</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="ПроцУпл" type="ОтчПредНДопТип" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Проценты к уплате</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="ВписПоказ2130" type="ВписПоказОтчТип" minOccurs="0" maxOccurs="20">
+											<xs:annotation>
+												<xs:documentation>Вписываемый показатель</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="ПрочДоход" type="ОтчПредНДопТип" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Прочие доходы</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="ВписПоказ2340" type="ВписПоказОтчТип" minOccurs="0" maxOccurs="20">
+											<xs:annotation>
+												<xs:documentation>Вписываемый показатель</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="ПрочРасход" type="ОтчПредНДопТип" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Прочие расходы</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="ВписПоказ2350" type="ВписПоказОтчТип" minOccurs="0" maxOccurs="20">
+											<xs:annotation>
+												<xs:documentation>Вписываемый показатель</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="НалПрибДох" type="ОтчПредНДопТип" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Налог на прибыль (доходы) организаций</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="ВписПоказ2410" type="ВписПоказОтчТип" minOccurs="0" maxOccurs="20">
+											<xs:annotation>
+												<xs:documentation>Вписываемый показатель</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="ЧистПрибУб" type="ОтчПредНТип" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Чистая прибыль (убыток)</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+									</xs:sequence>
+									<xs:attribute name="ОКУД" use="required">
+										<xs:annotation>
+											<xs:documentation>Код формы по ОКУД</xs:documentation>
+										</xs:annotation>
+										<xs:simpleType>
+											<xs:restriction base="КНДТип">
+												<xs:enumeration value="0710002"/>
+											</xs:restriction>
+										</xs:simpleType>
+									</xs:attribute>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="ЦелИсп" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Отчет о целевом использовании средств</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="ОстатНачОтч" type="ОтчПредНТип">
+											<xs:annotation>
+												<xs:documentation>Остаток средств на начало периода</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="Поступило" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Поступило средств</xs:documentation>
+											</xs:annotation>
+											<xs:complexType>
+												<xs:sequence>
+													<xs:element name="ВзносЦелПоступ" type="ОтчПредНДопТип" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Взносы и иные целевые поступления</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="ВписПоказ6220" type="ВписПоказОтчТип" minOccurs="0" maxOccurs="20">
+														<xs:annotation>
+															<xs:documentation>Вписываемый показатель</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="ПрибПредДеят" type="ОтчПредНДопТип" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Прибыль от приносящей доход деятельности</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="ВписПоказ6240" type="ВписПоказОтчТип" minOccurs="0" maxOccurs="20">
+														<xs:annotation>
+															<xs:documentation>Вписываемый показатель</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="Прочие" type="ОтчПредНДопТип" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Прочие поступления</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+												</xs:sequence>
+												<xs:attribute name="Пояснения" use="optional">
+													<xs:annotation>
+														<xs:documentation>Номер соответствующего пояснения</xs:documentation>
+													</xs:annotation>
+													<xs:simpleType>
+														<xs:restriction base="xs:string">
+															<xs:minLength value="1"/>
+															<xs:maxLength value="4"/>
+														</xs:restriction>
+													</xs:simpleType>
+												</xs:attribute>
+												<xs:attribute name="СумОтч" use="required">
+													<xs:annotation>
+														<xs:documentation>Всего поступило средств - за отчетный период</xs:documentation>
+													</xs:annotation>
+													<xs:simpleType>
+														<xs:restriction base="xs:integer">
+															<xs:totalDigits value="12"/>
+														</xs:restriction>
+													</xs:simpleType>
+												</xs:attribute>
+												<xs:attribute name="СумПред" use="optional">
+													<xs:annotation>
+														<xs:documentation>Всего поступило средств - за период предыдущего года, аналогичный отчетному периоду</xs:documentation>
+													</xs:annotation>
+													<xs:simpleType>
+														<xs:restriction base="xs:integer">
+															<xs:totalDigits value="12"/>
+														</xs:restriction>
+													</xs:simpleType>
+												</xs:attribute>
+											</xs:complexType>
+										</xs:element>
+										<xs:element name="Использовано" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Использовано (израсходовано) средств</xs:documentation>
+											</xs:annotation>
+											<xs:complexType>
+												<xs:sequence>
+													<xs:element name="ЦелМер" type="ОтчПредНДопТип" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>На целевые мероприятия</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="ВписПоказ6310" type="ВписПоказОтчТип" minOccurs="0" maxOccurs="20">
+														<xs:annotation>
+															<xs:documentation>Вписываемый показатель</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="СодеожОрг" type="ОтчПредНДопТип" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>На содержание организации</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="ВписПоказ6320" type="ВписПоказОтчТип" minOccurs="0" maxOccurs="20">
+														<xs:annotation>
+															<xs:documentation>Вписываемый показатель</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="ПриобОСИн" type="ОтчПредНДопТип" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>На приобретение основных средств и иного имущества</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="ВписПоказ6330" type="ВписПоказОтчТип" minOccurs="0" maxOccurs="20">
+														<xs:annotation>
+															<xs:documentation>Вписываемый показатель</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="Прочие" type="ОтчПредНДопТип" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Прочее</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+												</xs:sequence>
+												<xs:attribute name="Пояснения" use="optional">
+													<xs:annotation>
+														<xs:documentation>Номер соответствующего пояснения</xs:documentation>
+													</xs:annotation>
+													<xs:simpleType>
+														<xs:restriction base="xs:string">
+															<xs:minLength value="1"/>
+															<xs:maxLength value="4"/>
+														</xs:restriction>
+													</xs:simpleType>
+												</xs:attribute>
+												<xs:attribute name="СумОтч" use="required">
+													<xs:annotation>
+														<xs:documentation>Всего использовано средств – за отчетный период</xs:documentation>
+													</xs:annotation>
+													<xs:simpleType>
+														<xs:restriction base="xs:integer">
+															<xs:totalDigits value="12"/>
+														</xs:restriction>
+													</xs:simpleType>
+												</xs:attribute>
+												<xs:attribute name="СумПред" use="optional">
+													<xs:annotation>
+														<xs:documentation>Всего использовано средств – за период предыдущего года, аналогичный отчетному периоду</xs:documentation>
+													</xs:annotation>
+													<xs:simpleType>
+														<xs:restriction base="xs:integer">
+															<xs:totalDigits value="12"/>
+														</xs:restriction>
+													</xs:simpleType>
+												</xs:attribute>
+											</xs:complexType>
+										</xs:element>
+										<xs:element name="ОстатКонОтч" type="ОтчПредНТип">
+											<xs:annotation>
+												<xs:documentation>Остаток средств на конец периода</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+									</xs:sequence>
+									<xs:attribute name="ОКУД" use="required">
+										<xs:annotation>
+											<xs:documentation>Код формы по ОКУД</xs:documentation>
+										</xs:annotation>
+										<xs:simpleType>
+											<xs:restriction base="КНДТип">
+												<xs:enumeration value="0710003"/>
+											</xs:restriction>
+										</xs:simpleType>
+									</xs:attribute>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="ОтчетИзмКап" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Отчет об изменениях капитала</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="ИзмКапПред">
+											<xs:annotation>
+												<xs:documentation>Изменение капитала за период предыдущего года, аналогичный отчетному периоду</xs:documentation>
+											</xs:annotation>
+											<xs:complexType>
+												<xs:sequence>
+													<xs:element name="Кап31ДекПред" type="ДвижКапПГод">
+														<xs:annotation>
+															<xs:documentation>На 31 декабря года, предшествующего предыдущему</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="Коррект" type="ДвижКапПГод" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Корректировки в связи с изменением учетной политики</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="ИспрОшиб" type="ДвижКапПГод" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Корректировки в связи с исправлением ошибок</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="Кап31ДекПредКор" type="ДвижКапПГод" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>На 31 декабря года, предшествующего предыдущему, после корректировки</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="ЧистПриб" type="ДвижКапПГод" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Чистая прибыль (убыток)</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="ПереоцВнАкт" type="ДвижКапПГод" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Переоценка внеоборотных активов</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="Дивиденд" type="ДвижКапПГод" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Дивиденды</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="ИнИзмОпСоб" type="ДвижКапВПГод" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Иные изменения за счет операций с собственниками (за исключением дивидендов) – всего</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="Реорганизация" type="ДвижКапПГод" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Реорганизация юридического лица</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="ИныеИзм" type="ДвижКапВПГод" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Иные изменения – всего</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="НаДатуОкон" type="ДвижКапПГод" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>На дату окончания периода предыдущего года, аналогичного отчетному периоду</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+												</xs:sequence>
+											</xs:complexType>
+										</xs:element>
+										<xs:element name="ИзмКапОтч">
+											<xs:annotation>
+												<xs:documentation>Изменения капитала за отчетный период</xs:documentation>
+											</xs:annotation>
+											<xs:complexType>
+												<xs:sequence>
+													<xs:element name="Кап31ДекПред" type="ДвижКапПГод">
+														<xs:annotation>
+															<xs:documentation>На 31 декабря предыдущего года</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="Коррект" type="ДвижКапПГод" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Корректировки в связи с изменением учетной политики</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="ИспрОшиб" type="ДвижКапПГод" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Корректировки в связи с исправлением ошибок</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="Кап31ДекПредКор" type="ДвижКапПГод" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>На 31 декабря предыдущего года после корректировки</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="ЧистПриб" type="ДвижКапПГод" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Чистая прибыль (убыток)</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="ПереоцВнАкт" type="ДвижКапПГод" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Переоценка внеоборотных активов</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="Дивиденд" type="ДвижКапПГод" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Дивиденды</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="ИнИзмОпСоб" type="ДвижКапВПГод" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Иные изменения за счет операций с собственниками (за исключением дивидендов) – всего</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="Реорганизация" type="ДвижКапПГод" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Реорганизация юридического лица</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="ИныеИзм" type="ДвижКапВПГод" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Иные изменения – всего</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="НаОтчетДат" type="ДвижКапПГод" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>На отчетную дату</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+												</xs:sequence>
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+									<xs:attribute name="ОКУД" use="required">
+										<xs:annotation>
+											<xs:documentation>Код формы по ОКУД</xs:documentation>
+										</xs:annotation>
+										<xs:simpleType>
+											<xs:restriction base="КНДТип">
+												<xs:enumeration value="0710004"/>
+											</xs:restriction>
+										</xs:simpleType>
+									</xs:attribute>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="ДвижениеДен" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Отчет о движении денежных средств</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="ТекОпер" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Денежные потоки от текущих операций</xs:documentation>
+											</xs:annotation>
+											<xs:complexType>
+												<xs:sequence>
+													<xs:element name="СальдоТек" type="ОтчПредНТип">
+														<xs:annotation>
+															<xs:documentation>Сальдо денежных потоков от текущих операций</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="Поступ" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Поступления</xs:documentation>
+														</xs:annotation>
+														<xs:complexType>
+															<xs:sequence>
+																<xs:element name="ПродПТРУ" type="ОтчПредНТип" minOccurs="0">
+																	<xs:annotation>
+																		<xs:documentation>В том числе от продажи продукции, товаров, выполнения работ, оказания услуг</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+																<xs:element name="АрЛицИнПлат" type="ОтчПредНТип" minOccurs="0">
+																	<xs:annotation>
+																		<xs:documentation>В том числе арендных платежей, роялти, комиссионных и иных аналогичных платежей</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+																<xs:element name="ПродФинВлож" type="ОтчПредНТип" minOccurs="0">
+																	<xs:annotation>
+																		<xs:documentation>В том числе от перепродажи финансовых вложений</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+																<xs:element name="ПроцЗадолж" type="ОтчПредНТип" minOccurs="0">
+																	<xs:annotation>
+																		<xs:documentation>В том числе процентов по дебиторской задолженности покупателей</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+																<xs:element name="ВПокТекПост" type="ДопПокОПТип" minOccurs="0" maxOccurs="30">
+																	<xs:annotation>
+																		<xs:documentation>Вписываемый показатель (по поступлениям от текущих операций)</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+																<xs:element name="ПрочПоступ" type="ОтчПредНТип" minOccurs="0">
+																	<xs:annotation>
+																		<xs:documentation>В том числе прочие поступления</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+															</xs:sequence>
+															<xs:attribute name="Пояснения" use="optional">
+																<xs:annotation>
+																	<xs:documentation>Номер соответствующего пояснения</xs:documentation>
+																</xs:annotation>
+																<xs:simpleType>
+																	<xs:restriction base="xs:string">
+																		<xs:minLength value="1"/>
+																		<xs:maxLength value="4"/>
+																	</xs:restriction>
+																</xs:simpleType>
+															</xs:attribute>
+															<xs:attribute name="СумОтч" use="required">
+																<xs:annotation>
+																	<xs:documentation>Всего за отчетный период</xs:documentation>
+																</xs:annotation>
+																<xs:simpleType>
+																	<xs:restriction base="xs:integer">
+																		<xs:totalDigits value="12"/>
+																	</xs:restriction>
+																</xs:simpleType>
+															</xs:attribute>
+															<xs:attribute name="СумПред" use="optional">
+																<xs:annotation>
+																	<xs:documentation>Всего за период предыдущего года, аналогичный отчетному периоду</xs:documentation>
+																</xs:annotation>
+																<xs:simpleType>
+																	<xs:restriction base="xs:integer">
+																		<xs:totalDigits value="12"/>
+																	</xs:restriction>
+																</xs:simpleType>
+															</xs:attribute>
+														</xs:complexType>
+													</xs:element>
+													<xs:element name="Платеж" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Платежи</xs:documentation>
+														</xs:annotation>
+														<xs:complexType>
+															<xs:sequence>
+																<xs:element name="ПоставСМРУ" type="ОтчПредНТип" minOccurs="0">
+																	<xs:annotation>
+																		<xs:documentation>В том числе поставщикам (подрядчикам) за сырье, материалы, выполненные работы, оказанные услуги</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+																<xs:element name="ОплатТрудРаб" type="ОтчПредНТип" minOccurs="0">
+																	<xs:annotation>
+																		<xs:documentation>В том числе в связи с оплатой труда работников</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+																<xs:element name="ПроцДолгОбяз" type="ОтчПредНТип" minOccurs="0">
+																	<xs:annotation>
+																		<xs:documentation>В том числе процентов по долговым обязательствам</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+																<xs:element name="НалогПриб" type="ОтчПредНТип" minOccurs="0">
+																	<xs:annotation>
+																		<xs:documentation>В том числе налога на прибыль организаций</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+																<xs:element name="ВПокТекПлат" type="ДопПокОПТип" minOccurs="0" maxOccurs="30">
+																	<xs:annotation>
+																		<xs:documentation>Вписываемый показатель (по платежам от текущих операций)</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+																<xs:element name="ПрочПлатеж" type="ОтчПредНТип" minOccurs="0">
+																	<xs:annotation>
+																		<xs:documentation>В том числе прочие платежи</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+															</xs:sequence>
+															<xs:attribute name="Пояснения" use="optional">
+																<xs:annotation>
+																	<xs:documentation>Номер соответствующего пояснения</xs:documentation>
+																</xs:annotation>
+																<xs:simpleType>
+																	<xs:restriction base="xs:string">
+																		<xs:minLength value="1"/>
+																		<xs:maxLength value="4"/>
+																	</xs:restriction>
+																</xs:simpleType>
+															</xs:attribute>
+															<xs:attribute name="СумОтч" use="required">
+																<xs:annotation>
+																	<xs:documentation>Всего за отчетный период</xs:documentation>
+																</xs:annotation>
+																<xs:simpleType>
+																	<xs:restriction base="xs:integer">
+																		<xs:totalDigits value="12"/>
+																	</xs:restriction>
+																</xs:simpleType>
+															</xs:attribute>
+															<xs:attribute name="СумПред" use="optional">
+																<xs:annotation>
+																	<xs:documentation>Всего за период предыдущего года, аналогичный отчетному периоду</xs:documentation>
+																</xs:annotation>
+																<xs:simpleType>
+																	<xs:restriction base="xs:integer">
+																		<xs:totalDigits value="12"/>
+																	</xs:restriction>
+																</xs:simpleType>
+															</xs:attribute>
+														</xs:complexType>
+													</xs:element>
+												</xs:sequence>
+											</xs:complexType>
+										</xs:element>
+										<xs:element name="ИнвОпер" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Денежные потоки от инвестиционных операций</xs:documentation>
+											</xs:annotation>
+											<xs:complexType>
+												<xs:sequence>
+													<xs:element name="СальдоИнв" type="ОтчПредНТип">
+														<xs:annotation>
+															<xs:documentation>Сальдо денежных потоков от инвестиционных операций</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="Поступ" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Поступления</xs:documentation>
+														</xs:annotation>
+														<xs:complexType>
+															<xs:sequence>
+																<xs:element name="ПродВнАктив" type="ОтчПредНТип" minOccurs="0">
+																	<xs:annotation>
+																		<xs:documentation>В том числе от продажи внеоборотных активов (кроме финансовых вложений)</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+																<xs:element name="ПродАкцДр" type="ОтчПредНТип" minOccurs="0">
+																	<xs:annotation>
+																		<xs:documentation>В том числе от продажи акций других организаций (долей участия)</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+																<xs:element name="ВозврЗаймЦБ" type="ОтчПредНТип" minOccurs="0">
+																	<xs:annotation>
+																		<xs:documentation>В том числе от возврата предоставленных займов, от продажи долговых ценных бумаг (прав требования денежных средств к другим лицам)</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+																<xs:element name="ДивПроц" type="ОтчПредНТип" minOccurs="0">
+																	<xs:annotation>
+																		<xs:documentation>В том числе дивидендов, процентов по долговым финансовым вложениям и аналогичных поступлений от долевого участия в других организациях</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+																<xs:element name="ВПокИнвПост" type="ДопПокОПТип" minOccurs="0" maxOccurs="30">
+																	<xs:annotation>
+																		<xs:documentation>Вписываемый показатель (по поступлениям от инвестиционных операций)</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+																<xs:element name="ПрочПоступ" type="ОтчПредНТип" minOccurs="0">
+																	<xs:annotation>
+																		<xs:documentation>В том числе прочие поступления</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+															</xs:sequence>
+															<xs:attribute name="Пояснения" use="optional">
+																<xs:annotation>
+																	<xs:documentation>Номер соответствующего пояснения</xs:documentation>
+																</xs:annotation>
+																<xs:simpleType>
+																	<xs:restriction base="xs:string">
+																		<xs:minLength value="1"/>
+																		<xs:maxLength value="4"/>
+																	</xs:restriction>
+																</xs:simpleType>
+															</xs:attribute>
+															<xs:attribute name="СумОтч" use="required">
+																<xs:annotation>
+																	<xs:documentation>Всего за отчетный период</xs:documentation>
+																</xs:annotation>
+																<xs:simpleType>
+																	<xs:restriction base="xs:integer">
+																		<xs:totalDigits value="12"/>
+																	</xs:restriction>
+																</xs:simpleType>
+															</xs:attribute>
+															<xs:attribute name="СумПред" use="optional">
+																<xs:annotation>
+																	<xs:documentation>Всего за период предыдущего года, аналогичный отчетному периоду</xs:documentation>
+																</xs:annotation>
+																<xs:simpleType>
+																	<xs:restriction base="xs:integer">
+																		<xs:totalDigits value="12"/>
+																	</xs:restriction>
+																</xs:simpleType>
+															</xs:attribute>
+														</xs:complexType>
+													</xs:element>
+													<xs:element name="Платеж" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Платежи</xs:documentation>
+														</xs:annotation>
+														<xs:complexType>
+															<xs:sequence>
+																<xs:element name="ПриобрВнАктив" type="ОтчПредНТип" minOccurs="0">
+																	<xs:annotation>
+																		<xs:documentation>В том числе в связи с приобретением, созданием, модернизацией, реконструкцией и подготовкой к использованию внеоборотных активов</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+																<xs:element name="ПриобрАкцДр" type="ОтчПредНТип" minOccurs="0">
+																	<xs:annotation>
+																		<xs:documentation>В том числе в связи с приобретением акций других организаций (долей участия)</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+																<xs:element name="ПриобрДолгЦБ" type="ОтчПредНТип" minOccurs="0">
+																	<xs:annotation>
+																		<xs:documentation>В том числе в связи с приобретением долговых ценных бумаг (прав требования денежных средств к другим лицам), предоставление займов другим лицам</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+																<xs:element name="ПроцДолгОб" type="ОтчПредНТип" minOccurs="0">
+																	<xs:annotation>
+																		<xs:documentation>В том числе процентов по долговым обязательствам, включаемым в стоимость инвестиционного актива</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+																<xs:element name="ВПокИнвПлат" type="ДопПокОПТип" minOccurs="0" maxOccurs="30">
+																	<xs:annotation>
+																		<xs:documentation>Вписываемый показатель (по платежам от инвестиционных операций)</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+																<xs:element name="ПрочПлатеж" type="ОтчПредНТип" minOccurs="0">
+																	<xs:annotation>
+																		<xs:documentation>В том числе прочие платежи</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+															</xs:sequence>
+															<xs:attribute name="Пояснения" use="optional">
+																<xs:annotation>
+																	<xs:documentation>Номер соответствующего пояснения</xs:documentation>
+																</xs:annotation>
+																<xs:simpleType>
+																	<xs:restriction base="xs:string">
+																		<xs:minLength value="1"/>
+																		<xs:maxLength value="4"/>
+																	</xs:restriction>
+																</xs:simpleType>
+															</xs:attribute>
+															<xs:attribute name="СумОтч" use="required">
+																<xs:annotation>
+																	<xs:documentation>Всего за отчетный период</xs:documentation>
+																</xs:annotation>
+																<xs:simpleType>
+																	<xs:restriction base="xs:integer">
+																		<xs:totalDigits value="12"/>
+																	</xs:restriction>
+																</xs:simpleType>
+															</xs:attribute>
+															<xs:attribute name="СумПред" use="optional">
+																<xs:annotation>
+																	<xs:documentation>Всего за период предыдущего года, аналогичный отчетному периоду</xs:documentation>
+																</xs:annotation>
+																<xs:simpleType>
+																	<xs:restriction base="xs:integer">
+																		<xs:totalDigits value="12"/>
+																	</xs:restriction>
+																</xs:simpleType>
+															</xs:attribute>
+														</xs:complexType>
+													</xs:element>
+												</xs:sequence>
+											</xs:complexType>
+										</xs:element>
+										<xs:element name="ФинОпер" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Денежные потоки от финансовых операций</xs:documentation>
+											</xs:annotation>
+											<xs:complexType>
+												<xs:sequence>
+													<xs:element name="СальдоФин" type="ОтчПредНТип">
+														<xs:annotation>
+															<xs:documentation>Сальдо денежных потоков от финансовых операций</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="Поступ" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Поступления</xs:documentation>
+														</xs:annotation>
+														<xs:complexType>
+															<xs:sequence>
+																<xs:element name="КредЗайм" type="ОтчПредНТип" minOccurs="0">
+																	<xs:annotation>
+																		<xs:documentation>В том числе получение кредитов и займов</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+																<xs:element name="ВкладСоб" type="ОтчПредНТип" minOccurs="0">
+																	<xs:annotation>
+																		<xs:documentation>В том числе денежных вкладов собственников (участников)</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+																<xs:element name="АкцДол" type="ОтчПредНТип" minOccurs="0">
+																	<xs:annotation>
+																		<xs:documentation>В том числе от выпуска акций, увеличения долей участия</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+																<xs:element name="ОблВексДр" type="ОтчПредНТип" minOccurs="0">
+																	<xs:annotation>
+																		<xs:documentation>В том числе от выпуска облигаций, векселей и других долговых ценных бумаг</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+																<xs:element name="ВПокФинПост" type="ДопПокОПТип" minOccurs="0" maxOccurs="30">
+																	<xs:annotation>
+																		<xs:documentation>Вписываемый показатель (по поступлениям от финансовых операций)</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+																<xs:element name="ПрочПоступ" type="ОтчПредНТип" minOccurs="0">
+																	<xs:annotation>
+																		<xs:documentation>В том числе прочие поступления</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+															</xs:sequence>
+															<xs:attribute name="Пояснения" use="optional">
+																<xs:annotation>
+																	<xs:documentation>Номер соответствующего пояснения</xs:documentation>
+																</xs:annotation>
+																<xs:simpleType>
+																	<xs:restriction base="xs:string">
+																		<xs:minLength value="1"/>
+																		<xs:maxLength value="4"/>
+																	</xs:restriction>
+																</xs:simpleType>
+															</xs:attribute>
+															<xs:attribute name="СумОтч" use="required">
+																<xs:annotation>
+																	<xs:documentation>Всего за отчетный период</xs:documentation>
+																</xs:annotation>
+																<xs:simpleType>
+																	<xs:restriction base="xs:integer">
+																		<xs:totalDigits value="12"/>
+																	</xs:restriction>
+																</xs:simpleType>
+															</xs:attribute>
+															<xs:attribute name="СумПред" use="optional">
+																<xs:annotation>
+																	<xs:documentation>Всего за период предыдущего года, аналогичный отчетному периоду</xs:documentation>
+																</xs:annotation>
+																<xs:simpleType>
+																	<xs:restriction base="xs:integer">
+																		<xs:totalDigits value="12"/>
+																	</xs:restriction>
+																</xs:simpleType>
+															</xs:attribute>
+														</xs:complexType>
+													</xs:element>
+													<xs:element name="Платеж" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Платежи</xs:documentation>
+														</xs:annotation>
+														<xs:complexType>
+															<xs:sequence>
+																<xs:element name="ВыкупАкц" type="ОтчПредНТип" minOccurs="0">
+																	<xs:annotation>
+																		<xs:documentation>В том числе собственникам (участникам) в связи с выкупом у них акций (долей участия) организации или их выходом из состава участников</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+																<xs:element name="УплДивИн" type="ОтчПредНТип" minOccurs="0">
+																	<xs:annotation>
+																		<xs:documentation>В том числе на уплату дивидендов и иных платежей по распределению прибыли в пользу собственников (участников)</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+																<xs:element name="ВыкВексКЗ" type="ОтчПредНТип" minOccurs="0">
+																	<xs:annotation>
+																		<xs:documentation>В том числе в связи с погашением (выкупом) векселей и других долговых ценных бумаг, возврат кредитов и займов</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+																<xs:element name="ВПокФинПлат" type="ДопПокОПТип" minOccurs="0" maxOccurs="30">
+																	<xs:annotation>
+																		<xs:documentation>Вписываемый показатель (по платежам от финансовых операций)</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+																<xs:element name="ПрочПлатеж" type="ОтчПредНТип" minOccurs="0">
+																	<xs:annotation>
+																		<xs:documentation>В том числе прочие платежи</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+															</xs:sequence>
+															<xs:attribute name="Пояснения" use="optional">
+																<xs:annotation>
+																	<xs:documentation>Номер соответствующего пояснения</xs:documentation>
+																</xs:annotation>
+																<xs:simpleType>
+																	<xs:restriction base="xs:string">
+																		<xs:minLength value="1"/>
+																		<xs:maxLength value="4"/>
+																	</xs:restriction>
+																</xs:simpleType>
+															</xs:attribute>
+															<xs:attribute name="СумОтч" use="required">
+																<xs:annotation>
+																	<xs:documentation>Всего за отчетный период</xs:documentation>
+																</xs:annotation>
+																<xs:simpleType>
+																	<xs:restriction base="xs:integer">
+																		<xs:totalDigits value="12"/>
+																	</xs:restriction>
+																</xs:simpleType>
+															</xs:attribute>
+															<xs:attribute name="СумПред" use="optional">
+																<xs:annotation>
+																	<xs:documentation>Всего за период предыдущего года, аналогичный отчетному периоду</xs:documentation>
+																</xs:annotation>
+																<xs:simpleType>
+																	<xs:restriction base="xs:integer">
+																		<xs:totalDigits value="12"/>
+																	</xs:restriction>
+																</xs:simpleType>
+															</xs:attribute>
+														</xs:complexType>
+													</xs:element>
+												</xs:sequence>
+											</xs:complexType>
+										</xs:element>
+										<xs:element name="СальдоОтч" type="ОтчПредНТип">
+											<xs:annotation>
+												<xs:documentation>Сальдо денежных потоков за период</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="ОстНачОтч" type="ОтчПредНТип">
+											<xs:annotation>
+												<xs:documentation>Остаток денежных средств и денежных эквивалентов на начало периода</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="ОстКонОтч" type="ОтчПредНТип">
+											<xs:annotation>
+												<xs:documentation>Остаток денежных средств и денежных эквивалентов на конец периода</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="ВлИзмКурс" type="ОтчПредНТип" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Величина влияния изменений курса иностранной валюты по отношению к рублю</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+									</xs:sequence>
+									<xs:attribute name="ОКУД" use="required">
+										<xs:annotation>
+											<xs:documentation>Код формы по ОКУД</xs:documentation>
+										</xs:annotation>
+										<xs:simpleType>
+											<xs:restriction base="КНДТип">
+												<xs:enumeration value="0710005"/>
+											</xs:restriction>
+										</xs:simpleType>
+									</xs:attribute>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="Пояснения">
+								<xs:annotation>
+									<xs:documentation>Пояснения</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:attribute name="НаимФайлПЗ" use="required">
+										<xs:annotation>
+											<xs:documentation>Имя файла, содержащего данные пояснений (с расширением)</xs:documentation>
+										</xs:annotation>
+										<xs:simpleType>
+											<xs:restriction base="xs:string">
+												<xs:minLength value="1"/>
+												<xs:maxLength value="255"/>
+											</xs:restriction>
+										</xs:simpleType>
+									</xs:attribute>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="АудитЗакл" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Аудиторское заключение</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:attribute name="НаимФайлАЗ" use="required">
+										<xs:annotation>
+											<xs:documentation>Имя файла, содержащего данные аудиторского заключения (с расширением)</xs:documentation>
+										</xs:annotation>
+										<xs:simpleType>
+											<xs:restriction base="xs:string">
+												<xs:minLength value="1"/>
+												<xs:maxLength value="255"/>
+											</xs:restriction>
+										</xs:simpleType>
+									</xs:attribute>
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+						<xs:attribute name="КНД" use="required">
+							<xs:annotation>
+								<xs:documentation>Код формы отчетности по классификатору налоговых документов (КНД)</xs:documentation>
+							</xs:annotation>
+							<xs:simpleType>
+								<xs:restriction base="КНДТип">
+									<xs:enumeration value="0710096"/>
+								</xs:restriction>
+							</xs:simpleType>
+						</xs:attribute>
+						<xs:attribute name="ДатаДок" type="ДатаТип" use="required">
+							<xs:annotation>
+								<xs:documentation>Дата формирования документа</xs:documentation>
+								<xs:documentation>
+Дата в формате ДД.ММ.ГГГГ</xs:documentation>
+							</xs:annotation>
+						</xs:attribute>
+						<xs:attribute name="Период" use="required">
+							<xs:annotation>
+								<xs:documentation>Отчетный период (код)</xs:documentation>
+							</xs:annotation>
+							<xs:simpleType>
+								<xs:restriction base="xs:string">
+									<xs:length value="2"/>
+									<xs:enumeration value="34"/>
+									<xs:enumeration value="91"/>
+									<xs:enumeration value="92"/>
+									<xs:enumeration value="93"/>
+									<xs:enumeration value="94"/>
+								</xs:restriction>
+							</xs:simpleType>
+						</xs:attribute>
+						<xs:attribute name="ОтчетГод" type="xs:gYear" use="required">
+							<xs:annotation>
+								<xs:documentation>Отчетный год</xs:documentation>
+								<xs:documentation>
+Год в формате ГГГГ</xs:documentation>
+							</xs:annotation>
+						</xs:attribute>
+						<xs:attribute name="НомКорр" use="required">
+							<xs:annotation>
+								<xs:documentation>Номер корректировки</xs:documentation>
+							</xs:annotation>
+							<xs:simpleType>
+								<xs:restriction base="xs:integer">
+									<xs:totalDigits value="3"/>
+								</xs:restriction>
+							</xs:simpleType>
+						</xs:attribute>
+						<xs:attribute name="ОКЕИ" use="required">
+							<xs:annotation>
+								<xs:documentation>Код по ОКЕИ</xs:documentation>
+							</xs:annotation>
+							<xs:simpleType>
+								<xs:restriction base="ОКЕИТип">
+									<xs:enumeration value="384"/>
+								</xs:restriction>
+							</xs:simpleType>
+						</xs:attribute>
+						<xs:attribute name="ПрАудит" use="required">
+							<xs:annotation>
+								<xs:documentation>Бухгалтерская отчетность подлежит обязательному аудиту</xs:documentation>
+							</xs:annotation>
+							<xs:simpleType>
+								<xs:restriction base="xs:string">
+									<xs:length value="1"/>
+									<xs:enumeration value="0"/>
+									<xs:enumeration value="1"/>
+								</xs:restriction>
+							</xs:simpleType>
+						</xs:attribute>
+						<xs:attribute name="ПрУтвер" use="required">
+							<xs:annotation>
+								<xs:documentation>Бухгалтерская отчетность подлежит утверждению</xs:documentation>
+							</xs:annotation>
+							<xs:simpleType>
+								<xs:restriction base="xs:string">
+									<xs:length value="1"/>
+									<xs:enumeration value="0"/>
+									<xs:enumeration value="1"/>
+								</xs:restriction>
+							</xs:simpleType>
+						</xs:attribute>
+						<xs:attribute name="НаимОргнУтв" use="optional">
+							<xs:annotation>
+								<xs:documentation>Наименование органа, утверждающего бухгалтерскую отчетность</xs:documentation>
+								<!---**************************************************************************************************************************************************************************-->
+								<xs:appinfo>
+									<sch:pattern name="Проверка присутствия (отсутствия) элемента НаимОргнУтв в зависимости от значения элемента ПрУтвер">
+										<sch:rule context="Документ">
+											<sch:assert test="usch:iif(@ПрУтвер=0, count(@НаимОргнУтв)=0, count(@НаимОргнУтв)!=0 or count(@НаимОргнУтв)=0)">
+												<usch:error code="0400300003" path="НаимОргнУтв" value-of-select="@ПрУтвер">Не выполнено условие присутствия (отсутствия) элемента НаимОргнУтв при значении элемента ПрУтвер, равном "<usch:value-of select="@ПрУтвер"/>" </usch:error>
+											</sch:assert>
+										</sch:rule>
+									</sch:pattern>
+								</xs:appinfo>
+								<!---**************************************************************************************************************************************************************************-->
+							</xs:annotation>
+							<xs:simpleType>
+								<xs:restriction base="xs:string">
+									<xs:minLength value="1"/>
+									<xs:maxLength value="1000"/>
+								</xs:restriction>
+							</xs:simpleType>
+						</xs:attribute>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+			<xs:attribute name="ИдФайл" use="required">
+				<xs:annotation>
+					<xs:documentation>Идентификатор файла</xs:documentation>
+					<xs:documentation>Содержит (повторяет) имя сформированного файла (без расширения)</xs:documentation>
+				</xs:annotation>
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:minLength value="1"/>
+						<xs:maxLength value="255"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:attribute>
+			<xs:attribute name="ВерсПрог" use="required">
+				<xs:annotation>
+					<xs:documentation>Версия программы, с помощью которой сформирован файл</xs:documentation>
+				</xs:annotation>
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:maxLength value="40"/>
+						<xs:minLength value="1"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:attribute>
+			<xs:attribute name="ВерсФорм" use="required">
+				<xs:annotation>
+					<xs:documentation>Версия формата</xs:documentation>
+				</xs:annotation>
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:minLength value="1"/>
+						<xs:maxLength value="5"/>
+						<xs:enumeration value="5.04"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:attribute>
+		</xs:complexType>
+	</xs:element>
+	<!--Типовые элементы для Бухгалтерского баланса-->
+	<xs:complexType name="ОПП_ВПТип">
+		<xs:annotation>
+			<xs:documentation>Данные на определенную дату</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="ВПокОПП" type="ВПокОППТип" minOccurs="0" maxOccurs="30">
+				<xs:annotation>
+					<xs:documentation>Детализация отдельных показателей на определенную дату</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+		<xs:attribute name="Пояснения" use="optional">
+			<xs:annotation>
+				<xs:documentation>Номер соответствующего пояснения</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:minLength value="1"/>
+					<xs:maxLength value="4"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="СумОтч" use="required">
+			<xs:annotation>
+				<xs:documentation>На отчетную дату</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:totalDigits value="12"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="СумПрдщ" use="optional">
+			<xs:annotation>
+				<xs:documentation>На 31 декабря предыдущего года</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:totalDigits value="12"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="СумПрдшв" use="optional">
+			<xs:annotation>
+				<xs:documentation>На 31 декабря года, предшествующего предыдущему</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:totalDigits value="12"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+	</xs:complexType>
+	<xs:complexType name="ВписПоказТип">
+		<xs:annotation>
+			<xs:documentation>Данные вписываемого показателя на определенную дату</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="ВПокОПП" type="ВПокОППТип" minOccurs="0" maxOccurs="30">
+				<xs:annotation>
+					<xs:documentation>Детализация отдельных показателей на определенную дату</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+		<xs:attribute name="Пояснения" use="optional">
+			<xs:annotation>
+				<xs:documentation>Номер соответствующего пояснения</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:minLength value="1"/>
+					<xs:maxLength value="4"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="НаимВпсПкз" use="required">
+			<xs:annotation>
+				<xs:documentation>Наименование вписываемого показателя</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:minLength value="1"/>
+					<xs:maxLength value="255"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="СумОтч" use="required">
+			<xs:annotation>
+				<xs:documentation>На отчетную дату</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:totalDigits value="12"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="СумПрдщ" use="optional">
+			<xs:annotation>
+				<xs:documentation>На 31 декабря предыдущего года</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:totalDigits value="12"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="СумПрдшв" use="optional">
+			<xs:annotation>
+				<xs:documentation>На 31 декабря года, предшествующего предыдущему</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:totalDigits value="12"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+	</xs:complexType>
+	<xs:complexType name="ВПокОППТип">
+		<xs:annotation>
+			<xs:documentation>Детализация отдельных показателей на определенную дату</xs:documentation>
+		</xs:annotation>
+		<xs:attribute name="Пояснения" use="optional">
+			<xs:annotation>
+				<xs:documentation>Номер соответствующего пояснения</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:minLength value="1"/>
+					<xs:maxLength value="4"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="НаимПок" use="required">
+			<xs:annotation>
+				<xs:documentation>Наименование показателя</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:minLength value="1"/>
+					<xs:maxLength value="255"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="СумОтч" use="required">
+			<xs:annotation>
+				<xs:documentation>На отчетную дату</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:totalDigits value="12"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="СумПрдщ" use="optional">
+			<xs:annotation>
+				<xs:documentation>На 31 декабря предыдущего года</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:totalDigits value="12"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="СумПрдшв" use="optional">
+			<xs:annotation>
+				<xs:documentation>На 31 декабря года, предшествующего предыдущему</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:totalDigits value="12"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+	</xs:complexType>
+	<!--Типовые элементы для Отчета о финансовых результатах / Отчета об изменении капитала / Отчета о движении денежных средств / Отчета о целевом использовании средств-->
+	<xs:complexType name="ОтчПредНТип">
+		<xs:annotation>
+			<xs:documentation>Данные за определенный период</xs:documentation>
+		</xs:annotation>
+		<xs:attribute name="Пояснения" use="optional">
+			<xs:annotation>
+				<xs:documentation>Номер соответствующего пояснения</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:minLength value="1"/>
+					<xs:maxLength value="4"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="СумОтч" use="required">
+			<xs:annotation>
+				<xs:documentation>За отчетный период</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:totalDigits value="12"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="СумПред" use="optional">
+			<xs:annotation>
+				<xs:documentation>За период предыдущего года, аналогичный отчетному периоду</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:totalDigits value="12"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+	</xs:complexType>
+	<xs:complexType name="ОтчПредНДопТип">
+		<xs:annotation>
+			<xs:documentation>Данные за определенный период с детализацией</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="ДопПокОП" type="ДопПокОПТип" minOccurs="0" maxOccurs="36">
+				<xs:annotation>
+					<xs:documentation>Детализация отдельных показателей за определенный период</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+		<xs:attribute name="Пояснения" use="optional">
+			<xs:annotation>
+				<xs:documentation>Номер соответствующего пояснения</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:minLength value="1"/>
+					<xs:maxLength value="4"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="СумОтч" use="required">
+			<xs:annotation>
+				<xs:documentation>За отчетный период</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:totalDigits value="12"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="СумПред" use="optional">
+			<xs:annotation>
+				<xs:documentation>За период предыдущего года, аналогичный отчетному периоду</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:totalDigits value="12"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+	</xs:complexType>
+	<xs:complexType name="ВписПоказОтчТип">
+		<xs:annotation>
+			<xs:documentation>Данные вписываемого показателя за определенный период</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="ВПокОтч" type="ДопПокОПТип" minOccurs="0" maxOccurs="36">
+				<xs:annotation>
+					<xs:documentation>Детализация отдельных показателей за определенный период</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+		<xs:attribute name="Пояснения" use="optional">
+			<xs:annotation>
+				<xs:documentation>Номер соответствующего пояснения</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:minLength value="1"/>
+					<xs:maxLength value="4"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="НаимВпсПкз" use="required">
+			<xs:annotation>
+				<xs:documentation>Наименование вписываемого показателя</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:minLength value="1"/>
+					<xs:maxLength value="255"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="СумОтч" use="required">
+			<xs:annotation>
+				<xs:documentation>За отчетный период</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:totalDigits value="12"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="СумПред" use="optional">
+			<xs:annotation>
+				<xs:documentation>За период предыдущего года, аналогичный отчетному периоду</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:totalDigits value="12"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+	</xs:complexType>
+	<xs:complexType name="ДопПокОПТип">
+		<xs:annotation>
+			<xs:documentation>Детализация отдельных показателей за определенный период</xs:documentation>
+		</xs:annotation>
+		<xs:attribute name="Пояснения" use="optional">
+			<xs:annotation>
+				<xs:documentation>Номер соответствующего пояснения</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:minLength value="1"/>
+					<xs:maxLength value="4"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="НаимПок" use="required">
+			<xs:annotation>
+				<xs:documentation>Наименование показателя</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:minLength value="1"/>
+					<xs:maxLength value="255"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="СумОтч" use="required">
+			<xs:annotation>
+				<xs:documentation>За отчетный период</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:totalDigits value="12"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="СумПред" use="optional">
+			<xs:annotation>
+				<xs:documentation>За период предыдущего года, аналогичный отчетному периоду</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:totalDigits value="12"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+	</xs:complexType>
+	<xs:complexType name="ДвижКапПГод">
+		<xs:annotation>
+			<xs:documentation>Сведения по строке движения капитала, полный</xs:documentation>
+		</xs:annotation>
+		<xs:attribute name="Пояснения" use="optional">
+			<xs:annotation>
+				<xs:documentation>Номер соответствующего пояснения</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:minLength value="1"/>
+					<xs:maxLength value="4"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="УстКапитал" use="required">
+			<xs:annotation>
+				<xs:documentation>Уставный капитал</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:totalDigits value="12"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="СобВыкупАкц" use="optional">
+			<xs:annotation>
+				<xs:documentation>Собственные акции, принадлежащие обществу, задолженность акционеров по оплате акций</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:totalDigits value="12"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="НакопДооц" use="optional">
+			<xs:annotation>
+				<xs:documentation>Накопленная дооценка внеоборотных активов</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:totalDigits value="12"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="ДобКапитал" use="optional">
+			<xs:annotation>
+				<xs:documentation>Добавочный капитал (без накопленной дооценки)</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:totalDigits value="12"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="РезКапитал" use="optional">
+			<xs:annotation>
+				<xs:documentation>Резервный капитал</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:totalDigits value="12"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="НераспПриб" use="optional">
+			<xs:annotation>
+				<xs:documentation>Нераспределенная прибыль (непокрытый убыток)</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:totalDigits value="12"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="Итог" use="required">
+			<xs:annotation>
+				<xs:documentation>Итого</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:totalDigits value="12"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+	</xs:complexType>
+	<xs:complexType name="ДвижКапВПГод">
+		<xs:annotation>
+			<xs:documentation>Сведения по строке движения капитала, полный с детализацией отдельных показателей</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="ВписПоказ" type="ВПокДвижКапПГод" minOccurs="0" maxOccurs="30">
+				<xs:annotation>
+					<xs:documentation>Вписываемый показатель</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+		<xs:attribute name="Пояснения" use="optional">
+			<xs:annotation>
+				<xs:documentation>Номер соответствующего пояснения</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:minLength value="1"/>
+					<xs:maxLength value="4"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="УстКапитал" use="required">
+			<xs:annotation>
+				<xs:documentation>Уставный капитал</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:totalDigits value="12"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="СобВыкупАкц" use="optional">
+			<xs:annotation>
+				<xs:documentation>Собственные акции, принадлежащие обществу, задолженность акционеров по оплате акций</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:totalDigits value="12"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="НакопДооц" use="optional">
+			<xs:annotation>
+				<xs:documentation>Накопленная дооценка внеоборотных активов</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:totalDigits value="12"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="ДобКапитал" use="optional">
+			<xs:annotation>
+				<xs:documentation>Добавочный капитал (без накопленной дооценки)</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:totalDigits value="12"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="РезКапитал" use="optional">
+			<xs:annotation>
+				<xs:documentation>Резервный капитал</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:totalDigits value="12"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="НераспПриб" use="optional">
+			<xs:annotation>
+				<xs:documentation>Нераспределенная прибыль (непокрытый убыток)</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:totalDigits value="12"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="Итог" use="required">
+			<xs:annotation>
+				<xs:documentation>Итого</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:totalDigits value="12"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+	</xs:complexType>
+	<xs:complexType name="ВПокДвижКапПГод">
+		<xs:annotation>
+			<xs:documentation>Вписываемый показатель по строке движения капитала, полный</xs:documentation>
+		</xs:annotation>
+		<xs:attribute name="Пояснения" use="optional">
+			<xs:annotation>
+				<xs:documentation>Номер соответствующего пояснения</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:minLength value="1"/>
+					<xs:maxLength value="4"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="НаимПок" use="required">
+			<xs:annotation>
+				<xs:documentation>Наименование показателя</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:minLength value="1"/>
+					<xs:maxLength value="255"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="УстКапитал" use="required">
+			<xs:annotation>
+				<xs:documentation>Уставный капитал</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:totalDigits value="12"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="СобВыкупАкц" use="optional">
+			<xs:annotation>
+				<xs:documentation>Собственные акции, принадлежащие обществу, задолженность акционеров по оплате акций</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:totalDigits value="12"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="НакопДооц" use="optional">
+			<xs:annotation>
+				<xs:documentation>Накопленная дооценка внеоборотных активов</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:totalDigits value="12"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="ДобКапитал" use="optional">
+			<xs:annotation>
+				<xs:documentation>Добавочный капитал (без накопленной дооценки)</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:totalDigits value="12"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="РезКапитал" use="optional">
+			<xs:annotation>
+				<xs:documentation>Резервный капитал</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:totalDigits value="12"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="НераспПриб" use="optional">
+			<xs:annotation>
+				<xs:documentation>Нераспределенная прибыль (непокрытый убыток)</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:totalDigits value="12"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="Итог" use="required">
+			<xs:annotation>
+				<xs:documentation>Итого</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:totalDigits value="12"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+	</xs:complexType>
+	<xs:complexType name="ФИОТип">
+		<xs:annotation>
+			<xs:documentation>Фамилия, имя, отчество</xs:documentation>
+		</xs:annotation>
+		<xs:attribute name="Фамилия" use="required">
+			<xs:annotation>
+				<xs:documentation>Фамилия</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:minLength value="1"/>
+					<xs:maxLength value="60"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="Имя" use="required">
+			<xs:annotation>
+				<xs:documentation>Имя</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:minLength value="1"/>
+					<xs:maxLength value="60"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="Отчество" use="optional">
+			<xs:annotation>
+				<xs:documentation>Отчество</xs:documentation>
+			</xs:annotation>
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:minLength value="1"/>
+					<xs:maxLength value="60"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+	</xs:complexType>
+	<xs:simpleType name="ИННФЛТип">
+		<xs:annotation>
+			<xs:documentation>Идентификационный номер налогоплательщика - физического лица</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:length value="12"/>
+			<xs:pattern value="([0-9]{1}[1-9]{1}|[1-9]{1}[0-9]{1})[0-9]{10}"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ИННЮЛТип">
+		<xs:annotation>
+			<xs:documentation>Идентификационный номер налогоплательщика - организации</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:length value="10"/>
+			<xs:pattern value="([0-9]{1}[1-9]{1}|[1-9]{1}[0-9]{1})[0-9]{8}"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="КППТип">
+		<xs:annotation>
+			<xs:documentation>Код причины постановки на учет (КПП) - 5 и 6 знаки от 0-9 и A-Z</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:length value="9"/>
+			<xs:pattern value="([0-9]{1}[1-9]{1}|[1-9]{1}[0-9]{1})([0-9]{2})([0-9A-Z]{2})([0-9]{3})"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="КНДТип">
+		<xs:annotation>
+			<xs:documentation>Код из Классификатора налоговой документации</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:length value="7"/>
+			<xs:pattern value="[0-9]{7}"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ОГРНТип">
+		<xs:annotation>
+			<xs:documentation>Основной  государственный регистрационный номер юридического лица  </xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:length value="13"/>
+			<xs:pattern value="[0-9]{13}"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ОКЕИТип">
+		<xs:annotation>
+			<xs:documentation>Код из Общероссийского классификатора единиц измерения</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:length value="3"/>
+			<xs:pattern value="[0-9]{3}"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ОКОПФ5Тип">
+		<xs:annotation>
+			<xs:documentation>Код из Общероссийского классификатора организационно-правовых форм хозяйствующих субъектов</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:length value="5"/>
+			<xs:pattern value="[0-9]{5}"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ОКПОТип">
+		<xs:annotation>
+			<xs:documentation>Код из Общероссийского классификатора предприятий и организаций</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:minLength value="8"/>
+			<xs:maxLength value="10"/>
+			<xs:pattern value="[0-9]{8}"/>
+			<xs:pattern value="[0-9]{10}"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ОКФСТип">
+		<xs:annotation>
+			<xs:documentation>Код из Общероссийского классификатора форм собственности</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:length value="2"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ДатаТип">
+		<xs:annotation>
+			<xs:documentation>Дата в формате ДД.ММ.ГГГГ (01.01.1900 - 31.12.2099)</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:length value="10"/>
+			<xs:pattern value="((((0[1-9]{1}|1[0-9]{1}|2[0-8]{1})\.(0[1-9]{1}|1[0-2]{1}))|((29|30)\.(01|0[3-9]{1}|1[0-2]{1}))|(31\.(01|03|05|07|08|10|12)))\.((19|20)[0-9]{2}))|(29\.02\.((19|20)(((0|2|4|6|8)(0|4|8))|((1|3|5|7|9)(2|6)))))"/>
+		</xs:restriction>
+	</xs:simpleType>
+</xs:schema>

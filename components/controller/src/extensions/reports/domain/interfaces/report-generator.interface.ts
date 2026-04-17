@@ -51,6 +51,11 @@ export interface ReportInput {
   sfrRegNumber?: string;
   /** Должность руководителя для подачи в СФР (по умолчанию «Председатель Совета»). */
   chairmanPosition?: string;
+  /**
+   * Для BUHOTCH: имя файла пояснений к балансу (атрибут `НаимФайлПЗ`).
+   * По XSD обязательно ≥1 символа. По умолчанию «-» (placeholder).
+   */
+  explanationFileName?: string;
 }
 
 export interface LedgerAccountData {

@@ -235,7 +235,15 @@ export class BuhotchGenerator implements IReportGenerator {
     passiv.up();
     balans.up();
 
-    dokument.ele('Пояснения').att('НаимФайлПЗ', '').up();
+    // <Пояснения> — один из обязательных «видов отчёта» в <Документ> по XSD
+    // (one of ФинРез/ЦелИсп/ОтчетИзмКап/ДвижениеДен/Пояснения). Атрибут
+    // `НаимФайлПЗ` обязателен (minLength=1). Эталон ВОСХОДа от КОНТУР-ЭКСТЕРН
+    // отдаёт его пустой строкой, что формально невалидно; ставим placeholder
+    // «-» или имя, переданное в input.explanationFileName.
+    dokument.ele('Пояснения')
+      .att('НаимФайлПЗ', input.explanationFileName?.trim() || '-')
+    .up();
+
     dokument.up();
     doc.up();
 
