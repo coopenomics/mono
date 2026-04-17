@@ -1,5 +1,6 @@
-import { ObjectType, Field, InputType, Int, registerEnumType } from '@nestjs/graphql';
-import { IsString, IsInt, IsOptional, IsEnum } from 'class-validator';
+import { ObjectType, Field, InputType, Int, Float, registerEnumType } from '@nestjs/graphql';
+import { IsString, IsInt, IsOptional, IsEnum, IsArray, ValidateNested, IsNumber, IsIn } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ReportType, ReportPeriodType } from '../../domain/enums/report-type.enum';
 
 registerEnumType(ReportType, { name: 'ReportType' });
@@ -20,6 +21,21 @@ export class AvailableReportDTO {
   deadline!: string;
 }
 
+@InputType('BalanceCorrectionItemInput')
+export class BalanceCorrectionItemInputDTO {
+  @Field(() => String)
+  @IsString()
+  accountDisplayId!: string;
+
+  @Field(() => Float)
+  @IsNumber()
+  balancePrevious!: number;
+
+  @Field(() => Float)
+  @IsNumber()
+  balancePrePrevious!: number;
+}
+
 @InputType('GenerateReportInput')
 export class GenerateReportInputDTO {
   @Field(() => ReportType)
@@ -34,6 +50,21 @@ export class GenerateReportInputDTO {
   @IsOptional()
   @IsInt()
   period?: number;
+
+  @Field(() => Int, { nullable: true, description: 'Номер корректировки декларации (0 — первичная)' })
+  @IsOptional()
+  @IsInt()
+  correctionNumber?: number;
+
+  @Field(() => [BalanceCorrectionItemInputDTO], {
+    nullable: true,
+    description: 'Ручные корректировки балансов прошлых периодов (для BUHOTCH)',
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => BalanceCorrectionItemInputDTO)
+  corrections?: BalanceCorrectionItemInputDTO[];
 }
 
 @InputType('OrganizationDataInput')
@@ -82,6 +113,11 @@ export class OrganizationDataInputDTO {
   @IsString()
   phone?: string;
 
+  @Field(() => String, { nullable: true, description: 'ОКПО' })
+  @IsOptional()
+  @IsString()
+  okpo?: string;
+
   @Field(() => String)
   @IsString()
   signerLastName!: string;
@@ -94,6 +130,22 @@ export class OrganizationDataInputDTO {
   @IsOptional()
   @IsString()
   signerMiddleName?: string;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Тип подписанта: "chairman" (ПрПодп=1) или "representative" (ПрПодп=2)',
+  })
+  @IsOptional()
+  @IsIn(['chairman', 'representative'])
+  signerType?: 'chairman' | 'representative';
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Для signerType=representative — описание доверенности (НаимДок в <СвПред>)',
+  })
+  @IsOptional()
+  @IsString()
+  signerRepDoc?: string;
 
   @Field(() => String, { nullable: true })
   @IsOptional()

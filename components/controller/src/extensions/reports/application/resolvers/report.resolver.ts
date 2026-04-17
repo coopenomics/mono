@@ -62,11 +62,13 @@ export class ReportResolver {
       reportType: data.reportType,
       year: data.year,
       period: data.period,
+      correctionNumber: data.correctionNumber ?? 0,
       inn: org.inn,
       kpp: org.kpp,
       orgName: org.orgName,
       ogrn: org.ogrn,
       okved: org.okved,
+      okpo: org.okpo,
       okfs: org.okfs || '16',
       okopf: org.okopf || '20200',
       oktmo: org.oktmo,
@@ -77,8 +79,15 @@ export class ReportResolver {
         firstName: org.signerFirstName,
         middleName: org.signerMiddleName,
       },
+      signerType: org.signerType ?? 'chairman',
+      signerRepDoc: org.signerRepDoc,
       signerSnils: org.signerSnils,
       ledgerData,
+      corrections: data.corrections?.map((c) => ({
+        accountDisplayId: c.accountDisplayId,
+        balancePrevious: c.balancePrevious,
+        balancePrePrevious: c.balancePrePrevious,
+      })),
     };
 
     const generated = this.reportRegistry.generate(input);

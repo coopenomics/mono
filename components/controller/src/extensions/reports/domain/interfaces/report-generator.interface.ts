@@ -1,5 +1,17 @@
 import type { ReportType } from '../enums/report-type.enum';
 
+/** Кто подписывает отчёт. */
+export type SignerType = 'chairman' | 'representative';
+
+export interface BalanceCorrectionInput {
+  /** Идентификатор счёта в человеко-читаемом виде: "51", "80", "86.01". */
+  accountDisplayId: string;
+  /** Остаток на конец предыдущего года (год N-1), в рублях (полная сумма, не тыс.). */
+  balancePrevious: number;
+  /** Остаток на конец года N-2, в рублях. */
+  balancePrePrevious: number;
+}
+
 export interface ReportInput {
   reportType: ReportType;
   year: number;
@@ -23,8 +35,16 @@ export interface ReportInput {
   phone?: string;
   /** ФИО подписанта */
   signerFio: { lastName: string; firstName: string; middleName?: string };
-  /** Данные из ledger (балансы по счетам) */
+  /** Тип подписанта (по умолчанию 'chairman', что даёт ПрПодп=1). */
+  signerType?: SignerType;
+  /** Для representative: описание доверенности (пишется в <СвПред НаимДок="..."/>). */
+  signerRepDoc?: string;
+  /** Данные из ledger2::accounts (балансы по счетам, в рублях). */
   ledgerData?: LedgerAccountData[];
+  /** Ручные корректировки прошлых периодов (для BUHOTCH). */
+  corrections?: BalanceCorrectionInput[];
+  /** Номер корректировки декларации (0 — первичная). */
+  correctionNumber?: number;
   /** СНИЛС председателя (для ПСВ) */
   signerSnils?: string;
 }

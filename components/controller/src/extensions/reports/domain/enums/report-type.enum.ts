@@ -31,7 +31,11 @@ export const REPORT_CONFIG: Record<ReportType, {
   [ReportType.BUHOTCH]: {
     name: 'Бухгалтерский баланс',
     period: ReportPeriodType.YEARLY,
-    xsdFile: 'NO_BUHOTCH_1_105_00_05_09_01.xsd',
+    // Форма НКО v5.04 (КНД 0710096) — XSD из ФНС пока не добыта в репо
+    // (в schemas/ лежит только v5.09 КНД 0710099 коммерческой формы). До появления
+    // корректной XSD валидация BUHOTCH пропускается; структура сверяется с эталоном
+    // reports-standarts/ВОСХОД/NO_BOUPR_*.xml.
+    xsdFile: '',
     deadlineDescription: 'До 31 марта следующего года',
   },
   [ReportType.NDFL6]: {
