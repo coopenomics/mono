@@ -19,6 +19,67 @@ export class AvailableReportDTO {
 
   @Field(() => String)
   deadline!: string;
+
+  @Field(() => Date, { nullable: true, description: 'Время последней успешной генерации (UTC)' })
+  lastGeneratedAt?: Date;
+
+  @Field(() => Date, { nullable: true, description: 'Ближайшая дата подачи в ФНС/СФР' })
+  nextDeadlineDate?: Date;
+}
+
+@ObjectType('ReportPreviewField')
+export class ReportPreviewFieldDTO {
+  @Field(() => String)
+  key!: string;
+
+  @Field(() => String)
+  label!: string;
+
+  @Field(() => String, { nullable: true })
+  value?: string;
+
+  @Field(() => String, { nullable: true })
+  unit?: string;
+}
+
+@ObjectType('ReportPreviewSection')
+export class ReportPreviewSectionDTO {
+  @Field(() => String)
+  title!: string;
+
+  @Field(() => [ReportPreviewFieldDTO])
+  fields!: ReportPreviewFieldDTO[];
+}
+
+@ObjectType('ReportPreview')
+export class ReportPreviewDTO {
+  @Field(() => ReportType)
+  reportType!: ReportType;
+
+  @Field(() => Int)
+  year!: number;
+
+  @Field(() => Int, { nullable: true })
+  period?: number;
+
+  @Field(() => [ReportPreviewSectionDTO])
+  sections!: ReportPreviewSectionDTO[];
+}
+
+@InputType('ReportPreviewInput')
+export class ReportPreviewInputDTO {
+  @Field(() => ReportType)
+  @IsEnum(ReportType)
+  reportType!: ReportType;
+
+  @Field(() => Int)
+  @IsInt()
+  year!: number;
+
+  @Field(() => Int, { nullable: true })
+  @IsOptional()
+  @IsInt()
+  period?: number;
 }
 
 @InputType('BalanceCorrectionItemInput')

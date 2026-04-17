@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule as NestTypeOrmModule } from '@nestjs/typeorm';
 import { ReportRegistryService } from './domain/services/report-registry.service';
+import { ReportPreviewService } from './domain/services/report-preview.service';
 import { ReportInitService } from './infrastructure/services/report-init.service';
 import { XsdValidatorService } from './infrastructure/services/xsd-validator.service';
 import { ReportResolver } from './application/resolvers/report.resolver';
@@ -19,6 +20,7 @@ import { BALANCE_CORRECTION_REPOSITORY } from './domain/repositories/balance-cor
   ],
   providers: [
     ReportRegistryService,
+    ReportPreviewService,
     ReportInitService,
     XsdValidatorService,
     ReportResolver,

@@ -6,7 +6,9 @@ import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
 import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 import { ReportRegistryService } from '../../domain/services/report-registry.service';
+import { ReportPreviewService } from '../../domain/services/report-preview.service';
 import { XsdValidatorService } from '../../infrastructure/services/xsd-validator.service';
+import { ReportType } from '../../domain/enums/report-type.enum';
 import {
   AvailableReportDTO,
   GenerateReportInputDTO,
@@ -15,6 +17,8 @@ import {
   OrganizationDataInputDTO,
   ReportHistoryFilterInputDTO,
   ReportHistoryPageDTO,
+  ReportPreviewDTO,
+  ReportPreviewInputDTO,
 } from '../dto/report.dto';
 import { config } from '~/config';
 import type { BalanceCorrectionInput, LedgerAccountData, ReportInput } from '../../domain/interfaces/report-generator.interface';
@@ -31,12 +35,23 @@ import {
 const HISTORY_MAX_LIMIT = 100;
 const HISTORY_DEFAULT_LIMIT = 20;
 
+/**
+ * Типы отчётов вне MVP (скрываются через feature-flag).
+ * Генераторы существуют и работают, но в UI/availableReports пока не светятся.
+ */
+const HIDDEN_IN_MVP: ReadonlySet<ReportType> = new Set([
+  ReportType.PSV,
+  ReportType.UV_VZNOSY,
+  ReportType.UUSN,
+]);
+
 @Resolver()
 export class ReportResolver {
   private readonly logger = new Logger(ReportResolver.name);
 
   constructor(
     private readonly reportRegistry: ReportRegistryService,
+    private readonly previewService: ReportPreviewService,
     private readonly ledgerInteractor: LedgerInteractor,
     private readonly xsdValidator: XsdValidatorService,
     @Inject(GENERATED_REPORT_REPOSITORY)
@@ -47,11 +62,62 @@ export class ReportResolver {
 
   @Query(() => [AvailableReportDTO], {
     name: 'getAvailableReports',
-    description: 'Получить список доступных типов отчётов',
+    description: 'Список доступных типов отчётов MVP (PSV/UV_VZNOSY/UUSN скрыты feature-flag) с meta по последней генерации',
   })
   @UseGuards(GqlJwtAuthGuard)
   async getAvailableReports(): Promise<AvailableReportDTO[]> {
-    return this.reportRegistry.getAvailableReports();
+    const coopname = config.coopname;
+    const available = this.reportRegistry.getAvailableReports();
+    const visible = available.filter((r) => !HIDDEN_IN_MVP.has(r.type));
+
+    const enriched: AvailableReportDTO[] = [];
+    for (const r of visible) {
+      const latest = await this.reportRepo.findLatest(coopname, r.type, new Date().getFullYear(), null);
+      enriched.push({
+        ...r,
+        lastGeneratedAt: latest?.created_at,
+      });
+    }
+    return enriched;
+  }
+
+  @Query(() => ReportPreviewDTO, {
+    name: 'getReportPreview',
+    description: 'Предрасчёт полей отчёта без XML — для отображения формы перед генерацией',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman'])
+  async getReportPreview(
+    @Args('input', { type: () => ReportPreviewInputDTO }) input: ReportPreviewInputDTO,
+  ): Promise<ReportPreviewDTO> {
+    if (HIDDEN_IN_MVP.has(input.reportType)) {
+      throw new Error(`Тип отчёта ${input.reportType} скрыт в MVP (feature-flag).`);
+    }
+    const coopname = config.coopname;
+    const ledgerData = await this.loadLedger(coopname);
+    const stored = await this.correctionRepo.findForYear(coopname, input.year);
+    const correctionsMap = new Map<string, { prev: number; pre: number }>();
+    for (const s of stored) {
+      correctionsMap.set(s.account_display_id, {
+        prev: Number(s.balance_previous),
+        pre: Number(s.balance_pre_previous),
+      });
+    }
+
+    const sections = this.previewService.build({
+      reportType: input.reportType,
+      year: input.year,
+      period: input.period ?? undefined,
+      ledgerData,
+      corrections: correctionsMap,
+    });
+
+    return {
+      reportType: input.reportType,
+      year: input.year,
+      period: input.period ?? undefined,
+      sections,
+    };
   }
 
   @Query(() => ReportHistoryPageDTO, {
