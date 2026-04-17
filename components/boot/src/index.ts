@@ -5,7 +5,7 @@ import { Command } from 'commander'
 import { config } from 'dotenv'
 import { execCommand } from './docker/exec'
 import { stopContainerByName } from './docker/stop'
-import { runContainer } from './docker/run'
+import { runContainer, runInfraContainers } from './docker/run'
 import { boot, bootClean, bootExtra } from './init/booter'
 import { startCoop } from './init/cooperative'
 import { sleep } from './utils'
@@ -121,6 +121,7 @@ program
     }
 
     try {
+      await runInfraContainers()
       await runContainer()
 
       await sleep(5000)
@@ -199,6 +200,7 @@ program
     }
 
     try {
+      await runInfraContainers()
       await runContainer()
 
       await sleep(5000)
@@ -261,6 +263,7 @@ program
       await stopContainerByName('node')
       await deleteFile(keosdPath)
       await clearDirectory(basePath)
+      await runInfraContainers()
       await sleep(5000)
       await clearDB()
       await runContainer()
