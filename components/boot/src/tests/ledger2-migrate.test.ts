@@ -27,6 +27,15 @@ const LEDGER2_WALLETS = {
   LONG_TERM_LOANS: 6,
 } as const
 
+// Соответствие ledger2 accounts (legacy id * 1000).
+const LEDGER2_ACCOUNTS = {
+  BANK_ACCOUNT: 51_000,
+  SHARE_FUND: 80_000,
+  ENTRANCE_FEES: 861_000,
+  LONG_TERM_LOANS: 67_000,
+  MEMBER_DEBT: 751_000,
+} as const
+
 const blockchain = new Blockchain(config.network, config.private_keys)
 
 async function ledgerAdd(accountId: number, quantity: string, hash: string, username: string) {
@@ -108,6 +117,11 @@ async function getLedger2Wallet(walletId: number) {
   return rows.find((row: any) => Number(row.id) === walletId)
 }
 
+async function getLedger2Account(accountId: number) {
+  const rows = await blockchain.getTableRows(LEDGER2, COOP, 'accounts', 500)
+  return rows.find((row: any) => Number(row.id) === accountId)
+}
+
 async function getLedger2Meta() {
   const rows = await blockchain.getTableRows(LEDGER2, LEDGER2, 'meta', 10)
   return rows[0]
@@ -168,6 +182,11 @@ describe('ledger2::migrate (Story 1.3 — миграция остатков с l
   let baselineShareWallet = 0
   let baselineEntranceWallet = 0
   let baselineLoanWallet = 0
+  let baselineShareAccountCr = 0
+  let baselineEntranceAccountCr = 0
+  let baselineLoanAccountCr = 0
+  let baselineBankAccountDr = 0
+  let baselineMemberDebtAccountDr = 0
   let meta: any
   let migrateWasAlreadyDone = false
 
@@ -185,6 +204,18 @@ describe('ledger2::migrate (Story 1.3 — миграция остатков с l
     baselineShareWallet = parseAssetAmount(baselineShare?.available)
     baselineEntranceWallet = parseAssetAmount(baselineEntrance?.available)
     baselineLoanWallet = parseAssetAmount(baselineLoan?.available)
+
+    // Baseline accounts-оборотов (у пассивов — credit, у активов — debit).
+    const baselineShareAcc = await getLedger2Account(LEDGER2_ACCOUNTS.SHARE_FUND)
+    const baselineEntranceAcc = await getLedger2Account(LEDGER2_ACCOUNTS.ENTRANCE_FEES)
+    const baselineLoanAcc = await getLedger2Account(LEDGER2_ACCOUNTS.LONG_TERM_LOANS)
+    const baselineBankAcc = await getLedger2Account(LEDGER2_ACCOUNTS.BANK_ACCOUNT)
+    const baselineMemberDebtAcc = await getLedger2Account(LEDGER2_ACCOUNTS.MEMBER_DEBT)
+    baselineShareAccountCr = parseAssetAmount(baselineShareAcc?.credit_balance)
+    baselineEntranceAccountCr = parseAssetAmount(baselineEntranceAcc?.credit_balance)
+    baselineLoanAccountCr = parseAssetAmount(baselineLoanAcc?.credit_balance)
+    baselineBankAccountDr = parseAssetAmount(baselineBankAcc?.debit_balance)
+    baselineMemberDebtAccountDr = parseAssetAmount(baselineMemberDebtAcc?.debit_balance)
 
     await ledgerAdd(LEGACY_ACCOUNTS.SHARE_FUND, rubAmount(seedShare), generateRandomSHA256(), user)
     await ledgerAdd(LEGACY_ACCOUNTS.ENTRANCE_FEES, rubAmount(seedEntrance), generateRandomSHA256(), user)
@@ -254,21 +285,57 @@ describe('ledger2::migrate (Story 1.3 — миграция остатков с l
     }
   })
 
-  it('AC5: BANK_ACCOUNT (51) — НЕ мигрирует (нет целевого фонда)', async () => {
-    // У BANK_ACCOUNT в legacy id=51, в ledger2 нет wallet-а для кассы/банка,
-    // учёт счёта 51 живёт в accounts через двойную запись из новых apply().
-    const allWallets = await blockchain.getTableRows(LEDGER2, COOP, 'wallets', 200)
-    const match = allWallets.find((w: any) => Number(w.id) === LEGACY_ACCOUNTS.BANK_ACCOUNT)
-    expect(match).toBeUndefined()
+  it('AC5: BANK_ACCOUNT (51) — НЕ создаётся в wallets, но ДОЛЖЕН быть в accounts[51000]', async () => {
+    // У BANK_ACCOUNT в legacy id=51 нет целевого фонда (кошелька для кассы/банка
+    // в ledger2 не предусмотрено). Зато бухгалтерская запись 51000 (ACTIVE)
+    // обязательна — иначе мы теряем состояние расчётного счёта.
+    const wallet = await blockchain.getTableRows(LEDGER2, COOP, 'wallets', 200)
+    const walletMatch = wallet.find((w: any) => Number(w.id) === LEGACY_ACCOUNTS.BANK_ACCOUNT)
+    expect(walletMatch).toBeUndefined()
+
+    const account = await getLedger2Account(LEDGER2_ACCOUNTS.BANK_ACCOUNT)
+    expect(account).toBeDefined()
+    expect(Number(account.account_type)).toBe(0) // ACTIVE
+    if (!migrateWasAlreadyDone) {
+      expect(parseAssetAmount(account.debit_balance)).toBeCloseTo(baselineBankAccountDr + seedBank, 4)
+    }
   })
 
-  it('AC6: MEMBER_DEBT (751) — НЕ мигрирует (нет в legacy_to_wallet_id)', async () => {
-    const allWallets = await blockchain.getTableRows(LEDGER2, COOP, 'wallets', 200)
-    const match = allWallets.find((w: any) => Number(w.id) === LEGACY_ACCOUNTS.MEMBER_DEBT)
-    expect(match).toBeUndefined()
+  it('AC6: MEMBER_DEBT (751) — НЕ создаётся в wallets, но ДОЛЖЕН быть в accounts[751000] (ACTIVE)', async () => {
+    const wallet = await blockchain.getTableRows(LEDGER2, COOP, 'wallets', 200)
+    const walletMatch = wallet.find((w: any) => Number(w.id) === LEGACY_ACCOUNTS.MEMBER_DEBT)
+    expect(walletMatch).toBeUndefined()
+
+    const account = await getLedger2Account(LEDGER2_ACCOUNTS.MEMBER_DEBT)
+    expect(account).toBeDefined()
+    expect(Number(account.account_type)).toBe(0) // ACTIVE (Задолженность пайщиков)
+    if (!migrateWasAlreadyDone) {
+      expect(parseAssetAmount(account.debit_balance)).toBeCloseTo(baselineMemberDebtAccountDr + seedMemberDebt, 4)
+    }
   })
 
-  it('AC7: повторный вызов migrate() → "already migrated"', async () => {
+  it('AC7: accounts двойной записи (80000/861000/67000) получили credit_balance', async () => {
+    const shareAcc = await getLedger2Account(LEDGER2_ACCOUNTS.SHARE_FUND)
+    const entranceAcc = await getLedger2Account(LEDGER2_ACCOUNTS.ENTRANCE_FEES)
+    const loanAcc = await getLedger2Account(LEDGER2_ACCOUNTS.LONG_TERM_LOANS)
+
+    expect(shareAcc).toBeDefined()
+    expect(Number(shareAcc.account_type)).toBe(1) // PASSIVE
+    expect(entranceAcc).toBeDefined()
+    expect(Number(entranceAcc.account_type)).toBe(1) // PASSIVE
+    expect(loanAcc).toBeDefined()
+    expect(Number(loanAcc.account_type)).toBe(1) // PASSIVE
+
+    if (!migrateWasAlreadyDone) {
+      // SHARE_FUND: baseline + seedShare (available) — blocked у seed=0
+      expect(parseAssetAmount(shareAcc.credit_balance)).toBeCloseTo(baselineShareAccountCr + seedShare, 4)
+      // ENTRANCE_FEES: baseline + (available + blocked) = baseline + seedEntrance
+      expect(parseAssetAmount(entranceAcc.credit_balance)).toBeCloseTo(baselineEntranceAccountCr + seedEntrance, 4)
+      expect(parseAssetAmount(loanAcc.credit_balance)).toBeCloseTo(baselineLoanAccountCr + seedLoan, 4)
+    }
+  })
+
+  it('AC8: повторный вызов migrate() → "already migrated"', async () => {
     // EOSIO отклоняет транзакции с одинаковым TAPOS+data как duplicate,
     // поэтому даём блокчейну сдвинуть block_ref перед вторым вызовом.
     await sleep(1000)
