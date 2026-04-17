@@ -9211,11 +9211,6 @@ type Query {
   Поиск приватных данных аккаунтов по запросу. Поиск осуществляется по полям ФИО, ИНН, ОГРН, наименованию организации и другим приватным данным.
   """
   searchPrivateAccounts(data: SearchPrivateAccountsInput!): [PrivateAccountSearchResult!]!
-
-  """
-  Проверить инвариант Dr=Cr по журналу двойных проводок контракта ledger2 в заданном диапазоне дат. Возвращает суммарные обороты и флаг ok.
-  """
-  validateJournalInvariant(data: ValidateJournalInvariantInput!): ValidateJournalInvariantResult!
 }
 
 """Вопрос повестки собрания с результатами голосования"""
@@ -11055,45 +11050,6 @@ enum UserStatus {
   Payed
   Refunded
   Registered
-}
-
-input ValidateJournalInvariantInput {
-  """Имя кооператива (scope таблицы journal в контракте ledger2)"""
-  coopname: String!
-
-  """
-  Нижняя граница диапазона по created_at включительно (ISO-8601). Если не указана — с начала журнала.
-  """
-  fromDate: DateTime
-
-  """
-  Верхняя граница диапазона по created_at включительно (ISO-8601). Если не указана — до конца журнала.
-  """
-  toDate: DateTime
-}
-
-type ValidateJournalInvariantResult {
-  coopname: String!
-
-  """Разница totalDebit - totalCredit (ожидается "0")"""
-  difference: String!
-
-  """Количество записей журнала в диапазоне"""
-  entriesCount: Int!
-  fromDate: DateTime
-
-  """true, если инвариант Dr=Cr соблюдён"""
-  ok: Boolean!
-
-  """Символ актива (обычно RUB), null если диапазон пуст"""
-  symbol: String
-  toDate: DateTime
-
-  """Сумма кредитовых оборотов (в минимальных единицах актива)"""
-  totalCredit: String!
-
-  """Сумма дебетовых оборотов (в минимальных единицах актива)"""
-  totalDebit: String!
 }
 
 type Vars {

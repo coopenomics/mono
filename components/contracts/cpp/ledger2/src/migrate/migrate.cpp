@@ -3,16 +3,44 @@
  *
  * Перебирает все кооперативы из registrator::coops и для каждого:
  *   - читает таблицу ledger::accounts (laccount: id, name, available, blocked, writeoff);
- *   - для каждой записи с available+blocked > 0 создаёт запись в ledger2::wallets
- *     с id = старый account id, name = старое имя. Поле writeoff игнорируется.
+ *   - для каждой записи с `available + blocked > 0` упсертит запись в
+ *     ledger2::wallets. Legacy-идентификаторы плана счетов (80, 861, 67 …)
+ *     маппятся на порядковые id кошельков ledger2 (SHARE_FUND=2, ENTRANCE_FEES=3,
+ *     LONG_TERM_LOANS=6 …) — см. legacy_to_wallet_id().
+ *   - поле writeoff игнорируется; записи без соответствия в реестре кошельков
+ *     (например, Касса/Банк 50, 51) — тоже: бух.учёт кассы/расчётного счёта
+ *     живёт в ledger2::accounts и формируется только новыми apply-вызовами.
  *
- * Накопительные таблицы journal / operations / accounts (двойные проводки)
- * при миграции НЕ заполняются — они нарастают только от новых apply-вызовов.
+ * Накопительные таблицы journal / wjournal / accounts (двойные проводки)
+ * при миграции НЕ заполняются — они нарастают только от новых apply-вызовов
+ * (PRD §4.1.2 FR-L-7).
  *
  * Защита от повторного запуска: таблица meta (scope = _ledger2) с флагом migrated.
  *
  * @ingroup public_ledger2_actions
  */
+
+namespace {
+
+/**
+ * Маппер id legacy-ledger.accounts → id кошелька ledger2.wallets.
+ *
+ * Возвращает 0 для legacy-счетов, которым не соответствует целевой фонд
+ * в LEDGER2_WALLET_REGISTRY (касса 50, р/с 51, прочие бух-счета). Такие
+ * записи пропускаются: их остатки при необходимости восстанавливаются
+ * заново двойной записью через apply().
+ */
+inline uint64_t legacy_to_wallet_id(uint64_t legacy_id) {
+  switch (legacy_id) {
+    case Ledger::accounts::SHARE_FUND:      return ledger2_wallets::SHARE_FUND;       // 80  → 2
+    case Ledger::accounts::ENTRANCE_FEES:   return ledger2_wallets::ENTRANCE_FEES;    // 861 → 3
+    case Ledger::accounts::LONG_TERM_LOANS: return ledger2_wallets::LONG_TERM_LOANS;  // 67  → 6
+    default:                                return 0;
+  }
+}
+
+} // namespace
+
 void ledger2::migrate() {
   require_auth(get_self());
 
@@ -27,27 +55,33 @@ void ledger2::migrate() {
   for (auto coop_it = coops.begin(); coop_it != coops.end(); ++coop_it) {
     eosio::name coopname = coop_it->username;
 
-    // Старые счета ledger хранятся в multi_index<"accounts", laccount> со scope = coopname
     laccounts_index old_accounts(_ledger, coopname.value);
     wallets2_index  new_wallets(get_self(), coopname.value);
 
     for (auto acc_it = old_accounts.begin(); acc_it != old_accounts.end(); ++acc_it) {
+      // writeoff намеренно игнорируется (PRD §4.1.2 FR-L-7)
       eosio::asset total_balance = acc_it->available + acc_it->blocked;
-      if (total_balance.amount == 0) continue; // только ненулевые; writeoff игнорируем
+      if (total_balance.amount == 0) continue;
 
-      // Создаём/обновляем кошелёк с тем же id (простая совместимость)
-      auto wallet_it = new_wallets.find(acc_it->id);
+      const uint64_t wallet_id = legacy_to_wallet_id(acc_it->id);
+      if (wallet_id == 0) continue; // нет целевого фонда — пропускаем
+
+      const std::string wallet_name = ledger2_get_wallet_name_by_id(wallet_id);
+
+      auto wallet_it = new_wallets.find(wallet_id);
       if (wallet_it == new_wallets.end()) {
         new_wallets.emplace(get_self(), [&](auto& w) {
-          w.id        = acc_it->id;
-          w.name      = acc_it->name;
+          w.id        = wallet_id;
+          w.name      = wallet_name;
           w.available = acc_it->available;
           w.blocked   = acc_it->blocked;
         });
       } else {
+        // Агрегация, если несколько legacy-счетов сводятся в один фонд
+        // (в MVP таких случаев нет, но защитный + на будущее).
         new_wallets.modify(wallet_it, get_self(), [&](auto& w) {
-          w.available = acc_it->available;
-          w.blocked   = acc_it->blocked;
+          w.available += acc_it->available;
+          w.blocked   += acc_it->blocked;
         });
       }
     }
@@ -55,7 +89,6 @@ void ledger2::migrate() {
     ++processed_coops;
   }
 
-  // Ставим флаг миграции
   if (meta_it == meta_tbl.end()) {
     meta_tbl.emplace(get_self(), [&](auto& m) {
       m.id             = 0;
