@@ -1,9 +1,10 @@
 import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
-import { UseGuards, Inject, Logger } from '@nestjs/common';
+import { UseGuards, Logger } from '@nestjs/common';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
 import { RolesGuard } from '~/application/auth/guards/roles.guard';
 import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
 import { ReportRegistryService } from '../../domain/services/report-registry.service';
+import { XsdValidatorService } from '../../infrastructure/services/xsd-validator.service';
 import { AvailableReportDTO, GenerateReportInputDTO, GeneratedReportDTO, OrganizationDataInputDTO } from '../dto/report.dto';
 import { config } from '~/config';
 import type { ReportInput, LedgerAccountData } from '../../domain/interfaces/report-generator.interface';
@@ -16,6 +17,7 @@ export class ReportResolver {
   constructor(
     private readonly reportRegistry: ReportRegistryService,
     private readonly ledgerInteractor: LedgerInteractor,
+    private readonly xsdValidator: XsdValidatorService,
   ) {}
 
   @Query(() => [AvailableReportDTO], {
@@ -79,7 +81,23 @@ export class ReportResolver {
       ledgerData,
     };
 
-    return this.reportRegistry.generate(input);
+    const generated = this.reportRegistry.generate(input);
+
+    if (!generated.xml) {
+      return generated;
+    }
+
+    const xsdResult = this.xsdValidator.validateByReportType(generated.xml, data.reportType);
+    const combinedErrors = [
+      ...generated.errors,
+      ...xsdResult.errors.map((e) => (e.line ? `[строка ${e.line}] ${e.message}` : e.message)),
+    ];
+
+    return {
+      ...generated,
+      isValid: generated.isValid && xsdResult.isValid,
+      errors: combinedErrors,
+    };
   }
 
   private parseAmount(amountStr: string): number {
