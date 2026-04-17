@@ -155,8 +155,17 @@ export class OrganizationDataInputDTO {
 
 @ObjectType('GeneratedReport')
 export class GeneratedReportDTO {
+  @Field(() => String, { nullable: true, description: 'UUID записи в generated_reports (null, если XML пустой и не сохранён)' })
+  id?: string;
+
   @Field(() => ReportType)
   reportType!: ReportType;
+
+  @Field(() => Int)
+  year!: number;
+
+  @Field(() => Int, { nullable: true })
+  period?: number;
 
   @Field(() => String)
   xml!: string;
@@ -169,4 +178,71 @@ export class GeneratedReportDTO {
 
   @Field(() => Boolean)
   isValid!: boolean;
+
+  @Field(() => Date, { nullable: true })
+  createdAt?: Date;
+}
+
+@InputType('ReportHistoryFilterInput')
+export class ReportHistoryFilterInputDTO {
+  @Field(() => ReportType, { nullable: true })
+  @IsOptional()
+  @IsEnum(ReportType)
+  reportType?: ReportType;
+
+  @Field(() => Int, { nullable: true })
+  @IsOptional()
+  @IsInt()
+  year?: number;
+
+  @Field(() => Int, { nullable: true })
+  @IsOptional()
+  @IsInt()
+  period?: number;
+
+  @Field(() => Int, { nullable: true, description: 'Лимит (макс 100, по умолчанию 20)' })
+  @IsOptional()
+  @IsInt()
+  limit?: number;
+
+  @Field(() => Int, { nullable: true, description: 'Сдвиг для пагинации (по умолчанию 0)' })
+  @IsOptional()
+  @IsInt()
+  offset?: number;
+}
+
+@ObjectType('ReportHistoryPage')
+export class ReportHistoryPageDTO {
+  @Field(() => [GeneratedReportSummaryDTO])
+  items!: GeneratedReportSummaryDTO[];
+
+  @Field(() => Int)
+  total!: number;
+}
+
+@ObjectType('GeneratedReportSummary')
+export class GeneratedReportSummaryDTO {
+  @Field(() => String)
+  id!: string;
+
+  @Field(() => ReportType)
+  reportType!: ReportType;
+
+  @Field(() => Int)
+  year!: number;
+
+  @Field(() => Int, { nullable: true })
+  period?: number;
+
+  @Field(() => String)
+  fileName!: string;
+
+  @Field(() => Boolean)
+  isValid!: boolean;
+
+  @Field(() => String)
+  generatedBy!: string;
+
+  @Field(() => Date)
+  createdAt!: Date;
 }
