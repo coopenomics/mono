@@ -37,6 +37,7 @@ import { GatewayDomainModule } from './domain/gateway/gateway-domain.module';
 import { VaultDomainModule } from './domain/vault/vault-domain.module';
 import { NotificationDomainModule } from './domain/notification/notification-domain.module';
 import { LedgerDomainModule } from './domain/ledger/ledger-domain.module';
+import { ProcessRegistryDomainModule } from './domain/process-registry/process-registry-domain.module';
 import { ParserDomainModule } from './domain/parser/parser-domain.module';
 import { SettingsInfrastructureModule } from './infrastructure/settings/settings-infrastructure.module';
 import { RegistrationDomainModule } from './domain/registration/registration-domain.module';
@@ -65,6 +66,7 @@ import { GatewayModule } from './application/gateway/gateway.module';
 import { WalletModule } from './application/wallet/wallet.module';
 import { NotificationModule } from './application/notification/notification.module';
 import { LedgerModule } from './application/ledger/ledger.module';
+import { ProcessRegistryModule } from './application/process-registry/process-registry.module';
 import { BlockchainExplorerModule } from './application/blockchain-explorer/blockchain-explorer.module';
 import { ProviderModule } from './application/provider/provider.module';
 import { UserModule } from './application/user/user.module';
@@ -118,6 +120,7 @@ import { MutationLoggingInterceptor } from './application/common/interceptors/mu
     VaultDomainModule,
     NotificationDomainModule,
     LedgerDomainModule,
+    ProcessRegistryDomainModule,
     ParserDomainModule,
     SettingsInfrastructureModule,
     TokenDomainModule,
@@ -144,6 +147,7 @@ import { MutationLoggingInterceptor } from './application/common/interceptors/mu
     WalletModule,
     NotificationModule,
     LedgerModule,
+    ProcessRegistryModule,
     BlockchainExplorerModule,
     ProviderModule,
     UserModule,

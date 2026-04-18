@@ -10,15 +10,17 @@
  * @param minimum Минимальный взнос
  * @param spread_initial Флаг распределения вступительного взноса
  * @param meta Метаданные пользователя
+ * @param registration_hash Entity-hash доменной записи регистрации (из бэкенда)
  * @ingroup public_actions
  * @ingroup public_registrator_actions
 
  * @note Авторизация требуется от аккаунта: @p coopname
  */
 [[eosio::action]] void registrator::adduser(
-    eosio::name coopname, eosio::name referer, 
-    eosio::name username, eosio::name type , eosio::time_point_sec created_at, 
-    eosio::asset initial, eosio::asset minimum, bool spread_initial, std::string meta)
+    eosio::name coopname, eosio::name referer,
+    eosio::name username, eosio::name type , eosio::time_point_sec created_at,
+    eosio::asset initial, eosio::asset minimum, bool spread_initial, std::string meta,
+    checksum256 registration_hash)
 {
   require_auth(coopname);
   
@@ -72,16 +74,14 @@
     });
     
   std::string memo = "Минимальный паевой взнос при вступлении пайщика с username=" + username.to_string();
-  std::string username_str = username.to_string();
-  checksum256 username_hash = eosio::sha256(username_str.data(), username_str.size());
-  
+
   // Минимальный паевой взнос через ledger2 (ISSUE в SHARE_FUND, Dr: BANK_ACCOUNT, Cr: SHARE_FUND)
-  Ledger2::apply(_registrator, coopname, ledger2_ops::INITIAL_SHARE, minimum, username, username_hash, memo);
+  Ledger2::apply(_registrator, coopname, ledger2_ops::INITIAL_SHARE, minimum, username, registration_hash, memo);
 
   if (spread_initial) {
     memo = "Вступительный взнос при вступлении пайщика с username=" + username.to_string();
     // Вступительный взнос через ledger2 (ISSUE в ENTRANCE_FEES, Dr: BANK_ACCOUNT, Cr: ENTRANCE_FEES)
-    Ledger2::apply(_registrator, coopname, ledger2_ops::ENTRANCE_FEE, initial, username, username_hash, memo);
+    Ledger2::apply(_registrator, coopname, ledger2_ops::ENTRANCE_FEE, initial, username, registration_hash, memo);
   }
   
   // Увеличиваем счётчик активных пайщиков

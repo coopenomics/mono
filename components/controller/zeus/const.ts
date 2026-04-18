@@ -1253,6 +1253,9 @@ export const AllTypesProps: Record<string,any> = {
 		position:"ProcessStepPositionInput"
 	},
 	ProcessTemplateStatus: "enum" as const,
+	ProcessesFilter:{
+
+	},
 	ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput:{
 
 	},
@@ -1537,6 +1540,13 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		onecoopGetDocuments:{
 			data:"GetOneCoopDocumentsInput"
+		},
+		process:{
+
+		},
+		processes:{
+			filter:"ProcessesFilter",
+			pagination:"PaginationInput"
 		},
 		searchDocuments:{
 			data:"SearchDocumentsInput"
@@ -3693,6 +3703,40 @@ export const ReturnTypes: Record<string,any> = {
 		score:"Float",
 		type:"String"
 	},
+	ProcessAction:{
+		account:"String",
+		block_id:"String",
+		block_num:"Float",
+		created_at:"DateTime",
+		data:"JSON",
+		global_sequence:"String",
+		id:"String",
+		name:"String",
+		transaction_id:"String"
+	},
+	ProcessDelta:{
+		block_num:"Float",
+		code:"String",
+		created_at:"DateTime",
+		id:"String",
+		present:"Boolean",
+		primary_key:"String",
+		scope:"String",
+		table:"String",
+		value:"JSON"
+	},
+	ProcessDocument:{
+		document:"JSON",
+		hash:"String",
+		raw:"JSON",
+		source:"ProcessDocumentSource"
+	},
+	ProcessDocumentSource:{
+		code:"String",
+		field:"String",
+		primary_key:"String",
+		table:"String"
+	},
 	ProcessEdge:{
 		id:"String",
 		source:"String",
@@ -3728,6 +3772,23 @@ export const ReturnTypes: Record<string,any> = {
 		position:"ProcessStepPosition",
 		title:"String"
 	},
+	ProcessSummary:{
+		actionCount:"Int",
+		coopname:"String",
+		deltaCount:"Int",
+		documentCount:"Int",
+		firstSeenAt:"DateTime",
+		lastSeenAt:"DateTime",
+		processHash:"String",
+		processType:"String",
+		username:"String"
+	},
+	ProcessSummaryPaginationResult:{
+		currentPage:"Int",
+		items:"ProcessSummary",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
 	ProcessTemplate:{
 		coopname:"String",
 		created_at:"DateTime",
@@ -3740,6 +3801,16 @@ export const ReturnTypes: Record<string,any> = {
 		steps:"ProcessStepTemplate",
 		title:"String",
 		updated_at:"DateTime"
+	},
+	ProcessView:{
+		actions:"ProcessAction",
+		coopname:"String",
+		delta_history:"ProcessDelta",
+		documents:"ProcessDocument",
+		first_seen_at:"DateTime",
+		last_seen_at:"DateTime",
+		process_hash:"String",
+		process_type:"String"
 	},
 	ProgramWallet:{
 		agreement_id:"ID",
@@ -3872,6 +3943,8 @@ export const ReturnTypes: Record<string,any> = {
 		getUserWebPushSubscriptions:"WebPushSubscriptionDto",
 		getWebPushSubscriptionStats:"SubscriptionStatsDto",
 		onecoopGetDocuments:"OneCoopDocumentsResponse",
+		process:"ProcessView",
+		processes:"ProcessSummaryPaginationResult",
 		searchDocuments:"SearchResult",
 		searchPrivateAccounts:"PrivateAccountSearchResult"
 	},

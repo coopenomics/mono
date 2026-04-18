@@ -31,6 +31,7 @@ export interface IAdduser {
   minimum: IAsset
   spread_initial: boolean
   meta: string
+  registration_hash: IChecksum256
 }
 
 export interface ICandidate {

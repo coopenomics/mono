@@ -14,6 +14,7 @@ import { CANDIDATE_REPOSITORY, CandidateRepository } from '~/domain/account/repo
 import { userStatus } from '~/types/user.types';
 import { HttpApiError } from '~/utils/httpApiError';
 import { normalizeUserEmail } from '~/utils/normalize-user-email';
+import { sha256 } from '~/utils/sha256';
 import http from 'http-status';
 import { PublicKey, Signature } from '@wharfkit/antelope';
 import { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
@@ -309,6 +310,7 @@ export class ParticipantInteractor {
       initial: data.initial,
       minimum: data.minimum,
       spread_initial: data.spread_initial,
+      registration_hash: sha256(data.username),
     });
 
     //TODO move it to hexagon services

@@ -75,6 +75,13 @@ export * as WalletContract from './wallet'
 export * as LedgerContract from './ledger'
 
 /**
+ * Смарт-контракт двухконтурного учёта ledger2 (apply + wjournal/journal).
+ * Заменяет прежние add/sub/writeoff — всё движение средств через единый
+ * apply(action_code, process_hash).
+ */
+export * as Ledger2Contract from './ledger2'
+
+/**
  * Смарт-контракт управления общими собраниями пайщиков
  */
 export * as MeetContract from './meet'

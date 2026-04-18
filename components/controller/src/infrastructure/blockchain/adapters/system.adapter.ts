@@ -34,11 +34,15 @@ export class SystemBlockchainAdapter implements SystemBlockchainPort {
     // Конвертируем документ в блокчейн формат
     const _blockchainDocument = this.domainToBlockchainUtils.convertSignedDocumentToBlockchainFormat(data.document);
 
-    // Создаем данные для транзакции согласно интерфейсу действия
+    // Создаем данные для транзакции согласно интерфейсу действия.
+    // process_hash одноактового процесса sov.axncnv — бэкенд формирует его
+    // явно; допустимо использовать хэш заявления (это одноактовый процесс,
+    // где документ и есть «сущность»-якорь).
     const transactionData: SovietContract.Actions.System.ConvertToAxn.IConvertToAxn = {
       coopname: data.username,
       amount: data.convert_amount, // Сумма в формате "1000.0000 RUB"
       statement: _blockchainDocument,
+      process_hash: _blockchainDocument.hash,
     };
 
     // Выполняем транзакцию

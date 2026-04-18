@@ -6953,6 +6953,19 @@ voteOnAnnualGeneralMeet?: [{	data: ValueTypes["VoteOnAnnualGeneralMeetInput"] | 
 		__typename?: boolean | `@${string}`,
 	['...on PrivateAccountSearchResult']?: Omit<ValueTypes["PrivateAccountSearchResult"], "...on PrivateAccountSearchResult">
 }>;
+	["ProcessAction"]: AliasType<{
+	account?:boolean | `@${string}`,
+	block_id?:boolean | `@${string}`,
+	block_num?:boolean | `@${string}`,
+	created_at?:boolean | `@${string}`,
+	data?:boolean | `@${string}`,
+	global_sequence?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	name?:boolean | `@${string}`,
+	transaction_id?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ProcessAction']?: Omit<ValueTypes["ProcessAction"], "...on ProcessAction">
+}>;
 	["ProcessConvertToAxonStatementInput"]: {
 	/** Сумма к конвертации */
 	convertAmount: string | Variable<any, string>,
@@ -6961,6 +6974,35 @@ voteOnAnnualGeneralMeet?: [{	data: ValueTypes["VoteOnAnnualGeneralMeetInput"] | 
 	/** Имя пользователя */
 	username: string | Variable<any, string>
 };
+	["ProcessDelta"]: AliasType<{
+	block_num?:boolean | `@${string}`,
+	code?:boolean | `@${string}`,
+	created_at?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	present?:boolean | `@${string}`,
+	primary_key?:boolean | `@${string}`,
+	scope?:boolean | `@${string}`,
+	table?:boolean | `@${string}`,
+	value?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ProcessDelta']?: Omit<ValueTypes["ProcessDelta"], "...on ProcessDelta">
+}>;
+	["ProcessDocument"]: AliasType<{
+	document?:boolean | `@${string}`,
+	hash?:boolean | `@${string}`,
+	raw?:boolean | `@${string}`,
+	source?:ValueTypes["ProcessDocumentSource"],
+		__typename?: boolean | `@${string}`,
+	['...on ProcessDocument']?: Omit<ValueTypes["ProcessDocument"], "...on ProcessDocument">
+}>;
+	["ProcessDocumentSource"]: AliasType<{
+	code?:boolean | `@${string}`,
+	field?:boolean | `@${string}`,
+	primary_key?:boolean | `@${string}`,
+	table?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ProcessDocumentSource']?: Omit<ValueTypes["ProcessDocumentSource"], "...on ProcessDocumentSource">
+}>;
 	["ProcessEdge"]: AliasType<{
 	id?:boolean | `@${string}`,
 	source?:boolean | `@${string}`,
@@ -7025,6 +7067,31 @@ voteOnAnnualGeneralMeet?: [{	data: ValueTypes["VoteOnAnnualGeneralMeetInput"] | 
 	position: ValueTypes["ProcessStepPositionInput"] | Variable<any, string>,
 	title: string | Variable<any, string>
 };
+	["ProcessSummary"]: AliasType<{
+	actionCount?:boolean | `@${string}`,
+	coopname?:boolean | `@${string}`,
+	deltaCount?:boolean | `@${string}`,
+	documentCount?:boolean | `@${string}`,
+	firstSeenAt?:boolean | `@${string}`,
+	lastSeenAt?:boolean | `@${string}`,
+	processHash?:boolean | `@${string}`,
+	processType?:boolean | `@${string}`,
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ProcessSummary']?: Omit<ValueTypes["ProcessSummary"], "...on ProcessSummary">
+}>;
+	["ProcessSummaryPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ValueTypes["ProcessSummary"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ProcessSummaryPaginationResult']?: Omit<ValueTypes["ProcessSummaryPaginationResult"], "...on ProcessSummaryPaginationResult">
+}>;
 	["ProcessTemplate"]: AliasType<{
 	coopname?:boolean | `@${string}`,
 	created_at?:boolean | `@${string}`,
@@ -7041,6 +7108,25 @@ voteOnAnnualGeneralMeet?: [{	data: ValueTypes["VoteOnAnnualGeneralMeetInput"] | 
 	['...on ProcessTemplate']?: Omit<ValueTypes["ProcessTemplate"], "...on ProcessTemplate">
 }>;
 	["ProcessTemplateStatus"]:ProcessTemplateStatus;
+	["ProcessView"]: AliasType<{
+	actions?:ValueTypes["ProcessAction"],
+	coopname?:boolean | `@${string}`,
+	delta_history?:ValueTypes["ProcessDelta"],
+	documents?:ValueTypes["ProcessDocument"],
+	first_seen_at?:boolean | `@${string}`,
+	last_seen_at?:boolean | `@${string}`,
+	process_hash?:boolean | `@${string}`,
+	process_type?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ProcessView']?: Omit<ValueTypes["ProcessView"], "...on ProcessView">
+}>;
+	["ProcessesFilter"]: {
+	coopname: string | Variable<any, string>,
+	fromBlock?: number | undefined | null | Variable<any, string>,
+	processType?: string | undefined | null | Variable<any, string>,
+	toBlock?: number | undefined | null | Variable<any, string>,
+	username?: string | undefined | null | Variable<any, string>
+};
 	["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"]: {
 	/** Сумма инвестирования в программу (актив) */
 	amount: string | Variable<any, string>,
@@ -7431,6 +7517,8 @@ getUserWebPushSubscriptions?: [{	data: ValueTypes["GetUserSubscriptionsInput"] |
 	/** Получить статистику веб-пуш подписок (только для председателя) */
 	getWebPushSubscriptionStats?:ValueTypes["SubscriptionStatsDto"],
 onecoopGetDocuments?: [{	data: ValueTypes["GetOneCoopDocumentsInput"] | Variable<any, string>},ValueTypes["OneCoopDocumentsResponse"]],
+process?: [{	coopname: string | Variable<any, string>,	hash: string | Variable<any, string>},ValueTypes["ProcessView"]],
+processes?: [{	filter: ValueTypes["ProcessesFilter"] | Variable<any, string>,	pagination: ValueTypes["PaginationInput"] | Variable<any, string>},ValueTypes["ProcessSummaryPaginationResult"]],
 searchDocuments?: [{	data: ValueTypes["SearchDocumentsInput"] | Variable<any, string>},ValueTypes["SearchResult"]],
 searchPrivateAccounts?: [{	data: ValueTypes["SearchPrivateAccountsInput"] | Variable<any, string>},ValueTypes["PrivateAccountSearchResult"]],
 		__typename?: boolean | `@${string}`,
@@ -14669,6 +14757,18 @@ voteOnAnnualGeneralMeet?: [{	data: ResolverInputTypes["VoteOnAnnualGeneralMeetIn
 	type?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["ProcessAction"]: AliasType<{
+	account?:boolean | `@${string}`,
+	block_id?:boolean | `@${string}`,
+	block_num?:boolean | `@${string}`,
+	created_at?:boolean | `@${string}`,
+	data?:boolean | `@${string}`,
+	global_sequence?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	name?:boolean | `@${string}`,
+	transaction_id?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["ProcessConvertToAxonStatementInput"]: {
 	/** Сумма к конвертации */
 	convertAmount: string,
@@ -14677,6 +14777,32 @@ voteOnAnnualGeneralMeet?: [{	data: ResolverInputTypes["VoteOnAnnualGeneralMeetIn
 	/** Имя пользователя */
 	username: string
 };
+	["ProcessDelta"]: AliasType<{
+	block_num?:boolean | `@${string}`,
+	code?:boolean | `@${string}`,
+	created_at?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	present?:boolean | `@${string}`,
+	primary_key?:boolean | `@${string}`,
+	scope?:boolean | `@${string}`,
+	table?:boolean | `@${string}`,
+	value?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["ProcessDocument"]: AliasType<{
+	document?:boolean | `@${string}`,
+	hash?:boolean | `@${string}`,
+	raw?:boolean | `@${string}`,
+	source?:ResolverInputTypes["ProcessDocumentSource"],
+		__typename?: boolean | `@${string}`
+}>;
+	["ProcessDocumentSource"]: AliasType<{
+	code?:boolean | `@${string}`,
+	field?:boolean | `@${string}`,
+	primary_key?:boolean | `@${string}`,
+	table?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["ProcessEdge"]: AliasType<{
 	id?:boolean | `@${string}`,
 	source?:boolean | `@${string}`,
@@ -14736,6 +14862,29 @@ voteOnAnnualGeneralMeet?: [{	data: ResolverInputTypes["VoteOnAnnualGeneralMeetIn
 	position: ResolverInputTypes["ProcessStepPositionInput"],
 	title: string
 };
+	["ProcessSummary"]: AliasType<{
+	actionCount?:boolean | `@${string}`,
+	coopname?:boolean | `@${string}`,
+	deltaCount?:boolean | `@${string}`,
+	documentCount?:boolean | `@${string}`,
+	firstSeenAt?:boolean | `@${string}`,
+	lastSeenAt?:boolean | `@${string}`,
+	processHash?:boolean | `@${string}`,
+	processType?:boolean | `@${string}`,
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["ProcessSummaryPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ResolverInputTypes["ProcessSummary"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["ProcessTemplate"]: AliasType<{
 	coopname?:boolean | `@${string}`,
 	created_at?:boolean | `@${string}`,
@@ -14751,6 +14900,24 @@ voteOnAnnualGeneralMeet?: [{	data: ResolverInputTypes["VoteOnAnnualGeneralMeetIn
 		__typename?: boolean | `@${string}`
 }>;
 	["ProcessTemplateStatus"]:ProcessTemplateStatus;
+	["ProcessView"]: AliasType<{
+	actions?:ResolverInputTypes["ProcessAction"],
+	coopname?:boolean | `@${string}`,
+	delta_history?:ResolverInputTypes["ProcessDelta"],
+	documents?:ResolverInputTypes["ProcessDocument"],
+	first_seen_at?:boolean | `@${string}`,
+	last_seen_at?:boolean | `@${string}`,
+	process_hash?:boolean | `@${string}`,
+	process_type?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["ProcessesFilter"]: {
+	coopname: string,
+	fromBlock?: number | undefined | null,
+	processType?: string | undefined | null,
+	toBlock?: number | undefined | null,
+	username?: string | undefined | null
+};
 	["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"]: {
 	/** Сумма инвестирования в программу (актив) */
 	amount: string,
@@ -15137,6 +15304,8 @@ getUserWebPushSubscriptions?: [{	data: ResolverInputTypes["GetUserSubscriptionsI
 	/** Получить статистику веб-пуш подписок (только для председателя) */
 	getWebPushSubscriptionStats?:ResolverInputTypes["SubscriptionStatsDto"],
 onecoopGetDocuments?: [{	data: ResolverInputTypes["GetOneCoopDocumentsInput"]},ResolverInputTypes["OneCoopDocumentsResponse"]],
+process?: [{	coopname: string,	hash: string},ResolverInputTypes["ProcessView"]],
+processes?: [{	filter: ResolverInputTypes["ProcessesFilter"],	pagination: ResolverInputTypes["PaginationInput"]},ResolverInputTypes["ProcessSummaryPaginationResult"]],
 searchDocuments?: [{	data: ResolverInputTypes["SearchDocumentsInput"]},ResolverInputTypes["SearchResult"]],
 searchPrivateAccounts?: [{	data: ResolverInputTypes["SearchPrivateAccountsInput"]},ResolverInputTypes["PrivateAccountSearchResult"]],
 		__typename?: boolean | `@${string}`
@@ -22336,6 +22505,17 @@ export type ModelTypes = {
 	/** Тип аккаунта */
 	type: string
 };
+	["ProcessAction"]: {
+		account: string,
+	block_id: string,
+	block_num: number,
+	created_at: ModelTypes["DateTime"],
+	data?: ModelTypes["JSON"] | undefined | null,
+	global_sequence: string,
+	id: string,
+	name: string,
+	transaction_id: string
+};
 	["ProcessConvertToAxonStatementInput"]: {
 	/** Сумма к конвертации */
 	convertAmount: string,
@@ -22343,6 +22523,29 @@ export type ModelTypes = {
 	signedDocument: ModelTypes["ConvertToAxonStatementSignedDocumentInput"],
 	/** Имя пользователя */
 	username: string
+};
+	["ProcessDelta"]: {
+		block_num: number,
+	code: string,
+	created_at: ModelTypes["DateTime"],
+	id: string,
+	present: boolean,
+	primary_key: string,
+	scope: string,
+	table: string,
+	value?: ModelTypes["JSON"] | undefined | null
+};
+	["ProcessDocument"]: {
+		document: ModelTypes["JSON"],
+	hash: string,
+	raw?: ModelTypes["JSON"] | undefined | null,
+	source: ModelTypes["ProcessDocumentSource"]
+};
+	["ProcessDocumentSource"]: {
+		code: string,
+	field: string,
+	primary_key: string,
+	table: string
 };
 	["ProcessEdge"]: {
 		id: string,
@@ -22398,6 +22601,27 @@ export type ModelTypes = {
 	position: ModelTypes["ProcessStepPositionInput"],
 	title: string
 };
+	["ProcessSummary"]: {
+		actionCount: number,
+	coopname: string,
+	deltaCount: number,
+	documentCount: number,
+	firstSeenAt: ModelTypes["DateTime"],
+	lastSeenAt: ModelTypes["DateTime"],
+	processHash: string,
+	processType: string,
+	username?: string | undefined | null
+};
+	["ProcessSummaryPaginationResult"]: {
+		/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<ModelTypes["ProcessSummary"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number
+};
 	["ProcessTemplate"]: {
 		coopname: string,
 	created_at: ModelTypes["DateTime"],
@@ -22412,6 +22636,23 @@ export type ModelTypes = {
 	updated_at: ModelTypes["DateTime"]
 };
 	["ProcessTemplateStatus"]:ProcessTemplateStatus;
+	["ProcessView"]: {
+		actions: Array<ModelTypes["ProcessAction"]>,
+	coopname: string,
+	delta_history: Array<ModelTypes["ProcessDelta"]>,
+	documents: Array<ModelTypes["ProcessDocument"]>,
+	first_seen_at: ModelTypes["DateTime"],
+	last_seen_at: ModelTypes["DateTime"],
+	process_hash: string,
+	process_type: string
+};
+	["ProcessesFilter"]: {
+	coopname: string,
+	fromBlock?: number | undefined | null,
+	processType?: string | undefined | null,
+	toBlock?: number | undefined | null,
+	username?: string | undefined | null
+};
 	["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"]: {
 	/** Сумма инвестирования в программу (актив) */
 	amount: string,
@@ -22862,6 +23103,10 @@ export type ModelTypes = {
 	getWebPushSubscriptionStats: ModelTypes["SubscriptionStatsDto"],
 	/** Получение документов кооператива для синхронизации с 1С. Требует секретный ключ в заголовке x-onecoop-secret-key. */
 	onecoopGetDocuments: ModelTypes["OneCoopDocumentsResponse"],
+	/** Получить полную картину процесса ledger2 по process_hash */
+	process: ModelTypes["ProcessView"],
+	/** Листинг процессов ledger2 с пагинацией и фильтрами */
+	processes: ModelTypes["ProcessSummaryPaginationResult"],
 	/** Полнотекстовый поиск по документам кооператива */
 	searchDocuments: Array<ModelTypes["SearchResult"]>,
 	/** Поиск приватных данных аккаунтов по запросу. Поиск осуществляется по полям ФИО, ИНН, ОГРН, наименованию организации и другим приватным данным. */
@@ -30352,6 +30597,19 @@ export type GraphQLTypes = {
 	type: string,
 	['...on PrivateAccountSearchResult']: Omit<GraphQLTypes["PrivateAccountSearchResult"], "...on PrivateAccountSearchResult">
 };
+	["ProcessAction"]: {
+	__typename: "ProcessAction",
+	account: string,
+	block_id: string,
+	block_num: number,
+	created_at: GraphQLTypes["DateTime"],
+	data?: GraphQLTypes["JSON"] | undefined | null,
+	global_sequence: string,
+	id: string,
+	name: string,
+	transaction_id: string,
+	['...on ProcessAction']: Omit<GraphQLTypes["ProcessAction"], "...on ProcessAction">
+};
 	["ProcessConvertToAxonStatementInput"]: {
 		/** Сумма к конвертации */
 	convertAmount: string,
@@ -30359,6 +30617,35 @@ export type GraphQLTypes = {
 	signedDocument: GraphQLTypes["ConvertToAxonStatementSignedDocumentInput"],
 	/** Имя пользователя */
 	username: string
+};
+	["ProcessDelta"]: {
+	__typename: "ProcessDelta",
+	block_num: number,
+	code: string,
+	created_at: GraphQLTypes["DateTime"],
+	id: string,
+	present: boolean,
+	primary_key: string,
+	scope: string,
+	table: string,
+	value?: GraphQLTypes["JSON"] | undefined | null,
+	['...on ProcessDelta']: Omit<GraphQLTypes["ProcessDelta"], "...on ProcessDelta">
+};
+	["ProcessDocument"]: {
+	__typename: "ProcessDocument",
+	document: GraphQLTypes["JSON"],
+	hash: string,
+	raw?: GraphQLTypes["JSON"] | undefined | null,
+	source: GraphQLTypes["ProcessDocumentSource"],
+	['...on ProcessDocument']: Omit<GraphQLTypes["ProcessDocument"], "...on ProcessDocument">
+};
+	["ProcessDocumentSource"]: {
+	__typename: "ProcessDocumentSource",
+	code: string,
+	field: string,
+	primary_key: string,
+	table: string,
+	['...on ProcessDocumentSource']: Omit<GraphQLTypes["ProcessDocumentSource"], "...on ProcessDocumentSource">
 };
 	["ProcessEdge"]: {
 	__typename: "ProcessEdge",
@@ -30424,6 +30711,31 @@ export type GraphQLTypes = {
 	position: GraphQLTypes["ProcessStepPositionInput"],
 	title: string
 };
+	["ProcessSummary"]: {
+	__typename: "ProcessSummary",
+	actionCount: number,
+	coopname: string,
+	deltaCount: number,
+	documentCount: number,
+	firstSeenAt: GraphQLTypes["DateTime"],
+	lastSeenAt: GraphQLTypes["DateTime"],
+	processHash: string,
+	processType: string,
+	username?: string | undefined | null,
+	['...on ProcessSummary']: Omit<GraphQLTypes["ProcessSummary"], "...on ProcessSummary">
+};
+	["ProcessSummaryPaginationResult"]: {
+	__typename: "ProcessSummaryPaginationResult",
+	/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<GraphQLTypes["ProcessSummary"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number,
+	['...on ProcessSummaryPaginationResult']: Omit<GraphQLTypes["ProcessSummaryPaginationResult"], "...on ProcessSummaryPaginationResult">
+};
 	["ProcessTemplate"]: {
 	__typename: "ProcessTemplate",
 	coopname: string,
@@ -30440,6 +30752,25 @@ export type GraphQLTypes = {
 	['...on ProcessTemplate']: Omit<GraphQLTypes["ProcessTemplate"], "...on ProcessTemplate">
 };
 	["ProcessTemplateStatus"]: ProcessTemplateStatus;
+	["ProcessView"]: {
+	__typename: "ProcessView",
+	actions: Array<GraphQLTypes["ProcessAction"]>,
+	coopname: string,
+	delta_history: Array<GraphQLTypes["ProcessDelta"]>,
+	documents: Array<GraphQLTypes["ProcessDocument"]>,
+	first_seen_at: GraphQLTypes["DateTime"],
+	last_seen_at: GraphQLTypes["DateTime"],
+	process_hash: string,
+	process_type: string,
+	['...on ProcessView']: Omit<GraphQLTypes["ProcessView"], "...on ProcessView">
+};
+	["ProcessesFilter"]: {
+		coopname: string,
+	fromBlock?: number | undefined | null,
+	processType?: string | undefined | null,
+	toBlock?: number | undefined | null,
+	username?: string | undefined | null
+};
 	["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"]: {
 		/** Сумма инвестирования в программу (актив) */
 	amount: string,
@@ -30902,6 +31233,10 @@ export type GraphQLTypes = {
 	getWebPushSubscriptionStats: GraphQLTypes["SubscriptionStatsDto"],
 	/** Получение документов кооператива для синхронизации с 1С. Требует секретный ключ в заголовке x-onecoop-secret-key. */
 	onecoopGetDocuments: GraphQLTypes["OneCoopDocumentsResponse"],
+	/** Получить полную картину процесса ledger2 по process_hash */
+	process: GraphQLTypes["ProcessView"],
+	/** Листинг процессов ledger2 с пагинацией и фильтрами */
+	processes: GraphQLTypes["ProcessSummaryPaginationResult"],
 	/** Полнотекстовый поиск по документам кооператива */
 	searchDocuments: Array<GraphQLTypes["SearchResult"]>,
 	/** Поиск приватных данных аккаунтов по запросу. Поиск осуществляется по полям ФИО, ИНН, ОГРН, наименованию организации и другим приватным данным. */
@@ -33021,6 +33356,7 @@ type ZEUS_VARIABLES = {
 	["ProcessStepStatus"]: ValueTypes["ProcessStepStatus"];
 	["ProcessStepTemplateInput"]: ValueTypes["ProcessStepTemplateInput"];
 	["ProcessTemplateStatus"]: ValueTypes["ProcessTemplateStatus"];
+	["ProcessesFilter"]: ValueTypes["ProcessesFilter"];
 	["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"]: ValueTypes["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"];
 	["ProgramCapitalizationMoneyInvestStatementSignedDocumentInput"]: ValueTypes["ProgramCapitalizationMoneyInvestStatementSignedDocumentInput"];
 	["ProgramCapitalizationMoneyInvestStatementSignedMetaDocumentInput"]: ValueTypes["ProgramCapitalizationMoneyInvestStatementSignedMetaDocumentInput"];

@@ -15,7 +15,7 @@
  *
  * Flow:
  *   1. auth: coopname или контракт из whitelist
- *   2. lookup ACTION_REGISTRY по action_code
+ *   2. lookup ACTION_REGISTRY по action_code → process_type + wallet_op + Dr/Cr
  *   3. wallet op: изменение кошельков + emplace в wjournal
  *   4. accounts: upsert Dr/Cr (фиксируем AccountType при первой проводке)
  *   5. journal: emplace пары проводок, линк на wjournal_entry_id
@@ -29,7 +29,7 @@ void ledger2::apply(eosio::name coopname,
                     eosio::name action_code,
                     eosio::asset amount,
                     eosio::name username,
-                    eosio::checksum256 document_hash,
+                    eosio::checksum256 process_hash,
                     std::string memo) {
   require_recipient(coopname);
 
@@ -138,7 +138,8 @@ void ledger2::apply(eosio::name coopname,
     w.journal_entry_id  = 0; // backfill после записи в journal
     w.username          = username;
     w.memo              = memo;
-    w.document_hash     = document_hash;
+    w.process_type      = entry->process_type;
+    w.process_hash      = process_hash;
     w.created_at        = now;
   });
 
@@ -183,7 +184,8 @@ void ledger2::apply(eosio::name coopname,
     e.amount            = amount;
     e.action_code       = action_code;
     e.wjournal_entry_id = wjournal_id;
-    e.operation_hash    = document_hash;
+    e.process_type      = entry->process_type;
+    e.process_hash      = process_hash;
     e.memo              = memo;
     e.created_at        = now;
   });

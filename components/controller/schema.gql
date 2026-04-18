@@ -8483,6 +8483,18 @@ type PrivateAccountSearchResult {
   type: String!
 }
 
+type ProcessAction {
+  account: String!
+  block_id: String!
+  block_num: Float!
+  created_at: DateTime!
+  data: JSON
+  global_sequence: String!
+  id: String!
+  name: String!
+  transaction_id: String!
+}
+
 input ProcessConvertToAxonStatementInput {
   """Сумма к конвертации"""
   convertAmount: String!
@@ -8492,6 +8504,32 @@ input ProcessConvertToAxonStatementInput {
 
   """Имя пользователя"""
   username: String!
+}
+
+type ProcessDelta {
+  block_num: Float!
+  code: String!
+  created_at: DateTime!
+  id: String!
+  present: Boolean!
+  primary_key: String!
+  scope: String!
+  table: String!
+  value: JSON
+}
+
+type ProcessDocument {
+  document: JSON!
+  hash: String!
+  raw: JSON
+  source: ProcessDocumentSource!
+}
+
+type ProcessDocumentSource {
+  code: String!
+  field: String!
+  primary_key: String!
+  table: String!
 }
 
 type ProcessEdge {
@@ -8567,6 +8605,32 @@ input ProcessStepTemplateInput {
   title: String!
 }
 
+type ProcessSummary {
+  actionCount: Int!
+  coopname: String!
+  deltaCount: Int!
+  documentCount: Int!
+  firstSeenAt: DateTime!
+  lastSeenAt: DateTime!
+  processHash: String!
+  processType: String!
+  username: String
+}
+
+type ProcessSummaryPaginationResult {
+  """Текущая страница"""
+  currentPage: Int!
+
+  """Элементы текущей страницы"""
+  items: [ProcessSummary!]!
+
+  """Общее количество элементов"""
+  totalCount: Int!
+
+  """Общее количество страниц"""
+  totalPages: Int!
+}
+
 type ProcessTemplate {
   coopname: String!
   created_at: DateTime!
@@ -8585,6 +8649,25 @@ enum ProcessTemplateStatus {
   ACTIVE
   ARCHIVED
   DRAFT
+}
+
+type ProcessView {
+  actions: [ProcessAction!]!
+  coopname: String!
+  delta_history: [ProcessDelta!]!
+  documents: [ProcessDocument!]!
+  first_seen_at: DateTime!
+  last_seen_at: DateTime!
+  process_hash: String!
+  process_type: String!
+}
+
+input ProcessesFilter {
+  coopname: String!
+  fromBlock: Int
+  processType: String
+  toBlock: Int
+  username: String
 }
 
 input ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput {
@@ -9297,6 +9380,12 @@ type Query {
   Получение документов кооператива для синхронизации с 1С. Требует секретный ключ в заголовке x-onecoop-secret-key.
   """
   onecoopGetDocuments(data: GetOneCoopDocumentsInput!): OneCoopDocumentsResponse!
+
+  """Получить полную картину процесса ledger2 по process_hash"""
+  process(coopname: String!, hash: String!): ProcessView!
+
+  """Листинг процессов ledger2 с пагинацией и фильтрами"""
+  processes(filter: ProcessesFilter!, pagination: PaginationInput!): ProcessSummaryPaginationResult!
 
   """Полнотекстовый поиск по документам кооператива"""
   searchDocuments(data: SearchDocumentsInput!): [SearchResult!]!

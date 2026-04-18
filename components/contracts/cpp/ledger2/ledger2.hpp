@@ -63,7 +63,7 @@ public:
                                 eosio::name action_code,
                                 eosio::asset amount,
                                 eosio::name username,
-                                eosio::checksum256 document_hash,
+                                eosio::checksum256 process_hash,
                                 std::string memo);
 
   /**

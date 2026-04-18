@@ -679,4 +679,5 @@ export interface IConverttoaxn {
   coopname: IName
   amount: IAsset
   statement: IDocument2
+  process_hash: IChecksum256
 }

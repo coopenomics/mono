@@ -78,8 +78,9 @@ public:
 
   [[eosio::action]] void adduser(
     eosio::name coopname, eosio::name referer,
-    eosio::name username, eosio::name type , eosio::time_point_sec created_at, 
-    eosio::asset initial, eosio::asset minimum, bool spread_initial, std::string meta);
+    eosio::name username, eosio::name type , eosio::time_point_sec created_at,
+    eosio::asset initial, eosio::asset minimum, bool spread_initial, std::string meta,
+    checksum256 registration_hash);
   
   [[eosio::action]] void changekey(eosio::name coopname, eosio::name changer, eosio::name username, eosio::public_key public_key);
   

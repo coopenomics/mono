@@ -97,7 +97,7 @@ public:
    * @param coopname Имя кооператива
    * @param amount Сумма в RUB токенах для конвертации
    */
-  [[eosio::action]] void converttoaxn(eosio::name coopname, eosio::asset amount, document2 statement);
+  [[eosio::action]] void converttoaxn(eosio::name coopname, eosio::asset amount, document2 statement, checksum256 process_hash);
 
   //agenda.cpp
   [[eosio::action]] void createagenda(CREATEAGENDA_SIGNATURE);

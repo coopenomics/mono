@@ -24,6 +24,10 @@
  *
  * Линки на action_code и journal_entry_id позволяют сверять движение
  * кошелька с парной бухгалтерской проводкой в таблице journal.
+ *
+ * Поля `process_type` и `process_hash` образуют единый ключ процесса:
+ * связь entity-hash → семантический тип процесса, по которому бэкенд
+ * собирает полную историю через ProcessRegistryService.
  */
 struct [[eosio::table, eosio::contract(LEDGER2)]] wjournal_entry {
   uint64_t             id;
@@ -35,7 +39,8 @@ struct [[eosio::table, eosio::contract(LEDGER2)]] wjournal_entry {
   uint64_t             journal_entry_id;   ///< id парной бухгалтерской проводки
   eosio::name          username;
   std::string          memo;
-  eosio::checksum256   document_hash;
+  eosio::name          process_type;       ///< тип процесса (выводится из ACTION_REGISTRY по action_code)
+  eosio::checksum256   process_hash;       ///< entity-hash процесса (debt_hash/result_hash/registration_hash/...)
   eosio::time_point    created_at;
 
   uint64_t primary_key() const { return id; }
@@ -45,16 +50,20 @@ struct [[eosio::table, eosio::contract(LEDGER2)]] wjournal_entry {
   uint64_t by_action() const { return action_code.value; }
   uint64_t by_user() const { return username.value; }
   uint64_t by_journal() const { return journal_entry_id; }
+  uint64_t by_process_type() const { return process_type.value; }
+  eosio::checksum256 by_process_hash() const { return process_hash; }
   uint64_t by_created() const { return static_cast<uint64_t>(created_at.elapsed.count()); }
 };
 
 typedef eosio::multi_index<
   "wjournal"_n, wjournal_entry,
-  eosio::indexed_by<"byop"_n,      eosio::const_mem_fun<wjournal_entry, uint64_t, &wjournal_entry::by_op>>,
-  eosio::indexed_by<"byfrom"_n,    eosio::const_mem_fun<wjournal_entry, uint64_t, &wjournal_entry::by_from>>,
-  eosio::indexed_by<"byto"_n,      eosio::const_mem_fun<wjournal_entry, uint64_t, &wjournal_entry::by_to>>,
-  eosio::indexed_by<"byaction"_n,  eosio::const_mem_fun<wjournal_entry, uint64_t, &wjournal_entry::by_action>>,
-  eosio::indexed_by<"byuser"_n,    eosio::const_mem_fun<wjournal_entry, uint64_t, &wjournal_entry::by_user>>,
-  eosio::indexed_by<"byjournal"_n, eosio::const_mem_fun<wjournal_entry, uint64_t, &wjournal_entry::by_journal>>,
-  eosio::indexed_by<"bycreated"_n, eosio::const_mem_fun<wjournal_entry, uint64_t, &wjournal_entry::by_created>>
+  eosio::indexed_by<"byop"_n,       eosio::const_mem_fun<wjournal_entry, uint64_t, &wjournal_entry::by_op>>,
+  eosio::indexed_by<"byfrom"_n,     eosio::const_mem_fun<wjournal_entry, uint64_t, &wjournal_entry::by_from>>,
+  eosio::indexed_by<"byto"_n,       eosio::const_mem_fun<wjournal_entry, uint64_t, &wjournal_entry::by_to>>,
+  eosio::indexed_by<"byaction"_n,   eosio::const_mem_fun<wjournal_entry, uint64_t, &wjournal_entry::by_action>>,
+  eosio::indexed_by<"byuser"_n,     eosio::const_mem_fun<wjournal_entry, uint64_t, &wjournal_entry::by_user>>,
+  eosio::indexed_by<"byjournal"_n,  eosio::const_mem_fun<wjournal_entry, uint64_t, &wjournal_entry::by_journal>>,
+  eosio::indexed_by<"byproctype"_n, eosio::const_mem_fun<wjournal_entry, uint64_t, &wjournal_entry::by_process_type>>,
+  eosio::indexed_by<"byprochash"_n, eosio::const_mem_fun<wjournal_entry, eosio::checksum256, &wjournal_entry::by_process_hash>>,
+  eosio::indexed_by<"bycreated"_n,  eosio::const_mem_fun<wjournal_entry, uint64_t, &wjournal_entry::by_created>>
 > wjournal_index;
