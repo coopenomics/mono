@@ -12,6 +12,7 @@ import { sleep } from './utils'
 import { checkHealth } from './docker/health'
 import { clearDB, clearDirectory, deleteFile } from './docker/purge'
 import { deployCommand } from './docker/deploy'
+import { addTestUser } from './scripts/add-test-user'
 
 config()
 
@@ -29,6 +30,20 @@ if (!fs.existsSync(keosdPath)) {
 const program = new Command()
 
 program.version('0.1.0')
+
+// Epic 4: smoke-скрипт для проверки ProcessRegistry end-to-end.
+program
+  .command('add-test-user <username>')
+  .description('Добавить пайщика через registrator::adduser — для live-тестов ProcessRegistry')
+  .action(async (username: string) => {
+    try {
+      await addTestUser(username)
+      process.exit(0)
+    } catch (e) {
+      console.error('Failed:', e)
+      process.exit(1)
+    }
+  })
 
 // Команда для запуска команды в контейнере
 program

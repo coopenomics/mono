@@ -8,6 +8,7 @@ import type { Account, Contract } from '../types'
 import config from '../configs'
 import Blockchain from '../blockchain'
 import { sleep } from '../utils'
+import { generateRandomSHA256 } from '../utils/randomHash'
 import { initUsersInPostgres, initVaultInPostgres } from '../postgres-init'
 import { CooperativeClass } from './cooperative'
 
@@ -390,6 +391,7 @@ export async function installInitialData(blockchain: Blockchain, isExtended = fa
     minimum: '200.0000 RUB',
     spread_initial: true,
     meta: 'Основатель кооператива ВОСХОД',
+    registration_hash: generateRandomSHA256(),
   })
 
   console.log('Устанавливаем дефолтный публичный ключ для ant')
@@ -481,6 +483,7 @@ export async function installInitialData(blockchain: Blockchain, isExtended = fa
         minimum: '300.0000 RUB',
         spread_initial: true,
         meta: `Член совета кооператива ВОСХОД - ${user.first_name} ${user.middle_name} ${user.last_name}`,
+        registration_hash: generateRandomSHA256(),
       })
 
       console.log(`Устанавливаем дефолтный публичный ключ для ${user.username}`)

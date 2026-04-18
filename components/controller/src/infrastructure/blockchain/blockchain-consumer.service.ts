@@ -180,7 +180,12 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
   }
 
   private async processDeltaDelayed(delta: IDelta): Promise<void> {
-    if (delta.value?.coopname != config.coopname) {
+    // Пропускаем дельту, если она не относится к нашему кооперативу.
+    // coopname может быть в value (большинство таблиц контроллируемых таблиц)
+    // ИЛИ в scope (ончейн-таблицы с scope=coopname: ledger2 wjournal/journal/
+    // wallets/accounts, wallet deposits/withdraws, capital debts/results/...).
+    const deltaCoop = (delta.value as any)?.coopname ?? delta.scope;
+    if (deltaCoop != config.coopname) {
       return;
     }
 

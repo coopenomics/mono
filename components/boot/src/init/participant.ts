@@ -6,6 +6,7 @@ import type { Account, Contract, Keys } from '../types'
 import config, { GOVERN_SYMBOL, SYMBOL } from '../configs'
 import Blockchain from '../blockchain'
 import { sendPostToCoopbackWithSecret, sleep } from '../utils'
+import { generateRandomSHA256 } from '../utils/randomHash'
 import { fakeDocument } from '../tests/shared/fakeDocument'
 
 export class ParticipantsClass {
@@ -33,6 +34,7 @@ export class ParticipantsClass {
       minimum: '100.0000 RUB',
       spread_initial: false,
       meta: '',
+      registration_hash: generateRandomSHA256(),
     }
 
     await this.blockchain.api.transact({
@@ -113,6 +115,7 @@ export class ParticipantsClass {
       minimum: '100.0000 RUB',
       spread_initial: false,
       meta: '',
+      registration_hash: generateRandomSHA256(),
     }
 
     await this.blockchain.api.transact({

@@ -30,6 +30,8 @@ export const subscribedContracts: string[] = [
   'capital',
   'wallet',
   'ledger',
+  'ledger2',
+  'marketplace',
 ]
 
 // Автоматически генерируем действия для всех контрактов из списка

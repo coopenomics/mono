@@ -25,20 +25,23 @@ export default {
   async up({ dataSource, logger }: { dataSource: DataSource; logger: MigrationLogger }): Promise<boolean> {
     try {
       // ----- phase A: ledger2 journals -----
+      // Важно: ledger2 wjournal/journal хранят coopname как scope, а не в
+      // value.jsonb — индексы покрывают (process_hash, scope) и аналогично
+      // для process_type/username.
       await dataSource.query(`
         CREATE INDEX IF NOT EXISTS "idx_deltas_ledger2_process_hash"
-          ON "blockchain_deltas" (("value"->>'process_hash'), ("value"->>'coopname'))
-          WHERE code = '_ledger2' AND "table" IN ('wjournal','journal')
+          ON "blockchain_deltas" (("value"->>'process_hash'), scope)
+          WHERE code = 'ledger2' AND "table" IN ('wjournal','journal')
       `);
       await dataSource.query(`
         CREATE INDEX IF NOT EXISTS "idx_deltas_ledger2_process_type"
-          ON "blockchain_deltas" (("value"->>'process_type'), ("value"->>'coopname'))
-          WHERE code = '_ledger2' AND "table" IN ('wjournal','journal')
+          ON "blockchain_deltas" (("value"->>'process_type'), scope)
+          WHERE code = 'ledger2' AND "table" IN ('wjournal','journal')
       `);
       await dataSource.query(`
         CREATE INDEX IF NOT EXISTS "idx_deltas_ledger2_wjournal_username"
-          ON "blockchain_deltas" (("value"->>'username'), ("value"->>'coopname'))
-          WHERE code = '_ledger2' AND "table" = 'wjournal'
+          ON "blockchain_deltas" (("value"->>'username'), scope)
+          WHERE code = 'ledger2' AND "table" = 'wjournal'
       `);
 
       // ----- phase B: entity tables из PROCESS_HASH_LOCATOR -----

@@ -26,7 +26,7 @@ import {
   PaginationResult,
 } from '~/application/common/dto/pagination.dto';
 
-const LEDGER2_CODE = '_ledger2';
+const LEDGER2_CODE = 'ledger2';
 const LEDGER2_JOURNALS = ['wjournal', 'journal'] as const;
 const HARD_LIMIT = 200;
 const CACHE_TTL_SECONDS = 60;
@@ -77,12 +77,15 @@ export class ProcessRegistryService {
     if (cached) return cached;
 
     // ---------- Phase A: anchor scan в ledger2-журналах ----------
+    // ledger2 хранит coopname в scope (не в value.jsonb), поэтому фильтр —
+    // по scope вместо value->>'coopname'. checksum256 в блокчейн-дельтах
+    // хранится uppercase, поэтому сравниваем через LOWER() обе стороны.
     const anchors = await this.deltaRepository
       .createQueryBuilder('d')
       .where('d.code = :code', { code: LEDGER2_CODE })
       .andWhere('d.table IN (:...tables)', { tables: LEDGER2_JOURNALS })
-      .andWhere("d.value ->> 'process_hash' = :hash", { hash: normHash })
-      .andWhere("d.value ->> 'coopname' = :coop", { coop: coopname })
+      .andWhere("LOWER(d.value ->> 'process_hash') = :hash", { hash: normHash })
+      .andWhere('d.scope = :coop', { coop: coopname })
       .orderBy('d.block_num', 'ASC')
       .getMany();
 
@@ -155,13 +158,14 @@ export class ProcessRegistryService {
     const limit = Math.max(1, Math.min(100, pagination.limit ?? 10));
     const offset = (page - 1) * limit;
 
-    // Подсчёт total (distinct по process_hash)
+    // Coopname-scoping идёт по d.scope, т.к. ledger2 wjournal/journal хранят
+    // coopname как scope, а не в value.jsonb.
     const countRow = await this.deltaRepository.manager.query(
       `SELECT COUNT(DISTINCT d.value ->> 'process_hash') AS cnt
        FROM blockchain_deltas d
        WHERE d.code = $1
          AND d.table = 'wjournal'
-         AND d.value ->> 'coopname' = $2
+         AND d.scope = $2
          AND (d.value ->> 'process_hash') IS NOT NULL
          ${filter.processType ? "AND d.value ->> 'process_type' = $3" : ''}
          ${filter.username ? `AND d.value ->> 'username' = $${filter.processType ? 4 : 3}` : ''}
@@ -173,27 +177,28 @@ export class ProcessRegistryService {
     const totalCount = parseInt(countRow[0]?.cnt ?? '0', 10);
     const totalPages = Math.max(1, Math.ceil(totalCount / limit));
 
-    // Выборка страницы
+    // Выборка страницы. processHash нормализуется к lowercase для единообразия
+    // с getProcess (ончейн хранит uppercase, а наружу отдаём lowercase hex).
     const rows = await this.deltaRepository.manager.query(
       `SELECT
-         d.value ->> 'process_type' AS "processType",
-         d.value ->> 'process_hash' AS "processHash",
-         d.value ->> 'coopname'     AS "coopname",
+         d.value ->> 'process_type'           AS "processType",
+         LOWER(d.value ->> 'process_hash')    AS "processHash",
+         d.scope                              AS "coopname",
          MIN(d.value ->> 'username') AS "username",
          MIN(d.created_at) AS "firstSeenAt",
          MAX(d.created_at) AS "lastSeenAt"
        FROM blockchain_deltas d
        WHERE d.code = $1
          AND d.table = 'wjournal'
-         AND d.value ->> 'coopname' = $2
+         AND d.scope = $2
          AND (d.value ->> 'process_hash') IS NOT NULL
          ${filter.processType ? "AND d.value ->> 'process_type' = $3" : ''}
          ${filter.username ? `AND d.value ->> 'username' = $${filter.processType ? 4 : 3}` : ''}
          ${filter.fromBlock ? `AND d.block_num >= $${this.nextParamIdx(filter, 'from')}` : ''}
          ${filter.toBlock ? `AND d.block_num <= $${this.nextParamIdx(filter, 'to')}` : ''}
        GROUP BY d.value ->> 'process_type',
-                d.value ->> 'process_hash',
-                d.value ->> 'coopname'
+                LOWER(d.value ->> 'process_hash'),
+                d.scope
        ORDER BY MAX(d.created_at) DESC
        LIMIT ${limit} OFFSET ${offset}
       `,
@@ -250,12 +255,15 @@ export class ProcessRegistryService {
     if (locations.length === 0) return [];
     const all: DeltaEntity[] = [];
     for (const loc of locations) {
+      // Coopname-скоупинг: часть таблиц хранит coopname в scope (ledger2,
+      // большинство кооп-scope таблиц), часть — в value.jsonb (singleton-scope
+      // контракты типа registrator). Поддерживаем оба варианта.
       const rows = await this.deltaRepository
         .createQueryBuilder('d')
         .where('d.code = :code', { code: loc.code })
         .andWhere('d.table = :table', { table: loc.table })
-        .andWhere(`d.value ->> :field = :hash`, { field: loc.field, hash })
-        .andWhere("d.value ->> 'coopname' = :coop", { coop: coopname })
+        .andWhere(`LOWER(d.value ->> :field) = :hash`, { field: loc.field, hash })
+        .andWhere("(d.scope = :coop OR d.value ->> 'coopname' = :coop)", { coop: coopname })
         .orderBy('d.block_num', 'ASC')
         .getMany();
       all.push(...rows);
@@ -387,6 +395,7 @@ export class ProcessRegistryService {
   }
 
   private async countActionsByHash(hash: string, coopname: string): Promise<number> {
+    // ILIKE уже case-insensitive, так что проверим по lowercase-подстроке.
     const row = await this.actionRepository.manager.query(
       `SELECT COUNT(*) AS cnt FROM blockchain_actions a
        WHERE (a.data::text ILIKE $1) AND (a.data::text ILIKE $2)`,
@@ -399,8 +408,8 @@ export class ProcessRegistryService {
     const row = await this.deltaRepository.manager.query(
       `SELECT COUNT(*) AS cnt FROM blockchain_deltas d
        WHERE d.code = $1 AND d.table IN ('wjournal','journal')
-         AND d.value ->> 'process_hash' = $2
-         AND d.value ->> 'coopname' = $3`,
+         AND LOWER(d.value ->> 'process_hash') = $2
+         AND d.scope = $3`,
       [LEDGER2_CODE, hash, coopname]
     );
     return parseInt(row[0]?.cnt ?? '0', 10);
@@ -413,8 +422,8 @@ export class ProcessRegistryService {
     const row = await this.deltaRepository.manager.query(
       `SELECT COUNT(*) AS cnt FROM blockchain_deltas d
        WHERE d.code = $1 AND d.table IN ('wjournal','journal')
-         AND d.value ->> 'process_hash' = $2
-         AND d.value ->> 'coopname' = $3`,
+         AND LOWER(d.value ->> 'process_hash') = $2
+         AND d.scope = $3`,
       [LEDGER2_CODE, hash, coopname]
     );
     // actions → документ считаем как "1 если есть хоть одна дельта".

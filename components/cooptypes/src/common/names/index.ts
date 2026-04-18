@@ -74,6 +74,6 @@ export const _ledger = {
 } as const
 
 export const _ledger2 = {
-  production: '_ledger2',
-  testnet: '_ledger2',
+  production: 'ledger2',
+  testnet: 'ledger2',
 } as const
