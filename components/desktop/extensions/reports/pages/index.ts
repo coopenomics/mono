@@ -1,1 +1,5 @@
-export { ReportsPage } from './ReportsPage'
+export { OperationsPage } from './OperationsPage'
+export { WalletsPage } from './WalletsPage'
+export { AccountsPage } from './AccountsPage'
+export { DocumentsPage } from './DocumentsPage'
+export { SettingsPage } from './SettingsPage'

@@ -1,7 +1,7 @@
 import { markRaw } from 'vue';
 import { agreementsBase } from 'src/shared/lib/consts/workspaces';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
-import { ReportsPage } from './pages';
+import { OperationsPage, WalletsPage, AccountsPage, DocumentsPage, SettingsPage } from './pages';
 
 export default async function (): Promise<IWorkspaceConfig[]> {
   return [{
@@ -9,7 +9,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
     extension_name: 'reports',
     title: 'Отчёты ФНС',
     icon: 'fa-solid fa-file-invoice',
-    defaultRoute: 'reports-main',
+    defaultRoute: 'reports-operations',
     routes: [
       {
         meta: {
@@ -21,12 +21,64 @@ export default async function (): Promise<IWorkspaceConfig[]> {
         name: 'reports',
         children: [
           {
-            path: '',
-            name: 'reports-main',
-            component: markRaw(ReportsPage),
+            path: 'operations',
+            name: 'reports-operations',
+            component: markRaw(OperationsPage),
             meta: {
-              title: 'Расписание отчётов',
-              icon: 'fa-solid fa-calendar-days',
+              title: 'Операции',
+              icon: 'fa-solid fa-list-ul',
+              roles: ['chairman'],
+              agreements: agreementsBase,
+              requiresAuth: true,
+            },
+            children: [],
+          },
+          {
+            path: 'wallets',
+            name: 'reports-wallets',
+            component: markRaw(WalletsPage),
+            meta: {
+              title: 'Кошельки',
+              icon: 'fa-solid fa-wallet',
+              roles: ['chairman'],
+              agreements: agreementsBase,
+              requiresAuth: true,
+            },
+            children: [],
+          },
+          {
+            path: 'accounts',
+            name: 'reports-accounts',
+            component: markRaw(AccountsPage),
+            meta: {
+              title: 'Счета',
+              icon: 'fa-solid fa-sitemap',
+              roles: ['chairman'],
+              agreements: agreementsBase,
+              requiresAuth: true,
+            },
+            children: [],
+          },
+          {
+            path: 'documents',
+            name: 'reports-documents',
+            component: markRaw(DocumentsPage),
+            meta: {
+              title: 'Отчётность',
+              icon: 'fa-solid fa-file-invoice',
+              roles: ['chairman'],
+              agreements: agreementsBase,
+              requiresAuth: true,
+            },
+            children: [],
+          },
+          {
+            path: 'settings',
+            name: 'reports-settings',
+            component: markRaw(SettingsPage),
+            meta: {
+              title: 'Реквизиты',
+              icon: 'fa-solid fa-gear',
               roles: ['chairman'],
               agreements: agreementsBase,
               requiresAuth: true,

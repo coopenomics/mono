@@ -1139,9 +1139,27 @@ type Authority {
 
 type AvailableReport {
   deadline: String!
+
+  """Время последней успешной генерации (UTC)"""
+  lastGeneratedAt: DateTime
+
+  """Ключи недостающих полей (пусто, если ready=true)"""
+  missingFields: [String!]!
   name: String!
+
+  """Ближайшая дата подачи в ФНС/СФР"""
+  nextDeadlineDate: DateTime
   period: String!
+
+  """Готовы ли реквизиты для генерации этой формы"""
+  readyToGenerate: Boolean!
   type: ReportType!
+}
+
+input BalanceCorrectionItemInput {
+  accountDisplayId: String!
+  balancePrePrevious: Float!
+  balancePrevious: Float!
 }
 
 type BankAccount {
@@ -5744,6 +5762,11 @@ type GenerateRegistrationDocumentsOutput {
 }
 
 input GenerateReportInput {
+  """Номер корректировки декларации (0 — первичная)"""
+  correctionNumber: Int
+
+  """Ручные корректировки балансов прошлых периодов (для BUHOTCH)"""
+  corrections: [BalanceCorrectionItemInput!]
   period: Int
   reportType: ReportType!
   year: Int!
@@ -5798,11 +5821,28 @@ type GeneratedRegistrationDocument {
 }
 
 type GeneratedReport {
+  createdAt: DateTime
   errors: [String!]!
   fileName: String!
+
+  """UUID записи в generated_reports (null, если XML пустой и не сохранён)"""
+  id: String
   isValid: Boolean!
+  period: Int
   reportType: ReportType!
   xml: String!
+  year: Int!
+}
+
+type GeneratedReportSummary {
+  createdAt: DateTime!
+  fileName: String!
+  generatedBy: String!
+  id: String!
+  isValid: Boolean!
+  period: Int
+  reportType: ReportType!
+  year: Int!
 }
 
 input GenerationContractGenerateDocumentInput {
@@ -6846,6 +6886,13 @@ type MeetQuestionResult {
   votes_for: Int!
 }
 
+type MissingRequisiteField {
+  key: String!
+  label: String!
+  reason: String!
+  source: RequisiteSource!
+}
+
 input ModerateRequestInput {
   """
   Размер комиссии за отмену в формате "10.0000 RUB"
@@ -7334,8 +7381,10 @@ type Mutation {
   """
   generateRegistrationDocuments(data: GenerateRegistrationDocumentsInput!): GenerateRegistrationDocumentsOutput!
 
-  """Генерация отчёта для ФНС/ФСС"""
-  generateReport(data: GenerateReportInput!, organization: OrganizationDataInput!): GeneratedReport!
+  """
+  Генерация отчёта для ФНС/ФСС с сохранением истории. organization-параметр опционален — если не передан, реквизиты берутся из getReportRequisites.
+  """
+  generateReport(data: GenerateReportInput!, organization: OrganizationDataInput): GeneratedReport!
 
   """Сгенерировать документ акта возврата имущества."""
   generateReturnByAssetAct(data: ReturnByAssetActGenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
@@ -7493,6 +7542,11 @@ type Mutation {
   """Обновить расширение"""
   updateExtension(data: ExtensionInput!): Extension!
 
+  """
+  Обновить ручные реквизиты кооператива. ИНН/КПП/ОГРН игнорируются — это ончейн
+  """
+  updateReportRequisites(input: UpdateReportRequisitesInput!): ReportRequisitesView!
+
   """Обновить заявку"""
   updateRequest(data: UpdateRequestInput!): Transaction!
 
@@ -7623,19 +7677,38 @@ type OrganizationCertificate {
 
 input OrganizationDataInput {
   address: String
+
+  """
+  Должность руководителя, указывается в ЕФС-1 (по умолчанию «Председатель Совета»)
+  """
+  chairmanPosition: String
   inn: String!
   kpp: String!
   ogrn: String!
   okfs: String
   okopf: String
+
+  """ОКПО"""
+  okpo: String
   oktmo: String!
   okved: String!
   orgName: String!
   phone: String
+
+  """Регистрационный номер страхователя в СФР (для ЕФС-1)"""
+  sfrRegNumber: String
   signerFirstName: String!
   signerLastName: String!
   signerMiddleName: String
+
+  """
+  Для signerType=representative — описание доверенности (НаимДок в <СвПред>)
+  """
+  signerRepDoc: String
   signerSnils: String
+
+  """Тип подписанта: "chairman" (ПрПодп=1) или "representative" (ПрПодп=2)"""
+  signerType: String
 }
 
 type OrganizationDetails {
@@ -9093,6 +9166,9 @@ type Query {
   """
   chatcoopListUtcDatesWithNewRoomMessages(data: ListUtcDatesWithNewRoomMessagesInput!): [String!]!
 
+  """Проверить готовность реквизитов для генерации конкретной формы"""
+  checkReportReadiness(reportType: ReportType!): ReportReadinessView!
+
   """Получить сводную информацию о аккаунте"""
   getAccount(data: GetAccountInput!): Account!
 
@@ -9107,7 +9183,9 @@ type Query {
   """Получить список вопросов совета кооператива для голосования"""
   getAgenda: [AgendaWithDocuments!]!
 
-  """Получить список доступных типов отчётов"""
+  """
+  Список доступных типов отчётов MVP (PSV/UV_VZNOSY/UUSN скрыты feature-flag) с meta по последней генерации
+  """
   getAvailableReports: [AvailableReport!]!
 
   """Получить список кооперативных участков"""
@@ -9189,6 +9267,22 @@ type Query {
 
   """Получить конфигурацию программ регистрации для кооператива"""
   getRegistrationConfig(account_type: AccountType!, coopname: String!): RegistrationConfig!
+
+  """Получить сгенерированный отчёт по UUID — XML возвращается дословно"""
+  getReport(id: String!): GeneratedReport!
+
+  """История сгенерированных отчётов (постраничная, без XML)"""
+  getReportHistory(filter: ReportHistoryFilterInput): ReportHistoryPage!
+
+  """
+  Предрасчёт полей отчёта без XML — для отображения формы перед генерацией
+  """
+  getReportPreview(input: ReportPreviewInput!): ReportPreview!
+
+  """
+  Объединённый вид реквизитов кооператива (ончейн + ручные) с источником каждого поля
+  """
+  getReportRequisites: ReportRequisitesView!
 
   """Получить сводную публичную информацию о системе"""
   getSystemInfo: SystemInfo!
@@ -9450,6 +9544,76 @@ type RegistrationProgram {
   title: String!
 }
 
+input ReportHistoryFilterInput {
+  """Лимит (макс 100, по умолчанию 20)"""
+  limit: Int
+
+  """Сдвиг для пагинации (по умолчанию 0)"""
+  offset: Int
+  period: Int
+  reportType: ReportType
+  year: Int
+}
+
+type ReportHistoryPage {
+  items: [GeneratedReportSummary!]!
+  total: Int!
+}
+
+type ReportPreview {
+  period: Int
+  reportType: ReportType!
+  sections: [ReportPreviewSection!]!
+  year: Int!
+}
+
+type ReportPreviewField {
+  key: String!
+  label: String!
+  unit: String
+  value: String
+}
+
+input ReportPreviewInput {
+  period: Int
+  reportType: ReportType!
+  year: Int!
+}
+
+type ReportPreviewSection {
+  fields: [ReportPreviewField!]!
+  title: String!
+}
+
+type ReportReadinessView {
+  missingFields: [MissingRequisiteField!]!
+  ready: Boolean!
+  reportType: ReportType!
+}
+
+type ReportRequisitesView {
+  address: RequisiteFieldView!
+  chairmanPosition: RequisiteFieldView!
+  chairmanPositionFromOrg: RequisiteFieldView!
+  coopname: String!
+  inn: RequisiteFieldView!
+  kpp: RequisiteFieldView!
+  ogrn: RequisiteFieldView!
+  okfs: RequisiteFieldView!
+  okopf: RequisiteFieldView!
+  okpo: RequisiteFieldView!
+  oktmo: RequisiteFieldView!
+  okved: RequisiteFieldView!
+  orgName: RequisiteFieldView!
+  phone: RequisiteFieldView!
+  sfrRegNumber: RequisiteFieldView!
+  signerFirstName: RequisiteFieldView!
+  signerLastName: RequisiteFieldView!
+  signerMiddleName: RequisiteFieldView!
+  signerRepDoc: RequisiteFieldView!
+  signerSnils: RequisiteFieldView!
+}
+
 enum ReportType {
   BUHOTCH
   DUSN
@@ -9498,6 +9662,17 @@ input RepresentedByInput {
   last_name: String!
   middle_name: String!
   position: String!
+}
+
+type RequisiteFieldView {
+  source: RequisiteSource!
+  value: String
+}
+
+enum RequisiteSource {
+  BLOCKCHAIN
+  EMPTY
+  MANUAL
 }
 
 input ResetKeyInput {
@@ -10938,6 +11113,20 @@ input UpdateProcessTemplateInput {
   status: ProcessTemplateStatus
   steps: [ProcessStepTemplateInput!]
   title: String
+}
+
+input UpdateReportRequisitesInput {
+  addressOverride: String
+  chairmanPosition: String
+  okfs: String
+  okopf: String
+  okpo: String
+  oktmo: String
+  okved: String
+  phoneOverride: String
+  sfrRegNumber: String
+  signerRepDoc: String
+  signerSnils: String
 }
 
 input UpdateRequestInput {
