@@ -34,4 +34,8 @@ namespace process_types {
   inline constexpr eosio::name CAPITAL_ACT2_PROPERTY = "cap.act2prp"_n;   ///< capital: акт-2 программного имущественного взноса
   inline constexpr eosio::name MARKETPLACE_OFFER     = "mkt.offereq"_n;   ///< marketplace: цикл оффера (mkt.supplcnf + mkt.recvcnf)
   inline constexpr eosio::name SOVIET_AXN_CONVERT    = "sov.axncnv"_n;    ///< soviet: конвертация RUB→AXN (одноактовый)
+
+  // Технические процессы (миграция и служебные корректировки)
+  inline constexpr eosio::name OPENING_BALANCE       = "mig.opening"_n;   ///< migrate: открывающие остатки (один кооп = серия apply)
+  inline constexpr eosio::name OPENING_RID           = "mig.rid"_n;       ///< migrate: корректировка РИД на paевой фонд (Dr 04 / Cr 80)
 }

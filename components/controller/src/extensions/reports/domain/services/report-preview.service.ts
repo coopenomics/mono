@@ -26,11 +26,12 @@ export interface PreviewContext {
 const THOUSAND = 1000;
 const round1000 = (x: number) => Math.round(x / THOUSAND);
 
+// Epic 1 addendum (2026-04-18): субсчета 86.x удалены, детализация в wallets.
 const ACCOUNT_GROUPS = {
   cash: [50000, 51000, 52000, 55000],
   nonMatFin: [1000, 4000, 8000, 583000],
   shortFin: [58000, 581000, 582000, 62000, 76000],
-  target: [80000, 86000, 861000, 862000, 863000, 864000, 865000, 866000, 867000, 868000],
+  target: [80000, 86000],
 } as const;
 
 @Injectable()

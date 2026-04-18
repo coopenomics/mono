@@ -20,18 +20,25 @@ using namespace eosio;
 \ingroup public_contracts
 \brief Двухконтурный учёт: управленческие кошельки + двойная бухгалтерия.
 
-Контракт ledger2 реализует единый интерфейс `apply(action_code, ...)` для
-всех финансовых движений кооператива. Учёт ведётся на двух уровнях:
+Контракт ledger2 (пересмотр Epic 1 addendum, 2026-04-18) реализует единый
+интерфейс `apply(action_code, ...)` как orchestrator: он рассылает 3
+атомарных inline-action, связанных общим `process_hash`:
 
-  • Уровень кошельков (wallets) + журнал wjournal — атомарные операции
-    ISSUE / TRANSFER / BLOCK / UNBLOCK.
-  • Уровень счетов (accounts) + журнал journal — парные проводки Dr/Cr,
-    сальдо учитывает тип счёта (активный/пассивный/активно-пассивный).
+  1. `walletop` — issue/transfer/block/unblock на wallets2;
+  2. `debit`   — +debit_balance на accounts2[Dr] + пересчёт сальдо;
+  3. `credit`  — +credit_balance на accounts2[Cr] + пересчёт сальдо.
 
-На каждый именованный action_code атомарно совершается ровно одно движение
-на уровне кошельков (одна запись в wjournal) и ровно одна парная проводка
-на уровне счетов (одна запись в journal). Записи двух журналов перекрёстно
-линкованы через journal.wjournal_entry_id ↔ wjournal.journal_entry_id.
+Каждая inline-action попадает в blockchain_actions отдельной записью с
+полями (..., process_hash). Бэкенд собирает «тройку» простым SQL:
+`account = 'ledger2' AND data->>'process_hash' = X`.
+
+State-таблицы в RAM:
+  • `accounts2` — счёт с account_type, debit_balance, credit_balance, balance;
+  • `wallets2`  — кошелёк с available, blocked;
+  • `meta`      — служебная (статус миграции).
+
+История в RAM не хранится — она целиком восстанавливается на бэкенде из
+blockchain_actions + blockchain_deltas.
 
 Внешних add/sub/writeoff нет — всё движение средств описывается через
 ACTION_REGISTRY.
@@ -55,7 +62,11 @@ public:
       : eosio::contract(receiver, code, ds) {}
 
   /**
-   * @brief Единая точка входа финансовых движений ledger2.
+   * @brief Единая точка входа финансовых движений ledger2 (orchestrator).
+   *
+   * Не пишет в state напрямую: рассылает 3 atomic inline action
+   * (`walletop`, `debit`, `credit`), связанных общим `process_hash`.
+   *
    * @ingroup public_ledger2_actions
    */
   [[eosio::action]] void apply(eosio::name coopname,
@@ -67,8 +78,57 @@ public:
                                 std::string memo);
 
   /**
-   * @brief Одноразовая миграция остатков с ledger.
+   * @brief Атомарная операция по кошельку (issue/transfer/block/unblock).
+   *
+   * Внутренний action — вызывается только через inline из apply().
    * @ingroup public_ledger2_actions
    */
-  [[eosio::action]] void migrate();
+  [[eosio::action]] void walletop(eosio::name coopname,
+                                   uint8_t op_code,
+                                   uint64_t wallet_from,
+                                   uint64_t wallet_to,
+                                   eosio::asset amount,
+                                   eosio::checksum256 process_hash,
+                                   std::string memo);
+
+  /**
+   * @brief Атомарная дебетовая проводка на счёт + пересчёт сальдо.
+   *
+   * Внутренний action — вызывается только через inline из apply().
+   * @ingroup public_ledger2_actions
+   */
+  [[eosio::action]] void debit(eosio::name coopname,
+                                uint64_t account_id,
+                                eosio::asset amount,
+                                eosio::checksum256 process_hash,
+                                std::string memo);
+
+  /**
+   * @brief Атомарная кредитовая проводка на счёт + пересчёт сальдо.
+   *
+   * Внутренний action — вызывается только через inline из apply().
+   * @ingroup public_ledger2_actions
+   */
+  [[eosio::action]] void credit(eosio::name coopname,
+                                 uint64_t account_id,
+                                 eosio::asset amount,
+                                 eosio::checksum256 process_hash,
+                                 std::string memo);
+
+  /**
+   * @brief Миграция остатков с legacy-ledger в ledger2 (курсорный режим).
+   *
+   * @param from_coop_index  начальный индекс в таблице registrator::coops (0 — с начала)
+   * @param limit            максимум кооп. за один вызов (UINT64_MAX — до конца)
+   *
+   * Полный прогон: `migrate(0, UINT64_MAX)`. Продовый прогон порциями:
+   * `migrate(0, 10)`, `migrate(10, 10)`, ... Мета-таблица хранит
+   * `last_migrated_coop_index` для возобновления.
+   *
+   * Все балансы вносятся через inline `apply(OPENING_*)` — единый путь учёта
+   * с полной двойной проводкой и audit-trail в wjournal/journal.
+   *
+   * @ingroup public_ledger2_actions
+   */
+  [[eosio::action]] void migrate(uint64_t from_coop_index, uint64_t limit);
 };

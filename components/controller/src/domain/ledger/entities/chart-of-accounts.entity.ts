@@ -41,7 +41,7 @@ export class ChartOfAccountsEntity {
 
     // Запасы, затраты, расчеты, собственные средства
     // FIXED_ASSETS: 1, // Основные средства
-    // INTANGIBLE_ASSETS: 4, // Нематериальные активы
+    INTANGIBLE_ASSETS: 4, // Нематериальные активы (Epic 1 addendum: для РИД)
     // MATERIALS_GOODS: 10, // Материалы, товары
     // MAIN_PRODUCTION: 20, // Основное производство
     // NON_PROFIT_ACTIVITY: 201, // Некоммерческая деятельность
@@ -76,7 +76,7 @@ export class ChartOfAccountsEntity {
    */
   private static readonly ACCOUNT_NAMES = new Map<number, string>([
     // [ChartOfAccountsEntity.ACCOUNTS.FIXED_ASSETS, 'Основные средства'],
-    // [ChartOfAccountsEntity.ACCOUNTS.INTANGIBLE_ASSETS, 'Нематериальные активы'],
+    [ChartOfAccountsEntity.ACCOUNTS.INTANGIBLE_ASSETS, 'Нематериальные активы'],
     // [ChartOfAccountsEntity.ACCOUNTS.MATERIALS_GOODS, 'Материалы, товары'],
     // [ChartOfAccountsEntity.ACCOUNTS.MAIN_PRODUCTION, 'Основное производство'],
     // [ChartOfAccountsEntity.ACCOUNTS.NON_PROFIT_ACTIVITY, 'Некоммерческая деятельность'],

@@ -3,45 +3,47 @@ import type { DataSource } from 'typeorm';
 type MigrationLogger = { info: (message: string) => void; error: (message: string) => void; warn: (message: string) => void };
 
 /**
- * Epic 4 Story 4.10: jsonb expression indexes на `blockchain_deltas` для
- * эффективного поиска по `process_hash`, `process_type` и entity-полям из
- * `PROCESS_HASH_LOCATOR`.
+ * Epic 4 + Epic 1 addendum (2026-04-18): jsonb expression indexes для
+ * эффективного поиска по `process_hash` в ProcessRegistryService.
+ *
+ * Phase A теперь идёт через `blockchain_actions` (а не `blockchain_deltas`),
+ * поскольку wjournal+journal в RAM убраны. Phase B остаётся на
+ * `blockchain_deltas` для entity-таблиц из `PROCESS_HASH_LOCATOR`.
  *
  * Ключевые паттерны SQL запросов ProcessRegistryService:
- *   - phase A: WHERE code='_ledger2' AND table IN ('wjournal','journal')
- *                AND value->>'process_hash' = $hash
- *                AND value->>'coopname' = $coop
+ *   - phase A: WHERE account='ledger2' AND name IN ('apply','walletop','debit','credit')
+ *                AND LOWER(data->>'process_hash') = $hash
+ *                AND data->>'coopname' = $coop
  *   - phase B: WHERE code=$loc.code AND table=$loc.table
  *                AND value->>$loc.field = $hash
  *                AND value->>'coopname' = $coop
- *   - listProcesses: GROUP BY value->>'process_hash' на wjournal
- *
- * Все индексы идемпотентны (`IF NOT EXISTS`), используют partial-index
- * через WHERE на `code` для минимизации размера.
+ *   - listProcesses: blockchain_actions, GROUP BY data->>'process_hash'
  */
 export default {
-  name: 'process-registry jsonb expression indexes on blockchain_deltas',
+  name: 'process-registry jsonb expression indexes (blockchain_actions + entity tables)',
 
   async up({ dataSource, logger }: { dataSource: DataSource; logger: MigrationLogger }): Promise<boolean> {
     try {
-      // ----- phase A: ledger2 journals -----
-      // Важно: ledger2 wjournal/journal хранят coopname как scope, а не в
-      // value.jsonb — индексы покрывают (process_hash, scope) и аналогично
-      // для process_type/username.
+      // Удаляем устаревшие индексы по wjournal/journal (если были созданы)
+      await dataSource.query(`DROP INDEX IF EXISTS "idx_deltas_ledger2_process_hash"`);
+      await dataSource.query(`DROP INDEX IF EXISTS "idx_deltas_ledger2_process_type"`);
+      await dataSource.query(`DROP INDEX IF EXISTS "idx_deltas_ledger2_wjournal_username"`);
+
+      // ----- phase A: blockchain_actions (ledger2) -----
       await dataSource.query(`
-        CREATE INDEX IF NOT EXISTS "idx_deltas_ledger2_process_hash"
-          ON "blockchain_deltas" (("value"->>'process_hash'), scope)
-          WHERE code = 'ledger2' AND "table" IN ('wjournal','journal')
+        CREATE INDEX IF NOT EXISTS "idx_actions_ledger2_process_hash"
+          ON "blockchain_actions" ((LOWER("data" ->> 'process_hash')), ("data" ->> 'coopname'))
+          WHERE account = 'ledger2'
       `);
       await dataSource.query(`
-        CREATE INDEX IF NOT EXISTS "idx_deltas_ledger2_process_type"
-          ON "blockchain_deltas" (("value"->>'process_type'), scope)
-          WHERE code = 'ledger2' AND "table" IN ('wjournal','journal')
+        CREATE INDEX IF NOT EXISTS "idx_actions_ledger2_apply_action_code"
+          ON "blockchain_actions" (("data" ->> 'action_code'), ("data" ->> 'coopname'))
+          WHERE account = 'ledger2' AND name = 'apply'
       `);
       await dataSource.query(`
-        CREATE INDEX IF NOT EXISTS "idx_deltas_ledger2_wjournal_username"
-          ON "blockchain_deltas" (("value"->>'username'), scope)
-          WHERE code = 'ledger2' AND "table" = 'wjournal'
+        CREATE INDEX IF NOT EXISTS "idx_actions_ledger2_apply_username"
+          ON "blockchain_actions" (("data" ->> 'username'), ("data" ->> 'coopname'))
+          WHERE account = 'ledger2' AND name = 'apply'
       `);
 
       // ----- phase B: entity tables из PROCESS_HASH_LOCATOR -----
@@ -98,7 +100,7 @@ export default {
           WHERE code = 'marketplace' AND "table" = 'requests'
       `);
 
-      logger.info('process-registry: expression indexes созданы (11 шт.)');
+      logger.info('process-registry: expression indexes созданы (3 actions + 8 deltas; wjournal/journal удалены)');
       return true;
     } catch (e) {
       logger.error(
@@ -111,9 +113,9 @@ export default {
   async down({ dataSource, logger }: { dataSource: DataSource; logger: MigrationLogger }): Promise<boolean> {
     try {
       const indexes = [
-        'idx_deltas_ledger2_process_hash',
-        'idx_deltas_ledger2_process_type',
-        'idx_deltas_ledger2_wjournal_username',
+        'idx_actions_ledger2_process_hash',
+        'idx_actions_ledger2_apply_action_code',
+        'idx_actions_ledger2_apply_username',
         'idx_deltas_capital_debts_debt_hash',
         'idx_deltas_capital_results_result_hash',
         'idx_deltas_capital_segments_result_hash',

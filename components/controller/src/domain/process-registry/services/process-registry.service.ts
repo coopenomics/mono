@@ -10,6 +10,7 @@ import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import {
   PROCESS_HASH_LOCATOR,
   KNOWN_PROCESS_TYPES,
+  ACTION_CODE_TO_PROCESS_TYPE,
   type HashLocation,
 } from '../config/process-hash-locator';
 import { DOCUMENT_FIELDS, looksLikeSignedDocument } from '../config/document-field-detector';
@@ -27,7 +28,10 @@ import {
 } from '~/application/common/dto/pagination.dto';
 
 const LEDGER2_CODE = 'ledger2';
-const LEDGER2_JOURNALS = ['wjournal', 'journal'] as const;
+// Epic 1 addendum (2026-04-18): apply orchestrator + 3 atomic inlines.
+// Phase A якорится по blockchain_actions (а не deltas), поскольку wjournal
+// и journal таблицы убраны из контракта (история = action traces).
+const LEDGER2_ACTION_NAMES = ['apply', 'walletop', 'debit', 'credit'] as const;
 const HARD_LIMIT = 200;
 const CACHE_TTL_SECONDS = 60;
 
@@ -41,10 +45,17 @@ type RedisClient = {
 /**
  * Read-only агрегатор процессов ledger2. См. architecture.md §3.4, §4.6.
  *
- * Алгоритм двухфазный:
- *   - Phase A — anchor scan по _ledger2/wjournal+journal по process_hash.
- *   - Phase B — fan-out scan по PROCESS_HASH_LOCATOR + blockchain_actions.
+ * Алгоритм двухфазный (Epic 1 addendum, 2026-04-18):
+ *   - Phase A — anchor scan по `blockchain_actions WHERE account='ledger2' AND
+ *     name='apply' AND data->>'process_hash'=X`. Из apply берётся action_code
+ *     → process_type через `ACTION_CODE_TO_PROCESS_TYPE`. Все 4 связанных
+ *     action (apply + walletop + debit + credit) с этим process_hash идут
+ *     в actions[].
+ *   - Phase B — fan-out scan по `PROCESS_HASH_LOCATOR` (entity-таблицы).
  *   - Phase C — выделение документов через DocumentFieldDetector + DocumentAggregator.
+ *
+ * История проводок не лежит в RAM-таблицах ledger2 — она реконструируется
+ * на бэкенде из blockchain_actions + blockchain_deltas (для accounts/wallets).
  *
  * Кеш Redis TTL 60 сек (событийная инвалидация — v2).
  */
@@ -66,8 +77,8 @@ export class ProcessRegistryService {
   /**
    * Получить полную картину процесса по хэшу.
    *
-   * @throws NotFoundException если процесс не найден в wjournal/journal
-   * @throws BadRequestException при превышении HARD_LIMIT или неизвестном process_type
+   * @throws NotFoundException если ни одного ledger2::apply с process_hash не найдено
+   * @throws BadRequestException при превышении HARD_LIMIT или неизвестном action_code/process_type
    */
   async getProcess(processHash: string, coopname: string): Promise<ProcessView> {
     const normHash = this.normalizeHash(processHash);
@@ -76,67 +87,75 @@ export class ProcessRegistryService {
     const cached = await this.cacheGet(cacheKey);
     if (cached) return cached;
 
-    // ---------- Phase A: anchor scan в ledger2-журналах ----------
-    // ledger2 хранит coopname в scope (не в value.jsonb), поэтому фильтр —
-    // по scope вместо value->>'coopname'. checksum256 в блокчейн-дельтах
-    // хранится uppercase, поэтому сравниваем через LOWER() обе стороны.
-    const anchors = await this.deltaRepository
-      .createQueryBuilder('d')
-      .where('d.code = :code', { code: LEDGER2_CODE })
-      .andWhere('d.table IN (:...tables)', { tables: LEDGER2_JOURNALS })
-      .andWhere("LOWER(d.value ->> 'process_hash') = :hash", { hash: normHash })
-      .andWhere('d.scope = :coop', { coop: coopname })
-      .orderBy('d.block_num', 'ASC')
+    // ---------- Phase A: anchor scan в blockchain_actions[ledger2] ----------
+    // Epic 1 addendum: ledger2 больше не хранит wjournal/journal в RAM —
+    // история собирается из action traces. Каждый apply порождает 4 записи
+    // в blockchain_actions (apply + walletop + debit + credit), все с
+    // одинаковым process_hash в data.
+    //
+    // Coopname-фильтр: data->>'coopname' = $coop (apply/walletop/debit/credit
+    // принимают coopname первым параметром).
+    const anchors = await this.actionRepository
+      .createQueryBuilder('a')
+      .where('a.account = :code', { code: LEDGER2_CODE })
+      .andWhere('a.name IN (:...names)', { names: LEDGER2_ACTION_NAMES })
+      .andWhere(`LOWER(a.data ->> 'process_hash') = :hash`, { hash: normHash })
+      .andWhere(`a.data ->> 'coopname' = :coop`, { coop: coopname })
+      .orderBy('a.block_num', 'ASC')
+      .addOrderBy('a.global_sequence', 'ASC')
       .getMany();
 
     if (anchors.length === 0) {
       throw new NotFoundException(`Процесс с хэшем ${normHash} не найден в ledger2`);
     }
 
-    const firstAnchorValue = (anchors[0].value ?? {}) as Record<string, unknown>;
-    const processType = String(firstAnchorValue.process_type ?? '').trim();
-    if (!processType) {
+    // process_type выводим из action_code оркестратора apply (есть в trio).
+    const applyAnchor = anchors.find((a) => a.name === 'apply');
+    if (!applyAnchor) {
       throw new BadRequestException(
-        `Якорная запись ledger2 без process_type (hash=${normHash}); репарсинг дельт или схема wjournal устарели`
+        `Якорь apply отсутствует для process_hash=${normHash}; найдены только child-actions, что не должно быть возможно`
+      );
+    }
+    const applyData = (applyAnchor.data ?? {}) as Record<string, unknown>;
+    const actionCode = String(applyData.action_code ?? '').trim();
+    const processType = ACTION_CODE_TO_PROCESS_TYPE[actionCode];
+    if (!processType) {
+      this.logger.error(
+        `ProcessRegistry: action_code='${actionCode}' нет в ACTION_CODE_TO_PROCESS_TYPE (hash=${normHash}). Синхронизируйте маппинг с ACTION_REGISTRY.`
+      );
+      throw new BadRequestException(
+        `Неизвестный action_code: ${actionCode}. ACTION_CODE_TO_PROCESS_TYPE требует обновления.`
       );
     }
     if (!KNOWN_PROCESS_TYPES.has(processType)) {
-      this.logger.error(
-        `ProcessRegistry: неизвестный process_type='${processType}' для hash=${normHash}. Обновите PROCESS_HASH_LOCATOR.`
-      );
       throw new BadRequestException(
         `Неизвестный process_type: ${processType}. PROCESS_HASH_LOCATOR требует обновления.`
       );
     }
 
-    // ---------- Phase B: fan-out scan по сущностным таблицам + actions ----------
+    // ---------- Phase B: fan-out scan по сущностным таблицам ----------
     const locations: HashLocation[] = PROCESS_HASH_LOCATOR[processType] ?? [];
     const entityDeltas = await this.scanEntityDeltas(locations, normHash, coopname);
 
-    // actions — ищем во всех транзакциях, где упоминается process_hash.
-    // Фильтруем по account IN ledger2 + всем кодам, фигурирующим в локаторе.
-    const relevantAccounts = new Set<string>([LEDGER2_CODE, ...locations.map((l) => l.code)]);
-    const actions = await this.scanActions(normHash, coopname, relevantAccounts);
-
-    // ---------- сборка delta_history ----------
-    const allDeltas = [...anchors, ...entityDeltas]
-      .map((d) => this.toDeltaView(d))
-      .sort(this.compareByBlock);
+    // ---------- сборка delta_history (только entity-дельты) ----------
+    const allDeltas = entityDeltas.map((d) => this.toDeltaView(d)).sort(this.compareByBlock);
 
     this.enforceLimit(allDeltas.length, 'delta_history', normHash);
-    this.enforceLimit(actions.length, 'actions', normHash);
+    this.enforceLimit(anchors.length, 'actions', normHash);
 
     // ---------- Phase C: документы ----------
     const documents = await this.extractDocuments(allDeltas);
+
+    const firstAt = anchors[0].created_at;
+    const lastAt = anchors[anchors.length - 1].created_at;
 
     const view: ProcessView = {
       process_type: processType,
       process_hash: normHash,
       coopname,
-      first_seen_at: allDeltas[0]?.created_at ?? anchors[0].created_at,
-      last_seen_at:
-        allDeltas[allDeltas.length - 1]?.created_at ?? anchors[anchors.length - 1].created_at,
-      actions: actions.map(this.toActionView).sort(this.compareByBlock),
+      first_seen_at: allDeltas[0]?.created_at ?? firstAt,
+      last_seen_at: allDeltas[allDeltas.length - 1]?.created_at ?? lastAt,
+      actions: anchors.map(this.toActionView).sort(this.compareByBlock),
       delta_history: allDeltas,
       documents,
     };
@@ -147,8 +166,10 @@ export class ProcessRegistryService {
 
   /**
    * Листинг процессов с пагинацией.
-   * SQL: SELECT DISTINCT ON (process_hash) по wjournal с coopname-фильтром,
-   * + count-агрегаты для actions/deltas/documents по каждому process_hash.
+   *
+   * Epic 1 addendum: вместо wjournal-deltas используем blockchain_actions
+   * для apply'ев (один apply = один процесс). action_code → processType
+   * выводим через ACTION_CODE_TO_PROCESS_TYPE.
    */
   async listProcesses(
     filter: ProcessesFilter,
@@ -158,51 +179,78 @@ export class ProcessRegistryService {
     const limit = Math.max(1, Math.min(100, pagination.limit ?? 10));
     const offset = (page - 1) * limit;
 
-    // Coopname-scoping идёт по d.scope, т.к. ledger2 wjournal/journal хранят
-    // coopname как scope, а не в value.jsonb.
-    const countRow = await this.deltaRepository.manager.query(
-      `SELECT COUNT(DISTINCT d.value ->> 'process_hash') AS cnt
-       FROM blockchain_deltas d
-       WHERE d.code = $1
-         AND d.table = 'wjournal'
-         AND d.scope = $2
-         AND (d.value ->> 'process_hash') IS NOT NULL
-         ${filter.processType ? "AND d.value ->> 'process_type' = $3" : ''}
-         ${filter.username ? `AND d.value ->> 'username' = $${filter.processType ? 4 : 3}` : ''}
-         ${filter.fromBlock ? `AND d.block_num >= $${this.nextParamIdx(filter, 'from')}` : ''}
-         ${filter.toBlock ? `AND d.block_num <= $${this.nextParamIdx(filter, 'to')}` : ''}
-      `,
-      this.buildParams(filter)
+    // Все apply ledger2 — один apply = один процесс (process_hash уникален).
+    // processType-фильтр поддерживается через action_code (мы знаем mapping
+    // из ACTION_CODE_TO_PROCESS_TYPE — фильтруем по списку action_code).
+    const actionCodesForFilter = filter.processType
+      ? Object.entries(ACTION_CODE_TO_PROCESS_TYPE)
+          .filter(([, pt]) => pt === filter.processType)
+          .map(([ac]) => ac)
+      : null;
+
+    const params: any[] = [LEDGER2_CODE, filter.coopname];
+    let pIdx = 3;
+    let actionCodeClause = '';
+    if (actionCodesForFilter && actionCodesForFilter.length > 0) {
+      actionCodeClause = ` AND a.data ->> 'action_code' = ANY($${pIdx})`;
+      params.push(actionCodesForFilter);
+      pIdx += 1;
+    }
+    let usernameClause = '';
+    if (filter.username) {
+      usernameClause = ` AND a.data ->> 'username' = $${pIdx}`;
+      params.push(filter.username);
+      pIdx += 1;
+    }
+    let fromBlockClause = '';
+    if (filter.fromBlock) {
+      fromBlockClause = ` AND a.block_num >= $${pIdx}`;
+      params.push(filter.fromBlock);
+      pIdx += 1;
+    }
+    let toBlockClause = '';
+    if (filter.toBlock) {
+      toBlockClause = ` AND a.block_num <= $${pIdx}`;
+      params.push(filter.toBlock);
+      pIdx += 1;
+    }
+
+    const baseFilter = `
+      a.account = $1
+      AND a.name = 'apply'
+      AND a.data ->> 'coopname' = $2
+      AND (a.data ->> 'process_hash') IS NOT NULL
+      ${actionCodeClause}
+      ${usernameClause}
+      ${fromBlockClause}
+      ${toBlockClause}
+    `;
+
+    const countRow = await this.actionRepository.manager.query(
+      `SELECT COUNT(DISTINCT LOWER(a.data ->> 'process_hash')) AS cnt
+       FROM blockchain_actions a
+       WHERE ${baseFilter}`,
+      params
     );
     const totalCount = parseInt(countRow[0]?.cnt ?? '0', 10);
     const totalPages = Math.max(1, Math.ceil(totalCount / limit));
 
-    // Выборка страницы. processHash нормализуется к lowercase для единообразия
-    // с getProcess (ончейн хранит uppercase, а наружу отдаём lowercase hex).
-    const rows = await this.deltaRepository.manager.query(
+    const rows = await this.actionRepository.manager.query(
       `SELECT
-         d.value ->> 'process_type'           AS "processType",
-         LOWER(d.value ->> 'process_hash')    AS "processHash",
-         d.scope                              AS "coopname",
-         MIN(d.value ->> 'username') AS "username",
-         MIN(d.created_at) AS "firstSeenAt",
-         MAX(d.created_at) AS "lastSeenAt"
-       FROM blockchain_deltas d
-       WHERE d.code = $1
-         AND d.table = 'wjournal'
-         AND d.scope = $2
-         AND (d.value ->> 'process_hash') IS NOT NULL
-         ${filter.processType ? "AND d.value ->> 'process_type' = $3" : ''}
-         ${filter.username ? `AND d.value ->> 'username' = $${filter.processType ? 4 : 3}` : ''}
-         ${filter.fromBlock ? `AND d.block_num >= $${this.nextParamIdx(filter, 'from')}` : ''}
-         ${filter.toBlock ? `AND d.block_num <= $${this.nextParamIdx(filter, 'to')}` : ''}
-       GROUP BY d.value ->> 'process_type',
-                LOWER(d.value ->> 'process_hash'),
-                d.scope
-       ORDER BY MAX(d.created_at) DESC
-       LIMIT ${limit} OFFSET ${offset}
-      `,
-      this.buildParams(filter)
+         a.data ->> 'action_code'             AS "actionCode",
+         LOWER(a.data ->> 'process_hash')     AS "processHash",
+         (a.data ->> 'coopname')              AS "coopname",
+         MIN(a.data ->> 'username')           AS "username",
+         MIN(a.created_at)                    AS "firstSeenAt",
+         MAX(a.created_at)                    AS "lastSeenAt"
+       FROM blockchain_actions a
+       WHERE ${baseFilter}
+       GROUP BY a.data ->> 'action_code',
+                LOWER(a.data ->> 'process_hash'),
+                a.data ->> 'coopname'
+       ORDER BY MAX(a.created_at) DESC
+       LIMIT ${limit} OFFSET ${offset}`,
+      params
     );
 
     const items: ProcessSummary[] = await Promise.all(
@@ -211,7 +259,7 @@ export class ProcessRegistryService {
         const deltaCount = await this.countDeltasByHash(r.processHash, r.coopname);
         const documentCount = await this.countDocumentsByHash(r.processHash, r.coopname);
         return {
-          processType: r.processType,
+          processType: ACTION_CODE_TO_PROCESS_TYPE[r.actionCode] ?? r.actionCode,
           processHash: r.processHash,
           coopname: r.coopname,
           username: r.username ?? null,
@@ -271,21 +319,9 @@ export class ProcessRegistryService {
     return all;
   }
 
-  private async scanActions(
-    hash: string,
-    coopname: string,
-    accounts: Set<string>
-  ): Promise<ActionEntity[]> {
-    const accountList = Array.from(accounts);
-    return this.actionRepository
-      .createQueryBuilder('a')
-      .where('a.account IN (:...accounts)', { accounts: accountList })
-      .andWhere("(a.data::text ILIKE :hashPattern)", { hashPattern: `%${hash}%` })
-      .andWhere("(a.data::text ILIKE :coopPattern)", { coopPattern: `%${coopname}%` })
-      .orderBy('a.block_num', 'ASC')
-      .addOrderBy('a.global_sequence', 'ASC')
-      .getMany();
-  }
+  // scanActions удалён в Epic 1 addendum: actions теперь приходят из якоря
+  // Phase A (anchors), для них достаточно одного запроса по
+  // blockchain_actions[ledger2].
 
   private async extractDocuments(deltas: ProcessDeltaView[]): Promise<ProcessDocumentView[]> {
     const documents: ProcessDocumentView[] = [];
@@ -377,57 +413,38 @@ export class ProcessRegistryService {
     return a.created_at.getTime() - b.created_at.getTime();
   };
 
-  private nextParamIdx(filter: ProcessesFilter, which: 'from' | 'to'): number {
-    let idx = 3; // $1=code, $2=coopname
-    if (filter.processType) idx += 1;
-    if (filter.username) idx += 1;
-    if (which === 'to' && filter.fromBlock) idx += 1;
-    return idx;
-  }
-
-  private buildParams(filter: ProcessesFilter): any[] {
-    const params: any[] = [LEDGER2_CODE, filter.coopname];
-    if (filter.processType) params.push(filter.processType);
-    if (filter.username) params.push(filter.username);
-    if (filter.fromBlock) params.push(filter.fromBlock);
-    if (filter.toBlock) params.push(filter.toBlock);
-    return params;
-  }
-
   private async countActionsByHash(hash: string, coopname: string): Promise<number> {
-    // ILIKE уже case-insensitive, так что проверим по lowercase-подстроке.
+    // Считаем все ledger2-actions (apply + walletop + debit + credit) с
+    // данным process_hash и coopname. Должно быть ровно 4 на корректный процесс.
     const row = await this.actionRepository.manager.query(
       `SELECT COUNT(*) AS cnt FROM blockchain_actions a
-       WHERE (a.data::text ILIKE $1) AND (a.data::text ILIKE $2)`,
-      [`%${hash}%`, `%${coopname}%`]
+       WHERE a.account = $1
+         AND a.name = ANY($2)
+         AND LOWER(a.data ->> 'process_hash') = $3
+         AND a.data ->> 'coopname' = $4`,
+      [LEDGER2_CODE, Array.from(LEDGER2_ACTION_NAMES), hash, coopname]
     );
     return parseInt(row[0]?.cnt ?? '0', 10);
   }
 
   private async countDeltasByHash(hash: string, coopname: string): Promise<number> {
+    // Дельты процесса теперь только entity-table (см. PROCESS_HASH_LOCATOR);
+    // дельты ledger2.accounts/wallets process_hash в value.jsonb не несут
+    // (они отражают итог сальдо, не привязаны к конкретной проводке).
     const row = await this.deltaRepository.manager.query(
       `SELECT COUNT(*) AS cnt FROM blockchain_deltas d
-       WHERE d.code = $1 AND d.table IN ('wjournal','journal')
-         AND LOWER(d.value ->> 'process_hash') = $2
-         AND d.scope = $3`,
-      [LEDGER2_CODE, hash, coopname]
+       WHERE LOWER(d.value::text) LIKE '%' || $1 || '%'
+         AND (d.scope = $2 OR d.value ->> 'coopname' = $2)`,
+      [hash, coopname]
     );
     return parseInt(row[0]?.cnt ?? '0', 10);
   }
 
   private async countDocumentsByHash(hash: string, coopname: string): Promise<number> {
-    // MVP: по ProcessView мы не хотим повторять тяжёлую выборку в листинге.
-    // Грубая оценка: считаем уникальные документы в делтах, где process_hash
-    // совпадает. Для сводки достаточно быстрой оценки.
-    const row = await this.deltaRepository.manager.query(
-      `SELECT COUNT(*) AS cnt FROM blockchain_deltas d
-       WHERE d.code = $1 AND d.table IN ('wjournal','journal')
-         AND LOWER(d.value ->> 'process_hash') = $2
-         AND d.scope = $3`,
-      [LEDGER2_CODE, hash, coopname]
-    );
-    // actions → документ считаем как "1 если есть хоть одна дельта".
-    return parseInt(row[0]?.cnt ?? '0', 10) > 0 ? 1 : 0;
+    // Грубая оценка: 1 если хотя бы одна entity-дельта несёт похожий на
+    // подписанный документ объект; иначе 0. Для точного подсчёта —
+    // используйте getProcess(hash).documents.length.
+    return (await this.countDeltasByHash(hash, coopname)) > 0 ? 1 : 0;
   }
 
   private async cacheGet(key: string): Promise<ProcessView | null> {

@@ -1,6 +1,4 @@
-export const fakeDocument = {
-  hash: '157192B276DA23CC84AB078FC8755C051C5F0430BF4802E55718221E6B76C777',
-  public_key: 'PUB_K1_5JhMfxbsNebajHcTEK8yC9uNN9Dit9hEmzE8ri8yMhhzzEtUA4',
-  signature: 'SIG_K1_KmKWPBC8dZGGDGhbKEoZEzPr3h5crRrR2uLdGRF5DJbeibY1MY1bZ9sPwHsgmPfiGFv9psfoCVsXFh9TekcLuvaeuxRKA8',
-  meta: '{}',
-}
+// Алиас на shared/fakeDocument с правильной IDocument2-схемой (version, doc_hash,
+// meta_hash, signatures[]). Старая схема (только hash/public_key/signature/meta)
+// не сериализуется как document2 → "missing document2.version".
+export { fakeDocument } from '../shared/fakeDocument'

@@ -1,25 +1,23 @@
 /**
- * @brief Единая точка входа ledger2 для всех финансовых движений.
+ * @brief Единая точка входа ledger2 для финансовых движений (orchestrator).
  *
- * Два уровня учёта внутри одного вызова apply:
- *   1) Операционный уровень — кошельки (wallets) + журнал wjournal.
- *      Выполняется атомарная операция ISSUE / TRANSFER / BLOCK / UNBLOCK
- *      и её факт фиксируется ровно одной записью в wjournal.
- *   2) Бухгалтерский уровень — счета (accounts) + журнал journal.
- *      Выполняется ровно одна парная проводка Dr/Cr, дебет/кредит
- *      начисляется с учётом активности/пассивности счетов
- *      (AccountType определяется планом счетов LEDGER2_ACCOUNT_MAP).
+ * Пересмотр 2026-04-18 (Epic 1 addendum): apply ничего не пишет в state
+ * напрямую. Это orchestrator, который рассылает 3 атомарных inline action:
  *
- * Оба уровня применяются в одной транзакции. Записи в journal и wjournal
- * перекрёстно линкованы: journal.wjournal_entry_id ↔ wjournal.journal_entry_id.
+ *   1. ledger2::walletop — issue/transfer/block/unblock на wallets2
+ *   2. ledger2::debit    — +debit_balance на accounts2[Dr] + пересчёт сальдо
+ *   3. ledger2::credit   — +credit_balance на accounts2[Cr] + пересчёт сальдо
  *
- * Flow:
- *   1. auth: coopname или контракт из whitelist
- *   2. lookup ACTION_REGISTRY по action_code → process_type + wallet_op + Dr/Cr
- *   3. wallet op: изменение кошельков + emplace в wjournal
- *   4. accounts: upsert Dr/Cr (фиксируем AccountType при первой проводке)
- *   5. journal: emplace пары проводок, линк на wjournal_entry_id
- *   6. backfill wjournal.journal_entry_id
+ * Все три inline-actions передают единый `process_hash`, что позволяет
+ * бэкенду собрать «тройку» из blockchain_actions:
+ *   WHERE account = 'ledger2' AND data->>'process_hash' = X
+ *
+ * История проводок не хранится в RAM-таблицах — она целиком восстанавливается
+ * на бэкенде из blockchain_actions (для apply/walletop/debit/credit) и
+ * blockchain_deltas (для accounts2 и wallets2). Это даёт:
+ *   - дешевле RAM (O(1) state на счёт + кошелёк, не O(N) проводок);
+ *   - проще контракт (нет emplace/backfill в журналы);
+ *   - лучше observability (каждое движение — отдельная action в трейсах).
  *
  * @ingroup public_ledger2_actions
  */
@@ -34,10 +32,15 @@ void ledger2::apply(eosio::name coopname,
   require_recipient(coopname);
 
   // -------- auth --------
-  eosio::name payer = coopname;
   if (!has_auth(coopname)) {
-    payer = check_auth_and_get_payer_or_fail(contracts_whitelist);
+    check_auth_and_get_payer_or_fail(contracts_whitelist);
   }
+
+  // -------- validate coopname --------
+  eosio::check(coopname.value != 0, "coopname пустой");
+  cooperatives2_index coops(_registrator, _registrator.value);
+  eosio::check(coops.find(coopname.value) != coops.end(),
+               std::string{"Неизвестный coopname: "} + coopname.to_string());
 
   // -------- validate amount --------
   eosio::check(amount.is_valid(), "Некорректная сумма");
@@ -45,152 +48,42 @@ void ledger2::apply(eosio::name coopname,
   eosio::check(amount.symbol == _root_govern_symbol,
                "Некорректный символ валюты для операций ledger2");
 
+  // -------- validate memo --------
+  eosio::check(memo.size() < 256, "memo не должен превышать 255 символов");
+
   // -------- lookup registry --------
   const ActionRegistryEntry* entry = ledger2_find_action(action_code);
   eosio::check(entry != nullptr,
                std::string{"Unknown action code: "} + action_code.to_string());
 
-  // =====================================================================
-  // Уровень 1 — кошельки + журнал wjournal (wallet-level)
-  // =====================================================================
-  wallets2_index wallets(get_self(), coopname.value);
+  // -------- dispatch 3 atomic inline actions --------
+  // Каждая inline получает общий process_hash, чтобы бэкенд мог собрать
+  // их в «тройку» (walletop + debit + credit) по этому хэшу.
+  const auto self_perm = eosio::permission_level{get_self(), "active"_n};
 
-  auto upsert_wallet = [&](uint64_t wallet_id) -> wallets2_index::const_iterator {
-    auto it = wallets.find(wallet_id);
-    if (it == wallets.end()) {
-      std::string name = ledger2_get_wallet_name_by_id(wallet_id);
-      eosio::check(!name.empty(),
-                   std::string{"Unknown wallet id: "} + std::to_string(wallet_id));
-      it = wallets.emplace(payer, [&](auto& w) {
-        w.id        = wallet_id;
-        w.name      = name;
-        w.available = eosio::asset(0, amount.symbol);
-        w.blocked   = eosio::asset(0, amount.symbol);
-      });
-    }
-    return it;
-  };
+  eosio::action(self_perm, get_self(), "walletop"_n,
+    std::make_tuple(coopname,
+                    static_cast<uint8_t>(entry->wallet_op),
+                    entry->wallet_from,
+                    entry->wallet_to,
+                    amount,
+                    process_hash,
+                    memo)
+  ).send();
 
-  auto cleanup_if_empty = [&](uint64_t wallet_id) {
-    auto it = wallets.find(wallet_id);
-    if (it != wallets.end() && it->is_empty()) {
-      wallets.erase(it);
-    }
-  };
+  eosio::action(self_perm, get_self(), "debit"_n,
+    std::make_tuple(coopname,
+                    entry->debit_account_id,
+                    amount,
+                    process_hash,
+                    memo)
+  ).send();
 
-  switch (entry->wallet_op) {
-    case WalletOp::ISSUE: {
-      eosio::check(entry->wallet_to != 0, "ISSUE requires wallet_to");
-      auto it = upsert_wallet(entry->wallet_to);
-      wallets.modify(it, payer, [&](auto& w) { w.available += amount; });
-      break;
-    }
-    case WalletOp::TRANSFER: {
-      eosio::check(entry->wallet_from != 0 && entry->wallet_to != 0,
-                   "TRANSFER requires wallet_from and wallet_to");
-      auto from_it = wallets.find(entry->wallet_from);
-      eosio::check(from_it != wallets.end() && from_it->available >= amount,
-                   std::string{"Insufficient wallet balance: "} +
-                     std::to_string(entry->wallet_from));
-      wallets.modify(from_it, payer, [&](auto& w) { w.available -= amount; });
-      auto to_it = upsert_wallet(entry->wallet_to);
-      wallets.modify(to_it, payer, [&](auto& w) { w.available += amount; });
-      cleanup_if_empty(entry->wallet_from);
-      break;
-    }
-    case WalletOp::BLOCK: {
-      eosio::check(entry->wallet_from != 0, "BLOCK requires wallet_from");
-      auto it = wallets.find(entry->wallet_from);
-      eosio::check(it != wallets.end() && it->available >= amount,
-                   std::string{"Insufficient wallet balance for BLOCK: "} +
-                     std::to_string(entry->wallet_from));
-      wallets.modify(it, payer, [&](auto& w) {
-        w.available -= amount;
-        w.blocked   += amount;
-      });
-      break;
-    }
-    case WalletOp::UNBLOCK: {
-      eosio::check(entry->wallet_from != 0, "UNBLOCK requires wallet_from");
-      auto it = wallets.find(entry->wallet_from);
-      eosio::check(it != wallets.end() && it->blocked >= amount,
-                   std::string{"Insufficient blocked balance for UNBLOCK: "} +
-                     std::to_string(entry->wallet_from));
-      wallets.modify(it, payer, [&](auto& w) {
-        w.blocked   -= amount;
-        w.available += amount;
-      });
-      break;
-    }
-  }
-
-  // Фиксация атомарной операции кошелька в журнале wjournal.
-  wjournal_index wjournal(get_self(), coopname.value);
-  uint64_t wjournal_id = wjournal.available_primary_key();
-  const auto now = eosio::current_time_point();
-  wjournal.emplace(payer, [&](auto& w) {
-    w.id                = wjournal_id;
-    w.wallet_op         = static_cast<uint8_t>(entry->wallet_op);
-    w.wallet_from       = entry->wallet_from;
-    w.wallet_to         = entry->wallet_to;
-    w.amount            = amount;
-    w.action_code       = action_code;
-    w.journal_entry_id  = 0; // backfill после записи в journal
-    w.username          = username;
-    w.memo              = memo;
-    w.process_type      = entry->process_type;
-    w.process_hash      = process_hash;
-    w.created_at        = now;
-  });
-
-  // =====================================================================
-  // Уровень 2 — счета + журнал journal (account-level, двойная запись)
-  // =====================================================================
-  accounts2_index accounts(get_self(), coopname.value);
-
-  auto upsert_account = [&](uint64_t account_id) -> accounts2_index::const_iterator {
-    auto it = accounts.find(account_id);
-    if (it == accounts.end()) {
-      const auto* meta = ledger2_find_account_meta(account_id);
-      eosio::check(meta != nullptr,
-                   std::string{"Unknown account id: "} + std::to_string(account_id));
-      it = accounts.emplace(payer, [&](auto& a) {
-        a.id             = account_id;
-        a.name           = meta->name;
-        a.account_type   = static_cast<uint8_t>(meta->type);
-        a.debit_balance  = eosio::asset(0, amount.symbol);
-        a.credit_balance = eosio::asset(0, amount.symbol);
-      });
-    }
-    return it;
-  };
-
-  // Дебетуемый счёт: debit_balance += amount (обороты).
-  // Рост/падение сальдо определится в get_balance() по account_type.
-  auto dr_it = upsert_account(entry->debit_account_id);
-  accounts.modify(dr_it, payer, [&](auto& a) { a.debit_balance += amount; });
-
-  // Кредитуемый счёт: credit_balance += amount (обороты).
-  auto cr_it = upsert_account(entry->credit_account_id);
-  accounts.modify(cr_it, payer, [&](auto& a) { a.credit_balance += amount; });
-
-  // Парная проводка в journal.
-  journal_index journal(get_self(), coopname.value);
-  uint64_t journal_id = journal.available_primary_key();
-  journal.emplace(payer, [&](auto& e) {
-    e.id                = journal_id;
-    e.debit_account_id  = entry->debit_account_id;
-    e.credit_account_id = entry->credit_account_id;
-    e.amount            = amount;
-    e.action_code       = action_code;
-    e.wjournal_entry_id = wjournal_id;
-    e.process_type      = entry->process_type;
-    e.process_hash      = process_hash;
-    e.memo              = memo;
-    e.created_at        = now;
-  });
-
-  // Backfill: проставляем id проводки в запись wjournal.
-  auto w_it = wjournal.find(wjournal_id);
-  wjournal.modify(w_it, payer, [&](auto& w) { w.journal_entry_id = journal_id; });
+  eosio::action(self_perm, get_self(), "credit"_n,
+    std::make_tuple(coopname,
+                    entry->credit_account_id,
+                    amount,
+                    process_hash,
+                    memo)
+  ).send();
 }

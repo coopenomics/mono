@@ -37,11 +37,13 @@ import { createXmlDoc, formatDate } from './xml-utils';
  * пассивы положительны по своей природе).
  */
 
+// Epic 1 addendum (2026-04-18): субсчета 86.x удалены из плана счетов;
+// детализация теперь на уровне wallets. Счёт 04 добавлен для РИД.
 const ACCOUNT_GROUPS = {
   cash: [50000, 51000, 52000, 55000],
   nonMaterialAndLongFin: [1000, 4000, 8000, 583000],
   shortTermFin: [58000, 581000, 582000, 62000, 76000],
-  targetFunds: [80000, 86000, 861000, 862000, 863000, 864000, 865000, 866000, 867000, 868000],
+  targetFunds: [80000, 86000],
 } as const;
 
 interface BalanceRow {

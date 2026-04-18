@@ -32,6 +32,9 @@ export type IProcessType =
   | 'cap.act2prp'
   | 'mkt.offereq'
   | 'sov.axncnv'
+  // Epic 1 addendum (2026-04-18): миграционные процессы через apply(OPENING_*)
+  | 'mig.opening'
+  | 'mig.rid'
 
 /**
  * Сводка процесса (listProcesses).

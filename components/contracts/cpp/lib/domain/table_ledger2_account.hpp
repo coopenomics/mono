@@ -13,17 +13,20 @@
  *
  * @brief Бухгалтерский счёт ledger2 (двойная запись).
  *
- * id — со смещением *1000: 86 → 86000, 86.01 → 861000, 86.0100 → 8610000.
+ * id — со смещением *1000: 51 → 51000, 80 → 80000, 86 → 86000.
  *
- * account_type определяется планом счетов и сохраняется в записи при первой
- * проводке:
+ * account_type определяется планом счетов LEDGER2_ACCOUNT_MAP и сохраняется
+ * в записи при первой проводке:
  *   - 0 = ACTIVE          → balance = debit_balance − credit_balance
  *   - 1 = PASSIVE         → balance = credit_balance − debit_balance
  *   - 2 = ACTIVE_PASSIVE  → balance = debit_balance − credit_balance (знаковая)
  *
- * debit_balance / credit_balance накапливают обороты независимо. Это нужно
- * для сверки инварианта Σ debit == Σ credit по всему журналу (инвариант
- * двойной записи). Сальдо считается в get_balance() с учётом типа.
+ * Хранятся одновременно ОБОРОТЫ (debit_balance, credit_balance) и САЛЬДО
+ * (balance) — чтобы и сверка инварианта Σ Dr == Σ Cr была доступна, и
+ * текущее сальдо счёта читалось без вычислений на стороне читателя.
+ *
+ * `balance` обновляется атомарно вместе с debit_balance / credit_balance в
+ * actions `debit` / `credit` контракта ledger2.
  */
 struct [[eosio::table, eosio::contract(LEDGER2)]] account2 {
   uint64_t     id;
@@ -31,6 +34,7 @@ struct [[eosio::table, eosio::contract(LEDGER2)]] account2 {
   uint8_t      account_type;   ///< AccountType: 0=ACTIVE, 1=PASSIVE, 2=ACTIVE_PASSIVE
   eosio::asset debit_balance;
   eosio::asset credit_balance;
+  eosio::asset balance;        ///< Текущее сальдо счёта (с учётом типа)
 
   uint64_t primary_key() const { return id; }
 
@@ -38,11 +42,17 @@ struct [[eosio::table, eosio::contract(LEDGER2)]] account2 {
     return debit_balance.amount == 0 && credit_balance.amount == 0;
   }
 
-  /// @brief Сальдо с учётом активности/пассивности счёта.
-  eosio::asset get_balance() const {
-    // 1 == PASSIVE — кредитовый остаток; для всех остальных типов возвращаем Dr − Cr
-    if (account_type == 1) return credit_balance - debit_balance;
-    return debit_balance - credit_balance;
+  /**
+   * @brief Пересчёт сальдо по обороту с учётом активности/пассивности счёта.
+   *
+   * Вызывается из actions debit/credit после изменения оборотов.
+   */
+  static eosio::asset compute_balance(uint8_t type,
+                                       const eosio::asset& dr,
+                                       const eosio::asset& cr) {
+    // 1 == PASSIVE — кредитовый остаток; для ACTIVE и ACTIVE_PASSIVE возвращаем Dr − Cr
+    if (type == 1) return cr - dr;
+    return dr - cr;
   }
 };
 
