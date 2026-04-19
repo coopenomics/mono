@@ -1,5 +1,20 @@
 import { ObjectType, Field, InputType, Int, Float, registerEnumType } from '@nestjs/graphql';
-import { IsString, IsInt, IsOptional, IsEnum, IsArray, ValidateNested, IsNumber, IsIn } from 'class-validator';
+import {
+  IsString,
+  IsInt,
+  IsOptional,
+  IsEnum,
+  IsArray,
+  ValidateNested,
+  IsNumber,
+  IsIn,
+  IsNotEmpty,
+  Length,
+  MaxLength,
+  Matches,
+  Min,
+  Max,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ReportType, ReportPeriodType } from '../../domain/enums/report-type.enum';
 
@@ -80,11 +95,15 @@ export class ReportPreviewInputDTO {
 
   @Field(() => Int)
   @IsInt()
+  @Min(2000)
+  @Max(2100)
   year!: number;
 
   @Field(() => Int, { nullable: true })
   @IsOptional()
   @IsInt()
+  @Min(1)
+  @Max(54)
   period?: number;
 }
 
@@ -111,16 +130,22 @@ export class GenerateReportInputDTO {
 
   @Field(() => Int)
   @IsInt()
+  @Min(2000)
+  @Max(2100)
   year!: number;
 
   @Field(() => Int, { nullable: true })
   @IsOptional()
   @IsInt()
+  @Min(1)
+  @Max(54)
   period?: number;
 
   @Field(() => Int, { nullable: true, description: 'Номер корректировки декларации (0 — первичная)' })
   @IsOptional()
   @IsInt()
+  @Min(0)
+  @Max(999)
   correctionNumber?: number;
 
   @Field(() => [BalanceCorrectionItemInputDTO], {
@@ -136,66 +161,89 @@ export class GenerateReportInputDTO {
 
 @InputType('OrganizationDataInput')
 export class OrganizationDataInputDTO {
+  // ИНН юрлица = 10 цифр, ИП = 12 цифр. Принимаем обе длины.
   @Field(() => String)
   @IsString()
+  @IsNotEmpty()
+  @Matches(/^(\d{10}|\d{12})$/, { message: 'ИНН должен быть 10 или 12 цифр' })
   inn!: string;
 
   @Field(() => String)
   @IsString()
+  @IsNotEmpty()
+  @Matches(/^\d{9}$/, { message: 'КПП должен быть 9 цифр' })
   kpp!: string;
 
   @Field(() => String)
   @IsString()
+  @IsNotEmpty()
+  @MaxLength(512)
   orgName!: string;
 
   @Field(() => String)
   @IsString()
+  @IsNotEmpty()
+  @Matches(/^(\d{13}|\d{15})$/, { message: 'ОГРН — 13 цифр, ОГРНИП — 15' })
   ogrn!: string;
 
   @Field(() => String)
   @IsString()
+  @IsNotEmpty()
+  @MaxLength(16)
   okved!: string;
 
   @Field(() => String)
   @IsString()
+  @IsNotEmpty()
+  @Matches(/^\d{8}(\d{3})?$/, { message: 'ОКТМО — 8 или 11 цифр' })
   oktmo!: string;
 
   @Field(() => String, { nullable: true })
   @IsOptional()
   @IsString()
+  @MaxLength(8)
   okfs?: string;
 
   @Field(() => String, { nullable: true })
   @IsOptional()
   @IsString()
+  @MaxLength(16)
   okopf?: string;
 
   @Field(() => String, { nullable: true })
   @IsOptional()
   @IsString()
+  @MaxLength(512)
   address?: string;
 
   @Field(() => String, { nullable: true })
   @IsOptional()
   @IsString()
+  @MaxLength(64)
   phone?: string;
 
   @Field(() => String, { nullable: true, description: 'ОКПО' })
   @IsOptional()
   @IsString()
+  @MaxLength(16)
   okpo?: string;
 
   @Field(() => String)
   @IsString()
+  @IsNotEmpty()
+  @MaxLength(128)
   signerLastName!: string;
 
   @Field(() => String)
   @IsString()
+  @IsNotEmpty()
+  @MaxLength(128)
   signerFirstName!: string;
 
   @Field(() => String, { nullable: true })
   @IsOptional()
   @IsString()
+  @MaxLength(128)
   signerMiddleName?: string;
 
   @Field(() => String, {
@@ -212,11 +260,13 @@ export class OrganizationDataInputDTO {
   })
   @IsOptional()
   @IsString()
+  @MaxLength(255)
   signerRepDoc?: string;
 
   @Field(() => String, { nullable: true })
   @IsOptional()
   @IsString()
+  @MaxLength(32)
   signerSnils?: string;
 
   @Field(() => String, {
@@ -225,6 +275,7 @@ export class OrganizationDataInputDTO {
   })
   @IsOptional()
   @IsString()
+  @MaxLength(32)
   sfrRegNumber?: string;
 
   @Field(() => String, {
@@ -233,6 +284,7 @@ export class OrganizationDataInputDTO {
   })
   @IsOptional()
   @IsString()
+  @MaxLength(255)
   chairmanPosition?: string;
 }
 
@@ -276,21 +328,28 @@ export class ReportHistoryFilterInputDTO {
   @Field(() => Int, { nullable: true })
   @IsOptional()
   @IsInt()
+  @Min(2000)
+  @Max(2100)
   year?: number;
 
   @Field(() => Int, { nullable: true })
   @IsOptional()
   @IsInt()
+  @Min(1)
+  @Max(54)
   period?: number;
 
   @Field(() => Int, { nullable: true, description: 'Лимит (макс 100, по умолчанию 20)' })
   @IsOptional()
   @IsInt()
+  @Min(1)
+  @Max(100)
   limit?: number;
 
   @Field(() => Int, { nullable: true, description: 'Сдвиг для пагинации (по умолчанию 0)' })
   @IsOptional()
   @IsInt()
+  @Min(0)
   offset?: number;
 }
 

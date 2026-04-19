@@ -1,9 +1,13 @@
 import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
-import { UseGuards, Logger, Inject } from '@nestjs/common';
+import { UseGuards, Logger, Inject, NotFoundException, BadRequestException } from '@nestjs/common';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
 import { RolesGuard } from '~/application/auth/guards/roles.guard';
 import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
 import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
+import { GeneratedReportEntity } from '../../infrastructure/entities/generated-report.entity';
+import { BalanceCorrectionEntity } from '../../infrastructure/entities/balance-correction.entity';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 import { ReportRegistryService } from '../../domain/services/report-registry.service';
 import { ReportPreviewService } from '../../domain/services/report-preview.service';
@@ -60,32 +64,40 @@ export class ReportResolver {
     private readonly reportRepo: GeneratedReportRepository,
     @Inject(BALANCE_CORRECTION_REPOSITORY)
     private readonly correctionRepo: BalanceCorrectionRepository,
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
   ) {}
 
   @Query(() => [AvailableReportDTO], {
     name: 'getAvailableReports',
     description: 'Список доступных типов отчётов MVP (PSV/UV_VZNOSY/UUSN скрыты feature-flag) с meta по последней генерации',
   })
-  @UseGuards(GqlJwtAuthGuard)
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman'])
   async getAvailableReports(): Promise<AvailableReportDTO[]> {
     const coopname = config.coopname;
     const available = this.reportRegistry.getAvailableReports();
     const visible = available.filter((r) => !HIDDEN_IN_MVP.has(r.type));
+    const year = new Date().getFullYear();
 
-    const enriched: AvailableReportDTO[] = [];
-    for (const r of visible) {
-      const [latest, readiness] = await Promise.all([
-        this.reportRepo.findLatest(coopname, r.type, new Date().getFullYear(), null),
-        this.requisitesService.checkReadiness(coopname, r.type),
-      ]);
-      enriched.push({
-        ...r,
-        lastGeneratedAt: latest?.created_at,
-        readyToGenerate: readiness.ready,
-        missingFields: readiness.missingFields.map((m) => m.key),
-      });
-    }
-    return enriched;
+    // Параллелим строки — не строчный цикл с последовательным await.
+    // Иначе на 5-8 формах дашборд делает 10-16 серийных запросов к БД.
+    return Promise.all(
+      visible.map(async (r) => {
+        const [latest, readiness] = await Promise.all([
+          // period=undefined — берём последний отчёт за год независимо от периода
+          // (квартальные формы как NDFL6 теперь показывают «last generated» тоже).
+          this.reportRepo.findLatest(coopname, r.type, year),
+          this.requisitesService.checkReadiness(coopname, r.type),
+        ]);
+        return {
+          ...r,
+          lastGeneratedAt: latest?.created_at,
+          readyToGenerate: readiness.ready,
+          missingFields: readiness.missingFields.map((m) => m.key),
+        };
+      }),
+    );
   }
 
   @Query(() => ReportPreviewDTO, {
@@ -98,7 +110,7 @@ export class ReportResolver {
     @Args('input', { type: () => ReportPreviewInputDTO }) input: ReportPreviewInputDTO,
   ): Promise<ReportPreviewDTO> {
     if (HIDDEN_IN_MVP.has(input.reportType)) {
-      throw new Error(`Тип отчёта ${input.reportType} скрыт в MVP (feature-flag).`);
+      throw new BadRequestException(`Тип отчёта ${input.reportType} скрыт в MVP (feature-flag).`);
     }
     const coopname = config.coopname;
     const ledgerData = await this.loadLedger(coopname);
@@ -177,7 +189,7 @@ export class ReportResolver {
     const coopname = config.coopname;
     const record = await this.reportRepo.findById(id);
     if (!record || record.coopname !== coopname) {
-      throw new Error(`Отчёт с id=${id} не найден`);
+      throw new NotFoundException(`Отчёт с id=${id} не найден`);
     }
     return {
       id: record.id,
@@ -213,7 +225,7 @@ export class ReportResolver {
       const missing = readiness.missingFields
         .map((m) => `${m.label} (${m.source === 'blockchain' ? 'блокчейн' : 'ручной ввод'})`)
         .join('; ');
-      throw new Error(
+      throw new BadRequestException(
         `Нельзя сгенерировать ${data.reportType}: не заполнены обязательные поля — ${missing}. Заполните их в настройках и повторите.`
       );
     }
@@ -274,32 +286,54 @@ export class ReportResolver {
       };
     }
 
-    const saved = await this.reportRepo.create({
-      coopname,
-      report_type: data.reportType,
-      year: data.year,
-      period: data.period ?? null,
-      xml: generated.xml,
-      file_name: generated.fileName,
-      is_valid: finalIsValid,
-      validation_errors: combinedErrors.length ? combinedErrors : null,
-      organization_snapshot: resolved,
-      corrections_snapshot: data.corrections ?? null,
-      generated_by: currentUser?.username ?? 'system',
-    });
-
-    if (data.corrections?.length) {
-      await this.correctionRepo.upsertMany(
-        data.corrections.map((c) => ({
-          coopname,
-          year: data.year,
-          account_display_id: c.accountDisplayId,
-          balance_previous: c.balancePrevious,
-          balance_pre_previous: c.balancePrePrevious,
-          updated_by: currentUser?.username ?? 'system',
-        }))
-      );
+    // Резолвер защищён @AuthRoles(['chairman']) — currentUser заведомо есть.
+    // Убираем fallback 'system', чтобы не маскировать баг auth-декоратора.
+    if (!currentUser?.username) {
+      throw new BadRequestException('generateReport: не удалось определить пользователя');
     }
+    const generatedBy = currentUser.username;
+
+    // Транзакция: отчёт и корректировки сохраняются атомарно. Раньше это были
+    // два независимых autocommit'а — если корректировки падали, запись отчёта
+    // оставалась, а balance_corrections не обновлялись; на повторной генерации
+    // пользователь видел «старые» значения.
+    const saved = await this.dataSource.transaction(async (tx) => {
+      const reportRepo = tx.getRepository(GeneratedReportEntity);
+      const correctionRepo = tx.getRepository(BalanceCorrectionEntity);
+
+      const reportEntity = reportRepo.create({
+        coopname,
+        report_type: data.reportType,
+        year: data.year,
+        period: data.period ?? null,
+        xml: generated.xml,
+        file_name: generated.fileName,
+        is_valid: finalIsValid,
+        validation_errors: combinedErrors.length ? combinedErrors : null,
+        organization_snapshot: resolved,
+        corrections_snapshot: data.corrections ?? null,
+        generated_by: generatedBy,
+      });
+      const persisted = await reportRepo.save(reportEntity);
+
+      if (data.corrections?.length) {
+        await correctionRepo.upsert(
+          data.corrections.map((c) => ({
+            coopname,
+            year: data.year,
+            account_display_id: c.accountDisplayId,
+            balance_previous: String(c.balancePrevious),
+            balance_pre_previous: String(c.balancePrePrevious),
+            updated_by: generatedBy,
+          })),
+          {
+            conflictPaths: ['coopname', 'year', 'account_display_id'],
+            skipUpdateIfNoValuesChanged: false,
+          },
+        );
+      }
+      return persisted;
+    });
 
     return {
       id: saved.id,
@@ -315,19 +349,18 @@ export class ReportResolver {
   }
 
   private async loadLedger(coopname: string): Promise<LedgerAccountData[]> {
-    try {
-      const ledgerState = await this.ledgerInteractor.getLedger({ coopname });
-      return ledgerState.chartOfAccounts.map((acc) => ({
-        accountId: acc.id,
-        name: acc.name,
-        balanceCurrent: this.parseAmount(acc.available),
-        balancePrevious: 0,
-        balancePrePrevious: 0,
-      }));
-    } catch (e) {
-      this.logger.warn(`Не удалось загрузить данные ledger: ${e instanceof Error ? e.message : String(e)}`);
-      return [];
-    }
+    // Если ledger недоступен — пробрасываем ошибку. Раньше здесь был
+    // try/catch → return [], и генерация продолжалась с нулевыми балансами:
+    // отчёт выглядел «успешным», но содержал неверные данные. Председатель
+    // мог подать нулевой баланс в ФНС. Теперь — fail fast.
+    const ledgerState = await this.ledgerInteractor.getLedger({ coopname });
+    return ledgerState.chartOfAccounts.map((acc) => ({
+      accountId: acc.id,
+      name: acc.name,
+      balanceCurrent: this.parseAmount(acc.available),
+      balancePrevious: 0,
+      balancePrePrevious: 0,
+    }));
   }
 
   /**
@@ -358,7 +391,10 @@ export class ReportResolver {
   }
 
   private parseAmount(amountStr: string): number {
-    const match = amountStr.match(/([\d.]+)/);
+    // Поддерживаем отрицательные и дробные суммы. Раньше регекс /([\d.]+)/
+    // находил первую последовательность цифр и ТЕРЯЛ знак: "-1500.00 RUB"
+    // становилось 1500.00, убыток молча записывался как прибыль.
+    const match = amountStr.match(/(-?\d+(?:\.\d+)?)/);
     return match ? parseFloat(match[1]) : 0;
   }
 

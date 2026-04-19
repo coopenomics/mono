@@ -46,6 +46,13 @@ export class GeneratedReportTypeormRepository implements GeneratedReportReposito
     year: number,
     period?: number | null
   ): Promise<GeneratedReportRecord | null> {
+    // Если period не указан (undefined) — возвращаем самый свежий отчёт за год
+    // независимо от периода (квартал/полугодие/год). Раньше при undefined
+    // фильтровали `period IS NULL`, что скрывало квартальные отчёты (NDFL6, РСВ)
+    // в карточке «последний сгенерированный».
+    //
+    // Если period === null — это явный запрос годовых (period IS NULL в БД).
+    // Если period — число — точное совпадение.
     const qb = this.repository.createQueryBuilder('r')
       .where('r.coopname = :coopname', { coopname })
       .andWhere('r.report_type = :report_type', { report_type })
@@ -53,11 +60,12 @@ export class GeneratedReportTypeormRepository implements GeneratedReportReposito
       .orderBy('r.created_at', 'DESC')
       .limit(1);
 
-    if (period === null || period === undefined) {
+    if (period === null) {
       qb.andWhere('r.period IS NULL');
-    } else {
+    } else if (typeof period === 'number') {
       qb.andWhere('r.period = :period', { period });
     }
+    // period === undefined — без фильтра, любой период.
 
     const entity = await qb.getOne();
     return entity ? this.toRecord(entity) : null;
@@ -68,18 +76,23 @@ export class GeneratedReportTypeormRepository implements GeneratedReportReposito
     limit: number,
     offset: number
   ): Promise<{ items: GeneratedReportRecord[]; total: number }> {
-    const where: Record<string, unknown> = { coopname: filter.coopname };
-    if (filter.report_type) where.report_type = filter.report_type;
-    if (filter.year !== undefined) where.year = filter.year;
-    if (filter.period !== undefined) where.period = filter.period;
+    const qb = this.repository.createQueryBuilder('r')
+      .where('r.coopname = :coopname', { coopname: filter.coopname })
+      .orderBy('r.created_at', 'DESC')
+      .skip(offset)
+      .take(limit);
 
-    const [entities, total] = await this.repository.findAndCount({
-      where,
-      order: { created_at: 'DESC' },
-      skip: offset,
-      take: limit,
-    });
+    if (filter.report_type) qb.andWhere('r.report_type = :rt', { rt: filter.report_type });
+    if (filter.year !== undefined) qb.andWhere('r.year = :year', { year: filter.year });
+    // period: null → period IS NULL (явно годовые); число → точное совпадение;
+    // undefined → не фильтруем.
+    if (filter.period === null) {
+      qb.andWhere('r.period IS NULL');
+    } else if (typeof filter.period === 'number') {
+      qb.andWhere('r.period = :period', { period: filter.period });
+    }
 
+    const [entities, total] = await qb.getManyAndCount();
     return { items: entities.map((e) => this.toRecord(e)), total };
   }
 

@@ -21,42 +21,39 @@ export class ReportRequisitesTypeormRepository implements ReportRequisitesReposi
   }
 
   async upsert(input: UpsertReportRequisitesInput): Promise<ReportRequisitesRecord> {
-    const existing = await this.repository.findOne({ where: { coopname: input.coopname } });
-    if (existing) {
-      const patch: Partial<ReportRequisitesEntity> = {};
-      if (input.okved !== undefined) patch.okved = input.okved;
-      if (input.okfs !== undefined) patch.okfs = input.okfs;
-      if (input.okopf !== undefined) patch.okopf = input.okopf;
-      if (input.oktmo !== undefined) patch.oktmo = input.oktmo;
-      if (input.okpo !== undefined) patch.okpo = input.okpo;
-      if (input.sfr_reg_number !== undefined) patch.sfr_reg_number = input.sfr_reg_number;
-      if (input.chairman_position !== undefined) patch.chairman_position = input.chairman_position;
-      if (input.signer_snils !== undefined) patch.signer_snils = input.signer_snils;
-      if (input.signer_rep_doc !== undefined) patch.signer_rep_doc = input.signer_rep_doc;
-      if (input.phone_override !== undefined) patch.phone_override = input.phone_override;
-      if (input.address_override !== undefined) patch.address_override = input.address_override;
-      patch.updated_by = input.updated_by;
-      await this.repository.update({ coopname: input.coopname }, patch);
-      const reloaded = await this.repository.findOne({ where: { coopname: input.coopname } });
-      return this.toRecord(reloaded!);
-    }
-    const entity = this.repository.create({
+    // Настоящий UPSERT через ON CONFLICT — атомарно, без гонки между
+    // двумя параллельными редактированиями одного coopname.
+    // Раньше был read-modify-write: findOne → update или save;
+    // два одновременных вызова могли потерять одну правку (last-writer-wins,
+    // но без гарантии успеха второго UPDATE).
+    //
+    // undefined-поля во входе означают "не трогать" — собираем объект только
+    // из явно переданных, PostgreSQL ON CONFLICT UPDATE обновит только их.
+    const row: Partial<ReportRequisitesEntity> = {
       coopname: input.coopname,
-      okved: input.okved ?? null,
-      okfs: input.okfs ?? null,
-      okopf: input.okopf ?? null,
-      oktmo: input.oktmo ?? null,
-      okpo: input.okpo ?? null,
-      sfr_reg_number: input.sfr_reg_number ?? null,
-      chairman_position: input.chairman_position ?? null,
-      signer_snils: input.signer_snils ?? null,
-      signer_rep_doc: input.signer_rep_doc ?? null,
-      phone_override: input.phone_override ?? null,
-      address_override: input.address_override ?? null,
       updated_by: input.updated_by,
+    };
+    if (input.okved !== undefined) row.okved = input.okved;
+    if (input.okfs !== undefined) row.okfs = input.okfs;
+    if (input.okopf !== undefined) row.okopf = input.okopf;
+    if (input.oktmo !== undefined) row.oktmo = input.oktmo;
+    if (input.okpo !== undefined) row.okpo = input.okpo;
+    if (input.sfr_reg_number !== undefined) row.sfr_reg_number = input.sfr_reg_number;
+    if (input.chairman_position !== undefined) row.chairman_position = input.chairman_position;
+    if (input.signer_snils !== undefined) row.signer_snils = input.signer_snils;
+    if (input.signer_rep_doc !== undefined) row.signer_rep_doc = input.signer_rep_doc;
+    if (input.phone_override !== undefined) row.phone_override = input.phone_override;
+    if (input.address_override !== undefined) row.address_override = input.address_override;
+
+    await this.repository.upsert(row as ReportRequisitesEntity, {
+      conflictPaths: ['coopname'],
+      skipUpdateIfNoValuesChanged: false,
     });
-    const saved = await this.repository.save(entity);
-    return this.toRecord(saved);
+    const reloaded = await this.repository.findOne({ where: { coopname: input.coopname } });
+    if (!reloaded) {
+      throw new Error('report_requisites upsert: запись не найдена после upsert');
+    }
+    return this.toRecord(reloaded);
   }
 
   private toRecord(entity: ReportRequisitesEntity): ReportRequisitesRecord {

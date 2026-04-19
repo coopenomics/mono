@@ -45,11 +45,31 @@ export class BalanceCorrectionTypeormRepository implements BalanceCorrectionRepo
 
   async upsertMany(inputs: UpsertBalanceCorrectionInput[]): Promise<BalanceCorrectionRecord[]> {
     if (inputs.length === 0) return [];
-    const result: BalanceCorrectionRecord[] = [];
-    for (const input of inputs) {
-      result.push(await this.upsert(input));
-    }
-    return result;
+
+    // Bulk upsert атомарно — либо все строки сохранены, либо ни одна.
+    // Раньше был `for`-цикл с отдельным INSERT на каждую позицию, частичный сбой
+    // оставлял половину корректировок в БД.
+    const rows = inputs.map((input) => ({
+      coopname: input.coopname,
+      year: input.year,
+      account_display_id: input.account_display_id,
+      balance_previous: String(input.balance_previous),
+      balance_pre_previous: String(input.balance_pre_previous),
+      updated_by: input.updated_by,
+    }));
+    await this.repository.upsert(rows, {
+      conflictPaths: ['coopname', 'year', 'account_display_id'],
+      skipUpdateIfNoValuesChanged: false,
+    });
+
+    const saved = await this.repository.find({
+      where: inputs.map((input) => ({
+        coopname: input.coopname,
+        year: input.year,
+        account_display_id: input.account_display_id,
+      })),
+    });
+    return saved.map((e) => this.toRecord(e));
   }
 
   async findForYear(coopname: string, year: number): Promise<BalanceCorrectionRecord[]> {

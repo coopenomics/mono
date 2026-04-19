@@ -16,6 +16,10 @@ export default {
 
   async up({ dataSource, logger }: { dataSource: DataSource; logger: MigrationLogger }): Promise<boolean> {
     try {
+      // uuid_generate_v4() требует расширение uuid-ossp.
+      // На свежей БД без него direct-SQL insert (не через TypeORM) упадёт.
+      await dataSource.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`);
+
       await dataSource.query(`
         CREATE TABLE IF NOT EXISTS "generated_reports" (
           "id"                     uuid NOT NULL DEFAULT uuid_generate_v4(),
