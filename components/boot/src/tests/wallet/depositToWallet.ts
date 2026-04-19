@@ -6,6 +6,11 @@ import { generateRandomSHA256 } from '../../utils/randomHash'
 import { compareTokenAmounts, getCirculationAccount, getCoopProgramWallet, getDeposit, getUserProgramWallet } from './walletUtils'
 
 export async function depositToWallet(blockchain: any, coopname: string, username: string, amount: number) {
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new Error(
+      `depositToWallet: amount должен быть положительным конечным числом (получено: ${amount})`,
+    )
+  }
   const depositId = randomInt(100000)
 
   const data: WalletContract.Actions.CreateDeposit.ICreateDeposit = {

@@ -4,6 +4,7 @@ import config from '../configs'
 import { globalRamStats } from '../utils/getTotalRamUsage'
 import { generateRandomSHA256 } from '../utils/randomHash'
 import { sleep } from '../utils'
+import { LedgerAccountType } from './wallet/walletUtils'
 
 // =============================================================================
 // Epic 1 addendum (2026-04-18): тест переписан под новую схему ledger2.
@@ -181,7 +182,7 @@ describe('ledger2::migrate (Epic 1 addendum: opening через apply + RID)', (
   it('AC2: account 51 (BANK_ACCOUNT) получил seedCash на debit (через mig.opncash)', async () => {
     const acc = await getLedger2Account(LEDGER2_ACCOUNTS.BANK_ACCOUNT)
     expect(acc).toBeDefined()
-    expect(Number(acc.account_type)).toBe(0) // ACTIVE
+    expect(Number(acc.account_type)).toBe(LedgerAccountType.ACTIVE)
     if (!migrateWasAlreadyDone) {
       expect(parseAssetAmount(acc.debit_balance)).toBeCloseTo(baselineCashAcc + seedCash, 4)
     }
@@ -190,7 +191,7 @@ describe('ledger2::migrate (Epic 1 addendum: opening через apply + RID)', (
   it('AC3: account 80 (SHARE_FUND, PASSIVE) получил seedShare на credit (через mig.opnshr)', async () => {
     const acc = await getLedger2Account(LEDGER2_ACCOUNTS.SHARE_FUND)
     expect(acc).toBeDefined()
-    expect(Number(acc.account_type)).toBe(1) // PASSIVE
+    expect(Number(acc.account_type)).toBe(LedgerAccountType.PASSIVE)
     if (!migrateWasAlreadyDone) {
       expect(parseAssetAmount(acc.credit_balance)).toBeCloseTo(baselineShareAcc + seedShare, 4)
     }
@@ -199,7 +200,7 @@ describe('ledger2::migrate (Epic 1 addendum: opening через apply + RID)', (
   it('AC4: account 86 (TARGET_RECEIPTS, PASSIVE) получил seedEntry на credit (через mig.opnent)', async () => {
     const acc = await getLedger2Account(LEDGER2_ACCOUNTS.TARGET_RECEIPTS)
     expect(acc).toBeDefined()
-    expect(Number(acc.account_type)).toBe(1) // PASSIVE
+    expect(Number(acc.account_type)).toBe(LedgerAccountType.PASSIVE)
     if (!migrateWasAlreadyDone) {
       expect(parseAssetAmount(acc.credit_balance)).toBeCloseTo(baselineEntryAcc + seedEntry, 4)
     }
@@ -207,12 +208,14 @@ describe('ledger2::migrate (Epic 1 addendum: opening через apply + RID)', (
 
   it('AC5: account 99 (OPENING_TRANSIT) — после миграции debit ≡ credit (транзит обнулён)', async () => {
     const acc = await getLedger2Account(LEDGER2_ACCOUNTS.OPENING_TRANSIT)
-    if (acc) {
+    if (!migrateWasAlreadyDone) {
+      // Свежий прогон с ненулевым seed'ом обязан создать 99 с Dr == Cr.
+      expect(acc).toBeDefined()
+      expect(Number(acc.account_type)).toBe(LedgerAccountType.ACTIVE_PASSIVE)
       expect(parseAssetAmount(acc.debit_balance)).toBeCloseTo(parseAssetAmount(acc.credit_balance), 4)
-    } else {
-      // Если 99 не создан — значит миграция не вызвалась хоть раз с ненулевыми
-      // суммами, либо уже подчищен. Допускаем оба варианта.
-      console.log('ℹ️ accounts[99] не создан — seed мог быть нулевым')
+    } else if (acc) {
+      // На уже мигрированной цепочке: если запись 99 ещё есть, сальдо должно быть сведено.
+      expect(parseAssetAmount(acc.debit_balance)).toBeCloseTo(parseAssetAmount(acc.credit_balance), 4)
     }
   })
 
@@ -220,6 +223,13 @@ describe('ledger2::migrate (Epic 1 addendum: opening через apply + RID)', (
     const cashAcc = await getLedger2Account(LEDGER2_ACCOUNTS.BANK_ACCOUNT)
     const shareAcc = await getLedger2Account(LEDGER2_ACCOUNTS.SHARE_FUND)
     const entryAcc = await getLedger2Account(LEDGER2_ACCOUNTS.TARGET_RECEIPTS)
+
+    // После migrate все три счёта (активный 51, пассивные 80/86) обязаны существовать
+    // с полем balance — иначе регрессия контракта: accounts2 не эмитит balance
+    // или записи вовсе не создаются.
+    expect(cashAcc, 'BANK_ACCOUNT (51) не найден после migrate').toBeDefined()
+    expect(shareAcc, 'SHARE_FUND (80) не найден после migrate').toBeDefined()
+    expect(entryAcc, 'TARGET_RECEIPTS (86) не найден после migrate').toBeDefined()
 
     expect(parseAssetAmount(cashAcc.balance)).toBeCloseTo(parseAssetAmount(cashAcc.debit_balance) - parseAssetAmount(cashAcc.credit_balance), 4)
     expect(parseAssetAmount(shareAcc.balance)).toBeCloseTo(parseAssetAmount(shareAcc.credit_balance) - parseAssetAmount(shareAcc.debit_balance), 4)
@@ -236,12 +246,34 @@ describe('ledger2::migrate (Epic 1 addendum: opening через apply + RID)', (
   })
 
   it('AC7: повторный migrate() после полного прогона → тихий no-op (без ошибки)', async () => {
+    // Снимаем снапшот состояния ДО повторного вызова — должно остаться неизменным.
+    const metaBefore = await getLedger2Meta()
+    expect(metaBefore).toBeDefined()
+    expect(Boolean(metaBefore.migrated)).toBe(true)
+    const cashBefore = parseAssetAmount(
+      (await getLedger2Account(LEDGER2_ACCOUNTS.BANK_ACCOUNT))?.debit_balance,
+    )
+    const shareBefore = parseAssetAmount(
+      (await getLedger2Account(LEDGER2_ACCOUNTS.SHARE_FUND))?.credit_balance,
+    )
+
     await sleep(1000)
     const res = await migrate()
     expect(res.transaction_id).toBeDefined()
 
-    // State должен остаться прежним (ничего не переписывается).
-    const meta = await getLedger2Meta()
-    expect(Boolean(meta.migrated)).toBe(true)
+    // Snapshot после — идентичен до. Ни meta, ни балансы не меняются.
+    const metaAfter = await getLedger2Meta()
+    expect(Boolean(metaAfter.migrated)).toBe(true)
+    expect(Number(metaAfter.migrated_coops)).toBe(Number(metaBefore.migrated_coops))
+    expect(Number(metaAfter.last_migrated_coop_index)).toBe(Number(metaBefore.last_migrated_coop_index))
+
+    const cashAfter = parseAssetAmount(
+      (await getLedger2Account(LEDGER2_ACCOUNTS.BANK_ACCOUNT))?.debit_balance,
+    )
+    const shareAfter = parseAssetAmount(
+      (await getLedger2Account(LEDGER2_ACCOUNTS.SHARE_FUND))?.credit_balance,
+    )
+    expect(cashAfter).toBeCloseTo(cashBefore, 4)
+    expect(shareAfter).toBeCloseTo(shareBefore, 4)
   })
 })

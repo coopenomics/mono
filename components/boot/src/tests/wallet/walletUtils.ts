@@ -7,7 +7,7 @@ import { circulationAccountId } from '../capital/consts'
 const _ledger2Contract = 'ledger2'
 
 // Типы счетов ledger2 (AccountType::ACTIVE = 0, PASSIVE = 1, ACTIVE_PASSIVE = 2).
-enum LedgerAccountType {
+export enum LedgerAccountType {
   ACTIVE = 0,
   PASSIVE = 1,
   ACTIVE_PASSIVE = 2,
