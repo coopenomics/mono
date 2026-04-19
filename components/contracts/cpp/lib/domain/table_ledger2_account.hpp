@@ -39,7 +39,7 @@ struct [[eosio::table, eosio::contract(LEDGER2)]] account2 {
   uint64_t primary_key() const { return id; }
 
   bool is_empty() const {
-    return debit_balance.amount == 0 && credit_balance.amount == 0;
+    return debit_balance.amount == 0 && credit_balance.amount == 0 && balance.amount == 0;
   }
 
   /**

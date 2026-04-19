@@ -235,8 +235,13 @@ describe('ledger2::migrate (Epic 1 addendum: opening через apply + RID)', (
     }
   })
 
-  it('AC7: повторный migrate() → "full migration already complete"', async () => {
+  it('AC7: повторный migrate() после полного прогона → тихий no-op (без ошибки)', async () => {
     await sleep(1000)
-    await expect(migrate()).rejects.toThrow(/full migration already complete/)
+    const res = await migrate()
+    expect(res.transaction_id).toBeDefined()
+
+    // State должен остаться прежним (ничего не переписывается).
+    const meta = await getLedger2Meta()
+    expect(Boolean(meta.migrated)).toBe(true)
   })
 })

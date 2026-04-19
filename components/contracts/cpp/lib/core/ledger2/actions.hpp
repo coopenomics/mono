@@ -232,6 +232,18 @@ namespace ledger2_registry_detail {
     }
     return true;
   }
+
+  // Правило 6: каждый ненулевой wallet_from / wallet_to существует в
+  // LEDGER2_WALLET_REGISTRY. Нулевые значения валидны (ISSUE: wallet_from == 0;
+  // BLOCK/UNBLOCK: wallet_to == 0).
+  constexpr bool wallets_exist_in_registry() {
+    for (size_t i = 0; i < ACTION_REGISTRY_SIZE; ++i) {
+      const auto& e = ACTION_REGISTRY[i];
+      if (e.wallet_from != 0 && ledger2_get_wallet_name_by_id(e.wallet_from).empty()) return false;
+      if (e.wallet_to   != 0 && ledger2_get_wallet_name_by_id(e.wallet_to).empty())   return false;
+    }
+    return true;
+  }
 }
 
 static_assert(ledger2_registry_detail::action_codes_unique(),
@@ -242,6 +254,8 @@ static_assert(ledger2_registry_detail::transfer_wallet_from_ne_to(),
               "ACTION_REGISTRY: TRANSFER with wallet_from == wallet_to (self-transfer)");
 static_assert(ledger2_registry_detail::accounts_exist_in_map(),
               "ACTION_REGISTRY: references an account id not in LEDGER2_ACCOUNT_MAP");
+static_assert(ledger2_registry_detail::wallets_exist_in_registry(),
+              "ACTION_REGISTRY: references a wallet id not in LEDGER2_WALLET_REGISTRY");
 
 /**
  * @brief Линейный поиск записи реестра по action_code.

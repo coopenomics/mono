@@ -9,6 +9,10 @@
  * приходит отдельным inline (action `debit`) с тем же `process_hash` —
  * бэкенд связывает их в пару.
  *
+ * TODO(payer, 2026-04-18): payer = get_self() → RAM ledger2. Перевести на
+ * coopname при общем переходе на coopname-eosio.code permissions.
+ * См. Decision #D2 в code review Epic 1.
+ *
  * @ingroup public_ledger2_actions
  */
 [[eosio::action]]
@@ -18,7 +22,13 @@ void ledger2::credit(eosio::name coopname,
                      eosio::checksum256 process_hash,
                      std::string memo) {
   require_auth(get_self());
-  require_recipient(coopname);
+
+  // Sender-guard: запрещаем top-level вызов. Допустим только inline-dispatch
+  // из ledger2::apply — чтобы исключить одностороннюю проводку без парного debit.
+  eosio::check(eosio::get_sender() == _ledger2,
+               "credit: допустим только inline-вызов из ledger2::apply");
+
+  // require_recipient не вызываем: apply() уже нотифицировал coopname.
 
   eosio::check(amount.is_valid() && amount.amount > 0,
                "credit: некорректная сумма");

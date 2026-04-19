@@ -29,8 +29,6 @@ void ledger2::apply(eosio::name coopname,
                     eosio::name username,
                     eosio::checksum256 process_hash,
                     std::string memo) {
-  require_recipient(coopname);
-
   // -------- auth --------
   if (!has_auth(coopname)) {
     check_auth_and_get_payer_or_fail(contracts_whitelist);
@@ -41,6 +39,10 @@ void ledger2::apply(eosio::name coopname,
   cooperatives2_index coops(_registrator, _registrator.value);
   eosio::check(coops.find(coopname.value) != coops.end(),
                std::string{"Неизвестный coopname: "} + coopname.to_string());
+
+  // Нотификация кооперативу — только после валидации, чтобы не отправлять
+  // recipient-хук на несуществующий/неправильный coopname.
+  require_recipient(coopname);
 
   // -------- validate amount --------
   eosio::check(amount.is_valid(), "Некорректная сумма");

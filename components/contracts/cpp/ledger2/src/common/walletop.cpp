@@ -12,6 +12,11 @@
  * полями (op_code, wallet_from, wallet_to, amount, process_hash, memo) —
  * этого достаточно бэкенду для восстановления wjournal-эквивалента.
  *
+ * TODO(payer, 2026-04-18): сейчас payer = get_self() (ledger2), что даёт
+ * неограниченный рост RAM контракта. Перевести на payer = coopname, когда
+ * все caller-контракты возьмут у coopname разрешение `eosio.code` → ledger2
+ * через linkauth. Решение по code review Decision #D2.
+ *
  * @ingroup public_ledger2_actions
  */
 [[eosio::action]]
@@ -23,7 +28,15 @@ void ledger2::walletop(eosio::name coopname,
                        eosio::checksum256 process_hash,
                        std::string memo) {
   require_auth(get_self());
-  require_recipient(coopname);
+
+  // Sender-guard: запрещаем top-level вызов. Допустим только inline-dispatch
+  // из ledger2::apply — так сохраняется парность проводок walletop+debit+credit
+  // и нельзя напрямую подписью `ledger2@active` записать одностороннюю операцию.
+  eosio::check(eosio::get_sender() == _ledger2,
+               "walletop: допустим только inline-вызов из ledger2::apply");
+
+  // require_recipient не вызываем: apply() уже нотифицировал coopname один раз.
+  // Повторная нотификация из каждого inline создаёт 4 хука на одну бизнес-операцию.
 
   eosio::check(amount.is_valid() && amount.amount > 0,
                "walletop: некорректная сумма");
@@ -61,6 +74,7 @@ void ledger2::walletop(eosio::name coopname,
 
   switch (static_cast<WalletOp>(op_code)) {
     case WalletOp::ISSUE: {
+      eosio::check(wallet_from == 0, "walletop ISSUE: wallet_from должен быть 0");
       eosio::check(wallet_to != 0, "walletop ISSUE: требуется wallet_to");
       auto it = upsert_wallet(wallet_to);
       wallets.modify(it, payer, [&](auto& w) { w.available += amount; });
@@ -83,6 +97,7 @@ void ledger2::walletop(eosio::name coopname,
     }
     case WalletOp::BLOCK: {
       eosio::check(wallet_from != 0, "walletop BLOCK: требуется wallet_from");
+      eosio::check(wallet_to == 0, "walletop BLOCK: wallet_to должен быть 0");
       auto it = wallets.find(wallet_from);
       eosio::check(it != wallets.end() && it->available >= amount,
                    std::string{"walletop BLOCK: недостаточно available на кошельке "} +
@@ -95,6 +110,7 @@ void ledger2::walletop(eosio::name coopname,
     }
     case WalletOp::UNBLOCK: {
       eosio::check(wallet_from != 0, "walletop UNBLOCK: требуется wallet_from");
+      eosio::check(wallet_to == 0, "walletop UNBLOCK: wallet_to должен быть 0");
       auto it = wallets.find(wallet_from);
       eosio::check(it != wallets.end() && it->blocked >= amount,
                    std::string{"walletop UNBLOCK: недостаточно blocked на кошельке "} +

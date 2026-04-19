@@ -66,15 +66,26 @@ inline LegacyBalances read_legacy_balances(eosio::name coopname) {
     const eosio::asset total = acc_it->available + acc_it->blocked;
     if (total.amount == 0) continue;
 
+    // Symbol guard: legacy должен быть в govern-символе, иначе миграция
+    // исказит суммы (прямое присваивание без конверсии).
+    eosio::check(total.symbol == _root_govern_symbol,
+                 std::string{"migrate: legacy acc "} + std::to_string(acc_it->id) +
+                   " имеет неожиданный symbol");
+
     switch (acc_it->id) {
       case Ledger::accounts::BANK_ACCOUNT:   r.cash  = total; break;   // 51
       case Ledger::accounts::SHARE_FUND:     r.share = total; break;   // 80
       case Ledger::accounts::ENTRANCE_FEES:  r.entry = total; break;   // 861
       default:
-        // Другие legacy-id (редкость, в MVP-проде не встречались) молча
-        // пропускаются. Если появятся — надо расширять алгоритм или
-        // покрыть через отдельный action.
-        break;
+        // В проде MVP остальные legacy-id (67 long-term loans, 58, 76.x и т.д.)
+        // всегда нулевые, т.к. операций по ним ещё не было. Займы, когда
+        // появятся, будут идти через 58 (финансовые вложения) + 51 (расчётный)
+        // сразу в ledger2. Защита total==0 выше гарантирует, что никакой
+        // ненулевой default-id сюда не просочится; если просочится — это
+        // сигнал пересмотреть спеку до migrate, а не молча терять суммы.
+        eosio::check(false,
+                     std::string{"migrate: неожиданный ненулевой legacy acc id="} +
+                       std::to_string(acc_it->id));
     }
   }
   return r;
@@ -135,9 +146,10 @@ void ledger2::migrate(uint64_t from_coop_index, uint64_t limit) {
   ledger2_meta_index meta_tbl(get_self(), get_self().value);
   auto meta_it = meta_tbl.find(0);
 
-  // Если полный прогон уже завершён — revert.
-  eosio::check(meta_it == meta_tbl.end() || !meta_it->migrated,
-               "ledger2: full migration already complete");
+  // Если полный прогон уже завершён — тихий no-op (Decision #D4 / Story 1.15 AC5).
+  if (meta_it != meta_tbl.end() && meta_it->migrated) {
+    return;
+  }
 
   // Если мета есть и курсор не совпадает с last_migrated_coop_index — ошибка.
   // Это защищает от непоследовательных batch-прогонов (оператор случайно
@@ -165,6 +177,13 @@ void ledger2::migrate(uint64_t from_coop_index, uint64_t limit) {
 
     migrate_one_coop(get_self(), it->username);
     ++done;
+  }
+
+  // Guard против permanent-lock при пустой таблице coops или from_coop_index
+  // за пределами диапазона: если ничего не мигрировали и это не штатный finish
+  // (done > 0 ⇒ прогон состоялся), не флипаем migrated=true.
+  if (done == 0 && from_coop_index == 0 && coops.begin() == coops.end()) {
+    eosio::check(false, "migrate: таблица cooperatives пуста — повторите после регистрации");
   }
 
   // Upsert meta.
