@@ -66,6 +66,7 @@ import { GatewayModule } from './application/gateway/gateway.module';
 import { WalletModule } from './application/wallet/wallet.module';
 import { NotificationModule } from './application/notification/notification.module';
 import { LedgerModule } from './application/ledger/ledger.module';
+import { Ledger2Module } from './application/ledger2/ledger2.module';
 import { ProcessRegistryModule } from './application/process-registry/process-registry.module';
 import { BlockchainExplorerModule } from './application/blockchain-explorer/blockchain-explorer.module';
 import { ProviderModule } from './application/provider/provider.module';
@@ -147,6 +148,7 @@ import { MutationLoggingInterceptor } from './application/common/interceptors/mu
     WalletModule,
     NotificationModule,
     LedgerModule,
+    Ledger2Module,
     ProcessRegistryModule,
     BlockchainExplorerModule,
     ProviderModule,

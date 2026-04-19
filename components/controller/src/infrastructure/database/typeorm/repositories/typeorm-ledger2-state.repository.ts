@@ -1,0 +1,180 @@
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { DeltaEntity } from '../entities/delta.entity';
+import { ActionEntity } from '../entities/action.entity';
+import type { Ledger2StatePort } from '~/domain/ledger2/ports/ledger2-state.port';
+import type { Ledger2AccountDomainInterface } from '~/domain/ledger2/interfaces/ledger2-account.interface';
+import type { Ledger2WalletDomainInterface } from '~/domain/ledger2/interfaces/ledger2-wallet.interface';
+import type {
+  Ledger2HistoryFilterDomainInterface,
+  Ledger2HistoryResponseDomainInterface,
+  Ledger2OperationDomainInterface,
+} from '~/domain/ledger2/interfaces/ledger2-history.interface';
+
+const LEDGER2_CODE = 'ledger2';
+
+/**
+ * Чтение состояния ledger2 из Postgres-таблиц блокчейн-синка.
+ *
+ * - Текущие балансы: `SELECT DISTINCT ON (primary_key) ... ORDER BY primary_key,
+ *   block_num DESC, created_at DESC` — берём последнюю дельту для каждого id.
+ *   Deltas-consumer (`BlockchainConsumerService`) уже наполняет таблицу,
+ *   отдельной подписки не нужно.
+ *
+ * - История операций: `blockchain_actions WHERE account='ledger2'` —
+ *   source-of-truth для трио apply+walletop+debit+credit (см.
+ *   ProcessRegistryService: та же стратегия).
+ */
+@Injectable()
+export class TypeOrmLedger2StateRepository implements Ledger2StatePort {
+  constructor(
+    @InjectRepository(DeltaEntity) private readonly deltaRepo: Repository<DeltaEntity>,
+    @InjectRepository(ActionEntity) private readonly actionRepo: Repository<ActionEntity>,
+  ) {}
+
+  async getAccounts(coopname: string): Promise<Ledger2AccountDomainInterface[]> {
+    const rows = await this.deltaRepo.manager.query(
+      `SELECT DISTINCT ON (primary_key) value
+       FROM blockchain_deltas
+       WHERE code = $1 AND "table" = 'accounts' AND scope = $2
+       ORDER BY primary_key, block_num DESC, created_at DESC`,
+      [LEDGER2_CODE, coopname],
+    );
+    return (rows as Array<{ value: Record<string, unknown> }>).map((row) => {
+      const v = row.value ?? {};
+      return {
+        id: parseInt(String(v.id ?? 0), 10),
+        name: String(v.name ?? ''),
+        balance: String(v.balance ?? '0.0000 RUB'),
+        debitBalance: String(v.debit_balance ?? '0.0000 RUB'),
+        creditBalance: String(v.credit_balance ?? '0.0000 RUB'),
+        accountType: typeof v.account_type === 'number' ? v.account_type : Number(v.account_type ?? 0),
+      };
+    });
+  }
+
+  async getWallets(coopname: string): Promise<Ledger2WalletDomainInterface[]> {
+    const rows = await this.deltaRepo.manager.query(
+      `SELECT DISTINCT ON (primary_key) value
+       FROM blockchain_deltas
+       WHERE code = $1 AND "table" = 'wallets' AND scope = $2
+       ORDER BY primary_key, block_num DESC, created_at DESC`,
+      [LEDGER2_CODE, coopname],
+    );
+    return (rows as Array<{ value: Record<string, unknown> }>).map((row) => {
+      const v = row.value ?? {};
+      return {
+        id: parseInt(String(v.id ?? 0), 10),
+        name: String(v.name ?? ''),
+        available: String(v.available ?? '0.0000 RUB'),
+        blocked: String(v.blocked ?? '0.0000 RUB'),
+      };
+    });
+  }
+
+  async getHistory(
+    filter: Ledger2HistoryFilterDomainInterface,
+  ): Promise<Ledger2HistoryResponseDomainInterface> {
+    const page = Math.max(1, filter.page ?? 1);
+    const limit = Math.max(1, Math.min(500, filter.limit ?? 50));
+    const offset = (page - 1) * limit;
+    const sortOrder = filter.sortOrder === 'ASC' ? 'ASC' : 'DESC';
+
+    const params: unknown[] = [LEDGER2_CODE, filter.coopname];
+    let pIdx = 3;
+    const clauses: string[] = [];
+
+    if (filter.accountId !== undefined) {
+      clauses.push(
+        `(
+          (a.data ->> 'id')::text = $${pIdx}
+          OR (a.data ->> 'account_id')::text = $${pIdx}
+          OR (a.data ->> 'wallet_id')::text = $${pIdx}
+        )`,
+      );
+      params.push(String(filter.accountId));
+      pIdx += 1;
+    }
+    if (filter.actionNames && filter.actionNames.length > 0) {
+      clauses.push(`a.name = ANY($${pIdx})`);
+      params.push(filter.actionNames);
+      pIdx += 1;
+    }
+    if (filter.actionCodes && filter.actionCodes.length > 0) {
+      clauses.push(`a.data ->> 'action_code' = ANY($${pIdx})`);
+      params.push(filter.actionCodes);
+      pIdx += 1;
+    }
+    if (filter.username) {
+      clauses.push(`a.data ->> 'username' = $${pIdx}`);
+      params.push(filter.username);
+      pIdx += 1;
+    }
+    if (filter.dateFrom) {
+      clauses.push(`a.created_at >= $${pIdx}`);
+      params.push(filter.dateFrom);
+      pIdx += 1;
+    }
+    if (filter.dateTo) {
+      clauses.push(`a.created_at <= $${pIdx}`);
+      params.push(filter.dateTo);
+      pIdx += 1;
+    }
+
+    const where = `
+      a.account = $1
+      AND a.data ->> 'coopname' = $2
+      ${clauses.length ? 'AND ' + clauses.join(' AND ') : ''}
+    `;
+
+    const countRow = await this.actionRepo.manager.query(
+      `SELECT COUNT(*) AS cnt FROM blockchain_actions a WHERE ${where}`,
+      params,
+    );
+    const totalCount = parseInt(countRow[0]?.cnt ?? '0', 10);
+    const totalPages = Math.max(1, Math.ceil(totalCount / limit));
+
+    const rows = await this.actionRepo.manager.query(
+      `SELECT
+         a.global_sequence                       AS "globalSequence",
+         a.block_num                             AS "blockNum",
+         (a.data ->> 'coopname')                 AS "coopname",
+         a.name                                  AS "action",
+         (a.data ->> 'action_code')              AS "actionCode",
+         LOWER(a.data ->> 'process_hash')        AS "processHash",
+         (a.data ->> 'username')                 AS "username",
+         COALESCE(
+           NULLIF(a.data ->> 'id', '')::bigint,
+           NULLIF(a.data ->> 'account_id', '')::bigint,
+           NULLIF(a.data ->> 'wallet_id', '')::bigint
+         )                                       AS "accountId",
+         (a.data ->> 'quantity')                 AS "quantity",
+         (a.data ->> 'memo')                     AS "memo",
+         a.created_at                            AS "createdAt"
+       FROM blockchain_actions a
+       WHERE ${where}
+       ORDER BY a.block_num ${sortOrder}, a.global_sequence ${sortOrder}
+       LIMIT ${limit} OFFSET ${offset}`,
+      params,
+    );
+
+    const items: Ledger2OperationDomainInterface[] = (
+      rows as Array<Record<string, unknown>>
+    ).map((r) => ({
+      globalSequence: Number(r.globalSequence ?? 0),
+      blockNum: Number(r.blockNum ?? 0),
+      coopname: String(r.coopname ?? ''),
+      action: String(r.action ?? ''),
+      actionCode: (r.actionCode as string | null) ?? null,
+      processHash: (r.processHash as string | null) ?? null,
+      username: (r.username as string | null) ?? null,
+      accountId: r.accountId !== null && r.accountId !== undefined ? Number(r.accountId) : null,
+      quantity: (r.quantity as string | null) ?? null,
+      memo: (r.memo as string | null) ?? null,
+      createdAt: r.createdAt instanceof Date ? r.createdAt : new Date(String(r.createdAt)),
+    }));
+
+    return { items, totalCount, totalPages, currentPage: page };
+  }
+}

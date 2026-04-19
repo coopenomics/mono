@@ -5563,6 +5563,21 @@ export type ValueTypes = {
 	/** ID инвестиции */
 	_id: string | Variable<any, string>
 };
+	["GetLedger2HistoryInput"]: {
+	/** ID счёта/кошелька (×1000) */
+	accountId?: number | undefined | null | Variable<any, string>,
+	/** ACTION_REGISTRY коды: cap.debt, wall.deposit, mig.opening и т.д. */
+	actionCodes?: Array<string> | undefined | null | Variable<any, string>,
+	/** Имена blockchain-действий: apply | walletop | debit | credit */
+	actionNames?: Array<string> | undefined | null | Variable<any, string>,
+	coopname: string | Variable<any, string>,
+	dateFrom?: ValueTypes["DateTime"] | undefined | null | Variable<any, string>,
+	dateTo?: ValueTypes["DateTime"] | undefined | null | Variable<any, string>,
+	limit?: number | undefined | null | Variable<any, string>,
+	page?: number | undefined | null | Variable<any, string>,
+	sortOrder?: string | undefined | null | Variable<any, string>,
+	username?: string | undefined | null | Variable<any, string>
+};
 	["GetLedgerHistoryInput"]: {
 	/** ID счета для фильтрации. Если не указан, возвращаются операции по всем счетам */
 	account_id?: number | undefined | null | Variable<any, string>,
@@ -5746,6 +5761,63 @@ export type ValueTypes = {
 	weight?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on KeyWeight']?: Omit<ValueTypes["KeyWeight"], "...on KeyWeight">
+}>;
+	["Ledger2Account"]: AliasType<{
+	/** 0 = active (дебетовый), 1 = passive (кредитовый) */
+	accountType?:boolean | `@${string}`,
+	/** Сальдо (EOSIO asset: "7000.0000 RUB") */
+	balance?:boolean | `@${string}`,
+	/** Кредитовый оборот */
+	creditBalance?:boolean | `@${string}`,
+	/** Дебетовый оборот */
+	debitBalance?:boolean | `@${string}`,
+	/** ID счёта (×1000 offset): 51000/80000/86000/... */
+	id?:boolean | `@${string}`,
+	/** Русское название счёта из плана */
+	name?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on Ledger2Account']?: Omit<ValueTypes["Ledger2Account"], "...on Ledger2Account">
+}>;
+	["Ledger2HistoryResponse"]: AliasType<{
+	currentPage?:boolean | `@${string}`,
+	items?:ValueTypes["Ledger2Operation"],
+	totalCount?:boolean | `@${string}`,
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on Ledger2HistoryResponse']?: Omit<ValueTypes["Ledger2HistoryResponse"], "...on Ledger2HistoryResponse">
+}>;
+	["Ledger2Operation"]: AliasType<{
+	/** ID счёта/кошелька (×1000) */
+	accountId?:boolean | `@${string}`,
+	/** apply | walletop | debit | credit */
+	action?:boolean | `@${string}`,
+	/** Для apply: ACTION_REGISTRY code (cap.debt / wall.deposit / ...) */
+	actionCode?:boolean | `@${string}`,
+	blockNum?:boolean | `@${string}`,
+	coopname?:boolean | `@${string}`,
+	createdAt?:boolean | `@${string}`,
+	/** global_sequence блокчейна (строка — значения до 2^53 overflow) */
+	globalSequence?:boolean | `@${string}`,
+	memo?:boolean | `@${string}`,
+	/** process_hash (32-hex) */
+	processHash?:boolean | `@${string}`,
+	/** Asset "100.0000 RUB" */
+	quantity?:boolean | `@${string}`,
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on Ledger2Operation']?: Omit<ValueTypes["Ledger2Operation"], "...on Ledger2Operation">
+}>;
+	["Ledger2Wallet"]: AliasType<{
+	/** Доступный баланс */
+	available?:boolean | `@${string}`,
+	/** Заблокированный баланс */
+	blocked?:boolean | `@${string}`,
+	/** ID кошелька (×1000 offset): 1001/2001/3001/4001 */
+	id?:boolean | `@${string}`,
+	/** Название кошелька */
+	name?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on Ledger2Wallet']?: Omit<ValueTypes["Ledger2Wallet"], "...on Ledger2Wallet">
 }>;
 	["LedgerHistoryResponse"]: AliasType<{
 	/** Текущая страница */
@@ -7495,6 +7567,9 @@ getExtensionLogs?: [{	data?: ValueTypes["GetExtensionLogsInput"] | undefined | n
 getExtensions?: [{	data?: ValueTypes["GetExtensionsInput"] | undefined | null | Variable<any, string>},ValueTypes["Extension"]],
 getInstallationStatus?: [{	data: ValueTypes["GetInstallationStatusInput"] | Variable<any, string>},ValueTypes["InstallationStatus"]],
 getLedger?: [{	data: ValueTypes["GetLedgerInput"] | Variable<any, string>},ValueTypes["LedgerState"]],
+getLedger2Accounts?: [{	coopname: string | Variable<any, string>},ValueTypes["Ledger2Account"]],
+getLedger2History?: [{	input: ValueTypes["GetLedger2HistoryInput"] | Variable<any, string>},ValueTypes["Ledger2HistoryResponse"]],
+getLedger2Wallets?: [{	coopname: string | Variable<any, string>},ValueTypes["Ledger2Wallet"]],
 getLedgerHistory?: [{	data: ValueTypes["GetLedgerHistoryInput"] | Variable<any, string>},ValueTypes["LedgerHistoryResponse"]],
 getMeet?: [{	data: ValueTypes["GetMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
 getMeets?: [{	data: ValueTypes["GetMeetsInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
@@ -13425,6 +13500,21 @@ export type ResolverInputTypes = {
 	/** ID инвестиции */
 	_id: string
 };
+	["GetLedger2HistoryInput"]: {
+	/** ID счёта/кошелька (×1000) */
+	accountId?: number | undefined | null,
+	/** ACTION_REGISTRY коды: cap.debt, wall.deposit, mig.opening и т.д. */
+	actionCodes?: Array<string> | undefined | null,
+	/** Имена blockchain-действий: apply | walletop | debit | credit */
+	actionNames?: Array<string> | undefined | null,
+	coopname: string,
+	dateFrom?: ResolverInputTypes["DateTime"] | undefined | null,
+	dateTo?: ResolverInputTypes["DateTime"] | undefined | null,
+	limit?: number | undefined | null,
+	page?: number | undefined | null,
+	sortOrder?: string | undefined | null,
+	username?: string | undefined | null
+};
 	["GetLedgerHistoryInput"]: {
 	/** ID счета для фильтрации. Если не указан, возвращаются операции по всем счетам */
 	account_id?: number | undefined | null,
@@ -13603,6 +13693,59 @@ export type ResolverInputTypes = {
 	key?:boolean | `@${string}`,
 	/** Вес */
 	weight?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["Ledger2Account"]: AliasType<{
+	/** 0 = active (дебетовый), 1 = passive (кредитовый) */
+	accountType?:boolean | `@${string}`,
+	/** Сальдо (EOSIO asset: "7000.0000 RUB") */
+	balance?:boolean | `@${string}`,
+	/** Кредитовый оборот */
+	creditBalance?:boolean | `@${string}`,
+	/** Дебетовый оборот */
+	debitBalance?:boolean | `@${string}`,
+	/** ID счёта (×1000 offset): 51000/80000/86000/... */
+	id?:boolean | `@${string}`,
+	/** Русское название счёта из плана */
+	name?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["Ledger2HistoryResponse"]: AliasType<{
+	currentPage?:boolean | `@${string}`,
+	items?:ResolverInputTypes["Ledger2Operation"],
+	totalCount?:boolean | `@${string}`,
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["Ledger2Operation"]: AliasType<{
+	/** ID счёта/кошелька (×1000) */
+	accountId?:boolean | `@${string}`,
+	/** apply | walletop | debit | credit */
+	action?:boolean | `@${string}`,
+	/** Для apply: ACTION_REGISTRY code (cap.debt / wall.deposit / ...) */
+	actionCode?:boolean | `@${string}`,
+	blockNum?:boolean | `@${string}`,
+	coopname?:boolean | `@${string}`,
+	createdAt?:boolean | `@${string}`,
+	/** global_sequence блокчейна (строка — значения до 2^53 overflow) */
+	globalSequence?:boolean | `@${string}`,
+	memo?:boolean | `@${string}`,
+	/** process_hash (32-hex) */
+	processHash?:boolean | `@${string}`,
+	/** Asset "100.0000 RUB" */
+	quantity?:boolean | `@${string}`,
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["Ledger2Wallet"]: AliasType<{
+	/** Доступный баланс */
+	available?:boolean | `@${string}`,
+	/** Заблокированный баланс */
+	blocked?:boolean | `@${string}`,
+	/** ID кошелька (×1000 offset): 1001/2001/3001/4001 */
+	id?:boolean | `@${string}`,
+	/** Название кошелька */
+	name?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["LedgerHistoryResponse"]: AliasType<{
@@ -15286,6 +15429,9 @@ getExtensionLogs?: [{	data?: ResolverInputTypes["GetExtensionLogsInput"] | undef
 getExtensions?: [{	data?: ResolverInputTypes["GetExtensionsInput"] | undefined | null},ResolverInputTypes["Extension"]],
 getInstallationStatus?: [{	data: ResolverInputTypes["GetInstallationStatusInput"]},ResolverInputTypes["InstallationStatus"]],
 getLedger?: [{	data: ResolverInputTypes["GetLedgerInput"]},ResolverInputTypes["LedgerState"]],
+getLedger2Accounts?: [{	coopname: string},ResolverInputTypes["Ledger2Account"]],
+getLedger2History?: [{	input: ResolverInputTypes["GetLedger2HistoryInput"]},ResolverInputTypes["Ledger2HistoryResponse"]],
+getLedger2Wallets?: [{	coopname: string},ResolverInputTypes["Ledger2Wallet"]],
 getLedgerHistory?: [{	data: ResolverInputTypes["GetLedgerHistoryInput"]},ResolverInputTypes["LedgerHistoryResponse"]],
 getMeet?: [{	data: ResolverInputTypes["GetMeetInput"]},ResolverInputTypes["MeetAggregate"]],
 getMeets?: [{	data: ResolverInputTypes["GetMeetsInput"]},ResolverInputTypes["MeetAggregate"]],
@@ -21075,6 +21221,21 @@ export type ModelTypes = {
 	/** ID инвестиции */
 	_id: string
 };
+	["GetLedger2HistoryInput"]: {
+	/** ID счёта/кошелька (×1000) */
+	accountId?: number | undefined | null,
+	/** ACTION_REGISTRY коды: cap.debt, wall.deposit, mig.opening и т.д. */
+	actionCodes?: Array<string> | undefined | null,
+	/** Имена blockchain-действий: apply | walletop | debit | credit */
+	actionNames?: Array<string> | undefined | null,
+	coopname: string,
+	dateFrom?: ModelTypes["DateTime"] | undefined | null,
+	dateTo?: ModelTypes["DateTime"] | undefined | null,
+	limit?: number | undefined | null,
+	page?: number | undefined | null,
+	sortOrder?: string | undefined | null,
+	username?: string | undefined | null
+};
 	["GetLedgerHistoryInput"]: {
 	/** ID счета для фильтрации. Если не указан, возвращаются операции по всем счетам */
 	account_id?: number | undefined | null,
@@ -21246,6 +21407,55 @@ export type ModelTypes = {
 	key: string,
 	/** Вес */
 	weight: number
+};
+	["Ledger2Account"]: {
+		/** 0 = active (дебетовый), 1 = passive (кредитовый) */
+	accountType: number,
+	/** Сальдо (EOSIO asset: "7000.0000 RUB") */
+	balance: string,
+	/** Кредитовый оборот */
+	creditBalance: string,
+	/** Дебетовый оборот */
+	debitBalance: string,
+	/** ID счёта (×1000 offset): 51000/80000/86000/... */
+	id: number,
+	/** Русское название счёта из плана */
+	name: string
+};
+	["Ledger2HistoryResponse"]: {
+		currentPage: number,
+	items: Array<ModelTypes["Ledger2Operation"]>,
+	totalCount: number,
+	totalPages: number
+};
+	["Ledger2Operation"]: {
+		/** ID счёта/кошелька (×1000) */
+	accountId?: number | undefined | null,
+	/** apply | walletop | debit | credit */
+	action: string,
+	/** Для apply: ACTION_REGISTRY code (cap.debt / wall.deposit / ...) */
+	actionCode?: string | undefined | null,
+	blockNum: number,
+	coopname: string,
+	createdAt: ModelTypes["DateTime"],
+	/** global_sequence блокчейна (строка — значения до 2^53 overflow) */
+	globalSequence: string,
+	memo?: string | undefined | null,
+	/** process_hash (32-hex) */
+	processHash?: string | undefined | null,
+	/** Asset "100.0000 RUB" */
+	quantity?: string | undefined | null,
+	username?: string | undefined | null
+};
+	["Ledger2Wallet"]: {
+		/** Доступный баланс */
+	available: string,
+	/** Заблокированный баланс */
+	blocked: string,
+	/** ID кошелька (×1000 offset): 1001/2001/3001/4001 */
+	id: number,
+	/** Название кошелька */
+	name: string
 };
 	["LedgerHistoryResponse"]: {
 		/** Текущая страница */
@@ -23075,6 +23285,12 @@ export type ModelTypes = {
 	getInstallationStatus: ModelTypes["InstallationStatus"],
 	/** Получить полное состояние плана счетов кооператива. Возвращает все счета из стандартного плана счетов с актуальными данными из блокчейна. Если счет не активен в блокчейне, возвращает нулевые значения. */
 	getLedger: ModelTypes["LedgerState"],
+	/** Актуальные балансы счетов кооператива из ledger2::accounts (id ×1000). */
+	getLedger2Accounts: Array<ModelTypes["Ledger2Account"]>,
+	/** История операций ledger2 с серверными фильтрами (action/accountId/username/date-range). */
+	getLedger2History: ModelTypes["Ledger2HistoryResponse"],
+	/** Общекооперативные кошельки из ledger2::wallets (1001/2001/3001/4001). Кошельки пайщиков живут в контракте soviet — сюда не попадают. */
+	getLedger2Wallets: Array<ModelTypes["Ledger2Wallet"]>,
 	/** Получить историю операций по счетам кооператива. Возвращает список операций с возможностью фильтрации по account_id и пагинацией. Операции сортируются по дате создания (новые первыми). */
 	getLedgerHistory: ModelTypes["LedgerHistoryResponse"],
 	/** Получить данные собрания по хешу */
@@ -29040,6 +29256,21 @@ export type GraphQLTypes = {
 		/** ID инвестиции */
 	_id: string
 };
+	["GetLedger2HistoryInput"]: {
+		/** ID счёта/кошелька (×1000) */
+	accountId?: number | undefined | null,
+	/** ACTION_REGISTRY коды: cap.debt, wall.deposit, mig.opening и т.д. */
+	actionCodes?: Array<string> | undefined | null,
+	/** Имена blockchain-действий: apply | walletop | debit | credit */
+	actionNames?: Array<string> | undefined | null,
+	coopname: string,
+	dateFrom?: GraphQLTypes["DateTime"] | undefined | null,
+	dateTo?: GraphQLTypes["DateTime"] | undefined | null,
+	limit?: number | undefined | null,
+	page?: number | undefined | null,
+	sortOrder?: string | undefined | null,
+	username?: string | undefined | null
+};
 	["GetLedgerHistoryInput"]: {
 		/** ID счета для фильтрации. Если не указан, возвращаются операции по всем счетам */
 	account_id?: number | undefined | null,
@@ -29223,6 +29454,63 @@ export type GraphQLTypes = {
 	/** Вес */
 	weight: number,
 	['...on KeyWeight']: Omit<GraphQLTypes["KeyWeight"], "...on KeyWeight">
+};
+	["Ledger2Account"]: {
+	__typename: "Ledger2Account",
+	/** 0 = active (дебетовый), 1 = passive (кредитовый) */
+	accountType: number,
+	/** Сальдо (EOSIO asset: "7000.0000 RUB") */
+	balance: string,
+	/** Кредитовый оборот */
+	creditBalance: string,
+	/** Дебетовый оборот */
+	debitBalance: string,
+	/** ID счёта (×1000 offset): 51000/80000/86000/... */
+	id: number,
+	/** Русское название счёта из плана */
+	name: string,
+	['...on Ledger2Account']: Omit<GraphQLTypes["Ledger2Account"], "...on Ledger2Account">
+};
+	["Ledger2HistoryResponse"]: {
+	__typename: "Ledger2HistoryResponse",
+	currentPage: number,
+	items: Array<GraphQLTypes["Ledger2Operation"]>,
+	totalCount: number,
+	totalPages: number,
+	['...on Ledger2HistoryResponse']: Omit<GraphQLTypes["Ledger2HistoryResponse"], "...on Ledger2HistoryResponse">
+};
+	["Ledger2Operation"]: {
+	__typename: "Ledger2Operation",
+	/** ID счёта/кошелька (×1000) */
+	accountId?: number | undefined | null,
+	/** apply | walletop | debit | credit */
+	action: string,
+	/** Для apply: ACTION_REGISTRY code (cap.debt / wall.deposit / ...) */
+	actionCode?: string | undefined | null,
+	blockNum: number,
+	coopname: string,
+	createdAt: GraphQLTypes["DateTime"],
+	/** global_sequence блокчейна (строка — значения до 2^53 overflow) */
+	globalSequence: string,
+	memo?: string | undefined | null,
+	/** process_hash (32-hex) */
+	processHash?: string | undefined | null,
+	/** Asset "100.0000 RUB" */
+	quantity?: string | undefined | null,
+	username?: string | undefined | null,
+	['...on Ledger2Operation']: Omit<GraphQLTypes["Ledger2Operation"], "...on Ledger2Operation">
+};
+	["Ledger2Wallet"]: {
+	__typename: "Ledger2Wallet",
+	/** Доступный баланс */
+	available: string,
+	/** Заблокированный баланс */
+	blocked: string,
+	/** ID кошелька (×1000 offset): 1001/2001/3001/4001 */
+	id: number,
+	/** Название кошелька */
+	name: string,
+	['...on Ledger2Wallet']: Omit<GraphQLTypes["Ledger2Wallet"], "...on Ledger2Wallet">
 };
 	["LedgerHistoryResponse"]: {
 	__typename: "LedgerHistoryResponse",
@@ -31209,6 +31497,12 @@ export type GraphQLTypes = {
 	getInstallationStatus: GraphQLTypes["InstallationStatus"],
 	/** Получить полное состояние плана счетов кооператива. Возвращает все счета из стандартного плана счетов с актуальными данными из блокчейна. Если счет не активен в блокчейне, возвращает нулевые значения. */
 	getLedger: GraphQLTypes["LedgerState"],
+	/** Актуальные балансы счетов кооператива из ledger2::accounts (id ×1000). */
+	getLedger2Accounts: Array<GraphQLTypes["Ledger2Account"]>,
+	/** История операций ledger2 с серверными фильтрами (action/accountId/username/date-range). */
+	getLedger2History: GraphQLTypes["Ledger2HistoryResponse"],
+	/** Общекооперативные кошельки из ledger2::wallets (1001/2001/3001/4001). Кошельки пайщиков живут в контракте soviet — сюда не попадают. */
+	getLedger2Wallets: Array<GraphQLTypes["Ledger2Wallet"]>,
 	/** Получить историю операций по счетам кооператива. Возвращает список операций с возможностью фильтрации по account_id и пагинацией. Операции сортируются по дате создания (новые первыми). */
 	getLedgerHistory: GraphQLTypes["LedgerHistoryResponse"],
 	/** Получить данные собрания по хешу */
@@ -33316,6 +33610,7 @@ type ZEUS_VARIABLES = {
 	["GetExtensionsInput"]: ValueTypes["GetExtensionsInput"];
 	["GetInstallationStatusInput"]: ValueTypes["GetInstallationStatusInput"];
 	["GetInvestInput"]: ValueTypes["GetInvestInput"];
+	["GetLedger2HistoryInput"]: ValueTypes["GetLedger2HistoryInput"];
 	["GetLedgerHistoryInput"]: ValueTypes["GetLedgerHistoryInput"];
 	["GetLedgerInput"]: ValueTypes["GetLedgerInput"];
 	["GetMaxOriginServerTsForRoomInput"]: ValueTypes["GetMaxOriginServerTsForRoomInput"];

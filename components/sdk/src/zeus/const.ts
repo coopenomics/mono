@@ -530,6 +530,10 @@ export const AllTypesProps: Record<string,any> = {
 	GetInvestInput:{
 
 	},
+	GetLedger2HistoryInput:{
+		dateFrom:"DateTime",
+		dateTo:"DateTime"
+	},
 	GetLedgerHistoryInput:{
 
 	},
@@ -1496,6 +1500,15 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		getLedger:{
 			data:"GetLedgerInput"
+		},
+		getLedger2Accounts:{
+
+		},
+		getLedger2History:{
+			input:"GetLedger2HistoryInput"
+		},
+		getLedger2Wallets:{
+
 		},
 		getLedgerHistory:{
 			data:"GetLedgerHistoryInput"
@@ -3122,6 +3135,39 @@ export const ReturnTypes: Record<string,any> = {
 		key:"String",
 		weight:"Int"
 	},
+	Ledger2Account:{
+		accountType:"Int",
+		balance:"String",
+		creditBalance:"String",
+		debitBalance:"String",
+		id:"Int",
+		name:"String"
+	},
+	Ledger2HistoryResponse:{
+		currentPage:"Int",
+		items:"Ledger2Operation",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
+	Ledger2Operation:{
+		accountId:"Int",
+		action:"String",
+		actionCode:"String",
+		blockNum:"Int",
+		coopname:"String",
+		createdAt:"DateTime",
+		globalSequence:"String",
+		memo:"String",
+		processHash:"String",
+		quantity:"String",
+		username:"String"
+	},
+	Ledger2Wallet:{
+		available:"String",
+		blocked:"String",
+		id:"Int",
+		name:"String"
+	},
 	LedgerHistoryResponse:{
 		currentPage:"Int",
 		items:"LedgerOperation",
@@ -3925,6 +3971,9 @@ export const ReturnTypes: Record<string,any> = {
 		getExtensions:"Extension",
 		getInstallationStatus:"InstallationStatus",
 		getLedger:"LedgerState",
+		getLedger2Accounts:"Ledger2Account",
+		getLedger2History:"Ledger2HistoryResponse",
+		getLedger2Wallets:"Ledger2Wallet",
 		getLedgerHistory:"LedgerHistoryResponse",
 		getMeet:"MeetAggregate",
 		getMeets:"MeetAggregate",

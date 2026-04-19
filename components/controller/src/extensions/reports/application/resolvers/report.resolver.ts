@@ -27,7 +27,7 @@ import {
 } from '../dto/report.dto';
 import { config } from '~/config';
 import type { BalanceCorrectionInput, LedgerAccountData, ReportInput } from '../../domain/interfaces/report-generator.interface';
-import { LedgerInteractor } from '~/application/ledger/interactors/ledger.interactor';
+import { Ledger2Service } from '~/application/ledger2/services/ledger2.service';
 import {
   GENERATED_REPORT_REPOSITORY,
   type GeneratedReportRepository,
@@ -58,7 +58,7 @@ export class ReportResolver {
     private readonly reportRegistry: ReportRegistryService,
     private readonly previewService: ReportPreviewService,
     private readonly requisitesService: ReportRequisitesService,
-    private readonly ledgerInteractor: LedgerInteractor,
+    private readonly ledger2Service: Ledger2Service,
     private readonly xsdValidator: XsdValidatorService,
     @Inject(GENERATED_REPORT_REPOSITORY)
     private readonly reportRepo: GeneratedReportRepository,
@@ -359,15 +359,17 @@ export class ReportResolver {
   }
 
   private async loadLedger(coopname: string): Promise<LedgerAccountData[]> {
-    // Если ledger недоступен — пробрасываем ошибку. Раньше здесь был
-    // try/catch → return [], и генерация продолжалась с нулевыми балансами:
-    // отчёт выглядел «успешным», но содержал неверные данные. Председатель
-    // мог подать нулевой баланс в ФНС. Теперь — fail fast.
-    const ledgerState = await this.ledgerInteractor.getLedger({ coopname });
-    return ledgerState.chartOfAccounts.map((acc) => ({
+    // Story 1.23: источник — ledger2::accounts (blockchain_deltas). ID уже со
+    // сдвигом ×1000 (51000/80000/86000) и совпадает с BuhotchGenerator.
+    // Раньше брали legacy ledger (id 50/51/80), генератор его фильтровал по
+    // ×1000-id и получал пустой результат → BUHOTCH всегда нули.
+    // Fail-fast: если ledger2 недоступен — пробрасываем, иначе председатель
+    // сдаст в ФНС отчёт с ложными «успешными» нулями.
+    const accounts = await this.ledger2Service.getAccounts(coopname);
+    return accounts.map((acc) => ({
       accountId: acc.id,
       name: acc.name,
-      balanceCurrent: this.parseAmount(acc.available),
+      balanceCurrent: this.parseAmount(acc.balance),
       balancePrevious: 0,
       balancePrePrevious: 0,
     }));

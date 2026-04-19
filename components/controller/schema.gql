@@ -6226,6 +6226,24 @@ input GetInvestInput {
   _id: String!
 }
 
+input GetLedger2HistoryInput {
+  """ID счёта/кошелька (×1000)"""
+  accountId: Int
+
+  """ACTION_REGISTRY коды: cap.debt, wall.deposit, mig.opening и т.д."""
+  actionCodes: [String!]
+
+  """Имена blockchain-действий: apply | walletop | debit | credit"""
+  actionNames: [String!]
+  coopname: String!
+  dateFrom: DateTime
+  dateTo: DateTime
+  limit: Int = 50
+  page: Int = 1
+  sortOrder: String = "DESC"
+  username: String
+}
+
 input GetLedgerHistoryInput {
   """
   ID счета для фильтрации. Если не указан, возвращаются операции по всем счетам
@@ -6500,6 +6518,74 @@ type KeyWeight {
 
   """Вес"""
   weight: Int!
+}
+
+type Ledger2Account {
+  """0 = active (дебетовый), 1 = passive (кредитовый)"""
+  accountType: Int!
+
+  """Сальдо (EOSIO asset: "7000.0000 RUB")"""
+  balance: String!
+
+  """Кредитовый оборот"""
+  creditBalance: String!
+
+  """Дебетовый оборот"""
+  debitBalance: String!
+
+  """ID счёта (×1000 offset): 51000/80000/86000/..."""
+  id: Int!
+
+  """Русское название счёта из плана"""
+  name: String!
+}
+
+type Ledger2HistoryResponse {
+  currentPage: Int!
+  items: [Ledger2Operation!]!
+  totalCount: Int!
+  totalPages: Int!
+}
+
+type Ledger2Operation {
+  """ID счёта/кошелька (×1000)"""
+  accountId: Int
+
+  """apply | walletop | debit | credit"""
+  action: String!
+
+  """Для apply: ACTION_REGISTRY code (cap.debt / wall.deposit / ...)"""
+  actionCode: String
+  blockNum: Int!
+  coopname: String!
+  createdAt: DateTime!
+
+  """global_sequence блокчейна (строка — значения до 2^53 overflow)"""
+  globalSequence: String!
+  memo: String
+
+  """process_hash (32-hex)"""
+  processHash: String
+
+  """
+  Asset "100.0000 RUB"
+  """
+  quantity: String
+  username: String
+}
+
+type Ledger2Wallet {
+  """Доступный баланс"""
+  available: String!
+
+  """Заблокированный баланс"""
+  blocked: String!
+
+  """ID кошелька (×1000 offset): 1001/2001/3001/4001"""
+  id: Int!
+
+  """Название кошелька"""
+  name: String!
 }
 
 type LedgerHistoryResponse {
@@ -9316,6 +9402,19 @@ type Query {
   Получить полное состояние плана счетов кооператива. Возвращает все счета из стандартного плана счетов с актуальными данными из блокчейна. Если счет не активен в блокчейне, возвращает нулевые значения.
   """
   getLedger(data: GetLedgerInput!): LedgerState!
+
+  """Актуальные балансы счетов кооператива из ledger2::accounts (id ×1000)."""
+  getLedger2Accounts(coopname: String!): [Ledger2Account!]!
+
+  """
+  История операций ledger2 с серверными фильтрами (action/accountId/username/date-range).
+  """
+  getLedger2History(input: GetLedger2HistoryInput!): Ledger2HistoryResponse!
+
+  """
+  Общекооперативные кошельки из ledger2::wallets (1001/2001/3001/4001). Кошельки пайщиков живут в контракте soviet — сюда не попадают.
+  """
+  getLedger2Wallets(coopname: String!): [Ledger2Wallet!]!
 
   """
   Получить историю операций по счетам кооператива. Возвращает список операций с возможностью фильтрации по account_id и пагинацией. Операции сортируются по дате создания (новые первыми).

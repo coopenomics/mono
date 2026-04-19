@@ -7,7 +7,7 @@ import { ReportInitService } from './infrastructure/services/report-init.service
 import { XsdValidatorService } from './infrastructure/services/xsd-validator.service';
 import { ReportResolver } from './application/resolvers/report.resolver';
 import { ReportRequisitesResolver } from './application/resolvers/report-requisites.resolver';
-import { LedgerModule } from '~/application/ledger/ledger.module';
+import { Ledger2Module } from '~/application/ledger2/ledger2.module';
 import { GeneratedReportEntity } from './infrastructure/entities/generated-report.entity';
 import { BalanceCorrectionEntity } from './infrastructure/entities/balance-correction.entity';
 import { ReportRequisitesEntity } from './infrastructure/entities/report-requisites.entity';
@@ -22,7 +22,7 @@ import { REPORT_REQUISITES_REPOSITORY } from './domain/repositories/report-requi
 // поэтому его явно импортировать в imports не надо.
 @Module({
   imports: [
-    LedgerModule,
+    Ledger2Module,
     NestTypeOrmModule.forFeature([GeneratedReportEntity, BalanceCorrectionEntity, ReportRequisitesEntity]),
   ],
   providers: [
