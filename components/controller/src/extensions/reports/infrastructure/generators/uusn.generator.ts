@@ -35,7 +35,14 @@ export class UusnGenerator implements IReportGenerator {
 
   private buildXml(input: ReportInput, idFile: string): string {
     const kodNO = getTaxOfficeCode(input.kpp);
-    const quarter = input.period || 1;
+    // Валидация квартала: XSD требует НомерМесКварт ∈ {01..04},
+    // Период ∈ {21,31,33,34} — допустимый period = 1..4.
+    const quarter = input.period ?? 1;
+    if (!Number.isInteger(quarter) || quarter < 1 || quarter > 4) {
+      throw new Error(
+        `uusn: input.period должен быть целым от 1 до 4 (получено: ${input.period})`,
+      );
+    }
 
     const doc = createXmlDoc()
       .ele('Файл')
@@ -66,7 +73,7 @@ export class UusnGenerator implements IReportGenerator {
       .att('ОКТМО', input.oktmo)
       .att('КБК', '18210501021011000110')
       .att('СумНалогАванс', '0')
-      .att('Период', periodByQuarter[quarter] ?? '21')
+      .att('Период', periodByQuarter[quarter])
       .att('НомерМесКварт', String(quarter).padStart(2, '0'))
       .att('Год', String(input.year))
     .up();

@@ -45,7 +45,8 @@ const EFS1_MAIN_XSD = 'efs1.xsd';
 // Для ЕФС-1: подменяем кириллические namespace'ы в XML на ASCII-safe перед
 // валидацией. Зеркально тому, что сделано в schemas/efs1/efs1.xsd.
 // Порядок важен: от более длинных к коротким, чтобы не было частичных замен.
-const EFS1_XML_NS_MAP: [string, string][] = [
+// Экспортируется для unit-тестов — иначе таблица дублируется и может разойтись.
+export const EFS1_XML_NS_MAP: [string, string][] = [
   ['http://пф.рф/ВС/ЕФС/2026-01-01', 'http://ns.efs.ru/VS/EFS/2026-01-01'],
   ['http://пф.рф/ЕФС-1/2026-01-01',  'http://ns.efs.ru/EFS-1/2026-01-01'],
   ['http://пф.рф/ВС/типы/2025-01-01','http://ns.efs.ru/VS/types/2025-01-01'],
