@@ -28,12 +28,12 @@ export type IProcessType =
   | 'wall.withdrw'
   | 'cap.capimp'
   | 'cap.debt'
-  // Акт 2 результат — два связанных под одним process_hash, но отдельных типа:
-  // cap.act2shr (share-вклад результата в паевой) и cap.act2ln (гашение займа
-  // из стоимости результата). Раньше было слитое cap.act2res — теперь разделены,
-  // чтобы отображались рядом в UI для контроля.
-  | 'cap.act2shr'
-  | 'cap.act2ln'
+  // Акт 2 результат — один процесс с двумя эффектами (share-вклад результата
+  // в паевой и погашение займа из стоимости результата). Под одним process_hash
+  // emit'ятся два apply с разными action_code (cap.act2shr + cap.act2ln), но
+  // это ОДИН тип процесса. UI показывает оба эффекта раздельно внутри одной
+  // карточки — discriminator = action.data.action_code.
+  | 'cap.act2res'
   | 'cap.act2prp'
   | 'mkt.offereq'
   | 'sov.axncnv'
@@ -51,9 +51,9 @@ export interface IProcessSummary {
   username: IName | null
   firstSeenAt: string
   lastSeenAt: string
-  actionCount: number
-  deltaCount: number
-  documentCount: number
+  // actionCount/deltaCount/documentCount удалены: на 100 строк × 3 SQL =
+  // 300 запросов на каждый listProcesses. UI читает getProcess(hash) при
+  // раскрытии конкретного процесса — там счётчики выводимы из массивов.
 }
 
 /**

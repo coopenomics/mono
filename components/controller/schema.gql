@@ -8692,10 +8692,7 @@ input ProcessStepTemplateInput {
 }
 
 type ProcessSummary {
-  actionCount: Int!
   coopname: String!
-  deltaCount: Int!
-  documentCount: Int!
   firstSeenAt: DateTime!
   lastSeenAt: DateTime!
   processHash: String!

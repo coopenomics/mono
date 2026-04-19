@@ -31,7 +31,6 @@ const LEDGER2_CODE = 'ledger2';
 // Epic 1 addendum (2026-04-18): apply orchestrator + 3 atomic inlines.
 // Phase A якорится по blockchain_actions (а не deltas), поскольку wjournal
 // и journal таблицы убраны из контракта (история = action traces).
-const LEDGER2_ACTION_NAMES = ['apply', 'walletop', 'debit', 'credit'] as const;
 const HARD_LIMIT = 200;
 const CACHE_TTL_SECONDS = 60;
 
@@ -178,9 +177,9 @@ export class ProcessRegistryService {
     const limit = Math.max(1, Math.min(100, pagination.limit ?? 10));
     const offset = (page - 1) * limit;
 
-    // Все apply ledger2 — один apply = один процесс (process_hash уникален).
-    // processType-фильтр поддерживается через action_code (мы знаем mapping
-    // из ACTION_CODE_TO_PROCESS_TYPE — фильтруем по списку action_code).
+    // Фильтр по processType трансформируется в список action_code, т.к. в
+    // blockchain_actions есть только action_code (process_type не пишется в
+    // data — его выводит backend через ACTION_CODE_TO_PROCESS_TYPE).
     const actionCodesForFilter = filter.processType
       ? Object.entries(ACTION_CODE_TO_PROCESS_TYPE)
           .filter(([, pt]) => pt === filter.processType)
@@ -234,28 +233,44 @@ export class ProcessRegistryService {
     const totalCount = parseInt(countRow[0]?.cnt ?? '0', 10);
     const totalPages = Math.max(1, Math.ceil(totalCount / limit));
 
+    // GROUP BY только по (process_hash, coopname) — иначе мульти-операционные
+    // процессы (cap.act2res с двумя action_code под одним hash; reg.regist с
+    // entrfee+minshare; mkt.offereq с supplcnf+recvcnf) дают двойные строки
+    // и totalCount (считаемый через DISTINCT process_hash) не совпадает с
+    // items.length. MIN(action_code) → любой из двух одинаково выводит
+    // processType через ACTION_CODE_TO_PROCESS_TYPE (у cap.act2res оба
+    // action_code маппятся в один тип; для multi-op типа reg.regist тоже
+    // единый процесс).
+    const limitIdx = pIdx;
+    params.push(limit);
+    pIdx += 1;
+    const offsetIdx = pIdx;
+    params.push(offset);
+
     const rows = await this.actionRepository.manager.query(
       `SELECT
-         a.data ->> 'action_code'             AS "actionCode",
+         MIN(a.data ->> 'action_code')        AS "actionCode",
          LOWER(a.data ->> 'process_hash')     AS "processHash",
          (a.data ->> 'coopname')              AS "coopname",
          MIN(a.data ->> 'username')           AS "username",
          MIN(a.created_at)                    AS "firstSeenAt",
-         MAX(a.created_at)                    AS "lastSeenAt"
+         MAX(a.created_at)                    AS "lastSeenAt",
+         MAX(a.block_num)                     AS "lastBlockNum"
        FROM blockchain_actions a
        WHERE ${baseFilter}
-       GROUP BY a.data ->> 'action_code',
-                LOWER(a.data ->> 'process_hash'),
+       GROUP BY LOWER(a.data ->> 'process_hash'),
                 a.data ->> 'coopname'
-       ORDER BY MAX(a.created_at) DESC
-       LIMIT ${limit} OFFSET ${offset}`,
+       ORDER BY MAX(a.block_num) DESC, MAX(a.created_at) DESC
+       LIMIT $${limitIdx} OFFSET $${offsetIdx}`,
       params
     );
 
-    const items: (ProcessSummary | null)[] = await Promise.all(
-      (rows as any[]).map(async (r): Promise<ProcessSummary | null> => {
-        // processType обязательно должен быть известным — иначе строка-призрак.
-        // ACTION_CODE_TO_PROCESS_TYPE синхронизируется с ACTION_REGISTRY (C++).
+    // Per-row counts (actions/deltas/documents) удалены из ProcessSummary:
+    // на N=100 строк × 3 SQL = 300 запросов на каждый listProcesses =
+    // connection pool exhaustion под нагрузкой. Счётчики доступны через
+    // getProcess(hash) для конкретного процесса.
+    const items: ProcessSummary[] = (rows as any[])
+      .map((r): ProcessSummary | null => {
         const derivedType = ACTION_CODE_TO_PROCESS_TYPE[r.actionCode];
         if (!derivedType || !KNOWN_PROCESS_TYPES.has(derivedType)) {
           this.logger.warn(
@@ -263,11 +278,6 @@ export class ProcessRegistryService {
           );
           return null;
         }
-        const [actionCount, deltaCount, documentCount] = await Promise.all([
-          this.countActionsByHash(r.processHash, r.coopname),
-          this.countDeltasByHash(r.processHash, r.coopname, derivedType),
-          this.countDocumentsByHash(r.processHash, r.coopname, derivedType),
-        ]);
         return {
           processType: derivedType,
           processHash: r.processHash,
@@ -275,15 +285,11 @@ export class ProcessRegistryService {
           username: r.username ?? null,
           firstSeenAt: new Date(r.firstSeenAt),
           lastSeenAt: new Date(r.lastSeenAt),
-          actionCount,
-          deltaCount,
-          documentCount,
         };
       })
-    );
-    const filteredItems = items.filter((x): x is ProcessSummary => x !== null);
+      .filter((x): x is ProcessSummary => x !== null);
 
-    return { items: filteredItems, totalCount, totalPages, currentPage: page };
+    return { items, totalCount, totalPages, currentPage: page };
   }
 
   // =====================================================================
@@ -417,61 +423,19 @@ export class ProcessRegistryService {
   });
 
   private compareByBlock = (
-    a: { block_num: number; created_at: Date },
-    b: { block_num: number; created_at: Date }
+    a: { block_num: number; created_at: Date; global_sequence?: string },
+    b: { block_num: number; created_at: Date; global_sequence?: string }
   ): number => {
     if (a.block_num !== b.block_num) return a.block_num - b.block_num;
-    return a.created_at.getTime() - b.created_at.getTime();
+    const t = a.created_at.getTime() - b.created_at.getTime();
+    if (t !== 0) return t;
+    // В одном блоке created_at может совпадать до миллисекунды; порядок
+    // детерминирован только через global_sequence (есть у actions). Для
+    // deltas tiebreaker'а нет — оставляем stable по первым двум ключам.
+    const ga = a.global_sequence ? BigInt(a.global_sequence) : 0n;
+    const gb = b.global_sequence ? BigInt(b.global_sequence) : 0n;
+    return ga < gb ? -1 : ga > gb ? 1 : 0;
   };
-
-  private async countActionsByHash(hash: string, coopname: string): Promise<number> {
-    // Cross-account count (K2): собираем все actions по process_hash,
-    // не только ledger2 — чтобы видеть и source-action source-контракта.
-    const row = await this.actionRepository.manager.query(
-      `SELECT COUNT(*) AS cnt FROM blockchain_actions a
-       WHERE LOWER(a.data ->> 'process_hash') = $1
-         AND a.data ->> 'coopname' = $2`,
-      [hash, coopname]
-    );
-    return parseInt(row[0]?.cnt ?? '0', 10);
-  }
-
-  private async countDeltasByHash(
-    hash: string,
-    coopname: string,
-    processType: string
-  ): Promise<number> {
-    // Cross-entity-table count (K3): используем PROCESS_HASH_LOCATOR чтобы
-    // ходить ТОЛЬКО по релевантным для processType сущностным таблицам
-    // и полю hash — индексы idx_deltas_* обслуживают именно эти запросы.
-    // Раньше здесь был LIKE '%hash%' — full-scan всей таблицы.
-    const locations: HashLocation[] = PROCESS_HASH_LOCATOR[processType] ?? [];
-    if (locations.length === 0) return 0;
-
-    let total = 0;
-    for (const loc of locations) {
-      const row = await this.deltaRepository.manager.query(
-        `SELECT COUNT(*) AS cnt FROM blockchain_deltas d
-         WHERE d.code = $1
-           AND d."table" = $2
-           AND LOWER(d.value ->> $3) = $4
-           AND (d.scope = $5 OR d.value ->> 'coopname' = $5)`,
-        [loc.code, loc.table, loc.field, hash, coopname]
-      );
-      total += parseInt(row[0]?.cnt ?? '0', 10);
-    }
-    return total;
-  }
-
-  private async countDocumentsByHash(
-    hash: string,
-    coopname: string,
-    processType: string
-  ): Promise<number> {
-    // Грубая оценка: 1 если хотя бы одна entity-дельта есть в релевантных
-    // таблицах; иначе 0. Для точного подсчёта — getProcess(hash).documents.
-    return (await this.countDeltasByHash(hash, coopname, processType)) > 0 ? 1 : 0;
-  }
 
   private async cacheGet(key: string): Promise<ProcessView | null> {
     try {

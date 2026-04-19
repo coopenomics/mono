@@ -7140,10 +7140,7 @@ voteOnAnnualGeneralMeet?: [{	data: ValueTypes["VoteOnAnnualGeneralMeetInput"] | 
 	title: string | Variable<any, string>
 };
 	["ProcessSummary"]: AliasType<{
-	actionCount?:boolean | `@${string}`,
 	coopname?:boolean | `@${string}`,
-	deltaCount?:boolean | `@${string}`,
-	documentCount?:boolean | `@${string}`,
 	firstSeenAt?:boolean | `@${string}`,
 	lastSeenAt?:boolean | `@${string}`,
 	processHash?:boolean | `@${string}`,
@@ -15010,10 +15007,7 @@ voteOnAnnualGeneralMeet?: [{	data: ResolverInputTypes["VoteOnAnnualGeneralMeetIn
 	title: string
 };
 	["ProcessSummary"]: AliasType<{
-	actionCount?:boolean | `@${string}`,
 	coopname?:boolean | `@${string}`,
-	deltaCount?:boolean | `@${string}`,
-	documentCount?:boolean | `@${string}`,
 	firstSeenAt?:boolean | `@${string}`,
 	lastSeenAt?:boolean | `@${string}`,
 	processHash?:boolean | `@${string}`,
@@ -22820,10 +22814,7 @@ export type ModelTypes = {
 	title: string
 };
 	["ProcessSummary"]: {
-		actionCount: number,
-	coopname: string,
-	deltaCount: number,
-	documentCount: number,
+		coopname: string,
 	firstSeenAt: ModelTypes["DateTime"],
 	lastSeenAt: ModelTypes["DateTime"],
 	processHash: string,
@@ -31013,10 +31004,7 @@ export type GraphQLTypes = {
 };
 	["ProcessSummary"]: {
 	__typename: "ProcessSummary",
-	actionCount: number,
 	coopname: string,
-	deltaCount: number,
-	documentCount: number,
 	firstSeenAt: GraphQLTypes["DateTime"],
 	lastSeenAt: GraphQLTypes["DateTime"],
 	processHash: string,

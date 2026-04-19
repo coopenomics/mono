@@ -49,6 +49,12 @@ export interface ProcessView {
 
 /**
  * Сводка процесса для листинга `processes`.
+ *
+ * Поля actionCount/deltaCount/documentCount удалены: на 100 строк × 3 SQL
+ * = 300 запросов на каждый listProcesses → connection pool exhaustion под
+ * нагрузкой. UI запрашивает getProcess(hash) при раскрытии конкретного
+ * процесса — там счётчики выводимы через `actions.length` / `delta_history.length`
+ * / `documents.length`.
  */
 export interface ProcessSummary {
   processType: string;
@@ -57,9 +63,6 @@ export interface ProcessSummary {
   username: string | null;
   firstSeenAt: Date;
   lastSeenAt: Date;
-  actionCount: number;
-  deltaCount: number;
-  documentCount: number;
 }
 
 /**

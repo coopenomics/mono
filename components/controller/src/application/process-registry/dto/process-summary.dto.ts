@@ -1,4 +1,4 @@
-import { Field, Int, ObjectType } from '@nestjs/graphql';
+import { Field, ObjectType } from '@nestjs/graphql';
 
 @ObjectType('ProcessSummary')
 export class ProcessSummaryDTO {
@@ -8,7 +8,7 @@ export class ProcessSummaryDTO {
   @Field({ nullable: true }) username?: string;
   @Field() firstSeenAt!: Date;
   @Field() lastSeenAt!: Date;
-  @Field(() => Int) actionCount!: number;
-  @Field(() => Int) deltaCount!: number;
-  @Field(() => Int) documentCount!: number;
+  // actionCount/deltaCount/documentCount удалены: N+1 counters на каждой
+  // странице listProcesses были запросы 300+ на request. UI читает
+  // getProcess(hash) при раскрытии — там счётчики выводимы из массивов.
 }

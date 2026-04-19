@@ -181,11 +181,18 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
 
   private async processDeltaDelayed(delta: IDelta): Promise<void> {
     // Пропускаем дельту, если она не относится к нашему кооперативу.
-    // coopname может быть в value (большинство таблиц контроллируемых таблиц)
-    // ИЛИ в scope (ончейн-таблицы с scope=coopname: ledger2 wjournal/journal/
-    // wallets/accounts, wallet deposits/withdraws, capital debts/results/...).
-    const deltaCoop = (delta.value as any)?.coopname ?? delta.scope;
-    if (deltaCoop != config.coopname) {
+    // coopname может быть в value (таблицы с value.coopname: candidates2,
+    // deposits, withdraws, debts, contributors, ...) ИЛИ в scope (ончейн-
+    // таблицы с scope=coopname: ledger2 accounts/wallets, capital results/
+    // segments/pgproperties, marketplace requests, ...).
+    //
+    // Строгая проверка непустой строки: если value.coopname = "" (битый
+    // ABI) — `?? scope` НЕ сработает, и пустая строка пройдёт `!= config.coopname`,
+    // но саму дельту мы потеряем. Поэтому пустой value.coopname — тоже fallback на scope.
+    const valueCoop = (delta.value as any)?.coopname;
+    const valueCoopValid = typeof valueCoop === 'string' && valueCoop.length > 0;
+    const deltaCoop = valueCoopValid ? valueCoop : delta.scope;
+    if (deltaCoop !== config.coopname) {
       return;
     }
 

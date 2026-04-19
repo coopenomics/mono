@@ -1,7 +1,11 @@
 /**
  * Одноразовый скрипт: добавляет тестового пайщика через registrator::adduser,
- * чтобы parser уловил live ledger2-дельты и controller получил их в
- * blockchain_deltas (для проверки ProcessRegistryService end-to-end).
+ * чтобы parser уловил live ledger2-actions и controller получил их в
+ * blockchain_actions (для проверки ProcessRegistryService end-to-end).
+ *
+ * Epic 1 addendum удалил wjournal/journal из ledger2 (были в RAM). Phase A
+ * ProcessRegistry теперь читает blockchain_actions — history восстанавливается
+ * из action traces (apply + walletop + debit + credit).
  *
  * Запуск: pnpm run cli add-test-user <username>
  */
@@ -33,6 +37,10 @@ export async function addTestUser(username: string) {
   await blockchain.addUser(data)
 
   console.log(`\nУчастник ${username} добавлен. process_hash=${registration_hash}`)
-  console.log(`Проверить ledger2: cleos get table ledger2 voskhod wjournal`)
-  console.log(`Проверить GraphQL: query { process(hash: "${registration_hash}", coopname: "voskhod") { ... } }`)
+  console.log(`Проверить on-chain:`)
+  console.log(`  cleos get actions ledger2 -1 -5             # последние apply/walletop/debit/credit`)
+  console.log(`  cleos get table ledger2 voskhod accounts2   # актуальные балансы счетов`)
+  console.log(`  cleos get table ledger2 voskhod wallets2    # общекооперативные кошельки`)
+  console.log(`  cleos get table registrator voskhod candidates2  # карточка кандидата`)
+  console.log(`Проверить GraphQL: query { process(hash: "${registration_hash}", coopname: "voskhod") { process_type actions { action } delta_history { table primary_key } } }`)
 }
