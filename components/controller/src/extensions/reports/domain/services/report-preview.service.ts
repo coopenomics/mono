@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ReportType } from '../enums/report-type.enum';
 import type { LedgerAccountData } from '../interfaces/report-generator.interface';
+import { toThousands } from '../../infrastructure/generators/buhotch.generator';
 
 export interface PreviewSection {
   title: string;
@@ -23,8 +24,9 @@ export interface PreviewContext {
  * Для нулевых (NDFL6/RSV/DUSN/FSS4) — перечень реквизитов и ключевых полей,
  * в которых проставлены нули.
  */
-const THOUSAND = 1000;
-const round1000 = (x: number) => Math.round(x / THOUSAND);
+// Используем `toThousands` из generator — единый источник правды для
+// округления в тысячи рублей. Preview и XML обязаны показывать одинаковые числа.
+const round1000 = toThousands;
 
 // Epic 1 addendum (2026-04-18): субсчета 86.x удалены, детализация в wallets.
 const ACCOUNT_GROUPS = {
@@ -122,8 +124,15 @@ export class ReportPreviewService {
         fields: [
           {
             key: 'balanceCheck',
+            // ФНС регламент 0710096 допускает расхождение Актив=Пассив до 1 тыс. ₽
+            // из-за независимого округления каждой строки. Строгое сравнение
+            // `===` показывало ложное «Нет» при валидных отчётах.
             label: 'Актив = Пассив',
-            value: round1000(assetsTotal) === round1000(target) ? 'Да' : `Нет (Δ = ${round1000(assetsTotal - target)} тыс.)`,
+            value: (() => {
+              const delta = round1000(assetsTotal) - round1000(target);
+              if (Math.abs(delta) <= 1) return 'Да';
+              return `Нет (Δ = ${delta} тыс.)`;
+            })(),
           },
         ],
       },
@@ -164,7 +173,10 @@ export class ReportPreviewService {
         title: 'Декларация УСН (КНД 1152017, ВерсФорм 5.09)',
         fields: [
           { key: 'period', label: 'Период', value: '34 (годовой)' },
-          { key: 'year', label: 'Отчётный год', value: String(ctx.year - 1) },
+          // DN1 code review Chunk A: ctx.year = «год за который отчитываемся»,
+          // единый контракт со всеми ФНС-генераторами. Раньше было ctx.year-1,
+          // что рассинхронизировалось с генератором после унификации.
+          { key: 'year', label: 'Отчётный год', value: String(ctx.year) },
           { key: 'obNal', label: 'Объект налогообложения', value: '1 (доходы)' },
           { key: 'rate', label: 'Ставка', value: '0 % (нулевой отчёт)' },
           { key: 'sum', label: 'Сумма налога', value: '0' },

@@ -218,6 +218,16 @@ export class ReportResolver {
   ): Promise<GeneratedReportDTO> {
     const coopname = config.coopname;
 
+    // Защита от обхода feature-flag: PSV/UV_VZNOSY/UUSN скрыты в MVP
+    // (не появляются в getAvailableReports и отклоняются в getReportPreview).
+    // Без этого гарда chairman мог напрямую через GraphQL сгенерить
+    // и сохранить отчёт скрытого типа в обход UI.
+    if (HIDDEN_IN_MVP.has(data.reportType)) {
+      throw new BadRequestException(
+        `Тип отчёта ${data.reportType} скрыт в MVP (feature-flag) и не может быть сгенерирован.`,
+      );
+    }
+
     // Readiness-проверка: если не хватает обязательных полей — сразу ошибка,
     // ни генерации, ни записи в БД не происходит (FR-R-15).
     const readiness = await this.requisitesService.checkReadiness(coopname, data.reportType);
@@ -265,7 +275,7 @@ export class ReportResolver {
     const generated = this.reportRegistry.generate(input);
 
     const xsdResult = generated.xml
-      ? this.xsdValidator.validateByReportType(generated.xml, data.reportType)
+      ? await this.xsdValidator.validateByReportType(generated.xml, data.reportType)
       : { isValid: false, errors: [{ message: 'XML не сгенерирован' }] };
 
     const combinedErrors = [

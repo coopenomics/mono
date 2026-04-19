@@ -54,7 +54,11 @@ interface BalanceRow {
   prdPrePrev: number;
 }
 
-function toThousands(rubles: number): number {
+// Экспортируем наружу — используется в report-preview.service для единой
+// арифметики округления: preview показывает председателю те же тысячи,
+// что потом попадут в XML. Раньше была дублированная копия (report-preview
+// имел свой `round1000` с тем же определением — два источника правды).
+export function toThousands(rubles: number): number {
   return Math.round(rubles / 1000);
 }
 
@@ -269,7 +273,7 @@ export class BuhotchGenerator implements IReportGenerator {
  * Пользовательские корректировки, введённые с display-id `86.01`/`86.1`
  * (как их привыкли писать бухгалтеры), резолвятся в родительский счёт.
  */
-function ledger2DisplayIdToLedgerIds(displayId: string): number[] {
+export function ledger2DisplayIdToLedgerIds(displayId: string): number[] {
   const trimmed = displayId.trim();
   if (!trimmed) return [];
   const match = /^(\d+)(?:\.(\d+))?$/.exec(trimmed);
