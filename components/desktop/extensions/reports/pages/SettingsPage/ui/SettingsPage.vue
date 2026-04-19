@@ -156,7 +156,7 @@ const saving = ref(false)
 const requisites = ref<IReportRequisitesView | null>(null)
 const readiness = ref<IReportReadinessView[]>([])
 
-const REPORT_TYPES_MVP: IReportType[] = ['BUHOTCH', 'NDFL6', 'RSV', 'DUSN', 'FSS4']
+const REPORT_TYPES_MVP = ['BUHOTCH', 'NDFL6', 'RSV', 'DUSN', 'FSS4'] as IReportType[]
 
 type ManualKey =
   | 'okved'
@@ -237,6 +237,12 @@ async function loadRequisites() {
           manualInput[key] = String(v.value)
         }
       }
+      // signerType — choice, не RequisiteField; default 'chairman' если бэк
+      // не вернул значения (первый заход председателя).
+      const serverSignerType = (data as any).signerType
+      if (serverSignerType === 'chairman' || serverSignerType === 'representative') {
+        signerType.value = serverSignerType
+      }
     }
   } catch (e: any) {
     Notify.create({ type: 'negative', message: 'Ошибка загрузки реквизитов: ' + (e?.message || '') })
@@ -251,16 +257,31 @@ async function loadReadiness() {
       REPORT_TYPES_MVP.map(async (rt) => {
         try {
           return await reportApi.checkReportReadiness(rt)
-        } catch {
+        } catch (e) {
+          // Частичный фейл одной формы — не рушим список, но логируем чтобы
+          // в DevTools был видимый сигнал, а не «пустой readiness из ниоткуда».
+          console.error(`checkReportReadiness(${rt}) failed:`, e)
           return undefined
         }
       }),
     )
     readiness.value = results.filter((x): x is IReportReadinessView => !!x)
-  } catch { /* silent */ }
+  } catch (e) {
+    console.error('loadReadiness failed:', e)
+  }
 }
 
 async function save() {
+  // Для representative-подписанта без доверенности XML пойдёт с пустым
+  // НаимДок — ФНС/СФР отклонит. Блокируем до заполнения.
+  if (signerType.value === 'representative' && !manualInput.signerRepDoc?.trim()) {
+    Notify.create({
+      type: 'warning',
+      message: 'Для подписанта «Представитель» нужно указать документ (доверенность)',
+    })
+    return
+  }
+
   saving.value = true
   try {
     const input: Record<string, string | null> = {}
@@ -268,6 +289,7 @@ async function save() {
       const v = manualInput[key]
       input[key] = v && v.length > 0 ? v : null
     }
+    input.signerType = signerType.value
     await reportApi.updateReportRequisites(input as any)
     Notify.create({ type: 'positive', message: 'Реквизиты сохранены' })
     await Promise.all([loadRequisites(), loadReadiness()])

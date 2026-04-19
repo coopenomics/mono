@@ -74,7 +74,11 @@ div.page-shell
       @virtual-scroll='onVirtualScroll'
     )
       template(#body='props')
-        q-tr(:key='`op_${props.row.global_sequence}`' :props='props')
+        q-tr(
+          :key='`op_${props.row.global_sequence}`'
+          :data-seq='props.row.global_sequence'
+          :props='props'
+        )
           q-td(auto-width)
             ExpandToggleButton(
               :expanded='expanded.get(props.row.global_sequence)'
@@ -289,15 +293,21 @@ onMounted(async () => {
     }
 
     const historyFilter: any = { coopname: info.coopname }
-    if (route.query.account_id) historyFilter.account_id = Number(route.query.account_id)
-    if (route.query.wallet_id) historyFilter.account_id = Number(route.query.wallet_id)
+    // account_id и wallet_id взаимоисключающие — берём что пришло первым,
+    // не позволяем wallet_id затереть уже выставленный account_id.
+    if (route.query.account_id) {
+      historyFilter.account_id = Number(route.query.account_id)
+    } else if (route.query.wallet_id) {
+      historyFilter.account_id = Number(route.query.wallet_id)
+    }
     await loadHistory(historyFilter)
 
     if (route.query.operation_id) {
       const seq = Number(route.query.operation_id)
       expanded.value.set(seq, true)
       nextTick(() => {
-        const el = document.querySelector(`[key="op_${seq}"]`)
+        // Vue-атрибут :key не рендерится в DOM — используем data-seq.
+        const el = document.querySelector(`[data-seq="${seq}"]`)
         el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       })
     }

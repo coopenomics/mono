@@ -42,6 +42,7 @@ export class ReportRequisitesTypeormRepository implements ReportRequisitesReposi
     if (input.chairman_position !== undefined) row.chairman_position = input.chairman_position;
     if (input.signer_snils !== undefined) row.signer_snils = input.signer_snils;
     if (input.signer_rep_doc !== undefined) row.signer_rep_doc = input.signer_rep_doc;
+    if (input.signer_type !== undefined) row.signer_type = input.signer_type;
     if (input.phone_override !== undefined) row.phone_override = input.phone_override;
     if (input.address_override !== undefined) row.address_override = input.address_override;
 
@@ -68,6 +69,7 @@ export class ReportRequisitesTypeormRepository implements ReportRequisitesReposi
       chairman_position: entity.chairman_position ?? null,
       signer_snils: entity.signer_snils ?? null,
       signer_rep_doc: entity.signer_rep_doc ?? null,
+      signer_type: entity.signer_type ?? null,
       phone_override: entity.phone_override ?? null,
       address_override: entity.address_override ?? null,
       updated_by: entity.updated_by,

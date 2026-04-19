@@ -7757,6 +7757,8 @@ searchPrivateAccounts?: [{	data: ValueTypes["SearchPrivateAccountsInput"] | Vari
 	signerMiddleName?:ValueTypes["RequisiteFieldView"],
 	signerRepDoc?:ValueTypes["RequisiteFieldView"],
 	signerSnils?:ValueTypes["RequisiteFieldView"],
+	/** Тип подписанта: "chairman" (ПрПодп=1) или "representative" (ПрПодп=2) */
+	signerType?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on ReportRequisitesView']?: Omit<ValueTypes["ReportRequisitesView"], "...on ReportRequisitesView">
 }>;
@@ -8840,7 +8842,9 @@ searchPrivateAccounts?: [{	data: ValueTypes["SearchPrivateAccountsInput"] | Vari
 	phoneOverride?: string | undefined | null | Variable<any, string>,
 	sfrRegNumber?: string | undefined | null | Variable<any, string>,
 	signerRepDoc?: string | undefined | null | Variable<any, string>,
-	signerSnils?: string | undefined | null | Variable<any, string>
+	signerSnils?: string | undefined | null | Variable<any, string>,
+	/** chairman | representative */
+	signerType?: string | undefined | null | Variable<any, string>
 };
 	["UpdateRequestInput"]: {
 	/** Имя аккаунта кооператива */
@@ -15533,6 +15537,8 @@ searchPrivateAccounts?: [{	data: ResolverInputTypes["SearchPrivateAccountsInput"
 	signerMiddleName?:ResolverInputTypes["RequisiteFieldView"],
 	signerRepDoc?:ResolverInputTypes["RequisiteFieldView"],
 	signerSnils?:ResolverInputTypes["RequisiteFieldView"],
+	/** Тип подписанта: "chairman" (ПрПодп=1) или "representative" (ПрПодп=2) */
+	signerType?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["ReportType"]:ReportType;
@@ -16594,7 +16600,9 @@ searchPrivateAccounts?: [{	data: ResolverInputTypes["SearchPrivateAccountsInput"
 	phoneOverride?: string | undefined | null,
 	sfrRegNumber?: string | undefined | null,
 	signerRepDoc?: string | undefined | null,
-	signerSnils?: string | undefined | null
+	signerSnils?: string | undefined | null,
+	/** chairman | representative */
+	signerType?: string | undefined | null
 };
 	["UpdateRequestInput"]: {
 	/** Имя аккаунта кооператива */
@@ -23324,7 +23332,9 @@ export type ModelTypes = {
 	signerLastName: ModelTypes["RequisiteFieldView"],
 	signerMiddleName: ModelTypes["RequisiteFieldView"],
 	signerRepDoc: ModelTypes["RequisiteFieldView"],
-	signerSnils: ModelTypes["RequisiteFieldView"]
+	signerSnils: ModelTypes["RequisiteFieldView"],
+	/** Тип подписанта: "chairman" (ПрПодп=1) или "representative" (ПрПодп=2) */
+	signerType: string
 };
 	["ReportType"]:ReportType;
 	["RepresentedBy"]: {
@@ -24358,7 +24368,9 @@ export type ModelTypes = {
 	phoneOverride?: string | undefined | null,
 	sfrRegNumber?: string | undefined | null,
 	signerRepDoc?: string | undefined | null,
-	signerSnils?: string | undefined | null
+	signerSnils?: string | undefined | null,
+	/** chairman | representative */
+	signerType?: string | undefined | null
 };
 	["UpdateRequestInput"]: {
 	/** Имя аккаунта кооператива */
@@ -31477,6 +31489,8 @@ export type GraphQLTypes = {
 	signerMiddleName: GraphQLTypes["RequisiteFieldView"],
 	signerRepDoc: GraphQLTypes["RequisiteFieldView"],
 	signerSnils: GraphQLTypes["RequisiteFieldView"],
+	/** Тип подписанта: "chairman" (ПрПодп=1) или "representative" (ПрПодп=2) */
+	signerType: string,
 	['...on ReportRequisitesView']: Omit<GraphQLTypes["ReportRequisitesView"], "...on ReportRequisitesView">
 };
 	["ReportType"]: ReportType;
@@ -32559,7 +32573,9 @@ export type GraphQLTypes = {
 	phoneOverride?: string | undefined | null,
 	sfrRegNumber?: string | undefined | null,
 	signerRepDoc?: string | undefined | null,
-	signerSnils?: string | undefined | null
+	signerSnils?: string | undefined | null,
+	/** chairman | representative */
+	signerType?: string | undefined | null
 };
 	["UpdateRequestInput"]: {
 		/** Имя аккаунта кооператива */

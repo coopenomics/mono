@@ -27,6 +27,7 @@ export const rawReportRequisitesViewSelector = {
   chairmanPosition: rawRequisiteFieldViewSelector,
   signerSnils: rawRequisiteFieldViewSelector,
   signerRepDoc: rawRequisiteFieldViewSelector,
+  signerType: true,
 }
 
 const _validate: MakeAllFieldsRequired<ValueTypes['ReportRequisitesView']> = rawReportRequisitesViewSelector

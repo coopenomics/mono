@@ -1,5 +1,5 @@
 import { ObjectType, Field, InputType, registerEnumType } from '@nestjs/graphql';
-import { IsOptional, IsString } from 'class-validator';
+import { IsOptional, IsString, IsIn } from 'class-validator';
 import { ReportType } from '../../domain/enums/report-type.enum';
 
 export enum RequisiteSource {
@@ -46,6 +46,13 @@ export class ReportRequisitesViewDTO {
   @Field(() => RequisiteFieldViewDTO) chairmanPosition!: RequisiteFieldViewDTO;
   @Field(() => RequisiteFieldViewDTO) signerSnils!: RequisiteFieldViewDTO;
   @Field(() => RequisiteFieldViewDTO) signerRepDoc!: RequisiteFieldViewDTO;
+
+  // Выбор пользователя — не RequisiteField (нет blockchain-варианта).
+  // Default 'chairman' проставляется сервисом, если председатель не сохранял.
+  @Field(() => String, {
+    description: 'Тип подписанта: "chairman" (ПрПодп=1) или "representative" (ПрПодп=2)',
+  })
+  signerType!: 'chairman' | 'representative';
 }
 
 @InputType('UpdateReportRequisitesInput')
@@ -59,6 +66,10 @@ export class UpdateReportRequisitesInputDTO {
   @Field(() => String, { nullable: true }) @IsOptional() @IsString() chairmanPosition?: string | null;
   @Field(() => String, { nullable: true }) @IsOptional() @IsString() signerSnils?: string | null;
   @Field(() => String, { nullable: true }) @IsOptional() @IsString() signerRepDoc?: string | null;
+  @Field(() => String, { nullable: true, description: 'chairman | representative' })
+  @IsOptional()
+  @IsIn(['chairman', 'representative'])
+  signerType?: 'chairman' | 'representative' | null;
   @Field(() => String, { nullable: true }) @IsOptional() @IsString() phoneOverride?: string | null;
   @Field(() => String, { nullable: true }) @IsOptional() @IsString() addressOverride?: string | null;
 }

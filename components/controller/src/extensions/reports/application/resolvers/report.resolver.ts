@@ -443,7 +443,10 @@ export class ReportResolver {
         firstName: org?.signerFirstName ?? v('signerFirstName'),
         middleName: org?.signerMiddleName ?? orNone(v('signerMiddleName')),
       },
-      signerType: (org?.signerType ?? 'chairman') as 'chairman' | 'representative',
+      // signerType теперь персистится в report_requisites (DN1). Если
+      // председатель сохранил 'representative' — берём его; input.organization
+      // может override, если старый фронт ещё шлёт поле руками.
+      signerType: (org?.signerType ?? merged.signerType ?? 'chairman') as 'chairman' | 'representative',
       signerRepDoc: org?.signerRepDoc ?? orNone(v('signerRepDoc')),
       signerSnils: org?.signerSnils ?? orNone(v('signerSnils')),
       sfrRegNumber: org?.sfrRegNumber ?? orNone(v('sfrRegNumber')),

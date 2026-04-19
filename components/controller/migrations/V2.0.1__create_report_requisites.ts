@@ -27,12 +27,18 @@ export default {
           "chairman_position" varchar(255) NULL,
           "signer_snils"      varchar(32)  NULL,
           "signer_rep_doc"    varchar(255) NULL,
+          "signer_type"       varchar(16)  NULL,
           "phone_override"    varchar(64)  NULL,
           "address_override"  varchar(512) NULL,
           "updated_by"        varchar(255) NOT NULL,
           "updated_at"        timestamptz  NOT NULL DEFAULT now(),
           CONSTRAINT "pk_report_requisites" PRIMARY KEY ("coopname")
         )
+      `);
+      // Идемпотентно добавляем signer_type для уже существующих БД.
+      await dataSource.query(`
+        ALTER TABLE "report_requisites"
+        ADD COLUMN IF NOT EXISTS "signer_type" varchar(16) NULL
       `);
       logger.info('Таблица report_requisites создана (или уже существовала).');
       return true;

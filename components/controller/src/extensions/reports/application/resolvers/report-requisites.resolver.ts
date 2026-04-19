@@ -56,6 +56,7 @@ export class ReportRequisitesResolver {
       chairman_position: input.chairmanPosition ?? undefined,
       signer_snils: input.signerSnils ?? undefined,
       signer_rep_doc: input.signerRepDoc ?? undefined,
+      signer_type: input.signerType ?? undefined,
       phone_override: input.phoneOverride ?? undefined,
       address_override: input.addressOverride ?? undefined,
     });
@@ -111,5 +112,6 @@ function toView(m: MergedRequisites): ReportRequisitesViewDTO {
     chairmanPosition: f(m.chairmanPosition),
     signerSnils: f(m.signerSnils),
     signerRepDoc: f(m.signerRepDoc),
+    signerType: m.signerType,
   };
 }

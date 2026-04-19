@@ -42,6 +42,9 @@ export class ReportRequisitesEntity {
   @Column({ type: 'varchar', length: 255, nullable: true })
   signer_rep_doc?: string | null;
 
+  @Column({ type: 'varchar', length: 16, nullable: true })
+  signer_type?: 'chairman' | 'representative' | null;
+
   @Column({ type: 'varchar', length: 64, nullable: true })
   phone_override?: string | null;
 

@@ -9701,6 +9701,9 @@ type ReportRequisitesView {
   signerMiddleName: RequisiteFieldView!
   signerRepDoc: RequisiteFieldView!
   signerSnils: RequisiteFieldView!
+
+  """Тип подписанта: "chairman" (ПрПодп=1) или "representative" (ПрПодп=2)"""
+  signerType: String!
 }
 
 enum ReportType {
@@ -11216,6 +11219,9 @@ input UpdateReportRequisitesInput {
   sfrRegNumber: String
   signerRepDoc: String
   signerSnils: String
+
+  """chairman | representative"""
+  signerType: String
 }
 
 input UpdateRequestInput {

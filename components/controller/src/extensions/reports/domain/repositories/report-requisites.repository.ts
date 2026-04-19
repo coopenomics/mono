@@ -1,5 +1,7 @@
 export const REPORT_REQUISITES_REPOSITORY = Symbol('REPORT_REQUISITES_REPOSITORY');
 
+export type SignerTypeValue = 'chairman' | 'representative';
+
 export interface ReportRequisitesRecord {
   coopname: string;
   okved: string | null;
@@ -11,6 +13,7 @@ export interface ReportRequisitesRecord {
   chairman_position: string | null;
   signer_snils: string | null;
   signer_rep_doc: string | null;
+  signer_type: SignerTypeValue | null;
   phone_override: string | null;
   address_override: string | null;
   updated_by: string;
@@ -28,6 +31,7 @@ export interface UpsertReportRequisitesInput {
   chairman_position?: string | null;
   signer_snils?: string | null;
   signer_rep_doc?: string | null;
+  signer_type?: SignerTypeValue | null;
   phone_override?: string | null;
   address_override?: string | null;
   updated_by: string;

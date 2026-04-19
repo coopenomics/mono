@@ -11,7 +11,13 @@ div(:id='id')
       @update:model-value='v => emit("update:value", String(v ?? ""))'
     )
     .col-auto
-      q-chip(dense size='sm' :color='badgeColor' text-color='white') {{ badgeLabel }}
+      q-chip(
+        dense
+        size='sm'
+        :color='badgeColor'
+        text-color='white'
+        :icon='badgeIcon'
+      ) {{ badgeLabel }}
 </template>
 
 <script setup lang="ts">
@@ -35,8 +41,14 @@ const badgeColor = computed(() => {
 })
 
 const badgeLabel = computed(() => {
-  if (props.source === 'blockchain') return '🔗 Блокчейн'
-  if (props.source === 'manual') return '✏️ Ручной ввод'
-  return '⚠️ Не заполнено'
+  if (props.source === 'blockchain') return 'Блокчейн'
+  if (props.source === 'manual') return 'Ручной ввод'
+  return 'Не заполнено'
+})
+
+const badgeIcon = computed(() => {
+  if (props.source === 'blockchain') return 'fa-solid fa-link'
+  if (props.source === 'manual') return 'fa-solid fa-pen'
+  return 'fa-solid fa-triangle-exclamation'
 })
 </script>

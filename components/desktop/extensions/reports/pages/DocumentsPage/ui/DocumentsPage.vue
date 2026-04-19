@@ -84,7 +84,7 @@ div.page-shell
           clearable
           emit-value
           map-options
-          @update:model-value='loadArchive'
+          @update:model-value='onFilterChange'
         )
         q-input.col-md-2.col-12(
           v-model.number='archiveFilter.year'
@@ -93,7 +93,10 @@ div.page-shell
           dense
           outlined
           clearable
-          @update:model-value='loadArchive'
+          :min='2000'
+          :max='2100'
+          debounce='400'
+          @update:model-value='onFilterChange'
         )
 
       q-table(
@@ -233,7 +236,15 @@ div.page-shell
         )
 
       q-card-actions(align='right')
-        q-btn(flat label='Скачать XML' icon='download' color='primary' @click='downloadXml')
+        q-btn(
+          flat
+          label='Скачать XML'
+          icon='download'
+          color='primary'
+          :disable='!result?.isValid'
+          @click='downloadXml'
+        )
+          q-tooltip(v-if='!result?.isValid') Отчёт невалиден — сначала исправьте ошибки
         q-btn(flat label='Закрыть' @click='showResult = false')
 </template>
 
@@ -248,7 +259,9 @@ import type {
   IReportType,
 } from 'src/entities/Report'
 
-const MVP_REPORT_TYPES: IReportType[] = ['BUHOTCH', 'NDFL6', 'RSV', 'DUSN', 'FSS4']
+// ReportType — enum в zeus. Указываем as IReportType[] чтобы TS принял
+// строковые литералы (они совпадают по значению с enum-мемберами).
+const MVP_REPORT_TYPES = ['BUHOTCH', 'NDFL6', 'RSV', 'DUSN', 'FSS4'] as IReportType[]
 
 interface CorrectionRow {
   accountDisplayId: string
@@ -300,14 +313,22 @@ const archiveColumns = [
   { name: 'actions', label: '', field: 'id', align: 'right' as const },
 ]
 
-const archiveTypeOptions = MVP_REPORT_TYPES.map((t) => ({ label: t, value: t }))
+// Лейблы из REPORT_CONFIG.name (человекочитаемые), не тех-коды BUHOTCH/NDFL6/...
+const archiveTypeOptions = computed(() =>
+  MVP_REPORT_TYPES.map((t) => {
+    const found = reports.value.find((r) => r.type === t)
+    return { label: found?.name ?? t, value: t }
+  }),
+)
 
-const correctionsColumns = [
+// Заголовки колонок BUHOTCH-корректировок зависят от выбранного года
+// генерации (диалог может менять genYear) — computed, а не заморозка на init.
+const correctionsColumns = computed(() => [
   { name: 'displayId', label: 'Счёт', field: 'accountDisplayId', align: 'left' as const },
   { name: 'prev', label: `На 31.12.${genYear.value - 1}`, field: 'balancePrevious', align: 'right' as const },
   { name: 'preprev', label: `На 31.12.${genYear.value - 2}`, field: 'balancePrePrevious', align: 'right' as const },
   { name: 'remove', label: '', field: 'remove', align: 'right' as const },
-]
+])
 
 function periodLabel(p: string) {
   return ({ yearly: 'Ежегодно', quarterly: 'Ежеквартально', monthly: 'Ежемесячно' }[p] ?? p)
@@ -347,7 +368,23 @@ async function loadReports() {
   }
 }
 
+// Sequence-guard: если пользователь быстро клацает страницы / меняет фильтр,
+// ответы от бэка могут прийти не в порядке запросов. Рендерим только тот,
+// чей token совпадает с последним выставленным.
+let lastArchiveRequestId = 0
+
 async function loadArchive() {
+  // UI-валидация year: бэк требует @Min(2000)/@Max(2100). Иначе keystroke
+  // «2026 → 202» рождает 400 и красный toast.
+  const yr = archiveFilter.year
+  if (yr !== null && yr !== undefined && (yr < 2000 || yr > 2100)) {
+    archive.items = []
+    archive.total = 0
+    archivePagination.value.rowsNumber = 0
+    return
+  }
+
+  const myId = ++lastArchiveRequestId
   archiveLoading.value = true
   try {
     const page = await reportApi.getReportHistory({
@@ -356,20 +393,37 @@ async function loadArchive() {
       limit: archivePagination.value.rowsPerPage,
       offset: (archivePagination.value.page - 1) * archivePagination.value.rowsPerPage,
     })
+    if (myId !== lastArchiveRequestId) return
     if (page) {
       archive.items = page.items ?? []
       archive.total = page.total ?? 0
       archivePagination.value.rowsNumber = archive.total
     }
   } catch (e: any) {
-    Notify.create({ type: 'negative', message: 'Архив: ' + (e?.message || '') })
+    if (myId === lastArchiveRequestId) {
+      Notify.create({ type: 'negative', message: 'Архив: ' + (e?.message || '') })
+    }
   } finally {
-    archiveLoading.value = false
+    if (myId === lastArchiveRequestId) archiveLoading.value = false
   }
 }
 
-function onArchiveRequest(props: { pagination: typeof archivePagination.value }) {
-  archivePagination.value = props.pagination
+// Смена типа/года обнуляет страницу, иначе из пятой страницы BUHOTCH
+// улетаешь в пустой offset на RSV и видишь «архив пуст».
+function onFilterChange() {
+  archivePagination.value.page = 1
+  loadArchive()
+}
+
+function onArchiveRequest(props: { pagination: { page: number; rowsPerPage: number; rowsNumber?: number } }) {
+  // Quasar прокидывает расширенный pagination с sortBy/descending — нам важны
+  // page/rowsPerPage/rowsNumber. rowsNumber сохраняем явно, иначе теряется
+  // на перезапросе страницы (приводит к «прыжку» в пагинаторе).
+  archivePagination.value = {
+    page: props.pagination.page,
+    rowsPerPage: props.pagination.rowsPerPage,
+    rowsNumber: props.pagination.rowsNumber ?? archivePagination.value.rowsNumber,
+  }
   loadArchive()
 }
 
@@ -384,18 +438,28 @@ async function downloadArchive(id: string) {
 }
 
 function triggerDownload(xml: string, fileName: string) {
-  const blob = new Blob([xml], { type: 'application/xml;charset=windows-1251' })
+  // MIME без явного charset: для ФНС XML cp1251, для СФР ЕФС-1 utf-8 —
+  // пусть парсер полагается на декларацию <?xml ... encoding=...?> внутри.
+  const blob = new Blob([xml], { type: 'application/xml' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
   a.download = fileName.endsWith('.xml') ? fileName : fileName + '.xml'
+  // Firefox/Safari требуют элемент в DOM + отложенный revoke, иначе скачивание
+  // прерывается «Network error» до того, как браузер захватит blob.
+  document.body.appendChild(a)
   a.click()
-  URL.revokeObjectURL(url)
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
 function openGenerate(r: IAvailableReport) {
   selectedReport.value = r
   corrections.value = []
+  // Сброс period при смене типа: иначе между monthly (1..12) и quarterly (1..4)
+  // осталось бы значение, которое бэк отобьёт validation-error.
+  genPeriod.value = 1
+  genYear.value = new Date().getFullYear() - 1
   showGenerate.value = true
 }
 
@@ -413,19 +477,27 @@ function removeCorrectionRow(i: number) {
 
 async function generate() {
   if (!selectedReport.value) return
+  // Guard от двойного клика: :loading на кнопке срабатывает после
+  // next tick — на медленной машине успеет пройти клик #2.
+  if (generating.value) return
   generating.value = true
   try {
+    const isBuhotch = selectedReport.value.type === 'BUHOTCH'
     const data = {
       reportType: selectedReport.value.type as IReportType,
       year: genYear.value,
       period: selectedReport.value.period === 'yearly' ? undefined : genPeriod.value,
-      corrections: corrections.value
-        .filter((c) => c.accountDisplayId)
-        .map((c) => ({
-          accountDisplayId: c.accountDisplayId,
-          balancePrevious: c.balancePrevious,
-          balancePrePrevious: c.balancePrePrevious,
-        })),
+      // Corrections существуют только в BUHOTCH — для других форм бэк лишний
+      // раз ходит в balance_corrections через stored-fallback при пустом []
+      corrections: isBuhotch
+        ? corrections.value
+            .filter((c) => c.accountDisplayId)
+            .map((c) => ({
+              accountDisplayId: c.accountDisplayId,
+              balancePrevious: c.balancePrevious,
+              balancePrePrevious: c.balancePrePrevious,
+            }))
+        : undefined,
     }
     const out = await reportApi.generateReport(data)
     if (!out) throw new Error('Пустой ответ от сервера')

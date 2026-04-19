@@ -116,7 +116,19 @@ const columns: any[] = [
   { name: 'name', align: 'left', label: 'Наименование', field: 'name', sortable: true },
   { name: 'debit', align: 'right', label: 'Дебет (доступно)', field: 'available', sortable: true },
   { name: 'credit', align: 'right', label: 'Кредит (блок.)', field: 'blocked', sortable: true },
-  { name: 'balance', align: 'right', label: 'Сальдо', field: 'available', sortable: true },
+  {
+    name: 'balance',
+    align: 'right',
+    label: 'Сальдо',
+    // Сальдо = available − blocked (а не копия available): пайщик видел
+    // две одинаковых цифры, принять решение о реальном остатке было нельзя.
+    field: (row: { available: string | number; blocked: string | number }) => {
+      const a = parseFloat(String(row.available ?? 0).split(' ')[0] || '0')
+      const b = parseFloat(String(row.blocked ?? 0).split(' ')[0] || '0')
+      return (a - b).toFixed(4)
+    },
+    sortable: true,
+  },
   { name: 'actions', align: 'right', label: '', field: 'actions', sortable: false },
 ]
 
