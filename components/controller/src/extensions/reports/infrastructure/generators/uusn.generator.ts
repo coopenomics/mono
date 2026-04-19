@@ -14,11 +14,12 @@ export class UusnGenerator implements IReportGenerator {
   readonly reportType = ReportType.UUSN;
 
   generate(input: ReportInput): ReportOutput {
+    // Кэшируем filename — он же ИдФайл в XML.
     const fileName = this.generateFileName(input);
     const errors: string[] = [];
 
     try {
-      const xml = this.buildXml(input);
+      const xml = this.buildXml(input, fileName);
       return { reportType: this.reportType, xml, fileName, errors, isValid: true };
     } catch (e: any) {
       errors.push(`Ошибка генерации уведомления по УСН: ${e.message}`);
@@ -32,8 +33,7 @@ export class UusnGenerator implements IReportGenerator {
     return `UT_UVISCHSUMNAL_${input.inn}_${input.kpp}_${dateStr}_${generateUuid()}`;
   }
 
-  private buildXml(input: ReportInput): string {
-    const idFile = this.generateFileName(input);
+  private buildXml(input: ReportInput, idFile: string): string {
     const kodNO = getTaxOfficeCode(input.kpp);
     const quarter = input.period || 1;
 

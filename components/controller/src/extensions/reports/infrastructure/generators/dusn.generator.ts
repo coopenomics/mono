@@ -16,17 +16,21 @@ import {
  *
  * Особенности:
  *   - ПоМесту="210" (по месту нахождения организации), не 120.
- *   - ОтчетГод = year - 1 (декларация за прошлый год, подаётся в марте текущего).
+ *   - ОтчетГод = input.year — единый контракт со всеми ФНС-генераторами
+ *     (DN1 code review Chunk A): caller передаёт год, ЗА который отчитываемся.
+ *     UI по умолчанию подставляет `new Date().getFullYear() - 1`, пользователь
+ *     может поправить.
  *   - <УСН ОбНал="1">: РасчНал1 с ПризНП="1", ставка 0, все суммы 0.
  */
 export class DusnGenerator implements IReportGenerator {
   readonly reportType = ReportType.DUSN;
 
   generate(input: ReportInput): ReportOutput {
+    // Кэшируем filename: он же ИдФайл в XML (без этого два разных UUID).
     const fileName = this.generateFileName(input);
     const errors: string[] = [];
     try {
-      const xml = this.buildXml(input);
+      const xml = this.buildXml(input, fileName);
       return { reportType: this.reportType, xml, fileName, errors, isValid: true };
     } catch (e) {
       errors.push(`Ошибка генерации ДУСН: ${e instanceof Error ? e.message : String(e)}`);
@@ -38,12 +42,9 @@ export class DusnGenerator implements IReportGenerator {
     return generateFnsFileName('NO_USN', input);
   }
 
-  private buildXml(input: ReportInput): string {
-    const idFile = this.generateFileName(input);
+  private buildXml(input: ReportInput, idFile: string): string {
     const kodNO = getTaxOfficeCode(input.kpp);
-    // Декларация УСН подаётся за прошедший год:
-    // если input.year — текущий год подачи, ОтчетГод = year - 1.
-    const reportYear = input.year - 1;
+    const reportYear = input.year;
 
     const doc = createXmlDoc()
       .ele('Файл')

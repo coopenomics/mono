@@ -22,10 +22,11 @@ export class RsvGenerator implements IReportGenerator {
   readonly reportType = ReportType.RSV;
 
   generate(input: ReportInput): ReportOutput {
+    // Кэшируем filename — он же ИдФайл в XML.
     const fileName = this.generateFileName(input);
     const errors: string[] = [];
     try {
-      const xml = this.buildXml(input);
+      const xml = this.buildXml(input, fileName);
       return { reportType: this.reportType, xml, fileName, errors, isValid: true };
     } catch (e) {
       errors.push(`Ошибка генерации РСВ: ${e instanceof Error ? e.message : String(e)}`);
@@ -37,9 +38,8 @@ export class RsvGenerator implements IReportGenerator {
     return generateFnsFileName('NO_RASCHSV', input);
   }
 
-  private buildXml(input: ReportInput): string {
+  private buildXml(input: ReportInput, idFile: string): string {
     const periodCode = getQuarterPeriodCode(input.period);
-    const idFile = this.generateFileName(input);
     const kodNO = getTaxOfficeCode(input.kpp);
 
     const doc = createXmlDoc()

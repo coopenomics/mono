@@ -73,10 +73,11 @@ export class Ndfl6Generator implements IReportGenerator {
   readonly reportType = ReportType.NDFL6;
 
   generate(input: ReportInput): ReportOutput {
+    // Кэшируем filename — он же ИдФайл в XML (ФНС-приёмка отклоняет несовпадение).
     const fileName = this.generateFileName(input);
     const errors: string[] = [];
     try {
-      const xml = this.buildXml(input);
+      const xml = this.buildXml(input, fileName);
       return { reportType: this.reportType, xml, fileName, errors, isValid: true };
     } catch (e) {
       errors.push(`Ошибка генерации 6-НДФЛ: ${e instanceof Error ? e.message : String(e)}`);
@@ -88,9 +89,8 @@ export class Ndfl6Generator implements IReportGenerator {
     return generateFnsFileName('NO_NDFL6.2', input);
   }
 
-  private buildXml(input: ReportInput): string {
+  private buildXml(input: ReportInput, idFile: string): string {
     const periodCode = getQuarterPeriodCode(input.period);
-    const idFile = this.generateFileName(input);
     const kodNO = getTaxOfficeCode(input.kpp);
 
     const doc = createXmlDoc()

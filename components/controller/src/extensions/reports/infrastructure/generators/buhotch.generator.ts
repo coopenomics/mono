@@ -48,12 +48,10 @@ const ACCOUNT_GROUPS = {
 
 interface BalanceRow {
   otch: number;
-  prdш: number;
-  prdsh: number;
-}
-
-function emptyRow(): BalanceRow {
-  return { otch: 0, prdш: 0, prdsh: 0 };
+  // Сумма за предыдущий отчётный период и за предшествующий — Latin names
+  // чтобы не путать `ш` (Cyrillic) с `sh` (Latin) в одном интерфейсе.
+  prdPrev: number;
+  prdPrePrev: number;
 }
 
 function toThousands(rubles: number): number {
@@ -64,10 +62,13 @@ export class BuhotchGenerator implements IReportGenerator {
   readonly reportType = ReportType.BUHOTCH;
 
   generate(input: ReportInput): ReportOutput {
+    // Генерируем имя файла ОДИН раз — оно же попадает в <Файл ИдФайл="...">
+    // внутри XML. Раньше было два вызова generateFileName() → два разных UUID,
+    // имя на диске и ИдФайл в XML не совпадали — ФНС-приёмка такое отклоняет.
     const fileName = this.generateFileName(input);
     const errors: string[] = [];
     try {
-      const xml = this.buildXml(input);
+      const xml = this.buildXml(input, fileName);
       return { reportType: this.reportType, xml, fileName, errors, isValid: true };
     } catch (e) {
       errors.push(`Ошибка генерации бухбаланса: ${e instanceof Error ? e.message : String(e)}`);
@@ -129,28 +130,34 @@ export class BuhotchGenerator implements IReportGenerator {
     const correction = this.findCorrectionByLedgerIds(input.corrections, ids);
     return {
       otch: toThousands(otchRub),
-      prdш: toThousands(correction.balancePrevious),
-      prdsh: toThousands(correction.balancePrePrevious),
+      prdPrev: toThousands(correction.balancePrevious),
+      prdPrePrev: toThousands(correction.balancePrePrevious),
     };
   }
 
-  private buildXml(input: ReportInput): string {
+  private buildXml(input: ReportInput, idFile: string): string {
     const nonMatFin = this.rowForGroup(input, ACCOUNT_GROUPS.nonMaterialAndLongFin);
     const cash = this.rowForGroup(input, ACCOUNT_GROUPS.cash);
     const finInv = this.rowForGroup(input, ACCOUNT_GROUPS.shortTermFin);
     const target = this.rowForGroup(input, ACCOUNT_GROUPS.targetFunds);
 
+    // Итог — сумма rounded-строк (DN3:b). Допустимое ФНС-расхождение ±1 тыс.
+    // из-за независимого округления принято регламентом 0710001.
     const assetsTotal: BalanceRow = {
       otch: nonMatFin.otch + cash.otch + finInv.otch,
-      prdш: nonMatFin.prdш + cash.prdш + finInv.prdш,
-      prdsh: nonMatFin.prdsh + cash.prdsh + finInv.prdsh,
+      prdPrev: nonMatFin.prdPrev + cash.prdPrev + finInv.prdPrev,
+      prdPrePrev: nonMatFin.prdPrePrev + cash.prdPrePrev + finInv.prdPrePrev,
     };
     const passivesTotal: BalanceRow = { ...target };
 
-    const idFile = this.generateFileName(input);
     const signerType = input.signerType ?? 'chairman';
     const prPodp = signerType === 'representative' ? '2' : '1';
-    const correctionNumber = String(input.correctionNumber ?? 0);
+    // correctionNumber: 0..999 целое — ФНС XSD ограничивает 3 цифрами.
+    const corrRaw = input.correctionNumber ?? 0;
+    if (!Number.isInteger(corrRaw) || corrRaw < 0 || corrRaw > 999) {
+      throw new Error(`buhotch: correctionNumber должен быть целым 0..999 (получено: ${corrRaw})`);
+    }
+    const correctionNumber = String(corrRaw);
 
     const doc = createXmlDoc()
       .ele('Файл')
@@ -200,38 +207,38 @@ export class BuhotchGenerator implements IReportGenerator {
 
     const aktiv = balans.ele('Актив')
       .att('СумОтч', String(assetsTotal.otch))
-      .att('СумПрдщ', String(assetsTotal.prdш))
-      .att('СумПрдшв', String(assetsTotal.prdsh));
+      .att('СумПрдщ', String(assetsTotal.prdPrev))
+      .att('СумПрдшв', String(assetsTotal.prdPrePrev));
 
-    if (nonMatFin.otch || nonMatFin.prdш || nonMatFin.prdsh) {
+    if (nonMatFin.otch || nonMatFin.prdPrev || nonMatFin.prdPrePrev) {
       const el = aktiv.ele('НеМатФинАкт').att('СумОтч', String(nonMatFin.otch));
-      if (nonMatFin.prdш) el.att('СумПрдщ', String(nonMatFin.prdш));
-      if (nonMatFin.prdsh) el.att('СумПрдшв', String(nonMatFin.prdsh));
+      if (nonMatFin.prdPrev) el.att('СумПрдщ', String(nonMatFin.prdPrev));
+      if (nonMatFin.prdPrePrev) el.att('СумПрдшв', String(nonMatFin.prdPrePrev));
       el.up();
     }
-    if (cash.otch || cash.prdш || cash.prdsh) {
+    if (cash.otch || cash.prdPrev || cash.prdPrePrev) {
       const el = aktiv.ele('ДенежнСр').att('СумОтч', String(cash.otch));
-      if (cash.prdш) el.att('СумПрдщ', String(cash.prdш));
-      if (cash.prdsh) el.att('СумПрдшв', String(cash.prdsh));
+      if (cash.prdPrev) el.att('СумПрдщ', String(cash.prdPrev));
+      if (cash.prdPrePrev) el.att('СумПрдшв', String(cash.prdPrePrev));
       el.up();
     }
-    if (finInv.otch || finInv.prdш || finInv.prdsh) {
+    if (finInv.otch || finInv.prdPrev || finInv.prdPrePrev) {
       const el = aktiv.ele('ФинВлож').att('СумОтч', String(finInv.otch));
-      if (finInv.prdш) el.att('СумПрдщ', String(finInv.prdш));
-      if (finInv.prdsh) el.att('СумПрдшв', String(finInv.prdsh));
+      if (finInv.prdPrev) el.att('СумПрдщ', String(finInv.prdPrev));
+      if (finInv.prdPrePrev) el.att('СумПрдшв', String(finInv.prdPrePrev));
       el.up();
     }
     aktiv.up();
 
     const passiv = balans.ele('Пассив')
       .att('СумОтч', String(passivesTotal.otch))
-      .att('СумПрдщ', String(passivesTotal.prdш))
-      .att('СумПрдшв', String(passivesTotal.prdsh));
+      .att('СумПрдщ', String(passivesTotal.prdPrev))
+      .att('СумПрдшв', String(passivesTotal.prdPrePrev));
 
-    if (target.otch || target.prdш || target.prdsh) {
+    if (target.otch || target.prdPrev || target.prdPrePrev) {
       const el = passiv.ele('ЦелевСредства').att('СумОтч', String(target.otch));
-      if (target.prdш) el.att('СумПрдщ', String(target.prdш));
-      if (target.prdsh) el.att('СумПрдшв', String(target.prdsh));
+      if (target.prdPrev) el.att('СумПрдщ', String(target.prdPrev));
+      if (target.prdPrePrev) el.att('СумПрдшв', String(target.prdPrePrev));
       el.up();
     }
     passiv.up();
@@ -255,18 +262,19 @@ export class BuhotchGenerator implements IReportGenerator {
 
 /**
  * Маппинг пользовательского display-id счёта («51», «80», «86.01») в
- * ledger2 numeric id-ы (со смещением *1000). Сложный subaccount формат
- * «86.01» становится 861000.
+ * ledger2 numeric id-ы (со смещением *1000).
+ *
+ * Epic 1 addendum (2026-04-18): субсчета 86.x удалены из плана счетов —
+ * все целевые средства лежат на родительском счёте 86 (ledger2 id = 86000).
+ * Пользовательские корректировки, введённые с display-id `86.01`/`86.1`
+ * (как их привыкли писать бухгалтеры), резолвятся в родительский счёт.
  */
 function ledger2DisplayIdToLedgerIds(displayId: string): number[] {
   const trimmed = displayId.trim();
   if (!trimmed) return [];
   const match = /^(\d+)(?:\.(\d+))?$/.exec(trimmed);
   if (!match) return [];
+  // Субсчёт игнорируем — в ledger2 агрегирование на родительском id.
   const integer = match[1];
-  const subaccount = match[2];
-  if (subaccount) {
-    return [Number.parseInt(integer + subaccount, 10) * 1000];
-  }
   return [Number.parseInt(integer, 10) * 1000];
 }

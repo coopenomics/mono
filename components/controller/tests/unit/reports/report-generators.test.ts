@@ -411,8 +411,11 @@ describe('ДУСН (DusnGenerator)', () => {
     expect(result.xml).toContain('ПоМесту="210"');
   });
 
-  it('ОтчетГод = year - 1 (декларация за прошлый год)', () => {
-    const result = gen.generate({ ...baseInput, reportType: ReportType.DUSN, year: 2026 });
+  it('ОтчетГод берётся из input.year как есть (унифицированный контракт, code review DN1)', () => {
+    // Раньше ДУСН внутри вычитал 1 (year-1), теперь caller передаёт «год за
+    // который отчитываемся» напрямую. UI по умолчанию подставляет
+    // `new Date().getFullYear() - 1` → декларация за 2025 подаётся с year=2025.
+    const result = gen.generate({ ...baseInput, reportType: ReportType.DUSN, year: 2025 });
     expect(result.xml).toContain('ОтчетГод="2025"');
   });
 

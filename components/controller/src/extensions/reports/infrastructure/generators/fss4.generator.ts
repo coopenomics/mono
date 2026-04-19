@@ -42,11 +42,13 @@ function sfrPeriodCode(quarter?: number): string {
 
 function sfrDateTime(now: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
-  // +03:00 для Москвы; в dev окружении важнее структура, чем точный offset.
-  const tzOffsetMin = -now.getTimezoneOffset();
-  const sign = tzOffsetMin >= 0 ? '+' : '-';
-  const tz = `${sign}${pad(Math.floor(Math.abs(tzOffsetMin) / 60))}:${pad(Math.abs(tzOffsetMin) % 60)}`;
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}${tz}`;
+  // Хардкодим Московское время (+03:00). СФР принимает отчёты в московском
+  // часовом поясе вне зависимости от того, где физически стоит backend.
+  // Раньше брался локальный TZ → если контейнер backend в UTC, writingось
+  // `+00:00`, что расходилось с ожиданием СФР и могло ломать сверку.
+  const MSK_OFFSET_MIN = 3 * 60;
+  const mskTime = new Date(now.getTime() + MSK_OFFSET_MIN * 60_000 + now.getTimezoneOffset() * 60_000);
+  return `${mskTime.getUTCFullYear()}-${pad(mskTime.getUTCMonth() + 1)}-${pad(mskTime.getUTCDate())}T${pad(mskTime.getUTCHours())}:${pad(mskTime.getUTCMinutes())}:${pad(mskTime.getUTCSeconds())}+03:00`;
 }
 
 function addMonthlyZeroTuple(parent: any, name: string): void {
@@ -63,6 +65,8 @@ export class Fss4Generator implements IReportGenerator {
   readonly reportType = ReportType.FSS4;
 
   generate(input: ReportInput): ReportOutput {
+    // Кэшируем filename — он же идёт в XML как ИдФайл (через guid внутри buildXml
+    // мы НЕ генерируем отдельный UUID, используем hash из имени файла).
     const fileName = this.generateFileName(input);
     const errors: string[] = [];
     if (!input.sfrRegNumber) {
