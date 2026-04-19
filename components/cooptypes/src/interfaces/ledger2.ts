@@ -28,7 +28,12 @@ export type IProcessType =
   | 'wall.withdrw'
   | 'cap.capimp'
   | 'cap.debt'
-  | 'cap.act2res'
+  // Акт 2 результат — два связанных под одним process_hash, но отдельных типа:
+  // cap.act2shr (share-вклад результата в паевой) и cap.act2ln (гашение займа
+  // из стоимости результата). Раньше было слитое cap.act2res — теперь разделены,
+  // чтобы отображались рядом в UI для контроля.
+  | 'cap.act2shr'
+  | 'cap.act2ln'
   | 'cap.act2prp'
   | 'mkt.offereq'
   | 'sov.axncnv'

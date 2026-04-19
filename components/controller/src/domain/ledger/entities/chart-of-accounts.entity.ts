@@ -41,7 +41,10 @@ export class ChartOfAccountsEntity {
 
     // Запасы, затраты, расчеты, собственные средства
     // FIXED_ASSETS: 1, // Основные средства
-    INTANGIBLE_ASSETS: 4, // Нематериальные активы (Epic 1 addendum: для РИД)
+    // INTANGIBLE_ASSETS: 4, // Нематериальные активы — TODO: РИД живёт в ledger2
+    //   (id = 4000 со сдвигом ×1000), а не в legacy ledger. Эта entity читает
+    //   legacy `laccounts` → активация здесь не даст данных. Для ledger2 планируется
+    //   отдельная entity с консистентным offset ×1000.
     // MATERIALS_GOODS: 10, // Материалы, товары
     // MAIN_PRODUCTION: 20, // Основное производство
     // NON_PROFIT_ACTIVITY: 201, // Некоммерческая деятельность
@@ -76,7 +79,7 @@ export class ChartOfAccountsEntity {
    */
   private static readonly ACCOUNT_NAMES = new Map<number, string>([
     // [ChartOfAccountsEntity.ACCOUNTS.FIXED_ASSETS, 'Основные средства'],
-    [ChartOfAccountsEntity.ACCOUNTS.INTANGIBLE_ASSETS, 'Нематериальные активы'],
+    // [ChartOfAccountsEntity.ACCOUNTS.INTANGIBLE_ASSETS, 'Нематериальные активы'],
     // [ChartOfAccountsEntity.ACCOUNTS.MATERIALS_GOODS, 'Материалы, товары'],
     // [ChartOfAccountsEntity.ACCOUNTS.MAIN_PRODUCTION, 'Основное производство'],
     // [ChartOfAccountsEntity.ACCOUNTS.NON_PROFIT_ACTIVITY, 'Некоммерческая деятельность'],

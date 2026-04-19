@@ -11,13 +11,16 @@ type MigrationLogger = { info: (message: string) => void; error: (message: strin
  * `blockchain_deltas` для entity-таблиц из `PROCESS_HASH_LOCATOR`.
  *
  * Ключевые паттерны SQL запросов ProcessRegistryService:
- *   - phase A: WHERE account='ledger2' AND name IN ('apply','walletop','debit','credit')
- *                AND LOWER(data->>'process_hash') = $hash
- *                AND data->>'coopname' = $coop
+ *   - phase A (cross-account, code review K2): WHERE LOWER(data->>'process_hash')=$hash
+ *                AND data->>'coopname'=$coop
+ *     Собираем ВСЕ actions по process_hash (из всех релевантных контрактов),
+ *     не только ledger2 — чтобы в view.actions попали source-actions
+ *     (wallet::depcpl, registrator::regist, capital::*, marketplace::*, soviet::*).
  *   - phase B: WHERE code=$loc.code AND table=$loc.table
  *                AND value->>$loc.field = $hash
  *                AND value->>'coopname' = $coop
- *   - listProcesses: blockchain_actions, GROUP BY data->>'process_hash'
+ *   - listProcesses: blockchain_actions[ledger2][apply] GROUP BY process_hash
+ *                    (используем apply-партишн индекс для группировки).
  */
 export default {
   name: 'process-registry jsonb expression indexes (blockchain_actions + entity tables)',
@@ -29,12 +32,16 @@ export default {
       await dataSource.query(`DROP INDEX IF EXISTS "idx_deltas_ledger2_process_type"`);
       await dataSource.query(`DROP INDEX IF EXISTS "idx_deltas_ledger2_wjournal_username"`);
 
-      // ----- phase A: blockchain_actions (ledger2) -----
+      // ----- phase A: blockchain_actions cross-account (code review K2) -----
+      // Индекс НЕ ledger2-partial: cross-account scan запрашивает все контракты
+      // по единому process_hash. Для ledger2-only запросов (apply-listing) —
+      // второй индекс idx_actions_ledger2_apply_* ниже.
       await dataSource.query(`
-        CREATE INDEX IF NOT EXISTS "idx_actions_ledger2_process_hash"
+        CREATE INDEX IF NOT EXISTS "idx_actions_process_hash"
           ON "blockchain_actions" ((LOWER("data" ->> 'process_hash')), ("data" ->> 'coopname'))
-          WHERE account = 'ledger2'
       `);
+      // Удаляем старый partial (если был создан предыдущей версией миграции).
+      await dataSource.query(`DROP INDEX IF EXISTS "idx_actions_ledger2_process_hash"`);
       await dataSource.query(`
         CREATE INDEX IF NOT EXISTS "idx_actions_ledger2_apply_action_code"
           ON "blockchain_actions" (("data" ->> 'action_code'), ("data" ->> 'coopname'))
@@ -113,7 +120,8 @@ export default {
   async down({ dataSource, logger }: { dataSource: DataSource; logger: MigrationLogger }): Promise<boolean> {
     try {
       const indexes = [
-        'idx_actions_ledger2_process_hash',
+        'idx_actions_process_hash',
+        'idx_actions_ledger2_process_hash', // legacy name — drop if residual
         'idx_actions_ledger2_apply_action_code',
         'idx_actions_ledger2_apply_username',
         'idx_deltas_capital_debts_debt_hash',

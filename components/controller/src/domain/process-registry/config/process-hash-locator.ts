@@ -19,9 +19,20 @@ export type HashLocation = {
 
 export const PROCESS_HASH_LOCATOR: Record<string, HashLocation[]> = {
   'cap.debt': [{ code: 'capital', table: 'debts', field: 'debt_hash' }],
-  'cap.act2res': [
+  // Акт 2 результат — два связанных process_type с ОДНИМ process_hash:
+  //   * cap.act2shr — внесение результата в паевой фонд (Dr 04 / Cr 80)
+  //   * cap.act2ln  — погашение выданного займа из стоимости результата
+  // Оба должны отображаться рядом в UI для контроля, не сливаться в один.
+  // Поэтому держим их как отдельные process_type, но оба ссылаются на общие
+  // сущностные таблицы results/segments (source entity — один акт-2).
+  'cap.act2shr': [
     { code: 'capital', table: 'results', field: 'result_hash' },
     { code: 'capital', table: 'segments', field: 'result_hash' },
+  ],
+  'cap.act2ln': [
+    { code: 'capital', table: 'results', field: 'result_hash' },
+    { code: 'capital', table: 'segments', field: 'result_hash' },
+    { code: 'capital', table: 'debts', field: 'result_hash' },
   ],
   'cap.capimp': [{ code: 'capital', table: 'contributors', field: 'contributor_hash' }],
   'cap.act2prp': [{ code: 'capital', table: 'properties', field: 'property_hash' }],
@@ -65,8 +76,11 @@ export const ACTION_CODE_TO_PROCESS_TYPE: Record<string, string> = {
   // capital
   'cap.import': 'cap.capimp',
   'cap.loanrpy': 'cap.debt',
-  'cap.act2shr': 'cap.act2res',
-  'cap.act2ln': 'cap.act2res',
+  // cap.act2shr и cap.act2ln — оба живут под одним process_hash (один акт-2),
+  // но НЕ сливаются в один process_type: share-вклад и погашение займа — это
+  // две разных бух-операции, которые пайщик/председатель должны видеть рядом.
+  'cap.act2shr': 'cap.act2shr',
+  'cap.act2ln': 'cap.act2ln',
   'cap.act2prp': 'cap.act2prp',
   // marketplace
   'mkt.supplcnf': 'mkt.offereq',

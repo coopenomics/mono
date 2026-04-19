@@ -119,15 +119,21 @@ inline void migrate_one_coop(eosio::name self_name, eosio::name coopname) {
                std::string{"migrate: share_money > share_legacy на кооп "} + coopname.to_string());
 
   // Helper: отправить inline apply только для ненулевых сумм.
+  // process_hash: детерминированный, уникальный на пару (coopname, action_code).
+  // Нужно чтобы process-registry различал миграционные проводки кооп-а между
+  // собой (иначе все с zero-hash сливаются в одну строку реестра).
   auto send = [&](eosio::name code, const eosio::asset& amt) {
     if (amt.amount == 0) return;
+    const std::string hash_src =
+      std::string{"mig::"} + coopname.to_string() + std::string{"::"} + code.to_string();
+    const eosio::checksum256 proc_hash = hashit(hash_src);
     Ledger2::apply(
       self_name,
       coopname,
       code,
       amt,
       eosio::name{}, // username не применим к opening
-      eosio::checksum256{},
+      proc_hash,
       std::string{"Миграция остатков legacy-ledger → ledger2"}
     );
   };
