@@ -1,6 +1,6 @@
 import { ReportType } from '../../domain/enums/report-type.enum';
 import type { IReportGenerator, ReportInput, ReportOutput } from '../../domain/interfaces/report-generator.interface';
-import { createXmlDoc, formatDate, generateUuid, addFio, addSigner, getMonthPeriodCode, getTaxOfficeCode } from './xml-utils';
+import { createXmlDoc, formatDate, generateFnsFileName, addFio, addSigner, getMonthPeriodCode, getTaxOfficeCode } from './xml-utils';
 
 /**
  * Генератор ПСВ — Персонифицированные сведения (нулевой)
@@ -28,9 +28,7 @@ export class PsvGenerator implements IReportGenerator {
   }
 
   generateFileName(input: ReportInput): string {
-    const now = new Date();
-    const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-    return `NO_PERSSVFL_${input.inn}_${input.kpp}_${dateStr}_${generateUuid()}`;
+    return generateFnsFileName('NO_PERSSVFL', input);
   }
 
   private buildXml(input: ReportInput): string {

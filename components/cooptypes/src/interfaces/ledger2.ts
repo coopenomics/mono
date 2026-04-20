@@ -5,6 +5,44 @@ export type IName = string
 export type IChecksum256 = string
 
 /**
+ * Строка таблицы `accounts` контракта ledger2 (бухгалтерский счёт по плану
+ * счетов). Source: `table_ledger2_account.hpp`.
+ *
+ * account_type:
+ *   - 0 = ACTIVE          → balance = debit_balance − credit_balance
+ *   - 1 = PASSIVE         → balance = credit_balance − debit_balance
+ *   - 2 = ACTIVE_PASSIVE  → balance = debit_balance − credit_balance (знаковая)
+ */
+export interface IAccount2 {
+  id: number
+  name: string
+  account_type: 0 | 1 | 2
+  debit_balance: IAsset
+  credit_balance: IAsset
+  balance: IAsset
+}
+
+/**
+ * Строка таблицы `wallets` контракта ledger2 (аналитический разрез бухсчёта).
+ * Source: `table_ledger2_wallet.hpp`.
+ */
+export interface IWallet2 {
+  id: number
+  name: string
+  available: IAsset
+  blocked: IAsset
+}
+
+/**
+ * Строка таблицы `meta` контракта ledger2 (служебная — флаги миграции и
+ * глобальное состояние). Source: `table_ledger2_meta.hpp`. Scope — self.
+ */
+export interface IMeta {
+  key: IName
+  value: string
+}
+
+/**
  * apply-action контракта _ledger2 (Story 4.3).
  * document_hash переименован в process_hash (entity-hash процесса).
  */

@@ -12,7 +12,7 @@ import {
 } from '~/domain/common/repositories/organization.repository';
 import type { OrganizationDomainInterface } from '~/domain/common/interfaces/organization-domain.interface';
 
-export type RequisiteSource = 'blockchain' | 'manual' | 'empty';
+export type RequisiteSource = 'database' | 'manual' | 'empty';
 
 export interface RequisiteField<T = string> {
   value: T | null;
@@ -21,7 +21,7 @@ export interface RequisiteField<T = string> {
 
 export interface MergedRequisites {
   coopname: string;
-  /** Поля из IOrganizationData (ончейн). */
+  /** Поля из IOrganizationData (БД кооператива). */
   inn: RequisiteField;
   kpp: RequisiteField;
   ogrn: RequisiteField;
@@ -43,7 +43,7 @@ export interface MergedRequisites {
   signerSnils: RequisiteField;
   signerRepDoc: RequisiteField;
   /**
-   * Тип подписанта — не имеет «источника» blockchain/manual: это чистый choice,
+   * Тип подписанта — не имеет «источника» database/manual: это чистый choice,
    * выбираемый председателем в SettingsPage. Default = 'chairman' если не задан.
    */
   signerType: SignerTypeValue;
@@ -63,23 +63,23 @@ export interface ReadinessResult {
 
 /**
  * Реестр обязательных полей по типу отчёта. `source` указывает,
- * откуда поле должно прийти — из блокчейна (невозможно исправить
- * через updateReportRequisites) или из таблицы `report_requisites`
- * (редактируется председателем).
+ * откуда поле должно прийти — из организационной БД кооператива
+ * (невозможно исправить через updateReportRequisites) или из таблицы
+ * `report_requisites` (редактируется председателем).
  */
 type RequiredFieldSpec = {
   key: keyof MergedRequisites;
   label: string;
-  source: 'blockchain' | 'manual';
+  source: 'database' | 'manual';
 };
 
 const ALWAYS_REQUIRED: RequiredFieldSpec[] = [
-  { key: 'inn', label: 'ИНН', source: 'blockchain' },
-  { key: 'kpp', label: 'КПП', source: 'blockchain' },
-  { key: 'ogrn', label: 'ОГРН', source: 'blockchain' },
-  { key: 'orgName', label: 'Наименование организации', source: 'blockchain' },
-  { key: 'signerLastName', label: 'Фамилия подписанта', source: 'blockchain' },
-  { key: 'signerFirstName', label: 'Имя подписанта', source: 'blockchain' },
+  { key: 'inn', label: 'ИНН', source: 'database' },
+  { key: 'kpp', label: 'КПП', source: 'database' },
+  { key: 'ogrn', label: 'ОГРН', source: 'database' },
+  { key: 'orgName', label: 'Наименование организации', source: 'database' },
+  { key: 'signerLastName', label: 'Фамилия подписанта', source: 'database' },
+  { key: 'signerFirstName', label: 'Имя подписанта', source: 'database' },
 ];
 
 const REQUIRED_BY_TYPE: Record<ReportType, RequiredFieldSpec[]> = {
@@ -118,9 +118,9 @@ export class ReportRequisitesService {
       this.reqRepo.getByCoopname(coopname),
     ]);
 
-    const bc = (value: string | undefined | null): RequisiteField => {
+    const db = (value: string | undefined | null): RequisiteField => {
       const v = value?.trim() || null;
-      return { value: v, source: v ? 'blockchain' : 'empty' };
+      return { value: v, source: v ? 'database' : 'empty' };
     };
     const mn = (value: string | undefined | null): RequisiteField => {
       const v = value?.trim() || null;
@@ -129,23 +129,23 @@ export class ReportRequisitesService {
 
     const address = manual?.address_override?.trim()
       ? ({ value: manual.address_override, source: 'manual' } as RequisiteField)
-      : bc(org?.full_address);
+      : db(org?.full_address);
     const phone = manual?.phone_override?.trim()
       ? ({ value: manual.phone_override, source: 'manual' } as RequisiteField)
-      : bc(org?.phone);
+      : db(org?.phone);
 
     return {
       coopname,
-      inn: bc(org?.details?.inn),
-      kpp: bc(org?.details?.kpp),
-      ogrn: bc(org?.details?.ogrn),
-      orgName: bc(org?.full_name || org?.short_name),
+      inn: db(org?.details?.inn),
+      kpp: db(org?.details?.kpp),
+      ogrn: db(org?.details?.ogrn),
+      orgName: db(org?.full_name || org?.short_name),
       address,
       phone,
-      signerLastName: bc(org?.represented_by?.last_name),
-      signerFirstName: bc(org?.represented_by?.first_name),
-      signerMiddleName: bc(org?.represented_by?.middle_name),
-      chairmanPositionFromOrg: bc(org?.represented_by?.position),
+      signerLastName: db(org?.represented_by?.last_name),
+      signerFirstName: db(org?.represented_by?.first_name),
+      signerMiddleName: db(org?.represented_by?.middle_name),
+      chairmanPositionFromOrg: db(org?.represented_by?.position),
       okved: mn(manual?.okved),
       okfs: mn(manual?.okfs),
       okopf: mn(manual?.okopf),
@@ -160,10 +160,10 @@ export class ReportRequisitesService {
   }
 
   async upsert(input: Omit<UpsertReportRequisitesInput, 'coopname'> & { coopname: string }): Promise<MergedRequisites> {
-    const { ignoredKeys, cleaned } = this.stripBlockchainFields(input);
+    const { ignoredKeys, cleaned } = this.stripDatabaseFields(input);
     if (ignoredKeys.length) {
       this.logger.warn(
-        `updateReportRequisites: поля ${ignoredKeys.join(', ')} берутся из блокчейна, изменение в report_requisites игнорировано`
+        `updateReportRequisites: поля ${ignoredKeys.join(', ')} берутся из профиля организации в БД, изменение в report_requisites игнорировано`
       );
     }
     await this.reqRepo.upsert(cleaned);
@@ -182,8 +182,8 @@ export class ReportRequisitesService {
           label: spec.label,
           source: spec.source,
           reason:
-            spec.source === 'blockchain'
-              ? 'Поле должно быть заполнено в репозитории организации (ончейн)'
+            spec.source === 'database'
+              ? 'Поле должно быть заполнено в БД кооператива (профиль организации)'
               : 'Поле не заполнено в настройках отчётности — нужен ручной ввод',
         });
       }
@@ -202,7 +202,7 @@ export class ReportRequisitesService {
     }
   }
 
-  private stripBlockchainFields(
+  private stripDatabaseFields(
     input: Omit<UpsertReportRequisitesInput, 'coopname'> & { coopname: string; inn?: unknown; kpp?: unknown; ogrn?: unknown },
   ): { cleaned: UpsertReportRequisitesInput; ignoredKeys: string[] } {
     const ignored: string[] = [];

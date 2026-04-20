@@ -3,7 +3,7 @@ import { IsOptional, IsString, IsIn } from 'class-validator';
 import { ReportType } from '../../domain/enums/report-type.enum';
 
 export enum RequisiteSource {
-  BLOCKCHAIN = 'blockchain',
+  DATABASE = 'database',
   MANUAL = 'manual',
   EMPTY = 'empty',
 }
@@ -24,7 +24,7 @@ export class ReportRequisitesViewDTO {
   @Field(() => String)
   coopname!: string;
 
-  // Поля из блокчейна.
+  // Поля из БД кооператива (source: 'database').
   @Field(() => RequisiteFieldViewDTO) inn!: RequisiteFieldViewDTO;
   @Field(() => RequisiteFieldViewDTO) kpp!: RequisiteFieldViewDTO;
   @Field(() => RequisiteFieldViewDTO) ogrn!: RequisiteFieldViewDTO;
@@ -36,7 +36,7 @@ export class ReportRequisitesViewDTO {
   @Field(() => RequisiteFieldViewDTO) signerMiddleName!: RequisiteFieldViewDTO;
   @Field(() => RequisiteFieldViewDTO) chairmanPositionFromOrg!: RequisiteFieldViewDTO;
 
-  // Ручные поля из БД.
+  // Ручные поля (source: 'manual').
   @Field(() => RequisiteFieldViewDTO) okved!: RequisiteFieldViewDTO;
   @Field(() => RequisiteFieldViewDTO) okfs!: RequisiteFieldViewDTO;
   @Field(() => RequisiteFieldViewDTO) okopf!: RequisiteFieldViewDTO;
@@ -47,7 +47,7 @@ export class ReportRequisitesViewDTO {
   @Field(() => RequisiteFieldViewDTO) signerSnils!: RequisiteFieldViewDTO;
   @Field(() => RequisiteFieldViewDTO) signerRepDoc!: RequisiteFieldViewDTO;
 
-  // Выбор пользователя — не RequisiteField (нет blockchain-варианта).
+  // Выбор пользователя — не RequisiteField (не связан с БД-источником).
   // Default 'chairman' проставляется сервисом, если председатель не сохранял.
   @Field(() => String, {
     description: 'Тип подписанта: "chairman" (ПрПодп=1) или "representative" (ПрПодп=2)',

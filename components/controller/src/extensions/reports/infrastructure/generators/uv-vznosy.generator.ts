@@ -1,6 +1,6 @@
 import { ReportType } from '../../domain/enums/report-type.enum';
 import type { IReportGenerator, ReportInput, ReportOutput } from '../../domain/interfaces/report-generator.interface';
-import { createXmlDoc, formatDate, generateUuid, addSigner, getTaxOfficeCode } from './xml-utils';
+import { createXmlDoc, formatDate, generateFnsFileName, addSigner, getTaxOfficeCode } from './xml-utils';
 
 /**
  * Генератор Уведомления об исчисленных страховых взносах (нулевое)
@@ -29,9 +29,7 @@ export class UvVznosyGenerator implements IReportGenerator {
   }
 
   generateFileName(input: ReportInput): string {
-    const now = new Date();
-    const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-    return `UT_UVISCHSUMNAL_${input.inn}_${input.kpp}_${dateStr}_${generateUuid()}`;
+    return generateFnsFileName('UT_UVISCHSUMNAL', input);
   }
 
   private buildXml(input: ReportInput, idFile: string): string {

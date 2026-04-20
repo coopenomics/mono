@@ -307,7 +307,7 @@ export const AppRegistry: INamedExtension = {
     },
   },
   reports: {
-    is_builtin: false,
+    is_builtin: true,
     is_internal: true,
     is_available: true,
     desktops: [

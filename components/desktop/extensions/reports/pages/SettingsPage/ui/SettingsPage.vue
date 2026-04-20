@@ -139,7 +139,7 @@ div.page-shell
 <script setup lang="ts">
 import { ref, reactive, onMounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
-import { Notify } from 'quasar'
+import { SuccessAlert, FailAlert } from 'src/shared/api'
 import { reportApi } from 'src/entities/Report'
 import type {
   IReportRequisitesView,
@@ -245,7 +245,7 @@ async function loadRequisites() {
       }
     }
   } catch (e: any) {
-    Notify.create({ type: 'negative', message: 'Ошибка загрузки реквизитов: ' + (e?.message || '') })
+    FailAlert(e, 'Ошибка загрузки реквизитов')
   } finally {
     loading.value = false
   }
@@ -275,10 +275,7 @@ async function save() {
   // Для representative-подписанта без доверенности XML пойдёт с пустым
   // НаимДок — ФНС/СФР отклонит. Блокируем до заполнения.
   if (signerType.value === 'representative' && !manualInput.signerRepDoc?.trim()) {
-    Notify.create({
-      type: 'warning',
-      message: 'Для подписанта «Представитель» нужно указать документ (доверенность)',
-    })
+    FailAlert(new Error('Для подписанта «Представитель» нужно указать документ (доверенность)'))
     return
   }
 
@@ -291,10 +288,10 @@ async function save() {
     }
     input.signerType = signerType.value
     await reportApi.updateReportRequisites(input as any)
-    Notify.create({ type: 'positive', message: 'Реквизиты сохранены' })
+    SuccessAlert('Реквизиты сохранены')
     await Promise.all([loadRequisites(), loadReadiness()])
   } catch (e: any) {
-    Notify.create({ type: 'negative', message: 'Ошибка сохранения: ' + (e?.message || '') })
+    FailAlert(e, 'Ошибка сохранения')
   } finally {
     saving.value = false
   }

@@ -6,14 +6,6 @@ export function formatDate(d: Date): string {
   return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
 }
 
-/**
- * @deprecated — используй `crypto.randomUUID()` для соответствия формату эталона.
- * Оставлено для обратной совместимости старых генераторов (psv/uusn/uv-vznosy).
- */
-export function generateUuid(): string {
-  return randomUUID();
-}
-
 export function createXmlDoc(): any {
   return create({ version: '1.0', encoding: 'windows-1251' });
 }

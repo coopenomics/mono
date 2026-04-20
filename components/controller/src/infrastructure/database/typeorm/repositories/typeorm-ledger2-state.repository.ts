@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { Ledger2Contract } from 'cooptypes';
 import { DeltaEntity } from '../entities/delta.entity';
 import { ActionEntity } from '../entities/action.entity';
 import type { Ledger2StatePort } from '~/domain/ledger2/ports/ledger2-state.port';
@@ -12,7 +13,7 @@ import type {
   Ledger2OperationDomainInterface,
 } from '~/domain/ledger2/interfaces/ledger2-history.interface';
 
-const LEDGER2_CODE = 'ledger2';
+const LEDGER2_CODE = Ledger2Contract.contractName.production;
 
 /**
  * Чтение состояния ledger2 из Postgres-таблиц блокчейн-синка.
@@ -37,7 +38,7 @@ export class TypeOrmLedger2StateRepository implements Ledger2StatePort {
     const rows = await this.deltaRepo.manager.query(
       `SELECT DISTINCT ON (primary_key) value
        FROM blockchain_deltas
-       WHERE code = $1 AND "table" = 'accounts' AND scope = $2
+       WHERE code = $1 AND "table" = '${Ledger2Contract.Tables.Accounts.tableName}' AND scope = $2
        ORDER BY primary_key, block_num DESC, created_at DESC`,
       [LEDGER2_CODE, coopname],
     );
@@ -58,7 +59,7 @@ export class TypeOrmLedger2StateRepository implements Ledger2StatePort {
     const rows = await this.deltaRepo.manager.query(
       `SELECT DISTINCT ON (primary_key) value
        FROM blockchain_deltas
-       WHERE code = $1 AND "table" = 'wallets' AND scope = $2
+       WHERE code = $1 AND "table" = '${Ledger2Contract.Tables.Wallets.tableName}' AND scope = $2
        ORDER BY primary_key, block_num DESC, created_at DESC`,
       [LEDGER2_CODE, coopname],
     );

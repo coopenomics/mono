@@ -9349,9 +9349,7 @@ type Query {
   """Получить список вопросов совета кооператива для голосования"""
   getAgenda: [AgendaWithDocuments!]!
 
-  """
-  Список доступных типов отчётов MVP (PSV/UV_VZNOSY/UUSN скрыты feature-flag) с meta по последней генерации
-  """
+  """Получить список доступных типов отчётов"""
   getAvailableReports: [AvailableReport!]!
 
   """Получить список кооперативных участков"""
@@ -9858,7 +9856,7 @@ type RequisiteFieldView {
 }
 
 enum RequisiteSource {
-  BLOCKCHAIN
+  DATABASE
   EMPTY
   MANUAL
 }

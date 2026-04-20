@@ -66,8 +66,8 @@ struct ledger2_wallets {
   static constexpr uint64_t GENERATOR_COMMIT     = 10001;  ///< Генератор — паевой взнос имуществом в статусе «принятый коммит» (Dr 08 / Cr 80)
   static constexpr uint64_t GENERATOR_MEMBERSHIP = 10002;  ///< Генератор — членские взносы по программе (Cr 86)
 
-  // Группа 11xxx — ЦПП «Marketplace» (резерв)
-  static constexpr uint64_t MARKETPLACE_FUND     = 11001;  ///< Marketplace — общий кошелёк программы (пустой в MVP)
+  // Группа 11xxx — ЦПП «Стол Заказов» (резерв)
+  static constexpr uint64_t MARKETPLACE_FUND     = 11001;  ///< ЦПП «Стол Заказов» — общий кошелёк программы (пустой в MVP)
 };
 
 /**
@@ -97,7 +97,7 @@ inline constexpr std::array<Ledger2WalletMeta, 17> LEDGER2_WALLET_REGISTRY = {{
   { ledger2_wallets::BLAGOROST_MEMBERSHIP, "ЦПП «Благорост» — членские взносы" },
   { ledger2_wallets::GENERATOR_COMMIT,     "ЦПП «Генератор» — принятый коммит (имущество)" },
   { ledger2_wallets::GENERATOR_MEMBERSHIP, "ЦПП «Генератор» — членские взносы" },
-  { ledger2_wallets::MARKETPLACE_FUND,     "ЦПП «Marketplace» — общий кошелёк" },
+  { ledger2_wallets::MARKETPLACE_FUND,     "ЦПП «Стол Заказов» — общий кошелёк" },
 }};
 
 static constexpr size_t LEDGER2_WALLET_REGISTRY_SIZE = LEDGER2_WALLET_REGISTRY.size();

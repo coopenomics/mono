@@ -9,7 +9,7 @@ div.page-shell
     q-card-section
       .row.items-center
         .text-h6.col Доступные формы
-        q-btn(flat dense icon='fa-solid fa-rotate' @click='loadAll' :loading='loading')
+        q-btn(flat dense icon='fa-solid fa-rotate' @click='loadAll' :loading='reportStore.loading')
           q-tooltip Обновить
 
     q-separator
@@ -20,7 +20,7 @@ div.page-shell
         :columns='columns'
         row-key='type'
         flat
-        :loading='loading'
+        :loading='reportStore.loading'
         hide-pagination
         :pagination='{ rowsPerPage: 0 }'
       )
@@ -100,11 +100,11 @@ div.page-shell
         )
 
       q-table(
-        :rows='archiveItems'
+        :rows='reportStore.archive.items'
         :columns='archiveColumns'
         row-key='id'
         flat
-        :loading='archiveLoading'
+        :loading='reportStore.archiveLoading'
         :pagination='archivePagination'
         @request='onArchiveRequest'
       )
@@ -130,137 +130,36 @@ div.page-shell
             )
               q-tooltip Скачать XML
 
-  //- Диалог генерации
-  q-dialog(v-model='showGenerate' persistent)
-    q-card(style='min-width: 600px; max-width: 90vw')
-      q-card-section
-        .text-h6 Генерация: {{ selectedReport?.name }}
+  GenerateReportDialog(
+    v-model='showGenerate'
+    :report='selectedReport'
+    v-model:year='genYear'
+    v-model:period='genPeriod'
+    v-model:corrections='corrections'
+    :generating='generating'
+    @generate='generate'
+  )
 
-      q-card-section
-        .row.q-gutter-md
-          .col-6
-            q-input(v-model.number='genYear' label='Год' type='number' dense outlined)
-          .col-6(v-if='selectedReport?.period !== "yearly"')
-            q-input(
-              v-model.number='genPeriod'
-              :label='selectedReport?.period === "monthly" ? "Месяц (1-12)" : "Квартал (1-4)"'
-              type='number'
-              dense
-              outlined
-            )
-
-        //- Форма корректировок — только для BUHOTCH
-        q-expansion-item.q-mt-md(
-          v-if='selectedReport?.type === "BUHOTCH"'
-          icon='fa-solid fa-scale-balanced'
-          label='Корректировка прошлых периодов'
-          :default-opened='corrections.length > 0'
-        )
-          .q-pa-sm
-            .text-caption.text-grey-7.q-mb-sm
-              | Остатки на 31 декабря прошлого и позапрошлого года для счетов баланса.
-            q-table(
-              :rows='corrections'
-              :columns='correctionsColumns'
-              row-key='accountDisplayId'
-              flat
-              dense
-              hide-pagination
-              :pagination='{ rowsPerPage: 0 }'
-            )
-              template(#body-cell-displayId='props')
-                q-td(:props='props')
-                  q-input(
-                    v-model='props.row.accountDisplayId'
-                    dense
-                    borderless
-                    placeholder='86.01'
-                  )
-              template(#body-cell-prev='props')
-                q-td(:props='props')
-                  q-input(
-                    v-model.number='props.row.balancePrevious'
-                    type='number'
-                    dense
-                    borderless
-                  )
-              template(#body-cell-preprev='props')
-                q-td(:props='props')
-                  q-input(
-                    v-model.number='props.row.balancePrePrevious'
-                    type='number'
-                    dense
-                    borderless
-                  )
-              template(#body-cell-remove='props')
-                q-td(:props='props')
-                  q-btn(
-                    flat dense size='sm'
-                    icon='fa-solid fa-trash'
-                    color='negative'
-                    @click='removeCorrectionRow(props.rowIndex)'
-                  )
-            q-btn.q-mt-sm(
-              flat dense size='sm' icon='fa-solid fa-plus'
-              label='Добавить счёт'
-              @click='addCorrectionRow'
-            )
-
-      q-card-actions(align='right')
-        q-btn(flat label='Отмена' @click='showGenerate = false')
-        q-btn(flat label='Сгенерировать' color='primary' @click='generate' :loading='generating')
-
-  //- Диалог результата
-  q-dialog(v-model='showResult')
-    q-card(style='min-width: 600px; max-width: 90vw')
-      q-card-section
-        .row.items-center
-          .text-h6.col Результат генерации
-          q-chip(
-            :color='result?.isValid ? "positive" : "negative"'
-            text-color='white'
-          ) {{ result?.isValid ? 'Валиден' : 'Ошибки' }}
-
-      q-card-section(v-if='result?.errors?.length')
-        q-banner.bg-negative.text-white(v-for='err in result.errors' :key='err')
-          | {{ err }}
-
-      q-card-section
-        .text-caption.text-grey Файл: {{ result?.fileName }}
-        q-input.q-mt-sm(
-          :modelValue='result?.xml'
-          readonly
-          outlined
-          type='textarea'
-          rows='12'
-        )
-
-      q-card-actions(align='right')
-        q-btn(
-          flat
-          label='Скачать XML'
-          icon='download'
-          color='primary'
-          :disable='!result?.isValid'
-          @click='downloadXml'
-        )
-          q-tooltip(v-if='!result?.isValid') Отчёт невалиден — сначала исправьте ошибки
-        q-btn(flat label='Закрыть' @click='showResult = false')
+  ReportResultDialog(
+    v-model='showResult'
+    :result='result'
+    @download='downloadXml'
+  )
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, reactive } from 'vue'
-import { Notify } from 'quasar'
-import { reportApi } from 'src/entities/Report'
-import type {
-  IAvailableReport,
-  IGeneratedReport,
-  IReportHistoryPage,
-  IReportType,
+import { ref, computed, onMounted, reactive, watch } from 'vue'
+import { storeToRefs } from 'pinia'
+import { SuccessAlert, FailAlert } from 'src/shared/api'
+import {
+  useReportStore,
+  type IAvailableReport,
+  type IGeneratedReport,
+  type IReportType,
 } from 'src/entities/Report'
+import GenerateReportDialog from './GenerateReportDialog.vue'
+import ReportResultDialog from './ReportResultDialog.vue'
 
-// ReportType — enum в zeus. Указываем as IReportType[] чтобы TS принял
-// строковые литералы (они совпадают по значению с enum-мемберами).
 const MVP_REPORT_TYPES = ['BUHOTCH', 'NDFL6', 'RSV', 'DUSN', 'FSS4'] as IReportType[]
 
 interface CorrectionRow {
@@ -269,8 +168,8 @@ interface CorrectionRow {
   balancePrePrevious: number
 }
 
-const loading = ref(false)
-const reports = ref<IAvailableReport[]>([])
+const reportStore = useReportStore()
+const { reports } = storeToRefs(reportStore)
 
 const showGenerate = ref(false)
 const showResult = ref(false)
@@ -282,14 +181,18 @@ const genYear = ref(new Date().getFullYear() - 1)
 const genPeriod = ref(1)
 const corrections = ref<CorrectionRow[]>([])
 
-const archive = reactive<{ items: IReportHistoryPage['items']; total: number }>({ items: [], total: 0 })
-const archiveItems = computed(() => archive.items ?? [])
-const archiveLoading = ref(false)
 const archivePagination = ref({ page: 1, rowsPerPage: 20, rowsNumber: 0 })
 const archiveFilter = reactive<{ reportType: IReportType | null; year: number | null }>({
   reportType: null,
   year: null,
 })
+
+watch(
+  () => reportStore.archive.total,
+  (n) => {
+    archivePagination.value.rowsNumber = n
+  },
+)
 
 const visibleReports = computed(() =>
   reports.value.filter((r) => MVP_REPORT_TYPES.includes(r.type as IReportType)),
@@ -313,22 +216,12 @@ const archiveColumns = [
   { name: 'actions', label: '', field: 'id', align: 'right' as const },
 ]
 
-// Лейблы из REPORT_CONFIG.name (человекочитаемые), не тех-коды BUHOTCH/NDFL6/...
 const archiveTypeOptions = computed(() =>
   MVP_REPORT_TYPES.map((t) => {
     const found = reports.value.find((r) => r.type === t)
     return { label: found?.name ?? t, value: t }
   }),
 )
-
-// Заголовки колонок BUHOTCH-корректировок зависят от выбранного года
-// генерации (диалог может менять genYear) — computed, а не заморозка на init.
-const correctionsColumns = computed(() => [
-  { name: 'displayId', label: 'Счёт', field: 'accountDisplayId', align: 'left' as const },
-  { name: 'prev', label: `На 31.12.${genYear.value - 1}`, field: 'balancePrevious', align: 'right' as const },
-  { name: 'preprev', label: `На 31.12.${genYear.value - 2}`, field: 'balancePrePrevious', align: 'right' as const },
-  { name: 'remove', label: '', field: 'remove', align: 'right' as const },
-])
 
 function periodLabel(p: string) {
   return ({ yearly: 'Ежегодно', quarterly: 'Ежеквартально', monthly: 'Ежемесячно' }[p] ?? p)
@@ -358,53 +251,33 @@ async function loadAll() {
 }
 
 async function loadReports() {
-  loading.value = true
   try {
-    reports.value = await reportApi.getAvailableReports()
-  } catch (e: any) {
-    Notify.create({ type: 'negative', message: 'Ошибка загрузки: ' + (e?.message || '') })
-  } finally {
-    loading.value = false
+    await reportStore.loadReports()
+  } catch (e) {
+    FailAlert(e, 'Ошибка загрузки')
   }
 }
 
-// Sequence-guard: если пользователь быстро клацает страницы / меняет фильтр,
-// ответы от бэка могут прийти не в порядке запросов. Рендерим только тот,
-// чей token совпадает с последним выставленным.
-let lastArchiveRequestId = 0
-
 async function loadArchive() {
-  // UI-валидация year: бэк требует @Min(2000)/@Max(2100). Иначе keystroke
+  // UI-валидация year: бэк требует @Min(2000)/@Max(2100); иначе keystroke
   // «2026 → 202» рождает 400 и красный toast.
   const yr = archiveFilter.year
   if (yr !== null && yr !== undefined && (yr < 2000 || yr > 2100)) {
-    archive.items = []
-    archive.total = 0
+    reportStore.archive.items = []
+    reportStore.archive.total = 0
     archivePagination.value.rowsNumber = 0
     return
   }
 
-  const myId = ++lastArchiveRequestId
-  archiveLoading.value = true
   try {
-    const page = await reportApi.getReportHistory({
+    await reportStore.loadArchive({
       reportType: archiveFilter.reportType ?? undefined,
       year: archiveFilter.year ?? undefined,
       limit: archivePagination.value.rowsPerPage,
       offset: (archivePagination.value.page - 1) * archivePagination.value.rowsPerPage,
     })
-    if (myId !== lastArchiveRequestId) return
-    if (page) {
-      archive.items = page.items ?? []
-      archive.total = page.total ?? 0
-      archivePagination.value.rowsNumber = archive.total
-    }
-  } catch (e: any) {
-    if (myId === lastArchiveRequestId) {
-      Notify.create({ type: 'negative', message: 'Архив: ' + (e?.message || '') })
-    }
-  } finally {
-    if (myId === lastArchiveRequestId) archiveLoading.value = false
+  } catch (e) {
+    FailAlert(e, 'Архив')
   }
 }
 
@@ -416,9 +289,6 @@ function onFilterChange() {
 }
 
 function onArchiveRequest(props: { pagination: { page: number; rowsPerPage: number; rowsNumber?: number } }) {
-  // Quasar прокидывает расширенный pagination с sortBy/descending — нам важны
-  // page/rowsPerPage/rowsNumber. rowsNumber сохраняем явно, иначе теряется
-  // на перезапросе страницы (приводит к «прыжку» в пагинаторе).
   archivePagination.value = {
     page: props.pagination.page,
     rowsPerPage: props.pagination.rowsPerPage,
@@ -429,50 +299,22 @@ function onArchiveRequest(props: { pagination: { page: number; rowsPerPage: numb
 
 async function downloadArchive(id: string) {
   try {
-    const r = await reportApi.getReport(id)
+    const r = await reportStore.getReport(id)
     if (!r) throw new Error('Не удалось получить отчёт')
-    triggerDownload(r.xml, r.fileName)
-  } catch (e: any) {
-    Notify.create({ type: 'negative', message: 'Ошибка скачивания: ' + (e?.message || '') })
+    reportStore.triggerDownload(r.xml, r.fileName)
+  } catch (e) {
+    FailAlert(e, 'Ошибка скачивания')
   }
-}
-
-function triggerDownload(xml: string, fileName: string) {
-  // MIME без явного charset: для ФНС XML cp1251, для СФР ЕФС-1 utf-8 —
-  // пусть парсер полагается на декларацию <?xml ... encoding=...?> внутри.
-  const blob = new Blob([xml], { type: 'application/xml' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = fileName.endsWith('.xml') ? fileName : fileName + '.xml'
-  // Firefox/Safari требуют элемент в DOM + отложенный revoke, иначе скачивание
-  // прерывается «Network error» до того, как браузер захватит blob.
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
 function openGenerate(r: IAvailableReport) {
   selectedReport.value = r
   corrections.value = []
-  // Сброс period при смене типа: иначе между monthly (1..12) и quarterly (1..4)
-  // осталось бы значение, которое бэк отобьёт validation-error.
+  // Сброс period при смене типа: между monthly (1..12) и quarterly (1..4)
+  // иначе осталось бы значение, которое бэк отобьёт validation-error.
   genPeriod.value = 1
   genYear.value = new Date().getFullYear() - 1
   showGenerate.value = true
-}
-
-function addCorrectionRow() {
-  corrections.value.push({
-    accountDisplayId: '',
-    balancePrevious: 0,
-    balancePrePrevious: 0,
-  })
-}
-
-function removeCorrectionRow(i: number) {
-  corrections.value.splice(i, 1)
 }
 
 async function generate() {
@@ -488,7 +330,7 @@ async function generate() {
       year: genYear.value,
       period: selectedReport.value.period === 'yearly' ? undefined : genPeriod.value,
       // Corrections существуют только в BUHOTCH — для других форм бэк лишний
-      // раз ходит в balance_corrections через stored-fallback при пустом []
+      // раз ходит в balance_corrections через stored-fallback при пустом [].
       corrections: isBuhotch
         ? corrections.value
             .filter((c) => c.accountDisplayId)
@@ -499,7 +341,7 @@ async function generate() {
             }))
         : undefined,
     }
-    const out = await reportApi.generateReport(data)
+    const out = await reportStore.generate(data)
     if (!out) throw new Error('Пустой ответ от сервера')
 
     result.value = out
@@ -507,11 +349,11 @@ async function generate() {
     showResult.value = true
 
     if (out.isValid) {
-      Notify.create({ type: 'positive', message: 'Отчёт сгенерирован' })
+      SuccessAlert('Отчёт сгенерирован')
       await Promise.all([loadArchive(), loadReports()])
     }
-  } catch (e: any) {
-    Notify.create({ type: 'negative', message: 'Ошибка генерации: ' + (e?.message || '') })
+  } catch (e) {
+    FailAlert(e, 'Ошибка генерации')
   } finally {
     generating.value = false
   }
@@ -519,10 +361,16 @@ async function generate() {
 
 function downloadXml() {
   if (!result.value) return
-  triggerDownload(result.value.xml, result.value.fileName)
+  reportStore.triggerDownload(result.value.xml, result.value.fileName)
 }
 
-onMounted(async () => {
-  await loadAll()
+onMounted(() => {
+  loadAll()
 })
 </script>
+
+<style scoped>
+.hero-card {
+  background: var(--q-primary-10, #f3f6fb);
+}
+</style>

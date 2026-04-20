@@ -2,7 +2,6 @@
 div.page-shell
   q-card.hero-card(flat)
     .hero-title Кошельки
-    .hero-subtitle Общекооперативные пулы средств (1001/2001/3001/4001). Кошельки пайщиков живут в контракте soviet.
 
   q-card.q-mt-md(flat)
     q-table.full-height(

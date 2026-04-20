@@ -70,7 +70,7 @@ export class ReportResolver {
 
   @Query(() => [AvailableReportDTO], {
     name: 'getAvailableReports',
-    description: 'Список доступных типов отчётов MVP (PSV/UV_VZNOSY/UUSN скрыты feature-flag) с meta по последней генерации',
+    description: 'Получить список доступных типов отчётов',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman'])
@@ -233,7 +233,7 @@ export class ReportResolver {
     const readiness = await this.requisitesService.checkReadiness(coopname, data.reportType);
     if (!readiness.ready) {
       const missing = readiness.missingFields
-        .map((m) => `${m.label} (${m.source === 'blockchain' ? 'блокчейн' : 'ручной ввод'})`)
+        .map((m) => `${m.label} (${m.source === 'database' ? 'профиль организации' : 'ручной ввод'})`)
         .join('; ');
       throw new BadRequestException(
         `Нельзя сгенерировать ${data.reportType}: не заполнены обязательные поля — ${missing}. Заполните их в настройках и повторите.`

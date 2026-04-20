@@ -74,7 +74,7 @@ div.page-shell
       template(#body='props')
         q-tr(
           :key='`op_${props.row.globalSequence}`'
-          :data-seq='props.row.globalSequence'
+          :ref='(el) => registerRowRef(props.row.globalSequence, el)'
           :props='props'
         )
           q-td(auto-width)
@@ -111,7 +111,7 @@ div.page-shell
                 .text-subtitle2.q-mb-xs Процесс
                 .text-body2 Действие (ACTION_REGISTRY): {{ props.row.actionCode || '-' }}
                 .text-body2 Process hash: {{ props.row.processHash || '-' }}
-                .text-body2 Memo: {{ props.row.memo || '-' }}
+                .text-body2 Заметка: {{ props.row.memo || '-' }}
               .col-md-4.col-12
                 .text-subtitle2.q-mb-xs Переходы
                 q-btn.q-mr-sm(
@@ -174,6 +174,17 @@ const route = useRoute()
 const loading = ref(false)
 const items = ref<ILedger2Operation[]>([])
 const expanded = ref(new Map<string, boolean>())
+const rowRefs = new Map<string, HTMLElement | null>()
+
+function registerRowRef(seq: string, el: unknown): void {
+  if (el && typeof (el as { $el?: HTMLElement }).$el !== 'undefined') {
+    rowRefs.set(String(seq), (el as { $el: HTMLElement }).$el)
+  } else if (el instanceof HTMLElement) {
+    rowRefs.set(String(seq), el)
+  } else if (el === null) {
+    rowRefs.delete(String(seq))
+  }
+}
 
 const pagination = ref({ page: 1, rowsPerPage: 50, rowsNumber: 0 })
 
@@ -303,9 +314,7 @@ onMounted(async () => {
       const seq = String(route.query.operation_id)
       expanded.value.set(seq, true)
       nextTick(() => {
-        // Vue :key не рендерится в DOM — используем data-seq.
-        const el = document.querySelector(`[data-seq="${seq}"]`)
-        el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        rowRefs.get(seq)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       })
     }
   } catch (e) {

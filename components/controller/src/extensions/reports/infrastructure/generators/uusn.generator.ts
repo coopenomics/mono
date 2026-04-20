@@ -1,6 +1,6 @@
 import { ReportType } from '../../domain/enums/report-type.enum';
 import type { IReportGenerator, ReportInput, ReportOutput } from '../../domain/interfaces/report-generator.interface';
-import { createXmlDoc, formatDate, generateUuid, addSigner, getQuarterPeriodCode, getTaxOfficeCode } from './xml-utils';
+import { createXmlDoc, formatDate, generateFnsFileName, addSigner, getQuarterPeriodCode, getTaxOfficeCode } from './xml-utils';
 
 /**
  * Генератор Уведомления по УСН (нулевое)
@@ -28,9 +28,7 @@ export class UusnGenerator implements IReportGenerator {
   }
 
   generateFileName(input: ReportInput): string {
-    const now = new Date();
-    const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-    return `UT_UVISCHSUMNAL_${input.inn}_${input.kpp}_${dateStr}_${generateUuid()}`;
+    return generateFnsFileName('UT_UVISCHSUMNAL', input);
   }
 
   private buildXml(input: ReportInput, idFile: string): string {

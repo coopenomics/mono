@@ -1,6 +1,7 @@
 import { Inject, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { Ledger2Contract } from 'cooptypes';
 import Redis from 'ioredis';
 import { DeltaEntity } from '~/infrastructure/database/typeorm/entities/delta.entity';
 import { ActionEntity } from '~/infrastructure/database/typeorm/entities/action.entity';
@@ -27,10 +28,16 @@ import {
   PaginationResult,
 } from '~/application/common/dto/pagination.dto';
 
-const LEDGER2_CODE = 'ledger2';
+const LEDGER2_CODE = Ledger2Contract.contractName.production;
 // Epic 1 addendum (2026-04-18): apply orchestrator + 3 atomic inlines.
 // Phase A якорится по blockchain_actions (а не deltas), поскольку wjournal
 // и journal таблицы убраны из контракта (история = action traces).
+//
+// HARD_LIMIT — предельное число операций (actions + deltas + documents),
+// которое один процесс может содержать. В проде один процесс = одна
+// транзакция = ≤ 3 apply + соответствующие inline walletop/debit/credit
+// (итого ~12 actions) + entity-дельты одной таблицы. 200 — страховка от
+// unbounded scan при заведомо некорректном process_hash или ошибке в локаторе.
 const HARD_LIMIT = 200;
 const CACHE_TTL_SECONDS = 60;
 
