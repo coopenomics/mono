@@ -61,7 +61,7 @@ src/
 
 ### Redis Streams
 
-Парсер публикует события в Redis Streams для потребления другими сервисами (controller). Конфигурация через переменные `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`, `REDIS_STREAM_LIMIT`.
+Парсер публикует события в Redis Streams для потребления другими сервисами (controller). Конфигурация через переменные `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`. Parser не обрезает stream; trim делает controller на основе consumer-group consumption (XTRIM MINID по first-pending).
 
 ### REST API
 
@@ -79,7 +79,6 @@ src/
 | `START_BLOCK` | Начальный блок (1 = с HEAD) |
 | `FINISH_BLOCK` | Конечный блок (макс. значение = бесконечно) |
 | `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD` | Подключение к Redis |
-| `REDIS_STREAM_LIMIT` | Лимит длины Redis-стрима |
 | `ACTIVATE_PARSER` | 1 = включить парсинг при старте |
 | `COOPNAME` | Имя кооператива (для инициализации) |
 | `NODE_ENV` | test — добавляет суффикс `-test` к имени БД |

@@ -168,4 +168,125 @@ export class RedisStreamService implements OnModuleDestroy {
       throw error;
     }
   }
+
+  /**
+   * Прочитать pending-сообщения конкретного consumer'а (uncacknowledged).
+   * Используется при старте для восстановления работы после рестарта:
+   * сообщения, которые были выданы этому consumer'у, но не подтверждены
+   * (например, coopback упал между handleMessage и acknowledgeMessage),
+   * должны быть перечитаны и допоставлены.
+   *
+   * XREADGROUP с ID '0' означает «все pending этого consumer'а»,
+   * а не новые — этим отличается от обычного '>'.
+   */
+  async readOwnPending(stream: string, group: string, consumer: string, count = 100): Promise<StreamMessage[]> {
+    const result: any = await this.redisClient.streamReader.xreadgroup(
+      'GROUP',
+      group,
+      consumer,
+      'COUNT',
+      count.toString(),
+      'STREAMS',
+      stream,
+      '0',
+    );
+    return this.parseStreamResult(result, stream);
+  }
+
+  /**
+   * XAUTOCLAIM: переназначить себе pending-сообщения других consumer'ов,
+   * idle которых превысил minIdleMs. Это защита от зомби-consumer'ов:
+   * предыдущий рестарт coopback оставил consumer "consumer-abc123" со своими
+   * pending; новый consumer "coopback-main" заберёт их через XAUTOCLAIM.
+   *
+   * Redis 6.2+. Возвращает [nextCursor, claimedEntries, deletedIds?].
+   */
+  async autoClaimStale(
+    stream: string,
+    group: string,
+    consumer: string,
+    minIdleMs: number,
+    count = 100,
+  ): Promise<StreamMessage[]> {
+    const result: any = await this.redisClient.streamManager.xautoclaim(
+      stream,
+      group,
+      consumer,
+      minIdleMs.toString(),
+      '0',
+      'COUNT',
+      count.toString(),
+    );
+    // Redis 7+: [cursor, entries, deletedIds]. Redis 6.2: [cursor, entries].
+    if (!Array.isArray(result) || result.length < 2) return [];
+    const entries = result[1] as any[];
+    const messages: StreamMessage[] = [];
+    for (const [messageId, messageData] of entries) {
+      if (!Array.isArray(messageData)) continue; // deleted entry
+      const fields: Record<string, string> = {};
+      for (let i = 0; i < messageData.length; i += 2) {
+        fields[messageData[i]] = messageData[i + 1];
+      }
+      messages.push({ messageId, fields });
+    }
+    return messages;
+  }
+
+  /**
+   * XTRIM MINID: удалить из stream записи с ID меньше minId.
+   * Используется controller'ом для освобождения памяти Redis от уже
+   * consumed сообщений. minId должен быть ≤ first-pending-id, иначе
+   * удалим ещё не обработанные сообщения — всё, что в pending, защищено
+   * этим граничным условием.
+   *
+   * `~` (approximate trim) — Redis удаляет эффективно по блокам radix tree,
+   * реально удалённых записей может быть чуть больше или чуть меньше minId.
+   */
+  async trimUpTo(stream: string, minId: string): Promise<number> {
+    return (await this.redisClient.streamManager.xtrim(stream, 'MINID', '~', minId)) as number;
+  }
+
+  /**
+   * Минимальный pending ID в consumer-group (или null, если pending пусто).
+   * XPENDING summary form возвращает [count, minId, maxId, consumers].
+   */
+  async getFirstPendingId(stream: string, group: string): Promise<string | null> {
+    const summary: any = await this.redisClient.streamManager.xpending(stream, group);
+    if (!Array.isArray(summary) || !summary[0]) return null;
+    const count = Number(summary[0]);
+    if (count === 0) return null;
+    return (summary[1] as string) || null;
+  }
+
+  /**
+   * Последний ID в stream (или '0-0', если stream пуст).
+   * Нужен для trim'а когда pending пусто и last-delivered-id бесполезен:
+   * безопасно обрезать всё до нынешнего конца stream'а только если ВСЕ
+   * сообщения consumed. Проверка pending.count=0 — гарантия этого.
+   */
+  async getStreamLastId(stream: string): Promise<string> {
+    const info: any = await this.redisClient.streamManager.xinfo('STREAM', stream);
+    if (!Array.isArray(info)) return '0-0';
+    // XINFO STREAM возвращает массив [key, value, key, value, ...].
+    for (let i = 0; i < info.length; i += 2) {
+      if (info[i] === 'last-generated-id') return String(info[i + 1] || '0-0');
+    }
+    return '0-0';
+  }
+
+  private parseStreamResult(result: any, expectedStream: string): StreamMessage[] {
+    if (!result || !Array.isArray(result) || result.length === 0) return [];
+    const messages: StreamMessage[] = [];
+    for (const [streamName, streamMessages] of result) {
+      if (streamName !== expectedStream) continue;
+      for (const [messageId, messageData] of streamMessages) {
+        const fields: Record<string, string> = {};
+        for (let i = 0; i < messageData.length; i += 2) {
+          fields[messageData[i]] = messageData[i + 1];
+        }
+        messages.push({ messageId, fields });
+      }
+    }
+    return messages;
+  }
 }
