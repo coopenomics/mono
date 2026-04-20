@@ -45,18 +45,20 @@ void capital::signact2(eosio::name coopname, eosio::name chairman, checksum256 r
   // Устанавливаем второй акт
   Capital::Results::set_result_act2(coopname, result -> id, act);
  
-  // Приём результата интеллектуальной деятельности (РИД) в паевой фонд (2026-04-20).
-  // Схема из двух проводок по решению 2026-04-20 (Ангелина):
-  //   1) COMMIT_RID: Dr 08 / Cr 80, ISSUE GENERATOR_COMMIT (10001).
-  //      — обязательство паевого взноса имуществом сформировано (08 растёт).
-  //   2) ACCEPT_RID: Dr 04 / Cr 08, TRANSFER GENERATOR_COMMIT → BLAGOROST_RID (9002).
-  //      — 08 закрывается, РИД принят в состав НМА (04), паевой фонд не меняется.
-  // Для MVP обе проводки идут атомарно здесь (в signact2), с одним process_hash.
-  // В будущем при разделении pipeline commit можно перенести в pushrslt/authrslt.
+  // Приём результата интеллектуальной деятельности (РИД) в паевой фонд.
+  // Схема ревью 2026-04-20 (Ангелина Matrix 2026-04-19): две раздельные проводки
+  // в разных action'ах по фазам жизненного цикла РИД.
+  //   1) COMMIT_RID (Dr 08 / Cr 80) — теперь в `approvecmmt` на каждом одобрении
+  //      мастером конкретного коммита, на дельту `available_for_program`.
+  //      «Собираем на 08 частями по мере накопления коммитов».
+  //   2) ACCEPT_RID (Dr 04 / Cr 08) — здесь, на полный накопленный
+  //      `segment.available_for_program`. «Переносим с 08 на 04 когда РИД
+  //      собран и подписан акт-2».
+  // Инвариант: Σ COMMIT_RID (по коммитам сегмента) == ACCEPT_RID → GENERATOR_COMMIT
+  // (10001) закрывается в ноль, 08-й счёт закрывается в ноль по этому сегменту.
   if (segment.available_for_program.amount > 0) {
     Wallet::add_blocked_funds(_capital, coopname, result -> username, segment.available_for_program, _source_program, memo);
 
-    Ledger2::apply(_capital, coopname, ledger2_ops::COMMIT_RID, segment.available_for_program, result -> username, result_hash, memo);
     Ledger2::apply(_capital, coopname, ledger2_ops::ACCEPT_RID, segment.available_for_program, result -> username, result_hash, memo);
   }
 

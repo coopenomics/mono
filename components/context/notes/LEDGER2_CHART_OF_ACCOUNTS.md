@@ -88,16 +88,22 @@
 |:---|:---|:---:|:---|:---|
 | `cap.import` | ISSUE | 51/80 | BLAGOROST_INVEST 9001 | Импорт пайщика Благорост (offline) |
 | `cap.invest` | WALLET_ONLY | — | 2001 → 9001 | Инвестиция в ЦПП Благорост |
-| `cap.commit` | ISSUE | **08/80** | GENERATOR_COMMIT 10001 | **Коммит РИД** (промежуточное состояние) |
-| `cap.accept` | TRANSFER | **04/08** | 10001 → BLAGOROST_RID 9002 | **Приём РИД в НМА** (после акта-2) |
+| `cap.commit` | ISSUE | **08/80** | GENERATOR_COMMIT 10001 | **Коммит РИД** — эмитится на `capital::approvecmmt` (одобрение коммита мастером), по дельте `segment.available_for_program`. Собирает 08 частями. |
+| `cap.accept` | TRANSFER | **04/08** | 10001 → BLAGOROST_RID 9002 | **Приём РИД в НМА** — эмитится на `capital::signact2` на полный накопленный `available_for_program`. Закрывает 08 в ноль. |
 | `cap.act2prp` | ISSUE | 51/80 | BLAGOROST_PROPERTY 9003 | Акт-2 имущественный паевой взнос |
 | `cap.lnissue` | ISSUE | 58/51 | LOAN_ISSUED 4051 | Выдача пайщику беспроцентного займа |
 | `cap.lnrepay` | TRANSFER | 80/58 | 4051 → SHARE_FUND_PAY 2001 | Возврат займа через акт-2 |
 
-**Акт-2 Благорост** (process_type `cap.act2res`) — это **одна транзакция с тремя проводками**:
-1. `cap.commit` (Dr 08 / Cr 80) — возникает обязательство по паевому взносу РИД
-2. `cap.accept` (Dr 04 / Cr 08) — 08 закрывается, РИД принят в НМА
-3. `cap.lnrepay` (Dr 80 / Cr 58) — опционально, если у пайщика был заём
+**Коммит РИД** (process_type `cap.apprvcmmt`) — одобрение коммита мастером в `capital::approvecmmt`:
+- `cap.commit` (Dr 08 / Cr 80) эмитится на дельту `segment.available_for_program`
+  (intellectual_cost − debt_amount) с `process_hash = project_hash`.
+- У одного проекта может быть множество одобренных коммитов — все группируются в один процесс.
+
+**Акт-2 Благорост** (process_type `cap.act2res`) — подписание акта-2 председателем в `capital::signact2`:
+1. `cap.accept` (Dr 04 / Cr 08) — 08 закрывается, РИД принят в НМА на полный накопленный `segment.available_for_program`.
+2. `cap.lnrepay` (Dr 80 / Cr 58) — опционально, если у пайщика был заём.
+
+**Инвариант**: Σ `cap.commit` по сегменту (одобренные коммиты) == `cap.accept` по этому же сегменту в signact2 → `GENERATOR_COMMIT` (10001) закрывается в ноль, счёт 08 по сегменту закрывается в ноль.
 
 ### Marketplace (mkt.*)
 
@@ -154,7 +160,8 @@ wallets2** БЕЗ бух-проводок. Причина: `progwallets.blocked`
 | `cap.capimp` | `cap.import` | contributors / contributor_hash |
 | `cap.invest` | `cap.invest` | contributors / contributor_hash |
 | `cap.loan` | `cap.lnissue` | debts / debt_hash |
-| `cap.act2res` | `cap.commit` + `cap.accept` + (опц.) `cap.lnrepay` | results / result_hash |
+| `cap.apprvcmmt` | `cap.commit` | projects / project_hash |
+| `cap.act2res` | `cap.accept` + (опц.) `cap.lnrepay` | results / result_hash |
 | `cap.act2prp` | `cap.act2prp` | pgproperties / property_hash |
 | `mkt.offereq` | `mkt.supplcnf` + `mkt.recvcnf` | requests / hash |
 | `sov.axncnv` | `sov.axncnv` | — (из blockchain_actions + document) |

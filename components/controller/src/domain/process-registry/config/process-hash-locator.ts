@@ -32,16 +32,22 @@ export const PROCESS_HASH_LOCATOR: Record<string, HashLocation[]> = {
   // при выдаче) и cap.lnrepay (Dr 80 / Cr 58 при возврате через акт-2).
   'cap.loan': [{ code: 'capital', table: 'debts', field: 'debt_hash' }],
 
+  // cap.apprvcmmt — одобрение коммита мастером (Dr 08 / Cr 80).
+  // Ревью 2026-04-20 разделил коммит РИД и acceptance: `COMMIT_RID`
+  // эмитится на каждом `capital::approvecmmt` на дельту
+  // `segment.available_for_program`, `ACCEPT_RID` — позже в signact2.
+  // process_hash = project_hash (commit-entity удаляется сразу после
+  // одобрения, project — долгоживущий якорь; все коммиты проекта
+  // группируются в один процесс «жизнь проекта»).
+  'cap.apprvcmmt': [{ code: 'capital', table: 'projects', field: 'project_hash' }],
+
   // cap.act2res — подписание акта-2 (внесение РИД в паевой фонд).
-  // Пересмотр 2026-04-20: теперь до ТРЁХ action_code на один process_hash:
-  //   1. cap.commit   (Dr 08 / Cr 80) — коммит РИД в ЦПП «Генератор»
-  //   2. cap.accept   (Dr 04 / Cr 08) — приём РИД в паевой фонд
-  //   3. cap.lnrepay  (Dr 80 / Cr 58) — возврат займа, если был (опционально)
-  // UI группирует actions по action_code как discriminator (три раздельных
-  // эффекта внутри одного процесса cap.act2res).
+  // Ревью 2026-04-20: теперь до ДВУХ action_code на один process_hash:
+  //   1. cap.accept   (Dr 04 / Cr 08) — приём РИД в паевой фонд
+  //   2. cap.lnrepay  (Dr 80 / Cr 58) — возврат займа, если был (опционально)
+  // `cap.commit` перенесён в отдельный процесс `cap.apprvcmmt` — см. выше.
   //
-  // Entity-дельта — строго `capital::results`. Сегменты/долги живут на
-  // project_hash и не связаны с актом-2 напрямую.
+  // Entity-дельта — строго `capital::results`.
   'cap.act2res': [{ code: 'capital', table: 'results', field: 'result_hash' }],
 
   'cap.capimp': [{ code: 'capital', table: 'contributors', field: 'contributor_hash' }],
@@ -86,8 +92,11 @@ export const KNOWN_PROCESS_TYPES: ReadonlySet<string> = new Set(Object.keys(PROC
  * `ledger2::apply` (где есть только action_code), и через эту таблицу
  * выводит process_type.
  *
- * cap.commit + cap.accept + cap.lnrepay — до трёх action_code на один
- * process_hash в рамках процесса cap.act2res (пересмотр 2026-04-20).
+ * cap.accept + cap.lnrepay — до двух action_code на один process_hash
+ * в рамках процесса cap.act2res. cap.commit разнесён в отдельный процесс
+ * cap.apprvcmmt (эмитится на каждом одобрении коммита мастером —
+ * ревью 2026-04-20, чтобы 08-й счёт накапливался по фазе «коммиты», а не
+ * всплеском на финальном акт-2).
  * cap.lnissue и cap.lnrepay — оба части процесса cap.loan, но lnrepay
  * также участвует в cap.act2res когда возврат делает пайщик через акт-2.
  */
@@ -103,8 +112,9 @@ export const ACTION_CODE_TO_PROCESS_TYPE: Record<string, string> = {
   // capital: заём (выдача + возврат)
   'cap.lnissue': 'cap.loan',
   'cap.lnrepay': 'cap.act2res',
-  // capital: акт-2 (commit + accept)
-  'cap.commit': 'cap.act2res',
+  // capital: одобрение коммита мастером (Dr 08 / Cr 80)
+  'cap.commit': 'cap.apprvcmmt',
+  // capital: акт-2 (приём РИД в НМА)
   'cap.accept': 'cap.act2res',
   // capital: имущественный взнос, инвестиция
   'cap.act2prp': 'cap.act2prp',
