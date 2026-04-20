@@ -114,11 +114,12 @@ export const ACTION_CODE_TO_PROCESS_TYPE: Record<string, string> = {
   'mkt.recvcnf': 'mkt.offereq',
   // soviet
   'sov.axncnv': 'sov.axncnv',
-  // migration — все 6 TRANSIT_* относятся к единому процессу mig.transit
+  // migration — 4 TRANSIT_* относятся к единому процессу mig.transit.
+  // Программные кошельки Благороста (9001) и Генератора (10001) мигрируются
+  // прямым emplace в wallets2 БЕЗ inline apply, поэтому в blockchain_actions
+  // их не видно — только в blockchain_deltas wallets2.
   'mig.minshr': 'mig.transit',
-  'mig.blago': 'mig.transit',
   'mig.share': 'mig.transit',
   'mig.entry': 'mig.transit',
-  'mig.commit': 'mig.transit',
   'mig.rid': 'mig.transit',
 };

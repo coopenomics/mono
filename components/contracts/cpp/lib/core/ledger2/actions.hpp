@@ -61,11 +61,16 @@ namespace ledger2_ops {
   inline constexpr eosio::name CONVERT_TO_AXN     = "sov.axncnv"_n;    ///< Трансляция паевого взноса в членский (Dr 80 / Cr 86, TRANSFER SHARE_FUND_PAY → DELEGATE_FEES)
 
   // migration (mig.*) — только из migrate.cpp
+  //
+  // В ACTION_REGISTRY включены **только** те транзиты, которые проводятся
+  // через `ledger::accounts` (51/80/86). Программные кошельки soviet::progwallets
+  // (Благорост, Генератор) мигрируются отдельным прямым `wallets2.emplace`
+  // в migrate.cpp — БЕЗ бух-проводок, поскольку в legacy::ledger::accounts
+  // этих сумм нет (soviet::progwallets и ledger::accounts — параллельные
+  // системы учёта, не синхронизированные).
   inline constexpr eosio::name TRANSIT_MIN_SHARE  = "mig.minshr"_n;    ///< Перенос: минимальный паевой взнос (Dr 51 / Cr 80, ISSUE MIN_SHARE_FUND)
-  inline constexpr eosio::name TRANSIT_BLAGOROST  = "mig.blago"_n;     ///< Перенос: инвестиции Благорост (Dr 51 / Cr 80, ISSUE BLAGOROST_INVEST)
   inline constexpr eosio::name TRANSIT_SHARE      = "mig.share"_n;     ///< Перенос: остаток паевых деньгами (Dr 51 / Cr 80, ISSUE SHARE_FUND_PAY)
   inline constexpr eosio::name TRANSIT_ENTRY      = "mig.entry"_n;     ///< Перенос: вступительные (Dr 51 / Cr 86, ISSUE ENTRANCE_FEES)
-  inline constexpr eosio::name TRANSIT_COMMITMENT = "mig.commit"_n;    ///< Перенос: принятый коммит имуществом (Dr 08 / Cr 80, ISSUE GENERATOR_COMMIT)
   inline constexpr eosio::name TRANSIT_RID        = "mig.rid"_n;       ///< Перенос: РИД в НМА (Dr 04 / Cr 80, ISSUE SHARE_FUND_RID)
 }
 
@@ -192,27 +197,17 @@ static constexpr ActionRegistryEntry ACTION_REGISTRY[] = {
     ledger2_accounts::BANK_ACCOUNT, ledger2_accounts::SHARE_FUND,
     "Транзитный перенос: минимальные паевые взносы при миграции" },
 
-  // 16. Миграция: инвестиции Благорост: Dr 51 / Cr 80, ISSUE BLAGOROST_INVEST
-  { ledger2_ops::TRANSIT_BLAGOROST, process_types::TRANSIT_MIGRATION, WalletOp::ISSUE, 0, ledger2_wallets::BLAGOROST_INVEST,
-    ledger2_accounts::BANK_ACCOUNT, ledger2_accounts::SHARE_FUND,
-    "Транзитный перенос: инвестиции ЦПП «Благорост» при миграции" },
-
-  // 17. Миграция: остаток паевых деньгами: Dr 51 / Cr 80, ISSUE SHARE_FUND_PAY
+  // 16. Миграция: остаток паевых деньгами: Dr 51 / Cr 80, ISSUE SHARE_FUND_PAY
   { ledger2_ops::TRANSIT_SHARE, process_types::TRANSIT_MIGRATION, WalletOp::ISSUE, 0, ledger2_wallets::SHARE_FUND_PAY,
     ledger2_accounts::BANK_ACCOUNT, ledger2_accounts::SHARE_FUND,
     "Транзитный перенос: остаток паевых взносов деньгами при миграции" },
 
-  // 18. Миграция: вступительные: Dr 51 / Cr 86, ISSUE ENTRANCE_FEES
+  // 17. Миграция: вступительные: Dr 51 / Cr 86, ISSUE ENTRANCE_FEES
   { ledger2_ops::TRANSIT_ENTRY, process_types::TRANSIT_MIGRATION, WalletOp::ISSUE, 0, ledger2_wallets::ENTRANCE_FEES,
     ledger2_accounts::BANK_ACCOUNT, ledger2_accounts::TARGET_RECEIPTS,
     "Транзитный перенос: вступительные взносы при миграции" },
 
-  // 19. Миграция: принятый коммит имуществом: Dr 08 / Cr 80, ISSUE GENERATOR_COMMIT
-  { ledger2_ops::TRANSIT_COMMITMENT, process_types::TRANSIT_MIGRATION, WalletOp::ISSUE, 0, ledger2_wallets::GENERATOR_COMMIT,
-    ledger2_accounts::NON_CURRENT_INVESTMENTS, ledger2_accounts::SHARE_FUND,
-    "Транзитный перенос: принятый коммит имуществом (ЦПП «Генератор») при миграции" },
-
-  // 20. Миграция: РИД в НМА: Dr 04 / Cr 80, ISSUE SHARE_FUND_RID
+  // 18. Миграция: РИД в НМА: Dr 04 / Cr 80, ISSUE SHARE_FUND_RID
   { ledger2_ops::TRANSIT_RID, process_types::TRANSIT_MIGRATION, WalletOp::ISSUE, 0, ledger2_wallets::SHARE_FUND_RID,
     ledger2_accounts::INTANGIBLE_ASSETS, ledger2_accounts::SHARE_FUND,
     "Транзитный перенос: принятые РИД в паевой фонд при миграции" },

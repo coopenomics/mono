@@ -114,25 +114,35 @@
 
 ### Миграция (mig.*)
 
-Серия из 6 транзитных операций, каждая опциональна (skip если сумма 0):
+Два независимых потока:
+
+**A. Бухгалтерский перенос** `legacy::ledger::accounts` — через 4 inline
+`apply(TRANSIT_*)` с полной двойной проводкой. Охватывает только то, что
+проходит через legacy-счета 51/80/86 (+04 для РИД Восхода).
 
 | code | Walletop | Dr/Cr | Wallet | Что покрывает |
 |:---|:---|:---:|:---|:---|
 | `mig.minshr` | ISSUE | 51/80 | MIN_SHARE_FUND 2002 | N_active × cooperative.minimum |
-| `mig.blago` | ISSUE | 51/80 | BLAGOROST_INVEST 9001 | Σ progwallet[blagorost].blocked |
-| `mig.share` | ISSUE | 51/80 | SHARE_FUND_PAY 2001 | share_money − min_total − blagorost |
+| `mig.share` | ISSUE | 51/80 | SHARE_FUND_PAY 2001 | share_money − min_total |
 | `mig.entry` | ISSUE | 51/86 | ENTRANCE_FEES 3001 | entry_legacy |
-| `mig.commit` | ISSUE | 08/80 | GENERATOR_COMMIT 10001 | Σ progwallet[generator].blocked |
-| `mig.rid` | ISSUE | 04/80 | SHARE_FUND_RID 2003 | rid_share − generator_commit |
+| `mig.rid` | ISSUE | 04/80 | SHARE_FUND_RID 2003 | rid_share (= share_legacy − share_money) |
 
-**Инварианты миграции (eosio::check):**
-- Σ Dr 51 = cash_legacy (51-й счёт legacy)
-- Σ Cr 80 = share_legacy (80-й счёт legacy)
-- Σ Cr 86 = entry_legacy (861-й счёт legacy)
-- share_remain ≥ 0
-- rid_share ≥ generator_commit
+**B. Программные кошельки** `soviet::progwallets` — **прямой emplace в
+wallets2** БЕЗ бух-проводок. Причина: `progwallets.blocked` и
+`legacy::ledger::accounts` — параллельные системы учёта, progwallet не
+синхронизирован с 80-м счётом. Любая бух-проводка при переносе progwallet
+привела бы к двойному учёту.
 
-Если инварианты нарушены — миграция откатывается с диагностическим сообщением.
+| wallet-цель | Что переносим |
+|:---|:---|
+| BLAGOROST_INVEST 9001 | Σ progwallet[blagorost, program_id=4].blocked |
+| GENERATOR_COMMIT 10001 | Σ progwallet[generator, program_id=3].blocked |
+
+**Инварианты миграции A (eosio::check):**
+- `cash_legacy  ≥ entry_legacy`  (иначе entry > cash)
+- `share_legacy ≥ share_money`   (rid_share не может быть отрицательным)
+
+При нарушении — миграция откатывается с диагностическим сообщением.
 
 ## Процессы (process_type → action_code)
 
