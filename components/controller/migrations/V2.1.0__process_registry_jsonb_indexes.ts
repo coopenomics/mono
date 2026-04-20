@@ -91,7 +91,18 @@ export default {
         { idx: 'idx_deltas_registrator_cand2_lower',  code: 'registrator', table: 'candidates2',  field: 'registration_hash' },
         { idx: 'idx_deltas_marketplace_requests_lower', code: 'marketplace', table: 'requests',   field: 'hash' },
       ];
+      // Identifier-whitelist: значения идут в SQL через интерполяцию (pg-клиент
+      // не поддерживает параметры в DDL для имени индекса / имени поля внутри
+      // выражения `value->>'X'`). Входные данные — литералы в коде, но на
+      // случай future-edit защищаемся: отвергаем всё, что не `[a-z0-9_]+`.
+      // Никакой SQL-инъекции даже при будущих добавлениях.
+      const safeIdent = /^[a-z0-9_]+$/;
       for (const { idx, code, table, field } of entityIndexes) {
+        for (const [label, value] of Object.entries({ idx, code, table, field })) {
+          if (!safeIdent.test(value)) {
+            throw new Error(`V2.1.0 migration: небезопасное значение ${label}="${value}" — допустим только [a-z0-9_]+`);
+          }
+        }
         await dataSource.query(
           `CREATE INDEX IF NOT EXISTS "${idx}"
             ON "blockchain_deltas" ((LOWER("value" ->> '${field}')))

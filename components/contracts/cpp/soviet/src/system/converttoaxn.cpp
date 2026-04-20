@@ -26,12 +26,24 @@ void soviet::converttoaxn(eosio::name coopname, eosio::asset amount, document2 s
 
   // Перенос средств из паевого фонда в фонд делегатских взносов через ledger2
   // (TRANSFER SHARE_FUND_PAY (2001) → DELEGATE_FEES (3003); Dr 80 / Cr 86).
-  // Scope ledger2-операции — coopname (а не _provider): код-ревью 2026-04-18
-  // Decision #7 выявил, что _provider некорректно передавался как coopname.
-  // username проставляем _provider (делегат-инициатор).
-  // process_hash формируется бэкендом явно (допустимо совпадение с statement.hash,
-  // но это выбор бэкенда, а не контракта — см. architecture.md §3.8).
-  Ledger2::apply(_soviet, coopname, ledger2_ops::CONVERT_TO_AXN, amount, _provider, process_hash, memo);
+  //
+  // ВНИМАНИЕ по наименованию параметров этого action: поле `coopname` в
+  // action-сигнатуре семантически содержит **username** пайщика-инициатора
+  // (backend: system.adapter.ts → `coopname: data.username`; см. memo ниже:
+  // «от пайщика с username=...»). Реальный кооператив — `_provider`
+  // (action выполняется под `require_auth(_provider)`).
+  //
+  // Поэтому для ledger2::apply:
+  //   - 2-й аргумент (coopname-scope wallets2/accounts2) = `_provider`
+  //     (реальный кооп, совпадает со scope legacy-кошелька в строке 21).
+  //   - 5-й аргумент (username-инициатор для истории) = `coopname`-параметр
+  //     (то есть username пайщика).
+  // Иначе ledger2::apply падает на валидации cooperatives2_index: имя
+  // пользователя не зарегистрировано как кооператив.
+  //
+  // process_hash формируется бэкендом явно (допустимо совпадение с
+  // statement.hash — одноактовый процесс sov.axncnv).
+  Ledger2::apply(_soviet, _provider, ledger2_ops::CONVERT_TO_AXN, amount, coopname, process_hash, memo);
 
   // Вызываем инъекцию AXON токенов на кооператив
   action(
