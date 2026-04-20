@@ -24,39 +24,40 @@ enum class AccountType : uint8_t {
 };
 
 /**
- * @brief План счетов ledger2 (MVP минимальный) со смещением *1000.
+ * @brief План счетов ledger2 (MVP) со смещением *1000.
  *
- * Пересмотрен 2026-04-18 (PRD §4.1.6a): субсчета 86.x (861/862/868) убраны
- * полностью — их детализация живёт на уровне кошельков (wallets2) с шагом
- * ×1000 и off-chain-агрегацией. В MVP осталось 7 счетов:
+ * Пересмотрен 2026-04-20: 99 «Переходные остатки» удалён — миграция идёт
+ * прямыми проводками Dr 51/Cr 80/86 и Dr 04|08/Cr 80, без транзитного счёта.
+ * Добавлен 08 «Вложения во внеоборотные активы» для промежуточного
+ * состояния «принятый коммит» (паевой взнос имуществом в переходе РИД
+ * в программу Благорост): commit → Dr 08 / Cr 80, accept → Dr 04 / Cr 08.
+ *
+ * Состав (6 счетов):
  *
  * - 04  — Нематериальные активы (РИД, принятые в паевой фонд)
+ * - 08  — Вложения во внеоборотные активы (промежуточное состояние)
  * - 51  — Расчётный счёт
- * - 58  — Финансовые вложения (долги пайщиков, cap.debt) [ТРЕБУЕТ УТОЧНЕНИЯ]
- * - 67  — Расчёты по долгосрочным займам                  [ТРЕБУЕТ УТОЧНЕНИЯ]
+ * - 58  — Финансовые вложения (выданные пайщикам беспроцентные займы)
  * - 80  — Паевой фонд (складочный капитал)
  * - 86  — Целевое финансирование (без субсчетов)
- * - 99  — Переходные остатки (транзит миграции; сводится к 0 после migrate)
  *
- * Правило кодирования id: integer(code) * 1000 (51 → 51000, 86 → 86000,
- * 99 → 99000 и т.д.). Субсчета не применяются на уровне плана счетов —
- * деталировка через wallets.
+ * Счёт 67 удалён: беспроцентные займы пайщикам идут через 58/51, без 67.
+ *
+ * Правило кодирования id: integer(code) * 1000.
+ * Детализация — через wallets (см. wallets.hpp).
  *
  * @ingroup public_ledger2_consts
  */
 struct ledger2_accounts {
   // Активы
-  static constexpr uint64_t INTANGIBLE_ASSETS     = 4 * 1000;    ///< 04 — Нематериальные активы (А)
-  static constexpr uint64_t BANK_ACCOUNT          = 51 * 1000;   ///< 51 — Расчётный счёт (А)
-  static constexpr uint64_t FINANCIAL_INVESTMENTS = 58 * 1000;   ///< 58 — Финансовые вложения (А) [ТРЕБУЕТ УТОЧНЕНИЯ]
+  static constexpr uint64_t INTANGIBLE_ASSETS         = 4 * 1000;    ///< 04 — Нематериальные активы (А)
+  static constexpr uint64_t NON_CURRENT_INVESTMENTS   = 8 * 1000;    ///< 08 — Вложения во внеоборотные активы (А)
+  static constexpr uint64_t BANK_ACCOUNT              = 51 * 1000;   ///< 51 — Расчётный счёт (А)
+  static constexpr uint64_t FINANCIAL_INVESTMENTS     = 58 * 1000;   ///< 58 — Финансовые вложения (А)
 
   // Пассивы
-  static constexpr uint64_t LONG_TERM_LOANS       = 67 * 1000;   ///< 67 — Расчёты по долгосрочным займам (П) [ТРЕБУЕТ УТОЧНЕНИЯ]
-  static constexpr uint64_t SHARE_FUND            = 80 * 1000;   ///< 80 — Паевой фонд (П)
-  static constexpr uint64_t TARGET_RECEIPTS       = 86 * 1000;   ///< 86 — Целевое финансирование (П)
-
-  // Технические
-  static constexpr uint64_t OPENING_TRANSIT       = 99 * 1000;   ///< 99 — Переходные остатки (А-П, транзит миграции)
+  static constexpr uint64_t SHARE_FUND                = 80 * 1000;   ///< 80 — Паевой фонд (П)
+  static constexpr uint64_t TARGET_RECEIPTS           = 86 * 1000;   ///< 86 — Целевое финансирование (П)
 };
 
 /**
@@ -78,14 +79,13 @@ struct Ledger2AccountMeta {
  * `constexpr std::array` + `string_view` — чтобы не было dynamic init
  * при загрузке контракта и тип был полностью заморожен на этапе сборки.
  */
-inline constexpr std::array<Ledger2AccountMeta, 7> LEDGER2_ACCOUNT_MAP = {{
-  { ledger2_accounts::INTANGIBLE_ASSETS,     "Нематериальные активы",                      AccountType::ACTIVE },
-  { ledger2_accounts::BANK_ACCOUNT,          "Расчётный счёт",                             AccountType::ACTIVE },
-  { ledger2_accounts::FINANCIAL_INVESTMENTS, "Финансовые вложения (долги пайщиков)",       AccountType::ACTIVE },
-  { ledger2_accounts::LONG_TERM_LOANS,       "Расчёты по долгосрочным кредитам и займам",  AccountType::PASSIVE },
-  { ledger2_accounts::SHARE_FUND,            "Паевой фонд (складочный капитал)",           AccountType::PASSIVE },
-  { ledger2_accounts::TARGET_RECEIPTS,       "Целевое финансирование",                     AccountType::PASSIVE },
-  { ledger2_accounts::OPENING_TRANSIT,       "Переходные остатки (транзит миграции)",      AccountType::ACTIVE_PASSIVE },
+inline constexpr std::array<Ledger2AccountMeta, 6> LEDGER2_ACCOUNT_MAP = {{
+  { ledger2_accounts::INTANGIBLE_ASSETS,       "Нематериальные активы",                 AccountType::ACTIVE },
+  { ledger2_accounts::NON_CURRENT_INVESTMENTS, "Вложения во внеоборотные активы",       AccountType::ACTIVE },
+  { ledger2_accounts::BANK_ACCOUNT,            "Расчётный счёт",                        AccountType::ACTIVE },
+  { ledger2_accounts::FINANCIAL_INVESTMENTS,   "Финансовые вложения",                   AccountType::ACTIVE },
+  { ledger2_accounts::SHARE_FUND,              "Паевой фонд (складочный капитал)",      AccountType::PASSIVE },
+  { ledger2_accounts::TARGET_RECEIPTS,         "Целевое финансирование",                AccountType::PASSIVE },
 }};
 
 static constexpr size_t LEDGER2_ACCOUNT_MAP_SIZE = LEDGER2_ACCOUNT_MAP.size();

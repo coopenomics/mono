@@ -43,7 +43,7 @@ void ledger2::walletop(eosio::name coopname,
   eosio::check(amount.symbol == _root_govern_symbol,
                "walletop: некорректный символ валюты");
   eosio::check(memo.size() < 256, "walletop: memo > 255");
-  eosio::check(op_code <= 3, "walletop: неизвестный op_code");
+  eosio::check(op_code <= 4, "walletop: неизвестный op_code");
 
   wallets2_index wallets(get_self(), coopname.value);
   const eosio::name payer = get_self();
@@ -80,11 +80,14 @@ void ledger2::walletop(eosio::name coopname,
       wallets.modify(it, payer, [&](auto& w) { w.available += amount; });
       break;
     }
-    case WalletOp::TRANSFER: {
+    case WalletOp::TRANSFER:
+    case WalletOp::WALLET_ONLY: {
+      // Оба типа — перенос available между кошельками. WALLET_ONLY отличается
+      // только отсутствием inline debit/credit (см. apply.cpp).
       eosio::check(wallet_from != 0 && wallet_to != 0,
-                   "walletop TRANSFER: требуются wallet_from и wallet_to");
+                   "walletop TRANSFER/WALLET_ONLY: требуются wallet_from и wallet_to");
       eosio::check(wallet_from != wallet_to,
-                   "walletop TRANSFER: wallet_from == wallet_to");
+                   "walletop TRANSFER/WALLET_ONLY: wallet_from == wallet_to");
       auto from_it = wallets.find(wallet_from);
       eosio::check(from_it != wallets.end() && from_it->available >= amount,
                    std::string{"walletop TRANSFER: недостаточно средств на кошельке "} +

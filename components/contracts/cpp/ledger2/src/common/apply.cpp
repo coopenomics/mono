@@ -58,9 +58,10 @@ void ledger2::apply(eosio::name coopname,
   eosio::check(entry != nullptr,
                std::string{"Unknown action code: "} + action_code.to_string());
 
-  // -------- dispatch 3 atomic inline actions --------
-  // Каждая inline получает общий process_hash, чтобы бэкенд мог собрать
-  // их в «тройку» (walletop + debit + credit) по этому хэшу.
+  // -------- dispatch atomic inline actions --------
+  // Для штатных операций — «тройка» (walletop + debit + credit) с общим
+  // process_hash. Для WALLET_ONLY — только walletop (перенос средств между
+  // аналитическими разрезами одного бухсчёта, без debit/credit).
   const auto self_perm = eosio::permission_level{get_self(), "active"_n};
 
   eosio::action(self_perm, get_self(), "walletop"_n,
@@ -72,6 +73,10 @@ void ledger2::apply(eosio::name coopname,
                     process_hash,
                     memo)
   ).send();
+
+  if (entry->wallet_op == WalletOp::WALLET_ONLY) {
+    return;
+  }
 
   eosio::action(self_perm, get_self(), "debit"_n,
     std::make_tuple(coopname,

@@ -27,23 +27,28 @@ export const PROCESS_HASH_LOCATOR: Record<string, HashLocation[]> = {
   // два inline ledger2::apply (entrfee + minshare) с тем же hash.
   'reg.regist': [{ code: 'registrator', table: 'candidates2', field: 'registration_hash' }],
 
-  // capital::debts.debt_hash — выдача/погашение займа.
-  'cap.debt': [{ code: 'capital', table: 'debts', field: 'debt_hash' }],
+  // cap.loan — выдача/возврат беспроцентного займа пайщика.
+  // Один process_hash (= debt_hash), два action_code: cap.lnissue (Dr 58 / Cr 51
+  // при выдаче) и cap.lnrepay (Dr 80 / Cr 58 при возврате через акт-2).
+  'cap.loan': [{ code: 'capital', table: 'debts', field: 'debt_hash' }],
 
   // cap.act2res — подписание акта-2 (внесение РИД в паевой фонд).
-  // Один process_hash (= result_hash), два action_code: cap.act2shr (Dr 04 /
-  // Cr 80, приём результата в пай) и cap.act2ln (Dr 80 / Cr 583, погашение
-  // займа если был). Backend сливает оба в один process_type cap.act2res —
-  // в UI это один процесс, внутри него два apply с разными action_code
-  // показаны раздельно (UI группирует actions по action_code как discriminator).
+  // Пересмотр 2026-04-20: теперь до ТРЁХ action_code на один process_hash:
+  //   1. cap.commit   (Dr 08 / Cr 80) — коммит РИД в ЦПП «Генератор»
+  //   2. cap.accept   (Dr 04 / Cr 08) — приём РИД в паевой фонд
+  //   3. cap.lnrepay  (Dr 80 / Cr 58) — возврат займа, если был (опционально)
+  // UI группирует actions по action_code как discriminator (три раздельных
+  // эффекта внутри одного процесса cap.act2res).
   //
-  // Entity-дельта — строго `capital::results`: segments/debts связаны с
-  // проектом (project_hash), а не с конкретным результатом акта-2, поэтому
-  // их здесь нет. Эффекты по сегментам/долгам видны в actions через
-  // ledger2::walletop/debit/credit.
+  // Entity-дельта — строго `capital::results`. Сегменты/долги живут на
+  // project_hash и не связаны с актом-2 напрямую.
   'cap.act2res': [{ code: 'capital', table: 'results', field: 'result_hash' }],
 
   'cap.capimp': [{ code: 'capital', table: 'contributors', field: 'contributor_hash' }],
+
+  // cap.invest — инвестиция пайщика в ЦПП Благорост (wallet-only перенос
+  // 2001 → 9001, без Dr/Cr-проводок). process_hash — contributor_hash.
+  'cap.invest': [{ code: 'capital', table: 'contributors', field: 'contributor_hash' }],
 
   // capital::pgproperties.property_hash — приём имущества в паевой фонд.
   'cap.act2prp': [{ code: 'capital', table: 'pgproperties', field: 'property_hash' }],
@@ -54,13 +59,14 @@ export const PROCESS_HASH_LOCATOR: Record<string, HashLocation[]> = {
   // marketplace::requests.hash — поле так и называется `hash` (не `request_hash`).
   'mkt.offereq': [{ code: 'marketplace', table: 'requests', field: 'hash' }],
 
-  // sov.axncnv — одноактовый процесс: данные берутся из blockchain_actions +
-  // документа statement (детектируется DocumentFieldDetector).
+  // sov.axncnv — одноактовый процесс: данные из blockchain_actions + документ
+  // statement (DocumentFieldDetector).
   'sov.axncnv': [],
-  // Миграционные процессы — нет сущностных таблиц, только blockchain_actions
-  // ledger2::apply/walletop/debit/credit + дельты accounts/wallets.
-  'mig.opening': [],
-  'mig.rid': [],
+
+  // mig.transit — транзитная миграция legacy → ledger2. Пересмотр 2026-04-20:
+  // единый process_type для шести миграционных action_code (TRANSIT_*), т.к.
+  // все они относятся к одному кооперативу и выполняются в одной транзакции.
+  'mig.transit': [],
 };
 
 /**
@@ -80,10 +86,10 @@ export const KNOWN_PROCESS_TYPES: ReadonlySet<string> = new Set(Object.keys(PROC
  * `ledger2::apply` (где есть только action_code), и через эту таблицу
  * выводит process_type.
  *
- * Акт-2 (ACT2_SHARE + ACT2_LOAN) — это ОДИН процесс cap.act2res с ОДНИМ
- * process_hash, но двумя action_code. UI показывает оба эффекта
- * (приём пая + погашение займа) раздельно внутри одного процесса,
- * discriminator — action.data.action_code.
+ * cap.commit + cap.accept + cap.lnrepay — до трёх action_code на один
+ * process_hash в рамках процесса cap.act2res (пересмотр 2026-04-20).
+ * cap.lnissue и cap.lnrepay — оба части процесса cap.loan, но lnrepay
+ * также участвует в cap.act2res когда возврат делает пайщик через акт-2.
  */
 export const ACTION_CODE_TO_PROCESS_TYPE: Record<string, string> = {
   // registrator
@@ -92,23 +98,27 @@ export const ACTION_CODE_TO_PROCESS_TYPE: Record<string, string> = {
   // wallet
   'wall.depcpl': 'wall.deposit',
   'wall.wthcpl': 'wall.withdrw',
-  // capital
+  // capital: импорт
   'cap.import': 'cap.capimp',
-  'cap.loanrpy': 'cap.debt',
-  // cap.act2shr и cap.act2ln — оба части процесса cap.act2res (подписание
-  // акта-2). Один process_hash, общий processType; UI группирует actions
-  // по action_code для отображения двух раздельных эффектов в одной карточке.
-  'cap.act2shr': 'cap.act2res',
-  'cap.act2ln': 'cap.act2res',
+  // capital: заём (выдача + возврат)
+  'cap.lnissue': 'cap.loan',
+  'cap.lnrepay': 'cap.act2res',
+  // capital: акт-2 (commit + accept)
+  'cap.commit': 'cap.act2res',
+  'cap.accept': 'cap.act2res',
+  // capital: имущественный взнос, инвестиция
   'cap.act2prp': 'cap.act2prp',
+  'cap.invest': 'cap.invest',
   // marketplace
   'mkt.supplcnf': 'mkt.offereq',
   'mkt.recvcnf': 'mkt.offereq',
   // soviet
   'sov.axncnv': 'sov.axncnv',
-  // migration
-  'mig.opncash': 'mig.opening',
-  'mig.opnshr': 'mig.opening',
-  'mig.opnent': 'mig.opening',
-  'mig.opnrid': 'mig.rid',
+  // migration — все 6 TRANSIT_* относятся к единому процессу mig.transit
+  'mig.minshr': 'mig.transit',
+  'mig.blago': 'mig.transit',
+  'mig.share': 'mig.transit',
+  'mig.entry': 'mig.transit',
+  'mig.commit': 'mig.transit',
+  'mig.rid': 'mig.transit',
 };

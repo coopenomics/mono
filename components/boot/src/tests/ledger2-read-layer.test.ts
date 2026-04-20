@@ -17,17 +17,14 @@ import { gql, loginAsChairman } from './shared/apiClient'
 
 const COOP = 'voskhod'
 
-// Идентификаторы плана счетов — из Epic 1 (×1000 offset).
+// Идентификаторы плана счетов (пересмотр 2026-04-20): ×1000 offset.
 const ACCOUNT_BANK = 51_000
 const ACCOUNT_SHARE_FUND = 80_000
 const ACCOUNT_TARGET = 86_000
-const ACCOUNT_TRANSIT = 99_000
 const ACCOUNT_TYPE_ACTIVE = 0
 const ACCOUNT_TYPE_PASSIVE = 1
-const ACCOUNT_TYPE_ACTIVE_PASSIVE = 2
 
-// Кошельки кооператива после миграции (Epic 1 addendum).
-const WALLET_CASH_MAIN = 1001
+// Кошельки кооператива после миграции (пересмотр 2026-04-20: CASH_MAIN удалён).
 const WALLET_SHARE_FUND_PAY = 2001
 const WALLET_ENTRANCE_FEES = 3001
 
@@ -95,12 +92,10 @@ describe('Ledger2 read-layer (Story 1.23)', () => {
       4,
     )
 
-    // 99000 может быть закрыт (обнулён по AC5 ledger2-migrate), но если
-    // присутствует — должен быть ACTIVE_PASSIVE.
-    const transit = byId.get(ACCOUNT_TRANSIT)
-    if (transit) {
-      expect(transit.accountType).toBe(ACCOUNT_TYPE_ACTIVE_PASSIVE)
-    }
+    // Счёт 99 OPENING_TRANSIT полностью удалён в пересмотре 2026-04-20,
+    // новая миграция идёт прямыми Dr 51 / Cr 80/86 без транзита.
+    const transit = byId.get(99_000)
+    expect(transit, 'счёт 99 (OPENING_TRANSIT) больше не должен существовать').toBeUndefined()
   }, 30_000)
 
   it('getLedger2Accounts: срез совпадает с on-chain ledger2::accounts (scope=coopname)', async () => {
@@ -131,9 +126,10 @@ describe('Ledger2 read-layer (Story 1.23)', () => {
     expect(wallets.length).toBeGreaterThanOrEqual(3)
 
     const byId = new Map<number, any>(wallets.map((w) => [Number(w.id), w]))
-    expect(byId.get(WALLET_CASH_MAIN), 'кошелёк кассы 1001').toBeDefined()
-    expect(byId.get(WALLET_SHARE_FUND_PAY), 'кошелёк пая 2001').toBeDefined()
+    expect(byId.get(WALLET_SHARE_FUND_PAY), 'кошелёк паевых взносов 2001').toBeDefined()
     expect(byId.get(WALLET_ENTRANCE_FEES), 'кошелёк вступ.взносов 3001').toBeDefined()
+    // CASH_MAIN (1001) удалён пересмотром 2026-04-20 — счёт 51 ведётся только в accounts2.
+    expect(byId.get(1001), 'wallet 1001 (CASH_MAIN) удалён, проверка на отсутствие').toBeUndefined()
 
     const onchain = await bc.getTableRows('ledger2', COOP, 'wallets', 500)
     for (const w of onchain) {
@@ -157,15 +153,15 @@ describe('Ledger2 read-layer (Story 1.23)', () => {
       expect(['apply', 'walletop', 'debit', 'credit']).toContain(op.action)
     }
 
-    // Фильтр по actionCodes: если есть mig.opncash (миграция кассы), то
+    // Фильтр по actionCodes: если есть mig.share (транзит паевого фонда), то
     // после фильтрации все записи — только apply с этим кодом.
     const filtered = await gql<{ getLedger2History: any }>(token, HISTORY_QUERY, {
-      i: { coopname: COOP, actionCodes: ['mig.opncash'], limit: 10, page: 1 },
+      i: { coopname: COOP, actionCodes: ['mig.share'], limit: 10, page: 1 },
     })
     const fresp = filtered.getLedger2History
     expect(fresp.totalCount).toBeLessThanOrEqual(resp.totalCount)
     for (const op of fresp.items) {
-      expect(op.actionCode).toBe('mig.opncash')
+      expect(op.actionCode).toBe('mig.share')
       expect(op.action).toBe('apply')
     }
   }, 30_000)

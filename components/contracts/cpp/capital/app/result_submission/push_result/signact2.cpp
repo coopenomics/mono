@@ -45,17 +45,26 @@ void capital::signact2(eosio::name coopname, eosio::name chairman, checksum256 r
   // Устанавливаем второй акт
   Capital::Results::set_result_act2(coopname, result -> id, act);
  
-  // Начисляем заблокированные средства в кошелек программы генерации
+  // Приём результата интеллектуальной деятельности (РИД) в паевой фонд (2026-04-20).
+  // Схема из двух проводок по решению 2026-04-20 (Ангелина):
+  //   1) COMMIT_RID: Dr 08 / Cr 80, ISSUE GENERATOR_COMMIT (10001).
+  //      — обязательство паевого взноса имуществом сформировано (08 растёт).
+  //   2) ACCEPT_RID: Dr 04 / Cr 08, TRANSFER GENERATOR_COMMIT → BLAGOROST_RID (9002).
+  //      — 08 закрывается, РИД принят в состав НМА (04), паевой фонд не меняется.
+  // Для MVP обе проводки идут атомарно здесь (в signact2), с одним process_hash.
+  // В будущем при разделении pipeline commit можно перенести в pushrslt/authrslt.
   if (segment.available_for_program.amount > 0) {
     Wallet::add_blocked_funds(_capital, coopname, result -> username, segment.available_for_program, _source_program, memo);
 
-    // Увеличиваем паевой фонд за счёт результата участника через ledger2 (ISSUE в SHARE_FUND)
-    Ledger2::apply(_capital, coopname, ledger2_ops::ACT2_SHARE, segment.available_for_program, result -> username, result_hash, memo);
+    Ledger2::apply(_capital, coopname, ledger2_ops::COMMIT_RID, segment.available_for_program, result -> username, result_hash, memo);
+    Ledger2::apply(_capital, coopname, ledger2_ops::ACCEPT_RID, segment.available_for_program, result -> username, result_hash, memo);
   }
 
-  // Уменьшаем сумму выданных ссуд кооператива (TRANSFER LONG_TERM_LOANS → DEBT_CLOSED_SINK)
+  // Возврат беспроцентного займа пайщика: Dr 80 / Cr 58, TRANSFER LOAN_ISSUED → SHARE_FUND_PAY.
+  // Семантика: пайщик погасил ссуду результатом (интеллектуальным взносом),
+  // у кооперативa уменьшилось фин. вложение 58, деньги вернулись на расчётный.
   if (result -> debt_amount.amount > 0){
-    Ledger2::apply(_capital, coopname, ledger2_ops::ACT2_LOAN, result -> debt_amount, result -> username, result_hash, memo);
+    Ledger2::apply(_capital, coopname, ledger2_ops::REPAY_LOAN, result -> debt_amount, result -> username, result_hash, memo);
   }
   
   // Обновляем накопительные показатели контрибьютора на основе его ролей в сегменте

@@ -7,13 +7,18 @@ import { sleep } from '../utils'
 import { LedgerAccountType } from './wallet/walletUtils'
 
 // =============================================================================
-// Epic 1 addendum (2026-04-18): тест переписан под новую схему ledger2.
-//   - ACTION_REGISTRY теперь содержит mig.opncash / mig.opnshr / mig.opnent /
-//     mig.opnrid вместо «прямого» переноса остатков.
-//   - План счетов: 04 (НМА), 51, 80, 86, 99 (transit). Субсчета 86.x удалены.
-//   - Кошельки: 1001 / 2001-2003 / 3001 / 4001-4002 (от 1000+, ×1000-группировка).
-//   - Migrate(from_coop_index, limit) — курсорный режим.
-//   - Журнал в RAM убран; история — в blockchain_actions, проверяется отдельно.
+// Epic 1 addendum (пересмотр 2026-04-20): миграция переведена на 6 прямых
+// TRANSIT_* проводок без транзитного счёта 99 и без кошелька CASH_MAIN (1001).
+//
+// Семантика:
+//   TRANSIT_MIN_SHARE  → Dr 51 / Cr 80, ISSUE MIN_SHARE_FUND 2002 (N × min_share)
+//   TRANSIT_BLAGOROST  → Dr 51 / Cr 80, ISSUE BLAGOROST_INVEST 9001
+//   TRANSIT_SHARE      → Dr 51 / Cr 80, ISSUE SHARE_FUND_PAY 2001 (остаток money)
+//   TRANSIT_ENTRY      → Dr 51 / Cr 86, ISSUE ENTRANCE_FEES 3001
+//   TRANSIT_COMMITMENT → Dr 08 / Cr 80, ISSUE GENERATOR_COMMIT 10001
+//   TRANSIT_RID        → Dr 04 / Cr 80, ISSUE SHARE_FUND_RID 2003
+//
+// План счетов: 04, 08, 51, 58, 80, 86 (99 удалён как лишний транзит).
 // =============================================================================
 
 const LEDGER = 'ledger'
@@ -27,18 +32,19 @@ const LEGACY_ACCOUNTS = {
 } as const
 
 const LEDGER2_WALLETS = {
-  CASH_MAIN: 1001,
   SHARE_FUND_PAY: 2001,
+  MIN_SHARE_FUND: 2002,
   SHARE_FUND_RID: 2003,
   ENTRANCE_FEES: 3001,
 } as const
 
 const LEDGER2_ACCOUNTS = {
   INTANGIBLE_ASSETS: 4_000,
+  NON_CURRENT_INVESTMENTS: 8_000,
   BANK_ACCOUNT: 51_000,
+  FINANCIAL_INVESTMENTS: 58_000,
   SHARE_FUND: 80_000,
   TARGET_RECEIPTS: 86_000,
-  OPENING_TRANSIT: 99_000,
 } as const
 
 const blockchain = new Blockchain(config.network, config.private_keys)
@@ -119,21 +125,16 @@ afterAll(() => {
   console.log(`\n💾 TOTAL: ${(total / 1024).toFixed(2)} kb\n`)
 })
 
-describe('ledger2::migrate (Epic 1 addendum: opening через apply + RID)', () => {
-  // Сидируем legacy так, чтобы воспроизвести типовой кейс «без РИД»:
-  // cash_legacy = entry_legacy + share_money. По формуле migrate:
-  //   share_money = cash − entry, rid_share = share_legacy − share_money.
-  // Для отсутствия RID-проводки оставляем share_legacy = share_money.
-  const seedCash = 5_000   // → накапливается на 51
-  const seedEntry = 1_500  // → 86 (через mig.opnent)
-  const seedShare = seedCash - seedEntry // 3_500 → 80 (без РИД)
+describe('ledger2::migrate (пересмотр 2026-04-20: 6 TRANSIT_* без 99/CASH_MAIN)', () => {
+  // Типовой кейс «без РИД»: cash_legacy = entry_legacy + share_money.
+  // share_legacy = share_money (значит rid_share = 0 и TRANSIT_RID не сработает).
+  const seedCash = 5_000   // → Dr 51 суммарно
+  const seedEntry = 1_500  // → Cr 86 (через TRANSIT_ENTRY)
+  const seedShare = seedCash - seedEntry // 3_500 → Cr 80 (распределится на MIN+SHARE, без РИД)
 
   let baselineCashAcc = 0
   let baselineShareAcc = 0
   let baselineEntryAcc = 0
-  let baselineCashWallet = 0
-  let baselineShareWallet = 0
-  let baselineEntryWallet = 0
   let migrateWasAlreadyDone = false
 
   it('seed: пишем остатки в legacy-ledger (51, 80, 861)', async () => {
@@ -147,9 +148,6 @@ describe('ledger2::migrate (Epic 1 addendum: opening через apply + RID)', (
     baselineCashAcc = parseAssetAmount((await getLedger2Account(LEDGER2_ACCOUNTS.BANK_ACCOUNT))?.debit_balance)
     baselineShareAcc = parseAssetAmount((await getLedger2Account(LEDGER2_ACCOUNTS.SHARE_FUND))?.credit_balance)
     baselineEntryAcc = parseAssetAmount((await getLedger2Account(LEDGER2_ACCOUNTS.TARGET_RECEIPTS))?.credit_balance)
-    baselineCashWallet = parseAssetAmount((await getLedger2Wallet(LEDGER2_WALLETS.CASH_MAIN))?.available)
-    baselineShareWallet = parseAssetAmount((await getLedger2Wallet(LEDGER2_WALLETS.SHARE_FUND_PAY))?.available)
-    baselineEntryWallet = parseAssetAmount((await getLedger2Wallet(LEDGER2_WALLETS.ENTRANCE_FEES))?.available)
 
     await ledgerAdd(LEGACY_ACCOUNTS.BANK_ACCOUNT, rubAmount(seedCash), generateRandomSHA256(), 'ant')
     await ledgerAdd(LEGACY_ACCOUNTS.SHARE_FUND, rubAmount(seedShare), generateRandomSHA256(), 'ant')
@@ -179,7 +177,7 @@ describe('ledger2::migrate (Epic 1 addendum: opening через apply + RID)', (
     expect(Number(meta.migrated_coops)).toBeGreaterThan(0)
   })
 
-  it('AC2: account 51 (BANK_ACCOUNT) получил seedCash на debit (через mig.opncash)', async () => {
+  it('AC2: account 51 (BANK_ACCOUNT, ACTIVE) получил весь seedCash на debit', async () => {
     const acc = await getLedger2Account(LEDGER2_ACCOUNTS.BANK_ACCOUNT)
     expect(acc).toBeDefined()
     expect(Number(acc.account_type)).toBe(LedgerAccountType.ACTIVE)
@@ -188,7 +186,7 @@ describe('ledger2::migrate (Epic 1 addendum: opening через apply + RID)', (
     }
   })
 
-  it('AC3: account 80 (SHARE_FUND, PASSIVE) получил seedShare на credit (через mig.opnshr)', async () => {
+  it('AC3: account 80 (SHARE_FUND, PASSIVE) получил seedShare на credit (прямой Cr 80)', async () => {
     const acc = await getLedger2Account(LEDGER2_ACCOUNTS.SHARE_FUND)
     expect(acc).toBeDefined()
     expect(Number(acc.account_type)).toBe(LedgerAccountType.PASSIVE)
@@ -197,7 +195,7 @@ describe('ledger2::migrate (Epic 1 addendum: opening через apply + RID)', (
     }
   })
 
-  it('AC4: account 86 (TARGET_RECEIPTS, PASSIVE) получил seedEntry на credit (через mig.opnent)', async () => {
+  it('AC4: account 86 (TARGET_RECEIPTS, PASSIVE) получил seedEntry на credit (через TRANSIT_ENTRY)', async () => {
     const acc = await getLedger2Account(LEDGER2_ACCOUNTS.TARGET_RECEIPTS)
     expect(acc).toBeDefined()
     expect(Number(acc.account_type)).toBe(LedgerAccountType.PASSIVE)
@@ -206,47 +204,61 @@ describe('ledger2::migrate (Epic 1 addendum: opening через apply + RID)', (
     }
   })
 
-  it('AC5: account 99 (OPENING_TRANSIT) — после миграции debit ≡ credit (транзит обнулён)', async () => {
-    const acc = await getLedger2Account(LEDGER2_ACCOUNTS.OPENING_TRANSIT)
-    if (!migrateWasAlreadyDone) {
-      // Свежий прогон с ненулевым seed'ом обязан создать 99 с Dr == Cr.
-      expect(acc).toBeDefined()
-      expect(Number(acc.account_type)).toBe(LedgerAccountType.ACTIVE_PASSIVE)
-      expect(parseAssetAmount(acc.debit_balance)).toBeCloseTo(parseAssetAmount(acc.credit_balance), 4)
-    } else if (acc) {
-      // На уже мигрированной цепочке: если запись 99 ещё есть, сальдо должно быть сведено.
-      expect(parseAssetAmount(acc.debit_balance)).toBeCloseTo(parseAssetAmount(acc.credit_balance), 4)
-    }
+  it('AC5: счёт 99 (OPENING_TRANSIT) больше не существует — пересмотр 2026-04-20 удалил его из плана счетов', async () => {
+    // Старая схема делала 99 как транзит; новая — прямые проводки. Запись 99 в
+    // accounts2 не должна появляться вообще. Проверка через getTableRows на id=99_000.
+    const rows = await blockchain.getTableRows(LEDGER2, COOP, 'accounts', 500)
+    const legacy99 = rows.find((row: any) => Number(row.id) === 99_000)
+    expect(legacy99, 'account 99_000 (OPENING_TRANSIT) не должен существовать после migrate').toBeUndefined()
   })
 
-  it('AC6: wallets 1001/2001/3001 содержат seed-суммы, поле balance в accounts корректно', async () => {
+  it('AC6: балансы accounts2 консистентны — 51 (Dr) == 80 + 86 (Cr) после миграции', async () => {
     const cashAcc = await getLedger2Account(LEDGER2_ACCOUNTS.BANK_ACCOUNT)
     const shareAcc = await getLedger2Account(LEDGER2_ACCOUNTS.SHARE_FUND)
     const entryAcc = await getLedger2Account(LEDGER2_ACCOUNTS.TARGET_RECEIPTS)
 
-    // После migrate все три счёта (активный 51, пассивные 80/86) обязаны существовать
-    // с полем balance — иначе регрессия контракта: accounts2 не эмитит balance
-    // или записи вовсе не создаются.
     expect(cashAcc, 'BANK_ACCOUNT (51) не найден после migrate').toBeDefined()
     expect(shareAcc, 'SHARE_FUND (80) не найден после migrate').toBeDefined()
     expect(entryAcc, 'TARGET_RECEIPTS (86) не найден после migrate').toBeDefined()
 
+    // Consistency инвариант: balance == ±(debit_balance − credit_balance).
     expect(parseAssetAmount(cashAcc.balance)).toBeCloseTo(parseAssetAmount(cashAcc.debit_balance) - parseAssetAmount(cashAcc.credit_balance), 4)
     expect(parseAssetAmount(shareAcc.balance)).toBeCloseTo(parseAssetAmount(shareAcc.credit_balance) - parseAssetAmount(shareAcc.debit_balance), 4)
     expect(parseAssetAmount(entryAcc.balance)).toBeCloseTo(parseAssetAmount(entryAcc.credit_balance) - parseAssetAmount(entryAcc.debit_balance), 4)
-
-    if (!migrateWasAlreadyDone) {
-      const cashWallet = await getLedger2Wallet(LEDGER2_WALLETS.CASH_MAIN)
-      const shareWallet = await getLedger2Wallet(LEDGER2_WALLETS.SHARE_FUND_PAY)
-      const entryWallet = await getLedger2Wallet(LEDGER2_WALLETS.ENTRANCE_FEES)
-      expect(parseAssetAmount(cashWallet?.available)).toBeCloseTo(baselineCashWallet + seedCash, 4)
-      expect(parseAssetAmount(shareWallet?.available)).toBeCloseTo(baselineShareWallet + seedShare, 4)
-      expect(parseAssetAmount(entryWallet?.available)).toBeCloseTo(baselineEntryWallet + seedEntry, 4)
-    }
   })
 
-  it('AC7: повторный migrate() после полного прогона → тихий no-op (без ошибки)', async () => {
-    // Снимаем снапшот состояния ДО повторного вызова — должно остаться неизменным.
+  it('AC7: wallet CASH_MAIN (1001) больше НЕ существует — убран из плана кошельков', async () => {
+    // Пересмотр 2026-04-20: CASH_MAIN удалён, счёт 51 ведётся только в accounts2.
+    // Никаких wallet-записей под id=1001 быть не должно.
+    const rows = await blockchain.getTableRows(LEDGER2, COOP, 'wallets', 200)
+    const legacyCashMain = rows.find((row: any) => Number(row.id) === 1001)
+    expect(legacyCashMain, 'wallet 1001 (CASH_MAIN) не должен существовать после migrate').toBeUndefined()
+  })
+
+  it('AC8: Σ wallets (2001 + 2002 + 3001 + 2003) == seedCash для свежего прогона', async () => {
+    if (migrateWasAlreadyDone) {
+      console.log('⏩ migrate был ранее — AC8 проверка Σ wallets пропущена (неизвестен baseline)')
+      return
+    }
+    const sharePayWallet = await getLedger2Wallet(LEDGER2_WALLETS.SHARE_FUND_PAY)
+    const minShareWallet = await getLedger2Wallet(LEDGER2_WALLETS.MIN_SHARE_FUND)
+    const entryWallet = await getLedger2Wallet(LEDGER2_WALLETS.ENTRANCE_FEES)
+    const ridWallet = await getLedger2Wallet(LEDGER2_WALLETS.SHARE_FUND_RID)
+
+    const totalWallets =
+      parseAssetAmount(sharePayWallet?.available) +
+      parseAssetAmount(minShareWallet?.available) +
+      parseAssetAmount(entryWallet?.available) +
+      parseAssetAmount(ridWallet?.available)
+
+    // Семантика: Σ по money-кошелькам (паевой фонд + вступительные) должна быть
+    // равна cash_legacy, т.к. все поступления на 51 зеркалируются в wallets.
+    // Wallet RID отражается только в рамках rid_share (у Восхода-seed без РИД = 0).
+    // При отсутствии progwallets Blagorost/Generator — это простое равенство.
+    expect(totalWallets).toBeCloseTo(seedCash, 4)
+  })
+
+  it('AC9: повторный migrate() после полного прогона → тихий no-op', async () => {
     const metaBefore = await getLedger2Meta()
     expect(metaBefore).toBeDefined()
     expect(Boolean(metaBefore.migrated)).toBe(true)
@@ -261,7 +273,6 @@ describe('ledger2::migrate (Epic 1 addendum: opening через apply + RID)', (
     const res = await migrate()
     expect(res.transaction_id).toBeDefined()
 
-    // Snapshot после — идентичен до. Ни meta, ни балансы не меняются.
     const metaAfter = await getLedger2Meta()
     expect(Boolean(metaAfter.migrated)).toBe(true)
     expect(Number(metaAfter.migrated_coops)).toBe(Number(metaBefore.migrated_coops))
