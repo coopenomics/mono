@@ -135,6 +135,7 @@ describe('ledger2::migrate (пересмотр 2026-04-20: 6 TRANSIT_* без 99
   let baselineCashAcc = 0
   let baselineShareAcc = 0
   let baselineEntryAcc = 0
+  let baselineWalletsTotal = 0
   let migrateWasAlreadyDone = false
 
   it('seed: пишем остатки в legacy-ledger (51, 80, 861)', async () => {
@@ -148,6 +149,19 @@ describe('ledger2::migrate (пересмотр 2026-04-20: 6 TRANSIT_* без 99
     baselineCashAcc = parseAssetAmount((await getLedger2Account(LEDGER2_ACCOUNTS.BANK_ACCOUNT))?.debit_balance)
     baselineShareAcc = parseAssetAmount((await getLedger2Account(LEDGER2_ACCOUNTS.SHARE_FUND))?.credit_balance)
     baselineEntryAcc = parseAssetAmount((await getLedger2Account(LEDGER2_ACCOUNTS.TARGET_RECEIPTS))?.credit_balance)
+
+    // Baseline Σ wallets (2001+2002+3001+2003): testnet-boot мог создать
+    // начальные балансы для пайщиков. AC8 проверяет что seed добавил ровно
+    // seedCash сверху baseline.
+    const sharePayW = await getLedger2Wallet(LEDGER2_WALLETS.SHARE_FUND_PAY)
+    const minShareW = await getLedger2Wallet(LEDGER2_WALLETS.MIN_SHARE_FUND)
+    const entryW = await getLedger2Wallet(LEDGER2_WALLETS.ENTRANCE_FEES)
+    const ridW = await getLedger2Wallet(LEDGER2_WALLETS.SHARE_FUND_RID)
+    baselineWalletsTotal =
+      parseAssetAmount(sharePayW?.available) +
+      parseAssetAmount(minShareW?.available) +
+      parseAssetAmount(entryW?.available) +
+      parseAssetAmount(ridW?.available)
 
     await ledgerAdd(LEGACY_ACCOUNTS.BANK_ACCOUNT, rubAmount(seedCash), generateRandomSHA256(), 'ant')
     await ledgerAdd(LEGACY_ACCOUNTS.SHARE_FUND, rubAmount(seedShare), generateRandomSHA256(), 'ant')
@@ -235,7 +249,7 @@ describe('ledger2::migrate (пересмотр 2026-04-20: 6 TRANSIT_* без 99
     expect(legacyCashMain, 'wallet 1001 (CASH_MAIN) не должен существовать после migrate').toBeUndefined()
   })
 
-  it('AC8: Σ wallets (2001 + 2002 + 3001 + 2003) == seedCash для свежего прогона', async () => {
+  it('AC8: Σ wallets (2001 + 2002 + 3001 + 2003) == baseline + seedCash (инвариант миграции)', async () => {
     if (migrateWasAlreadyDone) {
       console.log('⏩ migrate был ранее — AC8 проверка Σ wallets пропущена (неизвестен baseline)')
       return
@@ -251,11 +265,11 @@ describe('ledger2::migrate (пересмотр 2026-04-20: 6 TRANSIT_* без 99
       parseAssetAmount(entryWallet?.available) +
       parseAssetAmount(ridWallet?.available)
 
-    // Семантика: Σ по money-кошелькам (паевой фонд + вступительные) должна быть
-    // равна cash_legacy, т.к. все поступления на 51 зеркалируются в wallets.
-    // Wallet RID отражается только в рамках rid_share (у Восхода-seed без РИД = 0).
-    // При отсутствии progwallets Blagorost/Generator — это простое равенство.
-    expect(totalWallets).toBeCloseTo(seedCash, 4)
+    // Инвариант: seed добавил ровно seedCash в Σ money-кошельков над baseline.
+    // Baseline снимался ДО seed (в первом it) — теперь baseline + seedCash.
+    // Благорост (9001) и Генератор (10001) в эту сумму не входят — они emplace-ятся
+    // отдельно из soviet::progwallets без участия в бух-проводках.
+    expect(totalWallets).toBeCloseTo(baselineWalletsTotal + seedCash, 4)
   })
 
   it('AC9: повторный migrate() после полного прогона → тихий no-op', async () => {
