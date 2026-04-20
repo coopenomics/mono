@@ -35,10 +35,10 @@ void ledger2::apply(eosio::name coopname,
   }
 
   // -------- validate coopname --------
+  // Используем общий хелпер из lib/domain/table_registrator_coops.hpp —
+  // он проверяет и существование, и флаг is_cooperative, и статус='active'.
   eosio::check(coopname.value != 0, "coopname пустой");
-  cooperatives2_index coops(_registrator, _registrator.value);
-  eosio::check(coops.find(coopname.value) != coops.end(),
-               std::string{"Неизвестный coopname: "} + coopname.to_string());
+  get_cooperative_or_fail(coopname);
 
   // Нотификация кооперативу — только после валидации, чтобы не отправлять
   // recipient-хук на несуществующий/неправильный coopname.
