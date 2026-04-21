@@ -85,12 +85,67 @@ export function makeShotContext({ scenarioName, outDir }) {
     console.log(`  📸 ${name} → ${filePath}`);
     return entry;
   }
+
+  // Снимает конкретный DOM-элемент (по selector или Locator) в его нативном рендере.
+  // opts.zoom — временный CSS zoom (×N), при котором фоны и шрифты ререндерятся
+  //   в целевом размере: ×2.5 даёт чёткий крупный PNG без ресэмплинга битмапа.
+  // opts.padding — дополнительные px вокруг элемента (растянет bbox, чтобы захватить тень/обводку).
+  async function shotElement(pageOrLocator, name, description, selectorOrLocator, opts = {}) {
+    const page = pageOrLocator.page ? pageOrLocator.page() : pageOrLocator;
+    const locator = typeof selectorOrLocator === 'string'
+      ? page.locator(selectorOrLocator).first()
+      : selectorOrLocator;
+    await locator.waitFor({ state: 'visible', timeout: 15000 });
+
+    const zoom = opts.zoom ?? 1;
+    // Применяем zoom через CSS — элемент реально ре-лейаутится на zoom×,
+    // шрифты/иконки ре-растеризуются нативно. Восстанавливаем в finally.
+    if (zoom !== 1) {
+      await locator.evaluate((el, z) => {
+        el.dataset._prevZoom = el.style.zoom || '';
+        el.style.zoom = String(z);
+      }, zoom);
+      await page.waitForTimeout(100); // reflow
+    }
+
+    const filePath = path.join(outDir, `${name}.png`);
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
+    try {
+      if (opts.padding) {
+        const box = await locator.boundingBox();
+        const p = opts.padding;
+        await page.screenshot({
+          path: filePath,
+          clip: {
+            x: Math.max(0, box.x - p), y: Math.max(0, box.y - p),
+            width: box.width + p * 2, height: box.height + p * 2,
+          },
+        });
+      } else {
+        await locator.screenshot({ path: filePath });
+      }
+    } finally {
+      if (zoom !== 1) {
+        await locator.evaluate(el => { el.style.zoom = el.dataset._prevZoom || ''; delete el.dataset._prevZoom; });
+      }
+    }
+
+    const entry = {
+      name, description, file: `${name}.png`,
+      url: page.url(), element: true, zoom,
+      at: new Date().toISOString(),
+    };
+    shots.push(entry);
+    console.log(`  📸 ${name} (element${zoom !== 1 ? ` ×${zoom}` : ''}) → ${filePath}`);
+    return entry;
+  }
+
   async function writeManifest(meta) {
     const manifest = { scenario: scenarioName, meta, shots };
     await fs.writeFile(path.join(outDir, 'manifest.json'), JSON.stringify(manifest, null, 2));
     return manifest;
   }
-  return { shot, shots, writeManifest };
+  return { shot, shotElement, shots, writeManifest };
 }
 
 export { expect };
