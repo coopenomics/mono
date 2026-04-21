@@ -17,11 +17,51 @@
 
 ```bash
 cd docs-harness
-node run.mjs auth/signin         # прогон сценария
-node lib/render-md.mjs shots/auth/signin/manifest.json   # черновик MD
-node lib/install.mjs auth/signin # скопировать PNG+MD в ../components/docs/docs/
-                                 # (этого же клона; --docs-root=<path> чтобы писать в другой)
+node run.mjs auth/signin                                 # 1. прогон → shots/auth/signin/*.png + manifest.json
+node lib/render-md.mjs shots/auth/signin/manifest.json   # 2. черновик MD (только если draft.md ещё нет;
+                                                         #    --force перегенерирует скелет)
+# 3. пишешь прозу с admonitions в shots/auth/signin/draft.md руками
+node lib/install.mjs auth/signin                         # 4. PNG+MD → ../components/docs/docs/
+                                                         #    (--md чтобы принудительно перелить draft.md
+                                                         #    поверх существующего; --docs-root=<path>
+                                                         #    для другого клона)
 ```
+
+## Контур сборки документации (end-to-end)
+
+```
+scenario.mjs ──run.mjs──► shots/<s>/*.png + manifest.json
+                            │
+                            ▼
+             (ты дописываешь прозу в shots/<s>/draft.md)
+                            │
+                            ▼
+              ──install.mjs──► components/docs/docs/
+                                 ├── assets/new/<s>/*.png
+                                 └── new/<s>/index.md
+
+       ┌─────────────────────────────┘
+       ▼
+   mkdocs.yml: nav: …                 (один раз на новый раздел — руками)
+       │
+       ▼
+   mkdocs build / mkdocs serve
+       │
+       ▼
+   site/  ← готовая статика (MkDocs сам копирует всё из docs/, включая assets/)
+```
+
+Полный пример сборки на сервере:
+```bash
+python3 -m venv /tmp/mkdocs-venv
+/tmp/mkdocs-venv/bin/pip install mkdocs-material mkdocs-macros-plugin mkdocs-section-index 'pymdown-extensions>10'
+cd components/docs
+/tmp/mkdocs-venv/bin/mkdocs serve          # http://127.0.0.1:8000 с live reload
+# или
+/tmp/mkdocs-venv/bin/mkdocs build          # site/ — статика для gh-pages
+```
+
+MkDocs **сам** переносит всё из `docs/` в `site/` (включая `assets/`), специально конфигурить копирование изображений не надо — абсолютные пути `/assets/new/…/*.png` в MD работают без доп. настроек.
 
 ## Как добавить новый сценарий
 

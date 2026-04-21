@@ -35,12 +35,14 @@ if (docPath) {
   const draftSrc = path.join(srcShotsDir, 'draft.md');
   const destDoc = path.join(docsRoot, docPath);
   const exists = await fs.access(destDoc).then(() => true).catch(() => false);
-  if (exists) {
-    console.log(`  md   ${docPath} уже существует — не перезаписываю (картинки обновлены). Вручную слейте изменения из ${draftSrc}`);
+  const forceMd = process.argv.includes('--md') || process.argv.includes('--force');
+  if (exists && !forceMd) {
+    console.log(`  md   ${docPath} уже существует — не перезаписываю (PNG обновлены).`);
+    console.log(`       Если правил прозу в ${draftSrc} — прогони ещё раз с флагом --md.`);
   } else {
     await fs.mkdir(path.dirname(destDoc), { recursive: true });
     await fs.copyFile(draftSrc, destDoc);
-    console.log(`  md   ${draftSrc} → ${destDoc}`);
+    console.log(`  md   ${draftSrc} → ${destDoc}${exists ? ' (--md: перезаписан)' : ''}`);
   }
 }
 
