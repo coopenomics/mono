@@ -55,4 +55,8 @@ import { REPORT_REQUISITES_REPOSITORY } from './domain/repositories/report-requi
     REPORT_REQUISITES_REPOSITORY,
   ],
 })
-export class ReportsExtensionModule {}
+export class ReportsExtensionModule {
+  // Lifecycle-сервис вызывает moduleInstance.initialize(config) после миграций схемы.
+  // У reports нет собственного состояния/крона — initialize-стаб, как у BuiltinPluginModule.
+  async initialize(): Promise<void> {}
+}
