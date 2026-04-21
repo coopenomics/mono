@@ -35,6 +35,13 @@ if (process.argv.includes('--stdout')) {
   process.stdout.write(md);
 } else {
   const outPath = path.join(path.dirname(manifestPath), 'draft.md');
-  await fs.writeFile(outPath, md);
-  console.log(`✓ draft MD → ${outPath}`);
+  const exists = await fs.access(outPath).then(() => true).catch(() => false);
+  const force = process.argv.includes('--force');
+  if (exists && !force) {
+    console.log(`↷ ${outPath} уже существует — НЕ перезаписываю (используйте --force чтобы перегенерировать скелет).`);
+    console.log('  Проза остаётся; если поменялся состав скриншотов — смержите вручную.');
+  } else {
+    await fs.writeFile(outPath, md);
+    console.log(`✓ draft MD → ${outPath}`);
+  }
 }
