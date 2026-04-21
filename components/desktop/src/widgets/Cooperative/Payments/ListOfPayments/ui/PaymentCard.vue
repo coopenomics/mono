@@ -32,11 +32,11 @@
           .row.justify-center.q-gutter-sm
             SetOrderPaidStatusButton(
               v-if='payment.id && ["PENDING", "FAILED", "EXPIRED"].includes(payment.status)',
-              :id='payment.id'
+              :id='String(payment.id)'
             )
             SetOrderRefundedStatusButton(
               v-if='payment.id && ["PENDING", "FAILED", "EXPIRED"].includes(payment.status)',
-              :id='payment.id'
+              :id='String(payment.id)'
             )
 
         q-card-section
