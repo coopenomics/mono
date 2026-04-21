@@ -110,11 +110,14 @@ nav:
     - Аутентификация: new/installation/dev/auth.md
     - Подробный старт: new/installation/dev/init.md
     
-  - Регистрация пайщика: 
+  - Регистрация пайщика:
     - new/registration/index.md
     - Вступить в пайщики: new/registration/join.md
     - Принять пайщика: new/registration/accept.md
     - Разработчикам: new/registration/dev.md
+
+  - Вход в систему:
+    - Вход пайщика: new/auth/signin.md
 
   - Аккаунты:
     - new/accounts/index.md
