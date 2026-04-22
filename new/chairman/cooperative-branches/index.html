@@ -2606,6 +2606,8 @@
 <span class="w">          </span><span class="nx">phone</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Телефон</span>
 <span class="w">          </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя аккаунта</span>
 <span class="w">        </span><span class="p">}[]</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Доверенные аккаунты</span>
+
+<span class="nx">Требуемые</span><span class="w"> </span><span class="nx">роли</span><span class="o">:</span><span class="w"> </span><span class="kt">chairman</span><span class="p">,</span><span class="w"> </span><span class="nx">member</span><span class="p">.</span>
 <span class="w">      </span><span class="nx">trustee</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nx">birthdate</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Дата рождения</span>
 <span class="w">        </span><span class="nx">email</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Email</span>
@@ -2629,7 +2631,7 @@
 </code></pre></div>
 <h3 id="_4">Создать участок<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h3>
 <p>🛠️ SDK: <a href="/sdk/modules/Mutations.Branches.CreateBranch.html">Mutations.Branches.CreateBranch</a> | <a href="/graphql/index.html#mutation-createBranch">Mutation.createBranch</a></p>
-<p>Создать кооперативный участок</p>
+<p>Создать кооперативный участок Требуемые роли: chairman.</p>
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Mutations</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
 
 <span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.Branches.CreateBranch.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
@@ -2712,6 +2714,8 @@
 <span class="w">        </span><span class="nx">phone</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Телефон</span>
 <span class="w">        </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя аккаунта</span>
 <span class="w">      </span><span class="p">}[]</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Доверенные аккаунты</span>
+
+<span class="nx">Требуемые</span><span class="w"> </span><span class="nx">роли</span><span class="o">:</span><span class="w"> </span><span class="kt">chairman</span><span class="p">,</span><span class="w"> </span><span class="nx">member</span><span class="p">.</span>
 <span class="w">    </span><span class="nx">trustee</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="nx">birthdate</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Дата рождения</span>
 <span class="w">      </span><span class="nx">email</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Email</span>
@@ -2735,7 +2739,7 @@
 </code></pre></div>
 <h3 id="_5">Изменить участок<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h3>
 <p>🛠️ SDK: <a href="/sdk/modules/Mutations.Branches.EditBranch.html">Mutations.Branches.EditBranch</a> | <a href="/graphql/index.html#mutation-editBranch">Mutation.editBranch</a></p>
-<p>Изменить кооперативный участок</p>
+<p>Изменить кооперативный участок Требуемые роли: chairman.</p>
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Mutations</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
 
 <span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.Branches.EditBranch.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
@@ -2818,6 +2822,8 @@
 <span class="w">        </span><span class="nx">phone</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Телефон</span>
 <span class="w">        </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя аккаунта</span>
 <span class="w">      </span><span class="p">}[]</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Доверенные аккаунты</span>
+
+<span class="nx">Требуемые</span><span class="w"> </span><span class="nx">роли</span><span class="o">:</span><span class="w"> </span><span class="kt">chairman</span><span class="p">,</span><span class="w"> </span><span class="nx">member</span><span class="p">.</span>
 <span class="w">    </span><span class="nx">trustee</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="nx">birthdate</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Дата рождения</span>
 <span class="w">      </span><span class="nx">email</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Email</span>
@@ -2841,7 +2847,7 @@
 </code></pre></div>
 <h3 id="_6">Удалить участок<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h3>
 <p>🛠️ SDK: <a href="/sdk/modules/Mutations.Branches.DeleteBranch.html">Mutations.Branches.DeleteBranch</a> | <a href="/graphql/index.html#mutation-deleteBranch">Mutation.deleteBranch</a></p>
-<p>Удалить кооперативный участок</p>
+<p>Удалить кооперативный участок Требуемые роли: chairman.</p>
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Mutations</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
 
 <span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.Branches.DeleteBranch.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
@@ -2859,11 +2865,13 @@
 <p>Результат:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">interface</span><span class="w"> </span><span class="nx">IOutput</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="nx">deleteBranch</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">boolean</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Удалить кооперативный участок</span>
+
+<span class="nx">Требуемые</span><span class="w"> </span><span class="nx">роли</span><span class="o">:</span><span class="w"> </span><span class="kt">chairman.</span>
 <span class="p">}</span>
 </code></pre></div>
 <h3 id="_7">Документ выбора участка пайщиком<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h3>
 <p>🛠️ SDK: <a href="/sdk/modules/Mutations.Branches.GenerateSelectBranchDocument.html">Mutations.Branches.GenerateSelectBranchDocument</a> | <a href="/graphql/index.html#mutation-generateSelectBranchDocument">Mutation.generateSelectBranchDocument</a></p>
-<p>Сгенерировать документ, подтверждающий выбор кооперативного участка</p>
+<p>Сгенерировать документ, подтверждающий выбор кооперативного участка Требуемые роли: chairman, member, user.</p>
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Mutations</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
 
 <span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.Branches.GenerateSelectBranchDocument.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
@@ -2904,7 +2912,7 @@
 </code></pre></div>
 <h3 id="_8">Выбор участка пайщиком<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h3>
 <p>🛠️ SDK: <a href="/sdk/modules/Mutations.Branches.SelectBranch.html">Mutations.Branches.SelectBranch</a> | <a href="/graphql/index.html#mutation-selectBranch">Mutation.selectBranch</a></p>
-<p>Выбрать кооперативный участок</p>
+<p>Выбрать кооперативный участок Требуемые роли: chairman, member, user.</p>
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Mutations</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
 
 <span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.Branches.SelectBranch.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
@@ -2952,11 +2960,13 @@
 <p>Результат:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">interface</span><span class="w"> </span><span class="nx">IOutput</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="nx">selectBranch</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">boolean</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Выбрать кооперативный участок</span>
+
+<span class="nx">Требуемые</span><span class="w"> </span><span class="nx">роли</span><span class="o">:</span><span class="w"> </span><span class="kt">chairman</span><span class="p">,</span><span class="w"> </span><span class="nx">member</span><span class="p">,</span><span class="w"> </span><span class="nx">user</span><span class="p">.</span>
 <span class="p">}</span>
 </code></pre></div>
 <h3 id="_9">Добавить доверенное лицо<a class="headerlink" href="#_9" title="Permanent link">&para;</a></h3>
 <p>🛠️ SDK: <a href="/sdk/modules/Mutations.Branches.AddTrustedAccount.html">Mutations.Branches.AddTrustedAccount</a> | <a href="/graphql/index.html#mutation-addTrustedAccount">Mutation.addTrustedAccount</a></p>
-<p>Добавить доверенное лицо кооперативного участка</p>
+<p>Добавить доверенное лицо кооперативного участка Требуемые роли: chairman.</p>
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Mutations</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
 
 <span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.Branches.AddTrustedAccount.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
@@ -3033,6 +3043,8 @@
 <span class="w">        </span><span class="nx">phone</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Телефон</span>
 <span class="w">        </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя аккаунта</span>
 <span class="w">      </span><span class="p">}[]</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Доверенные аккаунты</span>
+
+<span class="nx">Требуемые</span><span class="w"> </span><span class="nx">роли</span><span class="o">:</span><span class="w"> </span><span class="kt">chairman</span><span class="p">,</span><span class="w"> </span><span class="nx">member</span><span class="p">.</span>
 <span class="w">    </span><span class="nx">trustee</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="nx">birthdate</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Дата рождения</span>
 <span class="w">      </span><span class="nx">email</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Email</span>
@@ -3056,7 +3068,7 @@
 </code></pre></div>
 <h3 id="_10">Удалить доверенное лицо<a class="headerlink" href="#_10" title="Permanent link">&para;</a></h3>
 <p>🛠️ SDK: <a href="/sdk/modules/Mutations.Branches.DeleteTrustedAccount.html">Mutations.Branches.DeleteTrustedAccount</a> | <a href="/graphql/index.html#mutation-deleteTrustedAccount">Mutation.deleteTrustedAccount</a></p>
-<p>Удалить доверенное лицо кооперативного участка</p>
+<p>Удалить доверенное лицо кооперативного участка Требуемые роли: chairman.</p>
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Mutations</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
 
 <span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.Branches.DeleteTrustedAccount.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
@@ -3133,6 +3145,8 @@
 <span class="w">        </span><span class="nx">phone</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Телефон</span>
 <span class="w">        </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя аккаунта</span>
 <span class="w">      </span><span class="p">}[]</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Доверенные аккаунты</span>
+
+<span class="nx">Требуемые</span><span class="w"> </span><span class="nx">роли</span><span class="o">:</span><span class="w"> </span><span class="kt">chairman</span><span class="p">,</span><span class="w"> </span><span class="nx">member</span><span class="p">.</span>
 <span class="w">    </span><span class="nx">trustee</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="nx">birthdate</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Дата рождения</span>
 <span class="w">      </span><span class="nx">email</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Email</span>

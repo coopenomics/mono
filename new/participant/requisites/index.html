@@ -2406,7 +2406,11 @@
 <p>Канонические имена полей и типов — в файле <code>components/controller/schema.gql</code> монорепозитория; интерактивно — в <a href="/graphql">документации GraphQL-API</a>.</p>
 <h3 id="_2">Список платёжных методов<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h3>
 <p>🛠️ SDK: <a href="/sdk/modules/Queries.PaymentMethods.GetPaymentMethods.html">Queries.PaymentMethods.GetPaymentMethods</a> | <a href="/graphql/index.html#query-getPaymentMethods">Query.getPaymentMethods</a></p>
-<p>Получить список методов оплаты</p>
+<p>Получить список методов оплаты Требуемые роли: chairman. Исключение: доступ разрешен, если</p>
+<p><code>data.username</code></p>
+<p>совпадает с</p>
+<p><code>username</code></p>
+<p>текущего пользователя.</p>
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Queries</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
 
 <span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Queries.PaymentMethods.GetPaymentMethods.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
