@@ -16,6 +16,7 @@ import { EventsInfrastructureModule } from './infrastructure/events/events.modul
 import { FreeDecisionInfrastructureModule } from './infrastructure/free-decision/free-decision-infrastructure.module';
 import { DecisionTrackingInfrastructureModule } from './infrastructure/decision-tracking/decision-tracking-infrastructure.module';
 import { SearchInfrastructureModule } from './infrastructure/search/search-infrastructure.module';
+import { FileStorageInfrastructureModule } from './infrastructure/file-storage';
 
 // Domain modules
 import { AccountDomainModule } from './domain/account/account-domain.module';
@@ -97,6 +98,14 @@ import { MutationLoggingInterceptor } from './application/common/interceptors/mu
     EventsInfrastructureModule,
     FreeDecisionInfrastructureModule,
     DecisionTrackingInfrastructureModule,
+    FileStorageInfrastructureModule.forRoot({
+      endpoint: config.file_storage.endpoint,
+      accessKey: config.file_storage.access_key,
+      secretKey: config.file_storage.secret_key,
+      bucket: config.file_storage.bucket,
+      signingSecret: config.file_storage.signing_secret,
+      publicBaseUrl: config.file_storage.public_base_url,
+    }),
     // Domain modules
     AuthDomainModule,
     RegistrationDomainModule,
