@@ -100,6 +100,30 @@ export class MinioFileStorageAdapter implements InterFileStoragePort, OnApplicat
     validateSpec(spec);
     return new MinioBucketHandle(this.s3, this.opts, spec);
   }
+
+  /**
+   * Внутренний fetch для HTTP-ручки `/api/storage/:bucket/:key` (E59-4).
+   * `physicalKey` — это уже собранный ключ S3-объекта вида `<extension>-<purpose>/<caller-key>`.
+   * @throws InterFileStorageObjectNotFoundError, InterFileStorageBackendUnavailableError
+   */
+  async fetchObjectForReadProxy(physicalKey: string): Promise<FileStorageObjectStream> {
+    try {
+      const r = await this.s3.send(
+        new GetObjectCommand({ Bucket: this.opts.bucket, Key: physicalKey }),
+      );
+      return {
+        stream: r.Body as NodeJS.ReadableStream,
+        size: r.ContentLength ?? 0,
+        contentType: r.ContentType ?? 'application/octet-stream',
+        lastModified: r.LastModified ?? new Date(0),
+      };
+    } catch (e) {
+      if (isNotFound(e)) {
+        throw new InterFileStorageObjectNotFoundError(`Объект '${physicalKey}' не найден`);
+      }
+      throw wrapBackendError(e, `getObject '${physicalKey}'`);
+    }
+  }
 }
 
 class MinioBucketHandle implements InterFileStorageBucket {
@@ -216,11 +240,14 @@ class MinioBucketHandle implements InterFileStorageBucket {
 }
 
 /**
- * Внутренний доступ к S3-методу `GetObject` — нужен HTTP-ручке `/api/storage/...` (E59-4),
- * чтобы стримить байты из MinIO. Не часть публичного `InterFileStoragePort`.
+ * Результат внутреннего fetch для HTTP-ручки `/api/storage/...`.
+ * Не часть публичного `InterFileStoragePort` — только для proxy-стрима внутри контроллера.
  */
-export function buildGetObjectCommand(args: { bucket: string; key: string }): GetObjectCommand {
-  return new GetObjectCommand({ Bucket: args.bucket, Key: args.key });
+export interface FileStorageObjectStream {
+  stream: NodeJS.ReadableStream;
+  size: number;
+  contentType: string;
+  lastModified: Date;
 }
 
 function validateSpec(spec: InterFileStorageBucketSpec): void {

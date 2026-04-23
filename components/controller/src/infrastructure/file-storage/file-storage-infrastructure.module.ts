@@ -5,6 +5,7 @@ import {
   FILE_STORAGE_OPTIONS,
   type FileStorageInfrastructureOptions,
 } from './file-storage.config';
+import { FileStorageHttpController } from './file-storage-http.controller';
 import { MinioFileStorageAdapter } from './minio-file-storage.adapter';
 import { bucketTokenFor } from './use-bucket.decorator';
 
@@ -24,6 +25,7 @@ export class FileStorageInfrastructureModule {
   static forRoot(options: FileStorageInfrastructureOptions): DynamicModule {
     return {
       module: FileStorageInfrastructureModule,
+      controllers: [FileStorageHttpController],
       providers: [
         { provide: FILE_STORAGE_OPTIONS, useValue: options },
         MinioFileStorageAdapter,
