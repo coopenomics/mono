@@ -21,6 +21,7 @@
     "start": "ts-node  -r tsconfig-paths/register src/index.ts",
     "dev": "nodemon --watch src --watch migrations --ext ts,js,env --exec 'ts-node -r tsconfig-paths/register' src/index.ts",
     "test": "echo 'Controller tests: integration tests run via @coopenomics/boot' && exit 0",
+    "test:integration:file-storage": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --testRegex 'tests/file-storage/.*\\.integration\\.spec\\.ts$' --testPathIgnorePatterns='/node_modules/' --testTimeout=60000 -i",
     "test:watch": "jest -i --watchAll",
     "coverage": "jest -i --coverage",
     "coverage:coveralls": "jest -i --coverage --coverageReporters=text-lcov | coveralls",
