@@ -98,7 +98,6 @@ markdown_extensions:
       alternate_style: true
 nav:
   - Введение: index.md
-  - Реестр стандартов: https://docs.coopenomics.world/standards/
   - Лицензия: new/installation/index.md          # Главная страница раздела
   - Облачная поставка: new/connection/index.md
   - Установка: new/installation/chairman.md
@@ -110,8 +109,10 @@ nav:
     - SDK: new/installation/dev/sdk.md
     - Аутентификация: new/installation/dev/auth.md
     - Подробный старт: new/installation/dev/init.md
-    
-  - Регистрация пайщика: 
+
+  - Реестр стандартов: /standards
+
+  - Регистрация пайщика:
     - new/registration/index.md
     - Вступить в пайщики: new/registration/join.md
     - Принять пайщика: new/registration/accept.md
