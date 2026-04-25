@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { CancelButton } from 'src/features/Request/CancelRequest'
 import { SupplyOnRequestButton } from 'src/features/Request/SupplyOnRequest'
-import { computed, withDefaults } from 'vue'
+import { computed } from 'vue'
 import type { IStepProps } from '../../model'
 
 import { useSessionStore } from 'src/entities/Session'

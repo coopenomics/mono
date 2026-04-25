@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { CancelButton } from 'src/features/Request/CancelRequest'
 import { ConfirmRecieveOnRequestButton } from 'src/features/Request/ConfirmRecieveOnRequest'
-import { computed, withDefaults } from 'vue'
+import { computed } from 'vue'
 import type { IStepProps } from '../../model'
 import { useSessionStore } from 'src/entities/Session'
 const session = useSessionStore()

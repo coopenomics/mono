@@ -1,7 +1,7 @@
 <script setup lang="ts">
   import { AcceptButton } from 'src/features/Request/AcceptRequest'
   import { DeclineButton } from 'src/features/Request/DeclineRequest'
-  import { computed, withDefaults } from 'vue'
+  import { computed } from 'vue'
   import type { IStepProps } from '../../model'
   import { useSessionStore } from 'src/entities/Session'
   const session = useSessionStore()

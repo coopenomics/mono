@@ -16,7 +16,7 @@ div
 <script setup lang="ts">
   import { CompleteOnRequestButton } from 'src/features/Request/CompleteOnRequest'
   import { DisputeOnRequestButton } from 'src/features/Request/DisputeOnRequest'
-  import { computed, withDefaults } from 'vue'
+  import { computed } from 'vue'
   import type { IStepProps } from '../../model'
   import { useSessionStore } from 'src/entities/Session'
   const session = useSessionStore()

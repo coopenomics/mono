@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { computed, withDefaults } from 'vue'
+  import { computed } from 'vue'
   import type { IStepProps } from '../../model'
   const props = withDefaults(defineProps<IStepProps>(), {})
   const currentStep = computed(()=> props.currentStep)

@@ -22,7 +22,7 @@ div
   </template>
 <script setup lang="ts">
   import { DeliverOnRequestButton } from 'src/features/Request/DeliverOnRequest'
-  import { computed, withDefaults } from 'vue'
+  import { computed } from 'vue'
   import type { IStepProps } from '../../model'
   import { useSessionStore } from 'src/entities/Session'
   const session = useSessionStore()

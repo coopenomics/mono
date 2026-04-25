@@ -72,9 +72,9 @@ q-card(flat).no-select
         div.q-mb-xs
           span.text-grey-7 Цена:
           q-badge(size="lg" color="green").q-ml-xs {{ request.unit_cost }}
-        div.q-mb-xs(v-if="request.membership_fee_amount")
+        div.q-mb-xs(v-if="request.membership_fee")
           span.text-grey-7 Членский взнос:
-          q-badge(size="lg" color="orange").q-ml-xs {{ request.membership_fee_amount }}
+          q-badge(size="lg" color="orange").q-ml-xs {{ request.membership_fee }}
         div.q-mb-xs
           span.text-grey-7 Статус:
           q-chip(:color="step > 0 ? 'primary' : 'negative'" text-color="white" dense).q-ml-xs {{ request.status }}
