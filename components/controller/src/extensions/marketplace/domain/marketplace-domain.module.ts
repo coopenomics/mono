@@ -49,4 +49,4 @@ import { MarketplaceInfrastructureModule } from '../infrastructure/marketplace-i
     REQUEST_DOMAIN_SERVICE,
   ],
 })
-export class MarketplaceDomainModule {}
+export class MarketplaceExtensionDomainModule {}

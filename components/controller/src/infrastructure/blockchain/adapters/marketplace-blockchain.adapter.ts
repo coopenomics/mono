@@ -6,10 +6,10 @@ import { VaultDomainService, VAULT_DOMAIN_SERVICE } from '~/domain/vault/service
 import { Inject } from '@nestjs/common';
 import httpStatus from 'http-status';
 import { HttpApiError } from '~/utils/httpApiError';
-import type { CooplaceBlockchainPort } from '~/domain/cooplace/interfaces/cooplace-blockchain.port';
+import type { MarketplaceBlockchainPort } from '~/domain/marketplace/interfaces/marketplace-blockchain.port';
 
 @Injectable()
-export class CooplaceBlockchainAdapter implements CooplaceBlockchainPort {
+export class MarketplaceBlockchainAdapter implements MarketplaceBlockchainPort {
   constructor(
     private readonly blockchainService: BlockchainService,
     @Inject(VAULT_DOMAIN_SERVICE) private readonly vaultDomainService: VaultDomainService

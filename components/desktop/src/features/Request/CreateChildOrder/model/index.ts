@@ -11,8 +11,8 @@ export function useCreateChildOrder() {
   async function createChildOrder(
     //TODO перевести id на хэши
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    data: Mutations.Cooplace.GenerateReturnByAssetStatement.IInput['data'] & {parent_id: number}
-  ): Promise<Mutations.Cooplace.CreateChildOrder.IOutput[typeof Mutations.Cooplace.CreateChildOrder.name]> {
+    data: Mutations.Marketplace.GenerateReturnByAssetStatement.IInput['data'] & {parent_id: number}
+  ): Promise<Mutations.Marketplace.CreateChildOrder.IOutput[typeof Mutations.Marketplace.CreateChildOrder.name]> {
 
     // const returnByAssetStatement = await api.generateReturnByAssetStatement({
     //   coopname: data.coopname,

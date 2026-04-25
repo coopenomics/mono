@@ -3,7 +3,7 @@ import { ProductCardResolver } from './application/resolvers/product-card.resolv
 import { CategoryResolver } from './application/resolvers/category.resolver';
 
 /**
- * Расширение Cooplace — бэкенд стола заказов.
+ * Расширение Marketplace — бэкенд стола заказов.
  *
  * Содержит:
  * - Управление карточками товаров (CRUD, публикация, модерация)
@@ -19,4 +19,4 @@ import { CategoryResolver } from './application/resolvers/category.resolver';
   ],
   exports: [],
 })
-export class CooplaceExtensionModule {}
+export class MarketplaceCardsModule {}

@@ -1,15 +1,15 @@
 import { Cooperative, type MarketContract } from 'cooptypes';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
-import { COOPLACE_BLOCKCHAIN_PORT, CooplaceBlockchainPort } from '~/domain/cooplace/interfaces/cooplace-blockchain.port';
+import { MARKETPLACE_BLOCKCHAIN_PORT, MarketplaceBlockchainPort } from '~/domain/marketplace/interfaces/marketplace-blockchain.port';
 import { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import { Inject, Injectable } from '@nestjs/common';
 import type { TransactResult } from '@wharfkit/session';
-import type { AcceptChildOrderInputDomainInterface } from '~/domain/cooplace/interfaces/accept-child-order-input.interface';
-import type { ConfirmReceiveOnRequestInputDomainInterface } from '~/domain/cooplace/interfaces/confirm-receive-on-request-input.interface';
-import type { ConfirmSupplyOnRequestInputDomainInterface } from '~/domain/cooplace/interfaces/confirm-supply-on-request-input.interface';
-import type { CreateChildOrderInputDomainInterface } from '~/domain/cooplace/interfaces/create-child-order-input.interface';
-import type { ReceiveOnRequestInputDomainInterface } from '~/domain/cooplace/interfaces/receive-on-request-input.interface';
-import type { SupplyOnRequestInputDomainInterface } from '~/domain/cooplace/interfaces/supply-on-request-input.interface';
+import type { AcceptChildOrderInputDomainInterface } from '~/domain/marketplace/interfaces/accept-child-order-input.interface';
+import type { ConfirmReceiveOnRequestInputDomainInterface } from '~/domain/marketplace/interfaces/confirm-receive-on-request-input.interface';
+import type { ConfirmSupplyOnRequestInputDomainInterface } from '~/domain/marketplace/interfaces/confirm-supply-on-request-input.interface';
+import type { CreateChildOrderInputDomainInterface } from '~/domain/marketplace/interfaces/create-child-order-input.interface';
+import type { ReceiveOnRequestInputDomainInterface } from '~/domain/marketplace/interfaces/receive-on-request-input.interface';
+import type { SupplyOnRequestInputDomainInterface } from '~/domain/marketplace/interfaces/supply-on-request-input.interface';
 
 import { config } from '~/config';
 import type { ReqReturnInputDTO } from '../dto/req-return-input.dto';
@@ -19,12 +19,12 @@ import type { DestroyRequestInputDTO } from '../dto/destroy-request-input.dto';
 import type { ReofferRequestInputDTO } from '../dto/reoffer-request-input.dto';
 
 @Injectable()
-export class CooplaceInteractor {
+export class MarketplaceInteractor {
   private readonly config = config;
 
   constructor(
     private readonly documentDomainService: DocumentDomainService,
-    @Inject(COOPLACE_BLOCKCHAIN_PORT) private readonly cooplaceBlockchainPort: CooplaceBlockchainPort
+    @Inject(MARKETPLACE_BLOCKCHAIN_PORT) private readonly marketplaceBlockchainPort: MarketplaceBlockchainPort
   ) {}
 
   async generateAssetContributionStatementDocument(
@@ -76,7 +76,7 @@ export class CooplaceInteractor {
   }
 
   public async acceptChildOrder(data: AcceptChildOrderInputDomainInterface): Promise<TransactResult> {
-    const result = await this.cooplaceBlockchainPort.acceptRequest({
+    const result = await this.marketplaceBlockchainPort.acceptRequest({
       ...data,
       document: { ...data.document, meta: JSON.stringify(data.document.meta) },
     });
@@ -84,17 +84,17 @@ export class CooplaceInteractor {
   }
 
   public async cancelRequest(data: MarketContract.Actions.CancelRequest.ICancelRequest): Promise<TransactResult> {
-    const result = await this.cooplaceBlockchainPort.cancelRequest(data);
+    const result = await this.marketplaceBlockchainPort.cancelRequest(data);
     return result;
   }
 
   public async completeRequest(data: MarketContract.Actions.CompleteRequest.ICompleteRequest): Promise<TransactResult> {
-    const result = await this.cooplaceBlockchainPort.completeRequest(data);
+    const result = await this.marketplaceBlockchainPort.completeRequest(data);
     return result;
   }
 
   public async confirmReceiveOnRequest(data: ConfirmReceiveOnRequestInputDomainInterface): Promise<TransactResult> {
-    const result = await this.cooplaceBlockchainPort.confirmOnReceive({
+    const result = await this.marketplaceBlockchainPort.confirmOnReceive({
       ...data,
       document: { ...data.document, meta: JSON.stringify(data.document.meta) },
     });
@@ -102,7 +102,7 @@ export class CooplaceInteractor {
   }
 
   public async confirmSupplyOnRequest(data: ConfirmSupplyOnRequestInputDomainInterface): Promise<TransactResult> {
-    const result = await this.cooplaceBlockchainPort.confirmOnSupply({
+    const result = await this.marketplaceBlockchainPort.confirmOnSupply({
       ...data,
       document: { ...data.document, meta: JSON.stringify(data.document.meta) },
     });
@@ -110,7 +110,7 @@ export class CooplaceInteractor {
   }
 
   public async createChildOrder(data: CreateChildOrderInputDomainInterface): Promise<TransactResult> {
-    const result = await this.cooplaceBlockchainPort.createChildOrder({
+    const result = await this.marketplaceBlockchainPort.createChildOrder({
       params: {
         ...data.params,
         document: { ...data.params.document, meta: JSON.stringify(data.params.document.meta) },
@@ -120,42 +120,42 @@ export class CooplaceInteractor {
   }
 
   public async createParentOffer(data: MarketContract.Actions.CreateOffer.ICreateOffer): Promise<TransactResult> {
-    const result = await this.cooplaceBlockchainPort.createParentOffer(data);
+    const result = await this.marketplaceBlockchainPort.createParentOffer(data);
     return result;
   }
 
   public async declineRequest(data: MarketContract.Actions.DeclineRequest.IDeclineRequest): Promise<TransactResult> {
-    const result = await this.cooplaceBlockchainPort.declineRequest(data);
+    const result = await this.marketplaceBlockchainPort.declineRequest(data);
     return result;
   }
 
   public async deliverOnRequest(data: MarketContract.Actions.DeliverOnRequest.IDeliverOnRequest): Promise<TransactResult> {
-    const result = await this.cooplaceBlockchainPort.deliverOnRequest(data);
+    const result = await this.marketplaceBlockchainPort.deliverOnRequest(data);
     return result;
   }
 
   public async disputeOnRequest(data: MarketContract.Actions.OpenDispute.IOpenDispute): Promise<TransactResult> {
-    const result = await this.cooplaceBlockchainPort.openDispute(data);
+    const result = await this.marketplaceBlockchainPort.openDispute(data);
     return result;
   }
 
   public async moderateRequest(data: MarketContract.Actions.ModerateRequest.IModerateRequest): Promise<TransactResult> {
-    const result = await this.cooplaceBlockchainPort.moderateRequest(data);
+    const result = await this.marketplaceBlockchainPort.moderateRequest(data);
     return result;
   }
 
   public async prohibitRequest(data: MarketContract.Actions.ProhibitRequest.IProhibitRequest): Promise<TransactResult> {
-    const result = await this.cooplaceBlockchainPort.prohibitRequest(data);
+    const result = await this.marketplaceBlockchainPort.prohibitRequest(data);
     return result;
   }
 
   public async publishRequest(data: MarketContract.Actions.PublishRequest.IPublishRequest): Promise<TransactResult> {
-    const result = await this.cooplaceBlockchainPort.publishRequest(data);
+    const result = await this.marketplaceBlockchainPort.publishRequest(data);
     return result;
   }
 
   public async receiveOnRequest(data: ReceiveOnRequestInputDomainInterface): Promise<TransactResult> {
-    const result = await this.cooplaceBlockchainPort.receiveOnRequest({
+    const result = await this.marketplaceBlockchainPort.receiveOnRequest({
       ...data,
       document: { ...data.document, meta: JSON.stringify(data.document.meta) },
     });
@@ -163,7 +163,7 @@ export class CooplaceInteractor {
   }
 
   public async supplyOnRequest(data: SupplyOnRequestInputDomainInterface): Promise<TransactResult> {
-    const result = await this.cooplaceBlockchainPort.supplyOnRequest({
+    const result = await this.marketplaceBlockchainPort.supplyOnRequest({
       ...data,
       document: { ...data.document, meta: JSON.stringify(data.document.meta) },
     });
@@ -171,19 +171,19 @@ export class CooplaceInteractor {
   }
 
   public async unpublishRequest(data: MarketContract.Actions.UnpublishRequest.IUnpublishRequest): Promise<TransactResult> {
-    const result = await this.cooplaceBlockchainPort.unpublishRequest(data);
+    const result = await this.marketplaceBlockchainPort.unpublishRequest(data);
     return result;
   }
 
   public async updateRequest(data: MarketContract.Actions.UpdateRequest.IUpdateRequest): Promise<TransactResult> {
-    const result = await this.cooplaceBlockchainPort.updateRequest(data);
+    const result = await this.marketplaceBlockchainPort.updateRequest(data);
     return result;
   }
 
   public async reqReturn(data: ReqReturnInputDTO): Promise<TransactResult> {
     const doc: Record<string, any> = { ...(data.return_statement as any) };
     doc.meta = JSON.stringify(doc.meta);
-    return await this.cooplaceBlockchainPort.reqReturn({
+    return await this.marketplaceBlockchainPort.reqReturn({
       coopname: this.config.coopname,
       username: data.username,
       request_hash: data.request_hash,
@@ -192,7 +192,7 @@ export class CooplaceInteractor {
   }
 
   public async coopstock(data: CoopstockInputDTO): Promise<TransactResult> {
-    return await this.cooplaceBlockchainPort.coopstock({
+    return await this.marketplaceBlockchainPort.coopstock({
       coopname: this.config.coopname,
       braname: data.braname,
       hash: data.hash,
@@ -210,7 +210,7 @@ export class CooplaceInteractor {
     cin.meta = JSON.stringify(cin.meta);
     const rs: Record<string, any> = { ...(data.return_statement as any) };
     rs.meta = JSON.stringify(rs.meta);
-    return await this.cooplaceBlockchainPort.acceptStock({
+    return await this.marketplaceBlockchainPort.acceptStock({
       coopname: this.config.coopname,
       username: data.username,
       request_hash: data.request_hash,
@@ -222,7 +222,7 @@ export class CooplaceInteractor {
   public async destroyRequest(data: DestroyRequestInputDTO): Promise<TransactResult> {
     const act: Record<string, any> = { ...(data.destruction_act as any) };
     act.meta = JSON.stringify(act.meta);
-    return await this.cooplaceBlockchainPort.destroy({
+    return await this.marketplaceBlockchainPort.destroy({
       coopname: this.config.coopname,
       request_hash: data.request_hash,
       destruction_act: act,
@@ -230,7 +230,7 @@ export class CooplaceInteractor {
   }
 
   public async reofferRequest(data: ReofferRequestInputDTO): Promise<TransactResult> {
-    return await this.cooplaceBlockchainPort.reoffer({
+    return await this.marketplaceBlockchainPort.reoffer({
       coopname: this.config.coopname,
       request_hash: data.request_hash,
       new_hash: data.new_hash,

@@ -2,10 +2,10 @@ import { Mutations } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 
 async function createChildOrder(
-  data: Mutations.Cooplace.CreateChildOrder.IInput['data']
-): Promise<Mutations.Cooplace.CreateChildOrder.IOutput[typeof Mutations.Cooplace.CreateChildOrder.name]> {
+  data: Mutations.Marketplace.CreateChildOrder.IInput['data']
+): Promise<Mutations.Marketplace.CreateChildOrder.IOutput[typeof Mutations.Marketplace.CreateChildOrder.name]> {
 
-  const {[Mutations.Cooplace.CreateChildOrder.name]: result} = await client.Mutation(Mutations.Cooplace.CreateChildOrder.mutation, {
+  const {[Mutations.Marketplace.CreateChildOrder.name]: result} = await client.Mutation(Mutations.Marketplace.CreateChildOrder.mutation, {
     variables: {
       data
     }
@@ -16,9 +16,9 @@ async function createChildOrder(
 }
 
 async function generateReturnByAssetStatement(
-  data: Mutations.Cooplace.GenerateReturnByAssetStatement.IInput['data']
-): Promise<Mutations.Cooplace.GenerateReturnByAssetStatement.IOutput[typeof Mutations.Cooplace.GenerateReturnByAssetStatement.name]> {
-  const {[Mutations.Cooplace.GenerateReturnByAssetStatement.name]: result} = await client.Mutation(Mutations.Cooplace.GenerateReturnByAssetStatement.mutation, {
+  data: Mutations.Marketplace.GenerateReturnByAssetStatement.IInput['data']
+): Promise<Mutations.Marketplace.GenerateReturnByAssetStatement.IOutput[typeof Mutations.Marketplace.GenerateReturnByAssetStatement.name]> {
+  const {[Mutations.Marketplace.GenerateReturnByAssetStatement.name]: result} = await client.Mutation(Mutations.Marketplace.GenerateReturnByAssetStatement.mutation, {
     variables: {
       data
     }

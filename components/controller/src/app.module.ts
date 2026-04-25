@@ -30,7 +30,7 @@ import { AgreementDomainModule } from './domain/agreement/agreement-domain.modul
 import { ParticipantDomainModule } from './domain/participant/participant-domain.module';
 import { AuthDomainModule } from './domain/auth/auth.module';
 import { AgendaDomainModule } from './domain/agenda/agenda-domain.module';
-import { CooplaceDomainModule } from './domain/cooplace/cooplace.module';
+import { MarketplaceDomainModule } from './domain/marketplace/marketplace.module';
 import { DesktopDomainModule } from './domain/desktop/desktop-domain.module';
 import { MeetDomainModule } from './domain/meet/meet-domain.module';
 import { GatewayDomainModule } from './domain/gateway/gateway-domain.module';
@@ -59,7 +59,7 @@ import { DecisionModule } from './application/free-decision/decision.module';
 import { AgreementModule } from './application/agreement/agreement.module';
 import { ParticipantModule } from './application/participant/participant.module';
 import { AgendaModule } from './application/agenda/agenda.module';
-import { CooplaceModule } from './application/cooplace/cooplace.module';
+import { MarketplaceModule } from './application/marketplace/marketplace.module';
 import { DesktopModule } from './application/desktop/desktop.module';
 import { MeetModule } from './application/meet/meet.module';
 import { GatewayModule } from './application/gateway/gateway.module';
@@ -77,7 +77,7 @@ import { RegistrationModule } from './application/registration/registration.modu
 import { SearchModule } from './application/search/search.module';
 import { MutationLoggingInterceptor } from './application/common/interceptors/mutation-logging.interceptor';
 import { MarketplacePluginModule } from './extensions/marketplace/marketplace-extension.module';
-import { CooplaceExtensionModule } from './extensions/cooplace/cooplace-extension.module';
+import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketplace-cards.module';
 
 @Module({
   imports: [
@@ -117,7 +117,7 @@ import { CooplaceExtensionModule } from './extensions/cooplace/cooplace-extensio
     DocumentDomainModule,
     FreeDecisionDomainModule,
     ParticipantDomainModule,
-    CooplaceDomainModule,
+    MarketplaceDomainModule,
     MeetDomainModule,
     GatewayDomainModule,
     VaultDomainModule,
@@ -144,7 +144,7 @@ import { CooplaceExtensionModule } from './extensions/cooplace/cooplace-extensio
     DocumentModule,
     DecisionModule,
     ParticipantModule,
-    CooplaceModule,
+    MarketplaceModule,
     MeetModule,
     GatewayModule,
     WalletModule,
@@ -161,7 +161,7 @@ import { CooplaceExtensionModule } from './extensions/cooplace/cooplace-extensio
     SearchModule,
     // Marketplace extensions
     MarketplacePluginModule,
-    CooplaceExtensionModule,
+    MarketplaceCardsModule,
   ],
   providers: [
     {

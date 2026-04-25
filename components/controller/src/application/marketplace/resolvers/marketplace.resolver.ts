@@ -5,7 +5,7 @@ import { UseGuards } from '@nestjs/common';
 import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
 import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
 import { Throttle } from '@nestjs/throttler';
-import { CooplaceService } from '../services/cooplace.service';
+import { MarketplaceService } from '../services/marketplace.service';
 import { AssetContributionStatementGenerateDocumentInputDTO } from '../../document/documents-dto/asset-contribution-statement-document.dto';
 import { AssetContributionDecisionGenerateDocumentInputDTO } from '../../document/documents-dto/asset-contribution-decision-document.dto';
 import { AssetContributionActGenerateDocumentInputDTO } from '../../document/documents-dto/asset-contribution-act-document.dto';
@@ -38,8 +38,8 @@ import { ReofferRequestInputDTO } from '../dto/reoffer-request-input.dto';
 import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
 
 @Resolver()
-export class CooplaceResolver {
-  constructor(private readonly cooplaceService: CooplaceService) {}
+export class MarketplaceResolver {
+  constructor(private readonly marketplaceService: MarketplaceService) {}
 
   @Mutation(() => GeneratedDocumentDTO, {
     name: 'generateAssetContributionStatement',
@@ -54,7 +54,7 @@ export class CooplaceResolver {
     @Args('options', { type: () => GenerateDocumentOptionsInputDTO, nullable: true })
     options: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {
-    return this.cooplaceService.generateAssetContributionStatement(data, options);
+    return this.marketplaceService.generateAssetContributionStatement(data, options);
   }
 
   @Mutation(() => GeneratedDocumentDTO, {
@@ -70,7 +70,7 @@ export class CooplaceResolver {
     @Args('options', { type: () => GenerateDocumentOptionsInputDTO, nullable: true })
     options: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {
-    return this.cooplaceService.generateAssetContributionDecision(data, options);
+    return this.marketplaceService.generateAssetContributionDecision(data, options);
   }
 
   @Mutation(() => GeneratedDocumentDTO, {
@@ -86,7 +86,7 @@ export class CooplaceResolver {
     @Args('options', { type: () => GenerateDocumentOptionsInputDTO, nullable: true })
     options: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {
-    return this.cooplaceService.generateAssetContributionAct(data, options);
+    return this.marketplaceService.generateAssetContributionAct(data, options);
   }
 
   @Mutation(() => GeneratedDocumentDTO, {
@@ -102,7 +102,7 @@ export class CooplaceResolver {
     @Args('options', { type: () => GenerateDocumentOptionsInputDTO, nullable: true })
     options: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {
-    return this.cooplaceService.generateReturnByAssetStatement(data, options);
+    return this.marketplaceService.generateReturnByAssetStatement(data, options);
   }
 
   @Mutation(() => GeneratedDocumentDTO, {
@@ -118,7 +118,7 @@ export class CooplaceResolver {
     @Args('options', { type: () => GenerateDocumentOptionsInputDTO, nullable: true })
     options: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {
-    return this.cooplaceService.generateReturnByAssetDecision(data, options);
+    return this.marketplaceService.generateReturnByAssetDecision(data, options);
   }
 
   @Mutation(() => GeneratedDocumentDTO, {
@@ -134,7 +134,7 @@ export class CooplaceResolver {
     @Args('options', { type: () => GenerateDocumentOptionsInputDTO, nullable: true })
     options: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {
-    return this.cooplaceService.generateReturnByAssetAct(data, options);
+    return this.marketplaceService.generateReturnByAssetAct(data, options);
   }
 
   @Mutation(() => TransactionDTO, {
@@ -144,7 +144,7 @@ export class CooplaceResolver {
   async acceptChildOrder(
     @Args('data', { type: () => AcceptChildOrderInputDTO }) data: AcceptChildOrderInputDTO
   ): Promise<TransactionDTO> {
-    return this.cooplaceService.acceptChildOrder(data);
+    return this.marketplaceService.acceptChildOrder(data);
   }
 
   @Mutation(() => TransactionDTO, {
@@ -154,7 +154,7 @@ export class CooplaceResolver {
   async cancelRequest(
     @Args('data', { type: () => CancelRequestInputDTO }) data: CancelRequestInputDTO
   ): Promise<TransactionDTO> {
-    return this.cooplaceService.cancelRequest(data);
+    return this.marketplaceService.cancelRequest(data);
   }
 
   @Mutation(() => TransactionDTO, {
@@ -164,7 +164,7 @@ export class CooplaceResolver {
   async completeRequest(
     @Args('data', { type: () => CompleteRequestInputDTO }) data: CompleteRequestInputDTO
   ): Promise<TransactionDTO> {
-    return this.cooplaceService.completeRequest(data);
+    return this.marketplaceService.completeRequest(data);
   }
 
   @Mutation(() => TransactionDTO, {
@@ -174,7 +174,7 @@ export class CooplaceResolver {
   async confirmReceiveOnRequest(
     @Args('data', { type: () => ConfirmReceiveOnRequestInputDTO }) data: ConfirmReceiveOnRequestInputDTO
   ): Promise<TransactionDTO> {
-    return this.cooplaceService.confirmReceiveOnRequest(data);
+    return this.marketplaceService.confirmReceiveOnRequest(data);
   }
 
   @Mutation(() => TransactionDTO, {
@@ -184,7 +184,7 @@ export class CooplaceResolver {
   async confirmSupplyOnRequest(
     @Args('data', { type: () => ConfirmSupplyOnRequestInputDTO }) data: ConfirmSupplyOnRequestInputDTO
   ): Promise<TransactionDTO> {
-    return this.cooplaceService.confirmSupplyOnRequest(data);
+    return this.marketplaceService.confirmSupplyOnRequest(data);
   }
 
   @Mutation(() => TransactionDTO, {
@@ -194,7 +194,7 @@ export class CooplaceResolver {
   async createChildOrder(
     @Args('data', { type: () => CreateChildOrderInputDTO }) data: CreateChildOrderInputDTO
   ): Promise<TransactionDTO> {
-    return this.cooplaceService.createChildOrder(data);
+    return this.marketplaceService.createChildOrder(data);
   }
 
   @Mutation(() => TransactionDTO, {
@@ -204,7 +204,7 @@ export class CooplaceResolver {
   async createParentOffer(
     @Args('data', { type: () => CreateParentOfferInputDTO }) data: CreateParentOfferInputDTO
   ): Promise<TransactionDTO> {
-    return this.cooplaceService.createParentOffer(data);
+    return this.marketplaceService.createParentOffer(data);
   }
 
   @Mutation(() => TransactionDTO, {
@@ -214,7 +214,7 @@ export class CooplaceResolver {
   async declineRequest(
     @Args('data', { type: () => DeclineRequestInputDTO }) data: DeclineRequestInputDTO
   ): Promise<TransactionDTO> {
-    return this.cooplaceService.declineRequest(data);
+    return this.marketplaceService.declineRequest(data);
   }
 
   @Mutation(() => TransactionDTO, {
@@ -224,7 +224,7 @@ export class CooplaceResolver {
   async deliverOnRequest(
     @Args('data', { type: () => DeliverOnRequestInputDTO }) data: DeliverOnRequestInputDTO
   ): Promise<TransactionDTO> {
-    return this.cooplaceService.deliverOnRequest(data);
+    return this.marketplaceService.deliverOnRequest(data);
   }
 
   @Mutation(() => TransactionDTO, {
@@ -234,7 +234,7 @@ export class CooplaceResolver {
   async disputeOnRequest(
     @Args('data', { type: () => DisputeOnRequestInputDTO }) data: DisputeOnRequestInputDTO
   ): Promise<TransactionDTO> {
-    return this.cooplaceService.disputeOnRequest(data);
+    return this.marketplaceService.disputeOnRequest(data);
   }
 
   @Mutation(() => TransactionDTO, {
@@ -244,7 +244,7 @@ export class CooplaceResolver {
   async moderateRequest(
     @Args('data', { type: () => ModerateRequestInputDTO }) data: ModerateRequestInputDTO
   ): Promise<TransactionDTO> {
-    return this.cooplaceService.moderateRequest(data);
+    return this.marketplaceService.moderateRequest(data);
   }
 
   @Mutation(() => TransactionDTO, {
@@ -254,7 +254,7 @@ export class CooplaceResolver {
   async prohibitRequest(
     @Args('data', { type: () => ProhibitRequestInputDTO }) data: ProhibitRequestInputDTO
   ): Promise<TransactionDTO> {
-    return this.cooplaceService.prohibitRequest(data);
+    return this.marketplaceService.prohibitRequest(data);
   }
 
   @Mutation(() => TransactionDTO, {
@@ -264,7 +264,7 @@ export class CooplaceResolver {
   async publishRequest(
     @Args('data', { type: () => PublishRequestInputDTO }) data: PublishRequestInputDTO
   ): Promise<TransactionDTO> {
-    return this.cooplaceService.publishRequest(data);
+    return this.marketplaceService.publishRequest(data);
   }
 
   @Mutation(() => TransactionDTO, {
@@ -274,7 +274,7 @@ export class CooplaceResolver {
   async receiveOnRequest(
     @Args('data', { type: () => ReceiveOnRequestInputDTO }) data: ReceiveOnRequestInputDTO
   ): Promise<TransactionDTO> {
-    return this.cooplaceService.receiveOnRequest(data);
+    return this.marketplaceService.receiveOnRequest(data);
   }
 
   @Mutation(() => TransactionDTO, {
@@ -284,7 +284,7 @@ export class CooplaceResolver {
   async supplyOnRequest(
     @Args('data', { type: () => SupplyOnRequestInputDTO }) data: SupplyOnRequestInputDTO
   ): Promise<TransactionDTO> {
-    return this.cooplaceService.supplyOnRequest(data);
+    return this.marketplaceService.supplyOnRequest(data);
   }
 
   @Mutation(() => TransactionDTO, {
@@ -294,7 +294,7 @@ export class CooplaceResolver {
   async unpublishRequest(
     @Args('data', { type: () => UnpublishRequestInputDTO }) data: UnpublishRequestInputDTO
   ): Promise<TransactionDTO> {
-    return this.cooplaceService.unpublishRequest(data);
+    return this.marketplaceService.unpublishRequest(data);
   }
 
   @Mutation(() => TransactionDTO, {
@@ -304,7 +304,7 @@ export class CooplaceResolver {
   async updateRequest(
     @Args('data', { type: () => UpdateRequestInputDTO }) data: UpdateRequestInputDTO
   ): Promise<TransactionDTO> {
-    return this.cooplaceService.updateRequest(data);
+    return this.marketplaceService.updateRequest(data);
   }
 
   @Mutation(() => TransactionDTO, {
@@ -317,7 +317,7 @@ export class CooplaceResolver {
   async reqReturn(
     @Args('data', { type: () => ReqReturnInputDTO }) data: ReqReturnInputDTO
   ): Promise<TransactionDTO> {
-    return this.cooplaceService.reqReturn(data);
+    return this.marketplaceService.reqReturn(data);
   }
 
   @Mutation(() => TransactionDTO, {
@@ -330,7 +330,7 @@ export class CooplaceResolver {
   async coopstock(
     @Args('data', { type: () => CoopstockInputDTO }) data: CoopstockInputDTO
   ): Promise<TransactionDTO> {
-    return this.cooplaceService.coopstock(data);
+    return this.marketplaceService.coopstock(data);
   }
 
   @Mutation(() => TransactionDTO, {
@@ -343,7 +343,7 @@ export class CooplaceResolver {
   async acceptStock(
     @Args('data', { type: () => AcceptStockInputDTO }) data: AcceptStockInputDTO
   ): Promise<TransactionDTO> {
-    return this.cooplaceService.acceptStock(data);
+    return this.marketplaceService.acceptStock(data);
   }
 
   @Mutation(() => TransactionDTO, {
@@ -356,7 +356,7 @@ export class CooplaceResolver {
   async destroyRequest(
     @Args('data', { type: () => DestroyRequestInputDTO }) data: DestroyRequestInputDTO
   ): Promise<TransactionDTO> {
-    return this.cooplaceService.destroyRequest(data);
+    return this.marketplaceService.destroyRequest(data);
   }
 
   @Mutation(() => TransactionDTO, {
@@ -369,6 +369,6 @@ export class CooplaceResolver {
   async reofferRequest(
     @Args('data', { type: () => ReofferRequestInputDTO }) data: ReofferRequestInputDTO
   ): Promise<TransactionDTO> {
-    return this.cooplaceService.reofferRequest(data);
+    return this.marketplaceService.reofferRequest(data);
   }
 }

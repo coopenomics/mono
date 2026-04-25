@@ -5,7 +5,7 @@ import { GenerateMetaDocumentInputDTO } from '~/application/document/dto/generat
 import { MetaDocumentInputDTO } from '~/application/document/dto/meta-document-input.dto';
 import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
 import type { ExcludeCommonProps } from '~/application/document/types';
-import { CommonRequestInputDTO } from '../../cooplace/dto/common-request-input.dto';
+import { CommonRequestInputDTO } from '../../marketplace/dto/common-request-input.dto';
 
 // интерфейс параметров для генерации
 type action = Cooperative.Registry.AssetContributionStatement.Action;

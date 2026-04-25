@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { MarketplaceDomainModule } from '../domain/marketplace-domain.module';
+import { MarketplaceExtensionDomainModule } from '../domain/marketplace-domain.module';
 import { CategoryTreeResolver } from './resolvers/category-tree.resolver';
 import { AttributeResolver } from './resolvers/attribute.resolver';
 import { AvailableCategoryAdminResolver } from './resolvers/available-category-admin.resolver';
@@ -11,7 +11,7 @@ import { CategoryTreeService, CATEGORY_TREE_SERVICE } from './services/category-
  * Содержит GraphQL резолверы и сервисы приложения
  */
 @Module({
-  imports: [MarketplaceDomainModule],
+  imports: [MarketplaceExtensionDomainModule],
   providers: [
     // GraphQL резолверы
     CategoryTreeResolver,
@@ -37,4 +37,4 @@ import { CategoryTreeService, CATEGORY_TREE_SERVICE } from './services/category-
     RequestResolver,
   ],
 })
-export class MarketplaceApplicationModule {}
+export class MarketplaceExtensionApplicationModule {}

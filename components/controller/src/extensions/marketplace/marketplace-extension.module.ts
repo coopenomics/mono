@@ -8,8 +8,8 @@ import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import type { ExtensionDomainEntity } from '~/domain/extension/entities/extension-domain.entity';
 import { merge } from 'lodash';
 import { IConfig, defaultConfig, Schema } from './types';
-import { MarketplaceDomainModule } from './domain/marketplace-domain.module';
-import { MarketplaceApplicationModule } from './application/marketplace-application.module';
+import { MarketplaceExtensionDomainModule } from './domain/marketplace-domain.module';
+import { MarketplaceExtensionApplicationModule } from './application/marketplace-application.module';
 
 @Injectable()
 export class MarketplacePlugin extends BaseExtModule {
@@ -43,8 +43,8 @@ export class MarketplacePlugin extends BaseExtModule {
 
 @Module({
   imports: [
-    MarketplaceDomainModule, // Доменный слой (включает инфраструктуру через DIP)
-    MarketplaceApplicationModule, // Слой приложения (GraphQL резолверы и сервисы)
+    MarketplaceExtensionDomainModule, // Доменный слой (включает инфраструктуру через DIP)
+    MarketplaceExtensionApplicationModule, // Слой приложения (GraphQL резолверы и сервисы)
   ],
   providers: [MarketplacePlugin],
   exports: [MarketplacePlugin],

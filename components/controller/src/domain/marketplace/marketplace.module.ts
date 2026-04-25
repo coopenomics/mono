@@ -8,4 +8,4 @@ import { DocumentDomainModule } from '../document/document.module';
   providers: [],
   exports: [],
 })
-export class CooplaceDomainModule {}
+export class MarketplaceDomainModule {}

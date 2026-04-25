@@ -3,7 +3,7 @@ import type { TransactResult } from '@wharfkit/session';
 
 type DocumentInput = any;
 
-export interface CooplaceBlockchainPort {
+export interface MarketplaceBlockchainPort {
   acceptRequest(data: MarketContract.Actions.AcceptRequest.IAcceptRequest): Promise<TransactResult>;
   cancelRequest(data: MarketContract.Actions.CancelRequest.ICancelRequest): Promise<TransactResult>;
   completeRequest(data: MarketContract.Actions.CompleteRequest.ICompleteRequest): Promise<TransactResult>;
@@ -30,4 +30,4 @@ export interface CooplaceBlockchainPort {
   reoffer(data: { coopname: string; request_hash: string; new_hash: string; new_unit_cost: string; new_meta: string }): Promise<TransactResult>;
 }
 
-export const COOPLACE_BLOCKCHAIN_PORT = Symbol('CooplaceBlockchainPort');
+export const MARKETPLACE_BLOCKCHAIN_PORT = Symbol('MarketplaceBlockchainPort');
