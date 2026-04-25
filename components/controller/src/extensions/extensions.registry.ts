@@ -14,6 +14,8 @@ import { Schema as ParticipantSchema } from './participant/types';
 import { OneCoopPluginModule, OneCoopPlugin, Schema as OneCoopSchema } from './1ccoop/oneccoop-extension.module';
 import { CapitalPluginModule, CapitalPlugin, Schema as CapitalSchema } from './capital/capital-extension.module';
 import { ReportsExtensionModule } from './reports/reports-extension.module';
+import { MarketplacePluginModule, MarketplacePlugin } from './marketplace/marketplace-extension.module';
+import { Schema as MarketplaceSchema } from './marketplace/types';
 
 /**
  * Конфигурация рабочего стола (workspace), который предоставляет расширение
@@ -330,26 +332,26 @@ export const AppRegistry: INamedExtension = {
       return !!this.desktops && this.desktops.length > 0;
     },
   },
-  orders: {
+  market: {
     is_builtin: false,
     is_internal: true,
-    is_available: false,
+    is_available: true,
     desktops: [
       {
-        name: 'orders',
+        name: 'market',
         title: 'Стол заказов',
-        icon: 'fa-solid fa-shopping-cart',
+        icon: 'fa-solid fa-shop',
       },
     ],
     title: 'Стол заказов',
     description: 'Приложение для заказа и поставки имущества в кооперативе.',
     image: 'https://i.ibb.co/84SRvtR3/Chat-GPT-Image-15-2025-11-33-17.png',
-    class: BuiltinPluginModule,
-    pluginClass: BuiltinPlugin,
-    schema: BuiltinSchema,
+    class: MarketplacePluginModule,
+    pluginClass: MarketplacePlugin,
+    schema: MarketplaceSchema,
     tags: ['стол', 'управление'],
-    readme: getReadmeContent('./orders'),
-    instructions: getInstructionsContent('./orders'),
+    readme: getReadmeContent('./marketplace'),
+    instructions: getInstructionsContent('./marketplace'),
     get is_desktop() {
       return !!this.desktops && this.desktops.length > 0;
     },

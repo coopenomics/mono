@@ -76,6 +76,8 @@ import { SettingsApplicationModule } from './application/settings/settings.modul
 import { RegistrationModule } from './application/registration/registration.module';
 import { SearchModule } from './application/search/search.module';
 import { MutationLoggingInterceptor } from './application/common/interceptors/mutation-logging.interceptor';
+import { MarketplacePluginModule } from './extensions/marketplace/marketplace-extension.module';
+import { CooplaceExtensionModule } from './extensions/cooplace/cooplace-extension.module';
 
 @Module({
   imports: [
@@ -157,6 +159,9 @@ import { MutationLoggingInterceptor } from './application/common/interceptors/mu
     SettingsApplicationModule,
     RegistrationModule,
     SearchModule,
+    // Marketplace extensions
+    MarketplacePluginModule,
+    CooplaceExtensionModule,
   ],
   providers: [
     {

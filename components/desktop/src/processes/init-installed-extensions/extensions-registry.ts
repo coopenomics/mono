@@ -8,6 +8,7 @@ import participantInstall from '../../../extensions/participant/install';
 import powerupInstall from '../../../extensions/powerup/install';
 import sovietInstall from '../../../extensions/soviet/install';
 import reportsInstall from '../../../extensions/reports/install';
+import marketInstall from '../../../extensions/market/install';
 
 /**
  * Единый регистр всех доступных расширений
@@ -21,6 +22,7 @@ export const extensionsRegistry: Record<string, () => Promise<IWorkspaceConfig[]
   powerup: powerupInstall,
   soviet: sovietInstall,
   reports: reportsInstall,
+  market: marketInstall,
 };
 
 /**
