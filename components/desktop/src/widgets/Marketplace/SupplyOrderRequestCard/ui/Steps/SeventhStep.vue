@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { CancelButton } from 'src/features/Request/CancelRequest'
 import { ConfirmRecieveOnRequestButton } from 'src/features/Request/ConfirmRecieveOnRequest'
-import { computed } from 'vue'
+import { computed, withDefaults } from 'vue'
 import type { IStepProps } from '../../model'
 import { useSessionStore } from 'src/entities/Session'
 const session = useSessionStore()
 const username = computed(() => session.username)
 
-const props = defineProps<IStepProps>()
+const props = withDefaults(defineProps<IStepProps>(), {})
 const isActive = computed(() => props.request.status === 'recieved1')
 const currentStep = computed(()=> props.currentStep)
 </script>

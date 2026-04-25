@@ -10,6 +10,9 @@
 #include "src/deliver_on_offer/supply.cpp"
 #include "src/deliver_on_offer/supplcnf.cpp"
 
+#include "src/deliver_on_offer/coopstock.cpp"
+#include "src/deliver_on_offer/acceptstock.cpp"
+#include "src/deliver_on_offer/reqreturn.cpp"
 #include "src/deliver_on_offer/delivered.cpp"
 #include "src/deliver_on_offer/receive.cpp"
 #include "src/deliver_on_offer/receivecnf.cpp"
@@ -23,6 +26,14 @@
 #include "src/shipment/arrived.cpp"
 #include "src/shipment/receiveshipm.cpp"
 #include "src/shipment/retransport.cpp"
+
+// ORDER→OFFER direction
+#include "src/deliver_on_order/createorder.cpp"
+#include "src/deliver_on_order/respondoffer.cpp"
+
+// Уничтожение и перепредложение
+#include "src/deliver_on_offer/destroy.cpp"
+#include "src/deliver_on_offer/reoffer.cpp"
 
 // Диспуты
 #include "src/dispute_on_offer/dispute.cpp"

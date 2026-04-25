@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { CancelButton } from 'src/features/Request/CancelRequest'
 import { SupplyOnRequestButton } from 'src/features/Request/SupplyOnRequest'
-import { computed } from 'vue'
+import { computed, withDefaults } from 'vue'
 import type { IStepProps } from '../../model'
 
 import { useSessionStore } from 'src/entities/Session'
 const session = useSessionStore()
 const username = computed(() => session.username)
 
-const props = defineProps<IStepProps>()
+const props = withDefaults(defineProps<IStepProps>(), {})
 const currentStep = computed(()=> props.currentStep)
 const isActive = computed(() => props.request.status === 'authorized')
 </script>

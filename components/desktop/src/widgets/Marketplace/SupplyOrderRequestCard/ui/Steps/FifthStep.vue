@@ -22,13 +22,13 @@ div
   </template>
 <script setup lang="ts">
   import { DeliverOnRequestButton } from 'src/features/Request/DeliverOnRequest'
-  import { computed } from 'vue'
+  import { computed, withDefaults } from 'vue'
   import type { IStepProps } from '../../model'
   import { useSessionStore } from 'src/entities/Session'
   const session = useSessionStore()
   const username = computed(() => session.username)
 
-  const props = defineProps<IStepProps>()
+  const props = withDefaults(defineProps<IStepProps>(), {})
   const isActive = computed(() => props.request.status === 'supplied2')
   const currentStep = computed(()=> props.currentStep)
 </script>

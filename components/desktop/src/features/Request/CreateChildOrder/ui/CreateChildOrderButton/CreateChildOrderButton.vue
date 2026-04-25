@@ -2,13 +2,14 @@
   import { FailAlert, SuccessAlert } from 'src/shared/api'
   import { api } from '../../api'
   import type { ICreateChildOrderProps } from '../../model'
+  import { withDefaults } from 'vue'
   import { useRouter } from 'vue-router'
   import { useSessionStore } from 'src/entities/Session'
   import { DigitalDocument } from 'src/shared/lib/document'
 
   const router = useRouter()
   const { username } = useSessionStore()
-  const props = defineProps<ICreateChildOrderProps>()
+  const props = withDefaults(defineProps<ICreateChildOrderProps>(), {})
 
   const createOrder = async () => {
     try {

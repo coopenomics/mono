@@ -51,7 +51,7 @@ public:
   [[eosio::action]] void migrate();
 
   // Действия для создания заявок
-  [[eosio::action]] void orderoffer(eosio::name coopname, eosio::name receiver_braname, eosio::name username, checksum256 hash, uint64_t units, eosio::asset unit_cost, uint32_t product_lifecycle_secs, uint32_t warranty_period_secs, eosio::asset membership_fee_amount, eosio::asset cancellation_fee_amount, document2 product_return_statement, document2 convert_in, std::string meta);
+  [[eosio::action]] void orderoffer(eosio::name coopname, eosio::name receiver_braname, eosio::name username, checksum256 hash, uint64_t units, eosio::asset unit_cost, uint32_t product_lifecycle_secs, uint32_t warranty_period_secs, eosio::asset membership_fee_amount, eosio::asset cancellation_fee_amount, document2 convert_in, eosio::name delivery_type, eosio::name contribution_type, std::string meta);
   
   static void cancel_request(eosio::name coopname, eosio::name username, checksum256 request_hash);
   
@@ -73,6 +73,17 @@ public:
   [[eosio::action]] void receiveshipm(eosio::name coopname, checksum256 hash, document2 warehouse_receipt_act);
   [[eosio::action]] void retransport(eosio::name coopname, checksum256 completed_hash, eosio::name new_driver_username, eosio::name source_braname, eosio::name new_destination_braname, std::vector<checksum256> request_hashes, document2 transport_act_sender);
   
+  // ORDER→OFFER direction (заказчик публикует → поставщики откликаются)
+  [[eosio::action]] void createorder(eosio::name coopname, eosio::name receiver_braname, eosio::name username, checksum256 hash, uint64_t units, eosio::asset unit_cost, uint32_t product_lifecycle_secs, uint32_t warranty_period_secs, eosio::asset membership_fee_amount, eosio::asset cancellation_fee_amount, document2 convert_in, eosio::name delivery_type, std::string meta);
+  [[eosio::action]] void respondoffer(eosio::name coopname, eosio::name supplier_braname, eosio::name username, checksum256 order_hash, checksum256 offer_hash, uint64_t units, uint32_t product_lifecycle_secs, document2 contribution_statement, document2 convert_out);
+
+  // Имущество из запасов кооператива
+  [[eosio::action]] void coopstock(eosio::name coopname, eosio::name braname, checksum256 hash, uint64_t units, eosio::asset unit_cost, uint32_t product_lifecycle_secs, uint32_t warranty_period_secs, eosio::asset membership_fee_amount, std::string meta);
+  [[eosio::action]] void acceptstock(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 convert_in, document2 return_statement);
+  
+  // Запрос возврата перед получением
+  [[eosio::action]] void reqreturn(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 return_statement);
+  
   // Доставка заказчику
   [[eosio::action]] void delivered(eosio::name coopname, eosio::name username, checksum256 request_hash);
   [[eosio::action]] void receive(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 document);
@@ -81,6 +92,10 @@ public:
   [[eosio::action]] void decline(eosio::name coopname, eosio::name username, checksum256 request_hash, std::string meta);
   [[eosio::action]] void cancel(eosio::name coopname, eosio::name username, checksum256 request_hash);
     
+  // Уничтожение и перепредложение
+  [[eosio::action]] void destroy(eosio::name coopname, checksum256 request_hash, document2 destruction_act);
+  [[eosio::action]] void reoffer(eosio::name coopname, checksum256 request_hash, checksum256 new_hash, eosio::asset new_unit_cost, std::string new_meta);
+  
   // Методы для работы с диспутом (гарантийный возврат)
   [[eosio::action]] void dispute(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 document);
   [[eosio::action]] void wauthorize(eosio::name coopname, checksum256 request_hash, uint64_t wreturn_decision_id, document2 wreturn_authorization, uint64_t wsupply_decision_id, document2 wsupply_authorization);

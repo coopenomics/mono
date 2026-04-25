@@ -11,8 +11,17 @@ import type { CreateChildOrderInputDomainInterface } from '~/domain/cooplace/int
 import type { ReceiveOnRequestInputDomainInterface } from '~/domain/cooplace/interfaces/receive-on-request-input.interface';
 import type { SupplyOnRequestInputDomainInterface } from '~/domain/cooplace/interfaces/supply-on-request-input.interface';
 
+import { config } from '~/config';
+import type { ReqReturnInputDTO } from '../dto/req-return-input.dto';
+import type { CoopstockInputDTO } from '../dto/coopstock-input.dto';
+import type { AcceptStockInputDTO } from '../dto/accept-stock-input.dto';
+import type { DestroyRequestInputDTO } from '../dto/destroy-request-input.dto';
+import type { ReofferRequestInputDTO } from '../dto/reoffer-request-input.dto';
+
 @Injectable()
 export class CooplaceInteractor {
+  private readonly config = config;
+
   constructor(
     private readonly documentDomainService: DocumentDomainService,
     @Inject(COOPLACE_BLOCKCHAIN_PORT) private readonly cooplaceBlockchainPort: CooplaceBlockchainPort
@@ -169,5 +178,64 @@ export class CooplaceInteractor {
   public async updateRequest(data: MarketContract.Actions.UpdateRequest.IUpdateRequest): Promise<TransactResult> {
     const result = await this.cooplaceBlockchainPort.updateRequest(data);
     return result;
+  }
+
+  public async reqReturn(data: ReqReturnInputDTO): Promise<TransactResult> {
+    const doc: Record<string, any> = { ...(data.return_statement as any) };
+    doc.meta = JSON.stringify(doc.meta);
+    return await this.cooplaceBlockchainPort.reqReturn({
+      coopname: this.config.coopname,
+      username: data.username,
+      request_hash: data.request_hash,
+      return_statement: doc,
+    });
+  }
+
+  public async coopstock(data: CoopstockInputDTO): Promise<TransactResult> {
+    return await this.cooplaceBlockchainPort.coopstock({
+      coopname: this.config.coopname,
+      braname: data.braname,
+      hash: data.hash,
+      units: data.units,
+      unit_cost: data.unit_cost,
+      product_lifecycle_secs: data.product_lifecycle_secs,
+      warranty_period_secs: data.warranty_period_secs,
+      membership_fee_amount: data.membership_fee_amount,
+      meta: data.meta,
+    });
+  }
+
+  public async acceptStock(data: AcceptStockInputDTO): Promise<TransactResult> {
+    const cin: Record<string, any> = { ...(data.convert_in as any) };
+    cin.meta = JSON.stringify(cin.meta);
+    const rs: Record<string, any> = { ...(data.return_statement as any) };
+    rs.meta = JSON.stringify(rs.meta);
+    return await this.cooplaceBlockchainPort.acceptStock({
+      coopname: this.config.coopname,
+      username: data.username,
+      request_hash: data.request_hash,
+      convert_in: cin,
+      return_statement: rs,
+    });
+  }
+
+  public async destroyRequest(data: DestroyRequestInputDTO): Promise<TransactResult> {
+    const act: Record<string, any> = { ...(data.destruction_act as any) };
+    act.meta = JSON.stringify(act.meta);
+    return await this.cooplaceBlockchainPort.destroy({
+      coopname: this.config.coopname,
+      request_hash: data.request_hash,
+      destruction_act: act,
+    });
+  }
+
+  public async reofferRequest(data: ReofferRequestInputDTO): Promise<TransactResult> {
+    return await this.cooplaceBlockchainPort.reoffer({
+      coopname: this.config.coopname,
+      request_hash: data.request_hash,
+      new_hash: data.new_hash,
+      new_unit_cost: data.new_unit_cost,
+      new_meta: data.new_meta,
+    });
   }
 }

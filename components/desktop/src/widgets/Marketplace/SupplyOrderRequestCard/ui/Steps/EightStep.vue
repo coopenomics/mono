@@ -16,13 +16,13 @@ div
 <script setup lang="ts">
   import { CompleteOnRequestButton } from 'src/features/Request/CompleteOnRequest'
   import { DisputeOnRequestButton } from 'src/features/Request/DisputeOnRequest'
-  import { computed } from 'vue'
+  import { computed, withDefaults } from 'vue'
   import type { IStepProps } from '../../model'
   import { useSessionStore } from 'src/entities/Session'
   const session = useSessionStore()
   const username = computed(() => session.username)
 
-  const props = defineProps<IStepProps>()
+  const props = withDefaults(defineProps<IStepProps>(), {})
   const isActive = computed(() => props.request.status === 'recieved2') //TODO && и гарантийный срок вышел!
   const currentStep = computed(()=> props.currentStep)
 </script>

@@ -1,13 +1,13 @@
 <script setup lang="ts">
   import { AcceptButton } from 'src/features/Request/AcceptRequest'
   import { DeclineButton } from 'src/features/Request/DeclineRequest'
-  import { computed } from 'vue'
+  import { computed, withDefaults } from 'vue'
   import type { IStepProps } from '../../model'
   import { useSessionStore } from 'src/entities/Session'
   const session = useSessionStore()
   const username = computed(() => session.username)
 
-  const props = defineProps<IStepProps>()
+  const props = withDefaults(defineProps<IStepProps>(), {})
   const isActive = computed(() => props.request.status === 'published')
   const currentStep = computed(()=> props.currentStep)
 </script>
