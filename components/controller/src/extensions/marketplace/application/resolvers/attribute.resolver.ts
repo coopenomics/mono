@@ -1,8 +1,8 @@
 import { Resolver, Query, Args } from '@nestjs/graphql';
 import { Injectable, UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard } from '~/modules/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/modules/auth/guards/roles.guard';
-import { AuthRoles } from '~/modules/auth/decorators/auth.decorator';
+import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
+import { RolesGuard } from '~/application/auth/guards/roles.guard';
+import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
 import { AttributeDomainService } from '../../domain/services/attribute-domain.service';
 import { AttributeDTO, AttributeGroupDTO, AttributeStatsDTO, DictionaryValueDTO } from '../dto/attribute.dto';
 import { SearchAttributesInput } from '../dto/search-attributes-input.dto';

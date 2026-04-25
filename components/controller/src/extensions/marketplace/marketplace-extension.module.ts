@@ -4,9 +4,8 @@ import {
   EXTENSION_REPOSITORY,
   type ExtensionDomainRepository,
 } from '~/domain/extension/repositories/extension-domain.repository';
-import { WinstonLoggerService } from '~/modules/logger/logger-app.service';
+import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import type { ExtensionDomainEntity } from '~/domain/extension/entities/extension-domain.entity';
-import { ExtensionPortsModule } from '~/domain/extension/extension-ports.module';
 import { merge } from 'lodash';
 import { IConfig, defaultConfig, Schema } from './types';
 import { MarketplaceDomainModule } from './domain/marketplace-domain.module';
@@ -44,7 +43,6 @@ export class MarketplacePlugin extends BaseExtModule {
 
 @Module({
   imports: [
-    ExtensionPortsModule,
     MarketplaceDomainModule, // Доменный слой (включает инфраструктуру через DIP)
     MarketplaceApplicationModule, // Слой приложения (GraphQL резолверы и сервисы)
   ],

@@ -13,10 +13,10 @@ import { AddAvailableCategoryTypesInput } from '../dto/add-available-category-ty
 import { RemoveAvailableCategoriesInput } from '../dto/remove-available-categories-input.dto';
 import { RemoveAvailableCategoryTypesInput } from '../dto/remove-available-category-types-input.dto';
 import { ReplaceAvailableItemsInput } from '../dto/replace-available-items-input.dto';
-import { GqlJwtAuthGuard } from '~/modules/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/modules/auth/guards/roles.guard';
-import { AuthRoles } from '~/modules/auth/decorators/auth.decorator';
-import { CurrentUser } from '~/modules/auth/decorators/current-user.decorator';
+import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
+import { RolesGuard } from '~/application/auth/guards/roles.guard';
+import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
+import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 import config from '~/config/config';
 

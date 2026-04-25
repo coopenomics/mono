@@ -1,8 +1,8 @@
 import { Resolver, Mutation, Query, Args, Int } from '@nestjs/graphql';
 import { Injectable, Inject, UseGuards } from '@nestjs/common';
 import { RequestDomainService, REQUEST_DOMAIN_SERVICE } from '../../domain/services/request-domain.service';
-import { RolesGuard } from '~/modules/auth/guards/roles.guard';
-import { AuthRoles } from '~/modules/auth/decorators/auth.decorator';
+import { RolesGuard } from '~/application/auth/guards/roles.guard';
+import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
 import { RequestDTO } from '../dto/request.dto';
 import { CreateRequestInput, RequestTypeInput, RequestImageTypeInput } from '../dto/create-request-input.dto';
 import { GetCoopRequestsInput } from '../dto/get-coop-requests-input.dto';
@@ -16,8 +16,8 @@ import { GetRequestInput } from '../dto/get-request-input.dto';
 import { GetRequestByHashInput } from '../dto/get-request-by-hash-input.dto';
 import { RequestType, RequestStatus } from '../../domain/entities/request-domain.entity';
 import { RequestImageType } from '../../domain/entities/request-image-domain.entity';
-import { GqlJwtAuthGuard } from '~/modules/auth/guards/graphql-jwt-auth.guard';
-import { CurrentUser } from '~/modules/auth/decorators/current-user.decorator';
+import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
+import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 
 /**
