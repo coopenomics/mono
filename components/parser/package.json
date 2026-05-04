@@ -1,7 +1,7 @@
 {
   "name": "@coopenomics/parser",
   "type": "module",
-  "version": "2026.4.19-alpha-1",
+  "version": "2026.4.30-alpha-1",
   "private": true,
   "packageManager": "pnpm@9.0.6",
   "description": "Индексатор блокчейна через State History Plugin",
@@ -45,7 +45,7 @@
     "lint": "eslint .",
     "prepublishOnly": "nr build",
     "release": "bumpp && npm publish",
-    "start": "esno src/index.ts",
+    "start": "node ./dist/index.cjs",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "doc": "typedoc"

@@ -106,6 +106,9 @@ import type { IStory } from 'app/extensions/capital/entities/Story/model';
 const props = defineProps<{
   filter?: {
     project_hash?: string;
+    /** Хеш задачи — артефакт привязывается к задаче и не аккумулируется на проекте/компоненте */
+    issue_hash?: string;
+    /** @deprecated legacy: используйте issue_hash */
     issue_id?: string;
   };
 }>();

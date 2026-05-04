@@ -1,0 +1,101 @@
+name: Build bootstrap container
+
+# Сборка и публикация docker-образа `dicoop/bootcoop` — bootstrap-артефакта
+# для развёртывания контрактов на удалённой ноде. Образ содержит CLI
+# (`pnpm run boot:remote`) и `/contracts` от dicoop/contracts (multi-stage).
+# Используется как one-shot job в стороннем docker-compose рядом с
+# `dicoop/blockchain` — никакой mono-инфры (mongo/postgres/desktop) не нужно.
+#
+# Триггер — push в dev/testnet/main. Тег `dicoop/bootcoop` совпадает с
+# веткой и подтягивает соответствующий тег `dicoop/contracts` (так
+# контракты и bootstrap всегда синхронны).
+#
+# Зависимости в hub:
+#   dicoop/contracts:<branch>   — пакет wasm/abi (build-contracts.yaml)
+#
+# Образ self-contained: собирает workspace из текущего checkout'а,
+# не зависит от dicoop/mono-base (который тегается только релиз-тегами).
+#
+# Секреты:
+#   DOCKERHUB_USERNAME / DOCKERHUB_TOKEN
+#   TELEGRAM_BOT_TOKEN  / TELEGRAM_CHAT_ID
+
+on:
+  push:
+    branches: [dev, testnet, main]
+    paths:
+      - 'components/boot/**'
+      - '.github/workflows/build-bootstrap.yaml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Determine docker tags
+        run: |
+          case "${{ github.ref_name }}" in
+            main)
+              echo "DOCKER_TAG=main"   >> $GITHUB_ENV
+              echo "EXTRA_TAG=latest"  >> $GITHUB_ENV
+              ;;
+            testnet)
+              echo "DOCKER_TAG=testnet" >> $GITHUB_ENV
+              echo "EXTRA_TAG="         >> $GITHUB_ENV
+              ;;
+            dev)
+              echo "DOCKER_TAG=dev"    >> $GITHUB_ENV
+              echo "EXTRA_TAG="        >> $GITHUB_ENV
+              ;;
+            *)
+              echo "Unsupported branch ${{ github.ref_name }}" >&2
+              exit 1
+              ;;
+          esac
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Pull contracts image
+        run: docker pull dicoop/contracts:${{ env.DOCKER_TAG }}
+
+      - name: Build and push image
+        run: |
+          IMAGE="dicoop/bootcoop"
+          docker build \
+            --build-arg CONTRACTS_TAG=${{ env.DOCKER_TAG }} \
+            --label "org.opencontainers.image.revision=${{ github.sha }}" \
+            --label "org.opencontainers.image.created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            -f components/boot/Dockerfile \
+            -t "$IMAGE:${{ env.DOCKER_TAG }}" \
+            .
+          docker push "$IMAGE:${{ env.DOCKER_TAG }}"
+
+          if [ -n "${{ env.EXTRA_TAG }}" ]; then
+            docker tag "$IMAGE:${{ env.DOCKER_TAG }}" "$IMAGE:${{ env.EXTRA_TAG }}"
+            docker push "$IMAGE:${{ env.EXTRA_TAG }}"
+          fi
+
+          SHORT_SHA="${GITHUB_SHA::7}"
+          docker tag "$IMAGE:${{ env.DOCKER_TAG }}" "$IMAGE:${{ env.DOCKER_TAG }}-$SHORT_SHA"
+          docker push "$IMAGE:${{ env.DOCKER_TAG }}-$SHORT_SHA"
+
+      - name: Telegram notify success
+        if: ${{ success() }}
+        run: |
+          curl -s -X POST https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage \
+            -d chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
+            -d text="✅ [GITHUB MONO] dicoop/bootcoop:${{ env.DOCKER_TAG }} (sha=${GITHUB_SHA::7})"
+
+      - name: Telegram notify failure
+        if: ${{ failure() }}
+        run: |
+          curl -s -X POST https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage \
+            -d chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
+            -d text="❌ [GITHUB MONO] Ошибка сборки dicoop/bootcoop на ${{ github.ref_name }} (sha=${GITHUB_SHA::7})"

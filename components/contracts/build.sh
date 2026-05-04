@@ -18,6 +18,6 @@ fi
 docker run --rm --name cdt \
   --volume "$(pwd)/:/project" \
   -w /project/build \
-  dicoop/blockchain_v5.1.1:dev \
+  dicoop/blockchain:latest \
   /bin/bash -c "cmake -DBUILD_TARGET='$contract' -DTEST_TARGET= -DVERBOSE=ON -DBUILD_TESTS=OFF -DIS_TESTNET=$is_testnet .. && make"
 

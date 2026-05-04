@@ -66,3 +66,9 @@
 #include "table_marketplace_requests.hpp"
 #include "table_marketplace_segments.hpp"
 #include "table_marketplace_shipments.hpp"
+
+// apps (каталог приложений)
+#include "table_apps_packages.hpp"
+#include "table_apps_releases.hpp"
+#include "table_apps_subs.hpp"
+#include "table_apps_coops.hpp"

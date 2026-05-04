@@ -401,11 +401,13 @@ export class GenerationService {
       return [];
     }
 
-    let anchorProjectHash = story.project_hash?.trim() ?? '';
-    if (!anchorProjectHash && story.issue_hash) {
-      const issue = await this.issueRepository.findByIssueHash(story.issue_hash);
-      anchorProjectHash = issue?.project_hash?.trim() ?? '';
+    // Требования к задаче (issue_hash задан) видны только на странице задачи и не публикуются
+    // в проектные/компонентные matrix-комнаты, чтобы не зашумлять основной канал проекта.
+    if (story.issue_hash && story.issue_hash.trim() !== '') {
+      return [];
     }
+
+    const anchorProjectHash = story.project_hash?.trim() ?? '';
     if (!anchorProjectHash) {
       return [];
     }
@@ -665,8 +667,10 @@ export class GenerationService {
       // Определяем, нужно ли включать требования дочерних компонентов
       const showComponentsRequirements = filter.show_components_requirements !== false; // По умолчанию true
 
-      // Определяем, нужно ли включать требования задач
-      const showIssuesRequirements = filter.show_issues_requirements !== false; // По умолчанию true
+      // Задачные требования (story с issue_hash) живут только на странице задачи и не
+      // аккумулируются на проект/компонент: дефолт false, явный true оставлен на случай
+      // обратной потребности.
+      const showIssuesRequirements = filter.show_issues_requirements === true;
 
       // Собираем все project_hash для фильтрации
       let projectHashesToFilter: string[] = [filter.project_hash];
@@ -706,8 +710,15 @@ export class GenerationService {
         issueHashesToFilter
       );
 
+      // Если задачные требования выключены, отфильтровываем stories с непустым issue_hash:
+      // репозиторий выбирает по `project_hash IN (...) OR issue_hash IN (...)`, и stories,
+      // привязанные к задачам, всё равно попадают через project_hash. Их нужно убрать здесь.
+      const filteredStories = showIssuesRequirements
+        ? allStories
+        : allStories.filter((story) => !story.issue_hash || story.issue_hash.trim() === '');
+
       // Убираем дубликаты (на случай если одна история относится к нескольким проектам)
-      const uniqueStories = allStories.filter(
+      const uniqueStories = filteredStories.filter(
         (story, index, self) => index === self.findIndex((s) => s.story_hash === story.story_hash)
       );
 

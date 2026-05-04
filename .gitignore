@@ -19,3 +19,5 @@ components/reports-standarts/**/СФР_1118018397_*.xml
 
 # Output files for local audit scripts (ledger2 migration)
 components/contracts/cpp/ledger2/scripts/out/
+
+.env.testnet

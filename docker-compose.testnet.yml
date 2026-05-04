@@ -1,0 +1,109 @@
+# Demo-стек testnet-ноды на одном хосте.
+#
+# Составные части:
+#   1. ke-node       — Antelope/EOSIO нода (dicoop/blockchain_v5.1.1).
+#                      blockchain-data в named volume → переживает рестарты.
+#                      config + genesis монтируются read-only из репо.
+#   2. ke-contracts  — one-shot init из dicoop/contracts:<tag>: копирует
+#                      wasm/abi артефакты в shared volume для bootstrap.
+#   3. ke-bootstrap  — one-shot из dicoop/mono-base:<tag>: запускает
+#                      `pnpm -F @coopenomics/boot run boot:remote` —
+#                      ждёт RPC ноды, активирует фичи, деплоит все
+#                      контракты, создаёт системный токен.
+#
+# Идемпотентность: повторный `compose up` на не-чистой ноде заставит
+# bootstrap попытаться задеплоить уже задеплоенное — eosjs ответит
+# duplicate transaction для setcontract'а. Для перезапуска с нуля —
+# `down -v` (зачистит blockchain-data + contracts volumes), затем `up`.
+#
+# Изоляция от рабочей dev-ноды mono-ai-4-node-1: отдельная сеть
+# `ke-testnet`, отдельные порты на хосте (8919/9907/8101).
+
+networks:
+  ke-testnet:
+    name: ke-testnet
+
+volumes:
+  testnet-blockchain-data:
+    name: testnet-blockchain-data
+  testnet-wallet-data:
+    name: testnet-wallet-data
+  testnet-contracts:
+    name: testnet-contracts
+
+services:
+  ke-node:
+    image: dicoop/blockchain_v5.1.1:dev
+    container_name: testnet-ke-node
+    networks: [ke-testnet]
+    ports:
+      - "8919:8888"   # HTTP RPC
+      - "9907:9876"   # P2P
+      - "8101:8070"   # state_history
+    volumes:
+      - testnet-blockchain-data:/mnt/dev/data
+      - testnet-wallet-data:/root/eosio-wallet
+      - ./components/boot/src/configs:/mnt/dev/config:ro
+    command: >
+      /bin/bash -c "/usr/local/bin/nodeos
+      -d /mnt/dev/data
+      --config-dir /mnt/dev/config
+      --genesis-json /mnt/dev/config/genesis.json"
+    healthcheck:
+      # `get_info` возвращает 200, как только http_plugin поднялся.
+      # ke-bootstrap ждёт `service_healthy`, чтобы не дёргать RPC до
+      # старта плагина. В образе ноды нет curl, используем wget.
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8888/v1/chain/get_info > /dev/null 2>&1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 5s
+    restart: unless-stopped
+
+  ke-contracts:
+    # Образ-артефакт. Entrypoint `copy` копирует /contracts/* в /out
+    # (см. components/contracts/docker/entrypoint.sh). После выхода
+    # named volume `testnet-contracts` содержит wasm/abi всех контрактов.
+    image: dicoop/contracts:dev
+    container_name: testnet-ke-contracts
+    networks: [ke-testnet]
+    volumes:
+      - testnet-contracts:/out
+    command: ["copy"]
+    restart: "no"
+
+  ke-bootstrap:
+    # Локальный билд `dicoop/mono-base` собран из текущего dev-репозитория
+    # (тег dev-local) — содержит boot:remote команду, которой нет в
+    # registry-варианте `:latest`. Когда build-containers начнёт пушить
+    # mono-base по push в dev-ветку, можно заменить на `dicoop/mono-base:dev`.
+    image: dicoop/mono-base:dev-local
+    container_name: testnet-ke-bootstrap
+    networks: [ke-testnet]
+    depends_on:
+      ke-node:
+        condition: service_healthy
+      ke-contracts:
+        condition: service_completed_successfully
+    environment:
+      CHAIN_URL: http://ke-node:8888
+      EOSIO_PUB_KEY: ${EOSIO_PUB_KEY}
+      EOSIO_PRV_KEY: ${EOSIO_PRV_KEY}
+      PASSWORD: ${PASSWORD}
+      CONTRACTS_DIR: /contracts
+      RPC_WAIT_TIMEOUT_MS: "120000"
+      # initial-data/extra-data выключены — bootstrap делает только
+      # on-chain работу (контракты + системные параметры).
+      # Включить через INSTALL_INITIAL_DATA=1 / INSTALL_EXTRA_DATA=1
+      # (требует MONGO_URI / PG_HOST / ...).
+    volumes:
+      - testnet-contracts:/contracts:ro
+    working_dir: /app/components/boot
+    # Запускаем через node + собранный dist, а не через pnpm-script
+    # (`boot:remote` в boot/package.json вызывает `esno src/index.ts ...`,
+    # но `esno` — devDep и удалён `pnpm prune --prod` в mono-base).
+    # working_dir = /app/components/boot чтобы dotenv подхватил
+    # boot/.env (если он смонтирован), и чтобы относительные пути
+    # к blockchain-data резолвились правильно (boot mkdir-ит ./blockchain-data).
+    command: ["node", "/app/components/boot/dist/index.cjs", "boot:remote"]
+    restart: "no"

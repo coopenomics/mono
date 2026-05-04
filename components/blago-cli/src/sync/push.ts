@@ -28,6 +28,7 @@ import {
   pushCreateIssue,
   pushCreateStory,
 } from './push-create.js'
+import { writeWorkspaceIndexMarkdown } from './workspace-index.js'
 
 // Ответы GraphQL/Zeus часто дают _updated_at как unknown — сужаем безопасно.
 function toIso(v: unknown): string {
@@ -289,4 +290,5 @@ export async function runPush(ctx: AuthenticatedContext): Promise<void> {
 
   await saveIndex(ctx.root, index)
   await saveStaging(ctx.root, { paths: [...remaining] })
+  await writeWorkspaceIndexMarkdown(ctx.root)
 }

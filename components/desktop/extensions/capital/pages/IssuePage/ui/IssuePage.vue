@@ -58,6 +58,31 @@ div.column.flex-1.min-h-0.min-w-0.no-wrap
 
         q-expansion-item.q-px-md.q-mt-md(
           v-if='issue'
+          icon='assignment'
+          label='Требования к задаче'
+          :caption='requirementsCaption'
+          header-class='text-grey-7'
+          dense-toggle
+          default-opened
+        )
+          RequirementsListWidget(
+            :filter='requirementsFilter'
+            :max-items='50'
+            :permissions='issue.permissions'
+          )
+          .row.justify-end.q-mt-sm(v-if='canCreateRequirement')
+            q-btn(
+              flat
+              dense
+              no-caps
+              color='primary'
+              icon='add'
+              label='Добавить требование'
+              @click='openCreateRequirementDialog'
+            )
+
+        q-expansion-item.q-px-md.q-mt-md(
+          v-if='issue'
           icon='schedule'
           label='История рабочего времени'
           :caption='worklogCaption'
@@ -135,6 +160,31 @@ div.column.flex-1.min-h-0.min-w-0.no-wrap
 
             q-expansion-item.q-px-md.q-mt-md(
               v-if='issue'
+              icon='assignment'
+              label='Требования к задаче'
+              :caption='requirementsCaption'
+              header-class='text-grey-7'
+              dense-toggle
+              default-opened
+            )
+              RequirementsListWidget(
+                :filter='requirementsFilter'
+                :max-items='50'
+                :permissions='issue.permissions'
+              )
+              .row.justify-end.q-mt-sm(v-if='canCreateRequirement')
+                q-btn(
+                  flat
+                  dense
+                  no-caps
+                  color='primary'
+                  icon='add'
+                  label='Добавить требование'
+                  @click='openCreateRequirementDialog'
+                )
+
+            q-expansion-item.q-px-md.q-mt-md(
+              v-if='issue'
               icon='schedule'
               label='История рабочего времени'
               :caption='worklogCaption'
@@ -144,6 +194,12 @@ div.column.flex-1.min-h-0.min-w-0.no-wrap
               TimeEntriesWidget(
                 :issue-hash='issue.issue_hash'
               )
+
+  CreateRequirementWithEditorDialog(
+    ref='createRequirementDialog'
+    :filter='createRequirementFilter'
+    @success='handleRequirementCreated'
+  )
 </template>
 
 <script lang="ts" setup>
@@ -163,6 +219,9 @@ import { useUpdateIssue } from 'app/extensions/capital/features/Issue/UpdateIssu
 import { IssueSidebarWidget, IssueLinkedGitCommitsWidget, TimeEntriesWidget } from 'app/extensions/capital/widgets';
 import { IssueTitleEditor } from 'app/extensions/capital/widgets/IssueTitleEditor';
 import { ProjectPathWidget } from 'app/extensions/capital/widgets/ProjectPathWidget';
+import { RequirementsListWidget } from 'app/extensions/capital/widgets/RequirementsListWidget';
+import { CreateRequirementWithEditorDialog } from 'app/extensions/capital/features/Story/CreateStory';
+import { useStoryStore, type IGetStoriesInput } from 'app/extensions/capital/entities/Story/model';
 
 const route = useRoute();
 const router = useRouter();
@@ -214,6 +273,41 @@ const projectHash = computed(() => route.params.project_hash as string);
 const parentHash = computed(() => projectHash.value);
 
 const linkedGitCommits = computed(() => issue.value?.linked_git_commits ?? []);
+
+// Фильтр для виджета требований — story только этой задачи
+const requirementsFilter = computed<Partial<IGetStoriesInput['filter']>>(() => ({
+  issue_hash: issue.value?.issue_hash ?? '',
+}));
+
+// Фильтр для диалога создания — issue_hash + project_hash родителя
+const createRequirementFilter = computed(() => ({
+  project_hash: projectHash.value,
+  issue_hash: issue.value?.issue_hash ?? '',
+}));
+
+// Право на создание требования к задаче
+const canCreateRequirement = computed((): boolean => {
+  return Boolean(issue.value?.permissions?.can_create_requirement);
+});
+
+// Подпись рядом с заголовком «Требования к задаче»
+const storyStore = useStoryStore();
+const requirementsCaption = computed(() => {
+  const stored = storyStore.stories;
+  const cur = issue.value?.issue_hash;
+  if (!cur || !stored) return '';
+  const count = stored.items.filter((s) => s.issue_hash === cur).length;
+  if (count === 0) return 'пока пусто';
+  return `${count} шт.`;
+});
+
+const createRequirementDialog = ref<InstanceType<typeof CreateRequirementWithEditorDialog> | null>(null);
+const openCreateRequirementDialog = () => {
+  createRequirementDialog.value?.openDialog();
+};
+const handleRequirementCreated = () => {
+  // RequirementsListWidget сам подцепит новый story через store
+};
 
 // Подпись рядом с заголовком «История рабочего времени» — отражает факт/план одной строкой.
 const worklogCaption = computed(() => {

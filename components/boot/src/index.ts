@@ -304,6 +304,82 @@ program
     }
   })
 
+/**
+ * Bootstrap режим для удалённой ноды (без управления docker-контейнером).
+ *
+ * Используется внутри образа `dicoop/bootstrap` (one-shot job
+ * в docker-compose), запускаемого рядом с уже работающим `ke-node`-сервисом.
+ * RPC URL берётся из `CHAIN_URL` (тот же конфиг, что у обычного `boot`),
+ * пути до wasm/abi — из `CONTRACTS_DIR` (см. `configs/contracts.ts`).
+ *
+ * Поведение:
+ * 1. Ждёт готовности RPC по `${CHAIN_URL}/v1/chain/get_info` (timeout
+ *    `RPC_WAIT_TIMEOUT_MS`, default 120 c).
+ * 2. Запускает `startInfra()` — деплоит все контракты, активирует фичи,
+ *    создаёт токен, инициализирует системные параметры.
+ * 3. Опционально — initial-data (`INSTALL_INITIAL_DATA=1`, требует MONGO/PG)
+ *    и extra-data (`INSTALL_EXTRA_DATA=1`).
+ *
+ * Не пытается запускать/останавливать docker-контейнеры — нода поднимается
+ * отдельным сервисом docker-compose, bootstrap только катит на неё контракты.
+ */
+program
+  .command('boot:remote')
+  .description('Bootstrap protocol against an externally running KE node (no docker)')
+  .action(async () => {
+    const config = (await import('./configs')).default
+    const { startInfra, installInitialData, installExtraData } = await import('./init/infra')
+
+    const url = `${config.network.protocol}://${config.network.host}${config.network.port}`
+    const timeoutMs = Number(process.env.RPC_WAIT_TIMEOUT_MS ?? 120000)
+
+    console.log(`Waiting for RPC at ${url} (timeout ${timeoutMs}ms)...`)
+    const deadline = Date.now() + timeoutMs
+    let ready = false
+    while (Date.now() < deadline) {
+      try {
+        const r = await fetch(`${url}/v1/chain/get_info`, {
+          signal: AbortSignal.timeout(2000),
+        } as RequestInit)
+        if (r.ok) {
+          ready = true
+          break
+        }
+      }
+      catch {
+        // RPC ещё не готов — пробуем снова
+      }
+      await sleep(1000)
+    }
+    if (!ready) {
+      console.error(`RPC ${url} not ready within ${timeoutMs}ms`)
+      process.exit(1)
+    }
+    console.log(`RPC ready at ${url}`)
+
+    try {
+      const blockchain = await startInfra()
+      console.log('startInfra: done')
+
+      if (process.env.INSTALL_INITIAL_DATA === '1') {
+        console.log('installInitialData: start')
+        await installInitialData(blockchain, false)
+      }
+      if (process.env.INSTALL_EXTRA_DATA === '1') {
+        console.log('installInitialData (extended): start')
+        await installInitialData(blockchain, true)
+        await installExtraData(blockchain)
+      }
+
+      console.log('boot:remote completed')
+      process.exit(0)
+    }
+    catch (e) {
+      console.error('boot:remote failed:', e)
+      process.exit(1)
+    }
+  })
+
 program.parse(process.argv) // Пуск парсинга аргументов
 
 async function gracefulShutdown() {

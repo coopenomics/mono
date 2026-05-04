@@ -21,6 +21,8 @@ import {
 import { generateSlug, storyFileRelativePath, workspaceBasePath } from '../sync/layout.js'
 import { loadProjectMapsFromIndex } from '../sync/project-index-map.js'
 import { issueLinkForStoryPath } from '../sync/push-create.js'
+import { refreshParentProjectVersion } from '../sync/refresh-parent.js'
+import { writeWorkspaceIndexMarkdown } from '../sync/workspace-index.js'
 
 import { resolveProjectMarker } from './resolve-base.js'
 import { storyContentFormatFromCliOption } from './story-format.js'
@@ -67,7 +69,7 @@ async function pickStoryFileRelativePath(
   const slug = generateSlug(title) || 'requirement'
   const id2 = storyRequirementIdPrefix2(storyRecordId, storyHash)
   const dir = issueArg?.titleSlug
-    ? `${basePath.replace(/\\/g, '/')}/issues/${capitalIdPathPrefix(issueArg.id)}-${issueArg.titleSlug}-requirements`
+    ? `${basePath.replace(/\\/g, '/')}/issue-requirements/${capitalIdPathPrefix(issueArg.id)}-${issueArg.titleSlug}`
     : `${basePath.replace(/\\/g, '/')}/requirements`
   const alt = `${dir}/${id2}-${slug}-${storyHash.slice(0, 6)}.md`
   const absAlt = path.join(root, alt)
@@ -195,7 +197,11 @@ export async function runCreateStory(
     remote_updated_at: toRemoteIso(created._updated_at),
     content_etag_local: etag,
   })
+  if (created.project_hash) {
+    await refreshParentProjectVersion(ctx, index, String(created.project_hash), projRow.parent_hash)
+  }
   await saveIndex(ctx.root, index)
   await appendPathsToStaging(ctx.root, [rel])
+  await writeWorkspaceIndexMarkdown(ctx.root)
   return { relativePath: rel }
 }
