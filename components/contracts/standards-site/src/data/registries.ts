@@ -15,7 +15,7 @@ export function getAccount(code: number | null | undefined) {
   return Ledger2.getAccountMeta(code)
 }
 
-export function getWallet(id: number | null | undefined) {
-  if (id == null) return undefined
-  return Ledger2.LEDGER2_WALLET_REGISTRY.find((w) => w.id === id)
+export function getWallet(name: string | null | undefined) {
+  if (name == null || name === '') return undefined
+  return Ledger2.LEDGER2_WALLET_REGISTRY.find((w) => w.name === name)
 }

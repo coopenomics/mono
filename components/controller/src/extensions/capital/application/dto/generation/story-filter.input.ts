@@ -53,8 +53,8 @@ export class StoryFilterInputDTO {
 
   @Field(() => Boolean, {
     nullable: true,
-    description: 'Показывать требования задач при фильтрации по project_hash',
-    defaultValue: true,
+    description: 'Показывать требования задач при фильтрации по project_hash (по умолчанию false: задачные требования живут на странице задачи и не аккумулируются на проект/компонент)',
+    defaultValue: false,
   })
   show_issues_requirements?: boolean;
 }

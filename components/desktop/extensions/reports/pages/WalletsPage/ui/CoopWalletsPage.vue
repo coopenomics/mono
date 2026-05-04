@@ -35,13 +35,6 @@ div.page-shell
             )
               q-tooltip Перевести с этого кошелька
 
-  WalletTransferDialog(
-    v-model='transferDialog.open'
-    :wallets='wallets'
-    :fixed-from-wallet='transferDialog.fromWallet'
-    @success='onTransferSuccess'
-  )
-
         q-tr.q-virtual-scroll--with-prev(
           no-hover
           v-if='expanded.has(props.row.id)'
@@ -58,7 +51,7 @@ div.page-shell
                     flat dense size='sm' color='primary'
                     icon='fa-solid fa-arrow-right'
                     label='К операциям'
-                    :to='{ name: "reports-operations", query: { wallet_id: props.row.id } }'
+                    :to='{ name: "reports-operations", query: { wallet_name: props.row.id } }'
                   )
               q-table(
                 flat dense
@@ -72,13 +65,13 @@ div.page-shell
               )
                 template(#body-cell-direction='cp')
                   q-td(:props='cp')
-                    DirectionCell(:direction='directionFor(cp.row, props.row.id)')
+                    DirectionCell(:direction='directionFor(cp.row, String(props.row.id))')
                 template(#body-cell-walletFrom='cp')
                   q-td(:props='cp')
-                    WalletIdCell(:wallet-id='cp.row.walletFrom')
+                    WalletIdCell(:wallet-name='cp.row.walletFrom')
                 template(#body-cell-walletTo='cp')
                   q-td(:props='cp')
-                    WalletIdCell(:wallet-id='cp.row.walletTo')
+                    WalletIdCell(:wallet-name='cp.row.walletTo')
                 template(#body-cell-quantity='cp')
                   q-td.text-right(:props='cp') {{ cp.row.quantity ? formatAsset2Digits(cp.row.quantity) : '—' }}
                 template(#body-cell-memo='cp')
@@ -114,6 +107,13 @@ div.page-shell
               .col-6
                 .text-caption.text-grey-6 Заблокировано
                 .text-body2.text-weight-medium {{ formatAsset2Digits(props.row.blocked) }}
+
+  WalletTransferDialog(
+    v-model='transferDialog.open'
+    :wallets='wallets'
+    :fixed-from-wallet='transferDialog.fromWallet'
+    @success='onTransferSuccess'
+  )
 </template>
 
 <script setup lang="ts">
@@ -144,11 +144,12 @@ const loading = ref(false)
 const pagination = ref({ rowsPerPage: 0 })
 const wallets = ref<ILedger2Wallet[]>([])
 
-const expanded = ref(new Set<number>())
-const childOps = ref(new Map<number, ILedger2Operation[]>())
-const childLoading = ref(new Set<number>())
+// Идентификатор кошелька — eosio::name (строка `w.<contract>.<waltype>`).
+const expanded = ref(new Set<string>())
+const childOps = ref(new Map<string, ILedger2Operation[]>())
+const childLoading = ref(new Set<string>())
 
-const transferDialog = reactive<{ open: boolean; fromWallet: number | null }>({
+const transferDialog = reactive<{ open: boolean; fromWallet: string | null }>({
   open: false,
   fromWallet: null,
 })
@@ -158,8 +159,8 @@ function openTransferEmpty(): void {
   transferDialog.open = true
 }
 
-function openTransferFor(walletId: number): void {
-  transferDialog.fromWallet = walletId
+function openTransferFor(walletName: string): void {
+  transferDialog.fromWallet = walletName
   transferDialog.open = true
 }
 
@@ -204,17 +205,17 @@ const childColumns: any[] = [
   { name: 'open', align: 'right', label: '', field: 'processHash' },
 ]
 
-function directionFor(op: ILedger2Operation, walletId: number): 'in' | 'out' | 'move' {
+function directionFor(op: ILedger2Operation, walletName: string): 'in' | 'out' | 'move' {
   const from = op.walletFrom ?? null
   const to = op.walletTo ?? null
-  if (from === walletId && to && to !== walletId) return 'out'
-  if (to === walletId && from && from !== walletId) return 'in'
-  if (to === walletId && !from) return 'in'
-  if (from === walletId && !to) return 'out'
+  if (from === walletName && to && to !== walletName) return 'out'
+  if (to === walletName && from && from !== walletName) return 'in'
+  if (to === walletName && !from) return 'in'
+  if (from === walletName && !to) return 'out'
   return 'move'
 }
 
-async function toggleExpand(id: number) {
+async function toggleExpand(id: string) {
   if (expanded.value.has(id)) {
     expanded.value.delete(id)
     return
@@ -225,7 +226,7 @@ async function toggleExpand(id: number) {
   try {
     const resp = await ledger2Store.loadHistory({
       coopname: info.coopname,
-      accountId: id,
+      walletName: id,
       actionNames: ['walletop'],
       limit: 20,
       sortOrder: 'DESC',

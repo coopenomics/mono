@@ -1,20 +1,23 @@
 /**
  * @brief Откат ранее проведённой операции (operation o.adj.rev).
  *
- * Top-level action — председатель подписывает сам. Контракт не имеет доступа
- * к истории `blockchain_actions` (она живёт в БД coopback), поэтому параметры
- * **зеркальной** проводки приходят уже готовыми из backend-резолвера
- * `revertOperation`: backend поднимает оригинал по `original_operation_id`,
- * меняет местами Dr/Cr счета и (для wallet_op) wallet_from/wallet_to,
- * подставляет `WalletOp::REVOKE` для зеркала ISSUE.
+ * **Contract-only**: top-level вызов председателем (`coopname@active`) запрещён.
+ * Action принимает только подпись от whitelisted контрактов
+ * (`contracts_whitelist`) — то есть зеркальная проводка возможна только когда
+ * её инициирует другой контракт-инициатор (registrator/wallet/capital/...),
+ * который параллельно откатывает свой собственный state.
  *
- * Запрет на откат миграционных операций (`o.mig.*`) — миграция воспроизводит
- * legacy-данные, обратный ход создал бы artifact-проводку с минусом
- * относительно состояния, которого никогда не было в legacy. Такие случаи
- * фиксятся комбинацией WalMove + (будущий) Manual.
+ * Why this restriction: ledger2 — учётный слой; зеркальная проводка не трогает
+ * сущности контрактов-инициаторов (participants/deposits/contributors).
+ * Top-level откат председателем рассинхронизирует учёт и состояние домена
+ * (например, participant остаётся accepted, а минимальный паевой «вернулся»).
  *
- * Повторный откат отката — разрешён (двойное зеркало возвращает исходное
- * состояние, что иногда нужно для отмены ошибочного revert).
+ * Контракт не имеет доступа к истории `blockchain_actions` — параметры зеркала
+ * собирает контракт-инициатор (он знает свой исходный operation_code и
+ * соответствующие Dr/Cr/wallet через operations.hpp registry).
+ *
+ * Запрет на откат миграционных операций (`o.mig.*`) сохранён.
+ * Повторный откат отката (revert от revert) разрешён.
  *
  * @ingroup public_ledger2_actions
  */
@@ -26,16 +29,14 @@ void ledger2::revert(eosio::name coopname,
                      eosio::name username,
                      eosio::asset amount,
                      uint8_t mirror_wallet_op,
-                     uint64_t mirror_wallet_from,
-                     uint64_t mirror_wallet_to,
+                     eosio::name mirror_wallet_from,
+                     eosio::name mirror_wallet_to,
                      uint64_t mirror_debit_account_id,
                      uint64_t mirror_credit_account_id,
                      eosio::checksum256 process_hash,
                      std::string memo) {
-  // -------- auth --------
-  if (!has_auth(coopname)) {
-    check_auth_and_get_payer_or_fail(contracts_whitelist);
-  }
+  // -------- auth: только whitelist-контракты, председатель напрямую запрещён --------
+  check_auth_and_get_payer_or_fail(contracts_whitelist);
 
   // -------- validate coopname --------
   eosio::check(coopname.value != 0, "revert: coopname пустой");
@@ -74,13 +75,13 @@ void ledger2::revert(eosio::name coopname,
                "revert: BLOCK/UNBLOCK не подлежат откату через revert (они симметричны сами себе)");
 
   // -------- validate mirror wallets/accounts --------
-  if (mirror_wallet_from != 0) {
-    eosio::check(!ledger2_get_wallet_name_by_id(mirror_wallet_from).empty(),
-                 std::string{"revert: неизвестный mirror_wallet_from "} + std::to_string(mirror_wallet_from));
+  if (mirror_wallet_from.value != 0) {
+    eosio::check(ledger2_is_known_wallet(mirror_wallet_from),
+                 std::string{"revert: неизвестный mirror_wallet_from "} + mirror_wallet_from.to_string());
   }
-  if (mirror_wallet_to != 0) {
-    eosio::check(!ledger2_get_wallet_name_by_id(mirror_wallet_to).empty(),
-                 std::string{"revert: неизвестный mirror_wallet_to "} + std::to_string(mirror_wallet_to));
+  if (mirror_wallet_to.value != 0) {
+    eosio::check(ledger2_is_known_wallet(mirror_wallet_to),
+                 std::string{"revert: неизвестный mirror_wallet_to "} + mirror_wallet_to.to_string());
   }
 
   const bool wallet_only = (mirror_wallet_op == static_cast<uint8_t>(WalletOp::WALLET_ONLY));

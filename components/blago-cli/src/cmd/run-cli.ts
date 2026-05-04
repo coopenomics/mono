@@ -41,6 +41,7 @@ import { runPush } from '../sync/push.js'
 import { runClearStaging, runRemove } from '../sync/remove.js'
 import { restoreAllFromServer, RESTORE_ALL_PATH_SENTINELS, runRestore } from '../sync/restore.js'
 import { runStatus } from '../sync/status.js'
+import { writeWorkspaceIndexMarkdown } from '../sync/workspace-index.js'
 import { error, formatThrownValue, info, success, warn } from '../ui/output.js'
 
 function startDir(): string {
@@ -372,6 +373,7 @@ export async function runCli(argv: string[]): Promise<void> {
         return
       }
       const restoredRel = await runRestore(ctx, pathOrId)
+      await writeWorkspaceIndexMarkdown(root)
       success(`Восстановлено с сервера: ${restoredRel}`)
     })
 
@@ -419,6 +421,7 @@ export async function runCli(argv: string[]): Promise<void> {
         return
       }
       await runClean(root)
+      await writeWorkspaceIndexMarkdown(root)
       success('Индекс и staging очищены, каталоги проектов удалены.')
     })
 

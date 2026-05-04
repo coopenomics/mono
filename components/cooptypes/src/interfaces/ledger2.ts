@@ -25,9 +25,12 @@ export interface IAccount2 {
 /**
  * Строка таблицы `wallets` контракта ledger2 (аналитический разрез бухсчёта).
  * Source: `table_ledger2_wallet.hpp`.
+ *
+ * `id` — eosio::name-идентификатор кошелька (`w.<contract>.<waltype>`),
+ * см. cooptypes/ledger2/wallets.ts. Поле `name` — человекочитаемое название.
  */
 export interface IWallet2 {
-  id: number
+  id: IName
   name: string
   available: IAsset
   blocked: IAsset
@@ -66,8 +69,8 @@ export interface IWalmove {
   coopname: IName
   initiator: IName
   username: IName
-  from_wallet: number
-  to_wallet: number
+  from_wallet: IName
+  to_wallet: IName
   amount: IAsset
   process_hash: IChecksum256
   memo: string
@@ -92,8 +95,8 @@ export interface IRevert {
    * 2=BLOCK / 3=UNBLOCK не разрешены — они симметричны сами себе.
    */
   mirror_wallet_op: number
-  mirror_wallet_from: number
-  mirror_wallet_to: number
+  mirror_wallet_from: IName
+  mirror_wallet_to: IName
   mirror_debit_account_id: number
   mirror_credit_account_id: number
   process_hash: IChecksum256

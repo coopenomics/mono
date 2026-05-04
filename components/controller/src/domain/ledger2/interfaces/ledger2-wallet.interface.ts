@@ -2,22 +2,14 @@
  * Общекооперативный кошелёк ledger2 (таблица `ledger2::wallets`).
  *
  * Это **не** кошельки пайщиков — те живут в контракте `soviet`. Здесь —
- * аналитические разрезы бухгалтерских счетов уровня кооператива:
- *   2001 — паевой фонд: взносы деньгами;
- *   2002 — минимальный паевой взнос;
- *   2003 — паевой фонд: принятые РИД;
- *   3001–3003 — вступительные / членские / делегатские взносы;
- *   4001 — возвраты паевых взносов пайщикам;
- *   4002 — выплаты поставщикам;
- *   4051 — выданные беспроцентные займы;
- *   9xxx / 10xxx / 11xxx — кошельки ЦПП «Благорост» / «Генератор» / «Стол Заказов».
+ * аналитические разрезы бухгалтерских счетов уровня кооператива.
  *
- * Полный реестр — `components/context/notes/LEDGER2_CHART_OF_ACCOUNTS.md` и
- * `contracts/cpp/lib/core/ledger2/wallets.hpp`. ID идут блоками ×1000 по
- * родительскому бухсчёту (Epic 1 Story 1.13).
+ * `id` — eosio::name-идентификатор `w.<contract>.<waltype>` (например
+ * `w.wal.share`, `w.cap.bginv`, `w.reg.entry`). Полный реестр — в
+ * `cooptypes/ledger2/wallets.ts` и `contracts/cpp/lib/core/ledger2/wallets.hpp`.
  */
 export interface Ledger2WalletDomainInterface {
-  id: number;
+  id: string;
   name: string;
   available: string;
   blocked: string;

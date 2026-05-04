@@ -1,5 +1,6 @@
 <template lang="pug">
 q-btn(
+  v-if='isActive',
   @click='showDialog = true',
   :color='micro ? "accent" : "primary"',
   :flat='micro',
@@ -79,6 +80,14 @@ const quantity = ref();
 const { showDialog } = useDepositDialog();
 const isSubmitting = ref(false);
 const paymentOrder = ref();
+
+// Кнопка доступна только принятым пайщикам (user_account.status === 'active').
+// До приёма советом мутация createDepositPayment всё равно отвергается на бэке
+// гвардом ActiveUserStatusGuard — здесь прячем сам контрол, чтобы не водить
+// пользователя по тупиковому пути.
+const isActive = computed(
+  () => session.userAccount?.status === 'active',
+);
 
 const clear = (): void => {
   showDialog.value = false;

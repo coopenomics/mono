@@ -4,8 +4,10 @@
 #include <cstdint>
 #include <string_view>
 
+#include <eosio/eosio.hpp>
+
 /**
- * @brief Стандарт кошельков ledger2 (пересмотр 2026-04-20).
+ * @brief Стандарт кошельков ledger2 (пересмотр 2026-04-27).
  *
  * Кошельки ledger2 — это аналитические разрезы бухгалтерских счетов:
  * «куда/откуда движутся средства» на уровне ЦПП и фондов. Учёт остатков
@@ -13,71 +15,65 @@
  * отдельного «зеркального» wallet-а для 51 НЕТ — любая money-in операция
  * сразу адресуется целевому кошельку-назначению.
  *
- * Нумерация — ×1000, группы:
- *   2xxx — Паевой фонд (журнал Cr 80)
- *   3xxx — Целевое финансирование (Cr 86)
- *   4xxx — Выплаты / обязательства / финансовые вложения (sinks, loans)
- *   5xxx — Служебные (ручные корректировки)
- *   9xxx — ЦПП «Благорост»
- *   10xxx — ЦПП «Генератор» (промежуточное состояние коммитов, Dr 08)
- *   11xxx — ЦПП «Marketplace» (резерв)
+ * Идентификатор кошелька — `eosio::name` с префиксом `w.<contract>.<waltype>`
+ * (по аналогии с операциями `o.<contract>.<verb>` и процессами
+ * `p.<contract>.<noun>`). Длина ≤ 13 base32-символов.
  *
- * Пересмотр 2026-04-20:
- *   - Удалён 1001 CASH_MAIN: 51-й счёт ведётся только в accounts2.
- *   - Удалены 4050 LOAN_RECEIVED / 4052 DEBT_CLOSED_SINK: счёт 67 убран,
- *     займы идут через 58 (cap.loanissue: Dr 58 / Cr 51; cap.loanrepay:
- *     Dr 80 / Cr 58).
- *   - Добавлены 9001-9004 Благорост и 10001-10002 Генератор для разнесения
- *     инвестиций/имущества/коммитов по программам.
- *   - Добавлен 5001 MANUAL_ADJUST — резерв под ручные корректировки
- *     (action ledger2::adjust, не реализован в MVP).
+ * Группы:
+ *   w.wal.* — Паевой фонд (журнал Cr 80) и возвраты пайщикам
+ *   w.reg.* — Регистрация (минимальный паевой, вступительные)
+ *   w.sov.* — Целевое финансирование (членские, делегатские)
+ *   w.cap.* — Программы паевого фонда (Благорост, Генератор) и займы
+ *   w.mkt.* — Маркетплейс (выплаты поставщикам, общий фонд «Стол Заказов»)
+ *   w.led.* — Служебные (ручные корректировки)
  *
- * При первом ISSUE/TRANSFER кошелёк создаётся автоматически по имени
+ * Sentinel `eosio::name{}` (пустое имя, value=0) — «кошелёк вне системы»
+ * для ISSUE (нет wallet_from) и REVOKE (нет wallet_to).
+ *
+ * При первом ISSUE/TRANSFER кошелёк создаётся автоматически по записи
  * из WALLET_REGISTRY. При обнулении available+blocked запись удаляется.
  *
  * @ingroup public_ledger2_consts
  */
 struct ledger2_wallets {
-  // Группа 2xxx — паевой фонд (Cr 80)
-  static constexpr uint64_t SHARE_FUND_PAY       = 2001;   ///< ЦПП «Цифровой Кошелёк» — паевые взносы деньгами
-  static constexpr uint64_t MIN_SHARE_FUND       = 2002;   ///< Минимальный паевой взнос (при регистрации)
-  static constexpr uint64_t SHARE_FUND_RID       = 2003;   ///< Паевой фонд — РИД, принятые в НМА (Dr 04 / Cr 80)
+  // wallet — паевой фонд + возвраты
+  static constexpr eosio::name SHARE_FUND_PAY       = "w.wal.share"_n;   ///< ЦПП «Цифровой Кошелёк» — паевые взносы деньгами (Cr 80)
+  static constexpr eosio::name SHARE_FUND_RID       = "w.wal.sharid"_n;  ///< Паевой фонд — РИД, принятые в НМА (Dr 04 / Cr 80)
+  static constexpr eosio::name WITHDRAWALS_SINK     = "w.wal.wthdrw"_n;  ///< Возвраты паевых взносов пайщикам (sink TRANSFER)
 
-  // Группа 3xxx — целевое финансирование (Cr 86)
-  static constexpr uint64_t ENTRANCE_FEES        = 3001;   ///< Вступительные взносы
-  static constexpr uint64_t MEMBERSHIP_FEES      = 3002;   ///< Членские взносы (платформенные)
-  static constexpr uint64_t DELEGATE_FEES        = 3003;   ///< Делегатские членские взносы (цель CONVERT_TO_AXN)
+  // registrator — минимальный паевой + вступительные
+  static constexpr eosio::name MIN_SHARE_FUND       = "w.reg.minshr"_n;  ///< Минимальный паевой взнос при регистрации (Cr 80)
+  static constexpr eosio::name ENTRANCE_FEES        = "w.reg.entry"_n;   ///< Вступительные взносы (Cr 86)
 
-  // Группа 4xxx — выплаты / обязательства / финансовые вложения
-  static constexpr uint64_t WITHDRAWALS_SINK     = 4001;   ///< Возвраты паевых взносов (цель WITHDRAW_COMPLETE)
-  static constexpr uint64_t SUPPLIER_PAYMENTS    = 4002;   ///< Выплаты поставщикам (цель RECEIVE_CONFIRM)
-  static constexpr uint64_t LOAN_ISSUED          = 4051;   ///< Выданные пайщикам беспроцентные займы (Dr 58 / Cr 51)
+  // soviet — членские взносы
+  static constexpr eosio::name MEMBERSHIP_FEES      = "w.sov.member"_n;  ///< Членские взносы (платформенные) (Cr 86)
+  static constexpr eosio::name DELEGATE_FEES        = "w.sov.delgte"_n;  ///< Делегатские членские взносы (цель CONVERT_TO_AXN) (Cr 86)
 
-  // Группа 5xxx — служебные
-  static constexpr uint64_t MANUAL_ADJUST        = 5001;   ///< Ручные корректировки (резерв под ledger2::adjust)
+  // capital — программы Благорост, Генератор + займы
+  static constexpr eosio::name LOAN_ISSUED          = "w.cap.loan"_n;    ///< Выданные пайщикам беспроцентные займы (Dr 58 / Cr 51)
+  static constexpr eosio::name BLAGOROST_INVEST     = "w.cap.bginv"_n;   ///< Благорост — инвестиции деньгами (Cr 80)
+  static constexpr eosio::name BLAGOROST_RID        = "w.cap.bgrid"_n;   ///< Благорост — принятые РИД (Dr 04 / Cr 08 после accept)
+  static constexpr eosio::name BLAGOROST_PROPERTY   = "w.cap.bgprop"_n;  ///< Благорост — имущественные паевые взносы
+  static constexpr eosio::name BLAGOROST_MEMBERSHIP = "w.cap.bgmem"_n;   ///< Благорост — членские взносы по программе (Cr 86)
+  static constexpr eosio::name GENERATOR_COMMIT     = "w.cap.gncom"_n;   ///< Генератор — паевой взнос имуществом в статусе «принятый коммит» (Dr 08 / Cr 80)
+  static constexpr eosio::name GENERATOR_MEMBERSHIP = "w.cap.gnmem"_n;   ///< Генератор — членские взносы по программе (Cr 86)
 
-  // Группа 9xxx — ЦПП «Благорост»
-  static constexpr uint64_t BLAGOROST_INVEST     = 9001;   ///< Благорост — инвестиции деньгами
-  static constexpr uint64_t BLAGOROST_RID        = 9002;   ///< Благорост — принятые РИД (Dr 04 / Cr 08 после accept)
-  static constexpr uint64_t BLAGOROST_PROPERTY   = 9003;   ///< Благорост — имущественные паевые взносы
-  static constexpr uint64_t BLAGOROST_MEMBERSHIP = 9004;   ///< Благорост — членские взносы по программе (Cr 86)
+  // marketplace — выплаты + общий фонд
+  static constexpr eosio::name SUPPLIER_PAYMENTS    = "w.mkt.payout"_n;  ///< Выплаты поставщикам (sink RECEIVE_CONFIRM)
+  static constexpr eosio::name MARKETPLACE_FUND     = "w.mkt.fund"_n;    ///< ЦПП «Стол Заказов» — общий кошелёк программы (резерв)
 
-  // Группа 10xxx — ЦПП «Генератор» (промежуточное состояние Dr 08)
-  static constexpr uint64_t GENERATOR_COMMIT     = 10001;  ///< Генератор — паевой взнос имуществом в статусе «принятый коммит» (Dr 08 / Cr 80)
-  static constexpr uint64_t GENERATOR_MEMBERSHIP = 10002;  ///< Генератор — членские взносы по программе (Cr 86)
-
-  // Группа 11xxx — ЦПП «Стол Заказов» (резерв)
-  static constexpr uint64_t MARKETPLACE_FUND     = 11001;  ///< ЦПП «Стол Заказов» — общий кошелёк программы (пустой в MVP)
+  // ledger2 — служебные
+  static constexpr eosio::name MANUAL_ADJUST        = "w.led.adjust"_n;  ///< Ручные корректировки (резерв под ledger2::adjust)
 };
 
 /**
- * @brief Справочник кошелька: id → имя.
+ * @brief Справочник кошелька: machine name → human-readable name.
  *
  * `constexpr std::array` + `string_view` — без dynamic init в WASM.
  */
 struct Ledger2WalletMeta {
-  uint64_t         id;
-  std::string_view name;
+  eosio::name      name;
+  std::string_view human_name;
 };
 
 inline constexpr std::array<Ledger2WalletMeta, 17> LEDGER2_WALLET_REGISTRY = {{
@@ -102,24 +98,49 @@ inline constexpr std::array<Ledger2WalletMeta, 17> LEDGER2_WALLET_REGISTRY = {{
 
 static constexpr size_t LEDGER2_WALLET_REGISTRY_SIZE = LEDGER2_WALLET_REGISTRY.size();
 
-// Compile-time проверка уникальности id кошельков.
+// Compile-time проверка уникальности имён кошельков.
 namespace ledger2_wallets_detail {
-  constexpr bool wallet_ids_unique() {
+  constexpr bool wallet_names_unique() {
     for (size_t i = 0; i < LEDGER2_WALLET_REGISTRY_SIZE; ++i) {
       for (size_t j = i + 1; j < LEDGER2_WALLET_REGISTRY_SIZE; ++j) {
-        if (LEDGER2_WALLET_REGISTRY[i].id == LEDGER2_WALLET_REGISTRY[j].id) return false;
+        if (LEDGER2_WALLET_REGISTRY[i].name == LEDGER2_WALLET_REGISTRY[j].name) return false;
       }
+    }
+    return true;
+  }
+
+  constexpr bool wallet_names_nonempty() {
+    for (size_t i = 0; i < LEDGER2_WALLET_REGISTRY_SIZE; ++i) {
+      if (LEDGER2_WALLET_REGISTRY[i].name.value == 0) return false;
     }
     return true;
   }
 }
 
-static_assert(ledger2_wallets_detail::wallet_ids_unique(),
-              "LEDGER2_WALLET_REGISTRY: duplicate wallet id detected");
+static_assert(ledger2_wallets_detail::wallet_names_unique(),
+              "LEDGER2_WALLET_REGISTRY: duplicate wallet name detected");
+static_assert(ledger2_wallets_detail::wallet_names_nonempty(),
+              "LEDGER2_WALLET_REGISTRY: empty eosio::name (sentinel) не должно быть в реестре");
 
-inline constexpr std::string_view ledger2_get_wallet_name_by_id(uint64_t wallet_id) {
+/**
+ * @brief Возвращает human-readable имя кошелька по его eosio::name.
+ *
+ * Возвращает пустой `string_view` для незарегистрированных имён и для пустого
+ * имени (sentinel — кошелёк вне системы при ISSUE/REVOKE).
+ */
+inline constexpr std::string_view ledger2_get_wallet_human_name(eosio::name wallet_name) {
   for (size_t i = 0; i < LEDGER2_WALLET_REGISTRY_SIZE; ++i) {
-    if (LEDGER2_WALLET_REGISTRY[i].id == wallet_id) return LEDGER2_WALLET_REGISTRY[i].name;
+    if (LEDGER2_WALLET_REGISTRY[i].name == wallet_name) return LEDGER2_WALLET_REGISTRY[i].human_name;
   }
   return std::string_view{};
+}
+
+/**
+ * @brief Проверяет, что `wallet_name` присутствует в LEDGER2_WALLET_REGISTRY.
+ */
+inline constexpr bool ledger2_is_known_wallet(eosio::name wallet_name) {
+  for (size_t i = 0; i < LEDGER2_WALLET_REGISTRY_SIZE; ++i) {
+    if (LEDGER2_WALLET_REGISTRY[i].name == wallet_name) return true;
+  }
+  return false;
 }

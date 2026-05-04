@@ -1,0 +1,17 @@
+{
+  "name": "@coopenomics/docs-harness",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Playwright harness для съёмки скриншотов в документацию (см. bin/shoot.mjs)",
+  "type": "module",
+  "scripts": {
+    "shoot": "node bin/shoot.mjs",
+    "shoot:blagorost": "node bin/shoot-blagorost-all.mjs"
+  },
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "playwright": "^1.59.1",
+    "sharp": "^0.34.5"
+  }
+}

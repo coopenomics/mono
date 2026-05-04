@@ -92,8 +92,9 @@ import { useLedger2Store, type ILedger2Wallet } from 'src/entities/Ledger2'
 
 interface Props {
   modelValue: boolean
-  /** Если задано — диалог открыт «из строки кошелька»: from_wallet залочен. */
-  fixedFromWallet?: number | null
+  /** Если задано — диалог открыт «из строки кошелька»: from_wallet залочен.
+   * Значение — eosio::name кошелька (`w.<contract>.<waltype>`). */
+  fixedFromWallet?: string | null
   /** Список кошельков для выбора (общекооперативные ledger2 wallets). */
   wallets: ILedger2Wallet[]
 }
@@ -111,8 +112,8 @@ const formRef = ref<{ validate: () => Promise<boolean> } | null>(null)
 const loading = ref(false)
 
 const form = reactive({
-  fromWallet: null as number | null,
-  toWallet: null as number | null,
+  fromWallet: null as string | null,
+  toWallet: null as string | null,
   amountStr: '',
   memo: '',
 })
@@ -121,20 +122,22 @@ const form = reactive({
  * Привязка wallet→account по cooptypes (LEDGER2_OPERATION_REGISTRY).
  * Та же логика, что в backend: первая стандартная операция, где встречается
  * этот кошелёк, даёт его account_id (debit/credit зависит от роли).
+ *
+ * `walletName` — eosio::name кошелька (`w.<contract>.<waltype>`).
  */
-function resolveAccountId(walletId: number): number | null {
+function resolveAccountId(walletName: string): number | null {
   for (const op of Ledger2.LEDGER2_OPERATION_REGISTRY) {
     if (op.kind === 'adjustment') continue
     if (op.wallet_op === 'WALLET_ONLY') continue
-    if (op.wallet_from === walletId && op.credit !== null) return op.credit
-    if (op.wallet_to === walletId && op.wallet_op === 'ISSUE' && op.credit !== null) return op.credit
-    if (op.wallet_to === walletId && op.debit !== null) return op.debit
-    if (op.wallet_from === walletId && op.debit !== null) return op.debit
+    if (op.wallet_from === walletName && op.credit !== null) return op.credit
+    if (op.wallet_to === walletName && op.wallet_op === 'ISSUE' && op.credit !== null) return op.credit
+    if (op.wallet_to === walletName && op.debit !== null) return op.debit
+    if (op.wallet_from === walletName && op.debit !== null) return op.debit
   }
   for (const op of Ledger2.LEDGER2_OPERATION_REGISTRY) {
     if (op.wallet_op !== 'WALLET_ONLY' || op.kind === 'adjustment') continue
-    if (op.wallet_from === walletId && op.wallet_to !== null) return resolveAccountId(op.wallet_to)
-    if (op.wallet_to === walletId && op.wallet_from !== null) return resolveAccountId(op.wallet_from)
+    if (op.wallet_from === walletName && op.wallet_to !== null) return resolveAccountId(op.wallet_to)
+    if (op.wallet_to === walletName && op.wallet_from !== null) return resolveAccountId(op.wallet_from)
   }
   return null
 }
@@ -212,9 +215,11 @@ async function submit() {
       quantity: `${Number(form.amountStr).toFixed(4)} RUB`,
       memo: form.memo.trim(),
     })
-    SuccessAlert(`Перевод выполнен. process_hash: ${result.processHash.slice(0, 12)}…`)
+    SuccessAlert('Перевод выполнен')
     emit('success', { processHash: result.processHash })
-    close()
+    // Закрываем явно (не через close(), чтобы не цеплять guard на loading,
+    // который ещё true до finally).
+    emit('update:modelValue', false)
   } catch (e) {
     FailAlert(e)
   } finally {
@@ -222,6 +227,7 @@ async function submit() {
   }
 }
 
+/** Кнопка «Отмена» / крестик — блокируем во время идущей мутации. */
 function close() {
   if (loading.value) return
   emit('update:modelValue', false)

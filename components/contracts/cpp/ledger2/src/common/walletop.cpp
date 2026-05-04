@@ -22,8 +22,8 @@
 [[eosio::action]]
 void ledger2::walletop(eosio::name coopname,
                        uint8_t op_code,
-                       uint64_t wallet_from,
-                       uint64_t wallet_to,
+                       eosio::name wallet_from,
+                       eosio::name wallet_to,
                        eosio::asset amount,
                        eosio::checksum256 process_hash,
                        std::string memo) {
@@ -49,16 +49,16 @@ void ledger2::walletop(eosio::name coopname,
   wallets2_index wallets(get_self(), coopname.value);
   const eosio::name payer = get_self();
 
-  auto upsert_wallet = [&](uint64_t wallet_id) -> wallets2_index::const_iterator {
-    auto it = wallets.find(wallet_id);
+  auto upsert_wallet = [&](eosio::name wallet_id) -> wallets2_index::const_iterator {
+    auto it = wallets.find(wallet_id.value);
     if (it == wallets.end()) {
-      const auto name_view = ledger2_get_wallet_name_by_id(wallet_id);
-      eosio::check(!name_view.empty(),
-                   std::string{"walletop: unknown wallet id "} + std::to_string(wallet_id));
-      const std::string name{name_view};
+      const auto human_view = ledger2_get_wallet_human_name(wallet_id);
+      eosio::check(!human_view.empty(),
+                   std::string{"walletop: unknown wallet "} + wallet_id.to_string());
+      const std::string human{human_view};
       it = wallets.emplace(payer, [&](auto& w) {
         w.id        = wallet_id;
-        w.name      = name;
+        w.name      = human;
         w.available = eosio::asset(0, amount.symbol);
         w.blocked   = eosio::asset(0, amount.symbol);
       });
@@ -66,8 +66,8 @@ void ledger2::walletop(eosio::name coopname,
     return it;
   };
 
-  auto cleanup_if_empty = [&](uint64_t wallet_id) {
-    auto it = wallets.find(wallet_id);
+  auto cleanup_if_empty = [&](eosio::name wallet_id) {
+    auto it = wallets.find(wallet_id.value);
     if (it != wallets.end() && it->is_empty()) {
       wallets.erase(it);
     }
@@ -75,8 +75,8 @@ void ledger2::walletop(eosio::name coopname,
 
   switch (static_cast<WalletOp>(op_code)) {
     case WalletOp::ISSUE: {
-      eosio::check(wallet_from == 0, "walletop ISSUE: wallet_from должен быть 0");
-      eosio::check(wallet_to != 0, "walletop ISSUE: требуется wallet_to");
+      eosio::check(wallet_from.value == 0, "walletop ISSUE: wallet_from должен быть пустым");
+      eosio::check(wallet_to.value != 0, "walletop ISSUE: требуется wallet_to");
       auto it = upsert_wallet(wallet_to);
       wallets.modify(it, payer, [&](auto& w) { w.available += amount; });
       break;
@@ -85,14 +85,14 @@ void ledger2::walletop(eosio::name coopname,
     case WalletOp::WALLET_ONLY: {
       // Оба типа — перенос available между кошельками. WALLET_ONLY отличается
       // только отсутствием inline debit/credit (см. apply.cpp).
-      eosio::check(wallet_from != 0 && wallet_to != 0,
+      eosio::check(wallet_from.value != 0 && wallet_to.value != 0,
                    "walletop TRANSFER/WALLET_ONLY: требуются wallet_from и wallet_to");
       eosio::check(wallet_from != wallet_to,
                    "walletop TRANSFER/WALLET_ONLY: wallet_from == wallet_to");
-      auto from_it = wallets.find(wallet_from);
+      auto from_it = wallets.find(wallet_from.value);
       eosio::check(from_it != wallets.end() && from_it->available >= amount,
                    std::string{"walletop TRANSFER: недостаточно средств на кошельке "} +
-                     std::to_string(wallet_from));
+                     wallet_from.to_string());
       wallets.modify(from_it, payer, [&](auto& w) { w.available -= amount; });
       auto to_it = upsert_wallet(wallet_to);
       wallets.modify(to_it, payer, [&](auto& w) { w.available += amount; });
@@ -100,12 +100,12 @@ void ledger2::walletop(eosio::name coopname,
       break;
     }
     case WalletOp::BLOCK: {
-      eosio::check(wallet_from != 0, "walletop BLOCK: требуется wallet_from");
-      eosio::check(wallet_to == 0, "walletop BLOCK: wallet_to должен быть 0");
-      auto it = wallets.find(wallet_from);
+      eosio::check(wallet_from.value != 0, "walletop BLOCK: требуется wallet_from");
+      eosio::check(wallet_to.value == 0, "walletop BLOCK: wallet_to должен быть пустым");
+      auto it = wallets.find(wallet_from.value);
       eosio::check(it != wallets.end() && it->available >= amount,
                    std::string{"walletop BLOCK: недостаточно available на кошельке "} +
-                     std::to_string(wallet_from));
+                     wallet_from.to_string());
       wallets.modify(it, payer, [&](auto& w) {
         w.available -= amount;
         w.blocked   += amount;
@@ -113,12 +113,12 @@ void ledger2::walletop(eosio::name coopname,
       break;
     }
     case WalletOp::UNBLOCK: {
-      eosio::check(wallet_from != 0, "walletop UNBLOCK: требуется wallet_from");
-      eosio::check(wallet_to == 0, "walletop UNBLOCK: wallet_to должен быть 0");
-      auto it = wallets.find(wallet_from);
+      eosio::check(wallet_from.value != 0, "walletop UNBLOCK: требуется wallet_from");
+      eosio::check(wallet_to.value == 0, "walletop UNBLOCK: wallet_to должен быть пустым");
+      auto it = wallets.find(wallet_from.value);
       eosio::check(it != wallets.end() && it->blocked >= amount,
                    std::string{"walletop UNBLOCK: недостаточно blocked на кошельке "} +
-                     std::to_string(wallet_from));
+                     wallet_from.to_string());
       wallets.modify(it, payer, [&](auto& w) {
         w.blocked   -= amount;
         w.available += amount;
@@ -128,12 +128,12 @@ void ledger2::walletop(eosio::name coopname,
     case WalletOp::REVOKE: {
       // Зеркало ISSUE: убираем amount с wallet_from без увеличения куда-либо.
       // Используется только из ledger2::revert при откате ISSUE-операций.
-      eosio::check(wallet_from != 0, "walletop REVOKE: требуется wallet_from");
-      eosio::check(wallet_to == 0, "walletop REVOKE: wallet_to должен быть 0");
-      auto it = wallets.find(wallet_from);
+      eosio::check(wallet_from.value != 0, "walletop REVOKE: требуется wallet_from");
+      eosio::check(wallet_to.value == 0, "walletop REVOKE: wallet_to должен быть пустым");
+      auto it = wallets.find(wallet_from.value);
       eosio::check(it != wallets.end() && it->available >= amount,
                    std::string{"walletop REVOKE: недостаточно available на кошельке "} +
-                     std::to_string(wallet_from));
+                     wallet_from.to_string());
       wallets.modify(it, payer, [&](auto& w) { w.available -= amount; });
       cleanup_if_empty(wallet_from);
       break;

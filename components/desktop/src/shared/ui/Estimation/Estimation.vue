@@ -11,6 +11,7 @@ div
   )
     .time-progress-label
       q-icon(
+        v-if='!noIcon'
         name='schedule'
         size='xs'
         :color='progressColor'
@@ -22,13 +23,14 @@ div
       track-color='grey-3'
       size='3px'
       rounded
-      style='min-width: 60px; margin-top: 2px'
+      style='width: 100%; max-width: 90px; margin-top: 2px'
     )
   .estimation-display(
     v-else-if='estimation != null && !Number.isNaN(estimation) && estimation > 0'
     :class='sizeClass'
   )
     q-icon(
+      v-if='!noIcon'
       name='schedule',
       size='xs'
       color='grey-6'
@@ -46,6 +48,7 @@ const props = defineProps<{
   estimation?: number; // План в часах (может быть 0 = «оценки нет»)
   fact?: number; // Фактически накопленное время в часах (сумма TimeEntry)
   size?: 'xs' | 'sm' | 'md';
+  noIcon?: boolean; // Скрыть значок-часы (для встраивания в плотные строки списка)
 }>();
 
 function formatHours(hours: number | undefined | null): string {
@@ -114,6 +117,8 @@ const sizeClass = computed(() => {
   color: var(--q-grey-6);
   font-size: 12px;
   font-weight: 500;
+  min-width: 0;
+  max-width: 100%;
 
   &.estimation-xs {
     font-size: 11px;

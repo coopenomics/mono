@@ -31,6 +31,7 @@ import {
 import { pullProjectCommunicationArtifacts } from './pull-communication.js'
 import { scaffoldBmadWorkspacesAfterPull } from './scaffold-bmad-workspace.js'
 import { syncEntityFile } from './sync-entity-file.js'
+import { writeWorkspaceIndexMarkdown } from './workspace-index.js'
 
 interface CapitalProjectRow {
   id?: number | null
@@ -344,6 +345,7 @@ export async function runPull(ctx: AuthenticatedContext, options: RunPullOptions
     currentCoopname: coopname,
   })
   await reportAndMaybePruneOrphans(ctx.root, orphans, options.prune === true)
+  await writeWorkspaceIndexMarkdown(ctx.root)
 }
 
 async function reportAndMaybePruneOrphans(

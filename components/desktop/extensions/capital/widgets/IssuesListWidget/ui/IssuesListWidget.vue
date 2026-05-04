@@ -29,61 +29,10 @@ div
           template(#body='props')
             q-tr(:props='props')
               q-td
-                .row.items-center(style='padding-left: 12px; min-height: 48px')
-                  .col-auto(style='width: 100px; padding-left: 20px; flex-shrink: 0')
-                    EntityIdBadge(
-                      :raw-id='props.row.id'
-                      copy-on-click
-                      address-clipboard
-                    )
-                      template(#prefix)
-                        q-icon(name='task', size='xs')
-                  // Оценка задачи (80px)
-                  .col-auto(style='width: 80px; padding-left: 20px')
-                    Estimation(
-                      :estimation='props.row.estimate'
-                      :fact='props.row.fact'
-                      size='xs'
-                    )
-
-                  .col(style='width: 400px; ')
-                    .list-item-title.row.items-center.wrap(
-                      @click.stop='handleIssueClick(props.row)'
-                      style='vertical-align: top; word-wrap: break-word; white-space: normal'
-                    )
-                      q-icon(
-                        :name='getIssuePriorityIcon(props.row.priority)',
-                        :color='getIssuePriorityColor(props.row.priority)',
-                        size='xs'
-                      ).q-mr-sm
-                      span.text-body2.font-weight-medium {{ props.row.title }}
-                      q-chip.issue-list-label-chip(
-                        v-for='tag in getIssueLabels(props.row)'
-                        :key='tag'
-                        dense
-                        size='sm'
-                        color='grey-4'
-                        text-color='dark'
-                      ) {{ tag }}
-
-
-                  .col-auto.ml-auto
-                    .row.items-center.justify-end.q-gutter-xs
-                      UpdateStatus(
-                        :model-value='props.row.status'
-                        :issue-hash='props.row.issue_hash'
-                        :readonly="!props.row.permissions.can_change_status"
-                        :allowed-transitions="props.row.permissions.allowed_status_transitions"
-                        dense
-                        @click.stop
-                      )
-                      SetCreatorButton(
-                        :dense='true'
-                        :issue='props.row'
-                        :permissions='props.row.permissions'
-                        @click.stop
-                        style="max-width: 250px;"
-                      )
+                IssueListRow(
+                  :issue='props.row'
+                  @click='handleIssueClick'
+                )
 
       //- Компактный режим без фиксированной высоты (для вложенного использования)
       div(v-else)
@@ -103,64 +52,10 @@ div
           template(#body='props')
             q-tr(:props='props')
               q-td
-                .row.items-center(style='padding-left: 12px; min-height: 48px')
-                  .col-auto(style='width: 35px; flex-shrink: 0')
-                  .col-auto(style='width: 100px; padding-left: 20px; flex-shrink: 0')
-                    EntityIdBadge(
-                      :raw-id='props.row.id'
-                      copy-on-click
-                      address-clipboard
-                    )
-                      template(#prefix)
-                        q-icon(name='task', size='xs')
-
-                  // Оценка задачи (80px)
-                  .col-auto(style='width: 80px; padding-left: 20px')
-
-                    Estimation(
-                      :estimation='props.row.estimate'
-                      :fact='props.row.fact'
-                      size='xs'
-                    )
-                  .col(style='width: 400px; ')
-                    .list-item-title.row.items-center.wrap(
-                      @click.stop='handleIssueClick(props.row)'
-                      style='vertical-align: top; word-wrap: break-word; white-space: normal'
-                    )
-                      q-icon(
-                        :name='getIssuePriorityIcon(props.row.priority)',
-                        :color='getIssuePriorityColor(props.row.priority)',
-                        size='xs'
-                      ).q-mr-sm
-                      span.text-body2.font-weight-medium {{ props.row.title }}
-                      q-chip.issue-list-label-chip(
-                        v-for='tag in getIssueLabels(props.row)'
-                        :key='tag'
-                        dense
-                        size='sm'
-                        color='grey-4'
-                        text-color='dark'
-                      ) {{ tag }}
-
-
-
-                  .col-auto.ml-auto
-                    .row.items-center.justify-end.q-gutter-xs
-                      UpdateStatus(
-                        :model-value='props.row.status'
-                        :issue-hash='props.row.issue_hash'
-                        :readonly="!props.row.permissions.can_change_status"
-                        :allowed-transitions="props.row.permissions.allowed_status_transitions"
-                        dense
-                        @click.stop
-                      )
-                      SetCreatorButton(
-                        :dense='true'
-                        :issue='props.row'
-                        :permissions='props.row.permissions'
-                        @click.stop
-                        style="max-width: 250px;"
-                      )
+                IssueListRow(
+                  :issue='props.row'
+                  @click='handleIssueClick'
+                )
 
 </template>
 <script lang="ts" setup>
@@ -171,14 +66,7 @@ import {
 } from 'app/extensions/capital/entities/Issue/model';
 import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert } from 'src/shared/api';
-import { EntityIdBadge, Estimation } from 'src/shared/ui';
-import { SetCreatorButton } from '../../../features/Issue/SetCreator';
-import { UpdateStatus } from '../../../features/Issue/UpdateIssue/ui/UpdateStatus';
-import {
-  getIssuePriorityIcon,
-  getIssuePriorityColor,
-  getIssueLabels,
-} from 'app/extensions/capital/shared/lib';
+import IssueListRow from './IssueListRow.vue';
 
 const props = defineProps<{
   projectHash: string;
@@ -384,40 +272,20 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
+// table-layout: fixed + width: 100% — иначе html-table ужимает колонки под
+// контент: длинный title распирает строку шире контейнера, actions-блок
+// уезжает за правый край (наблюдалось на ComponentTasksPage с боковой панелью).
 .q-table {
+  table-layout: fixed;
+  width: 100%;
+
   tr {
     min-height: 48px;
   }
 
   .q-td {
-    padding: 0; // Убираем padding таблицы, так как теперь используем внутренний padding
-  }
-}
-
-.q-chip {
-  font-weight: 500;
-}
-
-.issue-list-label-chip {
-  font-size: 0.7rem;
-  margin-left: 4px;
-  max-width: 140px;
-
-  :deep(.q-chip__content) {
+    padding: 0; // строка живёт в IssueListRow.vue со своими отступами
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-}
-
-// Импорт глобального стиля для подсветки
-:deep(.list-item-title) {
-  font-weight: 500;
-  cursor: pointer;
-  transition: color 0.2s ease;
-
-  &:hover {
-    color: var(--q-accent);
   }
 }
 </style>

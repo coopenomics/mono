@@ -3,7 +3,6 @@ import type { Ledger2WalletDomainInterface } from '../interfaces/ledger2-wallet.
 import type {
   Ledger2HistoryFilterDomainInterface,
   Ledger2HistoryResponseDomainInterface,
-  Ledger2OperationDomainInterface,
 } from '../interfaces/ledger2-history.interface';
 
 export const LEDGER2_STATE_PORT = Symbol('LEDGER2_STATE_PORT');
@@ -25,16 +24,4 @@ export interface Ledger2StatePort {
   getHistory(
     filter: Ledger2HistoryFilterDomainInterface,
   ): Promise<Ledger2HistoryResponseDomainInterface>;
-
-  /**
-   * Поднять одну apply-операцию по её `global_sequence`.
-   * Нужно сервису revertOperation: по originalGlobalSequence читаем
-   * operation_code/username/amount/process_hash оригинала, по нему собираем
-   * зеркальные параметры из cooptypes и подписываем revert.
-   * Возвращает null, если запись не найдена или не относится к coopname.
-   */
-  getOperationByGlobalSequence(
-    coopname: string,
-    globalSequence: string,
-  ): Promise<Ledger2OperationDomainInterface | null>;
 }

@@ -18,8 +18,8 @@
 void ledger2::walmove(eosio::name coopname,
                       eosio::name initiator,
                       eosio::name username,
-                      uint64_t from_wallet,
-                      uint64_t to_wallet,
+                      eosio::name from_wallet,
+                      eosio::name to_wallet,
                       eosio::asset amount,
                       eosio::checksum256 process_hash,
                       std::string memo) {
@@ -44,13 +44,13 @@ void ledger2::walmove(eosio::name coopname,
                "walmove: некорректный символ валюты");
 
   // -------- validate wallets --------
-  eosio::check(from_wallet != 0, "walmove: from_wallet обязателен");
-  eosio::check(to_wallet != 0, "walmove: to_wallet обязателен");
+  eosio::check(from_wallet.value != 0, "walmove: from_wallet обязателен");
+  eosio::check(to_wallet.value != 0, "walmove: to_wallet обязателен");
   eosio::check(from_wallet != to_wallet, "walmove: from_wallet == to_wallet");
-  eosio::check(!ledger2_get_wallet_name_by_id(from_wallet).empty(),
-               std::string{"walmove: неизвестный from_wallet "} + std::to_string(from_wallet));
-  eosio::check(!ledger2_get_wallet_name_by_id(to_wallet).empty(),
-               std::string{"walmove: неизвестный to_wallet "} + std::to_string(to_wallet));
+  eosio::check(ledger2_is_known_wallet(from_wallet),
+               std::string{"walmove: неизвестный from_wallet "} + from_wallet.to_string());
+  eosio::check(ledger2_is_known_wallet(to_wallet),
+               std::string{"walmove: неизвестный to_wallet "} + to_wallet.to_string());
 
   // -------- validate memo (обязательный для adjustment) --------
   eosio::check(!memo.empty(), "walmove: memo обязателен — укажите обоснование");

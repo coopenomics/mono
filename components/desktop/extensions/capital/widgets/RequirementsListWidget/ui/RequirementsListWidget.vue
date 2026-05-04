@@ -89,13 +89,14 @@ import { api as IssueApi } from 'app/extensions/capital/entities/Issue/api';
 import { DeleteStoryButton } from 'app/extensions/capital/features/Story/DeleteStory';
 import { EditRequirementDialog } from 'app/extensions/capital/features/Story/EditRequirement';
 import type { IProjectPermissions } from 'app/extensions/capital/entities/Project/model';
+import type { IIssuePermissions } from 'app/extensions/capital/entities/Issue/model';
 import { EntityIdBadge } from 'src/shared/ui/EntityIdBadge';
 
 const props = withDefaults(
   defineProps<{
     filter?: Partial<IGetStoriesInput['filter']>;
     maxItems?: number;
-    permissions?: IProjectPermissions | null;
+    permissions?: IProjectPermissions | IIssuePermissions | null;
     /** Имя маршрута карточки артефакта (project-requirement-detail / component-requirement-detail) */
     detailRouteName?: string;
     /** На странице артефактов корневого проекта — подпись и ссылка на компонент для чужих project_hash */

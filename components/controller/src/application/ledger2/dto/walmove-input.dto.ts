@@ -1,10 +1,13 @@
-import { Field, Int, InputType } from '@nestjs/graphql';
-import { IsInt, IsString, MaxLength, MinLength, Matches, Min } from 'class-validator';
+import { Field, InputType } from '@nestjs/graphql';
+import { IsString, MaxLength, MinLength, Matches, Length } from 'class-validator';
 
 /**
  * Input для мутации `walmoveWallets` (operation `o.adj.walmove`).
  *
  * `quantity` — строка с символом, как в действии apply: `"100.0000 RUB"`.
+ * `fromWallet`/`toWallet` — eosio::name-идентификаторы кошельков
+ * (`w.<contract>.<waltype>`), см. `cooptypes/ledger2/wallets.ts`.
+ *
  * Backend валидирует совместимость from_wallet/to_wallet с одним account_id
  * (через `Ledger2.LEDGER2_OPERATION_REGISTRY`) ДО подписания.
  */
@@ -18,15 +21,15 @@ export class WalmoveInputDTO {
   @IsString()
   username!: string;
 
-  @Field(() => Int, { description: 'id кошелька-источника' })
-  @IsInt()
-  @Min(1)
-  fromWallet!: number;
+  @Field(() => String, { description: 'eosio::name кошелька-источника (w.<contract>.<waltype>)' })
+  @IsString()
+  @Length(1, 13)
+  fromWallet!: string;
 
-  @Field(() => Int, { description: 'id кошелька-приёмника' })
-  @IsInt()
-  @Min(1)
-  toWallet!: number;
+  @Field(() => String, { description: 'eosio::name кошелька-приёмника (w.<contract>.<waltype>)' })
+  @IsString()
+  @Length(1, 13)
+  toWallet!: string;
 
   @Field(() => String, { description: 'Сумма с символом, например "100.0000 RUB"' })
   @IsString()

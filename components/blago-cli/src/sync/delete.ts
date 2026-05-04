@@ -24,6 +24,8 @@ import {
   removePendingItem,
 } from './pending-create.js'
 import { loadProjectMapsFromIndex } from './project-index-map.js'
+import { refreshParentProjectVersion } from './refresh-parent.js'
+import { writeWorkspaceIndexMarkdown } from './workspace-index.js'
 
 export type BlagoDeleteKind = 'issue' | 'story'
 
@@ -104,10 +106,20 @@ export async function runDelete(
   }
 
   let entityHash = entry?.entity_hash ?? pending?.entity_hash ?? ''
-  if (!entityHash && fileContent !== null) {
+  let parentProjectHash: string | undefined
+  if (fileContent !== null) {
     try {
       const parsed = parseBlagoMarkdown(fileContent)
-      entityHash = String(parsed.data.hash ?? '').trim()
+      if (!entityHash) {
+        entityHash = String(parsed.data.hash ?? '').trim()
+      }
+      const ph = parsed.data.project_hash
+      if (ph !== undefined && ph !== null) {
+        const t = String(ph).trim()
+        if (t !== '') {
+          parentProjectHash = t
+        }
+      }
     }
     catch {
       // ignore
@@ -146,7 +158,27 @@ export async function runDelete(
     const nextEntries = index.entries.filter(
       e => !(e.entity_type === entry.entity_type && e.entity_hash === entry.entity_hash),
     )
-    await saveIndex(root, { entries: nextEntries })
+    const indexAfter: IndexFile = { entries: nextEntries }
+    if (remoteDeleted && parentProjectHash) {
+      const projEntryAfter = indexAfter.entries.find(
+        e => e.entity_type === 'project' && e.entity_hash === parentProjectHash,
+      )
+      let parentHashHint: string | null | undefined
+      if (projEntryAfter) {
+        try {
+          const pAbs = path.join(root, projEntryAfter.relative_path)
+          const pRaw = await fs.readFile(pAbs, 'utf8')
+          const pParsed = parseBlagoMarkdown(pRaw)
+          const v = pParsed.data.parent_hash
+          parentHashHint = v === undefined || v === null ? undefined : String(v)
+        }
+        catch {
+          parentHashHint = undefined
+        }
+      }
+      await refreshParentProjectVersion(ctx, indexAfter, parentProjectHash, parentHashHint)
+    }
+    await saveIndex(root, indexAfter)
   }
 
   if (isStaged) {
@@ -162,6 +194,8 @@ export async function runDelete(
       // ignore — возможная гонка или уже удалено
     }
   }
+
+  await writeWorkspaceIndexMarkdown(root)
 
   return { relativePath: rel, entityHash, remoteDeleted, pendingOnly }
 }

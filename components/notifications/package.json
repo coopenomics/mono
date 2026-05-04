@@ -1,6 +1,6 @@
 {
   "name": "@coopenomics/notifications",
-  "version": "2026.4.19-alpha-1",
+  "version": "2026.4.30-alpha-1",
   "description": "Библиотека типобезопасных workflow-уведомлений для Novu",
   "type": "module",
   "private": false,
@@ -22,9 +22,9 @@
     "build": "unbuild",
     "dev": "unbuild --watch",
     "clean": "rm -rf dist",
-    "sync": "tsx src/sync/sync-runner.ts",
-    "sync:dev": "tsx src/sync/sync-runner.ts --dev",
-    "sync:watch": "tsx src/sync/sync-runner.ts --dev",
+    "sync": "node ./dist/sync/sync-runner.cjs",
+    "sync:dev": "node ./dist/sync/sync-runner.cjs --dev",
+    "sync:watch": "node ./dist/sync/sync-runner.cjs --dev",
     "test": "vitest run"
   },
   "dependencies": {
@@ -44,7 +44,7 @@
     "vitest": "^4.0.18"
   },
   "bin": {
-    "novu-sync": "./dist/sync/sync-runner.js"
+    "novu-sync": "./dist/sync/sync-runner.cjs"
   },
   "exports": {
     ".": {

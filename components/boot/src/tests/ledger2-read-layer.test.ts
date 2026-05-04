@@ -24,9 +24,10 @@ const ACCOUNT_TARGET = 86_000
 const ACCOUNT_TYPE_ACTIVE = 0
 const ACCOUNT_TYPE_PASSIVE = 1
 
-// Кошельки кооператива после миграции (пересмотр 2026-04-20: CASH_MAIN удалён).
-const WALLET_SHARE_FUND_PAY = 2001
-const WALLET_ENTRANCE_FEES = 3001
+// Кошельки кооператива после миграции (пересмотр 2026-04-20: CASH_MAIN удалён;
+// 2026-04-27: numeric id → eosio::name w.<contract>.<waltype>).
+const WALLET_SHARE_FUND_PAY = 'w.wal.share'
+const WALLET_ENTRANCE_FEES = 'w.reg.entry'
 
 const ACCOUNTS_QUERY = `query($c:String!){
   getLedger2Accounts(coopname:$c){ id name balance debitBalance creditBalance accountType }
@@ -125,15 +126,15 @@ describe('Ledger2 read-layer (Story 1.23)', () => {
     expect(Array.isArray(wallets)).toBe(true)
     expect(wallets.length).toBeGreaterThanOrEqual(3)
 
-    const byId = new Map<number, any>(wallets.map((w) => [Number(w.id), w]))
-    expect(byId.get(WALLET_SHARE_FUND_PAY), 'кошелёк паевых взносов 2001').toBeDefined()
-    expect(byId.get(WALLET_ENTRANCE_FEES), 'кошелёк вступ.взносов 3001').toBeDefined()
-    // CASH_MAIN (1001) удалён пересмотром 2026-04-20 — счёт 51 ведётся только в accounts2.
-    expect(byId.get(1001), 'wallet 1001 (CASH_MAIN) удалён, проверка на отсутствие').toBeUndefined()
+    const byId = new Map<string, any>(wallets.map((w) => [String(w.id), w]))
+    expect(byId.get(WALLET_SHARE_FUND_PAY), 'кошелёк паевых взносов w.wal.share').toBeDefined()
+    expect(byId.get(WALLET_ENTRANCE_FEES), 'кошелёк вступ.взносов w.reg.entry').toBeDefined()
+    // CASH_MAIN удалён пересмотром 2026-04-20 — счёт 51 ведётся только в accounts2.
+    expect(byId.get('w.wal.cash'), 'устаревший CASH_MAIN отсутствует в реестре').toBeUndefined()
 
     const onchain = await bc.getTableRows('ledger2', COOP, 'wallets', 500)
     for (const w of onchain) {
-      const match = byId.get(Number(w.id))
+      const match = byId.get(String(w.id))
       if (!match) continue
       expect(parseAssetAmount(match.available)).toBeCloseTo(parseAssetAmount(w.available), 4)
       expect(parseAssetAmount(match.blocked)).toBeCloseTo(parseAssetAmount(w.blocked), 4)
@@ -148,9 +149,10 @@ describe('Ledger2 read-layer (Story 1.23)', () => {
     expect(resp.totalCount).toBeGreaterThan(0)
     expect(resp.items.length).toBeGreaterThan(0)
 
-    // Каждая операция — одного из 4 типов blockchain-actions ledger2.
+    // Каждая операция — одного из типов blockchain-actions ledger2:
+    // штатное трио apply/walletop/debit/credit + adjustment-actions walmove/revert.
     for (const op of resp.items) {
-      expect(['apply', 'walletop', 'debit', 'credit']).toContain(op.action)
+      expect(['apply', 'walletop', 'debit', 'credit', 'walmove', 'revert']).toContain(op.action)
     }
 
     // Фильтр по operationCodes: если есть o.mig.share (транзит паевого фонда), то

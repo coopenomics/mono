@@ -150,6 +150,10 @@ export default {
       name: 'contributor',
       code_permissions_to: ['contributor'],
     },
+    {
+      name: 'apps',
+      code_permissions_to: ['apps'],
+    },
     // {
     //   name: provider_chairman,
     // },

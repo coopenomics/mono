@@ -1,0 +1,297 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Стандарт «Займ пайщику» — выдача беспроцентного целевого займа из паевого
+# фонда кооператива и его возврат через акт приёма-передачи проекта.
+#
+# Многоактовый процесс с авторизацией советом. Две операции:
+#   • o.cap.lend  — выдача займа на момент авторизации (ISSUE → w.cap.loan, Дт 58 / Кт 51)
+#   • o.cap.repay — возврат займа из акта-2 (TRANSFER w.cap.loan → w.wal.share, Дт 80 / Кт 58)
+#
+# Источники правды в коде:
+#   • cpp/capital/capital.hpp                                       — actions
+#   • cpp/capital/src/debt/{createdebt,approvedebt,debtauthcnfr,debtpaycnfrm,declinedebt,debtpaydcln}.cpp
+#   • cpp/lib/core/ledger2/operations.hpp                           — o.cap.lend, o.cap.repay
+#   • cpp/lib/core/ledger2/processes.hpp                            — processes::capital::DEBT
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Секция 1. Паспорт ───────────────────────────────────────────────────────
+process_type: p.cap.debt
+id: public_capital_debt_process
+title: Выдача займа пайщику
+slug: debt
+status: proposed
+contract: capital
+summary: >
+  Пайщик получает из паевого фонда кооператива беспроцентный целевой заём
+  на срок проекта; возврат происходит при сдаче акта-2 проекта.
+purpose: >
+  «Заём пайщику» — кооператив выдаёт пайщику беспроцентный целевой заём
+  из паевого фонда на срок проекта. Заявку последовательно одобряют
+  председатель и совет, выплата уходит пайщику через кассира. Возврат
+  происходит автоматически при сдаче акта приёма-передачи проекта —
+  отдельная заявка на возврат не нужна.
+roles:
+  - contributor
+  - chairman
+  - soviet
+  - gateway_operator
+
+# ── Секция 2. Действия контракта ────────────────────────────────────────────
+actions:
+  - name: capital::createdebt
+    human: Подать заявление
+    actor: contributor
+    role: opener
+    purpose: >
+      Пайщик создаёт заявку на беспроцентный целевой заём. Контракт фиксирует
+      запись долга в статусе `created`, обновляет сегмент CRPS пайщика на
+      сумму займа.
+  - name: capital::approvedebt
+    human: Одобрить решением председателя
+    actor: chairman
+    role: progress
+    purpose: >
+      Председатель добавляет к заявке документ-одобрение займа. Статус
+      заявки → `approved`.
+  - name: capital::debtauthcnfr
+    human: Авторизовать выплату
+    actor: soviet
+    role: progress
+    purpose: >
+      Совет авторизует выплату займа. На этом этапе применяется ledger2-
+      операция o.cap.lend и Gateway получает поручение на исходящий платёж.
+      Статус → `authorized`.
+  - name: capital::debtpaycnfrm
+    human: Подтвердить выплату
+    actor: gateway_operator
+    role: closer
+    purpose: >
+      Gateway подтверждает зачисление займа на счёт пайщика. Статус → `paid`.
+      Это закрывающее действие: запись долга сохраняется до возврата
+      (операция o.cap.repay сработает уже на акте-2 в процессе РИД).
+  - name: capital::declinedebt
+    human: Отклонить
+    actor: chairman
+    role: reject
+    purpose: >
+      Председатель или совет отклоняет заявку на заём. Сегмент CRPS откатывается,
+      запись долга удаляется, операции в ledger2 не создаются.
+  - name: capital::debtpaydcln
+    human: Отклонить выплату
+    actor: gateway_operator
+    role: reject
+    purpose: >
+      Gateway отклонил исходящий платёж по займу (тех. ошибка, возврат).
+      Запись долга удаляется.
+
+# ── Секция 3. Граф состояний ────────────────────────────────────────────────
+entity: capital::debt
+entity_human: Долг пайщика
+entity_source: cpp/capital/src/debt/
+
+states:
+  - name: created
+    human: Заявление подано
+    description: >
+      Заявка на заём создана. Сегмент CRPS пайщика обновлён на запрошенную сумму.
+    kind: normal
+  - name: approved
+    human: Председатель одобрил
+    description: >
+      К заявке добавлен документ-одобрение председателя. Заявка ждёт авторизации
+      советом.
+    kind: normal
+  - name: authorized
+    human: Совет авторизовал
+    description: >
+      Совет авторизовал заём, в ledger2 применена операция o.cap.lend
+      (Дт 58 / Кт 51), Gateway получил поручение на исходящий платёж.
+    kind: normal
+  - name: paid
+    human: Заём выплачен
+    description: >
+      Gateway подтвердил зачисление займа пайщику. Запись долга остаётся
+      в реестре до момента возврата через акт приёма-передачи проекта.
+    kind: final
+  - name: removed
+    human: Отклонено
+    description: >
+      Заявка отклонена на одном из этапов; запись удалена, операции
+      o.cap.lend / o.cap.repay не создавались.
+    kind: virtual
+    virtual: true
+
+transitions:
+  - from: "∅"
+    to: created
+    action: capital::createdebt
+    actor: contributor
+    guards:
+      - Пайщик имеет статус active и участвует в проекте.
+      - Сегмент CRPS пайщика актуален.
+      - provisional_amount ≥ запрошенная сумма займа.
+      - Заявление подписано ЭЦП.
+
+  - from: created
+    to: approved
+    action: capital::approvedebt
+    actor: chairman
+    guards:
+      - Документ одобрения председателя подписан.
+
+  - from: approved
+    to: authorized
+    action: capital::debtauthcnfr
+    actor: soviet
+    ledger_code: o.cap.lend
+    operations:
+      - o.cap.lend
+    guards:
+      - Документ авторизации совета подписан.
+
+  - from: authorized
+    to: paid
+    action: capital::debtpaycnfrm
+    actor: gateway_operator
+    guards:
+      - Gateway подтвердил зачисление займа пайщику.
+
+  - from: created
+    to: removed
+    action: capital::declinedebt
+    actor: chairman
+    guards:
+      - Председатель или совет отклонили заявку.
+
+  - from: approved
+    to: removed
+    action: capital::declinedebt
+    actor: soviet
+    guards:
+      - Совет отклонил заявку.
+
+  - from: authorized
+    to: removed
+    action: capital::debtpaydcln
+    actor: gateway_operator
+    guards:
+      - Платёж не прошёл / отклонён Gateway.
+
+# ── Секция 4. Сценарий ──────────────────────────────────────────────────────
+scenario:
+  steps:
+    - step: 1
+      title: Подача заявления на заём
+      actor: contributor
+      action: capital::createdebt
+      description: >
+        Пайщик подаёт заявление на беспроцентный целевой заём.
+        Контракт создаёт запись долга со статусом `created` и обновляет
+        сегмент CRPS на запрошенную сумму.
+
+    - step: 2
+      title: Одобрение председателем
+      actor: chairman
+      action: capital::approvedebt
+      description: >
+        Председатель добавляет к заявке документ-одобрение. Статус
+        заявки → `approved`.
+
+    - step: 3
+      title: Авторизация советом и выдача займа
+      actor: soviet
+      action: capital::debtauthcnfr
+      description: >
+        Совет авторизует выплату. В ledger2 применяется операция o.cap.lend
+        (ISSUE → w.cap.loan, Дт 58 / Кт 51), Gateway получает поручение на
+        исходящий платёж. Статус → `authorized`.
+
+    - step: 4
+      title: Подтверждение выплаты
+      actor: gateway_operator
+      action: capital::debtpaycnfrm
+      description: >
+        Gateway подтверждает зачисление средств пайщику. Статус → `paid`.
+        Запись долга остаётся в реестре до момента возврата через акт-2
+        проекта (операция o.cap.repay сработает в процессе p.cap.rid).
+
+  alternatives:
+    - branch: Отказ председателя или совета
+      at_step: 2
+      action: capital::declinedebt
+      actor: chairman
+      description: >
+        Заявка отклонена. Сегмент CRPS откатывается, запись долга удаляется,
+        операции в ledger2 не создаются.
+    - branch: Отказ Gateway
+      at_step: 4
+      action: capital::debtpaydcln
+      actor: gateway_operator
+      description: >
+        Платёж не прошёл / отклонён. Запись долга удаляется.
+
+# ── Секция 5. Документы и подписи ───────────────────────────────────────────
+documents:
+  - step: 1
+    title: Заявление на получение займа
+    registry_id: 1050
+    signed_by: [contributor]
+    stored_in: debts.statement
+
+  - step: 2
+    title: Решение совета о предоставлении займа (одобрение председателем)
+    registry_id: 1051
+    signed_by: [chairman]
+    stored_in: debts.approved_statement
+
+  - step: 3
+    title: Решение совета о предоставлении займа (авторизация совета)
+    registry_id: 1051
+    signed_by: [soviet]
+    stored_in: debts.authorization
+
+# ── Секция 6. Операции ──────────────────────────────────────────────────────
+operations:
+  - ledger_code: o.cap.lend
+    human_name: Выдача пайщику беспроцентного займа
+    wallet_op: ISSUE
+    wallet_from: ''
+    wallet_to: w.cap.loan            # Выданные пайщикам беспроцентные займы
+    debit: 58                  # Финансовые вложения
+    credit: 51                 # Расчётный счёт
+    amount_ref: debt.amount
+    triggered_by: capital::debtauthcnfr
+    description: >
+      Выдача беспроцентного займа пайщику. Деньги уходят с расчётного счёта
+      кооператива (Кт 51) и появляются как финансовое вложение Дт 58.
+      Кошелёк «Выданные пайщикам беспроцентные займы» (w.cap.loan) фиксирует
+      обязательство пайщика перед кооперативом.
+
+  - ledger_code: o.cap.repay
+    human_name: Возврат беспроцентного займа пайщика по акту-2
+    wallet_op: TRANSFER
+    wallet_from: w.cap.loan          # Выданные пайщикам беспроцентные займы
+    wallet_to: w.wal.share            # ЦПП «Цифровой Кошелёк» — паевые взносы деньгами
+    debit: 80                  # Паевой фонд (складочный капитал)
+    credit: 58                 # Финансовые вложения
+    amount_ref: debt.amount
+    triggered_by: capital::debtpaycnfrm
+    description: >
+      Возврат займа в момент сдачи акта-2 проекта (происходит как часть
+      процесса «Приём РИД» — p.cap.rid). Финансовое вложение закрывается
+      (Кт 58), сумма зачитывается в паевой фонд (Дт 80) и появляется как
+      доступный остаток на SHARE_FUND_PAY пайщика.
+
+# ── Секция 7. Связи ─────────────────────────────────────────────────────────
+related:
+  - process_type: p.cap.rid
+    id: public_capital_rid_process
+    relation: triggers
+    note: >
+      Возврат займа (o.cap.repay) технически происходит в процессе
+      «Приём РИД» при подписании акта-2 проекта.
+
+  - process_type: p.reg.accept
+    id: public_registrator_accept_process
+    relation: provides
+    note: >
+      Заём может получить только активный пайщик кооператива.

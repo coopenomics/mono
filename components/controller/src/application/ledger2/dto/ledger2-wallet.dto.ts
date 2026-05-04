@@ -1,13 +1,16 @@
-import { Field, Int, ObjectType } from '@nestjs/graphql';
+import { Field, ObjectType } from '@nestjs/graphql';
 
 /**
- * Общекооперативный кошелёк ledger2 (1001/2001/3001/4001...).
+ * Общекооперативный кошелёк ledger2.
  * Кошельки пайщиков живут в контракте soviet — они сюда не попадают.
+ *
+ * `id` — eosio::name-идентификатор `w.<contract>.<waltype>` (например
+ * `w.wal.share`, `w.cap.bginv`). См. `cooptypes/ledger2/wallets.ts`.
  */
 @ObjectType('Ledger2Wallet')
 export class Ledger2WalletDTO {
-  @Field(() => Int, { description: 'ID кошелька (×1000 offset): 1001/2001/3001/4001' })
-  id!: number;
+  @Field(() => String, { description: 'eosio::name-идентификатор кошелька (w.<contract>.<waltype>)' })
+  id!: string;
 
   @Field(() => String, { description: 'Название кошелька' })
   name!: string;

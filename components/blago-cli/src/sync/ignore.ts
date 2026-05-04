@@ -3,8 +3,8 @@
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 
-/** Всегда: служебные каталоги + маркер «текущий проект» (не документ Capital). */
-const DEFAULT_IGNORE = ['.blago/', '.git/', 'current_project.md']
+/** Всегда: служебные каталоги + маркер «текущий проект» + автогенерируемый INDEX.md (см. workspace-index). */
+const DEFAULT_IGNORE = ['.blago/', '.git/', 'current_project.md', 'INDEX.md']
 
 /** Каталоги BMAD: не документы Capital — не заходим при рекурсии add/remove и не индексируем по любому пути. */
 const SYNC_SKIP_DIR_SEGMENTS = new Set(['_bmad', '_bmad_output', '_bmad-output'])

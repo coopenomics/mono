@@ -26,7 +26,7 @@ docker run --name node -d -p 8888:8888 -p 9876:9876 -p 8080:8080 \
 -v ~/testnet/config:/mnt/dev/config \
 -v ~/testnet/wallet:/root/eosio-wallet \
 -v $dir/../../contracts:/contracts \
-dicoop/blockchain:v5.1.0-dev \
+dicoop/blockchain:latest \
 /bin/bash -c '/usr/local/bin/nodeos -d /mnt/dev/data -p eosio --config-dir /mnt/dev/config --genesis-json /mnt/dev/config/genesis.json'
 
 docker network connect hyperion node

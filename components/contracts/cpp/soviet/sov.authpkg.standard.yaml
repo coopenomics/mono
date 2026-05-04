@@ -1,0 +1,315 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Стандарт «Автоматизированное принятие решений советом».
+#
+# Универсальный механизм, который любой контракт-инициатор использует, чтобы
+# получить от совета согласие на выполнение действия. Поток:
+#
+#   контракт-инициатор → newpackage / create_agenda → soviet::decisions
+#       ↓ голосование (votefor / voteagainst / cancelvote)
+#   approved=true → authorize (председатель)
+#       ↓
+#   authorized=true → exec → callback в исходный контракт (confirmreg /
+#                            authmeet / approvereg / authpgprp / authrslt
+#                            / authcontrib / approvewthd / ... — конкретный
+#                            handler заранее зашит в decision.type).
+#
+# Документ повестки приходит из контракта-инициатора (без registry_id —
+# каждое родительское действие приносит свой). Документ авторизации —
+# протокол совета, чаще всего FreeDecision (registry_id=600).
+#
+# Источники в коде:
+#   • cpp/soviet/src/doc/newpackage.cpp
+#   • cpp/soviet/src/vote/{votefor,voteagainst,cancelvote}.cpp
+#   • cpp/soviet/src/decision/{authorize,cancelexprd,exec}.cpp
+# ─────────────────────────────────────────────────────────────────────────────
+
+process_type: sov.authpkg
+id: public_soviet_auto_authorization_process
+title: Автоматизированное принятие решений советом
+slug: authpkg
+status: proposed
+contract: soviet
+summary: >
+  Универсальный путь автоматизированного утверждения решений советом:
+  контракт-инициатор подаёт пакет документов, совет голосует, председатель
+  авторизует протокол, exec возвращает управление в исходный контракт через
+  заранее зашитый callback.
+purpose: >
+  «Автоматизированное принятие решений» — общий механизм, которым
+  пользуются все остальные процессы, требующие согласия совета.
+  Контракт-инициатор кладёт пакет документов в очередь совета, члены
+  совета голосуют, председатель подписывает протокол, и управление
+  возвращается обратно в исходный контракт через заранее зашитый
+  callback. Так работают приём пайщика, общие собрания, займы,
+  расходы, инвестиции, маркетплейс.
+
+roles:
+  - contract_initiator   # Контракт-инициатор пакета (registrator/capital/wallet/meet/…)
+  - soviet_member        # Член совета — голосует
+  - chairman             # Председатель — подписывает протокол
+
+# ── Секция 2. Действия контракта ────────────────────────────────────────────
+actions:
+  - name: soviet::newpackage
+    human: Подать пакет
+    actor: Контракт-инициатор
+    role: opener
+    purpose: >
+      Контракт-инициатор кладёт пакет документов в очередь решений совета.
+      В пакете уже зафиксировано, какой callback вызвать при утверждении
+      и какой — при отклонении (например, registrator::confirmreg /
+      registrator::declinereg). Совет получает повестку.
+
+  - name: soviet::votefor
+    human: Голос «за»
+    actor: Член совета
+    role: progress
+    purpose: >
+      Член совета голосует «за» по конкретному решению. При достижении
+      кворума и большинства голос «за» статус решения переводится в
+      approved.
+
+  - name: soviet::voteagainst
+    human: Голос «против»
+    actor: Член совета
+    role: reject
+    purpose: >
+      Член совета голосует «против». При достижении консенсуса по отказу
+      решение помечается как rejected и при exec в исходный контракт
+      уйдёт decline-callback.
+
+  - name: soviet::cancelvote
+    human: Отозвать голос
+    actor: Член совета
+    role: progress
+    purpose: >
+      Член совета отзывает ранее поданный голос до перехода решения
+      в финальный статус.
+
+  - name: soviet::authorize
+    human: Утвердить протокол
+    actor: Председатель
+    role: closer
+    purpose: >
+      Председатель подписывает документ-протокол авторизации решения и
+      прикладывает его к записи. После этого решение готово к исполнению.
+
+  - name: soviet::exec
+    human: Исполнить решение
+    actor: Любой триггер
+    role: closer
+    purpose: >
+      Любой пайщик или системный триггер запускает исполнение
+      авторизованного решения. exec по полю `decision.type` определяет,
+      какой именно handler вызвать (withdraw_effect / subaccum_effect /
+      authorize_action_effect и т.д.) — это и есть callback в исходный
+      контракт, заранее зашитый при формировании пакета.
+
+  - name: soviet::cancelexprd
+    human: Отменить просроченное
+    actor: Председатель
+    role: reject
+    purpose: >
+      Если решение не было утверждено в срок, оно отменяется как
+      просроченное, в исходный контракт callback не уходит.
+
+# ── Секция 3. Граф состояний ────────────────────────────────────────────────
+entity: soviet::decision
+entity_human: Решение совета (автоматизированное)
+entity_source: cpp/soviet/src/decision/
+
+states:
+  - name: pending
+    human: Пакет получен
+    description: >
+      Пакет документов от контракта-инициатора получен советом, идёт
+      голосование членов совета.
+    kind: normal
+
+  - name: approved
+    human: Совет проголосовал «за»
+    description: >
+      Достигнут консенсус «за». Ожидается подпись протокола председателем.
+    kind: normal
+
+  - name: authorized
+    human: Протокол утверждён
+    description: >
+      Председатель подписал протокол. Решение готово к исполнению —
+      callback в исходный контракт.
+    kind: normal
+
+  - name: executed
+    human: Решение исполнено
+    description: >
+      exec вызвал зашитый в пакете callback (confirm/authorize/approve)
+      в исходном контракте. Запись решения удалена. Исходный процесс
+      получил утверждение и продолжает свой жизненный цикл.
+    kind: final
+
+  - name: rejected
+    human: Отклонено
+    description: >
+      Совет проголосовал «против» либо решение отменено как просроченное.
+      В исходный контракт уходит decline-callback (или callback
+      не вызывается, если просрочка).
+    kind: virtual
+    virtual: true
+
+transitions:
+  - from: "∅"
+    to: pending
+    action: soviet::newpackage
+    actor: Контракт-инициатор
+    guards:
+      - Контракт-инициатор присутствует в whitelist.
+      - Пакет содержит пользователя, тип решения и хеш повестки.
+
+  - from: pending
+    to: approved
+    action: soviet::votefor
+    actor: Член совета
+    guards:
+      - Достигнут кворум и большинство голосов «за».
+
+  - from: pending
+    to: rejected
+    action: soviet::voteagainst
+    actor: Член совета
+    guards:
+      - Большинство голосов «против».
+
+  - from: pending
+    to: rejected
+    action: soviet::cancelexprd
+    actor: Председатель
+    guards:
+      - Истёк срок принятия решения.
+
+  - from: approved
+    to: authorized
+    action: soviet::authorize
+    actor: Председатель
+    guards:
+      - decision.approved == true.
+      - Документ-протокол подписан.
+
+  - from: authorized
+    to: executed
+    action: soviet::exec
+    actor: Любой триггер
+    guards:
+      - decision.authorized == true.
+      - Решение ещё не исполнено.
+
+# ── Секция 4. Сценарий ──────────────────────────────────────────────────────
+scenario:
+  steps:
+    - step: 1
+      title: Поступление пакета
+      actor: Контракт-инициатор
+      action: soviet::newpackage
+      description: >
+        Контракт-инициатор (registrator/capital/meet/wallet/...) кладёт
+        пакет документов в очередь совета и заранее указывает, какой
+        callback вызвать при утверждении и при отклонении.
+      pre:
+        - Инициатор в whitelist контрактов.
+      post:
+        - В таблице decisions новая запись со статусом `pending`.
+
+    - step: 2
+      title: Голосование совета
+      actor: Член совета
+      action: soviet::votefor
+      description: >
+        Члены совета голосуют по решению (votefor / voteagainst /
+        cancelvote). При достижении большинства «за» — approved=true.
+      pre:
+        - Решение в `pending`.
+      post:
+        - decision.approved (true/false) или решение отменено как просроченное.
+
+    - step: 3
+      title: Подписание протокола
+      actor: Председатель
+      action: soviet::authorize
+      description: >
+        Председатель подписывает документ-протокол авторизации решения
+        и прикладывает его к записи.
+      pre:
+        - decision.approved == true.
+      post:
+        - decision.authorized = true.
+
+    - step: 4
+      title: Исполнение
+      actor: Любой триггер
+      action: soviet::exec
+      description: >
+        exec по `decision.type` вызывает зашитый callback в исходном
+        контракте. Запись решения удаляется. В исходном процессе срабатывает
+        confirm/authorize-handler (например, registrator::confirmreg).
+      pre:
+        - decision.authorized == true.
+      post:
+        - В исходном контракте сработал callback по результатам голосования.
+        - Запись decisions удалена.
+
+  alternatives:
+    - branch: Отказ совета
+      at_step: 2
+      action: soviet::voteagainst
+      actor: Член совета
+      description: >
+        Большинство «против» — при exec в исходный контракт уйдёт
+        decline-callback (например, registrator::declinereg).
+
+    - branch: Просрочка
+      at_step: 2
+      action: soviet::cancelexprd
+      actor: Председатель
+      description: >
+        Решение не принято в срок, отменяется без вызова callback.
+
+# ── Секция 5. Документы и подписи ───────────────────────────────────────────
+# Документ повестки приходит из исходного процесса — конкретный registry_id
+# у него «свой» (заявление о приёме, заявление на займ и т.д.).
+# В этом стандарте мы фиксируем только документ протокола авторизации.
+documents:
+  - action: soviet::authorize
+    title: Протокол решения совета
+    registry_id: 600
+    signed_by: [ Председатель ]
+    stored_in: decisions.authorization
+    note: >
+      В большинстве автоматизированных процессов документ авторизации —
+      «Протокол решения совета» (FreeDecision). В отдельных процессах
+      может использоваться специфичный шаблон (например,
+      «Решение совета о приёме пайщика» — registry_id=501); в таком случае
+      родительский стандарт уточняет это в своей секции documents[].
+
+# ── Секция 6. Операции ──────────────────────────────────────────────────────
+# Сам путь голосования не двигает кошельки и не делает проводок.
+# Все операции возникают в callback'ах исходных контрактов.
+operations: []
+
+# ── Секция 7. Связи ─────────────────────────────────────────────────────────
+related:
+  - process_type: p.reg.accept
+    relation: provides
+    note: Через этот путь утверждается приём пайщика в кооператив.
+
+  - process_type: meet.hold
+    relation: provides
+    note: Через этот путь авторизуется созыв общего собрания.
+
+  - process_type: reg.coop
+    relation: provides
+    note: Через этот путь утверждается присоединение кооператива к платформе.
+
+  - process_type: sov.decision
+    relation: affects
+    note: >
+      Альтернативный путь — sov.decision — для свободных решений по
+      произвольной повестке, поданной пайщиком вручную.

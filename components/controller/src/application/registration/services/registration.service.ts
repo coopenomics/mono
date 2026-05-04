@@ -114,13 +114,18 @@ export class RegistrationService {
     const result = await this.participantInteractor.createInitialPayment(data);
     const usernameCertificate = await this.userCertificateDomainPort.getCertificateByUsername(result.username);
 
-    // Отправляем уведомление председателю о новой заявке на вступительный взнос
-    await this.participantNotificationService.sendNewInitialPaymentNotification(
-      result.username,
-      result.quantity.toFixed(2),
-      result.symbol,
-      result.coopname
-    );
+    // Уведомление председателю шлём только если платёж создан вот сейчас.
+    // Фронт может дёргать мутацию повторно (reload, immediate-watch на step и т.п.) —
+    // в этих случаях интерактор поднимет уже существующий PENDING-платёж и
+    // вернёт его с isNewlyCreated=false, и нотификация не задублируется.
+    if (result.isNewlyCreated) {
+      await this.participantNotificationService.sendNewInitialPaymentNotification(
+        result.username,
+        result.quantity.toFixed(2),
+        result.symbol,
+        result.coopname
+      );
+    }
 
     return result.toDTO(usernameCertificate);
   }

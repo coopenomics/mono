@@ -4,10 +4,10 @@ div.page-shell
   q-card.q-mt-md(flat)
     q-card-section
       .row.q-gutter-sm.items-center.q-mb-sm(
-        v-if='filters.accountId !== null || filters.processHash || filters.username'
+        v-if='filters.accountId !== null || filters.walletName || filters.processHash || filters.username'
       )
         q-chip(
-          v-if='filters.accountId !== null'
+          v-if='filters.accountId !== null || filters.walletName'
           removable
           color='primary'
           text-color='white'
@@ -32,15 +32,26 @@ div.page-shell
           @remove='clearUsernameFilter'
         ) Пайщик {{ fioCache.get(filters.username) || filters.username }}
       .row.q-gutter-sm.items-end
+        q-input.col-md-3.col-12(
+          v-model='filters.processHashInput'
+          label='ID процесса'
+          dense
+          outlined
+          clearable
+          @clear='applyProcessHashSearch'
+          @keyup.enter='applyProcessHashSearch'
+        )
+          template(#append)
+            q-icon.cursor-pointer(name='fa-solid fa-magnifying-glass' @click='applyProcessHashSearch')
         q-input.col-md-2.col-12(
           v-model='filters.dateFrom'
           label='С даты'
           dense
           outlined
-          readonly
           clearable
           mask='####-##-##'
           @clear='reload'
+          @update:model-value='onDateFromInput'
         )
           template(#append)
             q-icon.cursor-pointer(name='event')
@@ -58,10 +69,10 @@ div.page-shell
           label='По дату'
           dense
           outlined
-          readonly
           clearable
           mask='####-##-##'
           @clear='reload'
+          @update:model-value='onDateToInput'
         )
           template(#append)
             q-icon.cursor-pointer(name='event')
@@ -144,17 +155,7 @@ div.page-shell
               .op-header.q-mb-md(
                 :style='{ borderLeftColor: processAccentColor(rowChipText(props.row)) }'
               )
-                .row.items-start.no-wrap
-                  .col
-                    .text-h6.text-weight-medium {{ rowLabel(props.row) }}
-                  .col-auto(v-if='canRevert(props.row)')
-                    q-btn(
-                      flat dense color='warning'
-                      icon='fa-solid fa-rotate-left'
-                      label='Откатить'
-                      @click.stop='openRevertFor(props.row)'
-                    )
-                      q-tooltip Откатить эту операцию зеркальной проводкой
+                .text-h6.text-weight-medium {{ rowLabel(props.row) }}
                 .row.items-center.q-gutter-sm.q-mb-xs(v-if='props.row.operationCode')
                   .text-caption.text-grey-7 Тип процесса:
                   EntityIdBadge(
@@ -197,10 +198,10 @@ div.page-shell
                             DirectionCell(:direction='cp.row.direction')
                         template(#body-cell-walletFrom='cp')
                           q-td(:props='cp')
-                            WalletIdCell(:wallet-id='cp.row.walletFrom')
+                            WalletIdCell(:wallet-name='cp.row.walletFrom')
                         template(#body-cell-walletTo='cp')
                           q-td(:props='cp')
-                            WalletIdCell(:wallet-id='cp.row.walletTo')
+                            WalletIdCell(:wallet-name='cp.row.walletTo')
                         template(#body-cell-quantity='cp')
                           q-td.text-right(:props='cp') {{ formatAmount(cp.row.quantity) }}
                       .text-caption.text-grey-6(v-else) Движений по кошелькам нет
@@ -243,21 +244,13 @@ div.page-shell
                 .text-body1.text-weight-bold.font-monospace {{ formatAmount(props.row.quantity) }}
               .col-12.text-caption.text-grey-7
                 | Пайщик: {{ fioCache.get(props.row.username ?? '') || props.row.username || '-' }}
-
-  RevertOperationDialog(
-    v-model='revertDialog.open'
-    :operation='revertDialog.operation'
-    @success='onRevertSuccess'
-  )
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, nextTick, reactive, ref } from 'vue'
-import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 import { useWindowSize } from 'src/shared/hooks'
 import { useSystemStore } from 'src/entities/System/model'
-import { useSessionStore } from 'src/entities/Session/model'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton'
 import { EntityIdBadge } from 'src/shared/ui'
@@ -271,7 +264,6 @@ import { useAccountStore } from 'src/entities/Account'
 import { formatAsset2Digits } from 'src/shared/lib/utils'
 import { DirectionCell, WalletIdCell, AccountIdCell } from '../../../shared/ui'
 import { Ledger2 } from 'cooptypes'
-import RevertOperationDialog from './RevertOperationDialog.vue'
 
 const { info } = useSystemStore()
 const { isMobile } = useWindowSize()
@@ -279,40 +271,6 @@ const route = useRoute()
 const router = useRouter()
 const ledger2Store = useLedger2Store()
 const accountStore = useAccountStore()
-const session = useSessionStore()
-const { isChairman } = storeToRefs(session)
-
-// Reactive state модалки отката.
-const revertDialog = reactive<{ open: boolean; operation: ILedger2Operation | null }>({
-  open: false,
-  operation: null,
-})
-
-/**
- * Кнопка «Откатить» доступна только председателю + только для apply-операций
- * стандартного типа (не для миграционных и не для самих корректировок —
- * для отката отката надо открывать другую конкретную запись o.adj.rev,
- * это разрешено отдельным кейсом).
- */
-function canRevert(op: ILedger2Operation): boolean {
-  if (!isChairman.value) return false
-  if (op.action !== 'apply') return false
-  if (!op.operationCode) return false
-  if (op.operationCode.startsWith('o.mig.')) return false
-  return true
-}
-
-function openRevertFor(op: ILedger2Operation): void {
-  revertDialog.operation = op
-  revertDialog.open = true
-}
-
-async function onRevertSuccess(): Promise<void> {
-  // Сбрасываем кэш дочерних операций (балансы изменились), перезагружаем список.
-  childOps.value.clear()
-  expanded.value.clear()
-  await load()
-}
 
 // Человекочитаемые названия операций — источник правды в
 // `cooptypes/src/ledger2/operations.ts` (LEDGER2_OPERATION_REGISTRY),
@@ -423,38 +381,82 @@ const pagination = ref({ page: 1, rowsPerPage: 50, rowsNumber: 0 })
 const filters = reactive<{
   dateFrom: string
   dateTo: string
+  /** Бух.счёт (×1000): 51000/80000/86000 — для фильтра по debit/credit. */
   accountId: number | null
+  /** eosio::name кошелька (`w.<contract>.<waltype>`) — для фильтра по walletop. */
+  walletName: string | null
   accountKind: 'wallet' | 'account' | null
   accountName: string
   processHash: string | null
+  /** Текстовый ввод поиска по process_hash — применяется по Enter / клику на иконку. */
+  processHashInput: string
   username: string | null
   adjustmentsOnly: boolean
 }>({
   dateFrom: '',
   dateTo: '',
   accountId: null,
+  walletName: null,
   accountKind: null,
   accountName: '',
   processHash: null,
+  processHashInput: '',
   username: null,
   adjustmentsOnly: false,
 })
 
+/**
+ * Применяет search-input по process_hash к фильтру.
+ * Backend ожидает полный hex (data->>'process_hash' = $); если введён короткий
+ * фрагмент — нормализуем к lower-case полному hash через подстроку, иначе
+ * apply ровно как ввёл (полное совпадение).
+ */
+/**
+ * Поля «С даты» / «По дату» свободно редактируемые (mask `####-##-##`),
+ * но reload запускаем только когда дата полная — иначе фильтр срабатывает
+ * на каждую цифру и мигает индикатор загрузки.
+ */
+function isCompleteOrEmptyDate(v: string | number | null): boolean {
+  if (v === null || v === '') return true
+  return typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)
+}
+
+function onDateFromInput(value: string | number | null): void {
+  if (isCompleteOrEmptyDate(value)) reload()
+}
+function onDateToInput(value: string | number | null): void {
+  if (isCompleteOrEmptyDate(value)) reload()
+}
+
+async function applyProcessHashSearch(): Promise<void> {
+  const raw = filters.processHashInput?.trim() ?? ''
+  filters.processHash = raw ? raw.toLowerCase() : null
+  const q = { ...route.query }
+  if (filters.processHash) q.process_hash = filters.processHash
+  else delete q.process_hash
+  await router.replace({ query: q })
+  reload()
+}
+
 
 const accountFilterLabel = computed(() => {
-  if (filters.accountId === null) return ''
-  if (filters.accountKind === 'wallet') {
-    return `Кошелёк ${filters.accountId}${filters.accountName ? ` — ${filters.accountName}` : ''}`
+  if (filters.accountKind === 'wallet' && filters.walletName) {
+    return `Кошелёк ${filters.walletName}${filters.accountName ? ` — ${filters.accountName}` : ''}`
   }
-  const displayCode = Math.round(filters.accountId / 1000)
-  return `Счёт ${displayCode}${filters.accountName ? ` — ${filters.accountName}` : ''}`
+  if (filters.accountId !== null) {
+    const displayCode = Math.round(filters.accountId / 1000)
+    return `Счёт ${displayCode}${filters.accountName ? ` — ${filters.accountName}` : ''}`
+  }
+  return ''
 })
 
 async function clearAccountFilter() {
   filters.accountId = null
+  filters.walletName = null
   filters.accountKind = null
   filters.accountName = ''
   const q = { ...route.query }
+  delete q.wallet_name
   delete q.wallet_id
   delete q.account_id
   await router.replace({ query: q })
@@ -463,6 +465,7 @@ async function clearAccountFilter() {
 
 async function clearProcessHashFilter() {
   filters.processHash = null
+  filters.processHashInput = ''
   const q = { ...route.query }
   delete q.process_hash
   await router.replace({ query: q })
@@ -477,17 +480,21 @@ async function clearUsernameFilter() {
   reload()
 }
 
-async function resolveAccountName(id: number, kind: 'wallet' | 'account') {
+async function resolveWalletName(walletName: string) {
   try {
-    if (kind === 'wallet') {
-      const wallets = await ledger2Store.loadWallets(info.coopname)
-      const w = wallets.find((x) => x.id === id)
-      if (w) filters.accountName = w.name
-    } else {
-      const accounts = await ledger2Store.loadAccounts(info.coopname)
-      const a = accounts.find((x) => x.id === id)
-      if (a) filters.accountName = a.name
-    }
+    const wallets = await ledger2Store.loadWallets(info.coopname)
+    const w = wallets.find((x) => x.id === walletName)
+    if (w) filters.accountName = w.name
+  } catch {
+    // молча — chip покажется без названия
+  }
+}
+
+async function resolveAccountName(id: number) {
+  try {
+    const accounts = await ledger2Store.loadAccounts(info.coopname)
+    const a = accounts.find((x) => x.id === id)
+    if (a) filters.accountName = a.name
   } catch {
     // молча — chip покажется без названия
   }
@@ -519,8 +526,9 @@ const accountColumns = [
 interface WalletRow {
   globalSequence: string
   direction: 'in' | 'out' | 'move'
-  walletFrom: number | null
-  walletTo: number | null
+  /** eosio::name кошелька (`w.<contract>.<waltype>`) или null. */
+  walletFrom: string | null
+  walletTo: string | null
   quantity: string | null
 }
 interface AccountRow {
@@ -570,6 +578,7 @@ const hasAnyFilter = computed(
     !!filters.dateFrom ||
     !!filters.dateTo ||
     filters.accountId !== null ||
+    !!filters.walletName ||
     !!filters.processHash ||
     !!filters.username ||
     filters.adjustmentsOnly,
@@ -579,12 +588,15 @@ async function resetFilters() {
   filters.dateFrom = ''
   filters.dateTo = ''
   filters.accountId = null
+  filters.walletName = null
   filters.accountKind = null
   filters.accountName = ''
   filters.processHash = null
+  filters.processHashInput = ''
   filters.username = null
   filters.adjustmentsOnly = false
   const q = { ...route.query }
+  delete q.wallet_name
   delete q.wallet_id
   delete q.account_id
   delete q.process_hash
@@ -640,9 +652,9 @@ async function load() {
     const input: ILedger2HistoryFilterInput = {
       coopname: info.coopname,
       // Adjustment-операции (walmove/revert) — top-level actions, не «apply».
-      // При включённом фильтре «Только корректировки» расширяем actionNames,
-      // иначе остаются только обычные apply (стандартный поток).
-      actionNames: filters.adjustmentsOnly ? ['walmove', 'revert'] : ['apply'],
+      // По умолчанию показываем всё: стандартные apply + корректировки.
+      // При включённом «Только корректировки» — оставляем только их.
+      actionNames: filters.adjustmentsOnly ? ['walmove', 'revert'] : ['apply', 'walmove', 'revert'],
       page: pagination.value.page,
       limit: pagination.value.rowsPerPage,
       sortOrder: 'DESC',
@@ -651,6 +663,7 @@ async function load() {
     // process_hash, но не operation_code как payload-поле). Поэтому фильтр
     // «Только корректировки» работает через actionNames=[walmove,revert].
     if (filters.accountId !== null) input.accountId = filters.accountId
+    if (filters.walletName) input.walletName = filters.walletName
     if (filters.processHash) input.processHash = filters.processHash
     if (filters.username) input.username = filters.username
     if (filters.dateFrom) input.dateFrom = new Date(filters.dateFrom)
@@ -715,14 +728,15 @@ onMounted(async () => {
     if (route.query.account_id) {
       filters.accountId = Number(route.query.account_id)
       filters.accountKind = 'account'
-      resolveAccountName(filters.accountId, 'account')
-    } else if (route.query.wallet_id) {
-      filters.accountId = Number(route.query.wallet_id)
+      resolveAccountName(filters.accountId)
+    } else if (route.query.wallet_name) {
+      filters.walletName = String(route.query.wallet_name)
       filters.accountKind = 'wallet'
-      resolveAccountName(filters.accountId, 'wallet')
+      resolveWalletName(filters.walletName)
     }
     if (route.query.process_hash) {
-      filters.processHash = String(route.query.process_hash)
+      filters.processHash = String(route.query.process_hash).toLowerCase()
+      filters.processHashInput = filters.processHash
     }
     if (route.query.username) {
       filters.username = String(route.query.username)

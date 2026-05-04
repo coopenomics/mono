@@ -17,12 +17,12 @@ export interface Ledger2OperationDomainInterface {
   processHash: string | null;
   /** Кто инициировал действие; для миграции может быть null. */
   username: string | null;
-  /** Для walletop/debit/credit — id счёта/кошелька (×1000 offset). */
+  /** Для debit/credit — id бух.счёта (×1000 offset, например 51000/80000). null для walletop/apply. */
   accountId: number | null;
-  /** Для walletop — wallet_from (исходящий кошелёк). */
-  walletFrom: number | null;
-  /** Для walletop — wallet_to (входящий кошелёк). */
-  walletTo: number | null;
+  /** Для walletop — wallet_from (eosio::name `w.<contract>.<waltype>`). */
+  walletFrom: string | null;
+  /** Для walletop — wallet_to (eosio::name `w.<contract>.<waltype>`). */
+  walletTo: string | null;
   /** Сумма в формате asset (`"100.0000 RUB"`) — применимо к walletop/debit/credit. */
   quantity: string | null;
   memo: string | null;
@@ -31,8 +31,10 @@ export interface Ledger2OperationDomainInterface {
 
 export interface Ledger2HistoryFilterDomainInterface {
   coopname: string;
-  /** Фильтр по конкретному счёту/кошельку (×1000 offset). */
+  /** Фильтр по бух.счёту (×1000 offset, например 51000/80000) — для debit/credit. */
   accountId?: number;
+  /** Фильтр по eosio::name кошелька (`w.<contract>.<waltype>`) — для walletop. */
+  walletName?: string;
   /** Одно из имён действий `apply|walletop|debit|credit`. Пусто = все. */
   actionNames?: string[];
   /** Код операции из OPERATION_REGISTRY (только для `apply`). */

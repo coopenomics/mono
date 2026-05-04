@@ -6319,7 +6319,7 @@ input GetInvestInput {
 }
 
 input GetLedger2HistoryInput {
-  """ID счёта/кошелька (×1000)"""
+  """Бух.счёт (×1000): 51000/80000/86000 — для debit/credit действий."""
   accountId: Int
 
   """Имена blockchain-действий: apply | walletop | debit | credit"""
@@ -6342,6 +6342,11 @@ input GetLedger2HistoryInput {
   processHash: String
   sortOrder: String = "DESC"
   username: String
+
+  """
+  eosio::name кошелька (`w.<contract>.<waltype>`) — для walletop действий.
+  """
+  walletName: String
 }
 
 input GetLedgerHistoryInput {
@@ -6678,11 +6683,11 @@ type Ledger2Operation {
   quantity: String
   username: String
 
-  """walletop: wallet_from (исходящий)"""
-  walletFrom: Int
+  """walletop: wallet_from (eosio::name w.<contract>.<waltype>)"""
+  walletFrom: String
 
-  """walletop: wallet_to (входящий)"""
-  walletTo: Int
+  """walletop: wallet_to (eosio::name w.<contract>.<waltype>)"""
+  walletTo: String
 }
 
 type Ledger2Wallet {
@@ -6692,8 +6697,8 @@ type Ledger2Wallet {
   """Заблокированный баланс"""
   blocked: String!
 
-  """ID кошелька (×1000 offset): 1001/2001/3001/4001"""
-  id: Int!
+  """eosio::name-идентификатор кошелька (w.<contract>.<waltype>)"""
+  id: String!
 
   """Название кошелька"""
   name: String!
@@ -7702,11 +7707,6 @@ type Mutation {
 
   """Перезапуск общего собрания пайщиков"""
   restartAnnualGeneralMeet(data: RestartAnnualGeneralMeetInput!): MeetAggregate!
-
-  """
-  Откат ранее проведённой операции зеркальной проводкой (operation o.adj.rev). Только председатель. Запрещено откатывать миграционные операции (o.mig.*).
-  """
-  revertOperation(input: RevertOperationInput!): Ledger2AdjustmentResult!
 
   """
   Сохранить/обновить черновик формы отчёта (upsert по owner+type+year+period)
@@ -9523,7 +9523,7 @@ type Query {
   getLedger2History(input: GetLedger2HistoryInput!): Ledger2HistoryResponse!
 
   """
-  Общекооперативные кошельки из ledger2::wallets (1001/2001/3001/4001). Кошельки пайщиков живут в контракте soviet — сюда не попадают.
+  Общекооперативные кошельки из ledger2::wallets (eosio::name w.<contract>.<waltype>). Кошельки пайщиков живут в контракте soviet — сюда не попадают.
   """
   getLedger2Wallets(coopname: String!): [Ledger2Wallet!]!
 
@@ -10545,18 +10545,6 @@ input ReturnByMoneySignedMetaDocumentInput {
 
   """Версия генератора, использованного для создания документа"""
   version: String!
-}
-
-input RevertOperationInput {
-  coopname: String!
-
-  """Обязательное обоснование отката"""
-  memo: String!
-
-  """
-  global_sequence оригинальной apply-операции (Ledger2OperationDTO.globalSequence) — bigint в строке
-  """
-  originalGlobalSequence: String!
 }
 
 """
@@ -11763,8 +11751,8 @@ type WaitWeight {
 input WalmoveInput {
   coopname: String!
 
-  """id кошелька-источника"""
-  fromWallet: Int!
+  """eosio::name кошелька-источника (w.<contract>.<waltype>)"""
+  fromWallet: String!
 
   """Обязательное обоснование корректировки"""
   memo: String!
@@ -11774,8 +11762,8 @@ input WalmoveInput {
   """
   quantity: String!
 
-  """id кошелька-приёмника"""
-  toWallet: Int!
+  """eosio::name кошелька-приёмника (w.<contract>.<waltype>)"""
+  toWallet: String!
 
   """Владелец кошельков (для коллективных — coopname)"""
   username: String!

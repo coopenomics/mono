@@ -8,7 +8,12 @@
  * Нейминг: `o.<contract>.<verb>`, где префикс `o.` — operation, далее имя
  * контракта-источника (reg/wal/cap/mkt/sov/mig), затем короткий глагол.
  * Длина eosio::name ≤ 12 символов (13-й символ имеет ограничение по алфавиту).
+ *
+ * Идентификаторы кошельков (`wallet_from`/`wallet_to`) — eosio::name с
+ * префиксом `w.<contract>.<waltype>` (см. `./wallets.ts`). Пустая строка
+ * (`""`) — sentinel «кошелёк вне системы» для ISSUE и REVOKE.
  */
+import type { IName } from '../interfaces/ledger2'
 
 export type WalletOp = 'ISSUE' | 'TRANSFER' | 'BLOCK' | 'UNBLOCK' | 'WALLET_ONLY' | 'REVOKE'
 
@@ -27,10 +32,10 @@ export interface OperationMeta {
    * REVERSAL = REVOKE/TRANSFER/WALLET_ONLY в зависимости от зеркала).
    */
   wallet_op: WalletOp | null
-  /** id кошелька-источника (null для ISSUE и для adjustment-операций). */
-  wallet_from: number | null
-  /** id кошелька-приёмника (null для BLOCK/UNBLOCK и для adjustment-операций). */
-  wallet_to: number | null
+  /** Кошелёк-источник (null для ISSUE и для adjustment-операций). */
+  wallet_from: IName | null
+  /** Кошелёк-приёмник (null для BLOCK/UNBLOCK и для adjustment-операций). */
+  wallet_to: IName | null
   /** Код счёта Дт (null для WALLET_ONLY и для adjustment-операций). */
   debit: number | null
   /** Код счёта Кт (null для WALLET_ONLY и для adjustment-операций). */
@@ -53,97 +58,97 @@ export interface OperationMeta {
 export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
   // registrator
   { code: 'o.reg.payent',  process_type: 'p.reg.accept',  contract: 'registrator',
-    name: 'PAY_ENTRANCE',   wallet_op: 'ISSUE',    wallet_from: null, wallet_to: 3001,
+    name: 'PAY_ENTRANCE',   wallet_op: 'ISSUE',    wallet_from: null, wallet_to: 'w.reg.entry',
     debit: 51, credit: 86,
     human_name: 'Вступительный взнос пайщика' },
 
   { code: 'o.reg.putmin',  process_type: 'p.reg.accept',  contract: 'registrator',
-    name: 'PUT_MINSHARE',   wallet_op: 'ISSUE',    wallet_from: null, wallet_to: 2002,
+    name: 'PUT_MINSHARE',   wallet_op: 'ISSUE',    wallet_from: null, wallet_to: 'w.reg.minshr',
     debit: 51, credit: 80,
     human_name: 'Минимальный паевой взнос пайщика при регистрации' },
 
   // wallet
   { code: 'o.wal.depcpl',  process_type: 'p.wal.depo',    contract: 'wallet',
-    name: 'COMPLETE_DEPOSIT',  wallet_op: 'ISSUE',    wallet_from: null, wallet_to: 2001,
+    name: 'COMPLETE_DEPOSIT',  wallet_op: 'ISSUE',    wallet_from: null, wallet_to: 'w.wal.share',
     debit: 51, credit: 80,
     human_name: 'Внесение пайщиком паевого взноса' },
 
   { code: 'o.wal.wthcpl',  process_type: 'p.wal.wthdrw',  contract: 'wallet',
-    name: 'COMPLETE_WITHDRAW', wallet_op: 'TRANSFER', wallet_from: 2001, wallet_to: 4001,
+    name: 'COMPLETE_WITHDRAW', wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.wal.wthdrw',
     debit: 80, credit: 51,
     human_name: 'Возврат паевого взноса пайщику' },
 
   // capital
   { code: 'o.cap.import',  process_type: 'p.cap.import',  contract: 'capital',
-    name: 'IMPORT',         wallet_op: 'ISSUE',    wallet_from: null, wallet_to: 9001,
+    name: 'IMPORT',         wallet_op: 'ISSUE',    wallet_from: null, wallet_to: 'w.cap.bginv',
     debit: 51, credit: 80,
     human_name: 'Паевой взнос по ЦПП «Благорост» (офлайн-импорт)' },
 
   { code: 'o.cap.invest',  process_type: 'p.cap.invest',  contract: 'capital',
-    name: 'INVEST',         wallet_op: 'WALLET_ONLY', wallet_from: 2001, wallet_to: 9001,
+    name: 'INVEST',         wallet_op: 'WALLET_ONLY', wallet_from: 'w.wal.share', wallet_to: 'w.cap.bginv',
     debit: null, credit: null,
     human_name: 'Инвестиция в ЦПП «Благорост» (перенос между кошельками)' },
 
   { code: 'o.cap.commit',  process_type: 'p.cap.rid',     contract: 'capital',
-    name: 'COMMIT_RID',     wallet_op: 'ISSUE',    wallet_from: null, wallet_to: 10001,
+    name: 'COMMIT_RID',     wallet_op: 'ISSUE',    wallet_from: null, wallet_to: 'w.cap.gncom',
     debit: 8, credit: 80,
     human_name: 'Коммит РИД по программе «Благорост»' },
 
   { code: 'o.cap.accept',  process_type: 'p.cap.rid',     contract: 'capital',
-    name: 'ACCEPT_RID',     wallet_op: 'TRANSFER', wallet_from: 10001, wallet_to: 9002,
+    name: 'ACCEPT_RID',     wallet_op: 'TRANSFER', wallet_from: 'w.cap.gncom', wallet_to: 'w.cap.bgrid',
     debit: 4, credit: 8,
     human_name: 'Приём РИД в паевой фонд' },
 
   { code: 'o.cap.actprp',  process_type: 'p.cap.prop',    contract: 'capital',
-    name: 'ACCEPT_PROPERTY', wallet_op: 'ISSUE',   wallet_from: null, wallet_to: 9003,
+    name: 'ACCEPT_PROPERTY', wallet_op: 'ISSUE',   wallet_from: null, wallet_to: 'w.cap.bgprop',
     debit: 51, credit: 80,
     human_name: 'Паевой взнос (имущественный) по программе «Благорост»' },
 
   { code: 'o.cap.lend',    process_type: 'p.cap.debt',    contract: 'capital',
-    name: 'LEND',           wallet_op: 'ISSUE',    wallet_from: null, wallet_to: 4051,
+    name: 'LEND',           wallet_op: 'ISSUE',    wallet_from: null, wallet_to: 'w.cap.loan',
     debit: 58, credit: 51,
     human_name: 'Выдача пайщику беспроцентного займа' },
 
   { code: 'o.cap.repay',   process_type: 'p.cap.rid',     contract: 'capital',
-    name: 'REPAY',          wallet_op: 'TRANSFER', wallet_from: 4051, wallet_to: 2001,
+    name: 'REPAY',          wallet_op: 'TRANSFER', wallet_from: 'w.cap.loan', wallet_to: 'w.wal.share',
     debit: 80, credit: 58,
     human_name: 'Возврат беспроцентного займа пайщика по акту-2' },
 
   // marketplace
   { code: 'o.mkt.supply',  process_type: 'p.mkt.reqst',   contract: 'marketplace',
-    name: 'CONFIRM_SUPPLY', wallet_op: 'ISSUE',    wallet_from: null, wallet_to: 2001,
+    name: 'CONFIRM_SUPPLY', wallet_op: 'ISSUE',    wallet_from: null, wallet_to: 'w.wal.share',
     debit: 51, credit: 80,
     human_name: 'Подтверждение поставки' },
 
   { code: 'o.mkt.recv',    process_type: 'p.mkt.reqst',   contract: 'marketplace',
-    name: 'CONFIRM_RECEIPT', wallet_op: 'TRANSFER', wallet_from: 2001, wallet_to: 4002,
+    name: 'CONFIRM_RECEIPT', wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.mkt.payout',
     debit: 80, credit: 51,
     human_name: 'Подтверждение получения — выплата поставщику' },
 
   // soviet
   { code: 'o.sov.axncnv',  process_type: 'p.sov.axncnv',  contract: 'soviet',
-    name: 'CONVERT_AXN',    wallet_op: 'TRANSFER', wallet_from: 2001, wallet_to: 3003,
+    name: 'CONVERT_AXN',    wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.sov.delgte',
     debit: 80, credit: 86,
     human_name: 'Трансляция паевого в членский взнос инфраструктуры' },
 
   // migration
   { code: 'o.mig.minshr',  process_type: 'p.mig.trans',   contract: 'migration',
-    name: 'MIN_SHARE',      wallet_op: 'ISSUE',    wallet_from: null, wallet_to: 2002,
+    name: 'MIN_SHARE',      wallet_op: 'ISSUE',    wallet_from: null, wallet_to: 'w.reg.minshr',
     debit: 51, credit: 80,
     human_name: 'Транзит: минимальные паевые взносы' },
 
   { code: 'o.mig.share',   process_type: 'p.mig.trans',   contract: 'migration',
-    name: 'SHARE',          wallet_op: 'ISSUE',    wallet_from: null, wallet_to: 2001,
+    name: 'SHARE',          wallet_op: 'ISSUE',    wallet_from: null, wallet_to: 'w.wal.share',
     debit: 51, credit: 80,
     human_name: 'Транзит: остаток паевых взносов деньгами' },
 
   { code: 'o.mig.entry',   process_type: 'p.mig.trans',   contract: 'migration',
-    name: 'ENTRY',          wallet_op: 'ISSUE',    wallet_from: null, wallet_to: 3001,
+    name: 'ENTRY',          wallet_op: 'ISSUE',    wallet_from: null, wallet_to: 'w.reg.entry',
     debit: 51, credit: 86,
     human_name: 'Транзит: вступительные взносы' },
 
   { code: 'o.mig.rid',     process_type: 'p.mig.trans',   contract: 'migration',
-    name: 'RID',            wallet_op: 'ISSUE',    wallet_from: null, wallet_to: 2003,
+    name: 'RID',            wallet_op: 'ISSUE',    wallet_from: null, wallet_to: 'w.wal.sharid',
     debit: 4, credit: 80,
     human_name: 'Транзит: принятые РИД в паевой фонд' },
 

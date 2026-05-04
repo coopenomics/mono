@@ -77,11 +77,11 @@ const loadContributors = async () => {
       filter: {
         coopname: info.coopname,
       },
-      pagination: {
+      options: {
         page: pagination.value.page,
         limit: pagination.value.rowsPerPage,
         sortBy: pagination.value.sortBy,
-        descending: pagination.value.descending,
+        sortOrder: pagination.value.descending ? 'DESC' : 'ASC',
       },
     });
   } catch (error) {
@@ -120,11 +120,11 @@ const reloadContributors = async () => {
       filter: {
         coopname: info.coopname,
       },
-      pagination: {
+      options: {
         page: pagination.value.page,
         limit: pagination.value.rowsPerPage,
         sortBy: pagination.value.sortBy,
-        descending: pagination.value.descending,
+        sortOrder: pagination.value.descending ? 'DESC' : 'ASC',
       },
     });
   } catch (error) {

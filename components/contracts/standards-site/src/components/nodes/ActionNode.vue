@@ -60,11 +60,11 @@ const hasAnyIndicator = computed(
 <style scoped>
 .node-action {
   position: relative;
-  width: 170px;
-  height: 54px;
-  padding: 6px 14px;
+  width: 210px;
+  height: 68px;
+  padding: 8px 18px;
   /* pill-форма отличает «действие» от «статуса»-прямоугольника */
-  border-radius: 27px;
+  border-radius: 34px;
   background: var(--edge-focus-soft);
   border: 1.5px solid var(--edge-focus-border);
   display: flex;
@@ -98,9 +98,11 @@ const hasAnyIndicator = computed(
   font-size: 12.5px;
   font-weight: 600;
   color: var(--text);
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
+  word-break: break-word;
   line-height: 1.2;
   text-align: center;
   max-width: 100%;

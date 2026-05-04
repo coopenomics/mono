@@ -5641,7 +5641,7 @@ export type ValueTypes = {
 	_id: string | Variable<any, string>
 };
 	["GetLedger2HistoryInput"]: {
-	/** ID счёта/кошелька (×1000) */
+	/** Бух.счёт (×1000): 51000/80000/86000 — для debit/credit действий. */
 	accountId?: number | undefined | null | Variable<any, string>,
 	/** Имена blockchain-действий: apply | walletop | debit | credit */
 	actionNames?: Array<string> | undefined | null | Variable<any, string>,
@@ -5657,7 +5657,9 @@ export type ValueTypes = {
 	/** process_hash для выборки всех действий одной операции */
 	processHash?: string | undefined | null | Variable<any, string>,
 	sortOrder?: string | undefined | null | Variable<any, string>,
-	username?: string | undefined | null | Variable<any, string>
+	username?: string | undefined | null | Variable<any, string>,
+	/** eosio::name кошелька (`w.<contract>.<waltype>`) — для walletop действий. */
+	walletName?: string | undefined | null | Variable<any, string>
 };
 	["GetLedgerHistoryInput"]: {
 	/** ID счета для фильтрации. Если не указан, возвращаются операции по всем счетам */
@@ -5874,7 +5876,7 @@ export type ValueTypes = {
 	['...on Ledger2HistoryResponse']?: Omit<ValueTypes["Ledger2HistoryResponse"], "...on Ledger2HistoryResponse">
 }>;
 	["Ledger2Operation"]: AliasType<{
-	/** ID счёта/кошелька (×1000) */
+	/** Бух.счёт (×1000): 51000/80000/86000 — для debit/credit действий. */
 	accountId?:boolean | `@${string}`,
 	/** apply | walletop | debit | credit */
 	action?:boolean | `@${string}`,
@@ -5891,9 +5893,9 @@ export type ValueTypes = {
 	/** Asset "100.0000 RUB" */
 	quantity?:boolean | `@${string}`,
 	username?:boolean | `@${string}`,
-	/** walletop: wallet_from (исходящий) */
+	/** walletop: wallet_from (eosio::name w.<contract>.<waltype>) */
 	walletFrom?:boolean | `@${string}`,
-	/** walletop: wallet_to (входящий) */
+	/** walletop: wallet_to (eosio::name w.<contract>.<waltype>) */
 	walletTo?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on Ledger2Operation']?: Omit<ValueTypes["Ledger2Operation"], "...on Ledger2Operation">
@@ -5903,7 +5905,7 @@ export type ValueTypes = {
 	available?:boolean | `@${string}`,
 	/** Заблокированный баланс */
 	blocked?:boolean | `@${string}`,
-	/** ID кошелька (×1000 offset): 1001/2001/3001/4001 */
+	/** eosio::name-идентификатор кошелька (w.<contract>.<waltype>) */
 	id?:boolean | `@${string}`,
 	/** Название кошелька */
 	name?:boolean | `@${string}`,
@@ -6388,7 +6390,6 @@ registerAccount?: [{	data: ValueTypes["RegisterAccountInput"] | Variable<any, st
 registerParticipant?: [{	data: ValueTypes["RegisterParticipantInput"] | Variable<any, string>},ValueTypes["Account"]],
 resetKey?: [{	data: ValueTypes["ResetKeyInput"] | Variable<any, string>},boolean | `@${string}`],
 restartAnnualGeneralMeet?: [{	data: ValueTypes["RestartAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
-revertOperation?: [{	input: ValueTypes["RevertOperationInput"] | Variable<any, string>},ValueTypes["Ledger2AdjustmentResult"]],
 saveReportDraft?: [{	input: ValueTypes["SaveReportDraftInput"] | Variable<any, string>},ValueTypes["ReportDraft"]],
 selectBranch?: [{	data: ValueTypes["SelectBranchInput"] | Variable<any, string>},boolean | `@${string}`],
 sendAgreement?: [{	data: ValueTypes["SendAgreementInput"] | Variable<any, string>},ValueTypes["Transaction"]],
@@ -8345,13 +8346,6 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	/** Версия генератора, использованного для создания документа */
 	version: string | Variable<any, string>
 };
-	["RevertOperationInput"]: {
-	coopname: string | Variable<any, string>,
-	/** Обязательное обоснование отката */
-	memo: string | Variable<any, string>,
-	/** global_sequence оригинальной apply-операции (Ledger2OperationDTO.globalSequence) — bigint в строке */
-	originalGlobalSequence: string | Variable<any, string>
-};
 	/** Тип сообщения в истории комнаты Matrix (текст или расшифрованное аудио) */
 ["RoomMessageKind"]:RoomMessageKind;
 	["SaveReportDraftInput"]: {
@@ -9242,14 +9236,14 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 }>;
 	["WalmoveInput"]: {
 	coopname: string | Variable<any, string>,
-	/** id кошелька-источника */
-	fromWallet: number | Variable<any, string>,
+	/** eosio::name кошелька-источника (w.<contract>.<waltype>) */
+	fromWallet: string | Variable<any, string>,
 	/** Обязательное обоснование корректировки */
 	memo: string | Variable<any, string>,
 	/** Сумма с символом, например "100.0000 RUB" */
 	quantity: string | Variable<any, string>,
-	/** id кошелька-приёмника */
-	toWallet: number | Variable<any, string>,
+	/** eosio::name кошелька-приёмника (w.<contract>.<waltype>) */
+	toWallet: string | Variable<any, string>,
 	/** Владелец кошельков (для коллективных — coopname) */
 	username: string | Variable<any, string>
 };
@@ -13757,7 +13751,7 @@ export type ResolverInputTypes = {
 	_id: string
 };
 	["GetLedger2HistoryInput"]: {
-	/** ID счёта/кошелька (×1000) */
+	/** Бух.счёт (×1000): 51000/80000/86000 — для debit/credit действий. */
 	accountId?: number | undefined | null,
 	/** Имена blockchain-действий: apply | walletop | debit | credit */
 	actionNames?: Array<string> | undefined | null,
@@ -13773,7 +13767,9 @@ export type ResolverInputTypes = {
 	/** process_hash для выборки всех действий одной операции */
 	processHash?: string | undefined | null,
 	sortOrder?: string | undefined | null,
-	username?: string | undefined | null
+	username?: string | undefined | null,
+	/** eosio::name кошелька (`w.<contract>.<waltype>`) — для walletop действий. */
+	walletName?: string | undefined | null
 };
 	["GetLedgerHistoryInput"]: {
 	/** ID счета для фильтрации. Если не указан, возвращаются операции по всем счетам */
@@ -13983,7 +13979,7 @@ export type ResolverInputTypes = {
 		__typename?: boolean | `@${string}`
 }>;
 	["Ledger2Operation"]: AliasType<{
-	/** ID счёта/кошелька (×1000) */
+	/** Бух.счёт (×1000): 51000/80000/86000 — для debit/credit действий. */
 	accountId?:boolean | `@${string}`,
 	/** apply | walletop | debit | credit */
 	action?:boolean | `@${string}`,
@@ -14000,9 +13996,9 @@ export type ResolverInputTypes = {
 	/** Asset "100.0000 RUB" */
 	quantity?:boolean | `@${string}`,
 	username?:boolean | `@${string}`,
-	/** walletop: wallet_from (исходящий) */
+	/** walletop: wallet_from (eosio::name w.<contract>.<waltype>) */
 	walletFrom?:boolean | `@${string}`,
-	/** walletop: wallet_to (входящий) */
+	/** walletop: wallet_to (eosio::name w.<contract>.<waltype>) */
 	walletTo?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
@@ -14011,7 +14007,7 @@ export type ResolverInputTypes = {
 	available?:boolean | `@${string}`,
 	/** Заблокированный баланс */
 	blocked?:boolean | `@${string}`,
-	/** ID кошелька (×1000 offset): 1001/2001/3001/4001 */
+	/** eosio::name-идентификатор кошелька (w.<contract>.<waltype>) */
 	id?:boolean | `@${string}`,
 	/** Название кошелька */
 	name?:boolean | `@${string}`,
@@ -14483,7 +14479,6 @@ registerAccount?: [{	data: ResolverInputTypes["RegisterAccountInput"]},ResolverI
 registerParticipant?: [{	data: ResolverInputTypes["RegisterParticipantInput"]},ResolverInputTypes["Account"]],
 resetKey?: [{	data: ResolverInputTypes["ResetKeyInput"]},boolean | `@${string}`],
 restartAnnualGeneralMeet?: [{	data: ResolverInputTypes["RestartAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
-revertOperation?: [{	input: ResolverInputTypes["RevertOperationInput"]},ResolverInputTypes["Ledger2AdjustmentResult"]],
 saveReportDraft?: [{	input: ResolverInputTypes["SaveReportDraftInput"]},ResolverInputTypes["ReportDraft"]],
 selectBranch?: [{	data: ResolverInputTypes["SelectBranchInput"]},boolean | `@${string}`],
 sendAgreement?: [{	data: ResolverInputTypes["SendAgreementInput"]},ResolverInputTypes["Transaction"]],
@@ -16365,13 +16360,6 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	/** Версия генератора, использованного для создания документа */
 	version: string
 };
-	["RevertOperationInput"]: {
-	coopname: string,
-	/** Обязательное обоснование отката */
-	memo: string,
-	/** global_sequence оригинальной apply-операции (Ledger2OperationDTO.globalSequence) — bigint в строке */
-	originalGlobalSequence: string
-};
 	/** Тип сообщения в истории комнаты Matrix (текст или расшифрованное аудио) */
 ["RoomMessageKind"]:RoomMessageKind;
 	["SaveReportDraftInput"]: {
@@ -17243,14 +17231,14 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 }>;
 	["WalmoveInput"]: {
 	coopname: string,
-	/** id кошелька-источника */
-	fromWallet: number,
+	/** eosio::name кошелька-источника (w.<contract>.<waltype>) */
+	fromWallet: string,
 	/** Обязательное обоснование корректировки */
 	memo: string,
 	/** Сумма с символом, например "100.0000 RUB" */
 	quantity: string,
-	/** id кошелька-приёмника */
-	toWallet: number,
+	/** eosio::name кошелька-приёмника (w.<contract>.<waltype>) */
+	toWallet: string,
 	/** Владелец кошельков (для коллективных — coopname) */
 	username: string
 };
@@ -21639,7 +21627,7 @@ export type ModelTypes = {
 	_id: string
 };
 	["GetLedger2HistoryInput"]: {
-	/** ID счёта/кошелька (×1000) */
+	/** Бух.счёт (×1000): 51000/80000/86000 — для debit/credit действий. */
 	accountId?: number | undefined | null,
 	/** Имена blockchain-действий: apply | walletop | debit | credit */
 	actionNames?: Array<string> | undefined | null,
@@ -21655,7 +21643,9 @@ export type ModelTypes = {
 	/** process_hash для выборки всех действий одной операции */
 	processHash?: string | undefined | null,
 	sortOrder?: string | undefined | null,
-	username?: string | undefined | null
+	username?: string | undefined | null,
+	/** eosio::name кошелька (`w.<contract>.<waltype>`) — для walletop действий. */
+	walletName?: string | undefined | null
 };
 	["GetLedgerHistoryInput"]: {
 	/** ID счета для фильтрации. Если не указан, возвращаются операции по всем счетам */
@@ -21854,7 +21844,7 @@ export type ModelTypes = {
 	totalPages: number
 };
 	["Ledger2Operation"]: {
-		/** ID счёта/кошелька (×1000) */
+		/** Бух.счёт (×1000): 51000/80000/86000 — для debit/credit действий. */
 	accountId?: number | undefined | null,
 	/** apply | walletop | debit | credit */
 	action: string,
@@ -21871,18 +21861,18 @@ export type ModelTypes = {
 	/** Asset "100.0000 RUB" */
 	quantity?: string | undefined | null,
 	username?: string | undefined | null,
-	/** walletop: wallet_from (исходящий) */
-	walletFrom?: number | undefined | null,
-	/** walletop: wallet_to (входящий) */
-	walletTo?: number | undefined | null
+	/** walletop: wallet_from (eosio::name w.<contract>.<waltype>) */
+	walletFrom?: string | undefined | null,
+	/** walletop: wallet_to (eosio::name w.<contract>.<waltype>) */
+	walletTo?: string | undefined | null
 };
 	["Ledger2Wallet"]: {
 		/** Доступный баланс */
 	available: string,
 	/** Заблокированный баланс */
 	blocked: string,
-	/** ID кошелька (×1000 offset): 1001/2001/3001/4001 */
-	id: number,
+	/** eosio::name-идентификатор кошелька (w.<contract>.<waltype>) */
+	id: string,
 	/** Название кошелька */
 	name: string
 };
@@ -22496,8 +22486,6 @@ export type ModelTypes = {
 	resetKey: boolean,
 	/** Перезапуск общего собрания пайщиков */
 	restartAnnualGeneralMeet: ModelTypes["MeetAggregate"],
-	/** Откат ранее проведённой операции зеркальной проводкой (operation o.adj.rev). Только председатель. Запрещено откатывать миграционные операции (o.mig.*). */
-	revertOperation: ModelTypes["Ledger2AdjustmentResult"],
 	/** Сохранить/обновить черновик формы отчёта (upsert по owner+type+year+period) */
 	saveReportDraft: ModelTypes["ReportDraft"],
 	/** Выбрать кооперативный участок */
@@ -23712,7 +23700,7 @@ export type ModelTypes = {
 	getLedger2Accounts: Array<ModelTypes["Ledger2Account"]>,
 	/** История операций ledger2 с серверными фильтрами (action/accountId/username/date-range). */
 	getLedger2History: ModelTypes["Ledger2HistoryResponse"],
-	/** Общекооперативные кошельки из ledger2::wallets (1001/2001/3001/4001). Кошельки пайщиков живут в контракте soviet — сюда не попадают. */
+	/** Общекооперативные кошельки из ledger2::wallets (eosio::name w.<contract>.<waltype>). Кошельки пайщиков живут в контракте soviet — сюда не попадают. */
 	getLedger2Wallets: Array<ModelTypes["Ledger2Wallet"]>,
 	/** Получить историю операций по счетам кооператива. Возвращает список операций с возможностью фильтрации по account_id и пагинацией. Операции сортируются по дате создания (новые первыми). */
 	getLedgerHistory: ModelTypes["LedgerHistoryResponse"],
@@ -24389,13 +24377,6 @@ export type ModelTypes = {
 	username: string,
 	/** Версия генератора, использованного для создания документа */
 	version: string
-};
-	["RevertOperationInput"]: {
-	coopname: string,
-	/** Обязательное обоснование отката */
-	memo: string,
-	/** global_sequence оригинальной apply-операции (Ledger2OperationDTO.globalSequence) — bigint в строке */
-	originalGlobalSequence: string
 };
 	["RoomMessageKind"]:RoomMessageKind;
 	["SaveReportDraftInput"]: {
@@ -25237,14 +25218,14 @@ export type ModelTypes = {
 };
 	["WalmoveInput"]: {
 	coopname: string,
-	/** id кошелька-источника */
-	fromWallet: number,
+	/** eosio::name кошелька-источника (w.<contract>.<waltype>) */
+	fromWallet: string,
 	/** Обязательное обоснование корректировки */
 	memo: string,
 	/** Сумма с символом, например "100.0000 RUB" */
 	quantity: string,
-	/** id кошелька-приёмника */
-	toWallet: number,
+	/** eosio::name кошелька-приёмника (w.<contract>.<waltype>) */
+	toWallet: string,
 	/** Владелец кошельков (для коллективных — coopname) */
 	username: string
 };
@@ -29856,7 +29837,7 @@ export type GraphQLTypes = {
 	_id: string
 };
 	["GetLedger2HistoryInput"]: {
-		/** ID счёта/кошелька (×1000) */
+		/** Бух.счёт (×1000): 51000/80000/86000 — для debit/credit действий. */
 	accountId?: number | undefined | null,
 	/** Имена blockchain-действий: apply | walletop | debit | credit */
 	actionNames?: Array<string> | undefined | null,
@@ -29872,7 +29853,9 @@ export type GraphQLTypes = {
 	/** process_hash для выборки всех действий одной операции */
 	processHash?: string | undefined | null,
 	sortOrder?: string | undefined | null,
-	username?: string | undefined | null
+	username?: string | undefined | null,
+	/** eosio::name кошелька (`w.<contract>.<waltype>`) — для walletop действий. */
+	walletName?: string | undefined | null
 };
 	["GetLedgerHistoryInput"]: {
 		/** ID счета для фильтрации. Если не указан, возвращаются операции по всем счетам */
@@ -30090,7 +30073,7 @@ export type GraphQLTypes = {
 };
 	["Ledger2Operation"]: {
 	__typename: "Ledger2Operation",
-	/** ID счёта/кошелька (×1000) */
+	/** Бух.счёт (×1000): 51000/80000/86000 — для debit/credit действий. */
 	accountId?: number | undefined | null,
 	/** apply | walletop | debit | credit */
 	action: string,
@@ -30107,10 +30090,10 @@ export type GraphQLTypes = {
 	/** Asset "100.0000 RUB" */
 	quantity?: string | undefined | null,
 	username?: string | undefined | null,
-	/** walletop: wallet_from (исходящий) */
-	walletFrom?: number | undefined | null,
-	/** walletop: wallet_to (входящий) */
-	walletTo?: number | undefined | null,
+	/** walletop: wallet_from (eosio::name w.<contract>.<waltype>) */
+	walletFrom?: string | undefined | null,
+	/** walletop: wallet_to (eosio::name w.<contract>.<waltype>) */
+	walletTo?: string | undefined | null,
 	['...on Ledger2Operation']: Omit<GraphQLTypes["Ledger2Operation"], "...on Ledger2Operation">
 };
 	["Ledger2Wallet"]: {
@@ -30119,8 +30102,8 @@ export type GraphQLTypes = {
 	available: string,
 	/** Заблокированный баланс */
 	blocked: string,
-	/** ID кошелька (×1000 offset): 1001/2001/3001/4001 */
-	id: number,
+	/** eosio::name-идентификатор кошелька (w.<contract>.<waltype>) */
+	id: string,
 	/** Название кошелька */
 	name: string,
 	['...on Ledger2Wallet']: Omit<GraphQLTypes["Ledger2Wallet"], "...on Ledger2Wallet">
@@ -30762,8 +30745,6 @@ export type GraphQLTypes = {
 	resetKey: boolean,
 	/** Перезапуск общего собрания пайщиков */
 	restartAnnualGeneralMeet: GraphQLTypes["MeetAggregate"],
-	/** Откат ранее проведённой операции зеркальной проводкой (operation o.adj.rev). Только председатель. Запрещено откатывать миграционные операции (o.mig.*). */
-	revertOperation: GraphQLTypes["Ledger2AdjustmentResult"],
 	/** Сохранить/обновить черновик формы отчёта (upsert по owner+type+year+period) */
 	saveReportDraft: GraphQLTypes["ReportDraft"],
 	/** Выбрать кооперативный участок */
@@ -32108,7 +32089,7 @@ export type GraphQLTypes = {
 	getLedger2Accounts: Array<GraphQLTypes["Ledger2Account"]>,
 	/** История операций ledger2 с серверными фильтрами (action/accountId/username/date-range). */
 	getLedger2History: GraphQLTypes["Ledger2HistoryResponse"],
-	/** Общекооперативные кошельки из ledger2::wallets (1001/2001/3001/4001). Кошельки пайщиков живут в контракте soviet — сюда не попадают. */
+	/** Общекооперативные кошельки из ledger2::wallets (eosio::name w.<contract>.<waltype>). Кошельки пайщиков живут в контракте soviet — сюда не попадают. */
 	getLedger2Wallets: Array<GraphQLTypes["Ledger2Wallet"]>,
 	/** Получить историю операций по счетам кооператива. Возвращает список операций с возможностью фильтрации по account_id и пагинацией. Операции сортируются по дате создания (новые первыми). */
 	getLedgerHistory: GraphQLTypes["LedgerHistoryResponse"],
@@ -32826,13 +32807,6 @@ export type GraphQLTypes = {
 	username: string,
 	/** Версия генератора, использованного для создания документа */
 	version: string
-};
-	["RevertOperationInput"]: {
-		coopname: string,
-	/** Обязательное обоснование отката */
-	memo: string,
-	/** global_sequence оригинальной apply-операции (Ledger2OperationDTO.globalSequence) — bigint в строке */
-	originalGlobalSequence: string
 };
 	/** Тип сообщения в истории комнаты Matrix (текст или расшифрованное аудио) */
 ["RoomMessageKind"]: RoomMessageKind;
@@ -33725,14 +33699,14 @@ export type GraphQLTypes = {
 };
 	["WalmoveInput"]: {
 		coopname: string,
-	/** id кошелька-источника */
-	fromWallet: number,
+	/** eosio::name кошелька-источника (w.<contract>.<waltype>) */
+	fromWallet: string,
 	/** Обязательное обоснование корректировки */
 	memo: string,
 	/** Сумма с символом, например "100.0000 RUB" */
 	quantity: string,
-	/** id кошелька-приёмника */
-	toWallet: number,
+	/** eosio::name кошелька-приёмника (w.<contract>.<waltype>) */
+	toWallet: string,
 	/** Владелец кошельков (для коллективных — coopname) */
 	username: string
 };
@@ -34459,7 +34433,6 @@ type ZEUS_VARIABLES = {
 	["ReturnByMoneyGenerateDocumentInput"]: ValueTypes["ReturnByMoneyGenerateDocumentInput"];
 	["ReturnByMoneySignedDocumentInput"]: ValueTypes["ReturnByMoneySignedDocumentInput"];
 	["ReturnByMoneySignedMetaDocumentInput"]: ValueTypes["ReturnByMoneySignedMetaDocumentInput"];
-	["RevertOperationInput"]: ValueTypes["RevertOperationInput"];
 	["RoomMessageKind"]: ValueTypes["RoomMessageKind"];
 	["SaveReportDraftInput"]: ValueTypes["SaveReportDraftInput"];
 	["SbpDataInput"]: ValueTypes["SbpDataInput"];

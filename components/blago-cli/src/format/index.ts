@@ -40,7 +40,13 @@ export function parseBlagoMarkdown(raw: string): ParsedBlagoFile {
 
 export function serializeBlagoMarkdown(data: Record<string, unknown>, body: string): string {
   const trimmed = body.endsWith('\n') ? body : `${body}\n`
-  return matter.stringify(trimmed, data)
+  // matter.stringify(string, data) сначала парсит string как frontmatter — body, начинающийся
+  // с «---», ловится как фронтматтер и роняет js-yaml на коде вида `Authorization: Bearer …`.
+  // Передаём пустой контент в matter.stringify, чтобы получить только заголовок, и сами клеим body.
+  // Нормализуем хвост: gray-matter дописывает лишний `\n` к пустому контенту — это даёт
+  // ложную «грязь» на следующем pull (etag сходит с тем, что было сохранено как простой stringify).
+  const head = matter.stringify('', data).replace(/\n+$/, '\n')
+  return `${head}${trimmed}`
 }
 
 export function issueLabelsFromMetadata(metadata: unknown): string[] {

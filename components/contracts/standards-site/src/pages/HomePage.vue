@@ -2,18 +2,15 @@
 import { computed } from 'vue';
 import { RouterLink } from 'vue-router';
 import { standardsIndex } from '@/data/loader';
+import { CONTRACT_HUMAN, STATUS_HUMAN } from '@/data/labels';
 import type { Standard, StandardIndexEntry } from '@/types/standard';
 
 interface GroupedStandard extends StandardIndexEntry {
   summary: string;
-  operationsCount: number;
 }
 
-function summarize(std: Standard): { summary: string; operationsCount: number } {
-  return {
-    summary: std.summary.trim(),
-    operationsCount: std.operations?.length ?? 0,
-  };
+function summarize(std: Standard): { summary: string } {
+  return { summary: std.summary.trim() };
 }
 
 const groups = computed<{ contract: string; items: GroupedStandard[] }[]>(() => {
@@ -29,6 +26,13 @@ const groups = computed<{ contract: string; items: GroupedStandard[] }[]>(() => 
 const total = computed(() =>
   standardsIndex.contracts.reduce((n, c) => n + standardsIndex.byContract[c].length, 0),
 );
+
+function contractHuman(c: string): string {
+  return CONTRACT_HUMAN[c] ?? c;
+}
+function statusHuman(s: string): string {
+  return STATUS_HUMAN[s] ?? s;
+}
 </script>
 
 <template>
@@ -39,9 +43,7 @@ const total = computed(() =>
       Стандарт кооперативного процесса — формальное описание того, в какой
       последовательности участники совершают действия в смарт-контрактах,
       какие документы создаются и кем подписываются, какие статусы проходит
-      сущность и какие бухгалтерские операции возникают в реестре
-      <code>ledger2</code>. Каждый стандарт соответствует одному
-      <code>process_type</code>.
+      сущность и какие бухгалтерские операции возникают.
     </p>
     <p class="home-hero__lead">
       Всего описано <strong>{{ total }}</strong> {{ total === 1 ? 'стандарт' : 'стандартов' }}.
@@ -55,7 +57,8 @@ const total = computed(() =>
 
   <div v-for="g in groups" :key="g.contract" class="home-section">
     <h2 class="home-section__title">
-      <code>{{ g.contract }}</code>
+      <span class="home-section__name">{{ contractHuman(g.contract) || g.contract }}</span>
+      <code v-if="contractHuman(g.contract)" class="home-section__code">{{ g.contract }}</code>
       <span class="home-section__count">{{ g.items.length }}</span>
     </h2>
     <div class="home-grid">
@@ -67,14 +70,10 @@ const total = computed(() =>
       >
         <div class="home-card__head">
           <span class="home-card__title">{{ item.title }}</span>
-          <span class="home-card__code">{{ item.process_type }}</span>
         </div>
         <p class="home-card__summary">{{ item.summary }}</p>
         <div class="home-card__foot">
-          <span class="home-card__badge home-card__badge--status">{{ item.status }}</span>
-          <span class="home-card__badge">
-            {{ item.operationsCount === 1 ? 'одноактовый' : item.operationsCount + ' операции' }}
-          </span>
+          <span class="home-card__badge home-card__badge--status">{{ statusHuman(item.status) }}</span>
         </div>
       </RouterLink>
     </div>
@@ -116,29 +115,31 @@ const total = computed(() =>
   margin-bottom: 28px;
 }
 .home-section__title {
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-subtle);
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 10px;
   margin: 0 0 12px;
   padding-bottom: 6px;
   border-bottom: 1px solid var(--border);
 }
-.home-section__title code {
-  font-family: var(--font-mono);
-  font-size: 13px;
+.home-section__name {
+  font-size: 16px;
+  font-weight: 600;
   color: var(--text);
+}
+.home-section__code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-subtle);
   background: var(--surface);
   border: 1px solid var(--border);
-  padding: 2px 8px;
+  padding: 2px 7px;
   border-radius: 4px;
 }
 .home-section__count {
   font-family: var(--font-mono);
+  font-size: 12px;
   color: var(--text-muted);
 }
 
