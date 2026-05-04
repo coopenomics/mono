@@ -5,8 +5,13 @@
  * Показывает одно из: статус / действие / документ / операцию.
  */
 import { computed } from 'vue';
+import { useRouter } from 'vue-router';
+import { FileText, ArrowRight } from 'lucide-vue-next';
 import type { Standard, Transition, Ledger2Operation, ContractAction, ProcessDocument } from '@/types/standard';
 import { getAccount, getWallet } from '@/data/registries';
+import { standardsIndex } from '@/data/loader';
+
+const router = useRouter();
 
 const props = defineProps<{
   standard: Standard;
@@ -21,13 +26,15 @@ const START_ID = '__start__';
 const END_ID = '__end__';
 const REJECTED_PREFIX = '__rejected__';
 
+// В slim-формате actor — свободный русский текст, но оставляем маппинг
+// для legacy-YAML, где ещё используются короткие коды.
 const ROLE_HUMAN: Record<string, string> = {
   contributor: 'Участник',
   chairman: 'Председатель',
   soviet: 'Совет',
   soviet_members: 'Члены совета',
   meet: 'Общее собрание',
-  gateway_operator: 'Оператор платежей',
+  gateway_operator: 'Кассир',
   administrator: 'Администратор',
   chairman_or_soviet: 'Председатель / Совет',
 };
@@ -64,6 +71,43 @@ const opsForFocusedAction = computed<Ledger2Operation[]>(() => {
   if (!props.focusAction) return [];
   return getOperationsForAction(props.focusAction);
 });
+
+// Документы, привязанные к focus action (slim: doc.action; legacy: doc.step → scenario)
+function getDocsForAction(actionName: string): ProcessDocument[] {
+  const stepToAction = new Map<number, string>();
+  for (const step of props.standard.scenario?.steps ?? []) {
+    stepToAction.set(step.step, step.action);
+  }
+  return (props.standard.documents ?? []).filter((d) => {
+    if (d.action) return d.action === actionName;
+    if (d.step != null) return stepToAction.get(d.step) === actionName;
+    return false;
+  });
+}
+
+const docsForFocusedAction = computed<ProcessDocument[]>(() => {
+  if (!props.focusAction) return [];
+  return getDocsForAction(props.focusAction);
+});
+
+// Читаемый код документа: registry_id (slim) имеет приоритет над template (legacy)
+function docCode(d: ProcessDocument): string {
+  if (d.registry_id != null) return `#${d.registry_id}`;
+  return d.template ?? '';
+}
+
+// Переходы к связанным стандартам (кнопки в карточке действия)
+function linkTitle(processType: string, fallback?: string): string {
+  if (fallback) return fallback;
+  const target = standardsIndex.byProcessType[processType];
+  return target?.title ?? processType;
+}
+
+function openLink(processType: string): void {
+  const target = standardsIndex.byProcessType[processType];
+  if (!target) return;
+  router.push({ name: 'process', params: { contract: target.contract, processType: target.slug } });
+}
 
 // Документ по шаблону
 const focusedDocument = computed<ProcessDocument | null>(() => {
@@ -114,8 +158,6 @@ const focusMode = computed<
   return 'none';
 });
 
-const relatedCount = computed(() => (props.standard.related ?? []).length);
-
 // ── Данные для «завершения отказом» ─────────────────────────────────────
 interface RejectedInfo {
   transition: Transition;
@@ -165,48 +207,38 @@ function accountTitle(code: number | null | undefined): string {
   return `${code} · ${meta.name} · ${kind}`;
 }
 
-function walletTitle(id: number | null | undefined, op: Ledger2Operation['wallet_op']): string {
-  if (id == null) {
-    // null допустим только для ISSUE (из ниоткуда) или CONSUME (в никуда)
+function walletTitle(name: string | null | undefined, op: Ledger2Operation['wallet_op']): string {
+  if (name == null || name === '') {
+    // пусто допустимо только для ISSUE (из ниоткуда) или CONSUME (в никуда)
     if (op === 'ISSUE') return 'Выпуск средств извне системы';
     return 'Кошелёк не задан';
   }
-  const meta = getWallet(id);
-  if (!meta) return `${id} (нет в реестре)`;
-  return `${id} · ${meta.name}`;
+  const meta = getWallet(name);
+  if (!meta) return `${name} (нет в реестре)`;
+  return `${name} · ${meta.human_name}`;
 }
 
-function walletDisplayId(id: number | null): string {
-  return id == null ? '∅' : String(id);
+function walletDisplayId(name: string | null | undefined): string {
+  return name == null || name === '' ? '∅' : name;
 }
 
 </script>
 
 <template>
   <section
-    v-if="focusMode !== 'none'"
+    v-if="focusMode !== 'none' && focusMode !== 'process-start'"
     class="focus-bar"
     :class="{
       'focus-bar--edge': focusMode === 'action',
       'focus-bar--doc': focusMode === 'document',
       'focus-bar--op': focusMode === 'operation',
-      'focus-bar--process':
-        focusMode === 'process-start' || focusMode === 'process-end',
+      'focus-bar--process': focusMode === 'process-end',
       'focus-bar--rejected': focusMode === 'process-rejected',
     }"
   >
-    <!-- Начало процесса -->
-    <template v-if="focusMode === 'process-start'">
-      <div class="focus-bar__col focus-bar__col--main">
-        <div class="focus-bar__kicker">Начало процесса</div>
-        <p v-if="standard.purpose" class="focus-bar__desc focus-bar__desc--lead">
-          {{ standard.purpose }}
-        </p>
-      </div>
-    </template>
 
     <!-- Завершение отказом -->
-    <template v-else-if="focusMode === 'process-rejected' && rejectedInfo">
+    <template v-if="focusMode === 'process-rejected' && rejectedInfo">
       <div class="focus-bar__col focus-bar__col--main">
         <div class="focus-bar__kicker">Завершение отказом</div>
         <div class="focus-bar__title-row">
@@ -235,17 +267,14 @@ function walletDisplayId(id: number | null): string {
     <template v-else-if="focusMode === 'process-end'">
       <div class="focus-bar__col focus-bar__col--main">
         <div class="focus-bar__kicker">Конец процесса</div>
-        <div v-for="(s, i) in terminalStates" :key="i" class="focus-bar__entry">
-          <div class="focus-bar__title-row">
+        <div class="focus-bar__title-row">
+          <template v-for="(s, i) in terminalStates" :key="i">
+            <span v-if="i > 0" class="focus-bar__sep">·</span>
             <code class="focus-bar__code focus-bar__code--state">{{ s.name }}</code>
             <span v-if="s.human" class="focus-bar__human">{{ s.human }}</span>
-            <span class="focus-bar__badge">финал</span>
-          </div>
-          <p class="focus-bar__desc">{{ s.description }}</p>
+          </template>
+          <span class="focus-bar__badge">финал</span>
         </div>
-        <p v-if="relatedCount > 0" class="focus-bar__desc focus-bar__desc--hint">
-          Связанные стандарты см. ниже ({{ relatedCount }}).
-        </p>
       </div>
     </template>
 
@@ -265,6 +294,39 @@ function walletDisplayId(id: number | null): string {
             <span v-for="(g, i) in focusedTransition.guards" :key="i" class="focus-bar__guard">{{ g }}</span>
           </span>
         </div>
+        <div v-if="focusedAction?.links && focusedAction.links.length" class="focus-bar__links">
+          <span class="focus-bar__kicker-mini">Перейти:</span>
+          <div class="focus-bar__link-list">
+            <button
+              v-for="(lnk, i) in focusedAction.links"
+              :key="i"
+              type="button"
+              class="focus-bar__link-btn"
+              @click="openLink(lnk.process_type)"
+            >
+              <span>{{ linkTitle(lnk.process_type, lnk.label) }}</span>
+              <ArrowRight :size="13" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="docsForFocusedAction.length" class="focus-bar__col focus-bar__col--docs">
+        <div class="focus-bar__kicker-mini">Документы</div>
+        <div class="focus-bar__doc-list">
+          <div v-for="(d, i) in docsForFocusedAction" :key="i" class="focus-bar__doc-chip">
+            <FileText :size="14" class="focus-bar__doc-icon" />
+            <div class="focus-bar__doc-body">
+              <div class="focus-bar__doc-title">{{ d.title }}</div>
+              <div class="focus-bar__doc-meta">
+                <code class="focus-bar__doc-code">{{ docCode(d) }}</code>
+                <span v-if="d.signed_by && d.signed_by.length" class="focus-bar__doc-signers">
+                  подписывает: {{ d.signed_by.map(roleHuman).join(', ') }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div v-if="opsForFocusedAction.length" class="focus-bar__col focus-bar__col--ops">
@@ -273,35 +335,37 @@ function walletDisplayId(id: number | null): string {
           <div v-for="op in opsForFocusedAction" :key="op.ledger_code" class="focus-bar__op-block">
             <div class="focus-bar__op-name">{{ op.human_name }}</div>
 
-            <div
-              v-if="op.debit != null || op.credit != null"
-              class="focus-bar__op-sub"
-            >
-              <div class="focus-bar__op-sub-label">Проводки</div>
-              <div class="focus-bar__op-sub-body">
-                <span class="tooltip" :data-tip="accountTitle(op.debit)">
-                  Дт <code>{{ op.debit ?? '—' }}</code>
-                </span>
-                <span class="focus-bar__op-sep">/</span>
-                <span class="tooltip" :data-tip="accountTitle(op.credit)">
-                  Кт <code>{{ op.credit ?? '—' }}</code>
-                </span>
+            <div class="focus-bar__op-subs">
+              <div
+                v-if="op.debit != null || op.credit != null"
+                class="focus-bar__op-sub"
+              >
+                <div class="focus-bar__op-sub-label">Проводки</div>
+                <div class="focus-bar__op-sub-body">
+                  <span class="tooltip" :data-tip="accountTitle(op.debit)">
+                    Дт <code>{{ op.debit ?? '—' }}</code>
+                  </span>
+                  <span class="focus-bar__op-sep">/</span>
+                  <span class="tooltip" :data-tip="accountTitle(op.credit)">
+                    Кт <code>{{ op.credit ?? '—' }}</code>
+                  </span>
+                </div>
               </div>
-            </div>
 
-            <div
-              v-if="op.wallet_op !== 'WALLET_ONLY' && (op.wallet_from != null || op.wallet_to != null)"
-              class="focus-bar__op-sub"
-            >
-              <div class="focus-bar__op-sub-label">Переводы</div>
-              <div class="focus-bar__op-sub-body">
-                <span class="tooltip" :data-tip="walletTitle(op.wallet_from, op.wallet_op)">
-                  <code>{{ walletDisplayId(op.wallet_from) }}</code>
-                </span>
-                <span class="focus-bar__arrow">→</span>
-                <span class="tooltip" :data-tip="walletTitle(op.wallet_to, op.wallet_op)">
-                  <code>{{ walletDisplayId(op.wallet_to) }}</code>
-                </span>
+              <div
+                v-if="op.wallet_op !== 'WALLET_ONLY' && (!!op.wallet_from || !!op.wallet_to)"
+                class="focus-bar__op-sub"
+              >
+                <div class="focus-bar__op-sub-label">Переводы</div>
+                <div class="focus-bar__op-sub-body">
+                  <span class="tooltip" :data-tip="walletTitle(op.wallet_from, op.wallet_op)">
+                    <code>{{ walletDisplayId(op.wallet_from) }}</code>
+                  </span>
+                  <span class="focus-bar__arrow">→</span>
+                  <span class="tooltip" :data-tip="walletTitle(op.wallet_to, op.wallet_op)">
+                    <code>{{ walletDisplayId(op.wallet_to) }}</code>
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -315,11 +379,13 @@ function walletDisplayId(id: number | null): string {
         <div class="focus-bar__kicker">Документ</div>
         <div class="focus-bar__title-row">
           <span class="focus-bar__human">{{ focusedDocument.title }}</span>
-          <code class="focus-bar__code">{{ focusedDocument.template }}</code>
+          <code class="focus-bar__code">{{ docCode(focusedDocument) }}</code>
         </div>
         <p class="focus-bar__desc">
           Подписывает: <strong>{{ focusedDocument.signed_by.map(roleHuman).join(', ') }}</strong>.
-          Хранится в <code class="focus-bar__inline-code">{{ focusedDocument.stored_in }}</code>.
+          <template v-if="focusedDocument.stored_in">
+            Хранится в <code class="focus-bar__inline-code">{{ focusedDocument.stored_in }}</code>.
+          </template>
           <span v-if="focusedDocument.note" class="focus-bar__note">{{ focusedDocument.note }}</span>
         </p>
       </div>
@@ -355,7 +421,7 @@ function walletDisplayId(id: number | null): string {
 
         <div
           v-if="focusedOperation.wallet_op !== 'WALLET_ONLY'
-                && (focusedOperation.wallet_from != null || focusedOperation.wallet_to != null)"
+                && (!!focusedOperation.wallet_from || !!focusedOperation.wallet_to)"
           class="focus-bar__op-sub"
         >
           <div class="focus-bar__op-sub-label">Переводы</div>
@@ -437,9 +503,49 @@ function walletDisplayId(id: number | null): string {
 }
 
 .focus-bar__col { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.focus-bar__col--main { flex: 1 1 360px; }
+.focus-bar__col--main { flex: 1 1 280px; }
 .focus-bar__col--meta { flex: 0 0 auto; }
-.focus-bar__col--ops  { flex: 1 1 240px; min-width: 200px; }
+.focus-bar__col--ops  { flex: 1.5 1 320px; min-width: 280px; }
+.focus-bar__col--docs { flex: 1 1 220px; min-width: 200px; }
+
+.focus-bar__doc-list { display: flex; flex-direction: column; gap: 6px; margin-top: 2px; }
+.focus-bar__doc-chip {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 8px 10px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-border);
+  border-radius: 6px;
+}
+.focus-bar__doc-icon { color: var(--accent); flex: 0 0 auto; margin-top: 1px; }
+.focus-bar__doc-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.focus-bar__doc-title { font-size: 12.5px; font-weight: 600; color: var(--text); line-height: 1.3; }
+.focus-bar__doc-meta {
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  font-size: 11px; color: var(--text-muted);
+}
+.focus-bar__doc-code {
+  font-family: var(--font-mono); font-size: 10.5px;
+  padding: 1px 5px; border-radius: 3px;
+  background: var(--bg); border: 1px solid var(--accent-border); color: var(--accent); font-weight: 600;
+}
+.focus-bar__doc-signers { font-style: italic; }
+
+.focus-bar__links { margin-top: 6px; display: flex; flex-direction: column; gap: 4px; }
+.focus-bar__link-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.focus-bar__link-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px 4px 12px;
+  font: inherit; font-size: 11.5px; font-weight: 500; color: var(--edge-focus);
+  background: var(--bg);
+  border: 1px solid var(--edge-focus-border);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: background 100ms ease, border-color 100ms ease;
+}
+.focus-bar__link-btn:hover {
+  background: var(--edge-focus-soft);
+  border-color: var(--edge-focus);
+}
 
 .focus-bar__kicker,
 .focus-bar__kicker-mini {
@@ -483,6 +589,7 @@ function walletDisplayId(id: number | null): string {
 }
 .focus-bar__desc {
   margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--text-muted);
+  white-space: pre-line;
 }
 .focus-bar__inline-code {
   font-family: var(--font-mono); font-size: 11px;
@@ -498,13 +605,20 @@ function walletDisplayId(id: number | null): string {
 .focus-bar__guard-list { display: flex; flex-direction: column; gap: 2px; }
 .focus-bar__guard::before { content: '· '; color: var(--text-subtle); }
 
-.focus-bar__ops { display: flex; flex-direction: column; gap: 10px; margin-top: 2px; }
+.focus-bar__ops {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin-top: 2px;
+}
 .focus-bar__op-block {
   display: flex; flex-direction: column; gap: 6px;
+  min-width: 0;
 }
-.focus-bar__op-block + .focus-bar__op-block {
-  padding-top: 8px;
-  border-top: 1px dashed var(--edge-focus-border);
+.focus-bar__op-subs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 6px;
 }
 .focus-bar__op-name {
   font-size: 13px; font-weight: 600; color: var(--text);
@@ -534,6 +648,7 @@ function walletDisplayId(id: number | null): string {
   color: var(--edge-focus); font-weight: 600;
 }
 .focus-bar__op-sep { color: var(--text-subtle); }
+.focus-bar__sep { color: var(--text-subtle); }
 
 /* ── CSS-tooltip, надёжный (title часто блокируется) ─────────────────────── */
 .tooltip { position: relative; display: inline-flex; align-items: center; gap: 4px; cursor: help; }

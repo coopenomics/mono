@@ -130,14 +130,15 @@ enum class WalletOp : uint8_t {
  * @brief Описание одной именованной операции.
  *
  * Для WALLET_ONLY поля `debit_account_id` / `credit_account_id` равны 0
- * (compile-time валидацией ниже).
+ * (compile-time валидацией ниже). Для ISSUE `wallet_from = eosio::name{}`,
+ * для BLOCK/UNBLOCK/REVOKE `wallet_to = eosio::name{}`.
  */
 struct OperationRegistryEntry {
   eosio::name    code;               ///< operation_code с префиксом `o.<contract>.<verb>`
   eosio::name    process_type;       ///< тип процесса с префиксом `p.<contract>.<noun>`
   WalletOp       wallet_op;
-  uint64_t       wallet_from;        ///< 0 для ISSUE
-  uint64_t       wallet_to;          ///< 0 для BLOCK/UNBLOCK
+  eosio::name    wallet_from;        ///< пустое имя для ISSUE
+  eosio::name    wallet_to;          ///< пустое имя для BLOCK/UNBLOCK/REVOKE
   uint64_t       debit_account_id;   ///< 0 для WALLET_ONLY
   uint64_t       credit_account_id;  ///< 0 для WALLET_ONLY
   const char*    human_name;
@@ -150,17 +151,17 @@ struct OperationRegistryEntry {
  */
 static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   // 1. Вступительный взнос: Dr 51 / Cr 86, ISSUE ENTRANCE_FEES
-  { operations::registrator::PAY_ENTRANCE, processes::registrator::ACCEPT, WalletOp::ISSUE, 0, ledger2_wallets::ENTRANCE_FEES,
+  { operations::registrator::PAY_ENTRANCE, processes::registrator::ACCEPT, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::ENTRANCE_FEES,
     ledger2_accounts::BANK_ACCOUNT, ledger2_accounts::TARGET_RECEIPTS,
     "Вступительный взнос пайщика" },
 
   // 2. Минимальный паевой взнос (при регистрации): Dr 51 / Cr 80, ISSUE MIN_SHARE_FUND
-  { operations::registrator::PUT_MINSHARE, processes::registrator::ACCEPT, WalletOp::ISSUE, 0, ledger2_wallets::MIN_SHARE_FUND,
+  { operations::registrator::PUT_MINSHARE, processes::registrator::ACCEPT, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::MIN_SHARE_FUND,
     ledger2_accounts::BANK_ACCOUNT, ledger2_accounts::SHARE_FUND,
     "Минимальный паевой взнос пайщика при регистрации" },
 
   // 3. Внесение паевого взноса: Dr 51 / Cr 80, ISSUE SHARE_FUND_PAY
-  { operations::wallet::COMPLETE_DEPOSIT, processes::wallet::DEPOSIT, WalletOp::ISSUE, 0, ledger2_wallets::SHARE_FUND_PAY,
+  { operations::wallet::COMPLETE_DEPOSIT, processes::wallet::DEPOSIT, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::SHARE_FUND_PAY,
     ledger2_accounts::BANK_ACCOUNT, ledger2_accounts::SHARE_FUND,
     "Внесение пайщиком паевого взноса" },
 
@@ -171,7 +172,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     "Возврат паевого взноса пайщику" },
 
   // 5. Импорт пайщика Благорост (offline): Dr 51 / Cr 80, ISSUE BLAGOROST_INVEST
-  { operations::capital::IMPORT, processes::capital::IMPORT, WalletOp::ISSUE, 0, ledger2_wallets::BLAGOROST_INVEST,
+  { operations::capital::IMPORT, processes::capital::IMPORT, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::BLAGOROST_INVEST,
     ledger2_accounts::BANK_ACCOUNT, ledger2_accounts::SHARE_FUND,
     "Паевой взнос по целевой потребительской программе «Благорост» (офлайн-импорт)" },
 
@@ -182,7 +183,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     "Инвестиция в ЦПП «Благорост» (перенос между кошельками паевого фонда)" },
 
   // 7. Коммит РИД: Dr 08 / Cr 80, ISSUE GENERATOR_COMMIT
-  { operations::capital::COMMIT_RID, processes::capital::RID, WalletOp::ISSUE, 0, ledger2_wallets::GENERATOR_COMMIT,
+  { operations::capital::COMMIT_RID, processes::capital::RID, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::GENERATOR_COMMIT,
     ledger2_accounts::NON_CURRENT_INVESTMENTS, ledger2_accounts::SHARE_FUND,
     "Коммит результата интеллектуальной деятельности по программе «Благорост»" },
 
@@ -193,12 +194,12 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     "Приём результата интеллектуальной деятельности в паевой фонд" },
 
   // 9. Акт-2 имущественный паевой взнос: Dr 51 / Cr 80, ISSUE BLAGOROST_PROPERTY
-  { operations::capital::ACCEPT_PROPERTY, processes::capital::PROPERTY, WalletOp::ISSUE, 0, ledger2_wallets::BLAGOROST_PROPERTY,
+  { operations::capital::ACCEPT_PROPERTY, processes::capital::PROPERTY, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::BLAGOROST_PROPERTY,
     ledger2_accounts::BANK_ACCOUNT, ledger2_accounts::SHARE_FUND,
     "Паевой взнос (не денежный) по программе «Благорост»" },
 
   // 10. Выдача беспроцентного займа пайщику: Dr 58 / Cr 51, ISSUE LOAN_ISSUED
-  { operations::capital::LEND, processes::capital::DEBT, WalletOp::ISSUE, 0, ledger2_wallets::LOAN_ISSUED,
+  { operations::capital::LEND, processes::capital::DEBT, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::LOAN_ISSUED,
     ledger2_accounts::FINANCIAL_INVESTMENTS, ledger2_accounts::BANK_ACCOUNT,
     "Выдача пайщику беспроцентного займа" },
 
@@ -209,7 +210,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     "Возврат беспроцентного займа пайщика по акту-2" },
 
   // 12. Подтверждение поставки: Dr 51 / Cr 80, ISSUE SHARE_FUND_PAY
-  { operations::marketplace::CONFIRM_SUPPLY, processes::marketplace::REQUEST, WalletOp::ISSUE, 0, ledger2_wallets::SHARE_FUND_PAY,
+  { operations::marketplace::CONFIRM_SUPPLY, processes::marketplace::REQUEST, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::SHARE_FUND_PAY,
     ledger2_accounts::BANK_ACCOUNT, ledger2_accounts::SHARE_FUND,
     "Подтверждение поставки товара/услуги" },
 
@@ -228,22 +229,22 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   // ----- Миграционные (o.mig.*) — вызываются только из migrate.cpp -----
 
   // 15. Миграция: минимальный паевой: Dr 51 / Cr 80, ISSUE MIN_SHARE_FUND
-  { operations::migration::MIN_SHARE, processes::migration::TRANSIT, WalletOp::ISSUE, 0, ledger2_wallets::MIN_SHARE_FUND,
+  { operations::migration::MIN_SHARE, processes::migration::TRANSIT, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::MIN_SHARE_FUND,
     ledger2_accounts::BANK_ACCOUNT, ledger2_accounts::SHARE_FUND,
     "Транзитный перенос: минимальные паевые взносы при миграции" },
 
   // 16. Миграция: остаток паевых деньгами: Dr 51 / Cr 80, ISSUE SHARE_FUND_PAY
-  { operations::migration::SHARE, processes::migration::TRANSIT, WalletOp::ISSUE, 0, ledger2_wallets::SHARE_FUND_PAY,
+  { operations::migration::SHARE, processes::migration::TRANSIT, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::SHARE_FUND_PAY,
     ledger2_accounts::BANK_ACCOUNT, ledger2_accounts::SHARE_FUND,
     "Транзитный перенос: остаток паевых взносов деньгами при миграции" },
 
   // 17. Миграция: вступительные: Dr 51 / Cr 86, ISSUE ENTRANCE_FEES
-  { operations::migration::ENTRY, processes::migration::TRANSIT, WalletOp::ISSUE, 0, ledger2_wallets::ENTRANCE_FEES,
+  { operations::migration::ENTRY, processes::migration::TRANSIT, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::ENTRANCE_FEES,
     ledger2_accounts::BANK_ACCOUNT, ledger2_accounts::TARGET_RECEIPTS,
     "Транзитный перенос: вступительные взносы при миграции" },
 
   // 18. Миграция: РИД в НМА: Dr 04 / Cr 80, ISSUE SHARE_FUND_RID
-  { operations::migration::RID, processes::migration::TRANSIT, WalletOp::ISSUE, 0, ledger2_wallets::SHARE_FUND_RID,
+  { operations::migration::RID, processes::migration::TRANSIT, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::SHARE_FUND_RID,
     ledger2_accounts::INTANGIBLE_ASSETS, ledger2_accounts::SHARE_FUND,
     "Транзитный перенос: принятые РИД в паевой фонд при миграции" },
 };
@@ -294,6 +295,7 @@ namespace ledger2_registry_detail {
       const auto& e = OPERATION_REGISTRY[i];
       if (e.wallet_op == WalletOp::TRANSFER || e.wallet_op == WalletOp::WALLET_ONLY) {
         if (e.wallet_from == e.wallet_to) return false;
+        if (e.wallet_from.value == 0 || e.wallet_to.value == 0) return false;
       }
     }
     return true;
@@ -312,8 +314,8 @@ namespace ledger2_registry_detail {
   constexpr bool wallets_exist_in_registry() {
     for (size_t i = 0; i < OPERATION_REGISTRY_SIZE; ++i) {
       const auto& e = OPERATION_REGISTRY[i];
-      if (e.wallet_from != 0 && ledger2_get_wallet_name_by_id(e.wallet_from).empty()) return false;
-      if (e.wallet_to   != 0 && ledger2_get_wallet_name_by_id(e.wallet_to).empty())   return false;
+      if (e.wallet_from.value != 0 && !ledger2_is_known_wallet(e.wallet_from)) return false;
+      if (e.wallet_to.value   != 0 && !ledger2_is_known_wallet(e.wallet_to))   return false;
     }
     return true;
   }

@@ -1,0 +1,6 @@
+node_modules/
+shots/
+# Фикстуры с приватными ключами — у каждого разработчика свои,
+# генерируются add-plain-participant при первом прогоне.
+state/participants/*.json
+!state/participants/.gitkeep

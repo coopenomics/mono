@@ -8,7 +8,6 @@ import { HttpApiError } from '~/utils/httpApiError';
 import type { TransactionResult } from '~/domain/blockchain/types/transaction-result.type';
 import type {
   Ledger2BlockchainPort,
-  RevertBlockchainDomainInterface,
   WalmoveBlockchainDomainInterface,
 } from '~/domain/ledger2/ports/ledger2-blockchain.port';
 import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
@@ -59,44 +58,6 @@ export class Ledger2BlockchainAdapter implements Ledger2BlockchainPort {
 
     this.logger.log(
       `walmove ${data.fromWallet}→${data.toWallet} ${formattedQuantity}, process_hash=${data.processHash}`,
-    );
-    return result;
-  }
-
-  async revert(data: RevertBlockchainDomainInterface): Promise<TransactionResult> {
-    const wif = await this.vaultDomainService.getWif(data.coopname);
-    if (!wif) {
-      throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ председателя для подписания отката');
-    }
-    this.blockchainService.initialize(data.coopname, wif);
-
-    const formattedQuantity = this.domainToBlockchainUtils.formatQuantityWithPrecision(data.quantity);
-
-    const payload: Ledger2Contract.Actions.Revert.IRevert = {
-      coopname: data.coopname,
-      initiator: data.initiator,
-      original_operation_id: data.originalOperationId,
-      original_operation_code: data.originalOperationCode,
-      username: data.username,
-      amount: formattedQuantity,
-      mirror_wallet_op: data.mirrorWalletOp,
-      mirror_wallet_from: data.mirrorWalletFrom,
-      mirror_wallet_to: data.mirrorWalletTo,
-      mirror_debit_account_id: data.mirrorDebitAccountId,
-      mirror_credit_account_id: data.mirrorCreditAccountId,
-      process_hash: data.processHash,
-      memo: data.memo,
-    };
-
-    const result = (await this.blockchainService.transact({
-      account: 'ledger2',
-      name: Ledger2Contract.Actions.Revert.actionName,
-      authorization: [{ actor: data.coopname, permission: 'active' }],
-      data: payload,
-    })) as TransactResult;
-
-    this.logger.log(
-      `revert original_operation_id=${data.originalOperationId} (${data.originalOperationCode}), process_hash=${data.processHash}`,
     );
     return result;
   }

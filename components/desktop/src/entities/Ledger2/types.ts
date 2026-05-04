@@ -14,7 +14,6 @@ export type ILedger2Operation = ILedger2HistoryResponse['items'][number];
 export type ILedger2HistoryFilterInput = Zeus.ModelTypes['GetLedger2HistoryInput'];
 
 export type IWalmoveInput = Zeus.ModelTypes['WalmoveInput'];
-export type IRevertOperationInput = Zeus.ModelTypes['RevertOperationInput'];
 
 export type ILedger2AdjustmentResult =
   Mutations.Ledger2.WalmoveWallets.IOutput[typeof Mutations.Ledger2.WalmoveWallets.name];

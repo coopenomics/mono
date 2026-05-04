@@ -1,0 +1,300 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Стандарт «Возврат паевого взноса» — деньгами, через целевую потребительскую
+# программу «Цифровой Кошелёк» (SHARE_FUND_PAY).
+#
+# Пятиактовый процесс с авторизацией советом. Запись заявки живёт в таблице
+# `withdraws` от создания до выплаты или отказа. На закрывающем действии
+# completewthd срабатывает одна операция o.wal.wthcpl (TRANSFER w.wal.share → w.wal.wthdrw).
+#
+# Источники правды в коде:
+#   • cpp/wallet/wallet.hpp                                 — actions
+#   • cpp/wallet/src/withdraw/{createwthd,authwthd,approvewthd,completewthd,declinewthd}.cpp
+#   • cpp/lib/domain/table_wallet_withdraws.hpp             — entity withdraws
+#   • cpp/lib/core/ledger2/operations.hpp                   — o.wal.wthcpl
+#   • cpp/lib/core/ledger2/processes.hpp                    — processes::wallet::WITHDRAW
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Секция 1. Паспорт ───────────────────────────────────────────────────────
+process_type: p.wal.wthdrw
+id: public_wallet_withdraw_process
+title: Возврат паевого взноса
+slug: withdraw
+status: proposed
+contract: wallet
+summary: >
+  Пайщик получает обратно ранее внесённый паевой взнос деньгами. Процесс
+  авторизуется советом и закрывается выплатой через Gateway.
+purpose: >
+  «Возврат паевого взноса» — пайщик получает обратно ранее внесённые
+  деньги. Заявку рассматривает совет, после авторизации выплата
+  отправляется через кассира. Это обратный процесс к «Внесению паевого
+  взноса».
+roles:
+  - contributor
+  - soviet
+  - gateway_operator
+
+# ── Секция 2. Действия контракта ────────────────────────────────────────────
+actions:
+  - name: wallet::createwthd
+    human: Подать заявление
+    actor: contributor
+    role: opener
+    purpose: >
+      Пайщик создаёт заявку на возврат паевого взноса. Контракт блокирует
+      сумму на кошельке SHARE_FUND_PAY (статус available → blocked) и
+      создаёт повестку в совете о возврате.
+  - name: wallet::approvewthd
+    human: Одобрить решением совета
+    actor: soviet
+    role: progress
+    purpose: >
+      Совет добавляет к заявке документ-решение об одобрении возврата.
+      Заявка получает подписанное решение, но платёж ещё не отправлен.
+  - name: wallet::authwthd
+    human: Авторизовать выплату
+    actor: soviet
+    role: progress
+    purpose: >
+      Совет авторизует выплату: контракт меняет статус заявки на
+      `authorized` и отправляет в Gateway исходящий платёж с
+      callback'ами completewthd / declinewthd.
+  - name: wallet::completewthd
+    human: Подтвердить выплату
+    actor: gateway_operator
+    role: closer
+    purpose: >
+      Gateway подтвердил списание средств в пользу пайщика. Это закрывающее
+      действие: применяется операция o.wal.wthcpl (TRANSFER w.wal.share → w.wal.wthdrw),
+      разблокированная сумма уходит со счёта 80 на счёт 51, запись заявки
+      удаляется.
+  - name: wallet::declinewthd
+    human: Отклонить
+    actor: soviet
+    role: reject
+    purpose: >
+      Отказ на любом из этапов до выплаты. Сумма разблокируется на кошельке
+      пайщика, запись заявки удаляется, операция в ledger2 не создаётся.
+
+# ── Секция 3. Граф состояний ────────────────────────────────────────────────
+entity: wallet::withdraw
+entity_human: Заявка на возврат
+entity_source: cpp/wallet/src/withdraw/
+
+states:
+  - name: pending
+    human: Ожидает решения совета
+    description: >
+      Заявка создана, сумма заблокирована на кошельке пайщика (available → blocked),
+      повестка отправлена в совет.
+    kind: normal
+  - name: approved
+    human: Решение совета подписано
+    description: >
+      Совет добавил к заявке документ с положительным решением, но
+      исходящий платёж в Gateway ещё не отправлен.
+    kind: normal
+  - name: authorized
+    human: Выплата отправлена
+    description: >
+      Совет авторизовал выплату, контракт инициировал исходящий платёж
+      в Gateway, ожидается подтверждение списания.
+    kind: normal
+  - name: completed
+    human: Возврат выплачен
+    description: >
+      Gateway подтвердил списание, средства переведены с кошелька пайщика
+      на системный кошелёк выплат (w.wal.share → w.wal.wthdrw), в бухгалтерии прошла
+      обратная проводка Дт 80 / Кт 51. Запись заявки удалена.
+    kind: final
+  - name: removed
+    human: Отклонено
+    description: >
+      Возврат не состоялся: сумма разблокирована, запись удалена,
+      операция в ledger2 не создавалась.
+    kind: virtual
+    virtual: true
+
+transitions:
+  - from: "∅"
+    to: pending
+    action: wallet::createwthd
+    actor: contributor
+    guards:
+      - Пайщик имеет статус active.
+      - Сумма возврата ≤ доступного остатка на SHARE_FUND_PAY (w.wal.share).
+      - withdraw_hash уникален.
+      - Заявление подписано ЭЦП пайщика.
+
+  - from: pending
+    to: approved
+    action: wallet::approvewthd
+    actor: soviet
+    guards:
+      - Решение совета по повестке возврата подписано.
+
+  - from: approved
+    to: authorized
+    action: wallet::authwthd
+    actor: soviet
+    guards:
+      - Документ авторизации совета подписан.
+
+  - from: authorized
+    to: completed
+    action: wallet::completewthd
+    actor: gateway_operator
+    ledger_code: o.wal.wthcpl
+    operations:
+      - o.wal.wthcpl
+    guards:
+      - Gateway подтвердил списание средств в пользу пайщика.
+
+  - from: pending
+    to: removed
+    action: wallet::declinewthd
+    actor: soviet
+    guards:
+      - Совет отклонил возврат либо платёж не прошёл.
+
+  - from: approved
+    to: removed
+    action: wallet::declinewthd
+    actor: soviet
+    guards:
+      - Совет отклонил возврат либо платёж не прошёл.
+
+  - from: authorized
+    to: removed
+    action: wallet::declinewthd
+    actor: gateway_operator
+    guards:
+      - Платёж не прошёл / отклонён Gateway.
+
+# ── Секция 4. Сценарий ──────────────────────────────────────────────────────
+scenario:
+  steps:
+    - step: 1
+      title: Подача заявления о возврате
+      actor: contributor
+      action: wallet::createwthd
+      description: >
+        Пайщик оформляет и подписывает заявление о возврате паевого взноса.
+        Контракт создаёт запись в таблице withdraws со статусом `pending`,
+        блокирует сумму на кошельке SHARE_FUND_PAY и направляет в совет
+        повестку о возврате.
+      pre:
+        - Пайщик — активный участник кооператива.
+        - Сумма возврата ≤ доступного остатка.
+      post:
+        - В таблице withdraws создана запись со статусом `pending`.
+        - На кошельке пайщика сумма переведена available → blocked.
+        - Совет получил повестку о возврате.
+
+    - step: 2
+      title: Одобрение советом
+      actor: soviet
+      action: wallet::approvewthd
+      description: >
+        Совет принимает положительное решение по повестке возврата и
+        добавляет к заявке документ-решение. Статус заявки → `approved`.
+      pre:
+        - Заявка в статусе `pending`.
+        - Решение совета подписано.
+      post:
+        - Статус заявки `approved`, документ-решение сохранён.
+
+    - step: 3
+      title: Авторизация выплаты
+      actor: soviet
+      action: wallet::authwthd
+      description: >
+        Совет подписывает авторизацию выплаты — контракт инициирует
+        исходящий платёж в Gateway с callback'ами completewthd / declinewthd.
+        Статус заявки → `authorized`.
+      pre:
+        - Заявка в статусе `approved`.
+        - Документ авторизации совета подписан.
+      post:
+        - Статус заявки `authorized`.
+        - В Gateway создан исходящий платёж с callback'ами.
+
+    - step: 4
+      title: Подтверждение выплаты
+      actor: gateway_operator
+      action: wallet::completewthd
+      description: >
+        Gateway подтверждает списание средств в пользу пайщика. Контракт
+        применяет ledger2-операцию o.wal.wthcpl (TRANSFER w.wal.share → w.wal.wthdrw с
+        обратной проводкой Дт 80 / Кт 51) и удаляет запись заявки.
+      pre:
+        - Заявка в статусе `authorized`.
+        - Gateway подтвердил списание.
+      post:
+        - Сумма переведена с SHARE_FUND_PAY (w.wal.share) на WITHDRAWALS (w.wal.wthdrw).
+        - В ledger2 применена операция o.wal.wthcpl.
+        - Запись заявки удалена.
+
+  alternatives:
+    - branch: Отказ совета или Gateway
+      at_step: 2
+      action: wallet::declinewthd
+      actor: soviet
+      description: >
+        Совет принял отрицательное решение либо Gateway отклонил платёж.
+        Сумма разблокирована на кошельке пайщика, запись удалена, операция
+        в ledger2 не создаётся.
+
+# ── Секция 5. Документы и подписи ───────────────────────────────────────────
+documents:
+  - step: 1
+    title: Заявление на возврат паевого взноса денежными средствами
+    registry_id: 900
+    signed_by: [contributor]
+    stored_in: withdraws.statement
+
+  - step: 2
+    title: Решение совета о возврате паевого взноса (одобрение)
+    registry_id: 901
+    signed_by: [soviet]
+    stored_in: withdraws.approved_statement
+
+  - step: 3
+    title: Решение совета о возврате паевого взноса (авторизация на выплату)
+    registry_id: 901
+    signed_by: [soviet]
+    stored_in: "(authorization — параметр действия)"
+
+# ── Секция 6. Операции ──────────────────────────────────────────────────────
+operations:
+  - ledger_code: o.wal.wthcpl
+    human_name: Возврат паевого взноса пайщику
+    wallet_op: TRANSFER
+    wallet_from: w.wal.share          # ЦПП «Цифровой Кошелёк» — паевые взносы деньгами
+    wallet_to: w.wal.wthdrw            # Возвраты паевых взносов пайщикам
+    debit: 80                  # Паевой фонд (складочный капитал)
+    credit: 51                 # Расчётный счёт
+    amount_ref: withdraw.quantity
+    triggered_by: wallet::completewthd
+    description: >
+      Обратная операция к o.wal.depcpl: средства уходят с кошелька пайщика
+      «ЦПП Цифровой Кошелёк» (w.wal.share) на системный кошелёк выплат (w.wal.wthdrw).
+      В бухгалтерии прошла проводка Дт 80 / Кт 51 — паевой фонд уменьшился,
+      деньги ушли с расчётного счёта пайщику.
+
+# ── Секция 7. Связи ─────────────────────────────────────────────────────────
+related:
+  - process_type: p.wal.depo
+    id: public_wallet_deposit_process
+    relation: affects
+    note: >
+      Прямой процесс — внесение паевого взноса (p.wal.depo). Возврат
+      списывается с того же кошелька SHARE_FUND_PAY, который пополняется
+      депозитом.
+
+  - process_type: p.reg.accept
+    id: public_registrator_accept_process
+    relation: provides
+    note: >
+      Возврат возможен только если пайщик прошёл «Приём пайщика» и имеет
+      статус active с положительным остатком на SHARE_FUND_PAY.

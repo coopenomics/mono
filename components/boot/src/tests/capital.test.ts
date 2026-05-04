@@ -67,6 +67,21 @@ const investAmount3 = 25000
 
 let totalToCapitalConvertAmount = 0
 let totalToProjectConvertAmount = 0
+
+// Baseline ledger2-кошельков перед первым approvecmmt компонента-проекта.
+// Нужен для инвариант-проверки «w.cap.gncom (ЦПП «Генератор» — коммит) проекта
+// закрылся в ноль» после полного цикла commits→voting→pushResult→signact2→
+// convertsegm: approvecmmt(commit) кладёт на w.cap.gncom commit.amounts.
+// total_contribution, signact2(сегмента) забирает segment.available_for_program.
+// Сумма выдач и приходов проекта обязана совпадать — иначе либо коммит попал
+// на w.cap.gncom неправильной суммой, либо часть пайщиков не сконвертировала.
+//
+// Имена кошельков — eosio::name (рефакт 2026-04-27). Старые numeric ID
+// (10001/9002) больше не используются — wallets.id теперь string.
+const WALLET_GENERATOR_COMMIT = 'w.cap.gncom'
+const WALLET_BLAGOROST_RID = 'w.cap.bgrid'
+let generatorCommitBaselineRub = 0
+let blagorostRidBaselineRub = 0
 // Хранение хэшей долгов для каждого пользователя
 let userDebtHashes: { [username: string]: string[] } = {}
 beforeAll(async () => {
@@ -637,6 +652,25 @@ describe('тест контракта CAPITAL', () => {
     ))[0]
     expect(project).toBeDefined()
     expect(project.status).toBe('active')
+  })
+
+  it('snapshot ledger2-кошельков перед первым approvecmmt компонента (baseline для инвариант-теста)', async () => {
+    // Берём baseline ровно перед первым approvecmmt componentProject:
+    // approvecmmt(tester1) ниже первым эмитит COMMIT_RID на w.cap.gncom
+    // (ЦПП «Генератор» — коммит). Финальный assert «w.cap.gncom проекта
+    // вернулся к baseline» сравнивает дельту по этому проекту, а не
+    // абсолютный остаток (на w.cap.gncom могут быть остатки property-
+    // операций или будущих компонентов в одном тесте).
+    const wallets = await blockchain.getTableRows('ledger2', 'voskhod', 'wallets', 500) as Array<{ id: string, available: string, blocked: string }>
+    const generator = wallets.find((w) => String(w.id) === WALLET_GENERATOR_COMMIT)
+    const blagorost = wallets.find((w) => String(w.id) === WALLET_BLAGOROST_RID)
+    generatorCommitBaselineRub = generator
+      ? parseFloat(generator.available.split(' ')[0]) + parseFloat(generator.blocked.split(' ')[0])
+      : 0
+    blagorostRidBaselineRub = blagorost
+      ? parseFloat(blagorost.available.split(' ')[0]) + parseFloat(blagorost.blocked.split(' ')[0])
+      : 0
+    console.log(`📌 baseline ${WALLET_GENERATOR_COMMIT}=${generatorCommitBaselineRub} ${WALLET_BLAGOROST_RID}=${blagorostRidBaselineRub}`)
   })
 
   it('добавить коммит создателя tester1 на 10 часов по 1000 RUB', async () => {
@@ -1767,6 +1801,53 @@ describe('тест контракта CAPITAL', () => {
     }
 
     console.log(`✅ Сегмент ${investor3} обработан`)
+  })
+
+  it('инвариант: w.cap.gncom (ЦПП «Генератор» — коммит) не уходит в дефицит после конвертации всех сегментов', async () => {
+    // Σ COMMIT_RID(коммитов проекта) = Σ commit.amounts.total_contribution
+    // должна быть >= Σ ACCEPT_RID(сегментов) = Σ segment.available_for_program.
+    //
+    // Эквивалентность (delta == 0) выполняется только когда **все** participants
+    // прошли полный цикл pushResult+signact2 без skipped/purge и contributors_bonus_pool
+    // распределился по всем ролям. В сложных тестах (как этот) есть пограничные
+    // ситуации: investor3 со статусом 'skipped' → purgesegment без convertsegm,
+    // тестеры с is_contributor=0 не получают свою долю contributors_bonus.
+    // Их непокрытая часть остаётся на w.cap.gncom как избыток — это ожидаемо.
+    //
+    // **Жёсткий инвариант** — отсутствие дефицита (delta >= 0). Если он
+    // нарушен, значит approvecmmt кладёт на w.cap.gncom меньше, чем signact2
+    // забирает — это регрессия патча approvecmmt, и в проде на signact2
+    // последнего пайщика проекта возникает «недостаточно средств на кошельке
+    // w.cap.gncom». Защищает от ровно того бага, который ловили
+    // 2026-04-27 (delta_available вместо total_contribution).
+    const wallets = await blockchain.getTableRows('ledger2', 'voskhod', 'wallets', 500) as Array<{ id: string, available: string, blocked: string }>
+    const generator = wallets.find((w) => String(w.id) === WALLET_GENERATOR_COMMIT)
+    expect(generator, `wallet ${WALLET_GENERATOR_COMMIT} должен существовать`).toBeDefined()
+
+    const generatorTotalRub = parseFloat(generator!.available.split(' ')[0]) + parseFloat(generator!.blocked.split(' ')[0])
+    const generatorDelta = generatorTotalRub - generatorCommitBaselineRub
+    console.log(`🔍 ${WALLET_GENERATOR_COMMIT}: baseline=${generatorCommitBaselineRub} now=${generatorTotalRub} delta=${generatorDelta}`)
+    expect(generatorDelta, `${WALLET_GENERATOR_COMMIT} ушёл в дефицит (Σ COMMIT_RID < Σ ACCEPT_RID для проекта ${componentProject.project_hash.slice(0, 12)}…) — регрессия approvecmmt?`).toBeGreaterThanOrEqual(-0.0001)
+
+    if (generatorDelta > 0.0001) {
+      console.log(`⚠️  ${WALLET_GENERATOR_COMMIT} остаток ${generatorDelta.toFixed(4)} RUB — это нераспределённые доли (skipped-сегменты, роли без is_contributor); ожидаемо для этого сценария.`)
+    }
+
+    // Дополнительно: w.cap.bgrid (BLAGOROST_RID) должен получить хоть какие-то
+    // средства (в проекте есть intellectual contribution, и хоть один сегмент
+    // дошёл до signact2). Точная сверка с total_contribution невозможна:
+    // signact2 параллельно вызывает REPAY (LOAN_ISSUED → SHARE_FUND_PAY)
+    // на debt_amount, который не идёт на w.cap.bgrid. Поэтому только sanity-чек,
+    // что путь ACCEPT_RID(w.cap.gncom → w.cap.bgrid) вообще работает.
+    const project = await getProject(blockchain, 'voskhod', componentProject.project_hash)
+    const blagorost = wallets.find((w) => String(w.id) === WALLET_BLAGOROST_RID)
+    const blagorostTotalRub = blagorost
+      ? parseFloat(blagorost.available.split(' ')[0]) + parseFloat(blagorost.blocked.split(' ')[0])
+      : 0
+    const blagorostDelta = blagorostTotalRub - blagorostRidBaselineRub
+    const expectedTotalContribution = parseFloat(String(project.fact.total_contribution).split(' ')[0])
+    console.log(`🔍 ${WALLET_BLAGOROST_RID} delta=${blagorostDelta}, project.fact.total_contribution=${expectedTotalContribution}`)
+    expect(blagorostDelta, `${WALLET_BLAGOROST_RID} не получил никаких средств — путь ACCEPT_RID не работает`).toBeGreaterThan(0)
   })
 
   it('удаляем компонент-проект', async () => {

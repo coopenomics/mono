@@ -22,10 +22,19 @@ export class GetLedger2HistoryInputDTO {
   @IsString()
   coopname!: string;
 
-  @Field(() => Int, { nullable: true, description: 'ID счёта/кошелька (×1000)' })
+  @Field(() => Int, { nullable: true, description: 'Бух.счёт (×1000): 51000/80000/86000 — для debit/credit действий.' })
   @IsOptional()
   @IsInt()
   accountId?: number;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'eosio::name кошелька (`w.<contract>.<waltype>`) — для walletop действий.',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(13)
+  walletName?: string;
 
   @Field(() => [String], {
     nullable: true,

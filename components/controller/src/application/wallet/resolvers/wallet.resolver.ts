@@ -3,6 +3,7 @@ import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
 import { RolesGuard } from '~/application/auth/guards/roles.guard';
+import { ActiveUserStatusGuard } from '~/application/auth/guards/active-user-status.guard';
 import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
 import { WalletService } from '../services/wallet.service';
 import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
@@ -87,7 +88,7 @@ export class WalletResolver {
     description:
       'Создание объекта паевого платежа производится мутацией createDepositPayment. Выполнение мутации возвращает идентификатор платежа и данные для его совершения в зависимости от выбранного платежного провайдера.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @UseGuards(GqlJwtAuthGuard, RolesGuard, ActiveUserStatusGuard)
   @AuthRoles(['chairman', 'member'])
   async createDepositPayment(
     @Args('data', { type: () => CreateDepositPaymentInputDTO }) data: CreateDepositPaymentInputDTO

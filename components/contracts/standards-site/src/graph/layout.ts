@@ -49,11 +49,11 @@ export const INITIAL_MARKER = '∅';
    чтобы кружок не прилипал к первой/последней карточке. Визуальный
    кружок (48px) центрируется внутри wrapper-а в соответствующем узле. */
 const SIZE = {
-  start: { width: 128, height: 80 },
-  state: { width: 180, height: 80 },
-  end: { width: 128, height: 80 },
+  start: { width: 128, height: 96 },
+  state: { width: 220, height: 96 },
+  end: { width: 128, height: 96 },
   rejected: { width: 120, height: 70 },
-  action: { width: 170, height: 54 },
+  action: { width: 210, height: 68 },
 };
 
 // ── Вспомогательные ─────────────────────────────────────────────────────────
@@ -89,6 +89,7 @@ function isTerminalSuccess(
 }
 
 // Построить мапы «action → [documents]» и «action → [operations]»
+// slim: doc.action — прямая привязка. Legacy: doc.step + scenario.steps.
 function buildDocsByAction(standard: Standard): Map<string, ProcessDocument[]> {
   const map = new Map<string, ProcessDocument[]>();
   const stepToAction = new Map<number, string>();
@@ -96,7 +97,7 @@ function buildDocsByAction(standard: Standard): Map<string, ProcessDocument[]> {
     stepToAction.set(step.step, step.action);
   }
   for (const doc of standard.documents ?? []) {
-    const action = stepToAction.get(doc.step);
+    const action = doc.action ?? (doc.step != null ? stepToAction.get(doc.step) : undefined);
     if (!action) continue;
     const list = map.get(action) ?? [];
     list.push(doc);
@@ -225,7 +226,7 @@ function buildLayout(standard: Standard): LayoutResult {
     g.setNode(actionId, { ...SIZE.action });
 
     const isReject = virtualStateNames.has(t.to);
-    let targetId = t.to;
+    let targetId: string = t.to;
     if (isReject) {
       targetId = rejectedIdFor(t);
       if (!g.hasNode(targetId)) g.setNode(targetId, { ...SIZE.rejected });

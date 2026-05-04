@@ -72,7 +72,10 @@ const loadProject = async () => {
   }
 };
 
-// Watcher для синхронизации локального состояния с store
+// Watcher для синхронизации локального состояния с store.
+// {deep: true} обязателен: store обновляет items через splice (мутация in-place);
+// без deep watcher не реагирует на изменения полей внутри объекта проекта
+// (is_planed/plan/components после setPlan и т.д.).
 watch(() => projectStore.projects.items, (newItems) => {
   if (newItems && projectHash.value) {
     const foundProject = newItems.find(p => p.project_hash === projectHash.value);
@@ -80,7 +83,7 @@ watch(() => projectStore.projects.items, (newItems) => {
       project.value = foundProject;
     }
   }
-});
+}, { deep: true });
 
 // Watcher для изменения projectHash
 watch(projectHash, async (newHash, oldHash) => {

@@ -23,8 +23,8 @@ export async function walmove(
   login: LoginResult,
   coopname: string,
   username: string,
-  fromWallet: number,
-  toWallet: number,
+  fromWallet: string,
+  toWallet: string,
   quantity: string,
   memo: string,
 ): Promise<{ processHash: string; transactionId: string }> {

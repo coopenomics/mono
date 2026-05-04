@@ -1142,9 +1142,6 @@ export const AllTypesProps: Record<string,any> = {
 		restartAnnualGeneralMeet:{
 			data:"RestartAnnualGeneralMeetInput"
 		},
-		revertOperation:{
-			input:"RevertOperationInput"
-		},
 		saveReportDraft:{
 			input:"SaveReportDraftInput"
 		},
@@ -1694,9 +1691,6 @@ export const AllTypesProps: Record<string,any> = {
 		signatures:"SignatureInfoInput"
 	},
 	ReturnByMoneySignedMetaDocumentInput:{
-
-	},
-	RevertOperationInput:{
 
 	},
 	RoomMessageKind: "enum" as const,
@@ -3561,7 +3555,6 @@ export const ReturnTypes: Record<string,any> = {
 		registerParticipant:"Account",
 		resetKey:"Boolean",
 		restartAnnualGeneralMeet:"MeetAggregate",
-		revertOperation:"Ledger2AdjustmentResult",
 		saveReportDraft:"ReportDraft",
 		selectBranch:"Boolean",
 		sendAgreement:"Transaction",

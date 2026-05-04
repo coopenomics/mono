@@ -13,18 +13,20 @@
  *
  * @brief Кошелёк управленческого учёта ledger2.
  *
- * Простой порядковый id (без смещения). Запись создаётся upsert-ом
+ * Идентификатор — `eosio::name` с префиксом `w.<contract>.<waltype>`
+ * (см. `lib/core/ledger2/wallets.hpp::LEDGER2_WALLET_REGISTRY`). Поле `name` —
+ * человекочитаемое отображение из реестра. Запись создаётся upsert-ом
  * при первом ISSUE/TRANSFER на кошелёк и удаляется, когда
  * available == 0 && blocked == 0. Писем «writeoff» не существует —
  * все выплаты моделируются как TRANSFER в кошельки-накопители.
  */
 struct [[eosio::table, eosio::contract(LEDGER2)]] wallet2 {
-  uint64_t     id;
+  eosio::name  id;
   std::string  name;
   eosio::asset available;
   eosio::asset blocked;
 
-  uint64_t primary_key() const { return id; }
+  uint64_t primary_key() const { return id.value; }
 
   bool is_empty() const {
     return available.amount == 0 && blocked.amount == 0;

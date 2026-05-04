@@ -336,7 +336,8 @@ function labelForNav(n: Nav): string {
 .process-graph {
   flex: 1;
   min-width: 0;
-  height: clamp(520px, calc(100vh - 220px), 820px);
+  min-height: 520px;
+  height: calc(100vh - 240px);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--bg);

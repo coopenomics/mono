@@ -12,4 +12,4 @@ import { Ledger2 } from 'cooptypes'
 export type WalletMeta = Ledger2.WalletMeta
 
 export const LEDGER2_WALLET_REGISTRY = Ledger2.LEDGER2_WALLET_REGISTRY
-export const getWalletName = Ledger2.getWalletName
+export const getWalletHumanName = Ledger2.getWalletHumanName

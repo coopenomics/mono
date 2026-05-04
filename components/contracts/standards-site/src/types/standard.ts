@@ -34,21 +34,29 @@ export type Role =
   | (string & {});
 
 // ── Элементарные ссылки в ledger2 ───────────────────────────────────────────
-// В YAML — только числовые коды. Имена подтягиваются из
-// `data/registries.ts` (зеркало source-of-truth из mono-ai-1).
+// Счета — числовые коды (51, 80, 86); кошельки — eosio::name-строки
+// (w.wal.share, w.cap.bgrid). Имена подтягиваются из
+// `data/registries.ts` (зеркало source-of-truth из cooptypes/ledger2).
 export type AccountCode = number;      // код счёта (51, 80, 86, …)
-export type WalletId = number;         // id кошелька (2001, 3001, …)
+export type WalletId = string;         // имя кошелька (w.wal.share, w.cap.bgrid, …)
 
 // ── Секции стандарта ────────────────────────────────────────────────────────
 
 // §1 Паспорт — свойства на верхнем уровне
 // §2 Действия контракта
+export interface ActionLink {
+  process_type: string;             // ссылка на другой стандарт
+  action?: string;                  // опционально — конкретное действие в нём
+  label?: string;                   // подпись кнопки, если не задана — делаем автогенерацию
+}
+
 export interface ContractAction {
   name: string;                     // идентификатор: capital::createdebt
   human?: string;                   // короткое человеко-читаемое имя (2–3 слова)
   actor: Role;
-  role: ActionRoleInProcess;
+  role?: ActionRoleInProcess;       // legacy-поле, в slim убрано
   purpose: string;                  // подробное описание, для панели деталей
+  links?: ActionLink[];             // связи с другими стандартами (кнопки-переходы)
 }
 
 // §3 Граф состояний
@@ -103,11 +111,14 @@ export interface Scenario {
 
 // §5 Документы
 export interface ProcessDocument {
-  step: number;
+  // slim: документ привязан к действию напрямую
+  action?: string;                  // capital::createdebt (slim)
+  step?: number;                    // legacy: номер шага сценария (до slim)
   title: string;
-  template: string;                 // registry_id из draft
+  registry_id?: number;             // slim: числовой код в реестре документов (100, ...)
+  template?: string;                // legacy: строковый ID из draft
   signed_by: Role[];
-  stored_in: string;                // поле таблицы сущности (debts.statement)
+  stored_in?: string;               // поле таблицы сущности, если хранится on-chain
   note?: string;
 }
 

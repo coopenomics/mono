@@ -66,7 +66,7 @@ export class TypeOrmLedger2StateRepository implements Ledger2StatePort {
     return (rows as Array<{ value: Record<string, unknown> }>).map((row) => {
       const v = row.value ?? {};
       return {
-        id: parseInt(String(v.id ?? 0), 10),
+        id: String(v.id ?? ''),
         name: String(v.name ?? ''),
         available: String(v.available ?? '0.0000 RUB'),
         blocked: String(v.blocked ?? '0.0000 RUB'),
@@ -87,8 +87,9 @@ export class TypeOrmLedger2StateRepository implements Ledger2StatePort {
     const clauses: string[] = [];
 
     if (filter.accountId !== undefined) {
-      // apply-события не имеют accountId/wallet_id в data — связь идёт через process_hash
-      // с siblings (walletop/debit/credit). Для raw-siblings достаточно прямого совпадения.
+      // Бух.счёт (debit/credit действий) — числовой. apply-события не имеют account_id
+      // в data, связь идёт через process_hash с siblings (debit/credit). Для raw-siblings
+      // достаточно прямого совпадения.
       const siblingOnly =
         !!filter.actionNames &&
         filter.actionNames.length > 0 &&
@@ -98,9 +99,6 @@ export class TypeOrmLedger2StateRepository implements Ledger2StatePort {
           `(
             (a.data ->> 'id')::text = $${pIdx}
             OR (a.data ->> 'account_id')::text = $${pIdx}
-            OR (a.data ->> 'wallet_id')::text = $${pIdx}
-            OR (a.data ->> 'wallet_from')::text = $${pIdx}
-            OR (a.data ->> 'wallet_to')::text = $${pIdx}
           )`,
         );
       } else {
@@ -114,14 +112,46 @@ export class TypeOrmLedger2StateRepository implements Ledger2StatePort {
                AND (
                  (b.data ->> 'id')::text = $${pIdx}
                  OR (b.data ->> 'account_id')::text = $${pIdx}
-                 OR (b.data ->> 'wallet_id')::text = $${pIdx}
-                 OR (b.data ->> 'wallet_from')::text = $${pIdx}
-                 OR (b.data ->> 'wallet_to')::text = $${pIdx}
                )
            )`,
         );
       }
       params.push(String(filter.accountId));
+      pIdx += 1;
+    }
+    if (filter.walletName) {
+      // Кошелёк (walletop действий) — eosio::name. Для apply-событий wallet_from/to нет
+      // в data, поэтому фильтр через process_hash подтягивает все 3 действия (apply +
+      // walletop + debit/credit) одного процесса, в котором участвует этот кошелёк.
+      const siblingOnly =
+        !!filter.actionNames &&
+        filter.actionNames.length > 0 &&
+        !filter.actionNames.includes('apply');
+      if (siblingOnly) {
+        clauses.push(
+          `(
+            (a.data ->> 'wallet_from') = $${pIdx}
+            OR (a.data ->> 'wallet_to') = $${pIdx}
+            OR (a.data ->> 'id') = $${pIdx}
+          )`,
+        );
+      } else {
+        clauses.push(
+          `LOWER(a.data ->> 'process_hash') IN (
+             SELECT LOWER(b.data ->> 'process_hash')
+             FROM blockchain_actions b
+             WHERE b.account = $1
+               AND b.data ->> 'coopname' = $2
+               AND b.data ->> 'process_hash' IS NOT NULL
+               AND (
+                 (b.data ->> 'wallet_from') = $${pIdx}
+                 OR (b.data ->> 'wallet_to') = $${pIdx}
+                 OR (b.data ->> 'id') = $${pIdx}
+               )
+           )`,
+        );
+      }
+      params.push(filter.walletName);
       pIdx += 1;
     }
     if (filter.processHash) {
@@ -201,15 +231,12 @@ export class TypeOrmLedger2StateRepository implements Ledger2StatePort {
          (a.data ->> 'operation_code')           AS "operationCode",
          LOWER(a.data ->> 'process_hash')        AS "processHash",
          (a.data ->> 'username')                 AS "username",
-         COALESCE(
-           NULLIF(a.data ->> 'id', '')::bigint,
-           NULLIF(a.data ->> 'account_id', '')::bigint,
-           NULLIF(a.data ->> 'wallet_id', '')::bigint,
-           NULLIF(a.data ->> 'wallet_to', '')::bigint,
-           NULLIF(a.data ->> 'wallet_from', '')::bigint
-         )                                       AS "accountId",
-         NULLIF(a.data ->> 'wallet_from', '')::bigint AS "walletFrom",
-         NULLIF(a.data ->> 'wallet_to', '')::bigint   AS "walletTo",
+         CASE WHEN a.name IN ('debit', 'credit')
+              THEN NULLIF(a.data ->> 'account_id', '')::bigint
+              ELSE NULL
+         END                                     AS "accountId",
+         NULLIF(a.data ->> 'wallet_from', '')    AS "walletFrom",
+         NULLIF(a.data ->> 'wallet_to', '')      AS "walletTo",
          COALESCE(
            NULLIF(a.data ->> 'quantity', ''),
            NULLIF(a.data ->> 'amount', '')
@@ -234,68 +261,13 @@ export class TypeOrmLedger2StateRepository implements Ledger2StatePort {
       processHash: (r.processHash as string | null) ?? null,
       username: (r.username as string | null) ?? null,
       accountId: r.accountId !== null && r.accountId !== undefined ? Number(r.accountId) : null,
-      walletFrom: r.walletFrom !== null && r.walletFrom !== undefined ? Number(r.walletFrom) : null,
-      walletTo: r.walletTo !== null && r.walletTo !== undefined ? Number(r.walletTo) : null,
+      walletFrom: r.walletFrom != null ? String(r.walletFrom) : null,
+      walletTo: r.walletTo != null ? String(r.walletTo) : null,
       quantity: (r.quantity as string | null) ?? null,
       memo: (r.memo as string | null) ?? null,
       createdAt: r.createdAt instanceof Date ? r.createdAt : new Date(String(r.createdAt)),
     }));
 
     return { items, totalCount, totalPages, currentPage: page };
-  }
-
-  async getOperationByGlobalSequence(
-    coopname: string,
-    globalSequence: string,
-  ): Promise<Ledger2OperationDomainInterface | null> {
-    const rows = await this.actionRepo.manager.query(
-      `SELECT
-         a.global_sequence                       AS "globalSequence",
-         a.block_num                             AS "blockNum",
-         (a.data ->> 'coopname')                 AS "coopname",
-         a.name                                  AS "action",
-         (a.data ->> 'operation_code')           AS "operationCode",
-         LOWER(a.data ->> 'process_hash')        AS "processHash",
-         (a.data ->> 'username')                 AS "username",
-         COALESCE(
-           NULLIF(a.data ->> 'id', '')::bigint,
-           NULLIF(a.data ->> 'account_id', '')::bigint,
-           NULLIF(a.data ->> 'wallet_id', '')::bigint,
-           NULLIF(a.data ->> 'wallet_to', '')::bigint,
-           NULLIF(a.data ->> 'wallet_from', '')::bigint
-         )                                       AS "accountId",
-         NULLIF(a.data ->> 'wallet_from', '')::bigint AS "walletFrom",
-         NULLIF(a.data ->> 'wallet_to', '')::bigint   AS "walletTo",
-         COALESCE(
-           NULLIF(a.data ->> 'quantity', ''),
-           NULLIF(a.data ->> 'amount', '')
-         )                                       AS "quantity",
-         (a.data ->> 'memo')                     AS "memo",
-         a.created_at                            AS "createdAt"
-       FROM blockchain_actions a
-       WHERE a.account = $1
-         AND a.data ->> 'coopname' = $2
-         AND a.global_sequence = $3
-       LIMIT 1`,
-      [LEDGER2_CODE, coopname, globalSequence],
-    );
-
-    if (!rows.length) return null;
-    const r = rows[0] as Record<string, unknown>;
-    return {
-      globalSequence: Number(r.globalSequence ?? 0),
-      blockNum: Number(r.blockNum ?? 0),
-      coopname: String(r.coopname ?? ''),
-      action: String(r.action ?? ''),
-      operationCode: (r.operationCode as string | null) ?? null,
-      processHash: (r.processHash as string | null) ?? null,
-      username: (r.username as string | null) ?? null,
-      accountId: r.accountId !== null && r.accountId !== undefined ? Number(r.accountId) : null,
-      walletFrom: r.walletFrom !== null && r.walletFrom !== undefined ? Number(r.walletFrom) : null,
-      walletTo: r.walletTo !== null && r.walletTo !== undefined ? Number(r.walletTo) : null,
-      quantity: (r.quantity as string | null) ?? null,
-      memo: (r.memo as string | null) ?? null,
-      createdAt: r.createdAt instanceof Date ? r.createdAt : new Date(String(r.createdAt)),
-    };
   }
 }

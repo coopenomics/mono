@@ -6388,7 +6388,6 @@ registerAccount?: [{	data: ValueTypes["RegisterAccountInput"] | Variable<any, st
 registerParticipant?: [{	data: ValueTypes["RegisterParticipantInput"] | Variable<any, string>},ValueTypes["Account"]],
 resetKey?: [{	data: ValueTypes["ResetKeyInput"] | Variable<any, string>},boolean | `@${string}`],
 restartAnnualGeneralMeet?: [{	data: ValueTypes["RestartAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
-revertOperation?: [{	input: ValueTypes["RevertOperationInput"] | Variable<any, string>},ValueTypes["Ledger2AdjustmentResult"]],
 saveReportDraft?: [{	input: ValueTypes["SaveReportDraftInput"] | Variable<any, string>},ValueTypes["ReportDraft"]],
 selectBranch?: [{	data: ValueTypes["SelectBranchInput"] | Variable<any, string>},boolean | `@${string}`],
 sendAgreement?: [{	data: ValueTypes["SendAgreementInput"] | Variable<any, string>},ValueTypes["Transaction"]],
@@ -8344,13 +8343,6 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	username: string | Variable<any, string>,
 	/** Версия генератора, использованного для создания документа */
 	version: string | Variable<any, string>
-};
-	["RevertOperationInput"]: {
-	coopname: string | Variable<any, string>,
-	/** Обязательное обоснование отката */
-	memo: string | Variable<any, string>,
-	/** global_sequence оригинальной apply-операции (Ledger2OperationDTO.globalSequence) — bigint в строке */
-	originalGlobalSequence: string | Variable<any, string>
 };
 	/** Тип сообщения в истории комнаты Matrix (текст или расшифрованное аудио) */
 ["RoomMessageKind"]:RoomMessageKind;
@@ -14483,7 +14475,6 @@ registerAccount?: [{	data: ResolverInputTypes["RegisterAccountInput"]},ResolverI
 registerParticipant?: [{	data: ResolverInputTypes["RegisterParticipantInput"]},ResolverInputTypes["Account"]],
 resetKey?: [{	data: ResolverInputTypes["ResetKeyInput"]},boolean | `@${string}`],
 restartAnnualGeneralMeet?: [{	data: ResolverInputTypes["RestartAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
-revertOperation?: [{	input: ResolverInputTypes["RevertOperationInput"]},ResolverInputTypes["Ledger2AdjustmentResult"]],
 saveReportDraft?: [{	input: ResolverInputTypes["SaveReportDraftInput"]},ResolverInputTypes["ReportDraft"]],
 selectBranch?: [{	data: ResolverInputTypes["SelectBranchInput"]},boolean | `@${string}`],
 sendAgreement?: [{	data: ResolverInputTypes["SendAgreementInput"]},ResolverInputTypes["Transaction"]],
@@ -16364,13 +16355,6 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	username: string,
 	/** Версия генератора, использованного для создания документа */
 	version: string
-};
-	["RevertOperationInput"]: {
-	coopname: string,
-	/** Обязательное обоснование отката */
-	memo: string,
-	/** global_sequence оригинальной apply-операции (Ledger2OperationDTO.globalSequence) — bigint в строке */
-	originalGlobalSequence: string
 };
 	/** Тип сообщения в истории комнаты Matrix (текст или расшифрованное аудио) */
 ["RoomMessageKind"]:RoomMessageKind;
@@ -22496,8 +22480,6 @@ export type ModelTypes = {
 	resetKey: boolean,
 	/** Перезапуск общего собрания пайщиков */
 	restartAnnualGeneralMeet: ModelTypes["MeetAggregate"],
-	/** Откат ранее проведённой операции зеркальной проводкой (operation o.adj.rev). Только председатель. Запрещено откатывать миграционные операции (o.mig.*). */
-	revertOperation: ModelTypes["Ledger2AdjustmentResult"],
 	/** Сохранить/обновить черновик формы отчёта (upsert по owner+type+year+period) */
 	saveReportDraft: ModelTypes["ReportDraft"],
 	/** Выбрать кооперативный участок */
@@ -24389,13 +24371,6 @@ export type ModelTypes = {
 	username: string,
 	/** Версия генератора, использованного для создания документа */
 	version: string
-};
-	["RevertOperationInput"]: {
-	coopname: string,
-	/** Обязательное обоснование отката */
-	memo: string,
-	/** global_sequence оригинальной apply-операции (Ledger2OperationDTO.globalSequence) — bigint в строке */
-	originalGlobalSequence: string
 };
 	["RoomMessageKind"]:RoomMessageKind;
 	["SaveReportDraftInput"]: {
@@ -30762,8 +30737,6 @@ export type GraphQLTypes = {
 	resetKey: boolean,
 	/** Перезапуск общего собрания пайщиков */
 	restartAnnualGeneralMeet: GraphQLTypes["MeetAggregate"],
-	/** Откат ранее проведённой операции зеркальной проводкой (operation o.adj.rev). Только председатель. Запрещено откатывать миграционные операции (o.mig.*). */
-	revertOperation: GraphQLTypes["Ledger2AdjustmentResult"],
 	/** Сохранить/обновить черновик формы отчёта (upsert по owner+type+year+period) */
 	saveReportDraft: GraphQLTypes["ReportDraft"],
 	/** Выбрать кооперативный участок */
@@ -32827,13 +32800,6 @@ export type GraphQLTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string
 };
-	["RevertOperationInput"]: {
-		coopname: string,
-	/** Обязательное обоснование отката */
-	memo: string,
-	/** global_sequence оригинальной apply-операции (Ledger2OperationDTO.globalSequence) — bigint в строке */
-	originalGlobalSequence: string
-};
 	/** Тип сообщения в истории комнаты Matrix (текст или расшифрованное аудио) */
 ["RoomMessageKind"]: RoomMessageKind;
 	["SaveReportDraftInput"]: {
@@ -34459,7 +34425,6 @@ type ZEUS_VARIABLES = {
 	["ReturnByMoneyGenerateDocumentInput"]: ValueTypes["ReturnByMoneyGenerateDocumentInput"];
 	["ReturnByMoneySignedDocumentInput"]: ValueTypes["ReturnByMoneySignedDocumentInput"];
 	["ReturnByMoneySignedMetaDocumentInput"]: ValueTypes["ReturnByMoneySignedMetaDocumentInput"];
-	["RevertOperationInput"]: ValueTypes["RevertOperationInput"];
 	["RoomMessageKind"]: ValueTypes["RoomMessageKind"];
 	["SaveReportDraftInput"]: ValueTypes["SaveReportDraftInput"];
 	["SbpDataInput"]: ValueTypes["SbpDataInput"];

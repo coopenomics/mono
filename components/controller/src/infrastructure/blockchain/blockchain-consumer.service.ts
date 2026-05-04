@@ -225,13 +225,20 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
 
   /**
    * Обработка действия (action) из блокчейна
-   * Выполняет минимальную предварительную фильтрацию, сохраняет в базу и публикует событие во внутреннюю шину.
+   * Выполняет минимальную предварительную фильтрацию, сохраняет в базу и
+   * с задержкой публикует событие во внутреннюю шину.
    *
-   * Порядок writes: сохранение → emit события → ACK в startConsumer. Ошибка
-   * saveAction бросается наверх в handleMessage → сообщение НЕ подтверждается
-   * и остаётся pending (consumer перечитает его через XCLAIM/re-delivery).
-   * Silent-catch + setTimeout приводили к silent data loss: сообщение ACK'ится
-   * мгновенно, saveAction падает позже с log-only и данные теряются навсегда.
+   * Порядок writes: сохранение → ACK (по возврату из handleMessage) →
+   * отложенный emit события через ACTION_EMIT_DELAY_MS. Задержка нужна
+   * чтобы дельты, попавшие в стрим из того же блока что и action, успели
+   * пройти обработчики и прописаться в БД ДО того, как обработчики action
+   * полезут читать состояние (например, ClearanceManagementInteractor по
+   * apprvappndx ищет appendix в capital_appendixes — без задержки гонится
+   * с дельтой capital::appendixes того же блока). См. задачу #53.
+   *
+   * Ошибка saveAction бросается наверх в handleMessage → сообщение НЕ
+   * подтверждается и остаётся pending (consumer перечитает его через
+   * XCLAIM/re-delivery). Emit'ится только то, что успешно сохранено.
    */
   private async processAction(action: IAction): Promise<void> {
     if (action.receiver != action.account) {
@@ -240,6 +247,14 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
     this.logger.debug(`Обработка действия: ${action.name} от ${action.account}: ${JSON.stringify(action.data)}`);
     await this.processActionDelayed(action);
   }
+
+  /**
+   * Задержка emit'а action-события — даёт время дельтам того же блока
+   * (capital_appendixes, capital_projects, ...) сохраниться раньше, чем
+   * обработчики action полезут их читать. Подобрана опытно: при <1.5с
+   * на быстрой машине race ещё происходит, при ~3с гонок не наблюдаем.
+   */
+  private static readonly ACTION_EMIT_DELAY_MS = 3000;
 
   private async processActionDelayed(action: IAction): Promise<void> {
     // Проверяем, является ли действие исключением
@@ -262,11 +277,16 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
       throw error; // Перебрасываем ошибку чтобы сообщение не было подтверждено
     }
 
-    // Публикуем событие
+    // Публикуем событие с задержкой — пусть сначала прокатятся дельты этого же блока.
+    // saveAction уже выполнен, так что данные не потеряем; задерживаем только emit.
     const eventName = `action::${action.account}::${action.name}`;
-    this.eventsService.emit(eventName, action);
-
-    this.logger.debug(`Действие опубликовано в событийную шину: ${eventName} с sequence ${action.global_sequence}`);
+    const delayMs = BlockchainConsumerService.ACTION_EMIT_DELAY_MS;
+    setTimeout(() => {
+      this.eventsService.emit(eventName, action);
+      this.logger.debug(
+        `Действие опубликовано в событийную шину: ${eventName} с sequence ${action.global_sequence} (delay ${delayMs}ms)`
+      );
+    }, delayMs);
   }
 
   private isActionException(account: string, actionName: string): boolean {

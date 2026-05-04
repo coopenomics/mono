@@ -29,9 +29,9 @@ const entityLabel = computed(() => props.data.entity ?? '');
 <style scoped>
 .node-state {
   position: relative;
-  width: 180px;
-  height: 80px;
-  padding: 8px 12px;
+  width: 220px;
+  height: 96px;
+  padding: 8px 14px;
   border-radius: 3px;
   background: var(--bg);
   border: 1.5px solid var(--border-strong);
@@ -89,9 +89,11 @@ const entityLabel = computed(() => props.data.entity ?? '');
   font-weight: 600;
   color: var(--text);
   line-height: 1.25;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
+  word-break: break-word;
 }
 .node-state__label {
   font-family: var(--font-mono);

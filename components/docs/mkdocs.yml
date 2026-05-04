@@ -98,7 +98,6 @@ markdown_extensions:
       alternate_style: true
 nav:
   - Введение: index.md
-  - Реестр стандартов: https://docs.coopenomics.world/standards/
   - Лицензия: new/installation/index.md          # Главная страница раздела
   - Облачная поставка: new/connection/index.md
   - Установка: new/installation/chairman.md
@@ -116,6 +115,9 @@ nav:
     - Вступить в пайщики: new/registration/join.md
     - Принять пайщика: new/registration/accept.md
     - Разработчикам: new/registration/dev.md
+
+  - Вход в систему:
+    - Вход пайщика: new/auth/signin.md
 
   - Аккаунты:
     - new/accounts/index.md
@@ -172,4 +174,21 @@ nav:
     
   - Общие собрания: new/meet/index.md
   - Бухгалтерия: new/buh/index.md
+
+  - Благорост:
+    - Адаптация: new/blagorost/adaptation.md
+    - Профиль: new/blagorost/profile.md
+    - Кошельки: new/blagorost/wallets.md
+    - Мастерская: new/blagorost/projects-list.md
+    - Получение допуска: new/blagorost/clearance.md
+    - Жизненный цикл компонента: new/blagorost/lifecycle.md
+    - Задачи и план работ: new/blagorost/tasks.md
+    - Моё время: new/blagorost/commits.md
+    - Голосование: new/blagorost/voting.md
+    - Результат и получение доли: new/blagorost/results.md
+    - Создание проекта и компонента: new/blagorost/project-create.md
+    - Назначение мастера и план: new/blagorost/master-and-plan.md
+    - Артефакты: new/blagorost/artifacts.md
+    - Результат интеллектуальной деятельности: new/blagorost/intellectual-property.md
+    - Инвестирование: new/blagorost/investments.md
   

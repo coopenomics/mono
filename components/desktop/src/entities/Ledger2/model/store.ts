@@ -9,7 +9,6 @@ import type {
   ILedger2HistoryFilterInput,
   ILedger2AdjustmentResult,
   IWalmoveInput,
-  IRevertOperationInput,
 } from '../types'
 
 const namespace = 'ledger2Store'
@@ -22,9 +21,9 @@ interface ILedger2Store {
   loadWallets: (coopname: string) => Promise<ILedger2Wallet[]>
   loadHistory: (input: ILedger2HistoryFilterInput) => Promise<ILedger2HistoryResponse | undefined>
   getAccountById: (id: number) => ILedger2Account | undefined
-  getWalletById: (id: number) => ILedger2Wallet | undefined
+  /** `name` — eosio::name кошелька (`w.<contract>.<waltype>`). */
+  getWalletByName: (name: string) => ILedger2Wallet | undefined
   walmoveWallets: (input: IWalmoveInput) => Promise<ILedger2AdjustmentResult>
-  revertOperation: (input: IRevertOperationInput) => Promise<ILedger2AdjustmentResult>
 }
 
 export const useLedger2Store = defineStore(namespace, (): ILedger2Store => {
@@ -62,16 +61,12 @@ export const useLedger2Store = defineStore(namespace, (): ILedger2Store => {
     return accounts.value.find((a) => a.id === id)
   }
 
-  function getWalletById(id: number): ILedger2Wallet | undefined {
-    return wallets.value.find((w) => w.id === id)
+  function getWalletByName(name: string): ILedger2Wallet | undefined {
+    return wallets.value.find((w) => w.id === name)
   }
 
   async function walmoveWallets(input: IWalmoveInput): Promise<ILedger2AdjustmentResult> {
     return ledger2Api.walmoveWallets(input)
-  }
-
-  async function revertOperation(input: IRevertOperationInput): Promise<ILedger2AdjustmentResult> {
-    return ledger2Api.revertOperation(input)
   }
 
   return {
@@ -82,9 +77,8 @@ export const useLedger2Store = defineStore(namespace, (): ILedger2Store => {
     loadWallets,
     loadHistory,
     getAccountById,
-    getWalletById,
+    getWalletByName,
     walmoveWallets,
-    revertOperation,
   }
 })
 

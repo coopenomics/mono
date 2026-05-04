@@ -8,15 +8,16 @@ import { LedgerAccountType } from './wallet/walletUtils'
 
 // =============================================================================
 // Epic 1 addendum (пересмотр 2026-04-20): миграция переведена на 6 прямых
-// TRANSIT_* проводок без транзитного счёта 99 и без кошелька CASH_MAIN (1001).
+// TRANSIT_* проводок без транзитного счёта 99 и без кошелька CASH_MAIN.
+// 2026-04-27: numeric wallet id → eosio::name w.<contract>.<waltype>.
 //
 // Семантика:
-//   TRANSIT_MIN_SHARE  → Dr 51 / Cr 80, ISSUE MIN_SHARE_FUND 2002 (N × min_share)
-//   TRANSIT_BLAGOROST  → Dr 51 / Cr 80, ISSUE BLAGOROST_INVEST 9001
-//   TRANSIT_SHARE      → Dr 51 / Cr 80, ISSUE SHARE_FUND_PAY 2001 (остаток money)
-//   TRANSIT_ENTRY      → Dr 51 / Cr 86, ISSUE ENTRANCE_FEES 3001
-//   TRANSIT_COMMITMENT → Dr 08 / Cr 80, ISSUE GENERATOR_COMMIT 10001
-//   TRANSIT_RID        → Dr 04 / Cr 80, ISSUE SHARE_FUND_RID 2003
+//   TRANSIT_MIN_SHARE  → Dr 51 / Cr 80, ISSUE MIN_SHARE_FUND   (w.reg.minshr)
+//   TRANSIT_BLAGOROST  → Dr 51 / Cr 80, ISSUE BLAGOROST_INVEST (w.cap.bginv)
+//   TRANSIT_SHARE      → Dr 51 / Cr 80, ISSUE SHARE_FUND_PAY   (w.wal.share)
+//   TRANSIT_ENTRY      → Dr 51 / Cr 86, ISSUE ENTRANCE_FEES    (w.reg.entry)
+//   TRANSIT_COMMITMENT → Dr 08 / Cr 80, ISSUE GENERATOR_COMMIT (w.cap.gncom)
+//   TRANSIT_RID        → Dr 04 / Cr 80, ISSUE SHARE_FUND_RID   (w.wal.sharid)
 //
 // План счетов: 04, 08, 51, 58, 80, 86 (99 удалён как лишний транзит).
 // =============================================================================
@@ -32,10 +33,10 @@ const LEGACY_ACCOUNTS = {
 } as const
 
 const LEDGER2_WALLETS = {
-  SHARE_FUND_PAY: 2001,
-  MIN_SHARE_FUND: 2002,
-  SHARE_FUND_RID: 2003,
-  ENTRANCE_FEES: 3001,
+  SHARE_FUND_PAY: 'w.wal.share',
+  MIN_SHARE_FUND: 'w.reg.minshr',
+  SHARE_FUND_RID: 'w.wal.sharid',
+  ENTRANCE_FEES: 'w.reg.entry',
 } as const
 
 const LEDGER2_ACCOUNTS = {
@@ -70,9 +71,9 @@ async function getLegacyLaccount(accountId: number) {
   return rows.find((row: any) => Number(row.id) === accountId)
 }
 
-async function getLedger2Wallet(walletId: number) {
+async function getLedger2Wallet(walletName: string) {
   const rows = await blockchain.getTableRows(LEDGER2, COOP, 'wallets', 200)
-  return rows.find((row: any) => Number(row.id) === walletId)
+  return rows.find((row: any) => String(row.id) === walletName)
 }
 
 async function getLedger2Account(accountId: number) {
@@ -150,7 +151,7 @@ describe('ledger2::migrate (пересмотр 2026-04-20: 6 TRANSIT_* без 99
     baselineShareAcc = parseAssetAmount((await getLedger2Account(LEDGER2_ACCOUNTS.SHARE_FUND))?.credit_balance)
     baselineEntryAcc = parseAssetAmount((await getLedger2Account(LEDGER2_ACCOUNTS.TARGET_RECEIPTS))?.credit_balance)
 
-    // Baseline Σ wallets (2001+2002+3001+2003): testnet-boot мог создать
+    // Baseline Σ wallets (w.wal.share + w.reg.minshr + w.reg.entry + w.wal.sharid): testnet-boot мог создать
     // начальные балансы для пайщиков. AC8 проверяет что seed добавил ровно
     // seedCash сверху baseline.
     const sharePayW = await getLedger2Wallet(LEDGER2_WALLETS.SHARE_FUND_PAY)
@@ -241,15 +242,15 @@ describe('ledger2::migrate (пересмотр 2026-04-20: 6 TRANSIT_* без 99
     expect(parseAssetAmount(entryAcc.balance)).toBeCloseTo(parseAssetAmount(entryAcc.credit_balance) - parseAssetAmount(entryAcc.debit_balance), 4)
   })
 
-  it('AC7: wallet CASH_MAIN (1001) больше НЕ существует — убран из плана кошельков', async () => {
+  it('AC7: wallet CASH_MAIN больше НЕ существует — убран из плана кошельков', async () => {
     // Пересмотр 2026-04-20: CASH_MAIN удалён, счёт 51 ведётся только в accounts2.
-    // Никаких wallet-записей под id=1001 быть не должно.
+    // Никаких wallet-записей под устаревшим именем быть не должно.
     const rows = await blockchain.getTableRows(LEDGER2, COOP, 'wallets', 200)
-    const legacyCashMain = rows.find((row: any) => Number(row.id) === 1001)
-    expect(legacyCashMain, 'wallet 1001 (CASH_MAIN) не должен существовать после migrate').toBeUndefined()
+    const legacyCashMain = rows.find((row: any) => String(row.id) === 'w.wal.cash')
+    expect(legacyCashMain, 'wallet CASH_MAIN не должен существовать после migrate').toBeUndefined()
   })
 
-  it('AC8: Σ wallets (2001 + 2002 + 3001 + 2003) == baseline + seedCash (инвариант миграции)', async () => {
+  it('AC8: Σ wallets (w.wal.share + w.reg.minshr + w.reg.entry + w.wal.sharid) == baseline + seedCash (инвариант миграции)', async () => {
     if (migrateWasAlreadyDone) {
       console.log('⏩ migrate был ранее — AC8 проверка Σ wallets пропущена (неизвестен baseline)')
       return
@@ -267,8 +268,8 @@ describe('ledger2::migrate (пересмотр 2026-04-20: 6 TRANSIT_* без 99
 
     // Инвариант: seed добавил ровно seedCash в Σ money-кошельков над baseline.
     // Baseline снимался ДО seed (в первом it) — теперь baseline + seedCash.
-    // Благорост (9001) и Генератор (10001) в эту сумму не входят — они emplace-ятся
-    // отдельно из soviet::progwallets без участия в бух-проводках.
+    // Благорост (w.cap.bginv) и Генератор (w.cap.gncom) в эту сумму не входят — они
+    // emplace-ятся отдельно из soviet::progwallets без участия в бух-проводках.
     expect(totalWallets).toBeCloseTo(baselineWalletsTotal + seedCash, 4)
   })
 

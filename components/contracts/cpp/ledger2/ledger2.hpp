@@ -85,8 +85,8 @@ public:
    */
   [[eosio::action]] void walletop(eosio::name coopname,
                                    uint8_t op_code,
-                                   uint64_t wallet_from,
-                                   uint64_t wallet_to,
+                                   eosio::name wallet_from,
+                                   eosio::name wallet_to,
                                    eosio::asset amount,
                                    eosio::checksum256 process_hash,
                                    std::string memo);
@@ -164,8 +164,8 @@ public:
   [[eosio::action]] void walmove(eosio::name coopname,
                                   eosio::name initiator,
                                   eosio::name username,
-                                  uint64_t from_wallet,
-                                  uint64_t to_wallet,
+                                  eosio::name from_wallet,
+                                  eosio::name to_wallet,
                                   eosio::asset amount,
                                   eosio::checksum256 process_hash,
                                   std::string memo);
@@ -194,7 +194,7 @@ public:
    * @param amount                      сумма (как в оригинале)
    * @param mirror_wallet_op            тип wallet-операции зеркала (REVOKE/TRANSFER/WALLET_ONLY)
    * @param mirror_wallet_from          кошелёк-источник зеркала
-   * @param mirror_wallet_to            кошелёк-получатель зеркала (0 для REVOKE)
+   * @param mirror_wallet_to            кошелёк-получатель зеркала (пустое имя для REVOKE)
    * @param mirror_debit_account_id     Dr-счёт зеркала (0 для WALLET_ONLY)
    * @param mirror_credit_account_id    Cr-счёт зеркала (0 для WALLET_ONLY)
    * @param process_hash                уникальный хэш для зеркальной операции
@@ -209,8 +209,8 @@ public:
                                  eosio::name username,
                                  eosio::asset amount,
                                  uint8_t mirror_wallet_op,
-                                 uint64_t mirror_wallet_from,
-                                 uint64_t mirror_wallet_to,
+                                 eosio::name mirror_wallet_from,
+                                 eosio::name mirror_wallet_to,
                                  uint64_t mirror_debit_account_id,
                                  uint64_t mirror_credit_account_id,
                                  eosio::checksum256 process_hash,

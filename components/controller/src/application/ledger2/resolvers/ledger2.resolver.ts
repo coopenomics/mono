@@ -9,7 +9,6 @@ import { Ledger2WalletDTO } from '../dto/ledger2-wallet.dto';
 import { Ledger2HistoryResponseDTO } from '../dto/ledger2-operation.dto';
 import { GetLedger2HistoryInputDTO } from '../dto/get-ledger2-history-input.dto';
 import { WalmoveInputDTO } from '../dto/walmove-input.dto';
-import { RevertOperationInputDTO } from '../dto/revert-input.dto';
 import { Ledger2AdjustmentResultDTO } from '../dto/ledger2-adjustment-result.dto';
 
 /**
@@ -40,7 +39,7 @@ export class Ledger2Resolver {
   @Query(() => [Ledger2WalletDTO], {
     name: 'getLedger2Wallets',
     description:
-      'Общекооперативные кошельки из ledger2::wallets (1001/2001/3001/4001). ' +
+      'Общекооперативные кошельки из ledger2::wallets (eosio::name w.<contract>.<waltype>). ' +
       'Кошельки пайщиков живут в контракте soviet — сюда не попадают.',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
@@ -76,19 +75,5 @@ export class Ledger2Resolver {
     @Args('input', { type: () => WalmoveInputDTO }) input: WalmoveInputDTO,
   ): Promise<Ledger2AdjustmentResultDTO> {
     return this.service.walmove(input);
-  }
-
-  @Mutation(() => Ledger2AdjustmentResultDTO, {
-    name: 'revertOperation',
-    description:
-      'Откат ранее проведённой операции зеркальной проводкой (operation o.adj.rev). ' +
-      'Только председатель. Запрещено откатывать миграционные операции (o.mig.*).',
-  })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
-  revertOperation(
-    @Args('input', { type: () => RevertOperationInputDTO }) input: RevertOperationInputDTO,
-  ): Promise<Ledger2AdjustmentResultDTO> {
-    return this.service.revertOperation(input);
   }
 }
