@@ -68,8 +68,11 @@ const layout = computed(() =>
 const vfInstance = ref<VueFlowStore | null>(null);
 const minZoom = 0.15;
 const maxZoom = 3.0;
-// Во сколько раз сильнее, чем fitView (≈ 8–9 нажатий «+» в зум-контролах).
-const START_ZOOM_BOOST = 4.0;
+// Стартовый zoom — константа, единая для всех стандартов. Раньше считали как
+// fittedZoom × boost, и масштаб скакал между стандартами (большой граф →
+// мелкий fitted, маленький → крупный). Берём фикс — пользователь видит
+// одинаковый стартовый кадр независимо от размера графа.
+const START_ZOOM = 1.5;
 
 function doFit(): void {
   if (!vfInstance.value) return;
@@ -77,13 +80,7 @@ function doFit(): void {
     requestAnimationFrame(() => {
       if (!vfInstance.value) return;
       const vf = vfInstance.value;
-      // 1) Сперва fit — чтобы понять базовый zoom, при котором граф влезает.
-      vf.fitView({ padding: 0.18 });
-      const fittedZoom = vf.getViewport().zoom;
-      const targetZoom = Math.min(fittedZoom * START_ZOOM_BOOST, maxZoom);
-
-      // 2) Сдвигаем viewport так, чтобы круглешок-старт встал в центре
-      //    канвы (FocusBar — отдельная колонка слева, канва — своя зона).
+      // Ставим круглешок-старт в центре канвы с фиксированным zoom.
       const canvas = canvasRef.value;
       const cw = canvas?.clientWidth ?? 800;
       const ch = canvas?.clientHeight ?? 600;
@@ -94,14 +91,13 @@ function doFit(): void {
         const nx = startN.position.x + w / 2;
         const ny = startN.position.y + h / 2;
         vf.setViewport({
-          x: cw * 0.5 - nx * targetZoom,
-          y: ch * 0.5 - ny * targetZoom,
-          zoom: targetZoom,
+          x: cw * 0.5 - nx * START_ZOOM,
+          y: ch * 0.5 - ny * START_ZOOM,
+          zoom: START_ZOOM,
         });
       } else {
-        // Fallback: просто увеличим текущий zoom относительно fit.
-        const vp = vf.getViewport();
-        vf.setViewport({ x: vp.x, y: vp.y, zoom: targetZoom });
+        // Fallback (нет start-узла): fitView, чтобы хоть что-то показать.
+        vf.fitView({ padding: 0.18 });
       }
     });
   });
