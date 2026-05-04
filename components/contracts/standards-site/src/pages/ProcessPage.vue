@@ -104,9 +104,7 @@ const focusStatus = computed<string | null>(() => {
 
   <div v-else class="process-page">
     <header class="process-head">
-      <div class="process-head__title-box">
-        <h1>{{ standard.title }}</h1>
-      </div>
+      <h1>{{ standard.title }}</h1>
 
       <dl class="process-head__meta">
         <div class="meta-item">
@@ -117,7 +115,7 @@ const focusStatus = computed<string | null>(() => {
           <dt>Процесс</dt>
           <dd><code>{{ standard.process_type }}</code></dd>
         </div>
-        <div v-if="standard.entity_human || standard.entity" class="meta-item meta-item--stacked">
+        <div v-if="standard.entity_human || standard.entity" class="meta-item">
           <dt>Сущность</dt>
           <dd>
             <span v-if="standard.entity_human" class="meta-item__primary">
@@ -131,7 +129,7 @@ const focusStatus = computed<string | null>(() => {
           <dd><code>{{ standard.area }}</code></dd>
         </div>
         <div class="meta-item">
-          <dt>Статус стандарта</dt>
+          <dt>Статус</dt>
           <dd>
             <span class="status-badge" :class="`status-badge--${standard.status}`">
               {{ lifecycleHuman(standard.status) }}
@@ -141,16 +139,18 @@ const focusStatus = computed<string | null>(() => {
       </dl>
     </header>
 
-    <ProcessGraph
-      :standard="standard"
-      :focus-status="focusStatus"
-      :focus-action="focusAction"
-      :focus-document="focusDocument"
-      :focus-operation="focusOperation"
-    />
+    <div class="process-page__workspace">
+      <ProcessGraph
+        :standard="standard"
+        :focus-status="focusStatus"
+        :focus-action="focusAction"
+        :focus-document="focusDocument"
+        :focus-operation="focusOperation"
+      />
+    </div>
 
     <section v-if="relatedLinks.length" class="related">
-      <h3>Связанные стандарты</h3>
+      <span class="related__title">Связанные стандарты</span>
       <ul class="related__list">
         <li v-for="(r, i) in relatedLinks" :key="i" class="related__item">
           <span class="related__relation">{{ relationHuman(r.relation) }}</span>
@@ -166,7 +166,7 @@ const focusStatus = computed<string | null>(() => {
             <span class="related__peer-title">{{ r.title }}</span>
             <code v-if="r.code" class="related__peer-code">{{ r.code }}</code>
           </span>
-          <p class="related__note">{{ r.note }}</p>
+          <p v-if="r.note" class="related__note">{{ r.note }}</p>
         </li>
       </ul>
     </section>
@@ -174,36 +174,44 @@ const focusStatus = computed<string | null>(() => {
 </template>
 
 <style scoped>
+.process-page {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  gap: 10px;
+}
+.process-page__workspace {
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+}
 .process-head {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 24px;
-  flex-wrap: wrap;
-  margin-bottom: 14px;
-  padding-bottom: 14px;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 10px;
   border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
 }
-.process-head__title-box {
-  flex: 1 1 420px;
-  min-width: 0;
-}
-.process-head__title-box h1 {
-  margin: 0 0 4px;
-  font-size: 22px;
+.process-head h1 {
+  margin: 0;
+  font-size: 20px;
   line-height: 1.2;
 }
 .process-head__meta {
   margin: 0;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, auto));
-  gap: 10px 22px;
-  align-content: start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 22px;
+  align-items: baseline;
 }
 .meta-item {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 6px;
   min-width: 0;
 }
 .meta-item dt {
@@ -212,11 +220,15 @@ const focusStatus = computed<string | null>(() => {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-subtle);
+  margin: 0;
 }
 .meta-item dd {
   margin: 0;
   font-size: 12.5px;
   color: var(--text);
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
 }
 .meta-item dd code {
   font-family: var(--font-mono);
@@ -226,12 +238,6 @@ const focusStatus = computed<string | null>(() => {
   border: 1px solid var(--border);
   border-radius: 4px;
   color: var(--text);
-}
-.meta-item--stacked dd {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  align-items: flex-start;
 }
 .meta-item__primary {
   font-size: 12.5px;
@@ -272,41 +278,70 @@ const focusStatus = computed<string | null>(() => {
   color: var(--reject);
 }
 .related {
-  margin-top: 28px;
-  max-width: 780px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  min-height: 0;
 }
-.related h3 {
-  margin: 0 0 10px;
-  font-size: 13px;
+.related__title {
+  flex: 0 0 auto;
+  align-self: center;
+  font-size: 11px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-subtle);
   font-weight: 600;
-  padding-bottom: 0;
-  border-bottom: none;
+  white-space: nowrap;
+  padding: 0 6px;
 }
 .related__list {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 0 4px 6px;
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  flex-direction: row;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x proximity;
+  flex: 1 1 0;
+  min-width: 0;
+}
+.related__list::-webkit-scrollbar {
+  height: 6px;
+}
+.related__list::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
 }
 .related__item {
-  padding: 12px 14px;
+  flex: 0 0 auto;
+  width: 320px;
+  max-width: 60vw;
+  padding: 8px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: var(--bg);
+  background: var(--surface);
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 10px;
+  gap: 4px 10px;
   align-items: baseline;
+  scroll-snap-align: start;
+  transition: border-color 80ms ease, background 80ms ease;
+}
+.related__item:hover {
+  border-color: var(--accent-border);
+  background: var(--bg);
 }
 .related__relation {
-  font-size: 12px;
+  font-size: 10.5px;
   color: var(--text-subtle);
   letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 600;
 }
 .related__peer {
   display: inline-flex;
@@ -315,7 +350,7 @@ const focusStatus = computed<string | null>(() => {
   text-decoration: none;
 }
 .related__peer-title {
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 500;
   color: var(--text);
 }
@@ -324,7 +359,7 @@ const focusStatus = computed<string | null>(() => {
   font-size: 10px;
   padding: 1px 5px;
   border-radius: 3px;
-  background: var(--surface);
+  background: var(--bg);
   border: 1px solid var(--border);
   color: var(--text-subtle);
   font-weight: 500;
@@ -342,9 +377,14 @@ const focusStatus = computed<string | null>(() => {
 }
 .related__note {
   margin: 0;
-  font-size: 13px;
+  font-size: 11.5px;
   color: var(--text-muted);
-  line-height: 1.55;
+  line-height: 1.4;
   flex-basis: 100%;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style>

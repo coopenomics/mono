@@ -369,6 +369,8 @@ function labelForNav(n: Nav): string {
   align-items: stretch;
   gap: 10px;
   width: 100%;
+  height: 100%;
+  min-height: 0;
 }
 
 .graph-nav {
@@ -397,8 +399,8 @@ function labelForNav(n: Nav): string {
 .process-graph {
   flex: 1;
   min-width: 0;
-  min-height: 640px;
-  height: calc(100vh - 160px);
+  min-height: 0;
+  height: 100%;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--bg);
