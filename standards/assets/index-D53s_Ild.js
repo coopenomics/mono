@@ -1,4 +1,4 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/HomePage-D3sXYSFY.js","assets/HomePage-BsofTH-U.css","assets/ProcessPage-DRUaU_XZ.js","assets/ProcessPage-DlxBRe2K.css"])))=>i.map(i=>d[i]);
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/HomePage-BfGfPZYL.js","assets/HomePage-BsofTH-U.css","assets/ProcessPage-ZvHUxjgB.js","assets/ProcessPage-BHwypY6k.css"])))=>i.map(i=>d[i]);
 (function(){const t=document.createElement("link").relList;if(t&&t.supports&&t.supports("modulepreload"))return;for(const r of document.querySelectorAll('link[rel="modulepreload"]'))s(r);new MutationObserver(r=>{for(const i of r)if(i.type==="childList")for(const o of i.addedNodes)o.tagName==="LINK"&&o.rel==="modulepreload"&&s(o)}).observe(document,{childList:!0,subtree:!0});function n(r){const i={};return r.integrity&&(i.integrity=r.integrity),r.referrerPolicy&&(i.referrerPolicy=r.referrerPolicy),r.crossOrigin==="use-credentials"?i.credentials="include":r.crossOrigin==="anonymous"?i.credentials="omit":i.credentials="same-origin",i}function s(r){if(r.ep)return;r.ep=!0;const i=n(r);fetch(r.href,i)}})();/**
 * @vue/shared v3.5.31
 * (c) 2018-present Yuxi (Evan) You and Vue contributors
@@ -1315,7 +1315,7 @@ purpose: >
   при некондиционном товаре. Возврат имущества поставщику и претензионная
   работа выходят за рамки этого процесса.
 roles:
-  - customer        # пайщик-заказчик, инициатор возврата
+  - orderer        # пайщик-заказчик, инициатор возврата
   - chairman        # председатель кооперативного участка (КУ)
 
 # ── Секция 2. Действия контракта (блокчейн-уровень) ─────────────────────────
@@ -1324,7 +1324,7 @@ roles:
 actions:
   - name: marketplace::submretrn
     human: Подать заявление
-    actor: customer
+    actor: orderer
     role: opener
     purpose: >
       Заказчик-пайщик в архиве заказа на столе заказчика подаёт заявление
@@ -1423,7 +1423,7 @@ transitions:
   - from: "∅"
     to: pending_review
     action: marketplace::submretrn
-    actor: customer
+    actor: orderer
     guards:
       - Заявитель — заказчик-пайщик исходного Order'а (статус received).
       - Гарантийный срок, заданный в Offer'е поставщика, ещё не истёк.
@@ -1467,7 +1467,7 @@ scenario:
   steps:
     - step: 1
       title: Подача заявления
-      actor: customer
+      actor: orderer
       action: marketplace::submretrn
       description: >
         Заказчик-пайщик в личном кабинете в архиве заказа открывает экран
@@ -1535,7 +1535,7 @@ scenario:
     - branch: Истечение гарантийного срока
       at_step: 1
       action: null
-      actor: customer
+      actor: orderer
       description: >
         Если гарантийный срок Offer'а истёк, UI скрывает кнопку «Гарантийный
         возврат» в архиве заказа. Контракт submretrn также отказывает в
@@ -1574,7 +1574,7 @@ documents:
   - action: marketplace::submretrn
     title: Заявление пайщика на гарантийный возврат имущества
     registry_id: 800
-    signed_by: [customer]
+    signed_by: [orderer]
     stored_in: return_requests.statement
     note: "Используется существующий шаблон 800.ReturnByAssetStatement из cooptypes/cooperative/registry/. Оригинально создан под клиринговую модель donor'а («Заявление на возврат паевого взноса имуществом»); форма заявления пайщика на возврат структурно подходит и для членской модели гарантийного возврата. При необходимости методолог может создать специализированный шаблон в новой серии (1100+) — тогда registry_id обновится."
 
@@ -1602,7 +1602,7 @@ operations:
     wallet_to: w.mkt.member        # ЦПП «Стол Заказов» — программный кошелёк
     # L3 — пайщику восстанавливается available на программном кошельке
     user_wallet: w.mkt.member
-    user_ref: return_request.customer
+    user_ref: return_request.orderer
     available_delta: +order.fact_cost
     blocked_delta: null
     amount_ref: order.fact_cost
@@ -1738,8 +1738,8 @@ purpose: >
   совместно приобретать товары на условиях кооператива без посреднических
   наценок.
 roles:
-  - customer        # пайщик-заказчик
-  - supplier        # пайщик-поставщик
+  - orderer        # пайщик-заказчик
+  - offerer        # пайщик-поставщик
   - chairman        # председатель кооперативного участка (КУ-приёмщик/КУ-выдающий)
   - backend         # Backend Marketplace (внеблокчейн-логика)
 
@@ -1749,7 +1749,7 @@ roles:
 actions:
   - name: marketplace::createorder
     human: Создать заказ
-    actor: customer
+    actor: orderer
     role: opener
     purpose: >
       Заказчик-пайщик создаёт Order на товар из каталога с указанием
@@ -1765,7 +1765,7 @@ actions:
 
   - name: marketplace::cancelorder
     human: Отменить заказ
-    actor: customer
+    actor: orderer
     role: progress
     purpose: >
       Заказчик отменяет Order до момента акцепта поставщиком. Контракт
@@ -1791,7 +1791,7 @@ actions:
 
   - name: marketplace::acceptbatch
     human: Акцептовать партию
-    actor: supplier
+    actor: offerer
     role: progress
     purpose: >
       Поставщик через стол поставщика акцептует консолидированную заявку
@@ -1802,7 +1802,7 @@ actions:
 
   - name: marketplace::declinebatch
     human: Отказаться от партии
-    actor: supplier
+    actor: offerer
     role: reject
     purpose: >
       Поставщик отказывается от консолидированной заявки до её публикации
@@ -1813,7 +1813,7 @@ actions:
 
   - name: marketplace::prepship
     human: Подготовить отгрузку
-    actor: supplier
+    actor: offerer
     role: progress
     purpose: >
       Поставщик в pre-shipment-режиме группирует акцептованные Order'ы по КУ
@@ -1825,7 +1825,7 @@ actions:
 
   - name: marketplace::signsupp
     human: Поставщик подписал приёмку
-    actor: supplier
+    actor: offerer
     role: progress
     purpose: >
       Поставщик ставит первую подпись на АПП приёмки. Триггерится из push-
@@ -1861,7 +1861,7 @@ actions:
 
   - name: marketplace::signiss2
     human: Заказчик закрыл выдачу
-    actor: customer
+    actor: orderer
     role: closer
     purpose: >
       Заказчик ставит вторую (финальную) подпись на АПП выдачи на устройстве
@@ -1877,7 +1877,7 @@ actions:
 
 # ── Секция 3. Граф состояний ────────────────────────────────────────────────
 # Сущность: marketplace::order (таблица orders, scope=coopname).
-# Граф спрямлён: статус pending_supplier_sign модели B описан в сценарии,
+# Граф спрямлён: статус pending_offerer_sign модели B описан в сценарии,
 # в графе сворачивается в supply_prepared с разными путями входа.
 entity: marketplace::order
 entity_human: Заказ на поставку
@@ -1964,7 +1964,7 @@ transitions:
   - from: "∅"
     to: active
     action: marketplace::createorder
-    actor: customer
+    actor: orderer
     ledger_code: p.mkt.supply
     operations:
       - o.wal.fconv
@@ -1980,7 +1980,7 @@ transitions:
   - from: active
     to: cancelled
     action: marketplace::cancelorder
-    actor: customer
+    actor: orderer
     ledger_code: p.mkt.supply
     operations:
       - o.mkt.funblk
@@ -2001,7 +2001,7 @@ transitions:
   - from: active
     to: accepted
     action: marketplace::acceptbatch
-    actor: supplier
+    actor: offerer
     guards:
       - Минимальный порог достигнут к концу цикла.
       - Поставщик владеет связанным Offer'ом.
@@ -2009,7 +2009,7 @@ transitions:
   - from: active
     to: cancelled
     action: marketplace::declinebatch
-    actor: supplier
+    actor: offerer
     ledger_code: p.mkt.supply
     operations:
       - o.mkt.funblk
@@ -2019,7 +2019,7 @@ transitions:
   - from: accepted
     to: ship_ready
     action: marketplace::prepship
-    actor: supplier
+    actor: offerer
     guards:
       - Состав Shipment'а равен составу акцептованной партии (жёсткий акцепт; замены номенклатуры запрещены).
       - Поставщик выбрал режим: A (самовывоз) или B (экспедитор + ТТН).
@@ -2027,7 +2027,7 @@ transitions:
   - from: ship_ready
     to: supply_prepared
     action: marketplace::signsupp
-    actor: supplier
+    actor: offerer
     guards:
       - Состав АПП соответствует составу акцептованной партии.
       - В модели A — председатель отсканировал штрих-код поставщика, скорректировал quantity/price (если нужно), нажал «Подтверждаю»; поставщик получил push-takeover и нажал «Передал».
@@ -2055,7 +2055,7 @@ transitions:
   - from: ready_to_receive
     to: received
     action: marketplace::signiss2
-    actor: customer
+    actor: orderer
     ledger_code: p.mkt.supply
     operations:
       - o.mkt.consum
@@ -2068,7 +2068,7 @@ scenario:
   steps:
     - step: 1
       title: Создание заказа и блокировка средств
-      actor: customer
+      actor: orderer
       action: marketplace::createorder
       description: >
         Заказчик-пайщик в столе заказчика выбирает позицию из каталога Offer'ов
@@ -2116,7 +2116,7 @@ scenario:
 
     - step: 3
       title: Акцепт поставщика
-      actor: supplier
+      actor: offerer
       action: marketplace::acceptbatch
       description: >
         Поставщик-пайщик в столе поставщика видит консолидированную заявку
@@ -2133,7 +2133,7 @@ scenario:
 
     - step: 4
       title: Pre-shipment — подготовка отгрузки
-      actor: supplier
+      actor: offerer
       action: marketplace::prepship
       description: >
         Поставщик в кабинете на вкладке «К отгрузке» видит акцептованные
@@ -2215,7 +2215,7 @@ scenario:
 
     - step: 8
       title: Выдача и финальная подпись заказчика
-      actor: customer
+      actor: orderer
       action: marketplace::signiss2
       description: >
         Заказчик приходит на КУ, показывает QR-код заявки оператору.
@@ -2276,7 +2276,7 @@ scenario:
     - branch: Отказ поставщика от корректировки (модель B)
       at_step: 5
       action: null
-      actor: supplier
+      actor: offerer
       description: >
         Если поставщик дистанционно отказывается подписать скорректированный
         по ТТН АПП («Отказ от корректировки» в push-takeover), формируется
@@ -2291,7 +2291,7 @@ scenario:
     - branch: Отмена заказчиком до акцепта
       at_step: 2
       action: marketplace::cancelorder
-      actor: customer
+      actor: orderer
       description: >
         Заказчик в столе заказчика отменяет Order до момента, как
         поставщик акцептует консолидированную заявку. Контракт выполняет
@@ -2303,7 +2303,7 @@ scenario:
     - branch: Отказ поставщика от партии
       at_step: 3
       action: marketplace::declinebatch
-      actor: supplier
+      actor: offerer
       description: >
         Поставщик в столе поставщика отказывается от консолидированной
         заявки до её публикации on-chain (acceptbatch). Контракт для каждого
@@ -2334,7 +2334,7 @@ documents:
   - action: marketplace::signsupp
     title: АПП приёмки имущества кооперативом (первая подпись поставщика)
     registry_id: 702
-    signed_by: [supplier]
+    signed_by: [offerer]
     stored_in: orders.acceptance_act
     note: "Используется существующий шаблон 702.AssetContributionAct из cooptypes/cooperative/registry/. Оригинально создан под клиринговую модель donor'а; форма акта приёма имущества кооперативом структурно подходит и для членской модели. При необходимости методолог может создать специализированный шаблон в новой серии (1100+) — тогда registry_id обновится."
 
@@ -2355,14 +2355,14 @@ documents:
   - action: marketplace::signiss2
     title: АПП выдачи имущества пайщику (финальная подпись заказчика)
     registry_id: 802
-    signed_by: [customer]
+    signed_by: [orderer]
     stored_in: orders.issue_act
     note: "Тот же шаблон что у signiss1 (registry_id 802)."
 
   - action: marketplace::prepship
     title: Товарно-транспортная накладная (модель B, бумажная)
     registry_id: 0
-    signed_by: [supplier, chairman, expediter]
+    signed_by: [offerer, chairman, expediter]
     stored_in: shipments.ttn_pdf
     note: "TODO: создать шаблон ТТН в registry. В модели A не используется. Подписи проставляются вне блокчейна (бумажно), фотофиксация председателя сохраняется для дистанционной ЭЦП поставщика."
 
@@ -2392,7 +2392,7 @@ operations:
     wallet_to: w.wal.member        # Универсальный членский — общий членский кошелёк пайщика
     # L3 — пополнение available на w.wal.member заказчика
     user_wallet: w.wal.member
-    user_ref: order.customer
+    user_ref: order.orderer
     available_delta: +order.total_cost
     blocked_delta: null
     amount_ref: order.total_cost
@@ -2423,11 +2423,11 @@ operations:
     # L3 — две стороны движения у одного и того же пайщика
     l3:
       - user_wallet: w.wal.member
-        user_ref: order.customer
+        user_ref: order.orderer
         available_delta: -order.total_cost
         blocked_delta: null
       - user_wallet: w.mkt.member
-        user_ref: order.customer
+        user_ref: order.orderer
         available_delta: +order.total_cost
         blocked_delta: null
     amount_ref: order.total_cost
@@ -2452,7 +2452,7 @@ operations:
     wallet_to: null
     # L3 — split available → blocked на одном кошельке заказчика
     user_wallet: w.mkt.member       # ЦПП «Стол Заказов» — членские взносы заказчика
-    user_ref: order.customer
+    user_ref: order.orderer
     available_delta: -order.total_cost
     blocked_delta: +order.total_cost
     amount_ref: order.total_cost
@@ -2476,7 +2476,7 @@ operations:
     wallet_to: null
     # L3 — обратное движение blocked → available
     user_wallet: w.mkt.member
-    user_ref: order.customer
+    user_ref: order.orderer
     available_delta: +order.total_cost
     blocked_delta: -order.total_cost
     amount_ref: order.total_cost
@@ -2503,11 +2503,11 @@ operations:
     # L3 — две стороны движения у одного и того же пайщика
     l3:
       - user_wallet: w.mkt.member
-        user_ref: order.customer
+        user_ref: order.orderer
         available_delta: -order.total_cost
         blocked_delta: null
       - user_wallet: w.wal.member
-        user_ref: order.customer
+        user_ref: order.orderer
         available_delta: +order.total_cost
         blocked_delta: null
     amount_ref: order.total_cost
@@ -2586,7 +2586,7 @@ operations:
     wallet_to: null
     # L3 — blocked заказчика обнуляется (целевое расходование членского взноса)
     user_wallet: w.mkt.member
-    user_ref: order.customer
+    user_ref: order.orderer
     available_delta: null
     blocked_delta: -order.fact_cost
     amount_ref: order.fact_cost
@@ -5225,4 +5225,4 @@ ${n.comment}`:n.comment}this.doc.range[2]=n.offset;break}default:this.errors.pus
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
- */const lh=Zc("SunIcon",[["circle",{cx:"12",cy:"12",r:"4",key:"4exip2"}],["path",{d:"M12 2v2",key:"tus03m"}],["path",{d:"M12 20v2",key:"1lh1kg"}],["path",{d:"m4.93 4.93 1.41 1.41",key:"149t6j"}],["path",{d:"m17.66 17.66 1.41 1.41",key:"ptbguv"}],["path",{d:"M2 12h2",key:"1t8f8n"}],["path",{d:"M20 12h2",key:"1q8mjw"}],["path",{d:"m6.34 17.66-1.41 1.41",key:"1m8zz5"}],["path",{d:"m19.07 4.93-1.41 1.41",key:"1shlcs"}]]),el="standards.theme";function tl(){try{const e=localStorage.getItem(el);return e==="light"||e==="dark"?e:null}catch{return null}}function uh(){return typeof window>"u"||!window.matchMedia?"light":window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}function Ci(e){typeof document<"u"&&(document.documentElement.dataset.theme=e)}const Lt=Vs(tl()??uh());let Fo=!1;function ph(){if(!Fo&&(Fo=!0,Ci(Lt.value),typeof window<"u"&&window.matchMedia)){const e=window.matchMedia("(prefers-color-scheme: dark)"),t=n=>{tl()===null&&(Lt.value=n.matches?"dark":"light")};e.addEventListener("change",t)}}Dn(Lt,e=>{Ci(e);try{localStorage.setItem(el,e)}catch{}});typeof document<"u"&&Ci(Lt.value);function fh(){return ci(ph),li(()=>{}),{theme:Lt,toggle:()=>{Lt.value=Lt.value==="dark"?"light":"dark"},setTheme:e=>{Lt.value=e}}}const dh=["title","aria-label"],hh=es({__name:"ThemeToggle",setup(e){const{theme:t,toggle:n}=fh();return(s,r)=>(Ie(),ot("button",{type:"button",class:"theme-toggle",title:we(t)==="dark"?"Светлая тема":"Тёмная тема","aria-label":we(t)==="dark"?"Светлая тема":"Тёмная тема",onClick:r[0]||(r[0]=(...i)=>we(n)&&we(n)(...i))},[we(t)==="dark"?(Ie(),qn(we(lh),{key:0,size:16})):(Ie(),qn(we(ch),{key:1,size:16})),ke("span",null,Ln(we(t)==="dark"?"Светлая":"Тёмная"),1)],8,dh))}}),nl=(e,t)=>{const n=e.__vccOpts||e;for(const[s,r]of t)n[s]=r;return n},mh=nl(hh,[["__scopeId","data-v-736ff43a"]]),gh={class:"sidebar"},yh={class:"sidebar-brand"},_h={class:"sidebar-body"},bh={key:0,class:"sidebar-empty"},wh={class:"sidebar-group__head"},vh={class:"sidebar-group__name"},kh={key:0,class:"sidebar-group__code"},Sh={class:"sidebar-group__list"},Eh={class:"sidebar-foot"},Oh=es({__name:"Sidebar",setup(e){const t=If(),n=Le(()=>Jr.contracts),s=Le(()=>Jr.byContract),r=Le(()=>n.value.length===0),i=Le(()=>typeof t.params.processType=="string"?t.params.processType:null);function o(a){return ih[a]??""}return(a,c)=>(Ie(),ot("nav",gh,[ke("div",yh,[ge(we(Vr),{to:"/"},{default:Lr(()=>[...c[0]||(c[0]=[ke("div",{class:"sidebar-brand__title"},"Кооперативные стандарты",-1),ke("div",{class:"sidebar-brand__subtitle"},"Реестр v1",-1)])]),_:1})]),ke("div",_h,[r.value?(Ie(),ot("p",bh,[...c[1]||(c[1]=[ys(" Стандарты не найдены. Добавьте ",-1),ke("code",null,"*.standard.yaml",-1),ys(" рядом с кодом контракта. ",-1)])])):Xi("",!0),(Ie(!0),ot(je,null,Vi(n.value,l=>(Ie(),ot("div",{key:l,class:"sidebar-group"},[ke("div",wh,[ke("span",vh,Ln(o(l)||l),1),o(l)?(Ie(),ot("code",kh,Ln(l),1)):Xi("",!0)]),ke("ul",Sh,[(Ie(!0),ot(je,null,Vi(s.value[l],u=>(Ie(),ot("li",{key:u.process_type},[ge(we(Vr),{to:{name:"process",params:{contract:u.contract,processType:u.process_type}},class:$s(["sidebar-item",{"sidebar-item--active":i.value===u.process_type}])},{default:Lr(()=>[ys(Ln(u.title),1)]),_:2},1032,["to","class"])]))),128))])]))),128))]),ke("div",Eh,[ge(mh)])]))}}),Ah=nl(Oh,[["__scopeId","data-v-fff96373"]]),Nh={key:0,class:"mobile-stub"},Th={key:1,class:"app-shell"},Rh={class:"app-sidebar"},Ih={class:"app-main"},Ch=900,Lh=es({__name:"App",setup(e){const t=Vs(!1);function n(){typeof window>"u"||(t.value=window.innerWidth<Ch)}return ci(()=>{n(),window.addEventListener("resize",n)}),li(()=>{window.removeEventListener("resize",n)}),(s,r)=>{const i=pu("router-view");return t.value?(Ie(),ot("div",Nh,[...r[0]||(r[0]=[ke("div",{class:"mobile-stub__box"},[ke("h1",null,"Только для десктопа"),ke("p",null," Реестр кооперативных стандартов рассчитан на широкие экраны — BPMN-граф процесса не помещается на мобильных устройствах. Откройте сайт с компьютера или планшета. ")],-1)])])):(Ie(),ot("div",Th,[ke("aside",Rh,[ge(Ah)]),ke("main",Ih,[ge(i)])]))}}}),Ph="modulepreload",Mh=function(e){return"/standards/"+e},Ko={},Nr=function(t,n,s){let r=Promise.resolve();if(n&&n.length>0){let o=function(l){return Promise.all(l.map(u=>Promise.resolve(u).then(p=>({status:"fulfilled",value:p}),p=>({status:"rejected",reason:p}))))};document.getElementsByTagName("link");const a=document.querySelector("meta[property=csp-nonce]"),c=(a==null?void 0:a.nonce)||(a==null?void 0:a.getAttribute("nonce"));r=o(n.map(l=>{if(l=Mh(l),l in Ko)return;Ko[l]=!0;const u=l.endsWith(".css"),p=u?'[rel="stylesheet"]':"";if(document.querySelector(`link[href="${l}"]${p}`))return;const f=document.createElement("link");if(f.rel=u?"stylesheet":Ph,u||(f.as="script"),f.crossOrigin="",f.href=l,c&&f.setAttribute("nonce",c),document.head.appendChild(f),u)return new Promise((d,b)=>{f.addEventListener("load",d),f.addEventListener("error",()=>b(new Error(`Unable to preload CSS for ${l}`)))})}))}function i(o){const a=new Event("vite:preloadError",{cancelable:!0});if(a.payload=o,window.dispatchEvent(a),!a.defaultPrevented)throw o}return r.then(o=>{for(const a of o||[])a.status==="rejected"&&i(a.reason);return t().catch(i)})},Dh=[{path:"/",name:"home",component:()=>Nr(()=>import("./HomePage-D3sXYSFY.js"),__vite__mapDeps([0,1]))},{path:"/:contract/:processType",name:"process",component:()=>Nr(()=>import("./ProcessPage-DRUaU_XZ.js"),__vite__mapDeps([2,3])),props:!0},{path:"/:pathMatch(.*)*",name:"not-found",component:()=>Nr(()=>import("./NotFoundPage-B2uVEDha.js"),[])}],xh=Rf({history:cf(),routes:Dh,scrollBehavior(e,t){if(!(e.name!==t.name||e.params.processType!==t.params.processType))return!1;if(typeof document<"u"){const s=document.querySelector(".app-main");s?s.scrollTo({top:0,behavior:"smooth"}):window.scrollTo({top:0,behavior:"smooth"})}return{top:0}}});wp(Lh).use(xh).mount("#app");export{Wh as $,Za as A,Bh as B,ih as C,li as D,jh as E,je as F,Zr as G,Je as H,Fs as I,ye as J,Fh as K,Uh as L,ml as M,_a as N,Cr as O,Dl as P,$h as Q,Vr as R,Qh as S,Yh as T,ms as U,Yn as V,pu as W,Gh as X,Fu as Y,Vh as Z,nl as _,ke as a,fh as a0,If as a1,Jh as a2,ys as b,ot as c,es as d,Xi as e,Le as f,qn as g,Zc as h,qh as i,Ta as j,ge as k,Hh as l,Dn as m,ru as n,Ie as o,ci as p,$s as q,Vi as r,Jr as s,Ln as t,we as u,xl as v,Lr as w,Kh as x,zh as y,Vs as z};
+ */const lh=Zc("SunIcon",[["circle",{cx:"12",cy:"12",r:"4",key:"4exip2"}],["path",{d:"M12 2v2",key:"tus03m"}],["path",{d:"M12 20v2",key:"1lh1kg"}],["path",{d:"m4.93 4.93 1.41 1.41",key:"149t6j"}],["path",{d:"m17.66 17.66 1.41 1.41",key:"ptbguv"}],["path",{d:"M2 12h2",key:"1t8f8n"}],["path",{d:"M20 12h2",key:"1q8mjw"}],["path",{d:"m6.34 17.66-1.41 1.41",key:"1m8zz5"}],["path",{d:"m19.07 4.93-1.41 1.41",key:"1shlcs"}]]),el="standards.theme";function tl(){try{const e=localStorage.getItem(el);return e==="light"||e==="dark"?e:null}catch{return null}}function uh(){return typeof window>"u"||!window.matchMedia?"light":window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}function Ci(e){typeof document<"u"&&(document.documentElement.dataset.theme=e)}const Lt=Vs(tl()??uh());let Fo=!1;function ph(){if(!Fo&&(Fo=!0,Ci(Lt.value),typeof window<"u"&&window.matchMedia)){const e=window.matchMedia("(prefers-color-scheme: dark)"),t=n=>{tl()===null&&(Lt.value=n.matches?"dark":"light")};e.addEventListener("change",t)}}Dn(Lt,e=>{Ci(e);try{localStorage.setItem(el,e)}catch{}});typeof document<"u"&&Ci(Lt.value);function fh(){return ci(ph),li(()=>{}),{theme:Lt,toggle:()=>{Lt.value=Lt.value==="dark"?"light":"dark"},setTheme:e=>{Lt.value=e}}}const dh=["title","aria-label"],hh=es({__name:"ThemeToggle",setup(e){const{theme:t,toggle:n}=fh();return(s,r)=>(Ie(),ot("button",{type:"button",class:"theme-toggle",title:we(t)==="dark"?"Светлая тема":"Тёмная тема","aria-label":we(t)==="dark"?"Светлая тема":"Тёмная тема",onClick:r[0]||(r[0]=(...i)=>we(n)&&we(n)(...i))},[we(t)==="dark"?(Ie(),qn(we(lh),{key:0,size:16})):(Ie(),qn(we(ch),{key:1,size:16})),ke("span",null,Ln(we(t)==="dark"?"Светлая":"Тёмная"),1)],8,dh))}}),nl=(e,t)=>{const n=e.__vccOpts||e;for(const[s,r]of t)n[s]=r;return n},mh=nl(hh,[["__scopeId","data-v-736ff43a"]]),gh={class:"sidebar"},yh={class:"sidebar-brand"},_h={class:"sidebar-body"},bh={key:0,class:"sidebar-empty"},wh={class:"sidebar-group__head"},vh={class:"sidebar-group__name"},kh={key:0,class:"sidebar-group__code"},Sh={class:"sidebar-group__list"},Eh={class:"sidebar-foot"},Oh=es({__name:"Sidebar",setup(e){const t=If(),n=Le(()=>Jr.contracts),s=Le(()=>Jr.byContract),r=Le(()=>n.value.length===0),i=Le(()=>typeof t.params.processType=="string"?t.params.processType:null);function o(a){return ih[a]??""}return(a,c)=>(Ie(),ot("nav",gh,[ke("div",yh,[ge(we(Vr),{to:"/"},{default:Lr(()=>[...c[0]||(c[0]=[ke("div",{class:"sidebar-brand__title"},"Кооперативные стандарты",-1),ke("div",{class:"sidebar-brand__subtitle"},"Реестр v1",-1)])]),_:1})]),ke("div",_h,[r.value?(Ie(),ot("p",bh,[...c[1]||(c[1]=[ys(" Стандарты не найдены. Добавьте ",-1),ke("code",null,"*.standard.yaml",-1),ys(" рядом с кодом контракта. ",-1)])])):Xi("",!0),(Ie(!0),ot(je,null,Vi(n.value,l=>(Ie(),ot("div",{key:l,class:"sidebar-group"},[ke("div",wh,[ke("span",vh,Ln(o(l)||l),1),o(l)?(Ie(),ot("code",kh,Ln(l),1)):Xi("",!0)]),ke("ul",Sh,[(Ie(!0),ot(je,null,Vi(s.value[l],u=>(Ie(),ot("li",{key:u.process_type},[ge(we(Vr),{to:{name:"process",params:{contract:u.contract,processType:u.process_type}},class:$s(["sidebar-item",{"sidebar-item--active":i.value===u.process_type}])},{default:Lr(()=>[ys(Ln(u.title),1)]),_:2},1032,["to","class"])]))),128))])]))),128))]),ke("div",Eh,[ge(mh)])]))}}),Ah=nl(Oh,[["__scopeId","data-v-fff96373"]]),Nh={key:0,class:"mobile-stub"},Th={key:1,class:"app-shell"},Rh={class:"app-sidebar"},Ih={class:"app-main"},Ch=900,Lh=es({__name:"App",setup(e){const t=Vs(!1);function n(){typeof window>"u"||(t.value=window.innerWidth<Ch)}return ci(()=>{n(),window.addEventListener("resize",n)}),li(()=>{window.removeEventListener("resize",n)}),(s,r)=>{const i=pu("router-view");return t.value?(Ie(),ot("div",Nh,[...r[0]||(r[0]=[ke("div",{class:"mobile-stub__box"},[ke("h1",null,"Только для десктопа"),ke("p",null," Реестр кооперативных стандартов рассчитан на широкие экраны — BPMN-граф процесса не помещается на мобильных устройствах. Откройте сайт с компьютера или планшета. ")],-1)])])):(Ie(),ot("div",Th,[ke("aside",Rh,[ge(Ah)]),ke("main",Ih,[ge(i)])]))}}}),Ph="modulepreload",Mh=function(e){return"/standards/"+e},Ko={},Nr=function(t,n,s){let r=Promise.resolve();if(n&&n.length>0){let o=function(l){return Promise.all(l.map(u=>Promise.resolve(u).then(p=>({status:"fulfilled",value:p}),p=>({status:"rejected",reason:p}))))};document.getElementsByTagName("link");const a=document.querySelector("meta[property=csp-nonce]"),c=(a==null?void 0:a.nonce)||(a==null?void 0:a.getAttribute("nonce"));r=o(n.map(l=>{if(l=Mh(l),l in Ko)return;Ko[l]=!0;const u=l.endsWith(".css"),p=u?'[rel="stylesheet"]':"";if(document.querySelector(`link[href="${l}"]${p}`))return;const f=document.createElement("link");if(f.rel=u?"stylesheet":Ph,u||(f.as="script"),f.crossOrigin="",f.href=l,c&&f.setAttribute("nonce",c),document.head.appendChild(f),u)return new Promise((d,b)=>{f.addEventListener("load",d),f.addEventListener("error",()=>b(new Error(`Unable to preload CSS for ${l}`)))})}))}function i(o){const a=new Event("vite:preloadError",{cancelable:!0});if(a.payload=o,window.dispatchEvent(a),!a.defaultPrevented)throw o}return r.then(o=>{for(const a of o||[])a.status==="rejected"&&i(a.reason);return t().catch(i)})},Dh=[{path:"/",name:"home",component:()=>Nr(()=>import("./HomePage-BfGfPZYL.js"),__vite__mapDeps([0,1]))},{path:"/:contract/:processType",name:"process",component:()=>Nr(()=>import("./ProcessPage-ZvHUxjgB.js"),__vite__mapDeps([2,3])),props:!0},{path:"/:pathMatch(.*)*",name:"not-found",component:()=>Nr(()=>import("./NotFoundPage-CINFDfOw.js"),[])}],xh=Rf({history:cf(),routes:Dh,scrollBehavior(e,t){if(!(e.name!==t.name||e.params.processType!==t.params.processType))return!1;if(typeof document<"u"){const s=document.querySelector(".app-main");s?s.scrollTo({top:0,behavior:"smooth"}):window.scrollTo({top:0,behavior:"smooth"})}return{top:0}}});wp(Lh).use(xh).mount("#app");export{Wh as $,Za as A,Bh as B,ih as C,li as D,jh as E,je as F,Zr as G,Je as H,Fs as I,ye as J,Fh as K,Uh as L,ml as M,_a as N,Cr as O,Dl as P,$h as Q,Vr as R,Qh as S,Yh as T,ms as U,Yn as V,pu as W,Gh as X,Fu as Y,Vh as Z,nl as _,ke as a,fh as a0,If as a1,Jh as a2,ys as b,ot as c,es as d,Xi as e,Le as f,qn as g,Zc as h,qh as i,Ta as j,ge as k,Hh as l,Dn as m,ru as n,Ie as o,ci as p,$s as q,Vi as r,Jr as s,Ln as t,we as u,xl as v,Lr as w,Kh as x,zh as y,Vs as z};
