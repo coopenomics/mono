@@ -1,0 +1,1 @@
+import{_ as o,o as r,c as t,a as n,F as a}from"./index-CLCKWjB7.js";const s={};function l(f,e){return r(),t(a,null,[e[0]||(e[0]=n("h1",null,"Страница не найдена",-1)),e[1]||(e[1]=n("p",null,[n("a",{href:"#/"},"← к реестру")],-1))],64)}const c=o(s,[["render",l]]);export{c as default};
