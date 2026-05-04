@@ -31,26 +31,26 @@
 # sentinel '' — legacy-допуск (рендерится как ∅).
 #
 # В процессе участвуют 8 ledger2-операций (часть — из контракта wallet):
-#   • o.wal.fconv   — конвертация цифрового рубля → общий членский пайщика
+#   • o.wal.conv   — конвертация цифрового рубля → общий членский пайщика
 #                     (TRANSFER, w.wal.share → w.wal.member,
 #                      Дт 80 / Кт 86) — conditional, только если на
 #                     w.wal.member.available заказчика не хватает
-#   • o.mkt.ftarg   — целевое назначение членского взноса в программу
+#   • o.mkt.assign   — целевое назначение членского взноса в программу
 #                     (TRANSFER, w.wal.member → w.mkt.member, без проводки —
 #                      Дт=Кт по 86 смарт-контракт игнорирует) — conditional,
 #                     только если на w.mkt.member.available не хватает
-#   • o.mkt.fblock  — блокировка средств под Order на программном кошельке
+#   • o.mkt.block  — блокировка средств под Order на программном кошельке
 #                     (BLOCK)
-#   • o.mkt.funblk  — разблокировка при отмене Order'а
+#   • o.mkt.unblk  — разблокировка при отмене Order'а
 #                     (UNBLOCK; средства остаются на w.mkt.member.available
 #                      и могут быть потрачены на следующий заказ)
-#   • o.mkt.fefund  — вывод из программы в общий членский кошелёк пайщика
+#   • o.mkt.recall  — вывод из программы в общий членский кошелёк пайщика
 #                     (TRANSFER, w.mkt.member → w.wal.member, без проводки) —
 #                     ОТДЕЛЬНОЕ явное действие пайщика, не часть авто-flow
 #                     отмены/возврата
 #   • o.mkt.purch   — приёмка имущества кооперативом по АПП приёмки
 #                     (ACCOUNT_ONLY, только проводка, Дт 10 / Кт 86)
-#   • o.mkt.payspl  — оплата поставщику с расчётного счёта
+#   • o.mkt.payout  — оплата поставщику с расчётного счёта
 #                     (TRANSFER, ∅ → w.mkt.payout, Дт 86 / Кт 51)
 #   • o.mkt.consum  — выдача имущества пайщику по АПП выдачи
 #                     (REVOKE, w.mkt.member .blocked → 0,
@@ -279,9 +279,9 @@ transitions:
     actor: orderer
     ledger_code: p.mkt.supply
     operations:
-      - o.wal.fconv
-      - o.mkt.ftarg
-      - o.mkt.fblock
+      - o.wal.conv
+      - o.mkt.assign
+      - o.mkt.block
     guards:
       - Заказчик — активный пайщик кооператива.
       - Заказчик подписал Соглашение ЦПП «Стол заказов» (программный кошелёк w.mkt.member открыт).
@@ -295,7 +295,7 @@ transitions:
     actor: orderer
     ledger_code: p.mkt.supply
     operations:
-      - o.mkt.funblk
+      - o.mkt.unblk
     guards:
       - Order ещё не акцептован поставщиком.
 
@@ -305,7 +305,7 @@ transitions:
     actor: backend
     ledger_code: p.mkt.supply
     operations:
-      - o.mkt.funblk
+      - o.mkt.unblk
     guards:
       - Окно цикла отсечки Offer'а истекло.
       - Минимальный порог поставки не достигнут.
@@ -324,7 +324,7 @@ transitions:
     actor: offerer
     ledger_code: p.mkt.supply
     operations:
-      - o.mkt.funblk
+      - o.mkt.unblk
     guards:
       - Поставщик отказывается от консолидированной партии до её публикации on-chain.
 
@@ -352,7 +352,7 @@ transitions:
     ledger_code: p.mkt.supply
     operations:
       - o.mkt.purch
-      - o.mkt.payspl
+      - o.mkt.payout
     guards:
       - АПП приёмки имеет первую подпись поставщика.
       - Председатель имеет роль оператора КУ-получателя.
@@ -373,7 +373,7 @@ transitions:
       - o.mkt.consum
     guards:
       - Заказчик присутствует на КУ; оператор сверил факт vs заказ.
-      - При расхождении факт vs заказ сначала выполнены корректирующие операции (o.mkt.funblk на остаток если факт меньше; o.wal.fconv + o.mkt.ftarg + o.mkt.fblock на разницу если факт больше — первые две conditional; в пределах допустимого отрицательного баланса паевого ≤5%).
+      - При расхождении факт vs заказ сначала выполнены корректирующие операции (o.mkt.unblk на остаток если факт меньше; o.wal.conv + o.mkt.assign + o.mkt.block на разницу если факт больше — первые две conditional; в пределах допустимого отрицательного баланса паевого ≤5%).
 
 # ── Секция 4. Сценарий ──────────────────────────────────────────────────────
 scenario:
@@ -643,7 +643,7 @@ documents:
 #                     [платформенный]
 # null — для незатронутого уровня; sentinel '' — legacy-допуск (∅ в UI).
 operations:
-  - ledger_code: o.wal.fconv
+  - ledger_code: o.wal.conv
     human_name: Конвертация паевого в членский взнос пайщика
     wallet_op: TRANSFER
     # L1 — двойная запись (паевой → целевой)
@@ -675,7 +675,7 @@ operations:
       из складочного капитала в целевое финансирование. (TBD-Standardization:
       проводка фиксируется как baseline.)
 
-  - ledger_code: o.mkt.ftarg
+  - ledger_code: o.mkt.assign
     human_name: Целевое назначение членского взноса в программу Marketplace
     wallet_op: TRANSFER
     # L1 — нет проводки. По плану счетов оба кошелька висят на 86, и Дт 86 /
@@ -708,7 +708,7 @@ operations:
       изменение, смарт-контракт такие фиктивные проводки игнорирует);
       аналитика «по программе» фиксируется на L2/L3.
 
-  - ledger_code: o.mkt.fblock
+  - ledger_code: o.mkt.block
     human_name: Блокировка членского взноса под заказ
     wallet_op: BLOCK
     # L1 — операция чисто L3, бухгалтерия не двигается
@@ -730,9 +730,9 @@ operations:
       уровня 3 — split available → blocked на одном кошельке без перевода
       между кошельками кооператива и без бухгалтерских проводок.
       Блокировка снимается либо при выдаче (o.mkt.consum, REVOKE blocked → 0),
-      либо при отмене (o.mkt.funblk + o.mkt.fefund — UNBLOCK + возврат).
+      либо при отмене (o.mkt.unblk + o.mkt.recall — UNBLOCK + возврат).
 
-  - ledger_code: o.mkt.funblk
+  - ledger_code: o.mkt.unblk
     human_name: Разблокировка членского взноса при отмене
     wallet_op: UNBLOCK
     # L1 — без проводок
@@ -749,16 +749,16 @@ operations:
     amount_ref: order.total_cost
     triggered_by: marketplace::cancelorder | marketplace::expirecycle | marketplace::declinebatch
     description: >
-      Зеркало o.mkt.fblock. Снятие блокировки на кошельке заказчика
+      Зеркало o.mkt.block. Снятие блокировки на кошельке заказчика
       w.mkt.member при отмене Order'а (заказчик отменяет до акцепта;
       цикл истёк без достижения порога; поставщик отказался от партии).
       На уровне 3 blocked → available. Без L1, без L2. Сумма остаётся
       на w.mkt.member.available заказчика — может быть потрачена на
       следующий заказ в Столе заказов. Вывод в общий членский кошелёк
-      (w.wal.member) — отдельное явное действие пайщика через o.mkt.fefund,
+      (w.wal.member) — отдельное явное действие пайщика через o.mkt.recall,
       не часть авто-flow отмены.
 
-  - ledger_code: o.mkt.fefund
+  - ledger_code: o.mkt.recall
     human_name: Вывод членского взноса в общий членский кошелёк
     wallet_op: TRANSFER
     # L1 — нет проводки (Дт=Кт по 86 нетто-нулевое; смарт-контракт игнорирует).
@@ -780,7 +780,7 @@ operations:
     amount_ref: order.total_cost
     triggered_by: TBD
     description: >
-      Зеркало o.mkt.ftarg. Явное действие пайщика — вывести членский взнос
+      Зеркало o.mkt.assign. Явное действие пайщика — вывести членский взнос
       из программы Marketplace в общий членский кошелёк (где средства
       универсальны между программами и могут быть направлены, например, на
       Благорост или обратно на цифровой паевой через отдельную операцию
@@ -809,13 +809,13 @@ operations:
       подпись председателя). Двойная запись Дт 10 / Кт 86 — приобретение
       имущества за счёт целевых средств кооператива. Имущество отслеживается
       бухгалтерской аналитикой по счёту 10 (per-КУ субсчета), без отдельного
-      кошелька. Срабатывает атомарно с o.mkt.payspl. WalletOp ACCOUNT_ONLY —
+      кошелька. Срабатывает атомарно с o.mkt.payout. WalletOp ACCOUNT_ONLY —
       proposed расширение enum'а ledger2 для операций, выполняющих только
       бухгалтерскую проводку без движения по кошелькам. (TBD-Standardization:
       проводка Дт 10 / Кт 86 — baseline; финальное решение — при формализации
       стандарта; ACCOUNT_ONLY — proposed.)
 
-  - ledger_code: o.mkt.payspl
+  - ledger_code: o.mkt.payout
     human_name: Оплата поставщику с расчётного счёта
     wallet_op: TRANSFER
     # L1
@@ -865,8 +865,8 @@ operations:
       членского взноса). Двойная запись Дт 86 / Кт 10 — целевое использование
       средств с одновременным выбытием имущества со склада (обратная к
       o.mkt.purch). При расхождении факт vs заказ предшествуют корректирующие
-      операции (o.mkt.funblk на остаток если факт меньше; o.wal.fconv +
-      o.mkt.ftarg + o.mkt.fblock на разницу если факт больше — первые две
+      операции (o.mkt.unblk на остаток если факт меньше; o.wal.conv +
+      o.mkt.assign + o.mkt.block на разницу если факт больше — первые две
       conditional). (TBD-Standardization:
       проводка Дт 86 / Кт 10 фиксируется как baseline; Игорь предлагал
       альтернативу с участием 10-го счёта в иной роли — точная формулировка
@@ -889,9 +889,9 @@ related:
       Заказчик пополняет цифровой паевой (w.wal.share) через процесс
       «Внесение паевого взноса» (p.wal.depo). Из паевого средства проходят
       двухступенчатую конвертацию при createorder: сначала в общий членский
-      пайщика (o.wal.fconv → w.wal.member), затем в программный членский
-      Marketplace (o.mkt.ftarg → w.mkt.member), и блокируются под Order
-      (o.mkt.fblock).
+      пайщика (o.wal.conv → w.wal.member), затем в программный членский
+      Marketplace (o.mkt.assign → w.mkt.member), и блокируются под Order
+      (o.mkt.block).
 
   - process_type: p.mkt.return
     id: public_marketplace_return_process
