@@ -72,7 +72,7 @@ const maxZoom = 3.0;
 // fittedZoom × boost, и масштаб скакал между стандартами (большой граф →
 // мелкий fitted, маленький → крупный). Берём фикс — пользователь видит
 // одинаковый стартовый кадр независимо от размера графа.
-const START_ZOOM = 1.5;
+const START_ZOOM = 1.2;
 
 function doFit(): void {
   if (!vfInstance.value) return;
