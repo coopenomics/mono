@@ -1,4 +1,4 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/HomePage-DNoKHLYm.js","assets/HomePage-BsofTH-U.css","assets/ProcessPage-wFCzbw0-.js","assets/ProcessPage-C7c8Hala.css"])))=>i.map(i=>d[i]);
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/HomePage-DerASP8B.js","assets/HomePage-BsofTH-U.css","assets/ProcessPage-DJe7fiE2.js","assets/ProcessPage-jVhBuwdi.css"])))=>i.map(i=>d[i]);
 (function(){const t=document.createElement("link").relList;if(t&&t.supports&&t.supports("modulepreload"))return;for(const r of document.querySelectorAll('link[rel="modulepreload"]'))s(r);new MutationObserver(r=>{for(const i of r)if(i.type==="childList")for(const o of i.addedNodes)o.tagName==="LINK"&&o.rel==="modulepreload"&&s(o)}).observe(document,{childList:!0,subtree:!0});function n(r){const i={};return r.integrity&&(i.integrity=r.integrity),r.referrerPolicy&&(i.referrerPolicy=r.referrerPolicy),r.crossOrigin==="use-credentials"?i.credentials="include":r.crossOrigin==="anonymous"?i.credentials="omit":i.credentials="same-origin",i}function s(r){if(r.ep)return;r.ep=!0;const i=n(r);fetch(r.href,i)}})();/**
 * @vue/shared v3.5.31
 * (c) 2018-present Yuxi (Evan) You and Vue contributors
@@ -1263,7 +1263,7 @@ related:
 # используется (упрощение реализации MVP — реверты исключены из системы).
 #
 # **Модель кошельков (упрощённая, refinement 2026-05-04):** один программный
-# кошелёк w.mkt.fund (per-user) — членские взносы пайщика в программу.
+# кошелёк w.mkt.member (per-user) — членские взносы пайщика в программу.
 # Возврат суммы при гарантии происходит на тот же программный кошелёк
 # (.available восстанавливается); пайщик может потратить на следующий заказ
 # или вручную вывести на цифровой паевой w.wal.share через o.mkt.fefund.
@@ -1279,7 +1279,7 @@ related:
 # В процессе участвует 1 ledger2-операция:
 #   • o.mkt.return  — compensating forward для отката выдачи имущества
 #                     (ISSUE: восстановление .available на пайщикском
-#                      w.mkt.fund; проводка Дт 10 / Кт 86 —
+#                      w.mkt.member; проводка Дт 10 / Кт 86 —
 #                      обратная к o.mkt.consum, имущество назад на склад)
 #
 # Канон формата:
@@ -1290,7 +1290,7 @@ related:
 #   • cpp/lib/core/ledger2/operations.hpp             — OPERATION_REGISTRY
 #                                                       расширение o.mkt.return
 #   • cpp/lib/core/ledger2/processes.hpp              — processes::marketplace::RETURN
-#   • cpp/lib/core/ledger2/wallets.hpp                — w.mkt.fund (programmatic)
+#   • cpp/lib/core/ledger2/wallets.hpp                — w.mkt.member (programmatic)
 #   • cpp/lib/core/ledger2/accounts.hpp               — Целевое финансирование (86),
 #                                                       Материалы (10)
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1359,7 +1359,7 @@ actions:
       ledger2-операцию o.mkt.return — compensating forward к выдаче:
       имущество возвращается на склад КУ (Дт 10 / Кт 86), сумма
       восстанавливается на программном кошельке заказчика
-      (w.mkt.fund .available +fact_cost).
+      (w.mkt.member .available +fact_cost).
 
 # ── Секция 3. Граф состояний ────────────────────────────────────────────────
 # Сущность: marketplace::return_request (таблица return_requests, scope=coopname).
@@ -1389,7 +1389,7 @@ states:
       Председатель очно принял возврат. Применена o.mkt.return —
       имущество возвращено на склад КУ (Дт 10 / Кт 86 — обратная проводка
       к o.mkt.consum), сумма order.fact_cost восстановлена на программном
-      кошельке пайщика как .available на w.mkt.fund. Кошелёк
+      кошельке пайщика как .available на w.mkt.member. Кошелёк
       пайщика обновлён в реальном времени; пайщик может направить
       вернувшуюся сумму на следующий заказ в Столе заказов либо вывести
       на цифровой паевой через отдельную операцию o.mkt.fefund.
@@ -1516,7 +1516,7 @@ scenario:
         возвращается в учёт по счёту 10 КУ-получателя (проводка
         Дт 10 / Кт 86 — обратная к o.mkt.consum); (2) сумма order.fact_cost
         восстанавливается на программном кошельке заказчика
-        (ISSUE на w.mkt.fund пайщика, .available +fact_cost).
+        (ISSUE на w.mkt.member пайщика, .available +fact_cost).
         Кошелёк пайщика обновляется в реальном времени; пайщик может
         потратить вернувшуюся сумму на следующий заказ в Столе заказов
         либо вывести на цифровой паевой через отдельную операцию
@@ -1527,7 +1527,7 @@ scenario:
         - return_request в approved_for_visit.
         - Пайщик прибыл с продукцией.
       post:
-        - При принятии — return_request в return_accepted; имущество в учёте по счёту 10 КУ; сумма на w.mkt.fund пайщика как .available; в журнале опубликована o.mkt.return.
+        - При принятии — return_request в return_accepted; имущество в учёте по счёту 10 КУ; сумма на w.mkt.member пайщика как .available; в журнале опубликована o.mkt.return.
         - При отказе — return_request в rejected_at_ku; пайщик забрал имущество; в журнале изменений по кошелькам нет.
 
   alternatives:
@@ -1594,7 +1594,7 @@ operations:
     human_name: Гарантийный возврат имущества
     wallet_op: ISSUE
     wallet_from: ''                # вне системы — восстановление средств на пайщикском кошельке
-    wallet_to: w.mkt.fund          # ЦПП «Стол Заказов» — программный кошелёк (per-user, .available +fact_cost)
+    wallet_to: w.mkt.member          # ЦПП «Стол Заказов» — программный кошелёк (per-user, .available +fact_cost)
     debit: 10                      # Материалы — обратная проводка к o.mkt.consum
     credit: 86                     # Целевое финансирование
     amount_ref: order.fact_cost
@@ -1602,7 +1602,7 @@ operations:
     description: >
       Compensating forward к выдаче имущества (o.mkt.consum). Атомарно
       выполняет два эффекта в одной операции: (1) ISSUE на пайщикском
-      w.mkt.fund — .available +fact_cost (восстановление ранее
+      w.mkt.member — .available +fact_cost (восстановление ранее
       списанной суммы); (2) проводка Дт 10 / Кт 86 — имущество возвращается
       в учёт по счёту 10 КУ-получателя (обратная к проводке o.mkt.consum
       Дт 86 / Кт 10). Журнал содержит payload original_consume_op_id
@@ -1647,7 +1647,7 @@ related:
 # двойные подписи на АПП приёмки и АПП выдачи.
 #
 # **Модель кошельков (упрощённая, refinement 2026-05-04):** один программный
-# кошелёк w.mkt.fund (per-user) — членские взносы пайщика в программу
+# кошелёк w.mkt.member (per-user) — членские взносы пайщика в программу
 # «Стол заказов». Транзитные кошельки не используются. Имущество
 # отслеживается бухгалтерской аналитикой по счёту 10 (per-КУ субсчета),
 # без отдельного кошелька. Платформенные кошельки w.wal.share (Цифровой
@@ -1660,21 +1660,21 @@ related:
 #
 # В процессе участвуют 6 ledger2-операций (из 9 общих по контракту):
 #   • o.mkt.fconv   — конвертация цифрового рубля → членский взнос ЦПП
-#                     (TRANSFER, w.wal.share → w.mkt.fund,
+#                     (TRANSFER, w.wal.share → w.mkt.member,
 #                      Дт 80 / Кт 86)
 #   • o.mkt.fblock  — блокировка средств под Order на программном кошельке
 #                     (BLOCK)
 #   • o.mkt.funblk  — разблокировка при отмене Order'а
 #                     (UNBLOCK)
 #   • o.mkt.fefund  — возврат разблокированной суммы на цифровой паевой
-#                     (TRANSFER, w.mkt.fund → w.wal.share,
+#                     (TRANSFER, w.mkt.member → w.wal.share,
 #                      Дт 86 / Кт 80)
 #   • o.mkt.purch   — приёмка имущества кооперативом по АПП приёмки
 #                     (ACCOUNT_ONLY, только проводка, Дт 10 / Кт 86)
 #   • o.mkt.payspl  — оплата поставщику с расчётного счёта
 #                     (TRANSFER, ∅ → w.mkt.payout, Дт 86 / Кт 51)
 #   • o.mkt.consum  — выдача имущества пайщику по АПП выдачи
-#                     (REVOKE, w.mkt.fund .blocked → 0,
+#                     (REVOKE, w.mkt.member .blocked → 0,
 #                      Дт 86 / Кт 10)
 #
 # Канон формата:
@@ -1684,7 +1684,7 @@ related:
 #   • cpp/marketplace/src/                            — реализация (предстоит)
 #   • cpp/lib/core/ledger2/operations.hpp             — OPERATION_REGISTRY (расширение)
 #   • cpp/lib/core/ledger2/processes.hpp              — processes::marketplace::SUPPLY
-#   • cpp/lib/core/ledger2/wallets.hpp                — w.mkt.fund (programmatic),
+#   • cpp/lib/core/ledger2/wallets.hpp                — w.mkt.member (programmatic),
 #                                                       w.wal.share (платформенный),
 #                                                       w.mkt.payout (платформенный)
 #   • cpp/lib/core/ledger2/accounts.hpp               — Расчётный (51),
@@ -1834,7 +1834,7 @@ actions:
       Заказчик ставит вторую (финальную) подпись на АПП выдачи на устройстве
       оператора КУ. Это закрывающее действие всего процесса: контракт
       применяет ledger2-операцию o.mkt.consum (Дт 86 / Кт 10, REVOKE —
-      w.mkt.fund пайщика .blocked → 0, имущество выбывает со
+      w.mkt.member пайщика .blocked → 0, имущество выбывает со
       склада через проводку обратную к o.mkt.purch). При расхождении «факт
       vs заказ» контракт предварительно выполняет корректировку: факт меньше
       → o.mkt.funblk на разницу (остаётся available на программном кошельке
@@ -1854,7 +1854,7 @@ states:
     human: Заявка размещена
     description: >
       Order создан, средства заказчика прошли пару o.mkt.fconv + o.mkt.fblock
-      и заблокированы на программном кошельке w.mkt.fund. Заявка
+      и заблокированы на программном кошельке w.mkt.member. Заявка
       ждёт окончания цикла отсечки и акцепта поставщика.
     kind: normal
 
@@ -1874,8 +1874,17 @@ states:
     description: >
       Поставщик акцептовал консолидированную заявку, пара Order+Offer
       опубликована on-chain. Средства заказчика по-прежнему заблокированы
-      на w.mkt.fund; имущество ещё не передано. Поставщик
+      на w.mkt.member; имущество ещё не передано. Поставщик
       готовит отгрузку.
+    kind: normal
+
+  - name: ship_ready
+    human: Отгрузка собрана
+    description: >
+      Поставщик собрал партию по составу акцептованной заявки и выбрал
+      режим передачи (A — самовывоз / B — экспедитор + ТТН). Имущество
+      готово к подписанию АПП приёмки, но фактически ещё не передано КУ
+      и юридически не оприходовано.
     kind: normal
 
   - name: supply_prepared
@@ -1907,7 +1916,7 @@ states:
     human: Имущество выдано
     description: >
       Заказчик закрыл АПП выдачи. Применена o.mkt.consum (REVOKE на
-      w.mkt.fund пайщика .blocked → 0; проводка Дт 86 / Кт 10 —
+      w.mkt.member пайщика .blocked → 0; проводка Дт 86 / Кт 10 —
       целевое использование членского взноса с одновременным выбытием
       имущества со склада). Процесс поставки-приобретения полностью завершён.
       Имущество на руках у пайщика, средства учтены. Гарантийное окно
@@ -1925,9 +1934,9 @@ transitions:
       - o.mkt.fblock
     guards:
       - Заказчик — активный пайщик кооператива.
-      - Заказчик подписал Соглашение ЦПП «Стол заказов» (программный кошелёк w.mkt.fund открыт).
+      - Заказчик подписал Соглашение ЦПП «Стол заказов» (программный кошелёк w.mkt.member открыт).
       - Стоимость корзины не превышает 100 000 ₽ (валидируется Backend'ом до вызова контракта).
-      - Достаточно средств на цифровом паевом (w.wal.share) либо available на программном кошельке (w.mkt.fund) — частичная конвертация если на программном уже что-то есть.
+      - Достаточно средств на цифровом паевом (w.wal.share) либо available на программном кошельке (w.mkt.member) — частичная конвертация если на программном уже что-то есть.
       - Указанный КУ принадлежит этому же кооперативу.
 
   - from: active
@@ -1973,14 +1982,14 @@ transitions:
       - Поставщик отказывается от консолидированной партии до её публикации on-chain.
 
   - from: accepted
-    to: accepted
+    to: ship_ready
     action: marketplace::prepship
     actor: supplier
     guards:
       - Состав Shipment'а равен составу акцептованной партии (жёсткий акцепт; замены номенклатуры запрещены).
       - Поставщик выбрал режим: A (самовывоз) или B (экспедитор + ТТН).
 
-  - from: accepted
+  - from: ship_ready
     to: supply_prepared
     action: marketplace::signsupp
     actor: supplier
@@ -2033,18 +2042,18 @@ scenario:
         налоговый порог ТМЦ). Контракт createorder атомарно выполняет пару
         операций по программному кошельку: (1) o.mkt.fconv — конвертация
         цифрового рубля заказчика (w.wal.share) в членский взнос на ЦПП
-        «Стол заказов» (w.mkt.fund), Дт 80 / Кт 86; (2) o.mkt.fblock
+        «Стол заказов» (w.mkt.member), Дт 80 / Кт 86; (2) o.mkt.fblock
         — блокировка суммы order.total_cost под Order на этом же кошельке,
         available -= total_cost, blocked += total_cost. Order переходит
         в статус active.
       pre:
         - Пайщик имеет статус active.
-        - Подписано Соглашение ЦПП «Стол заказов» (программный кошелёк w.mkt.fund открыт).
-        - На w.wal.share либо w.mkt.fund.available достаточно средств.
+        - Подписано Соглашение ЦПП «Стол заказов» (программный кошелёк w.mkt.member открыт).
+        - На w.wal.share либо w.mkt.member.available достаточно средств.
         - Стоимость корзины ≤ 100 000 ₽.
       post:
         - Order создан со статусом active.
-        - На w.mkt.fund пайщика заблокирована сумма order.total_cost.
+        - На w.mkt.member пайщика заблокирована сумма order.total_cost.
         - В журнале опубликованы 2 операции серии (fconv → fblock).
 
     - step: 2
@@ -2058,7 +2067,7 @@ scenario:
         (off-chain) и заявки остаются в статусе active. Если порог не
         достигнут — для каждого Order'а контракт выполняет o.mkt.funblk
         (разблокировка) + o.mkt.fefund (возврат на цифровой паевой через
-        TRANSFER w.mkt.fund → w.wal.share с проводкой
+        TRANSFER w.mkt.member → w.wal.share с проводкой
         Дт 86 / Кт 80). Order'ы переходят в статус cancelled, заказчики
         получают push-уведомление об отмене.
       pre:
@@ -2183,7 +2192,7 @@ scenario:
         отрицательный баланс ≤5% либо пайщик пополняет паевой через
         кассира. Заказчик подписывает АПП выдачи на устройстве оператора —
         это финальная (вторая) подпись. Контракт применяет o.mkt.consum
-        (REVOKE — w.mkt.fund пайщика .blocked → 0; проводка
+        (REVOKE — w.mkt.member пайщика .blocked → 0; проводка
         Дт 86 / Кт 10 — расход целевых средств на расход имущества). Order
         переходит в финальный статус received.
       pre:
@@ -2192,7 +2201,7 @@ scenario:
       post:
         - Имущество выдано пайщику.
         - Order в финальном статусе received.
-        - Сумма order.total_cost (или fact_cost при коррекции) списана с w.mkt.fund пайщика.
+        - Сумма order.total_cost (или fact_cost при коррекции) списана с w.mkt.member пайщика.
         - В бухгалтерии — Дт 86 / Кт 10 на сумму fact_cost.
         - В журнале опубликована o.mkt.consum (с предшествующими корректировками при необходимости).
         - Гарантийное окно открыто (запуск p.mkt.return по заявлению пайщика возможен до конца окна).
@@ -2321,7 +2330,7 @@ documents:
 # Семь ledger2-операций для процесса прямой поставки-приобретения. Имена
 # ≤12 символов eosio::name. Кошельки идентифицируются eosio::name-строками
 # с префиксом w.<contract>.<waltype> (рефакторинг 2026-04-27, ветка reports):
-#   • w.mkt.fund    — ЦПП «Стол Заказов» — программный кошелёк (per-user)
+#   • w.mkt.member    — ЦПП «Стол Заказов» — программный кошелёк (per-user)
 #                     [members fees программы]
 #   • w.wal.share   — ЦПП «Цифровой Кошелёк» — паевые взносы деньгами
 #                     [платформенный]
@@ -2332,59 +2341,93 @@ operations:
   - ledger_code: o.mkt.fconv
     human_name: Конвертация цифрового рубля в членский взнос
     wallet_op: TRANSFER
-    wallet_from: w.wal.share       # ЦПП «Цифровой Кошелёк» — паевые взносы деньгами
-    wallet_to: w.mkt.fund          # ЦПП «Стол Заказов» — программный кошелёк (членские взносы)
+    # L1 — двойная запись
     debit: 80                      # Паевой фонд
     credit: 86                     # Целевое финансирование
+    # L2 — кошельки кооператива (агрегаты)
+    wallet_from: w.wal.share       # ЦПП «Цифровой Кошелёк» — паевые взносы деньгами
+    wallet_to: w.mkt.member        # ЦПП «Стол Заказов» — членские взносы пайщиков по программе
+    # L3 — на стороне заказчика приходит зачисление в available на
+    # w.mkt.member; блокировка под Order — следующая операция o.mkt.fblock
+    user_wallet: w.mkt.member
+    user_ref: order.customer
+    available_delta: +order.total_cost
+    blocked_delta: null
     amount_ref: order.total_cost
     triggered_by: marketplace::createorder
     description: >
       Атомарная серия — шаг 1 из 2. Конвертация цифрового рубля заказчика
-      из ЦПП «Цифровой Кошелёк» в членский взнос на ЦПП «Стол заказов»
-      (программный кошелёк пайщика в этой ЦПП). Двойная запись Дт 80 / Кт 86 —
-      средства переходят из складочного капитала в целевое финансирование.
+      из ЦПП «Цифровой Кошелёк» в членский взнос на ЦПП «Стол заказов».
+      Двойная запись Дт 80 / Кт 86 — средства переходят из складочного
+      капитала в целевое финансирование. На уровне 3 — пополнение available
+      на w.mkt.member заказчика; блокировка этой суммы под конкретный
+      Order — отдельная операция o.mkt.fblock следом.
       (TBD-Standardization: проводка фиксируется как baseline; финальный
       выбор — при формализации стандарта совместно с Ангелиной.)
 
   - ledger_code: o.mkt.fblock
     human_name: Блокировка членского взноса под заказ
     wallet_op: BLOCK
-    wallet_from: w.mkt.fund        # ЦПП «Стол Заказов» — программный кошелёк
-    wallet_to: ''
+    # L1 — операция чисто L3, бухгалтерия не двигается
     debit: null
     credit: null
+    # L2 — без перевода между кошельками кооператива
+    wallet_from: null
+    wallet_to: null
+    # L3 — split available → blocked на одном кошельке заказчика
+    user_wallet: w.mkt.member       # ЦПП «Стол Заказов» — членские взносы заказчика
+    user_ref: order.customer
+    available_delta: -order.total_cost
+    blocked_delta: +order.total_cost
     amount_ref: order.total_cost
     triggered_by: marketplace::createorder
     description: >
       Атомарная серия — шаг 2 из 2. Блокировка суммы order.total_cost под
-      конкретный Order на программном кошельке заказчика. available -=
-      total_cost, blocked += total_cost. Без бухгалтерских проводок.
-      Блокировка снимается либо при выдаче (o.mkt.consum), либо при отмене
-      (o.mkt.funblk + o.mkt.fefund).
+      конкретный Order на кошельке заказчика w.mkt.member. Это операция
+      уровня 3 — split available → blocked на одном кошельке без перевода
+      между кошельками кооператива и без бухгалтерских проводок.
+      Блокировка снимается либо при выдаче (o.mkt.consum, REVOKE blocked → 0),
+      либо при отмене (o.mkt.funblk + o.mkt.fefund — UNBLOCK + возврат).
 
   - ledger_code: o.mkt.funblk
     human_name: Разблокировка членского взноса при отмене
     wallet_op: UNBLOCK
-    wallet_from: w.mkt.fund        # ЦПП «Стол Заказов» — программный кошелёк
-    wallet_to: ''
+    # L1 — без проводок
     debit: null
     credit: null
+    # L2 — без перевода
+    wallet_from: null
+    wallet_to: null
+    # L3 — обратное движение blocked → available
+    user_wallet: w.mkt.member
+    user_ref: order.customer
+    available_delta: +order.total_cost
+    blocked_delta: -order.total_cost
     amount_ref: order.total_cost
     triggered_by: marketplace::cancelorder | marketplace::expirecycle | marketplace::declinebatch
     description: >
-      Зеркало o.mkt.fblock. Снятие блокировки суммы на программном кошельке
-      заказчика при отмене Order'а (заказчик отменяет до акцепта; цикл истёк
-      без достижения порога; поставщик отказался от партии). blocked -=
-      total_cost, available += total_cost. Без проводок. Парная операция —
-      o.mkt.fefund (возврат суммы на цифровой паевой через TRANSFER).
+      Зеркало o.mkt.fblock. Снятие блокировки на кошельке заказчика
+      w.mkt.member при отмене Order'а (заказчик отменяет до акцепта;
+      цикл истёк без достижения порога; поставщик отказался от партии).
+      На уровне 3 blocked → available. Без L1, без L2. Парная операция —
+      o.mkt.fefund (возврат разблокированной суммы на цифровой паевой через
+      TRANSFER).
 
   - ledger_code: o.mkt.fefund
     human_name: Возврат членского взноса на цифровой паевой
     wallet_op: TRANSFER
-    wallet_from: w.mkt.fund        # ЦПП «Стол Заказов» — программный кошелёк
-    wallet_to: w.wal.share         # ЦПП «Цифровой Кошелёк» — паевые взносы деньгами
+    # L1
     debit: 86                      # Целевое финансирование
     credit: 80                     # Паевой фонд
+    # L2 — кошельки кооператива
+    wallet_from: w.mkt.member      # ЦПП «Стол Заказов»
+    wallet_to: w.wal.share         # ЦПП «Цифровой Кошелёк»
+    # L3 — у заказчика на w.mkt.member списывается available; зачисление
+    # на w.wal.share — отдельная операция стандарта wallet
+    user_wallet: w.mkt.member
+    user_ref: order.customer
+    available_delta: -order.total_cost
+    blocked_delta: null
     amount_ref: order.total_cost
     triggered_by: marketplace::cancelorder | marketplace::expirecycle | marketplace::declinebatch
     description: >
@@ -2437,10 +2480,18 @@ operations:
   - ledger_code: o.mkt.consum
     human_name: Выдача имущества пайщику
     wallet_op: REVOKE
-    wallet_from: w.mkt.fund        # ЦПП «Стол Заказов» — программный кошелёк пайщика (.blocked → 0)
-    wallet_to: ''
+    # L1 — выбытие имущества за счёт целевых средств
     debit: 86                      # Целевое финансирование
     credit: 10                     # Материалы
+    # L2 — без перевода между кошельками кооператива (REVOKE списывает
+    # blocked в пустоту, это L3-семантика)
+    wallet_from: null
+    wallet_to: null
+    # L3 — blocked заказчика обнуляется (целевое расходование членского взноса)
+    user_wallet: w.mkt.member
+    user_ref: order.customer
+    available_delta: null
+    blocked_delta: -order.fact_cost
     amount_ref: order.fact_cost
     triggered_by: marketplace::signiss2
     description: >
@@ -5066,4 +5117,4 @@ ${n.comment}`:n.comment}this.doc.range[2]=n.offset;break}default:this.errors.pus
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
- */const lh=Zc("SunIcon",[["circle",{cx:"12",cy:"12",r:"4",key:"4exip2"}],["path",{d:"M12 2v2",key:"tus03m"}],["path",{d:"M12 20v2",key:"1lh1kg"}],["path",{d:"m4.93 4.93 1.41 1.41",key:"149t6j"}],["path",{d:"m17.66 17.66 1.41 1.41",key:"ptbguv"}],["path",{d:"M2 12h2",key:"1t8f8n"}],["path",{d:"M20 12h2",key:"1q8mjw"}],["path",{d:"m6.34 17.66-1.41 1.41",key:"1m8zz5"}],["path",{d:"m19.07 4.93-1.41 1.41",key:"1shlcs"}]]),el="standards.theme";function tl(){try{const e=localStorage.getItem(el);return e==="light"||e==="dark"?e:null}catch{return null}}function uh(){return typeof window>"u"||!window.matchMedia?"light":window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}function Ci(e){typeof document<"u"&&(document.documentElement.dataset.theme=e)}const Pt=Vs(tl()??uh());let Uo=!1;function ph(){if(!Uo&&(Uo=!0,Ci(Pt.value),typeof window<"u"&&window.matchMedia)){const e=window.matchMedia("(prefers-color-scheme: dark)"),t=n=>{tl()===null&&(Pt.value=n.matches?"dark":"light")};e.addEventListener("change",t)}}Dn(Pt,e=>{Ci(e);try{localStorage.setItem(el,e)}catch{}});typeof document<"u"&&Ci(Pt.value);function fh(){return ci(ph),li(()=>{}),{theme:Pt,toggle:()=>{Pt.value=Pt.value==="dark"?"light":"dark"},setTheme:e=>{Pt.value=e}}}const dh=["title","aria-label"],hh=es({__name:"ThemeToggle",setup(e){const{theme:t,toggle:n}=fh();return(s,r)=>(Ie(),ot("button",{type:"button",class:"theme-toggle",title:we(t)==="dark"?"Светлая тема":"Тёмная тема","aria-label":we(t)==="dark"?"Светлая тема":"Тёмная тема",onClick:r[0]||(r[0]=(...i)=>we(n)&&we(n)(...i))},[we(t)==="dark"?(Ie(),Hn(we(lh),{key:0,size:16})):(Ie(),Hn(we(ch),{key:1,size:16})),ke("span",null,Pn(we(t)==="dark"?"Светлая":"Тёмная"),1)],8,dh))}}),nl=(e,t)=>{const n=e.__vccOpts||e;for(const[s,r]of t)n[s]=r;return n},mh=nl(hh,[["__scopeId","data-v-736ff43a"]]),gh={class:"sidebar"},yh={class:"sidebar-brand"},_h={class:"sidebar-body"},bh={key:0,class:"sidebar-empty"},wh={class:"sidebar-group__head"},vh={class:"sidebar-group__name"},kh={key:0,class:"sidebar-group__code"},Sh={class:"sidebar-group__list"},Oh={class:"sidebar-foot"},Eh=es({__name:"Sidebar",setup(e){const t=If(),n=Pe(()=>Jr.contracts),s=Pe(()=>Jr.byContract),r=Pe(()=>n.value.length===0),i=Pe(()=>typeof t.params.processType=="string"?t.params.processType:null);function o(a){return ih[a]??""}return(a,c)=>(Ie(),ot("nav",gh,[ke("div",yh,[ge(we(Vr),{to:"/"},{default:Pr(()=>[...c[0]||(c[0]=[ke("div",{class:"sidebar-brand__title"},"Кооперативные стандарты",-1),ke("div",{class:"sidebar-brand__subtitle"},"Реестр v1",-1)])]),_:1})]),ke("div",_h,[r.value?(Ie(),ot("p",bh,[...c[1]||(c[1]=[ys(" Стандарты не найдены. Добавьте ",-1),ke("code",null,"*.standard.yaml",-1),ys(" рядом с кодом контракта. ",-1)])])):Xi("",!0),(Ie(!0),ot(je,null,Vi(n.value,l=>(Ie(),ot("div",{key:l,class:"sidebar-group"},[ke("div",wh,[ke("span",vh,Pn(o(l)||l),1),o(l)?(Ie(),ot("code",kh,Pn(l),1)):Xi("",!0)]),ke("ul",Sh,[(Ie(!0),ot(je,null,Vi(s.value[l],u=>(Ie(),ot("li",{key:u.process_type},[ge(we(Vr),{to:{name:"process",params:{contract:u.contract,processType:u.process_type}},class:$s(["sidebar-item",{"sidebar-item--active":i.value===u.process_type}])},{default:Pr(()=>[ys(Pn(u.title),1)]),_:2},1032,["to","class"])]))),128))])]))),128))]),ke("div",Oh,[ge(mh)])]))}}),Ah=nl(Eh,[["__scopeId","data-v-fff96373"]]),Nh={key:0,class:"mobile-stub"},Th={key:1,class:"app-shell"},Rh={class:"app-sidebar"},Ih={class:"app-main"},Ch=900,Ph=es({__name:"App",setup(e){const t=Vs(!1);function n(){typeof window>"u"||(t.value=window.innerWidth<Ch)}return ci(()=>{n(),window.addEventListener("resize",n)}),li(()=>{window.removeEventListener("resize",n)}),(s,r)=>{const i=pu("router-view");return t.value?(Ie(),ot("div",Nh,[...r[0]||(r[0]=[ke("div",{class:"mobile-stub__box"},[ke("h1",null,"Только для десктопа"),ke("p",null," Реестр кооперативных стандартов рассчитан на широкие экраны — BPMN-граф процесса не помещается на мобильных устройствах. Откройте сайт с компьютера или планшета. ")],-1)])])):(Ie(),ot("div",Th,[ke("aside",Rh,[ge(Ah)]),ke("main",Ih,[ge(i)])]))}}}),Lh="modulepreload",Mh=function(e){return"/standards/"+e},Ko={},Nr=function(t,n,s){let r=Promise.resolve();if(n&&n.length>0){let o=function(l){return Promise.all(l.map(u=>Promise.resolve(u).then(p=>({status:"fulfilled",value:p}),p=>({status:"rejected",reason:p}))))};document.getElementsByTagName("link");const a=document.querySelector("meta[property=csp-nonce]"),c=(a==null?void 0:a.nonce)||(a==null?void 0:a.getAttribute("nonce"));r=o(n.map(l=>{if(l=Mh(l),l in Ko)return;Ko[l]=!0;const u=l.endsWith(".css"),p=u?'[rel="stylesheet"]':"";if(document.querySelector(`link[href="${l}"]${p}`))return;const f=document.createElement("link");if(f.rel=u?"stylesheet":Lh,u||(f.as="script"),f.crossOrigin="",f.href=l,c&&f.setAttribute("nonce",c),document.head.appendChild(f),u)return new Promise((d,b)=>{f.addEventListener("load",d),f.addEventListener("error",()=>b(new Error(`Unable to preload CSS for ${l}`)))})}))}function i(o){const a=new Event("vite:preloadError",{cancelable:!0});if(a.payload=o,window.dispatchEvent(a),!a.defaultPrevented)throw o}return r.then(o=>{for(const a of o||[])a.status==="rejected"&&i(a.reason);return t().catch(i)})},Dh=[{path:"/",name:"home",component:()=>Nr(()=>import("./HomePage-DNoKHLYm.js"),__vite__mapDeps([0,1]))},{path:"/:contract/:processType",name:"process",component:()=>Nr(()=>import("./ProcessPage-wFCzbw0-.js"),__vite__mapDeps([2,3])),props:!0},{path:"/:pathMatch(.*)*",name:"not-found",component:()=>Nr(()=>import("./NotFoundPage-ejImhhKV.js"),[])}],xh=Rf({history:cf(),routes:Dh,scrollBehavior(e,t){if(!(e.name!==t.name||e.params.processType!==t.params.processType))return!1;if(typeof document<"u"){const s=document.querySelector(".app-main");s?s.scrollTo({top:0,behavior:"smooth"}):window.scrollTo({top:0,behavior:"smooth"})}return{top:0}}});wp(Ph).use(xh).mount("#app");export{Wh as $,Za as A,Bh as B,ih as C,li as D,jh as E,je as F,Zr as G,Je as H,Us as I,ye as J,Uh as K,Fh as L,ml as M,_a as N,Cr as O,Dl as P,$h as Q,Vr as R,Qh as S,Yh as T,ms as U,Yn as V,pu as W,Gh as X,Uu as Y,Vh as Z,nl as _,ke as a,fh as a0,If as a1,Jh as a2,ys as b,ot as c,es as d,Xi as e,Pe as f,Hn as g,Zc as h,Hh as i,Ta as j,ge as k,qh as l,Dn as m,ru as n,Ie as o,ci as p,$s as q,Vi as r,Jr as s,Pn as t,we as u,xl as v,Pr as w,Kh as x,zh as y,Vs as z};
+ */const lh=Zc("SunIcon",[["circle",{cx:"12",cy:"12",r:"4",key:"4exip2"}],["path",{d:"M12 2v2",key:"tus03m"}],["path",{d:"M12 20v2",key:"1lh1kg"}],["path",{d:"m4.93 4.93 1.41 1.41",key:"149t6j"}],["path",{d:"m17.66 17.66 1.41 1.41",key:"ptbguv"}],["path",{d:"M2 12h2",key:"1t8f8n"}],["path",{d:"M20 12h2",key:"1q8mjw"}],["path",{d:"m6.34 17.66-1.41 1.41",key:"1m8zz5"}],["path",{d:"m19.07 4.93-1.41 1.41",key:"1shlcs"}]]),el="standards.theme";function tl(){try{const e=localStorage.getItem(el);return e==="light"||e==="dark"?e:null}catch{return null}}function uh(){return typeof window>"u"||!window.matchMedia?"light":window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}function Ci(e){typeof document<"u"&&(document.documentElement.dataset.theme=e)}const Pt=Vs(tl()??uh());let Uo=!1;function ph(){if(!Uo&&(Uo=!0,Ci(Pt.value),typeof window<"u"&&window.matchMedia)){const e=window.matchMedia("(prefers-color-scheme: dark)"),t=n=>{tl()===null&&(Pt.value=n.matches?"dark":"light")};e.addEventListener("change",t)}}Dn(Pt,e=>{Ci(e);try{localStorage.setItem(el,e)}catch{}});typeof document<"u"&&Ci(Pt.value);function fh(){return ci(ph),li(()=>{}),{theme:Pt,toggle:()=>{Pt.value=Pt.value==="dark"?"light":"dark"},setTheme:e=>{Pt.value=e}}}const dh=["title","aria-label"],hh=es({__name:"ThemeToggle",setup(e){const{theme:t,toggle:n}=fh();return(s,r)=>(Ie(),ot("button",{type:"button",class:"theme-toggle",title:we(t)==="dark"?"Светлая тема":"Тёмная тема","aria-label":we(t)==="dark"?"Светлая тема":"Тёмная тема",onClick:r[0]||(r[0]=(...i)=>we(n)&&we(n)(...i))},[we(t)==="dark"?(Ie(),Hn(we(lh),{key:0,size:16})):(Ie(),Hn(we(ch),{key:1,size:16})),ke("span",null,Pn(we(t)==="dark"?"Светлая":"Тёмная"),1)],8,dh))}}),nl=(e,t)=>{const n=e.__vccOpts||e;for(const[s,r]of t)n[s]=r;return n},mh=nl(hh,[["__scopeId","data-v-736ff43a"]]),gh={class:"sidebar"},yh={class:"sidebar-brand"},_h={class:"sidebar-body"},bh={key:0,class:"sidebar-empty"},wh={class:"sidebar-group__head"},vh={class:"sidebar-group__name"},kh={key:0,class:"sidebar-group__code"},Sh={class:"sidebar-group__list"},Oh={class:"sidebar-foot"},Eh=es({__name:"Sidebar",setup(e){const t=If(),n=Pe(()=>Jr.contracts),s=Pe(()=>Jr.byContract),r=Pe(()=>n.value.length===0),i=Pe(()=>typeof t.params.processType=="string"?t.params.processType:null);function o(a){return ih[a]??""}return(a,c)=>(Ie(),ot("nav",gh,[ke("div",yh,[ge(we(Vr),{to:"/"},{default:Pr(()=>[...c[0]||(c[0]=[ke("div",{class:"sidebar-brand__title"},"Кооперативные стандарты",-1),ke("div",{class:"sidebar-brand__subtitle"},"Реестр v1",-1)])]),_:1})]),ke("div",_h,[r.value?(Ie(),ot("p",bh,[...c[1]||(c[1]=[ys(" Стандарты не найдены. Добавьте ",-1),ke("code",null,"*.standard.yaml",-1),ys(" рядом с кодом контракта. ",-1)])])):Xi("",!0),(Ie(!0),ot(je,null,Vi(n.value,l=>(Ie(),ot("div",{key:l,class:"sidebar-group"},[ke("div",wh,[ke("span",vh,Pn(o(l)||l),1),o(l)?(Ie(),ot("code",kh,Pn(l),1)):Xi("",!0)]),ke("ul",Sh,[(Ie(!0),ot(je,null,Vi(s.value[l],u=>(Ie(),ot("li",{key:u.process_type},[ge(we(Vr),{to:{name:"process",params:{contract:u.contract,processType:u.process_type}},class:$s(["sidebar-item",{"sidebar-item--active":i.value===u.process_type}])},{default:Pr(()=>[ys(Pn(u.title),1)]),_:2},1032,["to","class"])]))),128))])]))),128))]),ke("div",Oh,[ge(mh)])]))}}),Ah=nl(Eh,[["__scopeId","data-v-fff96373"]]),Nh={key:0,class:"mobile-stub"},Th={key:1,class:"app-shell"},Rh={class:"app-sidebar"},Ih={class:"app-main"},Ch=900,Ph=es({__name:"App",setup(e){const t=Vs(!1);function n(){typeof window>"u"||(t.value=window.innerWidth<Ch)}return ci(()=>{n(),window.addEventListener("resize",n)}),li(()=>{window.removeEventListener("resize",n)}),(s,r)=>{const i=pu("router-view");return t.value?(Ie(),ot("div",Nh,[...r[0]||(r[0]=[ke("div",{class:"mobile-stub__box"},[ke("h1",null,"Только для десктопа"),ke("p",null," Реестр кооперативных стандартов рассчитан на широкие экраны — BPMN-граф процесса не помещается на мобильных устройствах. Откройте сайт с компьютера или планшета. ")],-1)])])):(Ie(),ot("div",Th,[ke("aside",Rh,[ge(Ah)]),ke("main",Ih,[ge(i)])]))}}}),Lh="modulepreload",Mh=function(e){return"/standards/"+e},Ko={},Nr=function(t,n,s){let r=Promise.resolve();if(n&&n.length>0){let o=function(l){return Promise.all(l.map(u=>Promise.resolve(u).then(p=>({status:"fulfilled",value:p}),p=>({status:"rejected",reason:p}))))};document.getElementsByTagName("link");const a=document.querySelector("meta[property=csp-nonce]"),c=(a==null?void 0:a.nonce)||(a==null?void 0:a.getAttribute("nonce"));r=o(n.map(l=>{if(l=Mh(l),l in Ko)return;Ko[l]=!0;const u=l.endsWith(".css"),p=u?'[rel="stylesheet"]':"";if(document.querySelector(`link[href="${l}"]${p}`))return;const f=document.createElement("link");if(f.rel=u?"stylesheet":Lh,u||(f.as="script"),f.crossOrigin="",f.href=l,c&&f.setAttribute("nonce",c),document.head.appendChild(f),u)return new Promise((d,b)=>{f.addEventListener("load",d),f.addEventListener("error",()=>b(new Error(`Unable to preload CSS for ${l}`)))})}))}function i(o){const a=new Event("vite:preloadError",{cancelable:!0});if(a.payload=o,window.dispatchEvent(a),!a.defaultPrevented)throw o}return r.then(o=>{for(const a of o||[])a.status==="rejected"&&i(a.reason);return t().catch(i)})},Dh=[{path:"/",name:"home",component:()=>Nr(()=>import("./HomePage-DerASP8B.js"),__vite__mapDeps([0,1]))},{path:"/:contract/:processType",name:"process",component:()=>Nr(()=>import("./ProcessPage-DJe7fiE2.js"),__vite__mapDeps([2,3])),props:!0},{path:"/:pathMatch(.*)*",name:"not-found",component:()=>Nr(()=>import("./NotFoundPage-p8lyen-r.js"),[])}],xh=Rf({history:cf(),routes:Dh,scrollBehavior(e,t){if(!(e.name!==t.name||e.params.processType!==t.params.processType))return!1;if(typeof document<"u"){const s=document.querySelector(".app-main");s?s.scrollTo({top:0,behavior:"smooth"}):window.scrollTo({top:0,behavior:"smooth"})}return{top:0}}});wp(Ph).use(xh).mount("#app");export{Wh as $,Za as A,Bh as B,ih as C,li as D,jh as E,je as F,Zr as G,Je as H,Us as I,ye as J,Uh as K,Fh as L,ml as M,_a as N,Cr as O,Dl as P,$h as Q,Vr as R,Qh as S,Yh as T,ms as U,Yn as V,pu as W,Gh as X,Uu as Y,Vh as Z,nl as _,ke as a,fh as a0,If as a1,Jh as a2,ys as b,ot as c,es as d,Xi as e,Pe as f,Hn as g,Zc as h,Hh as i,Ta as j,ge as k,qh as l,Dn as m,ru as n,Ie as o,ci as p,$s as q,Vi as r,Jr as s,Pn as t,we as u,xl as v,Pr as w,Kh as x,zh as y,Vs as z};
