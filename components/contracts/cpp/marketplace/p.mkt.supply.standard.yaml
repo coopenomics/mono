@@ -652,11 +652,16 @@ operations:
     # L2 — кошельки кооператива (агрегаты)
     wallet_from: w.wal.share       # ЦПП «Цифровой Кошелёк» — паевые взносы деньгами
     wallet_to: w.wal.member        # Универсальный членский — общий членский кошелёк пайщика
-    # L3 — пополнение available на w.wal.member заказчика
-    user_wallet: w.wal.member
-    user_ref: order.orderer
-    available_delta: +order.total_cost
-    blocked_delta: null
+    # L3 — две стороны движения у одного и того же пайщика
+    l3:
+      - user_wallet: w.wal.share
+        user_ref: order.orderer
+        available_delta: -order.total_cost
+        blocked_delta: null
+      - user_wallet: w.wal.member
+        user_ref: order.orderer
+        available_delta: +order.total_cost
+        blocked_delta: null
     amount_ref: order.total_cost
     triggered_by: marketplace::createorder
     description: >
