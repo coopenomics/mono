@@ -176,14 +176,17 @@ const focusStatus = computed<string | null>(() => {
 <style scoped>
 .process-page {
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   height: 100%;
   min-height: 0;
+  min-width: 0;
   overflow: hidden;
   gap: 10px;
 }
 .process-page__workspace {
   min-height: 0;
+  min-width: 0;
   overflow: hidden;
   display: flex;
 }
@@ -285,6 +288,9 @@ const focusStatus = computed<string | null>(() => {
   padding-top: 8px;
   border-top: 1px solid var(--border);
   min-height: 0;
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
 }
 .related__title {
   flex: 0 0 auto;
