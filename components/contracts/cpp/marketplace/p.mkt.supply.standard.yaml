@@ -93,8 +93,8 @@ purpose: >
   совместно приобретать товары на условиях кооператива без посреднических
   наценок.
 roles:
-  - customer        # пайщик-заказчик
-  - supplier        # пайщик-поставщик
+  - orderer        # пайщик-заказчик
+  - offerer        # пайщик-поставщик
   - chairman        # председатель кооперативного участка (КУ-приёмщик/КУ-выдающий)
   - backend         # Backend Marketplace (внеблокчейн-логика)
 
@@ -104,7 +104,7 @@ roles:
 actions:
   - name: marketplace::createorder
     human: Создать заказ
-    actor: customer
+    actor: orderer
     role: opener
     purpose: >
       Заказчик-пайщик создаёт Order на товар из каталога с указанием
@@ -120,7 +120,7 @@ actions:
 
   - name: marketplace::cancelorder
     human: Отменить заказ
-    actor: customer
+    actor: orderer
     role: progress
     purpose: >
       Заказчик отменяет Order до момента акцепта поставщиком. Контракт
@@ -146,7 +146,7 @@ actions:
 
   - name: marketplace::acceptbatch
     human: Акцептовать партию
-    actor: supplier
+    actor: offerer
     role: progress
     purpose: >
       Поставщик через стол поставщика акцептует консолидированную заявку
@@ -157,7 +157,7 @@ actions:
 
   - name: marketplace::declinebatch
     human: Отказаться от партии
-    actor: supplier
+    actor: offerer
     role: reject
     purpose: >
       Поставщик отказывается от консолидированной заявки до её публикации
@@ -168,7 +168,7 @@ actions:
 
   - name: marketplace::prepship
     human: Подготовить отгрузку
-    actor: supplier
+    actor: offerer
     role: progress
     purpose: >
       Поставщик в pre-shipment-режиме группирует акцептованные Order'ы по КУ
@@ -180,7 +180,7 @@ actions:
 
   - name: marketplace::signsupp
     human: Поставщик подписал приёмку
-    actor: supplier
+    actor: offerer
     role: progress
     purpose: >
       Поставщик ставит первую подпись на АПП приёмки. Триггерится из push-
@@ -216,7 +216,7 @@ actions:
 
   - name: marketplace::signiss2
     human: Заказчик закрыл выдачу
-    actor: customer
+    actor: orderer
     role: closer
     purpose: >
       Заказчик ставит вторую (финальную) подпись на АПП выдачи на устройстве
@@ -232,7 +232,7 @@ actions:
 
 # ── Секция 3. Граф состояний ────────────────────────────────────────────────
 # Сущность: marketplace::order (таблица orders, scope=coopname).
-# Граф спрямлён: статус pending_supplier_sign модели B описан в сценарии,
+# Граф спрямлён: статус pending_offerer_sign модели B описан в сценарии,
 # в графе сворачивается в supply_prepared с разными путями входа.
 entity: marketplace::order
 entity_human: Заказ на поставку
@@ -319,7 +319,7 @@ transitions:
   - from: "∅"
     to: active
     action: marketplace::createorder
-    actor: customer
+    actor: orderer
     ledger_code: p.mkt.supply
     operations:
       - o.wal.fconv
@@ -335,7 +335,7 @@ transitions:
   - from: active
     to: cancelled
     action: marketplace::cancelorder
-    actor: customer
+    actor: orderer
     ledger_code: p.mkt.supply
     operations:
       - o.mkt.funblk
@@ -356,7 +356,7 @@ transitions:
   - from: active
     to: accepted
     action: marketplace::acceptbatch
-    actor: supplier
+    actor: offerer
     guards:
       - Минимальный порог достигнут к концу цикла.
       - Поставщик владеет связанным Offer'ом.
@@ -364,7 +364,7 @@ transitions:
   - from: active
     to: cancelled
     action: marketplace::declinebatch
-    actor: supplier
+    actor: offerer
     ledger_code: p.mkt.supply
     operations:
       - o.mkt.funblk
@@ -374,7 +374,7 @@ transitions:
   - from: accepted
     to: ship_ready
     action: marketplace::prepship
-    actor: supplier
+    actor: offerer
     guards:
       - Состав Shipment'а равен составу акцептованной партии (жёсткий акцепт; замены номенклатуры запрещены).
       - Поставщик выбрал режим: A (самовывоз) или B (экспедитор + ТТН).
@@ -382,7 +382,7 @@ transitions:
   - from: ship_ready
     to: supply_prepared
     action: marketplace::signsupp
-    actor: supplier
+    actor: offerer
     guards:
       - Состав АПП соответствует составу акцептованной партии.
       - В модели A — председатель отсканировал штрих-код поставщика, скорректировал quantity/price (если нужно), нажал «Подтверждаю»; поставщик получил push-takeover и нажал «Передал».
@@ -410,7 +410,7 @@ transitions:
   - from: ready_to_receive
     to: received
     action: marketplace::signiss2
-    actor: customer
+    actor: orderer
     ledger_code: p.mkt.supply
     operations:
       - o.mkt.consum
@@ -423,7 +423,7 @@ scenario:
   steps:
     - step: 1
       title: Создание заказа и блокировка средств
-      actor: customer
+      actor: orderer
       action: marketplace::createorder
       description: >
         Заказчик-пайщик в столе заказчика выбирает позицию из каталога Offer'ов
@@ -471,7 +471,7 @@ scenario:
 
     - step: 3
       title: Акцепт поставщика
-      actor: supplier
+      actor: offerer
       action: marketplace::acceptbatch
       description: >
         Поставщик-пайщик в столе поставщика видит консолидированную заявку
@@ -488,7 +488,7 @@ scenario:
 
     - step: 4
       title: Pre-shipment — подготовка отгрузки
-      actor: supplier
+      actor: offerer
       action: marketplace::prepship
       description: >
         Поставщик в кабинете на вкладке «К отгрузке» видит акцептованные
@@ -570,7 +570,7 @@ scenario:
 
     - step: 8
       title: Выдача и финальная подпись заказчика
-      actor: customer
+      actor: orderer
       action: marketplace::signiss2
       description: >
         Заказчик приходит на КУ, показывает QR-код заявки оператору.
@@ -631,7 +631,7 @@ scenario:
     - branch: Отказ поставщика от корректировки (модель B)
       at_step: 5
       action: null
-      actor: supplier
+      actor: offerer
       description: >
         Если поставщик дистанционно отказывается подписать скорректированный
         по ТТН АПП («Отказ от корректировки» в push-takeover), формируется
@@ -646,7 +646,7 @@ scenario:
     - branch: Отмена заказчиком до акцепта
       at_step: 2
       action: marketplace::cancelorder
-      actor: customer
+      actor: orderer
       description: >
         Заказчик в столе заказчика отменяет Order до момента, как
         поставщик акцептует консолидированную заявку. Контракт выполняет
@@ -658,7 +658,7 @@ scenario:
     - branch: Отказ поставщика от партии
       at_step: 3
       action: marketplace::declinebatch
-      actor: supplier
+      actor: offerer
       description: >
         Поставщик в столе поставщика отказывается от консолидированной
         заявки до её публикации on-chain (acceptbatch). Контракт для каждого
@@ -689,7 +689,7 @@ documents:
   - action: marketplace::signsupp
     title: АПП приёмки имущества кооперативом (первая подпись поставщика)
     registry_id: 702
-    signed_by: [supplier]
+    signed_by: [offerer]
     stored_in: orders.acceptance_act
     note: "Используется существующий шаблон 702.AssetContributionAct из cooptypes/cooperative/registry/. Оригинально создан под клиринговую модель donor'а; форма акта приёма имущества кооперативом структурно подходит и для членской модели. При необходимости методолог может создать специализированный шаблон в новой серии (1100+) — тогда registry_id обновится."
 
@@ -710,14 +710,14 @@ documents:
   - action: marketplace::signiss2
     title: АПП выдачи имущества пайщику (финальная подпись заказчика)
     registry_id: 802
-    signed_by: [customer]
+    signed_by: [orderer]
     stored_in: orders.issue_act
     note: "Тот же шаблон что у signiss1 (registry_id 802)."
 
   - action: marketplace::prepship
     title: Товарно-транспортная накладная (модель B, бумажная)
     registry_id: 0
-    signed_by: [supplier, chairman, expediter]
+    signed_by: [offerer, chairman, expediter]
     stored_in: shipments.ttn_pdf
     note: "TODO: создать шаблон ТТН в registry. В модели A не используется. Подписи проставляются вне блокчейна (бумажно), фотофиксация председателя сохраняется для дистанционной ЭЦП поставщика."
 
@@ -747,7 +747,7 @@ operations:
     wallet_to: w.wal.member        # Универсальный членский — общий членский кошелёк пайщика
     # L3 — пополнение available на w.wal.member заказчика
     user_wallet: w.wal.member
-    user_ref: order.customer
+    user_ref: order.orderer
     available_delta: +order.total_cost
     blocked_delta: null
     amount_ref: order.total_cost
@@ -778,11 +778,11 @@ operations:
     # L3 — две стороны движения у одного и того же пайщика
     l3:
       - user_wallet: w.wal.member
-        user_ref: order.customer
+        user_ref: order.orderer
         available_delta: -order.total_cost
         blocked_delta: null
       - user_wallet: w.mkt.member
-        user_ref: order.customer
+        user_ref: order.orderer
         available_delta: +order.total_cost
         blocked_delta: null
     amount_ref: order.total_cost
@@ -807,7 +807,7 @@ operations:
     wallet_to: null
     # L3 — split available → blocked на одном кошельке заказчика
     user_wallet: w.mkt.member       # ЦПП «Стол Заказов» — членские взносы заказчика
-    user_ref: order.customer
+    user_ref: order.orderer
     available_delta: -order.total_cost
     blocked_delta: +order.total_cost
     amount_ref: order.total_cost
@@ -831,7 +831,7 @@ operations:
     wallet_to: null
     # L3 — обратное движение blocked → available
     user_wallet: w.mkt.member
-    user_ref: order.customer
+    user_ref: order.orderer
     available_delta: +order.total_cost
     blocked_delta: -order.total_cost
     amount_ref: order.total_cost
@@ -858,11 +858,11 @@ operations:
     # L3 — две стороны движения у одного и того же пайщика
     l3:
       - user_wallet: w.mkt.member
-        user_ref: order.customer
+        user_ref: order.orderer
         available_delta: -order.total_cost
         blocked_delta: null
       - user_wallet: w.wal.member
-        user_ref: order.customer
+        user_ref: order.orderer
         available_delta: +order.total_cost
         blocked_delta: null
     amount_ref: order.total_cost
@@ -941,7 +941,7 @@ operations:
     wallet_to: null
     # L3 — blocked заказчика обнуляется (целевое расходование членского взноса)
     user_wallet: w.mkt.member
-    user_ref: order.customer
+    user_ref: order.orderer
     available_delta: null
     blocked_delta: -order.fact_cost
     amount_ref: order.fact_cost

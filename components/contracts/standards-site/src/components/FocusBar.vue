@@ -724,8 +724,11 @@ function getL3Movements(op: Ledger2Operation) {
   min-width: 0;
 }
 .focus-bar__op-subs {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  /* Каждая под-карточка (Проводки / Кошельки кооператива / Кошелёк пайщика /
+     Сумма) рендерится отдельной строкой во всю ширину — так читаемее,
+     чем зажимать L1/L2 в узкую колонку и тащить L3 на 1/-1. */
+  display: flex;
+  flex-direction: column;
   gap: 6px;
 }
 .focus-bar__op-name {
@@ -764,10 +767,6 @@ function getL3Movements(op: Ledger2Operation) {
 .focus-bar__op-sub--l3 {
   background: var(--accent-soft);
   border-color: var(--accent-border);
-  /* L3 — самая «нагруженная» карточка (wallet · user / Доступно / Заблокировано),
-     поэтому растягиваем на всю ширину сетки op-subs, чтобы дельты не зажимались
-     в узкую колонку и читались одной строкой. */
-  grid-column: 1 / -1;
 }
 .focus-bar__op-sub--l3 .focus-bar__op-sub-body code {
   background: var(--bg); border-color: var(--accent-border); color: var(--accent);

@@ -60,7 +60,7 @@ purpose: >
   при некондиционном товаре. Возврат имущества поставщику и претензионная
   работа выходят за рамки этого процесса.
 roles:
-  - customer        # пайщик-заказчик, инициатор возврата
+  - orderer        # пайщик-заказчик, инициатор возврата
   - chairman        # председатель кооперативного участка (КУ)
 
 # ── Секция 2. Действия контракта (блокчейн-уровень) ─────────────────────────
@@ -69,7 +69,7 @@ roles:
 actions:
   - name: marketplace::submretrn
     human: Подать заявление
-    actor: customer
+    actor: orderer
     role: opener
     purpose: >
       Заказчик-пайщик в архиве заказа на столе заказчика подаёт заявление
@@ -168,7 +168,7 @@ transitions:
   - from: "∅"
     to: pending_review
     action: marketplace::submretrn
-    actor: customer
+    actor: orderer
     guards:
       - Заявитель — заказчик-пайщик исходного Order'а (статус received).
       - Гарантийный срок, заданный в Offer'е поставщика, ещё не истёк.
@@ -212,7 +212,7 @@ scenario:
   steps:
     - step: 1
       title: Подача заявления
-      actor: customer
+      actor: orderer
       action: marketplace::submretrn
       description: >
         Заказчик-пайщик в личном кабинете в архиве заказа открывает экран
@@ -280,7 +280,7 @@ scenario:
     - branch: Истечение гарантийного срока
       at_step: 1
       action: null
-      actor: customer
+      actor: orderer
       description: >
         Если гарантийный срок Offer'а истёк, UI скрывает кнопку «Гарантийный
         возврат» в архиве заказа. Контракт submretrn также отказывает в
@@ -319,7 +319,7 @@ documents:
   - action: marketplace::submretrn
     title: Заявление пайщика на гарантийный возврат имущества
     registry_id: 800
-    signed_by: [customer]
+    signed_by: [orderer]
     stored_in: return_requests.statement
     note: "Используется существующий шаблон 800.ReturnByAssetStatement из cooptypes/cooperative/registry/. Оригинально создан под клиринговую модель donor'а («Заявление на возврат паевого взноса имуществом»); форма заявления пайщика на возврат структурно подходит и для членской модели гарантийного возврата. При необходимости методолог может создать специализированный шаблон в новой серии (1100+) — тогда registry_id обновится."
 
@@ -347,7 +347,7 @@ operations:
     wallet_to: w.mkt.member        # ЦПП «Стол Заказов» — программный кошелёк
     # L3 — пайщику восстанавливается available на программном кошельке
     user_wallet: w.mkt.member
-    user_ref: return_request.customer
+    user_ref: return_request.orderer
     available_delta: +order.fact_cost
     blocked_delta: null
     amount_ref: order.fact_cost
