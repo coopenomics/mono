@@ -364,7 +364,6 @@ function buildLayout(standard: Standard): LayoutResult {
         title: standard.title,
         summary: standard.summary,
         purpose: standard.purpose ?? '',
-        hasRelated: (standard.related ?? []).length > 0,
         isFocus: false,
       },
       draggable: false,

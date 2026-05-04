@@ -281,17 +281,3 @@ operations:
       (Кт 58), сумма зачитывается в паевой фонд (Дт 80) и появляется как
       доступный остаток на SHARE_FUND_PAY пайщика.
 
-# ── Секция 7. Связи ─────────────────────────────────────────────────────────
-related:
-  - process_type: p.cap.rid
-    id: public_capital_rid_process
-    relation: triggers
-    note: >
-      Возврат займа (o.cap.repay) технически происходит в процессе
-      «Приём РИД» при подписании акта-2 проекта.
-
-  - process_type: p.reg.accept
-    id: public_registrator_accept_process
-    relation: provides
-    note: >
-      Заём может получить только активный пайщик кооператива.

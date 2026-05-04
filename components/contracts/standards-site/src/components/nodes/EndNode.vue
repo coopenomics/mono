@@ -7,7 +7,6 @@ defineProps<{
     title?: string;
     summary?: string;
     purpose?: string;
-    hasRelated?: boolean;
     isFocus: boolean;
   };
 }>();

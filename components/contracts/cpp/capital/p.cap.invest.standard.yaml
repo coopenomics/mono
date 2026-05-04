@@ -124,18 +124,3 @@ operations:
       кооператива, но в учёте пайщика они теперь считаются инвестицией
       в «Благорост», а не свободными паевыми средствами.
 
-# ── Секция 7. Связи ─────────────────────────────────────────────────────────
-related:
-  - process_type: p.wal.depo
-    id: public_wallet_deposit_process
-    relation: provides
-    note: >
-      Чтобы инвестировать, у пайщика должен быть остаток на SHARE_FUND_PAY —
-      его создаёт «Внесение паевого взноса» (p.wal.depo).
-
-  - process_type: p.cap.rid
-    id: public_capital_rid_process
-    relation: triggers
-    note: >
-      После инвестирования участник может коммитить РИД в проект
-      программы «Благорост» (p.cap.rid).

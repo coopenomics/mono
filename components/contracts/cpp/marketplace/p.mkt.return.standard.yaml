@@ -334,21 +334,3 @@ operations:
       к o.mkt.consum; финальное решение — при формализации стандарта
       совместно с Ангелиной.)
 
-# ── Секция 7. Связи ─────────────────────────────────────────────────────────
-related:
-  - process_type: p.mkt.supply
-    id: public_marketplace_supply_process
-    relation: provides
-    note: >
-      Гарантийный возврат возможен только для Order'а, прошедшего «Прямую
-      поставку-приобретение» (p.mkt.supply) до финального статуса received.
-      Гарантийный срок задаётся поставщиком при публикации Offer'а в
-      процессе p.mkt.supply.
-
-  - process_type: p.reg.accept
-    id: public_registrator_accept_process
-    relation: provides
-    note: >
-      Заявитель должен быть active-пайщиком кооператива — статус выдаётся
-      процессом «Приём пайщика» (p.reg.accept). Председатель КУ также
-      обязан быть active-пайщиком и иметь роль администратора участка.

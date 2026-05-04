@@ -282,19 +282,3 @@ operations:
       В бухгалтерии прошла проводка Дт 80 / Кт 51 — паевой фонд уменьшился,
       деньги ушли с расчётного счёта пайщику.
 
-# ── Секция 7. Связи ─────────────────────────────────────────────────────────
-related:
-  - process_type: p.wal.depo
-    id: public_wallet_deposit_process
-    relation: affects
-    note: >
-      Прямой процесс — внесение паевого взноса (p.wal.depo). Возврат
-      списывается с того же кошелька SHARE_FUND_PAY, который пополняется
-      депозитом.
-
-  - process_type: p.reg.accept
-    id: public_registrator_accept_process
-    relation: provides
-    note: >
-      Возврат возможен только если пайщик прошёл «Приём пайщика» и имеет
-      статус active с положительным остатком на SHARE_FUND_PAY.

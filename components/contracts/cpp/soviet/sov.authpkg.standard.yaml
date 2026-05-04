@@ -294,22 +294,3 @@ documents:
 # Все операции возникают в callback'ах исходных контрактов.
 operations: []
 
-# ── Секция 7. Связи ─────────────────────────────────────────────────────────
-related:
-  - process_type: p.reg.accept
-    relation: provides
-    note: Через этот путь утверждается приём пайщика в кооператив.
-
-  - process_type: meet.hold
-    relation: provides
-    note: Через этот путь авторизуется созыв общего собрания.
-
-  - process_type: reg.coop
-    relation: provides
-    note: Через этот путь утверждается присоединение кооператива к платформе.
-
-  - process_type: sov.decision
-    relation: affects
-    note: >
-      Альтернативный путь — sov.decision — для свободных решений по
-      произвольной повестке, поданной пайщиком вручную.

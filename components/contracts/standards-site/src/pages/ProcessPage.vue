@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useRoute, RouterLink } from 'vue-router';
-import { getStandard, standardsIndex } from '@/data/loader';
+import { useRoute } from 'vue-router';
+import { getStandard } from '@/data/loader';
 import { START_ID } from '@/graph/layout';
 import ProcessGraph from '@/components/ProcessGraph.vue';
 
@@ -13,17 +13,6 @@ const processType = computed(() =>
 
 const standard = computed(() => getStandard(processType.value));
 
-const RELATION_HUMAN: Record<string, string> = {
-  provides: 'обеспечивает',
-  repaid_by: 'гасится в',
-  affects: 'влияет на',
-  consumes: 'потребляет',
-  triggers: 'запускает',
-};
-function relationHuman(r: string): string {
-  return RELATION_HUMAN[r] ?? r;
-}
-
 const LIFECYCLE_HUMAN: Record<string, string> = {
   proposed: 'Предложен',
   approved: 'Утверждён',
@@ -33,33 +22,6 @@ const LIFECYCLE_HUMAN: Record<string, string> = {
 function lifecycleHuman(s: string): string {
   return LIFECYCLE_HUMAN[s] ?? s;
 }
-
-/**
- * Для каждой записи `related[]` смотрим, есть ли такой process_type у нас
- * в индексе — если да, делаем кликабельный RouterLink, иначе просто метку.
- */
-interface RelatedView {
-  title: string;
-  code: string;
-  relation: string;
-  note: string;
-  target: { contract: string; processType: string } | null;
-}
-
-const relatedLinks = computed<RelatedView[]>(() => {
-  const list = standard.value?.related ?? [];
-  return list.map((r) => {
-    const pt = r.process_type;
-    const known = pt ? standardsIndex.byProcessType[pt] : undefined;
-    return {
-      title: known?.title ?? pt ?? r.id ?? '—',
-      code: pt ?? r.id ?? '',
-      relation: r.relation,
-      note: r.note,
-      target: known ? { contract: known.contract, processType: known.process_type } : null,
-    };
-  });
-});
 
 /**
  * Единовременный фокус может быть только один:
@@ -148,35 +110,13 @@ const focusStatus = computed<string | null>(() => {
         :focus-operation="focusOperation"
       />
     </div>
-
-    <section v-if="relatedLinks.length" class="related">
-      <span class="related__title">Связанные стандарты</span>
-      <ul class="related__list">
-        <li v-for="(r, i) in relatedLinks" :key="i" class="related__item">
-          <span class="related__relation">{{ relationHuman(r.relation) }}</span>
-          <RouterLink
-            v-if="r.target"
-            class="related__peer related__peer--link"
-            :to="{ name: 'process', params: { contract: r.target.contract, processType: r.target.processType } }"
-          >
-            <span class="related__peer-title">{{ r.title }}</span>
-            <code v-if="r.code" class="related__peer-code">{{ r.code }}</code>
-          </RouterLink>
-          <span v-else class="related__peer related__peer--plain">
-            <span class="related__peer-title">{{ r.title }}</span>
-            <code v-if="r.code" class="related__peer-code">{{ r.code }}</code>
-          </span>
-          <p v-if="r.note" class="related__note">{{ r.note }}</p>
-        </li>
-      </ul>
-    </section>
   </div>
 </template>
 
 <style scoped>
 .process-page {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr);
   grid-template-columns: minmax(0, 1fr);
   height: 100%;
   min-height: 0;
@@ -279,118 +219,5 @@ const focusStatus = computed<string | null>(() => {
   background: var(--reject-soft);
   border-color: var(--reject);
   color: var(--reject);
-}
-.related {
-  flex-shrink: 0;
-  display: flex;
-  align-items: stretch;
-  gap: 10px;
-  padding-top: 8px;
-  border-top: 1px solid var(--border);
-  min-height: 0;
-  min-width: 0;
-  width: 100%;
-  overflow: hidden;
-}
-.related__title {
-  flex: 0 0 auto;
-  align-self: center;
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-subtle);
-  font-weight: 600;
-  white-space: nowrap;
-  padding: 0 6px;
-}
-.related__list {
-  list-style: none;
-  margin: 0;
-  padding: 0 4px 6px;
-  display: flex;
-  flex-direction: row;
-  gap: 8px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scroll-snap-type: x proximity;
-  flex: 1 1 0;
-  min-width: 0;
-}
-.related__list::-webkit-scrollbar {
-  height: 6px;
-}
-.related__list::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 3px;
-}
-.related__item {
-  flex: 0 0 auto;
-  width: 320px;
-  max-width: 60vw;
-  padding: 8px 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 10px;
-  align-items: baseline;
-  scroll-snap-align: start;
-  transition: border-color 80ms ease, background 80ms ease;
-}
-.related__item:hover {
-  border-color: var(--accent-border);
-  background: var(--bg);
-}
-.related__relation {
-  font-size: 10.5px;
-  color: var(--text-subtle);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  font-weight: 600;
-}
-.related__peer {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 6px;
-  text-decoration: none;
-}
-.related__peer-title {
-  font-size: 12.5px;
-  font-weight: 500;
-  color: var(--text);
-}
-.related__peer-code {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  padding: 1px 5px;
-  border-radius: 3px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  color: var(--text-subtle);
-  font-weight: 500;
-}
-.related__peer--link .related__peer-title {
-  color: var(--accent);
-  transition: filter 80ms ease;
-}
-.related__peer--link:hover .related__peer-title {
-  filter: brightness(1.1);
-  text-decoration: underline;
-}
-.related__peer--plain .related__peer-title {
-  color: var(--text-muted);
-}
-.related__note {
-  margin: 0;
-  font-size: 11.5px;
-  color: var(--text-muted);
-  line-height: 1.4;
-  flex-basis: 100%;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 </style>

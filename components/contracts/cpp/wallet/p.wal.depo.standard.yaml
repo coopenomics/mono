@@ -186,27 +186,3 @@ operations:
       пайщику для дальнейших операций (инвестиции в программы, конвертации,
       возврат).
 
-# ── Секция 7. Связи ─────────────────────────────────────────────────────────
-related:
-  - process_type: p.reg.accept
-    id: public_registrator_accept_process
-    relation: provides
-    note: >
-      Пайщик должен пройти «Приём пайщика» (p.reg.accept) и получить
-      статус active прежде, чем сможет вносить дополнительные паевые взносы.
-
-  - process_type: p.wal.wthdrw
-    id: public_wallet_withdraw_process
-    relation: affects
-    note: >
-      Обратный процесс — возврат паевого взноса пайщику (p.wal.wthdrw).
-      Средства списываются с того же кошелька SHARE_FUND_PAY, который
-      пополняется в этом процессе.
-
-  - process_type: p.cap.invest
-    id: public_capital_invest_process
-    relation: triggers
-    note: >
-      Средства на кошельке SHARE_FUND_PAY могут быть направлены в инвестиционные
-      программы (например, в «Благорост» через p.cap.invest) — это отдельный процесс,
-      использующий уже внесённые паевые средства.

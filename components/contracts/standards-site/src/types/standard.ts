@@ -33,8 +33,6 @@ export type StateKind = 'initial' | 'normal' | 'final' | 'virtual';
 
 export type ActionRoleInProcess = 'opener' | 'progress' | 'closer' | 'reject';
 
-export type RelationKind = 'provides' | 'repaid_by' | 'affects' | 'consumes' | 'triggers';
-
 export type Role =
   | 'contributor'
   | 'chairman'
@@ -198,13 +196,6 @@ export interface L3Movement {
   blocked_delta?: string | null;
 }
 
-// §7 Связи
-export interface RelatedStandard {
-  process_type: string | null;
-  id?: string;                      // public_capital_..._process (если есть)
-  relation: RelationKind;
-  note: string;
-}
 
 // ── Корневой тип манифеста ──────────────────────────────────────────────────
 export interface Standard {
@@ -238,9 +229,6 @@ export interface Standard {
 
   // §6
   operations: Ledger2Operation[];
-
-  // §7
-  related?: RelatedStandard[];
 }
 
 // ── Мета: индекс всех стандартов для sidebar + роутинга ─────────────────────

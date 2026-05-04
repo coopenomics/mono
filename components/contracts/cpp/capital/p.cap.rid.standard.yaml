@@ -479,32 +479,3 @@ operations:
       обязательство (Дт 80), сумма становится доступной на SHARE_FUND_PAY
       пайщика.
 
-# ── Секция 7. Связи ─────────────────────────────────────────────────────────
-related:
-  - process_type: p.cap.invest
-    id: public_capital_invest_process
-    relation: provides
-    note: >
-      Чтобы коммитить РИД в проект, участник должен быть инвестором
-      «Благорост» — это устанавливает p.cap.invest.
-
-  - process_type: sov.authpkg
-    relation: triggers
-    note: >
-      Авторизация результата советом (`authrslt`) выполняется через
-      универсальный процесс автоматизированного принятия решений.
-
-  - process_type: p.cap.debt
-    id: public_capital_debt_process
-    relation: triggers
-    note: >
-      Если у участника был беспроцентный заём проекта, на акте-2
-      срабатывает дополнительная операция o.cap.repay — заём закрывается
-      из паевого фонда.
-
-  - process_type: p.cap.prop
-    id: public_capital_property_process
-    relation: affects
-    note: >
-      Альтернативный имущественный путь — приём имущественного паевого
-      взноса (p.cap.prop), отдельный от РИД.
