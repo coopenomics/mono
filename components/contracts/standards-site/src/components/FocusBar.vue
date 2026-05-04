@@ -222,6 +222,25 @@ function walletDisplayId(name: string | null | undefined): string {
   return name == null || name === '' ? '∅' : name;
 }
 
+// ── L3 helpers ──────────────────────────────────────────────────────────
+// Дельты на user-wallet хранятся как выражения вида '-order.total_cost' /
+// '+order.total_cost'. Если знак не задан — нормализуем явно для UI.
+function formatDelta(expr: string | null | undefined): string {
+  if (expr == null || expr === '') return '—';
+  const s = String(expr).trim();
+  if (s.startsWith('+') || s.startsWith('-') || s.startsWith('±')) return s;
+  return `±${s}`;
+}
+
+// Показываем L3-карточку только когда операция реально двигает кошелёк
+// пайщика. Достаточно одного из полей user_wallet / available_delta /
+// blocked_delta — остальные инферим как «не указано».
+function hasL3(op: Ledger2Operation): boolean {
+  return Boolean(
+    op.user_wallet || op.user_ref || op.available_delta || op.blocked_delta,
+  );
+}
+
 </script>
 
 <template>
@@ -336,9 +355,10 @@ function walletDisplayId(name: string | null | undefined): string {
             <div class="focus-bar__op-name">{{ op.human_name }}</div>
 
             <div class="focus-bar__op-subs">
+              <!-- L1 — бухгалтерские проводки -->
               <div
                 v-if="op.debit != null || op.credit != null"
-                class="focus-bar__op-sub"
+                class="focus-bar__op-sub focus-bar__op-sub--l1"
               >
                 <div class="focus-bar__op-sub-label">Проводки</div>
                 <div class="focus-bar__op-sub-body">
@@ -352,11 +372,13 @@ function walletDisplayId(name: string | null | undefined): string {
                 </div>
               </div>
 
+              <!-- L2 — переводы по кошелькам кооператива -->
               <div
-                v-if="op.wallet_op !== 'WALLET_ONLY' && (!!op.wallet_from || !!op.wallet_to)"
-                class="focus-bar__op-sub"
+                v-if="['ISSUE', 'TRANSFER', 'BURN', 'WALLET_ONLY'].includes(op.wallet_op)
+                      && (!!op.wallet_from || !!op.wallet_to)"
+                class="focus-bar__op-sub focus-bar__op-sub--l2"
               >
-                <div class="focus-bar__op-sub-label">Переводы</div>
+                <div class="focus-bar__op-sub-label">Кошельки кооператива</div>
                 <div class="focus-bar__op-sub-body">
                   <span class="tooltip" :data-tip="walletTitle(op.wallet_from, op.wallet_op)">
                     <code>{{ walletDisplayId(op.wallet_from) }}</code>
@@ -365,6 +387,32 @@ function walletDisplayId(name: string | null | undefined): string {
                   <span class="tooltip" :data-tip="walletTitle(op.wallet_to, op.wallet_op)">
                     <code>{{ walletDisplayId(op.wallet_to) }}</code>
                   </span>
+                </div>
+              </div>
+
+              <!-- L3 — кошелёк пайщика (per-user available/blocked split) -->
+              <div
+                v-if="hasL3(op)"
+                class="focus-bar__op-sub focus-bar__op-sub--l3"
+              >
+                <div class="focus-bar__op-sub-label">Кошелёк пайщика</div>
+                <div class="focus-bar__op-sub-body focus-bar__op-sub-body--stack">
+                  <div class="focus-bar__l3-row">
+                    <span class="tooltip" :data-tip="walletTitle(op.user_wallet, op.wallet_op)">
+                      <code>{{ walletDisplayId(op.user_wallet) }}</code>
+                    </span>
+                    <span v-if="op.user_ref" class="focus-bar__l3-user">
+                      · {{ op.user_ref }}
+                    </span>
+                  </div>
+                  <div v-if="op.available_delta" class="focus-bar__l3-delta">
+                    <span class="focus-bar__l3-delta-label">Доступно</span>
+                    <code>{{ formatDelta(op.available_delta) }}</code>
+                  </div>
+                  <div v-if="op.blocked_delta" class="focus-bar__l3-delta">
+                    <span class="focus-bar__l3-delta-label">Заблокировано</span>
+                    <code>{{ formatDelta(op.blocked_delta) }}</code>
+                  </div>
                 </div>
               </div>
             </div>
@@ -403,9 +451,10 @@ function walletDisplayId(name: string | null | undefined): string {
       </div>
 
       <div class="focus-bar__col focus-bar__col--meta">
+        <!-- L1 -->
         <div
           v-if="focusedOperation.debit != null || focusedOperation.credit != null"
-          class="focus-bar__op-sub"
+          class="focus-bar__op-sub focus-bar__op-sub--l1"
         >
           <div class="focus-bar__op-sub-label">Проводки</div>
           <div class="focus-bar__op-sub-body">
@@ -419,12 +468,13 @@ function walletDisplayId(name: string | null | undefined): string {
           </div>
         </div>
 
+        <!-- L2 -->
         <div
-          v-if="focusedOperation.wallet_op !== 'WALLET_ONLY'
+          v-if="['ISSUE', 'TRANSFER', 'BURN', 'WALLET_ONLY'].includes(focusedOperation.wallet_op)
                 && (!!focusedOperation.wallet_from || !!focusedOperation.wallet_to)"
-          class="focus-bar__op-sub"
+          class="focus-bar__op-sub focus-bar__op-sub--l2"
         >
-          <div class="focus-bar__op-sub-label">Переводы</div>
+          <div class="focus-bar__op-sub-label">Переводы (кооператив)</div>
           <div class="focus-bar__op-sub-body">
             <span class="tooltip" :data-tip="walletTitle(focusedOperation.wallet_from, focusedOperation.wallet_op)">
               <code>{{ walletDisplayId(focusedOperation.wallet_from) }}</code>
@@ -433,6 +483,32 @@ function walletDisplayId(name: string | null | undefined): string {
             <span class="tooltip" :data-tip="walletTitle(focusedOperation.wallet_to, focusedOperation.wallet_op)">
               <code>{{ walletDisplayId(focusedOperation.wallet_to) }}</code>
             </span>
+          </div>
+        </div>
+
+        <!-- L3 -->
+        <div
+          v-if="hasL3(focusedOperation)"
+          class="focus-bar__op-sub focus-bar__op-sub--l3"
+        >
+          <div class="focus-bar__op-sub-label">Кошелёк пайщика</div>
+          <div class="focus-bar__op-sub-body focus-bar__op-sub-body--stack">
+            <div class="focus-bar__l3-row">
+              <span class="tooltip" :data-tip="walletTitle(focusedOperation.user_wallet, focusedOperation.wallet_op)">
+                <code>{{ walletDisplayId(focusedOperation.user_wallet) }}</code>
+              </span>
+              <span v-if="focusedOperation.user_ref" class="focus-bar__l3-user">
+                · {{ focusedOperation.user_ref }}
+              </span>
+            </div>
+            <div v-if="focusedOperation.available_delta" class="focus-bar__l3-delta">
+              <span class="focus-bar__l3-delta-label">Доступно</span>
+              <code>{{ formatDelta(focusedOperation.available_delta) }}</code>
+            </div>
+            <div v-if="focusedOperation.blocked_delta" class="focus-bar__l3-delta">
+              <span class="focus-bar__l3-delta-label">Заблокировано</span>
+              <code>{{ formatDelta(focusedOperation.blocked_delta) }}</code>
+            </div>
           </div>
         </div>
 
@@ -649,6 +725,41 @@ function walletDisplayId(name: string | null | undefined): string {
 }
 .focus-bar__op-sep { color: var(--text-subtle); }
 .focus-bar__sep { color: var(--text-subtle); }
+
+/* L1/L2/L3 — лёгкая дифференциация фоном без перекраски рамки. */
+.focus-bar__op-sub--l1 { background: var(--bg); }
+.focus-bar__op-sub--l2 { background: var(--edge-focus-soft); }
+.focus-bar__op-sub--l3 {
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+  /* L3 — самая «нагруженная» карточка (wallet · user / Доступно / Заблокировано),
+     поэтому растягиваем на всю ширину сетки op-subs, чтобы дельты не зажимались
+     в узкую колонку и читались одной строкой. */
+  grid-column: 1 / -1;
+}
+.focus-bar__op-sub--l3 .focus-bar__op-sub-body code {
+  background: var(--bg); border-color: var(--accent-border); color: var(--accent);
+}
+
+/* L3-карточка: горизонтальная (wallet · user · Доступно · Заблокировано). */
+.focus-bar__op-sub-body--stack {
+  display: flex; flex-direction: row; align-items: baseline;
+  gap: 8px 18px; flex-wrap: wrap;
+}
+.focus-bar__l3-row {
+  display: inline-flex; align-items: baseline; gap: 4px; flex-wrap: wrap;
+}
+.focus-bar__l3-user {
+  font-size: 11px; color: var(--text-muted); font-style: italic;
+}
+.focus-bar__l3-delta {
+  display: inline-flex; align-items: baseline; gap: 6px;
+  font-size: 11.5px; color: var(--text);
+}
+.focus-bar__l3-delta-label {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.04em;
+  color: var(--text-subtle);
+}
 
 /* ── CSS-tooltip, надёжный (title часто блокируется) ─────────────────────── */
 .tooltip { position: relative; display: inline-flex; align-items: center; gap: 4px; cursor: help; }

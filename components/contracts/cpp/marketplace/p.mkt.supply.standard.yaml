@@ -11,7 +11,7 @@
 # двойные подписи на АПП приёмки и АПП выдачи.
 #
 # **Модель кошельков (упрощённая, refinement 2026-05-04):** один программный
-# кошелёк w.mkt.fund (per-user) — членские взносы пайщика в программу
+# кошелёк w.mkt.member (per-user) — членские взносы пайщика в программу
 # «Стол заказов». Транзитные кошельки не используются. Имущество
 # отслеживается бухгалтерской аналитикой по счёту 10 (per-КУ субсчета),
 # без отдельного кошелька. Платформенные кошельки w.wal.share (Цифровой
@@ -24,21 +24,21 @@
 #
 # В процессе участвуют 6 ledger2-операций (из 9 общих по контракту):
 #   • o.mkt.fconv   — конвертация цифрового рубля → членский взнос ЦПП
-#                     (TRANSFER, w.wal.share → w.mkt.fund,
+#                     (TRANSFER, w.wal.share → w.mkt.member,
 #                      Дт 80 / Кт 86)
 #   • o.mkt.fblock  — блокировка средств под Order на программном кошельке
 #                     (BLOCK)
 #   • o.mkt.funblk  — разблокировка при отмене Order'а
 #                     (UNBLOCK)
 #   • o.mkt.fefund  — возврат разблокированной суммы на цифровой паевой
-#                     (TRANSFER, w.mkt.fund → w.wal.share,
+#                     (TRANSFER, w.mkt.member → w.wal.share,
 #                      Дт 86 / Кт 80)
 #   • o.mkt.purch   — приёмка имущества кооперативом по АПП приёмки
 #                     (ACCOUNT_ONLY, только проводка, Дт 10 / Кт 86)
 #   • o.mkt.payspl  — оплата поставщику с расчётного счёта
 #                     (TRANSFER, ∅ → w.mkt.payout, Дт 86 / Кт 51)
 #   • o.mkt.consum  — выдача имущества пайщику по АПП выдачи
-#                     (REVOKE, w.mkt.fund .blocked → 0,
+#                     (REVOKE, w.mkt.member .blocked → 0,
 #                      Дт 86 / Кт 10)
 #
 # Канон формата:
@@ -48,7 +48,7 @@
 #   • cpp/marketplace/src/                            — реализация (предстоит)
 #   • cpp/lib/core/ledger2/operations.hpp             — OPERATION_REGISTRY (расширение)
 #   • cpp/lib/core/ledger2/processes.hpp              — processes::marketplace::SUPPLY
-#   • cpp/lib/core/ledger2/wallets.hpp                — w.mkt.fund (programmatic),
+#   • cpp/lib/core/ledger2/wallets.hpp                — w.mkt.member (programmatic),
 #                                                       w.wal.share (платформенный),
 #                                                       w.mkt.payout (платформенный)
 #   • cpp/lib/core/ledger2/accounts.hpp               — Расчётный (51),
@@ -198,7 +198,7 @@ actions:
       Заказчик ставит вторую (финальную) подпись на АПП выдачи на устройстве
       оператора КУ. Это закрывающее действие всего процесса: контракт
       применяет ledger2-операцию o.mkt.consum (Дт 86 / Кт 10, REVOKE —
-      w.mkt.fund пайщика .blocked → 0, имущество выбывает со
+      w.mkt.member пайщика .blocked → 0, имущество выбывает со
       склада через проводку обратную к o.mkt.purch). При расхождении «факт
       vs заказ» контракт предварительно выполняет корректировку: факт меньше
       → o.mkt.funblk на разницу (остаётся available на программном кошельке
@@ -218,7 +218,7 @@ states:
     human: Заявка размещена
     description: >
       Order создан, средства заказчика прошли пару o.mkt.fconv + o.mkt.fblock
-      и заблокированы на программном кошельке w.mkt.fund. Заявка
+      и заблокированы на программном кошельке w.mkt.member. Заявка
       ждёт окончания цикла отсечки и акцепта поставщика.
     kind: normal
 
@@ -238,8 +238,17 @@ states:
     description: >
       Поставщик акцептовал консолидированную заявку, пара Order+Offer
       опубликована on-chain. Средства заказчика по-прежнему заблокированы
-      на w.mkt.fund; имущество ещё не передано. Поставщик
+      на w.mkt.member; имущество ещё не передано. Поставщик
       готовит отгрузку.
+    kind: normal
+
+  - name: ship_ready
+    human: Отгрузка собрана
+    description: >
+      Поставщик собрал партию по составу акцептованной заявки и выбрал
+      режим передачи (A — самовывоз / B — экспедитор + ТТН). Имущество
+      готово к подписанию АПП приёмки, но фактически ещё не передано КУ
+      и юридически не оприходовано.
     kind: normal
 
   - name: supply_prepared
@@ -271,7 +280,7 @@ states:
     human: Имущество выдано
     description: >
       Заказчик закрыл АПП выдачи. Применена o.mkt.consum (REVOKE на
-      w.mkt.fund пайщика .blocked → 0; проводка Дт 86 / Кт 10 —
+      w.mkt.member пайщика .blocked → 0; проводка Дт 86 / Кт 10 —
       целевое использование членского взноса с одновременным выбытием
       имущества со склада). Процесс поставки-приобретения полностью завершён.
       Имущество на руках у пайщика, средства учтены. Гарантийное окно
@@ -289,9 +298,9 @@ transitions:
       - o.mkt.fblock
     guards:
       - Заказчик — активный пайщик кооператива.
-      - Заказчик подписал Соглашение ЦПП «Стол заказов» (программный кошелёк w.mkt.fund открыт).
+      - Заказчик подписал Соглашение ЦПП «Стол заказов» (программный кошелёк w.mkt.member открыт).
       - Стоимость корзины не превышает 100 000 ₽ (валидируется Backend'ом до вызова контракта).
-      - Достаточно средств на цифровом паевом (w.wal.share) либо available на программном кошельке (w.mkt.fund) — частичная конвертация если на программном уже что-то есть.
+      - Достаточно средств на цифровом паевом (w.wal.share) либо available на программном кошельке (w.mkt.member) — частичная конвертация если на программном уже что-то есть.
       - Указанный КУ принадлежит этому же кооперативу.
 
   - from: active
@@ -337,14 +346,14 @@ transitions:
       - Поставщик отказывается от консолидированной партии до её публикации on-chain.
 
   - from: accepted
-    to: accepted
+    to: ship_ready
     action: marketplace::prepship
     actor: supplier
     guards:
       - Состав Shipment'а равен составу акцептованной партии (жёсткий акцепт; замены номенклатуры запрещены).
       - Поставщик выбрал режим: A (самовывоз) или B (экспедитор + ТТН).
 
-  - from: accepted
+  - from: ship_ready
     to: supply_prepared
     action: marketplace::signsupp
     actor: supplier
@@ -397,18 +406,18 @@ scenario:
         налоговый порог ТМЦ). Контракт createorder атомарно выполняет пару
         операций по программному кошельку: (1) o.mkt.fconv — конвертация
         цифрового рубля заказчика (w.wal.share) в членский взнос на ЦПП
-        «Стол заказов» (w.mkt.fund), Дт 80 / Кт 86; (2) o.mkt.fblock
+        «Стол заказов» (w.mkt.member), Дт 80 / Кт 86; (2) o.mkt.fblock
         — блокировка суммы order.total_cost под Order на этом же кошельке,
         available -= total_cost, blocked += total_cost. Order переходит
         в статус active.
       pre:
         - Пайщик имеет статус active.
-        - Подписано Соглашение ЦПП «Стол заказов» (программный кошелёк w.mkt.fund открыт).
-        - На w.wal.share либо w.mkt.fund.available достаточно средств.
+        - Подписано Соглашение ЦПП «Стол заказов» (программный кошелёк w.mkt.member открыт).
+        - На w.wal.share либо w.mkt.member.available достаточно средств.
         - Стоимость корзины ≤ 100 000 ₽.
       post:
         - Order создан со статусом active.
-        - На w.mkt.fund пайщика заблокирована сумма order.total_cost.
+        - На w.mkt.member пайщика заблокирована сумма order.total_cost.
         - В журнале опубликованы 2 операции серии (fconv → fblock).
 
     - step: 2
@@ -422,7 +431,7 @@ scenario:
         (off-chain) и заявки остаются в статусе active. Если порог не
         достигнут — для каждого Order'а контракт выполняет o.mkt.funblk
         (разблокировка) + o.mkt.fefund (возврат на цифровой паевой через
-        TRANSFER w.mkt.fund → w.wal.share с проводкой
+        TRANSFER w.mkt.member → w.wal.share с проводкой
         Дт 86 / Кт 80). Order'ы переходят в статус cancelled, заказчики
         получают push-уведомление об отмене.
       pre:
@@ -547,7 +556,7 @@ scenario:
         отрицательный баланс ≤5% либо пайщик пополняет паевой через
         кассира. Заказчик подписывает АПП выдачи на устройстве оператора —
         это финальная (вторая) подпись. Контракт применяет o.mkt.consum
-        (REVOKE — w.mkt.fund пайщика .blocked → 0; проводка
+        (REVOKE — w.mkt.member пайщика .blocked → 0; проводка
         Дт 86 / Кт 10 — расход целевых средств на расход имущества). Order
         переходит в финальный статус received.
       pre:
@@ -556,7 +565,7 @@ scenario:
       post:
         - Имущество выдано пайщику.
         - Order в финальном статусе received.
-        - Сумма order.total_cost (или fact_cost при коррекции) списана с w.mkt.fund пайщика.
+        - Сумма order.total_cost (или fact_cost при коррекции) списана с w.mkt.member пайщика.
         - В бухгалтерии — Дт 86 / Кт 10 на сумму fact_cost.
         - В журнале опубликована o.mkt.consum (с предшествующими корректировками при необходимости).
         - Гарантийное окно открыто (запуск p.mkt.return по заявлению пайщика возможен до конца окна).
@@ -685,7 +694,7 @@ documents:
 # Семь ledger2-операций для процесса прямой поставки-приобретения. Имена
 # ≤12 символов eosio::name. Кошельки идентифицируются eosio::name-строками
 # с префиксом w.<contract>.<waltype> (рефакторинг 2026-04-27, ветка reports):
-#   • w.mkt.fund    — ЦПП «Стол Заказов» — программный кошелёк (per-user)
+#   • w.mkt.member    — ЦПП «Стол Заказов» — программный кошелёк (per-user)
 #                     [members fees программы]
 #   • w.wal.share   — ЦПП «Цифровой Кошелёк» — паевые взносы деньгами
 #                     [платформенный]
@@ -696,59 +705,93 @@ operations:
   - ledger_code: o.mkt.fconv
     human_name: Конвертация цифрового рубля в членский взнос
     wallet_op: TRANSFER
-    wallet_from: w.wal.share       # ЦПП «Цифровой Кошелёк» — паевые взносы деньгами
-    wallet_to: w.mkt.fund          # ЦПП «Стол Заказов» — программный кошелёк (членские взносы)
+    # L1 — двойная запись
     debit: 80                      # Паевой фонд
     credit: 86                     # Целевое финансирование
+    # L2 — кошельки кооператива (агрегаты)
+    wallet_from: w.wal.share       # ЦПП «Цифровой Кошелёк» — паевые взносы деньгами
+    wallet_to: w.mkt.member        # ЦПП «Стол Заказов» — членские взносы пайщиков по программе
+    # L3 — на стороне заказчика приходит зачисление в available на
+    # w.mkt.member; блокировка под Order — следующая операция o.mkt.fblock
+    user_wallet: w.mkt.member
+    user_ref: order.customer
+    available_delta: +order.total_cost
+    blocked_delta: null
     amount_ref: order.total_cost
     triggered_by: marketplace::createorder
     description: >
       Атомарная серия — шаг 1 из 2. Конвертация цифрового рубля заказчика
-      из ЦПП «Цифровой Кошелёк» в членский взнос на ЦПП «Стол заказов»
-      (программный кошелёк пайщика в этой ЦПП). Двойная запись Дт 80 / Кт 86 —
-      средства переходят из складочного капитала в целевое финансирование.
+      из ЦПП «Цифровой Кошелёк» в членский взнос на ЦПП «Стол заказов».
+      Двойная запись Дт 80 / Кт 86 — средства переходят из складочного
+      капитала в целевое финансирование. На уровне 3 — пополнение available
+      на w.mkt.member заказчика; блокировка этой суммы под конкретный
+      Order — отдельная операция o.mkt.fblock следом.
       (TBD-Standardization: проводка фиксируется как baseline; финальный
       выбор — при формализации стандарта совместно с Ангелиной.)
 
   - ledger_code: o.mkt.fblock
     human_name: Блокировка членского взноса под заказ
     wallet_op: BLOCK
-    wallet_from: w.mkt.fund        # ЦПП «Стол Заказов» — программный кошелёк
-    wallet_to: ''
+    # L1 — операция чисто L3, бухгалтерия не двигается
     debit: null
     credit: null
+    # L2 — без перевода между кошельками кооператива
+    wallet_from: null
+    wallet_to: null
+    # L3 — split available → blocked на одном кошельке заказчика
+    user_wallet: w.mkt.member       # ЦПП «Стол Заказов» — членские взносы заказчика
+    user_ref: order.customer
+    available_delta: -order.total_cost
+    blocked_delta: +order.total_cost
     amount_ref: order.total_cost
     triggered_by: marketplace::createorder
     description: >
       Атомарная серия — шаг 2 из 2. Блокировка суммы order.total_cost под
-      конкретный Order на программном кошельке заказчика. available -=
-      total_cost, blocked += total_cost. Без бухгалтерских проводок.
-      Блокировка снимается либо при выдаче (o.mkt.consum), либо при отмене
-      (o.mkt.funblk + o.mkt.fefund).
+      конкретный Order на кошельке заказчика w.mkt.member. Это операция
+      уровня 3 — split available → blocked на одном кошельке без перевода
+      между кошельками кооператива и без бухгалтерских проводок.
+      Блокировка снимается либо при выдаче (o.mkt.consum, REVOKE blocked → 0),
+      либо при отмене (o.mkt.funblk + o.mkt.fefund — UNBLOCK + возврат).
 
   - ledger_code: o.mkt.funblk
     human_name: Разблокировка членского взноса при отмене
     wallet_op: UNBLOCK
-    wallet_from: w.mkt.fund        # ЦПП «Стол Заказов» — программный кошелёк
-    wallet_to: ''
+    # L1 — без проводок
     debit: null
     credit: null
+    # L2 — без перевода
+    wallet_from: null
+    wallet_to: null
+    # L3 — обратное движение blocked → available
+    user_wallet: w.mkt.member
+    user_ref: order.customer
+    available_delta: +order.total_cost
+    blocked_delta: -order.total_cost
     amount_ref: order.total_cost
     triggered_by: marketplace::cancelorder | marketplace::expirecycle | marketplace::declinebatch
     description: >
-      Зеркало o.mkt.fblock. Снятие блокировки суммы на программном кошельке
-      заказчика при отмене Order'а (заказчик отменяет до акцепта; цикл истёк
-      без достижения порога; поставщик отказался от партии). blocked -=
-      total_cost, available += total_cost. Без проводок. Парная операция —
-      o.mkt.fefund (возврат суммы на цифровой паевой через TRANSFER).
+      Зеркало o.mkt.fblock. Снятие блокировки на кошельке заказчика
+      w.mkt.member при отмене Order'а (заказчик отменяет до акцепта;
+      цикл истёк без достижения порога; поставщик отказался от партии).
+      На уровне 3 blocked → available. Без L1, без L2. Парная операция —
+      o.mkt.fefund (возврат разблокированной суммы на цифровой паевой через
+      TRANSFER).
 
   - ledger_code: o.mkt.fefund
     human_name: Возврат членского взноса на цифровой паевой
     wallet_op: TRANSFER
-    wallet_from: w.mkt.fund        # ЦПП «Стол Заказов» — программный кошелёк
-    wallet_to: w.wal.share         # ЦПП «Цифровой Кошелёк» — паевые взносы деньгами
+    # L1
     debit: 86                      # Целевое финансирование
     credit: 80                     # Паевой фонд
+    # L2 — кошельки кооператива
+    wallet_from: w.mkt.member      # ЦПП «Стол Заказов»
+    wallet_to: w.wal.share         # ЦПП «Цифровой Кошелёк»
+    # L3 — у заказчика на w.mkt.member списывается available; зачисление
+    # на w.wal.share — отдельная операция стандарта wallet
+    user_wallet: w.mkt.member
+    user_ref: order.customer
+    available_delta: -order.total_cost
+    blocked_delta: null
     amount_ref: order.total_cost
     triggered_by: marketplace::cancelorder | marketplace::expirecycle | marketplace::declinebatch
     description: >
@@ -801,10 +844,18 @@ operations:
   - ledger_code: o.mkt.consum
     human_name: Выдача имущества пайщику
     wallet_op: REVOKE
-    wallet_from: w.mkt.fund        # ЦПП «Стол Заказов» — программный кошелёк пайщика (.blocked → 0)
-    wallet_to: ''
+    # L1 — выбытие имущества за счёт целевых средств
     debit: 86                      # Целевое финансирование
     credit: 10                     # Материалы
+    # L2 — без перевода между кошельками кооператива (REVOKE списывает
+    # blocked в пустоту, это L3-семантика)
+    wallet_from: null
+    wallet_to: null
+    # L3 — blocked заказчика обнуляется (целевое расходование членского взноса)
+    user_wallet: w.mkt.member
+    user_ref: order.customer
+    available_delta: null
+    blocked_delta: -order.fact_cost
     amount_ref: order.fact_cost
     triggered_by: marketplace::signiss2
     description: >

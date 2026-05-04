@@ -15,6 +15,14 @@ export default defineConfig(({ command }) => ({
       '@': path.resolve(rootDir, 'src'),
     },
   },
+  // cooptypes — workspace-пакет (~2 МБ ESM-бандла), vite по умолчанию
+  // workspace-deps не пре-бандлит и отдаёт через @fs трансформ-конвейер,
+  // что в dev по сети растягивает chunk до 10 МБ и валит lazy-import
+  // ProcessPage.vue. Принудительный optimizeDeps.include даёт нормальный
+  // pre-bundled chunk, как для vue/vue-router.
+  optimizeDeps: {
+    include: ['cooptypes'],
+  },
   server: {
     host: true,                // слушать 0.0.0.0 — доступ по IP из сети
     port: 5173,

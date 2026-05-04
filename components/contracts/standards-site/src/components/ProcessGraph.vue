@@ -3,8 +3,8 @@ import { computed, markRaw, onBeforeUnmount, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { VueFlow, type EdgeMouseEvent, type NodeMouseEvent, type VueFlowStore } from '@vue-flow/core';
 import { Background } from '@vue-flow/background';
-import { Controls } from '@vue-flow/controls';
-import { ChevronLeft, ChevronRight } from 'lucide-vue-next';
+import { Controls, ControlButton } from '@vue-flow/controls';
+import { ChevronLeft, ChevronRight, Maximize2, Minimize2 } from 'lucide-vue-next';
 
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
@@ -64,8 +64,8 @@ const layout = computed(() =>
 const vfInstance = ref<VueFlowStore | null>(null);
 const minZoom = 0.15;
 const maxZoom = 2.0;
-// Во сколько раз сильнее, чем fitView (≈ 4 нажатия «+» в зум-контролах).
-const START_ZOOM_BOOST = 2.0;
+// Во сколько раз сильнее, чем fitView (≈ 6–7 нажатий «+» в зум-контролах).
+const START_ZOOM_BOOST = 2.8;
 
 function doFit(): void {
   if (!vfInstance.value) return;
@@ -171,6 +171,34 @@ onBeforeUnmount(() => {
   resizeObserver = null;
 });
 
+// ── Fullscreen рабочей области ────────────────────────────────────────
+const isFullscreen = ref(false);
+
+function onFsChange(): void {
+  isFullscreen.value = document.fullscreenElement === containerRef.value;
+  // После смены размера — перепосчитать viewport.
+  requestAnimationFrame(() => doFit());
+}
+
+if (typeof document !== 'undefined') {
+  document.addEventListener('fullscreenchange', onFsChange);
+}
+onBeforeUnmount(() => {
+  if (typeof document !== 'undefined') {
+    document.removeEventListener('fullscreenchange', onFsChange);
+  }
+});
+
+function toggleFullscreen(): void {
+  const el = containerRef.value;
+  if (!el) return;
+  if (document.fullscreenElement === el) {
+    void document.exitFullscreen();
+  } else {
+    void el.requestFullscreen();
+  }
+}
+
 function onNodeClick({ node }: NodeMouseEvent) {
   switch (node.type) {
     case NODE_TYPES.START:
@@ -274,10 +302,42 @@ function labelForNav(n: Nav): string {
         @edge-click="onEdgeClick"
       >
         <Background :pattern-color="gridColor" :gap="16" :size="1" />
-        <Controls position="top-right" :show-interactive="false" />
+        <Controls position="top-right" :show-interactive="false">
+          <ControlButton
+            :title="isFullscreen ? 'Свернуть из полноэкранного режима' : 'Развернуть на весь экран'"
+            :aria-label="isFullscreen ? 'Свернуть' : 'Развернуть на весь экран'"
+            @click="toggleFullscreen"
+          >
+            <Minimize2 v-if="isFullscreen" :size="14" />
+            <Maximize2 v-else :size="14" />
+          </ControlButton>
+        </Controls>
       </VueFlow>
 
-      <!-- Горизонтальная полоса деталей фокуса, прилипшая к низу рабочей области. -->
+      <!-- Дублирующие prev/next в виде оверлеев — видны только в fullscreen,
+           где внешние кнопки .graph-nav скрыты за пределами экрана. -->
+      <button
+        type="button"
+        class="graph-nav graph-nav--floating graph-nav--floating-prev"
+        :disabled="!prevItem"
+        :aria-label="prevItem ? `Назад: ${labelForNav(prevItem)}` : 'Назад (нет)'"
+        :title="prevItem ? `Назад: ${labelForNav(prevItem)}` : ''"
+        @click="pushNav(prevItem)"
+      >
+        <ChevronLeft :size="20" />
+      </button>
+      <button
+        type="button"
+        class="graph-nav graph-nav--floating graph-nav--floating-next"
+        :disabled="!nextItem"
+        :aria-label="nextItem ? `Вперёд: ${labelForNav(nextItem)}` : 'Вперёд (нет)'"
+        :title="nextItem ? `Вперёд: ${labelForNav(nextItem)}` : ''"
+        @click="pushNav(nextItem)"
+      >
+        <ChevronRight :size="20" />
+      </button>
+
+      <!-- Левая панель деталей фокуса, прилипшая к левому краю рабочей области. -->
       <div class="focus-bar-slot">
         <FocusBar
           :standard="standard"
@@ -345,21 +405,65 @@ function labelForNav(n: Nav): string {
   position: relative;
 }
 
-/* Полоса деталей фокуса — приклеена к низу рабочей области изнутри */
+/* Панель деталей фокуса — приклеена к левому краю рабочей области изнутри
+   (правый верх занят зум-контролами VueFlow). */
 .focus-bar-slot {
   position: absolute;
+  top: 12px;
   left: 12px;
-  right: 12px;
   bottom: 12px;
+  width: min(380px, 42%);
   z-index: 10;
   pointer-events: auto;
 }
 .focus-bar-slot :deep(.focus-bar) {
   margin-bottom: 0;
   background: var(--bg);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
-  max-height: 42%;
+  box-shadow: 6px 0 20px rgba(0, 0, 0, 0.12);
+  height: 100%;
+  max-height: 100%;
   overflow-y: auto;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 14px;
+}
+/* Внутри overlay-слота фон панели всегда непрозрачный — варианты
+   --edge / --doc / --op / --process / --rejected используют *-soft цвета
+   (rgba с alpha), сквозь которые просвечивает граф. Цвет окантовки
+   (border-color) остаётся вариантным — это и есть индикатор типа фокуса. */
+.focus-bar-slot :deep(.focus-bar.focus-bar--edge),
+.focus-bar-slot :deep(.focus-bar.focus-bar--doc),
+.focus-bar-slot :deep(.focus-bar.focus-bar--op),
+.focus-bar-slot :deep(.focus-bar.focus-bar--process),
+.focus-bar-slot :deep(.focus-bar.focus-bar--rejected) {
+  background: var(--bg);
+}
+
+/* В полноэкранном режиме рабочая зона занимает весь экран. */
+.process-graph:fullscreen {
+  border: none;
+  border-radius: 0;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* Floating prev/next: пара кнопок у нижнего края в fullscreen — рядом,
+   а не по краям, чтобы не перекрывать вертикальный focus-bar слева. */
+.graph-nav--floating {
+  display: none;
+  position: absolute;
+  bottom: 16px;
+  height: 44px;
+  z-index: 11;
+  background: var(--surface);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
+}
+.graph-nav--floating-prev { right: 68px; }
+.graph-nav--floating-next { right: 16px; }
+.process-graph:fullscreen .graph-nav--floating { display: flex; }
+.focus-bar-slot :deep(.focus-bar__col) {
+  flex: 0 0 auto;
+  width: 100%;
 }
 .focus-bar-slot :deep(.focus-bar--edge) {
   background: var(--edge-focus-soft);
