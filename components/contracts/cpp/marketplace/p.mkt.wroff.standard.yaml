@@ -266,10 +266,17 @@ operations:
   - ledger_code: o.mkt.wroff
     human_name: Списание скоропорта со склада
     wallet_op: ACCOUNT_ONLY
-    wallet_from: ''
-    wallet_to: ''
+    # L1 — составная проводка через транзит счёта 91 (см. description)
     debit: 91                      # Прочие доходы и расходы (NEW в LEDGER2_ACCOUNT_REGISTRY)
     credit: 10                     # Материалы (NEW)
+    # L2 — без перевода между кошельками кооператива
+    wallet_from: null
+    wallet_to: null
+    # L3 — без движения по кошелькам пайщиков (чисто кооперативный расход)
+    user_wallet: null
+    user_ref: null
+    available_delta: null
+    blocked_delta: null
     amount_ref: writeoff_item.cost
     triggered_by: marketplace::execwroff
     description: >
