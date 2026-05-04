@@ -63,9 +63,9 @@ const layout = computed(() =>
 // ── Fit view ─────────────────────────────────────────────────────────────
 const vfInstance = ref<VueFlowStore | null>(null);
 const minZoom = 0.15;
-const maxZoom = 2.0;
-// Во сколько раз сильнее, чем fitView (≈ 6–7 нажатий «+» в зум-контролах).
-const START_ZOOM_BOOST = 2.8;
+const maxZoom = 3.0;
+// Во сколько раз сильнее, чем fitView (≈ 8–9 нажатий «+» в зум-контролах).
+const START_ZOOM_BOOST = 4.0;
 
 function doFit(): void {
   if (!vfInstance.value) return;
@@ -78,7 +78,8 @@ function doFit(): void {
       const fittedZoom = vf.getViewport().zoom;
       const targetZoom = Math.min(fittedZoom * START_ZOOM_BOOST, maxZoom);
 
-      // 2) Сдвигаем viewport так, чтобы круглешок-старт встал слева ~15%,
+      // 2) Сдвигаем viewport так, чтобы круглешок-старт встал в правой
+      //    зоне (~65%) — слева достаточно места под FocusBar (~42% ширины);
       //    по вертикали — по центру.
       const container = containerRef.value;
       const cw = container?.clientWidth ?? 800;
@@ -90,7 +91,7 @@ function doFit(): void {
         const nx = startN.position.x + w / 2;
         const ny = startN.position.y + h / 2;
         vf.setViewport({
-          x: cw * 0.32 - nx * targetZoom,
+          x: cw * 0.65 - nx * targetZoom,
           y: ch * 0.5 - ny * targetZoom,
           zoom: targetZoom,
         });
@@ -396,8 +397,8 @@ function labelForNav(n: Nav): string {
 .process-graph {
   flex: 1;
   min-width: 0;
-  min-height: 520px;
-  height: calc(100vh - 240px);
+  min-height: 640px;
+  height: calc(100vh - 160px);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--bg);

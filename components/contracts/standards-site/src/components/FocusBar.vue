@@ -265,16 +265,29 @@ function getL3Movements(op: Ledger2Operation) {
 
 <template>
   <section
-    v-if="focusMode !== 'none' && focusMode !== 'process-start'"
+    v-if="focusMode !== 'none'"
     class="focus-bar"
     :class="{
       'focus-bar--edge': focusMode === 'action',
       'focus-bar--doc': focusMode === 'document',
       'focus-bar--op': focusMode === 'operation',
-      'focus-bar--process': focusMode === 'process-end',
+      'focus-bar--process': focusMode === 'process-start' || focusMode === 'process-end',
       'focus-bar--rejected': focusMode === 'process-rejected',
     }"
   >
+
+    <!-- Начало процесса -->
+    <template v-if="focusMode === 'process-start'">
+      <div class="focus-bar__col focus-bar__col--main">
+        <div class="focus-bar__kicker">Начало процесса</div>
+        <div class="focus-bar__title-row">
+          <span class="focus-bar__human">{{ standard.title }}</span>
+          <span class="focus-bar__badge">старт</span>
+        </div>
+        <p v-if="standard.summary" class="focus-bar__desc">{{ standard.summary }}</p>
+        <p v-if="standard.purpose" class="focus-bar__desc">{{ standard.purpose }}</p>
+      </div>
+    </template>
 
     <!-- Завершение отказом -->
     <template v-if="focusMode === 'process-rejected' && rejectedInfo">

@@ -141,10 +141,6 @@ const focusStatus = computed<string | null>(() => {
       </dl>
     </header>
 
-    <section v-if="standard.purpose" class="process-intro">
-      <p class="process-intro__prose">{{ standard.purpose }}</p>
-    </section>
-
     <ProcessGraph
       :standard="standard"
       :focus-status="focusStatus"
@@ -196,21 +192,6 @@ const focusStatus = computed<string | null>(() => {
   margin: 0 0 4px;
   font-size: 22px;
   line-height: 1.2;
-}
-.process-intro {
-  margin: 0 0 18px;
-  padding: 14px 16px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-}
-.process-intro__prose {
-  margin: 0;
-  font-size: 13.5px;
-  line-height: 1.6;
-  color: var(--text-muted);
-  max-width: 920px;
-  white-space: pre-line;
 }
 .process-head__meta {
   margin: 0;
