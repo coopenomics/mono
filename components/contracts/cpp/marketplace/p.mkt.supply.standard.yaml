@@ -36,7 +36,8 @@
 #                      Дт 80 / Кт 86) — conditional, только если на
 #                     w.wal.member.available заказчика не хватает
 #   • o.mkt.ftarg   — целевое назначение членского взноса в программу
-#                     (TRANSFER, w.wal.member → w.mkt.member) — conditional,
+#                     (TRANSFER, w.wal.member → w.mkt.member, без проводки —
+#                      Дт=Кт по 86 смарт-контракт игнорирует) — conditional,
 #                     только если на w.mkt.member.available не хватает
 #   • o.mkt.fblock  — блокировка средств под Order на программном кошельке
 #                     (BLOCK)
@@ -44,7 +45,7 @@
 #                     (UNBLOCK; средства остаются на w.mkt.member.available
 #                      и могут быть потрачены на следующий заказ)
 #   • o.mkt.fefund  — вывод из программы в общий членский кошелёк пайщика
-#                     (TRANSFER, w.mkt.member → w.wal.member) —
+#                     (TRANSFER, w.mkt.member → w.wal.member, без проводки) —
 #                     ОТДЕЛЬНОЕ явное действие пайщика, не часть авто-flow
 #                     отмены/возврата
 #   • o.mkt.purch   — приёмка имущества кооперативом по АПП приёмки
@@ -765,18 +766,25 @@ operations:
   - ledger_code: o.mkt.ftarg
     human_name: Целевое назначение членского взноса в программу Marketplace
     wallet_op: TRANSFER
-    # L1 — внутри 86 счёта между аналитиками (TBD-Standardization)
-    debit: 86                      # Целевое финансирование (программа Marketplace)
-    credit: 86                     # Целевое финансирование (общий членский пайщика)
-    # L2 — кошельки кооператива (агрегаты, по аналитике программ)
+    # L1 — нет проводки. По плану счетов оба кошелька висят на 86, и Дт 86 /
+    # Кт 86 даёт нетто-нулевое изменение по счёту — смарт-контракт такие
+    # «фиктивные» проводки игнорирует. Аналитика «по программе» фиксируется
+    # на L2 (через имена агрегатных кошельков) — этого достаточно.
+    debit: null
+    credit: null
+    # L2 — реальный перевод между двумя именованными агрегатами кооператива
     wallet_from: w.wal.member      # Общий членский — пайщик расходует
     wallet_to: w.mkt.member        # ЦПП «Стол Заказов» — целевое назначение в программу
-    # L3 — у того же пайщика available перетекает с w.wal.member на w.mkt.member;
-    # рендерим сторону получателя; на источнике подразумевается -X
-    user_wallet: w.mkt.member
-    user_ref: order.customer
-    available_delta: +order.total_cost
-    blocked_delta: null
+    # L3 — две стороны движения у одного и того же пайщика
+    l3:
+      - user_wallet: w.wal.member
+        user_ref: order.customer
+        available_delta: -order.total_cost
+        blocked_delta: null
+      - user_wallet: w.mkt.member
+        user_ref: order.customer
+        available_delta: +order.total_cost
+        blocked_delta: null
     amount_ref: order.total_cost
     triggered_by: marketplace::createorder
     description: >
@@ -784,12 +792,9 @@ operations:
       w.mkt.member.available заказчика не хватает суммы заказа). Перенос
       членского взноса пайщика из универсального кошелька (w.wal.member)
       в программу Marketplace (w.mkt.member). Сумма берётся ровно как
-      недостача. По бухгалтерии — внутрисчётное движение по 86 (членский
-      фонд кооператива), меняется аналитика «программа: marketplace»; в
-      ledger2 это отражено как L2-перевод между двумя именованными агрегатами.
-      (TBD-Standardization: проводка Дт 86 / Кт 86 фиксируется как baseline;
-      возможна альтернатива через null/null если бухгалтерия посчитает
-      перенос аналитики не требующим явной двойной записи.)
+      недостача. По бухгалтерии — без проводки (Дт=Кт по 86 нетто-нулевое
+      изменение, смарт-контракт такие фиктивные проводки игнорирует);
+      аналитика «по программе» фиксируется на L2/L3.
 
   - ledger_code: o.mkt.fblock
     human_name: Блокировка членского взноса под заказ
@@ -844,17 +849,22 @@ operations:
   - ledger_code: o.mkt.fefund
     human_name: Вывод членского взноса в общий членский кошелёк
     wallet_op: TRANSFER
-    # L1 — внутри 86 счёта между аналитиками (TBD-Standardization)
-    debit: 86                      # Целевое финансирование (общий членский пайщика)
-    credit: 86                     # Целевое финансирование (программа Marketplace)
-    # L2 — обратный перенос аналитики
+    # L1 — нет проводки (Дт=Кт по 86 нетто-нулевое; смарт-контракт игнорирует).
+    debit: null
+    credit: null
+    # L2 — реальный перевод между двумя именованными агрегатами кооператива
     wallet_from: w.mkt.member      # ЦПП «Стол Заказов» — программный членский
     wallet_to: w.wal.member        # Универсальный членский — общий членский пайщика
-    # L3 — у того же пайщика available перетекает с w.mkt.member на w.wal.member
-    user_wallet: w.wal.member
-    user_ref: order.customer
-    available_delta: +order.total_cost
-    blocked_delta: null
+    # L3 — две стороны движения у одного и того же пайщика
+    l3:
+      - user_wallet: w.mkt.member
+        user_ref: order.customer
+        available_delta: -order.total_cost
+        blocked_delta: null
+      - user_wallet: w.wal.member
+        user_ref: order.customer
+        available_delta: +order.total_cost
+        blocked_delta: null
     amount_ref: order.total_cost
     triggered_by: TBD
     description: >
@@ -864,8 +874,7 @@ operations:
       Благорост или обратно на цифровой паевой через отдельную операцию
       контракта wallet). НЕ часть авто-flow отмены/возврата — на cancel/
       expire/decline средства остаются на w.mkt.member.available, и
-      инициатива вывода — у пайщика. Внутрисчётное движение по 86
-      (TBD-Standardization).
+      инициатива вывода — у пайщика.
 
   - ledger_code: o.mkt.purch
     human_name: Приёмка имущества кооперативом

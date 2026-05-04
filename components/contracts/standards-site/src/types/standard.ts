@@ -169,10 +169,33 @@ export interface Ledger2Operation {
   // затрагивает per-user split available/blocked. Поля независимы от L2 —
   // user_wallet может совпадать по имени с одним из L2-кошельков (для
   // USER_SHARED-кошельков типа w.mkt.member) или быть отдельным.
+  //
+  // Для одиночного движения — flat-поля ниже. Для TRANSFER между двумя
+  // USER_SHARED одного пайщика (списание -X с одного, зачисление +X на
+  // другой) — массив `l3` ниже с двумя элементами; flat-поля при этом
+  // не используются (или дублируют первый элемент массива для legacy-
+  // совместимости).
   user_wallet?: WalletId | null;
   user_ref?: string;                // ссылка на пайщика — order.customer, debt.holder
   available_delta?: string | null;  // выражение по amount_ref: -order.total_cost
   blocked_delta?: string | null;    //                          +order.total_cost
+
+  // L3 multi-entry — для случаев, когда одна операция затрагивает
+  // несколько per-user строк (например, TRANSFER между двумя
+  // USER_SHARED-кошельками одного пайщика, или multi-user effects).
+  // Если задан — рендерим каждый элемент отдельной L3-строкой.
+  l3?: L3Movement[];
+}
+
+// Один per-user split, одна сторона движения. Массив таких объектов —
+// в `Ledger2Operation.l3` для случаев, когда операция касается нескольких
+// USER_SHARED-кошельков (TRANSFER между ними у одного и того же пайщика,
+// либо multi-user effects).
+export interface L3Movement {
+  user_wallet: WalletId | null;
+  user_ref?: string;
+  available_delta?: string | null;
+  blocked_delta?: string | null;
 }
 
 // §7 Связи

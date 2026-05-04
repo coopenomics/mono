@@ -234,11 +234,31 @@ function formatDelta(expr: string | null | undefined): string {
 
 // Показываем L3-карточку только когда операция реально двигает кошелёк
 // пайщика. Достаточно одного из полей user_wallet / available_delta /
-// blocked_delta — остальные инферим как «не указано».
+// blocked_delta (flat) или непустой массив l3 — остальные инферим как
+// «не указано».
 function hasL3(op: Ledger2Operation): boolean {
+  if (op.l3 && op.l3.length > 0) return true;
   return Boolean(
     op.user_wallet || op.user_ref || op.available_delta || op.blocked_delta,
   );
+}
+
+// Возвращаем все L3-строки операции в едином формате — массив movements.
+// Если op.l3 задан — используем его; иначе строим единственный movement
+// из flat-полей (legacy-совместимость с одиночным L3).
+function getL3Movements(op: Ledger2Operation) {
+  if (op.l3 && op.l3.length > 0) return op.l3;
+  if (
+    op.user_wallet || op.user_ref || op.available_delta || op.blocked_delta
+  ) {
+    return [{
+      user_wallet: op.user_wallet ?? null,
+      user_ref: op.user_ref,
+      available_delta: op.available_delta,
+      blocked_delta: op.blocked_delta,
+    }];
+  }
+  return [];
 }
 
 </script>
@@ -397,21 +417,27 @@ function hasL3(op: Ledger2Operation): boolean {
               >
                 <div class="focus-bar__op-sub-label">Кошелёк пайщика</div>
                 <div class="focus-bar__op-sub-body focus-bar__op-sub-body--stack">
-                  <div class="focus-bar__l3-row">
-                    <span class="tooltip" :data-tip="walletTitle(op.user_wallet, op.wallet_op)">
-                      <code>{{ walletDisplayId(op.user_wallet) }}</code>
-                    </span>
-                    <span v-if="op.user_ref" class="focus-bar__l3-user">
-                      · {{ op.user_ref }}
-                    </span>
-                  </div>
-                  <div v-if="op.available_delta" class="focus-bar__l3-delta">
-                    <span class="focus-bar__l3-delta-label">Доступно</span>
-                    <code>{{ formatDelta(op.available_delta) }}</code>
-                  </div>
-                  <div v-if="op.blocked_delta" class="focus-bar__l3-delta">
-                    <span class="focus-bar__l3-delta-label">Заблокировано</span>
-                    <code>{{ formatDelta(op.blocked_delta) }}</code>
+                  <div
+                    v-for="(mov, mi) in getL3Movements(op)"
+                    :key="mi"
+                    class="focus-bar__l3-movement"
+                  >
+                    <div class="focus-bar__l3-row">
+                      <span class="tooltip" :data-tip="walletTitle(mov.user_wallet, op.wallet_op)">
+                        <code>{{ walletDisplayId(mov.user_wallet) }}</code>
+                      </span>
+                      <span v-if="mov.user_ref" class="focus-bar__l3-user">
+                        · {{ mov.user_ref }}
+                      </span>
+                    </div>
+                    <div v-if="mov.available_delta" class="focus-bar__l3-delta">
+                      <span class="focus-bar__l3-delta-label">Доступно</span>
+                      <code>{{ formatDelta(mov.available_delta) }}</code>
+                    </div>
+                    <div v-if="mov.blocked_delta" class="focus-bar__l3-delta">
+                      <span class="focus-bar__l3-delta-label">Заблокировано</span>
+                      <code>{{ formatDelta(mov.blocked_delta) }}</code>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -493,21 +519,27 @@ function hasL3(op: Ledger2Operation): boolean {
         >
           <div class="focus-bar__op-sub-label">Кошелёк пайщика</div>
           <div class="focus-bar__op-sub-body focus-bar__op-sub-body--stack">
-            <div class="focus-bar__l3-row">
-              <span class="tooltip" :data-tip="walletTitle(focusedOperation.user_wallet, focusedOperation.wallet_op)">
-                <code>{{ walletDisplayId(focusedOperation.user_wallet) }}</code>
-              </span>
-              <span v-if="focusedOperation.user_ref" class="focus-bar__l3-user">
-                · {{ focusedOperation.user_ref }}
-              </span>
-            </div>
-            <div v-if="focusedOperation.available_delta" class="focus-bar__l3-delta">
-              <span class="focus-bar__l3-delta-label">Доступно</span>
-              <code>{{ formatDelta(focusedOperation.available_delta) }}</code>
-            </div>
-            <div v-if="focusedOperation.blocked_delta" class="focus-bar__l3-delta">
-              <span class="focus-bar__l3-delta-label">Заблокировано</span>
-              <code>{{ formatDelta(focusedOperation.blocked_delta) }}</code>
+            <div
+              v-for="(mov, mi) in getL3Movements(focusedOperation)"
+              :key="mi"
+              class="focus-bar__l3-movement"
+            >
+              <div class="focus-bar__l3-row">
+                <span class="tooltip" :data-tip="walletTitle(mov.user_wallet, focusedOperation.wallet_op)">
+                  <code>{{ walletDisplayId(mov.user_wallet) }}</code>
+                </span>
+                <span v-if="mov.user_ref" class="focus-bar__l3-user">
+                  · {{ mov.user_ref }}
+                </span>
+              </div>
+              <div v-if="mov.available_delta" class="focus-bar__l3-delta">
+                <span class="focus-bar__l3-delta-label">Доступно</span>
+                <code>{{ formatDelta(mov.available_delta) }}</code>
+              </div>
+              <div v-if="mov.blocked_delta" class="focus-bar__l3-delta">
+                <span class="focus-bar__l3-delta-label">Заблокировано</span>
+                <code>{{ formatDelta(mov.blocked_delta) }}</code>
+              </div>
             </div>
           </div>
         </div>
@@ -741,10 +773,20 @@ function hasL3(op: Ledger2Operation): boolean {
   background: var(--bg); border-color: var(--accent-border); color: var(--accent);
 }
 
-/* L3-карточка: горизонтальная (wallet · user · Доступно · Заблокировано). */
+/* L3-карточка: каждое движение — отдельная строка (wallet · user · Доступно ·
+   Заблокировано). Несколько movement'ов рендерятся вертикально друг под
+   другом — для TRANSFER между двумя USER_SHARED одного пайщика и подобных. */
 .focus-bar__op-sub-body--stack {
+  display: flex; flex-direction: column; align-items: stretch;
+  gap: 6px;
+}
+.focus-bar__l3-movement {
   display: flex; flex-direction: row; align-items: baseline;
   gap: 8px 18px; flex-wrap: wrap;
+}
+.focus-bar__l3-movement + .focus-bar__l3-movement {
+  border-top: 1px dashed var(--border-subtle, rgba(0,0,0,0.08));
+  padding-top: 6px;
 }
 .focus-bar__l3-row {
   display: inline-flex; align-items: baseline; gap: 4px; flex-wrap: wrap;
