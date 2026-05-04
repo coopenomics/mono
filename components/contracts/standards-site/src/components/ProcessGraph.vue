@@ -38,7 +38,11 @@ const props = defineProps<{
 
 const router = useRouter();
 const { theme } = useTheme();
+// containerRef — внешняя обёртка (включает FocusBar + канву), на неё навешен fullscreen.
+// canvasRef — только канва VueFlow, по её размерам считается центрирование/zoom,
+// чтобы FocusBar не «съедал» центр и активный узел реально оказывался по центру видимой области.
 const containerRef = ref<HTMLElement | null>(null);
+const canvasRef = ref<HTMLElement | null>(null);
 
 const gridColor = computed(() => (theme.value === 'dark' ? '#23232a' : '#e5e5e5'));
 
@@ -78,12 +82,11 @@ function doFit(): void {
       const fittedZoom = vf.getViewport().zoom;
       const targetZoom = Math.min(fittedZoom * START_ZOOM_BOOST, maxZoom);
 
-      // 2) Сдвигаем viewport так, чтобы круглешок-старт встал в правой
-      //    зоне (~65%) — слева достаточно места под FocusBar (~42% ширины);
-      //    по вертикали — по центру.
-      const container = containerRef.value;
-      const cw = container?.clientWidth ?? 800;
-      const ch = container?.clientHeight ?? 600;
+      // 2) Сдвигаем viewport так, чтобы круглешок-старт встал в центре
+      //    канвы (FocusBar — отдельная колонка слева, канва — своя зона).
+      const canvas = canvasRef.value;
+      const cw = canvas?.clientWidth ?? 800;
+      const ch = canvas?.clientHeight ?? 600;
       const startN = vf.findNode(START_ID);
       if (startN) {
         const w = (startN.dimensions?.width ?? 48);
@@ -91,7 +94,7 @@ function doFit(): void {
         const nx = startN.position.x + w / 2;
         const ny = startN.position.y + h / 2;
         vf.setViewport({
-          x: cw * 0.65 - nx * targetZoom,
+          x: cw * 0.5 - nx * targetZoom,
           y: ch * 0.5 - ny * targetZoom,
           zoom: targetZoom,
         });
@@ -127,13 +130,13 @@ function focusedNodeId(): string | null {
 }
 
 function ensureInView(nodeId: string | null): void {
-  if (!nodeId || !vfInstance.value || !containerRef.value) return;
+  if (!nodeId || !vfInstance.value || !canvasRef.value) return;
   const vf = vfInstance.value;
   const node = vf.findNode(nodeId);
   if (!node) return;
   const vp = vf.getViewport();
-  const cw = containerRef.value.clientWidth;
-  const ch = containerRef.value.clientHeight;
+  const cw = canvasRef.value.clientWidth;
+  const ch = canvasRef.value.clientHeight;
   const w = node.dimensions?.width ?? 120;
   const h = node.dimensions?.height ?? 80;
   const left = vp.x + node.position.x * vp.zoom;
@@ -160,7 +163,7 @@ watch(
 );
 
 let resizeObserver: ResizeObserver | null = null;
-watch(containerRef, (el) => {
+watch(canvasRef, (el) => {
   resizeObserver?.disconnect();
   resizeObserver = null;
   if (!el || typeof ResizeObserver === 'undefined') return;
@@ -283,63 +286,9 @@ function labelForNav(n: Nav): string {
     </button>
 
     <div ref="containerRef" class="process-graph">
-      <VueFlow
-        :nodes="layout.nodes"
-        :edges="layout.edges"
-        :node-types="nodeTypes"
-        :nodes-draggable="false"
-        :nodes-connectable="false"
-        :elements-selectable="false"
-        :zoom-on-scroll="false"
-        :zoom-on-pinch="true"
-        :zoom-on-double-click="false"
-        :pan-on-scroll="true"
-        :pan-on-drag="true"
-        :prevent-scrolling="true"
-        :min-zoom="minZoom"
-        :max-zoom="maxZoom"
-        @pane-ready="onPaneReady"
-        @node-click="onNodeClick"
-        @edge-click="onEdgeClick"
-      >
-        <Background :pattern-color="gridColor" :gap="16" :size="1" />
-        <Controls position="top-right" :show-interactive="false">
-          <ControlButton
-            :title="isFullscreen ? 'Свернуть из полноэкранного режима' : 'Развернуть на весь экран'"
-            :aria-label="isFullscreen ? 'Свернуть' : 'Развернуть на весь экран'"
-            @click="toggleFullscreen"
-          >
-            <Minimize2 v-if="isFullscreen" :size="14" />
-            <Maximize2 v-else :size="14" />
-          </ControlButton>
-        </Controls>
-      </VueFlow>
-
-      <!-- Дублирующие prev/next в виде оверлеев — видны только в fullscreen,
-           где внешние кнопки .graph-nav скрыты за пределами экрана. -->
-      <button
-        type="button"
-        class="graph-nav graph-nav--floating graph-nav--floating-prev"
-        :disabled="!prevItem"
-        :aria-label="prevItem ? `Назад: ${labelForNav(prevItem)}` : 'Назад (нет)'"
-        :title="prevItem ? `Назад: ${labelForNav(prevItem)}` : ''"
-        @click="pushNav(prevItem)"
-      >
-        <ChevronLeft :size="20" />
-      </button>
-      <button
-        type="button"
-        class="graph-nav graph-nav--floating graph-nav--floating-next"
-        :disabled="!nextItem"
-        :aria-label="nextItem ? `Вперёд: ${labelForNav(nextItem)}` : 'Вперёд (нет)'"
-        :title="nextItem ? `Вперёд: ${labelForNav(nextItem)}` : ''"
-        @click="pushNav(nextItem)"
-      >
-        <ChevronRight :size="20" />
-      </button>
-
-      <!-- Левая панель деталей фокуса, прилипшая к левому краю рабочей области. -->
-      <div class="focus-bar-slot">
+      <!-- Левая колонка: панель деталей фокуса. Соседняя с канвой,
+           не перекрывает её — центрирование на канве честное. -->
+      <aside class="focus-panel">
         <FocusBar
           :standard="standard"
           :focus-status="focusStatus"
@@ -347,6 +296,64 @@ function labelForNav(n: Nav): string {
           :focus-document="focusDocument"
           :focus-operation="focusOperation"
         />
+      </aside>
+
+      <!-- Правая колонка: канва VueFlow. -->
+      <div ref="canvasRef" class="process-graph__canvas">
+        <VueFlow
+          :nodes="layout.nodes"
+          :edges="layout.edges"
+          :node-types="nodeTypes"
+          :nodes-draggable="false"
+          :nodes-connectable="false"
+          :elements-selectable="false"
+          :zoom-on-scroll="false"
+          :zoom-on-pinch="true"
+          :zoom-on-double-click="false"
+          :pan-on-scroll="true"
+          :pan-on-drag="true"
+          :prevent-scrolling="true"
+          :min-zoom="minZoom"
+          :max-zoom="maxZoom"
+          @pane-ready="onPaneReady"
+          @node-click="onNodeClick"
+          @edge-click="onEdgeClick"
+        >
+          <Background :pattern-color="gridColor" :gap="16" :size="1" />
+          <Controls position="top-right" :show-interactive="false">
+            <ControlButton
+              :title="isFullscreen ? 'Свернуть из полноэкранного режима' : 'Развернуть на весь экран'"
+              :aria-label="isFullscreen ? 'Свернуть' : 'Развернуть на весь экран'"
+              @click="toggleFullscreen"
+            >
+              <Minimize2 v-if="isFullscreen" :size="14" />
+              <Maximize2 v-else :size="14" />
+            </ControlButton>
+          </Controls>
+        </VueFlow>
+
+        <!-- Дублирующие prev/next в виде оверлеев — видны только в fullscreen,
+             где внешние кнопки .graph-nav скрыты за пределами экрана. -->
+        <button
+          type="button"
+          class="graph-nav graph-nav--floating graph-nav--floating-prev"
+          :disabled="!prevItem"
+          :aria-label="prevItem ? `Назад: ${labelForNav(prevItem)}` : 'Назад (нет)'"
+          :title="prevItem ? `Назад: ${labelForNav(prevItem)}` : ''"
+          @click="pushNav(prevItem)"
+        >
+          <ChevronLeft :size="20" />
+        </button>
+        <button
+          type="button"
+          class="graph-nav graph-nav--floating graph-nav--floating-next"
+          :disabled="!nextItem"
+          :aria-label="nextItem ? `Вперёд: ${labelForNav(nextItem)}` : 'Вперёд (нет)'"
+          :title="nextItem ? `Вперёд: ${labelForNav(nextItem)}` : ''"
+          @click="pushNav(nextItem)"
+        >
+          <ChevronRight :size="20" />
+        </button>
       </div>
     </div>
 
@@ -402,6 +409,8 @@ function labelForNav(n: Nav): string {
   min-width: 0;
   min-height: 0;
   height: 100%;
+  display: flex;
+  flex-direction: row;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--bg);
@@ -409,38 +418,41 @@ function labelForNav(n: Nav): string {
   position: relative;
 }
 
-/* Панель деталей фокуса — приклеена к левому краю рабочей области изнутри
-   (правый верх занят зум-контролами VueFlow). */
-.focus-bar-slot {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  bottom: 12px;
-  width: min(380px, 42%);
-  z-index: 10;
-  pointer-events: auto;
-}
-.focus-bar-slot :deep(.focus-bar) {
-  margin-bottom: 0;
+/* Левая колонка — панель деталей фокуса. Соседняя с канвой, не наложение. */
+.focus-panel {
+  flex: 0 0 360px;
+  max-width: 38%;
+  min-width: 260px;
+  border-right: 1px solid var(--border);
   background: var(--bg);
-  box-shadow: 6px 0 20px rgba(0, 0, 0, 0.12);
-  height: 100%;
-  max-height: 100%;
   overflow-y: auto;
+  padding: 12px;
+  box-sizing: border-box;
+}
+.focus-panel :deep(.focus-bar) {
+  margin-bottom: 0;
+  background: transparent;
+  box-shadow: none;
+  height: auto;
   flex-direction: column;
   flex-wrap: nowrap;
   gap: 14px;
 }
-/* Внутри overlay-слота фон панели всегда непрозрачный — варианты
-   --edge / --doc / --op / --process / --rejected используют *-soft цвета
-   (rgba с alpha), сквозь которые просвечивает граф. Цвет окантовки
-   (border-color) остаётся вариантным — это и есть индикатор типа фокуса. */
-.focus-bar-slot :deep(.focus-bar.focus-bar--edge),
-.focus-bar-slot :deep(.focus-bar.focus-bar--doc),
-.focus-bar-slot :deep(.focus-bar.focus-bar--op),
-.focus-bar-slot :deep(.focus-bar.focus-bar--process),
-.focus-bar-slot :deep(.focus-bar.focus-bar--rejected) {
-  background: var(--bg);
+.focus-panel :deep(.focus-bar__col) {
+  flex: 0 0 auto;
+  width: 100%;
+}
+.focus-panel :deep(.focus-bar--edge) {
+  background: var(--edge-focus-soft);
+}
+
+/* Правая колонка — канва VueFlow. */
+.process-graph__canvas {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  position: relative;
 }
 
 /* В полноэкранном режиме рабочая зона занимает весь экран. */
@@ -451,8 +463,7 @@ function labelForNav(n: Nav): string {
   width: 100vw;
 }
 
-/* Floating prev/next: пара кнопок у нижнего края в fullscreen — рядом,
-   а не по краям, чтобы не перекрывать вертикальный focus-bar слева. */
+/* Floating prev/next: пара кнопок у нижнего края канвы в fullscreen. */
 .graph-nav--floating {
   display: none;
   position: absolute;
@@ -465,13 +476,6 @@ function labelForNav(n: Nav): string {
 .graph-nav--floating-prev { right: 68px; }
 .graph-nav--floating-next { right: 16px; }
 .process-graph:fullscreen .graph-nav--floating { display: flex; }
-.focus-bar-slot :deep(.focus-bar__col) {
-  flex: 0 0 auto;
-  width: 100%;
-}
-.focus-bar-slot :deep(.focus-bar--edge) {
-  background: var(--edge-focus-soft);
-}
 
 :deep(.vue-flow__edge) {
   cursor: pointer;
