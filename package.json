@@ -1,5 +1,28 @@
 {
   "name": "monocoop",
+  "packageManager": "pnpm@10.33.0",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@apollo/protobufjs",
+      "@eosrio/node-abieos",
+      "@nestjs/core",
+      "@parcel/watcher",
+      "@scarf/scarf",
+      "core-js",
+      "cpu-features",
+      "electron",
+      "esbuild",
+      "libxmljs2",
+      "msgpackr-extract",
+      "nx",
+      "protobufjs",
+      "puppeteer",
+      "simple-git-hooks",
+      "ssh2",
+      "unrs-resolver",
+      "vue-demi"
+    ]
+  },
   "dependencies": {
     "@coopenomics/boot": "workspace:*",
     "@coopenomics/cleos": "workspace:*",

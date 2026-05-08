@@ -16,18 +16,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      # Версия pnpm берётся из `packageManager` корневого package.json,
+      # синхронно с publish-packages.yaml и Dockerfile'ами.
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: pnpm
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-
-      - name: Install pnpm
-        run: npm install -g pnpm
 
       - name: Install Python requirements
         run: |

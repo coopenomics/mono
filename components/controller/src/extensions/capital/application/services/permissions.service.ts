@@ -138,8 +138,8 @@ export class PermissionsService {
 
     const username = currentUser.username;
 
-    // Определяем роль пользователя для этой задачи
-    const userRole = await this.issuePermissionsService.getUserRoleForIssue(
+    // Определяем НАБОР ролей пользователя для этой задачи (UNION-семантика).
+    const roles = await this.issuePermissionsService.getUserRoleForIssue(
       username,
       issue.coopname,
       issue.project_hash,
@@ -152,18 +152,18 @@ export class PermissionsService {
     const has_clearance = await this.isProjectContributor(username, issue.coopname, issue.project_hash);
 
     // Рассчитываем права на основе матрицы доступа
-    const can_edit_issue = this.issuePermissionsService.hasPermission(userRole, IssueAction.EDIT_ISSUE);
-    const can_change_status = this.issuePermissionsService.hasPermission(userRole, IssueAction.CHANGE_STATUS);
-    const can_assign_creator = this.issuePermissionsService.hasPermission(userRole, IssueAction.ASSIGN_CREATOR);
-    const can_set_done = this.issuePermissionsService.hasPermission(userRole, IssueAction.SET_DONE);
-    const can_set_on_review = this.issuePermissionsService.hasPermission(userRole, IssueAction.SET_ON_REVIEW);
-    const can_set_estimate = this.issuePermissionsService.hasPermission(userRole, IssueAction.SET_ESTIMATE);
-    const can_set_priority = this.issuePermissionsService.hasPermission(userRole, IssueAction.SET_PRIORITY);
-    const can_delete_issue = this.issuePermissionsService.hasPermission(userRole, IssueAction.DELETE_ISSUE);
-    const can_create_requirement = this.issuePermissionsService.hasPermission(userRole, IssueAction.CREATE_REQUIREMENT);
-    const can_edit_requirement = this.issuePermissionsService.hasPermission(userRole, IssueAction.EDIT_REQUIREMENT);
-    const can_delete_requirement = this.issuePermissionsService.hasPermission(userRole, IssueAction.DELETE_REQUIREMENT);
-    const can_complete_requirement = this.issuePermissionsService.hasPermission(userRole, IssueAction.COMPLETE_REQUIREMENT);
+    const can_edit_issue = this.issuePermissionsService.hasPermission(roles, IssueAction.EDIT_ISSUE);
+    const can_change_status = this.issuePermissionsService.hasPermission(roles, IssueAction.CHANGE_STATUS);
+    const can_assign_creator = this.issuePermissionsService.hasPermission(roles, IssueAction.ASSIGN_CREATOR);
+    const can_set_done = this.issuePermissionsService.hasPermission(roles, IssueAction.SET_DONE);
+    const can_set_on_review = this.issuePermissionsService.hasPermission(roles, IssueAction.SET_ON_REVIEW);
+    const can_set_estimate = this.issuePermissionsService.hasPermission(roles, IssueAction.SET_ESTIMATE);
+    const can_set_priority = this.issuePermissionsService.hasPermission(roles, IssueAction.SET_PRIORITY);
+    const can_delete_issue = this.issuePermissionsService.hasPermission(roles, IssueAction.DELETE_ISSUE);
+    const can_create_requirement = this.issuePermissionsService.hasPermission(roles, IssueAction.CREATE_REQUIREMENT);
+    const can_edit_requirement = this.issuePermissionsService.hasPermission(roles, IssueAction.EDIT_REQUIREMENT);
+    const can_delete_requirement = this.issuePermissionsService.hasPermission(roles, IssueAction.DELETE_REQUIREMENT);
+    const can_complete_requirement = this.issuePermissionsService.hasPermission(roles, IssueAction.COMPLETE_REQUIREMENT);
 
     let can_move_issue = false;
     const issueProject = await this.projectRepository.findByHash(issue.project_hash);
@@ -174,8 +174,8 @@ export class PermissionsService {
       const projectOpenForMove = st === ProjectStatus.PENDING || st === ProjectStatus.ACTIVE;
       can_move_issue = projectPerms.can_manage_issues && projectOpenForMove;
     }
-    // Получаем допустимые переходы статусов для текущего статуса и роли
-    const allowed_status_transitions = this.issuePermissionsService.getAllowedStatusTransitions(userRole, issue.status);
+    // Получаем допустимые переходы статусов для текущего статуса (UNION по ролям).
+    const allowed_status_transitions = this.issuePermissionsService.getAllowedStatusTransitions(roles, issue.status);
 
     return {
       can_edit_issue,
@@ -229,8 +229,8 @@ export class PermissionsService {
 
     const username = currentUser.username;
 
-    // Определяем роль пользователя для этого проекта
-    const userRole = await this.projectPermissionsService.getProjectUserRole(username, project, currentUser.role);
+    // Определяем НАБОР project-ролей пользователя (UNION-семантика).
+    const roles = await this.projectPermissionsService.getProjectUserRole(username, project, currentUser.role);
 
     // Проверяем наличие clearance (доступа к проекту)
     const has_clearance = project.coopname
@@ -243,30 +243,30 @@ export class PermissionsService {
       : false;
 
     // Рассчитываем права на основе матрицы доступа
-    const can_edit_project = this.projectPermissionsService.hasProjectPermission(userRole, ProjectAction.EDIT_PROJECT);
-    const can_manage_issues = this.projectPermissionsService.hasProjectPermission(userRole, ProjectAction.MANAGE_ISSUES);
+    const can_edit_project = this.projectPermissionsService.hasProjectPermission(roles, ProjectAction.EDIT_PROJECT);
+    const can_manage_issues = this.projectPermissionsService.hasProjectPermission(roles, ProjectAction.MANAGE_ISSUES);
     const can_change_project_status = this.projectPermissionsService.hasProjectPermission(
-      userRole,
+      roles,
       ProjectAction.CHANGE_PROJECT_STATUS
     );
-    const can_delete_project = this.projectPermissionsService.hasProjectPermission(userRole, ProjectAction.DELETE_PROJECT);
-    const can_set_master = this.projectPermissionsService.hasProjectPermission(userRole, ProjectAction.SET_MASTER);
-    const can_manage_authors = this.projectPermissionsService.hasProjectPermission(userRole, ProjectAction.MANAGE_AUTHORS);
-    const can_set_plan = this.projectPermissionsService.hasProjectPermission(userRole, ProjectAction.SET_PLAN);
+    const can_delete_project = this.projectPermissionsService.hasProjectPermission(roles, ProjectAction.DELETE_PROJECT);
+    const can_set_master = this.projectPermissionsService.hasProjectPermission(roles, ProjectAction.SET_MASTER);
+    const can_manage_authors = this.projectPermissionsService.hasProjectPermission(roles, ProjectAction.MANAGE_AUTHORS);
+    const can_set_plan = this.projectPermissionsService.hasProjectPermission(roles, ProjectAction.SET_PLAN);
     const can_create_requirement = this.projectPermissionsService.hasProjectPermission(
-      userRole,
+      roles,
       ProjectAction.CREATE_REQUIREMENT
     );
     const can_edit_requirement = this.projectPermissionsService.hasProjectPermission(
-      userRole,
+      roles,
       ProjectAction.EDIT_REQUIREMENT
     );
     const can_delete_requirement = this.projectPermissionsService.hasProjectPermission(
-      userRole,
+      roles,
       ProjectAction.DELETE_REQUIREMENT
     );
     const can_complete_requirement = this.projectPermissionsService.hasProjectPermission(
-      userRole,
+      roles,
       ProjectAction.COMPLETE_REQUIREMENT
     );
 

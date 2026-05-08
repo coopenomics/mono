@@ -35,7 +35,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN python3 -m venv /venv \
  && /venv/bin/pip install --no-cache-dir WeasyPrint==67
 
-RUN npm install -g pnpm lerna --no-fund --no-audit
+# pnpm пинится через `packageManager` поле в корневом package.json
+# (corepack-стандарт). Без пина CI каждый раз тянет latest, а pnpm 10
+# ужесточил политику build-скриптов и валит `--frozen-lockfile` с
+# ERR_PNPM_IGNORED_BUILDS на native-пакетах (electron / esbuild / …).
+RUN corepack enable && npm install -g lerna --no-fund --no-audit
 
 # Сначала манифесты (для кэш-friendly install). `.dockerignore` уже
 # выкидывает node_modules/dist/.git, поэтому `COPY .` лёгкий.
@@ -95,7 +99,9 @@ COPY --from=builder /app /app
 
 # Глобальные pnpm/lerna — нужны чтобы потребители mono-base могли
 # делать `CMD ["pnpm","-F","<pkg>","run","start"]` в production.
-RUN npm install -g pnpm lerna --no-fund --no-audit
+# pnpm активируется через corepack (версия из `packageManager` корневого
+# package.json — синхронно со builder-стадией).
+RUN corepack enable && npm install -g lerna --no-fund --no-audit
 
 # Sanity-check: WeasyPrint работает и виден через PATH.
 RUN weasyprint --version
