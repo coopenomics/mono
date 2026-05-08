@@ -53,7 +53,10 @@ void ledger2::walletop(eosio::name coopname,
   eosio::check(amount.symbol == _root_govern_symbol,
                "walletop: некорректный символ валюты");
   eosio::check(memo.size() < 256, "walletop: memo > 255");
-  eosio::check(op_code <= 5, "walletop: неизвестный op_code");
+  // op_code = 5 (NONE) намеренно не допускается: NONE-операции — это только
+  // бухпроводка без кошелькового движения, apply.cpp не диспатчит для них walletop.
+  // Прямой вызов с op_code=5 был бы no-op и сбил бы инвариант parity.
+  eosio::check(op_code <= 4, "walletop: неизвестный op_code");
 
   wallets2_index   wallets(get_self(), coopname.value);
   userwallets_index user_wallets(get_self(), coopname.value);

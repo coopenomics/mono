@@ -15,7 +15,7 @@
  */
 import type { IName } from '../interfaces/ledger2'
 
-export type WalletOp = 'ISSUE' | 'TRANSFER' | 'BLOCK' | 'UNBLOCK' | 'BURN'
+export type WalletOp = 'ISSUE' | 'TRANSFER' | 'BLOCK' | 'UNBLOCK' | 'BURN' | 'NONE'
 
 export interface OperationMeta {
   /** Машинный идентификатор — eosio::name в контракте. */
@@ -105,7 +105,7 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     human_name: 'Коммит РИД по программе «Благорост»' },
 
   { code: 'o.cap.accept',  process_type: 'p.cap.rid',     contract: 'capital',
-    name: 'ACCEPT_RID',     wallet_op: 'TRANSFER', wallet_from: 'w.cap.gen', wallet_to: 'w.cap.blago',
+    name: 'ACCEPT_RID',     wallet_op: 'NONE',     wallet_from: null, wallet_to: null,
     debit: 4, credit: 8,
     human_name: 'Приём РИД в паевой фонд' },
 
@@ -128,6 +128,16 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     name: 'WITHDRAW_FROM_CAPITAL', wallet_op: 'TRANSFER', wallet_from: 'w.cap.blago', wallet_to: 'w.wal.share',
     debit: null, credit: null,
     human_name: 'Возврат паевого из ЦПП «Благорост» в Цифровой Кошелёк' },
+
+  { code: 'o.cap.cnvshr',  process_type: 'p.cap.cnvseg',  contract: 'capital',
+    name: 'CONVERT_TO_SHARE', wallet_op: 'TRANSFER', wallet_from: 'w.cap.gen', wallet_to: 'w.wal.share',
+    debit: null, credit: null,
+    human_name: 'Конвертация сегмента: РИД → паевой взнос деньгами' },
+
+  { code: 'o.cap.cnvbl',   process_type: 'p.cap.cnvseg',  contract: 'capital',
+    name: 'CONVERT_TO_BLAGO', wallet_op: 'TRANSFER', wallet_from: 'w.cap.gen', wallet_to: 'w.cap.blago',
+    debit: null, credit: null,
+    human_name: 'Конвертация сегмента: РИД → ЦПП «Благорост»' },
 
   // marketplace
   { code: 'o.mkt.supply',  process_type: 'p.mkt.reqst',   contract: 'marketplace',

@@ -71,13 +71,13 @@ namespace operations {
     inline constexpr eosio::name IMPORT              = "o.cap.import"_n;   ///< Оффлайн-импорт пайщика Благорост (Dr 51 / Cr 80, ISSUE BLAGOROST_FUND).
     inline constexpr eosio::name INVEST              = "o.cap.invest"_n;   ///< Инвестиция в ЦПП Благорост (TRANSFER SHARE_FUND_PAY → BLAGOROST_FUND, без Dr/Cr).
     inline constexpr eosio::name COMMIT_RID          = "o.cap.commit"_n;   ///< Коммит РИД (Dr 08 / Cr 80, ISSUE GENERATOR_FUND).
-    inline constexpr eosio::name ACCEPT_RID          = "o.cap.accept"_n;   ///< Приём РИД в НМА (Dr 04 / Cr 08, TRANSFER GENERATOR_FUND → BLAGOROST_FUND).
+    inline constexpr eosio::name ACCEPT_RID          = "o.cap.accept"_n;   ///< Приём РИД в НМА (Dr 04 / Cr 08, NONE — только бухпроводка, кошелёк остаётся на GENERATOR_FUND до конвертации сегмента).
     inline constexpr eosio::name ACCEPT_PROPERTY     = "o.cap.actprp"_n;   ///< Акт-2 имущественный паевой взнос (Dr 51 / Cr 80, ISSUE BLAGOROST_FUND).
     inline constexpr eosio::name LEND                = "o.cap.lend"_n;     ///< Выдача беспроцентного займа пайщику (Dr 58 / Cr 51, ISSUE LOAN_ISSUED).
     inline constexpr eosio::name REPAY               = "o.cap.repay"_n;    ///< Возврат займа пайщика по акту-2 (Dr 80 / Cr 58, TRANSFER LOAN_ISSUED → SHARE_FUND_PAY).
     inline constexpr eosio::name WITHDRAW_FROM_CAPITAL = "o.cap.wthcap"_n; ///< Возврат паевого из ЦПП «Благорост» в кошелёк пайщика (TRANSFER BLAGOROST_FUND → SHARE_FUND_PAY, без Dr/Cr).
-    inline constexpr eosio::name CONVERT_TO_SHARE    = "o.cap.cnvshr"_n;   ///< Конвертация сегмента: интеллектуальная стоимость → паевой взнос деньгами (Dr 80 / Cr 08, TRANSFER GENERATOR_FUND → SHARE_FUND_PAY).
-    inline constexpr eosio::name CONVERT_TO_BLAGO    = "o.cap.cnvbl"_n;    ///< Конвертация сегмента: интеллектуальная стоимость → ЦПП «Благорост» (Dr 04 / Cr 08, TRANSFER GENERATOR_FUND → BLAGOROST_FUND).
+    inline constexpr eosio::name CONVERT_TO_SHARE    = "o.cap.cnvshr"_n;   ///< Конвертация сегмента: РИД → паевой взнос деньгами (TRANSFER GENERATOR_FUND → SHARE_FUND_PAY, без Dr/Cr — бухпроводка уже была сделана в ACCEPT_RID).
+    inline constexpr eosio::name CONVERT_TO_BLAGO    = "o.cap.cnvbl"_n;    ///< Конвертация сегмента: РИД → ЦПП «Благорост» (TRANSFER GENERATOR_FUND → BLAGOROST_FUND, без Dr/Cr — бухпроводка уже была сделана в ACCEPT_RID).
   }
 
   // marketplace
@@ -133,6 +133,7 @@ enum class WalletOp : uint8_t {
   BLOCK    = 2, ///< available-=amount, blocked+=amount на wallet_from
   UNBLOCK  = 3, ///< blocked-=amount, available+=amount на wallet_from
   BURN     = 4, ///< изъятие amount с wallet_from, без wallet_to. Покрывает оба кейса: (a) штатное сжигание как бизнес-операция в OPERATION_REGISTRY; (b) зеркало ISSUE при `ledger2::revert` (различие — через operation_code: `o.adj.rev` для adjustment-mirror).
+  NONE     = 5, ///< только бухпроводка без перемещения средств (wallet_from = empty, wallet_to = empty, debit ≠ 0, credit ≠ 0). Покрывает кейсы внутрибалансовых проводок типа Dr 04 / Cr 08 (приём РИД в НМА), когда кошелёк уже на нужном программном фонде.
 };
 
 /**
@@ -202,9 +203,12 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_accounts::NON_CURRENT_INVESTMENTS, ledger2_accounts::SHARE_FUND,
     "Коммит результата интеллектуальной деятельности по программе «Благорост»" },
 
-  // 8. Приём РИД в НМА: Dr 04 / Cr 08, TRANSFER GENERATOR_FUND → BLAGOROST_FUND (ADR-009)
-  { operations::capital::ACCEPT_RID, processes::capital::RID, WalletOp::TRANSFER,
-    ledger2_wallets::GENERATOR_FUND, ledger2_wallets::BLAGOROST_FUND,
+  // 8. Приём РИД в НМА: Dr 04 / Cr 08, NONE — кошелёк остаётся на GENERATOR_FUND.
+  // Семантика: подписан акт-2, РИД принят как НМА (закрылся 08-й). Перемещение
+  // кошелька (на ЦК или на Благорост) делается отдельным шагом — convertsegm,
+  // после голосования сегмента.
+  { operations::capital::ACCEPT_RID, processes::capital::RID, WalletOp::NONE,
+    eosio::name{}, eosio::name{},
     ledger2_accounts::INTANGIBLE_ASSETS, ledger2_accounts::NON_CURRENT_INVESTMENTS,
     "Приём результата интеллектуальной деятельности в паевой фонд" },
 
@@ -259,22 +263,21 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     0, 0,
     "Возврат паевого из ЦПП «Благорост» в Цифровой Кошелёк" },
 
-  // 18. Конвертация сегмента (часть в ЦК): Dr 80 / Cr 08, TRANSFER GENERATOR_FUND → SHARE_FUND_PAY.
-  // Семантика: после ACT2 интеллектуальная доля сегмента, не направленная в Благорост,
-  // возвращается пайщику деньгами в Цифровой Кошелёк. РИД-в-работе закрывается (Cr 08),
-  // паевой фонд получает компенсацию деньгами (Dr 80).
+  // 18. Конвертация сегмента (часть в ЦК): TRANSFER GENERATOR_FUND → SHARE_FUND_PAY, без Dr/Cr.
+  // Бухпроводка Dr 04 / Cr 08 уже сделана в ACCEPT_RID на полный
+  // available_for_program сегмента; здесь только перемещаем кошелёк.
   { operations::capital::CONVERT_TO_SHARE, processes::capital::CNVSEG, WalletOp::TRANSFER,
     ledger2_wallets::GENERATOR_FUND, ledger2_wallets::SHARE_FUND_PAY,
-    ledger2_accounts::SHARE_FUND, ledger2_accounts::NON_CURRENT_INVESTMENTS,
-    "Конвертация сегмента: интеллектуальная стоимость → паевой взнос деньгами" },
+    0, 0,
+    "Конвертация сегмента: РИД → паевой взнос деньгами" },
 
-  // 19. Конвертация сегмента (часть в Благорост): Dr 04 / Cr 08, TRANSFER GENERATOR_FUND → BLAGOROST_FUND.
-  // Семантика та же что у ACCEPT_RID, но в контексте конвертации сегмента после голосования.
-  // Отдельная операция для аудит-следа (различимость в реестре).
+  // 19. Конвертация сегмента (часть в Благорост): TRANSFER GENERATOR_FUND → BLAGOROST_FUND, без Dr/Cr.
+  // Бухпроводка Dr 04 / Cr 08 уже сделана в ACCEPT_RID; здесь только перенос
+  // кошелька в программный фонд.
   { operations::capital::CONVERT_TO_BLAGO, processes::capital::CNVSEG, WalletOp::TRANSFER,
     ledger2_wallets::GENERATOR_FUND, ledger2_wallets::BLAGOROST_FUND,
-    ledger2_accounts::INTANGIBLE_ASSETS, ledger2_accounts::NON_CURRENT_INVESTMENTS,
-    "Конвертация сегмента: интеллектуальная стоимость → ЦПП «Благорост»" },
+    0, 0,
+    "Конвертация сегмента: РИД → ЦПП «Благорост»" },
 
   // ----- Миграционные (o.mig.*) — вызываются только из migrate.cpp -----
 
@@ -362,6 +365,20 @@ namespace ledger2_registry_detail {
     return true;
   }
 
+  // Правило 8: NONE — оба wallet пустые, обе проводки обязательны (Dr ≠ 0, Cr ≠ 0).
+  // Семантика: только бухпроводка, кошельковое движение отсутствует.
+  constexpr bool none_pattern_correct() {
+    for (size_t i = 0; i < OPERATION_REGISTRY_SIZE; ++i) {
+      const auto& e = OPERATION_REGISTRY[i];
+      if (e.wallet_op != WalletOp::NONE) continue;
+      if (e.wallet_from.value != 0) return false;
+      if (e.wallet_to.value   != 0) return false;
+      if (e.debit_account_id  == 0) return false;
+      if (e.credit_account_id == 0) return false;
+    }
+    return true;
+  }
+
   // Правило 3: оба account_id (если ≠ 0) существуют в LEDGER2_ACCOUNT_MAP.
   constexpr bool accounts_exist_in_map() {
     for (size_t i = 0; i < OPERATION_REGISTRY_SIZE; ++i) {
@@ -394,6 +411,8 @@ static_assert(ledger2_registry_detail::transfer_wallet_from_ne_to(),
               "OPERATION_REGISTRY: TRANSFER с wallet_from == wallet_to или одним из них == 0");
 static_assert(ledger2_registry_detail::burn_pattern_correct(),
               "OPERATION_REGISTRY: BURN требует wallet_from ≠ 0 и wallet_to == 0");
+static_assert(ledger2_registry_detail::none_pattern_correct(),
+              "OPERATION_REGISTRY: NONE требует wallet_from == 0, wallet_to == 0 и обе проводки заполненными");
 static_assert(ledger2_registry_detail::accounts_exist_in_map(),
               "OPERATION_REGISTRY: ссылка на account id вне LEDGER2_ACCOUNT_MAP");
 static_assert(ledger2_registry_detail::wallets_exist_in_registry(),

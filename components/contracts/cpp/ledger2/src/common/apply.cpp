@@ -78,22 +78,27 @@ void ledger2::apply(eosio::name coopname,
   }
 
   // -------- dispatch atomic inline actions --------
-  // Для записей с проводкой — «тройка» (walletop + debit + credit) с общим
-  // process_hash. Для записей без бухпроводки (оба account_id == 0,
+  // Для записей с проводкой и кошельком — «тройка» (walletop + debit + credit)
+  // с общим process_hash. Для записей без бухпроводки (оба account_id == 0,
   // ADR-003) — только walletop: перенос средств между аналитическими
-  // разрезами одного бухсчёта, без debit/credit.
+  // разрезами одного бухсчёта, без debit/credit. Для записей без кошелькового
+  // движения (`WalletOp::NONE`, обе проводки заполнены) — только debit + credit:
+  // внутрибалансовый перенос (например, ACCEPT_RID Dr 04 / Cr 08 — кошелёк
+  // остаётся на текущем программном фонде, перемещается отдельным шагом).
   const auto self_perm = eosio::permission_level{get_self(), "active"_n};
 
-  eosio::action(self_perm, get_self(), "walletop"_n,
-    std::make_tuple(coopname,
-                    static_cast<uint8_t>(entry->wallet_op),
-                    entry->wallet_from,
-                    entry->wallet_to,
-                    username,
-                    amount,
-                    process_hash,
-                    memo)
-  ).send();
+  if (entry->wallet_op != WalletOp::NONE) {
+    eosio::action(self_perm, get_self(), "walletop"_n,
+      std::make_tuple(coopname,
+                      static_cast<uint8_t>(entry->wallet_op),
+                      entry->wallet_from,
+                      entry->wallet_to,
+                      username,
+                      amount,
+                      process_hash,
+                      memo)
+    ).send();
+  }
 
   if (entry->debit_account_id == 0 && entry->credit_account_id == 0) {
     return;
