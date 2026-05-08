@@ -1,67 +1,110 @@
 /**
  * Реестр кошельков ledger2 — source of truth в контракте:
  * `components/contracts/cpp/lib/core/ledger2/wallets.hpp`
- * (`LEDGER2_WALLET_REGISTRY`). При добавлении/переименовании кошелька
- * синхронизировать обе стороны.
+ * (`LEDGER2_WALLET_REGISTRY`, `LEDGER2_USER_SHARED_PROGRAM_MAPPING`).
+ *
+ * Сами реестры лежат в `wallets.generated.ts` и регенерируются скриптом
+ * `pnpm --filter cooptypes gen:from-cpp` (он же висит на prebuild). Этот
+ * файл оборачивает generated и добавляет runtime-helpers для UI/контроллера.
  *
  * Идентификатор кошелька — `eosio::name` с префиксом `w.<contract>.<waltype>`
- * по аналогии с операциями (`o.<contract>.<verb>`) и процессами
- * (`p.<contract>.<noun>`). Длина ≤ 13 base32-символов.
+ * (по аналогии с операциями `o.<contract>.<verb>` и процессами
+ * `p.<contract>.<noun>`). Длина ≤ 13 base32-символов.
  *
- * `human_name` — отображаемое имя в UI (standards-site, desktop).
+ * Классификация `WalletKind` (ADR-002):
+ *   USER_SHARED  — обязателен L3-разрез по пайщику (`ledger2::userwallets`).
+ *   COOPERATIVE  — единый кооперативный баланс, без L3.
  */
 import type { IName } from '../interfaces/ledger2'
 
-export interface WalletMeta {
-  /** Машинный идентификатор — eosio::name в контракте. */
-  name: IName
-  /** Человекочитаемое название для UI. */
-  human_name: string
-}
+export {
+  LEDGER2_USER_SHARED_PROGRAM_MAPPING,
+  LEDGER2_WALLET_REGISTRY,
+} from './wallets.generated'
+export type {
+  ProgramWalletMapping,
+  WalletKind,
+  WalletMeta,
+} from './wallets.generated'
 
-export const LEDGER2_WALLET_REGISTRY: readonly WalletMeta[] = [
-  // Группа паевого фонда (Cr 80)
-  { name: 'w.wal.share',  human_name: 'ЦПП «Цифровой Кошелёк» — паевые взносы деньгами' },
-  { name: 'w.reg.minshr', human_name: 'Минимальный паевой взнос' },
-  { name: 'w.wal.sharid', human_name: 'Паевой фонд — принятые РИД' },
-
-  // Целевое финансирование (Cr 86)
-  { name: 'w.reg.entry',  human_name: 'Вступительные взносы' },
-  { name: 'w.sov.member', human_name: 'Членские взносы (платформенные)' },
-  { name: 'w.sov.delgte', human_name: 'Делегатские членские взносы' },
-
-  // Выплаты / обязательства / финансовые вложения
-  { name: 'w.wal.wthdrw', human_name: 'Возвраты паевых взносов пайщикам' },
-  { name: 'w.mkt.payout', human_name: 'Выплаты поставщикам' },
-  { name: 'w.cap.loan',   human_name: 'Выданные пайщикам беспроцентные займы' },
-
-  // Служебные
-  { name: 'w.led.adjust', human_name: 'Ручные корректировки' },
-
-  // ЦПП «Благорост»
-  { name: 'w.cap.bginv',  human_name: 'ЦПП «Благорост» — инвестиции деньгами' },
-  { name: 'w.cap.bgrid',  human_name: 'ЦПП «Благорост» — принятые РИД' },
-  { name: 'w.cap.bgprop', human_name: 'ЦПП «Благорост» — имущественные паевые взносы' },
-  { name: 'w.cap.bgmem',  human_name: 'ЦПП «Благорост» — членские взносы' },
-
-  // ЦПП «Генератор»
-  { name: 'w.cap.gncom',  human_name: 'ЦПП «Генератор» — принятый коммит (имущество)' },
-  { name: 'w.cap.gnmem',  human_name: 'ЦПП «Генератор» — членские взносы' },
-
-  // ЦПП «Стол Заказов»
-  { name: 'w.mkt.fund',   human_name: 'ЦПП «Стол Заказов» — общий кошелёк' },
-] as const
+import {
+  LEDGER2_USER_SHARED_PROGRAM_MAPPING,
+  LEDGER2_WALLET_REGISTRY,
+} from './wallets.generated'
+import type { WalletKind } from './wallets.generated'
 
 const walletHumanByName = new Map<string, string>(
-  LEDGER2_WALLET_REGISTRY.map((w) => [w.name, w.human_name]),
+  LEDGER2_WALLET_REGISTRY.map(w => [w.name, w.human_name]),
 )
 
+const walletKindByName = new Map<string, WalletKind>(
+  LEDGER2_WALLET_REGISTRY.map(w => [w.name, w.kind]),
+)
+
+const programIdByWalletName = new Map<string, number>(
+  LEDGER2_USER_SHARED_PROGRAM_MAPPING
+    .filter(m => m.required_program_id > 0)
+    .map(m => [m.wallet_name, m.required_program_id]),
+)
+
+const walletNamesByProgramId = (() => {
+  const acc = new Map<number, string[]>()
+  for (const m of LEDGER2_USER_SHARED_PROGRAM_MAPPING) {
+    if (m.required_program_id <= 0) continue
+    const list = acc.get(m.required_program_id) ?? []
+    list.push(m.wallet_name)
+    acc.set(m.required_program_id, list)
+  }
+  return acc
+})()
+
 /**
- * Возвращает человекочитаемое имя кошелька по его eosio::name-идентификатору.
+ * wallet_name, в который пишется membership_contribution для program_id=1 (ЦК).
+ * При миграции `progwallets → userwallets` ЦК расщепляется на пай + членский.
+ */
+export const MEMBERSHIP_WALLET_NAME = 'w.wal.member'
+
+/**
+ * Все wallet_name'ы, привязанные к какой-либо программе (program_id > 0).
+ * Исключает кошельки с required_program_id == 0 (например, `w.reg.minshr`).
+ */
+export const ALL_PROGRAM_WALLET_NAMES: readonly string[] = LEDGER2_USER_SHARED_PROGRAM_MAPPING
+  .filter(m => m.required_program_id > 0)
+  .map(m => m.wallet_name)
+
+/**
+ * Человекочитаемое имя кошелька по его eosio::name-идентификатору.
  * Возвращает undefined для незарегистрированных имён и для пустого имени
- * (sentinel "" — кошелёк-источник/сток вне системы при ISSUE/REVOKE).
+ * (sentinel "" — кошелёк-источник/сток вне системы при ISSUE/BURN).
  */
 export function getWalletHumanName(name: IName | null | undefined): string | undefined {
   if (!name) return undefined
   return walletHumanByName.get(name)
+}
+
+/**
+ * `WalletKind` кошелька по его eosio::name (ADR-002, ADR-010).
+ * Возвращает undefined для незарегистрированных имён.
+ */
+export function getWalletKind(name: IName | null | undefined): WalletKind | undefined {
+  if (!name) return undefined
+  return walletKindByName.get(name)
+}
+
+/**
+ * wallet_name'ы, входящие в данный program_id. Пустой массив для отсутствующих
+ * или для program_id == 0 (исключения вроде `w.reg.minshr`).
+ */
+export function walletNamesForProgram(program_id: number | string | undefined | null): string[] {
+  if (program_id === undefined || program_id === null) return []
+  return walletNamesByProgramId.get(Number(program_id)) ?? []
+}
+
+/**
+ * program_id для wallet_name (или undefined, если кошелёк не USER_SHARED
+ * либо в исключениях с program_id == 0).
+ */
+export function programIdForWallet(wallet_name: IName | null | undefined): number | undefined {
+  if (!wallet_name) return undefined
+  return programIdByWalletName.get(wallet_name)
 }

@@ -315,12 +315,12 @@ export const AppRegistry: INamedExtension = {
     desktops: [
       {
         name: 'reports',
-        title: 'Отчёты ФНС',
+        title: 'Стол бухгалтера',
         icon: 'fa-solid fa-file-invoice',
       },
     ],
-    title: 'Отчёты ФНС',
-    description: 'Генерация налоговых отчётов для ФНС: бухбаланс, 6-НДФЛ, РСВ, ПСВ, декларация УСН и уведомления.',
+    title: 'Стол бухгалтера',
+    description: 'Двойная бухгалтерия кооператива: реестры операций, проводок, кошельков и счетов; календарь и формы налоговой отчётности (бухбаланс, 6-НДФЛ, РСВ, ПСВ, декларация УСН, уведомления ФНС).',
     image: 'https://i.ibb.co/6C5F3kD/Chat-GPT-Image-10-2025-20-42-42.png',
     class: ReportsExtensionModule,
     pluginClass: BuiltinPlugin,

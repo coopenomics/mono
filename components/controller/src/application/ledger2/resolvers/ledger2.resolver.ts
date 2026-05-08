@@ -7,7 +7,9 @@ import { Ledger2Service } from '../services/ledger2.service';
 import { Ledger2AccountDTO } from '../dto/ledger2-account.dto';
 import { Ledger2WalletDTO } from '../dto/ledger2-wallet.dto';
 import { Ledger2HistoryResponseDTO } from '../dto/ledger2-operation.dto';
+import { Ledger2PostingsResponseDTO } from '../dto/ledger2-posting.dto';
 import { GetLedger2HistoryInputDTO } from '../dto/get-ledger2-history-input.dto';
+import { GetLedger2PostingsInputDTO } from '../dto/get-ledger2-postings-input.dto';
 import { WalmoveInputDTO } from '../dto/walmove-input.dto';
 import { Ledger2AdjustmentResultDTO } from '../dto/ledger2-adjustment-result.dto';
 
@@ -61,6 +63,20 @@ export class Ledger2Resolver {
     @Args('input', { type: () => GetLedger2HistoryInputDTO }) input: GetLedger2HistoryInputDTO,
   ): Promise<Ledger2HistoryResponseDTO> {
     return this.service.getHistory(input);
+  }
+
+  @Query(() => Ledger2PostingsResponseDTO, {
+    name: 'getLedger2Postings',
+    description:
+      'Реестр проводок: пары debit+credit (Дт/Кт/Сумма), восстановленные из blockchain_actions ' +
+      'по правилу «ближайший parent apply». Источник для фронт-страницы «Реестр проводок».',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member'])
+  getLedger2Postings(
+    @Args('input', { type: () => GetLedger2PostingsInputDTO }) input: GetLedger2PostingsInputDTO,
+  ): Promise<Ledger2PostingsResponseDTO> {
+    return this.service.getPostings(input);
   }
 
   @Mutation(() => Ledger2AdjustmentResultDTO, {

@@ -34,9 +34,10 @@ void capital::createpinv(name coopname, name username, checksum256 invest_hash, 
   // Как в createinvest: программные инвесторы не проходят через signact2 — фиксируем вклад здесь
   Capital::Contributors::increase_investor_contribution(coopname, contributor -> id, amount);
 
-  // списание с доступного остатка главного кошелька и зачисление на кошелёк программы (заблокировано)
-  Wallet::sub_available_funds(_capital, coopname, contributor -> username, amount, _wallet_program, memo);
-  Wallet::add_blocked_funds(_capital, coopname, contributor -> username, amount, _capital_program, memo);
+  // ledger2: TRANSFER w.wal.share → w.cap.blago (без бухпроводки — оба счёта 80).
+  // Источник правды UI для балансов кошельков пайщика — L3 ledger2::userwallets.
+  Ledger2::apply(_capital, coopname, operations::capital::INVEST, amount,
+                 contributor -> username, invest_hash, memo);
 
   Capital::Core::add_program_investment_funds(coopname, amount);
 

@@ -34,6 +34,9 @@ public:
   using withdraw = WalletTables::withdraw;
   using deposits_index = WalletTables::deposits_index;
   using withdraws_index = WalletTables::withdraws_index;
+  using program_agreement = WalletTables::program_agreement;
+  using user = WalletTables::user;
+  using users_index = WalletTables::users_index;
 
   static eosio::name get_valid_wallet_action(const eosio::name &action) {
     eosio::check(wallet_callback_actions.contains(action), "Недопустимое имя действия wallet");

@@ -103,17 +103,15 @@
   // Это необходимо, т.к. чистые инвесторы не вносят результат и не проходят через signact2, где обычно обновляются рейтинги
   Capital::Contributors::increase_investor_contribution(coopname, contributor->id, amount);
 
-  // списание с доступного остатка кошелька программы и зачисление на кошелёк программы благороста (заблокировано)
-  print("▶ Списываем средства с доступного остатка кошелька программы: ", amount, " для пользователя: ", contributor -> username);
-  Wallet::sub_available_funds(_capital, coopname, contributor -> username, amount, _wallet_program, memo);
-
   // Получаем обновленный сегмент и обновляем геймификацию (уровень и энергию)
   // Это важно для чистых инвесторов, которые не проходят через signact2
   auto updated_segment = Capital::Segments::get_segment_by_id_or_fail(coopname, segment_id, "Сегмент инвестора не найден");
   Capital::Gamification::update_gamification_from_segment(coopname, contributor->id, updated_segment);
 
-  print("▶ Пополняем кошелёк программы благороста (заблокировано): ", amount, " для пользователя: ", contributor -> username);
-  Wallet::add_blocked_funds(_capital, coopname, contributor -> username, amount, _capital_program, memo);
+  // ledger2: TRANSFER w.wal.share → w.cap.blago (без бухпроводки — оба счёта 80).
+  // Источник правды UI для балансов кошельков пайщика — L3 ledger2::userwallets.
+  Ledger2::apply(_capital, coopname, operations::capital::INVEST, amount,
+                 contributor -> username, invest_hash, memo);
 
   // Фиксируем заявление об инвестиции в реестре
   Soviet::make_complete_document(

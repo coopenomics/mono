@@ -130,6 +130,8 @@ defineExpose({ reload })
 </script>
 
 <style scoped lang="scss">
+// Цвета через rgba + body--dark overrides — без хардкода hex, иначе на тёмной
+// теме календарь выглядит светлым пятном.
 .reports-calendar {
   position: relative;
   font-size: 13px;
@@ -151,44 +153,63 @@ defineExpose({ reload })
   display: grid;
   grid-template-columns: 180px repeat(12, minmax(54px, 1fr));
   gap: 2px;
-  background: #e0e0e0;
-  border: 1px solid #ccc;
+  background: rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.2);
   border-radius: 4px;
   padding: 2px;
   min-width: 900px;
+
+  .body--dark & {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.16);
+  }
 }
 
 .ch-corner {
-  background: #f5f5f5;
+  background: rgba(0, 0, 0, 0.04);
+  .body--dark & { background: rgba(255, 255, 255, 0.06); }
 }
 
 .ch-month {
-  background: #f5f5f5;
+  background: rgba(0, 0, 0, 0.04);
   padding: 8px 4px;
   text-align: center;
   font-weight: 600;
   font-size: 11px;
   text-transform: uppercase;
-  color: #555;
+  color: rgba(0, 0, 0, 0.6);
+
+  .body--dark & {
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.7);
+  }
 }
 
 .cell-name {
-  background: #fafafa;
+  background: rgba(0, 0, 0, 0.02);
   padding: 8px 10px;
-  border-top: 1px solid #eee;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
   .rt-short {
     font-weight: 600;
-    color: #222;
+    color: rgba(0, 0, 0, 0.85);
   }
   .rt-kind {
     font-size: 11px;
-    color: #999;
+    color: rgba(0, 0, 0, 0.5);
+  }
+
+  .body--dark & {
+    background: rgba(255, 255, 255, 0.04);
+    border-top-color: rgba(255, 255, 255, 0.08);
+    .rt-short { color: rgba(255, 255, 255, 0.9); }
+    .rt-kind { color: rgba(255, 255, 255, 0.55); }
   }
 }
 
 .empty-state {
   text-align: center;
   padding: 40px;
-  color: #888;
+  color: rgba(0, 0, 0, 0.5);
+  .body--dark & { color: rgba(255, 255, 255, 0.55); }
 }
 </style>

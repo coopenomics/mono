@@ -400,9 +400,7 @@ function buildLayout(standard: Standard): LayoutResult {
     const ops = opsByAction.get(t.action) ?? [];
     const hasDocs = (docsByAction.get(t.action) ?? []).length > 0;
     const hasWalletMove = ops.length > 0;
-    const hasPosting = ops.some(
-      (op) => op.wallet_op !== 'WALLET_ONLY' && (op.debit != null || op.credit != null),
-    );
+    const hasPosting = ops.some((op) => op.debit != null || op.credit != null);
 
     nodes.push({
       id: actionId,

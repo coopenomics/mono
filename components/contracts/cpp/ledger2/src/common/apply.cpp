@@ -58,10 +58,30 @@ void ledger2::apply(eosio::name coopname,
   eosio::check(entry != nullptr,
                std::string{"Unknown operation code: "} + operation_code.to_string());
 
+  // -------- username обязателен для USER_SHARED (Story 3.2; ADR-002) --------
+  // Исключение — миграционные коды (`o.mig.*`): legacy-агрегация без L3.
+  {
+    const auto code_str = operation_code.to_string();
+    const bool is_migration = code_str.size() >= 6 && code_str.substr(0, 6) == "o.mig.";
+    if (!is_migration) {
+      auto require_username = [&](eosio::name w) {
+        if (w.value == 0) return;
+        if (ledger2_get_wallet_kind(w) == WalletKind::USER_SHARED) {
+          eosio::check(username.value != 0,
+                       std::string{"apply: username обязателен для USER_SHARED-кошелька "} +
+                         w.to_string() + " (operation_code=" + code_str + ")");
+        }
+      };
+      require_username(entry->wallet_from);
+      require_username(entry->wallet_to);
+    }
+  }
+
   // -------- dispatch atomic inline actions --------
-  // Для штатных операций — «тройка» (walletop + debit + credit) с общим
-  // process_hash. Для WALLET_ONLY — только walletop (перенос средств между
-  // аналитическими разрезами одного бухсчёта, без debit/credit).
+  // Для записей с проводкой — «тройка» (walletop + debit + credit) с общим
+  // process_hash. Для записей без бухпроводки (оба account_id == 0,
+  // ADR-003) — только walletop: перенос средств между аналитическими
+  // разрезами одного бухсчёта, без debit/credit.
   const auto self_perm = eosio::permission_level{get_self(), "active"_n};
 
   eosio::action(self_perm, get_self(), "walletop"_n,
@@ -69,12 +89,13 @@ void ledger2::apply(eosio::name coopname,
                     static_cast<uint8_t>(entry->wallet_op),
                     entry->wallet_from,
                     entry->wallet_to,
+                    username,
                     amount,
                     process_hash,
                     memo)
   ).send();
 
-  if (entry->wallet_op == WalletOp::WALLET_ONLY) {
+  if (entry->debit_account_id == 0 && entry->credit_account_id == 0) {
     return;
   }
 

@@ -16,7 +16,7 @@ div.page-shell
           q-th(v-for='col in props.cols' :key='col.name' :props='props')
             template(v-if='col.name.startsWith("prog_")')
               .prog-title {{ col.label }}
-              .prog-type.text-grey-6 {{ programTypeFor(col.name) }}
+              .prog-type.caption-muted {{ programTypeFor(col.name) }}
             template(v-else)
               | {{ col.label }}
 
@@ -24,7 +24,7 @@ div.page-shell
         q-tr(:key='`pw_${props.row.username}`' :props='props')
           q-td.col-user(auto-width)
             .name {{ getName(props.row) || '—' }}
-            .username.text-grey-6 {{ props.row.username }}
+            .username.caption-muted {{ props.row.username }}
 
           q-td.text-right(
             v-for='prog in data.programs'
@@ -62,7 +62,7 @@ div.page-shell
             .row.items-center.q-gutter-x-md
               .col
                 .text-body1 {{ getName(props.row) || '—' }}
-                .text-caption.text-grey-6 {{ props.row.username }}
+                .text-caption.caption-muted {{ props.row.username }}
               .col-auto
                 q-btn(
                   flat dense size='sm' color='primary'
@@ -71,7 +71,7 @@ div.page-shell
                   :to='{ name: "reports-operations", query: { username: props.row.username } }'
                 )
             .row.q-mt-sm(v-for='prog in data.programs' :key='`m_${props.row.username}_${prog.id}`')
-              .col-6.text-caption.text-grey-6 {{ prog.title }}
+              .col-6.text-caption.caption-muted {{ prog.title }}
               .col-6.text-right
                 WalletCell(:cell='data.matrix[props.row.username]?.[prog.id]')
             .row.q-mt-sm
@@ -82,6 +82,7 @@ div.page-shell
 
 <script setup lang="ts">
 import { computed, h, onMounted, ref } from 'vue'
+import { QIcon, QTooltip } from 'quasar'
 import { FailAlert } from 'src/shared/api'
 import { useSystemStore } from 'src/entities/System/model'
 import { useAccountStore } from 'src/entities/Account/model'
@@ -182,7 +183,8 @@ const columns = computed(() => {
 })
 
 // Inline-рендер ячейки «available / blocked с иконками». Вынесен в h-function,
-// чтобы не таскать ещё одну SFC.
+// чтобы не таскать ещё одну SFC. Иконки: lock-open / lock + q-tooltip — чтобы
+// без подписей было понятно где «доступно», где «заблокировано».
 const WalletCell = {
   name: 'WalletCell',
   props: {
@@ -195,17 +197,26 @@ const WalletCell = {
       if (!c) {
         return h('div', { class: 'cell-dash' }, '—')
       }
-      const aClass = ['cell-line', c.available > 0 ? 'value-avail' : 'value-zero', props.bold ? 'bold' : '']
-      const bClass = ['cell-line', c.blocked > 0 ? 'value-blocked' : 'value-zero', props.bold ? 'bold' : '']
+      const renderLine = (
+        amount: number,
+        kind: 'avail' | 'blocked',
+      ) => {
+        const valueClass = amount > 0 ? `value-${kind}` : 'value-zero'
+        const tooltip = kind === 'avail' ? 'Доступно' : 'Заблокировано'
+        const icon = kind === 'avail' ? 'fa-solid fa-lock-open' : 'fa-solid fa-lock'
+        return h(
+          'div',
+          { class: ['cell-line', valueClass, props.bold ? 'bold' : ''].join(' ') },
+          [
+            h(QIcon, { name: icon, size: '12px', class: 'cell-icon' }),
+            h('span', { class: 'cell-value' }, formatAsset2Digits(`${amount.toFixed(4)} RUB`)),
+            h(QTooltip, { anchor: 'top middle', self: 'bottom middle', delay: 200 }, () => tooltip),
+          ],
+        )
+      }
       return h('div', { class: 'wallet-cell' }, [
-        h('div', { class: aClass.join(' ') }, [
-          h('q-icon', { name: 'fa-solid fa-coins', size: '12px', class: 'cell-icon' }),
-          h('span', { class: 'cell-value' }, formatAsset2Digits(`${c.available.toFixed(4)} RUB`)),
-        ]),
-        h('div', { class: bClass.join(' ') }, [
-          h('q-icon', { name: 'fa-solid fa-lock', size: '12px', class: 'cell-icon' }),
-          h('span', { class: 'cell-value' }, formatAsset2Digits(`${c.blocked.toFixed(4)} RUB`)),
-        ]),
+        renderLine(c.available, 'avail'),
+        renderLine(c.blocked, 'blocked'),
       ])
     }
   },
@@ -240,6 +251,14 @@ onMounted(() => void reload())
 </script>
 
 <style scoped lang="scss">
+// Все цвета через quasar runtime variables (`var(--q-*)`) и body--dark
+// overrides — без хардкода hex. Иначе светлая/тёмная темы выглядят плохо.
+// Не использовать quasar `text-grey-6` — он не реагирует на body--dark.
+.caption-muted {
+  color: rgba(0, 0, 0, 0.6);
+  .body--dark & { color: rgba(255, 255, 255, 0.6); }
+}
+
 .pw-table {
   :deep(thead th) {
     font-weight: 600;
@@ -258,11 +277,19 @@ onMounted(() => void reload())
   }
 
   :deep(.row-totals) {
-    background: #f5f6f8;
+    background: rgba(0, 0, 0, 0.04);
     font-weight: 600;
 
     td {
-      border-top: 2px solid #e0e0e0;
+      border-top: 2px solid rgba(0, 0, 0, 0.12);
+    }
+
+    .body--dark & {
+      background: rgba(255, 255, 255, 0.06);
+
+      td {
+        border-top-color: rgba(255, 255, 255, 0.12);
+      }
     }
   }
 
@@ -270,7 +297,7 @@ onMounted(() => void reload())
     .name {
       font-size: 14px;
       font-weight: 500;
-      color: #222;
+      color: inherit;
       line-height: 1.25;
     }
     .username {
@@ -284,13 +311,17 @@ onMounted(() => void reload())
   .cell-zero :deep(.wallet-cell) {
     opacity: 0.4;
   }
-  .cell-empty :deep(.cell-dash) {
-    color: #ccc;
-  }
 }
+</style>
 
-// «available + blocked» — вертикально, с иконками. :deep потому что render-функция.
-:deep(.wallet-cell) {
+<!--
+  «available + blocked» рендерятся через render-функцию `WalletCell`,
+  у которой нет своего scoped-id. scoped + :deep до неё не доходит
+  стабильно, поэтому стили лежат в global-блоке. Класс `.wallet-cell`
+  достаточно специфичен — конфликтов с другими компонентами нет.
+-->
+<style lang="scss">
+.wallet-cell {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -305,19 +336,27 @@ onMounted(() => void reload())
     font-size: 14px;
     font-weight: 500;
 
-    &.value-avail { color: #2e7d32; }
-    &.value-blocked { color: #8d6e63; }
-    &.value-zero { color: #bbb; font-weight: 400; }
+    &.value-avail { color: var(--q-positive); }
+    &.value-blocked { color: var(--q-warning); }
+    &.value-zero {
+      color: rgba(0, 0, 0, 0.55);
+      font-weight: 400;
+    }
     &.bold { font-weight: 700; }
   }
 
   .cell-icon {
     flex-shrink: 0;
-    opacity: 0.75;
+    opacity: 0.85;
   }
 
   .cell-dash {
-    color: #ccc;
+    color: rgba(0, 0, 0, 0.55);
   }
+}
+
+.body--dark .wallet-cell {
+  .cell-line.value-zero { color: rgba(255, 255, 255, 0.7); }
+  .cell-dash { color: rgba(255, 255, 255, 0.7); }
 }
 </style>

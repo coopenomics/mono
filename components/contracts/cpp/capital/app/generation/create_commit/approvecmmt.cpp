@@ -50,17 +50,17 @@ void capital::approvecmmt(eosio::name coopname, eosio::name master, checksum256 
   // Коммит РИД (Dr 08 / Cr 80) — возникает обязательство паевого взноса
   // имуществом на полную стоимость одобренного коммита.
   //
-  // На GENERATOR_COMMIT (10001) кладём ПОЛНУЮ стоимость коммита
+  // На GENERATOR_FUND (w.cap.gen) кладём ПОЛНУЮ стоимость коммита
   // `commit.amounts.total_contribution` — это сумма всех начислений по
   // коммиту, включая base/bonus создателей, base/bonus авторов, бонусы
   // участников. Эта же сумма в сумме по всем коммитам проекта равна
   // project.fact.total_contribution = sum(intellectual_cost) всех сегментов.
   //
-  // Так signact2 (ACCEPT_RID) спокойно забирает с 10001 каждое
+  // Так signact2 (ACCEPT_RID) спокойно забирает с w.cap.gen каждое
   // segment.available_for_program — независимо от того, как голосование
   // перераспределило бонусы между сегментами: общая сумма не меняется.
   // Инвариант: Σ COMMIT_RID(коммитов проекта) == Σ ACCEPT_RID(сегментов проекта)
-  // → GENERATOR_COMMIT закрывается в ноль на проекте, не на сегменте.
+  // → GENERATOR_FUND закрывается в ноль на проекте, не на сегменте.
   //
   // process_hash = project_hash (а не commit_hash), т.к. commit-entity
   // удаляется ниже, а project_hash — долгоживущий якорь, под которым

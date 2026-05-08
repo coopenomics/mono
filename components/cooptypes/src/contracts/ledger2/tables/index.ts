@@ -6,3 +6,4 @@
 export * as Accounts from './accounts'
 export * as Wallets from './wallets'
 export * as Meta from './meta'
+export * as UserWallets from './userwallets'

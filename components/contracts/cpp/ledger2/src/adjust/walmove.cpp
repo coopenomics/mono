@@ -2,9 +2,12 @@
  * @brief Перевод между кошельками внутри одного бух.счёта (operation o.adj.walmove).
  *
  * Top-level action — председатель подписывает сам, никаких caller-контрактов.
- * Делает один inline `walletop` с `op_code = WALLET_ONLY` (TRANSFER без Dr/Cr) —
- * так как корректировка между кошельками одного бух.счёта не меняет балансы
- * самих счетов (`accounts2.balance`), только их аналитику.
+ * Делает один inline `walletop` с `op_code = TRANSFER` без бухпроводок —
+ * корректировка между кошельками одного бух.счёта не меняет балансы самих
+ * счетов (`accounts2.balance`), только их аналитику. «Без бухпроводок» здесь
+ * выражается отсутствием inline-actions debit/credit на уровне самого walmove
+ * (ADR-003: семантика без проводок задаётся парой нулевых account_id записи
+ * OPERATION_REGISTRY; для walmove это технический action вне реестра).
  *
  * Связь wallet→account не хранится в LEDGER2_WALLET_REGISTRY (она выводится
  * из OPERATION_REGISTRY по месту использования и может теоретически быть
@@ -57,13 +60,13 @@ void ledger2::walmove(eosio::name coopname,
   eosio::check(memo.size() < 256, "walmove: memo не должен превышать 255 символов");
 
   // -------- dispatch inline walletop --------
-  // WALLET_ONLY = перенос available между кошельками без Dr/Cr.
-  // На уровне walletop.cpp WALLET_ONLY обрабатывается тем же case, что и TRANSFER.
+  // TRANSFER без debit/credit inline-actions = перенос available между кошельками
+  // одного бухсчёта (ADR-003). Сам walletop.cpp делает только wallet-движение.
   const auto self_perm = eosio::permission_level{get_self(), "active"_n};
   eosio::action(self_perm, get_self(), "walletop"_n,
     std::make_tuple(coopname,
-                    static_cast<uint8_t>(WalletOp::WALLET_ONLY),
-                    from_wallet, to_wallet, amount,
+                    static_cast<uint8_t>(WalletOp::TRANSFER),
+                    from_wallet, to_wallet, username, amount,
                     process_hash, memo)
   ).send();
 }

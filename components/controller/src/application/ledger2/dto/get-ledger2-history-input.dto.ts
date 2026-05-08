@@ -69,12 +69,30 @@ export class GetLedger2HistoryInputDTO {
   @Field(() => String, {
     nullable: true,
     description:
-      'global_sequence родительского apply: фильтрует siblings (walletop/debit/credit) диапазоном до следующего apply того же processHash',
+      'global_sequence родительского apply: возвращает только inline-сибсов (walletop/debit/credit) этого apply через точечную связь parser2 (transaction_id + creator_action_ordinal=apply.action_ordinal).',
   })
   @IsOptional()
   @IsString()
   @MaxLength(24)
   parentApplyGlobalSequence?: string;
+
+  @Field(() => String, {
+    nullable: true,
+    description: '№ операции = apply.global_sequence. Точечная адресация одной apply-группы (apply + walletop/debit/credit).',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(24)
+  applyGlobalSequence?: string;
+
+  @Field(() => String, {
+    nullable: true,
+    description: '№ движения по кошельку = walletop.global_sequence. Уникален.',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(24)
+  walletopGlobalSequence?: string;
 
   @Field(() => Date, { nullable: true })
   @IsOptional()

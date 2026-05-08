@@ -76,6 +76,16 @@ import { ProgramWalletTypeormEntity } from './entities/program-wallet.typeorm-en
 import { PROGRAM_WALLET_REPOSITORY } from '~/domain/wallet/repositories/program-wallet.repository';
 import { ProgramWalletTypeormRepository } from './repositories/program-wallet.typeorm-repository';
 import { ProgramWalletDeltaMapper } from './blockchain/mappers/program-wallet-delta.mapper';
+import { UserAgreementTypeormEntity } from './entities/user-agreement.typeorm-entity';
+import { USER_AGREEMENT_REPOSITORY } from '~/domain/wallet/repositories/user-agreement.repository';
+import { UserAgreementTypeormRepository } from './repositories/user-agreement.typeorm-repository';
+import { UserAgreementDeltaMapper } from './blockchain/mappers/user-agreement-delta.mapper';
+import { UserAgreementSyncService } from './blockchain/services/user-agreement-sync.service';
+import { UserWalletTypeormEntity } from './entities/user-wallet.typeorm-entity';
+import { USER_WALLET_REPOSITORY } from '~/domain/wallet/repositories/user-wallet.repository';
+import { UserWalletTypeormRepository } from './repositories/user-wallet.typeorm-repository';
+import { UserWalletDeltaMapper } from './blockchain/mappers/user-wallet-delta.mapper';
+import { UserWalletSyncService } from './blockchain/services/user-wallet-sync.service';
 
 @Global()
 @Module({
@@ -121,6 +131,8 @@ import { ProgramWalletDeltaMapper } from './blockchain/mappers/program-wallet-de
       PaymentStateEntity,
       MutationLogEntity,
       ProgramWalletTypeormEntity,
+      UserAgreementTypeormEntity,
+      UserWalletTypeormEntity,
     ]),
   ],
   providers: [
@@ -219,6 +231,22 @@ import { ProgramWalletDeltaMapper } from './blockchain/mappers/program-wallet-de
     },
     ProgramWalletTypeormRepository,
     ProgramWalletDeltaMapper,
+    // UserAgreement компоненты (wallet::users, Эпик 2)
+    {
+      provide: USER_AGREEMENT_REPOSITORY,
+      useClass: UserAgreementTypeormRepository,
+    },
+    UserAgreementTypeormRepository,
+    UserAgreementDeltaMapper,
+    UserAgreementSyncService,
+    // UserWallet компоненты (ledger2::userwallets, Эпик 3)
+    {
+      provide: USER_WALLET_REPOSITORY,
+      useClass: UserWalletTypeormRepository,
+    },
+    UserWalletTypeormRepository,
+    UserWalletDeltaMapper,
+    UserWalletSyncService,
     EntityVersionRepository,
     EntityVersioningService,
   ],
@@ -248,6 +276,12 @@ import { ProgramWalletDeltaMapper } from './blockchain/mappers/program-wallet-de
     MUTATION_LOG_REPOSITORY,
     PROGRAM_WALLET_REPOSITORY,
     ProgramWalletDeltaMapper,
+    USER_AGREEMENT_REPOSITORY,
+    UserAgreementDeltaMapper,
+    UserAgreementSyncService,
+    USER_WALLET_REPOSITORY,
+    UserWalletDeltaMapper,
+    UserWalletSyncService,
     EntityVersionRepository,
     EntityVersioningService,
   ],

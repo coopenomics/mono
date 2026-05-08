@@ -51,6 +51,8 @@ namespace processes {
     inline constexpr eosio::name DEBT      = "p.cap.debt"_n;     ///< Займ пайщику (o.cap.lend + o.cap.repay).
     inline constexpr eosio::name RID       = "p.cap.rid"_n;      ///< Приём РИД в паевой фонд (o.cap.commit + o.cap.accept + опц. o.cap.repay).
     inline constexpr eosio::name PROPERTY  = "p.cap.prop"_n;     ///< Приём имущественного паевого взноса (одноактовый).
+    inline constexpr eosio::name WTHCAP    = "p.cap.wthcap"_n;   ///< Возврат паевого из ЦПП «Благорост» в кошелёк пайщика (одноактовый).
+    inline constexpr eosio::name CNVSEG    = "p.cap.cnvseg"_n;   ///< Конвертация сегмента после ACT2 (o.cap.cnvshr + o.cap.cnvbl).
   }
 
   // marketplace

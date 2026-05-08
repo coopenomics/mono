@@ -96,6 +96,10 @@ namespace Names {
     constexpr eosio::name CREATE_PROJECT = "createprj"_n;
     constexpr eosio::name SEND_AGREEMENT = "sndagreement"_n;
   }
+
+  namespace WalletActions {
+    constexpr eosio::name SIGN_AGREEMENT = "signagree"_n;
+  }
 }
 
 /*!

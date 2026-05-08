@@ -22,7 +22,7 @@ export const REGISTRATION_PROGRAMS_CONFIG: ICooperativeRegistrationPrograms[] = 
       },
       {
         key: ProgramKey.CAPITALIZATION,
-        title: 'Программа Капитализация',
+        title: 'Программа Благорост',
         description:
           'Участвовать в производстве Кооперативной Экономики через вклад имуществом или денег в систему. Минимальный взнос 100 000 руб в течение 14 дней.',
         applicable_account_types: [AccountType.individual, AccountType.entrepreneur],

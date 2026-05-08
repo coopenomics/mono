@@ -3,6 +3,7 @@ import { agreementsBase } from 'src/shared/lib/consts/workspaces';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
 import {
   OperationsPage,
+  PostingsPage,
   WalletsPage,
   CoopWalletsPage,
   ParticipantWalletsPage,
@@ -18,13 +19,13 @@ export default async function (): Promise<IWorkspaceConfig[]> {
   return [{
     workspace: 'reports',
     extension_name: 'reports',
-    title: 'Отчёты ФНС',
+    title: 'Стол бухгалтера',
     icon: 'fa-solid fa-file-invoice',
     defaultRoute: 'reports-operations',
     routes: [
       {
         meta: {
-          title: 'Отчёты ФНС',
+          title: 'Стол бухгалтера',
           icon: 'fa-solid fa-file-invoice',
           roles: ['chairman'],
         },
@@ -38,6 +39,19 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Реестр операций',
               icon: 'fa-solid fa-list-ul',
+              roles: ['chairman'],
+              agreements: agreementsBase,
+              requiresAuth: true,
+            },
+            children: [],
+          },
+          {
+            path: 'postings',
+            name: 'reports-postings',
+            component: markRaw(PostingsPage),
+            meta: {
+              title: 'Реестр проводок',
+              icon: 'fa-solid fa-arrows-split-up-and-left',
               roles: ['chairman'],
               agreements: agreementsBase,
               requiresAuth: true,

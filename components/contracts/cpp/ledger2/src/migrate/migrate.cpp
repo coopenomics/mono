@@ -13,7 +13,7 @@
  *      системы учёта, progwallet.blocked не проводится через 80-й счёт,
  *      поэтому любая попытка провести его через Dr 51 / Cr 80 вызовет
  *      двойной учёт на бухуровне. Вместо этого переносим только
- *      wallet-аналитику (w.cap.bginv BLAGOROST_INVEST, w.cap.gncom GENERATOR_COMMIT).
+ *      wallet-аналитику (w.cap.blago BLAGOROST_FUND, w.cap.gen GENERATOR_FUND — ADR-009).
  *
  * Алгоритм на каждый кооператив:
  *
@@ -28,25 +28,24 @@
  *
  *   3. Вычисление распределения:
  *        share_money    = cash_legacy − entry_legacy
- *        rid_share      = share_legacy − share_money
- *        min_total      = clamp(Σ accepted-пайщиков по типу, 0, share_money)
- *                         где для organization берётся coop.org_minimum,
- *                         иначе — coop.minimum (см. compute_min_total_by_type).
+ *        min_total      = Σ participant.minimum_amount по accepted-пайщикам
+ *                         (фактический зафиксированный минимум каждого пайщика;
+ *                          см. compute_min_total_by_type).
  *        share_remain   = share_money − min_total
  *
  *      Инварианты (eosio::check):
- *        cash_legacy  >= entry_legacy
- *        share_legacy >= share_money
+ *        cash_legacy   >= entry_legacy
+ *        share_legacy  == share_money  (legacy 80 без РИД-части — иначе abort)
+ *        min_total     <= share_money  (данные пайщиков сходятся с legacy[80])
  *
- *   4. Отправка 4 inline apply (ненулевые пропускаются):
+ *   4. Отправка 3 inline apply (ненулевые пропускаются):
  *        apply(migration::MIN_SHARE, min_total)    → Dr 51 / Cr 80, MIN_SHARE_FUND   (w.reg.minshr)
  *        apply(migration::SHARE,     share_remain) → Dr 51 / Cr 80, SHARE_FUND_PAY   (w.wal.share)
  *        apply(migration::ENTRY,     entry_legacy) → Dr 51 / Cr 86, ENTRANCE_FEES    (w.reg.entry)
- *        apply(migration::RID,       rid_share)    → Dr 04 / Cr 80, SHARE_FUND_RID   (w.wal.sharid)
  *
  *   5. Прямой emplace в wallets2 для progwallets (БЕЗ бух-проводок):
- *        Σ progwallet[blagorost].blocked → wallets2[BLAGOROST_INVEST  w.cap.bginv]
- *        Σ progwallet[generator].blocked → wallets2[GENERATOR_COMMIT  w.cap.gncom]
+ *        Σ progwallet[blagorost].blocked → wallets2[BLAGOROST_FUND  w.cap.blago]
+ *        Σ progwallet[generator].blocked → wallets2[GENERATOR_FUND  w.cap.gen]
  *
  *      Если запись wallets2 уже есть (после inline apply сработали) —
  *      aggregate через wallets.modify(available += sum). Иначе — emplace.
@@ -55,6 +54,12 @@
  * `migrate(0, UINT64_MAX)`. Мета фиксирует `last_migrated_coop_index`.
  *
  * Поле `writeoff` legacy-ledger игнорируется целиком (PRD §4.1.2 FR-L-7).
+ *
+ * Сборка test mode (IS_TESTNET=1): спец-ветка voskhod ОТКЛЮЧЕНА — voskhod
+ * прогоняется по стандартному арифметическому пути наравне с остальными
+ * кооперативами. Это нужно, чтобы на тестнете invariant-фейлы (cash≥entry,
+ * legacy 80 без РИД-части и т.п.) показывали понятные ошибки, а не маскировались
+ * заранее заведёнными суммами. В prod-сборке хардкод по фактам сохраняется.
  *
  * @ingroup public_ledger2_actions
  */
@@ -121,25 +126,26 @@ inline eosio::asset sum_progwallet_blocked(eosio::name coopname, uint64_t progra
 }
 
 /**
- * Считает суммарный «минимальный паевой» по всем accepted-пайщикам коопа
- * с учётом типа: organization → coop.org_minimum, иначе → coop.minimum.
+ * Считает суммарный «минимальный паевой» по всем accepted-пайщикам коопа.
  *
- * Кэш `cooperative2.active_participants_count` не используется — он не несёт
- * разбивку по типу. Идём по `participants_index` напрямую.
+ * Берёт ФАКТИЧЕСКИЙ минимум, ЗАФИКСИРОВАННЫЙ на пайщике
+ * (`participant.minimum_amount`), а НЕ актуальный coop.minimum/org_minimum.
+ * coop.minimum мог быть повышен/понижен после вступления, но реальный взнос
+ * пайщика, попавший в legacy::accounts[80], равен `participant.minimum_amount`.
+ * Иначе после миграции Σ L3 (по фактическим минимумам) разойдётся с L2,
+ * который мы построим по этой сумме.
  *
- * Если у пайщика поле `type` не заполнено (legacy-записи), считаем как
- * individual (берём `coop.minimum`). Если у коопа отсутствует `org_minimum`
- * (binary_extension не выставлен) — fallback тоже на `coop.minimum`,
- * чтобы не уронить миграцию на старых конфигах.
+ * Поле `minimum_amount` — binary_extension; для legacy-записей до выставления
+ * этого поля fallback на coop.minimum / coop.org_minimum.
  */
 inline eosio::asset compute_min_total_by_type(eosio::name coopname, const cooperative2& coop) {
   eosio::check(coop.minimum.symbol == _root_govern_symbol,
                std::string{"migrate: cooperative2.minimum имеет неожиданный symbol на "} +
                  coopname.to_string());
 
-  const eosio::asset org_min =
+  const eosio::asset org_min_fallback =
     coop.org_minimum.has_value() ? coop.org_minimum.value() : coop.minimum;
-  eosio::check(org_min.symbol == _root_govern_symbol,
+  eosio::check(org_min_fallback.symbol == _root_govern_symbol,
                std::string{"migrate: cooperative2.org_minimum имеет неожиданный symbol на "} +
                  coopname.to_string());
 
@@ -147,10 +153,21 @@ inline eosio::asset compute_min_total_by_type(eosio::name coopname, const cooper
   int64_t total_raw = 0;
   for (auto it = parts.begin(); it != parts.end(); ++it) {
     if (it->status != "accepted"_n) continue;
-    const bool is_org =
-      it->type.has_value() && it->type.value() == "organization"_n;
-    total_raw += is_org ? org_min.amount : coop.minimum.amount;
+
+    if (it->minimum_amount.has_value()) {
+      const auto& m = it->minimum_amount.value();
+      eosio::check(m.symbol == _root_govern_symbol,
+                   std::string{"migrate: participant.minimum_amount имеет неожиданный symbol на "} +
+                     coopname.to_string() + "/" + it->username.to_string());
+      total_raw += m.amount;
+    } else {
+      // Legacy-запись без зафиксированного minimum_amount: fallback по типу.
+      const bool is_org =
+        it->type.has_value() && it->type.value() == "organization"_n;
+      total_raw += is_org ? org_min_fallback.amount : coop.minimum.amount;
+    }
   }
+
   return eosio::asset(total_raw, _root_govern_symbol);
 }
 
@@ -207,14 +224,20 @@ inline void emplace_wallet_only(eosio::name self_name,
   } else {
     // Если кошелёк уже создан (например, предыдущим inline apply TRANSIT_*) —
     // просто доливаем сумму в available. Не должно случаться при чистой
-    // миграции (w.cap.bginv/w.cap.gncom не используются базовыми TRANSIT_*),
+    // миграции (w.cap.blago/w.cap.gen не используются базовыми TRANSIT_*),
     // но безопасно.
     wallets.modify(it, self_name, [&](auto& w) { w.available += amt; });
   }
 }
 
+#ifndef IS_TESTNET
 /**
  * Спец-ветка миграции для voskhod — РУЧНОЙ ХАРДКОД сумм по кошелькам.
+ *
+ * Включена только в prod-сборке (без IS_TESTNET). На тестнете voskhod идёт
+ * по стандартному арифметическому пути наравне с остальными кооперативами,
+ * чтобы любые invariant-несостыковки давали внятную ошибку, а не маскировались
+ * заранее заведёнными суммами.
  *
  * Цифры заведены вручную после сверки с фактическими данными mainnet
  * (snapshot 2026-04-29). При необходимости править — править прямо здесь,
@@ -225,9 +248,9 @@ inline void emplace_wallet_only(eosio::name self_name,
  * есть бумажный шлейф на 51, и т.п.). Вместо арифметической сшивки —
  * заводим суммы вручную по тому, как кооператив должен выглядеть в ledger2.
  *
- * Имущественная часть на legacy 80 (РИД ~56.8M) сюда НЕ заводится
- * отдельным w.wal.sharid: она остаётся осадком на legacy 80 до Phase 2
- * (ADR-009), когда Благорост схлопнется в w.cap.blago и заберёт имущество.
+ * Имущественная часть на legacy 80 (РИД ~56.8M) сюда НЕ заводится:
+ * она остаётся осадком на legacy 80 до Phase 2 (ADR-009), когда Благорост
+ * схлопнется в w.cap.blago и заберёт имущество.
  *
  * Бух-баланс по этой таблице:
  *   Dr 51 = w.reg.minshr + w.wal.share + w.reg.entry  = 31800 + 569900 + 12500 = 614200
@@ -235,7 +258,7 @@ inline void emplace_wallet_only(eosio::name self_name,
  *   Cr 86 = w.reg.entry                               = 12500
  *   Σ Dr = Σ Cr = 614200 ✓
  *
- * Σ Благороста на bginv (57 044 311) и Генератора на gncom (0) идут
+ * Σ Благороста на w.cap.blago (57 044 311) и Генератора на w.cap.gen (0) идут
  * прямым emplace без бух-проводок (параллельный progwallets-учёт).
  */
 inline void migrate_voskhod_facts(eosio::name self_name, const cooperative2& coop) {
@@ -257,36 +280,41 @@ inline void migrate_voskhod_facts(eosio::name self_name, const cooperative2& coo
   // 3. w.reg.entry  — Вступительные взносы (Dr 51 / Cr 86)
   const eosio::asset W_REG_ENTRY  = eosio::asset(    125'000'000LL, sym); //         12 500.0000 RUB
 
-  // 4. w.cap.bginv  — ЦПП «Благорост» (emplace, БЕЗ проводок)
-  const eosio::asset W_CAP_BGINV  = eosio::asset(570'443'110'000LL, sym); //     57 044 311.0000 RUB
+  // 4. w.cap.blago  — ЦПП «Благорост» — единый кошелёк программы (emplace, БЕЗ проводок); ADR-009
+  const eosio::asset W_CAP_BLAGO  = eosio::asset(570'443'110'000LL, sym); //     57 044 311.0000 RUB
 
-  // 5. w.cap.gncom  — ЦПП «Генератор» (emplace, БЕЗ проводок); 0 → не создаётся
-  const eosio::asset W_CAP_GNCOM  = eosio::asset(              0LL, sym); //              0.0000 RUB
+  // 5. w.cap.gen    — ЦПП «Генератор» — единый кошелёк программы (emplace, БЕЗ проводок); 0 → не создаётся
+  const eosio::asset W_CAP_GEN    = eosio::asset(              0LL, sym); //              0.0000 RUB
 
   // ── применяем таблицу ───────────────────────────────────────────────
   send_transit(self_name, coopname, operations::migration::MIN_SHARE, W_REG_MINSHR);
   send_transit(self_name, coopname, operations::migration::SHARE,     W_WAL_SHARE);
   send_transit(self_name, coopname, operations::migration::ENTRY,     W_REG_ENTRY);
 
-  emplace_wallet_only(self_name, coopname, ledger2_wallets::BLAGOROST_INVEST,   W_CAP_BGINV);
-  emplace_wallet_only(self_name, coopname, ledger2_wallets::GENERATOR_COMMIT,   W_CAP_GNCOM);
+  emplace_wallet_only(self_name, coopname, ledger2_wallets::BLAGOROST_FUND,   W_CAP_BLAGO);
+  emplace_wallet_only(self_name, coopname, ledger2_wallets::GENERATOR_FUND,   W_CAP_GEN);
 }
+#endif // !IS_TESTNET
 
 /**
  * Мигрирует один кооператив. Отправляет до 4 inline apply (бух-проводки)
  * + прямой emplace программных кошельков (без проводок).
  *
- * Для voskhod — спец-ветка по фактам (см. migrate_voskhod_facts), т.к.
- * legacy::accounts и soviet::progwallets рассинхронизированы.
+ * В prod-сборке для voskhod — спец-ветка по фактам (см. migrate_voskhod_facts).
+ * В test-сборке (IS_TESTNET=1) спец-ветка отключена — voskhod проходит
+ * стандартный арифметический путь, чтобы invariant-фейлы были видимы.
  */
 inline void migrate_one_coop(eosio::name self_name, const cooperative2& coop) {
   const eosio::name coopname = coop.username;
 
-  // voskhod — особый кейс: переносим по фактическим суммам, не арифметически
+#ifndef IS_TESTNET
+  // voskhod — особый кейс в prod: переносим по фактическим суммам, не арифметически.
+  // В test-сборке этот блок выключен — voskhod идёт по стандартному пути.
   if (coopname == "voskhod"_n) {
     migrate_voskhod_facts(self_name, coop);
     return;
   }
+#endif
 
   const LegacyBalances b = read_legacy_balances(coopname);
 
@@ -300,31 +328,37 @@ inline void migrate_one_coop(eosio::name self_name, const cooperative2& coop) {
     return;
   }
 
-  // ----- A. Бухгалтерский перенос legacy::accounts через 4 TRANSIT_* -----
+  // ----- A. Бухгалтерский перенос legacy::accounts через 3 TRANSIT_* -----
   if (b.cash.amount > 0 || b.share.amount > 0 || b.entry.amount > 0) {
     // Деньги на паевой фонд: всё на 51 сверх вступительных.
     const eosio::asset share_money(
       b.cash.amount >= b.entry.amount ? b.cash.amount - b.entry.amount : 0,
       _root_govern_symbol
     );
-    // Не-денежная часть 80: РИД Восхода (+56M) + всё, что было проведено
-    // как имущество через legacy::ledger::add на 80 без prior 51.
-    const eosio::asset rid_share(
-      b.share.amount >= share_money.amount ? b.share.amount - share_money.amount : 0,
-      _root_govern_symbol
-    );
 
     eosio::check(b.cash.amount >= b.entry.amount,
                  std::string{"migrate: entry > cash на кооп "} + coopname.to_string());
-    eosio::check(b.share.amount >= share_money.amount,
-                 std::string{"migrate: share_money > share_legacy на кооп "} + coopname.to_string());
+    // Инвариант: legacy::accounts[80] (паевой фонд) равен money-части (51 - 86).
+    // РИД-часть на legacy 80 не поддерживается этим путём (ADR-009: РИД-программа
+    // переезжает в w.cap.blago отдельно); если такой остаток есть — миграция
+    // отказывается, кооператив должен закрыть РИД-часть до миграции.
+    eosio::check(b.share.amount == share_money.amount,
+                 std::string{"migrate: legacy 80 содержит РИД-часть на кооп "} + coopname.to_string() +
+                 " — ledger2 не поддерживает РИД-перенос (ADR-009). Закрыть РИД до миграции.");
 
-    // Минимальный паевой: Σ по accepted-пайщикам с учётом типа
-    // (organization → coop.org_minimum, иначе → coop.minimum), не больше share_money.
-    const eosio::asset min_total_by_type = compute_min_total_by_type(coopname, coop);
-    int64_t min_total_raw = min_total_by_type.amount;
-    if (min_total_raw > share_money.amount) min_total_raw = share_money.amount;
-    const eosio::asset min_total(min_total_raw, _root_govern_symbol);
+    // Минимальный паевой: Σ p.minimum_amount по accepted-пайщикам.
+    // По конструкции эта сумма равна реальному взносу на legacy[80] и не может
+    // превосходить share_money. Если превосходит — данные кооператива
+    // не консистентны (например, у кого-то на participant.minimum_amount
+    // выставлено больше, чем фактически попало на 80). Падаем явно — пусть
+    // оператор разбирается ad-hoc до миграции; clamping мы сознательно НЕ
+    // делаем, иначе L2 получится меньше Σ L3 и сломаем инвариант.
+    const eosio::asset min_total = compute_min_total_by_type(coopname, coop);
+    eosio::check(min_total.amount <= share_money.amount,
+                 std::string{"migrate: Σ participant.minimum_amount > share_money на кооп "} +
+                   coopname.to_string() + " (Σ min=" + min_total.to_string() +
+                   ", share=" + share_money.to_string() +
+                   "). Данные кооп-пайщиков не сходятся с legacy[80]; чинить ad-hoc до миграции.");
 
     const eosio::asset share_remain(
       share_money.amount - min_total.amount,
@@ -334,14 +368,13 @@ inline void migrate_one_coop(eosio::name self_name, const cooperative2& coop) {
     send_transit(self_name, coopname, operations::migration::MIN_SHARE, min_total);
     send_transit(self_name, coopname, operations::migration::SHARE,     share_remain);
     send_transit(self_name, coopname, operations::migration::ENTRY,     b.entry);
-    send_transit(self_name, coopname, operations::migration::RID,       rid_share);
   }
 
   // ----- B. Программные кошельки — прямой emplace, без Dr/Cr -----
   // progwallets.blocked НЕ входит в legacy::accounts[80], поэтому
   // проводить их через apply(operations::migration::*) вызвало бы двойной учёт.
-  emplace_wallet_only(self_name, coopname, ledger2_wallets::BLAGOROST_INVEST,   blagorost_invest);
-  emplace_wallet_only(self_name, coopname, ledger2_wallets::GENERATOR_COMMIT,   generator_commit);
+  emplace_wallet_only(self_name, coopname, ledger2_wallets::BLAGOROST_FUND,   blagorost_invest);
+  emplace_wallet_only(self_name, coopname, ledger2_wallets::GENERATOR_FUND,   generator_commit);
 }
 
 } // namespace

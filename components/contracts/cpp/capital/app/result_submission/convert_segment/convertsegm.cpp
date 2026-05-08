@@ -75,30 +75,22 @@ void capital::convertsegm(eosio::name coopname, eosio::name username,
   eosio::check(capital_amount == (available_for_program - wallet_amount), "В программу должно быть сконвертировано всё доступное, что не конвертируется в кошелёк");
 
   
-  // Выполняем операции с балансами
+  // Конвертация сегмента после ACT2: GENERATOR_FUND расщепляется на две цели —
+  // часть пайщику деньгами в ЦК, часть в Благорост-капитал.
+  // Σ wallet_amount + capital_amount == available_for_program (проверено выше).
   if (wallet_amount.amount > 0) {
-    // Конвертация в кошелек (это использование инвестиций для компенсации)
-    Wallet::add_available_funds(_capital, coopname, username, wallet_amount, _wallet_program,
-                               Capital::Memo::get_convert_segment_to_wallet_memo(convert_hash));
-    
+    Ledger2::apply(_capital, coopname, operations::capital::CONVERT_TO_SHARE,
+                   wallet_amount, username, convert_hash,
+                   Capital::Memo::get_convert_segment_to_wallet_memo(convert_hash));
+
     // Учитываем использование инвестиций для компенсации
     Capital::Projects::add_used_for_compensation(coopname, current_project.id, wallet_amount);
   }
-  
-  // Рассчитываем сумму, которую надо ДОБАВИТЬ в _capital_program
-  // investor_base уже заблокирован в _capital_program при инвестировании (createinvest)
-  // Добавляем всю часть интеллектуального вклада, направленную в капитал
-  
+
   if (capital_amount.amount > 0) {
-    // Конвертация неинвесторской части в капитал
-    Wallet::add_blocked_funds(_capital, coopname, username, capital_amount, _capital_program,
-                             Capital::Memo::get_convert_segment_to_capital_memo(convert_hash));
-  }
-  
-  // Списываем средства с кошелька _source_program (только интеллектуальная часть, т.к. инвесторкая уже в _capital_program)
-  // Списываем только доступную часть, так как часть долга уже могла быть списана или разблокирована
-  if (available_for_program.amount > 0) {
-    Wallet::sub_blocked_funds(_capital, coopname, username, available_for_program, _source_program, Capital::Memo::get_convert_segment_to_wallet_memo(convert_hash));
+    Ledger2::apply(_capital, coopname, operations::capital::CONVERT_TO_BLAGO,
+                   capital_amount, username, convert_hash,
+                   Capital::Memo::get_convert_segment_to_capital_memo(convert_hash));
   }
   
   // Инкрементируем счётчик сконвертированных сегментов

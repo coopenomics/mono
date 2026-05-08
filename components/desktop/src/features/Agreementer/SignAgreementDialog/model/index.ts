@@ -14,13 +14,14 @@ export const useSignAgreement = () => {
     if (!document.signedDocument)
       throw new Error('Ошибка подписи документа')
 
-    // Проверяем типы и преобразуем документ
+    // GraphQL `sendAgreement` принимает meta как объект (контроллер сам
+    // сериализует в строку при сборке chain-action) — НЕ stringify здесь.
     await api.sendAgreement({
       coopname: info.coopname,
       administrator: info.coopname,
       username,
       agreement_type,
-      document: {...document.signedDocument, meta: JSON.stringify(document.signedDocument.meta)}
+      document: document.signedDocument,
     })
   }
 

@@ -29,6 +29,8 @@
     "dist"
   ],
   "scripts": {
+    "gen:from-cpp": "esno scripts/gen-from-cpp.ts",
+    "prebuild": "esno scripts/gen-from-cpp.ts",
     "build": "unbuild",
     "lint": "eslint .",
     "prepublishOnly": "nr build",

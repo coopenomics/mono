@@ -29,6 +29,8 @@ import { LEDGER_BLOCKCHAIN_PORT } from '~/domain/ledger/ports/ledger.port';
 import { Ledger2BlockchainAdapter } from './adapters/ledger2-blockchain.adapter';
 import { LEDGER2_BLOCKCHAIN_PORT } from '~/domain/ledger2/ports/ledger2-blockchain.port';
 import { SovietContractInfoService } from './services/soviet-contract-info.service';
+import { WalletContractInfoService } from './services/wallet-contract-info.service';
+import { Ledger2ContractInfoService } from './services/ledger2-contract-info.service';
 
 @Global()
 @Module({
@@ -88,6 +90,8 @@ import { SovietContractInfoService } from './services/soviet-contract-info.servi
     },
     DomainToBlockchainUtils,
     SovietContractInfoService,
+    WalletContractInfoService,
+    Ledger2ContractInfoService,
   ],
   exports: [
     BlockchainService,
@@ -106,6 +110,8 @@ import { SovietContractInfoService } from './services/soviet-contract-info.servi
     LEDGER2_BLOCKCHAIN_PORT,
     DomainToBlockchainUtils,
     SovietContractInfoService,
+    WalletContractInfoService,
+    Ledger2ContractInfoService,
   ],
 })
 export class BlockchainModule {}

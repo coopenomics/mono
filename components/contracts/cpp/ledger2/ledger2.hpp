@@ -87,6 +87,7 @@ public:
                                    uint8_t op_code,
                                    eosio::name wallet_from,
                                    eosio::name wallet_to,
+                                   eosio::name username,
                                    eosio::asset amount,
                                    eosio::checksum256 process_hash,
                                    std::string memo);
@@ -135,6 +136,35 @@ public:
   [[eosio::action]] void migrate(uint64_t from_coop_index, uint64_t limit);
 
   /**
+   * @brief Идемпотентная per-record миграция L3-балансов (Phase 1/2; ADR-008).
+   *
+   * Заполняет `userwallets[coopname][wallet_name, username]` переданными
+   * значениями. Идемпотентно: значения УСТАНАВЛИВАЮТСЯ (не инкрементируются),
+   * повторный вызов с теми же параметрами = no-op.
+   *
+   * Без бух-проводок (это инициализация состояния, не операция). Без сверки
+   * с `wallet::users.programs[]` — миграция может заполнять L3 ДО переезда
+   * соглашений в `wallet::users` (порядок миграции — на уровне rollout-окна).
+   *
+   * Auth: `coopname@active`.
+   *
+   * НЕ путать с зарезервированным `ledger2::migrate` (legacy ledger → ledger2).
+   *
+   * @param coopname     кооператив (auth + payer)
+   * @param wallet_name  USER_SHARED-кошелёк (см. LEDGER2_WALLET_REGISTRY)
+   * @param username     пайщик
+   * @param available    значение available (asset)
+   * @param blocked      значение blocked (asset)
+   *
+   * @ingroup public_ledger2_actions
+   */
+  [[eosio::action]] void migrate3(eosio::name coopname,
+                                   eosio::name wallet_name,
+                                   eosio::name username,
+                                   eosio::asset available,
+                                   eosio::asset blocked);
+
+  /**
    * @brief Перевод между кошельками внутри одного бух.счёта (operation o.adj.walmove).
    *
    * Ручная корректировка председателя: переносит `amount` с `from_wallet`
@@ -175,8 +205,9 @@ public:
    *
    * Создаёт зеркальную проводку по операции `original_operation_id`:
    * меняет местами Dr/Cr счета и (для wallet_op) wallet_from/wallet_to.
-   * Для исходного ISSUE используется новый `WalletOp::REVOKE` (изъятие
-   * с `wallet_from` без увеличения куда-либо).
+   * Для исходного ISSUE используется `WalletOp::BURN` (изъятие
+   * с `wallet_from` без увеличения куда-либо). Различие «штатное сжигание»
+   * vs «зеркало revert» делается через operation_code (`o.adj.rev`).
    *
    * Параметры зеркала готовит backend из своей БД (по записи оригинала
    * в blockchain_actions/state) — контракт не имеет доступа к истории операций.
@@ -192,11 +223,11 @@ public:
    * @param original_operation_code     operation_code оригинала (для запрета o.mig.*)
    * @param username                    username оригинала (для аналитики)
    * @param amount                      сумма (как в оригинале)
-   * @param mirror_wallet_op            тип wallet-операции зеркала (REVOKE/TRANSFER/WALLET_ONLY)
+   * @param mirror_wallet_op            тип wallet-операции зеркала (TRANSFER/BURN)
    * @param mirror_wallet_from          кошелёк-источник зеркала
-   * @param mirror_wallet_to            кошелёк-получатель зеркала (пустое имя для REVOKE)
-   * @param mirror_debit_account_id     Dr-счёт зеркала (0 для WALLET_ONLY)
-   * @param mirror_credit_account_id    Cr-счёт зеркала (0 для WALLET_ONLY)
+   * @param mirror_wallet_to            кошелёк-получатель зеркала (пустое имя для BURN)
+   * @param mirror_debit_account_id     Dr-счёт зеркала (0 если оригинал был без бухпроводок)
+   * @param mirror_credit_account_id    Cr-счёт зеркала (0 если оригинал был без бухпроводок)
    * @param process_hash                уникальный хэш для зеркальной операции
    * @param memo                        обязательное обоснование (≤ 255 символов)
    *

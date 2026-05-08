@@ -45,7 +45,7 @@ div.page-shell
             .q-pa-sm
               .row.items-center.q-mb-sm
                 .col
-                  .text-caption.text-grey-6 Движения по кошельку
+                  .text-caption.caption-muted Движения по кошельку
                 .col-auto
                   q-btn(
                     flat dense size='sm' color='primary'
@@ -63,6 +63,13 @@ div.page-shell
                 :loading='childLoading.has(props.row.id)'
                 no-data-label='Движений нет'
               )
+                template(#body-cell-movementId='cp')
+                  q-td(:props='cp')
+                    EntityIdBadge(
+                      :rawId='cp.row.globalSequence'
+                      @click='copyText(String(cp.row.globalSequence))'
+                    )
+                      q-tooltip Клик — копировать
                 template(#body-cell-direction='cp')
                   q-td(:props='cp')
                     DirectionCell(:direction='directionFor(cp.row, String(props.row.id))')
@@ -83,10 +90,10 @@ div.page-shell
                     q-btn(
                       v-if='cp.row.processHash'
                       flat dense round size='sm' color='primary'
-                      icon='fa-solid fa-up-right-from-square'
+                      icon='fa-solid fa-arrow-right'
                       :to='{ name: "reports-operations", query: { process_hash: cp.row.processHash } }'
                     )
-                      q-tooltip Показать операцию
+                      q-tooltip К операции
 
       template(#item='props')
         .col-12
@@ -94,7 +101,7 @@ div.page-shell
             .row.items-center.q-gutter-x-md
               .col
                 .text-body1 {{ props.row.name }}
-                .text-caption.text-grey-6.font-monospace ID: {{ props.row.id }}
+                .text-caption.caption-muted.font-monospace ID: {{ props.row.id }}
               .col-auto
                 ExpandToggleButton(
                   :expanded='expanded.has(props.row.id)'
@@ -102,10 +109,10 @@ div.page-shell
                 )
             .row.q-mt-sm
               .col-6
-                .text-caption.text-grey-6 Доступно
+                .text-caption.caption-muted Доступно
                 .text-body2.text-weight-medium {{ formatAsset2Digits(props.row.available) }}
               .col-6
-                .text-caption.text-grey-6 Заблокировано
+                .text-caption.caption-muted Заблокировано
                 .text-body2.text-weight-medium {{ formatAsset2Digits(props.row.blocked) }}
 
   WalletTransferDialog(
@@ -119,14 +126,16 @@ div.page-shell
 <script setup lang="ts">
 import { computed, markRaw, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { storeToRefs } from 'pinia'
+import { copyToClipboard } from 'quasar'
 import { useWindowSize } from 'src/shared/hooks'
 import { useHeaderActions } from 'src/shared/hooks/useHeaderActions'
 import { formatAsset2Digits } from 'src/shared/lib/utils'
 import { useSystemStore } from 'src/entities/System/model'
 import { useSessionStore } from 'src/entities/Session/model'
 import { useLedger2Store, type ILedger2Wallet, type ILedger2Operation } from 'src/entities/Ledger2'
-import { FailAlert } from 'src/shared/api'
+import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton'
+import { EntityIdBadge } from 'src/shared/ui'
 import { DirectionCell, WalletIdCell } from '../../../shared/ui'
 import WalletTransferDialog from './WalletTransferDialog.vue'
 import TransferWalletsButton from './TransferWalletsButton.vue'
@@ -181,6 +190,15 @@ function formatDate(d: string | Date): string {
   })
 }
 
+async function copyText(text: string) {
+  try {
+    await copyToClipboard(text)
+    SuccessAlert('Скопировано')
+  } catch {
+    FailAlert('Не удалось скопировать')
+  }
+}
+
 const columns = computed<any[]>(() => {
   const base: any[] = [
     { name: 'expand', align: 'left', label: '', field: 'expand', sortable: false },
@@ -196,6 +214,7 @@ const columns = computed<any[]>(() => {
 })
 
 const childColumns: any[] = [
+  { name: 'movementId', align: 'left', label: '№', field: 'globalSequence' },
   { name: 'direction', align: 'center', label: '', field: 'direction' },
   { name: 'walletFrom', align: 'left', label: 'Из', field: 'walletFrom' },
   { name: 'walletTo', align: 'left', label: 'В', field: 'walletTo' },
@@ -266,7 +285,7 @@ onBeforeUnmount(() => {
 })
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .font-monospace {
   font-family: 'JetBrains Mono', 'Courier New', monospace;
   letter-spacing: 0.03em;
@@ -275,5 +294,12 @@ onBeforeUnmount(() => {
   max-width: 240px;
   white-space: normal;
   word-break: break-word;
+}
+// Приглушённый caption-цвет, согласованный с темой. Не использовать
+// quasar `text-grey-6` — он не реагирует на body--dark и плохо читается
+// на тёмной теме.
+.caption-muted {
+  color: rgba(0, 0, 0, 0.6);
+  .body--dark & { color: rgba(255, 255, 255, 0.6); }
 }
 </style>

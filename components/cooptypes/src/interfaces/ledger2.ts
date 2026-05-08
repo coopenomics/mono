@@ -46,6 +46,52 @@ export interface IMeta {
 }
 
 /**
+ * Строка таблицы `userwallets` контракта ledger2 (третий уровень учёта L3).
+ * Source: `table_ledger2_userwallets.hpp`. Scope — coopname.
+ *
+ * Запись существует только для USER_SHARED-кошельков и пока available + blocked > 0.
+ * Composite key by_userwallet = combine_ids(wallet_name, username).
+ */
+export interface IUserWallet {
+  id: number
+  wallet_name: IName
+  username: IName
+  available: IAsset
+  blocked: IAsset
+}
+
+/**
+ * walletop-action контракта ledger2 (Epic 3 / story 3.1) — атомарная мутация
+ * L2+L3 кошельков. Только inline-вызов из apply / walmove / revert.
+ *
+ * `username` обязателен для USER_SHARED-кошельков, игнорируется для COOPERATIVE.
+ * `op_code`: 0=ISSUE, 1=TRANSFER, 2=BLOCK, 3=UNBLOCK, 4=BURN.
+ */
+export interface IWalletop {
+  coopname: IName
+  op_code: number
+  wallet_from: IName
+  wallet_to: IName
+  username: IName
+  amount: IAsset
+  process_hash: IChecksum256
+  memo: string
+}
+
+/**
+ * migrate3-action контракта ledger2 (Epic 3 / story 3.3) — идемпотентная
+ * per-record миграция L3-балансов. Без бух-проводок и без cross-contract
+ * проверки. Auth: coopname@active.
+ */
+export interface IMigrate3 {
+  coopname: IName
+  wallet_name: IName
+  username: IName
+  available: IAsset
+  blocked: IAsset
+}
+
+/**
  * apply-action контракта _ledger2 (Story 4.3).
  * document_hash переименован в process_hash (entity-hash процесса).
  */
@@ -91,8 +137,11 @@ export interface IRevert {
   username: IName
   amount: IAsset
   /**
-   * 0=ISSUE, 1=TRANSFER, 4=WALLET_ONLY, 5=REVOKE.
+   * 0=ISSUE, 1=TRANSFER, 4=BURN.
    * 2=BLOCK / 3=UNBLOCK не разрешены — они симметричны сами себе.
+   * Для зеркала ISSUE используется BURN; различие «штатное сжигание» vs «mirror revert»
+   * фиксируется через operation_code (`o.adj.rev`).
+   * Для зеркала без бухпроводок mirror_debit_account_id и mirror_credit_account_id оба == 0.
    */
   mirror_wallet_op: number
   mirror_wallet_from: IName

@@ -407,7 +407,7 @@ function getL3Movements(op: Ledger2Operation) {
 
               <!-- L2 — переводы по кошелькам кооператива -->
               <div
-                v-if="['ISSUE', 'TRANSFER', 'BURN', 'WALLET_ONLY'].includes(op.wallet_op)
+                v-if="['ISSUE', 'TRANSFER', 'BURN'].includes(op.wallet_op)
                       && (!!op.wallet_from || !!op.wallet_to)"
                 class="focus-bar__op-sub focus-bar__op-sub--l2"
               >
@@ -509,7 +509,7 @@ function getL3Movements(op: Ledger2Operation) {
 
         <!-- L2 -->
         <div
-          v-if="['ISSUE', 'TRANSFER', 'BURN', 'WALLET_ONLY'].includes(focusedOperation.wallet_op)
+          v-if="['ISSUE', 'TRANSFER', 'BURN'].includes(focusedOperation.wallet_op)
                 && (!!focusedOperation.wallet_from || !!focusedOperation.wallet_to)"
           class="focus-bar__op-sub focus-bar__op-sub--l2"
         >

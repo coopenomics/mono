@@ -5,6 +5,8 @@ import type {
   ILedger2Wallet,
   ILedger2HistoryResponse,
   ILedger2HistoryFilterInput,
+  ILedger2PostingsResponse,
+  ILedger2PostingsFilterInput,
   ILedger2AdjustmentResult,
   IWalmoveInput,
 } from '../types';
@@ -35,6 +37,16 @@ async function getHistory(
   return output;
 }
 
+async function getPostings(
+  input: ILedger2PostingsFilterInput,
+): Promise<ILedger2PostingsResponse | undefined> {
+  const { [Queries.Ledger2.GetLedger2Postings.name]: output } = await client.Query(
+    Queries.Ledger2.GetLedger2Postings.query,
+    { variables: { input } },
+  );
+  return output;
+}
+
 async function walmoveWallets(input: IWalmoveInput): Promise<ILedger2AdjustmentResult> {
   const { [Mutations.Ledger2.WalmoveWallets.name]: output } = await client.Mutation(
     Mutations.Ledger2.WalmoveWallets.mutation,
@@ -47,5 +59,6 @@ export const ledger2Api = {
   getAccounts,
   getWallets,
   getHistory,
+  getPostings,
   walmoveWallets,
 };

@@ -26,8 +26,9 @@ void capital::capauthwthd3(name coopname, checksum256 withdraw_hash, document2 a
 
   std::string memo = Capital::Memo::get_program_withdraw_memo(withdraw -> id);
 
-  Wallet::sub_blocked_funds(_capital, coopname, withdraw->username, withdraw->amount, _capital_program, memo);
-  Wallet::add_available_funds(_capital, coopname, withdraw->username, withdraw->amount, _wallet_program, memo);
+  // ledger2: TRANSFER w.cap.blago → w.wal.share (без бухпроводки — оба счёта 80, зеркало INVEST).
+  Ledger2::apply(_capital, coopname, operations::capital::WITHDRAW_FROM_CAPITAL,
+                 withdraw->amount, withdraw->username, withdraw_hash, memo);
 
   program_withdraws.erase(withdraw);
 }

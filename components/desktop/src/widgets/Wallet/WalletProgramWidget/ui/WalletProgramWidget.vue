@@ -18,7 +18,7 @@
           .balance-available
             .balance-label Доступно
             .balance-value {{ getFormattedAvailable(program) }}
-          .balance-blocked(v-if='getFormattedBlocked(program) !== "0.00"')
+          .balance-blocked(v-if='hasBlocked(program)')
             .balance-label Заблокировано
             .balance-value {{ getFormattedBlocked(program) }}
 
@@ -30,14 +30,12 @@
 
 <script lang="ts" setup>
 import { useWalletStore } from 'src/entities/Wallet';
-import { useSessionStore } from 'src/entities/Session';
 import { useSystemStore } from 'src/entities/System/model';
 import { ColorCard } from 'src/shared/ui';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { computed } from 'vue';
 
 const walletStore = useWalletStore();
-const session = useSessionStore();
 const { info } = useSystemStore();
 
 // Все программы включая цифровой кошелек
@@ -91,21 +89,16 @@ const getFormattedAvailable = (program: any) => {
 };
 
 
-// Форматированная сумма заблокированных средств для программы
+// Форматированная сумма заблокированных средств для программы.
+// Видимость блока — через hasBlocked(); сюда попадаем только если blocked > 0.
 const getFormattedBlocked = (program: any) => {
-  let blockedAmount = '0';
+  return formatAsset2Digits(`${program?.blocked || '0'} ${info.symbols.root_govern_symbol}`);
+};
 
-  // Для цифрового кошелька (id === 0) суммируем заблокированные средства и минимальный остаток
-  if (program?.id === 0) {
-    const blocked = parseFloat(program?.blocked || '0');
-    const minimum = parseFloat(session.participantAccount?.minimum_amount || '0');
-    blockedAmount = (blocked + minimum).toString();
-  } else {
-    // Для остальных программ показываем только заблокированные средства
-    blockedAmount = program?.blocked || '0';
-  }
-
-  return formatAsset2Digits(`${blockedAmount} ${info.symbols.root_govern_symbol}`);
+// Показать блок «Заблокировано» только если сумма реально > 0.
+// minimum_amount пайщика — отдельная сущность (минимальный паевой), к blocked не примешиваем.
+const hasBlocked = (program: any): boolean => {
+  return parseFloat(program?.blocked || '0') > 0;
 };
 
 </script>

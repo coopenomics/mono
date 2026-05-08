@@ -11,7 +11,10 @@ void wallet::declinewthd(eosio::name coopname, checksum256 withdraw_hash, std::s
   auto withdraw = withdraws.find(exist_withdraw -> id);
   
   std::string memo = "Отмена возврата части целевого паевого взноса по программе 'Цифровой Кошелёк' по причине: " + reason;
-  Wallet::unblock_funds(_wallet, coopname, withdraw -> username, withdraw -> quantity, _wallet_program, memo);
+
+  // ledger2: UNBLOCK на w.wal.share — снимаем резерв (зеркало REQUEST_WITHDRAW).
+  Ledger2::apply(_wallet, coopname, operations::wallet::DECLINE_WITHDRAW,
+                 withdraw -> quantity, withdraw -> username, withdraw_hash, memo);
 
   withdraws.erase(withdraw);
 };

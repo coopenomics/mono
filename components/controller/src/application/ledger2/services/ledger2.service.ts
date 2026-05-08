@@ -15,7 +15,12 @@ import type {
   Ledger2HistoryResponseDTO,
   Ledger2OperationDTO,
 } from '../dto/ledger2-operation.dto';
+import type {
+  Ledger2PostingDTO,
+  Ledger2PostingsResponseDTO,
+} from '../dto/ledger2-posting.dto';
 import type { GetLedger2HistoryInputDTO } from '../dto/get-ledger2-history-input.dto';
+import type { GetLedger2PostingsInputDTO } from '../dto/get-ledger2-postings-input.dto';
 import type { WalmoveInputDTO } from '../dto/walmove-input.dto';
 import type { Ledger2AdjustmentResultDTO } from '../dto/ledger2-adjustment-result.dto';
 
@@ -49,7 +54,33 @@ export class Ledger2Service {
       walletTo: op.walletTo,
       quantity: op.quantity,
       memo: op.memo,
+      parentApplyGlobalSequence: op.parentApplyGlobalSequence,
       createdAt: op.createdAt,
+    }));
+    return {
+      items,
+      totalCount: resp.totalCount,
+      totalPages: resp.totalPages,
+      currentPage: resp.currentPage,
+    };
+  }
+
+  async getPostings(input: GetLedger2PostingsInputDTO): Promise<Ledger2PostingsResponseDTO> {
+    const resp = await this.port.getPostings(input);
+    const items: Ledger2PostingDTO[] = resp.items.map((p) => ({
+      key: p.key,
+      blockNum: p.blockNum,
+      processHash: p.processHash,
+      operationCode: p.operationCode,
+      parentApplyGlobalSequence: p.parentApplyGlobalSequence,
+      debitGlobalSequence: p.debitGlobalSequence,
+      debitAccountId: p.debitAccountId,
+      creditGlobalSequence: p.creditGlobalSequence,
+      creditAccountId: p.creditAccountId,
+      quantity: p.quantity,
+      memo: p.memo,
+      username: p.username,
+      createdAt: p.createdAt,
     }));
     return {
       items,
@@ -122,18 +153,20 @@ export class Ledger2Service {
   private resolveWalletAccountId(walletName: string): number | null {
     for (const op of Ledger2.LEDGER2_OPERATION_REGISTRY) {
       if (op.kind === 'adjustment') continue;
-      if (op.wallet_op === 'WALLET_ONLY') continue; // у WALLET_ONLY нет debit/credit
+      // Записи без бухпроводок (debit == null && credit == null, ADR-003) — пропускаем
+      if (op.debit === null && op.credit === null) continue;
       if (op.wallet_from === walletName && op.credit !== null) return op.credit;
       if (op.wallet_to === walletName && op.credit !== null && op.wallet_op === 'ISSUE') return op.credit;
       if (op.wallet_to === walletName && op.debit !== null) return op.debit;
       if (op.wallet_from === walletName && op.debit !== null) return op.debit;
     }
-    // Кошельки, которые встречаются только в WALLET_ONLY (например w.cap.bginv в o.cap.invest)
-    // — выводим из источника: WALLET_ONLY переносит между кошельками одного счёта,
-    // значит партнёрский кошелёк по WALLET_ONLY имеет тот же account_id, что и
-    // его пара в стандартной операции.
+    // Кошельки, встречающиеся только в TRANSFER без бухпроводок (например w.cap.blago
+    // в o.cap.invest) — выводим из источника: такой TRANSFER переносит между
+    // кошельками одного счёта, значит партнёрский кошелёк имеет тот же account_id,
+    // что и его пара в стандартной операции.
     for (const op of Ledger2.LEDGER2_OPERATION_REGISTRY) {
-      if (op.wallet_op !== 'WALLET_ONLY' || op.kind === 'adjustment') continue;
+      if (op.kind === 'adjustment') continue;
+      if (op.debit !== null || op.credit !== null) continue; // только без проводок
       if (op.wallet_from === walletName && op.wallet_to !== null) {
         return this.resolveWalletAccountId(op.wallet_to);
       }

@@ -12,7 +12,7 @@ q-dialog(
         q-tooltip Закрыть
 
     q-card-section.q-pa-md
-      .text-caption.text-grey-7.q-mb-md
+      .text-caption.caption-muted.q-mb-md
         | Перевод между кошельками одного бухгалтерского счёта без изменения сальдо счёта.
         | Доступен только председателю.
 
@@ -44,6 +44,7 @@ q-dialog(
           label='В кошелёк'
           outlined dense
           :disable='!form.fromWallet'
+          :hint='toHint'
           :rules='[(v) => !!v || "Выберите кошелёк-получатель", (v) => v !== form.fromWallet || "Источник и получатель не должны совпадать"]'
         )
           template(#option='scope')
@@ -51,10 +52,18 @@ q-dialog(
               q-item-section
                 q-item-label {{ scope.opt.label }}
                 q-item-label(caption) Доступно: {{ scope.opt.available }}
+          //- Причина пустого списка важнее, чем «No results» по дефолту:
+          //- walmove ходит ТОЛЬКО внутри одного бух.счёта, поэтому если у
+          //- кооператива нет других кошельков на том же счёте — выбора нет.
+          template(#no-option)
+            q-item
+              q-item-section.text-italic.caption-muted
+                | Нет других кошельков на бух.счёте {{ accountIdLabel }}.
+                | Перевод между разными счетами требует решения совета.
 
         .row.items-center.q-gutter-sm.q-mb-sm(v-if='form.fromWallet')
           .col
-            .text-caption.text-grey-6 Бух.счёт
+            .text-caption.caption-muted Бух.счёт
             .text-body2.text-weight-medium {{ accountIdLabel }}
 
         q-input.q-mb-sm(
@@ -128,14 +137,17 @@ const form = reactive({
 function resolveAccountId(walletName: string): number | null {
   for (const op of Ledger2.LEDGER2_OPERATION_REGISTRY) {
     if (op.kind === 'adjustment') continue
-    if (op.wallet_op === 'WALLET_ONLY') continue
+    if (op.debit === null && op.credit === null) continue
     if (op.wallet_from === walletName && op.credit !== null) return op.credit
     if (op.wallet_to === walletName && op.wallet_op === 'ISSUE' && op.credit !== null) return op.credit
     if (op.wallet_to === walletName && op.debit !== null) return op.debit
     if (op.wallet_from === walletName && op.debit !== null) return op.debit
   }
+  // Fallback: TRANSFER без бухпроводок (debit==null && credit==null), напр. o.cap.invest —
+  // привязка кошелька к счёту резолвится через парный кошелёк операции.
   for (const op of Ledger2.LEDGER2_OPERATION_REGISTRY) {
-    if (op.wallet_op !== 'WALLET_ONLY' || op.kind === 'adjustment') continue
+    if (op.kind === 'adjustment') continue
+    if (op.debit !== null || op.credit !== null) continue
     if (op.wallet_from === walletName && op.wallet_to !== null) return resolveAccountId(op.wallet_to)
     if (op.wallet_to === walletName && op.wallet_from !== null) return resolveAccountId(op.wallet_from)
   }
@@ -167,6 +179,13 @@ const toOptions = computed(() => {
       label: `${w.id} · ${w.name}`,
       available: w.available,
     }))
+})
+
+const toHint = computed(() => {
+  if (!form.fromWallet) return ''
+  const n = toOptions.value.length
+  if (n === 0) return 'На этом бух.счёте нет других кошельков'
+  return `Доступно ${n} ${n === 1 ? 'кошелёк' : n < 5 ? 'кошелька' : 'кошельков'} на счёте`
 })
 
 function onFromChange() {
@@ -233,3 +252,11 @@ function close() {
   emit('update:modelValue', false)
 }
 </script>
+
+<style scoped lang="scss">
+// Не использовать quasar `text-grey-X` — фиксированный hex без body--dark.
+.caption-muted {
+  color: rgba(0, 0, 0, 0.6);
+  .body--dark & { color: rgba(255, 255, 255, 0.6); }
+}
+</style>

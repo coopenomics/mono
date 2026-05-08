@@ -1,5 +1,6 @@
 import { ref } from 'vue';
 import type { Mutations } from '@coopenomics/sdk';
+import { Zeus } from '@coopenomics/sdk';
 import { api } from '../api';
 
 import { useSystemStore } from 'src/entities/System/model';
@@ -61,6 +62,8 @@ export function useCreateProgramInvest() {
   async function createProgramInvestWithGeneratedStatement(
     amount: string,
   ): Promise<ICreateProgramInvestOutput> {
+    let optimisticPatchId: string | null = null;
+
     try {
       isGenerating.value = true;
 
@@ -84,14 +87,47 @@ export function useCreateProgramInvest() {
         statement: signedDoc,
       };
 
+      // Оптимистичный update: списываем с ЦК (Zeus.ProgramType.MAIN),
+      // зачисляем в Благорост (Zeus.ProgramType.BLAGOROST). Обе суммы — в
+      // `available`, потому что Ledger2::apply(INVEST) делает TRANSFER
+      // w.wal.share → w.cap.blago: оба USER_SHARED, оба пишутся в .available
+      // (см. operations.hpp:INVEST). progwallets.blocked в десктоп-картах
+      // не отображается — UI читает available из L3 userwallets.
+      optimisticPatchId = walletStore.applyOptimisticPatch([
+        {
+          username: session.username,
+          program_type: Zeus.ProgramType.MAIN,
+          available_delta: `-${formattedAmount}`,
+        },
+        {
+          username: session.username,
+          program_type: Zeus.ProgramType.BLAGOROST,
+          available_delta: formattedAmount,
+        },
+      ]);
+
       const result = await createProgramInvest(investData);
 
-      await walletStore.loadUserWallet({
-        coopname: system.info.coopname,
-        username: session.username,
-      });
+      // НЕ ждём loadUserWallet синхронно: parser2 → consumer → PG обычно
+      // отстают от блока на 1-3с, и refetch сразу после мутации вернёт
+      // ещё стейт ДО инвеста → loadUserWallet сотрёт оптимистичный патч
+      // через clearOptimisticPatches() и UI откатится. Откладываем refetch
+      // на ~4с — за это время дельта успевает прилететь, и обновление
+      // переходит со «снимок-до-инвеста» сразу на «снимок-после» без
+      // промежуточного отката.
+      setTimeout(() => {
+        void walletStore.loadUserWallet({
+          coopname: system.info.coopname,
+          username: session.username,
+        });
+      }, 4000);
 
       return result;
+    } catch (e) {
+      if (optimisticPatchId) {
+        walletStore.revertOptimisticPatch(optimisticPatchId);
+      }
+      throw e;
     } finally {
       isGenerating.value = false;
     }

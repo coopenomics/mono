@@ -11,6 +11,7 @@ import type {
   WalletBlockchainPort,
   CreateWithdrawDomainInterface,
   GenerateReturnStatementDomainInterface,
+  SignProgramAgreementDomainInterface,
 } from '~/domain/wallet/ports/wallet-blockchain.port';
 import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
 import type { IProgramWalletBlockchainData } from '~/domain/wallet/interfaces/program-wallet-blockchain.interface';
@@ -59,6 +60,38 @@ export class WalletBlockchainAdapter implements WalletBlockchainPort {
     })) as TransactResult;
 
     this.logger.log(`Создана заявка на вывод средств: ${data.withdraw_hash}`);
+    return result;
+  }
+
+  /**
+   * Подписание программного соглашения пайщиком (Эпик 2 / story 2.1).
+   * Кооператив подписывает action своим ключом — wallet::signagree требует
+   * `coopname@active`. Document уходит только в action data, не в state.
+   */
+  async signProgramAgreement(data: SignProgramAgreementDomainInterface): Promise<TransactionResult> {
+    const wif = await this.vaultDomainService.getWif(data.coopname);
+    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
+
+    this.blockchainService.initialize(data.coopname, wif);
+
+    const blockchainData: WalletContract.Actions.SignAgreement.ISignAgreement = {
+      coopname: data.coopname,
+      username: data.username,
+      program_id: data.program_id,
+      draft_id: data.draft_id,
+      document: this.domainToBlockchainUtils.convertSignedDocumentToBlockchainFormat(data.document),
+    };
+
+    const result = (await this.blockchainService.transact({
+      account: WalletContract.contractName.production,
+      name: WalletContract.Actions.SignAgreement.actionName,
+      authorization: [{ actor: data.coopname, permission: 'active' }],
+      data: blockchainData,
+    })) as TransactResult;
+
+    this.logger.log(
+      `wallet::signagree: ${data.coopname}/${data.username} program_id=${data.program_id} draft_id=${data.draft_id}`
+    );
     return result;
   }
 

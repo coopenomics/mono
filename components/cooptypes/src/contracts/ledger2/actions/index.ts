@@ -1,3 +1,5 @@
 export * as Apply from './apply'
 export * as Walmove from './walmove'
 export * as Revert from './revert'
+export * as Walletop from './walletop'
+export * as Migrate3 from './migrate3'

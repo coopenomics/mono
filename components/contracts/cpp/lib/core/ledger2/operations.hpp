@@ -24,11 +24,19 @@
  *     (`operations::registrator::`, `operations::capital::` и т.д.) — контракт
  *     считывается по месту вызова.
  *
- * Пересмотр 2026-04-20 (сохранён):
+ * Пересмотр 2026-05-05 (ADR-003, ADR-009):
  *   - План счетов: 04, 08, 51, 58, 80, 86.
  *   - Коммит РИД разделён на `o.cap.commit` (Dr 08/Cr 80) и `o.cap.accept`
- *     (Dr 04/Cr 08, TRANSFER GENERATOR_COMMIT → BLAGOROST_RID).
- *   - WALLET_ONLY: только wallet-движение, без Dr/Cr (для `o.cap.invest`).
+ *     (Dr 04/Cr 08, TRANSFER GENERATOR_FUND → BLAGOROST_FUND).
+ *   - `WalletOp::WALLET_ONLY` удалён (ADR-003): «без бухпроводок» определяется
+ *     парой `(debit_account_id == 0, credit_account_id == 0)` на уровне записи.
+ *     Для `o.cap.invest` теперь TRANSFER без проводок (оба account_id == 0).
+ *   - Добавлен `WalletOp::BURN` (ADR-003): `available -= amount` на `wallet_from`,
+ *     без `wallet_to`. На текущем этапе в `OPERATION_REGISTRY` не используется —
+ *     зарезервирован под будущие операции штатного сжигания.
+ *   - Единые программные кошельки: `BLAGOROST_FUND` (`w.cap.blago`) и
+ *     `GENERATOR_FUND` (`w.cap.gen`) — заменили ранее декомпозированные
+ *     `bginv/bgprop/bgrid/bgmem` и `gncom/gnmem` (ADR-009).
  *   - Миграционные операции — namespace `operations::migration`.
  *
  * Реестр — строго хардкод. Новая операция требует релиза контракта.
@@ -54,17 +62,22 @@ namespace operations {
   namespace wallet {
     inline constexpr eosio::name COMPLETE_DEPOSIT  = "o.wal.depcpl"_n;  ///< Завершение внесения паевого взноса (Dr 51 / Cr 80, ISSUE SHARE_FUND_PAY).
     inline constexpr eosio::name COMPLETE_WITHDRAW = "o.wal.wthcpl"_n;  ///< Завершение возврата паевого взноса (Dr 80 / Cr 51, TRANSFER SHARE_FUND_PAY → WITHDRAWALS_SINK).
+    inline constexpr eosio::name REQUEST_WITHDRAW  = "o.wal.wthreq"_n;  ///< Запрос на возврат паевого: BLOCK на SHARE_FUND_PAY (без Dr/Cr).
+    inline constexpr eosio::name DECLINE_WITHDRAW  = "o.wal.wthdec"_n;  ///< Отклонение запроса на возврат: UNBLOCK на SHARE_FUND_PAY (без Dr/Cr).
   }
 
   // capital
   namespace capital {
-    inline constexpr eosio::name IMPORT           = "o.cap.import"_n;   ///< Оффлайн-импорт пайщика Благорост (Dr 51 / Cr 80, ISSUE BLAGOROST_INVEST).
-    inline constexpr eosio::name INVEST           = "o.cap.invest"_n;   ///< Инвестиция в ЦПП Благорост (WALLET_ONLY TRANSFER 2001 → 9001).
-    inline constexpr eosio::name COMMIT_RID       = "o.cap.commit"_n;   ///< Коммит РИД (Dr 08 / Cr 80, ISSUE GENERATOR_COMMIT).
-    inline constexpr eosio::name ACCEPT_RID       = "o.cap.accept"_n;   ///< Приём РИД в НМА (Dr 04 / Cr 08, TRANSFER GENERATOR_COMMIT → BLAGOROST_RID).
-    inline constexpr eosio::name ACCEPT_PROPERTY  = "o.cap.actprp"_n;   ///< Акт-2 имущественный паевой взнос (Dr 51 / Cr 80, ISSUE BLAGOROST_PROPERTY).
-    inline constexpr eosio::name LEND             = "o.cap.lend"_n;     ///< Выдача беспроцентного займа пайщику (Dr 58 / Cr 51, ISSUE LOAN_ISSUED).
-    inline constexpr eosio::name REPAY            = "o.cap.repay"_n;    ///< Возврат займа пайщика по акту-2 (Dr 80 / Cr 58, TRANSFER LOAN_ISSUED → SHARE_FUND_PAY).
+    inline constexpr eosio::name IMPORT              = "o.cap.import"_n;   ///< Оффлайн-импорт пайщика Благорост (Dr 51 / Cr 80, ISSUE BLAGOROST_FUND).
+    inline constexpr eosio::name INVEST              = "o.cap.invest"_n;   ///< Инвестиция в ЦПП Благорост (TRANSFER SHARE_FUND_PAY → BLAGOROST_FUND, без Dr/Cr).
+    inline constexpr eosio::name COMMIT_RID          = "o.cap.commit"_n;   ///< Коммит РИД (Dr 08 / Cr 80, ISSUE GENERATOR_FUND).
+    inline constexpr eosio::name ACCEPT_RID          = "o.cap.accept"_n;   ///< Приём РИД в НМА (Dr 04 / Cr 08, TRANSFER GENERATOR_FUND → BLAGOROST_FUND).
+    inline constexpr eosio::name ACCEPT_PROPERTY     = "o.cap.actprp"_n;   ///< Акт-2 имущественный паевой взнос (Dr 51 / Cr 80, ISSUE BLAGOROST_FUND).
+    inline constexpr eosio::name LEND                = "o.cap.lend"_n;     ///< Выдача беспроцентного займа пайщику (Dr 58 / Cr 51, ISSUE LOAN_ISSUED).
+    inline constexpr eosio::name REPAY               = "o.cap.repay"_n;    ///< Возврат займа пайщика по акту-2 (Dr 80 / Cr 58, TRANSFER LOAN_ISSUED → SHARE_FUND_PAY).
+    inline constexpr eosio::name WITHDRAW_FROM_CAPITAL = "o.cap.wthcap"_n; ///< Возврат паевого из ЦПП «Благорост» в кошелёк пайщика (TRANSFER BLAGOROST_FUND → SHARE_FUND_PAY, без Dr/Cr).
+    inline constexpr eosio::name CONVERT_TO_SHARE    = "o.cap.cnvshr"_n;   ///< Конвертация сегмента: интеллектуальная стоимость → паевой взнос деньгами (Dr 80 / Cr 08, TRANSFER GENERATOR_FUND → SHARE_FUND_PAY).
+    inline constexpr eosio::name CONVERT_TO_BLAGO    = "o.cap.cnvbl"_n;    ///< Конвертация сегмента: интеллектуальная стоимость → ЦПП «Благорост» (Dr 04 / Cr 08, TRANSFER GENERATOR_FUND → BLAGOROST_FUND).
   }
 
   // marketplace
@@ -90,7 +103,6 @@ namespace operations {
     inline constexpr eosio::name MIN_SHARE        = "o.mig.minshr"_n;   ///< Перенос: минимальный паевой взнос (Dr 51 / Cr 80, ISSUE MIN_SHARE_FUND).
     inline constexpr eosio::name SHARE            = "o.mig.share"_n;    ///< Перенос: остаток паевых деньгами (Dr 51 / Cr 80, ISSUE SHARE_FUND_PAY).
     inline constexpr eosio::name ENTRY            = "o.mig.entry"_n;    ///< Перенос: вступительные (Dr 51 / Cr 86, ISSUE ENTRANCE_FEES).
-    inline constexpr eosio::name RID              = "o.mig.rid"_n;      ///< Перенос: РИД в НМА (Dr 04 / Cr 80, ISSUE SHARE_FUND_RID).
   }
 
   // adjustment (ручные корректировки председателя)
@@ -109,38 +121,41 @@ namespace operations {
 } // namespace operations
 
 /**
- * @brief Элементарные операции по кошелькам.
+ * @brief Элементарные операции по кошелькам (ADR-003).
  *
- * `WALLET_ONLY` — новый тип (2026-04-20): TRANSFER между кошельками БЕЗ
- * бухгалтерских проводок debit/credit. Используется, когда средства
- * перемещаются между аналитическими разрезами одного счёта (пример:
- * Цифровой Кошелёк 80 → инвестиционный Благорост 80 — в обоих случаях Cr 80,
- * счёт не меняется, но wallet-аналитика — да).
+ * Семантика «без бухпроводок» — НЕ через отдельный walletop, а через пару
+ * `(debit_account_id == 0, credit_account_id == 0)` на уровне записи реестра.
+ * Compile-time правило `(debit==0) ⇔ (credit==0)` ловит смешанные пары.
  */
 enum class WalletOp : uint8_t {
-  ISSUE       = 0, ///< первичный вход средств на кошелёк wallet_to
-  TRANSFER    = 1, ///< перемещение wallet_from → wallet_to (с Dr/Cr)
-  BLOCK       = 2, ///< available-=amount, blocked+=amount на wallet_from
-  UNBLOCK     = 3, ///< blocked-=amount, available+=amount на wallet_from
-  WALLET_ONLY = 4, ///< TRANSFER wallet_from → wallet_to БЕЗ debit/credit inline-actions
-  REVOKE      = 5, ///< изъятие amount с wallet_from без увеличения куда-либо (зеркало ISSUE для o.adj.rev)
+  ISSUE    = 0, ///< первичный вход средств на кошелёк wallet_to (wallet_from = empty)
+  TRANSFER = 1, ///< перемещение wallet_from → wallet_to (с Dr/Cr ИЛИ без — по парам account_id)
+  BLOCK    = 2, ///< available-=amount, blocked+=amount на wallet_from
+  UNBLOCK  = 3, ///< blocked-=amount, available+=amount на wallet_from
+  BURN     = 4, ///< изъятие amount с wallet_from, без wallet_to. Покрывает оба кейса: (a) штатное сжигание как бизнес-операция в OPERATION_REGISTRY; (b) зеркало ISSUE при `ledger2::revert` (различие — через operation_code: `o.adj.rev` для adjustment-mirror).
 };
 
 /**
  * @brief Описание одной именованной операции.
  *
- * Для WALLET_ONLY поля `debit_account_id` / `credit_account_id` равны 0
- * (compile-time валидацией ниже). Для ISSUE `wallet_from = eosio::name{}`,
- * для BLOCK/UNBLOCK/REVOKE `wallet_to = eosio::name{}`.
+ * Семантика полей по `wallet_op`:
+ *   - ISSUE:   wallet_from = eosio::name{}, wallet_to = required.
+ *   - TRANSFER: wallet_from = required, wallet_to = required (≠ from).
+ *   - BLOCK / UNBLOCK / BURN: wallet_from = required, wallet_to = eosio::name{}.
+ *
+ * Семантика бух.проводки:
+ *   - Без проводок: debit_account_id == 0 И credit_account_id == 0.
+ *   - С проводкой:  оба ≠ 0, ≠ друг друга, оба из LEDGER2_ACCOUNT_MAP.
+ *   - Смешанная пара (один == 0, второй ≠ 0) запрещена compile-time.
  */
 struct OperationRegistryEntry {
   eosio::name    code;               ///< operation_code с префиксом `o.<contract>.<verb>`
   eosio::name    process_type;       ///< тип процесса с префиксом `p.<contract>.<noun>`
   WalletOp       wallet_op;
   eosio::name    wallet_from;        ///< пустое имя для ISSUE
-  eosio::name    wallet_to;          ///< пустое имя для BLOCK/UNBLOCK/REVOKE
-  uint64_t       debit_account_id;   ///< 0 для WALLET_ONLY
-  uint64_t       credit_account_id;  ///< 0 для WALLET_ONLY
+  eosio::name    wallet_to;          ///< пустое имя для BLOCK/UNBLOCK/BURN
+  uint64_t       debit_account_id;   ///< 0 если без бухпроводки (тогда credit_account_id тоже == 0)
+  uint64_t       credit_account_id;  ///< 0 если без бухпроводки (тогда debit_account_id тоже == 0)
   const char*    human_name;
 };
 
@@ -171,30 +186,30 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_accounts::SHARE_FUND, ledger2_accounts::BANK_ACCOUNT,
     "Возврат паевого взноса пайщику" },
 
-  // 5. Импорт пайщика Благорост (offline): Dr 51 / Cr 80, ISSUE BLAGOROST_INVEST
-  { operations::capital::IMPORT, processes::capital::IMPORT, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::BLAGOROST_INVEST,
+  // 5. Импорт пайщика Благорост (offline): Dr 51 / Cr 80, ISSUE BLAGOROST_FUND (ADR-009: единый кошелёк программы)
+  { operations::capital::IMPORT, processes::capital::IMPORT, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::BLAGOROST_FUND,
     ledger2_accounts::BANK_ACCOUNT, ledger2_accounts::SHARE_FUND,
     "Паевой взнос по целевой потребительской программе «Благорост» (офлайн-импорт)" },
 
-  // 6. Инвестиция из Цифрового Кошелька в Благорост: WALLET_ONLY TRANSFER 2001 → 9001
-  { operations::capital::INVEST, processes::capital::INVEST, WalletOp::WALLET_ONLY,
-    ledger2_wallets::SHARE_FUND_PAY, ledger2_wallets::BLAGOROST_INVEST,
+  // 6. Инвестиция из Цифрового Кошелька в Благорост: TRANSFER SHARE_FUND_PAY → BLAGOROST_FUND (без Dr/Cr — оба счёта 80)
+  { operations::capital::INVEST, processes::capital::INVEST, WalletOp::TRANSFER,
+    ledger2_wallets::SHARE_FUND_PAY, ledger2_wallets::BLAGOROST_FUND,
     0, 0,
     "Инвестиция в ЦПП «Благорост» (перенос между кошельками паевого фонда)" },
 
-  // 7. Коммит РИД: Dr 08 / Cr 80, ISSUE GENERATOR_COMMIT
-  { operations::capital::COMMIT_RID, processes::capital::RID, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::GENERATOR_COMMIT,
+  // 7. Коммит РИД: Dr 08 / Cr 80, ISSUE GENERATOR_FUND (ADR-009: единый кошелёк программы Генератор)
+  { operations::capital::COMMIT_RID, processes::capital::RID, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::GENERATOR_FUND,
     ledger2_accounts::NON_CURRENT_INVESTMENTS, ledger2_accounts::SHARE_FUND,
     "Коммит результата интеллектуальной деятельности по программе «Благорост»" },
 
-  // 8. Приём РИД в НМА: Dr 04 / Cr 08, TRANSFER GENERATOR_COMMIT → BLAGOROST_RID
+  // 8. Приём РИД в НМА: Dr 04 / Cr 08, TRANSFER GENERATOR_FUND → BLAGOROST_FUND (ADR-009)
   { operations::capital::ACCEPT_RID, processes::capital::RID, WalletOp::TRANSFER,
-    ledger2_wallets::GENERATOR_COMMIT, ledger2_wallets::BLAGOROST_RID,
+    ledger2_wallets::GENERATOR_FUND, ledger2_wallets::BLAGOROST_FUND,
     ledger2_accounts::INTANGIBLE_ASSETS, ledger2_accounts::NON_CURRENT_INVESTMENTS,
     "Приём результата интеллектуальной деятельности в паевой фонд" },
 
-  // 9. Акт-2 имущественный паевой взнос: Dr 51 / Cr 80, ISSUE BLAGOROST_PROPERTY
-  { operations::capital::ACCEPT_PROPERTY, processes::capital::PROPERTY, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::BLAGOROST_PROPERTY,
+  // 9. Акт-2 имущественный паевой взнос: Dr 51 / Cr 80, ISSUE BLAGOROST_FUND (ADR-009)
+  { operations::capital::ACCEPT_PROPERTY, processes::capital::PROPERTY, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::BLAGOROST_FUND,
     ledger2_accounts::BANK_ACCOUNT, ledger2_accounts::SHARE_FUND,
     "Паевой взнос (не денежный) по программе «Благорост»" },
 
@@ -226,6 +241,41 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_accounts::SHARE_FUND, ledger2_accounts::TARGET_RECEIPTS,
     "Трансляция паевого взноса из ЦПП «Цифровой Кошелёк» в членский взнос за пользование инфраструктурой" },
 
+  // 15. Запрос на возврат паевого: BLOCK SHARE_FUND_PAY (без Dr/Cr — внутри одного бухсчёта 80).
+  { operations::wallet::REQUEST_WITHDRAW, processes::wallet::WITHDRAW, WalletOp::BLOCK,
+    ledger2_wallets::SHARE_FUND_PAY, eosio::name{},
+    0, 0,
+    "Блокировка паевого под запрос на возврат" },
+
+  // 16. Отклонение запроса на возврат: UNBLOCK SHARE_FUND_PAY (без Dr/Cr — зеркало REQUEST_WITHDRAW).
+  { operations::wallet::DECLINE_WITHDRAW, processes::wallet::WITHDRAW, WalletOp::UNBLOCK,
+    ledger2_wallets::SHARE_FUND_PAY, eosio::name{},
+    0, 0,
+    "Разблокировка паевого после отклонения запроса на возврат" },
+
+  // 17. Возврат из ЦПП «Благорост» в Цифровой Кошелёк: TRANSFER BLAGOROST_FUND → SHARE_FUND_PAY (без Dr/Cr — оба счёта 80, зеркало INVEST).
+  { operations::capital::WITHDRAW_FROM_CAPITAL, processes::capital::WTHCAP, WalletOp::TRANSFER,
+    ledger2_wallets::BLAGOROST_FUND, ledger2_wallets::SHARE_FUND_PAY,
+    0, 0,
+    "Возврат паевого из ЦПП «Благорост» в Цифровой Кошелёк" },
+
+  // 18. Конвертация сегмента (часть в ЦК): Dr 80 / Cr 08, TRANSFER GENERATOR_FUND → SHARE_FUND_PAY.
+  // Семантика: после ACT2 интеллектуальная доля сегмента, не направленная в Благорост,
+  // возвращается пайщику деньгами в Цифровой Кошелёк. РИД-в-работе закрывается (Cr 08),
+  // паевой фонд получает компенсацию деньгами (Dr 80).
+  { operations::capital::CONVERT_TO_SHARE, processes::capital::CNVSEG, WalletOp::TRANSFER,
+    ledger2_wallets::GENERATOR_FUND, ledger2_wallets::SHARE_FUND_PAY,
+    ledger2_accounts::SHARE_FUND, ledger2_accounts::NON_CURRENT_INVESTMENTS,
+    "Конвертация сегмента: интеллектуальная стоимость → паевой взнос деньгами" },
+
+  // 19. Конвертация сегмента (часть в Благорост): Dr 04 / Cr 08, TRANSFER GENERATOR_FUND → BLAGOROST_FUND.
+  // Семантика та же что у ACCEPT_RID, но в контексте конвертации сегмента после голосования.
+  // Отдельная операция для аудит-следа (различимость в реестре).
+  { operations::capital::CONVERT_TO_BLAGO, processes::capital::CNVSEG, WalletOp::TRANSFER,
+    ledger2_wallets::GENERATOR_FUND, ledger2_wallets::BLAGOROST_FUND,
+    ledger2_accounts::INTANGIBLE_ASSETS, ledger2_accounts::NON_CURRENT_INVESTMENTS,
+    "Конвертация сегмента: интеллектуальная стоимость → ЦПП «Благорост»" },
+
   // ----- Миграционные (o.mig.*) — вызываются только из migrate.cpp -----
 
   // 15. Миграция: минимальный паевой: Dr 51 / Cr 80, ISSUE MIN_SHARE_FUND
@@ -242,11 +292,6 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   { operations::migration::ENTRY, processes::migration::TRANSIT, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::ENTRANCE_FEES,
     ledger2_accounts::BANK_ACCOUNT, ledger2_accounts::TARGET_RECEIPTS,
     "Транзитный перенос: вступительные взносы при миграции" },
-
-  // 18. Миграция: РИД в НМА: Dr 04 / Cr 80, ISSUE SHARE_FUND_RID
-  { operations::migration::RID, processes::migration::TRANSIT, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::SHARE_FUND_RID,
-    ledger2_accounts::INTANGIBLE_ASSETS, ledger2_accounts::SHARE_FUND,
-    "Транзитный перенос: принятые РИД в паевой фонд при миграции" },
 };
 
 static constexpr size_t OPERATION_REGISTRY_SIZE = sizeof(OPERATION_REGISTRY) / sizeof(OPERATION_REGISTRY[0]);
@@ -255,13 +300,15 @@ static constexpr size_t OPERATION_REGISTRY_SIZE = sizeof(OPERATION_REGISTRY) / s
 // Compile-time валидация реестра.
 // =====================================================================
 //
-// Правила:
+// Правила (ADR-003):
 //  1. `code` уникален. `process_type` может повторяться.
-//  2. Для операций с бухпроводками: `debit_account_id` ≠ `credit_account_id`.
-//  3. Для TRANSFER и WALLET_ONLY: `wallet_from` ≠ `wallet_to`.
-//  4. Для ISSUE: `wallet_from` == 0 и `wallet_to` ≠ 0.
-//  5. Для WALLET_ONLY: оба счёта == 0 (без проводок).
-//  6. Все id счетов/кошельков из registry существуют в справочниках.
+//  2. `(debit_account_id == 0) ⇔ (credit_account_id == 0)` — без частичных проводок.
+//  3. Для записей с проводками (оба ≠ 0): `debit_account_id` ≠ `credit_account_id`,
+//     оба существуют в `LEDGER2_ACCOUNT_MAP`.
+//  4. Для TRANSFER: `wallet_from` ≠ `wallet_to`, оба ≠ 0.
+//  5. Для ISSUE: `wallet_from` == 0 и `wallet_to` ≠ 0.
+//  6. Для BLOCK / UNBLOCK / BURN: `wallet_from` ≠ 0, `wallet_to` == 0.
+//  7. Все id кошельков из записей существуют в `LEDGER2_WALLET_REGISTRY`.
 namespace ledger2_registry_detail {
   constexpr bool operation_codes_unique() {
     for (size_t i = 0; i < OPERATION_REGISTRY_SIZE; ++i) {
@@ -272,45 +319,61 @@ namespace ledger2_registry_detail {
     return true;
   }
 
+  // Правило 2: без частичных проводок. Либо оба == 0 (без бухпроводки), либо оба ≠ 0.
+  constexpr bool zero_accounts_iff_both() {
+    for (size_t i = 0; i < OPERATION_REGISTRY_SIZE; ++i) {
+      const auto& e = OPERATION_REGISTRY[i];
+      const bool dr_zero = (e.debit_account_id  == 0);
+      const bool cr_zero = (e.credit_account_id == 0);
+      if (dr_zero != cr_zero) return false;
+    }
+    return true;
+  }
+
+  // Правило 3: при наличии проводки — debit ≠ credit.
   constexpr bool dr_ne_cr_when_posting() {
     for (size_t i = 0; i < OPERATION_REGISTRY_SIZE; ++i) {
       const auto& e = OPERATION_REGISTRY[i];
-      if (e.wallet_op == WalletOp::WALLET_ONLY) continue;
+      if (e.debit_account_id == 0 && e.credit_account_id == 0) continue; // без проводок
       if (e.debit_account_id == e.credit_account_id) return false;
     }
     return true;
   }
 
-  constexpr bool wallet_only_has_zero_accounts() {
-    for (size_t i = 0; i < OPERATION_REGISTRY_SIZE; ++i) {
-      const auto& e = OPERATION_REGISTRY[i];
-      if (e.wallet_op != WalletOp::WALLET_ONLY) continue;
-      if (e.debit_account_id != 0 || e.credit_account_id != 0) return false;
-    }
-    return true;
-  }
-
+  // Правило 4: TRANSFER — wallet_from ≠ wallet_to, оба ≠ 0.
   constexpr bool transfer_wallet_from_ne_to() {
     for (size_t i = 0; i < OPERATION_REGISTRY_SIZE; ++i) {
       const auto& e = OPERATION_REGISTRY[i];
-      if (e.wallet_op == WalletOp::TRANSFER || e.wallet_op == WalletOp::WALLET_ONLY) {
-        if (e.wallet_from == e.wallet_to) return false;
-        if (e.wallet_from.value == 0 || e.wallet_to.value == 0) return false;
-      }
+      if (e.wallet_op != WalletOp::TRANSFER) continue;
+      if (e.wallet_from == e.wallet_to) return false;
+      if (e.wallet_from.value == 0 || e.wallet_to.value == 0) return false;
     }
     return true;
   }
 
+  // Правило 6: BURN — wallet_from required, wallet_to == 0 (ADR-003).
+  constexpr bool burn_pattern_correct() {
+    for (size_t i = 0; i < OPERATION_REGISTRY_SIZE; ++i) {
+      const auto& e = OPERATION_REGISTRY[i];
+      if (e.wallet_op != WalletOp::BURN) continue;
+      if (e.wallet_from.value == 0) return false;
+      if (e.wallet_to.value != 0)   return false;
+    }
+    return true;
+  }
+
+  // Правило 3: оба account_id (если ≠ 0) существуют в LEDGER2_ACCOUNT_MAP.
   constexpr bool accounts_exist_in_map() {
     for (size_t i = 0; i < OPERATION_REGISTRY_SIZE; ++i) {
       const auto& e = OPERATION_REGISTRY[i];
-      if (e.wallet_op == WalletOp::WALLET_ONLY) continue;
+      if (e.debit_account_id == 0 && e.credit_account_id == 0) continue; // без проводок
       if (ledger2_find_account_meta(e.debit_account_id) == nullptr) return false;
       if (ledger2_find_account_meta(e.credit_account_id) == nullptr) return false;
     }
     return true;
   }
 
+  // Правило 7: все ссылки на кошельки существуют в реестре.
   constexpr bool wallets_exist_in_registry() {
     for (size_t i = 0; i < OPERATION_REGISTRY_SIZE; ++i) {
       const auto& e = OPERATION_REGISTRY[i];
@@ -323,12 +386,14 @@ namespace ledger2_registry_detail {
 
 static_assert(ledger2_registry_detail::operation_codes_unique(),
               "OPERATION_REGISTRY: duplicate operation_code detected");
+static_assert(ledger2_registry_detail::zero_accounts_iff_both(),
+              "OPERATION_REGISTRY: смешанная пара debit/credit account_id (один == 0, второй ≠ 0)");
 static_assert(ledger2_registry_detail::dr_ne_cr_when_posting(),
-              "OPERATION_REGISTRY: debit_account_id == credit_account_id (self-posting) на non-WALLET_ONLY записи");
-static_assert(ledger2_registry_detail::wallet_only_has_zero_accounts(),
-              "OPERATION_REGISTRY: WALLET_ONLY запись с ненулевыми debit/credit");
+              "OPERATION_REGISTRY: debit_account_id == credit_account_id (self-posting) при наличии проводки");
 static_assert(ledger2_registry_detail::transfer_wallet_from_ne_to(),
-              "OPERATION_REGISTRY: TRANSFER/WALLET_ONLY с wallet_from == wallet_to");
+              "OPERATION_REGISTRY: TRANSFER с wallet_from == wallet_to или одним из них == 0");
+static_assert(ledger2_registry_detail::burn_pattern_correct(),
+              "OPERATION_REGISTRY: BURN требует wallet_from ≠ 0 и wallet_to == 0");
 static_assert(ledger2_registry_detail::accounts_exist_in_map(),
               "OPERATION_REGISTRY: ссылка на account id вне LEDGER2_ACCOUNT_MAP");
 static_assert(ledger2_registry_detail::wallets_exist_in_registry(),
@@ -354,7 +419,7 @@ inline const OperationRegistryEntry* find_operation(eosio::name operation_code) 
 // debit/credit_account_id заполняются ДИНАМИЧЕСКИ при каждом вызове
 // (определяются параметрами walmove/revert, не справочником). В
 // OPERATION_REGISTRY их положить нельзя — сломаются static_assert
-// (transfer_wallet_from_ne_to: 0==0, dr_ne_cr_when_posting и пр.).
+// (transfer_wallet_from_ne_to, zero_accounts_iff_both, dr_ne_cr_when_posting и пр.).
 //
 // Здесь — только code + process_type + human_name для UI/audit
 // (cooptypes mirror живёт в src/ledger2/operations.ts → addAdjustment).

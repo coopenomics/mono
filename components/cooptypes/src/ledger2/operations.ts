@@ -11,11 +11,11 @@
  *
  * Идентификаторы кошельков (`wallet_from`/`wallet_to`) — eosio::name с
  * префиксом `w.<contract>.<waltype>` (см. `./wallets.ts`). Пустая строка
- * (`""`) — sentinel «кошелёк вне системы» для ISSUE и REVOKE.
+ * (`""`) — sentinel «кошелёк вне системы» для ISSUE и BURN.
  */
 import type { IName } from '../interfaces/ledger2'
 
-export type WalletOp = 'ISSUE' | 'TRANSFER' | 'BLOCK' | 'UNBLOCK' | 'WALLET_ONLY' | 'REVOKE'
+export type WalletOp = 'ISSUE' | 'TRANSFER' | 'BLOCK' | 'UNBLOCK' | 'BURN'
 
 export interface OperationMeta {
   /** Машинный идентификатор — eosio::name в контракте. */
@@ -28,17 +28,17 @@ export interface OperationMeta {
   name: string
   /**
    * Тип операции по кошельку. Для `kind: 'adjustment'` — null, потому что
-   * реальный wallet_op зависит от исходной операции (WALMOVE = WALLET_ONLY всегда,
-   * REVERSAL = REVOKE/TRANSFER/WALLET_ONLY в зависимости от зеркала).
+   * реальный wallet_op зависит от исходной операции (WALMOVE = TRANSFER без Dr/Cr,
+   * REVERSAL = TRANSFER/BURN в зависимости от зеркала).
    */
   wallet_op: WalletOp | null
   /** Кошелёк-источник (null для ISSUE и для adjustment-операций). */
   wallet_from: IName | null
-  /** Кошелёк-приёмник (null для BLOCK/UNBLOCK и для adjustment-операций). */
+  /** Кошелёк-приёмник (null для BLOCK/UNBLOCK/BURN и для adjustment-операций). */
   wallet_to: IName | null
-  /** Код счёта Дт (null для WALLET_ONLY и для adjustment-операций). */
+  /** Код счёта Дт (null без бухпроводки, ADR-003: ⇔ credit == null). */
   debit: number | null
-  /** Код счёта Кт (null для WALLET_ONLY и для adjustment-операций). */
+  /** Код счёта Кт (null без бухпроводки, ADR-003: ⇔ debit == null). */
   credit: number | null
   /** Человекочитаемое название для UI. */
   human_name: string
@@ -73,34 +73,44 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: 51, credit: 80,
     human_name: 'Внесение пайщиком паевого взноса' },
 
+  { code: 'o.wal.wthreq',  process_type: 'p.wal.wthdrw',  contract: 'wallet',
+    name: 'REQUEST_WITHDRAW',  wallet_op: 'BLOCK',    wallet_from: 'w.wal.share', wallet_to: null,
+    debit: null, credit: null,
+    human_name: 'Блокировка паевого под запрос на возврат' },
+
+  { code: 'o.wal.wthdec',  process_type: 'p.wal.wthdrw',  contract: 'wallet',
+    name: 'DECLINE_WITHDRAW',  wallet_op: 'UNBLOCK',  wallet_from: 'w.wal.share', wallet_to: null,
+    debit: null, credit: null,
+    human_name: 'Разблокировка паевого после отклонения запроса на возврат' },
+
   { code: 'o.wal.wthcpl',  process_type: 'p.wal.wthdrw',  contract: 'wallet',
     name: 'COMPLETE_WITHDRAW', wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.wal.wthdrw',
     debit: 80, credit: 51,
     human_name: 'Возврат паевого взноса пайщику' },
 
-  // capital
+  // capital (ADR-009: единые программные кошельки `w.cap.blago`/`w.cap.gen`)
   { code: 'o.cap.import',  process_type: 'p.cap.import',  contract: 'capital',
-    name: 'IMPORT',         wallet_op: 'ISSUE',    wallet_from: null, wallet_to: 'w.cap.bginv',
+    name: 'IMPORT',         wallet_op: 'ISSUE',    wallet_from: null, wallet_to: 'w.cap.blago',
     debit: 51, credit: 80,
     human_name: 'Паевой взнос по ЦПП «Благорост» (офлайн-импорт)' },
 
   { code: 'o.cap.invest',  process_type: 'p.cap.invest',  contract: 'capital',
-    name: 'INVEST',         wallet_op: 'WALLET_ONLY', wallet_from: 'w.wal.share', wallet_to: 'w.cap.bginv',
+    name: 'INVEST',         wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.cap.blago',
     debit: null, credit: null,
     human_name: 'Инвестиция в ЦПП «Благорост» (перенос между кошельками)' },
 
   { code: 'o.cap.commit',  process_type: 'p.cap.rid',     contract: 'capital',
-    name: 'COMMIT_RID',     wallet_op: 'ISSUE',    wallet_from: null, wallet_to: 'w.cap.gncom',
+    name: 'COMMIT_RID',     wallet_op: 'ISSUE',    wallet_from: null, wallet_to: 'w.cap.gen',
     debit: 8, credit: 80,
     human_name: 'Коммит РИД по программе «Благорост»' },
 
   { code: 'o.cap.accept',  process_type: 'p.cap.rid',     contract: 'capital',
-    name: 'ACCEPT_RID',     wallet_op: 'TRANSFER', wallet_from: 'w.cap.gncom', wallet_to: 'w.cap.bgrid',
+    name: 'ACCEPT_RID',     wallet_op: 'TRANSFER', wallet_from: 'w.cap.gen', wallet_to: 'w.cap.blago',
     debit: 4, credit: 8,
     human_name: 'Приём РИД в паевой фонд' },
 
   { code: 'o.cap.actprp',  process_type: 'p.cap.prop',    contract: 'capital',
-    name: 'ACCEPT_PROPERTY', wallet_op: 'ISSUE',   wallet_from: null, wallet_to: 'w.cap.bgprop',
+    name: 'ACCEPT_PROPERTY', wallet_op: 'ISSUE',   wallet_from: null, wallet_to: 'w.cap.blago',
     debit: 51, credit: 80,
     human_name: 'Паевой взнос (имущественный) по программе «Благорост»' },
 
@@ -113,6 +123,11 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     name: 'REPAY',          wallet_op: 'TRANSFER', wallet_from: 'w.cap.loan', wallet_to: 'w.wal.share',
     debit: 80, credit: 58,
     human_name: 'Возврат беспроцентного займа пайщика по акту-2' },
+
+  { code: 'o.cap.wthcap',  process_type: 'p.cap.wthcap',  contract: 'capital',
+    name: 'WITHDRAW_FROM_CAPITAL', wallet_op: 'TRANSFER', wallet_from: 'w.cap.blago', wallet_to: 'w.wal.share',
+    debit: null, credit: null,
+    human_name: 'Возврат паевого из ЦПП «Благорост» в Цифровой Кошелёк' },
 
   // marketplace
   { code: 'o.mkt.supply',  process_type: 'p.mkt.reqst',   contract: 'marketplace',
@@ -146,11 +161,6 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     name: 'ENTRY',          wallet_op: 'ISSUE',    wallet_from: null, wallet_to: 'w.reg.entry',
     debit: 51, credit: 86,
     human_name: 'Транзит: вступительные взносы' },
-
-  { code: 'o.mig.rid',     process_type: 'p.mig.trans',   contract: 'migration',
-    name: 'RID',            wallet_op: 'ISSUE',    wallet_from: null, wallet_to: 'w.wal.sharid',
-    debit: 4, credit: 80,
-    human_name: 'Транзит: принятые РИД в паевой фонд' },
 
   // adjustment (ручные корректировки председателя — динамические параметры,
   // не идут через ledger2::apply; см. operations.hpp `OPERATION_ADJUSTMENT_REGISTRY`).

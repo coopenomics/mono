@@ -1,11 +1,12 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # Стандарт «Инвестиция в ЦПП «Благорост»» — перенос ранее внесённого паевого
-# взноса с кошелька SHARE_FUND_PAY (w.wal.share) на инвестиционный кошелёк программы
-# «Благорост» (w.cap.bginv) без бухгалтерских проводок.
+# взноса с кошелька SHARE_FUND_PAY (w.wal.share) на единый кошелёк программы
+# «Благорост» (w.cap.blago) без бухгалтерских проводок.
 #
 # Одноактовый процесс. В ledger2 — одна операция o.cap.invest c wallet_op =
-# WALLET_ONLY: средства переходят между двумя аналитическими кошельками
-# одного пайщика, не затрагивая бухгалтерские счета.
+# TRANSFER без бухпроводок (debit_account_id == credit_account_id == 0):
+# средства переходят между двумя аналитическими кошельками одного пайщика,
+# не затрагивая бухгалтерские счета (оба связаны с Cr 80).
 #
 # Источники правды в коде:
 #   • cpp/capital/capital.hpp                              — actions
@@ -44,8 +45,8 @@ actions:
     purpose: >
       Закрывающее одношаговое действие: пайщик подписывает заявление об
       инвестировании в «Благорост», контракт применяет ledger2-операцию
-      o.cap.invest и средства аналитически переходят с SHARE_FUND_PAY (w.wal.share)
-      на BLAGOROST_INVEST (w.cap.bginv).
+      o.cap.invest (TRANSFER без бухпроводок) и средства аналитически переходят
+      с SHARE_FUND_PAY (w.wal.share) на BLAGOROST_FUND (w.cap.blago).
 
 # ── Секция 3. Граф состояний ────────────────────────────────────────────────
 entity: capital::invest
@@ -57,7 +58,7 @@ states:
     human: Инвестировано
     description: >
       Сумма перенесена с кошелька SHARE_FUND_PAY (w.wal.share) пайщика на
-      BLAGOROST_INVEST (w.cap.bginv). Бухгалтерия не затронута — это аналитический
+      BLAGOROST_FUND (w.cap.blago). Бухгалтерия не затронута — это аналитический
       сдвиг внутри паевого фонда.
     kind: final
 
@@ -85,15 +86,15 @@ scenario:
       description: >
         Пайщик подписывает заявление об инвестировании и вызывает
         capital::createpinv. Контракт переводит указанную сумму с кошелька
-        SHARE_FUND_PAY (w.wal.share) на BLAGOROST_INVEST (w.cap.bginv) — операция
-        o.cap.invest, wallet_op WALLET_ONLY (без проводок). Запись в
-        реестре фиксирует факт инвестиции.
+        SHARE_FUND_PAY (w.wal.share) на BLAGOROST_FUND (w.cap.blago) — операция
+        o.cap.invest, wallet_op TRANSFER без бухпроводок (оба счёта 80).
+        Запись в реестре фиксирует факт инвестиции.
       pre:
         - Пайщик активен в кооперативе.
         - Достаточный остаток на SHARE_FUND_PAY.
         - Заявление подписано ЭЦП.
       post:
-        - Сумма переведена w.wal.share → w.cap.bginv (аналитический сдвиг).
+        - Сумма переведена w.wal.share → w.cap.blago (аналитический сдвиг).
         - В ledger2 применена операция o.cap.invest.
         - Создана запись инвестиции в таблице.
 
@@ -111,9 +112,9 @@ documents:
 operations:
   - ledger_code: o.cap.invest
     human_name: Инвестиция в ЦПП «Благорост» (перенос между кошельками)
-    wallet_op: WALLET_ONLY
-    wallet_from: w.wal.share   # ЦПП «Цифровой Кошелёк» — паевые взносы деньгами
-    wallet_to: w.cap.bginv     # ЦПП «Благорост» — инвестиции деньгами
+    wallet_op: TRANSFER
+    wallet_from: w.wal.share   # ЦК — паевая часть пайщика
+    wallet_to: w.cap.blago     # ЦПП «Благорост» — единый кошелёк программы у пайщика
     debit: null
     credit: null
     amount_ref: invest.quantity

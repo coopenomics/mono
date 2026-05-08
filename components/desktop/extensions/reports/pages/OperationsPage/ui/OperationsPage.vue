@@ -4,7 +4,7 @@ div.page-shell
   q-card.q-mt-md(flat)
     q-card-section
       .row.q-gutter-sm.items-center.q-mb-sm(
-        v-if='filters.accountId !== null || filters.walletName || filters.processHash || filters.username'
+        v-if='filters.accountId !== null || filters.walletName || filters.processHash || filters.applyGlobalSequence || filters.username'
       )
         q-chip(
           v-if='filters.accountId !== null || filters.walletName'
@@ -15,14 +15,23 @@ div.page-shell
           @remove='clearAccountFilter'
         ) {{ accountFilterLabel }}
         q-chip(
+          v-if='filters.applyGlobalSequence'
+          removable
+          color='primary'
+          text-color='white'
+          icon='fa-solid fa-hashtag'
+          @remove='clearIdFilter'
+          class='font-monospace'
+        ) № операции {{ filters.applyGlobalSequence }}
+        q-chip(
           v-if='filters.processHash'
           removable
           color='primary'
           text-color='white'
           icon='fa-solid fa-fingerprint'
-          @remove='clearProcessHashFilter'
+          @remove='clearIdFilter'
           class='font-monospace'
-        ) Операция {{ filters.processHash.slice(0, 8) }}
+        ) Процесс {{ filters.processHash.slice(0, 8) }}
         q-chip(
           v-if='filters.username'
           removable
@@ -33,16 +42,16 @@ div.page-shell
         ) Пайщик {{ fioCache.get(filters.username) || filters.username }}
       .row.q-gutter-sm.items-end
         q-input.col-md-3.col-12(
-          v-model='filters.processHashInput'
-          label='ID процесса'
+          v-model='searchInput'
+          label='Поиск (№ операции / процесса)'
           dense
           outlined
           clearable
-          @clear='applyProcessHashSearch'
-          @keyup.enter='applyProcessHashSearch'
+          @clear='applyIdSearch'
+          @keyup.enter='applyIdSearch'
         )
           template(#append)
-            q-icon.cursor-pointer(name='fa-solid fa-magnifying-glass' @click='applyProcessHashSearch')
+            q-icon.cursor-pointer(name='fa-solid fa-magnifying-glass' @click='applyIdSearch')
         q-input.col-md-2.col-12(
           v-model='filters.dateFrom'
           label='С даты'
@@ -126,6 +135,12 @@ div.page-shell
             )
           q-td
             EntityIdBadge(
+              :rawId='props.row.globalSequence'
+              @click='copyText(String(props.row.globalSequence))'
+            )
+              q-tooltip Клик — копировать
+          q-td
+            EntityIdBadge(
               v-if='props.row.processHash'
               :rawId='shortHash(props.row.processHash)'
               @click='copyFullHash(props.row.processHash)'
@@ -140,7 +155,7 @@ div.page-shell
               :color='processChipBg(rowChipText(props.row))'
               :text-color='processChipText(rowChipText(props.row))'
             ) {{ rowLabel(props.row) }}
-          q-td.text-right.font-monospace.text-weight-bold.text-grey-10 {{ formatAmount(props.row.quantity) }}
+          q-td.text-right.font-monospace.text-weight-bold {{ formatAmount(props.row.quantity) }}
           q-td {{ fioCache.get(props.row.username ?? '') || props.row.username || '-' }}
 
         q-tr.q-virtual-scroll--with-prev(
@@ -244,6 +259,18 @@ div.page-shell
                 .text-body1.text-weight-bold.font-monospace {{ formatAmount(props.row.quantity) }}
               .col-12.text-caption.text-grey-7
                 | Пайщик: {{ fioCache.get(props.row.username ?? '') || props.row.username || '-' }}
+              .col-12.row.q-gutter-xs.q-mt-xs.items-center
+                .text-caption.text-grey-7 № операции
+                EntityIdBadge(
+                  :rawId='props.row.globalSequence'
+                  @click='copyText(String(props.row.globalSequence))'
+                )
+                .text-caption.text-grey-7 № процесса
+                EntityIdBadge(
+                  v-if='props.row.processHash'
+                  :rawId='shortHash(props.row.processHash)'
+                  @click='copyFullHash(props.row.processHash)'
+                )
 </template>
 
 <script setup lang="ts">
@@ -387,9 +414,10 @@ const filters = reactive<{
   walletName: string | null
   accountKind: 'wallet' | 'account' | null
   accountName: string
+  /** process_hash — все apply одной бизнес-операции (multi-effect ⇒ может быть несколько). */
   processHash: string | null
-  /** Текстовый ввод поиска по process_hash — применяется по Enter / клику на иконку. */
-  processHashInput: string
+  /** № операции = apply.global_sequence — точечная адресация одного apply (вместе с siblings). */
+  applyGlobalSequence: string | null
   username: string | null
   adjustmentsOnly: boolean
 }>({
@@ -400,10 +428,12 @@ const filters = reactive<{
   accountKind: null,
   accountName: '',
   processHash: null,
-  processHashInput: '',
+  applyGlobalSequence: null,
   username: null,
   adjustmentsOnly: false,
 })
+
+const searchInput = ref('')
 
 /**
  * Применяет search-input по process_hash к фильтру.
@@ -428,14 +458,38 @@ function onDateToInput(value: string | number | null): void {
   if (isCompleteOrEmptyDate(value)) reload()
 }
 
-async function applyProcessHashSearch(): Promise<void> {
-  const raw = filters.processHashInput?.trim() ?? ''
-  filters.processHash = raw ? raw.toLowerCase() : null
+/**
+ * Универсальный поиск: input принимает либо `apply.global_sequence` (цифры),
+ * либо `process_hash` (hex64). По формату определяет тип и кладёт в нужный
+ * фильтр. Любая другая строка — игнор (валидация молчком, чип не появляется).
+ */
+async function applyIdSearch(): Promise<void> {
+  const raw = (searchInput.value ?? '').trim()
+  filters.applyGlobalSequence = null
+  filters.processHash = null
+  if (raw) {
+    if (/^\d{1,24}$/.test(raw)) {
+      filters.applyGlobalSequence = raw
+    } else if (/^[a-f0-9]{64}$/i.test(raw)) {
+      filters.processHash = raw.toLowerCase()
+    }
+  }
   const q = { ...route.query }
+  delete q.process_hash
+  delete q.operation_id
+  if (filters.applyGlobalSequence) q.operation_id = filters.applyGlobalSequence
   if (filters.processHash) q.process_hash = filters.processHash
-  else delete q.process_hash
   await router.replace({ query: q })
   reload()
+}
+
+async function copyText(text: string) {
+  try {
+    await copyToClipboard(text)
+    SuccessAlert('Скопировано')
+  } catch {
+    FailAlert('Не удалось скопировать')
+  }
 }
 
 
@@ -463,11 +517,13 @@ async function clearAccountFilter() {
   reload()
 }
 
-async function clearProcessHashFilter() {
+async function clearIdFilter() {
   filters.processHash = null
-  filters.processHashInput = ''
+  filters.applyGlobalSequence = null
+  searchInput.value = ''
   const q = { ...route.query }
   delete q.process_hash
+  delete q.operation_id
   await router.replace({ query: q })
   reload()
 }
@@ -502,7 +558,8 @@ async function resolveAccountName(id: number) {
 
 const columns = [
   { name: 'expand', align: 'left' as const, label: '', field: 'expand', sortable: false },
-  { name: 'processHash', align: 'left' as const, label: '№', field: 'processHash' },
+  { name: 'operationId', align: 'left' as const, label: '№ операции', field: 'globalSequence' },
+  { name: 'processHash', align: 'left' as const, label: '№ процесса', field: 'processHash' },
   { name: 'createdAt', align: 'left' as const, label: 'Дата', field: 'createdAt' },
   { name: 'actionName', align: 'left' as const, label: 'Операция', field: 'operationCode' },
   { name: 'quantity', align: 'right' as const, label: 'Сумма', field: 'quantity' },
@@ -580,6 +637,7 @@ const hasAnyFilter = computed(
     filters.accountId !== null ||
     !!filters.walletName ||
     !!filters.processHash ||
+    !!filters.applyGlobalSequence ||
     !!filters.username ||
     filters.adjustmentsOnly,
 )
@@ -592,7 +650,8 @@ async function resetFilters() {
   filters.accountKind = null
   filters.accountName = ''
   filters.processHash = null
-  filters.processHashInput = ''
+  filters.applyGlobalSequence = null
+  searchInput.value = ''
   filters.username = null
   filters.adjustmentsOnly = false
   const q = { ...route.query }
@@ -600,6 +659,7 @@ async function resetFilters() {
   delete q.wallet_id
   delete q.account_id
   delete q.process_hash
+  delete q.operation_id
   delete q.username
   await router.replace({ query: q })
   reload()
@@ -665,6 +725,7 @@ async function load() {
     if (filters.accountId !== null) input.accountId = filters.accountId
     if (filters.walletName) input.walletName = filters.walletName
     if (filters.processHash) input.processHash = filters.processHash
+    if (filters.applyGlobalSequence) input.applyGlobalSequence = filters.applyGlobalSequence
     if (filters.username) input.username = filters.username
     if (filters.dateFrom) input.dateFrom = new Date(filters.dateFrom)
     if (filters.dateTo) {
@@ -736,16 +797,29 @@ onMounted(async () => {
     }
     if (route.query.process_hash) {
       filters.processHash = String(route.query.process_hash).toLowerCase()
-      filters.processHashInput = filters.processHash
+      searchInput.value = filters.processHash
+    }
+    if (route.query.operation_id) {
+      // ?operation_id = № операции (apply.global_sequence). Фильтруем выборку
+      // по этому ID — на странице остаётся ровно одна (или строго ограниченная)
+      // строка, после load() она автоматически разворачивается.
+      filters.applyGlobalSequence = String(route.query.operation_id)
+      // Если в input ещё пусто — кладём № операции, чтобы пользователь видел
+      // то, что отфильтровано, и мог редактировать поиск.
+      if (!searchInput.value) searchInput.value = filters.applyGlobalSequence
     }
     if (route.query.username) {
       filters.username = String(route.query.username)
     }
     await load()
 
-    if (route.query.operation_id) {
-      const seq = String(route.query.operation_id)
+    if (filters.applyGlobalSequence) {
+      const seq = filters.applyGlobalSequence
+      const row = items.value.find((r) => String(r.globalSequence) === seq)
       expanded.value.set(seq, true)
+      if (row?.processHash) {
+        loadChildOps(seq, row.processHash)
+      }
       nextTick(() => {
         rowRefs.get(seq)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       })

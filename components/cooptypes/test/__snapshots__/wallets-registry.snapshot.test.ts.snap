@@ -1,0 +1,91 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ledger2 wallets registry (generated from C++) > LEDGER2_USER_SHARED_PROGRAM_MAPPING snapshot 1`] = `
+[
+  {
+    "program_label": null,
+    "required_program_id": 0,
+    "wallet_name": "w.reg.minshr",
+  },
+  {
+    "program_label": "ЦК",
+    "required_program_id": 1,
+    "wallet_name": "w.wal.share",
+  },
+  {
+    "program_label": "ЦК",
+    "required_program_id": 1,
+    "wallet_name": "w.wal.member",
+  },
+  {
+    "program_label": "Благорост",
+    "required_program_id": 4,
+    "wallet_name": "w.cap.blago",
+  },
+  {
+    "program_label": "Генератор",
+    "required_program_id": 3,
+    "wallet_name": "w.cap.gen",
+  },
+]
+`;
+
+exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY snapshot 1`] = `
+[
+  {
+    "human_name": "Минимальный паевой взнос",
+    "kind": "USER_SHARED",
+    "name": "w.reg.minshr",
+  },
+  {
+    "human_name": "ЦК — паевая часть пайщика",
+    "kind": "USER_SHARED",
+    "name": "w.wal.share",
+  },
+  {
+    "human_name": "ЦК — членская часть пайщика",
+    "kind": "USER_SHARED",
+    "name": "w.wal.member",
+  },
+  {
+    "human_name": "ЦПП «Благорост» — единый кошелёк программы у пайщика",
+    "kind": "USER_SHARED",
+    "name": "w.cap.blago",
+  },
+  {
+    "human_name": "ЦПП «Генератор» — единый кошелёк программы у пайщика",
+    "kind": "USER_SHARED",
+    "name": "w.cap.gen",
+  },
+  {
+    "human_name": "Вступительные взносы",
+    "kind": "COOPERATIVE",
+    "name": "w.reg.entry",
+  },
+  {
+    "human_name": "Возвраты паевых взносов пайщикам",
+    "kind": "COOPERATIVE",
+    "name": "w.wal.wthdrw",
+  },
+  {
+    "human_name": "Членские взносы за инфраструктуру кооп. платформы",
+    "kind": "COOPERATIVE",
+    "name": "w.sov.infra",
+  },
+  {
+    "human_name": "Делегатские членские взносы",
+    "kind": "COOPERATIVE",
+    "name": "w.sov.delgte",
+  },
+  {
+    "human_name": "Выданные пайщикам беспроцентные займы",
+    "kind": "COOPERATIVE",
+    "name": "w.cap.loan",
+  },
+  {
+    "human_name": "Выплаты поставщикам",
+    "kind": "COOPERATIVE",
+    "name": "w.mkt.payout",
+  },
+]
+`;

@@ -29,8 +29,8 @@ div.page-shell
           q-td.text-right {{ formatAsset2Digits(props.row.creditBalance) }}
           q-td.text-right.text-weight-bold {{ formatAsset2Digits(props.row.balance) }}
           q-td
-            span.text-weight-medium(
-              :class='props.row.accountType === 0 ? "text-blue-grey-8" : "text-brown-7"'
+            span.text-weight-bold(
+              :class='props.row.accountType === 0 ? "account-type-active" : "account-type-passive"'
             ) {{ props.row.accountType === 0 ? 'Активный' : 'Пассивный' }}
 
         q-tr.q-virtual-scroll--with-prev(
@@ -63,9 +63,25 @@ div.page-shell
               )
                 template(#body-cell-action='cp')
                   q-td(:props='cp')
-                    span.text-weight-medium(
-                      :class='cp.row.action === "debit" ? "text-blue-grey-8" : "text-brown-7"'
+                    span.text-weight-bold(
+                      :class='cp.row.action === "debit" ? "account-type-active" : "account-type-passive"'
                     ) {{ cp.row.action === 'debit' ? 'Дебет' : 'Кредит' }}
+                template(#body-cell-postingId='cp')
+                  q-td(:props='cp')
+                    EntityIdBadge(
+                      :rawId='cp.row.globalSequence'
+                      @click='copyText(String(cp.row.globalSequence))'
+                    )
+                      q-tooltip Клик — копировать
+                template(#body-cell-processHash='cp')
+                  q-td(:props='cp')
+                    EntityIdBadge(
+                      v-if='cp.row.processHash'
+                      :rawId='shortHash(cp.row.processHash)'
+                      @click='copyFullHash(cp.row.processHash)'
+                    )
+                      q-tooltip Клик — копировать полный хэш
+                    span.text-grey-6(v-else) —
                 template(#body-cell-quantity='cp')
                   q-td.text-right(:props='cp') {{ cp.row.quantity ? formatAsset2Digits(cp.row.quantity) : '—' }}
                 template(#body-cell-createdAt='cp')
@@ -73,12 +89,12 @@ div.page-shell
                 template(#body-cell-open='cp')
                   q-td.text-right(:props='cp')
                     q-btn(
-                      v-if='cp.row.processHash'
+                      v-if='cp.row.parentApplyGlobalSequence'
                       flat dense round size='sm' color='primary'
-                      icon='fa-solid fa-up-right-from-square'
-                      :to='{ name: "reports-operations", query: { process_hash: cp.row.processHash } }'
+                      icon='fa-solid fa-arrow-right'
+                      :to='{ name: "reports-operations", query: { operation_id: cp.row.parentApplyGlobalSequence } }'
                     )
-                      q-tooltip Показать операцию
+                      q-tooltip К операции
 
       template(#item='props')
         .col-12
@@ -87,16 +103,16 @@ div.page-shell
               .col
                 .text-h6.font-monospace {{ displayId(props.row.id) }}
                 .text-body2 {{ props.row.name }}
-                .text-caption.q-mt-xs.text-weight-medium(
-                  :class='props.row.accountType === 0 ? "text-blue-grey-8" : "text-brown-7"'
+                .text-caption.q-mt-xs.text-weight-bold(
+                  :class='props.row.accountType === 0 ? "account-type-active" : "account-type-passive"'
                 ) {{ props.row.accountType === 0 ? 'Активный' : 'Пассивный' }}
               .col-auto
                 q-btn(
-                  flat dense size='sm' color='primary'
-                  icon='fa-solid fa-list-ul'
+                  flat dense round size='sm' color='primary'
+                  icon='fa-solid fa-arrow-right'
                   :to='{ name: "reports-operations", query: { account_id: props.row.id } }'
                 )
-                  q-tooltip Журнал проводок
+                  q-tooltip К операциям счёта
             .row.q-mt-sm
               .col-4
                 .text-caption.text-grey-6 Дебет
@@ -111,12 +127,14 @@ div.page-shell
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { copyToClipboard } from 'quasar'
 import { useWindowSize } from 'src/shared/hooks'
 import { formatAsset2Digits } from 'src/shared/lib/utils'
 import { useSystemStore } from 'src/entities/System/model'
 import { useLedger2Store, type ILedger2Account, type ILedger2Operation } from 'src/entities/Ledger2'
-import { FailAlert } from 'src/shared/api'
+import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton'
+import { EntityIdBadge } from 'src/shared/ui'
 import { AccountIdCell } from '../../../shared/ui'
 
 const { info } = useSystemStore()
@@ -141,6 +159,25 @@ function formatDate(d: string | Date): string {
   })
 }
 
+function shortHash(hash: string | null | undefined): string {
+  if (!hash) return '—'
+  return hash.slice(0, 8)
+}
+
+async function copyText(text: string) {
+  try {
+    await copyToClipboard(text)
+    SuccessAlert('Скопировано')
+  } catch {
+    FailAlert('Не удалось скопировать')
+  }
+}
+
+async function copyFullHash(hash: string | null | undefined) {
+  if (!hash) return
+  await copyText(hash)
+}
+
 const columns: any[] = [
   { name: 'expand', align: 'left', label: '', field: 'expand', sortable: false },
   { name: 'id', align: 'left', label: 'Счёт', field: 'id', sortable: true },
@@ -153,9 +190,11 @@ const columns: any[] = [
 
 const childColumns: any[] = [
   { name: 'action', align: 'left', label: 'Тип', field: 'action' },
+  { name: 'postingId', align: 'left', label: '№ проводки', field: 'globalSequence' },
+  { name: 'processHash', align: 'left', label: '№ процесса', field: 'processHash' },
   { name: 'quantity', align: 'right', label: 'Сумма', field: 'quantity' },
   { name: 'createdAt', align: 'left', label: 'Дата', field: 'createdAt' },
-  { name: 'open', align: 'right', label: '', field: 'processHash' },
+  { name: 'open', align: 'right', label: '', field: 'parentApplyGlobalSequence' },
 ]
 
 async function toggleExpand(id: number) {
@@ -194,9 +233,20 @@ onMounted(async () => {
 })
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .font-monospace {
   font-family: 'JetBrains Mono', 'Courier New', monospace;
   letter-spacing: 0.03em;
+}
+// Тип счёта (Активный/Пассивный) и сторона проводки (Дебет/Кредит): subtle
+// hue-различие при максимальной читаемости. quasar text-blue-grey-8 /
+// text-brown-7 нечитаемы на тёмной теме — здесь theme-aware-варианты.
+.account-type-active {
+  color: #37474F; // blue-grey-9
+  .body--dark & { color: #B0BEC5; } // blue-grey-3
+}
+.account-type-passive {
+  color: #5D4037; // brown-8
+  .body--dark & { color: #BCAAA4; } // brown-3
 }
 </style>

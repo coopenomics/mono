@@ -61,10 +61,8 @@ void capital::importcontrib(eosio::name coopname, eosio::name username, checksum
 
   // Пополнение кошелька программы благороста
   std::string internal_memo = Capital::Memo::get_import_contributor_memo(contributor_hash, contribution_amount);
-  
-  Wallet::add_blocked_funds(_capital, coopname, username, contribution_amount, _capital_program, internal_memo);
-  
-  // Увеличиваем паевой фонд через ledger2 (двойные проводки + движение кошелька)
+
+  // Увеличиваем паевой фонд через ledger2: ISSUE BLAGOROST_FUND, Dr 51 / Cr 80.
   Ledger2::apply(_capital, coopname, operations::capital::IMPORT, contribution_amount, username, contributor_hash, internal_memo);
   
 }

@@ -529,6 +529,10 @@ export const AllTypesProps: Record<string,any> = {
 		dateFrom:"DateTime",
 		dateTo:"DateTime"
 	},
+	GetLedger2PostingsInput:{
+		dateFrom:"DateTime",
+		dateTo:"DateTime"
+	},
 	GetLedgerHistoryInput:{
 
 	},
@@ -1312,6 +1316,9 @@ export const AllTypesProps: Record<string,any> = {
 		statement:"SignedDigitalDocumentInput"
 	},
 	Query:{
+		agreementTemplates:{
+
+		},
 		agreements:{
 			filter:"AgreementFilter",
 			options:"PaginationInput"
@@ -1469,6 +1476,12 @@ export const AllTypesProps: Record<string,any> = {
 		checkReportReadiness:{
 			reportType:"ReportType"
 		},
+		cooperativeAgreements:{
+
+		},
+		cooperativePrograms:{
+
+		},
 		getAccount:{
 			data:"GetAccountInput"
 		},
@@ -1519,6 +1532,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		getLedger2History:{
 			input:"GetLedger2HistoryInput"
+		},
+		getLedger2Postings:{
+			input:"GetLedger2PostingsInput"
 		},
 		getLedger2Wallets:{
 
@@ -1966,6 +1982,15 @@ export const ReturnTypes: Record<string,any> = {
 		type:"String",
 		updated_at:"DateTime",
 		username:"String",
+		version:"Int"
+	},
+	AgreementTemplate:{
+		context:"String",
+		default_translation_id:"Int",
+		description:"String",
+		model:"String",
+		registry_id:"Int",
+		title:"String",
 		version:"Int"
 	},
 	AgreementVar:{
@@ -2918,6 +2943,12 @@ export const ReturnTypes: Record<string,any> = {
 		generator_agreement_created_at:"String",
 		generator_agreement_number:"String"
 	},
+	CoopAgreement:{
+		coopname:"String",
+		draft_id:"Int",
+		program_id:"Int",
+		type:"String"
+	},
 	CooperativeOperatorAccount:{
 		active_participants_count:"Float",
 		announce:"String",
@@ -2944,6 +2975,13 @@ export const ReturnTypes: Record<string,any> = {
 		type:"String",
 		username:"String",
 		verifications:"Verification"
+	},
+	CooperativeProgram:{
+		coopname:"String",
+		draft_id:"Int",
+		id:"Int",
+		is_active:"Boolean",
+		program_type:"String"
 	},
 	CreateSubscriptionResponse:{
 		message:"String",
@@ -3255,16 +3293,38 @@ export const ReturnTypes: Record<string,any> = {
 		globalSequence:"String",
 		memo:"String",
 		operationCode:"String",
+		parentApplyGlobalSequence:"String",
 		processHash:"String",
 		quantity:"String",
 		username:"String",
-		walletFrom:"Int",
-		walletTo:"Int"
+		walletFrom:"String",
+		walletTo:"String"
+	},
+	Ledger2Posting:{
+		blockNum:"Int",
+		createdAt:"DateTime",
+		creditAccountId:"Int",
+		creditGlobalSequence:"String",
+		debitAccountId:"Int",
+		debitGlobalSequence:"String",
+		key:"String",
+		memo:"String",
+		operationCode:"String",
+		parentApplyGlobalSequence:"String",
+		processHash:"String",
+		quantity:"String",
+		username:"String"
+	},
+	Ledger2PostingsResponse:{
+		currentPage:"Int",
+		items:"Ledger2Posting",
+		totalCount:"Int",
+		totalPages:"Int"
 	},
 	Ledger2Wallet:{
 		available:"String",
 		blocked:"String",
-		id:"Int",
+		id:"String",
 		name:"String"
 	},
 	LedgerHistoryResponse:{
@@ -4004,6 +4064,7 @@ export const ReturnTypes: Record<string,any> = {
 		middle_name:"String"
 	},
 	Query:{
+		agreementTemplates:"AgreementTemplate",
 		agreements:"PaginatedAgreementsPaginationResult",
 		buildInitialReportEdits:"BuildInitialReportEdits",
 		candidates:"PaginatedCandidatesPaginationResult",
@@ -4053,6 +4114,8 @@ export const ReturnTypes: Record<string,any> = {
 		chatcoopListProjectCommunicationRooms:"ChatcoopProjectCommunicationRoom",
 		chatcoopListUtcDatesWithNewRoomMessages:"String",
 		checkReportReadiness:"ReportReadinessView",
+		cooperativeAgreements:"CoopAgreement",
+		cooperativePrograms:"CooperativeProgram",
 		getAccount:"Account",
 		getAccounts:"AccountsPaginationResult",
 		getActions:"PaginatedActionsPaginationResult",
@@ -4074,6 +4137,7 @@ export const ReturnTypes: Record<string,any> = {
 		getLedger:"LedgerState",
 		getLedger2Accounts:"Ledger2Account",
 		getLedger2History:"Ledger2HistoryResponse",
+		getLedger2Postings:"Ledger2PostingsResponse",
 		getLedger2Wallets:"Ledger2Wallet",
 		getLedgerHistory:"LedgerHistoryResponse",
 		getMeet:"MeetAggregate",

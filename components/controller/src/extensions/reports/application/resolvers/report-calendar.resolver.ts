@@ -1,10 +1,11 @@
 import { Args, Int, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { Inject, UseGuards } from '@nestjs/common';
+import { Inject, Logger, UseGuards } from '@nestjs/common';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
 import { RolesGuard } from '~/application/auth/guards/roles.guard';
 import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
 import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import { AccountDomainService } from '~/domain/account/services/account-domain.service';
 import { config } from '~/config';
 import { ReportType } from '../../domain/enums/report-type.enum';
 import { ReportSubmissionMark } from '../../domain/enums/report-submission-mark.enum';
@@ -40,11 +41,14 @@ import {
  *   2. submitted_externally (отметка «сдано вне платформы»);
  *   3. draft (есть черновик);
  *   4. not_required (отметка «не надо сдавать»);
- *   5. overdue (dueDate < today);
- *   6. empty.
+ *   5. before_registration (dueDate раньше даты регистрации кооператива);
+ *   6. overdue (dueDate < today);
+ *   7. empty.
  */
 @Resolver()
 export class ReportCalendarResolver {
+  private readonly logger = new Logger(ReportCalendarResolver.name);
+
   constructor(
     @Inject(GENERATED_REPORT_REPOSITORY)
     private readonly reportRepo: GeneratedReportRepository,
@@ -52,6 +56,7 @@ export class ReportCalendarResolver {
     private readonly draftRepo: ReportDraftRepository,
     @Inject(REPORT_SUBMISSION_MARK_REPOSITORY)
     private readonly markRepo: ReportSubmissionMarkRepository,
+    private readonly accountDomainService: AccountDomainService,
   ) {}
 
   @Query(() => [ReportCalendarRowDTO], {
@@ -74,7 +79,10 @@ export class ReportCalendarResolver {
 
     // Ячейки календаря ссылаются на reportYear = year или year-1 (по offset).
     // Тянем состояние обоих годов, ключ в Map — (reportType, period, reportYear).
-    const [archivePrev, archiveCur, draftsPrev, draftsCur, marksPrev, marksCur] =
+    // Параллельно тянем дату регистрации кооператива — она нужна, чтобы периоды
+    // ДО неё показывать как «не требуется» вместо красного «просрочен» (типичная
+    // ситуация при подключении кооператива в середине года).
+    const [archivePrev, archiveCur, draftsPrev, draftsCur, marksPrev, marksCur, coopUserAccount] =
       await Promise.all([
         this.reportRepo.list({ coopname, year: year - 1 }, 500, 0),
         this.reportRepo.list({ coopname, year }, 500, 0),
@@ -82,7 +90,22 @@ export class ReportCalendarResolver {
         this.draftRepo.list({ coopname, owner_username: ownerUsername, year }),
         this.markRepo.list({ coopname, year: year - 1 }),
         this.markRepo.list({ coopname, year }),
+        // registered_at живёт в registrator::accounts (общая таблица аккаунтов),
+        // у cooperatives есть только created_at. Берём userAccount для coopname.
+        this.accountDomainService.getUserAccount(coopname).catch((e) => {
+          // Чейн временно недоступен или конфиг кривой — фолбэк к старому
+          // поведению (без фильтра по дате регистрации). Лучше показать всё
+          // как раньше, чем ронять весь календарь.
+          this.logger.warn(`getUserAccount(${coopname}) failed: ${(e as Error).message}`);
+          return null;
+        }),
       ]);
+
+    // ITimePointSec приходит как `YYYY-MM-DDTHH:MM:SS` (UTC) или просто date.
+    // Сравниваем с dueDate (`YYYY-MM-DD`), поэтому отсекаем время.
+    const registeredFromIso = coopUserAccount?.registered_at
+      ? String(coopUserAccount.registered_at).slice(0, 10)
+      : null;
 
     const archiveByKey = new Map<string, { isValid: boolean }>();
     for (const r of [...archivePrev.items, ...archiveCur.items]) {
@@ -101,7 +124,7 @@ export class ReportCalendarResolver {
     }
 
     return REPORTS_CALENDAR_REGISTRY.map((row) =>
-      this.toRow(row, year, todayIso, archiveByKey, draftKeys, marksByKey),
+      this.toRow(row, year, todayIso, registeredFromIso, archiveByKey, draftKeys, marksByKey),
     );
   }
 
@@ -138,6 +161,7 @@ export class ReportCalendarResolver {
     form: CalendarFormEntry,
     displayYear: number,
     todayIso: string,
+    registeredFromIso: string | null,
     archive: Map<string, { isValid: boolean }>,
     drafts: Set<string>,
     marks: Map<string, ReportSubmissionMark>,
@@ -152,6 +176,10 @@ export class ReportCalendarResolver {
       const arch = archive.get(key);
       const mark = marks.get(key);
 
+      // before_registration ставится ПОСЛЕ ручных меток (если кто-то
+      // вручную пометил «не надо сдавать» или «сдано вне платформы» — это
+      // решение пользователя и должно сохраняться) и ПЕРЕД OVERDUE,
+      // чтобы периоды до регистрации не закрашивались красным.
       let status: CalendarEntryStatus;
       if (arch?.isValid) {
         status = CalendarEntryStatus.SUBMITTED;
@@ -161,6 +189,8 @@ export class ReportCalendarResolver {
         status = CalendarEntryStatus.DRAFT;
       } else if (mark === ReportSubmissionMark.NOT_REQUIRED) {
         status = CalendarEntryStatus.NOT_REQUIRED;
+      } else if (registeredFromIso && dueDate < registeredFromIso) {
+        status = CalendarEntryStatus.BEFORE_REGISTRATION;
       } else if (dueDate < todayIso) {
         status = CalendarEntryStatus.OVERDUE;
       } else {

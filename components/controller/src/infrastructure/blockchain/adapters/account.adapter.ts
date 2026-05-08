@@ -1,7 +1,7 @@
-import { BadGatewayException, HttpStatus, Inject, Injectable, forwardRef } from '@nestjs/common';
+import { BadGatewayException, HttpStatus, Inject, Injectable, Logger, forwardRef } from '@nestjs/common';
 import { HttpApiError } from '~/utils/httpApiError';
 import { BlockchainService } from '../blockchain.service';
-import { GatewayContract, RegistratorContract, SovietContract } from 'cooptypes';
+import { GatewayContract, RegistratorContract, SovietContract, WalletContract } from 'cooptypes';
 import type { BlockchainAccountInterface } from '~/types/shared';
 import type { AccountBlockchainPort } from '~/domain/account/interfaces/account-blockchain.port';
 import { VaultDomainService, VAULT_DOMAIN_SERVICE } from '~/domain/vault/services/vault-domain.service';
@@ -14,17 +14,21 @@ import {
   AGREEMENT_CONFIGURATION_SERVICE,
   AgreementConfigurationService,
 } from '~/domain/registration/services/agreement-configuration.service';
+import { SOVIET_BLOCKCHAIN_PORT, type SovietBlockchainPort } from '~/domain/common/ports/soviet-blockchain.port';
 import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
 import type { AccountType } from '~/application/account/enum/account-type.enum';
 
 @Injectable()
 export class AccountBlockchainAdapter implements AccountBlockchainPort {
+  private readonly logger = new Logger(AccountBlockchainAdapter.name);
+
   constructor(
     private readonly blockchainService: BlockchainService,
     private readonly domainToBlockchainUtils: DomainToBlockchainUtils,
     @Inject(forwardRef(() => AGREEMENT_CONFIGURATION_SERVICE))
     private readonly agreementConfigService: AgreementConfigurationService,
-    @Inject(VAULT_DOMAIN_SERVICE) private readonly vaultDomainService: VaultDomainService
+    @Inject(VAULT_DOMAIN_SERVICE) private readonly vaultDomainService: VaultDomainService,
+    @Inject(SOVIET_BLOCKCHAIN_PORT) private readonly sovietBlockchainPort: SovietBlockchainPort
   ) {}
 
   async registerBlockchainAccount(candidate: CandidateDomainInterface): Promise<void> {
@@ -113,18 +117,30 @@ export class AccountBlockchainAdapter implements AccountBlockchainPort {
       data: completeDeposit,
     });
 
-    // Динамически добавляем соглашения на основе конфигурации
+    // Эпик 2 (компонент 48): программные соглашения (program_id > 0) пишет
+    // wallet::signagree в `wallet::users.programs[]`; soviet::sndagreement
+    // оставлен только для непрограммных типов и активно их отвергает.
+    // Один lookup `coagreements` на bundle — даёт ровно один источник истины.
+    const coagreements = await this.sovietBlockchainPort.getCoagreements(config.coopname);
+    const coagreementByType = new Map<string, SovietContract.Tables.CoopAgreements.ICoopAgreement>();
+    for (const ca of coagreements) coagreementByType.set(ca.type, ca);
+
     for (const agreementConfig of blockchainAgreements) {
       const documentKey = agreementConfig.id as keyof typeof candidate.documents;
       const document = candidate.documents?.[documentKey] as ISignedDocumentDomainInterface | undefined;
+      if (!document) continue;
 
-      if (document) {
-        const sendAgreementAction = this.createSendAgreementAction(
-          candidate.username,
-          agreementConfig.agreement_type,
-          document
+      const coagreement = coagreementByType.get(agreementConfig.agreement_type);
+      const programId = coagreement ? Number(coagreement.program_id) : 0;
+
+      if (programId > 0) {
+        const draftId = Number(coagreement!.draft_id);
+        this.logger.log(
+          `register: wallet::signagree (${candidate.username} type=${agreementConfig.agreement_type} program_id=${programId} draft_id=${draftId})`
         );
-        actions.push(sendAgreementAction);
+        actions.push(this.createSignAgreementAction(candidate.username, programId, draftId, document));
+      } else {
+        actions.push(this.createSendAgreementAction(candidate.username, agreementConfig.agreement_type, document));
       }
     }
 
@@ -132,7 +148,7 @@ export class AccountBlockchainAdapter implements AccountBlockchainPort {
   }
 
   /**
-   * Создает action для отправки соглашения в блокчейн
+   * soviet::sndagreement — для непрограммных соглашений (program_id == 0).
    */
   private createSendAgreementAction(username: string, agreementType: string, document: ISignedDocumentDomainInterface): any {
     const agreementData: SovietContract.Actions.Agreements.SendAgreement.ISendAgreement = {
@@ -153,6 +169,38 @@ export class AccountBlockchainAdapter implements AccountBlockchainPort {
         },
       ],
       data: agreementData,
+    };
+  }
+
+  /**
+   * wallet::signagree — для программных соглашений (program_id > 0).
+   * Контракт требует существующего пайщика; в bundle регистрации это
+   * гарантировано предыдущим registeruser action в той же транзакции.
+   */
+  private createSignAgreementAction(
+    username: string,
+    programId: number,
+    draftId: number,
+    document: ISignedDocumentDomainInterface
+  ): any {
+    const data: WalletContract.Actions.SignAgreement.ISignAgreement = {
+      coopname: config.coopname,
+      username,
+      program_id: programId,
+      draft_id: draftId,
+      document: Classes.Document.finalize(document),
+    };
+
+    return {
+      account: WalletContract.contractName.production,
+      name: WalletContract.Actions.SignAgreement.actionName,
+      authorization: [
+        {
+          actor: config.coopname,
+          permission: 'active',
+        },
+      ],
+      data,
     };
   }
 

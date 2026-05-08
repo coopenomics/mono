@@ -5,7 +5,7 @@
  * аналитические разрезы бухгалтерских счетов уровня кооператива.
  *
  * `id` — eosio::name-идентификатор `w.<contract>.<waltype>` (например
- * `w.wal.share`, `w.cap.bginv`, `w.reg.entry`). Полный реестр — в
+ * `w.wal.share`, `w.cap.blago`, `w.reg.entry`). Полный реестр — в
  * `cooptypes/ledger2/wallets.ts` и `contracts/cpp/lib/core/ledger2/wallets.hpp`.
  */
 export interface Ledger2WalletDomainInterface {

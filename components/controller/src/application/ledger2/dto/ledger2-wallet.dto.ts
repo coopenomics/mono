@@ -5,7 +5,7 @@ import { Field, ObjectType } from '@nestjs/graphql';
  * Кошельки пайщиков живут в контракте soviet — они сюда не попадают.
  *
  * `id` — eosio::name-идентификатор `w.<contract>.<waltype>` (например
- * `w.wal.share`, `w.cap.bginv`). См. `cooptypes/ledger2/wallets.ts`.
+ * `w.wal.share`, `w.cap.blago`). См. `cooptypes/ledger2/wallets.ts`.
  */
 @ObjectType('Ledger2Wallet')
 export class Ledger2WalletDTO {

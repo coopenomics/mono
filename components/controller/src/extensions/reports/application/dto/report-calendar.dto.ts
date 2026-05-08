@@ -10,14 +10,16 @@ export enum CalendarEntryStatus {
   SUBMITTED_EXTERNALLY = 'submitted_externally',
   OVERDUE = 'overdue',
   NOT_REQUIRED = 'not_required',
+  BEFORE_REGISTRATION = 'before_registration',
 }
 
 registerEnumType(CalendarEntryStatus, {
   name: 'CalendarEntryStatus',
   description:
     'Статус ячейки календаря: empty, draft, submitted (реальный XML в архиве), ' +
-    'submitted_externally (отметка «сдано сторонне»), overdue, not_required. ' +
-    'Приоритет: submitted > submitted_externally > draft > not_required > overdue > empty.',
+    'submitted_externally (отметка «сдано сторонне»), overdue, not_required, ' +
+    'before_registration (период приходился на даты до регистрации кооператива — сдавать не надо). ' +
+    'Приоритет: submitted > submitted_externally > draft > not_required > before_registration > overdue > empty.',
 });
 
 registerEnumType(ReportSubmissionMark, {

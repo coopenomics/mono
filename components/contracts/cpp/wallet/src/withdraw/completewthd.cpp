@@ -10,10 +10,8 @@ void wallet::completewthd(COMPLETEWTHD_SIGNATURE) {
   eosio::check(withdraw -> status == "authorized"_n, "Только принятые заявления на вывод могут быть обработаны");
   
   std::string memo_in = "Возврат части паевого взноса по ЦПП 'Цифровой Кошелёк' пайщику с username=" + withdraw -> username.to_string();
-  
+
   Ledger2::apply(_wallet, coopname, operations::wallet::COMPLETE_WITHDRAW, withdraw -> quantity, withdraw -> username, withdraw_hash, memo_in);
-  
-  Wallet::sub_blocked_funds(_wallet, coopname, withdraw -> username, withdraw -> quantity, _wallet_program, memo_in);
-  
+
   withdraws.erase(withdraw);
 }

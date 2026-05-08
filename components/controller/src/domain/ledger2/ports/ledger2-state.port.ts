@@ -4,6 +4,10 @@ import type {
   Ledger2HistoryFilterDomainInterface,
   Ledger2HistoryResponseDomainInterface,
 } from '../interfaces/ledger2-history.interface';
+import type {
+  Ledger2PostingsFilterDomainInterface,
+  Ledger2PostingsResponseDomainInterface,
+} from '../interfaces/ledger2-postings.interface';
 
 export const LEDGER2_STATE_PORT = Symbol('LEDGER2_STATE_PORT');
 
@@ -24,4 +28,13 @@ export interface Ledger2StatePort {
   getHistory(
     filter: Ledger2HistoryFilterDomainInterface,
   ): Promise<Ledger2HistoryResponseDomainInterface>;
+
+  /**
+   * Реестр проводок: пары debit+credit, восстановленные из blockchain_actions
+   * по правилу «ближайший parent apply». Один процесс с несколькими apply
+   * даёт несколько пар.
+   */
+  getPostings(
+    filter: Ledger2PostingsFilterDomainInterface,
+  ): Promise<Ledger2PostingsResponseDomainInterface>;
 }

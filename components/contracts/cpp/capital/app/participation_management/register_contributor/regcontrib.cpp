@@ -31,11 +31,18 @@ void capital::regcontrib(eosio::name coopname, eosio::name username, checksum256
   }
 
   verify_document_or_fail(storage_agreement, {username});
- 
-  if (blagorost_agreement.has_value()) {
+
+  // Programный optional-документ считаем «приложенным» только если есть значение
+  // и непустой хэш. Пустой/отсутствующий → пропускаем (verify+signagree не шлём).
+  const bool has_blagorost_agreement =
+      blagorost_agreement.has_value() && !is_empty_document(blagorost_agreement.value());
+  const bool has_generator_agreement =
+      generator_agreement.has_value() && !is_empty_document(generator_agreement.value());
+
+  if (has_blagorost_agreement) {
     verify_document_or_fail(blagorost_agreement.value(), {username});
   }
-  if (generator_agreement.has_value()) {
+  if (has_generator_agreement) {
     verify_document_or_fail(generator_agreement.value(), {username});
   }
   
@@ -44,13 +51,31 @@ void capital::regcontrib(eosio::name coopname, eosio::name username, checksum256
   eosio::check(rate_per_hour.amount >= 0, "Ставка за час должна быть неотрицательной");
   eosio::check(rate_per_hour.amount <= 30000000, "Ставка за час должна быть не более 30000000");
   eosio::check(hours_per_day <= 12, "Количество часов в день должно быть не более 12");
-  
+
   auto exist_by_username = Capital::Contributors::get_contributor(coopname, username);
-  
-  // Проверяем наличие кошелька программы Благорост
-  auto blagorost_wallet = get_program_wallet(coopname, username, _capital_program);
-  if (!blagorost_agreement.has_value() && !blagorost_wallet.has_value()) {
-    eosio::check(false, "У пользователя нет кошелька программы Благорост и не предоставлено соглашение о присоединении к программе");
+
+  // Проверяем, что пайщик уже подписал соглашение Благорост в wallet::users.programs[]
+  // (ADR-008). Подпись делается ДО regcontrib — отдельным action wallet::signagree
+  // от coopname@active (например, в bundle reguser → completeincome → signagree).
+  // Здесь только gate: либо запись уже есть, либо desktop передал свежий документ
+  // (его подпись ставится ОТДЕЛЬНОЙ tx до regcontrib; здесь мы её не процессим,
+  // потому что capital@eosio.code не имеет coopname@active для wallet::signagree).
+  const auto blagorost_program_id = get_program_id(_capital_program);
+  bool blagorost_signed = false;
+  {
+    Wallet::users_index wallet_users(_wallet, coopname.value);
+    auto user_it = wallet_users.find(username.value);
+    if (user_it != wallet_users.end()) {
+      for (const auto& pa : user_it->programs) {
+        if (pa.program_id == blagorost_program_id) { blagorost_signed = true; break; }
+      }
+    }
+  }
+  if (!blagorost_signed && !has_blagorost_agreement) {
+    eosio::check(false,
+      "У пайщика не подписано соглашение программы Благорост (wallet::users.programs[]) "
+      "и не предоставлен новый документ. Подпишите wallet::signagree отдельной транзакцией "
+      "до regcontrib.");
   }
 
   // Обработка в зависимости от наличия существующего участника
@@ -88,7 +113,7 @@ void capital::regcontrib(eosio::name coopname, eosio::name username, checksum256
     );
   }
 
-  if (!blagorost_wallet.has_value()) {
+  if (!get_program_wallet(coopname, username, _capital_program).has_value()) {
     Action::send<openprogwall_interface>(
       _soviet,
       Names::External::OPEN_PROGRAM_WALLET,
@@ -139,36 +164,33 @@ void capital::regcontrib(eosio::name coopname, eosio::name username, checksum256
   Soviet::make_complete_document(_capital, coopname, username, Names::Capital::REGISTER_CONTRIBUTOR, storage_agreement.hash, storage_agreement);
 
 
-  if (blagorost_agreement.has_value()) {
-    Action::send<newlink_interface>(
-      _soviet,
-      "newlink"_n,
-      _capital,
-      coopname,
-      username,
-      Names::Capital::REGISTER_CONTRIBUTOR,
-      contributor_hash,
-      blagorost_agreement.value()
-    );
-    
-    // Фиксируем документ в реестре как принятый
-    Soviet::make_complete_document(_capital, coopname, username, Names::Capital::REGISTER_CONTRIBUTOR, blagorost_agreement.value().hash, blagorost_agreement.value());
-
+  // Программные соглашения (Благорост / Генератор): inline-вызов wallet::signagree
+  // от _capital@active (capital@eosio.code обладает им автоматически).
+  // wallet::signagree принимает auth от системных контрактов из contracts_whitelist
+  // — это сохраняет атомарность связки «документ из payload regcontrib → запись в
+  // wallet::users.programs[] → фиксация в реестре документов»: всё происходит в
+  // одной транзакции на одних и тех же данных, разойтись не может.
+  // wallet::signagree сам делает make_complete_document внутри.
+  if (has_blagorost_agreement) {
+    const auto blagorost_program = get_program_or_fail(coopname, blagorost_program_id);
+    eosio::action(
+      eosio::permission_level{_capital, "active"_n},
+      _wallet,
+      Names::WalletActions::SIGN_AGREEMENT,
+      std::make_tuple(coopname, username, blagorost_program_id,
+                      blagorost_agreement.value(), blagorost_program.draft_id)
+    ).send();
   }
 
-  if (generator_agreement.has_value()) {
-    Action::send<newlink_interface>(
-      _soviet,
-      "newlink"_n,
-      _capital,
-      coopname,
-      username,
-      Names::Capital::REGISTER_CONTRIBUTOR,
-      contributor_hash,
-      generator_agreement.value()
-    );
-    
-    // Фиксируем документ в реестре как принятый
-    Soviet::make_complete_document(_capital, coopname, username, Names::Capital::REGISTER_CONTRIBUTOR, generator_agreement.value().hash, generator_agreement.value());
+  if (has_generator_agreement) {
+    const auto generator_program_id = get_program_id(_source_program);
+    const auto generator_program    = get_program_or_fail(coopname, generator_program_id);
+    eosio::action(
+      eosio::permission_level{_capital, "active"_n},
+      _wallet,
+      Names::WalletActions::SIGN_AGREEMENT,
+      std::make_tuple(coopname, username, generator_program_id,
+                      generator_agreement.value(), generator_program.draft_id)
+    ).send();
   }
 };

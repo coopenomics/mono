@@ -6,3 +6,6 @@ export * as GetLedger2Wallets from './getLedger2Wallets'
 
 /** История операций ledger2 с серверными фильтрами (action/accountId/date-range) */
 export * as GetLedger2History from './getLedger2History'
+
+/** Реестр проводок ledger2 — пары debit+credit (Дт/Кт/Сумма) одной операции */
+export * as GetLedger2Postings from './getLedger2Postings'

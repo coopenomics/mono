@@ -11,21 +11,21 @@ import {
   IDepositData,
   IWithdrawData,
   IProgramWalletData,
-  ICoopProgramData,
+  ICoopProgramSummary,
   ExtendedProgramWalletData,
   IGetPaymentMethods,
   IPaymentMethodData,
+  IUserAgreement,
 } from '../model';
 
 import {
   ILoadSingleUserDeposit,
-  ILoadSingleUserProgramWallet,
   ILoadSingleUserWithdraw,
   ILoadUserDeposits,
   ILoadUserProgramWallets,
   ILoadUserWithdraws,
 } from '../model';
-import { GatewayContract, SovietContract } from 'cooptypes';
+import { GatewayContract, Ledger2 } from 'cooptypes';
 
 async function loadSingleUserDepositData(
   params: ILoadSingleUserDeposit
@@ -40,21 +40,6 @@ async function loadSingleUserDepositData(
       LimitsList.One
     )
   )[0] as IDepositData;
-}
-
-async function loadSingleUserProgramWalletData(
-  params: ILoadSingleUserProgramWallet
-): Promise<IProgramWalletData> {
-  return (
-    await fetchTable(
-      SovietContract.contractName.production,
-      params.coopname,
-      SovietContract.Tables.ProgramWallets.tableName,
-      params.wallet_id,
-      params.wallet_id,
-      LimitsList.One
-    )
-  )[0] as IProgramWalletData;
 }
 
 async function loadSingleUserWithdrawData(
@@ -100,42 +85,49 @@ async function loadUserWithdrawsData(
   )) as IWithdrawData[];
 }
 
+/**
+ * После Эпика 3 источник кошельков — `getProgramWallets` (контроллер собирает
+ * программные срезы из `ledger2::userwallets` через `wallet::users.programs[]`).
+ * Метаданные программ кооператива (`soviet::programs`) идут через GraphQL
+ * `cooperativePrograms` (ADR: фронт не ходит в чейн напрямую). Заголовок
+ * программы для UI — из реестра `cooptypes/src/ledger2/programs.ts`.
+ */
 async function loadUserProgramWalletsData(
   params: ILoadUserProgramWallets
 ): Promise<ExtendedProgramWalletData[]> {
-  const programs = (await fetchTable(
-    SovietContract.contractName.production,
-    params.coopname,
-    SovietContract.Tables.Programs.tableName
-  )) as ICoopProgramData[];
+  const [programsResponse, walletsResponse] = await Promise.all([
+    client.Query(Queries.Agreements.CooperativePrograms.query, {
+      variables: { coopname: params.coopname },
+    }),
+    client.Query(Queries.Wallet.GetProgramWallets.query, {
+      variables: {
+        filter: { coopname: params.coopname, username: params.username },
+        options: { page: 1, limit: 1000 },
+      },
+    }),
+  ]);
 
-  const program_wallets = (await fetchTable(
-    SovietContract.contractName.production,
-    params.coopname,
-    SovietContract.Tables.ProgramWallets.tableName,
-    params.username,
-    params.username,
-    LimitsList.None,
-    SecondaryIndexesNumbers.Two
-  )) as IProgramWalletData[];
+  const programs = programsResponse[Queries.Agreements.CooperativePrograms.name] ?? [];
+  const paginated = walletsResponse[Queries.Wallet.GetProgramWallets.name];
 
-  const extendedProgramWallets: ExtendedProgramWalletData[] =
-    program_wallets.map((wallet) => {
-      const programInfo = programs.find(
-        (program) => program.id === wallet.program_id
-      );
-
-      if (programInfo) {
-        return {
-          ...wallet,
-          program_details: programInfo,
-        } as ExtendedProgramWalletData;
-      }
-
-      return wallet as ExtendedProgramWalletData;
-    });
-
-  return extendedProgramWallets;
+  return (paginated?.items ?? []).map((wallet) => {
+    const programInfo = programs.find((program) => String(program.id) === String(wallet.program_id));
+    // title — UI-метка из реестра (`ЦПП Генератор` и т.п.), не chain-title.
+    const enrichedDetails: ICoopProgramSummary | undefined = programInfo
+      ? {
+          id: programInfo.id,
+          title: Ledger2.getProgramLabel(Number(programInfo.id)),
+          program_type: programInfo.program_type,
+          is_active: programInfo.is_active,
+          draft_id: programInfo.draft_id,
+        }
+      : undefined;
+    return {
+      ...(wallet as unknown as IProgramWalletData),
+      program_type: wallet.program_type,
+      ...(enrichedDetails ? { program_details: enrichedDetails } : {}),
+    } as ExtendedProgramWalletData;
+  });
 }
 
 
@@ -165,25 +157,27 @@ async function loadMethods(params: IGetPaymentMethods): Promise<IPaymentMethodDa
   return methods.sort((a, b) => b.method_id.localeCompare(a.method_id));
 }
 
-async function loadUserAgreements(coopname: string, username: string): Promise<SovietContract.Tables.Agreements.IAgreement[]> {
-
-    const result = await fetchTable(
-      SovietContract.contractName.production,
-      coopname,
-      SovietContract.Tables.Agreements.tableName,
-      username,
-      username,
-      LimitsList.None,
-      'secondary'
-    )
-
-    return result as SovietContract.Tables.Agreements.IAgreement[];
+/**
+ * После Эпика 3 программные соглашения живут в `wallet::users.programs[]`,
+ * непрограммные — в `soviet::agreements3`. Контроллер объединяет оба источника
+ * в `getAgreements`, поэтому desktop читает только GraphQL.
+ */
+async function loadUserAgreements(coopname: string, username: string): Promise<IUserAgreement[]> {
+  const { [Queries.Agreements.Agreements.name]: paginated } = await client.Query(
+    Queries.Agreements.Agreements.query,
+    {
+      variables: {
+        filter: { coopname, username },
+        options: { page: 1, limit: 1000 },
+      },
+    }
+  );
+  return (paginated?.items ?? []) as IUserAgreement[];
 }
 
 
 export const api = {
   loadSingleUserDepositData,
-  loadSingleUserProgramWalletData,
   loadSingleUserWithdrawData,
   loadUserDepositsData,
   loadUserWithdrawsData,

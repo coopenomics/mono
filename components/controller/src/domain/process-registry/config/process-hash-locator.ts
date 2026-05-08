@@ -88,7 +88,7 @@ export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Ob
 
   'p.cap.import': [{ code: 'capital', table: 'contributors', field: 'contributor_hash' }],
 
-  // p.cap.invest — wallet-only перенос w.wal.share → w.cap.bginv без Dr/Cr.
+  // p.cap.invest — TRANSFER w.wal.share → w.cap.blago без бухпроводок (ADR-003).
   'p.cap.invest': [{ code: 'capital', table: 'contributors', field: 'contributor_hash' }],
 
   // capital::pgproperties.property_hash — приём имущества в паевой фонд.

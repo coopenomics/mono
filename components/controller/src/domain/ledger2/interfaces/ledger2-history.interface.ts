@@ -26,6 +26,13 @@ export interface Ledger2OperationDomainInterface {
   /** Сумма в формате asset (`"100.0000 RUB"`) — применимо к walletop/debit/credit. */
   quantity: string | null;
   memo: string | null;
+  /**
+   * global_sequence родительского apply, найденного по точечной связи parser2:
+   * `(transaction_id, action_ordinal=this.creator_action_ordinal)`. null для
+   * самих apply-строк. Применение: cross-link из AccountsPage / WalletsPage
+   * на точечную операцию в реестре операций.
+   */
+  parentApplyGlobalSequence: string | null;
   createdAt: Date;
 }
 
@@ -44,12 +51,24 @@ export interface Ledger2HistoryFilterDomainInterface {
   processHash?: string;
   /**
    * global_sequence родительского apply. При наличии — возвращаем только
-   * siblings (walletop/debit/credit), лежащие в диапазоне
-   * (parentApplyGlobalSequence, nextApplySeqInSameProcess) — чтобы
-   * раскрытый apply давал ровно своё трио, а не сибсы соседних apply
-   * того же processHash (multi-effect процессы типа cap.act2res).
+   * inline-сибсов (walletop/debit/credit) этого конкретного apply'а через
+   * точечный JOIN parser2 на (transaction_id, creator_action_ordinal=apply.action_ordinal).
+   * В multi-effect процессах (тип cap.act2res, два apply под одним processHash)
+   * каждый apply раскрывается ровно своим трио.
    */
   parentApplyGlobalSequence?: string;
+  /**
+   * № операции — точечная адресация одной apply-записи
+   * (`apply.global_sequence`). При наличии — возвращаем сам apply + его
+   * siblings (walletop/debit/credit) из ровно этой группы. Применение:
+   * cross-link из реестра проводок, поиск по канон. ID операции.
+   */
+  applyGlobalSequence?: string;
+  /**
+   * № движения по кошельку — точечная адресация одной строки `walletop`
+   * (`walletop.global_sequence`).
+   */
+  walletopGlobalSequence?: string;
   dateFrom?: Date;
   dateTo?: Date;
   page?: number;

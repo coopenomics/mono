@@ -14,6 +14,7 @@ export const rawLedger2OperationSelector = {
   walletTo: true,
   quantity: true,
   memo: true,
+  parentApplyGlobalSequence: true,
   createdAt: true,
 }
 
