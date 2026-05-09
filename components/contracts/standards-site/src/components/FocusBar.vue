@@ -284,7 +284,6 @@ function getL3Movements(op: Ledger2Operation) {
           <span class="focus-bar__human">{{ standard.title }}</span>
           <span class="focus-bar__badge">старт</span>
         </div>
-        <p v-if="standard.summary" class="focus-bar__desc">{{ standard.summary }}</p>
         <p v-if="standard.purpose" class="focus-bar__desc">{{ standard.purpose }}</p>
       </div>
     </template>

@@ -317,8 +317,7 @@ function buildLayout(standard: Standard): LayoutResult {
       data: {
         label: INITIAL_MARKER,
         title: standard.title,
-        summary: standard.summary,
-        purpose: standard.purpose ?? '',
+        purpose: standard.purpose,
         isFocus: false,
       },
       draggable: false,
@@ -362,8 +361,7 @@ function buildLayout(standard: Standard): LayoutResult {
       data: {
         label: '●',
         title: standard.title,
-        summary: standard.summary,
-        purpose: standard.purpose ?? '',
+        purpose: standard.purpose,
         isFocus: false,
       },
       draggable: false,

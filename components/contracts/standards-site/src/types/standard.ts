@@ -155,8 +155,7 @@ export interface Standard {
   status: StandardLifecycle;
   contract: string;                 // capital, registrator, ...
   area?: string;                    // debt_managment
-  summary: string;
-  purpose?: string;
+  purpose: string;                  // единственное прозаическое описание процесса (бывшие summary+purpose)
   roles: Role[];
 
   // §2
