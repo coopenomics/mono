@@ -22,7 +22,8 @@ div.page-shell
               :expanded='expanded.has(props.row.id)'
               @click='toggleExpand(props.row.id)'
             )
-          q-td.font-monospace {{ props.row.id }}
+          q-td
+            WalletIdCell(:wallet-name='props.row.id')
           q-td {{ props.row.name }}
           q-td.text-right {{ formatAsset2Digits(props.row.available) }}
           q-td.text-right {{ formatAsset2Digits(props.row.blocked) }}
@@ -101,7 +102,9 @@ div.page-shell
             .row.items-center.q-gutter-x-md
               .col
                 .text-body1 {{ props.row.name }}
-                .text-caption.caption-muted.font-monospace ID: {{ props.row.id }}
+                .text-caption.caption-muted
+                  | ID:&nbsp;
+                  WalletIdCell(:wallet-name='props.row.id')
               .col-auto
                 ExpandToggleButton(
                   :expanded='expanded.has(props.row.id)'

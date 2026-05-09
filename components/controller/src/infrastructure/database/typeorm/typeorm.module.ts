@@ -86,6 +86,7 @@ import { USER_WALLET_REPOSITORY } from '~/domain/wallet/repositories/user-wallet
 import { UserWalletTypeormRepository } from './repositories/user-wallet.typeorm-repository';
 import { UserWalletDeltaMapper } from './blockchain/mappers/user-wallet-delta.mapper';
 import { UserWalletSyncService } from './blockchain/services/user-wallet-sync.service';
+import { UserWalletIndexInitializer } from './blockchain/services/user-wallet-index-initializer.service';
 
 @Global()
 @Module({
@@ -247,6 +248,7 @@ import { UserWalletSyncService } from './blockchain/services/user-wallet-sync.se
     UserWalletTypeormRepository,
     UserWalletDeltaMapper,
     UserWalletSyncService,
+    UserWalletIndexInitializer,
     EntityVersionRepository,
     EntityVersioningService,
   ],

@@ -41,6 +41,22 @@ void capital::apprvappndx(eosio::name coopname, eosio::name username, checksum25
   // Фиксируем документ в реестре как принятый
   Soviet::make_complete_document(_capital, coopname, appendix->username, Names::Capital::APPROVE_APPENDIX, appendix_hash, approved_document);
 
+  // Авторегистрация доли по программе «Благорост» при допуске к проекту:
+  // если у пайщика уже есть баланс w.cap.blago — сразу заводим сегмент с
+  // user_shares = available + blocked. Без баланса regshare не вызываем —
+  // сегмент создастся при ближайшем тике scheduler'а, как только появится
+  // первая инвестиция в программу.
+  const auto user_shares =
+    Capital::Core::get_capital_program_user_share_balance(coopname, appendix->username);
+  if (user_shares.amount > 0) {
+    eosio::action(
+      eosio::permission_level{_capital, "active"_n},
+      _capital,
+      "regshare"_n,
+      std::make_tuple(coopname, appendix->project_hash, appendix->username, user_shares)
+    ).send();
+  }
+
   // Удаляем приложение
   Capital::Appendix::delete_appendix(coopname, appendix->id);
 }

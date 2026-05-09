@@ -1079,7 +1079,7 @@ export class MutationLogMapperService {
             capital_amount: capitalValue,
             project_amount: projectValue,
           },
-          reference_id: data.convert_hash,
+          reference_id: data.result_hash,
         };
       }
 
@@ -1105,7 +1105,7 @@ export class MutationLogMapperService {
             amount: amountValue,
             symbol: symbol || 'RUB',
           },
-          reference_id: data.convert_hash || data.result_hash,
+          reference_id: data.result_hash,
         };
       }
 

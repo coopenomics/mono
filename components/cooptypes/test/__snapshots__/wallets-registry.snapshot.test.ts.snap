@@ -38,7 +38,7 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
     "name": "w.reg.minshr",
   },
   {
-    "human_name": "ЦК — паевая часть пайщика",
+    "human_name": "Паевой взнос пайщика",
     "kind": "USER_SHARED",
     "name": "w.wal.share",
   },

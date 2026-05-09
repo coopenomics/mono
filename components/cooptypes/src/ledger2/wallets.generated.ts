@@ -20,7 +20,7 @@ export interface WalletMeta {
  */
 export const LEDGER2_WALLET_REGISTRY: readonly WalletMeta[] = [
   { name: "w.reg.minshr", human_name: "Минимальный паевой взнос", kind: "USER_SHARED" },
-  { name: "w.wal.share", human_name: "ЦК — паевая часть пайщика", kind: "USER_SHARED" },
+  { name: "w.wal.share", human_name: "Паевой взнос пайщика", kind: "USER_SHARED" },
   { name: "w.wal.member", human_name: "ЦК — членская часть пайщика", kind: "USER_SHARED" },
   { name: "w.cap.blago", human_name: "ЦПП «Благорост» — единый кошелёк программы у пайщика", kind: "USER_SHARED" },
   { name: "w.cap.gen", human_name: "ЦПП «Генератор» — единый кошелёк программы у пайщика", kind: "USER_SHARED" },

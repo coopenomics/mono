@@ -13,8 +13,8 @@ export interface ConvertSegmentDomainInput {
   /** Хэш проекта */
   project_hash: string;
 
-  /** Хэш конвертации */
-  convert_hash: string;
+  /** Хэш результата (анкер процесса p.cap.rid) */
+  result_hash: string;
 
   /** Сумма для конвертации в главный кошелек */
   wallet_amount: string;

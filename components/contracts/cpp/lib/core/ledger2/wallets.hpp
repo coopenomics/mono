@@ -44,7 +44,7 @@
  */
 struct ledger2_wallets {
   // wallet — паевой фонд + возвраты + ЦК
-  static constexpr eosio::name SHARE_FUND_PAY       = "w.wal.share"_n;   ///< ЦК — паевая часть пайщика (USER_SHARED)
+  static constexpr eosio::name SHARE_FUND_PAY       = "w.wal.share"_n;   ///< Паевой взнос пайщика (USER_SHARED)
   static constexpr eosio::name CK_MEMBER            = "w.wal.member"_n;  ///< ЦК — членская часть пайщика (USER_SHARED)
   static constexpr eosio::name WITHDRAWALS_SINK     = "w.wal.wthdrw"_n;  ///< Возвраты паевых взносов пайщикам (sink TRANSFER, COOPERATIVE)
 
@@ -94,7 +94,7 @@ struct Ledger2WalletMeta {
 inline constexpr std::array<Ledger2WalletMeta, 11> LEDGER2_WALLET_REGISTRY = {{
   // USER_SHARED (5) — L3-разрез по пайщику
   { ledger2_wallets::MIN_SHARE_FUND,    "Минимальный паевой взнос",                                 WalletKind::USER_SHARED },
-  { ledger2_wallets::SHARE_FUND_PAY,    "ЦК — паевая часть пайщика",                                WalletKind::USER_SHARED },
+  { ledger2_wallets::SHARE_FUND_PAY,    "Паевой взнос пайщика",                                     WalletKind::USER_SHARED },
   { ledger2_wallets::CK_MEMBER,         "ЦК — членская часть пайщика",                              WalletKind::USER_SHARED },
   { ledger2_wallets::BLAGOROST_FUND,    "ЦПП «Благорост» — единый кошелёк программы у пайщика",     WalletKind::USER_SHARED },
   { ledger2_wallets::GENERATOR_FUND,    "ЦПП «Генератор» — единый кошелёк программы у пайщика",     WalletKind::USER_SHARED },

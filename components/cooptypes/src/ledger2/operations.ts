@@ -97,12 +97,12 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
   { code: 'o.cap.invest',  process_type: 'p.cap.invest',  contract: 'capital',
     name: 'INVEST',         wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.cap.blago',
     debit: null, credit: null,
-    human_name: 'Инвестиция в ЦПП «Благорост» (перенос между кошельками)' },
+    human_name: 'Инвестиция в ЦПП «Благорост»' },
 
   { code: 'o.cap.commit',  process_type: 'p.cap.rid',     contract: 'capital',
     name: 'COMMIT_RID',     wallet_op: 'ISSUE',    wallet_from: null, wallet_to: 'w.cap.gen',
     debit: 8, credit: 80,
-    human_name: 'Коммит РИД по программе «Благорост»' },
+    human_name: 'Коммит РИД по программе «Генератор»' },
 
   { code: 'o.cap.accept',  process_type: 'p.cap.rid',     contract: 'capital',
     name: 'ACCEPT_RID',     wallet_op: 'NONE',     wallet_from: null, wallet_to: null,
@@ -129,12 +129,12 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: null, credit: null,
     human_name: 'Возврат паевого из ЦПП «Благорост» в Цифровой Кошелёк' },
 
-  { code: 'o.cap.cnvshr',  process_type: 'p.cap.cnvseg',  contract: 'capital',
+  { code: 'o.cap.cnvshr',  process_type: 'p.cap.rid',     contract: 'capital',
     name: 'CONVERT_TO_SHARE', wallet_op: 'TRANSFER', wallet_from: 'w.cap.gen', wallet_to: 'w.wal.share',
     debit: null, credit: null,
     human_name: 'Конвертация сегмента: РИД → паевой взнос деньгами' },
 
-  { code: 'o.cap.cnvbl',   process_type: 'p.cap.cnvseg',  contract: 'capital',
+  { code: 'o.cap.cnvbl',   process_type: 'p.cap.rid',     contract: 'capital',
     name: 'CONVERT_TO_BLAGO', wallet_op: 'TRANSFER', wallet_from: 'w.cap.gen', wallet_to: 'w.cap.blago',
     debit: null, credit: null,
     human_name: 'Конвертация сегмента: РИД → ЦПП «Благорост»' },

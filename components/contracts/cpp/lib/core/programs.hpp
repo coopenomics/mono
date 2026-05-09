@@ -9,8 +9,16 @@
 using namespace eosio;
 
 /**
- * Логика программ пайщика и кошелька (совет).
- * Таблицы programs / progwallets / agreements — из domain/index.hpp (подключать раньше).
+ * Логика программ пайщика и кошелька.
+ *
+ * Источник правды по «участник ЦПП X» = `wallet::users[username].programs[]`
+ * (Эпик 2). signagree добавляет запись в этот вектор, revokeagree — удаляет;
+ * status="declined" в агриментах при ревоке не нужен — записи просто нет.
+ *
+ * Таблицы из domain/index.hpp:
+ *   - soviet::programs     — реестр программ кооператива.
+ *   - soviet::coagreements — мапа program_type → program_id (per-coop).
+ *   - wallet::users        — подписанные программные соглашения пайщика.
  */
 
 program get_program_or_fail(eosio::name coopname, uint64_t program_id) {
@@ -22,57 +30,33 @@ program get_program_or_fail(eosio::name coopname, uint64_t program_id) {
   return program(*program_itr);
 }
 
+inline bool has_signed_program_agreement(eosio::name coopname, eosio::name username, uint64_t program_id) {
+  WalletTables::users_index users(_wallet, coopname.value);
+  auto user_it = users.find(username.value);
+  if (user_it == users.end()) return false;
+  for (const auto &p : user_it->programs) {
+    if (p.program_id == program_id) return true;
+  }
+  return false;
+}
+
 bool is_participant_of_cpp_by_program_id(eosio::name coopname, eosio::name username, uint64_t program_id) {
-  progwallets_index progwallets(_soviet, coopname.value);
-
-  auto wallets_by_username_and_program = progwallets.template get_index<"byuserprog"_n>();
-  auto username_and_program_index = combine_ids(username.value, program_id);
-  auto wallet = wallets_by_username_and_program.find(username_and_program_index);
-
-  if (wallet == wallets_by_username_and_program.end())
-    return false;
-
-  auto program_row = get_program_or_fail(coopname, program_id);
-
-  agreements2_index agreements(_soviet, coopname.value);
-  auto agreement_row = agreements.find(wallet->agreement_id);
-
-  if (agreement_row->status == "declined"_n)
-    return false;
-
-  return true;
+  return has_signed_program_agreement(coopname, username, program_id);
 }
 
 bool is_valid_participant_of_program_by_type(eosio::name coopname, eosio::name username,
                                              eosio::name program_type) {
-  programs_index programs(_soviet, coopname.value);
-  progwallets_index progwallets(_soviet, coopname.value);
-
   coagreements_index coagreements(_soviet, coopname.value);
   auto coagreement_row = coagreements.find(program_type.value);
-
   if (coagreement_row == coagreements.end())
     return false;
 
+  programs_index programs(_soviet, coopname.value);
   auto exist = programs.find(coagreement_row->program_id);
-
   if (exist == programs.end())
     return false;
 
-  auto wallets_by_username_and_program = progwallets.template get_index<"byuserprog"_n>();
-  auto username_and_program_index = combine_ids(username.value, exist->id);
-  auto wallet = wallets_by_username_and_program.find(username_and_program_index);
-
-  if (wallet == wallets_by_username_and_program.end())
-    return false;
-
-  agreements2_index agreements(_soviet, coopname.value);
-  auto agreement_row = agreements.find(wallet->agreement_id);
-
-  if (agreement_row->status == "declined"_n)
-    return false;
-
-  return true;
+  return has_signed_program_agreement(coopname, username, exist->id);
 }
 
 struct ProgramInfo {
@@ -102,18 +86,14 @@ inline uint64_t get_draft_id(const eosio::name &type) {
   return it->second.draft_id;
 }
 
-std::optional<progwallet> get_program_wallet(eosio::name coopname, eosio::name username, eosio::name type) {
-  auto program_id = get_program_id(type);
-
-  progwallets_index progwallets(_soviet, coopname.value);
-
-  auto balances_by_username_and_program = progwallets.template get_index<"byuserprog"_n>();
-  auto username_and_program_index = combine_ids(username.value, program_id);
-  auto wallet = balances_by_username_and_program.find(username_and_program_index);
-
-  if (wallet == balances_by_username_and_program.end()) {
-    return std::nullopt;
-  }
-
-  return *wallet;
+/**
+ * Открыт ли у пайщика программный кошелёк по типу программы.
+ *
+ * Источник — `wallet::users[username].programs[]`: пайщик считается «открывшим»
+ * программу, если у него есть подписанное программное соглашение нужного
+ * `program_id`. Балансы — отдельно через ledger2::userwallets, эта функция
+ * только про факт открытия.
+ */
+bool has_program_wallet(eosio::name coopname, eosio::name username, eosio::name type) {
+  return has_signed_program_agreement(coopname, username, get_program_id(type));
 }

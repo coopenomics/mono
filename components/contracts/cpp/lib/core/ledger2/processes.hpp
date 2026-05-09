@@ -14,7 +14,7 @@
  * Один `process_type` может соответствовать нескольким operation_code — это
  * явно разрешённая модель мульти-операционных процессов:
  *   - processes::registrator::ACCEPT  ← o.reg.payent + o.reg.putmin
- *   - processes::capital::RID         ← o.cap.commit + o.cap.accept (+ o.cap.repay)
+ *   - processes::capital::RID         ← o.cap.commit + o.cap.accept (+ o.cap.repay) + o.cap.cnvshr/o.cap.cnvbl
  *   - processes::marketplace::REQUEST ← o.mkt.supply + o.mkt.recv
  *
  * Одноактовые процессы: `capital::IMPORT`, `capital::PROPERTY`,
@@ -49,10 +49,9 @@ namespace processes {
     inline constexpr eosio::name IMPORT    = "p.cap.import"_n;   ///< Оффлайн-импорт пайщика Благорост (одноактовый).
     inline constexpr eosio::name INVEST    = "p.cap.invest"_n;   ///< Инвестиция в ЦПП Благорост (wallet-only 2001→9001).
     inline constexpr eosio::name DEBT      = "p.cap.debt"_n;     ///< Займ пайщику (o.cap.lend + o.cap.repay).
-    inline constexpr eosio::name RID       = "p.cap.rid"_n;      ///< Приём РИД в паевой фонд (o.cap.commit + o.cap.accept + опц. o.cap.repay).
+    inline constexpr eosio::name RID       = "p.cap.rid"_n;      ///< Приём РИД в паевой фонд: o.cap.commit (коммиты) + o.cap.accept (акт-2) + опц. o.cap.repay + o.cap.cnvshr/o.cap.cnvbl (финальная конвертация сегмента). Анкер процесса — result_hash.
     inline constexpr eosio::name PROPERTY  = "p.cap.prop"_n;     ///< Приём имущественного паевого взноса (одноактовый).
     inline constexpr eosio::name WTHCAP    = "p.cap.wthcap"_n;   ///< Возврат паевого из ЦПП «Благорост» в кошелёк пайщика (одноактовый).
-    inline constexpr eosio::name CNVSEG    = "p.cap.cnvseg"_n;   ///< Конвертация сегмента после ACT2 (o.cap.cnvshr + o.cap.cnvbl).
   }
 
   // marketplace

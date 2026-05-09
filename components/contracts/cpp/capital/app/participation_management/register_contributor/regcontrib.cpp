@@ -100,8 +100,7 @@ void capital::regcontrib(eosio::name coopname, eosio::name username, checksum256
   }
 
   // Открываем кошельки для пайщика если необходимо
-  auto program_wallet = get_program_wallet(coopname, username, _source_program);
-  if (!program_wallet.has_value()) {
+  if (!has_program_wallet(coopname, username, _source_program)) {
     Action::send<openprogwall_interface>(
       _soviet,
       Names::External::OPEN_PROGRAM_WALLET,
@@ -113,7 +112,7 @@ void capital::regcontrib(eosio::name coopname, eosio::name username, checksum256
     );
   }
 
-  if (!get_program_wallet(coopname, username, _capital_program).has_value()) {
+  if (!has_program_wallet(coopname, username, _capital_program)) {
     Action::send<openprogwall_interface>(
       _soviet,
       Names::External::OPEN_PROGRAM_WALLET,

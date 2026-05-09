@@ -79,11 +79,14 @@ export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Ob
   // долгоживущий якорь; все коммиты проекта группируются в один процесс).
   'p.cap.commit': [{ code: 'capital', table: 'projects', field: 'project_hash' }],
 
-  // p.cap.rid — подписание акта-2 (внесение РИД в паевой фонд).
-  // До ДВУХ операций на один process_hash:
-  //   1. o.cap.accept  (Dr 04 / Cr 08) — приём РИД
-  //   2. o.cap.repay   (Dr 80 / Cr 58) — возврат займа, если был (опционально)
-  // o.cap.commit разнесён backend'ом в отдельный процесс p.cap.commit.
+  // p.cap.rid — внесение РИД в паевой фонд (полный жизненный цикл).
+  // До ЧЕТЫРЁХ операций на один process_hash (= result_hash):
+  //   1. o.cap.accept  (Dr 04 / Cr 08, NONE) — приём РИД в signact2
+  //   2. o.cap.repay   (Dr 80 / Cr 58, TRANSFER) — возврат займа, опционально
+  //   3. o.cap.cnvshr  (TRANSFER w.cap.gen → w.wal.share) — финальная конвертация в ЦК
+  //   4. o.cap.cnvbl   (TRANSFER w.cap.gen → w.cap.blago) — финальная конвертация в Благорост
+  // o.cap.commit разнесён backend'ом в отдельный процесс p.cap.commit (см. выше).
+  // Объект `capital::results` живёт от pushrslt до convertsegm (анкер процесса).
   'p.cap.rid': [{ code: 'capital', table: 'results', field: 'result_hash' }],
 
   'p.cap.import': [{ code: 'capital', table: 'contributors', field: 'contributor_hash' }],
@@ -96,6 +99,11 @@ export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Ob
 
   'p.wal.depo':   [{ code: 'wallet', table: 'deposits',  field: 'deposit_hash' }],
   'p.wal.wthdrw': [{ code: 'wallet', table: 'withdraws', field: 'withdraw_hash' }],
+
+  // p.cap.wthcap — возврат паевого из ЦПП Благорост в ЦК.
+  // Жизнь запроса: createwthd3 → capauthwthd3 / capdeclwthd3 → approvewthd3.
+  // Сущностная таблица — `capital::prgwithdraws.withdraw_hash`.
+  'p.cap.wthcap': [{ code: 'capital', table: 'prgwithdraws', field: 'withdraw_hash' }],
 
   // marketplace::requests.hash — поле так и называется `hash`.
   'p.mkt.reqst': [{ code: 'marketplace', table: 'requests', field: 'hash' }],

@@ -21,6 +21,20 @@ import type {
 const LEDGER2_CODE = Ledger2Contract.contractName.production;
 
 /**
+ * Сохранить symbol/precision исходного актива, но занулить amount.
+ * Используется при present=false — запись удалена в чейне (`cleanup_l2_if_empty`
+ * / `cleanup_l3_if_empty`), но в реестре оставляем строку с нулями, чтобы
+ * пользователь мог раскрыть и посмотреть историю движений.
+ */
+function zeroAssetLike(s: unknown): string {
+  const str = typeof s === 'string' ? s : '';
+  const [num = '0.0000', symbol = 'RUB'] = str.trim().split(/\s+/);
+  const dotIdx = num.indexOf('.');
+  const decimals = dotIdx === -1 ? 4 : num.length - dotIdx - 1;
+  return `${(0).toFixed(decimals)} ${symbol}`;
+}
+
+/**
  * Чтение состояния ledger2 из Postgres-таблиц блокчейн-синка.
  *
  * Текущие балансы — `SELECT DISTINCT ON (primary_key) ... ORDER BY primary_key,
@@ -41,41 +55,55 @@ export class TypeOrmLedger2StateRepository implements Ledger2StatePort {
   ) {}
 
   async getAccounts(coopname: string): Promise<Ledger2AccountDomainInterface[]> {
+    // Берём самую свежую row на ключ (DISTINCT ON по block_num DESC) вместе
+    // с present-флагом. Удалённые в чейне записи (present=false) **не**
+    // отбрасываем: оставляем строку в реестре с обнулёнными суммами и
+    // именем/id из last_snapshot — у такой записи может быть история
+    // (debit/credit), которую пользователь хочет раскрыть.
     const rows = await this.deltaRepo.manager.query(
-      `SELECT DISTINCT ON (primary_key) value
+      `SELECT DISTINCT ON (primary_key) value, present
        FROM blockchain_deltas
        WHERE code = $1 AND "table" = '${Ledger2Contract.Tables.Accounts.tableName}' AND scope = $2
        ORDER BY primary_key, block_num DESC, created_at DESC`,
       [LEDGER2_CODE, coopname],
     );
-    return (rows as Array<{ value: Record<string, unknown> }>).map((row) => {
+    return (rows as Array<{ value: Record<string, unknown>; present: boolean }>).map((row) => {
       const v = row.value ?? {};
+      const live = row.present === true;
       return {
         id: parseInt(String(v.id ?? 0), 10),
         name: String(v.name ?? ''),
-        balance: String(v.balance ?? '0.0000 RUB'),
-        debitBalance: String(v.debit_balance ?? '0.0000 RUB'),
-        creditBalance: String(v.credit_balance ?? '0.0000 RUB'),
+        balance: live ? String(v.balance ?? '0.0000 RUB') : zeroAssetLike(v.balance),
+        debitBalance: live ? String(v.debit_balance ?? '0.0000 RUB') : zeroAssetLike(v.debit_balance),
+        creditBalance: live ? String(v.credit_balance ?? '0.0000 RUB') : zeroAssetLike(v.credit_balance),
         accountType: typeof v.account_type === 'number' ? v.account_type : Number(v.account_type ?? 0),
       };
     });
   }
 
   async getWallets(coopname: string): Promise<Ledger2WalletDomainInterface[]> {
+    // Контракт удаляет L2-запись (`cleanup_l2_if_empty`) при обнулении баланса.
+    // Parser2 кладёт delete как row с present=false и value=last_snapshot.
+    // В реестре кошельков такую запись **оставляем** (с available=0/blocked=0
+    // и id/name из snapshot), чтобы пользователь мог раскрыть и посмотреть
+    // историю движений по кошельку. WHERE present=true тут НЕЛЬЗЯ: фильтр
+    // выкинет delete-row, и DISTINCT ON выберет предыдущую present=true со
+    // старым снимком — кошелёк продолжал бы светиться с прежним балансом.
     const rows = await this.deltaRepo.manager.query(
-      `SELECT DISTINCT ON (primary_key) value
+      `SELECT DISTINCT ON (primary_key) value, present
        FROM blockchain_deltas
        WHERE code = $1 AND "table" = '${Ledger2Contract.Tables.Wallets.tableName}' AND scope = $2
        ORDER BY primary_key, block_num DESC, created_at DESC`,
       [LEDGER2_CODE, coopname],
     );
-    return (rows as Array<{ value: Record<string, unknown> }>).map((row) => {
+    return (rows as Array<{ value: Record<string, unknown>; present: boolean }>).map((row) => {
       const v = row.value ?? {};
+      const live = row.present === true;
       return {
         id: String(v.id ?? ''),
         name: String(v.name ?? ''),
-        available: String(v.available ?? '0.0000 RUB'),
-        blocked: String(v.blocked ?? '0.0000 RUB'),
+        available: live ? String(v.available ?? '0.0000 RUB') : zeroAssetLike(v.available),
+        blocked: live ? String(v.blocked ?? '0.0000 RUB') : zeroAssetLike(v.blocked),
       };
     });
   }
