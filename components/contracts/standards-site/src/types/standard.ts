@@ -11,7 +11,7 @@
  */
 
 // ── Типы-строки для wallet_op / relation / status / role ────────────────────
-export type WalletOp = 'ISSUE' | 'TRANSFER' | 'BLOCK' | 'UNBLOCK' | 'BURN';
+export type WalletOp = 'ISSUE' | 'TRANSFER' | 'BLOCK' | 'UNBLOCK' | 'BURN' | 'NONE';
 
 export type StandardLifecycle = 'proposed' | 'approved' | 'active' | 'deprecated';
 
