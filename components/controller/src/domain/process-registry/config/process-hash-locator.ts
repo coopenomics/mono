@@ -112,8 +112,22 @@ export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Ob
   // Сущностная таблица — `capital::prgwithdraws.withdraw_hash`.
   'p.cap.wthcap': [{ code: 'capital', table: 'prgwithdraws', field: 'withdraw_hash' }],
 
-  // marketplace::requests.hash — поле так и называется `hash`.
-  'p.mkt.reqst': [{ code: 'marketplace', table: 'requests', field: 'hash' }],
+  // marketplace — членская модель «Стола заказов» (refactor 2026-05-11).
+  // Старый p.mkt.reqst (клиринговая модель, таблица marketplace::requests)
+  // удалён вместе с o.mkt.supply/recv. Новые три процесса (p.mkt.supply /
+  // p.mkt.return / p.mkt.wroff) пока без entity-таблиц: реализация
+  // контракта marketplace под членскую модель ещё не написана, в C++ нет
+  // соответствующих вызовов ledger2::apply. Заглушка [] корректна для
+  // текущего состояния (контроллер не получит operation_codes, требующие
+  // этих locator'ов).
+  //
+  // TODO (при реализации контракта marketplace членской модели):
+  // подставить { code: 'marketplace', table: '<TBD>', field: 'request_hash' }.
+  // Универсальное имя поля — `request_hash` (а не `order_hash`, чтобы не
+  // путать с `offer_hash` в orderoffer-actions).
+  'p.mkt.supply': [],
+  'p.mkt.return': [],
+  'p.mkt.wroff':  [],
 
   // p.sov.axncnv — одноактовый процесс: данные из blockchain_actions +
   // документ statement (DocumentFieldDetector).

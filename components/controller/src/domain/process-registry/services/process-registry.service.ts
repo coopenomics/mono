@@ -242,7 +242,7 @@ export class ProcessRegistryService {
 
     // GROUP BY только по (process_hash, coopname) — иначе мульти-операционные
     // процессы (p.cap.rid с двумя operation_code под одним hash; p.reg.accept с
-    // payent+putmin; p.mkt.reqst с supply+recv) дают двойные строки
+    // payent+putmin) дают двойные строки
     // и totalCount (считаемый через DISTINCT process_hash) не совпадает с
     // items.length. MIN(operation_code) → любой из двух одинаково выводит
     // processType через OPERATION_CODE_TO_PROCESS_TYPE (у p.cap.rid оба
