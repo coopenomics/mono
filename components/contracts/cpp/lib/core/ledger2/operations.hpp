@@ -68,15 +68,17 @@ namespace operations {
 
   // capital
   namespace capital {
-    inline constexpr eosio::name IMPORT              = "o.cap.import"_n;   ///< Оффлайн-импорт пайщика Благорост (Dr 51 / Cr 80, ISSUE BLAGOROST_FUND).
+    inline constexpr eosio::name IMPORT              = "o.cap.import"_n;   ///< Оффлайн-импорт пайщика Благорост (Dr 04 / Cr 80, ISSUE BLAGOROST_FUND). Только РИД-имущество — деньги через INVEST.
     inline constexpr eosio::name INVEST              = "o.cap.invest"_n;   ///< Инвестиция в ЦПП Благорост (TRANSFER SHARE_FUND_PAY → BLAGOROST_FUND, без Dr/Cr).
     inline constexpr eosio::name COMMIT_RID          = "o.cap.commit"_n;   ///< Коммит РИД (Dr 08 / Cr 80, ISSUE GENERATOR_FUND).
     inline constexpr eosio::name ACCEPT_RID          = "o.cap.accept"_n;   ///< Приём РИД в НМА (Dr 04 / Cr 08, NONE — только бухпроводка, кошелёк остаётся на GENERATOR_FUND до конвертации сегмента).
-    inline constexpr eosio::name ACCEPT_PROPERTY     = "o.cap.actprp"_n;   ///< Акт-2 имущественный паевой взнос (Dr 51 / Cr 80, ISSUE BLAGOROST_FUND).
+    inline constexpr eosio::name ACCEPT_PROPERTY     = "o.cap.actprp"_n;   ///< Акт-2 имущественный паевой взнос (Dr 04 / Cr 80, ISSUE BLAGOROST_FUND).
+    inline constexpr eosio::name PREIMP              = "o.cap.preimp"_n;   ///< Первичный учёт РИД-взноса до перехода на электронный учёт (Dr 04 / Cr 80, ISSUE PREIMP_FUND).
+    inline constexpr eosio::name DROP_PREIMP         = "o.cap.drppre"_n;   ///< Закрытие пред-импорт-учёта при переходе на электронный учёт (Dr 80 / Cr 04, BURN PREIMP_FUND). Вызывается из capital::importcontr перед o.cap.import.
     inline constexpr eosio::name LEND                = "o.cap.lend"_n;     ///< Выдача беспроцентного займа пайщику (Dr 58 / Cr 51, ISSUE LOAN_ISSUED).
     inline constexpr eosio::name REPAY               = "o.cap.repay"_n;    ///< Возврат займа пайщика по акту-2 (Dr 80 / Cr 58, TRANSFER LOAN_ISSUED → SHARE_FUND_PAY).
     inline constexpr eosio::name WITHDRAW_FROM_CAPITAL = "o.cap.wthcap"_n; ///< Возврат паевого из ЦПП «Благорост» в кошелёк пайщика (TRANSFER BLAGOROST_FUND → SHARE_FUND_PAY, без Dr/Cr).
-    inline constexpr eosio::name CONVERT_TO_SHARE    = "o.cap.cnvshr"_n;   ///< Конвертация сегмента: РИД → паевой взнос деньгами (TRANSFER GENERATOR_FUND → SHARE_FUND_PAY, без Dr/Cr — бухпроводка уже была сделана в ACCEPT_RID).
+    inline constexpr eosio::name CONVERT_TO_SHARE    = "o.cap.cnvshr"_n;   ///< Конвертация сегмента: РИД → главный кошелёк (TRANSFER GENERATOR_FUND → SHARE_FUND_PAY, без Dr/Cr — бухпроводка уже была сделана в ACCEPT_RID).
     inline constexpr eosio::name CONVERT_TO_BLAGO    = "o.cap.cnvbl"_n;    ///< Конвертация сегмента: РИД → ЦПП «Благорост» (TRANSFER GENERATOR_FUND → BLAGOROST_FUND, без Dr/Cr — бухпроводка уже была сделана в ACCEPT_RID).
   }
 
@@ -187,9 +189,11 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_accounts::SHARE_FUND, ledger2_accounts::BANK_ACCOUNT,
     "Возврат паевого взноса пайщику" },
 
-  // 5. Импорт пайщика Благорост (offline): Dr 51 / Cr 80, ISSUE BLAGOROST_FUND (ADR-009: единый кошелёк программы)
+  // 5. Импорт пайщика Благорост (offline): Dr 04 / Cr 80, ISSUE BLAGOROST_FUND (ADR-009: единый кошелёк программы).
+  // Импорт фиксирует РИД-имущество пайщика как НМА — поэтому Dr 04, не Dr 51.
+  // Денежные взносы в Благорост идут через `o.cap.invest` (TRANSFER SHARE_FUND_PAY → BLAGOROST_FUND).
   { operations::capital::IMPORT, processes::capital::IMPORT, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::BLAGOROST_FUND,
-    ledger2_accounts::BANK_ACCOUNT, ledger2_accounts::SHARE_FUND,
+    ledger2_accounts::INTANGIBLE_ASSETS, ledger2_accounts::SHARE_FUND,
     "Паевой взнос по целевой потребительской программе «Благорост» (офлайн-импорт)" },
 
   // 6. Инвестиция из Цифрового Кошелька в Благорост: TRANSFER SHARE_FUND_PAY → BLAGOROST_FUND (без Dr/Cr — оба счёта 80)
@@ -212,10 +216,30 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_accounts::INTANGIBLE_ASSETS, ledger2_accounts::NON_CURRENT_INVESTMENTS,
     "Приём результата интеллектуальной деятельности в паевой фонд" },
 
-  // 9. Акт-2 имущественный паевой взнос: Dr 51 / Cr 80, ISSUE BLAGOROST_FUND (ADR-009)
+  // 9. Акт-2 имущественный паевой взнос: Dr 04 / Cr 80, ISSUE BLAGOROST_FUND (ADR-009).
+  // Имущественный (РИД) — Dr 04 (НМА), не Dr 51 (банк). Денежный паевой —
+  // через o.wal.depcpl или o.cap.invest.
   { operations::capital::ACCEPT_PROPERTY, processes::capital::PROPERTY, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::BLAGOROST_FUND,
-    ledger2_accounts::BANK_ACCOUNT, ledger2_accounts::SHARE_FUND,
+    ledger2_accounts::INTANGIBLE_ASSETS, ledger2_accounts::SHARE_FUND,
     "Паевой взнос (не денежный) по программе «Благорост»" },
+
+  // 9a. Первичный учёт РИД-взноса: Dr 04 / Cr 80, ISSUE PREIMP_FUND.
+  // Пайщик внёс РИД-имущество ДО перехода кооператива на электронный учёт.
+  // Балансы фиксируются на отдельном кошельке `w.cap.preimp`, чтобы при
+  // `capital::importcontr` их можно было обнулить через `o.cap.drppre` и
+  // переоткрыть на полный объём через `o.cap.import` под единый Благорост-фонд.
+  { operations::capital::PREIMP, processes::capital::PREIMP, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::PREIMP_FUND,
+    ledger2_accounts::INTANGIBLE_ASSETS, ledger2_accounts::SHARE_FUND,
+    "Первичный учёт РИД-взноса до перехода на электронный учёт" },
+
+  // 9b. Закрытие пред-импорт-учёта: Dr 80 / Cr 04, BURN PREIMP_FUND.
+  // Вызывается из `capital::importcontr` ДО `o.cap.import`, если у пайщика
+  // есть запись в `userwallets[w.cap.preimp]`. После закрытия `o.cap.import`
+  // переоткрывает учёт на полный объём (включая возможную доплату).
+  { operations::capital::DROP_PREIMP, processes::capital::IMPORT, WalletOp::BURN,
+    ledger2_wallets::PREIMP_FUND, eosio::name{},
+    ledger2_accounts::SHARE_FUND, ledger2_accounts::INTANGIBLE_ASSETS,
+    "Закрытие пред-импорт-учёта РИД-взноса при переходе на электронный учёт" },
 
   // 10. Выдача беспроцентного займа пайщику: Dr 58 / Cr 51, ISSUE LOAN_ISSUED
   { operations::capital::LEND, processes::capital::DEBT, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::LOAN_ISSUED,
@@ -270,7 +294,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   { operations::capital::CONVERT_TO_SHARE, processes::capital::RID, WalletOp::TRANSFER,
     ledger2_wallets::GENERATOR_FUND, ledger2_wallets::SHARE_FUND_PAY,
     0, 0,
-    "Конвертация сегмента: РИД → паевой взнос деньгами" },
+    "Конвертация сегмента: РИД → главный кошелёк" },
 
   // 19. Конвертация сегмента (часть в Благорост): TRANSFER GENERATOR_FUND → BLAGOROST_FUND, без Dr/Cr.
   // Финальная фаза процесса p.cap.rid (после signact2). Бухпроводка

@@ -247,6 +247,129 @@ public:
                                  std::optional<eosio::public_key> signing_key,
                                  std::optional<bool> active);
 
+  // ─── pricing & globals (v2.1) ───────────────────────────────────────
+
+  /**
+   * \brief Установить ставку плана `plan` для пакета `package_id` (FR1, D1).
+   * \details Per-plan upsert в таблице `pricings` (scope = `package_id`):
+   *          row нет → `emplace`; row есть → `modify` с обновлённым
+   *          `hourly_rate` и `updated_at` = текущее время блока.
+   *          RAM payer — `get_self()` (`apps`-контракт; ВОСХОД как owner
+   *          аккаунта оплачивает RAM координационной плоскости).
+   *
+   *          Story v2.1.1 — каркас без бизнес-валидации. Полная валидация
+   *          (`hourly_rate.amount > 0`, символ против `_root_govern_symbol`,
+   *          plan-whitelist, snapshot предыдущей ставки в audit_log_admin)
+   *          добавляется в Story v2.1.2.
+   *
+   * \param package_id  scope таблицы `pricings` (Antelope `name`).
+   * \param plan        имя плана, PK (в MVP всегда `default`).
+   * \param hourly_rate ставка за час (общая валюта экосистемы — RUB,4).
+   * \note Авторизация: `require_auth(get_self())` — действие выполняется
+   *       контрактом от своего имени по запросу из `CA-admin` через
+   *       `KE write-adapter` (Story v2.1.3).
+   */
+  [[eosio::action]] void setpricing(eosio::name package_id,
+                                    eosio::name plan,
+                                    eosio::asset hourly_rate);
+
+  /**
+   * \brief Установить общесистемные параметры каталога (FR2, D2).
+   * \details Полная замена singleton `globals` (scope = `get_self()`):
+   *          row нет → создаём, есть → перезаписываем все четыре поля.
+   *          RAM payer — `get_self()`. Story v2.1.1 — каркас без
+   *          валидации диапазонов; валидация и snapshot предыдущего
+   *          state'а добавляются в Story v2.1.2.
+   *
+   * \note Авторизация: `require_auth(get_self())`.
+   */
+  [[eosio::action]] void setglobals(uint32_t min_payment_period_seconds,
+                                    uint32_t free_trial_period_seconds,
+                                    uint32_t lead_time_seconds,
+                                    uint8_t  retry_max);
+
+  // ─── clients (multi-tenant onboarding, v2.4) ────────────────────────
+
+  /**
+   * \brief Зарегистрировать кооператив-клиента каталога (FR7, D3).
+   * \details `clients`-row {scope=catalog_operator, PK=client_coopname}
+   *          с `registered_at = now`. Идемпотентность строгая: повторный
+   *          вызов на ту же пару → `eosio_assert("client already registered")`.
+   *          RAM payer — `catalog_operator` (ВОСХОД оплачивает onboarding).
+   * \param catalog_operator  оператор каталога, подписывает транзакцию
+   *                          и платит RAM (в MVP всегда `voskhod`).
+   * \param client_coopname   кооператив, который подключается к каталогу.
+   * \note Авторизация: `require_auth(catalog_operator)`.
+   */
+  [[eosio::action]] void regclient(eosio::name catalog_operator,
+                                   eosio::name client_coopname);
+
+  /**
+   * \brief Отозвать кооператив-клиента каталога (FR8, D3).
+   * \details Удаляет row по PK; row нет → `eosio_assert("client not found")`
+   *          (не идемпотентно сознательно — отличаем «уже отзывали» от
+   *          «никогда не регистрировали»). Эффекты на CA-стороне:
+   *          инвалидация membership-cache (D9 hybrid TTL) + добавление
+   *          активных JWT в `JwtRevokeList` (FR15) живут off-chain.
+   * \note Авторизация: `require_auth(catalog_operator)`.
+   */
+  [[eosio::action]] void delclient(eosio::name catalog_operator,
+                                   eosio::name client_coopname);
+
+  // ─── subscription extend / retry-counter (D4, v2.5/v2.6) ────────────
+
+  /**
+   * \brief Идемпотентно продлить подписку через `charge_intent_id` (FR24, D4, D5).
+   * \details Находит `regsub` по `(subscriber, package_id)`; проверяет,
+   *          что `last_charge_intent_id != charge_intent_id`. Иначе —
+   *          `eosio_assert("already extended")` (это **ok-сигнал** для
+   *          recovery-worker'а: дубль ack'а из кабинета или повтор после
+   *          CA-crash). На успешном пути:
+   *            - `end_at += period_seconds` (extend от текущей границы,
+   *              не от now — important для непрерывности подписки),
+   *            - `last_charge_intent_id = charge_intent_id`,
+   *            - `attempt = 0` (счётчик retry'ев сбрасывается на удачном
+   *              charge'е),
+   *            - `updated_at = now`.
+   *
+   *          Story v2.5.2 (TS write-port `extendByChargeIntent`) ожидает
+   *          именно эту семантику; `AlreadyExtendedError` маппится с
+   *          on-chain assert'а.
+   *
+   * \param catalog_operator  оператор каталога (платит RAM, подписывает).
+   * \param subscriber        кооператив-подписчик.
+   * \param package_id        пакет.
+   * \param period_seconds    на сколько продлить (в секундах). Должен быть > 0.
+   * \param charge_intent_id  UUIDv5 от `(coopname, package_id, period_start_at)`.
+   * \note Авторизация: `require_auth(catalog_operator)`.
+   */
+  [[eosio::action]] void extendsub(eosio::name catalog_operator,
+                                   eosio::name subscriber,
+                                   eosio::name package_id,
+                                   uint32_t period_seconds,
+                                   eosio::checksum256 charge_intent_id);
+
+  /**
+   * \brief Установить `attempt`-счётчик для подписки (D4 retry-management).
+   * \details Простая запись uint8 в существующую `regsub`-row. Используется
+   *          pricing-watcher'ом CA, когда `ack=declined` или charge провалился
+   *          (типичный путь: `setattempt(coopname, package_id, current+1)`).
+   *          Каскад с `extendsub` не нужен — последний сам сбросит attempt
+   *          в 0 при успехе.
+   *
+   *          Альтернатива (on-chain incrattempt без передачи нового значения)
+   *          могла бы избежать сравнения counter'ов на гонках, но усложняет
+   *          контракт и редко полезна: pricing-watcher tick — единственный
+   *          путь, и он сериализован per-(coopname, package_id) на стороне
+   *          watcher-state в Postgres.
+   *
+   * \note Авторизация: `require_auth(catalog_operator)`.
+   */
+  [[eosio::action]] void setattempt(eosio::name catalog_operator,
+                                    eosio::name subscriber,
+                                    eosio::name package_id,
+                                    uint8_t attempt);
+
   // ─── service tables ─────────────────────────────────────────────────
 
   struct [[eosio::table, eosio::contract(APPS)]] counts : counts_base {};

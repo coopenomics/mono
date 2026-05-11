@@ -74,3 +74,6 @@
 #include "table_apps_releases.hpp"
 #include "table_apps_subs.hpp"
 #include "table_apps_coops.hpp"
+#include "table_apps_pricings.hpp"
+#include "table_apps_globals.hpp"
+#include "table_apps_clients.hpp"

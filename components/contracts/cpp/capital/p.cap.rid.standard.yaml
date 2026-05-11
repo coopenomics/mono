@@ -551,7 +551,7 @@ operations:
       взносе пайщика.
 
   - ledger_code: o.cap.cnvshr
-    human_name: 'Конвертация сегмента: РИД → паевой взнос деньгами'
+    human_name: 'Конвертация сегмента: РИД → главный кошелёк'
     wallet_op: TRANSFER
     wallet_from: w.cap.gen         # ЦПП «Генератор» — единый кошелёк программы у пайщика
     wallet_to: w.wal.share         # ЦК — паевой взнос пайщика

@@ -33,6 +33,7 @@ export const LEDGER2_PROCESS_REGISTRY: readonly ProcessMeta[] = [
   { type: 'p.cap.debt',     contract: 'capital',      name: 'DEBT',        human_name: 'Займ пайщику' },
   { type: 'p.cap.rid',      contract: 'capital',      name: 'RID',         human_name: 'Приём РИД в паевой фонд' },
   { type: 'p.cap.prop',     contract: 'capital',      name: 'PROPERTY',    human_name: 'Приём имущественного паевого взноса' },
+  { type: 'p.cap.preimp',   contract: 'capital',      name: 'PREIMP',      human_name: 'Первичный учёт РИД-взноса до перехода на электронный учёт' },
   { type: 'p.cap.wthcap',   contract: 'capital',      name: 'WTHCAP',      human_name: 'Возврат паевого из ЦПП «Благорост» в кошелёк' },
 
   // marketplace

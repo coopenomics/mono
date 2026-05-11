@@ -11,6 +11,12 @@
 #include "src/expsub.cpp"
 #include "src/regcoop.cpp"
 #include "src/setcoop.cpp"
+#include "src/setpricing.cpp"
+#include "src/setglobals.cpp"
+#include "src/regclient.cpp"
+#include "src/delclient.cpp"
+#include "src/extendsub.cpp"
+#include "src/setattempt.cpp"
 
 /**
  * \brief Миграция контракта.

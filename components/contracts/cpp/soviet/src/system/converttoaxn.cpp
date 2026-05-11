@@ -17,10 +17,6 @@ void soviet::converttoaxn(eosio::name coopname, eosio::asset amount, document2 s
 
   eosio::asset axon_quantity(axon_amount, _root_symbol);
 
-  // Списываем RUB с кошелька provider (_wallet_program)
-  Wallet::sub_available_funds(_soviet, _provider, coopname, amount, _wallet_program, "Конвертация RUB в AXON");
-
-
   // Пополняем кошелёк членских взносов в ledger
   std::string memo = "Членский взнос из числа средств паевого взноса по соглашению о подключении к платформе Кооперативной Экономики от пайщика с username=" + coopname.to_string();
 

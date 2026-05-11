@@ -89,9 +89,11 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     human_name: 'Возврат паевого взноса пайщику' },
 
   // capital (ADR-009: единые программные кошельки `w.cap.blago`/`w.cap.gen`)
+  // IMPORT и ACCEPT_PROPERTY — Dr 04 (НМА), не Dr 51: импорт/акт-2 фиксируют
+  // имущественный вклад как РИД, не деньги. Денежные взносы в Благорост — INVEST.
   { code: 'o.cap.import',  process_type: 'p.cap.import',  contract: 'capital',
     name: 'IMPORT',         wallet_op: 'ISSUE',    wallet_from: null, wallet_to: 'w.cap.blago',
-    debit: 51, credit: 80,
+    debit: 4, credit: 80,
     human_name: 'Паевой взнос по ЦПП «Благорост» (офлайн-импорт)' },
 
   { code: 'o.cap.invest',  process_type: 'p.cap.invest',  contract: 'capital',
@@ -111,8 +113,18 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
 
   { code: 'o.cap.actprp',  process_type: 'p.cap.prop',    contract: 'capital',
     name: 'ACCEPT_PROPERTY', wallet_op: 'ISSUE',   wallet_from: null, wallet_to: 'w.cap.blago',
-    debit: 51, credit: 80,
+    debit: 4, credit: 80,
     human_name: 'Паевой взнос (имущественный) по программе «Благорост»' },
+
+  { code: 'o.cap.preimp',  process_type: 'p.cap.preimp',  contract: 'capital',
+    name: 'PREIMP',         wallet_op: 'ISSUE',    wallet_from: null, wallet_to: 'w.cap.preimp',
+    debit: 4, credit: 80,
+    human_name: 'Первичный учёт РИД-взноса до перехода на электронный учёт' },
+
+  { code: 'o.cap.drppre',  process_type: 'p.cap.import', contract: 'capital',
+    name: 'DROP_PREIMP',    wallet_op: 'BURN',     wallet_from: 'w.cap.preimp', wallet_to: null,
+    debit: 80, credit: 4,
+    human_name: 'Закрытие пред-импорт-учёта РИД-взноса при переходе на электронный учёт' },
 
   { code: 'o.cap.lend',    process_type: 'p.cap.debt',    contract: 'capital',
     name: 'LEND',           wallet_op: 'ISSUE',    wallet_from: null, wallet_to: 'w.cap.loan',
@@ -132,7 +144,7 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
   { code: 'o.cap.cnvshr',  process_type: 'p.cap.rid',     contract: 'capital',
     name: 'CONVERT_TO_SHARE', wallet_op: 'TRANSFER', wallet_from: 'w.cap.gen', wallet_to: 'w.wal.share',
     debit: null, credit: null,
-    human_name: 'Конвертация сегмента: РИД → паевой взнос деньгами' },
+    human_name: 'Конвертация сегмента: РИД → главный кошелёк' },
 
   { code: 'o.cap.cnvbl',   process_type: 'p.cap.rid',     contract: 'capital',
     name: 'CONVERT_TO_BLAGO', wallet_op: 'TRANSFER', wallet_from: 'w.cap.gen', wallet_to: 'w.cap.blago',

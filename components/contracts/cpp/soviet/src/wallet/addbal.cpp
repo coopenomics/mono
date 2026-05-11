@@ -38,7 +38,7 @@ void soviet::addbal(eosio::name coopname, eosio::name username, uint64_t program
       b.coopname = coopname;
       b.username = username;
       b.agreement_id = 0;
-      b.available = asset(0, quantity.symbol) + quantity;
+      b.available = quantity;
       b.blocked = asset(0, quantity.symbol);
       b.membership_contribution = asset(0, quantity.symbol);
     });
@@ -54,6 +54,4 @@ void soviet::addbal(eosio::name coopname, eosio::name username, uint64_t program
     p.available = p.available.value_or(asset(0, quantity.symbol)) + quantity;
     p.share_contributions = p.share_contributions.value_or(asset(0, quantity.symbol)) + quantity;
   });
-
-
 }

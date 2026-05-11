@@ -1,6 +1,6 @@
 {
   "name": "@coopenomics/blago-cli",
-  "version": "2026.4.30-alpha-1",
+  "version": "2026.5.10-4",
   "description": "CLI синхронизации артефактов Благорост с бэкендом через @coopenomics/sdk",
   "type": "module",
   "private": true,

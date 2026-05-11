@@ -97,6 +97,13 @@ export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Ob
   // capital::pgproperties.property_hash — приём имущества в паевой фонд.
   'p.cap.prop': [{ code: 'capital', table: 'pgproperties', field: 'property_hash' }],
 
+  // p.cap.preimp — первичный учёт РИД-взноса до перехода кооператива на
+  // электронный учёт (`o.cap.preimp`, ISSUE w.cap.preimp). Сущностной таблицы
+  // под этот учёт пока нет — пред-импорт-записи живут только в
+  // `userwallets[w.cap.preimp]`. Process_hash берётся из blockchain_actions
+  // (как у одноактовых процессов).
+  'p.cap.preimp': [],
+
   'p.wal.depo':   [{ code: 'wallet', table: 'deposits',  field: 'deposit_hash' }],
   'p.wal.wthdrw': [{ code: 'wallet', table: 'withdraws', field: 'withdraw_hash' }],
 

@@ -36,8 +36,12 @@ export class MigrateAgreementsToWallet implements Migration {
         table: SovietContract.Tables.Agreements.tableName,
       });
 
+      // Статус в agreements3 — eosio::name. Для program_id > 0 он практически
+      // всегда пустой (""): sndagreement записывает ""_n, а confirmagree после
+      // Эпика 2 не вызывается — воркфлоу подписания уехал в wallet::signagree.
+      // Поэтому мигрируем все program-записи кроме явно отклонённых.
       const programmatic = agreements.filter((a) =>
-        Number(a.program_id) > 0 && a.status === 'confirmed'
+        Number(a.program_id) > 0 && a.status !== 'declined'
       );
 
       if (programmatic.length === 0) {
