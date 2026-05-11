@@ -37,7 +37,9 @@ export const LEDGER2_PROCESS_REGISTRY: readonly ProcessMeta[] = [
   { type: 'p.cap.wthcap',   contract: 'capital',      name: 'WTHCAP',      human_name: 'Возврат паевого из ЦПП «Благорост» в кошелёк' },
 
   // marketplace
-  { type: 'p.mkt.reqst',    contract: 'marketplace',  name: 'REQUEST',     human_name: 'Запрос маркетплейса' },
+  { type: 'p.mkt.supply',   contract: 'marketplace',  name: 'SUPPLY',      human_name: 'Прямая поставка и приобретение имущества пайщиком' },
+  { type: 'p.mkt.return',   contract: 'marketplace',  name: 'RETURN',      human_name: 'Гарантийный возврат имущества пайщиком' },
+  { type: 'p.mkt.wroff',    contract: 'marketplace',  name: 'WRITEOFF',    human_name: 'Утилизация скоропорта со склада кооператива' },
 
   // soviet
   { type: 'p.sov.axncnv',   contract: 'soviet',       name: 'AXN_CONVERT', human_name: 'Конвертация паевого в делегатский ЧВ' },
