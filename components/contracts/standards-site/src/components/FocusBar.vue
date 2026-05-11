@@ -29,6 +29,7 @@ const REJECTED_PREFIX = '__rejected__';
 // В slim-формате actor — свободный русский текст, но оставляем маппинг
 // для legacy-YAML, где ещё используются короткие коды.
 const ROLE_HUMAN: Record<string, string> = {
+  candidate: 'Кандидат',
   contributor: 'Участник',
   chairman: 'Председатель',
   soviet: 'Совет',
