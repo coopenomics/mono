@@ -3407,7 +3407,7 @@
 <p>Выпускаем обязательные соглашения, подписываем их и прикладываем к заявлению на вступление.</p>
 <h3 id="_1">Заявление на вступление<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h3>
 <p>🛠️ SDK: <a href="/sdk/modules/Mutations.Participants.GenerateParticipantApplication.html">Mutations.Participants.GenerateParticipantApplication</a> | <a href="/graphql/index.html#mutation-generateParticipantApplication">Mutation.generateParticipantApplication</a></p>
-<p>Сгенерировать документ заявления о вступлении в кооператив.</p>
+<p>Сгенерировать документ заявления о вступлении в кооператив. Требуемые роли: chairman, member.</p>
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Mutations</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
 
 <span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.Participants.GenerateParticipantApplication.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
@@ -3450,7 +3450,7 @@
 </code></pre></div>
 <h3 id="_2">Соглашение о ЦПП «Цифровой кошелёк»<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h3>
 <p>🛠️ SDK: <a href="/sdk/modules/Mutations.Agreements.GenerateWalletAgreement.html">Mutations.Agreements.GenerateWalletAgreement</a> | <a href="/graphql/index.html#mutation-generateWalletAgreement">Mutation.generateWalletAgreement</a></p>
-<p>Сгенерировать документ соглашения о целевой потребительской программе "Цифровой Кошелёк"</p>
+<p>Сгенерировать документ соглашения о целевой потребительской программе "Цифровой Кошелёк" Требуемые роли: chairman, member.</p>
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Mutations</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
 
 <span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.Agreements.GenerateWalletAgreement.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
@@ -3490,7 +3490,7 @@
 </code></pre></div>
 <h3 id="_3">Политика конфиденциальности<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h3>
 <p>🛠️ SDK: <a href="/sdk/modules/Mutations.Agreements.GeneratePrivacyAgreement.html">Mutations.Agreements.GeneratePrivacyAgreement</a> | <a href="/graphql/index.html#mutation-generatePrivacyAgreement">Mutation.generatePrivacyAgreement</a></p>
-<p>Сгенерировать документ согласия с политикой конфиденциальности.</p>
+<p>Сгенерировать документ согласия с политикой конфиденциальности. Требуемые роли: chairman, member.</p>
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Mutations</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
 
 <span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.Agreements.GeneratePrivacyAgreement.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
@@ -3530,7 +3530,7 @@
 </code></pre></div>
 <h3 id="_4">Соглашение об электронной подписи<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h3>
 <p>🛠️ SDK: <a href="/sdk/modules/Mutations.Agreements.GenerateSignatureAgreement.html">Mutations.Agreements.GenerateSignatureAgreement</a> | <a href="/graphql/index.html#mutation-generateSignatureAgreement">Mutation.generateSignatureAgreement</a></p>
-<p>Сгенерировать документ соглашения о порядка и правилах использования простой электронной подписи.</p>
+<p>Сгенерировать документ соглашения о порядка и правилах использования простой электронной подписи. Требуемые роли: chairman, member.</p>
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Mutations</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
 
 <span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.Agreements.GenerateSignatureAgreement.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
@@ -3570,7 +3570,7 @@
 </code></pre></div>
 <h3 id="_5">Пользовательское соглашение<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h3>
 <p>🛠️ SDK: <a href="/sdk/modules/Mutations.Agreements.GenerateUserAgreement.html">Mutations.Agreements.GenerateUserAgreement</a> | <a href="/graphql/index.html#mutation-generateUserAgreement">Mutation.generateUserAgreement</a></p>
-<p>Сгенерировать документ пользовательского соглашения.</p>
+<p>Сгенерировать документ пользовательского соглашения. Требуемые роли: chairman, member.</p>
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Mutations</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
 
 <span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.Agreements.GenerateUserAgreement.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
@@ -3611,7 +3611,7 @@
 <h2 id="3">3. Создать регистрационный платёж<a class="headerlink" href="#3" title="Permanent link">&para;</a></h2>
 <p>Выпускаем платёж на вступительный и минимальный паевой взносы и отмечаем его поступление.</p>
 <p>🛠️ SDK: <a href="/sdk/modules/Mutations.Gateway.CreateInitialPayment.html">Mutations.Gateway.CreateInitialPayment</a> | <a href="/graphql/index.html#mutation-createInitialPayment">Mutation.createInitialPayment</a></p>
-<p>Создание объекта регистрационного платежа производится мутацией createInitialPayment. Выполнение мутации возвращает идентификатор платежа и данные для его совершения в зависимости от выбранного платежного провайдера.</p>
+<p>Создание объекта регистрационного платежа производится мутацией createInitialPayment. Выполнение мутации возвращает идентификатор платежа и данные для его совершения в зависимости от выбранного платежного провайдера. Требуемые роли: chairman, member.</p>
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Mutations</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
 
 <span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.Gateway.CreateInitialPayment.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
@@ -3670,7 +3670,7 @@
 <h2 id="4">4. Подтвердить приём платежа<a class="headerlink" href="#4" title="Permanent link">&para;</a></h2>
 <p>После фактического поступления средств отметить статус:</p>
 <p>🛠️ SDK: <a href="/sdk/modules/Mutations.Gateway.SetPaymentStatus.html">Mutations.Gateway.SetPaymentStatus</a> | <a href="/graphql/index.html#mutation-setPaymentStatus">Mutation.setPaymentStatus</a></p>
-<p>Управление статусом платежа осущствляется мутацией setPaymentStatus. При переходе платежа в статус PAID вызывается эффект в блокчейне, который завершает операцию автоматическим переводом платежа в статус COMPLETED. При установке статуса REFUNDED запускается процесс отмены платежа в блокчейне. Остальные статусы не приводят к эффектам в блокчейне.</p>
+<p>Управление статусом платежа осущствляется мутацией setPaymentStatus. При переходе платежа в статус PAID вызывается эффект в блокчейне, который завершает операцию автоматическим переводом платежа в статус COMPLETED. При установке статуса REFUNDED запускается процесс отмены платежа в блокчейне. Остальные статусы не приводят к эффектам в блокчейне. Требуемые роли: chairman, member.</p>
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Mutations</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
 
 <span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.Gateway.SetPaymentStatus.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
@@ -3695,7 +3695,7 @@
 <h2 id="6">6. Завершить регистрацию<a class="headerlink" href="#6" title="Permanent link">&para;</a></h2>
 <p>Фиксируем принятого пайщика, выдаём доступы/роли и открываем доступ к рабочему месту.</p>
 <p>🛠️ SDK: <a href="/sdk/modules/Mutations.Participants.RegisterParticipant.html">Mutations.Participants.RegisterParticipant</a> | <a href="/graphql/index.html#mutation-registerParticipant">Mutation.registerParticipant</a></p>
-<p>Зарегистрировать заявление и подписанные положения, подготовив пакет документов к отправке в совет на голосование после поступления оплаты.</p>
+<p>Зарегистрировать заявление и подписанные положения, подготовив пакет документов к отправке в совет на голосование после поступления оплаты. Требуемые роли: chairman, member.</p>
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Mutations</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
 
 <span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.Participants.RegisterParticipant.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>

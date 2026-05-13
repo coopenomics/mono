@@ -3060,7 +3060,7 @@
 <p>Канонические имена полей и типов — в файле <code>components/controller/schema.gql</code> монорепозитория; интерактивно — в <a href="/graphql">документации GraphQL-API</a>.</p>
 <h3 id="_2">Одно собрание<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h3>
 <p>🛠️ SDK: <a href="/sdk/modules/Queries.Meet.GetMeet.html">Queries.Meet.GetMeet</a> | <a href="/graphql/index.html#query-getMeet">Query.getMeet</a></p>
-<p>Получить данные собрания по хешу</p>
+<p>Получить данные собрания по хешу Требуемые роли: chairman, member, user.</p>
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Queries</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
 
 <span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Queries.Meet.GetMeet.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
@@ -3353,7 +3353,7 @@
 </code></pre></div>
 <h3 id="_3">Список собраний<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h3>
 <p>🛠️ SDK: <a href="/sdk/modules/Queries.Meet.GetMeets.html">Queries.Meet.GetMeets</a> | <a href="/graphql/index.html#query-getMeets">Query.getMeets</a></p>
-<p>Получить список всех собраний кооператива</p>
+<p>Получить список всех собраний кооператива Требуемые роли: chairman, member, user.</p>
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Queries</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
 
 <span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Queries.Meet.GetMeets.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
@@ -3641,11 +3641,13 @@
 <span class="w">          </span><span class="p">}[]</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Список вопросов повестки собрания</span>
 <span class="w">      </span><span class="p">};</span>
 <span class="w">    </span><span class="p">}[]</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Получить список всех собраний кооператива</span>
+
+<span class="nx">Требуемые</span><span class="w"> </span><span class="nx">роли</span><span class="o">:</span><span class="w"> </span><span class="kt">chairman</span><span class="p">,</span><span class="w"> </span><span class="nx">member</span><span class="p">,</span><span class="w"> </span><span class="nx">user</span><span class="p">.</span>
 <span class="p">}</span>
 </code></pre></div>
 <h3 id="_4">ОСП: голосование<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h3>
 <p>🛠️ SDK: <a href="/sdk/modules/Mutations.Meet.VoteOnAnnualGeneralMeet.html">Mutations.Meet.VoteOnAnnualGeneralMeet</a> | <a href="/graphql/index.html#mutation-voteOnAnnualGeneralMeet">Mutation.voteOnAnnualGeneralMeet</a></p>
-<p>Голосование на общем собрании пайщиков</p>
+<p>Голосование на общем собрании пайщиков Требуемые роли: member.</p>
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Mutations</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
 
 <span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.Meet.VoteOnAnnualGeneralMeet.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
@@ -3977,7 +3979,7 @@
 </code></pre></div>
 <h3 id="_5">ОСП: уведомить<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h3>
 <p>🛠️ SDK: <a href="/sdk/modules/Mutations.Meet.NotifyOnAnnualGeneralMeet.html">Mutations.Meet.NotifyOnAnnualGeneralMeet</a> | <a href="/graphql/index.html#mutation-notifyOnAnnualGeneralMeet">Mutation.notifyOnAnnualGeneralMeet</a></p>
-<p>Уведомление о проведении общего собрания пайщиков</p>
+<p>Уведомление о проведении общего собрания пайщиков Требуемые роли: chairman, member.</p>
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Mutations</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
 
 <span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.Meet.NotifyOnAnnualGeneralMeet.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
@@ -4300,7 +4302,7 @@
 </code></pre></div>
 <h3 id="_6">ОСП: перезапуск<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h3>
 <p>🛠️ SDK: <a href="/sdk/modules/Mutations.Meet.RestartAnnualGeneralMeet.html">Mutations.Meet.RestartAnnualGeneralMeet</a> | <a href="/graphql/index.html#mutation-restartAnnualGeneralMeet">Mutation.restartAnnualGeneralMeet</a></p>
-<p>Перезапуск общего собрания пайщиков</p>
+<p>Перезапуск общего собрания пайщиков Требуемые роли: chairman.</p>
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Mutations</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
 
 <span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.Meet.RestartAnnualGeneralMeet.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
@@ -4636,7 +4638,7 @@
 </code></pre></div>
 <h3 id="_7">ОСП: подпись председателя<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h3>
 <p>🛠️ SDK: <a href="/sdk/modules/Mutations.Meet.SignByPresiderOnAnnualGeneralMeet.html">Mutations.Meet.SignByPresiderOnAnnualGeneralMeet</a> | <a href="/graphql/index.html#mutation-signByPresiderOnAnnualGeneralMeet">Mutation.signByPresiderOnAnnualGeneralMeet</a></p>
-<p>Подписание решения председателем на общем собрании пайщиков</p>
+<p>Подписание решения председателем на общем собрании пайщиков Требуемые роли: chairman, member.</p>
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Mutations</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
 
 <span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.Meet.SignByPresiderOnAnnualGeneralMeet.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
@@ -4959,7 +4961,7 @@
 </code></pre></div>
 <h3 id="_8">ОСП: подпись секретаря<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h3>
 <p>🛠️ SDK: <a href="/sdk/modules/Mutations.Meet.SignBySecretaryOnAnnualGeneralMeet.html">Mutations.Meet.SignBySecretaryOnAnnualGeneralMeet</a> | <a href="/graphql/index.html#mutation-signBySecretaryOnAnnualGeneralMeet">Mutation.signBySecretaryOnAnnualGeneralMeet</a></p>
-<p>Подписание решения секретарём на общем собрании пайщиков</p>
+<p>Подписание решения секретарём на общем собрании пайщиков Требуемые роли: chairman, member.</p>
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Mutations</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
 
 <span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Mutations.Meet.SignBySecretaryOnAnnualGeneralMeet.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>

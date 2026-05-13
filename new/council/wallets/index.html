@@ -3066,7 +3066,7 @@
 <p>Канонические имена полей и типов — в файле <code>components/controller/schema.gql</code> монорепозитория; интерактивно — в <a href="/graphql">документации GraphQL-API</a>.</p>
 <h3 id="ledger">План счетов (ledger)<a class="headerlink" href="#ledger" title="Permanent link">&para;</a></h3>
 <p>🛠️ SDK: <a href="/sdk/modules/Queries.Ledger.GetLedger.html">Queries.Ledger.GetLedger</a> | <a href="/graphql/index.html#query-getLedger">Query.getLedger</a></p>
-<p>Получить полное состояние плана счетов кооператива. Возвращает все счета из стандартного плана счетов с актуальными данными из блокчейна. Если счет не активен в блокчейне, возвращает нулевые значения.</p>
+<p>Получить полное состояние плана счетов кооператива. Возвращает все счета из стандартного плана счетов с актуальными данными из блокчейна. Если счет не активен в блокчейне, возвращает нулевые значения. Требуемые роли: chairman, member.</p>
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Queries</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
 
 <span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Queries.Ledger.GetLedger.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
@@ -3097,7 +3097,7 @@
 </code></pre></div>
 <h3 id="_4">История операций по счетам<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h3>
 <p>🛠️ SDK: <a href="/sdk/modules/Queries.Ledger.GetLedgerHistory.html">Queries.Ledger.GetLedgerHistory</a> | <a href="/graphql/index.html#query-getLedgerHistory">Query.getLedgerHistory</a></p>
-<p>Получить историю операций по счетам кооператива. Возвращает список операций с возможностью фильтрации по account_id и пагинацией. Операции сортируются по дате создания (новые первыми).</p>
+<p>Получить историю операций по счетам кооператива. Возвращает список операций с возможностью фильтрации по account_id и пагинацией. Операции сортируются по дате создания (новые первыми). Требуемые роли: chairman, member.</p>
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Queries</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
 
 <span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Queries.Ledger.GetLedgerHistory.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
@@ -3138,7 +3138,7 @@
 </code></pre></div>
 <h3 id="_5">Программные кошельки (список)<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h3>
 <p>🛠️ SDK: <a href="/sdk/modules/Queries.Wallet.GetProgramWallets.html">Queries.Wallet.GetProgramWallets</a> | <a href="/graphql/index.html#query-getProgramWallets">Query.getProgramWallets</a></p>
-<p>Получить список программных кошельков с фильтрацией и пагинацией</p>
+<p>Получить список программных кошельков с фильтрацией и пагинацией Требуемые роли: chairman, member.</p>
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Queries</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
 
 <span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Queries.Wallet.GetProgramWallets.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
@@ -3184,7 +3184,7 @@
 </code></pre></div>
 <h3 id="_6">Программный кошелёк (один)<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h3>
 <p>🛠️ SDK: <a href="/sdk/modules/Queries.Wallet.GetProgramWallet.html">Queries.Wallet.GetProgramWallet</a> | <a href="/graphql/index.html#query-getProgramWallet">Query.getProgramWallet</a></p>
-<p>Получить один программный кошелек по фильтру</p>
+<p>Получить один программный кошелек по фильтру Требуемые роли: chairman, member.</p>
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Queries</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;@coopenomics/sdk&#39;</span><span class="p">;</span>
 
 <span class="kd">const</span><span class="w"> </span><span class="nx">variables</span><span class="o">:</span><span class="w"> </span><span class="kt">Queries.Wallet.GetProgramWallet.IInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
@@ -3221,6 +3221,8 @@
 <span class="w">      </span><span class="nx">program_type</span><span class="o">?:</span><span class="w"> </span><span class="o">&lt;</span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="nx">ProgramType</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Тип программы</span>
 <span class="w">      </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Имя пользователя</span>
 <span class="w">    </span><span class="p">}</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// Получить один программный кошелек по фильтру</span>
+
+<span class="nx">Требуемые</span><span class="w"> </span><span class="nx">роли</span><span class="o">:</span><span class="w"> </span><span class="kt">chairman</span><span class="p">,</span><span class="w"> </span><span class="nx">member</span><span class="p">.</span>
 <span class="p">}</span>
 </code></pre></div>
 <p>Часть шагов (голос по решению совета, исполнение ряда решений) выполняется <strong>подписью и отправкой транзакции</strong> в блокчейн через <code>Client.Blockchain</code> / класс <code>Blockchain</code> в пакете <code>@coopenomics/sdk</code>, а не отдельной мутацией GraphQL; см. 🛠️ <a href="/sdk/classes/Classes.html#Blockchain"><code>Classes.Blockchain</code></a> и 🛠️ <a href="/sdk/classes/Classes.html#Client"><code>Classes.Client</code></a>.</p>
