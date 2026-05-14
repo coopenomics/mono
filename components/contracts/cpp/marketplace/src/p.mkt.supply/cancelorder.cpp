@@ -8,7 +8,7 @@
  * Guards:
  *  - Order существует.
  *  - actor == order.orderer.
- *  - Order в статусе active (до acceptbatch). После acceptbatch отмена
+ *  - Order в статусе active (до acceptorder). После acceptorder отмена
  *    запрещена — поставщик уже взял обязательство.
  *
  * @ingroup public_marketplace_actions
@@ -19,13 +19,14 @@ void marketplace::cancelorder(eosio::name coopname,
   require_auth(coopname);
 
   auto o = Marketplace::get_order_by_hash_or_fail(coopname, order_hash);
-  eosio::check(o.orderer == orderer, "cancelorder: вы не заказчик этого Order'а");
+  eosio::check(o.orderer == orderer, "Вы не заказчик этого заказа");
   eosio::check(o.status == OrderStatus::ACTIVE,
-               "cancelorder: нельзя отменить — заявка уже акцептована поставщиком");
+               "Нельзя отменить заказ: он уже акцептован поставщиком");
 
   Ledger2::apply(_marketplace, coopname,
                  operations::marketplace::UNBLOCK_ON_CANCEL,
-                 o.total_cost, orderer, o.hash, "cancelorder p.mkt.supply");
+                 o.total_cost, orderer, o.hash,
+                 Marketplace::Memo::get_cancel_order_memo(o.id));
 
   Marketplace::update_order(coopname, o.id, [&](auto& upd) {
     upd.status = OrderStatus::CANCELLED;

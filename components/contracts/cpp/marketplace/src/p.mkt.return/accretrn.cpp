@@ -14,36 +14,39 @@
  * на склад КУ; средства восстанавливаются на w.mkt.member.available заказчика.
  *
  * Guards:
- *  - actor == return_request.ku_chairman.
+ *  - Подписант (`signer`) авторизован для указанного КУ (`braname`).
  *  - return_request.status == approved_for_visit.
  *
  * @ingroup public_marketplace_actions
  */
 void marketplace::accretrn(eosio::name coopname,
-                            eosio::name chairman,
+                            eosio::name signer,
+                            eosio::name braname,
                             checksum256 request_hash,
                             document2 decision) {
   require_auth(coopname);
 
+  auto branch = get_branch_or_fail(coopname, braname);
+  eosio::check(branch.is_user_authorized(signer),
+               "Подписант не уполномочен принимать возвраты данного кооперативного участка");
+
   auto r = Marketplace::get_return_request_by_hash_or_fail(coopname, request_hash);
-  eosio::check(r.ku_chairman == chairman,
-               "accretrn: вы не председатель КУ выдачи");
   eosio::check(r.status == ReturnStatus::APPROVED_FOR_VISIT,
-               "accretrn: заявление не в approved_for_visit");
+               "Заявление не одобрено для очного осмотра");
 
   if (!is_empty_document(decision)) {
-    verify_document_or_fail(decision, { chairman });
+    verify_document_or_fail(decision, { signer });
   }
-
-  const std::string memo = "accretrn p.mkt.return (compensating forward)";
 
   // Композитная пара return + return2
   Ledger2::apply(_marketplace, coopname,
                  operations::marketplace::RETURN_BY_MEMBER,
-                 r.fact_cost, r.orderer, r.hash, memo);
+                 r.fact_cost, r.orderer, r.hash,
+                 Marketplace::Memo::get_return_by_member_memo(r.id, r.original_order_id));
   Ledger2::apply(_marketplace, coopname,
                  operations::marketplace::RETURN_TRANSIT_CLOSE,
-                 r.fact_cost, r.orderer, r.hash, memo);
+                 r.fact_cost, r.orderer, r.hash,
+                 Marketplace::Memo::get_return_transit_close_memo(r.id, r.original_order_id));
 
   Marketplace::update_return_request(coopname, r.id, [&](auto& upd) {
     upd.status         = ReturnStatus::RETURN_ACCEPTED;

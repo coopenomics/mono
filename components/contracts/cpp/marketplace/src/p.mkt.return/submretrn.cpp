@@ -2,7 +2,10 @@
  * @brief Пайщик подаёт заявление на гарантийный возврат (Story 7.1, p.mkt.return).
  *
  * Без ledger2-операций. Создаётся return_request в pending_review;
- * order.return_request_id ставится для двусторонней связи.
+ * order.return_request_id ставится для двусторонней связи. Привязка к
+ * конкретному КУ не сохраняется — каждое последующее действие
+ * (aprretrem/rejretrem/accretrn/rejretrn) принимает `braname` параметром
+ * и валидирует его через `Branch::is_user_authorized`.
  *
  * Guards (из p.mkt.return.standard.yaml):
  *  - actor == original_order.orderer.
@@ -27,29 +30,29 @@ void marketplace::submretrn(eosio::name coopname,
                              document2 statement) {
   require_auth(coopname);
 
-  eosio::check(actual_quantity > 0, "submretrn: actual_quantity > 0");
-  eosio::check(!photos.empty(), "submretrn: фотографии товара обязательны");
+  eosio::check(actual_quantity > 0, "Возвращаемое количество должно быть больше нуля");
+  eosio::check(!photos.empty(), "Приложите хотя бы одну фотографию товара");
   eosio::check(reason_text.size() > 0 && reason_text.size() <= 500,
-               "submretrn: reason_text должна быть от 1 до 500 символов");
+               "Опишите причину возврата (от 1 до 500 символов)");
 
   eosio::check(!Marketplace::get_return_request_by_hash(coopname, request_hash).has_value(),
-               "submretrn: заявление с таким hash уже существует");
+               "Заявление с таким идентификатором уже подано");
 
   auto o = Marketplace::get_order_by_hash_or_fail(coopname, original_order_hash);
   eosio::check(o.orderer == orderer,
-               "submretrn: вы не заказчик исходного Order'а");
+               "Вы не заказчик исходного заказа");
   eosio::check(o.status == OrderStatus::RECEIVED,
-               "submretrn: возврат возможен только для выданного Order'а");
+               "Возврат возможен только по выданному заказу");
   eosio::check(o.return_request_id == 0,
-               "submretrn: для этого Order'а уже открыто заявление на возврат");
+               "По этому заказу уже открыто заявление на возврат");
   eosio::check(actual_quantity <= o.actual_quantity,
-               "submretrn: actual_quantity нельзя возвращать больше чем было выдано");
+               "Нельзя вернуть больше единиц, чем было выдано");
   eosio::check(o.warranty_period_secs > 0,
-               "submretrn: для этого Order'а гарантия не предусмотрена");
+               "По этому заказу гарантия не предусмотрена");
 
   const auto now = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
   eosio::check(now < o.warranty_until,
-               "submretrn: гарантийный срок истёк");
+               "Гарантийный срок по заказу истёк");
 
   const eosio::asset fact_cost = eosio::asset(
       static_cast<int64_t>(actual_quantity) * o.unit_price.amount,
@@ -63,7 +66,6 @@ void marketplace::submretrn(eosio::name coopname,
     r.hash                  = request_hash;
     r.coopname              = coopname;
     r.orderer               = orderer;
-    r.ku_chairman           = o.ku_chairman;
     r.original_order_id     = o.id;
     r.original_order_hash   = o.hash;
     // r.original_consume_op_id заполнит backend post-effect через ParserClient

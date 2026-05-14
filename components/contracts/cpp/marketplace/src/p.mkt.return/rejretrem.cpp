@@ -5,29 +5,32 @@
  * reason сохраняется в return_request.reason_remote для UI заказчика.
  *
  * Guards:
- *  - actor == return_request.ku_chairman.
+ *  - Подписант (`signer`) авторизован для указанного КУ (`braname`).
  *  - return_request.status == pending_review.
  *  - reason.size() > 0.
  *
  * @ingroup public_marketplace_actions
  */
 void marketplace::rejretrem(eosio::name coopname,
-                             eosio::name chairman,
+                             eosio::name signer,
+                             eosio::name braname,
                              checksum256 request_hash,
                              std::string reason,
                              document2 decision) {
   require_auth(coopname);
   eosio::check(reason.size() > 0 && reason.size() <= 500,
-               "rejretrem: reason обязателен (1..500 символов)");
+               "Укажите причину отказа (от 1 до 500 символов)");
+
+  auto branch = get_branch_or_fail(coopname, braname);
+  eosio::check(branch.is_user_authorized(signer),
+               "Подписант не уполномочен принимать решения по заявлениям данного кооперативного участка");
 
   auto r = Marketplace::get_return_request_by_hash_or_fail(coopname, request_hash);
-  eosio::check(r.ku_chairman == chairman,
-               "rejretrem: вы не председатель КУ выдачи");
   eosio::check(r.status == ReturnStatus::PENDING_REVIEW,
-               "rejretrem: заявление не в pending_review");
+               "Заявление не находится на рассмотрении");
 
   if (!is_empty_document(decision)) {
-    verify_document_or_fail(decision, { chairman });
+    verify_document_or_fail(decision, { signer });
   }
 
   Marketplace::update_return_request(coopname, r.id, [&](auto& upd) {

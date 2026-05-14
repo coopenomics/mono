@@ -38,6 +38,15 @@ namespace ReturnStatus {
  * `return_request.hash` — этот hash используется как `process_hash` во всех
  * ledger2-операциях процесса (RETURN + RETURN2).
  *
+ * Привязка к КУ не сохраняется — она может измениться от шага к шагу
+ * (председатель delivery-КУ может рассмотреть удалённо, а очный осмотр сделать
+ * на любом другом КУ; состав доверенных лиц коробки `branches` тоже может
+ * меняться). На каждом действии (aprretrem/rejretrem/accretrn/rejretrn) braname
+ * приходит параметром action'а и валидируется через
+ * `Branch::is_user_authorized(coopname, braname, signer)`. Контракт хранит
+ * только неизменные участники процесса: orderer / offerer (через original Order)
+ * и coopname.
+ *
  * Связь с исходным Order'ом — `original_order_id` + `original_order_hash`;
  * Order.return_request_id ставится в submretrn для двусторонней связи.
  *
@@ -55,7 +64,6 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] return_request {
   checksum256 hash;                                           ///< process_hash для p.mkt.return
   eosio::name coopname;
   eosio::name orderer;                                        ///< пайщик-заказчик (заявитель)
-  eosio::name ku_chairman;                                    ///< председатель КУ выдачи (decision-maker)
 
   uint64_t original_order_id;                                 ///< внутренний id Order'а
   checksum256 original_order_hash;                            ///< process_hash оригинального p.mkt.supply
@@ -80,7 +88,6 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] return_request {
   uint64_t primary_key()           const { return id; }
   checksum256 by_hash()            const { return hash; }
   uint64_t by_orderer()            const { return orderer.value; }
-  uint64_t by_ku_chairman()        const { return ku_chairman.value; }
   uint64_t by_status()             const { return status.value; }
   uint64_t by_original_order()     const { return original_order_id; }
 };
@@ -89,7 +96,6 @@ typedef eosio::multi_index<
     "retrequests"_n, return_request,
     eosio::indexed_by<"byhash"_n,        eosio::const_mem_fun<return_request, checksum256, &return_request::by_hash>>,
     eosio::indexed_by<"byorderer"_n,     eosio::const_mem_fun<return_request, uint64_t,    &return_request::by_orderer>>,
-    eosio::indexed_by<"bykuchair"_n,     eosio::const_mem_fun<return_request, uint64_t,    &return_request::by_ku_chairman>>,
     eosio::indexed_by<"bystatus"_n,      eosio::const_mem_fun<return_request, uint64_t,    &return_request::by_status>>,
     eosio::indexed_by<"byorigorder"_n,   eosio::const_mem_fun<return_request, uint64_t,    &return_request::by_original_order>>>
     return_requests_index;

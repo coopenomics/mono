@@ -1,13 +1,18 @@
 /**
- * @brief Backend / админ выносит проект списания скоропорта (Story 8.1, p.mkt.wroff).
+ * @brief Backend / админ выносит проект списания скоропорта на повестку
+ * совета (Story 8.1, p.mkt.wroff).
  *
- * Без ledger2-операций. Создаётся writeoff_proposal в статусе proposed (= "draft" в YAML);
- * total_amount = Σ items.amount.
+ * Без ledger2-операций. Создаётся writeoff_proposal в статусе proposed
+ * (= "draft" в YAML); total_amount = Σ items.amount; все items создаются
+ * с executed=false. Списание выполняется отдельно — `execwroff(proposal_hash,
+ * item_index, protocol)` исполняет одну позицию за вызов; backend проходит
+ * циклом по items, что снимает ограничение на размер протокола.
  *
  * Guards:
  *  - actor backend (auth coopname).
  *  - items.size() > 0.
  *  - Все items.amount > 0 в _root_govern_symbol.
+ *  - Все items.braname существуют в `branches[coopname]`.
  *  - proposal_hash уникален.
  *
  * @ingroup public_marketplace_actions
@@ -18,19 +23,21 @@ void marketplace::propwroff(eosio::name coopname,
                              std::vector<wroff_item> items) {
   require_auth(coopname);
 
-  eosio::check(!items.empty(), "propwroff: список items пуст");
+  eosio::check(!items.empty(), "Список позиций к списанию пуст");
   eosio::check(!Marketplace::get_writeoff_proposal_by_hash(coopname, proposal_hash).has_value(),
-               "propwroff: проект списания с таким hash уже существует");
+               "Проект списания с таким идентификатором уже создан");
 
   eosio::asset total = eosio::asset(0, _root_govern_symbol);
-  for (const auto& item : items) {
+  for (auto& item : items) {
     eosio::check(item.amount.is_valid() && item.amount.amount > 0,
-                 "propwroff: каждая позиция должна иметь положительную сумму");
+                 "Каждая позиция должна иметь положительную сумму");
     eosio::check(item.amount.symbol == _root_govern_symbol,
-                 "propwroff: некорректный символ валюты позиции");
+                 "Некорректный символ валюты в позиции списания");
+    // КУ-источник существует
+    get_branch_or_fail(coopname, item.braname);
+    item.executed = false;  // защита от случайно проставленного флага
     total += item.amount;
   }
-
 
   writeoff_proposals_index proposals(_marketplace, coopname.value);
   proposals.emplace(_marketplace, [&](auto& p) {

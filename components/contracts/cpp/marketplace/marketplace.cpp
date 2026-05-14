@@ -5,19 +5,18 @@
 // p.mkt.wroff.standard.yaml). Имена подпапок 1:1 совпадают с process_type
 // — связь от файла → к стандарту прозрачная.
 
-// ── p.mkt.supply (10 actions) ──── Stories Эпиков 4-5-6 ────────────────
+// ── p.mkt.supply (9 actions) ─── Stories Эпиков 4-5-6 ──────────────────
 #include "src/p.mkt.supply/createorder.cpp"
 #include "src/p.mkt.supply/cancelorder.cpp"
-#include "src/p.mkt.supply/expirecycle.cpp"
-#include "src/p.mkt.supply/acceptbatch.cpp"
-#include "src/p.mkt.supply/declinebatch.cpp"
-#include "src/p.mkt.supply/prepship.cpp"
+#include "src/p.mkt.supply/expireorder.cpp"
+#include "src/p.mkt.supply/acceptorder.cpp"
+#include "src/p.mkt.supply/declineorder.cpp"
 #include "src/p.mkt.supply/signsupp.cpp"
 #include "src/p.mkt.supply/signchair.cpp"
 #include "src/p.mkt.supply/signiss1.cpp"
 #include "src/p.mkt.supply/signiss2.cpp"
 
-// ── p.mkt.return (5 actions) ───── Stories Эпика 7 ─────────────────────
+// ── p.mkt.return (5 actions) ──── Stories Эпика 7 ──────────────────────
 #include "src/p.mkt.return/submretrn.cpp"
 #include "src/p.mkt.return/aprretrem.cpp"
 #include "src/p.mkt.return/rejretrem.cpp"

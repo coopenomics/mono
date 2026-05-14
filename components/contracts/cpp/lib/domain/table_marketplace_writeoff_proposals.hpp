@@ -38,21 +38,31 @@ namespace WroffStatus {
  *  - на конкретный Order (если позиция «не выдана первичному заказчику») —
  *    `source_order_id` != 0;
  *  - на излишек в результате signiss2 fact > ordered + остаток на складе —
- *    `source_order_id` == 0, аналитика только через `ku_chairman` + `meta`;
+ *    `source_order_id` == 0, аналитика только через `braname` + `meta`;
  *  - на возвращённое имущество из p.mkt.return — `source_order_id` ссылка
  *    через original Order, через который имущество физически вернулось.
+ *
+ * `braname` — кооперативный участок (склад) источник списания. Пер-КУ
+ * аналитика счёта 10. Подпись протокола проверяется через
+ * `Branch::is_user_authorized(coopname, braname, signer)` — председатель
+ * соответствующего КУ может делегировать подпись доверенному лицу.
  *
  * `amount` — сумма к списанию по этой позиции (Дт 91 / Кт 10 в части 1
  * и Дт 86 / Кт 91 в части 2 — обе в одной транзакции execwroff).
  *
  * `meta` — произвольная строка для UI / отчёта (название позиции, причина);
  * не валидируется контрактом.
+ *
+ * `executed` — true после успешного списания этой позиции (см. execwroff
+ * per-item action). Когда все items в proposal.items имеют executed=true,
+ * статус proposal автоматически переходит в EXECUTED.
  */
 struct wroff_item {
   uint64_t source_order_id = 0;                               ///< 0 если списание из складского остатка без привязки к order'у
-  eosio::name ku_chairman;                                    ///< КУ источник списания (per-КУ аналитика счёта 10)
+  eosio::name braname;                                        ///< КУ-склад источник списания
   eosio::asset amount = asset(0, _root_govern_symbol);
   std::string meta;
+  bool executed = false;                                      ///< true после execwroff(proposal_hash, item_index)
 };
 
 /**

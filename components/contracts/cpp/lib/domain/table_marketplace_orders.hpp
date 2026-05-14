@@ -16,17 +16,22 @@ using namespace eosio;
 /**
  * @brief Статусы Order'а в процессе p.mkt.supply.
  *
- * Граф: ∅ → active → cancelled (canceled by orderer | expirecycle | declinebatch)
- *                  → accepted → ship_ready → supply_prepared → accepted_to_coop
- *                                                            → ready_to_receive → received
+ * Граф: ∅ → active → cancelled (canceled by orderer | expireorder | declineorder)
+ *                  → accepted → supply_prepared → accepted_to_coop
+ *                                               → ready_to_receive → received
  *
  * Источник правды — `p.mkt.supply.standard.yaml` секция `states:`.
+ *
+ * Промежуточный статус `ship_ready` (после prepship поставщика) удалён:
+ * после `acceptorder` поставщик автоматически считается обязанным доставить
+ * партию — двойного подтверждения «принял заявку» + «готов отгружать» не
+ * требуется (отдельная подпись «готов отгрузить» лишь добавляет шум в UX).
+ * Переход accepted → supply_prepared идёт сразу через signsupp.
  */
 namespace OrderStatus {
   inline constexpr eosio::name ACTIVE           = "active"_n;
   inline constexpr eosio::name CANCELLED        = "cancelled"_n;
   inline constexpr eosio::name ACCEPTED         = "accepted"_n;
-  inline constexpr eosio::name SHIP_READY       = "shipready"_n;
   inline constexpr eosio::name SUPPLY_PREPARED  = "supplyprep"_n;
   inline constexpr eosio::name ACCEPTED_TO_COOP = "acceptcoop"_n;
   inline constexpr eosio::name READY_TO_RECEIVE = "readyrecv"_n;
@@ -53,6 +58,26 @@ namespace CycleType {
  * `order.hash` — этот hash используется как `process_hash` во всех ledger2-
  * операциях процесса (BLOCK/UNBLOCK/PURCH/PAYOUT/CONSUM/CONSUM2/RETURN).
  *
+ * Привязка к кооперативным участкам (КУ) идёт через `braname` (см. контракт
+ * `branch`, таблица `branches`). Председатель / trustee / доверенные лица
+ * каждого КУ известны контракту `branch` — авторизация подписей актов
+ * выполняется через `Branch::is_user_authorized(coopname, braname, signer)`,
+ * а не по сохранённому имени председателя (председатель может делегировать
+ * подпись доверенному лицу из `coobranch.trusted[]`, состав которого может
+ * меняться независимо от Order'а).
+ *
+ * Точки контракта:
+ *  - `delivery_braname` — КУ выдачи имущества пайщику; задаётся пайщиком на
+ *    createorder и неизменна. Источник проверки signiss1/signiss2/p.mkt.return.
+ *  - `accept_braname`   — КУ приёмки от поставщика; заполняется на signsupp
+ *    как параметр action'а (поставщик указывает, в какой КУ сдаёт партию).
+ *    Источник проверки signchair.
+ *
+ * Поля «текущей точки хранения» (warehouse) и истории внутренних передач между
+ * КУ (заготовочный → точка выдачи и т.п.) — отложены: бизнес-процесс «передача
+ * по ТТН внутри кооператива» сейчас не подписывается. Backend может реконструировать
+ * движение из blockchain_actions при необходимости.
+ *
  * `acceptance_act` (АПП приёмки) и `issue_act` (АПП выдачи) хранятся
  * полным document2 — это дублирование в случае batch-поставки (один
  * физический акт → копия в каждом order'е batch'а), но это допустимо для
@@ -60,25 +85,26 @@ namespace CycleType {
  *
  * `batch_hash` — opaque ссылка на off-chain consolidated request (Locked
  * Decision L10: batch — backend-only сущность). Контракт не валидирует
- * существование batch'а, только хранит ссылку для трассировки и для
- * фильтрации orders по batch_hash при acceptbatch / declinebatch / prepship /
- * signsupp / signchair (контракт принимает vector<order_hash> или
- * batch_hash + сам собирает соответствующие orders).
+ * существование batch'а, только хранит ссылку для трассировки и группировки
+ * Order'ов в UI. Все per-batch операции на on-chain делаются per-Order
+ * (backend проходит циклом по orders батча) — векторов order'ов в action'ах нет.
  *
  * `actual_quantity` / `fact_cost` заполняются на signiss2 (Story 6.2/6.3).
  * До signiss2 равны соответственно `quantity` / `total_cost`.
  *
- * `warranty_until` — рассчитывается в signiss2 как `received_at + warranty_period_secs`
- * (period приходит с Offer'а через backend в `submretrn` валидируется только это поле).
+ * `warranty_until` — рассчитывается в signiss2 как `now() + warranty_period_secs`
+ * (period приходит с Offer'а через backend; в `submretrn` валидируется только это поле).
  */
 struct [[eosio::table, eosio::contract(MARKETPLACE)]] order {
   uint64_t id;                                                ///< внутренний ID
   checksum256 hash;                                           ///< process_hash для p.mkt.supply
   eosio::name coopname;                                       ///< scope-валидация
   eosio::name orderer;                                        ///< пайщик-заказчик
-  eosio::name ku_chairman;                                    ///< председатель КУ выдачи (точка маршрутизации signiss1/signiss2/aprretrem)
+  eosio::name offerer;                                        ///< пайщик-поставщик из Offer'а (для acceptorder/declineorder/signsupp guard'а)
   checksum256 offer_hash;                                     ///< ссылка на Offer (off-chain в backend)
-  eosio::name offerer;                                        ///< пайщик-поставщик из Offer'а (для acceptbatch/declinebatch/prepship/signsupp guard'а)
+
+  eosio::name delivery_braname;                               ///< КУ выдачи (выбран пайщиком на createorder); проверка signiss1/signiss2/p.mkt.return через Branch::is_user_authorized
+  eosio::name accept_braname;                                 ///< КУ приёмки от поставщика (заполняется на signsupp); проверка signchair через Branch::is_user_authorized
 
   uint64_t quantity = 0;                                      ///< заказанное количество
   uint64_t actual_quantity = 0;                               ///< фактически выданное (signiss2); до signiss2 == quantity
@@ -88,22 +114,21 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] order {
 
   eosio::name cycle_type = CycleType::TIME_BASED;             ///< снимок cycle_type Offer'а на момент createorder
   uint32_t warranty_period_secs = 0;                          ///< из Offer'а — для submretrn гард'а
-  time_point_sec warranty_until = time_point_sec(0);          ///< received_at + warranty_period_secs (заполняется в signiss2)
+  time_point_sec warranty_until = time_point_sec(0);          ///< now() + warranty_period_secs (заполняется в signiss2)
 
   eosio::name status = OrderStatus::ACTIVE;                   ///< canonical статус
   checksum256 batch_hash;                                     ///< opaque ссылка на consolidated request (off-chain)
 
   document2 acceptance_act_signsupp;                          ///< АПП приёмки — первая подпись поставщика (signsupp)
-  document2 acceptance_act_signchair;                         ///< АПП приёмки — финальная подпись председателя (signchair)
-  document2 issue_act_signiss1;                               ///< АПП выдачи — первая подпись председателя (signiss1)
+  document2 acceptance_act_signchair;                         ///< АПП приёмки — финальная подпись председателя приёмного КУ (signchair)
+  document2 issue_act_signiss1;                               ///< АПП выдачи — первая подпись председателя КУ выдачи (signiss1)
   document2 issue_act_signiss2;                               ///< АПП выдачи — финальная подпись заказчика (signiss2)
 
   uint64_t return_request_id = 0;                             ///< 0 если активного гарантийного возврата нет
 
-  // Все timestamp'ы переходов состояний (createorder/accepted/shipped/
-  // received_to_coop/ready/received/cancelled) восстанавливаются на бэкенде из
-  // blockchain_actions[at] по соответствующим action'ам — нет смысла держать
-  // их в RAM-таблице. Контракт не использует их в guard'ах.
+  // Все timestamp'ы переходов состояний (createorder/accepted/received_to_coop/
+  // ready/received/cancelled) восстанавливаются на бэкенде из blockchain_actions[at]
+  // по соответствующим action'ам — нет смысла держать их в RAM-таблице.
   // Единственное исключение — warranty_until (выше): нужен on-chain для
   // submretrn guard `now() < warranty_until` без cross-action lookup.
 
@@ -114,7 +139,8 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] order {
   uint64_t by_status()         const { return status.value; }
   checksum256 by_batch()       const { return batch_hash; }
   checksum256 by_offer()       const { return offer_hash; }
-  uint64_t by_ku_chairman()    const { return ku_chairman.value; }
+  uint64_t by_delivery_bra()   const { return delivery_braname.value; }
+  uint64_t by_accept_bra()     const { return accept_braname.value; }
 };
 
 typedef eosio::multi_index<
@@ -125,7 +151,8 @@ typedef eosio::multi_index<
     eosio::indexed_by<"bystatus"_n,     eosio::const_mem_fun<order, uint64_t,    &order::by_status>>,
     eosio::indexed_by<"bybatch"_n,      eosio::const_mem_fun<order, checksum256, &order::by_batch>>,
     eosio::indexed_by<"byoffer"_n,      eosio::const_mem_fun<order, checksum256, &order::by_offer>>,
-    eosio::indexed_by<"bykuchair"_n,    eosio::const_mem_fun<order, uint64_t,    &order::by_ku_chairman>>>
+    eosio::indexed_by<"bydelivbra"_n,   eosio::const_mem_fun<order, uint64_t,    &order::by_delivery_bra>>,
+    eosio::indexed_by<"byacceptbra"_n,  eosio::const_mem_fun<order, uint64_t,    &order::by_accept_bra>>>
     orders_index;
 
 } // namespace Marketplace
