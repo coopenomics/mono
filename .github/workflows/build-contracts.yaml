@@ -28,15 +28,12 @@ name: Build contracts container
 #   TELEGRAM_BOT_TOKEN  / TELEGRAM_CHAT_ID — уведомления
 
 on:
-  push:
-    branches: [dev, testnet, main]
-    paths:
-      - 'components/contracts/cpp/**'
-      - 'components/contracts/CMakeLists.txt'
-      - 'components/contracts/build.sh'
-      - 'components/contracts/build-all.sh'
-      - 'components/contracts/docker/**'
-      - '.github/workflows/build-contracts.yaml'
+  # Только ручной запуск. Тэги (релизы) обрабатывает release.yaml,
+  # который собирает контракты атомарно вместе с контейнерами и
+  # webhook'ом — отдельная сборка по push'у в ветку только мешает
+  # (две параллельные сборки на каждый release-bump). Здесь оставляем
+  # workflow_dispatch для ручной пересборки `dicoop/contracts:<branch>`
+  # (например, чтобы прокатить wasm на dev-ноду без релизного тэга).
   workflow_dispatch:
 
 jobs:
