@@ -52,7 +52,7 @@ describe('MarketplaceMemberWalletResolver', () => {
     expect(dto.wallets[0]).toMatchObject({
       name: 'w.wal.share',
       program_id: 1,
-      program_label: 'ЦК',
+      label: 'Паевой | Цифровой Кошелёк',
       kind: 'USER_SHARED',
       available: '125.0000 RUB',
       blocked: '5.0000 RUB',
@@ -60,13 +60,14 @@ describe('MarketplaceMemberWalletResolver', () => {
     expect(dto.wallets[1]).toMatchObject({
       name: 'w.wal.member',
       program_id: 1,
+      label: 'Членский | Цифровой Кошелёк',
       available: '0',
       blocked: '0',
     });
     expect(dto.wallets[2]).toMatchObject({
       name: 'w.mkt.member',
       program_id: 2,
-      program_label: 'Marketplace',
+      label: 'Членский | Стол Заказов',
       available: '300.0000 RUB',
       blocked: '0.0000 RUB',
     });

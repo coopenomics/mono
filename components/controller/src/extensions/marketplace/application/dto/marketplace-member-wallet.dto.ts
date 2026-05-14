@@ -31,11 +31,14 @@ export class MarketplaceWalletEntryDTO {
   @Field(() => String, { description: 'Человекочитаемое название (из cooptypes LEDGER2_WALLET_REGISTRY)' })
   public readonly human_name!: string;
 
-  @Field(() => Int, { description: 'program_id: 1 — ЦК, 2 — Marketplace' })
+  @Field(() => Int, { description: 'program_id: 1 — Цифровой Кошелёк, 2 — Стол Заказов' })
   public readonly program_id!: number;
 
-  @Field(() => String, { description: 'Метка программы из LEDGER2_USER_SHARED_PROGRAM_MAPPING' })
-  public readonly program_label!: string;
+  @Field(() => String, {
+    description:
+      'UX-метка кошелька в формате `<тип взноса> | <программа>` (например «Паевой | Цифровой Кошелёк», «Членский | Стол Заказов»)',
+  })
+  public readonly label!: string;
 
   @Field(() => String, { description: 'WalletKind: USER_SHARED — обязателен L3-разрез по пайщику' })
   public readonly kind!: string;
@@ -50,7 +53,7 @@ export class MarketplaceWalletEntryDTO {
     name: string;
     human_name: string;
     program_id: number;
-    program_label: string;
+    label: string;
     kind: string;
     available: string;
     blocked: string;
@@ -58,7 +61,7 @@ export class MarketplaceWalletEntryDTO {
     this.name = init.name;
     this.human_name = init.human_name;
     this.program_id = init.program_id;
-    this.program_label = init.program_label;
+    this.label = init.label;
     this.kind = init.kind;
     this.available = init.available;
     this.blocked = init.blocked;
