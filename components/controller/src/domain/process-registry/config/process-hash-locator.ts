@@ -121,10 +121,12 @@ export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Ob
   // текущего состояния (контроллер не получит operation_codes, требующие
   // этих locator'ов).
   //
-  // TODO (при реализации контракта marketplace членской модели):
-  // подставить { code: 'marketplace', table: '<TBD>', field: 'request_hash' }.
-  // Универсальное имя поля — `request_hash` (а не `order_hash`, чтобы не
-  // путать с `offer_hash` в orderoffer-actions).
+  // Status (Story 1.1, 2026-05-14): расширение `market` устанавливается из
+  // Каталога приложений; ключи `p.mkt.*` в Phase B готовы к активации.
+  // Реальные `{code, table, field}` подставляются в Story 4.1 при создании
+  // backend-таблицы консолидированных заявок (Locked Decision L10) — поле
+  // `request_hash` (а не `order_hash`, чтобы не путать с `offer_hash` в
+  // orderoffer-actions).
   'p.mkt.supply': [],
   'p.mkt.return': [],
   'p.mkt.wroff':  [],

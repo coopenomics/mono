@@ -4,13 +4,17 @@ import { Injectable } from '@nestjs/common';
 import { ExtensionDomainService } from '~/domain/extension/services/extension-domain.service';
 import { ExtensionDomainEntity } from '~/domain/extension/entities/extension-domain.entity';
 import { ExtensionLifecycleDomainService } from '~/domain/extension/services/extension-lifecycle-domain.service';
+import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 
 @Injectable()
 export class ExtensionInteractor<TConfig = any> {
   constructor(
     private readonly extensionDomainService: ExtensionDomainService<TConfig>,
-    private readonly appLifecycleService: ExtensionLifecycleDomainService
-  ) {}
+    private readonly appLifecycleService: ExtensionLifecycleDomainService,
+    private readonly logger: WinstonLoggerService
+  ) {
+    this.logger.setContext(ExtensionInteractor.name);
+  }
 
   async runApps() {
     await this.appLifecycleService.runApps();
@@ -45,12 +49,37 @@ export class ExtensionInteractor<TConfig = any> {
     return app;
   }
 
-  // Установка нового приложения
+  // Установка нового приложения с atomic-rollback при провале runApp.
+  // Если запись об этом расширении уже существовала до вызова install,
+  // rollback не сносит её — ограничиваемся пробросом исключения.
   async installApp(appData: Partial<ExtensionDomainEntity<TConfig>>): Promise<ExtensionDomainEntity<TConfig>> {
-    // Установка нового приложения
+    const preExisting = appData.name
+      ? await this.extensionDomainService.getAppByName(appData.name as string)
+      : null;
+
     const app = await this.extensionDomainService.installApp(appData);
-    // Запуск приложения
-    if (appData.enabled) await this.runApp(app.name);
+
+    if (appData.enabled) {
+      try {
+        await this.runApp(app.name);
+      } catch (error) {
+        this.logger.error(
+          `[INSTALL_APP] Расширение ${app.name} провалилось на runApp — откатываю установку`,
+          error instanceof Error ? error.stack : String(error)
+        );
+        if (!preExisting) {
+          try {
+            await this.uninstallApp({ name: app.name });
+          } catch (rollbackError) {
+            this.logger.error(
+              `[INSTALL_APP] Rollback uninstallApp(${app.name}) тоже провалился`,
+              rollbackError instanceof Error ? rollbackError.stack : String(rollbackError)
+            );
+          }
+        }
+        throw error;
+      }
+    }
 
     return app;
   }
