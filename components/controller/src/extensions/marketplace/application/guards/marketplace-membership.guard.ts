@@ -6,6 +6,7 @@ import { MonoAccountStatusDomainInterface } from '~/domain/account/interfaces/mo
 
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import { mapUserRoleToCoreRoles } from '../membership/core-roles.mapper';
+import { mapCoreRolesToMarketplaceRoles } from '../membership/marketplace-roles.mapper';
 
 /**
  * Guard расширения marketplace (Стол заказов, Story 1.3).
@@ -44,10 +45,15 @@ export class MarketplaceMembershipGuard implements CanActivate {
       throw new ForbiddenException('Доступ только для пайщиков кооператива');
     }
 
+    const coreRoles = mapUserRoleToCoreRoles(user.role);
+    // Story 1.6: context-флаги (isOfferer/isKuChairman) пока всегда false —
+    // источники whitelist и КУ-председательства реализуются в Эпиках 2/3.
+    const marketplaceRoles = mapCoreRolesToMarketplaceRoles(coreRoles, {});
+
     const currentMember: IMarketplaceCurrentMember = {
       username: user.username,
-      core_roles: mapUserRoleToCoreRoles(user.role),
-      marketplace_roles: [],
+      core_roles: coreRoles,
+      marketplace_roles: marketplaceRoles,
     };
 
     request.currentMember = currentMember;

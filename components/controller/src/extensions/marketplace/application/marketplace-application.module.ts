@@ -9,6 +9,7 @@ import { MarketplaceMembershipResolver } from './resolvers/marketplace-membershi
 import { MarketplaceOnboardingResolver } from './resolvers/marketplace-onboarding.resolver';
 import { MarketplaceMemberWalletResolver } from './resolvers/marketplace-member-wallet.resolver';
 import { MarketplaceMembershipGuard } from './guards/marketplace-membership.guard';
+import { MarketplaceRoleGuard } from './guards/marketplace-role.guard';
 import { MarketplaceOnboardingService } from './onboarding/marketplace-onboarding.service';
 import { CategoryTreeService, CATEGORY_TREE_SERVICE } from './services/category-tree.service';
 
@@ -28,8 +29,9 @@ import { CategoryTreeService, CATEGORY_TREE_SERVICE } from './services/category-
     MarketplaceOnboardingResolver,
     MarketplaceMemberWalletResolver,
 
-    // Guards (Story 1.3)
+    // Guards (Story 1.3 / Story 1.6)
     MarketplaceMembershipGuard,
+    MarketplaceRoleGuard,
 
     // Сервисы приложения
     {
@@ -43,6 +45,7 @@ import { CategoryTreeService, CATEGORY_TREE_SERVICE } from './services/category-
     // Экспортируем сервисы для использования в других модулях
     CATEGORY_TREE_SERVICE,
     MarketplaceMembershipGuard,
+    MarketplaceRoleGuard,
     MarketplaceOnboardingService,
 
     // Экспортируем резолверы для регистрации в GraphQL

@@ -44,7 +44,7 @@ describe('MarketplaceMembershipGuard', () => {
     guard = new MarketplaceMembershipGuard();
   });
 
-  it('user.role=user, status=active → пропускает, в ctx [User]', () => {
+  it('user.role=user, status=active → пропускает, ctx [User] + marketplace_roles=[orderer]', () => {
     const req = { user: { username: 'alice', role: 'user', status: 'active' }, headers: {} };
     const ctx = makeCtx(req);
 
@@ -52,23 +52,33 @@ describe('MarketplaceMembershipGuard', () => {
     expect((ctx as any)._gqlCtx.currentMember).toEqual({
       username: 'alice',
       core_roles: ['User'],
-      marketplace_roles: [],
+      marketplace_roles: ['orderer'],
     });
     expect(req).toHaveProperty('currentMember');
   });
 
-  it('user.role=member, status=active → core_roles [User, Member]', () => {
+  it('user.role=member, status=active → core_roles [User, Member] + marketplace_roles [orderer, board_readonly]', () => {
     const req = { user: { username: 'bob', role: 'member', status: 'active' }, headers: {} };
     const ctx = makeCtx(req);
     expect(guard.canActivate(ctx as any)).toBe(true);
     expect((ctx as any)._gqlCtx.currentMember.core_roles).toEqual(['User', 'Member']);
+    expect((ctx as any)._gqlCtx.currentMember.marketplace_roles).toEqual([
+      'orderer',
+      'board_readonly',
+    ]);
   });
 
-  it('user.role=chairman, status=active → core_roles [User, Member, Chairman]', () => {
+  it('user.role=chairman, status=active → core_roles [User, Member, Chairman] + marketplace_roles полный набор', () => {
     const req = { user: { username: 'chair', role: 'chairman', status: 'active' }, headers: {} };
     const ctx = makeCtx(req);
     expect(guard.canActivate(ctx as any)).toBe(true);
     expect((ctx as any)._gqlCtx.currentMember.core_roles).toEqual(['User', 'Member', 'Chairman']);
+    expect((ctx as any)._gqlCtx.currentMember.marketplace_roles).toEqual([
+      'orderer',
+      'board_readonly',
+      'admin',
+      'board',
+    ]);
   });
 
   it('status != active → 403 Forbidden «Доступ только для пайщиков кооператива»', () => {
