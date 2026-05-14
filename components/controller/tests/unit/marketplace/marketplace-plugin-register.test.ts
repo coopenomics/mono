@@ -47,8 +47,10 @@ describe('registerMarketplaceInAgreementRegistry', () => {
 
   it('константы используют согласованные имена для on-chain и реестра', () => {
     expect(MARKETPLACE_EXTENSION_NAME).toBe('market');
-    expect(MARKETPLACE_OFFER_AGREEMENT_ID).toBe('order_table_offer');
-    expect(MARKETPLACE_AGREEMENT_TYPE).toBe('order_table');
+    expect(MARKETPLACE_OFFER_AGREEMENT_ID).toBe('marketplace_offer');
+    // eosio::name: max 12 chars, без `_`; совпадает с _marketplace_program в lib/consts.hpp.
+    expect(MARKETPLACE_AGREEMENT_TYPE).toBe('marketplace');
+    expect(MARKETPLACE_AGREEMENT_TYPE).toMatch(/^[.a-z1-5]{1,12}$/);
   });
 
   it('программы для marketplace MVP не регистрируются (Стол заказов — ЦПП без program-надстройки)', () => {

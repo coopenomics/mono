@@ -5,6 +5,11 @@
  * регистрирует в платформенном AgreementRegistry через
  * `register-marketplace-in-agreement-registry.ts` (аналог Capital, Story 1.2).
  *
+ * `MARKETPLACE_AGREEMENT_TYPE` совпадает с program-именем в контракте
+ * `lib/consts.hpp`: `_marketplace_program = "marketplace"_n` (program_id=2).
+ * `_` в `eosio::name` запрещён, поэтому имя без подчёркиваний; см. также
+ * `w.mkt.member` (`wallets.generated.ts`) и whitelist `marketplace`-контракта.
+ *
  * `MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID` — `document_registry_id` шаблона
  * оферты ЦПП «Стол заказов» в платформенной фабрике документов. До тех пор,
  * пока Story 1.7 (one-time platform setup) не выполнена и константа не
@@ -20,12 +25,13 @@
 
 export const MARKETPLACE_EXTENSION_NAME = 'market';
 
-export const MARKETPLACE_OFFER_AGREEMENT_ID = 'order_table_offer';
+export const MARKETPLACE_OFFER_AGREEMENT_ID = 'marketplace_offer';
 
-// On-chain имя оферты «Стол заказов» в `soviet::coagreements`. Должно совпадать
-// со значением, которое контракт принимает в sndagreement/signagree — иначе
-// `get_coagreement_or_fail` упадёт «Соглашение указанного типа не найдено».
-export const MARKETPLACE_AGREEMENT_TYPE = 'order_table';
+// On-chain имя оферты в `soviet::coagreements`. Контракт принимает eosio::name
+// (a-z, 1-5, точка, max 12) — `_` запрещён. Значение совпадает с
+// `_marketplace_program = "marketplace"_n` (lib/consts.hpp, program_id=2), иначе
+// `get_coagreement_or_fail` падает «Соглашение указанного типа не найдено».
+export const MARKETPLACE_AGREEMENT_TYPE = 'marketplace';
 
 // Placeholder, наполняется в Story 1.7 (one-time platform setup template'а в
 // document factory) → правильное место — `Cooperative.Registry.MarketplaceOffer.registry_id`.
