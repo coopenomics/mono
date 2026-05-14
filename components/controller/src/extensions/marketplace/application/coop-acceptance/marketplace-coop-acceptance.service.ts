@@ -1,12 +1,17 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, Optional } from '@nestjs/common';
 
 import {
   EXTENSION_REPOSITORY,
   ExtensionDomainRepository,
 } from '~/domain/extension/repositories/extension-domain.repository';
+import {
+  AGREEMENT_REGISTRATION_PORT,
+  AgreementRegistrationPort,
+} from '~/domain/registration/ports/agreement-registration.port';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 
 import { MARKETPLACE_EXTENSION_NAME } from '../../constants/marketplace-agreement-ids';
+import { registerMarketplaceInAgreementRegistry } from '../registration/register-marketplace-in-agreement-registry';
 import type { IConfig, ICoopAcceptanceConfig } from '../../types';
 import { defaultConfig } from '../../types';
 
@@ -48,7 +53,14 @@ export class MarketplaceCoopAcceptanceService {
   constructor(
     @Inject(EXTENSION_REPOSITORY)
     private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
-    private readonly logger: WinstonLoggerService
+    private readonly logger: WinstonLoggerService,
+    // Story 1.10: side-effect — re-register marketplace-оферту в core
+    // AgreementRegistry после accept. Идемпотентно: AgreementRegistryService
+    // не дублирует записи по (id, extension_name). @Optional для unit-тестов
+    // Story 1.9, которые тестируют только accept без агрегата registration.
+    @Optional()
+    @Inject(AGREEMENT_REGISTRATION_PORT)
+    private readonly agreementRegistrationPort?: AgreementRegistrationPort
   ) {
     this.logger.setContext(MarketplaceCoopAcceptanceService.name);
   }
@@ -103,6 +115,26 @@ export class MarketplaceCoopAcceptanceService {
     this.logger.info(
       `[MARKETPLACE.L1] Положение ЦПП принято: document_registry_id=${input.document_registry_id}, board_decision_id=${input.accepted_by_board_decision_id}, accepted_at=${accepted_at}`
     );
+
+    // Story 1.10 side-effect: re-register оферту в core AgreementRegistry
+    // (идемпотентно). Покрывает кейс, когда Story 1.7 поставила template
+    // позже restart-а расширения и `MarketplacePlugin.initialize` пропустил
+    // регистрацию (placeholder=0).
+    if (this.agreementRegistrationPort) {
+      try {
+        const ok = registerMarketplaceInAgreementRegistry(this.agreementRegistrationPort);
+        if (ok) {
+          this.logger.info('[MARKETPLACE.L1] оферта re-registered в core AgreementRegistry');
+        } else {
+          this.logger.warn(
+            '[MARKETPLACE.L1] re-register пропущен (MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID = 0)'
+          );
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.logger.error(`[MARKETPLACE.L1] re-register failed: ${message}`);
+      }
+    }
 
     return {
       status: 'active',

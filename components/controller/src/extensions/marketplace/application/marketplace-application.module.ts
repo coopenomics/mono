@@ -9,6 +9,7 @@ import { MarketplaceMembershipResolver } from './resolvers/marketplace-membershi
 import { MarketplaceOnboardingResolver } from './resolvers/marketplace-onboarding.resolver';
 import { MarketplaceMemberWalletResolver } from './resolvers/marketplace-member-wallet.resolver';
 import { MarketplaceCoopAcceptanceResolver } from './resolvers/marketplace-coop-acceptance.resolver';
+import { MarketplaceRegistrationOfferResolver } from './resolvers/marketplace-registration-offer.resolver';
 import { MarketplaceMembershipGuard } from './guards/marketplace-membership.guard';
 import { MarketplaceRoleGuard } from './guards/marketplace-role.guard';
 import { MarketplaceOnboardingService } from './onboarding/marketplace-onboarding.service';
@@ -31,6 +32,7 @@ import { CategoryTreeService, CATEGORY_TREE_SERVICE } from './services/category-
     MarketplaceOnboardingResolver,
     MarketplaceMemberWalletResolver,
     MarketplaceCoopAcceptanceResolver,
+    MarketplaceRegistrationOfferResolver,
 
     // Guards (Story 1.3 / Story 1.6)
     MarketplaceMembershipGuard,
@@ -62,6 +64,7 @@ import { CategoryTreeService, CATEGORY_TREE_SERVICE } from './services/category-
     MarketplaceOnboardingResolver,
     MarketplaceMemberWalletResolver,
     MarketplaceCoopAcceptanceResolver,
+    MarketplaceRegistrationOfferResolver,
   ],
 })
 export class MarketplaceExtensionApplicationModule {}
