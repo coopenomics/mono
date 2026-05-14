@@ -8,9 +8,11 @@ import { RequestResolver } from './resolvers/request.resolver';
 import { MarketplaceMembershipResolver } from './resolvers/marketplace-membership.resolver';
 import { MarketplaceOnboardingResolver } from './resolvers/marketplace-onboarding.resolver';
 import { MarketplaceMemberWalletResolver } from './resolvers/marketplace-member-wallet.resolver';
+import { MarketplaceCoopAcceptanceResolver } from './resolvers/marketplace-coop-acceptance.resolver';
 import { MarketplaceMembershipGuard } from './guards/marketplace-membership.guard';
 import { MarketplaceRoleGuard } from './guards/marketplace-role.guard';
 import { MarketplaceOnboardingService } from './onboarding/marketplace-onboarding.service';
+import { MarketplaceCoopAcceptanceService } from './coop-acceptance/marketplace-coop-acceptance.service';
 import { CategoryTreeService, CATEGORY_TREE_SERVICE } from './services/category-tree.service';
 
 /**
@@ -28,6 +30,7 @@ import { CategoryTreeService, CATEGORY_TREE_SERVICE } from './services/category-
     MarketplaceMembershipResolver,
     MarketplaceOnboardingResolver,
     MarketplaceMemberWalletResolver,
+    MarketplaceCoopAcceptanceResolver,
 
     // Guards (Story 1.3 / Story 1.6)
     MarketplaceMembershipGuard,
@@ -40,6 +43,7 @@ import { CategoryTreeService, CATEGORY_TREE_SERVICE } from './services/category-
     },
     CategoryTreeService,
     MarketplaceOnboardingService,
+    MarketplaceCoopAcceptanceService,
   ],
   exports: [
     // Экспортируем сервисы для использования в других модулях
@@ -47,6 +51,7 @@ import { CategoryTreeService, CATEGORY_TREE_SERVICE } from './services/category-
     MarketplaceMembershipGuard,
     MarketplaceRoleGuard,
     MarketplaceOnboardingService,
+    MarketplaceCoopAcceptanceService,
 
     // Экспортируем резолверы для регистрации в GraphQL
     CategoryTreeResolver,
@@ -56,6 +61,7 @@ import { CategoryTreeService, CATEGORY_TREE_SERVICE } from './services/category-
     MarketplaceMembershipResolver,
     MarketplaceOnboardingResolver,
     MarketplaceMemberWalletResolver,
+    MarketplaceCoopAcceptanceResolver,
   ],
 })
 export class MarketplaceExtensionApplicationModule {}
