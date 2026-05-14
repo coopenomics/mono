@@ -1,48 +1,32 @@
 #include "marketplace.hpp"
-#include <eosio/transaction.hpp>
 
-// Процесс поставки по заявкам orderoffer
-#include "src/deliver_on_offer/orderoffer.cpp"
-#include "src/deliver_on_offer/accept.cpp"
-#include "src/deliver_on_offer/authcontrib.cpp"
-#include "src/deliver_on_offer/authreturn.cpp"
-#include "src/deliver_on_offer/declineacc.cpp"
-#include "src/deliver_on_offer/supply.cpp"
-#include "src/deliver_on_offer/supplcnf.cpp"
+// p.mkt.supply (10 actions) — Stories Эпиков 4-5-6.
+#include "src/createorder.cpp"
+#include "src/cancelorder.cpp"
+#include "src/expirecycle.cpp"
+#include "src/acceptbatch.cpp"
+#include "src/declinebatch.cpp"
+#include "src/prepship.cpp"
+#include "src/signsupp.cpp"
+#include "src/signchair.cpp"
+#include "src/signiss1.cpp"
+#include "src/signiss2.cpp"
 
-#include "src/deliver_on_offer/coopstock.cpp"
-#include "src/deliver_on_offer/acceptstock.cpp"
-#include "src/deliver_on_offer/reqreturn.cpp"
-#include "src/deliver_on_offer/delivered.cpp"
-#include "src/deliver_on_offer/receive.cpp"
-#include "src/deliver_on_offer/receivecnf.cpp"
-#include "src/deliver_on_offer/complete.cpp"
-#include "src/deliver_on_offer/decline.cpp"
-#include "src/deliver_on_offer/cancel.cpp"
+// p.mkt.return (5 actions) — Stories Эпика 7.
+#include "src/submretrn.cpp"
+#include "src/aprretrem.cpp"
+#include "src/rejretrem.cpp"
+#include "src/accretrn.cpp"
+#include "src/rejretrn.cpp"
 
-// Новая система перевозок
-#include "src/shipment/createship.cpp"
-#include "src/shipment/signbydriver.cpp"
-#include "src/shipment/arrived.cpp"
-#include "src/shipment/receiveshipm.cpp"
-#include "src/shipment/retransport.cpp"
+// p.mkt.wroff (3 actions) — Stories Эпика 8.
+#include "src/propwroff.cpp"
+#include "src/execwroff.cpp"
+#include "src/declwroff.cpp"
 
-// ORDER→OFFER direction
-#include "src/deliver_on_order/createorder.cpp"
-#include "src/deliver_on_order/respondoffer.cpp"
-
-// Уничтожение и перепредложение
-#include "src/deliver_on_offer/destroy.cpp"
-#include "src/deliver_on_offer/reoffer.cpp"
-
-// Диспуты
-#include "src/dispute_on_offer/dispute.cpp"
-#include "src/dispute_on_offer/wauthorize.cpp"
-#include "src/dispute_on_offer/wreturn.cpp"
-#include "src/dispute_on_offer/woffer.cpp"
-#include "src/dispute_on_offer/waccept.cpp"
-
-
-[[eosio::action]] void marketplace::migrate(){
-  // require_auth(_marketplace);
+[[eosio::action]] void marketplace::migrate() {
+  // Donor-таблиц нет (AR30 — donor-actions удалены вместе с requests/segments/
+  // shipments). Заглушка остаётся для совместимости с прежним ABI; вызывать
+  // не имеет эффекта.
+  require_auth(_marketplace);
 }

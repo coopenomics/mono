@@ -1,3 +1,5 @@
+#pragma once
+
 #include <eosio/asset.hpp>
 #include <eosio/contract.hpp>
 #include <eosio/crypto.hpp>
@@ -6,40 +8,46 @@
 #include <eosio/system.hpp>
 #include <eosio/time.hpp>
 
-#include "../lib/index.hpp"
+#include <string>
+#include <vector>
 
+#include "../lib/index.hpp"
+#include "../lib/core/marketplace/marketplace.hpp"
+#include "../lib/core/ledger2/ledger2.hpp"
+
+using namespace eosio;
 using namespace Marketplace;
 
 /**
- *  \ingroup public_contracts
- *  @brief Класс `marketplace` предоставляет функционал кооперативного маркетплейса, позволяя пользователям
- *  создавать, обновлять, принимать и отменять заявки на обмен товаров и услуг. Этот контракт служит
- *  центральной точкой для всех операций обмена в рамках кооперативной экосистемы.
+ * \ingroup public_contracts
  *
- *  Основные функции класса:
- *  - Создание и управление заявками типа orderoffer (заказчик → поставщик).
- *  - Операции обновления, принятия, отказа и завершения обменных операций.
- *  - Модерация и управление публикацией заявок на обмен.
- *  - Административные функции, такие как создание идентификаторов и авторизация операций.
- *  
- *  ## Процесс поставки orderoffer:
- *  
- *  1. **orderoffer** - заказчик создает заявку с документами на возврат и конвертацию, средства блокируются
- *  2. **accept** - поставщик принимает заявку и предоставляет документы на взнос и конвертацию
- *  3. **authcontrib/authreturn** - совет авторизует оба заявления раздельно
- *  4. **supply** → **supplcnf** - поставка товара и подтверждение председателем КУ
- *  5. **deliver1** → **deliver2** → **deliver3** → **deliver4** - этапы транспортировки
- *  6. **receive** → **receivecnf** - получение товара заказчиком
- *  7. **complete** - завершение поставки после гарантийного периода
- *  
- *  ## Документооборот:
- *  
- *  Все документы сохраняются в векторе `std::vector<document2> documents` в заявке.
- *  Каждый этап процесса добавляет необходимые документы в этот вектор.
- *  
- *  \note Контракт маркетплейса является центральной точкой экономической активности на платформе.
- *  \note Система упрощена для работы с одной заявкой вместо двух встречных.
- */       
+ * @brief Контракт `marketplace` — кооперативный «Стол заказов» в режиме
+ * членских взносов.
+ *
+ * Реализует 18 canonical actions трёх процессов из YAML-стандартов:
+ *  - **p.mkt.supply** (10 actions): createorder, cancelorder, expirecycle,
+ *    acceptbatch, declinebatch, prepship, signsupp, signchair, signiss1, signiss2.
+ *  - **p.mkt.return** (5 actions): submretrn, aprretrem, rejretrem, accretrn,
+ *    rejretrn.
+ *  - **p.mkt.wroff** (3 actions): propwroff, execwroff, declwroff.
+ *
+ * Все ledger2-движения средств — через `Ledger2::apply(_marketplace, …)`,
+ * никаких прямых wallet/account-операций. 13 marketplace-операций
+ * зарегистрированы в `lib/core/ledger2/operations.hpp` (`OPERATION_REGISTRY`).
+ *
+ * Composite-операции (consum+consum2, return+return2, wroff+wroff2) —
+ * последовательные `Ledger2::apply` в одной транзакции Antelope (атомарность
+ * через single-action wrapper).
+ *
+ * Источник правды по логике actions, гардам, state-переходам и
+ * операциям — три YAML-файла рядом с этим .hpp:
+ *  - `p.mkt.supply.standard.yaml`
+ *  - `p.mkt.return.standard.yaml`
+ *  - `p.mkt.wroff.standard.yaml`
+ *
+ * Donor-actions старой клиринговой модели (FR19a, AR30) удалены вместе с
+ * соответствующими таблицами `Marketplace::request/segment/shipment`.
+ */
 class [[eosio::contract(MARKETPLACE)]] marketplace : public eosio::contract {
 
 public:
@@ -47,62 +55,210 @@ public:
               eosio::datastream<const char *> ds)
       : eosio::contract(receiver, code, ds) {}
 
-  void apply(uint64_t receiver, uint64_t code, uint64_t action);
+  // ── p.mkt.supply ─────────────────────────────────────────────────────
+
+  /**
+   * @brief Заказчик размещает заказ на товар из каталога (Story 4.1).
+   * Серия: o.wal.conv (conditional) → o.mkt.assign (conditional) → o.mkt.block.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void createorder(eosio::name coopname,
+                                      eosio::name orderer,
+                                      checksum256 order_hash,
+                                      checksum256 offer_hash,
+                                      eosio::name offerer,
+                                      eosio::name ku_chairman,
+                                      uint64_t quantity,
+                                      eosio::asset unit_price,
+                                      eosio::name cycle_type,
+                                      uint32_t warranty_period_secs);
+
+  /**
+   * @brief Заказчик отменяет заказ до акцепта (Story 4.4). Триггерит o.mkt.unblk.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void cancelorder(eosio::name coopname,
+                                      eosio::name orderer,
+                                      checksum256 order_hash);
+
+  /**
+   * @brief Backend закрывает цикл отсечки заявок (Story 4.3).
+   * Если threshold не достигнут — для каждого order: o.mkt.unblk + cancellation.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void expirecycle(eosio::name coopname,
+                                      checksum256 batch_hash,
+                                      std::vector<checksum256> order_hashes,
+                                      bool threshold_reached);
+
+  /**
+   * @brief Поставщик акцептует консолидированную заявку (Story 4.5).
+   * Без ledger2-операций — только статус-переход active → accepted.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void acceptbatch(eosio::name coopname,
+                                      eosio::name offerer,
+                                      checksum256 batch_hash,
+                                      std::vector<checksum256> order_hashes);
+
+  /**
+   * @brief Поставщик отказывается от заявки до акцепта (Story 4.5).
+   * Для каждого order: o.mkt.unblk + cancellation.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void declinebatch(eosio::name coopname,
+                                       eosio::name offerer,
+                                       checksum256 batch_hash,
+                                       std::vector<checksum256> order_hashes);
+
+  /**
+   * @brief Поставщик собирает партию к отгрузке (Story 5.1).
+   * Жёсткий акцепт: состав ровно как акцептованный. Без ledger2-операций.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void prepship(eosio::name coopname,
+                                   eosio::name offerer,
+                                   checksum256 batch_hash,
+                                   std::vector<checksum256> order_hashes,
+                                   eosio::name shipping_method);
+
+  /**
+   * @brief Поставщик ставит первую подпись на АПП приёмки (Story 5.3/5.4).
+   * Без ledger2-операций — только статус supply_prepared.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void signsupp(eosio::name coopname,
+                                   eosio::name offerer,
+                                   checksum256 batch_hash,
+                                   std::vector<checksum256> order_hashes,
+                                   document2 act);
+
+  /**
+   * @brief Председатель ставит закрывающую подпись на АПП приёмки (Story 5.3/5.4).
+   * Per-Order: o.mkt.purch + o.mkt.payout (атомарно в одной транзакции).
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void signchair(eosio::name coopname,
+                                    eosio::name chairman,
+                                    checksum256 batch_hash,
+                                    std::vector<checksum256> order_hashes,
+                                    document2 act);
+
+  /**
+   * @brief Председатель открывает выдачу первой подписью АПП-выдачи (Story 6.1).
+   * Без ledger2-операций — только статус ready_to_receive.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void signiss1(eosio::name coopname,
+                                   eosio::name chairman,
+                                   checksum256 order_hash,
+                                   document2 act);
+
+  /**
+   * @brief Заказчик ставит финальную подпись АПП-выдачи (Story 6.3).
+   * Per-Order с поддержкой actual_quantity ≠ ordered (Story 6.2).
+   * Atomic: [o.mkt.unblk на разницу если actual<ordered |
+   *          o.wal.conv+o.mkt.assign+o.mkt.block на разницу если actual>ordered]
+   *         + o.mkt.consum + o.mkt.consum2.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void signiss2(eosio::name coopname,
+                                   eosio::name orderer,
+                                   checksum256 order_hash,
+                                   uint64_t actual_quantity,
+                                   document2 act);
+
+  // ── p.mkt.return ─────────────────────────────────────────────────────
+
+  /**
+   * @brief Пайщик подаёт заявление на гарантийный возврат (Story 7.1).
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void submretrn(eosio::name coopname,
+                                    eosio::name orderer,
+                                    checksum256 request_hash,
+                                    checksum256 original_order_hash,
+                                    uint64_t actual_quantity,
+                                    std::string reason_text,
+                                    std::vector<checksum256> photos,
+                                    document2 statement);
+
+  /**
+   * @brief Председатель удалённо одобряет очный визит (Story 7.2).
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void aprretrem(eosio::name coopname,
+                                    eosio::name chairman,
+                                    checksum256 request_hash,
+                                    document2 decision);
+
+  /**
+   * @brief Председатель удалённо отказывает (Story 7.2).
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void rejretrem(eosio::name coopname,
+                                    eosio::name chairman,
+                                    checksum256 request_hash,
+                                    std::string reason,
+                                    document2 decision);
+
+  /**
+   * @brief Председатель принимает возврат на очном осмотре (Story 7.4).
+   * Atomic: o.mkt.return + o.mkt.return2 (compensating forward).
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void accretrn(eosio::name coopname,
+                                   eosio::name chairman,
+                                   checksum256 request_hash,
+                                   document2 decision);
+
+  /**
+   * @brief Председатель отказывает на очном осмотре (Story 7.3).
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void rejretrn(eosio::name coopname,
+                                   eosio::name chairman,
+                                   checksum256 request_hash,
+                                   std::string reason,
+                                   document2 decision);
+
+  // ── p.mkt.wroff ──────────────────────────────────────────────────────
+
+  /**
+   * @brief Backend / админ выносит проект списания на повестку совета (Story 8.1).
+   * Без ledger2-операций — только создание proposal.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void propwroff(eosio::name coopname,
+                                    eosio::name proposed_by,
+                                    checksum256 proposal_hash,
+                                    std::vector<wroff_item> items);
+
+  /**
+   * @brief Совет исполняет списание (Story 8.3).
+   * Per-item: o.mkt.wroff + o.mkt.wroff2 (атомарно в той же транзакции).
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void execwroff(eosio::name coopname,
+                                    eosio::name decided_by,
+                                    checksum256 proposal_hash,
+                                    document2 protocol);
+
+  /**
+   * @brief Совет отклоняет проект списания (Story 8.3).
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void declwroff(eosio::name coopname,
+                                    eosio::name decided_by,
+                                    checksum256 proposal_hash,
+                                    std::string reason);
+
+  // ── service ──────────────────────────────────────────────────────────
+
+  /**
+   * @brief Заглушка миграции — donor-таблиц нет, мигрировать нечего.
+   * Оставлена для совместимости с CMake-build и прежним ABI.
+   * @ingroup public_marketplace_actions
+   */
   [[eosio::action]] void migrate();
-
-  // Действия для создания заявок
-  [[eosio::action]] void orderoffer(eosio::name coopname, eosio::name receiver_braname, eosio::name username, checksum256 hash, uint64_t units, eosio::asset unit_cost, uint32_t product_lifecycle_secs, uint32_t warranty_period_secs, eosio::asset membership_fee_amount, eosio::asset cancellation_fee_amount, document2 convert_in, eosio::name delivery_type, eosio::name contribution_type, std::string meta);
-  
-  static void cancel_request(eosio::name coopname, eosio::name username, checksum256 request_hash);
-  
-  // Статические методы для отклонения заявок
-  static void decline_request(eosio::name coopname, const request& change);
-
-  // Методы для направления заявок
-  [[eosio::action]] void accept(eosio::name coopname, eosio::name supplier_braname, eosio::name username, checksum256 request_hash, document2 convert_out, document2 return_document);
-  [[eosio::action]] void authcontrib(eosio::name coopname, checksum256 request_hash, document2 authorization);
-  [[eosio::action]] void authreturn(eosio::name coopname, checksum256 request_hash, document2 authorization);
-  [[eosio::action]] void declineacc(eosio::name coopname, checksum256 hash, std::string reason);
-  [[eosio::action]] void supply(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 act);
-  [[eosio::action]] void supplcnf(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 act);
-  
-  // Новая система перевозок
-  [[eosio::action]] void createship(eosio::name coopname, checksum256 hash, eosio::name driver_username, eosio::name source_braname, eosio::name destination_braname, std::vector<checksum256> request_hashes, document2 transport_act_sender);
-  [[eosio::action]] void signbydriver(eosio::name coopname, checksum256 hash, document2 transport_act_driver);
-  [[eosio::action]] void arrived(eosio::name coopname, checksum256 hash, document2 transport_act_delivery);
-  [[eosio::action]] void receiveshipm(eosio::name coopname, checksum256 hash, document2 warehouse_receipt_act);
-  [[eosio::action]] void retransport(eosio::name coopname, checksum256 completed_hash, eosio::name new_driver_username, eosio::name source_braname, eosio::name new_destination_braname, std::vector<checksum256> request_hashes, document2 transport_act_sender);
-  
-  // ORDER→OFFER direction (заказчик публикует → поставщики откликаются)
-  [[eosio::action]] void createorder(eosio::name coopname, eosio::name receiver_braname, eosio::name username, checksum256 hash, uint64_t units, eosio::asset unit_cost, uint32_t product_lifecycle_secs, uint32_t warranty_period_secs, eosio::asset membership_fee_amount, eosio::asset cancellation_fee_amount, document2 convert_in, eosio::name delivery_type, std::string meta);
-  [[eosio::action]] void respondoffer(eosio::name coopname, eosio::name supplier_braname, eosio::name username, checksum256 order_hash, checksum256 offer_hash, uint64_t units, uint32_t product_lifecycle_secs, document2 contribution_statement, document2 convert_out);
-
-  // Имущество из запасов кооператива
-  [[eosio::action]] void coopstock(eosio::name coopname, eosio::name braname, checksum256 hash, uint64_t units, eosio::asset unit_cost, uint32_t product_lifecycle_secs, uint32_t warranty_period_secs, eosio::asset membership_fee_amount, std::string meta);
-  [[eosio::action]] void acceptstock(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 convert_in, document2 return_statement);
-  
-  // Запрос возврата перед получением
-  [[eosio::action]] void reqreturn(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 return_statement);
-  
-  // Доставка заказчику
-  [[eosio::action]] void delivered(eosio::name coopname, eosio::name username, checksum256 request_hash);
-  [[eosio::action]] void receive(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 document);
-  [[eosio::action]] void receivecnf(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 document);
-  [[eosio::action]] void complete(eosio::name coopname, eosio::name username, checksum256 request_hash);
-  [[eosio::action]] void decline(eosio::name coopname, eosio::name username, checksum256 request_hash, std::string meta);
-  [[eosio::action]] void cancel(eosio::name coopname, eosio::name username, checksum256 request_hash);
-    
-  // Уничтожение и перепредложение
-  [[eosio::action]] void destroy(eosio::name coopname, checksum256 request_hash, document2 destruction_act);
-  [[eosio::action]] void reoffer(eosio::name coopname, checksum256 request_hash, checksum256 new_hash, eosio::asset new_unit_cost, std::string new_meta);
-  
-  // Методы для работы с диспутом (гарантийный возврат)
-  [[eosio::action]] void dispute(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 document);
-  [[eosio::action]] void wauthorize(eosio::name coopname, checksum256 request_hash, uint64_t wreturn_decision_id, document2 wreturn_authorization, uint64_t wsupply_decision_id, document2 wsupply_authorization);
-  [[eosio::action]] void wreturn(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 document);
-  [[eosio::action]] void woffer(eosio::name coopname, eosio::name username, checksum256 request_hash, document2 document);
-  [[eosio::action]] void waccept(eosio::name coopname, eosio::name username, checksum256 request_hash, bool accept, document2 document);
-
-  struct [[eosio::table, eosio::contract("marketplace")]] balances : balances_base {};
-  struct [[eosio::table, eosio::contract("marketplace")]] counts : counts_base {};
 };

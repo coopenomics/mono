@@ -65,9 +65,14 @@
 #include "table_ledger2_meta.hpp"
 #include "table_loan_debts.hpp"
 #include "table_loan_summaries.hpp"
-#include "table_marketplace_requests.hpp"
-#include "table_marketplace_segments.hpp"
-#include "table_marketplace_shipments.hpp"
+
+// marketplace (Story 11.1, canonical) — anchor-таблицы трёх процессов
+// p.mkt.supply / p.mkt.return / p.mkt.wroff. Donor-таблицы (requests/segments/
+// shipments) удалены вместе с donor-actions (AR30). Batch (consolidated request)
+// — backend-only, on-chain не хранится (Locked Decision L10).
+#include "table_marketplace_orders.hpp"
+#include "table_marketplace_return_requests.hpp"
+#include "table_marketplace_writeoff_proposals.hpp"
 
 // apps (каталог приложений)
 #include "table_apps_packages.hpp"
