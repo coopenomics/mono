@@ -8,6 +8,7 @@ import { ModerationPage } from 'src/pages/Marketplace/Moderation'
 import { WarehousePage } from 'src/pages/Marketplace/WarehousePage'
 import { ShipmentsPage } from 'src/pages/Marketplace/ShipmentsPage'
 import { DisputePage } from 'src/pages/Marketplace/DisputePage'
+import { PvzListPage } from 'src/pages/Marketplace/PvzList'
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace'
 import { agreementsBase } from 'src/shared/lib/consts/workspaces'
 
@@ -148,6 +149,18 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               title: 'Модерация',
               icon: 'fa-solid fa-shield-halved',
               roles: ['chairman'],
+              requiresAuth: true,
+              agreements: agreementsBase,
+            },
+          },
+          {
+            path: 'pvz',
+            name: 'marketplace-pvz',
+            component: markRaw(PvzListPage),
+            meta: {
+              title: 'ПВЗ',
+              icon: 'fa-solid fa-map-location-dot',
+              roles: [],
               requiresAuth: true,
               agreements: agreementsBase,
             },
