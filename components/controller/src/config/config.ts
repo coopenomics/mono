@@ -170,6 +170,26 @@ const envVarsSchema = z.object({
   OPENAI_BASE_URL: z.string().optional().describe('Базовый URL для Whisper API (через chatcoop-proxy nginx)'),
   WHISPER_MODEL: z.string().default('whisper-1').describe('Модель Whisper для STT'),
   WHISPER_LANGUAGE: z.string().default('ru').describe('Язык для Whisper STT'),
+
+  // Файловое хранилище (MinIO в dev/контуре кооператива; S3 в проде по плану E59-N)
+  MINIO_ENDPOINT: z
+    .string()
+    .default('http://minio:9000')
+    .describe('Endpoint S3-совместимого бэкенда; в compose — service name'),
+  MINIO_ACCESS_KEY: z.string().default('minioadmin').describe('Access-key для MinIO/S3'),
+  MINIO_SECRET_KEY: z.string().default('minioadmin').describe('Secret-key для MinIO/S3'),
+  MINIO_BUCKET: z
+    .string()
+    .optional()
+    .describe('Имя физического бакета; по умолчанию `coop-${COOPNAME}`'),
+  FILE_STORAGE_SIGNING_SECRET: z
+    .string()
+    .optional()
+    .describe('HMAC-секрет для подписи read-URL; пусто — берётся SERVER_SECRET'),
+  FILE_STORAGE_PUBLIC_BASE_URL: z
+    .string()
+    .optional()
+    .describe('База публичного URL контроллера для read-URL; пусто — берётся BACKEND_URL'),
 });
 
 const envInput = isSchemaGeneration ? { ...SCHEMA_GEN_ENV_DEFAULTS, ...process.env } : process.env;
@@ -292,5 +312,13 @@ export default {
     base_url: envVars.data.OPENAI_BASE_URL,
     whisper_model: envVars.data.WHISPER_MODEL,
     whisper_language: envVars.data.WHISPER_LANGUAGE,
+  },
+  file_storage: {
+    endpoint: envVars.data.MINIO_ENDPOINT,
+    access_key: envVars.data.MINIO_ACCESS_KEY,
+    secret_key: envVars.data.MINIO_SECRET_KEY,
+    bucket: envVars.data.MINIO_BUCKET || `coop-${envVars.data.COOPNAME}`,
+    signing_secret: envVars.data.FILE_STORAGE_SIGNING_SECRET || envVars.data.SERVER_SECRET,
+    public_base_url: envVars.data.FILE_STORAGE_PUBLIC_BASE_URL || envVars.data.BACKEND_URL,
   },
 };

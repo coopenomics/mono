@@ -22,6 +22,7 @@
     "dev": "nodemon --watch src --watch migrations --ext ts,js,env --exec 'ts-node -r tsconfig-paths/register' src/index.ts",
     "test": "jest -i --testPathPattern=tests/unit",
     "test:integration": "echo 'Integration tests run via @coopenomics/boot' && exit 0",
+    "test:integration:file-storage": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --testRegex 'tests/file-storage/.*\\.integration\\.spec\\.ts$' --testPathIgnorePatterns='/node_modules/' --testTimeout=60000 -i",
     "test:watch": "jest -i --watchAll",
     "coverage": "jest -i --coverage",
     "coverage:coveralls": "jest -i --coverage --coverageReporters=text-lcov | coveralls",
@@ -71,6 +72,7 @@
   ],
   "dependencies": {
     "@a2seven/yoo-checkout": "^1.1.4",
+    "@aws-sdk/client-s3": "^3.1035.0",
     "@coopenomics/factory": "workspace:*",
     "@coopenomics/inter": "workspace:*",
     "@coopenomics/notifications": "workspace:*",
@@ -193,6 +195,7 @@
     "@graphql-codegen/typescript": "^4.1.1",
     "@graphql-codegen/typescript-apollo-client-helpers": "^3.0.0",
     "@graphql-codegen/typescript-operations": "^4.3.1",
+    "@nestjs/testing": "^11.1.19",
     "@redocly/cli": "^1.18.0",
     "@types/express": "^4.17.21",
     "@types/node": "^20.11.26",

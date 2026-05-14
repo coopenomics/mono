@@ -16,3 +16,6 @@ export const INTER_COOP_CALENDAR_EVENT_NOTIFICATION = Symbol.for('InterCoopCalen
 
 /** Capital: username с подтверждённым допуском к проекту (appendix confirmed). */
 export const INTER_PROJECT_CAPITAL_CLEARANCE = Symbol.for('InterProjectCapitalClearance');
+
+/** FileStorage: универсальное файловое хранилище контура кооператива (MinIO в v1, S3 в v2). */
+export const INTER_FILE_STORAGE = Symbol.for('InterFileStorage');
