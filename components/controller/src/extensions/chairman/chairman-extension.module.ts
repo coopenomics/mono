@@ -54,6 +54,12 @@ import { DecisionTrackingInfrastructureModule } from '~/infrastructure/decision-
 // Символы для DI
 import { APPROVAL_REPOSITORY } from './domain/repositories/approval.repository';
 import { CHAIRMAN_BLOCKCHAIN_PORT } from './domain/interfaces/chairman-blockchain.port';
+import { computeOnboardingExpiresAt } from '~/domain/onboarding/constants/onboarding-ttl';
+import {
+  ONBOARDING_STEP_REGISTRATION_PORT,
+  type OnboardingStepRegistrationPort,
+} from '~/domain/onboarding/ports/onboarding-step-registration.port';
+import { registerChairmanOnboardingSteps } from './application/onboarding/register-chairman-onboarding-steps';
 
 // Функция для описания полей в схеме конфигурации
 function describeField(description: DeserializedDescriptionOfExtension): string {
@@ -194,6 +200,8 @@ export class ChairmanPlugin extends BaseExtModule {
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
     @Inject(LOG_EXTENSION_REPOSITORY) private readonly logExtensionRepository: LogExtensionDomainRepository<ILog>,
     @Inject(SOVIET_BLOCKCHAIN_PORT) private readonly sovietBlockchainPort: SovietBlockchainPort,
+    @Inject(ONBOARDING_STEP_REGISTRATION_PORT)
+    private readonly onboardingStepRegistration: OnboardingStepRegistrationPort,
     private readonly decisionExpiredNotificationService: DecisionExpiredNotificationService,
     private readonly logger: WinstonLoggerService
   ) {
@@ -226,8 +234,7 @@ export class ChairmanPlugin extends BaseExtModule {
     }
     if (!this.plugin.config.onboarding_expire_at) {
       const started = new Date(this.plugin.config.onboarding_init_at || nowIso);
-      const expire = new Date(started.getTime() + 30 * 24 * 60 * 60 * 1000);
-      this.plugin.config.onboarding_expire_at = expire.toISOString();
+      this.plugin.config.onboarding_expire_at = computeOnboardingExpiresAt(started);
       needUpdate = true;
     }
 
@@ -236,6 +243,9 @@ export class ChairmanPlugin extends BaseExtModule {
     }
 
     this.logger.info(`Инициализация ${this.name} с конфигурацией`, this.plugin.config);
+
+    // Регистрация шагов онбординга в платформенном реестре
+    registerChairmanOnboardingSteps(this.onboardingStepRegistration);
 
     // Инициализация сервиса проверки истекших решений
     await this.decisionExpiredNotificationService.initialize(this.plugin);

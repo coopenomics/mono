@@ -110,19 +110,10 @@ export class SystemService {
    * @returns конфигурация программ регистрации
    */
   public async getRegistrationConfig(coopname: string, accountType: AccountType): Promise<RegistrationConfigDTO> {
-    const config = this.agreementConfigService.getCooperativeProgramsConfig(coopname);
-
-    if (!config) {
-      return new RegistrationConfigDTO({
-        requires_selection: false,
-        programs: [],
-      });
-    }
-
     const programs = this.agreementConfigService.getAvailablePrograms(coopname, accountType);
 
     return new RegistrationConfigDTO({
-      requires_selection: config.requires_selection && programs.length > 1,
+      requires_selection: programs.length > 1,
       programs,
     });
   }

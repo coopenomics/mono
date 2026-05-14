@@ -262,7 +262,13 @@ export class ParticipantInteractor {
   }
 
   /**
-   * Преобразует AgreementId в соответствующий DocumentType
+   * Преобразует agreementId в соответствующий DocumentType.
+   *
+   * Платформенные оферты (signature/wallet/user/privacy) сопоставляются
+   * по AgreementId enum явно. Оферты расширений (например 'blagorost_offer',
+   * 'generator_offer' от capital) сопоставляются identity-фолбэком —
+   * строковое значение agreementId должно совпасть с одним из значений
+   * DocumentType. Это позволяет ядру не знать о капитал-специфике.
    */
   private mapAgreementIdToDocumentType(agreementId: string): DocumentType | null {
     switch (agreementId) {
@@ -274,14 +280,15 @@ export class ParticipantInteractor {
         return DocumentType.USER_AGREEMENT;
       case AgreementId.PRIVACY_AGREEMENT:
         return DocumentType.PRIVACY_AGREEMENT;
-      case AgreementId.BLAGOROST_OFFER:
-        return DocumentType.BLAGOROST_OFFER;
-      case AgreementId.GENERATOR_OFFER:
-        return DocumentType.GENERATOR_OFFER;
-      default:
-        this.logger.warn(`Неизвестный agreementId: ${agreementId}`);
-        return null;
     }
+
+    const documentTypeValues = Object.values(DocumentType) as string[];
+    if (documentTypeValues.includes(agreementId)) {
+      return agreementId as DocumentType;
+    }
+
+    this.logger.warn(`Неизвестный agreementId: ${agreementId}`);
+    return null;
   }
 
   async addParticipant(data: AddParticipantDomainInterface): Promise<AccountDomainEntity> {

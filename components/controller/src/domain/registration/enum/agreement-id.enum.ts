@@ -1,5 +1,10 @@
 /**
- * Идентификаторы соглашений для регистрации
+ * Идентификаторы платформенных соглашений при регистрации.
+ *
+ * Оферты, специфичные для расширений (capital → 'blagorost_offer',
+ * 'generator_offer' и т.п.), не входят в этот enum: расширения сами
+ * задают строковые id через AgreementRegistrationPort и являются
+ * единственным source-of-truth для этих значений.
  */
 export enum AgreementId {
   /** Соглашение о порядке и правилах использования простой электронной подписи */
@@ -13,10 +18,4 @@ export enum AgreementId {
 
   /** Политика конфиденциальности */
   PRIVACY_AGREEMENT = 'privacy_agreement',
-
-  /** Соглашение о благороста */
-  BLAGOROST_OFFER = 'blagorost_offer',
-
-  /** Оферта по целевой потребительской программе "Генератор" */
-  GENERATOR_OFFER = 'generator_offer',
 }

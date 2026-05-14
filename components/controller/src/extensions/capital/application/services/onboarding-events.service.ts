@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { OnEvent } from '@nestjs/event-emitter';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { DecisionTrackedEvent } from '~/domain/decision-tracking/events/decision-tracked.event';
 import { ParticipantRegisteredEvent } from '~/domain/participant/interfaces/participant-registered-event.interface';
 import { ProgramKey } from '~/domain/registration/enum';
@@ -16,6 +16,10 @@ import { ContributorDomainEntity } from '../../domain/entities/contributor.entit
 import { ContributorStatus } from '../../domain/enums/contributor-status.enum';
 import config from '~/config/config';
 import { generateRandomHash } from '~/utils/generate-hash.util';
+import {
+  ONBOARDING_COMPLETED_EVENT,
+  type OnboardingCompletedPayload,
+} from '~/domain/onboarding/events/onboarding-completed.event';
 
 @Injectable()
 export class CapitalOnboardingEventsService {
@@ -23,10 +27,23 @@ export class CapitalOnboardingEventsService {
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
     @Inject(CONTRIBUTOR_REPOSITORY) private readonly contributorRepository: ContributorRepository,
     @Inject(ACCOUNT_DATA_PORT) private readonly accountDataPort: AccountDataPort,
-    private readonly logger: WinstonLoggerService
+    private readonly logger: WinstonLoggerService,
+    private readonly eventEmitter: EventEmitter2
   ) {
     this.logger.setContext(CapitalOnboardingEventsService.name);
   }
+
+  /**
+   * Все 5 шагов L1-онбординга capital, по чьим _done флагам определяется
+   * завершённость L1 в кооперативе.
+   */
+  private static readonly L1_DONE_FLAGS: ReadonlyArray<keyof IConfig> = [
+    'onboarding_generator_program_template_done',
+    'onboarding_generation_contract_template_done',
+    'onboarding_generator_offer_template_done',
+    'onboarding_blagorost_provision_done',
+    'onboarding_blagorost_offer_template_done',
+  ];
 
   @OnEvent(DecisionTrackedEvent.eventName)
   async handleDecisionTracked(event: DecisionTrackedEvent): Promise<void> {
@@ -54,6 +71,8 @@ export class CapitalOnboardingEventsService {
         return;
       }
 
+      const wasAlreadyDone = !!(plugin.config as any)[flagKey];
+
       // Обновляем флаг завершения шага
       const updatedConfig = {
         ...plugin.config,
@@ -63,6 +82,21 @@ export class CapitalOnboardingEventsService {
       await this.extensionRepository.update({ ...plugin, config: updatedConfig });
 
       this.logger.info(`Флаг ${flagKey} установлен в true`);
+
+      // L1 auto-restart: если этим шагом флаг переходит из false → true И теперь
+      // все 5 _done флагов стоят, эмиттим ONBOARDING_COMPLETED_EVENT.
+      // ExtensionLifecycleDomainService подписан на него и сам сделает
+      // restartApp('capital'), чтобы initialize(config) увидел свежий config
+      // и зарегистрировал оферты/программы в платформенном реестре.
+      // Совет ничего не нажимает (раздел 7.1 плана C28-10, вариант (в)).
+      if (!wasAlreadyDone && this.isL1Complete(updatedConfig as IConfig)) {
+        this.logger.info(
+          '[ONBOARDING_COMPLETED] capital L1 завершён последним шагом, эмиттим событие для auto-restart'
+        );
+        this.eventEmitter.emit(ONBOARDING_COMPLETED_EVENT, {
+          extension_name: 'capital',
+        } satisfies OnboardingCompletedPayload);
+      }
     } catch (error) {
       const errorObj = error as Error;
       this.logger.error(`Ошибка при обработке события завершения онбординга capital: ${errorObj.message}`, errorObj.stack);
@@ -185,6 +219,13 @@ export class CapitalOnboardingEventsService {
       const errorObj = error as Error;
       this.logger.error(`Ошибка при создании Contributor для участника ${username}: ${errorObj.message}`, errorObj.stack);
     }
+  }
+
+  /**
+   * Проверка: все 5 шагов L1-онбординга capital завершены.
+   */
+  private isL1Complete(cfg: IConfig): boolean {
+    return CapitalOnboardingEventsService.L1_DONE_FLAGS.every((flag) => !!(cfg as any)[flag]);
   }
 
   /**

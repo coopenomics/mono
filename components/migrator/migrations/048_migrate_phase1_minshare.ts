@@ -90,6 +90,14 @@ export class MigratePhase1Minshare implements Migration {
     let totalMigrated = 0;
 
     for (const coopname of coops) {
+      // voskhod: мин.паевые перенесены на w.sov.mnused (COOPERATIVE) при
+      // миграции — см. ledger2/migrate_voskhod_facts. L3 для w.reg.minshr на
+      // voskhod не создаётся; контракт migrate3 отвергает такую запись guard'ом.
+      if (coopname === 'voskhod') {
+        console.log(`[048] ${coopname}: пропуск (мин.паевые на w.sov.mnused, см. migrate_voskhod_facts)`);
+        continue;
+      }
+
       const participants = await fetchAllRows<SovietContract.Tables.Participants.IParticipants>({
         code: SovietContract.contractName.production,
         scope: coopname,
@@ -110,7 +118,7 @@ export class MigratePhase1Minshare implements Migration {
       const actions = accepted.map((p) => ({
         account: Ledger2Contract.contractName.production,
         name: Ledger2Contract.Actions.Migrate3.actionName,
-        authorization: [{ actor: coopname, permission: 'active' }],
+        authorization: [{ actor: Ledger2Contract.contractName.production, permission: 'active' }],
         data: {
           coopname,
           wallet_name: W_REG_MINSHR,

@@ -164,12 +164,12 @@ export const useDesktopStore = defineStore(namespace, () => {
       }
     }
 
-    // Определяем, какие настройки использовать (авторизованный или неавторизованный пользователь)
-    if (session.isAuth) {
-      // Для авторизованных пользователей используем authorized_default_workspace
+    // Authorized-рабочий стол выбираем только если пайщик принят советом
+    // (status='active'). На промежуточных статусах юзер с WIF, но без участия —
+    // должен видеть публичную главную, не дашборд (см. SessionStore.isFullyActive).
+    if (session.isFullyActive) {
       defaultWorkspace = systemStore.info?.settings?.authorized_default_workspace || 'participant';
     } else {
-      // Для неавторизованных пользователей используем non_authorized_default_workspace
       defaultWorkspace = systemStore.info?.settings?.non_authorized_default_workspace || 'participant';
     }
 
@@ -287,11 +287,11 @@ export const useDesktopStore = defineStore(namespace, () => {
     // Проверяем, есть ли настроенный маршрут для текущего рабочего стола
     let configuredRoute: string | undefined;
 
-    if (session.isAuth) {
-      // Для авторизованных пользователей используем authorized_default_route
+    // Authorized-маршрут — только для принятых советом (см. isFullyActive).
+    // На created/joined/payed/registered отдаём non_authorized_default_route.
+    if (session.isFullyActive) {
       configuredRoute = info?.settings?.authorized_default_route;
     } else {
-      // Для неавторизованных пользователей используем non_authorized_default_route
       configuredRoute = info?.settings?.non_authorized_default_route;
     }
 

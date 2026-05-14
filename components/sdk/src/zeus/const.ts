@@ -212,6 +212,9 @@ export const AllTypesProps: Record<string,any> = {
 		generator_offer:"SignedDigitalDocumentInput",
 		storage_agreement:"SignedDigitalDocumentInput"
 	},
+	CompleteExtensionOnboardingStepInput:{
+
+	},
 	CompleteProcessStepInput:{
 
 	},
@@ -922,6 +925,9 @@ export const AllTypesProps: Record<string,any> = {
 		completeChairmanGeneralMeetStep:{
 			data:"ChairmanOnboardingGeneralMeetInput"
 		},
+		completeExtensionOnboardingStep:{
+			data:"CompleteExtensionOnboardingStepInput"
+		},
 		completeRequest:{
 			data:"CompleteRequestInput"
 		},
@@ -1518,6 +1524,9 @@ export const AllTypesProps: Record<string,any> = {
 			data:"GetExtensionLogsInput",
 			options:"PaginationInput"
 		},
+		getExtensionOnboardingState:{
+
+		},
 		getExtensions:{
 			data:"GetExtensionsInput"
 		},
@@ -1564,6 +1573,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		getProviderSubscriptionById:{
 
+		},
+		getRegistrationAgreements:{
+			account_type:"AccountType"
 		},
 		getRegistrationConfig:{
 			account_type:"AccountType"
@@ -3153,6 +3165,20 @@ export const ReturnTypes: Record<string,any> = {
 		totalCount:"Int",
 		totalPages:"Int"
 	},
+	ExtensionOnboardingState:{
+		all_done:"Boolean",
+		extension_name:"String",
+		onboarding_expire_at:"String",
+		onboarding_init_at:"String",
+		steps:"ExtensionOnboardingStepState"
+	},
+	ExtensionOnboardingStepState:{
+		default_title:"String",
+		done:"Boolean",
+		hash:"String",
+		order:"Int",
+		step_key:"String"
+	},
 	FieldError:{
 		message:"String",
 		path:"String"
@@ -3548,6 +3574,7 @@ export const ReturnTypes: Record<string,any> = {
 		completeCapitalOnboardingStep:"CapitalOnboardingState",
 		completeChairmanAgendaStep:"ChairmanOnboardingState",
 		completeChairmanGeneralMeetStep:"ChairmanOnboardingState",
+		completeExtensionOnboardingStep:"ExtensionOnboardingState",
 		completeRequest:"Transaction",
 		confirmAgreement:"Transaction",
 		confirmReceiveOnRequest:"Transaction",
@@ -4132,6 +4159,7 @@ export const ReturnTypes: Record<string,any> = {
 		getDesktop:"Desktop",
 		getDocuments:"DocumentsAggregatePaginationResult",
 		getExtensionLogs:"ExtensionLogsPaginationResult",
+		getExtensionOnboardingState:"ExtensionOnboardingState",
 		getExtensions:"Extension",
 		getInstallationStatus:"InstallationStatus",
 		getLedger:"LedgerState",
@@ -4148,6 +4176,7 @@ export const ReturnTypes: Record<string,any> = {
 		getProgramWallets:"ProgramWalletsPaginationResult",
 		getProviderSubscriptionById:"ProviderSubscription",
 		getProviderSubscriptions:"ProviderSubscription",
+		getRegistrationAgreements:"RegistrationAgreement",
 		getRegistrationConfig:"RegistrationConfig",
 		getReport:"GeneratedReport",
 		getReportCalendar:"ReportCalendarRow",
@@ -4190,6 +4219,18 @@ export const ReturnTypes: Record<string,any> = {
 	RegisteredAccount:{
 		account:"Account",
 		tokens:"Tokens"
+	},
+	RegistrationAgreement:{
+		agreement_type:"String",
+		applicable_account_types:"AccountType",
+		checkbox_text:"String",
+		id:"String",
+		is_blockchain_agreement:"Boolean",
+		link_text:"String",
+		link_to_statement:"Boolean",
+		order:"Int",
+		registry_id:"Int",
+		title:"String"
 	},
 	RegistrationConfig:{
 		programs:"RegistrationProgram",

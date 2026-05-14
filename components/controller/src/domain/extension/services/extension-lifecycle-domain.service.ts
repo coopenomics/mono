@@ -1,7 +1,7 @@
 // domain/appstore/appstore-lifecycle-domain.service.ts
 
 import { Injectable, type INestApplication } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { ExtensionDomainService } from '~/domain/extension/services/extension-domain.service';
 import { ExtensionSchemaMigrationService } from './extension-schema-migration.service';
 import { AppRegistry } from '~/extensions/extensions.registry';
@@ -10,6 +10,10 @@ import {
   EXTENSION_APP_TERMINATE_EVENT,
   type ExtensionAppTerminatePayload,
 } from '~/domain/extension/extension-app-lifecycle.events';
+import {
+  ONBOARDING_COMPLETED_EVENT,
+  type OnboardingCompletedPayload,
+} from '~/domain/onboarding/events/onboarding-completed.event';
 
 @Injectable()
 export class ExtensionLifecycleDomainService<TConfig = any> {
@@ -105,5 +109,32 @@ export class ExtensionLifecycleDomainService<TConfig = any> {
     await this.terminateApp(appName);
     await this.runApp(appName);
     this.logger.info(`Расширение ${appName} перезапущено.`);
+  }
+
+  /**
+   * Авто-перезапуск расширения после завершения его L1-онбординга.
+   *
+   * Логика — раздел 7.1 плана C28-10 (вариант (в) auto-restart): сервис
+   * онбординга расширения эмиттит ONBOARDING_COMPLETED_EVENT, когда все
+   * _done флаги в extension.config встали; lifecycle ловит и перезапускает
+   * расширение, чтобы initialize(config) увидел актуальный config и
+   * перерегистрировал оферты/программы в AgreementRegistryService.
+   *
+   * Совет ничего не нажимает.
+   */
+  @OnEvent(ONBOARDING_COMPLETED_EVENT)
+  async onOnboardingCompleted(payload: OnboardingCompletedPayload) {
+    const { extension_name } = payload;
+    this.logger.info(
+      `[ONBOARDING_COMPLETED] получено событие для ${extension_name}, инициирую restartApp`
+    );
+    try {
+      await this.restartApp(extension_name);
+    } catch (error) {
+      this.logger.error(
+        `[ONBOARDING_COMPLETED] restartApp(${extension_name}) упал: ${(error as Error).message}`,
+        (error as Error).stack
+      );
+    }
   }
 }

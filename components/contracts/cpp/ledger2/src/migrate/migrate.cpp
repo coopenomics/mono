@@ -380,30 +380,37 @@ inline void emplace_preimp_if_present(eosio::name self_name,
  * напрямую по согласованной с бухгалтером картине.
  *
  * ┌────────────────────────────────────── accounts2 ──────────────────────────────────────┐
- * │ 51 (BANK_ACCOUNT, А)         = 176 800       — банк (хардкод 145 000) + 31 800 минП    │
+ * │ 51 (BANK_ACCOUNT, А)         = 145 000       — 145 000 деньги                          │
  * │ 04 (INTANGIBLE_ASSETS, А)    = 62 353 311    — имущ. Благорост 56 903 311 + preimp 5М4 │
- * │ 08 (NON_CURRENT_INVESTMENTS) = 543 400       — балансировка (свод НМА → 80)            │
+ * │ 08 (NON_CURRENT_INVESTMENTS) = 575 200       — свод (балансировка) + 31 800 минП       │
  * │ 80 (SHARE_FUND, П)           = 62 946 011    — 419 900 ЦК + 57 044 311 Благорост       │
  * │                                              + 31 800 минП + 5 450 000 preimp Cr-side  │
  * │ 86 (TARGET_RECEIPTS, П)      = 127 500       — хоз.расходы 115К + legacy 861 12 500    │
  * │                                                                                         │
- * │   Σ Dr = 176 800 + 62 353 311 + 543 400 = 63 073 511                                    │
+ * │   Σ Dr = 145 000 + 62 353 311 + 575 200 = 63 073 511                                    │
  * │   Σ Cr = 62 946 011 + 127 500           = 63 073 511 ✓                                  │
  * └─────────────────────────────────────────────────────────────────────────────────────────┘
  *
  * ┌────────────────────────────── wallets2 (L2-агрегаты) ─────────────────────────────┐
- * │ w.reg.minshr  available = 31 800     (34 пайщика; minimum_amount; L3 → migrator-048)│
+ * │ w.sov.mnused  available = 31 800     (мин.паевые, ушедшие в 08; COOPERATIVE)       │
  * │ w.wal.share   available = 419 900    (5 пайщиков ЦК-остаток; L3 → migrator-049)    │
  * │ w.cap.blago   blocked = 57 044 311   (12 пайщиков pid=4; L3 → migrator-049)        │
  * │ w.cap.preimp  available = 5 450 000  (5 пайщиков; L3 — ниже, прямой emplace)       │
  * │ w.sov.expns   available = 127 500    (хоз.расходы из числа целевого; COOPERATIVE)  │
  * └────────────────────────────────────────────────────────────────────────────────────┘
  *
- * L3 (userwallets) для USER_SHARED-кошельков заводит migrator (Phase 1 = 048
- * для w.reg.minshr; Phase 2 = 049 для w.wal.share / w.wal.member / w.cap.blago).
- * Здесь же — только 5 пред-импорт-преимп-записей, выпавших из progwallets
- * после ручных subbal'ов (см. ~/cleos.md, 5 пайщиков с РИД-взносами по
- * договорам УХД, не успевшим попасть в электронный учёт до миграции).
+ * w.reg.minshr на voskhod НЕ создаётся: мин.паевые (31 800) уже инвестированы в
+ * НМА (08), поэтому L2-аналитика лежит на w.sov.mnused (COOPERATIVE, без L3).
+ * Бухгалтерия (Cr 80 += 31 800; Dr 08 += 31 800) при этом сохранена — обязательство
+ * перед пайщиками на 80 счёте не теряется. Из-за этого migrator-048 (L3 для
+ * w.reg.minshr) на voskhod не запускается; жёсткий guard в migrate3 отвергает
+ * запись L3(voskhod, w.reg.minshr).
+ *
+ * L3 (userwallets) для USER_SHARED-кошельков заводит migrator (Phase 2 = 049
+ * для w.wal.share / w.wal.member / w.cap.blago). Здесь же — только 5 пред-импорт-
+ * преимп-записей, выпавших из progwallets после ручных subbal'ов (см. ~/cleos.md,
+ * 5 пайщиков с РИД-взносами по договорам УХД, не успевшим попасть в электронный
+ * учёт до миграции).
  */
 inline void migrate_voskhod_facts(eosio::name self_name, const cooperative2& coop) {
   const eosio::name   coopname = coop.username;
@@ -412,18 +419,21 @@ inline void migrate_voskhod_facts(eosio::name self_name, const cooperative2& coo
 
   // ───────── accounts2 ─────────
   emplace_account_balance(self_name, coopname, ledger2_accounts::BANK_ACCOUNT,
-                          eosio::asset(    1'768'000'000LL, sym)); //        176 800.0000 RUB
+                          eosio::asset(    1'450'000'000LL, sym)); //        145 000.0000 RUB
   emplace_account_balance(self_name, coopname, ledger2_accounts::INTANGIBLE_ASSETS,
                           eosio::asset(  623'533'110'000LL, sym)); //     62 353 311.0000 RUB
   emplace_account_balance(self_name, coopname, ledger2_accounts::NON_CURRENT_INVESTMENTS,
-                          eosio::asset(    5'434'000'000LL, sym)); //        543 400.0000 RUB
+                          eosio::asset(    5'752'000'000LL, sym)); //        575 200.0000 RUB
   emplace_account_balance(self_name, coopname, ledger2_accounts::SHARE_FUND,
                           eosio::asset(  629'460'110'000LL, sym)); //     62 946 011.0000 RUB
   emplace_account_balance(self_name, coopname, ledger2_accounts::TARGET_RECEIPTS,
                           eosio::asset(    1'275'000'000LL, sym)); //        127 500.0000 RUB
 
   // ───────── wallets2 (L2) ─────────
-  emplace_wallet_balance(self_name, coopname, ledger2_wallets::MIN_SHARE_FUND,
+  // Мин.паевые на voskhod сразу размещены на w.sov.mnused (COOPERATIVE):
+  // бухгалтерски они уже потрачены через 08 (Dr 08 += 31 800), но обязательство
+  // Cr 80 += 31 800 сохранено. L3 для w.reg.minshr НЕ создаётся — см. guard в migrate3.
+  emplace_wallet_balance(self_name, coopname, ledger2_wallets::MIN_SHARE_USED,
                          eosio::asset(   318'000'000LL, sym),      //         31 800.0000 RUB available
                          zero);
   emplace_wallet_balance(self_name, coopname, ledger2_wallets::SHARE_FUND_PAY,
@@ -587,8 +597,11 @@ void ledger2::migrate(uint64_t from_coop_index, uint64_t limit) {
     if (idx < from_coop_index) continue;
     if (done >= limit) { reached_end = false; break; }
 
-    // Мигрируем только кооперативы (не отделения и не физ. записи).
-    if (it->is_cooperative) {
+    // Мигрируем только активные кооперативы (не отделения, не физ. записи,
+    // не приостановленные/архивные). apply() всё равно отказывает не-active
+    // через get_cooperative_or_fail — здесь явно пропускаем, чтобы курсор шёл.
+    const bool is_active = it->status.has_value() && it->status.value() == "active"_n;
+    if (it->is_cooperative && is_active) {
       migrate_one_coop(get_self(), *it);
     }
     ++done;

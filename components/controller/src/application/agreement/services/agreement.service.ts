@@ -121,7 +121,7 @@ export class AgreementService {
    * Программные DTO синтезируются: `id`/`document` отсутствуют (полный документ
    * лежит в action data, а не в state); `status=CONFIRMED` (запись в `users`
    * существует только для подписанных соглашений). Поле `type` берётся из
-   * `soviet::coagreements[program_id].type` (тот же 'wallet'/'blagorost' и т.п.,
+   * `soviet::coagreements[program_id].type` (тот же 'wallet'/'capital' и т.п.,
    * который виджет `RequireAgreements` использует для матчинга подписи); если
    * программа без коагримента — fallback `'programmatic'`.
    */

@@ -54,10 +54,17 @@ export function useInitWalletProcess() {
             session.setCurrentUserAccount(userAccount);
           }
 
-          await wallet.loadUserWallet({
-            coopname: info.coopname,
-            username: session.username,
-          });
+          // Кошелёк и его документы (оферта цифрового кошелька и т.п.) —
+          // только для пайщиков, принятых советом. На created/joined/payed/
+          // registered коопеномический аккаунт ещё не активен; loadUserWallet
+          // вернёт пустой кошелёк, а UI начнёт показывать подписи документов,
+          // которых юзер на этом этапе подписывать не должен.
+          if (session.isFullyActive) {
+            await wallet.loadUserWallet({
+              coopname: info.coopname,
+              username: session.username,
+            });
+          }
         })(),
         walletInitTimeoutPromise(),
       ]);

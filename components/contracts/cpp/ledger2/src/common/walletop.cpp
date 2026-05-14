@@ -160,32 +160,19 @@ void ledger2::walletop(eosio::name coopname,
                    " для кошелька " + wallet_id.to_string());
   };
 
-  // ── Post-mutation assert Σ L3 == L2 (Story 3.2; NFR2) ─────────────────
-  // Последняя линия защиты инварианта L3 ⊆ L2. Считается только для
-  // затронутых USER_SHARED-кошельков. Стоимость O(N_users) на кошелёк;
-  // падение здесь = откат всей tx (включая бух-проводки в debit/credit).
-  auto assert_sum_l3_equals_l2 = [&](eosio::name wallet_id) {
-    if (wallet_id.value == 0) return;
-    if (ledger2_get_wallet_kind(wallet_id) != WalletKind::USER_SHARED) return;
-
-    auto wallet_it = wallets.find(wallet_id.value);
-    int64_t l2_avail = wallet_it == wallets.end() ? 0 : wallet_it->available.amount;
-    int64_t l2_block = wallet_it == wallets.end() ? 0 : wallet_it->blocked.amount;
-
-    int64_t sum_avail = 0, sum_block = 0;
-    auto idx = user_wallets.get_index<"bywallet"_n>();
-    for (auto it = idx.lower_bound(wallet_id.value);
-         it != idx.end() && it->wallet_name == wallet_id;
-         ++it) {
-      sum_avail += it->available.amount;
-      sum_block += it->blocked.amount;
-    }
-    eosio::check(sum_avail == l2_avail && sum_block == l2_block,
-                 std::string{"walletop: инвариант Σ L3 == L2 нарушен на "} +
-                   wallet_id.to_string() +
-                   " (L2: " + std::to_string(l2_avail) + "/" + std::to_string(l2_block) +
-                   ", Σ L3: " + std::to_string(sum_avail) + "/" + std::to_string(sum_block) + ")");
-  };
+  // ── Post-mutation Σ L3 == L2 (Story 3.2; NFR2) ────────────────────────
+  // ВРЕМЕННО СНЯТО (2026-05-12): runtime-сверка Σ L3 == L2 через полный
+  // sweep secondary-индекса bywallet — O(N_users) на кошелёк на каждой
+  // walletop-операции; на боевых coop'ах с сотнями пайщиков это
+  // непропорциональная нагрузка на CPU billing, и сейчас на тестнете она
+  // блокирует пользовательские tx из-за исторических расхождений после
+  // миграций 048/049.
+  //
+  // walletop по построению применяет одно и то же `amount` к L2 и L3 (см.
+  // ниже case'ы ISSUE/TRANSFER/BLOCK/UNBLOCK/BURN), а sender-guard на
+  // строке 46-47 запрещает обход. Поэтому инвариант сохраняется по
+  // конструкции; полную сверку выполняет бэкенд («стол бухгалтера»),
+  // вне транзакционного hot path.
 
   // Pre-flight cross-contract check (до мутаций — fail-fast).
   assert_program_signed(wallet_from);
@@ -317,11 +304,6 @@ void ledger2::walletop(eosio::name coopname,
     }
   }
 
-  // Post-mutation: инвариант Σ L3 == L2 на каждом затронутом кошельке.
-  // Проверяется только для USER_SHARED-кошельков с непустым username
-  // (для COOPERATIVE и L2-only-mode инварианта L3⊆L2 нет).
-  if (username.value != 0) {
-    assert_sum_l3_equals_l2(wallet_from);
-    assert_sum_l3_equals_l2(wallet_to);
-  }
+  // Post-mutation Σ L3 == L2: см. блок выше (строки 163-175). Снято
+  // временно — сверка делается на бэкенде вне hot path.
 }

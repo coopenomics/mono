@@ -99,31 +99,6 @@ void capital::regcontrib(eosio::name coopname, eosio::name username, checksum256
     Capital::Contributors::create_contributor(coopname, username, contributor_hash, is_external_contract, contract_for_send, rate_per_hour, hours_per_day);
   }
 
-  // Открываем кошельки для пайщика если необходимо
-  if (!has_program_wallet(coopname, username, _source_program)) {
-    Action::send<openprogwall_interface>(
-      _soviet,
-      Names::External::OPEN_PROGRAM_WALLET,
-      _capital,
-      coopname,
-      username,
-      _source_program,
-      uint64_t(0)
-    );
-  }
-
-  if (!has_program_wallet(coopname, username, _capital_program)) {
-    Action::send<openprogwall_interface>(
-      _soviet,
-      Names::External::OPEN_PROGRAM_WALLET,
-      _capital,
-      coopname,
-      username,
-      _capital_program,
-      uint64_t(0)
-    );
-  }
-
   std::string memo = "";
 
   if (is_external_contract) {

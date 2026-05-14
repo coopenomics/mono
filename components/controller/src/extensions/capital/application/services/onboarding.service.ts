@@ -13,6 +13,7 @@ import config from '~/config/config';
 import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
 import { DecisionTrackingPort, DECISION_TRACKING_PORT } from '~/domain/decision-tracking/ports/decision-tracking.port';
 import { DecisionEventType } from '~/domain/decision-tracking/interfaces/tracking-rule-domain.interface';
+import { computeOnboardingExpiresAt } from '~/domain/onboarding/constants/onboarding-ttl';
 
 type OnboardingFlagKey =
   | 'onboarding_generator_program_template_done'
@@ -100,8 +101,7 @@ export class CapitalOnboardingService {
 
     if (!pluginConfig.onboarding_expire_at) {
       const start = new Date(pluginConfig.onboarding_init_at);
-      const expire = new Date(start.getTime() + 30 * 24 * 60 * 60 * 1000);
-      pluginConfig.onboarding_expire_at = expire.toISOString();
+      pluginConfig.onboarding_expire_at = computeOnboardingExpiresAt(start);
       needUpdate = true;
     }
 

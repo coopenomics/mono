@@ -1,14 +1,20 @@
 import type { AccountType } from '~/application/account/enum/account-type.enum';
-import { AgreementType, AgreementId, ProgramKey } from '../enum';
 
 /**
- * Конфигурация одного соглашения при регистрации
+ * Конфигурация одного соглашения при регистрации.
+ *
+ * Платформенные оферты (signature/wallet/user/privacy) хранят значения
+ * `id`/`agreement_type` из ядерных enum'ов AgreementId/AgreementType
+ * как строки. Оферты, поставляемые расширениями через
+ * AgreementRegistrationPort, используют собственные строковые значения
+ * (например 'blagorost_offer' от capital). Поэтому типы — `string`,
+ * а не enum: ядро не знает значений, заданных расширениями.
  */
 export interface IAgreementConfigItem {
   /**
    * Уникальный идентификатор типа соглашения
    */
-  id: AgreementId;
+  id: string;
 
   /**
    * registry_id для генерации документа на фабрике документов
@@ -18,7 +24,7 @@ export interface IAgreementConfigItem {
   /**
    * Тип соглашения для блокчейна
    */
-  agreement_type: AgreementType;
+  agreement_type: string;
 
   /**
    * Человекочитаемое название документа
@@ -70,8 +76,11 @@ export interface IRegistrationAgreementsConfig {
  * Описание программы регистрации с её соглашениями
  */
 export interface IRegistrationProgram {
-  /** Уникальный ключ программы */
-  key: ProgramKey;
+  /**
+   * Уникальный ключ программы. Расширения сами определяют пространство
+   * имён ключей (например 'GENERATION'/'CAPITALIZATION' от capital).
+   */
+  key: string;
 
   /** Название программы для отображения */
   title: string;
@@ -89,22 +98,9 @@ export interface IRegistrationProgram {
   applicable_account_types: AccountType[];
 
   /** Список ID соглашений, которые требуются для этой программы */
-  agreement_ids: AgreementId[];
+  agreement_ids: string[];
 
   /** Порядок отображения */
   order: number;
 }
 
-/**
- * Конфигурация программ регистрации для кооператива
- */
-export interface ICooperativeRegistrationPrograms {
-  /** Название кооператива */
-  coopname: string;
-
-  /** Доступные программы */
-  programs: IRegistrationProgram[];
-
-  /** Нужен ли выбор программы (если false - используется первая подходящая) */
-  requires_selection: boolean;
-}

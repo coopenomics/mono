@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { OnEvent } from '@nestjs/event-emitter';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import {
   EXTENSION_REPOSITORY,
   ExtensionDomainRepository,
@@ -8,6 +8,10 @@ import type { IConfig } from '../../chairman-extension.module';
 import type { ExtensionDomainEntity } from '~/domain/extension/entities/extension-domain.entity';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { DecisionTrackedEvent } from '~/domain/decision-tracking/events/decision-tracked.event';
+import {
+  ONBOARDING_COMPLETED_EVENT,
+  type OnboardingCompletedPayload,
+} from '~/domain/onboarding/events/onboarding-completed.event';
 
 /**
  * Сервис обработки событий онбординга председателя
@@ -17,10 +21,25 @@ import { DecisionTrackedEvent } from '~/domain/decision-tracking/events/decision
 export class ChairmanOnboardingEventsService {
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
-    private readonly logger: WinstonLoggerService
+    private readonly logger: WinstonLoggerService,
+    private readonly eventEmitter: EventEmitter2
   ) {
     this.logger.setContext(ChairmanOnboardingEventsService.name);
   }
+
+  /**
+   * Все 7 шагов L1-онбординга chairman, по чьим _done флагам определяется
+   * завершённость L1 кооператива.
+   */
+  private static readonly L1_DONE_FLAGS: ReadonlyArray<keyof IConfig> = [
+    'onboarding_wallet_agreement_done',
+    'onboarding_signature_agreement_done',
+    'onboarding_privacy_agreement_done',
+    'onboarding_user_agreement_done',
+    'onboarding_participant_application_done',
+    'onboarding_voskhod_membership_done',
+    'onboarding_general_meet_done',
+  ];
 
   private async load(): Promise<ExtensionDomainEntity<IConfig> | null> {
     return this.extensionRepository.findByName('chairman');
@@ -65,18 +84,41 @@ export class ChairmanOnboardingEventsService {
         return;
       }
 
+      const wasAlreadyDone = !!(cfg as any)[flagKey];
+
       // Обновляем флаг выполнения шага
       const patch: Partial<IConfig> = {
         [flagKey]: true,
       };
 
-      const updated: ExtensionDomainEntity<IConfig> = { ...plugin, config: { ...cfg, ...patch } };
+      const updatedConfig = { ...cfg, ...patch };
+      const updated: ExtensionDomainEntity<IConfig> = { ...plugin, config: updatedConfig };
       await this.extensionRepository.update(updated);
 
       this.logger.info(`Онбординг обновлён: ${flagKey} = true (решение ${result.decision_id})`);
+
+      // L1 auto-restart: если переход false → true сделал L1 полностью
+      // завершённым, эмиттим ONBOARDING_COMPLETED_EVENT.
+      // У chairman нет L2-оферт в реестре сейчас, но событие важно как
+      // сигнал «L1 кооператива закрыт» — раздел 7.1 C28-10.
+      if (!wasAlreadyDone && this.isL1Complete(updatedConfig as IConfig)) {
+        this.logger.info(
+          '[ONBOARDING_COMPLETED] chairman L1 завершён последним шагом, эмиттим событие'
+        );
+        this.eventEmitter.emit(ONBOARDING_COMPLETED_EVENT, {
+          extension_name: 'chairman',
+        } satisfies OnboardingCompletedPayload);
+      }
     } catch (error: any) {
       this.logger.error(`Ошибка при обработке события отслеживания решения: ${error.message}`, error.stack);
     }
+  }
+
+  /**
+   * Проверка: все 7 шагов L1-онбординга chairman завершены.
+   */
+  private isL1Complete(cfg: IConfig): boolean {
+    return ChairmanOnboardingEventsService.L1_DONE_FLAGS.every((flag) => !!(cfg as any)[flag]);
   }
 
   /**

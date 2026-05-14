@@ -56,7 +56,7 @@ export class MigrateAgreementsToWallet implements Migration {
         const actions = chunk.map((a) => ({
           account: WalletContract.contractName.production,
           name: WalletContract.Actions.Migrate3.actionName,
-          authorization: [{ actor: coopname, permission: 'active' }],
+          authorization: [{ actor: WalletContract.contractName.production, permission: 'active' }],
           data: {
             coopname,
             username: a.username,

@@ -31,6 +31,15 @@ on:
       - 'components/contracts/build-all.sh'
       - 'components/contracts/docker/**'
       - '.github/workflows/build-contracts.yaml'
+    # Дополнительно ловим все push'и тэгов: build-containers.yaml зависит от
+    # успеха этой сборки через workflow_run, и без unconditional запуска по
+    # тегу build-containers не получит триггер для коммитов, где .cpp не
+    # менялся (например `chore(release): publish` правит только версии
+    # пакетов). См. историю гонки 2026-05-13: webhook деплоя сработал на
+    # 2:34 быстрее обновления `dicoop/contracts:testnet`, на чейн уехал
+    # старый wasm.
+    tags:
+      - '*'
   workflow_dispatch:
 
 jobs:
@@ -39,10 +48,34 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          # Полная история нужна, чтобы при push'е тэга резолвить ветку
+          # через `git branch -r --contains $SHA` (см. следующий step).
+          fetch-depth: 0
 
       - name: Determine build mode and docker tag
+        # Источник режима — ВЕТКА, не имя тэга. Сначала пытаемся взять
+        # `github.ref_name` как ветку (push веток); если не подошло — это
+        # push тэга, и мы ищем какая из dev/testnet/main содержит коммит.
+        # Тэг такого окружения нести семантику не должен (например,
+        # `v2026.5.13-alpha-2` → ветка testnet, BUILD_MODE=test).
         run: |
-          case "${{ github.ref_name }}" in
+          REF="${{ github.ref_name }}"
+          REF_TYPE="${{ github.ref_type }}"
+          BRANCH=""
+          if [ "$REF_TYPE" = "branch" ]; then
+            BRANCH="$REF"
+          else
+            SHA="${{ github.sha }}"
+            for candidate in main testnet dev; do
+              if git branch -r --contains "$SHA" 2>/dev/null | grep -qE "^[[:space:]]*origin/${candidate}$"; then
+                BRANCH="$candidate"
+                break
+              fi
+            done
+          fi
+
+          case "$BRANCH" in
             main)
               echo "BUILD_MODE=prod"      >> $GITHUB_ENV
               echo "DOCKER_TAG=main"      >> $GITHUB_ENV
@@ -59,10 +92,11 @@ jobs:
               echo "EXTRA_TAG="           >> $GITHUB_ENV
               ;;
             *)
-              echo "Unsupported branch ${{ github.ref_name }}" >&2
+              echo "Unsupported ref: ref_name=$REF ref_type=$REF_TYPE resolved_branch='$BRANCH'" >&2
               exit 1
               ;;
           esac
+          echo "Resolved BRANCH=$BRANCH (ref_name=$REF ref_type=$REF_TYPE)"
 
       - name: Pull CDT toolchain image
         run: docker pull dicoop/blockchain_v5.1.1:dev

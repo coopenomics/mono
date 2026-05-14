@@ -27,6 +27,11 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_USER_SHARED_PRO
     "required_program_id": 3,
     "wallet_name": "w.cap.gen",
   },
+  {
+    "program_label": null,
+    "required_program_id": 0,
+    "wallet_name": "w.cap.preimp",
+  },
 ]
 `;
 
@@ -58,6 +63,11 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
     "name": "w.cap.gen",
   },
   {
+    "human_name": "Первичный учёт РИД-взносов до перехода на электронный учёт",
+    "kind": "USER_SHARED",
+    "name": "w.cap.preimp",
+  },
+  {
     "human_name": "Вступительные взносы",
     "kind": "COOPERATIVE",
     "name": "w.reg.entry",
@@ -76,6 +86,16 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
     "human_name": "Делегатские членские взносы",
     "kind": "COOPERATIVE",
     "name": "w.sov.delgte",
+  },
+  {
+    "human_name": "Хозяйственные расходы из числа целевого финансирования",
+    "kind": "COOPERATIVE",
+    "name": "w.sov.expns",
+  },
+  {
+    "human_name": "Использованные минимальные паевые взносы",
+    "kind": "COOPERATIVE",
+    "name": "w.sov.mnused",
   },
   {
     "human_name": "Выданные пайщикам беспроцентные займы",

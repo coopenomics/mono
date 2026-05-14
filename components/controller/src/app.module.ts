@@ -41,6 +41,7 @@ import { ProcessRegistryDomainModule } from './domain/process-registry/process-r
 import { ParserDomainModule } from './domain/parser/parser-domain.module';
 import { SettingsInfrastructureModule } from './infrastructure/settings/settings-infrastructure.module';
 import { RegistrationDomainModule } from './domain/registration/registration-domain.module';
+import { OnboardingDomainModule } from './domain/onboarding/onboarding-domain.module';
 import { TokenDomainModule } from './domain/token/token-domain.module';
 import { MutationLogDomainModule } from './domain/mutation-log/mutation-log-domain.module';
 
@@ -74,6 +75,7 @@ import { UserModule } from './application/user/user.module';
 import { TokenApplicationModule } from './application/token/token-application.module';
 import { SettingsApplicationModule } from './application/settings/settings.module';
 import { RegistrationModule } from './application/registration/registration.module';
+import { OnboardingApplicationModule } from './application/onboarding/onboarding-application.module';
 import { SearchModule } from './application/search/search.module';
 import { MutationLoggingInterceptor } from './application/common/interceptors/mutation-logging.interceptor';
 import { MarketplacePluginModule } from './extensions/marketplace/marketplace-extension.module';
@@ -105,6 +107,7 @@ import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketpla
     // Domain modules
     AuthDomainModule,
     RegistrationDomainModule,
+    OnboardingDomainModule,
     AgendaDomainModule,
     AccountDomainModule,
     AccountInfrastructureModule,
@@ -158,6 +161,7 @@ import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketpla
     TokenApplicationModule,
     SettingsApplicationModule,
     RegistrationModule,
+    OnboardingApplicationModule,
     SearchModule,
     // Marketplace extensions
     MarketplacePluginModule,
