@@ -56,7 +56,9 @@ void ledger2::walletop(eosio::name coopname,
   // op_code = 5 (NONE) намеренно не допускается: NONE-операции — это только
   // бухпроводка без кошелькового движения, apply.cpp не диспатчит для них walletop.
   // Прямой вызов с op_code=5 был бы no-op и сбил бы инвариант parity.
-  eosio::check(op_code <= 4, "walletop: неизвестный op_code");
+  // op_code = 6 (REVOKE) — целевое расходование blocked в пустоту; обязательная пара Dr/Cr;
+  // допускается, обрабатывается отдельным case ниже (введён 2026-05-11 под o.mkt.consum).
+  eosio::check(op_code <= 6 && op_code != 5, "walletop: неизвестный op_code");
 
   wallets2_index   wallets(get_self(), coopname.value);
   userwallets_index user_wallets(get_self(), coopname.value);
@@ -296,6 +298,46 @@ void ledger2::walletop(eosio::name coopname,
                        username.to_string() + " на " + wallet_from.to_string());
         auto uw_pri = user_wallets.find(uw->id);
         user_wallets.modify(uw_pri, payer, [&](auto& r) { r.available -= amount; });
+      }
+
+      cleanup_l2_if_empty(wallet_from);
+      cleanup_l3_if_empty(wallet_from);
+      break;
+    }
+    case WalletOp::NONE: {
+      // unreachable: apply.cpp не диспатчит walletop для NONE-операций
+      // (бухпроводка без кошелькового движения). Pre-check на op_code != 5 выше
+      // отсекает прямой вызов с этим кодом. case оставлен для исчерпывающего
+      // switch — иначе компилятор предупредит про unhandled enum value.
+      eosio::check(false, "walletop NONE: must be unreachable");
+      break;
+    }
+    case WalletOp::REVOKE: {
+      // Целевое расходование заблокированной суммы: amount списывается с
+      // wallet_from.blocked в пустоту, без зачисления на wallet_to. Обязательная
+      // пара Dr/Cr на уровне OPERATION_REGISTRY (compile-time validator
+      // revoke_pattern_correct в operations.hpp гарантирует это для записей
+      // реестра); здесь дополнительно валидируем рантайм-параметры.
+      // Применение: o.mkt.consum (выдача имущества пайщику по АПП выдачи —
+      // программный членский пайщика, заранее заблокированный под Order,
+      // расходуется как целевое потребление).
+      eosio::check(wallet_from.value != 0, "walletop REVOKE: требуется wallet_from");
+      eosio::check(wallet_to.value == 0, "walletop REVOKE: wallet_to должен быть пустым");
+
+      auto it = wallets.find(wallet_from.value);
+      eosio::check(it != wallets.end() && it->blocked >= amount,
+                   std::string{"walletop REVOKE: недостаточно blocked на кошельке "} +
+                     wallet_from.to_string());
+      wallets.modify(it, payer, [&](auto& w) { w.blocked -= amount; });
+
+      if (is_user_shared_l3(wallet_from)) {
+        auto uw = find_l3(wallet_from);
+        eosio::check(uw != user_wallets.get_index<"byuserwallet"_n>().end() &&
+                     uw->blocked >= amount,
+                     std::string{"walletop REVOKE: недостаточно L3-blocked у пайщика "} +
+                       username.to_string() + " на " + wallet_from.to_string());
+        auto uw_pri = user_wallets.find(uw->id);
+        user_wallets.modify(uw_pri, payer, [&](auto& r) { r.blocked -= amount; });
       }
 
       cleanup_l2_if_empty(wallet_from);
