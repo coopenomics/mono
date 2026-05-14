@@ -1,19 +1,16 @@
 /**
- * Unit-тесты registerMarketplaceInAgreementRegistry (Story 1.2).
- *
- * Чистая функция — не тянет за собой импорт MarketplacePlugin (там цепочка
- * с lifecycle, file-storage порт и т.д., как и в capital-plugin-register.test.ts).
+ * Unit-тесты registerMarketplaceInAgreementRegistry (Story 1.2 + Story 1.7).
  *
  * Покрывают:
- *   (a) MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID = 0 (placeholder, Story 1.7
- *       не выполнена) → port не вызывается, функция возвращает false;
- *   (b) Когда константа > 0 — registerAgreement вызван один раз с
- *       корректным spec. Поскольку константа сейчас захардкожена в 0, в
- *       этом кейсе проверяем поведение через вызов port напрямую с
- *       другой spec'ой (что соответствует тому, как Capital проверяет
- *       выходные данные).
- *   (c) повторный вызов воспроизводит те же register-вызовы (реальная
- *       идемпотентность гарантируется AgreementRegistryService).
+ *   (a) реальный template_registry_id из cooptypes (Story 1.7 выполнена,
+ *       MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID = 1100) → port.registerAgreement
+ *       вызывается × 1, функция возвращает true.
+ *   (b) если константу принудительно занулить (placeholder режим до Story 1.7) →
+ *       port не вызывается, функция возвращает false. Это историческое
+ *       поведение, тест зафиксирован для гарантии будущей деградации (например,
+ *       при rollback Story 1.7).
+ *   (c) константы согласованы с on-chain именами (eosio::name regex).
+ *   (d) programs для marketplace MVP не регистрируются.
  */
 
 import {
@@ -34,15 +31,36 @@ function makePortStub() {
 }
 
 describe('registerMarketplaceInAgreementRegistry', () => {
-  it('возвращает false и не зовёт port пока MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID = 0 (Story 1.7 не выполнена)', () => {
+  it('Story 1.7 размещён template — registry_id из cooptypes (1100), port.registerAgreement × 1', () => {
     const port = makePortStub();
 
     const ok = registerMarketplaceInAgreementRegistry(port as any);
 
-    expect(MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID).toBe(0);
+    expect(MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID).toBe(1100);
+    expect(ok).toBe(true);
+    expect(port.registerAgreement).toHaveBeenCalledTimes(1);
+    const spec = port.registerAgreement.mock.calls[0][0];
+    expect(spec.id).toBe(MARKETPLACE_OFFER_AGREEMENT_ID);
+    expect(spec.registry_id).toBe(MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID);
+    expect(spec.agreement_type).toBe(MARKETPLACE_AGREEMENT_TYPE);
+    expect(spec.extension_name).toBe(MARKETPLACE_EXTENSION_NAME);
+  });
+
+  it('rollback Story 1.7 (template_registry_id = 0) → port не вызывается, false', () => {
+    jest.resetModules();
+    jest.doMock('~/extensions/marketplace/constants/marketplace-agreement-ids', () => ({
+      __esModule: true,
+      MARKETPLACE_EXTENSION_NAME: 'market',
+      MARKETPLACE_OFFER_AGREEMENT_ID: 'marketplace_offer',
+      MARKETPLACE_AGREEMENT_TYPE: 'marketplace',
+      MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID: 0,
+    }));
+    const { registerMarketplaceInAgreementRegistry: reg } = require('~/extensions/marketplace/application/registration/register-marketplace-in-agreement-registry');
+    const port = makePortStub();
+    const ok = reg(port as any);
     expect(ok).toBe(false);
     expect(port.registerAgreement).not.toHaveBeenCalled();
-    expect(port.registerProgram).not.toHaveBeenCalled();
+    jest.dontMock('~/extensions/marketplace/constants/marketplace-agreement-ids');
   });
 
   it('константы используют согласованные имена для on-chain и реестра', () => {

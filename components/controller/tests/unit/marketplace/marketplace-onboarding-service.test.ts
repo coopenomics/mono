@@ -42,8 +42,14 @@ describe('MarketplaceOnboardingService.getOnboardingState', () => {
     jest.resetModules();
   });
 
-  it('placeholder=0 (Story 1.7 не выполнена) → requires_gate=false, source=not_configured', async () => {
-    // дефолтная константа = 0 (см. marketplace-agreement-ids.ts)
+  it('placeholder=0 (rollback Story 1.7) → requires_gate=false, source=not_configured', async () => {
+    jest.doMock('~/extensions/marketplace/constants/marketplace-agreement-ids', () => ({
+      __esModule: true,
+      MARKETPLACE_EXTENSION_NAME: 'market',
+      MARKETPLACE_OFFER_AGREEMENT_ID: 'marketplace_offer',
+      MARKETPLACE_AGREEMENT_TYPE: 'marketplace',
+      MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID: 0,
+    }));
     const { MarketplaceOnboardingService } = await import(
       '~/extensions/marketplace/application/onboarding/marketplace-onboarding.service'
     );
@@ -55,6 +61,20 @@ describe('MarketplaceOnboardingService.getOnboardingState', () => {
     expect(state.source).toBe('not_configured');
     expect(state.template_registry_id).toBe(0);
     expect(repo.findByUsername).not.toHaveBeenCalled();
+  });
+
+  it('Story 1.7 размещена (template_registry_id=1100 из cooptypes), подписи нет → requires_gate=true', async () => {
+    jest.dontMock('~/extensions/marketplace/constants/marketplace-agreement-ids');
+    const { MarketplaceOnboardingService } = await import(
+      '~/extensions/marketplace/application/onboarding/marketplace-onboarding.service'
+    );
+    const repo = makeRepo([]);
+    const service = new MarketplaceOnboardingService(repo, makeLogger());
+
+    const state = await service.getOnboardingState('alice');
+    expect(state.template_registry_id).toBe(1100);
+    expect(state.requires_gate).toBe(true);
+    expect(state.source).toBe('gate_required');
   });
 
   it('подпись marketplace есть → requires_gate=false, source=agreement_signed, completed_at/agreement_id заполнены', async () => {
