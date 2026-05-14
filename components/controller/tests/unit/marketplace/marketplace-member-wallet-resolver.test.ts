@@ -1,13 +1,16 @@
 /**
- * Unit-тесты MarketplaceMemberWalletResolver (Story 1.5).
+ * Unit-тесты MarketplaceMemberWalletResolver (Story 1.5, review-fix 2026-05-14).
  *
- * Покрывают:
- *   (a) кошелёк найден → возвращается DTO с available/blocked/membership_contribution
- *       (значения из ProgramWalletDTO);
- *   (b) кошелёк не найден (PG-кеш пуст, пайщик ещё не открывал main wallet)
- *       → NotFoundException, чтобы фронт повторил после доставки delta
- *       (CLAUDE.md запрещает RPC fallback);
- *   (c) поля 'available'/'blocked'/'membership_contribution' с undefined нормализуются в '0'.
+ * После review @dacom-dark-sun (PR #380) resolver перепиcан:
+ *   - Возвращает массив всех 3 USER_SHARED-кошельков стандарта marketplace
+ *     (`w.wal.share`, `w.wal.member`, `w.mkt.member`) — каждый со своим
+ *     `name`/`human_name`/`available`/`blocked`, без сворачивания и без
+ *     старой нотации `membership_contribution`.
+ *   - Источник — core `UserWalletRepository.findByUsername` (PG-кеш
+ *     `ledger2::userwallets`), не свёрнутый `WalletService.getProgramWallet`.
+ *   - Пайщик без L3-записи по конкретному кошельку → `0/0` (рабочее состояние,
+ *     а не ошибка) — например, `w.mkt.member` появляется только после
+ *     первого `orderoffer`/`createorder`.
  */
 
 jest.mock('~/config/config', () => ({
@@ -15,64 +18,93 @@ jest.mock('~/config/config', () => ({
   default: { coopname: 'voskhod' },
 }));
 
-import { NotFoundException } from '@nestjs/common';
-import { ProgramType } from '~/domain/wallet/enums/program-type.enum';
 import { MarketplaceMemberWalletResolver } from '~/extensions/marketplace/application/resolvers/marketplace-member-wallet.resolver';
 
-const makeWalletService = (wallet: any) =>
+const makeRepo = (rows: any[]) =>
   ({
-    getProgramWallet: jest.fn().mockResolvedValue(wallet),
+    findByUsername: jest.fn().mockResolvedValue(rows),
   } as any);
 
 const member = {
   username: 'alice',
+  status: 'active',
   core_roles: ['User'],
-  marketplace_roles: [],
+  marketplace_roles: ['orderer'],
 };
 
 describe('MarketplaceMemberWalletResolver', () => {
-  it('кошелёк найден → DTO с available/blocked/membership_contribution', async () => {
-    const walletService = makeWalletService({
-      available: '125.0000 RUB',
-      blocked: '5.0000 RUB',
-      membership_contribution: '300.0000 RUB',
-    });
-    const resolver = new MarketplaceMemberWalletResolver(walletService);
+  it('пайщик с записями share + mkt.member → массив из 3 кошельков, w.wal.member нулевой', async () => {
+    const repo = makeRepo([
+      { wallet_name: 'w.wal.share', available: '125.0000 RUB', blocked: '5.0000 RUB' },
+      { wallet_name: 'w.mkt.member', available: '300.0000 RUB', blocked: '0.0000 RUB' },
+      // нерелевантные стол-заказам кошельки не должны попасть в выдачу
+      { wallet_name: 'w.cap.blago', available: '999.0000 RUB', blocked: '0.0000 RUB' },
+    ]);
+    const resolver = new MarketplaceMemberWalletResolver(repo);
 
-    const dto = await resolver.marketplaceMemberWallet(member);
+    const dto = await resolver.marketplaceMemberWallet(member as any);
 
-    expect(walletService.getProgramWallet).toHaveBeenCalledWith({
-      coopname: 'voskhod',
-      username: 'alice',
-      program_type: ProgramType.MAIN,
-    });
+    expect(repo.findByUsername).toHaveBeenCalledWith('voskhod', 'alice');
     expect(dto.username).toBe('alice');
     expect(dto.coopname).toBe('voskhod');
-    expect(dto.contract).toBe('wallet');
-    expect(dto.available).toBe('125.0000 RUB');
-    expect(dto.blocked).toBe('5.0000 RUB');
-    expect(dto.membership_contribution).toBe('300.0000 RUB');
-  });
 
-  it('кошелёк не найден → NotFoundException', async () => {
-    const walletService = makeWalletService(null);
-    const resolver = new MarketplaceMemberWalletResolver(walletService);
-
-    await expect(resolver.marketplaceMemberWallet(member)).rejects.toThrow(NotFoundException);
-  });
-
-  it('поля undefined нормализуются в "0"', async () => {
-    const walletService = makeWalletService({
-      available: undefined,
-      blocked: undefined,
-      membership_contribution: undefined,
+    expect(dto.wallets).toHaveLength(3);
+    expect(dto.wallets[0]).toMatchObject({
+      name: 'w.wal.share',
+      program_id: 1,
+      program_label: 'ЦК',
+      kind: 'USER_SHARED',
+      available: '125.0000 RUB',
+      blocked: '5.0000 RUB',
     });
-    const resolver = new MarketplaceMemberWalletResolver(walletService);
+    expect(dto.wallets[1]).toMatchObject({
+      name: 'w.wal.member',
+      program_id: 1,
+      available: '0',
+      blocked: '0',
+    });
+    expect(dto.wallets[2]).toMatchObject({
+      name: 'w.mkt.member',
+      program_id: 2,
+      program_label: 'Marketplace',
+      available: '300.0000 RUB',
+      blocked: '0.0000 RUB',
+    });
+  });
 
-    const dto = await resolver.marketplaceMemberWallet(member);
+  it('пайщик без L3-записей вообще → 3 кошелька с 0/0 (а не NotFoundException)', async () => {
+    const repo = makeRepo([]);
+    const resolver = new MarketplaceMemberWalletResolver(repo);
 
-    expect(dto.available).toBe('0');
-    expect(dto.blocked).toBe('0');
-    expect(dto.membership_contribution).toBe('0');
+    const dto = await resolver.marketplaceMemberWallet(member as any);
+
+    expect(dto.wallets).toHaveLength(3);
+    for (const w of dto.wallets) {
+      expect(w.available).toBe('0');
+      expect(w.blocked).toBe('0');
+    }
+    expect(dto.wallets.map((w) => w.name)).toEqual(['w.wal.share', 'w.wal.member', 'w.mkt.member']);
+  });
+
+  it('human_name подтягивается из cooptypes LEDGER2_WALLET_REGISTRY', async () => {
+    const repo = makeRepo([]);
+    const resolver = new MarketplaceMemberWalletResolver(repo);
+
+    const dto = await resolver.marketplaceMemberWallet(member as any);
+
+    expect(dto.wallets[0].human_name).toBe('Паевой взнос пайщика');
+    expect(dto.wallets[1].human_name).toBe('ЦК — членская часть пайщика');
+    expect(dto.wallets[2].human_name).toBe('ЦПП «Стол Заказов» — программный членский у пайщика');
+  });
+
+  it('w.mkt.payout (COOPERATIVE) не попадает в выдачу — это кооперативный кошелёк, не пайщика', async () => {
+    const repo = makeRepo([
+      { wallet_name: 'w.mkt.payout', available: '10000.0000 RUB', blocked: '0.0000 RUB' },
+    ]);
+    const resolver = new MarketplaceMemberWalletResolver(repo);
+
+    const dto = await resolver.marketplaceMemberWallet(member as any);
+
+    expect(dto.wallets.find((w) => w.name === 'w.mkt.payout')).toBeUndefined();
   });
 });

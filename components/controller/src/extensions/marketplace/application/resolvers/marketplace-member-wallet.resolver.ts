@@ -1,62 +1,92 @@
-import { Injectable, NotFoundException, UseGuards } from '@nestjs/common';
+import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Query, Resolver } from '@nestjs/graphql';
+import { Ledger2 } from 'cooptypes';
 
 import config from '~/config/config';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { WalletService } from '~/application/wallet/services/wallet.service';
-import { ProgramType } from '~/domain/wallet/enums/program-type.enum';
+import {
+  USER_WALLET_REPOSITORY,
+  type UserWalletRepository,
+} from '~/domain/wallet/repositories/user-wallet.repository';
 
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
-import { MarketplaceMemberWalletDTO } from '../dto/marketplace-member-wallet.dto';
+import {
+  MarketplaceMemberWalletDTO,
+  MarketplaceWalletEntryDTO,
+} from '../dto/marketplace-member-wallet.dto';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 
 /**
- * Story 1.5: GraphQL endpoint marketplace для чтения кошелька пайщика ЦК.
+ * Релевантные стол-заказам USER_SHARED-кошельки по стандарту marketplace
+ * (`marketplace/p.mkt.supply.standard.yaml`, секция «wallets»). Порядок
+ * соответствует pipeline средств в orderoffer/createorder:
+ * `w.wal.share` (деньги) → `w.wal.member` (универсальный членский) →
+ * `w.mkt.member` (программный членский ЦПП).
+ */
+const MARKETPLACE_RELEVANT_WALLETS: ReadonlyArray<{
+  name: string;
+  program_id: number;
+  program_label: string;
+}> = [
+  { name: 'w.wal.share', program_id: 1, program_label: 'ЦК' },
+  { name: 'w.wal.member', program_id: 1, program_label: 'ЦК' },
+  { name: 'w.mkt.member', program_id: 2, program_label: 'Marketplace' },
+];
+
+/**
+ * Story 1.5 (review-fix 2026-05-14): GraphQL endpoint marketplace для
+ * чтения кошельков пайщика «как есть» — без сворачивания share+member и
+ * без переименования в old-style `available/blocked/membership_contribution`.
  *
- * Делегирует чтение в core `WalletService.getProgramWallet` (program_id=1,
- * ProgramType.MAIN); локальной таблицы `marketplace_member_wallet_link` нет —
- * core PG-кеш `ledger2::userwallets` уже консистентен с blockchain.
+ * Возвращает массив USER_SHARED-кошельков, релевантных столу заказов;
+ * каждый со своим `name` (eosio::name), `human_name`, `program_id`,
+ * `available`/`blocked`. Если L3-запись ещё не создана (пайщик не
+ * двигал средства через данный кошелёк) — возвращаем `0/0` — это
+ * рабочее состояние, а не ошибка (RPC fallback запрещён ADR-011).
  *
- * AC PRD говорит про REST `GET /api/wallet/member/<account>` — controller
- * целиком GraphQL, делаем эквивалент `Query marketplaceMemberWallet`.
- * Расхождение зафиксировано как техдолг PRD.
+ * Источник: `UserWalletRepository.findByUsername` (PG-кеш
+ * `ledger2::userwallets`). `WalletService.getProgramWallet` сворачивает
+ * split-кошельки ЦК и неприменим для UX, требующего видеть каждый
+ * кошелёк отдельно (review @dacom-dark-sun, PR #380).
  */
 @Resolver()
 @Injectable()
 export class MarketplaceMemberWalletResolver {
-  constructor(private readonly walletService: WalletService) {}
+  constructor(
+    @Inject(USER_WALLET_REPOSITORY)
+    private readonly userWalletRepository: UserWalletRepository
+  ) {}
 
   @Query(() => MarketplaceMemberWalletDTO, {
     name: 'marketplaceMemberWallet',
     description:
-      'Кошелёк пайщика (Цифровой кошелёк, program_id=1): available/blocked + membership_contribution',
+      'Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.member',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard)
   async marketplaceMemberWallet(
     @CurrentMarketplaceMember() currentMember: IMarketplaceCurrentMember
   ): Promise<MarketplaceMemberWalletDTO> {
     const coopname = config.coopname;
-    const wallet = await this.walletService.getProgramWallet({
-      coopname,
-      username: currentMember.username,
-      program_type: ProgramType.MAIN,
-    });
+    const rows = await this.userWalletRepository.findByUsername(coopname, currentMember.username);
 
-    if (!wallet) {
-      // PG-кеш ничего не отдал — пайщик ещё не открывал main wallet через
-      // ledger2; повторим запрос после доставки delta (CLAUDE.md запрещает
-      // RPC fallback в read-path).
-      throw new NotFoundException('Кошелёк пайщика ЦК не найден в локальном кеше');
-    }
+    const wallets = MARKETPLACE_RELEVANT_WALLETS.map((target) => {
+      const row = rows.find((r) => r.wallet_name === target.name);
+      return new MarketplaceWalletEntryDTO({
+        name: target.name,
+        human_name: Ledger2.getWalletHumanName(target.name as `${string}.${string}.${string}`) ?? target.name,
+        program_id: target.program_id,
+        program_label: target.program_label,
+        kind: 'USER_SHARED',
+        available: row?.available ?? '0',
+        blocked: row?.blocked ?? '0',
+      });
+    });
 
     return new MarketplaceMemberWalletDTO({
       username: currentMember.username,
       coopname,
-      contract: 'wallet',
-      available: wallet.available ?? '0',
-      blocked: wallet.blocked ?? '0',
-      membership_contribution: wallet.membership_contribution ?? '0',
+      wallets,
     });
   }
 }

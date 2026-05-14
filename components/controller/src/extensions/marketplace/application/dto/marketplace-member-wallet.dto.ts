@@ -1,25 +1,70 @@
-import { Field, ObjectType } from '@nestjs/graphql';
+import { Field, Int, ObjectType } from '@nestjs/graphql';
 
 /**
- * Story 1.5: ссылка marketplace на кошелёк ЦК пайщика.
+ * Story 1.5: кошельки пайщика на Столе заказов.
  *
- * Источник данных — core `WalletService.getProgramWallet` для program_id=1
- * (`ProgramType.MAIN`). Сплит `w.wal.share` + `w.wal.member` ledger2-кошелька
- * сворачивается в один `ProgramWalletDomainEntity` (см.
- * `WalletInteractor.assembleProgramWallets`):
+ * По стандарту контракта marketplace (см. `marketplace/p.mkt.supply.standard.yaml`,
+ * раздел «wallets») в процессах ЦПП «Стол Заказов» у пайщика участвуют три
+ * USER_SHARED-кошелька:
  *
- *   - `available`               — `w.wal.share.available`
- *   - `blocked`                 — `w.wal.share.blocked`
- *   - `membership_contribution` — `w.wal.member.value` (членский вклад)
+ *   1. `w.wal.share`  — ЦПП «Цифровой Кошелёк», паевые взносы деньгами (program_id=1).
+ *   2. `w.wal.member` — Универсальный членский кошелёк (program_id=1), играет роль
+ *                       транзитного: средства идут share → member → mkt.member.
+ *   3. `w.mkt.member` — Программный членский кошелёк ЦПП «Стол Заказов»
+ *                       (program_id=2), формируется при первом orderoffer/createorder.
  *
- * `account_name` = `username` пайщика (логин в Цифровом кооперативе);
- * `contract` = 'wallet'  — фиксированный owner-контракт для main program.
+ * Источник балансов — core `UserWalletRepository.findByUsername` (PG-кеш
+ * `ledger2::userwallets`); RPC к chain не выполняется (ADR-011). Каждый
+ * кошелёк отдаётся «как есть» — `available` и `blocked` напрямую из L3,
+ * без сворачивания/переименования. Если L3-записи ещё нет (пайщик не
+ * двигал средства через данный кошелёк) — возвращаем `0/0`.
  *
- * Этого набора достаточно фронту `WalletTimeline` (UX-DR8) — баланс + членский
- * вклад. Локальная таблица `marketplace_member_wallet_link` из PRD не
- * заводится: core `WalletService` уже отдаёт данные из синхронизированного
- * `ledger2::userwallets` (PG-кеш). RPC к chain не выполняется.
+ * Платформенный кошелёк `w.mkt.payout` (COOPERATIVE, не per-user) сюда не
+ * включается — это кошелёк выплат поставщикам, отображается в admin-вьюхе
+ * кооператива.
  */
+@ObjectType('MarketplaceWalletEntry')
+export class MarketplaceWalletEntryDTO {
+  @Field(() => String, { description: 'eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.member)' })
+  public readonly name!: string;
+
+  @Field(() => String, { description: 'Человекочитаемое название (из cooptypes LEDGER2_WALLET_REGISTRY)' })
+  public readonly human_name!: string;
+
+  @Field(() => Int, { description: 'program_id: 1 — ЦК, 2 — Marketplace' })
+  public readonly program_id!: number;
+
+  @Field(() => String, { description: 'Метка программы из LEDGER2_USER_SHARED_PROGRAM_MAPPING' })
+  public readonly program_label!: string;
+
+  @Field(() => String, { description: 'WalletKind: USER_SHARED — обязателен L3-разрез по пайщику' })
+  public readonly kind!: string;
+
+  @Field(() => String, { description: 'Доступный остаток (`userwallets.available`)' })
+  public readonly available!: string;
+
+  @Field(() => String, { description: 'Заблокированный остаток (`userwallets.blocked`)' })
+  public readonly blocked!: string;
+
+  constructor(init: {
+    name: string;
+    human_name: string;
+    program_id: number;
+    program_label: string;
+    kind: string;
+    available: string;
+    blocked: string;
+  }) {
+    this.name = init.name;
+    this.human_name = init.human_name;
+    this.program_id = init.program_id;
+    this.program_label = init.program_label;
+    this.kind = init.kind;
+    this.available = init.available;
+    this.blocked = init.blocked;
+  }
+}
+
 @ObjectType('MarketplaceMemberWallet')
 export class MarketplaceMemberWalletDTO {
   @Field(() => String)
@@ -28,33 +73,14 @@ export class MarketplaceMemberWalletDTO {
   @Field(() => String)
   public readonly coopname!: string;
 
-  @Field(() => String, { description: 'Owner-контракт main program (wallet)' })
-  public readonly contract!: string;
-
-  @Field(() => String, { description: 'Доступный остаток (w.wal.share.available)' })
-  public readonly available!: string;
-
-  @Field(() => String, { description: 'Заблокированный остаток (w.wal.share.blocked)' })
-  public readonly blocked!: string;
-
-  @Field(() => String, {
-    description: 'Накопленный членский вклад (w.wal.member.value)',
+  @Field(() => [MarketplaceWalletEntryDTO], {
+    description: 'Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.member',
   })
-  public readonly membership_contribution!: string;
+  public readonly wallets!: MarketplaceWalletEntryDTO[];
 
-  constructor(init: {
-    username: string;
-    coopname: string;
-    contract: string;
-    available: string;
-    blocked: string;
-    membership_contribution: string;
-  }) {
+  constructor(init: { username: string; coopname: string; wallets: MarketplaceWalletEntryDTO[] }) {
     this.username = init.username;
     this.coopname = init.coopname;
-    this.contract = init.contract;
-    this.available = init.available;
-    this.blocked = init.blocked;
-    this.membership_contribution = init.membership_contribution;
+    this.wallets = init.wallets;
   }
 }
