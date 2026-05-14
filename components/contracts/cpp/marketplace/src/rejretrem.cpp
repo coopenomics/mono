@@ -10,8 +10,6 @@
  *  - reason.size() > 0.
  *
  * @ingroup public_marketplace_actions
- *
- * TODO Story 11.1 (Шаг 5): полная реализация.
  */
 void marketplace::rejretrem(eosio::name coopname,
                              eosio::name chairman,
@@ -19,5 +17,25 @@ void marketplace::rejretrem(eosio::name coopname,
                              std::string reason,
                              document2 decision) {
   require_auth(coopname);
-  eosio::check(false, "TODO Story 11.1 Шаг 5: rejretrem ещё не реализован");
+  eosio::check(reason.size() > 0 && reason.size() <= 500,
+               "rejretrem: reason обязателен (1..500 символов)");
+
+  auto r = Marketplace::get_return_request_by_hash_or_fail(coopname, request_hash);
+  eosio::check(r.ku_chairman == chairman,
+               "rejretrem: вы не председатель КУ выдачи");
+  eosio::check(r.status == ReturnStatus::PENDING_REVIEW,
+               "rejretrem: заявление не в pending_review");
+
+  if (!is_empty_document(decision)) {
+    verify_document_or_fail(decision, { chairman });
+  }
+
+  const auto now = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
+  Marketplace::update_return_request(coopname, r.id, [&](auto& upd) {
+    upd.status          = ReturnStatus::REJECTED_REMOTE;
+    upd.decision_remote = decision;
+    upd.reason_remote   = reason;
+    upd.reviewed_at     = now;
+    upd.resolved_at     = now;
+  });
 }
