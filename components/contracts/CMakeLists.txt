@@ -44,7 +44,7 @@ endmacro()
 # Добавляем все контракты
 add_contract_build(test)
 add_contract_build(ledger)
-# add_contract_build(ledger2)
+add_contract_build(ledger2)
 add_contract_build(meet)
 add_contract_build(loan)
 add_contract_build(wallet)
@@ -57,6 +57,7 @@ add_contract_build(soviet)
 add_contract_build(registrator)
 add_contract_build(gateway)
 add_contract_build(marketplace)
+add_contract_build(apps)
 add_contract_build(system)
 
 # Опции для тестов

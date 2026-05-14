@@ -77,8 +77,8 @@ const required_agreements = computed(() => {
       if (userAgreement) {
         // Найти соответствующий шаблон для соглашения
         const template = templates.value.find(t => t.registry_id === agreement.draft_id);
-        // Проверить, если версия подписанного соглашения у пользователя отличается от последнего шаблона
-        if (template && template.version !== userAgreement.version) {
+        // template.version приходит строкой из блокчейна, userAgreement.version — number из GraphQL DTO
+        if (template && Number(template.version) !== Number(userAgreement.version)) {
           is_modify.value = true
           return true; // Добавить соглашение в список
         }

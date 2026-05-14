@@ -31,6 +31,11 @@ const rawLinkedGitCommitsSelector = {
   commit_message: true,
 }
 
+const rawIssueContributorFactSelector = {
+  contributor_hash: true,
+  hours: true,
+}
+
 const rawIssueSelector = {
   ...baseCapitalSelector,
   id: true,
@@ -49,6 +54,10 @@ const rawIssueSelector = {
   metadata: true,
   linked_git_commits: rawLinkedGitCommitsSelector,
   permissions: rawIssuePermissionsSelector,
+  fact: true,
+  fact_committed: true,
+  fact_uncommitted: true,
+  fact_by_contributor: rawIssueContributorFactSelector,
 }
 
 // Проверка валидности

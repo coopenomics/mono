@@ -23,6 +23,28 @@ async function fileExists(abs: string): Promise<boolean> {
   }
 }
 
+/** После переноса файла прибрать пустые родительские каталоги (но не выше rootAbs). */
+async function pruneEmptyParents(absFile: string, rootAbs: string): Promise<void> {
+  const stopAt = path.resolve(rootAbs)
+  let dir = path.resolve(path.dirname(absFile))
+  for (let i = 0; i < 16; i++) {
+    if (dir === stopAt || !dir.startsWith(`${stopAt}${path.sep}`)) {
+      return
+    }
+    try {
+      const entries = await fs.readdir(dir)
+      if (entries.length > 0) {
+        return
+      }
+      await fs.rmdir(dir)
+    }
+    catch {
+      return
+    }
+    dir = path.dirname(dir)
+  }
+}
+
 async function readFileIfExists(abs: string): Promise<string | null> {
   try {
     return await fs.readFile(abs, 'utf8')
@@ -78,6 +100,7 @@ export async function syncEntityFile(params: {
       await ensureDirForFile(absNew)
       if (await fileExists(absOld)) {
         await fs.rename(absOld, absNew)
+        await pruneEmptyParents(absOld, root)
       }
       else {
         await fs.writeFile(absNew, content, 'utf8')
@@ -99,6 +122,7 @@ export async function syncEntityFile(params: {
     await fs.writeFile(absNew, content, 'utf8')
     if ((await fileExists(absOld)) && path.resolve(absOld) !== path.resolve(absNew)) {
       await fs.unlink(absOld)
+      await pruneEmptyParents(absOld, root)
     }
     const etagAfterRename = sha256Hex(await fs.readFile(absNew, 'utf8'))
     upsertEntry(index, {

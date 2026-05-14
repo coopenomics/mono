@@ -118,7 +118,7 @@ export function storyFileRelativePath(
   const id2 = storyRequirementIdPrefix2(storyRecordId, storyHash)
   if (issue?.titleSlug) {
     const ip = capitalIdPathPrefix(issue.id)
-    return `${basePath}/issues/${ip}-${issue.titleSlug}-requirements/${id2}-${slug}.md`
+    return `${basePath}/issue-requirements/${ip}-${issue.titleSlug}/${id2}-${slug}.md`
   }
   return `${basePath}/requirements/${id2}-${slug}.md`
 }

@@ -44,6 +44,7 @@ import {
 } from './layout.js'
 import { loadProjectMapsFromIndex } from './project-index-map.js'
 import { resolveProjectMarkerFromRelativePath } from './resolve-project-hash-from-path.js'
+import { writeWorkspaceIndexMarkdown } from './workspace-index.js'
 
 interface CapitalProjectRow {
   id?: number | null
@@ -512,5 +513,6 @@ export async function restoreAllFromServer(ctx: AuthenticatedContext): Promise<R
       failures.push({ relativePath: rel, message: formatThrownValue(caught) })
     }
   }
+  await writeWorkspaceIndexMarkdown(ctx.root)
   return { restored, failures }
 }

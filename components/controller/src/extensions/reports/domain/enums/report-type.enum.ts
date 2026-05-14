@@ -31,7 +31,8 @@ export const REPORT_CONFIG: Record<ReportType, {
   [ReportType.BUHOTCH]: {
     name: 'Бухгалтерский баланс',
     period: ReportPeriodType.YEARLY,
-    xsdFile: 'NO_BUHOTCH_1_105_00_05_09_01.xsd',
+    // Форма НКО v5.04 (КНД 0710096). XSD от ФНС (формат ЕД-7-1/1041 от 26.12.2024).
+    xsdFile: 'NO_BOUPR_1_159_00_05_04_01.xsd',
     deadlineDescription: 'До 31 марта следующего года',
   },
   [ReportType.NDFL6]: {
@@ -61,7 +62,9 @@ export const REPORT_CONFIG: Record<ReportType, {
   [ReportType.FSS4]: {
     name: '4-ФСС (ЕФС-1)',
     period: ReportPeriodType.QUARTERLY,
-    xsdFile: '',
+    // XSD 2024-01-01 со страницы СФР, пропатченная под формат 2026-01-01
+    // (см. schemas/efs1/README.md).
+    xsdFile: 'efs1/efs1.xsd',
     deadlineDescription: 'До 25 числа следующего за кварталом месяца',
   },
   [ReportType.UV_VZNOSY]: {

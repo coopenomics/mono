@@ -5,18 +5,25 @@ import { getTotalRamUsage } from '../../utils/getTotalRamUsage'
 import { processDecision } from '../soviet/processDecision'
 import { getParticipant } from '../registrator/getParticipant'
 import { fakeDocument } from '../soviet/fakeDocument'
-import { compareTokenAmounts, getCoopWallet } from '../wallet/walletUtils'
+import { compareTokenAmounts, getLedgerAccountById } from '../wallet/walletUtils'
+
+// Идентификаторы счетов ledger2 (id = code × 1000). После рефакторинга
+// Epic 1 проверка балансов идёт по двойной записи на 80 (паевой фонд) и
+// 86 (целевое финансирование), а не по legacy fund::coopwallet —
+// последний обновлялся через Ledger::add, который удалён вместе с переходом
+// на ledger2.apply.
+const LEDGER2_SHARE_FUND_ID = 80_000        // 80 — Паевой фонд (passive)
+const LEDGER2_TARGET_RECEIPTS_ID = 86_000   // 86 — Целевое финансирование (passive)
 
 export async function registerUser(blockchain: any, coopname: string, username: string) {
   const registration_hash = generateRandomSHA256()
 
   const account = await blockchain.generateKeypair(username, undefined, 'Аккаунт кооператива')
 
-  // 🔹 Получаем балансы до регистрации
-  const prevCoopWallet = await getCoopWallet(blockchain, coopname)
-  const prevAvailable = prevCoopWallet?.circulating_account?.available || '0.0000 RUB'
-  const prevInitial = prevCoopWallet?.initial_account?.available || '0.0000 RUB'
-  console.log('📦 CoopWallet BEFORE:', prevCoopWallet)
+  // 🔹 Получаем балансы до регистрации (по двойной записи ledger2)
+  const prevShareFund = await getLedgerAccountById(blockchain, coopname, LEDGER2_SHARE_FUND_ID)
+  const prevTargetReceipts = await getLedgerAccountById(blockchain, coopname, LEDGER2_TARGET_RECEIPTS_ID)
+  console.log('📦 ledger2 BEFORE: 80=', prevShareFund.available, '86=', prevTargetReceipts.available)
 
   // 🔹 1. Создание аккаунта
   {
@@ -106,18 +113,20 @@ export async function registerUser(blockchain: any, coopname: string, username: 
   expect(participant.status).toBe('accepted')
   expect(participant.username).toBe(username)
 
-  // 🔹 6. Проверка балансов после регистрации
-  const coopWalletAfter = await getCoopWallet(blockchain, coopname)
-  const newAvailable = coopWalletAfter?.circulating_account?.available || '0.0000 RUB'
-  const newInitial = coopWalletAfter?.initial_account?.available || '0.0000 RUB'
-
-  console.log('💰 CoopWallet AFTER:', coopWalletAfter)
+  // 🔹 6. Проверка балансов после регистрации (двойная запись ledger2)
+  // confirmreg → 2 × Ledger2::apply:
+  //   - operations::registrator::PUT_MINSHARE  (Dr 51 / Cr 80, +minimum  на 80)
+  //   - operations::registrator::PAY_ENTRANCE  (Dr 51 / Cr 86, +initial  на 86)
+  // Оба счёта пассивные → balance = credit − debit; растёт при кредитовании.
+  const newShareFund = await getLedgerAccountById(blockchain, coopname, LEDGER2_SHARE_FUND_ID)
+  const newTargetReceipts = await getLedgerAccountById(blockchain, coopname, LEDGER2_TARGET_RECEIPTS_ID)
+  console.log('💰 ledger2 AFTER: 80=', newShareFund.available, '86=', newTargetReceipts.available)
 
   const minAmount = parseFloat(participant.minimum_amount.split(' ')[0])
   const initAmount = parseFloat(participant.initial_amount.split(' ')[0])
 
-  compareTokenAmounts(prevAvailable, newAvailable, minAmount)
-  compareTokenAmounts(prevInitial, newInitial, initAmount)
+  compareTokenAmounts(prevShareFund.available, newShareFund.available, minAmount)
+  compareTokenAmounts(prevTargetReceipts.available, newTargetReceipts.available, initAmount)
 
   return participant
 }

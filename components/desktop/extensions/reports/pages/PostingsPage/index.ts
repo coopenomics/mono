@@ -1,0 +1,1 @@
+export { PostingsPage } from './ui'

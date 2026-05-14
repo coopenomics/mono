@@ -37,6 +37,18 @@ div
     @update:modelValue='handleEstimateUpdate'
   ).full-width.q-mb-sm
 
+  .row.items-center.justify-between.full-width.q-mb-sm(
+    v-if='issue && (issue.fact > 0 || issue.estimate > 0)'
+  )
+    .col-auto
+      .text-caption.text-grey-7 Факт
+    .col-auto
+      Estimation(
+        :estimation='issue.estimate'
+        :fact='issue.fact'
+        size='sm'
+      )
+
   UpdateLabels(
     v-if='issue'
     :model-value='issueLabels'
@@ -54,6 +66,7 @@ import type { IIssuePermissions } from 'app/extensions/capital/entities/Issue/mo
 import { UpdateStatus, UpdatePriority, UpdateEstimate, UpdateLabels } from '../../features/Issue/UpdateIssue'
 import { getIssueLabels } from 'app/extensions/capital/shared/lib'
 import { SetCreatorButton } from '../../features/Issue/SetCreator'
+import { Estimation } from 'src/shared/ui'
 
 interface Props {
   issue: any // IIssue тип

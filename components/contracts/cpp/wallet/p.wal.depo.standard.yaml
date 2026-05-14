@@ -1,0 +1,212 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Стандарт «Внесение паевого взноса» — деньгами, через целевую потребительскую
+# программу «Цифровой Кошелёк» (SHARE_FUND_PAY).
+#
+# Одноактовый процесс (в ledger2 одна операция o.wal.depcpl). Документов не
+# подписывается — взнос не требует оформления договора, он подтверждается
+# самим фактом платежа.
+#
+# Канон формата:
+#   coopenomics-docs/docs/standards/_spec/canon.md
+# Источники правды в коде:
+#   • cpp/wallet/wallet.hpp                                 — actions
+#   • cpp/wallet/src/deposit/{createdpst,completedpst,declinedpst}.cpp
+#   • cpp/lib/core/ledger2/operations.hpp                   — o.wal.depcpl
+#   • cpp/lib/core/ledger2/processes.hpp                    — processes::wallet::DEPOSIT
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Секция 1. Паспорт ───────────────────────────────────────────────────────
+process_type: p.wal.depo
+id: public_wallet_deposit_process
+title: Внесение паевого взноса
+slug: deposit
+status: proposed
+contract: wallet
+summary: >
+  Пайщик пополняет свой цифровой кошелёк, делая дополнительный паевой взнос
+  деньгами. Средства поступают в паевой фонд кооператива и одновременно
+  становятся доступны пайщику на его кошельке SHARE_FUND_PAY.
+purpose: >
+  «Внесение паевого взноса» — пайщик пополняет свой паевой кошелёк
+  деньгами. Это самый частый кооперативный процесс: документ не
+  оформляется, факт взноса подтверждается самим платежом через кассира.
+  После подтверждения деньги становятся доступны пайщику для остальных
+  кооперативных процессов — займов, инвестиций, поставок, выходов.
+roles:
+  - contributor
+  - gateway_operator
+
+# ── Секция 2. Действия контракта (блокчейн-уровень) ─────────────────────────
+actions:
+  - name: wallet::createdpst
+    human: Создать заявку
+    actor: contributor
+    role: opener
+    purpose: >
+      Создать заявку на внесение паевого взноса. Выпускается счёт в Gateway;
+      callback'и — completedpst (успех) или declinedpst (отказ).
+  - name: wallet::completedpst
+    human: Подтвердить оплату
+    actor: gateway_operator
+    role: closer
+    purpose: >
+      Gateway подтвердил зачисление платежа. Это закрывающее действие: в ledger2
+      применяется операция o.wal.depcpl, средства зачисляются на кошелёк
+      SHARE_FUND_PAY пайщика, запись заявки удаляется.
+  - name: wallet::declinedpst
+    human: Отклонить оплату
+    actor: gateway_operator
+    role: reject
+    purpose: Отклонить платёж (неверные реквизиты, возврат, тайм-аут).
+
+# ── Секция 3. Граф состояний ────────────────────────────────────────────────
+# Сущность: wallet::deposit (таблица deposits, scope=coopname).
+# Статус `completed` — виртуально-финальный: в реальности запись удаляется
+# после completedpst. Узел в графе нужен, чтобы обозначить успешное завершение
+# и привязать к нему ledger2-операцию.
+entity: wallet::deposit
+entity_human: Заявка на взнос
+entity_source: cpp/wallet/src/deposit/
+
+states:
+  - name: pending
+    human: Ожидает оплаты
+    description: Заявка создана, в Gateway выпущен счёт, ожидается оплата.
+    kind: normal
+  - name: completed
+    human: Взнос учтён
+    description: >
+      Оплата подтверждена, средства учтены на кошельке SHARE_FUND_PAY
+      и в бухгалтерии (счета 51 / 80). Запись заявки удалена из таблицы.
+    kind: final
+  - name: removed
+    human: Отклонено
+    description: Платёж не прошёл / отменён, запись удалена, ledger2-операция не создавалась.
+    kind: virtual
+    virtual: true
+
+transitions:
+  - from: "∅"
+    to: pending
+    action: wallet::createdpst
+    actor: contributor
+    guards:
+      - Пайщик имеет статус active в кооперативе.
+      - Сумма взноса валидна (положительна, в системном символе).
+      - deposit_hash уникален.
+
+  - from: pending
+    to: completed
+    action: wallet::completedpst
+    actor: gateway_operator
+    ledger_code: o.wal.depcpl
+    operations:
+      - o.wal.depcpl
+    guards:
+      - Gateway подтвердил зачисление платежа от пайщика.
+
+  - from: pending
+    to: removed
+    action: wallet::declinedpst
+    actor: gateway_operator
+    guards:
+      - Платёж не прошёл / отклонён Gateway.
+
+# ── Секция 4. Сценарий ──────────────────────────────────────────────────────
+scenario:
+  steps:
+    - step: 1
+      title: Создание заявки на взнос
+      actor: contributor
+      action: wallet::createdpst
+      description: >
+        Пайщик инициирует внесение взноса: приложение кооператива вызывает
+        wallet::createdpst (подпись coopname) с суммой и уникальным
+        deposit_hash. Контракт создаёт запись в таблице deposits со статусом
+        `pending` и выпускает счёт в Gateway.
+      pre:
+        - Пайщик — активный участник кооператива.
+        - deposit_hash ещё не использован.
+      post:
+        - В таблице deposits создана запись со статусом `pending`.
+        - Gateway выпустил счёт с callback'ами completedpst / declinedpst.
+
+    - step: 2
+      title: Подтверждение платежа
+      actor: gateway_operator
+      action: wallet::completedpst
+      description: >
+        После получения денежных средств на расчётный счёт кооператива
+        кассир вызывает completedpst. Контракт делает три вещи:
+        (1) зачисляет средства на кошелёк SHARE_FUND_PAY пайщика
+        (add_available_funds); (2) применяет ledger2-операцию o.wal.depcpl
+        с двойной проводкой Дт 51 / Кт 80; (3) удаляет запись заявки из
+        таблицы deposits.
+      pre:
+        - Заявка в статусе `pending`.
+        - Gateway получил оплату от пайщика.
+      post:
+        - Кошелёк SHARE_FUND_PAY пайщика пополнен на сумму взноса.
+        - В ledger2 применена операция o.wal.depcpl.
+        - Запись заявки удалена из таблицы deposits.
+
+  alternatives:
+    - branch: Отклонение платежа
+      at_step: 2
+      action: wallet::declinedpst
+      actor: gateway_operator
+      description: >
+        Платёж не поступил или был отменён платёжной системой. Gateway вызывает
+        declinedpst — запись заявки удаляется, операция в ledger2 не создаётся.
+        Пайщик может повторить заявку.
+
+# ── Секция 5. Документы и подписи ───────────────────────────────────────────
+# Для внесения взноса документ не оформляется — факт внесения подтверждается
+# самим платежом. Секция оставлена пустой намеренно.
+documents: []
+
+# ── Секция 6. Операции ──────────────────────────────────────────────────────
+# Одноактовый процесс: в OPERATION_REGISTRY одна запись с process_type=p.wal.depo.
+# Источник: ledger2/operations.hpp — запись #3 (o.wal.depcpl).
+# Slim-формат: коды/id → имена подставляет фронтенд из cooptypes.Ledger2.
+operations:
+  - ledger_code: o.wal.depcpl
+    human_name: Внесение пайщиком паевого взноса
+    wallet_op: ISSUE
+    wallet_from: ''
+    wallet_to: w.wal.share          # ЦПП «Цифровой Кошелёк» — паевые взносы деньгами
+    debit: 51                # Расчётный счёт
+    credit: 80               # Паевой фонд (складочный капитал)
+    amount_ref: deposit.quantity
+    triggered_by: wallet::completedpst
+    description: >
+      Первичный вход средств на кошелёк пайщика «ЦПП Цифровой Кошелёк».
+      Двойная запись Дт 51 / Кт 80 — деньги пайщика поступили на расчётный
+      счёт и увеличили складочный капитал кооператива. Средства доступны
+      пайщику для дальнейших операций (инвестиции в программы, конвертации,
+      возврат).
+
+# ── Секция 7. Связи ─────────────────────────────────────────────────────────
+related:
+  - process_type: p.reg.accept
+    id: public_registrator_accept_process
+    relation: provides
+    note: >
+      Пайщик должен пройти «Приём пайщика» (p.reg.accept) и получить
+      статус active прежде, чем сможет вносить дополнительные паевые взносы.
+
+  - process_type: p.wal.wthdrw
+    id: public_wallet_withdraw_process
+    relation: affects
+    note: >
+      Обратный процесс — возврат паевого взноса пайщику (p.wal.wthdrw).
+      Средства списываются с того же кошелька SHARE_FUND_PAY, который
+      пополняется в этом процессе.
+
+  - process_type: p.cap.invest
+    id: public_capital_invest_process
+    relation: triggers
+    note: >
+      Средства на кошельке SHARE_FUND_PAY могут быть направлены в инвестиционные
+      программы (например, в «Благорост» через p.cap.invest) — это отдельный процесс,
+      использующий уже внесённые паевые средства.

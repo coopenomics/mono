@@ -1,9 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { AgreementId } from '../enum';
 import { AccountType } from '~/application/account/enum/account-type.enum';
 
 /**
- * Сервис для определения конфигурации кооперативов
+ * Сервис для определения конфигурации кооперативов.
+ *
+ * После Эпика 1.3 фильтрация оферт по кооперативу больше не делается —
+ * расширения сами решают, регистрировать ли свои оферты, поэтому метод
+ * getExcludedFromBaseAgreements удалён. Метод hasPrograms/`getCooperativesWithPrograms`
+ * остаётся для feature-флага в SignUp (стоит ли вообще опрашивать программы).
  */
 @Injectable()
 export class CooperativeConfigService {
@@ -22,21 +26,11 @@ export class CooperativeConfigService {
   }
 
   /**
-   * Получить дополнительные соглашения по умолчанию для кооператива
+   * Дополнительные платформенные соглашения, которые включаются по
+   * правилам кооператива (а не через расширения). Сейчас всегда пусто —
+   * хук оставлен для будущей кастомизации.
    */
-  getDefaultAdditionalAgreements(coopname: string, accountType: AccountType): AgreementId[] {
-    // if (coopname === 'voskhod' && accountType === AccountType.individual) {
-    //   return [AgreementId.BLAGOROST_OFFER];
-    // }
-
+  getDefaultAdditionalAgreements(_coopname: string, _accountType: AccountType): string[] {
     return [];
-  }
-
-  /**
-   * Получить список соглашений, которые нужно исключить из базовых для данного кооператива
-   */
-  getExcludedFromBaseAgreements(coopname: string): AgreementId[] {
-    // Для всех кооперативов исключаем соглашения, которые добавляются через программы или дополнительные
-    return [AgreementId.BLAGOROST_OFFER, AgreementId.GENERATOR_OFFER];
   }
 }

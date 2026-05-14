@@ -24,6 +24,9 @@ interface ISessionStore {
   clearAccount: () => void;
   // Computed свойства для текущего пользователя
   isRegistrationComplete: ComputedRef<boolean>;
+  // status === 'active' — пайщик принят советом, можно показывать дашборд.
+  // Промежуточные статусы (created/joined/payed/registered) — публичная главная.
+  isFullyActive: ComputedRef<boolean>;
   isChairman: ComputedRef<boolean>;
   isMember: ComputedRef<boolean>;
   // Удобные геттеры для различных типов данных
@@ -92,6 +95,14 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
     ),
   );
 
+  // Пайщик принят советом (status === 'active' из users в моно).
+  // Используется как порог для dashboard/wallet/документов. На промежуточных
+  // статусах (created/joined/payed/registered) показываем публичную главную —
+  // не редиректим, не дёргаем кошелёк, не открываем подписи оферт.
+  const isFullyActive = computed(
+    () => currentUserAccount.value?.user_account?.status === 'active',
+  );
+
   const isChairman = computed(() => {
     const chairman = currentUserAccount.value?.provider_account?.role === 'chairman';
     return chairman;
@@ -140,6 +151,7 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
     setCurrentUserAccount,
     clearAccount,
     isRegistrationComplete,
+    isFullyActive,
     isChairman,
     isMember,
     // Удобные геттеры для различных типов данных

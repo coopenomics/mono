@@ -8,6 +8,7 @@ import type { Account, Contract } from '../types'
 import config from '../configs'
 import Blockchain from '../blockchain'
 import { sleep } from '../utils'
+import { generateRandomSHA256 } from '../utils/randomHash'
 import { initUsersInPostgres, initVaultInPostgres } from '../postgres-init'
 import { CooperativeClass } from './cooperative'
 import { generateRandomSHA256 } from '../utils/randomHash'
@@ -70,7 +71,10 @@ export async function startInfra() {
   for (const contract of filtered_contracts)
     await blockchain.setContract(contract)
 
-  await sleep(2000)
+  // 2s часто не хватает на свежем nodeos: setabi последнего контракта
+  // ещё не финализирован, eosio.token::create падает с
+  // "fetching abi for eosio.token: Read past end of buffer".
+  await sleep(8000)
 
   console.log('создаём токен')
   await blockchain.createToken({

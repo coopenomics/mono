@@ -4,11 +4,18 @@ import { AccountType } from '~/application/account/enum/account-type.enum';
 import { AgreementType, AgreementId } from '../enum';
 
 /**
- * Конфигурация соглашений, требуемых при регистрации пайщика.
+ * Платформенные соглашения, требуемые при регистрации пайщика в любом
+ * кооперативе вне зависимости от подключённых расширений.
  *
- * Порядок (order) определяет последовательность отображения галочек на фронтенде.
- * is_blockchain_agreement указывает, нужно ли отправлять sendAgreement в блокчейн.
- * link_to_statement указывает, нужно ли линковать хеш документа в заявление.
+ * Соглашения, специфичные для конкретных расширений (например, оферты
+ * программ Capital — generator/blagorost), регистрируются самими
+ * расширениями в `AgreementRegistryService` при инициализации и
+ * сливаются с этим списком в `AgreementConfigurationService`.
+ *
+ * Порядок (order) определяет последовательность отображения галочек
+ * на фронтенде. is_blockchain_agreement указывает, нужно ли отправлять
+ * sendAgreement в блокчейн. link_to_statement указывает, нужно ли
+ * линковать хеш документа в заявление.
  */
 export const REGISTRATION_AGREEMENTS_CONFIG: IRegistrationAgreementsConfig = {
   agreements: [
@@ -59,30 +66,6 @@ export const REGISTRATION_AGREEMENTS_CONFIG: IRegistrationAgreementsConfig = {
       link_to_statement: true,
       applicable_account_types: [AccountType.individual, AccountType.organization, AccountType.entrepreneur],
       order: 4,
-    },
-    {
-      id: AgreementId.BLAGOROST_OFFER,
-      registry_id: Cooperative.Registry.BlagorostOffer.registry_id,
-      agreement_type: AgreementType.CAPITAL,
-      title: 'Оферта по целевой потребительской программе "Благорост"',
-      checkbox_text: 'Я прочитал и принимаю',
-      link_text: 'оферту по целевой потребительской программе "Благорост"',
-      is_blockchain_agreement: true,
-      link_to_statement: true,
-      applicable_account_types: [AccountType.individual],
-      order: 5,
-    },
-    {
-      id: AgreementId.GENERATOR_OFFER,
-      registry_id: Cooperative.Registry.GeneratorOffer.registry_id,
-      agreement_type: AgreementType.GENERATOR,
-      title: 'Оферта по целевой потребительской программе "Генератор"',
-      checkbox_text: 'Я прочитал и принимаю',
-      link_text: 'оферту по целевой потребительской программе "Генератор"',
-      is_blockchain_agreement: true,
-      link_to_statement: true,
-      applicable_account_types: [],
-      order: 6,
     },
   ],
 };

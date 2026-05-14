@@ -31,14 +31,13 @@ export class IssuePermissionsService {
   ) {}
 
   /**
-   * Определяет роль пользователя для конкретной задачи
-   * @param username - имя пользователя
-   * @param coopname - имя кооператива
-   * @param projectHash - хеш проекта
-   * @param issueSubmaster - ответственный задачи
-   * @param issueCreators - создатели задачи
-   * @param userRole - роль пользователя в системе (chairman, member, etc.)
-   * @returns роль пользователя
+   * Определяет НАБОР ролей пользователя для конкретной задачи.
+   *
+   * Пользователь может одновременно нести несколько ролей (например, член совета
+   * + соавтор + исполнитель), и итоговые права на задачу — UNION разрешений по
+   * всем его ролям. См. {@link IssueAccessPolicyService.hasPermission}.
+   *
+   * @returns множество ролей; минимум {@link UserRole.GUEST} / {@link UserRole.CONTRIBUTOR}.
    */
   async getUserRoleForIssue(
     username: string | undefined,
@@ -47,74 +46,64 @@ export class IssuePermissionsService {
     issueSubmaster?: string,
     issueCreators?: string[],
     userRole?: string
-  ): Promise<UserRole> {
-    // Гости не имеют доступа
+  ): Promise<Set<UserRole>> {
+    const roles = new Set<UserRole>();
+
     if (!username) {
-      return UserRole.GUEST;
+      roles.add(UserRole.GUEST);
+      return roles;
     }
 
-    // Сначала проверяем специфические роли проекта (они имеют приоритет над системными ролями)
-
-    // Проверяем, является ли пользователь мастером проекта
+    // Project-specific роли — собираем все, что верны.
     const isMaster = await this.isProjectMaster(username, coopname, projectHash);
     if (isMaster) {
-      return UserRole.MASTER;
+      roles.add(UserRole.MASTER);
     }
 
-    // Проверяем, является ли пользователь ответственным
     if (issueSubmaster === username) {
-      return UserRole.SUBMASTER;
+      roles.add(UserRole.SUBMASTER);
     }
 
-    // Проверяем, является ли пользователь исполнителем (соисполнителем)
     if (issueCreators && issueCreators.includes(username)) {
-      return UserRole.CREATOR;
+      roles.add(UserRole.CREATOR);
     }
 
-    // Проверяем, является ли пользователь автором проекта
     const segment = await this.segmentRepository.findOne({
       username,
       project_hash: projectHash,
       coopname,
     });
     if (segment?.is_author) {
-      return UserRole.AUTHOR;
+      roles.add(UserRole.AUTHOR);
     }
 
-    // Проверяем, является ли пользователь участником проекта
     const contributor = await this.contributorRepository.findByUsernameAndCoopname(username, coopname);
     if (contributor && contributor.appendixes.includes(projectHash)) {
-      return UserRole.CONTRIBUTOR;
+      roles.add(UserRole.CONTRIBUTOR);
     }
 
-    // Теперь проверяем системные роли (только если нет специфических ролей проекта)
+    // Системные роли совета — добавляем независимо от project-specific ролей.
     if (userRole === 'chairman' || userRole === 'member') {
-      return UserRole.BOARD_MEMBER;
+      roles.add(UserRole.BOARD_MEMBER);
     }
 
-    // По умолчанию - участник проекта (если есть доступ)
-    return UserRole.CONTRIBUTOR;
+    // Минимальный фолбэк, если ничего из вышеперечисленного не сработало,
+    // но username известен — оставляем семантику «участник проекта».
+    if (roles.size === 0) {
+      roles.add(UserRole.CONTRIBUTOR);
+    }
+
+    return roles;
   }
 
-  /**
-   * Проверяет, есть ли у пользователя разрешение на действие
-   * @param userRole - роль пользователя
-   * @param action - действие
-   * @returns true если действие разрешено
-   */
-  hasPermission(userRole: UserRole, action: IssueAction): boolean {
-    return this.issueAccessPolicyService.hasPermission(userRole, action);
+  /** UNION-проверка прав на действие над задачей по набору ролей. */
+  hasPermission(roles: Iterable<UserRole>, action: IssueAction): boolean {
+    return this.issueAccessPolicyService.hasPermission(roles, action);
   }
 
-  /**
-   * Проверяет разрешение на переход между статусами
-   * @param userRole - роль пользователя
-   * @param currentStatus - текущий статус
-   * @param newStatus - новый статус
-   * @returns true если переход разрешен
-   */
-  canTransitionStatus(userRole: UserRole, currentStatus: IssueStatus, newStatus: IssueStatus): boolean {
-    return this.issueAccessPolicyService.canTransitionStatus(userRole, currentStatus, newStatus);
+  /** UNION-проверка перехода статусов по набору ролей. */
+  canTransitionStatus(roles: Iterable<UserRole>, currentStatus: IssueStatus, newStatus: IssueStatus): boolean {
+    return this.issueAccessPolicyService.canTransitionStatus(roles, currentStatus, newStatus);
   }
 
   /**
@@ -173,53 +162,58 @@ export class IssuePermissionsService {
   }
 
   /**
-   * Определяет роль пользователя для проекта
-   * @param username - имя пользователя
-   * @param project - проект
-   * @param userRole - системная роль пользователя (chairman, member, etc.)
-   * @returns роль пользователя для проекта
+   * Определяет НАБОР project-ролей пользователя.
+   *
+   * UNION-семантика по ролям. Симметрично с
+   * {@link ProjectPermissionsService.getProjectUserRole}.
    */
   async getProjectUserRole(
     username: string | undefined,
     project: any, // ProjectDomainEntity
     userRole?: string
-  ): Promise<ProjectUserRole> {
-    // Гости не имеют доступа
+  ): Promise<Set<ProjectUserRole>> {
+    const roles = new Set<ProjectUserRole>();
+
     if (!username) {
-      return ProjectUserRole.GUEST;
+      roles.add(ProjectUserRole.GUEST);
+      return roles;
     }
 
-    // Члены совета имеют полные права
-    if (userRole === 'chairman' || userRole === 'member') {
-      return userRole === 'chairman' ? ProjectUserRole.CHAIRMAN : ProjectUserRole.BOARD_MEMBER;
+    if (userRole === 'chairman') {
+      roles.add(ProjectUserRole.CHAIRMAN);
+    } else if (userRole === 'member') {
+      roles.add(ProjectUserRole.BOARD_MEMBER);
     }
 
-    // Проверяем, является ли пользователь мастером проекта
     const isMaster = await this.isProjectMaster(username, project.coopname, project.project_hash);
     if (isMaster) {
-      return ProjectUserRole.MASTER;
+      roles.add(ProjectUserRole.MASTER);
     }
 
-    // Проверяем, является ли пользователь участником проекта
+    const segment = await this.segmentRepository.findOne({
+      username,
+      project_hash: project.project_hash,
+      coopname: project.coopname,
+    });
+    if (segment?.is_author) {
+      roles.add(ProjectUserRole.AUTHOR);
+    }
+
     const contributor = await this.contributorRepository.findByUsernameAndCoopname(username, project.coopname);
-    const isContributor = contributor && contributor.appendixes.includes(project.project_hash);
-
-    if (isContributor) {
-      return ProjectUserRole.CONTRIBUTOR;
+    if (contributor && contributor.appendixes.includes(project.project_hash)) {
+      roles.add(ProjectUserRole.CONTRIBUTOR);
     }
 
-    // По умолчанию - участник (если есть доступ к проекту)
-    return ProjectUserRole.CONTRIBUTOR;
+    if (roles.size === 0) {
+      roles.add(ProjectUserRole.CONTRIBUTOR);
+    }
+
+    return roles;
   }
 
-  /**
-   * Проверяет, есть ли у пользователя разрешение на действие над проектом
-   * @param userRole - роль пользователя для проекта
-   * @param action - действие над проектом
-   * @returns true если действие разрешено
-   */
-  hasProjectPermission(userRole: ProjectUserRole, action: ProjectAction): boolean {
-    return this.issueAccessPolicyService.hasProjectPermission(userRole, action);
+  /** UNION-проверка прав на действие над проектом по набору ролей. */
+  hasProjectPermission(roles: Iterable<ProjectUserRole>, action: ProjectAction): boolean {
+    return this.issueAccessPolicyService.hasProjectPermission(roles, action);
   }
 
   /**
@@ -243,25 +237,22 @@ export class IssuePermissionsService {
     currentStatus: IssueStatus,
     userRole?: string
   ): Promise<void> {
-    // Определяем роль пользователя
-    const role = await this.getUserRoleForIssue(username, coopname, projectHash, issueSubmaster, issueCreators, userRole);
+    // Определяем набор ролей пользователя
+    const roles = await this.getUserRoleForIssue(username, coopname, projectHash, issueSubmaster, issueCreators, userRole);
 
-    // Проверяем разрешение на изменение статуса
-    if (!this.hasPermission(role, IssueAction.CHANGE_STATUS)) {
+    if (!this.hasPermission(roles, IssueAction.CHANGE_STATUS)) {
       throw new Error(`У вас нет прав на изменение статуса задачи`);
     }
 
-    // Проверяем разрешение на переход между статусами
-    if (!this.canTransitionStatus(role, currentStatus, newStatus)) {
+    if (!this.canTransitionStatus(roles, currentStatus, newStatus)) {
       throw new Error(`Переход из статуса "${currentStatus}" в "${newStatus}" запрещен для вашей роли`);
     }
 
-    // Дополнительные проверки для специальных статусов
-    if (newStatus === IssueStatus.DONE && !this.hasPermission(role, IssueAction.SET_DONE)) {
+    if (newStatus === IssueStatus.DONE && !this.hasPermission(roles, IssueAction.SET_DONE)) {
       throw new Error('Только мастер проекта может устанавливать статус "Выполнена"');
     }
 
-    if (newStatus === IssueStatus.ON_REVIEW && !this.hasPermission(role, IssueAction.SET_ON_REVIEW)) {
+    if (newStatus === IssueStatus.ON_REVIEW && !this.hasPermission(roles, IssueAction.SET_ON_REVIEW)) {
       throw new Error('Только ответственный исполнитель может устанавливать статус "На проверке"');
     }
   }
@@ -284,11 +275,10 @@ export class IssuePermissionsService {
     issueCreators: string[] | undefined,
     userRole?: string
   ): Promise<void> {
-    // Определяем роль пользователя
-    const role = await this.getUserRoleForIssue(username, coopname, projectHash, issueSubmaster, issueCreators, userRole);
+    // Определяем набор ролей пользователя
+    const roles = await this.getUserRoleForIssue(username, coopname, projectHash, issueSubmaster, issueCreators, userRole);
 
-    // Проверяем разрешение на установку оценки
-    if (!this.hasPermission(role, IssueAction.SET_ESTIMATE)) {
+    if (!this.hasPermission(roles, IssueAction.SET_ESTIMATE)) {
       throw new Error('Только мастер проекта может устанавливать оценку на задачи');
     }
   }
@@ -311,22 +301,16 @@ export class IssuePermissionsService {
     issueCreators: string[] | undefined,
     userRole?: string
   ): Promise<void> {
-    // Определяем роль пользователя
-    const role = await this.getUserRoleForIssue(username, coopname, projectHash, issueSubmaster, issueCreators, userRole);
+    // Определяем набор ролей пользователя
+    const roles = await this.getUserRoleForIssue(username, coopname, projectHash, issueSubmaster, issueCreators, userRole);
 
-    // Проверяем разрешение на установку приоритета
-    if (!this.hasPermission(role, IssueAction.SET_PRIORITY)) {
+    if (!this.hasPermission(roles, IssueAction.SET_PRIORITY)) {
       throw new Error('Только мастер проекта может устанавливать приоритет на задачи');
     }
   }
 
-  /**
-   * Получает список допустимых статусов для перехода из текущего статуса для данной роли
-   * @param userRole - роль пользователя
-   * @param currentStatus - текущий статус задачи
-   * @returns массив допустимых статусов для перехода
-   */
-  getAllowedStatusTransitions(userRole: UserRole, currentStatus: IssueStatus): IssueStatus[] {
-    return this.issueAccessPolicyService.getAllowedStatusTransitions(userRole, currentStatus);
+  /** UNION-список допустимых переходов статуса по набору ролей. */
+  getAllowedStatusTransitions(roles: Iterable<UserRole>, currentStatus: IssueStatus): IssueStatus[] {
+    return this.issueAccessPolicyService.getAllowedStatusTransitions(roles, currentStatus);
   }
 }

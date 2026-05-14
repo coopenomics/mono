@@ -26,6 +26,9 @@ import type { IProjectPermissions } from 'app/extensions/capital/entities/Projec
 const props = withDefaults(defineProps<{
   filter?: {
     project_hash?: string;
+    /** Хеш задачи — артефакт привязывается к задаче и не аккумулируется на проекте/компоненте */
+    issue_hash?: string;
+    /** @deprecated legacy: используйте issue_hash */
     issue_id?: string;
   };
   permissions?: IIssuePermissions | IProjectPermissions | null;

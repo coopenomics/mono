@@ -14,8 +14,18 @@ import { VaultEntity } from '../infrastructure/database/typeorm/entities/vault.e
 export interface Migration {
   name: string;
   validUntil?: Date; // Дата в UTC, до которой миграция должна применяться. Если не указана или null, миграция применяется всегда
-  up: (services: { blockchain: BlockchainService; logger: MigrationLogger; dataSource: DataSource }) => Promise<boolean>;
-  down?: (services: { blockchain: BlockchainService; logger: MigrationLogger; dataSource: DataSource }) => Promise<boolean>;
+  up: (services: {
+    blockchain: BlockchainService;
+    vault: VaultDomainService;
+    logger: MigrationLogger;
+    dataSource: DataSource;
+  }) => Promise<boolean>;
+  down?: (services: {
+    blockchain: BlockchainService;
+    vault: VaultDomainService;
+    logger: MigrationLogger;
+    dataSource: DataSource;
+  }) => Promise<boolean>;
 }
 
 export class MigrationManager {
@@ -23,6 +33,7 @@ export class MigrationManager {
   private migrationRepository!: Repository<MigrationEntity>;
   private migrationDir!: string;
   private blockchainService: BlockchainService;
+  private vaultDomainService!: VaultDomainService;
 
   constructor() {
     this.migrationDir = path.join(process.cwd(), '/migrations');
@@ -59,11 +70,11 @@ export class MigrationManager {
 
     // Создаем настоящий VaultDomainService теперь, когда dataSource готов
     const vaultRepository = new VaultTypeormRepository(this.dataSource.getRepository(VaultEntity));
-    const vaultDomainService = new VaultDomainService(vaultRepository);
+    this.vaultDomainService = new VaultDomainService(vaultRepository);
 
     // Пересоздаем BlockchainService с настоящим VaultDomainService
     const loggerService = new WinstonLoggerService();
-    this.blockchainService = new BlockchainService(loggerService, vaultDomainService);
+    this.blockchainService = new BlockchainService(loggerService, this.vaultDomainService);
 
     logger.info('Миграционный менеджер инициализирован');
   }
@@ -207,6 +218,7 @@ export class MigrationManager {
       // Предоставляем блокчейн-сервис, логгер и подключение к БД в миграцию
       const result = await migration.up({
         blockchain: this.blockchainService,
+        vault: this.vaultDomainService,
         logger: migrationLogger,
         dataSource: this.dataSource,
       });
@@ -237,6 +249,7 @@ export class MigrationManager {
           migrationLogger.info(`Выполнение отката миграции ${version}...`);
           const rollbackResult = await migration.down({
             blockchain: this.blockchainService,
+            vault: this.vaultDomainService,
             logger: migrationLogger,
             dataSource: this.dataSource,
           });
@@ -384,6 +397,7 @@ export class MigrationManager {
       // Выполняем откат
       const rollbackResult = await migration.down({
         blockchain: this.blockchainService,
+        vault: this.vaultDomainService,
         logger: migrationLogger,
         dataSource: this.dataSource,
       });

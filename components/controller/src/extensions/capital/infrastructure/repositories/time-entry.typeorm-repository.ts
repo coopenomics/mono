@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { TimeEntryEntity } from '../entities/time-entry.entity';
-import { TimeEntryRepository } from '../../domain/repositories/time-entry.repository';
+import { TimeEntryRepository, IssueFactAggregate } from '../../domain/repositories/time-entry.repository';
 import { TimeEntryDomainEntity } from '../../domain/entities/time-entry.entity';
 import type { ITimeEntryDatabaseData } from '../../domain/interfaces/time-entry-database.interface';
 import type { TimeEntriesFilterDomainInterface } from '../../domain/interfaces/time-entries-filter-domain.interface';
@@ -359,6 +359,50 @@ export class TimeEntryTypeormRepository implements TimeEntryRepository {
       { issue_hash: issueHash.toLowerCase() },
       { project_hash: projectHash.toLowerCase(), _updated_at: new Date() }
     );
+  }
+
+  async getFactByIssues(issueHashes: string[]): Promise<Map<string, IssueFactAggregate>> {
+    const result = new Map<string, IssueFactAggregate>();
+    if (issueHashes.length === 0) return result;
+
+    const normalized = issueHashes.map((h) => h.toLowerCase());
+
+    const rows = await this.repository
+      .createQueryBuilder('te')
+      .select('LOWER(te.issue_hash)', 'issue_hash')
+      .addSelect('te.contributor_hash', 'contributor_hash')
+      .addSelect('SUM(te.hours)', 'total')
+      .addSelect('SUM(CASE WHEN te.is_committed THEN te.hours ELSE 0 END)', 'committed')
+      .addSelect('SUM(CASE WHEN te.is_committed THEN 0 ELSE te.hours END)', 'uncommitted')
+      .where('LOWER(te.issue_hash) IN (:...hashes)', { hashes: normalized })
+      .groupBy('LOWER(te.issue_hash)')
+      .addGroupBy('te.contributor_hash')
+      .getRawMany<{
+        issue_hash: string;
+        contributor_hash: string;
+        total: string | null;
+        committed: string | null;
+        uncommitted: string | null;
+      }>();
+
+    for (const row of rows) {
+      const issueHash = row.issue_hash;
+      const hours = parseFloat(row.total ?? '0');
+      const committed = parseFloat(row.committed ?? '0');
+      const uncommitted = parseFloat(row.uncommitted ?? '0');
+
+      let agg = result.get(issueHash);
+      if (!agg) {
+        agg = { fact: 0, fact_committed: 0, fact_uncommitted: 0, fact_by_contributor: [] };
+        result.set(issueHash, agg);
+      }
+      agg.fact += hours;
+      agg.fact_committed += committed;
+      agg.fact_uncommitted += uncommitted;
+      agg.fact_by_contributor.push({ contributor_hash: row.contributor_hash, hours });
+    }
+
+    return result;
   }
 
   private toDomain(entity: TimeEntryEntity): TimeEntryDomainEntity {

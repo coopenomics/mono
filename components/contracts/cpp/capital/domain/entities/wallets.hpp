@@ -25,21 +25,17 @@ namespace Capital {
   > capital_wallets_index;
 
 namespace Wallets {
-  
-  inline std::optional<progwallet> get_program_capital_wallet(eosio::name coopname, eosio::name username) {
-    
+
+  /**
+   * Открыт ли у пайщика программный кошелёк ЦПП «Благорост»
+   * (есть подписанное программное соглашение в `wallet::users.programs[]`).
+   * Балансы читаются отдельно через ledger2::userwallets.
+   */
+  inline bool has_program_capital_wallet(eosio::name coopname, eosio::name username) {
     auto program_id = get_program_id(_capital_program);
-    
-    auto program = get_program_or_fail(coopname, program_id);
-    
-    auto capital_wallet = get_program_wallet(coopname, username, _capital_program);
-    
-    if (!capital_wallet.has_value()) {
-      return std::nullopt;
-    }
-    
-    return capital_wallet.value();
-    
+    // Программа должна существовать в реестре кооператива.
+    get_program_or_fail(coopname, program_id);
+    return has_program_wallet(coopname, username, _capital_program);
   }
 
   /**

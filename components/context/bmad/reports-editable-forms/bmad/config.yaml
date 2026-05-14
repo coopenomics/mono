@@ -1,0 +1,14 @@
+project_name: "Редактируемые inline-формы отчётов + календарь"
+project_type: "web-app"
+project_level: 2
+output_folder: "docs"
+language: "ru"
+bmm:
+  workflow_status_file: "docs/bmm-workflow-status.yaml"
+  sprint_status_file: "docs/sprint-status.yaml"
+paths:
+  docs: "docs"
+  stories: "docs/stories"
+  tests: "tests"
+links:
+  blago_epic: "../../../blago-cli/_blago/33-platforma-otchetov-dlya-fnsfss/components/40-mvp/issues/989-9-epic-5-redaktiruemye-inline-formy-otchetov-kak-v-konture-kalendar-otchetnosti.md"

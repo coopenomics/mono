@@ -43,12 +43,9 @@ void capital::act2pgprp(eosio::name coopname, eosio::name username, checksum256 
   Capital::ProgramProperties::update_program_property_status(coopname, property.id, Capital::ProgramProperties::Status::ACT2);
   
   std::string memo = Capital::Memo::get_program_property_memo(property_hash);
-  
-  // Начисляем заблокированные средства в кошелек программы благороста
-  Wallet::add_blocked_funds(_capital, coopname, property.username, property.property_amount, _capital_program, memo);
-  
-  // Увеличиваем паевой фонд через бухгалтерский учет
-  Ledger::add(_capital, coopname, Ledger::accounts::SHARE_FUND, property.property_amount, memo, property_hash, property.username);
+
+  // Увеличиваем паевой фонд через ledger2: ISSUE в BLAGOROST_FUND, Dr 51 / Cr 80.
+  Ledger2::apply(_capital, coopname, operations::capital::ACCEPT_PROPERTY, property.property_amount, property.username, property_hash, memo);
   
   // Удаляем предложение после успешной обработки
   Capital::ProgramProperties::delete_program_property(coopname, property.id);

@@ -14,7 +14,12 @@
  * @note Авторизация требуется от аккаунта кооператива: @p coopname (@c active)
  */
 void capital::regshare(eosio::name coopname, checksum256 project_hash, eosio::name username, eosio::asset user_shares) {
-  require_auth(coopname);
+  // Прямой вызов от кооператива (планировщик контроллера) ИЛИ inline-вызов
+  // от системного контракта (например, capital::apprvappndx — авторегистрация
+  // доли при допуске участника к проекту).
+  if (!has_auth(coopname)) {
+    check_auth_and_get_payer_or_fail(contracts_whitelist);
+  }
   
   // Проверяем существование проекта
   auto project = Capital::Projects::get_project_or_fail(coopname, project_hash);

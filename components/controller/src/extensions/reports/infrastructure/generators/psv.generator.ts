@@ -1,73 +1,88 @@
 import { ReportType } from '../../domain/enums/report-type.enum';
-import type { IReportGenerator, ReportInput, ReportOutput } from '../../domain/interfaces/report-generator.interface';
-import { createXmlDoc, formatDate, generateUuid, addFio, addSigner, getMonthPeriodCode, getTaxOfficeCode } from './xml-utils';
+import type {
+  IReportGenerator,
+  ReportOutput,
+} from '../../domain/interfaces/report-generator.interface';
+import type { ZeroReportEditsShape } from '../../domain/edits-shapes/zero-report-edits.shape';
+import {
+  addHeaderMeta,
+  createXmlDoc,
+  getMonthPeriodCode,
+  getTaxOfficeCode,
+} from './xml-utils';
 
 /**
- * Генератор ПСВ — Персонифицированные сведения (нулевой)
- * XSD: NO_PERSSVFL_1_297_00_05_01_02.xsd
- * КНД: 1151162
+ * ПСВ — Персонифицированные сведения (нулевой).
+ * XSD: NO_PERSSVFL_1_297_00_05_01_02.xsd, КНД: 1151162, ВерсФорм 5.01.
  *
- * Структура: Файл → Документ → [СвНП, Подписант, ПерсСвФЛ[]]
- * ПерсСвФЛ обязателен (minOccurs=1), содержит ФИО, @СНИЛС, @СумВыпл
- * Для нулевого отчёта: одна запись председателя с СумВыпл=0
+ * В нулевом отчёте — одна запись <ПерсСвФЛ> для подписанта (председателя)
+ * с @СумВыпл=0. СНИЛС обязателен — берётся из signer.snils.
  */
 export class PsvGenerator implements IReportGenerator {
   readonly reportType = ReportType.PSV;
 
-  generate(input: ReportInput): ReportOutput {
-    const fileName = this.generateFileName(input);
+  generate(input: unknown): ReportOutput {
+    const edits = input as ZeroReportEditsShape;
+    const fileName = edits.header.idFile;
     const errors: string[] = [];
-
     try {
-      const xml = this.buildXml(input);
+      const xml = this.buildXml(edits);
       return { reportType: this.reportType, xml, fileName, errors, isValid: true };
-    } catch (e: any) {
-      errors.push(`Ошибка генерации ПСВ: ${e.message}`);
+    } catch (e) {
+      errors.push(`Ошибка генерации ПСВ: ${e instanceof Error ? e.message : String(e)}`);
       return { reportType: this.reportType, xml: '', fileName, errors, isValid: false };
     }
   }
 
-  generateFileName(input: ReportInput): string {
-    const now = new Date();
-    const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-    return `NO_PERSSVFL_${input.inn}_${input.kpp}_${dateStr}_${generateUuid()}`;
-  }
-
-  private buildXml(input: ReportInput): string {
-    const periodCode = getMonthPeriodCode(input.period);
-    const idFile = this.generateFileName(input);
-    const kodNO = getTaxOfficeCode(input.kpp);
+  private buildXml(edits: ZeroReportEditsShape): string {
+    const { header, organization, signer } = edits;
+    const periodCode = getMonthPeriodCode(header.period ?? undefined);
+    const kodNO = getTaxOfficeCode(organization.kpp);
 
     const doc = createXmlDoc()
       .ele('Файл')
-        .att('ИдФайл', idFile)
-        .att('ВерсПрог', 'CoopReports 1.0')
+        .att('ИдФайл', header.idFile)
+        .att('ВерсПрог', header.versProgram)
         .att('ВерсФорм', '5.01');
 
-    const dokument = doc.ele('Документ')
-      .att('КНД', '1151162')
-      .att('ДатаДок', formatDate(new Date()))
-      .att('НомКорр', '0')
-      .att('Период', periodCode)
-      .att('ОтчетГод', String(input.year))
-      .att('КодНО', kodNO)
-      .att('ПоМесту', '214');
+    const dokument = doc.ele('Документ').att('КНД', '1151162');
+    addHeaderMeta(dokument, {
+      docDate: header.docDate,
+      period: periodCode,
+      year: header.reportYear,
+      kodNO,
+      correctionNumber: header.correctionNumber,
+      poMestu: '214',
+    });
 
     dokument.ele('СвНП')
       .ele('НПЮЛ')
-        .att('НаимОрг', input.orgName)
-        .att('ИННЮЛ', input.inn)
-        .att('КПП', input.kpp)
+        .att('НаимОрг', organization.orgName)
+        .att('ИННЮЛ', organization.inn)
+        .att('КПП', organization.kpp)
       .up()
     .up();
 
-    addSigner(dokument, input.signerFio);
+    // ПСВ использует базовый <Подписант ПрПодп="1"> без <СвПред>, даже если
+    // type=representative (это особенность формы — подписант персонифицированных
+    // сведений по сути один и тот же ФИО как председатель).
+    const sig = dokument.ele('Подписант').att('ПрПодп', '1');
+    const fio = sig.ele('ФИО')
+      .att('Фамилия', signer.lastName)
+      .att('Имя', signer.firstName);
+    if (signer.middleName) fio.att('Отчество', signer.middleName);
+    fio.up();
+    sig.up();
 
     const persSv = dokument.ele('ПерсСвФЛ')
-      .att('СНИЛС', input.signerSnils || '000-000-000 00')
+      .att('СНИЛС', signer.snils || '000-000-000 00')
       .att('СумВыпл', '0');
 
-    addFio(persSv, input.signerFio);
+    const persFio = persSv.ele('ФИО')
+      .att('Фамилия', signer.lastName)
+      .att('Имя', signer.firstName);
+    if (signer.middleName) persFio.att('Отчество', signer.middleName);
+    persFio.up();
     persSv.up();
 
     dokument.up();

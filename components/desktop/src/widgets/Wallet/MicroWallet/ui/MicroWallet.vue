@@ -26,6 +26,7 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { Zeus } from '@coopenomics/sdk';
 import { useSessionStore } from 'src/entities/Session';
 import { useWalletStore } from 'src/entities/Wallet';
 import { useSystemStore } from 'src/entities/System/model';
@@ -39,9 +40,13 @@ const session = useSessionStore();
 const walletStore = useWalletStore();
 const { info } = useSystemStore();
 
-// Форматированный баланс доступных средств
+// Форматированный баланс доступных средств. Берём ЦК по
+// Zeus.ProgramType.MAIN (GraphQL отдаёт enum ключами в UPPER_CASE).
 const formattedBalance = computed(() => {
-  const available = walletStore.program_wallets[0]?.available || '0';
+  const walletEntry = walletStore.program_wallets.find(
+    (w) => w.program_type === Zeus.ProgramType.MAIN,
+  );
+  const available = walletEntry?.available || '0';
   return formatAsset2Digits(`${available} ${info.symbols.root_govern_symbol}`);
 });
 

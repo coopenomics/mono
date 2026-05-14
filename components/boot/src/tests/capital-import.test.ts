@@ -322,7 +322,11 @@ describe('тест контракта CAPITAL', () => {
     expect(contributorTable.length).toBe(1)
     const contributor = contributorTable[0]
     expect(contributor.username).toBe(importUsername)
-    expect(contributor.status).toBe('active')
+    // ImportContributor создаёт запись со статусом IMPORT (см.
+    // capital/domain/entities/contributors.hpp Status::IMPORT). Перевод в
+    // ACTIVE — отдельным шагом (confirmreg/registerContributor); этот тест
+    // проверяет только сам факт импорта.
+    expect(contributor.status).toBe('import')
 
     // Проверяем, что кошелек программы был создан
     const wallet = await getUserProgramWalletAmount(blockchain, testCoop, importUsername, capitalProgramId)

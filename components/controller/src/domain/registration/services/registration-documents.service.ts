@@ -90,7 +90,7 @@ export class RegistrationDocumentsService {
   private async generateDocumentParameters(
     coopname: string,
     username: string,
-    program_key?: ProgramKey
+    program_key?: string
   ): Promise<void> {
     // Проверяем наличие реализации порта
     if (!this.udataDocumentParametersPort) {

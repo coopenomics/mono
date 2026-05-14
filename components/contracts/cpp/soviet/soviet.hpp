@@ -97,7 +97,7 @@ public:
    * @param coopname Имя кооператива
    * @param amount Сумма в RUB токенах для конвертации
    */
-  [[eosio::action]] void converttoaxn(eosio::name coopname, eosio::asset amount, document2 statement);
+  [[eosio::action]] void converttoaxn(eosio::name coopname, eosio::asset amount, document2 statement, checksum256 process_hash);
 
   //agenda.cpp
   [[eosio::action]] void createagenda(CREATEAGENDA_SIGNATURE);
@@ -138,6 +138,9 @@ public:
 
   //regaccount.cpp
   [[eosio::action]] void addpartcpnt(eosio::name coopname, eosio::name username, eosio::name braname, eosio::name type, eosio::time_point_sec created_at, eosio::asset initial, eosio::asset minimum, bool spread_initial);
+
+  //setminamt.cpp
+  [[eosio::action]] void setminamt(eosio::name coopname, eosio::name username, eosio::asset minimum);
 
   //automator.cpp
   [[eosio::action]] void automate(eosio::name coopname, uint64_t board_id, eosio::name member, eosio::name action_type, eosio::name provider, std::string encrypted_private_key);

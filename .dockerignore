@@ -1,3 +1,41 @@
+# Не тащить в build-context — экономит время `docker build` (особенно
+# на крупных репах с .git под 1GB) и не пачкает финальный образ.
 node_modules
+**/node_modules
 dist
+**/dist
+.git
+.github
+.gitignore
+.cursor
+**/.DS_Store
 
+# State от локальных runtime-сценариев (boot:remote / dev-нода / wallet)
+**/blockchain-data
+**/wallet-data
+**/keosd-data
+
+# CI/coverage/тестовые артефакты
+coverage
+**/coverage
+.nyc_output
+*.log
+
+# BMad/blago workspace папки (не относятся к билду образа)
+_blago
+**/_blago
+.bmad-core
+.bmad-output
+
+# Локальные секреты (на всякий случай — секреты должны идти через
+# build-args / docker-compose environment, не через COPY)
+.env
+.env.*
+!.env-example
+**/.env
+**/.env.*
+!**/.env-example
+
+# Артефакты других сервисов
+components/desktop/.quasar
+components/contracts/build

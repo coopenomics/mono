@@ -41,14 +41,6 @@ async function getTableRows(
 }
 
 /**
- * Получение информации о блокчейне
- */
-async function getInfo() {
-  const response = await fetch(`${eosioApi}/v1/chain/get_info`)
-  return response.json() as any
-}
-
-/**
  * Проверка наличия данных кооператива в базе данных
  */
 async function checkCooperativeExists(db: Database, coopname: string): Promise<boolean> {
@@ -218,9 +210,15 @@ async function loadTemplatesFromBlockchain(
 /**
  * Главная функция инициализации
  * Вызывается при запуске парсера с блока head (текущего) когда START_BLOCK=1
- * Проверяет наличие необходимых данных и загружает их из блокчейна если их нет
+ * Проверяет наличие необходимых данных и загружает их из блокчейна если их нет.
+ *
+ * @param block_num — block_num, который Reader будет использовать как стартовый
+ *   (`currentBlock`). Initializer пишет дельты с этим же значением, чтобы
+ *   последующий `purgeAfterBlock(currentBlock)` (использует $gt, не $gte)
+ *   не стирал записи Initializer'а, если head успел шагнуть с момента
+ *   запроса в Reader.
  */
-export async function initializeFromBlockchain(db: Database): Promise<void> {
+export async function initializeFromBlockchain(db: Database, block_num: number): Promise<void> {
   const coopname = process.env.COOPNAME
 
   if (!coopname) {
@@ -232,8 +230,7 @@ export async function initializeFromBlockchain(db: Database): Promise<void> {
   console.log('Проверка необходимости инициализации данных')
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
 
-  const info = await getInfo()
-  const currentBlock = Number(info.head_block_num)
+  const currentBlock = block_num
 
   // Проверяем наличие данных кооператива
   const cooperativeExists = await checkCooperativeExists(db, coopname)

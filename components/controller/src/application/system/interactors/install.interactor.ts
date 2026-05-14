@@ -13,6 +13,7 @@ import type { CreateUserInputDomainInterface } from '~/domain/registration/inter
 import { HttpApiError } from '~/utils/httpApiError';
 import httpStatus from 'http-status';
 import { randomUUID } from 'crypto';
+import { sha256 } from '~/utils/sha256';
 import type { Cooperative } from 'cooptypes';
 import type { InstallInputDomainInterface } from '~/domain/system/interfaces/install-input-domain.interface';
 import { VARS_REPOSITORY, VarsRepository } from '~/domain/common/repositories/vars.repository';
@@ -152,6 +153,7 @@ export class InstallInteractor {
           minimum: coop.minimum,
           spread_initial: false,
           meta: '',
+          registration_hash: sha256(username),
         };
 
         await this.blockchainPort.addUser(addUser);

@@ -67,12 +67,12 @@ namespace Capital::Memo {
     return "Возврат заблокированных средств по отклоненной программной инвестиции для договора УХД с ID: " + std::to_string(contributor_id);
   }
 
-  inline std::string get_convert_segment_to_wallet_memo(checksum256 convert_hash) {
-    return "Конвертация в кошелек: " + checksum256_to_hex(convert_hash);
+  inline std::string get_convert_segment_to_wallet_memo(checksum256 result_hash) {
+    return "Конвертация в кошелек: " + checksum256_to_hex(result_hash);
   }
 
-  inline std::string get_convert_segment_to_capital_memo(checksum256 convert_hash) {
-    return "Конвертация в капитал: " + checksum256_to_hex(convert_hash);
+  inline std::string get_convert_segment_to_capital_memo(checksum256 result_hash) {
+    return "Конвертация в капитал: " + checksum256_to_hex(result_hash);
   }
 
   inline std::string get_return_unused_investments_memo() {

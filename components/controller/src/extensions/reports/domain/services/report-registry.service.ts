@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { IReportGenerator, ReportInput, ReportOutput } from '../interfaces/report-generator.interface';
+import type { IReportGenerator, ReportOutput } from '../interfaces/report-generator.interface';
 import { ReportType, REPORT_CONFIG } from '../enums/report-type.enum';
 
 /**
@@ -20,14 +20,15 @@ export class ReportRegistryService {
   }
 
   /**
-   * Генерация отчёта
+   * Генерация отчёта. `edits` интерпретируется per-type самим генератором
+   * (для BUHOTCH — `BuhotchEditsShape`; для legacy — `ReportInput` shape).
    */
-  generate(input: ReportInput): ReportOutput {
-    const generator = this.generators.get(input.reportType);
+  generate(reportType: ReportType, edits: unknown): ReportOutput {
+    const generator = this.generators.get(reportType);
     if (!generator) {
-      throw new Error(`Генератор для типа отчёта "${input.reportType}" не зарегистрирован`);
+      throw new Error(`Генератор для типа отчёта "${reportType}" не зарегистрирован`);
     }
-    return generator.generate(input);
+    return generator.generate(edits);
   }
 
   /**
@@ -53,7 +54,7 @@ export class ReportRegistryService {
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1;
     const quarterEndMonth = (period || 0) * 3;
-        
+
     switch (config.period) {
       case 'yearly':
         return currentYear > year;

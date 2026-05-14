@@ -126,16 +126,16 @@ export class GenerationService {
     }));
   }
 
-  private async withLinkedGitCommits(
-    issue: Omit<IssueOutputDTO, 'linked_git_commits'>
-  ): Promise<IssueOutputDTO> {
+  private async withLinkedGitCommits<T extends { issue_hash: string }>(
+    issue: T
+  ): Promise<T & { linked_git_commits: IssueLinkedGitCommitSummaryDTO[] }> {
     const rows = await this.issueLinkedGitCommitRepository.findByIssueHash(issue.issue_hash);
     return { ...issue, linked_git_commits: this.rowsToLinkedCommitSummaries(rows) };
   }
 
-  private async withLinkedGitCommitsBatch(
-    issues: Omit<IssueOutputDTO, 'linked_git_commits'>[]
-  ): Promise<IssueOutputDTO[]> {
+  private async withLinkedGitCommitsBatch<T extends { issue_hash: string }>(
+    issues: T[]
+  ): Promise<Array<T & { linked_git_commits: IssueLinkedGitCommitSummaryDTO[] }>> {
     if (issues.length === 0) {
       return [];
     }
@@ -156,6 +156,53 @@ export class GenerationService {
       ...issue,
       linked_git_commits: this.rowsToLinkedCommitSummaries(byHash.get(issue.issue_hash.toLowerCase()) ?? []),
     }));
+  }
+
+  /**
+   * Зачитываем fact только по задачам, у которых работа заведомо завершена или на ревью
+   * (DONE/ON_REVIEW). Для активных/backlog-задач TimeEntry могут лежать как «предварительная оценка»
+   * (estimate-записи создаются applyExplicitEstimateToTimeEntries сразу при выставлении estimate),
+   * и считать их за факт неправильно. Остальные статусы получают fact=0.
+   */
+  private readonly FACTUAL_STATUSES: ReadonlySet<IssueStatus> = new Set([
+    IssueStatus.DONE,
+    IssueStatus.ON_REVIEW,
+  ]);
+
+  private async withFactBatch<T extends { issue_hash: string; status: IssueStatus }>(
+    issues: T[]
+  ): Promise<
+    Array<
+      T & {
+        fact: number;
+        fact_committed: number;
+        fact_uncommitted: number;
+        fact_by_contributor: Array<{ contributor_hash: string; hours: number }>;
+      }
+    >
+  > {
+    if (issues.length === 0) return [];
+    const factualIssues = issues.filter((i) => this.FACTUAL_STATUSES.has(i.status));
+    const factMap = factualIssues.length
+      ? await this.timeEntryRepository.getFactByIssues(factualIssues.map((i) => i.issue_hash))
+      : new Map();
+    return issues.map((issue) => {
+      const agg = this.FACTUAL_STATUSES.has(issue.status)
+        ? factMap.get(issue.issue_hash.toLowerCase())
+        : undefined;
+      return {
+        ...issue,
+        fact: agg?.fact ?? 0,
+        fact_committed: agg?.fact_committed ?? 0,
+        fact_uncommitted: agg?.fact_uncommitted ?? 0,
+        fact_by_contributor: agg?.fact_by_contributor ?? [],
+      };
+    });
+  }
+
+  private async withFact<T extends { issue_hash: string; status: IssueStatus }>(issue: T) {
+    const [enriched] = await this.withFactBatch([issue]);
+    return enriched;
   }
 
 
@@ -354,11 +401,13 @@ export class GenerationService {
       return [];
     }
 
-    let anchorProjectHash = story.project_hash?.trim() ?? '';
-    if (!anchorProjectHash && story.issue_hash) {
-      const issue = await this.issueRepository.findByIssueHash(story.issue_hash);
-      anchorProjectHash = issue?.project_hash?.trim() ?? '';
+    // Требования к задаче (issue_hash задан) видны только на странице задачи и не публикуются
+    // в проектные/компонентные matrix-комнаты, чтобы не зашумлять основной канал проекта.
+    if (story.issue_hash && story.issue_hash.trim() !== '') {
+      return [];
     }
+
+    const anchorProjectHash = story.project_hash?.trim() ?? '';
     if (!anchorProjectHash) {
       return [];
     }
@@ -618,8 +667,10 @@ export class GenerationService {
       // Определяем, нужно ли включать требования дочерних компонентов
       const showComponentsRequirements = filter.show_components_requirements !== false; // По умолчанию true
 
-      // Определяем, нужно ли включать требования задач
-      const showIssuesRequirements = filter.show_issues_requirements !== false; // По умолчанию true
+      // Задачные требования (story с issue_hash) живут только на странице задачи и не
+      // аккумулируются на проект/компонент: дефолт false, явный true оставлен на случай
+      // обратной потребности.
+      const showIssuesRequirements = filter.show_issues_requirements === true;
 
       // Собираем все project_hash для фильтрации
       let projectHashesToFilter: string[] = [filter.project_hash];
@@ -659,8 +710,15 @@ export class GenerationService {
         issueHashesToFilter
       );
 
+      // Если задачные требования выключены, отфильтровываем stories с непустым issue_hash:
+      // репозиторий выбирает по `project_hash IN (...) OR issue_hash IN (...)`, и stories,
+      // привязанные к задачам, всё равно попадают через project_hash. Их нужно убрать здесь.
+      const filteredStories = showIssuesRequirements
+        ? allStories
+        : allStories.filter((story) => !story.issue_hash || story.issue_hash.trim() === '');
+
       // Убираем дубликаты (на случай если одна история относится к нескольким проектам)
-      const uniqueStories = allStories.filter(
+      const uniqueStories = filteredStories.filter(
         (story, index, self) => index === self.findIndex((s) => s.story_hash === story.story_hash)
       );
 
@@ -806,10 +864,11 @@ export class GenerationService {
     // Рассчитываем права доступа для задачи
     const permissions = await this.permissionsService.calculateIssuePermissions(savedIssue, currentUser);
 
-    return this.withLinkedGitCommits({
+    const withLinks = await this.withLinkedGitCommits({
       ...savedIssue,
       permissions,
     });
+    return this.withFact(withLinks);
   }
 
   /**
@@ -911,10 +970,11 @@ export class GenerationService {
     const moved = new IssueDomainEntity(issueData);
     const saved = await this.issueRepository.update(moved);
     const permissions = await this.permissionsService.calculateIssuePermissions(saved, currentUser);
-    return this.withLinkedGitCommits({
+    const withLinks = await this.withLinkedGitCommits({
       ...saved,
       permissions,
     });
+    return this.withFact(withLinks);
   }
 
   /**
@@ -1055,10 +1115,11 @@ export class GenerationService {
     // Рассчитываем права доступа для задачи
     const permissions = await this.permissionsService.calculateIssuePermissions(updatedIssue, currentUser);
 
-    return this.withLinkedGitCommits({
+    const withLinks = await this.withLinkedGitCommits({
       ...updatedIssue,
       permissions,
     });
+    return this.withFact(withLinks);
   }
 
   /**
@@ -1084,7 +1145,8 @@ export class GenerationService {
       };
     });
 
-    const items = await this.withLinkedGitCommitsBatch(itemsWithPermissions);
+    const withLinks = await this.withLinkedGitCommitsBatch(itemsWithPermissions);
+    const items = await this.withFactBatch(withLinks);
 
     return {
       items,
@@ -1107,11 +1169,12 @@ export class GenerationService {
     // Рассчитываем права доступа для задачи
     const permissions = await this.permissionsService.calculateIssuePermissions(issueEntity, currentUser);
 
-    // Возвращаем задачу с правами доступа
-    return this.withLinkedGitCommits({
+    // Возвращаем задачу с правами доступа и фактом
+    const withLinks = await this.withLinkedGitCommits({
       ...issueEntity,
       permissions,
     });
+    return this.withFact(withLinks);
   }
 
   /**
@@ -1127,11 +1190,11 @@ export class GenerationService {
     // Рассчитываем права доступа для задачи
     const permissions = await this.permissionsService.calculateIssuePermissions(issueEntity, currentUser);
 
-    // Возвращаем задачу с правами доступа
-    return this.withLinkedGitCommits({
+    const withLinks = await this.withLinkedGitCommits({
       ...issueEntity,
       permissions,
     });
+    return this.withFact(withLinks);
   }
 
   /**

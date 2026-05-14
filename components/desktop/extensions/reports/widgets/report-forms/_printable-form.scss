@@ -1,0 +1,172 @@
+// Общие стили для всех визуальных форм отчётов. Подключается в scoped-стиль
+// каждого SFC через `@use './_printable-form.scss';`. Внутри scoped vue-scss
+// хэширует селекторы — формы визуально не конфликтуют с остальным UI.
+
+.printable-form {
+  font-family: 'Times New Roman', Times, serif;
+  color: #000;
+  background: #fff;
+  font-size: 11pt;
+  line-height: 1.25;
+
+  .page {
+    position: relative;
+    background: #fff;
+    box-sizing: border-box;
+    width: 210mm;
+    min-height: 297mm;
+    padding: 15mm 15mm 15mm 20mm;
+    margin: 0 auto 12px auto;
+    border: 1px solid #111;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+    & + .page { margin-top: 16px; }
+  }
+
+  // Левый верхний угол: штрихкод + ячейки ИНН + (иногда) КПП
+  .page__corner {
+    position: absolute;
+    top: 10mm;
+    left: 10mm;
+    font-size: 9pt;
+    line-height: 1.1;
+    .barcode {
+      font-family: 'Courier New', monospace;
+      font-size: 14pt;
+      letter-spacing: -1px;
+      margin-bottom: 2mm;
+    }
+    .kpp { margin-bottom: 1mm; }
+    .inn-row {
+      display: flex;
+      align-items: center;
+      gap: 2mm;
+      .inn-digits { display: flex; }
+      .inn-cell {
+        width: 4mm;
+        height: 5mm;
+        border: 0.5pt solid #000;
+        border-right: 0;
+        text-align: center;
+        font-size: 10pt;
+        &:last-child { border-right: 0.5pt solid #000; }
+      }
+    }
+  }
+
+  // Правый верхний угол: «Форма по КНД …»
+  .page__form-code {
+    position: absolute;
+    top: 10mm;
+    right: 15mm;
+    width: 42mm;
+    text-align: center;
+    border: 0.5pt solid #000;
+    padding: 2mm 1mm;
+    font-size: 9pt;
+    b { font-size: 12pt; }
+    .vers { font-size: 8pt; margin-top: 1mm; }
+  }
+
+  .page__title {
+    text-align: center;
+    font-size: 14pt;
+    font-weight: bold;
+    margin: 20mm 0 6mm 0;
+  }
+  .page__subtitle {
+    text-align: center;
+    font-size: 11pt;
+    font-weight: normal;
+    margin: 2mm 0 6mm 0;
+    color: #333;
+  }
+  .section-heading {
+    font-size: 12pt;
+    font-weight: bold;
+    margin: 6mm 0 3mm 0;
+  }
+
+  // Строка из «клеток» key-value — как на бланке: подпись мелким сверху, значение снизу
+  .kv-row {
+    display: flex;
+    gap: 2mm;
+    margin-bottom: 3mm;
+  }
+  .kv-cell {
+    flex: 1;
+    border: 0.5pt solid #000;
+    padding: 1mm 2mm 1.5mm 2mm;
+    min-height: 10mm;
+    background: #fff;
+
+    &.grow { flex: 3; }
+    &.grow2 { flex: 2; }
+    &.narrow { flex: 0 0 60mm; }
+
+    .kv-label { font-size: 8pt; color: #333; margin-bottom: 0.5mm; }
+    .kv-value { font-size: 11pt; &.name { font-weight: 500; } }
+  }
+
+  // Таблица с построчными данными (баланс, показатели, налоговая база)
+  table.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 3mm;
+    font-size: 10pt;
+
+    th, td {
+      border: 0.5pt solid #000;
+      padding: 1.2mm 2mm;
+      vertical-align: middle;
+    }
+    th {
+      font-weight: bold;
+      background: #f5f5f5;
+      text-align: center;
+      font-size: 9pt;
+    }
+    td.code { text-align: center; font-family: 'Courier New', monospace; }
+    td.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+    tr.section-title td {
+      background: #eee;
+      font-weight: bold;
+      text-align: left;
+      padding: 2mm;
+    }
+    tr.total td { font-weight: bold; background: #fafafa; }
+  }
+
+  .signer-block {
+    margin-top: 5mm;
+    padding-top: 3mm;
+    border-top: 0.5pt dashed #000;
+  }
+  .signature-line {
+    display: flex;
+    gap: 10mm;
+    margin-top: 8mm;
+    .sig-col { flex: 1; }
+    .sig-col.date { flex: 0 0 50mm; }
+    .sig-label {
+      font-size: 9pt;
+      margin-bottom: 1mm;
+      border-bottom: 0.5pt solid #000;
+      padding-bottom: 1mm;
+    }
+    .sig-blank {
+      margin-top: 2mm;
+      font-size: 10pt;
+      min-height: 7mm;
+    }
+  }
+}
+
+@media print {
+  .printable-form .page {
+    box-shadow: none;
+    margin: 0;
+    page-break-after: always;
+  }
+}

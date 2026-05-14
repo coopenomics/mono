@@ -264,7 +264,7 @@ export class GatewayInteractor {
       this.logger.log(
         `Найден существующий активный регистрационный платеж для пользователя ${data.username} на сумму ${amount} ${symbol}`
       );
-      return new PaymentDomainEntity(existingPayment);
+      return new PaymentDomainEntity(existingPayment, { isNewlyCreated: false });
     }
 
     // Получаем настройки для определения провайдера
@@ -321,7 +321,7 @@ export class GatewayInteractor {
       if (!updatedPayment) {
         throw new Error(`Не удалось найти обновленный платеж с ID ${createdPayment.id}`);
       }
-      return new PaymentDomainEntity(updatedPayment);
+      return new PaymentDomainEntity(updatedPayment, { isNewlyCreated: true });
     } catch (error: any) {
       this.logger.error(`Ошибка при создании платежных деталей: ${error.message}`);
       // Если не удалось создать детали платежа, помечаем платеж как неудачный
@@ -355,7 +355,7 @@ export class GatewayInteractor {
       this.logger.log(
         `Найден существующий активный депозитный платеж для пользователя ${data.username} на сумму ${data.quantity} ${data.symbol}`
       );
-      return new PaymentDomainEntity(existingPayment);
+      return new PaymentDomainEntity(existingPayment, { isNewlyCreated: false });
     }
 
     // Получаем настройки для определения провайдера
@@ -412,7 +412,7 @@ export class GatewayInteractor {
       if (!updatedPayment) {
         throw new Error(`Не удалось найти обновленный платеж с ID ${createdPayment.id}`);
       }
-      return new PaymentDomainEntity(updatedPayment);
+      return new PaymentDomainEntity(updatedPayment, { isNewlyCreated: true });
     } catch (error: any) {
       this.logger.error(`Ошибка при создании платежных деталей: ${error.message}`);
       // Если не удалось создать детали платежа, помечаем платеж как неудачный

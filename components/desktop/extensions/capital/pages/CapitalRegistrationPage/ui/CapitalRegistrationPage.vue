@@ -31,7 +31,7 @@ div(v-if="shouldShowTemporaryStub").q-pt-md
         .text-center.q-mb-lg
           .text-h6.q-mb-md Выбор ролей участия
           .text-body2.text-grey-7
-            | По программе "Благорост" вы можете принимать участие в разных ролях. Выберите те, которые вам интересны:
+            | Вы можете принимать участие в разных ролях. Выберите те, которые вам интересны:
 
         // Карточки ролей
         .q-mt-xl
@@ -312,7 +312,6 @@ const temporaryStubUsernames = [
   'ipesgnlxmnwx',
   'ndrlqjeptxhh',
   'hntppjjknmsu',
-  'ant',
   'vvqamckynxod',
   'zxfevlujlica',
   'spnpcpshemqp',

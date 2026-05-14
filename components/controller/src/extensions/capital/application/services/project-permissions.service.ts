@@ -30,52 +30,62 @@ export class ProjectPermissionsService {
   ) {}
 
   /**
-   * Определяет роль пользователя для конкретного проекта
+   * Определяет НАБОР ролей пользователя для конкретного проекта.
+   *
+   * Один пользователь может одновременно быть, например, членом совета и
+   * соавтором — итоговые права на проект считаются как UNION разрешений по
+   * всем его ролям (см. {@link IssueAccessPolicyService.hasProjectPermission}).
+   *
    * @param username - имя пользователя
    * @param project - проект
-   * @param userRole - роль пользователя в системе (chairman, member, etc.)
-   * @returns роль пользователя для проекта
+   * @param userRole - системная роль пользователя (chairman / member / ...)
+   * @returns множество project-ролей пользователя; пустого множества не бывает —
+   *          минимум {@link ProjectUserRole.GUEST}.
    */
-  async getProjectUserRole(username: string | undefined, project: any, userRole?: string): Promise<ProjectUserRole> {
-    // Гости не имеют доступа
+  async getProjectUserRole(
+    username: string | undefined,
+    project: any,
+    userRole?: string
+  ): Promise<Set<ProjectUserRole>> {
+    const roles = new Set<ProjectUserRole>();
+
     if (!username) {
-      return ProjectUserRole.GUEST;
+      roles.add(ProjectUserRole.GUEST);
+      return roles;
     }
 
-    // Председатель совета имеет полные права
+    // Системные роли совета — добавляем независимо от project-specific ролей.
     if (userRole === 'chairman') {
-      return ProjectUserRole.CHAIRMAN;
+      roles.add(ProjectUserRole.CHAIRMAN);
+    } else if (userRole === 'member') {
+      roles.add(ProjectUserRole.BOARD_MEMBER);
     }
 
-    // Члены совета имеют расширенные права
-    if (userRole === 'member') {
-      return ProjectUserRole.BOARD_MEMBER;
-    }
-
-    // Проверяем, является ли пользователь мастером проекта
+    // Project-specific роли — собираем все, что верны.
     const isMaster = await this.isProjectMaster(username, project.coopname, project.project_hash);
     if (isMaster) {
-      return ProjectUserRole.MASTER;
+      roles.add(ProjectUserRole.MASTER);
     }
 
-    // Проверяем, является ли пользователь автором проекта
     const segment = await this.segmentRepository.findOne({
       username,
       project_hash: project.project_hash,
       coopname: project.coopname,
     });
     if (segment?.is_author) {
-      return ProjectUserRole.AUTHOR;
+      roles.add(ProjectUserRole.AUTHOR);
     }
 
-    // Проверяем, является ли пользователь участником проекта
     const contributor = await this.contributorRepository.findByUsernameAndCoopname(username, project.coopname);
     if (contributor && contributor.appendixes?.includes(project.project_hash)) {
-      return ProjectUserRole.CONTRIBUTOR;
+      roles.add(ProjectUserRole.CONTRIBUTOR);
     }
 
-    // По умолчанию - гость
-    return ProjectUserRole.GUEST;
+    if (roles.size === 0) {
+      roles.add(ProjectUserRole.GUEST);
+    }
+
+    return roles;
   }
 
   /**
@@ -90,34 +100,18 @@ export class ProjectPermissionsService {
     return project?.master === username;
   }
 
-  /**
-   * Проверяет разрешение на действие
-   * @param userRole - роль пользователя
-   * @param action - действие
-   * @returns true если действие разрешено
-   */
-  hasPermission(userRole: UserRole, action: IssueAction): boolean {
-    return this.issueAccessPolicyService.hasPermission(userRole, action);
+  /** UNION-проверка прав на действие над задачей по набору ролей. */
+  hasPermission(roles: Iterable<UserRole>, action: IssueAction): boolean {
+    return this.issueAccessPolicyService.hasPermission(roles, action);
   }
 
-  /**
-   * Проверяет разрешение на действие над проектом
-   * @param userRole - роль пользователя для проекта
-   * @param action - действие над проектом
-   * @returns true если действие разрешено
-   */
-  hasProjectPermission(userRole: ProjectUserRole, action: ProjectAction): boolean {
-    return this.issueAccessPolicyService.hasProjectPermission(userRole, action);
+  /** UNION-проверка прав на действие над проектом по набору ролей. */
+  hasProjectPermission(roles: Iterable<ProjectUserRole>, action: ProjectAction): boolean {
+    return this.issueAccessPolicyService.hasProjectPermission(roles, action);
   }
 
-  /**
-   * Проверяет разрешение на переход между статусами
-   * @param userRole - роль пользователя
-   * @param currentStatus - текущий статус
-   * @param newStatus - новый статус
-   * @returns true если переход разрешен
-   */
-  canTransitionStatus(userRole: UserRole, currentStatus: any, newStatus: any): boolean {
-    return this.issueAccessPolicyService.canTransitionStatus(userRole, currentStatus, newStatus);
+  /** UNION-проверка перехода статусов по набору ролей. */
+  canTransitionStatus(roles: Iterable<UserRole>, currentStatus: any, newStatus: any): boolean {
+    return this.issueAccessPolicyService.canTransitionStatus(roles, currentStatus, newStatus);
   }
 }

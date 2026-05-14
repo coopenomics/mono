@@ -1,6 +1,5 @@
 import type { AccountType } from '~/application/account/enum/account-type.enum';
 import type { GeneratedDocumentDomainInterface } from '~/domain/document/interfaces/generated-document-domain.interface';
-import { ProgramKey, type AgreementId, type AgreementType } from '../enum';
 
 /**
  * Входные данные для генерации пакета документов при регистрации
@@ -12,18 +11,26 @@ export interface IGenerateRegistrationDocumentsInput {
   username: string;
   /** Тип аккаунта пайщика */
   account_type: AccountType;
-  /** Ключ выбранной программы регистрации (опционально) */
-  program_key?: ProgramKey;
+  /**
+   * Ключ выбранной программы регистрации (опционально).
+   * Строка, потому что значение задаёт расширение через
+   * AgreementRegistrationPort.registerProgram.
+   */
+  program_key?: string;
 }
 
 /**
- * Сгенерированный документ регистрации с метаданными из конфигурации
+ * Сгенерированный документ регистрации с метаданными из конфигурации.
+ *
+ * Поля `id`/`agreement_type` — строки, потому что значения могут
+ * приходить как из платформенного AgreementId/AgreementType, так и из
+ * расширений (например 'blagorost_offer' от capital).
  */
 export interface IGeneratedRegistrationDocument {
-  /** Идентификатор соглашения (wallet_agreement, signature_agreement, etc.) */
-  id: AgreementId;
+  /** Идентификатор соглашения */
+  id: string;
   /** Тип соглашения для блокчейна */
-  agreement_type: AgreementType;
+  agreement_type: string;
   /** Название документа */
   title: string;
   /** Текст для галочки на фронте */

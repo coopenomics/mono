@@ -59,7 +59,6 @@
 #include "app/voting/submit_vote/submitvote.cpp"
 
 // Подача результатов
-#include "app/result_submission/convert_segment/convertsegm.cpp"
 #include "app/result_submission/purge_segment/purgesegment.cpp"
 #include "app/result_submission/push_result/approverslt.cpp"
 #include "app/result_submission/push_result/authrslt.cpp"
@@ -67,6 +66,7 @@
 #include "app/result_submission/push_result/pushrslt.cpp"
 #include "app/result_submission/push_result/signact1.cpp"
 #include "app/result_submission/push_result/signact2.cpp"
+#include "app/result_submission/push_result/convertsegm.cpp"
 
 // Инвестиции в программу
 #include "app/invests_managment/invest_in_program/allocate/allocate.cpp"

@@ -1,6 +1,7 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import { DocumentInteractor } from '~/application/document/interactors/document.interactor';
 import { SOVIET_BLOCKCHAIN_PORT, SovietBlockchainPort } from '~/domain/common/ports/soviet-blockchain.port';
+import { WALLET_BLOCKCHAIN_PORT, WalletBlockchainPort } from '~/domain/wallet/ports/wallet-blockchain.port';
 import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 import { Cooperative, SovietContract } from 'cooptypes';
 import type { TransactResult } from '@wharfkit/session';
@@ -13,9 +14,12 @@ import { GeneratedDocumentDTO } from '~/application/document/dto/generated-docum
 
 @Injectable()
 export class AgreementInteractor {
+  private readonly logger = new Logger(AgreementInteractor.name);
+
   constructor(
     private readonly documentInteractor: DocumentInteractor,
     @Inject(SOVIET_BLOCKCHAIN_PORT) private readonly sovietBlockchainPort: SovietBlockchainPort,
+    @Inject(WALLET_BLOCKCHAIN_PORT) private readonly walletBlockchainPort: WalletBlockchainPort,
     private readonly domainToBlockchainUtils: DomainToBlockchainUtils
   ) {}
 
@@ -56,7 +60,30 @@ export class AgreementInteractor {
   }
 
   async sendAgreement(data: SendAgreementInputDTO): Promise<TransactResult> {
-    // Преобразуем DTO в формат блокчейна
+    // Эпик 2 (компонент 48): программные соглашения (program_id > 0) пишет
+    // wallet::signagree в `wallet::users.programs[]`; soviet::sndagreement
+    // оставлен только для непрограммных типов и активно их отвергает.
+    // Лукап `coagreements` per-call даёт ровно один источник истины (program_id
+    // меняется только владельцем кооператива и без миграций фронта).
+    const coagreement = await this.sovietBlockchainPort.getCoagreement(data.coopname, data.agreement_type);
+    if (!coagreement) {
+      throw new Error(`Соглашение типа "${data.agreement_type}" не настроено в кооперативе ${data.coopname}`);
+    }
+
+    const programId = Number(coagreement.program_id);
+    if (programId > 0) {
+      this.logger.log(
+        `sendAgreement → wallet::signagree (${data.coopname}/${data.username} type=${data.agreement_type} program_id=${programId})`
+      );
+      return await this.walletBlockchainPort.signProgramAgreement({
+        coopname: data.coopname,
+        username: data.username,
+        program_id: programId,
+        draft_id: Number(coagreement.draft_id),
+        document: data.document,
+      });
+    }
+
     const blockchainData: SovietContract.Actions.Agreements.SendAgreement.ISendAgreement = {
       coopname: data.coopname,
       administrator: data.administrator,

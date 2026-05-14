@@ -20,6 +20,8 @@ import { GatewayPaymentDTO } from '~/application/gateway/dto/gateway-payment.dto
 import { CreateInitialPaymentInputDTO } from '~/application/gateway/dto/create-initial-payment-input.dto';
 import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
 import { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import { RegistrationAgreementDTO } from '../dto/registration-agreement.dto';
+import { AccountType } from '~/application/account/enum/account-type.enum';
 
 // Пагинированные результаты
 const paginatedCandidatesResult = createPaginationResult(CandidateOutputDTO, 'PaginatedCandidates');
@@ -45,6 +47,24 @@ export class RegistrationResolver {
     @Args('options', { nullable: true }) options?: PaginationInputDTO
   ): Promise<PaginationResult<CandidateOutputDTO>> {
     return await this.registrationService.getCandidates(currentUser, filter, options);
+  }
+
+  /**
+   * Список оферт, требуемых при регистрации для данного типа аккаунта
+   * (и опционально программы). Сливает платформенные + extension-
+   * зарегистрированные через AgreementRegistry.
+   */
+  @Query(() => [RegistrationAgreementDTO], {
+    name: 'getRegistrationAgreements',
+    description:
+      'Получить список оферт для регистрации пайщика заданного типа аккаунта и (опционально) программы. Сливает базовые платформенные оферты с теми, что зарегистрировали расширения.',
+  })
+  async getRegistrationAgreements(
+    @Args('coopname', { type: () => String }) coopname: string,
+    @Args('account_type', { type: () => AccountType }) accountType: AccountType,
+    @Args('program_key', { type: () => String, nullable: true }) programKey?: string
+  ): Promise<RegistrationAgreementDTO[]> {
+    return this.registrationService.getRegistrationAgreements(coopname, accountType, programKey);
   }
 
   @Mutation(() => GenerateRegistrationDocumentsOutputDTO, {

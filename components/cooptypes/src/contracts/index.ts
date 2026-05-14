@@ -75,6 +75,22 @@ export * as WalletContract from './wallet'
 export * as LedgerContract from './ledger'
 
 /**
+ * Смарт-контракт двухконтурного учёта ledger2 (apply + wjournal/journal).
+ * Заменяет прежние add/sub/writeoff — всё движение средств через единый
+ * apply(action_code, process_hash).
+ */
+export * as Ledger2Contract from './ledger2'
+
+/**
  * Смарт-контракт управления общими собраниями пайщиков
  */
 export * as MeetContract from './meet'
+
+/**
+ * Смарт-контракт каталога приложений ВОСХОД (`apps-catalog`).
+ *
+ * Координационная плоскость: реестр пакетов, релизы (active/superseded/withdrawn),
+ * подписки кооперативов на пакеты, реестр коопов с subnet-signing-key.
+ * Деплоится на корневой KE-цепи и обслуживает несколько подсетей одновременно.
+ */
+export * as AppsContract from './apps'

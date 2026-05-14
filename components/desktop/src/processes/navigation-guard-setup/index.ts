@@ -63,24 +63,24 @@ export function setupNavigationGuard(router: Router) {
 
     // редирект с index
     if (to.name === 'index') {
-      // Убеждаемся, что правильный рабочий стол выбран
-      if (session.isAuth && session.isRegistrationComplete) {
-        // Если рабочий стол не выбран - выбираем по правам пользователя
+      // Только пайщики со status='active' попадают на свой дашборд.
+      // На промежуточных статусах (created/joined/payed/registered) и
+      // неавторизованных — публичная главная (non_authorized_default_*).
+      // Юзера не редиректим насильно: с публичной главной он сам решает
+      // продолжить регистрацию (/auth/signup) или войти под другим ключом.
+      if (session.isFullyActive) {
         if (!desktops.activeWorkspaceName) {
           desktops.selectDefaultWorkspace();
         }
 
-        // Получаем данные маршрута по умолчанию для выбранного рабочего стола
         const defaultPageRoute = desktops.getDefaultPageRoute();
         if (defaultPageRoute) {
           next(defaultPageRoute);
         } else {
-          // Если не удалось определить маршрут, используем fallback
           next({ name: 'somethingBad' });
         }
         return;
       } else {
-        // Если пользователь не авторизован, выбираем рабочий стол и переходим на страницу по умолчанию
         desktops.selectDefaultWorkspace();
         const defaultRoute = desktops.getDefaultPageRoute();
         if (defaultRoute) {
@@ -103,6 +103,20 @@ export function setupNavigationGuard(router: Router) {
       }
       // Перенаправляем на страницу входа
       next({ name: 'login-redirect', params: { coopname: systemStore.info.coopname } });
+      return;
+    }
+
+    // Пайщик с WIF, но советом ещё не принят (status != active):
+    // защищённые маршруты (дашборд, кошелёк, оферты) ему не показываем,
+    // отправляем на публичную главную. Регистрационный путь /auth/*
+    // и публичные страницы остаются доступны (он сам выберет «продолжить»).
+    if (
+      to.meta?.requiresAuth &&
+      session.isAuth &&
+      !session.isFullyActive &&
+      !(typeof to.path === 'string' && to.path.includes('/auth/'))
+    ) {
+      next({ name: 'index', params: { coopname: systemStore.info.coopname }, query: to.query });
       return;
     }
 

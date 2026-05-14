@@ -285,6 +285,15 @@ export async function initExtensionsInPostgres() {
       new Date('2026-02-09T02:27:57.155Z')
     ])
 
+    // reports — встроенный extension, конфиг пустой (BuiltinSchema).
+    // Контроллер тоже добивает запись через installDefaultApps на старте,
+    // но сеем тут заранее, чтобы стол появился сразу после boot.
+    await client.query(`
+      INSERT INTO "extensions" (name, enabled, config, schema_version)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (name) DO NOTHING
+    `, ['reports', true, '{}', 1])
+
     console.log('Extensions инициализированы в PostgreSQL')
   }
   catch (error) {

@@ -14,6 +14,14 @@ export interface CreateWithdrawDomainInterface {
   statement: ISignedDocumentDomainInterface;
 }
 
+export interface SignProgramAgreementDomainInterface {
+  coopname: string;
+  username: string;
+  program_id: number;
+  draft_id: number;
+  document: ISignedDocumentDomainInterface;
+}
+
 export interface GenerateReturnStatementDomainInterface {
   coopname: string;
   username: string;
@@ -29,6 +37,9 @@ export interface GenerateReturnStatementDomainInterface {
 export interface WalletBlockchainPort {
   // Создание заявки на вывод средств в wallet контракте
   createWithdraw(data: CreateWithdrawDomainInterface): Promise<TransactionResult>;
+
+  // Подписание программного соглашения через wallet::signagree (Эпик 2)
+  signProgramAgreement(data: SignProgramAgreementDomainInterface): Promise<TransactionResult>;
 
   // Генерация заявления на возврат паевого взноса
   generateReturnStatement(data: GenerateReturnStatementDomainInterface): Promise<ISignedDocumentDomainInterface>;

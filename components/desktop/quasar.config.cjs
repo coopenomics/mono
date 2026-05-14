@@ -74,6 +74,13 @@ module.exports = configure(function (ctx) {
         node: 'node20',
       },
 
+      // Alias для кода в `components/desktop/extensions/*`. Quasar CLI пробрасывает
+      // его и в vite `resolve.alias`, и в автогенерированный `.quasar/tsconfig.json`
+      // paths — один источник истины, tsc/vue-tsc/vite видят одно и то же.
+      alias: {
+        extensions: path.resolve(__dirname, './extensions'),
+      },
+
       vueRouterMode: 'hash', // available values: 'hash', 'history'
       // vueRouterBase,
       // vueDevtools,

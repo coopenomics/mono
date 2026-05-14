@@ -10,11 +10,9 @@ const namespace = 'agreementer';
 interface IAgreementStore {
   /*  доменный интерфейс кошелька пользователя */
   agreementsTemplates: Ref<DraftContract.Tables.Drafts.IDraft[]>
-  agreementsOfAllParticipants: Ref<SovietContract.Tables.Agreements.IAgreement[]>;
   cooperativeAgreements: Ref<SovietContract.Tables.CoopAgreements.ICoopAgreement[]>;
   generatedAgreements: Ref<IGeneratedDocument[]>
   paginatedAgreements: Ref<IPaginatedAgreementsResponse | null>;
-  loadAgreementsOfAllParticipants: (coopname: string) => Promise<void>;
   loadAgreementTemplates: (coopname: string) => Promise<void>;
   loadCooperativeAgreements: (coopname: string) => Promise<void>;
   loadPaginatedAgreements: (data: ILoadPaginatedAgreementsInput) => Promise<void>;
@@ -22,17 +20,12 @@ interface IAgreementStore {
 
 export const useAgreementStore = defineStore(namespace, (): IAgreementStore => {
   const agreementsTemplates = ref<DraftContract.Tables.Drafts.IDraft[]>([]);
-  const agreementsOfAllParticipants = ref<SovietContract.Tables.Agreements.IAgreement[]>([]);
 
   const cooperativeAgreements = ref<SovietContract.Tables.CoopAgreements.ICoopAgreement[]>([]);
 
   const generatedAgreements = ref<IGeneratedDocument[]>([])
 
   const paginatedAgreements = ref<IPaginatedAgreementsResponse | null>(null)
-
-  const loadAgreementsOfAllParticipants = async (coopname: string) => {
-    agreementsOfAllParticipants.value = await api.loadAgreementsOfAllParticipants(coopname)
-  }
 
   const loadAgreementTemplates = async (coopname: string) => {
     agreementsTemplates.value = await api.loadAgreementTemplates(coopname)
@@ -49,8 +42,6 @@ export const useAgreementStore = defineStore(namespace, (): IAgreementStore => {
   return {
     cooperativeAgreements,
     agreementsTemplates,
-    agreementsOfAllParticipants,
-    loadAgreementsOfAllParticipants,
     loadAgreementTemplates,
     loadCooperativeAgreements,
     generatedAgreements,

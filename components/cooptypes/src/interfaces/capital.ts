@@ -230,7 +230,7 @@ export interface IConvertsegm {
   coopname: IName
   username: IName
   project_hash: IChecksum256
-  convert_hash: IChecksum256
+  result_hash: IChecksum256
   wallet_amount: IAsset
   capital_amount: IAsset
   convert_statement: IDocument2

@@ -19,7 +19,8 @@ export const finishBlock = getEnvVar('FINISH_BLOCK')
 export const redisPort = getEnvVar('REDIS_PORT')
 export const redisHost = getEnvVar('REDIS_HOST')
 export const redisPassword = getEnvVar('REDIS_PASSWORD')
-export const redisStreamLimit = Number(getEnvVar('REDIS_STREAM_LIMIT'))
+// REDIS_STREAM_LIMIT удалён: parser больше не обрезает stream.
+// Trim происходит в controller по мере ACK'а консьюмера (XTRIM MINID).
 // --------------------------
 export const subscribedContracts: string[] = [
   'draft',
@@ -30,6 +31,8 @@ export const subscribedContracts: string[] = [
   'capital',
   'wallet',
   'ledger',
+  'ledger2',
+  'marketplace',
 ]
 
 // Автоматически генерируем действия для всех контрактов из списка

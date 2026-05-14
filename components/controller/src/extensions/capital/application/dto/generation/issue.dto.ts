@@ -122,4 +122,36 @@ export class IssueOutputDTO extends BaseOutputDTO {
       'Git-коммиты ветки с валидными маркерами, привязанные к этой задаче (пустой массив, если привязок нет)',
   })
   linked_git_commits!: IssueLinkedGitCommitSummaryDTO[];
+
+  @Field(() => Float, {
+    description:
+      'Фактически накопленное время по задаче в часах — сумма всех TimeEntry (committed + uncommitted). Read-only, считается на лету',
+  })
+  fact!: number;
+
+  @Field(() => Float, {
+    description: 'Часть факта, уже зафиксированная в capital-коммитах (is_committed=true)',
+  })
+  fact_committed!: number;
+
+  @Field(() => Float, {
+    description: 'Часть факта, ещё не зафиксированная в capital-коммитах',
+  })
+  fact_uncommitted!: number;
+
+  @Field(() => [ContributorFactDTO], {
+    description: 'Разбивка факта по исполнителям — сколько часов накопил каждый contributor по этой задаче',
+  })
+  fact_by_contributor!: ContributorFactDTO[];
+}
+
+@ObjectType('CapitalIssueContributorFact', {
+  description: 'Часы, накопленные одним исполнителем по задаче',
+})
+export class ContributorFactDTO {
+  @Field(() => String, { description: 'Хеш исполнителя' })
+  contributor_hash!: string;
+
+  @Field(() => Float, { description: 'Суммарные часы (committed + uncommitted)' })
+  hours!: number;
 }

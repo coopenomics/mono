@@ -36,6 +36,7 @@ import { processFundProgram } from './capital/processFundProgram'
 import { processRefreshProg } from './capital/processRefreshProg'
 import { processFundProject } from './capital/processFundProject'
 import { processRefreshProj } from './capital/processRefreshProj'
+import { processRegShare } from './capital/processRegShare'
 // const CLI_PATH = 'src/index.ts'
 
 const blockchain = new Blockchain(config.network, config.private_keys)
@@ -66,6 +67,21 @@ const investAmount3 = 25000
 
 let totalToCapitalConvertAmount = 0
 let totalToProjectConvertAmount = 0
+
+// Baseline ledger2-кошельков перед первым approvecmmt компонента-проекта.
+// Нужен для инвариант-проверки «w.cap.gen (ЦПП «Генератор» — единый кошелёк программы) проекта
+// закрылся в ноль» после полного цикла commits→voting→pushResult→signact2→
+// convertsegm: approvecmmt(commit) кладёт на w.cap.gen commit.amounts.
+// total_contribution, signact2(сегмента) забирает segment.available_for_program.
+// Сумма выдач и приходов проекта обязана совпадать — иначе либо коммит попал
+// на w.cap.gen неправильной суммой, либо часть пайщиков не сконвертировала.
+//
+// Имена кошельков — eosio::name. Финальный реестр (ADR-009): единые
+// программные кошельки `w.cap.gen` и `w.cap.blago` вместо ранее декомпозированных.
+const WALLET_GENERATOR_FUND = 'w.cap.gen'
+const WALLET_BLAGOROST_FUND = 'w.cap.blago'
+let generatorCommitBaselineRub = 0
+let blagorostRidBaselineRub = 0
 // Хранение хэшей долгов для каждого пользователя
 let userDebtHashes: { [username: string]: string[] } = {}
 beforeAll(async () => {
@@ -636,6 +652,25 @@ describe('тест контракта CAPITAL', () => {
     ))[0]
     expect(project).toBeDefined()
     expect(project.status).toBe('active')
+  })
+
+  it('snapshot ledger2-кошельков перед первым approvecmmt компонента (baseline для инвариант-теста)', async () => {
+    // Берём baseline ровно перед первым approvecmmt componentProject:
+    // approvecmmt(tester1) ниже первым эмитит COMMIT_RID на w.cap.gen
+    // (ЦПП «Генератор» — единый кошелёк программы). Финальный assert «w.cap.gen проекта
+    // вернулся к baseline» сравнивает дельту по этому проекту, а не
+    // абсолютный остаток (на w.cap.gen могут быть остатки property-
+    // операций или будущих компонентов в одном тесте).
+    const wallets = await blockchain.getTableRows('ledger2', 'voskhod', 'wallets', 500) as Array<{ id: string, available: string, blocked: string }>
+    const generator = wallets.find((w) => String(w.id) === WALLET_GENERATOR_FUND)
+    const blagorost = wallets.find((w) => String(w.id) === WALLET_BLAGOROST_FUND)
+    generatorCommitBaselineRub = generator
+      ? parseFloat(generator.available.split(' ')[0]) + parseFloat(generator.blocked.split(' ')[0])
+      : 0
+    blagorostRidBaselineRub = blagorost
+      ? parseFloat(blagorost.available.split(' ')[0]) + parseFloat(blagorost.blocked.split(' ')[0])
+      : 0
+    console.log(`📌 baseline ${WALLET_GENERATOR_FUND}=${generatorCommitBaselineRub} ${WALLET_BLAGOROST_FUND}=${blagorostRidBaselineRub}`)
   })
 
   it('добавить коммит создателя tester1 на 10 часов по 1000 RUB', async () => {
@@ -1768,6 +1803,53 @@ describe('тест контракта CAPITAL', () => {
     console.log(`✅ Сегмент ${investor3} обработан`)
   })
 
+  it('инвариант: w.cap.gen (ЦПП «Генератор» — единый кошелёк программы) не уходит в дефицит после конвертации всех сегментов', async () => {
+    // Σ COMMIT_RID(коммитов проекта) = Σ commit.amounts.total_contribution
+    // должна быть >= Σ ACCEPT_RID(сегментов) = Σ segment.available_for_program.
+    //
+    // Эквивалентность (delta == 0) выполняется только когда **все** participants
+    // прошли полный цикл pushResult+signact2 без skipped/purge и contributors_bonus_pool
+    // распределился по всем ролям. В сложных тестах (как этот) есть пограничные
+    // ситуации: investor3 со статусом 'skipped' → purgesegment без convertsegm,
+    // тестеры с is_contributor=0 не получают свою долю contributors_bonus.
+    // Их непокрытая часть остаётся на w.cap.gen как избыток — это ожидаемо.
+    //
+    // **Жёсткий инвариант** — отсутствие дефицита (delta >= 0). Если он
+    // нарушен, значит approvecmmt кладёт на w.cap.gen меньше, чем signact2
+    // забирает — это регрессия патча approvecmmt, и в проде на signact2
+    // последнего пайщика проекта возникает «недостаточно средств на кошельке
+    // w.cap.gen». Защищает от ровно того бага, который ловили
+    // 2026-04-27 (delta_available вместо total_contribution).
+    const wallets = await blockchain.getTableRows('ledger2', 'voskhod', 'wallets', 500) as Array<{ id: string, available: string, blocked: string }>
+    const generator = wallets.find((w) => String(w.id) === WALLET_GENERATOR_FUND)
+    expect(generator, `wallet ${WALLET_GENERATOR_FUND} должен существовать`).toBeDefined()
+
+    const generatorTotalRub = parseFloat(generator!.available.split(' ')[0]) + parseFloat(generator!.blocked.split(' ')[0])
+    const generatorDelta = generatorTotalRub - generatorCommitBaselineRub
+    console.log(`🔍 ${WALLET_GENERATOR_FUND}: baseline=${generatorCommitBaselineRub} now=${generatorTotalRub} delta=${generatorDelta}`)
+    expect(generatorDelta, `${WALLET_GENERATOR_FUND} ушёл в дефицит (Σ COMMIT_RID < Σ ACCEPT_RID для проекта ${componentProject.project_hash.slice(0, 12)}…) — регрессия approvecmmt?`).toBeGreaterThanOrEqual(-0.0001)
+
+    if (generatorDelta > 0.0001) {
+      console.log(`⚠️  ${WALLET_GENERATOR_FUND} остаток ${generatorDelta.toFixed(4)} RUB — это нераспределённые доли (skipped-сегменты, роли без is_contributor); ожидаемо для этого сценария.`)
+    }
+
+    // Дополнительно: w.cap.blago (BLAGOROST_FUND) должен получить хоть какие-то
+    // средства (в проекте есть intellectual contribution, и хоть один сегмент
+    // дошёл до signact2). Точная сверка с total_contribution невозможна:
+    // signact2 параллельно вызывает REPAY (LOAN_ISSUED → SHARE_FUND_PAY)
+    // на debt_amount, который не идёт на w.cap.blago. Поэтому только sanity-чек,
+    // что путь ACCEPT_RID(w.cap.gen → w.cap.blago) вообще работает.
+    const project = await getProject(blockchain, 'voskhod', componentProject.project_hash)
+    const blagorost = wallets.find((w) => String(w.id) === WALLET_BLAGOROST_FUND)
+    const blagorostTotalRub = blagorost
+      ? parseFloat(blagorost.available.split(' ')[0]) + parseFloat(blagorost.blocked.split(' ')[0])
+      : 0
+    const blagorostDelta = blagorostTotalRub - blagorostRidBaselineRub
+    const expectedTotalContribution = parseFloat(String(project.fact.total_contribution).split(' ')[0])
+    console.log(`🔍 ${WALLET_BLAGOROST_FUND} delta=${blagorostDelta}, project.fact.total_contribution=${expectedTotalContribution}`)
+    expect(blagorostDelta, `${WALLET_BLAGOROST_FUND} не получил никаких средств — путь ACCEPT_RID не работает`).toBeGreaterThan(0)
+  })
+
   it('удаляем компонент-проект', async () => {
     const result = await processDeleteProject(blockchain, 'voskhod', componentProject.project_hash)
 
@@ -1823,8 +1905,11 @@ describe('тест контракта CAPITAL', () => {
   })
 
   it('подписываем новое приложение к договору УХД со множеством участников', async () => {
-    // NOTE: При одобрении appendix председателем автоматически вызывается regshare
-    // для всех участников с балансом благороста, регистрируя их долю в проекте
+    // NOTE: apprvappndx больше НЕ вызывает regshare inline (коммит [562-13]
+    // da8c4436255): допуск к проекту и регистрация доли разведены.
+    // После приёма приложения participant имеет project_hash в appendixes,
+    // но сегмента в проекте ещё нет — его создаст отдельный regshare
+    // (следующий спек).
     const testerNames = [tester1, tester2, tester3, tester4, tester5, investor1, investor2, investor3]
     for (const tester of testerNames) {
       const appendixHash = generateRandomSHA256()
@@ -1846,76 +1931,91 @@ describe('тест контракта CAPITAL', () => {
     }
   }, 1000_000)
 
-  it('проверяем что вклады участников с балансом благороста зарегистрированы автоматически', async () => {
-    // Список всех участников, которые подписали appendix
+  it('регистрируем доли вкладчиков через capital::regshare отдельным действием', async () => {
+    // regshare теперь отдельное действие кооператива (см. signAppendix-спек выше).
+    // Кооп вызывает regshare после того, как participant подписал appendix к
+    // проекту: передаёт user_shares = баланс в целевой программе «Благорост»
+    // (available + blocked). Сегмент создаётся (или обновляется) с is_contributor=1.
     const allParticipants = [tester1, tester2, tester3, tester4, tester5, investor1, investor2, investor3]
 
     console.log('\n=== ДИАГНОСТИКА: Проверка балансов благороста и сегментов ===\n')
 
     let totalCapitalBalances = 0
-    let totalRegisteredInProject = 0
-    const participantsWithCapital = []
+    const participantsWithCapital: { name: string, balance: string, amount: number }[] = []
 
+    // Собираем всех participants с ненулевым балансом Благороста.
     for (const participant of allParticipants) {
-      // Проверяем баланс в программе благороста
       const capitalWallet = await getUserProgramWalletAmount(blockchain, 'voskhod', participant, capitalProgramId)
       const capitalAmount = parseFloat(capitalWallet.split(' ')[0])
 
-      console.log(`\n${participant}:`)
-      console.log(`  - Баланс в программе благороста: ${capitalWallet}`)
+      console.log(`${participant}: баланс Благороста = ${capitalWallet}`)
 
       if (capitalAmount > 0) {
         totalCapitalBalances += capitalAmount
-        participantsWithCapital.push(participant)
-      }
-
-      // Проверяем сегмент в проекте
-      try {
-        const segment = await getSegment(blockchain, 'voskhod', newComponentProject.project_hash, participant)
-        if (segment) {
-          console.log(`  - Сегмент в проекте: ЕСТЬ`)
-          console.log(`  - is_contributor: ${segment.is_contributor}`)
-          console.log(`  - capital_contributor_shares: ${segment.capital_contributor_shares}`)
-
-          if (segment.is_contributor) {
-            const segmentCapital = parseFloat(segment.capital_contributor_shares.split(' ')[0])
-            totalRegisteredInProject += segmentCapital
-
-            // Проверяем что баланс в сегменте совпадает с балансом в программе
-            if (capitalAmount > 0) {
-              expect(segment.capital_contributor_shares).toBe(capitalWallet)
-              console.log(`  ✅ Баланс в сегменте совпадает с балансом в программе`)
-            }
-          }
-        }
-      }
-      catch (error) {
-        console.log(`  - Сегмент в проекте: НЕТ`)
+        participantsWithCapital.push({ name: participant, balance: capitalWallet, amount: capitalAmount })
       }
     }
 
-    console.log('\n=== ИТОГОВЫЕ СУММЫ ===')
-    console.log(`Участники с балансом благороста: ${participantsWithCapital.join(', ')}`)
-    console.log(`Сумма балансов в программе благороста: ${totalCapitalBalances.toFixed(4)} RUB`)
-    console.log(`Сумма зарегистрированная в проекте: ${totalRegisteredInProject.toFixed(4)} RUB`)
+    // Регистрируем долю каждого вкладчика отдельным regshare-действием.
+    // (investor2 тоже имеет баланс в _capital_program — средства идут туда
+    // напрямую при инвестировании; итого — 8 вкладчиков.)
+    console.log('\n=== РЕГИСТРАЦИЯ ДОЛЕЙ (capital::regshare) ===\n')
+    for (const p of participantsWithCapital) {
+      await processRegShare(blockchain, 'voskhod', newComponentProject.project_hash, p.name, p.balance)
+      console.log(`regshare ${p.name}: ${p.balance}`)
+    }
+
+    // После regshare сегменты должны существовать и отражать баланс 1:1.
+    let totalRegisteredInProject = 0
+    for (const p of participantsWithCapital) {
+      const segment = await getSegment(blockchain, 'voskhod', newComponentProject.project_hash, p.name)
+      expect(segment, `Сегмент ${p.name} должен быть создан после regshare`).toBeDefined()
+      expect(segment.is_contributor, `${p.name}.is_contributor`).toBe(1)
+      expect(segment.capital_contributor_shares, `${p.name}.capital_contributor_shares`).toBe(p.balance)
+
+      const segmentCapital = parseFloat(segment.capital_contributor_shares.split(' ')[0])
+      totalRegisteredInProject += segmentCapital
+    }
 
     const projectState = await getProject(blockchain, 'voskhod', newComponentProject.project_hash)
-    console.log(`Сумма в проекте (total_capital_contributors_shares): ${projectState.crps.total_capital_contributors_shares}`)
-
     const projectTotal = parseFloat(projectState.crps.total_capital_contributors_shares.split(' ')[0])
-    console.log(`\nРасхождение: ${(projectTotal - totalCapitalBalances).toFixed(4)} RUB`)
 
-    // Проверяем что сумма в проекте совпадает с суммой балансов участников
+    console.log('\n=== ИТОГОВЫЕ СУММЫ ===')
+    console.log(`Участники с балансом благороста: ${participantsWithCapital.map(p => p.name).join(', ')}`)
+    console.log(`Сумма балансов в программе благороста: ${totalCapitalBalances.toFixed(4)} RUB`)
+    console.log(`Сумма в сегментах проекта: ${totalRegisteredInProject.toFixed(4)} RUB`)
+    console.log(`total_capital_contributors_shares: ${projectState.crps.total_capital_contributors_shares}`)
+
+    // Инварианты CRPS: сумма долей в сегментах = баланс благороста;
+    // total_capital_contributors_shares проекта = то же значение.
+    expect(totalRegisteredInProject).toBeCloseTo(totalCapitalBalances, 4)
     expect(projectTotal).toBeCloseTo(totalCapitalBalances, 4)
-
-    // Проверяем что зарегистрированы все участники с балансом благороста
-    // (investor2 теперь тоже имеет баланс в _capital_program т.к. средства идут туда напрямую при инвестировании)
     expect(participantsWithCapital.length).toBe(8)
-    // expect(projectTotal).toBeCloseTo(768161.819, 3)
-    console.log(`Общая сумма в проекте: ${projectTotal.toFixed(4)} RUB (ожидалось около 768161.819)`)
 
-    console.log(`✅ Все ${participantsWithCapital.length} вкладчиков зарегистрированы корректно, общая сумма: ${projectTotal.toFixed(4)} RUB`)
-  })
+    console.log(`✅ ${participantsWithCapital.length} вкладчиков зарегистрированы через regshare, общая доля: ${projectTotal.toFixed(4)} RUB`)
+  }, 300_000)
+
+  it('regshare идемпотентен: повторный вызов обновляет user_shares', async () => {
+    // regshare.cpp: если сегмент существует — обновляется (upsert). Повторный
+    // вызов с тем же значением не должен ломать инварианты; с другим значением —
+    // обновляет capital_contributor_shares в сегменте и суммарно в проекте.
+    const participant = tester1
+    const walletBefore = await getUserProgramWalletAmount(blockchain, 'voskhod', participant, capitalProgramId)
+    const segmentBefore = await getSegment(blockchain, 'voskhod', newComponentProject.project_hash, participant)
+    expect(segmentBefore.capital_contributor_shares).toBe(walletBefore)
+
+    // Повторный regshare с тем же балансом — должен пройти без ошибок
+    // (upsert_contributor_segment перезаписывает значение).
+    // Спим, чтобы expiration новой транзакции отличался — иначе она получит
+    // тот же tx_hash и узел отклонит как duplicate transaction.
+    await sleep(2000)
+    await processRegShare(blockchain, 'voskhod', newComponentProject.project_hash, participant, walletBefore)
+
+    const segmentAfter = await getSegment(blockchain, 'voskhod', newComponentProject.project_hash, participant)
+    expect(segmentAfter.capital_contributor_shares).toBe(walletBefore)
+    expect(segmentAfter.is_contributor).toBe(1)
+    console.log(`✅ Повторный regshare идемпотентен: ${segmentAfter.capital_contributor_shares}`)
+  }, 60_000)
 
   it.skip('проверяем что повторная регистрация вкладчика невозможна', async () => {
     await sleep(1000)
@@ -2337,12 +2437,21 @@ describe('тест контракта CAPITAL', () => {
       console.log(`${p}: ${wallet}`)
     }
 
-    // 2. Регистрация участников
+    // 2. Регистрация участников: signAppendix + regshare — отдельные действия.
+    // signAppendix добавляет project_hash в appendixes контрибьютора; сегмент
+    // в проекте не создаётся. regshare (capital::regshare) создаёт/обновляет
+    // сегмент с user_shares = баланс Благороста. Делаем regshare только для
+    // тех, у кого баланс > 0 — иначе проект не увидит их как contributor.
     const participants = [tester1, tester2, this_investor, tester5]
     for (const p of participants) {
       await signAppendix(blockchain, 'voskhod', p, highPrecisionHash, generateRandomSHA256())
+      const balance = await getUserProgramWalletAmount(blockchain, 'voskhod', p, capitalProgramId)
+      const amount = parseFloat(balance.split(' ')[0])
+      if (amount > 0) {
+        await processRegShare(blockchain, 'voskhod', highPrecisionHash, p, balance)
+      }
       const segment = await getSegment(blockchain, 'voskhod', highPrecisionHash, p)
-      console.log(`Сегмент ${p} после signAppendix:`, segment)
+      console.log(`Сегмент ${p} после signAppendix+regshare (balance=${balance}):`, segment)
     }
 
     const projectAfterReg = await getProject(blockchain, 'voskhod', highPrecisionHash)

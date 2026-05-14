@@ -12,7 +12,7 @@ fi
 
 # Останавливаем и удаляем контейнеры вместе с volumes
 echo "Останавливаем и удаляем контейнеры с volumes..."
-docker compose down -v mongo postgres opensearch cooparser || true
+docker compose down -v mongo postgres monoredis cooparser coopback || true
 
 # Останавливаем blockchain контейнер перед удалением данных
 echo "Останавливаем blockchain контейнер..."
@@ -25,7 +25,7 @@ sudo rm -rf ../blockchain-data/
 
 # Пересоздаем и запускаем базы данных
 echo "Пересоздаем и запускаем базы данных..."
-docker compose up -d mongo postgres opensearch
+docker compose up -d mongo postgres monoredis
 
 # Ждем готовности MongoDB
 echo "Ждем готовности MongoDB..."
@@ -52,6 +52,6 @@ echo "Запускаем parser..."
 docker compose up -d cooparser
 
 echo "Запускаем контроллер..."
-docker compose restart coopback || true
+docker compose up -d --force-recreate coopback || true
 
 echo "Перезапуск завершен!"

@@ -1,0 +1,282 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Стандарт «Приём имущественного паевого взноса» — оформление имущества
+# (не РИД, не деньги) как паевого взноса в программу «Благорост».
+#
+# Шестиактовый процесс с двумя последовательными актами и одной операцией.
+# В ledger2 — одна операция o.cap.actprp на закрывающем действии акта-2
+# (ISSUE → w.cap.blago, Дт 51 / Кт 80).
+#
+# Источники правды в коде:
+#   • cpp/capital/capital.hpp                                       — actions
+#   • cpp/capital/src/property/{createpgprp,approvepgprp,authpgprp,act1pgprp,act2pgprp,declinepgprp}.cpp
+#   • cpp/lib/core/ledger2/operations.hpp                           — o.cap.actprp
+#   • cpp/lib/core/ledger2/processes.hpp                            — processes::capital::PROPERTY
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Секция 1. Паспорт ───────────────────────────────────────────────────────
+process_type: p.cap.prop
+id: public_capital_property_process
+title: Приём имущественного паевого взноса
+slug: property
+status: proposed
+contract: capital
+summary: >
+  Пайщик передаёт кооперативу имущество (не деньги, не РИД) как паевой
+  взнос. Процесс многоступенчатый: предложение, одобрение, авторизация,
+  два акта приёма-передачи.
+purpose: >
+  «Приём имущественного паевого взноса» — пайщик передаёт кооперативу
+  имущество (не деньги, не результат интеллектуальной деятельности)
+  как паевой взнос в программу «Благорост». Председатель и совет
+  одобряют предложение, передача оформляется двумя последовательными
+  подписями на акте приёма-передачи: сначала пайщик, затем председатель.
+roles:
+  - contributor
+  - chairman
+  - soviet
+
+# ── Секция 2. Действия контракта ────────────────────────────────────────────
+actions:
+  - name: capital::createpgprp
+    human: Подать предложение
+    actor: contributor
+    role: opener
+    purpose: >
+      Пайщик создаёт предложение о внесении имущества как паевого взноса.
+      Контракт фиксирует запись со статусом `created`, в реестр сохраняется
+      описание имущества и сумма оценки.
+  - name: capital::approvepgprp
+    human: Одобрить решением председателя
+    actor: chairman
+    role: progress
+    purpose: >
+      Председатель добавляет к предложению документ-одобрение. Статус → `approved`.
+  - name: capital::authpgprp
+    human: Авторизовать советом
+    actor: soviet
+    role: progress
+    purpose: >
+      Совет авторизует приём имущества. Статус → `authorized`.
+  - name: capital::act1pgprp
+    human: Подписать акт (первая подпись)
+    actor: contributor
+    role: progress
+    purpose: >
+      Пайщик ставит первую подпись на акте приёма-передачи имущества —
+      передача имущества от пайщика. Статус → `act1`.
+  - name: capital::act2pgprp
+    human: Принять имущество
+    actor: chairman
+    role: closer
+    purpose: >
+      Председатель ставит вторую подпись на акте приёма-передачи — закрывающее
+      действие. Применяется ledger2-операция o.cap.actprp (ISSUE → w.cap.blago, Дт 51 / Кт 80).
+  - name: capital::declinepgprp
+    human: Отклонить
+    actor: chairman
+    role: reject
+    purpose: >
+      Председатель или совет отклоняет предложение. Запись удаляется, операция
+      o.cap.actprp не создаётся.
+
+# ── Секция 3. Граф состояний ────────────────────────────────────────────────
+entity: capital::program_property
+entity_human: Имущественный взнос
+entity_source: cpp/capital/src/property/
+
+states:
+  - name: created
+    human: Предложение подано
+    description: >
+      Пайщик подал предложение о внесении имущества. Запись содержит
+      описание имущества, сумму оценки и hash.
+    kind: normal
+  - name: approved
+    human: Председатель одобрил
+    description: К предложению добавлен документ-одобрение председателя.
+    kind: normal
+  - name: authorized
+    human: Совет авторизовал
+    description: Совет авторизовал приём имущества.
+    kind: normal
+  - name: act1
+    human: Первая подпись на акте
+    description: Пайщик поставил первую подпись на акте приёма-передачи имущества.
+    kind: normal
+  - name: accepted
+    human: Имущество принято
+    description: >
+      Председатель поставил вторую подпись на акте приёма-передачи: имущество учтено как паевой взнос на
+      кошельке «Благорост — единый кошелёк программы у пайщика» (w.cap.blago)
+      с проводкой Дт 51 / Кт 80.
+    kind: final
+  - name: removed
+    human: Отклонено
+    description: >
+      Предложение отклонено на одном из этапов; запись удалена, операция
+      o.cap.actprp не создавалась.
+    kind: virtual
+    virtual: true
+
+transitions:
+  - from: "∅"
+    to: created
+    action: capital::createpgprp
+    actor: contributor
+    guards:
+      - Пайщик имеет статус active.
+      - property_hash уникален, property_amount > 0.
+      - Описание имущества не пусто.
+      - Заявление подписано ЭЦП.
+
+  - from: created
+    to: approved
+    action: capital::approvepgprp
+    actor: chairman
+    guards:
+      - Документ одобрения председателя подписан.
+
+  - from: approved
+    to: authorized
+    action: capital::authpgprp
+    actor: soviet
+    guards:
+      - Документ авторизации совета подписан.
+
+  - from: authorized
+    to: act1
+    action: capital::act1pgprp
+    actor: contributor
+    guards:
+      - Первая подпись на акте приёма-передачи поставлена пайщиком.
+
+  - from: act1
+    to: accepted
+    action: capital::act2pgprp
+    actor: chairman
+    ledger_code: o.cap.actprp
+    operations:
+      - o.cap.actprp
+    guards:
+      - Вторая подпись на акте приёма-передачи поставлена председателем.
+
+  - from: created
+    to: removed
+    action: capital::declinepgprp
+    actor: chairman
+    guards:
+      - Председатель или совет отклонили предложение.
+
+  - from: approved
+    to: removed
+    action: capital::declinepgprp
+    actor: soviet
+    guards:
+      - Совет отклонил приём имущества.
+
+# ── Секция 4. Сценарий ──────────────────────────────────────────────────────
+scenario:
+  steps:
+    - step: 1
+      title: Подача предложения
+      actor: contributor
+      action: capital::createpgprp
+      description: >
+        Пайщик подаёт предложение о внесении имущества: описание, оценка,
+        property_hash. Контракт создаёт запись со статусом `created`.
+
+    - step: 2
+      title: Одобрение председателем
+      actor: chairman
+      action: capital::approvepgprp
+      description: Председатель добавляет документ-одобрение. Статус → `approved`.
+
+    - step: 3
+      title: Авторизация советом
+      actor: soviet
+      action: capital::authpgprp
+      description: Совет авторизует приём имущества. Статус → `authorized`.
+
+    - step: 4
+      title: Подписание акта-1
+      actor: contributor
+      action: capital::act1pgprp
+      description: >
+        Пайщик ставит первую подпись на акте приёма-передачи имущества — передача имущества от пайщика. Статус → `act1`.
+
+    - step: 5
+      title: Приём имущества (вторая подпись)
+      actor: chairman
+      action: capital::act2pgprp
+      description: >
+        Председатель ставит вторую подпись на акте приёма-передачи —
+        закрывающее действие. Применяется
+        ledger2-операция o.cap.actprp (ISSUE → w.cap.blago, Дт 51 / Кт 80) — имущество
+        учтено как паевой взнос.
+
+  alternatives:
+    - branch: Отказ председателя или совета
+      at_step: 2
+      action: capital::declinepgprp
+      actor: chairman
+      description: >
+        Предложение отклонено. Запись удаляется, операция o.cap.actprp
+        не создаётся.
+
+# ── Секция 5. Документы и подписи ───────────────────────────────────────────
+documents:
+  - step: 1
+    title: Заявление об инвестировании имущества в благорост
+    registry_id: 1070
+    signed_by: [contributor]
+    stored_in: pgproperties.statement
+
+  - step: 3
+    title: Решение совета об инвестировании имущества в благорост
+    registry_id: 1071
+    signed_by: [soviet]
+    stored_in: pgproperties.authorization
+
+  - step: 4
+    title: Акт приема-передачи имущества в благорост (первая подпись пайщика)
+    registry_id: 1072
+    signed_by: [contributor]
+    stored_in: pgproperties.act1
+
+  - step: 5
+    title: Акт приема-передачи имущества в благорост (вторая подпись председателя)
+    registry_id: 1072
+    signed_by: [contributor, chairman]
+    stored_in: pgproperties.act2
+
+# ── Секция 6. Операции ──────────────────────────────────────────────────────
+operations:
+  - ledger_code: o.cap.actprp
+    human_name: Паевой взнос (имущественный) по программе «Благорост»
+    wallet_op: ISSUE
+    wallet_from: ''
+    wallet_to: w.cap.blago            # ЦПП «Благорост» — единый кошелёк программы у пайщика
+    debit: 51                  # Расчётный счёт
+    credit: 80                 # Паевой фонд (складочный капитал)
+    amount_ref: property.amount
+    triggered_by: capital::act2pgprp
+    description: >
+      Зачисление имущества (по сумме оценки) на единый кошелёк программы
+      «Благорост» у пайщика (w.cap.blago). Двойная запись Дт 51 / Кт 80 —
+      кооператив принял имущество и оно учтено как часть паевого фонда.
+
+# ── Секция 7. Связи ─────────────────────────────────────────────────────────
+related:
+  - process_type: p.cap.rid
+    id: public_capital_rid_process
+    relation: affects
+    note: >
+      Альтернативный имущественный путь — приём результата интеллектуальной
+      деятельности (p.cap.rid). РИД отличается от обычного имущества схемой
+      двух последовательных операций и привязкой к проекту.
+
+  - process_type: p.reg.accept
+    id: public_registrator_accept_process
+    relation: provides
+    note: >
+      Имущественный взнос может внести только активный пайщик кооператива.

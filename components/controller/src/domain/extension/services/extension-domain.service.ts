@@ -87,6 +87,11 @@ export class ExtensionDomainService<TConfig = any> {
         config: builtinDefaultConfig,
       },
       {
+        name: 'reports',
+        enabled: true,
+        config: builtinDefaultConfig,
+      },
+      {
         name: 'yookassa',
         enabled: false,
         config: yookassaDefaultConfig,

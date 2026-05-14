@@ -22,6 +22,9 @@ import { GeneratedDocumentDTO } from '~/application/document/dto/generated-docum
 import { ParticipantApplicationDecisionGenerateDocumentInputDTO } from '~/application/document/documents-dto/participant-application-decision-document.dto';
 import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/account-data.port';
 import { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import { AGREEMENT_QUERY_PORT, AgreementQueryPort } from '~/domain/registration/ports/agreement-query.port';
+import { RegistrationAgreementDTO } from '../dto/registration-agreement.dto';
+import { AccountType } from '~/application/account/enum/account-type.enum';
 
 @Injectable()
 export class RegistrationService {
@@ -35,8 +38,24 @@ export class RegistrationService {
     @Inject(USER_CERTIFICATE_DOMAIN_PORT)
     private readonly userCertificateDomainPort: UserCertificateDomainPort,
     @Inject(ACCOUNT_DATA_PORT)
-    private readonly accountDataPort: AccountDataPort
+    private readonly accountDataPort: AccountDataPort,
+    @Inject(AGREEMENT_QUERY_PORT)
+    private readonly agreementQueryPort: AgreementQueryPort
   ) {}
+
+  /**
+   * Возвращает список оферт, которые пайщик должен принять при
+   * регистрации (сливает платформенные + extension-зарегистрированные).
+   */
+  getRegistrationAgreements(
+    coopname: string,
+    accountType: AccountType,
+    programKey?: string
+  ): RegistrationAgreementDTO[] {
+    return this.agreementQueryPort
+      .getAgreementsForAccountType(accountType, coopname, programKey)
+      .map((item) => new RegistrationAgreementDTO(item));
+  }
 
   /**
    * Генерация пакета документов для регистрации
@@ -114,13 +133,18 @@ export class RegistrationService {
     const result = await this.participantInteractor.createInitialPayment(data);
     const usernameCertificate = await this.userCertificateDomainPort.getCertificateByUsername(result.username);
 
-    // Отправляем уведомление председателю о новой заявке на вступительный взнос
-    await this.participantNotificationService.sendNewInitialPaymentNotification(
-      result.username,
-      result.quantity.toFixed(2),
-      result.symbol,
-      result.coopname
-    );
+    // Уведомление председателю шлём только если платёж создан вот сейчас.
+    // Фронт может дёргать мутацию повторно (reload, immediate-watch на step и т.п.) —
+    // в этих случаях интерактор поднимет уже существующий PENDING-платёж и
+    // вернёт его с isNewlyCreated=false, и нотификация не задублируется.
+    if (result.isNewlyCreated) {
+      await this.participantNotificationService.sendNewInitialPaymentNotification(
+        result.username,
+        result.quantity.toFixed(2),
+        result.symbol,
+        result.coopname
+      );
+    }
 
     return result.toDTO(usernameCertificate);
   }

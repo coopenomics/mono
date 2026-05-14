@@ -80,6 +80,66 @@ export interface IDocument2 {
 export interface IMigrate {
 }
 
+// ── Программные соглашения (Эпик 2 / story 2.1) ────────────────────────
+
+/**
+ * Запись в `wallet::users.programs[]`. Только хэш и метаданные документа;
+ * полный текст лежит в action data `signagree` (audit trail).
+ */
+export interface IProgramAgreement {
+  program_id: IUint64
+  doc_hash: IChecksum256
+  version: number
+  draft_id: IUint64
+  signed_at: string
+}
+
+/**
+ * Строка таблицы `users` контракта wallet (owner программных соглашений).
+ * Source: `table_wallet_users.hpp`. Scope = coopname.
+ */
+export interface IUser {
+  username: IName
+  programs: IProgramAgreement[]
+}
+
+/**
+ * signagree — подписание программного соглашения пайщиком (auth: coopname@active).
+ * Document — в action data, не в state.
+ */
+export interface ISignagree {
+  coopname: IName
+  username: IName
+  program_id: IUint64
+  document: IDocument2
+  draft_id: IUint64
+}
+
+/**
+ * revokeagree — расторжение программного соглашения (auth: coopname@active).
+ * Удаляет программу из `users[username].programs[]`; пустой vector → erase.
+ */
+export interface IRevokeagree {
+  coopname: IName
+  username: IName
+  program_id: IUint64
+}
+
+/**
+ * migrate3 (wallet) — идемпотентная per-record миграция программного
+ * соглашения из `soviet::agreements3` (auth: coopname@active).
+ * Не путать с `ledger2::migrate3` (миграция L3-балансов).
+ */
+export interface IWalletMigrate3 {
+  coopname: IName
+  username: IName
+  program_id: IUint64
+  doc_hash: IChecksum256
+  version: number
+  draft_id: IUint64
+  signed_at: string
+}
+
 export interface ISignatureInfo {
   id: IUint32
   signed_hash: IChecksum256

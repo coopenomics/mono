@@ -35,7 +35,14 @@ export class PaymentDomainEntity implements PaymentDomainInterface {
   blockchain_data?: any;
   statement?: any;
 
-  constructor(data: PaymentDomainInterface) {
+  // Транзиентный флаг: true — платёж создан вот сейчас в текущем запросе,
+  // false — поднят из БД как уже существующий. Нужен вызывающему слою, чтобы
+  // отличить «свежесозданный платёж» от «повторно загруженного» и не слать
+  // нотификации/события при каждом ре-рендере фронта. Не пишется в БД и не
+  // попадает в DTO.
+  isNewlyCreated: boolean;
+
+  constructor(data: PaymentDomainInterface, options: { isNewlyCreated?: boolean } = {}) {
     this.id = data.id;
     this.coopname = data.coopname;
     this.username = data.username;
@@ -58,6 +65,7 @@ export class PaymentDomainEntity implements PaymentDomainInterface {
     this.payment_details = data.payment_details;
     this.blockchain_data = data.blockchain_data;
     this.statement = data.statement;
+    this.isNewlyCreated = options.isNewlyCreated ?? false;
   }
 
   /**

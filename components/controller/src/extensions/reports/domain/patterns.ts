@@ -1,0 +1,50 @@
+/**
+ * Общие regex-паттерны реквизитов ФНС/СФР.
+ *
+ * Источник истины — XSD-схемы ФНС/СФР в `components/controller/.../schemas/`
+ * и приложение 1 к приказу СФР №1462 от 17.11.2025.
+ *
+ * Правило: если паттерн используется более чем в одной DTO/сервисе —
+ * живёт здесь. Менять — синхронно с XSD И с зеркалом в
+ * `components/sdk/src/selectors/reports/patterns.ts` (frontend rules).
+ * TODO: переехать в общий `cooptypes`, чтобы source of truth был один.
+ */
+
+// ИНН: 10 (юрлицо) или 12 (физлицо/ИП) цифр.
+export const INN_PATTERN = /^(\d{10}|\d{12})$/;
+
+/** ИНН юрлица (БУХОТЧ, ЕФС-1 УТ8: только 10). */
+export const INN_UL_PATTERN = /^\d{10}$/;
+
+// КПП: 9 символов, формат NNNNLLNNN, где LL — 2 буквенно-цифровых символа.
+export const KPP_PATTERN = /^\d{4}[0-9A-Z]{2}\d{3}$/;
+
+// ОГРН — 13 цифр (ЮЛ), ОГРНИП — 15.
+export const OGRN_PATTERN = /^(\d{13}|\d{15})$/;
+
+/** ОГРН ЮЛ (БУХОТЧ СвАудит): ровно 13. */
+export const OGRN_UL_PATTERN = /^\d{13}$/;
+
+// ОКВЭД: XX, XX.X, XX.XX, XX.XX.X, XX.XX.XX.
+export const OKVED_PATTERN = /^\d{2}(\.\d{1,2}){0,2}$/;
+
+// ОКТМО: 8 или 11 цифр.
+export const OKTMO_PATTERN = /^\d{8}(\d{3})?$/;
+
+// ОКФС: 1-3 цифры.
+export const OKFS_PATTERN = /^\d{1,3}$/;
+
+// ОКОПФ: 5 цифр (актуальный ОК 011-2014).
+export const OKOPF_PATTERN = /^\d{5}$/;
+
+// ОКПО: 8 (ЮЛ) или 10 (ИП) цифр.
+export const OKPO_PATTERN = /^\d{8}(\d{2})?$/;
+
+// СНИЛС: XXX-XXX-XXX YY (с пробелом/тире) или 11 цифр подряд.
+export const SNILS_PATTERN = /^(\d{3}-\d{3}-\d{3} \d{2}|\d{11})$/;
+
+// Регистрационный номер СФР: XXX-XXX-XXXXXX (3-3-6).
+export const SFR_REG_NUMBER_PATTERN = /^\d{3}-\d{3}-\d{6}$/;
+
+/** Дата в формате `DD.MM.YYYY` (XSD `xs:date`-совместимый ФНС-формат). */
+export const DATE_DDMMYYYY_PATTERN = /^\d{2}\.\d{2}\.\d{4}$/;

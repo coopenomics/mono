@@ -17,9 +17,14 @@
   
   agreements2_index agreements(_soviet, coopname.value);
   auto indoc = agreements.find(agreement_id);
-  
+
   eosio::check(indoc != agreements.end(), "Документ не найден");
   eosio::check(indoc -> username == username, "Имя пользователя не соответствует документу");
+
+  // После Эпика 2: программные соглашения (program_id > 0) живут в wallet::users —
+  // отклоняются через wallet::revokeagree.
+  eosio::check(indoc->program_id == 0,
+               "soviet::declineagree: программные соглашения (program_id > 0) отклоняются через wallet::revokeagree");
   
   agreements.modify(indoc, administrator, [&](auto &d) { 
     d.status = "declined"_n;

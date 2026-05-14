@@ -32,6 +32,32 @@ export class SovietBlockchainAdapter implements SovietBlockchainPort {
     );
   }
 
+  async getCoagreement(
+    coopname: string,
+    agreement_type: string
+  ): Promise<SovietContract.Tables.CoopAgreements.ICoopAgreement | null> {
+    const rows = await this.getCoagreements(coopname);
+    return rows.find((r) => r.type === agreement_type) ?? null;
+  }
+
+  async getCoagreements(coopname: string): Promise<SovietContract.Tables.CoopAgreements.ICoopAgreement[]> {
+    // Per-coop coagreements ~6-7 rows; full scan дешевле, чем uint64-конверсия из name на стороне JS.
+    return await this.blockchainService.getAllRows<SovietContract.Tables.CoopAgreements.ICoopAgreement>(
+      SovietContract.contractName.production,
+      coopname,
+      SovietContract.Tables.CoopAgreements.tableName
+    );
+  }
+
+  async getPrograms(coopname: string): Promise<SovietContract.Tables.Programs.IProgram[]> {
+    // Per-coop programs ~единицы строк; full scan адекватен.
+    return await this.blockchainService.getAllRows<SovietContract.Tables.Programs.IProgram>(
+      SovietContract.contractName.production,
+      coopname,
+      SovietContract.Tables.Programs.tableName
+    );
+  }
+
   async publishProjectOfFreeDecision(
     data: SovietContract.Actions.Decisions.CreateFreeDecision.ICreateFreeDecision
   ): Promise<TransactResult> {

@@ -25,7 +25,13 @@
   verify_document_or_fail(document);
   
   auto coagreement = get_coagreement_or_fail(coopname, agreement_type);
-  
+
+  // После Эпика 2 (компонент 48): программные соглашения (program_id > 0)
+  // переезжают в контракт wallet (wallet::signagree). soviet остаётся owner-ом
+  // только не-программных соглашений (program_id == 0).
+  eosio::check(coagreement.program_id == 0,
+               "soviet::sndagreement: программные соглашения (program_id > 0) подписываются через wallet::signagree");
+
   uint64_t version = 0;
   
   if (coagreement.draft_id > 0) {

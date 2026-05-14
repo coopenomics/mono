@@ -12,6 +12,10 @@
 #include "src/withdraw/createwthd.cpp"
 #include "src/withdraw/declinewthd.cpp"
 
+#include "src/agreement/signagree.cpp"
+#include "src/agreement/revokeagree.cpp"
+#include "src/agreement/migrate3.cpp"
+
 using namespace eosio;
 
 [[eosio::action]]

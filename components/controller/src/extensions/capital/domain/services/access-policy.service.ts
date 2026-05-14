@@ -600,27 +600,29 @@ export const PROJECT_PERMISSION_MATRIX: Record<ProjectUserRole, Record<ProjectAc
 
 /**
  * Сервис политик доступа к задачам
- * Содержит бизнес-правила доступа к задачам в доменном слое
+ *
+ * Все проверки прав работают по UNION-семантике: пользователь может одновременно
+ * нести несколько ролей (например, член совета + соавтор), и итоговое разрешение —
+ * это OR по всем его ролям. Так лечится регрессия, при которой board_member
+ * перебивал project-specific роль и обнулял её права.
  */
 export class IssueAccessPolicyService {
   /**
-   * Проверяет, есть ли у пользователя разрешение на действие
-   * @param userRole - роль пользователя
-   * @param action - действие
-   * @returns true если действие разрешено
+   * Проверяет, есть ли у пользователя разрешение на действие.
+   * UNION по ролям: достаточно одной роли с allow=true.
    */
-  hasPermission(userRole: UserRole, action: IssueAction): boolean {
-    return PERMISSION_MATRIX[userRole][action];
+  hasPermission(roles: Iterable<UserRole>, action: IssueAction): boolean {
+    for (const role of roles) {
+      if (PERMISSION_MATRIX[role]?.[action]) return true;
+    }
+    return false;
   }
 
   /**
-   * Проверяет разрешение на переход между статусами
-   * @param userRole - роль пользователя
-   * @param currentStatus - текущий статус
-   * @param newStatus - новый статус
-   * @returns true если переход разрешен
+   * Проверяет разрешение на переход между статусами.
+   * UNION по ролям: достаточно одной роли, для которой переход разрешён.
    */
-  canTransitionStatus(userRole: UserRole, currentStatus: IssueStatus, newStatus: IssueStatus): boolean {
+  canTransitionStatus(roles: Iterable<UserRole>, currentStatus: IssueStatus, newStatus: IssueStatus): boolean {
     if (currentStatus === newStatus) {
       return true; // Можно "перейти" в тот же статус
     }
@@ -635,40 +637,42 @@ export class IssueAccessPolicyService {
       return false;
     }
 
-    return newStatusTransitions[userRole] || false;
+    for (const role of roles) {
+      if (newStatusTransitions[role]) return true;
+    }
+    return false;
   }
 
   /**
-   * Проверяет, есть ли у пользователя разрешение на действие над проектом
-   * @param userRole - роль пользователя для проекта
-   * @param action - действие над проектом
-   * @returns true если действие разрешено
+   * Проверяет, есть ли у пользователя разрешение на действие над проектом.
+   * UNION по ролям.
    */
-  hasProjectPermission(userRole: ProjectUserRole, action: ProjectAction): boolean {
-    return PROJECT_PERMISSION_MATRIX[userRole][action];
+  hasProjectPermission(roles: Iterable<ProjectUserRole>, action: ProjectAction): boolean {
+    for (const role of roles) {
+      if (PROJECT_PERMISSION_MATRIX[role]?.[action]) return true;
+    }
+    return false;
   }
 
   /**
-   * Получает список допустимых статусов для перехода из текущего статуса для данной роли
-   * @param userRole - роль пользователя
-   * @param currentStatus - текущий статус задачи
-   * @returns массив допустимых статусов для перехода (исключая текущий статус)
+   * Получает список допустимых статусов для перехода из текущего статуса.
+   * UNION по ролям: статус попадает в список, если хотя бы одна роль его разрешает.
    */
-  getAllowedStatusTransitions(userRole: UserRole, currentStatus: IssueStatus): IssueStatus[] {
+  getAllowedStatusTransitions(roles: Iterable<UserRole>, currentStatus: IssueStatus): IssueStatus[] {
     const transitions = STATUS_TRANSITION_MATRIX[currentStatus];
     if (!transitions) {
       return [];
     }
 
+    const rolesArr = [...roles];
     const allowedStatuses: IssueStatus[] = [];
 
     for (const [newStatus, rolePermissions] of Object.entries(transitions)) {
-      // Исключаем текущий статус из списка доступных переходов
       if (newStatus === currentStatus) {
         continue;
       }
 
-      const isAllowed = rolePermissions[userRole] || false;
+      const isAllowed = rolesArr.some((r) => rolePermissions[r]);
       if (isAllowed) {
         allowedStatuses.push(newStatus as IssueStatus);
       }

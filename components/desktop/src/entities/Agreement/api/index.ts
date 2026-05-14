@@ -1,48 +1,34 @@
-import { DraftContract, SovietContract } from 'cooptypes';
-import { fetchTable } from 'src/shared/api';
-import { client } from 'src/shared/api/client';
+/**
+ * Чтение соглашений кооператива и шаблонов документов через GraphQL
+ * контроллера. Прямой `fetchTable` к чейну убран — ADR: фронт не ходит в
+ * блокчейн напрямую, всё через controller.
+ */
+import type { DraftContract, SovietContract } from 'cooptypes';
 import { Queries } from '@coopenomics/sdk';
+import { client } from 'src/shared/api/client';
 import type { ILoadPaginatedAgreementsInput, IPaginatedAgreementsResponse } from '../model/types';
 
 async function loadCooperativeAgreements(coopname: string): Promise<SovietContract.Tables.CoopAgreements.ICoopAgreement[]> {
-  return (
-    await fetchTable(
-      SovietContract.contractName.production,
-      coopname,
-      SovietContract.Tables.CoopAgreements.tableName,
-    )
-  ) as SovietContract.Tables.CoopAgreements.ICoopAgreement[];
+  const { [Queries.Agreements.CooperativeAgreements.name]: rows } = await client.Query(
+    Queries.Agreements.CooperativeAgreements.query,
+    { variables: { coopname } }
+  );
+  // GraphQL возвращает program_id/draft_id как Int; контракт ждёт IUint64 (string|number).
+  // Адаптируем форму без потери данных.
+  return (rows ?? []).map((r) => ({
+    type: r.type,
+    coopname: r.coopname,
+    program_id: r.program_id,
+    draft_id: r.draft_id,
+  })) as unknown as SovietContract.Tables.CoopAgreements.ICoopAgreement[];
 }
-
-
-async function loadAgreementsOfAllParticipants(coopname: string): Promise<SovietContract.Tables.Agreements.IAgreement[]> {
-  return (
-    await fetchTable(
-      SovietContract.contractName.production,
-      coopname,
-      SovietContract.Tables.Agreements.tableName,
-    )
-  ) as SovietContract.Tables.Agreements.IAgreement[];
-
-}
-
 
 async function loadAgreementTemplates(coopname: string): Promise<DraftContract.Tables.Drafts.IDraft[]> {
-
-    const global = await fetchTable(
-      DraftContract.contractName.production,
-      DraftContract.contractName.production,
-      DraftContract.Tables.Drafts.tableName,
-    )
-
-    const coop = await fetchTable(
-      DraftContract.contractName.production,
-      coopname,
-      DraftContract.Tables.Drafts.tableName,
-    )
-
-    return [...global, ...coop] as DraftContract.Tables.Drafts.IDraft[];
-
+  const { [Queries.Agreements.AgreementTemplates.name]: rows } = await client.Query(
+    Queries.Agreements.AgreementTemplates.query,
+    { variables: { coopname } }
+  );
+  return (rows ?? []) as unknown as DraftContract.Tables.Drafts.IDraft[];
 }
 
 async function loadPaginatedAgreements(data: ILoadPaginatedAgreementsInput): Promise<IPaginatedAgreementsResponse> {
@@ -50,11 +36,11 @@ async function loadPaginatedAgreements(data: ILoadPaginatedAgreementsInput): Pro
     Queries.Agreements.Agreements.query,
     {
       variables: {
-        data
-      }
-    }
+        data,
+      },
+    },
   );
   return output;
 }
 
-export const api = {loadCooperativeAgreements, loadAgreementsOfAllParticipants, loadAgreementTemplates, loadPaginatedAgreements}
+export const api = { loadCooperativeAgreements, loadAgreementTemplates, loadPaginatedAgreements };

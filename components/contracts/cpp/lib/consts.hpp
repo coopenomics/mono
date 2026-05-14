@@ -138,6 +138,8 @@ static constexpr uint64_t _capital_program_id = 4;
 #define LOAN "loan"
 #define MEET "meet"
 #define LEDGER "ledger"
+#define LEDGER2 "ledger2"
+#define APPS "apps"
 
 
 /**
@@ -161,6 +163,8 @@ static constexpr uint64_t _capital_program_id = 4;
     static constexpr eosio::name _loan = "loan"_n;
     static constexpr eosio::name _meet = "meet"_n;
     static constexpr eosio::name _ledger = "ledger"_n;
+    static constexpr eosio::name _ledger2 = "ledger2"_n;
+    static constexpr eosio::name _apps = "apps"_n;
     static constexpr eosio::name _power_account = "eosio.power"_n;
     static constexpr eosio::name _saving_account = "eosio.saving"_n;
     
@@ -187,7 +191,9 @@ static constexpr uint64_t _capital_program_id = 4;
         "eosio.power"_n,
         "eosio.saving"_n,
         "ledger"_n,
-        "capital"_n
+        "ledger2"_n,
+        "capital"_n,
+        "apps"_n
         // Добавьте остальные стандартные или пользовательские контракты по необходимости
       };
 

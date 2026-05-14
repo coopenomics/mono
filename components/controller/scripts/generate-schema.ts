@@ -76,7 +76,11 @@ async function discoverResolverClasses(srcRoot: string): Promise<ResolverCtor[]>
       if (seen.has(exp)) {
         continue;
       }
-      if (Reflect.getMetadata(RESOLVER_TYPE_METADATA, exp) === undefined) {
+      // Важно: используем hasMetadata, а не getMetadata. Для @Resolver() без параметра
+      // Nest делает SetMetadata(RESOLVER_TYPE_METADATA, undefined) — defineMetadata
+      // реально проставлен, но getMetadata возвращает undefined и неотличим от «не объявлен».
+      // hasMetadata это различает и принимает оба случая: @Resolver(() => X) и @Resolver().
+      if (!Reflect.hasMetadata(RESOLVER_TYPE_METADATA, exp)) {
         continue;
       }
       seen.add(exp);

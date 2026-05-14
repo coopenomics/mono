@@ -24,6 +24,8 @@ import {
 } from '../sync/index-store.js'
 import { generateSlug, issueFileRelativePath, workspaceBasePath } from '../sync/layout.js'
 import { loadProjectMapsFromIndex } from '../sync/project-index-map.js'
+import { refreshParentProjectVersion } from '../sync/refresh-parent.js'
+import { writeWorkspaceIndexMarkdown } from '../sync/workspace-index.js'
 
 import { resolveProjectMarker } from './resolve-base.js'
 
@@ -220,7 +222,9 @@ export async function runCreateIssue(
     remote_updated_at: toRemoteIso(createdRow._updated_at),
     content_etag_local: etag,
   })
+  await refreshParentProjectVersion(ctx, index, createdRow.project_hash, projRow.parent_hash)
   await saveIndex(ctx.root, index)
   await appendPathsToStaging(ctx.root, [rel])
+  await writeWorkspaceIndexMarkdown(ctx.root)
   return { relativePath: rel }
 }

@@ -6,6 +6,8 @@ on:
       - main
       - testnet
       - dev
+      - reports
+      - marketplace2
 
 jobs:
   build-and-publish-docs:
@@ -14,18 +16,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      # Версия pnpm берётся из `packageManager` корневого package.json,
+      # синхронно с publish-packages.yaml и Dockerfile'ами.
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: pnpm
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-
-      - name: Install pnpm
-        run: npm install -g pnpm
 
       - name: Install Python requirements
         run: |
@@ -77,6 +82,22 @@ jobs:
         run: |
           mkdir -p ./components/docs/docs/cooptypes
           cp -r ./components/cooptypes/docs/* ./components/docs/docs/cooptypes/
+
+      # ── standards-site → /standards/ на docs.цифровой-кооператив.рф ──
+      # Отдельный Vue-сайт с BPMN-графом кооперативных стандартов,
+      # публикуется как поддиректория на том же домене. Vite собирает
+      # с base='/standards/' (см. vite.config.ts), относительные пути
+      # внутри dist/ и hash-router работают корректно.
+      # dist кладём в docs/standards/ ДО mkdocs build — так же, как
+      # graphql/sdk/cooptypes; mkdocs сам включит его в итоговый site/.
+      - name: Build standards-site
+        run: pnpm run build
+        working-directory: ./components/contracts/standards-site
+
+      - name: Copy standards-site into docs/standards
+        run: |
+          mkdir -p ./components/docs/docs/standards
+          cp -r ./components/contracts/standards-site/dist/* ./components/docs/docs/standards/
 
       - name: Build docs (mkdocs)
         run: |

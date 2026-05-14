@@ -1,0 +1,261 @@
+version: "6.0.0"
+project_name: "Редактируемые inline-формы отчётов + календарь"
+project_type: "web-app"
+project_level: 2
+sprint_plan_path: "docs/sprint-plan-reports-editable-forms-2026-04-22.md"
+current_sprint: 4
+sprint_length_weeks: 1
+epic_ref: "blago://33/40/989-9"
+
+sprints:
+  - sprint_number: 1
+    start_date: "2026-04-22"
+    end_date: "2026-04-29"
+    capacity_points: 10
+    committed_points: 10
+    completed_points: 10
+    status: "completed"
+    goal: "Прошить весь путь end-to-end на BuhotchForm: черновик → dirty-merge → редактор"
+    stories:
+      - story_id: "STORY-1-1"
+        checkpoint: 1
+        title: "ReportDraftEntity + миграция + CRUD-резолверы save/get/list/delete"
+        points: 2
+        status: "completed"
+        completed_at: "2026-04-22"
+      - story_id: "STORY-1-2"
+        checkpoint: 2
+        title: "BuhotchEditsDTO — зеркало XML БУХОТЧ (КНД 0710096)"
+        points: 2
+        status: "completed"
+        completed_at: "2026-04-22"
+      - story_id: "STORY-1-3"
+        checkpoint: 3
+        title: "buildInitialReportEdits + dirty-merge логика"
+        points: 2
+        status: "completed"
+        completed_at: "2026-04-22"
+      - story_id: "STORY-1-4"
+        checkpoint: 5
+        title: "Рефактор buhotch-generator: generate(edits: BuhotchEdits): XML + удаление старого пути"
+        points: 2
+        status: "completed"
+        completed_at: "2026-04-22"
+      - story_id: "STORY-1-5"
+        checkpoint: 6
+        title: "generateReportFromEdits резолвер + запись в архив"
+        points: 1
+        status: "completed"
+        completed_at: "2026-04-22"
+      - story_id: "STORY-1-6"
+        checkpoint: 8
+        title: "useReportDraft composable: load/save/debounced autosave + dirty-tracking"
+        points: 1
+        status: "completed"
+        completed_at: "2026-04-22"
+      - story_id: "STORY-1-7"
+        checkpoint: 9
+        title: "Рефакторинг BuhotchForm: read-only → editable (reference)"
+        points: 2
+        status: "completed"
+        completed_at: "2026-04-22"
+
+  - sprint_number: 2
+    start_date: "2026-04-22"
+    end_date: "2026-04-23"
+    capacity_points: 10
+    committed_points: 10
+    completed_points: 10
+    status: "completed"
+    goal: "Валидация + развернуть на оставшиеся 6 форм"
+    stories:
+      - story_id: "STORY-2-1"
+        checkpoint: 4
+        title: "validateReportEdits + class-validator → FieldError[] с jsonPath"
+        points: 2
+        status: "completed"
+        completed_at: "2026-04-23"
+        note: "Реализовано через class-validator (flattenValidationErrors), без libxml XPath — достаточно для MVP."
+      - story_id: "STORY-2-2"
+        checkpoint: 13
+        title: "Экспорт regex-паттернов из SDK (patterns.ts + reportRules)"
+        points: 1
+        status: "completed"
+        completed_at: "2026-04-23"
+      - story_id: "STORY-2-3"
+        checkpoint: 12
+        title: "FieldError → подсветка полей в формах (не toast)"
+        points: 2
+        status: "completed"
+        completed_at: "2026-04-23"
+      - story_id: "STORY-2-4"
+        checkpoint: 11
+        title: "ReportEditorDialog — заменяет ReportPreviewDialog"
+        points: 2
+        status: "completed"
+        completed_at: "2026-04-23"
+      - story_id: "STORY-2-5"
+        checkpoint: 2
+        title: "ZeroReportEditsDTO (универсальный для 6-НДФЛ/РСВ/ПСВ/ЕФС-1)"
+        points: 2
+        status: "completed"
+        completed_at: "2026-04-23"
+        note: "Вместо 6 отдельных DTO — один универсальный ZeroReportEditsShape с флагами needs. ДУСН/УУСН/УВ-Взносы скрыты через HIDDEN_IN_MVP."
+      - story_id: "STORY-2-6"
+        checkpoint: 5
+        title: "Рефактор генераторов на generate(edits)"
+        points: 1
+        status: "completed"
+        completed_at: "2026-04-23"
+      - story_id: "STORY-2-7"
+        checkpoint: 10
+        title: "ZeroReportEditor.vue — универсальный для 4 нулёвок (NDFL6/RSV/PSV/FSS4)"
+        points: 0
+        status: "completed"
+        completed_at: "2026-04-23"
+
+  - sprint_number: 3
+    start_date: "2026-04-23"
+    end_date: "2026-04-23"
+    capacity_points: 8
+    committed_points: 8
+    completed_points: 7
+    status: "completed"
+    goal: "Календарь отчётности + QA + docs"
+    stories:
+      - story_id: "STORY-3-1"
+        checkpoint: 7
+        title: "getReportCalendar резолвер + reports-calendar-registry.ts (5 форм)"
+        points: 2
+        status: "completed"
+        completed_at: "2026-04-23"
+        note: "addBusinessDays перенесено в Sprint 4 (STORY-4-5)."
+      - story_id: "STORY-3-2"
+        checkpoint: 14
+        title: "ReportsCalendar.vue — матрица 5 × 12"
+        points: 3
+        status: "completed"
+        completed_at: "2026-04-23"
+      - story_id: "STORY-3-3"
+        checkpoint: 15
+        title: "Интеграция календаря в DocumentsPage (табы)"
+        points: 1
+        status: "completed"
+        completed_at: "2026-04-23"
+        note: "q-tabs: Календарь / Список форм / Архив. В Sprint 4 заменено на router-view + header-injection (STORY-4-1)."
+      - story_id: "STORY-3-4"
+        checkpoint: 16
+        title: "E2E happy-path BuhotchForm"
+        points: 1
+        status: "rejected"
+        rejected_at: "2026-04-23"
+        rejection_reason: |
+          Отклонено до стабилизации MVP. Reasoning:
+            - UI активно переделывается каждый спринт — E2E-тесты, написанные сейчас, будут ломаться от
+              рефакторингов и обрастать .skip().
+            - Один разработчик + визуальный QA ловят регрессии быстрее, чем заведётся playwright-инфра
+              (baseURL, auth-bypass, seed-данные, isolation).
+            - Возврат запланирован как отдельный спринт «QA/автоматизация», когда стабилизируется интерфейс,
+              подключится второй разработчик или первый реальный бухгалтер сдаст отчёт на проде.
+            - Не «недоделка Sprint 3», а осознанный скоуп-каттинг.
+      - story_id: "STORY-3-5"
+        checkpoint: 17
+        title: "Typecheck + lint + docs"
+        points: 1
+        status: "completed"
+        completed_at: "2026-04-23"
+
+  - sprint_number: 4
+    start_date: "2026-04-23"
+    end_date: "2026-04-30"
+    capacity_points: 10
+    committed_points: 10
+    completed_points: 10
+    status: "completed"
+    completed_at: "2026-04-23"
+    goal: "Header-инжекция навигации, отметки «не надо сдавать» и «сдано сторонне», production-календарь РФ, организация debt"
+    stories:
+      - story_id: "STORY-4-1"
+        checkpoint: 18
+        title: "DocumentsPage → router-view + хедер-кнопки через useHeaderActions"
+        points: 3
+        status: "completed"
+        completed_at: "2026-04-23"
+        acceptance_criteria:
+          - "reports-documents становится родительским маршрутом с 3 children: reports-documents-calendar/forms/archive"
+          - "DocumentsPage — shell с <router-view/>, регистрирует 3 RouteMenuButton в onMounted через useHeaderActions, чистит в onBeforeUnmount"
+          - "q-tabs удалён; открытие /reports/documents редиректит на ...-calendar по умолчанию"
+          - "При переключении между calendar/forms/archive URL и подсветка активной кнопки шапки — через route.name"
+      - story_id: "STORY-4-2"
+        checkpoint: 19
+        title: "ReportSubmissionMarkEntity + markReportPeriod (NOT_REQUIRED + SUBMITTED_EXTERNALLY)"
+        points: 2
+        status: "completed"
+        completed_at: "2026-04-23"
+        acceptance_criteria:
+          - "Новая TypeORM-сущность ReportSubmissionMarkEntity UNIQUE(coopname, report_type, year, period)"
+          - "Enum ReportSubmissionMark = { NOT_REQUIRED, SUBMITTED_EXTERNALLY }"
+          - "Мутация markReportPeriod(...) — null снимает отметку"
+          - "CalendarEntryStatus расширен NOT_REQUIRED + SUBMITTED_EXTERNALLY"
+          - "Приоритет: SUBMITTED > SUBMITTED_EXTERNALLY > DRAFT > NOT_REQUIRED > OVERDUE > EMPTY"
+          - "SDK: mutation + regen"
+      - story_id: "STORY-4-3"
+        checkpoint: 20
+        title: "CalendarCell визуальный редизайн (SUBMITTED/SUBMITTED_EXTERNALLY/OVERDUE/NOT_REQUIRED/DRAFT/EMPTY)"
+        points: 1
+        status: "completed"
+        completed_at: "2026-04-23"
+        acceptance_criteria:
+          - "SUBMITTED: зелёная точка без заливки"
+          - "SUBMITTED_EXTERNALLY: зелёная точка с обводкой-кольцом — отличается от реальной сдачи"
+          - "Overdue: насыщенный красный fill"
+          - "NOT_REQUIRED: нейтральный серый + circle-xmark"
+          - "Tooltip'ы актуализированы"
+      - story_id: "STORY-4-4"
+        checkpoint: 21
+        title: "Mark-кнопки в ReportEditorDialog: «Не надо сдавать» + «Отметить сданным» + «Снять отметку»"
+        points: 2
+        status: "completed"
+        completed_at: "2026-04-23"
+        acceptance_criteria:
+          - "Если статус=SUBMITTED (реальный XML) — mark-кнопок нет, показан баннер"
+          - "Если mark=null: показываем «Отметить сданным» и «Не надо сдавать»"
+          - "Если mark=NOT_REQUIRED или SUBMITTED_EXTERNALLY: показываем «Снять отметку» + баннер-подсказку"
+          - "Confirm перед каждой операцией"
+          - "После успеха — reload-календаря на родителе + закрытие диалога"
+      - story_id: "STORY-4-5"
+        checkpoint: 22
+        title: "shiftToBusinessDay + производственный календарь РФ 2026-2027"
+        points: 1
+        status: "completed"
+        completed_at: "2026-04-23"
+        acceptance_criteria:
+          - "calcDueDate переносит dueDate на ближайший рабочий день (Sat/Sun)"
+          - "RU_HOLIDAYS_BY_YEAR[2026/2027] — 1-8 янв, 23 фев, 8 мар, 1 и 9 мая, 12 июн, 4 ноя"
+          - "Двойной перенос работает: если Mon — праздник, едем дальше (max 14 итераций — защита от цикла)"
+      - story_id: "STORY-4-6"
+        checkpoint: "debt"
+        title: "Organize debt & docs"
+        points: 0
+        status: "completed"
+        completed_at: "2026-04-23"
+        acceptance_criteria:
+          - "STORY-3-4 E2E happy-path — отклонено (см. rejection_reason в STORY-3-4)"
+          - "PDF-экспорт 4 нулёвок — выполнено post-sprint (подключили paper-view в ReportEditorDialog)"
+          - "Blago-server sync 989-9 — подтверждено актуальным (pull без расхождений)"
+          - "Prod-календарь РФ — расширен до 2029 (BASE_RU_HOLIDAYS)"
+          - "Unit-тесты генераторов — 68 живых тестов переписаны на edits-shapes (ранее были describe.skip)"
+
+velocity:
+  sprint_1: 10
+  sprint_2: 10
+  sprint_3: 7
+  sprint_4: 10
+  rolling_average: 9.25
+
+team:
+  size: 1
+  sprint_length_weeks: 1
+  capacity_per_sprint: 10
+  developer_level: "senior"
+  productive_hours_per_day: 6

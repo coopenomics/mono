@@ -34,9 +34,10 @@ export function useContributorSearch(options: IContributorSearchOptions = {}) {
           project_hash: options.projectHash,
           display_name: searchQuery || undefined,
         },
-        pagination: {
+        options: {
           page: 1,
           limit: 50, // Ограничиваем количество для поиска
+          sortOrder: 'DESC',
         },
       });
 
@@ -65,11 +66,11 @@ export function useContributorSearch(options: IContributorSearchOptions = {}) {
         filter: {
           project_hash: options.projectHash,
         },
-        pagination: {
+        options: {
           page: 1,
           limit: 10, // Предзагружаем 10 участников
           sortBy: '_created_at',
-          descending: true, // Новые сначала
+          sortOrder: 'DESC', // Новые сначала
         },
 
       });

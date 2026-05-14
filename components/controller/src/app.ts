@@ -1,4 +1,4 @@
-import express, { type Request, type Response, type NextFunction } from 'express';
+import express, { type Express, type Request, type Response, type NextFunction } from 'express';
 import helmet from 'helmet';
 import xss from 'xss-clean';
 import mongoSanitize from 'express-mongo-sanitize';
@@ -8,7 +8,7 @@ import config from './config/config';
 import morgan from './config/morgan';
 import { graphqlHttpBodyShouldSkipXss } from './config/graphql-xss-skip';
 
-const app = express();
+const app: Express = express();
 
 if (config.env !== 'test') {
   app.use(morgan.successHandler);

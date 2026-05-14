@@ -50,13 +50,30 @@
 
 // wallet / gateway / ledger / loan / marketplace
 #include "table_wallet_deposits.hpp"
+#include "table_wallet_users.hpp"
 #include "table_wallet_withdraws.hpp"
 #include "table_gateway_incomes.hpp"
 #include "table_gateway_outcomes.hpp"
 #include "table_ledger_laccount.hpp"
 #include "table_ledger_writeoffs.hpp"
+#include "table_ledger2_wallet.hpp"
+#include "table_ledger2_account.hpp"
+#include "table_ledger2_userwallets.hpp"
+// Epic 1 addendum (2026-04-18): journal+wjournal удалены из RAM; история
+// собирается на бэкенде из blockchain_actions[ledger2::apply/walletop/debit/credit]
+// и blockchain_deltas[ledger2::accounts/wallets].
+#include "table_ledger2_meta.hpp"
 #include "table_loan_debts.hpp"
 #include "table_loan_summaries.hpp"
 #include "table_marketplace_requests.hpp"
 #include "table_marketplace_segments.hpp"
 #include "table_marketplace_shipments.hpp"
+
+// apps (каталог приложений)
+#include "table_apps_packages.hpp"
+#include "table_apps_releases.hpp"
+#include "table_apps_subs.hpp"
+#include "table_apps_coops.hpp"
+#include "table_apps_pricings.hpp"
+#include "table_apps_globals.hpp"
+#include "table_apps_clients.hpp"

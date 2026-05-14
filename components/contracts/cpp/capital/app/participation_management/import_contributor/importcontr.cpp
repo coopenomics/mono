@@ -61,10 +61,28 @@ void capital::importcontrib(eosio::name coopname, eosio::name username, checksum
 
   // Пополнение кошелька программы благороста
   std::string internal_memo = Capital::Memo::get_import_contributor_memo(contributor_hash, contribution_amount);
-  
-  Wallet::add_blocked_funds(_capital, coopname, username, contribution_amount, _capital_program, internal_memo);
-  
-  // Увеличиваем паевой фонд через бухгалтерский учет
-  Ledger::add(_capital, coopname, Ledger::accounts::SHARE_FUND, contribution_amount, internal_memo, contributor_hash, username);
-  
+
+  // Если у пайщика существует пред-импорт-учёт РИД (`w.cap.preimp`) — сжигаем
+  // его полностью через `o.cap.drppre` (Dr 80 / Cr 04, BURN PREIMP_FUND) ДО
+  // основного импорта. После drppre основной `o.cap.import` переоткрывает
+  // учёт на полный `contribution_amount` (включая возможную доплату/списание).
+  // Один process_hash на обе операции — бэкенд видит цельную цепочку IMPORT.
+  {
+    userwallets_index user_wallets(_ledger2, coopname.value);
+    auto idx = user_wallets.get_index<"byuserwallet"_n>();
+    auto preimp_it = idx.find(combine_ids(ledger2_wallets::PREIMP_FUND.value, username.value));
+    if (preimp_it != idx.end() && preimp_it->available.amount > 0) {
+      eosio::check(preimp_it->blocked.amount == 0,
+                   "preimp.blocked > 0 не поддерживается при импорте — обратиться в поддержку");
+      Ledger2::apply(
+        _capital, coopname, operations::capital::DROP_PREIMP,
+        preimp_it->available, username, contributor_hash,
+        std::string{"Закрытие пред-импорт-учёта РИД-взноса при переходе на электронный учёт"}
+      );
+    }
+  }
+
+  // Увеличиваем паевой фонд через ledger2: ISSUE BLAGOROST_FUND, Dr 04 / Cr 80.
+  Ledger2::apply(_capital, coopname, operations::capital::IMPORT, contribution_amount, username, contributor_hash, internal_memo);
+
 }

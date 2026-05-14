@@ -1,7 +1,7 @@
 {
   "name": "cooptypes",
   "type": "module",
-  "version": "2026.4.19-alpha-1",
+  "version": "2026.5.13-alpha-3",
   "description": "Shared TypeScript типы и интерфейсы экосистемы кооперативов",
   "author": "Alex Ant <dacom.dark.sun@gmail.com>",
   "license": "MIT",
@@ -29,6 +29,8 @@
     "dist"
   ],
   "scripts": {
+    "gen:from-cpp": "esno scripts/gen-from-cpp.ts",
+    "prebuild": "esno scripts/gen-from-cpp.ts",
     "build": "unbuild",
     "lint": "eslint .",
     "prepublishOnly": "nr build",

@@ -23,11 +23,11 @@ void soviet::addmemberfee(eosio::name coopname, eosio::name username, uint64_t p
   
   auto participant = get_participant_or_fail(coopname, username);
   auto exist_wallet = get_user_program_wallet_or_fail(coopname, username, program_id);
-  
+
   progwallets_index progwallets(_soviet, coopname.value);
   auto wallet = progwallets.find(exist_wallet.id);
-  
-  progwallets.modify(wallet, payer, [&](auto &p) { 
+
+  progwallets.modify(wallet, payer, [&](auto &p) {
     p.membership_contribution = p.membership_contribution.value_or(asset(0, quantity.symbol)) + quantity;
   });
   

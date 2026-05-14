@@ -11,5 +11,5 @@ fi
 docker run --rm --name cdt \
   --volume "$(pwd):/project" \
   -w /project \
-  dicoop/blockchain_v5.1.1:dev \
+  dicoop/blockchain:latest \
   /bin/bash -c "mkdir -p build && cd build && cmake -DBUILD_TARGET= -DTEST_TARGET= -DVERBOSE=ON -DBUILD_TESTS=OFF -DIS_TESTNET=$is_testnet .. && make"

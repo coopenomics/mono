@@ -1,0 +1,142 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Стандарт «Инвестиция в ЦПП «Благорост»» — перенос ранее внесённого паевого
+# взноса с кошелька SHARE_FUND_PAY (w.wal.share) на единый кошелёк программы
+# «Благорост» (w.cap.blago) без бухгалтерских проводок.
+#
+# Одноактовый процесс. В ledger2 — одна операция o.cap.invest c wallet_op =
+# TRANSFER без бухпроводок (debit_account_id == credit_account_id == 0):
+# средства переходят между двумя аналитическими кошельками одного пайщика,
+# не затрагивая бухгалтерские счета (оба связаны с Cr 80).
+#
+# Источники правды в коде:
+#   • cpp/capital/capital.hpp                              — actions
+#   • cpp/capital/src/invest/{createinvest,createpinv}.cpp — реализация
+#   • cpp/lib/core/ledger2/operations.hpp                  — o.cap.invest
+#   • cpp/lib/core/ledger2/processes.hpp                   — processes::capital::INVEST
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Секция 1. Паспорт ───────────────────────────────────────────────────────
+process_type: p.cap.invest
+id: public_capital_invest_process
+title: Приём инвестиции в программу
+slug: invest
+status: proposed
+contract: capital
+summary: >
+  Пайщик направляет ранее внесённые паевые взносы деньгами в программу
+  «Благорост» — без оформления договора, простой переброской средств между
+  своими кошельками.
+purpose: >
+  «Приём инвестиции в программу» — пайщик переводит часть своих ранее
+  внесённых паевых средств в инвестицию в программу «Благорост».
+  Бухгалтерских проводок нет: деньги остаются на расчётном счёте
+  кооператива, но в учёте пайщика они теперь считаются инвестицией.
+  После этого пайщик может участвовать в проектах программы как
+  исполнитель.
+roles:
+  - contributor
+
+# ── Секция 2. Действия контракта ────────────────────────────────────────────
+actions:
+  - name: capital::createpinv
+    human: Создать инвестицию
+    actor: contributor
+    role: closer
+    purpose: >
+      Закрывающее одношаговое действие: пайщик подписывает заявление об
+      инвестировании в «Благорост», контракт применяет ledger2-операцию
+      o.cap.invest (TRANSFER без бухпроводок) и средства аналитически переходят
+      с SHARE_FUND_PAY (w.wal.share) на BLAGOROST_FUND (w.cap.blago).
+
+# ── Секция 3. Граф состояний ────────────────────────────────────────────────
+entity: capital::invest
+entity_human: Инвестиция
+entity_source: cpp/capital/src/invest/
+
+states:
+  - name: invested
+    human: Инвестировано
+    description: >
+      Сумма перенесена с кошелька SHARE_FUND_PAY (w.wal.share) пайщика на
+      BLAGOROST_FUND (w.cap.blago). Бухгалтерия не затронута — это аналитический
+      сдвиг внутри паевого фонда.
+    kind: final
+
+transitions:
+  - from: "∅"
+    to: invested
+    action: capital::createpinv
+    actor: contributor
+    ledger_code: o.cap.invest
+    operations:
+      - o.cap.invest
+    guards:
+      - Пайщик имеет статус active.
+      - Сумма ≤ доступного остатка на SHARE_FUND_PAY (w.wal.share).
+      - invest_hash уникален.
+      - Заявление об инвестировании подписано пайщиком.
+
+# ── Секция 4. Сценарий ──────────────────────────────────────────────────────
+scenario:
+  steps:
+    - step: 1
+      title: Создание инвестиции в «Благорост»
+      actor: contributor
+      action: capital::createpinv
+      description: >
+        Пайщик подписывает заявление об инвестировании и вызывает
+        capital::createpinv. Контракт переводит указанную сумму с кошелька
+        SHARE_FUND_PAY (w.wal.share) на BLAGOROST_FUND (w.cap.blago) — операция
+        o.cap.invest, wallet_op TRANSFER без бухпроводок (оба счёта 80).
+        Запись в реестре фиксирует факт инвестиции.
+      pre:
+        - Пайщик активен в кооперативе.
+        - Достаточный остаток на SHARE_FUND_PAY.
+        - Заявление подписано ЭЦП.
+      post:
+        - Сумма переведена w.wal.share → w.cap.blago (аналитический сдвиг).
+        - В ledger2 применена операция o.cap.invest.
+        - Создана запись инвестиции в таблице.
+
+  alternatives: []
+
+# ── Секция 5. Документы и подписи ───────────────────────────────────────────
+documents:
+  - action: capital::createpinv
+    title: Заявление об инвестировании денежных средств в Благорост
+    registry_id: 1030
+    signed_by: [ Участник ]
+    stored_in: invests.statement
+
+# ── Секция 6. Операции ──────────────────────────────────────────────────────
+operations:
+  - ledger_code: o.cap.invest
+    human_name: Инвестиция в ЦПП «Благорост» (перенос между кошельками)
+    wallet_op: TRANSFER
+    wallet_from: w.wal.share   # ЦК — паевая часть пайщика
+    wallet_to: w.cap.blago     # ЦПП «Благорост» — единый кошелёк программы у пайщика
+    debit: null
+    credit: null
+    amount_ref: invest.quantity
+    triggered_by: capital::createpinv
+    description: >
+      Аналитический перенос средств между двумя кошельками одного пайщика.
+      Бухгалтерских проводок нет — деньги остаются на расчётном счёте
+      кооператива, но в учёте пайщика они теперь считаются инвестицией
+      в «Благорост», а не свободными паевыми средствами.
+
+# ── Секция 7. Связи ─────────────────────────────────────────────────────────
+related:
+  - process_type: p.wal.depo
+    id: public_wallet_deposit_process
+    relation: provides
+    note: >
+      Чтобы инвестировать, у пайщика должен быть остаток на SHARE_FUND_PAY —
+      его создаёт «Внесение паевого взноса» (p.wal.depo).
+
+  - process_type: p.cap.rid
+    id: public_capital_rid_process
+    relation: triggers
+    note: >
+      После инвестирования участник может коммитить РИД в проект
+      программы «Благорост» (p.cap.rid).

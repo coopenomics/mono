@@ -752,6 +752,30 @@ this.providerPort.registerProvider(this.name, this);
 
 ---
 
+## Process Registry — обязательные инварианты при добавлении операций ledger2
+
+При добавлении нового `process_type` или нового `action_code` (в
+`components/contracts/cpp/lib/core/ledger2/actions.hpp` → `ACTION_REGISTRY`)
+**обязательно** одновременно обновить:
+
+1. **`src/domain/process-registry/config/process-hash-locator.ts`** — добавить
+   запись в `PROCESS_HASH_LOCATOR` (коды таблиц / имена полей entity-дельт,
+   где ProcessRegistryService ищет `process_hash`) **и** в
+   `ACTION_CODE_TO_PROCESS_TYPE` (маппинг action_code → process_type для
+   phase A anchor-скана). Без этого `getProcess(hash)` вернёт неполный
+   набор дельт — операции внутри процесса «утеряются» для UI.
+2. **`src/domain/process-registry/config/document-field-detector.ts`** —
+   добавить/расширить запись в `DOCUMENT_FIELDS` при появлении новой
+   сущности с документом. Без этого подписанный документ процесса
+   не подтянется в `ProcessDocument[]`.
+
+Оба файла — источник истины для ProcessRegistryService; рассинхронизация
+с контрактом приводит к тихим пропускам операций/документов. Любое
+изменение `actions.hpp::ACTION_REGISTRY` обязывает к проверке обоих
+файлов в том же PR.
+
+---
+
 ## Cursor Cloud specific instructions
 
 - **Линтинг**: `pnpm run lint --filter @coopenomics/controller` (ESLint)

@@ -120,6 +120,23 @@ export interface TimeEntryRepository {
    * Обновить project_hash у всех записей времени по задаче (перенос между компонентами одного проекта)
    */
   updateProjectHashByIssueHash(issueHash: string, projectHash: string): Promise<void>;
+
+  /**
+   * Агрегат фактически накопленного времени по задачам (батч).
+   * Ключ в Map — issue_hash в lowercase. Возвращает только те задачи,
+   * по которым есть хотя бы одна запись; отсутствующие задачи нужно считать нулевым фактом.
+   */
+  getFactByIssues(issueHashes: string[]): Promise<Map<string, IssueFactAggregate>>;
+}
+
+/**
+ * Агрегат факта по одной задаче. Совпадает по смыслу с полями в CapitalIssue DTO.
+ */
+export interface IssueFactAggregate {
+  fact: number;
+  fact_committed: number;
+  fact_uncommitted: number;
+  fact_by_contributor: Array<{ contributor_hash: string; hours: number }>;
 }
 
 export const TIME_ENTRY_REPOSITORY = Symbol('TIME_ENTRY_REPOSITORY');

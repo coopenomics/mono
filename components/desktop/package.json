@@ -1,6 +1,6 @@
 {
   "name": "@coopenomics/desktop",
-  "version": "2026.4.19-alpha-1",
+  "version": "2026.5.13-alpha-3",
   "description": "Рабочий стол кооператива — Vue 3 + Quasar Framework",
   "productName": "Desktop App",
   "author": "Alex Ant <dacom.dark.sun@gmail.com>",
@@ -64,6 +64,7 @@
     "eosjs": "^22.1.0",
     "express": "^5.1.0",
     "graphql-ws": "^5.16.0",
+    "html2pdf.js": "^0.14.0",
     "idb": "^8.0.0",
     "isomorphic-ws": "^5.0.0",
     "lodash": "^4.17.21",
@@ -84,7 +85,8 @@
     "vue-router": "^4.0.12",
     "vue-window-size": "^2.0.0",
     "vue3-dropzone": "^2.2.1",
-    "vue3-openlayers": "^10.0.1"
+    "vue3-openlayers": "^10.0.1",
+    "windows-1251": "^3.0.4"
   },
   "devDependencies": {
     "@prettier/plugin-pug": "^3.2.0",

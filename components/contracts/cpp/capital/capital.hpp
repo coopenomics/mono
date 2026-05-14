@@ -144,7 +144,7 @@ public:
     
     // Конвертация сегмента
     [[eosio::action]]
-    void convertsegm(eosio::name coopname, eosio::name username, checksum256 project_hash, checksum256 convert_hash, asset wallet_amount, asset capital_amount, document2 convert_statement);
+    void convertsegm(eosio::name coopname, eosio::name username, checksum256 project_hash, checksum256 result_hash, asset wallet_amount, asset capital_amount, document2 convert_statement);
 
     // Очистка сегмента чистого инвестора
     [[eosio::action]]

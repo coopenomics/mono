@@ -41,13 +41,15 @@ export class ChartOfAccountsEntity {
 
     // Запасы, затраты, расчеты, собственные средства
     // FIXED_ASSETS: 1, // Основные средства
-    // INTANGIBLE_ASSETS: 4, // Нематериальные активы
+    // INTANGIBLE_ASSETS: 4, // Нематериальные активы — live в ledger2
+    //   (id = 4000 со сдвигом ×1000), читается через Ledger2StateRepository.
     // MATERIALS_GOODS: 10, // Материалы, товары
     // MAIN_PRODUCTION: 20, // Основное производство
     // NON_PROFIT_ACTIVITY: 201, // Некоммерческая деятельность
     // GENERAL_EXPENSES: 26, // Общехозяйственные расходы (содержание ПО)
     // RESERVES: 63, // Резервы по сомнительным долгам
-    // LONG_TERM_LOANS: 67, // Расчеты по долгосрочным кредитам и займам
+    // Счёт 67 не используется: в кооперативной экономике беспроцентные займы
+    //   пайщикам проводятся через 58 (финансовые вложения) в ledger2.
     // TAXES_FEES: 68, // Расчеты с бюджетом по налогам и сборам
     // SOCIAL_INSURANCE: 69, // Расчеты по социальному страхованию и обеспечению
     // SALARY: 70, // Заработная плата
@@ -84,7 +86,6 @@ export class ChartOfAccountsEntity {
     // [ChartOfAccountsEntity.ACCOUNTS.CASH, 'Касса'],
     [ChartOfAccountsEntity.ACCOUNTS.BANK_ACCOUNT, 'Расчетный счет'],
     // [ChartOfAccountsEntity.ACCOUNTS.RESERVES, 'Резервы по сомнительным долгам'],
-    // [ChartOfAccountsEntity.ACCOUNTS.LONG_TERM_LOANS, 'Расчеты по долгосрочным кредитам и займам'],
     // [ChartOfAccountsEntity.ACCOUNTS.TAXES_FEES, 'Расчеты с бюджетом по налогам и сборам'],
     // [ChartOfAccountsEntity.ACCOUNTS.SOCIAL_INSURANCE, 'Расчеты по социальному страхованию и обеспечению'],
     // [ChartOfAccountsEntity.ACCOUNTS.SALARY, 'Заработная плата'],

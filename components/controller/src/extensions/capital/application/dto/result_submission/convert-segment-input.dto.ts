@@ -24,10 +24,10 @@ export class ConvertSegmentInputDTO implements ConvertSegmentDomainInput {
   @IsString({ message: 'Хэш проекта должен быть строкой' })
   project_hash!: string;
 
-  @Field(() => String, { description: 'Хэш конвертации' })
-  @IsNotEmpty({ message: 'Хэш конвертации не должен быть пустым' })
-  @IsString({ message: 'Хэш конвертации должен быть строкой' })
-  convert_hash!: string;
+  @Field(() => String, { description: 'Хэш результата (анкер процесса p.cap.rid)' })
+  @IsNotEmpty({ message: 'Хэш результата не должен быть пустым' })
+  @IsString({ message: 'Хэш результата должен быть строкой' })
+  result_hash!: string;
 
   @Field(() => String, { description: 'Сумма для конвертации в главный кошелек' })
   @IsNotEmpty({ message: 'Сумма для конвертации в главный кошелек не должна быть пустой' })

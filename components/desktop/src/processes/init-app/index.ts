@@ -55,10 +55,11 @@ export async function useInitAppProcess(router: Router) {
 
   await useInitWalletProcess().run();
 
-  // Выбираем рабочий стол на основе прав пользователя или сохраненного выбора
-  // только если пользователь авторизован
+  // Выбираем authorized-рабочий стол только если пайщик принят советом
+  // (status='active'). На промежуточных статусах оставляем дефолтный
+  // (non_authorized) — публичную главную.
   const session = useSessionStore();
-  if (session.isAuth) {
+  if (session.isFullyActive) {
     desktops.selectDefaultWorkspace();
   }
 
