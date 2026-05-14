@@ -165,6 +165,26 @@ const envVarsSchema = z.object({
   LIVEKIT_API_KEY: z.string().optional().describe('LiveKit API key для генерации токенов'),
   LIVEKIT_API_SECRET: z.string().optional().describe('LiveKit API secret для генерации токенов'),
 
+  // Параметры Yandex Geocoder (Стол заказов, Эпик 2 Story 2.2)
+  YANDEX_GEOCODER_API_KEY: z
+    .string()
+    .optional()
+    .describe('Yandex Geocoder API ключ для геокодинга адресов ПВЗ Стола заказов'),
+  YANDEX_GEOCODER_BASE_URL: z
+    .string()
+    .default('https://geocode-maps.yandex.ru/1.x/')
+    .describe('Базовый URL Yandex Geocoder HTTP API'),
+  YANDEX_GEOCODER_RATE_LIMIT_RPS: z
+    .string()
+    .default('10')
+    .transform((val) => parseInt(val, 10))
+    .describe('Локальный rate-limit на запросы к Yandex Geocoder (req/sec)'),
+  YANDEX_GEOCODER_TIMEOUT_MS: z
+    .string()
+    .default('5000')
+    .transform((val) => parseInt(val, 10))
+    .describe('Таймаут одиночного HTTP-запроса к Yandex Geocoder (ms)'),
+
   // Параметры OpenAI Whisper для STT
   OPENAI_API_KEY: z.string().optional().describe('OpenAI API ключ для Whisper STT'),
   OPENAI_BASE_URL: z.string().optional().describe('Базовый URL для Whisper API (через chatcoop-proxy nginx)'),
@@ -292,5 +312,11 @@ export default {
     base_url: envVars.data.OPENAI_BASE_URL,
     whisper_model: envVars.data.WHISPER_MODEL,
     whisper_language: envVars.data.WHISPER_LANGUAGE,
+  },
+  yandex_geocoder: {
+    api_key: envVars.data.YANDEX_GEOCODER_API_KEY,
+    base_url: envVars.data.YANDEX_GEOCODER_BASE_URL,
+    rate_limit_rps: envVars.data.YANDEX_GEOCODER_RATE_LIMIT_RPS,
+    timeout_ms: envVars.data.YANDEX_GEOCODER_TIMEOUT_MS,
   },
 };
