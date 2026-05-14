@@ -51,7 +51,14 @@ function makeCtx({ req, requiredRoles }: { req: any; requiredRoles?: string[] })
 
 function makeReflector(requiredRoles?: string[]): Reflector {
   return {
-    getAllAndOverride: jest.fn().mockReturnValue(requiredRoles),
+    getAllAndOverride: jest.fn().mockImplementation((key: string) => {
+      // Story 1.6 fixture: возвращает requiredRoles только для marketplace_roles
+      // декоратора. Декоратор marketplace_access (Story 1.8) не задан в этих
+      // кейсах — отдаём undefined, чтобы Guard не пытался канонически
+      // парсить «requiredRoles» как `{resource, action}`.
+      if (key === 'marketplace_roles') return requiredRoles;
+      return undefined;
+    }),
   } as any;
 }
 

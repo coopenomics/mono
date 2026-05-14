@@ -5,23 +5,30 @@ import { GqlExecutionContext } from '@nestjs/graphql';
 import config from '~/config/config';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 
+import { canAccess } from '../access/marketplace-access-matrix';
+import {
+  MARKETPLACE_ACCESS_METADATA_KEY,
+  type IMarketplaceAccessRequirement,
+} from '../decorators/marketplace-access.decorator';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import { MARKETPLACE_ROLES_METADATA_KEY } from '../decorators/marketplace-role.decorator';
 import type { MarketplaceRole } from '../membership/marketplace-roles.mapper';
 
 /**
- * Story 1.6: Guard проверки marketplace-роли.
+ * Guard проверки авторизации marketplace.
  *
- * Ставится ПОСЛЕ `MarketplaceMembershipGuard` (тот формирует `currentMember`).
- * Читает `@RequireMarketplaceRole(...)` метаданные → проверяет
- * `Array.includes` хотя бы одной требуемой роли в `currentMember.marketplace_roles`.
+ * Поддерживает обе семантики (Story 1.6 + Story 1.8):
+ *   - `@RequireMarketplaceRole('admin', 'board')` — OR по ролям;
+ *   - `@RequireMarketplaceAccess('Order', 'create')` — проверка через
+ *     централизованную access-matrix (`marketplace-access-matrix.ts`).
  *
- * Решение принимается локально (MVP). В Phase 2 источник policy сменится с
- * `marketplace-roles.mapper.ts` на платформенный CASL `defineAbility` —
- * Guard и декоратор останутся, изменится только маппер.
+ * Если декораторы заданы оба — guard требует выполнения обоих
+ * (логическое И). Если ни одного — guard разрешает (по аналогии с core
+ * RolesGuard: «нет требования — нет ограничения», membership проверяется
+ * отдельно `MarketplaceMembershipGuard`).
  *
- * При запрете пишет structured log `forbidden-attempt` с member_id,
- * action, requested_role, actual_marketplace_roles, actual_core_roles.
+ * Phase 2 миграция: `canAccess` подменяется на `ability.can(action, subject)`
+ * — interface guard'а не меняется.
  */
 @Injectable()
 export class MarketplaceRoleGuard implements CanActivate {
@@ -37,8 +44,12 @@ export class MarketplaceRoleGuard implements CanActivate {
       MARKETPLACE_ROLES_METADATA_KEY,
       [context.getHandler(), context.getClass()]
     );
+    const requiredAccess = this.reflector.getAllAndOverride<
+      IMarketplaceAccessRequirement | undefined
+    >(MARKETPLACE_ACCESS_METADATA_KEY, [context.getHandler(), context.getClass()]);
 
-    if (!requiredRoles || requiredRoles.length === 0) {
+    const noRoles = !requiredRoles || requiredRoles.length === 0;
+    if (noRoles && !requiredAccess) {
       return true;
     }
 
@@ -55,28 +66,39 @@ export class MarketplaceRoleGuard implements CanActivate {
       (request?.currentMember as IMarketplaceCurrentMember | undefined);
 
     if (!currentMember) {
-      // MarketplaceMembershipGuard должен был отработать раньше; если не сработал —
-      // отказываем (защита от рассогласования настройки UseGuards).
       throw new ForbiddenException(
         'Marketplace-контекст не инициализирован — поставьте MarketplaceMembershipGuard в @UseGuards раньше MarketplaceRoleGuard'
       );
     }
 
-    const matched = requiredRoles.find((role) => currentMember.marketplace_roles.includes(role));
-    if (matched) {
-      return true;
-    }
-
-    const requestedLabel = requiredRoles.join(', ');
     const handlerName = context.getHandler()?.name ?? 'unknown_handler';
     const className = context.getClass()?.name ?? 'unknown_class';
+    const memberRoles = currentMember.marketplace_roles as MarketplaceRole[];
 
-    this.logger.warn(
-      `forbidden-attempt: member=${currentMember.username} action=${className}.${handlerName} requested_role=[${requestedLabel}] actual_marketplace_roles=[${currentMember.marketplace_roles.join(', ')}] actual_core_roles=[${currentMember.core_roles.join(', ')}]`
-    );
+    if (!noRoles && requiredRoles) {
+      const matched = requiredRoles.find((role) => memberRoles.includes(role));
+      if (!matched) {
+        this.logger.warn(
+          `forbidden-attempt: member=${currentMember.username} action=${className}.${handlerName} requested_role=[${requiredRoles.join(', ')}] actual_marketplace_roles=[${memberRoles.join(', ')}] actual_core_roles=[${currentMember.core_roles.join(', ')}]`
+        );
+        throw new ForbiddenException(
+          `Forbidden: marketplace role '${requiredRoles.join(', ')}' required, member has [${memberRoles.join(', ')}]`
+        );
+      }
+    }
 
-    throw new ForbiddenException(
-      `Forbidden: marketplace role '${requestedLabel}' required, member has [${currentMember.marketplace_roles.join(', ')}]`
-    );
+    if (requiredAccess) {
+      const ok = canAccess(memberRoles, requiredAccess.resource, requiredAccess.action);
+      if (!ok) {
+        this.logger.warn(
+          `forbidden-attempt: member=${currentMember.username} action=${className}.${handlerName} requested_access=${requiredAccess.resource}:${requiredAccess.action} actual_marketplace_roles=[${memberRoles.join(', ')}] actual_core_roles=[${currentMember.core_roles.join(', ')}]`
+        );
+        throw new ForbiddenException(
+          `Forbidden: marketplace access '${requiredAccess.resource}:${requiredAccess.action}' required, member has roles [${memberRoles.join(', ')}]`
+        );
+      }
+    }
+
+    return true;
   }
 }

@@ -68,13 +68,58 @@ async marketplaceAdminAction(@CurrentMarketplaceMember() member: IMarketplaceCur
 | `[User, Member, Chairman]`        | —                     | `[orderer, board_readonly, admin, board]`      |
 | `[]` (admin платформы)            | любые                 | `[]` (guard membership уже отбросит 403)       |
 
+## Централизованная access-matrix (Story 1.8)
+
+`extensions/marketplace/application/access/marketplace-access-matrix.ts` —
+единое место, где описано «какая marketplace-роль может что делать с
+каким resource». Структура CASL-совместимая
+(`Record<role, Record<resource, action[]>>`).
+
+```ts
+// resolver:
+@UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+@RequireMarketplaceAccess('Order', 'create')
+@Mutation(() => OrderDTO)
+async marketplaceCreateOrder(...) { ... }
+```
+
+`MarketplaceRoleGuard` читает обе семантики:
+- `@RequireMarketplaceRole('admin')` (Story 1.6) — OR по ролям.
+- `@RequireMarketplaceAccess('Order', 'create')` (Story 1.8) — через `canAccess`.
+
+Если оба декоратора заданы — guard требует выполнения обоих (логическое И).
+
+### Нотация actions
+
+| Action          | Семантика                                              |
+|-----------------|--------------------------------------------------------|
+| `create`        | Создание новой записи resource                         |
+| `read`          | Чтение любого экземпляра resource                      |
+| `read:own`      | Чтение только своих (`owner == username`)              |
+| `read:all`      | Чтение всех (без фильтра по ownership)                 |
+| `read:to-self`  | Чтение объектов, адресованных пайщику (recipient)      |
+| `read:own-KU`   | Чтение в рамках своего КУ (Эпик 2)                     |
+| `update:own`    | Изменение только своих                                 |
+| `delete:own`    | Удаление только своих                                  |
+| `cancel:own`    | Отмена своих                                           |
+| `moderate`      | Модерация (admin)                                      |
+| `manage`        | Полные права (admin)                                   |
+| `sign:first`    | Первая подпись в multisig                              |
+| `sign`          | Подпись (board)                                        |
+| `decide`        | Голосование по решению (board)                         |
+| `configure`    | Настройка расширения (admin/совет)                     |
+
+**Важно**: ownership-проверка (`:own`/`:own-KU`/`:to-self`) — задача
+resolver-а *после* прохождения guard. Guard отвечает за capability
+(«эта роль вообще может»), не за data-uniqueness.
+
 ## Phase 2 migration (CASL)
 
 Структура Guard остаётся, меняется только источник policy:
-`marketplace-roles.mapper.ts` транслируется в платформенный CASL
-`defineAbility`, Guard читает CASL-abilities (`ability.can(action, subject)`)
-вместо `Array.includes`. Декораторы остаются совместимыми.
-Behavior Guard — **тот же**.
+`marketplace-access-matrix.ts` транслируется в платформенный CASL
+`defineAbility`, `canAccess` подменяется на `ability.can(action, subject)`.
+Декораторы остаются совместимыми. Behavior Guard — **тот же**.
 
-Цель этой изоляции: бизнес-код resolver-ов (`@RequireMarketplaceRole('admin')`)
-не меняется при переходе на CASL.
+Цель этой изоляции: бизнес-код resolver-ов
+(`@RequireMarketplaceAccess('Order', 'create')`) не меняется при переходе
+на CASL.
