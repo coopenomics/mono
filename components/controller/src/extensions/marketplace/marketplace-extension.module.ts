@@ -11,6 +11,9 @@ import { config } from '~/config';
 import { IConfig, defaultConfig, Schema } from './types';
 import { MarketplaceExtensionDomainModule } from './domain/marketplace-domain.module';
 import { MarketplaceExtensionApplicationModule } from './application/marketplace-application.module';
+import { CppRegistryDomainModule } from '~/domain/cpp-registry/cpp-registry-domain.module';
+import { CppRegistryDomainService } from '~/domain/cpp-registry/services/cpp-registry-domain.service';
+import { MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID } from './constants/marketplace-template-registry';
 
 /**
  * Optional-инжектируемый порт файлового хранилища. Имя расширения marketplace
@@ -29,6 +32,7 @@ export class MarketplacePlugin extends BaseExtModule {
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
     private readonly logger: WinstonLoggerService,
+    private readonly cppRegistryService: CppRegistryDomainService,
     @Optional()
     @Inject(MARKETPLACE_FILE_STORAGE_PORT)
     private readonly fileStorage: IMarketplaceFileStoragePort | null = null
@@ -56,8 +60,34 @@ export class MarketplacePlugin extends BaseExtModule {
     };
 
     await this.initBucket();
+    await this.registerCppTemplate();
 
     this.logger.info('marketplace-extension готов');
+  }
+
+  /**
+   * Post-install hook (Story 1.2 / Locked Decisions L8/L9): связывает
+   * расширение `market` с template-документом оферты ЦПП в платформенном
+   * document registry через `coop_cpp_registry`. Идемпотентен — повторная
+   * установка не дублирует запись.
+   *
+   * Пока Story 1.7 не выполнена (one-time platform setup), константа
+   * `MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID` = 0 → пишем warn и не создаём
+   * запись (Stories 1.4/1.9/1.11 fallback'нут на отсутствие template'а).
+   */
+  private async registerCppTemplate(): Promise<void> {
+    if (MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID <= 0) {
+      this.logger.warn(
+        'MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID не задан (Story 1.7 ещё не выполнена) — запись в coop_cpp_registry пропущена'
+      );
+      return;
+    }
+
+    await this.cppRegistryService.register({
+      template_document_registry_id: MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID,
+      required_for_extension: this.name,
+      mvp_hardcoded: true,
+    });
   }
 
   /**
@@ -85,6 +115,7 @@ export class MarketplacePlugin extends BaseExtModule {
   imports: [
     MarketplaceExtensionDomainModule, // Доменный слой (включает инфраструктуру через DIP)
     MarketplaceExtensionApplicationModule, // Слой приложения (GraphQL резолверы и сервисы)
+    CppRegistryDomainModule, // Story 1.2 — post-install hook регистрирует template ЦПП в coop_cpp_registry
   ],
   providers: [MarketplacePlugin],
   exports: [MarketplacePlugin],

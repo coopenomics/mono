@@ -26,11 +26,18 @@ const makeRepo = (record: any = { name: 'market', config: {}, enabled: true }) =
     findByName: jest.fn().mockResolvedValue(record),
   } as any);
 
+const makeCppRegistry = () =>
+  ({
+    register: jest.fn().mockResolvedValue({}),
+    findByExtension: jest.fn(),
+    findAll: jest.fn(),
+  } as any);
+
 describe('MarketplacePlugin.initialize', () => {
   it('пишет warn о fallback и продолжает install, если file-storage не подключён', async () => {
     const logger = makeLogger();
     const repo = makeRepo();
-    const plugin = new MarketplacePlugin(repo, logger, null);
+    const plugin = new MarketplacePlugin(repo, logger, makeCppRegistry(), null);
 
     await plugin.initialize();
 
@@ -47,7 +54,7 @@ describe('MarketplacePlugin.initialize', () => {
     const logger = makeLogger();
     const repo = makeRepo();
     const fileStorage = { ensureBucket: jest.fn().mockResolvedValue(undefined) };
-    const plugin = new MarketplacePlugin(repo, logger, fileStorage);
+    const plugin = new MarketplacePlugin(repo, logger, makeCppRegistry(), fileStorage);
 
     await plugin.initialize();
 
@@ -61,13 +68,26 @@ describe('MarketplacePlugin.initialize', () => {
   it('бросает «Конфиг не найден» если в БД нет записи market', async () => {
     const logger = makeLogger();
     const repo = makeRepo(null);
-    const plugin = new MarketplacePlugin(repo, logger, null);
+    const plugin = new MarketplacePlugin(repo, logger, makeCppRegistry(), null);
 
     await expect(plugin.initialize()).rejects.toThrow('Конфиг не найден');
   });
 
   it('расширение зарегистрировано под именем `market` (совпадает с ключом AppRegistry)', () => {
-    const plugin = new MarketplacePlugin(makeRepo(), makeLogger(), null);
+    const plugin = new MarketplacePlugin(makeRepo(), makeLogger(), makeCppRegistry(), null);
     expect(plugin.name).toBe('market');
+  });
+
+  it('пропускает регистрацию в coop_cpp_registry при placeholder MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID=0 (warn-лог)', async () => {
+    const logger = makeLogger();
+    const cppRegistry = makeCppRegistry();
+    const plugin = new MarketplacePlugin(makeRepo(), logger, cppRegistry, null);
+
+    await plugin.initialize();
+
+    expect(cppRegistry.register).not.toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID не задан')
+    );
   });
 });

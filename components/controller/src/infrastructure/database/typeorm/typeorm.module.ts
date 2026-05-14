@@ -87,6 +87,9 @@ import { UserWalletTypeormRepository } from './repositories/user-wallet.typeorm-
 import { UserWalletDeltaMapper } from './blockchain/mappers/user-wallet-delta.mapper';
 import { UserWalletSyncService } from './blockchain/services/user-wallet-sync.service';
 import { UserWalletIndexInitializer } from './blockchain/services/user-wallet-index-initializer.service';
+import { CppRegistryEntryTypeormEntity } from './entities/cpp-registry-entry.typeorm-entity';
+import { CPP_REGISTRY_REPOSITORY } from '~/domain/cpp-registry/repositories/cpp-registry.repository';
+import { CppRegistryTypeormRepository } from './repositories/cpp-registry.typeorm-repository';
 
 @Global()
 @Module({
@@ -134,6 +137,7 @@ import { UserWalletIndexInitializer } from './blockchain/services/user-wallet-in
       ProgramWalletTypeormEntity,
       UserAgreementTypeormEntity,
       UserWalletTypeormEntity,
+      CppRegistryEntryTypeormEntity,
     ]),
   ],
   providers: [
@@ -249,6 +253,11 @@ import { UserWalletIndexInitializer } from './blockchain/services/user-wallet-in
     UserWalletDeltaMapper,
     UserWalletSyncService,
     UserWalletIndexInitializer,
+    // CppRegistry компоненты (Story 1.2)
+    {
+      provide: CPP_REGISTRY_REPOSITORY,
+      useClass: CppRegistryTypeormRepository,
+    },
     EntityVersionRepository,
     EntityVersioningService,
   ],
@@ -284,6 +293,7 @@ import { UserWalletIndexInitializer } from './blockchain/services/user-wallet-in
     USER_WALLET_REPOSITORY,
     UserWalletDeltaMapper,
     UserWalletSyncService,
+    CPP_REGISTRY_REPOSITORY,
     EntityVersionRepository,
     EntityVersioningService,
   ],

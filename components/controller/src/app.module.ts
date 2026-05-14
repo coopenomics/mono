@@ -44,6 +44,7 @@ import { RegistrationDomainModule } from './domain/registration/registration-dom
 import { OnboardingDomainModule } from './domain/onboarding/onboarding-domain.module';
 import { TokenDomainModule } from './domain/token/token-domain.module';
 import { MutationLogDomainModule } from './domain/mutation-log/mutation-log-domain.module';
+import { CppRegistryDomainModule } from './domain/cpp-registry/cpp-registry-domain.module';
 
 // Application modules
 import { AccountModule } from './application/account/account.module';
@@ -80,6 +81,7 @@ import { SearchModule } from './application/search/search.module';
 import { MutationLoggingInterceptor } from './application/common/interceptors/mutation-logging.interceptor';
 import { MarketplacePluginModule } from './extensions/marketplace/marketplace-extension.module';
 import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketplace-cards.module';
+import { CppRegistryModule } from './application/cpp-registry/cpp-registry.module';
 
 @Module({
   imports: [
@@ -131,6 +133,7 @@ import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketpla
     SettingsInfrastructureModule,
     TokenDomainModule,
     MutationLogDomainModule,
+    CppRegistryDomainModule,
     // Application modules
     AccountModule,
     AgreementModule,
@@ -163,6 +166,7 @@ import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketpla
     RegistrationModule,
     OnboardingApplicationModule,
     SearchModule,
+    CppRegistryModule,
     // Marketplace extensions
     MarketplacePluginModule,
     MarketplaceCardsModule,
