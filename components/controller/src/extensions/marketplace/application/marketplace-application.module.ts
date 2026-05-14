@@ -1,11 +1,13 @@
 import { Module } from '@nestjs/common';
 import { MarketplaceExtensionDomainModule } from '../domain/marketplace-domain.module';
+import { WalletModule } from '~/application/wallet/wallet.module';
 import { CategoryTreeResolver } from './resolvers/category-tree.resolver';
 import { AttributeResolver } from './resolvers/attribute.resolver';
 import { AvailableCategoryAdminResolver } from './resolvers/available-category-admin.resolver';
 import { RequestResolver } from './resolvers/request.resolver';
 import { MarketplaceMembershipResolver } from './resolvers/marketplace-membership.resolver';
 import { MarketplaceOnboardingResolver } from './resolvers/marketplace-onboarding.resolver';
+import { MarketplaceMemberWalletResolver } from './resolvers/marketplace-member-wallet.resolver';
 import { MarketplaceMembershipGuard } from './guards/marketplace-membership.guard';
 import { MarketplaceOnboardingService } from './onboarding/marketplace-onboarding.service';
 import { CategoryTreeService, CATEGORY_TREE_SERVICE } from './services/category-tree.service';
@@ -15,7 +17,7 @@ import { CategoryTreeService, CATEGORY_TREE_SERVICE } from './services/category-
  * Содержит GraphQL резолверы и сервисы приложения
  */
 @Module({
-  imports: [MarketplaceExtensionDomainModule],
+  imports: [MarketplaceExtensionDomainModule, WalletModule],
   providers: [
     // GraphQL резолверы
     CategoryTreeResolver,
@@ -24,6 +26,7 @@ import { CategoryTreeService, CATEGORY_TREE_SERVICE } from './services/category-
     RequestResolver,
     MarketplaceMembershipResolver,
     MarketplaceOnboardingResolver,
+    MarketplaceMemberWalletResolver,
 
     // Guards (Story 1.3)
     MarketplaceMembershipGuard,
@@ -49,6 +52,7 @@ import { CategoryTreeService, CATEGORY_TREE_SERVICE } from './services/category-
     RequestResolver,
     MarketplaceMembershipResolver,
     MarketplaceOnboardingResolver,
+    MarketplaceMemberWalletResolver,
   ],
 })
 export class MarketplaceExtensionApplicationModule {}
