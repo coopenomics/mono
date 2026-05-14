@@ -17,7 +17,6 @@ void marketplace::declinebatch(eosio::name coopname,
   require_auth(coopname);
   eosio::check(!order_hashes.empty(), "declinebatch: список order_hashes пуст");
 
-  const auto now = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
 
   for (const auto& h : order_hashes) {
     auto o = Marketplace::get_order_by_hash_or_fail(coopname, h);
@@ -32,7 +31,6 @@ void marketplace::declinebatch(eosio::name coopname,
 
     Marketplace::update_order(coopname, o.id, [&](auto& upd) {
       upd.status = OrderStatus::CANCELLED;
-      upd.cancelled_at = now;
       upd.batch_hash = batch_hash;
     });
   }

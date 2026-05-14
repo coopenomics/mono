@@ -115,7 +115,6 @@ void marketplace::createorder(eosio::name coopname,
 
   // ── Создание Order entity ────────────────────────────────────────────
   orders_index orders(_marketplace, coopname.value);
-  const auto now = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
 
   orders.emplace(_marketplace, [&](auto& o) {
     o.id              = orders.available_primary_key();
@@ -136,6 +135,5 @@ void marketplace::createorder(eosio::name coopname,
     o.warranty_period_secs  = warranty_period_secs;
 
     o.status     = OrderStatus::ACTIVE;
-    o.created_at = now;
   });
 }

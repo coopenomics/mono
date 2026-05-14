@@ -29,11 +29,8 @@ void marketplace::signiss1(eosio::name coopname,
 
   verify_document_or_fail(act, { chairman });
 
-  const auto now = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
-
   Marketplace::update_order(coopname, o.id, [&](auto& upd) {
     upd.status = OrderStatus::READY_TO_RECEIVE;
     upd.issue_act_signiss1 = act;
-    upd.ready_at = now;
   });
 }

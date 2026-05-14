@@ -45,10 +45,8 @@ void marketplace::accretrn(eosio::name coopname,
                  operations::marketplace::RETURN_TRANSIT_CLOSE,
                  r.fact_cost, r.orderer, r.hash, memo);
 
-  const auto now = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
   Marketplace::update_return_request(coopname, r.id, [&](auto& upd) {
     upd.status         = ReturnStatus::RETURN_ACCEPTED;
     upd.decision_visit = decision;
-    upd.resolved_at    = now;
   });
 }

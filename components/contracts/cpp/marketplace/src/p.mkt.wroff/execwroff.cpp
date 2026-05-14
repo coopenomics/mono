@@ -50,11 +50,9 @@ void marketplace::execwroff(eosio::name coopname,
                    item.amount, item.ku_chairman, p.hash, memo);
   }
 
-  const auto now = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
   Marketplace::update_writeoff_proposal(coopname, p.id, [&](auto& upd) {
     upd.status      = WroffStatus::EXECUTED;
     upd.decided_by  = decided_by;
     upd.protocol    = protocol;
-    upd.decided_at  = now;
   });
 }

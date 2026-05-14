@@ -85,20 +85,17 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] writeoff_proposal {
   document2 protocol;                                         ///< протокол решения совета (для execwroff)
   std::string reject_reason;                                  ///< причина отклонения (для declwroff)
 
-  time_point_sec proposed_at = time_point_sec(0);
-  time_point_sec decided_at  = time_point_sec(0);
+  // Timestamp'ы propwroff/execwroff/declwroff — на бэкенде из blockchain_actions[at].
 
   uint64_t primary_key()  const { return id; }
   checksum256 by_hash()   const { return hash; }
   uint64_t by_status()    const { return status.value; }
-  uint64_t by_proposed()  const { return proposed_at.sec_since_epoch(); }
 };
 
 typedef eosio::multi_index<
     "wroffprops"_n, writeoff_proposal,
     eosio::indexed_by<"byhash"_n,     eosio::const_mem_fun<writeoff_proposal, checksum256, &writeoff_proposal::by_hash>>,
-    eosio::indexed_by<"bystatus"_n,   eosio::const_mem_fun<writeoff_proposal, uint64_t,    &writeoff_proposal::by_status>>,
-    eosio::indexed_by<"byproposed"_n, eosio::const_mem_fun<writeoff_proposal, uint64_t,    &writeoff_proposal::by_proposed>>>
+    eosio::indexed_by<"bystatus"_n,   eosio::const_mem_fun<writeoff_proposal, uint64_t,    &writeoff_proposal::by_status>>>
     writeoff_proposals_index;
 
 } // namespace Marketplace

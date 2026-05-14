@@ -74,7 +74,6 @@ void marketplace::submretrn(eosio::name coopname,
     r.photos                = photos;
     r.status                = ReturnStatus::PENDING_REVIEW;
     r.statement             = statement;
-    r.created_at            = now;
   });
 
   // Двусторонняя связь — order.return_request_id

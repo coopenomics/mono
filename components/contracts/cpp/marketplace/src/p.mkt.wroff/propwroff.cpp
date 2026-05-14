@@ -31,7 +31,6 @@ void marketplace::propwroff(eosio::name coopname,
     total += item.amount;
   }
 
-  const auto now = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
 
   writeoff_proposals_index proposals(_marketplace, coopname.value);
   proposals.emplace(_marketplace, [&](auto& p) {
@@ -42,6 +41,5 @@ void marketplace::propwroff(eosio::name coopname,
     p.items         = items;
     p.total_amount  = total;
     p.status        = WroffStatus::PROPOSED;
-    p.proposed_at   = now;
   });
 }

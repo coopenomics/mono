@@ -33,7 +33,6 @@ void marketplace::signchair(eosio::name coopname,
   auto first = Marketplace::get_order_by_hash_or_fail(coopname, order_hashes[0]);
   verify_document_or_fail(act, { first.offerer, chairman });
 
-  const auto now = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
   const std::string memo = "signchair p.mkt.supply";
 
   for (const auto& h : order_hashes) {
@@ -56,7 +55,6 @@ void marketplace::signchair(eosio::name coopname,
     Marketplace::update_order(coopname, o.id, [&](auto& upd) {
       upd.status = OrderStatus::ACCEPTED_TO_COOP;
       upd.acceptance_act_signchair = act;
-      upd.received_to_coop_at = now;
     });
   }
 }

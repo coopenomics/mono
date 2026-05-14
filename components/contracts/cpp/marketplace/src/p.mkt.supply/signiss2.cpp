@@ -126,7 +126,6 @@ void marketplace::signiss2(eosio::name coopname,
     upd.actual_quantity     = actual_quantity;
     upd.fact_cost           = fact_cost;
     upd.issue_act_signiss2  = act;
-    upd.received_at         = now;
     upd.warranty_until      = warranty_until;
   });
 }

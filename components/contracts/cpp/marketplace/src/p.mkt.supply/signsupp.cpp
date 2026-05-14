@@ -23,7 +23,6 @@ void marketplace::signsupp(eosio::name coopname,
 
   verify_document_or_fail(act, { offerer });
 
-  const auto now = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
 
   for (const auto& h : order_hashes) {
     auto o = Marketplace::get_order_by_hash_or_fail(coopname, h);
@@ -37,7 +36,6 @@ void marketplace::signsupp(eosio::name coopname,
     Marketplace::update_order(coopname, o.id, [&](auto& upd) {
       upd.status = OrderStatus::SUPPLY_PREPARED;
       upd.acceptance_act_signsupp = act;
-      upd.shipped_at = now;
     });
   }
 }

@@ -30,11 +30,9 @@ void marketplace::rejretrn(eosio::name coopname,
     verify_document_or_fail(decision, { chairman });
   }
 
-  const auto now = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
   Marketplace::update_return_request(coopname, r.id, [&](auto& upd) {
     upd.status         = ReturnStatus::REJECTED_AT_KU;
     upd.decision_visit = decision;
     upd.reason_visit   = reason;
-    upd.resolved_at    = now;
   });
 }

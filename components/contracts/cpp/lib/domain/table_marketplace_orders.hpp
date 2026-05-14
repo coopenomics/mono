@@ -100,13 +100,12 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] order {
 
   uint64_t return_request_id = 0;                             ///< 0 если активного гарантийного возврата нет
 
-  time_point_sec created_at  = time_point_sec(0);
-  time_point_sec accepted_at = time_point_sec(0);
-  time_point_sec shipped_at  = time_point_sec(0);             ///< signsupp
-  time_point_sec received_to_coop_at = time_point_sec(0);     ///< signchair
-  time_point_sec ready_at    = time_point_sec(0);             ///< signiss1
-  time_point_sec received_at = time_point_sec(0);             ///< signiss2 (= start гарантийного окна)
-  time_point_sec cancelled_at = time_point_sec(0);
+  // Все timestamp'ы переходов состояний (createorder/accepted/shipped/
+  // received_to_coop/ready/received/cancelled) восстанавливаются на бэкенде из
+  // blockchain_actions[at] по соответствующим action'ам — нет смысла держать
+  // их в RAM-таблице. Контракт не использует их в guard'ах.
+  // Единственное исключение — warranty_until (выше): нужен on-chain для
+  // submretrn guard `now() < warranty_until` без cross-action lookup.
 
   uint64_t primary_key()       const { return id; }
   checksum256 by_hash()        const { return hash; }
@@ -116,7 +115,6 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] order {
   checksum256 by_batch()       const { return batch_hash; }
   checksum256 by_offer()       const { return offer_hash; }
   uint64_t by_ku_chairman()    const { return ku_chairman.value; }
-  uint64_t by_created()        const { return created_at.sec_since_epoch(); }
 };
 
 typedef eosio::multi_index<
@@ -127,8 +125,7 @@ typedef eosio::multi_index<
     eosio::indexed_by<"bystatus"_n,     eosio::const_mem_fun<order, uint64_t,    &order::by_status>>,
     eosio::indexed_by<"bybatch"_n,      eosio::const_mem_fun<order, checksum256, &order::by_batch>>,
     eosio::indexed_by<"byoffer"_n,      eosio::const_mem_fun<order, checksum256, &order::by_offer>>,
-    eosio::indexed_by<"bykuchair"_n,    eosio::const_mem_fun<order, uint64_t,    &order::by_ku_chairman>>,
-    eosio::indexed_by<"bycreated"_n,    eosio::const_mem_fun<order, uint64_t,    &order::by_created>>>
+    eosio::indexed_by<"bykuchair"_n,    eosio::const_mem_fun<order, uint64_t,    &order::by_ku_chairman>>>
     orders_index;
 
 } // namespace Marketplace

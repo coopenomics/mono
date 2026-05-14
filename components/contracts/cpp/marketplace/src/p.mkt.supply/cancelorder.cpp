@@ -27,9 +27,7 @@ void marketplace::cancelorder(eosio::name coopname,
                  operations::marketplace::UNBLOCK_ON_CANCEL,
                  o.total_cost, orderer, o.hash, "cancelorder p.mkt.supply");
 
-  const auto now = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
   Marketplace::update_order(coopname, o.id, [&](auto& upd) {
     upd.status = OrderStatus::CANCELLED;
-    upd.cancelled_at = now;
   });
 }

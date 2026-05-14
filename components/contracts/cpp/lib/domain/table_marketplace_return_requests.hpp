@@ -74,9 +74,8 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] return_request {
   std::string reason_remote;                                  ///< причина отказа удалённо (для rejretrem)
   std::string reason_visit;                                   ///< причина отказа на очном осмотре (для rejretrn)
 
-  time_point_sec created_at  = time_point_sec(0);             ///< submretrn
-  time_point_sec reviewed_at = time_point_sec(0);             ///< aprretrem | rejretrem
-  time_point_sec resolved_at = time_point_sec(0);             ///< accretrn | rejretrn
+  // Timestamp'ы submretrn/aprretrem/rejretrem/accretrn/rejretrn — на бэкенде
+  // из blockchain_actions[at]. В контракте никаких guard'ов по датам нет.
 
   uint64_t primary_key()           const { return id; }
   checksum256 by_hash()            const { return hash; }
@@ -84,7 +83,6 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] return_request {
   uint64_t by_ku_chairman()        const { return ku_chairman.value; }
   uint64_t by_status()             const { return status.value; }
   uint64_t by_original_order()     const { return original_order_id; }
-  uint64_t by_created()            const { return created_at.sec_since_epoch(); }
 };
 
 typedef eosio::multi_index<
@@ -93,8 +91,7 @@ typedef eosio::multi_index<
     eosio::indexed_by<"byorderer"_n,     eosio::const_mem_fun<return_request, uint64_t,    &return_request::by_orderer>>,
     eosio::indexed_by<"bykuchair"_n,     eosio::const_mem_fun<return_request, uint64_t,    &return_request::by_ku_chairman>>,
     eosio::indexed_by<"bystatus"_n,      eosio::const_mem_fun<return_request, uint64_t,    &return_request::by_status>>,
-    eosio::indexed_by<"byorigorder"_n,   eosio::const_mem_fun<return_request, uint64_t,    &return_request::by_original_order>>,
-    eosio::indexed_by<"bycreated"_n,     eosio::const_mem_fun<return_request, uint64_t,    &return_request::by_created>>>
+    eosio::indexed_by<"byorigorder"_n,   eosio::const_mem_fun<return_request, uint64_t,    &return_request::by_original_order>>>
     return_requests_index;
 
 } // namespace Marketplace
