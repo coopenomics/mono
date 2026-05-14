@@ -23,7 +23,10 @@ using namespace eosio;
  * Источник правды — `p.mkt.wroff.standard.yaml` секция `states:`.
  */
 namespace WroffStatus {
-  inline constexpr eosio::name DRAFT    = "draft"_n;
+  // Имя константы PROPOSED (а не DRAFT) — конфликт с макросом
+  // DRAFT="draft" из lib/consts.hpp; on-chain строка осталась "draft"_n,
+  // как в p.mkt.wroff.standard.yaml.
+  inline constexpr eosio::name PROPOSED = "draft"_n;
   inline constexpr eosio::name EXECUTED = "executed"_n;
   inline constexpr eosio::name REJECTED = "rejected"_n;
 }
@@ -78,7 +81,7 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] writeoff_proposal {
   std::vector<wroff_item> items;
   eosio::asset total_amount = asset(0, _root_govern_symbol);  ///< Σ items.amount (для UI / отчёта)
 
-  eosio::name status = WroffStatus::DRAFT;
+  eosio::name status = WroffStatus::PROPOSED;
   document2 protocol;                                         ///< протокол решения совета (для execwroff)
   std::string reject_reason;                                  ///< причина отклонения (для declwroff)
 
