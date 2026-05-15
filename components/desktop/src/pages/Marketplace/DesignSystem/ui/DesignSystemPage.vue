@@ -107,6 +107,8 @@ import CatalogOfferCardSection from './sections/CatalogOfferCardSection.vue'
 import OrderCardSection from './sections/OrderCardSection.vue'
 import TakeoverDialogSection from './sections/TakeoverDialogSection.vue'
 import WalletTimelineSection from './sections/WalletTimelineSection.vue'
+import BarcodeScannerSection from './sections/BarcodeScannerSection.vue'
+import BarcodeDisplaySection from './sections/BarcodeDisplaySection.vue'
 
 const $q = useQuasar()
 const state = useDesignSystemState()
@@ -123,6 +125,8 @@ const SECTION_COMPONENTS: Record<string, unknown> = {
   'order-card': OrderCardSection,
   'takeover-dialog': TakeoverDialogSection,
   'wallet-timeline': WalletTimelineSection,
+  'barcode-scanner': BarcodeScannerSection,
+  'barcode-display': BarcodeDisplaySection,
 }
 
 const currentSection = computed(() =>

@@ -64,8 +64,8 @@ export const SECTIONS: DesignSystemSection[] = [
     uxDr: 'UX-DR11',
     story: 'Story 10.2.5',
     primaryRole: ['operator'],
-    status: 'planned',
-    description: 'Сканер штрих-кода через camera-API / USB. Visual feedback вместо «пик».',
+    status: 'ready',
+    description: 'Mock-сканер штрих-кода: idle → requesting → viewfinder → success-flash / error. Visual feedback вместо «пик» (UX-DR26).',
   },
   {
     key: 'barcode-display',
@@ -73,8 +73,8 @@ export const SECTIONS: DesignSystemSection[] = [
     uxDr: 'UX-DR12',
     story: 'Story 10.2.6',
     primaryRole: ['operator', 'admin'],
-    status: 'planned',
-    description: 'Печать штрих-кодов на ТТН/упаковке.',
+    status: 'ready',
+    description: 'SVG-рендер штрих-кода для печати на ТТН/упаковке. 3 size + опция без подписи. jsbarcode подключается в функциональной реализации.',
   },
   {
     key: 'correction-table',
