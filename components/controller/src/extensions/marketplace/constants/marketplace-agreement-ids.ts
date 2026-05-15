@@ -1,3 +1,5 @@
+import { Cooperative } from 'cooptypes';
+
 /**
  * Идентификаторы оферт расширения marketplace (Стол заказов).
  *
@@ -11,16 +13,9 @@
  * `w.mkt.member` (`wallets.generated.ts`) и whitelist `marketplace`-контракта.
  *
  * `MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID` — `document_registry_id` шаблона
- * оферты ЦПП «Стол заказов» в платформенной фабрике документов. До тех пор,
- * пока Story 1.7 (one-time platform setup) не выполнена и константа не
- * заменена на реальный `registry_id`, регистрация в AgreementRegistry
- * пропускается с warn-логом — SignUp не предлагает оферту.
- *
- * После Story 1.7 правильное место для значения — `cooptypes`
- * `Cooperative.Registry.MarketplaceOffer.registry_id` (по аналогии с
- * `GeneratorOffer` / `BlagorostOffer`), импортировать оттуда вместо
- * локальной константы. Сейчас держим placeholder, чтобы код был готов к
- * подмене.
+ * оферты ЦПП «Стол заказов» в платформенной фабрике документов. Story 1.7
+ * разместила шаблон в `cooptypes/cooperative/registry/1100.MarketplaceOfferTemplate`;
+ * импортируется отсюда напрямую (по аналогии с Capital + GeneratorOffer/BlagorostOffer).
  */
 
 export const MARKETPLACE_EXTENSION_NAME = 'market';
@@ -33,6 +28,12 @@ export const MARKETPLACE_OFFER_AGREEMENT_ID = 'marketplace_offer';
 // `get_coagreement_or_fail` падает «Соглашение указанного типа не найдено».
 export const MARKETPLACE_AGREEMENT_TYPE = 'marketplace';
 
-// Placeholder, наполняется в Story 1.7 (one-time platform setup template'а в
-// document factory) → правильное место — `Cooperative.Registry.MarketplaceOffer.registry_id`.
-export const MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID = 0;
+// Story 1.7: registry_id шаблона `1100.MarketplaceOfferTemplate` из cooptypes.
+// Изменение значения = миграция (новые подписи пайщиков идут на новый template);
+// финальная редакция оферты обновит только содержимое 1100.MarketplaceOfferTemplate,
+// id остаётся.
+export const MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID = Cooperative.Registry.MarketplaceOfferTemplate.registry_id;
+
+// Story 1.7: registry_id инстанса `1101.MarketplaceOffer` — renderуется при
+// L2 (Story 1.11) или L3 (Story 1.4) подписании пайщиком.
+export const MARKETPLACE_OFFER_INSTANCE_REGISTRY_ID = Cooperative.Registry.MarketplaceOffer.registry_id;

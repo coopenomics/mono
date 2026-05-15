@@ -12,6 +12,7 @@ import { chatcoopManagedMatrixRoomsV3Migration } from '~/extensions/chatcoop/mig
 import { chatcoopStatePgV4Migration } from '~/extensions/chatcoop/migrations/chatcoop-state-pg-v4.migration';
 import { chatcoopMessageHistoryIngestCursorV5Migration } from '~/extensions/chatcoop/migrations/chatcoop-message-history-ingest-cursor-v5.migration';
 import { marketplaceBootstrapV1Migration } from '~/extensions/marketplace/migrations/marketplace-bootstrap-v1.migration';
+import { marketplaceBootstrapV2Migration } from '~/extensions/marketplace/migrations/marketplace-bootstrap-v2.migration';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 
 import { ExtensionsModule } from '~/extensions/extensions.module';
@@ -56,6 +57,7 @@ export class ExtensionDomainModule {
     this.migrationService.registerMigration(chatcoopStatePgV4Migration);
     this.migrationService.registerMigration(chatcoopMessageHistoryIngestCursorV5Migration);
     this.migrationService.registerMigration(marketplaceBootstrapV1Migration);
+    this.migrationService.registerMigration(marketplaceBootstrapV2Migration);
 
     // Устанавливаем расширения по умолчанию
     await this.extensionInteractor.installDefaultApps();
