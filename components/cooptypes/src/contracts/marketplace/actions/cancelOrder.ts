@@ -3,17 +3,14 @@ import type * as Marketplace from '../../../interfaces/marketplace'
 import { Actors } from '../../../common'
 
 /**
- * Имя действия
- * Требуется авторизация {@link Actors._username | аккаунта пользователя}.
+ * Заказчик отменяет заказ до акцепта поставщиком (Story 4.4, p.mkt.supply).
+ * Триггерит o.mkt.unblk на full total_cost.
  */
 export const authorizations = [{ permissions: [Permissions.active], actor: Actors._username }] as const
 
-/**
- * Имя действия
- */
-export const actionName = 'cancel'
+export const actionName = 'cancelorder'
 
 /**
  * @interface
  */
-export type ICancelRequest = Marketplace.ICancel
+export type ICancelOrder = Marketplace.ICancelOrder

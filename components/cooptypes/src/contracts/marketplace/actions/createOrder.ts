@@ -3,17 +3,14 @@ import type * as Marketplace from '../../../interfaces/marketplace'
 import { Actors } from '../../../common'
 
 /**
- * Имя действия
- * Требуется авторизация {@link Actors._username | аккаунта пользователя}.
+ * Заказчик размещает заказ на товар из каталога (Story 4.1, p.mkt.supply шаг 1).
+ * Серия: o.wal.conv (conditional) → o.mkt.assign (conditional) → o.mkt.block.
  */
 export const authorizations = [{ permissions: [Permissions.active], actor: Actors._username }] as const
 
-/**
- * Имя действия
- */
-export const actionName = 'order'
+export const actionName = 'createorder'
 
 /**
  * @interface
  */
-export type ICreateOrder = Marketplace.IOrder
+export type ICreateOrder = Marketplace.ICreateOrder
