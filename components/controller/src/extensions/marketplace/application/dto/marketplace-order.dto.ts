@@ -1,5 +1,8 @@
 import { Field, Int, ObjectType } from '@nestjs/graphql';
 import { MarketplaceConsolidatedRequestDTO } from './marketplace-consolidated-request.dto';
+import { createPaginationResult } from '~/application/common/dto/pagination.dto';
+import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
+import type { MarketplaceOrderCreateTxSnapshot } from '../../domain/entities/marketplace-order.types';
 
 @ObjectType('MarketplaceOrderCreateTxSnapshot')
 export class MarketplaceOrderCreateTxSnapshotDTO {
@@ -142,6 +145,12 @@ export class MarketplaceConsolidatedRequestActionResultDTO {
   }
 }
 
+@ObjectType('MarketplaceOrderPaginationResult')
+export class MarketplaceOrderPaginationResultDTO extends createPaginationResult(
+  MarketplaceOrderDTO,
+  'MarketplaceOrder'
+) {}
+
 @ObjectType('MarketplaceSupplierOrderActionResult')
 export class MarketplaceSupplierOrderActionResultDTO {
   @Field(() => MarketplaceOrderDTO, {
@@ -157,3 +166,39 @@ export class MarketplaceSupplierOrderActionResultDTO {
     this.tx_hash = init.tx_hash;
   }
 }
+
+export function toMarketplaceOrderCreateTxSnapshotDTO(
+  s: MarketplaceOrderCreateTxSnapshot
+): MarketplaceOrderCreateTxSnapshotDTO {
+  return new MarketplaceOrderCreateTxSnapshotDTO(s);
+}
+
+export function toMarketplaceOrderDTO(o: MarketplaceOrderDomainEntity): MarketplaceOrderDTO {
+  return new MarketplaceOrderDTO({
+    id: o.id,
+    coopname: o.coopname,
+    order_hash: o.order_hash,
+    orderer_account: o.orderer_account,
+    offer_id: o.offer_id,
+    offer_hash: o.offer_hash,
+    supplier_account: o.supplier_account,
+    delivery_braname: o.delivery_braname,
+    quantity: o.quantity,
+    price_per_unit: o.price_per_unit,
+    total_cost: o.total_cost,
+    cycle_type: o.cycle_type,
+    cycle_id: o.cycle_id,
+    warranty_period_secs: o.warranty_period_secs,
+    warranty_until: o.warranty_until,
+    status: o.status,
+    last_status_reason: o.last_status_reason,
+    blocked_at: o.blocked_at,
+    accepted_at: o.accepted_at,
+    received_at: o.received_at,
+    cancelled_at: o.cancelled_at,
+    create_tx: o.create_tx ? new MarketplaceOrderCreateTxSnapshotDTO(o.create_tx) : null,
+    created_at: o.created_at,
+    updated_at: o.updated_at,
+  });
+}
+

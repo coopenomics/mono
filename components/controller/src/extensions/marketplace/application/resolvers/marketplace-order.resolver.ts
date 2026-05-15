@@ -1,5 +1,5 @@
-import { Inject, Injectable, UseGuards } from '@nestjs/common';
-import { Args, Mutation, Resolver } from '@nestjs/graphql';
+import { Inject, Injectable, NotFoundException, ForbiddenException, UseGuards } from '@nestjs/common';
+import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 
 import config from '~/config/config';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
@@ -15,7 +15,9 @@ import {
   MarketplaceCreateOrderResultDTO,
   MarketplaceOrderCreateTxSnapshotDTO,
   MarketplaceOrderDTO,
+  MarketplaceOrderPaginationResultDTO,
   MarketplaceSupplierOrderActionResultDTO,
+  toMarketplaceOrderDTO,
 } from '../dto/marketplace-order.dto';
 import { toMarketplaceConsolidatedRequestDTO } from '../dto/marketplace-consolidated-request.dto';
 import {
@@ -26,7 +28,17 @@ import {
   MarketplaceDeclineConsolidatedRequestInputDTO,
   MarketplaceDeclineIndividualOrderInputDTO,
   MarketplaceDeclineOrderFromOpenPoolInputDTO,
+  MarketplaceGetOrderInputDTO,
+  MarketplaceListOrdersInputDTO,
 } from '../dto/marketplace-order-input.dto';
+import {
+  MARKETPLACE_ORDER_REPOSITORY,
+  type MarketplaceOrderDomainRepository,
+  type MarketplaceOrderListFilter,
+} from '../../domain/repositories/marketplace-order.repository';
+import { canAccess } from '../access/marketplace-access-matrix';
+import type { MarketplaceRole } from '../membership/marketplace-roles.mapper';
+import type { MarketplaceOrderStatus } from '../../domain/entities/marketplace-order.types';
 import {
   MARKETPLACE_ORDER_CREATE_SERVICE,
   MarketplaceOrderCreateService,
@@ -46,34 +58,7 @@ import {
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import type { MarketplaceOrderCreateTxSnapshot } from '../../domain/entities/marketplace-order.types';
 
-function toOrderDTO(o: MarketplaceOrderDomainEntity): MarketplaceOrderDTO {
-  return new MarketplaceOrderDTO({
-    id: o.id,
-    coopname: o.coopname,
-    order_hash: o.order_hash,
-    orderer_account: o.orderer_account,
-    offer_id: o.offer_id,
-    offer_hash: o.offer_hash,
-    supplier_account: o.supplier_account,
-    delivery_braname: o.delivery_braname,
-    quantity: o.quantity,
-    price_per_unit: o.price_per_unit,
-    total_cost: o.total_cost,
-    cycle_type: o.cycle_type,
-    cycle_id: o.cycle_id,
-    warranty_period_secs: o.warranty_period_secs,
-    warranty_until: o.warranty_until,
-    status: o.status,
-    last_status_reason: o.last_status_reason,
-    blocked_at: o.blocked_at,
-    accepted_at: o.accepted_at,
-    received_at: o.received_at,
-    cancelled_at: o.cancelled_at,
-    create_tx: o.create_tx ? new MarketplaceOrderCreateTxSnapshotDTO(o.create_tx) : null,
-    created_at: o.created_at,
-    updated_at: o.updated_at,
-  });
-}
+const toOrderDTO = toMarketplaceOrderDTO;
 
 function toTxSnapshotDTO(s: MarketplaceOrderCreateTxSnapshot): MarketplaceOrderCreateTxSnapshotDTO {
   return new MarketplaceOrderCreateTxSnapshotDTO(s);
@@ -104,7 +89,9 @@ export class MarketplaceOrderResolver {
     @Inject(MARKETPLACE_CONSOLIDATED_REQUEST_ACCEPT_DECLINE_SERVICE)
     private readonly consolidatedAcceptDeclineService: MarketplaceConsolidatedRequestAcceptDeclineService,
     @Inject(MARKETPLACE_ORDER_SUPPLIER_ACTION_SERVICE)
-    private readonly supplierActionService: MarketplaceOrderSupplierActionService
+    private readonly supplierActionService: MarketplaceOrderSupplierActionService,
+    @Inject(MARKETPLACE_ORDER_REPOSITORY)
+    private readonly orderRepo: MarketplaceOrderDomainRepository
   ) {}
 
   @Mutation(() => MarketplaceCreateOrderResultDTO, {
@@ -268,5 +255,91 @@ export class MarketplaceOrderResolver {
       order: toOrderDTO(result.order),
       tx_hash: result.tx_hash,
     });
+  }
+
+  @Query(() => MarketplaceOrderPaginationResultDTO, {
+    name: 'marketplaceListMyOrders',
+    description:
+      'Story 4.6: orderer-стол «Мои заказы» — Order\'ы, где orderer_account == current member. ACL Order:read:own (фильтрация по owner делается в resolver).',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Order', 'read:own')
+  async marketplaceListMyOrders(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('input', { nullable: true }) input?: MarketplaceListOrdersInputDTO
+  ): Promise<MarketplaceOrderPaginationResultDTO> {
+    const filter: MarketplaceOrderListFilter = {
+      coopname: config.coopname,
+      orderer_account: member.username,
+      supplier_account: input?.supplier_account,
+      offer_id: input?.offer_id,
+      status: input?.statuses?.length ? (input.statuses as MarketplaceOrderStatus[]) : undefined,
+    };
+    return this.runListQuery(filter, input);
+  }
+
+  @Query(() => MarketplaceOrderPaginationResultDTO, {
+    name: 'marketplaceListSupplierOrders',
+    description:
+      'Story 4.6: offerer-стол — Order\'ы, где supplier_account == current member. ACL Order:read:to-self.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Order', 'read:to-self')
+  async marketplaceListSupplierOrders(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('input', { nullable: true }) input?: MarketplaceListOrdersInputDTO
+  ): Promise<MarketplaceOrderPaginationResultDTO> {
+    const filter: MarketplaceOrderListFilter = {
+      coopname: config.coopname,
+      supplier_account: member.username,
+      orderer_account: input?.orderer_account,
+      offer_id: input?.offer_id,
+      status: input?.statuses?.length ? (input.statuses as MarketplaceOrderStatus[]) : undefined,
+    };
+    return this.runListQuery(filter, input);
+  }
+
+  @Query(() => MarketplaceOrderDTO, {
+    name: 'marketplaceGetOrder',
+    description:
+      'Story 4.6: один Order по id. ACL: orderer (read:own) / offerer (read:to-self) / admin+board (read:all). Ownership-check в резолвере.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard)
+  async marketplaceGetOrder(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('input') input: MarketplaceGetOrderInputDTO
+  ): Promise<MarketplaceOrderDTO> {
+    const order = await this.orderRepo.findById(input.order_id);
+    if (!order || order.coopname !== config.coopname) {
+      throw new NotFoundException('Заказ не найден.');
+    }
+    const roles = member.marketplace_roles as MarketplaceRole[];
+    const isOwner = order.orderer_account === member.username;
+    const isToSelf = order.supplier_account === member.username;
+    const canReadOwn = isOwner && canAccess(roles, 'Order', 'read:own');
+    const canReadToSelf = isToSelf && canAccess(roles, 'Order', 'read:to-self');
+    const canReadAll = canAccess(roles, 'Order', 'read:all');
+    if (!canReadOwn && !canReadToSelf && !canReadAll) {
+      throw new ForbiddenException('Нет прав на просмотр заказа.');
+    }
+    return toOrderDTO(order);
+  }
+
+  private async runListQuery(
+    filter: MarketplaceOrderListFilter,
+    input?: MarketplaceListOrdersInputDTO
+  ): Promise<MarketplaceOrderPaginationResultDTO> {
+    const result = await this.orderRepo.list(filter, {
+      page: input?.page ?? 1,
+      limit: input?.limit ?? 50,
+      sortBy: input?.sortBy ?? 'updated_at',
+      sortOrder: (input?.sortOrder ?? 'DESC') as 'ASC' | 'DESC',
+    });
+    return {
+      items: result.items.map(toOrderDTO),
+      totalCount: result.totalCount,
+      totalPages: result.totalPages,
+      currentPage: result.currentPage,
+    };
   }
 }

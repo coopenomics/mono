@@ -52,6 +52,7 @@ export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, str
   },
   admin: {
     Offer: ['moderate', 'read'],
+    Order: ['read:all'],
     KU: ['manage'],
     Whitelist: ['manage'],
     Vitrine: ['manage', 'read'],

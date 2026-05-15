@@ -4,6 +4,7 @@ import { MarketplaceCatalogPage } from 'src/pages/Marketplace/MarketplaceCatalog
 import { CreateParentOfferPage } from 'src/pages/Marketplace/CreateParentOffer'
 import { UserParentOffersPage } from 'src/pages/Marketplace/UserParentOffers'
 import { UserSuppliesListPage } from 'src/pages/Marketplace/UserSuppliesList'
+import { MyOrdersPage } from 'src/pages/Marketplace/MyOrders'
 import { OfferPage } from 'src/pages/Marketplace/OfferPage'
 import { ModerationPage } from 'src/pages/Marketplace/Moderation'
 import { WarehousePage } from 'src/pages/Marketplace/WarehousePage'
@@ -109,15 +110,30 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             ],
           },
           {
+            // Story 4.6: новый orderer-стол «Мои заказы» (canon OrderCard).
+            // Legacy UserSuppliesListPage оставлен в импортах под другим маршрутом
+            // на случай fallback'а перед удалением (см. техдолг marketplace2).
             path: 'my-orders',
-            name: 'marketplace-user-supplies',
-            component: markRaw(UserSuppliesListPage),
+            name: 'marketplace-my-orders',
+            component: markRaw(MyOrdersPage),
             meta: {
               title: 'Мои заказы',
               icon: 'fa-solid fa-cart-shopping',
               roles: [],
               requiresAuth: true,
               agreements: agreementsBase,
+            },
+          },
+          {
+            path: 'my-supplies-legacy',
+            name: 'marketplace-user-supplies-legacy',
+            component: markRaw(UserSuppliesListPage),
+            meta: {
+              title: 'Поставки (legacy)',
+              icon: 'fa-solid fa-truck-loading',
+              roles: [],
+              requiresAuth: true,
+              hidden: true,
             },
           },
           {

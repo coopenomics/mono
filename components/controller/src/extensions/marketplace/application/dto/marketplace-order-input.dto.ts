@@ -1,4 +1,5 @@
 import { Field, InputType, Int } from '@nestjs/graphql';
+// `[String]` (массив) типы для @Field — ниже используются в MarketplaceListOrdersInput.
 
 @InputType('MarketplaceCreateOrderInput')
 export class MarketplaceCreateOrderInputDTO {
@@ -52,4 +53,37 @@ export class MarketplaceDeclineOrderFromOpenPoolInputDTO {
   public readonly order_id!: string;
   @Field(() => String, { description: 'Обязательная причина отказа поставщика.' })
   public readonly reason!: string;
+}
+
+@InputType('MarketplaceListOrdersInput')
+export class MarketplaceListOrdersInputDTO {
+  @Field(() => String, { nullable: true, description: 'Фильтр по supplier_account (для orderer-стола).' })
+  public readonly supplier_account?: string;
+
+  @Field(() => String, { nullable: true, description: 'Фильтр по orderer_account (для offerer-стола).' })
+  public readonly orderer_account?: string;
+
+  @Field(() => String, { nullable: true, description: 'Фильтр по offer_id.' })
+  public readonly offer_id?: string;
+
+  @Field(() => [String], { nullable: true, description: 'Один или несколько статусов (см. MarketplaceOrder.status).' })
+  public readonly statuses?: string[];
+
+  @Field(() => Int, { defaultValue: 1 })
+  public readonly page!: number;
+
+  @Field(() => Int, { defaultValue: 50 })
+  public readonly limit!: number;
+
+  @Field(() => String, { defaultValue: 'updated_at', description: 'Поле сортировки.' })
+  public readonly sortBy!: string;
+
+  @Field(() => String, { defaultValue: 'DESC' })
+  public readonly sortOrder!: 'ASC' | 'DESC';
+}
+
+@InputType('MarketplaceGetOrderInput')
+export class MarketplaceGetOrderInputDTO {
+  @Field(() => String, { description: 'UUID Order\'а из marketplace_order.' })
+  public readonly order_id!: string;
 }
