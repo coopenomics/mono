@@ -14,6 +14,11 @@ import { RequestEntity } from './entities/request.entity';
 import { RequestAttributeValueEntity } from './entities/request-attribute-value.entity';
 import { RequestImageEntity } from './entities/request-image.entity';
 import { KuDetailsTypeormEntity } from './entities/ku-details.entity';
+import { MarketplaceVitrineEntity } from './entities/marketplace-vitrine.entity';
+import { MarketplaceWhitelistEntity } from './entities/marketplace-whitelist.entity';
+import { MarketplaceCategoryEntity } from './entities/marketplace-category.entity';
+import { MarketplaceOfferEntity } from './entities/marketplace-offer.entity';
+import { MarketplaceModerationLogEntity } from './entities/marketplace-moderation-log.entity';
 
 // Repository adapters
 import { CategoryRepositoryAdapter } from './adapters/category-repository.adapter';
@@ -25,6 +30,18 @@ import { AvailableCategoryRepositoryAdapter } from './adapters/available-categor
 import { RequestRepositoryAdapter } from './adapters/request-repository.adapter';
 import { KuDetailsRepositoryAdapter } from './adapters/ku-details-repository.adapter';
 import { geocoderPortFactory } from './adapters/geocoder.factory';
+import { MarketplaceVitrineRepositoryAdapter } from './adapters/marketplace-vitrine-repository.adapter';
+import { MarketplaceWhitelistRepositoryAdapter } from './adapters/marketplace-whitelist-repository.adapter';
+import { MarketplaceCategoryRepositoryAdapter } from './adapters/marketplace-category-repository.adapter';
+import { MarketplaceOfferRepositoryAdapter } from './adapters/marketplace-offer-repository.adapter';
+import { MarketplaceModerationLogRepositoryAdapter } from './adapters/marketplace-moderation-log-repository.adapter';
+
+// Mappers
+import { MarketplaceVitrineMapper } from './mappers/marketplace-vitrine.mapper';
+import { MarketplaceWhitelistMapper } from './mappers/marketplace-whitelist.mapper';
+import { MarketplaceCategoryMapper } from './mappers/marketplace-category.mapper';
+import { MarketplaceOfferMapper } from './mappers/marketplace-offer.mapper';
+import { MarketplaceModerationLogMapper } from './mappers/marketplace-moderation-log.mapper';
 
 // Repository tokens
 import { CATEGORY_DOMAIN_REPOSITORY } from '../domain/repositories/category-domain.repository';
@@ -36,6 +53,11 @@ import { AVAILABLE_CATEGORY_DOMAIN_REPOSITORY } from '../domain/repositories/ava
 import { REQUEST_DOMAIN_REPOSITORY } from '../domain/repositories/request-domain.repository';
 import { KU_DETAILS_DOMAIN_REPOSITORY } from '../domain/repositories/ku-details-domain.repository';
 import { GEOCODER_PORT } from '../domain/ports/geocoder.port';
+import { MARKETPLACE_VITRINE_REPOSITORY } from '../domain/repositories/marketplace-vitrine.repository';
+import { MARKETPLACE_WHITELIST_REPOSITORY } from '../domain/repositories/marketplace-whitelist.repository';
+import { MARKETPLACE_CATEGORY_REPOSITORY } from '../domain/repositories/marketplace-category.repository';
+import { MARKETPLACE_OFFER_REPOSITORY } from '../domain/repositories/marketplace-offer.repository';
+import { MARKETPLACE_MODERATION_LOG_REPOSITORY } from '../domain/repositories/marketplace-moderation-log.repository';
 
 @Module({
   imports: [
@@ -60,6 +82,11 @@ import { GEOCODER_PORT } from '../domain/ports/geocoder.port';
         RequestAttributeValueEntity,
         RequestImageEntity,
         KuDetailsTypeormEntity,
+        MarketplaceVitrineEntity,
+        MarketplaceWhitelistEntity,
+        MarketplaceCategoryEntity,
+        MarketplaceOfferEntity,
+        MarketplaceModerationLogEntity,
       ],
       synchronize: true,
       logging: false,
@@ -78,6 +105,11 @@ import { GEOCODER_PORT } from '../domain/ports/geocoder.port';
         RequestAttributeValueEntity,
         RequestImageEntity,
         KuDetailsTypeormEntity,
+        MarketplaceVitrineEntity,
+        MarketplaceWhitelistEntity,
+        MarketplaceCategoryEntity,
+        MarketplaceOfferEntity,
+        MarketplaceModerationLogEntity,
       ],
       'marketplace'
     ), // Указываем имя подключения
@@ -119,6 +151,34 @@ import { GEOCODER_PORT } from '../domain/ports/geocoder.port';
       provide: GEOCODER_PORT,
       useFactory: geocoderPortFactory,
     },
+    // Story 3.1
+    MarketplaceVitrineMapper,
+    MarketplaceWhitelistMapper,
+    {
+      provide: MARKETPLACE_VITRINE_REPOSITORY,
+      useClass: MarketplaceVitrineRepositoryAdapter,
+    },
+    {
+      provide: MARKETPLACE_WHITELIST_REPOSITORY,
+      useClass: MarketplaceWhitelistRepositoryAdapter,
+    },
+    // Story 3.2
+    MarketplaceCategoryMapper,
+    MarketplaceOfferMapper,
+    {
+      provide: MARKETPLACE_CATEGORY_REPOSITORY,
+      useClass: MarketplaceCategoryRepositoryAdapter,
+    },
+    {
+      provide: MARKETPLACE_OFFER_REPOSITORY,
+      useClass: MarketplaceOfferRepositoryAdapter,
+    },
+    // Story 3.3
+    MarketplaceModerationLogMapper,
+    {
+      provide: MARKETPLACE_MODERATION_LOG_REPOSITORY,
+      useClass: MarketplaceModerationLogRepositoryAdapter,
+    },
   ],
   exports: [
     CATEGORY_DOMAIN_REPOSITORY,
@@ -130,6 +190,11 @@ import { GEOCODER_PORT } from '../domain/ports/geocoder.port';
     REQUEST_DOMAIN_REPOSITORY,
     KU_DETAILS_DOMAIN_REPOSITORY,
     GEOCODER_PORT,
+    MARKETPLACE_VITRINE_REPOSITORY,
+    MARKETPLACE_WHITELIST_REPOSITORY,
+    MARKETPLACE_CATEGORY_REPOSITORY,
+    MARKETPLACE_OFFER_REPOSITORY,
+    MARKETPLACE_MODERATION_LOG_REPOSITORY,
   ],
 })
 export class MarketplaceInfrastructureModule {}

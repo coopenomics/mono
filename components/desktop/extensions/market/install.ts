@@ -1,5 +1,6 @@
 import { markRaw } from 'vue'
 import { ShowcasePage } from 'src/pages/Marketplace/Showcase'
+import { MarketplaceCatalogPage } from 'src/pages/Marketplace/MarketplaceCatalog'
 import { CreateParentOfferPage } from 'src/pages/Marketplace/CreateParentOffer'
 import { UserParentOffersPage } from 'src/pages/Marketplace/UserParentOffers'
 import { UserSuppliesListPage } from 'src/pages/Marketplace/UserSuppliesList'
@@ -18,7 +19,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
     extension_name: 'market',
     title: 'Стол заказов',
     icon: 'fa-solid fa-shop',
-    defaultRoute: 'marketplace-showcase',
+    defaultRoute: 'marketplace-catalog',
     routes: [
       {
         meta: {
@@ -30,15 +31,28 @@ export default async function (): Promise<IWorkspaceConfig[]> {
         name: 'market',
         children: [
           {
-            path: 'showcase',
-            name: 'marketplace-showcase',
-            component: markRaw(ShowcasePage),
+            path: 'catalog',
+            name: 'marketplace-catalog',
+            component: markRaw(MarketplaceCatalogPage),
             meta: {
-              title: 'Витрина',
+              title: 'Каталог',
               icon: 'fa-solid fa-store',
               roles: [],
               requiresAuth: true,
               agreements: agreementsBase,
+            },
+          },
+          {
+            path: 'showcase',
+            name: 'marketplace-showcase',
+            component: markRaw(ShowcasePage),
+            meta: {
+              title: 'Витрина (legacy donor — переписывается в Phase 2)',
+              icon: 'fa-solid fa-store',
+              roles: [],
+              requiresAuth: true,
+              agreements: agreementsBase,
+              hidden: true,
             },
             children: [
               {

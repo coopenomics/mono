@@ -1,4 +1,4 @@
-import { CanActivate, ExecutionContext, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { CanActivate, ExecutionContext, ForbiddenException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { GqlExecutionContext } from '@nestjs/graphql';
 
 import config from '~/config/config';
@@ -7,6 +7,10 @@ import { MonoAccountStatusDomainInterface } from '~/domain/account/interfaces/mo
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import { mapUserRoleToCoreRoles } from '../membership/core-roles.mapper';
 import { mapCoreRolesToMarketplaceRoles } from '../membership/marketplace-roles.mapper';
+import {
+  MARKETPLACE_WHITELIST_SERVICE,
+  type MarketplaceWhitelistService,
+} from '../services/marketplace-whitelist.service';
 
 /**
  * Guard расширения marketplace (Стол заказов, Story 1.3).
@@ -26,7 +30,12 @@ import { mapCoreRolesToMarketplaceRoles } from '../membership/marketplace-roles.
  */
 @Injectable()
 export class MarketplaceMembershipGuard implements CanActivate {
-  canActivate(context: ExecutionContext): boolean {
+  constructor(
+    @Inject(MARKETPLACE_WHITELIST_SERVICE)
+    private readonly whitelistService: MarketplaceWhitelistService
+  ) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const ctx = GqlExecutionContext.create(context);
     const gqlContext = ctx.getContext();
     const request = gqlContext.req;
@@ -46,9 +55,13 @@ export class MarketplaceMembershipGuard implements CanActivate {
     }
 
     const coreRoles = mapUserRoleToCoreRoles(user.role);
-    // Story 1.6: context-флаги (isOfferer/isKuChairman) пока всегда false —
-    // источники whitelist и КУ-председательства реализуются в Эпиках 2/3.
-    const marketplaceRoles = mapCoreRolesToMarketplaceRoles(coreRoles, {});
+    // Story 3.1: source `isOfferer` берётся из whitelist-сервиса (с TTL-кешем,
+    // см. MarketplaceWhitelistService). Story 2.x source `isKuChairman` —
+    // реализуется в Эпике 2 (ПВЗ), пока false.
+    const isOfferer = await this.whitelistService.isOfferer(config.coopname, user.username);
+    const marketplaceRoles = mapCoreRolesToMarketplaceRoles(coreRoles, {
+      isOfferer,
+    });
 
     const currentMember: IMarketplaceCurrentMember = {
       username: user.username,

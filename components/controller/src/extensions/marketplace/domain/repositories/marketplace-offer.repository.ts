@@ -1,0 +1,140 @@
+import type {
+  MarketplaceOfferDomainEntity,
+} from '../entities/marketplace-offer.entity';
+import type { MarketplaceOfferStatus } from '../entities/marketplace-offer.types';
+import type {
+  PaginationInputDomainInterface,
+  PaginationResultDomainInterface,
+} from '~/domain/common/interfaces/pagination.interface';
+
+export const MARKETPLACE_OFFER_REPOSITORY = Symbol('MARKETPLACE_OFFER_REPOSITORY');
+
+export interface OfferListFilter {
+  coopname: string;
+  supplier_account?: string;
+  status?: MarketplaceOfferStatus | MarketplaceOfferStatus[];
+  category_id?: number;
+  available_only?: boolean;
+}
+
+export interface OfferCreateInput {
+  coopname: string;
+  supplier_account: string;
+  vitrine_id: string;
+  product_name: string;
+  description: string | null;
+  category_id: number;
+  price_per_unit: string;
+  unit_of_measure: 'piece' | 'kg' | 'liter' | 'pack';
+  quantity_available: number;
+  unlimited_flag: boolean;
+  cycle_type: 'time_based' | 'volume_based' | 'open_subscription' | 'individual';
+  cycle_days: number | null;
+  target_volume: number | null;
+  max_wait_days: number | null;
+  min_threshold: number | null;
+  warranty_days: number;
+}
+
+export interface OfferUpdateInput {
+  product_name?: string;
+  description?: string | null;
+  category_id?: number;
+  price_per_unit?: string;
+  unit_of_measure?: 'piece' | 'kg' | 'liter' | 'pack';
+  quantity_available?: number;
+  unlimited_flag?: boolean;
+  cycle_type?: 'time_based' | 'volume_based' | 'open_subscription' | 'individual';
+  cycle_days?: number | null;
+  target_volume?: number | null;
+  max_wait_days?: number | null;
+  min_threshold?: number | null;
+  warranty_days?: number;
+}
+
+/**
+ * Story 3.4 — атомарные дельты counters Offer'а.
+ *
+ * Каждый из методов выполняется одним SQL UPDATE с returning, чтобы:
+ *  (а) избежать race condition между read-modify-write при параллельных
+ *      Order-блокировках одного Offer'а;
+ *  (б) проверить инварианты в WHERE и вернуть 0 affected rows если
+ *      операция нарушила бы инвариант (caller получит OfferCountersError).
+ *
+ * При `unlimited_flag=true` `quantity_available` не изменяется (offer не
+ * ограничен по количеству) — только `quantity_blocked` инкрементируется
+ * при block / decrement при unblock|consume.
+ */
+export type OfferCountersErrorReason =
+  | 'insufficient_available'
+  | 'insufficient_blocked'
+  | 'offer_not_active'
+  | 'offer_not_found';
+
+export interface OfferCountersDeltaResult {
+  ok: boolean;
+  reason?: OfferCountersErrorReason;
+  offer?: MarketplaceOfferDomainEntity;
+}
+
+export interface MarketplaceOfferDomainRepository {
+  findById(id: string): Promise<MarketplaceOfferDomainEntity | null>;
+  list(
+    filter: OfferListFilter,
+    pagination: PaginationInputDomainInterface
+  ): Promise<PaginationResultDomainInterface<MarketplaceOfferDomainEntity>>;
+  countByCategory(coopname: string): Promise<Map<number, number>>;
+  countRecentCreatedBy(supplier_account: string, sinceMs: number): Promise<number>;
+  create(input: OfferCreateInput): Promise<MarketplaceOfferDomainEntity>;
+  applyUpdate(
+    id: string,
+    patch: OfferUpdateInput & {
+      status?: MarketplaceOfferStatus;
+      approved_by?: string | null;
+      approved_at?: Date | null;
+      rejected_by?: string | null;
+      rejected_at?: Date | null;
+      reject_reason?: string | null;
+    }
+  ): Promise<MarketplaceOfferDomainEntity>;
+
+  /**
+   * Order создан → блокировать K единиц. Атомарно:
+   *   - quantity_blocked += K;
+   *   - quantity_available -= K (если не unlimited);
+   *   - требование: status='ACTIVE' AND (unlimited OR available >= K).
+   */
+  applyBlockDelta(offer_id: string, qty: number): Promise<OfferCountersDeltaResult>;
+
+  /**
+   * Order отменён / цикл expire / поставщик отказался → возврат
+   * K единиц в available. Атомарно:
+   *   - quantity_blocked -= K;
+   *   - quantity_available += K (если не unlimited);
+   *   - требование: blocked >= K.
+   */
+  applyUnblockDelta(offer_id: string, qty: number): Promise<OfferCountersDeltaResult>;
+
+  /**
+   * Выдача пайщику (consum/consum2) → K единиц перемещаются
+   * blocked → consumed. Атомарно:
+   *   - quantity_blocked -= K;
+   *   - quantity_consumed += K;
+   *   - требование: blocked >= K.
+   */
+  applyConsumeDelta(offer_id: string, qty: number): Promise<OfferCountersDeltaResult>;
+
+  /**
+   * Fork rollback (ADR-005): Order был в block-состоянии и откатывается
+   * `restoreFromVersions`. Counter в Offer'е возвращается **без
+   * CAS-проверки** `blocked>=qty` — rollback может приходить когда
+   * сама блокировка уже была списана (Order успел уйти в consumed),
+   * и тогда мы выйдем в отрицательные значения (ожидаемо при
+   * катастрофе fork-вне-Rollback-Horizon из ADR-005; fix через manual
+   * reconciliation, FR12 ARCH-sync).
+   *
+   * Дёргается из ForkRegistry handler'а `MarketplaceOrderSyncService`.
+   * См. spec-3-4-bc-integration.md секция 3.1.
+   */
+  applyRollbackDelta(offer_id: string, qty: number): Promise<OfferCountersDeltaResult>;
+}
