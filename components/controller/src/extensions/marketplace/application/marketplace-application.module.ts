@@ -14,6 +14,7 @@ import { MarketplaceWhitelistResolver } from './resolvers/marketplace-whitelist.
 import { MarketplaceVitrineResolver } from './resolvers/marketplace-vitrine.resolver';
 import { MarketplaceOfferResolver } from './resolvers/marketplace-offer.resolver';
 import { MarketplaceModerationResolver } from './resolvers/marketplace-moderation.resolver';
+import { MarketplaceCatalogResolver } from './resolvers/marketplace-catalog.resolver';
 import { MarketplaceMembershipGuard } from './guards/marketplace-membership.guard';
 import { MarketplaceRoleGuard } from './guards/marketplace-role.guard';
 import { MarketplaceOnboardingService } from './onboarding/marketplace-onboarding.service';
@@ -67,6 +68,7 @@ import {
     MarketplaceVitrineResolver,
     MarketplaceOfferResolver,
     MarketplaceModerationResolver,
+    MarketplaceCatalogResolver,
 
     // Guards (Story 1.3 / Story 1.6)
     MarketplaceMembershipGuard,
@@ -152,6 +154,7 @@ import {
     MarketplaceVitrineResolver,
     MarketplaceOfferResolver,
     MarketplaceModerationResolver,
+    MarketplaceCatalogResolver,
   ],
 })
 export class MarketplaceExtensionApplicationModule {}
