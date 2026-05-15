@@ -4,11 +4,11 @@
       <div class="row items-center q-gutter-sm">
         <div class="text-subtitle1 mp-order-card__id">№ {{ order.shortId ?? order.id }}</div>
         <q-space />
-        <q-badge :color="statusColor" class="mp-status-badge mp-order-card__status">
+        <span class="mp-status-chip mp-order-card__status" :class="`mp-status-chip--${statusKind}`">
           {{ statusLabel }}
-        </q-badge>
+        </span>
       </div>
-      <div class="text-caption text-grey-7 q-mt-xs">{{ formatDate(order.createdAt) }}</div>
+      <div class="mp-order-card__date">{{ formatDate(order.createdAt) }}</div>
     </q-card-section>
 
     <q-separator />
@@ -37,11 +37,13 @@
         <q-btn
           v-for="a in actionsForRole"
           :key="a.key"
-          :flat="a.kind === 'flat'"
-          :unelevated="a.kind === 'primary'"
-          :color="a.kind === 'primary' ? 'primary' : a.kind === 'danger' ? 'negative' : undefined"
+          :flat="!isAccent(a)"
+          :unelevated="isAccent(a)"
+          :color="a.kind === 'danger' ? 'negative' : (isAccent(a) ? 'primary' : undefined)"
           :label="a.label"
           dense
+          no-caps
+          class="mp-order-card__btn"
           @click="emit('action', { key: a.key, order })"
         />
       </slot>
@@ -93,21 +95,23 @@ const emit = defineEmits<{
   (e: 'action', payload: { key: string; order: Order }): void
 }>()
 
-const STATUS_MAP: Record<OrderStatus, { label: string; color: string }> = {
-  draft:             { label: 'Черновик',            color: 'grey'     },
-  placed:            { label: 'Размещён',            color: 'info'     },
-  paid:              { label: 'Оплачен',             color: 'positive' },
-  'in-delivery':     { label: 'В доставке',          color: 'warning'  },
-  'arrived-at-pvz':  { label: 'Прибыл в ПВЗ',        color: 'orange'   },
-  'ready-to-issue':  { label: 'Готов к выдаче',      color: 'primary'  },
-  issued:            { label: 'Выдан',               color: 'positive' },
-  cancelled:         { label: 'Отменён',             color: 'negative' },
-  dispute:           { label: 'Претензия',           color: 'negative' },
-  returned:          { label: 'Возвращён',           color: 'grey-7'   },
+type StatusKind = 'info' | 'success' | 'warning' | 'error' | 'neutral'
+
+const STATUS_MAP: Record<OrderStatus, { label: string; kind: StatusKind }> = {
+  draft:             { label: 'Черновик',       kind: 'neutral' },
+  placed:            { label: 'Размещён',       kind: 'info'    },
+  paid:              { label: 'Оплачен',        kind: 'success' },
+  'in-delivery':     { label: 'В доставке',     kind: 'warning' },
+  'arrived-at-pvz':  { label: 'Прибыл в ПВЗ',   kind: 'info'    },
+  'ready-to-issue':  { label: 'Готов к выдаче', kind: 'info'    },
+  issued:            { label: 'Выдан',          kind: 'success' },
+  cancelled:         { label: 'Отменён',        kind: 'error'   },
+  dispute:           { label: 'Претензия',      kind: 'error'   },
+  returned:          { label: 'Возвращён',      kind: 'neutral' },
 }
 
 const statusLabel = computed(() => STATUS_MAP[props.order.status].label)
-const statusColor = computed(() => STATUS_MAP[props.order.status].color)
+const statusKind  = computed<StatusKind>(() => STATUS_MAP[props.order.status].kind)
 const cardClasses = computed(() => `mp-order-card--${props.order.status}`)
 
 // Per-role набор действий по умолчанию (slot actions перебивает).
@@ -156,6 +160,11 @@ const actionsForRole = computed<OrderAction[]>(
   () => ACTIONS_PER_ROLE[props.role]?.[props.order.status] ?? []
 )
 
+// Акцентная кнопка = primary или danger. Всё остальное — flat second-level.
+function isAccent(a: OrderAction): boolean {
+  return a.kind === 'primary' || a.kind === 'danger'
+}
+
 function formatDate(v: string | Date) {
   const d = typeof v === 'string' ? new Date(v) : v
   return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -169,9 +178,34 @@ function formatPrice(v: number) {
 <style scoped lang="scss">
 .mp-order-card {
   border-radius: var(--mp-radius-md);
+  border: 1px solid var(--mp-border-subtle);
+  box-shadow: none;
+  background: var(--mp-surface-0);
 
   &__header { padding-bottom: var(--mp-space-sm); }
-  &__id { font-weight: 600; letter-spacing: -.01em; }
+  &__id { font-weight: 600; letter-spacing: -.01em; color: var(--mp-on-surface); }
+
+  &__date {
+    font-size: 12px;
+    color: var(--mp-on-surface-muted);
+    margin-top: 4px;
+  }
+
+  &__actions {
+    padding: var(--mp-space-sm) var(--mp-space-md) var(--mp-space-md);
+    gap: var(--mp-space-sm);
+    border-top: 1px solid var(--mp-border-subtle);
+  }
+
+  &__btn {
+    border-radius: var(--mp-radius-sm);
+    box-shadow: none !important;
+    min-height: 36px;
+
+    &:not(.q-btn--flat) {
+      letter-spacing: 0;
+    }
+  }
 
   &__meta {
     display: grid;
