@@ -91,8 +91,8 @@ export const SECTIONS: DesignSystemSection[] = [
     uxDr: 'UX-DR14',
     story: 'Story 10.2.8',
     primaryRole: ['operator'],
-    status: 'planned',
-    description: 'Доска группировки заявок на доставку (drag-n-drop).',
+    status: 'ready',
+    description: 'Kanban-доска экспедитора с drag-n-drop карточек заявок между маршрутами + empty-state в пустой колонке.',
   },
   {
     key: 'ttn-print-preview',
@@ -109,8 +109,8 @@ export const SECTIONS: DesignSystemSection[] = [
     uxDr: 'UX-DR16',
     story: 'Story 10.2.10',
     primaryRole: ['admin'],
-    status: 'planned',
-    description: 'Сводная таблица склада кооператива (admin-стол).',
+    status: 'ready',
+    description: 'Сводный склад: приход/расход/остаток/статус, фильтр по SKU/названию, плотный admin-layout 14px.',
   },
   {
     key: 'onboarding-cpp-gate',
@@ -118,8 +118,8 @@ export const SECTIONS: DesignSystemSection[] = [
     uxDr: 'UX-DR17',
     story: 'Story 10.2.11',
     primaryRole: ['все'],
-    status: 'planned',
-    description: 'Пакет документов per-стол на онбординге (трёхуровневый онбординг расширений).',
+    status: 'ready',
+    description: 'L3-gate трёхуровневого онбординга: пакет документов per-стол, чекбоксы Required/Optional, locked-документы (унаследованные из L2), кнопка "Открыть" для каждого.',
   },
   {
     key: 'multi-channel-status',
@@ -127,8 +127,8 @@ export const SECTIONS: DesignSystemSection[] = [
     uxDr: 'UX-DR18',
     story: 'Story 10.2.12',
     primaryRole: ['все'],
-    status: 'planned',
-    description: 'Статус push / email / SMS (доставка нотификации пайщику).',
+    status: 'ready',
+    description: 'Статус push / email / SMS chip-row с tooltip-details и 6 status (sent / delivered / read / failed / pending / disabled).',
   },
   {
     key: 'ku-map-with-list',
@@ -136,8 +136,8 @@ export const SECTIONS: DesignSystemSection[] = [
     uxDr: 'Эпик 2 Story 2.3',
     story: 'Story 10.2.13',
     primaryRole: ['orderer', 'admin'],
-    status: 'imported',
-    description: 'Карта ПВЗ с синхронным выбором пин/список. Существующий виджет из widgets/KUMapWithList.',
+    status: 'ready',
+    description: 'Карта ПВЗ + синхронный список. Канон Эпика 2. Витрина показывает layout-превью без подключения Yandex Maps SDK (реальная карта — на /market-pvz/list).',
   },
 ]
 

@@ -111,6 +111,11 @@ import BarcodeScannerSection from './sections/BarcodeScannerSection.vue'
 import BarcodeDisplaySection from './sections/BarcodeDisplaySection.vue'
 import CorrectionTableSection from './sections/CorrectionTableSection.vue'
 import TTNPrintPreviewSection from './sections/TTNPrintPreviewSection.vue'
+import ExpeditorGroupingBoardSection from './sections/ExpeditorGroupingBoardSection.vue'
+import WarehouseSummaryGridSection from './sections/WarehouseSummaryGridSection.vue'
+import OnboardingCPPGateSection from './sections/OnboardingCPPGateSection.vue'
+import MultiChannelStatusSection from './sections/MultiChannelStatusSection.vue'
+import KUMapWithListSection from './sections/KUMapWithListSection.vue'
 
 const $q = useQuasar()
 const state = useDesignSystemState()
@@ -131,6 +136,11 @@ const SECTION_COMPONENTS: Record<string, unknown> = {
   'barcode-display': BarcodeDisplaySection,
   'correction-table': CorrectionTableSection,
   'ttn-print-preview': TTNPrintPreviewSection,
+  'expeditor-grouping-board': ExpeditorGroupingBoardSection,
+  'warehouse-summary-grid': WarehouseSummaryGridSection,
+  'onboarding-cpp-gate': OnboardingCPPGateSection,
+  'multi-channel-status': MultiChannelStatusSection,
+  'ku-map-with-list': KUMapWithListSection,
 }
 
 const currentSection = computed(() =>
