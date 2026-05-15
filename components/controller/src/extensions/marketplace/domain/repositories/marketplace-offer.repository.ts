@@ -124,4 +124,18 @@ export interface MarketplaceOfferDomainRepository {
    *   - требование: blocked >= K.
    */
   applyConsumeDelta(offer_id: string, qty: number): Promise<OfferCountersDeltaResult>;
+
+  /**
+   * Fork rollback (ADR-005): Order был в block-состоянии и откатывается
+   * `restoreFromVersions`. Counter в Offer'е возвращается **без
+   * CAS-проверки** `blocked>=qty` — rollback может приходить когда
+   * сама блокировка уже была списана (Order успел уйти в consumed),
+   * и тогда мы выйдем в отрицательные значения (ожидаемо при
+   * катастрофе fork-вне-Rollback-Horizon из ADR-005; fix через manual
+   * reconciliation, FR12 ARCH-sync).
+   *
+   * Дёргается из ForkRegistry handler'а `MarketplaceOrderSyncService`.
+   * См. spec-3-4-bc-integration.md секция 3.1.
+   */
+  applyRollbackDelta(offer_id: string, qty: number): Promise<OfferCountersDeltaResult>;
 }

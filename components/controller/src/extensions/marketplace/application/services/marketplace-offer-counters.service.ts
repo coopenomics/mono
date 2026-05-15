@@ -77,6 +77,27 @@ export class MarketplaceOfferCountersService {
     return this.onOrderUnblocked(offer_id, qty_diff);
   }
 
+  /**
+   * Fork rollback (ADR-005): Order в block-состоянии откатывается
+   * через `restoreFromVersions`. Counter возвращается без CAS-проверки.
+   *
+   * Дёргается из ForkRegistry handler'а `MarketplaceOrderSyncService`
+   * (см. scaffolding `marketplace-order-syncer.service.ts` и
+   * spec-3-4-bc-integration.md секция 2.5). Каждый Order, который
+   * был в `quantity_blocked` Offer'а на момент rollback'а, должен
+   * вызвать `onOrderRolledBack(offer_id, qty)` — иначе counters
+   * разъедутся с реальностью.
+   */
+  async onOrderRolledBack(offer_id: string, qty: number): Promise<MarketplaceOfferDomainEntity> {
+    this.assertPositive(qty);
+    const result = await this.repo.applyRollbackDelta(offer_id, qty);
+    if (!result.ok || !result.offer) {
+      this.throwForReason(result.reason, offer_id, 'rollback', qty);
+    }
+    this.emit(result.offer!, 'rollback', qty);
+    return result.offer!;
+  }
+
   private assertPositive(qty: number): void {
     if (!Number.isInteger(qty) || qty <= 0) {
       throw new BadRequestException(`qty должен быть целым >0, получено: ${qty}`);

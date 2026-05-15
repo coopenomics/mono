@@ -68,6 +68,7 @@ function makeRepo(): jest.Mocked<MarketplaceOfferDomainRepository> {
     applyBlockDelta: jest.fn(),
     applyUnblockDelta: jest.fn(),
     applyConsumeDelta: jest.fn(),
+    applyRollbackDelta: jest.fn(),
   };
 }
 
@@ -115,6 +116,24 @@ describe('MarketplaceOfferCountersService', () => {
     const result = await service.onOrderConsumed('offer-1', 5);
     expect(repo.applyConsumeDelta).toHaveBeenCalledWith('offer-1', 5);
     expect(result.quantity_consumed).toBe(5);
+  });
+
+  it('onOrderRolledBack (ADR-005 ForkRegistry handler) → applyRollbackDelta + emit op:rollback', async () => {
+    const repo = makeRepo();
+    const bus = makeBus();
+    repo.applyRollbackDelta.mockResolvedValue({
+      ok: true,
+      offer: makeOffer({ quantity_available: 95, quantity_blocked: 5 }),
+    });
+    const service = new MarketplaceOfferCountersService(repo, bus);
+
+    const result = await service.onOrderRolledBack('offer-1', 5);
+    expect(repo.applyRollbackDelta).toHaveBeenCalledWith('offer-1', 5);
+    expect(result.quantity_available).toBe(95);
+    expect(bus.emit).toHaveBeenCalledWith(
+      MarketplaceOfferCountersService.EVENT_CHANGED,
+      expect.objectContaining({ op: 'rollback', qty: 5 })
+    );
   });
 
   it('onOrderAdjusted делегирует в onOrderUnblocked', async () => {

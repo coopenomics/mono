@@ -80,6 +80,7 @@ function makeOfferRepo(): jest.Mocked<MarketplaceOfferDomainRepository> {
     applyBlockDelta: jest.fn(),
     applyUnblockDelta: jest.fn(),
     applyConsumeDelta: jest.fn(),
+    applyRollbackDelta: jest.fn(),
   };
 }
 

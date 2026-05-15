@@ -189,6 +189,27 @@ export class MarketplaceOfferRepositoryAdapter implements MarketplaceOfferDomain
     return this.interpretDelta(result, offer_id, 'insufficient_blocked');
   }
 
+  async applyRollbackDelta(offer_id: string, qty: number): Promise<OfferCountersDeltaResult> {
+    if (qty <= 0) return { ok: false, reason: 'insufficient_blocked' };
+    // ADR-005: rollback без CAS — counter может уйти в отрицательное
+    // значение при rollback Order'а, который уже перешёл в consumed.
+    // Это ожидаемо при катастрофе fork-вне-Rollback-Horizon; fix через
+    // manual reconciliation (FR12 ARCH-sync).
+    const result = await this.repo.query(
+      `UPDATE marketplace_offer
+         SET quantity_blocked = quantity_blocked - $2,
+             quantity_available = CASE
+               WHEN unlimited_flag THEN quantity_available
+               ELSE quantity_available + $2
+             END,
+             updated_at = NOW()
+       WHERE id = $1
+       RETURNING *`,
+      [offer_id, qty]
+    );
+    return this.interpretDelta(result, offer_id, 'insufficient_blocked');
+  }
+
   /**
    * pg native driver через TypeORM возвращает результат `query` для UPDATE
    * RETURNING как `[rows, count]` массив — нормализуем.
