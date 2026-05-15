@@ -2,14 +2,14 @@
   <div class="mp-barcode-scanner" :class="{ 'mp-barcode-scanner--active': state === 'scanning' }">
     <div class="mp-barcode-scanner__viewport">
       <div v-if="state === 'idle'" class="mp-barcode-scanner__overlay">
-        <q-icon name="fa-solid fa-barcode" size="64px" color="grey-5" />
-        <div class="text-body1 q-mt-md text-grey-7">Сканер готов</div>
-        <q-btn unelevated color="primary" :label="startLabel" class="q-mt-md" @click="start" />
+        <q-icon name="fa-solid fa-barcode" size="64px" class="mp-barcode-scanner__muted" />
+        <div class="mp-barcode-scanner__caption">Сканер готов</div>
+        <q-btn unelevated no-caps color="primary" :label="startLabel" class="mp-barcode-scanner__btn" @click="start" />
       </div>
 
       <div v-else-if="state === 'requesting'" class="mp-barcode-scanner__overlay">
         <q-spinner color="primary" size="48px" />
-        <div class="text-body1 q-mt-md">Запрос доступа к камере…</div>
+        <div class="mp-barcode-scanner__caption">Запрос доступа к камере…</div>
       </div>
 
       <div v-else-if="state === 'scanning'" class="mp-barcode-scanner__viewfinder">
@@ -20,15 +20,17 @@
 
       <div v-else-if="state === 'success'" class="mp-barcode-scanner__overlay mp-barcode-scanner__flash">
         <q-icon name="fa-solid fa-circle-check" size="64px" color="positive" />
-        <div class="text-h6 q-mt-md text-positive">{{ lastCode }}</div>
-        <div class="text-caption text-grey-7 q-mt-xs">Visual feedback вместо звука «пик» (UX-DR26)</div>
-        <q-btn unelevated color="primary" label="Сканировать ещё" class="q-mt-md" @click="start" />
+        <div class="mp-barcode-scanner__code">{{ lastCode }}</div>
+        <div class="mp-barcode-scanner__caption mp-barcode-scanner__caption--small">
+          Visual feedback вместо звука «пик» (UX-DR26)
+        </div>
+        <q-btn unelevated no-caps color="primary" label="Сканировать ещё" class="mp-barcode-scanner__btn" @click="start" />
       </div>
 
       <div v-else-if="state === 'error'" class="mp-barcode-scanner__overlay">
         <q-icon name="fa-solid fa-triangle-exclamation" size="64px" color="negative" />
-        <div class="text-body1 q-mt-md text-negative">{{ errorMessage }}</div>
-        <q-btn flat color="primary" label="Повторить" class="q-mt-md" @click="start" />
+        <div class="mp-barcode-scanner__caption mp-barcode-scanner__caption--error">{{ errorMessage }}</div>
+        <q-btn flat no-caps color="primary" label="Повторить" class="mp-barcode-scanner__btn" @click="start" />
       </div>
     </div>
   </div>
@@ -90,7 +92,7 @@ defineExpose({ start, state, lastCode })
   max-width: 420px;
   aspect-ratio: 4 / 3;
   background: #000;
-  border-radius: 8px;
+  border-radius: var(--mp-radius-md);
   overflow: hidden;
   position: relative;
 
@@ -104,13 +106,40 @@ defineExpose({ start, state, lastCode })
   }
 
   &__overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, .35); // явный полупрозрачный bg — работает и на dark и на light
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: #fff;
     text-align: center;
     padding: var(--mp-space-lg);
+    gap: var(--mp-space-sm);
+  }
+
+  &__muted { color: rgba(255, 255, 255, .55); }
+
+  &__caption {
+    color: rgba(255, 255, 255, .85);
+    font-size: 14px;
+
+    &--small { font-size: 12px; color: rgba(255, 255, 255, .65); }
+    &--error { color: var(--q-negative); }
+  }
+
+  &__code {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: .02em;
+    color: var(--q-positive);
+  }
+
+  &__btn {
+    border-radius: var(--mp-radius-sm);
+    margin-top: var(--mp-space-sm);
+    box-shadow: none !important;
   }
 
   &__flash {
@@ -161,7 +190,7 @@ defineExpose({ start, state, lastCode })
 }
 
 @keyframes mp-flash {
-  0%   { background: rgba(76, 175, 80, .4); }
-  100% { background: transparent; }
+  0%   { background: rgba(76, 175, 80, .55); }
+  100% { background: rgba(0, 0, 0, .35); }
 }
 </style>
