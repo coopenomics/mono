@@ -49,64 +49,116 @@ export class TimeTrackingInteractor {
   }
 
   /**
-   * Реакция на фактическое изменение оценки (вызывать только если сохранённое и новое значение
-   * различаются): снимаем все незакоммиченные билеты по задаче, затем при ненулевой оценке создаём
-   * новые записи estimate (поровну между исполнителями). При оценке 0 — только очистка.
+   * Реакция на фактическое изменение оценки: пересобирает незакоммиченные estimate-билеты
+   * задачи под текущий состав creators и новую оценку, учитывая личный committed-баланс
+   * каждого исполнителя. При оценке 0 — только очистка незакоммиченных.
    */
   async applyExplicitEstimateToTimeEntries(issue: IssueDomainEntity): Promise<void> {
     const newEstimate = issue.estimate ?? 0;
 
-    await this.timeEntryRepository.deleteUncommittedByIssueHash(issue.issue_hash);
-
     if (isNegligibleHours(newEstimate)) {
+      await this.timeEntryRepository.deleteUncommittedByIssueHash(issue.issue_hash);
       this.logger.debug(
         `applyExplicitEstimateToTimeEntries: задача ${issue.id} (${issue.issue_hash}), оценка снята или обнулена — незакоммиченные билеты по задаче удалены`
       );
       return;
     }
 
+    await this.redistributeIssueEstimateEntries(issue, newEstimate, { force: true });
+  }
+
+  /**
+   * Пересобрать незакоммиченные estimate-билеты задачи: для каждого creator личная
+   * доля = estimate / N, минус его уже закоммиченные estimate-часы по этой же задаче.
+   * Закоммиченные записи не трогаются. «Остаток» одного creator не перераспределяется
+   * между другими — каждый учитывается изолированно.
+   *
+   * @param opts.force true — пересоздаёт всегда; false — пропускает no-op когда раскладка
+   *                   уже совпадает с планом.
+   * @returns true если что-то пересоздано/удалено, false если no-op
+   */
+  private async redistributeIssueEstimateEntries(
+    issue: IssueDomainEntity,
+    estimate: number,
+    opts: { force: boolean }
+  ): Promise<boolean> {
     const creators = issue.creators || [];
     if (creators.length === 0) {
+      await this.timeEntryRepository.deleteUncommittedByIssueHash(issue.issue_hash);
       this.logger.warn(
-        `applyExplicitEstimateToTimeEntries: задача ${issue.id} (${issue.issue_hash}) без исполнителей — билеты очищены, начисление estimate пропущено`
+        `redistributeIssueEstimateEntries: задача ${issue.id} (${issue.issue_hash}) без исполнителей — билеты очищены`
       );
-      return;
+      return true;
     }
 
-    const hoursPerCreator = newEstimate / creators.length;
-    const date = new Date().toISOString().split('T')[0];
+    const sharePerCreator = estimate / creators.length;
 
+    const estimateEntries = await this.timeEntryRepository.findByIssueAndType(issue.issue_hash, 'estimate');
+    const committedByContributor = new Map<string, number>();
+    for (const entry of estimateEntries) {
+      if (!entry.is_committed) continue;
+      committedByContributor.set(
+        entry.contributor_hash,
+        (committedByContributor.get(entry.contributor_hash) || 0) + entry.hours
+      );
+    }
+
+    type Plan = { contributor_hash: string; uncommittedShare: number };
+    const plan: Plan[] = [];
     for (const creatorUsername of creators) {
       const contributor = await this.contributorRepository.findByUsernameAndCoopname(creatorUsername, issue.coopname);
       if (!contributor) {
         this.logger.warn(
-          `applyExplicitEstimateToTimeEntries: исполнитель ${creatorUsername} не найден в ${issue.coopname}, пропуск`
+          `redistributeIssueEstimateEntries: исполнитель ${creatorUsername} не найден в ${issue.coopname}, пропуск`
         );
         continue;
       }
+      const myCommitted = committedByContributor.get(contributor.contributor_hash) || 0;
+      const uncommittedShare = Math.max(0, sharePerCreator - myCommitted);
+      plan.push({ contributor_hash: contributor.contributor_hash, uncommittedShare });
+    }
 
-      const estimateEntry = new TimeEntryDomainEntity({
-        _id: '',
-        contributor_hash: contributor.contributor_hash,
-        issue_hash: issue.issue_hash,
-        project_hash: issue.project_hash,
-        coopname: issue.coopname,
-        date,
-        hours: hoursPerCreator,
-        is_committed: false,
-        block_num: 0,
-        present: false,
-        status: 'active',
-        entry_type: 'estimate',
-        estimate_snapshot: newEstimate,
-      });
+    if (!opts.force) {
+      const currentUncommitted = estimateEntries.filter((e) => !e.is_committed);
+      const planNonZero = plan.filter((p) => p.uncommittedShare > HOURS_FLOAT_EPSILON);
+      const planByHash = new Map(planNonZero.map((p) => [p.contributor_hash, p.uncommittedShare]));
+      const isValid =
+        currentUncommitted.length === planNonZero.length &&
+        currentUncommitted.every((entry) => {
+          const expected = planByHash.get(entry.contributor_hash);
+          return expected !== undefined && hoursAlmostEqual(entry.hours, expected);
+        });
+      if (isValid) return false;
+    }
 
-      await this.timeEntryRepository.create(estimateEntry);
+    await this.timeEntryRepository.deleteUncommittedByIssueHash(issue.issue_hash);
+    const date = new Date().toISOString().split('T')[0];
+    for (const item of plan) {
+      if (item.uncommittedShare <= HOURS_FLOAT_EPSILON) continue;
+      await this.timeEntryRepository.create(
+        new TimeEntryDomainEntity({
+          _id: '',
+          contributor_hash: item.contributor_hash,
+          issue_hash: issue.issue_hash,
+          project_hash: issue.project_hash,
+          coopname: issue.coopname,
+          date,
+          hours: item.uncommittedShare,
+          is_committed: false,
+          block_num: 0,
+          present: false,
+          status: 'active',
+          entry_type: 'estimate',
+          estimate_snapshot: estimate,
+        })
+      );
     }
 
     this.logger.debug(
-      `applyExplicitEstimateToTimeEntries: задача ${issue.id} (${issue.issue_hash}), выставлена оценка ${newEstimate} ч — незакоммиченные билеты заменены`
+      `redistributeIssueEstimateEntries: задача ${issue.id} (${issue.issue_hash}), estimate=${estimate} ч, ` +
+        `share=${sharePerCreator} ч × ${creators.length} creators, незакоммиченные пересозданы (${plan.length} участников)`
     );
+    return true;
   }
 
   /**
@@ -118,11 +170,37 @@ export class TimeTrackingInteractor {
   }
 
   /**
+   * Откатить time-entries отклонённого коммита обратно в uncommitted и нормализовать
+   * раскладку estimate-долей для затронутых DONE-задач (если их состав creators
+   * актуален). Идемпотентно: вызов на коммит без time-entries — no-op.
+   */
+  async revertEntriesForDeclinedCommit(commitHash: string): Promise<void> {
+    const reverted = await this.timeEntryRepository.findCommittedByCommitHash(commitHash);
+    if (reverted.length === 0) return;
+
+    await this.timeEntryRepository.revertCommittedEntriesByCommitHash(commitHash);
+
+    const issueHashes = [...new Set(reverted.map((e) => e.issue_hash))];
+    for (const issueHash of issueHashes) {
+      const issue = await this.issueRepository.findByIssueHash(issueHash);
+      if (!issue) continue;
+      if (issue.status !== IssueStatus.DONE) continue;
+      const estimate = issue.estimate ?? 0;
+      if (isNegligibleHours(estimate)) continue;
+      await this.redistributeIssueEstimateEntries(issue, estimate, { force: true });
+    }
+
+    this.logger.debug(
+      `revertEntriesForDeclinedCommit: коммит ${commitHash}, откачено ${reverted.length} записей, ` +
+        `пересчитано ${issueHashes.length} задач`
+    );
+  }
+
+  /**
    * Лечебный пересчёт: для всех DONE-задач проекта, где участник сейчас в creators,
-   * сносит незакоммиченные estimate-билеты и распределяет оставшуюся часть estimate
-   * (estimate − уже закоммиченные часы по задаче) поровну между текущими creators.
-   * Идемпотентно. Вызывается, например, перед createCommit, чтобы вылечить расхождения,
-   * накопившиеся после смен creators/статусов, не прошедших через applyExplicitEstimate.
+   * пересобирает незакоммиченные estimate-билеты по личным долям creators
+   * (estimate / N − собственный committed). Идемпотентно. Вызывается перед createCommit
+   * и из миграций, чтобы вылечить расхождения после смен creators/статусов.
    */
   async recalcDoneEstimatesForContributorProject(contributorHash: string, projectHash: string): Promise<void> {
     const contributor = await this.contributorRepository.findOne({ contributor_hash: contributorHash });
@@ -135,76 +213,7 @@ export class TimeTrackingInteractor {
     for (const issue of completedIssues) {
       const estimate = issue.estimate ?? 0;
       if (isNegligibleHours(estimate)) continue;
-
-      const creators = issue.creators || [];
-      if (creators.length === 0) continue;
-
-      const estimateEntries = await this.timeEntryRepository.findByIssueAndType(issue.issue_hash, 'estimate');
-      const committedTotal = estimateEntries
-        .filter((entry) => entry.is_committed)
-        .reduce((sum, entry) => sum + entry.hours, 0);
-      const uncommittedTotal = estimateEntries
-        .filter((entry) => !entry.is_committed)
-        .reduce((sum, entry) => sum + entry.hours, 0);
-
-      const remaining = estimate - committedTotal;
-
-      const expectedHoursPerCreator = remaining > HOURS_FLOAT_EPSILON ? remaining / creators.length : 0;
-      const currentCreatorHashes = new Set<string>();
-      for (const creatorUsername of creators) {
-        const creatorContributor = await this.contributorRepository.findByUsernameAndCoopname(
-          creatorUsername,
-          issue.coopname
-        );
-        if (creatorContributor) currentCreatorHashes.add(creatorContributor.contributor_hash);
-      }
-
-      const uncommittedEntries = estimateEntries.filter((entry) => !entry.is_committed);
-      const distributionLooksValid =
-        uncommittedEntries.length === currentCreatorHashes.size &&
-        uncommittedEntries.every(
-          (entry) =>
-            currentCreatorHashes.has(entry.contributor_hash) &&
-            hoursAlmostEqual(entry.hours, expectedHoursPerCreator)
-        ) &&
-        hoursAlmostEqual(uncommittedTotal, remaining > HOURS_FLOAT_EPSILON ? remaining : 0);
-
-      if (distributionLooksValid) continue;
-
-      await this.timeEntryRepository.deleteUncommittedByIssueHash(issue.issue_hash);
-      if (remaining <= HOURS_FLOAT_EPSILON) continue;
-
-      const date = new Date().toISOString().split('T')[0];
-      for (const creatorUsername of creators) {
-        const creatorContributor = await this.contributorRepository.findByUsernameAndCoopname(
-          creatorUsername,
-          issue.coopname
-        );
-        if (!creatorContributor) continue;
-
-        await this.timeEntryRepository.create(
-          new TimeEntryDomainEntity({
-            _id: '',
-            contributor_hash: creatorContributor.contributor_hash,
-            issue_hash: issue.issue_hash,
-            project_hash: issue.project_hash,
-            coopname: issue.coopname,
-            date,
-            hours: expectedHoursPerCreator,
-            is_committed: false,
-            block_num: 0,
-            present: false,
-            status: 'active',
-            entry_type: 'estimate',
-            estimate_snapshot: estimate,
-          })
-        );
-      }
-
-      this.logger.debug(
-        `recalcDoneEstimatesForContributorProject: задача ${issue.id} (${issue.issue_hash}) — пересчитаны estimate-билеты: ` +
-          `estimate=${estimate} ч, committed=${committedTotal} ч, distributed=${expectedHoursPerCreator} ч × ${creators.length}`
-      );
+      await this.redistributeIssueEstimateEntries(issue, estimate, { force: false });
     }
   }
 
@@ -801,7 +810,9 @@ export class TimeTrackingInteractor {
         entriesToCommit.push(entry);
         remainingHours -= entry.hours;
       } else {
-        // Коммитим часть записи - создаём новую запись с оставшимся временем
+        // Коммитим часть записи - создаём новую запись с оставшимся временем.
+        // entry_type и estimate_snapshot копируем из оригинала — иначе recalc estimate
+        // не увидит закоммиченную долю (он фильтрует только entry_type='estimate').
         const committedEntry = new TimeEntryDomainEntity({
           _id: '',
           contributor_hash: entry.contributor_hash,
@@ -812,6 +823,8 @@ export class TimeTrackingInteractor {
           hours: remainingHours,
           commit_hash: commitHash,
           is_committed: true,
+          entry_type: entry.entry_type,
+          estimate_snapshot: entry.estimate_snapshot,
           block_num: entry.block_num,
           present: entry.present,
           status: entry.status,
