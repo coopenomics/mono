@@ -7,7 +7,7 @@ export class MarketplaceWhitelistMapper {
   toDomain(row: MarketplaceWhitelistEntity): MarketplaceWhitelistEntryDomainEntity {
     return new MarketplaceWhitelistEntryDomainEntity({
       id: row.id,
-      cooperative_id: row.cooperative_id,
+      coopname: row.coopname,
       member_account: row.member_account,
       role: row.role,
       added_by: row.added_by,

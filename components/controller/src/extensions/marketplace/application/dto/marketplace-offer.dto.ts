@@ -1,9 +1,10 @@
-import { Field, Float, Int, ObjectType } from '@nestjs/graphql';
+import { Field, Int, ObjectType } from '@nestjs/graphql';
+import { createPaginationResult } from '~/application/common/dto/pagination.dto';
 
 @ObjectType('MarketplaceOffer')
 export class MarketplaceOfferDTO {
   @Field(() => String) public readonly id!: string;
-  @Field(() => String) public readonly cooperative_id!: string;
+  @Field(() => String) public readonly coopname!: string;
   @Field(() => String) public readonly supplier_account!: string;
   @Field(() => String) public readonly vitrine_id!: string;
 
@@ -49,16 +50,11 @@ export class MarketplaceOfferDTO {
   }
 }
 
-@ObjectType('MarketplaceOfferPage')
-export class MarketplaceOfferPageDTO {
-  @Field(() => Int) public readonly total!: number;
-  @Field(() => [MarketplaceOfferDTO]) public readonly items!: MarketplaceOfferDTO[];
-
-  constructor(init: { total: number; items: MarketplaceOfferDTO[] }) {
-    this.total = init.total;
-    this.items = init.items;
-  }
-}
+@ObjectType('MarketplaceOfferPaginationResult')
+export class MarketplaceOfferPaginationResultDTO extends createPaginationResult(
+  MarketplaceOfferDTO,
+  'MarketplaceOffer'
+) {}
 
 @ObjectType('MarketplaceCategory')
 export class MarketplaceCategoryDTO {

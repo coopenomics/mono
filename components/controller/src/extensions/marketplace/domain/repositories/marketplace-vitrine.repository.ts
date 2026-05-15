@@ -3,10 +3,10 @@ import type { MarketplaceVitrineDomainEntity } from '../entities/marketplace-vit
 export const MARKETPLACE_VITRINE_REPOSITORY = Symbol('MARKETPLACE_VITRINE_REPOSITORY');
 
 export interface MarketplaceVitrineDomainRepository {
-  findDefault(cooperative_id: string): Promise<MarketplaceVitrineDomainEntity | null>;
-  list(cooperative_id: string): Promise<MarketplaceVitrineDomainEntity[]>;
+  findDefault(coopname: string): Promise<MarketplaceVitrineDomainEntity | null>;
+  list(coopname: string): Promise<MarketplaceVitrineDomainEntity[]>;
   ensureDefault(
-    cooperative_id: string,
+    coopname: string,
     display_name: string
   ): Promise<MarketplaceVitrineDomainEntity>;
 }

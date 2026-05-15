@@ -7,7 +7,7 @@ export class MarketplaceVitrineMapper {
   toDomain(row: MarketplaceVitrineEntity): MarketplaceVitrineDomainEntity {
     return new MarketplaceVitrineDomainEntity({
       id: row.id,
-      cooperative_id: row.cooperative_id,
+      coopname: row.coopname,
       display_name: row.display_name,
       is_default: row.is_default,
       created_at: row.created_at,

@@ -39,34 +39,34 @@ export class MarketplaceWhitelistService {
     private readonly repo: MarketplaceWhitelistDomainRepository
   ) {}
 
-  async list(cooperative_id: string): Promise<MarketplaceWhitelistEntryDomainEntity[]> {
-    return this.repo.list(cooperative_id);
+  async list(coopname: string): Promise<MarketplaceWhitelistEntryDomainEntity[]> {
+    return this.repo.list(coopname);
   }
 
   async addToWhitelist(
-    cooperative_id: string,
+    coopname: string,
     member_account: string,
     added_by: string
   ): Promise<MarketplaceWhitelistEntryDomainEntity> {
-    const entry = await this.repo.add(cooperative_id, member_account, 'manual', added_by);
-    this.invalidateCache(cooperative_id);
+    const entry = await this.repo.add(coopname, member_account, 'manual', added_by);
+    this.invalidateCache(coopname);
     return entry;
   }
 
-  async removeFromWhitelist(cooperative_id: string, member_account: string): Promise<void> {
-    const existing = await this.repo.findByMember(cooperative_id, member_account);
+  async removeFromWhitelist(coopname: string, member_account: string): Promise<void> {
+    const existing = await this.repo.findByMember(coopname, member_account);
     if (!existing) {
       throw new NotFoundException(
-        `Whitelist: пайщик ${member_account} не найден в whitelist кооператива ${cooperative_id}`
+        `Пайщик ${member_account} не найден в списке поставщиков.`
       );
     }
     if (existing.role === 'auto-coop') {
       throw new ForbiddenException(
-        'Whitelist: auto-coop запись (сам кооператив) неудаляема — нужна для перепоставки остатков (FR5)'
+        'Запись о самом кооперативе нельзя удалить — она нужна для перепоставки остатков от лица кооператива.'
       );
     }
-    await this.repo.remove(cooperative_id, member_account);
-    this.invalidateCache(cooperative_id);
+    await this.repo.remove(coopname, member_account);
+    this.invalidateCache(coopname);
   }
 
   /**
@@ -74,18 +74,18 @@ export class MarketplaceWhitelistService {
    * true, если пайщик может публиковать оферы в текущей конфигурации
    * витрины (см. семантику в JSDoc класса).
    */
-  async isOfferer(cooperative_id: string, member_account: string): Promise<boolean> {
-    const cacheKey = `${cooperative_id}::${member_account}`;
+  async isOfferer(coopname: string, member_account: string): Promise<boolean> {
+    const cacheKey = `${coopname}::${member_account}`;
     const now = Date.now();
     const cached = this.isOffererCache.get(cacheKey);
     if (cached && cached.expires_at > now) return cached.result;
 
-    const manualCount = await this.repo.countManual(cooperative_id);
+    const manualCount = await this.repo.countManual(coopname);
     let result: boolean;
     if (manualCount === 0) {
       result = true;
     } else {
-      const entry = await this.repo.findByMember(cooperative_id, member_account);
+      const entry = await this.repo.findByMember(coopname, member_account);
       result = entry !== null && entry.role === 'manual';
     }
 
@@ -96,9 +96,9 @@ export class MarketplaceWhitelistService {
     return result;
   }
 
-  private invalidateCache(cooperative_id: string): void {
+  private invalidateCache(coopname: string): void {
     for (const key of Array.from(this.isOffererCache.keys())) {
-      if (key.startsWith(`${cooperative_id}::`)) {
+      if (key.startsWith(`${coopname}::`)) {
         this.isOffererCache.delete(key);
       }
     }

@@ -16,6 +16,10 @@ import {
 } from '../../domain/repositories/marketplace-moderation-log.repository';
 import type { MarketplaceOfferDomainEntity } from '../../domain/entities/marketplace-offer.entity';
 import type { MarketplaceModerationLogDomainEntity } from '../../domain/entities/marketplace-moderation-log.entity';
+import type {
+  PaginationInputDomainInterface,
+  PaginationResultDomainInterface,
+} from '~/domain/common/interfaces/pagination.interface';
 
 export const MARKETPLACE_MODERATION_SERVICE = Symbol('MARKETPLACE_MODERATION_SERVICE');
 
@@ -46,13 +50,10 @@ export class MarketplaceModerationService {
   ) {}
 
   async listPending(
-    cooperative_id: string,
-    paging: { limit: number; offset: number }
-  ) {
-    return this.offerRepo.list(
-      { cooperative_id, status: 'PENDING_MODERATION' },
-      { ...paging, sort: 'created_at_desc' }
-    );
+    coopname: string,
+    pagination: PaginationInputDomainInterface
+  ): Promise<PaginationResultDomainInterface<MarketplaceOfferDomainEntity>> {
+    return this.offerRepo.list({ coopname, status: 'PENDING_MODERATION' }, pagination);
   }
 
   async approve(offer_id: string, admin_account: string): Promise<MarketplaceOfferDomainEntity> {
@@ -86,11 +87,11 @@ export class MarketplaceModerationService {
   ): Promise<MarketplaceOfferDomainEntity> {
     const trimmed = reason?.trim();
     if (!trimmed) {
-      throw new BadRequestException('reject_reason обязателен и не может быть пустой строкой');
+      throw new BadRequestException('Укажите причину отклонения предложения.');
     }
     if (trimmed.length > MarketplaceModerationService.MAX_REJECT_REASON_LEN) {
       throw new BadRequestException(
-        `reject_reason должен быть ≤${MarketplaceModerationService.MAX_REJECT_REASON_LEN} символов`
+        `Причина отклонения слишком длинная (максимум ${MarketplaceModerationService.MAX_REJECT_REASON_LEN} символов).`
       );
     }
     const offer = await this.requirePending(offer_id);
@@ -123,13 +124,27 @@ export class MarketplaceModerationService {
   private async requirePending(offer_id: string): Promise<MarketplaceOfferDomainEntity> {
     const offer = await this.offerRepo.findById(offer_id);
     if (!offer) {
-      throw new NotFoundException(`Offer ${offer_id} не найден`);
+      throw new NotFoundException('Предложение не найдено.');
     }
     if (offer.status !== 'PENDING_MODERATION') {
+      const statusLabel = MarketplaceModerationService.translateStatus(offer.status);
       throw new ConflictException(
-        `Offer ${offer_id} в статусе ${offer.status}, модерация недопустима (требуется PENDING_MODERATION)`
+        `Это предложение уже ${statusLabel} — модерация недоступна.`
       );
     }
     return offer;
+  }
+
+  private static translateStatus(status: string): string {
+    switch (status) {
+      case 'ACTIVE':
+        return 'одобрено';
+      case 'REJECTED':
+        return 'отклонено';
+      case 'WITHDRAWN':
+        return 'снято с публикации';
+      default:
+        return `в статусе «${status}»`;
+    }
   }
 }

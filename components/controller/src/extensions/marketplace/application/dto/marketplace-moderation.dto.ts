@@ -1,21 +1,9 @@
-import { Field, InputType, Int, ObjectType } from '@nestjs/graphql';
-import { IsNotEmpty, IsOptional, IsString, IsInt, MaxLength, Min, Max } from 'class-validator';
+import { Field, InputType, ObjectType } from '@nestjs/graphql';
+import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import { PaginationInputDTO } from '~/application/common/dto/pagination.dto';
 
 @InputType('MarketplaceListPendingOffersInput')
-export class MarketplaceListPendingOffersInputDTO {
-  @Field(() => Int, { nullable: true, defaultValue: 50 })
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  @Max(200)
-  public limit?: number;
-
-  @Field(() => Int, { nullable: true, defaultValue: 0 })
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  public offset?: number;
-}
+export class MarketplaceListPendingOffersInputDTO extends PaginationInputDTO {}
 
 @InputType('MarketplaceApproveOfferInput')
 export class MarketplaceApproveOfferInputDTO {

@@ -7,7 +7,7 @@
  */
 export interface MarketplaceOfferView {
   id: string;
-  cooperative_id: string;
+  coopname: string;
   supplier_account: string;
   vitrine_id: string;
   product_name: string;

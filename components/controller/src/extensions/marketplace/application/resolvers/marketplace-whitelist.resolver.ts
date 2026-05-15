@@ -45,7 +45,7 @@ export class MarketplaceWhitelistResolver {
       (e) =>
         new MarketplaceWhitelistEntryDTO({
           id: e.id,
-          cooperative_id: e.cooperative_id,
+          coopname: e.coopname,
           member_account: e.member_account,
           role: e.role,
           added_by: e.added_by,
@@ -71,7 +71,7 @@ export class MarketplaceWhitelistResolver {
     );
     return new MarketplaceWhitelistEntryDTO({
       id: entry.id,
-      cooperative_id: entry.cooperative_id,
+      coopname: entry.coopname,
       member_account: entry.member_account,
       role: entry.role,
       added_by: entry.added_by,

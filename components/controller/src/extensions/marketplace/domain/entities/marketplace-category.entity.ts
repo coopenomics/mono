@@ -1,6 +1,11 @@
 /**
- * Story 3.2 / 3.5: справочник 10 baseline-категорий Стола заказов.
- * Конструктор кастомных категорий — Out-of-MVP.
+ * Story 3.2 / 3.5: справочник baseline-категорий Стола заказов.
+ *
+ * MVP — фокус на продовольственных товарах (стресс-тест через скоропорт,
+ * см. PRD «Стола заказов» и архитектурный документ L7). 8 продовольственных
+ * подкатегорий + одна общая категория «Прочее». Категория «Услуги»
+ * выведена из MVP по требованию правовой проработки (PRD пункт 3.2.7).
+ * Конструктор кастомных категорий кооперативом — Phase 2.
  */
 export class MarketplaceCategoryDomainEntity {
   public readonly id!: number;
@@ -21,19 +26,19 @@ export class MarketplaceCategoryDomainEntity {
   }
 }
 
-export const MARKETPLACE_BASELINE_CATEGORIES: ReadonlyArray<{
+export const MARKETPLACE_FOOD_CATEGORIES: ReadonlyArray<{
   id: number;
+  slug: string;
   display_name: string;
   sort_order: number;
 }> = [
-  { id: 1, display_name: 'Продовольственные товары', sort_order: 1 },
-  { id: 2, display_name: 'Хозяйственные товары', sort_order: 2 },
-  { id: 3, display_name: 'Стройматериалы', sort_order: 3 },
-  { id: 4, display_name: 'Электроника и техника', sort_order: 4 },
-  { id: 5, display_name: 'Одежда и обувь', sort_order: 5 },
-  { id: 6, display_name: 'Книги и канцелярия', sort_order: 6 },
-  { id: 7, display_name: 'Сад/огород/инструменты', sort_order: 7 },
-  { id: 8, display_name: 'Услуги по доставке', sort_order: 8 },
-  { id: 9, display_name: 'Услуги по ремонту', sort_order: 9 },
-  { id: 10, display_name: 'Прочие товары и услуги', sort_order: 10 },
+  { id: 1, slug: 'vegetables_fruits', display_name: 'Овощи и фрукты', sort_order: 1 },
+  { id: 2, slug: 'dairy', display_name: 'Молочные продукты', sort_order: 2 },
+  { id: 3, slug: 'meat_poultry', display_name: 'Мясо и птица', sort_order: 3 },
+  { id: 4, slug: 'fish_seafood', display_name: 'Рыба и морепродукты', sort_order: 4 },
+  { id: 5, slug: 'bakery', display_name: 'Хлеб и выпечка', sort_order: 5 },
+  { id: 6, slug: 'grocery', display_name: 'Бакалея (крупы, мука, масло)', sort_order: 6 },
+  { id: 7, slug: 'beverages', display_name: 'Напитки', sort_order: 7 },
+  { id: 8, slug: 'ready_meals', display_name: 'Готовая еда', sort_order: 8 },
+  { id: 9, slug: 'other', display_name: 'Прочее', sort_order: 9 },
 ];

@@ -6,7 +6,7 @@ export class MarketplaceWhitelistEntryDTO {
   public readonly id!: string;
 
   @Field(() => String, { description: 'eosio::name кооператива' })
-  public readonly cooperative_id!: string;
+  public readonly coopname!: string;
 
   @Field(() => String, { description: 'eosio::name пайщика-поставщика' })
   public readonly member_account!: string;
@@ -25,14 +25,14 @@ export class MarketplaceWhitelistEntryDTO {
 
   constructor(init: {
     id: string;
-    cooperative_id: string;
+    coopname: string;
     member_account: string;
     role: string;
     added_by: string | null;
     added_at: Date;
   }) {
     this.id = init.id;
-    this.cooperative_id = init.cooperative_id;
+    this.coopname = init.coopname;
     this.member_account = init.member_account;
     this.role = init.role;
     this.added_by = init.added_by;

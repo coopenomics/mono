@@ -5,7 +5,7 @@ export type MarketplaceWhitelistRole = 'auto-coop' | 'manual';
  */
 export class MarketplaceWhitelistEntryDomainEntity {
   public readonly id!: string;
-  public readonly cooperative_id!: string;
+  public readonly coopname!: string;
   public readonly member_account!: string;
   public readonly role!: MarketplaceWhitelistRole;
   public readonly added_by!: string | null;
@@ -13,14 +13,14 @@ export class MarketplaceWhitelistEntryDomainEntity {
 
   constructor(init: {
     id: string;
-    cooperative_id: string;
+    coopname: string;
     member_account: string;
     role: MarketplaceWhitelistRole;
     added_by: string | null;
     added_at: Date;
   }) {
     this.id = init.id;
-    this.cooperative_id = init.cooperative_id;
+    this.coopname = init.coopname;
     this.member_account = init.member_account;
     this.role = init.role;
     this.added_by = init.added_by;

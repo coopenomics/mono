@@ -41,7 +41,7 @@ export class MarketplaceVitrineResolver {
     }
     return new MarketplaceVitrineDTO({
       id: v.id,
-      cooperative_id: v.cooperative_id,
+      coopname: v.coopname,
       display_name: v.display_name,
       is_default: v.is_default,
       created_at: v.created_at,

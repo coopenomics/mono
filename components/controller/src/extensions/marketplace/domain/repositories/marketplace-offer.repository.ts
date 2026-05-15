@@ -2,24 +2,23 @@ import type {
   MarketplaceOfferDomainEntity,
 } from '../entities/marketplace-offer.entity';
 import type { MarketplaceOfferStatus } from '../entities/marketplace-offer.types';
+import type {
+  PaginationInputDomainInterface,
+  PaginationResultDomainInterface,
+} from '~/domain/common/interfaces/pagination.interface';
 
 export const MARKETPLACE_OFFER_REPOSITORY = Symbol('MARKETPLACE_OFFER_REPOSITORY');
 
 export interface OfferListFilter {
-  cooperative_id: string;
+  coopname: string;
   supplier_account?: string;
   status?: MarketplaceOfferStatus | MarketplaceOfferStatus[];
   category_id?: number;
   available_only?: boolean;
 }
 
-export interface OfferListPage {
-  total: number;
-  items: MarketplaceOfferDomainEntity[];
-}
-
 export interface OfferCreateInput {
-  cooperative_id: string;
+  coopname: string;
   supplier_account: string;
   vitrine_id: string;
   product_name: string;
@@ -82,9 +81,9 @@ export interface MarketplaceOfferDomainRepository {
   findById(id: string): Promise<MarketplaceOfferDomainEntity | null>;
   list(
     filter: OfferListFilter,
-    paging: { limit: number; offset: number; sort?: 'created_at_desc' | 'price_asc' | 'price_desc' }
-  ): Promise<OfferListPage>;
-  countByCategory(cooperative_id: string): Promise<Map<number, number>>;
+    pagination: PaginationInputDomainInterface
+  ): Promise<PaginationResultDomainInterface<MarketplaceOfferDomainEntity>>;
+  countByCategory(coopname: string): Promise<Map<number, number>>;
   countRecentCreatedBy(supplier_account: string, sinceMs: number): Promise<number>;
   create(input: OfferCreateInput): Promise<MarketplaceOfferDomainEntity>;
   applyUpdate(

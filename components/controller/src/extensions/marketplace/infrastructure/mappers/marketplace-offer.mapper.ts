@@ -7,7 +7,7 @@ export class MarketplaceOfferMapper {
   toDomain(row: MarketplaceOfferEntity): MarketplaceOfferDomainEntity {
     return new MarketplaceOfferDomainEntity({
       id: row.id,
-      cooperative_id: row.cooperative_id,
+      coopname: row.coopname,
       supplier_account: row.supplier_account,
       vitrine_id: row.vitrine_id,
       product_name: row.product_name,

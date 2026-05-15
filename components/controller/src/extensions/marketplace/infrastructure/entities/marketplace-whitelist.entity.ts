@@ -17,14 +17,14 @@ import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, Unique
  *     `offerer` выдаётся всем `User`.
  */
 @Entity({ name: 'marketplace_whitelist' })
-@Unique('uq_marketplace_whitelist_member', ['cooperative_id', 'member_account'])
-@Index(['cooperative_id'])
+@Unique('uq_marketplace_whitelist_member', ['coopname', 'member_account'])
+@Index(['coopname'])
 export class MarketplaceWhitelistEntity {
   @PrimaryGeneratedColumn('uuid')
   public id!: string;
 
   @Column({ type: 'varchar', length: 13 })
-  public cooperative_id!: string;
+  public coopname!: string;
 
   @Column({ type: 'varchar', length: 13 })
   public member_account!: string;

@@ -6,7 +6,7 @@ export class MarketplaceVitrineDTO {
   public readonly id!: string;
 
   @Field(() => String, { description: 'eosio::name кооператива-владельца витрины' })
-  public readonly cooperative_id!: string;
+  public readonly coopname!: string;
 
   @Field(() => String, { description: 'Отображаемое имя витрины' })
   public readonly display_name!: string;
@@ -22,14 +22,14 @@ export class MarketplaceVitrineDTO {
 
   constructor(init: {
     id: string;
-    cooperative_id: string;
+    coopname: string;
     display_name: string;
     is_default: boolean;
     created_at: Date;
     updated_at: Date;
   }) {
     this.id = init.id;
-    this.cooperative_id = init.cooperative_id;
+    this.coopname = init.coopname;
     this.display_name = init.display_name;
     this.is_default = init.is_default;
     this.created_at = init.created_at;

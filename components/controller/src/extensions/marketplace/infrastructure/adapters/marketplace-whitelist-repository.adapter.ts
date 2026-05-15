@@ -17,33 +17,33 @@ export class MarketplaceWhitelistRepositoryAdapter implements MarketplaceWhiteli
     private readonly mapper: MarketplaceWhitelistMapper
   ) {}
 
-  async list(cooperative_id: string): Promise<MarketplaceWhitelistEntryDomainEntity[]> {
+  async list(coopname: string): Promise<MarketplaceWhitelistEntryDomainEntity[]> {
     const rows = await this.repo.find({
-      where: { cooperative_id },
+      where: { coopname },
       order: { added_at: 'ASC' },
     });
     return rows.map((r) => this.mapper.toDomain(r));
   }
 
   async findByMember(
-    cooperative_id: string,
+    coopname: string,
     member_account: string
   ): Promise<MarketplaceWhitelistEntryDomainEntity | null> {
-    const row = await this.repo.findOne({ where: { cooperative_id, member_account } });
+    const row = await this.repo.findOne({ where: { coopname, member_account } });
     return row ? this.mapper.toDomain(row) : null;
   }
 
   async add(
-    cooperative_id: string,
+    coopname: string,
     member_account: string,
     role: MarketplaceWhitelistRole,
     added_by: string | null
   ): Promise<MarketplaceWhitelistEntryDomainEntity> {
-    const existing = await this.repo.findOne({ where: { cooperative_id, member_account } });
+    const existing = await this.repo.findOne({ where: { coopname, member_account } });
     if (existing) return this.mapper.toDomain(existing);
 
     const row = this.repo.create({
-      cooperative_id,
+      coopname,
       member_account,
       role,
       added_by,
@@ -52,11 +52,11 @@ export class MarketplaceWhitelistRepositoryAdapter implements MarketplaceWhiteli
     return this.mapper.toDomain(saved);
   }
 
-  async remove(cooperative_id: string, member_account: string): Promise<void> {
-    await this.repo.delete({ cooperative_id, member_account });
+  async remove(coopname: string, member_account: string): Promise<void> {
+    await this.repo.delete({ coopname, member_account });
   }
 
-  async countManual(cooperative_id: string): Promise<number> {
-    return this.repo.count({ where: { cooperative_id, role: 'manual' } });
+  async countManual(coopname: string): Promise<number> {
+    return this.repo.count({ where: { coopname, role: 'manual' } });
   }
 }

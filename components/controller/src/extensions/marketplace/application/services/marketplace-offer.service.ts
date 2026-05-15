@@ -26,11 +26,15 @@ import {
   MARKETPLACE_OFFER_CYCLE_TYPES,
   MARKETPLACE_UNITS_OF_MEASURE,
 } from '../../domain/entities/marketplace-offer.types';
+import type {
+  PaginationInputDomainInterface,
+  PaginationResultDomainInterface,
+} from '~/domain/common/interfaces/pagination.interface';
 
 export const MARKETPLACE_OFFER_SERVICE = Symbol('MARKETPLACE_OFFER_SERVICE');
 
 export interface OfferCreateRequest {
-  cooperative_id: string;
+  coopname: string;
   supplier_account: string;
   vitrine_id: string;
   product_name: string;
@@ -71,7 +75,7 @@ export class MarketplaceOfferService {
   public static readonly RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
   public static readonly MAX_PRODUCT_NAME_LEN = 200;
   public static readonly MAX_DESCRIPTION_LEN = 2000;
-  public static readonly BASELINE_CATEGORY_IDS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  public static readonly BASELINE_CATEGORY_IDS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
   constructor(
     @Inject(MARKETPLACE_OFFER_REPOSITORY)
@@ -86,7 +90,7 @@ export class MarketplaceOfferService {
     await this.assertRateLimit(input.supplier_account);
 
     const dbInput: OfferCreateInput = {
-      cooperative_id: input.cooperative_id,
+      coopname: input.coopname,
       supplier_account: input.supplier_account,
       vitrine_id: input.vitrine_id,
       product_name: input.product_name.trim(),
@@ -130,7 +134,7 @@ export class MarketplaceOfferService {
       this.assertUnit(patch.unit_of_measure);
     }
     if (patch.warranty_days !== undefined && patch.warranty_days < 0) {
-      throw new BadRequestException('warranty_days не может быть отрицательным');
+      throw new BadRequestException('Срок гарантии не может быть отрицательным.');
     }
 
     const normalizedPatch: OfferUpdateInput & { status: MarketplaceOfferStatus } = {
@@ -150,7 +154,7 @@ export class MarketplaceOfferService {
 
     if (await this.hasActiveOrders(offer.id)) {
       throw new ConflictException(
-        'Offer нельзя снять: есть незакрытые Order\'ы. Отмените или закройте их перед withdraw.'
+        'Нельзя снять предложение: по нему есть незакрытые заказы. Сначала отмените или закройте их.'
       );
     }
 
@@ -158,11 +162,11 @@ export class MarketplaceOfferService {
   }
 
   async listMine(
-    cooperative_id: string,
+    coopname: string,
     supplier_account: string,
-    paging: { limit: number; offset: number }
-  ) {
-    return this.repo.list({ cooperative_id, supplier_account }, paging);
+    pagination: PaginationInputDomainInterface
+  ): Promise<PaginationResultDomainInterface<MarketplaceOfferDomainEntity>> {
+    return this.repo.list({ coopname, supplier_account }, pagination);
   }
 
   async getById(id: string): Promise<MarketplaceOfferDomainEntity | null> {
@@ -178,18 +182,18 @@ export class MarketplaceOfferService {
     if (!input.unlimited_flag) {
       if (input.quantity_available === null || input.quantity_available < 0) {
         throw new BadRequestException(
-          'quantity_available обязателен и >= 0 при unlimited_flag=false'
+          'Укажите количество товара (целое неотрицательное число) или включите «без ограничения».'
         );
       }
     }
 
     if (input.warranty_days < 0) {
-      throw new BadRequestException('warranty_days не может быть отрицательным');
+      throw new BadRequestException('Срок гарантии не может быть отрицательным.');
     }
 
     if (typeof input.price_per_unit !== 'string' || !/^\d+(\.\d{1,4})?$/.test(input.price_per_unit)) {
       throw new BadRequestException(
-        'price_per_unit должен быть строкой числа с до 4 знаков после точки (например "100.50")'
+        'Цена должна быть числом с не более чем четырьмя знаками после запятой (например, «100.50»).'
       );
     }
   }
@@ -197,11 +201,11 @@ export class MarketplaceOfferService {
   private assertProductName(name: string): void {
     const trimmed = name?.trim() ?? '';
     if (!trimmed) {
-      throw new BadRequestException('product_name обязателен');
+      throw new BadRequestException('Укажите название товара.');
     }
     if (trimmed.length > MarketplaceOfferService.MAX_PRODUCT_NAME_LEN) {
       throw new BadRequestException(
-        `product_name должен быть ≤${MarketplaceOfferService.MAX_PRODUCT_NAME_LEN} символов`
+        `Название товара слишком длинное (максимум ${MarketplaceOfferService.MAX_PRODUCT_NAME_LEN} символов).`
       );
     }
   }
@@ -210,37 +214,33 @@ export class MarketplaceOfferService {
     if (description === null) return;
     if (description.length > MarketplaceOfferService.MAX_DESCRIPTION_LEN) {
       throw new BadRequestException(
-        `description должен быть ≤${MarketplaceOfferService.MAX_DESCRIPTION_LEN} символов`
+        `Описание слишком длинное (максимум ${MarketplaceOfferService.MAX_DESCRIPTION_LEN} символов).`
       );
     }
   }
 
   private assertCycleType(t: MarketplaceOfferCycleType): void {
     if (!MARKETPLACE_OFFER_CYCLE_TYPES.includes(t)) {
-      throw new BadRequestException(
-        `Некорректный cycle_type: ${t}. Допустимы: ${MARKETPLACE_OFFER_CYCLE_TYPES.join(', ')}`
-      );
+      throw new BadRequestException('Выбран недопустимый тип цикла поставки.');
     }
   }
 
   private assertUnit(u: MarketplaceUnitOfMeasure): void {
     if (!MARKETPLACE_UNITS_OF_MEASURE.includes(u)) {
-      throw new BadRequestException(
-        `Некорректный unit_of_measure: ${u}. Допустимы: ${MARKETPLACE_UNITS_OF_MEASURE.join(', ')}`
-      );
+      throw new BadRequestException('Выбрана недопустимая единица измерения.');
     }
   }
 
   private async ensureCategoryExists(category_id: number): Promise<void> {
     if (!MarketplaceOfferService.BASELINE_CATEGORY_IDS.includes(category_id)) {
       throw new BadRequestException(
-        `category_id ${category_id} вне baseline-набора 1..10`
+        `Выбрана недопустимая категория (${category_id}). Допустимы значения от 1 до 9.`
       );
     }
     const category = await this.categoryRepo.findById(category_id);
     if (!category) {
       throw new BadRequestException(
-        `Категория ${category_id} не найдена в справочнике (bootstrap-v4 не выполнен?)`
+        `Категория с номером ${category_id} не найдена в справочнике. Обратитесь к администратору.`
       );
     }
   }
@@ -252,7 +252,7 @@ export class MarketplaceOfferService {
     );
     if (count >= MarketplaceOfferService.RATE_LIMIT_PER_HOUR) {
       throw new BadRequestException(
-        `Rate-limit: не более ${MarketplaceOfferService.RATE_LIMIT_PER_HOUR} Offer'ов в час на одного поставщика`
+        `Превышен лимит создания предложений: не более ${MarketplaceOfferService.RATE_LIMIT_PER_HOUR} в час на одного поставщика. Попробуйте позже.`
       );
     }
   }
@@ -264,14 +264,16 @@ export class MarketplaceOfferService {
   ): Promise<MarketplaceOfferDomainEntity> {
     const offer = await this.repo.findById(id);
     if (!offer) {
-      throw new NotFoundException(`Offer ${id} не найден`);
+      throw new NotFoundException('Предложение не найдено.');
     }
     if (offer.supplier_account !== supplier_account) {
-      throw new ForbiddenException('Можно изменять только собственные Offer\'ы');
+      throw new ForbiddenException('Можно изменять только свои предложения.');
     }
     if (offer.status === 'WITHDRAWN' || offer.status === 'REJECTED') {
+      const action = op[0] === 'withdraw' ? 'снять' : 'отредактировать';
+      const statusLabel = offer.status === 'WITHDRAWN' ? 'снято' : 'отклонено';
       throw new ForbiddenException(
-        `Operation '${op[0]}' недопустима для Offer'а в статусе ${offer.status}`
+        `Нельзя ${action} предложение, которое уже ${statusLabel}.`
       );
     }
     return offer;

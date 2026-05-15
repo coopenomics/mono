@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import type { MarketplaceCategoryDomainRepository } from '../../domain/repositories/marketplace-category.repository';
 import {
-  MARKETPLACE_BASELINE_CATEGORIES,
+  MARKETPLACE_FOOD_CATEGORIES,
   MarketplaceCategoryDomainEntity,
 } from '../../domain/entities/marketplace-category.entity';
 import { MarketplaceCategoryEntity } from '../entities/marketplace-category.entity';
@@ -33,7 +33,7 @@ export class MarketplaceCategoryRepositoryAdapter
   }
 
   async upsertBaseline(): Promise<void> {
-    for (const c of MARKETPLACE_BASELINE_CATEGORIES) {
+    for (const c of MARKETPLACE_FOOD_CATEGORIES) {
       await this.repo.upsert(
         { id: c.id, display_name: c.display_name, sort_order: c.sort_order, mvp_baseline: true },
         ['id']

@@ -11,11 +11,11 @@ import {
  * Story 3.2: Offer Стола заказов. Pure db (не on-chain).
  * Поля под Story 3.3/3.4 проставлены сразу — миграция расширения едина.
  *
- * Hot-path индексы для каталога (Story 3.5): `(cooperative_id, status,
+ * Hot-path индексы для каталога (Story 3.5): `(coopname, status,
  * category_id)` — фильтр-чипы; `(supplier_account, status)` — «мои оферы».
  */
 @Entity({ name: 'marketplace_offer' })
-@Index(['cooperative_id', 'status', 'category_id'])
+@Index(['coopname', 'status', 'category_id'])
 @Index(['supplier_account', 'status'])
 @Index(['status', 'created_at'])
 export class MarketplaceOfferEntity {
@@ -23,7 +23,7 @@ export class MarketplaceOfferEntity {
   public id!: string;
 
   @Column({ type: 'varchar', length: 13 })
-  public cooperative_id!: string;
+  public coopname!: string;
 
   @Column({ type: 'varchar', length: 13 })
   public supplier_account!: string;

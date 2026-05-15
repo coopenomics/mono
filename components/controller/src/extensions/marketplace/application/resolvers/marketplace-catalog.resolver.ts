@@ -9,19 +9,23 @@ import {
   MarketplaceCategoryOfferCountDTO,
   MarketplaceListCatalogInputDTO,
 } from '../dto/marketplace-catalog.dto';
-import { MarketplaceOfferDTO, MarketplaceOfferPageDTO } from '../dto/marketplace-offer.dto';
+import {
+  MarketplaceOfferDTO,
+  MarketplaceOfferPaginationResultDTO,
+} from '../dto/marketplace-offer.dto';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import {
   MARKETPLACE_OFFER_REPOSITORY,
   type MarketplaceOfferDomainRepository,
 } from '../../domain/repositories/marketplace-offer.repository';
+import { MARKETPLACE_FOOD_CATEGORIES } from '../../domain/entities/marketplace-category.entity';
 import type { MarketplaceOfferDomainEntity } from '../../domain/entities/marketplace-offer.entity';
 
 function toOfferDTO(o: MarketplaceOfferDomainEntity): MarketplaceOfferDTO {
   return new MarketplaceOfferDTO({
     id: o.id,
-    cooperative_id: o.cooperative_id,
+    coopname: o.coopname,
     supplier_account: o.supplier_account,
     vitrine_id: o.vitrine_id,
     product_name: o.product_name,
@@ -69,7 +73,7 @@ export class MarketplaceCatalogResolver {
     private readonly offerRepo: MarketplaceOfferDomainRepository
   ) {}
 
-  @Query(() => MarketplaceOfferPageDTO, {
+  @Query(() => MarketplaceOfferPaginationResultDTO, {
     name: 'marketplaceListCatalog',
     description: 'Каталог активных Offer\'ов (ACTIVE + available, single vitrine MVP)',
   })
@@ -77,24 +81,28 @@ export class MarketplaceCatalogResolver {
   @RequireMarketplaceAccess('Offer', 'read')
   async marketplaceListCatalog(
     @Args('input', { nullable: true }) input?: MarketplaceListCatalogInputDTO
-  ): Promise<MarketplaceOfferPageDTO> {
-    const page = await this.offerRepo.list(
+  ): Promise<MarketplaceOfferPaginationResultDTO> {
+    const pagination = {
+      page: input?.page ?? 1,
+      limit: input?.limit ?? 24,
+      sortBy: input?.sortBy ?? 'created_at',
+      sortOrder: (input?.sortOrder ?? 'DESC') as 'ASC' | 'DESC',
+    };
+    const result = await this.offerRepo.list(
       {
-        cooperative_id: config.coopname,
+        coopname: config.coopname,
         status: 'ACTIVE',
         category_id: input?.category_id ?? undefined,
         available_only: true,
       },
-      {
-        limit: input?.limit ?? 24,
-        offset: input?.offset ?? 0,
-        sort: input?.sort ?? 'created_at_desc',
-      }
+      pagination
     );
-    return new MarketplaceOfferPageDTO({
-      total: page.total,
-      items: page.items.map(toOfferDTO),
-    });
+    return {
+      items: result.items.map(toOfferDTO),
+      totalCount: result.totalCount,
+      totalPages: result.totalPages,
+      currentPage: result.currentPage,
+    };
   }
 
   @Query(() => [MarketplaceCategoryOfferCountDTO], {
@@ -105,17 +113,12 @@ export class MarketplaceCatalogResolver {
   @RequireMarketplaceAccess('Offer', 'read')
   async marketplaceCategoryOfferCounts(): Promise<MarketplaceCategoryOfferCountDTO[]> {
     const map = await this.offerRepo.countByCategory(config.coopname);
-    // Гарантируем 10 категорий в ответе (даже с count=0) — UX-DR10
-    // фильтр-чипы рисуются по полному baseline.
-    const result: MarketplaceCategoryOfferCountDTO[] = [];
-    for (let id = 1; id <= 10; id++) {
-      result.push(
+    return MARKETPLACE_FOOD_CATEGORIES.map(
+      (c) =>
         new MarketplaceCategoryOfferCountDTO({
-          category_id: id,
-          count: map.get(id) ?? 0,
+          category_id: c.id,
+          count: map.get(c.id) ?? 0,
         })
-      );
-    }
-    return result;
+    );
   }
 }

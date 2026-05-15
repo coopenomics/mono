@@ -21,7 +21,7 @@ import type {
  */
 export class MarketplaceOfferDomainEntity {
   public readonly id!: string;
-  public readonly cooperative_id!: string;
+  public readonly coopname!: string;
   public readonly supplier_account!: string;
   public readonly vitrine_id!: string;
 
@@ -55,7 +55,7 @@ export class MarketplaceOfferDomainEntity {
 
   constructor(init: {
     id: string;
-    cooperative_id: string;
+    coopname: string;
     supplier_account: string;
     vitrine_id: string;
     product_name: string;

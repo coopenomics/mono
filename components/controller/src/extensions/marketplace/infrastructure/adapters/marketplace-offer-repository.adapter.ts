@@ -6,11 +6,14 @@ import type {
   OfferCountersDeltaResult,
   OfferCreateInput,
   OfferListFilter,
-  OfferListPage,
   OfferUpdateInput,
 } from '../../domain/repositories/marketplace-offer.repository';
 import type { MarketplaceOfferDomainEntity } from '../../domain/entities/marketplace-offer.entity';
 import type { MarketplaceOfferStatus } from '../../domain/entities/marketplace-offer.types';
+import type {
+  PaginationInputDomainInterface,
+  PaginationResultDomainInterface,
+} from '~/domain/common/interfaces/pagination.interface';
 import { MarketplaceOfferEntity } from '../entities/marketplace-offer.entity';
 import { MarketplaceOfferMapper } from '../mappers/marketplace-offer.mapper';
 
@@ -29,11 +32,11 @@ export class MarketplaceOfferRepositoryAdapter implements MarketplaceOfferDomain
 
   async list(
     filter: OfferListFilter,
-    paging: { limit: number; offset: number; sort?: 'created_at_desc' | 'price_asc' | 'price_desc' }
-  ): Promise<OfferListPage> {
+    pagination: PaginationInputDomainInterface
+  ): Promise<PaginationResultDomainInterface<MarketplaceOfferDomainEntity>> {
     const qb = this.repo
       .createQueryBuilder('o')
-      .where('o.cooperative_id = :coop', { coop: filter.cooperative_id });
+      .where('o.coopname = :coop', { coop: filter.coopname });
 
     if (filter.supplier_account) {
       qb.andWhere('o.supplier_account = :supplier', { supplier: filter.supplier_account });
@@ -49,33 +52,46 @@ export class MarketplaceOfferRepositoryAdapter implements MarketplaceOfferDomain
     }
 
     if (filter.available_only) {
-      // unlimited=true || quantity_available > 0
       qb.andWhere('(o.unlimited_flag = true OR o.quantity_available > 0)');
     }
 
-    switch (paging.sort) {
-      case 'price_asc':
-        qb.orderBy('o.price_per_unit', 'ASC').addOrderBy('o.created_at', 'DESC');
-        break;
-      case 'price_desc':
-        qb.orderBy('o.price_per_unit', 'DESC').addOrderBy('o.created_at', 'DESC');
-        break;
-      default:
-        qb.orderBy('o.created_at', 'DESC');
+    const sortColumn = MarketplaceOfferRepositoryAdapter.resolveSortColumn(pagination.sortBy);
+    qb.orderBy(sortColumn, pagination.sortOrder);
+    if (sortColumn !== 'o.created_at') {
+      qb.addOrderBy('o.created_at', 'DESC');
     }
 
-    qb.skip(paging.offset).take(paging.limit);
+    const { page, limit } = pagination;
+    qb.skip((page - 1) * limit).take(limit);
 
-    const [rows, total] = await qb.getManyAndCount();
-    return { items: rows.map((r) => this.mapper.toDomain(r)), total };
+    const [rows, totalCount] = await qb.getManyAndCount();
+    return {
+      items: rows.map((r) => this.mapper.toDomain(r)),
+      totalCount,
+      totalPages: Math.ceil(totalCount / limit),
+      currentPage: page,
+    };
   }
 
-  async countByCategory(cooperative_id: string): Promise<Map<number, number>> {
+  private static resolveSortColumn(sortBy: string | undefined): string {
+    switch (sortBy) {
+      case 'price_per_unit':
+      case 'price':
+        return 'o.price_per_unit';
+      case 'product_name':
+        return 'o.product_name';
+      case 'created_at':
+      default:
+        return 'o.created_at';
+    }
+  }
+
+  async countByCategory(coopname: string): Promise<Map<number, number>> {
     const rows = await this.repo
       .createQueryBuilder('o')
       .select('o.category_id', 'category_id')
       .addSelect('COUNT(*)', 'cnt')
-      .where('o.cooperative_id = :coop', { coop: cooperative_id })
+      .where('o.coopname = :coop', { coop: coopname })
       .andWhere('o.status = :s', { s: 'ACTIVE' as MarketplaceOfferStatus })
       .andWhere('(o.unlimited_flag = true OR o.quantity_available > 0)')
       .groupBy('o.category_id')
@@ -97,7 +113,7 @@ export class MarketplaceOfferRepositoryAdapter implements MarketplaceOfferDomain
 
   async create(input: OfferCreateInput): Promise<MarketplaceOfferDomainEntity> {
     const row = this.repo.create({
-      cooperative_id: input.cooperative_id,
+      coopname: input.coopname,
       supplier_account: input.supplier_account,
       vitrine_id: input.vitrine_id,
       product_name: input.product_name,

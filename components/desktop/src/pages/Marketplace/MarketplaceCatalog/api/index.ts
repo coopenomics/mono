@@ -25,7 +25,7 @@ const LIST_CATALOG_QUERY = `
       total
       items {
         id
-        cooperative_id
+        coopname
         supplier_account
         vitrine_id
         product_name

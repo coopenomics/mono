@@ -100,34 +100,34 @@ export class MarketplaceOfferCountersService {
 
   private assertPositive(qty: number): void {
     if (!Number.isInteger(qty) || qty <= 0) {
-      throw new BadRequestException(`qty должен быть целым >0, получено: ${qty}`);
+      throw new BadRequestException('Количество должно быть целым числом больше нуля.');
     }
   }
 
   private throwForReason(
     reason: string | undefined,
-    offer_id: string,
+    _offer_id: string,
     op: string,
     qty: number
   ): never {
     switch (reason) {
       case 'offer_not_found':
-        throw new NotFoundException(`Offer ${offer_id} не найден`);
+        throw new NotFoundException('Предложение не найдено.');
       case 'offer_not_active':
         throw new BadRequestException(
-          `Offer ${offer_id} не в статусе ACTIVE — операция '${op}' (${qty}) запрещена`
+          'Предложение неактивно — операция с количеством запрещена.'
         );
       case 'insufficient_available':
         throw new BadRequestException(
-          `Недостаточно available для блокировки ${qty} на Offer ${offer_id}`
+          `Недостаточно свободного количества в предложении: требуется ${qty}.`
         );
       case 'insufficient_blocked':
         throw new BadRequestException(
-          `Недостаточно blocked для операции ${op} (${qty}) на Offer ${offer_id}`
+          `Недостаточно зарезервированного количества для операции: требуется ${qty}.`
         );
       default:
         throw new BadRequestException(
-          `Не удалось применить counters delta ${op}(${qty}) на Offer ${offer_id}`
+          `Не удалось выполнить операцию «${op}» на ${qty}. Попробуйте обновить страницу.`
         );
     }
   }

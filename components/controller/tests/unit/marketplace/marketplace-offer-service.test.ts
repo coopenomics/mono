@@ -27,7 +27,7 @@ const COOP = 'voskhod';
 function makeOffer(overrides: Partial<MarketplaceOfferDomainEntity> = {}): MarketplaceOfferDomainEntity {
   return new MarketplaceOfferDomainEntity({
     id: 'offer-1',
-    cooperative_id: COOP,
+    coopname: COOP,
     supplier_account: 'alice',
     vitrine_id: 'default',
     product_name: 'Картофель',
@@ -91,7 +91,7 @@ function makeCategoryRepo(): jest.Mocked<MarketplaceCategoryDomainRepository> {
 
 function baseCreateRequest(overrides: Partial<OfferCreateRequest> = {}): OfferCreateRequest {
   return {
-    cooperative_id: COOP,
+    coopname: COOP,
     supplier_account: 'alice',
     vitrine_id: 'default',
     product_name: 'Картофель',
@@ -375,15 +375,27 @@ describe('MarketplaceOfferService.listMine + getById', () => {
   it('listMine делегирует в репозиторий с фильтром supplier_account', async () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
-    repo.list.mockResolvedValue({ total: 1, items: [makeOffer()] });
+    repo.list.mockResolvedValue({
+      items: [makeOffer()],
+      totalCount: 1,
+      totalPages: 1,
+      currentPage: 1,
+    });
     const service = new MarketplaceOfferService(repo, cats);
 
-    const page = await service.listMine(COOP, 'alice', { limit: 50, offset: 0 });
+    const result = await service.listMine(COOP, 'alice', {
+      page: 1,
+      limit: 50,
+      sortBy: 'created_at',
+      sortOrder: 'DESC',
+    });
     expect(repo.list).toHaveBeenCalledWith(
-      { cooperative_id: COOP, supplier_account: 'alice' },
-      { limit: 50, offset: 0 }
+      { coopname: COOP, supplier_account: 'alice' },
+      { page: 1, limit: 50, sortBy: 'created_at', sortOrder: 'DESC' }
     );
-    expect(page.total).toBe(1);
+    expect(result.totalCount).toBe(1);
+    expect(result.totalPages).toBe(1);
+    expect(result.currentPage).toBe(1);
   });
 
   it('getById → findById', async () => {

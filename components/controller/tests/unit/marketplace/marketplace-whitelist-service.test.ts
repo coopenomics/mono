@@ -23,7 +23,7 @@ const COOP = 'voskhod';
 function makeEntry(member: string, role: 'auto-coop' | 'manual'): MarketplaceWhitelistEntryDomainEntity {
   return new MarketplaceWhitelistEntryDomainEntity({
     id: `id-${member}`,
-    cooperative_id: COOP,
+    coopname: COOP,
     member_account: member,
     role,
     added_by: role === 'auto-coop' ? null : 'admin',

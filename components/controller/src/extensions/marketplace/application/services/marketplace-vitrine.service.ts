@@ -21,11 +21,11 @@ export class MarketplaceVitrineService {
     private readonly repo: MarketplaceVitrineDomainRepository
   ) {}
 
-  async getDefault(cooperative_id: string): Promise<MarketplaceVitrineDomainEntity | null> {
-    return this.repo.findDefault(cooperative_id);
+  async getDefault(coopname: string): Promise<MarketplaceVitrineDomainEntity | null> {
+    return this.repo.findDefault(coopname);
   }
 
-  async list(cooperative_id: string): Promise<MarketplaceVitrineDomainEntity[]> {
-    return this.repo.list(cooperative_id);
+  async list(coopname: string): Promise<MarketplaceVitrineDomainEntity[]> {
+    return this.repo.list(coopname);
   }
 }

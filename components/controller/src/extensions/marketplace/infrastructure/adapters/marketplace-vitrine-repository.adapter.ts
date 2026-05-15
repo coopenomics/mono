@@ -14,29 +14,29 @@ export class MarketplaceVitrineRepositoryAdapter implements MarketplaceVitrineDo
     private readonly mapper: MarketplaceVitrineMapper
   ) {}
 
-  async findDefault(cooperative_id: string): Promise<MarketplaceVitrineDomainEntity | null> {
-    const row = await this.repo.findOne({ where: { cooperative_id, is_default: true } });
+  async findDefault(coopname: string): Promise<MarketplaceVitrineDomainEntity | null> {
+    const row = await this.repo.findOne({ where: { coopname, is_default: true } });
     return row ? this.mapper.toDomain(row) : null;
   }
 
-  async list(cooperative_id: string): Promise<MarketplaceVitrineDomainEntity[]> {
+  async list(coopname: string): Promise<MarketplaceVitrineDomainEntity[]> {
     const rows = await this.repo.find({
-      where: { cooperative_id },
+      where: { coopname },
       order: { created_at: 'ASC' },
     });
     return rows.map((r) => this.mapper.toDomain(r));
   }
 
   async ensureDefault(
-    cooperative_id: string,
+    coopname: string,
     display_name: string
   ): Promise<MarketplaceVitrineDomainEntity> {
-    const existing = await this.repo.findOne({ where: { cooperative_id, is_default: true } });
+    const existing = await this.repo.findOne({ where: { coopname, is_default: true } });
     if (existing) return this.mapper.toDomain(existing);
 
     const row = this.repo.create({
       id: 'default',
-      cooperative_id,
+      coopname,
       display_name,
       is_default: true,
     });

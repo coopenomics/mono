@@ -27,7 +27,7 @@ const COOP = 'voskhod';
 function makeOffer(overrides: Partial<MarketplaceOfferDomainEntity> = {}): MarketplaceOfferDomainEntity {
   return new MarketplaceOfferDomainEntity({
     id: 'offer-1',
-    cooperative_id: COOP,
+    coopname: COOP,
     supplier_account: 'alice',
     vitrine_id: 'default',
     product_name: 'Картофель',
@@ -225,13 +225,18 @@ describe('MarketplaceModerationService.reject', () => {
 describe('MarketplaceModerationService.listPending + listLog', () => {
   it('listPending: filter status=PENDING_MODERATION, paging', async () => {
     const offerRepo = makeOfferRepo();
-    offerRepo.list.mockResolvedValue({ total: 0, items: [] });
+    offerRepo.list.mockResolvedValue({ items: [], totalCount: 0, totalPages: 0, currentPage: 1 });
     const service = new MarketplaceModerationService(offerRepo, makeLogRepo(), makeEventBus());
 
-    await service.listPending(COOP, { limit: 25, offset: 0 });
+    await service.listPending(COOP, {
+      page: 1,
+      limit: 25,
+      sortBy: 'created_at',
+      sortOrder: 'DESC',
+    });
     expect(offerRepo.list).toHaveBeenCalledWith(
-      { cooperative_id: COOP, status: 'PENDING_MODERATION' },
-      { limit: 25, offset: 0, sort: 'created_at_desc' }
+      { coopname: COOP, status: 'PENDING_MODERATION' },
+      { page: 1, limit: 25, sortBy: 'created_at', sortOrder: 'DESC' }
     );
   });
 

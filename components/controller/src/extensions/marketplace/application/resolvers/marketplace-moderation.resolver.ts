@@ -6,7 +6,10 @@ import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guar
 
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
-import { MarketplaceOfferDTO, MarketplaceOfferPageDTO } from '../dto/marketplace-offer.dto';
+import {
+  MarketplaceOfferDTO,
+  MarketplaceOfferPaginationResultDTO,
+} from '../dto/marketplace-offer.dto';
 import {
   MarketplaceApproveOfferInputDTO,
   MarketplaceListPendingOffersInputDTO,
@@ -25,7 +28,7 @@ import type { MarketplaceOfferDomainEntity } from '../../domain/entities/marketp
 function toOfferDTO(o: MarketplaceOfferDomainEntity): MarketplaceOfferDTO {
   return new MarketplaceOfferDTO({
     id: o.id,
-    cooperative_id: o.cooperative_id,
+    coopname: o.coopname,
     supplier_account: o.supplier_account,
     vitrine_id: o.vitrine_id,
     product_name: o.product_name,
@@ -68,7 +71,7 @@ export class MarketplaceModerationResolver {
     private readonly service: MarketplaceModerationService
   ) {}
 
-  @Query(() => MarketplaceOfferPageDTO, {
+  @Query(() => MarketplaceOfferPaginationResultDTO, {
     name: 'marketplaceListPendingOffers',
     description: 'Список Offer\'ов на модерации (admin)',
   })
@@ -76,15 +79,20 @@ export class MarketplaceModerationResolver {
   @RequireMarketplaceAccess('Offer', 'moderate')
   async marketplaceListPendingOffers(
     @Args('input', { nullable: true }) input?: MarketplaceListPendingOffersInputDTO
-  ): Promise<MarketplaceOfferPageDTO> {
-    const page = await this.service.listPending(config.coopname, {
+  ): Promise<MarketplaceOfferPaginationResultDTO> {
+    const pagination = {
+      page: input?.page ?? 1,
       limit: input?.limit ?? 50,
-      offset: input?.offset ?? 0,
-    });
-    return new MarketplaceOfferPageDTO({
-      total: page.total,
-      items: page.items.map(toOfferDTO),
-    });
+      sortBy: input?.sortBy ?? 'created_at',
+      sortOrder: (input?.sortOrder ?? 'DESC') as 'ASC' | 'DESC',
+    };
+    const result = await this.service.listPending(config.coopname, pagination);
+    return {
+      items: result.items.map(toOfferDTO),
+      totalCount: result.totalCount,
+      totalPages: result.totalPages,
+      currentPage: result.currentPage,
+    };
   }
 
   @Mutation(() => MarketplaceOfferDTO, {

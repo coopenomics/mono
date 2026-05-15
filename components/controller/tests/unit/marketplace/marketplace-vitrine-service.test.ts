@@ -14,7 +14,7 @@ const COOP = 'voskhod';
 function makeVitrine(id: string, isDefault: boolean): MarketplaceVitrineDomainEntity {
   return new MarketplaceVitrineDomainEntity({
     id,
-    cooperative_id: COOP,
+    coopname: COOP,
     display_name: 'Стол заказов',
     is_default: isDefault,
     created_at: new Date('2026-05-15T12:00:00Z'),

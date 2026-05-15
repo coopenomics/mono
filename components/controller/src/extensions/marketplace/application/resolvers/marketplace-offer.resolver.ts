@@ -6,7 +6,11 @@ import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guar
 
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
-import { MarketplaceCategoryDTO, MarketplaceOfferDTO, MarketplaceOfferPageDTO } from '../dto/marketplace-offer.dto';
+import {
+  MarketplaceCategoryDTO,
+  MarketplaceOfferDTO,
+  MarketplaceOfferPaginationResultDTO,
+} from '../dto/marketplace-offer.dto';
 import {
   MarketplaceCreateOfferInputDTO,
   MarketplaceListMyOffersInputDTO,
@@ -29,7 +33,7 @@ import type { MarketplaceOfferDomainEntity } from '../../domain/entities/marketp
 function toDTO(o: MarketplaceOfferDomainEntity): MarketplaceOfferDTO {
   return new MarketplaceOfferDTO({
     id: o.id,
-    cooperative_id: o.cooperative_id,
+    coopname: o.coopname,
     supplier_account: o.supplier_account,
     vitrine_id: o.vitrine_id,
     product_name: o.product_name,
@@ -80,7 +84,7 @@ export class MarketplaceOfferResolver {
 
   @Query(() => [MarketplaceCategoryDTO], {
     name: 'marketplaceListCategories',
-    description: '10 baseline-категорий Стола заказов (Story 3.2/3.5)',
+    description: 'Baseline-категории Стола заказов (Story 3.2/3.5) — 8 продовольственных + «Прочее»',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Offer', 'read')
@@ -108,7 +112,7 @@ export class MarketplaceOfferResolver {
     @Args('input') input: MarketplaceCreateOfferInputDTO
   ): Promise<MarketplaceOfferDTO> {
     const offer = await this.offerService.create({
-      cooperative_id: config.coopname,
+      coopname: config.coopname,
       supplier_account: member.username,
       vitrine_id: 'default',
       product_name: input.product_name,
@@ -157,7 +161,7 @@ export class MarketplaceOfferResolver {
     return toDTO(offer);
   }
 
-  @Query(() => MarketplaceOfferPageDTO, {
+  @Query(() => MarketplaceOfferPaginationResultDTO, {
     name: 'marketplaceListMyOffers',
     description: 'Список собственных Offer\'ов поставщика (любой статус)',
   })
@@ -166,14 +170,23 @@ export class MarketplaceOfferResolver {
   async marketplaceListMyOffers(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('input', { nullable: true }) input?: MarketplaceListMyOffersInputDTO
-  ): Promise<MarketplaceOfferPageDTO> {
-    const page = await this.offerService.listMine(config.coopname, member.username, {
+  ): Promise<MarketplaceOfferPaginationResultDTO> {
+    const pagination = {
+      page: input?.page ?? 1,
       limit: input?.limit ?? 50,
-      offset: input?.offset ?? 0,
-    });
-    return new MarketplaceOfferPageDTO({
-      total: page.total,
-      items: page.items.map(toDTO),
-    });
+      sortBy: input?.sortBy ?? 'created_at',
+      sortOrder: (input?.sortOrder ?? 'DESC') as 'ASC' | 'DESC',
+    };
+    const result = await this.offerService.listMine(
+      config.coopname,
+      member.username,
+      pagination
+    );
+    return {
+      items: result.items.map(toDTO),
+      totalCount: result.totalCount,
+      totalPages: result.totalPages,
+      currentPage: result.currentPage,
+    };
   }
 }

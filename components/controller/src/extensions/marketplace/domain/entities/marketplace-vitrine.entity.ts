@@ -3,7 +3,7 @@
  */
 export class MarketplaceVitrineDomainEntity {
   public readonly id!: string;
-  public readonly cooperative_id!: string;
+  public readonly coopname!: string;
   public readonly display_name!: string;
   public readonly is_default!: boolean;
   public readonly created_at!: Date;
@@ -11,14 +11,14 @@ export class MarketplaceVitrineDomainEntity {
 
   constructor(init: {
     id: string;
-    cooperative_id: string;
+    coopname: string;
     display_name: string;
     is_default: boolean;
     created_at: Date;
     updated_at: Date;
   }) {
     this.id = init.id;
-    this.cooperative_id = init.cooperative_id;
+    this.coopname = init.coopname;
     this.display_name = init.display_name;
     this.is_default = init.is_default;
     this.created_at = init.created_at;

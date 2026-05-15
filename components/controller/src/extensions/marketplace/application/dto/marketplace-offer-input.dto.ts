@@ -11,6 +11,7 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
+import { PaginationInputDTO } from '~/application/common/dto/pagination.dto';
 
 const CYCLE_TYPES = ['time_based', 'volume_based', 'open_subscription', 'individual'] as const;
 const UNITS = ['piece', 'kg', 'liter', 'pack'] as const;
@@ -30,7 +31,7 @@ export class MarketplaceCreateOfferInputDTO {
   @Field(() => Int)
   @IsInt()
   @Min(1)
-  @Max(10)
+  @Max(9)
   public category_id!: number;
 
   @Field(() => String, { description: 'Цена за единицу (numeric как string, до 4 знаков)' })
@@ -105,7 +106,7 @@ export class MarketplaceUpdateOfferInputDTO {
   @IsOptional()
   @IsInt()
   @Min(1)
-  @Max(10)
+  @Max(9)
   public category_id?: number;
 
   @Field(() => String, { nullable: true })
@@ -173,17 +174,4 @@ export class MarketplaceWithdrawOfferInputDTO {
 }
 
 @InputType('MarketplaceListMyOffersInput')
-export class MarketplaceListMyOffersInputDTO {
-  @Field(() => Int, { nullable: true, defaultValue: 50 })
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  @Max(200)
-  public limit?: number;
-
-  @Field(() => Int, { nullable: true, defaultValue: 0 })
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  public offset?: number;
-}
+export class MarketplaceListMyOffersInputDTO extends PaginationInputDTO {}

@@ -27,7 +27,7 @@ import type { MarketplaceOfferDomainRepository } from '~/extensions/marketplace/
 function makeOffer(overrides: Partial<MarketplaceOfferDomainEntity> = {}): MarketplaceOfferDomainEntity {
   return new MarketplaceOfferDomainEntity({
     id: 'offer-1',
-    cooperative_id: 'voskhod',
+    coopname: 'voskhod',
     supplier_account: 'alice',
     vitrine_id: 'default',
     product_name: 'Картофель',
@@ -164,7 +164,9 @@ describe('MarketplaceOfferCountersService', () => {
     const service = new MarketplaceOfferCountersService(repo, makeBus());
 
     await expect(service.onOrderBlocked('offer-1', 100)).rejects.toThrow(BadRequestException);
-    await expect(service.onOrderBlocked('offer-1', 100)).rejects.toThrow(/Недостаточно available/);
+    await expect(service.onOrderBlocked('offer-1', 100)).rejects.toThrow(
+      /Недостаточно свободного количества/
+    );
   });
 
   it('insufficient_blocked → 400', async () => {
@@ -173,7 +175,9 @@ describe('MarketplaceOfferCountersService', () => {
     const service = new MarketplaceOfferCountersService(repo, makeBus());
 
     await expect(service.onOrderUnblocked('offer-1', 100)).rejects.toThrow(BadRequestException);
-    await expect(service.onOrderUnblocked('offer-1', 100)).rejects.toThrow(/Недостаточно blocked/);
+    await expect(service.onOrderUnblocked('offer-1', 100)).rejects.toThrow(
+      /Недостаточно зарезервированного количества/
+    );
   });
 
   it('offer_not_active → 400 (например, WITHDRAWN)', async () => {
@@ -182,7 +186,7 @@ describe('MarketplaceOfferCountersService', () => {
     const service = new MarketplaceOfferCountersService(repo, makeBus());
 
     await expect(service.onOrderBlocked('offer-1', 5)).rejects.toThrow(BadRequestException);
-    await expect(service.onOrderBlocked('offer-1', 5)).rejects.toThrow(/не в статусе ACTIVE/);
+    await expect(service.onOrderBlocked('offer-1', 5)).rejects.toThrow(/Предложение неактивно/);
   });
 
   it('offer_not_found → 404', async () => {

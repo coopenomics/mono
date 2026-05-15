@@ -55,7 +55,7 @@ export const marketplaceBootstrapV3Migration: IExtensionSchemaMigration<Partial<
 
       const vitrine = await vitrineRepo.ensureDefault(coopname, 'Стол заказов');
       ctx.logInfo(
-        `[BOOTSTRAP_V3] дефолтная витрина: id=${vitrine.id} cooperative_id=${vitrine.cooperative_id}`
+        `[BOOTSTRAP_V3] дефолтная витрина: id=${vitrine.id} coopname=${vitrine.coopname}`
       );
 
       const autoCoop = await whitelistRepo.add(coopname, coopname, 'auto-coop', null);
