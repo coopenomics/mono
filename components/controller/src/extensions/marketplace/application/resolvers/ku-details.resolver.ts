@@ -9,16 +9,10 @@ import { KuDetailsDTO } from '../dto/ku-details.dto';
 import { ListMarketplaceKUInputDTO } from '../dto/list-marketplace-ku-input.dto';
 import { KuDetailsService } from '../services/ku-details.service';
 
-/**
- * GraphQL-резолвер для marketplace-детализации существующих в core КУ
- * (Эпик 2, Stories 2.1 + 2.2).
- *
- * Доступ: операции записи — только `chairman` (общий админ кооператива,
- * marketplace-role `[admin]` per Story 1.6/1.8 локального acceptance);
- * чтение — `chairman`, `member` (member ≈ `board_readonly`), `user`
- * (заказчик/поставщик), однако заказчику/поставщику резолвер на их столе
- * фильтрует `onlyActive=true` на уровне UI — см. Story 2.3.
- */
+// GraphQL-резолвер для marketplace-детализации существующих в core КУ.
+// Доступ: операции записи — только chairman (админ кооператива);
+// чтение — chairman, member, user. Фильтрация onlyActive для заказчика/
+// поставщика выполняется на уровне UI.
 @Resolver(() => KuDetailsDTO)
 export class KuDetailsResolver {
   constructor(private readonly kuDetailsService: KuDetailsService) {}
@@ -26,10 +20,10 @@ export class KuDetailsResolver {
   @Mutation(() => KuDetailsDTO, {
     name: 'marketplaceDetailKU',
     description:
-      'Детализирует существующий в core кооперативный участок как ПВЗ Стола заказов (Story 2.1). ' +
-      'Создаёт запись `marketplace_ku_details`, либо обновляет существующую. ' +
-      'При смене адреса запускает повторный геокодинг Yandex (Story 2.2) — координаты ' +
-      'сбрасываются в `PENDING` и обновляются асинхронно.',
+      'Детализирует существующий в core кооперативный участок как ПВЗ Стола заказов. ' +
+      'Создаёт запись marketplace_ku_details, либо обновляет существующую. ' +
+      'При смене адреса запускает повторный геокодинг — координаты сбрасываются в PENDING ' +
+      'и обновляются асинхронно.',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman'])
@@ -39,7 +33,7 @@ export class KuDetailsResolver {
 
   @Mutation(() => KuDetailsDTO, {
     name: 'marketplaceSetKUStatus',
-    description: 'Активирует или деактивирует ПВЗ Стола заказов (Story 2.1).',
+    description: 'Активирует или деактивирует ПВЗ Стола заказов.',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman'])
@@ -49,7 +43,7 @@ export class KuDetailsResolver {
 
   @Mutation(() => KuDetailsDTO, {
     name: 'marketplaceRetryKUGeocode',
-    description: 'Повторно запускает геокодинг адреса ПВЗ (Story 2.2, re-trigger).',
+    description: 'Повторно запускает геокодинг адреса ПВЗ.',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman'])
@@ -62,7 +56,7 @@ export class KuDetailsResolver {
 
   @Query(() => [KuDetailsDTO], {
     name: 'marketplaceListKUDetails',
-    description: 'Список marketplace-детализаций ПВЗ кооператива (Story 2.1).',
+    description: 'Список marketplace-детализаций ПВЗ кооператива.',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member', 'user'])

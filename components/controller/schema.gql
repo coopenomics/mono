@@ -16,6 +16,13 @@ input AcceptChildOrderInput {
   username: String!
 }
 
+input AcceptStockInput {
+  convert_in: SignedDigitalDocumentInput!
+  request_hash: String!
+  return_statement: SignedDigitalDocumentInput!
+  username: String!
+}
+
 type Account {
   """
   объект аккаунта в блокчейне содержит системную информацию, такую как публичные ключи доступа, доступные вычислительные ресурсы, информация об установленном смарт-контракте, и т.д. и т.п. Это системный уровень обслуживания, где у каждого пайщика есть аккаунт, но не каждый аккаунт может быть пайщиком в каком-либо кооперативе. Все смарт-контракты устанавливаются и исполняются на этом уровне.
@@ -133,6 +140,16 @@ input AddAuthorInput {
 
   """Хэш проекта"""
   project_hash: String!
+}
+
+input AddAvailableCategoriesInput {
+  """ID категорий для добавления (целые категории)"""
+  categoryIds: [Int!]!
+}
+
+input AddAvailableCategoryTypesInput {
+  """Типы товаров для добавления"""
+  categoryTypes: [CategoryTypeInput!]!
 }
 
 input AddParticipantInput {
@@ -3708,6 +3725,25 @@ type CapitalVote {
   voter_display_name: String
 }
 
+type Category {
+  coopname: String!
+  description: String
+  icon: String
+  id: String!
+  is_active: Boolean!
+  name: String!
+  parent_id: String
+  sort_order: Int!
+}
+
+input CategoryTypeInput {
+  """ID категории"""
+  categoryId: Int!
+
+  """ID типа товара"""
+  typeId: Int!
+}
+
 input ChairmanOnboardingAgendaInput {
   decision: String!
   question: String!
@@ -4082,6 +4118,11 @@ type ContactsDTO {
   phone: String!
 }
 
+enum ContributionType {
+  MEMBER
+  SHARE
+}
+
 """Параметры документов участника из UData"""
 type ContributorDocumentParameters {
   """Дата создания соглашения благороста"""
@@ -4349,6 +4390,17 @@ type CooperativeProgram {
   program_type: String!
 }
 
+input CoopstockInput {
+  braname: String!
+  hash: String!
+  membership_fee_amount: String!
+  meta: String!
+  product_lifecycle_secs: Int!
+  unit_cost: String!
+  units: Int!
+  warranty_period_secs: Int!
+}
+
 """Страна регистрации пользователя"""
 enum Country {
   Russia
@@ -4414,6 +4466,14 @@ input CreateBranchInput {
 
   """Имя аккаунта уполномоченного (председателя) кооперативного участка"""
   trustee: String!
+}
+
+input CreateCategoryInput {
+  description: String
+  icon: String
+  name: String!
+  parent_id: String
+  sort_order: Int
 }
 
 input CreateChatCoopCalendarEventInput {
@@ -4774,6 +4834,24 @@ input CreateProcessTemplateInput {
   title: String!
 }
 
+input CreateProductCardInput {
+  braname: String
+  cancellation_fee_amount: String
+  category_id: String
+  contribution_type: ContributionType!
+  delivery_type: DeliveryType!
+  description: String!
+  images: [String!]
+  membership_fee_amount: String
+  min_units: Int
+  product_lifecycle_secs: Int!
+  title: String!
+  type: ProductCardType!
+  unit_cost: String!
+  units: Int!
+  warranty_period_secs: Int!
+}
+
 input CreateProgramInvestInput {
   """Сумма инвестиции"""
   amount: String!
@@ -4880,6 +4958,92 @@ input CreateProjectPropertyInput {
 
   """Имя пользователя"""
   username: String!
+}
+
+input CreateRequestInput {
+  """Артикул товара (до 50 символов)"""
+  articleNumber: String!
+
+  """Атрибуты товара"""
+  attributes: [RequestAttributeInput!]! = []
+
+  """Штрихкод товара"""
+  barcode: String
+
+  """URL образца цвета"""
+  colorImageUrl: String
+
+  """Имя аккаунта кооператива"""
+  coopname: String!
+
+  """Валюта"""
+  currencyCode: String! = "RUB"
+
+  """Дополнительные данные JSON"""
+  data: String
+
+  """Глубина упаковки"""
+  depth: Int
+
+  """ID категории"""
+  descriptionCategoryId: Int!
+
+  """Единица измерения габаритов"""
+  dimensionUnit: String = "mm"
+
+  """Геоограничения"""
+  geoNames: [String!]! = []
+
+  """Высота упаковки"""
+  height: Int
+
+  """Изображения товара"""
+  images: [RequestImageInput!]! = []
+
+  """Метаданные JSON"""
+  meta: String
+
+  """Название товара (до 500 символов)"""
+  name: String!
+
+  """Цена до скидки"""
+  oldPrice: Float
+
+  """Хэш родительской заявки"""
+  parentHash: String
+
+  """Цена товара"""
+  price: Float!
+
+  """URL главного изображения"""
+  primaryImageUrl: String
+
+  """Время жизни продукта в секундах"""
+  productLifecycleSecs: Int
+
+  """Тип заявки: offer - предложение, order - заказ"""
+  type: RequestTypeInput!
+
+  """ID типа товара"""
+  typeId: Int!
+
+  """Количество единиц товара"""
+  units: Int!
+
+  """Ставка НДС (0, 0.05, 0.07, 0.1, 0.2)"""
+  vat: String!
+
+  """Гарантийный срок в днях"""
+  warrantyDays: Int
+
+  """Вес товара"""
+  weight: Int
+
+  """Единица измерения веса"""
+  weightUnit: String = "g"
+
+  """Ширина упаковки"""
+  width: Int
 }
 
 input CreateSovietIndividualDataInput {
@@ -5215,6 +5379,11 @@ input DeliverOnRequestInput {
   username: String!
 }
 
+enum DeliveryType {
+  EXTERNAL
+  INTERNAL
+}
+
 type Delta {
   """ID блока"""
   block_id: String!
@@ -5316,6 +5485,11 @@ type DesktopWorkspace {
 
   """Отображаемое название workspace"""
   title: String!
+}
+
+input DestroyRequestInput {
+  destruction_act: SignedDigitalDocumentInput!
+  request_hash: String!
 }
 
 input DisputeOnRequestInput {
@@ -5758,6 +5932,11 @@ input FinalizeProjectInput {
 
   """Хэш проекта для финализации"""
   project_hash: String!
+}
+
+input FindPotentialMatchesInput {
+  """ID заявки для поиска совпадений"""
+  requestId: Int!
 }
 
 input FreeDecisionGenerateDocumentInput {
@@ -6377,6 +6556,39 @@ input GetCapitalStoryByHashInput {
   story_hash: String!
 }
 
+input GetCategoryAttributesInput {
+  """ID категории"""
+  categoryId: Int!
+
+  """Включать значения словарей"""
+  includeDictionaryValues: Boolean = true
+
+  """Только обязательные атрибуты"""
+  onlyRequired: Boolean = false
+
+  """ID типа товара"""
+  typeId: Int!
+}
+
+input GetCategoryByIdInput {
+  """ID категории"""
+  categoryId: Int!
+}
+
+input GetCategoryTreeInput {
+  """Включать типы товаров"""
+  includeTypes: Boolean = true
+
+  """Максимальная глубина дерева"""
+  maxDepth: Int
+
+  """Включать только доступные категории"""
+  onlyAvailable: Boolean = false
+
+  """ID корневой категории"""
+  rootCategoryId: Int
+}
+
 input GetContributorInput {
   """ID участника"""
   _id: String
@@ -6386,6 +6598,20 @@ input GetContributorInput {
 
   """Имя пользователя"""
   username: String
+}
+
+input GetCoopRequestsInput {
+  """Название кооператива"""
+  coopname: String!
+
+  """Максимальное количество результатов"""
+  limit: Int = 50
+
+  """Статус заявки"""
+  status: String
+
+  """Тип заявки"""
+  type: RequestTypeInput
 }
 
 input GetDebtInput {
@@ -6586,6 +6812,11 @@ input GetPaymentMethodsInput {
   username: String
 }
 
+input GetProductTypeByIdInput {
+  """ID типа товара"""
+  typeId: Int!
+}
+
 input GetProjectCommunicationRoomsInput {
   """Хеш проекта Capital"""
   projectHash: String!
@@ -6602,6 +6833,29 @@ input GetProjectInput {
 input GetProjectWithRelationsInput {
   """Хеш проекта"""
   projectHash: String!
+}
+
+input GetRequestByHashInput {
+  """Хэш заявки"""
+  hash: String!
+}
+
+input GetRequestInput {
+  """ID заявки"""
+  id: Int!
+}
+
+input GetRequestStatisticsInput {
+  """Название кооператива"""
+  coopname: String!
+}
+
+input GetRequiredAttributesInput {
+  """ID категории"""
+  categoryId: Int!
+
+  """ID типа товара"""
+  typeId: Int!
 }
 
 input GetResultInput {
@@ -6624,6 +6878,11 @@ input GetTranscriptionsInput {
   limit: Int = 20
   matrixRoomId: String
   offset: Int = 0
+}
+
+input GetUserRequestsInput {
+  """Максимальное количество результатов"""
+  limit: Int = 20
 }
 
 input GetUserSubscriptionsInput {
@@ -6967,6 +7226,16 @@ type LedgerState {
   coopname: String!
 }
 
+input ListMarketplaceKUInput {
+  """Имя аккаунта кооператива"""
+  coopname: String!
+
+  """
+  Только активные ПВЗ. Для заказчиков/поставщиков всегда `true`; для admin-стола `false`.
+  """
+  onlyActive: Boolean = false
+}
+
 input ListReportDraftsFilterInput {
   period: Int
   reportType: ReportType
@@ -7083,6 +7352,585 @@ input MarkReportPeriodInput {
   period: Int
   reportType: ReportType!
   year: Int!
+}
+
+type MarketplaceAttribute {
+  """ID комплексного атрибута"""
+  attributeComplexId: Int!
+
+  """ID атрибута"""
+  attributeId: Int!
+
+  """Можно ли изменить после создания товара"""
+  canBeModifiedAfterCreation: Boolean!
+
+  """Зависит ли от категории"""
+  categoryDependent: Boolean!
+
+  """Комплексная коллекция"""
+  complexIsCollection: Boolean!
+
+  """Описание атрибута"""
+  description: String
+
+  """Словарь значений"""
+  dictionary: MarketplaceDictionary
+
+  """ID словаря"""
+  dictionaryId: Int
+
+  """ID группы"""
+  groupId: Int
+
+  """Название группы"""
+  groupName: String
+
+  """Имеет ли словарь"""
+  hasDictionary: Boolean!
+
+  """Является ли атрибут аспектным"""
+  isAspect: Boolean!
+
+  """Является ли атрибут коллекцией"""
+  isCollection: Boolean!
+
+  """Является ли комплексным атрибутом"""
+  isComplexAttribute: Boolean!
+
+  """Является ли атрибут обязательным"""
+  isRequired: Boolean!
+
+  """Максимальное количество значений"""
+  maxValueCount: Int!
+
+  """Максимальное количество значений (вычисленное)"""
+  maxValues: Int!
+
+  """Название атрибута"""
+  name: String!
+
+  """Тип атрибута"""
+  type: MarketplaceAttributeType!
+}
+
+type MarketplaceAttributeGroup {
+  """Атрибуты в группе"""
+  attributes: [MarketplaceAttribute!]!
+
+  """Количество атрибутов в группе"""
+  attributesCount: Int!
+
+  """ID группы"""
+  groupId: Int
+
+  """Название группы"""
+  groupName: String!
+}
+
+type MarketplaceAttributeStats {
+  """Количество аспектных атрибутов"""
+  aspectAttributes: Int!
+
+  """Количество словарных атрибутов"""
+  dictionaryAttributes: Int!
+
+  """Количество обязательных атрибутов"""
+  requiredAttributes: Int!
+
+  """Общее количество атрибутов"""
+  totalAttributes: Int!
+
+  """Общее количество словарей"""
+  totalDictionaries: Int!
+
+  """Общее количество значений словарей"""
+  totalDictionaryValues: Int!
+}
+
+"""Тип атрибута товара"""
+enum MarketplaceAttributeType {
+  BOOLEAN
+  DATE
+  NUMBER
+  STRING
+  URL
+}
+
+type MarketplaceAttributeValidation {
+  """Список ошибок"""
+  errors: [String!]!
+
+  """Результат валидации"""
+  isValid: Boolean!
+}
+
+type MarketplaceAvailabilityStats {
+  """Количество доступных категорий (целых)"""
+  categoriesCount: Int!
+
+  """Есть ли ограничения по категориям"""
+  hasRestrictions: Boolean!
+
+  """Общее количество доступных элементов"""
+  totalAvailable: Int!
+
+  """Количество доступных типов товаров"""
+  typesCount: Int!
+}
+
+type MarketplaceAvailableCategory {
+  """Кто добавил категорию/тип"""
+  addedBy: String!
+
+  """ID категории"""
+  categoryId: Int!
+
+  """Название кооператива"""
+  coopname: String!
+
+  """Дата создания"""
+  createdAt: DateTime!
+
+  """ID записи"""
+  id: Int!
+
+  """Активна ли категория/тип"""
+  isActive: Boolean!
+
+  """Применяется к всей категории"""
+  isForEntireCategory: Boolean!
+
+  """Применяется к конкретному типу"""
+  isForSpecificType: Boolean!
+
+  """ID типа товара (null = вся категория)"""
+  typeId: Int
+
+  """Дата обновления"""
+  updatedAt: DateTime!
+}
+
+type MarketplaceCategory {
+  """Название категории"""
+  categoryName: String!
+
+  """Дочерние категории"""
+  children: [MarketplaceCategory!]!
+
+  """Количество дочерних категорий"""
+  childrenCount: Int!
+
+  """ID категории"""
+  descriptionCategoryId: Int!
+
+  """Признак отключения категории"""
+  disabled: Boolean!
+
+  """Полный путь к категории"""
+  fullPath: String
+
+  """Является ли категория листовой (можно создавать товары)"""
+  isLeafCategory: Boolean!
+
+  """ID родительской категории"""
+  parentId: Int
+
+  """Типы товаров в категории"""
+  types: [MarketplaceProductType!]!
+
+  """Количество типов товаров"""
+  typesCount: Int!
+}
+
+type MarketplaceCategoryRequestCount {
+  """ID категории"""
+  categoryId: Int!
+
+  """Название категории"""
+  categoryName: String!
+
+  """Количество заявок"""
+  count: Int!
+}
+
+type MarketplaceCategoryTreeStats {
+  """Количество доступных типов товаров"""
+  availableTypes: Int!
+
+  """Количество отключенных категорий"""
+  disabledCategories: Int!
+
+  """Количество листовых категорий"""
+  leafCategories: Int!
+
+  """Количество корневых категорий"""
+  rootCategories: Int!
+
+  """Общее количество категорий"""
+  totalCategories: Int!
+
+  """Общее количество типов товаров"""
+  totalTypes: Int!
+}
+
+type MarketplaceCurrentMember {
+  core_roles: [String!]!
+  marketplace_roles: [String!]!
+  username: String!
+}
+
+input MarketplaceDetailKUInput {
+  """Полный адрес ПВЗ для отображения и геокодинга"""
+  addressFull: String!
+
+  """Контактный email ПВЗ"""
+  contactEmail: String!
+
+  """Контактный телефон ПВЗ"""
+  contactPhone: String!
+
+  """Имя аккаунта кооператива"""
+  coopname: String!
+
+  """Идентификатор КУ в core (`braname`)"""
+  coreBraname: String!
+
+  """Дополнительное описание ПВЗ"""
+  description: String
+
+  """Режим работы ПВЗ по дням недели"""
+  workingHours: WorkingHoursInput!
+}
+
+type MarketplaceDictionary {
+  """Описание словаря"""
+  description: String
+
+  """ID словаря"""
+  dictionaryId: Int!
+
+  """Есть ли значения с изображениями"""
+  hasValuesWithPictures: Boolean!
+
+  """Название словаря"""
+  name: String
+
+  """Значения словаря"""
+  values: [MarketplaceDictionaryValue!]!
+
+  """Количество значений"""
+  valuesCount: Int!
+}
+
+type MarketplaceDictionaryValue {
+  """ID словаря"""
+  dictionaryId: Int!
+
+  """ID значения словаря"""
+  dictionaryValueId: Int!
+
+  """Полное описание значения"""
+  fullDescription: String!
+
+  """Есть ли дополнительная информация"""
+  hasInfo: Boolean!
+
+  """Есть ли изображение"""
+  hasPicture: Boolean!
+
+  """Дополнительная информация"""
+  info: String
+
+  """URL изображения"""
+  picture: String
+
+  """Значение"""
+  value: String!
+}
+
+type MarketplaceKUDetails {
+  addressFull: String!
+  contactEmail: String!
+  contactPhone: String!
+  coopname: String!
+
+  """Идентификатор КУ в core (`braname`)"""
+  coreBraname: String!
+  createdAt: DateTime!
+  description: String
+  geocodeErrorMessage: String
+
+  """PENDING | OK | FAILED"""
+  geocodeStatus: String!
+  geocodedAt: DateTime
+  lat: Float
+  lng: Float
+
+  """ACTIVE | INACTIVE"""
+  status: String!
+  updatedAt: DateTime!
+  workingHours: WorkingHours!
+}
+
+type MarketplaceProductType {
+  """ID категории"""
+  descriptionCategoryId: Int!
+
+  """Признак отключения типа"""
+  disabled: Boolean!
+
+  """Полное название с категорией"""
+  fullName: String
+
+  """Доступен ли тип для создания товаров"""
+  isAvailable: Boolean!
+
+  """ID типа товара"""
+  typeId: Int!
+
+  """Название типа товара"""
+  typeName: String!
+}
+
+type MarketplaceRequest {
+  """Артикул товара"""
+  articleNumber: String!
+
+  """Атрибуты заявки"""
+  attributes: [MarketplaceRequestAttributeValue!]!
+
+  """Доступное количество единиц"""
+  availableUnits: Int!
+
+  """Штрихкод товара"""
+  barcode: String
+
+  """Можно ли редактировать заявку"""
+  canBeEdited: Boolean!
+
+  """Информация о категории"""
+  category: MarketplaceCategory!
+
+  """URL образца цвета"""
+  colorImageUrl: String
+
+  """Название кооператива"""
+  coopname: String!
+
+  """Дата создания"""
+  createdAt: DateTime!
+
+  """Валюта"""
+  currencyCode: String!
+
+  """Дополнительные данные"""
+  data: String
+
+  """Глубина упаковки"""
+  depth: Int
+
+  """ID категории"""
+  descriptionCategoryId: Int!
+
+  """Единица измерения габаритов"""
+  dimensionUnit: String
+
+  """Процент скидки"""
+  discountPercentage: Float!
+
+  """Геоограничения"""
+  geoNames: [String!]!
+
+  """Заполнены ли все обязательные атрибуты"""
+  hasAllRequiredAttributes: Boolean!
+
+  """Есть ли скидка"""
+  hasDiscount: Boolean!
+
+  """Уникальный хэш заявки"""
+  hash: String!
+
+  """Высота упаковки"""
+  height: Int
+
+  """ID заявки"""
+  id: Int!
+
+  """Изображения заявки"""
+  images: [MarketplaceRequestImage!]!
+
+  """Является ли заявка активной"""
+  isActive: Boolean!
+
+  """Является ли предложением"""
+  isOffer: Boolean!
+
+  """Является ли заказом"""
+  isOrder: Boolean!
+
+  """Метаданные"""
+  meta: String
+
+  """Название товара"""
+  name: String!
+
+  """Цена до скидки"""
+  oldPrice: Float
+
+  """Старая цена как число"""
+  oldPriceAsNumber: Float
+
+  """Хэш родительской заявки"""
+  parentHash: String
+
+  """Цена товара"""
+  price: Float!
+
+  """Цена как число"""
+  priceAsNumber: Float!
+
+  """URL главного изображения"""
+  primaryImageUrl: String
+
+  """Время жизни продукта в секундах"""
+  productLifecycleSecs: Int
+
+  """Информация о типе товара"""
+  productType: MarketplaceProductType!
+
+  """Количество проданных единиц"""
+  settledUnits: Int!
+
+  """Статус заявки"""
+  status: RequestStatus!
+
+  """Тип заявки"""
+  type: RequestType!
+
+  """ID типа товара"""
+  typeId: Int!
+
+  """Общее количество единиц"""
+  units: Int!
+
+  """Дата обновления"""
+  updatedAt: DateTime!
+
+  """Имя пользователя"""
+  username: String!
+
+  """Ставка НДС"""
+  vat: String!
+
+  """Гарантийный срок в днях"""
+  warrantyDays: Int
+
+  """Вес товара"""
+  weight: Int
+
+  """Единица измерения веса"""
+  weightUnit: String
+
+  """Ширина упаковки"""
+  width: Int
+}
+
+type MarketplaceRequestAttributeValue {
+  """Информация об атрибуте"""
+  attribute: MarketplaceAttribute!
+
+  """Группа атрибута"""
+  attributeGroup: String
+
+  """ID атрибута"""
+  attributeId: Int!
+
+  """Тип атрибута"""
+  attributeType: String!
+
+  """ID комплексного атрибута"""
+  complexId: Int!
+
+  """Дата создания"""
+  createdAt: DateTime!
+
+  """ID значения из словаря"""
+  dictionaryValueId: Int
+
+  """ID значения атрибута"""
+  id: Int!
+
+  """Является ли атрибут аспектным"""
+  isAspect: Boolean!
+
+  """Является ли атрибут обязательным"""
+  isRequired: Boolean!
+
+  """Значение атрибута"""
+  value: String!
+}
+
+type MarketplaceRequestImage {
+  """Дата создания"""
+  createdAt: DateTime!
+
+  """Описание изображения"""
+  description: String
+
+  """Имя файла"""
+  fileName: String!
+
+  """ID изображения"""
+  id: Int!
+
+  """Тип изображения"""
+  imageType: RequestImageType!
+
+  """URL изображения"""
+  imageUrl: String!
+
+  """Является ли изображением 360°"""
+  is360Image: Boolean!
+
+  """Является ли образцом цвета"""
+  isColorSample: Boolean!
+
+  """Является ли главным изображением"""
+  isPrimary: Boolean!
+
+  """Порядок сортировки"""
+  sortOrder: Int!
+
+  """Описание типа изображения"""
+  typeDescription: String!
+}
+
+type MarketplaceRequestStatistics {
+  """Активные предложения"""
+  activeOffers: Int!
+
+  """Активные заказы"""
+  activeOrders: Int!
+
+  """Завершенные сделки"""
+  completedDeals: Int!
+
+  """Заявки по категориям"""
+  requestsByCategory: [MarketplaceCategoryRequestCount!]!
+
+  """Общее количество заявок"""
+  totalRequests: Int!
+}
+
+input MarketplaceSetKUStatusInput {
+  """Имя аккаунта кооператива"""
+  coopname: String!
+
+  """Идентификатор КУ в core (`braname`)"""
+  coreBraname: String!
+
+  """Целевой статус ПВЗ: ACTIVE или INACTIVE"""
+  status: String!
 }
 
 type MatrixAccountStatusResponseDTO {
@@ -7393,6 +8241,13 @@ type Mutation {
   acceptChildOrder(data: AcceptChildOrderInput!): Transaction!
 
   """
+  Принять предложение из запасов кооператива
+  
+  Требуемые роли: chairman, member, user. 
+  """
+  acceptStock(data: AcceptStockInput!): Transaction!
+
+  """
   Добавить активного пайщика, который вступил в кооператив, не используя платформу (заполнив заявление собственноручно, оплатив вступительный и минимальный паевый взносы, и получив протокол решения совета)
   
   Требуемые роли: chairman, member. 
@@ -7408,6 +8263,13 @@ type Mutation {
   Требуемые роли: chairman. 
   """
   addTrustedAccount(data: AddTrustedAccountInput!): Branch!
+
+  """
+  Архивировать карточку
+  
+  Требуемые роли: chairman, member, user. 
+  """
+  archiveProductCard(id: String!): Boolean!
 
   """Отменить заявку"""
   cancelRequest(data: CancelRequestInput!): Transaction!
@@ -8041,6 +8903,13 @@ type Mutation {
   confirmSupplyOnRequest(data: ConfirmSupplyOnRequestInput!): Transaction!
 
   """
+  Создать предложение из запасов кооператива
+  
+  Требуемые роли: chairman. 
+  """
+  coopstock(data: CoopstockInput!): Transaction!
+
+  """
   Сгенерировать документ предложения повестки очередного общего собрания пайщиков
   
   Требуемые роли: chairman, member. 
@@ -8053,6 +8922,13 @@ type Mutation {
   Требуемые роли: chairman. 
   """
   createBranch(data: CreateBranchInput!): Branch!
+
+  """
+  Создать категорию (админ)
+  
+  Требуемые роли: chairman. 
+  """
+  createCategory(data: CreateCategoryInput!): Category!
 
   """Создать заявку на поставку имущества по предложению Поставщика"""
   createChildOrder(data: CreateChildOrderInput!): Transaction!
@@ -8073,6 +8949,13 @@ type Mutation {
 
   """Создать предложение на поставку имущества"""
   createParentOffer(data: CreateParentOfferInput!): Transaction!
+
+  """
+  Создать карточку товара/услуги
+  
+  Требуемые роли: chairman, member, user. 
+  """
+  createProductCard(data: CreateProductCardInput!): ProductCard!
 
   """
   Создать повестку дня и проект решения, и сохранить в хранилище для дальнейшей генерации документа и его публикации
@@ -8119,8 +9002,22 @@ type Mutation {
   """
   deleteBranch(data: DeleteBranchInput!): Boolean!
 
+  """
+  Удалить категорию (админ)
+  
+  Требуемые роли: chairman. 
+  """
+  deleteCategory(id: String!): Boolean!
+
   """Удалить метод оплаты"""
   deletePaymentMethod(data: DeletePaymentMethodInput!): Boolean!
+
+  """
+  Удалить черновик карточки
+  
+  Требуемые роли: chairman, member, user. 
+  """
+  deleteProductCard(id: String!): Boolean!
 
   """
   Удалить черновик по id (только владелец)
@@ -8138,6 +9035,13 @@ type Mutation {
 
   """Подтвердить доставку имущества Заказчику по заявке"""
   deliverOnRequest(data: DeliverOnRequestInput!): Transaction!
+
+  """
+  Уничтожить просроченное имущество
+  
+  Требуемые роли: chairman. 
+  """
+  destroyRequest(data: DestroyRequestInput!): Transaction!
 
   """Открыть спор по заявке"""
   disputeOnRequest(data: DisputeOnRequestInput!): Transaction!
@@ -8359,6 +9263,76 @@ type Mutation {
   """
   markReportPeriod(data: MarkReportPeriodInput!): Boolean!
 
+  """
+  Добавить категории в доступные для кооператива (целые категории)
+  
+  Требуемые роли: chairman. 
+  """
+  marketplaceAddAvailableCategories(input: AddAvailableCategoriesInput!): [MarketplaceAvailableCategory!]!
+
+  """
+  Добавить конкретные типы товаров в доступные для кооператива
+  
+  Требуемые роли: chairman. 
+  """
+  marketplaceAddAvailableCategoryTypes(input: AddAvailableCategoryTypesInput!): [MarketplaceAvailableCategory!]!
+
+  """
+  Очистить все доступные категории (сделать доступными все)
+  
+  Требуемые роли: chairman. 
+  """
+  marketplaceClearAvailableCategories: Boolean!
+
+  """
+  Создать новую заявку на поставку или заказ товара
+  
+  Требуемые роли: member, chairman. 
+  """
+  marketplaceCreateRequest(data: CreateRequestInput!): MarketplaceRequest!
+
+  """
+  Детализирует существующий в core кооперативный участок как ПВЗ Стола заказов. Создаёт запись marketplace_ku_details, либо обновляет существующую. При смене адреса запускает повторный геокодинг — координаты сбрасываются в PENDING и обновляются асинхронно.
+  
+  Требуемые роли: chairman. 
+  """
+  marketplaceDetailKU(data: MarketplaceDetailKUInput!): MarketplaceKUDetails!
+
+  """
+  Удалить категории из доступных для кооператива (включая все их типы)
+  
+  Требуемые роли: chairman. 
+  """
+  marketplaceRemoveAvailableCategories(input: RemoveAvailableCategoriesInput!): Boolean!
+
+  """
+  Удалить конкретные типы товаров из доступных для кооператива
+  
+  Требуемые роли: chairman. 
+  """
+  marketplaceRemoveAvailableCategoryTypes(input: RemoveAvailableCategoryTypesInput!): Boolean!
+
+  """
+  Заменить все доступные категории и типы новым списком
+  
+  Требуемые роли: chairman. 
+  """
+  marketplaceReplaceAvailableItems(input: ReplaceAvailableItemsInput!): [MarketplaceAvailableCategory!]!
+
+  """
+  Повторно запускает геокодинг адреса ПВЗ.
+  
+  Требуемые роли: chairman. 
+  """
+  marketplaceRetryKUGeocode(coopname: String!, coreBraname: String!): MarketplaceKUDetails!
+
+  """
+  Активирует или деактивирует ПВЗ Стола заказов.
+  
+  Требуемые роли: chairman. 
+  """
+  marketplaceSetKUStatus(data: MarketplaceSetKUStatusInput!): MarketplaceKUDetails!
+
   """Модерировать заявку"""
   moderateRequest(data: ModerateRequestInput!): Transaction!
 
@@ -8378,6 +9352,13 @@ type Mutation {
 
   """Отклонить модерацию по заявке"""
   prohibitRequest(data: ProhibitRequestInput!): Transaction!
+
+  """
+  Опубликовать карточку
+  
+  Требуемые роли: chairman, member, user. 
+  """
+  publishProductCard(id: String!): Boolean!
 
   """
   Опубликовать предложенную повестку и проект решения для дальнейшего голосования совета по нему
@@ -8406,6 +9387,20 @@ type Mutation {
   Требуемые роли: chairman, member. 
   """
   registerParticipant(data: RegisterParticipantInput!): Account!
+
+  """
+  Перепредложить имущество по новой цене
+  
+  Требуемые роли: chairman. 
+  """
+  reofferRequest(data: ReofferRequestInput!): Transaction!
+
+  """
+  Запросить возврат паевого взноса имуществом (перед получением)
+  
+  Требуемые роли: chairman, member, user. 
+  """
+  reqReturn(data: ReqReturnInput!): Transaction!
 
   """Заменить приватный ключ аккаунта"""
   resetKey(data: ResetKeyInput!): Boolean!
@@ -9617,6 +10612,41 @@ input ProcessesFilter {
   username: String
 }
 
+type ProductCard {
+  braname: String
+  cancellation_fee_amount: String
+  category_id: String
+  contribution_type: ContributionType!
+  coopname: String!
+  created_at: DateTime!
+  delivery_type: DeliveryType!
+  description: String!
+  id: String!
+  images: [String!]!
+  membership_fee_amount: String
+  product_lifecycle_secs: Int!
+  status: ProductCardStatus!
+  title: String!
+  type: ProductCardType!
+  unit_cost: String!
+  units: Int!
+  updated_at: DateTime!
+  username: String!
+  warranty_period_secs: Int!
+}
+
+enum ProductCardStatus {
+  ARCHIVED
+  DRAFT
+  MODERATION
+  PUBLISHED
+}
+
+enum ProductCardType {
+  OFFER
+  ORDER
+}
+
 input ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput {
   """Сумма инвестирования в программу (актив)"""
   amount: String!
@@ -10356,6 +11386,9 @@ type Query {
   """Получить логи событий по проекту с фильтрацией и пагинацией"""
   getCapitalProjectLogs(data: GetCapitalLogsInput!): PaginatedCapitalLogsPaginationResult!
 
+  """Получить дерево категорий"""
+  getCategories: [Category!]!
+
   """
   Получить состояние онбординга председателя
   
@@ -10470,6 +11503,9 @@ type Query {
   """
   getMeets(data: GetMeetsInput!): [MeetAggregate!]!
 
+  """Мои карточки"""
+  getMyProductCards: [ProductCard!]!
+
   """
   Получить список методов оплаты
   
@@ -10483,6 +11519,12 @@ type Query {
   Требуемые роли: chairman, member. Исключение: доступ разрешен, если `data.username` совпадает с `username` текущего пользователя.
   """
   getPayments(data: PaymentFiltersInput, options: PaginationInput): PaginatedGatewayPaymentsPaginationResult!
+
+  """Получить карточку по ID"""
+  getProductCard(id: String!): ProductCard
+
+  """Получить карточки товаров/услуг"""
+  getProductCards(category_id: String, limit: Int = 20, page: Int = 1, search: String, status: ProductCardStatus, type: ProductCardType): [ProductCard!]!
 
   """
   Получить один программный кошелек по фильтру
@@ -10585,6 +11627,129 @@ type Query {
   Требуемые роли: chairman. 
   """
   listReportDrafts(filter: ListReportDraftsFilterInput): [ReportDraft!]!
+
+  """Получить аспектные атрибуты для категории и типа товара marketplace"""
+  marketplaceAspectAttributes(data: GetRequiredAttributesInput!): [MarketplaceAttribute!]!
+
+  """
+  Получить статистику по атрибутам marketplace
+  
+  Требуемые роли: chairman, member. 
+  """
+  marketplaceAttributeStats: MarketplaceAttributeStats!
+
+  """Получить атрибуты для конкретной категории и типа товара marketplace"""
+  marketplaceCategoryAttributes(input: GetCategoryAttributesInput!): [MarketplaceAttribute!]!
+
+  """
+  Получить группированные атрибуты для категории и типа товара marketplace
+  """
+  marketplaceCategoryAttributesGrouped(input: GetCategoryAttributesInput!): [MarketplaceAttributeGroup!]!
+
+  """Найти потенциальные совпадения для заявки"""
+  marketplaceFindPotentialMatches(data: FindPotentialMatchesInput!): [MarketplaceRequest!]!
+
+  """
+  Получить статистику по доступности категорий в кооперативе
+  
+  Требуемые роли: chairman. 
+  """
+  marketplaceGetAvailabilityStats: MarketplaceAvailabilityStats!
+
+  """
+  Получить все доступные категории и типы для кооператива
+  
+  Требуемые роли: chairman. 
+  """
+  marketplaceGetAvailableCategories: [MarketplaceAvailableCategory!]!
+
+  """
+  Получить дерево доступных категорий и типов для кооператива
+  
+  Требуемые роли: chairman. 
+  """
+  marketplaceGetAvailableCategoryTree: [MarketplaceCategory!]!
+
+  """Получить категорию marketplace по ID"""
+  marketplaceGetCategoryById(data: GetCategoryByIdInput!): MarketplaceCategory
+
+  """
+  Получить все доступные правила для конкретной категории
+  
+  Требуемые роли: chairman. 
+  """
+  marketplaceGetCategoryRules(categoryId: Int!): [MarketplaceAvailableCategory!]!
+
+  """Получить полное дерево категорий marketplace с типами товаров"""
+  marketplaceGetCategoryTree(input: GetCategoryTreeInput): [MarketplaceCategory!]!
+
+  """
+  Получить статистику по дереву категорий
+  
+  Требуемые роли: chairman, member. 
+  """
+  marketplaceGetCategoryTreeStats: MarketplaceCategoryTreeStats!
+
+  """
+  Получить заявки кооператива
+  
+  Требуемые роли: member, chairman. 
+  """
+  marketplaceGetCoopRequests(data: GetCoopRequestsInput!): [MarketplaceRequest!]!
+
+  """Получить тип товара marketplace по ID"""
+  marketplaceGetProductTypeById(data: GetProductTypeByIdInput!): MarketplaceProductType
+
+  """Получить заявку по ID"""
+  marketplaceGetRequest(data: GetRequestInput!): MarketplaceRequest
+
+  """Получить заявку по хэшу"""
+  marketplaceGetRequestByHash(data: GetRequestByHashInput!): MarketplaceRequest
+
+  """
+  Получить статистику заявок кооператива
+  
+  Требуемые роли: chairman, member. 
+  """
+  marketplaceGetRequestStatistics(data: GetRequestStatisticsInput!): MarketplaceRequestStatistics!
+
+  """Получить все корневые категории marketplace"""
+  marketplaceGetRootCategories: [MarketplaceCategory!]!
+
+  """Универсальный поиск по категориям и типам товаров"""
+  marketplaceGetSearchCategories(data: SearchCategoriesInput!): [MarketplaceCategory!]!
+
+  """
+  Получить заявки текущего пользователя
+  
+  Требуемые роли: member, chairman. 
+  """
+  marketplaceGetUserRequests(data: GetUserRequestsInput): [MarketplaceRequest!]!
+
+  """
+  Список marketplace-детализаций ПВЗ кооператива.
+  
+  Требуемые роли: chairman, member, user. 
+  """
+  marketplaceListKUDetails(data: ListMarketplaceKUInput!): [MarketplaceKUDetails!]!
+
+  """Получить обязательные атрибуты для категории и типа товара marketplace"""
+  marketplaceRequiredAttributes(data: GetRequiredAttributesInput!): [MarketplaceAttribute!]!
+
+  """Поиск атрибутов marketplace по названию"""
+  marketplaceSearchAttributes(input: SearchAttributesInput!): [MarketplaceAttribute!]!
+
+  """Поиск значений словаря marketplace"""
+  marketplaceSearchDictionaryValues(input: SearchDictionaryValuesInput!): [MarketplaceDictionaryValue!]!
+
+  """Поиск заявок по названию товара"""
+  marketplaceSearchRequests(data: SearchRequestsInput!): [MarketplaceRequest!]!
+
+  """Валидация значений атрибута marketplace"""
+  marketplaceValidateAttributeValues(input: ValidateAttributeValuesInput!): MarketplaceAttributeValidation!
+
+  """Контекст пайщика для Стола заказов: core_roles + marketplace_roles"""
+  marketplaceWhoAmI: MarketplaceCurrentMember!
 
   """
   Получение документов кооператива для синхронизации с 1С. Требует секретный ключ в заголовке x-onecoop-secret-key.
@@ -10893,6 +12058,31 @@ type RegistrationProgram {
   title: String!
 }
 
+input RemoveAvailableCategoriesInput {
+  """ID категорий для удаления"""
+  categoryIds: [Int!]!
+}
+
+input RemoveAvailableCategoryTypesInput {
+  """Типы товаров для удаления"""
+  categoryTypes: [CategoryTypeInput!]!
+}
+
+input ReofferRequestInput {
+  new_hash: String!
+  new_meta: String!
+  new_unit_cost: String!
+  request_hash: String!
+}
+
+input ReplaceAvailableItemsInput {
+  """ID категорий (целые категории)"""
+  categoryIds: [Int!]! = []
+
+  """Типы товаров"""
+  categoryTypes: [CategoryTypeInput!]! = []
+}
+
 type ReportCalendarPeriodEntry {
   dueDate: String!
   dueMonth: Int!
@@ -11050,6 +12240,87 @@ input RepresentedByInput {
   last_name: String!
   middle_name: String!
   position: String!
+}
+
+input ReqReturnInput {
+  request_hash: String!
+  return_statement: SignedDigitalDocumentInput!
+  username: String!
+}
+
+input RequestAttributeInput {
+  """ID атрибута"""
+  attributeId: Int!
+
+  """ID комплексного атрибута"""
+  complexId: Int = 0
+
+  """ID значения из словаря"""
+  dictionaryValueId: Int
+
+  """Значение атрибута"""
+  value: String!
+}
+
+input RequestImageInput {
+  """Описание изображения"""
+  description: String
+
+  """Тип изображения"""
+  imageType: RequestImageTypeInput! = REGULAR
+
+  """URL изображения"""
+  imageUrl: String!
+
+  """Порядок сортировки"""
+  sortOrder: Int! = 0
+}
+
+"""Тип изображения заявки"""
+enum RequestImageType {
+  COLOR_SAMPLE
+  IMAGE_360
+  PRIMARY
+  REGULAR
+}
+
+"""Тип изображения заявки"""
+enum RequestImageTypeInput {
+  COLOR_SAMPLE
+  IMAGE_360
+  PRIMARY
+  REGULAR
+}
+
+"""Статус заявки"""
+enum RequestStatus {
+  ACTIVE
+  AUTHORIZED
+  CANCELLED
+  COMPLETED
+  DECLINED
+  DELIVERED
+  DISPUTED
+  DRAFT
+  MATCHED
+  MODERATION
+  PUBLISHED
+  RECEIVED1
+  RECEIVED2
+  SUPPLIED1
+  SUPPLIED2
+}
+
+"""Тип заявки"""
+enum RequestType {
+  OFFER
+  ORDER
+}
+
+"""Тип заявки: offer - предложение, order - заказ"""
+enum RequestTypeInput {
+  OFFER
+  ORDER
 }
 
 type RequisiteFieldView {
@@ -11603,6 +12874,45 @@ input SbpDataInput {
   phone: String!
 }
 
+input SearchAttributesInput {
+  """ID категории для фильтрации"""
+  categoryId: Int
+
+  """Максимальное количество результатов"""
+  limit: Int = 50
+
+  """Только аспектные"""
+  onlyAspect: Boolean = false
+
+  """Только обязательные"""
+  onlyRequired: Boolean = false
+
+  """Только со словарями"""
+  onlyWithDictionary: Boolean = false
+
+  """Текст для поиска"""
+  searchTerm: String!
+
+  """ID типа товара для фильтрации"""
+  typeId: Int
+}
+
+input SearchCategoriesInput {
+  """Текст для поиска по категориям и типам товаров"""
+  searchTerm: String!
+}
+
+input SearchDictionaryValuesInput {
+  """ID словаря"""
+  dictionaryId: Int!
+
+  """Максимальное количество результатов"""
+  limit: Int = 50
+
+  """Текст для поиска"""
+  searchTerm: String!
+}
+
 input SearchDocumentsInput {
   """Максимальное количество результатов"""
   limit: Int = 20
@@ -11614,6 +12924,14 @@ input SearchDocumentsInput {
 input SearchPrivateAccountsInput {
   """Поисковый запрос для поиска приватных аккаунтов"""
   query: String!
+}
+
+input SearchRequestsInput {
+  """Максимальное количество результатов"""
+  limit: Int = 20
+
+  """Текст для поиска по названию товара"""
+  searchTerm: String!
 }
 
 type SearchResult {
@@ -12654,6 +13972,14 @@ enum UserStatus {
   Registered
 }
 
+input ValidateAttributeValuesInput {
+  """ID атрибута"""
+  attributeId: Int!
+
+  """Значения для валидации"""
+  values: [String!]!
+}
+
 type Vars {
   confidential_email: String!
   confidential_link: String!
@@ -12842,6 +14168,56 @@ input WebPushSubscriptionKeysInput {
 
   """P256DH ключ для шифрования"""
   p256dh: String!
+}
+
+type WorkingHours {
+  fri: WorkingHoursDay
+  mon: WorkingHoursDay
+  sat: WorkingHoursDay
+  sun: WorkingHoursDay
+  thu: WorkingHoursDay
+  tue: WorkingHoursDay
+  wed: WorkingHoursDay
+}
+
+type WorkingHoursBreak {
+  end: String!
+  start: String!
+}
+
+input WorkingHoursBreakInput {
+  """Конец перерыва (HH:mm)"""
+  end: String!
+
+  """Начало перерыва (HH:mm)"""
+  start: String!
+}
+
+type WorkingHoursDay {
+  breaks: [WorkingHoursBreak!]!
+  close: String!
+  open: String!
+}
+
+input WorkingHoursDayInput {
+  """Перерывы внутри рабочего дня"""
+  breaks: [WorkingHoursBreakInput!]! = []
+
+  """Время закрытия (HH:mm)"""
+  close: String!
+
+  """Время открытия (HH:mm)"""
+  open: String!
+}
+
+input WorkingHoursInput {
+  fri: WorkingHoursDayInput
+  mon: WorkingHoursDayInput
+  sat: WorkingHoursDayInput
+  sun: WorkingHoursDayInput
+  thu: WorkingHoursDayInput
+  tue: WorkingHoursDayInput
+  wed: WorkingHoursDayInput
 }
 
 type ZeroReportHeaderEdits {

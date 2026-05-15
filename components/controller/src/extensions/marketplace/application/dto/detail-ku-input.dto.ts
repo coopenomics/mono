@@ -2,10 +2,8 @@ import { Field, InputType } from '@nestjs/graphql';
 import { IsEmail, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 import { WorkingHoursInputDTO } from './working-hours-input.dto';
 
-/**
- * Вход GraphQL-мутации `marketplaceDetailKU` (Эпик 2, Story 2.1):
- * детализирует существующий в core кооперативный участок как ПВЗ Стола заказов.
- */
+// Вход GraphQL-мутации marketplaceDetailKU:
+// детализирует существующий в core кооперативный участок как ПВЗ Стола заказов.
 @InputType('MarketplaceDetailKUInput')
 export class DetailKUInputDTO {
   @Field(() => String, { description: 'Имя аккаунта кооператива' })

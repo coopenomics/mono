@@ -1117,6 +1117,12 @@ export type ValueTypes = {
 	/** Имя аккаунта пользователя */
 	username: string | Variable<any, string>
 };
+	["AcceptStockInput"]: {
+	convert_in: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>,
+	request_hash: string | Variable<any, string>,
+	return_statement: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>,
+	username: string | Variable<any, string>
+};
 	["Account"]: AliasType<{
 	/** объект аккаунта в блокчейне содержит системную информацию, такую как публичные ключи доступа, доступные вычислительные ресурсы, информация об установленном смарт-контракте, и т.д. и т.п. Это системный уровень обслуживания, где у каждого пайщика есть аккаунт, но не каждый аккаунт может быть пайщиком в каком-либо кооперативе. Все смарт-контракты устанавливаются и исполняются на этом уровне. */
 	blockchain_account?:ValueTypes["BlockchainAccount"],
@@ -1208,6 +1214,14 @@ export type ValueTypes = {
 	coopname: string | Variable<any, string>,
 	/** Хэш проекта */
 	project_hash: string | Variable<any, string>
+};
+	["AddAvailableCategoriesInput"]: {
+	/** ID категорий для добавления (целые категории) */
+	categoryIds: Array<number> | Variable<any, string>
+};
+	["AddAvailableCategoryTypesInput"]: {
+	/** Типы товаров для добавления */
+	categoryTypes: Array<ValueTypes["CategoryTypeInput"]> | Variable<any, string>
 };
 	["AddParticipantInput"]: {
 	/** Дата создания аккаунта в строковом формате даты EOSIO по UTC (2024-12-28T06:58:52.500) */
@@ -3776,6 +3790,24 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on CapitalVote']?: Omit<ValueTypes["CapitalVote"], "...on CapitalVote">
 }>;
+	["Category"]: AliasType<{
+	coopname?:boolean | `@${string}`,
+	description?:boolean | `@${string}`,
+	icon?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	is_active?:boolean | `@${string}`,
+	name?:boolean | `@${string}`,
+	parent_id?:boolean | `@${string}`,
+	sort_order?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on Category']?: Omit<ValueTypes["Category"], "...on Category">
+}>;
+	["CategoryTypeInput"]: {
+	/** ID категории */
+	categoryId: number | Variable<any, string>,
+	/** ID типа товара */
+	typeId: number | Variable<any, string>
+};
 	["ChairmanOnboardingAgendaInput"]: {
 	decision: string | Variable<any, string>,
 	question: string | Variable<any, string>,
@@ -4056,6 +4088,7 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on ContactsDTO']?: Omit<ValueTypes["ContactsDTO"], "...on ContactsDTO">
 }>;
+	["ContributionType"]:ContributionType;
 	/** Параметры документов участника из UData */
 ["ContributorDocumentParameters"]: AliasType<{
 	/** Дата создания соглашения благороста */
@@ -4239,6 +4272,16 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on CooperativeProgram']?: Omit<ValueTypes["CooperativeProgram"], "...on CooperativeProgram">
 }>;
+	["CoopstockInput"]: {
+	braname: string | Variable<any, string>,
+	hash: string | Variable<any, string>,
+	membership_fee_amount: string | Variable<any, string>,
+	meta: string | Variable<any, string>,
+	product_lifecycle_secs: number | Variable<any, string>,
+	unit_cost: string | Variable<any, string>,
+	units: number | Variable<any, string>,
+	warranty_period_secs: number | Variable<any, string>
+};
 	/** Страна регистрации пользователя */
 ["Country"]:Country;
 	["CreateAnnualGeneralMeetInput"]: {
@@ -4280,6 +4323,13 @@ export type ValueTypes = {
 	short_name: string | Variable<any, string>,
 	/** Имя аккаунта уполномоченного (председателя) кооперативного участка */
 	trustee: string | Variable<any, string>
+};
+	["CreateCategoryInput"]: {
+	description?: string | undefined | null | Variable<any, string>,
+	icon?: string | undefined | null | Variable<any, string>,
+	name: string | Variable<any, string>,
+	parent_id?: string | undefined | null | Variable<any, string>,
+	sort_order?: number | undefined | null | Variable<any, string>
 };
 	["CreateChatCoopCalendarEventInput"]: {
 	description?: string | undefined | null | Variable<any, string>,
@@ -4525,6 +4575,23 @@ export type ValueTypes = {
 	project_hash: string | Variable<any, string>,
 	title: string | Variable<any, string>
 };
+	["CreateProductCardInput"]: {
+	braname?: string | undefined | null | Variable<any, string>,
+	cancellation_fee_amount?: string | undefined | null | Variable<any, string>,
+	category_id?: string | undefined | null | Variable<any, string>,
+	contribution_type: ValueTypes["ContributionType"] | Variable<any, string>,
+	delivery_type: ValueTypes["DeliveryType"] | Variable<any, string>,
+	description: string | Variable<any, string>,
+	images?: Array<string> | undefined | null | Variable<any, string>,
+	membership_fee_amount?: string | undefined | null | Variable<any, string>,
+	min_units?: number | undefined | null | Variable<any, string>,
+	product_lifecycle_secs: number | Variable<any, string>,
+	title: string | Variable<any, string>,
+	type: ValueTypes["ProductCardType"] | Variable<any, string>,
+	unit_cost: string | Variable<any, string>,
+	units: number | Variable<any, string>,
+	warranty_period_secs: number | Variable<any, string>
+};
 	["CreateProgramInvestInput"]: {
 	/** Сумма инвестиции */
 	amount: string | Variable<any, string>,
@@ -4600,6 +4667,64 @@ export type ValueTypes = {
 	property_hash: string | Variable<any, string>,
 	/** Имя пользователя */
 	username: string | Variable<any, string>
+};
+	["CreateRequestInput"]: {
+	/** Артикул товара (до 50 символов) */
+	articleNumber: string | Variable<any, string>,
+	/** Атрибуты товара */
+	attributes: Array<ValueTypes["RequestAttributeInput"]> | Variable<any, string>,
+	/** Штрихкод товара */
+	barcode?: string | undefined | null | Variable<any, string>,
+	/** URL образца цвета */
+	colorImageUrl?: string | undefined | null | Variable<any, string>,
+	/** Имя аккаунта кооператива */
+	coopname: string | Variable<any, string>,
+	/** Валюта */
+	currencyCode: string | Variable<any, string>,
+	/** Дополнительные данные JSON */
+	data?: string | undefined | null | Variable<any, string>,
+	/** Глубина упаковки */
+	depth?: number | undefined | null | Variable<any, string>,
+	/** ID категории */
+	descriptionCategoryId: number | Variable<any, string>,
+	/** Единица измерения габаритов */
+	dimensionUnit?: string | undefined | null | Variable<any, string>,
+	/** Геоограничения */
+	geoNames: Array<string> | Variable<any, string>,
+	/** Высота упаковки */
+	height?: number | undefined | null | Variable<any, string>,
+	/** Изображения товара */
+	images: Array<ValueTypes["RequestImageInput"]> | Variable<any, string>,
+	/** Метаданные JSON */
+	meta?: string | undefined | null | Variable<any, string>,
+	/** Название товара (до 500 символов) */
+	name: string | Variable<any, string>,
+	/** Цена до скидки */
+	oldPrice?: number | undefined | null | Variable<any, string>,
+	/** Хэш родительской заявки */
+	parentHash?: string | undefined | null | Variable<any, string>,
+	/** Цена товара */
+	price: number | Variable<any, string>,
+	/** URL главного изображения */
+	primaryImageUrl?: string | undefined | null | Variable<any, string>,
+	/** Время жизни продукта в секундах */
+	productLifecycleSecs?: number | undefined | null | Variable<any, string>,
+	/** Тип заявки: offer - предложение, order - заказ */
+	type: ValueTypes["RequestTypeInput"] | Variable<any, string>,
+	/** ID типа товара */
+	typeId: number | Variable<any, string>,
+	/** Количество единиц товара */
+	units: number | Variable<any, string>,
+	/** Ставка НДС (0, 0.05, 0.07, 0.1, 0.2) */
+	vat: string | Variable<any, string>,
+	/** Гарантийный срок в днях */
+	warrantyDays?: number | undefined | null | Variable<any, string>,
+	/** Вес товара */
+	weight?: number | undefined | null | Variable<any, string>,
+	/** Единица измерения веса */
+	weightUnit?: string | undefined | null | Variable<any, string>,
+	/** Ширина упаковки */
+	width?: number | undefined | null | Variable<any, string>
 };
 	["CreateSovietIndividualDataInput"]: {
 	/** Дата рождения */
@@ -4841,6 +4966,7 @@ export type ValueTypes = {
 	/** Имя аккаунта пользователя */
 	username: string | Variable<any, string>
 };
+	["DeliveryType"]:DeliveryType;
 	["Delta"]: AliasType<{
 	/** ID блока */
 	block_id?:boolean | `@${string}`,
@@ -4921,6 +5047,10 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on DesktopWorkspace']?: Omit<ValueTypes["DesktopWorkspace"], "...on DesktopWorkspace">
 }>;
+	["DestroyRequestInput"]: {
+	destruction_act: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>,
+	request_hash: string | Variable<any, string>
+};
 	["DisputeOnRequestInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>,
@@ -5227,6 +5357,10 @@ export type ValueTypes = {
 	coopname: string | Variable<any, string>,
 	/** Хэш проекта для финализации */
 	project_hash: string | Variable<any, string>
+};
+	["FindPotentialMatchesInput"]: {
+	/** ID заявки для поиска совпадений */
+	requestId: number | Variable<any, string>
 };
 	["FreeDecisionGenerateDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
@@ -5676,6 +5810,30 @@ export type ValueTypes = {
 	/** Хеш истории для получения */
 	story_hash: string | Variable<any, string>
 };
+	["GetCategoryAttributesInput"]: {
+	/** ID категории */
+	categoryId: number | Variable<any, string>,
+	/** Включать значения словарей */
+	includeDictionaryValues?: boolean | undefined | null | Variable<any, string>,
+	/** Только обязательные атрибуты */
+	onlyRequired?: boolean | undefined | null | Variable<any, string>,
+	/** ID типа товара */
+	typeId: number | Variable<any, string>
+};
+	["GetCategoryByIdInput"]: {
+	/** ID категории */
+	categoryId: number | Variable<any, string>
+};
+	["GetCategoryTreeInput"]: {
+	/** Включать типы товаров */
+	includeTypes?: boolean | undefined | null | Variable<any, string>,
+	/** Максимальная глубина дерева */
+	maxDepth?: number | undefined | null | Variable<any, string>,
+	/** Включать только доступные категории */
+	onlyAvailable?: boolean | undefined | null | Variable<any, string>,
+	/** ID корневой категории */
+	rootCategoryId?: number | undefined | null | Variable<any, string>
+};
 	["GetContributorInput"]: {
 	/** ID участника */
 	_id?: string | undefined | null | Variable<any, string>,
@@ -5683,6 +5841,16 @@ export type ValueTypes = {
 	contributor_hash?: string | undefined | null | Variable<any, string>,
 	/** Имя пользователя */
 	username?: string | undefined | null | Variable<any, string>
+};
+	["GetCoopRequestsInput"]: {
+	/** Название кооператива */
+	coopname: string | Variable<any, string>,
+	/** Максимальное количество результатов */
+	limit?: number | undefined | null | Variable<any, string>,
+	/** Статус заявки */
+	status?: string | undefined | null | Variable<any, string>,
+	/** Тип заявки */
+	type?: ValueTypes["RequestTypeInput"] | undefined | null | Variable<any, string>
 };
 	["GetDebtInput"]: {
 	/** ID долга */
@@ -5825,6 +5993,10 @@ export type ValueTypes = {
 	/** Имя пользователя для фильтрации методов оплаты */
 	username?: string | undefined | null | Variable<any, string>
 };
+	["GetProductTypeByIdInput"]: {
+	/** ID типа товара */
+	typeId: number | Variable<any, string>
+};
 	["GetProjectCommunicationRoomsInput"]: {
 	/** Хеш проекта Capital */
 	projectHash: string | Variable<any, string>
@@ -5838,6 +6010,24 @@ export type ValueTypes = {
 	["GetProjectWithRelationsInput"]: {
 	/** Хеш проекта */
 	projectHash: string | Variable<any, string>
+};
+	["GetRequestByHashInput"]: {
+	/** Хэш заявки */
+	hash: string | Variable<any, string>
+};
+	["GetRequestInput"]: {
+	/** ID заявки */
+	id: number | Variable<any, string>
+};
+	["GetRequestStatisticsInput"]: {
+	/** Название кооператива */
+	coopname: string | Variable<any, string>
+};
+	["GetRequiredAttributesInput"]: {
+	/** ID категории */
+	categoryId: number | Variable<any, string>,
+	/** ID типа товара */
+	typeId: number | Variable<any, string>
 };
 	["GetResultInput"]: {
 	/** ID результата */
@@ -5855,6 +6045,10 @@ export type ValueTypes = {
 	limit?: number | undefined | null | Variable<any, string>,
 	matrixRoomId?: string | undefined | null | Variable<any, string>,
 	offset?: number | undefined | null | Variable<any, string>
+};
+	["GetUserRequestsInput"]: {
+	/** Максимальное количество результатов */
+	limit?: number | undefined | null | Variable<any, string>
 };
 	["GetUserSubscriptionsInput"]: {
 	/** Username пользователя */
@@ -6101,6 +6295,12 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on LedgerState']?: Omit<ValueTypes["LedgerState"], "...on LedgerState">
 }>;
+	["ListMarketplaceKUInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string | Variable<any, string>,
+	/** Только активные ПВЗ. Для заказчиков/поставщиков всегда `true`; для admin-стола `false`. */
+	onlyActive?: boolean | undefined | null | Variable<any, string>
+};
 	["ListReportDraftsFilterInput"]: {
 	period?: number | undefined | null | Variable<any, string>,
 	reportType?: ValueTypes["ReportType"] | undefined | null | Variable<any, string>,
@@ -6146,6 +6346,441 @@ export type ValueTypes = {
 	period?: number | undefined | null | Variable<any, string>,
 	reportType: ValueTypes["ReportType"] | Variable<any, string>,
 	year: number | Variable<any, string>
+};
+	["MarketplaceAttribute"]: AliasType<{
+	/** ID комплексного атрибута */
+	attributeComplexId?:boolean | `@${string}`,
+	/** ID атрибута */
+	attributeId?:boolean | `@${string}`,
+	/** Можно ли изменить после создания товара */
+	canBeModifiedAfterCreation?:boolean | `@${string}`,
+	/** Зависит ли от категории */
+	categoryDependent?:boolean | `@${string}`,
+	/** Комплексная коллекция */
+	complexIsCollection?:boolean | `@${string}`,
+	/** Описание атрибута */
+	description?:boolean | `@${string}`,
+	/** Словарь значений */
+	dictionary?:ValueTypes["MarketplaceDictionary"],
+	/** ID словаря */
+	dictionaryId?:boolean | `@${string}`,
+	/** ID группы */
+	groupId?:boolean | `@${string}`,
+	/** Название группы */
+	groupName?:boolean | `@${string}`,
+	/** Имеет ли словарь */
+	hasDictionary?:boolean | `@${string}`,
+	/** Является ли атрибут аспектным */
+	isAspect?:boolean | `@${string}`,
+	/** Является ли атрибут коллекцией */
+	isCollection?:boolean | `@${string}`,
+	/** Является ли комплексным атрибутом */
+	isComplexAttribute?:boolean | `@${string}`,
+	/** Является ли атрибут обязательным */
+	isRequired?:boolean | `@${string}`,
+	/** Максимальное количество значений */
+	maxValueCount?:boolean | `@${string}`,
+	/** Максимальное количество значений (вычисленное) */
+	maxValues?:boolean | `@${string}`,
+	/** Название атрибута */
+	name?:boolean | `@${string}`,
+	/** Тип атрибута */
+	type?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceAttribute']?: Omit<ValueTypes["MarketplaceAttribute"], "...on MarketplaceAttribute">
+}>;
+	["MarketplaceAttributeGroup"]: AliasType<{
+	/** Атрибуты в группе */
+	attributes?:ValueTypes["MarketplaceAttribute"],
+	/** Количество атрибутов в группе */
+	attributesCount?:boolean | `@${string}`,
+	/** ID группы */
+	groupId?:boolean | `@${string}`,
+	/** Название группы */
+	groupName?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceAttributeGroup']?: Omit<ValueTypes["MarketplaceAttributeGroup"], "...on MarketplaceAttributeGroup">
+}>;
+	["MarketplaceAttributeStats"]: AliasType<{
+	/** Количество аспектных атрибутов */
+	aspectAttributes?:boolean | `@${string}`,
+	/** Количество словарных атрибутов */
+	dictionaryAttributes?:boolean | `@${string}`,
+	/** Количество обязательных атрибутов */
+	requiredAttributes?:boolean | `@${string}`,
+	/** Общее количество атрибутов */
+	totalAttributes?:boolean | `@${string}`,
+	/** Общее количество словарей */
+	totalDictionaries?:boolean | `@${string}`,
+	/** Общее количество значений словарей */
+	totalDictionaryValues?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceAttributeStats']?: Omit<ValueTypes["MarketplaceAttributeStats"], "...on MarketplaceAttributeStats">
+}>;
+	/** Тип атрибута товара */
+["MarketplaceAttributeType"]:MarketplaceAttributeType;
+	["MarketplaceAttributeValidation"]: AliasType<{
+	/** Список ошибок */
+	errors?:boolean | `@${string}`,
+	/** Результат валидации */
+	isValid?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceAttributeValidation']?: Omit<ValueTypes["MarketplaceAttributeValidation"], "...on MarketplaceAttributeValidation">
+}>;
+	["MarketplaceAvailabilityStats"]: AliasType<{
+	/** Количество доступных категорий (целых) */
+	categoriesCount?:boolean | `@${string}`,
+	/** Есть ли ограничения по категориям */
+	hasRestrictions?:boolean | `@${string}`,
+	/** Общее количество доступных элементов */
+	totalAvailable?:boolean | `@${string}`,
+	/** Количество доступных типов товаров */
+	typesCount?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceAvailabilityStats']?: Omit<ValueTypes["MarketplaceAvailabilityStats"], "...on MarketplaceAvailabilityStats">
+}>;
+	["MarketplaceAvailableCategory"]: AliasType<{
+	/** Кто добавил категорию/тип */
+	addedBy?:boolean | `@${string}`,
+	/** ID категории */
+	categoryId?:boolean | `@${string}`,
+	/** Название кооператива */
+	coopname?:boolean | `@${string}`,
+	/** Дата создания */
+	createdAt?:boolean | `@${string}`,
+	/** ID записи */
+	id?:boolean | `@${string}`,
+	/** Активна ли категория/тип */
+	isActive?:boolean | `@${string}`,
+	/** Применяется к всей категории */
+	isForEntireCategory?:boolean | `@${string}`,
+	/** Применяется к конкретному типу */
+	isForSpecificType?:boolean | `@${string}`,
+	/** ID типа товара (null = вся категория) */
+	typeId?:boolean | `@${string}`,
+	/** Дата обновления */
+	updatedAt?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceAvailableCategory']?: Omit<ValueTypes["MarketplaceAvailableCategory"], "...on MarketplaceAvailableCategory">
+}>;
+	["MarketplaceCategory"]: AliasType<{
+	/** Название категории */
+	categoryName?:boolean | `@${string}`,
+	/** Дочерние категории */
+	children?:ValueTypes["MarketplaceCategory"],
+	/** Количество дочерних категорий */
+	childrenCount?:boolean | `@${string}`,
+	/** ID категории */
+	descriptionCategoryId?:boolean | `@${string}`,
+	/** Признак отключения категории */
+	disabled?:boolean | `@${string}`,
+	/** Полный путь к категории */
+	fullPath?:boolean | `@${string}`,
+	/** Является ли категория листовой (можно создавать товары) */
+	isLeafCategory?:boolean | `@${string}`,
+	/** ID родительской категории */
+	parentId?:boolean | `@${string}`,
+	/** Типы товаров в категории */
+	types?:ValueTypes["MarketplaceProductType"],
+	/** Количество типов товаров */
+	typesCount?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceCategory']?: Omit<ValueTypes["MarketplaceCategory"], "...on MarketplaceCategory">
+}>;
+	["MarketplaceCategoryRequestCount"]: AliasType<{
+	/** ID категории */
+	categoryId?:boolean | `@${string}`,
+	/** Название категории */
+	categoryName?:boolean | `@${string}`,
+	/** Количество заявок */
+	count?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceCategoryRequestCount']?: Omit<ValueTypes["MarketplaceCategoryRequestCount"], "...on MarketplaceCategoryRequestCount">
+}>;
+	["MarketplaceCategoryTreeStats"]: AliasType<{
+	/** Количество доступных типов товаров */
+	availableTypes?:boolean | `@${string}`,
+	/** Количество отключенных категорий */
+	disabledCategories?:boolean | `@${string}`,
+	/** Количество листовых категорий */
+	leafCategories?:boolean | `@${string}`,
+	/** Количество корневых категорий */
+	rootCategories?:boolean | `@${string}`,
+	/** Общее количество категорий */
+	totalCategories?:boolean | `@${string}`,
+	/** Общее количество типов товаров */
+	totalTypes?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceCategoryTreeStats']?: Omit<ValueTypes["MarketplaceCategoryTreeStats"], "...on MarketplaceCategoryTreeStats">
+}>;
+	["MarketplaceCurrentMember"]: AliasType<{
+	core_roles?:boolean | `@${string}`,
+	marketplace_roles?:boolean | `@${string}`,
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceCurrentMember']?: Omit<ValueTypes["MarketplaceCurrentMember"], "...on MarketplaceCurrentMember">
+}>;
+	["MarketplaceDetailKUInput"]: {
+	/** Полный адрес ПВЗ для отображения и геокодинга */
+	addressFull: string | Variable<any, string>,
+	/** Контактный email ПВЗ */
+	contactEmail: string | Variable<any, string>,
+	/** Контактный телефон ПВЗ */
+	contactPhone: string | Variable<any, string>,
+	/** Имя аккаунта кооператива */
+	coopname: string | Variable<any, string>,
+	/** Идентификатор КУ в core (`braname`) */
+	coreBraname: string | Variable<any, string>,
+	/** Дополнительное описание ПВЗ */
+	description?: string | undefined | null | Variable<any, string>,
+	/** Режим работы ПВЗ по дням недели */
+	workingHours: ValueTypes["WorkingHoursInput"] | Variable<any, string>
+};
+	["MarketplaceDictionary"]: AliasType<{
+	/** Описание словаря */
+	description?:boolean | `@${string}`,
+	/** ID словаря */
+	dictionaryId?:boolean | `@${string}`,
+	/** Есть ли значения с изображениями */
+	hasValuesWithPictures?:boolean | `@${string}`,
+	/** Название словаря */
+	name?:boolean | `@${string}`,
+	/** Значения словаря */
+	values?:ValueTypes["MarketplaceDictionaryValue"],
+	/** Количество значений */
+	valuesCount?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceDictionary']?: Omit<ValueTypes["MarketplaceDictionary"], "...on MarketplaceDictionary">
+}>;
+	["MarketplaceDictionaryValue"]: AliasType<{
+	/** ID словаря */
+	dictionaryId?:boolean | `@${string}`,
+	/** ID значения словаря */
+	dictionaryValueId?:boolean | `@${string}`,
+	/** Полное описание значения */
+	fullDescription?:boolean | `@${string}`,
+	/** Есть ли дополнительная информация */
+	hasInfo?:boolean | `@${string}`,
+	/** Есть ли изображение */
+	hasPicture?:boolean | `@${string}`,
+	/** Дополнительная информация */
+	info?:boolean | `@${string}`,
+	/** URL изображения */
+	picture?:boolean | `@${string}`,
+	/** Значение */
+	value?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceDictionaryValue']?: Omit<ValueTypes["MarketplaceDictionaryValue"], "...on MarketplaceDictionaryValue">
+}>;
+	["MarketplaceKUDetails"]: AliasType<{
+	addressFull?:boolean | `@${string}`,
+	contactEmail?:boolean | `@${string}`,
+	contactPhone?:boolean | `@${string}`,
+	coopname?:boolean | `@${string}`,
+	/** Идентификатор КУ в core (`braname`) */
+	coreBraname?:boolean | `@${string}`,
+	createdAt?:boolean | `@${string}`,
+	description?:boolean | `@${string}`,
+	geocodeErrorMessage?:boolean | `@${string}`,
+	/** PENDING | OK | FAILED */
+	geocodeStatus?:boolean | `@${string}`,
+	geocodedAt?:boolean | `@${string}`,
+	lat?:boolean | `@${string}`,
+	lng?:boolean | `@${string}`,
+	/** ACTIVE | INACTIVE */
+	status?:boolean | `@${string}`,
+	updatedAt?:boolean | `@${string}`,
+	workingHours?:ValueTypes["WorkingHours"],
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceKUDetails']?: Omit<ValueTypes["MarketplaceKUDetails"], "...on MarketplaceKUDetails">
+}>;
+	["MarketplaceProductType"]: AliasType<{
+	/** ID категории */
+	descriptionCategoryId?:boolean | `@${string}`,
+	/** Признак отключения типа */
+	disabled?:boolean | `@${string}`,
+	/** Полное название с категорией */
+	fullName?:boolean | `@${string}`,
+	/** Доступен ли тип для создания товаров */
+	isAvailable?:boolean | `@${string}`,
+	/** ID типа товара */
+	typeId?:boolean | `@${string}`,
+	/** Название типа товара */
+	typeName?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceProductType']?: Omit<ValueTypes["MarketplaceProductType"], "...on MarketplaceProductType">
+}>;
+	["MarketplaceRequest"]: AliasType<{
+	/** Артикул товара */
+	articleNumber?:boolean | `@${string}`,
+	/** Атрибуты заявки */
+	attributes?:ValueTypes["MarketplaceRequestAttributeValue"],
+	/** Доступное количество единиц */
+	availableUnits?:boolean | `@${string}`,
+	/** Штрихкод товара */
+	barcode?:boolean | `@${string}`,
+	/** Можно ли редактировать заявку */
+	canBeEdited?:boolean | `@${string}`,
+	/** Информация о категории */
+	category?:ValueTypes["MarketplaceCategory"],
+	/** URL образца цвета */
+	colorImageUrl?:boolean | `@${string}`,
+	/** Название кооператива */
+	coopname?:boolean | `@${string}`,
+	/** Дата создания */
+	createdAt?:boolean | `@${string}`,
+	/** Валюта */
+	currencyCode?:boolean | `@${string}`,
+	/** Дополнительные данные */
+	data?:boolean | `@${string}`,
+	/** Глубина упаковки */
+	depth?:boolean | `@${string}`,
+	/** ID категории */
+	descriptionCategoryId?:boolean | `@${string}`,
+	/** Единица измерения габаритов */
+	dimensionUnit?:boolean | `@${string}`,
+	/** Процент скидки */
+	discountPercentage?:boolean | `@${string}`,
+	/** Геоограничения */
+	geoNames?:boolean | `@${string}`,
+	/** Заполнены ли все обязательные атрибуты */
+	hasAllRequiredAttributes?:boolean | `@${string}`,
+	/** Есть ли скидка */
+	hasDiscount?:boolean | `@${string}`,
+	/** Уникальный хэш заявки */
+	hash?:boolean | `@${string}`,
+	/** Высота упаковки */
+	height?:boolean | `@${string}`,
+	/** ID заявки */
+	id?:boolean | `@${string}`,
+	/** Изображения заявки */
+	images?:ValueTypes["MarketplaceRequestImage"],
+	/** Является ли заявка активной */
+	isActive?:boolean | `@${string}`,
+	/** Является ли предложением */
+	isOffer?:boolean | `@${string}`,
+	/** Является ли заказом */
+	isOrder?:boolean | `@${string}`,
+	/** Метаданные */
+	meta?:boolean | `@${string}`,
+	/** Название товара */
+	name?:boolean | `@${string}`,
+	/** Цена до скидки */
+	oldPrice?:boolean | `@${string}`,
+	/** Старая цена как число */
+	oldPriceAsNumber?:boolean | `@${string}`,
+	/** Хэш родительской заявки */
+	parentHash?:boolean | `@${string}`,
+	/** Цена товара */
+	price?:boolean | `@${string}`,
+	/** Цена как число */
+	priceAsNumber?:boolean | `@${string}`,
+	/** URL главного изображения */
+	primaryImageUrl?:boolean | `@${string}`,
+	/** Время жизни продукта в секундах */
+	productLifecycleSecs?:boolean | `@${string}`,
+	/** Информация о типе товара */
+	productType?:ValueTypes["MarketplaceProductType"],
+	/** Количество проданных единиц */
+	settledUnits?:boolean | `@${string}`,
+	/** Статус заявки */
+	status?:boolean | `@${string}`,
+	/** Тип заявки */
+	type?:boolean | `@${string}`,
+	/** ID типа товара */
+	typeId?:boolean | `@${string}`,
+	/** Общее количество единиц */
+	units?:boolean | `@${string}`,
+	/** Дата обновления */
+	updatedAt?:boolean | `@${string}`,
+	/** Имя пользователя */
+	username?:boolean | `@${string}`,
+	/** Ставка НДС */
+	vat?:boolean | `@${string}`,
+	/** Гарантийный срок в днях */
+	warrantyDays?:boolean | `@${string}`,
+	/** Вес товара */
+	weight?:boolean | `@${string}`,
+	/** Единица измерения веса */
+	weightUnit?:boolean | `@${string}`,
+	/** Ширина упаковки */
+	width?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceRequest']?: Omit<ValueTypes["MarketplaceRequest"], "...on MarketplaceRequest">
+}>;
+	["MarketplaceRequestAttributeValue"]: AliasType<{
+	/** Информация об атрибуте */
+	attribute?:ValueTypes["MarketplaceAttribute"],
+	/** Группа атрибута */
+	attributeGroup?:boolean | `@${string}`,
+	/** ID атрибута */
+	attributeId?:boolean | `@${string}`,
+	/** Тип атрибута */
+	attributeType?:boolean | `@${string}`,
+	/** ID комплексного атрибута */
+	complexId?:boolean | `@${string}`,
+	/** Дата создания */
+	createdAt?:boolean | `@${string}`,
+	/** ID значения из словаря */
+	dictionaryValueId?:boolean | `@${string}`,
+	/** ID значения атрибута */
+	id?:boolean | `@${string}`,
+	/** Является ли атрибут аспектным */
+	isAspect?:boolean | `@${string}`,
+	/** Является ли атрибут обязательным */
+	isRequired?:boolean | `@${string}`,
+	/** Значение атрибута */
+	value?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceRequestAttributeValue']?: Omit<ValueTypes["MarketplaceRequestAttributeValue"], "...on MarketplaceRequestAttributeValue">
+}>;
+	["MarketplaceRequestImage"]: AliasType<{
+	/** Дата создания */
+	createdAt?:boolean | `@${string}`,
+	/** Описание изображения */
+	description?:boolean | `@${string}`,
+	/** Имя файла */
+	fileName?:boolean | `@${string}`,
+	/** ID изображения */
+	id?:boolean | `@${string}`,
+	/** Тип изображения */
+	imageType?:boolean | `@${string}`,
+	/** URL изображения */
+	imageUrl?:boolean | `@${string}`,
+	/** Является ли изображением 360° */
+	is360Image?:boolean | `@${string}`,
+	/** Является ли образцом цвета */
+	isColorSample?:boolean | `@${string}`,
+	/** Является ли главным изображением */
+	isPrimary?:boolean | `@${string}`,
+	/** Порядок сортировки */
+	sortOrder?:boolean | `@${string}`,
+	/** Описание типа изображения */
+	typeDescription?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceRequestImage']?: Omit<ValueTypes["MarketplaceRequestImage"], "...on MarketplaceRequestImage">
+}>;
+	["MarketplaceRequestStatistics"]: AliasType<{
+	/** Активные предложения */
+	activeOffers?:boolean | `@${string}`,
+	/** Активные заказы */
+	activeOrders?:boolean | `@${string}`,
+	/** Завершенные сделки */
+	completedDeals?:boolean | `@${string}`,
+	/** Заявки по категориям */
+	requestsByCategory?:ValueTypes["MarketplaceCategoryRequestCount"],
+	/** Общее количество заявок */
+	totalRequests?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceRequestStatistics']?: Omit<ValueTypes["MarketplaceRequestStatistics"], "...on MarketplaceRequestStatistics">
+}>;
+	["MarketplaceSetKUStatusInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string | Variable<any, string>,
+	/** Идентификатор КУ в core (`braname`) */
+	coreBraname: string | Variable<any, string>,
+	/** Целевой статус ПВЗ: ACTIVE или INACTIVE */
+	status: string | Variable<any, string>
 };
 	["MatrixAccountStatusResponseDTO"]: AliasType<{
 	hasAccount?:boolean | `@${string}`,
@@ -6378,9 +7013,11 @@ export type ValueTypes = {
 };
 	["Mutation"]: AliasType<{
 acceptChildOrder?: [{	data: ValueTypes["AcceptChildOrderInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+acceptStock?: [{	data: ValueTypes["AcceptStockInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 addParticipant?: [{	data: ValueTypes["AddParticipantInput"] | Variable<any, string>},ValueTypes["Account"]],
 addPaymentMethod?: [{	data: ValueTypes["AddPaymentMethodInput"] | Variable<any, string>},ValueTypes["PaymentMethod"]],
 addTrustedAccount?: [{	data: ValueTypes["AddTrustedAccountInput"] | Variable<any, string>},ValueTypes["Branch"]],
+archiveProductCard?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
 cancelRequest?: [{	data: ValueTypes["CancelRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalAddAuthor?: [{	data: ValueTypes["AddAuthorInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
 capitalApproveCommit?: [{	data: ValueTypes["CommitApproveInput"] | Variable<any, string>},ValueTypes["CapitalCommit"]],
@@ -6477,12 +7114,15 @@ completeRequest?: [{	data: ValueTypes["CompleteRequestInput"] | Variable<any, st
 confirmAgreement?: [{	data: ValueTypes["ConfirmAgreementInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 confirmReceiveOnRequest?: [{	data: ValueTypes["ConfirmReceiveOnRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 confirmSupplyOnRequest?: [{	data: ValueTypes["ConfirmSupplyOnRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+coopstock?: [{	data: ValueTypes["CoopstockInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 createAnnualGeneralMeet?: [{	data: ValueTypes["CreateAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
 createBranch?: [{	data: ValueTypes["CreateBranchInput"] | Variable<any, string>},ValueTypes["Branch"]],
+createCategory?: [{	data: ValueTypes["CreateCategoryInput"] | Variable<any, string>},ValueTypes["Category"]],
 createChildOrder?: [{	data: ValueTypes["CreateChildOrderInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 createDepositPayment?: [{	data: ValueTypes["CreateDepositPaymentInput"] | Variable<any, string>},ValueTypes["GatewayPayment"]],
 createInitialPayment?: [{	data: ValueTypes["CreateInitialPaymentInput"] | Variable<any, string>},ValueTypes["GatewayPayment"]],
 createParentOffer?: [{	data: ValueTypes["CreateParentOfferInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+createProductCard?: [{	data: ValueTypes["CreateProductCardInput"] | Variable<any, string>},ValueTypes["ProductCard"]],
 createProjectOfFreeDecision?: [{	data: ValueTypes["CreateProjectFreeDecisionInput"] | Variable<any, string>},ValueTypes["CreatedProjectFreeDecision"]],
 createWebPushSubscription?: [{	data: ValueTypes["CreateSubscriptionInput"] | Variable<any, string>},ValueTypes["CreateSubscriptionResponse"]],
 createWithdraw?: [{	data: ValueTypes["CreateWithdrawInput"] | Variable<any, string>},ValueTypes["CreateWithdrawResponse"]],
@@ -6490,10 +7130,13 @@ deactivateWebPushSubscriptionById?: [{	data: ValueTypes["DeactivateSubscriptionI
 declineAgreement?: [{	data: ValueTypes["DeclineAgreementInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 declineRequest?: [{	data: ValueTypes["DeclineRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 deleteBranch?: [{	data: ValueTypes["DeleteBranchInput"] | Variable<any, string>},boolean | `@${string}`],
+deleteCategory?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
 deletePaymentMethod?: [{	data: ValueTypes["DeletePaymentMethodInput"] | Variable<any, string>},boolean | `@${string}`],
+deleteProductCard?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
 deleteReportDraft?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
 deleteTrustedAccount?: [{	data: ValueTypes["DeleteTrustedAccountInput"] | Variable<any, string>},ValueTypes["Branch"]],
 deliverOnRequest?: [{	data: ValueTypes["DeliverOnRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+destroyRequest?: [{	data: ValueTypes["DestroyRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 disputeOnRequest?: [{	data: ValueTypes["DisputeOnRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 editBranch?: [{	data: ValueTypes["EditBranchInput"] | Variable<any, string>},ValueTypes["Branch"]],
 generateAnnualGeneralMeetAgendaDocument?: [{	data: ValueTypes["AnnualGeneralMeetingAgendaGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
@@ -6528,16 +7171,32 @@ installSystem?: [{	data: ValueTypes["Install"] | Variable<any, string>},ValueTyp
 login?: [{	data: ValueTypes["LoginInput"] | Variable<any, string>},ValueTypes["RegisteredAccount"]],
 logout?: [{	data: ValueTypes["LogoutInput"] | Variable<any, string>},boolean | `@${string}`],
 markReportPeriod?: [{	data: ValueTypes["MarkReportPeriodInput"] | Variable<any, string>},boolean | `@${string}`],
+marketplaceAddAvailableCategories?: [{	input: ValueTypes["AddAvailableCategoriesInput"] | Variable<any, string>},ValueTypes["MarketplaceAvailableCategory"]],
+marketplaceAddAvailableCategoryTypes?: [{	input: ValueTypes["AddAvailableCategoryTypesInput"] | Variable<any, string>},ValueTypes["MarketplaceAvailableCategory"]],
+	/** Очистить все доступные категории (сделать доступными все)
+
+Требуемые роли: chairman.  */
+	marketplaceClearAvailableCategories?:boolean | `@${string}`,
+marketplaceCreateRequest?: [{	data: ValueTypes["CreateRequestInput"] | Variable<any, string>},ValueTypes["MarketplaceRequest"]],
+marketplaceDetailKU?: [{	data: ValueTypes["MarketplaceDetailKUInput"] | Variable<any, string>},ValueTypes["MarketplaceKUDetails"]],
+marketplaceRemoveAvailableCategories?: [{	input: ValueTypes["RemoveAvailableCategoriesInput"] | Variable<any, string>},boolean | `@${string}`],
+marketplaceRemoveAvailableCategoryTypes?: [{	input: ValueTypes["RemoveAvailableCategoryTypesInput"] | Variable<any, string>},boolean | `@${string}`],
+marketplaceReplaceAvailableItems?: [{	input: ValueTypes["ReplaceAvailableItemsInput"] | Variable<any, string>},ValueTypes["MarketplaceAvailableCategory"]],
+marketplaceRetryKUGeocode?: [{	coopname: string | Variable<any, string>,	coreBraname: string | Variable<any, string>},ValueTypes["MarketplaceKUDetails"]],
+marketplaceSetKUStatus?: [{	data: ValueTypes["MarketplaceSetKUStatusInput"] | Variable<any, string>},ValueTypes["MarketplaceKUDetails"]],
 moderateRequest?: [{	data: ValueTypes["ModerateRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 notifyOnAnnualGeneralMeet?: [{	data: ValueTypes["NotifyOnAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
 processConvertToAxonStatement?: [{	data: ValueTypes["ProcessConvertToAxonStatementInput"] | Variable<any, string>},boolean | `@${string}`],
 prohibitRequest?: [{	data: ValueTypes["ProhibitRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+publishProductCard?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
 publishProjectOfFreeDecision?: [{	data: ValueTypes["PublishProjectFreeDecisionInput"] | Variable<any, string>},boolean | `@${string}`],
 publishRequest?: [{	data: ValueTypes["PublishRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 receiveOnRequest?: [{	data: ValueTypes["ReceiveOnRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 refresh?: [{	data: ValueTypes["RefreshInput"] | Variable<any, string>},ValueTypes["RegisteredAccount"]],
 registerAccount?: [{	data: ValueTypes["RegisterAccountInput"] | Variable<any, string>},ValueTypes["RegisteredAccount"]],
 registerParticipant?: [{	data: ValueTypes["RegisterParticipantInput"] | Variable<any, string>},ValueTypes["Account"]],
+reofferRequest?: [{	data: ValueTypes["ReofferRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+reqReturn?: [{	data: ValueTypes["ReqReturnInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 resetKey?: [{	data: ValueTypes["ResetKeyInput"] | Variable<any, string>},boolean | `@${string}`],
 restartAnnualGeneralMeet?: [{	data: ValueTypes["RestartAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
 saveReportDraft?: [{	input: ValueTypes["SaveReportDraftInput"] | Variable<any, string>},ValueTypes["ReportDraft"]],
@@ -7428,6 +8087,32 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	toBlock?: number | undefined | null | Variable<any, string>,
 	username?: string | undefined | null | Variable<any, string>
 };
+	["ProductCard"]: AliasType<{
+	braname?:boolean | `@${string}`,
+	cancellation_fee_amount?:boolean | `@${string}`,
+	category_id?:boolean | `@${string}`,
+	contribution_type?:boolean | `@${string}`,
+	coopname?:boolean | `@${string}`,
+	created_at?:boolean | `@${string}`,
+	delivery_type?:boolean | `@${string}`,
+	description?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	images?:boolean | `@${string}`,
+	membership_fee_amount?:boolean | `@${string}`,
+	product_lifecycle_secs?:boolean | `@${string}`,
+	status?:boolean | `@${string}`,
+	title?:boolean | `@${string}`,
+	type?:boolean | `@${string}`,
+	unit_cost?:boolean | `@${string}`,
+	units?:boolean | `@${string}`,
+	updated_at?:boolean | `@${string}`,
+	username?:boolean | `@${string}`,
+	warranty_period_secs?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ProductCard']?: Omit<ValueTypes["ProductCard"], "...on ProductCard">
+}>;
+	["ProductCardStatus"]:ProductCardStatus;
+	["ProductCardType"]:ProductCardType;
 	["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"]: {
 	/** Сумма инвестирования в программу (актив) */
 	amount: string | Variable<any, string>,
@@ -7799,6 +8484,8 @@ getCapitalIssueLogs?: [{	data: ValueTypes["GetCapitalIssueLogsInput"] | Variable
 Требуемые роли: chairman, member, user.  */
 	getCapitalOnboardingState?:ValueTypes["CapitalOnboardingState"],
 getCapitalProjectLogs?: [{	data: ValueTypes["GetCapitalLogsInput"] | Variable<any, string>},ValueTypes["PaginatedCapitalLogsPaginationResult"]],
+	/** Получить дерево категорий */
+	getCategories?:ValueTypes["Category"],
 	/** Получить состояние онбординга председателя
 
 Требуемые роли: chairman.  */
@@ -7824,8 +8511,12 @@ getLedger2Wallets?: [{	coopname: string | Variable<any, string>},ValueTypes["Led
 getLedgerHistory?: [{	data: ValueTypes["GetLedgerHistoryInput"] | Variable<any, string>},ValueTypes["LedgerHistoryResponse"]],
 getMeet?: [{	data: ValueTypes["GetMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
 getMeets?: [{	data: ValueTypes["GetMeetsInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
+	/** Мои карточки */
+	getMyProductCards?:ValueTypes["ProductCard"],
 getPaymentMethods?: [{	data?: ValueTypes["GetPaymentMethodsInput"] | undefined | null | Variable<any, string>},ValueTypes["PaymentMethodPaginationResult"]],
 getPayments?: [{	data?: ValueTypes["PaymentFiltersInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedGatewayPaymentsPaginationResult"]],
+getProductCard?: [{	id: string | Variable<any, string>},ValueTypes["ProductCard"]],
+getProductCards?: [{	category_id?: string | undefined | null | Variable<any, string>,	limit?: number | undefined | null | Variable<any, string>,	page?: number | undefined | null | Variable<any, string>,	search?: string | undefined | null | Variable<any, string>,	status?: ValueTypes["ProductCardStatus"] | undefined | null | Variable<any, string>,	type?: ValueTypes["ProductCardType"] | undefined | null | Variable<any, string>},ValueTypes["ProductCard"]],
 getProgramWallet?: [{	filter: ValueTypes["ProgramWalletFilterInput"] | Variable<any, string>},ValueTypes["ProgramWallet"]],
 getProgramWallets?: [{	filter?: ValueTypes["ProgramWalletFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["ProgramWalletsPaginationResult"]],
 getProviderSubscriptionById?: [{	id: number | Variable<any, string>},ValueTypes["ProviderSubscription"]],
@@ -7852,6 +8543,50 @@ getUserWebPushSubscriptions?: [{	data: ValueTypes["GetUserSubscriptionsInput"] |
 Требуемые роли: chairman.  */
 	getWebPushSubscriptionStats?:ValueTypes["SubscriptionStatsDto"],
 listReportDrafts?: [{	filter?: ValueTypes["ListReportDraftsFilterInput"] | undefined | null | Variable<any, string>},ValueTypes["ReportDraft"]],
+marketplaceAspectAttributes?: [{	data: ValueTypes["GetRequiredAttributesInput"] | Variable<any, string>},ValueTypes["MarketplaceAttribute"]],
+	/** Получить статистику по атрибутам marketplace
+
+Требуемые роли: chairman, member.  */
+	marketplaceAttributeStats?:ValueTypes["MarketplaceAttributeStats"],
+marketplaceCategoryAttributes?: [{	input: ValueTypes["GetCategoryAttributesInput"] | Variable<any, string>},ValueTypes["MarketplaceAttribute"]],
+marketplaceCategoryAttributesGrouped?: [{	input: ValueTypes["GetCategoryAttributesInput"] | Variable<any, string>},ValueTypes["MarketplaceAttributeGroup"]],
+marketplaceFindPotentialMatches?: [{	data: ValueTypes["FindPotentialMatchesInput"] | Variable<any, string>},ValueTypes["MarketplaceRequest"]],
+	/** Получить статистику по доступности категорий в кооперативе
+
+Требуемые роли: chairman.  */
+	marketplaceGetAvailabilityStats?:ValueTypes["MarketplaceAvailabilityStats"],
+	/** Получить все доступные категории и типы для кооператива
+
+Требуемые роли: chairman.  */
+	marketplaceGetAvailableCategories?:ValueTypes["MarketplaceAvailableCategory"],
+	/** Получить дерево доступных категорий и типов для кооператива
+
+Требуемые роли: chairman.  */
+	marketplaceGetAvailableCategoryTree?:ValueTypes["MarketplaceCategory"],
+marketplaceGetCategoryById?: [{	data: ValueTypes["GetCategoryByIdInput"] | Variable<any, string>},ValueTypes["MarketplaceCategory"]],
+marketplaceGetCategoryRules?: [{	categoryId: number | Variable<any, string>},ValueTypes["MarketplaceAvailableCategory"]],
+marketplaceGetCategoryTree?: [{	input?: ValueTypes["GetCategoryTreeInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceCategory"]],
+	/** Получить статистику по дереву категорий
+
+Требуемые роли: chairman, member.  */
+	marketplaceGetCategoryTreeStats?:ValueTypes["MarketplaceCategoryTreeStats"],
+marketplaceGetCoopRequests?: [{	data: ValueTypes["GetCoopRequestsInput"] | Variable<any, string>},ValueTypes["MarketplaceRequest"]],
+marketplaceGetProductTypeById?: [{	data: ValueTypes["GetProductTypeByIdInput"] | Variable<any, string>},ValueTypes["MarketplaceProductType"]],
+marketplaceGetRequest?: [{	data: ValueTypes["GetRequestInput"] | Variable<any, string>},ValueTypes["MarketplaceRequest"]],
+marketplaceGetRequestByHash?: [{	data: ValueTypes["GetRequestByHashInput"] | Variable<any, string>},ValueTypes["MarketplaceRequest"]],
+marketplaceGetRequestStatistics?: [{	data: ValueTypes["GetRequestStatisticsInput"] | Variable<any, string>},ValueTypes["MarketplaceRequestStatistics"]],
+	/** Получить все корневые категории marketplace */
+	marketplaceGetRootCategories?:ValueTypes["MarketplaceCategory"],
+marketplaceGetSearchCategories?: [{	data: ValueTypes["SearchCategoriesInput"] | Variable<any, string>},ValueTypes["MarketplaceCategory"]],
+marketplaceGetUserRequests?: [{	data?: ValueTypes["GetUserRequestsInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceRequest"]],
+marketplaceListKUDetails?: [{	data: ValueTypes["ListMarketplaceKUInput"] | Variable<any, string>},ValueTypes["MarketplaceKUDetails"]],
+marketplaceRequiredAttributes?: [{	data: ValueTypes["GetRequiredAttributesInput"] | Variable<any, string>},ValueTypes["MarketplaceAttribute"]],
+marketplaceSearchAttributes?: [{	input: ValueTypes["SearchAttributesInput"] | Variable<any, string>},ValueTypes["MarketplaceAttribute"]],
+marketplaceSearchDictionaryValues?: [{	input: ValueTypes["SearchDictionaryValuesInput"] | Variable<any, string>},ValueTypes["MarketplaceDictionaryValue"]],
+marketplaceSearchRequests?: [{	data: ValueTypes["SearchRequestsInput"] | Variable<any, string>},ValueTypes["MarketplaceRequest"]],
+marketplaceValidateAttributeValues?: [{	input: ValueTypes["ValidateAttributeValuesInput"] | Variable<any, string>},ValueTypes["MarketplaceAttributeValidation"]],
+	/** Контекст пайщика для Стола заказов: core_roles + marketplace_roles */
+	marketplaceWhoAmI?:ValueTypes["MarketplaceCurrentMember"],
 onecoopGetDocuments?: [{	data: ValueTypes["GetOneCoopDocumentsInput"] | Variable<any, string>},ValueTypes["OneCoopDocumentsResponse"]],
 process?: [{	coopname: string | Variable<any, string>,	hash: string | Variable<any, string>},ValueTypes["ProcessView"]],
 processes?: [{	filter: ValueTypes["ProcessesFilter"] | Variable<any, string>,	pagination: ValueTypes["PaginationInput"] | Variable<any, string>},ValueTypes["ProcessSummaryPaginationResult"]],
@@ -8049,6 +8784,26 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 		__typename?: boolean | `@${string}`,
 	['...on RegistrationProgram']?: Omit<ValueTypes["RegistrationProgram"], "...on RegistrationProgram">
 }>;
+	["RemoveAvailableCategoriesInput"]: {
+	/** ID категорий для удаления */
+	categoryIds: Array<number> | Variable<any, string>
+};
+	["RemoveAvailableCategoryTypesInput"]: {
+	/** Типы товаров для удаления */
+	categoryTypes: Array<ValueTypes["CategoryTypeInput"]> | Variable<any, string>
+};
+	["ReofferRequestInput"]: {
+	new_hash: string | Variable<any, string>,
+	new_meta: string | Variable<any, string>,
+	new_unit_cost: string | Variable<any, string>,
+	request_hash: string | Variable<any, string>
+};
+	["ReplaceAvailableItemsInput"]: {
+	/** ID категорий (целые категории) */
+	categoryIds: Array<number> | Variable<any, string>,
+	/** Типы товаров */
+	categoryTypes: Array<ValueTypes["CategoryTypeInput"]> | Variable<any, string>
+};
 	["ReportCalendarPeriodEntry"]: AliasType<{
 	dueDate?:boolean | `@${string}`,
 	dueMonth?:boolean | `@${string}`,
@@ -8191,6 +8946,41 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	middle_name: string | Variable<any, string>,
 	position: string | Variable<any, string>
 };
+	["ReqReturnInput"]: {
+	request_hash: string | Variable<any, string>,
+	return_statement: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>,
+	username: string | Variable<any, string>
+};
+	["RequestAttributeInput"]: {
+	/** ID атрибута */
+	attributeId: number | Variable<any, string>,
+	/** ID комплексного атрибута */
+	complexId?: number | undefined | null | Variable<any, string>,
+	/** ID значения из словаря */
+	dictionaryValueId?: number | undefined | null | Variable<any, string>,
+	/** Значение атрибута */
+	value: string | Variable<any, string>
+};
+	["RequestImageInput"]: {
+	/** Описание изображения */
+	description?: string | undefined | null | Variable<any, string>,
+	/** Тип изображения */
+	imageType: ValueTypes["RequestImageTypeInput"] | Variable<any, string>,
+	/** URL изображения */
+	imageUrl: string | Variable<any, string>,
+	/** Порядок сортировки */
+	sortOrder: number | Variable<any, string>
+};
+	/** Тип изображения заявки */
+["RequestImageType"]:RequestImageType;
+	/** Тип изображения заявки */
+["RequestImageTypeInput"]:RequestImageTypeInput;
+	/** Статус заявки */
+["RequestStatus"]:RequestStatus;
+	/** Тип заявки */
+["RequestType"]:RequestType;
+	/** Тип заявки: offer - предложение, order - заказ */
+["RequestTypeInput"]:RequestTypeInput;
 	["RequisiteFieldView"]: AliasType<{
 	source?:boolean | `@${string}`,
 	value?:boolean | `@${string}`,
@@ -8568,6 +9358,34 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	/** Мобильный телефон получателя */
 	phone: string | Variable<any, string>
 };
+	["SearchAttributesInput"]: {
+	/** ID категории для фильтрации */
+	categoryId?: number | undefined | null | Variable<any, string>,
+	/** Максимальное количество результатов */
+	limit?: number | undefined | null | Variable<any, string>,
+	/** Только аспектные */
+	onlyAspect?: boolean | undefined | null | Variable<any, string>,
+	/** Только обязательные */
+	onlyRequired?: boolean | undefined | null | Variable<any, string>,
+	/** Только со словарями */
+	onlyWithDictionary?: boolean | undefined | null | Variable<any, string>,
+	/** Текст для поиска */
+	searchTerm: string | Variable<any, string>,
+	/** ID типа товара для фильтрации */
+	typeId?: number | undefined | null | Variable<any, string>
+};
+	["SearchCategoriesInput"]: {
+	/** Текст для поиска по категориям и типам товаров */
+	searchTerm: string | Variable<any, string>
+};
+	["SearchDictionaryValuesInput"]: {
+	/** ID словаря */
+	dictionaryId: number | Variable<any, string>,
+	/** Максимальное количество результатов */
+	limit?: number | undefined | null | Variable<any, string>,
+	/** Текст для поиска */
+	searchTerm: string | Variable<any, string>
+};
 	["SearchDocumentsInput"]: {
 	/** Максимальное количество результатов */
 	limit?: number | undefined | null | Variable<any, string>,
@@ -8577,6 +9395,12 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	["SearchPrivateAccountsInput"]: {
 	/** Поисковый запрос для поиска приватных аккаунтов */
 	query: string | Variable<any, string>
+};
+	["SearchRequestsInput"]: {
+	/** Максимальное количество результатов */
+	limit?: number | undefined | null | Variable<any, string>,
+	/** Текст для поиска по названию товара */
+	searchTerm: string | Variable<any, string>
 };
 	["SearchResult"]: AliasType<{
 	/** Кооператив */
@@ -9331,6 +10155,12 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 }>;
 	/** Статус пользователя */
 ["UserStatus"]:UserStatus;
+	["ValidateAttributeValuesInput"]: {
+	/** ID атрибута */
+	attributeId: number | Variable<any, string>,
+	/** Значения для валидации */
+	values: Array<string> | Variable<any, string>
+};
 	["Vars"]: AliasType<{
 	confidential_email?:boolean | `@${string}`,
 	confidential_link?:boolean | `@${string}`,
@@ -9484,6 +10314,53 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	/** P256DH ключ для шифрования */
 	p256dh: string | Variable<any, string>
 };
+	["WorkingHours"]: AliasType<{
+	fri?:ValueTypes["WorkingHoursDay"],
+	mon?:ValueTypes["WorkingHoursDay"],
+	sat?:ValueTypes["WorkingHoursDay"],
+	sun?:ValueTypes["WorkingHoursDay"],
+	thu?:ValueTypes["WorkingHoursDay"],
+	tue?:ValueTypes["WorkingHoursDay"],
+	wed?:ValueTypes["WorkingHoursDay"],
+		__typename?: boolean | `@${string}`,
+	['...on WorkingHours']?: Omit<ValueTypes["WorkingHours"], "...on WorkingHours">
+}>;
+	["WorkingHoursBreak"]: AliasType<{
+	end?:boolean | `@${string}`,
+	start?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on WorkingHoursBreak']?: Omit<ValueTypes["WorkingHoursBreak"], "...on WorkingHoursBreak">
+}>;
+	["WorkingHoursBreakInput"]: {
+	/** Конец перерыва (HH:mm) */
+	end: string | Variable<any, string>,
+	/** Начало перерыва (HH:mm) */
+	start: string | Variable<any, string>
+};
+	["WorkingHoursDay"]: AliasType<{
+	breaks?:ValueTypes["WorkingHoursBreak"],
+	close?:boolean | `@${string}`,
+	open?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on WorkingHoursDay']?: Omit<ValueTypes["WorkingHoursDay"], "...on WorkingHoursDay">
+}>;
+	["WorkingHoursDayInput"]: {
+	/** Перерывы внутри рабочего дня */
+	breaks: Array<ValueTypes["WorkingHoursBreakInput"]> | Variable<any, string>,
+	/** Время закрытия (HH:mm) */
+	close: string | Variable<any, string>,
+	/** Время открытия (HH:mm) */
+	open: string | Variable<any, string>
+};
+	["WorkingHoursInput"]: {
+	fri?: ValueTypes["WorkingHoursDayInput"] | undefined | null | Variable<any, string>,
+	mon?: ValueTypes["WorkingHoursDayInput"] | undefined | null | Variable<any, string>,
+	sat?: ValueTypes["WorkingHoursDayInput"] | undefined | null | Variable<any, string>,
+	sun?: ValueTypes["WorkingHoursDayInput"] | undefined | null | Variable<any, string>,
+	thu?: ValueTypes["WorkingHoursDayInput"] | undefined | null | Variable<any, string>,
+	tue?: ValueTypes["WorkingHoursDayInput"] | undefined | null | Variable<any, string>,
+	wed?: ValueTypes["WorkingHoursDayInput"] | undefined | null | Variable<any, string>
+};
 	["ZeroReportHeaderEdits"]: AliasType<{
 	correctionNumber?:boolean | `@${string}`,
 	docDate?:boolean | `@${string}`,
@@ -9534,6 +10411,12 @@ export type ResolverInputTypes = {
 	/** Идентификатор заявки */
 	exchange_id: string,
 	/** Имя аккаунта пользователя */
+	username: string
+};
+	["AcceptStockInput"]: {
+	convert_in: ResolverInputTypes["SignedDigitalDocumentInput"],
+	request_hash: string,
+	return_statement: ResolverInputTypes["SignedDigitalDocumentInput"],
 	username: string
 };
 	["Account"]: AliasType<{
@@ -9620,6 +10503,14 @@ export type ResolverInputTypes = {
 	coopname: string,
 	/** Хэш проекта */
 	project_hash: string
+};
+	["AddAvailableCategoriesInput"]: {
+	/** ID категорий для добавления (целые категории) */
+	categoryIds: Array<number>
+};
+	["AddAvailableCategoryTypesInput"]: {
+	/** Типы товаров для добавления */
+	categoryTypes: Array<ResolverInputTypes["CategoryTypeInput"]>
 };
 	["AddParticipantInput"]: {
 	/** Дата создания аккаунта в строковом формате даты EOSIO по UTC (2024-12-28T06:58:52.500) */
@@ -12126,6 +13017,23 @@ export type ResolverInputTypes = {
 	voter_display_name?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["Category"]: AliasType<{
+	coopname?:boolean | `@${string}`,
+	description?:boolean | `@${string}`,
+	icon?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	is_active?:boolean | `@${string}`,
+	name?:boolean | `@${string}`,
+	parent_id?:boolean | `@${string}`,
+	sort_order?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["CategoryTypeInput"]: {
+	/** ID категории */
+	categoryId: number,
+	/** ID типа товара */
+	typeId: number
+};
 	["ChairmanOnboardingAgendaInput"]: {
 	decision: string,
 	question: string,
@@ -12398,6 +13306,7 @@ export type ResolverInputTypes = {
 	phone?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["ContributionType"]:ContributionType;
 	/** Параметры документов участника из UData */
 ["ContributorDocumentParameters"]: AliasType<{
 	/** Дата создания соглашения благороста */
@@ -12577,6 +13486,16 @@ export type ResolverInputTypes = {
 	program_type?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["CoopstockInput"]: {
+	braname: string,
+	hash: string,
+	membership_fee_amount: string,
+	meta: string,
+	product_lifecycle_secs: number,
+	unit_cost: string,
+	units: number,
+	warranty_period_secs: number
+};
 	/** Страна регистрации пользователя */
 ["Country"]:Country;
 	["CreateAnnualGeneralMeetInput"]: {
@@ -12618,6 +13537,13 @@ export type ResolverInputTypes = {
 	short_name: string,
 	/** Имя аккаунта уполномоченного (председателя) кооперативного участка */
 	trustee: string
+};
+	["CreateCategoryInput"]: {
+	description?: string | undefined | null,
+	icon?: string | undefined | null,
+	name: string,
+	parent_id?: string | undefined | null,
+	sort_order?: number | undefined | null
 };
 	["CreateChatCoopCalendarEventInput"]: {
 	description?: string | undefined | null,
@@ -12863,6 +13789,23 @@ export type ResolverInputTypes = {
 	project_hash: string,
 	title: string
 };
+	["CreateProductCardInput"]: {
+	braname?: string | undefined | null,
+	cancellation_fee_amount?: string | undefined | null,
+	category_id?: string | undefined | null,
+	contribution_type: ResolverInputTypes["ContributionType"],
+	delivery_type: ResolverInputTypes["DeliveryType"],
+	description: string,
+	images?: Array<string> | undefined | null,
+	membership_fee_amount?: string | undefined | null,
+	min_units?: number | undefined | null,
+	product_lifecycle_secs: number,
+	title: string,
+	type: ResolverInputTypes["ProductCardType"],
+	unit_cost: string,
+	units: number,
+	warranty_period_secs: number
+};
 	["CreateProgramInvestInput"]: {
 	/** Сумма инвестиции */
 	amount: string,
@@ -12938,6 +13881,64 @@ export type ResolverInputTypes = {
 	property_hash: string,
 	/** Имя пользователя */
 	username: string
+};
+	["CreateRequestInput"]: {
+	/** Артикул товара (до 50 символов) */
+	articleNumber: string,
+	/** Атрибуты товара */
+	attributes: Array<ResolverInputTypes["RequestAttributeInput"]>,
+	/** Штрихкод товара */
+	barcode?: string | undefined | null,
+	/** URL образца цвета */
+	colorImageUrl?: string | undefined | null,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Валюта */
+	currencyCode: string,
+	/** Дополнительные данные JSON */
+	data?: string | undefined | null,
+	/** Глубина упаковки */
+	depth?: number | undefined | null,
+	/** ID категории */
+	descriptionCategoryId: number,
+	/** Единица измерения габаритов */
+	dimensionUnit?: string | undefined | null,
+	/** Геоограничения */
+	geoNames: Array<string>,
+	/** Высота упаковки */
+	height?: number | undefined | null,
+	/** Изображения товара */
+	images: Array<ResolverInputTypes["RequestImageInput"]>,
+	/** Метаданные JSON */
+	meta?: string | undefined | null,
+	/** Название товара (до 500 символов) */
+	name: string,
+	/** Цена до скидки */
+	oldPrice?: number | undefined | null,
+	/** Хэш родительской заявки */
+	parentHash?: string | undefined | null,
+	/** Цена товара */
+	price: number,
+	/** URL главного изображения */
+	primaryImageUrl?: string | undefined | null,
+	/** Время жизни продукта в секундах */
+	productLifecycleSecs?: number | undefined | null,
+	/** Тип заявки: offer - предложение, order - заказ */
+	type: ResolverInputTypes["RequestTypeInput"],
+	/** ID типа товара */
+	typeId: number,
+	/** Количество единиц товара */
+	units: number,
+	/** Ставка НДС (0, 0.05, 0.07, 0.1, 0.2) */
+	vat: string,
+	/** Гарантийный срок в днях */
+	warrantyDays?: number | undefined | null,
+	/** Вес товара */
+	weight?: number | undefined | null,
+	/** Единица измерения веса */
+	weightUnit?: string | undefined | null,
+	/** Ширина упаковки */
+	width?: number | undefined | null
 };
 	["CreateSovietIndividualDataInput"]: {
 	/** Дата рождения */
@@ -13173,6 +14174,7 @@ export type ResolverInputTypes = {
 	/** Имя аккаунта пользователя */
 	username: string
 };
+	["DeliveryType"]:DeliveryType;
 	["Delta"]: AliasType<{
 	/** ID блока */
 	block_id?:boolean | `@${string}`,
@@ -13249,6 +14251,10 @@ export type ResolverInputTypes = {
 	title?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["DestroyRequestInput"]: {
+	destruction_act: ResolverInputTypes["SignedDigitalDocumentInput"],
+	request_hash: string
+};
 	["DisputeOnRequestInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -13542,6 +14548,10 @@ export type ResolverInputTypes = {
 	coopname: string,
 	/** Хэш проекта для финализации */
 	project_hash: string
+};
+	["FindPotentialMatchesInput"]: {
+	/** ID заявки для поиска совпадений */
+	requestId: number
 };
 	["FreeDecisionGenerateDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
@@ -13984,6 +14994,30 @@ export type ResolverInputTypes = {
 	/** Хеш истории для получения */
 	story_hash: string
 };
+	["GetCategoryAttributesInput"]: {
+	/** ID категории */
+	categoryId: number,
+	/** Включать значения словарей */
+	includeDictionaryValues?: boolean | undefined | null,
+	/** Только обязательные атрибуты */
+	onlyRequired?: boolean | undefined | null,
+	/** ID типа товара */
+	typeId: number
+};
+	["GetCategoryByIdInput"]: {
+	/** ID категории */
+	categoryId: number
+};
+	["GetCategoryTreeInput"]: {
+	/** Включать типы товаров */
+	includeTypes?: boolean | undefined | null,
+	/** Максимальная глубина дерева */
+	maxDepth?: number | undefined | null,
+	/** Включать только доступные категории */
+	onlyAvailable?: boolean | undefined | null,
+	/** ID корневой категории */
+	rootCategoryId?: number | undefined | null
+};
 	["GetContributorInput"]: {
 	/** ID участника */
 	_id?: string | undefined | null,
@@ -13991,6 +15025,16 @@ export type ResolverInputTypes = {
 	contributor_hash?: string | undefined | null,
 	/** Имя пользователя */
 	username?: string | undefined | null
+};
+	["GetCoopRequestsInput"]: {
+	/** Название кооператива */
+	coopname: string,
+	/** Максимальное количество результатов */
+	limit?: number | undefined | null,
+	/** Статус заявки */
+	status?: string | undefined | null,
+	/** Тип заявки */
+	type?: ResolverInputTypes["RequestTypeInput"] | undefined | null
 };
 	["GetDebtInput"]: {
 	/** ID долга */
@@ -14133,6 +15177,10 @@ export type ResolverInputTypes = {
 	/** Имя пользователя для фильтрации методов оплаты */
 	username?: string | undefined | null
 };
+	["GetProductTypeByIdInput"]: {
+	/** ID типа товара */
+	typeId: number
+};
 	["GetProjectCommunicationRoomsInput"]: {
 	/** Хеш проекта Capital */
 	projectHash: string
@@ -14146,6 +15194,24 @@ export type ResolverInputTypes = {
 	["GetProjectWithRelationsInput"]: {
 	/** Хеш проекта */
 	projectHash: string
+};
+	["GetRequestByHashInput"]: {
+	/** Хэш заявки */
+	hash: string
+};
+	["GetRequestInput"]: {
+	/** ID заявки */
+	id: number
+};
+	["GetRequestStatisticsInput"]: {
+	/** Название кооператива */
+	coopname: string
+};
+	["GetRequiredAttributesInput"]: {
+	/** ID категории */
+	categoryId: number,
+	/** ID типа товара */
+	typeId: number
 };
 	["GetResultInput"]: {
 	/** ID результата */
@@ -14163,6 +15229,10 @@ export type ResolverInputTypes = {
 	limit?: number | undefined | null,
 	matrixRoomId?: string | undefined | null,
 	offset?: number | undefined | null
+};
+	["GetUserRequestsInput"]: {
+	/** Максимальное количество результатов */
+	limit?: number | undefined | null
 };
 	["GetUserSubscriptionsInput"]: {
 	/** Username пользователя */
@@ -14395,6 +15465,12 @@ export type ResolverInputTypes = {
 	coopname?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["ListMarketplaceKUInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Только активные ПВЗ. Для заказчиков/поставщиков всегда `true`; для admin-стола `false`. */
+	onlyActive?: boolean | undefined | null
+};
 	["ListReportDraftsFilterInput"]: {
 	period?: number | undefined | null,
 	reportType?: ResolverInputTypes["ReportType"] | undefined | null,
@@ -14440,6 +15516,423 @@ export type ResolverInputTypes = {
 	period?: number | undefined | null,
 	reportType: ResolverInputTypes["ReportType"],
 	year: number
+};
+	["MarketplaceAttribute"]: AliasType<{
+	/** ID комплексного атрибута */
+	attributeComplexId?:boolean | `@${string}`,
+	/** ID атрибута */
+	attributeId?:boolean | `@${string}`,
+	/** Можно ли изменить после создания товара */
+	canBeModifiedAfterCreation?:boolean | `@${string}`,
+	/** Зависит ли от категории */
+	categoryDependent?:boolean | `@${string}`,
+	/** Комплексная коллекция */
+	complexIsCollection?:boolean | `@${string}`,
+	/** Описание атрибута */
+	description?:boolean | `@${string}`,
+	/** Словарь значений */
+	dictionary?:ResolverInputTypes["MarketplaceDictionary"],
+	/** ID словаря */
+	dictionaryId?:boolean | `@${string}`,
+	/** ID группы */
+	groupId?:boolean | `@${string}`,
+	/** Название группы */
+	groupName?:boolean | `@${string}`,
+	/** Имеет ли словарь */
+	hasDictionary?:boolean | `@${string}`,
+	/** Является ли атрибут аспектным */
+	isAspect?:boolean | `@${string}`,
+	/** Является ли атрибут коллекцией */
+	isCollection?:boolean | `@${string}`,
+	/** Является ли комплексным атрибутом */
+	isComplexAttribute?:boolean | `@${string}`,
+	/** Является ли атрибут обязательным */
+	isRequired?:boolean | `@${string}`,
+	/** Максимальное количество значений */
+	maxValueCount?:boolean | `@${string}`,
+	/** Максимальное количество значений (вычисленное) */
+	maxValues?:boolean | `@${string}`,
+	/** Название атрибута */
+	name?:boolean | `@${string}`,
+	/** Тип атрибута */
+	type?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceAttributeGroup"]: AliasType<{
+	/** Атрибуты в группе */
+	attributes?:ResolverInputTypes["MarketplaceAttribute"],
+	/** Количество атрибутов в группе */
+	attributesCount?:boolean | `@${string}`,
+	/** ID группы */
+	groupId?:boolean | `@${string}`,
+	/** Название группы */
+	groupName?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceAttributeStats"]: AliasType<{
+	/** Количество аспектных атрибутов */
+	aspectAttributes?:boolean | `@${string}`,
+	/** Количество словарных атрибутов */
+	dictionaryAttributes?:boolean | `@${string}`,
+	/** Количество обязательных атрибутов */
+	requiredAttributes?:boolean | `@${string}`,
+	/** Общее количество атрибутов */
+	totalAttributes?:boolean | `@${string}`,
+	/** Общее количество словарей */
+	totalDictionaries?:boolean | `@${string}`,
+	/** Общее количество значений словарей */
+	totalDictionaryValues?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Тип атрибута товара */
+["MarketplaceAttributeType"]:MarketplaceAttributeType;
+	["MarketplaceAttributeValidation"]: AliasType<{
+	/** Список ошибок */
+	errors?:boolean | `@${string}`,
+	/** Результат валидации */
+	isValid?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceAvailabilityStats"]: AliasType<{
+	/** Количество доступных категорий (целых) */
+	categoriesCount?:boolean | `@${string}`,
+	/** Есть ли ограничения по категориям */
+	hasRestrictions?:boolean | `@${string}`,
+	/** Общее количество доступных элементов */
+	totalAvailable?:boolean | `@${string}`,
+	/** Количество доступных типов товаров */
+	typesCount?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceAvailableCategory"]: AliasType<{
+	/** Кто добавил категорию/тип */
+	addedBy?:boolean | `@${string}`,
+	/** ID категории */
+	categoryId?:boolean | `@${string}`,
+	/** Название кооператива */
+	coopname?:boolean | `@${string}`,
+	/** Дата создания */
+	createdAt?:boolean | `@${string}`,
+	/** ID записи */
+	id?:boolean | `@${string}`,
+	/** Активна ли категория/тип */
+	isActive?:boolean | `@${string}`,
+	/** Применяется к всей категории */
+	isForEntireCategory?:boolean | `@${string}`,
+	/** Применяется к конкретному типу */
+	isForSpecificType?:boolean | `@${string}`,
+	/** ID типа товара (null = вся категория) */
+	typeId?:boolean | `@${string}`,
+	/** Дата обновления */
+	updatedAt?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceCategory"]: AliasType<{
+	/** Название категории */
+	categoryName?:boolean | `@${string}`,
+	/** Дочерние категории */
+	children?:ResolverInputTypes["MarketplaceCategory"],
+	/** Количество дочерних категорий */
+	childrenCount?:boolean | `@${string}`,
+	/** ID категории */
+	descriptionCategoryId?:boolean | `@${string}`,
+	/** Признак отключения категории */
+	disabled?:boolean | `@${string}`,
+	/** Полный путь к категории */
+	fullPath?:boolean | `@${string}`,
+	/** Является ли категория листовой (можно создавать товары) */
+	isLeafCategory?:boolean | `@${string}`,
+	/** ID родительской категории */
+	parentId?:boolean | `@${string}`,
+	/** Типы товаров в категории */
+	types?:ResolverInputTypes["MarketplaceProductType"],
+	/** Количество типов товаров */
+	typesCount?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceCategoryRequestCount"]: AliasType<{
+	/** ID категории */
+	categoryId?:boolean | `@${string}`,
+	/** Название категории */
+	categoryName?:boolean | `@${string}`,
+	/** Количество заявок */
+	count?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceCategoryTreeStats"]: AliasType<{
+	/** Количество доступных типов товаров */
+	availableTypes?:boolean | `@${string}`,
+	/** Количество отключенных категорий */
+	disabledCategories?:boolean | `@${string}`,
+	/** Количество листовых категорий */
+	leafCategories?:boolean | `@${string}`,
+	/** Количество корневых категорий */
+	rootCategories?:boolean | `@${string}`,
+	/** Общее количество категорий */
+	totalCategories?:boolean | `@${string}`,
+	/** Общее количество типов товаров */
+	totalTypes?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceCurrentMember"]: AliasType<{
+	core_roles?:boolean | `@${string}`,
+	marketplace_roles?:boolean | `@${string}`,
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceDetailKUInput"]: {
+	/** Полный адрес ПВЗ для отображения и геокодинга */
+	addressFull: string,
+	/** Контактный email ПВЗ */
+	contactEmail: string,
+	/** Контактный телефон ПВЗ */
+	contactPhone: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Идентификатор КУ в core (`braname`) */
+	coreBraname: string,
+	/** Дополнительное описание ПВЗ */
+	description?: string | undefined | null,
+	/** Режим работы ПВЗ по дням недели */
+	workingHours: ResolverInputTypes["WorkingHoursInput"]
+};
+	["MarketplaceDictionary"]: AliasType<{
+	/** Описание словаря */
+	description?:boolean | `@${string}`,
+	/** ID словаря */
+	dictionaryId?:boolean | `@${string}`,
+	/** Есть ли значения с изображениями */
+	hasValuesWithPictures?:boolean | `@${string}`,
+	/** Название словаря */
+	name?:boolean | `@${string}`,
+	/** Значения словаря */
+	values?:ResolverInputTypes["MarketplaceDictionaryValue"],
+	/** Количество значений */
+	valuesCount?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceDictionaryValue"]: AliasType<{
+	/** ID словаря */
+	dictionaryId?:boolean | `@${string}`,
+	/** ID значения словаря */
+	dictionaryValueId?:boolean | `@${string}`,
+	/** Полное описание значения */
+	fullDescription?:boolean | `@${string}`,
+	/** Есть ли дополнительная информация */
+	hasInfo?:boolean | `@${string}`,
+	/** Есть ли изображение */
+	hasPicture?:boolean | `@${string}`,
+	/** Дополнительная информация */
+	info?:boolean | `@${string}`,
+	/** URL изображения */
+	picture?:boolean | `@${string}`,
+	/** Значение */
+	value?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceKUDetails"]: AliasType<{
+	addressFull?:boolean | `@${string}`,
+	contactEmail?:boolean | `@${string}`,
+	contactPhone?:boolean | `@${string}`,
+	coopname?:boolean | `@${string}`,
+	/** Идентификатор КУ в core (`braname`) */
+	coreBraname?:boolean | `@${string}`,
+	createdAt?:boolean | `@${string}`,
+	description?:boolean | `@${string}`,
+	geocodeErrorMessage?:boolean | `@${string}`,
+	/** PENDING | OK | FAILED */
+	geocodeStatus?:boolean | `@${string}`,
+	geocodedAt?:boolean | `@${string}`,
+	lat?:boolean | `@${string}`,
+	lng?:boolean | `@${string}`,
+	/** ACTIVE | INACTIVE */
+	status?:boolean | `@${string}`,
+	updatedAt?:boolean | `@${string}`,
+	workingHours?:ResolverInputTypes["WorkingHours"],
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceProductType"]: AliasType<{
+	/** ID категории */
+	descriptionCategoryId?:boolean | `@${string}`,
+	/** Признак отключения типа */
+	disabled?:boolean | `@${string}`,
+	/** Полное название с категорией */
+	fullName?:boolean | `@${string}`,
+	/** Доступен ли тип для создания товаров */
+	isAvailable?:boolean | `@${string}`,
+	/** ID типа товара */
+	typeId?:boolean | `@${string}`,
+	/** Название типа товара */
+	typeName?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceRequest"]: AliasType<{
+	/** Артикул товара */
+	articleNumber?:boolean | `@${string}`,
+	/** Атрибуты заявки */
+	attributes?:ResolverInputTypes["MarketplaceRequestAttributeValue"],
+	/** Доступное количество единиц */
+	availableUnits?:boolean | `@${string}`,
+	/** Штрихкод товара */
+	barcode?:boolean | `@${string}`,
+	/** Можно ли редактировать заявку */
+	canBeEdited?:boolean | `@${string}`,
+	/** Информация о категории */
+	category?:ResolverInputTypes["MarketplaceCategory"],
+	/** URL образца цвета */
+	colorImageUrl?:boolean | `@${string}`,
+	/** Название кооператива */
+	coopname?:boolean | `@${string}`,
+	/** Дата создания */
+	createdAt?:boolean | `@${string}`,
+	/** Валюта */
+	currencyCode?:boolean | `@${string}`,
+	/** Дополнительные данные */
+	data?:boolean | `@${string}`,
+	/** Глубина упаковки */
+	depth?:boolean | `@${string}`,
+	/** ID категории */
+	descriptionCategoryId?:boolean | `@${string}`,
+	/** Единица измерения габаритов */
+	dimensionUnit?:boolean | `@${string}`,
+	/** Процент скидки */
+	discountPercentage?:boolean | `@${string}`,
+	/** Геоограничения */
+	geoNames?:boolean | `@${string}`,
+	/** Заполнены ли все обязательные атрибуты */
+	hasAllRequiredAttributes?:boolean | `@${string}`,
+	/** Есть ли скидка */
+	hasDiscount?:boolean | `@${string}`,
+	/** Уникальный хэш заявки */
+	hash?:boolean | `@${string}`,
+	/** Высота упаковки */
+	height?:boolean | `@${string}`,
+	/** ID заявки */
+	id?:boolean | `@${string}`,
+	/** Изображения заявки */
+	images?:ResolverInputTypes["MarketplaceRequestImage"],
+	/** Является ли заявка активной */
+	isActive?:boolean | `@${string}`,
+	/** Является ли предложением */
+	isOffer?:boolean | `@${string}`,
+	/** Является ли заказом */
+	isOrder?:boolean | `@${string}`,
+	/** Метаданные */
+	meta?:boolean | `@${string}`,
+	/** Название товара */
+	name?:boolean | `@${string}`,
+	/** Цена до скидки */
+	oldPrice?:boolean | `@${string}`,
+	/** Старая цена как число */
+	oldPriceAsNumber?:boolean | `@${string}`,
+	/** Хэш родительской заявки */
+	parentHash?:boolean | `@${string}`,
+	/** Цена товара */
+	price?:boolean | `@${string}`,
+	/** Цена как число */
+	priceAsNumber?:boolean | `@${string}`,
+	/** URL главного изображения */
+	primaryImageUrl?:boolean | `@${string}`,
+	/** Время жизни продукта в секундах */
+	productLifecycleSecs?:boolean | `@${string}`,
+	/** Информация о типе товара */
+	productType?:ResolverInputTypes["MarketplaceProductType"],
+	/** Количество проданных единиц */
+	settledUnits?:boolean | `@${string}`,
+	/** Статус заявки */
+	status?:boolean | `@${string}`,
+	/** Тип заявки */
+	type?:boolean | `@${string}`,
+	/** ID типа товара */
+	typeId?:boolean | `@${string}`,
+	/** Общее количество единиц */
+	units?:boolean | `@${string}`,
+	/** Дата обновления */
+	updatedAt?:boolean | `@${string}`,
+	/** Имя пользователя */
+	username?:boolean | `@${string}`,
+	/** Ставка НДС */
+	vat?:boolean | `@${string}`,
+	/** Гарантийный срок в днях */
+	warrantyDays?:boolean | `@${string}`,
+	/** Вес товара */
+	weight?:boolean | `@${string}`,
+	/** Единица измерения веса */
+	weightUnit?:boolean | `@${string}`,
+	/** Ширина упаковки */
+	width?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceRequestAttributeValue"]: AliasType<{
+	/** Информация об атрибуте */
+	attribute?:ResolverInputTypes["MarketplaceAttribute"],
+	/** Группа атрибута */
+	attributeGroup?:boolean | `@${string}`,
+	/** ID атрибута */
+	attributeId?:boolean | `@${string}`,
+	/** Тип атрибута */
+	attributeType?:boolean | `@${string}`,
+	/** ID комплексного атрибута */
+	complexId?:boolean | `@${string}`,
+	/** Дата создания */
+	createdAt?:boolean | `@${string}`,
+	/** ID значения из словаря */
+	dictionaryValueId?:boolean | `@${string}`,
+	/** ID значения атрибута */
+	id?:boolean | `@${string}`,
+	/** Является ли атрибут аспектным */
+	isAspect?:boolean | `@${string}`,
+	/** Является ли атрибут обязательным */
+	isRequired?:boolean | `@${string}`,
+	/** Значение атрибута */
+	value?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceRequestImage"]: AliasType<{
+	/** Дата создания */
+	createdAt?:boolean | `@${string}`,
+	/** Описание изображения */
+	description?:boolean | `@${string}`,
+	/** Имя файла */
+	fileName?:boolean | `@${string}`,
+	/** ID изображения */
+	id?:boolean | `@${string}`,
+	/** Тип изображения */
+	imageType?:boolean | `@${string}`,
+	/** URL изображения */
+	imageUrl?:boolean | `@${string}`,
+	/** Является ли изображением 360° */
+	is360Image?:boolean | `@${string}`,
+	/** Является ли образцом цвета */
+	isColorSample?:boolean | `@${string}`,
+	/** Является ли главным изображением */
+	isPrimary?:boolean | `@${string}`,
+	/** Порядок сортировки */
+	sortOrder?:boolean | `@${string}`,
+	/** Описание типа изображения */
+	typeDescription?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceRequestStatistics"]: AliasType<{
+	/** Активные предложения */
+	activeOffers?:boolean | `@${string}`,
+	/** Активные заказы */
+	activeOrders?:boolean | `@${string}`,
+	/** Завершенные сделки */
+	completedDeals?:boolean | `@${string}`,
+	/** Заявки по категориям */
+	requestsByCategory?:ResolverInputTypes["MarketplaceCategoryRequestCount"],
+	/** Общее количество заявок */
+	totalRequests?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceSetKUStatusInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Идентификатор КУ в core (`braname`) */
+	coreBraname: string,
+	/** Целевой статус ПВЗ: ACTIVE или INACTIVE */
+	status: string
 };
 	["MatrixAccountStatusResponseDTO"]: AliasType<{
 	hasAccount?:boolean | `@${string}`,
@@ -14663,9 +16156,11 @@ export type ResolverInputTypes = {
 };
 	["Mutation"]: AliasType<{
 acceptChildOrder?: [{	data: ResolverInputTypes["AcceptChildOrderInput"]},ResolverInputTypes["Transaction"]],
+acceptStock?: [{	data: ResolverInputTypes["AcceptStockInput"]},ResolverInputTypes["Transaction"]],
 addParticipant?: [{	data: ResolverInputTypes["AddParticipantInput"]},ResolverInputTypes["Account"]],
 addPaymentMethod?: [{	data: ResolverInputTypes["AddPaymentMethodInput"]},ResolverInputTypes["PaymentMethod"]],
 addTrustedAccount?: [{	data: ResolverInputTypes["AddTrustedAccountInput"]},ResolverInputTypes["Branch"]],
+archiveProductCard?: [{	id: string},boolean | `@${string}`],
 cancelRequest?: [{	data: ResolverInputTypes["CancelRequestInput"]},ResolverInputTypes["Transaction"]],
 capitalAddAuthor?: [{	data: ResolverInputTypes["AddAuthorInput"]},ResolverInputTypes["CapitalProject"]],
 capitalApproveCommit?: [{	data: ResolverInputTypes["CommitApproveInput"]},ResolverInputTypes["CapitalCommit"]],
@@ -14762,12 +16257,15 @@ completeRequest?: [{	data: ResolverInputTypes["CompleteRequestInput"]},ResolverI
 confirmAgreement?: [{	data: ResolverInputTypes["ConfirmAgreementInput"]},ResolverInputTypes["Transaction"]],
 confirmReceiveOnRequest?: [{	data: ResolverInputTypes["ConfirmReceiveOnRequestInput"]},ResolverInputTypes["Transaction"]],
 confirmSupplyOnRequest?: [{	data: ResolverInputTypes["ConfirmSupplyOnRequestInput"]},ResolverInputTypes["Transaction"]],
+coopstock?: [{	data: ResolverInputTypes["CoopstockInput"]},ResolverInputTypes["Transaction"]],
 createAnnualGeneralMeet?: [{	data: ResolverInputTypes["CreateAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
 createBranch?: [{	data: ResolverInputTypes["CreateBranchInput"]},ResolverInputTypes["Branch"]],
+createCategory?: [{	data: ResolverInputTypes["CreateCategoryInput"]},ResolverInputTypes["Category"]],
 createChildOrder?: [{	data: ResolverInputTypes["CreateChildOrderInput"]},ResolverInputTypes["Transaction"]],
 createDepositPayment?: [{	data: ResolverInputTypes["CreateDepositPaymentInput"]},ResolverInputTypes["GatewayPayment"]],
 createInitialPayment?: [{	data: ResolverInputTypes["CreateInitialPaymentInput"]},ResolverInputTypes["GatewayPayment"]],
 createParentOffer?: [{	data: ResolverInputTypes["CreateParentOfferInput"]},ResolverInputTypes["Transaction"]],
+createProductCard?: [{	data: ResolverInputTypes["CreateProductCardInput"]},ResolverInputTypes["ProductCard"]],
 createProjectOfFreeDecision?: [{	data: ResolverInputTypes["CreateProjectFreeDecisionInput"]},ResolverInputTypes["CreatedProjectFreeDecision"]],
 createWebPushSubscription?: [{	data: ResolverInputTypes["CreateSubscriptionInput"]},ResolverInputTypes["CreateSubscriptionResponse"]],
 createWithdraw?: [{	data: ResolverInputTypes["CreateWithdrawInput"]},ResolverInputTypes["CreateWithdrawResponse"]],
@@ -14775,10 +16273,13 @@ deactivateWebPushSubscriptionById?: [{	data: ResolverInputTypes["DeactivateSubsc
 declineAgreement?: [{	data: ResolverInputTypes["DeclineAgreementInput"]},ResolverInputTypes["Transaction"]],
 declineRequest?: [{	data: ResolverInputTypes["DeclineRequestInput"]},ResolverInputTypes["Transaction"]],
 deleteBranch?: [{	data: ResolverInputTypes["DeleteBranchInput"]},boolean | `@${string}`],
+deleteCategory?: [{	id: string},boolean | `@${string}`],
 deletePaymentMethod?: [{	data: ResolverInputTypes["DeletePaymentMethodInput"]},boolean | `@${string}`],
+deleteProductCard?: [{	id: string},boolean | `@${string}`],
 deleteReportDraft?: [{	id: string},boolean | `@${string}`],
 deleteTrustedAccount?: [{	data: ResolverInputTypes["DeleteTrustedAccountInput"]},ResolverInputTypes["Branch"]],
 deliverOnRequest?: [{	data: ResolverInputTypes["DeliverOnRequestInput"]},ResolverInputTypes["Transaction"]],
+destroyRequest?: [{	data: ResolverInputTypes["DestroyRequestInput"]},ResolverInputTypes["Transaction"]],
 disputeOnRequest?: [{	data: ResolverInputTypes["DisputeOnRequestInput"]},ResolverInputTypes["Transaction"]],
 editBranch?: [{	data: ResolverInputTypes["EditBranchInput"]},ResolverInputTypes["Branch"]],
 generateAnnualGeneralMeetAgendaDocument?: [{	data: ResolverInputTypes["AnnualGeneralMeetingAgendaGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
@@ -14813,16 +16314,32 @@ installSystem?: [{	data: ResolverInputTypes["Install"]},ResolverInputTypes["Syst
 login?: [{	data: ResolverInputTypes["LoginInput"]},ResolverInputTypes["RegisteredAccount"]],
 logout?: [{	data: ResolverInputTypes["LogoutInput"]},boolean | `@${string}`],
 markReportPeriod?: [{	data: ResolverInputTypes["MarkReportPeriodInput"]},boolean | `@${string}`],
+marketplaceAddAvailableCategories?: [{	input: ResolverInputTypes["AddAvailableCategoriesInput"]},ResolverInputTypes["MarketplaceAvailableCategory"]],
+marketplaceAddAvailableCategoryTypes?: [{	input: ResolverInputTypes["AddAvailableCategoryTypesInput"]},ResolverInputTypes["MarketplaceAvailableCategory"]],
+	/** Очистить все доступные категории (сделать доступными все)
+
+Требуемые роли: chairman.  */
+	marketplaceClearAvailableCategories?:boolean | `@${string}`,
+marketplaceCreateRequest?: [{	data: ResolverInputTypes["CreateRequestInput"]},ResolverInputTypes["MarketplaceRequest"]],
+marketplaceDetailKU?: [{	data: ResolverInputTypes["MarketplaceDetailKUInput"]},ResolverInputTypes["MarketplaceKUDetails"]],
+marketplaceRemoveAvailableCategories?: [{	input: ResolverInputTypes["RemoveAvailableCategoriesInput"]},boolean | `@${string}`],
+marketplaceRemoveAvailableCategoryTypes?: [{	input: ResolverInputTypes["RemoveAvailableCategoryTypesInput"]},boolean | `@${string}`],
+marketplaceReplaceAvailableItems?: [{	input: ResolverInputTypes["ReplaceAvailableItemsInput"]},ResolverInputTypes["MarketplaceAvailableCategory"]],
+marketplaceRetryKUGeocode?: [{	coopname: string,	coreBraname: string},ResolverInputTypes["MarketplaceKUDetails"]],
+marketplaceSetKUStatus?: [{	data: ResolverInputTypes["MarketplaceSetKUStatusInput"]},ResolverInputTypes["MarketplaceKUDetails"]],
 moderateRequest?: [{	data: ResolverInputTypes["ModerateRequestInput"]},ResolverInputTypes["Transaction"]],
 notifyOnAnnualGeneralMeet?: [{	data: ResolverInputTypes["NotifyOnAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
 processConvertToAxonStatement?: [{	data: ResolverInputTypes["ProcessConvertToAxonStatementInput"]},boolean | `@${string}`],
 prohibitRequest?: [{	data: ResolverInputTypes["ProhibitRequestInput"]},ResolverInputTypes["Transaction"]],
+publishProductCard?: [{	id: string},boolean | `@${string}`],
 publishProjectOfFreeDecision?: [{	data: ResolverInputTypes["PublishProjectFreeDecisionInput"]},boolean | `@${string}`],
 publishRequest?: [{	data: ResolverInputTypes["PublishRequestInput"]},ResolverInputTypes["Transaction"]],
 receiveOnRequest?: [{	data: ResolverInputTypes["ReceiveOnRequestInput"]},ResolverInputTypes["Transaction"]],
 refresh?: [{	data: ResolverInputTypes["RefreshInput"]},ResolverInputTypes["RegisteredAccount"]],
 registerAccount?: [{	data: ResolverInputTypes["RegisterAccountInput"]},ResolverInputTypes["RegisteredAccount"]],
 registerParticipant?: [{	data: ResolverInputTypes["RegisterParticipantInput"]},ResolverInputTypes["Account"]],
+reofferRequest?: [{	data: ResolverInputTypes["ReofferRequestInput"]},ResolverInputTypes["Transaction"]],
+reqReturn?: [{	data: ResolverInputTypes["ReqReturnInput"]},ResolverInputTypes["Transaction"]],
 resetKey?: [{	data: ResolverInputTypes["ResetKeyInput"]},boolean | `@${string}`],
 restartAnnualGeneralMeet?: [{	data: ResolverInputTypes["RestartAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
 saveReportDraft?: [{	input: ResolverInputTypes["SaveReportDraftInput"]},ResolverInputTypes["ReportDraft"]],
@@ -15662,6 +17179,31 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	toBlock?: number | undefined | null,
 	username?: string | undefined | null
 };
+	["ProductCard"]: AliasType<{
+	braname?:boolean | `@${string}`,
+	cancellation_fee_amount?:boolean | `@${string}`,
+	category_id?:boolean | `@${string}`,
+	contribution_type?:boolean | `@${string}`,
+	coopname?:boolean | `@${string}`,
+	created_at?:boolean | `@${string}`,
+	delivery_type?:boolean | `@${string}`,
+	description?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	images?:boolean | `@${string}`,
+	membership_fee_amount?:boolean | `@${string}`,
+	product_lifecycle_secs?:boolean | `@${string}`,
+	status?:boolean | `@${string}`,
+	title?:boolean | `@${string}`,
+	type?:boolean | `@${string}`,
+	unit_cost?:boolean | `@${string}`,
+	units?:boolean | `@${string}`,
+	updated_at?:boolean | `@${string}`,
+	username?:boolean | `@${string}`,
+	warranty_period_secs?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["ProductCardStatus"]:ProductCardStatus;
+	["ProductCardType"]:ProductCardType;
 	["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"]: {
 	/** Сумма инвестирования в программу (актив) */
 	amount: string,
@@ -16029,6 +17571,8 @@ getCapitalIssueLogs?: [{	data: ResolverInputTypes["GetCapitalIssueLogsInput"],	o
 Требуемые роли: chairman, member, user.  */
 	getCapitalOnboardingState?:ResolverInputTypes["CapitalOnboardingState"],
 getCapitalProjectLogs?: [{	data: ResolverInputTypes["GetCapitalLogsInput"]},ResolverInputTypes["PaginatedCapitalLogsPaginationResult"]],
+	/** Получить дерево категорий */
+	getCategories?:ResolverInputTypes["Category"],
 	/** Получить состояние онбординга председателя
 
 Требуемые роли: chairman.  */
@@ -16054,8 +17598,12 @@ getLedger2Wallets?: [{	coopname: string},ResolverInputTypes["Ledger2Wallet"]],
 getLedgerHistory?: [{	data: ResolverInputTypes["GetLedgerHistoryInput"]},ResolverInputTypes["LedgerHistoryResponse"]],
 getMeet?: [{	data: ResolverInputTypes["GetMeetInput"]},ResolverInputTypes["MeetAggregate"]],
 getMeets?: [{	data: ResolverInputTypes["GetMeetsInput"]},ResolverInputTypes["MeetAggregate"]],
+	/** Мои карточки */
+	getMyProductCards?:ResolverInputTypes["ProductCard"],
 getPaymentMethods?: [{	data?: ResolverInputTypes["GetPaymentMethodsInput"] | undefined | null},ResolverInputTypes["PaymentMethodPaginationResult"]],
 getPayments?: [{	data?: ResolverInputTypes["PaymentFiltersInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedGatewayPaymentsPaginationResult"]],
+getProductCard?: [{	id: string},ResolverInputTypes["ProductCard"]],
+getProductCards?: [{	category_id?: string | undefined | null,	limit?: number | undefined | null,	page?: number | undefined | null,	search?: string | undefined | null,	status?: ResolverInputTypes["ProductCardStatus"] | undefined | null,	type?: ResolverInputTypes["ProductCardType"] | undefined | null},ResolverInputTypes["ProductCard"]],
 getProgramWallet?: [{	filter: ResolverInputTypes["ProgramWalletFilterInput"]},ResolverInputTypes["ProgramWallet"]],
 getProgramWallets?: [{	filter?: ResolverInputTypes["ProgramWalletFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["ProgramWalletsPaginationResult"]],
 getProviderSubscriptionById?: [{	id: number},ResolverInputTypes["ProviderSubscription"]],
@@ -16082,6 +17630,50 @@ getUserWebPushSubscriptions?: [{	data: ResolverInputTypes["GetUserSubscriptionsI
 Требуемые роли: chairman.  */
 	getWebPushSubscriptionStats?:ResolverInputTypes["SubscriptionStatsDto"],
 listReportDrafts?: [{	filter?: ResolverInputTypes["ListReportDraftsFilterInput"] | undefined | null},ResolverInputTypes["ReportDraft"]],
+marketplaceAspectAttributes?: [{	data: ResolverInputTypes["GetRequiredAttributesInput"]},ResolverInputTypes["MarketplaceAttribute"]],
+	/** Получить статистику по атрибутам marketplace
+
+Требуемые роли: chairman, member.  */
+	marketplaceAttributeStats?:ResolverInputTypes["MarketplaceAttributeStats"],
+marketplaceCategoryAttributes?: [{	input: ResolverInputTypes["GetCategoryAttributesInput"]},ResolverInputTypes["MarketplaceAttribute"]],
+marketplaceCategoryAttributesGrouped?: [{	input: ResolverInputTypes["GetCategoryAttributesInput"]},ResolverInputTypes["MarketplaceAttributeGroup"]],
+marketplaceFindPotentialMatches?: [{	data: ResolverInputTypes["FindPotentialMatchesInput"]},ResolverInputTypes["MarketplaceRequest"]],
+	/** Получить статистику по доступности категорий в кооперативе
+
+Требуемые роли: chairman.  */
+	marketplaceGetAvailabilityStats?:ResolverInputTypes["MarketplaceAvailabilityStats"],
+	/** Получить все доступные категории и типы для кооператива
+
+Требуемые роли: chairman.  */
+	marketplaceGetAvailableCategories?:ResolverInputTypes["MarketplaceAvailableCategory"],
+	/** Получить дерево доступных категорий и типов для кооператива
+
+Требуемые роли: chairman.  */
+	marketplaceGetAvailableCategoryTree?:ResolverInputTypes["MarketplaceCategory"],
+marketplaceGetCategoryById?: [{	data: ResolverInputTypes["GetCategoryByIdInput"]},ResolverInputTypes["MarketplaceCategory"]],
+marketplaceGetCategoryRules?: [{	categoryId: number},ResolverInputTypes["MarketplaceAvailableCategory"]],
+marketplaceGetCategoryTree?: [{	input?: ResolverInputTypes["GetCategoryTreeInput"] | undefined | null},ResolverInputTypes["MarketplaceCategory"]],
+	/** Получить статистику по дереву категорий
+
+Требуемые роли: chairman, member.  */
+	marketplaceGetCategoryTreeStats?:ResolverInputTypes["MarketplaceCategoryTreeStats"],
+marketplaceGetCoopRequests?: [{	data: ResolverInputTypes["GetCoopRequestsInput"]},ResolverInputTypes["MarketplaceRequest"]],
+marketplaceGetProductTypeById?: [{	data: ResolverInputTypes["GetProductTypeByIdInput"]},ResolverInputTypes["MarketplaceProductType"]],
+marketplaceGetRequest?: [{	data: ResolverInputTypes["GetRequestInput"]},ResolverInputTypes["MarketplaceRequest"]],
+marketplaceGetRequestByHash?: [{	data: ResolverInputTypes["GetRequestByHashInput"]},ResolverInputTypes["MarketplaceRequest"]],
+marketplaceGetRequestStatistics?: [{	data: ResolverInputTypes["GetRequestStatisticsInput"]},ResolverInputTypes["MarketplaceRequestStatistics"]],
+	/** Получить все корневые категории marketplace */
+	marketplaceGetRootCategories?:ResolverInputTypes["MarketplaceCategory"],
+marketplaceGetSearchCategories?: [{	data: ResolverInputTypes["SearchCategoriesInput"]},ResolverInputTypes["MarketplaceCategory"]],
+marketplaceGetUserRequests?: [{	data?: ResolverInputTypes["GetUserRequestsInput"] | undefined | null},ResolverInputTypes["MarketplaceRequest"]],
+marketplaceListKUDetails?: [{	data: ResolverInputTypes["ListMarketplaceKUInput"]},ResolverInputTypes["MarketplaceKUDetails"]],
+marketplaceRequiredAttributes?: [{	data: ResolverInputTypes["GetRequiredAttributesInput"]},ResolverInputTypes["MarketplaceAttribute"]],
+marketplaceSearchAttributes?: [{	input: ResolverInputTypes["SearchAttributesInput"]},ResolverInputTypes["MarketplaceAttribute"]],
+marketplaceSearchDictionaryValues?: [{	input: ResolverInputTypes["SearchDictionaryValuesInput"]},ResolverInputTypes["MarketplaceDictionaryValue"]],
+marketplaceSearchRequests?: [{	data: ResolverInputTypes["SearchRequestsInput"]},ResolverInputTypes["MarketplaceRequest"]],
+marketplaceValidateAttributeValues?: [{	input: ResolverInputTypes["ValidateAttributeValuesInput"]},ResolverInputTypes["MarketplaceAttributeValidation"]],
+	/** Контекст пайщика для Стола заказов: core_roles + marketplace_roles */
+	marketplaceWhoAmI?:ResolverInputTypes["MarketplaceCurrentMember"],
 onecoopGetDocuments?: [{	data: ResolverInputTypes["GetOneCoopDocumentsInput"]},ResolverInputTypes["OneCoopDocumentsResponse"]],
 process?: [{	coopname: string,	hash: string},ResolverInputTypes["ProcessView"]],
 processes?: [{	filter: ResolverInputTypes["ProcessesFilter"],	pagination: ResolverInputTypes["PaginationInput"]},ResolverInputTypes["ProcessSummaryPaginationResult"]],
@@ -16272,6 +17864,26 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	title?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["RemoveAvailableCategoriesInput"]: {
+	/** ID категорий для удаления */
+	categoryIds: Array<number>
+};
+	["RemoveAvailableCategoryTypesInput"]: {
+	/** Типы товаров для удаления */
+	categoryTypes: Array<ResolverInputTypes["CategoryTypeInput"]>
+};
+	["ReofferRequestInput"]: {
+	new_hash: string,
+	new_meta: string,
+	new_unit_cost: string,
+	request_hash: string
+};
+	["ReplaceAvailableItemsInput"]: {
+	/** ID категорий (целые категории) */
+	categoryIds: Array<number>,
+	/** Типы товаров */
+	categoryTypes: Array<ResolverInputTypes["CategoryTypeInput"]>
+};
 	["ReportCalendarPeriodEntry"]: AliasType<{
 	dueDate?:boolean | `@${string}`,
 	dueMonth?:boolean | `@${string}`,
@@ -16403,6 +18015,41 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	middle_name: string,
 	position: string
 };
+	["ReqReturnInput"]: {
+	request_hash: string,
+	return_statement: ResolverInputTypes["SignedDigitalDocumentInput"],
+	username: string
+};
+	["RequestAttributeInput"]: {
+	/** ID атрибута */
+	attributeId: number,
+	/** ID комплексного атрибута */
+	complexId?: number | undefined | null,
+	/** ID значения из словаря */
+	dictionaryValueId?: number | undefined | null,
+	/** Значение атрибута */
+	value: string
+};
+	["RequestImageInput"]: {
+	/** Описание изображения */
+	description?: string | undefined | null,
+	/** Тип изображения */
+	imageType: ResolverInputTypes["RequestImageTypeInput"],
+	/** URL изображения */
+	imageUrl: string,
+	/** Порядок сортировки */
+	sortOrder: number
+};
+	/** Тип изображения заявки */
+["RequestImageType"]:RequestImageType;
+	/** Тип изображения заявки */
+["RequestImageTypeInput"]:RequestImageTypeInput;
+	/** Статус заявки */
+["RequestStatus"]:RequestStatus;
+	/** Тип заявки */
+["RequestType"]:RequestType;
+	/** Тип заявки: offer - предложение, order - заказ */
+["RequestTypeInput"]:RequestTypeInput;
 	["RequisiteFieldView"]: AliasType<{
 	source?:boolean | `@${string}`,
 	value?:boolean | `@${string}`,
@@ -16776,6 +18423,34 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	/** Мобильный телефон получателя */
 	phone: string
 };
+	["SearchAttributesInput"]: {
+	/** ID категории для фильтрации */
+	categoryId?: number | undefined | null,
+	/** Максимальное количество результатов */
+	limit?: number | undefined | null,
+	/** Только аспектные */
+	onlyAspect?: boolean | undefined | null,
+	/** Только обязательные */
+	onlyRequired?: boolean | undefined | null,
+	/** Только со словарями */
+	onlyWithDictionary?: boolean | undefined | null,
+	/** Текст для поиска */
+	searchTerm: string,
+	/** ID типа товара для фильтрации */
+	typeId?: number | undefined | null
+};
+	["SearchCategoriesInput"]: {
+	/** Текст для поиска по категориям и типам товаров */
+	searchTerm: string
+};
+	["SearchDictionaryValuesInput"]: {
+	/** ID словаря */
+	dictionaryId: number,
+	/** Максимальное количество результатов */
+	limit?: number | undefined | null,
+	/** Текст для поиска */
+	searchTerm: string
+};
 	["SearchDocumentsInput"]: {
 	/** Максимальное количество результатов */
 	limit?: number | undefined | null,
@@ -16785,6 +18460,12 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	["SearchPrivateAccountsInput"]: {
 	/** Поисковый запрос для поиска приватных аккаунтов */
 	query: string
+};
+	["SearchRequestsInput"]: {
+	/** Максимальное количество результатов */
+	limit?: number | undefined | null,
+	/** Текст для поиска по названию товара */
+	searchTerm: string
 };
 	["SearchResult"]: AliasType<{
 	/** Кооператив */
@@ -17524,6 +19205,12 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 }>;
 	/** Статус пользователя */
 ["UserStatus"]:UserStatus;
+	["ValidateAttributeValuesInput"]: {
+	/** ID атрибута */
+	attributeId: number,
+	/** Значения для валидации */
+	values: Array<string>
+};
 	["Vars"]: AliasType<{
 	confidential_email?:boolean | `@${string}`,
 	confidential_link?:boolean | `@${string}`,
@@ -17673,6 +19360,50 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	/** P256DH ключ для шифрования */
 	p256dh: string
 };
+	["WorkingHours"]: AliasType<{
+	fri?:ResolverInputTypes["WorkingHoursDay"],
+	mon?:ResolverInputTypes["WorkingHoursDay"],
+	sat?:ResolverInputTypes["WorkingHoursDay"],
+	sun?:ResolverInputTypes["WorkingHoursDay"],
+	thu?:ResolverInputTypes["WorkingHoursDay"],
+	tue?:ResolverInputTypes["WorkingHoursDay"],
+	wed?:ResolverInputTypes["WorkingHoursDay"],
+		__typename?: boolean | `@${string}`
+}>;
+	["WorkingHoursBreak"]: AliasType<{
+	end?:boolean | `@${string}`,
+	start?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["WorkingHoursBreakInput"]: {
+	/** Конец перерыва (HH:mm) */
+	end: string,
+	/** Начало перерыва (HH:mm) */
+	start: string
+};
+	["WorkingHoursDay"]: AliasType<{
+	breaks?:ResolverInputTypes["WorkingHoursBreak"],
+	close?:boolean | `@${string}`,
+	open?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["WorkingHoursDayInput"]: {
+	/** Перерывы внутри рабочего дня */
+	breaks: Array<ResolverInputTypes["WorkingHoursBreakInput"]>,
+	/** Время закрытия (HH:mm) */
+	close: string,
+	/** Время открытия (HH:mm) */
+	open: string
+};
+	["WorkingHoursInput"]: {
+	fri?: ResolverInputTypes["WorkingHoursDayInput"] | undefined | null,
+	mon?: ResolverInputTypes["WorkingHoursDayInput"] | undefined | null,
+	sat?: ResolverInputTypes["WorkingHoursDayInput"] | undefined | null,
+	sun?: ResolverInputTypes["WorkingHoursDayInput"] | undefined | null,
+	thu?: ResolverInputTypes["WorkingHoursDayInput"] | undefined | null,
+	tue?: ResolverInputTypes["WorkingHoursDayInput"] | undefined | null,
+	wed?: ResolverInputTypes["WorkingHoursDayInput"] | undefined | null
+};
 	["ZeroReportHeaderEdits"]: AliasType<{
 	correctionNumber?:boolean | `@${string}`,
 	docDate?:boolean | `@${string}`,
@@ -17725,6 +19456,12 @@ export type ModelTypes = {
 	/** Идентификатор заявки */
 	exchange_id: string,
 	/** Имя аккаунта пользователя */
+	username: string
+};
+	["AcceptStockInput"]: {
+	convert_in: ModelTypes["SignedDigitalDocumentInput"],
+	request_hash: string,
+	return_statement: ModelTypes["SignedDigitalDocumentInput"],
 	username: string
 };
 	["Account"]: {
@@ -17803,6 +19540,14 @@ export type ModelTypes = {
 	coopname: string,
 	/** Хэш проекта */
 	project_hash: string
+};
+	["AddAvailableCategoriesInput"]: {
+	/** ID категорий для добавления (целые категории) */
+	categoryIds: Array<number>
+};
+	["AddAvailableCategoryTypesInput"]: {
+	/** Типы товаров для добавления */
+	categoryTypes: Array<ModelTypes["CategoryTypeInput"]>
 };
 	["AddParticipantInput"]: {
 	/** Дата создания аккаунта в строковом формате даты EOSIO по UTC (2024-12-28T06:58:52.500) */
@@ -20242,6 +21987,22 @@ export type ModelTypes = {
 	/** Отображаемое имя голосующего */
 	voter_display_name?: string | undefined | null
 };
+	["Category"]: {
+		coopname: string,
+	description?: string | undefined | null,
+	icon?: string | undefined | null,
+	id: string,
+	is_active: boolean,
+	name: string,
+	parent_id?: string | undefined | null,
+	sort_order: number
+};
+	["CategoryTypeInput"]: {
+	/** ID категории */
+	categoryId: number,
+	/** ID типа товара */
+	typeId: number
+};
 	["ChairmanOnboardingAgendaInput"]: {
 	decision: string,
 	question: string,
@@ -20505,6 +22266,7 @@ export type ModelTypes = {
 	full_name: string,
 	phone: string
 };
+	["ContributionType"]:ContributionType;
 	/** Параметры документов участника из UData */
 ["ContributorDocumentParameters"]: {
 		/** Дата создания соглашения благороста */
@@ -20679,6 +22441,16 @@ export type ModelTypes = {
 	/** Тип программы: wallet/generator/blagorost/marketplace и т.п. */
 	program_type: string
 };
+	["CoopstockInput"]: {
+	braname: string,
+	hash: string,
+	membership_fee_amount: string,
+	meta: string,
+	product_lifecycle_secs: number,
+	unit_cost: string,
+	units: number,
+	warranty_period_secs: number
+};
 	["Country"]:Country;
 	["CreateAnnualGeneralMeetInput"]: {
 	/** Повестка собрания */
@@ -20719,6 +22491,13 @@ export type ModelTypes = {
 	short_name: string,
 	/** Имя аккаунта уполномоченного (председателя) кооперативного участка */
 	trustee: string
+};
+	["CreateCategoryInput"]: {
+	description?: string | undefined | null,
+	icon?: string | undefined | null,
+	name: string,
+	parent_id?: string | undefined | null,
+	sort_order?: number | undefined | null
 };
 	["CreateChatCoopCalendarEventInput"]: {
 	description?: string | undefined | null,
@@ -20964,6 +22743,23 @@ export type ModelTypes = {
 	project_hash: string,
 	title: string
 };
+	["CreateProductCardInput"]: {
+	braname?: string | undefined | null,
+	cancellation_fee_amount?: string | undefined | null,
+	category_id?: string | undefined | null,
+	contribution_type: ModelTypes["ContributionType"],
+	delivery_type: ModelTypes["DeliveryType"],
+	description: string,
+	images?: Array<string> | undefined | null,
+	membership_fee_amount?: string | undefined | null,
+	min_units?: number | undefined | null,
+	product_lifecycle_secs: number,
+	title: string,
+	type: ModelTypes["ProductCardType"],
+	unit_cost: string,
+	units: number,
+	warranty_period_secs: number
+};
 	["CreateProgramInvestInput"]: {
 	/** Сумма инвестиции */
 	amount: string,
@@ -21039,6 +22835,64 @@ export type ModelTypes = {
 	property_hash: string,
 	/** Имя пользователя */
 	username: string
+};
+	["CreateRequestInput"]: {
+	/** Артикул товара (до 50 символов) */
+	articleNumber: string,
+	/** Атрибуты товара */
+	attributes: Array<ModelTypes["RequestAttributeInput"]>,
+	/** Штрихкод товара */
+	barcode?: string | undefined | null,
+	/** URL образца цвета */
+	colorImageUrl?: string | undefined | null,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Валюта */
+	currencyCode: string,
+	/** Дополнительные данные JSON */
+	data?: string | undefined | null,
+	/** Глубина упаковки */
+	depth?: number | undefined | null,
+	/** ID категории */
+	descriptionCategoryId: number,
+	/** Единица измерения габаритов */
+	dimensionUnit?: string | undefined | null,
+	/** Геоограничения */
+	geoNames: Array<string>,
+	/** Высота упаковки */
+	height?: number | undefined | null,
+	/** Изображения товара */
+	images: Array<ModelTypes["RequestImageInput"]>,
+	/** Метаданные JSON */
+	meta?: string | undefined | null,
+	/** Название товара (до 500 символов) */
+	name: string,
+	/** Цена до скидки */
+	oldPrice?: number | undefined | null,
+	/** Хэш родительской заявки */
+	parentHash?: string | undefined | null,
+	/** Цена товара */
+	price: number,
+	/** URL главного изображения */
+	primaryImageUrl?: string | undefined | null,
+	/** Время жизни продукта в секундах */
+	productLifecycleSecs?: number | undefined | null,
+	/** Тип заявки: offer - предложение, order - заказ */
+	type: ModelTypes["RequestTypeInput"],
+	/** ID типа товара */
+	typeId: number,
+	/** Количество единиц товара */
+	units: number,
+	/** Ставка НДС (0, 0.05, 0.07, 0.1, 0.2) */
+	vat: string,
+	/** Гарантийный срок в днях */
+	warrantyDays?: number | undefined | null,
+	/** Вес товара */
+	weight?: number | undefined | null,
+	/** Единица измерения веса */
+	weightUnit?: string | undefined | null,
+	/** Ширина упаковки */
+	width?: number | undefined | null
 };
 	["CreateSovietIndividualDataInput"]: {
 	/** Дата рождения */
@@ -21266,6 +23120,7 @@ export type ModelTypes = {
 	/** Имя аккаунта пользователя */
 	username: string
 };
+	["DeliveryType"]:DeliveryType;
 	["Delta"]: {
 		/** ID блока */
 	block_id: string,
@@ -21337,6 +23192,10 @@ export type ModelTypes = {
 	name: string,
 	/** Отображаемое название workspace */
 	title: string
+};
+	["DestroyRequestInput"]: {
+	destruction_act: ModelTypes["SignedDigitalDocumentInput"],
+	request_hash: string
 };
 	["DisputeOnRequestInput"]: {
 	/** Имя аккаунта кооператива */
@@ -21615,6 +23474,10 @@ export type ModelTypes = {
 	coopname: string,
 	/** Хэш проекта для финализации */
 	project_hash: string
+};
+	["FindPotentialMatchesInput"]: {
+	/** ID заявки для поиска совпадений */
+	requestId: number
 };
 	["FreeDecisionGenerateDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
@@ -22050,6 +23913,30 @@ export type ModelTypes = {
 	/** Хеш истории для получения */
 	story_hash: string
 };
+	["GetCategoryAttributesInput"]: {
+	/** ID категории */
+	categoryId: number,
+	/** Включать значения словарей */
+	includeDictionaryValues?: boolean | undefined | null,
+	/** Только обязательные атрибуты */
+	onlyRequired?: boolean | undefined | null,
+	/** ID типа товара */
+	typeId: number
+};
+	["GetCategoryByIdInput"]: {
+	/** ID категории */
+	categoryId: number
+};
+	["GetCategoryTreeInput"]: {
+	/** Включать типы товаров */
+	includeTypes?: boolean | undefined | null,
+	/** Максимальная глубина дерева */
+	maxDepth?: number | undefined | null,
+	/** Включать только доступные категории */
+	onlyAvailable?: boolean | undefined | null,
+	/** ID корневой категории */
+	rootCategoryId?: number | undefined | null
+};
 	["GetContributorInput"]: {
 	/** ID участника */
 	_id?: string | undefined | null,
@@ -22057,6 +23944,16 @@ export type ModelTypes = {
 	contributor_hash?: string | undefined | null,
 	/** Имя пользователя */
 	username?: string | undefined | null
+};
+	["GetCoopRequestsInput"]: {
+	/** Название кооператива */
+	coopname: string,
+	/** Максимальное количество результатов */
+	limit?: number | undefined | null,
+	/** Статус заявки */
+	status?: string | undefined | null,
+	/** Тип заявки */
+	type?: ModelTypes["RequestTypeInput"] | undefined | null
 };
 	["GetDebtInput"]: {
 	/** ID долга */
@@ -22199,6 +24096,10 @@ export type ModelTypes = {
 	/** Имя пользователя для фильтрации методов оплаты */
 	username?: string | undefined | null
 };
+	["GetProductTypeByIdInput"]: {
+	/** ID типа товара */
+	typeId: number
+};
 	["GetProjectCommunicationRoomsInput"]: {
 	/** Хеш проекта Capital */
 	projectHash: string
@@ -22212,6 +24113,24 @@ export type ModelTypes = {
 	["GetProjectWithRelationsInput"]: {
 	/** Хеш проекта */
 	projectHash: string
+};
+	["GetRequestByHashInput"]: {
+	/** Хэш заявки */
+	hash: string
+};
+	["GetRequestInput"]: {
+	/** ID заявки */
+	id: number
+};
+	["GetRequestStatisticsInput"]: {
+	/** Название кооператива */
+	coopname: string
+};
+	["GetRequiredAttributesInput"]: {
+	/** ID категории */
+	categoryId: number,
+	/** ID типа товара */
+	typeId: number
 };
 	["GetResultInput"]: {
 	/** ID результата */
@@ -22229,6 +24148,10 @@ export type ModelTypes = {
 	limit?: number | undefined | null,
 	matrixRoomId?: string | undefined | null,
 	offset?: number | undefined | null
+};
+	["GetUserRequestsInput"]: {
+	/** Максимальное количество результатов */
+	limit?: number | undefined | null
 };
 	["GetUserSubscriptionsInput"]: {
 	/** Username пользователя */
@@ -22443,6 +24366,12 @@ export type ModelTypes = {
 	/** Имя кооператива */
 	coopname: string
 };
+	["ListMarketplaceKUInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Только активные ПВЗ. Для заказчиков/поставщиков всегда `true`; для admin-стола `false`. */
+	onlyActive?: boolean | undefined | null
+};
 	["ListReportDraftsFilterInput"]: {
 	period?: number | undefined | null,
 	reportType?: ModelTypes["ReportType"] | undefined | null,
@@ -22486,6 +24415,404 @@ export type ModelTypes = {
 	period?: number | undefined | null,
 	reportType: ModelTypes["ReportType"],
 	year: number
+};
+	["MarketplaceAttribute"]: {
+		/** ID комплексного атрибута */
+	attributeComplexId: number,
+	/** ID атрибута */
+	attributeId: number,
+	/** Можно ли изменить после создания товара */
+	canBeModifiedAfterCreation: boolean,
+	/** Зависит ли от категории */
+	categoryDependent: boolean,
+	/** Комплексная коллекция */
+	complexIsCollection: boolean,
+	/** Описание атрибута */
+	description?: string | undefined | null,
+	/** Словарь значений */
+	dictionary?: ModelTypes["MarketplaceDictionary"] | undefined | null,
+	/** ID словаря */
+	dictionaryId?: number | undefined | null,
+	/** ID группы */
+	groupId?: number | undefined | null,
+	/** Название группы */
+	groupName?: string | undefined | null,
+	/** Имеет ли словарь */
+	hasDictionary: boolean,
+	/** Является ли атрибут аспектным */
+	isAspect: boolean,
+	/** Является ли атрибут коллекцией */
+	isCollection: boolean,
+	/** Является ли комплексным атрибутом */
+	isComplexAttribute: boolean,
+	/** Является ли атрибут обязательным */
+	isRequired: boolean,
+	/** Максимальное количество значений */
+	maxValueCount: number,
+	/** Максимальное количество значений (вычисленное) */
+	maxValues: number,
+	/** Название атрибута */
+	name: string,
+	/** Тип атрибута */
+	type: ModelTypes["MarketplaceAttributeType"]
+};
+	["MarketplaceAttributeGroup"]: {
+		/** Атрибуты в группе */
+	attributes: Array<ModelTypes["MarketplaceAttribute"]>,
+	/** Количество атрибутов в группе */
+	attributesCount: number,
+	/** ID группы */
+	groupId?: number | undefined | null,
+	/** Название группы */
+	groupName: string
+};
+	["MarketplaceAttributeStats"]: {
+		/** Количество аспектных атрибутов */
+	aspectAttributes: number,
+	/** Количество словарных атрибутов */
+	dictionaryAttributes: number,
+	/** Количество обязательных атрибутов */
+	requiredAttributes: number,
+	/** Общее количество атрибутов */
+	totalAttributes: number,
+	/** Общее количество словарей */
+	totalDictionaries: number,
+	/** Общее количество значений словарей */
+	totalDictionaryValues: number
+};
+	["MarketplaceAttributeType"]:MarketplaceAttributeType;
+	["MarketplaceAttributeValidation"]: {
+		/** Список ошибок */
+	errors: Array<string>,
+	/** Результат валидации */
+	isValid: boolean
+};
+	["MarketplaceAvailabilityStats"]: {
+		/** Количество доступных категорий (целых) */
+	categoriesCount: number,
+	/** Есть ли ограничения по категориям */
+	hasRestrictions: boolean,
+	/** Общее количество доступных элементов */
+	totalAvailable: number,
+	/** Количество доступных типов товаров */
+	typesCount: number
+};
+	["MarketplaceAvailableCategory"]: {
+		/** Кто добавил категорию/тип */
+	addedBy: string,
+	/** ID категории */
+	categoryId: number,
+	/** Название кооператива */
+	coopname: string,
+	/** Дата создания */
+	createdAt: ModelTypes["DateTime"],
+	/** ID записи */
+	id: number,
+	/** Активна ли категория/тип */
+	isActive: boolean,
+	/** Применяется к всей категории */
+	isForEntireCategory: boolean,
+	/** Применяется к конкретному типу */
+	isForSpecificType: boolean,
+	/** ID типа товара (null = вся категория) */
+	typeId?: number | undefined | null,
+	/** Дата обновления */
+	updatedAt: ModelTypes["DateTime"]
+};
+	["MarketplaceCategory"]: {
+		/** Название категории */
+	categoryName: string,
+	/** Дочерние категории */
+	children: Array<ModelTypes["MarketplaceCategory"]>,
+	/** Количество дочерних категорий */
+	childrenCount: number,
+	/** ID категории */
+	descriptionCategoryId: number,
+	/** Признак отключения категории */
+	disabled: boolean,
+	/** Полный путь к категории */
+	fullPath?: string | undefined | null,
+	/** Является ли категория листовой (можно создавать товары) */
+	isLeafCategory: boolean,
+	/** ID родительской категории */
+	parentId?: number | undefined | null,
+	/** Типы товаров в категории */
+	types: Array<ModelTypes["MarketplaceProductType"]>,
+	/** Количество типов товаров */
+	typesCount: number
+};
+	["MarketplaceCategoryRequestCount"]: {
+		/** ID категории */
+	categoryId: number,
+	/** Название категории */
+	categoryName: string,
+	/** Количество заявок */
+	count: number
+};
+	["MarketplaceCategoryTreeStats"]: {
+		/** Количество доступных типов товаров */
+	availableTypes: number,
+	/** Количество отключенных категорий */
+	disabledCategories: number,
+	/** Количество листовых категорий */
+	leafCategories: number,
+	/** Количество корневых категорий */
+	rootCategories: number,
+	/** Общее количество категорий */
+	totalCategories: number,
+	/** Общее количество типов товаров */
+	totalTypes: number
+};
+	["MarketplaceCurrentMember"]: {
+		core_roles: Array<string>,
+	marketplace_roles: Array<string>,
+	username: string
+};
+	["MarketplaceDetailKUInput"]: {
+	/** Полный адрес ПВЗ для отображения и геокодинга */
+	addressFull: string,
+	/** Контактный email ПВЗ */
+	contactEmail: string,
+	/** Контактный телефон ПВЗ */
+	contactPhone: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Идентификатор КУ в core (`braname`) */
+	coreBraname: string,
+	/** Дополнительное описание ПВЗ */
+	description?: string | undefined | null,
+	/** Режим работы ПВЗ по дням недели */
+	workingHours: ModelTypes["WorkingHoursInput"]
+};
+	["MarketplaceDictionary"]: {
+		/** Описание словаря */
+	description?: string | undefined | null,
+	/** ID словаря */
+	dictionaryId: number,
+	/** Есть ли значения с изображениями */
+	hasValuesWithPictures: boolean,
+	/** Название словаря */
+	name?: string | undefined | null,
+	/** Значения словаря */
+	values: Array<ModelTypes["MarketplaceDictionaryValue"]>,
+	/** Количество значений */
+	valuesCount: number
+};
+	["MarketplaceDictionaryValue"]: {
+		/** ID словаря */
+	dictionaryId: number,
+	/** ID значения словаря */
+	dictionaryValueId: number,
+	/** Полное описание значения */
+	fullDescription: string,
+	/** Есть ли дополнительная информация */
+	hasInfo: boolean,
+	/** Есть ли изображение */
+	hasPicture: boolean,
+	/** Дополнительная информация */
+	info?: string | undefined | null,
+	/** URL изображения */
+	picture?: string | undefined | null,
+	/** Значение */
+	value: string
+};
+	["MarketplaceKUDetails"]: {
+		addressFull: string,
+	contactEmail: string,
+	contactPhone: string,
+	coopname: string,
+	/** Идентификатор КУ в core (`braname`) */
+	coreBraname: string,
+	createdAt: ModelTypes["DateTime"],
+	description?: string | undefined | null,
+	geocodeErrorMessage?: string | undefined | null,
+	/** PENDING | OK | FAILED */
+	geocodeStatus: string,
+	geocodedAt?: ModelTypes["DateTime"] | undefined | null,
+	lat?: number | undefined | null,
+	lng?: number | undefined | null,
+	/** ACTIVE | INACTIVE */
+	status: string,
+	updatedAt: ModelTypes["DateTime"],
+	workingHours: ModelTypes["WorkingHours"]
+};
+	["MarketplaceProductType"]: {
+		/** ID категории */
+	descriptionCategoryId: number,
+	/** Признак отключения типа */
+	disabled: boolean,
+	/** Полное название с категорией */
+	fullName?: string | undefined | null,
+	/** Доступен ли тип для создания товаров */
+	isAvailable: boolean,
+	/** ID типа товара */
+	typeId: number,
+	/** Название типа товара */
+	typeName: string
+};
+	["MarketplaceRequest"]: {
+		/** Артикул товара */
+	articleNumber: string,
+	/** Атрибуты заявки */
+	attributes: Array<ModelTypes["MarketplaceRequestAttributeValue"]>,
+	/** Доступное количество единиц */
+	availableUnits: number,
+	/** Штрихкод товара */
+	barcode?: string | undefined | null,
+	/** Можно ли редактировать заявку */
+	canBeEdited: boolean,
+	/** Информация о категории */
+	category: ModelTypes["MarketplaceCategory"],
+	/** URL образца цвета */
+	colorImageUrl?: string | undefined | null,
+	/** Название кооператива */
+	coopname: string,
+	/** Дата создания */
+	createdAt: ModelTypes["DateTime"],
+	/** Валюта */
+	currencyCode: string,
+	/** Дополнительные данные */
+	data?: string | undefined | null,
+	/** Глубина упаковки */
+	depth?: number | undefined | null,
+	/** ID категории */
+	descriptionCategoryId: number,
+	/** Единица измерения габаритов */
+	dimensionUnit?: string | undefined | null,
+	/** Процент скидки */
+	discountPercentage: number,
+	/** Геоограничения */
+	geoNames: Array<string>,
+	/** Заполнены ли все обязательные атрибуты */
+	hasAllRequiredAttributes: boolean,
+	/** Есть ли скидка */
+	hasDiscount: boolean,
+	/** Уникальный хэш заявки */
+	hash: string,
+	/** Высота упаковки */
+	height?: number | undefined | null,
+	/** ID заявки */
+	id: number,
+	/** Изображения заявки */
+	images: Array<ModelTypes["MarketplaceRequestImage"]>,
+	/** Является ли заявка активной */
+	isActive: boolean,
+	/** Является ли предложением */
+	isOffer: boolean,
+	/** Является ли заказом */
+	isOrder: boolean,
+	/** Метаданные */
+	meta?: string | undefined | null,
+	/** Название товара */
+	name: string,
+	/** Цена до скидки */
+	oldPrice?: number | undefined | null,
+	/** Старая цена как число */
+	oldPriceAsNumber?: number | undefined | null,
+	/** Хэш родительской заявки */
+	parentHash?: string | undefined | null,
+	/** Цена товара */
+	price: number,
+	/** Цена как число */
+	priceAsNumber: number,
+	/** URL главного изображения */
+	primaryImageUrl?: string | undefined | null,
+	/** Время жизни продукта в секундах */
+	productLifecycleSecs?: number | undefined | null,
+	/** Информация о типе товара */
+	productType: ModelTypes["MarketplaceProductType"],
+	/** Количество проданных единиц */
+	settledUnits: number,
+	/** Статус заявки */
+	status: ModelTypes["RequestStatus"],
+	/** Тип заявки */
+	type: ModelTypes["RequestType"],
+	/** ID типа товара */
+	typeId: number,
+	/** Общее количество единиц */
+	units: number,
+	/** Дата обновления */
+	updatedAt: ModelTypes["DateTime"],
+	/** Имя пользователя */
+	username: string,
+	/** Ставка НДС */
+	vat: string,
+	/** Гарантийный срок в днях */
+	warrantyDays?: number | undefined | null,
+	/** Вес товара */
+	weight?: number | undefined | null,
+	/** Единица измерения веса */
+	weightUnit?: string | undefined | null,
+	/** Ширина упаковки */
+	width?: number | undefined | null
+};
+	["MarketplaceRequestAttributeValue"]: {
+		/** Информация об атрибуте */
+	attribute: ModelTypes["MarketplaceAttribute"],
+	/** Группа атрибута */
+	attributeGroup?: string | undefined | null,
+	/** ID атрибута */
+	attributeId: number,
+	/** Тип атрибута */
+	attributeType: string,
+	/** ID комплексного атрибута */
+	complexId: number,
+	/** Дата создания */
+	createdAt: ModelTypes["DateTime"],
+	/** ID значения из словаря */
+	dictionaryValueId?: number | undefined | null,
+	/** ID значения атрибута */
+	id: number,
+	/** Является ли атрибут аспектным */
+	isAspect: boolean,
+	/** Является ли атрибут обязательным */
+	isRequired: boolean,
+	/** Значение атрибута */
+	value: string
+};
+	["MarketplaceRequestImage"]: {
+		/** Дата создания */
+	createdAt: ModelTypes["DateTime"],
+	/** Описание изображения */
+	description?: string | undefined | null,
+	/** Имя файла */
+	fileName: string,
+	/** ID изображения */
+	id: number,
+	/** Тип изображения */
+	imageType: ModelTypes["RequestImageType"],
+	/** URL изображения */
+	imageUrl: string,
+	/** Является ли изображением 360° */
+	is360Image: boolean,
+	/** Является ли образцом цвета */
+	isColorSample: boolean,
+	/** Является ли главным изображением */
+	isPrimary: boolean,
+	/** Порядок сортировки */
+	sortOrder: number,
+	/** Описание типа изображения */
+	typeDescription: string
+};
+	["MarketplaceRequestStatistics"]: {
+		/** Активные предложения */
+	activeOffers: number,
+	/** Активные заказы */
+	activeOrders: number,
+	/** Завершенные сделки */
+	completedDeals: number,
+	/** Заявки по категориям */
+	requestsByCategory: Array<ModelTypes["MarketplaceCategoryRequestCount"]>,
+	/** Общее количество заявок */
+	totalRequests: number
+};
+	["MarketplaceSetKUStatusInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Идентификатор КУ в core (`braname`) */
+	coreBraname: string,
+	/** Целевой статус ПВЗ: ACTIVE или INACTIVE */
+	status: string
 };
 	["MatrixAccountStatusResponseDTO"]: {
 		hasAccount: boolean,
@@ -22701,6 +25028,10 @@ export type ModelTypes = {
 	["Mutation"]: {
 		/** Подтвердить поставку имущества на заявку */
 	acceptChildOrder: ModelTypes["Transaction"],
+	/** Принять предложение из запасов кооператива
+
+Требуемые роли: chairman, member, user.  */
+	acceptStock: ModelTypes["Transaction"],
 	/** Добавить активного пайщика, который вступил в кооператив, не используя платформу (заполнив заявление собственноручно, оплатив вступительный и минимальный паевый взносы, и получив протокол решения совета)
 
 Требуемые роли: chairman, member.  */
@@ -22711,6 +25042,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	addTrustedAccount: ModelTypes["Branch"],
+	/** Архивировать карточку
+
+Требуемые роли: chairman, member, user.  */
+	archiveProductCard: boolean,
 	/** Отменить заявку */
 	cancelRequest: ModelTypes["Transaction"],
 	/** Добавление автора проекта в CAPITAL контракте
@@ -23071,6 +25406,10 @@ export type ModelTypes = {
 	confirmReceiveOnRequest: ModelTypes["Transaction"],
 	/** Подтвердить поставку имущества Поставщиком по заявке Заказчика и акту приёма-передачи */
 	confirmSupplyOnRequest: ModelTypes["Transaction"],
+	/** Создать предложение из запасов кооператива
+
+Требуемые роли: chairman.  */
+	coopstock: ModelTypes["Transaction"],
 	/** Сгенерировать документ предложения повестки очередного общего собрания пайщиков
 
 Требуемые роли: chairman, member.  */
@@ -23079,6 +25418,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	createBranch: ModelTypes["Branch"],
+	/** Создать категорию (админ)
+
+Требуемые роли: chairman.  */
+	createCategory: ModelTypes["Category"],
 	/** Создать заявку на поставку имущества по предложению Поставщика */
 	createChildOrder: ModelTypes["Transaction"],
 	/** Создание объекта паевого платежа производится мутацией createDepositPayment. Выполнение мутации возвращает идентификатор платежа и данные для его совершения в зависимости от выбранного платежного провайдера.
@@ -23091,6 +25434,10 @@ export type ModelTypes = {
 	createInitialPayment: ModelTypes["GatewayPayment"],
 	/** Создать предложение на поставку имущества */
 	createParentOffer: ModelTypes["Transaction"],
+	/** Создать карточку товара/услуги
+
+Требуемые роли: chairman, member, user.  */
+	createProductCard: ModelTypes["ProductCard"],
 	/** Создать повестку дня и проект решения, и сохранить в хранилище для дальнейшей генерации документа и его публикации
 
 Требуемые роли: chairman, member.  */
@@ -23117,8 +25464,16 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	deleteBranch: boolean,
+	/** Удалить категорию (админ)
+
+Требуемые роли: chairman.  */
+	deleteCategory: boolean,
 	/** Удалить метод оплаты */
 	deletePaymentMethod: boolean,
+	/** Удалить черновик карточки
+
+Требуемые роли: chairman, member, user.  */
+	deleteProductCard: boolean,
 	/** Удалить черновик по id (только владелец)
 
 Требуемые роли: chairman.  */
@@ -23129,6 +25484,10 @@ export type ModelTypes = {
 	deleteTrustedAccount: ModelTypes["Branch"],
 	/** Подтвердить доставку имущества Заказчику по заявке */
 	deliverOnRequest: ModelTypes["Transaction"],
+	/** Уничтожить просроченное имущество
+
+Требуемые роли: chairman.  */
+	destroyRequest: ModelTypes["Transaction"],
 	/** Открыть спор по заявке */
 	disputeOnRequest: ModelTypes["Transaction"],
 	/** Изменить кооперативный участок
@@ -23253,6 +25612,46 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	markReportPeriod: boolean,
+	/** Добавить категории в доступные для кооператива (целые категории)
+
+Требуемые роли: chairman.  */
+	marketplaceAddAvailableCategories: Array<ModelTypes["MarketplaceAvailableCategory"]>,
+	/** Добавить конкретные типы товаров в доступные для кооператива
+
+Требуемые роли: chairman.  */
+	marketplaceAddAvailableCategoryTypes: Array<ModelTypes["MarketplaceAvailableCategory"]>,
+	/** Очистить все доступные категории (сделать доступными все)
+
+Требуемые роли: chairman.  */
+	marketplaceClearAvailableCategories: boolean,
+	/** Создать новую заявку на поставку или заказ товара
+
+Требуемые роли: member, chairman.  */
+	marketplaceCreateRequest: ModelTypes["MarketplaceRequest"],
+	/** Детализирует существующий в core кооперативный участок как ПВЗ Стола заказов. Создаёт запись marketplace_ku_details, либо обновляет существующую. При смене адреса запускает повторный геокодинг — координаты сбрасываются в PENDING и обновляются асинхронно.
+
+Требуемые роли: chairman.  */
+	marketplaceDetailKU: ModelTypes["MarketplaceKUDetails"],
+	/** Удалить категории из доступных для кооператива (включая все их типы)
+
+Требуемые роли: chairman.  */
+	marketplaceRemoveAvailableCategories: boolean,
+	/** Удалить конкретные типы товаров из доступных для кооператива
+
+Требуемые роли: chairman.  */
+	marketplaceRemoveAvailableCategoryTypes: boolean,
+	/** Заменить все доступные категории и типы новым списком
+
+Требуемые роли: chairman.  */
+	marketplaceReplaceAvailableItems: Array<ModelTypes["MarketplaceAvailableCategory"]>,
+	/** Повторно запускает геокодинг адреса ПВЗ.
+
+Требуемые роли: chairman.  */
+	marketplaceRetryKUGeocode: ModelTypes["MarketplaceKUDetails"],
+	/** Активирует или деактивирует ПВЗ Стола заказов.
+
+Требуемые роли: chairman.  */
+	marketplaceSetKUStatus: ModelTypes["MarketplaceKUDetails"],
 	/** Модерировать заявку */
 	moderateRequest: ModelTypes["Transaction"],
 	/** Уведомление о проведении общего собрания пайщиков
@@ -23265,6 +25664,10 @@ export type ModelTypes = {
 	processConvertToAxonStatement: boolean,
 	/** Отклонить модерацию по заявке */
 	prohibitRequest: ModelTypes["Transaction"],
+	/** Опубликовать карточку
+
+Требуемые роли: chairman, member, user.  */
+	publishProductCard: boolean,
 	/** Опубликовать предложенную повестку и проект решения для дальнейшего голосования совета по нему
 
 Требуемые роли: chairman, member.  */
@@ -23281,6 +25684,14 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member.  */
 	registerParticipant: ModelTypes["Account"],
+	/** Перепредложить имущество по новой цене
+
+Требуемые роли: chairman.  */
+	reofferRequest: ModelTypes["Transaction"],
+	/** Запросить возврат паевого взноса имуществом (перед получением)
+
+Требуемые роли: chairman, member, user.  */
+	reqReturn: ModelTypes["Transaction"],
 	/** Заменить приватный ключ аккаунта */
 	resetKey: boolean,
 	/** Перезапуск общего собрания пайщиков
@@ -24109,6 +26520,30 @@ export type ModelTypes = {
 	toBlock?: number | undefined | null,
 	username?: string | undefined | null
 };
+	["ProductCard"]: {
+		braname?: string | undefined | null,
+	cancellation_fee_amount?: string | undefined | null,
+	category_id?: string | undefined | null,
+	contribution_type: ModelTypes["ContributionType"],
+	coopname: string,
+	created_at: ModelTypes["DateTime"],
+	delivery_type: ModelTypes["DeliveryType"],
+	description: string,
+	id: string,
+	images: Array<string>,
+	membership_fee_amount?: string | undefined | null,
+	product_lifecycle_secs: number,
+	status: ModelTypes["ProductCardStatus"],
+	title: string,
+	type: ModelTypes["ProductCardType"],
+	unit_cost: string,
+	units: number,
+	updated_at: ModelTypes["DateTime"],
+	username: string,
+	warranty_period_secs: number
+};
+	["ProductCardStatus"]:ProductCardStatus;
+	["ProductCardType"]:ProductCardType;
 	["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"]: {
 	/** Сумма инвестирования в программу (актив) */
 	amount: string,
@@ -24572,6 +27007,8 @@ export type ModelTypes = {
 	getCapitalOnboardingState: ModelTypes["CapitalOnboardingState"],
 	/** Получить логи событий по проекту с фильтрацией и пагинацией */
 	getCapitalProjectLogs: ModelTypes["PaginatedCapitalLogsPaginationResult"],
+	/** Получить дерево категорий */
+	getCategories: Array<ModelTypes["Category"]>,
 	/** Получить состояние онбординга председателя
 
 Требуемые роли: chairman.  */
@@ -24640,6 +27077,8 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	getMeets: Array<ModelTypes["MeetAggregate"]>,
+	/** Мои карточки */
+	getMyProductCards: Array<ModelTypes["ProductCard"]>,
 	/** Получить список методов оплаты
 
 Требуемые роли: chairman. Исключение: доступ разрешен, если `data.username` совпадает с `username` текущего пользователя. */
@@ -24648,6 +27087,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member. Исключение: доступ разрешен, если `data.username` совпадает с `username` текущего пользователя. */
 	getPayments: ModelTypes["PaginatedGatewayPaymentsPaginationResult"],
+	/** Получить карточку по ID */
+	getProductCard?: ModelTypes["ProductCard"] | undefined | null,
+	/** Получить карточки товаров/услуг */
+	getProductCards: Array<ModelTypes["ProductCard"]>,
 	/** Получить один программный кошелек по фильтру
 
 Требуемые роли: chairman, member.  */
@@ -24706,6 +27149,80 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	listReportDrafts: Array<ModelTypes["ReportDraft"]>,
+	/** Получить аспектные атрибуты для категории и типа товара marketplace */
+	marketplaceAspectAttributes: Array<ModelTypes["MarketplaceAttribute"]>,
+	/** Получить статистику по атрибутам marketplace
+
+Требуемые роли: chairman, member.  */
+	marketplaceAttributeStats: ModelTypes["MarketplaceAttributeStats"],
+	/** Получить атрибуты для конкретной категории и типа товара marketplace */
+	marketplaceCategoryAttributes: Array<ModelTypes["MarketplaceAttribute"]>,
+	/** Получить группированные атрибуты для категории и типа товара marketplace */
+	marketplaceCategoryAttributesGrouped: Array<ModelTypes["MarketplaceAttributeGroup"]>,
+	/** Найти потенциальные совпадения для заявки */
+	marketplaceFindPotentialMatches: Array<ModelTypes["MarketplaceRequest"]>,
+	/** Получить статистику по доступности категорий в кооперативе
+
+Требуемые роли: chairman.  */
+	marketplaceGetAvailabilityStats: ModelTypes["MarketplaceAvailabilityStats"],
+	/** Получить все доступные категории и типы для кооператива
+
+Требуемые роли: chairman.  */
+	marketplaceGetAvailableCategories: Array<ModelTypes["MarketplaceAvailableCategory"]>,
+	/** Получить дерево доступных категорий и типов для кооператива
+
+Требуемые роли: chairman.  */
+	marketplaceGetAvailableCategoryTree: Array<ModelTypes["MarketplaceCategory"]>,
+	/** Получить категорию marketplace по ID */
+	marketplaceGetCategoryById?: ModelTypes["MarketplaceCategory"] | undefined | null,
+	/** Получить все доступные правила для конкретной категории
+
+Требуемые роли: chairman.  */
+	marketplaceGetCategoryRules: Array<ModelTypes["MarketplaceAvailableCategory"]>,
+	/** Получить полное дерево категорий marketplace с типами товаров */
+	marketplaceGetCategoryTree: Array<ModelTypes["MarketplaceCategory"]>,
+	/** Получить статистику по дереву категорий
+
+Требуемые роли: chairman, member.  */
+	marketplaceGetCategoryTreeStats: ModelTypes["MarketplaceCategoryTreeStats"],
+	/** Получить заявки кооператива
+
+Требуемые роли: member, chairman.  */
+	marketplaceGetCoopRequests: Array<ModelTypes["MarketplaceRequest"]>,
+	/** Получить тип товара marketplace по ID */
+	marketplaceGetProductTypeById?: ModelTypes["MarketplaceProductType"] | undefined | null,
+	/** Получить заявку по ID */
+	marketplaceGetRequest?: ModelTypes["MarketplaceRequest"] | undefined | null,
+	/** Получить заявку по хэшу */
+	marketplaceGetRequestByHash?: ModelTypes["MarketplaceRequest"] | undefined | null,
+	/** Получить статистику заявок кооператива
+
+Требуемые роли: chairman, member.  */
+	marketplaceGetRequestStatistics: ModelTypes["MarketplaceRequestStatistics"],
+	/** Получить все корневые категории marketplace */
+	marketplaceGetRootCategories: Array<ModelTypes["MarketplaceCategory"]>,
+	/** Универсальный поиск по категориям и типам товаров */
+	marketplaceGetSearchCategories: Array<ModelTypes["MarketplaceCategory"]>,
+	/** Получить заявки текущего пользователя
+
+Требуемые роли: member, chairman.  */
+	marketplaceGetUserRequests: Array<ModelTypes["MarketplaceRequest"]>,
+	/** Список marketplace-детализаций ПВЗ кооператива.
+
+Требуемые роли: chairman, member, user.  */
+	marketplaceListKUDetails: Array<ModelTypes["MarketplaceKUDetails"]>,
+	/** Получить обязательные атрибуты для категории и типа товара marketplace */
+	marketplaceRequiredAttributes: Array<ModelTypes["MarketplaceAttribute"]>,
+	/** Поиск атрибутов marketplace по названию */
+	marketplaceSearchAttributes: Array<ModelTypes["MarketplaceAttribute"]>,
+	/** Поиск значений словаря marketplace */
+	marketplaceSearchDictionaryValues: Array<ModelTypes["MarketplaceDictionaryValue"]>,
+	/** Поиск заявок по названию товара */
+	marketplaceSearchRequests: Array<ModelTypes["MarketplaceRequest"]>,
+	/** Валидация значений атрибута marketplace */
+	marketplaceValidateAttributeValues: ModelTypes["MarketplaceAttributeValidation"],
+	/** Контекст пайщика для Стола заказов: core_roles + marketplace_roles */
+	marketplaceWhoAmI: ModelTypes["MarketplaceCurrentMember"],
 	/** Получение документов кооператива для синхронизации с 1С. Требует секретный ключ в заголовке x-onecoop-secret-key. */
 	onecoopGetDocuments: ModelTypes["OneCoopDocumentsResponse"],
 	/** Получить полную картину процесса ledger2 по process_hash
@@ -24903,6 +27420,26 @@ export type ModelTypes = {
 	/** Название программы для отображения */
 	title: string
 };
+	["RemoveAvailableCategoriesInput"]: {
+	/** ID категорий для удаления */
+	categoryIds: Array<number>
+};
+	["RemoveAvailableCategoryTypesInput"]: {
+	/** Типы товаров для удаления */
+	categoryTypes: Array<ModelTypes["CategoryTypeInput"]>
+};
+	["ReofferRequestInput"]: {
+	new_hash: string,
+	new_meta: string,
+	new_unit_cost: string,
+	request_hash: string
+};
+	["ReplaceAvailableItemsInput"]: {
+	/** ID категорий (целые категории) */
+	categoryIds: Array<number>,
+	/** Типы товаров */
+	categoryTypes: Array<ModelTypes["CategoryTypeInput"]>
+};
 	["ReportCalendarPeriodEntry"]: {
 		dueDate: string,
 	dueMonth: number,
@@ -25022,6 +27559,36 @@ export type ModelTypes = {
 	middle_name: string,
 	position: string
 };
+	["ReqReturnInput"]: {
+	request_hash: string,
+	return_statement: ModelTypes["SignedDigitalDocumentInput"],
+	username: string
+};
+	["RequestAttributeInput"]: {
+	/** ID атрибута */
+	attributeId: number,
+	/** ID комплексного атрибута */
+	complexId?: number | undefined | null,
+	/** ID значения из словаря */
+	dictionaryValueId?: number | undefined | null,
+	/** Значение атрибута */
+	value: string
+};
+	["RequestImageInput"]: {
+	/** Описание изображения */
+	description?: string | undefined | null,
+	/** Тип изображения */
+	imageType: ModelTypes["RequestImageTypeInput"],
+	/** URL изображения */
+	imageUrl: string,
+	/** Порядок сортировки */
+	sortOrder: number
+};
+	["RequestImageType"]:RequestImageType;
+	["RequestImageTypeInput"]:RequestImageTypeInput;
+	["RequestStatus"]:RequestStatus;
+	["RequestType"]:RequestType;
+	["RequestTypeInput"]:RequestTypeInput;
 	["RequisiteFieldView"]: {
 		source: ModelTypes["RequisiteSource"],
 	value?: string | undefined | null
@@ -25389,6 +27956,34 @@ export type ModelTypes = {
 	/** Мобильный телефон получателя */
 	phone: string
 };
+	["SearchAttributesInput"]: {
+	/** ID категории для фильтрации */
+	categoryId?: number | undefined | null,
+	/** Максимальное количество результатов */
+	limit?: number | undefined | null,
+	/** Только аспектные */
+	onlyAspect?: boolean | undefined | null,
+	/** Только обязательные */
+	onlyRequired?: boolean | undefined | null,
+	/** Только со словарями */
+	onlyWithDictionary?: boolean | undefined | null,
+	/** Текст для поиска */
+	searchTerm: string,
+	/** ID типа товара для фильтрации */
+	typeId?: number | undefined | null
+};
+	["SearchCategoriesInput"]: {
+	/** Текст для поиска по категориям и типам товаров */
+	searchTerm: string
+};
+	["SearchDictionaryValuesInput"]: {
+	/** ID словаря */
+	dictionaryId: number,
+	/** Максимальное количество результатов */
+	limit?: number | undefined | null,
+	/** Текст для поиска */
+	searchTerm: string
+};
 	["SearchDocumentsInput"]: {
 	/** Максимальное количество результатов */
 	limit?: number | undefined | null,
@@ -25398,6 +27993,12 @@ export type ModelTypes = {
 	["SearchPrivateAccountsInput"]: {
 	/** Поисковый запрос для поиска приватных аккаунтов */
 	query: string
+};
+	["SearchRequestsInput"]: {
+	/** Максимальное количество результатов */
+	limit?: number | undefined | null,
+	/** Текст для поиска по названию товара */
+	searchTerm: string
 };
 	["SearchResult"]: {
 		/** Кооператив */
@@ -26111,6 +28712,12 @@ export type ModelTypes = {
 	/** Объединение сертификатов пользователей (сокращенная информация) */
 ["UserCertificateUnion"]:ModelTypes["EntrepreneurCertificate"] | ModelTypes["IndividualCertificate"] | ModelTypes["OrganizationCertificate"];
 	["UserStatus"]:UserStatus;
+	["ValidateAttributeValuesInput"]: {
+	/** ID атрибута */
+	attributeId: number,
+	/** Значения для валидации */
+	values: Array<string>
+};
 	["Vars"]: {
 		confidential_email: string,
 	confidential_link: string,
@@ -26256,6 +28863,47 @@ export type ModelTypes = {
 	/** P256DH ключ для шифрования */
 	p256dh: string
 };
+	["WorkingHours"]: {
+		fri?: ModelTypes["WorkingHoursDay"] | undefined | null,
+	mon?: ModelTypes["WorkingHoursDay"] | undefined | null,
+	sat?: ModelTypes["WorkingHoursDay"] | undefined | null,
+	sun?: ModelTypes["WorkingHoursDay"] | undefined | null,
+	thu?: ModelTypes["WorkingHoursDay"] | undefined | null,
+	tue?: ModelTypes["WorkingHoursDay"] | undefined | null,
+	wed?: ModelTypes["WorkingHoursDay"] | undefined | null
+};
+	["WorkingHoursBreak"]: {
+		end: string,
+	start: string
+};
+	["WorkingHoursBreakInput"]: {
+	/** Конец перерыва (HH:mm) */
+	end: string,
+	/** Начало перерыва (HH:mm) */
+	start: string
+};
+	["WorkingHoursDay"]: {
+		breaks: Array<ModelTypes["WorkingHoursBreak"]>,
+	close: string,
+	open: string
+};
+	["WorkingHoursDayInput"]: {
+	/** Перерывы внутри рабочего дня */
+	breaks: Array<ModelTypes["WorkingHoursBreakInput"]>,
+	/** Время закрытия (HH:mm) */
+	close: string,
+	/** Время открытия (HH:mm) */
+	open: string
+};
+	["WorkingHoursInput"]: {
+	fri?: ModelTypes["WorkingHoursDayInput"] | undefined | null,
+	mon?: ModelTypes["WorkingHoursDayInput"] | undefined | null,
+	sat?: ModelTypes["WorkingHoursDayInput"] | undefined | null,
+	sun?: ModelTypes["WorkingHoursDayInput"] | undefined | null,
+	thu?: ModelTypes["WorkingHoursDayInput"] | undefined | null,
+	tue?: ModelTypes["WorkingHoursDayInput"] | undefined | null,
+	wed?: ModelTypes["WorkingHoursDayInput"] | undefined | null
+};
 	["ZeroReportHeaderEdits"]: {
 		correctionNumber: number,
 	docDate: string,
@@ -26306,6 +28954,12 @@ export type GraphQLTypes = {
 	/** Идентификатор заявки */
 	exchange_id: string,
 	/** Имя аккаунта пользователя */
+	username: string
+};
+	["AcceptStockInput"]: {
+		convert_in: GraphQLTypes["SignedDigitalDocumentInput"],
+	request_hash: string,
+	return_statement: GraphQLTypes["SignedDigitalDocumentInput"],
 	username: string
 };
 	["Account"]: {
@@ -26399,6 +29053,14 @@ export type GraphQLTypes = {
 	coopname: string,
 	/** Хэш проекта */
 	project_hash: string
+};
+	["AddAvailableCategoriesInput"]: {
+		/** ID категорий для добавления (целые категории) */
+	categoryIds: Array<number>
+};
+	["AddAvailableCategoryTypesInput"]: {
+		/** Типы товаров для добавления */
+	categoryTypes: Array<GraphQLTypes["CategoryTypeInput"]>
 };
 	["AddParticipantInput"]: {
 		/** Дата создания аккаунта в строковом формате даты EOSIO по UTC (2024-12-28T06:58:52.500) */
@@ -28967,6 +31629,24 @@ export type GraphQLTypes = {
 	voter_display_name?: string | undefined | null,
 	['...on CapitalVote']: Omit<GraphQLTypes["CapitalVote"], "...on CapitalVote">
 };
+	["Category"]: {
+	__typename: "Category",
+	coopname: string,
+	description?: string | undefined | null,
+	icon?: string | undefined | null,
+	id: string,
+	is_active: boolean,
+	name: string,
+	parent_id?: string | undefined | null,
+	sort_order: number,
+	['...on Category']: Omit<GraphQLTypes["Category"], "...on Category">
+};
+	["CategoryTypeInput"]: {
+		/** ID категории */
+	categoryId: number,
+	/** ID типа товара */
+	typeId: number
+};
 	["ChairmanOnboardingAgendaInput"]: {
 		decision: string,
 	question: string,
@@ -29247,6 +31927,7 @@ export type GraphQLTypes = {
 	phone: string,
 	['...on ContactsDTO']: Omit<GraphQLTypes["ContactsDTO"], "...on ContactsDTO">
 };
+	["ContributionType"]: ContributionType;
 	/** Параметры документов участника из UData */
 ["ContributorDocumentParameters"]: {
 	__typename: "ContributorDocumentParameters",
@@ -29430,6 +32111,16 @@ export type GraphQLTypes = {
 	program_type: string,
 	['...on CooperativeProgram']: Omit<GraphQLTypes["CooperativeProgram"], "...on CooperativeProgram">
 };
+	["CoopstockInput"]: {
+		braname: string,
+	hash: string,
+	membership_fee_amount: string,
+	meta: string,
+	product_lifecycle_secs: number,
+	unit_cost: string,
+	units: number,
+	warranty_period_secs: number
+};
 	/** Страна регистрации пользователя */
 ["Country"]: Country;
 	["CreateAnnualGeneralMeetInput"]: {
@@ -29471,6 +32162,13 @@ export type GraphQLTypes = {
 	short_name: string,
 	/** Имя аккаунта уполномоченного (председателя) кооперативного участка */
 	trustee: string
+};
+	["CreateCategoryInput"]: {
+		description?: string | undefined | null,
+	icon?: string | undefined | null,
+	name: string,
+	parent_id?: string | undefined | null,
+	sort_order?: number | undefined | null
 };
 	["CreateChatCoopCalendarEventInput"]: {
 		description?: string | undefined | null,
@@ -29716,6 +32414,23 @@ export type GraphQLTypes = {
 	project_hash: string,
 	title: string
 };
+	["CreateProductCardInput"]: {
+		braname?: string | undefined | null,
+	cancellation_fee_amount?: string | undefined | null,
+	category_id?: string | undefined | null,
+	contribution_type: GraphQLTypes["ContributionType"],
+	delivery_type: GraphQLTypes["DeliveryType"],
+	description: string,
+	images?: Array<string> | undefined | null,
+	membership_fee_amount?: string | undefined | null,
+	min_units?: number | undefined | null,
+	product_lifecycle_secs: number,
+	title: string,
+	type: GraphQLTypes["ProductCardType"],
+	unit_cost: string,
+	units: number,
+	warranty_period_secs: number
+};
 	["CreateProgramInvestInput"]: {
 		/** Сумма инвестиции */
 	amount: string,
@@ -29791,6 +32506,64 @@ export type GraphQLTypes = {
 	property_hash: string,
 	/** Имя пользователя */
 	username: string
+};
+	["CreateRequestInput"]: {
+		/** Артикул товара (до 50 символов) */
+	articleNumber: string,
+	/** Атрибуты товара */
+	attributes: Array<GraphQLTypes["RequestAttributeInput"]>,
+	/** Штрихкод товара */
+	barcode?: string | undefined | null,
+	/** URL образца цвета */
+	colorImageUrl?: string | undefined | null,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Валюта */
+	currencyCode: string,
+	/** Дополнительные данные JSON */
+	data?: string | undefined | null,
+	/** Глубина упаковки */
+	depth?: number | undefined | null,
+	/** ID категории */
+	descriptionCategoryId: number,
+	/** Единица измерения габаритов */
+	dimensionUnit?: string | undefined | null,
+	/** Геоограничения */
+	geoNames: Array<string>,
+	/** Высота упаковки */
+	height?: number | undefined | null,
+	/** Изображения товара */
+	images: Array<GraphQLTypes["RequestImageInput"]>,
+	/** Метаданные JSON */
+	meta?: string | undefined | null,
+	/** Название товара (до 500 символов) */
+	name: string,
+	/** Цена до скидки */
+	oldPrice?: number | undefined | null,
+	/** Хэш родительской заявки */
+	parentHash?: string | undefined | null,
+	/** Цена товара */
+	price: number,
+	/** URL главного изображения */
+	primaryImageUrl?: string | undefined | null,
+	/** Время жизни продукта в секундах */
+	productLifecycleSecs?: number | undefined | null,
+	/** Тип заявки: offer - предложение, order - заказ */
+	type: GraphQLTypes["RequestTypeInput"],
+	/** ID типа товара */
+	typeId: number,
+	/** Количество единиц товара */
+	units: number,
+	/** Ставка НДС (0, 0.05, 0.07, 0.1, 0.2) */
+	vat: string,
+	/** Гарантийный срок в днях */
+	warrantyDays?: number | undefined | null,
+	/** Вес товара */
+	weight?: number | undefined | null,
+	/** Единица измерения веса */
+	weightUnit?: string | undefined | null,
+	/** Ширина упаковки */
+	width?: number | undefined | null
 };
 	["CreateSovietIndividualDataInput"]: {
 		/** Дата рождения */
@@ -30032,6 +32805,7 @@ export type GraphQLTypes = {
 	/** Имя аккаунта пользователя */
 	username: string
 };
+	["DeliveryType"]: DeliveryType;
 	["Delta"]: {
 	__typename: "Delta",
 	/** ID блока */
@@ -30111,6 +32885,10 @@ export type GraphQLTypes = {
 	/** Отображаемое название workspace */
 	title: string,
 	['...on DesktopWorkspace']: Omit<GraphQLTypes["DesktopWorkspace"], "...on DesktopWorkspace">
+};
+	["DestroyRequestInput"]: {
+		destruction_act: GraphQLTypes["SignedDigitalDocumentInput"],
+	request_hash: string
 };
 	["DisputeOnRequestInput"]: {
 		/** Имя аккаунта кооператива */
@@ -30418,6 +33196,10 @@ export type GraphQLTypes = {
 	coopname: string,
 	/** Хэш проекта для финализации */
 	project_hash: string
+};
+	["FindPotentialMatchesInput"]: {
+		/** ID заявки для поиска совпадений */
+	requestId: number
 };
 	["FreeDecisionGenerateDocumentInput"]: {
 		/** Номер блока, на котором был создан документ */
@@ -30867,6 +33649,30 @@ export type GraphQLTypes = {
 		/** Хеш истории для получения */
 	story_hash: string
 };
+	["GetCategoryAttributesInput"]: {
+		/** ID категории */
+	categoryId: number,
+	/** Включать значения словарей */
+	includeDictionaryValues?: boolean | undefined | null,
+	/** Только обязательные атрибуты */
+	onlyRequired?: boolean | undefined | null,
+	/** ID типа товара */
+	typeId: number
+};
+	["GetCategoryByIdInput"]: {
+		/** ID категории */
+	categoryId: number
+};
+	["GetCategoryTreeInput"]: {
+		/** Включать типы товаров */
+	includeTypes?: boolean | undefined | null,
+	/** Максимальная глубина дерева */
+	maxDepth?: number | undefined | null,
+	/** Включать только доступные категории */
+	onlyAvailable?: boolean | undefined | null,
+	/** ID корневой категории */
+	rootCategoryId?: number | undefined | null
+};
 	["GetContributorInput"]: {
 		/** ID участника */
 	_id?: string | undefined | null,
@@ -30874,6 +33680,16 @@ export type GraphQLTypes = {
 	contributor_hash?: string | undefined | null,
 	/** Имя пользователя */
 	username?: string | undefined | null
+};
+	["GetCoopRequestsInput"]: {
+		/** Название кооператива */
+	coopname: string,
+	/** Максимальное количество результатов */
+	limit?: number | undefined | null,
+	/** Статус заявки */
+	status?: string | undefined | null,
+	/** Тип заявки */
+	type?: GraphQLTypes["RequestTypeInput"] | undefined | null
 };
 	["GetDebtInput"]: {
 		/** ID долга */
@@ -31016,6 +33832,10 @@ export type GraphQLTypes = {
 	/** Имя пользователя для фильтрации методов оплаты */
 	username?: string | undefined | null
 };
+	["GetProductTypeByIdInput"]: {
+		/** ID типа товара */
+	typeId: number
+};
 	["GetProjectCommunicationRoomsInput"]: {
 		/** Хеш проекта Capital */
 	projectHash: string
@@ -31029,6 +33849,24 @@ export type GraphQLTypes = {
 	["GetProjectWithRelationsInput"]: {
 		/** Хеш проекта */
 	projectHash: string
+};
+	["GetRequestByHashInput"]: {
+		/** Хэш заявки */
+	hash: string
+};
+	["GetRequestInput"]: {
+		/** ID заявки */
+	id: number
+};
+	["GetRequestStatisticsInput"]: {
+		/** Название кооператива */
+	coopname: string
+};
+	["GetRequiredAttributesInput"]: {
+		/** ID категории */
+	categoryId: number,
+	/** ID типа товара */
+	typeId: number
 };
 	["GetResultInput"]: {
 		/** ID результата */
@@ -31046,6 +33884,10 @@ export type GraphQLTypes = {
 		limit?: number | undefined | null,
 	matrixRoomId?: string | undefined | null,
 	offset?: number | undefined | null
+};
+	["GetUserRequestsInput"]: {
+		/** Максимальное количество результатов */
+	limit?: number | undefined | null
 };
 	["GetUserSubscriptionsInput"]: {
 		/** Username пользователя */
@@ -31292,6 +34134,12 @@ export type GraphQLTypes = {
 	coopname: string,
 	['...on LedgerState']: Omit<GraphQLTypes["LedgerState"], "...on LedgerState">
 };
+	["ListMarketplaceKUInput"]: {
+		/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Только активные ПВЗ. Для заказчиков/поставщиков всегда `true`; для admin-стола `false`. */
+	onlyActive?: boolean | undefined | null
+};
 	["ListReportDraftsFilterInput"]: {
 		period?: number | undefined | null,
 	reportType?: GraphQLTypes["ReportType"] | undefined | null,
@@ -31337,6 +34185,441 @@ export type GraphQLTypes = {
 	period?: number | undefined | null,
 	reportType: GraphQLTypes["ReportType"],
 	year: number
+};
+	["MarketplaceAttribute"]: {
+	__typename: "MarketplaceAttribute",
+	/** ID комплексного атрибута */
+	attributeComplexId: number,
+	/** ID атрибута */
+	attributeId: number,
+	/** Можно ли изменить после создания товара */
+	canBeModifiedAfterCreation: boolean,
+	/** Зависит ли от категории */
+	categoryDependent: boolean,
+	/** Комплексная коллекция */
+	complexIsCollection: boolean,
+	/** Описание атрибута */
+	description?: string | undefined | null,
+	/** Словарь значений */
+	dictionary?: GraphQLTypes["MarketplaceDictionary"] | undefined | null,
+	/** ID словаря */
+	dictionaryId?: number | undefined | null,
+	/** ID группы */
+	groupId?: number | undefined | null,
+	/** Название группы */
+	groupName?: string | undefined | null,
+	/** Имеет ли словарь */
+	hasDictionary: boolean,
+	/** Является ли атрибут аспектным */
+	isAspect: boolean,
+	/** Является ли атрибут коллекцией */
+	isCollection: boolean,
+	/** Является ли комплексным атрибутом */
+	isComplexAttribute: boolean,
+	/** Является ли атрибут обязательным */
+	isRequired: boolean,
+	/** Максимальное количество значений */
+	maxValueCount: number,
+	/** Максимальное количество значений (вычисленное) */
+	maxValues: number,
+	/** Название атрибута */
+	name: string,
+	/** Тип атрибута */
+	type: GraphQLTypes["MarketplaceAttributeType"],
+	['...on MarketplaceAttribute']: Omit<GraphQLTypes["MarketplaceAttribute"], "...on MarketplaceAttribute">
+};
+	["MarketplaceAttributeGroup"]: {
+	__typename: "MarketplaceAttributeGroup",
+	/** Атрибуты в группе */
+	attributes: Array<GraphQLTypes["MarketplaceAttribute"]>,
+	/** Количество атрибутов в группе */
+	attributesCount: number,
+	/** ID группы */
+	groupId?: number | undefined | null,
+	/** Название группы */
+	groupName: string,
+	['...on MarketplaceAttributeGroup']: Omit<GraphQLTypes["MarketplaceAttributeGroup"], "...on MarketplaceAttributeGroup">
+};
+	["MarketplaceAttributeStats"]: {
+	__typename: "MarketplaceAttributeStats",
+	/** Количество аспектных атрибутов */
+	aspectAttributes: number,
+	/** Количество словарных атрибутов */
+	dictionaryAttributes: number,
+	/** Количество обязательных атрибутов */
+	requiredAttributes: number,
+	/** Общее количество атрибутов */
+	totalAttributes: number,
+	/** Общее количество словарей */
+	totalDictionaries: number,
+	/** Общее количество значений словарей */
+	totalDictionaryValues: number,
+	['...on MarketplaceAttributeStats']: Omit<GraphQLTypes["MarketplaceAttributeStats"], "...on MarketplaceAttributeStats">
+};
+	/** Тип атрибута товара */
+["MarketplaceAttributeType"]: MarketplaceAttributeType;
+	["MarketplaceAttributeValidation"]: {
+	__typename: "MarketplaceAttributeValidation",
+	/** Список ошибок */
+	errors: Array<string>,
+	/** Результат валидации */
+	isValid: boolean,
+	['...on MarketplaceAttributeValidation']: Omit<GraphQLTypes["MarketplaceAttributeValidation"], "...on MarketplaceAttributeValidation">
+};
+	["MarketplaceAvailabilityStats"]: {
+	__typename: "MarketplaceAvailabilityStats",
+	/** Количество доступных категорий (целых) */
+	categoriesCount: number,
+	/** Есть ли ограничения по категориям */
+	hasRestrictions: boolean,
+	/** Общее количество доступных элементов */
+	totalAvailable: number,
+	/** Количество доступных типов товаров */
+	typesCount: number,
+	['...on MarketplaceAvailabilityStats']: Omit<GraphQLTypes["MarketplaceAvailabilityStats"], "...on MarketplaceAvailabilityStats">
+};
+	["MarketplaceAvailableCategory"]: {
+	__typename: "MarketplaceAvailableCategory",
+	/** Кто добавил категорию/тип */
+	addedBy: string,
+	/** ID категории */
+	categoryId: number,
+	/** Название кооператива */
+	coopname: string,
+	/** Дата создания */
+	createdAt: GraphQLTypes["DateTime"],
+	/** ID записи */
+	id: number,
+	/** Активна ли категория/тип */
+	isActive: boolean,
+	/** Применяется к всей категории */
+	isForEntireCategory: boolean,
+	/** Применяется к конкретному типу */
+	isForSpecificType: boolean,
+	/** ID типа товара (null = вся категория) */
+	typeId?: number | undefined | null,
+	/** Дата обновления */
+	updatedAt: GraphQLTypes["DateTime"],
+	['...on MarketplaceAvailableCategory']: Omit<GraphQLTypes["MarketplaceAvailableCategory"], "...on MarketplaceAvailableCategory">
+};
+	["MarketplaceCategory"]: {
+	__typename: "MarketplaceCategory",
+	/** Название категории */
+	categoryName: string,
+	/** Дочерние категории */
+	children: Array<GraphQLTypes["MarketplaceCategory"]>,
+	/** Количество дочерних категорий */
+	childrenCount: number,
+	/** ID категории */
+	descriptionCategoryId: number,
+	/** Признак отключения категории */
+	disabled: boolean,
+	/** Полный путь к категории */
+	fullPath?: string | undefined | null,
+	/** Является ли категория листовой (можно создавать товары) */
+	isLeafCategory: boolean,
+	/** ID родительской категории */
+	parentId?: number | undefined | null,
+	/** Типы товаров в категории */
+	types: Array<GraphQLTypes["MarketplaceProductType"]>,
+	/** Количество типов товаров */
+	typesCount: number,
+	['...on MarketplaceCategory']: Omit<GraphQLTypes["MarketplaceCategory"], "...on MarketplaceCategory">
+};
+	["MarketplaceCategoryRequestCount"]: {
+	__typename: "MarketplaceCategoryRequestCount",
+	/** ID категории */
+	categoryId: number,
+	/** Название категории */
+	categoryName: string,
+	/** Количество заявок */
+	count: number,
+	['...on MarketplaceCategoryRequestCount']: Omit<GraphQLTypes["MarketplaceCategoryRequestCount"], "...on MarketplaceCategoryRequestCount">
+};
+	["MarketplaceCategoryTreeStats"]: {
+	__typename: "MarketplaceCategoryTreeStats",
+	/** Количество доступных типов товаров */
+	availableTypes: number,
+	/** Количество отключенных категорий */
+	disabledCategories: number,
+	/** Количество листовых категорий */
+	leafCategories: number,
+	/** Количество корневых категорий */
+	rootCategories: number,
+	/** Общее количество категорий */
+	totalCategories: number,
+	/** Общее количество типов товаров */
+	totalTypes: number,
+	['...on MarketplaceCategoryTreeStats']: Omit<GraphQLTypes["MarketplaceCategoryTreeStats"], "...on MarketplaceCategoryTreeStats">
+};
+	["MarketplaceCurrentMember"]: {
+	__typename: "MarketplaceCurrentMember",
+	core_roles: Array<string>,
+	marketplace_roles: Array<string>,
+	username: string,
+	['...on MarketplaceCurrentMember']: Omit<GraphQLTypes["MarketplaceCurrentMember"], "...on MarketplaceCurrentMember">
+};
+	["MarketplaceDetailKUInput"]: {
+		/** Полный адрес ПВЗ для отображения и геокодинга */
+	addressFull: string,
+	/** Контактный email ПВЗ */
+	contactEmail: string,
+	/** Контактный телефон ПВЗ */
+	contactPhone: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Идентификатор КУ в core (`braname`) */
+	coreBraname: string,
+	/** Дополнительное описание ПВЗ */
+	description?: string | undefined | null,
+	/** Режим работы ПВЗ по дням недели */
+	workingHours: GraphQLTypes["WorkingHoursInput"]
+};
+	["MarketplaceDictionary"]: {
+	__typename: "MarketplaceDictionary",
+	/** Описание словаря */
+	description?: string | undefined | null,
+	/** ID словаря */
+	dictionaryId: number,
+	/** Есть ли значения с изображениями */
+	hasValuesWithPictures: boolean,
+	/** Название словаря */
+	name?: string | undefined | null,
+	/** Значения словаря */
+	values: Array<GraphQLTypes["MarketplaceDictionaryValue"]>,
+	/** Количество значений */
+	valuesCount: number,
+	['...on MarketplaceDictionary']: Omit<GraphQLTypes["MarketplaceDictionary"], "...on MarketplaceDictionary">
+};
+	["MarketplaceDictionaryValue"]: {
+	__typename: "MarketplaceDictionaryValue",
+	/** ID словаря */
+	dictionaryId: number,
+	/** ID значения словаря */
+	dictionaryValueId: number,
+	/** Полное описание значения */
+	fullDescription: string,
+	/** Есть ли дополнительная информация */
+	hasInfo: boolean,
+	/** Есть ли изображение */
+	hasPicture: boolean,
+	/** Дополнительная информация */
+	info?: string | undefined | null,
+	/** URL изображения */
+	picture?: string | undefined | null,
+	/** Значение */
+	value: string,
+	['...on MarketplaceDictionaryValue']: Omit<GraphQLTypes["MarketplaceDictionaryValue"], "...on MarketplaceDictionaryValue">
+};
+	["MarketplaceKUDetails"]: {
+	__typename: "MarketplaceKUDetails",
+	addressFull: string,
+	contactEmail: string,
+	contactPhone: string,
+	coopname: string,
+	/** Идентификатор КУ в core (`braname`) */
+	coreBraname: string,
+	createdAt: GraphQLTypes["DateTime"],
+	description?: string | undefined | null,
+	geocodeErrorMessage?: string | undefined | null,
+	/** PENDING | OK | FAILED */
+	geocodeStatus: string,
+	geocodedAt?: GraphQLTypes["DateTime"] | undefined | null,
+	lat?: number | undefined | null,
+	lng?: number | undefined | null,
+	/** ACTIVE | INACTIVE */
+	status: string,
+	updatedAt: GraphQLTypes["DateTime"],
+	workingHours: GraphQLTypes["WorkingHours"],
+	['...on MarketplaceKUDetails']: Omit<GraphQLTypes["MarketplaceKUDetails"], "...on MarketplaceKUDetails">
+};
+	["MarketplaceProductType"]: {
+	__typename: "MarketplaceProductType",
+	/** ID категории */
+	descriptionCategoryId: number,
+	/** Признак отключения типа */
+	disabled: boolean,
+	/** Полное название с категорией */
+	fullName?: string | undefined | null,
+	/** Доступен ли тип для создания товаров */
+	isAvailable: boolean,
+	/** ID типа товара */
+	typeId: number,
+	/** Название типа товара */
+	typeName: string,
+	['...on MarketplaceProductType']: Omit<GraphQLTypes["MarketplaceProductType"], "...on MarketplaceProductType">
+};
+	["MarketplaceRequest"]: {
+	__typename: "MarketplaceRequest",
+	/** Артикул товара */
+	articleNumber: string,
+	/** Атрибуты заявки */
+	attributes: Array<GraphQLTypes["MarketplaceRequestAttributeValue"]>,
+	/** Доступное количество единиц */
+	availableUnits: number,
+	/** Штрихкод товара */
+	barcode?: string | undefined | null,
+	/** Можно ли редактировать заявку */
+	canBeEdited: boolean,
+	/** Информация о категории */
+	category: GraphQLTypes["MarketplaceCategory"],
+	/** URL образца цвета */
+	colorImageUrl?: string | undefined | null,
+	/** Название кооператива */
+	coopname: string,
+	/** Дата создания */
+	createdAt: GraphQLTypes["DateTime"],
+	/** Валюта */
+	currencyCode: string,
+	/** Дополнительные данные */
+	data?: string | undefined | null,
+	/** Глубина упаковки */
+	depth?: number | undefined | null,
+	/** ID категории */
+	descriptionCategoryId: number,
+	/** Единица измерения габаритов */
+	dimensionUnit?: string | undefined | null,
+	/** Процент скидки */
+	discountPercentage: number,
+	/** Геоограничения */
+	geoNames: Array<string>,
+	/** Заполнены ли все обязательные атрибуты */
+	hasAllRequiredAttributes: boolean,
+	/** Есть ли скидка */
+	hasDiscount: boolean,
+	/** Уникальный хэш заявки */
+	hash: string,
+	/** Высота упаковки */
+	height?: number | undefined | null,
+	/** ID заявки */
+	id: number,
+	/** Изображения заявки */
+	images: Array<GraphQLTypes["MarketplaceRequestImage"]>,
+	/** Является ли заявка активной */
+	isActive: boolean,
+	/** Является ли предложением */
+	isOffer: boolean,
+	/** Является ли заказом */
+	isOrder: boolean,
+	/** Метаданные */
+	meta?: string | undefined | null,
+	/** Название товара */
+	name: string,
+	/** Цена до скидки */
+	oldPrice?: number | undefined | null,
+	/** Старая цена как число */
+	oldPriceAsNumber?: number | undefined | null,
+	/** Хэш родительской заявки */
+	parentHash?: string | undefined | null,
+	/** Цена товара */
+	price: number,
+	/** Цена как число */
+	priceAsNumber: number,
+	/** URL главного изображения */
+	primaryImageUrl?: string | undefined | null,
+	/** Время жизни продукта в секундах */
+	productLifecycleSecs?: number | undefined | null,
+	/** Информация о типе товара */
+	productType: GraphQLTypes["MarketplaceProductType"],
+	/** Количество проданных единиц */
+	settledUnits: number,
+	/** Статус заявки */
+	status: GraphQLTypes["RequestStatus"],
+	/** Тип заявки */
+	type: GraphQLTypes["RequestType"],
+	/** ID типа товара */
+	typeId: number,
+	/** Общее количество единиц */
+	units: number,
+	/** Дата обновления */
+	updatedAt: GraphQLTypes["DateTime"],
+	/** Имя пользователя */
+	username: string,
+	/** Ставка НДС */
+	vat: string,
+	/** Гарантийный срок в днях */
+	warrantyDays?: number | undefined | null,
+	/** Вес товара */
+	weight?: number | undefined | null,
+	/** Единица измерения веса */
+	weightUnit?: string | undefined | null,
+	/** Ширина упаковки */
+	width?: number | undefined | null,
+	['...on MarketplaceRequest']: Omit<GraphQLTypes["MarketplaceRequest"], "...on MarketplaceRequest">
+};
+	["MarketplaceRequestAttributeValue"]: {
+	__typename: "MarketplaceRequestAttributeValue",
+	/** Информация об атрибуте */
+	attribute: GraphQLTypes["MarketplaceAttribute"],
+	/** Группа атрибута */
+	attributeGroup?: string | undefined | null,
+	/** ID атрибута */
+	attributeId: number,
+	/** Тип атрибута */
+	attributeType: string,
+	/** ID комплексного атрибута */
+	complexId: number,
+	/** Дата создания */
+	createdAt: GraphQLTypes["DateTime"],
+	/** ID значения из словаря */
+	dictionaryValueId?: number | undefined | null,
+	/** ID значения атрибута */
+	id: number,
+	/** Является ли атрибут аспектным */
+	isAspect: boolean,
+	/** Является ли атрибут обязательным */
+	isRequired: boolean,
+	/** Значение атрибута */
+	value: string,
+	['...on MarketplaceRequestAttributeValue']: Omit<GraphQLTypes["MarketplaceRequestAttributeValue"], "...on MarketplaceRequestAttributeValue">
+};
+	["MarketplaceRequestImage"]: {
+	__typename: "MarketplaceRequestImage",
+	/** Дата создания */
+	createdAt: GraphQLTypes["DateTime"],
+	/** Описание изображения */
+	description?: string | undefined | null,
+	/** Имя файла */
+	fileName: string,
+	/** ID изображения */
+	id: number,
+	/** Тип изображения */
+	imageType: GraphQLTypes["RequestImageType"],
+	/** URL изображения */
+	imageUrl: string,
+	/** Является ли изображением 360° */
+	is360Image: boolean,
+	/** Является ли образцом цвета */
+	isColorSample: boolean,
+	/** Является ли главным изображением */
+	isPrimary: boolean,
+	/** Порядок сортировки */
+	sortOrder: number,
+	/** Описание типа изображения */
+	typeDescription: string,
+	['...on MarketplaceRequestImage']: Omit<GraphQLTypes["MarketplaceRequestImage"], "...on MarketplaceRequestImage">
+};
+	["MarketplaceRequestStatistics"]: {
+	__typename: "MarketplaceRequestStatistics",
+	/** Активные предложения */
+	activeOffers: number,
+	/** Активные заказы */
+	activeOrders: number,
+	/** Завершенные сделки */
+	completedDeals: number,
+	/** Заявки по категориям */
+	requestsByCategory: Array<GraphQLTypes["MarketplaceCategoryRequestCount"]>,
+	/** Общее количество заявок */
+	totalRequests: number,
+	['...on MarketplaceRequestStatistics']: Omit<GraphQLTypes["MarketplaceRequestStatistics"], "...on MarketplaceRequestStatistics">
+};
+	["MarketplaceSetKUStatusInput"]: {
+		/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Идентификатор КУ в core (`braname`) */
+	coreBraname: string,
+	/** Целевой статус ПВЗ: ACTIVE или INACTIVE */
+	status: string
 };
 	["MatrixAccountStatusResponseDTO"]: {
 	__typename: "MatrixAccountStatusResponseDTO",
@@ -31571,6 +34854,10 @@ export type GraphQLTypes = {
 	__typename: "Mutation",
 	/** Подтвердить поставку имущества на заявку */
 	acceptChildOrder: GraphQLTypes["Transaction"],
+	/** Принять предложение из запасов кооператива
+
+Требуемые роли: chairman, member, user.  */
+	acceptStock: GraphQLTypes["Transaction"],
 	/** Добавить активного пайщика, который вступил в кооператив, не используя платформу (заполнив заявление собственноручно, оплатив вступительный и минимальный паевый взносы, и получив протокол решения совета)
 
 Требуемые роли: chairman, member.  */
@@ -31581,6 +34868,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	addTrustedAccount: GraphQLTypes["Branch"],
+	/** Архивировать карточку
+
+Требуемые роли: chairman, member, user.  */
+	archiveProductCard: boolean,
 	/** Отменить заявку */
 	cancelRequest: GraphQLTypes["Transaction"],
 	/** Добавление автора проекта в CAPITAL контракте
@@ -31941,6 +35232,10 @@ export type GraphQLTypes = {
 	confirmReceiveOnRequest: GraphQLTypes["Transaction"],
 	/** Подтвердить поставку имущества Поставщиком по заявке Заказчика и акту приёма-передачи */
 	confirmSupplyOnRequest: GraphQLTypes["Transaction"],
+	/** Создать предложение из запасов кооператива
+
+Требуемые роли: chairman.  */
+	coopstock: GraphQLTypes["Transaction"],
 	/** Сгенерировать документ предложения повестки очередного общего собрания пайщиков
 
 Требуемые роли: chairman, member.  */
@@ -31949,6 +35244,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	createBranch: GraphQLTypes["Branch"],
+	/** Создать категорию (админ)
+
+Требуемые роли: chairman.  */
+	createCategory: GraphQLTypes["Category"],
 	/** Создать заявку на поставку имущества по предложению Поставщика */
 	createChildOrder: GraphQLTypes["Transaction"],
 	/** Создание объекта паевого платежа производится мутацией createDepositPayment. Выполнение мутации возвращает идентификатор платежа и данные для его совершения в зависимости от выбранного платежного провайдера.
@@ -31961,6 +35260,10 @@ export type GraphQLTypes = {
 	createInitialPayment: GraphQLTypes["GatewayPayment"],
 	/** Создать предложение на поставку имущества */
 	createParentOffer: GraphQLTypes["Transaction"],
+	/** Создать карточку товара/услуги
+
+Требуемые роли: chairman, member, user.  */
+	createProductCard: GraphQLTypes["ProductCard"],
 	/** Создать повестку дня и проект решения, и сохранить в хранилище для дальнейшей генерации документа и его публикации
 
 Требуемые роли: chairman, member.  */
@@ -31987,8 +35290,16 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	deleteBranch: boolean,
+	/** Удалить категорию (админ)
+
+Требуемые роли: chairman.  */
+	deleteCategory: boolean,
 	/** Удалить метод оплаты */
 	deletePaymentMethod: boolean,
+	/** Удалить черновик карточки
+
+Требуемые роли: chairman, member, user.  */
+	deleteProductCard: boolean,
 	/** Удалить черновик по id (только владелец)
 
 Требуемые роли: chairman.  */
@@ -31999,6 +35310,10 @@ export type GraphQLTypes = {
 	deleteTrustedAccount: GraphQLTypes["Branch"],
 	/** Подтвердить доставку имущества Заказчику по заявке */
 	deliverOnRequest: GraphQLTypes["Transaction"],
+	/** Уничтожить просроченное имущество
+
+Требуемые роли: chairman.  */
+	destroyRequest: GraphQLTypes["Transaction"],
 	/** Открыть спор по заявке */
 	disputeOnRequest: GraphQLTypes["Transaction"],
 	/** Изменить кооперативный участок
@@ -32123,6 +35438,46 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	markReportPeriod: boolean,
+	/** Добавить категории в доступные для кооператива (целые категории)
+
+Требуемые роли: chairman.  */
+	marketplaceAddAvailableCategories: Array<GraphQLTypes["MarketplaceAvailableCategory"]>,
+	/** Добавить конкретные типы товаров в доступные для кооператива
+
+Требуемые роли: chairman.  */
+	marketplaceAddAvailableCategoryTypes: Array<GraphQLTypes["MarketplaceAvailableCategory"]>,
+	/** Очистить все доступные категории (сделать доступными все)
+
+Требуемые роли: chairman.  */
+	marketplaceClearAvailableCategories: boolean,
+	/** Создать новую заявку на поставку или заказ товара
+
+Требуемые роли: member, chairman.  */
+	marketplaceCreateRequest: GraphQLTypes["MarketplaceRequest"],
+	/** Детализирует существующий в core кооперативный участок как ПВЗ Стола заказов. Создаёт запись marketplace_ku_details, либо обновляет существующую. При смене адреса запускает повторный геокодинг — координаты сбрасываются в PENDING и обновляются асинхронно.
+
+Требуемые роли: chairman.  */
+	marketplaceDetailKU: GraphQLTypes["MarketplaceKUDetails"],
+	/** Удалить категории из доступных для кооператива (включая все их типы)
+
+Требуемые роли: chairman.  */
+	marketplaceRemoveAvailableCategories: boolean,
+	/** Удалить конкретные типы товаров из доступных для кооператива
+
+Требуемые роли: chairman.  */
+	marketplaceRemoveAvailableCategoryTypes: boolean,
+	/** Заменить все доступные категории и типы новым списком
+
+Требуемые роли: chairman.  */
+	marketplaceReplaceAvailableItems: Array<GraphQLTypes["MarketplaceAvailableCategory"]>,
+	/** Повторно запускает геокодинг адреса ПВЗ.
+
+Требуемые роли: chairman.  */
+	marketplaceRetryKUGeocode: GraphQLTypes["MarketplaceKUDetails"],
+	/** Активирует или деактивирует ПВЗ Стола заказов.
+
+Требуемые роли: chairman.  */
+	marketplaceSetKUStatus: GraphQLTypes["MarketplaceKUDetails"],
 	/** Модерировать заявку */
 	moderateRequest: GraphQLTypes["Transaction"],
 	/** Уведомление о проведении общего собрания пайщиков
@@ -32135,6 +35490,10 @@ export type GraphQLTypes = {
 	processConvertToAxonStatement: boolean,
 	/** Отклонить модерацию по заявке */
 	prohibitRequest: GraphQLTypes["Transaction"],
+	/** Опубликовать карточку
+
+Требуемые роли: chairman, member, user.  */
+	publishProductCard: boolean,
 	/** Опубликовать предложенную повестку и проект решения для дальнейшего голосования совета по нему
 
 Требуемые роли: chairman, member.  */
@@ -32151,6 +35510,14 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member.  */
 	registerParticipant: GraphQLTypes["Account"],
+	/** Перепредложить имущество по новой цене
+
+Требуемые роли: chairman.  */
+	reofferRequest: GraphQLTypes["Transaction"],
+	/** Запросить возврат паевого взноса имуществом (перед получением)
+
+Требуемые роли: chairman, member, user.  */
+	reqReturn: GraphQLTypes["Transaction"],
 	/** Заменить приватный ключ аккаунта */
 	resetKey: boolean,
 	/** Перезапуск общего собрания пайщиков
@@ -33097,6 +36464,32 @@ export type GraphQLTypes = {
 	toBlock?: number | undefined | null,
 	username?: string | undefined | null
 };
+	["ProductCard"]: {
+	__typename: "ProductCard",
+	braname?: string | undefined | null,
+	cancellation_fee_amount?: string | undefined | null,
+	category_id?: string | undefined | null,
+	contribution_type: GraphQLTypes["ContributionType"],
+	coopname: string,
+	created_at: GraphQLTypes["DateTime"],
+	delivery_type: GraphQLTypes["DeliveryType"],
+	description: string,
+	id: string,
+	images: Array<string>,
+	membership_fee_amount?: string | undefined | null,
+	product_lifecycle_secs: number,
+	status: GraphQLTypes["ProductCardStatus"],
+	title: string,
+	type: GraphQLTypes["ProductCardType"],
+	unit_cost: string,
+	units: number,
+	updated_at: GraphQLTypes["DateTime"],
+	username: string,
+	warranty_period_secs: number,
+	['...on ProductCard']: Omit<GraphQLTypes["ProductCard"], "...on ProductCard">
+};
+	["ProductCardStatus"]: ProductCardStatus;
+	["ProductCardType"]: ProductCardType;
 	["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"]: {
 		/** Сумма инвестирования в программу (актив) */
 	amount: string,
@@ -33572,6 +36965,8 @@ export type GraphQLTypes = {
 	getCapitalOnboardingState: GraphQLTypes["CapitalOnboardingState"],
 	/** Получить логи событий по проекту с фильтрацией и пагинацией */
 	getCapitalProjectLogs: GraphQLTypes["PaginatedCapitalLogsPaginationResult"],
+	/** Получить дерево категорий */
+	getCategories: Array<GraphQLTypes["Category"]>,
 	/** Получить состояние онбординга председателя
 
 Требуемые роли: chairman.  */
@@ -33640,6 +37035,8 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	getMeets: Array<GraphQLTypes["MeetAggregate"]>,
+	/** Мои карточки */
+	getMyProductCards: Array<GraphQLTypes["ProductCard"]>,
 	/** Получить список методов оплаты
 
 Требуемые роли: chairman. Исключение: доступ разрешен, если `data.username` совпадает с `username` текущего пользователя. */
@@ -33648,6 +37045,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member. Исключение: доступ разрешен, если `data.username` совпадает с `username` текущего пользователя. */
 	getPayments: GraphQLTypes["PaginatedGatewayPaymentsPaginationResult"],
+	/** Получить карточку по ID */
+	getProductCard?: GraphQLTypes["ProductCard"] | undefined | null,
+	/** Получить карточки товаров/услуг */
+	getProductCards: Array<GraphQLTypes["ProductCard"]>,
 	/** Получить один программный кошелек по фильтру
 
 Требуемые роли: chairman, member.  */
@@ -33706,6 +37107,80 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	listReportDrafts: Array<GraphQLTypes["ReportDraft"]>,
+	/** Получить аспектные атрибуты для категории и типа товара marketplace */
+	marketplaceAspectAttributes: Array<GraphQLTypes["MarketplaceAttribute"]>,
+	/** Получить статистику по атрибутам marketplace
+
+Требуемые роли: chairman, member.  */
+	marketplaceAttributeStats: GraphQLTypes["MarketplaceAttributeStats"],
+	/** Получить атрибуты для конкретной категории и типа товара marketplace */
+	marketplaceCategoryAttributes: Array<GraphQLTypes["MarketplaceAttribute"]>,
+	/** Получить группированные атрибуты для категории и типа товара marketplace */
+	marketplaceCategoryAttributesGrouped: Array<GraphQLTypes["MarketplaceAttributeGroup"]>,
+	/** Найти потенциальные совпадения для заявки */
+	marketplaceFindPotentialMatches: Array<GraphQLTypes["MarketplaceRequest"]>,
+	/** Получить статистику по доступности категорий в кооперативе
+
+Требуемые роли: chairman.  */
+	marketplaceGetAvailabilityStats: GraphQLTypes["MarketplaceAvailabilityStats"],
+	/** Получить все доступные категории и типы для кооператива
+
+Требуемые роли: chairman.  */
+	marketplaceGetAvailableCategories: Array<GraphQLTypes["MarketplaceAvailableCategory"]>,
+	/** Получить дерево доступных категорий и типов для кооператива
+
+Требуемые роли: chairman.  */
+	marketplaceGetAvailableCategoryTree: Array<GraphQLTypes["MarketplaceCategory"]>,
+	/** Получить категорию marketplace по ID */
+	marketplaceGetCategoryById?: GraphQLTypes["MarketplaceCategory"] | undefined | null,
+	/** Получить все доступные правила для конкретной категории
+
+Требуемые роли: chairman.  */
+	marketplaceGetCategoryRules: Array<GraphQLTypes["MarketplaceAvailableCategory"]>,
+	/** Получить полное дерево категорий marketplace с типами товаров */
+	marketplaceGetCategoryTree: Array<GraphQLTypes["MarketplaceCategory"]>,
+	/** Получить статистику по дереву категорий
+
+Требуемые роли: chairman, member.  */
+	marketplaceGetCategoryTreeStats: GraphQLTypes["MarketplaceCategoryTreeStats"],
+	/** Получить заявки кооператива
+
+Требуемые роли: member, chairman.  */
+	marketplaceGetCoopRequests: Array<GraphQLTypes["MarketplaceRequest"]>,
+	/** Получить тип товара marketplace по ID */
+	marketplaceGetProductTypeById?: GraphQLTypes["MarketplaceProductType"] | undefined | null,
+	/** Получить заявку по ID */
+	marketplaceGetRequest?: GraphQLTypes["MarketplaceRequest"] | undefined | null,
+	/** Получить заявку по хэшу */
+	marketplaceGetRequestByHash?: GraphQLTypes["MarketplaceRequest"] | undefined | null,
+	/** Получить статистику заявок кооператива
+
+Требуемые роли: chairman, member.  */
+	marketplaceGetRequestStatistics: GraphQLTypes["MarketplaceRequestStatistics"],
+	/** Получить все корневые категории marketplace */
+	marketplaceGetRootCategories: Array<GraphQLTypes["MarketplaceCategory"]>,
+	/** Универсальный поиск по категориям и типам товаров */
+	marketplaceGetSearchCategories: Array<GraphQLTypes["MarketplaceCategory"]>,
+	/** Получить заявки текущего пользователя
+
+Требуемые роли: member, chairman.  */
+	marketplaceGetUserRequests: Array<GraphQLTypes["MarketplaceRequest"]>,
+	/** Список marketplace-детализаций ПВЗ кооператива.
+
+Требуемые роли: chairman, member, user.  */
+	marketplaceListKUDetails: Array<GraphQLTypes["MarketplaceKUDetails"]>,
+	/** Получить обязательные атрибуты для категории и типа товара marketplace */
+	marketplaceRequiredAttributes: Array<GraphQLTypes["MarketplaceAttribute"]>,
+	/** Поиск атрибутов marketplace по названию */
+	marketplaceSearchAttributes: Array<GraphQLTypes["MarketplaceAttribute"]>,
+	/** Поиск значений словаря marketplace */
+	marketplaceSearchDictionaryValues: Array<GraphQLTypes["MarketplaceDictionaryValue"]>,
+	/** Поиск заявок по названию товара */
+	marketplaceSearchRequests: Array<GraphQLTypes["MarketplaceRequest"]>,
+	/** Валидация значений атрибута marketplace */
+	marketplaceValidateAttributeValues: GraphQLTypes["MarketplaceAttributeValidation"],
+	/** Контекст пайщика для Стола заказов: core_roles + marketplace_roles */
+	marketplaceWhoAmI: GraphQLTypes["MarketplaceCurrentMember"],
 	/** Получение документов кооператива для синхронизации с 1С. Требует секретный ключ в заголовке x-onecoop-secret-key. */
 	onecoopGetDocuments: GraphQLTypes["OneCoopDocumentsResponse"],
 	/** Получить полную картину процесса ledger2 по process_hash
@@ -33916,6 +37391,26 @@ export type GraphQLTypes = {
 	title: string,
 	['...on RegistrationProgram']: Omit<GraphQLTypes["RegistrationProgram"], "...on RegistrationProgram">
 };
+	["RemoveAvailableCategoriesInput"]: {
+		/** ID категорий для удаления */
+	categoryIds: Array<number>
+};
+	["RemoveAvailableCategoryTypesInput"]: {
+		/** Типы товаров для удаления */
+	categoryTypes: Array<GraphQLTypes["CategoryTypeInput"]>
+};
+	["ReofferRequestInput"]: {
+		new_hash: string,
+	new_meta: string,
+	new_unit_cost: string,
+	request_hash: string
+};
+	["ReplaceAvailableItemsInput"]: {
+		/** ID категорий (целые категории) */
+	categoryIds: Array<number>,
+	/** Типы товаров */
+	categoryTypes: Array<GraphQLTypes["CategoryTypeInput"]>
+};
 	["ReportCalendarPeriodEntry"]: {
 	__typename: "ReportCalendarPeriodEntry",
 	dueDate: string,
@@ -34058,6 +37553,41 @@ export type GraphQLTypes = {
 	middle_name: string,
 	position: string
 };
+	["ReqReturnInput"]: {
+		request_hash: string,
+	return_statement: GraphQLTypes["SignedDigitalDocumentInput"],
+	username: string
+};
+	["RequestAttributeInput"]: {
+		/** ID атрибута */
+	attributeId: number,
+	/** ID комплексного атрибута */
+	complexId?: number | undefined | null,
+	/** ID значения из словаря */
+	dictionaryValueId?: number | undefined | null,
+	/** Значение атрибута */
+	value: string
+};
+	["RequestImageInput"]: {
+		/** Описание изображения */
+	description?: string | undefined | null,
+	/** Тип изображения */
+	imageType: GraphQLTypes["RequestImageTypeInput"],
+	/** URL изображения */
+	imageUrl: string,
+	/** Порядок сортировки */
+	sortOrder: number
+};
+	/** Тип изображения заявки */
+["RequestImageType"]: RequestImageType;
+	/** Тип изображения заявки */
+["RequestImageTypeInput"]: RequestImageTypeInput;
+	/** Статус заявки */
+["RequestStatus"]: RequestStatus;
+	/** Тип заявки */
+["RequestType"]: RequestType;
+	/** Тип заявки: offer - предложение, order - заказ */
+["RequestTypeInput"]: RequestTypeInput;
 	["RequisiteFieldView"]: {
 	__typename: "RequisiteFieldView",
 	source: GraphQLTypes["RequisiteSource"],
@@ -34435,6 +37965,34 @@ export type GraphQLTypes = {
 		/** Мобильный телефон получателя */
 	phone: string
 };
+	["SearchAttributesInput"]: {
+		/** ID категории для фильтрации */
+	categoryId?: number | undefined | null,
+	/** Максимальное количество результатов */
+	limit?: number | undefined | null,
+	/** Только аспектные */
+	onlyAspect?: boolean | undefined | null,
+	/** Только обязательные */
+	onlyRequired?: boolean | undefined | null,
+	/** Только со словарями */
+	onlyWithDictionary?: boolean | undefined | null,
+	/** Текст для поиска */
+	searchTerm: string,
+	/** ID типа товара для фильтрации */
+	typeId?: number | undefined | null
+};
+	["SearchCategoriesInput"]: {
+		/** Текст для поиска по категориям и типам товаров */
+	searchTerm: string
+};
+	["SearchDictionaryValuesInput"]: {
+		/** ID словаря */
+	dictionaryId: number,
+	/** Максимальное количество результатов */
+	limit?: number | undefined | null,
+	/** Текст для поиска */
+	searchTerm: string
+};
 	["SearchDocumentsInput"]: {
 		/** Максимальное количество результатов */
 	limit?: number | undefined | null,
@@ -34444,6 +38002,12 @@ export type GraphQLTypes = {
 	["SearchPrivateAccountsInput"]: {
 		/** Поисковый запрос для поиска приватных аккаунтов */
 	query: string
+};
+	["SearchRequestsInput"]: {
+		/** Максимальное количество результатов */
+	limit?: number | undefined | null,
+	/** Текст для поиска по названию товара */
+	searchTerm: string
 };
 	["SearchResult"]: {
 	__typename: "SearchResult",
@@ -35199,6 +38763,12 @@ export type GraphQLTypes = {
 };
 	/** Статус пользователя */
 ["UserStatus"]: UserStatus;
+	["ValidateAttributeValuesInput"]: {
+		/** ID атрибута */
+	attributeId: number,
+	/** Значения для валидации */
+	values: Array<string>
+};
 	["Vars"]: {
 	__typename: "Vars",
 	confidential_email: string,
@@ -35352,6 +38922,53 @@ export type GraphQLTypes = {
 	/** P256DH ключ для шифрования */
 	p256dh: string
 };
+	["WorkingHours"]: {
+	__typename: "WorkingHours",
+	fri?: GraphQLTypes["WorkingHoursDay"] | undefined | null,
+	mon?: GraphQLTypes["WorkingHoursDay"] | undefined | null,
+	sat?: GraphQLTypes["WorkingHoursDay"] | undefined | null,
+	sun?: GraphQLTypes["WorkingHoursDay"] | undefined | null,
+	thu?: GraphQLTypes["WorkingHoursDay"] | undefined | null,
+	tue?: GraphQLTypes["WorkingHoursDay"] | undefined | null,
+	wed?: GraphQLTypes["WorkingHoursDay"] | undefined | null,
+	['...on WorkingHours']: Omit<GraphQLTypes["WorkingHours"], "...on WorkingHours">
+};
+	["WorkingHoursBreak"]: {
+	__typename: "WorkingHoursBreak",
+	end: string,
+	start: string,
+	['...on WorkingHoursBreak']: Omit<GraphQLTypes["WorkingHoursBreak"], "...on WorkingHoursBreak">
+};
+	["WorkingHoursBreakInput"]: {
+		/** Конец перерыва (HH:mm) */
+	end: string,
+	/** Начало перерыва (HH:mm) */
+	start: string
+};
+	["WorkingHoursDay"]: {
+	__typename: "WorkingHoursDay",
+	breaks: Array<GraphQLTypes["WorkingHoursBreak"]>,
+	close: string,
+	open: string,
+	['...on WorkingHoursDay']: Omit<GraphQLTypes["WorkingHoursDay"], "...on WorkingHoursDay">
+};
+	["WorkingHoursDayInput"]: {
+		/** Перерывы внутри рабочего дня */
+	breaks: Array<GraphQLTypes["WorkingHoursBreakInput"]>,
+	/** Время закрытия (HH:mm) */
+	close: string,
+	/** Время открытия (HH:mm) */
+	open: string
+};
+	["WorkingHoursInput"]: {
+		fri?: GraphQLTypes["WorkingHoursDayInput"] | undefined | null,
+	mon?: GraphQLTypes["WorkingHoursDayInput"] | undefined | null,
+	sat?: GraphQLTypes["WorkingHoursDayInput"] | undefined | null,
+	sun?: GraphQLTypes["WorkingHoursDayInput"] | undefined | null,
+	thu?: GraphQLTypes["WorkingHoursDayInput"] | undefined | null,
+	tue?: GraphQLTypes["WorkingHoursDayInput"] | undefined | null,
+	wed?: GraphQLTypes["WorkingHoursDayInput"] | undefined | null
+};
 	["ZeroReportHeaderEdits"]: {
 	__typename: "ZeroReportHeaderEdits",
 	correctionNumber: number,
@@ -35459,6 +39076,10 @@ export enum CommitStatus {
 	DECLINED = "DECLINED",
 	UNDEFINED = "UNDEFINED"
 }
+export enum ContributionType {
+	MEMBER = "MEMBER",
+	SHARE = "SHARE"
+}
 /** Статус участника в системе CAPITAL */
 export enum ContributorStatus {
 	ACTIVE = "ACTIVE",
@@ -35486,6 +39107,10 @@ export enum DebtStatus {
 	PENDING = "PENDING",
 	SETTLED = "SETTLED",
 	UNDEFINED = "UNDEFINED"
+}
+export enum DeliveryType {
+	EXTERNAL = "EXTERNAL",
+	INTERNAL = "INTERNAL"
 }
 /** Типы действий для документов кооператива */
 export enum DocumentAction {
@@ -35609,6 +39234,14 @@ export enum LogEventType {
 	VOTING_COMPLETED = "VOTING_COMPLETED",
 	VOTING_STARTED = "VOTING_STARTED"
 }
+/** Тип атрибута товара */
+export enum MarketplaceAttributeType {
+	BOOLEAN = "BOOLEAN",
+	DATE = "DATE",
+	NUMBER = "NUMBER",
+	STRING = "STRING",
+	URL = "URL"
+}
 /** Тип юридического лица */
 export enum OrganizationType {
 	AO = "AO",
@@ -35657,6 +39290,16 @@ export enum ProcessTemplateStatus {
 	ARCHIVED = "ARCHIVED",
 	DRAFT = "DRAFT"
 }
+export enum ProductCardStatus {
+	ARCHIVED = "ARCHIVED",
+	DRAFT = "DRAFT",
+	MODERATION = "MODERATION",
+	PUBLISHED = "PUBLISHED"
+}
+export enum ProductCardType {
+	OFFER = "OFFER",
+	ORDER = "ORDER"
+}
 /** Ключ выбранной программы регистрации */
 export enum ProgramKey {
 	CAPITALIZATION = "CAPITALIZATION",
@@ -35694,6 +39337,48 @@ export enum ReportType {
 	RSV = "RSV",
 	UUSN = "UUSN",
 	UV_VZNOSY = "UV_VZNOSY"
+}
+/** Тип изображения заявки */
+export enum RequestImageType {
+	COLOR_SAMPLE = "COLOR_SAMPLE",
+	IMAGE_360 = "IMAGE_360",
+	PRIMARY = "PRIMARY",
+	REGULAR = "REGULAR"
+}
+/** Тип изображения заявки */
+export enum RequestImageTypeInput {
+	COLOR_SAMPLE = "COLOR_SAMPLE",
+	IMAGE_360 = "IMAGE_360",
+	PRIMARY = "PRIMARY",
+	REGULAR = "REGULAR"
+}
+/** Статус заявки */
+export enum RequestStatus {
+	ACTIVE = "ACTIVE",
+	AUTHORIZED = "AUTHORIZED",
+	CANCELLED = "CANCELLED",
+	COMPLETED = "COMPLETED",
+	DECLINED = "DECLINED",
+	DELIVERED = "DELIVERED",
+	DISPUTED = "DISPUTED",
+	DRAFT = "DRAFT",
+	MATCHED = "MATCHED",
+	MODERATION = "MODERATION",
+	PUBLISHED = "PUBLISHED",
+	RECEIVED1 = "RECEIVED1",
+	RECEIVED2 = "RECEIVED2",
+	SUPPLIED1 = "SUPPLIED1",
+	SUPPLIED2 = "SUPPLIED2"
+}
+/** Тип заявки */
+export enum RequestType {
+	OFFER = "OFFER",
+	ORDER = "ORDER"
+}
+/** Тип заявки: offer - предложение, order - заказ */
+export enum RequestTypeInput {
+	OFFER = "OFFER",
+	ORDER = "ORDER"
 }
 export enum RequisiteSource {
 	DATABASE = "DATABASE",
@@ -35767,9 +39452,12 @@ export enum ZeroReportSignerType {
 
 type ZEUS_VARIABLES = {
 	["AcceptChildOrderInput"]: ValueTypes["AcceptChildOrderInput"];
+	["AcceptStockInput"]: ValueTypes["AcceptStockInput"];
 	["AccountType"]: ValueTypes["AccountType"];
 	["ActionFiltersInput"]: ValueTypes["ActionFiltersInput"];
 	["AddAuthorInput"]: ValueTypes["AddAuthorInput"];
+	["AddAvailableCategoriesInput"]: ValueTypes["AddAvailableCategoriesInput"];
+	["AddAvailableCategoryTypesInput"]: ValueTypes["AddAvailableCategoryTypesInput"];
 	["AddParticipantInput"]: ValueTypes["AddParticipantInput"];
 	["AddPaymentMethodInput"]: ValueTypes["AddPaymentMethodInput"];
 	["AddTrustedAccountInput"]: ValueTypes["AddTrustedAccountInput"];
@@ -35825,6 +39513,7 @@ type ZEUS_VARIABLES = {
 	["CapitalStoryFilter"]: ValueTypes["CapitalStoryFilter"];
 	["CapitalTimeEntriesFilter"]: ValueTypes["CapitalTimeEntriesFilter"];
 	["CapitalTimeStatsInput"]: ValueTypes["CapitalTimeStatsInput"];
+	["CategoryTypeInput"]: ValueTypes["CategoryTypeInput"];
 	["ChairmanOnboardingAgendaInput"]: ValueTypes["ChairmanOnboardingAgendaInput"];
 	["ChairmanOnboardingAgendaStep"]: ValueTypes["ChairmanOnboardingAgendaStep"];
 	["ChairmanOnboardingGeneralMeetInput"]: ValueTypes["ChairmanOnboardingGeneralMeetInput"];
@@ -35845,14 +39534,17 @@ type ZEUS_VARIABLES = {
 	["ConfirmApproveInput"]: ValueTypes["ConfirmApproveInput"];
 	["ConfirmReceiveOnRequestInput"]: ValueTypes["ConfirmReceiveOnRequestInput"];
 	["ConfirmSupplyOnRequestInput"]: ValueTypes["ConfirmSupplyOnRequestInput"];
+	["ContributionType"]: ValueTypes["ContributionType"];
 	["ContributorStatus"]: ValueTypes["ContributorStatus"];
 	["ConvertSegmentInput"]: ValueTypes["ConvertSegmentInput"];
 	["ConvertToAxonStatementGenerateDocumentInput"]: ValueTypes["ConvertToAxonStatementGenerateDocumentInput"];
 	["ConvertToAxonStatementSignedDocumentInput"]: ValueTypes["ConvertToAxonStatementSignedDocumentInput"];
 	["ConvertToAxonStatementSignedMetaDocumentInput"]: ValueTypes["ConvertToAxonStatementSignedMetaDocumentInput"];
+	["CoopstockInput"]: ValueTypes["CoopstockInput"];
 	["Country"]: ValueTypes["Country"];
 	["CreateAnnualGeneralMeetInput"]: ValueTypes["CreateAnnualGeneralMeetInput"];
 	["CreateBranchInput"]: ValueTypes["CreateBranchInput"];
+	["CreateCategoryInput"]: ValueTypes["CreateCategoryInput"];
 	["CreateChatCoopCalendarEventInput"]: ValueTypes["CreateChatCoopCalendarEventInput"];
 	["CreateChildOrderInput"]: ValueTypes["CreateChildOrderInput"];
 	["CreateCommitInput"]: ValueTypes["CreateCommitInput"];
@@ -35869,12 +39561,14 @@ type ZEUS_VARIABLES = {
 	["CreateOrganizationDataInput"]: ValueTypes["CreateOrganizationDataInput"];
 	["CreateParentOfferInput"]: ValueTypes["CreateParentOfferInput"];
 	["CreateProcessTemplateInput"]: ValueTypes["CreateProcessTemplateInput"];
+	["CreateProductCardInput"]: ValueTypes["CreateProductCardInput"];
 	["CreateProgramInvestInput"]: ValueTypes["CreateProgramInvestInput"];
 	["CreateProgramPropertyInput"]: ValueTypes["CreateProgramPropertyInput"];
 	["CreateProjectFreeDecisionInput"]: ValueTypes["CreateProjectFreeDecisionInput"];
 	["CreateProjectInput"]: ValueTypes["CreateProjectInput"];
 	["CreateProjectInvestInput"]: ValueTypes["CreateProjectInvestInput"];
 	["CreateProjectPropertyInput"]: ValueTypes["CreateProjectPropertyInput"];
+	["CreateRequestInput"]: ValueTypes["CreateRequestInput"];
 	["CreateSovietIndividualDataInput"]: ValueTypes["CreateSovietIndividualDataInput"];
 	["CreateStoryInput"]: ValueTypes["CreateStoryInput"];
 	["CreateSubscriptionInput"]: ValueTypes["CreateSubscriptionInput"];
@@ -35895,7 +39589,9 @@ type ZEUS_VARIABLES = {
 	["DeleteProjectInput"]: ValueTypes["DeleteProjectInput"];
 	["DeleteTrustedAccountInput"]: ValueTypes["DeleteTrustedAccountInput"];
 	["DeliverOnRequestInput"]: ValueTypes["DeliverOnRequestInput"];
+	["DeliveryType"]: ValueTypes["DeliveryType"];
 	["DeltaFiltersInput"]: ValueTypes["DeltaFiltersInput"];
+	["DestroyRequestInput"]: ValueTypes["DestroyRequestInput"];
 	["DisputeOnRequestInput"]: ValueTypes["DisputeOnRequestInput"];
 	["DocumentAction"]: ValueTypes["DocumentAction"];
 	["EditBranchInput"]: ValueTypes["EditBranchInput"];
@@ -35907,6 +39603,7 @@ type ZEUS_VARIABLES = {
 	["ExtendedMeetStatus"]: ValueTypes["ExtendedMeetStatus"];
 	["ExtensionInput"]: ValueTypes["ExtensionInput"];
 	["FinalizeProjectInput"]: ValueTypes["FinalizeProjectInput"];
+	["FindPotentialMatchesInput"]: ValueTypes["FindPotentialMatchesInput"];
 	["FreeDecisionGenerateDocumentInput"]: ValueTypes["FreeDecisionGenerateDocumentInput"];
 	["FundProgramInput"]: ValueTypes["FundProgramInput"];
 	["GenerateAnyDocumentInput"]: ValueTypes["GenerateAnyDocumentInput"];
@@ -35930,7 +39627,11 @@ type ZEUS_VARIABLES = {
 	["GetCapitalIssueLogsInput"]: ValueTypes["GetCapitalIssueLogsInput"];
 	["GetCapitalLogsInput"]: ValueTypes["GetCapitalLogsInput"];
 	["GetCapitalStoryByHashInput"]: ValueTypes["GetCapitalStoryByHashInput"];
+	["GetCategoryAttributesInput"]: ValueTypes["GetCategoryAttributesInput"];
+	["GetCategoryByIdInput"]: ValueTypes["GetCategoryByIdInput"];
+	["GetCategoryTreeInput"]: ValueTypes["GetCategoryTreeInput"];
 	["GetContributorInput"]: ValueTypes["GetContributorInput"];
+	["GetCoopRequestsInput"]: ValueTypes["GetCoopRequestsInput"];
 	["GetDebtInput"]: ValueTypes["GetDebtInput"];
 	["GetDocumentsInput"]: ValueTypes["GetDocumentsInput"];
 	["GetExpenseInput"]: ValueTypes["GetExpenseInput"];
@@ -35947,13 +39648,19 @@ type ZEUS_VARIABLES = {
 	["GetMeetsInput"]: ValueTypes["GetMeetsInput"];
 	["GetOneCoopDocumentsInput"]: ValueTypes["GetOneCoopDocumentsInput"];
 	["GetPaymentMethodsInput"]: ValueTypes["GetPaymentMethodsInput"];
+	["GetProductTypeByIdInput"]: ValueTypes["GetProductTypeByIdInput"];
 	["GetProjectCommunicationRoomsInput"]: ValueTypes["GetProjectCommunicationRoomsInput"];
 	["GetProjectInput"]: ValueTypes["GetProjectInput"];
 	["GetProjectWithRelationsInput"]: ValueTypes["GetProjectWithRelationsInput"];
+	["GetRequestByHashInput"]: ValueTypes["GetRequestByHashInput"];
+	["GetRequestInput"]: ValueTypes["GetRequestInput"];
+	["GetRequestStatisticsInput"]: ValueTypes["GetRequestStatisticsInput"];
+	["GetRequiredAttributesInput"]: ValueTypes["GetRequiredAttributesInput"];
 	["GetResultInput"]: ValueTypes["GetResultInput"];
 	["GetRoomMessagesForUtcDateInput"]: ValueTypes["GetRoomMessagesForUtcDateInput"];
 	["GetTranscriptionInput"]: ValueTypes["GetTranscriptionInput"];
 	["GetTranscriptionsInput"]: ValueTypes["GetTranscriptionsInput"];
+	["GetUserRequestsInput"]: ValueTypes["GetUserRequestsInput"];
 	["GetUserSubscriptionsInput"]: ValueTypes["GetUserSubscriptionsInput"];
 	["GetVoteInput"]: ValueTypes["GetVoteInput"];
 	["ImportContributorInput"]: ValueTypes["ImportContributorInput"];
@@ -35965,6 +39672,7 @@ type ZEUS_VARIABLES = {
 	["IssueStatus"]: ValueTypes["IssueStatus"];
 	["JSON"]: ValueTypes["JSON"];
 	["JSONObject"]: ValueTypes["JSONObject"];
+	["ListMarketplaceKUInput"]: ValueTypes["ListMarketplaceKUInput"];
 	["ListReportDraftsFilterInput"]: ValueTypes["ListReportDraftsFilterInput"];
 	["ListUtcDatesWithNewRoomMessagesInput"]: ValueTypes["ListUtcDatesWithNewRoomMessagesInput"];
 	["LogEntityType"]: ValueTypes["LogEntityType"];
@@ -35973,6 +39681,9 @@ type ZEUS_VARIABLES = {
 	["LogoutInput"]: ValueTypes["LogoutInput"];
 	["MakeClearanceInput"]: ValueTypes["MakeClearanceInput"];
 	["MarkReportPeriodInput"]: ValueTypes["MarkReportPeriodInput"];
+	["MarketplaceAttributeType"]: ValueTypes["MarketplaceAttributeType"];
+	["MarketplaceDetailKUInput"]: ValueTypes["MarketplaceDetailKUInput"];
+	["MarketplaceSetKUStatusInput"]: ValueTypes["MarketplaceSetKUStatusInput"];
 	["ModerateRequestInput"]: ValueTypes["ModerateRequestInput"];
 	["MoveCapitalIssueToComponentInput"]: ValueTypes["MoveCapitalIssueToComponentInput"];
 	["NotificationWorkflowRecipientInput"]: ValueTypes["NotificationWorkflowRecipientInput"];
@@ -35998,6 +39709,8 @@ type ZEUS_VARIABLES = {
 	["ProcessStepTemplateInput"]: ValueTypes["ProcessStepTemplateInput"];
 	["ProcessTemplateStatus"]: ValueTypes["ProcessTemplateStatus"];
 	["ProcessesFilter"]: ValueTypes["ProcessesFilter"];
+	["ProductCardStatus"]: ValueTypes["ProductCardStatus"];
+	["ProductCardType"]: ValueTypes["ProductCardType"];
 	["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"]: ValueTypes["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"];
 	["ProgramCapitalizationMoneyInvestStatementSignedDocumentInput"]: ValueTypes["ProgramCapitalizationMoneyInvestStatementSignedDocumentInput"];
 	["ProgramCapitalizationMoneyInvestStatementSignedMetaDocumentInput"]: ValueTypes["ProgramCapitalizationMoneyInvestStatementSignedMetaDocumentInput"];
@@ -36020,11 +39733,23 @@ type ZEUS_VARIABLES = {
 	["RegisterAccountInput"]: ValueTypes["RegisterAccountInput"];
 	["RegisterContributorInput"]: ValueTypes["RegisterContributorInput"];
 	["RegisterParticipantInput"]: ValueTypes["RegisterParticipantInput"];
+	["RemoveAvailableCategoriesInput"]: ValueTypes["RemoveAvailableCategoriesInput"];
+	["RemoveAvailableCategoryTypesInput"]: ValueTypes["RemoveAvailableCategoryTypesInput"];
+	["ReofferRequestInput"]: ValueTypes["ReofferRequestInput"];
+	["ReplaceAvailableItemsInput"]: ValueTypes["ReplaceAvailableItemsInput"];
 	["ReportHistoryFilterInput"]: ValueTypes["ReportHistoryFilterInput"];
 	["ReportPreviewInput"]: ValueTypes["ReportPreviewInput"];
 	["ReportSubmissionMark"]: ValueTypes["ReportSubmissionMark"];
 	["ReportType"]: ValueTypes["ReportType"];
 	["RepresentedByInput"]: ValueTypes["RepresentedByInput"];
+	["ReqReturnInput"]: ValueTypes["ReqReturnInput"];
+	["RequestAttributeInput"]: ValueTypes["RequestAttributeInput"];
+	["RequestImageInput"]: ValueTypes["RequestImageInput"];
+	["RequestImageType"]: ValueTypes["RequestImageType"];
+	["RequestImageTypeInput"]: ValueTypes["RequestImageTypeInput"];
+	["RequestStatus"]: ValueTypes["RequestStatus"];
+	["RequestType"]: ValueTypes["RequestType"];
+	["RequestTypeInput"]: ValueTypes["RequestTypeInput"];
 	["RequisiteSource"]: ValueTypes["RequisiteSource"];
 	["ResetKeyInput"]: ValueTypes["ResetKeyInput"];
 	["RestartAnnualGeneralMeetInput"]: ValueTypes["RestartAnnualGeneralMeetInput"];
@@ -36047,8 +39772,12 @@ type ZEUS_VARIABLES = {
 	["RoomMessageKind"]: ValueTypes["RoomMessageKind"];
 	["SaveReportDraftInput"]: ValueTypes["SaveReportDraftInput"];
 	["SbpDataInput"]: ValueTypes["SbpDataInput"];
+	["SearchAttributesInput"]: ValueTypes["SearchAttributesInput"];
+	["SearchCategoriesInput"]: ValueTypes["SearchCategoriesInput"];
+	["SearchDictionaryValuesInput"]: ValueTypes["SearchDictionaryValuesInput"];
 	["SearchDocumentsInput"]: ValueTypes["SearchDocumentsInput"];
 	["SearchPrivateAccountsInput"]: ValueTypes["SearchPrivateAccountsInput"];
+	["SearchRequestsInput"]: ValueTypes["SearchRequestsInput"];
 	["SegmentStatus"]: ValueTypes["SegmentStatus"];
 	["SelectBranchGenerateDocumentInput"]: ValueTypes["SelectBranchGenerateDocumentInput"];
 	["SelectBranchInput"]: ValueTypes["SelectBranchInput"];
@@ -36098,6 +39827,7 @@ type ZEUS_VARIABLES = {
 	["UpdateSettingsInput"]: ValueTypes["UpdateSettingsInput"];
 	["UpdateStoryInput"]: ValueTypes["UpdateStoryInput"];
 	["UserStatus"]: ValueTypes["UserStatus"];
+	["ValidateAttributeValuesInput"]: ValueTypes["ValidateAttributeValuesInput"];
 	["VarsInput"]: ValueTypes["VarsInput"];
 	["VerifyEmailInputDTO"]: ValueTypes["VerifyEmailInputDTO"];
 	["VoteDistributionInput"]: ValueTypes["VoteDistributionInput"];
@@ -36107,6 +39837,9 @@ type ZEUS_VARIABLES = {
 	["WalmoveInput"]: ValueTypes["WalmoveInput"];
 	["WebPushSubscriptionDataInput"]: ValueTypes["WebPushSubscriptionDataInput"];
 	["WebPushSubscriptionKeysInput"]: ValueTypes["WebPushSubscriptionKeysInput"];
+	["WorkingHoursBreakInput"]: ValueTypes["WorkingHoursBreakInput"];
+	["WorkingHoursDayInput"]: ValueTypes["WorkingHoursDayInput"];
+	["WorkingHoursInput"]: ValueTypes["WorkingHoursInput"];
 	["ZeroReportSignerType"]: ValueTypes["ZeroReportSignerType"];
 	["ID"]: ValueTypes["ID"];
 }

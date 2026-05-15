@@ -2,12 +2,9 @@ import { Field, ObjectType } from '@nestjs/graphql';
 import type { KuDetailsDomainEntity } from '../../domain/entities/ku-details-domain.entity';
 import { WorkingHoursDTO } from './working-hours.dto';
 
-/**
- * GraphQL-представление marketplace-детализации существующего в core КУ
- * (Story 2.1). Поля `lat`/`lng`/`geocode*` обновляются post-effect'ом
- * Story 2.2 — до выполнения геокодинга `geocodeStatus = 'PENDING'`,
- * координаты отсутствуют.
- */
+// GraphQL-представление marketplace-детализации существующего в core КУ.
+// Поля lat/lng/geocode* обновляются post-effect'ом геокодера — до его
+// выполнения geocodeStatus = 'PENDING', координаты отсутствуют.
 @ObjectType('MarketplaceKUDetails')
 export class KuDetailsDTO {
   @Field(() => String)

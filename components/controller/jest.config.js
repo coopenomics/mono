@@ -7,6 +7,9 @@ module.exports = {
   testEnvironmentOptions: {
     NODE_ENV: 'test',
   },
+  // Локально dev-стек controller'а живёт в docker и параллельный пул jest
+  // съедает CPU/RAM — вешает сервер. Любой `pnpm jest [...]` идёт в один воркер.
+  maxWorkers: 1,
   restoreMocks: true,
   coveragePathIgnorePatterns: ['node_modules', 'src/config', 'src/app.ts', 'tests'],
   coverageReporters: ['text', 'lcov', 'clover', 'html'],

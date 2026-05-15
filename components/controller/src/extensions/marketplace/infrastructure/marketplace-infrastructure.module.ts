@@ -24,7 +24,7 @@ import { DictionaryValueRepositoryAdapter } from './adapters/dictionary-value-re
 import { AvailableCategoryRepositoryAdapter } from './adapters/available-category-repository.adapter';
 import { RequestRepositoryAdapter } from './adapters/request-repository.adapter';
 import { KuDetailsRepositoryAdapter } from './adapters/ku-details-repository.adapter';
-import { YandexGeocoderAdapter } from './adapters/yandex-geocoder.adapter';
+import { geocoderPortFactory } from './adapters/geocoder.factory';
 
 // Repository tokens
 import { CATEGORY_DOMAIN_REPOSITORY } from '../domain/repositories/category-domain.repository';
@@ -117,7 +117,7 @@ import { GEOCODER_PORT } from '../domain/ports/geocoder.port';
     },
     {
       provide: GEOCODER_PORT,
-      useClass: YandexGeocoderAdapter,
+      useFactory: geocoderPortFactory,
     },
   ],
   exports: [

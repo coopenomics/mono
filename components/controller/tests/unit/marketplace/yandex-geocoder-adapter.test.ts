@@ -1,20 +1,13 @@
-/**
- * Unit-тесты YandexGeocoderAdapter (Story 2.2).
- *
- * Покрывают:
- *  - happy-path: 200 OK с featureMember → status OK, lat/lng разобраны;
- *  - пустой featureMember → status FAILED + errorMessage;
- *  - HTTP 500 → status FAILED с кодом и statusText;
- *  - сетевое исключение (fetch throws) → status FAILED с сообщением;
- *  - отсутствие API_KEY → status FAILED без HTTP-запроса (fetch не вызывается);
- *  - rate-limit: 11-й запрос в одну секунду ждёт ≈ окно (>=900ms).
- */
+// Unit-тесты YandexGeocoderAdapter — конкретная реализация GeocoderPort.
+// Покрывают: happy-path, пустой featureMember, HTTP 500, сетевую ошибку,
+// отсутствие GEOCODER_API_KEY и rate-limit sliding-window.
 import { YandexGeocoderAdapter } from '~/extensions/marketplace/infrastructure/adapters/yandex-geocoder.adapter';
 
 jest.mock('~/config/config', () => ({
   __esModule: true,
   default: {
-    yandex_geocoder: {
+    geocoder: {
+      provider: 'yandex',
       api_key: 'test-key',
       base_url: 'https://geocode-maps.yandex.ru/1.x/',
       rate_limit_rps: 10,
@@ -29,7 +22,7 @@ interface FetchMock {
 }
 
 function installFetch(response: { ok: boolean; status?: number; statusText?: string; body?: unknown; throws?: unknown }): FetchMock {
-  const fn = jest.fn(async (url: string, init?: any) => {
+  const fn = jest.fn(async (_url: string, _init?: any) => {
     if (response.throws) throw response.throws;
     return {
       ok: response.ok,
@@ -90,12 +83,13 @@ describe('YandexGeocoderAdapter', () => {
     if (r.status === 'FAILED') expect(r.errorMessage).toBe('ECONNREFUSED');
   });
 
-  it('отсутствие API_KEY → FAILED без HTTP-запроса', async () => {
+  it('отсутствие GEOCODER_API_KEY → FAILED без HTTP-запроса', async () => {
     jest.resetModules();
     jest.doMock('~/config/config', () => ({
       __esModule: true,
       default: {
-        yandex_geocoder: {
+        geocoder: {
+          provider: 'yandex',
           api_key: undefined,
           base_url: 'https://geocode-maps.yandex.ru/1.x/',
           rate_limit_rps: 10,
@@ -109,7 +103,7 @@ describe('YandexGeocoderAdapter', () => {
     );
     const r = await new ReloadedAdapter().geocode('addr');
     expect(r.status).toBe('FAILED');
-    if (r.status === 'FAILED') expect(r.errorMessage).toMatch(/API_KEY не задан/);
+    if (r.status === 'FAILED') expect(r.errorMessage).toMatch(/GEOCODER_API_KEY не задан/);
     expect(fetchSpy).not.toHaveBeenCalled();
     jest.resetModules();
   });
@@ -131,7 +125,6 @@ describe('YandexGeocoderAdapter', () => {
     );
     const elapsed = Date.now() - start;
     expect(batch.every((r) => r.status === 'OK')).toBe(true);
-    // 11-й запрос должен подождать почти до окончания первой секунды
     expect(elapsed).toBeGreaterThanOrEqual(800);
   }, 15000);
 });
