@@ -231,6 +231,18 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
     return result.affected ?? 0;
   }
 
+  async findByCycleId(
+    coopname: string,
+    cycle_id: string
+  ): Promise<MarketplaceOrderDomainEntity[]> {
+    const rows = await this.repo
+      .createQueryBuilder('o')
+      .where('o.coopname = :coop AND o.cycle_id = :cid', { coop: coopname, cid: cycle_id })
+      .orderBy('o.blocked_at', 'ASC')
+      .getMany();
+    return rows.map((r) => this.mapper.toDomain(r));
+  }
+
   async sumUnassignedActiveByOffer(coopname: string, offer_id: string): Promise<number> {
     const raw = await this.repo
       .createQueryBuilder('o')

@@ -3,7 +3,7 @@ import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { AbstractBlockchainDeltaMapper } from '~/shared/abstract-blockchain-delta.mapper';
 import type { IDelta } from '~/types/common';
 import { Interfaces } from 'cooptypes';
-type IOrderRow = Interfaces.IOrderRow;
+type IOrderRow = Interfaces.Marketplace.IOrder;
 import type { MarketplaceOrderBlockchainData } from '../../domain/entities/marketplace-order.entity';
 import type { MarketplaceOrderStatus } from '../../domain/entities/marketplace-order.types';
 

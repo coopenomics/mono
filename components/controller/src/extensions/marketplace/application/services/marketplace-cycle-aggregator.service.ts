@@ -13,8 +13,17 @@ import {
   MARKETPLACE_CONSOLIDATED_REQUEST_REPOSITORY,
   type MarketplaceConsolidatedRequestDomainRepository,
 } from '../../domain/repositories/marketplace-consolidated-request.repository';
+import {
+  MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
+  type MarketplaceCanonicalBlockchainPort,
+} from '../../domain/ports/marketplace-canonical-blockchain.port';
+import {
+  MARKETPLACE_OFFER_COUNTERS_SERVICE,
+  MarketplaceOfferCountersService,
+} from './marketplace-offer-counters.service';
 import type { MarketplaceConsolidatedRequestDomainEntity } from '../../domain/entities/marketplace-consolidated-request.entity';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
+import type { MarketplaceOrderStatus } from '../../domain/entities/marketplace-order.types';
 
 /**
  * Story 4.2: cycle-type-aware агрегация Order'ов в `marketplace_consolidated_request`.
@@ -53,6 +62,22 @@ import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketp
  *
  * Acceptance window (для time/volume) сейчас захардкожена 48ч; в Story 9.x
  * вынесем в конфиг кооператива.
+ *
+ * Story 4.3 (auto-unblk при провале триггера):
+ *  - `processTimeBasedOffer` при `sum < min_threshold` теперь не только
+ *    пишет consolidated_request `EXPIRED_NO_THRESHOLD`, но и серией
+ *    `expireOrder` per-Order разблокирует средства каждого Order'а пула
+ *    + counter `onOrderUnblocked` + Order.status → EXPIRED_NO_THRESHOLD.
+ *  - `aggregateVolumeBasedExpired` — аналогично с EXPIRED_NO_VOLUME.
+ *  - Новый cron `expireUnacceptedPending` (раз в 10 мин) — сканит
+ *    `PENDING_SUPPLIER_ACCEPT` заявки с `expires_at < now` → консолид-
+ *    заявка → EXPIRED_NO_RESPONSE + Order'ы пула → CANCELLED_BY_SUPPLIER
+ *    с reason='expired_no_response' (поставщик не нажал ни Accept,
+ *    ни Decline в 48-часовом окне).
+ *
+ *  Best-effort serialization: chain-fail одного Order'а лог error +
+ *  продолжаем пул; следующий запуск cron подберёт; partial-mismatch
+ *  закрывается админ-reconciliation (Story 9.x).
  */
 @Injectable()
 export class MarketplaceCycleAggregatorService {
@@ -66,6 +91,10 @@ export class MarketplaceCycleAggregatorService {
     private readonly orderRepo: MarketplaceOrderDomainRepository,
     @Inject(MARKETPLACE_CONSOLIDATED_REQUEST_REPOSITORY)
     private readonly cycleRepo: MarketplaceConsolidatedRequestDomainRepository,
+    @Inject(MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT)
+    private readonly chainPort: MarketplaceCanonicalBlockchainPort,
+    @Inject(MARKETPLACE_OFFER_COUNTERS_SERVICE)
+    private readonly offerCounters: MarketplaceOfferCountersService,
     private readonly logger: WinstonLoggerService
   ) {
     this.logger.setContext(MarketplaceCycleAggregatorService.name);
@@ -118,7 +147,7 @@ export class MarketplaceCycleAggregatorService {
 
     const total_quantity = pool.reduce((sum, o) => sum + o.quantity, 0);
 
-    // sum < min_threshold → terminal EXPIRED_NO_THRESHOLD (Story 4.3 unblk)
+    // sum < min_threshold → terminal EXPIRED_NO_THRESHOLD + Story 4.3 unblk пулу
     if (min_threshold != null && total_quantity < min_threshold) {
       const expired = await this.cycleRepo.create({
         coopname,
@@ -134,7 +163,12 @@ export class MarketplaceCycleAggregatorService {
         triggered_by_supplier_at: null,
       });
       this.logger.log(
-        `MarketplaceCycleAggregatorService: offer=${offer_id} time_based ЗАКРЫТ без порога (sum=${total_quantity} < threshold=${min_threshold}) — request ${expired.id}, Story 4.3 unblk`
+        `MarketplaceCycleAggregatorService: offer=${offer_id} time_based ЗАКРЫТ без порога (sum=${total_quantity} < threshold=${min_threshold}) — request ${expired.id}; expire-pool start`
+      );
+      await this.expirePoolOnChain(
+        pool,
+        'EXPIRED_NO_THRESHOLD',
+        `time_based cycle закрыт без min_threshold (sum=${total_quantity} < ${min_threshold})`
       );
       return expired;
     }
@@ -232,7 +266,12 @@ export class MarketplaceCycleAggregatorService {
           triggered_by_supplier_at: null,
         });
         this.logger.log(
-          `MarketplaceCycleAggregatorService: offer=${offer.id} volume_based ЗАКРЫТ без объёма (sum=${total_quantity} < target=${offer.target_volume}) — request ${expired.id}, Story 4.3 unblk`
+          `MarketplaceCycleAggregatorService: offer=${offer.id} volume_based ЗАКРЫТ без объёма (sum=${total_quantity} < target=${offer.target_volume}) — request ${expired.id}; expire-pool start`
+        );
+        await this.expirePoolOnChain(
+          pool,
+          'EXPIRED_NO_VOLUME',
+          `volume_based cycle закрыт без target_volume (sum=${total_quantity} < ${offer.target_volume}, max_wait_days=${offer.max_wait_days})`
         );
       }
     } catch (error: any) {
@@ -298,7 +337,111 @@ export class MarketplaceCycleAggregatorService {
     );
   }
 
+  /**
+   * Story 4.3: cron-cleanup непринятых консолидированных заявок. Каждые
+   * 10 минут сканирует `PENDING_SUPPLIER_ACCEPT` заявки с `expires_at < now`
+   * (поставщик не нажал ни Accept, ни Decline в acceptance-окне).
+   *
+   * Действия per истёкшую заявку:
+   *  1. `cycleRepo.applyStatusTransition(id, 'EXPIRED_NO_RESPONSE',
+   *     {decline_reason: 'expired_no_response'})`.
+   *  2. `expirePoolOnChain(orders, 'CANCELLED_BY_SUPPLIER',
+   *     'expired_no_response')` — per-Order on-chain `expireorder` +
+   *     counter `onOrderUnblocked` + applyStatusTransition.
+   *
+   * Если on-chain expire одного Order'а упал — лог error + продолжаем
+   * остальные; следующий запуск cron подберёт повторно (заявка остаётся
+   * `EXPIRED_NO_RESPONSE`, но `findExpiredAwaitingResponse` его уже не
+   * вернёт, потому для повторной попытки админ делает manual
+   * reconciliation в Story 9.x).
+   */
+  @Cron('*/10 * * * *', { name: 'marketplace.cycle.expireUnacceptedPending' })
+  async expireUnacceptedPending(): Promise<void> {
+    try {
+      const now = new Date();
+      const expired = await this.cycleRepo.findExpiredAwaitingResponse(now);
+      if (expired.length === 0) return;
+      this.logger.log(
+        `MarketplaceCycleAggregatorService.expireUnacceptedPending: ${expired.length} непринятых заявок (expires_at < now) — закрываю`
+      );
+      for (const cycle of expired) {
+        try {
+          await this.cycleRepo.applyStatusTransition(cycle.id, 'EXPIRED_NO_RESPONSE', {
+            decline_reason: 'expired_no_response',
+          });
+          const pool = await this.orderRepo.findByCycleId(cycle.coopname, cycle.id);
+          await this.expirePoolOnChain(
+            pool,
+            'CANCELLED_BY_SUPPLIER',
+            `expired_no_response: поставщик ${cycle.supplier_account} не ответил по заявке ${cycle.id} в acceptance-окне`
+          );
+        } catch (innerErr: any) {
+          this.logger.error(
+            `MarketplaceCycleAggregatorService.expireUnacceptedPending: cycle ${cycle.id} fail — ${innerErr.message}`,
+            innerErr.stack
+          );
+        }
+      }
+    } catch (error: any) {
+      this.logger.error(
+        `MarketplaceCycleAggregatorService.expireUnacceptedPending: общая ошибка — ${error.message}`,
+        error.stack
+      );
+    }
+  }
+
   // ── private ──────────────────────────────────────────────────────
+
+  /**
+   * Story 4.3: per-Order on-chain `expireorder` + counter `onOrderUnblocked`
+   * + Order.status → terminalStatus. Best-effort: chain fail одного
+   * Order'а лог + продолжаем; counter fail (Offer уже неактивен и т.п.)
+   * — лог warn + всё равно меняем Order.status (on-chain unblk прошёл,
+   * единственное место рассинхронизации — quantity_available Offer'а).
+   *
+   * @param pool — Order'ы для expire (как правило findByCycleId или
+   *   findUnassignedActiveByOffer).
+   * @param terminalStatus — обычно EXPIRED_NO_THRESHOLD / EXPIRED_NO_VOLUME
+   *   / CANCELLED_BY_SUPPLIER.
+   * @param reason — попадает в `marketplace_order.last_status_reason`.
+   */
+  private async expirePoolOnChain(
+    pool: MarketplaceOrderDomainEntity[],
+    terminalStatus: MarketplaceOrderStatus,
+    reason: string
+  ): Promise<{ succeeded: number; failed: number }> {
+    let succeeded = 0;
+    let failed = 0;
+    for (const order of pool) {
+      try {
+        await this.chainPort.expireOrder({
+          coopname: order.coopname,
+          order_hash: order.order_hash,
+        });
+        try {
+          await this.offerCounters.onOrderUnblocked(order.offer_id, order.quantity);
+        } catch (counterErr: any) {
+          this.logger.warn(
+            `MarketplaceCycleAggregatorService.expirePoolOnChain: counter onOrderUnblocked упал (offer=${order.offer_id}, qty=${order.quantity}, order=${order.id}): ${counterErr.message} — продолжаю applyStatusTransition`
+          );
+        }
+        await this.orderRepo.applyStatusTransition(order.id, terminalStatus, reason);
+        succeeded++;
+      } catch (chainErr: any) {
+        failed++;
+        this.logger.error(
+          `MarketplaceCycleAggregatorService.expirePoolOnChain: chain.expireOrder упал для Order ${order.id} (order_hash=${order.order_hash}, offer=${order.offer_id}): ${chainErr.message}. Order остаётся в исходном статусе, повторная попытка через следующий cron-тик / manual reconciliation.`,
+          chainErr.stack
+        );
+      }
+    }
+    if (failed > 0) {
+      this.logger.warn(
+        `MarketplaceCycleAggregatorService.expirePoolOnChain: завершено для пула из ${pool.length} Order'ов (succeeded=${succeeded}, failed=${failed}); terminal=${terminalStatus}`
+      );
+    }
+    return { succeeded, failed };
+  }
 
   /**
    * Создание consolidated_request + bulk assignToCycle всем Order'ам пула.

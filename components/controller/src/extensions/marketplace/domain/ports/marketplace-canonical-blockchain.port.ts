@@ -23,6 +23,16 @@ import type { TransactResult } from '@wharfkit/session';
  */
 export interface MarketplaceCanonicalBlockchainPort {
   createOrder(data: MarketContract.Actions.CreateOrder.ICreateOrder): Promise<TransactResult>;
+
+  /**
+   * Story 4.3: backend cron закрывает один Order по таймауту цикла (или
+   * pending-acceptance timeout). Per-Order: триггерит C++
+   * `marketplace::expireorder` → o.mkt.unblk на total_cost + статус
+   * Order'а на цепи active → cancelled.
+   *
+   * Авторизация — кооператив (`require_auth(coopname)`).
+   */
+  expireOrder(data: MarketContract.Actions.ExpireOrder.IExpireOrder): Promise<TransactResult>;
 }
 
 export const MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT = Symbol('MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT');

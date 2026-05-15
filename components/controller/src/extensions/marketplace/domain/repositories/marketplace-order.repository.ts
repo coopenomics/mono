@@ -106,4 +106,11 @@ export interface MarketplaceOrderDomainRepository
    * threshold check после persist нового Order'а).
    */
   sumUnassignedActiveByOffer(coopname: string, offer_id: string): Promise<number>;
+
+  /**
+   * Story 4.3: все Order'ы, привязанные к заявке `cycle_id`. Используется
+   * cron'ом expireUnacceptedPending для per-Order unblk пулу заявки,
+   * у которой истёк `expires_at` без ответа поставщика.
+   */
+  findByCycleId(coopname: string, cycle_id: string): Promise<MarketplaceOrderDomainEntity[]>;
 }
