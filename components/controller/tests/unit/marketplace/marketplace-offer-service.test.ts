@@ -69,6 +69,8 @@ function makeOfferRepo(): jest.Mocked<MarketplaceOfferDomainRepository> {
     applyUnblockDelta: jest.fn(),
     applyConsumeDelta: jest.fn(),
     applyRollbackDelta: jest.fn(),
+    listAllActiveTimeBased: jest.fn(),
+    listAllActiveVolumeBased: jest.fn(),
   };
 }
 
@@ -406,5 +408,199 @@ describe('MarketplaceOfferService.listMine + getById', () => {
 
     const result = await service.getById('offer-1');
     expect(result?.id).toBe('offer-1');
+  });
+});
+
+describe('MarketplaceOfferService.create — Story 4.7 cycle_type conditionals (L11)', () => {
+  it('time_based без cycle_days → 400', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.countRecentCreatedBy.mockResolvedValue(0);
+    const service = new MarketplaceOfferService(repo, cats);
+
+    await expect(
+      service.create(baseCreateRequest({ cycle_type: 'time_based', cycle_days: null }))
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('time_based cycle_days < 1 → 400', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.countRecentCreatedBy.mockResolvedValue(0);
+    const service = new MarketplaceOfferService(repo, cats);
+
+    await expect(
+      service.create(baseCreateRequest({ cycle_type: 'time_based', cycle_days: 0 }))
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('volume_based без target_volume → 400', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.countRecentCreatedBy.mockResolvedValue(0);
+    const service = new MarketplaceOfferService(repo, cats);
+
+    await expect(
+      service.create(
+        baseCreateRequest({
+          cycle_type: 'volume_based',
+          cycle_days: null,
+          target_volume: null,
+          max_wait_days: 30,
+        })
+      )
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('volume_based без max_wait_days → 400', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.countRecentCreatedBy.mockResolvedValue(0);
+    const service = new MarketplaceOfferService(repo, cats);
+
+    await expect(
+      service.create(
+        baseCreateRequest({
+          cycle_type: 'volume_based',
+          cycle_days: null,
+          target_volume: 100,
+          max_wait_days: null,
+        })
+      )
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('volume_based с target_volume и max_wait_days → ок', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.countRecentCreatedBy.mockResolvedValue(0);
+    repo.create.mockResolvedValue(
+      makeOffer({ cycle_type: 'volume_based', target_volume: 100, max_wait_days: 30, cycle_days: null })
+    );
+    const service = new MarketplaceOfferService(repo, cats);
+
+    const offer = await service.create(
+      baseCreateRequest({
+        cycle_type: 'volume_based',
+        cycle_days: null,
+        target_volume: 100,
+        max_wait_days: 30,
+      })
+    );
+    expect(offer.cycle_type).toBe('volume_based');
+    expect(repo.create).toHaveBeenCalledWith(
+      expect.objectContaining({ cycle_type: 'volume_based', target_volume: 100, max_wait_days: 30 })
+    );
+  });
+
+  it('open_subscription без cycle-полей → ок', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.countRecentCreatedBy.mockResolvedValue(0);
+    repo.create.mockResolvedValue(makeOffer({ cycle_type: 'open_subscription', cycle_days: null }));
+    const service = new MarketplaceOfferService(repo, cats);
+
+    const offer = await service.create(
+      baseCreateRequest({
+        cycle_type: 'open_subscription',
+        cycle_days: null,
+        target_volume: null,
+        max_wait_days: null,
+      })
+    );
+    expect(offer.cycle_type).toBe('open_subscription');
+  });
+
+  it('individual без cycle-полей → ок', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.countRecentCreatedBy.mockResolvedValue(0);
+    repo.create.mockResolvedValue(makeOffer({ cycle_type: 'individual', cycle_days: null }));
+    const service = new MarketplaceOfferService(repo, cats);
+
+    const offer = await service.create(
+      baseCreateRequest({
+        cycle_type: 'individual',
+        cycle_days: null,
+        target_volume: null,
+        max_wait_days: null,
+      })
+    );
+    expect(offer.cycle_type).toBe('individual');
+  });
+});
+
+describe('MarketplaceOfferService.update — Story 4.7 cycle_type change', () => {
+  it('смена cycle_type на volume_based без target_volume → 400', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.findById.mockResolvedValue(
+      makeOffer({ status: 'ACTIVE', cycle_type: 'time_based', cycle_days: 7 })
+    );
+    const service = new MarketplaceOfferService(repo, cats);
+
+    await expect(
+      service.update('offer-1', 'alice', { cycle_type: 'volume_based' })
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('смена cycle_type на volume_based с target_volume + max_wait_days → ок и статус → PENDING_MODERATION', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.findById.mockResolvedValue(
+      makeOffer({ status: 'ACTIVE', cycle_type: 'time_based', cycle_days: 7 })
+    );
+    repo.applyUpdate.mockResolvedValue(
+      makeOffer({
+        status: 'PENDING_MODERATION',
+        cycle_type: 'volume_based',
+        target_volume: 100,
+        max_wait_days: 30,
+      })
+    );
+    const service = new MarketplaceOfferService(repo, cats);
+
+    const result = await service.update('offer-1', 'alice', {
+      cycle_type: 'volume_based',
+      target_volume: 100,
+      max_wait_days: 30,
+    });
+    expect(result.status).toBe('PENDING_MODERATION');
+    expect(repo.applyUpdate).toHaveBeenCalledWith(
+      'offer-1',
+      expect.objectContaining({
+        cycle_type: 'volume_based',
+        target_volume: 100,
+        max_wait_days: 30,
+        status: 'PENDING_MODERATION',
+      })
+    );
+  });
+
+  it('частичный update без касания cycle-полей → старая cycle_type=time_based валидна без cycle_days в patch', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.findById.mockResolvedValue(
+      makeOffer({ status: 'ACTIVE', cycle_type: 'time_based', cycle_days: 7 })
+    );
+    repo.applyUpdate.mockResolvedValue(makeOffer({ status: 'PENDING_MODERATION', product_name: 'Молоко' }));
+    const service = new MarketplaceOfferService(repo, cats);
+
+    await expect(
+      service.update('offer-1', 'alice', { product_name: 'Молоко' })
+    ).resolves.toBeDefined();
+  });
+
+  it('изменение cycle_days на 0 для существующего time_based → 400', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.findById.mockResolvedValue(
+      makeOffer({ status: 'ACTIVE', cycle_type: 'time_based', cycle_days: 7 })
+    );
+    const service = new MarketplaceOfferService(repo, cats);
+
+    await expect(
+      service.update('offer-1', 'alice', { cycle_days: 0 })
+    ).rejects.toThrow(BadRequestException);
   });
 });
