@@ -27,7 +27,7 @@
       </div>
     </div>
 
-    <q-banner v-if="lastAction" class="bg-grey-2 q-mt-lg" rounded>
+    <q-banner v-if="lastAction" class="mp-event-banner q-mt-lg" rounded>
       Action: <strong>{{ lastAction.key }}</strong> на заказе
       <strong>#{{ lastAction.order.shortId ?? lastAction.order.id }}</strong>
     </q-banner>

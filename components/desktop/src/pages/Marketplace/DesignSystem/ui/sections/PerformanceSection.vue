@@ -31,7 +31,7 @@
       </tbody>
     </q-markup-table>
 
-    <q-banner class="bg-grey-2" rounded>
+    <q-banner class="mp-event-banner" rounded>
       <template #avatar>
         <q-icon name="fa-solid fa-circle-info" color="primary" />
       </template>

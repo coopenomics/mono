@@ -189,6 +189,15 @@ body.body--dark {
   box-shadow: none !important;
 }
 
+// Универсальный «event-banner» для витрин и логов событий —
+// нейтральная поверхность + 1px-граница, корректно переключается light/dark.
+.mp-event-banner {
+  background: var(--mp-surface-1) !important;
+  color: var(--mp-on-surface) !important;
+  border: 1px solid var(--mp-border-subtle);
+  border-radius: var(--mp-radius-md);
+}
+
 // Универсальные кнопки маркетплейса — единый стиль без теней
 .mp-btn-primary {
   background: var(--q-primary);

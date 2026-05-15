@@ -8,7 +8,7 @@
 
     <ExpeditorGroupingBoard :columns="columns" @move="onMove" @move-all="onMoveAll" />
 
-    <q-banner v-if="lastEvent" class="bg-grey-2 q-mt-lg" rounded>
+    <q-banner v-if="lastEvent" class="mp-event-banner q-mt-lg" rounded>
       {{ lastEvent }}
     </q-banner>
   </div>

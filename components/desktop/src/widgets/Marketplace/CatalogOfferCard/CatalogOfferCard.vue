@@ -139,7 +139,8 @@ function onClick() {
     position: absolute;
     top: var(--mp-space-sm);
     left: var(--mp-space-sm);
-    background: rgba(255, 255, 255, .92);
+    // Не хардкодим white — surface-0 переключается между light/dark автоматически.
+    background: var(--mp-surface-0);
     backdrop-filter: blur(6px);
   }
 

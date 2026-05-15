@@ -79,9 +79,10 @@
 
           <q-space />
 
-          <q-chip color="grey-3" text-color="grey-8" icon="fa-solid fa-code">
+          <span class="mp-status-chip mp-status-chip--neutral">
+            <q-icon name="fa-solid fa-code" size="12px" class="q-mr-xs" />
             {{ state.section.value }}
-          </q-chip>
+          </span>
         </div>
 
         <!-- Контейнер превью с роль-классом и breakpoint-симуляцией -->
@@ -171,7 +172,7 @@ onUnmounted(() => { $q.dark.set(previousDark) })
 }
 
 .mp-ds-aside {
-  border-right: 1px solid rgba(0, 0, 0, .08);
+  border-right: 1px solid var(--mp-border-subtle);
   position: sticky;
   top: 0;
   align-self: flex-start;
@@ -180,19 +181,14 @@ onUnmounted(() => { $q.dark.set(previousDark) })
 }
 
 .mp-ds-controls {
-  border-bottom: 1px solid rgba(0, 0, 0, .06);
+  border-bottom: 1px solid var(--mp-border-subtle);
   padding-bottom: var(--mp-space-md);
 }
 
 .mp-ds-preview {
   margin: 0 auto;
   transition: max-width .25s ease;
-
-  &.mp-theme-dark {
-    background: #1f1c1c;
-    color: #f0f0f0;
-    padding: var(--mp-space-md);
-    border-radius: 8px;
-  }
+  // Тема страницы целиком переключается через $q.dark.set — больше не
+  // переопределяем bg/color локально, чтобы не ломать вложенные компоненты.
 }
 </style>

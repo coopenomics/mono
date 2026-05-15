@@ -8,7 +8,7 @@
       Реальная карта работает на странице <code>/market-pvz/list</code>.
     </div>
 
-    <q-banner class="bg-grey-2 q-mb-md" rounded>
+    <q-banner class="mp-event-banner q-mb-md" rounded>
       <template #avatar>
         <q-icon name="fa-solid fa-circle-info" color="primary" />
       </template>

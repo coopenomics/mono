@@ -33,7 +33,7 @@
       </div>
     </div>
 
-    <q-banner v-if="event" class="bg-grey-2 q-mt-lg" rounded>
+    <q-banner v-if="event" class="mp-event-banner q-mt-lg" rounded>
       Событие: <strong>{{ event }}</strong>
     </q-banner>
   </div>

@@ -9,7 +9,7 @@
 
     <CorrectionTable :rows="rows" @change="onChange" />
 
-    <q-banner v-if="lastChange" class="bg-grey-2 q-mt-lg" rounded>
+    <q-banner v-if="lastChange" class="mp-event-banner q-mt-lg" rounded>
       Изменён факт <strong>{{ lastChange.sku }}</strong> → <strong>{{ lastChange.fact }}</strong>
     </q-banner>
   </div>

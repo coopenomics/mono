@@ -39,7 +39,7 @@
       />
     </TakeoverDialog>
 
-    <q-banner v-if="lastEvent" class="bg-grey-2 q-mt-lg" rounded>
+    <q-banner v-if="lastEvent" class="mp-event-banner q-mt-lg" rounded>
       Последнее событие: <strong>{{ lastEvent }}</strong>
     </q-banner>
   </div>

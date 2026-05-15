@@ -38,7 +38,7 @@
     </div>
 
     <!-- Last click -->
-    <q-banner v-if="lastClicked" class="bg-grey-2 q-mt-lg" rounded>
+    <q-banner v-if="lastClicked" class="mp-event-banner q-mt-lg" rounded>
       Последний клик: <strong>{{ lastClicked.title }}</strong>
     </q-banner>
   </div>
