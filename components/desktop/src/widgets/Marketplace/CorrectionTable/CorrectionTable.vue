@@ -1,64 +1,107 @@
 <template>
-  <q-table
-    class="mp-correction-table"
-    :rows="enrichedRows"
-    :columns="columns"
-    row-key="sku"
-    dense
-    flat
-    bordered
-    hide-bottom
-    :pagination="{ rowsPerPage: 0 }"
-    :rows-per-page-options="[0]"
-  >
-    <template #body-cell-delta="props">
-      <q-td :props="props" :class="deltaClass(props.row)">
-        <strong>{{ props.row.delta > 0 ? '+' : '' }}{{ props.row.delta }}</strong>
-      </q-td>
-    </template>
+  <div class="mp-correction-table">
+    <!-- Desktop / planshet — обычная таблица -->
+    <q-table
+      v-if="!compact"
+      class="mp-correction-table__grid"
+      :rows="enrichedRows"
+      :columns="columns"
+      row-key="sku"
+      flat
+      bordered
+      hide-bottom
+      :pagination="{ rowsPerPage: 0 }"
+      :rows-per-page-options="[0]"
+    >
+      <template #body-cell-delta="props">
+        <q-td :props="props" :class="deltaClass(props.row)">
+          <strong>{{ props.row.delta > 0 ? '+' : '' }}{{ props.row.delta }}</strong>
+        </q-td>
+      </template>
 
-    <template #body-cell-fact="props">
-      <q-td :props="props">
-        <q-input
-          v-model.number="props.row.fact"
-          type="number"
-          dense
-          outlined
-          input-class="text-right"
-          @update:model-value="emit('change', { sku: props.row.sku, fact: props.row.fact })"
-        />
-      </q-td>
-    </template>
+      <template #body-cell-fact="props">
+        <q-td :props="props">
+          <q-input
+            v-model.number="props.row.fact"
+            type="number"
+            dense
+            outlined
+            input-class="text-right mp-correction-table__fact-input"
+            @update:model-value="emit('change', { sku: props.row.sku, fact: props.row.fact })"
+          />
+        </q-td>
+      </template>
 
-    <template #body-cell-status="props">
-      <q-td :props="props">
-        <q-badge :color="statusColor(props.row)" class="mp-status-badge">
-          {{ statusLabel(props.row) }}
-        </q-badge>
-      </q-td>
-    </template>
+      <template #body-cell-status="props">
+        <q-td :props="props">
+          <span class="mp-status-chip" :class="`mp-status-chip--${statusKind(props.row)}`">
+            {{ statusLabel(props.row) }}
+          </span>
+        </q-td>
+      </template>
+    </q-table>
 
-    <template #bottom>
-      <div class="row q-gutter-md items-center q-pa-sm full-width">
-        <div class="text-caption text-grey-7">Итого позиций: {{ enrichedRows.length }}</div>
-        <q-space />
-        <q-chip color="positive" text-color="white" icon="fa-solid fa-check">
-          Совпадает: {{ matchCount }}
-        </q-chip>
-        <q-chip color="warning" text-color="white" icon="fa-solid fa-arrow-trend-down">
-          Недостача: {{ shortCount }}
-        </q-chip>
-        <q-chip color="info" text-color="white" icon="fa-solid fa-arrow-trend-up">
-          Избыток: {{ overCount }}
-        </q-chip>
+    <!-- Mobile (xs) — карточный вид, факт это крупное touch-friendly поле -->
+    <div v-else class="mp-correction-table__cards">
+      <div
+        v-for="r in enrichedRows"
+        :key="r.sku"
+        class="mp-card mp-correction-table__card"
+      >
+        <div class="mp-correction-table__card-head">
+          <div>
+            <div class="mp-correction-table__card-title">{{ r.title }}</div>
+            <div class="mp-correction-table__card-sku">SKU · {{ r.sku }}</div>
+          </div>
+          <span class="mp-status-chip" :class="`mp-status-chip--${statusKind(r)}`">
+            {{ statusLabel(r) }}
+          </span>
+        </div>
+
+        <div class="mp-correction-table__card-grid">
+          <div>
+            <div class="mp-correction-table__card-label">План</div>
+            <div class="mp-correction-table__card-value">{{ r.expected }} {{ r.unit }}</div>
+          </div>
+          <div>
+            <div class="mp-correction-table__card-label">Факт</div>
+            <q-input
+              v-model.number="r.fact"
+              type="number"
+              outlined
+              dense
+              :suffix="r.unit"
+              class="mp-correction-table__fact-input--mobile"
+              @update:model-value="emit('change', { sku: r.sku, fact: r.fact })"
+            />
+          </div>
+          <div>
+            <div class="mp-correction-table__card-label">Δ</div>
+            <div :class="['mp-correction-table__card-value', deltaClass(r)]">
+              {{ r.delta > 0 ? '+' : '' }}{{ r.delta }}
+            </div>
+          </div>
+        </div>
       </div>
-    </template>
-  </q-table>
+    </div>
+
+    <!-- Footer summary (одинаковый и для таблицы, и для карточек) -->
+    <div class="mp-correction-table__summary">
+      <div class="mp-correction-table__summary-count">
+        Итого позиций: {{ enrichedRows.length }}
+      </div>
+      <div class="mp-correction-table__summary-chips">
+        <span class="mp-status-chip mp-status-chip--success">Совпадает · {{ matchCount }}</span>
+        <span class="mp-status-chip mp-status-chip--warning">Недостача · {{ shortCount }}</span>
+        <span class="mp-status-chip mp-status-chip--info">Избыток · {{ overCount }}</span>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { computed, type PropType } from 'vue'
-import type { QTableProps } from 'quasar'
+import { useQuasar, type QTableProps } from 'quasar'
 
 export interface CorrectionRow {
   sku: string
@@ -76,6 +119,9 @@ const emit = defineEmits<{
   (e: 'change', payload: { sku: string; fact: number }): void
 }>()
 
+const $q = useQuasar()
+const compact = computed(() => $q.screen.lt.sm)
+
 const enrichedRows = computed(() =>
   props.rows.map((r) => ({ ...r, delta: r.fact - r.expected }))
 )
@@ -90,14 +136,16 @@ const columns: QTableProps['columns'] = [
   { name: 'status',   label: 'Статус',  field: 'sku',      align: 'center' },
 ]
 
+type StatusKind = 'success' | 'warning' | 'info'
+
 function statusLabel(r: CorrectionRow & { delta: number }): string {
   if (r.delta === 0) return 'Совпадает'
   if (r.delta < 0)  return 'Недостача'
   return 'Избыток'
 }
 
-function statusColor(r: CorrectionRow & { delta: number }): string {
-  if (r.delta === 0) return 'positive'
+function statusKind(r: CorrectionRow & { delta: number }): StatusKind {
+  if (r.delta === 0) return 'success'
   if (r.delta < 0)  return 'warning'
   return 'info'
 }
@@ -112,3 +160,96 @@ const matchCount = computed(() => enrichedRows.value.filter((r) => r.delta === 0
 const shortCount = computed(() => enrichedRows.value.filter((r) => r.delta < 0).length)
 const overCount  = computed(() => enrichedRows.value.filter((r) => r.delta > 0).length)
 </script>
+
+<style scoped lang="scss">
+.mp-correction-table {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mp-space-md);
+
+  &__grid {
+    background: var(--mp-surface-0);
+    border-radius: var(--mp-radius-md);
+
+    :deep(td), :deep(th) {
+      font-size: 14px;
+    }
+
+    // Поле «факт» не должно быть микроскопическим — даём минимум на ввод
+    :deep(.mp-correction-table__fact-input) {
+      min-width: 64px;
+    }
+  }
+
+  &__cards {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mp-space-md);
+  }
+
+  &__card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--mp-space-sm);
+    margin-bottom: var(--mp-space-sm);
+  }
+
+  &__card-title {
+    font-weight: 500;
+    color: var(--mp-on-surface);
+  }
+
+  &__card-sku {
+    font-size: 12px;
+    color: var(--mp-on-surface-muted);
+    margin-top: 2px;
+  }
+
+  &__card-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr 1fr;
+    gap: var(--mp-space-md);
+    align-items: end;
+  }
+
+  &__card-label {
+    font-size: 11px;
+    color: var(--mp-on-surface-muted);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin-bottom: 4px;
+  }
+
+  &__card-value {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--mp-on-surface);
+  }
+
+  &__fact-input--mobile :deep(.q-field__control) {
+    min-height: var(--mp-touch-target);
+  }
+
+  &__summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--mp-space-md);
+    flex-wrap: wrap;
+    padding-top: var(--mp-space-sm);
+    border-top: 1px solid var(--mp-border-subtle);
+  }
+
+  &__summary-count {
+    font-size: 13px;
+    color: var(--mp-on-surface-muted);
+  }
+
+  &__summary-chips {
+    display: flex;
+    gap: var(--mp-space-sm);
+    flex-wrap: wrap;
+  }
+}
+</style>

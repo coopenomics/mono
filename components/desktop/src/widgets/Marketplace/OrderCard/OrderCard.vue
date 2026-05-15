@@ -16,18 +16,18 @@
     <q-card-section>
       <div class="text-body1 q-mb-sm">{{ order.title }}</div>
 
-      <div class="row q-gutter-md text-body2">
-        <div>
-          <div class="text-caption text-grey-7">Кол-во</div>
-          <div>{{ order.units }} {{ order.unitLabel ?? 'ед.' }}</div>
+      <div class="mp-order-card__meta">
+        <div class="mp-order-card__meta-item">
+          <div class="mp-order-card__meta-label">Кол-во</div>
+          <div class="mp-order-card__meta-value">{{ order.units }} {{ order.unitLabel ?? 'ед.' }}</div>
         </div>
-        <div>
-          <div class="text-caption text-grey-7">Сумма</div>
-          <div>{{ formatPrice(order.totalCost) }}</div>
+        <div class="mp-order-card__meta-item">
+          <div class="mp-order-card__meta-label">Сумма</div>
+          <div class="mp-order-card__meta-value">{{ formatPrice(order.totalCost) }}</div>
         </div>
-        <div v-if="order.pvz">
-          <div class="text-caption text-grey-7">ПВЗ</div>
-          <div>{{ order.pvz }}</div>
+        <div v-if="order.pvz" class="mp-order-card__meta-item mp-order-card__meta-item--wide">
+          <div class="mp-order-card__meta-label">ПВЗ</div>
+          <div class="mp-order-card__meta-value mp-order-card__meta-value--muted">{{ order.pvz }}</div>
         </div>
       </div>
     </q-card-section>
@@ -168,14 +168,46 @@ function formatPrice(v: number) {
 
 <style scoped lang="scss">
 .mp-order-card {
-  border-radius: 8px;
+  border-radius: var(--mp-radius-md);
 
   &__header { padding-bottom: var(--mp-space-sm); }
-  &__id { font-weight: 600; }
+  &__id { font-weight: 600; letter-spacing: -.01em; }
+
+  &__meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: var(--mp-space-md);
+  }
+
+  &__meta-item--wide { grid-column: span 2; }
+
+  &__meta-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--mp-on-surface-muted);
+    margin-bottom: 2px;
+  }
+
+  &__meta-value {
+    font-size: 15px;
+    color: var(--mp-on-surface);
+
+    &--muted { color: var(--mp-on-surface-muted); font-size: 13px; }
+  }
+
+  // На очень узких — meta стэк, заголовок и статус в одну колонку
+  @media (max-width: 480px) {
+    &__meta {
+      grid-template-columns: 1fr 1fr;
+    }
+    &__meta-item--wide { grid-column: 1 / -1; }
+  }
 
   // На operator-POS — больше отступы и крупнее текст
   .mp-role-operator & {
     font-size: 1.05rem;
+    .mp-order-card__meta-value { font-size: 17px; }
   }
 }
 </style>
