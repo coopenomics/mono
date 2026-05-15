@@ -6,6 +6,7 @@ import type { MarketplaceOfferDomainRepository } from '../../domain/repositories
 import type { MarketplaceOrderDomainRepository } from '../../domain/repositories/marketplace-order.repository';
 import type { MarketplaceOfferCountersService } from './marketplace-offer-counters.service';
 import type { MarketplaceCanonicalBlockchainPort } from '../../domain/ports/marketplace-canonical-blockchain.port';
+import type { MarketplaceCycleAggregatorService } from './marketplace-cycle-aggregator.service';
 
 function buildOffer(overrides: Partial<MarketplaceOfferDomainEntity> = {}): MarketplaceOfferDomainEntity {
   return {
@@ -58,6 +59,13 @@ function buildMocks() {
     createOrder: jest.fn(),
   } as unknown as jest.Mocked<MarketplaceCanonicalBlockchainPort>;
 
+  const cycleAggregator: jest.Mocked<MarketplaceCycleAggregatorService> = {
+    evaluateVolumeBasedAfterCreate: jest.fn().mockResolvedValue(null),
+    triggerOpenSubscription: jest.fn(),
+    aggregateTimeBased: jest.fn(),
+    aggregateVolumeBasedExpired: jest.fn(),
+  } as unknown as jest.Mocked<MarketplaceCycleAggregatorService>;
+
   const logger = {
     setContext: jest.fn(),
     debug: jest.fn(),
@@ -67,7 +75,7 @@ function buildMocks() {
     info: jest.fn(),
   } as any;
 
-  return { offerRepo, orderRepo, counters, chainPort, logger };
+  return { offerRepo, orderRepo, counters, chainPort, cycleAggregator, logger };
 }
 
 describe('MarketplaceOrderCreateService', () => {
@@ -81,6 +89,7 @@ describe('MarketplaceOrderCreateService', () => {
       mocks.orderRepo,
       mocks.counters,
       mocks.chainPort,
+      mocks.cycleAggregator,
       mocks.logger
     );
   });

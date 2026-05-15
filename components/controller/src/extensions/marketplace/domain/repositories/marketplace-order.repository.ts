@@ -75,4 +75,35 @@ export interface MarketplaceOrderDomainRepository
     newStatus: MarketplaceOrderStatus,
     reason: string | null
   ): Promise<MarketplaceOrderDomainEntity>;
+
+  // ── Story 4.2: cycle-aggregation queries ──────────────────────────
+
+  /**
+   * Story 4.2: незаагрегированные ACTIVE Order'ы конкретного Offer'а
+   * (cycle_id IS NULL AND status='ACTIVE'). Это «текущий пул» Offer'а
+   * для time_based/volume_based/open_subscription cycle_type.
+   */
+  findUnassignedActiveByOffer(
+    coopname: string,
+    offer_id: string
+  ): Promise<MarketplaceOrderDomainEntity[]>;
+
+  /**
+   * Story 4.2: bulk-привязка Order'ов к консолидированной заявке.
+   * Используется при формировании консолидированной заявки (time_based
+   * cron / volume_based threshold / open_subscription manual trigger).
+   * Атомарно меняет status (ACTIVE → ACCEPTED_PENDING_SUPPLIER /
+   * ACCEPTED).
+   */
+  assignToCycle(
+    orderIds: string[],
+    cycle_id: string,
+    newStatus: MarketplaceOrderStatus
+  ): Promise<number>;
+
+  /**
+   * Story 4.2: сумма quantity активного пула Offer'а (для volume_based
+   * threshold check после persist нового Order'а).
+   */
+  sumUnassignedActiveByOffer(coopname: string, offer_id: string): Promise<number>;
 }

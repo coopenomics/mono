@@ -17,6 +17,10 @@ import {
   MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
   type MarketplaceCanonicalBlockchainPort,
 } from '../../domain/ports/marketplace-canonical-blockchain.port';
+import {
+  MARKETPLACE_CYCLE_AGGREGATOR_SERVICE,
+  type MarketplaceCycleAggregatorService,
+} from './marketplace-cycle-aggregator.service';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import type { MarketplaceOrderCreateTxSnapshot } from '../../domain/entities/marketplace-order.types';
 
@@ -87,6 +91,8 @@ export class MarketplaceOrderCreateService {
     private readonly offerCounters: MarketplaceOfferCountersService,
     @Inject(MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT)
     private readonly chainPort: MarketplaceCanonicalBlockchainPort,
+    @Inject(MARKETPLACE_CYCLE_AGGREGATOR_SERVICE)
+    private readonly cycleAggregator: MarketplaceCycleAggregatorService,
     private readonly logger: WinstonLoggerService
   ) {
     this.logger.setContext(MarketplaceOrderCreateService.name);
@@ -176,7 +182,7 @@ export class MarketplaceOrderCreateService {
       signed_at: new Date().toISOString(),
     };
 
-    const order = await this.orderRepo.persistAfterBlock({
+    let order = await this.orderRepo.persistAfterBlock({
       coopname: input.coopname,
       order_hash,
       orderer_account: input.orderer_account,
@@ -200,7 +206,59 @@ export class MarketplaceOrderCreateService {
       `MarketplaceOrderCreateService: Order ${order.id} (hash=${order_hash}) создан для ${input.orderer_account}; offer=${offer.id}, qty=${input.quantity}, total=${blocked_amount}; tx=${txHash}`
     );
 
+    // Story 4.2: per-cycle_type hook сразу после persist.
+    order = await this.applyCycleTypeHook(order, offer);
+
     return { order, tx_snapshot: create_tx };
+  }
+
+  /**
+   * Story 4.2: применить per-cycle_type backend hook сразу после persist
+   * нового Order'а (Story 4.1).
+   *
+   *  - `individual` → Order.status: ACTIVE → ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL.
+   *  - `volume_based` → evaluate threshold (sum vs target_volume); если
+   *    достигнут — formConsolidatedRequest сразу + Order вместе с пулом →
+   *    ACCEPTED_PENDING_SUPPLIER.
+   *  - `time_based` / `open_subscription` → ничего (Order ждёт cron / manual trigger).
+   *
+   * Hook не критичный — при ошибке логируем и возвращаем Order как есть
+   * (Story 4.3 cron-fallback подберёт).
+   */
+  private async applyCycleTypeHook(
+    order: MarketplaceOrderDomainEntity,
+    offer: { id: string; coopname: string; supplier_account: string; cycle_type: string; target_volume: number | null; price_per_unit: string }
+  ): Promise<MarketplaceOrderDomainEntity> {
+    try {
+      if (offer.cycle_type === 'individual') {
+        return await this.orderRepo.applyStatusTransition(
+          order.id,
+          'ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL',
+          'individual cycle_type — ожидание per-Order акцепта поставщика'
+        );
+      }
+      if (offer.cycle_type === 'volume_based') {
+        const cycle = await this.cycleAggregator.evaluateVolumeBasedAfterCreate(
+          offer.coopname,
+          offer.id,
+          offer.supplier_account,
+          offer.target_volume,
+          offer.price_per_unit
+        );
+        if (cycle) {
+          // assignToCycle уже изменил status в БД на ACCEPTED_PENDING_SUPPLIER —
+          // перечитываем актуальное состояние.
+          const refreshed = await this.orderRepo.findById(order.id);
+          if (refreshed) return refreshed;
+        }
+      }
+      return order;
+    } catch (error: any) {
+      this.logger.warn(
+        `MarketplaceOrderCreateService.applyCycleTypeHook: hook упал для Order ${order.id} (cycle_type=${offer.cycle_type}): ${error.message}; Order остаётся в ACTIVE, cron подберёт`
+      );
+      return order;
+    }
   }
 
   // ── private ──────────────────────────────────────────────────────

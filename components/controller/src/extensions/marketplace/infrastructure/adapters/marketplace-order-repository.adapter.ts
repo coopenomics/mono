@@ -194,6 +194,56 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
     );
   }
 
+  // ── Story 4.2: cycle-aggregation queries ──────────────────────────
+
+  async findUnassignedActiveByOffer(
+    coopname: string,
+    offer_id: string
+  ): Promise<MarketplaceOrderDomainEntity[]> {
+    const rows = await this.repo
+      .createQueryBuilder('o')
+      .where('o.coopname = :coop AND o.offer_id = :off AND o.status = :st AND o.cycle_id IS NULL', {
+        coop: coopname,
+        off: offer_id,
+        st: 'ACTIVE',
+      })
+      .orderBy('o.blocked_at', 'ASC')
+      .getMany();
+    return rows.map((r) => this.mapper.toDomain(r));
+  }
+
+  async assignToCycle(
+    orderIds: string[],
+    cycle_id: string,
+    newStatus: MarketplaceOrderStatus
+  ): Promise<number> {
+    if (orderIds.length === 0) return 0;
+    const result = await this.repo
+      .createQueryBuilder()
+      .update(MarketplaceOrderEntity)
+      .set({
+        cycle_id,
+        status: newStatus,
+        accepted_at: newStatus === 'ACCEPTED' ? new Date() : undefined,
+      })
+      .where('id IN (:...ids) AND cycle_id IS NULL', { ids: orderIds })
+      .execute();
+    return result.affected ?? 0;
+  }
+
+  async sumUnassignedActiveByOffer(coopname: string, offer_id: string): Promise<number> {
+    const raw = await this.repo
+      .createQueryBuilder('o')
+      .select('COALESCE(SUM(o.quantity), 0)', 'total')
+      .where('o.coopname = :coop AND o.offer_id = :off AND o.status = :st AND o.cycle_id IS NULL', {
+        coop: coopname,
+        off: offer_id,
+        st: 'ACTIVE',
+      })
+      .getRawOne<{ total: string }>();
+    return Number(raw?.total ?? 0);
+  }
+
   async deleteByBlockNumGreaterThan(blockNum: number): Promise<void> {
     await this.repo
       .createQueryBuilder()

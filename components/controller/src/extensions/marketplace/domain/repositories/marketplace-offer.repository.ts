@@ -137,4 +137,19 @@ export interface MarketplaceOfferDomainRepository {
    * См. spec-3-4-bc-integration.md секция 3.1.
    */
   applyRollbackDelta(offer_id: string, qty: number): Promise<OfferCountersDeltaResult>;
+
+  // ── Story 4.2: scan ACTIVE Offer'ов per cycle_type для cron-агрегатора ──
+
+  /**
+   * Все ACTIVE Offer'ы с cycle_type='time_based'. Используется cron'ом
+   * `MarketplaceCycleAggregatorService.aggregateTimeBased` (раз в 5 мин).
+   */
+  listAllActiveTimeBased(): Promise<MarketplaceOfferDomainEntity[]>;
+
+  /**
+   * Все ACTIVE Offer'ы с cycle_type='volume_based' и заполненным
+   * `max_wait_days`. Используется cron'ом `aggregateVolumeBasedExpired`
+   * (раз в час) для unblk пула при истечении.
+   */
+  listAllActiveVolumeBased(): Promise<MarketplaceOfferDomainEntity[]>;
 }

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
 import { MarketplaceExtensionDomainModule } from '../domain/marketplace-domain.module';
 import { CategoryTreeResolver } from './resolvers/category-tree.resolver';
 import { AttributeResolver } from './resolvers/attribute.resolver';
@@ -16,6 +17,7 @@ import { MarketplaceOfferResolver } from './resolvers/marketplace-offer.resolver
 import { MarketplaceModerationResolver } from './resolvers/marketplace-moderation.resolver';
 import { MarketplaceCatalogResolver } from './resolvers/marketplace-catalog.resolver';
 import { MarketplaceOrderResolver } from './resolvers/marketplace-order.resolver';
+import { MarketplaceCycleResolver } from './resolvers/marketplace-cycle.resolver';
 import { MarketplaceMembershipGuard } from './guards/marketplace-membership.guard';
 import { MarketplaceRoleGuard } from './guards/marketplace-role.guard';
 import { MarketplaceOnboardingService } from './onboarding/marketplace-onboarding.service';
@@ -51,13 +53,24 @@ import {
   MARKETPLACE_ORDER_CREATE_SERVICE,
 } from './services/marketplace-order-create.service';
 import { MarketplaceOrderSyncService } from '../sync/marketplace-order-sync.service';
+import {
+  MarketplaceCycleAggregatorService,
+  MARKETPLACE_CYCLE_AGGREGATOR_SERVICE,
+} from './services/marketplace-cycle-aggregator.service';
 
 /**
  * Модуль приложения marketplace
  * Содержит GraphQL резолверы и сервисы приложения
  */
 @Module({
-  imports: [MarketplaceExtensionDomainModule],
+  imports: [
+    MarketplaceExtensionDomainModule,
+    // Story 4.2: @Cron в MarketplaceCycleAggregatorService (time_based aggregator
+    // каждые 5 минут + volume_based expire каждый час). ScheduleModule.forRoot()
+    // идемпотентен — если AppModule тоже инициализирует его, NestJS использует
+    // singleton SchedulerRegistry.
+    ScheduleModule.forRoot(),
+  ],
   providers: [
     // GraphQL резолверы
     CategoryTreeResolver,
@@ -76,6 +89,7 @@ import { MarketplaceOrderSyncService } from '../sync/marketplace-order-sync.serv
     MarketplaceModerationResolver,
     MarketplaceCatalogResolver,
     MarketplaceOrderResolver,
+    MarketplaceCycleResolver,
 
     // Guards (Story 1.3 / Story 1.6)
     MarketplaceMembershipGuard,
@@ -131,6 +145,12 @@ import { MarketplaceOrderSyncService } from '../sync/marketplace-order-sync.serv
     },
     MarketplaceOrderCreateService,
     MarketplaceOrderSyncService,
+    // Story 4.2
+    {
+      provide: MARKETPLACE_CYCLE_AGGREGATOR_SERVICE,
+      useClass: MarketplaceCycleAggregatorService,
+    },
+    MarketplaceCycleAggregatorService,
   ],
   exports: [
     // Экспортируем сервисы для использования в других модулях
@@ -170,11 +190,15 @@ import { MarketplaceOrderSyncService } from '../sync/marketplace-order-sync.serv
     MarketplaceModerationResolver,
     MarketplaceCatalogResolver,
     MarketplaceOrderResolver,
+    MarketplaceCycleResolver,
 
     // Экспортируем сервисы Story 4.1 для использования в follow-up Stories Эпика 4
     MARKETPLACE_ORDER_CREATE_SERVICE,
     MarketplaceOrderCreateService,
     MarketplaceOrderSyncService,
+    // Story 4.2
+    MARKETPLACE_CYCLE_AGGREGATOR_SERVICE,
+    MarketplaceCycleAggregatorService,
   ],
 })
 export class MarketplaceExtensionApplicationModule {}

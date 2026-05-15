@@ -205,6 +205,28 @@ export class MarketplaceOfferRepositoryAdapter implements MarketplaceOfferDomain
     return this.interpretDelta(result, offer_id, 'insufficient_blocked');
   }
 
+  // ── Story 4.2: cycle-type scans ──────────────────────────────────
+
+  async listAllActiveTimeBased(): Promise<MarketplaceOfferDomainEntity[]> {
+    const rows = await this.repo
+      .createQueryBuilder('o')
+      .where("o.status = 'ACTIVE'")
+      .andWhere("o.cycle_type = 'time_based'")
+      .andWhere('o.cycle_days IS NOT NULL')
+      .getMany();
+    return rows.map((r) => this.mapper.toDomain(r));
+  }
+
+  async listAllActiveVolumeBased(): Promise<MarketplaceOfferDomainEntity[]> {
+    const rows = await this.repo
+      .createQueryBuilder('o')
+      .where("o.status = 'ACTIVE'")
+      .andWhere("o.cycle_type = 'volume_based'")
+      .andWhere('o.max_wait_days IS NOT NULL')
+      .getMany();
+    return rows.map((r) => this.mapper.toDomain(r));
+  }
+
   async applyRollbackDelta(offer_id: string, qty: number): Promise<OfferCountersDeltaResult> {
     if (qty <= 0) return { ok: false, reason: 'insufficient_blocked' };
     // ADR-005: rollback без CAS — counter может уйти в отрицательное
