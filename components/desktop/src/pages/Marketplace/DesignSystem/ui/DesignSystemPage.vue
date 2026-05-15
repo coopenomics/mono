@@ -109,6 +109,8 @@ import TakeoverDialogSection from './sections/TakeoverDialogSection.vue'
 import WalletTimelineSection from './sections/WalletTimelineSection.vue'
 import BarcodeScannerSection from './sections/BarcodeScannerSection.vue'
 import BarcodeDisplaySection from './sections/BarcodeDisplaySection.vue'
+import CorrectionTableSection from './sections/CorrectionTableSection.vue'
+import TTNPrintPreviewSection from './sections/TTNPrintPreviewSection.vue'
 
 const $q = useQuasar()
 const state = useDesignSystemState()
@@ -127,6 +129,8 @@ const SECTION_COMPONENTS: Record<string, unknown> = {
   'wallet-timeline': WalletTimelineSection,
   'barcode-scanner': BarcodeScannerSection,
   'barcode-display': BarcodeDisplaySection,
+  'correction-table': CorrectionTableSection,
+  'ttn-print-preview': TTNPrintPreviewSection,
 }
 
 const currentSection = computed(() =>

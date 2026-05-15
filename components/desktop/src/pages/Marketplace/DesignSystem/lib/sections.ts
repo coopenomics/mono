@@ -82,8 +82,8 @@ export const SECTIONS: DesignSystemSection[] = [
     uxDr: 'UX-DR13',
     story: 'Story 10.2.7',
     primaryRole: ['operator'],
-    status: 'planned',
-    description: 'Таблица корректировки факт vs заказ (приёмка имущества).',
+    status: 'ready',
+    description: 'Таблица корректировки факт vs план: inline-input на факт, дельта подсвечивается цветом, счётчики совпадений/недостач/избытков снизу.',
   },
   {
     key: 'expeditor-grouping-board',
@@ -100,8 +100,8 @@ export const SECTIONS: DesignSystemSection[] = [
     uxDr: 'UX-DR15',
     story: 'Story 10.2.9',
     primaryRole: ['operator', 'admin'],
-    status: 'planned',
-    description: 'Предпросмотр и печать ТТН.',
+    status: 'ready',
+    description: 'Предпросмотр ТТН А5 со встроенным BarcodeDisplay в шапке + таблица позиций + две подписи + @media print.',
   },
   {
     key: 'warehouse-summary-grid',
