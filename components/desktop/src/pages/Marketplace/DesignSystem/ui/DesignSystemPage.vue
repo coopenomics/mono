@@ -104,6 +104,7 @@ import { useDesignSystemState, MARKETPLACE_ROLES, BREAKPOINTS } from '../composa
 import TokensSection from './sections/TokensSection.vue'
 import PlaceholderSection from './sections/PlaceholderSection.vue'
 import CatalogOfferCardSection from './sections/CatalogOfferCardSection.vue'
+import OrderCardSection from './sections/OrderCardSection.vue'
 
 const $q = useQuasar()
 const state = useDesignSystemState()
@@ -117,6 +118,7 @@ const statusColor = STATUS_COLOR
 const SECTION_COMPONENTS: Record<string, unknown> = {
   tokens: TokensSection,
   'catalog-offer-card': CatalogOfferCardSection,
+  'order-card': OrderCardSection,
 }
 
 const currentSection = computed(() =>

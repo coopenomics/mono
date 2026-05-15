@@ -46,8 +46,8 @@ export const SECTIONS: DesignSystemSection[] = [
     uxDr: 'UX-DR9',
     story: 'Story 10.2.3',
     primaryRole: ['orderer', 'offerer', 'operator', 'admin'],
-    status: 'planned',
-    description: 'Карточка заказа с состоянием и actions per-роль.',
+    status: 'ready',
+    description: 'Карточка заказа со статусом жизненного цикла (10 status) и actions per-роль (orderer/offerer/operator/admin).',
   },
   {
     key: 'catalog-offer-card',
