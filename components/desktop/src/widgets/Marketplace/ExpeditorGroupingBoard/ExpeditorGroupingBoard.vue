@@ -67,7 +67,7 @@ export interface GroupingColumn {
   items: GroupingItem[]
 }
 
-const props = defineProps({
+defineProps({
   columns: { type: Array as PropType<GroupingColumn[]>, required: true },
 })
 

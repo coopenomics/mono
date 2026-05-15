@@ -108,7 +108,6 @@ div.page-shell
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Notify } from 'quasar'
-import { client } from 'src/shared/api/client'
 
 const router = useRouter()
 const loading = ref(false)
@@ -177,7 +176,8 @@ function onReoffer(request: any) {
   showReoffer.value = true
 }
 
-function onMarkDelivered(request: any) {
+function onMarkDelivered(_request: any) {
+  void _request
   Notify.create({ type: 'info', message: 'Функция доставки в разработке' })
 }
 

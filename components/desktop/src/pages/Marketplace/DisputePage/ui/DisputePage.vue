@@ -79,7 +79,7 @@ div.page-shell
     q-card-section
       .row.items-center
         q-btn(flat icon="fa-solid fa-arrow-left" @click="mode = 'list'")
-        .text-h6.q-ml-sm Претензия #{{ selectedDispute.id }}
+        .text-h6.q-ml-sm Претензия №{{ selectedDispute.id }}
 
     q-separator
 

@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 export type MarketplaceRole = 'orderer' | 'offerer' | 'operator' | 'admin'
