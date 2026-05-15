@@ -3,17 +3,14 @@ import type * as Marketplace from '../../../interfaces/marketplace'
 import { Actors } from '../../../common'
 
 /**
- * Имя действия
- * Требуется авторизация {@link Actors._username | аккаунта пользователя}.
+ * Поставщик отказывается от одного Order'а до акцепта (Story 4.5, p.mkt.supply).
+ * Per-Order: o.mkt.unblk на total_cost + статус active → cancelled.
  */
 export const authorizations = [{ permissions: [Permissions.active], actor: Actors._username }] as const
 
-/**
- * Имя действия
- */
-export const actionName = 'update'
+export const actionName = 'declineorder'
 
 /**
  * @interface
  */
-export type IUpdateRequest = Marketplace.IUpdate
+export type IDeclineOrder = Marketplace.IDeclineOrder

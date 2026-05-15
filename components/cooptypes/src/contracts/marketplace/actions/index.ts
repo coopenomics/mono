@@ -1,120 +1,108 @@
-/**
- * Действие для подтверждения готовности выполнить поставку по входящей заявке.
- */
-export * as AcceptRequest from './acceptRequest'
+// Canonical actions контракта marketplace (Story 11.1, членская модель «Стола заказов»).
+// Источник правды: components/contracts/build/contracts/marketplace/marketplace.abi
+// Раскладка по процессам соответствует YAML-стандартам:
+//   p.mkt.supply.standard.yaml / p.mkt.return.standard.yaml / p.mkt.wroff.standard.yaml
+
+// ── p.mkt.supply (9 actions) — Stories Эпиков 4-5-6 ────────────────────
 
 /**
- * Действие вызывается автоматически после принятия решения советом для оповещения смарт-контракта маркетплейса.
- * @private
- */
-export * as Authorize from './authorize'
-
-/**
- * Действие для отмены заявки на поставку.
- */
-export * as CancelRequest from './cancelRequest'
-
-/**
- * Действие для успешного завершения цикла поставки по заявке и разблокирования средств поставщика в кошельке.
- */
-export * as CompleteRequest from './completeRequest'
-
-/**
- * Действие для подтверждения председателем получения поставки с подписью на акте приёма-передачи.
- */
-export * as ConfirmReceive from './confirmReceive'
-
-/**
- * Действие для подтверждения председателем совершения поставки с подписью на акте приёма-передачи.
- */
-export * as ConfirmSupply from './confirmSupply'
-
-/**
- * Действие для создания заявки на поставку имущества.
- */
-export * as CreateOffer from './createOffer'
-
-/**
- * Действие для создания заявки на получение имущества.
+ * Заказчик размещает заказ на товар из каталога (Story 4.1).
+ * Серия: o.wal.conv (conditional) → o.mkt.assign (conditional) → o.mkt.block.
  */
 export * as CreateOrder from './createOrder'
 
 /**
- * Действие для отклонения готовности выполнить поставку по входящей заявке.
+ * Заказчик отменяет заказ до акцепта поставщиком (Story 4.4). Триггерит o.mkt.unblk.
  */
-export * as DeclineRequest from './declineRequest'
+export * as CancelOrder from './cancelOrder'
 
 /**
- * Действие для подтверждения готовности выполнить поставку по входящей заявке.
+ * Backend закрывает Order по таймауту цикла отсечки (Story 4.3). Per-Order: o.mkt.unblk + cancellation.
  */
-export * as DeliverOnRequest from './deliverOnRequest'
+export * as ExpireOrder from './expireOrder'
 
 /**
- * Действие для модерации заявки на поставку.
+ * Поставщик акцептует один Order (Story 4.5). Без ledger2-операций — статус active → accepted.
  */
-export * as ModerateRequest from './moderateRequest'
+export * as AcceptOrder from './acceptOrder'
 
 /**
- * Приватное действие для возврата нового идентификатора заявки на поставку после создания заявки.
+ * Поставщик отказывается от одного Order'а до акцепта (Story 4.5). Per-Order: o.mkt.unblk + cancellation.
  */
-export * as NewRequestId from './newRequestId'
+export * as DeclineOrder from './declineOrder'
 
 /**
- * Действие для открытия спора по заявке на поставку.
+ * Поставщик первой подписью на АПП приёмки фиксирует партию по одному Order'у (Story 5.3/5.4).
+ * Параметр accept_braname указывает приёмный КУ.
  */
-export * as OpenDispute from './openDispute'
+export * as SignSupp from './signSupp'
 
 /**
- * Действие для отказа в прохождении модерации с указанием причины.
+ * Председатель / trustee приёмного КУ ставит закрывающую подпись на АПП приёмки (Story 5.3/5.4).
+ * Per-Order: o.mkt.purch + o.mkt.payout (атомарно).
  */
-export * as ProhibitRequest from './prohibitRequest'
+export * as SignChair from './signChair'
 
 /**
- * Действие для публикации заявки на поставку.
+ * Председатель / trustee КУ выдачи открывает выдачу первой подписью АПП-выдачи (Story 6.1).
  */
-export * as PublishRequest from './publishRequest'
+export * as SignIss1 from './signIss1'
 
 /**
- * Действие для подтверждения получения имущества пользователем из кооператива с подписью акта приёма-передачи.
+ * Заказчик ставит финальную подпись АПП-выдачи (Story 6.3).
+ * Per-Order с поддержкой actual_quantity ≠ ordered (Story 6.2).
  */
-export * as ReceiveOnRequest from './receiveOnRequest'
+export * as SignIss2 from './signIss2'
+
+// ── p.mkt.return (5 actions) — Stories Эпика 7 ─────────────────────────
 
 /**
- * Действие для подтверждения поставки имущества пользователем в кооператив с подписью акта приёма-передачи.
+ * Пайщик подаёт заявление на гарантийный возврат (Story 7.1).
  */
-export * as SupplyOnRequest from './supplyOnRequest'
+export * as SubmRetrn from './submRetrn'
 
 /**
- * Действие для снятия заявки на поставку с публикации.
+ * Председатель удалённо одобряет очный визит (Story 7.2).
  */
-export * as UnpublishRequest from './unpublishRequest'
+export * as AprRetRem from './aprRetRem'
 
 /**
- * Действие для обновления заявки на поставку.
+ * Председатель удалённо отказывает (Story 7.2).
  */
-export * as UpdateRequest from './updateRequest'
+export * as RejRetRem from './rejRetRem'
 
 /**
- * Действие для подачи заявления на возврат паевого взноса перед получением имущества.
+ * Председатель принимает возврат на очном осмотре (Story 7.4).
+ * Atomic: o.mkt.return + o.mkt.return2 (compensating forward).
  */
-export * as ReqReturn from './reqReturn'
+export * as AccRetrn from './accRetrn'
 
 /**
- * Действие для создания предложения из запасов кооператива.
+ * Председатель отказывает на очном осмотре (Story 7.3).
  */
-export * as Coopstock from './coopstock'
+export * as RejRetrn from './rejRetrn'
+
+// ── p.mkt.wroff (3 actions) — Stories Эпика 8 ──────────────────────────
 
 /**
- * Действие для принятия предложения из запасов кооператива заказчиком.
+ * Backend / админ выносит проект списания на повестку совета (Story 8.1).
  */
-export * as AcceptStock from './acceptStock'
+export * as PropWroff from './propWroff'
 
 /**
- * Действие для уничтожения просроченного имущества.
+ * Совет исполняет одну позицию проекта списания (Story 8.3).
+ * Per-item: o.mkt.wroff + o.mkt.wroff2 (атомарно).
  */
-export * as Destroy from './destroy'
+export * as ExecWroff from './execWroff'
 
 /**
- * Действие для перепредложения имущества по новой цене.
+ * Совет отклоняет проект списания целиком (Story 8.3).
  */
-export * as Reoffer from './reoffer'
+export * as DeclWroff from './declWroff'
+
+// ── service ────────────────────────────────────────────────────────────
+
+/**
+ * Заглушка миграции — donor-таблиц нет. Оставлена для совместимости с прежним ABI.
+ */
+export * as Migrate from './migrate'
