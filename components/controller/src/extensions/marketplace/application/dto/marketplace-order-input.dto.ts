@@ -11,3 +11,9 @@ export class MarketplaceCreateOrderInputDTO {
   @Field(() => String, { description: 'branch.name выбранного ПВЗ получения (Story 2.3).' })
   public readonly delivery_braname!: string;
 }
+
+@InputType('MarketplaceCancelOrderInput')
+export class MarketplaceCancelOrderInputDTO {
+  @Field(() => String, { description: 'UUID Order\'а из marketplace_order. Заказчик-владелец отменяет до акцепта поставщиком.' })
+  public readonly order_id!: string;
+}

@@ -93,3 +93,17 @@ export class MarketplaceCreateOrderResultDTO {
     this.tx_snapshot = init.tx_snapshot;
   }
 }
+
+@ObjectType('MarketplaceCancelOrderResult')
+export class MarketplaceCancelOrderResultDTO {
+  @Field(() => MarketplaceOrderDTO, { description: 'Order после applyStatusTransition в CANCELLED_BY_ORDERER.' })
+  public readonly order!: MarketplaceOrderDTO;
+
+  @Field(() => String, { description: 'tx_hash транзакции marketplace::cancelorder для аудита.' })
+  public readonly tx_hash!: string;
+
+  constructor(init: { order: MarketplaceOrderDTO; tx_hash: string }) {
+    this.order = init.order;
+    this.tx_hash = init.tx_hash;
+  }
+}

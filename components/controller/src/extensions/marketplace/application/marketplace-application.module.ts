@@ -52,6 +52,10 @@ import {
   MarketplaceOrderCreateService,
   MARKETPLACE_ORDER_CREATE_SERVICE,
 } from './services/marketplace-order-create.service';
+import {
+  MarketplaceOrderCancelService,
+  MARKETPLACE_ORDER_CANCEL_SERVICE,
+} from './services/marketplace-order-cancel.service';
 import { MarketplaceOrderSyncService } from '../sync/marketplace-order-sync.service';
 import {
   MarketplaceCycleAggregatorService,
@@ -145,6 +149,12 @@ import {
     },
     MarketplaceOrderCreateService,
     MarketplaceOrderSyncService,
+    // Story 4.4
+    {
+      provide: MARKETPLACE_ORDER_CANCEL_SERVICE,
+      useClass: MarketplaceOrderCancelService,
+    },
+    MarketplaceOrderCancelService,
     // Story 4.2
     {
       provide: MARKETPLACE_CYCLE_AGGREGATOR_SERVICE,
@@ -196,6 +206,9 @@ import {
     MARKETPLACE_ORDER_CREATE_SERVICE,
     MarketplaceOrderCreateService,
     MarketplaceOrderSyncService,
+    // Story 4.4
+    MARKETPLACE_ORDER_CANCEL_SERVICE,
+    MarketplaceOrderCancelService,
     // Story 4.2
     MARKETPLACE_CYCLE_AGGREGATOR_SERVICE,
     MarketplaceCycleAggregatorService,

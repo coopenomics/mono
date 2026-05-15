@@ -118,7 +118,10 @@ const cardClasses = computed(() => `mp-order-card--${props.order.status}`)
 const ACTIONS_PER_ROLE: Record<OrderRole, Record<OrderStatus, OrderAction[]>> = {
   orderer: {
     draft: [{ key: 'open', label: 'Открыть' }, { key: 'cancel', label: 'Удалить', kind: 'flat' }],
-    placed: [{ key: 'open', label: 'Открыть' }],
+    // Story 4.4: до акцепта поставщика заказчик может отменить Order
+    // (C++ marketplace::cancelorder — guard status==ACTIVE). После
+    // acceptorder отмена недоступна (поставщик принял обязательство).
+    placed: [{ key: 'open', label: 'Открыть' }, { key: 'cancel', label: 'Отменить', kind: 'danger' }],
     paid: [{ key: 'open', label: 'Открыть' }],
     'in-delivery': [{ key: 'open', label: 'Открыть' }],
     'arrived-at-pvz': [{ key: 'open', label: 'Подробнее', kind: 'primary' }],

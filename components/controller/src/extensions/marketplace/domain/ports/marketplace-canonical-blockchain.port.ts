@@ -33,6 +33,18 @@ export interface MarketplaceCanonicalBlockchainPort {
    * Авторизация — кооператив (`require_auth(coopname)`).
    */
   expireOrder(data: MarketContract.Actions.ExpireOrder.IExpireOrder): Promise<TransactResult>;
+
+  /**
+   * Story 4.4: заказчик отменяет Order до акцепта поставщиком. Триггерит
+   * C++ `marketplace::cancelorder` → серия `UNBLOCK_ON_CANCEL` (o.mkt.unblk)
+   * на `order.total_cost` + on-chain Order.status: ACTIVE → CANCELLED.
+   * Сумма остаётся на `w.mkt.member.available` пайщика-заказчика (может
+   * быть потрачена на следующий заказ или явно выведена `o.mkt.recall`).
+   *
+   * Авторизация — кооператив (`require_auth(coopname)`); C++ дополнительно
+   * проверяет `actor == order.orderer` через параметр (passed-in name).
+   */
+  cancelOrder(data: MarketContract.Actions.CancelOrder.ICancelOrder): Promise<TransactResult>;
 }
 
 export const MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT = Symbol('MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT');

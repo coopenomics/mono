@@ -10,15 +10,23 @@ import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.gua
 import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import {
+  MarketplaceCancelOrderResultDTO,
   MarketplaceCreateOrderResultDTO,
   MarketplaceOrderCreateTxSnapshotDTO,
   MarketplaceOrderDTO,
 } from '../dto/marketplace-order.dto';
-import { MarketplaceCreateOrderInputDTO } from '../dto/marketplace-order-input.dto';
+import {
+  MarketplaceCancelOrderInputDTO,
+  MarketplaceCreateOrderInputDTO,
+} from '../dto/marketplace-order-input.dto';
 import {
   MARKETPLACE_ORDER_CREATE_SERVICE,
   MarketplaceOrderCreateService,
 } from '../services/marketplace-order-create.service';
+import {
+  MARKETPLACE_ORDER_CANCEL_SERVICE,
+  MarketplaceOrderCancelService,
+} from '../services/marketplace-order-cancel.service';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import type { MarketplaceOrderCreateTxSnapshot } from '../../domain/entities/marketplace-order.types';
 
@@ -74,7 +82,9 @@ function toTxSnapshotDTO(s: MarketplaceOrderCreateTxSnapshot): MarketplaceOrderC
 export class MarketplaceOrderResolver {
   constructor(
     @Inject(MARKETPLACE_ORDER_CREATE_SERVICE)
-    private readonly createService: MarketplaceOrderCreateService
+    private readonly createService: MarketplaceOrderCreateService,
+    @Inject(MARKETPLACE_ORDER_CANCEL_SERVICE)
+    private readonly cancelService: MarketplaceOrderCancelService
   ) {}
 
   @Mutation(() => MarketplaceCreateOrderResultDTO, {
@@ -98,6 +108,28 @@ export class MarketplaceOrderResolver {
     return new MarketplaceCreateOrderResultDTO({
       order: toOrderDTO(result.order),
       tx_snapshot: toTxSnapshotDTO(result.tx_snapshot),
+    });
+  }
+
+  @Mutation(() => MarketplaceCancelOrderResultDTO, {
+    name: 'marketplaceCancelOrder',
+    description:
+      'Story 4.4: заказчик отменяет Order до акцепта поставщиком. Backend submit cancelorder (o.mkt.unblk на total_cost) + Order.status: ACTIVE → CANCELLED_BY_ORDERER.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Order', 'cancel:own')
+  async marketplaceCancelOrder(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('input') input: MarketplaceCancelOrderInputDTO
+  ): Promise<MarketplaceCancelOrderResultDTO> {
+    const result = await this.cancelService.execute({
+      coopname: config.coopname,
+      orderer_account: member.username,
+      order_id: input.order_id,
+    });
+    return new MarketplaceCancelOrderResultDTO({
+      order: toOrderDTO(result.order),
+      tx_hash: result.tx_hash,
     });
   }
 }
