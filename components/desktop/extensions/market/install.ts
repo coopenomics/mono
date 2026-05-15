@@ -153,14 +153,34 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               agreements: agreementsBase,
             },
           },
+        ],
+      },
+    ],
+  },
+  {
+    workspace: 'market-pvz',
+    extension_name: 'market',
+    title: 'Стол ПВЗ',
+    icon: 'fa-solid fa-map-location-dot',
+    defaultRoute: 'marketplace-pvz',
+    routes: [
+      {
+        meta: {
+          title: 'Стол ПВЗ',
+          icon: 'fa-solid fa-map-location-dot',
+          roles: ['chairman'],
+        },
+        path: '/:coopname/market-pvz',
+        name: 'market-pvz',
+        children: [
           {
-            path: 'pvz',
+            path: 'list',
             name: 'marketplace-pvz',
             component: markRaw(PvzListPage),
             meta: {
-              title: 'ПВЗ',
+              title: 'ПВЗ кооператива',
               icon: 'fa-solid fa-map-location-dot',
-              roles: [],
+              roles: ['chairman'],
               requiresAuth: true,
               agreements: agreementsBase,
             },

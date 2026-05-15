@@ -1,11 +1,7 @@
-/**
- * Типы marketplace-детализации существующих в core кооперативных участков
- * (Эпик 2, Story 2.1 + 2.2).
- *
- * Зеркало `KuDetailsDTO` из controller'а (`extensions/marketplace/application/dto/ku-details.dto.ts`).
- * После регенерации Zeus-типов SDK (`@coopenomics/sdk`) эти типы можно
- * заменить на `Queries.Marketplace.ListKUDetails.IOutput` и т.п. — техдолг.
- */
+// Типы marketplace-детализации существующих в core кооперативных участков.
+// Зеркало KuDetailsDTO из controller'а; SDK обёртки в @coopenomics/sdk
+// (Mutations.Marketplace.DetailKU/SetKUStatus/RetryKUGeocode +
+// Queries.Marketplace.ListKUDetails).
 
 export type KuDetailsStatus = 'ACTIVE' | 'INACTIVE'
 export type GeocodeStatus = 'PENDING' | 'OK' | 'FAILED'

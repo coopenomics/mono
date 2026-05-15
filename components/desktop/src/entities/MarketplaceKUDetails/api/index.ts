@@ -1,4 +1,5 @@
-import { rawGraphQL } from './raw-graphql'
+import { Mutations, Queries } from '@coopenomics/sdk'
+import { client } from 'src/shared/api/client'
 import type {
   IDetailKUInput,
   IListMarketplaceKUInput,
@@ -6,73 +7,36 @@ import type {
   ISetKUStatusInput,
 } from '../model'
 
-const KU_DETAILS_FIELDS = `
-  coopname
-  coreBraname
-  addressFull
-  contactPhone
-  contactEmail
-  workingHours {
-    mon { open close breaks { start end } }
-    tue { open close breaks { start end } }
-    wed { open close breaks { start end } }
-    thu { open close breaks { start end } }
-    fri { open close breaks { start end } }
-    sat { open close breaks { start end } }
-    sun { open close breaks { start end } }
-  }
-  description
-  status
-  lat
-  lng
-  geocodeStatus
-  geocodeErrorMessage
-  geocodedAt
-  createdAt
-  updatedAt
-`
-
 async function listKUDetails(data: IListMarketplaceKUInput): Promise<IMarketplaceKUDetails[]> {
-  const query = `
-    query MarketplaceListKUDetails($data: ListMarketplaceKUInput!) {
-      marketplaceListKUDetails(data: $data) { ${KU_DETAILS_FIELDS} }
-    }
-  `
-  const result = await rawGraphQL<{ marketplaceListKUDetails: IMarketplaceKUDetails[] }>(query, { data })
-  return result.marketplaceListKUDetails
+  const { [Queries.Marketplace.ListKUDetails.name]: output } = await client.Query(
+    Queries.Marketplace.ListKUDetails.query,
+    { variables: { data } },
+  )
+  return (output ?? []) as IMarketplaceKUDetails[]
 }
 
 async function detailKU(data: IDetailKUInput): Promise<IMarketplaceKUDetails> {
-  const query = `
-    mutation MarketplaceDetailKU($data: MarketplaceDetailKUInput!) {
-      marketplaceDetailKU(data: $data) { ${KU_DETAILS_FIELDS} }
-    }
-  `
-  const result = await rawGraphQL<{ marketplaceDetailKU: IMarketplaceKUDetails }>(query, { data })
-  return result.marketplaceDetailKU
+  const { [Mutations.Marketplace.DetailKU.name]: output } = await client.Mutation(
+    Mutations.Marketplace.DetailKU.mutation,
+    { variables: { data } },
+  )
+  return output as IMarketplaceKUDetails
 }
 
 async function setKUStatus(data: ISetKUStatusInput): Promise<IMarketplaceKUDetails> {
-  const query = `
-    mutation MarketplaceSetKUStatus($data: MarketplaceSetKUStatusInput!) {
-      marketplaceSetKUStatus(data: $data) { ${KU_DETAILS_FIELDS} }
-    }
-  `
-  const result = await rawGraphQL<{ marketplaceSetKUStatus: IMarketplaceKUDetails }>(query, { data })
-  return result.marketplaceSetKUStatus
+  const { [Mutations.Marketplace.SetKUStatus.name]: output } = await client.Mutation(
+    Mutations.Marketplace.SetKUStatus.mutation,
+    { variables: { data } },
+  )
+  return output as IMarketplaceKUDetails
 }
 
 async function retryGeocode(coopname: string, coreBraname: string): Promise<IMarketplaceKUDetails> {
-  const query = `
-    mutation MarketplaceRetryKUGeocode($coopname: String!, $coreBraname: String!) {
-      marketplaceRetryKUGeocode(coopname: $coopname, coreBraname: $coreBraname) { ${KU_DETAILS_FIELDS} }
-    }
-  `
-  const result = await rawGraphQL<{ marketplaceRetryKUGeocode: IMarketplaceKUDetails }>(query, {
-    coopname,
-    coreBraname,
-  })
-  return result.marketplaceRetryKUGeocode
+  const { [Mutations.Marketplace.RetryKUGeocode.name]: output } = await client.Mutation(
+    Mutations.Marketplace.RetryKUGeocode.mutation,
+    { variables: { coopname, coreBraname } },
+  )
+  return output as IMarketplaceKUDetails
 }
 
 export const api = {
