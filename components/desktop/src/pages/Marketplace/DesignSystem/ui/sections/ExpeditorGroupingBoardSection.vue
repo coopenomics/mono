@@ -6,11 +6,10 @@
       с drag-n-drop карточек заявок между ними. Используется в Эпике 5 (Доставка).
     </div>
 
-    <ExpeditorGroupingBoard :columns="columns" @move="onMove" />
+    <ExpeditorGroupingBoard :columns="columns" @move="onMove" @move-all="onMoveAll" />
 
-    <q-banner v-if="lastMove" class="bg-grey-2 q-mt-lg" rounded>
-      Переместили <strong>MP-{{ lastMove.itemId }}</strong>
-      из <em>{{ lastMove.fromColumnId }}</em> в <em>{{ lastMove.toColumnId }}</em>
+    <q-banner v-if="lastEvent" class="bg-grey-2 q-mt-lg" rounded>
+      {{ lastEvent }}
     </q-banner>
   </div>
 </template>
@@ -44,7 +43,7 @@ const columns = ref<GroupingColumn[]>([
   },
 ])
 
-const lastMove = ref<{ itemId: number | string; fromColumnId: string; toColumnId: string } | null>(null)
+const lastEvent = ref<string | null>(null)
 
 function onMove(payload: { itemId: string | number; fromColumnId: string; toColumnId: string }) {
   const { itemId, fromColumnId, toColumnId } = payload
@@ -55,6 +54,17 @@ function onMove(payload: { itemId: string | number; fromColumnId: string; toColu
   if (idx < 0) return
   const [item] = from.items.splice(idx, 1)
   if (item) to.items.push(item)
-  lastMove.value = payload
+  lastEvent.value = `Переместили MP-${itemId}: «${fromColumnId}» → «${toColumnId}»`
+}
+
+function onMoveAll(payload: { fromColumnId: string; toColumnId: string }) {
+  const { fromColumnId, toColumnId } = payload
+  const from = columns.value.find((c) => c.id === fromColumnId)
+  const to = columns.value.find((c) => c.id === toColumnId)
+  if (!from || !to) return
+  const moved = from.items.length
+  to.items.push(...from.items)
+  from.items = []
+  lastEvent.value = `Bulk move: перенесли все ${moved} заявок из «${fromColumnId}» в «${toColumnId}»`
 }
 </script>
