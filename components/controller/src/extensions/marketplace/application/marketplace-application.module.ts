@@ -10,12 +10,22 @@ import { MarketplaceOnboardingResolver } from './resolvers/marketplace-onboardin
 import { MarketplaceMemberWalletResolver } from './resolvers/marketplace-member-wallet.resolver';
 import { MarketplaceCoopAcceptanceResolver } from './resolvers/marketplace-coop-acceptance.resolver';
 import { MarketplaceRegistrationOfferResolver } from './resolvers/marketplace-registration-offer.resolver';
+import { MarketplaceWhitelistResolver } from './resolvers/marketplace-whitelist.resolver';
+import { MarketplaceVitrineResolver } from './resolvers/marketplace-vitrine.resolver';
 import { MarketplaceMembershipGuard } from './guards/marketplace-membership.guard';
 import { MarketplaceRoleGuard } from './guards/marketplace-role.guard';
 import { MarketplaceOnboardingService } from './onboarding/marketplace-onboarding.service';
 import { MarketplaceCoopAcceptanceService } from './coop-acceptance/marketplace-coop-acceptance.service';
 import { CategoryTreeService, CATEGORY_TREE_SERVICE } from './services/category-tree.service';
 import { KuDetailsService } from './services/ku-details.service';
+import {
+  MarketplaceWhitelistService,
+  MARKETPLACE_WHITELIST_SERVICE,
+} from './services/marketplace-whitelist.service';
+import {
+  MarketplaceVitrineService,
+  MARKETPLACE_VITRINE_SERVICE,
+} from './services/marketplace-vitrine.service';
 
 /**
  * Модуль приложения marketplace
@@ -35,6 +45,8 @@ import { KuDetailsService } from './services/ku-details.service';
     MarketplaceMemberWalletResolver,
     MarketplaceCoopAcceptanceResolver,
     MarketplaceRegistrationOfferResolver,
+    MarketplaceWhitelistResolver,
+    MarketplaceVitrineResolver,
 
     // Guards (Story 1.3 / Story 1.6)
     MarketplaceMembershipGuard,
@@ -49,6 +61,17 @@ import { KuDetailsService } from './services/ku-details.service';
     KuDetailsService,
     MarketplaceOnboardingService,
     MarketplaceCoopAcceptanceService,
+    // Story 3.1
+    {
+      provide: MARKETPLACE_WHITELIST_SERVICE,
+      useClass: MarketplaceWhitelistService,
+    },
+    MarketplaceWhitelistService,
+    {
+      provide: MARKETPLACE_VITRINE_SERVICE,
+      useClass: MarketplaceVitrineService,
+    },
+    MarketplaceVitrineService,
   ],
   exports: [
     // Экспортируем сервисы для использования в других модулях
@@ -58,6 +81,10 @@ import { KuDetailsService } from './services/ku-details.service';
     KuDetailsService,
     MarketplaceOnboardingService,
     MarketplaceCoopAcceptanceService,
+    MARKETPLACE_WHITELIST_SERVICE,
+    MarketplaceWhitelistService,
+    MARKETPLACE_VITRINE_SERVICE,
+    MarketplaceVitrineService,
 
     // Экспортируем резолверы для регистрации в GraphQL
     CategoryTreeResolver,
@@ -70,6 +97,8 @@ import { KuDetailsService } from './services/ku-details.service';
     MarketplaceMemberWalletResolver,
     MarketplaceCoopAcceptanceResolver,
     MarketplaceRegistrationOfferResolver,
+    MarketplaceWhitelistResolver,
+    MarketplaceVitrineResolver,
   ],
 })
 export class MarketplaceExtensionApplicationModule {}
