@@ -72,11 +72,17 @@ namespace CycleType {
  *  - `accept_braname`   — КУ приёмки от поставщика; заполняется на signsupp
  *    как параметр action'а (поставщик указывает, в какой КУ сдаёт партию).
  *    Источник проверки signchair.
+ *  - `current_warehouse_braname` — текущая точка хранения имущества по этому
+ *    Order'у. Заполняется на signchair (= `accept_braname`, имущество на
+ *    приёмном складе) и обновляется на signiss1 (= `delivery_braname`, готово
+ *    к выдаче — фиксирует факт логистической передачи). Бездокументарно —
+ *    промежуточные перемещения по заготовочным КУ контрактом не подписываются;
+ *    точка хранения переходит «скачком» в момент готовности к выдаче.
  *
- * Поля «текущей точки хранения» (warehouse) и истории внутренних передач между
- * КУ (заготовочный → точка выдачи и т.п.) — отложены: бизнес-процесс «передача
- * по ТТН внутри кооператива» сейчас не подписывается. Backend может реконструировать
- * движение из blockchain_actions при необходимости.
+ * История внутренних передач между КУ (заготовочный → точка выдачи и т.п.)
+ * с подписью ТТН — отложена. Backend может реконструировать движение из
+ * blockchain_actions если потребуется. Поле введено заранее, чтобы не
+ * добавлять его потом через binary_extension.
  *
  * `acceptance_act` (АПП приёмки) и `issue_act` (АПП выдачи) хранятся
  * полным document2 — это дублирование в случае batch-поставки (один
@@ -105,6 +111,7 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] order {
 
   eosio::name delivery_braname;                               ///< КУ выдачи (выбран пайщиком на createorder); проверка signiss1/signiss2/p.mkt.return через Branch::is_user_authorized
   eosio::name accept_braname;                                 ///< КУ приёмки от поставщика (заполняется на signsupp); проверка signchair через Branch::is_user_authorized
+  eosio::name current_warehouse_braname;                      ///< текущая точка хранения; signchair: = accept_braname; signiss1: = delivery_braname (фиксация готовности к выдаче)
 
   uint64_t quantity = 0;                                      ///< заказанное количество
   uint64_t actual_quantity = 0;                               ///< фактически выданное (signiss2); до signiss2 == quantity

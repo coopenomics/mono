@@ -52,5 +52,6 @@ void marketplace::signchair(eosio::name coopname,
   Marketplace::update_order(coopname, o.id, [&](auto& upd) {
     upd.status = OrderStatus::ACCEPTED_TO_COOP;
     upd.acceptance_act_signchair = act;
+    upd.current_warehouse_braname = o.accept_braname;  // имущество на приёмном складе
   });
 }

@@ -3,8 +3,11 @@
  * (Story 6.1, signiss1).
  *
  * Без ledger2-операций. Per-Order: статус accepted_to_coop → ready_to_receive;
- * issue_act_signiss1 сохраняется; нотификация заказчику — post-effect в
- * backend через ParserClient.
+ * issue_act_signiss1 сохраняется; current_warehouse_braname обновляется на
+ * delivery_braname (фиксация факта логистической передачи имущества на склад
+ * выдачи — промежуточные перемещения по заготовочным КУ контрактом не
+ * подписываются, точка хранения переходит «скачком» в этот момент).
+ * Нотификация заказчику — post-effect в backend через ParserClient.
  *
  * Guards:
  *  - Order существует и в статусе accepted_to_coop.
@@ -36,5 +39,6 @@ void marketplace::signiss1(eosio::name coopname,
   Marketplace::update_order(coopname, o.id, [&](auto& upd) {
     upd.status = OrderStatus::READY_TO_RECEIVE;
     upd.issue_act_signiss1 = act;
+    upd.current_warehouse_braname = o.delivery_braname;  // имущество готово к выдаче на КУ выдачи
   });
 }
