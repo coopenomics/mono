@@ -28,8 +28,8 @@ export const SECTIONS: DesignSystemSection[] = [
     uxDr: 'UX-DR7',
     story: 'Story 10.2.1',
     primaryRole: ['все'],
-    status: 'planned',
-    description: 'Full-screen takeover для критических действий (выдача, отмена, спор).',
+    status: 'ready',
+    description: 'Full-screen takeover для критических действий: 4 kind (info / success / warning / danger), confirm-loader, slot actions.',
   },
   {
     key: 'wallet-timeline',

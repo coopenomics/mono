@@ -105,6 +105,7 @@ import TokensSection from './sections/TokensSection.vue'
 import PlaceholderSection from './sections/PlaceholderSection.vue'
 import CatalogOfferCardSection from './sections/CatalogOfferCardSection.vue'
 import OrderCardSection from './sections/OrderCardSection.vue'
+import TakeoverDialogSection from './sections/TakeoverDialogSection.vue'
 
 const $q = useQuasar()
 const state = useDesignSystemState()
@@ -119,6 +120,7 @@ const SECTION_COMPONENTS: Record<string, unknown> = {
   tokens: TokensSection,
   'catalog-offer-card': CatalogOfferCardSection,
   'order-card': OrderCardSection,
+  'takeover-dialog': TakeoverDialogSection,
 }
 
 const currentSection = computed(() =>
