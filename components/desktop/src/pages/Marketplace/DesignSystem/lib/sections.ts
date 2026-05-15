@@ -37,8 +37,8 @@ export const SECTIONS: DesignSystemSection[] = [
     uxDr: 'UX-DR8',
     story: 'Story 10.2.2',
     primaryRole: ['orderer', 'offerer'],
-    status: 'planned',
-    description: 'Визуализация движений кошелька (блокировка, списание, возврат).',
+    status: 'ready',
+    description: 'Лента движений кошелька: 6 типов (deposit/block/unblock/charge/refund/payout) + empty state + фильтр.',
   },
   {
     key: 'order-card',
