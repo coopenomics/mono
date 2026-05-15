@@ -40,6 +40,10 @@ import {
   MarketplaceModerationService,
   MARKETPLACE_MODERATION_SERVICE,
 } from './services/marketplace-moderation.service';
+import {
+  MarketplaceOfferCountersService,
+  MARKETPLACE_OFFER_COUNTERS_SERVICE,
+} from './services/marketplace-offer-counters.service';
 
 /**
  * Модуль приложения marketplace
@@ -105,6 +109,12 @@ import {
       useClass: MarketplaceModerationService,
     },
     MarketplaceModerationService,
+    // Story 3.4
+    {
+      provide: MARKETPLACE_OFFER_COUNTERS_SERVICE,
+      useClass: MarketplaceOfferCountersService,
+    },
+    MarketplaceOfferCountersService,
   ],
   exports: [
     // Экспортируем сервисы для использования в других модулях
@@ -124,6 +134,8 @@ import {
     MarketplaceCategoryService,
     MARKETPLACE_MODERATION_SERVICE,
     MarketplaceModerationService,
+    MARKETPLACE_OFFER_COUNTERS_SERVICE,
+    MarketplaceOfferCountersService,
 
     // Экспортируем резолверы для регистрации в GraphQL
     CategoryTreeResolver,

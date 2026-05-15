@@ -65,6 +65,9 @@ function makeOfferRepo(): jest.Mocked<MarketplaceOfferDomainRepository> {
     countRecentCreatedBy: jest.fn(),
     create: jest.fn(),
     applyUpdate: jest.fn(),
+    applyBlockDelta: jest.fn(),
+    applyUnblockDelta: jest.fn(),
+    applyConsumeDelta: jest.fn(),
   };
 }
 

@@ -53,6 +53,31 @@ export interface OfferUpdateInput {
   warranty_days?: number;
 }
 
+/**
+ * Story 3.4 — атомарные дельты counters Offer'а.
+ *
+ * Каждый из методов выполняется одним SQL UPDATE с returning, чтобы:
+ *  (а) избежать race condition между read-modify-write при параллельных
+ *      Order-блокировках одного Offer'а;
+ *  (б) проверить инварианты в WHERE и вернуть 0 affected rows если
+ *      операция нарушила бы инвариант (caller получит OfferCountersError).
+ *
+ * При `unlimited_flag=true` `quantity_available` не изменяется (offer не
+ * ограничен по количеству) — только `quantity_blocked` инкрементируется
+ * при block / decrement при unblock|consume.
+ */
+export type OfferCountersErrorReason =
+  | 'insufficient_available'
+  | 'insufficient_blocked'
+  | 'offer_not_active'
+  | 'offer_not_found';
+
+export interface OfferCountersDeltaResult {
+  ok: boolean;
+  reason?: OfferCountersErrorReason;
+  offer?: MarketplaceOfferDomainEntity;
+}
+
 export interface MarketplaceOfferDomainRepository {
   findById(id: string): Promise<MarketplaceOfferDomainEntity | null>;
   list(
@@ -73,4 +98,30 @@ export interface MarketplaceOfferDomainRepository {
       reject_reason?: string | null;
     }
   ): Promise<MarketplaceOfferDomainEntity>;
+
+  /**
+   * Order создан → блокировать K единиц. Атомарно:
+   *   - quantity_blocked += K;
+   *   - quantity_available -= K (если не unlimited);
+   *   - требование: status='ACTIVE' AND (unlimited OR available >= K).
+   */
+  applyBlockDelta(offer_id: string, qty: number): Promise<OfferCountersDeltaResult>;
+
+  /**
+   * Order отменён / цикл expire / поставщик отказался → возврат
+   * K единиц в available. Атомарно:
+   *   - quantity_blocked -= K;
+   *   - quantity_available += K (если не unlimited);
+   *   - требование: blocked >= K.
+   */
+  applyUnblockDelta(offer_id: string, qty: number): Promise<OfferCountersDeltaResult>;
+
+  /**
+   * Выдача пайщику (consum/consum2) → K единиц перемещаются
+   * blocked → consumed. Атомарно:
+   *   - quantity_blocked -= K;
+   *   - quantity_consumed += K;
+   *   - требование: blocked >= K.
+   */
+  applyConsumeDelta(offer_id: string, qty: number): Promise<OfferCountersDeltaResult>;
 }
