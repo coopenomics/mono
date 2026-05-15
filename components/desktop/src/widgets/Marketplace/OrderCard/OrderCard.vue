@@ -132,7 +132,15 @@ const ACTIONS_PER_ROLE: Record<OrderRole, Record<OrderStatus, OrderAction[]>> = 
     returned: [{ key: 'open', label: 'Открыть' }],
   },
   offerer: {
-    draft: [], placed: [{ key: 'accept', label: 'Принять', kind: 'primary' }],
+    // Story 4.5: placed = ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL для individual
+    // cycle_type или unassigned ACTIVE для open_subscription пула. На batch
+    // (time/volume) поставщик решает по консолидированной заявке отдельным
+    // экраном «Консолидированные заявки», не в OrderCard. Decline требует
+    // reason — обрабатывается parent'ом через confirm-dialog.
+    draft: [], placed: [
+      { key: 'accept', label: 'Принять', kind: 'primary' },
+      { key: 'decline', label: 'Отказать', kind: 'danger' },
+    ],
     paid: [{ key: 'ship', label: 'Отгрузить', kind: 'primary' }],
     'in-delivery': [], 'arrived-at-pvz': [], 'ready-to-issue': [],
     issued: [], cancelled: [], dispute: [{ key: 'reply', label: 'Ответить', kind: 'primary' }],

@@ -11,13 +11,21 @@ import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import {
   MarketplaceCancelOrderResultDTO,
+  MarketplaceConsolidatedRequestActionResultDTO,
   MarketplaceCreateOrderResultDTO,
   MarketplaceOrderCreateTxSnapshotDTO,
   MarketplaceOrderDTO,
+  MarketplaceSupplierOrderActionResultDTO,
 } from '../dto/marketplace-order.dto';
+import { toMarketplaceConsolidatedRequestDTO } from '../dto/marketplace-consolidated-request.dto';
 import {
+  MarketplaceAcceptConsolidatedRequestInputDTO,
+  MarketplaceAcceptIndividualOrderInputDTO,
   MarketplaceCancelOrderInputDTO,
   MarketplaceCreateOrderInputDTO,
+  MarketplaceDeclineConsolidatedRequestInputDTO,
+  MarketplaceDeclineIndividualOrderInputDTO,
+  MarketplaceDeclineOrderFromOpenPoolInputDTO,
 } from '../dto/marketplace-order-input.dto';
 import {
   MARKETPLACE_ORDER_CREATE_SERVICE,
@@ -27,6 +35,14 @@ import {
   MARKETPLACE_ORDER_CANCEL_SERVICE,
   MarketplaceOrderCancelService,
 } from '../services/marketplace-order-cancel.service';
+import {
+  MARKETPLACE_CONSOLIDATED_REQUEST_ACCEPT_DECLINE_SERVICE,
+  MarketplaceConsolidatedRequestAcceptDeclineService,
+} from '../services/marketplace-consolidated-request-accept-decline.service';
+import {
+  MARKETPLACE_ORDER_SUPPLIER_ACTION_SERVICE,
+  MarketplaceOrderSupplierActionService,
+} from '../services/marketplace-order-supplier-action.service';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import type { MarketplaceOrderCreateTxSnapshot } from '../../domain/entities/marketplace-order.types';
 
@@ -84,7 +100,11 @@ export class MarketplaceOrderResolver {
     @Inject(MARKETPLACE_ORDER_CREATE_SERVICE)
     private readonly createService: MarketplaceOrderCreateService,
     @Inject(MARKETPLACE_ORDER_CANCEL_SERVICE)
-    private readonly cancelService: MarketplaceOrderCancelService
+    private readonly cancelService: MarketplaceOrderCancelService,
+    @Inject(MARKETPLACE_CONSOLIDATED_REQUEST_ACCEPT_DECLINE_SERVICE)
+    private readonly consolidatedAcceptDeclineService: MarketplaceConsolidatedRequestAcceptDeclineService,
+    @Inject(MARKETPLACE_ORDER_SUPPLIER_ACTION_SERVICE)
+    private readonly supplierActionService: MarketplaceOrderSupplierActionService
   ) {}
 
   @Mutation(() => MarketplaceCreateOrderResultDTO, {
@@ -128,6 +148,123 @@ export class MarketplaceOrderResolver {
       order_id: input.order_id,
     });
     return new MarketplaceCancelOrderResultDTO({
+      order: toOrderDTO(result.order),
+      tx_hash: result.tx_hash,
+    });
+  }
+
+  @Mutation(() => MarketplaceConsolidatedRequestActionResultDTO, {
+    name: 'marketplaceAcceptConsolidatedRequest',
+    description:
+      'Story 4.5: поставщик акцептует консолидированную заявку (time_based / volume_based). Per-Order on-chain acceptorder; consolidated_request → ACCEPTED, Order\'ы → ACCEPTED.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Offer', 'update:own')
+  async marketplaceAcceptConsolidatedRequest(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('input') input: MarketplaceAcceptConsolidatedRequestInputDTO
+  ): Promise<MarketplaceConsolidatedRequestActionResultDTO> {
+    const result = await this.consolidatedAcceptDeclineService.accept({
+      coopname: config.coopname,
+      offerer_account: member.username,
+      request_id: input.request_id,
+    });
+    return new MarketplaceConsolidatedRequestActionResultDTO({
+      request: toMarketplaceConsolidatedRequestDTO(result.request),
+      affected_orders: result.affected_orders,
+      on_chain_succeeded: result.on_chain_succeeded,
+      on_chain_failed: result.on_chain_failed,
+    });
+  }
+
+  @Mutation(() => MarketplaceConsolidatedRequestActionResultDTO, {
+    name: 'marketplaceDeclineConsolidatedRequest',
+    description:
+      'Story 4.5: поставщик отказывается от консолидированной заявки. Per-Order on-chain declineorder (o.mkt.unblk + статус); consolidated_request → DECLINED_BY_SUPPLIER, Order\'ы → CANCELLED_BY_SUPPLIER.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Offer', 'update:own')
+  async marketplaceDeclineConsolidatedRequest(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('input') input: MarketplaceDeclineConsolidatedRequestInputDTO
+  ): Promise<MarketplaceConsolidatedRequestActionResultDTO> {
+    const result = await this.consolidatedAcceptDeclineService.decline({
+      coopname: config.coopname,
+      offerer_account: member.username,
+      request_id: input.request_id,
+      reason: input.reason,
+    });
+    return new MarketplaceConsolidatedRequestActionResultDTO({
+      request: toMarketplaceConsolidatedRequestDTO(result.request),
+      affected_orders: result.affected_orders,
+      on_chain_succeeded: result.on_chain_succeeded,
+      on_chain_failed: result.on_chain_failed,
+    });
+  }
+
+  @Mutation(() => MarketplaceSupplierOrderActionResultDTO, {
+    name: 'marketplaceAcceptIndividualOrder',
+    description:
+      'Story 4.5: поставщик акцептует один Order (cycle_type=individual) → on-chain acceptorder, Order.status: ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL → ACCEPTED.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Offer', 'update:own')
+  async marketplaceAcceptIndividualOrder(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('input') input: MarketplaceAcceptIndividualOrderInputDTO
+  ): Promise<MarketplaceSupplierOrderActionResultDTO> {
+    const result = await this.supplierActionService.acceptIndividual({
+      coopname: config.coopname,
+      offerer_account: member.username,
+      order_id: input.order_id,
+    });
+    return new MarketplaceSupplierOrderActionResultDTO({
+      order: toOrderDTO(result.order),
+      tx_hash: result.tx_hash,
+    });
+  }
+
+  @Mutation(() => MarketplaceSupplierOrderActionResultDTO, {
+    name: 'marketplaceDeclineIndividualOrder',
+    description:
+      'Story 4.5: поставщик отказывается от одного Order\'а (cycle_type=individual) → on-chain declineorder (o.mkt.unblk + статус), Order.status → CANCELLED_BY_SUPPLIER.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Offer', 'update:own')
+  async marketplaceDeclineIndividualOrder(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('input') input: MarketplaceDeclineIndividualOrderInputDTO
+  ): Promise<MarketplaceSupplierOrderActionResultDTO> {
+    const result = await this.supplierActionService.declineIndividual({
+      coopname: config.coopname,
+      offerer_account: member.username,
+      order_id: input.order_id,
+      reason: input.reason,
+    });
+    return new MarketplaceSupplierOrderActionResultDTO({
+      order: toOrderDTO(result.order),
+      tx_hash: result.tx_hash,
+    });
+  }
+
+  @Mutation(() => MarketplaceSupplierOrderActionResultDTO, {
+    name: 'marketplaceDeclineOrderFromOpenPool',
+    description:
+      'Story 4.5: поставщик отказывается от одного Order\'а из open_subscription пула до запуска поставки (ACTIVE + cycle_id=null) → on-chain declineorder, Order.status → CANCELLED_BY_SUPPLIER. После triggerOpenSubscription частичный отказ недоступен.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Offer', 'update:own')
+  async marketplaceDeclineOrderFromOpenPool(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('input') input: MarketplaceDeclineOrderFromOpenPoolInputDTO
+  ): Promise<MarketplaceSupplierOrderActionResultDTO> {
+    const result = await this.supplierActionService.declineFromOpenPool({
+      coopname: config.coopname,
+      offerer_account: member.username,
+      order_id: input.order_id,
+      reason: input.reason,
+    });
+    return new MarketplaceSupplierOrderActionResultDTO({
       order: toOrderDTO(result.order),
       tx_hash: result.tx_hash,
     });

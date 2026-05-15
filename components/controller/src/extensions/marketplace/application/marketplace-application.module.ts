@@ -56,6 +56,14 @@ import {
   MarketplaceOrderCancelService,
   MARKETPLACE_ORDER_CANCEL_SERVICE,
 } from './services/marketplace-order-cancel.service';
+import {
+  MarketplaceConsolidatedRequestAcceptDeclineService,
+  MARKETPLACE_CONSOLIDATED_REQUEST_ACCEPT_DECLINE_SERVICE,
+} from './services/marketplace-consolidated-request-accept-decline.service';
+import {
+  MarketplaceOrderSupplierActionService,
+  MARKETPLACE_ORDER_SUPPLIER_ACTION_SERVICE,
+} from './services/marketplace-order-supplier-action.service';
 import { MarketplaceOrderSyncService } from '../sync/marketplace-order-sync.service';
 import {
   MarketplaceCycleAggregatorService,
@@ -155,6 +163,17 @@ import {
       useClass: MarketplaceOrderCancelService,
     },
     MarketplaceOrderCancelService,
+    // Story 4.5
+    {
+      provide: MARKETPLACE_CONSOLIDATED_REQUEST_ACCEPT_DECLINE_SERVICE,
+      useClass: MarketplaceConsolidatedRequestAcceptDeclineService,
+    },
+    MarketplaceConsolidatedRequestAcceptDeclineService,
+    {
+      provide: MARKETPLACE_ORDER_SUPPLIER_ACTION_SERVICE,
+      useClass: MarketplaceOrderSupplierActionService,
+    },
+    MarketplaceOrderSupplierActionService,
     // Story 4.2
     {
       provide: MARKETPLACE_CYCLE_AGGREGATOR_SERVICE,
@@ -209,6 +228,11 @@ import {
     // Story 4.4
     MARKETPLACE_ORDER_CANCEL_SERVICE,
     MarketplaceOrderCancelService,
+    // Story 4.5
+    MARKETPLACE_CONSOLIDATED_REQUEST_ACCEPT_DECLINE_SERVICE,
+    MarketplaceConsolidatedRequestAcceptDeclineService,
+    MARKETPLACE_ORDER_SUPPLIER_ACTION_SERVICE,
+    MarketplaceOrderSupplierActionService,
     // Story 4.2
     MARKETPLACE_CYCLE_AGGREGATOR_SERVICE,
     MarketplaceCycleAggregatorService,

@@ -12,6 +12,7 @@ import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-membe
 import {
   MarketplaceConsolidatedRequestDTO,
   MarketplaceConsolidatedRequestPaginationResultDTO,
+  toMarketplaceConsolidatedRequestDTO,
 } from '../dto/marketplace-consolidated-request.dto';
 import {
   MarketplaceListConsolidatedRequestsInputDTO,
@@ -25,32 +26,11 @@ import {
   MARKETPLACE_CONSOLIDATED_REQUEST_REPOSITORY,
   type MarketplaceConsolidatedRequestDomainRepository,
 } from '../../domain/repositories/marketplace-consolidated-request.repository';
-import type { MarketplaceConsolidatedRequestDomainEntity } from '../../domain/entities/marketplace-consolidated-request.entity';
 import type {
   MarketplaceConsolidatedRequestStatus,
 } from '../../domain/entities/marketplace-consolidated-request.types';
 
-function toDTO(r: MarketplaceConsolidatedRequestDomainEntity): MarketplaceConsolidatedRequestDTO {
-  return new MarketplaceConsolidatedRequestDTO({
-    id: r.id,
-    coopname: r.coopname,
-    offer_id: r.offer_id,
-    supplier_account: r.supplier_account,
-    cycle_type: r.cycle_type,
-    total_quantity: r.total_quantity,
-    total_amount: r.total_amount,
-    status: r.status,
-    cycle_started_at: r.cycle_started_at,
-    cycle_ended_at: r.cycle_ended_at,
-    expires_at: r.expires_at,
-    accepted_at: r.accepted_at,
-    declined_at: r.declined_at,
-    decline_reason: r.decline_reason,
-    triggered_by_supplier_at: r.triggered_by_supplier_at,
-    created_at: r.created_at,
-    updated_at: r.updated_at,
-  });
-}
+const toDTO = toMarketplaceConsolidatedRequestDTO;
 
 /**
  * Story 4.2: GraphQL для консолидированной заявки.

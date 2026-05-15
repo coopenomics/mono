@@ -1,4 +1,5 @@
 import { Field, Int, ObjectType } from '@nestjs/graphql';
+import { MarketplaceConsolidatedRequestDTO } from './marketplace-consolidated-request.dto';
 
 @ObjectType('MarketplaceOrderCreateTxSnapshot')
 export class MarketplaceOrderCreateTxSnapshotDTO {
@@ -100,6 +101,55 @@ export class MarketplaceCancelOrderResultDTO {
   public readonly order!: MarketplaceOrderDTO;
 
   @Field(() => String, { description: 'tx_hash транзакции marketplace::cancelorder для аудита.' })
+  public readonly tx_hash!: string;
+
+  constructor(init: { order: MarketplaceOrderDTO; tx_hash: string }) {
+    this.order = init.order;
+    this.tx_hash = init.tx_hash;
+  }
+}
+
+@ObjectType('MarketplaceConsolidatedRequestActionResult')
+export class MarketplaceConsolidatedRequestActionResultDTO {
+  @Field(() => MarketplaceConsolidatedRequestDTO, {
+    description: 'Заявка после applyStatusTransition (ACCEPTED / DECLINED_BY_SUPPLIER).',
+  })
+  public readonly request!: MarketplaceConsolidatedRequestDTO;
+
+  @Field(() => Int, { description: 'Количество Order\'ов в пуле заявки.' })
+  public readonly affected_orders!: number;
+
+  @Field(() => Int, {
+    description: 'Сколько Order\'ов были успешно проведены on-chain (accept/decline action прошёл).',
+  })
+  public readonly on_chain_succeeded!: number;
+
+  @Field(() => Int, {
+    description: 'Сколько Order\'ов не удалось провести on-chain (повтор через manual reconciliation в Story 9.x).',
+  })
+  public readonly on_chain_failed!: number;
+
+  constructor(init: {
+    request: MarketplaceConsolidatedRequestDTO;
+    affected_orders: number;
+    on_chain_succeeded: number;
+    on_chain_failed: number;
+  }) {
+    this.request = init.request;
+    this.affected_orders = init.affected_orders;
+    this.on_chain_succeeded = init.on_chain_succeeded;
+    this.on_chain_failed = init.on_chain_failed;
+  }
+}
+
+@ObjectType('MarketplaceSupplierOrderActionResult')
+export class MarketplaceSupplierOrderActionResultDTO {
+  @Field(() => MarketplaceOrderDTO, {
+    description: 'Order после applyStatusTransition (ACCEPTED / CANCELLED_BY_SUPPLIER).',
+  })
+  public readonly order!: MarketplaceOrderDTO;
+
+  @Field(() => String, { description: 'tx_hash транзакции accept/decline для аудита.' })
   public readonly tx_hash!: string;
 
   constructor(init: { order: MarketplaceOrderDTO; tx_hash: string }) {

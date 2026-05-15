@@ -45,6 +45,30 @@ export interface MarketplaceCanonicalBlockchainPort {
    * проверяет `actor == order.orderer` через параметр (passed-in name).
    */
   cancelOrder(data: MarketContract.Actions.CancelOrder.ICancelOrder): Promise<TransactResult>;
+
+  /**
+   * Story 4.5: поставщик акцептует один Order. Без ledger2-операций —
+   * только смена on-chain статуса `active → accepted`. Backend для batch
+   * консолидированной заявки (time/volume) проходит циклом per-Order;
+   * для individual cycle_type вызывается один раз.
+   *
+   * Авторизация — кооператив (`require_auth(coopname)`); C++ проверяет
+   * `offerer == order.offerer` (пайщик-поставщик владеет Offer'ом).
+   */
+  acceptOrder(data: MarketContract.Actions.AcceptOrder.IAcceptOrder): Promise<TransactResult>;
+
+  /**
+   * Story 4.5: поставщик отказывается от одного Order'а до акцепта. C++
+   * серия: `o.mkt.unblk` на `order.total_cost` (средства возвращаются на
+   * `w.mkt.member.available` пайщика-заказчика) + on-chain Order.status:
+   * active → cancelled. Backend для batch консолидированной заявки
+   * (time/volume) проходит циклом per-Order; для individual / open_pool
+   * decline вызывается один раз.
+   *
+   * Авторизация — кооператив (`require_auth(coopname)`); C++ проверяет
+   * `offerer == order.offerer`.
+   */
+  declineOrder(data: MarketContract.Actions.DeclineOrder.IDeclineOrder): Promise<TransactResult>;
 }
 
 export const MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT = Symbol('MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT');
