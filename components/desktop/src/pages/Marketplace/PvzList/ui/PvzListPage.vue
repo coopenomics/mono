@@ -99,6 +99,7 @@ function editPvz(pvz: IMarketplaceKUDetails) {
 }
 
 function onSaved(_pvz: IMarketplaceKUDetails) {
+  void _pvz
   void reload()
 }
 
@@ -115,5 +116,5 @@ onMounted(() => {
 })
 
 // Используется для подавления "unused" на details — фактический driver UI.
-const _unused = details
+void details
 </script>

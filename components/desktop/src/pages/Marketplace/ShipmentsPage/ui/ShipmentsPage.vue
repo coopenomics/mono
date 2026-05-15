@@ -82,7 +82,7 @@ div.page-shell
     q-card
       q-card-section
         .row.items-center
-          .text-h6.col Перевозка #{{ selectedShipment?.id }}
+          .text-h6.col Перевозка №{{ selectedShipment?.id }}
           q-btn(flat icon="close" @click="showTimeline = false")
       q-separator
       q-card-section

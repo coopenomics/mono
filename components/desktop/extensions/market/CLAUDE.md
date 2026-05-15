@@ -1,0 +1,66 @@
+# Marketplace extension — правила для агентов
+
+Этот файл загружается при работе агентов в директории `components/desktop/extensions/market/`,
+`components/desktop/src/pages/Marketplace/`, `components/desktop/src/widgets/Marketplace/`.
+
+## Дизайн-система Стола Заказов (Эпик 10)
+
+**Канон UI-компонентов** — `src/widgets/Marketplace/*`. На 2026-05-15 в каноне:
+
+| Компонент              | UX-DR | Story        | Назначение                                          |
+|------------------------|-------|--------------|-----------------------------------------------------|
+| `CatalogOfferCard`     | DR10  | Story 10.2.4 | Карточка Offer в каталоге (Витрина, Эпик 3)         |
+| `OrderCard`            | DR9   | Story 10.2.3 | Карточка заказа, per-роль actions (Эпики 4-9)       |
+| `TakeoverDialog`       | DR7   | Story 10.2.1 | Full-screen takeover для критических действий       |
+| `WalletTimeline`       | DR8   | Story 10.2.2 | Лента движений кошелька (Эпики 4, 9)                |
+| `BarcodeScanner`       | DR11  | Story 10.2.5 | Сканер штрих-кода (operator-стол)                   |
+| `BarcodeDisplay`       | DR12  | Story 10.2.6 | SVG-рендер штрих-кода для печати                    |
+| `CorrectionTable`      | DR13  | Story 10.2.7 | Таблица корректировки факт vs план                  |
+| `ExpeditorGroupingBoard` | DR14 | Story 10.2.8 | Доска группировки заявок (drag-n-drop)              |
+| `TTNPrintPreview`      | DR15  | Story 10.2.9 | Печатная ТТН А5 со штрих-кодом                      |
+| `WarehouseSummaryGrid` | DR16  | Story 10.2.10| Сводный склад admin-стола                           |
+| `OnboardingCPPGate`    | DR17  | Story 10.2.11| L3-gate онбординга со списком документов            |
+| `MultiChannelStatus`   | DR18  | Story 10.2.12| Статус push/email/SMS                               |
+| `KUMapWithList`        | Эпик 2.3 | Story 10.2.13 | Карта ПВЗ + список (canon из widgets/KUMapWithList) |
+
+## Жёсткие правила
+
+1. **Inline-вёрстка кастомного UI-элемента запрещена.** Если в story нужно отобразить карточку
+   заказа, статус доставки, диалог подтверждения и т.д. — импортируйте соответствующий
+   компонент из `widgets/Marketplace/*`. Не дублируйте вёрстку под другим именем.
+
+2. **Дизайн-токены — только через `marketplace-tokens.scss`.** Не хардкодьте цвета,
+   spacing, touch-targets, font-size. Используйте CSS-переменные:
+   `var(--mp-space-md)`, `var(--mp-touch-target-pos)`, `var(--mp-font-body)` и т.д.
+   Палитра `$primary` / `$secondary` / `$accent` приходит из Quasar variables.
+
+3. **Per-роль вариация через корневой класс.** На странице каждого стола обёртка
+   получает `mp-role-orderer` / `mp-role-offerer` / `mp-role-operator` / `mp-role-admin` —
+   токены автоматически переключаются (плотность, touch-target, font-size).
+
+4. **Новый UI-компонент сначала появляется в витрине.** Если в текущей story
+   возникла необходимость в новом reusable-компоненте, его сначала добавляют в
+   `widgets/Marketplace/<Name>/` + секцию в `pages/Marketplace/DesignSystem/ui/sections/`.
+   Только после визуального одобрения владельцем продукта компонент используется
+   в функциональных экранах.
+
+5. **Расширение API существующего компонента — через витрину.** Если функциональной
+   story не хватает props/slot — добавьте их в компонент, обновите секцию витрины
+   со всеми состояниями, и только после этого используйте в экране. Не создавайте
+   wrapper'ы с дополнительной логикой «снаружи».
+
+## Производительность (Story 10.3)
+
+См. `src/pages/Marketplace/DesignSystem/PERFORMANCE.md` — целевые метрики, эталонные
+страницы (P1..P4), manual workflow Lighthouse перед релизом.
+
+## Где смотреть витрину
+
+`/<coopname>/market/design-system` (доступ: chairman, member). Все 13 компонентов
+со всеми состояниями, переключатели темы / роли / breakpoint в URL query.
+
+## Связанные документы
+
+- Спецификация Эпика 10: `_blago/production/1-prilozhenie-stol-zakazov/components/3-minimalnyy-produkt/issues/598-13-epik-10-*-requirements/`
+- UX-спецификация MVP: `_blago/production/1-prilozhenie-stol-zakazov/components/3-minimalnyy-produkt/requirements/7e-uxui-spetsifikatsiya-stol-zakazov-mvp.md`
+- Архитектура MVP: `_blago/production/1-prilozhenie-stol-zakazov/components/3-minimalnyy-produkt/requirements/d6-arkhitektura-stol-zakazov-mvp.md`

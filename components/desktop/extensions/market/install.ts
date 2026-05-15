@@ -10,6 +10,7 @@ import { WarehousePage } from 'src/pages/Marketplace/WarehousePage'
 import { ShipmentsPage } from 'src/pages/Marketplace/ShipmentsPage'
 import { DisputePage } from 'src/pages/Marketplace/DisputePage'
 import { PvzListPage } from 'src/pages/Marketplace/PvzList'
+import { DesignSystemPage } from 'src/pages/Marketplace/DesignSystem'
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace'
 import { agreementsBase } from 'src/shared/lib/consts/workspaces'
 
@@ -163,6 +164,21 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               title: 'Модерация',
               icon: 'fa-solid fa-shield-halved',
               roles: ['chairman'],
+              requiresAuth: true,
+              agreements: agreementsBase,
+            },
+          },
+          {
+            // Витрина дизайн-системы (Эпик 10): открыта председателю и членам совета
+            // для утверждения 13 custom-компонентов до их применения в эпиках 1-9.
+            // Скрыта от обычных пайщиков, не выходит в production-меню для них.
+            path: 'design-system',
+            name: 'marketplace-design-system',
+            component: markRaw(DesignSystemPage),
+            meta: {
+              title: 'Дизайн-система',
+              icon: 'fa-solid fa-palette',
+              roles: ['chairman', 'member'],
               requiresAuth: true,
               agreements: agreementsBase,
             },
