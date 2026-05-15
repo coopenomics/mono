@@ -28,11 +28,9 @@
       </div>
     </template>
 
-    <template #body-cell-status="props">
-      <q-td :props="props">
-        <q-badge :color="statusColor(props.row.balance)" class="mp-status-badge">
-          {{ statusLabel(props.row.balance) }}
-        </q-badge>
+    <template #body-cell-balance="props">
+      <q-td :props="props" :class="balanceClass(props.row.balance)">
+        <strong>{{ props.row.balance }}</strong>
       </q-td>
     </template>
   </q-table>
@@ -46,9 +44,9 @@ export interface WarehouseRow {
   sku: string
   title: string
   unit: string
-  incoming: number  // приход
-  outgoing: number  // расход
-  balance: number   // остаток (in - out)
+  incoming: number  // приход на КУ
+  outgoing: number  // расход (выдано / отгружено)
+  balance: number   // остаток на КУ (in - out)
   pvz?: string
 }
 
@@ -58,6 +56,9 @@ const props = defineProps({
 
 const filter = ref('')
 
+// КУ работает транзитом: пришло → ушло. Колонка «статус достаточности»
+// удалена — это не торговая точка с минимальными остатками; transient-balance
+// и так виден в колонке «Остаток».
 const columns: QTableProps['columns'] = [
   { name: 'sku',      label: 'SKU',     field: 'sku',      align: 'left',  sortable: true },
   { name: 'title',    label: 'Позиция', field: 'title',    align: 'left',  sortable: true },
@@ -66,22 +67,14 @@ const columns: QTableProps['columns'] = [
   { name: 'outgoing', label: 'Расход',  field: 'outgoing', align: 'right', sortable: true },
   { name: 'balance',  label: 'Остаток', field: 'balance',  align: 'right', sortable: true },
   { name: 'unit',     label: 'Ед.',     field: 'unit',     align: 'left' },
-  { name: 'status',   label: 'Статус',  field: 'balance',  align: 'center' },
 ]
 
-function statusLabel(b: number) {
-  if (b <= 0) return 'Нет'
-  if (b < 5)  return 'Мало'
-  return 'Достаточно'
+// Подсветка остатка остаётся (визуально: 0 — приглушённо, >0 — нейтрально),
+// но это не «статус достаточности».
+function balanceClass(b: number) {
+  return b > 0 ? '' : 'text-grey-6'
 }
 
-function statusColor(b: number) {
-  if (b <= 0) return 'negative'
-  if (b < 5)  return 'warning'
-  return 'positive'
-}
-
-// QTable принимает filter как simple — здесь оставляем для дев-удобства
 const filteredRows = computed(() => {
   const f = filter.value.trim().toLowerCase()
   if (!f) return props.rows
@@ -90,6 +83,5 @@ const filteredRows = computed(() => {
   )
 })
 
-// Привязываем filteredRows через шаблонный override
 defineExpose({ filteredRows })
 </script>

@@ -2,9 +2,9 @@
   <div class="mp-role-admin">
     <div class="text-h5 q-mb-md">WarehouseSummaryGrid · Story 10.2.10 · UX-DR16</div>
     <div class="text-body2 text-grey-7 q-mb-lg">
-      Сводная таблица склада кооператива на admin-столе: приход / расход /
-      остаток / статус, фильтр по SKU/названию, плотный layout 14px.
-      Используется в Эпике 9 (Склад и отчётность).
+      Сводная таблица склада КУ на admin-столе: приход / расход / остаток
+      (КУ работает транзитом — без «минимального остатка»), фильтр по SKU/названию,
+      плотный layout 14px. Используется в Эпике 9 (Склад и отчётность).
     </div>
 
     <WarehouseSummaryGrid :rows="rows" />
