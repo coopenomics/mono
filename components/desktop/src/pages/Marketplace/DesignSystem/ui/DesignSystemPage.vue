@@ -5,7 +5,7 @@
       <aside class="col-12 col-md-3 mp-ds-aside q-pa-md">
         <div class="text-h6 q-mb-sm">Дизайн-система Стола Заказов</div>
         <div class="text-caption text-grey-7 q-mb-md">
-          Эпик 10 · MVP · 13 custom-компонентов + токены
+          Эпик 10 · MVP · 13 custom-компонентов + токены + perf
         </div>
 
         <q-list dense bordered separator class="rounded-borders">
@@ -116,6 +116,7 @@ import WarehouseSummaryGridSection from './sections/WarehouseSummaryGridSection.
 import OnboardingCPPGateSection from './sections/OnboardingCPPGateSection.vue'
 import MultiChannelStatusSection from './sections/MultiChannelStatusSection.vue'
 import KUMapWithListSection from './sections/KUMapWithListSection.vue'
+import PerformanceSection from './sections/PerformanceSection.vue'
 
 const $q = useQuasar()
 const state = useDesignSystemState()
@@ -141,6 +142,7 @@ const SECTION_COMPONENTS: Record<string, unknown> = {
   'onboarding-cpp-gate': OnboardingCPPGateSection,
   'multi-channel-status': MultiChannelStatusSection,
   'ku-map-with-list': KUMapWithListSection,
+  performance: PerformanceSection,
 }
 
 const currentSection = computed(() =>

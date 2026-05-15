@@ -139,6 +139,15 @@ export const SECTIONS: DesignSystemSection[] = [
     status: 'ready',
     description: 'Карта ПВЗ + синхронный список. Канон Эпика 2. Витрина показывает layout-превью без подключения Yandex Maps SDK (реальная карта — на /market-pvz/list).',
   },
+  {
+    key: 'performance',
+    title: 'Performance baseline',
+    uxDr: 'NFR-P1/P2/P3',
+    story: 'Story 10.3',
+    primaryRole: ['все'],
+    status: 'ready',
+    description: 'Эталонные страницы P1..P4 + целевые метрики MVP / Phase 2. Manual Lighthouse перед релизом; CI-gate — Phase 2.',
+  },
 ]
 
 export const STATUS_LABEL: Record<DesignSystemSection['status'], string> = {
