@@ -13,6 +13,7 @@ import { MarketplaceRegistrationOfferResolver } from './resolvers/marketplace-re
 import { MarketplaceWhitelistResolver } from './resolvers/marketplace-whitelist.resolver';
 import { MarketplaceVitrineResolver } from './resolvers/marketplace-vitrine.resolver';
 import { MarketplaceOfferResolver } from './resolvers/marketplace-offer.resolver';
+import { MarketplaceModerationResolver } from './resolvers/marketplace-moderation.resolver';
 import { MarketplaceMembershipGuard } from './guards/marketplace-membership.guard';
 import { MarketplaceRoleGuard } from './guards/marketplace-role.guard';
 import { MarketplaceOnboardingService } from './onboarding/marketplace-onboarding.service';
@@ -35,6 +36,10 @@ import {
   MarketplaceCategoryService,
   MARKETPLACE_CATEGORY_SERVICE,
 } from './services/marketplace-category.service';
+import {
+  MarketplaceModerationService,
+  MARKETPLACE_MODERATION_SERVICE,
+} from './services/marketplace-moderation.service';
 
 /**
  * Модуль приложения marketplace
@@ -57,6 +62,7 @@ import {
     MarketplaceWhitelistResolver,
     MarketplaceVitrineResolver,
     MarketplaceOfferResolver,
+    MarketplaceModerationResolver,
 
     // Guards (Story 1.3 / Story 1.6)
     MarketplaceMembershipGuard,
@@ -93,6 +99,12 @@ import {
       useClass: MarketplaceCategoryService,
     },
     MarketplaceCategoryService,
+    // Story 3.3
+    {
+      provide: MARKETPLACE_MODERATION_SERVICE,
+      useClass: MarketplaceModerationService,
+    },
+    MarketplaceModerationService,
   ],
   exports: [
     // Экспортируем сервисы для использования в других модулях
@@ -110,6 +122,8 @@ import {
     MarketplaceOfferService,
     MARKETPLACE_CATEGORY_SERVICE,
     MarketplaceCategoryService,
+    MARKETPLACE_MODERATION_SERVICE,
+    MarketplaceModerationService,
 
     // Экспортируем резолверы для регистрации в GraphQL
     CategoryTreeResolver,
@@ -125,6 +139,7 @@ import {
     MarketplaceWhitelistResolver,
     MarketplaceVitrineResolver,
     MarketplaceOfferResolver,
+    MarketplaceModerationResolver,
   ],
 })
 export class MarketplaceExtensionApplicationModule {}

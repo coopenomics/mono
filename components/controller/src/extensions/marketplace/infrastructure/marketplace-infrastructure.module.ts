@@ -18,6 +18,7 @@ import { MarketplaceVitrineEntity } from './entities/marketplace-vitrine.entity'
 import { MarketplaceWhitelistEntity } from './entities/marketplace-whitelist.entity';
 import { MarketplaceCategoryEntity } from './entities/marketplace-category.entity';
 import { MarketplaceOfferEntity } from './entities/marketplace-offer.entity';
+import { MarketplaceModerationLogEntity } from './entities/marketplace-moderation-log.entity';
 
 // Repository adapters
 import { CategoryRepositoryAdapter } from './adapters/category-repository.adapter';
@@ -33,12 +34,14 @@ import { MarketplaceVitrineRepositoryAdapter } from './adapters/marketplace-vitr
 import { MarketplaceWhitelistRepositoryAdapter } from './adapters/marketplace-whitelist-repository.adapter';
 import { MarketplaceCategoryRepositoryAdapter } from './adapters/marketplace-category-repository.adapter';
 import { MarketplaceOfferRepositoryAdapter } from './adapters/marketplace-offer-repository.adapter';
+import { MarketplaceModerationLogRepositoryAdapter } from './adapters/marketplace-moderation-log-repository.adapter';
 
 // Mappers
 import { MarketplaceVitrineMapper } from './mappers/marketplace-vitrine.mapper';
 import { MarketplaceWhitelistMapper } from './mappers/marketplace-whitelist.mapper';
 import { MarketplaceCategoryMapper } from './mappers/marketplace-category.mapper';
 import { MarketplaceOfferMapper } from './mappers/marketplace-offer.mapper';
+import { MarketplaceModerationLogMapper } from './mappers/marketplace-moderation-log.mapper';
 
 // Repository tokens
 import { CATEGORY_DOMAIN_REPOSITORY } from '../domain/repositories/category-domain.repository';
@@ -54,6 +57,7 @@ import { MARKETPLACE_VITRINE_REPOSITORY } from '../domain/repositories/marketpla
 import { MARKETPLACE_WHITELIST_REPOSITORY } from '../domain/repositories/marketplace-whitelist.repository';
 import { MARKETPLACE_CATEGORY_REPOSITORY } from '../domain/repositories/marketplace-category.repository';
 import { MARKETPLACE_OFFER_REPOSITORY } from '../domain/repositories/marketplace-offer.repository';
+import { MARKETPLACE_MODERATION_LOG_REPOSITORY } from '../domain/repositories/marketplace-moderation-log.repository';
 
 @Module({
   imports: [
@@ -82,6 +86,7 @@ import { MARKETPLACE_OFFER_REPOSITORY } from '../domain/repositories/marketplace
         MarketplaceWhitelistEntity,
         MarketplaceCategoryEntity,
         MarketplaceOfferEntity,
+        MarketplaceModerationLogEntity,
       ],
       synchronize: true,
       logging: false,
@@ -104,6 +109,7 @@ import { MARKETPLACE_OFFER_REPOSITORY } from '../domain/repositories/marketplace
         MarketplaceWhitelistEntity,
         MarketplaceCategoryEntity,
         MarketplaceOfferEntity,
+        MarketplaceModerationLogEntity,
       ],
       'marketplace'
     ), // Указываем имя подключения
@@ -167,6 +173,12 @@ import { MARKETPLACE_OFFER_REPOSITORY } from '../domain/repositories/marketplace
       provide: MARKETPLACE_OFFER_REPOSITORY,
       useClass: MarketplaceOfferRepositoryAdapter,
     },
+    // Story 3.3
+    MarketplaceModerationLogMapper,
+    {
+      provide: MARKETPLACE_MODERATION_LOG_REPOSITORY,
+      useClass: MarketplaceModerationLogRepositoryAdapter,
+    },
   ],
   exports: [
     CATEGORY_DOMAIN_REPOSITORY,
@@ -182,6 +194,7 @@ import { MARKETPLACE_OFFER_REPOSITORY } from '../domain/repositories/marketplace
     MARKETPLACE_WHITELIST_REPOSITORY,
     MARKETPLACE_CATEGORY_REPOSITORY,
     MARKETPLACE_OFFER_REPOSITORY,
+    MARKETPLACE_MODERATION_LOG_REPOSITORY,
   ],
 })
 export class MarketplaceInfrastructureModule {}
