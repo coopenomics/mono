@@ -6,16 +6,24 @@
     transition-show="slide-up"
     transition-hide="slide-down"
   >
-    <q-card class="mp-takeover">
-      <div class="mp-takeover__bar" :class="`bg-${kindColor}`">
-        <q-btn flat dense round icon="fa-solid fa-xmark" color="white" @click="onCancel" />
-        <div class="text-h6 text-white q-ml-md">{{ title }}</div>
+    <q-card class="mp-takeover" :class="`mp-takeover--${kind}`">
+      <div class="mp-takeover__bar">
+        <q-btn
+          flat
+          dense
+          round
+          icon="fa-solid fa-xmark"
+          class="mp-takeover__close"
+          aria-label="Закрыть"
+          @click="onCancel"
+        />
+        <q-icon v-if="kindIcon" :name="kindIcon" :class="`mp-takeover__icon mp-takeover__icon--${kind}`" />
+        <div class="mp-takeover__title">{{ title }}</div>
         <q-space />
-        <q-icon v-if="kindIcon" :name="kindIcon" color="white" size="24px" />
       </div>
 
       <q-card-section class="mp-takeover__body">
-        <div v-if="leadText" class="text-body1 q-mb-md">{{ leadText }}</div>
+        <div v-if="leadText" class="mp-takeover__lead">{{ leadText }}</div>
         <slot />
       </q-card-section>
 
@@ -23,13 +31,15 @@
 
       <q-card-actions class="mp-takeover__actions" align="right">
         <slot name="actions" :cancel="onCancel" :confirm="onConfirm">
-          <q-btn flat :label="cancelLabel" @click="onCancel" />
+          <q-btn flat no-caps :label="cancelLabel" @click="onCancel" />
           <q-btn
             unelevated
-            :color="kind === 'danger' ? 'negative' : 'primary'"
+            no-caps
+            :color="confirmColor"
             :label="confirmLabel"
             :loading="loading"
             :disable="disableConfirm"
+            class="mp-takeover__confirm"
             @click="onConfirm"
           />
         </slot>
@@ -65,15 +75,15 @@ const open = computed({
   set: (v: boolean) => emit('update:modelValue', v),
 })
 
-const KIND_MAP: Record<TakeoverKind, { color: string; icon: string }> = {
-  info:    { color: 'primary',  icon: 'fa-solid fa-circle-info' },
-  success: { color: 'positive', icon: 'fa-solid fa-circle-check' },
-  warning: { color: 'warning',  icon: 'fa-solid fa-triangle-exclamation' },
-  danger:  { color: 'negative', icon: 'fa-solid fa-circle-exclamation' },
+const KIND_MAP: Record<TakeoverKind, { icon: string; confirmColor: string }> = {
+  info:    { icon: 'fa-solid fa-circle-info',          confirmColor: 'primary'  },
+  success: { icon: 'fa-solid fa-circle-check',         confirmColor: 'positive' },
+  warning: { icon: 'fa-solid fa-triangle-exclamation', confirmColor: 'warning'  },
+  danger:  { icon: 'fa-solid fa-circle-exclamation',   confirmColor: 'negative' },
 }
 
-const kindColor = computed(() => KIND_MAP[props.kind].color)
 const kindIcon = computed(() => KIND_MAP[props.kind].icon)
+const confirmColor = computed(() => KIND_MAP[props.kind].confirmColor)
 
 function onCancel() {
   emit('cancel')
@@ -90,25 +100,76 @@ function onConfirm() {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  background: var(--mp-surface-0);
+  color: var(--mp-on-surface);
+
+  // Тонкая 4px-полоса акцента слева — единственный источник цвета в шапке
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--q-primary);
+  }
+
+  &--success::before { background: var(--q-positive); }
+  &--warning::before { background: var(--q-warning); }
+  &--danger::before  { background: var(--q-negative); }
 
   &__bar {
     display: flex;
     align-items: center;
+    gap: var(--mp-space-md);
     height: 64px;
-    padding: 0 var(--mp-space-md);
+    padding: 0 var(--mp-space-lg);
+    border-bottom: 1px solid var(--mp-border-subtle);
+  }
+
+  &__close {
+    color: var(--mp-on-surface-muted);
+  }
+
+  &__icon {
+    font-size: 22px;
+    color: var(--q-primary);
+
+    &--success { color: var(--q-positive); }
+    &--warning { color: var(--q-warning); }
+    &--danger  { color: var(--q-negative); }
+  }
+
+  &__title {
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -.01em;
+    color: var(--mp-on-surface);
   }
 
   &__body {
     flex: 1;
     overflow: auto;
-    padding: var(--mp-space-lg);
+    padding: var(--mp-space-xl) var(--mp-space-lg);
     max-width: 720px;
     margin: 0 auto;
     width: 100%;
   }
 
+  &__lead {
+    font-size: 15px;
+    color: var(--mp-on-surface-muted);
+    margin-bottom: var(--mp-space-md);
+  }
+
   &__actions {
     padding: var(--mp-space-md) var(--mp-space-lg);
+    gap: var(--mp-space-sm);
+  }
+
+  &__confirm {
+    border-radius: var(--mp-radius-sm);
+    box-shadow: none !important;
   }
 }
 </style>
