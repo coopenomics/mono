@@ -13,6 +13,8 @@ export * as CreateChildOrder from './createChildOrder'
 export * as CreateParentOffer from './createParentOffer'
 /** Отклонить заявку */
 export * as DeclineRequest from './declineRequest'
+/** Детализировать существующий в core кооперативный участок как ПВЗ Стола заказов */
+export * as DetailKU from './detailKU'
 /** Подтвердить доставку имущества Заказчику по заявке */
 export * as DeliverOnRequest from './deliverOnRequest'
 /** Открыть спор по заявке */
@@ -37,6 +39,10 @@ export * as ProhibitRequest from './prohibitRequest'
 export * as PublishRequest from './publishRequest'
 /** Подтвердить получение имущества Уполномоченным лицом от Заказчика по акту приёмки-передачи */
 export * as ReceiveOnRequest from './receiveOnRequest'
+/** Повторно запустить геокодинг адреса ПВЗ */
+export * as RetryKUGeocode from './retryKUGeocode'
+/** Активировать или деактивировать ПВЗ Стола заказов */
+export * as SetKUStatus from './setKUStatus'
 /** Подтвердить поставку имущества Поставщиком по заявке Заказчика и акту приёма-передачи */
 export * as SupplyOnRequest from './supplyOnRequest'
 /** Снять с публикации заявку */
