@@ -20,12 +20,9 @@
           </q-item-section>
           <q-item-section>
             <q-item-label>
-              <q-badge
-                v-if="d.required"
-                color="red-1"
-                text-color="red-9"
-                class="q-mr-xs"
-              >Обязательно</q-badge>
+              <span v-if="d.required" class="mp-status-chip mp-status-chip--warning mp-onboarding-gate__required">
+                Обязательно
+              </span>
               {{ d.title }}
             </q-item-label>
             <q-item-label caption v-if="d.description">{{ d.description }}</q-item-label>
@@ -97,11 +94,19 @@ function openDoc(d: CPPDocument) {
 <style scoped lang="scss">
 .mp-onboarding-gate {
   max-width: 720px;
+  border-radius: var(--mp-radius-md);
+  border: 1px solid var(--mp-border-subtle);
+  box-shadow: none;
 
   &__header {
     display: flex;
     gap: var(--mp-space-md);
     align-items: center;
+  }
+
+  &__required {
+    margin-right: 6px;
+    vertical-align: 1px;
   }
 }
 </style>
