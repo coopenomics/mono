@@ -13,6 +13,7 @@ import { AvailableCategoryEntity } from './entities/available-category.entity';
 import { RequestEntity } from './entities/request.entity';
 import { RequestAttributeValueEntity } from './entities/request-attribute-value.entity';
 import { RequestImageEntity } from './entities/request-image.entity';
+import { KuDetailsTypeormEntity } from './entities/ku-details.entity';
 
 // Repository adapters
 import { CategoryRepositoryAdapter } from './adapters/category-repository.adapter';
@@ -22,6 +23,8 @@ import { DictionaryRepositoryAdapter } from './adapters/dictionary-repository.ad
 import { DictionaryValueRepositoryAdapter } from './adapters/dictionary-value-repository.adapter';
 import { AvailableCategoryRepositoryAdapter } from './adapters/available-category-repository.adapter';
 import { RequestRepositoryAdapter } from './adapters/request-repository.adapter';
+import { KuDetailsRepositoryAdapter } from './adapters/ku-details-repository.adapter';
+import { geocoderPortFactory } from './adapters/geocoder.factory';
 
 // Repository tokens
 import { CATEGORY_DOMAIN_REPOSITORY } from '../domain/repositories/category-domain.repository';
@@ -31,6 +34,8 @@ import { DICTIONARY_DOMAIN_REPOSITORY } from '../domain/repositories/dictionary-
 import { DICTIONARY_VALUE_DOMAIN_REPOSITORY } from '../domain/repositories/dictionary-value-domain.repository';
 import { AVAILABLE_CATEGORY_DOMAIN_REPOSITORY } from '../domain/repositories/available-category-domain.repository';
 import { REQUEST_DOMAIN_REPOSITORY } from '../domain/repositories/request-domain.repository';
+import { KU_DETAILS_DOMAIN_REPOSITORY } from '../domain/repositories/ku-details-domain.repository';
+import { GEOCODER_PORT } from '../domain/ports/geocoder.port';
 
 @Module({
   imports: [
@@ -54,6 +59,7 @@ import { REQUEST_DOMAIN_REPOSITORY } from '../domain/repositories/request-domain
         RequestEntity,
         RequestAttributeValueEntity,
         RequestImageEntity,
+        KuDetailsTypeormEntity,
       ],
       synchronize: true,
       logging: false,
@@ -71,6 +77,7 @@ import { REQUEST_DOMAIN_REPOSITORY } from '../domain/repositories/request-domain
         RequestEntity,
         RequestAttributeValueEntity,
         RequestImageEntity,
+        KuDetailsTypeormEntity,
       ],
       'marketplace'
     ), // Указываем имя подключения
@@ -104,6 +111,14 @@ import { REQUEST_DOMAIN_REPOSITORY } from '../domain/repositories/request-domain
       provide: REQUEST_DOMAIN_REPOSITORY,
       useClass: RequestRepositoryAdapter,
     },
+    {
+      provide: KU_DETAILS_DOMAIN_REPOSITORY,
+      useClass: KuDetailsRepositoryAdapter,
+    },
+    {
+      provide: GEOCODER_PORT,
+      useFactory: geocoderPortFactory,
+    },
   ],
   exports: [
     CATEGORY_DOMAIN_REPOSITORY,
@@ -113,6 +128,8 @@ import { REQUEST_DOMAIN_REPOSITORY } from '../domain/repositories/request-domain
     DICTIONARY_VALUE_DOMAIN_REPOSITORY,
     AVAILABLE_CATEGORY_DOMAIN_REPOSITORY,
     REQUEST_DOMAIN_REPOSITORY,
+    KU_DETAILS_DOMAIN_REPOSITORY,
+    GEOCODER_PORT,
   ],
 })
 export class MarketplaceInfrastructureModule {}

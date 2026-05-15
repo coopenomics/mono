@@ -7,6 +7,9 @@ module.exports = {
   testEnvironmentOptions: {
     NODE_ENV: 'test',
   },
+  // Локально dev-стек controller'а живёт в docker и параллельный пул jest
+  // съедает CPU/RAM — вешает сервер. Любой `pnpm jest [...]` идёт в один воркер.
+  maxWorkers: 1,
   restoreMocks: true,
   // Интеграционные тесты против внешних сервисов (MinIO и т.п.) — не часть штатного `jest`-прогона.
   // Запускаются явно через `npm run test:integration:file-storage`.

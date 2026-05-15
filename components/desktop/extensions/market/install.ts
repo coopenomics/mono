@@ -8,6 +8,7 @@ import { ModerationPage } from 'src/pages/Marketplace/Moderation'
 import { WarehousePage } from 'src/pages/Marketplace/WarehousePage'
 import { ShipmentsPage } from 'src/pages/Marketplace/ShipmentsPage'
 import { DisputePage } from 'src/pages/Marketplace/DisputePage'
+import { PvzListPage } from 'src/pages/Marketplace/PvzList'
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace'
 import { agreementsBase } from 'src/shared/lib/consts/workspaces'
 
@@ -147,6 +148,38 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Модерация',
               icon: 'fa-solid fa-shield-halved',
+              roles: ['chairman'],
+              requiresAuth: true,
+              agreements: agreementsBase,
+            },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    workspace: 'market-pvz',
+    extension_name: 'market',
+    title: 'Стол ПВЗ',
+    icon: 'fa-solid fa-map-location-dot',
+    defaultRoute: 'marketplace-pvz',
+    routes: [
+      {
+        meta: {
+          title: 'Стол ПВЗ',
+          icon: 'fa-solid fa-map-location-dot',
+          roles: ['chairman'],
+        },
+        path: '/:coopname/market-pvz',
+        name: 'market-pvz',
+        children: [
+          {
+            path: 'list',
+            name: 'marketplace-pvz',
+            component: markRaw(PvzListPage),
+            meta: {
+              title: 'ПВЗ кооператива',
+              icon: 'fa-solid fa-map-location-dot',
               roles: ['chairman'],
               requiresAuth: true,
               agreements: agreementsBase,
