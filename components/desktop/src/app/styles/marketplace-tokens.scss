@@ -1,0 +1,103 @@
+// Story 10.1 — дизайн-токены Стола Заказов (Эпик 10 MVP)
+// Источник: requirements/4f-story-101-dizayn-tokeny-* + UX-DR19..23, DR27..32
+//
+// SCSS-переменные `$primary` / `$secondary` / `$accent` / `$dark` определяются
+// в Quasar через `quasar.variables.scss` и `variables.sass` — кастомизация
+// per-coop работает через них (UX-DR19). Здесь — только marketplace-specific
+// слой: spacing, touch-targets, per-role layout, statusbar.
+
+// === Spacing (UX-DR22) ============================================================
+// 4/8/16/24/48 — единая шкала для marketplace-компонентов
+:root {
+  --mp-space-xs: 4px;
+  --mp-space-sm: 8px;
+  --mp-space-md: 16px;
+  --mp-space-lg: 24px;
+  --mp-space-xl: 48px;
+}
+
+// === Touch-targets (UX-DR23) ======================================================
+// 44px на мобильных + orderer/offerer/admin; 48px на operator-POS (перчатки)
+:root {
+  --mp-touch-target: 44px;
+  --mp-touch-target-pos: 48px;
+}
+
+// === Typography (UX-DR21) =========================================================
+// 16px body на orderer/offerer/operator; 14px в admin-таблицах (через .mp-admin-dense)
+:root {
+  --mp-font-body: 16px;
+  --mp-font-admin-table: 14px;
+}
+
+// === Statusbar (UX-DR20) ==========================================================
+// Сигнальные цвета используются ТОЛЬКО для статусных бэйджей; Toast и экраны
+// остаются на нейтральном surface. Источник — стандартные Quasar semantics.
+.mp-status-badge {
+  &.mp-status-info     { background: var(--q-info);     color: white; }
+  &.mp-status-success  { background: var(--q-positive); color: white; }
+  &.mp-status-warning  { background: var(--q-warning);  color: #000; }
+  &.mp-status-error    { background: var(--q-negative); color: white; }
+  &.mp-status-neutral  { background: rgba(0, 0, 0, .08); color: inherit; }
+}
+
+// === Per-role layout (UX-DR31) ====================================================
+// Корневой класс на странице каждого стола — определяет плотность и touch-target.
+// Применяется обёрткой `<div :class="`mp-role-${role}`">` в layout marketplace.
+
+// Orderer/Offerer — просторный layout пайщика
+.mp-role-orderer,
+.mp-role-offerer {
+  --mp-density: 1;
+  --mp-row-padding: var(--mp-space-md);
+  --mp-card-padding: var(--mp-space-lg);
+  --mp-min-tap: var(--mp-touch-target);
+  font-size: var(--mp-font-body);
+}
+
+// Operator (POS-режим, председатель за кассой ПВЗ) — просторный + крупные touch
+.mp-role-operator {
+  --mp-density: 1;
+  --mp-row-padding: var(--mp-space-lg);
+  --mp-card-padding: var(--mp-space-xl);
+  --mp-min-tap: var(--mp-touch-target-pos);
+  font-size: var(--mp-font-body);
+
+  .q-btn { min-height: var(--mp-touch-target-pos); }
+  .q-input .q-field__control { min-height: var(--mp-touch-target-pos); }
+}
+
+// Admin — плотный layout, таблицы 14px
+.mp-role-admin {
+  --mp-density: 0;
+  --mp-row-padding: var(--mp-space-sm);
+  --mp-card-padding: var(--mp-space-md);
+  --mp-min-tap: var(--mp-touch-target);
+  font-size: var(--mp-font-body);
+
+  .q-table { font-size: var(--mp-font-admin-table); }
+  .mp-admin-dense .q-table tbody td { padding: 6px 12px; }
+}
+
+// === Helper-классы для spacing ====================================================
+.mp-gap-xs  { gap: var(--mp-space-xs); }
+.mp-gap-sm  { gap: var(--mp-space-sm); }
+.mp-gap-md  { gap: var(--mp-space-md); }
+.mp-gap-lg  { gap: var(--mp-space-lg); }
+.mp-gap-xl  { gap: var(--mp-space-xl); }
+
+.mp-pa-xs { padding: var(--mp-space-xs); }
+.mp-pa-sm { padding: var(--mp-space-sm); }
+.mp-pa-md { padding: var(--mp-space-md); }
+.mp-pa-lg { padding: var(--mp-space-lg); }
+.mp-pa-xl { padding: var(--mp-space-xl); }
+
+// === Emotional design (UX-DR32) ===================================================
+// Нейтральные индикаторы; marketplace-привычность для пайщика, POS-простота
+// для оператора. Здесь — общий контейнер карточки marketplace.
+.mp-card {
+  background: var(--q-card);
+  border-radius: 8px;
+  padding: var(--mp-card-padding, var(--mp-space-md));
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .08);
+}
