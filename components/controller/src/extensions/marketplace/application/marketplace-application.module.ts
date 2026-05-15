@@ -12,6 +12,7 @@ import { MarketplaceCoopAcceptanceResolver } from './resolvers/marketplace-coop-
 import { MarketplaceRegistrationOfferResolver } from './resolvers/marketplace-registration-offer.resolver';
 import { MarketplaceWhitelistResolver } from './resolvers/marketplace-whitelist.resolver';
 import { MarketplaceVitrineResolver } from './resolvers/marketplace-vitrine.resolver';
+import { MarketplaceOfferResolver } from './resolvers/marketplace-offer.resolver';
 import { MarketplaceMembershipGuard } from './guards/marketplace-membership.guard';
 import { MarketplaceRoleGuard } from './guards/marketplace-role.guard';
 import { MarketplaceOnboardingService } from './onboarding/marketplace-onboarding.service';
@@ -26,6 +27,14 @@ import {
   MarketplaceVitrineService,
   MARKETPLACE_VITRINE_SERVICE,
 } from './services/marketplace-vitrine.service';
+import {
+  MarketplaceOfferService,
+  MARKETPLACE_OFFER_SERVICE,
+} from './services/marketplace-offer.service';
+import {
+  MarketplaceCategoryService,
+  MARKETPLACE_CATEGORY_SERVICE,
+} from './services/marketplace-category.service';
 
 /**
  * Модуль приложения marketplace
@@ -47,6 +56,7 @@ import {
     MarketplaceRegistrationOfferResolver,
     MarketplaceWhitelistResolver,
     MarketplaceVitrineResolver,
+    MarketplaceOfferResolver,
 
     // Guards (Story 1.3 / Story 1.6)
     MarketplaceMembershipGuard,
@@ -72,6 +82,17 @@ import {
       useClass: MarketplaceVitrineService,
     },
     MarketplaceVitrineService,
+    // Story 3.2
+    {
+      provide: MARKETPLACE_OFFER_SERVICE,
+      useClass: MarketplaceOfferService,
+    },
+    MarketplaceOfferService,
+    {
+      provide: MARKETPLACE_CATEGORY_SERVICE,
+      useClass: MarketplaceCategoryService,
+    },
+    MarketplaceCategoryService,
   ],
   exports: [
     // Экспортируем сервисы для использования в других модулях
@@ -85,6 +106,10 @@ import {
     MarketplaceWhitelistService,
     MARKETPLACE_VITRINE_SERVICE,
     MarketplaceVitrineService,
+    MARKETPLACE_OFFER_SERVICE,
+    MarketplaceOfferService,
+    MARKETPLACE_CATEGORY_SERVICE,
+    MarketplaceCategoryService,
 
     // Экспортируем резолверы для регистрации в GraphQL
     CategoryTreeResolver,
@@ -99,6 +124,7 @@ import {
     MarketplaceRegistrationOfferResolver,
     MarketplaceWhitelistResolver,
     MarketplaceVitrineResolver,
+    MarketplaceOfferResolver,
   ],
 })
 export class MarketplaceExtensionApplicationModule {}

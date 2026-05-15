@@ -1,0 +1,138 @@
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { In, MoreThanOrEqual, Repository } from 'typeorm';
+import type {
+  MarketplaceOfferDomainRepository,
+  OfferCreateInput,
+  OfferListFilter,
+  OfferListPage,
+  OfferUpdateInput,
+} from '../../domain/repositories/marketplace-offer.repository';
+import type { MarketplaceOfferDomainEntity } from '../../domain/entities/marketplace-offer.entity';
+import type { MarketplaceOfferStatus } from '../../domain/entities/marketplace-offer.types';
+import { MarketplaceOfferEntity } from '../entities/marketplace-offer.entity';
+import { MarketplaceOfferMapper } from '../mappers/marketplace-offer.mapper';
+
+@Injectable()
+export class MarketplaceOfferRepositoryAdapter implements MarketplaceOfferDomainRepository {
+  constructor(
+    @InjectRepository(MarketplaceOfferEntity, 'marketplace')
+    private readonly repo: Repository<MarketplaceOfferEntity>,
+    private readonly mapper: MarketplaceOfferMapper
+  ) {}
+
+  async findById(id: string): Promise<MarketplaceOfferDomainEntity | null> {
+    const row = await this.repo.findOne({ where: { id } });
+    return row ? this.mapper.toDomain(row) : null;
+  }
+
+  async list(
+    filter: OfferListFilter,
+    paging: { limit: number; offset: number; sort?: 'created_at_desc' | 'price_asc' | 'price_desc' }
+  ): Promise<OfferListPage> {
+    const qb = this.repo
+      .createQueryBuilder('o')
+      .where('o.cooperative_id = :coop', { coop: filter.cooperative_id });
+
+    if (filter.supplier_account) {
+      qb.andWhere('o.supplier_account = :supplier', { supplier: filter.supplier_account });
+    }
+
+    if (filter.status) {
+      const statuses = Array.isArray(filter.status) ? filter.status : [filter.status];
+      qb.andWhere('o.status IN (:...statuses)', { statuses });
+    }
+
+    if (filter.category_id !== undefined) {
+      qb.andWhere('o.category_id = :cat', { cat: filter.category_id });
+    }
+
+    if (filter.available_only) {
+      // unlimited=true || quantity_available > 0
+      qb.andWhere('(o.unlimited_flag = true OR o.quantity_available > 0)');
+    }
+
+    switch (paging.sort) {
+      case 'price_asc':
+        qb.orderBy('o.price_per_unit', 'ASC').addOrderBy('o.created_at', 'DESC');
+        break;
+      case 'price_desc':
+        qb.orderBy('o.price_per_unit', 'DESC').addOrderBy('o.created_at', 'DESC');
+        break;
+      default:
+        qb.orderBy('o.created_at', 'DESC');
+    }
+
+    qb.skip(paging.offset).take(paging.limit);
+
+    const [rows, total] = await qb.getManyAndCount();
+    return { items: rows.map((r) => this.mapper.toDomain(r)), total };
+  }
+
+  async countByCategory(cooperative_id: string): Promise<Map<number, number>> {
+    const rows = await this.repo
+      .createQueryBuilder('o')
+      .select('o.category_id', 'category_id')
+      .addSelect('COUNT(*)', 'cnt')
+      .where('o.cooperative_id = :coop', { coop: cooperative_id })
+      .andWhere('o.status = :s', { s: 'ACTIVE' as MarketplaceOfferStatus })
+      .andWhere('(o.unlimited_flag = true OR o.quantity_available > 0)')
+      .groupBy('o.category_id')
+      .getRawMany<{ category_id: string; cnt: string }>();
+
+    const result = new Map<number, number>();
+    for (const r of rows) {
+      result.set(Number(r.category_id), Number(r.cnt));
+    }
+    return result;
+  }
+
+  async countRecentCreatedBy(supplier_account: string, sinceMs: number): Promise<number> {
+    const since = new Date(Date.now() - sinceMs);
+    return this.repo.count({
+      where: { supplier_account, created_at: MoreThanOrEqual(since) },
+    });
+  }
+
+  async create(input: OfferCreateInput): Promise<MarketplaceOfferDomainEntity> {
+    const row = this.repo.create({
+      cooperative_id: input.cooperative_id,
+      supplier_account: input.supplier_account,
+      vitrine_id: input.vitrine_id,
+      product_name: input.product_name,
+      description: input.description,
+      category_id: input.category_id,
+      price_per_unit: input.price_per_unit,
+      unit_of_measure: input.unit_of_measure,
+      quantity_available: input.unlimited_flag ? 0 : input.quantity_available,
+      quantity_blocked: 0,
+      quantity_consumed: 0,
+      unlimited_flag: input.unlimited_flag,
+      cycle_type: input.cycle_type,
+      cycle_days: input.cycle_days,
+      target_volume: input.target_volume,
+      max_wait_days: input.max_wait_days,
+      min_threshold: input.min_threshold,
+      warranty_days: input.warranty_days,
+      status: 'PENDING_MODERATION',
+    });
+    const saved = await this.repo.save(row);
+    return this.mapper.toDomain(saved);
+  }
+
+  async applyUpdate(
+    id: string,
+    patch: OfferUpdateInput & {
+      status?: MarketplaceOfferStatus;
+      approved_by?: string | null;
+      approved_at?: Date | null;
+      rejected_by?: string | null;
+      rejected_at?: Date | null;
+      reject_reason?: string | null;
+    }
+  ): Promise<MarketplaceOfferDomainEntity> {
+    await this.repo.update({ id }, patch as Record<string, unknown>);
+    const row = await this.repo.findOneOrFail({ where: { id } });
+    return this.mapper.toDomain(row);
+  }
+}
