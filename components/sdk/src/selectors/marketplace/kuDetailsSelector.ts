@@ -1,33 +1,46 @@
-import { Selector } from '../../zeus/index'
+import type { MakeAllFieldsRequired } from '../../utils/MakeAllFieldsRequired'
+import { Selector, type ValueTypes } from '../../zeus/index'
 
-export const workingHoursBreakSelector = Selector('WorkingHoursBreak')({
+const rawWorkingHoursBreakSelector = {
   start: true,
   end: true,
-})
+}
 
-export const workingHoursDaySelector = Selector('WorkingHoursDay')({
+const _validateWorkingHoursBreak: MakeAllFieldsRequired<ValueTypes['WorkingHoursBreak']> = rawWorkingHoursBreakSelector
+
+export const workingHoursBreakSelector = Selector('WorkingHoursBreak')(rawWorkingHoursBreakSelector)
+
+const rawWorkingHoursDaySelector = {
   open: true,
   close: true,
-  breaks: workingHoursBreakSelector,
-})
+  breaks: rawWorkingHoursBreakSelector,
+}
 
-export const workingHoursSelector = Selector('WorkingHours')({
-  mon: workingHoursDaySelector,
-  tue: workingHoursDaySelector,
-  wed: workingHoursDaySelector,
-  thu: workingHoursDaySelector,
-  fri: workingHoursDaySelector,
-  sat: workingHoursDaySelector,
-  sun: workingHoursDaySelector,
-})
+const _validateWorkingHoursDay: MakeAllFieldsRequired<ValueTypes['WorkingHoursDay']> = rawWorkingHoursDaySelector
 
-export const marketplaceKUDetailsSelector = Selector('MarketplaceKUDetails')({
+export const workingHoursDaySelector = Selector('WorkingHoursDay')(rawWorkingHoursDaySelector)
+
+const rawWorkingHoursSelector = {
+  mon: rawWorkingHoursDaySelector,
+  tue: rawWorkingHoursDaySelector,
+  wed: rawWorkingHoursDaySelector,
+  thu: rawWorkingHoursDaySelector,
+  fri: rawWorkingHoursDaySelector,
+  sat: rawWorkingHoursDaySelector,
+  sun: rawWorkingHoursDaySelector,
+}
+
+const _validateWorkingHours: MakeAllFieldsRequired<ValueTypes['WorkingHours']> = rawWorkingHoursSelector
+
+export const workingHoursSelector = Selector('WorkingHours')(rawWorkingHoursSelector)
+
+const rawMarketplaceKUDetailsSelector = {
   coopname: true,
   coreBraname: true,
   addressFull: true,
   contactPhone: true,
   contactEmail: true,
-  workingHours: workingHoursSelector,
+  workingHours: rawWorkingHoursSelector,
   description: true,
   status: true,
   lat: true,
@@ -37,4 +50,8 @@ export const marketplaceKUDetailsSelector = Selector('MarketplaceKUDetails')({
   geocodedAt: true,
   createdAt: true,
   updatedAt: true,
-})
+}
+
+const _validateMarketplaceKUDetails: MakeAllFieldsRequired<ValueTypes['MarketplaceKUDetails']> = rawMarketplaceKUDetailsSelector
+
+export const marketplaceKUDetailsSelector = Selector('MarketplaceKUDetails')(rawMarketplaceKUDetailsSelector)
