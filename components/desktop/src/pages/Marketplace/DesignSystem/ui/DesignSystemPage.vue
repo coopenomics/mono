@@ -103,6 +103,7 @@ import { SECTIONS, STATUS_LABEL, STATUS_COLOR } from '../lib/sections'
 import { useDesignSystemState, MARKETPLACE_ROLES, BREAKPOINTS } from '../composables/useDesignSystemState'
 import TokensSection from './sections/TokensSection.vue'
 import PlaceholderSection from './sections/PlaceholderSection.vue'
+import CatalogOfferCardSection from './sections/CatalogOfferCardSection.vue'
 
 const $q = useQuasar()
 const state = useDesignSystemState()
@@ -115,6 +116,7 @@ const statusColor = STATUS_COLOR
 // Реализованные секции: пока только tokens. Остальные — PlaceholderSection.
 const SECTION_COMPONENTS: Record<string, unknown> = {
   tokens: TokensSection,
+  'catalog-offer-card': CatalogOfferCardSection,
 }
 
 const currentSection = computed(() =>

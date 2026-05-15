@@ -55,8 +55,8 @@ export const SECTIONS: DesignSystemSection[] = [
     uxDr: 'UX-DR10',
     story: 'Story 10.2.4',
     primaryRole: ['orderer'],
-    status: 'imported',
-    description: 'Карточка Offer в каталоге Витрины. Извлечена из widgets/Marketplace/RequestCard.',
+    status: 'ready',
+    description: 'Карточка Offer в каталоге Витрины. Канон Стола Заказов, обёртка над widgets/Marketplace/RequestCard с расширенным API status / actions / fallback.',
   },
   {
     key: 'barcode-scanner',
