@@ -1,110 +1,116 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { AbstractEntitySyncService } from '~/shared/services/abstract-entity-sync.service';
+import { MarketplaceOrderDomainEntity } from '../domain/entities/marketplace-order.entity';
+import type { MarketplaceOrderBlockchainData } from '../domain/entities/marketplace-order.entity';
+import {
+  MARKETPLACE_ORDER_REPOSITORY,
+  type MarketplaceOrderDomainRepository,
+} from '../domain/repositories/marketplace-order.repository';
+import { MarketplaceOrderDeltaMapper } from '../infrastructure/mappers/marketplace-order-delta.mapper';
 import {
   MARKETPLACE_OFFER_COUNTERS_SERVICE,
   MarketplaceOfferCountersService,
 } from '../application/services/marketplace-offer-counters.service';
 
 /**
- * Scaffolding: `MarketplaceOrderSyncService`.
+ * Story 4.1: реальная реализация sync-service Order'ов (заменяет
+ * scaffolding с throw NOT_IMPLEMENTED).
  *
- * **STATUS: NOT IMPLEMENTED** — заглушка точки интеграции для Эпика 4.
+ * Подписывается на `delta::marketplace::orders` через EventEmitter2
+ * (паттерн `ProgramWalletSyncService`; ParserClient (parser2) ещё не
+ * включён в monorepo, переходим на него в Phase 2).
  *
- * Эта точка фиксирует **место в коде**, где живёт on-chain → PG
- * репликация on-chain сущности `marketplace::orders` (из PR #375
- * Story 11.1 Ledger2 marketplace canonical actions), и где вызывается
- * `MarketplaceOfferCountersService` Story 3.4 как side-effect внутри
- * dispatch pipeline.
+ * Story 4.1 contract:
+ *  - Counter side-effects (`onOrderBlocked` / `onOrderUnblocked` /
+ *    `onOrderConsumed`) дёргаются СИНХРОННО в backend create/cancel/
+ *    consume сервисах (optimistic update, compensating rollback при
+ *    chain-failure). Syncer counter НЕ дёргает на normal delta-flow,
+ *    чтобы избежать double-decrement.
+ *  - Counter `onOrderRolledBack` дёргается ТОЛЬКО в `afterForkProcessing`
+ *    для каждого Order'а в block-состоянии после fork-rollback цепи.
+ *    Это компенсирует backend optimistic update при катастрофе fork.
  *
- * **Без этого класса** интеграция Эпика 3 ↔ Эпика 4 размазана по
- * JSDoc-комментариям других файлов. С этим классом — в коде есть
- * единое место, к которому Эпик 4 добавит реальную реализацию.
- *
- * Спецификация интеграции: `_bmad-output/implementation-artifacts/
- * spec-3-4-bc-integration.md` (проект `1-prilozhenie-stol-zakazov`,
- * компонент `3-minimalnyy-produkt`). Source-of-truth паттерна:
- * `13-platforma-tsifrovogo-kooperativa/components/14-versiya-3/
- * requirements/c3-arch-sinkhronizatsiya-uzla-s-blokcheynom-v1.md`
- * (ADR-001 .. ADR-012) + `4f-arch-integratsiya-kontrollera-s-parser2-v1.md`.
- *
- * Зависимости, которые Эпик 4 должен добавить:
- *   - `@DomainKey({primary:'id', sync:'order_id'})` декоратор;
- *   - `@SyncBehaviour({forkPolicy:'rollback-via-versions', dlq:true})`;
- *   - `@Versioned({strategy:'entity_versions'})`;
- *   - extends `AbstractEntitySyncService<MarketplaceOrderDomainEntity, ...>`;
- *   - регистрация через `MarketplaceContractSyncModule.forEntity(...)`;
- *   - subscription к `marketplace::orders` через ParserClient с
- *     `subscriptionId="controller-${coopname}"`, `consumerName="primary"`,
- *     `startFromBlock:'last_known'` (DEC-T01..T12 из `4f-arch-parser2`);
- *   - `ForkRegistry.register(this.handleFork.bind(this))` в onInit.
- *
- * Dispatch pipeline (ADR-002 + controller/CLAUDE.md INV-12):
- *   1. dedup check (event_id) → return если уже обработан;
- *   2. save sync: `mapper.toDomain(delta)` → `repo.upsert`;
- *   3. dedup.mark;
- *   4. wake waiters (sync_key + block_num) — для write-mutation pool ADR-012;
- *   5. **side-effect: вызов counters-сервиса в зависимости от action_name**
- *      (см. таблицу ниже);
- *   6. emit internal bus `delta::marketplace::orders` immediate;
- *   7. emit pubsub `MarketplaceOrderUpdated` (домен-entity из PG).
- *
- * Маппинг canonical actions → counters методы:
- *   - `p.mkt.supply.createorder` (o.mkt.assign + o.mkt.block) →
- *       `offerCounters.onOrderBlocked(offer_id, qty)`;
- *   - `p.mkt.supply.cancelorder` (FR12) / `expireorder` (FR14) /
- *     `declineorder` (FR16) (o.mkt.unblock) →
- *       `offerCounters.onOrderUnblocked(offer_id, qty)`;
- *   - `p.mkt.supply.consume`+`consume2` (Эпик 6 выдача пайщику,
- *     o.mkt.consume) → `offerCounters.onOrderConsumed(offer_id, qty)`;
- *   - корректировка «факт меньше заказа» (FR23) →
- *       `offerCounters.onOrderAdjusted(offer_id, qty_diff)`.
- *
- * Fork rollback (ADR-005):
- *   - `handleFork(blockNum)`: удалить `orders WHERE block_num > N` +
- *     restoreFromVersions; для каждого удалённого/откатанного Order'а
- *     в block-состоянии вызвать `offerCounters.onOrderRolledBack(
- *     offer_id, qty)` (без CAS-проверки, ADR-005 политика «frozen past
- *     with Rollback Horizon»).
+ * См. spec-3-4-bc-integration.md секция 2.4-2.5 и controller/CLAUDE.md
+ * Dispatch pipeline / Fork handling правила.
  */
 @Injectable()
-export class MarketplaceOrderSyncService {
+export class MarketplaceOrderSyncService
+  extends AbstractEntitySyncService<MarketplaceOrderDomainEntity, MarketplaceOrderBlockchainData>
+  implements OnModuleInit
+{
+  protected readonly entityName = 'MarketplaceOrder';
+
   constructor(
+    @Inject(MARKETPLACE_ORDER_REPOSITORY)
+    repo: MarketplaceOrderDomainRepository,
+    deltaMapper: MarketplaceOrderDeltaMapper,
+    logger: WinstonLoggerService,
+    private readonly eventEmitter: EventEmitter2,
     @Inject(MARKETPLACE_OFFER_COUNTERS_SERVICE)
-    protected readonly offerCounters: MarketplaceOfferCountersService,
-    protected readonly eventBus: EventEmitter2,
-    protected readonly logger: WinstonLoggerService
+    private readonly offerCounters: MarketplaceOfferCountersService
   ) {
-    this.logger.setContext(MarketplaceOrderSyncService.name);
+    super(repo, deltaMapper, logger);
   }
 
-  /**
-   * Подписаться на marketplace::orders через ParserClient.
-   * Реализация — Эпик 4.
-   */
-  async start(): Promise<void> {
-    throw new Error(
-      'MarketplaceOrderSyncService.start: NOT IMPLEMENTED — будет реализовано в Эпике 4 после merge PR #375. См. spec-3-4-bc-integration.md.'
+  async onModuleInit() {
+    const supportedVersions = this.getSupportedVersions();
+    this.logger.debug(
+      `MarketplaceOrderSyncService инициализирован: contracts=[${supportedVersions.contracts.join(
+        ', '
+      )}], tables=[${supportedVersions.tables.join(', ')}]`
+    );
+
+    const patterns = this.getAllEventPatterns();
+    for (const pattern of patterns) {
+      this.eventEmitter.on(pattern, this.processDelta.bind(this));
+    }
+    this.eventEmitter.on(this.getForkEventPattern(), this.handleForkEvent.bind(this));
+    this.logger.debug(
+      `MarketplaceOrderSyncService: подписан на ${patterns.length} delta-паттернов + fork-канал`
     );
   }
 
   /**
-   * Dispatch одной delta-event'и из marketplace::orders.
-   * Реализация — Эпик 4.
+   * Fork-канал EventEmitter2 проходит через эту обёртку, которая
+   * нормализует payload в `{ block_num }` (см. контракт fork-events).
    */
-  async dispatch(_event: unknown): Promise<void> {
-    throw new Error(
-      'MarketplaceOrderSyncService.dispatch: NOT IMPLEMENTED — будет реализовано в Эпике 4. См. spec-3-4-bc-integration.md секция 2.4.'
-    );
+  async handleForkEvent(forkData: { block_num: number }): Promise<void> {
+    if (!forkData || typeof forkData.block_num !== 'number') {
+      this.logger.warn(`MarketplaceOrderSyncService: некорректный fork payload — ${JSON.stringify(forkData)}`);
+      return;
+    }
+    await this.handleFork(forkData.block_num);
   }
 
   /**
-   * Fork rollback handler — регистрируется в ForkRegistry.onInit.
-   * Реализация — Эпик 4.
+   * После rollback rows: для каждого Order'а, который был в block-state
+   * до отката (`is_in_block_state === true`), вызвать
+   * `offerCounters.onOrderRolledBack(offer_id, qty)`. Это компенсирует
+   * backend optimistic update в `MarketplaceOrderCreateService`.
+   *
+   * Counter rollback без CAS-проверки (ADR-005 «frozen past with
+   * Rollback Horizon»). При rollback вне горизонта оставляем
+   * counter inconsistent + alert (manual reconciliation, Phase 2).
    */
-  async handleFork(_blockNum: bigint): Promise<void> {
-    throw new Error(
-      'MarketplaceOrderSyncService.handleFork: NOT IMPLEMENTED — будет реализовано в Эпике 4. См. spec-3-4-bc-integration.md секция 2.5.'
+  protected async afterForkProcessing(
+    forkBlockNum: number,
+    affectedEntities: MarketplaceOrderDomainEntity[]
+  ): Promise<void> {
+    const inBlockEntities = affectedEntities.filter((e) => e.is_in_block_state);
+    this.logger.log(
+      `MarketplaceOrderSyncService.afterFork: возвращаю counters для ${inBlockEntities.length}/${affectedEntities.length} Order'ов (block_num > ${forkBlockNum})`
     );
+    for (const order of inBlockEntities) {
+      try {
+        await this.offerCounters.onOrderRolledBack(order.offer_id, order.quantity);
+      } catch (error: any) {
+        this.logger.error(
+          `MarketplaceOrderSyncService.afterFork: не удалось вернуть counter для Order ${order.id} (offer ${order.offer_id}, qty ${order.quantity}): ${error.message}`,
+          error.stack
+        );
+      }
+    }
   }
 }

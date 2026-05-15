@@ -19,6 +19,7 @@ import { MarketplaceWhitelistEntity } from './entities/marketplace-whitelist.ent
 import { MarketplaceCategoryEntity } from './entities/marketplace-category.entity';
 import { MarketplaceOfferEntity } from './entities/marketplace-offer.entity';
 import { MarketplaceModerationLogEntity } from './entities/marketplace-moderation-log.entity';
+import { MarketplaceOrderEntity } from './entities/marketplace-order.entity';
 
 // Repository adapters
 import { CategoryRepositoryAdapter } from './adapters/category-repository.adapter';
@@ -35,6 +36,8 @@ import { MarketplaceWhitelistRepositoryAdapter } from './adapters/marketplace-wh
 import { MarketplaceCategoryRepositoryAdapter } from './adapters/marketplace-category-repository.adapter';
 import { MarketplaceOfferRepositoryAdapter } from './adapters/marketplace-offer-repository.adapter';
 import { MarketplaceModerationLogRepositoryAdapter } from './adapters/marketplace-moderation-log-repository.adapter';
+import { MarketplaceOrderRepositoryAdapter } from './adapters/marketplace-order-repository.adapter';
+import { MarketplaceCanonicalBlockchainAdapter } from './adapters/marketplace-canonical-blockchain.adapter';
 
 // Mappers
 import { MarketplaceVitrineMapper } from './mappers/marketplace-vitrine.mapper';
@@ -42,6 +45,8 @@ import { MarketplaceWhitelistMapper } from './mappers/marketplace-whitelist.mapp
 import { MarketplaceCategoryMapper } from './mappers/marketplace-category.mapper';
 import { MarketplaceOfferMapper } from './mappers/marketplace-offer.mapper';
 import { MarketplaceModerationLogMapper } from './mappers/marketplace-moderation-log.mapper';
+import { MarketplaceOrderMapper } from './mappers/marketplace-order.mapper';
+import { MarketplaceOrderDeltaMapper } from './mappers/marketplace-order-delta.mapper';
 
 // Repository tokens
 import { CATEGORY_DOMAIN_REPOSITORY } from '../domain/repositories/category-domain.repository';
@@ -58,6 +63,8 @@ import { MARKETPLACE_WHITELIST_REPOSITORY } from '../domain/repositories/marketp
 import { MARKETPLACE_CATEGORY_REPOSITORY } from '../domain/repositories/marketplace-category.repository';
 import { MARKETPLACE_OFFER_REPOSITORY } from '../domain/repositories/marketplace-offer.repository';
 import { MARKETPLACE_MODERATION_LOG_REPOSITORY } from '../domain/repositories/marketplace-moderation-log.repository';
+import { MARKETPLACE_ORDER_REPOSITORY } from '../domain/repositories/marketplace-order.repository';
+import { MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT } from '../domain/ports/marketplace-canonical-blockchain.port';
 
 @Module({
   imports: [
@@ -87,6 +94,7 @@ import { MARKETPLACE_MODERATION_LOG_REPOSITORY } from '../domain/repositories/ma
         MarketplaceCategoryEntity,
         MarketplaceOfferEntity,
         MarketplaceModerationLogEntity,
+        MarketplaceOrderEntity,
       ],
       synchronize: true,
       logging: false,
@@ -110,6 +118,7 @@ import { MARKETPLACE_MODERATION_LOG_REPOSITORY } from '../domain/repositories/ma
         MarketplaceCategoryEntity,
         MarketplaceOfferEntity,
         MarketplaceModerationLogEntity,
+        MarketplaceOrderEntity,
       ],
       'marketplace'
     ), // Указываем имя подключения
@@ -179,6 +188,17 @@ import { MARKETPLACE_MODERATION_LOG_REPOSITORY } from '../domain/repositories/ma
       provide: MARKETPLACE_MODERATION_LOG_REPOSITORY,
       useClass: MarketplaceModerationLogRepositoryAdapter,
     },
+    // Story 4.1
+    MarketplaceOrderMapper,
+    MarketplaceOrderDeltaMapper,
+    {
+      provide: MARKETPLACE_ORDER_REPOSITORY,
+      useClass: MarketplaceOrderRepositoryAdapter,
+    },
+    {
+      provide: MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
+      useClass: MarketplaceCanonicalBlockchainAdapter,
+    },
   ],
   exports: [
     CATEGORY_DOMAIN_REPOSITORY,
@@ -195,6 +215,9 @@ import { MARKETPLACE_MODERATION_LOG_REPOSITORY } from '../domain/repositories/ma
     MARKETPLACE_CATEGORY_REPOSITORY,
     MARKETPLACE_OFFER_REPOSITORY,
     MARKETPLACE_MODERATION_LOG_REPOSITORY,
+    MARKETPLACE_ORDER_REPOSITORY,
+    MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
+    MarketplaceOrderDeltaMapper,
   ],
 })
 export class MarketplaceInfrastructureModule {}

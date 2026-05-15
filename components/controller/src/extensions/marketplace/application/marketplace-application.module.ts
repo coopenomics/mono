@@ -15,6 +15,7 @@ import { MarketplaceVitrineResolver } from './resolvers/marketplace-vitrine.reso
 import { MarketplaceOfferResolver } from './resolvers/marketplace-offer.resolver';
 import { MarketplaceModerationResolver } from './resolvers/marketplace-moderation.resolver';
 import { MarketplaceCatalogResolver } from './resolvers/marketplace-catalog.resolver';
+import { MarketplaceOrderResolver } from './resolvers/marketplace-order.resolver';
 import { MarketplaceMembershipGuard } from './guards/marketplace-membership.guard';
 import { MarketplaceRoleGuard } from './guards/marketplace-role.guard';
 import { MarketplaceOnboardingService } from './onboarding/marketplace-onboarding.service';
@@ -45,6 +46,11 @@ import {
   MarketplaceOfferCountersService,
   MARKETPLACE_OFFER_COUNTERS_SERVICE,
 } from './services/marketplace-offer-counters.service';
+import {
+  MarketplaceOrderCreateService,
+  MARKETPLACE_ORDER_CREATE_SERVICE,
+} from './services/marketplace-order-create.service';
+import { MarketplaceOrderSyncService } from '../sync/marketplace-order-sync.service';
 
 /**
  * Модуль приложения marketplace
@@ -69,6 +75,7 @@ import {
     MarketplaceOfferResolver,
     MarketplaceModerationResolver,
     MarketplaceCatalogResolver,
+    MarketplaceOrderResolver,
 
     // Guards (Story 1.3 / Story 1.6)
     MarketplaceMembershipGuard,
@@ -117,6 +124,13 @@ import {
       useClass: MarketplaceOfferCountersService,
     },
     MarketplaceOfferCountersService,
+    // Story 4.1
+    {
+      provide: MARKETPLACE_ORDER_CREATE_SERVICE,
+      useClass: MarketplaceOrderCreateService,
+    },
+    MarketplaceOrderCreateService,
+    MarketplaceOrderSyncService,
   ],
   exports: [
     // Экспортируем сервисы для использования в других модулях
@@ -155,6 +169,12 @@ import {
     MarketplaceOfferResolver,
     MarketplaceModerationResolver,
     MarketplaceCatalogResolver,
+    MarketplaceOrderResolver,
+
+    // Экспортируем сервисы Story 4.1 для использования в follow-up Stories Эпика 4
+    MARKETPLACE_ORDER_CREATE_SERVICE,
+    MarketplaceOrderCreateService,
+    MarketplaceOrderSyncService,
   ],
 })
 export class MarketplaceExtensionApplicationModule {}
