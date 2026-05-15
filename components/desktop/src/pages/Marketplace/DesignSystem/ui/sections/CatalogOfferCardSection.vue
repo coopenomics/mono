@@ -30,8 +30,8 @@
         <div class="text-caption q-mb-xs">Slot actions (использование в OfferPage)</div>
         <CatalogOfferCard :offer="withActions">
           <template #actions="{ offer }">
-            <q-btn flat dense label="Подробнее" />
-            <q-btn unelevated dense color="primary" :label="`Купить ${offer.unitCost} ₽`" />
+            <q-btn flat dense no-caps label="Подробнее" />
+            <q-btn unelevated dense no-caps color="primary" :label="`Заказать · ${offer.unitCost} ₽`" />
           </template>
         </CatalogOfferCard>
       </div>

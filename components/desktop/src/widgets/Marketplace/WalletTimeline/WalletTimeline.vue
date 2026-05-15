@@ -6,24 +6,26 @@
       :title="e.title"
       :subtitle="formatDate(e.at)"
       :icon="iconOf(e.kind)"
-      :color="colorOf(e.kind)"
+      color="primary"
     >
-      <div class="row items-center q-gutter-md">
-        <div :class="['text-h6', amountClass(e)]">
+      <div class="mp-wallet-timeline__row">
+        <div :class="['mp-wallet-timeline__amount', amountClass(e)]">
           {{ amountSign(e) }}{{ formatAmount(e.amount) }} ₽
         </div>
-        <q-badge outline :color="colorOf(e.kind)">
+        <span class="mp-status-chip" :class="`mp-status-chip--${chipKindOf(e.kind)}`">
           {{ kindLabel[e.kind] }}
-        </q-badge>
-        <q-badge v-if="e.orderId" outline color="grey-7">
-          MP-{{ e.orderId }}
-        </q-badge>
+        </span>
+        <span v-if="e.orderId" class="mp-status-chip mp-status-chip--neutral">
+          № {{ e.orderId }}
+        </span>
       </div>
-      <div v-if="e.note" class="text-body2 text-grey-7 q-mt-xs">{{ e.note }}</div>
+      <div v-if="e.note" class="mp-wallet-timeline__note">{{ e.note }}</div>
     </q-timeline-entry>
 
     <q-timeline-entry v-if="!entries.length" subtitle="История пуста" title="Операций пока нет">
-      <div class="text-grey-7">Когда вы оплатите заказ или получите выплату — записи появятся здесь.</div>
+      <div class="mp-wallet-timeline__empty">
+        Когда вы заказываете товар или получаете выплату — записи появятся здесь.
+      </div>
     </q-timeline-entry>
   </q-timeline>
 </template>
@@ -57,13 +59,15 @@ const kindLabel: Record<WalletEntryKind, string> = {
   payout:   'Выплата',
 }
 
-function colorOf(k: WalletEntryKind): string {
+type ChipKind = 'info' | 'success' | 'warning' | 'error' | 'neutral'
+
+function chipKindOf(k: WalletEntryKind): ChipKind {
   return ({
-    deposit:  'positive',
+    deposit:  'success',
     block:    'warning',
-    unblock:  'grey-7',
-    charge:   'negative',
-    refund:   'positive',
+    unblock:  'neutral',
+    charge:   'neutral',
+    refund:   'success',
     payout:   'info',
   } as const)[k]
 }
@@ -86,9 +90,9 @@ function amountSign(e: WalletEntry): string {
 }
 
 function amountClass(e: WalletEntry): string {
-  if (e.kind === 'deposit' || e.kind === 'refund' || e.kind === 'payout') return 'text-positive'
-  if (e.kind === 'charge') return 'text-negative'
-  return 'text-grey-9'
+  if (e.kind === 'deposit' || e.kind === 'refund' || e.kind === 'payout') return 'mp-wallet-timeline__amount--positive'
+  if (e.kind === 'charge') return 'mp-wallet-timeline__amount--negative'
+  return ''
 }
 
 function formatAmount(v: number): string {
@@ -100,3 +104,34 @@ function formatDate(v: string | Date): string {
   return d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 </script>
+
+<style scoped lang="scss">
+.mp-wallet-timeline {
+  &__row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--mp-space-sm);
+  }
+
+  &__amount {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -.02em;
+    color: var(--mp-on-surface);
+
+    &--positive { color: var(--q-positive); }
+    &--negative { color: var(--q-negative); }
+  }
+
+  &__note {
+    font-size: 13px;
+    color: var(--mp-on-surface-muted);
+    margin-top: 4px;
+  }
+
+  &__empty {
+    color: var(--mp-on-surface-muted);
+  }
+}
+</style>

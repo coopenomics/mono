@@ -16,12 +16,15 @@
       </div>
     </div>
 
-    <!-- Статусные цвета -->
-    <div class="text-h6 q-mt-xl q-mb-sm">Статусные бэйджи (UX-DR20)</div>
+    <!-- Статусные чипы -->
+    <div class="text-h6 q-mt-xl q-mb-sm">Статусные чипы (UX-DR20)</div>
+    <div class="text-body2 text-grey-7 q-mb-sm">
+      Нейтральный фон + цветная точка + текст. Никаких залитых разноцветных бэйджей.
+    </div>
     <div class="row q-gutter-sm">
-      <q-badge v-for="s in statuses" :key="s.label" :class="`mp-status-badge mp-status-${s.kind}`">
+      <span v-for="s in statuses" :key="s.label" :class="`mp-status-chip mp-status-chip--${s.kind}`">
         {{ s.label }}
-      </q-badge>
+      </span>
     </div>
 
     <!-- Typography -->
@@ -60,12 +63,12 @@
 
     <!-- Per-role -->
     <div class="text-h6 q-mt-xl q-mb-sm">Per-роль layout (UX-DR31)</div>
-    <div class="row q-gutter-md">
-      <div v-for="r in roleCards" :key="r.role" :class="`col-12 col-sm-3 mp-role-${r.role}`">
+    <div class="row q-col-gutter-md">
+      <div v-for="r in roleCards" :key="r.role" :class="`col-12 col-sm-6 col-md-3 mp-role-${r.role}`">
         <div class="mp-card">
           <div class="text-subtitle1">{{ r.title }}</div>
-          <div class="text-caption text-grey-7 q-mb-sm">{{ r.hint }}</div>
-          <q-btn :label="r.cta" color="primary" no-caps class="full-width" />
+          <div class="text-caption text-grey-7 q-mb-md">{{ r.hint }}</div>
+          <q-btn :label="r.cta" color="primary" unelevated no-caps class="full-width" />
         </div>
       </div>
     </div>
@@ -110,7 +113,7 @@ const spacing = [
 ]
 
 const roleCards = [
-  { role: 'orderer',  title: 'Стол заказчика',  hint: 'просторный · 16px · 44px tap', cta: 'Купить' },
+  { role: 'orderer',  title: 'Стол заказчика',  hint: 'просторный · 16px · 44px tap', cta: 'Заказать' },
   { role: 'offerer',  title: 'Стол поставщика', hint: 'просторный · 16px · 44px tap', cta: 'Опубликовать' },
   { role: 'operator', title: 'Стол ПВЗ (POS)',  hint: 'POS · 16px · 48px tap',         cta: 'Принять' },
   { role: 'admin',    title: 'Стол админа',     hint: 'плотный · 14px таблицы',        cta: 'Открыть' },
