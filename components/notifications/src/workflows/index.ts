@@ -23,6 +23,9 @@ import { workflow as serverProvisionedWorkflow } from './server-provisioned';
 import { workflow as decisionExpiredWorkflow } from './decision-expired';
 import { workflow as chatcoopCalendarEventCreatedWorkflow } from './chatcoop-calendar-event-created';
 import { workflow as chatcoopCalendarEventUpdatedWorkflow } from './chatcoop-calendar-event-updated';
+import { workflow as marketplaceAplSupplierSignRequestWorkflow } from './marketplace-apl-supplier-sign-request';
+import { workflow as marketplaceCashierNewPaymentWorkflow } from './marketplace-cashier-new-payment';
+import { workflow as marketplaceSupplierPaymentConfirmedWorkflow } from './marketplace-supplier-payment-confirmed';
 
 // Импортируем все воркфлоу
 export * as Welcome from './welcome';
@@ -48,6 +51,9 @@ export * as ServerProvisioned from './server-provisioned';
 export * as DecisionExpired from './decision-expired';
 export * as ChatCoopCalendarEventCreated from './chatcoop-calendar-event-created';
 export * as ChatCoopCalendarEventUpdated from './chatcoop-calendar-event-updated';
+export * as MarketplaceAplSupplierSignRequest from './marketplace-apl-supplier-sign-request';
+export * as MarketplaceCashierNewPayment from './marketplace-cashier-new-payment';
+export * as MarketplaceSupplierPaymentConfirmed from './marketplace-supplier-payment-confirmed';
 
 // Массив всех воркфлоу для автоматической регистрации
 export const allWorkflows: WorkflowDefinition[] = [
@@ -74,6 +80,9 @@ export const allWorkflows: WorkflowDefinition[] = [
   decisionExpiredWorkflow,
   chatcoopCalendarEventCreatedWorkflow,
   chatcoopCalendarEventUpdatedWorkflow,
+  marketplaceAplSupplierSignRequestWorkflow,
+  marketplaceCashierNewPaymentWorkflow,
+  marketplaceSupplierPaymentConfirmedWorkflow,
 ];
 
 // Экспортируем воркфлоу по ID для удобного доступа

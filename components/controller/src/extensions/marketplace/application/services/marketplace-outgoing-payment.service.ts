@@ -5,7 +5,16 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import {
+  MARKETPLACE_SUPPLIER_PAYMENT_CONFIRMED_EVENT,
+  type MarketplaceSupplierPaymentConfirmedEvent,
+} from '../events/marketplace-notification.events';
+import {
+  MARKETPLACE_ASSET_CONFIG,
+  type MarketplaceAssetConfig,
+} from './marketplace-asset.config';
 import {
   MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY,
   type MarketplaceOutgoingPaymentRequestDomainRepository,
@@ -61,6 +70,9 @@ export class MarketplaceOutgoingPaymentService {
     private readonly paymentRepo: MarketplaceOutgoingPaymentRequestDomainRepository,
     @Inject(GATEWAY_INTERACTOR_PORT)
     private readonly coreGateway: GatewayInteractorPort,
+    @Inject(MARKETPLACE_ASSET_CONFIG)
+    private readonly assetConfig: MarketplaceAssetConfig,
+    private readonly eventBus: EventEmitter2,
     private readonly logger: WinstonLoggerService
   ) {
     this.logger.setContext(MarketplaceOutgoingPaymentService.name);
@@ -101,6 +113,17 @@ export class MarketplaceOutgoingPaymentService {
       `Outgoing payment ${payment.id} confirmed by cashier: reference="${input.payment_reference}", ` +
         `status=${finalStatus}. Поставщик ${payment.payee_account} получит уведомление о выплате.`
     );
+
+    // Story 598-20: push поставщику о подтверждённой выплате.
+    const event: MarketplaceSupplierPaymentConfirmedEvent = {
+      coopname: updated.coopname,
+      apl_reception_id: updated.apl_reception_id,
+      payment_request_id: updated.id,
+      supplier_account: updated.payee_account,
+      amount: `${updated.amount} ${this.assetConfig.symbol}`,
+      payment_reference: input.payment_reference,
+    };
+    this.eventBus.emit(MARKETPLACE_SUPPLIER_PAYMENT_CONFIRMED_EVENT, event);
 
     return { payment_request: updated };
   }

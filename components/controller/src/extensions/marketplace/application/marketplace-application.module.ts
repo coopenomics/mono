@@ -91,6 +91,7 @@ import {
   MARKETPLACE_OUTGOING_PAYMENT_SERVICE,
 } from './services/marketplace-outgoing-payment.service';
 import { MarketplaceOutgoingPaymentResolver } from './resolvers/marketplace-outgoing-payment.resolver';
+import { MarketplaceNotificationService } from './services/marketplace-notification.service';
 
 /**
  * Модуль приложения marketplace
@@ -235,6 +236,11 @@ import { MarketplaceOutgoingPaymentResolver } from './resolvers/marketplace-outg
       useClass: MarketplaceOutgoingPaymentService,
     },
     MarketplaceOutgoingPaymentService,
+    // Story 598-20 — push-уведомления marketplace flow (АПП Б поставщику,
+    // новая выплата кассиру, подтверждённая выплата поставщику).
+    // Слушает per-contract event-bus, отправка через Novu без обратного
+    // влияния на основной flow (INV-12: emit после save в PG).
+    MarketplaceNotificationService,
   ],
   exports: [
     // Экспортируем сервисы для использования в других модулях

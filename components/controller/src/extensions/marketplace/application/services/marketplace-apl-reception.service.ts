@@ -6,7 +6,14 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import {
+  MARKETPLACE_APL_SUPPLIER_SIGN_REQUEST_EVENT,
+  MARKETPLACE_CASHIER_NEW_PAYMENT_EVENT,
+  type MarketplaceAplSupplierSignRequestEvent,
+  type MarketplaceCashierNewPaymentEvent,
+} from '../events/marketplace-notification.events';
 import {
   MARKETPLACE_SHIPMENT_REPOSITORY,
   type MarketplaceShipmentDomainRepository,
@@ -164,6 +171,7 @@ export class MarketplaceAplReceptionService {
     private readonly coreGateway: GatewayInteractorPort,
     @Inject(MARKETPLACE_APL_RECEPTION_DOCUMENT_FACTORY)
     private readonly documentFactory: MarketplaceAplReceptionDocumentFactory,
+    private readonly eventBus: EventEmitter2,
     private readonly logger: WinstonLoggerService
   ) {
     this.logger.setContext(MarketplaceAplReceptionService.name);
@@ -264,6 +272,21 @@ export class MarketplaceAplReceptionService {
     this.logger.log(
       `АПП ${reception.id} (вариант ${variant}) для партии ${shipment.id}, ku=${shipment.ku_id}, orders=${groupOrders.length}, total=${total}`
     );
+
+    // Story 598-20: push поставщику для Варианта Б — экспедитор привёз
+    // партию, требуется первая подпись поставщика. Для Варианта А
+    // поставщик подписывает на стойке оператора, push не нужен.
+    if (variant === MarketplaceAplReceptionVariants.EXPEDITOR) {
+      const event: MarketplaceAplSupplierSignRequestEvent = {
+        coopname: reception.coopname,
+        apl_reception_id: reception.id,
+        supplier_account: reception.offerer_account,
+        ku_name: reception.ku_id,
+        ttn_number: reception.ttn_number ?? '—',
+        expeditor_name: reception.expeditor_data?.expeditor_full_name ?? 'экспедитор',
+      };
+      this.eventBus.emit(MARKETPLACE_APL_SUPPLIER_SIGN_REQUEST_EVENT, event);
+    }
 
     return { apl_reception: reception };
   }
@@ -379,7 +402,26 @@ export class MarketplaceAplReceptionService {
     // Story 5.6: создаём marketplace-scoped запрос исходящего платежа.
     // Кассир увидит задачу в своём столе и подтвердит факт банковского
     // перевода (Story 5.7).
-    await this.createOutgoingPaymentRequest(updated, input.chairman_account);
+    const paymentRequestRef = await this.createOutgoingPaymentRequest(
+      updated,
+      input.chairman_account
+    );
+
+    // Story 598-20: push кассиру о новой задаче — только если
+    // marketplace-запись успешно создана (compensating-rollback мог её
+    // удалить при core-fail). При повторном вызове через retry АПП уже
+    // ACCEPTED_TO_COOP — повторный signAsChairman не сработает, push
+    // от первой удачной попытки.
+    if (paymentRequestRef) {
+      const event: MarketplaceCashierNewPaymentEvent = {
+        coopname: updated.coopname,
+        apl_reception_id: updated.id,
+        payment_request_id: paymentRequestRef.id,
+        supplier_account: updated.offerer_account,
+        amount: `${updated.total_amount} ${this.assetConfig.symbol}`,
+      };
+      this.eventBus.emit(MARKETPLACE_CASHIER_NEW_PAYMENT_EVENT, event);
+    }
 
     this.logger.log(
       `АПП ${reception.id}: закрывающая подпись председателя ${input.chairman_account} принята (placeholder tx=${txHash}). On-chain signchair + ledger o.mkt.purch / o.mkt.payout подключаются FR45 follow-up'ом (требуется реальная подпись Document2 через AR33).`
@@ -404,12 +446,12 @@ export class MarketplaceAplReceptionService {
   private async createOutgoingPaymentRequest(
     reception: MarketplaceAplReceptionDomainEntity,
     chairman_account: string
-  ): Promise<void> {
+  ): Promise<{ id: string } | null> {
     const existing = await this.paymentRepo.findByAplReceptionId(
       reception.coopname,
       reception.id
     );
-    if (existing) return;
+    if (existing) return { id: existing.id };
 
     const orderIds = reception.fact_quantity_per_order.map((f) => f.order_id);
     const purpose = `Приобретение товаров по счёту marketplace, АПП #${reception.id} (председатель ${chairman_account})`;
@@ -433,7 +475,7 @@ export class MarketplaceAplReceptionService {
       this.logger.warn(
         `MarketplaceAplReceptionService.createOutgoingPaymentRequest: создание marketplace-запроса для АПП ${reception.id} упало (${err.message}); АПП в статусе ACCEPTED_TO_COOP остаётся.`
       );
-      return;
+      return null;
     }
 
     // Core sync (AR35 / 598-17).
@@ -471,7 +513,9 @@ export class MarketplaceAplReceptionService {
       this.logger.warn(
         `MarketplaceAplReceptionService.createOutgoingPaymentRequest: core sync для marketplace request ${request.id} (АПП ${reception.id}) упал (${err.message}); marketplace-запись откатана. Кассир задачу не увидит до следующей попытки.`
       );
+      return null;
     }
+    return request;
   }
 
   /**
