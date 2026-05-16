@@ -7200,13 +7200,6 @@ enum MarketplaceBarcodeStrategy {
   PER_UNIT
 }
 
-input MarketplaceBlockOutgoingPaymentInput {
-  payment_request_id: ID!
-
-  """Причина блокировки (отказ банка, недостаток средств и т.п.)."""
-  reason: String!
-}
-
 """Параметры отмены своего заказа пайщиком."""
 input MarketplaceCancelOrderInput {
   """
@@ -7297,15 +7290,6 @@ type MarketplaceCategoryTreeStats {
 
   """Общее количество типов товаров"""
   totalTypes: Int!
-}
-
-input MarketplaceConfirmOutgoingPaymentInput {
-  """Опционально — ссылка на выписку банка (URL или hash)."""
-  bank_statement_ref: String
-
-  """Номер банковского платёжного поручения / референс операции."""
-  payment_reference: String!
-  payment_request_id: ID!
 }
 
 type MarketplaceConsolidatedRequest {
@@ -8012,36 +7996,35 @@ type MarketplaceOutgoingPaymentRequest {
 
   """Акт приёмки, по которому возникло обязательство."""
   apl_reception_id: ID!
-
-  """Ссылка на выписку банка (URL/hash) для аудита."""
-  bank_statement_ref: String
-
-  """Причина блокировки, если платёж не прошёл банковский контур."""
-  blocked_reason: String
-  confirmed_at: DateTime
+  completed_at: DateTime
   coopname: String!
 
   """
-  Идентификатор связанного платежа в общем реестре кооператива — кассирский стол отображает marketplace-выплаты в общей ленте платежей.
+  Идентификатор связанного платежа в общем реестре кооператива — кассир видит выплату в общей ленте платежей.
   """
   core_payment_id: ID
   created_at: DateTime!
+
+  """Причина отказа банковского перевода, если кассир отказал в проведении."""
+  decline_reason: String
   id: ID!
 
-  """Account поставщика — получатель платежа."""
+  """Хэш заказа в каталоге поставок — один заказ = одна выплата."""
+  order_hash: String!
+
+  """Идентификатор заказа в каталоге поставок."""
+  order_id: ID!
+
+  """Аккаунт поставщика — получатель выплаты."""
   payee_account: String!
 
-  """Внешний номер банковского платёжного документа."""
-  payment_reference: String
-
-  """Хэш транзакции o.mkt.payout (для lazy-варианта L12)."""
+  """
+  Идентификатор транзакции payout / payconfirm — для трассировки в логах.
+  """
   payout_tx_hash: String
 
   """Назначение платежа для распечатки."""
   purpose: String!
-
-  """Заказы, по которым формируется платёж."""
-  related_order_ids: [ID!]!
   status: MarketplaceOutgoingPaymentRequestStatus!
 
   """Символ актива (например, RUB)."""
@@ -8049,16 +8032,13 @@ type MarketplaceOutgoingPaymentRequest {
   updated_at: DateTime!
 }
 
-"""Статус запроса исходящего платежа кассиру."""
+"""
+Статус исходящей выплаты поставщику на стороне marketplace. Подтверждение и отказ выполняет общий стол кассира кооператива; marketplace отображает результат только для истории.
+"""
 enum MarketplaceOutgoingPaymentRequestStatus {
-  BLOCKED
-  CONFIRMED_BY_CASHIER
-  LEDGER_RECORDED
-  PENDING_CASHIER_ACTION
-}
-
-type MarketplaceOutgoingPaymentResult {
-  payment_request: MarketplaceOutgoingPaymentRequest!
+  COMPLETED
+  DECLINED
+  PENDING
 }
 
 type MarketplaceProductType {
@@ -9836,11 +9816,6 @@ type Mutation {
   marketplaceApproveOffer(input: MarketplaceApproveOfferInput!): MarketplaceOffer!
 
   """
-  Кассир помечает платёж заблокированным (например, отказ банка) — кооператив разбирает вручную.
-  """
-  marketplaceBlockOutgoingPayment(input: MarketplaceBlockOutgoingPaymentInput!): MarketplaceOutgoingPaymentResult!
-
-  """
   Отменить свой заказ до его приёма поставщиком; средства разблокируются.
   """
   marketplaceCancelOrder(input: MarketplaceCancelOrderInput!): MarketplaceCancelOrderResult!
@@ -9851,11 +9826,6 @@ type Mutation {
   Требуемые роли: chairman. 
   """
   marketplaceClearAvailableCategories: Boolean!
-
-  """
-  Кассир подтверждает факт банковского перевода поставщику — закрывает обязательство перед поставщиком в ledger.
-  """
-  marketplaceConfirmOutgoingPayment(input: MarketplaceConfirmOutgoingPaymentInput!): MarketplaceOutgoingPaymentResult!
 
   """
   Оператор КУ формирует акт приёмки партии: для Варианта Б с возможной корректировкой фактического количества.
@@ -12365,11 +12335,10 @@ type Query {
   """Список заказов текущего пайщика (стол заказчика)."""
   marketplaceListMyOrders(input: MarketplaceListOrdersInput, options: PaginationInput): MarketplaceOrderPaginationResult!
 
-  """История выплат поставщику для offerer-стола."""
-  marketplaceListOutgoingPaymentsAsSupplier: [MarketplaceOutgoingPaymentRequest!]!
-
-  """Список запросов исходящих платежей для стола кассира."""
-  marketplaceListOutgoingPaymentsForCashier(statuses: [MarketplaceOutgoingPaymentRequestStatus!]): [MarketplaceOutgoingPaymentRequest!]!
+  """
+  История выплат поставщику в столе поставщика — статусы по каждому заказу.
+  """
+  marketplaceListOutgoingPaymentsAsSupplier(statuses: [MarketplaceOutgoingPaymentRequestStatus!]): [MarketplaceOutgoingPaymentRequest!]!
 
   """Список Offer'ов на модерации (admin)"""
   marketplaceListPendingOffers(input: MarketplaceListPendingOffersInput): MarketplaceOfferPaginationResult!

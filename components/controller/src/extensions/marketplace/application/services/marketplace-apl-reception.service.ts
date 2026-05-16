@@ -34,7 +34,6 @@ import {
   MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY,
   type MarketplaceOutgoingPaymentRequestDomainRepository,
 } from '../../domain/repositories/marketplace-outgoing-payment-request.repository';
-import { MarketplaceOutgoingPaymentRequestStatuses } from '../../domain/entities/marketplace-outgoing-payment-request.types';
 import {
   MARKETPLACE_ASSET_CONFIG,
   type MarketplaceAssetConfig,
@@ -47,7 +46,6 @@ import {
   GATEWAY_INTERACTOR_PORT,
   type GatewayInteractorPort,
 } from '~/domain/wallet/ports/gateway-interactor.port';
-import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum';
 import {
   MarketplaceAplReceptionDocumentFactory,
   MARKETPLACE_APL_RECEPTION_DOCUMENT_FACTORY,
@@ -399,142 +397,149 @@ export class MarketplaceAplReceptionService {
       MarketplaceShipmentStatuses.ACCEPTED_TO_COOP
     );
 
-    // Story 5.6: создаём marketplace-scoped запрос исходящего платежа.
-    // Кассир увидит задачу в своём столе и подтвердит факт банковского
-    // перевода (Story 5.7).
-    const paymentRequestRef = await this.createOutgoingPaymentRequest(
-      updated,
-      input.chairman_account
-    );
+    // Story 5.6 / 598-16 (L12): инициируем выплаты поставщику per-Order
+    // через gateway. Кассир увидит каждую выплату в общем реестре
+    // платежей кооператива и подтвердит/отклонит её там.
+    const orderHashByOrderId = new Map(orders.map((o) => [o.id, o.order_hash] as const));
+    await this.initiatePayouts(updated, orders, orderHashByOrderId, input.chairman_account);
 
-    // Story 598-20: push кассиру о новой задаче — только если
-    // marketplace-запись успешно создана (compensating-rollback мог её
-    // удалить при core-fail). При повторном вызове через retry АПП уже
-    // ACCEPTED_TO_COOP — повторный signAsChairman не сработает, push
-    // от первой удачной попытки.
-    if (paymentRequestRef) {
-      const event: MarketplaceCashierNewPaymentEvent = {
-        coopname: updated.coopname,
-        apl_reception_id: updated.id,
-        payment_request_id: paymentRequestRef.id,
-        supplier_account: updated.offerer_account,
-        amount: `${updated.total_amount} ${this.assetConfig.symbol}`,
-      };
-      this.eventBus.emit(MARKETPLACE_CASHIER_NEW_PAYMENT_EVENT, event);
-    }
+    // Story 598-20: push кассиру о новой партии выплат — одно
+    // суммарное уведомление на АПП с агрегатом по поставщику.
+    const event: MarketplaceCashierNewPaymentEvent = {
+      coopname: updated.coopname,
+      apl_reception_id: updated.id,
+      payment_request_id: updated.id,
+      supplier_account: updated.offerer_account,
+      amount: `${updated.total_amount} ${this.assetConfig.symbol}`,
+    };
+    this.eventBus.emit(MARKETPLACE_CASHIER_NEW_PAYMENT_EVENT, event);
 
     this.logger.log(
-      `АПП ${reception.id}: закрывающая подпись председателя ${input.chairman_account} принята (placeholder tx=${txHash}). On-chain signchair + ledger o.mkt.purch / o.mkt.payout подключаются FR45 follow-up'ом (требуется реальная подпись Document2 через AR33).`
+      `АПП ${reception.id}: закрывающая подпись председателя ${input.chairman_account} принята (tx=${txHash}); выплаты по ${orders.filter((x) => x.delivery_braname === reception.ku_id).length} заказам инициированы через gateway.`
     );
 
     return { apl_reception: updated };
   }
 
   /**
-   * Story 5.6 + AR35 (598-17): marketplace-scoped реестр запросов на
-   * оплату поставщику + синхронизация с core-реестром `payments`.
+   * Story 5.6 + 598-16 (L12) + AR35: per-Order инициирует выплату поставщику.
    *
-   * Flow:
-   *   1. создаём marketplace_outgoing_payment_request (PENDING_CASHIER_ACTION);
-   *   2. дёргаем `coreGateway.createSystemOutgoingPayment` —
-   *      кассирский стол core увидит платёж в общей ленте;
-   *   3. при успехе — сохраняем `core_payment_id` в marketplace-записи;
-   *   4. при core-fail — compensating delete: marketplace-запись
-   *      удаляется, чтобы инвариант «1 АПП → 1 request → 1 core_payment»
-   *      сохранялся. Повторный вызов идемпотентен через findByApl.
+   * Для каждого Order'а группы:
+   *   1. создаёт audit-projection marketplace_outgoing_payment_request
+   *      в статусе PENDING (идемпотентно по order_hash);
+   *   2. регистрирует системный платёж в core-реестре gateway —
+   *      кассир увидит выплату в общей ленте;
+   *   3. отправляет on-chain `marketplace::payout` → inline
+   *      `gateway::createoutpay` (gateway::outcomes pending). Кассир в
+   *      своём столе подтверждает/отказывает; callback'и
+   *      `marketplace::payconfirm` / `paydecline` дойдут до listener'а
+   *      в `MarketplacePayoutSyncService` и обновят статус projection +
+   *      core payment + emit push поставщику.
+   *
+   * Ошибки на отдельной выплате не блокируют АПП и другие выплаты —
+   * statement остаётся ACCEPTED_TO_COOP, кооператив может повторить
+   * через ручной retry (отдельный API-шаг).
    */
-  private async createOutgoingPaymentRequest(
+  private async initiatePayouts(
     reception: MarketplaceAplReceptionDomainEntity,
+    allOrders: MarketplaceOrderDomainEntity[],
+    orderHashByOrderId: Map<string, string>,
     chairman_account: string
-  ): Promise<{ id: string } | null> {
-    const existing = await this.paymentRepo.findByAplReceptionId(
-      reception.coopname,
-      reception.id
+  ): Promise<void> {
+    const factByOrderId = new Map(
+      reception.fact_quantity_per_order.map((f) => [f.order_id, f.fact_quantity])
     );
-    if (existing) return { id: existing.id };
+    const groupOrders = allOrders.filter((o) => o.delivery_braname === reception.ku_id);
 
-    const orderIds = reception.fact_quantity_per_order.map((f) => f.order_id);
-    const purpose = `Приобретение товаров по счёту marketplace, АПП #${reception.id} (председатель ${chairman_account})`;
+    for (const order of groupOrders) {
+      const orderHash = orderHashByOrderId.get(order.id);
+      if (!orderHash) {
+        this.logger.warn(
+          `initiatePayouts: у заказа ${order.id} нет order_hash — выплата невозможна.`
+        );
+        continue;
+      }
+      const factQuantity = factByOrderId.get(order.id) ?? order.quantity;
+      const amount = (factQuantity * Number.parseFloat(order.price_per_unit)).toFixed(4);
+      const purpose = `Выплата поставщику ${reception.offerer_account} по заказу ${order.id} (АПП ${reception.id}, председатель ${chairman_account})`;
 
-    let request: MarketplaceAplReceptionDomainEntity extends never
-      ? never
-      : { id: string } | null = null;
-    try {
-      const created = await this.paymentRepo.create({
+      await this.initiatePayoutForOrder({
         coopname: reception.coopname,
+        order_hash: orderHash,
+        order_id: order.id,
         apl_reception_id: reception.id,
         payee_account: reception.offerer_account,
-        related_order_ids: orderIds,
-        amount: reception.total_amount,
-        symbol: this.assetConfig.symbol,
+        amount,
         purpose,
-        status: MarketplaceOutgoingPaymentRequestStatuses.PENDING_CASHIER_ACTION,
       });
-      request = { id: created.id };
-    } catch (err: any) {
-      this.logger.warn(
-        `MarketplaceAplReceptionService.createOutgoingPaymentRequest: создание marketplace-запроса для АПП ${reception.id} упало (${err.message}); АПП в статусе ACCEPTED_TO_COOP остаётся.`
-      );
-      return null;
     }
-
-    // Core sync (AR35 / 598-17).
-    try {
-      const paymentHash = createHash('sha256')
-        .update(`marketplace:${reception.coopname}:${reception.id}:${request.id}`)
-        .digest('hex');
-      const corePayment = await this.coreGateway.createSystemOutgoingPayment({
-        coopname: reception.coopname,
-        username: reception.offerer_account,
-        quantity: Number.parseFloat(reception.total_amount),
-        symbol: this.assetConfig.symbol,
-        memo: purpose,
-        related_extension: 'marketplace',
-        related_entity_id: request.id,
-        payment_hash: paymentHash,
-      });
-      if (!corePayment.id) {
-        throw new Error('core createSystemOutgoingPayment вернул payment без id');
-      }
-      await this.paymentRepo.applyCorePaymentId(request.id, corePayment.id);
-      this.logger.log(
-        `Core sync OK: marketplace request ${request.id} ↔ core payment ${corePayment.id} (АПП ${reception.id})`
-      );
-    } catch (err: any) {
-      // Compensating rollback: убираем marketplace request, чтобы
-      // не оставлять hanging marketplace-only записи без core-binding.
-      try {
-        await this.paymentRepo.deleteById(request.id);
-      } catch (rollbackErr: any) {
-        this.logger.error(
-          `MarketplaceAplReceptionService.createOutgoingPaymentRequest: compensating rollback marketplace request ${request.id} тоже упал (${rollbackErr.message}); требуется ручная очистка.`
-        );
-      }
-      this.logger.warn(
-        `MarketplaceAplReceptionService.createOutgoingPaymentRequest: core sync для marketplace request ${request.id} (АПП ${reception.id}) упал (${err.message}); marketplace-запись откатана. Кассир задачу не увидит до следующей попытки.`
-      );
-      return null;
-    }
-    return request;
   }
 
-  /**
-   * Story 598-17 / AR35: отзеркалить статус marketplace-запроса в core.
-   * Используется из `MarketplaceOutgoingPaymentService.confirm/markBlocked`,
-   * чтобы кассирский стол core видел финальное состояние платежа.
-   */
-  public async mirrorCorePaymentStatus(
-    core_payment_id: string,
-    coreStatus: PaymentStatusEnum
-  ): Promise<void> {
+  private async initiatePayoutForOrder(input: {
+    coopname: string;
+    order_hash: string;
+    order_id: string;
+    apl_reception_id: string;
+    payee_account: string;
+    amount: string;
+    purpose: string;
+  }): Promise<void> {
+    let projection;
     try {
-      await this.coreGateway.setPaymentStatus({
-        id: core_payment_id,
-        status: coreStatus,
+      projection = await this.paymentRepo.createIfNotExists({
+        coopname: input.coopname,
+        order_hash: input.order_hash,
+        order_id: input.order_id,
+        apl_reception_id: input.apl_reception_id,
+        payee_account: input.payee_account,
+        amount: input.amount,
+        symbol: this.assetConfig.symbol,
+        purpose: input.purpose,
       });
     } catch (err: any) {
       this.logger.warn(
-        `mirrorCorePaymentStatus: не удалось обновить core payment ${core_payment_id} → ${coreStatus} (${err.message}); marketplace-статус актуальный, core рассинхронизирован.`
+        `initiatePayouts: создание projection для order ${input.order_id} упало: ${err.message}; пропускаю.`
+      );
+      return;
+    }
+
+    if (!projection.core_payment_id) {
+      try {
+        const paymentHash = createHash('sha256')
+          .update(`marketplace:${input.coopname}:${input.order_hash}`)
+          .digest('hex');
+        const corePayment = await this.coreGateway.createSystemOutgoingPayment({
+          coopname: input.coopname,
+          username: input.payee_account,
+          quantity: Number.parseFloat(input.amount),
+          symbol: this.assetConfig.symbol,
+          memo: input.purpose,
+          related_extension: 'marketplace',
+          related_entity_id: projection.id,
+          payment_hash: paymentHash,
+        });
+        if (corePayment.id) {
+          await this.paymentRepo.applyCorePaymentId(
+            input.coopname,
+            input.order_hash,
+            corePayment.id
+          );
+        }
+      } catch (err: any) {
+        this.logger.warn(
+          `initiatePayouts: core createSystemOutgoingPayment для order ${input.order_id} упал: ${err.message}; кассирский стол core не увидит выплату до повторной попытки.`
+        );
+      }
+    }
+
+    try {
+      await this.chainPort.payOut({
+        coopname: input.coopname,
+        order_hash: input.order_hash,
+      });
+    } catch (err: any) {
+      this.logger.warn(
+        `initiatePayouts: on-chain payOut для order ${input.order_id} упал: ${err.message}; projection остаётся PENDING, gateway::outcomes не создан. Требуется retry.`
       );
     }
   }

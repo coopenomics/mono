@@ -87,9 +87,9 @@ import {
 } from './services/marketplace-apl-reception.service';
 import { MarketplaceAplReceptionResolver } from './resolvers/marketplace-apl-reception.resolver';
 import {
-  MarketplaceOutgoingPaymentService,
-  MARKETPLACE_OUTGOING_PAYMENT_SERVICE,
-} from './services/marketplace-outgoing-payment.service';
+  MarketplacePayoutSyncService,
+  MARKETPLACE_PAYOUT_SYNC_SERVICE,
+} from './services/marketplace-payout-sync.service';
 import { MarketplaceOutgoingPaymentResolver } from './resolvers/marketplace-outgoing-payment.resolver';
 import { MarketplaceNotificationService } from './services/marketplace-notification.service';
 
@@ -230,12 +230,15 @@ import { MarketplaceNotificationService } from './services/marketplace-notificat
       useClass: MarketplaceAplReceptionService,
     },
     MarketplaceAplReceptionService,
-    // Story 5.6 / 5.7 — реестр исходящих платежей + подтверждение кассиром
+    // Story 5.6 / 5.7 + 598-16 (L12) — слушатель callback'ов от gateway
+    // (payconfirm/paydecline) для зеркалирования статуса выплаты поставщику.
+    // Сам кассир работает в общем столе кооператива через расширение
+    // gateway, marketplace только подписывается на blockchain-action delta.
     {
-      provide: MARKETPLACE_OUTGOING_PAYMENT_SERVICE,
-      useClass: MarketplaceOutgoingPaymentService,
+      provide: MARKETPLACE_PAYOUT_SYNC_SERVICE,
+      useClass: MarketplacePayoutSyncService,
     },
-    MarketplaceOutgoingPaymentService,
+    MarketplacePayoutSyncService,
     // Story 598-20 — push-уведомления marketplace flow (АПП Б поставщику,
     // новая выплата кассиру, подтверждённая выплата поставщику).
     // Слушает per-contract event-bus, отправка через Novu без обратного
@@ -310,9 +313,9 @@ import { MarketplaceNotificationService } from './services/marketplace-notificat
     // Story 5.3 / 5.4
     MARKETPLACE_APL_RECEPTION_SERVICE,
     MarketplaceAplReceptionService,
-    // Story 5.6 / 5.7
-    MARKETPLACE_OUTGOING_PAYMENT_SERVICE,
-    MarketplaceOutgoingPaymentService,
+    // Story 5.6 / 5.7 + 598-16
+    MARKETPLACE_PAYOUT_SYNC_SERVICE,
+    MarketplacePayoutSyncService,
   ],
 })
 export class MarketplaceExtensionApplicationModule {}

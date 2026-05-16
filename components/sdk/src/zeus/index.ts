@@ -6245,11 +6245,6 @@ export type ValueTypes = {
 ["MarketplaceBarcodeFormat"]:MarketplaceBarcodeFormat;
 	/** Стратегия маркировки: одна этикетка на заказ, на единицу, или на упаковку. */
 ["MarketplaceBarcodeStrategy"]:MarketplaceBarcodeStrategy;
-	["MarketplaceBlockOutgoingPaymentInput"]: {
-	payment_request_id: ValueTypes["ID"] | Variable<any, string>,
-	/** Причина блокировки (отказ банка, недостаток средств и т.п.). */
-	reason: string | Variable<any, string>
-};
 	/** Параметры отмены своего заказа пайщиком. */
 ["MarketplaceCancelOrderInput"]: {
 	/** Идентификатор заказа, который пайщик хочет отменить (отмена возможна до приёма заказа поставщиком). */
@@ -6328,13 +6323,6 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceCategoryTreeStats']?: Omit<ValueTypes["MarketplaceCategoryTreeStats"], "...on MarketplaceCategoryTreeStats">
 }>;
-	["MarketplaceConfirmOutgoingPaymentInput"]: {
-	/** Опционально — ссылка на выписку банка (URL или hash). */
-	bank_statement_ref?: string | undefined | null | Variable<any, string>,
-	/** Номер банковского платёжного поручения / референс операции. */
-	payment_reference: string | Variable<any, string>,
-	payment_request_id: ValueTypes["ID"] | Variable<any, string>
-};
 	["MarketplaceConsolidatedRequest"]: AliasType<{
 	accepted_at?:boolean | `@${string}`,
 	coopname?:boolean | `@${string}`,
@@ -6843,26 +6831,24 @@ export type ValueTypes = {
 	amount?:boolean | `@${string}`,
 	/** Акт приёмки, по которому возникло обязательство. */
 	apl_reception_id?:boolean | `@${string}`,
-	/** Ссылка на выписку банка (URL/hash) для аудита. */
-	bank_statement_ref?:boolean | `@${string}`,
-	/** Причина блокировки, если платёж не прошёл банковский контур. */
-	blocked_reason?:boolean | `@${string}`,
-	confirmed_at?:boolean | `@${string}`,
+	completed_at?:boolean | `@${string}`,
 	coopname?:boolean | `@${string}`,
-	/** Идентификатор связанного платежа в общем реестре кооператива — кассирский стол отображает marketplace-выплаты в общей ленте платежей. */
+	/** Идентификатор связанного платежа в общем реестре кооператива — кассир видит выплату в общей ленте платежей. */
 	core_payment_id?:boolean | `@${string}`,
 	created_at?:boolean | `@${string}`,
+	/** Причина отказа банковского перевода, если кассир отказал в проведении. */
+	decline_reason?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
-	/** Account поставщика — получатель платежа. */
+	/** Хэш заказа в каталоге поставок — один заказ = одна выплата. */
+	order_hash?:boolean | `@${string}`,
+	/** Идентификатор заказа в каталоге поставок. */
+	order_id?:boolean | `@${string}`,
+	/** Аккаунт поставщика — получатель выплаты. */
 	payee_account?:boolean | `@${string}`,
-	/** Внешний номер банковского платёжного документа. */
-	payment_reference?:boolean | `@${string}`,
-	/** Хэш транзакции o.mkt.payout (для lazy-варианта L12). */
+	/** Идентификатор транзакции payout / payconfirm — для трассировки в логах. */
 	payout_tx_hash?:boolean | `@${string}`,
 	/** Назначение платежа для распечатки. */
 	purpose?:boolean | `@${string}`,
-	/** Заказы, по которым формируется платёж. */
-	related_order_ids?:boolean | `@${string}`,
 	status?:boolean | `@${string}`,
 	/** Символ актива (например, RUB). */
 	symbol?:boolean | `@${string}`,
@@ -6870,13 +6856,8 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceOutgoingPaymentRequest']?: Omit<ValueTypes["MarketplaceOutgoingPaymentRequest"], "...on MarketplaceOutgoingPaymentRequest">
 }>;
-	/** Статус запроса исходящего платежа кассиру. */
+	/** Статус исходящей выплаты поставщику на стороне marketplace. Подтверждение и отказ выполняет общий стол кассира кооператива; marketplace отображает результат только для истории. */
 ["MarketplaceOutgoingPaymentRequestStatus"]:MarketplaceOutgoingPaymentRequestStatus;
-	["MarketplaceOutgoingPaymentResult"]: AliasType<{
-	payment_request?:ValueTypes["MarketplaceOutgoingPaymentRequest"],
-		__typename?: boolean | `@${string}`,
-	['...on MarketplaceOutgoingPaymentResult']?: Omit<ValueTypes["MarketplaceOutgoingPaymentResult"], "...on MarketplaceOutgoingPaymentResult">
-}>;
 	["MarketplaceProductType"]: AliasType<{
 	/** ID категории */
 	descriptionCategoryId?:boolean | `@${string}`,
@@ -7626,13 +7607,11 @@ marketplaceAddAvailableCategories?: [{	input: ValueTypes["AddAvailableCategories
 marketplaceAddAvailableCategoryTypes?: [{	input: ValueTypes["AddAvailableCategoryTypesInput"] | Variable<any, string>},ValueTypes["MarketplaceAvailableCategory"]],
 marketplaceAddToWhitelist?: [{	input: ValueTypes["MarketplaceAddToWhitelistInput"] | Variable<any, string>},ValueTypes["MarketplaceWhitelistEntry"]],
 marketplaceApproveOffer?: [{	input: ValueTypes["MarketplaceApproveOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
-marketplaceBlockOutgoingPayment?: [{	input: ValueTypes["MarketplaceBlockOutgoingPaymentInput"] | Variable<any, string>},ValueTypes["MarketplaceOutgoingPaymentResult"]],
 marketplaceCancelOrder?: [{	input: ValueTypes["MarketplaceCancelOrderInput"] | Variable<any, string>},ValueTypes["MarketplaceCancelOrderResult"]],
 	/** Очистить все доступные категории (сделать доступными все)
 
 Требуемые роли: chairman.  */
 	marketplaceClearAvailableCategories?:boolean | `@${string}`,
-marketplaceConfirmOutgoingPayment?: [{	input: ValueTypes["MarketplaceConfirmOutgoingPaymentInput"] | Variable<any, string>},ValueTypes["MarketplaceOutgoingPaymentResult"]],
 marketplaceCreateAplReception?: [{	input: ValueTypes["MarketplaceCreateAplReceptionInput"] | Variable<any, string>},ValueTypes["MarketplaceAplReceptionResult"]],
 marketplaceCreateOffer?: [{	input: ValueTypes["MarketplaceCreateOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
 marketplaceCreateOrder?: [{	input: ValueTypes["MarketplaceCreateOrderInput"] | Variable<any, string>},ValueTypes["MarketplaceCreateOrderResult"]],
@@ -9045,9 +9024,7 @@ marketplaceListKUDetails?: [{	data: ValueTypes["ListMarketplaceKUInput"] | Varia
 marketplaceListModerationLog?: [{	offer_id: string | Variable<any, string>},ValueTypes["MarketplaceModerationLogEntry"]],
 marketplaceListMyOffers?: [{	input?: ValueTypes["MarketplaceListMyOffersInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOfferPaginationResult"]],
 marketplaceListMyOrders?: [{	input?: ValueTypes["MarketplaceListOrdersInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOrderPaginationResult"]],
-	/** История выплат поставщику для offerer-стола. */
-	marketplaceListOutgoingPaymentsAsSupplier?:ValueTypes["MarketplaceOutgoingPaymentRequest"],
-marketplaceListOutgoingPaymentsForCashier?: [{	statuses?: Array<ValueTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOutgoingPaymentRequest"]],
+marketplaceListOutgoingPaymentsAsSupplier?: [{	statuses?: Array<ValueTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOutgoingPaymentRequest"]],
 marketplaceListPendingOffers?: [{	input?: ValueTypes["MarketplaceListPendingOffersInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOfferPaginationResult"]],
 marketplaceListShipments?: [{	input?: ValueTypes["MarketplaceListShipmentsInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceShipment"]],
 marketplaceListSupplierOrders?: [{	input?: ValueTypes["MarketplaceListOrdersInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOrderPaginationResult"]],
@@ -15659,11 +15636,6 @@ export type ResolverInputTypes = {
 ["MarketplaceBarcodeFormat"]:MarketplaceBarcodeFormat;
 	/** Стратегия маркировки: одна этикетка на заказ, на единицу, или на упаковку. */
 ["MarketplaceBarcodeStrategy"]:MarketplaceBarcodeStrategy;
-	["MarketplaceBlockOutgoingPaymentInput"]: {
-	payment_request_id: ResolverInputTypes["ID"],
-	/** Причина блокировки (отказ банка, недостаток средств и т.п.). */
-	reason: string
-};
 	/** Параметры отмены своего заказа пайщиком. */
 ["MarketplaceCancelOrderInput"]: {
 	/** Идентификатор заказа, который пайщик хочет отменить (отмена возможна до приёма заказа поставщиком). */
@@ -15736,13 +15708,6 @@ export type ResolverInputTypes = {
 	totalTypes?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	["MarketplaceConfirmOutgoingPaymentInput"]: {
-	/** Опционально — ссылка на выписку банка (URL или hash). */
-	bank_statement_ref?: string | undefined | null,
-	/** Номер банковского платёжного поручения / референс операции. */
-	payment_reference: string,
-	payment_request_id: ResolverInputTypes["ID"]
-};
 	["MarketplaceConsolidatedRequest"]: AliasType<{
 	accepted_at?:boolean | `@${string}`,
 	coopname?:boolean | `@${string}`,
@@ -16231,38 +16196,32 @@ export type ResolverInputTypes = {
 	amount?:boolean | `@${string}`,
 	/** Акт приёмки, по которому возникло обязательство. */
 	apl_reception_id?:boolean | `@${string}`,
-	/** Ссылка на выписку банка (URL/hash) для аудита. */
-	bank_statement_ref?:boolean | `@${string}`,
-	/** Причина блокировки, если платёж не прошёл банковский контур. */
-	blocked_reason?:boolean | `@${string}`,
-	confirmed_at?:boolean | `@${string}`,
+	completed_at?:boolean | `@${string}`,
 	coopname?:boolean | `@${string}`,
-	/** Идентификатор связанного платежа в общем реестре кооператива — кассирский стол отображает marketplace-выплаты в общей ленте платежей. */
+	/** Идентификатор связанного платежа в общем реестре кооператива — кассир видит выплату в общей ленте платежей. */
 	core_payment_id?:boolean | `@${string}`,
 	created_at?:boolean | `@${string}`,
+	/** Причина отказа банковского перевода, если кассир отказал в проведении. */
+	decline_reason?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
-	/** Account поставщика — получатель платежа. */
+	/** Хэш заказа в каталоге поставок — один заказ = одна выплата. */
+	order_hash?:boolean | `@${string}`,
+	/** Идентификатор заказа в каталоге поставок. */
+	order_id?:boolean | `@${string}`,
+	/** Аккаунт поставщика — получатель выплаты. */
 	payee_account?:boolean | `@${string}`,
-	/** Внешний номер банковского платёжного документа. */
-	payment_reference?:boolean | `@${string}`,
-	/** Хэш транзакции o.mkt.payout (для lazy-варианта L12). */
+	/** Идентификатор транзакции payout / payconfirm — для трассировки в логах. */
 	payout_tx_hash?:boolean | `@${string}`,
 	/** Назначение платежа для распечатки. */
 	purpose?:boolean | `@${string}`,
-	/** Заказы, по которым формируется платёж. */
-	related_order_ids?:boolean | `@${string}`,
 	status?:boolean | `@${string}`,
 	/** Символ актива (например, RUB). */
 	symbol?:boolean | `@${string}`,
 	updated_at?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	/** Статус запроса исходящего платежа кассиру. */
+	/** Статус исходящей выплаты поставщику на стороне marketplace. Подтверждение и отказ выполняет общий стол кассира кооператива; marketplace отображает результат только для истории. */
 ["MarketplaceOutgoingPaymentRequestStatus"]:MarketplaceOutgoingPaymentRequestStatus;
-	["MarketplaceOutgoingPaymentResult"]: AliasType<{
-	payment_request?:ResolverInputTypes["MarketplaceOutgoingPaymentRequest"],
-		__typename?: boolean | `@${string}`
-}>;
 	["MarketplaceProductType"]: AliasType<{
 	/** ID категории */
 	descriptionCategoryId?:boolean | `@${string}`,
@@ -16991,13 +16950,11 @@ marketplaceAddAvailableCategories?: [{	input: ResolverInputTypes["AddAvailableCa
 marketplaceAddAvailableCategoryTypes?: [{	input: ResolverInputTypes["AddAvailableCategoryTypesInput"]},ResolverInputTypes["MarketplaceAvailableCategory"]],
 marketplaceAddToWhitelist?: [{	input: ResolverInputTypes["MarketplaceAddToWhitelistInput"]},ResolverInputTypes["MarketplaceWhitelistEntry"]],
 marketplaceApproveOffer?: [{	input: ResolverInputTypes["MarketplaceApproveOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
-marketplaceBlockOutgoingPayment?: [{	input: ResolverInputTypes["MarketplaceBlockOutgoingPaymentInput"]},ResolverInputTypes["MarketplaceOutgoingPaymentResult"]],
 marketplaceCancelOrder?: [{	input: ResolverInputTypes["MarketplaceCancelOrderInput"]},ResolverInputTypes["MarketplaceCancelOrderResult"]],
 	/** Очистить все доступные категории (сделать доступными все)
 
 Требуемые роли: chairman.  */
 	marketplaceClearAvailableCategories?:boolean | `@${string}`,
-marketplaceConfirmOutgoingPayment?: [{	input: ResolverInputTypes["MarketplaceConfirmOutgoingPaymentInput"]},ResolverInputTypes["MarketplaceOutgoingPaymentResult"]],
 marketplaceCreateAplReception?: [{	input: ResolverInputTypes["MarketplaceCreateAplReceptionInput"]},ResolverInputTypes["MarketplaceAplReceptionResult"]],
 marketplaceCreateOffer?: [{	input: ResolverInputTypes["MarketplaceCreateOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
 marketplaceCreateOrder?: [{	input: ResolverInputTypes["MarketplaceCreateOrderInput"]},ResolverInputTypes["MarketplaceCreateOrderResult"]],
@@ -18354,9 +18311,7 @@ marketplaceListKUDetails?: [{	data: ResolverInputTypes["ListMarketplaceKUInput"]
 marketplaceListModerationLog?: [{	offer_id: string},ResolverInputTypes["MarketplaceModerationLogEntry"]],
 marketplaceListMyOffers?: [{	input?: ResolverInputTypes["MarketplaceListMyOffersInput"] | undefined | null},ResolverInputTypes["MarketplaceOfferPaginationResult"]],
 marketplaceListMyOrders?: [{	input?: ResolverInputTypes["MarketplaceListOrdersInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["MarketplaceOrderPaginationResult"]],
-	/** История выплат поставщику для offerer-стола. */
-	marketplaceListOutgoingPaymentsAsSupplier?:ResolverInputTypes["MarketplaceOutgoingPaymentRequest"],
-marketplaceListOutgoingPaymentsForCashier?: [{	statuses?: Array<ResolverInputTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null},ResolverInputTypes["MarketplaceOutgoingPaymentRequest"]],
+marketplaceListOutgoingPaymentsAsSupplier?: [{	statuses?: Array<ResolverInputTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null},ResolverInputTypes["MarketplaceOutgoingPaymentRequest"]],
 marketplaceListPendingOffers?: [{	input?: ResolverInputTypes["MarketplaceListPendingOffersInput"] | undefined | null},ResolverInputTypes["MarketplaceOfferPaginationResult"]],
 marketplaceListShipments?: [{	input?: ResolverInputTypes["MarketplaceListShipmentsInput"] | undefined | null},ResolverInputTypes["MarketplaceShipment"]],
 marketplaceListSupplierOrders?: [{	input?: ResolverInputTypes["MarketplaceListOrdersInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["MarketplaceOrderPaginationResult"]],
@@ -24765,11 +24720,6 @@ export type ModelTypes = {
 };
 	["MarketplaceBarcodeFormat"]:MarketplaceBarcodeFormat;
 	["MarketplaceBarcodeStrategy"]:MarketplaceBarcodeStrategy;
-	["MarketplaceBlockOutgoingPaymentInput"]: {
-	payment_request_id: ModelTypes["ID"],
-	/** Причина блокировки (отказ банка, недостаток средств и т.п.). */
-	reason: string
-};
 	/** Параметры отмены своего заказа пайщиком. */
 ["MarketplaceCancelOrderInput"]: {
 	/** Идентификатор заказа, который пайщик хочет отменить (отмена возможна до приёма заказа поставщиком). */
@@ -24835,13 +24785,6 @@ export type ModelTypes = {
 	totalCategories: number,
 	/** Общее количество типов товаров */
 	totalTypes: number
-};
-	["MarketplaceConfirmOutgoingPaymentInput"]: {
-	/** Опционально — ссылка на выписку банка (URL или hash). */
-	bank_statement_ref?: string | undefined | null,
-	/** Номер банковского платёжного поручения / референс операции. */
-	payment_reference: string,
-	payment_request_id: ModelTypes["ID"]
 };
 	["MarketplaceConsolidatedRequest"]: {
 		accepted_at?: ModelTypes["DateTime"] | undefined | null,
@@ -25307,35 +25250,30 @@ export type ModelTypes = {
 	amount: string,
 	/** Акт приёмки, по которому возникло обязательство. */
 	apl_reception_id: ModelTypes["ID"],
-	/** Ссылка на выписку банка (URL/hash) для аудита. */
-	bank_statement_ref?: string | undefined | null,
-	/** Причина блокировки, если платёж не прошёл банковский контур. */
-	blocked_reason?: string | undefined | null,
-	confirmed_at?: ModelTypes["DateTime"] | undefined | null,
+	completed_at?: ModelTypes["DateTime"] | undefined | null,
 	coopname: string,
-	/** Идентификатор связанного платежа в общем реестре кооператива — кассирский стол отображает marketplace-выплаты в общей ленте платежей. */
+	/** Идентификатор связанного платежа в общем реестре кооператива — кассир видит выплату в общей ленте платежей. */
 	core_payment_id?: ModelTypes["ID"] | undefined | null,
 	created_at: ModelTypes["DateTime"],
+	/** Причина отказа банковского перевода, если кассир отказал в проведении. */
+	decline_reason?: string | undefined | null,
 	id: ModelTypes["ID"],
-	/** Account поставщика — получатель платежа. */
+	/** Хэш заказа в каталоге поставок — один заказ = одна выплата. */
+	order_hash: string,
+	/** Идентификатор заказа в каталоге поставок. */
+	order_id: ModelTypes["ID"],
+	/** Аккаунт поставщика — получатель выплаты. */
 	payee_account: string,
-	/** Внешний номер банковского платёжного документа. */
-	payment_reference?: string | undefined | null,
-	/** Хэш транзакции o.mkt.payout (для lazy-варианта L12). */
+	/** Идентификатор транзакции payout / payconfirm — для трассировки в логах. */
 	payout_tx_hash?: string | undefined | null,
 	/** Назначение платежа для распечатки. */
 	purpose: string,
-	/** Заказы, по которым формируется платёж. */
-	related_order_ids: Array<ModelTypes["ID"]>,
 	status: ModelTypes["MarketplaceOutgoingPaymentRequestStatus"],
 	/** Символ актива (например, RUB). */
 	symbol: string,
 	updated_at: ModelTypes["DateTime"]
 };
 	["MarketplaceOutgoingPaymentRequestStatus"]:MarketplaceOutgoingPaymentRequestStatus;
-	["MarketplaceOutgoingPaymentResult"]: {
-		payment_request: ModelTypes["MarketplaceOutgoingPaymentRequest"]
-};
 	["MarketplaceProductType"]: {
 		/** ID категории */
 	descriptionCategoryId: number,
@@ -26442,16 +26380,12 @@ export type ModelTypes = {
 	marketplaceAddToWhitelist: ModelTypes["MarketplaceWhitelistEntry"],
 	/** Одобрить Offer (status → ACTIVE) (admin) */
 	marketplaceApproveOffer: ModelTypes["MarketplaceOffer"],
-	/** Кассир помечает платёж заблокированным (например, отказ банка) — кооператив разбирает вручную. */
-	marketplaceBlockOutgoingPayment: ModelTypes["MarketplaceOutgoingPaymentResult"],
 	/** Отменить свой заказ до его приёма поставщиком; средства разблокируются. */
 	marketplaceCancelOrder: ModelTypes["MarketplaceCancelOrderResult"],
 	/** Очистить все доступные категории (сделать доступными все)
 
 Требуемые роли: chairman.  */
 	marketplaceClearAvailableCategories: boolean,
-	/** Кассир подтверждает факт банковского перевода поставщику — закрывает обязательство перед поставщиком в ledger. */
-	marketplaceConfirmOutgoingPayment: ModelTypes["MarketplaceOutgoingPaymentResult"],
 	/** Оператор КУ формирует акт приёмки партии: для Варианта Б с возможной корректировкой фактического количества. */
 	marketplaceCreateAplReception: ModelTypes["MarketplaceAplReceptionResult"],
 	/** Поставщик публикует Offer (статус → PENDING_MODERATION) */
@@ -28061,10 +27995,8 @@ export type ModelTypes = {
 	marketplaceListMyOffers: ModelTypes["MarketplaceOfferPaginationResult"],
 	/** Список заказов текущего пайщика (стол заказчика). */
 	marketplaceListMyOrders: ModelTypes["MarketplaceOrderPaginationResult"],
-	/** История выплат поставщику для offerer-стола. */
+	/** История выплат поставщику в столе поставщика — статусы по каждому заказу. */
 	marketplaceListOutgoingPaymentsAsSupplier: Array<ModelTypes["MarketplaceOutgoingPaymentRequest"]>,
-	/** Список запросов исходящих платежей для стола кассира. */
-	marketplaceListOutgoingPaymentsForCashier: Array<ModelTypes["MarketplaceOutgoingPaymentRequest"]>,
 	/** Список Offer'ов на модерации (admin) */
 	marketplaceListPendingOffers: ModelTypes["MarketplaceOfferPaginationResult"],
 	/** Список партий поставки текущего поставщика — для стола подготовки поставки и истории. */
@@ -34727,11 +34659,6 @@ export type GraphQLTypes = {
 ["MarketplaceBarcodeFormat"]: MarketplaceBarcodeFormat;
 	/** Стратегия маркировки: одна этикетка на заказ, на единицу, или на упаковку. */
 ["MarketplaceBarcodeStrategy"]: MarketplaceBarcodeStrategy;
-	["MarketplaceBlockOutgoingPaymentInput"]: {
-		payment_request_id: GraphQLTypes["ID"],
-	/** Причина блокировки (отказ банка, недостаток средств и т.п.). */
-	reason: string
-};
 	/** Параметры отмены своего заказа пайщиком. */
 ["MarketplaceCancelOrderInput"]: {
 		/** Идентификатор заказа, который пайщик хочет отменить (отмена возможна до приёма заказа поставщиком). */
@@ -34809,13 +34736,6 @@ export type GraphQLTypes = {
 	/** Общее количество типов товаров */
 	totalTypes: number,
 	['...on MarketplaceCategoryTreeStats']: Omit<GraphQLTypes["MarketplaceCategoryTreeStats"], "...on MarketplaceCategoryTreeStats">
-};
-	["MarketplaceConfirmOutgoingPaymentInput"]: {
-		/** Опционально — ссылка на выписку банка (URL или hash). */
-	bank_statement_ref?: string | undefined | null,
-	/** Номер банковского платёжного поручения / референс операции. */
-	payment_reference: string,
-	payment_request_id: GraphQLTypes["ID"]
 };
 	["MarketplaceConsolidatedRequest"]: {
 	__typename: "MarketplaceConsolidatedRequest",
@@ -35326,39 +35246,32 @@ export type GraphQLTypes = {
 	amount: string,
 	/** Акт приёмки, по которому возникло обязательство. */
 	apl_reception_id: GraphQLTypes["ID"],
-	/** Ссылка на выписку банка (URL/hash) для аудита. */
-	bank_statement_ref?: string | undefined | null,
-	/** Причина блокировки, если платёж не прошёл банковский контур. */
-	blocked_reason?: string | undefined | null,
-	confirmed_at?: GraphQLTypes["DateTime"] | undefined | null,
+	completed_at?: GraphQLTypes["DateTime"] | undefined | null,
 	coopname: string,
-	/** Идентификатор связанного платежа в общем реестре кооператива — кассирский стол отображает marketplace-выплаты в общей ленте платежей. */
+	/** Идентификатор связанного платежа в общем реестре кооператива — кассир видит выплату в общей ленте платежей. */
 	core_payment_id?: GraphQLTypes["ID"] | undefined | null,
 	created_at: GraphQLTypes["DateTime"],
+	/** Причина отказа банковского перевода, если кассир отказал в проведении. */
+	decline_reason?: string | undefined | null,
 	id: GraphQLTypes["ID"],
-	/** Account поставщика — получатель платежа. */
+	/** Хэш заказа в каталоге поставок — один заказ = одна выплата. */
+	order_hash: string,
+	/** Идентификатор заказа в каталоге поставок. */
+	order_id: GraphQLTypes["ID"],
+	/** Аккаунт поставщика — получатель выплаты. */
 	payee_account: string,
-	/** Внешний номер банковского платёжного документа. */
-	payment_reference?: string | undefined | null,
-	/** Хэш транзакции o.mkt.payout (для lazy-варианта L12). */
+	/** Идентификатор транзакции payout / payconfirm — для трассировки в логах. */
 	payout_tx_hash?: string | undefined | null,
 	/** Назначение платежа для распечатки. */
 	purpose: string,
-	/** Заказы, по которым формируется платёж. */
-	related_order_ids: Array<GraphQLTypes["ID"]>,
 	status: GraphQLTypes["MarketplaceOutgoingPaymentRequestStatus"],
 	/** Символ актива (например, RUB). */
 	symbol: string,
 	updated_at: GraphQLTypes["DateTime"],
 	['...on MarketplaceOutgoingPaymentRequest']: Omit<GraphQLTypes["MarketplaceOutgoingPaymentRequest"], "...on MarketplaceOutgoingPaymentRequest">
 };
-	/** Статус запроса исходящего платежа кассиру. */
+	/** Статус исходящей выплаты поставщику на стороне marketplace. Подтверждение и отказ выполняет общий стол кассира кооператива; marketplace отображает результат только для истории. */
 ["MarketplaceOutgoingPaymentRequestStatus"]: MarketplaceOutgoingPaymentRequestStatus;
-	["MarketplaceOutgoingPaymentResult"]: {
-	__typename: "MarketplaceOutgoingPaymentResult",
-	payment_request: GraphQLTypes["MarketplaceOutgoingPaymentRequest"],
-	['...on MarketplaceOutgoingPaymentResult']: Omit<GraphQLTypes["MarketplaceOutgoingPaymentResult"], "...on MarketplaceOutgoingPaymentResult">
-};
 	["MarketplaceProductType"]: {
 	__typename: "MarketplaceProductType",
 	/** ID категории */
@@ -36510,16 +36423,12 @@ export type GraphQLTypes = {
 	marketplaceAddToWhitelist: GraphQLTypes["MarketplaceWhitelistEntry"],
 	/** Одобрить Offer (status → ACTIVE) (admin) */
 	marketplaceApproveOffer: GraphQLTypes["MarketplaceOffer"],
-	/** Кассир помечает платёж заблокированным (например, отказ банка) — кооператив разбирает вручную. */
-	marketplaceBlockOutgoingPayment: GraphQLTypes["MarketplaceOutgoingPaymentResult"],
 	/** Отменить свой заказ до его приёма поставщиком; средства разблокируются. */
 	marketplaceCancelOrder: GraphQLTypes["MarketplaceCancelOrderResult"],
 	/** Очистить все доступные категории (сделать доступными все)
 
 Требуемые роли: chairman.  */
 	marketplaceClearAvailableCategories: boolean,
-	/** Кассир подтверждает факт банковского перевода поставщику — закрывает обязательство перед поставщиком в ledger. */
-	marketplaceConfirmOutgoingPayment: GraphQLTypes["MarketplaceOutgoingPaymentResult"],
 	/** Оператор КУ формирует акт приёмки партии: для Варианта Б с возможной корректировкой фактического количества. */
 	marketplaceCreateAplReception: GraphQLTypes["MarketplaceAplReceptionResult"],
 	/** Поставщик публикует Offer (статус → PENDING_MODERATION) */
@@ -38261,10 +38170,8 @@ export type GraphQLTypes = {
 	marketplaceListMyOffers: GraphQLTypes["MarketplaceOfferPaginationResult"],
 	/** Список заказов текущего пайщика (стол заказчика). */
 	marketplaceListMyOrders: GraphQLTypes["MarketplaceOrderPaginationResult"],
-	/** История выплат поставщику для offerer-стола. */
+	/** История выплат поставщику в столе поставщика — статусы по каждому заказу. */
 	marketplaceListOutgoingPaymentsAsSupplier: Array<GraphQLTypes["MarketplaceOutgoingPaymentRequest"]>,
-	/** Список запросов исходящих платежей для стола кассира. */
-	marketplaceListOutgoingPaymentsForCashier: Array<GraphQLTypes["MarketplaceOutgoingPaymentRequest"]>,
 	/** Список Offer'ов на модерации (admin) */
 	marketplaceListPendingOffers: GraphQLTypes["MarketplaceOfferPaginationResult"],
 	/** Список партий поставки текущего поставщика — для стола подготовки поставки и истории. */
@@ -40189,12 +40096,11 @@ export enum MarketplaceOrderStatus {
 	RETURNED = "RETURNED",
 	SUPPLY_PREPARED = "SUPPLY_PREPARED"
 }
-/** Статус запроса исходящего платежа кассиру. */
+/** Статус исходящей выплаты поставщику на стороне marketplace. Подтверждение и отказ выполняет общий стол кассира кооператива; marketplace отображает результат только для истории. */
 export enum MarketplaceOutgoingPaymentRequestStatus {
-	BLOCKED = "BLOCKED",
-	CONFIRMED_BY_CASHIER = "CONFIRMED_BY_CASHIER",
-	LEDGER_RECORDED = "LEDGER_RECORDED",
-	PENDING_CASHIER_ACTION = "PENDING_CASHIER_ACTION"
+	COMPLETED = "COMPLETED",
+	DECLINED = "DECLINED",
+	PENDING = "PENDING"
 }
 /** Вариант доставки партии на КУ: A — поставщик везёт лично, B — экспедитор по ТТН. */
 export enum MarketplaceShipmentDeliveryVariant {
@@ -40639,9 +40545,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceAttributeType"]: ValueTypes["MarketplaceAttributeType"];
 	["MarketplaceBarcodeFormat"]: ValueTypes["MarketplaceBarcodeFormat"];
 	["MarketplaceBarcodeStrategy"]: ValueTypes["MarketplaceBarcodeStrategy"];
-	["MarketplaceBlockOutgoingPaymentInput"]: ValueTypes["MarketplaceBlockOutgoingPaymentInput"];
 	["MarketplaceCancelOrderInput"]: ValueTypes["MarketplaceCancelOrderInput"];
-	["MarketplaceConfirmOutgoingPaymentInput"]: ValueTypes["MarketplaceConfirmOutgoingPaymentInput"];
 	["MarketplaceConsolidatedRequestStatus"]: ValueTypes["MarketplaceConsolidatedRequestStatus"];
 	["MarketplaceCreateAplReceptionInput"]: ValueTypes["MarketplaceCreateAplReceptionInput"];
 	["MarketplaceCreateOfferInput"]: ValueTypes["MarketplaceCreateOfferInput"];

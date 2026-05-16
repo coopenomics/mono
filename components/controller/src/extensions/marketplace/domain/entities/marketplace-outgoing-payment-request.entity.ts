@@ -5,55 +5,56 @@ import type {
 import { MarketplaceOutgoingPaymentRequestStatuses } from './marketplace-outgoing-payment-request.types';
 
 /**
- * Story 5.6 / 5.7: запрос исходящего платежа поставщику в кассу кооператива.
+ * Audit-projection одного outcome'а в gateway::outcomes для marketplace
+ * (L12 / 598-16). Жизненный цикл управляется не пользовательскими
+ * мутациями, а слушателями blockchain action delta.
  */
 export class MarketplaceOutgoingPaymentRequestDomainEntity {
   public readonly id: string;
   public readonly coopname: string;
+  public readonly order_hash: string;
+  public readonly order_id: string;
   public readonly apl_reception_id: string;
   public readonly payee_account: string;
-  public readonly related_order_ids: string[];
   public readonly amount: string;
   public readonly symbol: string;
   public readonly purpose: string;
   public status: MarketplaceOutgoingPaymentRequestStatus;
-  public confirmed_at: Date | null;
-  public payment_reference: string | null;
-  public bank_statement_ref: string | null;
-  public blocked_reason: string | null;
-  public payout_tx_hash: string | null;
+  public completed_at: Date | null;
+  public decline_reason: string | null;
   public core_payment_id: string | null;
+  public payout_tx_hash: string | null;
   public readonly created_at: Date;
   public updated_at: Date;
 
   constructor(props: MarketplaceOutgoingPaymentRequestProps) {
     this.id = props.id;
     this.coopname = props.coopname;
+    this.order_hash = props.order_hash;
+    this.order_id = props.order_id;
     this.apl_reception_id = props.apl_reception_id;
     this.payee_account = props.payee_account;
-    this.related_order_ids = props.related_order_ids;
     this.amount = props.amount;
     this.symbol = props.symbol;
     this.purpose = props.purpose;
     this.status = props.status;
-    this.confirmed_at = props.confirmed_at;
-    this.payment_reference = props.payment_reference;
-    this.bank_statement_ref = props.bank_statement_ref;
-    this.blocked_reason = props.blocked_reason;
-    this.payout_tx_hash = props.payout_tx_hash;
+    this.completed_at = props.completed_at;
+    this.decline_reason = props.decline_reason;
     this.core_payment_id = props.core_payment_id;
+    this.payout_tx_hash = props.payout_tx_hash;
     this.created_at = props.created_at;
     this.updated_at = props.updated_at;
   }
 
-  public get is_pending_cashier(): boolean {
-    return this.status === MarketplaceOutgoingPaymentRequestStatuses.PENDING_CASHIER_ACTION;
+  public get is_pending(): boolean {
+    return this.status === MarketplaceOutgoingPaymentRequestStatuses.PENDING;
   }
 
-  public get is_confirmed(): boolean {
-    return (
-      this.status === MarketplaceOutgoingPaymentRequestStatuses.CONFIRMED_BY_CASHIER ||
-      this.status === MarketplaceOutgoingPaymentRequestStatuses.LEDGER_RECORDED
-    );
+  public get is_completed(): boolean {
+    return this.status === MarketplaceOutgoingPaymentRequestStatuses.COMPLETED;
+  }
+
+  public get is_declined(): boolean {
+    return this.status === MarketplaceOutgoingPaymentRequestStatuses.DECLINED;
   }
 }

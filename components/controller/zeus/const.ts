@@ -651,13 +651,7 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceAttributeType: "enum" as const,
 	MarketplaceBarcodeFormat: "enum" as const,
 	MarketplaceBarcodeStrategy: "enum" as const,
-	MarketplaceBlockOutgoingPaymentInput:{
-
-	},
 	MarketplaceCancelOrderInput:{
-
-	},
-	MarketplaceConfirmOutgoingPaymentInput:{
 
 	},
 	MarketplaceConsolidatedRequestStatus: "enum" as const,
@@ -1227,14 +1221,8 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceApproveOffer:{
 			input:"MarketplaceApproveOfferInput"
 		},
-		marketplaceBlockOutgoingPayment:{
-			input:"MarketplaceBlockOutgoingPaymentInput"
-		},
 		marketplaceCancelOrder:{
 			input:"MarketplaceCancelOrderInput"
-		},
-		marketplaceConfirmOutgoingPayment:{
-			input:"MarketplaceConfirmOutgoingPaymentInput"
 		},
 		marketplaceCreateAplReception:{
 			input:"MarketplaceCreateAplReceptionInput"
@@ -1852,7 +1840,7 @@ export const AllTypesProps: Record<string,any> = {
 			input:"MarketplaceListOrdersInput",
 			options:"PaginationInput"
 		},
-		marketplaceListOutgoingPaymentsForCashier:{
+		marketplaceListOutgoingPaymentsAsSupplier:{
 			statuses:"MarketplaceOutgoingPaymentRequestStatus"
 		},
 		marketplaceListPendingOffers:{
@@ -4016,24 +4004,20 @@ export const ReturnTypes: Record<string,any> = {
 	MarketplaceOutgoingPaymentRequest:{
 		amount:"String",
 		apl_reception_id:"ID",
-		bank_statement_ref:"String",
-		blocked_reason:"String",
-		confirmed_at:"DateTime",
+		completed_at:"DateTime",
 		coopname:"String",
 		core_payment_id:"ID",
 		created_at:"DateTime",
+		decline_reason:"String",
 		id:"ID",
+		order_hash:"String",
+		order_id:"ID",
 		payee_account:"String",
-		payment_reference:"String",
 		payout_tx_hash:"String",
 		purpose:"String",
-		related_order_ids:"ID",
 		status:"MarketplaceOutgoingPaymentRequestStatus",
 		symbol:"String",
 		updated_at:"DateTime"
-	},
-	MarketplaceOutgoingPaymentResult:{
-		payment_request:"MarketplaceOutgoingPaymentRequest"
 	},
 	MarketplaceProductType:{
 		descriptionCategoryId:"Int",
@@ -4439,10 +4423,8 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceAddAvailableCategoryTypes:"MarketplaceAvailableCategory",
 		marketplaceAddToWhitelist:"MarketplaceWhitelistEntry",
 		marketplaceApproveOffer:"MarketplaceOffer",
-		marketplaceBlockOutgoingPayment:"MarketplaceOutgoingPaymentResult",
 		marketplaceCancelOrder:"MarketplaceCancelOrderResult",
 		marketplaceClearAvailableCategories:"Boolean",
-		marketplaceConfirmOutgoingPayment:"MarketplaceOutgoingPaymentResult",
 		marketplaceCreateAplReception:"MarketplaceAplReceptionResult",
 		marketplaceCreateOffer:"MarketplaceOffer",
 		marketplaceCreateOrder:"MarketplaceCreateOrderResult",
@@ -5081,7 +5063,6 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceListMyOffers:"MarketplaceOfferPaginationResult",
 		marketplaceListMyOrders:"MarketplaceOrderPaginationResult",
 		marketplaceListOutgoingPaymentsAsSupplier:"MarketplaceOutgoingPaymentRequest",
-		marketplaceListOutgoingPaymentsForCashier:"MarketplaceOutgoingPaymentRequest",
 		marketplaceListPendingOffers:"MarketplaceOfferPaginationResult",
 		marketplaceListShipments:"MarketplaceShipment",
 		marketplaceListSupplierOrders:"MarketplaceOrderPaginationResult",

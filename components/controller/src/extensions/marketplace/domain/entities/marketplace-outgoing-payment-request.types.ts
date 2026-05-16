@@ -1,53 +1,54 @@
 /**
- * Story 5.6 / 5.7: типы запроса исходящего платежа поставщику.
+ * Story 5.6 / 5.7 + E11 техдолг 598-16 (Locked Decision L12):
  *
- * Locked Decision L12: payout-операция в ledger lazy — выполняется только
- * после подтверждения кассиром факта банковского перевода. Этот запрос —
- * marketplace-scoped trail; синхронизация с core-реестром исходящих
- * платежей (AR35) подключается отдельным follow-up'ом со связкой
- * core/gateway.
+ * Audit-projection одного outcome'а в gateway::outcomes для расширения
+ * marketplace. По канону L12 «один Order → один outcome в gateway →
+ * одна запись здесь», `order_hash` совпадает с `outcomes.outcome_hash`.
+ * Кассир работает в общем столе gateway (не в marketplace), backend
+ * marketplace только слушает blockchain-action delta для трёх ключевых
+ * переходов и зеркалит их статусы для UI marketplace-стола поставщика.
  *
- * MVP-замечание: текущий C++ контракт marketplace::signchair выполняет
- * композитную пару `o.mkt.purch + o.mkt.payout` атомарно (pre-L12
- * поведение). Для соответствия L12 (lazy payout) требуется доработка
- * C++ контракта — техдолг PRD/FR57. Здесь backend ведёт реестр запросов
- * на оплату чтобы кассир имел задачу-handle вне зависимости от того,
- * выполнен payout в ledger или нет.
+ * Поток:
+ *   1. backend `marketplace::payout` → запись создаётся в статусе PENDING
+ *      (listener на action::marketplace::payout).
+ *   2. gateway::outcomplete inline-вызывает `marketplace::payconfirm` →
+ *      listener переводит статус в COMPLETED, фиксирует core_payment_id.
+ *   3. gateway::outdecline inline-вызывает `marketplace::paydecline` →
+ *      listener переводит статус в DECLINED, сохраняет `decline_reason`.
  */
 
 export type MarketplaceOutgoingPaymentRequestStatus =
-  | 'PENDING_CASHIER_ACTION'
-  | 'CONFIRMED_BY_CASHIER'
-  | 'LEDGER_RECORDED'
-  | 'BLOCKED';
+  | 'PENDING'
+  | 'COMPLETED'
+  | 'DECLINED';
 
 export const MarketplaceOutgoingPaymentRequestStatuses = {
-  PENDING_CASHIER_ACTION: 'PENDING_CASHIER_ACTION',
-  CONFIRMED_BY_CASHIER: 'CONFIRMED_BY_CASHIER',
-  LEDGER_RECORDED: 'LEDGER_RECORDED',
-  BLOCKED: 'BLOCKED',
+  PENDING: 'PENDING',
+  COMPLETED: 'COMPLETED',
+  DECLINED: 'DECLINED',
 } as const satisfies Record<string, MarketplaceOutgoingPaymentRequestStatus>;
 
 export interface MarketplaceOutgoingPaymentRequestProps {
   id: string;
   coopname: string;
+  /** Хэш Order'а — совпадает с outcome_hash в gateway::outcomes (L12). */
+  order_hash: string;
+  /** UUID Order'а в marketplace_order — для join'ов в queries. */
+  order_id: string;
   apl_reception_id: string;
   payee_account: string;
-  related_order_ids: string[];
   amount: string;
   symbol: string;
   purpose: string;
   status: MarketplaceOutgoingPaymentRequestStatus;
-  confirmed_at: Date | null;
-  payment_reference: string | null;
-  bank_statement_ref: string | null;
-  blocked_reason: string | null;
-  payout_tx_hash: string | null;
-  /**
-   * Story 598-17 / AR35: id связанного платежа в core-реестре `payments`.
-   * NULL — если синхронизация ещё не выполнена или core-вызов упал.
-   */
+  /** Заполняется на переходе → COMPLETED. */
+  completed_at: Date | null;
+  /** Заполняется на переходе → DECLINED. */
+  decline_reason: string | null;
+  /** Story 598-17 / AR35: id связанного платежа в core-реестре `payments`. */
   core_payment_id: string | null;
+  /** Hash транзакции payOut / payConfirm — для трассировки в логах. */
+  payout_tx_hash: string | null;
   created_at: Date;
   updated_at: Date;
 }

@@ -1,17 +1,18 @@
-import { Field, ID, InputType, ObjectType, registerEnumType } from '@nestjs/graphql';
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { Field, ID, ObjectType, registerEnumType } from '@nestjs/graphql';
 import type { MarketplaceOutgoingPaymentRequestDomainEntity } from '../../domain/entities/marketplace-outgoing-payment-request.entity';
 
 export enum MarketplaceOutgoingPaymentRequestStatusEnum {
-  PENDING_CASHIER_ACTION = 'PENDING_CASHIER_ACTION',
-  CONFIRMED_BY_CASHIER = 'CONFIRMED_BY_CASHIER',
-  LEDGER_RECORDED = 'LEDGER_RECORDED',
-  BLOCKED = 'BLOCKED',
+  PENDING = 'PENDING',
+  COMPLETED = 'COMPLETED',
+  DECLINED = 'DECLINED',
 }
 
 registerEnumType(MarketplaceOutgoingPaymentRequestStatusEnum, {
   name: 'MarketplaceOutgoingPaymentRequestStatus',
-  description: 'Статус запроса исходящего платежа кассиру.',
+  description:
+    'Статус исходящей выплаты поставщику на стороне marketplace. ' +
+    'Подтверждение и отказ выполняет общий стол кассира кооператива; ' +
+    'marketplace отображает результат только для истории.',
 });
 
 @ObjectType('MarketplaceOutgoingPaymentRequest')
@@ -22,14 +23,19 @@ export class MarketplaceOutgoingPaymentRequestDTO {
   @Field(() => String)
   coopname!: string;
 
+  @Field(() => String, {
+    description: 'Хэш заказа в каталоге поставок — один заказ = одна выплата.',
+  })
+  order_hash!: string;
+
+  @Field(() => ID, { description: 'Идентификатор заказа в каталоге поставок.' })
+  order_id!: string;
+
   @Field(() => ID, { description: 'Акт приёмки, по которому возникло обязательство.' })
   apl_reception_id!: string;
 
-  @Field(() => String, { description: 'Account поставщика — получатель платежа.' })
+  @Field(() => String, { description: 'Аккаунт поставщика — получатель выплаты.' })
   payee_account!: string;
-
-  @Field(() => [ID], { description: 'Заказы, по которым формируется платёж.' })
-  related_order_ids!: string[];
 
   @Field(() => String, { description: 'Сумма платежа (numeric с 4 знаками).' })
   amount!: string;
@@ -44,37 +50,25 @@ export class MarketplaceOutgoingPaymentRequestDTO {
   status!: MarketplaceOutgoingPaymentRequestStatusEnum;
 
   @Field(() => Date, { nullable: true })
-  confirmed_at!: Date | null;
+  completed_at!: Date | null;
 
   @Field(() => String, {
     nullable: true,
-    description: 'Внешний номер банковского платёжного документа.',
+    description: 'Причина отказа банковского перевода, если кассир отказал в проведении.',
   })
-  payment_reference!: string | null;
+  decline_reason!: string | null;
 
   @Field(() => String, {
     nullable: true,
-    description: 'Ссылка на выписку банка (URL/hash) для аудита.',
-  })
-  bank_statement_ref!: string | null;
-
-  @Field(() => String, {
-    nullable: true,
-    description: 'Причина блокировки, если платёж не прошёл банковский контур.',
-  })
-  blocked_reason!: string | null;
-
-  @Field(() => String, {
-    nullable: true,
-    description: 'Хэш транзакции o.mkt.payout (для lazy-варианта L12).',
+    description: 'Идентификатор транзакции payout / payconfirm — для трассировки в логах.',
   })
   payout_tx_hash!: string | null;
 
   @Field(() => ID, {
     nullable: true,
     description:
-      'Идентификатор связанного платежа в общем реестре кооператива — кассирский стол ' +
-      'отображает marketplace-выплаты в общей ленте платежей.',
+      'Идентификатор связанного платежа в общем реестре кооператива — кассир видит ' +
+      'выплату в общей ленте платежей.',
   })
   core_payment_id!: string | null;
 
@@ -85,65 +79,22 @@ export class MarketplaceOutgoingPaymentRequestDTO {
   updated_at!: Date;
 }
 
-@InputType('MarketplaceConfirmOutgoingPaymentInput')
-export class MarketplaceConfirmOutgoingPaymentInputDTO {
-  @Field(() => ID)
-  @IsString()
-  @IsNotEmpty()
-  payment_request_id!: string;
-
-  @Field(() => String, {
-    description: 'Номер банковского платёжного поручения / референс операции.',
-  })
-  @IsString()
-  @IsNotEmpty()
-  payment_reference!: string;
-
-  @Field(() => String, {
-    nullable: true,
-    description: 'Опционально — ссылка на выписку банка (URL или hash).',
-  })
-  @IsOptional()
-  @IsString()
-  bank_statement_ref?: string;
-}
-
-@InputType('MarketplaceBlockOutgoingPaymentInput')
-export class MarketplaceBlockOutgoingPaymentInputDTO {
-  @Field(() => ID)
-  @IsString()
-  @IsNotEmpty()
-  payment_request_id!: string;
-
-  @Field(() => String, { description: 'Причина блокировки (отказ банка, недостаток средств и т.п.).' })
-  @IsString()
-  @IsNotEmpty()
-  reason!: string;
-}
-
-@ObjectType('MarketplaceOutgoingPaymentResult')
-export class MarketplaceOutgoingPaymentResultDTO {
-  @Field(() => MarketplaceOutgoingPaymentRequestDTO)
-  payment_request!: MarketplaceOutgoingPaymentRequestDTO;
-}
-
 export function toMarketplaceOutgoingPaymentRequestDTO(
   e: MarketplaceOutgoingPaymentRequestDomainEntity
 ): MarketplaceOutgoingPaymentRequestDTO {
   const dto = new MarketplaceOutgoingPaymentRequestDTO();
   dto.id = e.id;
   dto.coopname = e.coopname;
+  dto.order_hash = e.order_hash;
+  dto.order_id = e.order_id;
   dto.apl_reception_id = e.apl_reception_id;
   dto.payee_account = e.payee_account;
-  dto.related_order_ids = e.related_order_ids;
   dto.amount = e.amount;
   dto.symbol = e.symbol;
   dto.purpose = e.purpose;
   dto.status = e.status as MarketplaceOutgoingPaymentRequestStatusEnum;
-  dto.confirmed_at = e.confirmed_at;
-  dto.payment_reference = e.payment_reference;
-  dto.bank_statement_ref = e.bank_statement_ref;
-  dto.blocked_reason = e.blocked_reason;
+  dto.completed_at = e.completed_at;
+  dto.decline_reason = e.decline_reason;
   dto.payout_tx_hash = e.payout_tx_hash;
   dto.core_payment_id = e.core_payment_id;
   dto.created_at = e.created_at;

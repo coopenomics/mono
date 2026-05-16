@@ -10,9 +10,11 @@ import {
   MARKETPLACE_APL_SUPPLIER_SIGN_REQUEST_EVENT,
   MARKETPLACE_CASHIER_NEW_PAYMENT_EVENT,
   MARKETPLACE_SUPPLIER_PAYMENT_CONFIRMED_EVENT,
+  MARKETPLACE_SUPPLIER_PAYMENT_DECLINED_EVENT,
   type MarketplaceAplSupplierSignRequestEvent,
   type MarketplaceCashierNewPaymentEvent,
   type MarketplaceSupplierPaymentConfirmedEvent,
+  type MarketplaceSupplierPaymentDeclinedEvent,
 } from '../events/marketplace-notification.events';
 
 /**
@@ -119,7 +121,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
         apl_reception_id: event.apl_reception_id,
         payment_request_id: event.payment_request_id,
         coopname: event.coopname,
-        deepLinkUrl: `${config.frontend_url}/${event.coopname}/cashier/OutgoingPayments`,
+        deepLinkUrl: `${config.frontend_url}/${event.coopname}/cashier/Payments`,
       };
       const triggerData: WorkflowTriggerDomainInterface = {
         name: Workflows.MarketplaceCashierNewPayment.id,
@@ -172,6 +174,45 @@ export class MarketplaceNotificationService implements OnModuleInit {
     } catch (err: any) {
       this.logger.warn(
         `Payment ${event.payment_request_id}: ошибка отправки push поставщику (${err.message}) — flow не блокируется.`
+      );
+    }
+  }
+
+  @OnEvent(MARKETPLACE_SUPPLIER_PAYMENT_DECLINED_EVENT)
+  async handleSupplierPaymentDeclined(event: MarketplaceSupplierPaymentDeclinedEvent): Promise<void> {
+    try {
+      const supplierAccount = await this.accountPort.getAccount(event.supplier_account);
+      const subscriberId = supplierAccount.provider_account?.subscriber_id?.trim();
+      const email = supplierAccount.provider_account?.email;
+      if (!subscriberId || !email) {
+        this.logger.warn(
+          `Payment ${event.payment_request_id}: subscriber_id/email поставщика ${event.supplier_account} не найден — push пропущен.`
+        );
+        return;
+      }
+
+      const supplierName = await this.accountPort.getDisplayName(event.supplier_account);
+      const payload: Workflows.MarketplaceSupplierPaymentDeclined.IPayload = {
+        supplierName,
+        amount: event.amount,
+        reason: event.reason,
+        apl_reception_id: event.apl_reception_id,
+        payment_request_id: event.payment_request_id,
+        coopname: event.coopname,
+        deepLinkUrl: `${config.frontend_url}/${event.coopname}/offerer/PaymentHistory`,
+      };
+      const triggerData: WorkflowTriggerDomainInterface = {
+        name: Workflows.MarketplaceSupplierPaymentDeclined.id,
+        to: { subscriberId, email },
+        payload,
+      };
+      await this.novuWorkflowPort.triggerWorkflow(triggerData);
+      this.logger.log(
+        `Payment ${event.payment_request_id}: push поставщику ${event.supplier_account} об отказе выплаты отправлен.`
+      );
+    } catch (err: any) {
+      this.logger.warn(
+        `Payment ${event.payment_request_id}: ошибка отправки push поставщику об отказе (${err.message}) — flow не блокируется.`
       );
     }
   }

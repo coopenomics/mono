@@ -4,7 +4,6 @@ import { In, Repository } from 'typeorm';
 import { MarketplaceOutgoingPaymentRequestDomainEntity } from '../../domain/entities/marketplace-outgoing-payment-request.entity';
 import { MarketplaceOutgoingPaymentRequestStatuses } from '../../domain/entities/marketplace-outgoing-payment-request.types';
 import type {
-  MarketplaceOutgoingPaymentRequestConfirmInput,
   MarketplaceOutgoingPaymentRequestCreateInput,
   MarketplaceOutgoingPaymentRequestDomainRepository,
 } from '../../domain/repositories/marketplace-outgoing-payment-request.repository';
@@ -22,40 +21,30 @@ export class MarketplaceOutgoingPaymentRequestRepositoryAdapter
     private readonly mapper: MarketplaceOutgoingPaymentRequestMapper
   ) {}
 
-  async create(
+  async createIfNotExists(
     input: MarketplaceOutgoingPaymentRequestCreateInput
   ): Promise<MarketplaceOutgoingPaymentRequestDomainEntity> {
+    const existing = await this.repo.findOne({
+      where: { coopname: input.coopname, order_hash: input.order_hash },
+    });
+    if (existing) return this.mapper.toDomain(existing);
     const row = this.repo.create({
       coopname: input.coopname,
+      order_hash: input.order_hash,
+      order_id: input.order_id,
       apl_reception_id: input.apl_reception_id,
       payee_account: input.payee_account,
-      related_order_ids: input.related_order_ids,
       amount: input.amount,
       symbol: input.symbol,
       purpose: input.purpose,
-      status: input.status,
-      confirmed_at: null,
-      payment_reference: null,
-      bank_statement_ref: null,
-      blocked_reason: null,
-      payout_tx_hash: null,
-      core_payment_id: null,
+      status: MarketplaceOutgoingPaymentRequestStatuses.PENDING,
+      completed_at: null,
+      decline_reason: null,
+      payout_tx_hash: input.payout_tx_hash ?? null,
+      core_payment_id: input.core_payment_id ?? null,
     });
     const saved = await this.repo.save(row);
     return this.mapper.toDomain(saved);
-  }
-
-  async applyCorePaymentId(
-    id: string,
-    core_payment_id: string
-  ): Promise<MarketplaceOutgoingPaymentRequestDomainEntity> {
-    await this.repo.update({ id }, { core_payment_id });
-    const row = await this.repo.findOneOrFail({ where: { id } });
-    return this.mapper.toDomain(row);
-  }
-
-  async deleteById(id: string): Promise<void> {
-    await this.repo.delete({ id });
   }
 
   async findById(id: string): Promise<MarketplaceOutgoingPaymentRequestDomainEntity | null> {
@@ -63,65 +52,93 @@ export class MarketplaceOutgoingPaymentRequestRepositoryAdapter
     return row ? this.mapper.toDomain(row) : null;
   }
 
-  async findByAplReceptionId(
+  async findByOrderHash(
     coopname: string,
-    apl_reception_id: string
+    order_hash: string
   ): Promise<MarketplaceOutgoingPaymentRequestDomainEntity | null> {
-    const row = await this.repo.findOne({ where: { coopname, apl_reception_id } });
+    const row = await this.repo.findOne({ where: { coopname, order_hash } });
     return row ? this.mapper.toDomain(row) : null;
   }
 
-  async listByStatus(
+  async findByAplReceptionId(
     coopname: string,
-    status: MarketplaceOutgoingPaymentRequestStatus | MarketplaceOutgoingPaymentRequestStatus[]
-  ): Promise<MarketplaceOutgoingPaymentRequestDomainEntity[]> {
-    const where: Record<string, unknown> = { coopname };
-    where.status = Array.isArray(status) ? In(status) : status;
-    const rows = await this.repo.find({ where, order: { created_at: 'DESC' } });
-    return rows.map((r) => this.mapper.toDomain(r));
-  }
-
-  async listByPayee(
-    coopname: string,
-    payee_account: string
+    apl_reception_id: string
   ): Promise<MarketplaceOutgoingPaymentRequestDomainEntity[]> {
     const rows = await this.repo.find({
-      where: { coopname, payee_account },
+      where: { coopname, apl_reception_id },
       order: { created_at: 'DESC' },
     });
     return rows.map((r) => this.mapper.toDomain(r));
   }
 
-  async confirmByCashier(
-    id: string,
-    patch: MarketplaceOutgoingPaymentRequestConfirmInput
-  ): Promise<MarketplaceOutgoingPaymentRequestDomainEntity> {
-    await this.repo.update(
-      { id },
-      {
-        confirmed_at: patch.confirmed_at,
-        payment_reference: patch.payment_reference,
-        bank_statement_ref: patch.bank_statement_ref ?? null,
-        payout_tx_hash: patch.payout_tx_hash ?? null,
-        status: patch.status,
-      }
-    );
-    const row = await this.repo.findOneOrFail({ where: { id } });
-    return this.mapper.toDomain(row);
+  async listByPayee(
+    coopname: string,
+    payee_account: string,
+    statuses?: MarketplaceOutgoingPaymentRequestStatus[]
+  ): Promise<MarketplaceOutgoingPaymentRequestDomainEntity[]> {
+    const where: Record<string, unknown> = { coopname, payee_account };
+    if (statuses && statuses.length > 0) where.status = In(statuses);
+    const rows = await this.repo.find({ where, order: { created_at: 'DESC' } });
+    return rows.map((r) => this.mapper.toDomain(r));
   }
 
-  async markBlocked(
-    id: string,
-    reason: string
-  ): Promise<MarketplaceOutgoingPaymentRequestDomainEntity> {
+  async applyCompletion(
+    coopname: string,
+    order_hash: string,
+    patch: {
+      completed_at: Date;
+      core_payment_id?: string | null;
+      payout_tx_hash?: string | null;
+    }
+  ): Promise<MarketplaceOutgoingPaymentRequestDomainEntity | null> {
+    const row = await this.repo.findOne({ where: { coopname, order_hash } });
+    if (!row) return null;
+    if (row.status === MarketplaceOutgoingPaymentRequestStatuses.COMPLETED) {
+      return this.mapper.toDomain(row);
+    }
     await this.repo.update(
-      { id },
+      { id: row.id },
       {
-        blocked_reason: reason,
-        status: MarketplaceOutgoingPaymentRequestStatuses.BLOCKED,
+        status: MarketplaceOutgoingPaymentRequestStatuses.COMPLETED,
+        completed_at: patch.completed_at,
+        core_payment_id: patch.core_payment_id ?? row.core_payment_id,
+        payout_tx_hash: patch.payout_tx_hash ?? row.payout_tx_hash,
       }
     );
-    const row = await this.repo.findOneOrFail({ where: { id } });
-    return this.mapper.toDomain(row);
+    const updated = await this.repo.findOneOrFail({ where: { id: row.id } });
+    return this.mapper.toDomain(updated);
+  }
+
+  async applyDecline(
+    coopname: string,
+    order_hash: string,
+    reason: string
+  ): Promise<MarketplaceOutgoingPaymentRequestDomainEntity | null> {
+    const row = await this.repo.findOne({ where: { coopname, order_hash } });
+    if (!row) return null;
+    if (row.status === MarketplaceOutgoingPaymentRequestStatuses.DECLINED) {
+      return this.mapper.toDomain(row);
+    }
+    await this.repo.update(
+      { id: row.id },
+      {
+        status: MarketplaceOutgoingPaymentRequestStatuses.DECLINED,
+        decline_reason: reason,
+      }
+    );
+    const updated = await this.repo.findOneOrFail({ where: { id: row.id } });
+    return this.mapper.toDomain(updated);
+  }
+
+  async applyCorePaymentId(
+    coopname: string,
+    order_hash: string,
+    core_payment_id: string
+  ): Promise<MarketplaceOutgoingPaymentRequestDomainEntity | null> {
+    const row = await this.repo.findOne({ where: { coopname, order_hash } });
+    if (!row) return null;
+    await this.repo.update({ id: row.id }, { core_payment_id });
+    const updated = await this.repo.findOneOrFail({ where: { id: row.id } });
+    return this.mapper.toDomain(updated);
   }
 }

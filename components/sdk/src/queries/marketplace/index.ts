@@ -16,8 +16,6 @@ export * as ListInventory from './listInventory'
 export * as ListAplReceptionsByKu from './listAplReceptionsByKu'
 /** Эпик 5: акты приёмки, ожидающие подписи текущего поставщика */
 export * as ListAplReceptionsAsSupplier from './listAplReceptionsAsSupplier'
-/** Эпик 5: лента выплат кассирского стола */
-export * as ListOutgoingPaymentsForCashier from './listOutgoingPaymentsForCashier'
 /** Эпик 5: история выплат поставщика */
 export * as ListOutgoingPaymentsAsSupplier from './listOutgoingPaymentsAsSupplier'
 /** Эпик 5: подписные документы Document2 для поставщика (FR45 / 598-15) */

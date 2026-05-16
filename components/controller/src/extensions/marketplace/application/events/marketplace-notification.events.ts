@@ -12,6 +12,9 @@ export const MARKETPLACE_CASHIER_NEW_PAYMENT_EVENT =
 export const MARKETPLACE_SUPPLIER_PAYMENT_CONFIRMED_EVENT =
   'marketplace.outgoingPayment.supplier.confirmed';
 
+export const MARKETPLACE_SUPPLIER_PAYMENT_DECLINED_EVENT =
+  'marketplace.outgoingPayment.supplier.declined';
+
 export interface MarketplaceAplSupplierSignRequestEvent {
   coopname: string;
   apl_reception_id: string;
@@ -36,4 +39,13 @@ export interface MarketplaceSupplierPaymentConfirmedEvent {
   supplier_account: string;
   amount: string;
   payment_reference: string;
+}
+
+export interface MarketplaceSupplierPaymentDeclinedEvent {
+  coopname: string;
+  apl_reception_id: string;
+  payment_request_id: string;
+  supplier_account: string;
+  amount: string;
+  reason: string;
 }

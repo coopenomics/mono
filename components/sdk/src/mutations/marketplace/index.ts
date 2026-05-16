@@ -20,7 +20,3 @@ export * as CreateAplReception from './createAplReception'
 export * as SignAplReceptionAsSupplier from './signAplReceptionAsSupplier'
 /** Эпик 5: закрывающая подпись председателя КУ */
 export * as SignAplReceptionAsChairman from './signAplReceptionAsChairman'
-/** Эпик 5: подтверждение кассиром факта банковского перевода поставщику */
-export * as ConfirmOutgoingPayment from './confirmOutgoingPayment'
-/** Эпик 5: блокировка выплаты кассиром с указанием причины */
-export * as BlockOutgoingPayment from './blockOutgoingPayment'
