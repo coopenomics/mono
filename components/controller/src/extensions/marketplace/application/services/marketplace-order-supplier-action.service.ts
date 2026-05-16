@@ -13,6 +13,10 @@ import {
   type MarketplaceCanonicalBlockchainPort,
 } from '../../domain/ports/marketplace-canonical-blockchain.port';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
+import {
+  MarketplaceOrderCycleTypes,
+  MarketplaceOrderStatuses,
+} from '../../domain/entities/marketplace-order.types';
 
 export interface MarketplaceSupplierAcceptInput {
   coopname: string;
@@ -32,27 +36,6 @@ export interface MarketplaceSupplierActionResult {
   tx_hash: string;
 }
 
-/**
- * Story 4.5: per-Order accept/decline поставщика для cycle_type='individual'
- * и decline-частный случай для cycle_type='open_subscription' до запуска
- * поставки (`marketplaceDeclineOrderFromOpenPool`).
- *
- *   - **acceptIndividual** — Order в `ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL`
- *     → on-chain `acceptorder` (без ledger2-операций) → Order.status →
- *     ACCEPTED. Counter не двигается (quantity уже отделено в blocked).
- *
- *   - **declineIndividual** — Order в `ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL`
- *     → on-chain `declineorder` (C++ серия o.mkt.unblk на total_cost +
- *     статус active→cancelled) → counter `onOrderUnblocked` (best-effort)
- *     → Order.status → CANCELLED_BY_SUPPLIER с reason.
- *
- *   - **declineFromOpenPool** — Order в `ACTIVE` + cycle_type='open_subscription'
- *     + cycle_id IS NULL (пул ещё не запущен) → on-chain `declineorder` +
- *     counter unblk + Order.status → CANCELLED_BY_SUPPLIER. После
- *     `triggerOpenSubscription` (Story 4.2) частичный отказ невозможен —
- *     уже все Order'ы в `ACCEPTED`, а нажатие = акцепт всего пула (Story 4.5
- *     AC для open_subscription).
- */
 @Injectable()
 export class MarketplaceOrderSupplierActionService {
   constructor(
@@ -69,14 +52,14 @@ export class MarketplaceOrderSupplierActionService {
 
   async acceptIndividual(input: MarketplaceSupplierAcceptInput): Promise<MarketplaceSupplierActionResult> {
     const order = await this.guardSupplierOrder(input.order_id, input.coopname, input.offerer_account);
-    if (order.cycle_type !== 'individual') {
+    if (order.cycle_type !== MarketplaceOrderCycleTypes.INDIVIDUAL) {
       throw new BadRequestException(
-        `Per-Order accept доступен только для cycle_type='individual'; заказ — '${order.cycle_type}'. Для time/volume используйте marketplaceAcceptConsolidatedRequest.`
+        'Этот заказ нельзя принять по одному: он оформлен в пакетном предложении. Для накопительных и периодических предложений действие — приём сводной заявки целиком. [E4SAS-ACC-NOT-INDIVIDUAL]'
       );
     }
-    if (order.status !== 'ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL') {
+    if (order.status !== MarketplaceOrderStatuses.ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL) {
       throw new BadRequestException(
-        `Заказ в статусе '${order.status}' — accept недоступен. Допустимо только из 'ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL'.`
+        'Принять заказ нельзя — он уже не ждёт вашего решения по индивидуальному приёму. [E4SAS-ACC-WRONG-STATE]'
       );
     }
 
@@ -96,7 +79,11 @@ export class MarketplaceOrderSupplierActionService {
       this.rethrowChainError(error);
     }
 
-    const updated = await this.orderRepo.applyStatusTransition(order.id, 'ACCEPTED', 'Принят поставщиком');
+    const updated = await this.orderRepo.applyStatusTransition(
+      order.id,
+      MarketplaceOrderStatuses.ACCEPTED,
+      'Принят поставщиком'
+    );
 
     this.logger.log(
       `MarketplaceOrderSupplierActionService.acceptIndividual: Order ${order.id} (hash=${order.order_hash}) принят поставщиком ${input.offerer_account}; tx=${txHash!}`
@@ -109,14 +96,14 @@ export class MarketplaceOrderSupplierActionService {
     if (!reason) throw new BadRequestException('Укажите причину отказа.');
 
     const order = await this.guardSupplierOrder(input.order_id, input.coopname, input.offerer_account);
-    if (order.cycle_type !== 'individual') {
+    if (order.cycle_type !== MarketplaceOrderCycleTypes.INDIVIDUAL) {
       throw new BadRequestException(
-        `Per-Order decline доступен только для cycle_type='individual'; заказ — '${order.cycle_type}'. Для time/volume используйте marketplaceDeclineConsolidatedRequest, для open_subscription — marketplaceDeclineOrderFromOpenPool.`
+        'Этот заказ нельзя отклонить по одному: он оформлен в пакетном предложении. Для накопительных и периодических предложений действие — отказ от сводной заявки целиком; для открытой подписки — отказ из пула до запуска поставки. [E4SAS-DEC-NOT-INDIVIDUAL]'
       );
     }
-    if (order.status !== 'ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL') {
+    if (order.status !== MarketplaceOrderStatuses.ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL) {
       throw new BadRequestException(
-        `Заказ в статусе '${order.status}' — decline недоступен. Допустимо только из 'ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL'.`
+        'Отклонить заказ нельзя — он уже не ждёт вашего решения по индивидуальному приёму. [E4SAS-DEC-WRONG-STATE]'
       );
     }
 
@@ -128,14 +115,14 @@ export class MarketplaceOrderSupplierActionService {
     if (!reason) throw new BadRequestException('Укажите причину отказа.');
 
     const order = await this.guardSupplierOrder(input.order_id, input.coopname, input.offerer_account);
-    if (order.cycle_type !== 'open_subscription') {
+    if (order.cycle_type !== MarketplaceOrderCycleTypes.OPEN_SUBSCRIPTION) {
       throw new BadRequestException(
-        `Частичный decline из пула доступен только для cycle_type='open_subscription'; заказ — '${order.cycle_type}'.`
+        'Отказ от отдельного заказа из пула возможен только в предложениях с открытой подпиской. [E4SAS-OPEN-NOT-OPEN-SUBSCRIPTION]'
       );
     }
-    if (order.status !== 'ACTIVE' || order.cycle_id != null) {
+    if (order.status !== MarketplaceOrderStatuses.ACTIVE || order.cycle_id != null) {
       throw new BadRequestException(
-        `Заказ в статусе '${order.status}' (cycle_id=${order.cycle_id ?? 'null'}) — decline из пула недоступен. Допустимо только до запуска поставки (ACTIVE + cycle_id=null).`
+        'Отказ из пула возможен только пока поставка ещё не запущена и заказ не присоединён к партии. После запуска отказ возможен только от сводной заявки целиком. [E4SAS-OPEN-WRONG-STATE]'
       );
     }
 
@@ -171,7 +158,11 @@ export class MarketplaceOrderSupplierActionService {
       );
     }
 
-    const updated = await this.orderRepo.applyStatusTransition(order.id, 'CANCELLED_BY_SUPPLIER', reason);
+    const updated = await this.orderRepo.applyStatusTransition(
+      order.id,
+      MarketplaceOrderStatuses.CANCELLED_BY_SUPPLIER,
+      reason
+    );
     this.logger.log(
       `MarketplaceOrderSupplierActionService: Order ${order.id} (hash=${order.order_hash}) отклонён поставщиком ${offerer_account}; cycle_type=${order.cycle_type}; tx=${txHash!}; reason="${reason}"`
     );

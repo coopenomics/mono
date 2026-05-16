@@ -7,6 +7,11 @@ import type { MarketplaceOrderDomainRepository } from '../../domain/repositories
 import type { MarketplaceOfferCountersService } from './marketplace-offer-counters.service';
 import type { MarketplaceCanonicalBlockchainPort } from '../../domain/ports/marketplace-canonical-blockchain.port';
 import type { MarketplaceCycleAggregatorService } from './marketplace-cycle-aggregator.service';
+import {
+  MarketplaceOfferCycleTypes,
+  MarketplaceOfferStatuses,
+  MarketplaceUnitsOfMeasure,
+} from '../../domain/entities/marketplace-offer.types';
 
 function buildOffer(overrides: Partial<MarketplaceOfferDomainEntity> = {}): MarketplaceOfferDomainEntity {
   return {
@@ -18,18 +23,18 @@ function buildOffer(overrides: Partial<MarketplaceOfferDomainEntity> = {}): Mark
     description: null,
     category_id: 1,
     price_per_unit: '150.0000',
-    unit_of_measure: 'piece' as const,
+    unit_of_measure: MarketplaceUnitsOfMeasure.PIECE,
     quantity_available: 10,
     quantity_blocked: 0,
     quantity_consumed: 0,
     unlimited_flag: false,
-    cycle_type: 'time_based' as const,
+    cycle_type: MarketplaceOfferCycleTypes.TIME_BASED,
     cycle_days: 7,
     target_volume: null,
     max_wait_days: null,
     min_threshold: null,
     warranty_days: 7,
-    status: 'ACTIVE' as const,
+    status: MarketplaceOfferStatuses.ACTIVE,
     approved_by: 'chairman',
     approved_at: new Date(),
     rejected_by: null,
@@ -90,6 +95,7 @@ describe('MarketplaceOrderCreateService', () => {
       mocks.counters,
       mocks.chainPort,
       mocks.cycleAggregator,
+      { symbol: 'RUB', decimals: 4 },
       mocks.logger
     );
   });
@@ -123,7 +129,7 @@ describe('MarketplaceOrderCreateService', () => {
   });
 
   it('Guard FR11a: бросает BadRequest при неактивном Offer (PENDING_MODERATION)', async () => {
-    mocks.offerRepo.findById.mockResolvedValue(buildOffer({ status: 'PENDING_MODERATION' }));
+    mocks.offerRepo.findById.mockResolvedValue(buildOffer({ status: MarketplaceOfferStatuses.PENDING_MODERATION }));
     await expect(
       service.execute({
         coopname: 'voskhod',
@@ -233,7 +239,7 @@ describe('MarketplaceOrderCreateService', () => {
     expect(chainArgs.delivery_braname).toBe('ku.krasn.1');
     expect(chainArgs.quantity).toBe(2);
     expect(chainArgs.unit_price).toBe('150.0000 RUB');
-    expect(chainArgs.cycle_type).toBe('time_based');
+    expect(chainArgs.cycle_type).toBe(MarketplaceOfferCycleTypes.TIME_BASED);
     expect(chainArgs.warranty_period_secs).toBe(7 * 86_400);
     expect(chainArgs.order_hash).toHaveLength(64);
     expect(chainArgs.offer_hash).toHaveLength(64);

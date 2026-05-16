@@ -52,6 +52,7 @@ import {
   MarketplaceOrderCreateService,
   MARKETPLACE_ORDER_CREATE_SERVICE,
 } from './services/marketplace-order-create.service';
+import { marketplaceAssetConfigProvider } from './services/marketplace-asset.config.provider';
 import {
   MarketplaceOrderCancelService,
   MARKETPLACE_ORDER_CANCEL_SERVICE,
@@ -150,6 +151,7 @@ import {
       useClass: MarketplaceOfferCountersService,
     },
     MarketplaceOfferCountersService,
+    marketplaceAssetConfigProvider,
     // Story 4.1
     {
       provide: MARKETPLACE_ORDER_CREATE_SERVICE,

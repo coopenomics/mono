@@ -5,13 +5,13 @@ import type {
   MarketplaceCreateOfferResult,
 } from '../types';
 
-/**
- * Story 4.7: raw GraphQL для публикации Offer'а с cycle_type.
- *
- * Техдолг как и в MarketplaceCatalog/api: до регенерации Zeus в
- * `@coopenomics/sdk` используем raw POST `/v1/graphql`. Переписать
- * на типизированные `Mutations.Marketplace.CreateOffer` позже.
- */
+// TODO техдолг marketplace2: переписать на Mutations.Marketplace.* из @coopenomics/sdk
+// после общего cleanup'а legacy GraphQL операций. Сейчас regen Zeus
+// (generate-schema + generate-client) блокируется устаревшими legacy resolver'ами
+// (`application/marketplace/*` + `domain/marketplace/*` + соответствующие
+// SDK-мутации в `components/sdk/src/mutations/marketplace/`) — они ссылаются
+// на cooptypes-actions, исчезнувшие после переименования cooplace→marketplace.
+// Чистка отдельной story в backlog'е cleanup'а маркетплейса.
 
 const CREATE_OFFER_MUTATION = `
   mutation MarketplaceCreateOffer($input: MarketplaceCreateOfferInput!) {

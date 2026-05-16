@@ -2,6 +2,10 @@ import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundEx
 import { createHash, randomBytes } from 'crypto';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import {
+  MARKETPLACE_ASSET_CONFIG,
+  type MarketplaceAssetConfig,
+} from './marketplace-asset.config';
+import {
   MARKETPLACE_OFFER_REPOSITORY,
   type MarketplaceOfferDomainRepository,
 } from '../../domain/repositories/marketplace-offer.repository';
@@ -77,10 +81,15 @@ export interface MarketplaceOrderCreateResult {
  */
 @Injectable()
 export class MarketplaceOrderCreateService {
-  // pilot Красногорск symbol; в Story 9.x — из config кооператива.
-  private static readonly ASSET_DECIMALS = 4;
-  private static readonly ASSET_SYMBOL = 'RUB';
   private static readonly ZERO_HASH = '0'.repeat(64);
+
+  private get assetSymbol(): string {
+    return this.assetConfig.symbol;
+  }
+
+  private get assetDecimals(): number {
+    return this.assetConfig.decimals;
+  }
 
   constructor(
     @Inject(MARKETPLACE_OFFER_REPOSITORY)
@@ -93,6 +102,8 @@ export class MarketplaceOrderCreateService {
     private readonly chainPort: MarketplaceCanonicalBlockchainPort,
     @Inject(MARKETPLACE_CYCLE_AGGREGATOR_SERVICE)
     private readonly cycleAggregator: MarketplaceCycleAggregatorService,
+    @Inject(MARKETPLACE_ASSET_CONFIG)
+    private readonly assetConfig: MarketplaceAssetConfig,
     private readonly logger: WinstonLoggerService
   ) {
     this.logger.setContext(MarketplaceOrderCreateService.name);
@@ -301,12 +312,12 @@ export class MarketplaceOrderCreateService {
       throw new BadRequestException(`Некорректная цена за единицу: "${price_per_unit}"`);
     }
     const total = priceFloat * quantity;
-    return total.toFixed(MarketplaceOrderCreateService.ASSET_DECIMALS);
+    return total.toFixed(this.assetDecimals);
   }
 
   private formatAsset(price_per_unit: string): string {
     const priceFloat = Number.parseFloat(price_per_unit);
-    return `${priceFloat.toFixed(MarketplaceOrderCreateService.ASSET_DECIMALS)} ${MarketplaceOrderCreateService.ASSET_SYMBOL}`;
+    return `${priceFloat.toFixed(this.assetDecimals)} ${this.assetSymbol}`;
   }
 
   private normalizeTxResult(tx: unknown): { tx_hash: string; block_num: number } {

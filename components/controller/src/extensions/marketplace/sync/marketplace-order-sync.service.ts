@@ -14,27 +14,6 @@ import {
   MarketplaceOfferCountersService,
 } from '../application/services/marketplace-offer-counters.service';
 
-/**
- * Story 4.1: реальная реализация sync-service Order'ов (заменяет
- * scaffolding с throw NOT_IMPLEMENTED).
- *
- * Подписывается на `delta::marketplace::orders` через EventEmitter2
- * (паттерн `ProgramWalletSyncService`; ParserClient (parser2) ещё не
- * включён в monorepo, переходим на него в Phase 2).
- *
- * Story 4.1 contract:
- *  - Counter side-effects (`onOrderBlocked` / `onOrderUnblocked` /
- *    `onOrderConsumed`) дёргаются СИНХРОННО в backend create/cancel/
- *    consume сервисах (optimistic update, compensating rollback при
- *    chain-failure). Syncer counter НЕ дёргает на normal delta-flow,
- *    чтобы избежать double-decrement.
- *  - Counter `onOrderRolledBack` дёргается ТОЛЬКО в `afterForkProcessing`
- *    для каждого Order'а в block-состоянии после fork-rollback цепи.
- *    Это компенсирует backend optimistic update при катастрофе fork.
- *
- * См. spec-3-4-bc-integration.md секция 2.4-2.5 и controller/CLAUDE.md
- * Dispatch pipeline / Fork handling правила.
- */
 @Injectable()
 export class MarketplaceOrderSyncService
   extends AbstractEntitySyncService<MarketplaceOrderDomainEntity, MarketplaceOrderBlockchainData>
@@ -72,10 +51,6 @@ export class MarketplaceOrderSyncService
     );
   }
 
-  /**
-   * Fork-канал EventEmitter2 проходит через эту обёртку, которая
-   * нормализует payload в `{ block_num }` (см. контракт fork-events).
-   */
   async handleForkEvent(forkData: { block_num: number }): Promise<void> {
     if (!forkData || typeof forkData.block_num !== 'number') {
       this.logger.warn(`MarketplaceOrderSyncService: некорректный fork payload — ${JSON.stringify(forkData)}`);
@@ -84,30 +59,40 @@ export class MarketplaceOrderSyncService
     await this.handleFork(forkData.block_num);
   }
 
-  /**
-   * После rollback rows: для каждого Order'а, который был в block-state
-   * до отката (`is_in_block_state === true`), вызвать
-   * `offerCounters.onOrderRolledBack(offer_id, qty)`. Это компенсирует
-   * backend optimistic update в `MarketplaceOrderCreateService`.
-   *
-   * Counter rollback без CAS-проверки (ADR-005 «frozen past with
-   * Rollback Horizon»). При rollback вне горизонта оставляем
-   * counter inconsistent + alert (manual reconciliation, Phase 2).
-   */
+  // Откат заказов при форке цепи разнесён по двум уровням:
+  //
+  //   1. Сами строки `marketplace_order` удаляются базовой логикой
+  //      `AbstractEntitySyncService.handleFork` — она зовёт
+  //      `repository.deleteByBlockNumGreaterThan(forkBlockNum)` для
+  //      записей с `on_chain_block_num > forkBlockNum`. После этого
+  //      parser2 повторно проигрывает дельты из правильной ветки и
+  //      восстанавливает заказ заново на pre-fork состояние через
+  //      `updateFromBlockchain` (chain-as-source-of-truth).
+  //
+  //   2. Здесь, в `afterForkProcessing`, компенсируется побочный
+  //      эффект, который НЕ хранится в цепи — счётчики Offer'а
+  //      (`quantity_available` / `quantity_blocked`), которые
+  //      backend двинул оптимистично в `MarketplaceOrderCreateService`
+  //      ещё до подтверждения блока. Удалённые после форка заказы
+  //      возвращают эти счётчики назад через `onOrderRolledBack`.
+  //
+  // Backend-only поля заказа (cycle_id, last_status_reason,
+  // accepted_at) и заказы с `on_chain_block_num = null` (попавшие
+  // в зазор между submit и доставкой дельты) ловятся отдельным
+  // механизмом сверки — отдельная история ручной сверки.
   protected async afterForkProcessing(
     forkBlockNum: number,
     affectedEntities: MarketplaceOrderDomainEntity[]
   ): Promise<void> {
-    const inBlockEntities = affectedEntities.filter((e) => e.is_in_block_state);
     this.logger.log(
-      `MarketplaceOrderSyncService.afterFork: возвращаю counters для ${inBlockEntities.length}/${affectedEntities.length} Order'ов (block_num > ${forkBlockNum})`
+      `MarketplaceOrderSyncService.afterFork: компенсирую счётчики Offer'а для ${affectedEntities.length} заказов, удалённых форком (block_num > ${forkBlockNum})`
     );
-    for (const order of inBlockEntities) {
+    for (const order of affectedEntities) {
       try {
         await this.offerCounters.onOrderRolledBack(order.offer_id, order.quantity);
       } catch (error: any) {
         this.logger.error(
-          `MarketplaceOrderSyncService.afterFork: не удалось вернуть counter для Order ${order.id} (offer ${order.offer_id}, qty ${order.quantity}): ${error.message}`,
+          `MarketplaceOrderSyncService.afterFork: не удалось вернуть счётчик для заказа ${order.id} (offer ${order.offer_id}, qty ${order.quantity}): ${error.message}`,
           error.stack
         );
       }

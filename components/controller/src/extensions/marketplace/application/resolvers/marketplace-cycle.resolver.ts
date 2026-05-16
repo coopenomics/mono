@@ -3,6 +3,7 @@ import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 
 import config from '~/config/config';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
+import { PaginationInputDTO } from '~/application/common/dto/pagination.dto';
 
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
@@ -26,23 +27,9 @@ import {
   MARKETPLACE_CONSOLIDATED_REQUEST_REPOSITORY,
   type MarketplaceConsolidatedRequestDomainRepository,
 } from '../../domain/repositories/marketplace-consolidated-request.repository';
-import type {
-  MarketplaceConsolidatedRequestStatus,
-} from '../../domain/entities/marketplace-consolidated-request.types';
 
 const toDTO = toMarketplaceConsolidatedRequestDTO;
 
-/**
- * Story 4.2: GraphQL для консолидированной заявки.
- *
- * - `marketplaceTriggerOpenSubscription` — поставщик жмёт «Запустить
- *   поставку сейчас» по open_subscription Offer'у (Order'ы сразу ACCEPTED).
- * - `marketplaceListConsolidatedRequests` — список заявок для offerer-стола
- *   (Story 4.5 UI accept/decline по batch).
- *
- * Access-matrix: trigger требует `Offer:update:own` (поставщик-владелец);
- * list — `Offer:read` (видят все marketplace-роли в рамках кооператива).
- */
 @Resolver()
 @Injectable()
 export class MarketplaceCycleResolver {
@@ -56,7 +43,7 @@ export class MarketplaceCycleResolver {
   @Mutation(() => MarketplaceConsolidatedRequestDTO, {
     name: 'marketplaceTriggerOpenSubscription',
     description:
-      'Story 4.2: поставщик жмёт «Запустить поставку сейчас» по open_subscription Offer\'у. Создаёт consolidated_request status=ACCEPTED, Order\'ы пула → ACCEPTED.',
+      'Поставщик запускает поставку по предложению с открытой подпиской: формируется сводная заявка, заказы в её пуле принимаются.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Offer', 'update:own')
@@ -75,32 +62,33 @@ export class MarketplaceCycleResolver {
   @Query(() => MarketplaceConsolidatedRequestPaginationResultDTO, {
     name: 'marketplaceListConsolidatedRequests',
     description:
-      'Story 4.2/4.5: список консолидированных заявок (для offerer-стола per-status и orderer-стола трассировки).',
+      'Постраничный список сводных заявок поставщика — для стола поставщика и для прослеживания состояния заказов.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Offer', 'read')
   async marketplaceListConsolidatedRequests(
-    @Args('input', { nullable: true }) input?: MarketplaceListConsolidatedRequestsInputDTO
+    @Args('input', { nullable: true }) input?: MarketplaceListConsolidatedRequestsInputDTO,
+    @Args('options', { nullable: true }) options?: PaginationInputDTO
   ): Promise<MarketplaceConsolidatedRequestPaginationResultDTO> {
-    const pagination = {
-      page: input?.page ?? 1,
-      limit: input?.limit ?? 50,
-      sortBy: 'updated_at',
-      sortOrder: (input?.sortOrder ?? 'DESC') as 'ASC' | 'DESC',
+    const pagination: PaginationInputDTO = {
+      page: options?.page ?? 1,
+      limit: options?.limit ?? 50,
+      sortBy: options?.sortBy ?? 'updated_at',
+      sortOrder: options?.sortOrder ?? 'DESC',
     };
     const result = await this.cycleRepo.list(
       {
         coopname: config.coopname,
         offer_id: input?.offer_id,
-        status: input?.status as MarketplaceConsolidatedRequestStatus | undefined,
+        status: input?.status,
       },
       pagination
     );
-    return {
-      items: result.items.map(toDTO),
-      totalCount: result.totalCount,
-      totalPages: result.totalPages,
-      currentPage: result.currentPage,
-    };
+    const dto = new MarketplaceConsolidatedRequestPaginationResultDTO();
+    dto.items = result.items.map(toDTO);
+    dto.totalCount = result.totalCount;
+    dto.totalPages = result.totalPages;
+    dto.currentPage = result.currentPage;
+    return dto;
   }
 }

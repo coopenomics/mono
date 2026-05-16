@@ -1,54 +1,46 @@
-/**
- * Story 4.1: тип цикла отсечки Offer'а (Locked Decision L11). Копируется
- * в Order при создании (snapshot времени публикации Offer'а).
- *
- *  - `time_based`         — поставка по истечении `cycle_days` (если набрано
- *                           >= `min_threshold`).
- *  - `volume_based`       — поставка стартует когда набран `target_volume`
- *                           или истёк `max_wait_days`.
- *  - `open_subscription`  — поставщик жмёт «Запустить» вручную, без cycle_end.
- *  - `individual`         — без агрегации, поставщик принимает per-Order.
- */
 export type MarketplaceOrderCycleType =
   | 'time_based'
   | 'volume_based'
   | 'open_subscription'
   | 'individual';
 
-/**
- * Жизненный цикл Order'а p.mkt.supply. Зеркало enum on-chain
- * (`marketplace::orders.status`), плюс backend-only поля для cycle-агрегации.
- *
- * Финальные «отменённые» статусы — серая зона; backend сохраняет их с reason
- * (см. `marketplace_order.last_status_reason`).
- */
+export const MarketplaceOrderCycleTypes = {
+  TIME_BASED: 'time_based',
+  VOLUME_BASED: 'volume_based',
+  OPEN_SUBSCRIPTION: 'open_subscription',
+  INDIVIDUAL: 'individual',
+} as const satisfies Record<string, MarketplaceOrderCycleType>;
+
 export type MarketplaceOrderStatus =
-  // ── Активный: средства заблокированы, поставщик/цикл ещё не отреагировали.
   | 'ACTIVE'
-  // ── Время/объём набран, ждём акцепт батча от поставщика (time/volume).
   | 'ACCEPTED_PENDING_SUPPLIER'
-  // ── individual cycle: ждём акцепт поставщика per-Order.
   | 'ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL'
-  // ── Поставщик принял (любой cycle_type).
   | 'ACCEPTED'
-  // ── Поставщик подготовил поставку первой подписью АПП-приёмки (Story 5.3).
   | 'SUPPLY_PREPARED'
-  // ── Председатель принял на КУ закрывающей подписью (Story 5.4).
   | 'ACCEPTED_TO_COOP'
-  // ── КУ выдачи готов выдать пайщику (Story 6.1).
   | 'READY_TO_RECEIVE'
-  // ── Пайщик получил, гарантия идёт (Story 6.3).
   | 'RECEIVED'
-  // ── Гарантийный возврат принят (Story 7.4).
   | 'RETURNED'
-  // ── Отменён заказчиком до acceptance.
   | 'CANCELLED_BY_ORDERER'
-  // ── Отменён поставщиком (decline batch / decline individual).
   | 'CANCELLED_BY_SUPPLIER'
-  // ── Time-based цикл закрыт без достижения min_threshold.
   | 'EXPIRED_NO_THRESHOLD'
-  // ── Volume-based цикл закрыт без достижения target_volume.
   | 'EXPIRED_NO_VOLUME';
+
+export const MarketplaceOrderStatuses = {
+  ACTIVE: 'ACTIVE',
+  ACCEPTED_PENDING_SUPPLIER: 'ACCEPTED_PENDING_SUPPLIER',
+  ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL: 'ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL',
+  ACCEPTED: 'ACCEPTED',
+  SUPPLY_PREPARED: 'SUPPLY_PREPARED',
+  ACCEPTED_TO_COOP: 'ACCEPTED_TO_COOP',
+  READY_TO_RECEIVE: 'READY_TO_RECEIVE',
+  RECEIVED: 'RECEIVED',
+  RETURNED: 'RETURNED',
+  CANCELLED_BY_ORDERER: 'CANCELLED_BY_ORDERER',
+  CANCELLED_BY_SUPPLIER: 'CANCELLED_BY_SUPPLIER',
+  EXPIRED_NO_THRESHOLD: 'EXPIRED_NO_THRESHOLD',
+  EXPIRED_NO_VOLUME: 'EXPIRED_NO_VOLUME',
+} as const satisfies Record<string, MarketplaceOrderStatus>;
 
 /**
  * Снапшот ledger2 транзакции `createorder` (3-step atomic series) для

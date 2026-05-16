@@ -1,89 +1,97 @@
 import { Field, InputType, Int } from '@nestjs/graphql';
-// `[String]` (массив) типы для @Field — ниже используются в MarketplaceListOrdersInput.
+import { MarketplaceOrderStatusEnum } from './marketplace-order.dto';
 
-@InputType('MarketplaceCreateOrderInput')
+@InputType('MarketplaceCreateOrderInput', { description: 'Параметры оформления нового заказа пайщиком.' })
 export class MarketplaceCreateOrderInputDTO {
-  @Field(() => String, { description: 'UUID Offer\'а из marketplace_offer.' })
+  @Field(() => String, { description: 'Идентификатор предложения, по которому пайщик оформляет заказ.' })
   public readonly offer_id!: string;
 
-  @Field(() => Int, { description: 'Количество единиц (>= 1; <= Offer.quantity_available для не-unlimited).' })
+  @Field(() => Int, { description: 'Количество единиц товара (от 1; для не-безлимитных предложений — не больше доступного остатка).' })
   public readonly quantity!: number;
 
-  @Field(() => String, { description: 'branch.name выбранного ПВЗ получения (Story 2.3).' })
+  @Field(() => String, { description: 'Имя пункта выдачи (ПВЗ), куда пайщик хочет получить заказ.' })
   public readonly delivery_braname!: string;
 }
 
-@InputType('MarketplaceCancelOrderInput')
+@InputType('MarketplaceCancelOrderInput', { description: 'Параметры отмены своего заказа пайщиком.' })
 export class MarketplaceCancelOrderInputDTO {
-  @Field(() => String, { description: 'UUID Order\'а из marketplace_order. Заказчик-владелец отменяет до акцепта поставщиком.' })
+  @Field(() => String, { description: 'Идентификатор заказа, который пайщик хочет отменить (отмена возможна до приёма заказа поставщиком).' })
   public readonly order_id!: string;
 }
 
-@InputType('MarketplaceAcceptConsolidatedRequestInput')
+@InputType('MarketplaceAcceptConsolidatedRequestInput', {
+  description: 'Параметры приёма сводной заявки поставщиком.',
+})
 export class MarketplaceAcceptConsolidatedRequestInputDTO {
-  @Field(() => String, { description: 'UUID консолидированной заявки (time_based / volume_based) в статусе PENDING_SUPPLIER_ACCEPT.' })
+  @Field(() => String, { description: 'Идентификатор сводной заявки, ожидающей решения поставщика.' })
   public readonly request_id!: string;
 }
 
-@InputType('MarketplaceDeclineConsolidatedRequestInput')
+@InputType('MarketplaceDeclineConsolidatedRequestInput', {
+  description: 'Параметры отказа поставщика от сводной заявки.',
+})
 export class MarketplaceDeclineConsolidatedRequestInputDTO {
-  @Field(() => String, { description: 'UUID консолидированной заявки (time_based / volume_based) в статусе PENDING_SUPPLIER_ACCEPT.' })
+  @Field(() => String, { description: 'Идентификатор сводной заявки, от которой поставщик отказывается.' })
   public readonly request_id!: string;
-  @Field(() => String, { description: 'Обязательная причина отказа поставщика. Записывается в decline_reason заявки и last_status_reason каждого Order\'а пула.' })
+
+  @Field(() => String, { description: 'Текст причины отказа — будет показан пайщикам в их заказах.' })
   public readonly reason!: string;
 }
 
-@InputType('MarketplaceAcceptIndividualOrderInput')
+@InputType('MarketplaceAcceptIndividualOrderInput', {
+  description: 'Параметры индивидуального приёма заказа поставщиком.',
+})
 export class MarketplaceAcceptIndividualOrderInputDTO {
-  @Field(() => String, { description: 'UUID Order\'а cycle_type=individual в статусе ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL.' })
+  @Field(() => String, { description: 'Идентификатор заказа индивидуального типа, который поставщик принимает.' })
   public readonly order_id!: string;
 }
 
-@InputType('MarketplaceDeclineIndividualOrderInput')
+@InputType('MarketplaceDeclineIndividualOrderInput', {
+  description: 'Параметры индивидуального отказа поставщика от заказа.',
+})
 export class MarketplaceDeclineIndividualOrderInputDTO {
-  @Field(() => String, { description: 'UUID Order\'а cycle_type=individual в статусе ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL.' })
+  @Field(() => String, { description: 'Идентификатор заказа индивидуального типа, от которого поставщик отказывается.' })
   public readonly order_id!: string;
-  @Field(() => String, { description: 'Обязательная причина отказа поставщика.' })
+
+  @Field(() => String, { description: 'Текст причины отказа — будет показан пайщику в его заказе.' })
   public readonly reason!: string;
 }
 
-@InputType('MarketplaceDeclineOrderFromOpenPoolInput')
+@InputType('MarketplaceDeclineOrderFromOpenPoolInput', {
+  description: 'Параметры отказа поставщика от одного заказа из пула открытой подписки до запуска поставки.',
+})
 export class MarketplaceDeclineOrderFromOpenPoolInputDTO {
-  @Field(() => String, { description: 'UUID Order\'а cycle_type=open_subscription в статусе ACTIVE и cycle_id=null (пул ещё не запущен).' })
+  @Field(() => String, {
+    description: 'Идентификатор заказа из пула открытой подписки, от которого поставщик отказывается до запуска поставки.',
+  })
   public readonly order_id!: string;
-  @Field(() => String, { description: 'Обязательная причина отказа поставщика.' })
+
+  @Field(() => String, { description: 'Текст причины отказа — будет показан пайщику в его заказе.' })
   public readonly reason!: string;
 }
 
-@InputType('MarketplaceListOrdersInput')
+@InputType('MarketplaceListOrdersInput', {
+  description: 'Параметры фильтрации списка заказов (постранично/сортировка задаются отдельным аргументом options).',
+})
 export class MarketplaceListOrdersInputDTO {
-  @Field(() => String, { nullable: true, description: 'Фильтр по supplier_account (для orderer-стола).' })
+  @Field(() => String, { nullable: true, description: 'Фильтр по аккаунту поставщика.' })
   public readonly supplier_account?: string;
 
-  @Field(() => String, { nullable: true, description: 'Фильтр по orderer_account (для offerer-стола).' })
+  @Field(() => String, { nullable: true, description: 'Фильтр по аккаунту заказчика.' })
   public readonly orderer_account?: string;
 
-  @Field(() => String, { nullable: true, description: 'Фильтр по offer_id.' })
+  @Field(() => String, { nullable: true, description: 'Фильтр по идентификатору предложения.' })
   public readonly offer_id?: string;
 
-  @Field(() => [String], { nullable: true, description: 'Один или несколько статусов (см. MarketplaceOrder.status).' })
-  public readonly statuses?: string[];
-
-  @Field(() => Int, { defaultValue: 1 })
-  public readonly page!: number;
-
-  @Field(() => Int, { defaultValue: 50 })
-  public readonly limit!: number;
-
-  @Field(() => String, { defaultValue: 'updated_at', description: 'Поле сортировки.' })
-  public readonly sortBy!: string;
-
-  @Field(() => String, { defaultValue: 'DESC' })
-  public readonly sortOrder!: 'ASC' | 'DESC';
+  @Field(() => [MarketplaceOrderStatusEnum], {
+    nullable: true,
+    description: 'Один или несколько статусов заказа, по которым нужно отфильтровать список.',
+  })
+  public readonly statuses?: MarketplaceOrderStatusEnum[];
 }
 
-@InputType('MarketplaceGetOrderInput')
+@InputType('MarketplaceGetOrderInput', { description: 'Параметры запроса одного заказа.' })
 export class MarketplaceGetOrderInputDTO {
-  @Field(() => String, { description: 'UUID Order\'а из marketplace_order.' })
+  @Field(() => String, { description: 'Идентификатор заказа.' })
   public readonly order_id!: string;
 }

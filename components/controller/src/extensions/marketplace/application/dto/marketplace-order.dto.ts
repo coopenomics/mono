@@ -1,18 +1,59 @@
-import { Field, Int, ObjectType } from '@nestjs/graphql';
+import { Field, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { MarketplaceConsolidatedRequestDTO } from './marketplace-consolidated-request.dto';
 import { createPaginationResult } from '~/application/common/dto/pagination.dto';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
-import type { MarketplaceOrderCreateTxSnapshot } from '../../domain/entities/marketplace-order.types';
+import {
+  MarketplaceOrderCycleTypes,
+  MarketplaceOrderStatuses,
+  type MarketplaceOrderCreateTxSnapshot,
+  type MarketplaceOrderCycleType,
+  type MarketplaceOrderStatus,
+} from '../../domain/entities/marketplace-order.types';
 
-@ObjectType('MarketplaceOrderCreateTxSnapshot')
+export const MarketplaceOrderCycleTypeEnum = MarketplaceOrderCycleTypes;
+export type MarketplaceOrderCycleTypeEnum =
+  (typeof MarketplaceOrderCycleTypeEnum)[keyof typeof MarketplaceOrderCycleTypeEnum];
+
+registerEnumType(MarketplaceOrderCycleTypeEnum, {
+  name: 'MarketplaceOrderCycleType',
+  description: 'Способ накопления заказов перед поставкой.',
+  valuesMap: {
+    TIME_BASED: { description: 'Поставка по истечении периода; собирается всё, что успело прийти.' },
+    VOLUME_BASED: { description: 'Поставка стартует, когда набран целевой объём.' },
+    OPEN_SUBSCRIPTION: { description: 'Поставщик запускает поставку вручную.' },
+    INDIVIDUAL: { description: 'Каждый заказ обрабатывается отдельно, без накопления.' },
+  },
+});
+
+export const MarketplaceOrderStatusEnum = MarketplaceOrderStatuses;
+export type MarketplaceOrderStatusEnum =
+  (typeof MarketplaceOrderStatusEnum)[keyof typeof MarketplaceOrderStatusEnum];
+
+registerEnumType(MarketplaceOrderStatusEnum, {
+  name: 'MarketplaceOrderStatus',
+  description: 'Этап жизненного цикла заказа.',
+});
+
+@ObjectType('MarketplaceOrderCreateTxSnapshot', {
+  description: 'Снимок транзакции блокировки средств: ссылки на блок, флаги конверсии и сумма.',
+})
 export class MarketplaceOrderCreateTxSnapshotDTO {
-  @Field(() => String) public readonly tx_hash!: string;
-  @Field(() => Int) public readonly block_num!: number;
-  @Field(() => Boolean) public readonly did_convert!: boolean;
-  @Field(() => Boolean) public readonly did_assign!: boolean;
-  @Field(() => String, { description: 'Сумма BLOCK на w.mkt.member (asset amount string)' })
+  @Field(() => String, { description: 'Идентификатор транзакции в блокчейне.' })
+  public readonly tx_hash!: string;
+
+  @Field(() => Int, { description: 'Номер блока, в который попала транзакция.' })
+  public readonly block_num!: number;
+
+  @Field(() => Boolean, { description: 'Была ли выполнена конверсия паевого взноса в членский.' })
+  public readonly did_convert!: boolean;
+
+  @Field(() => Boolean, { description: 'Был ли выполнен перевод средств между кошельками пайщика.' })
+  public readonly did_assign!: boolean;
+
+  @Field(() => String, { description: 'Сумма заблокированных средств (строка денежного актива).' })
   public readonly blocked_amount!: string;
-  @Field(() => String, { description: 'ISO timestamp клиентского signed_at' })
+
+  @Field(() => String, { description: 'Время подписания заказа (ISO 8601).' })
   public readonly signed_at!: string;
 
   constructor(init: Partial<MarketplaceOrderCreateTxSnapshotDTO>) {
@@ -20,64 +61,84 @@ export class MarketplaceOrderCreateTxSnapshotDTO {
   }
 }
 
-@ObjectType('MarketplaceOrder')
+@ObjectType('MarketplaceOrder', { description: 'Заказ пайщика по предложению поставщика.' })
 export class MarketplaceOrderDTO {
-  @Field(() => String) public readonly id!: string;
-  @Field(() => String) public readonly coopname!: string;
+  @Field(() => String, { description: 'Идентификатор заказа.' })
+  public readonly id!: string;
 
-  @Field(() => String, { description: '64-hex on-chain order_hash (sync-key marketplace::orders).' })
+  @Field(() => String, { description: 'Кооператив, в котором сделан заказ.' })
+  public readonly coopname!: string;
+
+  @Field(() => String, { description: 'Хеш заказа в блокчейне (для сверки).' })
   public readonly order_hash!: string;
 
-  @Field(() => String) public readonly orderer_account!: string;
-  @Field(() => String) public readonly offer_id!: string;
-  @Field(() => String) public readonly offer_hash!: string;
-  @Field(() => String) public readonly supplier_account!: string;
+  @Field(() => String, { description: 'Аккаунт пайщика-заказчика.' })
+  public readonly orderer_account!: string;
 
-  @Field(() => String, { description: 'branch.name выбранного ПВЗ получения (Story 2.3).' })
+  @Field(() => String, { description: 'Идентификатор предложения, по которому оформлен заказ.' })
+  public readonly offer_id!: string;
+
+  @Field(() => String, { description: 'Хеш предложения в блокчейне (snapshot на момент заказа).' })
+  public readonly offer_hash!: string;
+
+  @Field(() => String, { description: 'Аккаунт поставщика.' })
+  public readonly supplier_account!: string;
+
+  @Field(() => String, { description: 'Имя пункта выдачи (ПВЗ), куда пайщик хочет получить заказ.' })
   public readonly delivery_braname!: string;
 
-  @Field(() => Int) public readonly quantity!: number;
+  @Field(() => Int, { description: 'Количество единиц товара в заказе.' })
+  public readonly quantity!: number;
 
-  @Field(() => String, { description: 'Цена за единицу (numeric как string).' })
+  @Field(() => String, { description: 'Цена за единицу товара на момент заказа.' })
   public readonly price_per_unit!: string;
 
-  @Field(() => String, { description: 'Итог K × price (asset amount string).' })
+  @Field(() => String, { description: 'Общая сумма заказа.' })
   public readonly total_cost!: string;
 
-  @Field(() => String, { description: 'time_based | volume_based | open_subscription | individual' })
-  public readonly cycle_type!: string;
+  @Field(() => MarketplaceOrderCycleTypeEnum, {
+    description: 'Способ накопления заказов перед поставкой (копируется из предложения).',
+  })
+  public readonly cycle_type!: MarketplaceOrderCycleType;
 
-  @Field(() => String, { nullable: true })
+  @Field(() => String, { nullable: true, description: 'Идентификатор партии-накопителя, если заказ присоединён.' })
   public readonly cycle_id!: string | null;
 
-  @Field(() => Int) public readonly warranty_period_secs!: number;
+  @Field(() => Int, { description: 'Срок гарантии в секундах с момента получения.' })
+  public readonly warranty_period_secs!: number;
 
-  @Field(() => Date, { nullable: true })
+  @Field(() => Date, { nullable: true, description: 'Дата окончания гарантии.' })
   public readonly warranty_until!: Date | null;
 
-  @Field(() => String, { description: 'Жизненный цикл Order p.mkt.supply (см. Эпик 4 epics.md).' })
-  public readonly status!: string;
+  @Field(() => MarketplaceOrderStatusEnum, { description: 'Текущий этап жизненного цикла заказа.' })
+  public readonly status!: MarketplaceOrderStatus;
 
-  @Field(() => String, { nullable: true })
+  @Field(() => String, { nullable: true, description: 'Текстовая причина последнего изменения статуса.' })
   public readonly last_status_reason!: string | null;
 
-  @Field(() => Date, { nullable: true })
+  @Field(() => Date, { nullable: true, description: 'Когда средства были заблокированы.' })
   public readonly blocked_at!: Date | null;
 
-  @Field(() => Date, { nullable: true })
+  @Field(() => Date, { nullable: true, description: 'Когда поставщик принял заказ.' })
   public readonly accepted_at!: Date | null;
 
-  @Field(() => Date, { nullable: true })
+  @Field(() => Date, { nullable: true, description: 'Когда пайщик получил заказ.' })
   public readonly received_at!: Date | null;
 
-  @Field(() => Date, { nullable: true })
+  @Field(() => Date, { nullable: true, description: 'Когда заказ был отменён.' })
   public readonly cancelled_at!: Date | null;
 
-  @Field(() => MarketplaceOrderCreateTxSnapshotDTO, { nullable: true })
+  @Field(() => MarketplaceOrderCreateTxSnapshotDTO, {
+    nullable: true,
+    description: 'Снимок транзакции блокировки средств (для отображения движений кошелька).',
+  })
   public readonly create_tx!: MarketplaceOrderCreateTxSnapshotDTO | null;
 
-  @Field(() => Date) public readonly created_at!: Date;
-  @Field(() => Date) public readonly updated_at!: Date;
+  @Field(() => Date, { description: 'Когда запись о заказе создана в системе.' })
+  public readonly created_at!: Date;
+
+  @Field(() => Date, { description: 'Когда запись о заказе последний раз изменялась.' })
+  public readonly updated_at!: Date;
 
   constructor(init: Partial<MarketplaceOrderDTO>) {
     Object.assign(this, init);
@@ -98,12 +159,12 @@ export class MarketplaceCreateOrderResultDTO {
   }
 }
 
-@ObjectType('MarketplaceCancelOrderResult')
+@ObjectType('MarketplaceCancelOrderResult', { description: 'Результат отмены заказа пайщиком.' })
 export class MarketplaceCancelOrderResultDTO {
-  @Field(() => MarketplaceOrderDTO, { description: 'Order после applyStatusTransition в CANCELLED_BY_ORDERER.' })
+  @Field(() => MarketplaceOrderDTO, { description: 'Заказ после перевода в отменённое состояние.' })
   public readonly order!: MarketplaceOrderDTO;
 
-  @Field(() => String, { description: 'tx_hash транзакции marketplace::cancelorder для аудита.' })
+  @Field(() => String, { description: 'Идентификатор транзакции отмены в блокчейне.' })
   public readonly tx_hash!: string;
 
   constructor(init: { order: MarketplaceOrderDTO; tx_hash: string }) {
@@ -112,23 +173,25 @@ export class MarketplaceCancelOrderResultDTO {
   }
 }
 
-@ObjectType('MarketplaceConsolidatedRequestActionResult')
+@ObjectType('MarketplaceConsolidatedRequestActionResult', {
+  description: 'Результат массового действия поставщика над пакетом заказов (приём или отклонение).',
+})
 export class MarketplaceConsolidatedRequestActionResultDTO {
   @Field(() => MarketplaceConsolidatedRequestDTO, {
-    description: 'Заявка после applyStatusTransition (ACCEPTED / DECLINED_BY_SUPPLIER).',
+    description: 'Сводная заявка после обработки.',
   })
   public readonly request!: MarketplaceConsolidatedRequestDTO;
 
-  @Field(() => Int, { description: 'Количество Order\'ов в пуле заявки.' })
+  @Field(() => Int, { description: 'Сколько заказов входило в обработанный пакет.' })
   public readonly affected_orders!: number;
 
   @Field(() => Int, {
-    description: 'Сколько Order\'ов были успешно проведены on-chain (accept/decline action прошёл).',
+    description: 'Сколько заказов из пакета удалось провести в блокчейн.',
   })
   public readonly on_chain_succeeded!: number;
 
   @Field(() => Int, {
-    description: 'Сколько Order\'ов не удалось провести on-chain (повтор через manual reconciliation в Story 9.x).',
+    description: 'Сколько заказов из пакета не удалось провести в блокчейн — потребуется повторная обработка.',
   })
   public readonly on_chain_failed!: number;
 
@@ -145,20 +208,22 @@ export class MarketplaceConsolidatedRequestActionResultDTO {
   }
 }
 
-@ObjectType('MarketplaceOrderPaginationResult')
+@ObjectType('MarketplaceOrderPaginationResult', { description: 'Постраничный список заказов.' })
 export class MarketplaceOrderPaginationResultDTO extends createPaginationResult(
   MarketplaceOrderDTO,
   'MarketplaceOrder'
 ) {}
 
-@ObjectType('MarketplaceSupplierOrderActionResult')
+@ObjectType('MarketplaceSupplierOrderActionResult', {
+  description: 'Результат индивидуального приёма или отклонения заказа поставщиком.',
+})
 export class MarketplaceSupplierOrderActionResultDTO {
   @Field(() => MarketplaceOrderDTO, {
-    description: 'Order после applyStatusTransition (ACCEPTED / CANCELLED_BY_SUPPLIER).',
+    description: 'Заказ после изменения статуса.',
   })
   public readonly order!: MarketplaceOrderDTO;
 
-  @Field(() => String, { description: 'tx_hash транзакции accept/decline для аудита.' })
+  @Field(() => String, { description: 'Идентификатор транзакции приёма или отклонения.' })
   public readonly tx_hash!: string;
 
   constructor(init: { order: MarketplaceOrderDTO; tx_hash: string }) {

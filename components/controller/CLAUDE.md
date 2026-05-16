@@ -228,6 +228,24 @@ return { tx_hash: tx.tx_hash, status: 'pending' };
 - Нет комментариев к WHAT (код сам скажет). Только WHY + invariants + links на ADR в non-obvious местах.
 - JSDoc для интерфейсов в `domain/interfaces/` — да. Для сервисов — нет (имена self-documenting).
 
+**Описания GraphQL `@Field({description})`, `@InputType`, `@ObjectType`:**
+- Писать **на пользовательском языке**, не на разработческом. Описание читают разработчики клиента и схемы — им нужно понять смысл поля, не сетку реализации.
+- **Запрещено**: упоминания stories / эпиков / номеров задач (`Story 4.2`, `Эпик 4`, `FR11a`), ссылки на тех-артефакты (`composite-entity`, `dispatch pipeline`, `ParserClient`), внутренние термины, не имеющие отражения в публичной модели (`derived hash`, `tx_snapshot`).
+- Используем business-словарь: «Идентификатор Order'а», «Кол-во единиц товара», «ПВЗ получения», а не «Story 4.1 backend deterministic order_hash».
+- Story-ссылки и инвариант-комменты — в **inline-комментариях** внутри сервиса (если нужны), не в `description` для GraphQL.
+
+**Enum вместо строковых литералов (жёстко):**
+- В коде сервисов, resolver'ов, тестов **запрещено** сравнение со строкой типа `if (offer.cycle_type === 'volume_based')`. Только `MarketplaceOfferCycleType.VOLUME_BASED`.
+- Любое status / type / kind, у которого фиксированный набор значений, оформляется как TypeScript `enum` (или `as const` literal-union с экспортом одноимённого `enum` для GraphQL через `registerEnumType`), а не строкой.
+- В тестах константы тоже из enum, не из дублирующих строк.
+- В `@Field`/`@InputType` всё, что enum в коде, регистрируется через `registerEnumType` и приходит/уходит typed, не `string`.
+
+**Пагинация (жёстко) — стандартный паттерн:**
+- Входные параметры: `PaginationInputDTO` из `~/application/common/dto/pagination.dto.ts` (page/limit/sortBy/sortOrder). НЕ изобретать локальные `{ limit, offset }`.
+- Возврат: `createPaginationResult(ItemDTO, 'PaginatedXxx')` → `PaginationResult<T>` с полями `items / totalCount / totalPages / currentPage`.
+- Resolver-сигнатура: `@Args('options', { nullable: true }) options?: PaginationInputDTO` + `Promise<PaginationResult<T>>` (см. `time-tracker.resolver.ts`, `expenses-management.resolver.ts`, `generation.resolver.ts` как канон).
+- Repository слой принимает `PaginationInputDTO` и сам считает offset/limit/sort через TypeORM `findAndCount`.
+
 ### Development Workflow
 
 - Branch naming: `feature/549-N-short-slug`, `fix/X-slug`, `arch/Y-slug`.

@@ -1,7 +1,6 @@
 import { markRaw } from 'vue'
 import { ShowcasePage } from 'src/pages/Marketplace/Showcase'
 import { MarketplaceCatalogPage } from 'src/pages/Marketplace/MarketplaceCatalog'
-import { CreateParentOfferPage } from 'src/pages/Marketplace/CreateParentOffer'
 import { CreateMarketplaceOfferPage } from 'src/pages/Marketplace/CreateMarketplaceOffer'
 import { UserParentOffersPage } from 'src/pages/Marketplace/UserParentOffers'
 import { UserSuppliesListPage } from 'src/pages/Marketplace/UserSuppliesList'
@@ -79,10 +78,6 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             },
           },
           {
-            // Story 4.7: canon offerer-форма создания Offer'а с cycle_type
-            // и conditional-required полями. Legacy CreateParentOfferPage
-            // оставлен под `create-offer-legacy` (hidden) до полного выноса
-            // (техдолг marketplace2).
             path: 'create-offer',
             name: 'marketplace-create-offer',
             component: markRaw(CreateMarketplaceOfferPage),
@@ -92,18 +87,6 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               roles: ['chairman', 'member', 'user'],
               requiresAuth: true,
               agreements: agreementsBase,
-            },
-          },
-          {
-            path: 'create-offer-legacy',
-            name: 'marketplace-create-offer-legacy',
-            component: markRaw(CreateParentOfferPage),
-            meta: {
-              title: 'Создать предложение (legacy)',
-              icon: 'fa-solid fa-plus-circle',
-              roles: ['chairman', 'member', 'user'],
-              requiresAuth: true,
-              hidden: true,
             },
           },
           {

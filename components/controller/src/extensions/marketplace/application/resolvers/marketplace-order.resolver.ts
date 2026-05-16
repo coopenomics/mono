@@ -3,6 +3,7 @@ import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 
 import config from '~/config/config';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
+import { PaginationInputDTO } from '~/application/common/dto/pagination.dto';
 
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
@@ -64,20 +65,6 @@ function toTxSnapshotDTO(s: MarketplaceOrderCreateTxSnapshot): MarketplaceOrderC
   return new MarketplaceOrderCreateTxSnapshotDTO(s);
 }
 
-/**
- * Story 4.1: GraphQL Mutation `marketplaceCreateOrder`.
- *
- * Access-matrix: `Order:create` доступно marketplace-role `orderer`.
- * Если в `marketplace-role.guard` ещё не зарегистрирован Order:create —
- * декоратор сработает по существующему membership-уровню (см. Story 1.6
- * `marketplace-access-matrix.ts`). Полная регистрация permission'ов
- * Эпика 4 — отдельный access-matrix update в составе Story 4.6.
- *
- * Subscription `marketplaceOrderUpdated` появится в Story 4.6 («Мои
- * заказы»), когда фронт начнёт подписку на live-обновления статусов
- * Order'ов. На Story 4.1 только Mutation — UI после успеха показывает
- * сразу Order DTO + tx_snapshot для WalletTimeline.
- */
 @Resolver()
 @Injectable()
 export class MarketplaceOrderResolver {
@@ -96,8 +83,7 @@ export class MarketplaceOrderResolver {
 
   @Mutation(() => MarketplaceCreateOrderResultDTO, {
     name: 'marketplaceCreateOrder',
-    description:
-      'Story 4.1: заказчик создаёт Order; backend submit createorder через ledger2 (атомарная серия o.wal.conv → o.mkt.assign → o.mkt.block).',
+    description: 'Оформить заказ по предложению и заблокировать средства пайщика.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Order', 'create')
@@ -120,8 +106,7 @@ export class MarketplaceOrderResolver {
 
   @Mutation(() => MarketplaceCancelOrderResultDTO, {
     name: 'marketplaceCancelOrder',
-    description:
-      'Story 4.4: заказчик отменяет Order до акцепта поставщиком. Backend submit cancelorder (o.mkt.unblk на total_cost) + Order.status: ACTIVE → CANCELLED_BY_ORDERER.',
+    description: 'Отменить свой заказ до его приёма поставщиком; средства разблокируются.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Order', 'cancel:own')
@@ -142,8 +127,7 @@ export class MarketplaceOrderResolver {
 
   @Mutation(() => MarketplaceConsolidatedRequestActionResultDTO, {
     name: 'marketplaceAcceptConsolidatedRequest',
-    description:
-      'Story 4.5: поставщик акцептует консолидированную заявку (time_based / volume_based). Per-Order on-chain acceptorder; consolidated_request → ACCEPTED, Order\'ы → ACCEPTED.',
+    description: 'Поставщик принимает сводную заявку — все заказы в пакете переходят в принятое состояние.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Offer', 'update:own')
@@ -166,8 +150,7 @@ export class MarketplaceOrderResolver {
 
   @Mutation(() => MarketplaceConsolidatedRequestActionResultDTO, {
     name: 'marketplaceDeclineConsolidatedRequest',
-    description:
-      'Story 4.5: поставщик отказывается от консолидированной заявки. Per-Order on-chain declineorder (o.mkt.unblk + статус); consolidated_request → DECLINED_BY_SUPPLIER, Order\'ы → CANCELLED_BY_SUPPLIER.',
+    description: 'Поставщик отклоняет сводную заявку — все заказы пакета отменяются, средства разблокируются.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Offer', 'update:own')
@@ -191,8 +174,7 @@ export class MarketplaceOrderResolver {
 
   @Mutation(() => MarketplaceSupplierOrderActionResultDTO, {
     name: 'marketplaceAcceptIndividualOrder',
-    description:
-      'Story 4.5: поставщик акцептует один Order (cycle_type=individual) → on-chain acceptorder, Order.status: ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL → ACCEPTED.',
+    description: 'Поставщик принимает один индивидуальный заказ.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Offer', 'update:own')
@@ -213,8 +195,7 @@ export class MarketplaceOrderResolver {
 
   @Mutation(() => MarketplaceSupplierOrderActionResultDTO, {
     name: 'marketplaceDeclineIndividualOrder',
-    description:
-      'Story 4.5: поставщик отказывается от одного Order\'а (cycle_type=individual) → on-chain declineorder (o.mkt.unblk + статус), Order.status → CANCELLED_BY_SUPPLIER.',
+    description: 'Поставщик отказывается от одного индивидуального заказа; средства разблокируются.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Offer', 'update:own')
@@ -237,7 +218,7 @@ export class MarketplaceOrderResolver {
   @Mutation(() => MarketplaceSupplierOrderActionResultDTO, {
     name: 'marketplaceDeclineOrderFromOpenPool',
     description:
-      'Story 4.5: поставщик отказывается от одного Order\'а из open_subscription пула до запуска поставки (ACTIVE + cycle_id=null) → on-chain declineorder, Order.status → CANCELLED_BY_SUPPLIER. После triggerOpenSubscription частичный отказ недоступен.',
+      'Поставщик отказывается от одного заказа из пула открытой подписки до запуска поставки (после запуска частичный отказ невозможен).',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Offer', 'update:own')
@@ -259,14 +240,14 @@ export class MarketplaceOrderResolver {
 
   @Query(() => MarketplaceOrderPaginationResultDTO, {
     name: 'marketplaceListMyOrders',
-    description:
-      'Story 4.6: orderer-стол «Мои заказы» — Order\'ы, где orderer_account == current member. ACL Order:read:own (фильтрация по owner делается в resolver).',
+    description: 'Список заказов текущего пайщика (стол заказчика).',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Order', 'read:own')
   async marketplaceListMyOrders(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
-    @Args('input', { nullable: true }) input?: MarketplaceListOrdersInputDTO
+    @Args('input', { nullable: true }) input?: MarketplaceListOrdersInputDTO,
+    @Args('options', { nullable: true }) options?: PaginationInputDTO
   ): Promise<MarketplaceOrderPaginationResultDTO> {
     const filter: MarketplaceOrderListFilter = {
       coopname: config.coopname,
@@ -275,19 +256,19 @@ export class MarketplaceOrderResolver {
       offer_id: input?.offer_id,
       status: input?.statuses?.length ? (input.statuses as MarketplaceOrderStatus[]) : undefined,
     };
-    return this.runListQuery(filter, input);
+    return this.runListQuery(filter, options);
   }
 
   @Query(() => MarketplaceOrderPaginationResultDTO, {
     name: 'marketplaceListSupplierOrders',
-    description:
-      'Story 4.6: offerer-стол — Order\'ы, где supplier_account == current member. ACL Order:read:to-self.',
+    description: 'Список заказов, по которым текущий пайщик является поставщиком (стол поставщика).',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Order', 'read:to-self')
   async marketplaceListSupplierOrders(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
-    @Args('input', { nullable: true }) input?: MarketplaceListOrdersInputDTO
+    @Args('input', { nullable: true }) input?: MarketplaceListOrdersInputDTO,
+    @Args('options', { nullable: true }) options?: PaginationInputDTO
   ): Promise<MarketplaceOrderPaginationResultDTO> {
     const filter: MarketplaceOrderListFilter = {
       coopname: config.coopname,
@@ -296,13 +277,12 @@ export class MarketplaceOrderResolver {
       offer_id: input?.offer_id,
       status: input?.statuses?.length ? (input.statuses as MarketplaceOrderStatus[]) : undefined,
     };
-    return this.runListQuery(filter, input);
+    return this.runListQuery(filter, options);
   }
 
   @Query(() => MarketplaceOrderDTO, {
     name: 'marketplaceGetOrder',
-    description:
-      'Story 4.6: один Order по id. ACL: orderer (read:own) / offerer (read:to-self) / admin+board (read:all). Ownership-check в резолвере.',
+    description: 'Получить один заказ по его идентификатору (доступ зависит от роли).',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard)
   async marketplaceGetOrder(
@@ -327,19 +307,19 @@ export class MarketplaceOrderResolver {
 
   private async runListQuery(
     filter: MarketplaceOrderListFilter,
-    input?: MarketplaceListOrdersInputDTO
+    options?: PaginationInputDTO
   ): Promise<MarketplaceOrderPaginationResultDTO> {
     const result = await this.orderRepo.list(filter, {
-      page: input?.page ?? 1,
-      limit: input?.limit ?? 50,
-      sortBy: input?.sortBy ?? 'updated_at',
-      sortOrder: (input?.sortOrder ?? 'DESC') as 'ASC' | 'DESC',
+      page: options?.page ?? 1,
+      limit: options?.limit ?? 50,
+      sortBy: options?.sortBy ?? 'updated_at',
+      sortOrder: options?.sortOrder ?? 'DESC',
     });
-    return {
-      items: result.items.map(toOrderDTO),
-      totalCount: result.totalCount,
-      totalPages: result.totalPages,
-      currentPage: result.currentPage,
-    };
+    const dto = new MarketplaceOrderPaginationResultDTO();
+    dto.items = result.items.map(toOrderDTO);
+    dto.totalCount = result.totalCount;
+    dto.totalPages = result.totalPages;
+    dto.currentPage = result.currentPage;
+    return dto;
   }
 }

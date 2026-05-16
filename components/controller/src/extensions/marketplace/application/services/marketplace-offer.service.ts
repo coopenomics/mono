@@ -25,6 +25,7 @@ import type {
 import {
   MARKETPLACE_OFFER_CYCLE_TYPES,
   MARKETPLACE_UNITS_OF_MEASURE,
+  MarketplaceOfferCycleTypes,
 } from '../../domain/entities/marketplace-offer.types';
 import type {
   PaginationInputDomainInterface,
@@ -241,14 +242,14 @@ export class MarketplaceOfferService {
     target_volume: number | null;
     max_wait_days: number | null;
   }): void {
-    if (input.cycle_type === 'time_based') {
+    if (input.cycle_type === MarketplaceOfferCycleTypes.TIME_BASED) {
       if (input.cycle_days === null || input.cycle_days === undefined || input.cycle_days < 1) {
         throw new BadRequestException(
           'Для time_based укажите длительность цикла в днях (целое число от 1).'
         );
       }
     }
-    if (input.cycle_type === 'volume_based') {
+    if (input.cycle_type === MarketplaceOfferCycleTypes.VOLUME_BASED) {
       if (input.target_volume === null || input.target_volume === undefined || input.target_volume < 1) {
         throw new BadRequestException(
           'Для volume_based укажите целевой объём (целое число от 1).'
