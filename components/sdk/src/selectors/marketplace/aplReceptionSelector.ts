@@ -24,7 +24,7 @@ const rawAplReceptionSelector = {
   coopname: true,
   shipment_id: true,
   cycle_id: true,
-  ku_id: true,
+  braname: true,
   offerer_account: true,
   variant: true,
   status: true,

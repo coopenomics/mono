@@ -19,7 +19,7 @@ export class MarketplaceInventoryDomainEntity {
   public readonly barcode_format: MarketplaceBarcodeFormat;
   public readonly order_id: string;
   public readonly shipment_id: string;
-  public readonly ku_id: string;
+  public readonly braname: string;
   public status: MarketplaceInventoryStatus;
   public readonly product_name_snapshot: string;
   public readonly quantity_per_label: number;
@@ -47,7 +47,7 @@ export class MarketplaceInventoryDomainEntity {
     this.barcode_format = props.barcode_format;
     this.order_id = props.order_id;
     this.shipment_id = props.shipment_id;
-    this.ku_id = props.ku_id;
+    this.braname = props.braname;
     this.status = props.status;
     this.product_name_snapshot = props.product_name_snapshot;
     this.quantity_per_label = props.quantity_per_label;

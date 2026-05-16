@@ -13,7 +13,7 @@ export class MarketplaceShipmentMapper {
       coopname: row.coopname,
       cycle_id: row.cycle_id,
       offerer_account: row.offerer_account,
-      ku_id: row.ku_id,
+      braname: row.braname,
       delivery_variant: row.delivery_variant,
       total_amount: row.total_amount,
       ttn_number: row.ttn_number,

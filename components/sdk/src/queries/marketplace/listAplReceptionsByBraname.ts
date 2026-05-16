@@ -1,10 +1,10 @@
 import { marketplaceAplReceptionSelector } from '../../selectors/marketplace/aplReceptionSelector'
 import { $, type GraphQLTypes, type InputType, Selector } from '../../zeus/index'
 
-export const name = 'marketplaceListAplReceptionsByKu'
+export const name = 'marketplaceListAplReceptionsByBraname'
 
 export const query = Selector('Query')({
-  [name]: [{ ku_id: $('ku_id', 'String!') }, marketplaceAplReceptionSelector],
+  [name]: [{ braname: $('braname', 'String!') }, marketplaceAplReceptionSelector],
 })
 
 export interface IInput {
@@ -13,7 +13,7 @@ export interface IInput {
    */
   [key: string]: unknown
 
-  ku_id: string
+  braname: string
 }
 
 export type IOutput = InputType<GraphQLTypes['Query'], typeof query>

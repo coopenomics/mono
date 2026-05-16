@@ -12,7 +12,7 @@ export class MarketplaceInventoryMapper {
       barcode_format: row.barcode_format,
       order_id: row.order_id,
       shipment_id: row.shipment_id,
-      ku_id: row.ku_id,
+      braname: row.braname,
       status: row.status,
       product_name_snapshot: row.product_name_snapshot,
       quantity_per_label: row.quantity_per_label,

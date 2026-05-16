@@ -17,23 +17,23 @@ import type {
  * — фиксирует группировку Order'ов одной консолидированной заявки по КУ +
  * вариант доставки.
  *
- * Естественный ключ unique: (coopname, cycle_id, ku_id) — одна заявка имеет
+ * Естественный ключ unique: (coopname, cycle_id, braname) — одна заявка имеет
  * ровно одну группу на каждый КУ.
  *
  * Hot-path индексы:
  *   - `(coopname, offerer_account, status)` — offerer-стол "Подготовка
  *     поставки" (Story 5.1) и "Готовые к отправке" (Story 5.6 trigger);
- *   - `(coopname, ku_id, status)` — operator-стол КУ «Принять партии» (Story 5.3/5.4);
+ *   - `(coopname, braname, status)` — operator-стол КУ «Принять партии» (Story 5.3/5.4);
  *   - `(coopname, ttn_number)` unique sparse — Story 5.4 поиск по ТТН/штрих-коду.
  */
 @Entity({ name: 'marketplace_shipment' })
-@Index('IDX_marketplace_shipment_cycle_ku_unique', ['coopname', 'cycle_id', 'ku_id'], { unique: true })
+@Index('IDX_marketplace_shipment_cycle_braname_unique', ['coopname', 'cycle_id', 'braname'], { unique: true })
 @Index('IDX_marketplace_shipment_ttn_unique', ['coopname', 'ttn_number'], {
   unique: true,
   where: 'ttn_number IS NOT NULL',
 })
 @Index(['coopname', 'offerer_account', 'status'])
-@Index(['coopname', 'ku_id', 'status'])
+@Index(['coopname', 'braname', 'status'])
 export class MarketplaceShipmentEntity {
   @PrimaryGeneratedColumn('uuid')
   public id!: string;
@@ -48,7 +48,7 @@ export class MarketplaceShipmentEntity {
   public offerer_account!: string;
 
   @Column({ type: 'varchar', length: 13 })
-  public ku_id!: string;
+  public braname!: string;
 
   @Column({ type: 'varchar', length: 1 })
   public delivery_variant!: MarketplaceShipmentDeliveryVariant;

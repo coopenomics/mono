@@ -226,7 +226,7 @@ export class MarketplaceAplReceptionService {
       username: input.username,
       order_id: input.order.id,
       order_hash: input.order.order_hash,
-      accept_braname: input.reception.ku_id,
+      accept_braname: input.reception.braname,
       reception_id: input.reception.id,
       fact_quantity: factQuantity,
       total_amount: orderTotal,
@@ -262,7 +262,7 @@ export class MarketplaceAplReceptionService {
     }
 
     const orders = await this.orderRepo.findByCycleId(shipment.coopname, shipment.cycle_id);
-    const groupOrders = orders.filter((o) => o.delivery_braname === shipment.ku_id);
+    const groupOrders = orders.filter((o) => o.delivery_braname === shipment.braname);
     if (groupOrders.length === 0) {
       throw new BadRequestException(
         'В партии поставки нет Order\'ов на этот КУ — нечего принимать.'
@@ -280,7 +280,7 @@ export class MarketplaceAplReceptionService {
       coopname: shipment.coopname,
       shipment_id: shipment.id,
       cycle_id: shipment.cycle_id,
-      ku_id: shipment.ku_id,
+      braname: shipment.braname,
       offerer_account: shipment.offerer_account,
       variant,
       status: MarketplaceAplReceptionStatuses.PENDING_SUPPLIER_SIGN,
@@ -298,7 +298,7 @@ export class MarketplaceAplReceptionService {
     );
 
     this.logger.log(
-      `АПП ${reception.id} (вариант ${variant}) для партии ${shipment.id}, ku=${shipment.ku_id}, orders=${groupOrders.length}, total=${total}`
+      `АПП ${reception.id} (вариант ${variant}) для партии ${shipment.id}, ku=${shipment.braname}, orders=${groupOrders.length}, total=${total}`
     );
 
     // Story 598-20: push поставщику для Варианта Б — экспедитор привёз
@@ -309,7 +309,7 @@ export class MarketplaceAplReceptionService {
         coopname: reception.coopname,
         apl_reception_id: reception.id,
         supplier_account: reception.offerer_account,
-        ku_name: reception.ku_id,
+        ku_name: reception.braname,
         ttn_number: reception.ttn_number ?? '—',
         expeditor_name: reception.expeditor_data?.expeditor_full_name ?? 'экспедитор',
       };
@@ -400,7 +400,7 @@ export class MarketplaceAplReceptionService {
     // Order'ы группы → ACCEPTED_TO_COOP (FR19a выдача разблокируется только
     // после этого момента).
     const orders = await this.orderRepo.findByCycleId(reception.coopname, reception.cycle_id);
-    for (const o of orders.filter((x) => x.delivery_braname === reception.ku_id)) {
+    for (const o of orders.filter((x) => x.delivery_braname === reception.braname)) {
       await this.orderRepo.applyStatusTransition(
         o.id,
         'ACCEPTED_TO_COOP',
@@ -431,7 +431,7 @@ export class MarketplaceAplReceptionService {
     this.eventBus.emit(MARKETPLACE_CASHIER_NEW_PAYMENT_EVENT, event);
 
     this.logger.log(
-      `АПП ${reception.id}: закрывающая подпись председателя ${input.chairman_account} принята (tx=${txHash}); выплаты по ${orders.filter((x) => x.delivery_braname === reception.ku_id).length} заказам инициированы через gateway.`
+      `АПП ${reception.id}: закрывающая подпись председателя ${input.chairman_account} принята (tx=${txHash}); выплаты по ${orders.filter((x) => x.delivery_braname === reception.braname).length} заказам инициированы через gateway.`
     );
 
     return { apl_reception: updated };
@@ -465,7 +465,7 @@ export class MarketplaceAplReceptionService {
     const factByOrderId = new Map(
       reception.fact_quantity_per_order.map((f) => [f.order_id, f.fact_quantity])
     );
-    const groupOrders = allOrders.filter((o) => o.delivery_braname === reception.ku_id);
+    const groupOrders = allOrders.filter((o) => o.delivery_braname === reception.braname);
 
     for (const order of groupOrders) {
       const orderHash = orderHashByOrderId.get(order.id);
@@ -577,7 +577,7 @@ export class MarketplaceAplReceptionService {
     reception: MarketplaceAplReceptionDomainEntity
   ): Promise<MarketplaceOrderDomainEntity[]> {
     const orders = await this.orderRepo.findByCycleId(reception.coopname, reception.cycle_id);
-    return orders.filter((o) => o.delivery_braname === reception.ku_id);
+    return orders.filter((o) => o.delivery_braname === reception.braname);
   }
 
   /**
@@ -607,7 +607,7 @@ export class MarketplaceAplReceptionService {
         coopname: reception.coopname,
         offerer,
         order_hash: order.order_hash,
-        accept_braname: reception.ku_id,
+        accept_braname: reception.braname,
         act,
       });
       const txHash = this.extractTxHash(tx);

@@ -6049,6 +6049,8 @@ export type ValueTypes = {
 	member_account: string | Variable<any, string>
 };
 	["MarketplaceAplReception"]: AliasType<{
+	/** КУ-получатель партии. */
+	braname?:boolean | `@${string}`,
 	/** Account председателя, поставившего закрывающую подпись. */
 	chairman_account?:boolean | `@${string}`,
 	/** Хэш транзакции закрывающей подписи председателя. */
@@ -6064,8 +6066,6 @@ export type ValueTypes = {
 	/** Фактически принятое количество per-Order. */
 	fact_quantity_per_order?:ValueTypes["MarketplaceAplReceptionFactEntry"],
 	id?:boolean | `@${string}`,
-	/** КУ-получатель партии. */
-	ku_id?:boolean | `@${string}`,
 	/** Account поставщика-владельца Offer'ов. */
 	offerer_account?:boolean | `@${string}`,
 	/** Партия поставки, по которой формируется приёмка. */
@@ -6564,12 +6564,12 @@ export type ValueTypes = {
 	barcode_format?:boolean | `@${string}`,
 	/** Значение штрих-кода на наклейке (распознаётся сканером при выдаче). */
 	barcode_value?:boolean | `@${string}`,
+	/** КУ-получатель имущества. */
+	braname?:boolean | `@${string}`,
 	/** Кооператив, в котором ведётся инвентарь. */
 	coopname?:boolean | `@${string}`,
 	created_at?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
-	/** КУ-получатель имущества. */
-	ku_id?:boolean | `@${string}`,
 	labeled_at?:boolean | `@${string}`,
 	/** Account оператора КУ, наклеившего этикетку. */
 	labeled_by_operator_account?:boolean | `@${string}`,
@@ -6648,7 +6648,7 @@ export type ValueTypes = {
 };
 	["MarketplaceListInventoryInput"]: {
 	/** Фильтр по КУ. */
-	ku_id?: string | undefined | null | Variable<any, string>,
+	braname?: string | undefined | null | Variable<any, string>,
 	/** Фильтр по заказу. */
 	order_id?: ValueTypes["ID"] | undefined | null | Variable<any, string>,
 	/** Фильтр по партии поставки. */
@@ -6688,10 +6688,10 @@ export type ValueTypes = {
 	sortOrder: string | Variable<any, string>
 };
 	["MarketplaceListShipmentsInput"]: {
+	/** Фильтр по КУ-получателю. */
+	braname?: string | undefined | null | Variable<any, string>,
 	/** Фильтр по консолидированной заявке. */
 	cycle_id?: ValueTypes["ID"] | undefined | null | Variable<any, string>,
-	/** Фильтр по КУ-получателю. */
-	ku_id?: string | undefined | null | Variable<any, string>,
 	/** Фильтр по статусам партий. */
 	statuses?: Array<ValueTypes["MarketplaceShipmentStatus"]> | undefined | null | Variable<any, string>
 };
@@ -7107,6 +7107,8 @@ export type ValueTypes = {
 	status: string | Variable<any, string>
 };
 	["MarketplaceShipment"]: AliasType<{
+	/** КУ-получатель партии. */
+	braname?:boolean | `@${string}`,
 	/** Кооператив, в котором сформирована партия. */
 	coopname?:boolean | `@${string}`,
 	created_at?:boolean | `@${string}`,
@@ -7115,8 +7117,6 @@ export type ValueTypes = {
 	/** Выбранный вариант доставки. */
 	delivery_variant?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
-	/** КУ-получатель партии. */
-	ku_id?:boolean | `@${string}`,
 	/** Account поставщика-владельца Offer'ов. */
 	offerer_account?:boolean | `@${string}`,
 	status?:boolean | `@${string}`,
@@ -7137,9 +7137,9 @@ export type ValueTypes = {
 	/** Вариант доставки партии на КУ: A — поставщик везёт лично, B — экспедитор по ТТН. */
 ["MarketplaceShipmentDeliveryVariant"]:MarketplaceShipmentDeliveryVariant;
 	["MarketplaceShipmentGroupInput"]: {
-	delivery_variant: ValueTypes["MarketplaceShipmentDeliveryVariant"] | Variable<any, string>,
 	/** Идентификатор КУ-получателя (branch.name). */
-	ku_id: string | Variable<any, string>,
+	braname: string | Variable<any, string>,
+	delivery_variant: ValueTypes["MarketplaceShipmentDeliveryVariant"] | Variable<any, string>,
 	/** Поля ТТН — обязательны для Варианта Б. */
 	ttn_data?: ValueTypes["MarketplaceShipmentTTNDataInput"] | undefined | null | Variable<any, string>
 };
@@ -9033,7 +9033,7 @@ marketplaceGetShipment?: [{	shipment_id: string | Variable<any, string>},ValueTy
 marketplaceGetUserRequests?: [{	data?: ValueTypes["GetUserRequestsInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceRequest"]],
 	/** Список актов приёмки, ожидающих подписи текущего поставщика. */
 	marketplaceListAplReceptionsAsSupplier?:ValueTypes["MarketplaceAplReception"],
-marketplaceListAplReceptionsByKu?: [{	ku_id: string | Variable<any, string>},ValueTypes["MarketplaceAplReception"]],
+marketplaceListAplReceptionsByBraname?: [{	braname: string | Variable<any, string>},ValueTypes["MarketplaceAplReception"]],
 marketplaceListCatalog?: [{	input?: ValueTypes["MarketplaceListCatalogInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOfferPaginationResult"]],
 	/** Baseline-категории Стола заказов (Story 3.2/3.5) — 8 продовольственных + «Прочее» */
 	marketplaceListCategories?:ValueTypes["MarketplaceCategory"],
@@ -15469,6 +15469,8 @@ export type ResolverInputTypes = {
 	member_account: string
 };
 	["MarketplaceAplReception"]: AliasType<{
+	/** КУ-получатель партии. */
+	braname?:boolean | `@${string}`,
 	/** Account председателя, поставившего закрывающую подпись. */
 	chairman_account?:boolean | `@${string}`,
 	/** Хэш транзакции закрывающей подписи председателя. */
@@ -15484,8 +15486,6 @@ export type ResolverInputTypes = {
 	/** Фактически принятое количество per-Order. */
 	fact_quantity_per_order?:ResolverInputTypes["MarketplaceAplReceptionFactEntry"],
 	id?:boolean | `@${string}`,
-	/** КУ-получатель партии. */
-	ku_id?:boolean | `@${string}`,
 	/** Account поставщика-владельца Offer'ов. */
 	offerer_account?:boolean | `@${string}`,
 	/** Партия поставки, по которой формируется приёмка. */
@@ -15960,12 +15960,12 @@ export type ResolverInputTypes = {
 	barcode_format?:boolean | `@${string}`,
 	/** Значение штрих-кода на наклейке (распознаётся сканером при выдаче). */
 	barcode_value?:boolean | `@${string}`,
+	/** КУ-получатель имущества. */
+	braname?:boolean | `@${string}`,
 	/** Кооператив, в котором ведётся инвентарь. */
 	coopname?:boolean | `@${string}`,
 	created_at?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
-	/** КУ-получатель имущества. */
-	ku_id?:boolean | `@${string}`,
 	labeled_at?:boolean | `@${string}`,
 	/** Account оператора КУ, наклеившего этикетку. */
 	labeled_by_operator_account?:boolean | `@${string}`,
@@ -16041,7 +16041,7 @@ export type ResolverInputTypes = {
 };
 	["MarketplaceListInventoryInput"]: {
 	/** Фильтр по КУ. */
-	ku_id?: string | undefined | null,
+	braname?: string | undefined | null,
 	/** Фильтр по заказу. */
 	order_id?: ResolverInputTypes["ID"] | undefined | null,
 	/** Фильтр по партии поставки. */
@@ -16081,10 +16081,10 @@ export type ResolverInputTypes = {
 	sortOrder: string
 };
 	["MarketplaceListShipmentsInput"]: {
+	/** Фильтр по КУ-получателю. */
+	braname?: string | undefined | null,
 	/** Фильтр по консолидированной заявке. */
 	cycle_id?: ResolverInputTypes["ID"] | undefined | null,
-	/** Фильтр по КУ-получателю. */
-	ku_id?: string | undefined | null,
 	/** Фильтр по статусам партий. */
 	statuses?: Array<ResolverInputTypes["MarketplaceShipmentStatus"]> | undefined | null
 };
@@ -16485,6 +16485,8 @@ export type ResolverInputTypes = {
 	status: string
 };
 	["MarketplaceShipment"]: AliasType<{
+	/** КУ-получатель партии. */
+	braname?:boolean | `@${string}`,
 	/** Кооператив, в котором сформирована партия. */
 	coopname?:boolean | `@${string}`,
 	created_at?:boolean | `@${string}`,
@@ -16493,8 +16495,6 @@ export type ResolverInputTypes = {
 	/** Выбранный вариант доставки. */
 	delivery_variant?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
-	/** КУ-получатель партии. */
-	ku_id?:boolean | `@${string}`,
 	/** Account поставщика-владельца Offer'ов. */
 	offerer_account?:boolean | `@${string}`,
 	status?:boolean | `@${string}`,
@@ -16514,9 +16514,9 @@ export type ResolverInputTypes = {
 	/** Вариант доставки партии на КУ: A — поставщик везёт лично, B — экспедитор по ТТН. */
 ["MarketplaceShipmentDeliveryVariant"]:MarketplaceShipmentDeliveryVariant;
 	["MarketplaceShipmentGroupInput"]: {
-	delivery_variant: ResolverInputTypes["MarketplaceShipmentDeliveryVariant"],
 	/** Идентификатор КУ-получателя (branch.name). */
-	ku_id: string,
+	braname: string,
+	delivery_variant: ResolverInputTypes["MarketplaceShipmentDeliveryVariant"],
 	/** Поля ТТН — обязательны для Варианта Б. */
 	ttn_data?: ResolverInputTypes["MarketplaceShipmentTTNDataInput"] | undefined | null
 };
@@ -18340,7 +18340,7 @@ marketplaceGetShipment?: [{	shipment_id: string},ResolverInputTypes["Marketplace
 marketplaceGetUserRequests?: [{	data?: ResolverInputTypes["GetUserRequestsInput"] | undefined | null},ResolverInputTypes["MarketplaceRequest"]],
 	/** Список актов приёмки, ожидающих подписи текущего поставщика. */
 	marketplaceListAplReceptionsAsSupplier?:ResolverInputTypes["MarketplaceAplReception"],
-marketplaceListAplReceptionsByKu?: [{	ku_id: string},ResolverInputTypes["MarketplaceAplReception"]],
+marketplaceListAplReceptionsByBraname?: [{	braname: string},ResolverInputTypes["MarketplaceAplReception"]],
 marketplaceListCatalog?: [{	input?: ResolverInputTypes["MarketplaceListCatalogInput"] | undefined | null},ResolverInputTypes["MarketplaceOfferPaginationResult"]],
 	/** Baseline-категории Стола заказов (Story 3.2/3.5) — 8 продовольственных + «Прочее» */
 	marketplaceListCategories?:ResolverInputTypes["MarketplaceCategory"],
@@ -24588,7 +24588,9 @@ export type ModelTypes = {
 	member_account: string
 };
 	["MarketplaceAplReception"]: {
-		/** Account председателя, поставившего закрывающую подпись. */
+		/** КУ-получатель партии. */
+	braname: string,
+	/** Account председателя, поставившего закрывающую подпись. */
 	chairman_account?: string | undefined | null,
 	/** Хэш транзакции закрывающей подписи председателя. */
 	chairman_signchair_tx_hash?: string | undefined | null,
@@ -24603,8 +24605,6 @@ export type ModelTypes = {
 	/** Фактически принятое количество per-Order. */
 	fact_quantity_per_order: Array<ModelTypes["MarketplaceAplReceptionFactEntry"]>,
 	id: ModelTypes["ID"],
-	/** КУ-получатель партии. */
-	ku_id: string,
 	/** Account поставщика-владельца Offer'ов. */
 	offerer_account: string,
 	/** Партия поставки, по которой формируется приёмка. */
@@ -25049,12 +25049,12 @@ export type ModelTypes = {
 		barcode_format: ModelTypes["MarketplaceBarcodeFormat"],
 	/** Значение штрих-кода на наклейке (распознаётся сканером при выдаче). */
 	barcode_value: string,
+	/** КУ-получатель имущества. */
+	braname: string,
 	/** Кооператив, в котором ведётся инвентарь. */
 	coopname: string,
 	created_at: ModelTypes["DateTime"],
 	id: ModelTypes["ID"],
-	/** КУ-получатель имущества. */
-	ku_id: string,
 	labeled_at: ModelTypes["DateTime"],
 	/** Account оператора КУ, наклеившего этикетку. */
 	labeled_by_operator_account: string,
@@ -25126,7 +25126,7 @@ export type ModelTypes = {
 };
 	["MarketplaceListInventoryInput"]: {
 	/** Фильтр по КУ. */
-	ku_id?: string | undefined | null,
+	braname?: string | undefined | null,
 	/** Фильтр по заказу. */
 	order_id?: ModelTypes["ID"] | undefined | null,
 	/** Фильтр по партии поставки. */
@@ -25166,10 +25166,10 @@ export type ModelTypes = {
 	sortOrder: string
 };
 	["MarketplaceListShipmentsInput"]: {
+	/** Фильтр по КУ-получателю. */
+	braname?: string | undefined | null,
 	/** Фильтр по консолидированной заявке. */
 	cycle_id?: ModelTypes["ID"] | undefined | null,
-	/** Фильтр по КУ-получателю. */
-	ku_id?: string | undefined | null,
 	/** Фильтр по статусам партий. */
 	statuses?: Array<ModelTypes["MarketplaceShipmentStatus"]> | undefined | null
 };
@@ -25552,7 +25552,9 @@ export type ModelTypes = {
 	status: string
 };
 	["MarketplaceShipment"]: {
-		/** Кооператив, в котором сформирована партия. */
+		/** КУ-получатель партии. */
+	braname: string,
+	/** Кооператив, в котором сформирована партия. */
 	coopname: string,
 	created_at: ModelTypes["DateTime"],
 	/** Идентификатор консолидированной заявки. */
@@ -25560,8 +25562,6 @@ export type ModelTypes = {
 	/** Выбранный вариант доставки. */
 	delivery_variant: ModelTypes["MarketplaceShipmentDeliveryVariant"],
 	id: ModelTypes["ID"],
-	/** КУ-получатель партии. */
-	ku_id: string,
 	/** Account поставщика-владельца Offer'ов. */
 	offerer_account: string,
 	status: ModelTypes["MarketplaceShipmentStatus"],
@@ -25579,9 +25579,9 @@ export type ModelTypes = {
 };
 	["MarketplaceShipmentDeliveryVariant"]:MarketplaceShipmentDeliveryVariant;
 	["MarketplaceShipmentGroupInput"]: {
-	delivery_variant: ModelTypes["MarketplaceShipmentDeliveryVariant"],
 	/** Идентификатор КУ-получателя (branch.name). */
-	ku_id: string,
+	braname: string,
+	delivery_variant: ModelTypes["MarketplaceShipmentDeliveryVariant"],
 	/** Поля ТТН — обязательны для Варианта Б. */
 	ttn_data?: ModelTypes["MarketplaceShipmentTTNDataInput"] | undefined | null
 };
@@ -28036,7 +28036,7 @@ export type ModelTypes = {
 	/** Список актов приёмки, ожидающих подписи текущего поставщика. */
 	marketplaceListAplReceptionsAsSupplier: Array<ModelTypes["MarketplaceAplReception"]>,
 	/** Список акций приёмки текущего КУ для operator-стола. */
-	marketplaceListAplReceptionsByKu: Array<ModelTypes["MarketplaceAplReception"]>,
+	marketplaceListAplReceptionsByBraname: Array<ModelTypes["MarketplaceAplReception"]>,
 	/** Каталог активных Offer'ов (ACTIVE + available, single vitrine MVP) */
 	marketplaceListCatalog: ModelTypes["MarketplaceOfferPaginationResult"],
 	/** Baseline-категории Стола заказов (Story 3.2/3.5) — 8 продовольственных + «Прочее» */
@@ -34524,6 +34524,8 @@ export type GraphQLTypes = {
 };
 	["MarketplaceAplReception"]: {
 	__typename: "MarketplaceAplReception",
+	/** КУ-получатель партии. */
+	braname: string,
 	/** Account председателя, поставившего закрывающую подпись. */
 	chairman_account?: string | undefined | null,
 	/** Хэш транзакции закрывающей подписи председателя. */
@@ -34539,8 +34541,6 @@ export type GraphQLTypes = {
 	/** Фактически принятое количество per-Order. */
 	fact_quantity_per_order: Array<GraphQLTypes["MarketplaceAplReceptionFactEntry"]>,
 	id: GraphQLTypes["ID"],
-	/** КУ-получатель партии. */
-	ku_id: string,
 	/** Account поставщика-владельца Offer'ов. */
 	offerer_account: string,
 	/** Партия поставки, по которой формируется приёмка. */
@@ -35039,12 +35039,12 @@ export type GraphQLTypes = {
 	barcode_format: GraphQLTypes["MarketplaceBarcodeFormat"],
 	/** Значение штрих-кода на наклейке (распознаётся сканером при выдаче). */
 	barcode_value: string,
+	/** КУ-получатель имущества. */
+	braname: string,
 	/** Кооператив, в котором ведётся инвентарь. */
 	coopname: string,
 	created_at: GraphQLTypes["DateTime"],
 	id: GraphQLTypes["ID"],
-	/** КУ-получатель имущества. */
-	ku_id: string,
 	labeled_at: GraphQLTypes["DateTime"],
 	/** Account оператора КУ, наклеившего этикетку. */
 	labeled_by_operator_account: string,
@@ -35122,7 +35122,7 @@ export type GraphQLTypes = {
 };
 	["MarketplaceListInventoryInput"]: {
 		/** Фильтр по КУ. */
-	ku_id?: string | undefined | null,
+	braname?: string | undefined | null,
 	/** Фильтр по заказу. */
 	order_id?: GraphQLTypes["ID"] | undefined | null,
 	/** Фильтр по партии поставки. */
@@ -35162,10 +35162,10 @@ export type GraphQLTypes = {
 	sortOrder: string
 };
 	["MarketplaceListShipmentsInput"]: {
-		/** Фильтр по консолидированной заявке. */
+		/** Фильтр по КУ-получателю. */
+	braname?: string | undefined | null,
+	/** Фильтр по консолидированной заявке. */
 	cycle_id?: GraphQLTypes["ID"] | undefined | null,
-	/** Фильтр по КУ-получателю. */
-	ku_id?: string | undefined | null,
 	/** Фильтр по статусам партий. */
 	statuses?: Array<GraphQLTypes["MarketplaceShipmentStatus"]> | undefined | null
 };
@@ -35582,6 +35582,8 @@ export type GraphQLTypes = {
 };
 	["MarketplaceShipment"]: {
 	__typename: "MarketplaceShipment",
+	/** КУ-получатель партии. */
+	braname: string,
 	/** Кооператив, в котором сформирована партия. */
 	coopname: string,
 	created_at: GraphQLTypes["DateTime"],
@@ -35590,8 +35592,6 @@ export type GraphQLTypes = {
 	/** Выбранный вариант доставки. */
 	delivery_variant: GraphQLTypes["MarketplaceShipmentDeliveryVariant"],
 	id: GraphQLTypes["ID"],
-	/** КУ-получатель партии. */
-	ku_id: string,
 	/** Account поставщика-владельца Offer'ов. */
 	offerer_account: string,
 	status: GraphQLTypes["MarketplaceShipmentStatus"],
@@ -35611,9 +35611,9 @@ export type GraphQLTypes = {
 	/** Вариант доставки партии на КУ: A — поставщик везёт лично, B — экспедитор по ТТН. */
 ["MarketplaceShipmentDeliveryVariant"]: MarketplaceShipmentDeliveryVariant;
 	["MarketplaceShipmentGroupInput"]: {
-		delivery_variant: GraphQLTypes["MarketplaceShipmentDeliveryVariant"],
-	/** Идентификатор КУ-получателя (branch.name). */
-	ku_id: string,
+		/** Идентификатор КУ-получателя (branch.name). */
+	braname: string,
+	delivery_variant: GraphQLTypes["MarketplaceShipmentDeliveryVariant"],
 	/** Поля ТТН — обязательны для Варианта Б. */
 	ttn_data?: GraphQLTypes["MarketplaceShipmentTTNDataInput"] | undefined | null
 };
@@ -38230,7 +38230,7 @@ export type GraphQLTypes = {
 	/** Список актов приёмки, ожидающих подписи текущего поставщика. */
 	marketplaceListAplReceptionsAsSupplier: Array<GraphQLTypes["MarketplaceAplReception"]>,
 	/** Список акций приёмки текущего КУ для operator-стола. */
-	marketplaceListAplReceptionsByKu: Array<GraphQLTypes["MarketplaceAplReception"]>,
+	marketplaceListAplReceptionsByBraname: Array<GraphQLTypes["MarketplaceAplReception"]>,
 	/** Каталог активных Offer'ов (ACTIVE + available, single vitrine MVP) */
 	marketplaceListCatalog: GraphQLTypes["MarketplaceOfferPaginationResult"],
 	/** Baseline-категории Стола заказов (Story 3.2/3.5) — 8 продовольственных + «Прочее» */

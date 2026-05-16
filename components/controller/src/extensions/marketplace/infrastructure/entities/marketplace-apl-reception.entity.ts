@@ -19,7 +19,7 @@ import type {
  *
  * Hot-path индексы:
  *   - `(coopname, shipment_id)` unique — операторская обвязка по Shipment'у;
- *   - `(coopname, ku_id, status)` — operator-стол текущих АПП по КУ;
+ *   - `(coopname, braname, status)` — operator-стол текущих АПП по КУ;
  *   - `(coopname, offerer_account, status)` — offerer-стол для асинхронной
  *     подписи (Вариант Б);
  *   - `(coopname, ttn_number)` partial-unique — Story 5.4 поиск по ТТН.
@@ -30,7 +30,7 @@ import type {
   unique: true,
   where: 'ttn_number IS NOT NULL',
 })
-@Index(['coopname', 'ku_id', 'status'])
+@Index(['coopname', 'braname', 'status'])
 @Index(['coopname', 'offerer_account', 'status'])
 export class MarketplaceAplReceptionEntity {
   @PrimaryGeneratedColumn('uuid')
@@ -46,7 +46,7 @@ export class MarketplaceAplReceptionEntity {
   public cycle_id!: string;
 
   @Column({ type: 'varchar', length: 13 })
-  public ku_id!: string;
+  public braname!: string;
 
   @Column({ type: 'varchar', length: 13 })
   public offerer_account!: string;

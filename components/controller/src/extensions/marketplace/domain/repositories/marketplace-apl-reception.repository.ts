@@ -12,7 +12,7 @@ export interface MarketplaceAplReceptionCreateInput {
   coopname: string;
   shipment_id: string;
   cycle_id: string;
-  ku_id: string;
+  braname: string;
   offerer_account: string;
   variant: MarketplaceAplReceptionVariant;
   status: MarketplaceAplReceptionStatus;
@@ -47,9 +47,9 @@ export interface MarketplaceAplReceptionDomainRepository {
     ttn_number: string
   ): Promise<MarketplaceAplReceptionDomainEntity | null>;
 
-  listByKu(
+  listByBraname(
     coopname: string,
-    ku_id: string,
+    braname: string,
     status?: MarketplaceAplReceptionStatus | MarketplaceAplReceptionStatus[]
   ): Promise<MarketplaceAplReceptionDomainEntity[]>;
 

@@ -15,7 +15,7 @@ export interface MarketplaceShipmentView {
   id: string;
   coopname: string;
   cycle_id: string;
-  ku_id: string;
+  braname: string;
   offerer_account: string;
   delivery_variant: 'A' | 'B';
   status: string;
@@ -36,7 +36,7 @@ export async function listShipments(cycle_id?: string): Promise<MarketplaceShipm
 export interface CreateShipmentVariables {
   cycle_id: string;
   groups: Array<{
-    ku_id: string;
+    braname: string;
     delivery_variant: 'A' | 'B';
     order_ids: string[];
     ttn_data?: MarketplaceShipmentTTNDataView;

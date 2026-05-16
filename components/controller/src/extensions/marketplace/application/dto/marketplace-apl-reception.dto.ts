@@ -64,7 +64,7 @@ export class MarketplaceAplReceptionDTO {
   cycle_id!: string;
 
   @Field(() => String, { description: 'КУ-получатель партии.' })
-  ku_id!: string;
+  braname!: string;
 
   @Field(() => String, { description: 'Account поставщика-владельца Offer\'ов.' })
   offerer_account!: string;
@@ -170,7 +170,7 @@ export function toMarketplaceAplReceptionDTO(
   dto.coopname = e.coopname;
   dto.shipment_id = e.shipment_id;
   dto.cycle_id = e.cycle_id;
-  dto.ku_id = e.ku_id;
+  dto.braname = e.braname;
   dto.offerer_account = e.offerer_account;
   dto.variant = e.variant as MarketplaceAplReceptionVariantEnum;
   dto.status = e.status as MarketplaceAplReceptionStatusEnum;

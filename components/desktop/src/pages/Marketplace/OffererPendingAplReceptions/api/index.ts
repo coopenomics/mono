@@ -6,7 +6,7 @@ export interface MarketplaceAplReceptionView {
   coopname: string;
   shipment_id: string;
   cycle_id: string;
-  ku_id: string;
+  braname: string;
   offerer_account: string;
   variant: 'A' | 'B';
   status: string;

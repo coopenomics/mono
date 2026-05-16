@@ -28,7 +28,7 @@ export class MarketplaceAplReceptionRepositoryAdapter
       coopname: input.coopname,
       shipment_id: input.shipment_id,
       cycle_id: input.cycle_id,
-      ku_id: input.ku_id,
+      braname: input.braname,
       offerer_account: input.offerer_account,
       variant: input.variant,
       status: input.status,
@@ -68,12 +68,12 @@ export class MarketplaceAplReceptionRepositoryAdapter
     return row ? this.mapper.toDomain(row) : null;
   }
 
-  async listByKu(
+  async listByBraname(
     coopname: string,
-    ku_id: string,
+    braname: string,
     status?: MarketplaceAplReceptionStatus | MarketplaceAplReceptionStatus[]
   ): Promise<MarketplaceAplReceptionDomainEntity[]> {
-    const where: Record<string, unknown> = { coopname, ku_id };
+    const where: Record<string, unknown> = { coopname, braname };
     if (status) where.status = Array.isArray(status) ? In(status) : status;
     const rows = await this.repo.find({ where, order: { created_at: 'DESC' } });
     return rows.map((r) => this.mapper.toDomain(r));

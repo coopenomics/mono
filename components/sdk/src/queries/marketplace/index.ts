@@ -13,7 +13,7 @@ export * as GetShipment from './getShipment'
 /** Эпик 5: лента маркированных единиц имущества */
 export * as ListInventory from './listInventory'
 /** Эпик 5: акты приёмки текущего КУ для operator-стола */
-export * as ListAplReceptionsByKu from './listAplReceptionsByKu'
+export * as ListAplReceptionsByBraname from './listAplReceptionsByBraname'
 /** Эпик 5: акты приёмки, ожидающие подписи текущего поставщика */
 export * as ListAplReceptionsAsSupplier from './listAplReceptionsAsSupplier'
 /** Эпик 5: история выплат поставщика */

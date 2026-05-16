@@ -147,16 +147,16 @@ export class MarketplaceAplReceptionResolver {
   }
 
   @Query(() => [MarketplaceAplReceptionDTO], {
-    name: 'marketplaceListAplReceptionsByKu',
+    name: 'marketplaceListAplReceptionsByBraname',
     description: 'Список акций приёмки текущего КУ для operator-стола.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Receiving', 'create')
-  async marketplaceListAplReceptionsByKu(
+  async marketplaceListAplReceptionsByBraname(
     @CurrentMarketplaceMember() _member: IMarketplaceCurrentMember,
-    @Args('ku_id') ku_id: string
+    @Args('braname') braname: string
   ): Promise<MarketplaceAplReceptionDTO[]> {
-    const list = await this.receptionRepo.listByKu(config.coopname, ku_id);
+    const list = await this.receptionRepo.listByBraname(config.coopname, braname);
     return list.map(toMarketplaceAplReceptionDTO);
   }
 

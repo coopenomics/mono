@@ -102,7 +102,7 @@ export class MarketplaceShipmentDTO {
   offerer_account!: string;
 
   @Field(() => String, { description: 'КУ-получатель партии.' })
-  ku_id!: string;
+  braname!: string;
 
   @Field(() => MarketplaceShipmentDeliveryVariantEnum, {
     description: 'Выбранный вариант доставки.',
@@ -153,7 +153,7 @@ export class MarketplaceShipmentGroupInputDTO {
   @Field(() => String, { description: 'Идентификатор КУ-получателя (branch.name).' })
   @IsString()
   @IsNotEmpty()
-  ku_id!: string;
+  braname!: string;
 
   @Field(() => MarketplaceShipmentDeliveryVariantEnum)
   @IsEnum(MarketplaceShipmentDeliveryVariantEnum)
@@ -203,7 +203,7 @@ export class MarketplaceListShipmentsInputDTO {
   @Field(() => String, { nullable: true, description: 'Фильтр по КУ-получателю.' })
   @IsOptional()
   @IsString()
-  ku_id?: string;
+  braname?: string;
 
   @Field(() => [MarketplaceShipmentStatusEnum], {
     nullable: true,
@@ -222,7 +222,7 @@ export function toMarketplaceShipmentDTO(
   dto.coopname = e.coopname;
   dto.cycle_id = e.cycle_id;
   dto.offerer_account = e.offerer_account;
-  dto.ku_id = e.ku_id;
+  dto.braname = e.braname;
   dto.delivery_variant = e.delivery_variant as MarketplaceShipmentDeliveryVariantEnum;
   dto.total_amount = e.total_amount;
   dto.ttn_number = e.ttn_number;

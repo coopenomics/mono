@@ -1812,7 +1812,7 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceGetUserRequests:{
 			data:"GetUserRequestsInput"
 		},
-		marketplaceListAplReceptionsByKu:{
+		marketplaceListAplReceptionsByBraname:{
 
 		},
 		marketplaceListCatalog:{
@@ -3665,6 +3665,7 @@ export const ReturnTypes: Record<string,any> = {
 		coopname:"String"
 	},
 	MarketplaceAplReception:{
+		braname:"String",
 		chairman_account:"String",
 		chairman_signchair_tx_hash:"String",
 		chairman_signed_at:"DateTime",
@@ -3675,7 +3676,6 @@ export const ReturnTypes: Record<string,any> = {
 		expeditor_data:"MarketplaceShipmentTTNData",
 		fact_quantity_per_order:"MarketplaceAplReceptionFactEntry",
 		id:"ID",
-		ku_id:"String",
 		offerer_account:"String",
 		shipment_id:"ID",
 		status:"MarketplaceAplReceptionStatus",
@@ -3859,10 +3859,10 @@ export const ReturnTypes: Record<string,any> = {
 	MarketplaceInventoryItem:{
 		barcode_format:"MarketplaceBarcodeFormat",
 		barcode_value:"String",
+		braname:"String",
 		coopname:"String",
 		created_at:"DateTime",
 		id:"ID",
-		ku_id:"String",
 		labeled_at:"DateTime",
 		labeled_by_operator_account:"String",
 		order_id:"ID",
@@ -4107,12 +4107,12 @@ export const ReturnTypes: Record<string,any> = {
 		totalRequests:"Int"
 	},
 	MarketplaceShipment:{
+		braname:"String",
 		coopname:"String",
 		created_at:"DateTime",
 		cycle_id:"ID",
 		delivery_variant:"MarketplaceShipmentDeliveryVariant",
 		id:"ID",
-		ku_id:"String",
 		offerer_account:"String",
 		status:"MarketplaceShipmentStatus",
 		total_amount:"String",
@@ -5042,7 +5042,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceGetShipment:"MarketplaceShipment",
 		marketplaceGetUserRequests:"MarketplaceRequest",
 		marketplaceListAplReceptionsAsSupplier:"MarketplaceAplReception",
-		marketplaceListAplReceptionsByKu:"MarketplaceAplReception",
+		marketplaceListAplReceptionsByBraname:"MarketplaceAplReception",
 		marketplaceListCatalog:"MarketplaceOfferPaginationResult",
 		marketplaceListCategories:"MarketplaceCategory",
 		marketplaceListConsolidatedRequests:"MarketplaceConsolidatedRequestPaginationResult",

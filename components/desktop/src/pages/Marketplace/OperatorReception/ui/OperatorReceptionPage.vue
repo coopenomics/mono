@@ -3,7 +3,7 @@ import { onMounted, ref } from 'vue';
 import { Loading, Notify } from 'quasar';
 import {
   createAplReception,
-  listAplReceptionsByKu,
+  listAplReceptionsByBraname,
   signAsChairman,
   type MarketplaceAplReceptionView,
 } from '../api';
@@ -16,17 +16,17 @@ import {
  * расхождением) включается следующим UI PR.
  */
 
-const ku_id = ref<string>('');
+const braname = ref<string>('');
 const items = ref<MarketplaceAplReceptionView[]>([]);
 const loading = ref(false);
 
 const shipmentIdInput = ref('');
 
 async function load(): Promise<void> {
-  if (!ku_id.value.trim()) return;
+  if (!braname.value.trim()) return;
   loading.value = true;
   try {
-    items.value = await listAplReceptionsByKu(ku_id.value.trim());
+    items.value = await listAplReceptionsByBraname(braname.value.trim());
   } catch (e) {
     Notify.create({
       type: 'negative',
@@ -80,14 +80,14 @@ async function signChairman(item: MarketplaceAplReceptionView): Promise<void> {
 }
 
 onMounted(() => {
-  // ku_id придёт из current member operator-роли при подключении к роутингу.
+  // braname придёт из current member operator-роли при подключении к роутингу.
 });
 </script>
 
 <template>
   <q-page class="mp-role-operator mp-reception q-pa-md">
     <div class="row q-mb-md q-gutter-md">
-      <q-input v-model="ku_id" dense outlined label="ID кооперативного участка" class="col-3" />
+      <q-input v-model="braname" dense outlined label="ID кооперативного участка" class="col-3" />
       <q-btn no-caps color="primary" :loading="loading" label="Загрузить АПП" @click="load" />
     </div>
 

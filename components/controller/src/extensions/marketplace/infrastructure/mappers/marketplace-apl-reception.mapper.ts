@@ -10,7 +10,7 @@ export class MarketplaceAplReceptionMapper {
       coopname: row.coopname,
       shipment_id: row.shipment_id,
       cycle_id: row.cycle_id,
-      ku_id: row.ku_id,
+      braname: row.braname,
       offerer_account: row.offerer_account,
       variant: row.variant,
       status: row.status,

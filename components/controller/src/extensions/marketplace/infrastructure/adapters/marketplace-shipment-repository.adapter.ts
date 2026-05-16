@@ -24,7 +24,7 @@ export class MarketplaceShipmentRepositoryAdapter implements MarketplaceShipment
       coopname: input.coopname,
       cycle_id: input.cycle_id,
       offerer_account: input.offerer_account,
-      ku_id: input.ku_id,
+      braname: input.braname,
       delivery_variant: input.delivery_variant,
       total_amount: input.total_amount,
       ttn_number: input.ttn_number,
@@ -45,9 +45,9 @@ export class MarketplaceShipmentRepositoryAdapter implements MarketplaceShipment
   async findByCycleAndKU(
     coopname: string,
     cycle_id: string,
-    ku_id: string
+    braname: string
   ): Promise<MarketplaceShipmentDomainEntity | null> {
-    const row = await this.repo.findOne({ where: { coopname, cycle_id, ku_id } });
+    const row = await this.repo.findOne({ where: { coopname, cycle_id, braname } });
     return row ? this.mapper.toDomain(row) : null;
   }
 
@@ -71,7 +71,7 @@ export class MarketplaceShipmentRepositoryAdapter implements MarketplaceShipment
     const where: Record<string, unknown> = { coopname: filter.coopname };
     if (filter.cycle_id) where.cycle_id = filter.cycle_id;
     if (filter.offerer_account) where.offerer_account = filter.offerer_account;
-    if (filter.ku_id) where.ku_id = filter.ku_id;
+    if (filter.braname) where.braname = filter.braname;
     if (filter.status) {
       where.status = Array.isArray(filter.status) ? In(filter.status) : filter.status;
     }

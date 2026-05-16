@@ -11,7 +11,7 @@ export interface MarketplaceShipmentCreateInput {
   coopname: string;
   cycle_id: string;
   offerer_account: string;
-  ku_id: string;
+  braname: string;
   delivery_variant: MarketplaceShipmentDeliveryVariant;
   total_amount: string;
   ttn_number: string | null;
@@ -25,7 +25,7 @@ export interface MarketplaceShipmentListFilter {
   coopname: string;
   cycle_id?: string;
   offerer_account?: string;
-  ku_id?: string;
+  braname?: string;
   status?: MarketplaceShipmentStatus | MarketplaceShipmentStatus[];
 }
 
@@ -41,7 +41,7 @@ export interface MarketplaceShipmentDomainRepository {
   findByCycleAndKU(
     coopname: string,
     cycle_id: string,
-    ku_id: string
+    braname: string
   ): Promise<MarketplaceShipmentDomainEntity | null>;
 
   findByCycleId(coopname: string, cycle_id: string): Promise<MarketplaceShipmentDomainEntity[]>;

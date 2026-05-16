@@ -40,7 +40,7 @@ import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketp
 
 /** Группа доставки одного поставщика на один КУ. */
 export interface MarketplaceShipmentGroupInput {
-  ku_id: string;
+  braname: string;
   delivery_variant: MarketplaceShipmentDeliveryVariant;
   /** Только для Варианта Б — поля ТТН (form-input от поставщика). */
   ttn_data?: MarketplaceShipmentTTNData | null;
@@ -52,7 +52,7 @@ export interface MarketplaceShipmentCreateInputDto {
   offerer_account: string;
   /** ID консолидированной заявки в статусе ACCEPTED. */
   cycle_id: string;
-  /** Группы доставки. По одной per ku_id; не пересекаются. */
+  /** Группы доставки. По одной per braname; не пересекаются. */
   groups: MarketplaceShipmentGroupInput[];
 }
 
@@ -153,7 +153,7 @@ export class MarketplaceShipmentCreateService {
     // ── 4. Создание Shipment'ов + перевод Order'ов в SUPPLY_PREPARED ─
     const created: MarketplaceShipmentDomainEntity[] = [];
     for (const group of input.groups) {
-      const groupOrders = validation.groupOrders.get(group.ku_id) ?? [];
+      const groupOrders = validation.groupOrders.get(group.braname) ?? [];
       const groupAmount = this.sumAmount(groupOrders);
       const ttn = this.generateTTNIfNeeded(group, cycle.coopname, cycle.id);
 
@@ -161,7 +161,7 @@ export class MarketplaceShipmentCreateService {
         coopname: cycle.coopname,
         cycle_id: cycle.id,
         offerer_account: cycle.supplier_account,
-        ku_id: group.ku_id,
+        braname: group.braname,
         delivery_variant: group.delivery_variant,
         total_amount: groupAmount,
         ttn_number: ttn?.number ?? null,
@@ -182,7 +182,7 @@ export class MarketplaceShipmentCreateService {
 
       created.push(shipment);
       this.logger.log(
-        `Shipment ${shipment.id} создан для cycle=${cycle.id}, ku=${group.ku_id}, вариант=${group.delivery_variant}, orders=${groupOrders.length}`
+        `Shipment ${shipment.id} создан для cycle=${cycle.id}, ku=${group.braname}, вариант=${group.delivery_variant}, orders=${groupOrders.length}`
       );
     }
 
@@ -209,8 +209,8 @@ export class MarketplaceShipmentCreateService {
       throw new BadRequestException('Не задано ни одной группы доставки.');
     }
     for (const g of input.groups) {
-      if (!g.ku_id) {
-        throw new BadRequestException('У одной из групп не указан ku_id.');
+      if (!g.braname) {
+        throw new BadRequestException('У одной из групп не указан braname.');
       }
       if (
         g.delivery_variant !== MarketplaceShipmentDeliveryVariants.SELF &&
@@ -255,15 +255,15 @@ export class MarketplaceShipmentCreateService {
     | { ok: true; groupOrders: Map<string, MarketplaceOrderDomainEntity[]> }
     | { ok: false; reason_code: MarketplaceSupplyValidationReason; message: string } {
     const cycleKUs = new Set(cycleOrders.map((o) => o.delivery_braname));
-    const groupKUs = new Set(groups.map((g) => g.ku_id));
+    const groupKUs = new Set(groups.map((g) => g.braname));
 
-    // Каждая группа должна указывать ku_id, который реально есть в заявке.
+    // Каждая группа должна указывать braname, который реально есть в заявке.
     for (const g of groups) {
-      if (!cycleKUs.has(g.ku_id)) {
+      if (!cycleKUs.has(g.braname)) {
         return {
           ok: false,
           reason_code: MarketplaceSupplyValidationReasons.UNKNOWN_ORDER,
-          message: `КУ "${g.ku_id}" не присутствует ни в одном Order'е заявки.`,
+          message: `КУ "${g.braname}" не присутствует ни в одном Order'е заявки.`,
         };
       }
     }
@@ -279,12 +279,12 @@ export class MarketplaceShipmentCreateService {
       }
     }
 
-    // Группы между собой не должны пересекаться по ku_id.
+    // Группы между собой не должны пересекаться по braname.
     if (groupKUs.size !== groups.length) {
       return {
         ok: false,
         reason_code: MarketplaceSupplyValidationReasons.KU_GROUPS_OVERLAP,
-        message: 'Группы доставки пересекаются по КУ (повтор ku_id).',
+        message: 'Группы доставки пересекаются по КУ (повтор braname).',
       };
     }
 
@@ -316,17 +316,17 @@ export class MarketplaceShipmentCreateService {
     if (!group.ttn_data) {
       throw new BadRequestException('ttn_data отсутствует для Варианта Б.');
     }
-    const number = this.computeTTNNumber(coopname, cycle_id, group.ku_id);
+    const number = this.computeTTNNumber(coopname, cycle_id, group.braname);
     // MVP-stub: реальная подпись и регистрация в document-factory подключаются
     // в Story 5.4 (асинхронная подпись поставщика на АПП).
     const pdf_url = `/api/marketplace/ttn/${number}.pdf`;
     return { number, data: group.ttn_data, pdf_url };
   }
 
-  private computeTTNNumber(coopname: string, cycle_id: string, ku_id: string): string {
+  private computeTTNNumber(coopname: string, cycle_id: string, braname: string): string {
     const suffix = randomBytes(4).toString('hex').toUpperCase();
     const cycleShort = cycle_id.replace(/-/g, '').slice(0, 8).toUpperCase();
-    const kuShort = ku_id.slice(0, 6).toUpperCase();
+    const kuShort = braname.slice(0, 6).toUpperCase();
     return `${coopname.toUpperCase()}-TTN-${cycleShort}-${kuShort}-${suffix}`;
   }
 

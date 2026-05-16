@@ -77,7 +77,7 @@ export class MarketplaceInventoryResolver {
       coopname: config.coopname,
       order_id: input?.order_id,
       shipment_id: input?.shipment_id,
-      ku_id: input?.ku_id,
+      braname: input?.braname,
       status: input?.statuses?.length
         ? (input.statuses as MarketplaceInventoryStatus[])
         : undefined,

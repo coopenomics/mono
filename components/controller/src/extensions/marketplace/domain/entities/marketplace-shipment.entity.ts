@@ -15,14 +15,14 @@ import { MarketplaceShipmentStatuses, MarketplaceShipmentDeliveryVariants } from
  * доставки + генерация ТТН для Варианта Б).
  *
  * Primary-key — `id` (UUID). Естественный ключ unique constraint —
- * `(coopname, cycle_id, ku_id)` (одна заявка → одна группа на КУ).
+ * `(coopname, cycle_id, braname)` (одна заявка → одна группа на КУ).
  */
 export class MarketplaceShipmentDomainEntity {
   public readonly id: string;
   public readonly coopname: string;
   public readonly cycle_id: string;
   public readonly offerer_account: string;
-  public readonly ku_id: string;
+  public readonly braname: string;
   public delivery_variant: MarketplaceShipmentDeliveryVariant;
   public total_amount: string;
   public ttn_number: string | null;
@@ -37,8 +37,8 @@ export class MarketplaceShipmentDomainEntity {
     if (!props.id) {
       throw new Error('MarketplaceShipmentDomainEntity: id обязателен.');
     }
-    if (!props.coopname || !props.cycle_id || !props.ku_id || !props.offerer_account) {
-      throw new Error('MarketplaceShipmentDomainEntity: coopname/cycle_id/ku_id/offerer_account обязательны.');
+    if (!props.coopname || !props.cycle_id || !props.braname || !props.offerer_account) {
+      throw new Error('MarketplaceShipmentDomainEntity: coopname/cycle_id/braname/offerer_account обязательны.');
     }
     if (
       props.delivery_variant === MarketplaceShipmentDeliveryVariants.EXPEDITOR &&
@@ -52,7 +52,7 @@ export class MarketplaceShipmentDomainEntity {
     this.coopname = props.coopname;
     this.cycle_id = props.cycle_id;
     this.offerer_account = props.offerer_account;
-    this.ku_id = props.ku_id;
+    this.braname = props.braname;
     this.delivery_variant = props.delivery_variant;
     this.total_amount = props.total_amount;
     this.ttn_number = props.ttn_number;

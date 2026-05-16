@@ -18,13 +18,13 @@ import type {
  * Hot-path индексы:
  *   - `(coopname, barcode_value)` unique — поиск сканером при выдаче;
  *   - `(coopname, order_id, status)` — список этикеток per-Order;
- *   - `(coopname, ku_id, status)` — admin-стол склада КУ (Эпик 9);
+ *   - `(coopname, braname, status)` — admin-стол склада КУ (Эпик 9);
  *   - `(coopname, shipment_id)` — журнал маркировки per-партия.
  */
 @Entity({ name: 'marketplace_inventory' })
 @Index('IDX_marketplace_inventory_barcode_unique', ['coopname', 'barcode_value'], { unique: true })
 @Index(['coopname', 'order_id', 'status'])
-@Index(['coopname', 'ku_id', 'status'])
+@Index(['coopname', 'braname', 'status'])
 @Index(['coopname', 'shipment_id'])
 export class MarketplaceInventoryEntity {
   @PrimaryGeneratedColumn('uuid')
@@ -46,7 +46,7 @@ export class MarketplaceInventoryEntity {
   public shipment_id!: string;
 
   @Column({ type: 'varchar', length: 13 })
-  public ku_id!: string;
+  public braname!: string;
 
   @Column({ type: 'varchar', length: 32 })
   public status!: MarketplaceInventoryStatus;

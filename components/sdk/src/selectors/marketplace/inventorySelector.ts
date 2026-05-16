@@ -8,7 +8,7 @@ const rawInventorySelector = {
   barcode_format: true,
   order_id: true,
   shipment_id: true,
-  ku_id: true,
+  braname: true,
   status: true,
   product_name_snapshot: true,
   quantity_per_label: true,

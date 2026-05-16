@@ -12,7 +12,7 @@ export interface MarketplaceInventoryCreateInput {
   barcode_format: MarketplaceBarcodeFormat;
   order_id: string;
   shipment_id: string;
-  ku_id: string;
+  braname: string;
   status: MarketplaceInventoryStatus;
   product_name_snapshot: string;
   quantity_per_label: number;
@@ -25,7 +25,7 @@ export interface MarketplaceInventoryListFilter {
   coopname: string;
   order_id?: string;
   shipment_id?: string;
-  ku_id?: string;
+  braname?: string;
   status?: MarketplaceInventoryStatus | MarketplaceInventoryStatus[];
 }
 

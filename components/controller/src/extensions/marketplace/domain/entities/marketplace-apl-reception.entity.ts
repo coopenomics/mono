@@ -17,7 +17,7 @@ export class MarketplaceAplReceptionDomainEntity {
   public readonly coopname: string;
   public readonly shipment_id: string;
   public readonly cycle_id: string;
-  public readonly ku_id: string;
+  public readonly braname: string;
   public readonly offerer_account: string;
   public readonly variant: MarketplaceAplReceptionVariant;
   public status: MarketplaceAplReceptionStatus;
@@ -35,14 +35,14 @@ export class MarketplaceAplReceptionDomainEntity {
   public updated_at: Date;
 
   constructor(props: MarketplaceAplReceptionProps) {
-    if (!props.id || !props.coopname || !props.shipment_id || !props.ku_id) {
+    if (!props.id || !props.coopname || !props.shipment_id || !props.braname) {
       throw new Error('MarketplaceAplReceptionDomainEntity: обязательные поля отсутствуют.');
     }
     this.id = props.id;
     this.coopname = props.coopname;
     this.shipment_id = props.shipment_id;
     this.cycle_id = props.cycle_id;
-    this.ku_id = props.ku_id;
+    this.braname = props.braname;
     this.offerer_account = props.offerer_account;
     this.variant = props.variant;
     this.status = props.status;

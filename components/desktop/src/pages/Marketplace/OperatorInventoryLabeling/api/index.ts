@@ -16,7 +16,7 @@ export interface MarketplaceInventoryItemView {
   barcode_format: 'CODE128' | 'EAN13';
   order_id: string;
   shipment_id: string;
-  ku_id: string;
+  braname: string;
   status: 'LABELED' | 'ISSUED' | 'RETURNED' | 'WRITTEN_OFF';
   product_name_snapshot: string;
   quantity_per_label: number;
@@ -24,9 +24,9 @@ export interface MarketplaceInventoryItemView {
   labeled_at: string;
 }
 
-export async function fetchInventoryByKu(ku_id: string): Promise<MarketplaceInventoryItemView[]> {
+export async function fetchInventoryByBraname(braname: string): Promise<MarketplaceInventoryItemView[]> {
   const result = await client.Query(Queries.Marketplace.ListInventory.query, {
-    variables: { input: { ku_id } },
+    variables: { input: { braname } },
   });
   return result[Queries.Marketplace.ListInventory.name] as unknown as MarketplaceInventoryItemView[];
 }

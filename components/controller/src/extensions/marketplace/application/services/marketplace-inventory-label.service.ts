@@ -70,7 +70,7 @@ export interface MarketplaceLabelInventoryResult {
  *   3. Order ещё не был помечен (по barcode_value) — повторный label по
  *      тому же Order'у в той же стратегии → ConflictException
  *      (повторная маркировка ломает ledger).
- *   4. Найден соответствующий Shipment (через cycle_id + ku_id из
+ *   4. Найден соответствующий Shipment (через cycle_id + braname из
  *      Order.delivery_braname); если Shipment отсутствует — Story 5.1
  *      не была выполнена → BadRequest.
  *   5. Генерируется уникальный barcode_value согласно strategy + format:
@@ -180,7 +180,7 @@ export class MarketplaceInventoryLabelService {
         barcode_format: format,
         order_id: order.id,
         shipment_id: shipment.id,
-        ku_id: shipment.ku_id,
+        braname: shipment.braname,
         status: MarketplaceInventoryStatuses.LABELED,
         product_name_snapshot: offer.product_name ?? '',
         quantity_per_label,

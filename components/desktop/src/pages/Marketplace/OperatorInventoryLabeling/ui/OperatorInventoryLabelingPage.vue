@@ -3,7 +3,7 @@ import { onMounted, ref } from 'vue';
 import { Loading, Notify } from 'quasar';
 import { BarcodeDisplay } from 'src/widgets/Marketplace/BarcodeDisplay';
 import {
-  fetchInventoryByKu,
+  fetchInventoryByBraname,
   labelInventory,
   type MarketplaceInventoryItemView,
 } from '../api';
@@ -20,16 +20,16 @@ import {
  * как admin-override. Канон widget: `BarcodeDisplay` (UX-DR12).
  */
 
-const ku_id = ref<string>('');
+const braname = ref<string>('');
 const orderIdInput = ref<string>('');
 const items = ref<MarketplaceInventoryItemView[]>([]);
 const loading = ref<boolean>(false);
 
 async function loadInventory(): Promise<void> {
-  if (!ku_id.value.trim()) return;
+  if (!braname.value.trim()) return;
   loading.value = true;
   try {
-    items.value = await fetchInventoryByKu(ku_id.value.trim());
+    items.value = await fetchInventoryByBraname(braname.value.trim());
   } catch (e) {
     Notify.create({
       type: 'negative',
@@ -70,7 +70,7 @@ function openPrintWindow(): void {
 }
 
 onMounted(() => {
-  // В реальной интеграции ku_id придёт из current member / маршрута оператора.
+  // В реальной интеграции braname придёт из current member / маршрута оператора.
   // Здесь — пустой input до явного ввода.
 });
 </script>
@@ -79,7 +79,7 @@ onMounted(() => {
   <q-page class="mp-role-operator mp-inventory-labeling q-pa-md">
     <div class="row q-mb-md q-gutter-md no-print">
       <q-input
-        v-model="ku_id"
+        v-model="braname"
         dense
         outlined
         label="ID кооперативного участка"

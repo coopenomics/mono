@@ -55,7 +55,7 @@ export class MarketplaceShipmentResolver {
       offerer_account: member.username,
       cycle_id: input.cycle_id,
       groups: input.groups.map((g) => ({
-        ku_id: g.ku_id,
+        braname: g.braname,
         delivery_variant: g.delivery_variant as unknown as MarketplaceShipmentDeliveryVariant,
         ttn_data: (g.ttn_data ?? null) as MarketplaceShipmentTTNData | null,
       })),
@@ -81,7 +81,7 @@ export class MarketplaceShipmentResolver {
       coopname: config.coopname,
       offerer_account: member.username,
       cycle_id: input?.cycle_id,
-      ku_id: input?.ku_id,
+      braname: input?.braname,
       status: input?.statuses?.length
         ? (input.statuses as MarketplaceShipmentStatus[])
         : undefined,

@@ -60,7 +60,7 @@ export class MarketplaceInventoryItemDTO {
   shipment_id!: string;
 
   @Field(() => String, { description: 'КУ-получатель имущества.' })
-  ku_id!: string;
+  braname!: string;
 
   @Field(() => MarketplaceInventoryStatusEnum)
   status!: MarketplaceInventoryStatusEnum;
@@ -145,7 +145,7 @@ export class MarketplaceListInventoryInputDTO {
   @Field(() => String, { nullable: true, description: 'Фильтр по КУ.' })
   @IsOptional()
   @IsString()
-  ku_id?: string;
+  braname?: string;
 
   @Field(() => [MarketplaceInventoryStatusEnum], {
     nullable: true,
@@ -166,7 +166,7 @@ export function toMarketplaceInventoryItemDTO(
   dto.barcode_format = e.barcode_format as MarketplaceBarcodeFormatEnum;
   dto.order_id = e.order_id;
   dto.shipment_id = e.shipment_id;
-  dto.ku_id = e.ku_id;
+  dto.braname = e.braname;
   dto.status = e.status as MarketplaceInventoryStatusEnum;
   dto.product_name_snapshot = e.product_name_snapshot;
   dto.quantity_per_label = e.quantity_per_label;

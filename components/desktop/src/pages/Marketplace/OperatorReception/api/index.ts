@@ -4,12 +4,12 @@ import type { MarketplaceAplReceptionView } from '../../OffererPendingAplRecepti
 
 export type { MarketplaceAplReceptionView } from '../../OffererPendingAplReceptions/api';
 
-export async function listAplReceptionsByKu(ku_id: string): Promise<MarketplaceAplReceptionView[]> {
-  const result = await client.Query(Queries.Marketplace.ListAplReceptionsByKu.query, {
-    variables: { ku_id },
+export async function listAplReceptionsByBraname(braname: string): Promise<MarketplaceAplReceptionView[]> {
+  const result = await client.Query(Queries.Marketplace.ListAplReceptionsByBraname.query, {
+    variables: { braname },
   });
   return result[
-    Queries.Marketplace.ListAplReceptionsByKu.name
+    Queries.Marketplace.ListAplReceptionsByBraname.name
   ] as unknown as MarketplaceAplReceptionView[];
 }
 

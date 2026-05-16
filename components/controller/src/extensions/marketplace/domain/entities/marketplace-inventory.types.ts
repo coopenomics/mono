@@ -58,7 +58,7 @@ export interface MarketplaceInventoryProps {
   barcode_format: MarketplaceBarcodeFormat;
   order_id: string;
   shipment_id: string;
-  ku_id: string;
+  braname: string;
   status: MarketplaceInventoryStatus;
   /** Снапшот наименования и количества — для печати наклейки. */
   product_name_snapshot: string;

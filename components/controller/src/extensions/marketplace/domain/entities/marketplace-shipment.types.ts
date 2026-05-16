@@ -80,7 +80,7 @@ export interface MarketplaceShipmentProps {
   /** Account поставщика (= владелец Offer'ов в группе). */
   offerer_account: string;
   /** КУ-получатель (branch.name = `delivery_braname` исходных Order'ов). */
-  ku_id: string;
+  braname: string;
   /** Вариант доставки. */
   delivery_variant: MarketplaceShipmentDeliveryVariant;
   /** Сумма quantity * price_per_unit по всем Order'ам группы (numeric → string). */

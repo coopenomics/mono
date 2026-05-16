@@ -6925,6 +6925,9 @@ input MarketplaceAddToWhitelistInput {
 }
 
 type MarketplaceAplReception {
+  """КУ-получатель партии."""
+  braname: String!
+
   """Account председателя, поставившего закрывающую подпись."""
   chairman_account: String
 
@@ -6944,9 +6947,6 @@ type MarketplaceAplReception {
   """Фактически принятое количество per-Order."""
   fact_quantity_per_order: [MarketplaceAplReceptionFactEntry!]!
   id: ID!
-
-  """КУ-получатель партии."""
-  ku_id: String!
 
   """Account поставщика-владельца Offer'ов."""
   offerer_account: String!
@@ -7631,13 +7631,13 @@ type MarketplaceInventoryItem {
   """Значение штрих-кода на наклейке (распознаётся сканером при выдаче)."""
   barcode_value: String!
 
+  """КУ-получатель имущества."""
+  braname: String!
+
   """Кооператив, в котором ведётся инвентарь."""
   coopname: String!
   created_at: DateTime!
   id: ID!
-
-  """КУ-получатель имущества."""
-  ku_id: String!
   labeled_at: DateTime!
 
   """Account оператора КУ, наклеившего этикетку."""
@@ -7743,7 +7743,7 @@ input MarketplaceListConsolidatedRequestsInput {
 
 input MarketplaceListInventoryInput {
   """Фильтр по КУ."""
-  ku_id: String
+  braname: String
 
   """Фильтр по заказу."""
   order_id: ID
@@ -7803,11 +7803,11 @@ input MarketplaceListPendingOffersInput {
 }
 
 input MarketplaceListShipmentsInput {
+  """Фильтр по КУ-получателю."""
+  braname: String
+
   """Фильтр по консолидированной заявке."""
   cycle_id: ID
-
-  """Фильтр по КУ-получателю."""
-  ku_id: String
 
   """Фильтр по статусам партий."""
   statuses: [MarketplaceShipmentStatus!]
@@ -8399,6 +8399,9 @@ input MarketplaceSetKUStatusInput {
 }
 
 type MarketplaceShipment {
+  """КУ-получатель партии."""
+  braname: String!
+
   """Кооператив, в котором сформирована партия."""
   coopname: String!
   created_at: DateTime!
@@ -8409,9 +8412,6 @@ type MarketplaceShipment {
   """Выбранный вариант доставки."""
   delivery_variant: MarketplaceShipmentDeliveryVariant!
   id: ID!
-
-  """КУ-получатель партии."""
-  ku_id: String!
 
   """Account поставщика-владельца Offer'ов."""
   offerer_account: String!
@@ -8443,10 +8443,9 @@ enum MarketplaceShipmentDeliveryVariant {
 }
 
 input MarketplaceShipmentGroupInput {
-  delivery_variant: MarketplaceShipmentDeliveryVariant!
-
   """Идентификатор КУ-получателя (branch.name)."""
-  ku_id: String!
+  braname: String!
+  delivery_variant: MarketplaceShipmentDeliveryVariant!
 
   """Поля ТТН — обязательны для Варианта Б."""
   ttn_data: MarketplaceShipmentTTNDataInput
@@ -12339,7 +12338,7 @@ type Query {
   marketplaceListAplReceptionsAsSupplier: [MarketplaceAplReception!]!
 
   """Список акций приёмки текущего КУ для operator-стола."""
-  marketplaceListAplReceptionsByKu(ku_id: String!): [MarketplaceAplReception!]!
+  marketplaceListAplReceptionsByBraname(braname: String!): [MarketplaceAplReception!]!
 
   """Каталог активных Offer'ов (ACTIVE + available, single vitrine MVP)"""
   marketplaceListCatalog(input: MarketplaceListCatalogInput): MarketplaceOfferPaginationResult!

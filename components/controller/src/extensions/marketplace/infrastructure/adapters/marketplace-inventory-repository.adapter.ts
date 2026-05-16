@@ -26,7 +26,7 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
       barcode_format: input.barcode_format,
       order_id: input.order_id,
       shipment_id: input.shipment_id,
-      ku_id: input.ku_id,
+      braname: input.braname,
       status: input.status,
       product_name_snapshot: input.product_name_snapshot,
       quantity_per_label: input.quantity_per_label,
@@ -59,7 +59,7 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
     const where: Record<string, unknown> = { coopname: filter.coopname };
     if (filter.order_id) where.order_id = filter.order_id;
     if (filter.shipment_id) where.shipment_id = filter.shipment_id;
-    if (filter.ku_id) where.ku_id = filter.ku_id;
+    if (filter.braname) where.braname = filter.braname;
     if (filter.status) {
       where.status = Array.isArray(filter.status) ? In(filter.status) : filter.status;
     }

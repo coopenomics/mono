@@ -18,7 +18,7 @@ const rawShipmentSelector = {
   id: true,
   coopname: true,
   cycle_id: true,
-  ku_id: true,
+  braname: true,
   offerer_account: true,
   delivery_variant: true,
   status: true,
