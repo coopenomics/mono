@@ -69,6 +69,18 @@ export interface MarketplaceCanonicalBlockchainPort {
    * `offerer == order.offerer`.
    */
   declineOrder(data: MarketContract.Actions.DeclineOrder.IDeclineOrder): Promise<TransactResult>;
+
+  /**
+   * E11 техдолг 598-16 / Locked Decision L12: lazy выплата поставщику по
+   * одному Order'у. Триггерит C++ `marketplace::payout` → o.mkt.payout
+   * (Дт 86 / Кт 51) — закрытие обязательства перед поставщиком после
+   * подтверждения кассиром фактического банковского перевода. Статус
+   * Order'а не меняется; C++ guard'ит `order.payout_done` от двойного
+   * вызова.
+   *
+   * Авторизация — кооператив (`require_auth(coopname)`).
+   */
+  payOut(data: MarketContract.Actions.PayOut.IPayout): Promise<TransactResult>;
 }
 
 export const MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT = Symbol('MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT');

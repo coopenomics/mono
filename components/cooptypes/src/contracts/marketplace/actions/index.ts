@@ -3,7 +3,7 @@
 // Раскладка по процессам соответствует YAML-стандартам:
 //   p.mkt.supply.standard.yaml / p.mkt.return.standard.yaml / p.mkt.wroff.standard.yaml
 
-// ── p.mkt.supply (9 actions) — Stories Эпиков 4-5-6 ────────────────────
+// ── p.mkt.supply (10 actions) — Stories Эпиков 4-5-6 + E11 техдолг 598-16 ──
 
 /**
  * Заказчик размещает заказ на товар из каталога (Story 4.1).
@@ -39,9 +39,17 @@ export * as SignSupp from './signSupp'
 
 /**
  * Председатель / trustee приёмного КУ ставит закрывающую подпись на АПП приёмки (Story 5.3/5.4).
- * Per-Order: o.mkt.purch + o.mkt.payout (атомарно).
+ * Per-Order: только o.mkt.purch (Дт 10 / Кт 86). Выплата поставщику отделена в `PayOut`
+ * (Locked Decision L12, E11 техдолг 598-16).
  */
 export * as SignChair from './signChair'
+
+/**
+ * Lazy выплата поставщику по одному Order'у (E11 техдолг 598-16, Locked Decision L12).
+ * Per-Order: o.mkt.payout (Дт 86 / Кт 51). Выполняется backend'ом по подтверждению
+ * кассиром фактического банковского перевода; статус Order'а не меняется.
+ */
+export * as PayOut from './payOut'
 
 /**
  * Председатель / trustee КУ выдачи открывает выдачу первой подписью АПП-выдачи (Story 6.1).

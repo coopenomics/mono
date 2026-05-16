@@ -13,6 +13,7 @@
 #include "src/p.mkt.supply/declineorder.cpp"
 #include "src/p.mkt.supply/signsupp.cpp"
 #include "src/p.mkt.supply/signchair.cpp"
+#include "src/p.mkt.supply/payout.cpp"
 #include "src/p.mkt.supply/signiss1.cpp"
 #include "src/p.mkt.supply/signiss2.cpp"
 

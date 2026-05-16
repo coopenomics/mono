@@ -131,6 +131,8 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] order {
   document2 issue_act_signiss1;                               ///< АПП выдачи — первая подпись председателя КУ выдачи (signiss1)
   document2 issue_act_signiss2;                               ///< АПП выдачи — финальная подпись заказчика (signiss2)
 
+  bool payout_done = false;                                   ///< Locked Decision L12 lazy payout: true после o.mkt.payout (action `payout`); защищает от двойного списания со счёта 51
+
   uint64_t return_request_id = 0;                             ///< 0 если активного гарантийного возврата нет
 
   // Все timestamp'ы переходов состояний (createorder/accepted/received_to_coop/
