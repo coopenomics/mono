@@ -637,6 +637,9 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceAddToWhitelistInput:{
 
 	},
+	MarketplaceAplReceptionByIdInput:{
+
+	},
 	MarketplaceAplReceptionFactEntryInput:{
 
 	},
@@ -686,10 +689,16 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceGetOrderInput:{
 
 	},
+	MarketplaceGetShipmentInput:{
+
+	},
 	MarketplaceInventoryStatus: "enum" as const,
 	MarketplaceLabelInventoryInput:{
 		format:"MarketplaceBarcodeFormat",
 		strategy:"MarketplaceBarcodeStrategy"
+	},
+	MarketplaceListAplReceptionsByBranameInput:{
+
 	},
 	MarketplaceListCatalogInput:{
 
@@ -1223,7 +1232,7 @@ export const AllTypesProps: Record<string,any> = {
 			input:"MarketplaceCancelOrderInput"
 		},
 		marketplaceCreateAplReception:{
-			input:"MarketplaceCreateAplReceptionInput"
+			data:"MarketplaceCreateAplReceptionInput"
 		},
 		marketplaceCreateOffer:{
 			input:"MarketplaceCreateOfferInput"
@@ -1235,7 +1244,7 @@ export const AllTypesProps: Record<string,any> = {
 			data:"CreateRequestInput"
 		},
 		marketplaceCreateShipment:{
-			input:"MarketplaceCreateShipmentInput"
+			data:"MarketplaceCreateShipmentInput"
 		},
 		marketplaceDeclineConsolidatedRequest:{
 			input:"MarketplaceDeclineConsolidatedRequestInput"
@@ -1250,7 +1259,7 @@ export const AllTypesProps: Record<string,any> = {
 			data:"MarketplaceDetailKUInput"
 		},
 		marketplaceLabelInventory:{
-			input:"MarketplaceLabelInventoryInput"
+			data:"MarketplaceLabelInventoryInput"
 		},
 		marketplaceRejectOffer:{
 			input:"MarketplaceRejectOfferInput"
@@ -1274,10 +1283,10 @@ export const AllTypesProps: Record<string,any> = {
 			data:"MarketplaceSetKUStatusInput"
 		},
 		marketplaceSignAplReceptionAsChairman:{
-			input:"MarketplaceSignAplReceptionInput"
+			data:"MarketplaceSignAplReceptionInput"
 		},
 		marketplaceSignAplReceptionAsSupplier:{
-			input:"MarketplaceSignAplReceptionInput"
+			data:"MarketplaceSignAplReceptionInput"
 		},
 		marketplaceTriggerOpenSubscription:{
 			input:"MarketplaceTriggerOpenSubscriptionInput"
@@ -1759,10 +1768,10 @@ export const AllTypesProps: Record<string,any> = {
 			filter:"ListReportDraftsFilterInput"
 		},
 		marketplaceAplReceptionChairmanSignablePayloads:{
-
+			data:"MarketplaceAplReceptionByIdInput"
 		},
 		marketplaceAplReceptionSupplierSignablePayloads:{
-
+			data:"MarketplaceAplReceptionByIdInput"
 		},
 		marketplaceAspectAttributes:{
 			data:"GetRequiredAttributesInput"
@@ -1807,13 +1816,13 @@ export const AllTypesProps: Record<string,any> = {
 			data:"SearchCategoriesInput"
 		},
 		marketplaceGetShipment:{
-
+			data:"MarketplaceGetShipmentInput"
 		},
 		marketplaceGetUserRequests:{
 			data:"GetUserRequestsInput"
 		},
 		marketplaceListAplReceptionsByBraname:{
-
+			data:"MarketplaceListAplReceptionsByBranameInput"
 		},
 		marketplaceListCatalog:{
 			input:"MarketplaceListCatalogInput"
@@ -1823,7 +1832,7 @@ export const AllTypesProps: Record<string,any> = {
 			options:"PaginationInput"
 		},
 		marketplaceListInventory:{
-			input:"MarketplaceListInventoryInput"
+			data:"MarketplaceListInventoryInput"
 		},
 		marketplaceListKUDetails:{
 			data:"ListMarketplaceKUInput"
@@ -1845,7 +1854,7 @@ export const AllTypesProps: Record<string,any> = {
 			input:"MarketplaceListPendingOffersInput"
 		},
 		marketplaceListShipments:{
-			input:"MarketplaceListShipmentsInput"
+			data:"MarketplaceListShipmentsInput"
 		},
 		marketplaceListSupplierOrders:{
 			input:"MarketplaceListOrdersInput",

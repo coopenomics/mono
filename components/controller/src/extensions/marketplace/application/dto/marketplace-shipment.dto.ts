@@ -193,6 +193,14 @@ export class MarketplaceCreateShipmentResultDTO {
   shipments!: MarketplaceShipmentDTO[];
 }
 
+@InputType('MarketplaceGetShipmentInput')
+export class MarketplaceGetShipmentInputDTO {
+  @Field(() => ID, { description: 'Идентификатор партии поставки.' })
+  @IsString()
+  @IsNotEmpty()
+  shipment_id!: string;
+}
+
 @InputType('MarketplaceListShipmentsInput')
 export class MarketplaceListShipmentsInputDTO {
   @Field(() => ID, { nullable: true, description: 'Фильтр по консолидированной заявке.' })

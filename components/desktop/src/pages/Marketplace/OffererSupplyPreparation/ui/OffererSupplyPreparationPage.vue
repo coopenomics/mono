@@ -33,33 +33,30 @@ onMounted(() => {
 });
 </script>
 
-<template>
-  <q-page class="mp-role-offerer mp-supply-preparation q-pa-md">
-    <div class="row items-center q-mb-md">
-      <div class="text-h5">Подготовка поставки</div>
-      <q-space />
-      <q-btn flat no-caps icon="refresh" label="Обновить" :loading="loading" @click="load" />
-    </div>
+<template lang="pug">
+q-page.mp-role-offerer.mp-supply-preparation.q-pa-md
+  .row.items-center.q-mb-md
+    .text-h5 Подготовка поставки
+    q-space
+    q-btn(flat no-caps icon="refresh" label="Обновить" :loading="loading" @click="load")
 
-    <q-table
-      :rows="items"
-      :columns="[
-        { name: 'cycle_id', label: 'Цикл', field: 'cycle_id', align: 'left' },
-        { name: 'braname', label: 'КУ', field: 'braname', align: 'left' },
-        { name: 'delivery_variant', label: 'Вариант', field: 'delivery_variant', align: 'center' },
-        { name: 'status', label: 'Статус', field: 'status', align: 'left' },
-        { name: 'total_amount', label: 'Сумма', field: 'total_amount', align: 'right' },
-        { name: 'ttn_number', label: 'ТТН', field: 'ttn_number', align: 'left' },
-      ]"
-      row-key="id"
-      flat
-      bordered
-      :loading="loading"
-    />
+  q-table(
+    :rows="items"
+    :columns="[\
+      { name: 'cycle_id', label: 'Цикл', field: 'cycle_id', align: 'left' },\
+      { name: 'braname', label: 'КУ', field: 'braname', align: 'left' },\
+      { name: 'delivery_variant', label: 'Вариант', field: 'delivery_variant', align: 'center' },\
+      { name: 'status', label: 'Статус', field: 'status', align: 'left' },\
+      { name: 'total_amount', label: 'Сумма', field: 'total_amount', align: 'right' },\
+      { name: 'ttn_number', label: 'ТТН', field: 'ttn_number', align: 'left' },\
+    ]"
+    row-key="id"
+    flat
+    bordered
+    :loading="loading"
+  )
 
-    <div class="text-caption text-grey-7 q-mt-md">
-      Группировка drag-n-drop и печать ТТН подключаются вторым UI-PR'ом
-      (канон widget'ов: ExpeditorGroupingBoard, TTNPrintPreview).
-    </div>
-  </q-page>
+  .text-caption.text-grey-7.q-mt-md
+    | Группировка drag-n-drop и печать ТТН подключаются вторым UI-PR'ом
+    | (канон widget'ов: ExpeditorGroupingBoard, TTNPrintPreview).
 </template>

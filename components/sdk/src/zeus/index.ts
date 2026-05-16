@@ -6083,6 +6083,10 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceAplReception']?: Omit<ValueTypes["MarketplaceAplReception"], "...on MarketplaceAplReception">
 }>;
+	["MarketplaceAplReceptionByIdInput"]: {
+	/** Идентификатор акта приёмки. */
+	apl_reception_id: ValueTypes["ID"] | Variable<any, string>
+};
 	["MarketplaceAplReceptionFactEntry"]: AliasType<{
 	/** Фактически принятое количество (для расхождений Варианта Б). */
 	fact_quantity?:boolean | `@${string}`,
@@ -6560,6 +6564,10 @@ export type ValueTypes = {
 	/** Идентификатор заказа. */
 	order_id: string | Variable<any, string>
 };
+	["MarketplaceGetShipmentInput"]: {
+	/** Идентификатор партии поставки. */
+	shipment_id: ValueTypes["ID"] | Variable<any, string>
+};
 	["MarketplaceInventoryItem"]: AliasType<{
 	barcode_format?:boolean | `@${string}`,
 	/** Значение штрих-кода на наклейке (распознаётся сканером при выдаче). */
@@ -6628,6 +6636,10 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceLabelInventoryResult']?: Omit<ValueTypes["MarketplaceLabelInventoryResult"], "...on MarketplaceLabelInventoryResult">
 }>;
+	["MarketplaceListAplReceptionsByBranameInput"]: {
+	/** Идентификатор КУ-получателя. */
+	braname: string | Variable<any, string>
+};
 	["MarketplaceListCatalogInput"]: {
 	/** category_id 1..9; null = «Все» */
 	category_id?: number | undefined | null | Variable<any, string>,
@@ -7631,16 +7643,16 @@ marketplaceCancelOrder?: [{	input: ValueTypes["MarketplaceCancelOrderInput"] | V
 
 Требуемые роли: chairman.  */
 	marketplaceClearAvailableCategories?:boolean | `@${string}`,
-marketplaceCreateAplReception?: [{	input: ValueTypes["MarketplaceCreateAplReceptionInput"] | Variable<any, string>},ValueTypes["MarketplaceAplReceptionResult"]],
+marketplaceCreateAplReception?: [{	data: ValueTypes["MarketplaceCreateAplReceptionInput"] | Variable<any, string>},ValueTypes["MarketplaceAplReceptionResult"]],
 marketplaceCreateOffer?: [{	input: ValueTypes["MarketplaceCreateOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
 marketplaceCreateOrder?: [{	input: ValueTypes["MarketplaceCreateOrderInput"] | Variable<any, string>},ValueTypes["MarketplaceCreateOrderResult"]],
 marketplaceCreateRequest?: [{	data: ValueTypes["CreateRequestInput"] | Variable<any, string>},ValueTypes["MarketplaceRequest"]],
-marketplaceCreateShipment?: [{	input: ValueTypes["MarketplaceCreateShipmentInput"] | Variable<any, string>},ValueTypes["MarketplaceCreateShipmentResult"]],
+marketplaceCreateShipment?: [{	data: ValueTypes["MarketplaceCreateShipmentInput"] | Variable<any, string>},ValueTypes["MarketplaceCreateShipmentResult"]],
 marketplaceDeclineConsolidatedRequest?: [{	input: ValueTypes["MarketplaceDeclineConsolidatedRequestInput"] | Variable<any, string>},ValueTypes["MarketplaceConsolidatedRequestActionResult"]],
 marketplaceDeclineIndividualOrder?: [{	input: ValueTypes["MarketplaceDeclineIndividualOrderInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplierOrderActionResult"]],
 marketplaceDeclineOrderFromOpenPool?: [{	input: ValueTypes["MarketplaceDeclineOrderFromOpenPoolInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplierOrderActionResult"]],
 marketplaceDetailKU?: [{	data: ValueTypes["MarketplaceDetailKUInput"] | Variable<any, string>},ValueTypes["MarketplaceKUDetails"]],
-marketplaceLabelInventory?: [{	input: ValueTypes["MarketplaceLabelInventoryInput"] | Variable<any, string>},ValueTypes["MarketplaceLabelInventoryResult"]],
+marketplaceLabelInventory?: [{	data: ValueTypes["MarketplaceLabelInventoryInput"] | Variable<any, string>},ValueTypes["MarketplaceLabelInventoryResult"]],
 marketplaceRejectOffer?: [{	input: ValueTypes["MarketplaceRejectOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
 marketplaceRemoveAvailableCategories?: [{	input: ValueTypes["RemoveAvailableCategoriesInput"] | Variable<any, string>},boolean | `@${string}`],
 marketplaceRemoveAvailableCategoryTypes?: [{	input: ValueTypes["RemoveAvailableCategoryTypesInput"] | Variable<any, string>},boolean | `@${string}`],
@@ -7648,8 +7660,8 @@ marketplaceRemoveFromWhitelist?: [{	input: ValueTypes["MarketplaceRemoveFromWhit
 marketplaceReplaceAvailableItems?: [{	input: ValueTypes["ReplaceAvailableItemsInput"] | Variable<any, string>},ValueTypes["MarketplaceAvailableCategory"]],
 marketplaceRetryKUGeocode?: [{	coopname: string | Variable<any, string>,	coreBraname: string | Variable<any, string>},ValueTypes["MarketplaceKUDetails"]],
 marketplaceSetKUStatus?: [{	data: ValueTypes["MarketplaceSetKUStatusInput"] | Variable<any, string>},ValueTypes["MarketplaceKUDetails"]],
-marketplaceSignAplReceptionAsChairman?: [{	input: ValueTypes["MarketplaceSignAplReceptionInput"] | Variable<any, string>},ValueTypes["MarketplaceAplReceptionResult"]],
-marketplaceSignAplReceptionAsSupplier?: [{	input: ValueTypes["MarketplaceSignAplReceptionInput"] | Variable<any, string>},ValueTypes["MarketplaceAplReceptionResult"]],
+marketplaceSignAplReceptionAsChairman?: [{	data: ValueTypes["MarketplaceSignAplReceptionInput"] | Variable<any, string>},ValueTypes["MarketplaceAplReceptionResult"]],
+marketplaceSignAplReceptionAsSupplier?: [{	data: ValueTypes["MarketplaceSignAplReceptionInput"] | Variable<any, string>},ValueTypes["MarketplaceAplReceptionResult"]],
 marketplaceTriggerOpenSubscription?: [{	input: ValueTypes["MarketplaceTriggerOpenSubscriptionInput"] | Variable<any, string>},ValueTypes["MarketplaceConsolidatedRequest"]],
 marketplaceUpdateOffer?: [{	input: ValueTypes["MarketplaceUpdateOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
 marketplaceWithdrawOffer?: [{	input: ValueTypes["MarketplaceWithdrawOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
@@ -8985,8 +8997,8 @@ getUserWebPushSubscriptions?: [{	data: ValueTypes["GetUserSubscriptionsInput"] |
 Требуемые роли: chairman.  */
 	getWebPushSubscriptionStats?:ValueTypes["SubscriptionStatsDto"],
 listReportDrafts?: [{	filter?: ValueTypes["ListReportDraftsFilterInput"] | undefined | null | Variable<any, string>},ValueTypes["ReportDraft"]],
-marketplaceAplReceptionChairmanSignablePayloads?: [{	apl_reception_id: string | Variable<any, string>},ValueTypes["GeneratedDocument"]],
-marketplaceAplReceptionSupplierSignablePayloads?: [{	apl_reception_id: string | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+marketplaceAplReceptionChairmanSignablePayloads?: [{	data: ValueTypes["MarketplaceAplReceptionByIdInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+marketplaceAplReceptionSupplierSignablePayloads?: [{	data: ValueTypes["MarketplaceAplReceptionByIdInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 marketplaceAspectAttributes?: [{	data: ValueTypes["GetRequiredAttributesInput"] | Variable<any, string>},ValueTypes["MarketplaceAttribute"]],
 	/** Получить статистику по атрибутам marketplace
 
@@ -9029,23 +9041,23 @@ marketplaceGetRequestStatistics?: [{	data: ValueTypes["GetRequestStatisticsInput
 	/** Получить все корневые категории marketplace */
 	marketplaceGetRootCategories?:ValueTypes["MarketplaceCategoryTreeNode"],
 marketplaceGetSearchCategories?: [{	data: ValueTypes["SearchCategoriesInput"] | Variable<any, string>},ValueTypes["MarketplaceCategoryTreeNode"]],
-marketplaceGetShipment?: [{	shipment_id: string | Variable<any, string>},ValueTypes["MarketplaceShipment"]],
+marketplaceGetShipment?: [{	data: ValueTypes["MarketplaceGetShipmentInput"] | Variable<any, string>},ValueTypes["MarketplaceShipment"]],
 marketplaceGetUserRequests?: [{	data?: ValueTypes["GetUserRequestsInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceRequest"]],
 	/** Список актов приёмки, ожидающих подписи текущего поставщика. */
 	marketplaceListAplReceptionsAsSupplier?:ValueTypes["MarketplaceAplReception"],
-marketplaceListAplReceptionsByBraname?: [{	braname: string | Variable<any, string>},ValueTypes["MarketplaceAplReception"]],
+marketplaceListAplReceptionsByBraname?: [{	data: ValueTypes["MarketplaceListAplReceptionsByBranameInput"] | Variable<any, string>},ValueTypes["MarketplaceAplReception"]],
 marketplaceListCatalog?: [{	input?: ValueTypes["MarketplaceListCatalogInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOfferPaginationResult"]],
 	/** Baseline-категории Стола заказов (Story 3.2/3.5) — 8 продовольственных + «Прочее» */
 	marketplaceListCategories?:ValueTypes["MarketplaceCategory"],
 marketplaceListConsolidatedRequests?: [{	input?: ValueTypes["MarketplaceListConsolidatedRequestsInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceConsolidatedRequestPaginationResult"]],
-marketplaceListInventory?: [{	input?: ValueTypes["MarketplaceListInventoryInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceInventoryItem"]],
+marketplaceListInventory?: [{	data?: ValueTypes["MarketplaceListInventoryInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceInventoryItem"]],
 marketplaceListKUDetails?: [{	data: ValueTypes["ListMarketplaceKUInput"] | Variable<any, string>},ValueTypes["MarketplaceKUDetails"]],
 marketplaceListModerationLog?: [{	offer_id: string | Variable<any, string>},ValueTypes["MarketplaceModerationLogEntry"]],
 marketplaceListMyOffers?: [{	input?: ValueTypes["MarketplaceListMyOffersInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOfferPaginationResult"]],
 marketplaceListMyOrders?: [{	input?: ValueTypes["MarketplaceListOrdersInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOrderPaginationResult"]],
 marketplaceListOutgoingPaymentsAsSupplier?: [{	statuses?: Array<ValueTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOutgoingPaymentRequest"]],
 marketplaceListPendingOffers?: [{	input?: ValueTypes["MarketplaceListPendingOffersInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOfferPaginationResult"]],
-marketplaceListShipments?: [{	input?: ValueTypes["MarketplaceListShipmentsInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceShipment"]],
+marketplaceListShipments?: [{	data?: ValueTypes["MarketplaceListShipmentsInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceShipment"]],
 marketplaceListSupplierOrders?: [{	input?: ValueTypes["MarketplaceListOrdersInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOrderPaginationResult"]],
 	/** Список пайщиков-поставщиков, допущенных к публикации оферт */
 	marketplaceListWhitelist?:ValueTypes["MarketplaceWhitelistEntry"],
@@ -15502,6 +15514,10 @@ export type ResolverInputTypes = {
 	variant?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["MarketplaceAplReceptionByIdInput"]: {
+	/** Идентификатор акта приёмки. */
+	apl_reception_id: ResolverInputTypes["ID"]
+};
 	["MarketplaceAplReceptionFactEntry"]: AliasType<{
 	/** Фактически принятое количество (для расхождений Варианта Б). */
 	fact_quantity?:boolean | `@${string}`,
@@ -15956,6 +15972,10 @@ export type ResolverInputTypes = {
 	/** Идентификатор заказа. */
 	order_id: string
 };
+	["MarketplaceGetShipmentInput"]: {
+	/** Идентификатор партии поставки. */
+	shipment_id: ResolverInputTypes["ID"]
+};
 	["MarketplaceInventoryItem"]: AliasType<{
 	barcode_format?:boolean | `@${string}`,
 	/** Значение штрих-кода на наклейке (распознаётся сканером при выдаче). */
@@ -16021,6 +16041,10 @@ export type ResolverInputTypes = {
 	inventory?:ResolverInputTypes["MarketplaceInventoryItem"],
 		__typename?: boolean | `@${string}`
 }>;
+	["MarketplaceListAplReceptionsByBranameInput"]: {
+	/** Идентификатор КУ-получателя. */
+	braname: string
+};
 	["MarketplaceListCatalogInput"]: {
 	/** category_id 1..9; null = «Все» */
 	category_id?: number | undefined | null,
@@ -16994,16 +17018,16 @@ marketplaceCancelOrder?: [{	input: ResolverInputTypes["MarketplaceCancelOrderInp
 
 Требуемые роли: chairman.  */
 	marketplaceClearAvailableCategories?:boolean | `@${string}`,
-marketplaceCreateAplReception?: [{	input: ResolverInputTypes["MarketplaceCreateAplReceptionInput"]},ResolverInputTypes["MarketplaceAplReceptionResult"]],
+marketplaceCreateAplReception?: [{	data: ResolverInputTypes["MarketplaceCreateAplReceptionInput"]},ResolverInputTypes["MarketplaceAplReceptionResult"]],
 marketplaceCreateOffer?: [{	input: ResolverInputTypes["MarketplaceCreateOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
 marketplaceCreateOrder?: [{	input: ResolverInputTypes["MarketplaceCreateOrderInput"]},ResolverInputTypes["MarketplaceCreateOrderResult"]],
 marketplaceCreateRequest?: [{	data: ResolverInputTypes["CreateRequestInput"]},ResolverInputTypes["MarketplaceRequest"]],
-marketplaceCreateShipment?: [{	input: ResolverInputTypes["MarketplaceCreateShipmentInput"]},ResolverInputTypes["MarketplaceCreateShipmentResult"]],
+marketplaceCreateShipment?: [{	data: ResolverInputTypes["MarketplaceCreateShipmentInput"]},ResolverInputTypes["MarketplaceCreateShipmentResult"]],
 marketplaceDeclineConsolidatedRequest?: [{	input: ResolverInputTypes["MarketplaceDeclineConsolidatedRequestInput"]},ResolverInputTypes["MarketplaceConsolidatedRequestActionResult"]],
 marketplaceDeclineIndividualOrder?: [{	input: ResolverInputTypes["MarketplaceDeclineIndividualOrderInput"]},ResolverInputTypes["MarketplaceSupplierOrderActionResult"]],
 marketplaceDeclineOrderFromOpenPool?: [{	input: ResolverInputTypes["MarketplaceDeclineOrderFromOpenPoolInput"]},ResolverInputTypes["MarketplaceSupplierOrderActionResult"]],
 marketplaceDetailKU?: [{	data: ResolverInputTypes["MarketplaceDetailKUInput"]},ResolverInputTypes["MarketplaceKUDetails"]],
-marketplaceLabelInventory?: [{	input: ResolverInputTypes["MarketplaceLabelInventoryInput"]},ResolverInputTypes["MarketplaceLabelInventoryResult"]],
+marketplaceLabelInventory?: [{	data: ResolverInputTypes["MarketplaceLabelInventoryInput"]},ResolverInputTypes["MarketplaceLabelInventoryResult"]],
 marketplaceRejectOffer?: [{	input: ResolverInputTypes["MarketplaceRejectOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
 marketplaceRemoveAvailableCategories?: [{	input: ResolverInputTypes["RemoveAvailableCategoriesInput"]},boolean | `@${string}`],
 marketplaceRemoveAvailableCategoryTypes?: [{	input: ResolverInputTypes["RemoveAvailableCategoryTypesInput"]},boolean | `@${string}`],
@@ -17011,8 +17035,8 @@ marketplaceRemoveFromWhitelist?: [{	input: ResolverInputTypes["MarketplaceRemove
 marketplaceReplaceAvailableItems?: [{	input: ResolverInputTypes["ReplaceAvailableItemsInput"]},ResolverInputTypes["MarketplaceAvailableCategory"]],
 marketplaceRetryKUGeocode?: [{	coopname: string,	coreBraname: string},ResolverInputTypes["MarketplaceKUDetails"]],
 marketplaceSetKUStatus?: [{	data: ResolverInputTypes["MarketplaceSetKUStatusInput"]},ResolverInputTypes["MarketplaceKUDetails"]],
-marketplaceSignAplReceptionAsChairman?: [{	input: ResolverInputTypes["MarketplaceSignAplReceptionInput"]},ResolverInputTypes["MarketplaceAplReceptionResult"]],
-marketplaceSignAplReceptionAsSupplier?: [{	input: ResolverInputTypes["MarketplaceSignAplReceptionInput"]},ResolverInputTypes["MarketplaceAplReceptionResult"]],
+marketplaceSignAplReceptionAsChairman?: [{	data: ResolverInputTypes["MarketplaceSignAplReceptionInput"]},ResolverInputTypes["MarketplaceAplReceptionResult"]],
+marketplaceSignAplReceptionAsSupplier?: [{	data: ResolverInputTypes["MarketplaceSignAplReceptionInput"]},ResolverInputTypes["MarketplaceAplReceptionResult"]],
 marketplaceTriggerOpenSubscription?: [{	input: ResolverInputTypes["MarketplaceTriggerOpenSubscriptionInput"]},ResolverInputTypes["MarketplaceConsolidatedRequest"]],
 marketplaceUpdateOffer?: [{	input: ResolverInputTypes["MarketplaceUpdateOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
 marketplaceWithdrawOffer?: [{	input: ResolverInputTypes["MarketplaceWithdrawOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
@@ -18292,8 +18316,8 @@ getUserWebPushSubscriptions?: [{	data: ResolverInputTypes["GetUserSubscriptionsI
 Требуемые роли: chairman.  */
 	getWebPushSubscriptionStats?:ResolverInputTypes["SubscriptionStatsDto"],
 listReportDrafts?: [{	filter?: ResolverInputTypes["ListReportDraftsFilterInput"] | undefined | null},ResolverInputTypes["ReportDraft"]],
-marketplaceAplReceptionChairmanSignablePayloads?: [{	apl_reception_id: string},ResolverInputTypes["GeneratedDocument"]],
-marketplaceAplReceptionSupplierSignablePayloads?: [{	apl_reception_id: string},ResolverInputTypes["GeneratedDocument"]],
+marketplaceAplReceptionChairmanSignablePayloads?: [{	data: ResolverInputTypes["MarketplaceAplReceptionByIdInput"]},ResolverInputTypes["GeneratedDocument"]],
+marketplaceAplReceptionSupplierSignablePayloads?: [{	data: ResolverInputTypes["MarketplaceAplReceptionByIdInput"]},ResolverInputTypes["GeneratedDocument"]],
 marketplaceAspectAttributes?: [{	data: ResolverInputTypes["GetRequiredAttributesInput"]},ResolverInputTypes["MarketplaceAttribute"]],
 	/** Получить статистику по атрибутам marketplace
 
@@ -18336,23 +18360,23 @@ marketplaceGetRequestStatistics?: [{	data: ResolverInputTypes["GetRequestStatist
 	/** Получить все корневые категории marketplace */
 	marketplaceGetRootCategories?:ResolverInputTypes["MarketplaceCategoryTreeNode"],
 marketplaceGetSearchCategories?: [{	data: ResolverInputTypes["SearchCategoriesInput"]},ResolverInputTypes["MarketplaceCategoryTreeNode"]],
-marketplaceGetShipment?: [{	shipment_id: string},ResolverInputTypes["MarketplaceShipment"]],
+marketplaceGetShipment?: [{	data: ResolverInputTypes["MarketplaceGetShipmentInput"]},ResolverInputTypes["MarketplaceShipment"]],
 marketplaceGetUserRequests?: [{	data?: ResolverInputTypes["GetUserRequestsInput"] | undefined | null},ResolverInputTypes["MarketplaceRequest"]],
 	/** Список актов приёмки, ожидающих подписи текущего поставщика. */
 	marketplaceListAplReceptionsAsSupplier?:ResolverInputTypes["MarketplaceAplReception"],
-marketplaceListAplReceptionsByBraname?: [{	braname: string},ResolverInputTypes["MarketplaceAplReception"]],
+marketplaceListAplReceptionsByBraname?: [{	data: ResolverInputTypes["MarketplaceListAplReceptionsByBranameInput"]},ResolverInputTypes["MarketplaceAplReception"]],
 marketplaceListCatalog?: [{	input?: ResolverInputTypes["MarketplaceListCatalogInput"] | undefined | null},ResolverInputTypes["MarketplaceOfferPaginationResult"]],
 	/** Baseline-категории Стола заказов (Story 3.2/3.5) — 8 продовольственных + «Прочее» */
 	marketplaceListCategories?:ResolverInputTypes["MarketplaceCategory"],
 marketplaceListConsolidatedRequests?: [{	input?: ResolverInputTypes["MarketplaceListConsolidatedRequestsInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["MarketplaceConsolidatedRequestPaginationResult"]],
-marketplaceListInventory?: [{	input?: ResolverInputTypes["MarketplaceListInventoryInput"] | undefined | null},ResolverInputTypes["MarketplaceInventoryItem"]],
+marketplaceListInventory?: [{	data?: ResolverInputTypes["MarketplaceListInventoryInput"] | undefined | null},ResolverInputTypes["MarketplaceInventoryItem"]],
 marketplaceListKUDetails?: [{	data: ResolverInputTypes["ListMarketplaceKUInput"]},ResolverInputTypes["MarketplaceKUDetails"]],
 marketplaceListModerationLog?: [{	offer_id: string},ResolverInputTypes["MarketplaceModerationLogEntry"]],
 marketplaceListMyOffers?: [{	input?: ResolverInputTypes["MarketplaceListMyOffersInput"] | undefined | null},ResolverInputTypes["MarketplaceOfferPaginationResult"]],
 marketplaceListMyOrders?: [{	input?: ResolverInputTypes["MarketplaceListOrdersInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["MarketplaceOrderPaginationResult"]],
 marketplaceListOutgoingPaymentsAsSupplier?: [{	statuses?: Array<ResolverInputTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null},ResolverInputTypes["MarketplaceOutgoingPaymentRequest"]],
 marketplaceListPendingOffers?: [{	input?: ResolverInputTypes["MarketplaceListPendingOffersInput"] | undefined | null},ResolverInputTypes["MarketplaceOfferPaginationResult"]],
-marketplaceListShipments?: [{	input?: ResolverInputTypes["MarketplaceListShipmentsInput"] | undefined | null},ResolverInputTypes["MarketplaceShipment"]],
+marketplaceListShipments?: [{	data?: ResolverInputTypes["MarketplaceListShipmentsInput"] | undefined | null},ResolverInputTypes["MarketplaceShipment"]],
 marketplaceListSupplierOrders?: [{	input?: ResolverInputTypes["MarketplaceListOrdersInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["MarketplaceOrderPaginationResult"]],
 	/** Список пайщиков-поставщиков, допущенных к публикации оферт */
 	marketplaceListWhitelist?:ResolverInputTypes["MarketplaceWhitelistEntry"],
@@ -24620,6 +24644,10 @@ export type ModelTypes = {
 	updated_at: ModelTypes["DateTime"],
 	variant: ModelTypes["MarketplaceAplReceptionVariant"]
 };
+	["MarketplaceAplReceptionByIdInput"]: {
+	/** Идентификатор акта приёмки. */
+	apl_reception_id: ModelTypes["ID"]
+};
 	["MarketplaceAplReceptionFactEntry"]: {
 		/** Фактически принятое количество (для расхождений Варианта Б). */
 	fact_quantity: number,
@@ -25045,6 +25073,10 @@ export type ModelTypes = {
 	/** Идентификатор заказа. */
 	order_id: string
 };
+	["MarketplaceGetShipmentInput"]: {
+	/** Идентификатор партии поставки. */
+	shipment_id: ModelTypes["ID"]
+};
 	["MarketplaceInventoryItem"]: {
 		barcode_format: ModelTypes["MarketplaceBarcodeFormat"],
 	/** Значение штрих-кода на наклейке (распознаётся сканером при выдаче). */
@@ -25105,6 +25137,10 @@ export type ModelTypes = {
 	["MarketplaceLabelInventoryResult"]: {
 		/** Сгенерированные наклейки: одна или несколько в зависимости от стратегии. */
 	inventory: Array<ModelTypes["MarketplaceInventoryItem"]>
+};
+	["MarketplaceListAplReceptionsByBranameInput"]: {
+	/** Идентификатор КУ-получателя. */
+	braname: string
 };
 	["MarketplaceListCatalogInput"]: {
 	/** category_id 1..9; null = «Все» */
@@ -34557,6 +34593,10 @@ export type GraphQLTypes = {
 	variant: GraphQLTypes["MarketplaceAplReceptionVariant"],
 	['...on MarketplaceAplReception']: Omit<GraphQLTypes["MarketplaceAplReception"], "...on MarketplaceAplReception">
 };
+	["MarketplaceAplReceptionByIdInput"]: {
+		/** Идентификатор акта приёмки. */
+	apl_reception_id: GraphQLTypes["ID"]
+};
 	["MarketplaceAplReceptionFactEntry"]: {
 	__typename: "MarketplaceAplReceptionFactEntry",
 	/** Фактически принятое количество (для расхождений Варианта Б). */
@@ -35034,6 +35074,10 @@ export type GraphQLTypes = {
 		/** Идентификатор заказа. */
 	order_id: string
 };
+	["MarketplaceGetShipmentInput"]: {
+		/** Идентификатор партии поставки. */
+	shipment_id: GraphQLTypes["ID"]
+};
 	["MarketplaceInventoryItem"]: {
 	__typename: "MarketplaceInventoryItem",
 	barcode_format: GraphQLTypes["MarketplaceBarcodeFormat"],
@@ -35101,6 +35145,10 @@ export type GraphQLTypes = {
 	/** Сгенерированные наклейки: одна или несколько в зависимости от стратегии. */
 	inventory: Array<GraphQLTypes["MarketplaceInventoryItem"]>,
 	['...on MarketplaceLabelInventoryResult']: Omit<GraphQLTypes["MarketplaceLabelInventoryResult"], "...on MarketplaceLabelInventoryResult">
+};
+	["MarketplaceListAplReceptionsByBranameInput"]: {
+		/** Идентификатор КУ-получателя. */
+	braname: string
 };
 	["MarketplaceListCatalogInput"]: {
 		/** category_id 1..9; null = «Все» */
@@ -40616,6 +40664,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceAcceptCppInput"]: ValueTypes["MarketplaceAcceptCppInput"];
 	["MarketplaceAcceptIndividualOrderInput"]: ValueTypes["MarketplaceAcceptIndividualOrderInput"];
 	["MarketplaceAddToWhitelistInput"]: ValueTypes["MarketplaceAddToWhitelistInput"];
+	["MarketplaceAplReceptionByIdInput"]: ValueTypes["MarketplaceAplReceptionByIdInput"];
 	["MarketplaceAplReceptionFactEntryInput"]: ValueTypes["MarketplaceAplReceptionFactEntryInput"];
 	["MarketplaceAplReceptionSignedDocumentInput"]: ValueTypes["MarketplaceAplReceptionSignedDocumentInput"];
 	["MarketplaceAplReceptionSignedMetaDocumentInput"]: ValueTypes["MarketplaceAplReceptionSignedMetaDocumentInput"];
@@ -40636,8 +40685,10 @@ type ZEUS_VARIABLES = {
 	["MarketplaceDeclineOrderFromOpenPoolInput"]: ValueTypes["MarketplaceDeclineOrderFromOpenPoolInput"];
 	["MarketplaceDetailKUInput"]: ValueTypes["MarketplaceDetailKUInput"];
 	["MarketplaceGetOrderInput"]: ValueTypes["MarketplaceGetOrderInput"];
+	["MarketplaceGetShipmentInput"]: ValueTypes["MarketplaceGetShipmentInput"];
 	["MarketplaceInventoryStatus"]: ValueTypes["MarketplaceInventoryStatus"];
 	["MarketplaceLabelInventoryInput"]: ValueTypes["MarketplaceLabelInventoryInput"];
+	["MarketplaceListAplReceptionsByBranameInput"]: ValueTypes["MarketplaceListAplReceptionsByBranameInput"];
 	["MarketplaceListCatalogInput"]: ValueTypes["MarketplaceListCatalogInput"];
 	["MarketplaceListConsolidatedRequestsInput"]: ValueTypes["MarketplaceListConsolidatedRequestsInput"];
 	["MarketplaceListInventoryInput"]: ValueTypes["MarketplaceListInventoryInput"];

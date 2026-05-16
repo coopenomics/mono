@@ -8,9 +8,11 @@ import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.gua
 import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import {
+  MarketplaceAplReceptionByIdInputDTO,
   MarketplaceAplReceptionDTO,
   MarketplaceAplReceptionResultDTO,
   MarketplaceCreateAplReceptionInputDTO,
+  MarketplaceListAplReceptionsByBranameInputDTO,
   MarketplaceSignAplReceptionInputDTO,
   toMarketplaceAplReceptionDTO,
 } from '../dto/marketplace-apl-reception.dto';
@@ -54,13 +56,13 @@ export class MarketplaceAplReceptionResolver {
   @RequireMarketplaceAccess('Receiving', 'create')
   async marketplaceCreateAplReception(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
-    @Args('input') input: MarketplaceCreateAplReceptionInputDTO
+    @Args('data') data: MarketplaceCreateAplReceptionInputDTO
   ): Promise<MarketplaceAplReceptionResultDTO> {
     const result = await this.service.create({
       coopname: config.coopname,
       operator_account: member.username,
-      shipment_id: input.shipment_id,
-      fact_quantity_per_order: input.fact_quantity_per_order,
+      shipment_id: data.shipment_id,
+      fact_quantity_per_order: data.fact_quantity_per_order,
     });
     const dto = new MarketplaceAplReceptionResultDTO();
     dto.apl_reception = toMarketplaceAplReceptionDTO(result.apl_reception);
@@ -76,13 +78,13 @@ export class MarketplaceAplReceptionResolver {
   @RequireMarketplaceAccess('Receiving', 'sign:first')
   async marketplaceSignAplReceptionAsSupplier(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
-    @Args('input') input: MarketplaceSignAplReceptionInputDTO
+    @Args('data') data: MarketplaceSignAplReceptionInputDTO
   ): Promise<MarketplaceAplReceptionResultDTO> {
     const result = await this.service.signAsSupplier({
       coopname: config.coopname,
       supplier_account: member.username,
-      apl_reception_id: input.apl_reception_id,
-      signed_documents: input.signed_documents,
+      apl_reception_id: data.apl_reception_id,
+      signed_documents: data.signed_documents,
     });
     const dto = new MarketplaceAplReceptionResultDTO();
     dto.apl_reception = toMarketplaceAplReceptionDTO(result.apl_reception);
@@ -98,13 +100,13 @@ export class MarketplaceAplReceptionResolver {
   @RequireMarketplaceAccess('Receiving', 'sign:closing')
   async marketplaceSignAplReceptionAsChairman(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
-    @Args('input') input: MarketplaceSignAplReceptionInputDTO
+    @Args('data') data: MarketplaceSignAplReceptionInputDTO
   ): Promise<MarketplaceAplReceptionResultDTO> {
     const result = await this.service.signAsChairman({
       coopname: config.coopname,
       chairman_account: member.username,
-      apl_reception_id: input.apl_reception_id,
-      signed_documents: input.signed_documents,
+      apl_reception_id: data.apl_reception_id,
+      signed_documents: data.signed_documents,
     });
     const dto = new MarketplaceAplReceptionResultDTO();
     dto.apl_reception = toMarketplaceAplReceptionDTO(result.apl_reception);
@@ -119,11 +121,11 @@ export class MarketplaceAplReceptionResolver {
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Receiving', 'sign:first')
   async marketplaceAplReceptionSupplierSignablePayloads(
-    @Args('apl_reception_id') apl_reception_id: string
+    @Args('data') data: MarketplaceAplReceptionByIdInputDTO
   ): Promise<GeneratedDocumentDTO[]> {
     const docs = await this.service.getSupplierSignablePayloads(
       config.coopname,
-      apl_reception_id
+      data.apl_reception_id
     );
     return docs.map(toGeneratedDocumentDTO);
   }
@@ -136,11 +138,11 @@ export class MarketplaceAplReceptionResolver {
   @RequireMarketplaceAccess('Receiving', 'sign:closing')
   async marketplaceAplReceptionChairmanSignablePayloads(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
-    @Args('apl_reception_id') apl_reception_id: string
+    @Args('data') data: MarketplaceAplReceptionByIdInputDTO
   ): Promise<GeneratedDocumentDTO[]> {
     const docs = await this.service.getChairmanSignablePayloads(
       config.coopname,
-      apl_reception_id,
+      data.apl_reception_id,
       member.username
     );
     return docs.map(toGeneratedDocumentDTO);
@@ -154,9 +156,9 @@ export class MarketplaceAplReceptionResolver {
   @RequireMarketplaceAccess('Receiving', 'create')
   async marketplaceListAplReceptionsByBraname(
     @CurrentMarketplaceMember() _member: IMarketplaceCurrentMember,
-    @Args('braname') braname: string
+    @Args('data') data: MarketplaceListAplReceptionsByBranameInputDTO
   ): Promise<MarketplaceAplReceptionDTO[]> {
-    const list = await this.receptionRepo.listByBraname(config.coopname, braname);
+    const list = await this.receptionRepo.listByBraname(config.coopname, data.braname);
     return list.map(toMarketplaceAplReceptionDTO);
   }
 

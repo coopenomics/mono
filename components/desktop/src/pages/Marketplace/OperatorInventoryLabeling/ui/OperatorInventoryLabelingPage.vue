@@ -75,54 +75,40 @@ onMounted(() => {
 });
 </script>
 
-<template>
-  <q-page class="mp-role-operator mp-inventory-labeling q-pa-md">
-    <div class="row q-mb-md q-gutter-md no-print">
-      <q-input
-        v-model="braname"
-        dense
-        outlined
-        label="ID кооперативного участка"
-        class="col-3"
-        @keyup.enter="loadInventory"
-      />
-      <q-btn no-caps color="primary" :loading="loading" label="Загрузить инвентарь" @click="loadInventory" />
-      <q-space />
-      <q-btn flat no-caps icon="print" label="Печать партии" :disable="!items.length" @click="openPrintWindow" />
-    </div>
+<template lang="pug">
+q-page.mp-role-operator.mp-inventory-labeling.q-pa-md
+  .row.q-mb-md.q-gutter-md.no-print
+    q-input.col-3(
+      v-model="braname"
+      dense
+      outlined
+      label="ID кооперативного участка"
+      @keyup.enter="loadInventory"
+    )
+    q-btn(no-caps color="primary" :loading="loading" label="Загрузить инвентарь" @click="loadInventory")
+    q-space
+    q-btn(flat no-caps icon="print" label="Печать партии" :disable="!items.length" @click="openPrintWindow")
 
-    <div class="row q-gutter-md q-mb-md no-print">
-      <q-input
-        v-model="orderIdInput"
-        dense
-        outlined
-        label="ID заказа для маркировки"
-        class="col-4"
-      />
-      <q-btn no-caps unelevated color="primary" label="Сгенерировать этикетки" @click="generateLabels" />
-      <span class="text-caption text-grey-7 self-center">
-        Стратегия маркировки берётся из карточки товара поставщика (per-Offer).
-      </span>
-    </div>
+  .row.q-gutter-md.q-mb-md.no-print
+    q-input.col-4(
+      v-model="orderIdInput"
+      dense
+      outlined
+      label="ID заказа для маркировки"
+    )
+    q-btn(no-caps unelevated color="primary" label="Сгенерировать этикетки" @click="generateLabels")
+    span.text-caption.text-grey-7.self-center
+      | Стратегия маркировки берётся из карточки товара поставщика (per-Offer).
 
-    <div v-if="!items.length" class="text-grey-7 text-center q-pa-xl no-print">
-      Инвентарь пуст. Загрузите КУ и нажмите «Сгенерировать этикетки» для нового заказа.
-    </div>
+  .text-grey-7.text-center.q-pa-xl.no-print(v-if="!items.length")
+    | Инвентарь пуст. Загрузите КУ и нажмите «Сгенерировать этикетки» для нового заказа.
 
-    <div v-else class="mp-inventory-labeling__grid">
-      <div
-        v-for="item in items"
-        :key="item.id"
-        class="mp-inventory-labeling__label"
-      >
-        <div class="text-subtitle2 ellipsis">{{ item.product_name_snapshot }}</div>
-        <div class="text-caption text-grey-7 ellipsis q-mb-xs">
-          Пайщик: {{ item.orderer_account_snapshot }} · Кол-во: {{ item.quantity_per_label }}
-        </div>
-        <BarcodeDisplay :code="item.barcode_value" size="md" />
-      </div>
-    </div>
-  </q-page>
+  .mp-inventory-labeling__grid(v-else)
+    .mp-inventory-labeling__label(v-for="item in items" :key="item.id")
+      .text-subtitle2.ellipsis {{ item.product_name_snapshot }}
+      .text-caption.text-grey-7.ellipsis.q-mb-xs
+        | Пайщик: {{ item.orderer_account_snapshot }} · Кол-во: {{ item.quantity_per_label }}
+      BarcodeDisplay(:code="item.barcode_value" size="md")
 </template>
 
 <style scoped lang="scss">

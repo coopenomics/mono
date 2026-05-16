@@ -39,42 +39,37 @@ onMounted(() => {
 });
 </script>
 
-<template>
-  <q-page class="mp-role-offerer mp-pending-apl q-pa-md">
-    <div class="row items-center q-mb-md">
-      <div class="text-h5">Акты приёмки на подпись</div>
-      <q-space />
-      <q-btn flat no-caps icon="refresh" label="Обновить" :loading="loading" @click="load" />
-    </div>
+<template lang="pug">
+q-page.mp-role-offerer.mp-pending-apl.q-pa-md
+  .row.items-center.q-mb-md
+    .text-h5 Акты приёмки на подпись
+    q-space
+    q-btn(flat no-caps icon="refresh" label="Обновить" :loading="loading" @click="load")
 
-    <q-table
-      :rows="items"
-      :columns="[
-        { name: 'id', label: 'АПП', field: (r: MarketplaceAplReceptionView) => r.id.slice(0, 8), align: 'left' },
-        { name: 'braname', label: 'КУ', field: 'braname', align: 'left' },
-        { name: 'variant', label: 'Вариант', field: 'variant', align: 'center' },
-        { name: 'status', label: 'Статус', field: 'status', align: 'left' },
-        { name: 'total_amount', label: 'Сумма', field: 'total_amount', align: 'right' },
-        { name: 'actions', label: 'Действия', field: 'id', align: 'right' },
-      ]"
-      row-key="id"
-      flat
-      bordered
-      :loading="loading"
-    >
-      <template #body-cell-actions="props">
-        <q-td :props="props">
-          <q-btn
-            v-if="props.row.status === 'PENDING_SUPPLIER_SIGN'"
-            color="primary"
-            unelevated
-            no-caps
-            dense
-            label="Подписать"
-            @click="sign(props.row)"
-          />
-        </q-td>
-      </template>
-    </q-table>
-  </q-page>
+  q-table(
+    :rows="items"
+    :columns="[\
+      { name: 'id', label: 'АПП', field: (r: MarketplaceAplReceptionView) => r.id.slice(0, 8), align: 'left' },\
+      { name: 'braname', label: 'КУ', field: 'braname', align: 'left' },\
+      { name: 'variant', label: 'Вариант', field: 'variant', align: 'center' },\
+      { name: 'status', label: 'Статус', field: 'status', align: 'left' },\
+      { name: 'total_amount', label: 'Сумма', field: 'total_amount', align: 'right' },\
+      { name: 'actions', label: 'Действия', field: 'id', align: 'right' },\
+    ]"
+    row-key="id"
+    flat
+    bordered
+    :loading="loading"
+  )
+    template(#body-cell-actions="props")
+      q-td(:props="props")
+        q-btn(
+          v-if="props.row.status === 'PENDING_SUPPLIER_SIGN'"
+          color="primary"
+          unelevated
+          no-caps
+          dense
+          label="Подписать"
+          @click="sign(props.row)"
+        )
 </template>

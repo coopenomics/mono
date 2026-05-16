@@ -48,15 +48,15 @@ export class MarketplaceInventoryResolver {
   @RequireMarketplaceAccess('Inventory', 'label')
   async marketplaceLabelInventory(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
-    @Args('input') input: MarketplaceLabelInventoryInputDTO
+    @Args('data') data: MarketplaceLabelInventoryInputDTO
   ): Promise<MarketplaceLabelInventoryResultDTO> {
     const result = await this.labelService.execute({
       coopname: config.coopname,
       operator_account: member.username,
-      order_id: input.order_id,
-      strategy: input.strategy as unknown as MarketplaceBarcodeStrategy | undefined,
-      format: input.format as unknown as MarketplaceBarcodeFormat | undefined,
-      pack_size: input.pack_size,
+      order_id: data.order_id,
+      strategy: data.strategy as unknown as MarketplaceBarcodeStrategy | undefined,
+      format: data.format as unknown as MarketplaceBarcodeFormat | undefined,
+      pack_size: data.pack_size,
     });
     const dto = new MarketplaceLabelInventoryResultDTO();
     dto.inventory = result.inventory.map(toMarketplaceInventoryItemDTO);
@@ -71,15 +71,15 @@ export class MarketplaceInventoryResolver {
   @RequireMarketplaceAccess('Warehouse', 'read:own-KU')
   async marketplaceListInventory(
     @CurrentMarketplaceMember() _member: IMarketplaceCurrentMember,
-    @Args('input', { nullable: true }) input?: MarketplaceListInventoryInputDTO
+    @Args('data', { nullable: true }) data?: MarketplaceListInventoryInputDTO
   ): Promise<MarketplaceInventoryItemDTO[]> {
     const filter: MarketplaceInventoryListFilter = {
       coopname: config.coopname,
-      order_id: input?.order_id,
-      shipment_id: input?.shipment_id,
-      braname: input?.braname,
-      status: input?.statuses?.length
-        ? (input.statuses as MarketplaceInventoryStatus[])
+      order_id: data?.order_id,
+      shipment_id: data?.shipment_id,
+      braname: data?.braname,
+      status: data?.statuses?.length
+        ? (data.statuses as MarketplaceInventoryStatus[])
         : undefined,
     };
     const list = await this.inventoryRepo.list(filter);

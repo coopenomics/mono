@@ -1,10 +1,10 @@
 import { marketplaceShipmentSelector } from '../../selectors/marketplace/shipmentSelector'
-import { $, type GraphQLTypes, type InputType, Selector } from '../../zeus/index'
+import { $, type GraphQLTypes, type InputType, type ModelTypes, Selector } from '../../zeus/index'
 
 export const name = 'marketplaceGetShipment'
 
 export const query = Selector('Query')({
-  [name]: [{ shipment_id: $('shipment_id', 'String!') }, marketplaceShipmentSelector],
+  [name]: [{ data: $('data', 'MarketplaceGetShipmentInput!') }, marketplaceShipmentSelector],
 })
 
 export interface IInput {
@@ -13,7 +13,7 @@ export interface IInput {
    */
   [key: string]: unknown
 
-  shipment_id: string
+  data: ModelTypes['MarketplaceGetShipmentInput']
 }
 
 export type IOutput = InputType<GraphQLTypes['Query'], typeof query>

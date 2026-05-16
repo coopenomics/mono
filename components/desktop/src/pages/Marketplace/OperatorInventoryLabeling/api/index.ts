@@ -26,19 +26,19 @@ export interface MarketplaceInventoryItemView {
 
 export async function fetchInventoryByBraname(braname: string): Promise<MarketplaceInventoryItemView[]> {
   const result = await client.Query(Queries.Marketplace.ListInventory.query, {
-    variables: { input: { braname } },
+    variables: { data: { braname } },
   });
   return result[Queries.Marketplace.ListInventory.name] as unknown as MarketplaceInventoryItemView[];
 }
 
-export async function labelInventory(input: {
+export async function labelInventory(data: {
   order_id: string;
   strategy?: 'PER_ORDER' | 'PER_UNIT' | 'PER_PACKAGE';
   format?: 'CODE128' | 'EAN13';
   pack_size?: number;
 }): Promise<{ inventory: MarketplaceInventoryItemView[] }> {
   const result = await client.Mutation(Mutations.Marketplace.LabelInventory.mutation, {
-    variables: { input },
+    variables: { data },
   });
   return result[Mutations.Marketplace.LabelInventory.name] as unknown as {
     inventory: MarketplaceInventoryItemView[];

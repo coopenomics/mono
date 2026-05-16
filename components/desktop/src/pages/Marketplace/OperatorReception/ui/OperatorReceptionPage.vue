@@ -4,7 +4,6 @@ import { Loading, Notify } from 'quasar';
 import {
   createAplReception,
   listAplReceptionsByBraname,
-  signAsChairman,
   type MarketplaceAplReceptionView,
 } from '../api';
 
@@ -59,24 +58,15 @@ async function createReceptionForShipment(): Promise<void> {
   }
 }
 
-async function signChairman(item: MarketplaceAplReceptionView): Promise<void> {
-  Loading.show({ message: 'Подписываю закрывающую…' });
-  try {
-    await signAsChairman(item.id);
-    Notify.create({
-      type: 'positive',
-      message: `АПП ${item.id.slice(0, 8)} закрыт — имущество на балансе кооператива.`,
-    });
-    await load();
-  } catch (e) {
-    Notify.create({
-      type: 'negative',
-      message: e instanceof Error ? e.message : String(e),
-      timeout: 6000,
-    });
-  } finally {
-    Loading.hide();
-  }
+function signChairman(item: MarketplaceAplReceptionView): void {
+  Notify.create({
+    type: 'warning',
+    timeout: 6000,
+    message:
+      `Диалог закрывающей подписи АПП ${item.id.slice(0, 8)} ещё не реализован. ` +
+      `Backend принимает только подписанный канонический акт (signed_document с подписью пайщика); ` +
+      `UI-флоу подписи через приватный ключ — следующий этап работ.`,
+  });
 }
 
 onMounted(() => {
@@ -84,45 +74,39 @@ onMounted(() => {
 });
 </script>
 
-<template>
-  <q-page class="mp-role-operator mp-reception q-pa-md">
-    <div class="row q-mb-md q-gutter-md">
-      <q-input v-model="braname" dense outlined label="ID кооперативного участка" class="col-3" />
-      <q-btn no-caps color="primary" :loading="loading" label="Загрузить АПП" @click="load" />
-    </div>
+<template lang="pug">
+q-page.mp-role-operator.mp-reception.q-pa-md
+  .row.q-mb-md.q-gutter-md
+    q-input.col-3(v-model="braname" dense outlined label="ID кооперативного участка")
+    q-btn(no-caps color="primary" :loading="loading" label="Загрузить АПП" @click="load")
 
-    <div class="row q-mb-md q-gutter-md">
-      <q-input v-model="shipmentIdInput" dense outlined label="ID партии (shipment_id)" class="col-4" />
-      <q-btn no-caps unelevated color="primary" label="Создать АПП" @click="createReceptionForShipment" />
-    </div>
+  .row.q-mb-md.q-gutter-md
+    q-input.col-4(v-model="shipmentIdInput" dense outlined label="ID партии (shipment_id)")
+    q-btn(no-caps unelevated color="primary" label="Создать АПП" @click="createReceptionForShipment")
 
-    <q-table
-      :rows="items"
-      :columns="[
-        { name: 'id', label: 'АПП', field: (r: MarketplaceAplReceptionView) => r.id.slice(0, 8), align: 'left' },
-        { name: 'variant', label: 'Вариант', field: 'variant', align: 'center' },
-        { name: 'status', label: 'Статус', field: 'status', align: 'left' },
-        { name: 'total_amount', label: 'Сумма', field: 'total_amount', align: 'right' },
-        { name: 'actions', label: '', field: 'id', align: 'right' },
-      ]"
-      row-key="id"
-      flat
-      bordered
-      :loading="loading"
-    >
-      <template #body-cell-actions="props">
-        <q-td :props="props">
-          <q-btn
-            v-if="props.row.status === 'PENDING_CHAIRMAN_RECEPTION_SIGN'"
-            color="primary"
-            unelevated
-            no-caps
-            dense
-            label="Подписать председателем"
-            @click="signChairman(props.row)"
-          />
-        </q-td>
-      </template>
-    </q-table>
-  </q-page>
+  q-table(
+    :rows="items"
+    :columns="[\
+      { name: 'id', label: 'АПП', field: (r: MarketplaceAplReceptionView) => r.id.slice(0, 8), align: 'left' },\
+      { name: 'variant', label: 'Вариант', field: 'variant', align: 'center' },\
+      { name: 'status', label: 'Статус', field: 'status', align: 'left' },\
+      { name: 'total_amount', label: 'Сумма', field: 'total_amount', align: 'right' },\
+      { name: 'actions', label: '', field: 'id', align: 'right' },\
+    ]"
+    row-key="id"
+    flat
+    bordered
+    :loading="loading"
+  )
+    template(#body-cell-actions="props")
+      q-td(:props="props")
+        q-btn(
+          v-if="props.row.status === 'PENDING_CHAIRMAN_RECEPTION_SIGN'"
+          color="primary"
+          unelevated
+          no-caps
+          dense
+          label="Подписать председателем"
+          @click="signChairman(props.row)"
+        )
 </template>

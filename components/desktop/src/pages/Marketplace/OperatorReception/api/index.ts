@@ -1,12 +1,12 @@
 import { Mutations, Queries } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
-import type { MarketplaceAplReceptionView } from '../../OffererPendingAplReceptions/api';
+import type { MarketplaceAplReceptionView, SignedDocumentInput } from '../../OffererPendingAplReceptions/api';
 
 export type { MarketplaceAplReceptionView } from '../../OffererPendingAplReceptions/api';
 
 export async function listAplReceptionsByBraname(braname: string): Promise<MarketplaceAplReceptionView[]> {
   const result = await client.Query(Queries.Marketplace.ListAplReceptionsByBraname.query, {
-    variables: { braname },
+    variables: { data: { braname } },
   });
   return result[
     Queries.Marketplace.ListAplReceptionsByBraname.name
@@ -19,10 +19,10 @@ export interface CreateAplReceptionVariables {
 }
 
 export async function createAplReception(
-  variables: CreateAplReceptionVariables,
+  data: CreateAplReceptionVariables,
 ): Promise<{ apl_reception: MarketplaceAplReceptionView }> {
   const result = await client.Mutation(Mutations.Marketplace.CreateAplReception.mutation, {
-    variables: { input: variables },
+    variables: { data },
   });
   return result[Mutations.Marketplace.CreateAplReception.name] as unknown as {
     apl_reception: MarketplaceAplReceptionView;
@@ -31,9 +31,10 @@ export async function createAplReception(
 
 export async function signAsChairman(
   apl_reception_id: string,
+  signed_documents: SignedDocumentInput[],
 ): Promise<{ apl_reception: MarketplaceAplReceptionView }> {
   const result = await client.Mutation(Mutations.Marketplace.SignAplReceptionAsChairman.mutation, {
-    variables: { input: { apl_reception_id } },
+    variables: { data: { apl_reception_id, signed_documents } },
   });
   return result[Mutations.Marketplace.SignAplReceptionAsChairman.name] as unknown as {
     apl_reception: MarketplaceAplReceptionView;

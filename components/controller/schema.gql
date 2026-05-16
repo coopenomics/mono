@@ -6968,6 +6968,11 @@ type MarketplaceAplReception {
   variant: MarketplaceAplReceptionVariant!
 }
 
+input MarketplaceAplReceptionByIdInput {
+  """Идентификатор акта приёмки."""
+  apl_reception_id: ID!
+}
+
 type MarketplaceAplReceptionFactEntry {
   """Фактически принятое количество (для расхождений Варианта Б)."""
   fact_quantity: Int!
@@ -7625,6 +7630,11 @@ input MarketplaceGetOrderInput {
   order_id: String!
 }
 
+input MarketplaceGetShipmentInput {
+  """Идентификатор партии поставки."""
+  shipment_id: ID!
+}
+
 type MarketplaceInventoryItem {
   barcode_format: MarketplaceBarcodeFormat!
 
@@ -7714,6 +7724,11 @@ type MarketplaceLabelInventoryResult {
   Сгенерированные наклейки: одна или несколько в зависимости от стратегии.
   """
   inventory: [MarketplaceInventoryItem!]!
+}
+
+input MarketplaceListAplReceptionsByBranameInput {
+  """Идентификатор КУ-получателя."""
+  braname: String!
 }
 
 input MarketplaceListCatalogInput {
@@ -9869,7 +9884,7 @@ type Mutation {
   """
   Оператор КУ формирует акт приёмки партии: для Варианта Б с возможной корректировкой фактического количества.
   """
-  marketplaceCreateAplReception(input: MarketplaceCreateAplReceptionInput!): MarketplaceAplReceptionResult!
+  marketplaceCreateAplReception(data: MarketplaceCreateAplReceptionInput!): MarketplaceAplReceptionResult!
 
   """Поставщик публикует Offer (статус → PENDING_MODERATION)"""
   marketplaceCreateOffer(input: MarketplaceCreateOfferInput!): MarketplaceOffer!
@@ -9887,7 +9902,7 @@ type Mutation {
   """
   Сформировать партии поставки из акцептованной заявки: одна группа на каждый КУ-получатель.
   """
-  marketplaceCreateShipment(input: MarketplaceCreateShipmentInput!): MarketplaceCreateShipmentResult!
+  marketplaceCreateShipment(data: MarketplaceCreateShipmentInput!): MarketplaceCreateShipmentResult!
 
   """
   Поставщик отклоняет сводную заявку — все заказы пакета отменяются, средства разблокируются.
@@ -9914,7 +9929,7 @@ type Mutation {
   """
   Оператор КУ маркирует имущество заказа внутренним штрих-кодом (Code128 или EAN-13).
   """
-  marketplaceLabelInventory(input: MarketplaceLabelInventoryInput!): MarketplaceLabelInventoryResult!
+  marketplaceLabelInventory(data: MarketplaceLabelInventoryInput!): MarketplaceLabelInventoryResult!
 
   """Отклонить Offer с причиной (status → REJECTED) (admin)"""
   marketplaceRejectOffer(input: MarketplaceRejectOfferInput!): MarketplaceOffer!
@@ -9960,12 +9975,12 @@ type Mutation {
   """
   Председатель КУ ставит закрывающую подпись на акте приёмки — имущество переходит на баланс кооператива.
   """
-  marketplaceSignAplReceptionAsChairman(input: MarketplaceSignAplReceptionInput!): MarketplaceAplReceptionResult!
+  marketplaceSignAplReceptionAsChairman(data: MarketplaceSignAplReceptionInput!): MarketplaceAplReceptionResult!
 
   """
   Поставщик ставит первую подпись на акте приёмки (лично — Вариант А; асинхронно через push — Вариант Б).
   """
-  marketplaceSignAplReceptionAsSupplier(input: MarketplaceSignAplReceptionInput!): MarketplaceAplReceptionResult!
+  marketplaceSignAplReceptionAsSupplier(data: MarketplaceSignAplReceptionInput!): MarketplaceAplReceptionResult!
 
   """
   Поставщик запускает поставку по предложению с открытой подпиской: формируется сводная заявка, заказы в её пуле принимаются.
@@ -12212,12 +12227,12 @@ type Query {
   """
   Preview-документы акта приёмки для закрывающей подписи председателя КУ.
   """
-  marketplaceAplReceptionChairmanSignablePayloads(apl_reception_id: String!): [GeneratedDocument!]!
+  marketplaceAplReceptionChairmanSignablePayloads(data: MarketplaceAplReceptionByIdInput!): [GeneratedDocument!]!
 
   """
   Preview-документы акта приёмки для подписи поставщиком — один документ на каждый Order группы. Клиент подписывает hash приватным ключом и возвращает результат в mutation marketplaceSignAplReceptionAsSupplier.
   """
-  marketplaceAplReceptionSupplierSignablePayloads(apl_reception_id: String!): [GeneratedDocument!]!
+  marketplaceAplReceptionSupplierSignablePayloads(data: MarketplaceAplReceptionByIdInput!): [GeneratedDocument!]!
 
   """Получить аспектные атрибуты для категории и типа товара marketplace"""
   marketplaceAspectAttributes(data: GetRequiredAttributesInput!): [MarketplaceAttribute!]!
@@ -12325,7 +12340,7 @@ type Query {
   marketplaceGetSearchCategories(data: SearchCategoriesInput!): [MarketplaceCategoryTreeNode!]!
 
   """Получить партию поставки по идентификатору."""
-  marketplaceGetShipment(shipment_id: String!): MarketplaceShipment!
+  marketplaceGetShipment(data: MarketplaceGetShipmentInput!): MarketplaceShipment!
 
   """
   Получить заявки текущего пользователя
@@ -12338,7 +12353,7 @@ type Query {
   marketplaceListAplReceptionsAsSupplier: [MarketplaceAplReception!]!
 
   """Список акций приёмки текущего КУ для operator-стола."""
-  marketplaceListAplReceptionsByBraname(braname: String!): [MarketplaceAplReception!]!
+  marketplaceListAplReceptionsByBraname(data: MarketplaceListAplReceptionsByBranameInput!): [MarketplaceAplReception!]!
 
   """Каталог активных Offer'ов (ACTIVE + available, single vitrine MVP)"""
   marketplaceListCatalog(input: MarketplaceListCatalogInput): MarketplaceOfferPaginationResult!
@@ -12356,7 +12371,7 @@ type Query {
   """
   Список наклеек инвентаря КУ — для admin-стола склада и операторских разделов.
   """
-  marketplaceListInventory(input: MarketplaceListInventoryInput): [MarketplaceInventoryItem!]!
+  marketplaceListInventory(data: MarketplaceListInventoryInput): [MarketplaceInventoryItem!]!
 
   """
   Список marketplace-детализаций ПВЗ кооператива.
@@ -12385,7 +12400,7 @@ type Query {
   """
   Список партий поставки текущего поставщика — для стола подготовки поставки и истории.
   """
-  marketplaceListShipments(input: MarketplaceListShipmentsInput): [MarketplaceShipment!]!
+  marketplaceListShipments(data: MarketplaceListShipmentsInput): [MarketplaceShipment!]!
 
   """
   Список заказов, по которым текущий пайщик является поставщиком (стол поставщика).

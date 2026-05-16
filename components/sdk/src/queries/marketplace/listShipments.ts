@@ -4,7 +4,7 @@ import { $, type GraphQLTypes, type InputType, type ModelTypes, Selector } from 
 export const name = 'marketplaceListShipments'
 
 export const query = Selector('Query')({
-  [name]: [{ input: $('input', 'MarketplaceListShipmentsInput') }, marketplaceShipmentSelector],
+  [name]: [{ data: $('data', 'MarketplaceListShipmentsInput') }, marketplaceShipmentSelector],
 })
 
 export interface IInput {
@@ -13,7 +13,7 @@ export interface IInput {
    */
   [key: string]: unknown
 
-  input?: ModelTypes['MarketplaceListShipmentsInput']
+  data?: ModelTypes['MarketplaceListShipmentsInput']
 }
 
 export type IOutput = InputType<GraphQLTypes['Query'], typeof query>

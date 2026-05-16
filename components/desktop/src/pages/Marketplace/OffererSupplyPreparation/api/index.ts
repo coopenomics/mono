@@ -28,7 +28,7 @@ export interface MarketplaceShipmentView {
 
 export async function listShipments(cycle_id?: string): Promise<MarketplaceShipmentView[]> {
   const result = await client.Query(Queries.Marketplace.ListShipments.query, {
-    variables: { input: { cycle_id } },
+    variables: { data: { cycle_id } },
   });
   return result[Queries.Marketplace.ListShipments.name] as unknown as MarketplaceShipmentView[];
 }
@@ -44,10 +44,10 @@ export interface CreateShipmentVariables {
 }
 
 export async function createShipment(
-  variables: CreateShipmentVariables,
+  data: CreateShipmentVariables,
 ): Promise<{ shipments: MarketplaceShipmentView[] }> {
   const result = await client.Mutation(Mutations.Marketplace.CreateShipment.mutation, {
-    variables: { input: variables },
+    variables: { data },
   });
   return result[Mutations.Marketplace.CreateShipment.name] as unknown as {
     shipments: MarketplaceShipmentView[];

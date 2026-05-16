@@ -156,6 +156,22 @@ export class MarketplaceSignAplReceptionInputDTO {
   signed_documents!: MarketplaceAplReceptionSignedDocumentInputDTO[];
 }
 
+@InputType('MarketplaceAplReceptionByIdInput')
+export class MarketplaceAplReceptionByIdInputDTO {
+  @Field(() => ID, { description: 'Идентификатор акта приёмки.' })
+  @IsString()
+  @IsNotEmpty()
+  apl_reception_id!: string;
+}
+
+@InputType('MarketplaceListAplReceptionsByBranameInput')
+export class MarketplaceListAplReceptionsByBranameInputDTO {
+  @Field(() => String, { description: 'Идентификатор КУ-получателя.' })
+  @IsString()
+  @IsNotEmpty()
+  braname!: string;
+}
+
 @ObjectType('MarketplaceAplReceptionResult')
 export class MarketplaceAplReceptionResultDTO {
   @Field(() => MarketplaceAplReceptionDTO)

@@ -56,7 +56,7 @@ export async function fetchSupplierSignablePayloads(
 ): Promise<MarketplaceAplReceptionDocumentView[]> {
   const result = await client.Query(
     Queries.Marketplace.AplReceptionSupplierSignablePayloads.query,
-    { variables: { apl_reception_id } },
+    { variables: { data: { apl_reception_id } } },
   );
   return result[
     Queries.Marketplace.AplReceptionSupplierSignablePayloads.name
@@ -68,7 +68,7 @@ export async function signAsSupplier(
   signed_documents: SignedDocumentInput[],
 ): Promise<{ apl_reception: MarketplaceAplReceptionView }> {
   const result = await client.Mutation(Mutations.Marketplace.SignAplReceptionAsSupplier.mutation, {
-    variables: { input: { apl_reception_id, signed_documents } },
+    variables: { data: { apl_reception_id, signed_documents } },
   });
   return result[Mutations.Marketplace.SignAplReceptionAsSupplier.name] as unknown as {
     apl_reception: MarketplaceAplReceptionView;

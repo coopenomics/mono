@@ -10,6 +10,7 @@ import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-membe
 import {
   MarketplaceCreateShipmentInputDTO,
   MarketplaceCreateShipmentResultDTO,
+  MarketplaceGetShipmentInputDTO,
   MarketplaceListShipmentsInputDTO,
   MarketplaceShipmentDTO,
   toMarketplaceShipmentDTO,
@@ -48,13 +49,13 @@ export class MarketplaceShipmentResolver {
   @RequireMarketplaceAccess('Shipment', 'create:own')
   async marketplaceCreateShipment(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
-    @Args('input') input: MarketplaceCreateShipmentInputDTO
+    @Args('data') data: MarketplaceCreateShipmentInputDTO
   ): Promise<MarketplaceCreateShipmentResultDTO> {
     const result = await this.createService.execute({
       coopname: config.coopname,
       offerer_account: member.username,
-      cycle_id: input.cycle_id,
-      groups: input.groups.map((g) => ({
+      cycle_id: data.cycle_id,
+      groups: data.groups.map((g) => ({
         braname: g.braname,
         delivery_variant: g.delivery_variant as unknown as MarketplaceShipmentDeliveryVariant,
         ttn_data: (g.ttn_data ?? null) as MarketplaceShipmentTTNData | null,
@@ -75,15 +76,15 @@ export class MarketplaceShipmentResolver {
   @RequireMarketplaceAccess('Shipment', 'create:own')
   async marketplaceListShipments(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
-    @Args('input', { nullable: true }) input?: MarketplaceListShipmentsInputDTO
+    @Args('data', { nullable: true }) data?: MarketplaceListShipmentsInputDTO
   ): Promise<MarketplaceShipmentDTO[]> {
     const filter: MarketplaceShipmentListFilter = {
       coopname: config.coopname,
       offerer_account: member.username,
-      cycle_id: input?.cycle_id,
-      braname: input?.braname,
-      status: input?.statuses?.length
-        ? (input.statuses as MarketplaceShipmentStatus[])
+      cycle_id: data?.cycle_id,
+      braname: data?.braname,
+      status: data?.statuses?.length
+        ? (data.statuses as MarketplaceShipmentStatus[])
         : undefined,
     };
     const list = await this.shipmentRepo.list(filter);
@@ -98,9 +99,9 @@ export class MarketplaceShipmentResolver {
   @RequireMarketplaceAccess('Shipment', 'create:own')
   async marketplaceGetShipment(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
-    @Args('shipment_id') shipment_id: string
+    @Args('data') data: MarketplaceGetShipmentInputDTO
   ): Promise<MarketplaceShipmentDTO> {
-    const shipment = await this.shipmentRepo.findById(shipment_id);
+    const shipment = await this.shipmentRepo.findById(data.shipment_id);
     if (!shipment || shipment.coopname !== config.coopname) {
       throw new NotFoundException('Партия поставки не найдена.');
     }
