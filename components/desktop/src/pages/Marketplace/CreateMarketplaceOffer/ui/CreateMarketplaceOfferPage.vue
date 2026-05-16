@@ -176,7 +176,7 @@ async function onSubmit(): Promise<void> {
       type: 'positive',
       message: `Предложение создано (id ${result.id.slice(0, 8)}), статус: ${result.status}.`,
     });
-    void router.push({ name: 'marketplace-user-offers' });
+    void router.push({ name: 'marketplace-catalog' });
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     Notify.create({ type: 'negative', message, timeout: 6000 });

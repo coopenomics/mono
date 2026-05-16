@@ -1,68 +1,9 @@
-import { sendPOST } from 'src/shared/api/axios';
-import type { MarketplaceOrderPage, MarketplaceOrderView } from '../types';
-
-// TODO техдолг marketplace2: переписать на Queries.Marketplace.ListMyOrders /
-// Mutations.Marketplace.CancelOrder из @coopenomics/sdk. Сейчас regen Zeus
-// (generate-schema + generate-client) блокируется устаревшими legacy resolver'ами
-// (`application/marketplace/*` + `domain/marketplace/*` + соответствующие
-// SDK-мутации в `components/sdk/src/mutations/marketplace/`) — они ссылаются
-// на cooptypes-actions, исчезнувшие после переименования cooplace→marketplace.
-// Чистка отдельной story в backlog'е cleanup'а маркетплейса.
-
-const MARKETPLACE_ORDER_FIELDS = `
-  id
-  coopname
-  order_hash
-  orderer_account
-  offer_id
-  offer_hash
-  supplier_account
-  delivery_braname
-  quantity
-  price_per_unit
-  total_cost
-  cycle_type
-  cycle_id
-  warranty_period_secs
-  warranty_until
-  status
-  last_status_reason
-  blocked_at
-  accepted_at
-  received_at
-  cancelled_at
-  created_at
-  updated_at
-`;
-
-const LIST_MY_ORDERS_QUERY = `
-  query MarketplaceListMyOrders($input: MarketplaceListOrdersInput, $options: PaginationInput) {
-    marketplaceListMyOrders(input: $input, options: $options) {
-      items { ${MARKETPLACE_ORDER_FIELDS} }
-      totalCount
-      totalPages
-      currentPage
-    }
-  }
-`;
-
-const GET_ORDER_QUERY = `
-  query MarketplaceGetOrder($input: MarketplaceGetOrderInput!) {
-    marketplaceGetOrder(input: $input) { ${MARKETPLACE_ORDER_FIELDS} }
-  }
-`;
-
-const CANCEL_ORDER_MUTATION = `
-  mutation MarketplaceCancelOrder($input: MarketplaceCancelOrderInput!) {
-    marketplaceCancelOrder(input: $input) {
-      order { ${MARKETPLACE_ORDER_FIELDS} }
-      tx_hash
-    }
-  }
-`;
+import { Mutations, Queries } from '@coopenomics/sdk';
+import { client } from 'src/shared/api/client';
+import type { MarketplaceOrderPage, MarketplaceOrderStatusView, MarketplaceOrderView } from '../types';
 
 export interface ListMyOrdersVariables {
-  statuses?: string[];
+  statuses?: MarketplaceOrderStatusView[];
   supplier_account?: string;
   offer_id?: string;
   page?: number;
@@ -72,11 +13,14 @@ export interface ListMyOrdersVariables {
 }
 
 export async function fetchMyOrders(variables: ListMyOrdersVariables = {}): Promise<MarketplaceOrderPage> {
-  const { page, limit, sortBy, sortOrder, ...filter } = variables;
-  const body = await sendPOST('/v1/graphql', {
-    query: LIST_MY_ORDERS_QUERY,
+  const { page, limit, sortBy, sortOrder, statuses, supplier_account, offer_id } = variables;
+  const result = await client.Query(Queries.Marketplace.ListMyOrders.query, {
     variables: {
-      input: filter,
+      input: {
+        supplier_account,
+        offer_id,
+        statuses,
+      },
       options: {
         page: page ?? 1,
         limit: limit ?? 50,
@@ -85,17 +29,14 @@ export async function fetchMyOrders(variables: ListMyOrdersVariables = {}): Prom
       },
     },
   });
-  if (body?.errors?.length) throw new Error(body.errors[0].message);
-  return body.data.marketplaceListMyOrders;
+  return result[Queries.Marketplace.ListMyOrders.name] as unknown as MarketplaceOrderPage;
 }
 
 export async function fetchOrder(order_id: string): Promise<MarketplaceOrderView> {
-  const body = await sendPOST('/v1/graphql', {
-    query: GET_ORDER_QUERY,
+  const result = await client.Query(Queries.Marketplace.GetOrder.query, {
     variables: { input: { order_id } },
   });
-  if (body?.errors?.length) throw new Error(body.errors[0].message);
-  return body.data.marketplaceGetOrder;
+  return result[Queries.Marketplace.GetOrder.name] as unknown as MarketplaceOrderView;
 }
 
 export interface CancelOrderResult {
@@ -104,10 +45,8 @@ export interface CancelOrderResult {
 }
 
 export async function cancelOrder(order_id: string): Promise<CancelOrderResult> {
-  const body = await sendPOST('/v1/graphql', {
-    query: CANCEL_ORDER_MUTATION,
+  const result = await client.Mutation(Mutations.Marketplace.CancelOrder.mutation, {
     variables: { input: { order_id } },
   });
-  if (body?.errors?.length) throw new Error(body.errors[0].message);
-  return body.data.marketplaceCancelOrder;
+  return result[Mutations.Marketplace.CancelOrder.name] as unknown as CancelOrderResult;
 }

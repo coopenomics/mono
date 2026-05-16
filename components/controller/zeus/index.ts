@@ -1107,23 +1107,7 @@ export type ScalarCoders = {
 type ZEUS_UNIONS = GraphQLTypes["PaymentMethodData"] | GraphQLTypes["PrivateAccountSearchData"] | GraphQLTypes["UserCertificateUnion"]
 
 export type ValueTypes = {
-    ["AcceptChildOrderInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string | Variable<any, string>,
-	/** Подписанное заявление на имущественный паевый взнос */
-	document: ValueTypes["AssetContributionStatementSignedDocumentInput"] | Variable<any, string>,
-	/** Идентификатор заявки */
-	exchange_id: string | Variable<any, string>,
-	/** Имя аккаунта пользователя */
-	username: string | Variable<any, string>
-};
-	["AcceptStockInput"]: {
-	convert_in: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>,
-	request_hash: string | Variable<any, string>,
-	return_statement: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>,
-	username: string | Variable<any, string>
-};
-	["Account"]: AliasType<{
+    ["Account"]: AliasType<{
 	/** объект аккаунта в блокчейне содержит системную информацию, такую как публичные ключи доступа, доступные вычислительные ресурсы, информация об установленном смарт-контракте, и т.д. и т.п. Это системный уровень обслуживания, где у каждого пайщика есть аккаунт, но не каждый аккаунт может быть пайщиком в каком-либо кооперативе. Все смарт-контракты устанавливаются и исполняются на этом уровне. */
 	blockchain_account?:ValueTypes["BlockchainAccount"],
 	/** объект пайщика кооператива в таблице блокчейне, который определяет членство пайщика в конкретном кооперативе. Поскольку MONO обслуживает только один кооператив, то в participant_account обычно содержится информация, которая описывает членство пайщика в этом кооперативе. Этот объект обезличен, публичен, и хранится в блокчейне. */
@@ -1755,176 +1739,6 @@ export type ValueTypes = {
 };
 	/** Статус одобрения в системе CHAIRMAN */
 ["ApprovalStatus"]:ApprovalStatus;
-	["AssetContributionActGenerateDocumentInput"]: {
-	/** Идентификатор акта */
-	act_id: string | Variable<any, string>,
-	/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null | Variable<any, string>,
-	/** Имя аккаунта кооперативного участка */
-	braname?: string | undefined | null | Variable<any, string>,
-	/** Название кооператива, связанное с документом */
-	coopname: string | Variable<any, string>,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null | Variable<any, string>,
-	/** Идентификатор решения */
-	decision_id: number | Variable<any, string>,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null | Variable<any, string>,
-	/** Язык документа */
-	lang?: string | undefined | null | Variable<any, string>,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null | Variable<any, string>,
-	/** Имя аккаунта получателя на кооперативном участке */
-	receiver: string | Variable<any, string>,
-	/** Идентификатор заявки */
-	request_id: number | Variable<any, string>,
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null | Variable<any, string>,
-	/** Название документа */
-	title?: string | undefined | null | Variable<any, string>,
-	/** Имя пользователя, создавшего документ */
-	username: string | Variable<any, string>,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null | Variable<any, string>
-};
-	["AssetContributionActSignedDocumentInput"]: {
-	/** Хэш содержимого документа */
-	doc_hash: string | Variable<any, string>,
-	/** Общий хэш (doc_hash + meta_hash) */
-	hash: string | Variable<any, string>,
-	/** Метаинформация для создания проекта свободного решения */
-	meta: ValueTypes["AssetContributionActSignedMetaDocumentInput"] | Variable<any, string>,
-	/** Хэш мета-данных */
-	meta_hash: string | Variable<any, string>,
-	/** Вектор подписей */
-	signatures: Array<ValueTypes["SignatureInfoInput"]> | Variable<any, string>,
-	/** Версия стандарта документа */
-	version: string | Variable<any, string>
-};
-	["AssetContributionActSignedMetaDocumentInput"]: {
-	/** Идентификатор акта */
-	act_id: string | Variable<any, string>,
-	/** Номер блока, на котором был создан документ */
-	block_num: number | Variable<any, string>,
-	/** Имя аккаунта кооперативного участка */
-	braname?: string | undefined | null | Variable<any, string>,
-	/** Название кооператива, связанное с документом */
-	coopname: string | Variable<any, string>,
-	/** Дата и время создания документа */
-	created_at: string | Variable<any, string>,
-	/** Идентификатор решения */
-	decision_id: number | Variable<any, string>,
-	/** Имя генератора, использованного для создания документа */
-	generator: string | Variable<any, string>,
-	/** Язык документа */
-	lang: string | Variable<any, string>,
-	/** Ссылки, связанные с документом */
-	links: Array<string> | Variable<any, string>,
-	/** Имя аккаунта получателя на кооперативном участке */
-	receiver: string | Variable<any, string>,
-	/** ID документа в реестре */
-	registry_id: number | Variable<any, string>,
-	/** Идентификатор заявки */
-	request_id: number | Variable<any, string>,
-	/** Часовой пояс, в котором был создан документ */
-	timezone: string | Variable<any, string>,
-	/** Название документа */
-	title: string | Variable<any, string>,
-	/** Имя пользователя, создавшего документ */
-	username: string | Variable<any, string>,
-	/** Версия генератора, использованного для создания документа */
-	version: string | Variable<any, string>
-};
-	["AssetContributionDecisionGenerateDocumentInput"]: {
-	/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null | Variable<any, string>,
-	/** Название кооператива, связанное с документом */
-	coopname: string | Variable<any, string>,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null | Variable<any, string>,
-	/** Идентификатор решения */
-	decision_id: number | Variable<any, string>,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null | Variable<any, string>,
-	/** Язык документа */
-	lang?: string | undefined | null | Variable<any, string>,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null | Variable<any, string>,
-	/** Идентификатор заявки */
-	request_id: number | Variable<any, string>,
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null | Variable<any, string>,
-	/** Название документа */
-	title?: string | undefined | null | Variable<any, string>,
-	/** Имя пользователя, создавшего документ */
-	username: string | Variable<any, string>,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null | Variable<any, string>
-};
-	["AssetContributionStatementGenerateDocumentInput"]: {
-	/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null | Variable<any, string>,
-	/** Название кооператива, связанное с документом */
-	coopname: string | Variable<any, string>,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null | Variable<any, string>,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null | Variable<any, string>,
-	/** Язык документа */
-	lang?: string | undefined | null | Variable<any, string>,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null | Variable<any, string>,
-	/** Запрос на внесение имущественного паевого взноса */
-	request: ValueTypes["CommonRequestInput"] | Variable<any, string>,
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null | Variable<any, string>,
-	/** Название документа */
-	title?: string | undefined | null | Variable<any, string>,
-	/** Имя пользователя, создавшего документ */
-	username: string | Variable<any, string>,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null | Variable<any, string>
-};
-	["AssetContributionStatementSignedDocumentInput"]: {
-	/** Хэш содержимого документа */
-	doc_hash: string | Variable<any, string>,
-	/** Общий хэш (doc_hash + meta_hash) */
-	hash: string | Variable<any, string>,
-	/** Метаинформация для создания проекта свободного решения */
-	meta: ValueTypes["AssetContributionStatementSignedMetaDocumentInput"] | Variable<any, string>,
-	/** Хэш мета-данных */
-	meta_hash: string | Variable<any, string>,
-	/** Вектор подписей */
-	signatures: Array<ValueTypes["SignatureInfoInput"]> | Variable<any, string>,
-	/** Версия стандарта документа */
-	version: string | Variable<any, string>
-};
-	["AssetContributionStatementSignedMetaDocumentInput"]: {
-	/** Номер блока, на котором был создан документ */
-	block_num: number | Variable<any, string>,
-	/** Название кооператива, связанное с документом */
-	coopname: string | Variable<any, string>,
-	/** Дата и время создания документа */
-	created_at: string | Variable<any, string>,
-	/** Имя генератора, использованного для создания документа */
-	generator: string | Variable<any, string>,
-	/** Язык документа */
-	lang: string | Variable<any, string>,
-	/** Ссылки, связанные с документом */
-	links: Array<string> | Variable<any, string>,
-	/** ID документа в реестре */
-	registry_id: number | Variable<any, string>,
-	/** Запрос на внесение имущественного паевого взноса */
-	request: ValueTypes["CommonRequestInput"] | Variable<any, string>,
-	/** Часовой пояс, в котором был создан документ */
-	timezone: string | Variable<any, string>,
-	/** Название документа */
-	title: string | Variable<any, string>,
-	/** Имя пользователя, создавшего документ */
-	username: string | Variable<any, string>,
-	/** Версия генератора, использованного для создания документа */
-	version: string | Variable<any, string>
-};
 	["AuthSequence"]: AliasType<{
 	account?:boolean | `@${string}`,
 	sequence?:boolean | `@${string}`,
@@ -2368,14 +2182,6 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on CallTranscriptionWithSegments']?: Omit<ValueTypes["CallTranscriptionWithSegments"], "...on CallTranscriptionWithSegments">
 }>;
-	["CancelRequestInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string | Variable<any, string>,
-	/** Идентификатор заявки */
-	exchange_id: string | Variable<any, string>,
-	/** Имя аккаунта пользователя */
-	username: string | Variable<any, string>
-};
 	["Candidate"]: AliasType<{
 	braname?:boolean | `@${string}`,
 	coopname?:boolean | `@${string}`,
@@ -3926,17 +3732,6 @@ export type ValueTypes = {
 };
 	/** Статус коммита в системе CAPITAL */
 ["CommitStatus"]:CommitStatus;
-	["CommonRequestInput"]: {
-	currency: string | Variable<any, string>,
-	hash: string | Variable<any, string>,
-	program_id: number | Variable<any, string>,
-	title: string | Variable<any, string>,
-	total_cost: string | Variable<any, string>,
-	type: string | Variable<any, string>,
-	unit_cost: string | Variable<any, string>,
-	unit_of_measurement: string | Variable<any, string>,
-	units: number | Variable<any, string>
-};
 	["CompleteCapitalRegistrationInputDTO"]: {
 	/** Информация о себе */
 	about?: string | undefined | null | Variable<any, string>,
@@ -3974,14 +3769,6 @@ export type ValueTypes = {
 	["CompleteProcessStepInput"]: {
 	instance_id: string | Variable<any, string>,
 	step_id: string | Variable<any, string>
-};
-	["CompleteRequestInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string | Variable<any, string>,
-	/** Идентификатор обмена */
-	exchange_id: string | Variable<any, string>,
-	/** Имя аккаунта пользователя */
-	username: string | Variable<any, string>
 };
 	["CompleteVotingInput"]: {
 	/** Имя аккаунта кооператива */
@@ -4055,28 +3842,6 @@ export type ValueTypes = {
 	approved_document?: ValueTypes["SignedDigitalDocumentInput"] | undefined | null | Variable<any, string>,
 	/** Название кооператива */
 	coopname: string | Variable<any, string>
-};
-	/** Подтвердить получение имущества Уполномоченным лицом от Заказчика по новации и акту приёмки-передачи */
-["ConfirmReceiveOnRequestInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string | Variable<any, string>,
-	/** Подписанный акт приёмки-передачи имущества Уполномоченным лицом из Кооператива при возврате Заказчику по новации */
-	document: ValueTypes["ReturnByAssetActSignedDocumentInput"] | Variable<any, string>,
-	/** Идентификатор обмена */
-	exchange_id: string | Variable<any, string>,
-	/** Имя аккаунта пользователя */
-	username: string | Variable<any, string>
-};
-	/** Подтвердить поставку имущества Поставщиком по заявке Заказчика и акту приёма-передачи */
-["ConfirmSupplyOnRequestInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string | Variable<any, string>,
-	/** Подписанный акт приёма-передачи имущества от Поставщика в Кооператив */
-	document: ValueTypes["AssetContributionActSignedDocumentInput"] | Variable<any, string>,
-	/** Идентификатор обмена */
-	exchange_id: string | Variable<any, string>,
-	/** Имя аккаунта пользователя */
-	username: string | Variable<any, string>
 };
 	["ContactsDTO"]: AliasType<{
 	chairman?:ValueTypes["PublicChairman"],
@@ -4272,16 +4037,6 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on CooperativeProgram']?: Omit<ValueTypes["CooperativeProgram"], "...on CooperativeProgram">
 }>;
-	["CoopstockInput"]: {
-	braname: string | Variable<any, string>,
-	hash: string | Variable<any, string>,
-	membership_fee_amount: string | Variable<any, string>,
-	meta: string | Variable<any, string>,
-	product_lifecycle_secs: number | Variable<any, string>,
-	unit_cost: string | Variable<any, string>,
-	units: number | Variable<any, string>,
-	warranty_period_secs: number | Variable<any, string>
-};
 	/** Страна регистрации пользователя */
 ["Country"]:Country;
 	["CreateAnnualGeneralMeetInput"]: {
@@ -4337,28 +4092,6 @@ export type ValueTypes = {
 	matrixRoomId: string | Variable<any, string>,
 	startsAt: ValueTypes["DateTime"] | Variable<any, string>,
 	title: string | Variable<any, string>
-};
-	["CreateChildOrderInput"]: {
-	/** Имя кооператива */
-	coopname: string | Variable<any, string>,
-	/** Дополнительные данные, специфичные для заявки */
-	data: string | Variable<any, string>,
-	/** Подписанное заявление на возврат паевого взноса имуществом от Заказчика */
-	document: ValueTypes["ReturnByAssetStatementSignedDocumentInput"] | Variable<any, string>,
-	/** Метаданные о заявке */
-	meta: string | Variable<any, string>,
-	/** Идентификатор родительской заявки */
-	parent_id: number | Variable<any, string>,
-	/** Время жизни продукта, заявляемое поставщиком (в секундах) */
-	product_lifecycle_secs: number | Variable<any, string>,
-	/** Идентификатор программы */
-	program_id: number | Variable<any, string>,
-	/** Цена за единицу (штуку) товара или результата услуги в формате "10.0000 RUB" */
-	unit_cost: string | Variable<any, string>,
-	/** Количество частей (штук) товара или услуги */
-	units: number | Variable<any, string>,
-	/** Имя пользователя, инициирующего или обновляющего заявку */
-	username: string | Variable<any, string>
 };
 	["CreateCommitInput"]: {
 	/** Количество часов для коммита */
@@ -4549,26 +4282,6 @@ export type ValueTypes = {
 	short_name: string | Variable<any, string>,
 	/** Тип организации */
 	type: ValueTypes["OrganizationType"] | Variable<any, string>
-};
-	["CreateParentOfferInput"]: {
-	/** Имя кооператива */
-	coopname: string | Variable<any, string>,
-	/** Дополнительные данные, специфичные для заявки */
-	data: string | Variable<any, string>,
-	/** Метаданные о заявке */
-	meta: string | Variable<any, string>,
-	/** Идентификатор родительской заявки */
-	parent_id: number | Variable<any, string>,
-	/** Время жизни продукта, заявляемое поставщиком (в секундах) */
-	product_lifecycle_secs: number | Variable<any, string>,
-	/** Идентификатор программы */
-	program_id: number | Variable<any, string>,
-	/** Цена за единицу (штуку) товара или услуги в формате "10.0000 RUB" */
-	unit_cost: string | Variable<any, string>,
-	/** Количество частей (штук) товара или услуги */
-	units: number | Variable<any, string>,
-	/** Имя пользователя, инициирующего или обновляющего заявку */
-	username: string | Variable<any, string>
 };
 	["CreateProcessTemplateInput"]: {
 	description?: string | undefined | null | Variable<any, string>,
@@ -4912,16 +4625,6 @@ export type ValueTypes = {
 	/** Причина отклонения */
 	reason: string | Variable<any, string>
 };
-	["DeclineRequestInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string | Variable<any, string>,
-	/** Идентификатор обмена */
-	exchange_id: number | Variable<any, string>,
-	/** Причина отказа */
-	meta: string | Variable<any, string>,
-	/** Имя аккаунта пользователя */
-	username: string | Variable<any, string>
-};
 	["DeleteBranchInput"]: {
 	/** Имя аккаунта кооперативного участка */
 	braname: string | Variable<any, string>,
@@ -4957,14 +4660,6 @@ export type ValueTypes = {
 	coopname: string | Variable<any, string>,
 	/** Имя аккаунта доверонного лица, у которого отзывается право подписи за председателя кооперативного участка */
 	trusted: string | Variable<any, string>
-};
-	["DeliverOnRequestInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string | Variable<any, string>,
-	/** Идентификатор обмена */
-	exchange_id: number | Variable<any, string>,
-	/** Имя аккаунта пользователя */
-	username: string | Variable<any, string>
 };
 	["DeliveryType"]:DeliveryType;
 	["Delta"]: AliasType<{
@@ -5047,20 +4742,6 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on DesktopWorkspace']?: Omit<ValueTypes["DesktopWorkspace"], "...on DesktopWorkspace">
 }>;
-	["DestroyRequestInput"]: {
-	destruction_act: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>,
-	request_hash: string | Variable<any, string>
-};
-	["DisputeOnRequestInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string | Variable<any, string>,
-	/** Документ с аргументами спора */
-	document: ValueTypes["JSONObject"] | Variable<any, string>,
-	/** Идентификатор обмена */
-	exchange_id: number | Variable<any, string>,
-	/** Имя аккаунта пользователя */
-	username: string | Variable<any, string>
-};
 	/** Типы действий для документов кооператива */
 ["DocumentAction"]:DocumentAction;
 	["DocumentAggregate"]: AliasType<{
@@ -6347,6 +6028,29 @@ export type ValueTypes = {
 	reportType: ValueTypes["ReportType"] | Variable<any, string>,
 	year: number | Variable<any, string>
 };
+	/** Параметры приёма сводной заявки поставщиком. */
+["MarketplaceAcceptConsolidatedRequestInput"]: {
+	/** Идентификатор сводной заявки, ожидающей решения поставщика. */
+	request_id: string | Variable<any, string>
+};
+	["MarketplaceAcceptCppInput"]: {
+	/** id решения Совета (FR40, Эпик 8). В MVP — stub string председателя. */
+	accepted_by_board_decision_id: string | Variable<any, string>,
+	/** registry_id рендеренного instance положения ЦПП (Story 1.7 даст id из cooptypes) */
+	document_registry_id: number | Variable<any, string>
+};
+	/** Параметры индивидуального приёма заказа поставщиком. */
+["MarketplaceAcceptIndividualOrderInput"]: {
+	/** Идентификатор заказа индивидуального типа, который поставщик принимает. */
+	order_id: string | Variable<any, string>
+};
+	["MarketplaceAddToWhitelistInput"]: {
+	/** eosio::name пайщика-поставщика (3-12 chars, [.12345abcdefghijklmnopqrstuvwxyz]) */
+	member_account: string | Variable<any, string>
+};
+	["MarketplaceApproveOfferInput"]: {
+	offer_id: string | Variable<any, string>
+};
 	["MarketplaceAttribute"]: AliasType<{
 	/** ID комплексного атрибута */
 	attributeComplexId?:boolean | `@${string}`,
@@ -6463,11 +6167,49 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceAvailableCategory']?: Omit<ValueTypes["MarketplaceAvailableCategory"], "...on MarketplaceAvailableCategory">
 }>;
+	/** Параметры отмены своего заказа пайщиком. */
+["MarketplaceCancelOrderInput"]: {
+	/** Идентификатор заказа, который пайщик хочет отменить (отмена возможна до приёма заказа поставщиком). */
+	order_id: string | Variable<any, string>
+};
+	/** Результат отмены заказа пайщиком. */
+["MarketplaceCancelOrderResult"]: AliasType<{
+	/** Заказ после перевода в отменённое состояние. */
+	order?:ValueTypes["MarketplaceOrder"],
+	/** Идентификатор транзакции отмены в блокчейне. */
+	tx_hash?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceCancelOrderResult']?: Omit<ValueTypes["MarketplaceCancelOrderResult"], "...on MarketplaceCancelOrderResult">
+}>;
 	["MarketplaceCategory"]: AliasType<{
+	display_name?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	mvp_baseline?:boolean | `@${string}`,
+	sort_order?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceCategory']?: Omit<ValueTypes["MarketplaceCategory"], "...on MarketplaceCategory">
+}>;
+	["MarketplaceCategoryOfferCount"]: AliasType<{
+	category_id?:boolean | `@${string}`,
+	count?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceCategoryOfferCount']?: Omit<ValueTypes["MarketplaceCategoryOfferCount"], "...on MarketplaceCategoryOfferCount">
+}>;
+	["MarketplaceCategoryRequestCount"]: AliasType<{
+	/** ID категории */
+	categoryId?:boolean | `@${string}`,
+	/** Название категории */
+	categoryName?:boolean | `@${string}`,
+	/** Количество заявок */
+	count?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceCategoryRequestCount']?: Omit<ValueTypes["MarketplaceCategoryRequestCount"], "...on MarketplaceCategoryRequestCount">
+}>;
+	["MarketplaceCategoryTreeNode"]: AliasType<{
 	/** Название категории */
 	categoryName?:boolean | `@${string}`,
 	/** Дочерние категории */
-	children?:ValueTypes["MarketplaceCategory"],
+	children?:ValueTypes["MarketplaceCategoryTreeNode"],
 	/** Количество дочерних категорий */
 	childrenCount?:boolean | `@${string}`,
 	/** ID категории */
@@ -6485,17 +6227,7 @@ export type ValueTypes = {
 	/** Количество типов товаров */
 	typesCount?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
-	['...on MarketplaceCategory']?: Omit<ValueTypes["MarketplaceCategory"], "...on MarketplaceCategory">
-}>;
-	["MarketplaceCategoryRequestCount"]: AliasType<{
-	/** ID категории */
-	categoryId?:boolean | `@${string}`,
-	/** Название категории */
-	categoryName?:boolean | `@${string}`,
-	/** Количество заявок */
-	count?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`,
-	['...on MarketplaceCategoryRequestCount']?: Omit<ValueTypes["MarketplaceCategoryRequestCount"], "...on MarketplaceCategoryRequestCount">
+	['...on MarketplaceCategoryTreeNode']?: Omit<ValueTypes["MarketplaceCategoryTreeNode"], "...on MarketplaceCategoryTreeNode">
 }>;
 	["MarketplaceCategoryTreeStats"]: AliasType<{
 	/** Количество доступных типов товаров */
@@ -6513,6 +6245,99 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceCategoryTreeStats']?: Omit<ValueTypes["MarketplaceCategoryTreeStats"], "...on MarketplaceCategoryTreeStats">
 }>;
+	["MarketplaceConsolidatedRequest"]: AliasType<{
+	accepted_at?:boolean | `@${string}`,
+	coopname?:boolean | `@${string}`,
+	created_at?:boolean | `@${string}`,
+	cycle_ended_at?:boolean | `@${string}`,
+	cycle_started_at?:boolean | `@${string}`,
+	/** time_based | volume_based | open_subscription | individual */
+	cycle_type?:boolean | `@${string}`,
+	decline_reason?:boolean | `@${string}`,
+	declined_at?:boolean | `@${string}`,
+	expires_at?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	offer_id?:boolean | `@${string}`,
+	/** PENDING_SUPPLIER_ACCEPT | ACCEPTED | DECLINED_BY_SUPPLIER | EXPIRED_NO_RESPONSE | EXPIRED_NO_THRESHOLD | EXPIRED_NO_VOLUME */
+	status?:boolean | `@${string}`,
+	supplier_account?:boolean | `@${string}`,
+	/** Сумма заявки (numeric как string). */
+	total_amount?:boolean | `@${string}`,
+	total_quantity?:boolean | `@${string}`,
+	triggered_by_supplier_at?:boolean | `@${string}`,
+	updated_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceConsolidatedRequest']?: Omit<ValueTypes["MarketplaceConsolidatedRequest"], "...on MarketplaceConsolidatedRequest">
+}>;
+	/** Результат массового действия поставщика над пакетом заказов (приём или отклонение). */
+["MarketplaceConsolidatedRequestActionResult"]: AliasType<{
+	/** Сколько заказов входило в обработанный пакет. */
+	affected_orders?:boolean | `@${string}`,
+	/** Сколько заказов из пакета не удалось провести в блокчейн — потребуется повторная обработка. */
+	on_chain_failed?:boolean | `@${string}`,
+	/** Сколько заказов из пакета удалось провести в блокчейн. */
+	on_chain_succeeded?:boolean | `@${string}`,
+	/** Сводная заявка после обработки. */
+	request?:ValueTypes["MarketplaceConsolidatedRequest"],
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceConsolidatedRequestActionResult']?: Omit<ValueTypes["MarketplaceConsolidatedRequestActionResult"], "...on MarketplaceConsolidatedRequestActionResult">
+}>;
+	["MarketplaceConsolidatedRequestPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ValueTypes["MarketplaceConsolidatedRequest"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceConsolidatedRequestPaginationResult']?: Omit<ValueTypes["MarketplaceConsolidatedRequestPaginationResult"], "...on MarketplaceConsolidatedRequestPaginationResult">
+}>;
+	/** Состояние сводной заявки поставщика на поставку партии заказов. */
+["MarketplaceConsolidatedRequestStatus"]:MarketplaceConsolidatedRequestStatus;
+	["MarketplaceCppStatus"]: AliasType<{
+	accepted_at?:boolean | `@${string}`,
+	accepted_by_board_decision_id?:boolean | `@${string}`,
+	document_registry_id?:boolean | `@${string}`,
+	/** `active` — Совет принял положение ЦПП; `not_accepted` — расширение не подключено */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceCppStatus']?: Omit<ValueTypes["MarketplaceCppStatus"], "...on MarketplaceCppStatus">
+}>;
+	["MarketplaceCreateOfferInput"]: {
+	category_id: number | Variable<any, string>,
+	cycle_days?: number | undefined | null | Variable<any, string>,
+	/** time_based | volume_based | open_subscription | individual */
+	cycle_type: string | Variable<any, string>,
+	description?: string | undefined | null | Variable<any, string>,
+	max_wait_days?: number | undefined | null | Variable<any, string>,
+	min_threshold?: number | undefined | null | Variable<any, string>,
+	/** Цена за единицу (numeric как string, до 4 знаков) */
+	price_per_unit: string | Variable<any, string>,
+	product_name: string | Variable<any, string>,
+	quantity_available?: number | undefined | null | Variable<any, string>,
+	target_volume?: number | undefined | null | Variable<any, string>,
+	/** piece | kg | liter | pack */
+	unit_of_measure: string | Variable<any, string>,
+	unlimited_flag: boolean | Variable<any, string>,
+	warranty_days: number | Variable<any, string>
+};
+	/** Параметры оформления нового заказа пайщиком. */
+["MarketplaceCreateOrderInput"]: {
+	/** Имя пункта выдачи (ПВЗ), куда пайщик хочет получить заказ. */
+	delivery_braname: string | Variable<any, string>,
+	/** Идентификатор предложения, по которому пайщик оформляет заказ. */
+	offer_id: string | Variable<any, string>,
+	/** Количество единиц товара (от 1; для не-безлимитных предложений — не больше доступного остатка). */
+	quantity: number | Variable<any, string>
+};
+	["MarketplaceCreateOrderResult"]: AliasType<{
+	order?:ValueTypes["MarketplaceOrder"],
+	tx_snapshot?:ValueTypes["MarketplaceOrderCreateTxSnapshot"],
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceCreateOrderResult']?: Omit<ValueTypes["MarketplaceCreateOrderResult"], "...on MarketplaceCreateOrderResult">
+}>;
 	["MarketplaceCurrentMember"]: AliasType<{
 	core_roles?:boolean | `@${string}`,
 	marketplace_roles?:boolean | `@${string}`,
@@ -6520,6 +6345,27 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceCurrentMember']?: Omit<ValueTypes["MarketplaceCurrentMember"], "...on MarketplaceCurrentMember">
 }>;
+	/** Параметры отказа поставщика от сводной заявки. */
+["MarketplaceDeclineConsolidatedRequestInput"]: {
+	/** Текст причины отказа — будет показан пайщикам в их заказах. */
+	reason: string | Variable<any, string>,
+	/** Идентификатор сводной заявки, от которой поставщик отказывается. */
+	request_id: string | Variable<any, string>
+};
+	/** Параметры индивидуального отказа поставщика от заказа. */
+["MarketplaceDeclineIndividualOrderInput"]: {
+	/** Идентификатор заказа индивидуального типа, от которого поставщик отказывается. */
+	order_id: string | Variable<any, string>,
+	/** Текст причины отказа — будет показан пайщику в его заказе. */
+	reason: string | Variable<any, string>
+};
+	/** Параметры отказа поставщика от одного заказа из пула открытой подписки до запуска поставки. */
+["MarketplaceDeclineOrderFromOpenPoolInput"]: {
+	/** Идентификатор заказа из пула открытой подписки, от которого поставщик отказывается до запуска поставки. */
+	order_id: string | Variable<any, string>,
+	/** Текст причины отказа — будет показан пайщику в его заказе. */
+	reason: string | Variable<any, string>
+};
 	["MarketplaceDetailKUInput"]: {
 	/** Полный адрес ПВЗ для отображения и геокодинга */
 	addressFull: string | Variable<any, string>,
@@ -6572,6 +6418,11 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceDictionaryValue']?: Omit<ValueTypes["MarketplaceDictionaryValue"], "...on MarketplaceDictionaryValue">
 }>;
+	/** Параметры запроса одного заказа. */
+["MarketplaceGetOrderInput"]: {
+	/** Идентификатор заказа. */
+	order_id: string | Variable<any, string>
+};
 	["MarketplaceKUDetails"]: AliasType<{
 	addressFull?:boolean | `@${string}`,
 	contactEmail?:boolean | `@${string}`,
@@ -6594,6 +6445,219 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceKUDetails']?: Omit<ValueTypes["MarketplaceKUDetails"], "...on MarketplaceKUDetails">
 }>;
+	["MarketplaceListCatalogInput"]: {
+	/** category_id 1..9; null = «Все» */
+	category_id?: number | undefined | null | Variable<any, string>,
+	/** Количество элементов на странице */
+	limit: number | Variable<any, string>,
+	/** Номер страницы */
+	page: number | Variable<any, string>,
+	/** Ключ сортировки (например, "name") */
+	sortBy?: string | undefined | null | Variable<any, string>,
+	/** Направление сортировки ("ASC" или "DESC") */
+	sortOrder: string | Variable<any, string>
+};
+	["MarketplaceListConsolidatedRequestsInput"]: {
+	/** Фильтр по идентификатору предложения. */
+	offer_id?: string | undefined | null | Variable<any, string>,
+	/** Фильтр по состоянию сводной заявки. */
+	status?: ValueTypes["MarketplaceConsolidatedRequestStatus"] | undefined | null | Variable<any, string>
+};
+	["MarketplaceListMyOffersInput"]: {
+	/** Количество элементов на странице */
+	limit: number | Variable<any, string>,
+	/** Номер страницы */
+	page: number | Variable<any, string>,
+	/** Ключ сортировки (например, "name") */
+	sortBy?: string | undefined | null | Variable<any, string>,
+	/** Направление сортировки ("ASC" или "DESC") */
+	sortOrder: string | Variable<any, string>
+};
+	/** Параметры фильтрации списка заказов (постранично/сортировка задаются отдельным аргументом options). */
+["MarketplaceListOrdersInput"]: {
+	/** Фильтр по идентификатору предложения. */
+	offer_id?: string | undefined | null | Variable<any, string>,
+	/** Фильтр по аккаунту заказчика. */
+	orderer_account?: string | undefined | null | Variable<any, string>,
+	/** Один или несколько статусов заказа, по которым нужно отфильтровать список. */
+	statuses?: Array<ValueTypes["MarketplaceOrderStatus"]> | undefined | null | Variable<any, string>,
+	/** Фильтр по аккаунту поставщика. */
+	supplier_account?: string | undefined | null | Variable<any, string>
+};
+	["MarketplaceListPendingOffersInput"]: {
+	/** Количество элементов на странице */
+	limit: number | Variable<any, string>,
+	/** Номер страницы */
+	page: number | Variable<any, string>,
+	/** Ключ сортировки (например, "name") */
+	sortBy?: string | undefined | null | Variable<any, string>,
+	/** Направление сортировки ("ASC" или "DESC") */
+	sortOrder: string | Variable<any, string>
+};
+	["MarketplaceMemberWallet"]: AliasType<{
+	coopname?:boolean | `@${string}`,
+	username?:boolean | `@${string}`,
+	/** Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.member */
+	wallets?:ValueTypes["MarketplaceWalletEntry"],
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceMemberWallet']?: Omit<ValueTypes["MarketplaceMemberWallet"], "...on MarketplaceMemberWallet">
+}>;
+	["MarketplaceModerationLogEntry"]: AliasType<{
+	/** approve | reject */
+	action?:boolean | `@${string}`,
+	by_account?:boolean | `@${string}`,
+	created_at?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	offer_id?:boolean | `@${string}`,
+	reason?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceModerationLogEntry']?: Omit<ValueTypes["MarketplaceModerationLogEntry"], "...on MarketplaceModerationLogEntry">
+}>;
+	["MarketplaceOffer"]: AliasType<{
+	approved_at?:boolean | `@${string}`,
+	approved_by?:boolean | `@${string}`,
+	category_id?:boolean | `@${string}`,
+	coopname?:boolean | `@${string}`,
+	created_at?:boolean | `@${string}`,
+	cycle_days?:boolean | `@${string}`,
+	/** time_based | volume_based | open_subscription | individual */
+	cycle_type?:boolean | `@${string}`,
+	description?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	max_wait_days?:boolean | `@${string}`,
+	min_threshold?:boolean | `@${string}`,
+	/** Цена за единицу (numeric как string) */
+	price_per_unit?:boolean | `@${string}`,
+	product_name?:boolean | `@${string}`,
+	quantity_available?:boolean | `@${string}`,
+	quantity_blocked?:boolean | `@${string}`,
+	quantity_consumed?:boolean | `@${string}`,
+	reject_reason?:boolean | `@${string}`,
+	rejected_at?:boolean | `@${string}`,
+	rejected_by?:boolean | `@${string}`,
+	/** PENDING_MODERATION | ACTIVE | REJECTED | WITHDRAWN */
+	status?:boolean | `@${string}`,
+	supplier_account?:boolean | `@${string}`,
+	target_volume?:boolean | `@${string}`,
+	/** piece | kg | liter | pack */
+	unit_of_measure?:boolean | `@${string}`,
+	unlimited_flag?:boolean | `@${string}`,
+	updated_at?:boolean | `@${string}`,
+	vitrine_id?:boolean | `@${string}`,
+	warranty_days?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceOffer']?: Omit<ValueTypes["MarketplaceOffer"], "...on MarketplaceOffer">
+}>;
+	["MarketplaceOfferPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ValueTypes["MarketplaceOffer"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceOfferPaginationResult']?: Omit<ValueTypes["MarketplaceOfferPaginationResult"], "...on MarketplaceOfferPaginationResult">
+}>;
+	["MarketplaceOnboardingState"]: AliasType<{
+	agreement_id?:boolean | `@${string}`,
+	completed_at?:boolean | `@${string}`,
+	/** true — фронт должен показать gate-диалог OnboardingCPPGate; false — пайщик может попасть на стол сразу */
+	requires_gate?:boolean | `@${string}`,
+	source?:boolean | `@${string}`,
+	/** registry_id шаблона оферты ЦПП marketplace в платформенной document factory (Story 1.7). 0 — placeholder, оферта ещё не зарегистрирована. */
+	template_registry_id?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceOnboardingState']?: Omit<ValueTypes["MarketplaceOnboardingState"], "...on MarketplaceOnboardingState">
+}>;
+	/** Заказ пайщика по предложению поставщика. */
+["MarketplaceOrder"]: AliasType<{
+	/** Когда поставщик принял заказ. */
+	accepted_at?:boolean | `@${string}`,
+	/** Когда средства были заблокированы. */
+	blocked_at?:boolean | `@${string}`,
+	/** Когда заказ был отменён. */
+	cancelled_at?:boolean | `@${string}`,
+	/** Кооператив, в котором сделан заказ. */
+	coopname?:boolean | `@${string}`,
+	/** Снимок транзакции блокировки средств (для отображения движений кошелька). */
+	create_tx?:ValueTypes["MarketplaceOrderCreateTxSnapshot"],
+	/** Когда запись о заказе создана в системе. */
+	created_at?:boolean | `@${string}`,
+	/** Идентификатор партии-накопителя, если заказ присоединён. */
+	cycle_id?:boolean | `@${string}`,
+	/** Способ накопления заказов перед поставкой (копируется из предложения). */
+	cycle_type?:boolean | `@${string}`,
+	/** Имя пункта выдачи (ПВЗ), куда пайщик хочет получить заказ. */
+	delivery_braname?:boolean | `@${string}`,
+	/** Идентификатор заказа. */
+	id?:boolean | `@${string}`,
+	/** Текстовая причина последнего изменения статуса. */
+	last_status_reason?:boolean | `@${string}`,
+	/** Хеш предложения в блокчейне (snapshot на момент заказа). */
+	offer_hash?:boolean | `@${string}`,
+	/** Идентификатор предложения, по которому оформлен заказ. */
+	offer_id?:boolean | `@${string}`,
+	/** Хеш заказа в блокчейне (для сверки). */
+	order_hash?:boolean | `@${string}`,
+	/** Аккаунт пайщика-заказчика. */
+	orderer_account?:boolean | `@${string}`,
+	/** Цена за единицу товара на момент заказа. */
+	price_per_unit?:boolean | `@${string}`,
+	/** Количество единиц товара в заказе. */
+	quantity?:boolean | `@${string}`,
+	/** Когда пайщик получил заказ. */
+	received_at?:boolean | `@${string}`,
+	/** Текущий этап жизненного цикла заказа. */
+	status?:boolean | `@${string}`,
+	/** Аккаунт поставщика. */
+	supplier_account?:boolean | `@${string}`,
+	/** Общая сумма заказа. */
+	total_cost?:boolean | `@${string}`,
+	/** Когда запись о заказе последний раз изменялась. */
+	updated_at?:boolean | `@${string}`,
+	/** Срок гарантии в секундах с момента получения. */
+	warranty_period_secs?:boolean | `@${string}`,
+	/** Дата окончания гарантии. */
+	warranty_until?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceOrder']?: Omit<ValueTypes["MarketplaceOrder"], "...on MarketplaceOrder">
+}>;
+	/** Снимок транзакции блокировки средств: ссылки на блок, флаги конверсии и сумма. */
+["MarketplaceOrderCreateTxSnapshot"]: AliasType<{
+	/** Номер блока, в который попала транзакция. */
+	block_num?:boolean | `@${string}`,
+	/** Сумма заблокированных средств (строка денежного актива). */
+	blocked_amount?:boolean | `@${string}`,
+	/** Был ли выполнен перевод средств между кошельками пайщика. */
+	did_assign?:boolean | `@${string}`,
+	/** Была ли выполнена конверсия паевого взноса в членский. */
+	did_convert?:boolean | `@${string}`,
+	/** Время подписания заказа (ISO 8601). */
+	signed_at?:boolean | `@${string}`,
+	/** Идентификатор транзакции в блокчейне. */
+	tx_hash?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceOrderCreateTxSnapshot']?: Omit<ValueTypes["MarketplaceOrderCreateTxSnapshot"], "...on MarketplaceOrderCreateTxSnapshot">
+}>;
+	/** Способ накопления заказов перед поставкой. */
+["MarketplaceOrderCycleType"]:MarketplaceOrderCycleType;
+	/** Постраничный список заказов. */
+["MarketplaceOrderPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ValueTypes["MarketplaceOrder"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceOrderPaginationResult']?: Omit<ValueTypes["MarketplaceOrderPaginationResult"], "...on MarketplaceOrderPaginationResult">
+}>;
+	/** Этап жизненного цикла заказа. */
+["MarketplaceOrderStatus"]:MarketplaceOrderStatus;
 	["MarketplaceProductType"]: AliasType<{
 	/** ID категории */
 	descriptionCategoryId?:boolean | `@${string}`,
@@ -6610,6 +6674,29 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceProductType']?: Omit<ValueTypes["MarketplaceProductType"], "...on MarketplaceProductType">
 }>;
+	["MarketplaceRegistrationOfferStatus"]: AliasType<{
+	/** AGREEMENT_ID (например `marketplace_offer`) */
+	agreement_id?:boolean | `@${string}`,
+	agreement_type?:boolean | `@${string}`,
+	/** Account types, для которых оферта показывается в SignUp ([individual, entrepreneur] на MVP) */
+	applicable_account_types?:boolean | `@${string}`,
+	/** true — оферта зарегистрирована в platform AgreementRegistry, видна в SignUp; false — Story 1.7 не размещена либо init расширения ещё не отработал */
+	registered?:boolean | `@${string}`,
+	/** document_registry_id template оферты */
+	registry_id?:boolean | `@${string}`,
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceRegistrationOfferStatus']?: Omit<ValueTypes["MarketplaceRegistrationOfferStatus"], "...on MarketplaceRegistrationOfferStatus">
+}>;
+	["MarketplaceRejectOfferInput"]: {
+	offer_id: string | Variable<any, string>,
+	/** Причина отказа (≤1000) */
+	reason: string | Variable<any, string>
+};
+	["MarketplaceRemoveFromWhitelistInput"]: {
+	/** eosio::name пайщика-поставщика */
+	member_account: string | Variable<any, string>
+};
 	["MarketplaceRequest"]: AliasType<{
 	/** Артикул товара */
 	articleNumber?:boolean | `@${string}`,
@@ -6622,7 +6709,7 @@ export type ValueTypes = {
 	/** Можно ли редактировать заявку */
 	canBeEdited?:boolean | `@${string}`,
 	/** Информация о категории */
-	category?:ValueTypes["MarketplaceCategory"],
+	category?:ValueTypes["MarketplaceCategoryTreeNode"],
 	/** URL образца цвета */
 	colorImageUrl?:boolean | `@${string}`,
 	/** Название кооператива */
@@ -6781,6 +6868,85 @@ export type ValueTypes = {
 	coreBraname: string | Variable<any, string>,
 	/** Целевой статус ПВЗ: ACTIVE или INACTIVE */
 	status: string | Variable<any, string>
+};
+	/** Результат индивидуального приёма или отклонения заказа поставщиком. */
+["MarketplaceSupplierOrderActionResult"]: AliasType<{
+	/** Заказ после изменения статуса. */
+	order?:ValueTypes["MarketplaceOrder"],
+	/** Идентификатор транзакции приёма или отклонения. */
+	tx_hash?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceSupplierOrderActionResult']?: Omit<ValueTypes["MarketplaceSupplierOrderActionResult"], "...on MarketplaceSupplierOrderActionResult">
+}>;
+	["MarketplaceTriggerOpenSubscriptionInput"]: {
+	/** Идентификатор предложения с открытой подпиской, по которому поставщик запускает поставку. */
+	offer_id: string | Variable<any, string>
+};
+	["MarketplaceUpdateOfferInput"]: {
+	category_id?: number | undefined | null | Variable<any, string>,
+	cycle_days?: number | undefined | null | Variable<any, string>,
+	cycle_type?: string | undefined | null | Variable<any, string>,
+	description?: string | undefined | null | Variable<any, string>,
+	id: string | Variable<any, string>,
+	max_wait_days?: number | undefined | null | Variable<any, string>,
+	min_threshold?: number | undefined | null | Variable<any, string>,
+	price_per_unit?: string | undefined | null | Variable<any, string>,
+	product_name?: string | undefined | null | Variable<any, string>,
+	quantity_available?: number | undefined | null | Variable<any, string>,
+	target_volume?: number | undefined | null | Variable<any, string>,
+	unit_of_measure?: string | undefined | null | Variable<any, string>,
+	unlimited_flag?: boolean | undefined | null | Variable<any, string>,
+	warranty_days?: number | undefined | null | Variable<any, string>
+};
+	["MarketplaceVitrine"]: AliasType<{
+	/** eosio::name кооператива-владельца витрины */
+	coopname?:boolean | `@${string}`,
+	created_at?:boolean | `@${string}`,
+	/** Отображаемое имя витрины */
+	display_name?:boolean | `@${string}`,
+	/** Идентификатор витрины (MVP всегда "default") */
+	id?:boolean | `@${string}`,
+	/** Дефолтная витрина кооператива (MVP — всегда true) */
+	is_default?:boolean | `@${string}`,
+	updated_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceVitrine']?: Omit<ValueTypes["MarketplaceVitrine"], "...on MarketplaceVitrine">
+}>;
+	["MarketplaceWalletEntry"]: AliasType<{
+	/** Доступный остаток (`userwallets.available`) */
+	available?:boolean | `@${string}`,
+	/** Заблокированный остаток (`userwallets.blocked`) */
+	blocked?:boolean | `@${string}`,
+	/** Человекочитаемое название (из cooptypes LEDGER2_WALLET_REGISTRY) */
+	human_name?:boolean | `@${string}`,
+	/** WalletKind: USER_SHARED — обязателен L3-разрез по пайщику */
+	kind?:boolean | `@${string}`,
+	/** UX-метка кошелька в формате `<тип взноса> | <программа>` (например «Паевой | Цифровой Кошелёк», «Членский | Стол Заказов») */
+	label?:boolean | `@${string}`,
+	/** eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.member) */
+	name?:boolean | `@${string}`,
+	/** program_id: 1 — Цифровой Кошелёк, 2 — Стол Заказов */
+	program_id?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceWalletEntry']?: Omit<ValueTypes["MarketplaceWalletEntry"], "...on MarketplaceWalletEntry">
+}>;
+	["MarketplaceWhitelistEntry"]: AliasType<{
+	added_at?:boolean | `@${string}`,
+	/** Кто добавил (eosio::name админа) */
+	added_by?:boolean | `@${string}`,
+	/** eosio::name кооператива */
+	coopname?:boolean | `@${string}`,
+	/** UUID записи whitelist */
+	id?:boolean | `@${string}`,
+	/** eosio::name пайщика-поставщика */
+	member_account?:boolean | `@${string}`,
+	/** auto-coop — сам кооператив (неудаляема, FR5); manual — добавлен админом */
+	role?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceWhitelistEntry']?: Omit<ValueTypes["MarketplaceWhitelistEntry"], "...on MarketplaceWhitelistEntry">
+}>;
+	["MarketplaceWithdrawOfferInput"]: {
+	id: string | Variable<any, string>
 };
 	["MatrixAccountStatusResponseDTO"]: AliasType<{
 	hasAccount?:boolean | `@${string}`,
@@ -6963,16 +7129,6 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MissingRequisiteField']?: Omit<ValueTypes["MissingRequisiteField"], "...on MissingRequisiteField">
 }>;
-	["ModerateRequestInput"]: {
-	/** Размер комиссии за отмену в формате "10.0000 RUB" */
-	cancellation_fee: string | Variable<any, string>,
-	/** Имя аккаунта кооператива */
-	coopname: string | Variable<any, string>,
-	/** Идентификатор обмена */
-	exchange_id: number | Variable<any, string>,
-	/** Имя аккаунта пользователя */
-	username: string | Variable<any, string>
-};
 	["MonoAccount"]: AliasType<{
 	/** Электронная почта пользователя */
 	email?:boolean | `@${string}`,
@@ -7012,13 +7168,10 @@ export type ValueTypes = {
 	target_project_hash: string | Variable<any, string>
 };
 	["Mutation"]: AliasType<{
-acceptChildOrder?: [{	data: ValueTypes["AcceptChildOrderInput"] | Variable<any, string>},ValueTypes["Transaction"]],
-acceptStock?: [{	data: ValueTypes["AcceptStockInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 addParticipant?: [{	data: ValueTypes["AddParticipantInput"] | Variable<any, string>},ValueTypes["Account"]],
 addPaymentMethod?: [{	data: ValueTypes["AddPaymentMethodInput"] | Variable<any, string>},ValueTypes["PaymentMethod"]],
 addTrustedAccount?: [{	data: ValueTypes["AddTrustedAccountInput"] | Variable<any, string>},ValueTypes["Branch"]],
 archiveProductCard?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
-cancelRequest?: [{	data: ValueTypes["CancelRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalAddAuthor?: [{	data: ValueTypes["AddAuthorInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
 capitalApproveCommit?: [{	data: ValueTypes["CommitApproveInput"] | Variable<any, string>},ValueTypes["CapitalCommit"]],
 capitalCalculateVotes?: [{	data: ValueTypes["CalculateVotesInput"] | Variable<any, string>},ValueTypes["CapitalSegment"]],
@@ -7110,41 +7263,28 @@ completeCapitalOnboardingStep?: [{	data: ValueTypes["CapitalOnboardingStepInput"
 completeChairmanAgendaStep?: [{	data: ValueTypes["ChairmanOnboardingAgendaInput"] | Variable<any, string>},ValueTypes["ChairmanOnboardingState"]],
 completeChairmanGeneralMeetStep?: [{	data: ValueTypes["ChairmanOnboardingGeneralMeetInput"] | Variable<any, string>},ValueTypes["ChairmanOnboardingState"]],
 completeExtensionOnboardingStep?: [{	data: ValueTypes["CompleteExtensionOnboardingStepInput"] | Variable<any, string>},ValueTypes["ExtensionOnboardingState"]],
-completeRequest?: [{	data: ValueTypes["CompleteRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 confirmAgreement?: [{	data: ValueTypes["ConfirmAgreementInput"] | Variable<any, string>},ValueTypes["Transaction"]],
-confirmReceiveOnRequest?: [{	data: ValueTypes["ConfirmReceiveOnRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
-confirmSupplyOnRequest?: [{	data: ValueTypes["ConfirmSupplyOnRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
-coopstock?: [{	data: ValueTypes["CoopstockInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 createAnnualGeneralMeet?: [{	data: ValueTypes["CreateAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
 createBranch?: [{	data: ValueTypes["CreateBranchInput"] | Variable<any, string>},ValueTypes["Branch"]],
 createCategory?: [{	data: ValueTypes["CreateCategoryInput"] | Variable<any, string>},ValueTypes["Category"]],
-createChildOrder?: [{	data: ValueTypes["CreateChildOrderInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 createDepositPayment?: [{	data: ValueTypes["CreateDepositPaymentInput"] | Variable<any, string>},ValueTypes["GatewayPayment"]],
 createInitialPayment?: [{	data: ValueTypes["CreateInitialPaymentInput"] | Variable<any, string>},ValueTypes["GatewayPayment"]],
-createParentOffer?: [{	data: ValueTypes["CreateParentOfferInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 createProductCard?: [{	data: ValueTypes["CreateProductCardInput"] | Variable<any, string>},ValueTypes["ProductCard"]],
 createProjectOfFreeDecision?: [{	data: ValueTypes["CreateProjectFreeDecisionInput"] | Variable<any, string>},ValueTypes["CreatedProjectFreeDecision"]],
 createWebPushSubscription?: [{	data: ValueTypes["CreateSubscriptionInput"] | Variable<any, string>},ValueTypes["CreateSubscriptionResponse"]],
 createWithdraw?: [{	data: ValueTypes["CreateWithdrawInput"] | Variable<any, string>},ValueTypes["CreateWithdrawResponse"]],
 deactivateWebPushSubscriptionById?: [{	data: ValueTypes["DeactivateSubscriptionInput"] | Variable<any, string>},boolean | `@${string}`],
 declineAgreement?: [{	data: ValueTypes["DeclineAgreementInput"] | Variable<any, string>},ValueTypes["Transaction"]],
-declineRequest?: [{	data: ValueTypes["DeclineRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 deleteBranch?: [{	data: ValueTypes["DeleteBranchInput"] | Variable<any, string>},boolean | `@${string}`],
 deleteCategory?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
 deletePaymentMethod?: [{	data: ValueTypes["DeletePaymentMethodInput"] | Variable<any, string>},boolean | `@${string}`],
 deleteProductCard?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
 deleteReportDraft?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
 deleteTrustedAccount?: [{	data: ValueTypes["DeleteTrustedAccountInput"] | Variable<any, string>},ValueTypes["Branch"]],
-deliverOnRequest?: [{	data: ValueTypes["DeliverOnRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
-destroyRequest?: [{	data: ValueTypes["DestroyRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
-disputeOnRequest?: [{	data: ValueTypes["DisputeOnRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 editBranch?: [{	data: ValueTypes["EditBranchInput"] | Variable<any, string>},ValueTypes["Branch"]],
 generateAnnualGeneralMeetAgendaDocument?: [{	data: ValueTypes["AnnualGeneralMeetingAgendaGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateAnnualGeneralMeetDecisionDocument?: [{	data: ValueTypes["AnnualGeneralMeetingDecisionGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateAnnualGeneralMeetNotificationDocument?: [{	data: ValueTypes["AnnualGeneralMeetingNotificationGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
-generateAssetContributionAct?: [{	data: ValueTypes["AssetContributionActGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
-generateAssetContributionDecision?: [{	data: ValueTypes["AssetContributionDecisionGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
-generateAssetContributionStatement?: [{	data: ValueTypes["AssetContributionStatementGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateBallotForAnnualGeneralMeetDocument?: [{	data: ValueTypes["AnnualGeneralMeetingVotingBallotGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateConvertToAxonStatement?: [{	data: ValueTypes["ConvertToAxonStatementGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateDocument?: [{	input: ValueTypes["GenerateAnyDocumentInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
@@ -7155,9 +7295,6 @@ generatePrivacyAgreement?: [{	data: ValueTypes["GenerateDocumentInput"] | Variab
 generateProjectOfFreeDecision?: [{	data: ValueTypes["ProjectFreeDecisionGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateRegistrationDocuments?: [{	data: ValueTypes["GenerateRegistrationDocumentsInput"] | Variable<any, string>},ValueTypes["GenerateRegistrationDocumentsOutput"]],
 generateReportFromEdits?: [{	editsJson: string | Variable<any, string>,	period?: number | undefined | null | Variable<any, string>,	reportType: ValueTypes["ReportType"] | Variable<any, string>,	year: number | Variable<any, string>},ValueTypes["GeneratedReport"]],
-generateReturnByAssetAct?: [{	data: ValueTypes["ReturnByAssetActGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
-generateReturnByAssetDecision?: [{	data: ValueTypes["ReturnByAssetDecisionGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
-generateReturnByAssetStatement?: [{	data: ValueTypes["ReturnByAssetStatementGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateReturnByMoneyDecisionDocument?: [{	data: ValueTypes["ReturnByMoneyDecisionGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateReturnByMoneyStatementDocument?: [{	data: ValueTypes["ReturnByMoneyGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateSelectBranchDocument?: [{	data: ValueTypes["SelectBranchGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
@@ -7171,32 +7308,42 @@ installSystem?: [{	data: ValueTypes["Install"] | Variable<any, string>},ValueTyp
 login?: [{	data: ValueTypes["LoginInput"] | Variable<any, string>},ValueTypes["RegisteredAccount"]],
 logout?: [{	data: ValueTypes["LogoutInput"] | Variable<any, string>},boolean | `@${string}`],
 markReportPeriod?: [{	data: ValueTypes["MarkReportPeriodInput"] | Variable<any, string>},boolean | `@${string}`],
+marketplaceAcceptConsolidatedRequest?: [{	input: ValueTypes["MarketplaceAcceptConsolidatedRequestInput"] | Variable<any, string>},ValueTypes["MarketplaceConsolidatedRequestActionResult"]],
+marketplaceAcceptCpp?: [{	input: ValueTypes["MarketplaceAcceptCppInput"] | Variable<any, string>},ValueTypes["MarketplaceCppStatus"]],
+marketplaceAcceptIndividualOrder?: [{	input: ValueTypes["MarketplaceAcceptIndividualOrderInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplierOrderActionResult"]],
 marketplaceAddAvailableCategories?: [{	input: ValueTypes["AddAvailableCategoriesInput"] | Variable<any, string>},ValueTypes["MarketplaceAvailableCategory"]],
 marketplaceAddAvailableCategoryTypes?: [{	input: ValueTypes["AddAvailableCategoryTypesInput"] | Variable<any, string>},ValueTypes["MarketplaceAvailableCategory"]],
+marketplaceAddToWhitelist?: [{	input: ValueTypes["MarketplaceAddToWhitelistInput"] | Variable<any, string>},ValueTypes["MarketplaceWhitelistEntry"]],
+marketplaceApproveOffer?: [{	input: ValueTypes["MarketplaceApproveOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
+marketplaceCancelOrder?: [{	input: ValueTypes["MarketplaceCancelOrderInput"] | Variable<any, string>},ValueTypes["MarketplaceCancelOrderResult"]],
 	/** Очистить все доступные категории (сделать доступными все)
 
 Требуемые роли: chairman.  */
 	marketplaceClearAvailableCategories?:boolean | `@${string}`,
+marketplaceCreateOffer?: [{	input: ValueTypes["MarketplaceCreateOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
+marketplaceCreateOrder?: [{	input: ValueTypes["MarketplaceCreateOrderInput"] | Variable<any, string>},ValueTypes["MarketplaceCreateOrderResult"]],
 marketplaceCreateRequest?: [{	data: ValueTypes["CreateRequestInput"] | Variable<any, string>},ValueTypes["MarketplaceRequest"]],
+marketplaceDeclineConsolidatedRequest?: [{	input: ValueTypes["MarketplaceDeclineConsolidatedRequestInput"] | Variable<any, string>},ValueTypes["MarketplaceConsolidatedRequestActionResult"]],
+marketplaceDeclineIndividualOrder?: [{	input: ValueTypes["MarketplaceDeclineIndividualOrderInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplierOrderActionResult"]],
+marketplaceDeclineOrderFromOpenPool?: [{	input: ValueTypes["MarketplaceDeclineOrderFromOpenPoolInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplierOrderActionResult"]],
 marketplaceDetailKU?: [{	data: ValueTypes["MarketplaceDetailKUInput"] | Variable<any, string>},ValueTypes["MarketplaceKUDetails"]],
+marketplaceRejectOffer?: [{	input: ValueTypes["MarketplaceRejectOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
 marketplaceRemoveAvailableCategories?: [{	input: ValueTypes["RemoveAvailableCategoriesInput"] | Variable<any, string>},boolean | `@${string}`],
 marketplaceRemoveAvailableCategoryTypes?: [{	input: ValueTypes["RemoveAvailableCategoryTypesInput"] | Variable<any, string>},boolean | `@${string}`],
+marketplaceRemoveFromWhitelist?: [{	input: ValueTypes["MarketplaceRemoveFromWhitelistInput"] | Variable<any, string>},boolean | `@${string}`],
 marketplaceReplaceAvailableItems?: [{	input: ValueTypes["ReplaceAvailableItemsInput"] | Variable<any, string>},ValueTypes["MarketplaceAvailableCategory"]],
 marketplaceRetryKUGeocode?: [{	coopname: string | Variable<any, string>,	coreBraname: string | Variable<any, string>},ValueTypes["MarketplaceKUDetails"]],
 marketplaceSetKUStatus?: [{	data: ValueTypes["MarketplaceSetKUStatusInput"] | Variable<any, string>},ValueTypes["MarketplaceKUDetails"]],
-moderateRequest?: [{	data: ValueTypes["ModerateRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+marketplaceTriggerOpenSubscription?: [{	input: ValueTypes["MarketplaceTriggerOpenSubscriptionInput"] | Variable<any, string>},ValueTypes["MarketplaceConsolidatedRequest"]],
+marketplaceUpdateOffer?: [{	input: ValueTypes["MarketplaceUpdateOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
+marketplaceWithdrawOffer?: [{	input: ValueTypes["MarketplaceWithdrawOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
 notifyOnAnnualGeneralMeet?: [{	data: ValueTypes["NotifyOnAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
 processConvertToAxonStatement?: [{	data: ValueTypes["ProcessConvertToAxonStatementInput"] | Variable<any, string>},boolean | `@${string}`],
-prohibitRequest?: [{	data: ValueTypes["ProhibitRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 publishProductCard?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
 publishProjectOfFreeDecision?: [{	data: ValueTypes["PublishProjectFreeDecisionInput"] | Variable<any, string>},boolean | `@${string}`],
-publishRequest?: [{	data: ValueTypes["PublishRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
-receiveOnRequest?: [{	data: ValueTypes["ReceiveOnRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 refresh?: [{	data: ValueTypes["RefreshInput"] | Variable<any, string>},ValueTypes["RegisteredAccount"]],
 registerAccount?: [{	data: ValueTypes["RegisterAccountInput"] | Variable<any, string>},ValueTypes["RegisteredAccount"]],
 registerParticipant?: [{	data: ValueTypes["RegisterParticipantInput"] | Variable<any, string>},ValueTypes["Account"]],
-reofferRequest?: [{	data: ValueTypes["ReofferRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
-reqReturn?: [{	data: ValueTypes["ReqReturnInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 resetKey?: [{	data: ValueTypes["ResetKeyInput"] | Variable<any, string>},boolean | `@${string}`],
 restartAnnualGeneralMeet?: [{	data: ValueTypes["RestartAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
 saveReportDraft?: [{	input: ValueTypes["SaveReportDraftInput"] | Variable<any, string>},ValueTypes["ReportDraft"]],
@@ -7208,15 +7355,12 @@ signByPresiderOnAnnualGeneralMeet?: [{	data: ValueTypes["SignByPresiderOnAnnualG
 signBySecretaryOnAnnualGeneralMeet?: [{	data: ValueTypes["SignBySecretaryOnAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
 startInstall?: [{	data: ValueTypes["StartInstallInput"] | Variable<any, string>},ValueTypes["StartInstallResult"]],
 startResetKey?: [{	data: ValueTypes["StartResetKeyInput"] | Variable<any, string>},boolean | `@${string}`],
-supplyOnRequest?: [{	data: ValueTypes["SupplyOnRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 triggerNotificationWorkflow?: [{	data: ValueTypes["TriggerNotificationWorkflowInput"] | Variable<any, string>},boolean | `@${string}`],
 uninstallExtension?: [{	data: ValueTypes["UninstallExtensionInput"] | Variable<any, string>},boolean | `@${string}`],
-unpublishRequest?: [{	data: ValueTypes["UnpublishRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 updateAccount?: [{	data: ValueTypes["UpdateAccountInput"] | Variable<any, string>},ValueTypes["Account"]],
 updateBankAccount?: [{	data: ValueTypes["UpdateBankAccountInput"] | Variable<any, string>},ValueTypes["PaymentMethod"]],
 updateExtension?: [{	data: ValueTypes["ExtensionInput"] | Variable<any, string>},ValueTypes["Extension"]],
 updateReportRequisites?: [{	input: ValueTypes["UpdateReportRequisitesInput"] | Variable<any, string>},ValueTypes["ReportRequisitesView"]],
-updateRequest?: [{	data: ValueTypes["UpdateRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 updateSettings?: [{	data: ValueTypes["UpdateSettingsInput"] | Variable<any, string>},ValueTypes["Settings"]],
 updateSystem?: [{	data: ValueTypes["Update"] | Variable<any, string>},ValueTypes["SystemInfo"]],
 verifyEmail?: [{	data: ValueTypes["VerifyEmailInputDTO"] | Variable<any, string>},boolean | `@${string}`],
@@ -8227,16 +8371,6 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 		__typename?: boolean | `@${string}`,
 	['...on ProgramWalletsPaginationResult']?: Omit<ValueTypes["ProgramWalletsPaginationResult"], "...on ProgramWalletsPaginationResult">
 }>;
-	["ProhibitRequestInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string | Variable<any, string>,
-	/** Идентификатор обмена */
-	exchange_id: number | Variable<any, string>,
-	/** Дополнительная информация о отклоненной модерации */
-	meta: string | Variable<any, string>,
-	/** Имя аккаунта пользователя */
-	username: string | Variable<any, string>
-};
 	["ProjectFreeDecisionGenerateDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num?: number | undefined | null | Variable<any, string>,
@@ -8385,14 +8519,6 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	document: ValueTypes["ProjectFreeDecisionSignedDocumentInput"] | Variable<any, string>,
 	/** Строка мета-информации */
 	meta: string | Variable<any, string>,
-	/** Имя аккаунта пользователя */
-	username: string | Variable<any, string>
-};
-	["PublishRequestInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string | Variable<any, string>,
-	/** Идентификатор заявки */
-	exchange_id: number | Variable<any, string>,
 	/** Имя аккаунта пользователя */
 	username: string | Variable<any, string>
 };
@@ -8550,6 +8676,12 @@ marketplaceAspectAttributes?: [{	data: ValueTypes["GetRequiredAttributesInput"] 
 	marketplaceAttributeStats?:ValueTypes["MarketplaceAttributeStats"],
 marketplaceCategoryAttributes?: [{	input: ValueTypes["GetCategoryAttributesInput"] | Variable<any, string>},ValueTypes["MarketplaceAttribute"]],
 marketplaceCategoryAttributesGrouped?: [{	input: ValueTypes["GetCategoryAttributesInput"] | Variable<any, string>},ValueTypes["MarketplaceAttributeGroup"]],
+	/** Счётчики активных Offer'ов per category — для фильтр-чипов Story 3.5 */
+	marketplaceCategoryOfferCounts?:ValueTypes["MarketplaceCategoryOfferCount"],
+	/** Статус принятия положения ЦПП «Стол заказов» Советом кооператива (L1). `active` если принято, `not_accepted` иначе. */
+	marketplaceCppStatus?:ValueTypes["MarketplaceCppStatus"],
+	/** Дефолтная витрина кооператива (MVP — единственная) */
+	marketplaceDefaultVitrine?:ValueTypes["MarketplaceVitrine"],
 marketplaceFindPotentialMatches?: [{	data: ValueTypes["FindPotentialMatchesInput"] | Variable<any, string>},ValueTypes["MarketplaceRequest"]],
 	/** Получить статистику по доступности категорий в кооперативе
 
@@ -8562,24 +8694,42 @@ marketplaceFindPotentialMatches?: [{	data: ValueTypes["FindPotentialMatchesInput
 	/** Получить дерево доступных категорий и типов для кооператива
 
 Требуемые роли: chairman.  */
-	marketplaceGetAvailableCategoryTree?:ValueTypes["MarketplaceCategory"],
-marketplaceGetCategoryById?: [{	data: ValueTypes["GetCategoryByIdInput"] | Variable<any, string>},ValueTypes["MarketplaceCategory"]],
+	marketplaceGetAvailableCategoryTree?:ValueTypes["MarketplaceCategoryTreeNode"],
+marketplaceGetCategoryById?: [{	data: ValueTypes["GetCategoryByIdInput"] | Variable<any, string>},ValueTypes["MarketplaceCategoryTreeNode"]],
 marketplaceGetCategoryRules?: [{	categoryId: number | Variable<any, string>},ValueTypes["MarketplaceAvailableCategory"]],
-marketplaceGetCategoryTree?: [{	input?: ValueTypes["GetCategoryTreeInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceCategory"]],
+marketplaceGetCategoryTree?: [{	input?: ValueTypes["GetCategoryTreeInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceCategoryTreeNode"]],
 	/** Получить статистику по дереву категорий
 
 Требуемые роли: chairman, member.  */
 	marketplaceGetCategoryTreeStats?:ValueTypes["MarketplaceCategoryTreeStats"],
 marketplaceGetCoopRequests?: [{	data: ValueTypes["GetCoopRequestsInput"] | Variable<any, string>},ValueTypes["MarketplaceRequest"]],
+marketplaceGetOrder?: [{	input: ValueTypes["MarketplaceGetOrderInput"] | Variable<any, string>},ValueTypes["MarketplaceOrder"]],
 marketplaceGetProductTypeById?: [{	data: ValueTypes["GetProductTypeByIdInput"] | Variable<any, string>},ValueTypes["MarketplaceProductType"]],
 marketplaceGetRequest?: [{	data: ValueTypes["GetRequestInput"] | Variable<any, string>},ValueTypes["MarketplaceRequest"]],
 marketplaceGetRequestByHash?: [{	data: ValueTypes["GetRequestByHashInput"] | Variable<any, string>},ValueTypes["MarketplaceRequest"]],
 marketplaceGetRequestStatistics?: [{	data: ValueTypes["GetRequestStatisticsInput"] | Variable<any, string>},ValueTypes["MarketplaceRequestStatistics"]],
 	/** Получить все корневые категории marketplace */
-	marketplaceGetRootCategories?:ValueTypes["MarketplaceCategory"],
-marketplaceGetSearchCategories?: [{	data: ValueTypes["SearchCategoriesInput"] | Variable<any, string>},ValueTypes["MarketplaceCategory"]],
+	marketplaceGetRootCategories?:ValueTypes["MarketplaceCategoryTreeNode"],
+marketplaceGetSearchCategories?: [{	data: ValueTypes["SearchCategoriesInput"] | Variable<any, string>},ValueTypes["MarketplaceCategoryTreeNode"]],
 marketplaceGetUserRequests?: [{	data?: ValueTypes["GetUserRequestsInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceRequest"]],
+marketplaceListCatalog?: [{	input?: ValueTypes["MarketplaceListCatalogInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOfferPaginationResult"]],
+	/** Baseline-категории Стола заказов (Story 3.2/3.5) — 8 продовольственных + «Прочее» */
+	marketplaceListCategories?:ValueTypes["MarketplaceCategory"],
+marketplaceListConsolidatedRequests?: [{	input?: ValueTypes["MarketplaceListConsolidatedRequestsInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceConsolidatedRequestPaginationResult"]],
 marketplaceListKUDetails?: [{	data: ValueTypes["ListMarketplaceKUInput"] | Variable<any, string>},ValueTypes["MarketplaceKUDetails"]],
+marketplaceListModerationLog?: [{	offer_id: string | Variable<any, string>},ValueTypes["MarketplaceModerationLogEntry"]],
+marketplaceListMyOffers?: [{	input?: ValueTypes["MarketplaceListMyOffersInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOfferPaginationResult"]],
+marketplaceListMyOrders?: [{	input?: ValueTypes["MarketplaceListOrdersInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOrderPaginationResult"]],
+marketplaceListPendingOffers?: [{	input?: ValueTypes["MarketplaceListPendingOffersInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOfferPaginationResult"]],
+marketplaceListSupplierOrders?: [{	input?: ValueTypes["MarketplaceListOrdersInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOrderPaginationResult"]],
+	/** Список пайщиков-поставщиков, допущенных к публикации оферт */
+	marketplaceListWhitelist?:ValueTypes["MarketplaceWhitelistEntry"],
+	/** Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.member */
+	marketplaceMemberWallet?:ValueTypes["MarketplaceMemberWallet"],
+	/** Состояние онбординга пайщика в Столе заказов: показывать ли gate или пропускать на стол */
+	marketplaceOnboardingState?:ValueTypes["MarketplaceOnboardingState"],
+	/** Статус видимости оферты Стола заказов в core registration-flow (платформенный AgreementRegistry) */
+	marketplaceRegistrationOfferStatus?:ValueTypes["MarketplaceRegistrationOfferStatus"],
 marketplaceRequiredAttributes?: [{	data: ValueTypes["GetRequiredAttributesInput"] | Variable<any, string>},ValueTypes["MarketplaceAttribute"]],
 marketplaceSearchAttributes?: [{	input: ValueTypes["SearchAttributesInput"] | Variable<any, string>},ValueTypes["MarketplaceAttribute"]],
 marketplaceSearchDictionaryValues?: [{	input: ValueTypes["SearchDictionaryValuesInput"] | Variable<any, string>},ValueTypes["MarketplaceDictionaryValue"]],
@@ -8627,16 +8777,6 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 		__typename?: boolean | `@${string}`,
 	['...on Question']?: Omit<ValueTypes["Question"], "...on Question">
 }>;
-	["ReceiveOnRequestInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string | Variable<any, string>,
-	/** Подписанный Заказчиком акт приёмки-передачи имущества из Кооператива по новации */
-	document: ValueTypes["ReturnByAssetActSignedDocumentInput"] | Variable<any, string>,
-	/** Идентификатор заявки */
-	exchange_id: number | Variable<any, string>,
-	/** Имя аккаунта пользователя */
-	username: string | Variable<any, string>
-};
 	["RefreshInput"]: {
 	/** Токен доступа */
 	access_token: string | Variable<any, string>,
@@ -8792,12 +8932,6 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	/** Типы товаров для удаления */
 	categoryTypes: Array<ValueTypes["CategoryTypeInput"]> | Variable<any, string>
 };
-	["ReofferRequestInput"]: {
-	new_hash: string | Variable<any, string>,
-	new_meta: string | Variable<any, string>,
-	new_unit_cost: string | Variable<any, string>,
-	request_hash: string | Variable<any, string>
-};
 	["ReplaceAvailableItemsInput"]: {
 	/** ID категорий (целые категории) */
 	categoryIds: Array<number> | Variable<any, string>,
@@ -8946,11 +9080,6 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	middle_name: string | Variable<any, string>,
 	position: string | Variable<any, string>
 };
-	["ReqReturnInput"]: {
-	request_hash: string | Variable<any, string>,
-	return_statement: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>,
-	username: string | Variable<any, string>
-};
 	["RequestAttributeInput"]: {
 	/** ID атрибута */
 	attributeId: number | Variable<any, string>,
@@ -9063,176 +9192,6 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 };
 	/** Статус результата в системе CAPITAL */
 ["ResultStatus"]:ResultStatus;
-	["ReturnByAssetActGenerateDocumentInput"]: {
-	/** Идентификатор акта */
-	act_id: string | Variable<any, string>,
-	/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null | Variable<any, string>,
-	/** Имя аккаунта кооперативного участка */
-	braname?: string | undefined | null | Variable<any, string>,
-	/** Название кооператива, связанное с документом */
-	coopname: string | Variable<any, string>,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null | Variable<any, string>,
-	/** Идентификатор решения */
-	decision_id: number | Variable<any, string>,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null | Variable<any, string>,
-	/** Язык документа */
-	lang?: string | undefined | null | Variable<any, string>,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null | Variable<any, string>,
-	/** Идентификатор заявки */
-	request_id: number | Variable<any, string>,
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null | Variable<any, string>,
-	/** Название документа */
-	title?: string | undefined | null | Variable<any, string>,
-	/** Имя аккаунта получателя на кооперативном участке */
-	transmitter: string | Variable<any, string>,
-	/** Имя пользователя, создавшего документ */
-	username: string | Variable<any, string>,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null | Variable<any, string>
-};
-	["ReturnByAssetActSignedDocumentInput"]: {
-	/** Хэш содержимого документа */
-	doc_hash: string | Variable<any, string>,
-	/** Общий хэш (doc_hash + meta_hash) */
-	hash: string | Variable<any, string>,
-	/** Метаинформация для создания проекта свободного решения */
-	meta: ValueTypes["ReturnByAssetActSignedMetaDocumentInput"] | Variable<any, string>,
-	/** Хэш мета-данных */
-	meta_hash: string | Variable<any, string>,
-	/** Вектор подписей */
-	signatures: Array<ValueTypes["SignatureInfoInput"]> | Variable<any, string>,
-	/** Версия стандарта документа */
-	version: string | Variable<any, string>
-};
-	["ReturnByAssetActSignedMetaDocumentInput"]: {
-	/** Идентификатор акта */
-	act_id: string | Variable<any, string>,
-	/** Номер блока, на котором был создан документ */
-	block_num: number | Variable<any, string>,
-	/** Имя аккаунта кооперативного участка */
-	braname?: string | undefined | null | Variable<any, string>,
-	/** Название кооператива, связанное с документом */
-	coopname: string | Variable<any, string>,
-	/** Дата и время создания документа */
-	created_at: string | Variable<any, string>,
-	/** Идентификатор решения */
-	decision_id: number | Variable<any, string>,
-	/** Имя генератора, использованного для создания документа */
-	generator: string | Variable<any, string>,
-	/** Язык документа */
-	lang: string | Variable<any, string>,
-	/** Ссылки, связанные с документом */
-	links: Array<string> | Variable<any, string>,
-	/** ID документа в реестре */
-	registry_id: number | Variable<any, string>,
-	/** Идентификатор заявки */
-	request_id: number | Variable<any, string>,
-	/** Часовой пояс, в котором был создан документ */
-	timezone: string | Variable<any, string>,
-	/** Название документа */
-	title: string | Variable<any, string>,
-	/** Имя аккаунта получателя на кооперативном участке */
-	transmitter: string | Variable<any, string>,
-	/** Имя пользователя, создавшего документ */
-	username: string | Variable<any, string>,
-	/** Версия генератора, использованного для создания документа */
-	version: string | Variable<any, string>
-};
-	["ReturnByAssetDecisionGenerateDocumentInput"]: {
-	/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null | Variable<any, string>,
-	/** Название кооператива, связанное с документом */
-	coopname: string | Variable<any, string>,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null | Variable<any, string>,
-	/** Идентификатор решения */
-	decision_id: number | Variable<any, string>,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null | Variable<any, string>,
-	/** Язык документа */
-	lang?: string | undefined | null | Variable<any, string>,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null | Variable<any, string>,
-	/** Идентификатор заявки */
-	request_id: number | Variable<any, string>,
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null | Variable<any, string>,
-	/** Название документа */
-	title?: string | undefined | null | Variable<any, string>,
-	/** Имя пользователя, создавшего документ */
-	username: string | Variable<any, string>,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null | Variable<any, string>
-};
-	["ReturnByAssetStatementGenerateDocumentInput"]: {
-	/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null | Variable<any, string>,
-	/** Название кооператива, связанное с документом */
-	coopname: string | Variable<any, string>,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null | Variable<any, string>,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null | Variable<any, string>,
-	/** Язык документа */
-	lang?: string | undefined | null | Variable<any, string>,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null | Variable<any, string>,
-	/** Запрос на внесение имущественного паевого взноса */
-	request: ValueTypes["CommonRequestInput"] | Variable<any, string>,
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null | Variable<any, string>,
-	/** Название документа */
-	title?: string | undefined | null | Variable<any, string>,
-	/** Имя пользователя, создавшего документ */
-	username: string | Variable<any, string>,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null | Variable<any, string>
-};
-	["ReturnByAssetStatementSignedDocumentInput"]: {
-	/** Хэш содержимого документа */
-	doc_hash: string | Variable<any, string>,
-	/** Общий хэш (doc_hash + meta_hash) */
-	hash: string | Variable<any, string>,
-	/** Метаинформация для создания проекта свободного решения */
-	meta: ValueTypes["ReturnByAssetStatementSignedMetaDocumentInput"] | Variable<any, string>,
-	/** Хэш мета-данных */
-	meta_hash: string | Variable<any, string>,
-	/** Вектор подписей */
-	signatures: Array<ValueTypes["SignatureInfoInput"]> | Variable<any, string>,
-	/** Версия стандарта документа */
-	version: string | Variable<any, string>
-};
-	["ReturnByAssetStatementSignedMetaDocumentInput"]: {
-	/** Номер блока, на котором был создан документ */
-	block_num: number | Variable<any, string>,
-	/** Название кооператива, связанное с документом */
-	coopname: string | Variable<any, string>,
-	/** Дата и время создания документа */
-	created_at: string | Variable<any, string>,
-	/** Имя генератора, использованного для создания документа */
-	generator: string | Variable<any, string>,
-	/** Язык документа */
-	lang: string | Variable<any, string>,
-	/** Ссылки, связанные с документом */
-	links: Array<string> | Variable<any, string>,
-	/** ID документа в реестре */
-	registry_id: number | Variable<any, string>,
-	/** Запрос на внесение имущественного паевого взноса */
-	request: ValueTypes["CommonRequestInput"] | Variable<any, string>,
-	/** Часовой пояс, в котором был создан документ */
-	timezone: string | Variable<any, string>,
-	/** Название документа */
-	title: string | Variable<any, string>,
-	/** Имя пользователя, создавшего документ */
-	username: string | Variable<any, string>,
-	/** Версия генератора, использованного для создания документа */
-	version: string | Variable<any, string>
-};
 	["ReturnByMoneyDecisionGenerateDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num?: number | undefined | null | Variable<any, string>,
@@ -9775,16 +9734,6 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 		__typename?: boolean | `@${string}`,
 	['...on SubscriptionStatsDto']?: Omit<ValueTypes["SubscriptionStatsDto"], "...on SubscriptionStatsDto">
 }>;
-	["SupplyOnRequestInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string | Variable<any, string>,
-	/** Подписанный Поставщиком акт приёма-передачи имущества в кооператив */
-	document: ValueTypes["AssetContributionActSignedDocumentInput"] | Variable<any, string>,
-	/** Идентификатор обмена */
-	exchange_id: number | Variable<any, string>,
-	/** Имя аккаунта пользователя */
-	username: string | Variable<any, string>
-};
 	["Symbols"]: AliasType<{
 	/** Точность символа управления */
 	root_govern_precision?:boolean | `@${string}`,
@@ -9901,14 +9850,6 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	["UninstallExtensionInput"]: {
 	/** Фильтр по имени */
 	name: string | Variable<any, string>
-};
-	["UnpublishRequestInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string | Variable<any, string>,
-	/** Идентификатор обмена */
-	exchange_id: number | Variable<any, string>,
-	/** Имя аккаунта пользователя */
-	username: string | Variable<any, string>
 };
 	["Update"]: {
 	/** Собственные данные кооператива, обслуживающего экземпляр платформы */
@@ -10078,22 +10019,6 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	signerSnils?: string | undefined | null | Variable<any, string>,
 	/** chairman | representative */
 	signerType?: string | undefined | null | Variable<any, string>
-};
-	["UpdateRequestInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string | Variable<any, string>,
-	/** Дополнительные данные */
-	data: string | Variable<any, string>,
-	/** Идентификатор обмена */
-	exchange_id: number | Variable<any, string>,
-	/** Дополнительная информация */
-	meta: string | Variable<any, string>,
-	/** Оставшееся количество единиц */
-	remain_units: string | Variable<any, string>,
-	/** Стоимость за единицу в формате "10.0000 RUB" */
-	unit_cost: string | Variable<any, string>,
-	/** Имя аккаунта пользователя */
-	username: string | Variable<any, string>
 };
 	["UpdateSettingsInput"]: {
 	/** Маршрут по умолчанию для авторизованных пользователей */
@@ -10403,23 +10328,7 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
   }
 
 export type ResolverInputTypes = {
-    ["AcceptChildOrderInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Подписанное заявление на имущественный паевый взнос */
-	document: ResolverInputTypes["AssetContributionStatementSignedDocumentInput"],
-	/** Идентификатор заявки */
-	exchange_id: string,
-	/** Имя аккаунта пользователя */
-	username: string
-};
-	["AcceptStockInput"]: {
-	convert_in: ResolverInputTypes["SignedDigitalDocumentInput"],
-	request_hash: string,
-	return_statement: ResolverInputTypes["SignedDigitalDocumentInput"],
-	username: string
-};
-	["Account"]: AliasType<{
+    ["Account"]: AliasType<{
 	/** объект аккаунта в блокчейне содержит системную информацию, такую как публичные ключи доступа, доступные вычислительные ресурсы, информация об установленном смарт-контракте, и т.д. и т.п. Это системный уровень обслуживания, где у каждого пайщика есть аккаунт, но не каждый аккаунт может быть пайщиком в каком-либо кооперативе. Все смарт-контракты устанавливаются и исполняются на этом уровне. */
 	blockchain_account?:ResolverInputTypes["BlockchainAccount"],
 	/** объект пайщика кооператива в таблице блокчейне, который определяет членство пайщика в конкретном кооперативе. Поскольку MONO обслуживает только один кооператив, то в participant_account обычно содержится информация, которая описывает членство пайщика в этом кооперативе. Этот объект обезличен, публичен, и хранится в блокчейне. */
@@ -11038,176 +10947,6 @@ export type ResolverInputTypes = {
 };
 	/** Статус одобрения в системе CHAIRMAN */
 ["ApprovalStatus"]:ApprovalStatus;
-	["AssetContributionActGenerateDocumentInput"]: {
-	/** Идентификатор акта */
-	act_id: string,
-	/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null,
-	/** Имя аккаунта кооперативного участка */
-	braname?: string | undefined | null,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null,
-	/** Идентификатор решения */
-	decision_id: number,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null,
-	/** Язык документа */
-	lang?: string | undefined | null,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null,
-	/** Имя аккаунта получателя на кооперативном участке */
-	receiver: string,
-	/** Идентификатор заявки */
-	request_id: number,
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null,
-	/** Название документа */
-	title?: string | undefined | null,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null
-};
-	["AssetContributionActSignedDocumentInput"]: {
-	/** Хэш содержимого документа */
-	doc_hash: string,
-	/** Общий хэш (doc_hash + meta_hash) */
-	hash: string,
-	/** Метаинформация для создания проекта свободного решения */
-	meta: ResolverInputTypes["AssetContributionActSignedMetaDocumentInput"],
-	/** Хэш мета-данных */
-	meta_hash: string,
-	/** Вектор подписей */
-	signatures: Array<ResolverInputTypes["SignatureInfoInput"]>,
-	/** Версия стандарта документа */
-	version: string
-};
-	["AssetContributionActSignedMetaDocumentInput"]: {
-	/** Идентификатор акта */
-	act_id: string,
-	/** Номер блока, на котором был создан документ */
-	block_num: number,
-	/** Имя аккаунта кооперативного участка */
-	braname?: string | undefined | null,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at: string,
-	/** Идентификатор решения */
-	decision_id: number,
-	/** Имя генератора, использованного для создания документа */
-	generator: string,
-	/** Язык документа */
-	lang: string,
-	/** Ссылки, связанные с документом */
-	links: Array<string>,
-	/** Имя аккаунта получателя на кооперативном участке */
-	receiver: string,
-	/** ID документа в реестре */
-	registry_id: number,
-	/** Идентификатор заявки */
-	request_id: number,
-	/** Часовой пояс, в котором был создан документ */
-	timezone: string,
-	/** Название документа */
-	title: string,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version: string
-};
-	["AssetContributionDecisionGenerateDocumentInput"]: {
-	/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null,
-	/** Идентификатор решения */
-	decision_id: number,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null,
-	/** Язык документа */
-	lang?: string | undefined | null,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null,
-	/** Идентификатор заявки */
-	request_id: number,
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null,
-	/** Название документа */
-	title?: string | undefined | null,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null
-};
-	["AssetContributionStatementGenerateDocumentInput"]: {
-	/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null,
-	/** Язык документа */
-	lang?: string | undefined | null,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null,
-	/** Запрос на внесение имущественного паевого взноса */
-	request: ResolverInputTypes["CommonRequestInput"],
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null,
-	/** Название документа */
-	title?: string | undefined | null,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null
-};
-	["AssetContributionStatementSignedDocumentInput"]: {
-	/** Хэш содержимого документа */
-	doc_hash: string,
-	/** Общий хэш (doc_hash + meta_hash) */
-	hash: string,
-	/** Метаинформация для создания проекта свободного решения */
-	meta: ResolverInputTypes["AssetContributionStatementSignedMetaDocumentInput"],
-	/** Хэш мета-данных */
-	meta_hash: string,
-	/** Вектор подписей */
-	signatures: Array<ResolverInputTypes["SignatureInfoInput"]>,
-	/** Версия стандарта документа */
-	version: string
-};
-	["AssetContributionStatementSignedMetaDocumentInput"]: {
-	/** Номер блока, на котором был создан документ */
-	block_num: number,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at: string,
-	/** Имя генератора, использованного для создания документа */
-	generator: string,
-	/** Язык документа */
-	lang: string,
-	/** Ссылки, связанные с документом */
-	links: Array<string>,
-	/** ID документа в реестре */
-	registry_id: number,
-	/** Запрос на внесение имущественного паевого взноса */
-	request: ResolverInputTypes["CommonRequestInput"],
-	/** Часовой пояс, в котором был создан документ */
-	timezone: string,
-	/** Название документа */
-	title: string,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version: string
-};
 	["AuthSequence"]: AliasType<{
 	account?:boolean | `@${string}`,
 	sequence?:boolean | `@${string}`,
@@ -11629,14 +11368,6 @@ export type ResolverInputTypes = {
 	transcription?:ResolverInputTypes["CallTranscription"],
 		__typename?: boolean | `@${string}`
 }>;
-	["CancelRequestInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Идентификатор заявки */
-	exchange_id: string,
-	/** Имя аккаунта пользователя */
-	username: string
-};
 	["Candidate"]: AliasType<{
 	braname?:boolean | `@${string}`,
 	coopname?:boolean | `@${string}`,
@@ -13145,17 +12876,6 @@ export type ResolverInputTypes = {
 };
 	/** Статус коммита в системе CAPITAL */
 ["CommitStatus"]:CommitStatus;
-	["CommonRequestInput"]: {
-	currency: string,
-	hash: string,
-	program_id: number,
-	title: string,
-	total_cost: string,
-	type: string,
-	unit_cost: string,
-	unit_of_measurement: string,
-	units: number
-};
 	["CompleteCapitalRegistrationInputDTO"]: {
 	/** Информация о себе */
 	about?: string | undefined | null,
@@ -13193,14 +12913,6 @@ export type ResolverInputTypes = {
 	["CompleteProcessStepInput"]: {
 	instance_id: string,
 	step_id: string
-};
-	["CompleteRequestInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Идентификатор обмена */
-	exchange_id: string,
-	/** Имя аккаунта пользователя */
-	username: string
 };
 	["CompleteVotingInput"]: {
 	/** Имя аккаунта кооператива */
@@ -13274,28 +12986,6 @@ export type ResolverInputTypes = {
 	approved_document?: ResolverInputTypes["SignedDigitalDocumentInput"] | undefined | null,
 	/** Название кооператива */
 	coopname: string
-};
-	/** Подтвердить получение имущества Уполномоченным лицом от Заказчика по новации и акту приёмки-передачи */
-["ConfirmReceiveOnRequestInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Подписанный акт приёмки-передачи имущества Уполномоченным лицом из Кооператива при возврате Заказчику по новации */
-	document: ResolverInputTypes["ReturnByAssetActSignedDocumentInput"],
-	/** Идентификатор обмена */
-	exchange_id: string,
-	/** Имя аккаунта пользователя */
-	username: string
-};
-	/** Подтвердить поставку имущества Поставщиком по заявке Заказчика и акту приёма-передачи */
-["ConfirmSupplyOnRequestInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Подписанный акт приёма-передачи имущества от Поставщика в Кооператив */
-	document: ResolverInputTypes["AssetContributionActSignedDocumentInput"],
-	/** Идентификатор обмена */
-	exchange_id: string,
-	/** Имя аккаунта пользователя */
-	username: string
 };
 	["ContactsDTO"]: AliasType<{
 	chairman?:ResolverInputTypes["PublicChairman"],
@@ -13486,16 +13176,6 @@ export type ResolverInputTypes = {
 	program_type?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	["CoopstockInput"]: {
-	braname: string,
-	hash: string,
-	membership_fee_amount: string,
-	meta: string,
-	product_lifecycle_secs: number,
-	unit_cost: string,
-	units: number,
-	warranty_period_secs: number
-};
 	/** Страна регистрации пользователя */
 ["Country"]:Country;
 	["CreateAnnualGeneralMeetInput"]: {
@@ -13551,28 +13231,6 @@ export type ResolverInputTypes = {
 	matrixRoomId: string,
 	startsAt: ResolverInputTypes["DateTime"],
 	title: string
-};
-	["CreateChildOrderInput"]: {
-	/** Имя кооператива */
-	coopname: string,
-	/** Дополнительные данные, специфичные для заявки */
-	data: string,
-	/** Подписанное заявление на возврат паевого взноса имуществом от Заказчика */
-	document: ResolverInputTypes["ReturnByAssetStatementSignedDocumentInput"],
-	/** Метаданные о заявке */
-	meta: string,
-	/** Идентификатор родительской заявки */
-	parent_id: number,
-	/** Время жизни продукта, заявляемое поставщиком (в секундах) */
-	product_lifecycle_secs: number,
-	/** Идентификатор программы */
-	program_id: number,
-	/** Цена за единицу (штуку) товара или результата услуги в формате "10.0000 RUB" */
-	unit_cost: string,
-	/** Количество частей (штук) товара или услуги */
-	units: number,
-	/** Имя пользователя, инициирующего или обновляющего заявку */
-	username: string
 };
 	["CreateCommitInput"]: {
 	/** Количество часов для коммита */
@@ -13763,26 +13421,6 @@ export type ResolverInputTypes = {
 	short_name: string,
 	/** Тип организации */
 	type: ResolverInputTypes["OrganizationType"]
-};
-	["CreateParentOfferInput"]: {
-	/** Имя кооператива */
-	coopname: string,
-	/** Дополнительные данные, специфичные для заявки */
-	data: string,
-	/** Метаданные о заявке */
-	meta: string,
-	/** Идентификатор родительской заявки */
-	parent_id: number,
-	/** Время жизни продукта, заявляемое поставщиком (в секундах) */
-	product_lifecycle_secs: number,
-	/** Идентификатор программы */
-	program_id: number,
-	/** Цена за единицу (штуку) товара или услуги в формате "10.0000 RUB" */
-	unit_cost: string,
-	/** Количество частей (штук) товара или услуги */
-	units: number,
-	/** Имя пользователя, инициирующего или обновляющего заявку */
-	username: string
 };
 	["CreateProcessTemplateInput"]: {
 	description?: string | undefined | null,
@@ -14120,16 +13758,6 @@ export type ResolverInputTypes = {
 	/** Причина отклонения */
 	reason: string
 };
-	["DeclineRequestInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Идентификатор обмена */
-	exchange_id: number,
-	/** Причина отказа */
-	meta: string,
-	/** Имя аккаунта пользователя */
-	username: string
-};
 	["DeleteBranchInput"]: {
 	/** Имя аккаунта кооперативного участка */
 	braname: string,
@@ -14165,14 +13793,6 @@ export type ResolverInputTypes = {
 	coopname: string,
 	/** Имя аккаунта доверонного лица, у которого отзывается право подписи за председателя кооперативного участка */
 	trusted: string
-};
-	["DeliverOnRequestInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Идентификатор обмена */
-	exchange_id: number,
-	/** Имя аккаунта пользователя */
-	username: string
 };
 	["DeliveryType"]:DeliveryType;
 	["Delta"]: AliasType<{
@@ -14251,20 +13871,6 @@ export type ResolverInputTypes = {
 	title?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	["DestroyRequestInput"]: {
-	destruction_act: ResolverInputTypes["SignedDigitalDocumentInput"],
-	request_hash: string
-};
-	["DisputeOnRequestInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Документ с аргументами спора */
-	document: ResolverInputTypes["JSONObject"],
-	/** Идентификатор обмена */
-	exchange_id: number,
-	/** Имя аккаунта пользователя */
-	username: string
-};
 	/** Типы действий для документов кооператива */
 ["DocumentAction"]:DocumentAction;
 	["DocumentAggregate"]: AliasType<{
@@ -15517,6 +15123,29 @@ export type ResolverInputTypes = {
 	reportType: ResolverInputTypes["ReportType"],
 	year: number
 };
+	/** Параметры приёма сводной заявки поставщиком. */
+["MarketplaceAcceptConsolidatedRequestInput"]: {
+	/** Идентификатор сводной заявки, ожидающей решения поставщика. */
+	request_id: string
+};
+	["MarketplaceAcceptCppInput"]: {
+	/** id решения Совета (FR40, Эпик 8). В MVP — stub string председателя. */
+	accepted_by_board_decision_id: string,
+	/** registry_id рендеренного instance положения ЦПП (Story 1.7 даст id из cooptypes) */
+	document_registry_id: number
+};
+	/** Параметры индивидуального приёма заказа поставщиком. */
+["MarketplaceAcceptIndividualOrderInput"]: {
+	/** Идентификатор заказа индивидуального типа, который поставщик принимает. */
+	order_id: string
+};
+	["MarketplaceAddToWhitelistInput"]: {
+	/** eosio::name пайщика-поставщика (3-12 chars, [.12345abcdefghijklmnopqrstuvwxyz]) */
+	member_account: string
+};
+	["MarketplaceApproveOfferInput"]: {
+	offer_id: string
+};
 	["MarketplaceAttribute"]: AliasType<{
 	/** ID комплексного атрибута */
 	attributeComplexId?:boolean | `@${string}`,
@@ -15627,11 +15256,45 @@ export type ResolverInputTypes = {
 	updatedAt?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Параметры отмены своего заказа пайщиком. */
+["MarketplaceCancelOrderInput"]: {
+	/** Идентификатор заказа, который пайщик хочет отменить (отмена возможна до приёма заказа поставщиком). */
+	order_id: string
+};
+	/** Результат отмены заказа пайщиком. */
+["MarketplaceCancelOrderResult"]: AliasType<{
+	/** Заказ после перевода в отменённое состояние. */
+	order?:ResolverInputTypes["MarketplaceOrder"],
+	/** Идентификатор транзакции отмены в блокчейне. */
+	tx_hash?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["MarketplaceCategory"]: AliasType<{
+	display_name?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	mvp_baseline?:boolean | `@${string}`,
+	sort_order?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceCategoryOfferCount"]: AliasType<{
+	category_id?:boolean | `@${string}`,
+	count?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceCategoryRequestCount"]: AliasType<{
+	/** ID категории */
+	categoryId?:boolean | `@${string}`,
+	/** Название категории */
+	categoryName?:boolean | `@${string}`,
+	/** Количество заявок */
+	count?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceCategoryTreeNode"]: AliasType<{
 	/** Название категории */
 	categoryName?:boolean | `@${string}`,
 	/** Дочерние категории */
-	children?:ResolverInputTypes["MarketplaceCategory"],
+	children?:ResolverInputTypes["MarketplaceCategoryTreeNode"],
 	/** Количество дочерних категорий */
 	childrenCount?:boolean | `@${string}`,
 	/** ID категории */
@@ -15650,15 +15313,6 @@ export type ResolverInputTypes = {
 	typesCount?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	["MarketplaceCategoryRequestCount"]: AliasType<{
-	/** ID категории */
-	categoryId?:boolean | `@${string}`,
-	/** Название категории */
-	categoryName?:boolean | `@${string}`,
-	/** Количество заявок */
-	count?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`
-}>;
 	["MarketplaceCategoryTreeStats"]: AliasType<{
 	/** Количество доступных типов товаров */
 	availableTypes?:boolean | `@${string}`,
@@ -15674,12 +15328,121 @@ export type ResolverInputTypes = {
 	totalTypes?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["MarketplaceConsolidatedRequest"]: AliasType<{
+	accepted_at?:boolean | `@${string}`,
+	coopname?:boolean | `@${string}`,
+	created_at?:boolean | `@${string}`,
+	cycle_ended_at?:boolean | `@${string}`,
+	cycle_started_at?:boolean | `@${string}`,
+	/** time_based | volume_based | open_subscription | individual */
+	cycle_type?:boolean | `@${string}`,
+	decline_reason?:boolean | `@${string}`,
+	declined_at?:boolean | `@${string}`,
+	expires_at?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	offer_id?:boolean | `@${string}`,
+	/** PENDING_SUPPLIER_ACCEPT | ACCEPTED | DECLINED_BY_SUPPLIER | EXPIRED_NO_RESPONSE | EXPIRED_NO_THRESHOLD | EXPIRED_NO_VOLUME */
+	status?:boolean | `@${string}`,
+	supplier_account?:boolean | `@${string}`,
+	/** Сумма заявки (numeric как string). */
+	total_amount?:boolean | `@${string}`,
+	total_quantity?:boolean | `@${string}`,
+	triggered_by_supplier_at?:boolean | `@${string}`,
+	updated_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Результат массового действия поставщика над пакетом заказов (приём или отклонение). */
+["MarketplaceConsolidatedRequestActionResult"]: AliasType<{
+	/** Сколько заказов входило в обработанный пакет. */
+	affected_orders?:boolean | `@${string}`,
+	/** Сколько заказов из пакета не удалось провести в блокчейн — потребуется повторная обработка. */
+	on_chain_failed?:boolean | `@${string}`,
+	/** Сколько заказов из пакета удалось провести в блокчейн. */
+	on_chain_succeeded?:boolean | `@${string}`,
+	/** Сводная заявка после обработки. */
+	request?:ResolverInputTypes["MarketplaceConsolidatedRequest"],
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceConsolidatedRequestPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ResolverInputTypes["MarketplaceConsolidatedRequest"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Состояние сводной заявки поставщика на поставку партии заказов. */
+["MarketplaceConsolidatedRequestStatus"]:MarketplaceConsolidatedRequestStatus;
+	["MarketplaceCppStatus"]: AliasType<{
+	accepted_at?:boolean | `@${string}`,
+	accepted_by_board_decision_id?:boolean | `@${string}`,
+	document_registry_id?:boolean | `@${string}`,
+	/** `active` — Совет принял положение ЦПП; `not_accepted` — расширение не подключено */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceCreateOfferInput"]: {
+	category_id: number,
+	cycle_days?: number | undefined | null,
+	/** time_based | volume_based | open_subscription | individual */
+	cycle_type: string,
+	description?: string | undefined | null,
+	max_wait_days?: number | undefined | null,
+	min_threshold?: number | undefined | null,
+	/** Цена за единицу (numeric как string, до 4 знаков) */
+	price_per_unit: string,
+	product_name: string,
+	quantity_available?: number | undefined | null,
+	target_volume?: number | undefined | null,
+	/** piece | kg | liter | pack */
+	unit_of_measure: string,
+	unlimited_flag: boolean,
+	warranty_days: number
+};
+	/** Параметры оформления нового заказа пайщиком. */
+["MarketplaceCreateOrderInput"]: {
+	/** Имя пункта выдачи (ПВЗ), куда пайщик хочет получить заказ. */
+	delivery_braname: string,
+	/** Идентификатор предложения, по которому пайщик оформляет заказ. */
+	offer_id: string,
+	/** Количество единиц товара (от 1; для не-безлимитных предложений — не больше доступного остатка). */
+	quantity: number
+};
+	["MarketplaceCreateOrderResult"]: AliasType<{
+	order?:ResolverInputTypes["MarketplaceOrder"],
+	tx_snapshot?:ResolverInputTypes["MarketplaceOrderCreateTxSnapshot"],
+		__typename?: boolean | `@${string}`
+}>;
 	["MarketplaceCurrentMember"]: AliasType<{
 	core_roles?:boolean | `@${string}`,
 	marketplace_roles?:boolean | `@${string}`,
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Параметры отказа поставщика от сводной заявки. */
+["MarketplaceDeclineConsolidatedRequestInput"]: {
+	/** Текст причины отказа — будет показан пайщикам в их заказах. */
+	reason: string,
+	/** Идентификатор сводной заявки, от которой поставщик отказывается. */
+	request_id: string
+};
+	/** Параметры индивидуального отказа поставщика от заказа. */
+["MarketplaceDeclineIndividualOrderInput"]: {
+	/** Идентификатор заказа индивидуального типа, от которого поставщик отказывается. */
+	order_id: string,
+	/** Текст причины отказа — будет показан пайщику в его заказе. */
+	reason: string
+};
+	/** Параметры отказа поставщика от одного заказа из пула открытой подписки до запуска поставки. */
+["MarketplaceDeclineOrderFromOpenPoolInput"]: {
+	/** Идентификатор заказа из пула открытой подписки, от которого поставщик отказывается до запуска поставки. */
+	order_id: string,
+	/** Текст причины отказа — будет показан пайщику в его заказе. */
+	reason: string
+};
 	["MarketplaceDetailKUInput"]: {
 	/** Полный адрес ПВЗ для отображения и геокодинга */
 	addressFull: string,
@@ -15730,6 +15493,11 @@ export type ResolverInputTypes = {
 	value?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Параметры запроса одного заказа. */
+["MarketplaceGetOrderInput"]: {
+	/** Идентификатор заказа. */
+	order_id: string
+};
 	["MarketplaceKUDetails"]: AliasType<{
 	addressFull?:boolean | `@${string}`,
 	contactEmail?:boolean | `@${string}`,
@@ -15751,6 +15519,211 @@ export type ResolverInputTypes = {
 	workingHours?:ResolverInputTypes["WorkingHours"],
 		__typename?: boolean | `@${string}`
 }>;
+	["MarketplaceListCatalogInput"]: {
+	/** category_id 1..9; null = «Все» */
+	category_id?: number | undefined | null,
+	/** Количество элементов на странице */
+	limit: number,
+	/** Номер страницы */
+	page: number,
+	/** Ключ сортировки (например, "name") */
+	sortBy?: string | undefined | null,
+	/** Направление сортировки ("ASC" или "DESC") */
+	sortOrder: string
+};
+	["MarketplaceListConsolidatedRequestsInput"]: {
+	/** Фильтр по идентификатору предложения. */
+	offer_id?: string | undefined | null,
+	/** Фильтр по состоянию сводной заявки. */
+	status?: ResolverInputTypes["MarketplaceConsolidatedRequestStatus"] | undefined | null
+};
+	["MarketplaceListMyOffersInput"]: {
+	/** Количество элементов на странице */
+	limit: number,
+	/** Номер страницы */
+	page: number,
+	/** Ключ сортировки (например, "name") */
+	sortBy?: string | undefined | null,
+	/** Направление сортировки ("ASC" или "DESC") */
+	sortOrder: string
+};
+	/** Параметры фильтрации списка заказов (постранично/сортировка задаются отдельным аргументом options). */
+["MarketplaceListOrdersInput"]: {
+	/** Фильтр по идентификатору предложения. */
+	offer_id?: string | undefined | null,
+	/** Фильтр по аккаунту заказчика. */
+	orderer_account?: string | undefined | null,
+	/** Один или несколько статусов заказа, по которым нужно отфильтровать список. */
+	statuses?: Array<ResolverInputTypes["MarketplaceOrderStatus"]> | undefined | null,
+	/** Фильтр по аккаунту поставщика. */
+	supplier_account?: string | undefined | null
+};
+	["MarketplaceListPendingOffersInput"]: {
+	/** Количество элементов на странице */
+	limit: number,
+	/** Номер страницы */
+	page: number,
+	/** Ключ сортировки (например, "name") */
+	sortBy?: string | undefined | null,
+	/** Направление сортировки ("ASC" или "DESC") */
+	sortOrder: string
+};
+	["MarketplaceMemberWallet"]: AliasType<{
+	coopname?:boolean | `@${string}`,
+	username?:boolean | `@${string}`,
+	/** Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.member */
+	wallets?:ResolverInputTypes["MarketplaceWalletEntry"],
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceModerationLogEntry"]: AliasType<{
+	/** approve | reject */
+	action?:boolean | `@${string}`,
+	by_account?:boolean | `@${string}`,
+	created_at?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	offer_id?:boolean | `@${string}`,
+	reason?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceOffer"]: AliasType<{
+	approved_at?:boolean | `@${string}`,
+	approved_by?:boolean | `@${string}`,
+	category_id?:boolean | `@${string}`,
+	coopname?:boolean | `@${string}`,
+	created_at?:boolean | `@${string}`,
+	cycle_days?:boolean | `@${string}`,
+	/** time_based | volume_based | open_subscription | individual */
+	cycle_type?:boolean | `@${string}`,
+	description?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	max_wait_days?:boolean | `@${string}`,
+	min_threshold?:boolean | `@${string}`,
+	/** Цена за единицу (numeric как string) */
+	price_per_unit?:boolean | `@${string}`,
+	product_name?:boolean | `@${string}`,
+	quantity_available?:boolean | `@${string}`,
+	quantity_blocked?:boolean | `@${string}`,
+	quantity_consumed?:boolean | `@${string}`,
+	reject_reason?:boolean | `@${string}`,
+	rejected_at?:boolean | `@${string}`,
+	rejected_by?:boolean | `@${string}`,
+	/** PENDING_MODERATION | ACTIVE | REJECTED | WITHDRAWN */
+	status?:boolean | `@${string}`,
+	supplier_account?:boolean | `@${string}`,
+	target_volume?:boolean | `@${string}`,
+	/** piece | kg | liter | pack */
+	unit_of_measure?:boolean | `@${string}`,
+	unlimited_flag?:boolean | `@${string}`,
+	updated_at?:boolean | `@${string}`,
+	vitrine_id?:boolean | `@${string}`,
+	warranty_days?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceOfferPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ResolverInputTypes["MarketplaceOffer"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceOnboardingState"]: AliasType<{
+	agreement_id?:boolean | `@${string}`,
+	completed_at?:boolean | `@${string}`,
+	/** true — фронт должен показать gate-диалог OnboardingCPPGate; false — пайщик может попасть на стол сразу */
+	requires_gate?:boolean | `@${string}`,
+	source?:boolean | `@${string}`,
+	/** registry_id шаблона оферты ЦПП marketplace в платформенной document factory (Story 1.7). 0 — placeholder, оферта ещё не зарегистрирована. */
+	template_registry_id?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Заказ пайщика по предложению поставщика. */
+["MarketplaceOrder"]: AliasType<{
+	/** Когда поставщик принял заказ. */
+	accepted_at?:boolean | `@${string}`,
+	/** Когда средства были заблокированы. */
+	blocked_at?:boolean | `@${string}`,
+	/** Когда заказ был отменён. */
+	cancelled_at?:boolean | `@${string}`,
+	/** Кооператив, в котором сделан заказ. */
+	coopname?:boolean | `@${string}`,
+	/** Снимок транзакции блокировки средств (для отображения движений кошелька). */
+	create_tx?:ResolverInputTypes["MarketplaceOrderCreateTxSnapshot"],
+	/** Когда запись о заказе создана в системе. */
+	created_at?:boolean | `@${string}`,
+	/** Идентификатор партии-накопителя, если заказ присоединён. */
+	cycle_id?:boolean | `@${string}`,
+	/** Способ накопления заказов перед поставкой (копируется из предложения). */
+	cycle_type?:boolean | `@${string}`,
+	/** Имя пункта выдачи (ПВЗ), куда пайщик хочет получить заказ. */
+	delivery_braname?:boolean | `@${string}`,
+	/** Идентификатор заказа. */
+	id?:boolean | `@${string}`,
+	/** Текстовая причина последнего изменения статуса. */
+	last_status_reason?:boolean | `@${string}`,
+	/** Хеш предложения в блокчейне (snapshot на момент заказа). */
+	offer_hash?:boolean | `@${string}`,
+	/** Идентификатор предложения, по которому оформлен заказ. */
+	offer_id?:boolean | `@${string}`,
+	/** Хеш заказа в блокчейне (для сверки). */
+	order_hash?:boolean | `@${string}`,
+	/** Аккаунт пайщика-заказчика. */
+	orderer_account?:boolean | `@${string}`,
+	/** Цена за единицу товара на момент заказа. */
+	price_per_unit?:boolean | `@${string}`,
+	/** Количество единиц товара в заказе. */
+	quantity?:boolean | `@${string}`,
+	/** Когда пайщик получил заказ. */
+	received_at?:boolean | `@${string}`,
+	/** Текущий этап жизненного цикла заказа. */
+	status?:boolean | `@${string}`,
+	/** Аккаунт поставщика. */
+	supplier_account?:boolean | `@${string}`,
+	/** Общая сумма заказа. */
+	total_cost?:boolean | `@${string}`,
+	/** Когда запись о заказе последний раз изменялась. */
+	updated_at?:boolean | `@${string}`,
+	/** Срок гарантии в секундах с момента получения. */
+	warranty_period_secs?:boolean | `@${string}`,
+	/** Дата окончания гарантии. */
+	warranty_until?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Снимок транзакции блокировки средств: ссылки на блок, флаги конверсии и сумма. */
+["MarketplaceOrderCreateTxSnapshot"]: AliasType<{
+	/** Номер блока, в который попала транзакция. */
+	block_num?:boolean | `@${string}`,
+	/** Сумма заблокированных средств (строка денежного актива). */
+	blocked_amount?:boolean | `@${string}`,
+	/** Был ли выполнен перевод средств между кошельками пайщика. */
+	did_assign?:boolean | `@${string}`,
+	/** Была ли выполнена конверсия паевого взноса в членский. */
+	did_convert?:boolean | `@${string}`,
+	/** Время подписания заказа (ISO 8601). */
+	signed_at?:boolean | `@${string}`,
+	/** Идентификатор транзакции в блокчейне. */
+	tx_hash?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Способ накопления заказов перед поставкой. */
+["MarketplaceOrderCycleType"]:MarketplaceOrderCycleType;
+	/** Постраничный список заказов. */
+["MarketplaceOrderPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ResolverInputTypes["MarketplaceOrder"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Этап жизненного цикла заказа. */
+["MarketplaceOrderStatus"]:MarketplaceOrderStatus;
 	["MarketplaceProductType"]: AliasType<{
 	/** ID категории */
 	descriptionCategoryId?:boolean | `@${string}`,
@@ -15766,6 +15739,28 @@ export type ResolverInputTypes = {
 	typeName?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["MarketplaceRegistrationOfferStatus"]: AliasType<{
+	/** AGREEMENT_ID (например `marketplace_offer`) */
+	agreement_id?:boolean | `@${string}`,
+	agreement_type?:boolean | `@${string}`,
+	/** Account types, для которых оферта показывается в SignUp ([individual, entrepreneur] на MVP) */
+	applicable_account_types?:boolean | `@${string}`,
+	/** true — оферта зарегистрирована в platform AgreementRegistry, видна в SignUp; false — Story 1.7 не размещена либо init расширения ещё не отработал */
+	registered?:boolean | `@${string}`,
+	/** document_registry_id template оферты */
+	registry_id?:boolean | `@${string}`,
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceRejectOfferInput"]: {
+	offer_id: string,
+	/** Причина отказа (≤1000) */
+	reason: string
+};
+	["MarketplaceRemoveFromWhitelistInput"]: {
+	/** eosio::name пайщика-поставщика */
+	member_account: string
+};
 	["MarketplaceRequest"]: AliasType<{
 	/** Артикул товара */
 	articleNumber?:boolean | `@${string}`,
@@ -15778,7 +15773,7 @@ export type ResolverInputTypes = {
 	/** Можно ли редактировать заявку */
 	canBeEdited?:boolean | `@${string}`,
 	/** Информация о категории */
-	category?:ResolverInputTypes["MarketplaceCategory"],
+	category?:ResolverInputTypes["MarketplaceCategoryTreeNode"],
 	/** URL образца цвета */
 	colorImageUrl?:boolean | `@${string}`,
 	/** Название кооператива */
@@ -15933,6 +15928,81 @@ export type ResolverInputTypes = {
 	coreBraname: string,
 	/** Целевой статус ПВЗ: ACTIVE или INACTIVE */
 	status: string
+};
+	/** Результат индивидуального приёма или отклонения заказа поставщиком. */
+["MarketplaceSupplierOrderActionResult"]: AliasType<{
+	/** Заказ после изменения статуса. */
+	order?:ResolverInputTypes["MarketplaceOrder"],
+	/** Идентификатор транзакции приёма или отклонения. */
+	tx_hash?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceTriggerOpenSubscriptionInput"]: {
+	/** Идентификатор предложения с открытой подпиской, по которому поставщик запускает поставку. */
+	offer_id: string
+};
+	["MarketplaceUpdateOfferInput"]: {
+	category_id?: number | undefined | null,
+	cycle_days?: number | undefined | null,
+	cycle_type?: string | undefined | null,
+	description?: string | undefined | null,
+	id: string,
+	max_wait_days?: number | undefined | null,
+	min_threshold?: number | undefined | null,
+	price_per_unit?: string | undefined | null,
+	product_name?: string | undefined | null,
+	quantity_available?: number | undefined | null,
+	target_volume?: number | undefined | null,
+	unit_of_measure?: string | undefined | null,
+	unlimited_flag?: boolean | undefined | null,
+	warranty_days?: number | undefined | null
+};
+	["MarketplaceVitrine"]: AliasType<{
+	/** eosio::name кооператива-владельца витрины */
+	coopname?:boolean | `@${string}`,
+	created_at?:boolean | `@${string}`,
+	/** Отображаемое имя витрины */
+	display_name?:boolean | `@${string}`,
+	/** Идентификатор витрины (MVP всегда "default") */
+	id?:boolean | `@${string}`,
+	/** Дефолтная витрина кооператива (MVP — всегда true) */
+	is_default?:boolean | `@${string}`,
+	updated_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceWalletEntry"]: AliasType<{
+	/** Доступный остаток (`userwallets.available`) */
+	available?:boolean | `@${string}`,
+	/** Заблокированный остаток (`userwallets.blocked`) */
+	blocked?:boolean | `@${string}`,
+	/** Человекочитаемое название (из cooptypes LEDGER2_WALLET_REGISTRY) */
+	human_name?:boolean | `@${string}`,
+	/** WalletKind: USER_SHARED — обязателен L3-разрез по пайщику */
+	kind?:boolean | `@${string}`,
+	/** UX-метка кошелька в формате `<тип взноса> | <программа>` (например «Паевой | Цифровой Кошелёк», «Членский | Стол Заказов») */
+	label?:boolean | `@${string}`,
+	/** eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.member) */
+	name?:boolean | `@${string}`,
+	/** program_id: 1 — Цифровой Кошелёк, 2 — Стол Заказов */
+	program_id?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceWhitelistEntry"]: AliasType<{
+	added_at?:boolean | `@${string}`,
+	/** Кто добавил (eosio::name админа) */
+	added_by?:boolean | `@${string}`,
+	/** eosio::name кооператива */
+	coopname?:boolean | `@${string}`,
+	/** UUID записи whitelist */
+	id?:boolean | `@${string}`,
+	/** eosio::name пайщика-поставщика */
+	member_account?:boolean | `@${string}`,
+	/** auto-coop — сам кооператив (неудаляема, FR5); manual — добавлен админом */
+	role?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceWithdrawOfferInput"]: {
+	id: string
 };
 	["MatrixAccountStatusResponseDTO"]: AliasType<{
 	hasAccount?:boolean | `@${string}`,
@@ -16107,16 +16177,6 @@ export type ResolverInputTypes = {
 	source?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	["ModerateRequestInput"]: {
-	/** Размер комиссии за отмену в формате "10.0000 RUB" */
-	cancellation_fee: string,
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Идентификатор обмена */
-	exchange_id: number,
-	/** Имя аккаунта пользователя */
-	username: string
-};
 	["MonoAccount"]: AliasType<{
 	/** Электронная почта пользователя */
 	email?:boolean | `@${string}`,
@@ -16155,13 +16215,10 @@ export type ResolverInputTypes = {
 	target_project_hash: string
 };
 	["Mutation"]: AliasType<{
-acceptChildOrder?: [{	data: ResolverInputTypes["AcceptChildOrderInput"]},ResolverInputTypes["Transaction"]],
-acceptStock?: [{	data: ResolverInputTypes["AcceptStockInput"]},ResolverInputTypes["Transaction"]],
 addParticipant?: [{	data: ResolverInputTypes["AddParticipantInput"]},ResolverInputTypes["Account"]],
 addPaymentMethod?: [{	data: ResolverInputTypes["AddPaymentMethodInput"]},ResolverInputTypes["PaymentMethod"]],
 addTrustedAccount?: [{	data: ResolverInputTypes["AddTrustedAccountInput"]},ResolverInputTypes["Branch"]],
 archiveProductCard?: [{	id: string},boolean | `@${string}`],
-cancelRequest?: [{	data: ResolverInputTypes["CancelRequestInput"]},ResolverInputTypes["Transaction"]],
 capitalAddAuthor?: [{	data: ResolverInputTypes["AddAuthorInput"]},ResolverInputTypes["CapitalProject"]],
 capitalApproveCommit?: [{	data: ResolverInputTypes["CommitApproveInput"]},ResolverInputTypes["CapitalCommit"]],
 capitalCalculateVotes?: [{	data: ResolverInputTypes["CalculateVotesInput"]},ResolverInputTypes["CapitalSegment"]],
@@ -16253,41 +16310,28 @@ completeCapitalOnboardingStep?: [{	data: ResolverInputTypes["CapitalOnboardingSt
 completeChairmanAgendaStep?: [{	data: ResolverInputTypes["ChairmanOnboardingAgendaInput"]},ResolverInputTypes["ChairmanOnboardingState"]],
 completeChairmanGeneralMeetStep?: [{	data: ResolverInputTypes["ChairmanOnboardingGeneralMeetInput"]},ResolverInputTypes["ChairmanOnboardingState"]],
 completeExtensionOnboardingStep?: [{	data: ResolverInputTypes["CompleteExtensionOnboardingStepInput"]},ResolverInputTypes["ExtensionOnboardingState"]],
-completeRequest?: [{	data: ResolverInputTypes["CompleteRequestInput"]},ResolverInputTypes["Transaction"]],
 confirmAgreement?: [{	data: ResolverInputTypes["ConfirmAgreementInput"]},ResolverInputTypes["Transaction"]],
-confirmReceiveOnRequest?: [{	data: ResolverInputTypes["ConfirmReceiveOnRequestInput"]},ResolverInputTypes["Transaction"]],
-confirmSupplyOnRequest?: [{	data: ResolverInputTypes["ConfirmSupplyOnRequestInput"]},ResolverInputTypes["Transaction"]],
-coopstock?: [{	data: ResolverInputTypes["CoopstockInput"]},ResolverInputTypes["Transaction"]],
 createAnnualGeneralMeet?: [{	data: ResolverInputTypes["CreateAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
 createBranch?: [{	data: ResolverInputTypes["CreateBranchInput"]},ResolverInputTypes["Branch"]],
 createCategory?: [{	data: ResolverInputTypes["CreateCategoryInput"]},ResolverInputTypes["Category"]],
-createChildOrder?: [{	data: ResolverInputTypes["CreateChildOrderInput"]},ResolverInputTypes["Transaction"]],
 createDepositPayment?: [{	data: ResolverInputTypes["CreateDepositPaymentInput"]},ResolverInputTypes["GatewayPayment"]],
 createInitialPayment?: [{	data: ResolverInputTypes["CreateInitialPaymentInput"]},ResolverInputTypes["GatewayPayment"]],
-createParentOffer?: [{	data: ResolverInputTypes["CreateParentOfferInput"]},ResolverInputTypes["Transaction"]],
 createProductCard?: [{	data: ResolverInputTypes["CreateProductCardInput"]},ResolverInputTypes["ProductCard"]],
 createProjectOfFreeDecision?: [{	data: ResolverInputTypes["CreateProjectFreeDecisionInput"]},ResolverInputTypes["CreatedProjectFreeDecision"]],
 createWebPushSubscription?: [{	data: ResolverInputTypes["CreateSubscriptionInput"]},ResolverInputTypes["CreateSubscriptionResponse"]],
 createWithdraw?: [{	data: ResolverInputTypes["CreateWithdrawInput"]},ResolverInputTypes["CreateWithdrawResponse"]],
 deactivateWebPushSubscriptionById?: [{	data: ResolverInputTypes["DeactivateSubscriptionInput"]},boolean | `@${string}`],
 declineAgreement?: [{	data: ResolverInputTypes["DeclineAgreementInput"]},ResolverInputTypes["Transaction"]],
-declineRequest?: [{	data: ResolverInputTypes["DeclineRequestInput"]},ResolverInputTypes["Transaction"]],
 deleteBranch?: [{	data: ResolverInputTypes["DeleteBranchInput"]},boolean | `@${string}`],
 deleteCategory?: [{	id: string},boolean | `@${string}`],
 deletePaymentMethod?: [{	data: ResolverInputTypes["DeletePaymentMethodInput"]},boolean | `@${string}`],
 deleteProductCard?: [{	id: string},boolean | `@${string}`],
 deleteReportDraft?: [{	id: string},boolean | `@${string}`],
 deleteTrustedAccount?: [{	data: ResolverInputTypes["DeleteTrustedAccountInput"]},ResolverInputTypes["Branch"]],
-deliverOnRequest?: [{	data: ResolverInputTypes["DeliverOnRequestInput"]},ResolverInputTypes["Transaction"]],
-destroyRequest?: [{	data: ResolverInputTypes["DestroyRequestInput"]},ResolverInputTypes["Transaction"]],
-disputeOnRequest?: [{	data: ResolverInputTypes["DisputeOnRequestInput"]},ResolverInputTypes["Transaction"]],
 editBranch?: [{	data: ResolverInputTypes["EditBranchInput"]},ResolverInputTypes["Branch"]],
 generateAnnualGeneralMeetAgendaDocument?: [{	data: ResolverInputTypes["AnnualGeneralMeetingAgendaGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateAnnualGeneralMeetDecisionDocument?: [{	data: ResolverInputTypes["AnnualGeneralMeetingDecisionGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateAnnualGeneralMeetNotificationDocument?: [{	data: ResolverInputTypes["AnnualGeneralMeetingNotificationGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
-generateAssetContributionAct?: [{	data: ResolverInputTypes["AssetContributionActGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
-generateAssetContributionDecision?: [{	data: ResolverInputTypes["AssetContributionDecisionGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
-generateAssetContributionStatement?: [{	data: ResolverInputTypes["AssetContributionStatementGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateBallotForAnnualGeneralMeetDocument?: [{	data: ResolverInputTypes["AnnualGeneralMeetingVotingBallotGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateConvertToAxonStatement?: [{	data: ResolverInputTypes["ConvertToAxonStatementGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateDocument?: [{	input: ResolverInputTypes["GenerateAnyDocumentInput"]},ResolverInputTypes["GeneratedDocument"]],
@@ -16298,9 +16342,6 @@ generatePrivacyAgreement?: [{	data: ResolverInputTypes["GenerateDocumentInput"],
 generateProjectOfFreeDecision?: [{	data: ResolverInputTypes["ProjectFreeDecisionGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateRegistrationDocuments?: [{	data: ResolverInputTypes["GenerateRegistrationDocumentsInput"]},ResolverInputTypes["GenerateRegistrationDocumentsOutput"]],
 generateReportFromEdits?: [{	editsJson: string,	period?: number | undefined | null,	reportType: ResolverInputTypes["ReportType"],	year: number},ResolverInputTypes["GeneratedReport"]],
-generateReturnByAssetAct?: [{	data: ResolverInputTypes["ReturnByAssetActGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
-generateReturnByAssetDecision?: [{	data: ResolverInputTypes["ReturnByAssetDecisionGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
-generateReturnByAssetStatement?: [{	data: ResolverInputTypes["ReturnByAssetStatementGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateReturnByMoneyDecisionDocument?: [{	data: ResolverInputTypes["ReturnByMoneyDecisionGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateReturnByMoneyStatementDocument?: [{	data: ResolverInputTypes["ReturnByMoneyGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateSelectBranchDocument?: [{	data: ResolverInputTypes["SelectBranchGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
@@ -16314,32 +16355,42 @@ installSystem?: [{	data: ResolverInputTypes["Install"]},ResolverInputTypes["Syst
 login?: [{	data: ResolverInputTypes["LoginInput"]},ResolverInputTypes["RegisteredAccount"]],
 logout?: [{	data: ResolverInputTypes["LogoutInput"]},boolean | `@${string}`],
 markReportPeriod?: [{	data: ResolverInputTypes["MarkReportPeriodInput"]},boolean | `@${string}`],
+marketplaceAcceptConsolidatedRequest?: [{	input: ResolverInputTypes["MarketplaceAcceptConsolidatedRequestInput"]},ResolverInputTypes["MarketplaceConsolidatedRequestActionResult"]],
+marketplaceAcceptCpp?: [{	input: ResolverInputTypes["MarketplaceAcceptCppInput"]},ResolverInputTypes["MarketplaceCppStatus"]],
+marketplaceAcceptIndividualOrder?: [{	input: ResolverInputTypes["MarketplaceAcceptIndividualOrderInput"]},ResolverInputTypes["MarketplaceSupplierOrderActionResult"]],
 marketplaceAddAvailableCategories?: [{	input: ResolverInputTypes["AddAvailableCategoriesInput"]},ResolverInputTypes["MarketplaceAvailableCategory"]],
 marketplaceAddAvailableCategoryTypes?: [{	input: ResolverInputTypes["AddAvailableCategoryTypesInput"]},ResolverInputTypes["MarketplaceAvailableCategory"]],
+marketplaceAddToWhitelist?: [{	input: ResolverInputTypes["MarketplaceAddToWhitelistInput"]},ResolverInputTypes["MarketplaceWhitelistEntry"]],
+marketplaceApproveOffer?: [{	input: ResolverInputTypes["MarketplaceApproveOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
+marketplaceCancelOrder?: [{	input: ResolverInputTypes["MarketplaceCancelOrderInput"]},ResolverInputTypes["MarketplaceCancelOrderResult"]],
 	/** Очистить все доступные категории (сделать доступными все)
 
 Требуемые роли: chairman.  */
 	marketplaceClearAvailableCategories?:boolean | `@${string}`,
+marketplaceCreateOffer?: [{	input: ResolverInputTypes["MarketplaceCreateOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
+marketplaceCreateOrder?: [{	input: ResolverInputTypes["MarketplaceCreateOrderInput"]},ResolverInputTypes["MarketplaceCreateOrderResult"]],
 marketplaceCreateRequest?: [{	data: ResolverInputTypes["CreateRequestInput"]},ResolverInputTypes["MarketplaceRequest"]],
+marketplaceDeclineConsolidatedRequest?: [{	input: ResolverInputTypes["MarketplaceDeclineConsolidatedRequestInput"]},ResolverInputTypes["MarketplaceConsolidatedRequestActionResult"]],
+marketplaceDeclineIndividualOrder?: [{	input: ResolverInputTypes["MarketplaceDeclineIndividualOrderInput"]},ResolverInputTypes["MarketplaceSupplierOrderActionResult"]],
+marketplaceDeclineOrderFromOpenPool?: [{	input: ResolverInputTypes["MarketplaceDeclineOrderFromOpenPoolInput"]},ResolverInputTypes["MarketplaceSupplierOrderActionResult"]],
 marketplaceDetailKU?: [{	data: ResolverInputTypes["MarketplaceDetailKUInput"]},ResolverInputTypes["MarketplaceKUDetails"]],
+marketplaceRejectOffer?: [{	input: ResolverInputTypes["MarketplaceRejectOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
 marketplaceRemoveAvailableCategories?: [{	input: ResolverInputTypes["RemoveAvailableCategoriesInput"]},boolean | `@${string}`],
 marketplaceRemoveAvailableCategoryTypes?: [{	input: ResolverInputTypes["RemoveAvailableCategoryTypesInput"]},boolean | `@${string}`],
+marketplaceRemoveFromWhitelist?: [{	input: ResolverInputTypes["MarketplaceRemoveFromWhitelistInput"]},boolean | `@${string}`],
 marketplaceReplaceAvailableItems?: [{	input: ResolverInputTypes["ReplaceAvailableItemsInput"]},ResolverInputTypes["MarketplaceAvailableCategory"]],
 marketplaceRetryKUGeocode?: [{	coopname: string,	coreBraname: string},ResolverInputTypes["MarketplaceKUDetails"]],
 marketplaceSetKUStatus?: [{	data: ResolverInputTypes["MarketplaceSetKUStatusInput"]},ResolverInputTypes["MarketplaceKUDetails"]],
-moderateRequest?: [{	data: ResolverInputTypes["ModerateRequestInput"]},ResolverInputTypes["Transaction"]],
+marketplaceTriggerOpenSubscription?: [{	input: ResolverInputTypes["MarketplaceTriggerOpenSubscriptionInput"]},ResolverInputTypes["MarketplaceConsolidatedRequest"]],
+marketplaceUpdateOffer?: [{	input: ResolverInputTypes["MarketplaceUpdateOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
+marketplaceWithdrawOffer?: [{	input: ResolverInputTypes["MarketplaceWithdrawOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
 notifyOnAnnualGeneralMeet?: [{	data: ResolverInputTypes["NotifyOnAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
 processConvertToAxonStatement?: [{	data: ResolverInputTypes["ProcessConvertToAxonStatementInput"]},boolean | `@${string}`],
-prohibitRequest?: [{	data: ResolverInputTypes["ProhibitRequestInput"]},ResolverInputTypes["Transaction"]],
 publishProductCard?: [{	id: string},boolean | `@${string}`],
 publishProjectOfFreeDecision?: [{	data: ResolverInputTypes["PublishProjectFreeDecisionInput"]},boolean | `@${string}`],
-publishRequest?: [{	data: ResolverInputTypes["PublishRequestInput"]},ResolverInputTypes["Transaction"]],
-receiveOnRequest?: [{	data: ResolverInputTypes["ReceiveOnRequestInput"]},ResolverInputTypes["Transaction"]],
 refresh?: [{	data: ResolverInputTypes["RefreshInput"]},ResolverInputTypes["RegisteredAccount"]],
 registerAccount?: [{	data: ResolverInputTypes["RegisterAccountInput"]},ResolverInputTypes["RegisteredAccount"]],
 registerParticipant?: [{	data: ResolverInputTypes["RegisterParticipantInput"]},ResolverInputTypes["Account"]],
-reofferRequest?: [{	data: ResolverInputTypes["ReofferRequestInput"]},ResolverInputTypes["Transaction"]],
-reqReturn?: [{	data: ResolverInputTypes["ReqReturnInput"]},ResolverInputTypes["Transaction"]],
 resetKey?: [{	data: ResolverInputTypes["ResetKeyInput"]},boolean | `@${string}`],
 restartAnnualGeneralMeet?: [{	data: ResolverInputTypes["RestartAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
 saveReportDraft?: [{	input: ResolverInputTypes["SaveReportDraftInput"]},ResolverInputTypes["ReportDraft"]],
@@ -16351,15 +16402,12 @@ signByPresiderOnAnnualGeneralMeet?: [{	data: ResolverInputTypes["SignByPresiderO
 signBySecretaryOnAnnualGeneralMeet?: [{	data: ResolverInputTypes["SignBySecretaryOnAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
 startInstall?: [{	data: ResolverInputTypes["StartInstallInput"]},ResolverInputTypes["StartInstallResult"]],
 startResetKey?: [{	data: ResolverInputTypes["StartResetKeyInput"]},boolean | `@${string}`],
-supplyOnRequest?: [{	data: ResolverInputTypes["SupplyOnRequestInput"]},ResolverInputTypes["Transaction"]],
 triggerNotificationWorkflow?: [{	data: ResolverInputTypes["TriggerNotificationWorkflowInput"]},boolean | `@${string}`],
 uninstallExtension?: [{	data: ResolverInputTypes["UninstallExtensionInput"]},boolean | `@${string}`],
-unpublishRequest?: [{	data: ResolverInputTypes["UnpublishRequestInput"]},ResolverInputTypes["Transaction"]],
 updateAccount?: [{	data: ResolverInputTypes["UpdateAccountInput"]},ResolverInputTypes["Account"]],
 updateBankAccount?: [{	data: ResolverInputTypes["UpdateBankAccountInput"]},ResolverInputTypes["PaymentMethod"]],
 updateExtension?: [{	data: ResolverInputTypes["ExtensionInput"]},ResolverInputTypes["Extension"]],
 updateReportRequisites?: [{	input: ResolverInputTypes["UpdateReportRequisitesInput"]},ResolverInputTypes["ReportRequisitesView"]],
-updateRequest?: [{	data: ResolverInputTypes["UpdateRequestInput"]},ResolverInputTypes["Transaction"]],
 updateSettings?: [{	data: ResolverInputTypes["UpdateSettingsInput"]},ResolverInputTypes["Settings"]],
 updateSystem?: [{	data: ResolverInputTypes["Update"]},ResolverInputTypes["SystemInfo"]],
 verifyEmail?: [{	data: ResolverInputTypes["VerifyEmailInputDTO"]},boolean | `@${string}`],
@@ -17316,16 +17364,6 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	totalPages?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	["ProhibitRequestInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Идентификатор обмена */
-	exchange_id: number,
-	/** Дополнительная информация о отклоненной модерации */
-	meta: string,
-	/** Имя аккаунта пользователя */
-	username: string
-};
 	["ProjectFreeDecisionGenerateDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num?: number | undefined | null,
@@ -17472,14 +17510,6 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	document: ResolverInputTypes["ProjectFreeDecisionSignedDocumentInput"],
 	/** Строка мета-информации */
 	meta: string,
-	/** Имя аккаунта пользователя */
-	username: string
-};
-	["PublishRequestInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Идентификатор заявки */
-	exchange_id: number,
 	/** Имя аккаунта пользователя */
 	username: string
 };
@@ -17637,6 +17667,12 @@ marketplaceAspectAttributes?: [{	data: ResolverInputTypes["GetRequiredAttributes
 	marketplaceAttributeStats?:ResolverInputTypes["MarketplaceAttributeStats"],
 marketplaceCategoryAttributes?: [{	input: ResolverInputTypes["GetCategoryAttributesInput"]},ResolverInputTypes["MarketplaceAttribute"]],
 marketplaceCategoryAttributesGrouped?: [{	input: ResolverInputTypes["GetCategoryAttributesInput"]},ResolverInputTypes["MarketplaceAttributeGroup"]],
+	/** Счётчики активных Offer'ов per category — для фильтр-чипов Story 3.5 */
+	marketplaceCategoryOfferCounts?:ResolverInputTypes["MarketplaceCategoryOfferCount"],
+	/** Статус принятия положения ЦПП «Стол заказов» Советом кооператива (L1). `active` если принято, `not_accepted` иначе. */
+	marketplaceCppStatus?:ResolverInputTypes["MarketplaceCppStatus"],
+	/** Дефолтная витрина кооператива (MVP — единственная) */
+	marketplaceDefaultVitrine?:ResolverInputTypes["MarketplaceVitrine"],
 marketplaceFindPotentialMatches?: [{	data: ResolverInputTypes["FindPotentialMatchesInput"]},ResolverInputTypes["MarketplaceRequest"]],
 	/** Получить статистику по доступности категорий в кооперативе
 
@@ -17649,24 +17685,42 @@ marketplaceFindPotentialMatches?: [{	data: ResolverInputTypes["FindPotentialMatc
 	/** Получить дерево доступных категорий и типов для кооператива
 
 Требуемые роли: chairman.  */
-	marketplaceGetAvailableCategoryTree?:ResolverInputTypes["MarketplaceCategory"],
-marketplaceGetCategoryById?: [{	data: ResolverInputTypes["GetCategoryByIdInput"]},ResolverInputTypes["MarketplaceCategory"]],
+	marketplaceGetAvailableCategoryTree?:ResolverInputTypes["MarketplaceCategoryTreeNode"],
+marketplaceGetCategoryById?: [{	data: ResolverInputTypes["GetCategoryByIdInput"]},ResolverInputTypes["MarketplaceCategoryTreeNode"]],
 marketplaceGetCategoryRules?: [{	categoryId: number},ResolverInputTypes["MarketplaceAvailableCategory"]],
-marketplaceGetCategoryTree?: [{	input?: ResolverInputTypes["GetCategoryTreeInput"] | undefined | null},ResolverInputTypes["MarketplaceCategory"]],
+marketplaceGetCategoryTree?: [{	input?: ResolverInputTypes["GetCategoryTreeInput"] | undefined | null},ResolverInputTypes["MarketplaceCategoryTreeNode"]],
 	/** Получить статистику по дереву категорий
 
 Требуемые роли: chairman, member.  */
 	marketplaceGetCategoryTreeStats?:ResolverInputTypes["MarketplaceCategoryTreeStats"],
 marketplaceGetCoopRequests?: [{	data: ResolverInputTypes["GetCoopRequestsInput"]},ResolverInputTypes["MarketplaceRequest"]],
+marketplaceGetOrder?: [{	input: ResolverInputTypes["MarketplaceGetOrderInput"]},ResolverInputTypes["MarketplaceOrder"]],
 marketplaceGetProductTypeById?: [{	data: ResolverInputTypes["GetProductTypeByIdInput"]},ResolverInputTypes["MarketplaceProductType"]],
 marketplaceGetRequest?: [{	data: ResolverInputTypes["GetRequestInput"]},ResolverInputTypes["MarketplaceRequest"]],
 marketplaceGetRequestByHash?: [{	data: ResolverInputTypes["GetRequestByHashInput"]},ResolverInputTypes["MarketplaceRequest"]],
 marketplaceGetRequestStatistics?: [{	data: ResolverInputTypes["GetRequestStatisticsInput"]},ResolverInputTypes["MarketplaceRequestStatistics"]],
 	/** Получить все корневые категории marketplace */
-	marketplaceGetRootCategories?:ResolverInputTypes["MarketplaceCategory"],
-marketplaceGetSearchCategories?: [{	data: ResolverInputTypes["SearchCategoriesInput"]},ResolverInputTypes["MarketplaceCategory"]],
+	marketplaceGetRootCategories?:ResolverInputTypes["MarketplaceCategoryTreeNode"],
+marketplaceGetSearchCategories?: [{	data: ResolverInputTypes["SearchCategoriesInput"]},ResolverInputTypes["MarketplaceCategoryTreeNode"]],
 marketplaceGetUserRequests?: [{	data?: ResolverInputTypes["GetUserRequestsInput"] | undefined | null},ResolverInputTypes["MarketplaceRequest"]],
+marketplaceListCatalog?: [{	input?: ResolverInputTypes["MarketplaceListCatalogInput"] | undefined | null},ResolverInputTypes["MarketplaceOfferPaginationResult"]],
+	/** Baseline-категории Стола заказов (Story 3.2/3.5) — 8 продовольственных + «Прочее» */
+	marketplaceListCategories?:ResolverInputTypes["MarketplaceCategory"],
+marketplaceListConsolidatedRequests?: [{	input?: ResolverInputTypes["MarketplaceListConsolidatedRequestsInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["MarketplaceConsolidatedRequestPaginationResult"]],
 marketplaceListKUDetails?: [{	data: ResolverInputTypes["ListMarketplaceKUInput"]},ResolverInputTypes["MarketplaceKUDetails"]],
+marketplaceListModerationLog?: [{	offer_id: string},ResolverInputTypes["MarketplaceModerationLogEntry"]],
+marketplaceListMyOffers?: [{	input?: ResolverInputTypes["MarketplaceListMyOffersInput"] | undefined | null},ResolverInputTypes["MarketplaceOfferPaginationResult"]],
+marketplaceListMyOrders?: [{	input?: ResolverInputTypes["MarketplaceListOrdersInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["MarketplaceOrderPaginationResult"]],
+marketplaceListPendingOffers?: [{	input?: ResolverInputTypes["MarketplaceListPendingOffersInput"] | undefined | null},ResolverInputTypes["MarketplaceOfferPaginationResult"]],
+marketplaceListSupplierOrders?: [{	input?: ResolverInputTypes["MarketplaceListOrdersInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["MarketplaceOrderPaginationResult"]],
+	/** Список пайщиков-поставщиков, допущенных к публикации оферт */
+	marketplaceListWhitelist?:ResolverInputTypes["MarketplaceWhitelistEntry"],
+	/** Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.member */
+	marketplaceMemberWallet?:ResolverInputTypes["MarketplaceMemberWallet"],
+	/** Состояние онбординга пайщика в Столе заказов: показывать ли gate или пропускать на стол */
+	marketplaceOnboardingState?:ResolverInputTypes["MarketplaceOnboardingState"],
+	/** Статус видимости оферты Стола заказов в core registration-flow (платформенный AgreementRegistry) */
+	marketplaceRegistrationOfferStatus?:ResolverInputTypes["MarketplaceRegistrationOfferStatus"],
 marketplaceRequiredAttributes?: [{	data: ResolverInputTypes["GetRequiredAttributesInput"]},ResolverInputTypes["MarketplaceAttribute"]],
 marketplaceSearchAttributes?: [{	input: ResolverInputTypes["SearchAttributesInput"]},ResolverInputTypes["MarketplaceAttribute"]],
 marketplaceSearchDictionaryValues?: [{	input: ResolverInputTypes["SearchDictionaryValuesInput"]},ResolverInputTypes["MarketplaceDictionaryValue"]],
@@ -17712,16 +17766,6 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	voters_for?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	["ReceiveOnRequestInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Подписанный Заказчиком акт приёмки-передачи имущества из Кооператива по новации */
-	document: ResolverInputTypes["ReturnByAssetActSignedDocumentInput"],
-	/** Идентификатор заявки */
-	exchange_id: number,
-	/** Имя аккаунта пользователя */
-	username: string
-};
 	["RefreshInput"]: {
 	/** Токен доступа */
 	access_token: string,
@@ -17872,12 +17916,6 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	/** Типы товаров для удаления */
 	categoryTypes: Array<ResolverInputTypes["CategoryTypeInput"]>
 };
-	["ReofferRequestInput"]: {
-	new_hash: string,
-	new_meta: string,
-	new_unit_cost: string,
-	request_hash: string
-};
 	["ReplaceAvailableItemsInput"]: {
 	/** ID категорий (целые категории) */
 	categoryIds: Array<number>,
@@ -18015,11 +18053,6 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	middle_name: string,
 	position: string
 };
-	["ReqReturnInput"]: {
-	request_hash: string,
-	return_statement: ResolverInputTypes["SignedDigitalDocumentInput"],
-	username: string
-};
 	["RequestAttributeInput"]: {
 	/** ID атрибута */
 	attributeId: number,
@@ -18129,176 +18162,6 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 };
 	/** Статус результата в системе CAPITAL */
 ["ResultStatus"]:ResultStatus;
-	["ReturnByAssetActGenerateDocumentInput"]: {
-	/** Идентификатор акта */
-	act_id: string,
-	/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null,
-	/** Имя аккаунта кооперативного участка */
-	braname?: string | undefined | null,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null,
-	/** Идентификатор решения */
-	decision_id: number,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null,
-	/** Язык документа */
-	lang?: string | undefined | null,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null,
-	/** Идентификатор заявки */
-	request_id: number,
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null,
-	/** Название документа */
-	title?: string | undefined | null,
-	/** Имя аккаунта получателя на кооперативном участке */
-	transmitter: string,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null
-};
-	["ReturnByAssetActSignedDocumentInput"]: {
-	/** Хэш содержимого документа */
-	doc_hash: string,
-	/** Общий хэш (doc_hash + meta_hash) */
-	hash: string,
-	/** Метаинформация для создания проекта свободного решения */
-	meta: ResolverInputTypes["ReturnByAssetActSignedMetaDocumentInput"],
-	/** Хэш мета-данных */
-	meta_hash: string,
-	/** Вектор подписей */
-	signatures: Array<ResolverInputTypes["SignatureInfoInput"]>,
-	/** Версия стандарта документа */
-	version: string
-};
-	["ReturnByAssetActSignedMetaDocumentInput"]: {
-	/** Идентификатор акта */
-	act_id: string,
-	/** Номер блока, на котором был создан документ */
-	block_num: number,
-	/** Имя аккаунта кооперативного участка */
-	braname?: string | undefined | null,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at: string,
-	/** Идентификатор решения */
-	decision_id: number,
-	/** Имя генератора, использованного для создания документа */
-	generator: string,
-	/** Язык документа */
-	lang: string,
-	/** Ссылки, связанные с документом */
-	links: Array<string>,
-	/** ID документа в реестре */
-	registry_id: number,
-	/** Идентификатор заявки */
-	request_id: number,
-	/** Часовой пояс, в котором был создан документ */
-	timezone: string,
-	/** Название документа */
-	title: string,
-	/** Имя аккаунта получателя на кооперативном участке */
-	transmitter: string,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version: string
-};
-	["ReturnByAssetDecisionGenerateDocumentInput"]: {
-	/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null,
-	/** Идентификатор решения */
-	decision_id: number,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null,
-	/** Язык документа */
-	lang?: string | undefined | null,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null,
-	/** Идентификатор заявки */
-	request_id: number,
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null,
-	/** Название документа */
-	title?: string | undefined | null,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null
-};
-	["ReturnByAssetStatementGenerateDocumentInput"]: {
-	/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null,
-	/** Язык документа */
-	lang?: string | undefined | null,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null,
-	/** Запрос на внесение имущественного паевого взноса */
-	request: ResolverInputTypes["CommonRequestInput"],
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null,
-	/** Название документа */
-	title?: string | undefined | null,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null
-};
-	["ReturnByAssetStatementSignedDocumentInput"]: {
-	/** Хэш содержимого документа */
-	doc_hash: string,
-	/** Общий хэш (doc_hash + meta_hash) */
-	hash: string,
-	/** Метаинформация для создания проекта свободного решения */
-	meta: ResolverInputTypes["ReturnByAssetStatementSignedMetaDocumentInput"],
-	/** Хэш мета-данных */
-	meta_hash: string,
-	/** Вектор подписей */
-	signatures: Array<ResolverInputTypes["SignatureInfoInput"]>,
-	/** Версия стандарта документа */
-	version: string
-};
-	["ReturnByAssetStatementSignedMetaDocumentInput"]: {
-	/** Номер блока, на котором был создан документ */
-	block_num: number,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at: string,
-	/** Имя генератора, использованного для создания документа */
-	generator: string,
-	/** Язык документа */
-	lang: string,
-	/** Ссылки, связанные с документом */
-	links: Array<string>,
-	/** ID документа в реестре */
-	registry_id: number,
-	/** Запрос на внесение имущественного паевого взноса */
-	request: ResolverInputTypes["CommonRequestInput"],
-	/** Часовой пояс, в котором был создан документ */
-	timezone: string,
-	/** Название документа */
-	title: string,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version: string
-};
 	["ReturnByMoneyDecisionGenerateDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num?: number | undefined | null,
@@ -18832,16 +18695,6 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	uniqueUsers?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	["SupplyOnRequestInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Подписанный Поставщиком акт приёма-передачи имущества в кооператив */
-	document: ResolverInputTypes["AssetContributionActSignedDocumentInput"],
-	/** Идентификатор обмена */
-	exchange_id: number,
-	/** Имя аккаунта пользователя */
-	username: string
-};
 	["Symbols"]: AliasType<{
 	/** Точность символа управления */
 	root_govern_precision?:boolean | `@${string}`,
@@ -18951,14 +18804,6 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	["UninstallExtensionInput"]: {
 	/** Фильтр по имени */
 	name: string
-};
-	["UnpublishRequestInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Идентификатор обмена */
-	exchange_id: number,
-	/** Имя аккаунта пользователя */
-	username: string
 };
 	["Update"]: {
 	/** Собственные данные кооператива, обслуживающего экземпляр платформы */
@@ -19128,22 +18973,6 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	signerSnils?: string | undefined | null,
 	/** chairman | representative */
 	signerType?: string | undefined | null
-};
-	["UpdateRequestInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Дополнительные данные */
-	data: string,
-	/** Идентификатор обмена */
-	exchange_id: number,
-	/** Дополнительная информация */
-	meta: string,
-	/** Оставшееся количество единиц */
-	remain_units: string,
-	/** Стоимость за единицу в формате "10.0000 RUB" */
-	unit_cost: string,
-	/** Имя аккаунта пользователя */
-	username: string
 };
 	["UpdateSettingsInput"]: {
 	/** Маршрут по умолчанию для авторизованных пользователей */
@@ -19448,23 +19277,7 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
   }
 
 export type ModelTypes = {
-    ["AcceptChildOrderInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Подписанное заявление на имущественный паевый взнос */
-	document: ModelTypes["AssetContributionStatementSignedDocumentInput"],
-	/** Идентификатор заявки */
-	exchange_id: string,
-	/** Имя аккаунта пользователя */
-	username: string
-};
-	["AcceptStockInput"]: {
-	convert_in: ModelTypes["SignedDigitalDocumentInput"],
-	request_hash: string,
-	return_statement: ModelTypes["SignedDigitalDocumentInput"],
-	username: string
-};
-	["Account"]: {
+    ["Account"]: {
 		/** объект аккаунта в блокчейне содержит системную информацию, такую как публичные ключи доступа, доступные вычислительные ресурсы, информация об установленном смарт-контракте, и т.д. и т.п. Это системный уровень обслуживания, где у каждого пайщика есть аккаунт, но не каждый аккаунт может быть пайщиком в каком-либо кооперативе. Все смарт-контракты устанавливаются и исполняются на этом уровне. */
 	blockchain_account?: ModelTypes["BlockchainAccount"] | undefined | null,
 	/** объект пайщика кооператива в таблице блокчейне, который определяет членство пайщика в конкретном кооперативе. Поскольку MONO обслуживает только один кооператив, то в participant_account обычно содержится информация, которая описывает членство пайщика в этом кооперативе. Этот объект обезличен, публичен, и хранится в блокчейне. */
@@ -20067,176 +19880,6 @@ export type ModelTypes = {
 	username?: string | undefined | null
 };
 	["ApprovalStatus"]:ApprovalStatus;
-	["AssetContributionActGenerateDocumentInput"]: {
-	/** Идентификатор акта */
-	act_id: string,
-	/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null,
-	/** Имя аккаунта кооперативного участка */
-	braname?: string | undefined | null,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null,
-	/** Идентификатор решения */
-	decision_id: number,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null,
-	/** Язык документа */
-	lang?: string | undefined | null,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null,
-	/** Имя аккаунта получателя на кооперативном участке */
-	receiver: string,
-	/** Идентификатор заявки */
-	request_id: number,
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null,
-	/** Название документа */
-	title?: string | undefined | null,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null
-};
-	["AssetContributionActSignedDocumentInput"]: {
-	/** Хэш содержимого документа */
-	doc_hash: string,
-	/** Общий хэш (doc_hash + meta_hash) */
-	hash: string,
-	/** Метаинформация для создания проекта свободного решения */
-	meta: ModelTypes["AssetContributionActSignedMetaDocumentInput"],
-	/** Хэш мета-данных */
-	meta_hash: string,
-	/** Вектор подписей */
-	signatures: Array<ModelTypes["SignatureInfoInput"]>,
-	/** Версия стандарта документа */
-	version: string
-};
-	["AssetContributionActSignedMetaDocumentInput"]: {
-	/** Идентификатор акта */
-	act_id: string,
-	/** Номер блока, на котором был создан документ */
-	block_num: number,
-	/** Имя аккаунта кооперативного участка */
-	braname?: string | undefined | null,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at: string,
-	/** Идентификатор решения */
-	decision_id: number,
-	/** Имя генератора, использованного для создания документа */
-	generator: string,
-	/** Язык документа */
-	lang: string,
-	/** Ссылки, связанные с документом */
-	links: Array<string>,
-	/** Имя аккаунта получателя на кооперативном участке */
-	receiver: string,
-	/** ID документа в реестре */
-	registry_id: number,
-	/** Идентификатор заявки */
-	request_id: number,
-	/** Часовой пояс, в котором был создан документ */
-	timezone: string,
-	/** Название документа */
-	title: string,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version: string
-};
-	["AssetContributionDecisionGenerateDocumentInput"]: {
-	/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null,
-	/** Идентификатор решения */
-	decision_id: number,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null,
-	/** Язык документа */
-	lang?: string | undefined | null,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null,
-	/** Идентификатор заявки */
-	request_id: number,
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null,
-	/** Название документа */
-	title?: string | undefined | null,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null
-};
-	["AssetContributionStatementGenerateDocumentInput"]: {
-	/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null,
-	/** Язык документа */
-	lang?: string | undefined | null,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null,
-	/** Запрос на внесение имущественного паевого взноса */
-	request: ModelTypes["CommonRequestInput"],
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null,
-	/** Название документа */
-	title?: string | undefined | null,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null
-};
-	["AssetContributionStatementSignedDocumentInput"]: {
-	/** Хэш содержимого документа */
-	doc_hash: string,
-	/** Общий хэш (doc_hash + meta_hash) */
-	hash: string,
-	/** Метаинформация для создания проекта свободного решения */
-	meta: ModelTypes["AssetContributionStatementSignedMetaDocumentInput"],
-	/** Хэш мета-данных */
-	meta_hash: string,
-	/** Вектор подписей */
-	signatures: Array<ModelTypes["SignatureInfoInput"]>,
-	/** Версия стандарта документа */
-	version: string
-};
-	["AssetContributionStatementSignedMetaDocumentInput"]: {
-	/** Номер блока, на котором был создан документ */
-	block_num: number,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at: string,
-	/** Имя генератора, использованного для создания документа */
-	generator: string,
-	/** Язык документа */
-	lang: string,
-	/** Ссылки, связанные с документом */
-	links: Array<string>,
-	/** ID документа в реестре */
-	registry_id: number,
-	/** Запрос на внесение имущественного паевого взноса */
-	request: ModelTypes["CommonRequestInput"],
-	/** Часовой пояс, в котором был создан документ */
-	timezone: string,
-	/** Название документа */
-	title: string,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version: string
-};
 	["AuthSequence"]: {
 		account: string,
 	sequence: string
@@ -20633,14 +20276,6 @@ export type ModelTypes = {
 	["CallTranscriptionWithSegments"]: {
 		segments: Array<ModelTypes["TranscriptionSegment"]>,
 	transcription: ModelTypes["CallTranscription"]
-};
-	["CancelRequestInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Идентификатор заявки */
-	exchange_id: string,
-	/** Имя аккаунта пользователя */
-	username: string
 };
 	["Candidate"]: {
 		braname?: string | undefined | null,
@@ -22106,17 +21741,6 @@ export type ModelTypes = {
 	reason: string
 };
 	["CommitStatus"]:CommitStatus;
-	["CommonRequestInput"]: {
-	currency: string,
-	hash: string,
-	program_id: number,
-	title: string,
-	total_cost: string,
-	type: string,
-	unit_cost: string,
-	unit_of_measurement: string,
-	units: number
-};
 	["CompleteCapitalRegistrationInputDTO"]: {
 	/** Информация о себе */
 	about?: string | undefined | null,
@@ -22154,14 +21778,6 @@ export type ModelTypes = {
 	["CompleteProcessStepInput"]: {
 	instance_id: string,
 	step_id: string
-};
-	["CompleteRequestInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Идентификатор обмена */
-	exchange_id: string,
-	/** Имя аккаунта пользователя */
-	username: string
 };
 	["CompleteVotingInput"]: {
 	/** Имя аккаунта кооператива */
@@ -22235,28 +21851,6 @@ export type ModelTypes = {
 	approved_document?: ModelTypes["SignedDigitalDocumentInput"] | undefined | null,
 	/** Название кооператива */
 	coopname: string
-};
-	/** Подтвердить получение имущества Уполномоченным лицом от Заказчика по новации и акту приёмки-передачи */
-["ConfirmReceiveOnRequestInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Подписанный акт приёмки-передачи имущества Уполномоченным лицом из Кооператива при возврате Заказчику по новации */
-	document: ModelTypes["ReturnByAssetActSignedDocumentInput"],
-	/** Идентификатор обмена */
-	exchange_id: string,
-	/** Имя аккаунта пользователя */
-	username: string
-};
-	/** Подтвердить поставку имущества Поставщиком по заявке Заказчика и акту приёма-передачи */
-["ConfirmSupplyOnRequestInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Подписанный акт приёма-передачи имущества от Поставщика в Кооператив */
-	document: ModelTypes["AssetContributionActSignedDocumentInput"],
-	/** Идентификатор обмена */
-	exchange_id: string,
-	/** Имя аккаунта пользователя */
-	username: string
 };
 	["ContactsDTO"]: {
 		chairman: ModelTypes["PublicChairman"],
@@ -22441,16 +22035,6 @@ export type ModelTypes = {
 	/** Тип программы: wallet/generator/blagorost/marketplace и т.п. */
 	program_type: string
 };
-	["CoopstockInput"]: {
-	braname: string,
-	hash: string,
-	membership_fee_amount: string,
-	meta: string,
-	product_lifecycle_secs: number,
-	unit_cost: string,
-	units: number,
-	warranty_period_secs: number
-};
 	["Country"]:Country;
 	["CreateAnnualGeneralMeetInput"]: {
 	/** Повестка собрания */
@@ -22505,28 +22089,6 @@ export type ModelTypes = {
 	matrixRoomId: string,
 	startsAt: ModelTypes["DateTime"],
 	title: string
-};
-	["CreateChildOrderInput"]: {
-	/** Имя кооператива */
-	coopname: string,
-	/** Дополнительные данные, специфичные для заявки */
-	data: string,
-	/** Подписанное заявление на возврат паевого взноса имуществом от Заказчика */
-	document: ModelTypes["ReturnByAssetStatementSignedDocumentInput"],
-	/** Метаданные о заявке */
-	meta: string,
-	/** Идентификатор родительской заявки */
-	parent_id: number,
-	/** Время жизни продукта, заявляемое поставщиком (в секундах) */
-	product_lifecycle_secs: number,
-	/** Идентификатор программы */
-	program_id: number,
-	/** Цена за единицу (штуку) товара или результата услуги в формате "10.0000 RUB" */
-	unit_cost: string,
-	/** Количество частей (штук) товара или услуги */
-	units: number,
-	/** Имя пользователя, инициирующего или обновляющего заявку */
-	username: string
 };
 	["CreateCommitInput"]: {
 	/** Количество часов для коммита */
@@ -22717,26 +22279,6 @@ export type ModelTypes = {
 	short_name: string,
 	/** Тип организации */
 	type: ModelTypes["OrganizationType"]
-};
-	["CreateParentOfferInput"]: {
-	/** Имя кооператива */
-	coopname: string,
-	/** Дополнительные данные, специфичные для заявки */
-	data: string,
-	/** Метаданные о заявке */
-	meta: string,
-	/** Идентификатор родительской заявки */
-	parent_id: number,
-	/** Время жизни продукта, заявляемое поставщиком (в секундах) */
-	product_lifecycle_secs: number,
-	/** Идентификатор программы */
-	program_id: number,
-	/** Цена за единицу (штуку) товара или услуги в формате "10.0000 RUB" */
-	unit_cost: string,
-	/** Количество частей (штук) товара или услуги */
-	units: number,
-	/** Имя пользователя, инициирующего или обновляющего заявку */
-	username: string
 };
 	["CreateProcessTemplateInput"]: {
 	description?: string | undefined | null,
@@ -23066,16 +22608,6 @@ export type ModelTypes = {
 	/** Причина отклонения */
 	reason: string
 };
-	["DeclineRequestInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Идентификатор обмена */
-	exchange_id: number,
-	/** Причина отказа */
-	meta: string,
-	/** Имя аккаунта пользователя */
-	username: string
-};
 	["DeleteBranchInput"]: {
 	/** Имя аккаунта кооперативного участка */
 	braname: string,
@@ -23111,14 +22643,6 @@ export type ModelTypes = {
 	coopname: string,
 	/** Имя аккаунта доверонного лица, у которого отзывается право подписи за председателя кооперативного участка */
 	trusted: string
-};
-	["DeliverOnRequestInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Идентификатор обмена */
-	exchange_id: number,
-	/** Имя аккаунта пользователя */
-	username: string
 };
 	["DeliveryType"]:DeliveryType;
 	["Delta"]: {
@@ -23192,20 +22716,6 @@ export type ModelTypes = {
 	name: string,
 	/** Отображаемое название workspace */
 	title: string
-};
-	["DestroyRequestInput"]: {
-	destruction_act: ModelTypes["SignedDigitalDocumentInput"],
-	request_hash: string
-};
-	["DisputeOnRequestInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Документ с аргументами спора */
-	document: ModelTypes["JSONObject"],
-	/** Идентификатор обмена */
-	exchange_id: number,
-	/** Имя аккаунта пользователя */
-	username: string
 };
 	["DocumentAction"]:DocumentAction;
 	["DocumentAggregate"]: {
@@ -24416,6 +23926,29 @@ export type ModelTypes = {
 	reportType: ModelTypes["ReportType"],
 	year: number
 };
+	/** Параметры приёма сводной заявки поставщиком. */
+["MarketplaceAcceptConsolidatedRequestInput"]: {
+	/** Идентификатор сводной заявки, ожидающей решения поставщика. */
+	request_id: string
+};
+	["MarketplaceAcceptCppInput"]: {
+	/** id решения Совета (FR40, Эпик 8). В MVP — stub string председателя. */
+	accepted_by_board_decision_id: string,
+	/** registry_id рендеренного instance положения ЦПП (Story 1.7 даст id из cooptypes) */
+	document_registry_id: number
+};
+	/** Параметры индивидуального приёма заказа поставщиком. */
+["MarketplaceAcceptIndividualOrderInput"]: {
+	/** Идентификатор заказа индивидуального типа, который поставщик принимает. */
+	order_id: string
+};
+	["MarketplaceAddToWhitelistInput"]: {
+	/** eosio::name пайщика-поставщика (3-12 chars, [.12345abcdefghijklmnopqrstuvwxyz]) */
+	member_account: string
+};
+	["MarketplaceApproveOfferInput"]: {
+	offer_id: string
+};
 	["MarketplaceAttribute"]: {
 		/** ID комплексного атрибута */
 	attributeComplexId: number,
@@ -24519,11 +24052,41 @@ export type ModelTypes = {
 	/** Дата обновления */
 	updatedAt: ModelTypes["DateTime"]
 };
+	/** Параметры отмены своего заказа пайщиком. */
+["MarketplaceCancelOrderInput"]: {
+	/** Идентификатор заказа, который пайщик хочет отменить (отмена возможна до приёма заказа поставщиком). */
+	order_id: string
+};
+	/** Результат отмены заказа пайщиком. */
+["MarketplaceCancelOrderResult"]: {
+		/** Заказ после перевода в отменённое состояние. */
+	order: ModelTypes["MarketplaceOrder"],
+	/** Идентификатор транзакции отмены в блокчейне. */
+	tx_hash: string
+};
 	["MarketplaceCategory"]: {
+		display_name: string,
+	id: number,
+	mvp_baseline: boolean,
+	sort_order: number
+};
+	["MarketplaceCategoryOfferCount"]: {
+		category_id: number,
+	count: number
+};
+	["MarketplaceCategoryRequestCount"]: {
+		/** ID категории */
+	categoryId: number,
+	/** Название категории */
+	categoryName: string,
+	/** Количество заявок */
+	count: number
+};
+	["MarketplaceCategoryTreeNode"]: {
 		/** Название категории */
 	categoryName: string,
 	/** Дочерние категории */
-	children: Array<ModelTypes["MarketplaceCategory"]>,
+	children: Array<ModelTypes["MarketplaceCategoryTreeNode"]>,
 	/** Количество дочерних категорий */
 	childrenCount: number,
 	/** ID категории */
@@ -24541,14 +24104,6 @@ export type ModelTypes = {
 	/** Количество типов товаров */
 	typesCount: number
 };
-	["MarketplaceCategoryRequestCount"]: {
-		/** ID категории */
-	categoryId: number,
-	/** Название категории */
-	categoryName: string,
-	/** Количество заявок */
-	count: number
-};
 	["MarketplaceCategoryTreeStats"]: {
 		/** Количество доступных типов товаров */
 	availableTypes: number,
@@ -24563,10 +24118,113 @@ export type ModelTypes = {
 	/** Общее количество типов товаров */
 	totalTypes: number
 };
+	["MarketplaceConsolidatedRequest"]: {
+		accepted_at?: ModelTypes["DateTime"] | undefined | null,
+	coopname: string,
+	created_at: ModelTypes["DateTime"],
+	cycle_ended_at?: ModelTypes["DateTime"] | undefined | null,
+	cycle_started_at: ModelTypes["DateTime"],
+	/** time_based | volume_based | open_subscription | individual */
+	cycle_type: string,
+	decline_reason?: string | undefined | null,
+	declined_at?: ModelTypes["DateTime"] | undefined | null,
+	expires_at?: ModelTypes["DateTime"] | undefined | null,
+	id: string,
+	offer_id: string,
+	/** PENDING_SUPPLIER_ACCEPT | ACCEPTED | DECLINED_BY_SUPPLIER | EXPIRED_NO_RESPONSE | EXPIRED_NO_THRESHOLD | EXPIRED_NO_VOLUME */
+	status: string,
+	supplier_account: string,
+	/** Сумма заявки (numeric как string). */
+	total_amount: string,
+	total_quantity: number,
+	triggered_by_supplier_at?: ModelTypes["DateTime"] | undefined | null,
+	updated_at: ModelTypes["DateTime"]
+};
+	/** Результат массового действия поставщика над пакетом заказов (приём или отклонение). */
+["MarketplaceConsolidatedRequestActionResult"]: {
+		/** Сколько заказов входило в обработанный пакет. */
+	affected_orders: number,
+	/** Сколько заказов из пакета не удалось провести в блокчейн — потребуется повторная обработка. */
+	on_chain_failed: number,
+	/** Сколько заказов из пакета удалось провести в блокчейн. */
+	on_chain_succeeded: number,
+	/** Сводная заявка после обработки. */
+	request: ModelTypes["MarketplaceConsolidatedRequest"]
+};
+	["MarketplaceConsolidatedRequestPaginationResult"]: {
+		/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<ModelTypes["MarketplaceConsolidatedRequest"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number
+};
+	["MarketplaceConsolidatedRequestStatus"]:MarketplaceConsolidatedRequestStatus;
+	["MarketplaceCppStatus"]: {
+		accepted_at?: string | undefined | null,
+	accepted_by_board_decision_id?: string | undefined | null,
+	document_registry_id?: number | undefined | null,
+	/** `active` — Совет принял положение ЦПП; `not_accepted` — расширение не подключено */
+	status: string
+};
+	["MarketplaceCreateOfferInput"]: {
+	category_id: number,
+	cycle_days?: number | undefined | null,
+	/** time_based | volume_based | open_subscription | individual */
+	cycle_type: string,
+	description?: string | undefined | null,
+	max_wait_days?: number | undefined | null,
+	min_threshold?: number | undefined | null,
+	/** Цена за единицу (numeric как string, до 4 знаков) */
+	price_per_unit: string,
+	product_name: string,
+	quantity_available?: number | undefined | null,
+	target_volume?: number | undefined | null,
+	/** piece | kg | liter | pack */
+	unit_of_measure: string,
+	unlimited_flag: boolean,
+	warranty_days: number
+};
+	/** Параметры оформления нового заказа пайщиком. */
+["MarketplaceCreateOrderInput"]: {
+	/** Имя пункта выдачи (ПВЗ), куда пайщик хочет получить заказ. */
+	delivery_braname: string,
+	/** Идентификатор предложения, по которому пайщик оформляет заказ. */
+	offer_id: string,
+	/** Количество единиц товара (от 1; для не-безлимитных предложений — не больше доступного остатка). */
+	quantity: number
+};
+	["MarketplaceCreateOrderResult"]: {
+		order: ModelTypes["MarketplaceOrder"],
+	tx_snapshot: ModelTypes["MarketplaceOrderCreateTxSnapshot"]
+};
 	["MarketplaceCurrentMember"]: {
 		core_roles: Array<string>,
 	marketplace_roles: Array<string>,
 	username: string
+};
+	/** Параметры отказа поставщика от сводной заявки. */
+["MarketplaceDeclineConsolidatedRequestInput"]: {
+	/** Текст причины отказа — будет показан пайщикам в их заказах. */
+	reason: string,
+	/** Идентификатор сводной заявки, от которой поставщик отказывается. */
+	request_id: string
+};
+	/** Параметры индивидуального отказа поставщика от заказа. */
+["MarketplaceDeclineIndividualOrderInput"]: {
+	/** Идентификатор заказа индивидуального типа, от которого поставщик отказывается. */
+	order_id: string,
+	/** Текст причины отказа — будет показан пайщику в его заказе. */
+	reason: string
+};
+	/** Параметры отказа поставщика от одного заказа из пула открытой подписки до запуска поставки. */
+["MarketplaceDeclineOrderFromOpenPoolInput"]: {
+	/** Идентификатор заказа из пула открытой подписки, от которого поставщик отказывается до запуска поставки. */
+	order_id: string,
+	/** Текст причины отказа — будет показан пайщику в его заказе. */
+	reason: string
 };
 	["MarketplaceDetailKUInput"]: {
 	/** Полный адрес ПВЗ для отображения и геокодинга */
@@ -24616,6 +24274,11 @@ export type ModelTypes = {
 	/** Значение */
 	value: string
 };
+	/** Параметры запроса одного заказа. */
+["MarketplaceGetOrderInput"]: {
+	/** Идентификатор заказа. */
+	order_id: string
+};
 	["MarketplaceKUDetails"]: {
 		addressFull: string,
 	contactEmail: string,
@@ -24636,6 +24299,201 @@ export type ModelTypes = {
 	updatedAt: ModelTypes["DateTime"],
 	workingHours: ModelTypes["WorkingHours"]
 };
+	["MarketplaceListCatalogInput"]: {
+	/** category_id 1..9; null = «Все» */
+	category_id?: number | undefined | null,
+	/** Количество элементов на странице */
+	limit: number,
+	/** Номер страницы */
+	page: number,
+	/** Ключ сортировки (например, "name") */
+	sortBy?: string | undefined | null,
+	/** Направление сортировки ("ASC" или "DESC") */
+	sortOrder: string
+};
+	["MarketplaceListConsolidatedRequestsInput"]: {
+	/** Фильтр по идентификатору предложения. */
+	offer_id?: string | undefined | null,
+	/** Фильтр по состоянию сводной заявки. */
+	status?: ModelTypes["MarketplaceConsolidatedRequestStatus"] | undefined | null
+};
+	["MarketplaceListMyOffersInput"]: {
+	/** Количество элементов на странице */
+	limit: number,
+	/** Номер страницы */
+	page: number,
+	/** Ключ сортировки (например, "name") */
+	sortBy?: string | undefined | null,
+	/** Направление сортировки ("ASC" или "DESC") */
+	sortOrder: string
+};
+	/** Параметры фильтрации списка заказов (постранично/сортировка задаются отдельным аргументом options). */
+["MarketplaceListOrdersInput"]: {
+	/** Фильтр по идентификатору предложения. */
+	offer_id?: string | undefined | null,
+	/** Фильтр по аккаунту заказчика. */
+	orderer_account?: string | undefined | null,
+	/** Один или несколько статусов заказа, по которым нужно отфильтровать список. */
+	statuses?: Array<ModelTypes["MarketplaceOrderStatus"]> | undefined | null,
+	/** Фильтр по аккаунту поставщика. */
+	supplier_account?: string | undefined | null
+};
+	["MarketplaceListPendingOffersInput"]: {
+	/** Количество элементов на странице */
+	limit: number,
+	/** Номер страницы */
+	page: number,
+	/** Ключ сортировки (например, "name") */
+	sortBy?: string | undefined | null,
+	/** Направление сортировки ("ASC" или "DESC") */
+	sortOrder: string
+};
+	["MarketplaceMemberWallet"]: {
+		coopname: string,
+	username: string,
+	/** Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.member */
+	wallets: Array<ModelTypes["MarketplaceWalletEntry"]>
+};
+	["MarketplaceModerationLogEntry"]: {
+		/** approve | reject */
+	action: string,
+	by_account: string,
+	created_at: ModelTypes["DateTime"],
+	id: string,
+	offer_id: string,
+	reason?: string | undefined | null
+};
+	["MarketplaceOffer"]: {
+		approved_at?: ModelTypes["DateTime"] | undefined | null,
+	approved_by?: string | undefined | null,
+	category_id: number,
+	coopname: string,
+	created_at: ModelTypes["DateTime"],
+	cycle_days?: number | undefined | null,
+	/** time_based | volume_based | open_subscription | individual */
+	cycle_type: string,
+	description?: string | undefined | null,
+	id: string,
+	max_wait_days?: number | undefined | null,
+	min_threshold?: number | undefined | null,
+	/** Цена за единицу (numeric как string) */
+	price_per_unit: string,
+	product_name: string,
+	quantity_available: number,
+	quantity_blocked: number,
+	quantity_consumed: number,
+	reject_reason?: string | undefined | null,
+	rejected_at?: ModelTypes["DateTime"] | undefined | null,
+	rejected_by?: string | undefined | null,
+	/** PENDING_MODERATION | ACTIVE | REJECTED | WITHDRAWN */
+	status: string,
+	supplier_account: string,
+	target_volume?: number | undefined | null,
+	/** piece | kg | liter | pack */
+	unit_of_measure: string,
+	unlimited_flag: boolean,
+	updated_at: ModelTypes["DateTime"],
+	vitrine_id: string,
+	warranty_days: number
+};
+	["MarketplaceOfferPaginationResult"]: {
+		/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<ModelTypes["MarketplaceOffer"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number
+};
+	["MarketplaceOnboardingState"]: {
+		agreement_id?: number | undefined | null,
+	completed_at?: string | undefined | null,
+	/** true — фронт должен показать gate-диалог OnboardingCPPGate; false — пайщик может попасть на стол сразу */
+	requires_gate: boolean,
+	source: string,
+	/** registry_id шаблона оферты ЦПП marketplace в платформенной document factory (Story 1.7). 0 — placeholder, оферта ещё не зарегистрирована. */
+	template_registry_id: number
+};
+	/** Заказ пайщика по предложению поставщика. */
+["MarketplaceOrder"]: {
+		/** Когда поставщик принял заказ. */
+	accepted_at?: ModelTypes["DateTime"] | undefined | null,
+	/** Когда средства были заблокированы. */
+	blocked_at?: ModelTypes["DateTime"] | undefined | null,
+	/** Когда заказ был отменён. */
+	cancelled_at?: ModelTypes["DateTime"] | undefined | null,
+	/** Кооператив, в котором сделан заказ. */
+	coopname: string,
+	/** Снимок транзакции блокировки средств (для отображения движений кошелька). */
+	create_tx?: ModelTypes["MarketplaceOrderCreateTxSnapshot"] | undefined | null,
+	/** Когда запись о заказе создана в системе. */
+	created_at: ModelTypes["DateTime"],
+	/** Идентификатор партии-накопителя, если заказ присоединён. */
+	cycle_id?: string | undefined | null,
+	/** Способ накопления заказов перед поставкой (копируется из предложения). */
+	cycle_type: ModelTypes["MarketplaceOrderCycleType"],
+	/** Имя пункта выдачи (ПВЗ), куда пайщик хочет получить заказ. */
+	delivery_braname: string,
+	/** Идентификатор заказа. */
+	id: string,
+	/** Текстовая причина последнего изменения статуса. */
+	last_status_reason?: string | undefined | null,
+	/** Хеш предложения в блокчейне (snapshot на момент заказа). */
+	offer_hash: string,
+	/** Идентификатор предложения, по которому оформлен заказ. */
+	offer_id: string,
+	/** Хеш заказа в блокчейне (для сверки). */
+	order_hash: string,
+	/** Аккаунт пайщика-заказчика. */
+	orderer_account: string,
+	/** Цена за единицу товара на момент заказа. */
+	price_per_unit: string,
+	/** Количество единиц товара в заказе. */
+	quantity: number,
+	/** Когда пайщик получил заказ. */
+	received_at?: ModelTypes["DateTime"] | undefined | null,
+	/** Текущий этап жизненного цикла заказа. */
+	status: ModelTypes["MarketplaceOrderStatus"],
+	/** Аккаунт поставщика. */
+	supplier_account: string,
+	/** Общая сумма заказа. */
+	total_cost: string,
+	/** Когда запись о заказе последний раз изменялась. */
+	updated_at: ModelTypes["DateTime"],
+	/** Срок гарантии в секундах с момента получения. */
+	warranty_period_secs: number,
+	/** Дата окончания гарантии. */
+	warranty_until?: ModelTypes["DateTime"] | undefined | null
+};
+	/** Снимок транзакции блокировки средств: ссылки на блок, флаги конверсии и сумма. */
+["MarketplaceOrderCreateTxSnapshot"]: {
+		/** Номер блока, в который попала транзакция. */
+	block_num: number,
+	/** Сумма заблокированных средств (строка денежного актива). */
+	blocked_amount: string,
+	/** Был ли выполнен перевод средств между кошельками пайщика. */
+	did_assign: boolean,
+	/** Была ли выполнена конверсия паевого взноса в членский. */
+	did_convert: boolean,
+	/** Время подписания заказа (ISO 8601). */
+	signed_at: string,
+	/** Идентификатор транзакции в блокчейне. */
+	tx_hash: string
+};
+	["MarketplaceOrderCycleType"]:MarketplaceOrderCycleType;
+	/** Постраничный список заказов. */
+["MarketplaceOrderPaginationResult"]: {
+		/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<ModelTypes["MarketplaceOrder"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number
+};
+	["MarketplaceOrderStatus"]:MarketplaceOrderStatus;
 	["MarketplaceProductType"]: {
 		/** ID категории */
 	descriptionCategoryId: number,
@@ -24650,6 +24508,27 @@ export type ModelTypes = {
 	/** Название типа товара */
 	typeName: string
 };
+	["MarketplaceRegistrationOfferStatus"]: {
+		/** AGREEMENT_ID (например `marketplace_offer`) */
+	agreement_id?: string | undefined | null,
+	agreement_type?: string | undefined | null,
+	/** Account types, для которых оферта показывается в SignUp ([individual, entrepreneur] на MVP) */
+	applicable_account_types: Array<string>,
+	/** true — оферта зарегистрирована в platform AgreementRegistry, видна в SignUp; false — Story 1.7 не размещена либо init расширения ещё не отработал */
+	registered: boolean,
+	/** document_registry_id template оферты */
+	registry_id?: number | undefined | null,
+	title?: string | undefined | null
+};
+	["MarketplaceRejectOfferInput"]: {
+	offer_id: string,
+	/** Причина отказа (≤1000) */
+	reason: string
+};
+	["MarketplaceRemoveFromWhitelistInput"]: {
+	/** eosio::name пайщика-поставщика */
+	member_account: string
+};
 	["MarketplaceRequest"]: {
 		/** Артикул товара */
 	articleNumber: string,
@@ -24662,7 +24541,7 @@ export type ModelTypes = {
 	/** Можно ли редактировать заявку */
 	canBeEdited: boolean,
 	/** Информация о категории */
-	category: ModelTypes["MarketplaceCategory"],
+	category: ModelTypes["MarketplaceCategoryTreeNode"],
 	/** URL образца цвета */
 	colorImageUrl?: string | undefined | null,
 	/** Название кооператива */
@@ -24813,6 +24692,77 @@ export type ModelTypes = {
 	coreBraname: string,
 	/** Целевой статус ПВЗ: ACTIVE или INACTIVE */
 	status: string
+};
+	/** Результат индивидуального приёма или отклонения заказа поставщиком. */
+["MarketplaceSupplierOrderActionResult"]: {
+		/** Заказ после изменения статуса. */
+	order: ModelTypes["MarketplaceOrder"],
+	/** Идентификатор транзакции приёма или отклонения. */
+	tx_hash: string
+};
+	["MarketplaceTriggerOpenSubscriptionInput"]: {
+	/** Идентификатор предложения с открытой подпиской, по которому поставщик запускает поставку. */
+	offer_id: string
+};
+	["MarketplaceUpdateOfferInput"]: {
+	category_id?: number | undefined | null,
+	cycle_days?: number | undefined | null,
+	cycle_type?: string | undefined | null,
+	description?: string | undefined | null,
+	id: string,
+	max_wait_days?: number | undefined | null,
+	min_threshold?: number | undefined | null,
+	price_per_unit?: string | undefined | null,
+	product_name?: string | undefined | null,
+	quantity_available?: number | undefined | null,
+	target_volume?: number | undefined | null,
+	unit_of_measure?: string | undefined | null,
+	unlimited_flag?: boolean | undefined | null,
+	warranty_days?: number | undefined | null
+};
+	["MarketplaceVitrine"]: {
+		/** eosio::name кооператива-владельца витрины */
+	coopname: string,
+	created_at: ModelTypes["DateTime"],
+	/** Отображаемое имя витрины */
+	display_name: string,
+	/** Идентификатор витрины (MVP всегда "default") */
+	id: string,
+	/** Дефолтная витрина кооператива (MVP — всегда true) */
+	is_default: boolean,
+	updated_at: ModelTypes["DateTime"]
+};
+	["MarketplaceWalletEntry"]: {
+		/** Доступный остаток (`userwallets.available`) */
+	available: string,
+	/** Заблокированный остаток (`userwallets.blocked`) */
+	blocked: string,
+	/** Человекочитаемое название (из cooptypes LEDGER2_WALLET_REGISTRY) */
+	human_name: string,
+	/** WalletKind: USER_SHARED — обязателен L3-разрез по пайщику */
+	kind: string,
+	/** UX-метка кошелька в формате `<тип взноса> | <программа>` (например «Паевой | Цифровой Кошелёк», «Членский | Стол Заказов») */
+	label: string,
+	/** eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.member) */
+	name: string,
+	/** program_id: 1 — Цифровой Кошелёк, 2 — Стол Заказов */
+	program_id: number
+};
+	["MarketplaceWhitelistEntry"]: {
+		added_at: ModelTypes["DateTime"],
+	/** Кто добавил (eosio::name админа) */
+	added_by?: string | undefined | null,
+	/** eosio::name кооператива */
+	coopname: string,
+	/** UUID записи whitelist */
+	id: string,
+	/** eosio::name пайщика-поставщика */
+	member_account: string,
+	/** auto-coop — сам кооператив (неудаляема, FR5); manual — добавлен админом */
+	role: string
+};
+	["MarketplaceWithdrawOfferInput"]: {
+	id: string
 };
 	["MatrixAccountStatusResponseDTO"]: {
 		hasAccount: boolean,
@@ -24979,16 +24929,6 @@ export type ModelTypes = {
 	reason: string,
 	source: ModelTypes["RequisiteSource"]
 };
-	["ModerateRequestInput"]: {
-	/** Размер комиссии за отмену в формате "10.0000 RUB" */
-	cancellation_fee: string,
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Идентификатор обмена */
-	exchange_id: number,
-	/** Имя аккаунта пользователя */
-	username: string
-};
 	["MonoAccount"]: {
 		/** Электронная почта пользователя */
 	email: string,
@@ -25026,13 +24966,7 @@ export type ModelTypes = {
 	target_project_hash: string
 };
 	["Mutation"]: {
-		/** Подтвердить поставку имущества на заявку */
-	acceptChildOrder: ModelTypes["Transaction"],
-	/** Принять предложение из запасов кооператива
-
-Требуемые роли: chairman, member, user.  */
-	acceptStock: ModelTypes["Transaction"],
-	/** Добавить активного пайщика, который вступил в кооператив, не используя платформу (заполнив заявление собственноручно, оплатив вступительный и минимальный паевый взносы, и получив протокол решения совета)
+		/** Добавить активного пайщика, который вступил в кооператив, не используя платформу (заполнив заявление собственноручно, оплатив вступительный и минимальный паевый взносы, и получив протокол решения совета)
 
 Требуемые роли: chairman, member.  */
 	addParticipant: ModelTypes["Account"],
@@ -25046,8 +24980,6 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	archiveProductCard: boolean,
-	/** Отменить заявку */
-	cancelRequest: ModelTypes["Transaction"],
 	/** Добавление автора проекта в CAPITAL контракте
 
 Требуемые роли: chairman.  */
@@ -25396,20 +25328,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	completeExtensionOnboardingStep: ModelTypes["ExtensionOnboardingState"],
-	/** Завершить заявку по истечению гарантийного срока */
-	completeRequest: ModelTypes["Transaction"],
 	/** Подтвердить соглашение пайщика администратором
 
 Требуемые роли: chairman, member.  */
 	confirmAgreement: ModelTypes["Transaction"],
-	/** Подтвердить получение имущества Уполномоченным лицом от Заказчика по новации и акту приёмки-передачи */
-	confirmReceiveOnRequest: ModelTypes["Transaction"],
-	/** Подтвердить поставку имущества Поставщиком по заявке Заказчика и акту приёма-передачи */
-	confirmSupplyOnRequest: ModelTypes["Transaction"],
-	/** Создать предложение из запасов кооператива
-
-Требуемые роли: chairman.  */
-	coopstock: ModelTypes["Transaction"],
 	/** Сгенерировать документ предложения повестки очередного общего собрания пайщиков
 
 Требуемые роли: chairman, member.  */
@@ -25422,8 +25344,6 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	createCategory: ModelTypes["Category"],
-	/** Создать заявку на поставку имущества по предложению Поставщика */
-	createChildOrder: ModelTypes["Transaction"],
 	/** Создание объекта паевого платежа производится мутацией createDepositPayment. Выполнение мутации возвращает идентификатор платежа и данные для его совершения в зависимости от выбранного платежного провайдера.
 
 Требуемые роли: chairman, member.  */
@@ -25432,8 +25352,6 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member.  */
 	createInitialPayment: ModelTypes["GatewayPayment"],
-	/** Создать предложение на поставку имущества */
-	createParentOffer: ModelTypes["Transaction"],
 	/** Создать карточку товара/услуги
 
 Требуемые роли: chairman, member, user.  */
@@ -25458,8 +25376,6 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member.  */
 	declineAgreement: ModelTypes["Transaction"],
-	/** Отклонить заявку */
-	declineRequest: ModelTypes["Transaction"],
 	/** Удалить кооперативный участок
 
 Требуемые роли: chairman.  */
@@ -25482,14 +25398,6 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	deleteTrustedAccount: ModelTypes["Branch"],
-	/** Подтвердить доставку имущества Заказчику по заявке */
-	deliverOnRequest: ModelTypes["Transaction"],
-	/** Уничтожить просроченное имущество
-
-Требуемые роли: chairman.  */
-	destroyRequest: ModelTypes["Transaction"],
-	/** Открыть спор по заявке */
-	disputeOnRequest: ModelTypes["Transaction"],
 	/** Изменить кооперативный участок
 
 Требуемые роли: chairman.  */
@@ -25506,18 +25414,6 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member.  */
 	generateAnnualGeneralMeetNotificationDocument: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать документ акта приема-передачи.
-
-Требуемые роли: chairman, member.  */
-	generateAssetContributionAct: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать документ решения о вступлении в кооператив.
-
-Требуемые роли: chairman, member.  */
-	generateAssetContributionDecision: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать документ заявления о вступлении в кооператив.
-
-Требуемые роли: chairman, member.  */
-	generateAssetContributionStatement: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать бюллетень для голосования на общем собрании пайщиков
 
 Требуемые роли: member.  */
@@ -25556,18 +25452,6 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	generateReportFromEdits: ModelTypes["GeneratedReport"],
-	/** Сгенерировать документ акта возврата имущества.
-
-Требуемые роли: chairman, member.  */
-	generateReturnByAssetAct: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать документ решения о возврате имущества.
-
-Требуемые роли: chairman, member.  */
-	generateReturnByAssetDecision: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать документ заявления о возврате имущества.
-
-Требуемые роли: chairman, member.  */
-	generateReturnByAssetStatement: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать документ решения совета о возврате паевого взноса
 
 Требуемые роли: chairman, member.  */
@@ -25612,6 +25496,12 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	markReportPeriod: boolean,
+	/** Поставщик принимает сводную заявку — все заказы в пакете переходят в принятое состояние. */
+	marketplaceAcceptConsolidatedRequest: ModelTypes["MarketplaceConsolidatedRequestActionResult"],
+	/** Зафиксировать принятие положения ЦПП «Стол заказов» Советом — admin-action из admin-стола. MVP-stub: председатель самостоятельно передаёт `accepted_by_board_decision_id`; в Эпике 8 поле будет валидироваться против реальной повестки совета. */
+	marketplaceAcceptCpp: ModelTypes["MarketplaceCppStatus"],
+	/** Поставщик принимает один индивидуальный заказ. */
+	marketplaceAcceptIndividualOrder: ModelTypes["MarketplaceSupplierOrderActionResult"],
 	/** Добавить категории в доступные для кооператива (целые категории)
 
 Требуемые роли: chairman.  */
@@ -25620,18 +25510,36 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	marketplaceAddAvailableCategoryTypes: Array<ModelTypes["MarketplaceAvailableCategory"]>,
+	/** Добавить пайщика в whitelist поставщиков (admin) */
+	marketplaceAddToWhitelist: ModelTypes["MarketplaceWhitelistEntry"],
+	/** Одобрить Offer (status → ACTIVE) (admin) */
+	marketplaceApproveOffer: ModelTypes["MarketplaceOffer"],
+	/** Отменить свой заказ до его приёма поставщиком; средства разблокируются. */
+	marketplaceCancelOrder: ModelTypes["MarketplaceCancelOrderResult"],
 	/** Очистить все доступные категории (сделать доступными все)
 
 Требуемые роли: chairman.  */
 	marketplaceClearAvailableCategories: boolean,
+	/** Поставщик публикует Offer (статус → PENDING_MODERATION) */
+	marketplaceCreateOffer: ModelTypes["MarketplaceOffer"],
+	/** Оформить заказ по предложению и заблокировать средства пайщика. */
+	marketplaceCreateOrder: ModelTypes["MarketplaceCreateOrderResult"],
 	/** Создать новую заявку на поставку или заказ товара
 
 Требуемые роли: member, chairman.  */
 	marketplaceCreateRequest: ModelTypes["MarketplaceRequest"],
+	/** Поставщик отклоняет сводную заявку — все заказы пакета отменяются, средства разблокируются. */
+	marketplaceDeclineConsolidatedRequest: ModelTypes["MarketplaceConsolidatedRequestActionResult"],
+	/** Поставщик отказывается от одного индивидуального заказа; средства разблокируются. */
+	marketplaceDeclineIndividualOrder: ModelTypes["MarketplaceSupplierOrderActionResult"],
+	/** Поставщик отказывается от одного заказа из пула открытой подписки до запуска поставки (после запуска частичный отказ невозможен). */
+	marketplaceDeclineOrderFromOpenPool: ModelTypes["MarketplaceSupplierOrderActionResult"],
 	/** Детализирует существующий в core кооперативный участок как ПВЗ Стола заказов. Создаёт запись marketplace_ku_details, либо обновляет существующую. При смене адреса запускает повторный геокодинг — координаты сбрасываются в PENDING и обновляются асинхронно.
 
 Требуемые роли: chairman.  */
 	marketplaceDetailKU: ModelTypes["MarketplaceKUDetails"],
+	/** Отклонить Offer с причиной (status → REJECTED) (admin) */
+	marketplaceRejectOffer: ModelTypes["MarketplaceOffer"],
 	/** Удалить категории из доступных для кооператива (включая все их типы)
 
 Требуемые роли: chairman.  */
@@ -25640,6 +25548,8 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	marketplaceRemoveAvailableCategoryTypes: boolean,
+	/** Удалить пайщика из whitelist (admin); auto-coop запись неудаляема */
+	marketplaceRemoveFromWhitelist: boolean,
 	/** Заменить все доступные категории и типы новым списком
 
 Требуемые роли: chairman.  */
@@ -25652,8 +25562,12 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	marketplaceSetKUStatus: ModelTypes["MarketplaceKUDetails"],
-	/** Модерировать заявку */
-	moderateRequest: ModelTypes["Transaction"],
+	/** Поставщик запускает поставку по предложению с открытой подпиской: формируется сводная заявка, заказы в её пуле принимаются. */
+	marketplaceTriggerOpenSubscription: ModelTypes["MarketplaceConsolidatedRequest"],
+	/** Поставщик правит свой Offer — статус сбрасывается в PENDING_MODERATION */
+	marketplaceUpdateOffer: ModelTypes["MarketplaceOffer"],
+	/** Поставщик снимает свой Offer (статус → WITHDRAWN) */
+	marketplaceWithdrawOffer: ModelTypes["MarketplaceOffer"],
 	/** Уведомление о проведении общего собрания пайщиков
 
 Требуемые роли: chairman, member.  */
@@ -25662,8 +25576,6 @@ export type ModelTypes = {
 
 Требуемые роли: member, chairman.  */
 	processConvertToAxonStatement: boolean,
-	/** Отклонить модерацию по заявке */
-	prohibitRequest: ModelTypes["Transaction"],
 	/** Опубликовать карточку
 
 Требуемые роли: chairman, member, user.  */
@@ -25672,10 +25584,6 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member.  */
 	publishProjectOfFreeDecision: boolean,
-	/** Опубликовать заявку */
-	publishRequest: ModelTypes["Transaction"],
-	/** Подтвердить получение имущества Уполномоченным лицом от Заказчика по акту приёмки-передачи */
-	receiveOnRequest: ModelTypes["Transaction"],
 	/** Обновить токен доступа аккаунта */
 	refresh: ModelTypes["RegisteredAccount"],
 	/** Зарегистрировать аккаунт пользователя в системе */
@@ -25684,14 +25592,6 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member.  */
 	registerParticipant: ModelTypes["Account"],
-	/** Перепредложить имущество по новой цене
-
-Требуемые роли: chairman.  */
-	reofferRequest: ModelTypes["Transaction"],
-	/** Запросить возврат паевого взноса имуществом (перед получением)
-
-Требуемые роли: chairman, member, user.  */
-	reqReturn: ModelTypes["Transaction"],
 	/** Заменить приватный ключ аккаунта */
 	resetKey: boolean,
 	/** Перезапуск общего собрания пайщиков
@@ -25726,8 +25626,6 @@ export type ModelTypes = {
 	startInstall: ModelTypes["StartInstallResult"],
 	/** Выслать токен для замены приватного ключа аккаунта на электронную почту */
 	startResetKey: boolean,
-	/** Подтвердить поставку имущества Поставщиком по заявке Заказчика и акту приёма-передачи */
-	supplyOnRequest: ModelTypes["Transaction"],
 	/** Запустить воркфлоу уведомлений (только для председателя или server-secret)
 
 Требуемые роли: chairman.  */
@@ -25736,8 +25634,6 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	uninstallExtension: boolean,
-	/** Снять с публикации заявку */
-	unpublishRequest: ModelTypes["Transaction"],
 	/** Обновить аккаунт в системе провайдера. Обновление аккаунта пользователя производится по username. Мутация позволяет изменить приватные данные пользователя, а также, адрес электронной почты в MONO. Использовать мутацию может только председатель совета.
 
 Требуемые роли: chairman.  */
@@ -25752,8 +25648,6 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	updateReportRequisites: ModelTypes["ReportRequisitesView"],
-	/** Обновить заявку */
-	updateRequest: ModelTypes["Transaction"],
 	/** Обновить настройки системы (рабочие столы и маршруты по умолчанию)
 
 Требуемые роли: chairman.  */
@@ -26652,16 +26546,6 @@ export type ModelTypes = {
 	/** Общее количество страниц */
 	totalPages: number
 };
-	["ProhibitRequestInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Идентификатор обмена */
-	exchange_id: number,
-	/** Дополнительная информация о отклоненной модерации */
-	meta: string,
-	/** Имя аккаунта пользователя */
-	username: string
-};
 	["ProjectFreeDecisionGenerateDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num?: number | undefined | null,
@@ -26805,14 +26689,6 @@ export type ModelTypes = {
 	document: ModelTypes["ProjectFreeDecisionSignedDocumentInput"],
 	/** Строка мета-информации */
 	meta: string,
-	/** Имя аккаунта пользователя */
-	username: string
-};
-	["PublishRequestInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Идентификатор заявки */
-	exchange_id: number,
 	/** Имя аккаунта пользователя */
 	username: string
 };
@@ -27159,6 +27035,12 @@ export type ModelTypes = {
 	marketplaceCategoryAttributes: Array<ModelTypes["MarketplaceAttribute"]>,
 	/** Получить группированные атрибуты для категории и типа товара marketplace */
 	marketplaceCategoryAttributesGrouped: Array<ModelTypes["MarketplaceAttributeGroup"]>,
+	/** Счётчики активных Offer'ов per category — для фильтр-чипов Story 3.5 */
+	marketplaceCategoryOfferCounts: Array<ModelTypes["MarketplaceCategoryOfferCount"]>,
+	/** Статус принятия положения ЦПП «Стол заказов» Советом кооператива (L1). `active` если принято, `not_accepted` иначе. */
+	marketplaceCppStatus: ModelTypes["MarketplaceCppStatus"],
+	/** Дефолтная витрина кооператива (MVP — единственная) */
+	marketplaceDefaultVitrine: ModelTypes["MarketplaceVitrine"],
 	/** Найти потенциальные совпадения для заявки */
 	marketplaceFindPotentialMatches: Array<ModelTypes["MarketplaceRequest"]>,
 	/** Получить статистику по доступности категорий в кооперативе
@@ -27172,15 +27054,15 @@ export type ModelTypes = {
 	/** Получить дерево доступных категорий и типов для кооператива
 
 Требуемые роли: chairman.  */
-	marketplaceGetAvailableCategoryTree: Array<ModelTypes["MarketplaceCategory"]>,
+	marketplaceGetAvailableCategoryTree: Array<ModelTypes["MarketplaceCategoryTreeNode"]>,
 	/** Получить категорию marketplace по ID */
-	marketplaceGetCategoryById?: ModelTypes["MarketplaceCategory"] | undefined | null,
+	marketplaceGetCategoryById?: ModelTypes["MarketplaceCategoryTreeNode"] | undefined | null,
 	/** Получить все доступные правила для конкретной категории
 
 Требуемые роли: chairman.  */
 	marketplaceGetCategoryRules: Array<ModelTypes["MarketplaceAvailableCategory"]>,
 	/** Получить полное дерево категорий marketplace с типами товаров */
-	marketplaceGetCategoryTree: Array<ModelTypes["MarketplaceCategory"]>,
+	marketplaceGetCategoryTree: Array<ModelTypes["MarketplaceCategoryTreeNode"]>,
 	/** Получить статистику по дереву категорий
 
 Требуемые роли: chairman, member.  */
@@ -27189,6 +27071,8 @@ export type ModelTypes = {
 
 Требуемые роли: member, chairman.  */
 	marketplaceGetCoopRequests: Array<ModelTypes["MarketplaceRequest"]>,
+	/** Получить один заказ по его идентификатору (доступ зависит от роли). */
+	marketplaceGetOrder: ModelTypes["MarketplaceOrder"],
 	/** Получить тип товара marketplace по ID */
 	marketplaceGetProductTypeById?: ModelTypes["MarketplaceProductType"] | undefined | null,
 	/** Получить заявку по ID */
@@ -27200,17 +27084,41 @@ export type ModelTypes = {
 Требуемые роли: chairman, member.  */
 	marketplaceGetRequestStatistics: ModelTypes["MarketplaceRequestStatistics"],
 	/** Получить все корневые категории marketplace */
-	marketplaceGetRootCategories: Array<ModelTypes["MarketplaceCategory"]>,
+	marketplaceGetRootCategories: Array<ModelTypes["MarketplaceCategoryTreeNode"]>,
 	/** Универсальный поиск по категориям и типам товаров */
-	marketplaceGetSearchCategories: Array<ModelTypes["MarketplaceCategory"]>,
+	marketplaceGetSearchCategories: Array<ModelTypes["MarketplaceCategoryTreeNode"]>,
 	/** Получить заявки текущего пользователя
 
 Требуемые роли: member, chairman.  */
 	marketplaceGetUserRequests: Array<ModelTypes["MarketplaceRequest"]>,
+	/** Каталог активных Offer'ов (ACTIVE + available, single vitrine MVP) */
+	marketplaceListCatalog: ModelTypes["MarketplaceOfferPaginationResult"],
+	/** Baseline-категории Стола заказов (Story 3.2/3.5) — 8 продовольственных + «Прочее» */
+	marketplaceListCategories: Array<ModelTypes["MarketplaceCategory"]>,
+	/** Постраничный список сводных заявок поставщика — для стола поставщика и для прослеживания состояния заказов. */
+	marketplaceListConsolidatedRequests: ModelTypes["MarketplaceConsolidatedRequestPaginationResult"],
 	/** Список marketplace-детализаций ПВЗ кооператива.
 
 Требуемые роли: chairman, member, user.  */
 	marketplaceListKUDetails: Array<ModelTypes["MarketplaceKUDetails"]>,
+	/** История решений модерации по Offer'у (admin) */
+	marketplaceListModerationLog: Array<ModelTypes["MarketplaceModerationLogEntry"]>,
+	/** Список собственных Offer'ов поставщика (любой статус) */
+	marketplaceListMyOffers: ModelTypes["MarketplaceOfferPaginationResult"],
+	/** Список заказов текущего пайщика (стол заказчика). */
+	marketplaceListMyOrders: ModelTypes["MarketplaceOrderPaginationResult"],
+	/** Список Offer'ов на модерации (admin) */
+	marketplaceListPendingOffers: ModelTypes["MarketplaceOfferPaginationResult"],
+	/** Список заказов, по которым текущий пайщик является поставщиком (стол поставщика). */
+	marketplaceListSupplierOrders: ModelTypes["MarketplaceOrderPaginationResult"],
+	/** Список пайщиков-поставщиков, допущенных к публикации оферт */
+	marketplaceListWhitelist: Array<ModelTypes["MarketplaceWhitelistEntry"]>,
+	/** Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.member */
+	marketplaceMemberWallet: ModelTypes["MarketplaceMemberWallet"],
+	/** Состояние онбординга пайщика в Столе заказов: показывать ли gate или пропускать на стол */
+	marketplaceOnboardingState: ModelTypes["MarketplaceOnboardingState"],
+	/** Статус видимости оферты Стола заказов в core registration-flow (платформенный AgreementRegistry) */
+	marketplaceRegistrationOfferStatus: ModelTypes["MarketplaceRegistrationOfferStatus"],
 	/** Получить обязательные атрибуты для категории и типа товара marketplace */
 	marketplaceRequiredAttributes: Array<ModelTypes["MarketplaceAttribute"]>,
 	/** Поиск атрибутов marketplace по названию */
@@ -27272,16 +27180,6 @@ export type ModelTypes = {
 	voters_against: Array<string>,
 	/** Список участников, проголосовавших "За" */
 	voters_for: Array<string>
-};
-	["ReceiveOnRequestInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Подписанный Заказчиком акт приёмки-передачи имущества из Кооператива по новации */
-	document: ModelTypes["ReturnByAssetActSignedDocumentInput"],
-	/** Идентификатор заявки */
-	exchange_id: number,
-	/** Имя аккаунта пользователя */
-	username: string
 };
 	["RefreshInput"]: {
 	/** Токен доступа */
@@ -27428,12 +27326,6 @@ export type ModelTypes = {
 	/** Типы товаров для удаления */
 	categoryTypes: Array<ModelTypes["CategoryTypeInput"]>
 };
-	["ReofferRequestInput"]: {
-	new_hash: string,
-	new_meta: string,
-	new_unit_cost: string,
-	request_hash: string
-};
 	["ReplaceAvailableItemsInput"]: {
 	/** ID категорий (целые категории) */
 	categoryIds: Array<number>,
@@ -27559,11 +27451,6 @@ export type ModelTypes = {
 	middle_name: string,
 	position: string
 };
-	["ReqReturnInput"]: {
-	request_hash: string,
-	return_statement: ModelTypes["SignedDigitalDocumentInput"],
-	username: string
-};
 	["RequestAttributeInput"]: {
 	/** ID атрибута */
 	attributeId: number,
@@ -27664,176 +27551,6 @@ export type ModelTypes = {
 	username?: string | undefined | null
 };
 	["ResultStatus"]:ResultStatus;
-	["ReturnByAssetActGenerateDocumentInput"]: {
-	/** Идентификатор акта */
-	act_id: string,
-	/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null,
-	/** Имя аккаунта кооперативного участка */
-	braname?: string | undefined | null,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null,
-	/** Идентификатор решения */
-	decision_id: number,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null,
-	/** Язык документа */
-	lang?: string | undefined | null,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null,
-	/** Идентификатор заявки */
-	request_id: number,
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null,
-	/** Название документа */
-	title?: string | undefined | null,
-	/** Имя аккаунта получателя на кооперативном участке */
-	transmitter: string,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null
-};
-	["ReturnByAssetActSignedDocumentInput"]: {
-	/** Хэш содержимого документа */
-	doc_hash: string,
-	/** Общий хэш (doc_hash + meta_hash) */
-	hash: string,
-	/** Метаинформация для создания проекта свободного решения */
-	meta: ModelTypes["ReturnByAssetActSignedMetaDocumentInput"],
-	/** Хэш мета-данных */
-	meta_hash: string,
-	/** Вектор подписей */
-	signatures: Array<ModelTypes["SignatureInfoInput"]>,
-	/** Версия стандарта документа */
-	version: string
-};
-	["ReturnByAssetActSignedMetaDocumentInput"]: {
-	/** Идентификатор акта */
-	act_id: string,
-	/** Номер блока, на котором был создан документ */
-	block_num: number,
-	/** Имя аккаунта кооперативного участка */
-	braname?: string | undefined | null,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at: string,
-	/** Идентификатор решения */
-	decision_id: number,
-	/** Имя генератора, использованного для создания документа */
-	generator: string,
-	/** Язык документа */
-	lang: string,
-	/** Ссылки, связанные с документом */
-	links: Array<string>,
-	/** ID документа в реестре */
-	registry_id: number,
-	/** Идентификатор заявки */
-	request_id: number,
-	/** Часовой пояс, в котором был создан документ */
-	timezone: string,
-	/** Название документа */
-	title: string,
-	/** Имя аккаунта получателя на кооперативном участке */
-	transmitter: string,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version: string
-};
-	["ReturnByAssetDecisionGenerateDocumentInput"]: {
-	/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null,
-	/** Идентификатор решения */
-	decision_id: number,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null,
-	/** Язык документа */
-	lang?: string | undefined | null,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null,
-	/** Идентификатор заявки */
-	request_id: number,
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null,
-	/** Название документа */
-	title?: string | undefined | null,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null
-};
-	["ReturnByAssetStatementGenerateDocumentInput"]: {
-	/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null,
-	/** Язык документа */
-	lang?: string | undefined | null,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null,
-	/** Запрос на внесение имущественного паевого взноса */
-	request: ModelTypes["CommonRequestInput"],
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null,
-	/** Название документа */
-	title?: string | undefined | null,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null
-};
-	["ReturnByAssetStatementSignedDocumentInput"]: {
-	/** Хэш содержимого документа */
-	doc_hash: string,
-	/** Общий хэш (doc_hash + meta_hash) */
-	hash: string,
-	/** Метаинформация для создания проекта свободного решения */
-	meta: ModelTypes["ReturnByAssetStatementSignedMetaDocumentInput"],
-	/** Хэш мета-данных */
-	meta_hash: string,
-	/** Вектор подписей */
-	signatures: Array<ModelTypes["SignatureInfoInput"]>,
-	/** Версия стандарта документа */
-	version: string
-};
-	["ReturnByAssetStatementSignedMetaDocumentInput"]: {
-	/** Номер блока, на котором был создан документ */
-	block_num: number,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at: string,
-	/** Имя генератора, использованного для создания документа */
-	generator: string,
-	/** Язык документа */
-	lang: string,
-	/** Ссылки, связанные с документом */
-	links: Array<string>,
-	/** ID документа в реестре */
-	registry_id: number,
-	/** Запрос на внесение имущественного паевого взноса */
-	request: ModelTypes["CommonRequestInput"],
-	/** Часовой пояс, в котором был создан документ */
-	timezone: string,
-	/** Название документа */
-	title: string,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version: string
-};
 	["ReturnByMoneyDecisionGenerateDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num?: number | undefined | null,
@@ -28355,16 +28072,6 @@ export type ModelTypes = {
 	/** Количество уникальных пользователей */
 	uniqueUsers: number
 };
-	["SupplyOnRequestInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Подписанный Поставщиком акт приёма-передачи имущества в кооператив */
-	document: ModelTypes["AssetContributionActSignedDocumentInput"],
-	/** Идентификатор обмена */
-	exchange_id: number,
-	/** Имя аккаунта пользователя */
-	username: string
-};
 	["Symbols"]: {
 		/** Точность символа управления */
 	root_govern_precision: number,
@@ -28465,14 +28172,6 @@ export type ModelTypes = {
 	["UninstallExtensionInput"]: {
 	/** Фильтр по имени */
 	name: string
-};
-	["UnpublishRequestInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Идентификатор обмена */
-	exchange_id: number,
-	/** Имя аккаунта пользователя */
-	username: string
 };
 	["Update"]: {
 	/** Собственные данные кооператива, обслуживающего экземпляр платформы */
@@ -28642,22 +28341,6 @@ export type ModelTypes = {
 	signerSnils?: string | undefined | null,
 	/** chairman | representative */
 	signerType?: string | undefined | null
-};
-	["UpdateRequestInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Дополнительные данные */
-	data: string,
-	/** Идентификатор обмена */
-	exchange_id: number,
-	/** Дополнительная информация */
-	meta: string,
-	/** Оставшееся количество единиц */
-	remain_units: string,
-	/** Стоимость за единицу в формате "10.0000 RUB" */
-	unit_cost: string,
-	/** Имя аккаунта пользователя */
-	username: string
 };
 	["UpdateSettingsInput"]: {
 	/** Маршрут по умолчанию для авторизованных пользователей */
@@ -28946,22 +28629,6 @@ export type GraphQLTypes = {
     // ------------------------------------------------------;
 	// THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY);
 	// ------------------------------------------------------;
-	["AcceptChildOrderInput"]: {
-		/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Подписанное заявление на имущественный паевый взнос */
-	document: GraphQLTypes["AssetContributionStatementSignedDocumentInput"],
-	/** Идентификатор заявки */
-	exchange_id: string,
-	/** Имя аккаунта пользователя */
-	username: string
-};
-	["AcceptStockInput"]: {
-		convert_in: GraphQLTypes["SignedDigitalDocumentInput"],
-	request_hash: string,
-	return_statement: GraphQLTypes["SignedDigitalDocumentInput"],
-	username: string
-};
 	["Account"]: {
 	__typename: "Account",
 	/** объект аккаунта в блокчейне содержит системную информацию, такую как публичные ключи доступа, доступные вычислительные ресурсы, информация об установленном смарт-контракте, и т.д. и т.п. Это системный уровень обслуживания, где у каждого пайщика есть аккаунт, но не каждый аккаунт может быть пайщиком в каком-либо кооперативе. Все смарт-контракты устанавливаются и исполняются на этом уровне. */
@@ -29594,176 +29261,6 @@ export type GraphQLTypes = {
 };
 	/** Статус одобрения в системе CHAIRMAN */
 ["ApprovalStatus"]: ApprovalStatus;
-	["AssetContributionActGenerateDocumentInput"]: {
-		/** Идентификатор акта */
-	act_id: string,
-	/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null,
-	/** Имя аккаунта кооперативного участка */
-	braname?: string | undefined | null,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null,
-	/** Идентификатор решения */
-	decision_id: number,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null,
-	/** Язык документа */
-	lang?: string | undefined | null,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null,
-	/** Имя аккаунта получателя на кооперативном участке */
-	receiver: string,
-	/** Идентификатор заявки */
-	request_id: number,
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null,
-	/** Название документа */
-	title?: string | undefined | null,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null
-};
-	["AssetContributionActSignedDocumentInput"]: {
-		/** Хэш содержимого документа */
-	doc_hash: string,
-	/** Общий хэш (doc_hash + meta_hash) */
-	hash: string,
-	/** Метаинформация для создания проекта свободного решения */
-	meta: GraphQLTypes["AssetContributionActSignedMetaDocumentInput"],
-	/** Хэш мета-данных */
-	meta_hash: string,
-	/** Вектор подписей */
-	signatures: Array<GraphQLTypes["SignatureInfoInput"]>,
-	/** Версия стандарта документа */
-	version: string
-};
-	["AssetContributionActSignedMetaDocumentInput"]: {
-		/** Идентификатор акта */
-	act_id: string,
-	/** Номер блока, на котором был создан документ */
-	block_num: number,
-	/** Имя аккаунта кооперативного участка */
-	braname?: string | undefined | null,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at: string,
-	/** Идентификатор решения */
-	decision_id: number,
-	/** Имя генератора, использованного для создания документа */
-	generator: string,
-	/** Язык документа */
-	lang: string,
-	/** Ссылки, связанные с документом */
-	links: Array<string>,
-	/** Имя аккаунта получателя на кооперативном участке */
-	receiver: string,
-	/** ID документа в реестре */
-	registry_id: number,
-	/** Идентификатор заявки */
-	request_id: number,
-	/** Часовой пояс, в котором был создан документ */
-	timezone: string,
-	/** Название документа */
-	title: string,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version: string
-};
-	["AssetContributionDecisionGenerateDocumentInput"]: {
-		/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null,
-	/** Идентификатор решения */
-	decision_id: number,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null,
-	/** Язык документа */
-	lang?: string | undefined | null,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null,
-	/** Идентификатор заявки */
-	request_id: number,
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null,
-	/** Название документа */
-	title?: string | undefined | null,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null
-};
-	["AssetContributionStatementGenerateDocumentInput"]: {
-		/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null,
-	/** Язык документа */
-	lang?: string | undefined | null,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null,
-	/** Запрос на внесение имущественного паевого взноса */
-	request: GraphQLTypes["CommonRequestInput"],
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null,
-	/** Название документа */
-	title?: string | undefined | null,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null
-};
-	["AssetContributionStatementSignedDocumentInput"]: {
-		/** Хэш содержимого документа */
-	doc_hash: string,
-	/** Общий хэш (doc_hash + meta_hash) */
-	hash: string,
-	/** Метаинформация для создания проекта свободного решения */
-	meta: GraphQLTypes["AssetContributionStatementSignedMetaDocumentInput"],
-	/** Хэш мета-данных */
-	meta_hash: string,
-	/** Вектор подписей */
-	signatures: Array<GraphQLTypes["SignatureInfoInput"]>,
-	/** Версия стандарта документа */
-	version: string
-};
-	["AssetContributionStatementSignedMetaDocumentInput"]: {
-		/** Номер блока, на котором был создан документ */
-	block_num: number,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at: string,
-	/** Имя генератора, использованного для создания документа */
-	generator: string,
-	/** Язык документа */
-	lang: string,
-	/** Ссылки, связанные с документом */
-	links: Array<string>,
-	/** ID документа в реестре */
-	registry_id: number,
-	/** Запрос на внесение имущественного паевого взноса */
-	request: GraphQLTypes["CommonRequestInput"],
-	/** Часовой пояс, в котором был создан документ */
-	timezone: string,
-	/** Название документа */
-	title: string,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version: string
-};
 	["AuthSequence"]: {
 	__typename: "AuthSequence",
 	account: string,
@@ -30206,14 +29703,6 @@ export type GraphQLTypes = {
 	segments: Array<GraphQLTypes["TranscriptionSegment"]>,
 	transcription: GraphQLTypes["CallTranscription"],
 	['...on CallTranscriptionWithSegments']: Omit<GraphQLTypes["CallTranscriptionWithSegments"], "...on CallTranscriptionWithSegments">
-};
-	["CancelRequestInput"]: {
-		/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Идентификатор заявки */
-	exchange_id: string,
-	/** Имя аккаунта пользователя */
-	username: string
 };
 	["Candidate"]: {
 	__typename: "Candidate",
@@ -31765,17 +31254,6 @@ export type GraphQLTypes = {
 };
 	/** Статус коммита в системе CAPITAL */
 ["CommitStatus"]: CommitStatus;
-	["CommonRequestInput"]: {
-		currency: string,
-	hash: string,
-	program_id: number,
-	title: string,
-	total_cost: string,
-	type: string,
-	unit_cost: string,
-	unit_of_measurement: string,
-	units: number
-};
 	["CompleteCapitalRegistrationInputDTO"]: {
 		/** Информация о себе */
 	about?: string | undefined | null,
@@ -31813,14 +31291,6 @@ export type GraphQLTypes = {
 	["CompleteProcessStepInput"]: {
 		instance_id: string,
 	step_id: string
-};
-	["CompleteRequestInput"]: {
-		/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Идентификатор обмена */
-	exchange_id: string,
-	/** Имя аккаунта пользователя */
-	username: string
 };
 	["CompleteVotingInput"]: {
 		/** Имя аккаунта кооператива */
@@ -31894,28 +31364,6 @@ export type GraphQLTypes = {
 	approved_document?: GraphQLTypes["SignedDigitalDocumentInput"] | undefined | null,
 	/** Название кооператива */
 	coopname: string
-};
-	/** Подтвердить получение имущества Уполномоченным лицом от Заказчика по новации и акту приёмки-передачи */
-["ConfirmReceiveOnRequestInput"]: {
-		/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Подписанный акт приёмки-передачи имущества Уполномоченным лицом из Кооператива при возврате Заказчику по новации */
-	document: GraphQLTypes["ReturnByAssetActSignedDocumentInput"],
-	/** Идентификатор обмена */
-	exchange_id: string,
-	/** Имя аккаунта пользователя */
-	username: string
-};
-	/** Подтвердить поставку имущества Поставщиком по заявке Заказчика и акту приёма-передачи */
-["ConfirmSupplyOnRequestInput"]: {
-		/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Подписанный акт приёма-передачи имущества от Поставщика в Кооператив */
-	document: GraphQLTypes["AssetContributionActSignedDocumentInput"],
-	/** Идентификатор обмена */
-	exchange_id: string,
-	/** Имя аккаунта пользователя */
-	username: string
 };
 	["ContactsDTO"]: {
 	__typename: "ContactsDTO",
@@ -32111,16 +31559,6 @@ export type GraphQLTypes = {
 	program_type: string,
 	['...on CooperativeProgram']: Omit<GraphQLTypes["CooperativeProgram"], "...on CooperativeProgram">
 };
-	["CoopstockInput"]: {
-		braname: string,
-	hash: string,
-	membership_fee_amount: string,
-	meta: string,
-	product_lifecycle_secs: number,
-	unit_cost: string,
-	units: number,
-	warranty_period_secs: number
-};
 	/** Страна регистрации пользователя */
 ["Country"]: Country;
 	["CreateAnnualGeneralMeetInput"]: {
@@ -32176,28 +31614,6 @@ export type GraphQLTypes = {
 	matrixRoomId: string,
 	startsAt: GraphQLTypes["DateTime"],
 	title: string
-};
-	["CreateChildOrderInput"]: {
-		/** Имя кооператива */
-	coopname: string,
-	/** Дополнительные данные, специфичные для заявки */
-	data: string,
-	/** Подписанное заявление на возврат паевого взноса имуществом от Заказчика */
-	document: GraphQLTypes["ReturnByAssetStatementSignedDocumentInput"],
-	/** Метаданные о заявке */
-	meta: string,
-	/** Идентификатор родительской заявки */
-	parent_id: number,
-	/** Время жизни продукта, заявляемое поставщиком (в секундах) */
-	product_lifecycle_secs: number,
-	/** Идентификатор программы */
-	program_id: number,
-	/** Цена за единицу (штуку) товара или результата услуги в формате "10.0000 RUB" */
-	unit_cost: string,
-	/** Количество частей (штук) товара или услуги */
-	units: number,
-	/** Имя пользователя, инициирующего или обновляющего заявку */
-	username: string
 };
 	["CreateCommitInput"]: {
 		/** Количество часов для коммита */
@@ -32388,26 +31804,6 @@ export type GraphQLTypes = {
 	short_name: string,
 	/** Тип организации */
 	type: GraphQLTypes["OrganizationType"]
-};
-	["CreateParentOfferInput"]: {
-		/** Имя кооператива */
-	coopname: string,
-	/** Дополнительные данные, специфичные для заявки */
-	data: string,
-	/** Метаданные о заявке */
-	meta: string,
-	/** Идентификатор родительской заявки */
-	parent_id: number,
-	/** Время жизни продукта, заявляемое поставщиком (в секундах) */
-	product_lifecycle_secs: number,
-	/** Идентификатор программы */
-	program_id: number,
-	/** Цена за единицу (штуку) товара или услуги в формате "10.0000 RUB" */
-	unit_cost: string,
-	/** Количество частей (штук) товара или услуги */
-	units: number,
-	/** Имя пользователя, инициирующего или обновляющего заявку */
-	username: string
 };
 	["CreateProcessTemplateInput"]: {
 		description?: string | undefined | null,
@@ -32751,16 +32147,6 @@ export type GraphQLTypes = {
 	/** Причина отклонения */
 	reason: string
 };
-	["DeclineRequestInput"]: {
-		/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Идентификатор обмена */
-	exchange_id: number,
-	/** Причина отказа */
-	meta: string,
-	/** Имя аккаунта пользователя */
-	username: string
-};
 	["DeleteBranchInput"]: {
 		/** Имя аккаунта кооперативного участка */
 	braname: string,
@@ -32796,14 +32182,6 @@ export type GraphQLTypes = {
 	coopname: string,
 	/** Имя аккаунта доверонного лица, у которого отзывается право подписи за председателя кооперативного участка */
 	trusted: string
-};
-	["DeliverOnRequestInput"]: {
-		/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Идентификатор обмена */
-	exchange_id: number,
-	/** Имя аккаунта пользователя */
-	username: string
 };
 	["DeliveryType"]: DeliveryType;
 	["Delta"]: {
@@ -32885,20 +32263,6 @@ export type GraphQLTypes = {
 	/** Отображаемое название workspace */
 	title: string,
 	['...on DesktopWorkspace']: Omit<GraphQLTypes["DesktopWorkspace"], "...on DesktopWorkspace">
-};
-	["DestroyRequestInput"]: {
-		destruction_act: GraphQLTypes["SignedDigitalDocumentInput"],
-	request_hash: string
-};
-	["DisputeOnRequestInput"]: {
-		/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Документ с аргументами спора */
-	document: GraphQLTypes["JSONObject"],
-	/** Идентификатор обмена */
-	exchange_id: number,
-	/** Имя аккаунта пользователя */
-	username: string
 };
 	/** Типы действий для документов кооператива */
 ["DocumentAction"]: DocumentAction;
@@ -34186,6 +33550,29 @@ export type GraphQLTypes = {
 	reportType: GraphQLTypes["ReportType"],
 	year: number
 };
+	/** Параметры приёма сводной заявки поставщиком. */
+["MarketplaceAcceptConsolidatedRequestInput"]: {
+		/** Идентификатор сводной заявки, ожидающей решения поставщика. */
+	request_id: string
+};
+	["MarketplaceAcceptCppInput"]: {
+		/** id решения Совета (FR40, Эпик 8). В MVP — stub string председателя. */
+	accepted_by_board_decision_id: string,
+	/** registry_id рендеренного instance положения ЦПП (Story 1.7 даст id из cooptypes) */
+	document_registry_id: number
+};
+	/** Параметры индивидуального приёма заказа поставщиком. */
+["MarketplaceAcceptIndividualOrderInput"]: {
+		/** Идентификатор заказа индивидуального типа, который поставщик принимает. */
+	order_id: string
+};
+	["MarketplaceAddToWhitelistInput"]: {
+		/** eosio::name пайщика-поставщика (3-12 chars, [.12345abcdefghijklmnopqrstuvwxyz]) */
+	member_account: string
+};
+	["MarketplaceApproveOfferInput"]: {
+		offer_id: string
+};
 	["MarketplaceAttribute"]: {
 	__typename: "MarketplaceAttribute",
 	/** ID комплексного атрибута */
@@ -34302,12 +33689,50 @@ export type GraphQLTypes = {
 	updatedAt: GraphQLTypes["DateTime"],
 	['...on MarketplaceAvailableCategory']: Omit<GraphQLTypes["MarketplaceAvailableCategory"], "...on MarketplaceAvailableCategory">
 };
+	/** Параметры отмены своего заказа пайщиком. */
+["MarketplaceCancelOrderInput"]: {
+		/** Идентификатор заказа, который пайщик хочет отменить (отмена возможна до приёма заказа поставщиком). */
+	order_id: string
+};
+	/** Результат отмены заказа пайщиком. */
+["MarketplaceCancelOrderResult"]: {
+	__typename: "MarketplaceCancelOrderResult",
+	/** Заказ после перевода в отменённое состояние. */
+	order: GraphQLTypes["MarketplaceOrder"],
+	/** Идентификатор транзакции отмены в блокчейне. */
+	tx_hash: string,
+	['...on MarketplaceCancelOrderResult']: Omit<GraphQLTypes["MarketplaceCancelOrderResult"], "...on MarketplaceCancelOrderResult">
+};
 	["MarketplaceCategory"]: {
 	__typename: "MarketplaceCategory",
+	display_name: string,
+	id: number,
+	mvp_baseline: boolean,
+	sort_order: number,
+	['...on MarketplaceCategory']: Omit<GraphQLTypes["MarketplaceCategory"], "...on MarketplaceCategory">
+};
+	["MarketplaceCategoryOfferCount"]: {
+	__typename: "MarketplaceCategoryOfferCount",
+	category_id: number,
+	count: number,
+	['...on MarketplaceCategoryOfferCount']: Omit<GraphQLTypes["MarketplaceCategoryOfferCount"], "...on MarketplaceCategoryOfferCount">
+};
+	["MarketplaceCategoryRequestCount"]: {
+	__typename: "MarketplaceCategoryRequestCount",
+	/** ID категории */
+	categoryId: number,
+	/** Название категории */
+	categoryName: string,
+	/** Количество заявок */
+	count: number,
+	['...on MarketplaceCategoryRequestCount']: Omit<GraphQLTypes["MarketplaceCategoryRequestCount"], "...on MarketplaceCategoryRequestCount">
+};
+	["MarketplaceCategoryTreeNode"]: {
+	__typename: "MarketplaceCategoryTreeNode",
 	/** Название категории */
 	categoryName: string,
 	/** Дочерние категории */
-	children: Array<GraphQLTypes["MarketplaceCategory"]>,
+	children: Array<GraphQLTypes["MarketplaceCategoryTreeNode"]>,
 	/** Количество дочерних категорий */
 	childrenCount: number,
 	/** ID категории */
@@ -34324,17 +33749,7 @@ export type GraphQLTypes = {
 	types: Array<GraphQLTypes["MarketplaceProductType"]>,
 	/** Количество типов товаров */
 	typesCount: number,
-	['...on MarketplaceCategory']: Omit<GraphQLTypes["MarketplaceCategory"], "...on MarketplaceCategory">
-};
-	["MarketplaceCategoryRequestCount"]: {
-	__typename: "MarketplaceCategoryRequestCount",
-	/** ID категории */
-	categoryId: number,
-	/** Название категории */
-	categoryName: string,
-	/** Количество заявок */
-	count: number,
-	['...on MarketplaceCategoryRequestCount']: Omit<GraphQLTypes["MarketplaceCategoryRequestCount"], "...on MarketplaceCategoryRequestCount">
+	['...on MarketplaceCategoryTreeNode']: Omit<GraphQLTypes["MarketplaceCategoryTreeNode"], "...on MarketplaceCategoryTreeNode">
 };
 	["MarketplaceCategoryTreeStats"]: {
 	__typename: "MarketplaceCategoryTreeStats",
@@ -34352,12 +33767,126 @@ export type GraphQLTypes = {
 	totalTypes: number,
 	['...on MarketplaceCategoryTreeStats']: Omit<GraphQLTypes["MarketplaceCategoryTreeStats"], "...on MarketplaceCategoryTreeStats">
 };
+	["MarketplaceConsolidatedRequest"]: {
+	__typename: "MarketplaceConsolidatedRequest",
+	accepted_at?: GraphQLTypes["DateTime"] | undefined | null,
+	coopname: string,
+	created_at: GraphQLTypes["DateTime"],
+	cycle_ended_at?: GraphQLTypes["DateTime"] | undefined | null,
+	cycle_started_at: GraphQLTypes["DateTime"],
+	/** time_based | volume_based | open_subscription | individual */
+	cycle_type: string,
+	decline_reason?: string | undefined | null,
+	declined_at?: GraphQLTypes["DateTime"] | undefined | null,
+	expires_at?: GraphQLTypes["DateTime"] | undefined | null,
+	id: string,
+	offer_id: string,
+	/** PENDING_SUPPLIER_ACCEPT | ACCEPTED | DECLINED_BY_SUPPLIER | EXPIRED_NO_RESPONSE | EXPIRED_NO_THRESHOLD | EXPIRED_NO_VOLUME */
+	status: string,
+	supplier_account: string,
+	/** Сумма заявки (numeric как string). */
+	total_amount: string,
+	total_quantity: number,
+	triggered_by_supplier_at?: GraphQLTypes["DateTime"] | undefined | null,
+	updated_at: GraphQLTypes["DateTime"],
+	['...on MarketplaceConsolidatedRequest']: Omit<GraphQLTypes["MarketplaceConsolidatedRequest"], "...on MarketplaceConsolidatedRequest">
+};
+	/** Результат массового действия поставщика над пакетом заказов (приём или отклонение). */
+["MarketplaceConsolidatedRequestActionResult"]: {
+	__typename: "MarketplaceConsolidatedRequestActionResult",
+	/** Сколько заказов входило в обработанный пакет. */
+	affected_orders: number,
+	/** Сколько заказов из пакета не удалось провести в блокчейн — потребуется повторная обработка. */
+	on_chain_failed: number,
+	/** Сколько заказов из пакета удалось провести в блокчейн. */
+	on_chain_succeeded: number,
+	/** Сводная заявка после обработки. */
+	request: GraphQLTypes["MarketplaceConsolidatedRequest"],
+	['...on MarketplaceConsolidatedRequestActionResult']: Omit<GraphQLTypes["MarketplaceConsolidatedRequestActionResult"], "...on MarketplaceConsolidatedRequestActionResult">
+};
+	["MarketplaceConsolidatedRequestPaginationResult"]: {
+	__typename: "MarketplaceConsolidatedRequestPaginationResult",
+	/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<GraphQLTypes["MarketplaceConsolidatedRequest"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number,
+	['...on MarketplaceConsolidatedRequestPaginationResult']: Omit<GraphQLTypes["MarketplaceConsolidatedRequestPaginationResult"], "...on MarketplaceConsolidatedRequestPaginationResult">
+};
+	/** Состояние сводной заявки поставщика на поставку партии заказов. */
+["MarketplaceConsolidatedRequestStatus"]: MarketplaceConsolidatedRequestStatus;
+	["MarketplaceCppStatus"]: {
+	__typename: "MarketplaceCppStatus",
+	accepted_at?: string | undefined | null,
+	accepted_by_board_decision_id?: string | undefined | null,
+	document_registry_id?: number | undefined | null,
+	/** `active` — Совет принял положение ЦПП; `not_accepted` — расширение не подключено */
+	status: string,
+	['...on MarketplaceCppStatus']: Omit<GraphQLTypes["MarketplaceCppStatus"], "...on MarketplaceCppStatus">
+};
+	["MarketplaceCreateOfferInput"]: {
+		category_id: number,
+	cycle_days?: number | undefined | null,
+	/** time_based | volume_based | open_subscription | individual */
+	cycle_type: string,
+	description?: string | undefined | null,
+	max_wait_days?: number | undefined | null,
+	min_threshold?: number | undefined | null,
+	/** Цена за единицу (numeric как string, до 4 знаков) */
+	price_per_unit: string,
+	product_name: string,
+	quantity_available?: number | undefined | null,
+	target_volume?: number | undefined | null,
+	/** piece | kg | liter | pack */
+	unit_of_measure: string,
+	unlimited_flag: boolean,
+	warranty_days: number
+};
+	/** Параметры оформления нового заказа пайщиком. */
+["MarketplaceCreateOrderInput"]: {
+		/** Имя пункта выдачи (ПВЗ), куда пайщик хочет получить заказ. */
+	delivery_braname: string,
+	/** Идентификатор предложения, по которому пайщик оформляет заказ. */
+	offer_id: string,
+	/** Количество единиц товара (от 1; для не-безлимитных предложений — не больше доступного остатка). */
+	quantity: number
+};
+	["MarketplaceCreateOrderResult"]: {
+	__typename: "MarketplaceCreateOrderResult",
+	order: GraphQLTypes["MarketplaceOrder"],
+	tx_snapshot: GraphQLTypes["MarketplaceOrderCreateTxSnapshot"],
+	['...on MarketplaceCreateOrderResult']: Omit<GraphQLTypes["MarketplaceCreateOrderResult"], "...on MarketplaceCreateOrderResult">
+};
 	["MarketplaceCurrentMember"]: {
 	__typename: "MarketplaceCurrentMember",
 	core_roles: Array<string>,
 	marketplace_roles: Array<string>,
 	username: string,
 	['...on MarketplaceCurrentMember']: Omit<GraphQLTypes["MarketplaceCurrentMember"], "...on MarketplaceCurrentMember">
+};
+	/** Параметры отказа поставщика от сводной заявки. */
+["MarketplaceDeclineConsolidatedRequestInput"]: {
+		/** Текст причины отказа — будет показан пайщикам в их заказах. */
+	reason: string,
+	/** Идентификатор сводной заявки, от которой поставщик отказывается. */
+	request_id: string
+};
+	/** Параметры индивидуального отказа поставщика от заказа. */
+["MarketplaceDeclineIndividualOrderInput"]: {
+		/** Идентификатор заказа индивидуального типа, от которого поставщик отказывается. */
+	order_id: string,
+	/** Текст причины отказа — будет показан пайщику в его заказе. */
+	reason: string
+};
+	/** Параметры отказа поставщика от одного заказа из пула открытой подписки до запуска поставки. */
+["MarketplaceDeclineOrderFromOpenPoolInput"]: {
+		/** Идентификатор заказа из пула открытой подписки, от которого поставщик отказывается до запуска поставки. */
+	order_id: string,
+	/** Текст причины отказа — будет показан пайщику в его заказе. */
+	reason: string
 };
 	["MarketplaceDetailKUInput"]: {
 		/** Полный адрес ПВЗ для отображения и геокодинга */
@@ -34411,6 +33940,11 @@ export type GraphQLTypes = {
 	value: string,
 	['...on MarketplaceDictionaryValue']: Omit<GraphQLTypes["MarketplaceDictionaryValue"], "...on MarketplaceDictionaryValue">
 };
+	/** Параметры запроса одного заказа. */
+["MarketplaceGetOrderInput"]: {
+		/** Идентификатор заказа. */
+	order_id: string
+};
 	["MarketplaceKUDetails"]: {
 	__typename: "MarketplaceKUDetails",
 	addressFull: string,
@@ -34433,6 +33967,219 @@ export type GraphQLTypes = {
 	workingHours: GraphQLTypes["WorkingHours"],
 	['...on MarketplaceKUDetails']: Omit<GraphQLTypes["MarketplaceKUDetails"], "...on MarketplaceKUDetails">
 };
+	["MarketplaceListCatalogInput"]: {
+		/** category_id 1..9; null = «Все» */
+	category_id?: number | undefined | null,
+	/** Количество элементов на странице */
+	limit: number,
+	/** Номер страницы */
+	page: number,
+	/** Ключ сортировки (например, "name") */
+	sortBy?: string | undefined | null,
+	/** Направление сортировки ("ASC" или "DESC") */
+	sortOrder: string
+};
+	["MarketplaceListConsolidatedRequestsInput"]: {
+		/** Фильтр по идентификатору предложения. */
+	offer_id?: string | undefined | null,
+	/** Фильтр по состоянию сводной заявки. */
+	status?: GraphQLTypes["MarketplaceConsolidatedRequestStatus"] | undefined | null
+};
+	["MarketplaceListMyOffersInput"]: {
+		/** Количество элементов на странице */
+	limit: number,
+	/** Номер страницы */
+	page: number,
+	/** Ключ сортировки (например, "name") */
+	sortBy?: string | undefined | null,
+	/** Направление сортировки ("ASC" или "DESC") */
+	sortOrder: string
+};
+	/** Параметры фильтрации списка заказов (постранично/сортировка задаются отдельным аргументом options). */
+["MarketplaceListOrdersInput"]: {
+		/** Фильтр по идентификатору предложения. */
+	offer_id?: string | undefined | null,
+	/** Фильтр по аккаунту заказчика. */
+	orderer_account?: string | undefined | null,
+	/** Один или несколько статусов заказа, по которым нужно отфильтровать список. */
+	statuses?: Array<GraphQLTypes["MarketplaceOrderStatus"]> | undefined | null,
+	/** Фильтр по аккаунту поставщика. */
+	supplier_account?: string | undefined | null
+};
+	["MarketplaceListPendingOffersInput"]: {
+		/** Количество элементов на странице */
+	limit: number,
+	/** Номер страницы */
+	page: number,
+	/** Ключ сортировки (например, "name") */
+	sortBy?: string | undefined | null,
+	/** Направление сортировки ("ASC" или "DESC") */
+	sortOrder: string
+};
+	["MarketplaceMemberWallet"]: {
+	__typename: "MarketplaceMemberWallet",
+	coopname: string,
+	username: string,
+	/** Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.member */
+	wallets: Array<GraphQLTypes["MarketplaceWalletEntry"]>,
+	['...on MarketplaceMemberWallet']: Omit<GraphQLTypes["MarketplaceMemberWallet"], "...on MarketplaceMemberWallet">
+};
+	["MarketplaceModerationLogEntry"]: {
+	__typename: "MarketplaceModerationLogEntry",
+	/** approve | reject */
+	action: string,
+	by_account: string,
+	created_at: GraphQLTypes["DateTime"],
+	id: string,
+	offer_id: string,
+	reason?: string | undefined | null,
+	['...on MarketplaceModerationLogEntry']: Omit<GraphQLTypes["MarketplaceModerationLogEntry"], "...on MarketplaceModerationLogEntry">
+};
+	["MarketplaceOffer"]: {
+	__typename: "MarketplaceOffer",
+	approved_at?: GraphQLTypes["DateTime"] | undefined | null,
+	approved_by?: string | undefined | null,
+	category_id: number,
+	coopname: string,
+	created_at: GraphQLTypes["DateTime"],
+	cycle_days?: number | undefined | null,
+	/** time_based | volume_based | open_subscription | individual */
+	cycle_type: string,
+	description?: string | undefined | null,
+	id: string,
+	max_wait_days?: number | undefined | null,
+	min_threshold?: number | undefined | null,
+	/** Цена за единицу (numeric как string) */
+	price_per_unit: string,
+	product_name: string,
+	quantity_available: number,
+	quantity_blocked: number,
+	quantity_consumed: number,
+	reject_reason?: string | undefined | null,
+	rejected_at?: GraphQLTypes["DateTime"] | undefined | null,
+	rejected_by?: string | undefined | null,
+	/** PENDING_MODERATION | ACTIVE | REJECTED | WITHDRAWN */
+	status: string,
+	supplier_account: string,
+	target_volume?: number | undefined | null,
+	/** piece | kg | liter | pack */
+	unit_of_measure: string,
+	unlimited_flag: boolean,
+	updated_at: GraphQLTypes["DateTime"],
+	vitrine_id: string,
+	warranty_days: number,
+	['...on MarketplaceOffer']: Omit<GraphQLTypes["MarketplaceOffer"], "...on MarketplaceOffer">
+};
+	["MarketplaceOfferPaginationResult"]: {
+	__typename: "MarketplaceOfferPaginationResult",
+	/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<GraphQLTypes["MarketplaceOffer"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number,
+	['...on MarketplaceOfferPaginationResult']: Omit<GraphQLTypes["MarketplaceOfferPaginationResult"], "...on MarketplaceOfferPaginationResult">
+};
+	["MarketplaceOnboardingState"]: {
+	__typename: "MarketplaceOnboardingState",
+	agreement_id?: number | undefined | null,
+	completed_at?: string | undefined | null,
+	/** true — фронт должен показать gate-диалог OnboardingCPPGate; false — пайщик может попасть на стол сразу */
+	requires_gate: boolean,
+	source: string,
+	/** registry_id шаблона оферты ЦПП marketplace в платформенной document factory (Story 1.7). 0 — placeholder, оферта ещё не зарегистрирована. */
+	template_registry_id: number,
+	['...on MarketplaceOnboardingState']: Omit<GraphQLTypes["MarketplaceOnboardingState"], "...on MarketplaceOnboardingState">
+};
+	/** Заказ пайщика по предложению поставщика. */
+["MarketplaceOrder"]: {
+	__typename: "MarketplaceOrder",
+	/** Когда поставщик принял заказ. */
+	accepted_at?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Когда средства были заблокированы. */
+	blocked_at?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Когда заказ был отменён. */
+	cancelled_at?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Кооператив, в котором сделан заказ. */
+	coopname: string,
+	/** Снимок транзакции блокировки средств (для отображения движений кошелька). */
+	create_tx?: GraphQLTypes["MarketplaceOrderCreateTxSnapshot"] | undefined | null,
+	/** Когда запись о заказе создана в системе. */
+	created_at: GraphQLTypes["DateTime"],
+	/** Идентификатор партии-накопителя, если заказ присоединён. */
+	cycle_id?: string | undefined | null,
+	/** Способ накопления заказов перед поставкой (копируется из предложения). */
+	cycle_type: GraphQLTypes["MarketplaceOrderCycleType"],
+	/** Имя пункта выдачи (ПВЗ), куда пайщик хочет получить заказ. */
+	delivery_braname: string,
+	/** Идентификатор заказа. */
+	id: string,
+	/** Текстовая причина последнего изменения статуса. */
+	last_status_reason?: string | undefined | null,
+	/** Хеш предложения в блокчейне (snapshot на момент заказа). */
+	offer_hash: string,
+	/** Идентификатор предложения, по которому оформлен заказ. */
+	offer_id: string,
+	/** Хеш заказа в блокчейне (для сверки). */
+	order_hash: string,
+	/** Аккаунт пайщика-заказчика. */
+	orderer_account: string,
+	/** Цена за единицу товара на момент заказа. */
+	price_per_unit: string,
+	/** Количество единиц товара в заказе. */
+	quantity: number,
+	/** Когда пайщик получил заказ. */
+	received_at?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Текущий этап жизненного цикла заказа. */
+	status: GraphQLTypes["MarketplaceOrderStatus"],
+	/** Аккаунт поставщика. */
+	supplier_account: string,
+	/** Общая сумма заказа. */
+	total_cost: string,
+	/** Когда запись о заказе последний раз изменялась. */
+	updated_at: GraphQLTypes["DateTime"],
+	/** Срок гарантии в секундах с момента получения. */
+	warranty_period_secs: number,
+	/** Дата окончания гарантии. */
+	warranty_until?: GraphQLTypes["DateTime"] | undefined | null,
+	['...on MarketplaceOrder']: Omit<GraphQLTypes["MarketplaceOrder"], "...on MarketplaceOrder">
+};
+	/** Снимок транзакции блокировки средств: ссылки на блок, флаги конверсии и сумма. */
+["MarketplaceOrderCreateTxSnapshot"]: {
+	__typename: "MarketplaceOrderCreateTxSnapshot",
+	/** Номер блока, в который попала транзакция. */
+	block_num: number,
+	/** Сумма заблокированных средств (строка денежного актива). */
+	blocked_amount: string,
+	/** Был ли выполнен перевод средств между кошельками пайщика. */
+	did_assign: boolean,
+	/** Была ли выполнена конверсия паевого взноса в членский. */
+	did_convert: boolean,
+	/** Время подписания заказа (ISO 8601). */
+	signed_at: string,
+	/** Идентификатор транзакции в блокчейне. */
+	tx_hash: string,
+	['...on MarketplaceOrderCreateTxSnapshot']: Omit<GraphQLTypes["MarketplaceOrderCreateTxSnapshot"], "...on MarketplaceOrderCreateTxSnapshot">
+};
+	/** Способ накопления заказов перед поставкой. */
+["MarketplaceOrderCycleType"]: MarketplaceOrderCycleType;
+	/** Постраничный список заказов. */
+["MarketplaceOrderPaginationResult"]: {
+	__typename: "MarketplaceOrderPaginationResult",
+	/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<GraphQLTypes["MarketplaceOrder"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number,
+	['...on MarketplaceOrderPaginationResult']: Omit<GraphQLTypes["MarketplaceOrderPaginationResult"], "...on MarketplaceOrderPaginationResult">
+};
+	/** Этап жизненного цикла заказа. */
+["MarketplaceOrderStatus"]: MarketplaceOrderStatus;
 	["MarketplaceProductType"]: {
 	__typename: "MarketplaceProductType",
 	/** ID категории */
@@ -34449,6 +34196,29 @@ export type GraphQLTypes = {
 	typeName: string,
 	['...on MarketplaceProductType']: Omit<GraphQLTypes["MarketplaceProductType"], "...on MarketplaceProductType">
 };
+	["MarketplaceRegistrationOfferStatus"]: {
+	__typename: "MarketplaceRegistrationOfferStatus",
+	/** AGREEMENT_ID (например `marketplace_offer`) */
+	agreement_id?: string | undefined | null,
+	agreement_type?: string | undefined | null,
+	/** Account types, для которых оферта показывается в SignUp ([individual, entrepreneur] на MVP) */
+	applicable_account_types: Array<string>,
+	/** true — оферта зарегистрирована в platform AgreementRegistry, видна в SignUp; false — Story 1.7 не размещена либо init расширения ещё не отработал */
+	registered: boolean,
+	/** document_registry_id template оферты */
+	registry_id?: number | undefined | null,
+	title?: string | undefined | null,
+	['...on MarketplaceRegistrationOfferStatus']: Omit<GraphQLTypes["MarketplaceRegistrationOfferStatus"], "...on MarketplaceRegistrationOfferStatus">
+};
+	["MarketplaceRejectOfferInput"]: {
+		offer_id: string,
+	/** Причина отказа (≤1000) */
+	reason: string
+};
+	["MarketplaceRemoveFromWhitelistInput"]: {
+		/** eosio::name пайщика-поставщика */
+	member_account: string
+};
 	["MarketplaceRequest"]: {
 	__typename: "MarketplaceRequest",
 	/** Артикул товара */
@@ -34462,7 +34232,7 @@ export type GraphQLTypes = {
 	/** Можно ли редактировать заявку */
 	canBeEdited: boolean,
 	/** Информация о категории */
-	category: GraphQLTypes["MarketplaceCategory"],
+	category: GraphQLTypes["MarketplaceCategoryTreeNode"],
 	/** URL образца цвета */
 	colorImageUrl?: string | undefined | null,
 	/** Название кооператива */
@@ -34620,6 +34390,85 @@ export type GraphQLTypes = {
 	coreBraname: string,
 	/** Целевой статус ПВЗ: ACTIVE или INACTIVE */
 	status: string
+};
+	/** Результат индивидуального приёма или отклонения заказа поставщиком. */
+["MarketplaceSupplierOrderActionResult"]: {
+	__typename: "MarketplaceSupplierOrderActionResult",
+	/** Заказ после изменения статуса. */
+	order: GraphQLTypes["MarketplaceOrder"],
+	/** Идентификатор транзакции приёма или отклонения. */
+	tx_hash: string,
+	['...on MarketplaceSupplierOrderActionResult']: Omit<GraphQLTypes["MarketplaceSupplierOrderActionResult"], "...on MarketplaceSupplierOrderActionResult">
+};
+	["MarketplaceTriggerOpenSubscriptionInput"]: {
+		/** Идентификатор предложения с открытой подпиской, по которому поставщик запускает поставку. */
+	offer_id: string
+};
+	["MarketplaceUpdateOfferInput"]: {
+		category_id?: number | undefined | null,
+	cycle_days?: number | undefined | null,
+	cycle_type?: string | undefined | null,
+	description?: string | undefined | null,
+	id: string,
+	max_wait_days?: number | undefined | null,
+	min_threshold?: number | undefined | null,
+	price_per_unit?: string | undefined | null,
+	product_name?: string | undefined | null,
+	quantity_available?: number | undefined | null,
+	target_volume?: number | undefined | null,
+	unit_of_measure?: string | undefined | null,
+	unlimited_flag?: boolean | undefined | null,
+	warranty_days?: number | undefined | null
+};
+	["MarketplaceVitrine"]: {
+	__typename: "MarketplaceVitrine",
+	/** eosio::name кооператива-владельца витрины */
+	coopname: string,
+	created_at: GraphQLTypes["DateTime"],
+	/** Отображаемое имя витрины */
+	display_name: string,
+	/** Идентификатор витрины (MVP всегда "default") */
+	id: string,
+	/** Дефолтная витрина кооператива (MVP — всегда true) */
+	is_default: boolean,
+	updated_at: GraphQLTypes["DateTime"],
+	['...on MarketplaceVitrine']: Omit<GraphQLTypes["MarketplaceVitrine"], "...on MarketplaceVitrine">
+};
+	["MarketplaceWalletEntry"]: {
+	__typename: "MarketplaceWalletEntry",
+	/** Доступный остаток (`userwallets.available`) */
+	available: string,
+	/** Заблокированный остаток (`userwallets.blocked`) */
+	blocked: string,
+	/** Человекочитаемое название (из cooptypes LEDGER2_WALLET_REGISTRY) */
+	human_name: string,
+	/** WalletKind: USER_SHARED — обязателен L3-разрез по пайщику */
+	kind: string,
+	/** UX-метка кошелька в формате `<тип взноса> | <программа>` (например «Паевой | Цифровой Кошелёк», «Членский | Стол Заказов») */
+	label: string,
+	/** eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.member) */
+	name: string,
+	/** program_id: 1 — Цифровой Кошелёк, 2 — Стол Заказов */
+	program_id: number,
+	['...on MarketplaceWalletEntry']: Omit<GraphQLTypes["MarketplaceWalletEntry"], "...on MarketplaceWalletEntry">
+};
+	["MarketplaceWhitelistEntry"]: {
+	__typename: "MarketplaceWhitelistEntry",
+	added_at: GraphQLTypes["DateTime"],
+	/** Кто добавил (eosio::name админа) */
+	added_by?: string | undefined | null,
+	/** eosio::name кооператива */
+	coopname: string,
+	/** UUID записи whitelist */
+	id: string,
+	/** eosio::name пайщика-поставщика */
+	member_account: string,
+	/** auto-coop — сам кооператив (неудаляема, FR5); manual — добавлен админом */
+	role: string,
+	['...on MarketplaceWhitelistEntry']: Omit<GraphQLTypes["MarketplaceWhitelistEntry"], "...on MarketplaceWhitelistEntry">
+};
+	["MarketplaceWithdrawOfferInput"]: {
+		id: string
 };
 	["MatrixAccountStatusResponseDTO"]: {
 	__typename: "MatrixAccountStatusResponseDTO",
@@ -34802,16 +34651,6 @@ export type GraphQLTypes = {
 	source: GraphQLTypes["RequisiteSource"],
 	['...on MissingRequisiteField']: Omit<GraphQLTypes["MissingRequisiteField"], "...on MissingRequisiteField">
 };
-	["ModerateRequestInput"]: {
-		/** Размер комиссии за отмену в формате "10.0000 RUB" */
-	cancellation_fee: string,
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Идентификатор обмена */
-	exchange_id: number,
-	/** Имя аккаунта пользователя */
-	username: string
-};
 	["MonoAccount"]: {
 	__typename: "MonoAccount",
 	/** Электронная почта пользователя */
@@ -34852,12 +34691,6 @@ export type GraphQLTypes = {
 };
 	["Mutation"]: {
 	__typename: "Mutation",
-	/** Подтвердить поставку имущества на заявку */
-	acceptChildOrder: GraphQLTypes["Transaction"],
-	/** Принять предложение из запасов кооператива
-
-Требуемые роли: chairman, member, user.  */
-	acceptStock: GraphQLTypes["Transaction"],
 	/** Добавить активного пайщика, который вступил в кооператив, не используя платформу (заполнив заявление собственноручно, оплатив вступительный и минимальный паевый взносы, и получив протокол решения совета)
 
 Требуемые роли: chairman, member.  */
@@ -34872,8 +34705,6 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	archiveProductCard: boolean,
-	/** Отменить заявку */
-	cancelRequest: GraphQLTypes["Transaction"],
 	/** Добавление автора проекта в CAPITAL контракте
 
 Требуемые роли: chairman.  */
@@ -35222,20 +35053,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	completeExtensionOnboardingStep: GraphQLTypes["ExtensionOnboardingState"],
-	/** Завершить заявку по истечению гарантийного срока */
-	completeRequest: GraphQLTypes["Transaction"],
 	/** Подтвердить соглашение пайщика администратором
 
 Требуемые роли: chairman, member.  */
 	confirmAgreement: GraphQLTypes["Transaction"],
-	/** Подтвердить получение имущества Уполномоченным лицом от Заказчика по новации и акту приёмки-передачи */
-	confirmReceiveOnRequest: GraphQLTypes["Transaction"],
-	/** Подтвердить поставку имущества Поставщиком по заявке Заказчика и акту приёма-передачи */
-	confirmSupplyOnRequest: GraphQLTypes["Transaction"],
-	/** Создать предложение из запасов кооператива
-
-Требуемые роли: chairman.  */
-	coopstock: GraphQLTypes["Transaction"],
 	/** Сгенерировать документ предложения повестки очередного общего собрания пайщиков
 
 Требуемые роли: chairman, member.  */
@@ -35248,8 +35069,6 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	createCategory: GraphQLTypes["Category"],
-	/** Создать заявку на поставку имущества по предложению Поставщика */
-	createChildOrder: GraphQLTypes["Transaction"],
 	/** Создание объекта паевого платежа производится мутацией createDepositPayment. Выполнение мутации возвращает идентификатор платежа и данные для его совершения в зависимости от выбранного платежного провайдера.
 
 Требуемые роли: chairman, member.  */
@@ -35258,8 +35077,6 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member.  */
 	createInitialPayment: GraphQLTypes["GatewayPayment"],
-	/** Создать предложение на поставку имущества */
-	createParentOffer: GraphQLTypes["Transaction"],
 	/** Создать карточку товара/услуги
 
 Требуемые роли: chairman, member, user.  */
@@ -35284,8 +35101,6 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member.  */
 	declineAgreement: GraphQLTypes["Transaction"],
-	/** Отклонить заявку */
-	declineRequest: GraphQLTypes["Transaction"],
 	/** Удалить кооперативный участок
 
 Требуемые роли: chairman.  */
@@ -35308,14 +35123,6 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	deleteTrustedAccount: GraphQLTypes["Branch"],
-	/** Подтвердить доставку имущества Заказчику по заявке */
-	deliverOnRequest: GraphQLTypes["Transaction"],
-	/** Уничтожить просроченное имущество
-
-Требуемые роли: chairman.  */
-	destroyRequest: GraphQLTypes["Transaction"],
-	/** Открыть спор по заявке */
-	disputeOnRequest: GraphQLTypes["Transaction"],
 	/** Изменить кооперативный участок
 
 Требуемые роли: chairman.  */
@@ -35332,18 +35139,6 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member.  */
 	generateAnnualGeneralMeetNotificationDocument: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать документ акта приема-передачи.
-
-Требуемые роли: chairman, member.  */
-	generateAssetContributionAct: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать документ решения о вступлении в кооператив.
-
-Требуемые роли: chairman, member.  */
-	generateAssetContributionDecision: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать документ заявления о вступлении в кооператив.
-
-Требуемые роли: chairman, member.  */
-	generateAssetContributionStatement: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать бюллетень для голосования на общем собрании пайщиков
 
 Требуемые роли: member.  */
@@ -35382,18 +35177,6 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	generateReportFromEdits: GraphQLTypes["GeneratedReport"],
-	/** Сгенерировать документ акта возврата имущества.
-
-Требуемые роли: chairman, member.  */
-	generateReturnByAssetAct: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать документ решения о возврате имущества.
-
-Требуемые роли: chairman, member.  */
-	generateReturnByAssetDecision: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать документ заявления о возврате имущества.
-
-Требуемые роли: chairman, member.  */
-	generateReturnByAssetStatement: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать документ решения совета о возврате паевого взноса
 
 Требуемые роли: chairman, member.  */
@@ -35438,6 +35221,12 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	markReportPeriod: boolean,
+	/** Поставщик принимает сводную заявку — все заказы в пакете переходят в принятое состояние. */
+	marketplaceAcceptConsolidatedRequest: GraphQLTypes["MarketplaceConsolidatedRequestActionResult"],
+	/** Зафиксировать принятие положения ЦПП «Стол заказов» Советом — admin-action из admin-стола. MVP-stub: председатель самостоятельно передаёт `accepted_by_board_decision_id`; в Эпике 8 поле будет валидироваться против реальной повестки совета. */
+	marketplaceAcceptCpp: GraphQLTypes["MarketplaceCppStatus"],
+	/** Поставщик принимает один индивидуальный заказ. */
+	marketplaceAcceptIndividualOrder: GraphQLTypes["MarketplaceSupplierOrderActionResult"],
 	/** Добавить категории в доступные для кооператива (целые категории)
 
 Требуемые роли: chairman.  */
@@ -35446,18 +35235,36 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	marketplaceAddAvailableCategoryTypes: Array<GraphQLTypes["MarketplaceAvailableCategory"]>,
+	/** Добавить пайщика в whitelist поставщиков (admin) */
+	marketplaceAddToWhitelist: GraphQLTypes["MarketplaceWhitelistEntry"],
+	/** Одобрить Offer (status → ACTIVE) (admin) */
+	marketplaceApproveOffer: GraphQLTypes["MarketplaceOffer"],
+	/** Отменить свой заказ до его приёма поставщиком; средства разблокируются. */
+	marketplaceCancelOrder: GraphQLTypes["MarketplaceCancelOrderResult"],
 	/** Очистить все доступные категории (сделать доступными все)
 
 Требуемые роли: chairman.  */
 	marketplaceClearAvailableCategories: boolean,
+	/** Поставщик публикует Offer (статус → PENDING_MODERATION) */
+	marketplaceCreateOffer: GraphQLTypes["MarketplaceOffer"],
+	/** Оформить заказ по предложению и заблокировать средства пайщика. */
+	marketplaceCreateOrder: GraphQLTypes["MarketplaceCreateOrderResult"],
 	/** Создать новую заявку на поставку или заказ товара
 
 Требуемые роли: member, chairman.  */
 	marketplaceCreateRequest: GraphQLTypes["MarketplaceRequest"],
+	/** Поставщик отклоняет сводную заявку — все заказы пакета отменяются, средства разблокируются. */
+	marketplaceDeclineConsolidatedRequest: GraphQLTypes["MarketplaceConsolidatedRequestActionResult"],
+	/** Поставщик отказывается от одного индивидуального заказа; средства разблокируются. */
+	marketplaceDeclineIndividualOrder: GraphQLTypes["MarketplaceSupplierOrderActionResult"],
+	/** Поставщик отказывается от одного заказа из пула открытой подписки до запуска поставки (после запуска частичный отказ невозможен). */
+	marketplaceDeclineOrderFromOpenPool: GraphQLTypes["MarketplaceSupplierOrderActionResult"],
 	/** Детализирует существующий в core кооперативный участок как ПВЗ Стола заказов. Создаёт запись marketplace_ku_details, либо обновляет существующую. При смене адреса запускает повторный геокодинг — координаты сбрасываются в PENDING и обновляются асинхронно.
 
 Требуемые роли: chairman.  */
 	marketplaceDetailKU: GraphQLTypes["MarketplaceKUDetails"],
+	/** Отклонить Offer с причиной (status → REJECTED) (admin) */
+	marketplaceRejectOffer: GraphQLTypes["MarketplaceOffer"],
 	/** Удалить категории из доступных для кооператива (включая все их типы)
 
 Требуемые роли: chairman.  */
@@ -35466,6 +35273,8 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	marketplaceRemoveAvailableCategoryTypes: boolean,
+	/** Удалить пайщика из whitelist (admin); auto-coop запись неудаляема */
+	marketplaceRemoveFromWhitelist: boolean,
 	/** Заменить все доступные категории и типы новым списком
 
 Требуемые роли: chairman.  */
@@ -35478,8 +35287,12 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	marketplaceSetKUStatus: GraphQLTypes["MarketplaceKUDetails"],
-	/** Модерировать заявку */
-	moderateRequest: GraphQLTypes["Transaction"],
+	/** Поставщик запускает поставку по предложению с открытой подпиской: формируется сводная заявка, заказы в её пуле принимаются. */
+	marketplaceTriggerOpenSubscription: GraphQLTypes["MarketplaceConsolidatedRequest"],
+	/** Поставщик правит свой Offer — статус сбрасывается в PENDING_MODERATION */
+	marketplaceUpdateOffer: GraphQLTypes["MarketplaceOffer"],
+	/** Поставщик снимает свой Offer (статус → WITHDRAWN) */
+	marketplaceWithdrawOffer: GraphQLTypes["MarketplaceOffer"],
 	/** Уведомление о проведении общего собрания пайщиков
 
 Требуемые роли: chairman, member.  */
@@ -35488,8 +35301,6 @@ export type GraphQLTypes = {
 
 Требуемые роли: member, chairman.  */
 	processConvertToAxonStatement: boolean,
-	/** Отклонить модерацию по заявке */
-	prohibitRequest: GraphQLTypes["Transaction"],
 	/** Опубликовать карточку
 
 Требуемые роли: chairman, member, user.  */
@@ -35498,10 +35309,6 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member.  */
 	publishProjectOfFreeDecision: boolean,
-	/** Опубликовать заявку */
-	publishRequest: GraphQLTypes["Transaction"],
-	/** Подтвердить получение имущества Уполномоченным лицом от Заказчика по акту приёмки-передачи */
-	receiveOnRequest: GraphQLTypes["Transaction"],
 	/** Обновить токен доступа аккаунта */
 	refresh: GraphQLTypes["RegisteredAccount"],
 	/** Зарегистрировать аккаунт пользователя в системе */
@@ -35510,14 +35317,6 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member.  */
 	registerParticipant: GraphQLTypes["Account"],
-	/** Перепредложить имущество по новой цене
-
-Требуемые роли: chairman.  */
-	reofferRequest: GraphQLTypes["Transaction"],
-	/** Запросить возврат паевого взноса имуществом (перед получением)
-
-Требуемые роли: chairman, member, user.  */
-	reqReturn: GraphQLTypes["Transaction"],
 	/** Заменить приватный ключ аккаунта */
 	resetKey: boolean,
 	/** Перезапуск общего собрания пайщиков
@@ -35552,8 +35351,6 @@ export type GraphQLTypes = {
 	startInstall: GraphQLTypes["StartInstallResult"],
 	/** Выслать токен для замены приватного ключа аккаунта на электронную почту */
 	startResetKey: boolean,
-	/** Подтвердить поставку имущества Поставщиком по заявке Заказчика и акту приёма-передачи */
-	supplyOnRequest: GraphQLTypes["Transaction"],
 	/** Запустить воркфлоу уведомлений (только для председателя или server-secret)
 
 Требуемые роли: chairman.  */
@@ -35562,8 +35359,6 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	uninstallExtension: boolean,
-	/** Снять с публикации заявку */
-	unpublishRequest: GraphQLTypes["Transaction"],
 	/** Обновить аккаунт в системе провайдера. Обновление аккаунта пользователя производится по username. Мутация позволяет изменить приватные данные пользователя, а также, адрес электронной почты в MONO. Использовать мутацию может только председатель совета.
 
 Требуемые роли: chairman.  */
@@ -35578,8 +35373,6 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	updateReportRequisites: GraphQLTypes["ReportRequisitesView"],
-	/** Обновить заявку */
-	updateRequest: GraphQLTypes["Transaction"],
 	/** Обновить настройки системы (рабочие столы и маршруты по умолчанию)
 
 Требуемые роли: chairman.  */
@@ -36604,16 +36397,6 @@ export type GraphQLTypes = {
 	totalPages: number,
 	['...on ProgramWalletsPaginationResult']: Omit<GraphQLTypes["ProgramWalletsPaginationResult"], "...on ProgramWalletsPaginationResult">
 };
-	["ProhibitRequestInput"]: {
-		/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Идентификатор обмена */
-	exchange_id: number,
-	/** Дополнительная информация о отклоненной модерации */
-	meta: string,
-	/** Имя аккаунта пользователя */
-	username: string
-};
 	["ProjectFreeDecisionGenerateDocumentInput"]: {
 		/** Номер блока, на котором был создан документ */
 	block_num?: number | undefined | null,
@@ -36762,14 +36545,6 @@ export type GraphQLTypes = {
 	document: GraphQLTypes["ProjectFreeDecisionSignedDocumentInput"],
 	/** Строка мета-информации */
 	meta: string,
-	/** Имя аккаунта пользователя */
-	username: string
-};
-	["PublishRequestInput"]: {
-		/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Идентификатор заявки */
-	exchange_id: number,
 	/** Имя аккаунта пользователя */
 	username: string
 };
@@ -37117,6 +36892,12 @@ export type GraphQLTypes = {
 	marketplaceCategoryAttributes: Array<GraphQLTypes["MarketplaceAttribute"]>,
 	/** Получить группированные атрибуты для категории и типа товара marketplace */
 	marketplaceCategoryAttributesGrouped: Array<GraphQLTypes["MarketplaceAttributeGroup"]>,
+	/** Счётчики активных Offer'ов per category — для фильтр-чипов Story 3.5 */
+	marketplaceCategoryOfferCounts: Array<GraphQLTypes["MarketplaceCategoryOfferCount"]>,
+	/** Статус принятия положения ЦПП «Стол заказов» Советом кооператива (L1). `active` если принято, `not_accepted` иначе. */
+	marketplaceCppStatus: GraphQLTypes["MarketplaceCppStatus"],
+	/** Дефолтная витрина кооператива (MVP — единственная) */
+	marketplaceDefaultVitrine: GraphQLTypes["MarketplaceVitrine"],
 	/** Найти потенциальные совпадения для заявки */
 	marketplaceFindPotentialMatches: Array<GraphQLTypes["MarketplaceRequest"]>,
 	/** Получить статистику по доступности категорий в кооперативе
@@ -37130,15 +36911,15 @@ export type GraphQLTypes = {
 	/** Получить дерево доступных категорий и типов для кооператива
 
 Требуемые роли: chairman.  */
-	marketplaceGetAvailableCategoryTree: Array<GraphQLTypes["MarketplaceCategory"]>,
+	marketplaceGetAvailableCategoryTree: Array<GraphQLTypes["MarketplaceCategoryTreeNode"]>,
 	/** Получить категорию marketplace по ID */
-	marketplaceGetCategoryById?: GraphQLTypes["MarketplaceCategory"] | undefined | null,
+	marketplaceGetCategoryById?: GraphQLTypes["MarketplaceCategoryTreeNode"] | undefined | null,
 	/** Получить все доступные правила для конкретной категории
 
 Требуемые роли: chairman.  */
 	marketplaceGetCategoryRules: Array<GraphQLTypes["MarketplaceAvailableCategory"]>,
 	/** Получить полное дерево категорий marketplace с типами товаров */
-	marketplaceGetCategoryTree: Array<GraphQLTypes["MarketplaceCategory"]>,
+	marketplaceGetCategoryTree: Array<GraphQLTypes["MarketplaceCategoryTreeNode"]>,
 	/** Получить статистику по дереву категорий
 
 Требуемые роли: chairman, member.  */
@@ -37147,6 +36928,8 @@ export type GraphQLTypes = {
 
 Требуемые роли: member, chairman.  */
 	marketplaceGetCoopRequests: Array<GraphQLTypes["MarketplaceRequest"]>,
+	/** Получить один заказ по его идентификатору (доступ зависит от роли). */
+	marketplaceGetOrder: GraphQLTypes["MarketplaceOrder"],
 	/** Получить тип товара marketplace по ID */
 	marketplaceGetProductTypeById?: GraphQLTypes["MarketplaceProductType"] | undefined | null,
 	/** Получить заявку по ID */
@@ -37158,17 +36941,41 @@ export type GraphQLTypes = {
 Требуемые роли: chairman, member.  */
 	marketplaceGetRequestStatistics: GraphQLTypes["MarketplaceRequestStatistics"],
 	/** Получить все корневые категории marketplace */
-	marketplaceGetRootCategories: Array<GraphQLTypes["MarketplaceCategory"]>,
+	marketplaceGetRootCategories: Array<GraphQLTypes["MarketplaceCategoryTreeNode"]>,
 	/** Универсальный поиск по категориям и типам товаров */
-	marketplaceGetSearchCategories: Array<GraphQLTypes["MarketplaceCategory"]>,
+	marketplaceGetSearchCategories: Array<GraphQLTypes["MarketplaceCategoryTreeNode"]>,
 	/** Получить заявки текущего пользователя
 
 Требуемые роли: member, chairman.  */
 	marketplaceGetUserRequests: Array<GraphQLTypes["MarketplaceRequest"]>,
+	/** Каталог активных Offer'ов (ACTIVE + available, single vitrine MVP) */
+	marketplaceListCatalog: GraphQLTypes["MarketplaceOfferPaginationResult"],
+	/** Baseline-категории Стола заказов (Story 3.2/3.5) — 8 продовольственных + «Прочее» */
+	marketplaceListCategories: Array<GraphQLTypes["MarketplaceCategory"]>,
+	/** Постраничный список сводных заявок поставщика — для стола поставщика и для прослеживания состояния заказов. */
+	marketplaceListConsolidatedRequests: GraphQLTypes["MarketplaceConsolidatedRequestPaginationResult"],
 	/** Список marketplace-детализаций ПВЗ кооператива.
 
 Требуемые роли: chairman, member, user.  */
 	marketplaceListKUDetails: Array<GraphQLTypes["MarketplaceKUDetails"]>,
+	/** История решений модерации по Offer'у (admin) */
+	marketplaceListModerationLog: Array<GraphQLTypes["MarketplaceModerationLogEntry"]>,
+	/** Список собственных Offer'ов поставщика (любой статус) */
+	marketplaceListMyOffers: GraphQLTypes["MarketplaceOfferPaginationResult"],
+	/** Список заказов текущего пайщика (стол заказчика). */
+	marketplaceListMyOrders: GraphQLTypes["MarketplaceOrderPaginationResult"],
+	/** Список Offer'ов на модерации (admin) */
+	marketplaceListPendingOffers: GraphQLTypes["MarketplaceOfferPaginationResult"],
+	/** Список заказов, по которым текущий пайщик является поставщиком (стол поставщика). */
+	marketplaceListSupplierOrders: GraphQLTypes["MarketplaceOrderPaginationResult"],
+	/** Список пайщиков-поставщиков, допущенных к публикации оферт */
+	marketplaceListWhitelist: Array<GraphQLTypes["MarketplaceWhitelistEntry"]>,
+	/** Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.member */
+	marketplaceMemberWallet: GraphQLTypes["MarketplaceMemberWallet"],
+	/** Состояние онбординга пайщика в Столе заказов: показывать ли gate или пропускать на стол */
+	marketplaceOnboardingState: GraphQLTypes["MarketplaceOnboardingState"],
+	/** Статус видимости оферты Стола заказов в core registration-flow (платформенный AgreementRegistry) */
+	marketplaceRegistrationOfferStatus: GraphQLTypes["MarketplaceRegistrationOfferStatus"],
 	/** Получить обязательные атрибуты для категории и типа товара marketplace */
 	marketplaceRequiredAttributes: Array<GraphQLTypes["MarketplaceAttribute"]>,
 	/** Поиск атрибутов marketplace по названию */
@@ -37233,16 +37040,6 @@ export type GraphQLTypes = {
 	/** Список участников, проголосовавших "За" */
 	voters_for: Array<string>,
 	['...on Question']: Omit<GraphQLTypes["Question"], "...on Question">
-};
-	["ReceiveOnRequestInput"]: {
-		/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Подписанный Заказчиком акт приёмки-передачи имущества из Кооператива по новации */
-	document: GraphQLTypes["ReturnByAssetActSignedDocumentInput"],
-	/** Идентификатор заявки */
-	exchange_id: number,
-	/** Имя аккаунта пользователя */
-	username: string
 };
 	["RefreshInput"]: {
 		/** Токен доступа */
@@ -37399,12 +37196,6 @@ export type GraphQLTypes = {
 		/** Типы товаров для удаления */
 	categoryTypes: Array<GraphQLTypes["CategoryTypeInput"]>
 };
-	["ReofferRequestInput"]: {
-		new_hash: string,
-	new_meta: string,
-	new_unit_cost: string,
-	request_hash: string
-};
 	["ReplaceAvailableItemsInput"]: {
 		/** ID категорий (целые категории) */
 	categoryIds: Array<number>,
@@ -37553,11 +37344,6 @@ export type GraphQLTypes = {
 	middle_name: string,
 	position: string
 };
-	["ReqReturnInput"]: {
-		request_hash: string,
-	return_statement: GraphQLTypes["SignedDigitalDocumentInput"],
-	username: string
-};
 	["RequestAttributeInput"]: {
 		/** ID атрибута */
 	attributeId: number,
@@ -37670,176 +37456,6 @@ export type GraphQLTypes = {
 };
 	/** Статус результата в системе CAPITAL */
 ["ResultStatus"]: ResultStatus;
-	["ReturnByAssetActGenerateDocumentInput"]: {
-		/** Идентификатор акта */
-	act_id: string,
-	/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null,
-	/** Имя аккаунта кооперативного участка */
-	braname?: string | undefined | null,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null,
-	/** Идентификатор решения */
-	decision_id: number,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null,
-	/** Язык документа */
-	lang?: string | undefined | null,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null,
-	/** Идентификатор заявки */
-	request_id: number,
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null,
-	/** Название документа */
-	title?: string | undefined | null,
-	/** Имя аккаунта получателя на кооперативном участке */
-	transmitter: string,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null
-};
-	["ReturnByAssetActSignedDocumentInput"]: {
-		/** Хэш содержимого документа */
-	doc_hash: string,
-	/** Общий хэш (doc_hash + meta_hash) */
-	hash: string,
-	/** Метаинформация для создания проекта свободного решения */
-	meta: GraphQLTypes["ReturnByAssetActSignedMetaDocumentInput"],
-	/** Хэш мета-данных */
-	meta_hash: string,
-	/** Вектор подписей */
-	signatures: Array<GraphQLTypes["SignatureInfoInput"]>,
-	/** Версия стандарта документа */
-	version: string
-};
-	["ReturnByAssetActSignedMetaDocumentInput"]: {
-		/** Идентификатор акта */
-	act_id: string,
-	/** Номер блока, на котором был создан документ */
-	block_num: number,
-	/** Имя аккаунта кооперативного участка */
-	braname?: string | undefined | null,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at: string,
-	/** Идентификатор решения */
-	decision_id: number,
-	/** Имя генератора, использованного для создания документа */
-	generator: string,
-	/** Язык документа */
-	lang: string,
-	/** Ссылки, связанные с документом */
-	links: Array<string>,
-	/** ID документа в реестре */
-	registry_id: number,
-	/** Идентификатор заявки */
-	request_id: number,
-	/** Часовой пояс, в котором был создан документ */
-	timezone: string,
-	/** Название документа */
-	title: string,
-	/** Имя аккаунта получателя на кооперативном участке */
-	transmitter: string,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version: string
-};
-	["ReturnByAssetDecisionGenerateDocumentInput"]: {
-		/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null,
-	/** Идентификатор решения */
-	decision_id: number,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null,
-	/** Язык документа */
-	lang?: string | undefined | null,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null,
-	/** Идентификатор заявки */
-	request_id: number,
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null,
-	/** Название документа */
-	title?: string | undefined | null,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null
-};
-	["ReturnByAssetStatementGenerateDocumentInput"]: {
-		/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null,
-	/** Язык документа */
-	lang?: string | undefined | null,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null,
-	/** Запрос на внесение имущественного паевого взноса */
-	request: GraphQLTypes["CommonRequestInput"],
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null,
-	/** Название документа */
-	title?: string | undefined | null,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null
-};
-	["ReturnByAssetStatementSignedDocumentInput"]: {
-		/** Хэш содержимого документа */
-	doc_hash: string,
-	/** Общий хэш (doc_hash + meta_hash) */
-	hash: string,
-	/** Метаинформация для создания проекта свободного решения */
-	meta: GraphQLTypes["ReturnByAssetStatementSignedMetaDocumentInput"],
-	/** Хэш мета-данных */
-	meta_hash: string,
-	/** Вектор подписей */
-	signatures: Array<GraphQLTypes["SignatureInfoInput"]>,
-	/** Версия стандарта документа */
-	version: string
-};
-	["ReturnByAssetStatementSignedMetaDocumentInput"]: {
-		/** Номер блока, на котором был создан документ */
-	block_num: number,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at: string,
-	/** Имя генератора, использованного для создания документа */
-	generator: string,
-	/** Язык документа */
-	lang: string,
-	/** Ссылки, связанные с документом */
-	links: Array<string>,
-	/** ID документа в реестре */
-	registry_id: number,
-	/** Запрос на внесение имущественного паевого взноса */
-	request: GraphQLTypes["CommonRequestInput"],
-	/** Часовой пояс, в котором был создан документ */
-	timezone: string,
-	/** Название документа */
-	title: string,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version: string
-};
 	["ReturnByMoneyDecisionGenerateDocumentInput"]: {
 		/** Номер блока, на котором был создан документ */
 	block_num?: number | undefined | null,
@@ -38382,16 +37998,6 @@ export type GraphQLTypes = {
 	uniqueUsers: number,
 	['...on SubscriptionStatsDto']: Omit<GraphQLTypes["SubscriptionStatsDto"], "...on SubscriptionStatsDto">
 };
-	["SupplyOnRequestInput"]: {
-		/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Подписанный Поставщиком акт приёма-передачи имущества в кооператив */
-	document: GraphQLTypes["AssetContributionActSignedDocumentInput"],
-	/** Идентификатор обмена */
-	exchange_id: number,
-	/** Имя аккаунта пользователя */
-	username: string
-};
 	["Symbols"]: {
 	__typename: "Symbols",
 	/** Точность символа управления */
@@ -38508,14 +38114,6 @@ export type GraphQLTypes = {
 	["UninstallExtensionInput"]: {
 		/** Фильтр по имени */
 	name: string
-};
-	["UnpublishRequestInput"]: {
-		/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Идентификатор обмена */
-	exchange_id: number,
-	/** Имя аккаунта пользователя */
-	username: string
 };
 	["Update"]: {
 		/** Собственные данные кооператива, обслуживающего экземпляр платформы */
@@ -38685,22 +38283,6 @@ export type GraphQLTypes = {
 	signerSnils?: string | undefined | null,
 	/** chairman | representative */
 	signerType?: string | undefined | null
-};
-	["UpdateRequestInput"]: {
-		/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Дополнительные данные */
-	data: string,
-	/** Идентификатор обмена */
-	exchange_id: number,
-	/** Дополнительная информация */
-	meta: string,
-	/** Оставшееся количество единиц */
-	remain_units: string,
-	/** Стоимость за единицу в формате "10.0000 RUB" */
-	unit_cost: string,
-	/** Имя аккаунта пользователя */
-	username: string
 };
 	["UpdateSettingsInput"]: {
 		/** Маршрут по умолчанию для авторизованных пользователей */
@@ -39242,6 +38824,38 @@ export enum MarketplaceAttributeType {
 	STRING = "STRING",
 	URL = "URL"
 }
+/** Состояние сводной заявки поставщика на поставку партии заказов. */
+export enum MarketplaceConsolidatedRequestStatus {
+	ACCEPTED = "ACCEPTED",
+	DECLINED_BY_SUPPLIER = "DECLINED_BY_SUPPLIER",
+	EXPIRED_NO_RESPONSE = "EXPIRED_NO_RESPONSE",
+	EXPIRED_NO_THRESHOLD = "EXPIRED_NO_THRESHOLD",
+	EXPIRED_NO_VOLUME = "EXPIRED_NO_VOLUME",
+	PENDING_SUPPLIER_ACCEPT = "PENDING_SUPPLIER_ACCEPT"
+}
+/** Способ накопления заказов перед поставкой. */
+export enum MarketplaceOrderCycleType {
+	INDIVIDUAL = "INDIVIDUAL",
+	OPEN_SUBSCRIPTION = "OPEN_SUBSCRIPTION",
+	TIME_BASED = "TIME_BASED",
+	VOLUME_BASED = "VOLUME_BASED"
+}
+/** Этап жизненного цикла заказа. */
+export enum MarketplaceOrderStatus {
+	ACCEPTED = "ACCEPTED",
+	ACCEPTED_PENDING_SUPPLIER = "ACCEPTED_PENDING_SUPPLIER",
+	ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL = "ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL",
+	ACCEPTED_TO_COOP = "ACCEPTED_TO_COOP",
+	ACTIVE = "ACTIVE",
+	CANCELLED_BY_ORDERER = "CANCELLED_BY_ORDERER",
+	CANCELLED_BY_SUPPLIER = "CANCELLED_BY_SUPPLIER",
+	EXPIRED_NO_THRESHOLD = "EXPIRED_NO_THRESHOLD",
+	EXPIRED_NO_VOLUME = "EXPIRED_NO_VOLUME",
+	READY_TO_RECEIVE = "READY_TO_RECEIVE",
+	RECEIVED = "RECEIVED",
+	RETURNED = "RETURNED",
+	SUPPLY_PREPARED = "SUPPLY_PREPARED"
+}
 /** Тип юридического лица */
 export enum OrganizationType {
 	AO = "AO",
@@ -39451,8 +39065,6 @@ export enum ZeroReportSignerType {
 }
 
 type ZEUS_VARIABLES = {
-	["AcceptChildOrderInput"]: ValueTypes["AcceptChildOrderInput"];
-	["AcceptStockInput"]: ValueTypes["AcceptStockInput"];
 	["AccountType"]: ValueTypes["AccountType"];
 	["ActionFiltersInput"]: ValueTypes["ActionFiltersInput"];
 	["AddAuthorInput"]: ValueTypes["AddAuthorInput"];
@@ -39484,19 +39096,11 @@ type ZEUS_VARIABLES = {
 	["AnswerInput"]: ValueTypes["AnswerInput"];
 	["ApprovalFilter"]: ValueTypes["ApprovalFilter"];
 	["ApprovalStatus"]: ValueTypes["ApprovalStatus"];
-	["AssetContributionActGenerateDocumentInput"]: ValueTypes["AssetContributionActGenerateDocumentInput"];
-	["AssetContributionActSignedDocumentInput"]: ValueTypes["AssetContributionActSignedDocumentInput"];
-	["AssetContributionActSignedMetaDocumentInput"]: ValueTypes["AssetContributionActSignedMetaDocumentInput"];
-	["AssetContributionDecisionGenerateDocumentInput"]: ValueTypes["AssetContributionDecisionGenerateDocumentInput"];
-	["AssetContributionStatementGenerateDocumentInput"]: ValueTypes["AssetContributionStatementGenerateDocumentInput"];
-	["AssetContributionStatementSignedDocumentInput"]: ValueTypes["AssetContributionStatementSignedDocumentInput"];
-	["AssetContributionStatementSignedMetaDocumentInput"]: ValueTypes["AssetContributionStatementSignedMetaDocumentInput"];
 	["BankAccountDetailsInput"]: ValueTypes["BankAccountDetailsInput"];
 	["BankAccountInput"]: ValueTypes["BankAccountInput"];
 	["BuhotchSignerType"]: ValueTypes["BuhotchSignerType"];
 	["CalculateVotesInput"]: ValueTypes["CalculateVotesInput"];
 	["CalendarEntryStatus"]: ValueTypes["CalendarEntryStatus"];
-	["CancelRequestInput"]: ValueTypes["CancelRequestInput"];
 	["CandidateFilterInput"]: ValueTypes["CandidateFilterInput"];
 	["CandidateStatus"]: ValueTypes["CandidateStatus"];
 	["CapitalCommitFilter"]: ValueTypes["CapitalCommitFilter"];
@@ -39522,31 +39126,25 @@ type ZEUS_VARIABLES = {
 	["CommitApproveInput"]: ValueTypes["CommitApproveInput"];
 	["CommitDeclineInput"]: ValueTypes["CommitDeclineInput"];
 	["CommitStatus"]: ValueTypes["CommitStatus"];
-	["CommonRequestInput"]: ValueTypes["CommonRequestInput"];
 	["CompleteCapitalRegistrationInputDTO"]: ValueTypes["CompleteCapitalRegistrationInputDTO"];
 	["CompleteExtensionOnboardingStepInput"]: ValueTypes["CompleteExtensionOnboardingStepInput"];
 	["CompleteProcessStepInput"]: ValueTypes["CompleteProcessStepInput"];
-	["CompleteRequestInput"]: ValueTypes["CompleteRequestInput"];
 	["CompleteVotingInput"]: ValueTypes["CompleteVotingInput"];
 	["ComponentGenerationContractGenerateDocumentInput"]: ValueTypes["ComponentGenerationContractGenerateDocumentInput"];
 	["ConfigInput"]: ValueTypes["ConfigInput"];
 	["ConfirmAgreementInput"]: ValueTypes["ConfirmAgreementInput"];
 	["ConfirmApproveInput"]: ValueTypes["ConfirmApproveInput"];
-	["ConfirmReceiveOnRequestInput"]: ValueTypes["ConfirmReceiveOnRequestInput"];
-	["ConfirmSupplyOnRequestInput"]: ValueTypes["ConfirmSupplyOnRequestInput"];
 	["ContributionType"]: ValueTypes["ContributionType"];
 	["ContributorStatus"]: ValueTypes["ContributorStatus"];
 	["ConvertSegmentInput"]: ValueTypes["ConvertSegmentInput"];
 	["ConvertToAxonStatementGenerateDocumentInput"]: ValueTypes["ConvertToAxonStatementGenerateDocumentInput"];
 	["ConvertToAxonStatementSignedDocumentInput"]: ValueTypes["ConvertToAxonStatementSignedDocumentInput"];
 	["ConvertToAxonStatementSignedMetaDocumentInput"]: ValueTypes["ConvertToAxonStatementSignedMetaDocumentInput"];
-	["CoopstockInput"]: ValueTypes["CoopstockInput"];
 	["Country"]: ValueTypes["Country"];
 	["CreateAnnualGeneralMeetInput"]: ValueTypes["CreateAnnualGeneralMeetInput"];
 	["CreateBranchInput"]: ValueTypes["CreateBranchInput"];
 	["CreateCategoryInput"]: ValueTypes["CreateCategoryInput"];
 	["CreateChatCoopCalendarEventInput"]: ValueTypes["CreateChatCoopCalendarEventInput"];
-	["CreateChildOrderInput"]: ValueTypes["CreateChildOrderInput"];
 	["CreateCommitInput"]: ValueTypes["CreateCommitInput"];
 	["CreateCycleInput"]: ValueTypes["CreateCycleInput"];
 	["CreateDebtInput"]: ValueTypes["CreateDebtInput"];
@@ -39559,7 +39157,6 @@ type ZEUS_VARIABLES = {
 	["CreateIssueInput"]: ValueTypes["CreateIssueInput"];
 	["CreateMatrixAccountInputDTO"]: ValueTypes["CreateMatrixAccountInputDTO"];
 	["CreateOrganizationDataInput"]: ValueTypes["CreateOrganizationDataInput"];
-	["CreateParentOfferInput"]: ValueTypes["CreateParentOfferInput"];
 	["CreateProcessTemplateInput"]: ValueTypes["CreateProcessTemplateInput"];
 	["CreateProductCardInput"]: ValueTypes["CreateProductCardInput"];
 	["CreateProgramInvestInput"]: ValueTypes["CreateProgramInvestInput"];
@@ -39581,18 +39178,14 @@ type ZEUS_VARIABLES = {
 	["DebtStatus"]: ValueTypes["DebtStatus"];
 	["DeclineAgreementInput"]: ValueTypes["DeclineAgreementInput"];
 	["DeclineApproveInput"]: ValueTypes["DeclineApproveInput"];
-	["DeclineRequestInput"]: ValueTypes["DeclineRequestInput"];
 	["DeleteBranchInput"]: ValueTypes["DeleteBranchInput"];
 	["DeleteCapitalIssueByHashInput"]: ValueTypes["DeleteCapitalIssueByHashInput"];
 	["DeleteCapitalStoryByHashInput"]: ValueTypes["DeleteCapitalStoryByHashInput"];
 	["DeletePaymentMethodInput"]: ValueTypes["DeletePaymentMethodInput"];
 	["DeleteProjectInput"]: ValueTypes["DeleteProjectInput"];
 	["DeleteTrustedAccountInput"]: ValueTypes["DeleteTrustedAccountInput"];
-	["DeliverOnRequestInput"]: ValueTypes["DeliverOnRequestInput"];
 	["DeliveryType"]: ValueTypes["DeliveryType"];
 	["DeltaFiltersInput"]: ValueTypes["DeltaFiltersInput"];
-	["DestroyRequestInput"]: ValueTypes["DestroyRequestInput"];
-	["DisputeOnRequestInput"]: ValueTypes["DisputeOnRequestInput"];
 	["DocumentAction"]: ValueTypes["DocumentAction"];
 	["EditBranchInput"]: ValueTypes["EditBranchInput"];
 	["EditContributorInput"]: ValueTypes["EditContributorInput"];
@@ -39681,10 +39274,34 @@ type ZEUS_VARIABLES = {
 	["LogoutInput"]: ValueTypes["LogoutInput"];
 	["MakeClearanceInput"]: ValueTypes["MakeClearanceInput"];
 	["MarkReportPeriodInput"]: ValueTypes["MarkReportPeriodInput"];
+	["MarketplaceAcceptConsolidatedRequestInput"]: ValueTypes["MarketplaceAcceptConsolidatedRequestInput"];
+	["MarketplaceAcceptCppInput"]: ValueTypes["MarketplaceAcceptCppInput"];
+	["MarketplaceAcceptIndividualOrderInput"]: ValueTypes["MarketplaceAcceptIndividualOrderInput"];
+	["MarketplaceAddToWhitelistInput"]: ValueTypes["MarketplaceAddToWhitelistInput"];
+	["MarketplaceApproveOfferInput"]: ValueTypes["MarketplaceApproveOfferInput"];
 	["MarketplaceAttributeType"]: ValueTypes["MarketplaceAttributeType"];
+	["MarketplaceCancelOrderInput"]: ValueTypes["MarketplaceCancelOrderInput"];
+	["MarketplaceConsolidatedRequestStatus"]: ValueTypes["MarketplaceConsolidatedRequestStatus"];
+	["MarketplaceCreateOfferInput"]: ValueTypes["MarketplaceCreateOfferInput"];
+	["MarketplaceCreateOrderInput"]: ValueTypes["MarketplaceCreateOrderInput"];
+	["MarketplaceDeclineConsolidatedRequestInput"]: ValueTypes["MarketplaceDeclineConsolidatedRequestInput"];
+	["MarketplaceDeclineIndividualOrderInput"]: ValueTypes["MarketplaceDeclineIndividualOrderInput"];
+	["MarketplaceDeclineOrderFromOpenPoolInput"]: ValueTypes["MarketplaceDeclineOrderFromOpenPoolInput"];
 	["MarketplaceDetailKUInput"]: ValueTypes["MarketplaceDetailKUInput"];
+	["MarketplaceGetOrderInput"]: ValueTypes["MarketplaceGetOrderInput"];
+	["MarketplaceListCatalogInput"]: ValueTypes["MarketplaceListCatalogInput"];
+	["MarketplaceListConsolidatedRequestsInput"]: ValueTypes["MarketplaceListConsolidatedRequestsInput"];
+	["MarketplaceListMyOffersInput"]: ValueTypes["MarketplaceListMyOffersInput"];
+	["MarketplaceListOrdersInput"]: ValueTypes["MarketplaceListOrdersInput"];
+	["MarketplaceListPendingOffersInput"]: ValueTypes["MarketplaceListPendingOffersInput"];
+	["MarketplaceOrderCycleType"]: ValueTypes["MarketplaceOrderCycleType"];
+	["MarketplaceOrderStatus"]: ValueTypes["MarketplaceOrderStatus"];
+	["MarketplaceRejectOfferInput"]: ValueTypes["MarketplaceRejectOfferInput"];
+	["MarketplaceRemoveFromWhitelistInput"]: ValueTypes["MarketplaceRemoveFromWhitelistInput"];
 	["MarketplaceSetKUStatusInput"]: ValueTypes["MarketplaceSetKUStatusInput"];
-	["ModerateRequestInput"]: ValueTypes["ModerateRequestInput"];
+	["MarketplaceTriggerOpenSubscriptionInput"]: ValueTypes["MarketplaceTriggerOpenSubscriptionInput"];
+	["MarketplaceUpdateOfferInput"]: ValueTypes["MarketplaceUpdateOfferInput"];
+	["MarketplaceWithdrawOfferInput"]: ValueTypes["MarketplaceWithdrawOfferInput"];
 	["MoveCapitalIssueToComponentInput"]: ValueTypes["MoveCapitalIssueToComponentInput"];
 	["NotificationWorkflowRecipientInput"]: ValueTypes["NotificationWorkflowRecipientInput"];
 	["NotifyOnAnnualGeneralMeetInput"]: ValueTypes["NotifyOnAnnualGeneralMeetInput"];
@@ -39717,16 +39334,13 @@ type ZEUS_VARIABLES = {
 	["ProgramKey"]: ValueTypes["ProgramKey"];
 	["ProgramType"]: ValueTypes["ProgramType"];
 	["ProgramWalletFilterInput"]: ValueTypes["ProgramWalletFilterInput"];
-	["ProhibitRequestInput"]: ValueTypes["ProhibitRequestInput"];
 	["ProjectFreeDecisionGenerateDocumentInput"]: ValueTypes["ProjectFreeDecisionGenerateDocumentInput"];
 	["ProjectFreeDecisionSignedDocumentInput"]: ValueTypes["ProjectFreeDecisionSignedDocumentInput"];
 	["ProjectFreeDecisionSignedMetaDocumentInput"]: ValueTypes["ProjectFreeDecisionSignedMetaDocumentInput"];
 	["ProjectGenerationContractGenerateDocumentInput"]: ValueTypes["ProjectGenerationContractGenerateDocumentInput"];
 	["ProjectStatus"]: ValueTypes["ProjectStatus"];
 	["PublishProjectFreeDecisionInput"]: ValueTypes["PublishProjectFreeDecisionInput"];
-	["PublishRequestInput"]: ValueTypes["PublishRequestInput"];
 	["PushResultInput"]: ValueTypes["PushResultInput"];
-	["ReceiveOnRequestInput"]: ValueTypes["ReceiveOnRequestInput"];
 	["RefreshInput"]: ValueTypes["RefreshInput"];
 	["RefreshProgramInput"]: ValueTypes["RefreshProgramInput"];
 	["RefreshSegmentInput"]: ValueTypes["RefreshSegmentInput"];
@@ -39735,14 +39349,12 @@ type ZEUS_VARIABLES = {
 	["RegisterParticipantInput"]: ValueTypes["RegisterParticipantInput"];
 	["RemoveAvailableCategoriesInput"]: ValueTypes["RemoveAvailableCategoriesInput"];
 	["RemoveAvailableCategoryTypesInput"]: ValueTypes["RemoveAvailableCategoryTypesInput"];
-	["ReofferRequestInput"]: ValueTypes["ReofferRequestInput"];
 	["ReplaceAvailableItemsInput"]: ValueTypes["ReplaceAvailableItemsInput"];
 	["ReportHistoryFilterInput"]: ValueTypes["ReportHistoryFilterInput"];
 	["ReportPreviewInput"]: ValueTypes["ReportPreviewInput"];
 	["ReportSubmissionMark"]: ValueTypes["ReportSubmissionMark"];
 	["ReportType"]: ValueTypes["ReportType"];
 	["RepresentedByInput"]: ValueTypes["RepresentedByInput"];
-	["ReqReturnInput"]: ValueTypes["ReqReturnInput"];
 	["RequestAttributeInput"]: ValueTypes["RequestAttributeInput"];
 	["RequestImageInput"]: ValueTypes["RequestImageInput"];
 	["RequestImageType"]: ValueTypes["RequestImageType"];
@@ -39758,13 +39370,6 @@ type ZEUS_VARIABLES = {
 	["ResultContributionStatementGenerateInput"]: ValueTypes["ResultContributionStatementGenerateInput"];
 	["ResultFilter"]: ValueTypes["ResultFilter"];
 	["ResultStatus"]: ValueTypes["ResultStatus"];
-	["ReturnByAssetActGenerateDocumentInput"]: ValueTypes["ReturnByAssetActGenerateDocumentInput"];
-	["ReturnByAssetActSignedDocumentInput"]: ValueTypes["ReturnByAssetActSignedDocumentInput"];
-	["ReturnByAssetActSignedMetaDocumentInput"]: ValueTypes["ReturnByAssetActSignedMetaDocumentInput"];
-	["ReturnByAssetDecisionGenerateDocumentInput"]: ValueTypes["ReturnByAssetDecisionGenerateDocumentInput"];
-	["ReturnByAssetStatementGenerateDocumentInput"]: ValueTypes["ReturnByAssetStatementGenerateDocumentInput"];
-	["ReturnByAssetStatementSignedDocumentInput"]: ValueTypes["ReturnByAssetStatementSignedDocumentInput"];
-	["ReturnByAssetStatementSignedMetaDocumentInput"]: ValueTypes["ReturnByAssetStatementSignedMetaDocumentInput"];
 	["ReturnByMoneyDecisionGenerateDocumentInput"]: ValueTypes["ReturnByMoneyDecisionGenerateDocumentInput"];
 	["ReturnByMoneyGenerateDocumentInput"]: ValueTypes["ReturnByMoneyGenerateDocumentInput"];
 	["ReturnByMoneySignedDocumentInput"]: ValueTypes["ReturnByMoneySignedDocumentInput"];
@@ -39806,12 +39411,10 @@ type ZEUS_VARIABLES = {
 	["StopProjectInput"]: ValueTypes["StopProjectInput"];
 	["StoryStatus"]: ValueTypes["StoryStatus"];
 	["SubmitVoteInput"]: ValueTypes["SubmitVoteInput"];
-	["SupplyOnRequestInput"]: ValueTypes["SupplyOnRequestInput"];
 	["SystemStatus"]: ValueTypes["SystemStatus"];
 	["TranscriptionStatus"]: ValueTypes["TranscriptionStatus"];
 	["TriggerNotificationWorkflowInput"]: ValueTypes["TriggerNotificationWorkflowInput"];
 	["UninstallExtensionInput"]: ValueTypes["UninstallExtensionInput"];
-	["UnpublishRequestInput"]: ValueTypes["UnpublishRequestInput"];
 	["Update"]: ValueTypes["Update"];
 	["UpdateAccountInput"]: ValueTypes["UpdateAccountInput"];
 	["UpdateBankAccountInput"]: ValueTypes["UpdateBankAccountInput"];
@@ -39823,7 +39426,6 @@ type ZEUS_VARIABLES = {
 	["UpdateOrganizationDataInput"]: ValueTypes["UpdateOrganizationDataInput"];
 	["UpdateProcessTemplateInput"]: ValueTypes["UpdateProcessTemplateInput"];
 	["UpdateReportRequisitesInput"]: ValueTypes["UpdateReportRequisitesInput"];
-	["UpdateRequestInput"]: ValueTypes["UpdateRequestInput"];
 	["UpdateSettingsInput"]: ValueTypes["UpdateSettingsInput"];
 	["UpdateStoryInput"]: ValueTypes["UpdateStoryInput"];
 	["UserStatus"]: ValueTypes["UserStatus"];

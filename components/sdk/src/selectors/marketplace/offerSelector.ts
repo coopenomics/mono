@@ -1,0 +1,47 @@
+import { Selector, type ValueTypes } from '../../zeus/index'
+import type { MakeAllFieldsRequired } from '../../utils/MakeAllFieldsRequired'
+
+const rawOfferSelector = {
+  id: true,
+  coopname: true,
+  supplier_account: true,
+  vitrine_id: true,
+  product_name: true,
+  description: true,
+  category_id: true,
+  price_per_unit: true,
+  unit_of_measure: true,
+  quantity_available: true,
+  quantity_blocked: true,
+  quantity_consumed: true,
+  unlimited_flag: true,
+  cycle_type: true,
+  cycle_days: true,
+  target_volume: true,
+  max_wait_days: true,
+  min_threshold: true,
+  warranty_days: true,
+  status: true,
+  approved_by: true,
+  approved_at: true,
+  rejected_by: true,
+  rejected_at: true,
+  reject_reason: true,
+  created_at: true,
+  updated_at: true,
+}
+
+const _validateOffer: MakeAllFieldsRequired<ValueTypes['MarketplaceOffer']> = rawOfferSelector
+
+export const marketplaceOfferSelector = Selector('MarketplaceOffer')(rawOfferSelector)
+
+const rawCategorySelector = {
+  id: true,
+  display_name: true,
+  sort_order: true,
+  mvp_baseline: true,
+}
+
+const _validateCategory: MakeAllFieldsRequired<ValueTypes['MarketplaceCategory']> = rawCategorySelector
+
+export const marketplaceCategorySelector = Selector('MarketplaceCategory')(rawCategorySelector)
