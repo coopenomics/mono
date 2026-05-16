@@ -3,7 +3,7 @@
 // Раскладка по процессам соответствует YAML-стандартам:
 //   p.mkt.supply.standard.yaml / p.mkt.return.standard.yaml / p.mkt.wroff.standard.yaml
 
-// ── p.mkt.supply (10 actions) — Stories Эпиков 4-5-6 + E11 техдолг 598-16 ──
+// ── p.mkt.supply (12 actions) — Stories Эпиков 4-5-6 + E11 техдолг 598-16 ──
 
 /**
  * Заказчик размещает заказ на товар из каталога (Story 4.1).
@@ -45,11 +45,25 @@ export * as SignSupp from './signSupp'
 export * as SignChair from './signChair'
 
 /**
- * Lazy выплата поставщику по одному Order'у (E11 техдолг 598-16, Locked Decision L12).
- * Per-Order: o.mkt.payout (Дт 86 / Кт 51). Выполняется backend'ом по подтверждению
- * кассиром фактического банковского перевода; статус Order'а не меняется.
+ * Backend инициирует исходящую выплату поставщику через gateway по одному Order'у
+ * (E11 техдолг 598-16, Locked Decision L12). Inline-вызовом регистрирует запись в
+ * gateway::outcomes со статусом pending; ledger2 здесь не двигается — Дт 86 / Кт 51
+ * применится позже в callback'е `PayConfirm` после действия кассира.
  */
 export * as PayOut from './payOut'
+
+/**
+ * Callback gateway::outcomplete — кассир подтвердил банковский перевод поставщику.
+ * Auth: `_gateway`. Здесь применяется o.mkt.payout (Дт 86 / Кт 51); backend сам не
+ * дёргает — слушает delta через parser2.
+ */
+export * as PayConfirm from './payConfirm'
+
+/**
+ * Callback gateway::outdecline — кассир отметил, что перевод не состоялся.
+ * Auth: `_gateway`. Без ledger-движения; `order.payout_status` → DECLINED.
+ */
+export * as PayDecline from './payDecline'
 
 /**
  * Председатель / trustee КУ выдачи открывает выдачу первой подписью АПП-выдачи (Story 6.1).

@@ -1,23 +1,28 @@
 /**
- * @brief Lazy-выплата поставщику по одному Order'у (E11 техдолг 598-16,
- * Locked Decision L12, p.mkt.supply).
+ * @brief Инициация исходящей выплаты поставщику по одному Order'у через gateway
+ * (E11 техдолг 598-16, Locked Decision L12, p.mkt.supply).
  *
- * Выполняется после фактического подтверждения кассиром банковского перевода
- * поставщику. До этого момента приёмка уже отражена (`signchair` →
- * `o.mkt.purch`, Дт 10 / Кт 86), но обязательство по оплате на счёте 86
- * остаётся открытым — оно закрывается этим action'ом:
+ * Backend дёргает это действие, когда кассир в админке отметил готовность
+ * проводить выплату поставщику. Действие НЕ применяет ledger2 — оно лишь
+ * inline-вызовом регистрирует в gateway::outcomes запись типа «исходящий
+ * платёж» со статусом pending и привязанным callback'ом на marketplace. Сам
+ * Дт 86 / Кт 51 произойдёт уже в callback'е `payconfirm` после фактического
+ * банковского перевода (gateway::outcomplete вызывает кассир через свой
+ * стол), либо отменится в `paydecline` (gateway::outdecline).
  *
- *  - Ledger2::apply(o.mkt.payout, total_cost, …, hash=order.hash) — Дт 86 / Кт 51.
+ * Inline-вызов: `gateway::createoutpay` с `callback_contract = _marketplace`,
+ * `confirm_callback = "payconfirm"_n`, `decline_callback = "paydecline"_n`,
+ * `outcome_hash = order.hash` (уникальность гарантирована индексом orders).
  *
- * Per-Order; backend проходит циклом по orders batch'а по факту подтверждения
- * каждой выплаты кассиром. Статус Order'а не меняется (выплата происходит
- * параллельно с дальнейшими шагами выдачи); защита от двойного списания —
- * через `order.payout_done`.
+ * Status Order'а не меняется (выплата может идти параллельно шагам выдачи).
+ * payout_status переходит NONE/DECLINED → PENDING; declined-кейс — повторная
+ * попытка после исправления реквизитов (gateway-запись была стёрта на outdecline).
  *
  * Guards:
- *  - Order существует, приёмка уже произведена (`status` ∈ accepted_to_coop /
+ *  - Order существует и приёмка завершена (статус ∈ accepted_to_coop /
  *    ready_to_receive / received).
- *  - `order.payout_done` ещё `false`.
+ *  - payout_status ∈ { NONE, DECLINED } — нельзя инициировать выплату поверх
+ *    pending или completed.
  *
  * @ingroup public_marketplace_actions
  */
@@ -29,14 +34,17 @@ void marketplace::payout(eosio::name coopname, checksum256 order_hash) {
                o.status == OrderStatus::READY_TO_RECEIVE ||
                o.status == OrderStatus::RECEIVED,
                "Выплата возможна только после приёмки имущества кооперативом");
-  eosio::check(!o.payout_done, "Выплата по заказу уже выполнена");
+  eosio::check(o.payout_status == OrderPayoutStatus::NONE ||
+               o.payout_status == OrderPayoutStatus::DECLINED,
+               "Выплата уже инициирована либо завершена");
 
-  Ledger2::apply(_marketplace, coopname,
-                 operations::marketplace::PAY_SUPPLIER,
-                 o.total_cost, o.offerer, o.hash,
-                 Marketplace::Memo::get_pay_supplier_memo(o.id));
+  // Регистрация исходящего платежа в gateway. Сам Дт 86 / Кт 51 произойдёт
+  // в callback'е `payconfirm` от gateway после действия кассира.
+  Gateway::create_outcome(_marketplace, coopname, o.offerer, o.hash, o.total_cost,
+                          _marketplace, "payconfirm"_n, "paydecline"_n);
 
   Marketplace::update_order(coopname, o.id, [&](auto& upd) {
-    upd.payout_done = true;
+    upd.payout_status = OrderPayoutStatus::PENDING;
+    upd.payout_decline_reason.clear();  // на случай повторной инициации после DECLINED
   });
 }

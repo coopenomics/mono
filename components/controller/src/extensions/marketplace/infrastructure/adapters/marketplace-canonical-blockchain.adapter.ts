@@ -134,7 +134,10 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
   async payOut(data: MarketContract.Actions.PayOut.IPayout): Promise<TransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
-      throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ кооператива для submit payout');
+      throw new HttpApiError(
+        httpStatus.BAD_GATEWAY,
+        'Не найден приватный ключ кооператива для submit payout'
+      );
     }
 
     this.blockchainService.initialize(data.coopname, wif);

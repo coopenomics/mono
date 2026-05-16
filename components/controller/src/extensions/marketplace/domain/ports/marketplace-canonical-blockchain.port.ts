@@ -71,12 +71,18 @@ export interface MarketplaceCanonicalBlockchainPort {
   declineOrder(data: MarketContract.Actions.DeclineOrder.IDeclineOrder): Promise<TransactResult>;
 
   /**
-   * E11 техдолг 598-16 / Locked Decision L12: lazy выплата поставщику по
-   * одному Order'у. Триггерит C++ `marketplace::payout` → o.mkt.payout
-   * (Дт 86 / Кт 51) — закрытие обязательства перед поставщиком после
-   * подтверждения кассиром фактического банковского перевода. Статус
-   * Order'а не меняется; C++ guard'ит `order.payout_done` от двойного
-   * вызова.
+   * E11 техдолг 598-16 / Locked Decision L12: инициация исходящей выплаты
+   * поставщику по одному Order'у через контракт gateway. Триггерит C++
+   * `marketplace::payout` → inline `gateway::createoutpay` — gateway
+   * регистрирует запись в `outcomes` со статусом pending и привязанными
+   * callback'ами `payconfirm` / `paydecline`. Ledger2-операция o.mkt.payout
+   * (Дт 86 / Кт 51) применится позже в callback'е `payconfirm` после
+   * фактического банковского перевода кассиром; backend сам callback не
+   * вызывает — слушает delta через parser2 и обновляет
+   * `marketplace_outgoing_payment_request.status` соответственно.
+   *
+   * `order.payout_status`: NONE/DECLINED → PENDING. Defence-in-depth от
+   * двойной инициации — на уровне C++ guard.
    *
    * Авторизация — кооператив (`require_auth(coopname)`).
    */
