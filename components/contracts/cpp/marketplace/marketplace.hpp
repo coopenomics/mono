@@ -141,16 +141,54 @@ public:
 
   /**
    * @brief Председатель приёмного КУ ставит закрывающую подпись на АПП
-   * приёмки одного Order'а (Story 5.3/5.4). Per-Order: o.mkt.purch +
-   * o.mkt.payout (атомарно). Авторизация подписи: председатель / trustee /
-   * trusted ∈ branches[o.accept_braname]. Backend проходит циклом по orders
-   * батча с одинаковым `act`.
+   * приёмки одного Order'а (Story 5.3/5.4). Per-Order: только o.mkt.purch
+   * (Дт 10 / Кт 86). Выплата поставщику (o.mkt.payout) — отдельным lazy
+   * action'ом `payout` после подтверждения кассиром фактического банковского
+   * перевода (E11 техдолг 598-16, Locked Decision L12). Авторизация подписи:
+   * председатель / trustee / trusted ∈ branches[o.accept_braname]. Backend
+   * проходит циклом по orders батча с одинаковым `act`.
    * @ingroup public_marketplace_actions
    */
   [[eosio::action]] void signchair(eosio::name coopname,
                                     eosio::name signer,
                                     checksum256 order_hash,
                                     document2 act);
+
+  /**
+   * @brief Инициация исходящей выплаты поставщику через контракт gateway по
+   * одному Order'у (E11 техдолг 598-16, Locked Decision L12). Per-Order:
+   * inline-вызов `gateway::createoutpay` с callback'ами на `payconfirm` /
+   * `paydecline`. Ledger2-операция o.mkt.payout (Дт 86 / Кт 51) применяется
+   * НЕ здесь, а в callback'е `payconfirm` после действия кассира. Статус
+   * Order'а не меняется; защита от двойного запроса — через
+   * `order.payout_status` (NONE/DECLINED → PENDING).
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void payout(eosio::name coopname,
+                                 checksum256 order_hash);
+
+  /**
+   * @brief Callback от gateway::outcomplete — кассир подтвердил
+   * банковский перевод поставщику (E11 техдолг 598-16, Locked Decision L12).
+   * Здесь применяется o.mkt.payout (Дт 86 / Кт 51) и `payout_status`
+   * переходит PENDING → COMPLETED. Авторизация: `_gateway`. `outcome_hash`
+   * совпадает с `order.hash` (так задано при `payout`).
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void payconfirm(eosio::name coopname,
+                                     checksum256 outcome_hash);
+
+  /**
+   * @brief Callback от gateway::outdecline — кассир отметил, что
+   * банковский перевод не состоялся (E11 техдолг 598-16, Locked Decision L12).
+   * Ledger2-операция НЕ применяется; обязательство Кт 86 остаётся открытым.
+   * `payout_status` PENDING → DECLINED; `payout_decline_reason` сохраняется.
+   * Авторизация: `_gateway`.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void paydecline(eosio::name coopname,
+                                     checksum256 outcome_hash,
+                                     std::string reason);
 
   /**
    * @brief Председатель КУ выдачи открывает выдачу первой подписью АПП-выдачи
