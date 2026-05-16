@@ -70,6 +70,11 @@ import {
   MarketplaceCycleAggregatorService,
   MARKETPLACE_CYCLE_AGGREGATOR_SERVICE,
 } from './services/marketplace-cycle-aggregator.service';
+import {
+  MarketplaceShipmentCreateService,
+  MARKETPLACE_SHIPMENT_CREATE_SERVICE,
+} from './services/marketplace-shipment-create.service';
+import { MarketplaceShipmentResolver } from './resolvers/marketplace-shipment.resolver';
 
 /**
  * Модуль приложения marketplace
@@ -103,6 +108,7 @@ import {
     MarketplaceCatalogResolver,
     MarketplaceOrderResolver,
     MarketplaceCycleResolver,
+    MarketplaceShipmentResolver,
 
     // Guards (Story 1.3 / Story 1.6)
     MarketplaceMembershipGuard,
@@ -182,6 +188,12 @@ import {
       useClass: MarketplaceCycleAggregatorService,
     },
     MarketplaceCycleAggregatorService,
+    // Story 5.1 / 5.2 — формирование партий поставки + валидация состава
+    {
+      provide: MARKETPLACE_SHIPMENT_CREATE_SERVICE,
+      useClass: MarketplaceShipmentCreateService,
+    },
+    MarketplaceShipmentCreateService,
   ],
   exports: [
     // Экспортируем сервисы для использования в других модулях
@@ -222,6 +234,7 @@ import {
     MarketplaceCatalogResolver,
     MarketplaceOrderResolver,
     MarketplaceCycleResolver,
+    MarketplaceShipmentResolver,
 
     // Экспортируем сервисы Story 4.1 для использования в follow-up Stories Эпика 4
     MARKETPLACE_ORDER_CREATE_SERVICE,
@@ -238,6 +251,9 @@ import {
     // Story 4.2
     MARKETPLACE_CYCLE_AGGREGATOR_SERVICE,
     MarketplaceCycleAggregatorService,
+    // Story 5.1 / 5.2
+    MARKETPLACE_SHIPMENT_CREATE_SERVICE,
+    MarketplaceShipmentCreateService,
   ],
 })
 export class MarketplaceExtensionApplicationModule {}
