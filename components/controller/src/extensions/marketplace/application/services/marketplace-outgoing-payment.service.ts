@@ -15,6 +15,11 @@ import {
   type MarketplaceOutgoingPaymentRequestStatus,
 } from '../../domain/entities/marketplace-outgoing-payment-request.types';
 import type { MarketplaceOutgoingPaymentRequestDomainEntity } from '../../domain/entities/marketplace-outgoing-payment-request.entity';
+import {
+  GATEWAY_INTERACTOR_PORT,
+  type GatewayInteractorPort,
+} from '~/domain/wallet/ports/gateway-interactor.port';
+import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum';
 
 export interface MarketplaceConfirmOutgoingPaymentInputDto {
   coopname: string;
@@ -54,6 +59,8 @@ export class MarketplaceOutgoingPaymentService {
   constructor(
     @Inject(MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY)
     private readonly paymentRepo: MarketplaceOutgoingPaymentRequestDomainRepository,
+    @Inject(GATEWAY_INTERACTOR_PORT)
+    private readonly coreGateway: GatewayInteractorPort,
     private readonly logger: WinstonLoggerService
   ) {
     this.logger.setContext(MarketplaceOutgoingPaymentService.name);
@@ -86,12 +93,33 @@ export class MarketplaceOutgoingPaymentService {
       status: finalStatus,
     });
 
+    // AR35 / 598-17: отзеркалить статус в core-реестре, если связка
+    // установлена (core_payment_id заполняется в AplReceptionService).
+    await this.mirrorCoreStatus(payment.core_payment_id, PaymentStatusEnum.COMPLETED);
+
     this.logger.log(
       `Outgoing payment ${payment.id} confirmed by cashier: reference="${input.payment_reference}", ` +
         `status=${finalStatus}. Поставщик ${payment.payee_account} получит уведомление о выплате.`
     );
 
     return { payment_request: updated };
+  }
+
+  private async mirrorCoreStatus(
+    core_payment_id: string | null,
+    coreStatus: PaymentStatusEnum
+  ): Promise<void> {
+    if (!core_payment_id) return;
+    try {
+      await this.coreGateway.setPaymentStatus({
+        id: core_payment_id,
+        status: coreStatus,
+      });
+    } catch (err: any) {
+      this.logger.warn(
+        `mirrorCoreStatus: не удалось обновить core payment ${core_payment_id} → ${coreStatus} (${err.message}); marketplace-статус актуальный, core рассинхронизирован.`
+      );
+    }
   }
 
   async markBlocked(
@@ -107,6 +135,9 @@ export class MarketplaceOutgoingPaymentService {
       );
     }
     const updated = await this.paymentRepo.markBlocked(payment.id, input.reason);
+
+    await this.mirrorCoreStatus(payment.core_payment_id, PaymentStatusEnum.CANCELLED);
+
     this.logger.warn(
       `Outgoing payment ${payment.id} помечен BLOCKED кассиром: ${input.reason}. Обязательство по 86 остаётся открытым, кооператив решает вручную.`
     );

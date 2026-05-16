@@ -1,6 +1,7 @@
 import { Field, InputType, Int } from '@nestjs/graphql';
 import {
   IsBoolean,
+  IsEnum,
   IsIn,
   IsInt,
   IsNotEmpty,
@@ -12,6 +13,7 @@ import {
   Min,
 } from 'class-validator';
 import { PaginationInputDTO } from '~/application/common/dto/pagination.dto';
+import { MarketplaceBarcodeStrategyEnum } from './marketplace-offer.dto';
 
 const CYCLE_TYPES = ['time_based', 'volume_based', 'open_subscription', 'individual'] as const;
 const UNITS = ['piece', 'kg', 'liter', 'pack'] as const;
@@ -84,6 +86,25 @@ export class MarketplaceCreateOfferInputDTO {
   @IsInt()
   @Min(0)
   public warranty_days!: number;
+
+  @Field(() => MarketplaceBarcodeStrategyEnum, {
+    nullable: true,
+    description:
+      'Стратегия маркировки штрих-кодом при приёмке на КУ. По умолчанию «по заказу» (PER_ORDER).',
+  })
+  @IsOptional()
+  @IsEnum(MarketplaceBarcodeStrategyEnum)
+  public barcode_strategy?: MarketplaceBarcodeStrategyEnum;
+
+  @Field(() => Int, {
+    nullable: true,
+    description: 'Размер упаковки для стратегии «по упаковке» (обязателен при PER_PACKAGE).',
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(1000)
+  public pack_size?: number;
 }
 
 @InputType('MarketplaceUpdateOfferInput')
@@ -164,6 +185,18 @@ export class MarketplaceUpdateOfferInputDTO {
   @IsInt()
   @Min(0)
   public warranty_days?: number;
+
+  @Field(() => MarketplaceBarcodeStrategyEnum, { nullable: true })
+  @IsOptional()
+  @IsEnum(MarketplaceBarcodeStrategyEnum)
+  public barcode_strategy?: MarketplaceBarcodeStrategyEnum;
+
+  @Field(() => Int, { nullable: true })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(1000)
+  public pack_size?: number | null;
 }
 
 @InputType('MarketplaceWithdrawOfferInput')

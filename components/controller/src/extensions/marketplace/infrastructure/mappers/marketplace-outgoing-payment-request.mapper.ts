@@ -22,6 +22,7 @@ export class MarketplaceOutgoingPaymentRequestMapper {
       bank_statement_ref: row.bank_statement_ref,
       blocked_reason: row.blocked_reason,
       payout_tx_hash: row.payout_tx_hash,
+      core_payment_id: row.core_payment_id,
       created_at: row.created_at,
       updated_at: row.updated_at,
     });

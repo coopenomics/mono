@@ -1,7 +1,10 @@
 import type {
   MarketplaceOfferDomainEntity,
 } from '../entities/marketplace-offer.entity';
-import type { MarketplaceOfferStatus } from '../entities/marketplace-offer.types';
+import type {
+  MarketplaceBarcodeStrategy,
+  MarketplaceOfferStatus,
+} from '../entities/marketplace-offer.types';
 import type {
   PaginationInputDomainInterface,
   PaginationResultDomainInterface,
@@ -34,6 +37,8 @@ export interface OfferCreateInput {
   max_wait_days: number | null;
   min_threshold: number | null;
   warranty_days: number;
+  barcode_strategy: MarketplaceBarcodeStrategy;
+  pack_size: number | null;
 }
 
 export interface OfferUpdateInput {
@@ -50,6 +55,8 @@ export interface OfferUpdateInput {
   max_wait_days?: number | null;
   min_threshold?: number | null;
   warranty_days?: number;
+  barcode_strategy?: MarketplaceBarcodeStrategy;
+  pack_size?: number | null;
 }
 
 /**

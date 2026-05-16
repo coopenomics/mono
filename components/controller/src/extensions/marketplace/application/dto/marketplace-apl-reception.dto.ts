@@ -138,12 +138,87 @@ export class MarketplaceCreateAplReceptionInputDTO {
   fact_quantity_per_order?: MarketplaceAplReceptionFactEntryInputDTO[];
 }
 
+@InputType('MarketplaceSignatureInfoInput')
+export class MarketplaceSignatureInfoInputDTO {
+  @Field(() => String, { description: 'Account-имя подписанта (EOS-account).' })
+  @IsString()
+  signer!: string;
+
+  @Field(() => String, { description: 'Публичный ключ подписанта (EOS_K1_...).' })
+  @IsString()
+  public_key!: string;
+
+  @Field(() => String, { description: 'Подпись (EOS_K1_SIG_...).' })
+  @IsString()
+  signature!: string;
+}
+
+@InputType('MarketplaceSignedDocumentInput')
+export class MarketplaceSignedDocumentInputDTO {
+  @Field(() => String) @IsString() version!: string;
+  @Field(() => String, { description: 'hash подписного документа.' }) @IsString() hash!: string;
+  @Field(() => String) @IsString() doc_hash!: string;
+  @Field(() => String) @IsString() meta_hash!: string;
+  @Field(() => String, { description: 'Сериализованный JSON.stringify(meta).' })
+  @IsString()
+  meta!: string;
+  @Field(() => [MarketplaceSignatureInfoInputDTO])
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => MarketplaceSignatureInfoInputDTO)
+  signatures!: MarketplaceSignatureInfoInputDTO[];
+}
+
+@InputType('MarketplaceAplReceptionSignedOrderInput')
+export class MarketplaceAplReceptionSignedOrderInputDTO {
+  @Field(() => ID, { description: 'Order, к которому относится подписанный документ.' })
+  @IsString()
+  @IsNotEmpty()
+  order_id!: string;
+
+  @Field(() => MarketplaceSignedDocumentInputDTO, {
+    description: 'Подписанный клиентом Document2 — отправляется в on-chain signsupp/signchair.',
+  })
+  @ValidateNested()
+  @Type(() => MarketplaceSignedDocumentInputDTO)
+  signed_document!: MarketplaceSignedDocumentInputDTO;
+}
+
 @InputType('MarketplaceSignAplReceptionInput')
 export class MarketplaceSignAplReceptionInputDTO {
   @Field(() => ID, { description: 'Идентификатор АПП приёмки.' })
   @IsString()
   @IsNotEmpty()
   apl_reception_id!: string;
+
+  @Field(() => [MarketplaceAplReceptionSignedOrderInputDTO], {
+    nullable: true,
+    description:
+      'Подписанные клиентом Document2 per-Order. Если передан — backend отправляет on-chain signsupp/signchair с реальными подписями и сохраняет реальный tx_hash. Если не передан — сохраняется placeholder tx_hash (backwards-compat для UI без FR45 обвязки).',
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => MarketplaceAplReceptionSignedOrderInputDTO)
+  signed_documents?: MarketplaceAplReceptionSignedOrderInputDTO[];
+}
+
+/**
+ * Story 598-15 / FR45: payload подписи per-Order для клиента.
+ * Клиент получает массив, подписывает каждый `hash` приватным ключом
+ * и возвращает результат в `marketplaceSignAplReceptionAsSupplier`.
+ */
+@ObjectType('MarketplaceAplReceptionSignablePayload')
+export class MarketplaceAplReceptionSignablePayloadDTO {
+  @Field(() => ID) order_id!: string;
+  @Field(() => String) order_hash!: string;
+  @Field(() => String) version!: string;
+  @Field(() => String, { description: 'JSON-сериализованные мета-поля акта.' })
+  meta!: string;
+  @Field(() => String) meta_hash!: string;
+  @Field(() => String) doc_hash!: string;
+  @Field(() => String, { description: 'Digest для клиентской подписи.' })
+  hash!: string;
 }
 
 @ObjectType('MarketplaceAplReceptionResult')

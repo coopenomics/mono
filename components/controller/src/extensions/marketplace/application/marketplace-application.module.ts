@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { MarketplaceExtensionDomainModule } from '../domain/marketplace-domain.module';
+import { GatewayInfrastructureModule } from '~/infrastructure/gateway/gateway-infrastructure.module';
 import { CategoryTreeResolver } from './resolvers/category-tree.resolver';
 import { AttributeResolver } from './resolvers/attribute.resolver';
 import { AvailableCategoryAdminResolver } from './resolvers/available-category-admin.resolver';
@@ -103,6 +104,10 @@ import { MarketplaceOutgoingPaymentResolver } from './resolvers/marketplace-outg
     // идемпотентен — если AppModule тоже инициализирует его, NestJS использует
     // singleton SchedulerRegistry.
     ScheduleModule.forRoot(),
+    // Story 598-17 / AR35: marketplace AplReception/OutgoingPayment сервисам
+    // нужен GATEWAY_INTERACTOR_PORT для синхронизации с core-реестром
+    // исходящих платежей. Модуль уже экспортирует токен — просто импорт.
+    GatewayInfrastructureModule,
   ],
   providers: [
     // GraphQL резолверы

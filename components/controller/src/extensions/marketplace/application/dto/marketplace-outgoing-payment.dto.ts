@@ -70,6 +70,14 @@ export class MarketplaceOutgoingPaymentRequestDTO {
   })
   payout_tx_hash!: string | null;
 
+  @Field(() => ID, {
+    nullable: true,
+    description:
+      'Идентификатор связанного платежа в общем реестре кооператива — кассирский стол ' +
+      'отображает marketplace-выплаты в общей ленте платежей.',
+  })
+  core_payment_id!: string | null;
+
   @Field(() => Date)
   created_at!: Date;
 
@@ -137,6 +145,7 @@ export function toMarketplaceOutgoingPaymentRequestDTO(
   dto.bank_statement_ref = e.bank_statement_ref;
   dto.blocked_reason = e.blocked_reason;
   dto.payout_tx_hash = e.payout_tx_hash;
+  dto.core_payment_id = e.core_payment_id;
   dto.created_at = e.created_at;
   dto.updated_at = e.updated_at;
   return dto;

@@ -22,6 +22,7 @@ export class MarketplaceOutgoingPaymentRequestDomainEntity {
   public bank_statement_ref: string | null;
   public blocked_reason: string | null;
   public payout_tx_hash: string | null;
+  public core_payment_id: string | null;
   public readonly created_at: Date;
   public updated_at: Date;
 
@@ -40,6 +41,7 @@ export class MarketplaceOutgoingPaymentRequestDomainEntity {
     this.bank_statement_ref = props.bank_statement_ref;
     this.blocked_reason = props.blocked_reason;
     this.payout_tx_hash = props.payout_tx_hash;
+    this.core_payment_id = props.core_payment_id;
     this.created_at = props.created_at;
     this.updated_at = props.updated_at;
   }

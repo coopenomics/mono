@@ -39,9 +39,23 @@ export class MarketplaceOutgoingPaymentRequestRepositoryAdapter
       bank_statement_ref: null,
       blocked_reason: null,
       payout_tx_hash: null,
+      core_payment_id: null,
     });
     const saved = await this.repo.save(row);
     return this.mapper.toDomain(saved);
+  }
+
+  async applyCorePaymentId(
+    id: string,
+    core_payment_id: string
+  ): Promise<MarketplaceOutgoingPaymentRequestDomainEntity> {
+    await this.repo.update({ id }, { core_payment_id });
+    const row = await this.repo.findOneOrFail({ where: { id } });
+    return this.mapper.toDomain(row);
+  }
+
+  async deleteById(id: string): Promise<void> {
+    await this.repo.delete({ id });
   }
 
   async findById(id: string): Promise<MarketplaceOutgoingPaymentRequestDomainEntity | null> {

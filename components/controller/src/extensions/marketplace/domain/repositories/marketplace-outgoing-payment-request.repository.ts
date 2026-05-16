@@ -29,6 +29,24 @@ export interface MarketplaceOutgoingPaymentRequestDomainRepository {
     input: MarketplaceOutgoingPaymentRequestCreateInput
   ): Promise<MarketplaceOutgoingPaymentRequestDomainEntity>;
 
+  /**
+   * Story 598-17 / AR35: проставить связку с платежом в core-реестре.
+   * Возвращает обновлённую сущность. Вызывается из
+   * `MarketplaceAplReceptionService.createOutgoingPaymentRequest` после
+   * успешного `GatewayInteractor.createSystemOutgoingPayment`.
+   */
+  applyCorePaymentId(
+    id: string,
+    core_payment_id: string
+  ): Promise<MarketplaceOutgoingPaymentRequestDomainEntity>;
+
+  /**
+   * Compensating rollback: удалить request, если core-вызов вернул ошибку и
+   * marketplace-запись осталась без core-binding. Сохраняет инвариант
+   * 1 АПП → 1 request (без core ⇔ без AR35-видимости).
+   */
+  deleteById(id: string): Promise<void>;
+
   findById(id: string): Promise<MarketplaceOutgoingPaymentRequestDomainEntity | null>;
 
   findByAplReceptionId(

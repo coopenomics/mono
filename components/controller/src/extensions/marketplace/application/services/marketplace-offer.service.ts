@@ -18,6 +18,7 @@ import {
 } from '../../domain/repositories/marketplace-category.repository';
 import type { MarketplaceOfferDomainEntity } from '../../domain/entities/marketplace-offer.entity';
 import type {
+  MarketplaceBarcodeStrategy,
   MarketplaceOfferCycleType,
   MarketplaceOfferStatus,
   MarketplaceUnitOfMeasure,
@@ -25,6 +26,7 @@ import type {
 import {
   MARKETPLACE_OFFER_CYCLE_TYPES,
   MARKETPLACE_UNITS_OF_MEASURE,
+  MarketplaceBarcodeStrategies,
   MarketplaceOfferCycleTypes,
 } from '../../domain/entities/marketplace-offer.types';
 import type {
@@ -51,6 +53,8 @@ export interface OfferCreateRequest {
   max_wait_days: number | null;
   min_threshold: number | null;
   warranty_days: number;
+  barcode_strategy?: MarketplaceBarcodeStrategy | null;
+  pack_size?: number | null;
 }
 
 /**
@@ -77,6 +81,8 @@ export class MarketplaceOfferService {
   public static readonly MAX_PRODUCT_NAME_LEN = 200;
   public static readonly MAX_DESCRIPTION_LEN = 2000;
   public static readonly BASELINE_CATEGORY_IDS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+  /** Технический лимит — защита от опечатки в pack_size (Story 5.5 / 598-22). */
+  public static readonly MAX_PACK_SIZE = 1000;
 
   constructor(
     @Inject(MARKETPLACE_OFFER_REPOSITORY)
@@ -89,6 +95,13 @@ export class MarketplaceOfferService {
     this.validateCreateInput(input);
     await this.ensureCategoryExists(input.category_id);
     await this.assertRateLimit(input.supplier_account);
+
+    const barcode_strategy =
+      input.barcode_strategy ?? MarketplaceBarcodeStrategies.PER_ORDER;
+    const pack_size =
+      barcode_strategy === MarketplaceBarcodeStrategies.PER_PACKAGE
+        ? input.pack_size ?? null
+        : null;
 
     const dbInput: OfferCreateInput = {
       coopname: input.coopname,
@@ -107,6 +120,8 @@ export class MarketplaceOfferService {
       max_wait_days: input.max_wait_days,
       min_threshold: input.min_threshold,
       warranty_days: input.warranty_days,
+      barcode_strategy,
+      pack_size,
     };
 
     return this.repo.create(dbInput);
@@ -136,6 +151,18 @@ export class MarketplaceOfferService {
     }
     if (patch.warranty_days !== undefined && patch.warranty_days < 0) {
       throw new BadRequestException('Срок гарантии не может быть отрицательным.');
+    }
+
+    if (patch.barcode_strategy !== undefined || patch.pack_size !== undefined) {
+      const merged_strategy = patch.barcode_strategy ?? offer.barcode_strategy;
+      const merged_pack_size =
+        patch.pack_size !== undefined ? patch.pack_size : offer.pack_size;
+      this.assertBarcodeConfig(merged_strategy, merged_pack_size);
+      if (merged_strategy !== MarketplaceBarcodeStrategies.PER_PACKAGE && patch.pack_size === undefined) {
+        // При переключении на стратегию не-PER_PACKAGE — pack_size сбрасывается,
+        // чтобы не оставлять висящее значение, которое потом смутит модерацию.
+        patch.pack_size = null;
+      }
     }
 
     // Story 4.7: per-cycle_type обязательные поля. Если patch меняет cycle_type
@@ -216,6 +243,15 @@ export class MarketplaceOfferService {
       throw new BadRequestException('Срок гарантии не может быть отрицательным.');
     }
 
+    if (input.barcode_strategy !== undefined && input.barcode_strategy !== null) {
+      this.assertBarcodeConfig(input.barcode_strategy, input.pack_size ?? null);
+    } else if (input.pack_size !== undefined && input.pack_size !== null) {
+      // pack_size без strategy не имеет смысла.
+      throw new BadRequestException(
+        'Размер упаковки указан, но стратегия маркировки не выбрана — выберите «по упаковке» (PER_PACKAGE).'
+      );
+    }
+
     if (typeof input.price_per_unit !== 'string' || !/^\d+(\.\d{1,4})?$/.test(input.price_per_unit)) {
       throw new BadRequestException(
         'Цена должна быть числом с не более чем четырьмя знаками после запятой (например, «100.50»).'
@@ -280,6 +316,35 @@ export class MarketplaceOfferService {
     if (description.length > MarketplaceOfferService.MAX_DESCRIPTION_LEN) {
       throw new BadRequestException(
         `Описание слишком длинное (максимум ${MarketplaceOfferService.MAX_DESCRIPTION_LEN} символов).`
+      );
+    }
+  }
+
+  /**
+   * Story 5.5 / техдолг 598-22: barcode_strategy = PER_PACKAGE требует
+   * pack_size в диапазоне [1, MAX_PACK_SIZE]. Прочие стратегии
+   * запрещают непустой pack_size — он бы остался hanging value.
+   */
+  private assertBarcodeConfig(
+    strategy: MarketplaceBarcodeStrategy,
+    pack_size: number | null
+  ): void {
+    if (strategy === MarketplaceBarcodeStrategies.PER_PACKAGE) {
+      if (pack_size === null || pack_size === undefined || pack_size < 1) {
+        throw new BadRequestException(
+          'Для стратегии «по упаковке» укажите размер упаковки (целое число от 1).'
+        );
+      }
+      if (pack_size > MarketplaceOfferService.MAX_PACK_SIZE) {
+        throw new BadRequestException(
+          `Размер упаковки слишком велик (максимум ${MarketplaceOfferService.MAX_PACK_SIZE}). Проверьте, что вы указали именно единиц на упаковку.`
+        );
+      }
+      return;
+    }
+    if (pack_size !== null && pack_size !== undefined) {
+      throw new BadRequestException(
+        'Размер упаковки применим только к стратегии «по упаковке» (PER_PACKAGE).'
       );
     }
   }

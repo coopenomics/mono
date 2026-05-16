@@ -43,6 +43,11 @@ export interface MarketplaceOutgoingPaymentRequestProps {
   bank_statement_ref: string | null;
   blocked_reason: string | null;
   payout_tx_hash: string | null;
+  /**
+   * Story 598-17 / AR35: id связанного платежа в core-реестре `payments`.
+   * NULL — если синхронизация ещё не выполнена или core-вызов упал.
+   */
+  core_payment_id: string | null;
   created_at: Date;
   updated_at: Date;
 }

@@ -6924,6 +6924,105 @@ input MarketplaceAddToWhitelistInput {
   member_account: String!
 }
 
+type MarketplaceAplReception {
+  """Account председателя, поставившего закрывающую подпись."""
+  chairman_account: String
+
+  """Хэш транзакции закрывающей подписи председателя."""
+  chairman_signchair_tx_hash: String
+  chairman_signed_at: DateTime
+  coopname: String!
+  created_at: DateTime!
+  created_by_operator_account: String!
+
+  """Консолидированная заявка."""
+  cycle_id: ID!
+
+  """Снапшот данных экспедитора + ТТН (только для Варианта Б)."""
+  expeditor_data: MarketplaceShipmentTTNData
+
+  """Фактически принятое количество per-Order."""
+  fact_quantity_per_order: [MarketplaceAplReceptionFactEntry!]!
+  id: ID!
+
+  """КУ-получатель партии."""
+  ku_id: String!
+
+  """Account поставщика-владельца Offer'ов."""
+  offerer_account: String!
+
+  """Партия поставки, по которой формируется приёмка."""
+  shipment_id: ID!
+  status: MarketplaceAplReceptionStatus!
+  supplier_signed_at: DateTime
+
+  """Хэш транзакции подписи поставщика."""
+  supplier_signsupp_tx_hash: String
+
+  """Сумма АПП (с учётом расхождений Варианта Б)."""
+  total_amount: String!
+
+  """Номер ТТН (только для Варианта Б)."""
+  ttn_number: String
+  updated_at: DateTime!
+  variant: MarketplaceAplReceptionVariant!
+}
+
+type MarketplaceAplReceptionFactEntry {
+  """Фактически принятое количество (для расхождений Варианта Б)."""
+  fact_quantity: Int!
+  order_id: ID!
+}
+
+input MarketplaceAplReceptionFactEntryInput {
+  fact_quantity: Int!
+  order_id: ID!
+}
+
+type MarketplaceAplReceptionResult {
+  apl_reception: MarketplaceAplReception!
+}
+
+type MarketplaceAplReceptionSignablePayload {
+  doc_hash: String!
+
+  """Digest для клиентской подписи."""
+  hash: String!
+
+  """JSON-сериализованные мета-поля акта."""
+  meta: String!
+  meta_hash: String!
+  order_hash: String!
+  order_id: ID!
+  version: String!
+}
+
+input MarketplaceAplReceptionSignedOrderInput {
+  """Order, к которому относится подписанный документ."""
+  order_id: ID!
+
+  """
+  Подписанный клиентом Document2 — отправляется в on-chain signsupp/signchair.
+  """
+  signed_document: MarketplaceSignedDocumentInput!
+}
+
+"""Статус АПП приёмки на КУ."""
+enum MarketplaceAplReceptionStatus {
+  ACCEPTED_TO_COOP
+  CANCELLED
+  PENDING_CHAIRMAN_RECEPTION_SIGN
+  PENDING_SUPPLIER_SIGN
+}
+
+"""
+Вариант приёмки: A — поставщик лично, B — экспедитор с асинхронной подписью.
+"""
+enum MarketplaceAplReceptionVariant {
+  EXPEDITOR
+  IN_PERSON
+}
+
 input MarketplaceApproveOfferInput {
   offer_id: String!
 }
@@ -7084,6 +7183,30 @@ type MarketplaceAvailableCategory {
   updatedAt: DateTime!
 }
 
+"""
+Формат штрих-кода маркировки имущества: CODE128 (буквенно-цифровой) или EAN-13 (13 цифр).
+"""
+enum MarketplaceBarcodeFormat {
+  CODE128
+  EAN13
+}
+
+"""
+Стратегия маркировки: одна этикетка на заказ, на единицу, или на упаковку.
+"""
+enum MarketplaceBarcodeStrategy {
+  PER_ORDER
+  PER_PACKAGE
+  PER_UNIT
+}
+
+input MarketplaceBlockOutgoingPaymentInput {
+  payment_request_id: ID!
+
+  """Причина блокировки (отказ банка, недостаток средств и т.п.)."""
+  reason: String!
+}
+
 """Параметры отмены своего заказа пайщиком."""
 input MarketplaceCancelOrderInput {
   """
@@ -7176,6 +7299,15 @@ type MarketplaceCategoryTreeStats {
   totalTypes: Int!
 }
 
+input MarketplaceConfirmOutgoingPaymentInput {
+  """Опционально — ссылка на выписку банка (URL или hash)."""
+  bank_statement_ref: String
+
+  """Номер банковского платёжного поручения / референс операции."""
+  payment_reference: String!
+  payment_request_id: ID!
+}
+
 type MarketplaceConsolidatedRequest {
   accepted_at: DateTime
   coopname: String!
@@ -7258,7 +7390,21 @@ type MarketplaceCppStatus {
   status: String!
 }
 
+input MarketplaceCreateAplReceptionInput {
+  """
+  Опционально для Варианта Б — фактически принятое количество per-Order. Для пропущенных Order'ов берётся order.quantity.
+  """
+  fact_quantity_per_order: [MarketplaceAplReceptionFactEntryInput!]
+
+  """Партия поставки в статусе SUPPLY_PREPARED."""
+  shipment_id: ID!
+}
+
 input MarketplaceCreateOfferInput {
+  """
+  Стратегия маркировки штрих-кодом при приёмке на КУ. По умолчанию «по заказу» (PER_ORDER).
+  """
+  barcode_strategy: MarketplaceBarcodeStrategy
   category_id: Int!
   cycle_days: Int
 
@@ -7267,6 +7413,11 @@ input MarketplaceCreateOfferInput {
   description: String
   max_wait_days: Int
   min_threshold: Int
+
+  """
+  Размер упаковки для стратегии «по упаковке» (обязателен при PER_PACKAGE).
+  """
+  pack_size: Int
 
   """Цена за единицу (numeric как string, до 4 знаков)"""
   price_per_unit: String!
@@ -7297,6 +7448,19 @@ input MarketplaceCreateOrderInput {
 type MarketplaceCreateOrderResult {
   order: MarketplaceOrder!
   tx_snapshot: MarketplaceOrderCreateTxSnapshot!
+}
+
+input MarketplaceCreateShipmentInput {
+  """Идентификатор консолидированной заявки в статусе ACCEPTED."""
+  cycle_id: ID!
+
+  """Группы доставки — по одной на каждый КУ из заявки."""
+  groups: [MarketplaceShipmentGroupInput!]!
+}
+
+type MarketplaceCreateShipmentResult {
+  """Созданные партии — по одной на каждый КУ заявки."""
+  shipments: [MarketplaceShipment!]!
 }
 
 type MarketplaceCurrentMember {
@@ -7413,6 +7577,52 @@ input MarketplaceGetOrderInput {
   order_id: String!
 }
 
+type MarketplaceInventoryItem {
+  barcode_format: MarketplaceBarcodeFormat!
+
+  """Значение штрих-кода на наклейке (распознаётся сканером при выдаче)."""
+  barcode_value: String!
+
+  """Кооператив, в котором ведётся инвентарь."""
+  coopname: String!
+  created_at: DateTime!
+  id: ID!
+
+  """КУ-получатель имущества."""
+  ku_id: String!
+  labeled_at: DateTime!
+
+  """Account оператора КУ, наклеившего этикетку."""
+  labeled_by_operator_account: String!
+
+  """Заказ, к единицам которого относится наклейка."""
+  order_id: ID!
+
+  """Account заказчика — печатается на наклейке."""
+  orderer_account_snapshot: String!
+
+  """Снапшот наименования товара — для печатной наклейки."""
+  product_name_snapshot: String!
+
+  """
+  Сколько единиц имущества учитывает эта этикетка (1 для PER_UNIT, N для PER_PACKAGE).
+  """
+  quantity_per_label: Int!
+
+  """Партия поставки, в составе которой имущество получено."""
+  shipment_id: ID!
+  status: MarketplaceInventoryStatus!
+  updated_at: DateTime!
+}
+
+"""Состояние единицы имущества в инвентаре КУ."""
+enum MarketplaceInventoryStatus {
+  ISSUED
+  LABELED
+  RETURNED
+  WRITTEN_OFF
+}
+
 type MarketplaceKUDetails {
   addressFull: String!
   contactEmail: String!
@@ -7435,6 +7645,27 @@ type MarketplaceKUDetails {
   status: String!
   updatedAt: DateTime!
   workingHours: WorkingHours!
+}
+
+input MarketplaceLabelInventoryInput {
+  """Формат штрих-кода. По умолчанию — CODE128."""
+  format: MarketplaceBarcodeFormat
+
+  """Заказ, для которого формируются наклейки."""
+  order_id: ID!
+
+  """Размер упаковки — обязателен для стратегии PER_PACKAGE."""
+  pack_size: Int
+
+  """Стратегия маркировки. По умолчанию — одна этикетка на весь заказ."""
+  strategy: MarketplaceBarcodeStrategy
+}
+
+type MarketplaceLabelInventoryResult {
+  """
+  Сгенерированные наклейки: одна или несколько в зависимости от стратегии.
+  """
+  inventory: [MarketplaceInventoryItem!]!
 }
 
 input MarketplaceListCatalogInput {
@@ -7460,6 +7691,20 @@ input MarketplaceListConsolidatedRequestsInput {
 
   """Фильтр по состоянию сводной заявки."""
   status: MarketplaceConsolidatedRequestStatus
+}
+
+input MarketplaceListInventoryInput {
+  """Фильтр по КУ."""
+  ku_id: String
+
+  """Фильтр по заказу."""
+  order_id: ID
+
+  """Фильтр по партии поставки."""
+  shipment_id: ID
+
+  """Фильтр по состояниям инвентаря."""
+  statuses: [MarketplaceInventoryStatus!]
 }
 
 input MarketplaceListMyOffersInput {
@@ -7509,6 +7754,17 @@ input MarketplaceListPendingOffersInput {
   sortOrder: String! = "ASC"
 }
 
+input MarketplaceListShipmentsInput {
+  """Фильтр по консолидированной заявке."""
+  cycle_id: ID
+
+  """Фильтр по КУ-получателю."""
+  ku_id: String
+
+  """Фильтр по статусам партий."""
+  statuses: [MarketplaceShipmentStatus!]
+}
+
 type MarketplaceMemberWallet {
   coopname: String!
   username: String!
@@ -7532,6 +7788,9 @@ type MarketplaceModerationLogEntry {
 type MarketplaceOffer {
   approved_at: DateTime
   approved_by: String
+
+  """Стратегия маркировки штрих-кодом для приёмки на КУ"""
+  barcode_strategy: MarketplaceBarcodeStrategy!
   category_id: Int!
   coopname: String!
   created_at: DateTime!
@@ -7543,6 +7802,9 @@ type MarketplaceOffer {
   id: String!
   max_wait_days: Int
   min_threshold: Int
+
+  """Размер упаковки для стратегии «по упаковке» (целое число > 0)"""
+  pack_size: Int
 
   """Цена за единицу (numeric как string)"""
   price_per_unit: String!
@@ -7742,6 +8004,61 @@ enum MarketplaceOrderStatus {
   RECEIVED
   RETURNED
   SUPPLY_PREPARED
+}
+
+type MarketplaceOutgoingPaymentRequest {
+  """Сумма платежа (numeric с 4 знаками)."""
+  amount: String!
+
+  """Акт приёмки, по которому возникло обязательство."""
+  apl_reception_id: ID!
+
+  """Ссылка на выписку банка (URL/hash) для аудита."""
+  bank_statement_ref: String
+
+  """Причина блокировки, если платёж не прошёл банковский контур."""
+  blocked_reason: String
+  confirmed_at: DateTime
+  coopname: String!
+
+  """
+  Идентификатор связанного платежа в общем реестре кооператива — кассирский стол отображает marketplace-выплаты в общей ленте платежей.
+  """
+  core_payment_id: ID
+  created_at: DateTime!
+  id: ID!
+
+  """Account поставщика — получатель платежа."""
+  payee_account: String!
+
+  """Внешний номер банковского платёжного документа."""
+  payment_reference: String
+
+  """Хэш транзакции o.mkt.payout (для lazy-варианта L12)."""
+  payout_tx_hash: String
+
+  """Назначение платежа для распечатки."""
+  purpose: String!
+
+  """Заказы, по которым формируется платёж."""
+  related_order_ids: [ID!]!
+  status: MarketplaceOutgoingPaymentRequestStatus!
+
+  """Символ актива (например, RUB)."""
+  symbol: String!
+  updated_at: DateTime!
+}
+
+"""Статус запроса исходящего платежа кассиру."""
+enum MarketplaceOutgoingPaymentRequestStatus {
+  BLOCKED
+  CONFIRMED_BY_CASHIER
+  LEDGER_RECORDED
+  PENDING_CASHIER_ACTION
+}
+
+type MarketplaceOutgoingPaymentResult {
+  payment_request: MarketplaceOutgoingPaymentRequest!
 }
 
 type MarketplaceProductType {
@@ -8037,6 +8354,136 @@ input MarketplaceSetKUStatusInput {
   status: String!
 }
 
+type MarketplaceShipment {
+  """Кооператив, в котором сформирована партия."""
+  coopname: String!
+  created_at: DateTime!
+
+  """Идентификатор консолидированной заявки."""
+  cycle_id: ID!
+
+  """Выбранный вариант доставки."""
+  delivery_variant: MarketplaceShipmentDeliveryVariant!
+  id: ID!
+
+  """КУ-получатель партии."""
+  ku_id: String!
+
+  """Account поставщика-владельца Offer'ов."""
+  offerer_account: String!
+  status: MarketplaceShipmentStatus!
+
+  """Сумма по партии (numeric с 4 знаками после запятой)."""
+  total_amount: String!
+
+  """Поля ТТН — экспедитор, транспорт, погрузка, доставка."""
+  ttn_data: MarketplaceShipmentTTNData
+
+  """Ссылка на запись document registry с подписанной ТТН."""
+  ttn_document_registry_id: String
+
+  """Уникальный номер ТТН для Варианта Б (печатается на наклейке)."""
+  ttn_number: String
+
+  """Локальная ссылка для скачивания и печати ТТН."""
+  ttn_pdf_url: String
+  updated_at: DateTime!
+}
+
+"""
+Вариант доставки партии на КУ: A — поставщик везёт лично, B — экспедитор по ТТН.
+"""
+enum MarketplaceShipmentDeliveryVariant {
+  EXPEDITOR
+  SELF
+}
+
+input MarketplaceShipmentGroupInput {
+  delivery_variant: MarketplaceShipmentDeliveryVariant!
+
+  """Идентификатор КУ-получателя (branch.name)."""
+  ku_id: String!
+
+  """Поля ТТН — обязательны для Варианта Б."""
+  ttn_data: MarketplaceShipmentTTNDataInput
+}
+
+"""Статус партии поставки."""
+enum MarketplaceShipmentStatus {
+  ACCEPTED_TO_COOP
+  CANCELLED
+  DRAFT
+  RECEPTION_IN_PROGRESS
+  SUPPLY_PREPARED
+}
+
+type MarketplaceShipmentTTNData {
+  """Расчётная дата и время доставки на КУ (ISO)."""
+  delivery_datetime_estimate: String!
+
+  """ФИО экспедитора."""
+  expeditor_full_name: String!
+
+  """Документ удостоверения личности (серия/номер)."""
+  expeditor_id_doc: String!
+
+  """Контактный телефон экспедитора."""
+  expeditor_phone: String!
+
+  """Адрес погрузки (склад поставщика)."""
+  loading_address: String!
+
+  """Дата и время погрузки (ISO)."""
+  loading_datetime: String!
+
+  """Госномер транспортного средства."""
+  vehicle_number: String!
+}
+
+input MarketplaceShipmentTTNDataInput {
+  delivery_datetime_estimate: String!
+  expeditor_full_name: String!
+  expeditor_id_doc: String!
+  expeditor_phone: String!
+  loading_address: String!
+  loading_datetime: String!
+  vehicle_number: String!
+}
+
+input MarketplaceSignAplReceptionInput {
+  """Идентификатор АПП приёмки."""
+  apl_reception_id: ID!
+
+  """
+  Подписанные клиентом Document2 per-Order. Если передан — backend отправляет on-chain signsupp/signchair с реальными подписями и сохраняет реальный tx_hash. Если не передан — сохраняется placeholder tx_hash (backwards-compat для UI без FR45 обвязки).
+  """
+  signed_documents: [MarketplaceAplReceptionSignedOrderInput!]
+}
+
+input MarketplaceSignatureInfoInput {
+  """Публичный ключ подписанта (EOS_K1_...)."""
+  public_key: String!
+
+  """Подпись (EOS_K1_SIG_...)."""
+  signature: String!
+
+  """Account-имя подписанта (EOS-account)."""
+  signer: String!
+}
+
+input MarketplaceSignedDocumentInput {
+  doc_hash: String!
+
+  """hash подписного документа."""
+  hash: String!
+
+  """Сериализованный JSON.stringify(meta)."""
+  meta: String!
+  meta_hash: String!
+  signatures: [MarketplaceSignatureInfoInput!]!
+  version: String!
+}
+
 """Результат индивидуального приёма или отклонения заказа поставщиком."""
 type MarketplaceSupplierOrderActionResult {
   """Заказ после изменения статуса."""
@@ -8054,6 +8501,7 @@ input MarketplaceTriggerOpenSubscriptionInput {
 }
 
 input MarketplaceUpdateOfferInput {
+  barcode_strategy: MarketplaceBarcodeStrategy
   category_id: Int
   cycle_days: Int
   cycle_type: String
@@ -8061,6 +8509,7 @@ input MarketplaceUpdateOfferInput {
   id: String!
   max_wait_days: Int
   min_threshold: Int
+  pack_size: Int
   price_per_unit: String
   product_name: String
   quantity_available: Int
@@ -9387,6 +9836,11 @@ type Mutation {
   marketplaceApproveOffer(input: MarketplaceApproveOfferInput!): MarketplaceOffer!
 
   """
+  Кассир помечает платёж заблокированным (например, отказ банка) — кооператив разбирает вручную.
+  """
+  marketplaceBlockOutgoingPayment(input: MarketplaceBlockOutgoingPaymentInput!): MarketplaceOutgoingPaymentResult!
+
+  """
   Отменить свой заказ до его приёма поставщиком; средства разблокируются.
   """
   marketplaceCancelOrder(input: MarketplaceCancelOrderInput!): MarketplaceCancelOrderResult!
@@ -9397,6 +9851,16 @@ type Mutation {
   Требуемые роли: chairman. 
   """
   marketplaceClearAvailableCategories: Boolean!
+
+  """
+  Кассир подтверждает факт банковского перевода поставщику — закрывает обязательство перед поставщиком в ledger.
+  """
+  marketplaceConfirmOutgoingPayment(input: MarketplaceConfirmOutgoingPaymentInput!): MarketplaceOutgoingPaymentResult!
+
+  """
+  Оператор КУ формирует акт приёмки партии: для Варианта Б с возможной корректировкой фактического количества.
+  """
+  marketplaceCreateAplReception(input: MarketplaceCreateAplReceptionInput!): MarketplaceAplReceptionResult!
 
   """Поставщик публикует Offer (статус → PENDING_MODERATION)"""
   marketplaceCreateOffer(input: MarketplaceCreateOfferInput!): MarketplaceOffer!
@@ -9410,6 +9874,11 @@ type Mutation {
   Требуемые роли: member, chairman. 
   """
   marketplaceCreateRequest(data: CreateRequestInput!): MarketplaceRequest!
+
+  """
+  Сформировать партии поставки из акцептованной заявки: одна группа на каждый КУ-получатель.
+  """
+  marketplaceCreateShipment(input: MarketplaceCreateShipmentInput!): MarketplaceCreateShipmentResult!
 
   """
   Поставщик отклоняет сводную заявку — все заказы пакета отменяются, средства разблокируются.
@@ -9432,6 +9901,11 @@ type Mutation {
   Требуемые роли: chairman. 
   """
   marketplaceDetailKU(data: MarketplaceDetailKUInput!): MarketplaceKUDetails!
+
+  """
+  Оператор КУ маркирует имущество заказа внутренним штрих-кодом (Code128 или EAN-13).
+  """
+  marketplaceLabelInventory(input: MarketplaceLabelInventoryInput!): MarketplaceLabelInventoryResult!
 
   """Отклонить Offer с причиной (status → REJECTED) (admin)"""
   marketplaceRejectOffer(input: MarketplaceRejectOfferInput!): MarketplaceOffer!
@@ -9473,6 +9947,16 @@ type Mutation {
   Требуемые роли: chairman. 
   """
   marketplaceSetKUStatus(data: MarketplaceSetKUStatusInput!): MarketplaceKUDetails!
+
+  """
+  Председатель КУ ставит закрывающую подпись на акте приёмки — имущество переходит на баланс кооператива.
+  """
+  marketplaceSignAplReceptionAsChairman(input: MarketplaceSignAplReceptionInput!): MarketplaceAplReceptionResult!
+
+  """
+  Поставщик ставит первую подпись на акте приёмки (лично — Вариант А; асинхронно через push — Вариант Б).
+  """
+  marketplaceSignAplReceptionAsSupplier(input: MarketplaceSignAplReceptionInput!): MarketplaceAplReceptionResult!
 
   """
   Поставщик запускает поставку по предложению с открытой подпиской: формируется сводная заявка, заказы в её пуле принимаются.
@@ -11716,6 +12200,16 @@ type Query {
   """
   listReportDrafts(filter: ListReportDraftsFilterInput): [ReportDraft!]!
 
+  """
+  Подписные документы Document2 per-Order для закрывающей подписи председателя КУ.
+  """
+  marketplaceAplReceptionChairmanSignablePayloads(apl_reception_id: String!): [MarketplaceAplReceptionSignablePayload!]!
+
+  """
+  Подписные документы Document2 per-Order для подписи поставщиком на клиенте. Клиент берёт hash каждого payload, подписывает приватным ключом, шлёт обратно в mutation marketplaceSignAplReceptionAsSupplier.
+  """
+  marketplaceAplReceptionSupplierSignablePayloads(apl_reception_id: String!): [MarketplaceAplReceptionSignablePayload!]!
+
   """Получить аспектные атрибуты для категории и типа товара marketplace"""
   marketplaceAspectAttributes(data: GetRequiredAttributesInput!): [MarketplaceAttribute!]!
 
@@ -11821,12 +12315,21 @@ type Query {
   """Универсальный поиск по категориям и типам товаров"""
   marketplaceGetSearchCategories(data: SearchCategoriesInput!): [MarketplaceCategoryTreeNode!]!
 
+  """Получить партию поставки по идентификатору."""
+  marketplaceGetShipment(shipment_id: String!): MarketplaceShipment!
+
   """
   Получить заявки текущего пользователя
   
   Требуемые роли: member, chairman. 
   """
   marketplaceGetUserRequests(data: GetUserRequestsInput): [MarketplaceRequest!]!
+
+  """Список актов приёмки, ожидающих подписи текущего поставщика."""
+  marketplaceListAplReceptionsAsSupplier: [MarketplaceAplReception!]!
+
+  """Список акций приёмки текущего КУ для operator-стола."""
+  marketplaceListAplReceptionsByKu(ku_id: String!): [MarketplaceAplReception!]!
 
   """Каталог активных Offer'ов (ACTIVE + available, single vitrine MVP)"""
   marketplaceListCatalog(input: MarketplaceListCatalogInput): MarketplaceOfferPaginationResult!
@@ -11840,6 +12343,11 @@ type Query {
   Постраничный список сводных заявок поставщика — для стола поставщика и для прослеживания состояния заказов.
   """
   marketplaceListConsolidatedRequests(input: MarketplaceListConsolidatedRequestsInput, options: PaginationInput): MarketplaceConsolidatedRequestPaginationResult!
+
+  """
+  Список наклеек инвентаря КУ — для admin-стола склада и операторских разделов.
+  """
+  marketplaceListInventory(input: MarketplaceListInventoryInput): [MarketplaceInventoryItem!]!
 
   """
   Список marketplace-детализаций ПВЗ кооператива.
@@ -11857,8 +12365,19 @@ type Query {
   """Список заказов текущего пайщика (стол заказчика)."""
   marketplaceListMyOrders(input: MarketplaceListOrdersInput, options: PaginationInput): MarketplaceOrderPaginationResult!
 
+  """История выплат поставщику для offerer-стола."""
+  marketplaceListOutgoingPaymentsAsSupplier: [MarketplaceOutgoingPaymentRequest!]!
+
+  """Список запросов исходящих платежей для стола кассира."""
+  marketplaceListOutgoingPaymentsForCashier(statuses: [MarketplaceOutgoingPaymentRequestStatus!]): [MarketplaceOutgoingPaymentRequest!]!
+
   """Список Offer'ов на модерации (admin)"""
   marketplaceListPendingOffers(input: MarketplaceListPendingOffersInput): MarketplaceOfferPaginationResult!
+
+  """
+  Список партий поставки текущего поставщика — для стола подготовки поставки и истории.
+  """
+  marketplaceListShipments(input: MarketplaceListShipmentsInput): [MarketplaceShipment!]!
 
   """
   Список заказов, по которым текущий пайщик является поставщиком (стол поставщика).

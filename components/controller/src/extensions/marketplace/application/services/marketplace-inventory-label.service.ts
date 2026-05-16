@@ -39,11 +39,19 @@ export interface MarketplaceLabelInventoryInputDto {
   operator_account: string;
   /** Order, на единицы которого наклеивается штрих-код. */
   order_id: string;
-  /** Стратегия маркировки. По умолчанию `PER_ORDER`. */
+  /**
+   * Admin-override стратегии маркировки. По умолчанию читается из
+   * `Offer.barcode_strategy` (Story 5.5 / техдолг 598-22). Перекрытие
+   * — только для исключительных сценариев; в production-UI кассирского/
+   * операторского стола не передаётся.
+   */
   strategy?: MarketplaceBarcodeStrategy;
   /** Формат штрих-кода. По умолчанию `CODE128` (произвольная длина). */
   format?: MarketplaceBarcodeFormat;
-  /** Для `PER_PACKAGE` — размер упаковки; обязателен. */
+  /**
+   * Admin-override размера упаковки для `PER_PACKAGE`. По умолчанию —
+   * `Offer.pack_size`. Игнорируется для прочих стратегий.
+   */
   pack_size?: number;
 }
 
@@ -143,10 +151,15 @@ export class MarketplaceInventoryLabelService {
       throw new NotFoundException('Предложение по заказу не найдено.');
     }
 
-    const strategy = input.strategy ?? MarketplaceBarcodeStrategies.PER_ORDER;
+    // Источник истины по стратегии — Offer (598-22). Per-call параметр
+    // оставлен только для admin-override (мне-сейчас-нужно перекрыть),
+    // в обычном flow столы оператора не передают strategy/pack_size.
+    const strategy = input.strategy ?? offer.barcode_strategy;
+    const pack_size =
+      input.pack_size !== undefined ? input.pack_size : offer.pack_size ?? undefined;
     const format = input.format ?? MarketplaceBarcodeFormats.CODE128;
 
-    const labelsPlan = this.planLabels(order.quantity, strategy, input.pack_size);
+    const labelsPlan = this.planLabels(order.quantity, strategy, pack_size);
     if (labelsPlan.length === 0) {
       throw new BadRequestException('Не удалось рассчитать набор этикеток.');
     }

@@ -67,6 +67,17 @@ export class MarketplaceOutgoingPaymentRequestEntity {
   @Column({ type: 'varchar', length: 128, nullable: true })
   public payout_tx_hash!: string | null;
 
+  /**
+   * Story 598-17 / AR35: ID соответствующего платежа в core-реестре
+   * (`payments` table). NULL — до момента синхронизации (legacy строки)
+   * либо если core-вызов упал; в таком случае marketplace-запись живёт
+   * самостоятельно как fallback. Заполняется в
+   * `MarketplaceAplReceptionService.createOutgoingPaymentRequest`
+   * сразу после успешного `GatewayInteractor.createSystemOutgoingPayment`.
+   */
+  @Column({ type: 'uuid', nullable: true })
+  public core_payment_id!: string | null;
+
   @CreateDateColumn({ type: 'timestamptz' })
   public created_at!: Date;
 

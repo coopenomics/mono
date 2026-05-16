@@ -25,6 +25,8 @@ export class MarketplaceOfferMapper {
       max_wait_days: row.max_wait_days,
       min_threshold: row.min_threshold,
       warranty_days: row.warranty_days,
+      barcode_strategy: row.barcode_strategy,
+      pack_size: row.pack_size,
       status: row.status,
       approved_by: row.approved_by,
       approved_at: row.approved_at,

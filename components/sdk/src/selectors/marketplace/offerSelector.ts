@@ -21,6 +21,8 @@ const rawOfferSelector = {
   max_wait_days: true,
   min_threshold: true,
   warranty_days: true,
+  barcode_strategy: true,
+  pack_size: true,
   status: true,
   approved_by: true,
   approved_at: true,

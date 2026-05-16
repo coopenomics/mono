@@ -1,4 +1,5 @@
 import type {
+  MarketplaceBarcodeStrategy,
   MarketplaceOfferCycleType,
   MarketplaceOfferStatus,
   MarketplaceUnitOfMeasure,
@@ -43,6 +44,9 @@ export class MarketplaceOfferDomainEntity {
   public readonly min_threshold!: number | null;
   public readonly warranty_days!: number;
 
+  public readonly barcode_strategy!: MarketplaceBarcodeStrategy;
+  public readonly pack_size!: number | null;
+
   public readonly status!: MarketplaceOfferStatus;
   public readonly approved_by!: string | null;
   public readonly approved_at!: Date | null;
@@ -73,6 +77,8 @@ export class MarketplaceOfferDomainEntity {
     max_wait_days: number | null;
     min_threshold: number | null;
     warranty_days: number;
+    barcode_strategy: MarketplaceBarcodeStrategy;
+    pack_size: number | null;
     status: MarketplaceOfferStatus;
     approved_by: string | null;
     approved_at: Date | null;
