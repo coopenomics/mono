@@ -85,6 +85,11 @@ import {
   MARKETPLACE_APL_RECEPTION_SERVICE,
 } from './services/marketplace-apl-reception.service';
 import { MarketplaceAplReceptionResolver } from './resolvers/marketplace-apl-reception.resolver';
+import {
+  MarketplaceOutgoingPaymentService,
+  MARKETPLACE_OUTGOING_PAYMENT_SERVICE,
+} from './services/marketplace-outgoing-payment.service';
+import { MarketplaceOutgoingPaymentResolver } from './resolvers/marketplace-outgoing-payment.resolver';
 
 /**
  * Модуль приложения marketplace
@@ -121,6 +126,7 @@ import { MarketplaceAplReceptionResolver } from './resolvers/marketplace-apl-rec
     MarketplaceShipmentResolver,
     MarketplaceInventoryResolver,
     MarketplaceAplReceptionResolver,
+    MarketplaceOutgoingPaymentResolver,
 
     // Guards (Story 1.3 / Story 1.6)
     MarketplaceMembershipGuard,
@@ -218,6 +224,12 @@ import { MarketplaceAplReceptionResolver } from './resolvers/marketplace-apl-rec
       useClass: MarketplaceAplReceptionService,
     },
     MarketplaceAplReceptionService,
+    // Story 5.6 / 5.7 — реестр исходящих платежей + подтверждение кассиром
+    {
+      provide: MARKETPLACE_OUTGOING_PAYMENT_SERVICE,
+      useClass: MarketplaceOutgoingPaymentService,
+    },
+    MarketplaceOutgoingPaymentService,
   ],
   exports: [
     // Экспортируем сервисы для использования в других модулях
@@ -261,6 +273,7 @@ import { MarketplaceAplReceptionResolver } from './resolvers/marketplace-apl-rec
     MarketplaceShipmentResolver,
     MarketplaceInventoryResolver,
     MarketplaceAplReceptionResolver,
+    MarketplaceOutgoingPaymentResolver,
 
     // Экспортируем сервисы Story 4.1 для использования в follow-up Stories Эпика 4
     MARKETPLACE_ORDER_CREATE_SERVICE,
@@ -286,6 +299,9 @@ import { MarketplaceAplReceptionResolver } from './resolvers/marketplace-apl-rec
     // Story 5.3 / 5.4
     MARKETPLACE_APL_RECEPTION_SERVICE,
     MarketplaceAplReceptionService,
+    // Story 5.6 / 5.7
+    MARKETPLACE_OUTGOING_PAYMENT_SERVICE,
+    MarketplaceOutgoingPaymentService,
   ],
 })
 export class MarketplaceExtensionApplicationModule {}

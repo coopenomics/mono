@@ -24,6 +24,15 @@ import {
   type MarketplaceAplReceptionDomainRepository,
 } from '../../domain/repositories/marketplace-apl-reception.repository';
 import {
+  MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY,
+  type MarketplaceOutgoingPaymentRequestDomainRepository,
+} from '../../domain/repositories/marketplace-outgoing-payment-request.repository';
+import { MarketplaceOutgoingPaymentRequestStatuses } from '../../domain/entities/marketplace-outgoing-payment-request.types';
+import {
+  MARKETPLACE_ASSET_CONFIG,
+  type MarketplaceAssetConfig,
+} from './marketplace-asset.config';
+import {
   MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
   type MarketplaceCanonicalBlockchainPort,
 } from '../../domain/ports/marketplace-canonical-blockchain.port';
@@ -110,6 +119,10 @@ export class MarketplaceAplReceptionService {
     private readonly offerCounters: MarketplaceOfferCountersService,
     @Inject(MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT)
     private readonly chainPort: MarketplaceCanonicalBlockchainPort,
+    @Inject(MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY)
+    private readonly paymentRepo: MarketplaceOutgoingPaymentRequestDomainRepository,
+    @Inject(MARKETPLACE_ASSET_CONFIG)
+    private readonly assetConfig: MarketplaceAssetConfig,
     private readonly logger: WinstonLoggerService
   ) {
     this.logger.setContext(MarketplaceAplReceptionService.name);
@@ -249,11 +262,54 @@ export class MarketplaceAplReceptionService {
       MarketplaceShipmentStatuses.ACCEPTED_TO_COOP
     );
 
+    // Story 5.6: создаём marketplace-scoped запрос исходящего платежа.
+    // Кассир увидит задачу в своём столе и подтвердит факт банковского
+    // перевода (Story 5.7).
+    await this.createOutgoingPaymentRequest(updated, input.chairman_account);
+
     this.logger.log(
-      `АПП ${reception.id}: закрывающая подпись председателя ${input.chairman_account} принята (placeholder tx=${txHash}). On-chain signchair + o.mkt.purch + outgoing_payment подключаются Story 5.6 follow-up'ом.`
+      `АПП ${reception.id}: закрывающая подпись председателя ${input.chairman_account} принята (placeholder tx=${txHash}). On-chain signchair + ledger o.mkt.purch / o.mkt.payout подключаются FR45 follow-up'ом (требуется реальная подпись Document2 через AR33).`
     );
 
     return { apl_reception: updated };
+  }
+
+  /**
+   * Story 5.6: marketplace-scoped реестр запросов на оплату поставщику.
+   * Заявка создаётся со статусом PENDING_CASHIER_ACTION; синхронизация
+   * с core outgoing_payment (AR35) — отдельным follow-up'ом со связкой
+   * core/gateway-API.
+   */
+  private async createOutgoingPaymentRequest(
+    reception: MarketplaceAplReceptionDomainEntity,
+    chairman_account: string
+  ): Promise<void> {
+    try {
+      const existing = await this.paymentRepo.findByAplReceptionId(
+        reception.coopname,
+        reception.id
+      );
+      if (existing) return;
+      const orderIds = reception.fact_quantity_per_order.map((f) => f.order_id);
+      const purpose = `Приобретение товаров по счёту marketplace, АПП #${reception.id} (председатель ${chairman_account})`;
+      await this.paymentRepo.create({
+        coopname: reception.coopname,
+        apl_reception_id: reception.id,
+        payee_account: reception.offerer_account,
+        related_order_ids: orderIds,
+        amount: reception.total_amount,
+        symbol: this.assetConfig.symbol,
+        purpose,
+        status: MarketplaceOutgoingPaymentRequestStatuses.PENDING_CASHIER_ACTION,
+      });
+    } catch (err: any) {
+      // Запрос платежа — критичен для Story 5.6/5.7, но не блокирует
+      // успех АПП на цепи. Логируем и продолжаем (наблюдаемость по
+      // marketplace_outgoing_payment_request статусу).
+      this.logger.warn(
+        `MarketplaceAplReceptionService.createOutgoingPaymentRequest: создание запроса платежа для АПП ${reception.id} упало (${err.message}); АПП в статусе ACCEPTED_TO_COOP остаётся.`
+      );
+    }
   }
 
   // ── private ──

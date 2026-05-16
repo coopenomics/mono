@@ -25,6 +25,7 @@ import { MarketplaceShipmentEntity } from './entities/marketplace-shipment.entit
 import { MarketplaceSupplyValidationLogEntity } from './entities/marketplace-supply-validation-log.entity';
 import { MarketplaceInventoryEntity } from './entities/marketplace-inventory.entity';
 import { MarketplaceAplReceptionEntity } from './entities/marketplace-apl-reception.entity';
+import { MarketplaceOutgoingPaymentRequestEntity } from './entities/marketplace-outgoing-payment-request.entity';
 
 // Repository adapters
 import { CategoryRepositoryAdapter } from './adapters/category-repository.adapter';
@@ -48,6 +49,7 @@ import { MarketplaceShipmentRepositoryAdapter } from './adapters/marketplace-shi
 import { MarketplaceSupplyValidationLogRepositoryAdapter } from './adapters/marketplace-supply-validation-log-repository.adapter';
 import { MarketplaceInventoryRepositoryAdapter } from './adapters/marketplace-inventory-repository.adapter';
 import { MarketplaceAplReceptionRepositoryAdapter } from './adapters/marketplace-apl-reception-repository.adapter';
+import { MarketplaceOutgoingPaymentRequestRepositoryAdapter } from './adapters/marketplace-outgoing-payment-request-repository.adapter';
 
 // Mappers
 import { MarketplaceVitrineMapper } from './mappers/marketplace-vitrine.mapper';
@@ -62,6 +64,7 @@ import { MarketplaceShipmentMapper } from './mappers/marketplace-shipment.mapper
 import { MarketplaceSupplyValidationLogMapper } from './mappers/marketplace-supply-validation-log.mapper';
 import { MarketplaceInventoryMapper } from './mappers/marketplace-inventory.mapper';
 import { MarketplaceAplReceptionMapper } from './mappers/marketplace-apl-reception.mapper';
+import { MarketplaceOutgoingPaymentRequestMapper } from './mappers/marketplace-outgoing-payment-request.mapper';
 
 // Repository tokens
 import { CATEGORY_DOMAIN_REPOSITORY } from '../domain/repositories/category-domain.repository';
@@ -85,6 +88,7 @@ import { MARKETPLACE_SHIPMENT_REPOSITORY } from '../domain/repositories/marketpl
 import { MARKETPLACE_SUPPLY_VALIDATION_LOG_REPOSITORY } from '../domain/repositories/marketplace-supply-validation-log.repository';
 import { MARKETPLACE_INVENTORY_REPOSITORY } from '../domain/repositories/marketplace-inventory.repository';
 import { MARKETPLACE_APL_RECEPTION_REPOSITORY } from '../domain/repositories/marketplace-apl-reception.repository';
+import { MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY } from '../domain/repositories/marketplace-outgoing-payment-request.repository';
 
 @Module({
   imports: [
@@ -120,6 +124,7 @@ import { MARKETPLACE_APL_RECEPTION_REPOSITORY } from '../domain/repositories/mar
         MarketplaceSupplyValidationLogEntity,
         MarketplaceInventoryEntity,
         MarketplaceAplReceptionEntity,
+        MarketplaceOutgoingPaymentRequestEntity,
       ],
       synchronize: true,
       logging: false,
@@ -149,6 +154,7 @@ import { MARKETPLACE_APL_RECEPTION_REPOSITORY } from '../domain/repositories/mar
         MarketplaceSupplyValidationLogEntity,
         MarketplaceInventoryEntity,
         MarketplaceAplReceptionEntity,
+        MarketplaceOutgoingPaymentRequestEntity,
       ],
       'marketplace'
     ), // Указываем имя подключения
@@ -258,6 +264,12 @@ import { MARKETPLACE_APL_RECEPTION_REPOSITORY } from '../domain/repositories/mar
       provide: MARKETPLACE_APL_RECEPTION_REPOSITORY,
       useClass: MarketplaceAplReceptionRepositoryAdapter,
     },
+    // Story 5.6 / 5.7 — реестр исходящих платежей поставщикам
+    MarketplaceOutgoingPaymentRequestMapper,
+    {
+      provide: MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY,
+      useClass: MarketplaceOutgoingPaymentRequestRepositoryAdapter,
+    },
   ],
   exports: [
     CATEGORY_DOMAIN_REPOSITORY,
@@ -285,6 +297,8 @@ import { MARKETPLACE_APL_RECEPTION_REPOSITORY } from '../domain/repositories/mar
     MARKETPLACE_INVENTORY_REPOSITORY,
     // Story 5.3 / 5.4
     MARKETPLACE_APL_RECEPTION_REPOSITORY,
+    // Story 5.6 / 5.7
+    MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY,
   ],
 })
 export class MarketplaceInfrastructureModule {}
