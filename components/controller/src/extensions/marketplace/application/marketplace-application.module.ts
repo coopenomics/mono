@@ -75,6 +75,11 @@ import {
   MARKETPLACE_SHIPMENT_CREATE_SERVICE,
 } from './services/marketplace-shipment-create.service';
 import { MarketplaceShipmentResolver } from './resolvers/marketplace-shipment.resolver';
+import {
+  MarketplaceInventoryLabelService,
+  MARKETPLACE_INVENTORY_LABEL_SERVICE,
+} from './services/marketplace-inventory-label.service';
+import { MarketplaceInventoryResolver } from './resolvers/marketplace-inventory.resolver';
 
 /**
  * Модуль приложения marketplace
@@ -109,6 +114,7 @@ import { MarketplaceShipmentResolver } from './resolvers/marketplace-shipment.re
     MarketplaceOrderResolver,
     MarketplaceCycleResolver,
     MarketplaceShipmentResolver,
+    MarketplaceInventoryResolver,
 
     // Guards (Story 1.3 / Story 1.6)
     MarketplaceMembershipGuard,
@@ -194,6 +200,12 @@ import { MarketplaceShipmentResolver } from './resolvers/marketplace-shipment.re
       useClass: MarketplaceShipmentCreateService,
     },
     MarketplaceShipmentCreateService,
+    // Story 5.5 — маркировка имущества штрих-кодом
+    {
+      provide: MARKETPLACE_INVENTORY_LABEL_SERVICE,
+      useClass: MarketplaceInventoryLabelService,
+    },
+    MarketplaceInventoryLabelService,
   ],
   exports: [
     // Экспортируем сервисы для использования в других модулях
@@ -235,6 +247,7 @@ import { MarketplaceShipmentResolver } from './resolvers/marketplace-shipment.re
     MarketplaceOrderResolver,
     MarketplaceCycleResolver,
     MarketplaceShipmentResolver,
+    MarketplaceInventoryResolver,
 
     // Экспортируем сервисы Story 4.1 для использования в follow-up Stories Эпика 4
     MARKETPLACE_ORDER_CREATE_SERVICE,
@@ -254,6 +267,9 @@ import { MarketplaceShipmentResolver } from './resolvers/marketplace-shipment.re
     // Story 5.1 / 5.2
     MARKETPLACE_SHIPMENT_CREATE_SERVICE,
     MarketplaceShipmentCreateService,
+    // Story 5.5
+    MARKETPLACE_INVENTORY_LABEL_SERVICE,
+    MarketplaceInventoryLabelService,
   ],
 })
 export class MarketplaceExtensionApplicationModule {}
