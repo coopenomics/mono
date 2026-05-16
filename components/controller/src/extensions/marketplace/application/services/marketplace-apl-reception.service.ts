@@ -46,13 +46,15 @@ import {
   GATEWAY_INTERACTOR_PORT,
   type GatewayInteractorPort,
 } from '~/domain/wallet/ports/gateway-interactor.port';
-import {
-  MarketplaceAplReceptionDocumentFactory,
-  MARKETPLACE_APL_RECEPTION_DOCUMENT_FACTORY,
-  type AplReceptionSignablePayload,
-} from '../../domain/services/marketplace-apl-reception-document-factory';
-import type { MarketContract } from 'cooptypes';
+import { Cooperative, type MarketContract } from 'cooptypes';
 import { createHash } from 'crypto';
+import { HttpApiError } from '~/utils/httpApiError';
+import { PublicKey, Signature } from '@wharfkit/antelope';
+import http from 'http-status';
+import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
+import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
+import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { MarketplaceAplReceptionSignedDocumentInputDTO } from '~/application/document/documents-dto/marketplace-apl-reception-document.dto';
 import {
   MarketplaceAplReceptionStatuses,
   MarketplaceAplReceptionVariants,
@@ -75,22 +77,6 @@ export interface MarketplaceAplReceptionCreateInputDto {
   fact_quantity_per_order?: MarketplaceAplReceptionFactQuantityEntry[];
 }
 
-/**
- * Story 598-15 / FR45: подписанный Document2 per-Order — backend
- * прикладывает его к `chainPort.signSupp/signChair` для on-chain submit.
- */
-export interface MarketplaceAplReceptionSignedDocumentDto {
-  order_id: string;
-  signed_document: {
-    version: string;
-    hash: string;
-    doc_hash: string;
-    meta_hash: string;
-    meta: string;
-    signatures: Array<{ signer: string; public_key: string; signature: string }>;
-  };
-}
-
 export interface MarketplaceAplReceptionSignSupplierInputDto {
   coopname: string;
   /** Account поставщика — для Варианта А лично подписывает на стойке оператора;
@@ -98,20 +84,20 @@ export interface MarketplaceAplReceptionSignSupplierInputDto {
   supplier_account: string;
   apl_reception_id: string;
   /**
-   * FR45 / 598-15: подписанные клиентом Document2 per-Order. Когда
-   * передан — backend отправляет on-chain `signsupp` с реальной
-   * подписью и сохраняет реальный tx_hash. Когда не передан —
-   * сохраняется placeholder (backwards-compat для UI без FR45 обвязки).
+   * Подписанные клиентом канонические Document2 per-Order. Backend
+   * верифицирует каждую подпись и отправляет on-chain `signsupp` с
+   * этим документом. Каждый документ должен иметь meta.order_id одного
+   * из Order'ов группы.
    */
-  signed_documents?: MarketplaceAplReceptionSignedDocumentDto[];
+  signed_documents: MarketplaceAplReceptionSignedDocumentInputDTO[];
 }
 
 export interface MarketplaceAplReceptionSignChairmanInputDto {
   coopname: string;
   chairman_account: string;
   apl_reception_id: string;
-  /** FR45 / 598-15: см. signed_documents у поставщика — аналогично. */
-  signed_documents?: MarketplaceAplReceptionSignedDocumentDto[];
+  /** То же что у поставщика — но для on-chain `signchair`. */
+  signed_documents: MarketplaceAplReceptionSignedDocumentInputDTO[];
 }
 
 export interface MarketplaceAplReceptionResult {
@@ -167,8 +153,7 @@ export class MarketplaceAplReceptionService {
     private readonly assetConfig: MarketplaceAssetConfig,
     @Inject(GATEWAY_INTERACTOR_PORT)
     private readonly coreGateway: GatewayInteractorPort,
-    @Inject(MARKETPLACE_APL_RECEPTION_DOCUMENT_FACTORY)
-    private readonly documentFactory: MarketplaceAplReceptionDocumentFactory,
+    private readonly documentDomainService: DocumentDomainService,
     private readonly eventBus: EventEmitter2,
     private readonly logger: WinstonLoggerService
   ) {
@@ -179,32 +164,77 @@ export class MarketplaceAplReceptionService {
   }
 
   /**
-   * Story 598-15 / FR45: получить unsigned payload'ы Document2 per-Order
-   * для подписания на клиенте. Возвращает payload для поставщика
-   * (signsupp). Стол поставщика берёт массив, подписывает каждый `hash`
-   * и шлёт обратно в mutation `marketplaceSignAplReceptionAsSupplier`.
+   * Preview-документы для подписания на клиенте. Один документ на каждый
+   * Order группы — рендерится в платформенном пакете factory под
+   * registry_id=1102. Клиент берёт hash каждого документа, подписывает
+   * приватным ключом и возвращает целиком в mutation подписи.
    */
   async getSupplierSignablePayloads(
     coopname: string,
     apl_reception_id: string
-  ): Promise<AplReceptionSignablePayload[]> {
+  ): Promise<DocumentDomainEntity[]> {
     const reception = await this.loadReception(coopname, apl_reception_id);
     const groupOrders = await this.loadGroupOrders(reception);
-    return groupOrders.map((o) =>
-      this.documentFactory.buildSupplierPayload(reception, o, reception.ku_id)
-    );
+    const docs: DocumentDomainEntity[] = [];
+    for (const order of groupOrders) {
+      docs.push(
+        await this.generateReceptionDocument({
+          reception,
+          order,
+          username: reception.offerer_account,
+        })
+      );
+    }
+    return docs;
   }
 
-  /** То же для председателя (signchair). */
   async getChairmanSignablePayloads(
     coopname: string,
-    apl_reception_id: string
-  ): Promise<AplReceptionSignablePayload[]> {
+    apl_reception_id: string,
+    chairman_account: string
+  ): Promise<DocumentDomainEntity[]> {
     const reception = await this.loadReception(coopname, apl_reception_id);
     const groupOrders = await this.loadGroupOrders(reception);
-    return groupOrders.map((o) =>
-      this.documentFactory.buildChairmanPayload(reception, o, reception.ku_id)
+    const docs: DocumentDomainEntity[] = [];
+    for (const order of groupOrders) {
+      docs.push(
+        await this.generateReceptionDocument({
+          reception,
+          order,
+          username: chairman_account,
+          chairman_account,
+        })
+      );
+    }
+    return docs;
+  }
+
+  private async generateReceptionDocument(input: {
+    reception: MarketplaceAplReceptionDomainEntity;
+    order: MarketplaceOrderDomainEntity;
+    username: string;
+    chairman_account?: string;
+  }): Promise<DocumentDomainEntity> {
+    const fact = input.reception.fact_quantity_per_order.find(
+      (f) => f.order_id === input.order.id
     );
+    const factQuantity = fact?.fact_quantity ?? input.order.quantity;
+    const orderTotal = (factQuantity * Number.parseFloat(input.order.price_per_unit)).toFixed(4);
+    const action: Cooperative.Registry.MarketplaceAplReception.Action = {
+      registry_id: Cooperative.Registry.MarketplaceAplReception.registry_id,
+      coopname: input.reception.coopname,
+      username: input.username,
+      order_id: input.order.id,
+      order_hash: input.order.order_hash,
+      accept_braname: input.reception.ku_id,
+      reception_id: input.reception.id,
+      fact_quantity: factQuantity,
+      total_amount: orderTotal,
+      supplier_account: input.reception.offerer_account,
+      chairman_account: input.chairman_account,
+      skip_save: true,
+    };
+    return this.documentDomainService.generateDocument({ data: action });
   }
 
   async create(
@@ -302,29 +332,22 @@ export class MarketplaceAplReceptionService {
       );
     }
 
-    // FR45 / 598-15: реальная подпись или placeholder.
     let txHash: string;
-    if (input.signed_documents && input.signed_documents.length > 0) {
-      try {
-        const groupOrders = await this.loadGroupOrders(reception);
-        txHash = await this.submitOnChainSignSupp(
-          reception,
-          groupOrders,
-          input.signed_documents,
-          input.supplier_account
-        );
-      } catch (err: any) {
-        // Compensating-rollback (паттерн MarketplaceOrderCreateService):
-        // статус не меняется, ошибка наверх — клиент решает retry.
-        this.logger.warn(
-          `АПП ${reception.id}: on-chain signsupp упал (${err.message}); статус не меняется, повторите подпись.`
-        );
-        throw new ConflictException(
-          `Подпись на цепи не выполнена: ${err.message}. Повторите подписание.`
-        );
-      }
-    } else {
-      txHash = this.placeholderTxHash('signsupp', reception.id);
+    try {
+      const groupOrders = await this.loadGroupOrders(reception);
+      txHash = await this.submitOnChainSignSupp(
+        reception,
+        groupOrders,
+        input.signed_documents,
+        input.supplier_account
+      );
+    } catch (err: any) {
+      this.logger.warn(
+        `АПП ${reception.id}: on-chain signsupp упал (${err.message}); статус не меняется, повторите подпись.`
+      );
+      throw new ConflictException(
+        `Подпись на цепи не выполнена: ${err.message}. Повторите подписание.`
+      );
     }
 
     const updated = await this.receptionRepo.applySignatures(reception.id, {
@@ -333,9 +356,7 @@ export class MarketplaceAplReceptionService {
       status: MarketplaceAplReceptionStatuses.PENDING_CHAIRMAN_RECEPTION_SIGN,
     });
 
-    this.logger.log(
-      `АПП ${reception.id}: подпись поставщика принята (tx=${txHash}, real=${Boolean(input.signed_documents?.length)}).`
-    );
+    this.logger.log(`АПП ${reception.id}: подпись поставщика принята (tx=${txHash}).`);
 
     return { apl_reception: updated };
   }
@@ -350,27 +371,22 @@ export class MarketplaceAplReceptionService {
       );
     }
 
-    // FR45 / 598-15.
     let txHash: string;
-    if (input.signed_documents && input.signed_documents.length > 0) {
-      try {
-        const groupOrders = await this.loadGroupOrders(reception);
-        txHash = await this.submitOnChainSignChair(
-          reception,
-          groupOrders,
-          input.signed_documents,
-          input.chairman_account
-        );
-      } catch (err: any) {
-        this.logger.warn(
-          `АПП ${reception.id}: on-chain signchair упал (${err.message}); статус не меняется, повторите подпись.`
-        );
-        throw new ConflictException(
-          `Закрывающая подпись на цепи не выполнена: ${err.message}. Повторите подписание.`
-        );
-      }
-    } else {
-      txHash = this.placeholderTxHash('signchair', reception.id);
+    try {
+      const groupOrders = await this.loadGroupOrders(reception);
+      txHash = await this.submitOnChainSignChair(
+        reception,
+        groupOrders,
+        input.signed_documents,
+        input.chairman_account
+      );
+    } catch (err: any) {
+      this.logger.warn(
+        `АПП ${reception.id}: on-chain signchair упал (${err.message}); статус не меняется, повторите подпись.`
+      );
+      throw new ConflictException(
+        `Закрывающая подпись на цепи не выполнена: ${err.message}. Повторите подписание.`
+      );
     }
     const acceptedAt = new Date();
 
@@ -565,50 +581,28 @@ export class MarketplaceAplReceptionService {
   }
 
   /**
-   * Story 598-15 / FR45: on-chain `signsupp` per-Order группы. Возвращает
-   * tx_hash первой успешной транзакции (одна группа = одна цепочка
-   * подписей; в логах все tx_hash'и сохраняются на debug-level).
-   *
-   * Если для какого-то Order'а нет соответствующего signed_document или
-   * signature пуст — bail out с ошибкой; compensating-rollback на уровне
-   * caller (статус АПП не меняется).
+   * Per-Order on-chain `signsupp`. Каждый Order группы должен иметь свой
+   * подписанный документ с meta.order_id, привязка идёт по нему.
+   * Возвращает tx_hash последнего успешного submit; промежуточные —
+   * в debug-логе.
    */
   private async submitOnChainSignSupp(
     reception: MarketplaceAplReceptionDomainEntity,
     groupOrders: MarketplaceOrderDomainEntity[],
-    signed_documents: MarketplaceAplReceptionSignedDocumentDto[],
+    signed_documents: MarketplaceAplReceptionSignedDocumentInputDTO[],
     offerer: string
   ): Promise<string> {
-    const byOrderId = new Map(signed_documents.map((sd) => [sd.order_id, sd.signed_document]));
+    const byOrderId = this.indexSignedDocumentsByOrderId(signed_documents);
     let lastTxHash = '';
     for (const order of groupOrders) {
       const signed = byOrderId.get(order.id);
       if (!signed) {
         throw new BadRequestException(
-          `Нет подписанного документа для Order ${order.id}; нужны подписи по всем Order'ам группы (${groupOrders.length}).`
+          `Нет подписанного акта приёмки для Order ${order.id}; нужны акты по всем Order'ам группы (${groupOrders.length}).`
         );
       }
-      if (!signed.signatures || signed.signatures.length === 0) {
-        throw new BadRequestException(
-          `Документ для Order ${order.id} не подписан: signatures пуст.`
-        );
-      }
-      const act: MarketContract.Actions.SignSupp.ISignSupp['act'] = {
-        version: signed.version,
-        hash: signed.hash,
-        doc_hash: signed.doc_hash,
-        meta_hash: signed.meta_hash,
-        meta: signed.meta,
-        signatures: signed.signatures.map((s, idx) => ({
-          id: idx,
-          signed_hash: signed.hash,
-          signer: s.signer,
-          public_key: s.public_key,
-          signature: s.signature,
-          signed_at: new Date().toISOString().slice(0, 19),
-          meta: '',
-        })),
-      };
+      this.verifyDocumentSignature(signed);
+      const act = signed.toDocument() as MarketContract.Actions.SignSupp.ISignSupp['act'];
       const tx = await this.chainPort.signSupp({
         coopname: reception.coopname,
         offerer,
@@ -616,15 +610,9 @@ export class MarketplaceAplReceptionService {
         accept_braname: reception.ku_id,
         act,
       });
-      const txHash =
-        (tx as any)?.response?.transaction_id ??
-        (tx as any)?.resolved?.transaction?.id ??
-        (tx as any)?.transaction?.id ??
-        '';
+      const txHash = this.extractTxHash(tx);
       if (txHash) lastTxHash = txHash;
-      this.logger.debug(
-        `signsupp on-chain OK: order ${order.id} → tx ${txHash || '<no-id>'}`
-      );
+      this.logger.debug(`signsupp on-chain OK: order ${order.id} → tx ${txHash || '<no-id>'}`);
     }
     return lastTxHash || `signsupp-${reception.id}`;
   }
@@ -633,56 +621,72 @@ export class MarketplaceAplReceptionService {
   private async submitOnChainSignChair(
     reception: MarketplaceAplReceptionDomainEntity,
     groupOrders: MarketplaceOrderDomainEntity[],
-    signed_documents: MarketplaceAplReceptionSignedDocumentDto[],
+    signed_documents: MarketplaceAplReceptionSignedDocumentInputDTO[],
     signer: string
   ): Promise<string> {
-    const byOrderId = new Map(signed_documents.map((sd) => [sd.order_id, sd.signed_document]));
+    const byOrderId = this.indexSignedDocumentsByOrderId(signed_documents);
     let lastTxHash = '';
     for (const order of groupOrders) {
       const signed = byOrderId.get(order.id);
       if (!signed) {
         throw new BadRequestException(
-          `Нет подписанного документа председателя для Order ${order.id}; нужны подписи по всем Order'ам группы.`
+          `Нет подписанного акта приёмки председателя для Order ${order.id}; нужны акты по всем Order'ам группы.`
         );
       }
-      if (!signed.signatures || signed.signatures.length === 0) {
-        throw new BadRequestException(
-          `Документ председателя для Order ${order.id} не подписан: signatures пуст.`
-        );
-      }
-      const act: MarketContract.Actions.SignChair.ISignChair['act'] = {
-        version: signed.version,
-        hash: signed.hash,
-        doc_hash: signed.doc_hash,
-        meta_hash: signed.meta_hash,
-        meta: signed.meta,
-        signatures: signed.signatures.map((s, idx) => ({
-          id: idx,
-          signed_hash: signed.hash,
-          signer: s.signer,
-          public_key: s.public_key,
-          signature: s.signature,
-          signed_at: new Date().toISOString().slice(0, 19),
-          meta: '',
-        })),
-      };
+      this.verifyDocumentSignature(signed);
+      const act = signed.toDocument() as MarketContract.Actions.SignChair.ISignChair['act'];
       const tx = await this.chainPort.signChair({
         coopname: reception.coopname,
         signer,
         order_hash: order.order_hash,
         act,
       });
-      const txHash =
-        (tx as any)?.response?.transaction_id ??
-        (tx as any)?.resolved?.transaction?.id ??
-        (tx as any)?.transaction?.id ??
-        '';
+      const txHash = this.extractTxHash(tx);
       if (txHash) lastTxHash = txHash;
-      this.logger.debug(
-        `signchair on-chain OK: order ${order.id} → tx ${txHash || '<no-id>'}`
-      );
+      this.logger.debug(`signchair on-chain OK: order ${order.id} → tx ${txHash || '<no-id>'}`);
     }
     return lastTxHash || `signchair-${reception.id}`;
+  }
+
+  private indexSignedDocumentsByOrderId(
+    docs: MarketplaceAplReceptionSignedDocumentInputDTO[]
+  ): Map<string, MarketplaceAplReceptionSignedDocumentInputDTO> {
+    const out = new Map<string, MarketplaceAplReceptionSignedDocumentInputDTO>();
+    for (const d of docs) {
+      const orderId = d.meta?.order_id;
+      if (!orderId) {
+        throw new BadRequestException(
+          'Каждый подписанный акт приёмки должен содержать meta.order_id, по которому он привязывается к Order группы.'
+        );
+      }
+      out.set(orderId, d);
+    }
+    return out;
+  }
+
+  private verifyDocumentSignature(document: ISignedDocumentDomainInterface): void {
+    const sig = document.signatures?.[0];
+    if (!sig) {
+      throw new HttpApiError(http.BAD_REQUEST, 'Документ не подписан: signatures пуст.');
+    }
+    const publicKey = PublicKey.from(sig.public_key);
+    const signature = Signature.from(sig.signature);
+    const verified = signature.verifyDigest(sig.signed_hash, publicKey);
+    if (!verified) {
+      throw new HttpApiError(http.BAD_REQUEST, 'Недействительная подпись акта приёмки.');
+    }
+  }
+
+  private extractTxHash(tx: unknown): string {
+    const candidate = tx as
+      | { response?: { transaction_id?: string }; resolved?: { transaction?: { id?: string } }; transaction?: { id?: string } }
+      | undefined;
+    return (
+      candidate?.response?.transaction_id ??
+      candidate?.resolved?.transaction?.id ??
+      candidate?.transaction?.id ??
+      ''
+    );
   }
 
   private buildFactQuantity(
@@ -721,14 +725,6 @@ export class MarketplaceAplReceptionService {
     return total.toFixed(4);
   }
 
-  /**
-   * Story 5.3/5.4 MVP: placeholder tx_hash до подключения on-chain signsupp
-   * / signchair с реальной подписью документа Document2 через FR45
-   * инфраструктуру. Содержит prefix + reception_id для трассировки.
-   */
-  private placeholderTxHash(prefix: string, id: string): string {
-    return `placeholder-${prefix}-${id.replace(/-/g, '').slice(0, 12)}`;
-  }
 }
 
 export const MARKETPLACE_APL_RECEPTION_SERVICE = Symbol('MARKETPLACE_APL_RECEPTION_SERVICE');

@@ -52,20 +52,3 @@ export const marketplaceAplReceptionSelector = Selector('MarketplaceAplReception
 export const marketplaceAplReceptionResultSelector = Selector('MarketplaceAplReceptionResult')({
   apl_reception: rawAplReceptionSelector,
 })
-
-const rawSignablePayloadSelector = {
-  order_id: true,
-  order_hash: true,
-  version: true,
-  meta: true,
-  meta_hash: true,
-  doc_hash: true,
-  hash: true,
-}
-
-const _validatePayload: MakeAllFieldsRequired<ValueTypes['MarketplaceAplReceptionSignablePayload']> =
-  rawSignablePayloadSelector
-
-export const marketplaceAplReceptionSignablePayloadSelector = Selector(
-  'MarketplaceAplReceptionSignablePayload',
-)(rawSignablePayloadSelector)

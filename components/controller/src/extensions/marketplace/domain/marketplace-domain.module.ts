@@ -6,10 +6,6 @@ import {
   AVAILABLE_CATEGORY_DOMAIN_SERVICE,
 } from './services/available-category-domain.service';
 import { RequestDomainService, REQUEST_DOMAIN_SERVICE } from './services/request-domain.service';
-import {
-  MarketplaceAplReceptionDocumentFactory,
-  MARKETPLACE_APL_RECEPTION_DOCUMENT_FACTORY,
-} from './services/marketplace-apl-reception-document-factory';
 import { MarketplaceInfrastructureModule } from '../infrastructure/marketplace-infrastructure.module';
 
 /**
@@ -42,11 +38,6 @@ import { MarketplaceInfrastructureModule } from '../infrastructure/marketplace-i
       useClass: RequestDomainService,
     },
     RequestDomainService,
-    {
-      provide: MARKETPLACE_APL_RECEPTION_DOCUMENT_FACTORY,
-      useClass: MarketplaceAplReceptionDocumentFactory,
-    },
-    MarketplaceAplReceptionDocumentFactory,
   ],
   exports: [
     CategoryTreeDomainService,
@@ -56,8 +47,6 @@ import { MarketplaceInfrastructureModule } from '../infrastructure/marketplace-i
     AVAILABLE_CATEGORY_DOMAIN_SERVICE,
     RequestDomainService,
     REQUEST_DOMAIN_SERVICE,
-    MarketplaceAplReceptionDocumentFactory,
-    MARKETPLACE_APL_RECEPTION_DOCUMENT_FACTORY,
   ],
 })
 export class MarketplaceExtensionDomainModule {}

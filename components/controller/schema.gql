@@ -6983,28 +6983,92 @@ type MarketplaceAplReceptionResult {
   apl_reception: MarketplaceAplReception!
 }
 
-type MarketplaceAplReceptionSignablePayload {
+input MarketplaceAplReceptionSignedDocumentInput {
+  """Хэш содержимого документа"""
   doc_hash: String!
 
-  """Digest для клиентской подписи."""
+  """Общий хэш (doc_hash + meta_hash)"""
   hash: String!
 
-  """JSON-сериализованные мета-поля акта."""
-  meta: String!
+  """
+  Метаданные подписанного акта приёмки — содержат order_id, order_hash, КУ-приёмник и фактическое количество.
+  """
+  meta: MarketplaceAplReceptionSignedMetaDocumentInput!
+
+  """Хэш мета-данных"""
   meta_hash: String!
-  order_hash: String!
-  order_id: ID!
+
+  """Вектор подписей"""
+  signatures: [SignatureInfoInput!]!
+
+  """Версия стандарта документа"""
   version: String!
 }
 
-input MarketplaceAplReceptionSignedOrderInput {
-  """Order, к которому относится подписанный документ."""
-  order_id: ID!
+input MarketplaceAplReceptionSignedMetaDocumentInput {
+  """Имя кооперативного участка-приёмника партии."""
+  accept_braname: String!
+
+  """Номер блока, на котором был создан документ"""
+  block_num: Int!
 
   """
-  Подписанный клиентом Document2 — отправляется в on-chain signsupp/signchair.
+  Account председателя — подписанта закрывающей подписи (если уже известен).
   """
-  signed_document: MarketplaceSignedDocumentInput!
+  chairman_account: String
+
+  """Название кооператива, связанное с документом"""
+  coopname: String!
+
+  """Дата и время создания документа"""
+  created_at: String!
+
+  """Фактически принятое количество единиц."""
+  fact_quantity: Int!
+
+  """Имя генератора, использованного для создания документа"""
+  generator: String!
+
+  """Язык документа"""
+  lang: String!
+
+  """Ссылки, связанные с документом"""
+  links: [String!]!
+
+  """Канонический хэш Order'а в блокчейне."""
+  order_hash: String!
+
+  """Идентификатор Order'а, к которому относится акт приёмки."""
+  order_id: String!
+
+  """Идентификатор записи акта приёмки."""
+  reception_id: String!
+
+  """ID документа в реестре"""
+  registry_id: Int!
+
+  """
+  Флаг пропуска сохранения документа (preview-режим для отображения пользователю перед подписью).
+  """
+  skip_save: Boolean!
+
+  """Account поставщика — отправителя партии."""
+  supplier_account: String!
+
+  """Часовой пояс, в котором был создан документ"""
+  timezone: String!
+
+  """Название документа"""
+  title: String!
+
+  """Сумма по Order'у с учётом фактического количества."""
+  total_amount: String!
+
+  """Имя пользователя, создавшего документ"""
+  username: String!
+
+  """Версия генератора, использованного для создания документа"""
+  version: String!
 }
 
 """Статус АПП приёмки на КУ."""
@@ -8431,37 +8495,13 @@ input MarketplaceShipmentTTNDataInput {
 }
 
 input MarketplaceSignAplReceptionInput {
-  """Идентификатор АПП приёмки."""
+  """Идентификатор акта приёмки."""
   apl_reception_id: ID!
 
   """
-  Подписанные клиентом Document2 per-Order. Если передан — backend отправляет on-chain signsupp/signchair с реальными подписями и сохраняет реальный tx_hash. Если не передан — сохраняется placeholder tx_hash (backwards-compat для UI без FR45 обвязки).
+  Подписанные клиентом акты приёмки — один документ на каждый Order группы. Backend верифицирует подпись и отправляет on-chain signsupp/signchair с этим документом.
   """
-  signed_documents: [MarketplaceAplReceptionSignedOrderInput!]
-}
-
-input MarketplaceSignatureInfoInput {
-  """Публичный ключ подписанта (EOS_K1_...)."""
-  public_key: String!
-
-  """Подпись (EOS_K1_SIG_...)."""
-  signature: String!
-
-  """Account-имя подписанта (EOS-account)."""
-  signer: String!
-}
-
-input MarketplaceSignedDocumentInput {
-  doc_hash: String!
-
-  """hash подписного документа."""
-  hash: String!
-
-  """Сериализованный JSON.stringify(meta)."""
-  meta: String!
-  meta_hash: String!
-  signatures: [MarketplaceSignatureInfoInput!]!
-  version: String!
+  signed_documents: [MarketplaceAplReceptionSignedDocumentInput!]!
 }
 
 """Результат индивидуального приёма или отклонения заказа поставщиком."""
@@ -12171,14 +12211,14 @@ type Query {
   listReportDrafts(filter: ListReportDraftsFilterInput): [ReportDraft!]!
 
   """
-  Подписные документы Document2 per-Order для закрывающей подписи председателя КУ.
+  Preview-документы акта приёмки для закрывающей подписи председателя КУ.
   """
-  marketplaceAplReceptionChairmanSignablePayloads(apl_reception_id: String!): [MarketplaceAplReceptionSignablePayload!]!
+  marketplaceAplReceptionChairmanSignablePayloads(apl_reception_id: String!): [GeneratedDocument!]!
 
   """
-  Подписные документы Document2 per-Order для подписи поставщиком на клиенте. Клиент берёт hash каждого payload, подписывает приватным ключом, шлёт обратно в mutation marketplaceSignAplReceptionAsSupplier.
+  Preview-документы акта приёмки для подписи поставщиком — один документ на каждый Order группы. Клиент подписывает hash приватным ключом и возвращает результат в mutation marketplaceSignAplReceptionAsSupplier.
   """
-  marketplaceAplReceptionSupplierSignablePayloads(apl_reception_id: String!): [MarketplaceAplReceptionSignablePayload!]!
+  marketplaceAplReceptionSupplierSignablePayloads(apl_reception_id: String!): [GeneratedDocument!]!
 
   """Получить аспектные атрибуты для категории и типа товара marketplace"""
   marketplaceAspectAttributes(data: GetRequiredAttributesInput!): [MarketplaceAttribute!]!

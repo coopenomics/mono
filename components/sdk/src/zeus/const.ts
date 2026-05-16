@@ -640,8 +640,12 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceAplReceptionFactEntryInput:{
 
 	},
-	MarketplaceAplReceptionSignedOrderInput:{
-		signed_document:"MarketplaceSignedDocumentInput"
+	MarketplaceAplReceptionSignedDocumentInput:{
+		meta:"MarketplaceAplReceptionSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	MarketplaceAplReceptionSignedMetaDocumentInput:{
+
 	},
 	MarketplaceAplReceptionStatus: "enum" as const,
 	MarketplaceAplReceptionVariant: "enum" as const,
@@ -730,13 +734,7 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	MarketplaceSignAplReceptionInput:{
-		signed_documents:"MarketplaceAplReceptionSignedOrderInput"
-	},
-	MarketplaceSignatureInfoInput:{
-
-	},
-	MarketplaceSignedDocumentInput:{
-		signatures:"MarketplaceSignatureInfoInput"
+		signed_documents:"MarketplaceAplReceptionSignedDocumentInput"
 	},
 	MarketplaceTriggerOpenSubscriptionInput:{
 
@@ -3695,15 +3693,6 @@ export const ReturnTypes: Record<string,any> = {
 	MarketplaceAplReceptionResult:{
 		apl_reception:"MarketplaceAplReception"
 	},
-	MarketplaceAplReceptionSignablePayload:{
-		doc_hash:"String",
-		hash:"String",
-		meta:"String",
-		meta_hash:"String",
-		order_hash:"String",
-		order_id:"ID",
-		version:"String"
-	},
 	MarketplaceAttribute:{
 		attributeComplexId:"Int",
 		attributeId:"Int",
@@ -5025,8 +5014,8 @@ export const ReturnTypes: Record<string,any> = {
 		getUserWebPushSubscriptions:"WebPushSubscriptionDto",
 		getWebPushSubscriptionStats:"SubscriptionStatsDto",
 		listReportDrafts:"ReportDraft",
-		marketplaceAplReceptionChairmanSignablePayloads:"MarketplaceAplReceptionSignablePayload",
-		marketplaceAplReceptionSupplierSignablePayloads:"MarketplaceAplReceptionSignablePayload",
+		marketplaceAplReceptionChairmanSignablePayloads:"GeneratedDocument",
+		marketplaceAplReceptionSupplierSignablePayloads:"GeneratedDocument",
 		marketplaceAspectAttributes:"MarketplaceAttribute",
 		marketplaceAttributeStats:"MarketplaceAttributeStats",
 		marketplaceCategoryAttributes:"MarketplaceAttribute",

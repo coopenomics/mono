@@ -6099,24 +6099,61 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceAplReceptionResult']?: Omit<ValueTypes["MarketplaceAplReceptionResult"], "...on MarketplaceAplReceptionResult">
 }>;
-	["MarketplaceAplReceptionSignablePayload"]: AliasType<{
-	doc_hash?:boolean | `@${string}`,
-	/** Digest для клиентской подписи. */
-	hash?:boolean | `@${string}`,
-	/** JSON-сериализованные мета-поля акта. */
-	meta?:boolean | `@${string}`,
-	meta_hash?:boolean | `@${string}`,
-	order_hash?:boolean | `@${string}`,
-	order_id?:boolean | `@${string}`,
-	version?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`,
-	['...on MarketplaceAplReceptionSignablePayload']?: Omit<ValueTypes["MarketplaceAplReceptionSignablePayload"], "...on MarketplaceAplReceptionSignablePayload">
-}>;
-	["MarketplaceAplReceptionSignedOrderInput"]: {
-	/** Order, к которому относится подписанный документ. */
-	order_id: ValueTypes["ID"] | Variable<any, string>,
-	/** Подписанный клиентом Document2 — отправляется в on-chain signsupp/signchair. */
-	signed_document: ValueTypes["MarketplaceSignedDocumentInput"] | Variable<any, string>
+	["MarketplaceAplReceptionSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string | Variable<any, string>,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string | Variable<any, string>,
+	/** Метаданные подписанного акта приёмки — содержат order_id, order_hash, КУ-приёмник и фактическое количество. */
+	meta: ValueTypes["MarketplaceAplReceptionSignedMetaDocumentInput"] | Variable<any, string>,
+	/** Хэш мета-данных */
+	meta_hash: string | Variable<any, string>,
+	/** Вектор подписей */
+	signatures: Array<ValueTypes["SignatureInfoInput"]> | Variable<any, string>,
+	/** Версия стандарта документа */
+	version: string | Variable<any, string>
+};
+	["MarketplaceAplReceptionSignedMetaDocumentInput"]: {
+	/** Имя кооперативного участка-приёмника партии. */
+	accept_braname: string | Variable<any, string>,
+	/** Номер блока, на котором был создан документ */
+	block_num: number | Variable<any, string>,
+	/** Account председателя — подписанта закрывающей подписи (если уже известен). */
+	chairman_account?: string | undefined | null | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at: string | Variable<any, string>,
+	/** Фактически принятое количество единиц. */
+	fact_quantity: number | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator: string | Variable<any, string>,
+	/** Язык документа */
+	lang: string | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links: Array<string> | Variable<any, string>,
+	/** Канонический хэш Order'а в блокчейне. */
+	order_hash: string | Variable<any, string>,
+	/** Идентификатор Order'а, к которому относится акт приёмки. */
+	order_id: string | Variable<any, string>,
+	/** Идентификатор записи акта приёмки. */
+	reception_id: string | Variable<any, string>,
+	/** ID документа в реестре */
+	registry_id: number | Variable<any, string>,
+	/** Флаг пропуска сохранения документа (preview-режим для отображения пользователю перед подписью). */
+	skip_save: boolean | Variable<any, string>,
+	/** Account поставщика — отправителя партии. */
+	supplier_account: string | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string | Variable<any, string>,
+	/** Название документа */
+	title: string | Variable<any, string>,
+	/** Сумма по Order'у с учётом фактического количества. */
+	total_amount: string | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version: string | Variable<any, string>
 };
 	/** Статус АПП приёмки на КУ. */
 ["MarketplaceAplReceptionStatus"]:MarketplaceAplReceptionStatus;
@@ -7136,28 +7173,10 @@ export type ValueTypes = {
 	vehicle_number: string | Variable<any, string>
 };
 	["MarketplaceSignAplReceptionInput"]: {
-	/** Идентификатор АПП приёмки. */
+	/** Идентификатор акта приёмки. */
 	apl_reception_id: ValueTypes["ID"] | Variable<any, string>,
-	/** Подписанные клиентом Document2 per-Order. Если передан — backend отправляет on-chain signsupp/signchair с реальными подписями и сохраняет реальный tx_hash. Если не передан — сохраняется placeholder tx_hash (backwards-compat для UI без FR45 обвязки). */
-	signed_documents?: Array<ValueTypes["MarketplaceAplReceptionSignedOrderInput"]> | undefined | null | Variable<any, string>
-};
-	["MarketplaceSignatureInfoInput"]: {
-	/** Публичный ключ подписанта (EOS_K1_...). */
-	public_key: string | Variable<any, string>,
-	/** Подпись (EOS_K1_SIG_...). */
-	signature: string | Variable<any, string>,
-	/** Account-имя подписанта (EOS-account). */
-	signer: string | Variable<any, string>
-};
-	["MarketplaceSignedDocumentInput"]: {
-	doc_hash: string | Variable<any, string>,
-	/** hash подписного документа. */
-	hash: string | Variable<any, string>,
-	/** Сериализованный JSON.stringify(meta). */
-	meta: string | Variable<any, string>,
-	meta_hash: string | Variable<any, string>,
-	signatures: Array<ValueTypes["MarketplaceSignatureInfoInput"]> | Variable<any, string>,
-	version: string | Variable<any, string>
+	/** Подписанные клиентом акты приёмки — один документ на каждый Order группы. Backend верифицирует подпись и отправляет on-chain signsupp/signchair с этим документом. */
+	signed_documents: Array<ValueTypes["MarketplaceAplReceptionSignedDocumentInput"]> | Variable<any, string>
 };
 	/** Результат индивидуального приёма или отклонения заказа поставщиком. */
 ["MarketplaceSupplierOrderActionResult"]: AliasType<{
@@ -8966,8 +8985,8 @@ getUserWebPushSubscriptions?: [{	data: ValueTypes["GetUserSubscriptionsInput"] |
 Требуемые роли: chairman.  */
 	getWebPushSubscriptionStats?:ValueTypes["SubscriptionStatsDto"],
 listReportDrafts?: [{	filter?: ValueTypes["ListReportDraftsFilterInput"] | undefined | null | Variable<any, string>},ValueTypes["ReportDraft"]],
-marketplaceAplReceptionChairmanSignablePayloads?: [{	apl_reception_id: string | Variable<any, string>},ValueTypes["MarketplaceAplReceptionSignablePayload"]],
-marketplaceAplReceptionSupplierSignablePayloads?: [{	apl_reception_id: string | Variable<any, string>},ValueTypes["MarketplaceAplReceptionSignablePayload"]],
+marketplaceAplReceptionChairmanSignablePayloads?: [{	apl_reception_id: string | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+marketplaceAplReceptionSupplierSignablePayloads?: [{	apl_reception_id: string | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 marketplaceAspectAttributes?: [{	data: ValueTypes["GetRequiredAttributesInput"] | Variable<any, string>},ValueTypes["MarketplaceAttribute"]],
 	/** Получить статистику по атрибутам marketplace
 
@@ -15497,23 +15516,61 @@ export type ResolverInputTypes = {
 	apl_reception?:ResolverInputTypes["MarketplaceAplReception"],
 		__typename?: boolean | `@${string}`
 }>;
-	["MarketplaceAplReceptionSignablePayload"]: AliasType<{
-	doc_hash?:boolean | `@${string}`,
-	/** Digest для клиентской подписи. */
-	hash?:boolean | `@${string}`,
-	/** JSON-сериализованные мета-поля акта. */
-	meta?:boolean | `@${string}`,
-	meta_hash?:boolean | `@${string}`,
-	order_hash?:boolean | `@${string}`,
-	order_id?:boolean | `@${string}`,
-	version?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`
-}>;
-	["MarketplaceAplReceptionSignedOrderInput"]: {
-	/** Order, к которому относится подписанный документ. */
-	order_id: ResolverInputTypes["ID"],
-	/** Подписанный клиентом Document2 — отправляется в on-chain signsupp/signchair. */
-	signed_document: ResolverInputTypes["MarketplaceSignedDocumentInput"]
+	["MarketplaceAplReceptionSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаданные подписанного акта приёмки — содержат order_id, order_hash, КУ-приёмник и фактическое количество. */
+	meta: ResolverInputTypes["MarketplaceAplReceptionSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ResolverInputTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["MarketplaceAplReceptionSignedMetaDocumentInput"]: {
+	/** Имя кооперативного участка-приёмника партии. */
+	accept_braname: string,
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Account председателя — подписанта закрывающей подписи (если уже известен). */
+	chairman_account?: string | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Фактически принятое количество единиц. */
+	fact_quantity: number,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** Канонический хэш Order'а в блокчейне. */
+	order_hash: string,
+	/** Идентификатор Order'а, к которому относится акт приёмки. */
+	order_id: string,
+	/** Идентификатор записи акта приёмки. */
+	reception_id: string,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Флаг пропуска сохранения документа (preview-режим для отображения пользователю перед подписью). */
+	skip_save: boolean,
+	/** Account поставщика — отправителя партии. */
+	supplier_account: string,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Сумма по Order'у с учётом фактического количества. */
+	total_amount: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
 };
 	/** Статус АПП приёмки на КУ. */
 ["MarketplaceAplReceptionStatus"]:MarketplaceAplReceptionStatus;
@@ -16492,28 +16549,10 @@ export type ResolverInputTypes = {
 	vehicle_number: string
 };
 	["MarketplaceSignAplReceptionInput"]: {
-	/** Идентификатор АПП приёмки. */
+	/** Идентификатор акта приёмки. */
 	apl_reception_id: ResolverInputTypes["ID"],
-	/** Подписанные клиентом Document2 per-Order. Если передан — backend отправляет on-chain signsupp/signchair с реальными подписями и сохраняет реальный tx_hash. Если не передан — сохраняется placeholder tx_hash (backwards-compat для UI без FR45 обвязки). */
-	signed_documents?: Array<ResolverInputTypes["MarketplaceAplReceptionSignedOrderInput"]> | undefined | null
-};
-	["MarketplaceSignatureInfoInput"]: {
-	/** Публичный ключ подписанта (EOS_K1_...). */
-	public_key: string,
-	/** Подпись (EOS_K1_SIG_...). */
-	signature: string,
-	/** Account-имя подписанта (EOS-account). */
-	signer: string
-};
-	["MarketplaceSignedDocumentInput"]: {
-	doc_hash: string,
-	/** hash подписного документа. */
-	hash: string,
-	/** Сериализованный JSON.stringify(meta). */
-	meta: string,
-	meta_hash: string,
-	signatures: Array<ResolverInputTypes["MarketplaceSignatureInfoInput"]>,
-	version: string
+	/** Подписанные клиентом акты приёмки — один документ на каждый Order группы. Backend верифицирует подпись и отправляет on-chain signsupp/signchair с этим документом. */
+	signed_documents: Array<ResolverInputTypes["MarketplaceAplReceptionSignedDocumentInput"]>
 };
 	/** Результат индивидуального приёма или отклонения заказа поставщиком. */
 ["MarketplaceSupplierOrderActionResult"]: AliasType<{
@@ -18253,8 +18292,8 @@ getUserWebPushSubscriptions?: [{	data: ResolverInputTypes["GetUserSubscriptionsI
 Требуемые роли: chairman.  */
 	getWebPushSubscriptionStats?:ResolverInputTypes["SubscriptionStatsDto"],
 listReportDrafts?: [{	filter?: ResolverInputTypes["ListReportDraftsFilterInput"] | undefined | null},ResolverInputTypes["ReportDraft"]],
-marketplaceAplReceptionChairmanSignablePayloads?: [{	apl_reception_id: string},ResolverInputTypes["MarketplaceAplReceptionSignablePayload"]],
-marketplaceAplReceptionSupplierSignablePayloads?: [{	apl_reception_id: string},ResolverInputTypes["MarketplaceAplReceptionSignablePayload"]],
+marketplaceAplReceptionChairmanSignablePayloads?: [{	apl_reception_id: string},ResolverInputTypes["GeneratedDocument"]],
+marketplaceAplReceptionSupplierSignablePayloads?: [{	apl_reception_id: string},ResolverInputTypes["GeneratedDocument"]],
 marketplaceAspectAttributes?: [{	data: ResolverInputTypes["GetRequiredAttributesInput"]},ResolverInputTypes["MarketplaceAttribute"]],
 	/** Получить статистику по атрибутам marketplace
 
@@ -24593,22 +24632,61 @@ export type ModelTypes = {
 	["MarketplaceAplReceptionResult"]: {
 		apl_reception: ModelTypes["MarketplaceAplReception"]
 };
-	["MarketplaceAplReceptionSignablePayload"]: {
-		doc_hash: string,
-	/** Digest для клиентской подписи. */
+	["MarketplaceAplReceptionSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
 	hash: string,
-	/** JSON-сериализованные мета-поля акта. */
-	meta: string,
+	/** Метаданные подписанного акта приёмки — содержат order_id, order_hash, КУ-приёмник и фактическое количество. */
+	meta: ModelTypes["MarketplaceAplReceptionSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
 	meta_hash: string,
-	order_hash: string,
-	order_id: ModelTypes["ID"],
+	/** Вектор подписей */
+	signatures: Array<ModelTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
 	version: string
 };
-	["MarketplaceAplReceptionSignedOrderInput"]: {
-	/** Order, к которому относится подписанный документ. */
-	order_id: ModelTypes["ID"],
-	/** Подписанный клиентом Document2 — отправляется в on-chain signsupp/signchair. */
-	signed_document: ModelTypes["MarketplaceSignedDocumentInput"]
+	["MarketplaceAplReceptionSignedMetaDocumentInput"]: {
+	/** Имя кооперативного участка-приёмника партии. */
+	accept_braname: string,
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Account председателя — подписанта закрывающей подписи (если уже известен). */
+	chairman_account?: string | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Фактически принятое количество единиц. */
+	fact_quantity: number,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** Канонический хэш Order'а в блокчейне. */
+	order_hash: string,
+	/** Идентификатор Order'а, к которому относится акт приёмки. */
+	order_id: string,
+	/** Идентификатор записи акта приёмки. */
+	reception_id: string,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Флаг пропуска сохранения документа (preview-режим для отображения пользователю перед подписью). */
+	skip_save: boolean,
+	/** Account поставщика — отправителя партии. */
+	supplier_account: string,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Сумма по Order'у с учётом фактического количества. */
+	total_amount: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
 };
 	["MarketplaceAplReceptionStatus"]:MarketplaceAplReceptionStatus;
 	["MarketplaceAplReceptionVariant"]:MarketplaceAplReceptionVariant;
@@ -25534,28 +25612,10 @@ export type ModelTypes = {
 	vehicle_number: string
 };
 	["MarketplaceSignAplReceptionInput"]: {
-	/** Идентификатор АПП приёмки. */
+	/** Идентификатор акта приёмки. */
 	apl_reception_id: ModelTypes["ID"],
-	/** Подписанные клиентом Document2 per-Order. Если передан — backend отправляет on-chain signsupp/signchair с реальными подписями и сохраняет реальный tx_hash. Если не передан — сохраняется placeholder tx_hash (backwards-compat для UI без FR45 обвязки). */
-	signed_documents?: Array<ModelTypes["MarketplaceAplReceptionSignedOrderInput"]> | undefined | null
-};
-	["MarketplaceSignatureInfoInput"]: {
-	/** Публичный ключ подписанта (EOS_K1_...). */
-	public_key: string,
-	/** Подпись (EOS_K1_SIG_...). */
-	signature: string,
-	/** Account-имя подписанта (EOS-account). */
-	signer: string
-};
-	["MarketplaceSignedDocumentInput"]: {
-	doc_hash: string,
-	/** hash подписного документа. */
-	hash: string,
-	/** Сериализованный JSON.stringify(meta). */
-	meta: string,
-	meta_hash: string,
-	signatures: Array<ModelTypes["MarketplaceSignatureInfoInput"]>,
-	version: string
+	/** Подписанные клиентом акты приёмки — один документ на каждый Order группы. Backend верифицирует подпись и отправляет on-chain signsupp/signchair с этим документом. */
+	signed_documents: Array<ModelTypes["MarketplaceAplReceptionSignedDocumentInput"]>
 };
 	/** Результат индивидуального приёма или отклонения заказа поставщиком. */
 ["MarketplaceSupplierOrderActionResult"]: {
@@ -27901,10 +27961,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	listReportDrafts: Array<ModelTypes["ReportDraft"]>,
-	/** Подписные документы Document2 per-Order для закрывающей подписи председателя КУ. */
-	marketplaceAplReceptionChairmanSignablePayloads: Array<ModelTypes["MarketplaceAplReceptionSignablePayload"]>,
-	/** Подписные документы Document2 per-Order для подписи поставщиком на клиенте. Клиент берёт hash каждого payload, подписывает приватным ключом, шлёт обратно в mutation marketplaceSignAplReceptionAsSupplier. */
-	marketplaceAplReceptionSupplierSignablePayloads: Array<ModelTypes["MarketplaceAplReceptionSignablePayload"]>,
+	/** Preview-документы акта приёмки для закрывающей подписи председателя КУ. */
+	marketplaceAplReceptionChairmanSignablePayloads: Array<ModelTypes["GeneratedDocument"]>,
+	/** Preview-документы акта приёмки для подписи поставщиком — один документ на каждый Order группы. Клиент подписывает hash приватным ключом и возвращает результат в mutation marketplaceSignAplReceptionAsSupplier. */
+	marketplaceAplReceptionSupplierSignablePayloads: Array<ModelTypes["GeneratedDocument"]>,
 	/** Получить аспектные атрибуты для категории и типа товара marketplace */
 	marketplaceAspectAttributes: Array<ModelTypes["MarketplaceAttribute"]>,
 	/** Получить статистику по атрибутам marketplace
@@ -34513,24 +34573,61 @@ export type GraphQLTypes = {
 	apl_reception: GraphQLTypes["MarketplaceAplReception"],
 	['...on MarketplaceAplReceptionResult']: Omit<GraphQLTypes["MarketplaceAplReceptionResult"], "...on MarketplaceAplReceptionResult">
 };
-	["MarketplaceAplReceptionSignablePayload"]: {
-	__typename: "MarketplaceAplReceptionSignablePayload",
+	["MarketplaceAplReceptionSignedDocumentInput"]: {
+		/** Хэш содержимого документа */
 	doc_hash: string,
-	/** Digest для клиентской подписи. */
+	/** Общий хэш (doc_hash + meta_hash) */
 	hash: string,
-	/** JSON-сериализованные мета-поля акта. */
-	meta: string,
+	/** Метаданные подписанного акта приёмки — содержат order_id, order_hash, КУ-приёмник и фактическое количество. */
+	meta: GraphQLTypes["MarketplaceAplReceptionSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
 	meta_hash: string,
-	order_hash: string,
-	order_id: GraphQLTypes["ID"],
-	version: string,
-	['...on MarketplaceAplReceptionSignablePayload']: Omit<GraphQLTypes["MarketplaceAplReceptionSignablePayload"], "...on MarketplaceAplReceptionSignablePayload">
+	/** Вектор подписей */
+	signatures: Array<GraphQLTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
 };
-	["MarketplaceAplReceptionSignedOrderInput"]: {
-		/** Order, к которому относится подписанный документ. */
-	order_id: GraphQLTypes["ID"],
-	/** Подписанный клиентом Document2 — отправляется в on-chain signsupp/signchair. */
-	signed_document: GraphQLTypes["MarketplaceSignedDocumentInput"]
+	["MarketplaceAplReceptionSignedMetaDocumentInput"]: {
+		/** Имя кооперативного участка-приёмника партии. */
+	accept_braname: string,
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Account председателя — подписанта закрывающей подписи (если уже известен). */
+	chairman_account?: string | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Фактически принятое количество единиц. */
+	fact_quantity: number,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** Канонический хэш Order'а в блокчейне. */
+	order_hash: string,
+	/** Идентификатор Order'а, к которому относится акт приёмки. */
+	order_id: string,
+	/** Идентификатор записи акта приёмки. */
+	reception_id: string,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Флаг пропуска сохранения документа (preview-режим для отображения пользователю перед подписью). */
+	skip_save: boolean,
+	/** Account поставщика — отправителя партии. */
+	supplier_account: string,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Сумма по Order'у с учётом фактического количества. */
+	total_amount: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
 };
 	/** Статус АПП приёмки на КУ. */
 ["MarketplaceAplReceptionStatus"]: MarketplaceAplReceptionStatus;
@@ -35550,28 +35647,10 @@ export type GraphQLTypes = {
 	vehicle_number: string
 };
 	["MarketplaceSignAplReceptionInput"]: {
-		/** Идентификатор АПП приёмки. */
+		/** Идентификатор акта приёмки. */
 	apl_reception_id: GraphQLTypes["ID"],
-	/** Подписанные клиентом Document2 per-Order. Если передан — backend отправляет on-chain signsupp/signchair с реальными подписями и сохраняет реальный tx_hash. Если не передан — сохраняется placeholder tx_hash (backwards-compat для UI без FR45 обвязки). */
-	signed_documents?: Array<GraphQLTypes["MarketplaceAplReceptionSignedOrderInput"]> | undefined | null
-};
-	["MarketplaceSignatureInfoInput"]: {
-		/** Публичный ключ подписанта (EOS_K1_...). */
-	public_key: string,
-	/** Подпись (EOS_K1_SIG_...). */
-	signature: string,
-	/** Account-имя подписанта (EOS-account). */
-	signer: string
-};
-	["MarketplaceSignedDocumentInput"]: {
-		doc_hash: string,
-	/** hash подписного документа. */
-	hash: string,
-	/** Сериализованный JSON.stringify(meta). */
-	meta: string,
-	meta_hash: string,
-	signatures: Array<GraphQLTypes["MarketplaceSignatureInfoInput"]>,
-	version: string
+	/** Подписанные клиентом акты приёмки — один документ на каждый Order группы. Backend верифицирует подпись и отправляет on-chain signsupp/signchair с этим документом. */
+	signed_documents: Array<GraphQLTypes["MarketplaceAplReceptionSignedDocumentInput"]>
 };
 	/** Результат индивидуального приёма или отклонения заказа поставщиком. */
 ["MarketplaceSupplierOrderActionResult"]: {
@@ -38076,10 +38155,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	listReportDrafts: Array<GraphQLTypes["ReportDraft"]>,
-	/** Подписные документы Document2 per-Order для закрывающей подписи председателя КУ. */
-	marketplaceAplReceptionChairmanSignablePayloads: Array<GraphQLTypes["MarketplaceAplReceptionSignablePayload"]>,
-	/** Подписные документы Document2 per-Order для подписи поставщиком на клиенте. Клиент берёт hash каждого payload, подписывает приватным ключом, шлёт обратно в mutation marketplaceSignAplReceptionAsSupplier. */
-	marketplaceAplReceptionSupplierSignablePayloads: Array<GraphQLTypes["MarketplaceAplReceptionSignablePayload"]>,
+	/** Preview-документы акта приёмки для закрывающей подписи председателя КУ. */
+	marketplaceAplReceptionChairmanSignablePayloads: Array<GraphQLTypes["GeneratedDocument"]>,
+	/** Preview-документы акта приёмки для подписи поставщиком — один документ на каждый Order группы. Клиент подписывает hash приватным ключом и возвращает результат в mutation marketplaceSignAplReceptionAsSupplier. */
+	marketplaceAplReceptionSupplierSignablePayloads: Array<GraphQLTypes["GeneratedDocument"]>,
 	/** Получить аспектные атрибуты для категории и типа товара marketplace */
 	marketplaceAspectAttributes: Array<GraphQLTypes["MarketplaceAttribute"]>,
 	/** Получить статистику по атрибутам marketplace
@@ -40538,7 +40617,8 @@ type ZEUS_VARIABLES = {
 	["MarketplaceAcceptIndividualOrderInput"]: ValueTypes["MarketplaceAcceptIndividualOrderInput"];
 	["MarketplaceAddToWhitelistInput"]: ValueTypes["MarketplaceAddToWhitelistInput"];
 	["MarketplaceAplReceptionFactEntryInput"]: ValueTypes["MarketplaceAplReceptionFactEntryInput"];
-	["MarketplaceAplReceptionSignedOrderInput"]: ValueTypes["MarketplaceAplReceptionSignedOrderInput"];
+	["MarketplaceAplReceptionSignedDocumentInput"]: ValueTypes["MarketplaceAplReceptionSignedDocumentInput"];
+	["MarketplaceAplReceptionSignedMetaDocumentInput"]: ValueTypes["MarketplaceAplReceptionSignedMetaDocumentInput"];
 	["MarketplaceAplReceptionStatus"]: ValueTypes["MarketplaceAplReceptionStatus"];
 	["MarketplaceAplReceptionVariant"]: ValueTypes["MarketplaceAplReceptionVariant"];
 	["MarketplaceApproveOfferInput"]: ValueTypes["MarketplaceApproveOfferInput"];
@@ -40576,8 +40656,6 @@ type ZEUS_VARIABLES = {
 	["MarketplaceShipmentStatus"]: ValueTypes["MarketplaceShipmentStatus"];
 	["MarketplaceShipmentTTNDataInput"]: ValueTypes["MarketplaceShipmentTTNDataInput"];
 	["MarketplaceSignAplReceptionInput"]: ValueTypes["MarketplaceSignAplReceptionInput"];
-	["MarketplaceSignatureInfoInput"]: ValueTypes["MarketplaceSignatureInfoInput"];
-	["MarketplaceSignedDocumentInput"]: ValueTypes["MarketplaceSignedDocumentInput"];
 	["MarketplaceTriggerOpenSubscriptionInput"]: ValueTypes["MarketplaceTriggerOpenSubscriptionInput"];
 	["MarketplaceUpdateOfferInput"]: ValueTypes["MarketplaceUpdateOfferInput"];
 	["MarketplaceWithdrawOfferInput"]: ValueTypes["MarketplaceWithdrawOfferInput"];

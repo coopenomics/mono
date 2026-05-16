@@ -17,14 +17,31 @@ export interface MarketplaceAplReceptionView {
   chairman_signed_at: string | null;
 }
 
-export interface MarketplaceAplReceptionSignablePayloadView {
-  order_id: string;
-  order_hash: string;
-  version: string;
+export interface SignatureInfoView {
+  id: number;
+  signer: string;
+  public_key: string;
+  signature: string;
+  signed_at: string;
+  signed_hash: string;
   meta: string;
-  meta_hash: string;
-  doc_hash: string;
+}
+
+export interface SignedDocumentInput {
+  version: string;
   hash: string;
+  doc_hash: string;
+  meta_hash: string;
+  meta: Record<string, unknown>;
+  signatures: SignatureInfoView[];
+}
+
+export interface MarketplaceAplReceptionDocumentView {
+  full_title: string;
+  html: string;
+  hash: string;
+  meta: Record<string, unknown>;
+  binary: string;
 }
 
 export async function listAplReceptionsAsSupplier(): Promise<MarketplaceAplReceptionView[]> {
@@ -36,28 +53,19 @@ export async function listAplReceptionsAsSupplier(): Promise<MarketplaceAplRecep
 
 export async function fetchSupplierSignablePayloads(
   apl_reception_id: string,
-): Promise<MarketplaceAplReceptionSignablePayloadView[]> {
+): Promise<MarketplaceAplReceptionDocumentView[]> {
   const result = await client.Query(
     Queries.Marketplace.AplReceptionSupplierSignablePayloads.query,
     { variables: { apl_reception_id } },
   );
   return result[
     Queries.Marketplace.AplReceptionSupplierSignablePayloads.name
-  ] as unknown as MarketplaceAplReceptionSignablePayloadView[];
-}
-
-export interface SignedDocumentInput {
-  version: string;
-  hash: string;
-  doc_hash: string;
-  meta_hash: string;
-  meta: string;
-  signatures: Array<{ signer: string; public_key: string; signature: string }>;
+  ] as unknown as MarketplaceAplReceptionDocumentView[];
 }
 
 export async function signAsSupplier(
   apl_reception_id: string,
-  signed_documents?: Array<{ order_id: string; signed_document: SignedDocumentInput }>,
+  signed_documents: SignedDocumentInput[],
 ): Promise<{ apl_reception: MarketplaceAplReceptionView }> {
   const result = await client.Mutation(Mutations.Marketplace.SignAplReceptionAsSupplier.mutation, {
     variables: { input: { apl_reception_id, signed_documents } },

@@ -1,4 +1,4 @@
-import { marketplaceAplReceptionSignablePayloadSelector } from '../../selectors/marketplace/aplReceptionSelector'
+import { documentSelector } from '../../selectors/common/documentSelector'
 import { $, type GraphQLTypes, type InputType, Selector } from '../../zeus/index'
 
 export const name = 'marketplaceAplReceptionChairmanSignablePayloads'
@@ -6,7 +6,7 @@ export const name = 'marketplaceAplReceptionChairmanSignablePayloads'
 export const query = Selector('Query')({
   [name]: [
     { apl_reception_id: $('apl_reception_id', 'String!') },
-    marketplaceAplReceptionSignablePayloadSelector,
+    documentSelector,
   ],
 })
 

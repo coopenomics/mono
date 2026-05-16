@@ -1,20 +1,10 @@
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue';
-import { Loading, Notify } from 'quasar';
+import { Notify } from 'quasar';
 import {
   listAplReceptionsAsSupplier,
-  signAsSupplier,
   type MarketplaceAplReceptionView,
 } from '../api';
-
-/**
- * Story 5.4: стол поставщика — акты приёмки, ожидающие подписи.
- *
- * Каркасная версия (598-18). MVP-режим: подписание без FR45-обвязки
- * (backend сохраняет placeholder tx). После подключения FR45 на клиенте
- * — добавляется загрузка Document2 payload'ов, локальная подпись
- * приватным ключом, отправка `signed_documents` в mutation.
- */
 
 const items = ref<MarketplaceAplReceptionView[]>([]);
 const loading = ref(false);
@@ -33,24 +23,15 @@ async function load(): Promise<void> {
   }
 }
 
-async function sign(item: MarketplaceAplReceptionView): Promise<void> {
-  Loading.show({ message: 'Подписываю АПП…' });
-  try {
-    await signAsSupplier(item.id);
-    Notify.create({
-      type: 'positive',
-      message: `АПП ${item.id.slice(0, 8)} подписан.`,
-    });
-    await load();
-  } catch (e) {
-    Notify.create({
-      type: 'negative',
-      message: e instanceof Error ? e.message : String(e),
-      timeout: 6000,
-    });
-  } finally {
-    Loading.hide();
-  }
+function sign(item: MarketplaceAplReceptionView): void {
+  Notify.create({
+    type: 'warning',
+    timeout: 6000,
+    message:
+      `Диалог подписи акта приёмки ${item.id.slice(0, 8)} ещё не реализован. ` +
+      `Backend принимает только подписанный канонический акт (signed_document с подписью пайщика); ` +
+      `UI-флоу подписи через приватный ключ — следующий этап работ.`,
+  });
 }
 
 onMounted(() => {

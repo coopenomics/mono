@@ -10,7 +10,6 @@ import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-membe
 import {
   MarketplaceAplReceptionDTO,
   MarketplaceAplReceptionResultDTO,
-  MarketplaceAplReceptionSignablePayloadDTO,
   MarketplaceCreateAplReceptionInputDTO,
   MarketplaceSignAplReceptionInputDTO,
   toMarketplaceAplReceptionDTO,
@@ -23,18 +22,16 @@ import {
   MARKETPLACE_APL_RECEPTION_REPOSITORY,
   type MarketplaceAplReceptionDomainRepository,
 } from '../../domain/repositories/marketplace-apl-reception.repository';
+import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
+import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 
-import type { AplReceptionSignablePayload } from '../../domain/services/marketplace-apl-reception-document-factory';
-
-function toSignablePayloadDTO(p: AplReceptionSignablePayload): MarketplaceAplReceptionSignablePayloadDTO {
-  const dto = new MarketplaceAplReceptionSignablePayloadDTO();
-  dto.order_id = p.order_id;
-  dto.order_hash = p.order_hash;
-  dto.version = p.version;
-  dto.meta = p.meta;
-  dto.meta_hash = p.meta_hash;
-  dto.doc_hash = p.doc_hash;
-  dto.hash = p.hash;
+function toGeneratedDocumentDTO(e: DocumentDomainEntity): GeneratedDocumentDTO {
+  const dto = new GeneratedDocumentDTO();
+  dto.full_title = e.full_title;
+  dto.html = e.html;
+  dto.hash = e.hash;
+  dto.meta = e.meta;
+  dto.binary = e.binary;
   return dto;
 }
 
@@ -85,10 +82,7 @@ export class MarketplaceAplReceptionResolver {
       coopname: config.coopname,
       supplier_account: member.username,
       apl_reception_id: input.apl_reception_id,
-      signed_documents: input.signed_documents?.map((sd) => ({
-        order_id: sd.order_id,
-        signed_document: sd.signed_document,
-      })),
+      signed_documents: input.signed_documents,
     });
     const dto = new MarketplaceAplReceptionResultDTO();
     dto.apl_reception = toMarketplaceAplReceptionDTO(result.apl_reception);
@@ -110,50 +104,46 @@ export class MarketplaceAplReceptionResolver {
       coopname: config.coopname,
       chairman_account: member.username,
       apl_reception_id: input.apl_reception_id,
-      signed_documents: input.signed_documents?.map((sd) => ({
-        order_id: sd.order_id,
-        signed_document: sd.signed_document,
-      })),
+      signed_documents: input.signed_documents,
     });
     const dto = new MarketplaceAplReceptionResultDTO();
     dto.apl_reception = toMarketplaceAplReceptionDTO(result.apl_reception);
     return dto;
   }
 
-  @Query(() => [MarketplaceAplReceptionSignablePayloadDTO], {
+  @Query(() => [GeneratedDocumentDTO], {
     name: 'marketplaceAplReceptionSupplierSignablePayloads',
     description:
-      'Подписные документы Document2 per-Order для подписи поставщиком на клиенте. ' +
-      'Клиент берёт hash каждого payload, подписывает приватным ключом, шлёт ' +
-      'обратно в mutation marketplaceSignAplReceptionAsSupplier.',
+      'Preview-документы акта приёмки для подписи поставщиком — один документ на каждый Order группы. Клиент подписывает hash приватным ключом и возвращает результат в mutation marketplaceSignAplReceptionAsSupplier.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Receiving', 'sign:first')
   async marketplaceAplReceptionSupplierSignablePayloads(
     @Args('apl_reception_id') apl_reception_id: string
-  ): Promise<MarketplaceAplReceptionSignablePayloadDTO[]> {
-    const payloads = await this.service.getSupplierSignablePayloads(
+  ): Promise<GeneratedDocumentDTO[]> {
+    const docs = await this.service.getSupplierSignablePayloads(
       config.coopname,
       apl_reception_id
     );
-    return payloads.map(toSignablePayloadDTO);
+    return docs.map(toGeneratedDocumentDTO);
   }
 
-  @Query(() => [MarketplaceAplReceptionSignablePayloadDTO], {
+  @Query(() => [GeneratedDocumentDTO], {
     name: 'marketplaceAplReceptionChairmanSignablePayloads',
-    description:
-      'Подписные документы Document2 per-Order для закрывающей подписи председателя КУ.',
+    description: 'Preview-документы акта приёмки для закрывающей подписи председателя КУ.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Receiving', 'sign:closing')
   async marketplaceAplReceptionChairmanSignablePayloads(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('apl_reception_id') apl_reception_id: string
-  ): Promise<MarketplaceAplReceptionSignablePayloadDTO[]> {
-    const payloads = await this.service.getChairmanSignablePayloads(
+  ): Promise<GeneratedDocumentDTO[]> {
+    const docs = await this.service.getChairmanSignablePayloads(
       config.coopname,
-      apl_reception_id
+      apl_reception_id,
+      member.username
     );
-    return payloads.map(toSignablePayloadDTO);
+    return docs.map(toGeneratedDocumentDTO);
   }
 
   @Query(() => [MarketplaceAplReceptionDTO], {

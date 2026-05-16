@@ -70,6 +70,7 @@ export * as CapitalizationToMainWalletConvertStatement from './1090.Capitalizati
 // Marketplace — ЦПП «Стол заказов» (Story 1.7)
 export * as MarketplaceOfferTemplate from './1100.MarketplaceOfferTemplate'
 export * as MarketplaceOffer from './1101.MarketplaceOffer'
+export * as MarketplaceAplReception from './1102.MarketplaceAplReception'
 
 export * as SosediAgreement from './699.SosediAgreement'
 

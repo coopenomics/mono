@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { MarketplaceExtensionDomainModule } from '../domain/marketplace-domain.module';
 import { GatewayInfrastructureModule } from '~/infrastructure/gateway/gateway-infrastructure.module';
+import { DocumentDomainModule } from '~/domain/document/document.module';
 import { CategoryTreeResolver } from './resolvers/category-tree.resolver';
 import { AttributeResolver } from './resolvers/attribute.resolver';
 import { AvailableCategoryAdminResolver } from './resolvers/available-category-admin.resolver';
@@ -109,6 +110,9 @@ import { MarketplaceNotificationService } from './services/marketplace-notificat
     // нужен GATEWAY_INTERACTOR_PORT для синхронизации с core-реестром
     // исходящих платежей. Модуль уже экспортирует токен — просто импорт.
     GatewayInfrastructureModule,
+    // DocumentDomainService для генерации preview-документов АПП приёмки
+    // через GENERATOR_PORT (registry_id=1102).
+    DocumentDomainModule,
   ],
   providers: [
     // GraphQL резолверы
