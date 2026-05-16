@@ -80,6 +80,11 @@ import {
   MARKETPLACE_INVENTORY_LABEL_SERVICE,
 } from './services/marketplace-inventory-label.service';
 import { MarketplaceInventoryResolver } from './resolvers/marketplace-inventory.resolver';
+import {
+  MarketplaceAplReceptionService,
+  MARKETPLACE_APL_RECEPTION_SERVICE,
+} from './services/marketplace-apl-reception.service';
+import { MarketplaceAplReceptionResolver } from './resolvers/marketplace-apl-reception.resolver';
 
 /**
  * Модуль приложения marketplace
@@ -115,6 +120,7 @@ import { MarketplaceInventoryResolver } from './resolvers/marketplace-inventory.
     MarketplaceCycleResolver,
     MarketplaceShipmentResolver,
     MarketplaceInventoryResolver,
+    MarketplaceAplReceptionResolver,
 
     // Guards (Story 1.3 / Story 1.6)
     MarketplaceMembershipGuard,
@@ -206,6 +212,12 @@ import { MarketplaceInventoryResolver } from './resolvers/marketplace-inventory.
       useClass: MarketplaceInventoryLabelService,
     },
     MarketplaceInventoryLabelService,
+    // Story 5.3 / 5.4 — АПП приёмки на КУ
+    {
+      provide: MARKETPLACE_APL_RECEPTION_SERVICE,
+      useClass: MarketplaceAplReceptionService,
+    },
+    MarketplaceAplReceptionService,
   ],
   exports: [
     // Экспортируем сервисы для использования в других модулях
@@ -248,6 +260,7 @@ import { MarketplaceInventoryResolver } from './resolvers/marketplace-inventory.
     MarketplaceCycleResolver,
     MarketplaceShipmentResolver,
     MarketplaceInventoryResolver,
+    MarketplaceAplReceptionResolver,
 
     // Экспортируем сервисы Story 4.1 для использования в follow-up Stories Эпика 4
     MARKETPLACE_ORDER_CREATE_SERVICE,
@@ -270,6 +283,9 @@ import { MarketplaceInventoryResolver } from './resolvers/marketplace-inventory.
     // Story 5.5
     MARKETPLACE_INVENTORY_LABEL_SERVICE,
     MarketplaceInventoryLabelService,
+    // Story 5.3 / 5.4
+    MARKETPLACE_APL_RECEPTION_SERVICE,
+    MarketplaceAplReceptionService,
   ],
 })
 export class MarketplaceExtensionApplicationModule {}

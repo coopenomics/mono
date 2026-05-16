@@ -69,6 +69,31 @@ export interface MarketplaceCanonicalBlockchainPort {
    * `offerer == order.offerer`.
    */
   declineOrder(data: MarketContract.Actions.DeclineOrder.IDeclineOrder): Promise<TransactResult>;
+
+  /**
+   * Story 5.3 / 5.4: первая подпись поставщика на АПП приёмки одного
+   * Order'а (поле `act` — IDocument2 с подписью поставщика). C++
+   * marketplace::signsupp переводит on-chain статус Order'а
+   * `accepted → supply_prepared` и фиксирует акт в `agreements`.
+   *
+   * Авторизация — кооператив (`require_auth(coopname)`); C++ проверяет
+   * `signature in act.signatures` соответствие `offerer`.
+   */
+  signSupp(data: MarketContract.Actions.SignSupp.ISignSupp): Promise<TransactResult>;
+
+  /**
+   * Story 5.6: закрывающая подпись председателя КУ на АПП приёмки одного
+   * Order'а. C++ marketplace::signchair триггерит атомарную композитную
+   * серию `o.mkt.purch` (Дт 10 / Кт 86 — имущество на склад КУ за счёт
+   * ЦФ) + `o.mkt.payout` (TRANSFER, Дт 86 / Кт 51 — закрытие обязательства
+   * перед поставщиком). Переводит on-chain статус Order'а
+   * `supply_prepared → accepted_to_coop` и устанавливает
+   * `current_warehouse_braname = accept_braname`.
+   *
+   * Авторизация — кооператив (`require_auth(coopname)`); C++ проверяет
+   * `signer == председатель КУ`.
+   */
+  signChair(data: MarketContract.Actions.SignChair.ISignChair): Promise<TransactResult>;
 }
 
 export const MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT = Symbol('MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT');

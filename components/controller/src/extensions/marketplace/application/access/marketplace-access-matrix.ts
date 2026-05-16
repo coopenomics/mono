@@ -40,11 +40,12 @@ export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, str
     Offer: ['create:own', 'update:own', 'delete:own', 'read'],
     Order: ['read:to-self'],
     Shipment: ['create:own'],
+    Receiving: ['sign:first'],
     KU: ['read'],
     Vitrine: ['read'],
   },
   operator: {
-    Receiving: ['create', 'sign:first'],
+    Receiving: ['create', 'sign:closing'],
     Issuance: ['create', 'sign:first'],
     Inventory: ['label'],
     Warehouse: ['read:own-KU'],
