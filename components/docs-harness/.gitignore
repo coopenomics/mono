@@ -4,3 +4,5 @@ shots/
 # генерируются add-plain-participant при первом прогоне.
 state/participants/*.json
 !state/participants/.gitkeep
+state/cooperatives/*.json
+!state/cooperatives/.gitkeep

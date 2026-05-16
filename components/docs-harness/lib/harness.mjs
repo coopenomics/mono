@@ -39,8 +39,16 @@ export async function openBrowser({ storageState } = {}) {
   const page = await context.newPage();
 
   const consoleLog = [];
-  page.on('console', m => consoleLog.push(`[${m.type()}] ${m.text()}`));
-  page.on('pageerror', e => consoleLog.push(`[pageerror] ${e.message}`));
+  const debugConsole = process.env.DEBUG_CONSOLE === '1';
+  page.on('console', m => {
+    const line = `[${m.type()}] ${m.text()}`;
+    consoleLog.push(line);
+    if (debugConsole) console.log('  [browser]', line.slice(0, 300));
+  });
+  page.on('pageerror', e => {
+    consoleLog.push(`[pageerror] ${e.message}`);
+    if (debugConsole) console.log('  [browser pageerror]', e.message.slice(0, 300));
+  });
   page.on('requestfailed', r => {
     const u = r.url();
     if (!u.includes('/src/') && !u.includes('/node_modules/') && !u.includes('/@vite')) {
@@ -74,69 +82,118 @@ export async function loginAs(page, fixture) {
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
 }
 
-// Закрывает каскад модалок-документов первого входа (Положение о ЦПП Кошелёк,
-// ЭП, политика, пользовательское соглашение, и при наличии — Capital-документы).
-// Кликает «Подписать» нативно через DOM, потому что Playwright actionability-check
-// спотыкается о pointer-events на тексте.
+// Скрывает каскад модалок-документов первого входа (Положение о ЦПП Кошелёк,
+// ЭП, политика обработки ПД, пользовательское соглашение). После регистрации
+// или первого логина в Восходе у chairman'а/пайщика рендерятся параллельно 4
+// SignAgreementDialog (см. widgets/RequireAgreements) — каждый в своём
+// q-portal--dialog--N. На каждом page.goto Vue их перерендерит заново.
 //
-// Главная сложность: между документами появляется промежуточный диалог
-// «Формируем документ...» со спиннером — кнопки в нём ещё нет. Ждём пока
-// «Подписать» появится, потом клик.
+// На локальном тестовом стенде реальная подпись (signAgreement → push в
+// блокчейн) не отрабатывает: submit-handler q-form вызывается, validate
+// проходит, но signAgreement зависает либо backend отдаёт ошибку без
+// видимого UX-feedback. Для целей docs-harness нам важно ПРОЙТИ дальше по
+// сценарию, а не фиксировать сам онбординг.
+//
+// Стратегия: ставим MutationObserver, который при добавлении/изменении
+// q-portal--dialog--N проверяет, не онбординг ли это («Прочитайте и подпишите
+// документ» в заголовке) — и если да, ставит display:none + чистит body-флаги
+// Quasar (q-body--prevent-scroll и пр.). Наблюдатель остаётся жить до конца
+// page-сессии и работает после каждого Vue-перерендера.
 export async function dismissOnboardingDialogs(page) {
-  // Стартовое окно — даём шанс модалкам появиться. Если их нет за 12 сек —
-  // значит онбординг уже пройден или политика обходит этого пользователя.
-  const firstAppeared = await page
-    .locator('[id^="q-portal--dialog--"]').first()
-    .waitFor({ state: 'visible', timeout: 12000 })
-    .then(() => true).catch(() => false);
-  if (!firstAppeared) return;
+  await page.evaluate(() => {
+    if (window.__onboardingDialogsBlocker) return;
 
-  // Цикл идёт пока в DOM есть видимый q-portal--dialog. На каждой итерации:
-  //   1. Ждём появления кнопки «Подписать» в самом верхнем диалоге (до 30 сек).
-  //   2. Кликаем нативно через DOM.
-  //   3. Ждём 3.5 сек на blockchain confirm + переход к следующему документу.
-  for (let i = 0; i < 20; i++) {
-    const hasDialog = await page.evaluate(() =>
-      Array.from(document.querySelectorAll('[id^="q-portal--dialog--"]'))
-        .some((p) => getComputedStyle(p).display !== 'none'),
-    );
-    if (!hasDialog) break;
+    const isOnboarding = (el) => {
+      const title = el.querySelector('.q-toolbar__title, .modal-base__title, h1, h2, h3, h4')?.textContent || '';
+      if (/Прочитайте и подпишите/i.test(title)) return true;
+      const body = el.textContent || '';
+      return /Прочитайте и подпишите документ/i.test(body) && /Подписать/i.test(body);
+    };
 
-    // Ждём пока в верхнем диалоге появится активная кнопка «Подписать».
-    const btnReady = await page.waitForFunction(
-      () => {
-        const portals = Array.from(document.querySelectorAll('[id^="q-portal--dialog--"]'))
-          .filter((p) => getComputedStyle(p).display !== 'none');
-        if (portals.length === 0) return true; // диалогов нет — выходим
-        const top = portals[portals.length - 1];
-        return !!Array.from(top.querySelectorAll('button'))
-          .find((b) => b.textContent?.trim() === 'Подписать' && !b.disabled);
-      },
-      { timeout: 60000 },
-    ).then(() => true).catch(() => false);
-    if (!btnReady) break;
+    // Quasar q-dialog рендерит контент через Teleport в q-portal--dialog--N.
+    // v-show / transition мехнизмы могут перезаписывать inline style.display
+    // даже с !important (Vue 3 v-show через el.style.display = ...). CSS-rule
+    // с !important работает, НО Quasar также пересоздаёт q-portal-узлы при
+    // mount/unmount. Самый надёжный путь — физически удалить узел: Vue не
+    // сможет восстановить контент, так как Teleport target исчез. Это
+    // вызовет warn в консоли, но визуально UI чист.
+    const hide = (el) => {
+      if (!el.parentNode) return;
+      el.remove();
+    };
 
-    const clicked = await page.evaluate(() => {
-      const portals = Array.from(document.querySelectorAll('[id^="q-portal--dialog--"]'))
-        .filter((p) => getComputedStyle(p).display !== 'none');
-      if (portals.length === 0) return false;
-      const top = portals[portals.length - 1];
-      const btn = Array.from(top.querySelectorAll('button'))
-        .find((b) => b.textContent?.trim() === 'Подписать' && !b.disabled);
-      if (!btn) return false;
-      btn.scrollIntoView({ block: 'center', behavior: 'instant' });
-      btn.click();
-      return true;
+    const cleanupBody = () => {
+      document.body.classList.remove(
+        'q-body--prevent-scroll',
+        'q-body--has-fixed-dialog',
+        'q-body--has-dialog',
+      );
+      document.body.style.paddingRight = '';
+    };
+
+    const scan = () => {
+      let touched = 0;
+      const portals = document.querySelectorAll('[id^="q-portal--dialog--"]');
+      if (portals.length > 0 && !window.__onboardingScanLogged) {
+        window.__onboardingScanLogged = true;
+        portals.forEach((el) => {
+          console.log(`[onboarding-blocker] portal ${el.id} visible=${getComputedStyle(el).display !== 'none'} bodyLen=${el.textContent?.length} onboarding=${isOnboarding(el)} hidden=${el.dataset.onboardingHidden === '1'}`);
+        });
+      }
+      portals.forEach((el) => {
+        const onboarding = isOnboarding(el);
+        if (onboarding && el.dataset.onboardingHidden !== '1') {
+          hide(el);
+          touched++;
+        }
+      });
+      if (touched > 0) {
+        cleanupBody();
+        console.log(`[onboarding-blocker] hidden ${touched} of ${portals.length} portals`);
+        window.__onboardingScanLogged = false; // позволить новый дамп если новые портал-диалоги появятся
+      }
+    };
+
+    const observer = new MutationObserver((mutations) => {
+      // Не дёргаем scan на каждой мутации; делаем единый проход на любом
+      // добавлении узлов в body.
+      for (const m of mutations) {
+        if (m.addedNodes.length > 0 || m.type === 'characterData') {
+          scan();
+          break;
+        }
+      }
+      // Также: если body заново получил q-body--prevent-scroll, а все наши
+      // скрытые порталы остались в DOM — снимаем класс. Это случается при
+      // перерендере (Vue добавляет класс через q-dialog logic).
+      const hasHidden = document.querySelector('[id^="q-portal--dialog--"][data-onboarding-hidden="1"]');
+      if (hasHidden) cleanupBody();
     });
-    if (!clicked) break;
-    await page.waitForTimeout(3500);
-  }
+    observer.observe(document.body, { childList: true, subtree: true });
 
-  // Финальная страховка: ждём чтобы все портал-диалоги ушли с экрана.
+    // Также — переодический scan на случай если MutationObserver промахнётся.
+    const interval = setInterval(scan, 1000);
+
+    window.__onboardingDialogsBlocker = { observer, interval };
+    scan();
+  });
+  // Дать MutationObserver'у время прожать первый scan и скрыть существующие диалоги.
+  await page.waitForTimeout(400);
+
+  // Активный wait: убедиться, что нет ни одного видимого онбординг-портала.
+  // Vue может смонтировать новые q-portal--dialog с задержкой 1-5 сек после
+  // navigation, и observer должен их поймать — здесь мы просто блокируем до
+  // отсутствия видимых онбординг-порталов на экране (до 12 сек).
   await page.waitForFunction(
-    () => !Array.from(document.querySelectorAll('[id^="q-portal--dialog--"]'))
-      .some((p) => getComputedStyle(p).display !== 'none'),
-    { timeout: 30000 },
+    () => {
+      const portals = Array.from(document.querySelectorAll('[id^="q-portal--dialog--"]'));
+      const isOnboarding = (el) => {
+        const body = el.textContent || '';
+        return /Прочитайте и подпишите документ/i.test(body) && /Подписать/i.test(body);
+      };
+      return !portals.some((p) => isOnboarding(p) && getComputedStyle(p).display !== 'none');
+    },
+    { timeout: 12_000, polling: 200 },
   ).catch(() => {});
 }
 
