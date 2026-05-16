@@ -2,17 +2,17 @@
  * @brief Председатель приёмного КУ ставит закрывающую подпись на АПП приёмки
  * по одному Order'у (Story 5.3/5.4, p.mkt.supply).
  *
- * Per-Order композитная транзакция (атомарно в одной Antelope tx):
- *  - Ledger2::apply(o.mkt.purch,  total_cost, …, hash=order.hash) — Дт 10 / Кт 86.
- *  - Ledger2::apply(o.mkt.payout, total_cost, …, hash=order.hash) — Дт 86 / Кт 51.
+ * Per-Order — только бухгалтерская приёмка имущества:
+ *  - Ledger2::apply(o.mkt.purch, total_cost, …, hash=order.hash) — Дт 10 / Кт 86.
  *
- * Имущество приходуется на склад приёмного КУ (`accept_braname`); поставщику
- * уходит оплата на w.mkt.payout. Каждый Order — отдельная пара (purch +
- * payout) с собственным process_hash — векторов order_hash нет, backend
- * проходит циклом по orders соответствующего batch'а с одним и тем же актом.
+ * Имущество приходуется на склад приёмного КУ (`accept_braname`); у кооператива
+ * возникает обязательство Кт 86 перед поставщиком. Фактическая выплата деньгами
+ * (Дт 86 / Кт 51) — отдельным lazy action'ом `marketplace::payout` после
+ * подтверждения кассиром реального банковского перевода (Locked Decision L12,
+ * E11 техдолг 598-16).
  *
  * Status: supply_prepared → accepted_to_coop. acceptance_act_signchair
- * сохраняется.
+ * сохраняется. `payout_done` не выставляется — это атрибут payout-действия.
  *
  * Guards:
  *  - Order существует и в статусе supply_prepared.
@@ -39,15 +39,11 @@ void marketplace::signchair(eosio::name coopname,
 
   verify_document_or_fail(act, { o.offerer, signer });
 
-  // Композитная пара purch + payout (атомарно)
+  // Только приёмка имущества; payout — отдельный lazy action (L12).
   Ledger2::apply(_marketplace, coopname,
                  operations::marketplace::PURCHASE_FROM_SUPPLIER,
                  o.total_cost, o.offerer, o.hash,
                  Marketplace::Memo::get_purchase_from_supplier_memo(o.id));
-  Ledger2::apply(_marketplace, coopname,
-                 operations::marketplace::PAY_SUPPLIER,
-                 o.total_cost, o.offerer, o.hash,
-                 Marketplace::Memo::get_pay_supplier_memo(o.id));
 
   Marketplace::update_order(coopname, o.id, [&](auto& upd) {
     upd.status = OrderStatus::ACCEPTED_TO_COOP;

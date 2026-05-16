@@ -39,6 +39,27 @@ namespace OrderStatus {
 }
 
 /**
+ * @brief Состояние выплаты поставщику по Order'у (Locked Decision L12, E11
+ * техдолг 598-16). Выплата идёт через gateway::createoutpay → действие
+ * кассира → callback `marketplace::payconfirm` / `marketplace::paydecline`.
+ *
+ * Допустимые переходы:
+ *   none → pending             — `marketplace::payout` отправил inline в gateway.
+ *   pending → completed        — gateway::outcomplete → callback `payconfirm`.
+ *                                Здесь применяется o.mkt.payout (Дт 86 / Кт 51).
+ *   pending → declined         — gateway::outdecline → callback `paydecline`.
+ *                                Без ledger-движения; обязательство Кт 86 остаётся.
+ *   declined → pending         — повторная попытка `marketplace::payout` после
+ *                                исправления реквизитов кассиром.
+ */
+namespace OrderPayoutStatus {
+  inline constexpr eosio::name NONE      = "none"_n;
+  inline constexpr eosio::name PENDING   = "pending"_n;
+  inline constexpr eosio::name COMPLETED = "completed"_n;
+  inline constexpr eosio::name DECLINED  = "declined"_n;
+}
+
+/**
  * @brief Тип цикла отсечки заявок поставщика (атрибут Offer'а — Locked Decision L11).
  *
  * Сохраняется на Order'е, потому что фактический cycle_type фиксируется в момент
@@ -130,6 +151,9 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] order {
   document2 acceptance_act_signchair;                         ///< АПП приёмки — финальная подпись председателя приёмного КУ (signchair)
   document2 issue_act_signiss1;                               ///< АПП выдачи — первая подпись председателя КУ выдачи (signiss1)
   document2 issue_act_signiss2;                               ///< АПП выдачи — финальная подпись заказчика (signiss2)
+
+  eosio::name payout_status = OrderPayoutStatus::NONE;        ///< Locked Decision L12 — состояние выплаты поставщику через gateway (см. namespace OrderPayoutStatus)
+  std::string payout_decline_reason;                          ///< Заполняется только при payout_status == DECLINED (текст причины из gateway::outdecline)
 
   uint64_t return_request_id = 0;                             ///< 0 если активного гарантийного возврата нет
 

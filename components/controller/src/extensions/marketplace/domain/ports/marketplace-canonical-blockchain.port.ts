@@ -83,17 +83,39 @@ export interface MarketplaceCanonicalBlockchainPort {
 
   /**
    * Story 5.6: закрывающая подпись председателя КУ на АПП приёмки одного
-   * Order'а. C++ marketplace::signchair триггерит атомарную композитную
-   * серию `o.mkt.purch` (Дт 10 / Кт 86 — имущество на склад КУ за счёт
-   * ЦФ) + `o.mkt.payout` (TRANSFER, Дт 86 / Кт 51 — закрытие обязательства
-   * перед поставщиком). Переводит on-chain статус Order'а
-   * `supply_prepared → accepted_to_coop` и устанавливает
-   * `current_warehouse_braname = accept_braname`.
+   * Order'а. C++ marketplace::signchair выполняет ledger2-операцию
+   * `o.mkt.purch` (Дт 10 / Кт 86 — имущество на склад КУ за счёт ЦФ),
+   * переводит on-chain статус Order'а `supply_prepared → accepted_to_coop`
+   * и устанавливает `current_warehouse_braname = accept_braname`.
+   *
+   * Locked Decision L12 / PR #389: o.mkt.payout вынесен из signchair в
+   * отдельный action `marketplace::payout` (см. метод `payOut`); приёмка
+   * на КУ закрывает только корреспонденцию 10/86, обязательство 86/51
+   * (выплата поставщику) формируется отдельной транзакцией после
+   * фактического банковского перевода кассиром.
    *
    * Авторизация — кооператив (`require_auth(coopname)`); C++ проверяет
    * `signer == председатель КУ`.
    */
   signChair(data: MarketContract.Actions.SignChair.ISignChair): Promise<TransactResult>;
+
+  /**
+   * E11 техдолг 598-16 / Locked Decision L12: инициация исходящей выплаты
+   * поставщику по одному Order'у через контракт gateway. Триггерит C++
+   * `marketplace::payout` → inline `gateway::createoutpay` — gateway
+   * регистрирует запись в `outcomes` со статусом pending и привязанными
+   * callback'ами `payconfirm` / `paydecline`. Ledger2-операция o.mkt.payout
+   * (Дт 86 / Кт 51) применится позже в callback'е `payconfirm` после
+   * фактического банковского перевода кассиром; backend сам callback не
+   * вызывает — слушает delta через parser2 и обновляет
+   * `marketplace_outgoing_payment_request.status` соответственно.
+   *
+   * `order.payout_status`: NONE/DECLINED → PENDING. Defence-in-depth от
+   * двойной инициации — на уровне C++ guard.
+   *
+   * Авторизация — кооператив (`require_auth(coopname)`).
+   */
+  payOut(data: MarketContract.Actions.PayOut.IPayout): Promise<TransactResult>;
 }
 
 export const MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT = Symbol('MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT');
