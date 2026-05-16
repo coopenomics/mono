@@ -2,27 +2,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
-input AcceptChildOrderInput {
-  """Имя аккаунта кооператива"""
-  coopname: String!
-
-  """Подписанное заявление на имущественный паевый взнос"""
-  document: AssetContributionStatementSignedDocumentInput!
-
-  """Идентификатор заявки"""
-  exchange_id: String!
-
-  """Имя аккаунта пользователя"""
-  username: String!
-}
-
-input AcceptStockInput {
-  convert_in: SignedDigitalDocumentInput!
-  request_hash: String!
-  return_statement: SignedDigitalDocumentInput!
-  username: String!
-}
-
 type Account {
   """
   объект аккаунта в блокчейне содержит системную информацию, такую как публичные ключи доступа, доступные вычислительные ресурсы, информация об установленном смарт-контракте, и т.д. и т.п. Это системный уровень обслуживания, где у каждого пайщика есть аккаунт, но не каждый аккаунт может быть пайщиком в каком-либо кооперативе. Все смарт-контракты устанавливаются и исполняются на этом уровне.
@@ -910,254 +889,6 @@ enum ApprovalStatus {
   PENDING
 }
 
-input AssetContributionActGenerateDocumentInput {
-  """Идентификатор акта"""
-  act_id: String!
-
-  """Номер блока, на котором был создан документ"""
-  block_num: Int
-
-  """Имя аккаунта кооперативного участка"""
-  braname: String
-
-  """Название кооператива, связанное с документом"""
-  coopname: String!
-
-  """Дата и время создания документа"""
-  created_at: String
-
-  """Идентификатор решения"""
-  decision_id: Float!
-
-  """Имя генератора, использованного для создания документа"""
-  generator: String
-
-  """Язык документа"""
-  lang: String
-
-  """Ссылки, связанные с документом"""
-  links: [String!]
-
-  """Имя аккаунта получателя на кооперативном участке"""
-  receiver: String!
-
-  """Идентификатор заявки"""
-  request_id: Float!
-
-  """Часовой пояс, в котором был создан документ"""
-  timezone: String
-
-  """Название документа"""
-  title: String
-
-  """Имя пользователя, создавшего документ"""
-  username: String!
-
-  """Версия генератора, использованного для создания документа"""
-  version: String
-}
-
-input AssetContributionActSignedDocumentInput {
-  """Хэш содержимого документа"""
-  doc_hash: String!
-
-  """Общий хэш (doc_hash + meta_hash)"""
-  hash: String!
-
-  """Метаинформация для создания проекта свободного решения"""
-  meta: AssetContributionActSignedMetaDocumentInput!
-
-  """Хэш мета-данных"""
-  meta_hash: String!
-
-  """Вектор подписей"""
-  signatures: [SignatureInfoInput!]!
-
-  """Версия стандарта документа"""
-  version: String!
-}
-
-input AssetContributionActSignedMetaDocumentInput {
-  """Идентификатор акта"""
-  act_id: String!
-
-  """Номер блока, на котором был создан документ"""
-  block_num: Int!
-
-  """Имя аккаунта кооперативного участка"""
-  braname: String
-
-  """Название кооператива, связанное с документом"""
-  coopname: String!
-
-  """Дата и время создания документа"""
-  created_at: String!
-
-  """Идентификатор решения"""
-  decision_id: Float!
-
-  """Имя генератора, использованного для создания документа"""
-  generator: String!
-
-  """Язык документа"""
-  lang: String!
-
-  """Ссылки, связанные с документом"""
-  links: [String!]!
-
-  """Имя аккаунта получателя на кооперативном участке"""
-  receiver: String!
-
-  """ID документа в реестре"""
-  registry_id: Int!
-
-  """Идентификатор заявки"""
-  request_id: Float!
-
-  """Часовой пояс, в котором был создан документ"""
-  timezone: String!
-
-  """Название документа"""
-  title: String!
-
-  """Имя пользователя, создавшего документ"""
-  username: String!
-
-  """Версия генератора, использованного для создания документа"""
-  version: String!
-}
-
-input AssetContributionDecisionGenerateDocumentInput {
-  """Номер блока, на котором был создан документ"""
-  block_num: Int
-
-  """Название кооператива, связанное с документом"""
-  coopname: String!
-
-  """Дата и время создания документа"""
-  created_at: String
-
-  """Идентификатор решения"""
-  decision_id: Float!
-
-  """Имя генератора, использованного для создания документа"""
-  generator: String
-
-  """Язык документа"""
-  lang: String
-
-  """Ссылки, связанные с документом"""
-  links: [String!]
-
-  """Идентификатор заявки"""
-  request_id: Float!
-
-  """Часовой пояс, в котором был создан документ"""
-  timezone: String
-
-  """Название документа"""
-  title: String
-
-  """Имя пользователя, создавшего документ"""
-  username: String!
-
-  """Версия генератора, использованного для создания документа"""
-  version: String
-}
-
-input AssetContributionStatementGenerateDocumentInput {
-  """Номер блока, на котором был создан документ"""
-  block_num: Int
-
-  """Название кооператива, связанное с документом"""
-  coopname: String!
-
-  """Дата и время создания документа"""
-  created_at: String
-
-  """Имя генератора, использованного для создания документа"""
-  generator: String
-
-  """Язык документа"""
-  lang: String
-
-  """Ссылки, связанные с документом"""
-  links: [String!]
-
-  """Запрос на внесение имущественного паевого взноса"""
-  request: CommonRequestInput!
-
-  """Часовой пояс, в котором был создан документ"""
-  timezone: String
-
-  """Название документа"""
-  title: String
-
-  """Имя пользователя, создавшего документ"""
-  username: String!
-
-  """Версия генератора, использованного для создания документа"""
-  version: String
-}
-
-input AssetContributionStatementSignedDocumentInput {
-  """Хэш содержимого документа"""
-  doc_hash: String!
-
-  """Общий хэш (doc_hash + meta_hash)"""
-  hash: String!
-
-  """Метаинформация для создания проекта свободного решения"""
-  meta: AssetContributionStatementSignedMetaDocumentInput!
-
-  """Хэш мета-данных"""
-  meta_hash: String!
-
-  """Вектор подписей"""
-  signatures: [SignatureInfoInput!]!
-
-  """Версия стандарта документа"""
-  version: String!
-}
-
-input AssetContributionStatementSignedMetaDocumentInput {
-  """Номер блока, на котором был создан документ"""
-  block_num: Int!
-
-  """Название кооператива, связанное с документом"""
-  coopname: String!
-
-  """Дата и время создания документа"""
-  created_at: String!
-
-  """Имя генератора, использованного для создания документа"""
-  generator: String!
-
-  """Язык документа"""
-  lang: String!
-
-  """Ссылки, связанные с документом"""
-  links: [String!]!
-
-  """ID документа в реестре"""
-  registry_id: Int!
-
-  """Запрос на внесение имущественного паевого взноса"""
-  request: CommonRequestInput!
-
-  """Часовой пояс, в котором был создан документ"""
-  timezone: String!
-
-  """Название документа"""
-  title: String!
-
-  """Имя пользователя, создавшего документ"""
-  username: String!
-
-  """Версия генератора, использованного для создания документа"""
-  version: String!
-}
-
 type AuthSequence {
   account: String!
   sequence: String!
@@ -1723,17 +1454,6 @@ type CallTranscription {
 type CallTranscriptionWithSegments {
   segments: [TranscriptionSegment!]!
   transcription: CallTranscription!
-}
-
-input CancelRequestInput {
-  """Имя аккаунта кооператива"""
-  coopname: String!
-
-  """Идентификатор заявки"""
-  exchange_id: String!
-
-  """Имя аккаунта пользователя"""
-  username: String!
 }
 
 type Candidate {
@@ -3890,18 +3610,6 @@ enum CommitStatus {
   UNDEFINED
 }
 
-input CommonRequestInput {
-  currency: String!
-  hash: String!
-  program_id: Int!
-  title: String!
-  total_cost: String!
-  type: String!
-  unit_cost: String!
-  unit_of_measurement: String!
-  units: Int!
-}
-
 input CompleteCapitalRegistrationInputDTO {
   """Информация о себе"""
   about: String
@@ -3956,17 +3664,6 @@ input CompleteExtensionOnboardingStepInput {
 input CompleteProcessStepInput {
   instance_id: String!
   step_id: String!
-}
-
-input CompleteRequestInput {
-  """Имя аккаунта кооператива"""
-  coopname: String!
-
-  """Идентификатор обмена"""
-  exchange_id: String!
-
-  """Имя аккаунта пользователя"""
-  username: String!
 }
 
 input CompleteVotingInput {
@@ -4071,42 +3768,6 @@ input ConfirmApproveInput {
 
   """Название кооператива"""
   coopname: String!
-}
-
-"""
-Подтвердить получение имущества Уполномоченным лицом от Заказчика по новации и акту приёмки-передачи
-"""
-input ConfirmReceiveOnRequestInput {
-  """Имя аккаунта кооператива"""
-  coopname: String!
-
-  """
-  Подписанный акт приёмки-передачи имущества Уполномоченным лицом из Кооператива при возврате Заказчику по новации
-  """
-  document: ReturnByAssetActSignedDocumentInput!
-
-  """Идентификатор обмена"""
-  exchange_id: String!
-
-  """Имя аккаунта пользователя"""
-  username: String!
-}
-
-"""
-Подтвердить поставку имущества Поставщиком по заявке Заказчика и акту приёма-передачи
-"""
-input ConfirmSupplyOnRequestInput {
-  """Имя аккаунта кооператива"""
-  coopname: String!
-
-  """Подписанный акт приёма-передачи имущества от Поставщика в Кооператив"""
-  document: AssetContributionActSignedDocumentInput!
-
-  """Идентификатор обмена"""
-  exchange_id: String!
-
-  """Имя аккаунта пользователя"""
-  username: String!
 }
 
 type ContactsDTO {
@@ -4390,17 +4051,6 @@ type CooperativeProgram {
   program_type: String!
 }
 
-input CoopstockInput {
-  braname: String!
-  hash: String!
-  membership_fee_amount: String!
-  meta: String!
-  product_lifecycle_secs: Int!
-  unit_cost: String!
-  units: Int!
-  warranty_period_secs: Int!
-}
-
 """Страна регистрации пользователя"""
 enum Country {
   Russia
@@ -4482,42 +4132,6 @@ input CreateChatCoopCalendarEventInput {
   matrixRoomId: String!
   startsAt: DateTime!
   title: String!
-}
-
-input CreateChildOrderInput {
-  """Имя кооператива"""
-  coopname: String!
-
-  """Дополнительные данные, специфичные для заявки"""
-  data: String!
-
-  """
-  Подписанное заявление на возврат паевого взноса имуществом от Заказчика
-  """
-  document: ReturnByAssetStatementSignedDocumentInput!
-
-  """Метаданные о заявке"""
-  meta: String!
-
-  """Идентификатор родительской заявки"""
-  parent_id: Float!
-
-  """Время жизни продукта, заявляемое поставщиком (в секундах)"""
-  product_lifecycle_secs: Float!
-
-  """Идентификатор программы"""
-  program_id: Float!
-
-  """
-  Цена за единицу (штуку) товара или результата услуги в формате "10.0000 RUB"
-  """
-  unit_cost: String!
-
-  """Количество частей (штук) товара или услуги"""
-  units: Float!
-
-  """Имя пользователя, инициирующего или обновляющего заявку"""
-  username: String!
 }
 
 input CreateCommitInput {
@@ -4795,37 +4409,6 @@ input CreateOrganizationDataInput {
 
   """Тип организации"""
   type: OrganizationType!
-}
-
-input CreateParentOfferInput {
-  """Имя кооператива"""
-  coopname: String!
-
-  """Дополнительные данные, специфичные для заявки"""
-  data: String!
-
-  """Метаданные о заявке"""
-  meta: String!
-
-  """Идентификатор родительской заявки"""
-  parent_id: Float!
-
-  """Время жизни продукта, заявляемое поставщиком (в секундах)"""
-  product_lifecycle_secs: Float!
-
-  """Идентификатор программы"""
-  program_id: Float!
-
-  """
-  Цена за единицу (штуку) товара или услуги в формате "10.0000 RUB"
-  """
-  unit_cost: String!
-
-  """Количество частей (штук) товара или услуги"""
-  units: Float!
-
-  """Имя пользователя, инициирующего или обновляющего заявку"""
-  username: String!
 }
 
 input CreateProcessTemplateInput {
@@ -5305,20 +4888,6 @@ input DeclineApproveInput {
   reason: String!
 }
 
-input DeclineRequestInput {
-  """Имя аккаунта кооператива"""
-  coopname: String!
-
-  """Идентификатор обмена"""
-  exchange_id: Float!
-
-  """Причина отказа"""
-  meta: String!
-
-  """Имя аккаунта пользователя"""
-  username: String!
-}
-
 input DeleteBranchInput {
   """Имя аккаунта кооперативного участка"""
   braname: String!
@@ -5366,17 +4935,6 @@ input DeleteTrustedAccountInput {
   Имя аккаунта доверонного лица, у которого отзывается право подписи за председателя кооперативного участка
   """
   trusted: String!
-}
-
-input DeliverOnRequestInput {
-  """Имя аккаунта кооператива"""
-  coopname: String!
-
-  """Идентификатор обмена"""
-  exchange_id: Float!
-
-  """Имя аккаунта пользователя"""
-  username: String!
 }
 
 enum DeliveryType {
@@ -5485,25 +5043,6 @@ type DesktopWorkspace {
 
   """Отображаемое название workspace"""
   title: String!
-}
-
-input DestroyRequestInput {
-  destruction_act: SignedDigitalDocumentInput!
-  request_hash: String!
-}
-
-input DisputeOnRequestInput {
-  """Имя аккаунта кооператива"""
-  coopname: String!
-
-  """Документ с аргументами спора"""
-  document: JSONObject!
-
-  """Идентификатор обмена"""
-  exchange_id: Float!
-
-  """Имя аккаунта пользователя"""
-  username: String!
 }
 
 """Типы действий для документов кооператива"""
@@ -7354,6 +6893,41 @@ input MarkReportPeriodInput {
   year: Int!
 }
 
+"""Параметры приёма сводной заявки поставщиком."""
+input MarketplaceAcceptConsolidatedRequestInput {
+  """Идентификатор сводной заявки, ожидающей решения поставщика."""
+  request_id: String!
+}
+
+input MarketplaceAcceptCppInput {
+  """id решения Совета (FR40, Эпик 8). В MVP — stub string председателя."""
+  accepted_by_board_decision_id: String!
+
+  """
+  registry_id рендеренного instance положения ЦПП (Story 1.7 даст id из cooptypes)
+  """
+  document_registry_id: Int!
+}
+
+"""Параметры индивидуального приёма заказа поставщиком."""
+input MarketplaceAcceptIndividualOrderInput {
+  """
+  Идентификатор заказа индивидуального типа, который поставщик принимает.
+  """
+  order_id: String!
+}
+
+input MarketplaceAddToWhitelistInput {
+  """
+  eosio::name пайщика-поставщика (3-12 chars, [.12345abcdefghijklmnopqrstuvwxyz])
+  """
+  member_account: String!
+}
+
+input MarketplaceApproveOfferInput {
+  offer_id: String!
+}
+
 type MarketplaceAttribute {
   """ID комплексного атрибута"""
   attributeComplexId: Int!
@@ -7510,12 +7084,52 @@ type MarketplaceAvailableCategory {
   updatedAt: DateTime!
 }
 
+"""Параметры отмены своего заказа пайщиком."""
+input MarketplaceCancelOrderInput {
+  """
+  Идентификатор заказа, который пайщик хочет отменить (отмена возможна до приёма заказа поставщиком).
+  """
+  order_id: String!
+}
+
+"""Результат отмены заказа пайщиком."""
+type MarketplaceCancelOrderResult {
+  """Заказ после перевода в отменённое состояние."""
+  order: MarketplaceOrder!
+
+  """Идентификатор транзакции отмены в блокчейне."""
+  tx_hash: String!
+}
+
 type MarketplaceCategory {
+  display_name: String!
+  id: Int!
+  mvp_baseline: Boolean!
+  sort_order: Int!
+}
+
+type MarketplaceCategoryOfferCount {
+  category_id: Int!
+  count: Int!
+}
+
+type MarketplaceCategoryRequestCount {
+  """ID категории"""
+  categoryId: Int!
+
+  """Название категории"""
+  categoryName: String!
+
+  """Количество заявок"""
+  count: Int!
+}
+
+type MarketplaceCategoryTreeNode {
   """Название категории"""
   categoryName: String!
 
   """Дочерние категории"""
-  children: [MarketplaceCategory!]!
+  children: [MarketplaceCategoryTreeNode!]!
 
   """Количество дочерних категорий"""
   childrenCount: Int!
@@ -7542,17 +7156,6 @@ type MarketplaceCategory {
   typesCount: Int!
 }
 
-type MarketplaceCategoryRequestCount {
-  """ID категории"""
-  categoryId: Int!
-
-  """Название категории"""
-  categoryName: String!
-
-  """Количество заявок"""
-  count: Int!
-}
-
 type MarketplaceCategoryTreeStats {
   """Количество доступных типов товаров"""
   availableTypes: Int!
@@ -7573,10 +7176,166 @@ type MarketplaceCategoryTreeStats {
   totalTypes: Int!
 }
 
+type MarketplaceConsolidatedRequest {
+  accepted_at: DateTime
+  coopname: String!
+  created_at: DateTime!
+  cycle_ended_at: DateTime
+  cycle_started_at: DateTime!
+
+  """time_based | volume_based | open_subscription | individual"""
+  cycle_type: String!
+  decline_reason: String
+  declined_at: DateTime
+  expires_at: DateTime
+  id: String!
+  offer_id: String!
+
+  """
+  PENDING_SUPPLIER_ACCEPT | ACCEPTED | DECLINED_BY_SUPPLIER | EXPIRED_NO_RESPONSE | EXPIRED_NO_THRESHOLD | EXPIRED_NO_VOLUME
+  """
+  status: String!
+  supplier_account: String!
+
+  """Сумма заявки (numeric как string)."""
+  total_amount: String!
+  total_quantity: Int!
+  triggered_by_supplier_at: DateTime
+  updated_at: DateTime!
+}
+
+"""
+Результат массового действия поставщика над пакетом заказов (приём или отклонение).
+"""
+type MarketplaceConsolidatedRequestActionResult {
+  """Сколько заказов входило в обработанный пакет."""
+  affected_orders: Int!
+
+  """
+  Сколько заказов из пакета не удалось провести в блокчейн — потребуется повторная обработка.
+  """
+  on_chain_failed: Int!
+
+  """Сколько заказов из пакета удалось провести в блокчейн."""
+  on_chain_succeeded: Int!
+
+  """Сводная заявка после обработки."""
+  request: MarketplaceConsolidatedRequest!
+}
+
+type MarketplaceConsolidatedRequestPaginationResult {
+  """Текущая страница"""
+  currentPage: Int!
+
+  """Элементы текущей страницы"""
+  items: [MarketplaceConsolidatedRequest!]!
+
+  """Общее количество элементов"""
+  totalCount: Int!
+
+  """Общее количество страниц"""
+  totalPages: Int!
+}
+
+"""Состояние сводной заявки поставщика на поставку партии заказов."""
+enum MarketplaceConsolidatedRequestStatus {
+  ACCEPTED
+  DECLINED_BY_SUPPLIER
+  EXPIRED_NO_RESPONSE
+  EXPIRED_NO_THRESHOLD
+  EXPIRED_NO_VOLUME
+  PENDING_SUPPLIER_ACCEPT
+}
+
+type MarketplaceCppStatus {
+  accepted_at: String
+  accepted_by_board_decision_id: String
+  document_registry_id: Int
+
+  """
+  `active` — Совет принял положение ЦПП; `not_accepted` — расширение не подключено
+  """
+  status: String!
+}
+
+input MarketplaceCreateOfferInput {
+  category_id: Int!
+  cycle_days: Int
+
+  """time_based | volume_based | open_subscription | individual"""
+  cycle_type: String!
+  description: String
+  max_wait_days: Int
+  min_threshold: Int
+
+  """Цена за единицу (numeric как string, до 4 знаков)"""
+  price_per_unit: String!
+  product_name: String!
+  quantity_available: Int
+  target_volume: Int
+
+  """piece | kg | liter | pack"""
+  unit_of_measure: String!
+  unlimited_flag: Boolean!
+  warranty_days: Int!
+}
+
+"""Параметры оформления нового заказа пайщиком."""
+input MarketplaceCreateOrderInput {
+  """Имя пункта выдачи (ПВЗ), куда пайщик хочет получить заказ."""
+  delivery_braname: String!
+
+  """Идентификатор предложения, по которому пайщик оформляет заказ."""
+  offer_id: String!
+
+  """
+  Количество единиц товара (от 1; для не-безлимитных предложений — не больше доступного остатка).
+  """
+  quantity: Int!
+}
+
+type MarketplaceCreateOrderResult {
+  order: MarketplaceOrder!
+  tx_snapshot: MarketplaceOrderCreateTxSnapshot!
+}
+
 type MarketplaceCurrentMember {
   core_roles: [String!]!
   marketplace_roles: [String!]!
   username: String!
+}
+
+"""Параметры отказа поставщика от сводной заявки."""
+input MarketplaceDeclineConsolidatedRequestInput {
+  """Текст причины отказа — будет показан пайщикам в их заказах."""
+  reason: String!
+
+  """Идентификатор сводной заявки, от которой поставщик отказывается."""
+  request_id: String!
+}
+
+"""Параметры индивидуального отказа поставщика от заказа."""
+input MarketplaceDeclineIndividualOrderInput {
+  """
+  Идентификатор заказа индивидуального типа, от которого поставщик отказывается.
+  """
+  order_id: String!
+
+  """Текст причины отказа — будет показан пайщику в его заказе."""
+  reason: String!
+}
+
+"""
+Параметры отказа поставщика от одного заказа из пула открытой подписки до запуска поставки.
+"""
+input MarketplaceDeclineOrderFromOpenPoolInput {
+  """
+  Идентификатор заказа из пула открытой подписки, от которого поставщик отказывается до запуска поставки.
+  """
+  order_id: String!
+
+  """Текст причины отказа — будет показан пайщику в его заказе."""
+  reason: String!
 }
 
 input MarketplaceDetailKUInput {
@@ -7648,6 +7407,12 @@ type MarketplaceDictionaryValue {
   value: String!
 }
 
+"""Параметры запроса одного заказа."""
+input MarketplaceGetOrderInput {
+  """Идентификатор заказа."""
+  order_id: String!
+}
+
 type MarketplaceKUDetails {
   addressFull: String!
   contactEmail: String!
@@ -7672,6 +7437,313 @@ type MarketplaceKUDetails {
   workingHours: WorkingHours!
 }
 
+input MarketplaceListCatalogInput {
+  """category_id 1..9; null = «Все»"""
+  category_id: Int
+
+  """Количество элементов на странице"""
+  limit: Int! = 10
+
+  """Номер страницы"""
+  page: Int! = 1
+
+  """Ключ сортировки (например, "name")"""
+  sortBy: String
+
+  """Направление сортировки ("ASC" или "DESC")"""
+  sortOrder: String! = "ASC"
+}
+
+input MarketplaceListConsolidatedRequestsInput {
+  """Фильтр по идентификатору предложения."""
+  offer_id: String
+
+  """Фильтр по состоянию сводной заявки."""
+  status: MarketplaceConsolidatedRequestStatus
+}
+
+input MarketplaceListMyOffersInput {
+  """Количество элементов на странице"""
+  limit: Int! = 10
+
+  """Номер страницы"""
+  page: Int! = 1
+
+  """Ключ сортировки (например, "name")"""
+  sortBy: String
+
+  """Направление сортировки ("ASC" или "DESC")"""
+  sortOrder: String! = "ASC"
+}
+
+"""
+Параметры фильтрации списка заказов (постранично/сортировка задаются отдельным аргументом options).
+"""
+input MarketplaceListOrdersInput {
+  """Фильтр по идентификатору предложения."""
+  offer_id: String
+
+  """Фильтр по аккаунту заказчика."""
+  orderer_account: String
+
+  """
+  Один или несколько статусов заказа, по которым нужно отфильтровать список.
+  """
+  statuses: [MarketplaceOrderStatus!]
+
+  """Фильтр по аккаунту поставщика."""
+  supplier_account: String
+}
+
+input MarketplaceListPendingOffersInput {
+  """Количество элементов на странице"""
+  limit: Int! = 10
+
+  """Номер страницы"""
+  page: Int! = 1
+
+  """Ключ сортировки (например, "name")"""
+  sortBy: String
+
+  """Направление сортировки ("ASC" или "DESC")"""
+  sortOrder: String! = "ASC"
+}
+
+type MarketplaceMemberWallet {
+  coopname: String!
+  username: String!
+
+  """
+  Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.member
+  """
+  wallets: [MarketplaceWalletEntry!]!
+}
+
+type MarketplaceModerationLogEntry {
+  """approve | reject"""
+  action: String!
+  by_account: String!
+  created_at: DateTime!
+  id: String!
+  offer_id: String!
+  reason: String
+}
+
+type MarketplaceOffer {
+  approved_at: DateTime
+  approved_by: String
+  category_id: Int!
+  coopname: String!
+  created_at: DateTime!
+  cycle_days: Int
+
+  """time_based | volume_based | open_subscription | individual"""
+  cycle_type: String!
+  description: String
+  id: String!
+  max_wait_days: Int
+  min_threshold: Int
+
+  """Цена за единицу (numeric как string)"""
+  price_per_unit: String!
+  product_name: String!
+  quantity_available: Int!
+  quantity_blocked: Int!
+  quantity_consumed: Int!
+  reject_reason: String
+  rejected_at: DateTime
+  rejected_by: String
+
+  """PENDING_MODERATION | ACTIVE | REJECTED | WITHDRAWN"""
+  status: String!
+  supplier_account: String!
+  target_volume: Int
+
+  """piece | kg | liter | pack"""
+  unit_of_measure: String!
+  unlimited_flag: Boolean!
+  updated_at: DateTime!
+  vitrine_id: String!
+  warranty_days: Int!
+}
+
+type MarketplaceOfferPaginationResult {
+  """Текущая страница"""
+  currentPage: Int!
+
+  """Элементы текущей страницы"""
+  items: [MarketplaceOffer!]!
+
+  """Общее количество элементов"""
+  totalCount: Int!
+
+  """Общее количество страниц"""
+  totalPages: Int!
+}
+
+type MarketplaceOnboardingState {
+  agreement_id: Int
+  completed_at: String
+
+  """
+  true — фронт должен показать gate-диалог OnboardingCPPGate; false — пайщик может попасть на стол сразу
+  """
+  requires_gate: Boolean!
+  source: String!
+
+  """
+  registry_id шаблона оферты ЦПП marketplace в платформенной document factory (Story 1.7). 0 — placeholder, оферта ещё не зарегистрирована.
+  """
+  template_registry_id: Int!
+}
+
+"""Заказ пайщика по предложению поставщика."""
+type MarketplaceOrder {
+  """Когда поставщик принял заказ."""
+  accepted_at: DateTime
+
+  """Когда средства были заблокированы."""
+  blocked_at: DateTime
+
+  """Когда заказ был отменён."""
+  cancelled_at: DateTime
+
+  """Кооператив, в котором сделан заказ."""
+  coopname: String!
+
+  """
+  Снимок транзакции блокировки средств (для отображения движений кошелька).
+  """
+  create_tx: MarketplaceOrderCreateTxSnapshot
+
+  """Когда запись о заказе создана в системе."""
+  created_at: DateTime!
+
+  """Идентификатор партии-накопителя, если заказ присоединён."""
+  cycle_id: String
+
+  """Способ накопления заказов перед поставкой (копируется из предложения)."""
+  cycle_type: MarketplaceOrderCycleType!
+
+  """Имя пункта выдачи (ПВЗ), куда пайщик хочет получить заказ."""
+  delivery_braname: String!
+
+  """Идентификатор заказа."""
+  id: String!
+
+  """Текстовая причина последнего изменения статуса."""
+  last_status_reason: String
+
+  """Хеш предложения в блокчейне (snapshot на момент заказа)."""
+  offer_hash: String!
+
+  """Идентификатор предложения, по которому оформлен заказ."""
+  offer_id: String!
+
+  """Хеш заказа в блокчейне (для сверки)."""
+  order_hash: String!
+
+  """Аккаунт пайщика-заказчика."""
+  orderer_account: String!
+
+  """Цена за единицу товара на момент заказа."""
+  price_per_unit: String!
+
+  """Количество единиц товара в заказе."""
+  quantity: Int!
+
+  """Когда пайщик получил заказ."""
+  received_at: DateTime
+
+  """Текущий этап жизненного цикла заказа."""
+  status: MarketplaceOrderStatus!
+
+  """Аккаунт поставщика."""
+  supplier_account: String!
+
+  """Общая сумма заказа."""
+  total_cost: String!
+
+  """Когда запись о заказе последний раз изменялась."""
+  updated_at: DateTime!
+
+  """Срок гарантии в секундах с момента получения."""
+  warranty_period_secs: Int!
+
+  """Дата окончания гарантии."""
+  warranty_until: DateTime
+}
+
+"""
+Снимок транзакции блокировки средств: ссылки на блок, флаги конверсии и сумма.
+"""
+type MarketplaceOrderCreateTxSnapshot {
+  """Номер блока, в который попала транзакция."""
+  block_num: Int!
+
+  """Сумма заблокированных средств (строка денежного актива)."""
+  blocked_amount: String!
+
+  """Был ли выполнен перевод средств между кошельками пайщика."""
+  did_assign: Boolean!
+
+  """Была ли выполнена конверсия паевого взноса в членский."""
+  did_convert: Boolean!
+
+  """Время подписания заказа (ISO 8601)."""
+  signed_at: String!
+
+  """Идентификатор транзакции в блокчейне."""
+  tx_hash: String!
+}
+
+"""Способ накопления заказов перед поставкой."""
+enum MarketplaceOrderCycleType {
+  """Каждый заказ обрабатывается отдельно, без накопления."""
+  INDIVIDUAL
+
+  """Поставщик запускает поставку вручную."""
+  OPEN_SUBSCRIPTION
+
+  """Поставка по истечении периода; собирается всё, что успело прийти."""
+  TIME_BASED
+
+  """Поставка стартует, когда набран целевой объём."""
+  VOLUME_BASED
+}
+
+"""Постраничный список заказов."""
+type MarketplaceOrderPaginationResult {
+  """Текущая страница"""
+  currentPage: Int!
+
+  """Элементы текущей страницы"""
+  items: [MarketplaceOrder!]!
+
+  """Общее количество элементов"""
+  totalCount: Int!
+
+  """Общее количество страниц"""
+  totalPages: Int!
+}
+
+"""Этап жизненного цикла заказа."""
+enum MarketplaceOrderStatus {
+  ACCEPTED
+  ACCEPTED_PENDING_SUPPLIER
+  ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL
+  ACCEPTED_TO_COOP
+  ACTIVE
+  CANCELLED_BY_ORDERER
+  CANCELLED_BY_SUPPLIER
+  EXPIRED_NO_THRESHOLD
+  EXPIRED_NO_VOLUME
+  READY_TO_RECEIVE
+  RECEIVED
+  RETURNED
+  SUPPLY_PREPARED
+}
+
 type MarketplaceProductType {
   """ID категории"""
   descriptionCategoryId: Int!
@@ -7692,6 +7764,38 @@ type MarketplaceProductType {
   typeName: String!
 }
 
+type MarketplaceRegistrationOfferStatus {
+  """AGREEMENT_ID (например `marketplace_offer`)"""
+  agreement_id: String
+  agreement_type: String
+
+  """
+  Account types, для которых оферта показывается в SignUp ([individual, entrepreneur] на MVP)
+  """
+  applicable_account_types: [String!]!
+
+  """
+  true — оферта зарегистрирована в platform AgreementRegistry, видна в SignUp; false — Story 1.7 не размещена либо init расширения ещё не отработал
+  """
+  registered: Boolean!
+
+  """document_registry_id template оферты"""
+  registry_id: Int
+  title: String
+}
+
+input MarketplaceRejectOfferInput {
+  offer_id: String!
+
+  """Причина отказа (≤1000)"""
+  reason: String!
+}
+
+input MarketplaceRemoveFromWhitelistInput {
+  """eosio::name пайщика-поставщика"""
+  member_account: String!
+}
+
 type MarketplaceRequest {
   """Артикул товара"""
   articleNumber: String!
@@ -7709,7 +7813,7 @@ type MarketplaceRequest {
   canBeEdited: Boolean!
 
   """Информация о категории"""
-  category: MarketplaceCategory!
+  category: MarketplaceCategoryTreeNode!
 
   """URL образца цвета"""
   colorImageUrl: String
@@ -7931,6 +8035,105 @@ input MarketplaceSetKUStatusInput {
 
   """Целевой статус ПВЗ: ACTIVE или INACTIVE"""
   status: String!
+}
+
+"""Результат индивидуального приёма или отклонения заказа поставщиком."""
+type MarketplaceSupplierOrderActionResult {
+  """Заказ после изменения статуса."""
+  order: MarketplaceOrder!
+
+  """Идентификатор транзакции приёма или отклонения."""
+  tx_hash: String!
+}
+
+input MarketplaceTriggerOpenSubscriptionInput {
+  """
+  Идентификатор предложения с открытой подпиской, по которому поставщик запускает поставку.
+  """
+  offer_id: String!
+}
+
+input MarketplaceUpdateOfferInput {
+  category_id: Int
+  cycle_days: Int
+  cycle_type: String
+  description: String
+  id: String!
+  max_wait_days: Int
+  min_threshold: Int
+  price_per_unit: String
+  product_name: String
+  quantity_available: Int
+  target_volume: Int
+  unit_of_measure: String
+  unlimited_flag: Boolean
+  warranty_days: Int
+}
+
+type MarketplaceVitrine {
+  """eosio::name кооператива-владельца витрины"""
+  coopname: String!
+  created_at: DateTime!
+
+  """Отображаемое имя витрины"""
+  display_name: String!
+
+  """Идентификатор витрины (MVP всегда "default")"""
+  id: String!
+
+  """Дефолтная витрина кооператива (MVP — всегда true)"""
+  is_default: Boolean!
+  updated_at: DateTime!
+}
+
+type MarketplaceWalletEntry {
+  """Доступный остаток (`userwallets.available`)"""
+  available: String!
+
+  """Заблокированный остаток (`userwallets.blocked`)"""
+  blocked: String!
+
+  """Человекочитаемое название (из cooptypes LEDGER2_WALLET_REGISTRY)"""
+  human_name: String!
+
+  """WalletKind: USER_SHARED — обязателен L3-разрез по пайщику"""
+  kind: String!
+
+  """
+  UX-метка кошелька в формате `<тип взноса> | <программа>` (например «Паевой | Цифровой Кошелёк», «Членский | Стол Заказов»)
+  """
+  label: String!
+
+  """eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.member)"""
+  name: String!
+
+  """program_id: 1 — Цифровой Кошелёк, 2 — Стол Заказов"""
+  program_id: Int!
+}
+
+type MarketplaceWhitelistEntry {
+  added_at: DateTime!
+
+  """Кто добавил (eosio::name админа)"""
+  added_by: String
+
+  """eosio::name кооператива"""
+  coopname: String!
+
+  """UUID записи whitelist"""
+  id: String!
+
+  """eosio::name пайщика-поставщика"""
+  member_account: String!
+
+  """
+  auto-coop — сам кооператив (неудаляема, FR5); manual — добавлен админом
+  """
+  role: String!
+}
+
+input MarketplaceWithdrawOfferInput {
+  id: String!
 }
 
 type MatrixAccountStatusResponseDTO {
@@ -8168,22 +8371,6 @@ type MissingRequisiteField {
   source: RequisiteSource!
 }
 
-input ModerateRequestInput {
-  """
-  Размер комиссии за отмену в формате "10.0000 RUB"
-  """
-  cancellation_fee: String!
-
-  """Имя аккаунта кооператива"""
-  coopname: String!
-
-  """Идентификатор обмена"""
-  exchange_id: Float!
-
-  """Имя аккаунта пользователя"""
-  username: String!
-}
-
 type MonoAccount {
   """Электронная почта пользователя"""
   email: String!
@@ -8237,16 +8424,6 @@ input MoveCapitalIssueToComponentInput {
 }
 
 type Mutation {
-  """Подтвердить поставку имущества на заявку"""
-  acceptChildOrder(data: AcceptChildOrderInput!): Transaction!
-
-  """
-  Принять предложение из запасов кооператива
-  
-  Требуемые роли: chairman, member, user. 
-  """
-  acceptStock(data: AcceptStockInput!): Transaction!
-
   """
   Добавить активного пайщика, который вступил в кооператив, не используя платформу (заполнив заявление собственноручно, оплатив вступительный и минимальный паевый взносы, и получив протокол решения совета)
   
@@ -8270,9 +8447,6 @@ type Mutation {
   Требуемые роли: chairman, member, user. 
   """
   archiveProductCard(id: String!): Boolean!
-
-  """Отменить заявку"""
-  cancelRequest(data: CancelRequestInput!): Transaction!
 
   """
   Добавление автора проекта в CAPITAL контракте
@@ -8882,32 +9056,12 @@ type Mutation {
   """
   completeExtensionOnboardingStep(data: CompleteExtensionOnboardingStepInput!): ExtensionOnboardingState!
 
-  """Завершить заявку по истечению гарантийного срока"""
-  completeRequest(data: CompleteRequestInput!): Transaction!
-
   """
   Подтвердить соглашение пайщика администратором
   
   Требуемые роли: chairman, member. 
   """
   confirmAgreement(data: ConfirmAgreementInput!): Transaction!
-
-  """
-  Подтвердить получение имущества Уполномоченным лицом от Заказчика по новации и акту приёмки-передачи
-  """
-  confirmReceiveOnRequest(data: ConfirmReceiveOnRequestInput!): Transaction!
-
-  """
-  Подтвердить поставку имущества Поставщиком по заявке Заказчика и акту приёма-передачи
-  """
-  confirmSupplyOnRequest(data: ConfirmSupplyOnRequestInput!): Transaction!
-
-  """
-  Создать предложение из запасов кооператива
-  
-  Требуемые роли: chairman. 
-  """
-  coopstock(data: CoopstockInput!): Transaction!
 
   """
   Сгенерировать документ предложения повестки очередного общего собрания пайщиков
@@ -8930,9 +9084,6 @@ type Mutation {
   """
   createCategory(data: CreateCategoryInput!): Category!
 
-  """Создать заявку на поставку имущества по предложению Поставщика"""
-  createChildOrder(data: CreateChildOrderInput!): Transaction!
-
   """
   Создание объекта паевого платежа производится мутацией createDepositPayment. Выполнение мутации возвращает идентификатор платежа и данные для его совершения в зависимости от выбранного платежного провайдера.
   
@@ -8946,9 +9097,6 @@ type Mutation {
   Требуемые роли: chairman, member. 
   """
   createInitialPayment(data: CreateInitialPaymentInput!): GatewayPayment!
-
-  """Создать предложение на поставку имущества"""
-  createParentOffer(data: CreateParentOfferInput!): Transaction!
 
   """
   Создать карточку товара/услуги
@@ -8992,9 +9140,6 @@ type Mutation {
   """
   declineAgreement(data: DeclineAgreementInput!): Transaction!
 
-  """Отклонить заявку"""
-  declineRequest(data: DeclineRequestInput!): Transaction!
-
   """
   Удалить кооперативный участок
   
@@ -9033,19 +9178,6 @@ type Mutation {
   """
   deleteTrustedAccount(data: DeleteTrustedAccountInput!): Branch!
 
-  """Подтвердить доставку имущества Заказчику по заявке"""
-  deliverOnRequest(data: DeliverOnRequestInput!): Transaction!
-
-  """
-  Уничтожить просроченное имущество
-  
-  Требуемые роли: chairman. 
-  """
-  destroyRequest(data: DestroyRequestInput!): Transaction!
-
-  """Открыть спор по заявке"""
-  disputeOnRequest(data: DisputeOnRequestInput!): Transaction!
-
   """
   Изменить кооперативный участок
   
@@ -9073,27 +9205,6 @@ type Mutation {
   Требуемые роли: chairman, member. 
   """
   generateAnnualGeneralMeetNotificationDocument(data: AnnualGeneralMeetingNotificationGenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
-
-  """
-  Сгенерировать документ акта приема-передачи.
-  
-  Требуемые роли: chairman, member. 
-  """
-  generateAssetContributionAct(data: AssetContributionActGenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
-
-  """
-  Сгенерировать документ решения о вступлении в кооператив.
-  
-  Требуемые роли: chairman, member. 
-  """
-  generateAssetContributionDecision(data: AssetContributionDecisionGenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
-
-  """
-  Сгенерировать документ заявления о вступлении в кооператив.
-  
-  Требуемые роли: chairman, member. 
-  """
-  generateAssetContributionStatement(data: AssetContributionStatementGenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
   """
   Сгенерировать бюллетень для голосования на общем собрании пайщиков
@@ -9162,27 +9273,6 @@ type Mutation {
   Требуемые роли: chairman. 
   """
   generateReportFromEdits(editsJson: String!, period: Int, reportType: ReportType!, year: Int!): GeneratedReport!
-
-  """
-  Сгенерировать документ акта возврата имущества.
-  
-  Требуемые роли: chairman, member. 
-  """
-  generateReturnByAssetAct(data: ReturnByAssetActGenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
-
-  """
-  Сгенерировать документ решения о возврате имущества.
-  
-  Требуемые роли: chairman, member. 
-  """
-  generateReturnByAssetDecision(data: ReturnByAssetDecisionGenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
-
-  """
-  Сгенерировать документ заявления о возврате имущества.
-  
-  Требуемые роли: chairman, member. 
-  """
-  generateReturnByAssetStatement(data: ReturnByAssetStatementGenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
   """
   Сгенерировать документ решения совета о возврате паевого взноса
@@ -9264,6 +9354,19 @@ type Mutation {
   markReportPeriod(data: MarkReportPeriodInput!): Boolean!
 
   """
+  Поставщик принимает сводную заявку — все заказы в пакете переходят в принятое состояние.
+  """
+  marketplaceAcceptConsolidatedRequest(input: MarketplaceAcceptConsolidatedRequestInput!): MarketplaceConsolidatedRequestActionResult!
+
+  """
+  Зафиксировать принятие положения ЦПП «Стол заказов» Советом — admin-action из admin-стола. MVP-stub: председатель самостоятельно передаёт `accepted_by_board_decision_id`; в Эпике 8 поле будет валидироваться против реальной повестки совета.
+  """
+  marketplaceAcceptCpp(input: MarketplaceAcceptCppInput!): MarketplaceCppStatus!
+
+  """Поставщик принимает один индивидуальный заказ."""
+  marketplaceAcceptIndividualOrder(input: MarketplaceAcceptIndividualOrderInput!): MarketplaceSupplierOrderActionResult!
+
+  """
   Добавить категории в доступные для кооператива (целые категории)
   
   Требуемые роли: chairman. 
@@ -9277,12 +9380,29 @@ type Mutation {
   """
   marketplaceAddAvailableCategoryTypes(input: AddAvailableCategoryTypesInput!): [MarketplaceAvailableCategory!]!
 
+  """Добавить пайщика в whitelist поставщиков (admin)"""
+  marketplaceAddToWhitelist(input: MarketplaceAddToWhitelistInput!): MarketplaceWhitelistEntry!
+
+  """Одобрить Offer (status → ACTIVE) (admin)"""
+  marketplaceApproveOffer(input: MarketplaceApproveOfferInput!): MarketplaceOffer!
+
+  """
+  Отменить свой заказ до его приёма поставщиком; средства разблокируются.
+  """
+  marketplaceCancelOrder(input: MarketplaceCancelOrderInput!): MarketplaceCancelOrderResult!
+
   """
   Очистить все доступные категории (сделать доступными все)
   
   Требуемые роли: chairman. 
   """
   marketplaceClearAvailableCategories: Boolean!
+
+  """Поставщик публикует Offer (статус → PENDING_MODERATION)"""
+  marketplaceCreateOffer(input: MarketplaceCreateOfferInput!): MarketplaceOffer!
+
+  """Оформить заказ по предложению и заблокировать средства пайщика."""
+  marketplaceCreateOrder(input: MarketplaceCreateOrderInput!): MarketplaceCreateOrderResult!
 
   """
   Создать новую заявку на поставку или заказ товара
@@ -9292,11 +9412,29 @@ type Mutation {
   marketplaceCreateRequest(data: CreateRequestInput!): MarketplaceRequest!
 
   """
+  Поставщик отклоняет сводную заявку — все заказы пакета отменяются, средства разблокируются.
+  """
+  marketplaceDeclineConsolidatedRequest(input: MarketplaceDeclineConsolidatedRequestInput!): MarketplaceConsolidatedRequestActionResult!
+
+  """
+  Поставщик отказывается от одного индивидуального заказа; средства разблокируются.
+  """
+  marketplaceDeclineIndividualOrder(input: MarketplaceDeclineIndividualOrderInput!): MarketplaceSupplierOrderActionResult!
+
+  """
+  Поставщик отказывается от одного заказа из пула открытой подписки до запуска поставки (после запуска частичный отказ невозможен).
+  """
+  marketplaceDeclineOrderFromOpenPool(input: MarketplaceDeclineOrderFromOpenPoolInput!): MarketplaceSupplierOrderActionResult!
+
+  """
   Детализирует существующий в core кооперативный участок как ПВЗ Стола заказов. Создаёт запись marketplace_ku_details, либо обновляет существующую. При смене адреса запускает повторный геокодинг — координаты сбрасываются в PENDING и обновляются асинхронно.
   
   Требуемые роли: chairman. 
   """
   marketplaceDetailKU(data: MarketplaceDetailKUInput!): MarketplaceKUDetails!
+
+  """Отклонить Offer с причиной (status → REJECTED) (admin)"""
+  marketplaceRejectOffer(input: MarketplaceRejectOfferInput!): MarketplaceOffer!
 
   """
   Удалить категории из доступных для кооператива (включая все их типы)
@@ -9311,6 +9449,9 @@ type Mutation {
   Требуемые роли: chairman. 
   """
   marketplaceRemoveAvailableCategoryTypes(input: RemoveAvailableCategoryTypesInput!): Boolean!
+
+  """Удалить пайщика из whitelist (admin); auto-coop запись неудаляема"""
+  marketplaceRemoveFromWhitelist(input: MarketplaceRemoveFromWhitelistInput!): Boolean!
 
   """
   Заменить все доступные категории и типы новым списком
@@ -9333,8 +9474,16 @@ type Mutation {
   """
   marketplaceSetKUStatus(data: MarketplaceSetKUStatusInput!): MarketplaceKUDetails!
 
-  """Модерировать заявку"""
-  moderateRequest(data: ModerateRequestInput!): Transaction!
+  """
+  Поставщик запускает поставку по предложению с открытой подпиской: формируется сводная заявка, заказы в её пуле принимаются.
+  """
+  marketplaceTriggerOpenSubscription(input: MarketplaceTriggerOpenSubscriptionInput!): MarketplaceConsolidatedRequest!
+
+  """Поставщик правит свой Offer — статус сбрасывается в PENDING_MODERATION"""
+  marketplaceUpdateOffer(input: MarketplaceUpdateOfferInput!): MarketplaceOffer!
+
+  """Поставщик снимает свой Offer (статус → WITHDRAWN)"""
+  marketplaceWithdrawOffer(input: MarketplaceWithdrawOfferInput!): MarketplaceOffer!
 
   """
   Уведомление о проведении общего собрания пайщиков
@@ -9350,9 +9499,6 @@ type Mutation {
   """
   processConvertToAxonStatement(data: ProcessConvertToAxonStatementInput!): Boolean!
 
-  """Отклонить модерацию по заявке"""
-  prohibitRequest(data: ProhibitRequestInput!): Transaction!
-
   """
   Опубликовать карточку
   
@@ -9367,14 +9513,6 @@ type Mutation {
   """
   publishProjectOfFreeDecision(data: PublishProjectFreeDecisionInput!): Boolean!
 
-  """Опубликовать заявку"""
-  publishRequest(data: PublishRequestInput!): Transaction!
-
-  """
-  Подтвердить получение имущества Уполномоченным лицом от Заказчика по акту приёмки-передачи
-  """
-  receiveOnRequest(data: ReceiveOnRequestInput!): Transaction!
-
   """Обновить токен доступа аккаунта"""
   refresh(data: RefreshInput!): RegisteredAccount!
 
@@ -9387,20 +9525,6 @@ type Mutation {
   Требуемые роли: chairman, member. 
   """
   registerParticipant(data: RegisterParticipantInput!): Account!
-
-  """
-  Перепредложить имущество по новой цене
-  
-  Требуемые роли: chairman. 
-  """
-  reofferRequest(data: ReofferRequestInput!): Transaction!
-
-  """
-  Запросить возврат паевого взноса имуществом (перед получением)
-  
-  Требуемые роли: chairman, member, user. 
-  """
-  reqReturn(data: ReqReturnInput!): Transaction!
 
   """Заменить приватный ключ аккаунта"""
   resetKey(data: ResetKeyInput!): Boolean!
@@ -9464,11 +9588,6 @@ type Mutation {
   startResetKey(data: StartResetKeyInput!): Boolean!
 
   """
-  Подтвердить поставку имущества Поставщиком по заявке Заказчика и акту приёма-передачи
-  """
-  supplyOnRequest(data: SupplyOnRequestInput!): Transaction!
-
-  """
   Запустить воркфлоу уведомлений (только для председателя или server-secret)
   
   Требуемые роли: chairman. 
@@ -9481,9 +9600,6 @@ type Mutation {
   Требуемые роли: chairman. 
   """
   uninstallExtension(data: UninstallExtensionInput!): Boolean!
-
-  """Снять с публикации заявку"""
-  unpublishRequest(data: UnpublishRequestInput!): Transaction!
 
   """
   Обновить аккаунт в системе провайдера. Обновление аккаунта пользователя производится по username. Мутация позволяет изменить приватные данные пользователя, а также, адрес электронной почты в MONO. Использовать мутацию может только председатель совета.
@@ -9508,9 +9624,6 @@ type Mutation {
   Требуемые роли: chairman. 
   """
   updateReportRequisites(input: UpdateReportRequisitesInput!): ReportRequisitesView!
-
-  """Обновить заявку"""
-  updateRequest(data: UpdateRequestInput!): Transaction!
 
   """
   Обновить настройки системы (рабочие столы и маршруты по умолчанию)
@@ -10817,20 +10930,6 @@ type ProgramWalletsPaginationResult {
   totalPages: Int!
 }
 
-input ProhibitRequestInput {
-  """Имя аккаунта кооператива"""
-  coopname: String!
-
-  """Идентификатор обмена"""
-  exchange_id: Float!
-
-  """Дополнительная информация о отклоненной модерации"""
-  meta: String!
-
-  """Имя аккаунта пользователя"""
-  username: String!
-}
-
 input ProjectFreeDecisionGenerateDocumentInput {
   """Номер блока, на котором был создан документ"""
   block_num: Int
@@ -11047,17 +11146,6 @@ input PublishProjectFreeDecisionInput {
 
   """Строка мета-информации"""
   meta: String!
-
-  """Имя аккаунта пользователя"""
-  username: String!
-}
-
-input PublishRequestInput {
-  """Имя аккаунта кооператива"""
-  coopname: String!
-
-  """Идентификатор заявки"""
-  exchange_id: Float!
 
   """Имя аккаунта пользователя"""
   username: String!
@@ -11646,6 +11734,17 @@ type Query {
   """
   marketplaceCategoryAttributesGrouped(input: GetCategoryAttributesInput!): [MarketplaceAttributeGroup!]!
 
+  """Счётчики активных Offer'ов per category — для фильтр-чипов Story 3.5"""
+  marketplaceCategoryOfferCounts: [MarketplaceCategoryOfferCount!]!
+
+  """
+  Статус принятия положения ЦПП «Стол заказов» Советом кооператива (L1). `active` если принято, `not_accepted` иначе.
+  """
+  marketplaceCppStatus: MarketplaceCppStatus!
+
+  """Дефолтная витрина кооператива (MVP — единственная)"""
+  marketplaceDefaultVitrine: MarketplaceVitrine!
+
   """Найти потенциальные совпадения для заявки"""
   marketplaceFindPotentialMatches(data: FindPotentialMatchesInput!): [MarketplaceRequest!]!
 
@@ -11668,10 +11767,10 @@ type Query {
   
   Требуемые роли: chairman. 
   """
-  marketplaceGetAvailableCategoryTree: [MarketplaceCategory!]!
+  marketplaceGetAvailableCategoryTree: [MarketplaceCategoryTreeNode!]!
 
   """Получить категорию marketplace по ID"""
-  marketplaceGetCategoryById(data: GetCategoryByIdInput!): MarketplaceCategory
+  marketplaceGetCategoryById(data: GetCategoryByIdInput!): MarketplaceCategoryTreeNode
 
   """
   Получить все доступные правила для конкретной категории
@@ -11681,7 +11780,7 @@ type Query {
   marketplaceGetCategoryRules(categoryId: Int!): [MarketplaceAvailableCategory!]!
 
   """Получить полное дерево категорий marketplace с типами товаров"""
-  marketplaceGetCategoryTree(input: GetCategoryTreeInput): [MarketplaceCategory!]!
+  marketplaceGetCategoryTree(input: GetCategoryTreeInput): [MarketplaceCategoryTreeNode!]!
 
   """
   Получить статистику по дереву категорий
@@ -11696,6 +11795,9 @@ type Query {
   Требуемые роли: member, chairman. 
   """
   marketplaceGetCoopRequests(data: GetCoopRequestsInput!): [MarketplaceRequest!]!
+
+  """Получить один заказ по его идентификатору (доступ зависит от роли)."""
+  marketplaceGetOrder(input: MarketplaceGetOrderInput!): MarketplaceOrder!
 
   """Получить тип товара marketplace по ID"""
   marketplaceGetProductTypeById(data: GetProductTypeByIdInput!): MarketplaceProductType
@@ -11714,10 +11816,10 @@ type Query {
   marketplaceGetRequestStatistics(data: GetRequestStatisticsInput!): MarketplaceRequestStatistics!
 
   """Получить все корневые категории marketplace"""
-  marketplaceGetRootCategories: [MarketplaceCategory!]!
+  marketplaceGetRootCategories: [MarketplaceCategoryTreeNode!]!
 
   """Универсальный поиск по категориям и типам товаров"""
-  marketplaceGetSearchCategories(data: SearchCategoriesInput!): [MarketplaceCategory!]!
+  marketplaceGetSearchCategories(data: SearchCategoriesInput!): [MarketplaceCategoryTreeNode!]!
 
   """
   Получить заявки текущего пользователя
@@ -11726,12 +11828,60 @@ type Query {
   """
   marketplaceGetUserRequests(data: GetUserRequestsInput): [MarketplaceRequest!]!
 
+  """Каталог активных Offer'ов (ACTIVE + available, single vitrine MVP)"""
+  marketplaceListCatalog(input: MarketplaceListCatalogInput): MarketplaceOfferPaginationResult!
+
+  """
+  Baseline-категории Стола заказов (Story 3.2/3.5) — 8 продовольственных + «Прочее»
+  """
+  marketplaceListCategories: [MarketplaceCategory!]!
+
+  """
+  Постраничный список сводных заявок поставщика — для стола поставщика и для прослеживания состояния заказов.
+  """
+  marketplaceListConsolidatedRequests(input: MarketplaceListConsolidatedRequestsInput, options: PaginationInput): MarketplaceConsolidatedRequestPaginationResult!
+
   """
   Список marketplace-детализаций ПВЗ кооператива.
   
   Требуемые роли: chairman, member, user. 
   """
   marketplaceListKUDetails(data: ListMarketplaceKUInput!): [MarketplaceKUDetails!]!
+
+  """История решений модерации по Offer'у (admin)"""
+  marketplaceListModerationLog(offer_id: String!): [MarketplaceModerationLogEntry!]!
+
+  """Список собственных Offer'ов поставщика (любой статус)"""
+  marketplaceListMyOffers(input: MarketplaceListMyOffersInput): MarketplaceOfferPaginationResult!
+
+  """Список заказов текущего пайщика (стол заказчика)."""
+  marketplaceListMyOrders(input: MarketplaceListOrdersInput, options: PaginationInput): MarketplaceOrderPaginationResult!
+
+  """Список Offer'ов на модерации (admin)"""
+  marketplaceListPendingOffers(input: MarketplaceListPendingOffersInput): MarketplaceOfferPaginationResult!
+
+  """
+  Список заказов, по которым текущий пайщик является поставщиком (стол поставщика).
+  """
+  marketplaceListSupplierOrders(input: MarketplaceListOrdersInput, options: PaginationInput): MarketplaceOrderPaginationResult!
+
+  """Список пайщиков-поставщиков, допущенных к публикации оферт"""
+  marketplaceListWhitelist: [MarketplaceWhitelistEntry!]!
+
+  """
+  Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.member
+  """
+  marketplaceMemberWallet: MarketplaceMemberWallet!
+
+  """
+  Состояние онбординга пайщика в Столе заказов: показывать ли gate или пропускать на стол
+  """
+  marketplaceOnboardingState: MarketplaceOnboardingState!
+
+  """
+  Статус видимости оферты Стола заказов в core registration-flow (платформенный AgreementRegistry)
+  """
+  marketplaceRegistrationOfferStatus: MarketplaceRegistrationOfferStatus!
 
   """Получить обязательные атрибуты для категории и типа товара marketplace"""
   marketplaceRequiredAttributes(data: GetRequiredAttributesInput!): [MarketplaceAttribute!]!
@@ -11840,22 +11990,6 @@ type Question {
   Список участников, проголосовавших "За"
   """
   voters_for: [String!]!
-}
-
-input ReceiveOnRequestInput {
-  """Имя аккаунта кооператива"""
-  coopname: String!
-
-  """
-  Подписанный Заказчиком акт приёмки-передачи имущества из Кооператива по новации
-  """
-  document: ReturnByAssetActSignedDocumentInput!
-
-  """Идентификатор заявки"""
-  exchange_id: Float!
-
-  """Имя аккаунта пользователя"""
-  username: String!
 }
 
 input RefreshInput {
@@ -12068,13 +12202,6 @@ input RemoveAvailableCategoryTypesInput {
   categoryTypes: [CategoryTypeInput!]!
 }
 
-input ReofferRequestInput {
-  new_hash: String!
-  new_meta: String!
-  new_unit_cost: String!
-  request_hash: String!
-}
-
 input ReplaceAvailableItemsInput {
   """ID категорий (целые категории)"""
   categoryIds: [Int!]! = []
@@ -12240,12 +12367,6 @@ input RepresentedByInput {
   last_name: String!
   middle_name: String!
   position: String!
-}
-
-input ReqReturnInput {
-  request_hash: String!
-  return_statement: SignedDigitalDocumentInput!
-  username: String!
 }
 
 input RequestAttributeInput {
@@ -12441,254 +12562,6 @@ enum ResultStatus {
   DECLINED
   PENDING
   UNDEFINED
-}
-
-input ReturnByAssetActGenerateDocumentInput {
-  """Идентификатор акта"""
-  act_id: String!
-
-  """Номер блока, на котором был создан документ"""
-  block_num: Int
-
-  """Имя аккаунта кооперативного участка"""
-  braname: String
-
-  """Название кооператива, связанное с документом"""
-  coopname: String!
-
-  """Дата и время создания документа"""
-  created_at: String
-
-  """Идентификатор решения"""
-  decision_id: Float!
-
-  """Имя генератора, использованного для создания документа"""
-  generator: String
-
-  """Язык документа"""
-  lang: String
-
-  """Ссылки, связанные с документом"""
-  links: [String!]
-
-  """Идентификатор заявки"""
-  request_id: Float!
-
-  """Часовой пояс, в котором был создан документ"""
-  timezone: String
-
-  """Название документа"""
-  title: String
-
-  """Имя аккаунта получателя на кооперативном участке"""
-  transmitter: String!
-
-  """Имя пользователя, создавшего документ"""
-  username: String!
-
-  """Версия генератора, использованного для создания документа"""
-  version: String
-}
-
-input ReturnByAssetActSignedDocumentInput {
-  """Хэш содержимого документа"""
-  doc_hash: String!
-
-  """Общий хэш (doc_hash + meta_hash)"""
-  hash: String!
-
-  """Метаинформация для создания проекта свободного решения"""
-  meta: ReturnByAssetActSignedMetaDocumentInput!
-
-  """Хэш мета-данных"""
-  meta_hash: String!
-
-  """Вектор подписей"""
-  signatures: [SignatureInfoInput!]!
-
-  """Версия стандарта документа"""
-  version: String!
-}
-
-input ReturnByAssetActSignedMetaDocumentInput {
-  """Идентификатор акта"""
-  act_id: String!
-
-  """Номер блока, на котором был создан документ"""
-  block_num: Int!
-
-  """Имя аккаунта кооперативного участка"""
-  braname: String
-
-  """Название кооператива, связанное с документом"""
-  coopname: String!
-
-  """Дата и время создания документа"""
-  created_at: String!
-
-  """Идентификатор решения"""
-  decision_id: Float!
-
-  """Имя генератора, использованного для создания документа"""
-  generator: String!
-
-  """Язык документа"""
-  lang: String!
-
-  """Ссылки, связанные с документом"""
-  links: [String!]!
-
-  """ID документа в реестре"""
-  registry_id: Int!
-
-  """Идентификатор заявки"""
-  request_id: Float!
-
-  """Часовой пояс, в котором был создан документ"""
-  timezone: String!
-
-  """Название документа"""
-  title: String!
-
-  """Имя аккаунта получателя на кооперативном участке"""
-  transmitter: String!
-
-  """Имя пользователя, создавшего документ"""
-  username: String!
-
-  """Версия генератора, использованного для создания документа"""
-  version: String!
-}
-
-input ReturnByAssetDecisionGenerateDocumentInput {
-  """Номер блока, на котором был создан документ"""
-  block_num: Int
-
-  """Название кооператива, связанное с документом"""
-  coopname: String!
-
-  """Дата и время создания документа"""
-  created_at: String
-
-  """Идентификатор решения"""
-  decision_id: Float!
-
-  """Имя генератора, использованного для создания документа"""
-  generator: String
-
-  """Язык документа"""
-  lang: String
-
-  """Ссылки, связанные с документом"""
-  links: [String!]
-
-  """Идентификатор заявки"""
-  request_id: Float!
-
-  """Часовой пояс, в котором был создан документ"""
-  timezone: String
-
-  """Название документа"""
-  title: String
-
-  """Имя пользователя, создавшего документ"""
-  username: String!
-
-  """Версия генератора, использованного для создания документа"""
-  version: String
-}
-
-input ReturnByAssetStatementGenerateDocumentInput {
-  """Номер блока, на котором был создан документ"""
-  block_num: Int
-
-  """Название кооператива, связанное с документом"""
-  coopname: String!
-
-  """Дата и время создания документа"""
-  created_at: String
-
-  """Имя генератора, использованного для создания документа"""
-  generator: String
-
-  """Язык документа"""
-  lang: String
-
-  """Ссылки, связанные с документом"""
-  links: [String!]
-
-  """Запрос на внесение имущественного паевого взноса"""
-  request: CommonRequestInput!
-
-  """Часовой пояс, в котором был создан документ"""
-  timezone: String
-
-  """Название документа"""
-  title: String
-
-  """Имя пользователя, создавшего документ"""
-  username: String!
-
-  """Версия генератора, использованного для создания документа"""
-  version: String
-}
-
-input ReturnByAssetStatementSignedDocumentInput {
-  """Хэш содержимого документа"""
-  doc_hash: String!
-
-  """Общий хэш (doc_hash + meta_hash)"""
-  hash: String!
-
-  """Метаинформация для создания проекта свободного решения"""
-  meta: ReturnByAssetStatementSignedMetaDocumentInput!
-
-  """Хэш мета-данных"""
-  meta_hash: String!
-
-  """Вектор подписей"""
-  signatures: [SignatureInfoInput!]!
-
-  """Версия стандарта документа"""
-  version: String!
-}
-
-input ReturnByAssetStatementSignedMetaDocumentInput {
-  """Номер блока, на котором был создан документ"""
-  block_num: Int!
-
-  """Название кооператива, связанное с документом"""
-  coopname: String!
-
-  """Дата и время создания документа"""
-  created_at: String!
-
-  """Имя генератора, использованного для создания документа"""
-  generator: String!
-
-  """Язык документа"""
-  lang: String!
-
-  """Ссылки, связанные с документом"""
-  links: [String!]!
-
-  """ID документа в реестре"""
-  registry_id: Int!
-
-  """Запрос на внесение имущественного паевого взноса"""
-  request: CommonRequestInput!
-
-  """Часовой пояс, в котором был создан документ"""
-  timezone: String!
-
-  """Название документа"""
-  title: String!
-
-  """Имя пользователя, создавшего документ"""
-  username: String!
-
-  """Версия генератора, использованного для создания документа"""
-  version: String!
 }
 
 input ReturnByMoneyDecisionGenerateDocumentInput {
@@ -13440,20 +13313,6 @@ type SubscriptionStatsDto {
   uniqueUsers: Int!
 }
 
-input SupplyOnRequestInput {
-  """Имя аккаунта кооператива"""
-  coopname: String!
-
-  """Подписанный Поставщиком акт приёма-передачи имущества в кооператив"""
-  document: AssetContributionActSignedDocumentInput!
-
-  """Идентификатор обмена"""
-  exchange_id: Float!
-
-  """Имя аккаунта пользователя"""
-  username: String!
-}
-
 type Symbols {
   """Точность символа управления"""
   root_govern_precision: Float!
@@ -13607,17 +13466,6 @@ input TriggerNotificationWorkflowInput {
 input UninstallExtensionInput {
   """Фильтр по имени"""
   name: String!
-}
-
-input UnpublishRequestInput {
-  """Имя аккаунта кооператива"""
-  coopname: String!
-
-  """Идентификатор обмена"""
-  exchange_id: Float!
-
-  """Имя аккаунта пользователя"""
-  username: String!
 }
 
 input Update {
@@ -13858,31 +13706,6 @@ input UpdateReportRequisitesInput {
 
   """chairman | representative"""
   signerType: String
-}
-
-input UpdateRequestInput {
-  """Имя аккаунта кооператива"""
-  coopname: String!
-
-  """Дополнительные данные"""
-  data: String!
-
-  """Идентификатор обмена"""
-  exchange_id: Float!
-
-  """Дополнительная информация"""
-  meta: String!
-
-  """Оставшееся количество единиц"""
-  remain_units: String!
-
-  """
-  Стоимость за единицу в формате "10.0000 RUB"
-  """
-  unit_cost: String!
-
-  """Имя аккаунта пользователя"""
-  username: String!
 }
 
 input UpdateSettingsInput {

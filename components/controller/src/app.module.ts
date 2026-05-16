@@ -31,7 +31,6 @@ import { AgreementDomainModule } from './domain/agreement/agreement-domain.modul
 import { ParticipantDomainModule } from './domain/participant/participant-domain.module';
 import { AuthDomainModule } from './domain/auth/auth.module';
 import { AgendaDomainModule } from './domain/agenda/agenda-domain.module';
-import { MarketplaceDomainModule } from './domain/marketplace/marketplace.module';
 import { DesktopDomainModule } from './domain/desktop/desktop-domain.module';
 import { MeetDomainModule } from './domain/meet/meet-domain.module';
 import { GatewayDomainModule } from './domain/gateway/gateway-domain.module';
@@ -61,7 +60,6 @@ import { DecisionModule } from './application/free-decision/decision.module';
 import { AgreementModule } from './application/agreement/agreement.module';
 import { ParticipantModule } from './application/participant/participant.module';
 import { AgendaModule } from './application/agenda/agenda.module';
-import { MarketplaceModule } from './application/marketplace/marketplace.module';
 import { DesktopModule } from './application/desktop/desktop.module';
 import { MeetModule } from './application/meet/meet.module';
 import { GatewayModule } from './application/gateway/gateway.module';
@@ -129,7 +127,6 @@ import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketpla
     DocumentDomainModule,
     FreeDecisionDomainModule,
     ParticipantDomainModule,
-    MarketplaceDomainModule,
     MeetDomainModule,
     GatewayDomainModule,
     VaultDomainModule,
@@ -156,7 +153,6 @@ import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketpla
     DocumentModule,
     DecisionModule,
     ParticipantModule,
-    MarketplaceModule,
     MeetModule,
     GatewayModule,
     WalletModule,

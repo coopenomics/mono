@@ -25,6 +25,7 @@ import type {
 import {
   MARKETPLACE_OFFER_CYCLE_TYPES,
   MARKETPLACE_UNITS_OF_MEASURE,
+  MarketplaceOfferCycleTypes,
 } from '../../domain/entities/marketplace-offer.types';
 import type {
   PaginationInputDomainInterface,
@@ -137,6 +138,24 @@ export class MarketplaceOfferService {
       throw new BadRequestException('Срок гарантии не может быть отрицательным.');
     }
 
+    // Story 4.7: per-cycle_type обязательные поля. Если patch меняет cycle_type
+    // или его cycle-specific параметры — валидируем по merged-снимку
+    // (текущее значение из БД + patch). Иначе старый Offer остаётся
+    // валидным после частичного редактирования других полей.
+    const cycleFieldsTouched =
+      patch.cycle_type !== undefined ||
+      patch.cycle_days !== undefined ||
+      patch.target_volume !== undefined ||
+      patch.max_wait_days !== undefined;
+    if (cycleFieldsTouched) {
+      this.assertCycleConditionals({
+        cycle_type: patch.cycle_type ?? offer.cycle_type,
+        cycle_days: patch.cycle_days !== undefined ? patch.cycle_days : offer.cycle_days,
+        target_volume: patch.target_volume !== undefined ? patch.target_volume : offer.target_volume,
+        max_wait_days: patch.max_wait_days !== undefined ? patch.max_wait_days : offer.max_wait_days,
+      });
+    }
+
     const normalizedPatch: OfferUpdateInput & { status: MarketplaceOfferStatus } = {
       ...patch,
       status: 'PENDING_MODERATION',
@@ -178,6 +197,12 @@ export class MarketplaceOfferService {
     if (input.description !== null) this.assertDescription(input.description);
     this.assertUnit(input.unit_of_measure);
     this.assertCycleType(input.cycle_type);
+    this.assertCycleConditionals({
+      cycle_type: input.cycle_type,
+      cycle_days: input.cycle_days,
+      target_volume: input.target_volume,
+      max_wait_days: input.max_wait_days,
+    });
 
     if (!input.unlimited_flag) {
       if (input.quantity_available === null || input.quantity_available < 0) {
@@ -195,6 +220,46 @@ export class MarketplaceOfferService {
       throw new BadRequestException(
         'Цена должна быть числом с не более чем четырьмя знаками после запятой (например, «100.50»).'
       );
+    }
+  }
+
+  /**
+   * Story 4.7: required-поля per cycle_type (L11 Locked Decision).
+   *
+   *   time_based       → cycle_days REQUIRED (>=1); min_threshold optional
+   *   volume_based     → target_volume + max_wait_days REQUIRED (>=1)
+   *   open_subscription → max_wait_days optional; ничего required
+   *   individual        → ничего required
+   *
+   * Если какое-то поле передано для «не своего» cycle_type — не ошибка,
+   * просто будет проигнорировано репозиторием (FE может оставить старое
+   * значение в форме при переключении типа). Главное — обязательные
+   * заполнены и числа >= 1.
+   */
+  private assertCycleConditionals(input: {
+    cycle_type: MarketplaceOfferCycleType;
+    cycle_days: number | null;
+    target_volume: number | null;
+    max_wait_days: number | null;
+  }): void {
+    if (input.cycle_type === MarketplaceOfferCycleTypes.TIME_BASED) {
+      if (input.cycle_days === null || input.cycle_days === undefined || input.cycle_days < 1) {
+        throw new BadRequestException(
+          'Для time_based укажите длительность цикла в днях (целое число от 1).'
+        );
+      }
+    }
+    if (input.cycle_type === MarketplaceOfferCycleTypes.VOLUME_BASED) {
+      if (input.target_volume === null || input.target_volume === undefined || input.target_volume < 1) {
+        throw new BadRequestException(
+          'Для volume_based укажите целевой объём (целое число от 1).'
+        );
+      }
+      if (input.max_wait_days === null || input.max_wait_days === undefined || input.max_wait_days < 1) {
+        throw new BadRequestException(
+          'Для volume_based укажите максимальный срок ожидания в днях (целое число от 1).'
+        );
+      }
     }
   }
 

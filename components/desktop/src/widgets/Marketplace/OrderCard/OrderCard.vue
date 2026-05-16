@@ -118,7 +118,10 @@ const cardClasses = computed(() => `mp-order-card--${props.order.status}`)
 const ACTIONS_PER_ROLE: Record<OrderRole, Record<OrderStatus, OrderAction[]>> = {
   orderer: {
     draft: [{ key: 'open', label: 'Открыть' }, { key: 'cancel', label: 'Удалить', kind: 'flat' }],
-    placed: [{ key: 'open', label: 'Открыть' }],
+    // Story 4.4: до акцепта поставщика заказчик может отменить Order
+    // (C++ marketplace::cancelorder — guard status==ACTIVE). После
+    // acceptorder отмена недоступна (поставщик принял обязательство).
+    placed: [{ key: 'open', label: 'Открыть' }, { key: 'cancel', label: 'Отменить', kind: 'danger' }],
     paid: [{ key: 'open', label: 'Открыть' }],
     'in-delivery': [{ key: 'open', label: 'Открыть' }],
     'arrived-at-pvz': [{ key: 'open', label: 'Подробнее', kind: 'primary' }],
@@ -129,7 +132,15 @@ const ACTIONS_PER_ROLE: Record<OrderRole, Record<OrderStatus, OrderAction[]>> = 
     returned: [{ key: 'open', label: 'Открыть' }],
   },
   offerer: {
-    draft: [], placed: [{ key: 'accept', label: 'Принять', kind: 'primary' }],
+    // Story 4.5: placed = ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL для individual
+    // cycle_type или unassigned ACTIVE для open_subscription пула. На batch
+    // (time/volume) поставщик решает по консолидированной заявке отдельным
+    // экраном «Консолидированные заявки», не в OrderCard. Decline требует
+    // reason — обрабатывается parent'ом через confirm-dialog.
+    draft: [], placed: [
+      { key: 'accept', label: 'Принять', kind: 'primary' },
+      { key: 'decline', label: 'Отказать', kind: 'danger' },
+    ],
     paid: [{ key: 'ship', label: 'Отгрузить', kind: 'primary' }],
     'in-delivery': [], 'arrived-at-pvz': [], 'ready-to-issue': [],
     issued: [], cancelled: [], dispute: [{ key: 'reply', label: 'Ответить', kind: 'primary' }],

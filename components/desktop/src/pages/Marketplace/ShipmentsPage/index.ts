@@ -1,1 +1,0 @@
-export { ShipmentsPage } from './ui'

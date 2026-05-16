@@ -1,1 +1,0 @@
-export { WarehousePage } from './ui'

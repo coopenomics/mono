@@ -1,4 +1,4 @@
-import { marketplaceKUDetailsSelector } from '../../selectors'
+import { marketplaceKUDetailsSelector } from '../../selectors/marketplace'
 import { $, type GraphQLTypes, type InputType, type ModelTypes, Selector } from '../../zeus/index'
 
 export const name = 'marketplaceDetailKU'

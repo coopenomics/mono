@@ -1,0 +1,66 @@
+import { Selector, type ValueTypes } from '../../zeus/index'
+import type { MakeAllFieldsRequired } from '../../utils/MakeAllFieldsRequired'
+
+const rawOrderCreateTxSnapshotSelector = {
+  tx_hash: true,
+  block_num: true,
+  did_convert: true,
+  did_assign: true,
+  blocked_amount: true,
+  signed_at: true,
+}
+
+const _validateTxSnapshot: MakeAllFieldsRequired<ValueTypes['MarketplaceOrderCreateTxSnapshot']> =
+  rawOrderCreateTxSnapshotSelector
+
+export const marketplaceOrderCreateTxSnapshotSelector = Selector('MarketplaceOrderCreateTxSnapshot')(
+  rawOrderCreateTxSnapshotSelector,
+)
+
+const rawOrderSelector = {
+  id: true,
+  coopname: true,
+  order_hash: true,
+  orderer_account: true,
+  offer_id: true,
+  offer_hash: true,
+  supplier_account: true,
+  delivery_braname: true,
+  quantity: true,
+  price_per_unit: true,
+  total_cost: true,
+  cycle_type: true,
+  cycle_id: true,
+  warranty_period_secs: true,
+  warranty_until: true,
+  status: true,
+  last_status_reason: true,
+  blocked_at: true,
+  accepted_at: true,
+  received_at: true,
+  cancelled_at: true,
+  create_tx: rawOrderCreateTxSnapshotSelector,
+  created_at: true,
+  updated_at: true,
+}
+
+const _validateOrder: MakeAllFieldsRequired<ValueTypes['MarketplaceOrder']> = rawOrderSelector
+
+export const marketplaceOrderSelector = Selector('MarketplaceOrder')(rawOrderSelector)
+
+export const marketplaceCreateOrderResultSelector = Selector('MarketplaceCreateOrderResult')({
+  order: rawOrderSelector,
+  tx_snapshot: rawOrderCreateTxSnapshotSelector,
+})
+
+export const marketplaceCancelOrderResultSelector = Selector('MarketplaceCancelOrderResult')({
+  order: rawOrderSelector,
+  tx_hash: true,
+})
+
+export const marketplaceOrderPaginationResultSelector = Selector('MarketplaceOrderPaginationResult')({
+  items: rawOrderSelector,
+  totalCount: true,
+  totalPages: true,
+  currentPage: true,
+})

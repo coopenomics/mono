@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
 import { MarketplaceExtensionDomainModule } from '../domain/marketplace-domain.module';
 import { CategoryTreeResolver } from './resolvers/category-tree.resolver';
 import { AttributeResolver } from './resolvers/attribute.resolver';
@@ -15,6 +16,8 @@ import { MarketplaceVitrineResolver } from './resolvers/marketplace-vitrine.reso
 import { MarketplaceOfferResolver } from './resolvers/marketplace-offer.resolver';
 import { MarketplaceModerationResolver } from './resolvers/marketplace-moderation.resolver';
 import { MarketplaceCatalogResolver } from './resolvers/marketplace-catalog.resolver';
+import { MarketplaceOrderResolver } from './resolvers/marketplace-order.resolver';
+import { MarketplaceCycleResolver } from './resolvers/marketplace-cycle.resolver';
 import { MarketplaceMembershipGuard } from './guards/marketplace-membership.guard';
 import { MarketplaceRoleGuard } from './guards/marketplace-role.guard';
 import { MarketplaceOnboardingService } from './onboarding/marketplace-onboarding.service';
@@ -45,13 +48,42 @@ import {
   MarketplaceOfferCountersService,
   MARKETPLACE_OFFER_COUNTERS_SERVICE,
 } from './services/marketplace-offer-counters.service';
+import {
+  MarketplaceOrderCreateService,
+  MARKETPLACE_ORDER_CREATE_SERVICE,
+} from './services/marketplace-order-create.service';
+import { marketplaceAssetConfigProvider } from './services/marketplace-asset.config.provider';
+import {
+  MarketplaceOrderCancelService,
+  MARKETPLACE_ORDER_CANCEL_SERVICE,
+} from './services/marketplace-order-cancel.service';
+import {
+  MarketplaceConsolidatedRequestAcceptDeclineService,
+  MARKETPLACE_CONSOLIDATED_REQUEST_ACCEPT_DECLINE_SERVICE,
+} from './services/marketplace-consolidated-request-accept-decline.service';
+import {
+  MarketplaceOrderSupplierActionService,
+  MARKETPLACE_ORDER_SUPPLIER_ACTION_SERVICE,
+} from './services/marketplace-order-supplier-action.service';
+import { MarketplaceOrderSyncService } from '../sync/marketplace-order-sync.service';
+import {
+  MarketplaceCycleAggregatorService,
+  MARKETPLACE_CYCLE_AGGREGATOR_SERVICE,
+} from './services/marketplace-cycle-aggregator.service';
 
 /**
  * Модуль приложения marketplace
  * Содержит GraphQL резолверы и сервисы приложения
  */
 @Module({
-  imports: [MarketplaceExtensionDomainModule],
+  imports: [
+    MarketplaceExtensionDomainModule,
+    // Story 4.2: @Cron в MarketplaceCycleAggregatorService (time_based aggregator
+    // каждые 5 минут + volume_based expire каждый час). ScheduleModule.forRoot()
+    // идемпотентен — если AppModule тоже инициализирует его, NestJS использует
+    // singleton SchedulerRegistry.
+    ScheduleModule.forRoot(),
+  ],
   providers: [
     // GraphQL резолверы
     CategoryTreeResolver,
@@ -69,6 +101,8 @@ import {
     MarketplaceOfferResolver,
     MarketplaceModerationResolver,
     MarketplaceCatalogResolver,
+    MarketplaceOrderResolver,
+    MarketplaceCycleResolver,
 
     // Guards (Story 1.3 / Story 1.6)
     MarketplaceMembershipGuard,
@@ -117,6 +151,37 @@ import {
       useClass: MarketplaceOfferCountersService,
     },
     MarketplaceOfferCountersService,
+    marketplaceAssetConfigProvider,
+    // Story 4.1
+    {
+      provide: MARKETPLACE_ORDER_CREATE_SERVICE,
+      useClass: MarketplaceOrderCreateService,
+    },
+    MarketplaceOrderCreateService,
+    MarketplaceOrderSyncService,
+    // Story 4.4
+    {
+      provide: MARKETPLACE_ORDER_CANCEL_SERVICE,
+      useClass: MarketplaceOrderCancelService,
+    },
+    MarketplaceOrderCancelService,
+    // Story 4.5
+    {
+      provide: MARKETPLACE_CONSOLIDATED_REQUEST_ACCEPT_DECLINE_SERVICE,
+      useClass: MarketplaceConsolidatedRequestAcceptDeclineService,
+    },
+    MarketplaceConsolidatedRequestAcceptDeclineService,
+    {
+      provide: MARKETPLACE_ORDER_SUPPLIER_ACTION_SERVICE,
+      useClass: MarketplaceOrderSupplierActionService,
+    },
+    MarketplaceOrderSupplierActionService,
+    // Story 4.2
+    {
+      provide: MARKETPLACE_CYCLE_AGGREGATOR_SERVICE,
+      useClass: MarketplaceCycleAggregatorService,
+    },
+    MarketplaceCycleAggregatorService,
   ],
   exports: [
     // Экспортируем сервисы для использования в других модулях
@@ -155,6 +220,24 @@ import {
     MarketplaceOfferResolver,
     MarketplaceModerationResolver,
     MarketplaceCatalogResolver,
+    MarketplaceOrderResolver,
+    MarketplaceCycleResolver,
+
+    // Экспортируем сервисы Story 4.1 для использования в follow-up Stories Эпика 4
+    MARKETPLACE_ORDER_CREATE_SERVICE,
+    MarketplaceOrderCreateService,
+    MarketplaceOrderSyncService,
+    // Story 4.4
+    MARKETPLACE_ORDER_CANCEL_SERVICE,
+    MarketplaceOrderCancelService,
+    // Story 4.5
+    MARKETPLACE_CONSOLIDATED_REQUEST_ACCEPT_DECLINE_SERVICE,
+    MarketplaceConsolidatedRequestAcceptDeclineService,
+    MARKETPLACE_ORDER_SUPPLIER_ACTION_SERVICE,
+    MarketplaceOrderSupplierActionService,
+    // Story 4.2
+    MARKETPLACE_CYCLE_AGGREGATOR_SERVICE,
+    MarketplaceCycleAggregatorService,
   ],
 })
 export class MarketplaceExtensionApplicationModule {}

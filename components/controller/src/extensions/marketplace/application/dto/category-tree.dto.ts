@@ -59,7 +59,7 @@ export class ProductTypeDTO {
 /**
  * GraphQL DTO для категории товаров
  */
-@ObjectType('MarketplaceCategory')
+@ObjectType('MarketplaceCategoryTreeNode')
 export class CategoryDTO {
   @Field(() => Int, { description: 'ID категории' })
   descriptionCategoryId!: number;

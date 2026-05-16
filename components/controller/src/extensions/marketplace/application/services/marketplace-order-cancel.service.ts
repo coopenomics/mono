@@ -1,0 +1,147 @@
+import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import {
+  MARKETPLACE_ORDER_REPOSITORY,
+  type MarketplaceOrderDomainRepository,
+} from '../../domain/repositories/marketplace-order.repository';
+import {
+  MARKETPLACE_OFFER_COUNTERS_SERVICE,
+  MarketplaceOfferCountersService,
+} from './marketplace-offer-counters.service';
+import {
+  MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
+  type MarketplaceCanonicalBlockchainPort,
+} from '../../domain/ports/marketplace-canonical-blockchain.port';
+import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
+
+export interface MarketplaceOrderCancelInputDto {
+  /** coopname кооператива. Берётся из core-сессии в resolver'е. */
+  coopname: string;
+  /** Пайщик-заказчик. Из core-сессии в resolver'е. */
+  orderer_account: string;
+  /** ID Order'а из marketplace_order. */
+  order_id: string;
+}
+
+export interface MarketplaceOrderCancelResult {
+  order: MarketplaceOrderDomainEntity;
+  tx_hash: string;
+}
+
+/**
+ * Story 4.4: заказчик отменяет Order до акцепта поставщиком.
+ *
+ *   1. Guard: Order существует / coopname match / orderer match /
+ *      status='ACTIVE'. Backend разрешает отмену только в `ACTIVE` —
+ *      это match с C++ check (after acceptorder отмена через Story 4.5
+ *      decline уже не доступна заказчику). Для cycle_type='individual'
+ *      Order сразу попадает в `ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL`
+ *      backend hook'ом — отмена заказчиком возможна, пока поставщик не
+ *      нажал Accept (он же может decline → Story 4.5).
+ *
+ *   2. Chain submit `cancelorder` через canonical adapter. C++ серия:
+ *      `o.mkt.unblk` на full `total_cost` (сумма возвращается на
+ *      `w.mkt.member.available` пайщика) + on-chain Order.status:
+ *      ACTIVE → CANCELLED.
+ *
+ *   3. Counter `onOrderUnblocked(offer_id, quantity)` — `quantity_blocked`
+ *      → `quantity_available`. Best-effort: counter-fail → лог warn +
+ *      всё равно applyStatusTransition (on-chain unblk прошёл).
+ *
+ *   4. Persist Order.status: ACTIVE → CANCELLED_BY_ORDERER с reason
+ *      'Отменён заказчиком'.
+ *
+ * Chain submit fail (любой `eosio::check`) — clean BadRequest пайщику
+ * без модификации Order'а в БД (compensating не нужен — counter был не
+ * тронут до момента chain success).
+ */
+@Injectable()
+export class MarketplaceOrderCancelService {
+  constructor(
+    @Inject(MARKETPLACE_ORDER_REPOSITORY)
+    private readonly orderRepo: MarketplaceOrderDomainRepository,
+    @Inject(MARKETPLACE_OFFER_COUNTERS_SERVICE)
+    private readonly offerCounters: MarketplaceOfferCountersService,
+    @Inject(MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT)
+    private readonly chainPort: MarketplaceCanonicalBlockchainPort,
+    private readonly logger: WinstonLoggerService
+  ) {
+    this.logger.setContext(MarketplaceOrderCancelService.name);
+  }
+
+  async execute(input: MarketplaceOrderCancelInputDto): Promise<MarketplaceOrderCancelResult> {
+    if (!input.order_id) {
+      throw new BadRequestException('Не указан order_id.');
+    }
+
+    // ── 1. Guard ────────────────────────────────────────────────────
+    const order = await this.orderRepo.findById(input.order_id);
+    if (!order) {
+      throw new NotFoundException('Заказ не найден.');
+    }
+    if (order.coopname !== input.coopname) {
+      throw new ForbiddenException('Заказ принадлежит другому кооперативу.');
+    }
+    if (order.orderer_account !== input.orderer_account) {
+      throw new ForbiddenException('Отменить заказ может только его заказчик.');
+    }
+    if (order.status !== 'ACTIVE') {
+      throw new BadRequestException(
+        `Нельзя отменить заказ в статусе «${order.status}». Отмена доступна только для активных заказов до акцепта поставщика.`
+      );
+    }
+
+    // ── 2. Chain submit cancelorder ─────────────────────────────────
+    let txHash: string;
+    try {
+      const tx = await this.chainPort.cancelOrder({
+        coopname: input.coopname,
+        orderer: input.orderer_account,
+        order_hash: order.order_hash,
+      });
+      txHash = this.normalizeTxHash(tx);
+    } catch (error: any) {
+      this.logger.error(
+        `MarketplaceOrderCancelService: chain.cancelOrder fail для Order ${order.id} (orderer=${input.orderer_account}): ${error.message}`,
+        error.stack
+      );
+      this.rethrowChainError(error);
+    }
+
+    // ── 3. Counter onOrderUnblocked (best-effort) ───────────────────
+    try {
+      await this.offerCounters.onOrderUnblocked(order.offer_id, order.quantity);
+    } catch (counterErr: any) {
+      this.logger.warn(
+        `MarketplaceOrderCancelService: counter onOrderUnblocked упал (offer=${order.offer_id}, qty=${order.quantity}, order=${order.id}): ${counterErr.message} — продолжаю applyStatusTransition`
+      );
+    }
+
+    // ── 4. Persist Order.status → CANCELLED_BY_ORDERER ──────────────
+    const updated = await this.orderRepo.applyStatusTransition(
+      order.id,
+      'CANCELLED_BY_ORDERER',
+      'Отменён заказчиком'
+    );
+
+    this.logger.log(
+      `MarketplaceOrderCancelService: Order ${order.id} (hash=${order.order_hash}) отменён заказчиком ${input.orderer_account}; offer=${order.offer_id}, qty=${order.quantity}, tx=${txHash!}`
+    );
+
+    return { order: updated, tx_hash: txHash! };
+  }
+
+  private normalizeTxHash(tx: unknown): string {
+    const t = tx as { transaction?: { id?: string }; processed?: { id?: string } };
+    return t?.transaction?.id ?? t?.processed?.id ?? 'unknown';
+  }
+
+  private rethrowChainError(error: any): never {
+    const raw: string = error?.message ?? String(error);
+    const match = raw.match(/assertion failure with message: (.+?)(?:\n|$)/);
+    const clean = match ? match[1].trim() : raw;
+    throw new BadRequestException(clean);
+  }
+}
+
+export const MARKETPLACE_ORDER_CANCEL_SERVICE = Symbol('MARKETPLACE_ORDER_CANCEL_SERVICE');

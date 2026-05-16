@@ -49,6 +49,23 @@
    со всеми состояниями, и только после этого используйте в экране. Не создавайте
    wrapper'ы с дополнительной логикой «снаружи».
 
+## GraphQL: только Zeus-клиент, никаких raw-строк
+
+В desktop **запрещено** отправлять GraphQL операции сырыми строками через `sendPOST('/v1/graphql', { query: '…' })`. Это типобезопасный долг: ломается на schema drift, не покрывается tsc, теряет автогенерируемые типы.
+
+**Канонический поток подключения новой query/mutation:**
+
+1. В `components/controller/` добавить/изменить GraphQL DTO (`@InputType`, `@ObjectType`, resolver) — серверная схема обновляется code-first.
+2. В `components/controller/`: `pnpm run generate-schema` → перегенерирует `controller/schema.gql` (snapshot текущей схемы).
+3. В `components/controller/`: `pnpm run generate-client` → запускает graphql-zeus, кладёт сгенерённый клиент в `components/sdk/src/zeus/`.
+4. В `components/sdk/`: `pnpm run build` → unbuild собирает `dist/` для потребителей (desktop тянет `@coopenomics/sdk` локально).
+5. В `desktop` использовать типизированные обёртки из `@coopenomics/sdk`:
+   - `Mutations.Marketplace.<Name>(input)` для write-операций
+   - `Queries.Marketplace.<Name>(input)` для read-операций
+   - `Client.login(...)` / `Mutations.Auth.Refresh` для сессии — никогда не дёргать `LoginInput` напрямую.
+
+**Запрещено:** оставлять `const QUERY = '\n  query ...'` со sendPOST в `pages/Marketplace/*/api/index.ts` со ссылкой «техдолг до Zeus». Если schema не покрывает поле — сначала шаг 1-4, потом UI. Заглушка не мерджится.
+
 ## Производительность (Story 10.3)
 
 См. `src/pages/Marketplace/DesignSystem/PERFORMANCE.md` — целевые метрики, эталонные
