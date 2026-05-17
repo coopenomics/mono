@@ -4126,9 +4126,8 @@ export const ReturnTypes: Record<string,any> = {
 		status:"MarketplaceShipmentStatus",
 		total_amount:"String",
 		ttn_data:"MarketplaceShipmentTTNData",
-		ttn_document_registry_id:"String",
+		ttn_document_id:"String",
 		ttn_number:"String",
-		ttn_pdf_url:"String",
 		updated_at:"DateTime"
 	},
 	MarketplaceShipmentTTNData:{

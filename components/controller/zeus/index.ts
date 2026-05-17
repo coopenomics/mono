@@ -6120,8 +6120,12 @@ export type ValueTypes = {
 	["MarketplaceAplReceptionSignedMetaDocumentInput"]: {
 	/** Имя кооперативного участка-приёмника партии. */
 	accept_braname: string | Variable<any, string>,
+	/** Номер акта приёмки для шапки документа. */
+	act_id: string | Variable<any, string>,
 	/** Номер блока, на котором был создан документ */
 	block_num: number | Variable<any, string>,
+	/** Имя кооперативного участка-приёмника для ветки «филиал» в шаблоне акта. */
+	braname?: string | undefined | null | Variable<any, string>,
 	/** Account председателя — подписанта закрывающей подписи (если уже известен). */
 	chairman_account?: string | undefined | null | Variable<any, string>,
 	/** Название кооператива, связанное с документом */
@@ -6154,6 +6158,8 @@ export type ValueTypes = {
 	title: string | Variable<any, string>,
 	/** Сумма по Order'у с учётом фактического количества. */
 	total_amount: string | Variable<any, string>,
+	/** Account поставщика — отправителя партии (строка «Передал заказ» в акте). */
+	transmitter: string | Variable<any, string>,
 	/** Имя пользователя, создавшего документ */
 	username: string | Variable<any, string>,
 	/** Версия генератора, использованного для создания документа */
@@ -7136,12 +7142,10 @@ export type ValueTypes = {
 	total_amount?:boolean | `@${string}`,
 	/** Поля ТТН — экспедитор, транспорт, погрузка, доставка. */
 	ttn_data?:ValueTypes["MarketplaceShipmentTTNData"],
-	/** Ссылка на запись document registry с подписанной ТТН. */
-	ttn_document_registry_id?:boolean | `@${string}`,
+	/** Идентификатор записи ТТН в локальном реестре marketplace_ttn_document. */
+	ttn_document_id?:boolean | `@${string}`,
 	/** Уникальный номер ТТН для Варианта Б (печатается на наклейке). */
 	ttn_number?:boolean | `@${string}`,
-	/** Локальная ссылка для скачивания и печати ТТН. */
-	ttn_pdf_url?:boolean | `@${string}`,
 	updated_at?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceShipment']?: Omit<ValueTypes["MarketplaceShipment"], "...on MarketplaceShipment">
@@ -15549,8 +15553,12 @@ export type ResolverInputTypes = {
 	["MarketplaceAplReceptionSignedMetaDocumentInput"]: {
 	/** Имя кооперативного участка-приёмника партии. */
 	accept_braname: string,
+	/** Номер акта приёмки для шапки документа. */
+	act_id: string,
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Имя кооперативного участка-приёмника для ветки «филиал» в шаблоне акта. */
+	braname?: string | undefined | null,
 	/** Account председателя — подписанта закрывающей подписи (если уже известен). */
 	chairman_account?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
@@ -15583,6 +15591,8 @@ export type ResolverInputTypes = {
 	title: string,
 	/** Сумма по Order'у с учётом фактического количества. */
 	total_amount: string,
+	/** Account поставщика — отправителя партии (строка «Передал заказ» в акте). */
+	transmitter: string,
 	/** Имя пользователя, создавшего документ */
 	username: string,
 	/** Версия генератора, использованного для создания документа */
@@ -16526,12 +16536,10 @@ export type ResolverInputTypes = {
 	total_amount?:boolean | `@${string}`,
 	/** Поля ТТН — экспедитор, транспорт, погрузка, доставка. */
 	ttn_data?:ResolverInputTypes["MarketplaceShipmentTTNData"],
-	/** Ссылка на запись document registry с подписанной ТТН. */
-	ttn_document_registry_id?:boolean | `@${string}`,
+	/** Идентификатор записи ТТН в локальном реестре marketplace_ttn_document. */
+	ttn_document_id?:boolean | `@${string}`,
 	/** Уникальный номер ТТН для Варианта Б (печатается на наклейке). */
 	ttn_number?:boolean | `@${string}`,
-	/** Локальная ссылка для скачивания и печати ТТН. */
-	ttn_pdf_url?:boolean | `@${string}`,
 	updated_at?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
@@ -24677,8 +24685,12 @@ export type ModelTypes = {
 	["MarketplaceAplReceptionSignedMetaDocumentInput"]: {
 	/** Имя кооперативного участка-приёмника партии. */
 	accept_braname: string,
+	/** Номер акта приёмки для шапки документа. */
+	act_id: string,
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Имя кооперативного участка-приёмника для ветки «филиал» в шаблоне акта. */
+	braname?: string | undefined | null,
 	/** Account председателя — подписанта закрывающей подписи (если уже известен). */
 	chairman_account?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
@@ -24711,6 +24723,8 @@ export type ModelTypes = {
 	title: string,
 	/** Сумма по Order'у с учётом фактического количества. */
 	total_amount: string,
+	/** Account поставщика — отправителя партии (строка «Передал заказ» в акте). */
+	transmitter: string,
 	/** Имя пользователя, создавшего документ */
 	username: string,
 	/** Версия генератора, использованного для создания документа */
@@ -25605,12 +25619,10 @@ export type ModelTypes = {
 	total_amount: string,
 	/** Поля ТТН — экспедитор, транспорт, погрузка, доставка. */
 	ttn_data?: ModelTypes["MarketplaceShipmentTTNData"] | undefined | null,
-	/** Ссылка на запись document registry с подписанной ТТН. */
-	ttn_document_registry_id?: string | undefined | null,
+	/** Идентификатор записи ТТН в локальном реестре marketplace_ttn_document. */
+	ttn_document_id?: string | undefined | null,
 	/** Уникальный номер ТТН для Варианта Б (печатается на наклейке). */
 	ttn_number?: string | undefined | null,
-	/** Локальная ссылка для скачивания и печати ТТН. */
-	ttn_pdf_url?: string | undefined | null,
 	updated_at: ModelTypes["DateTime"]
 };
 	["MarketplaceShipmentDeliveryVariant"]:MarketplaceShipmentDeliveryVariant;
@@ -34630,8 +34642,12 @@ export type GraphQLTypes = {
 	["MarketplaceAplReceptionSignedMetaDocumentInput"]: {
 		/** Имя кооперативного участка-приёмника партии. */
 	accept_braname: string,
+	/** Номер акта приёмки для шапки документа. */
+	act_id: string,
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Имя кооперативного участка-приёмника для ветки «филиал» в шаблоне акта. */
+	braname?: string | undefined | null,
 	/** Account председателя — подписанта закрывающей подписи (если уже известен). */
 	chairman_account?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
@@ -34664,6 +34680,8 @@ export type GraphQLTypes = {
 	title: string,
 	/** Сумма по Order'у с учётом фактического количества. */
 	total_amount: string,
+	/** Account поставщика — отправителя партии (строка «Передал заказ» в акте). */
+	transmitter: string,
 	/** Имя пользователя, создавшего документ */
 	username: string,
 	/** Версия генератора, использованного для создания документа */
@@ -35647,12 +35665,10 @@ export type GraphQLTypes = {
 	total_amount: string,
 	/** Поля ТТН — экспедитор, транспорт, погрузка, доставка. */
 	ttn_data?: GraphQLTypes["MarketplaceShipmentTTNData"] | undefined | null,
-	/** Ссылка на запись document registry с подписанной ТТН. */
-	ttn_document_registry_id?: string | undefined | null,
+	/** Идентификатор записи ТТН в локальном реестре marketplace_ttn_document. */
+	ttn_document_id?: string | undefined | null,
 	/** Уникальный номер ТТН для Варианта Б (печатается на наклейке). */
 	ttn_number?: string | undefined | null,
-	/** Локальная ссылка для скачивания и печати ТТН. */
-	ttn_pdf_url?: string | undefined | null,
 	updated_at: GraphQLTypes["DateTime"],
 	['...on MarketplaceShipment']: Omit<GraphQLTypes["MarketplaceShipment"], "...on MarketplaceShipment">
 };

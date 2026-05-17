@@ -25,8 +25,7 @@ const rawShipmentSelector = {
   total_amount: true,
   ttn_number: true,
   ttn_data: rawTTNDataSelector,
-  ttn_document_registry_id: true,
-  ttn_pdf_url: true,
+  ttn_document_id: true,
   created_at: true,
   updated_at: true,
 }

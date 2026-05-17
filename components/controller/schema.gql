@@ -7014,8 +7014,16 @@ input MarketplaceAplReceptionSignedMetaDocumentInput {
   """Имя кооперативного участка-приёмника партии."""
   accept_braname: String!
 
+  """Номер акта приёмки для шапки документа."""
+  act_id: String!
+
   """Номер блока, на котором был создан документ"""
   block_num: Int!
+
+  """
+  Имя кооперативного участка-приёмника для ветки «филиал» в шаблоне акта.
+  """
+  braname: String
 
   """
   Account председателя — подписанта закрывающей подписи (если уже известен).
@@ -7068,6 +7076,11 @@ input MarketplaceAplReceptionSignedMetaDocumentInput {
 
   """Сумма по Order'у с учётом фактического количества."""
   total_amount: String!
+
+  """
+  Account поставщика — отправителя партии (строка «Передал заказ» в акте).
+  """
+  transmitter: String!
 
   """Имя пользователя, создавшего документ"""
   username: String!
@@ -8438,14 +8451,11 @@ type MarketplaceShipment {
   """Поля ТТН — экспедитор, транспорт, погрузка, доставка."""
   ttn_data: MarketplaceShipmentTTNData
 
-  """Ссылка на запись document registry с подписанной ТТН."""
-  ttn_document_registry_id: String
+  """Идентификатор записи ТТН в локальном реестре marketplace_ttn_document."""
+  ttn_document_id: String
 
   """Уникальный номер ТТН для Варианта Б (печатается на наклейке)."""
   ttn_number: String
-
-  """Локальная ссылка для скачивания и печати ТТН."""
-  ttn_pdf_url: String
   updated_at: DateTime!
 }
 
