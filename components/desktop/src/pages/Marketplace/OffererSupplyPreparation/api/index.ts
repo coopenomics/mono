@@ -22,8 +22,7 @@ export interface MarketplaceShipmentView {
   total_amount: string;
   ttn_number: string | null;
   ttn_data: MarketplaceShipmentTTNDataView | null;
-  ttn_document_registry_id: string | null;
-  ttn_pdf_url: string | null;
+  ttn_document_id: string | null;
 }
 
 export async function listShipments(cycle_id?: string): Promise<MarketplaceShipmentView[]> {

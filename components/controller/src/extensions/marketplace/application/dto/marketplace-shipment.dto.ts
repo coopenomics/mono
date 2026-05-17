@@ -128,15 +128,9 @@ export class MarketplaceShipmentDTO {
 
   @Field(() => String, {
     nullable: true,
-    description: 'Ссылка на запись document registry с подписанной ТТН.',
+    description: 'Идентификатор записи ТТН в локальном реестре marketplace_ttn_document.',
   })
-  ttn_document_registry_id!: string | null;
-
-  @Field(() => String, {
-    nullable: true,
-    description: 'Локальная ссылка для скачивания и печати ТТН.',
-  })
-  ttn_pdf_url!: string | null;
+  ttn_document_id!: string | null;
 
   @Field(() => MarketplaceShipmentStatusEnum)
   status!: MarketplaceShipmentStatusEnum;
@@ -237,8 +231,7 @@ export function toMarketplaceShipmentDTO(
   dto.ttn_data = e.ttn_data
     ? Object.assign(new MarketplaceShipmentTTNDataDTO(), e.ttn_data)
     : null;
-  dto.ttn_document_registry_id = e.ttn_document_registry_id;
-  dto.ttn_pdf_url = e.ttn_pdf_url;
+  dto.ttn_document_id = e.ttn_document_id;
   dto.status = e.status as MarketplaceShipmentStatusEnum;
   dto.created_at = e.created_at;
   dto.updated_at = e.updated_at;

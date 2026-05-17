@@ -7,7 +7,9 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { randomBytes } from 'crypto';
+import { Cooperative } from 'cooptypes';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import {
   MARKETPLACE_CONSOLIDATED_REQUEST_REPOSITORY,
   type MarketplaceConsolidatedRequestDomainRepository,
@@ -25,6 +27,10 @@ import {
   type MarketplaceSupplyValidationLogDomainRepository,
 } from '../../domain/repositories/marketplace-supply-validation-log.repository';
 import {
+  MARKETPLACE_TTN_DOCUMENT_REPOSITORY,
+  type MarketplaceTtnDocumentDomainRepository,
+} from '../../domain/repositories/marketplace-ttn-document.repository';
+import {
   MarketplaceShipmentDeliveryVariants,
   MarketplaceShipmentStatuses,
   type MarketplaceShipmentDeliveryVariant,
@@ -37,6 +43,10 @@ import {
 } from '../../domain/entities/marketplace-supply-validation-log.types';
 import type { MarketplaceShipmentDomainEntity } from '../../domain/entities/marketplace-shipment.entity';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
+import {
+  MARKETPLACE_ASSET_CONFIG,
+  type MarketplaceAssetConfig,
+} from './marketplace-asset.config';
 
 /** Группа доставки одного поставщика на один КУ. */
 export interface MarketplaceShipmentGroupInput {
@@ -76,11 +86,12 @@ export interface MarketplaceShipmentCreateResult {
  *      реальный PDF-документ через document-factory подключается follow-up'ом
  *      (Story 5.1 техдолг — AR33 интеграция).
  *
- * MVP-ограничения (вынесено в техдолг эпика):
- *   - PDF ТТН формируется как локальный stub, реальная подписанная version
- *     через AR33 document factory подключается в follow-up Story 5.1.
- *   - Document registry id для ТТН пока nullable; полная интеграция —
- *     Story 5.4 (асинхронная подпись поставщика).
+ * Документ ТТН рендерится через платформенный document-factory под
+ * registry_id=1103 (`Cooperative.Registry.MarketplaceTransportNote`),
+ * сохраняется в локальном реестре `marketplace_ttn_document` и не
+ * публикуется в общий реестр документов кооператива — экспедиторы
+ * пока не пайщики и подписывают перевозку вне платформы. Ссылка на
+ * документ кладётся в `Shipment.ttn_document_id`.
  */
 @Injectable()
 export class MarketplaceShipmentCreateService {
@@ -93,6 +104,11 @@ export class MarketplaceShipmentCreateService {
     private readonly shipmentRepo: MarketplaceShipmentDomainRepository,
     @Inject(MARKETPLACE_SUPPLY_VALIDATION_LOG_REPOSITORY)
     private readonly logRepo: MarketplaceSupplyValidationLogDomainRepository,
+    @Inject(MARKETPLACE_TTN_DOCUMENT_REPOSITORY)
+    private readonly ttnRepo: MarketplaceTtnDocumentDomainRepository,
+    @Inject(MARKETPLACE_ASSET_CONFIG)
+    private readonly assetConfig: MarketplaceAssetConfig,
+    private readonly documentDomainService: DocumentDomainService,
     private readonly logger: WinstonLoggerService
   ) {
     this.logger.setContext(MarketplaceShipmentCreateService.name);
@@ -155,7 +171,10 @@ export class MarketplaceShipmentCreateService {
     for (const group of input.groups) {
       const groupOrders = validation.groupOrders.get(group.braname) ?? [];
       const groupAmount = this.sumAmount(groupOrders);
-      const ttn = this.generateTTNIfNeeded(group, cycle.coopname, cycle.id);
+      const ttnNumber =
+        group.delivery_variant === MarketplaceShipmentDeliveryVariants.EXPEDITOR
+          ? this.computeTTNNumber(cycle.coopname, cycle.id, group.braname)
+          : null;
 
       const shipment = await this.shipmentRepo.create({
         coopname: cycle.coopname,
@@ -164,12 +183,33 @@ export class MarketplaceShipmentCreateService {
         braname: group.braname,
         delivery_variant: group.delivery_variant,
         total_amount: groupAmount,
-        ttn_number: ttn?.number ?? null,
-        ttn_data: ttn?.data ?? null,
-        ttn_document_registry_id: null,
-        ttn_pdf_url: ttn?.pdf_url ?? null,
+        ttn_number: ttnNumber,
+        ttn_data: group.delivery_variant === MarketplaceShipmentDeliveryVariants.EXPEDITOR ? group.ttn_data ?? null : null,
+        ttn_document_id: null,
         status: MarketplaceShipmentStatuses.SUPPLY_PREPARED,
       });
+
+      // Вариант Б: рендерим ТТН через document-factory (registry_id=1103) и
+      // сохраняем в локальном marketplace-реестре; в общий реестр документов
+      // кооператива ТТН не публикуется.
+      if (
+        group.delivery_variant === MarketplaceShipmentDeliveryVariants.EXPEDITOR &&
+        ttnNumber &&
+        group.ttn_data
+      ) {
+        const ttnDocId = await this.generateAndStoreTtnDocument({
+          coopname: cycle.coopname,
+          shipment_id: shipment.id,
+          cycle_id: cycle.id,
+          braname: group.braname,
+          supplier_account: cycle.supplier_account,
+          total_amount: groupAmount,
+          ttn_number: ttnNumber,
+          ttn_data: group.ttn_data,
+        });
+        await this.shipmentRepo.applyTtnDocumentId(shipment.id, ttnDocId);
+        shipment.ttn_document_id = ttnDocId;
+      }
 
       // Order'ы группы → SUPPLY_PREPARED (backend-only status).
       for (const o of groupOrders) {
@@ -307,20 +347,54 @@ export class MarketplaceShipmentCreateService {
     return { ok: true, groupOrders };
   }
 
-  private generateTTNIfNeeded(
-    group: MarketplaceShipmentGroupInput,
-    coopname: string,
-    cycle_id: string
-  ): { number: string; data: MarketplaceShipmentTTNData; pdf_url: string } | null {
-    if (group.delivery_variant !== MarketplaceShipmentDeliveryVariants.EXPEDITOR) return null;
-    if (!group.ttn_data) {
-      throw new BadRequestException('ttn_data отсутствует для Варианта Б.');
-    }
-    const number = this.computeTTNNumber(coopname, cycle_id, group.braname);
-    // MVP-stub: реальная подпись и регистрация в document-factory подключаются
-    // в Story 5.4 (асинхронная подпись поставщика на АПП).
-    const pdf_url = `/api/marketplace/ttn/${number}.pdf`;
-    return { number, data: group.ttn_data, pdf_url };
+  private async generateAndStoreTtnDocument(input: {
+    coopname: string;
+    shipment_id: string;
+    cycle_id: string;
+    braname: string;
+    supplier_account: string;
+    total_amount: string;
+    ttn_number: string;
+    ttn_data: MarketplaceShipmentTTNData;
+  }): Promise<string> {
+    const action: Cooperative.Registry.MarketplaceTransportNote.Action = {
+      registry_id: Cooperative.Registry.MarketplaceTransportNote.registry_id,
+      coopname: input.coopname,
+      username: input.supplier_account,
+      ttn_number: input.ttn_number,
+      cycle_id: input.cycle_id,
+      shipment_id: input.shipment_id,
+      accept_braname: input.braname,
+      supplier_account: input.supplier_account,
+      total_amount: input.total_amount,
+      currency: this.assetConfig.symbol,
+      expeditor_full_name: input.ttn_data.expeditor_full_name,
+      expeditor_phone: input.ttn_data.expeditor_phone,
+      expeditor_id_doc: input.ttn_data.expeditor_id_doc,
+      vehicle_number: input.ttn_data.vehicle_number,
+      loading_address: input.ttn_data.loading_address,
+      loading_datetime: input.ttn_data.loading_datetime,
+      delivery_datetime_estimate: input.ttn_data.delivery_datetime_estimate,
+      skip_save: true,
+    };
+
+    const document = await this.documentDomainService.generateDocument({ data: action });
+
+    const stored = await this.ttnRepo.create({
+      coopname: input.coopname,
+      shipment_id: input.shipment_id,
+      ttn_number: input.ttn_number,
+      registry_id: Cooperative.Registry.MarketplaceTransportNote.registry_id,
+      document_hash: document.hash,
+      content_html: document.html,
+      meta: document.meta as Record<string, unknown>,
+      supplier_account: input.supplier_account,
+      accept_braname: input.braname,
+      total_amount: input.total_amount,
+      currency: this.assetConfig.symbol,
+      ttn_data: input.ttn_data,
+    });
+    return stored.id;
   }
 
   private computeTTNNumber(coopname: string, cycle_id: string, braname: string): string {

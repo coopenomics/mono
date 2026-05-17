@@ -27,8 +27,7 @@ export class MarketplaceShipmentDomainEntity {
   public total_amount: string;
   public ttn_number: string | null;
   public ttn_data: MarketplaceShipmentTTNData | null;
-  public ttn_document_registry_id: string | null;
-  public ttn_pdf_url: string | null;
+  public ttn_document_id: string | null;
   public status: MarketplaceShipmentStatus;
   public readonly created_at: Date;
   public updated_at: Date;
@@ -57,8 +56,7 @@ export class MarketplaceShipmentDomainEntity {
     this.total_amount = props.total_amount;
     this.ttn_number = props.ttn_number;
     this.ttn_data = props.ttn_data;
-    this.ttn_document_registry_id = props.ttn_document_registry_id;
-    this.ttn_pdf_url = props.ttn_pdf_url;
+    this.ttn_document_id = props.ttn_document_id;
     this.status = props.status;
     this.created_at = props.created_at;
     this.updated_at = props.updated_at;

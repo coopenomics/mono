@@ -26,6 +26,7 @@ import { MarketplaceSupplyValidationLogEntity } from './entities/marketplace-sup
 import { MarketplaceInventoryEntity } from './entities/marketplace-inventory.entity';
 import { MarketplaceAplReceptionEntity } from './entities/marketplace-apl-reception.entity';
 import { MarketplaceOutgoingPaymentRequestEntity } from './entities/marketplace-outgoing-payment-request.entity';
+import { MarketplaceTtnDocumentEntity } from './entities/marketplace-ttn-document.entity';
 
 // Repository adapters
 import { CategoryRepositoryAdapter } from './adapters/category-repository.adapter';
@@ -50,6 +51,7 @@ import { MarketplaceSupplyValidationLogRepositoryAdapter } from './adapters/mark
 import { MarketplaceInventoryRepositoryAdapter } from './adapters/marketplace-inventory-repository.adapter';
 import { MarketplaceAplReceptionRepositoryAdapter } from './adapters/marketplace-apl-reception-repository.adapter';
 import { MarketplaceOutgoingPaymentRequestRepositoryAdapter } from './adapters/marketplace-outgoing-payment-request-repository.adapter';
+import { MarketplaceTtnDocumentRepositoryAdapter } from './adapters/marketplace-ttn-document-repository.adapter';
 
 // Mappers
 import { MarketplaceVitrineMapper } from './mappers/marketplace-vitrine.mapper';
@@ -65,6 +67,7 @@ import { MarketplaceSupplyValidationLogMapper } from './mappers/marketplace-supp
 import { MarketplaceInventoryMapper } from './mappers/marketplace-inventory.mapper';
 import { MarketplaceAplReceptionMapper } from './mappers/marketplace-apl-reception.mapper';
 import { MarketplaceOutgoingPaymentRequestMapper } from './mappers/marketplace-outgoing-payment-request.mapper';
+import { MarketplaceTtnDocumentMapper } from './mappers/marketplace-ttn-document.mapper';
 
 // Repository tokens
 import { CATEGORY_DOMAIN_REPOSITORY } from '../domain/repositories/category-domain.repository';
@@ -89,6 +92,7 @@ import { MARKETPLACE_SUPPLY_VALIDATION_LOG_REPOSITORY } from '../domain/reposito
 import { MARKETPLACE_INVENTORY_REPOSITORY } from '../domain/repositories/marketplace-inventory.repository';
 import { MARKETPLACE_APL_RECEPTION_REPOSITORY } from '../domain/repositories/marketplace-apl-reception.repository';
 import { MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY } from '../domain/repositories/marketplace-outgoing-payment-request.repository';
+import { MARKETPLACE_TTN_DOCUMENT_REPOSITORY } from '../domain/repositories/marketplace-ttn-document.repository';
 
 @Module({
   imports: [
@@ -125,6 +129,7 @@ import { MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY } from '../domain/repos
         MarketplaceInventoryEntity,
         MarketplaceAplReceptionEntity,
         MarketplaceOutgoingPaymentRequestEntity,
+        MarketplaceTtnDocumentEntity,
       ],
       synchronize: true,
       logging: false,
@@ -155,6 +160,7 @@ import { MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY } from '../domain/repos
         MarketplaceInventoryEntity,
         MarketplaceAplReceptionEntity,
         MarketplaceOutgoingPaymentRequestEntity,
+        MarketplaceTtnDocumentEntity,
       ],
       'marketplace'
     ), // Указываем имя подключения
@@ -270,6 +276,12 @@ import { MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY } from '../domain/repos
       provide: MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY,
       useClass: MarketplaceOutgoingPaymentRequestRepositoryAdapter,
     },
+    // Story 5.4 — локальный реестр ТТН (registry_id=1103, не on-chain)
+    MarketplaceTtnDocumentMapper,
+    {
+      provide: MARKETPLACE_TTN_DOCUMENT_REPOSITORY,
+      useClass: MarketplaceTtnDocumentRepositoryAdapter,
+    },
   ],
   exports: [
     CATEGORY_DOMAIN_REPOSITORY,
@@ -299,6 +311,8 @@ import { MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY } from '../domain/repos
     MARKETPLACE_APL_RECEPTION_REPOSITORY,
     // Story 5.6 / 5.7
     MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY,
+    // Story 5.4 — локальный реестр ТТН
+    MARKETPLACE_TTN_DOCUMENT_REPOSITORY,
   ],
 })
 export class MarketplaceInfrastructureModule {}

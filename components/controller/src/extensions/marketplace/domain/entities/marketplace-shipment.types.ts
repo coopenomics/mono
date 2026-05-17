@@ -89,10 +89,8 @@ export interface MarketplaceShipmentProps {
   ttn_number: string | null;
   /** Данные ТТН в форме jsonb (только для Варианта Б). */
   ttn_data: MarketplaceShipmentTTNData | null;
-  /** Ссылка на запись document registry с подписанной ТТН (только для Варианта Б). */
-  ttn_document_registry_id: string | null;
-  /** Локальный PDF (S3-URL) ТТН для скачивания / печати (только для Варианта Б). */
-  ttn_pdf_url: string | null;
+  /** id записи ТТН в локальном реестре marketplace_ttn_document (только для Варианта Б). */
+  ttn_document_id: string | null;
   status: MarketplaceShipmentStatus;
   created_at: Date;
   updated_at: Date;

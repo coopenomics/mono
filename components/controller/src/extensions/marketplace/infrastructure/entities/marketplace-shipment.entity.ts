@@ -63,10 +63,7 @@ export class MarketplaceShipmentEntity {
   public ttn_data!: MarketplaceShipmentTTNData | null;
 
   @Column({ type: 'uuid', nullable: true })
-  public ttn_document_registry_id!: string | null;
-
-  @Column({ type: 'varchar', length: 1024, nullable: true })
-  public ttn_pdf_url!: string | null;
+  public ttn_document_id!: string | null;
 
   @Column({ type: 'varchar', length: 48 })
   public status!: MarketplaceShipmentStatus;

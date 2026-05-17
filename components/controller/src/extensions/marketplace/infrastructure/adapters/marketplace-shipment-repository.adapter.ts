@@ -29,8 +29,7 @@ export class MarketplaceShipmentRepositoryAdapter implements MarketplaceShipment
       total_amount: input.total_amount,
       ttn_number: input.ttn_number,
       ttn_data: input.ttn_data,
-      ttn_document_registry_id: input.ttn_document_registry_id,
-      ttn_pdf_url: input.ttn_pdf_url,
+      ttn_document_id: input.ttn_document_id,
       status: input.status,
     });
     const saved = await this.repo.save(row);
@@ -85,6 +84,15 @@ export class MarketplaceShipmentRepositoryAdapter implements MarketplaceShipment
   ): Promise<MarketplaceShipmentDomainEntity> {
     await this.repo.update({ id }, { status: newStatus });
     const row = await this.repo.findOneOrFail({ where: { id } });
+    return this.mapper.toDomain(row);
+  }
+
+  async applyTtnDocumentId(
+    shipment_id: string,
+    ttn_document_id: string
+  ): Promise<MarketplaceShipmentDomainEntity> {
+    await this.repo.update({ id: shipment_id }, { ttn_document_id });
+    const row = await this.repo.findOneOrFail({ where: { id: shipment_id } });
     return this.mapper.toDomain(row);
   }
 }

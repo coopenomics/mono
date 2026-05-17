@@ -16,8 +16,7 @@ export interface MarketplaceShipmentCreateInput {
   total_amount: string;
   ttn_number: string | null;
   ttn_data: MarketplaceShipmentTTNData | null;
-  ttn_document_registry_id: string | null;
-  ttn_pdf_url: string | null;
+  ttn_document_id: string | null;
   status: MarketplaceShipmentStatus;
 }
 
@@ -53,5 +52,11 @@ export interface MarketplaceShipmentDomainRepository {
   applyStatusTransition(
     id: string,
     newStatus: MarketplaceShipmentStatus
+  ): Promise<MarketplaceShipmentDomainEntity>;
+
+  /** Story 5.4: проставить ссылку на запись локального ТТН-документа после его генерации. */
+  applyTtnDocumentId(
+    shipment_id: string,
+    ttn_document_id: string
   ): Promise<MarketplaceShipmentDomainEntity>;
 }

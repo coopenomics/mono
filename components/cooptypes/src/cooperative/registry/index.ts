@@ -71,6 +71,7 @@ export * as CapitalizationToMainWalletConvertStatement from './1090.Capitalizati
 export * as MarketplaceOfferTemplate from './1100.MarketplaceOfferTemplate'
 export * as MarketplaceOffer from './1101.MarketplaceOffer'
 export * as MarketplaceAplReception from './1102.MarketplaceAplReception'
+export * as MarketplaceTransportNote from './1103.MarketplaceTransportNote'
 
 export * as SosediAgreement from './699.SosediAgreement'
 
