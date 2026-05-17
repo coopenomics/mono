@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue';
-import { Loading, Notify } from 'quasar';
+import { Loading } from 'quasar';
+import { SuccessAlert, FailAlert, NotifyAlert } from 'src/shared/api';
 import {
   createAplReception,
   listAplReceptionsByBraname,
@@ -27,10 +28,7 @@ async function load(): Promise<void> {
   try {
     items.value = await listAplReceptionsByBraname(braname.value.trim());
   } catch (e) {
-    Notify.create({
-      type: 'negative',
-      message: e instanceof Error ? e.message : String(e),
-    });
+    FailAlert(e, 'Не удалось загрузить акты приёмки');
   } finally {
     loading.value = false;
   }
@@ -38,35 +36,27 @@ async function load(): Promise<void> {
 
 async function createReceptionForShipment(): Promise<void> {
   if (!shipmentIdInput.value.trim()) {
-    Notify.create({ type: 'warning', message: 'Укажите ID партии.' });
+    FailAlert(new Error('Укажите ID партии.'));
     return;
   }
   Loading.show({ message: 'Создаю акт приёмки…' });
   try {
     await createAplReception({ shipment_id: shipmentIdInput.value.trim() });
-    Notify.create({ type: 'positive', message: 'АПП создан.' });
+    SuccessAlert('Акт приёмки создан');
     shipmentIdInput.value = '';
     await load();
   } catch (e) {
-    Notify.create({
-      type: 'negative',
-      message: e instanceof Error ? e.message : String(e),
-      timeout: 6000,
-    });
+    FailAlert(e, 'Не удалось создать акт приёмки');
   } finally {
     Loading.hide();
   }
 }
 
 function signChairman(item: MarketplaceAplReceptionView): void {
-  Notify.create({
-    type: 'warning',
-    timeout: 6000,
-    message:
-      `Диалог закрывающей подписи АПП ${item.id.slice(0, 8)} ещё не реализован. ` +
-      `Backend принимает только подписанный канонический акт (signed_document с подписью пайщика); ` +
-      `UI-флоу подписи через приватный ключ — следующий этап работ.`,
-  });
+  NotifyAlert(
+    `Диалог подписи АПП ${item.id.slice(0, 8)} в разработке`,
+    'Backend принимает только подписанный канонический акт (signed_document с подписью). UI-флоу подписи через приватный ключ председателя — следующий этап работ.'
+  );
 }
 
 onMounted(() => {

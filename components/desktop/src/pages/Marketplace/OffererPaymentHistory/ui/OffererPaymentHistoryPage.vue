@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue';
-import { Notify } from 'quasar';
+import { FailAlert } from 'src/shared/api';
 import { listMyPayments, type MarketplaceOutgoingPaymentRequestView } from '../api';
 
 const items = ref<MarketplaceOutgoingPaymentRequestView[]>([]);
@@ -11,10 +11,7 @@ async function load(): Promise<void> {
   try {
     items.value = await listMyPayments();
   } catch (e) {
-    Notify.create({
-      type: 'negative',
-      message: e instanceof Error ? e.message : String(e),
-    });
+    FailAlert(e, 'Не удалось загрузить историю выплат');
   } finally {
     loading.value = false;
   }

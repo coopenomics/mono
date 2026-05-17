@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue';
-import { Loading, Notify } from 'quasar';
+import { Loading } from 'quasar';
+import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { BarcodeDisplay } from 'src/widgets/Marketplace/BarcodeDisplay';
 import {
   fetchInventoryByBraname,
@@ -31,10 +32,7 @@ async function loadInventory(): Promise<void> {
   try {
     items.value = await fetchInventoryByBraname(braname.value.trim());
   } catch (e) {
-    Notify.create({
-      type: 'negative',
-      message: e instanceof Error ? e.message : String(e),
-    });
+    FailAlert(e, 'Не удалось загрузить инвентарь');
   } finally {
     loading.value = false;
   }
@@ -42,24 +40,17 @@ async function loadInventory(): Promise<void> {
 
 async function generateLabels(): Promise<void> {
   if (!orderIdInput.value.trim()) {
-    Notify.create({ type: 'warning', message: 'Укажите идентификатор заказа.' });
+    FailAlert(new Error('Укажите идентификатор заказа.'));
     return;
   }
   Loading.show({ message: 'Генерирую этикетки…' });
   try {
     const result = await labelInventory({ order_id: orderIdInput.value.trim() });
-    Notify.create({
-      type: 'positive',
-      message: `Сгенерировано ${result.inventory.length} этикеток. Можно печатать.`,
-    });
+    SuccessAlert(`Сгенерировано ${result.inventory.length} этикеток — можно печатать`);
     orderIdInput.value = '';
     await loadInventory();
   } catch (e) {
-    Notify.create({
-      type: 'negative',
-      message: e instanceof Error ? e.message : String(e),
-      timeout: 6000,
-    });
+    FailAlert(e, 'Не удалось сгенерировать этикетки');
   } finally {
     Loading.hide();
   }

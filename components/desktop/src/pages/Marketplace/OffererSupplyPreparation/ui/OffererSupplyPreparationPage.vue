@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue';
-import { Notify } from 'quasar';
+import { FailAlert } from 'src/shared/api';
 import { listShipments, type MarketplaceShipmentView } from '../api';
 
 /**
@@ -19,10 +19,7 @@ async function load(): Promise<void> {
   try {
     items.value = await listShipments();
   } catch (e) {
-    Notify.create({
-      type: 'negative',
-      message: e instanceof Error ? e.message : String(e),
-    });
+    FailAlert(e, 'Не удалось загрузить партии');
   } finally {
     loading.value = false;
   }

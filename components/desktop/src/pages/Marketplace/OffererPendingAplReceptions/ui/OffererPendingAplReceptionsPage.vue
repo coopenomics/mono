@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue';
-import { Notify } from 'quasar';
+import { FailAlert, NotifyAlert } from 'src/shared/api';
 import {
   listAplReceptionsAsSupplier,
   type MarketplaceAplReceptionView,
@@ -14,24 +14,17 @@ async function load(): Promise<void> {
   try {
     items.value = await listAplReceptionsAsSupplier();
   } catch (e) {
-    Notify.create({
-      type: 'negative',
-      message: e instanceof Error ? e.message : String(e),
-    });
+    FailAlert(e, 'Не удалось загрузить акты на подпись');
   } finally {
     loading.value = false;
   }
 }
 
 function sign(item: MarketplaceAplReceptionView): void {
-  Notify.create({
-    type: 'warning',
-    timeout: 6000,
-    message:
-      `Диалог подписи акта приёмки ${item.id.slice(0, 8)} ещё не реализован. ` +
-      `Backend принимает только подписанный канонический акт (signed_document с подписью пайщика); ` +
-      `UI-флоу подписи через приватный ключ — следующий этап работ.`,
-  });
+  NotifyAlert(
+    `Диалог подписи АПП ${item.id.slice(0, 8)} в разработке`,
+    'Backend принимает только подписанный канонический акт (signed_document с подписью). UI-флоу подписи через приватный ключ поставщика — следующий этап работ.'
+  );
 }
 
 onMounted(() => {
