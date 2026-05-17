@@ -39,6 +39,24 @@ class BaseMarketplaceAplReceptionMetaDocumentInputDTO implements ExcludeCommonPr
   @IsString()
   supplier_account!: string;
 
+  @Field({ description: 'Номер акта приёмки для шапки документа.' })
+  @IsString()
+  act_id!: string;
+
+  @Field({
+    description: 'Account поставщика — отправителя партии (строка «Передал заказ» в акте).',
+  })
+  @IsString()
+  transmitter!: string;
+
+  @Field({
+    nullable: true,
+    description: 'Имя кооперативного участка-приёмника для ветки «филиал» в шаблоне акта.',
+  })
+  @IsOptional()
+  @IsString()
+  braname?: string;
+
   @Field({
     nullable: true,
     description: 'Account председателя — подписанта закрывающей подписи (если уже известен).',

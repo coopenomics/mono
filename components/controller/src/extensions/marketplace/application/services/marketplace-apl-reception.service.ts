@@ -228,6 +228,9 @@ export class MarketplaceAplReceptionService {
       order_hash: input.order.order_hash,
       accept_braname: input.reception.braname,
       reception_id: input.reception.id,
+      act_id: this.formatActId(input.reception.id, input.order.id),
+      transmitter: input.reception.offerer_account,
+      braname: input.reception.braname,
       fact_quantity: factQuantity,
       total_amount: orderTotal,
       supplier_account: input.reception.offerer_account,
@@ -235,6 +238,12 @@ export class MarketplaceAplReceptionService {
       skip_save: true,
     };
     return this.documentDomainService.generateDocument({ data: action });
+  }
+
+  private formatActId(reception_id: string, order_id: string): string {
+    const receptionShort = reception_id.replace(/-/g, '').slice(0, 8).toUpperCase();
+    const orderShort = order_id.replace(/-/g, '').slice(0, 6).toUpperCase();
+    return `APL-${receptionShort}-${orderShort}`;
   }
 
   async create(
