@@ -51,6 +51,7 @@ export async function preLoading() {
     'udatas',
     'deltas',
     'actions',
+    'doc_private_data',
   ]
 
   for (const collectionName of collectionsToClear) {

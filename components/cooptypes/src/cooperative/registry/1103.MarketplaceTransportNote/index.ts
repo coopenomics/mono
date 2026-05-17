@@ -1,17 +1,46 @@
-import type { IGenerate, IMetaDocument } from '../../document'
+import type { IDocDataRef, IGenerate, IMetaDocument } from '../../document'
 import type { ICooperativeData, IFirstLastMiddleName, IVars } from '../../model'
 import type { IOrganizationData } from '../../users'
 
 export const registry_id = 1103
 
-// Модель действия для генерации транспортной накладной (ТТН) Варианта Б
-// (доставка через экспедитора). Документ генерируется при формировании
-// партии поставки (Shipment), сохраняется в локальном marketplace-реестре
-// `marketplace_ttn_document` и не публикуется в общий реестр документов
-// кооператива — экспедиторы пока не пайщики и подписывают перевозку
-// вне платформы. Ссылка на ТТН вшивается в АПП приёмки через
-// `Shipment.ttn_document_id`.
-export interface Action extends IGenerate {
+/**
+ * Приватный payload транспортной накладной (ТТН).
+ *
+ * Хранится off-chain в коллекции `doc_private_data` фабрики; on-chain
+ * публикуется только `doc_data_hash`. Содержимое — персональные данные
+ * экспедитора и параметры физической перевозки, которые недопустимо
+ * публиковать в блокчейн. См. раздел «Document Generation Pattern:
+ * doc_data» в архитектуре.
+ */
+export interface PrivateData {
+  /** Полное наименование экспедитора (ФИО). */
+  expeditor_full_name: string
+  /** Контактный телефон экспедитора. */
+  expeditor_phone: string
+  /** Документ, удостоверяющий личность экспедитора. */
+  expeditor_id_doc: string
+  /** Номер транспортного средства. */
+  vehicle_number: string
+  /** Адрес погрузки. */
+  loading_address: string
+  /** Дата и время погрузки (ISO-8601). */
+  loading_datetime: string
+  /** Плановая дата и время доставки на КУ (ISO-8601). */
+  delivery_datetime_estimate: string
+}
+
+// Модель действия для генерации транспортной накладной (ТТН) Варианта Б.
+// Документ генерируется при формировании партии поставки (Shipment),
+// сохраняется в локальном marketplace-реестре `marketplace_ttn_document`
+// и не публикуется в общий реестр документов кооператива — экспедиторы
+// пока не подписывают перевозку. Ссылка на ТТН вшивается в АПП приёмки
+// через `Shipment.ttn_document_id`.
+//
+// **Все персональные данные экспедитора и параметры перевозки** (ФИО,
+// телефон, паспорт, госномер, адрес погрузки и т.п.) хранятся off-chain
+// в `doc_private_data`; on-chain — только `doc_data_hash`.
+export interface Action extends IGenerate, IDocDataRef {
   registry_id: number
   /** Уникальный номер ТТН (формат `<COOP>-TTN-<CYCLE>-<KU>-<HEX>`). */
   ttn_number: string
@@ -27,20 +56,8 @@ export interface Action extends IGenerate {
   total_amount: string
   /** Символ валюты, в которой выражена сумма. */
   currency: string
-  /** Полное наименование экспедитора (ФИО). */
-  expeditor_full_name: string
-  /** Контактный телефон экспедитора. */
-  expeditor_phone: string
-  /** Документ, удостоверяющий личность экспедитора (тип + номер). */
-  expeditor_id_doc: string
-  /** Номер транспортного средства. */
-  vehicle_number: string
-  /** Адрес погрузки. */
-  loading_address: string
-  /** Дата и время погрузки (ISO-8601). */
-  loading_datetime: string
-  /** Плановая дата и время доставки на КУ (ISO-8601). */
-  delivery_datetime_estimate: string
+  /** sha256 хэш приватного payload (PrivateData) — обязательное для ТТН. */
+  doc_data_hash: string
 }
 
 export type Meta = IMetaDocument & Action
@@ -58,13 +75,8 @@ export interface Model {
   supplier_account: string
   /** ФИО поставщика — резолвится фабрикой по `supplier_account`. */
   supplier: IFirstLastMiddleName
-  expeditor_full_name: string
-  expeditor_phone: string
-  expeditor_id_doc: string
-  vehicle_number: string
-  loading_address: string
-  loading_datetime: string
-  delivery_datetime_estimate: string
+  /** Приватные данные экспедитора и параметры перевозки (off-chain). */
+  doc_data: PrivateData
   /** Карточка КУ-приёмника — резолвится фабрикой по `accept_braname`. */
   branch?: IOrganizationData
 }
@@ -115,15 +127,15 @@ th { background-color: #f4f4f4; width: 35%; }
     <tbody>
       <tr>
         <th>{% trans 'expeditor_full_name_label' %}</th>
-        <td>{{ expeditor_full_name }}</td>
+        <td>{{ doc_data.expeditor_full_name }}</td>
       </tr>
       <tr>
         <th>{% trans 'expeditor_phone_label' %}</th>
-        <td>{{ expeditor_phone }}</td>
+        <td>{{ doc_data.expeditor_phone }}</td>
       </tr>
       <tr>
         <th>{% trans 'expeditor_id_doc_label' %}</th>
-        <td>{{ expeditor_id_doc }}</td>
+        <td>{{ doc_data.expeditor_id_doc }}</td>
       </tr>
     </tbody>
   </table>
@@ -133,19 +145,19 @@ th { background-color: #f4f4f4; width: 35%; }
     <tbody>
       <tr>
         <th>{% trans 'vehicle_number_label' %}</th>
-        <td>{{ vehicle_number }}</td>
+        <td>{{ doc_data.vehicle_number }}</td>
       </tr>
       <tr>
         <th>{% trans 'loading_address_label' %}</th>
-        <td>{{ loading_address }}</td>
+        <td>{{ doc_data.loading_address }}</td>
       </tr>
       <tr>
         <th>{% trans 'loading_datetime_label' %}</th>
-        <td>{{ loading_datetime }}</td>
+        <td>{{ doc_data.loading_datetime }}</td>
       </tr>
       <tr>
         <th>{% trans 'delivery_datetime_estimate_label' %}</th>
-        <td>{{ delivery_datetime_estimate }}</td>
+        <td>{{ doc_data.delivery_datetime_estimate }}</td>
       </tr>
     </tbody>
   </table>
@@ -168,7 +180,7 @@ th { background-color: #f4f4f4; width: 35%; }
         <tr>
           <th>{% trans 'transported' %}</th>
           <td>{% trans 'expeditor_role' %}</td>
-          <td>{{ expeditor_full_name }}</td>
+          <td>{{ doc_data.expeditor_full_name }}</td>
           <td>{% trans 'signature_placeholder' %}</td>
         </tr>
       </tbody>
@@ -229,13 +241,15 @@ export const exampleData = {
     first_name: 'Пётр',
     middle_name: 'Петрович',
   },
-  expeditor_full_name: 'Сидоров Сидор Сидорович',
-  expeditor_phone: '+7 (999) 123-45-67',
-  expeditor_id_doc: 'Паспорт РФ 4500 123456',
-  vehicle_number: 'А123БВ77',
-  loading_address: 'г. Москва, ул. Поставщика, д. 1',
-  loading_datetime: '2026-05-15 09:00',
-  delivery_datetime_estimate: '2026-05-15 14:00',
+  doc_data: {
+    expeditor_full_name: 'Сидоров Сидор Сидорович',
+    expeditor_phone: '+7 (999) 123-45-67',
+    expeditor_id_doc: 'Паспорт РФ 4500 123456',
+    vehicle_number: 'А123БВ77',
+    loading_address: 'г. Москва, ул. Поставщика, д. 1',
+    loading_datetime: '2026-05-15 09:00',
+    delivery_datetime_estimate: '2026-05-15 14:00',
+  },
   branch: {
     short_name: 'КУ-МОСКВА-1',
   },

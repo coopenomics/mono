@@ -68,6 +68,10 @@ export * as GenerationToCapitalizationConvertStatement from './1082.GenerationTo
 export * as CapitalizationToMainWalletConvertStatement from './1090.CapitalizationToMainWalletConvertStatement'
 export * as SosediAgreement from './699.SosediAgreement'
 
+// Marketplace (Стол заказов) — Эпик 5
+export * as MarketplaceAplReception from './1102.MarketplaceAplReception'
+export * as MarketplaceTransportNote from './1103.MarketplaceTransportNote'
+
 export * as AnnualGeneralMeetingAgenda from './300.AnnualGeneralMeetingAgenda'
 export * as AnnualGeneralMeetingSovietDecision from './301.AnnualGeneralMeetingSovietDecision'
 export * as AnnualGeneralMeetingNotification from './302.AnnualGeneralMeetingNotification'

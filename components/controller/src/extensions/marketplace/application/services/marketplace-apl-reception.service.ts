@@ -218,23 +218,20 @@ export class MarketplaceAplReceptionService {
     const fact = input.reception.fact_quantity_per_order.find(
       (f) => f.order_id === input.order.id
     );
-    const factQuantity = fact?.fact_quantity ?? input.order.quantity;
-    const orderTotal = (factQuantity * Number.parseFloat(input.order.price_per_unit)).toFixed(4);
+    // `user` шаблона 1102 = пайщик-получатель имущества (orderer_account).
+    // `transmitter` = передающая сторона — председатель КУ или доверенное
+    // им лицо (известен по chairman_account на этапе закрывающей подписи;
+    // на этапе превью используется оператор, создавший АПП).
+    const transmitter = input.chairman_account ?? input.reception.created_by_operator_account;
     const action: Cooperative.Registry.MarketplaceAplReception.Action = {
       registry_id: Cooperative.Registry.MarketplaceAplReception.registry_id,
       coopname: input.reception.coopname,
-      username: input.username,
+      username: input.order.orderer_account,
       order_id: input.order.id,
       order_hash: input.order.order_hash,
-      accept_braname: input.reception.braname,
-      reception_id: input.reception.id,
       act_id: this.formatActId(input.reception.id, input.order.id),
-      transmitter: input.reception.offerer_account,
+      transmitter,
       braname: input.reception.braname,
-      fact_quantity: factQuantity,
-      total_amount: orderTotal,
-      supplier_account: input.reception.offerer_account,
-      chairman_account: input.chairman_account,
       skip_save: true,
     };
     return this.documentDomainService.generateDocument({ data: action });

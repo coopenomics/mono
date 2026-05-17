@@ -70,6 +70,8 @@ import * as GeneratorOfferTemplate from './995.GeneratorOfferTemplate'
 import * as GeneratorOffer from './996.GeneratorOffer'
 import * as GeneratorProgramTemplate from './994.GeneratorProgramTemplate'
 import * as BlagorostOffer from './1000.BlagorostOffer'
+import * as MarketplaceAplReception from './1102.MarketplaceAplReception'
+import * as MarketplaceTransportNote from './1103.MarketplaceTransportNote'
 
 export const Registry = {
   1: WalletAgreement,
@@ -131,4 +133,6 @@ export const Registry = {
   1081: GenerationToProjectConvertStatement,
   1082: GenerationToCapitalizationConvertStatement,
   1090: CapitalizationToMainWalletConvertStatement,
+  1102: MarketplaceAplReception,
+  1103: MarketplaceTransportNote,
 }

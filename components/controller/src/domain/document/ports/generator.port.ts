@@ -16,6 +16,10 @@ export interface GeneratorPort {
   list<T = any>(collection: string, filter?: Record<string, any>): Promise<Cooperative.Document.IGetResponse<T>>;
   getHistory<T = any>(collection: string, filter: Record<string, any>): Promise<T[]>;
   search(query: string): Promise<ISearchResult[]>;
+
+  saveDocData<P extends Record<string, unknown>>(payload: P, registry_id: number): Promise<{ hash: string }>;
+
+  getDocData<P = Record<string, unknown>>(hash: string): Promise<P | null>;
 }
 
 export const GENERATOR_PORT = Symbol('GeneratorPort');

@@ -1,38 +1,44 @@
-import type { IDecisionData, IGenerate, IMetaDocument } from '../../document'
+import type { IDecisionData, IDocDataRef, IGenerate, IMetaDocument } from '../../document'
 import type { ICommonProgram, ICommonRequest, ICommonUser, ICooperativeData, IFirstLastMiddleName, IVars } from '../../model'
 import type { IOrganizationData } from '../../users'
 
 export const registry_id = 1102
 
 // Модель действия для генерации.
-// Один экземпляр документа = один Order в составе АПП; на одну АПП с
-// несколькими Order'ами рендерится столько же документов. Документ
-// подписывается поставщиком (action marketplace::signsupp) и
-// председателем КУ-приёмника (action marketplace::signchair) — payload
-// (act: IDocument2) одинаковый, отличается только подписант.
-export interface Action extends IGenerate {
+//
+// Семантика подписантов АПП выдачи пайщику (Эпик 5):
+//   - `username` (из IGenerate) — USERNAME пайщика-получателя имущества.
+//     ФИО подставляется factory через `getUser(username) → user`.
+//   - `transmitter` — USERNAME передающей стороны: председатель
+//     кооперативного участка или доверенное им лицо (или председатель
+//     кооператива). ФИО подставляется factory через
+//     `getUser(transmitter) → getFirstLastMiddleName`.
+//
+// Текст шаблона и переводы — 1-к-1 с 802.ReturnByAssetAct (юр.выверенный
+// текст). В Action попадают только переменные, которые подставляются в
+// шаблон; прочие признаки (например, идентификатор записи АПП в
+// инфраструктуре marketplace) попадают в meta автоматически.
+//
+// `doc_data_hash` — зарезервированное опциональное поле для приватных
+// данных off-chain (см. раздел «Document Generation Pattern: doc_data»).
+export interface Action extends IGenerate, IDocDataRef {
   registry_id: number
   /** id заказа пайщика, по которому формируется АПП. */
   order_id: string
   /** Канонический order_hash on-chain. */
   order_hash: string
-  /** id записи АПП в инфраструктуре marketplace. */
-  reception_id: string
   /** Уникальный номер акта (act_id) — выводится в шапке как «АКТ № …». */
   act_id: string
-  /** Account поставщика — отправитель партии, попадает в строку «Передал заказ». */
+  /** USERNAME председателя КУ или доверенного им лица — передающая сторона. */
   transmitter: string
-  /** Имя кооперативного участка-приёмника (braname). */
+  /** Имя кооперативного участка, выдающего имущество (braname). */
   braname?: string
-  /** Account председателя КУ — подписант закрывающей подписи (заполняется при signchair). */
-  chairman_account?: string
 }
 
 export type Meta = IMetaDocument & Action
 
-// Модель данных документа (структура повторяет 802.ReturnByAssetAct
-// один-к-одному — текст акта и переводы выверены юр.отделом, в Эпике 5
-// меняются только подставляемые значения).
+// Модель данных документа: структура повторяет 802.ReturnByAssetAct
+// один-к-одному.
 export interface Model {
   meta: IMetaDocument
   coop: ICooperativeData
@@ -73,7 +79,6 @@ export const translations = {
     date: 'Дата',
     participant_full_name: 'ФИО/Наименование Пайщика',
   },
-  // ... другие переводы
 }
 
 export const exampleData = {
@@ -85,7 +90,7 @@ export const exampleData = {
     is_branched: true,
   },
   user: {
-    full_name_or_short_name: 'Иванов Иван Иванович',
+    full_name_or_short_name: 'Петров Пётр Петрович',
   },
   request: {
     unit_of_measurement: 'шт.',
@@ -109,9 +114,9 @@ export const exampleData = {
     full_abbr: 'Потребительский Кооператив',
   },
   transmitter: {
-    last_name: 'Петров',
-    first_name: 'Пётр',
-    middle_name: 'Петрович',
+    last_name: 'Иванов',
+    first_name: 'Иван',
+    middle_name: 'Иванович',
   },
   order_date: '01.05.2026',
   act_id: 'APL-2026-05-0001',

@@ -357,6 +357,21 @@ export class MarketplaceShipmentCreateService {
     ttn_number: string;
     ttn_data: MarketplaceShipmentTTNData;
   }): Promise<string> {
+    const privatePayload: Cooperative.Registry.MarketplaceTransportNote.PrivateData = {
+      expeditor_full_name: input.ttn_data.expeditor_full_name,
+      expeditor_phone: input.ttn_data.expeditor_phone,
+      expeditor_id_doc: input.ttn_data.expeditor_id_doc,
+      vehicle_number: input.ttn_data.vehicle_number,
+      loading_address: input.ttn_data.loading_address,
+      loading_datetime: input.ttn_data.loading_datetime,
+      delivery_datetime_estimate: input.ttn_data.delivery_datetime_estimate,
+    };
+
+    const { hash: doc_data_hash } = await this.documentDomainService.saveDocData(
+      privatePayload as unknown as Record<string, unknown>,
+      Cooperative.Registry.MarketplaceTransportNote.registry_id
+    );
+
     const action: Cooperative.Registry.MarketplaceTransportNote.Action = {
       registry_id: Cooperative.Registry.MarketplaceTransportNote.registry_id,
       coopname: input.coopname,
@@ -368,13 +383,7 @@ export class MarketplaceShipmentCreateService {
       supplier_account: input.supplier_account,
       total_amount: input.total_amount,
       currency: this.assetConfig.symbol,
-      expeditor_full_name: input.ttn_data.expeditor_full_name,
-      expeditor_phone: input.ttn_data.expeditor_phone,
-      expeditor_id_doc: input.ttn_data.expeditor_id_doc,
-      vehicle_number: input.ttn_data.vehicle_number,
-      loading_address: input.ttn_data.loading_address,
-      loading_datetime: input.ttn_data.loading_datetime,
-      delivery_datetime_estimate: input.ttn_data.delivery_datetime_estimate,
+      doc_data_hash,
       skip_save: true,
     };
 

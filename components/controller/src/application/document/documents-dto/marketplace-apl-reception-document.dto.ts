@@ -1,5 +1,5 @@
-import { InputType, Field, Int, IntersectionType, OmitType } from '@nestjs/graphql';
-import { IsString, IsOptional, IsBoolean, IsInt, Min } from 'class-validator';
+import { Field, InputType, Int, IntersectionType, OmitType } from '@nestjs/graphql';
+import { IsBoolean, IsInt, IsOptional, IsString, Min } from 'class-validator';
 import { Cooperative } from 'cooptypes';
 import { GenerateMetaDocumentInputDTO } from '~/application/document/dto/generate-meta-document-input.dto';
 import { MetaDocumentInputDTO } from '~/application/document/dto/meta-document-input.dto';
@@ -10,19 +10,19 @@ type action = Cooperative.Registry.MarketplaceAplReception.Action;
 
 @InputType('BaseMarketplaceAplReceptionMetaDocumentInput')
 class BaseMarketplaceAplReceptionMetaDocumentInputDTO implements ExcludeCommonProps<action> {
-  @Field({ description: 'Идентификатор Order\'а, к которому относится акт приёмки.' })
+  @Field({ description: 'Идентификатор заказа пайщика, по которому формируется акт.' })
   @IsString()
   order_id!: string;
 
-  @Field({ description: 'Канонический хэш Order\'а в блокчейне.' })
+  @Field({ description: 'Канонический хэш заказа в блокчейне.' })
   @IsString()
   order_hash!: string;
 
-  @Field({ description: 'Имя кооперативного участка-приёмника партии.' })
+  @Field({ description: 'Имя кооперативного участка, выдающего имущество пайщику.' })
   @IsString()
   accept_braname!: string;
 
-  @Field({ description: 'Идентификатор записи акта приёмки.' })
+  @Field({ description: 'Идентификатор записи акта в реестре marketplace.' })
   @IsString()
   reception_id!: string;
 
@@ -31,27 +31,27 @@ class BaseMarketplaceAplReceptionMetaDocumentInputDTO implements ExcludeCommonPr
   @Min(0)
   fact_quantity!: number;
 
-  @Field({ description: 'Сумма по Order\'у с учётом фактического количества.' })
+  @Field({ description: 'Сумма по заказу с учётом фактического количества.' })
   @IsString()
   total_amount!: string;
 
-  @Field({ description: 'Account поставщика — отправителя партии.' })
+  @Field({ description: 'Учётная запись поставщика, передавшего партию на кооперативный участок.' })
   @IsString()
   supplier_account!: string;
 
-  @Field({ description: 'Номер акта приёмки для шапки документа.' })
+  @Field({ description: 'Номер акта для шапки документа.' })
   @IsString()
   act_id!: string;
 
   @Field({
-    description: 'Account поставщика — отправителя партии (строка «Передал заказ» в акте).',
+    description: 'Учётная запись передающей стороны — председатель кооперативного участка или доверенное им лицо.',
   })
   @IsString()
   transmitter!: string;
 
   @Field({
     nullable: true,
-    description: 'Имя кооперативного участка-приёмника для ветки «филиал» в шаблоне акта.',
+    description: 'Имя кооперативного участка, выдающего имущество.',
   })
   @IsOptional()
   @IsString()
@@ -59,15 +59,22 @@ class BaseMarketplaceAplReceptionMetaDocumentInputDTO implements ExcludeCommonPr
 
   @Field({
     nullable: true,
-    description: 'Account председателя — подписанта закрывающей подписи (если уже известен).',
+    description: 'Учётная запись председателя — подписанта закрывающей подписи (если уже известен).',
   })
   @IsOptional()
   @IsString()
   chairman_account?: string;
 
   @Field({
-    description:
-      'Флаг пропуска сохранения документа (preview-режим для отображения пользователю перед подписью).',
+    nullable: true,
+    description: 'Хэш приватного payload документа (если приватные данные хранятся отдельно).',
+  })
+  @IsOptional()
+  @IsString()
+  doc_data_hash?: string;
+
+  @Field({
+    description: 'Сформировать документ без сохранения (preview-режим).',
   })
   @IsBoolean()
   skip_save!: boolean;
@@ -96,7 +103,7 @@ export class MarketplaceAplReceptionSignedMetaDocumentInputDTO
 @InputType('MarketplaceAplReceptionSignedDocumentInput')
 export class MarketplaceAplReceptionSignedDocumentInputDTO extends SignedDigitalDocumentInputDTO {
   @Field(() => MarketplaceAplReceptionSignedMetaDocumentInputDTO, {
-    description: 'Метаданные подписанного акта приёмки — содержат order_id, order_hash, КУ-приёмник и фактическое количество.',
+    description: 'Метаданные подписанного акта приёмки-передачи имущества.',
   })
   public readonly meta!: MarketplaceAplReceptionSignedMetaDocumentInputDTO;
 }
