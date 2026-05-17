@@ -1,15 +1,22 @@
 import { marketplaceOutgoingPaymentRequestSelector } from '../../selectors/marketplace/outgoingPaymentSelector'
-import { type GraphQLTypes, type InputType, Selector, ValueTypes } from '../../zeus/index'
+import { $, type GraphQLTypes, type InputType, type ModelTypes, Selector } from '../../zeus/index'
 
 export const name = 'marketplaceListOutgoingPaymentsAsSupplier'
 
+export const query = Selector('Query')({
+  [name]: [
+    { statuses: $('statuses', '[MarketplaceOutgoingPaymentRequestStatus!]') },
+    marketplaceOutgoingPaymentRequestSelector,
+  ],
+})
+
 export interface IInput {
-  statuses?: ValueTypes['MarketplaceOutgoingPaymentRequestStatus'][]
+  /**
+   * @private
+   */
+  [key: string]: unknown
+
+  statuses?: ModelTypes['MarketplaceOutgoingPaymentRequestStatus'][]
 }
 
-export const query = (input: IInput = {}) =>
-  Selector('Query')({
-    [name]: [input, marketplaceOutgoingPaymentRequestSelector],
-  })
-
-export type IOutput = InputType<GraphQLTypes['Query'], ReturnType<typeof query>>
+export type IOutput = InputType<GraphQLTypes['Query'], typeof query>

@@ -39,13 +39,13 @@ q-page.mp-role-offerer.mp-supply-preparation.q-pa-md
 
   q-table(
     :rows="items"
-    :columns="[\
-      { name: 'cycle_id', label: 'Цикл', field: 'cycle_id', align: 'left' },\
-      { name: 'braname', label: 'КУ', field: 'braname', align: 'left' },\
-      { name: 'delivery_variant', label: 'Вариант', field: 'delivery_variant', align: 'center' },\
-      { name: 'status', label: 'Статус', field: 'status', align: 'left' },\
-      { name: 'total_amount', label: 'Сумма', field: 'total_amount', align: 'right' },\
-      { name: 'ttn_number', label: 'ТТН', field: 'ttn_number', align: 'left' },\
+    :columns="[
+      { name: 'cycle_id', label: 'Цикл', field: 'cycle_id', align: 'left' },
+      { name: 'braname', label: 'КУ', field: 'braname', align: 'left' },
+      { name: 'delivery_variant', label: 'Вариант', field: 'delivery_variant', align: 'center' },
+      { name: 'status', label: 'Статус', field: 'status', align: 'left' },
+      { name: 'total_amount', label: 'Сумма', field: 'total_amount', align: 'right' },
+      { name: 'ttn_number', label: 'ТТН', field: 'ttn_number', align: 'left' },
     ]"
     row-key="id"
     flat

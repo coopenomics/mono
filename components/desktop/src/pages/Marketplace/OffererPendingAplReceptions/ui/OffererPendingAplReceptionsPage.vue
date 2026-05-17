@@ -41,13 +41,13 @@ q-page.mp-role-offerer.mp-pending-apl.q-pa-md
 
   q-table(
     :rows="items"
-    :columns="[\
-      { name: 'id', label: 'АПП', field: (r: MarketplaceAplReceptionView) => r.id.slice(0, 8), align: 'left' },\
-      { name: 'braname', label: 'КУ', field: 'braname', align: 'left' },\
-      { name: 'variant', label: 'Вариант', field: 'variant', align: 'center' },\
-      { name: 'status', label: 'Статус', field: 'status', align: 'left' },\
-      { name: 'total_amount', label: 'Сумма', field: 'total_amount', align: 'right' },\
-      { name: 'actions', label: 'Действия', field: 'id', align: 'right' },\
+    :columns="[
+      { name: 'id', label: 'АПП', field: (r: MarketplaceAplReceptionView) => r.id.slice(0, 8), align: 'left' },
+      { name: 'braname', label: 'КУ', field: 'braname', align: 'left' },
+      { name: 'variant', label: 'Вариант', field: 'variant', align: 'center' },
+      { name: 'status', label: 'Статус', field: 'status', align: 'left' },
+      { name: 'total_amount', label: 'Сумма', field: 'total_amount', align: 'right' },
+      { name: 'actions', label: 'Действия', field: 'id', align: 'right' },
     ]"
     row-key="id"
     flat

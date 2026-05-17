@@ -31,13 +31,13 @@ q-page.mp-role-offerer.mp-payment-history.q-pa-md
 
   q-table(
     :rows="items"
-    :columns="[\
-      { name: 'created_at', label: 'Дата', field: 'created_at', align: 'left' },\
-      { name: 'amount', label: 'Сумма', field: 'amount', align: 'right' },\
-      { name: 'symbol', label: 'Валюта', field: 'symbol', align: 'center' },\
-      { name: 'status', label: 'Статус', field: 'status', align: 'left' },\
-      { name: 'payment_reference', label: 'Референс банка', field: 'payment_reference', align: 'left' },\
-      { name: 'purpose', label: 'Назначение', field: 'purpose', align: 'left' },\
+    :columns="[
+      { name: 'created_at', label: 'Дата', field: 'created_at', align: 'left' },
+      { name: 'amount', label: 'Сумма', field: 'amount', align: 'right' },
+      { name: 'symbol', label: 'Валюта', field: 'symbol', align: 'center' },
+      { name: 'status', label: 'Статус', field: 'status', align: 'left' },
+      { name: 'payment_reference', label: 'Референс банка', field: 'payment_reference', align: 'left' },
+      { name: 'purpose', label: 'Назначение', field: 'purpose', align: 'left' },
     ]"
     row-key="id"
     flat
