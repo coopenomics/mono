@@ -168,6 +168,20 @@ module.exports = configure(function (ctx) {
       port: 2999,
       strictPort: true,
       host: '0.0.0.0',
+      // Dev-loop: оператор-восход и партнёр живут на coopenomics.world поддоменах,
+      // проксируемых nginx с 176.222.53.50 на 127.0.0.1:3039 (этот dev-server).
+      allowedHosts: [
+        'voskhod-dev.coopenomics.world',
+        'partner-dev.coopenomics.world',
+        'localhost',
+        '127.0.0.1',
+      ],
+      // HMR отключён для dev-стенда отладки провайдера: Vite SSR-сервер на 3039
+      // отдаёт HTML на root path и не апгрейдится в WS; HMR-WS живёт на 24678
+      // и через единственный nginx-proxy его не доставить. Регенерация — через
+      // перезапуск контейнера. Если нужен hot-reload для локалки — выставить
+      // BASE_URL=http://127.0.0.1:3039 и убрать allowedHosts.
+      hmr: false,
     },
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#framework

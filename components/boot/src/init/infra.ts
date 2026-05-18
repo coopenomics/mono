@@ -501,6 +501,90 @@ export async function installInitialData(blockchain: Blockchain, isExtended = fa
     }
   }
 
+  // Партнёр-1 — organization-пайщик ВОСХОДА, под него harness гоняет flow
+  // подключения (Соглашение о подключении → активация → provider rent VM).
+  // Засеивается всегда: status='active', is_registered=true, agreements ещё
+  // не подписаны — на первом входе harness прокликает их как для нового
+  // пайщика, потом увидит дашборд + кнопку «Подключение».
+  // WIF/pub = default (5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3 /
+  // EOS6MRyAjQq8ud7hVNYcfnVPJqcVpscN5So8BhtHuGYqET5GDW5CV).
+  const partnerOrgData: Cooperative.Users.IOrganizationData = {
+    username: 'partner1',
+    type: 'coop',
+    short_name: 'ПК "Партнёр-1"',
+    full_name: 'Потребительский Кооператив "Партнёр-1"',
+    represented_by: {
+      first_name: 'Иван',
+      last_name: 'Иванов',
+      middle_name: 'Иванович',
+      position: 'Председатель совета',
+      based_on: 'решения общего собрания №1 от 01.01.2026 г',
+    },
+    country: 'Российская Федерация',
+    city: 'Москва',
+    fact_address: 'г. Москва, ул. Тестовая, д. 1, оф. 100',
+    full_address: 'г. Москва, ул. Тестовая, д. 1, оф. 100',
+    email: 'chairman.partner1@example.com',
+    phone: '+71234567890',
+    details: {
+      inn: '7700000001',
+      ogrn: '1027700000001',
+      kpp: '770001001',
+    },
+  }
+
+  await generator.save('organization', partnerOrgData)
+  console.log('Партнёр-1 (organization) добавлен в Mongo: ', partnerOrgData.username)
+
+  await generator.save('paymentMethod', {
+    is_default: true,
+    method_id: randomUUID(),
+    method_type: 'bank_transfer',
+    username: 'partner1',
+    data: {
+      account_number: '40703810500000000001',
+      currency: 'RUB',
+      card_number: '',
+      bank_name: 'ПАО Сбербанк',
+      details: {
+        bik: '044525225',
+        corr: '30101810400000000225',
+        kpp: '773601001',
+      },
+    },
+  })
+
+  usersToInit.push({
+    username: 'partner1',
+    email: 'chairman.partner1@example.com',
+    type: 'organization' as const,
+    role: 'user',
+    status: 'active',
+    is_registered: true,
+  })
+
+  console.log('Регистрируем partner1 на чейне как пайщика voskhod (type=organization)')
+  await blockchain.addUser({
+    coopname: 'voskhod',
+    referer: 'ant',
+    username: 'partner1',
+    type: 'organization',
+    created_at: '2026-01-15T10:00:00',
+    initial: '100.0000 RUB',
+    minimum: '300.0000 RUB',
+    spread_initial: true,
+    meta: 'Партнёрский кооператив ПК «Партнёр-1»',
+    registration_hash: generateRandomSHA256(),
+  })
+
+  console.log('Устанавливаем дефолтный публичный ключ для partner1')
+  await blockchain.changeKey({
+    coopname: 'voskhod',
+    changer: 'voskhod',
+    username: 'partner1',
+    public_key: config.default_public_key,
+  })
+
   console.log('Инициализируем пользователей в PostgreSQL')
   await initUsersInPostgres(usersToInit)
 

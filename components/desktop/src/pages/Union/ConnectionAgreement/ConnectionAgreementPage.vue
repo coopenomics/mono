@@ -117,68 +117,64 @@ const openProviderWebsite = () => {
 };
 
 const init = async () => {
-  // Инициализация имеет смысл только если провайдер доступен
-  if (!system.info.is_providered) {
-    isLoading.value = false;
-    return;
-  }
-
-  // Запускаем автообновление инстанса каждые 30 секунд (включает начальную загрузку)
-  // Ждем завершения первой загрузки, чтобы корректно определить состояние isBadGateway
-  await connectionAgreement.startInstanceAutoRefresh(30000).then((stop) => {
-    stopInstanceRefresh = stop;
-  });
-
-  // Инициализируем persistent store если он еще не инициализирован
-  if (!connectionAgreement.isInitialized) {
-    connectionAgreement.setInitialized(true);
-  }
-
-  // Загружаем статус аккаунта в мессенджере
-  const accountStatus = await chatcoopStore.loadAccountStatus();
-  if (accountStatus) {
-    connectionAgreement.setHasMatrixAccount(accountStatus.hasAccount);
-  }
-
-  const instance = connectionAgreement.currentInstance;
-  const hasInstanceError = connectionAgreement.currentInstanceError;
-
-  // Определяем шаг на основе текущего прогресса установки (при каждом заходе)
-
-  // Сначала проверяем, была ли установка уже завершена (даже при ошибке загрузки)
-  const isAlreadyCompleted = instance?.progress === 100 && instance?.status === Zeus.InstanceStatus.ACTIVE;
-  if (isAlreadyCompleted) {
-    console.log('✅ Установка уже завершена ранее, показываем дашборд');
-    // Не меняем шаг, оставляем текущий (или устанавливаем специальный шаг для завершенной установки)
-    isLoading.value = false;
-    return;
-  }
-
-  // Определяем шаг на основе текущего состояния
-  let targetStep: number;
-
-  if (hasInstanceError) {
-    // Если есть ошибка загрузки инстанса, определяем шаг на основе членства в союзе
-    targetStep = system.info.is_unioned ? 0 : 1;
-  } else if (instance && typeof instance.progress === 'number' && instance.progress > 0) {
-    // Если установка уже идет (прогресс > 0), переходим к шагу установки
-    targetStep = 6;
-  } else {
-    // Если инстанса нет ИЛИ его прогресс = 0, определяем шаг на основе членства в союзе
-    if (system.info.is_unioned) {
-      // Если кооператив не является членом союза, начинаем с нулевого шага
-      targetStep = 0;
-    } else {
-      // Если кооператив уже член союза, начинаем с первого шага
-      targetStep = 1;
+  try {
+    // Инициализация имеет смысл только если провайдер доступен
+    if (!system.info.is_providered) {
+      return;
     }
+
+    // Запускаем автообновление инстанса каждые 30 секунд (включает начальную загрузку)
+    // Ждем завершения первой загрузки, чтобы корректно определить состояние isBadGateway
+    await connectionAgreement.startInstanceAutoRefresh(30000).then((stop) => {
+      stopInstanceRefresh = stop;
+    });
+
+    // Инициализируем persistent store если он еще не инициализирован
+    if (!connectionAgreement.isInitialized) {
+      connectionAgreement.setInitialized(true);
+    }
+
+    // Загружаем статус аккаунта в мессенджере, только если кооператив-член Союза.
+    // На is_unioned=false шаг Matrix-регистрации не рендерится — и если matrix
+    // homeserver недоступен, ошибка тут оставила бы спинер навсегда.
+    if (system.info.is_unioned) {
+      try {
+        const accountStatus = await chatcoopStore.loadAccountStatus();
+        if (accountStatus) {
+          connectionAgreement.setHasMatrixAccount(accountStatus.hasAccount);
+        }
+      } catch (e) {
+        console.warn('Не удалось получить статус Matrix-аккаунта:', e);
+      }
+    }
+
+    const instance = connectionAgreement.currentInstance;
+    const hasInstanceError = connectionAgreement.currentInstanceError;
+
+    // Сначала проверяем, была ли установка уже завершена (даже при ошибке загрузки)
+    const isAlreadyCompleted = instance?.progress === 100 && instance?.status === Zeus.InstanceStatus.ACTIVE;
+    if (isAlreadyCompleted) {
+      console.log('✅ Установка уже завершена ранее, показываем дашборд');
+      return;
+    }
+
+    // Определяем шаг на основе текущего состояния
+    let targetStep: number;
+    if (hasInstanceError) {
+      targetStep = system.info.is_unioned ? 0 : 1;
+    } else if (instance && typeof instance.progress === 'number' && instance.progress > 0) {
+      targetStep = 6;
+    } else {
+      targetStep = system.info.is_unioned ? 0 : 1;
+    }
+
+    connectionAgreement.setCurrentStep(targetStep);
+  } catch (e) {
+    // Любая необработанная ошибка инициализации не должна заморозить лоадер.
+    console.error('Ошибка инициализации ConnectionAgreementPage:', e);
+  } finally {
+    isLoading.value = false;
   }
-
-  // Устанавливаем определенный шаг
-  connectionAgreement.setCurrentStep(targetStep);
-
-  // Скрываем лоадер после загрузки данных
-  isLoading.value = false;
 };
 
 // Watch за изменением currentInstance для автоматического перехода между шагами

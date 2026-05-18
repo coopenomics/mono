@@ -14,7 +14,11 @@ export const HARNESS_ROOT = path.resolve(__dirname, '..');
 export const REPO_ROOT = path.resolve(HARNESS_ROOT, '..');
 
 export const env = {
-  BASE_URL: process.env.BASE_URL || 'http://127.0.0.1:2999',
+  // Harness ходит напрямую на dev-сервер :3039 (nginx + HTTPS воспроизводят
+  // burst Vite-модулей с ERR_CONNECTION_RESET; для самого harness этого не нужно
+  // — реальный HTTPS-домен https://voskhod-dev.coopenomics.world остаётся для
+  // партнёрской VM и проверки конфигурации). Override через env BASE_URL.
+  BASE_URL: process.env.BASE_URL || 'http://127.0.0.1:3039',
   COOPNAME: process.env.COOPNAME || 'voskhod',
   CHAIRMAN_EMAIL: process.env.CHAIRMAN_EMAIL || 'ivanov@example.com',
   CHAIRMAN_WIF: process.env.CHAIRMAN_WIF || '5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3',
@@ -80,6 +84,55 @@ export async function loginAs(page, fixture) {
   await page.locator('button:has-text("Войти")').click();
   await page.waitForURL(/\/(chairman|participant|soviet|user)/, { timeout: 30000 });
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+}
+
+// Реально подписывает каскад модалок первого входа: каждый SignAgreementDialog
+// показывает Form c кнопкой «Подписать», которая дёргает signAgreement → push
+// в блокчейн через wallet::signagree. Возвращает массив снятых снимков (если
+// был передан shot/assetsDir — снимаем первое окно и финальное состояние).
+//
+// Требование к чейну: wallet.wasm должен содержать действие signagree (rebuild
+// апрель 2026 включил его). Иначе backend вернёт 500 «action signagree does
+// not exist on the ABI» — в этом случае поднимется исключение, harness не
+// должен молча проходить.
+//
+// Возвращает: { signed: число успешных подписей, attempts: попыток }.
+export async function signOnboardingAgreements(page, { maxAgreements = 8, perDialogTimeoutMs = 30_000 } = {}) {
+  let signed = 0;
+  let attempts = 0;
+  while (attempts < maxAgreements) {
+    attempts++;
+    // Quasar рендерит q-portal--dialog--N — даже после закрытия модалки
+    // contentEl остаётся в DOM, и .has-text матчит её. Поэтому ждём именно
+    // VISIBLE кнопку «Подписать» — это надёжный признак активного диалога.
+    const submitBtn = page.locator('button:visible:has-text("Подписать")').first();
+    const present = await submitBtn.waitFor({ state: 'visible', timeout: attempts === 1 ? perDialogTimeoutMs : 8_000 })
+      .then(() => true).catch(() => false);
+    if (!present) break;
+
+    // На всякий случай дать enabled-кнопке немного «осесть» (Loader выйти).
+    await page.waitForTimeout(400);
+    // digital-document висит над формой как scroll-контейнер и перехватывает
+    // pointer events на честный click. Запускаем submit формы напрямую через
+    // requestSubmit() — это вызывает @submit.prevent="handlerSubmit" в q-form
+    // надёжнее, чем имитация click на button[type=submit].
+    const submitted = await submitBtn.evaluate((btn) => {
+      const form = btn.closest('form');
+      if (form && typeof form.requestSubmit === 'function') {
+        form.requestSubmit();
+        return 'requestSubmit';
+      }
+      btn.click();
+      return 'click';
+    });
+    console.log(`    sign attempt #${attempts}: ${submitted}`);
+    // Ждём что текущая кнопка спрячется (модалка закрылась или show=false).
+    await submitBtn.waitFor({ state: 'hidden', timeout: perDialogTimeoutMs }).catch(() => {});
+    // Между диалогами Vue монтирует следующий — даём фронту время.
+    await page.waitForTimeout(800);
+    signed++;
+  }
+  return { signed, attempts };
 }
 
 // Скрывает каскад модалок-документов первого входа (Положение о ЦПП Кошелёк,
