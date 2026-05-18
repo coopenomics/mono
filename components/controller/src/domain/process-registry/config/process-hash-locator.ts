@@ -121,12 +121,25 @@ export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Ob
   // текущего состояния (контроллер не получит operation_codes, требующие
   // этих locator'ов).
   //
-  // Status (Story 1.1, 2026-05-14): расширение `market` устанавливается из
-  // Каталога приложений; ключи `p.mkt.*` в Phase B готовы к активации.
-  // Реальные `{code, table, field}` подставляются в Story 4.1 при создании
-  // backend-таблицы консолидированных заявок (Locked Decision L10) — поле
-  // `request_hash` (а не `order_hash`, чтобы не путать с `offer_hash` в
-  // orderoffer-actions).
+  // Эпик 9 / Story 9.3 (2026-05-12, L13 pull-модель + AR36): ключи `p.mkt.*`
+  // Phase B готовы к активации. Phase A через OPERATION_CODE_TO_PROCESS_TYPE
+  // уже связывает все `o.mkt.*` с тремя process_type из cooptypes (см.
+  // `LEDGER2_PROCESS_REGISTRY` в `cooptypes/src/ledger2/processes.ts`), и
+  // история операций UI (Story 9.5) поднимает Phase-A actions через
+  // стандартный `processRegistry.getProcess(hash)` уже сейчас — без entity-
+  // context'а до появления backend-таблицы.
+  //
+  // Активация (выполняется при появлении таблицы `marketplace::requests` в
+  // C++; см. Locked Decision L10 — поле `request_hash`, не `order_hash`,
+  // чтобы не путать с `offer_hash` в orderoffer-actions):
+  //
+  //   'p.mkt.supply': [{ code: 'marketplace', table: 'requests', field: 'request_hash' }],
+  //   'p.mkt.return': [{ code: 'marketplace', table: 'requests', field: 'request_hash' }],
+  //   'p.mkt.wroff':  [{ code: 'marketplace', table: 'requests', field: 'request_hash' }],
+  //
+  // Никакой ручной CSV-выгрузки в Эпике 9 нет: пулл-модель через стандартный
+  // core ProcessRegistry — потребители (проект 33 «Отчёты», аудитор, UI
+  // Story 9.5) используют один и тот же `getProcess(process_hash)`.
   'p.mkt.supply': [],
   'p.mkt.return': [],
   'p.mkt.wroff':  [],
