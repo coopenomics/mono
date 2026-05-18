@@ -1,0 +1,104 @@
+import type { MarketplaceReturnClaimDomainEntity } from '../../domain/entities/marketplace-return-claim.entity';
+import type {
+  MarketplaceReturnClaimDecisionLogEntry,
+  MarketplaceReturnClaimOnSiteInspection,
+  MarketplaceReturnClaimPhoto,
+} from '../../domain/entities/marketplace-return-claim.types';
+import type {
+  MarketplaceReturnClaimDTO,
+  MarketplaceReturnClaimDecisionEntryDTO,
+  MarketplaceReturnClaimLedgerSnapshotDTO,
+  MarketplaceReturnClaimOnSiteInspectionDTO,
+  MarketplaceReturnClaimPhotoDTO,
+} from '../dto/marketplace-return-claim.dto';
+
+/**
+ * Преобразование domain → GraphQL DTO. Подписанные URL фотографий запрашиваются
+ * у переданного `urlResolver` (имплементация знает про bucket file-storage —
+ * resolver просто проксирует на `MarketplaceReturnClaimService.getPhotoReadUrl`).
+ */
+export async function toMarketplaceReturnClaimDTO(
+  claim: MarketplaceReturnClaimDomainEntity,
+  urlResolver: (bucket_key: string) => Promise<string>
+): Promise<MarketplaceReturnClaimDTO> {
+  const photos = await Promise.all(claim.photos.map((p) => toPhotoDTO(p, urlResolver)));
+  const inspection = claim.on_site_inspection
+    ? await toInspectionDTO(claim.on_site_inspection, urlResolver)
+    : null;
+
+  return {
+    id: claim.id,
+    coopname: claim.coopname,
+    request_hash: claim.request_hash,
+    order_id: claim.order_id,
+    order_hash: claim.order_hash,
+    orderer_account: claim.orderer_account,
+    delivery_braname: claim.delivery_braname,
+    supplier_account: claim.supplier_account,
+    status: claim.status,
+    reason_text: claim.reason_text,
+    defect_category: claim.defect_category,
+    expected_resolution: claim.expected_resolution,
+    actual_quantity: claim.actual_quantity,
+    fact_cost: claim.fact_cost,
+    photos,
+    submretrn_tx_hash: claim.submretrn_tx_hash,
+    decision_log: claim.decision_log.map(toDecisionEntryDTO),
+    on_site_inspection: inspection,
+    ledger_snapshot: claim.ledger_snapshot ? toLedgerSnapshotDTO(claim.ledger_snapshot) : null,
+    created_at: claim.created_at,
+    updated_at: claim.updated_at,
+  };
+}
+
+async function toPhotoDTO(
+  photo: MarketplaceReturnClaimPhoto,
+  urlResolver: (bucket_key: string) => Promise<string>
+): Promise<MarketplaceReturnClaimPhotoDTO> {
+  const url = await urlResolver(photo.bucket_key);
+  return {
+    url,
+    content_hash: photo.content_hash,
+    mime_type: photo.mime_type,
+    uploaded_at: photo.uploaded_at,
+  };
+}
+
+function toDecisionEntryDTO(
+  entry: MarketplaceReturnClaimDecisionLogEntry
+): MarketplaceReturnClaimDecisionEntryDTO {
+  return {
+    stage: entry.stage,
+    decision: entry.decision,
+    by_chairman_account: entry.by_chairman_account,
+    braname: entry.braname,
+    comment: entry.comment,
+    at: entry.at,
+    tx_hash: entry.tx_hash,
+  };
+}
+
+async function toInspectionDTO(
+  inspection: MarketplaceReturnClaimOnSiteInspection,
+  urlResolver: (bucket_key: string) => Promise<string>
+): Promise<MarketplaceReturnClaimOnSiteInspectionDTO> {
+  const photos = await Promise.all(inspection.photos.map((p) => toPhotoDTO(p, urlResolver)));
+  return {
+    result_text: inspection.result_text,
+    photos,
+    scanned_barcode: inspection.scanned_barcode ?? undefined,
+    by_chairman_account: inspection.by_chairman_account,
+    at: inspection.at,
+  };
+}
+
+function toLedgerSnapshotDTO(
+  s: NonNullable<MarketplaceReturnClaimDomainEntity['ledger_snapshot']>
+): MarketplaceReturnClaimLedgerSnapshotDTO {
+  return {
+    amount: s.amount,
+    returned_quantity: s.returned_quantity,
+    tx_hash: s.tx_hash,
+    at: s.at,
+  };
+}

@@ -38,6 +38,10 @@ export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, str
     // Story 6.3 / FR24: заказчик закрывает АПП-выдачу финальной подписью
     // на ПВЗ и видит свои заказы, готовые к получению.
     Issuance: ['sign:final', 'read:own'],
+    // Story 7.1 / FR29: заказчик подаёт заявление на гарантийный возврат
+    // имущества по своему Order'у в пределах гарантийного срока и видит
+    // только свои заявления.
+    ReturnClaim: ['create:own', 'read:own'],
   },
   offerer: {
     Offer: ['create:own', 'update:own', 'delete:own', 'read'],
@@ -56,6 +60,12 @@ export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, str
     Warehouse: ['read:own-KU'],
     KU: ['read:own-KU'],
     Vitrine: ['read'],
+    // Story 7.2 / 7.3 / FR30-FR32: председатель КУ доставки видит заявления
+    // на возврат своего КУ, принимает удалённые и очные решения. Действия:
+    //  - read:own-KU   — лента и detail заявлений;
+    //  - decide:remote — одобрить визит / отказать удалённо (Story 7.2);
+    //  - decide:on-site — принять / отказать на месте (Story 7.3 + 7.4).
+    ReturnClaim: ['read:own-KU', 'decide:remote', 'decide:on-site'],
   },
   admin: {
     Offer: ['moderate', 'read'],
