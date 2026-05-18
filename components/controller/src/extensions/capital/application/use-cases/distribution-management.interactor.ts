@@ -45,7 +45,7 @@ export class DistributionManagementInteractor {
   async prepareGenerationConvertStatementData(
     data: GenerationConvertStatementGenerateDocumentInputDTO,
     currentUser: MonoAccountDomainInterface
-  ): Promise<Cooperative.Registry.GenerationMoneyInvestStatement.Action> {
+  ): Promise<Cooperative.Registry.GenerationConvertStatement.Action> {
     const projectHash = data.project_hash;
     if (!projectHash) {
       throw new Error('project_hash обязателен для генерации заявления о конвертации');
@@ -63,6 +63,6 @@ export class DistributionManagementInteractor {
     return {
       ...data,
       appendix_hash: userAppendix.appendix_hash,
-    } as Cooperative.Registry.GenerationMoneyInvestStatement.Action;
+    } as Cooperative.Registry.GenerationConvertStatement.Action;
   }
 }
