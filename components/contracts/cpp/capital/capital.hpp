@@ -328,4 +328,21 @@ public:
     [[eosio::action]]
     void topupprogexp(name coopname, eosio::asset amount);
 
+    [[eosio::action]]
+    void createpgexp(name coopname, checksum256 expense_hash, name creator,
+                     eosio::asset amount, std::string description, document2 statement);
+
+    [[eosio::action]]
+    void apprvpgexp(name coopname, name approver, checksum256 expense_hash,
+                    document2 approved_statement);
+
+    [[eosio::action]]
+    void authpgexp(name coopname, checksum256 expense_hash, document2 authorization);
+
+    [[eosio::action]]
+    void pgexppay(name coopname, checksum256 expense_hash);
+
+    [[eosio::action]]
+    void declpgexp(name coopname, checksum256 expense_hash, std::string reason);
+
 };

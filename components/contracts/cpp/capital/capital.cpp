@@ -98,6 +98,11 @@
 
 // Управление программными расходами
 #include "app/expense_managment/program_expenses/topupprogexp.cpp"
+#include "app/expense_managment/program_expenses/createpgexp.cpp"
+#include "app/expense_managment/program_expenses/apprvpgexp.cpp"
+#include "app/expense_managment/program_expenses/authpgexp.cpp"
+#include "app/expense_managment/program_expenses/pgexppay.cpp"
+#include "app/expense_managment/program_expenses/declpgexp.cpp"
 
 // Управление расходами
 #include "app/expense_managment/create_expense/approveexpns.cpp"

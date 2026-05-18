@@ -50,6 +50,12 @@ namespace Names {
     // Коллбэки для расходов
     constexpr eosio::name AUTHORIZE_EXPENSE = "capauthexpns"_n;
     constexpr eosio::name DECLINE_EXPENSE = "capdeclexpns"_n;
+
+    // Коллбэки для программных расходов
+    constexpr eosio::name CREATE_PROGRAM_EXPENSE = "createpgexp"_n;
+    constexpr eosio::name AUTHORIZE_PROGRAM_EXPENSE = "authpgexp"_n;
+    constexpr eosio::name DECLINE_PROGRAM_EXPENSE = "declpgexp"_n;
+    constexpr eosio::name CONFIRM_PROGRAM_EXPENSE_PAYMENT = "pgexppay"_n;
     
     // Коллбэки для долгов
     constexpr eosio::name AUTHORIZE_DEBT = "debtauthcnfr"_n;
@@ -91,6 +97,7 @@ namespace Names {
     constexpr eosio::name CAPITAL_WITHDRAW_FROM_PROGRAM = "capwthdrprog"_n;
     constexpr eosio::name CAPITAL_WITHDRAW_FROM_PROJECT = "capwthdrproj"_n;
     constexpr eosio::name CAPITAL_RESOLVE_EXPENSE = "capresexpns"_n;
+    constexpr eosio::name CAPITAL_RESOLVE_PROGRAM_EXPENSE = "caprespgexp"_n;
     constexpr eosio::name CREATE_RESULT = "createresult"_n;
     constexpr eosio::name CREATE_DEBT = "createdebt"_n;
     constexpr eosio::name CREATE_PROJECT = "createprj"_n;
@@ -120,6 +127,7 @@ namespace Names {
     constexpr eosio::name CREATE_INVESTMENT = "createinvest"_n; // акцепт инвестиции
     constexpr eosio::name CREATE_PROGRAM_INVESTMENT = "createpinv"_n; // акцепт программной инвестиции
     constexpr eosio::name CREATE_EXPENSE = "createexpnse"_n; // акцепт расхода
+    constexpr eosio::name CREATE_PROGRAM_EXPENSE = "createpgexp"_n; // акцепт программного расхода
     constexpr eosio::name CREATE_WITHDRAW_1 = "createwthd1"_n; // акцепт возврата из задания
     constexpr eosio::name CREATE_WITHDRAW_2 = "createwthd2"_n; // акцепт возврата из проекта
     constexpr eosio::name CREATE_WITHDRAW_3 = "createwthd3"_n; // акцепт возврата из программы
