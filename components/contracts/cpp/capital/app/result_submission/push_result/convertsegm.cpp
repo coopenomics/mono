@@ -34,6 +34,10 @@ void capital::convertsegm(eosio::name coopname, eosio::name username,
                           document2 convert_statement) {
   require_auth(coopname);
 
+  // Проверяем подпись заявления о трансляции паевого взноса (шаблон 1080).
+  // Без этого on-chain принял бы любую сконструированную document2 без валидной подписи.
+  verify_document_or_fail(convert_statement, {username});
+
   // Получаем сегмент пайщика
   auto segment = Capital::Segments::get_segment_or_fail(coopname, project_hash, username,
                                                       "Сегмент пайщика не найден");
@@ -107,6 +111,20 @@ void capital::convertsegm(eosio::name coopname, eosio::name username,
 
   // Инкрементируем счётчик сконвертированных сегментов
   Capital::Projects::increment_converted_segments(coopname, current_project.id);
+
+  // Регистрируем заявление о трансляции (1080) в реестре документов и сразу
+  // помечаем процесс p.cap.rid завершённым: package = result_hash — анкер процесса.
+  // make_complete_document шлёт newsubmitted + newresolved одной парой, off-chain
+  // controller видит документ в registry со статусом completed.
+  // Делаем ДО delete_result, чтобы линковка прошла, пока result_hash ещё анкер.
+  Soviet::make_complete_document(
+    _capital,
+    coopname,
+    username,
+    Names::Capital::CONVERT_SEGMENT,
+    result_hash,
+    convert_statement
+  );
 
   // Удаляем сегмент после конвертации
   Capital::Segments::remove_segment(coopname, segment.id);
