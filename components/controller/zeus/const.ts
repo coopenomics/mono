@@ -636,7 +636,7 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	MarketplaceAcceptReturnAtVisitInput:{
 		inspection_photos:"MarketplaceReturnClaimPhotoUploadInput",
-		signed_decision:"MarketplaceReturnClaimSignedStatementInput"
+		signed_decision:"MarketplaceReturnStatementSignedInput"
 	},
 	MarketplaceAddToWhitelistInput:{
 
@@ -660,7 +660,7 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	MarketplaceApproveReturnVisitInput:{
-		signed_decision:"MarketplaceReturnClaimSignedStatementInput"
+		signed_decision:"MarketplaceReturnStatementSignedInput"
 	},
 	MarketplaceAttributeType: "enum" as const,
 	MarketplaceBarcodeFormat: "enum" as const,
@@ -681,7 +681,7 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceCreateReturnClaimInput:{
 		defect_category:"MarketplaceReturnClaimDefectCategory",
 		photos:"MarketplaceReturnClaimPhotoUploadInput",
-		signed_statement:"MarketplaceReturnClaimSignedStatementInput"
+		signed_statement:"MarketplaceReturnStatementSignedInput"
 	},
 	MarketplaceCreateShipmentInput:{
 		groups:"MarketplaceShipmentGroupInput"
@@ -764,10 +764,10 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	MarketplaceRejectReturnAtVisitInput:{
 		inspection_photos:"MarketplaceReturnClaimPhotoUploadInput",
-		signed_decision:"MarketplaceReturnClaimSignedStatementInput"
+		signed_decision:"MarketplaceReturnStatementSignedInput"
 	},
 	MarketplaceRejectReturnRemoteInput:{
-		signed_decision:"MarketplaceReturnClaimSignedStatementInput"
+		signed_decision:"MarketplaceReturnStatementSignedInput"
 	},
 	MarketplaceRemoveFromWhitelistInput:{
 
@@ -777,20 +777,17 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceReturnClaimPhotoUploadInput:{
 
 	},
-	MarketplaceReturnClaimRequestPayloadInput:{
-
-	},
 	MarketplaceReturnClaimSignablePayloadInput:{
 		defect_category:"MarketplaceReturnClaimDefectCategory"
 	},
-	MarketplaceReturnClaimSignedMetaDocumentInput:{
-		request:"MarketplaceReturnClaimRequestPayloadInput"
-	},
-	MarketplaceReturnClaimSignedStatementInput:{
-		meta:"MarketplaceReturnClaimSignedMetaDocumentInput",
+	MarketplaceReturnClaimStatus: "enum" as const,
+	MarketplaceReturnStatementSignedInput:{
+		meta:"MarketplaceReturnStatementSignedMetaDocumentInput",
 		signatures:"SignatureInfoInput"
 	},
-	MarketplaceReturnClaimStatus: "enum" as const,
+	MarketplaceReturnStatementSignedMetaDocumentInput:{
+
+	},
 	MarketplaceSetKUStatusInput:{
 
 	},

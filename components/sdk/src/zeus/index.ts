@@ -6056,7 +6056,7 @@ export type ValueTypes = {
 	/** Сканированный штрих-код имущества для сверки с заказом (если применимо). */
 	scanned_barcode?: string | undefined | null | Variable<any, string>,
 	/** Подписанное решение председателя (опционально). */
-	signed_decision?: ValueTypes["MarketplaceReturnClaimSignedStatementInput"] | undefined | null | Variable<any, string>
+	signed_decision?: ValueTypes["MarketplaceReturnStatementSignedInput"] | undefined | null | Variable<any, string>
 };
 	["MarketplaceAddToWhitelistInput"]: {
 	/** eosio::name пайщика-поставщика (3-12 chars, [.12345abcdefghijklmnopqrstuvwxyz]) */
@@ -6196,7 +6196,7 @@ export type ValueTypes = {
 	/** Комментарий председателя (обязательно, 1-500 символов). */
 	comment: string | Variable<any, string>,
 	/** Подписанное решение председателя (опционально, in-system запись). */
-	signed_decision?: ValueTypes["MarketplaceReturnClaimSignedStatementInput"] | undefined | null | Variable<any, string>
+	signed_decision?: ValueTypes["MarketplaceReturnStatementSignedInput"] | undefined | null | Variable<any, string>
 };
 	["MarketplaceAttribute"]: AliasType<{
 	/** ID комплексного атрибута */
@@ -6510,8 +6510,8 @@ export type ValueTypes = {
 	photos: Array<ValueTypes["MarketplaceReturnClaimPhotoUploadInput"]> | Variable<any, string>,
 	/** Текст обращения пайщика (1-500 символов). */
 	reason_text: string | Variable<any, string>,
-	/** Подписанное пайщиком заявление (реестр документов 800). */
-	signed_statement: ValueTypes["MarketplaceReturnClaimSignedStatementInput"] | Variable<any, string>
+	/** Подписанное пайщиком заявление о гарантийном возврате имущества (реестр документов 1104). */
+	signed_statement: ValueTypes["MarketplaceReturnStatementSignedInput"] | Variable<any, string>
 };
 	["MarketplaceCreateShipmentInput"]: {
 	/** Идентификатор консолидированной заявки в статусе ACCEPTED. */
@@ -7120,7 +7120,7 @@ export type ValueTypes = {
 	/** Результат и причина отказа (обязательно, до 2000 символов). */
 	inspection_result: string | Variable<any, string>,
 	/** Подписанное решение председателя (опционально). */
-	signed_decision?: ValueTypes["MarketplaceReturnClaimSignedStatementInput"] | undefined | null | Variable<any, string>
+	signed_decision?: ValueTypes["MarketplaceReturnStatementSignedInput"] | undefined | null | Variable<any, string>
 };
 	["MarketplaceRejectReturnRemoteInput"]: {
 	/** Кооперативный участок, под чьей юрисдикцией решение. */
@@ -7130,7 +7130,7 @@ export type ValueTypes = {
 	/** Причина отказа (обязательно, 1-500 символов). */
 	comment: string | Variable<any, string>,
 	/** Подписанное решение председателя (опционально). */
-	signed_decision?: ValueTypes["MarketplaceReturnClaimSignedStatementInput"] | undefined | null | Variable<any, string>
+	signed_decision?: ValueTypes["MarketplaceReturnStatementSignedInput"] | undefined | null | Variable<any, string>
 };
 	["MarketplaceRemoveFromWhitelistInput"]: {
 	/** eosio::name пайщика-поставщика */
@@ -7407,26 +7407,6 @@ export type ValueTypes = {
 	/** MIME-тип фото (image/jpeg, image/png либо image/webp). */
 	mime_type: string | Variable<any, string>
 };
-	["MarketplaceReturnClaimRequestPayloadInput"]: {
-	/** Валюта расчёта (например «RUB»). */
-	currency: string | Variable<any, string>,
-	/** Якорный hash заявления на возврат (request_hash). */
-	hash: string | Variable<any, string>,
-	/** Идентификатор программы Стола Заказов в кооперативе. */
-	program_id: number | Variable<any, string>,
-	/** Заголовок имущества, по которому подаётся возврат. */
-	title: string | Variable<any, string>,
-	/** Итоговая возвращаемая сумма (десятичное число строкой). */
-	total_cost: string | Variable<any, string>,
-	/** Тип операции в каноне ICommonRequest (для возврата — «RETURN»). */
-	type: string | Variable<any, string>,
-	/** Стоимость единицы (десятичное число строкой). */
-	unit_cost: string | Variable<any, string>,
-	/** Единица измерения (например «ед.»). */
-	unit_of_measurement: string | Variable<any, string>,
-	/** Возвращаемое количество единиц. */
-	units: number | Variable<any, string>
-};
 	/** Результат любого изменения статуса заявления на гарантийный возврат. */
 ["MarketplaceReturnClaimResult"]: AliasType<{
 	/** Актуальное состояние заявления. */
@@ -7442,27 +7422,57 @@ export type ValueTypes = {
 	/** Категория дефекта (опционально, дублируется в meta документа). */
 	defect_category?: ValueTypes["MarketplaceReturnClaimDefectCategory"] | undefined | null | Variable<any, string>,
 	/** Идентификатор заказа, по которому готовится заявление. */
-	order_id: string | Variable<any, string>
+	order_id: string | Variable<any, string>,
+	/** Причина обращения, как её сформулировал пайщик (попадает в текст заявления). */
+	reason_text?: string | undefined | null | Variable<any, string>
 };
-	["MarketplaceReturnClaimSignedMetaDocumentInput"]: {
+	/** Состояние заявления на гарантийный возврат имущества пайщика. */
+["MarketplaceReturnClaimStatus"]:MarketplaceReturnClaimStatus;
+	["MarketplaceReturnStatementSignedInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string | Variable<any, string>,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string | Variable<any, string>,
+	/** Метаданные подписанного заявления о гарантийном возврате имущества. */
+	meta: ValueTypes["MarketplaceReturnStatementSignedMetaDocumentInput"] | Variable<any, string>,
+	/** Хэш мета-данных */
+	meta_hash: string | Variable<any, string>,
+	/** Вектор подписей */
+	signatures: Array<ValueTypes["SignatureInfoInput"]> | Variable<any, string>,
+	/** Версия стандарта документа */
+	version: string | Variable<any, string>
+};
+	["MarketplaceReturnStatementSignedMetaDocumentInput"]: {
+	/** Фактическое количество единиц к возврату. */
+	actual_quantity: number | Variable<any, string>,
 	/** Номер блока, на котором был создан документ */
 	block_num: number | Variable<any, string>,
+	/** Имя кооперативного участка доставки (braname) исходного заказа. */
+	braname?: string | undefined | null | Variable<any, string>,
 	/** Название кооператива, связанное с документом */
 	coopname: string | Variable<any, string>,
 	/** Дата и время создания документа */
 	created_at: string | Variable<any, string>,
+	/** Необязательная категория дефекта (пересортица, истёкший срок и т.п.). */
+	defect_category?: string | undefined | null | Variable<any, string>,
 	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
 	doc_data_hash?: string | undefined | null | Variable<any, string>,
+	/** Стоимость возвращаемой части (4 знака после запятой). */
+	fact_cost: string | Variable<any, string>,
 	/** Имя генератора, использованного для создания документа */
 	generator: string | Variable<any, string>,
 	/** Язык документа */
 	lang: string | Variable<any, string>,
 	/** Ссылки, связанные с документом */
 	links: Array<string> | Variable<any, string>,
+	/** Канонический order_hash on-chain. */
+	order_hash: string | Variable<any, string>,
+	/** Идентификатор заказа, по которому подаётся возврат. */
+	order_id: string | Variable<any, string>,
+	/** Причина обращения, как её сформулировал пайщик. */
+	reason_text: string | Variable<any, string>,
 	/** ID документа в реестре */
 	registry_id: number | Variable<any, string>,
-	/** Описание возвращаемого имущества — копируется из Order пайщика и используется как якорь возврата (hash совпадает с request_hash в on-chain заявлении). */
-	request: ValueTypes["MarketplaceReturnClaimRequestPayloadInput"] | Variable<any, string>,
 	/** Сформировать документ без сохранения (preview-режим). */
 	skip_save: boolean | Variable<any, string>,
 	/** Часовой пояс, в котором был создан документ */
@@ -7474,22 +7484,6 @@ export type ValueTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string | Variable<any, string>
 };
-	["MarketplaceReturnClaimSignedStatementInput"]: {
-	/** Хэш содержимого документа */
-	doc_hash: string | Variable<any, string>,
-	/** Общий хэш (doc_hash + meta_hash) */
-	hash: string | Variable<any, string>,
-	/** Метаданные подписанного заявления на возврат имущества. */
-	meta: ValueTypes["MarketplaceReturnClaimSignedMetaDocumentInput"] | Variable<any, string>,
-	/** Хэш мета-данных */
-	meta_hash: string | Variable<any, string>,
-	/** Вектор подписей */
-	signatures: Array<ValueTypes["SignatureInfoInput"]> | Variable<any, string>,
-	/** Версия стандарта документа */
-	version: string | Variable<any, string>
-};
-	/** Состояние заявления на гарантийный возврат имущества пайщика. */
-["MarketplaceReturnClaimStatus"]:MarketplaceReturnClaimStatus;
 	["MarketplaceSetKUStatusInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>,
@@ -15883,7 +15877,7 @@ export type ResolverInputTypes = {
 	/** Сканированный штрих-код имущества для сверки с заказом (если применимо). */
 	scanned_barcode?: string | undefined | null,
 	/** Подписанное решение председателя (опционально). */
-	signed_decision?: ResolverInputTypes["MarketplaceReturnClaimSignedStatementInput"] | undefined | null
+	signed_decision?: ResolverInputTypes["MarketplaceReturnStatementSignedInput"] | undefined | null
 };
 	["MarketplaceAddToWhitelistInput"]: {
 	/** eosio::name пайщика-поставщика (3-12 chars, [.12345abcdefghijklmnopqrstuvwxyz]) */
@@ -16020,7 +16014,7 @@ export type ResolverInputTypes = {
 	/** Комментарий председателя (обязательно, 1-500 символов). */
 	comment: string,
 	/** Подписанное решение председателя (опционально, in-system запись). */
-	signed_decision?: ResolverInputTypes["MarketplaceReturnClaimSignedStatementInput"] | undefined | null
+	signed_decision?: ResolverInputTypes["MarketplaceReturnStatementSignedInput"] | undefined | null
 };
 	["MarketplaceAttribute"]: AliasType<{
 	/** ID комплексного атрибута */
@@ -16317,8 +16311,8 @@ export type ResolverInputTypes = {
 	photos: Array<ResolverInputTypes["MarketplaceReturnClaimPhotoUploadInput"]>,
 	/** Текст обращения пайщика (1-500 символов). */
 	reason_text: string,
-	/** Подписанное пайщиком заявление (реестр документов 800). */
-	signed_statement: ResolverInputTypes["MarketplaceReturnClaimSignedStatementInput"]
+	/** Подписанное пайщиком заявление о гарантийном возврате имущества (реестр документов 1104). */
+	signed_statement: ResolverInputTypes["MarketplaceReturnStatementSignedInput"]
 };
 	["MarketplaceCreateShipmentInput"]: {
 	/** Идентификатор консолидированной заявки в статусе ACCEPTED. */
@@ -16907,7 +16901,7 @@ export type ResolverInputTypes = {
 	/** Результат и причина отказа (обязательно, до 2000 символов). */
 	inspection_result: string,
 	/** Подписанное решение председателя (опционально). */
-	signed_decision?: ResolverInputTypes["MarketplaceReturnClaimSignedStatementInput"] | undefined | null
+	signed_decision?: ResolverInputTypes["MarketplaceReturnStatementSignedInput"] | undefined | null
 };
 	["MarketplaceRejectReturnRemoteInput"]: {
 	/** Кооперативный участок, под чьей юрисдикцией решение. */
@@ -16917,7 +16911,7 @@ export type ResolverInputTypes = {
 	/** Причина отказа (обязательно, 1-500 символов). */
 	comment: string,
 	/** Подписанное решение председателя (опционально). */
-	signed_decision?: ResolverInputTypes["MarketplaceReturnClaimSignedStatementInput"] | undefined | null
+	signed_decision?: ResolverInputTypes["MarketplaceReturnStatementSignedInput"] | undefined | null
 };
 	["MarketplaceRemoveFromWhitelistInput"]: {
 	/** eosio::name пайщика-поставщика */
@@ -17185,26 +17179,6 @@ export type ResolverInputTypes = {
 	/** MIME-тип фото (image/jpeg, image/png либо image/webp). */
 	mime_type: string
 };
-	["MarketplaceReturnClaimRequestPayloadInput"]: {
-	/** Валюта расчёта (например «RUB»). */
-	currency: string,
-	/** Якорный hash заявления на возврат (request_hash). */
-	hash: string,
-	/** Идентификатор программы Стола Заказов в кооперативе. */
-	program_id: number,
-	/** Заголовок имущества, по которому подаётся возврат. */
-	title: string,
-	/** Итоговая возвращаемая сумма (десятичное число строкой). */
-	total_cost: string,
-	/** Тип операции в каноне ICommonRequest (для возврата — «RETURN»). */
-	type: string,
-	/** Стоимость единицы (десятичное число строкой). */
-	unit_cost: string,
-	/** Единица измерения (например «ед.»). */
-	unit_of_measurement: string,
-	/** Возвращаемое количество единиц. */
-	units: number
-};
 	/** Результат любого изменения статуса заявления на гарантийный возврат. */
 ["MarketplaceReturnClaimResult"]: AliasType<{
 	/** Актуальное состояние заявления. */
@@ -17219,27 +17193,57 @@ export type ResolverInputTypes = {
 	/** Категория дефекта (опционально, дублируется в meta документа). */
 	defect_category?: ResolverInputTypes["MarketplaceReturnClaimDefectCategory"] | undefined | null,
 	/** Идентификатор заказа, по которому готовится заявление. */
-	order_id: string
+	order_id: string,
+	/** Причина обращения, как её сформулировал пайщик (попадает в текст заявления). */
+	reason_text?: string | undefined | null
 };
-	["MarketplaceReturnClaimSignedMetaDocumentInput"]: {
+	/** Состояние заявления на гарантийный возврат имущества пайщика. */
+["MarketplaceReturnClaimStatus"]:MarketplaceReturnClaimStatus;
+	["MarketplaceReturnStatementSignedInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаданные подписанного заявления о гарантийном возврате имущества. */
+	meta: ResolverInputTypes["MarketplaceReturnStatementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ResolverInputTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["MarketplaceReturnStatementSignedMetaDocumentInput"]: {
+	/** Фактическое количество единиц к возврату. */
+	actual_quantity: number,
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Имя кооперативного участка доставки (braname) исходного заказа. */
+	braname?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
 	created_at: string,
+	/** Необязательная категория дефекта (пересортица, истёкший срок и т.п.). */
+	defect_category?: string | undefined | null,
 	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
 	doc_data_hash?: string | undefined | null,
+	/** Стоимость возвращаемой части (4 знака после запятой). */
+	fact_cost: string,
 	/** Имя генератора, использованного для создания документа */
 	generator: string,
 	/** Язык документа */
 	lang: string,
 	/** Ссылки, связанные с документом */
 	links: Array<string>,
+	/** Канонический order_hash on-chain. */
+	order_hash: string,
+	/** Идентификатор заказа, по которому подаётся возврат. */
+	order_id: string,
+	/** Причина обращения, как её сформулировал пайщик. */
+	reason_text: string,
 	/** ID документа в реестре */
 	registry_id: number,
-	/** Описание возвращаемого имущества — копируется из Order пайщика и используется как якорь возврата (hash совпадает с request_hash в on-chain заявлении). */
-	request: ResolverInputTypes["MarketplaceReturnClaimRequestPayloadInput"],
 	/** Сформировать документ без сохранения (preview-режим). */
 	skip_save: boolean,
 	/** Часовой пояс, в котором был создан документ */
@@ -17251,22 +17255,6 @@ export type ResolverInputTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string
 };
-	["MarketplaceReturnClaimSignedStatementInput"]: {
-	/** Хэш содержимого документа */
-	doc_hash: string,
-	/** Общий хэш (doc_hash + meta_hash) */
-	hash: string,
-	/** Метаданные подписанного заявления на возврат имущества. */
-	meta: ResolverInputTypes["MarketplaceReturnClaimSignedMetaDocumentInput"],
-	/** Хэш мета-данных */
-	meta_hash: string,
-	/** Вектор подписей */
-	signatures: Array<ResolverInputTypes["SignatureInfoInput"]>,
-	/** Версия стандарта документа */
-	version: string
-};
-	/** Состояние заявления на гарантийный возврат имущества пайщика. */
-["MarketplaceReturnClaimStatus"]:MarketplaceReturnClaimStatus;
 	["MarketplaceSetKUStatusInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -25401,7 +25389,7 @@ export type ModelTypes = {
 	/** Сканированный штрих-код имущества для сверки с заказом (если применимо). */
 	scanned_barcode?: string | undefined | null,
 	/** Подписанное решение председателя (опционально). */
-	signed_decision?: ModelTypes["MarketplaceReturnClaimSignedStatementInput"] | undefined | null
+	signed_decision?: ModelTypes["MarketplaceReturnStatementSignedInput"] | undefined | null
 };
 	["MarketplaceAddToWhitelistInput"]: {
 	/** eosio::name пайщика-поставщика (3-12 chars, [.12345abcdefghijklmnopqrstuvwxyz]) */
@@ -25533,7 +25521,7 @@ export type ModelTypes = {
 	/** Комментарий председателя (обязательно, 1-500 символов). */
 	comment: string,
 	/** Подписанное решение председателя (опционально, in-system запись). */
-	signed_decision?: ModelTypes["MarketplaceReturnClaimSignedStatementInput"] | undefined | null
+	signed_decision?: ModelTypes["MarketplaceReturnStatementSignedInput"] | undefined | null
 };
 	["MarketplaceAttribute"]: {
 		/** ID комплексного атрибута */
@@ -25809,8 +25797,8 @@ export type ModelTypes = {
 	photos: Array<ModelTypes["MarketplaceReturnClaimPhotoUploadInput"]>,
 	/** Текст обращения пайщика (1-500 символов). */
 	reason_text: string,
-	/** Подписанное пайщиком заявление (реестр документов 800). */
-	signed_statement: ModelTypes["MarketplaceReturnClaimSignedStatementInput"]
+	/** Подписанное пайщиком заявление о гарантийном возврате имущества (реестр документов 1104). */
+	signed_statement: ModelTypes["MarketplaceReturnStatementSignedInput"]
 };
 	["MarketplaceCreateShipmentInput"]: {
 	/** Идентификатор консолидированной заявки в статусе ACCEPTED. */
@@ -26374,7 +26362,7 @@ export type ModelTypes = {
 	/** Результат и причина отказа (обязательно, до 2000 символов). */
 	inspection_result: string,
 	/** Подписанное решение председателя (опционально). */
-	signed_decision?: ModelTypes["MarketplaceReturnClaimSignedStatementInput"] | undefined | null
+	signed_decision?: ModelTypes["MarketplaceReturnStatementSignedInput"] | undefined | null
 };
 	["MarketplaceRejectReturnRemoteInput"]: {
 	/** Кооперативный участок, под чьей юрисдикцией решение. */
@@ -26384,7 +26372,7 @@ export type ModelTypes = {
 	/** Причина отказа (обязательно, 1-500 символов). */
 	comment: string,
 	/** Подписанное решение председателя (опционально). */
-	signed_decision?: ModelTypes["MarketplaceReturnClaimSignedStatementInput"] | undefined | null
+	signed_decision?: ModelTypes["MarketplaceReturnStatementSignedInput"] | undefined | null
 };
 	["MarketplaceRemoveFromWhitelistInput"]: {
 	/** eosio::name пайщика-поставщика */
@@ -26641,26 +26629,6 @@ export type ModelTypes = {
 	/** MIME-тип фото (image/jpeg, image/png либо image/webp). */
 	mime_type: string
 };
-	["MarketplaceReturnClaimRequestPayloadInput"]: {
-	/** Валюта расчёта (например «RUB»). */
-	currency: string,
-	/** Якорный hash заявления на возврат (request_hash). */
-	hash: string,
-	/** Идентификатор программы Стола Заказов в кооперативе. */
-	program_id: number,
-	/** Заголовок имущества, по которому подаётся возврат. */
-	title: string,
-	/** Итоговая возвращаемая сумма (десятичное число строкой). */
-	total_cost: string,
-	/** Тип операции в каноне ICommonRequest (для возврата — «RETURN»). */
-	type: string,
-	/** Стоимость единицы (десятичное число строкой). */
-	unit_cost: string,
-	/** Единица измерения (например «ед.»). */
-	unit_of_measurement: string,
-	/** Возвращаемое количество единиц. */
-	units: number
-};
 	/** Результат любого изменения статуса заявления на гарантийный возврат. */
 ["MarketplaceReturnClaimResult"]: {
 		/** Актуальное состояние заявления. */
@@ -26674,27 +26642,56 @@ export type ModelTypes = {
 	/** Категория дефекта (опционально, дублируется в meta документа). */
 	defect_category?: ModelTypes["MarketplaceReturnClaimDefectCategory"] | undefined | null,
 	/** Идентификатор заказа, по которому готовится заявление. */
-	order_id: string
+	order_id: string,
+	/** Причина обращения, как её сформулировал пайщик (попадает в текст заявления). */
+	reason_text?: string | undefined | null
 };
-	["MarketplaceReturnClaimSignedMetaDocumentInput"]: {
+	["MarketplaceReturnClaimStatus"]:MarketplaceReturnClaimStatus;
+	["MarketplaceReturnStatementSignedInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаданные подписанного заявления о гарантийном возврате имущества. */
+	meta: ModelTypes["MarketplaceReturnStatementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ModelTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["MarketplaceReturnStatementSignedMetaDocumentInput"]: {
+	/** Фактическое количество единиц к возврату. */
+	actual_quantity: number,
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Имя кооперативного участка доставки (braname) исходного заказа. */
+	braname?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
 	created_at: string,
+	/** Необязательная категория дефекта (пересортица, истёкший срок и т.п.). */
+	defect_category?: string | undefined | null,
 	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
 	doc_data_hash?: string | undefined | null,
+	/** Стоимость возвращаемой части (4 знака после запятой). */
+	fact_cost: string,
 	/** Имя генератора, использованного для создания документа */
 	generator: string,
 	/** Язык документа */
 	lang: string,
 	/** Ссылки, связанные с документом */
 	links: Array<string>,
+	/** Канонический order_hash on-chain. */
+	order_hash: string,
+	/** Идентификатор заказа, по которому подаётся возврат. */
+	order_id: string,
+	/** Причина обращения, как её сформулировал пайщик. */
+	reason_text: string,
 	/** ID документа в реестре */
 	registry_id: number,
-	/** Описание возвращаемого имущества — копируется из Order пайщика и используется как якорь возврата (hash совпадает с request_hash в on-chain заявлении). */
-	request: ModelTypes["MarketplaceReturnClaimRequestPayloadInput"],
 	/** Сформировать документ без сохранения (preview-режим). */
 	skip_save: boolean,
 	/** Часовой пояс, в котором был создан документ */
@@ -26706,21 +26703,6 @@ export type ModelTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string
 };
-	["MarketplaceReturnClaimSignedStatementInput"]: {
-	/** Хэш содержимого документа */
-	doc_hash: string,
-	/** Общий хэш (doc_hash + meta_hash) */
-	hash: string,
-	/** Метаданные подписанного заявления на возврат имущества. */
-	meta: ModelTypes["MarketplaceReturnClaimSignedMetaDocumentInput"],
-	/** Хэш мета-данных */
-	meta_hash: string,
-	/** Вектор подписей */
-	signatures: Array<ModelTypes["SignatureInfoInput"]>,
-	/** Версия стандарта документа */
-	version: string
-};
-	["MarketplaceReturnClaimStatus"]:MarketplaceReturnClaimStatus;
 	["MarketplaceSetKUStatusInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -35736,7 +35718,7 @@ export type GraphQLTypes = {
 	/** Сканированный штрих-код имущества для сверки с заказом (если применимо). */
 	scanned_barcode?: string | undefined | null,
 	/** Подписанное решение председателя (опционально). */
-	signed_decision?: GraphQLTypes["MarketplaceReturnClaimSignedStatementInput"] | undefined | null
+	signed_decision?: GraphQLTypes["MarketplaceReturnStatementSignedInput"] | undefined | null
 };
 	["MarketplaceAddToWhitelistInput"]: {
 		/** eosio::name пайщика-поставщика (3-12 chars, [.12345abcdefghijklmnopqrstuvwxyz]) */
@@ -35876,7 +35858,7 @@ export type GraphQLTypes = {
 	/** Комментарий председателя (обязательно, 1-500 символов). */
 	comment: string,
 	/** Подписанное решение председателя (опционально, in-system запись). */
-	signed_decision?: GraphQLTypes["MarketplaceReturnClaimSignedStatementInput"] | undefined | null
+	signed_decision?: GraphQLTypes["MarketplaceReturnStatementSignedInput"] | undefined | null
 };
 	["MarketplaceAttribute"]: {
 	__typename: "MarketplaceAttribute",
@@ -36190,8 +36172,8 @@ export type GraphQLTypes = {
 	photos: Array<GraphQLTypes["MarketplaceReturnClaimPhotoUploadInput"]>,
 	/** Текст обращения пайщика (1-500 символов). */
 	reason_text: string,
-	/** Подписанное пайщиком заявление (реестр документов 800). */
-	signed_statement: GraphQLTypes["MarketplaceReturnClaimSignedStatementInput"]
+	/** Подписанное пайщиком заявление о гарантийном возврате имущества (реестр документов 1104). */
+	signed_statement: GraphQLTypes["MarketplaceReturnStatementSignedInput"]
 };
 	["MarketplaceCreateShipmentInput"]: {
 		/** Идентификатор консолидированной заявки в статусе ACCEPTED. */
@@ -36800,7 +36782,7 @@ export type GraphQLTypes = {
 	/** Результат и причина отказа (обязательно, до 2000 символов). */
 	inspection_result: string,
 	/** Подписанное решение председателя (опционально). */
-	signed_decision?: GraphQLTypes["MarketplaceReturnClaimSignedStatementInput"] | undefined | null
+	signed_decision?: GraphQLTypes["MarketplaceReturnStatementSignedInput"] | undefined | null
 };
 	["MarketplaceRejectReturnRemoteInput"]: {
 		/** Кооперативный участок, под чьей юрисдикцией решение. */
@@ -36810,7 +36792,7 @@ export type GraphQLTypes = {
 	/** Причина отказа (обязательно, 1-500 символов). */
 	comment: string,
 	/** Подписанное решение председателя (опционально). */
-	signed_decision?: GraphQLTypes["MarketplaceReturnClaimSignedStatementInput"] | undefined | null
+	signed_decision?: GraphQLTypes["MarketplaceReturnStatementSignedInput"] | undefined | null
 };
 	["MarketplaceRemoveFromWhitelistInput"]: {
 		/** eosio::name пайщика-поставщика */
@@ -37087,26 +37069,6 @@ export type GraphQLTypes = {
 	/** MIME-тип фото (image/jpeg, image/png либо image/webp). */
 	mime_type: string
 };
-	["MarketplaceReturnClaimRequestPayloadInput"]: {
-		/** Валюта расчёта (например «RUB»). */
-	currency: string,
-	/** Якорный hash заявления на возврат (request_hash). */
-	hash: string,
-	/** Идентификатор программы Стола Заказов в кооперативе. */
-	program_id: number,
-	/** Заголовок имущества, по которому подаётся возврат. */
-	title: string,
-	/** Итоговая возвращаемая сумма (десятичное число строкой). */
-	total_cost: string,
-	/** Тип операции в каноне ICommonRequest (для возврата — «RETURN»). */
-	type: string,
-	/** Стоимость единицы (десятичное число строкой). */
-	unit_cost: string,
-	/** Единица измерения (например «ед.»). */
-	unit_of_measurement: string,
-	/** Возвращаемое количество единиц. */
-	units: number
-};
 	/** Результат любого изменения статуса заявления на гарантийный возврат. */
 ["MarketplaceReturnClaimResult"]: {
 	__typename: "MarketplaceReturnClaimResult",
@@ -37122,27 +37084,57 @@ export type GraphQLTypes = {
 	/** Категория дефекта (опционально, дублируется в meta документа). */
 	defect_category?: GraphQLTypes["MarketplaceReturnClaimDefectCategory"] | undefined | null,
 	/** Идентификатор заказа, по которому готовится заявление. */
-	order_id: string
+	order_id: string,
+	/** Причина обращения, как её сформулировал пайщик (попадает в текст заявления). */
+	reason_text?: string | undefined | null
 };
-	["MarketplaceReturnClaimSignedMetaDocumentInput"]: {
-		/** Номер блока, на котором был создан документ */
+	/** Состояние заявления на гарантийный возврат имущества пайщика. */
+["MarketplaceReturnClaimStatus"]: MarketplaceReturnClaimStatus;
+	["MarketplaceReturnStatementSignedInput"]: {
+		/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаданные подписанного заявления о гарантийном возврате имущества. */
+	meta: GraphQLTypes["MarketplaceReturnStatementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<GraphQLTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["MarketplaceReturnStatementSignedMetaDocumentInput"]: {
+		/** Фактическое количество единиц к возврату. */
+	actual_quantity: number,
+	/** Номер блока, на котором был создан документ */
 	block_num: number,
+	/** Имя кооперативного участка доставки (braname) исходного заказа. */
+	braname?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
 	created_at: string,
+	/** Необязательная категория дефекта (пересортица, истёкший срок и т.п.). */
+	defect_category?: string | undefined | null,
 	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
 	doc_data_hash?: string | undefined | null,
+	/** Стоимость возвращаемой части (4 знака после запятой). */
+	fact_cost: string,
 	/** Имя генератора, использованного для создания документа */
 	generator: string,
 	/** Язык документа */
 	lang: string,
 	/** Ссылки, связанные с документом */
 	links: Array<string>,
+	/** Канонический order_hash on-chain. */
+	order_hash: string,
+	/** Идентификатор заказа, по которому подаётся возврат. */
+	order_id: string,
+	/** Причина обращения, как её сформулировал пайщик. */
+	reason_text: string,
 	/** ID документа в реестре */
 	registry_id: number,
-	/** Описание возвращаемого имущества — копируется из Order пайщика и используется как якорь возврата (hash совпадает с request_hash в on-chain заявлении). */
-	request: GraphQLTypes["MarketplaceReturnClaimRequestPayloadInput"],
 	/** Сформировать документ без сохранения (preview-режим). */
 	skip_save: boolean,
 	/** Часовой пояс, в котором был создан документ */
@@ -37154,22 +37146,6 @@ export type GraphQLTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string
 };
-	["MarketplaceReturnClaimSignedStatementInput"]: {
-		/** Хэш содержимого документа */
-	doc_hash: string,
-	/** Общий хэш (doc_hash + meta_hash) */
-	hash: string,
-	/** Метаданные подписанного заявления на возврат имущества. */
-	meta: GraphQLTypes["MarketplaceReturnClaimSignedMetaDocumentInput"],
-	/** Хэш мета-данных */
-	meta_hash: string,
-	/** Вектор подписей */
-	signatures: Array<GraphQLTypes["SignatureInfoInput"]>,
-	/** Версия стандарта документа */
-	version: string
-};
-	/** Состояние заявления на гарантийный возврат имущества пайщика. */
-["MarketplaceReturnClaimStatus"]: MarketplaceReturnClaimStatus;
 	["MarketplaceSetKUStatusInput"]: {
 		/** Имя аккаунта кооператива */
 	coopname: string,
@@ -42321,11 +42297,10 @@ type ZEUS_VARIABLES = {
 	["MarketplaceReturnClaimDefectCategory"]: ValueTypes["MarketplaceReturnClaimDefectCategory"];
 	["MarketplaceReturnClaimExpectedResolution"]: ValueTypes["MarketplaceReturnClaimExpectedResolution"];
 	["MarketplaceReturnClaimPhotoUploadInput"]: ValueTypes["MarketplaceReturnClaimPhotoUploadInput"];
-	["MarketplaceReturnClaimRequestPayloadInput"]: ValueTypes["MarketplaceReturnClaimRequestPayloadInput"];
 	["MarketplaceReturnClaimSignablePayloadInput"]: ValueTypes["MarketplaceReturnClaimSignablePayloadInput"];
-	["MarketplaceReturnClaimSignedMetaDocumentInput"]: ValueTypes["MarketplaceReturnClaimSignedMetaDocumentInput"];
-	["MarketplaceReturnClaimSignedStatementInput"]: ValueTypes["MarketplaceReturnClaimSignedStatementInput"];
 	["MarketplaceReturnClaimStatus"]: ValueTypes["MarketplaceReturnClaimStatus"];
+	["MarketplaceReturnStatementSignedInput"]: ValueTypes["MarketplaceReturnStatementSignedInput"];
+	["MarketplaceReturnStatementSignedMetaDocumentInput"]: ValueTypes["MarketplaceReturnStatementSignedMetaDocumentInput"];
 	["MarketplaceSetKUStatusInput"]: ValueTypes["MarketplaceSetKUStatusInput"];
 	["MarketplaceShipmentDeliveryVariant"]: ValueTypes["MarketplaceShipmentDeliveryVariant"];
 	["MarketplaceShipmentGroupInput"]: ValueTypes["MarketplaceShipmentGroupInput"];

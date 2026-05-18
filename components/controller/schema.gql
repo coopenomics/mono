@@ -6936,7 +6936,7 @@ input MarketplaceAcceptReturnAtVisitInput {
   scanned_barcode: String
 
   """Подписанное решение председателя (опционально)."""
-  signed_decision: MarketplaceReturnClaimSignedStatementInput
+  signed_decision: MarketplaceReturnStatementSignedInput
 }
 
 input MarketplaceAddToWhitelistInput {
@@ -7143,7 +7143,7 @@ input MarketplaceApproveReturnVisitInput {
   comment: String!
 
   """Подписанное решение председателя (опционально, in-system запись)."""
-  signed_decision: MarketplaceReturnClaimSignedStatementInput
+  signed_decision: MarketplaceReturnStatementSignedInput
 }
 
 type MarketplaceAttribute {
@@ -7569,8 +7569,10 @@ input MarketplaceCreateReturnClaimInput {
   """Текст обращения пайщика (1-500 символов)."""
   reason_text: String!
 
-  """Подписанное пайщиком заявление (реестр документов 800)."""
-  signed_statement: MarketplaceReturnClaimSignedStatementInput!
+  """
+  Подписанное пайщиком заявление о гарантийном возврате имущества (реестр документов 1104).
+  """
+  signed_statement: MarketplaceReturnStatementSignedInput!
 }
 
 input MarketplaceCreateShipmentInput {
@@ -8446,7 +8448,7 @@ input MarketplaceRejectReturnAtVisitInput {
   inspection_result: String!
 
   """Подписанное решение председателя (опционально)."""
-  signed_decision: MarketplaceReturnClaimSignedStatementInput
+  signed_decision: MarketplaceReturnStatementSignedInput
 }
 
 input MarketplaceRejectReturnRemoteInput {
@@ -8460,7 +8462,7 @@ input MarketplaceRejectReturnRemoteInput {
   comment: String!
 
   """Подписанное решение председателя (опционально)."""
-  signed_decision: MarketplaceReturnClaimSignedStatementInput
+  signed_decision: MarketplaceReturnStatementSignedInput
 }
 
 input MarketplaceRemoveFromWhitelistInput {
@@ -8845,35 +8847,6 @@ input MarketplaceReturnClaimPhotoUploadInput {
   mime_type: String!
 }
 
-input MarketplaceReturnClaimRequestPayloadInput {
-  """Валюта расчёта (например «RUB»)."""
-  currency: String!
-
-  """Якорный hash заявления на возврат (request_hash)."""
-  hash: String!
-
-  """Идентификатор программы Стола Заказов в кооперативе."""
-  program_id: Int!
-
-  """Заголовок имущества, по которому подаётся возврат."""
-  title: String!
-
-  """Итоговая возвращаемая сумма (десятичное число строкой)."""
-  total_cost: String!
-
-  """Тип операции в каноне ICommonRequest (для возврата — «RETURN»)."""
-  type: String!
-
-  """Стоимость единицы (десятичное число строкой)."""
-  unit_cost: String!
-
-  """Единица измерения (например «ед.»)."""
-  unit_of_measurement: String!
-
-  """Возвращаемое количество единиц."""
-  units: Int!
-}
-
 """Результат любого изменения статуса заявления на гарантийный возврат."""
 type MarketplaceReturnClaimResult {
   """Актуальное состояние заявления."""
@@ -8892,11 +8865,51 @@ input MarketplaceReturnClaimSignablePayloadInput {
 
   """Идентификатор заказа, по которому готовится заявление."""
   order_id: String!
+
+  """
+  Причина обращения, как её сформулировал пайщик (попадает в текст заявления).
+  """
+  reason_text: String
 }
 
-input MarketplaceReturnClaimSignedMetaDocumentInput {
+"""Состояние заявления на гарантийный возврат имущества пайщика."""
+enum MarketplaceReturnClaimStatus {
+  ACCEPTED_AT_VISIT
+  APPROVED_FOR_VISIT
+  PENDING_CHAIRMAN_REVIEW
+  REJECTED_AT_VISIT
+  REJECTED_REMOTELY
+}
+
+input MarketplaceReturnStatementSignedInput {
+  """Хэш содержимого документа"""
+  doc_hash: String!
+
+  """Общий хэш (doc_hash + meta_hash)"""
+  hash: String!
+
+  """Метаданные подписанного заявления о гарантийном возврате имущества."""
+  meta: MarketplaceReturnStatementSignedMetaDocumentInput!
+
+  """Хэш мета-данных"""
+  meta_hash: String!
+
+  """Вектор подписей"""
+  signatures: [SignatureInfoInput!]!
+
+  """Версия стандарта документа"""
+  version: String!
+}
+
+input MarketplaceReturnStatementSignedMetaDocumentInput {
+  """Фактическое количество единиц к возврату."""
+  actual_quantity: Int!
+
   """Номер блока, на котором был создан документ"""
   block_num: Int!
+
+  """Имя кооперативного участка доставки (braname) исходного заказа."""
+  braname: String
 
   """Название кооператива, связанное с документом"""
   coopname: String!
@@ -8904,10 +8917,16 @@ input MarketplaceReturnClaimSignedMetaDocumentInput {
   """Дата и время создания документа"""
   created_at: String!
 
+  """Необязательная категория дефекта (пересортица, истёкший срок и т.п.)."""
+  defect_category: String
+
   """
   Хэш приватного payload документа (если приватные данные хранятся отдельно).
   """
   doc_data_hash: String
+
+  """Стоимость возвращаемой части (4 знака после запятой)."""
+  fact_cost: String!
 
   """Имя генератора, использованного для создания документа"""
   generator: String!
@@ -8918,13 +8937,17 @@ input MarketplaceReturnClaimSignedMetaDocumentInput {
   """Ссылки, связанные с документом"""
   links: [String!]!
 
+  """Канонический order_hash on-chain."""
+  order_hash: String!
+
+  """Идентификатор заказа, по которому подаётся возврат."""
+  order_id: String!
+
+  """Причина обращения, как её сформулировал пайщик."""
+  reason_text: String!
+
   """ID документа в реестре"""
   registry_id: Int!
-
-  """
-  Описание возвращаемого имущества — копируется из Order пайщика и используется как якорь возврата (hash совпадает с request_hash в on-chain заявлении).
-  """
-  request: MarketplaceReturnClaimRequestPayloadInput!
 
   """Сформировать документ без сохранения (preview-режим)."""
   skip_save: Boolean!
@@ -8940,35 +8963,6 @@ input MarketplaceReturnClaimSignedMetaDocumentInput {
 
   """Версия генератора, использованного для создания документа"""
   version: String!
-}
-
-input MarketplaceReturnClaimSignedStatementInput {
-  """Хэш содержимого документа"""
-  doc_hash: String!
-
-  """Общий хэш (doc_hash + meta_hash)"""
-  hash: String!
-
-  """Метаданные подписанного заявления на возврат имущества."""
-  meta: MarketplaceReturnClaimSignedMetaDocumentInput!
-
-  """Хэш мета-данных"""
-  meta_hash: String!
-
-  """Вектор подписей"""
-  signatures: [SignatureInfoInput!]!
-
-  """Версия стандарта документа"""
-  version: String!
-}
-
-"""Состояние заявления на гарантийный возврат имущества пайщика."""
-enum MarketplaceReturnClaimStatus {
-  ACCEPTED_AT_VISIT
-  APPROVED_FOR_VISIT
-  PENDING_CHAIRMAN_REVIEW
-  REJECTED_AT_VISIT
-  REJECTED_REMOTELY
 }
 
 input MarketplaceSetKUStatusInput {

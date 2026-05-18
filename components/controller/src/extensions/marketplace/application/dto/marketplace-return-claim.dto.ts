@@ -28,7 +28,7 @@ import {
   type MarketplaceReturnClaimExpectedResolution,
   type MarketplaceReturnClaimStatus,
 } from '../../domain/entities/marketplace-return-claim.types';
-import { MarketplaceReturnClaimSignedStatementInputDTO } from '~/application/document/documents-dto/marketplace-return-claim-document.dto';
+import { MarketplaceReturnStatementSignedInputDTO } from '~/application/document/documents-dto/marketplace-return-statement-document.dto';
 
 /**
  * Эпик 7: GraphQL enum'ы статуса заявления и категории дефекта. Регистрируются
@@ -117,12 +117,12 @@ export class MarketplaceCreateReturnClaimInputDTO {
   @Min(1)
   public readonly actual_quantity?: number;
 
-  @Field(() => MarketplaceReturnClaimSignedStatementInputDTO, {
-    description: 'Подписанное пайщиком заявление (реестр документов 800).',
+  @Field(() => MarketplaceReturnStatementSignedInputDTO, {
+    description: 'Подписанное пайщиком заявление о гарантийном возврате имущества (реестр документов 1104).',
   })
   @ValidateNested()
-  @Type(() => MarketplaceReturnClaimSignedStatementInputDTO)
-  public readonly signed_statement!: MarketplaceReturnClaimSignedStatementInputDTO;
+  @Type(() => MarketplaceReturnStatementSignedInputDTO)
+  public readonly signed_statement!: MarketplaceReturnStatementSignedInputDTO;
 
   @Field(() => [MarketplaceReturnClaimPhotoUploadInputDTO], {
     description: 'Фотографии товара — обязательно от 1 до 10 файлов.',
@@ -151,6 +151,14 @@ export class MarketplaceReturnClaimSignablePayloadInputDTO {
   @Min(1)
   public readonly actual_quantity?: number;
 
+  @Field({
+    nullable: true,
+    description: 'Причина обращения, как её сформулировал пайщик (попадает в текст заявления).',
+  })
+  @IsOptional()
+  @IsString()
+  public readonly reason_text?: string;
+
   @Field(() => MarketplaceReturnClaimDefectCategoryEnum, {
     nullable: true,
     description: 'Категория дефекта (опционально, дублируется в meta документа).',
@@ -175,14 +183,14 @@ export class MarketplaceApproveReturnVisitInputDTO {
   @IsNotEmpty()
   public readonly comment!: string;
 
-  @Field(() => MarketplaceReturnClaimSignedStatementInputDTO, {
+  @Field(() => MarketplaceReturnStatementSignedInputDTO, {
     nullable: true,
     description: 'Подписанное решение председателя (опционально, in-system запись).',
   })
   @IsOptional()
   @ValidateNested()
-  @Type(() => MarketplaceReturnClaimSignedStatementInputDTO)
-  public readonly signed_decision?: MarketplaceReturnClaimSignedStatementInputDTO;
+  @Type(() => MarketplaceReturnStatementSignedInputDTO)
+  public readonly signed_decision?: MarketplaceReturnStatementSignedInputDTO;
 }
 
 @InputType('MarketplaceRejectReturnRemoteInput')
@@ -200,14 +208,14 @@ export class MarketplaceRejectReturnRemoteInputDTO {
   @IsNotEmpty()
   public readonly comment!: string;
 
-  @Field(() => MarketplaceReturnClaimSignedStatementInputDTO, {
+  @Field(() => MarketplaceReturnStatementSignedInputDTO, {
     nullable: true,
     description: 'Подписанное решение председателя (опционально).',
   })
   @IsOptional()
   @ValidateNested()
-  @Type(() => MarketplaceReturnClaimSignedStatementInputDTO)
-  public readonly signed_decision?: MarketplaceReturnClaimSignedStatementInputDTO;
+  @Type(() => MarketplaceReturnStatementSignedInputDTO)
+  public readonly signed_decision?: MarketplaceReturnStatementSignedInputDTO;
 }
 
 @InputType('MarketplaceAcceptReturnAtVisitInput')
@@ -246,14 +254,14 @@ export class MarketplaceAcceptReturnAtVisitInputDTO {
   @Type(() => MarketplaceReturnClaimPhotoUploadInputDTO)
   public readonly inspection_photos?: MarketplaceReturnClaimPhotoUploadInputDTO[];
 
-  @Field(() => MarketplaceReturnClaimSignedStatementInputDTO, {
+  @Field(() => MarketplaceReturnStatementSignedInputDTO, {
     nullable: true,
     description: 'Подписанное решение председателя (опционально).',
   })
   @IsOptional()
   @ValidateNested()
-  @Type(() => MarketplaceReturnClaimSignedStatementInputDTO)
-  public readonly signed_decision?: MarketplaceReturnClaimSignedStatementInputDTO;
+  @Type(() => MarketplaceReturnStatementSignedInputDTO)
+  public readonly signed_decision?: MarketplaceReturnStatementSignedInputDTO;
 }
 
 @InputType('MarketplaceRejectReturnAtVisitInput')
@@ -282,14 +290,14 @@ export class MarketplaceRejectReturnAtVisitInputDTO {
   @Type(() => MarketplaceReturnClaimPhotoUploadInputDTO)
   public readonly inspection_photos?: MarketplaceReturnClaimPhotoUploadInputDTO[];
 
-  @Field(() => MarketplaceReturnClaimSignedStatementInputDTO, {
+  @Field(() => MarketplaceReturnStatementSignedInputDTO, {
     nullable: true,
     description: 'Подписанное решение председателя (опционально).',
   })
   @IsOptional()
   @ValidateNested()
-  @Type(() => MarketplaceReturnClaimSignedStatementInputDTO)
-  public readonly signed_decision?: MarketplaceReturnClaimSignedStatementInputDTO;
+  @Type(() => MarketplaceReturnStatementSignedInputDTO)
+  public readonly signed_decision?: MarketplaceReturnStatementSignedInputDTO;
 }
 
 @InputType('MarketplaceListReturnClaimsByBranameInput')

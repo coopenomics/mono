@@ -41,7 +41,7 @@ import {
   type MarketplaceReturnClaimPhoto,
 } from '../../domain/entities/marketplace-return-claim.types';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
-import type { MarketplaceReturnClaimSignedStatementInputDTO } from '~/application/document/documents-dto/marketplace-return-claim-document.dto';
+import type { MarketplaceReturnStatementSignedInputDTO } from '~/application/document/documents-dto/marketplace-return-statement-document.dto';
 import {
   MARKETPLACE_RETURN_CLAIM_SUBMITTED_EVENT,
   MARKETPLACE_RETURN_CLAIM_DECIDED_EVENT,
@@ -72,8 +72,8 @@ export interface MarketplaceCreateReturnClaimInput {
   defect_category: MarketplaceReturnClaimDefectCategory | null;
   /** Возвращаемое количество — по умолчанию = order.actual_quantity. */
   actual_quantity?: number;
-  /** Подписанное заказчиком on-chain заявление (registry_id=800). */
-  signed_statement: MarketplaceReturnClaimSignedStatementInputDTO;
+  /** Подписанное заказчиком on-chain заявление (registry_id=1104). */
+  signed_statement: MarketplaceReturnStatementSignedInputDTO;
   /** Фотографии товара — обязательно мин. 1, макс. 10. */
   photos: MarketplaceReturnClaimImageUploadDTO[];
 }
@@ -85,7 +85,7 @@ export interface MarketplaceApproveReturnVisitInput {
   claim_id: string;
   comment: string;
   /** Опциональный документ-решение (registry_id=0 по стандарту, либо in-system запись). */
-  signed_decision?: MarketplaceReturnClaimSignedStatementInputDTO;
+  signed_decision?: MarketplaceReturnStatementSignedInputDTO;
 }
 
 export interface MarketplaceRejectReturnRemoteInput {
@@ -94,7 +94,7 @@ export interface MarketplaceRejectReturnRemoteInput {
   braname: string;
   claim_id: string;
   comment: string;
-  signed_decision?: MarketplaceReturnClaimSignedStatementInputDTO;
+  signed_decision?: MarketplaceReturnStatementSignedInputDTO;
 }
 
 export interface MarketplaceAcceptReturnAtVisitInput {
@@ -105,7 +105,7 @@ export interface MarketplaceAcceptReturnAtVisitInput {
   inspection_result: string;
   scanned_barcode: string | null;
   inspection_photos?: MarketplaceReturnClaimImageUploadDTO[];
-  signed_decision?: MarketplaceReturnClaimSignedStatementInputDTO;
+  signed_decision?: MarketplaceReturnStatementSignedInputDTO;
 }
 
 export interface MarketplaceRejectReturnAtVisitInput {
@@ -115,7 +115,7 @@ export interface MarketplaceRejectReturnAtVisitInput {
   claim_id: string;
   inspection_result: string;
   inspection_photos?: MarketplaceReturnClaimImageUploadDTO[];
-  signed_decision?: MarketplaceReturnClaimSignedStatementInputDTO;
+  signed_decision?: MarketplaceReturnStatementSignedInputDTO;
 }
 
 export interface MarketplaceReturnClaimResult {
@@ -181,9 +181,9 @@ export class MarketplaceReturnClaimService {
   }
 
   /**
-   * Story 7.1: backend-генерируемый payload заявления (registry_id=800,
-   * `ReturnByAssetStatement`). UI получает HTML preview + canonical hash и
-   * подписывает приватным ключом пайщика, после чего отправляет в
+   * Story 7.1: backend-генерируемый payload заявления (registry_id=1104,
+   * `MarketplaceReturnStatement`). UI получает HTML preview + canonical hash
+   * и подписывает приватным ключом пайщика, после чего отправляет в
    * `submitReturnClaim` вместе с фото.
    *
    * `request_hash` детерминирован: sha256('return:' + order_hash + ':' +
@@ -196,6 +196,7 @@ export class MarketplaceReturnClaimService {
     orderer_account: string;
     order_id: string;
     actual_quantity?: number;
+    reason_text?: string;
     defect_category?: MarketplaceReturnClaimDefectCategory | null;
   }): Promise<DocumentDomainEntity> {
     const order = await this.loadOrderForReturn(input.coopname, input.order_id, input.orderer_account);
@@ -204,6 +205,8 @@ export class MarketplaceReturnClaimService {
       order,
       orderer: input.orderer_account,
       actual_quantity: quantity,
+      reason_text: input.reason_text,
+      defect_category: input.defect_category ?? undefined,
     });
   }
 
@@ -668,28 +671,21 @@ export class MarketplaceReturnClaimService {
     order: MarketplaceOrderDomainEntity;
     orderer: string;
     actual_quantity: number;
+    reason_text?: string;
+    defect_category?: string | null;
   }): Promise<DocumentDomainEntity> {
-    const request_hash = this.computeRequestHash({
-      order_hash: input.order.order_hash,
-      orderer: input.orderer,
-      actual_quantity: input.actual_quantity,
-    });
     const fact_cost = this.computeFactCost(input.order, input.actual_quantity);
-    const action: Cooperative.Registry.ReturnByAssetStatement.Action = {
-      registry_id: Cooperative.Registry.ReturnByAssetStatement.registry_id,
+    const action: Cooperative.Registry.MarketplaceReturnStatement.Action = {
+      registry_id: Cooperative.Registry.MarketplaceReturnStatement.registry_id,
       coopname: input.order.coopname,
       username: input.orderer,
-      request: {
-        hash: request_hash,
-        title: `Гарантийный возврат имущества по заказу ${input.order.id.slice(0, 8)}`,
-        unit_of_measurement: 'ед.',
-        units: input.actual_quantity,
-        unit_cost: input.order.price_per_unit,
-        total_cost: fact_cost,
-        currency: 'RUB',
-        type: 'RETURN',
-        program_id: 2,
-      },
+      order_id: input.order.id,
+      order_hash: input.order.order_hash,
+      braname: input.order.delivery_braname,
+      reason_text: input.reason_text ?? '',
+      defect_category: input.defect_category ?? undefined,
+      actual_quantity: input.actual_quantity,
+      fact_cost,
       skip_save: true,
     };
     return this.documentDomainService.generateDocument({ data: action });
