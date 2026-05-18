@@ -325,4 +325,7 @@ public:
     [[eosio::action]]
     void markdebtoverd(name coopname);
 
+    [[eosio::action]]
+    void topupprogexp(name coopname, eosio::asset amount);
+
 };

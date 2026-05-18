@@ -96,6 +96,9 @@
 #include "app/debt_managment/create_debt/markdebtoverd.cpp"
 #include "app/debt_managment/settle_debt/settledebt.cpp"
 
+// Управление программными расходами
+#include "app/expense_managment/program_expenses/topupprogexp.cpp"
+
 // Управление расходами
 #include "app/expense_managment/create_expense/approveexpns.cpp"
 #include "app/expense_managment/create_expense/capauthexpns.cpp"
