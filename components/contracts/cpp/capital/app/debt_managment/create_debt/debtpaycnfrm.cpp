@@ -18,12 +18,9 @@ void capital::debtpaycnfrm(name coopname, checksum256 debt_hash) {
   auto contributor = Capital::Contributors::get_contributor(coopname, exist_debt.username);
   eosio::check(contributor.has_value(), "Контрибьютор не найден");
 
-  // Проверяем что долг в статусе 'pay_pending' (outpay в полёте до gateway)
-  eosio::check(exist_debt.status == Capital::Debts::Status::PAY_PENDING,
-               "Долг должен быть в статусе 'pay_pending' для подтверждения оплаты");
-
-  // Обновляем статус долга на PAID
-  Capital::Debts::update_debt_status(coopname, exist_debt.id, Capital::Debts::Status::PAID, _gateway);
+  // Переводим долг в PAID + проставляем due_at = now + 3 месяца (срок погашения).
+  // confirm_paid внутри проверяет статус pay_pending и атомарно сбрасывает last_pay_error.
+  Capital::Debts::confirm_paid(coopname, exist_debt.id, _gateway);
 
   // Выдача пайщику беспроцентного займа: Dr 58 / Cr 51, ISSUE LOAN_ISSUED (4051).
   // Семантика момента — деньги ушли пайщику, у кооператива появилось финансовое

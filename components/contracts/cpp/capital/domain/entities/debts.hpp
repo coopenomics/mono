@@ -20,6 +20,7 @@ namespace Status {
   constexpr name AUTHORIZED = "authorized"_n;  ///< Долг авторизован советом, ожидает повторной отправки на оплату
   constexpr name PAY_PENDING = "paypending"_n; ///< Долг отправлен в gateway на оплату (исходящий платёж создан, ждём debtpaycnfrm/debtpaydcln)
   constexpr name PAID = "paid"_n;              ///< Долг выплачен пайщику, активный (ждёт погашения)
+  constexpr name OVERDUE = "overdue"_n;        ///< Долг просрочен (now > due_at) — выставляется action markdebtoverd
   constexpr name SETTLED = "settled"_n;        ///< Долг полностью погашен (деньгами через settledebt либо результатом через signact2)
 }
 
@@ -45,6 +46,7 @@ struct [[eosio::table, eosio::contract(CAPITAL)]] debt {
   document2        authorization;             ///< Авторизация совета
   std::string      memo;                      ///< Примечание
   std::string      last_pay_error;            ///< Последняя ошибка outpay от gateway (заполняется debtpaydcln; пусто = успех или ещё не отправлен)
+  time_point_sec   due_at;                    ///< Срок погашения (current_time_point + 3 мес. при переходе в paid); now > due_at → overdue
 
   uint64_t primary_key() const { return id; } ///< Первичный ключ (1)
 
@@ -199,6 +201,66 @@ inline void mark_pay_declined(
 }
 
 /**
+ * @brief Кол-во секунд в стандартном сроке погашения займа (3 месяца ≈ 90 дней).
+ */
+constexpr uint32_t DEFAULT_DEBT_TERM_SECONDS = 90 * 24 * 60 * 60;
+
+/**
+ * @brief Переводит долг в PAID, фиксирует дату выплаты и проставляет due_at.
+ *
+ * Используется в debtpaycnfrm после успешной outpay из gateway. due_at рассчитывается
+ * от current_time_point на 3 месяца вперёд; долги с now > due_at и status == PAID
+ * далее перейдут в OVERDUE через markdebtoverd.
+ */
+inline void confirm_paid(
+  eosio::name coopname,
+  uint64_t debt_id,
+  eosio::name payer = name{}
+) {
+  if (payer == name{}) payer = coopname;
+
+  debts_index debts(_capital, coopname.value);
+  auto debt = debts.find(debt_id);
+  eosio::check(debt != debts.end(), "Долг не найден");
+  eosio::check(debt->status == Status::PAY_PENDING,
+               "Подтверждение оплаты допустимо только из pay_pending");
+
+  auto now = eosio::current_time_point();
+  debts.modify(debt, payer, [&](auto &d) {
+    d.status = Status::PAID;
+    d.due_at = eosio::time_point_sec(now.sec_since_epoch() + DEFAULT_DEBT_TERM_SECONDS);
+    d.last_pay_error = "";
+  });
+}
+
+/**
+ * @brief Помечает долги PAID с now > due_at как OVERDUE в пределах одного batch.
+ *
+ * @param coopname    Кооператив (scope)
+ * @param batch_limit Максимальное число записей за вызов (защита от 30-сек лимита транзакции)
+ * @return Сколько долгов помечено за этот вызов; backend-cron повторяет до 0.
+ */
+inline uint32_t sweep_overdue(
+  eosio::name coopname,
+  uint32_t batch_limit
+) {
+  debts_index debts(_capital, coopname.value);
+  auto now = eosio::current_time_point();
+  auto now_sec = eosio::time_point_sec(now.sec_since_epoch());
+
+  uint32_t marked = 0;
+  for (auto it = debts.begin(); it != debts.end() && marked < batch_limit; ++it) {
+    if (it->status == Status::PAID && it->due_at != time_point_sec() && now_sec > it->due_at) {
+      debts.modify(it, coopname, [&](auto &d) {
+        d.status = Status::OVERDUE;
+      });
+      ++marked;
+    }
+  }
+  return marked;
+}
+
+/**
  * @brief Закрывает долг как погашенный — переводит в SETTLED, сохраняет документ-основание
  *        в поле memo (если передан) и фиксирует дату погашения.
  *
@@ -216,8 +278,8 @@ inline void mark_settled(
   debts_index debts(_capital, coopname.value);
   auto debt = debts.find(debt_id);
   eosio::check(debt != debts.end(), "Долг не найден");
-  eosio::check(debt->status == Status::PAID,
-               "Погашение допустимо только из статуса paid");
+  eosio::check(debt->status == Status::PAID || debt->status == Status::OVERDUE,
+               "Погашение допустимо только из статуса paid или overdue");
 
   debts.modify(debt, payer, [&](auto &d) {
     d.status = Status::SETTLED;

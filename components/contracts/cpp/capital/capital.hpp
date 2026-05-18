@@ -322,4 +322,7 @@ public:
     [[eosio::action]]
     void settledebt(name coopname, checksum256 debt_hash, eosio::asset amount, document2 statement);
 
+    [[eosio::action]]
+    void markdebtoverd(name coopname);
+
 };
