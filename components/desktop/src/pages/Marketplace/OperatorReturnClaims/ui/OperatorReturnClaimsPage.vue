@@ -46,7 +46,7 @@ async function load(): Promise<void> {
   if (!braname.value.trim()) return;
   loading.value = true;
   try {
-    items.value = await listReturnClaimsByBraname(braname.value.trim());
+    items.value = await listReturnClaimsByBraname({ delivery_braname: braname.value.trim() });
   } catch (e) {
     FailAlert(e, 'Не удалось загрузить заявления на возврат');
   } finally {

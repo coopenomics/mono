@@ -6,9 +6,11 @@ import { BarcodeScanner } from 'src/widgets/Marketplace/BarcodeScanner';
 import {
   acceptReturnAtVisit,
   rejectReturnAtVisit,
+  type IAcceptReturnAtVisitInput,
   type MarketplaceReturnClaimView,
-  type ReturnClaimPhotoUploadInput,
 } from '../api';
+
+type ReturnClaimPhotoUploadInput = NonNullable<IAcceptReturnAtVisitInput['inspection_photos']>[number];
 
 /**
  * Story 7.3 / 7.4: full-screen takeover для очного осмотра. Председатель:

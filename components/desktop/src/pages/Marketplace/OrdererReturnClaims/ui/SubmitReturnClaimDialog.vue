@@ -1,14 +1,17 @@
 <script lang="ts" setup>
 import { computed, ref, watch } from 'vue';
-import { Classes } from '@coopenomics/sdk';
+import { Classes, Zeus } from '@coopenomics/sdk';
 import { useGlobalStore } from 'src/shared/store';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { TakeoverDialog } from 'src/widgets/Marketplace/TakeoverDialog';
 import {
   createReturnClaim,
   getReturnClaimSignablePayload,
-  type ReturnClaimPhotoUploadInput,
+  type ICreateReturnClaimInput,
 } from '../api';
+
+type ReturnClaimPhotoUploadInput = ICreateReturnClaimInput['photos'][number];
+type DefectCategory = Zeus.MarketplaceReturnClaimDefectCategory;
 
 /**
  * Story 7.1 / FR29: full-screen takeover для подачи заявления на гарантийный
@@ -30,12 +33,12 @@ import {
  * параметре submretrn → двусторонняя сверка backend ↔ on-chain.
  */
 
-const DEFECT_CATEGORIES = [
-  { value: 'BROKEN', label: 'Повреждено / сломано' },
-  { value: 'EXPIRED', label: 'Истёк срок годности' },
-  { value: 'NOT_AS_DESCRIBED', label: 'Не соответствует описанию' },
-  { value: 'WRONG_ITEM', label: 'Не тот товар' },
-  { value: 'OTHER', label: 'Другое' },
+const DEFECT_CATEGORIES: Array<{ value: DefectCategory; label: string }> = [
+  { value: Zeus.MarketplaceReturnClaimDefectCategory.BROKEN, label: 'Повреждено / сломано' },
+  { value: Zeus.MarketplaceReturnClaimDefectCategory.EXPIRED, label: 'Истёк срок годности' },
+  { value: Zeus.MarketplaceReturnClaimDefectCategory.NOT_AS_DESCRIBED, label: 'Не соответствует описанию' },
+  { value: Zeus.MarketplaceReturnClaimDefectCategory.WRONG_ITEM, label: 'Не тот товар' },
+  { value: Zeus.MarketplaceReturnClaimDefectCategory.OTHER, label: 'Другое' },
 ];
 
 const props = defineProps<{
@@ -58,7 +61,7 @@ type Step = typeof STEP_DESCRIBE | typeof STEP_PHOTOS | typeof STEP_SIGN;
 const step = ref<Step>(STEP_DESCRIBE);
 
 const reasonText = ref<string>('');
-const defectCategory = ref<string>('');
+const defectCategory = ref<DefectCategory | ''>('');
 const actualQuantity = ref<number | null>(null);
 const photos = ref<ReturnClaimPhotoUploadInput[]>([]);
 const previewHtml = ref<string>('');
@@ -108,10 +111,10 @@ async function loadPreview(): Promise<void> {
   if (!props.orderId) return;
   previewLoading.value = true;
   try {
-    const doc = await getReturnClaimSignablePayload(
-      props.orderId,
-      actualQuantity.value ?? undefined,
-    );
+    const doc = await getReturnClaimSignablePayload({
+      order_id: props.orderId,
+      actual_quantity: actualQuantity.value ?? undefined,
+    });
     previewHtml.value = doc.html;
   } catch (e) {
     FailAlert(e, 'Не удалось сформировать предварительное заявление');
@@ -163,12 +166,12 @@ async function confirm(): Promise<void> {
 
   submitting.value = true;
   try {
-    const generated = await getReturnClaimSignablePayload(
-      props.orderId,
-      actualQuantity.value ?? undefined,
-      reasonText.value,
-      defectCategory.value || undefined,
-    );
+    const generated = await getReturnClaimSignablePayload({
+      order_id: props.orderId,
+      actual_quantity: actualQuantity.value ?? undefined,
+      reason_text: reasonText.value,
+      defect_category: defectCategory.value || undefined,
+    });
     const signer = new Classes.Document(wifKey);
     const signed = await signer.signDocument(generated, globalStore.username, 1);
 
