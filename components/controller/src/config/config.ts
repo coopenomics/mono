@@ -93,8 +93,9 @@ const envVarsSchema = z.object({
     .default('https://союз-русь.рф/anketa')
     .describe('ссылка на анкету для получения членства в союзе кооперативов'),
   IS_UNIONED: z
-    .boolean()
-    .default(true)
+    .string()
+    .default('true')
+    .transform((v) => v === 'true')
     .describe('флаг, указывающий что требуется членство в союзе для подключения к кооперативной экономике'),
   MATRIX_UNION_PERSON_ID: z.string().optional().describe('Matrix userId представителя союза для связи с кооперативами'),
   MATRIX_UNION_NAME: z.string().default('СПО РУСЬ').describe('Название союза для подписания комнат связи'),
