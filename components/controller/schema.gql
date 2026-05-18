@@ -7588,6 +7588,12 @@ type MarketplaceCreateShipmentResult {
   shipments: [MarketplaceShipment!]!
 }
 
+input MarketplaceCreateWriteoffDraftInput {
+  """Начало расчётного цикла, если отличается от текущего момента."""
+  cycle_started_at: String
+  items: [MarketplaceWriteoffItemInput!]!
+}
+
 type MarketplaceCurrentMember {
   core_roles: [String!]!
   marketplace_roles: [String!]!
@@ -8030,6 +8036,10 @@ input MarketplaceListShipmentsInput {
 
   """Фильтр по статусам партий."""
   statuses: [MarketplaceShipmentStatus!]
+}
+
+input MarketplaceListWriteoffProposalsInput {
+  statuses: [MarketplaceWriteoffProposalStatus!]
 }
 
 type MarketplaceMemberWallet {
@@ -9078,6 +9088,15 @@ input MarketplaceSignAplReceptionInput {
   signed_documents: [MarketplaceAplReceptionSignedDocumentInput!]!
 }
 
+input MarketplaceSubmitWriteoffDraftInput {
+  draft_id: String!
+
+  """
+  Подписанное председателем Заявление о списании скоропорта (registry_id=1106).
+  """
+  signed_statement: SignedDigitalDocumentInput!
+}
+
 """Результат индивидуального приёма или отклонения заказа поставщиком."""
 type MarketplaceSupplierOrderActionResult {
   """Заказ после изменения статуса."""
@@ -9111,6 +9130,11 @@ input MarketplaceUpdateOfferInput {
   unit_of_measure: String
   unlimited_flag: Boolean
   warranty_days: Int
+}
+
+input MarketplaceUpdateWriteoffDraftInput {
+  id: String!
+  items: [MarketplaceWriteoffItemInput!]!
 }
 
 type MarketplaceVitrine {
@@ -9177,6 +9201,105 @@ type MarketplaceWhitelistEntry {
 
 input MarketplaceWithdrawOfferInput {
   id: String!
+}
+
+type MarketplaceWriteoffDecisionEntry {
+  action: String!
+  actor: String!
+  at: String!
+}
+
+input MarketplaceWriteoffItemInput {
+  """Сумма списания в формате числа с 4 знаками после запятой."""
+  amount: String!
+  asset_title: String!
+  braname: String!
+  inventory_id: String
+  quantity: String!
+  reason: String!
+}
+
+type MarketplaceWriteoffProposal {
+  authorized_at: String
+  coopname: String!
+  created_at: String!
+  cycle_started_at: String!
+
+  """Аккаунт, принявший финальное решение."""
+  decided_by_account: String
+  decision_id: Int
+  decision_log: [MarketplaceWriteoffDecisionEntry!]!
+  executed_at: String
+
+  """Идентификатор проекта в системе кооператива."""
+  id: String!
+  items: [MarketplaceWriteoffProposalItem!]!
+
+  """
+  Канонический хеш проекта, используется как process_hash on-chain (wroffprops, soviet.decisions).
+  """
+  proposal_hash: String!
+
+  """Аккаунт инициатора проекта (председатель / админ)."""
+  proposed_by_account: String
+
+  """Причина отказа совета (если REJECTED)."""
+  reject_reason: String
+  rejected_at: String
+  status: MarketplaceWriteoffProposalStatus!
+  submitted_at: String
+
+  """Σ сумм всех позиций (форматированный asset, 4 знака)."""
+  total_amount: String!
+  trigger: MarketplaceWriteoffProposalTrigger!
+  updated_at: String!
+}
+
+type MarketplaceWriteoffProposalItem {
+  """Сумма списания (4 знака после запятой, валюта кооператива)."""
+  amount: String!
+
+  """Наименование позиции или артикул из карточки имущества."""
+  asset_title: String!
+
+  """Кооперативный участок (склад) — источник позиции к списанию."""
+  braname: String!
+
+  """Признак того, что позиция уже исполнена через execwroff."""
+  executed: Boolean!
+
+  """Идентификатор инвентарной позиции, если известна."""
+  inventory_id: String
+
+  """Количество единиц к списанию."""
+  quantity: String!
+
+  """Причина списания (срок годности, повреждение и т.п.)."""
+  reason: String!
+}
+
+"""
+Состояние проекта решения совета о списании скоропорта на пути от черновика до итогового списания.
+"""
+enum MarketplaceWriteoffProposalStatus {
+  AUTHORIZED
+  DRAFT
+  EXECUTED
+  EXECUTING
+  ON_AGENDA
+  REJECTED
+}
+
+"""
+Источник проекта списания: автоматический ежемесячный крон или ручное создание.
+"""
+enum MarketplaceWriteoffProposalTrigger {
+  CRON
+  MANUAL
+}
+
+input MarketplaceWriteoffStatementSignablePayloadInput {
+  draft_id: String!
 }
 
 type MatrixAccountStatusResponseDTO {
@@ -10444,6 +10567,9 @@ type Mutation {
   """
   marketplaceCancelOrder(input: MarketplaceCancelOrderInput!): MarketplaceCancelOrderResult!
 
+  """Удалить черновик. Доступно только пока проект в статусе DRAFT."""
+  marketplaceCancelWriteoffDraft(id: String!): Boolean!
+
   """
   Очистить все доступные категории (сделать доступными все)
   
@@ -10478,6 +10604,11 @@ type Mutation {
   Сформировать партии поставки из акцептованной заявки: одна группа на каждый КУ-получатель.
   """
   marketplaceCreateShipment(data: MarketplaceCreateShipmentInput!): MarketplaceCreateShipmentResult!
+
+  """
+  Создаёт ручной черновик проекта списания. На кооператив может быть только один открытый черновик и один проект, отправленный в совет.
+  """
+  marketplaceCreateWriteoffDraft(data: MarketplaceCreateWriteoffDraftInput!): MarketplaceWriteoffProposal!
 
   """
   Поставщик отклоняет сводную заявку — все заказы пакета отменяются, средства разблокируются.
@@ -10578,12 +10709,20 @@ type Mutation {
   marketplaceSignAplReceptionAsSupplier(data: MarketplaceSignAplReceptionInput!): MarketplaceAplReceptionResult!
 
   """
+  Отправить черновик в совет. Принимает подписанное председателем Заявление 1106. После успешного приёма выполняются propwroff и soviet::createagenda(mktwroff).
+  """
+  marketplaceSubmitWriteoffDraft(data: MarketplaceSubmitWriteoffDraftInput!): MarketplaceWriteoffProposal!
+
+  """
   Поставщик запускает поставку по предложению с открытой подпиской: формируется сводная заявка, заказы в её пуле принимаются.
   """
   marketplaceTriggerOpenSubscription(input: MarketplaceTriggerOpenSubscriptionInput!): MarketplaceConsolidatedRequest!
 
   """Поставщик правит свой Offer — статус сбрасывается в PENDING_MODERATION"""
   marketplaceUpdateOffer(input: MarketplaceUpdateOfferInput!): MarketplaceOffer!
+
+  """Изменить состав черновика — добавить, удалить или поправить позиции."""
+  marketplaceUpdateWriteoffDraft(data: MarketplaceUpdateWriteoffDraftInput!): MarketplaceWriteoffProposal!
 
   """Поставщик снимает свой Offer (статус → WITHDRAWN)"""
   marketplaceWithdrawOffer(input: MarketplaceWithdrawOfferInput!): MarketplaceOffer!
@@ -11255,6 +11394,20 @@ type PaginatedGatewayPaymentsPaginationResult {
 
   """Элементы текущей страницы"""
   items: [GatewayPayment!]!
+
+  """Общее количество элементов"""
+  totalCount: Int!
+
+  """Общее количество страниц"""
+  totalPages: Int!
+}
+
+type PaginatedMarketplaceWriteoffProposals {
+  """Текущая страница"""
+  currentPage: Int!
+
+  """Элементы текущей страницы"""
+  items: [MarketplaceWriteoffProposal!]!
 
   """Общее количество элементов"""
   totalCount: Int!
@@ -13033,6 +13186,9 @@ type Query {
   """Список пайщиков-поставщиков, допущенных к публикации оферт"""
   marketplaceListWhitelist: [MarketplaceWhitelistEntry!]!
 
+  """Лента всех проектов списания кооператива с фильтром по статусу."""
+  marketplaceListWriteoffProposals(data: MarketplaceListWriteoffProposalsInput!, options: PaginationInput): PaginatedMarketplaceWriteoffProposals!
+
   """
   Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.member
   """
@@ -13042,6 +13198,9 @@ type Query {
   Состояние онбординга пайщика в Столе заказов: показывать ли gate или пропускать на стол
   """
   marketplaceOnboardingState: MarketplaceOnboardingState!
+
+  """Открытый черновик проекта списания (если есть). Один на кооператив."""
+  marketplaceOpenWriteoffDraft: MarketplaceWriteoffProposal
 
   """
   Статус видимости оферты Стола заказов в core registration-flow (платформенный AgreementRegistry)
@@ -13073,6 +13232,14 @@ type Query {
 
   """Контекст пайщика для Стола заказов: core_roles + marketplace_roles"""
   marketplaceWhoAmI: MarketplaceCurrentMember!
+
+  """Детали одного проекта списания: items, decision_log, протокол."""
+  marketplaceWriteoffProposal(id: String!): MarketplaceWriteoffProposal!
+
+  """
+  Превью Заявления о списании скоропорта (registry 1106) для подписания председателем.
+  """
+  marketplaceWriteoffStatementSignablePayload(data: MarketplaceWriteoffStatementSignablePayloadInput!): GeneratedDocument!
 
   """
   Получение документов кооператива для синхронизации с 1С. Требует секретный ключ в заголовке x-onecoop-secret-key.
