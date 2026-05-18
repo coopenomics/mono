@@ -41,7 +41,10 @@ export class MarketplaceWriteoffProposalItemDTO {
   amount!: string;
   @Field({ description: 'Причина списания (срок годности, повреждение и т.п.).' })
   reason!: string;
-  @Field({ nullable: true, description: 'Идентификатор инвентарной позиции, если известна.' })
+  @Field(() => String, {
+    nullable: true,
+    description: 'Идентификатор инвентарной позиции, если известна.',
+  })
   inventory_id?: string | null;
   @Field({ description: 'Признак того, что позиция уже исполнена через execwroff.' })
   executed!: boolean;
@@ -76,25 +79,34 @@ export class MarketplaceWriteoffProposalDTO {
   proposal_hash!: string;
   @Field(() => Int, { nullable: true })
   decision_id?: number | null;
-  @Field({ nullable: true, description: 'Аккаунт инициатора проекта (председатель / админ).' })
+  @Field(() => String, {
+    nullable: true,
+    description: 'Аккаунт инициатора проекта (председатель / админ).',
+  })
   proposed_by_account?: string | null;
-  @Field({ nullable: true, description: 'Аккаунт, принявший финальное решение.' })
+  @Field(() => String, {
+    nullable: true,
+    description: 'Аккаунт, принявший финальное решение.',
+  })
   decided_by_account?: string | null;
   @Field(() => [MarketplaceWriteoffProposalItemDTO])
   items!: MarketplaceWriteoffProposalItemDTO[];
   @Field({ description: 'Σ сумм всех позиций (форматированный asset, 4 знака).' })
   total_amount!: string;
-  @Field({ nullable: true, description: 'Причина отказа совета (если REJECTED).' })
+  @Field(() => String, {
+    nullable: true,
+    description: 'Причина отказа совета (если REJECTED).',
+  })
   reject_reason?: string | null;
   @Field(() => [MarketplaceWriteoffDecisionEntryDTO])
   decision_log!: MarketplaceWriteoffDecisionEntryDTO[];
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   submitted_at?: string | null;
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   authorized_at?: string | null;
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   executed_at?: string | null;
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   rejected_at?: string | null;
   @Field()
   created_at!: string;

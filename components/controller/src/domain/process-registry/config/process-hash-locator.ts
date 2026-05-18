@@ -112,24 +112,18 @@ export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Ob
   // Сущностная таблица — `capital::prgwithdraws.withdraw_hash`.
   'p.cap.wthcap': [{ code: 'capital', table: 'prgwithdraws', field: 'withdraw_hash' }],
 
-  // marketplace — членская модель «Стола заказов» (refactor 2026-05-11).
-  // Старый p.mkt.reqst (клиринговая модель, таблица marketplace::requests)
-  // удалён вместе с o.mkt.supply/recv. Новые три процесса (p.mkt.supply /
-  // p.mkt.return / p.mkt.wroff) пока без entity-таблиц: реализация
-  // контракта marketplace под членскую модель ещё не написана, в C++ нет
-  // соответствующих вызовов ledger2::apply. Заглушка [] корректна для
-  // текущего состояния (контроллер не получит operation_codes, требующие
-  // этих locator'ов).
-  //
-  // Status (Story 1.1, 2026-05-14): расширение `market` устанавливается из
-  // Каталога приложений; ключи `p.mkt.*` в Phase B готовы к активации.
-  // Реальные `{code, table, field}` подставляются в Story 4.1 при создании
-  // backend-таблицы консолидированных заявок (Locked Decision L10) — поле
-  // `request_hash` (а не `order_hash`, чтобы не путать с `offer_hash` в
-  // orderoffer-actions).
-  'p.mkt.supply': [],
-  'p.mkt.return': [],
-  'p.mkt.wroff':  [],
+  // marketplace — членская модель «Стола заказов». Три entity-таблицы из
+  // contracts/cpp/lib/domain/table_marketplace_*.hpp хранят сами процессы:
+  //   - `orders.hash`      — поставка имущества (заказ через каталог).
+  //   - `retrequests.hash` — гарантийный возврат имущества.
+  //   - `wroffprops.hash`  — проект решения совета о списании скоропорта.
+  // Имя поля — `hash` (а не `order_hash`/`request_hash`); все три таблицы
+  // используют один и тот же `checksum256 hash` как первичный
+  // process-якорь. Через них Phase B resolution в blockchain_deltas
+  // отдаёт current state процесса вместе с Phase-A экшенами.
+  'p.mkt.supply': [{ code: 'marketplace', table: 'orders',      field: 'hash' }],
+  'p.mkt.return': [{ code: 'marketplace', table: 'retrequests', field: 'hash' }],
+  'p.mkt.wroff':  [{ code: 'marketplace', table: 'wroffprops',  field: 'hash' }],
 
   // p.sov.axncnv — одноактовый процесс: данные из blockchain_actions +
   // документ statement (DocumentFieldDetector).
