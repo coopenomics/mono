@@ -10,19 +10,19 @@
         .text-body2.text-weight-medium Поставка имущества кооперативу
       .col-12.col-sm-6
         .text-caption.text-grey-7 Кооперативный участок (КУ)
-        .text-body2 {{ stringField('braname') || '—' }}
+        .text-body2 {{ field('braname') || '—' }}
       .col-12.col-sm-6
         .text-caption.text-grey-7 Заказчик
-        .text-body2.font-monospace {{ stringField('orderer') || stringField('orderer_account') || '—' }}
+        .text-body2.font-monospace {{ field('orderer') || field('orderer_account') || '—' }}
       .col-12.col-sm-6
         .text-caption.text-grey-7 Поставщик
-        .text-body2.font-monospace {{ stringField('offerer') || stringField('offerer_account') || '—' }}
+        .text-body2.font-monospace {{ field('offerer') || field('offerer_account') || '—' }}
       .col-12.col-sm-6
         .text-caption.text-grey-7 Состояние заказа
-        .text-body2 {{ stringField('status') || '—' }}
+        .text-body2 {{ field('status') || '—' }}
       .col-12.col-sm-6
         .text-caption.text-grey-7 Единиц в заказе
-        .text-body2 {{ stringField('units_total') || stringField('units') || '—' }}
+        .text-body2 {{ field('units_total') || field('units') || '—' }}
     .row.q-mt-md
       q-btn(
         flat
@@ -33,13 +33,12 @@
         :to='deepLink'
       )
   div(v-else)
-    .text-caption.text-grey-7 Содержание заказа ещё не доступно — синхронизация не завершилась.
+    .text-caption.text-grey-7 Содержание заказа ещё не доступно.
 </template>
 
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue'
-import { Queries } from '@coopenomics/sdk'
-import { client } from 'src/shared/api/client'
+import { useProcessStore, type IProcessSnapshot } from 'src/entities/Process'
 
 interface Props {
   processHash: string
@@ -48,12 +47,13 @@ interface Props {
 }
 const props = defineProps<Props>()
 
+const processStore = useProcessStore()
 const loading = ref(true)
-const snapshot = ref<Record<string, unknown> | null>(null)
+const snapshot = ref<IProcessSnapshot | null>(null)
 
-function stringField(name: string): string | null {
+function field(name: string): string {
   const v = snapshot.value?.[name]
-  return typeof v === 'string' ? v : v != null ? String(v) : null
+  return typeof v === 'string' ? v : v != null ? String(v) : ''
 }
 
 const deepLink = computed(() => ({
@@ -64,17 +64,10 @@ const deepLink = computed(() => ({
 
 onMounted(async () => {
   try {
-    const result = await client.Query(Queries.Processes.GetProcess.query, {
-      variables: { coopname: props.coopname, hash: props.processHash },
+    snapshot.value = await processStore.loadLatestSnapshot({
+      coopname: props.coopname,
+      hash: props.processHash,
     })
-    const process = (result as Record<string, unknown>)[Queries.Processes.GetProcess.name] as
-      | { delta_history?: Array<{ value?: unknown }> }
-      | undefined
-    const deltas = process?.delta_history ?? []
-    const last = deltas.length ? deltas[deltas.length - 1] : null
-    snapshot.value = (last?.value as Record<string, unknown>) ?? null
-  } catch {
-    snapshot.value = null
   } finally {
     loading.value = false
   }

@@ -13,16 +13,16 @@
         .text-body2 {{ triggerLabel }}
       .col-12.col-sm-6
         .text-caption.text-grey-7 Состояние решения
-        .text-body2 {{ stringField('status') || '—' }}
+        .text-body2 {{ field('status') || '—' }}
       .col-12.col-sm-6
         .text-caption.text-grey-7 Расчётный цикл начат
-        .text-body2 {{ formatDate(stringField('cycle_started_at')) }}
+        .text-body2 {{ formatDate(field('cycle_started_at')) }}
       .col-12.col-sm-6
         .text-caption.text-grey-7 Итоговая сумма
-        .text-body2.font-monospace {{ stringField('total_amount') || '—' }}
+        .text-body2.font-monospace {{ field('total_amount') || '—' }}
       .col-12.col-sm-6
         .text-caption.text-grey-7 Решение совета
-        .text-body2 {{ stringField('decision_id') || 'не зарегистрировано' }}
+        .text-body2 {{ field('decision_id') || 'не зарегистрировано' }}
     .row.q-mt-md
       q-btn(
         flat
@@ -33,13 +33,12 @@
         :to='deepLink'
       )
   div(v-else)
-    .text-caption.text-grey-7 Содержание проекта ещё не доступно — синхронизация не завершилась.
+    .text-caption.text-grey-7 Содержание проекта ещё не доступно.
 </template>
 
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue'
-import { Queries } from '@coopenomics/sdk'
-import { client } from 'src/shared/api/client'
+import { useProcessStore, type IProcessSnapshot } from 'src/entities/Process'
 
 interface Props {
   processHash: string
@@ -48,22 +47,23 @@ interface Props {
 }
 const props = defineProps<Props>()
 
+const processStore = useProcessStore()
 const loading = ref(true)
-const snapshot = ref<Record<string, unknown> | null>(null)
+const snapshot = ref<IProcessSnapshot | null>(null)
 
-function stringField(name: string): string | null {
+function field(name: string): string {
   const v = snapshot.value?.[name]
-  return typeof v === 'string' ? v : v != null ? String(v) : null
+  return typeof v === 'string' ? v : v != null ? String(v) : ''
 }
 
 const triggerLabel = computed(() => {
-  const v = stringField('trigger')
-  if (v === 'cron') return 'Автоматический (ежемесячный крон)'
+  const v = field('trigger')
+  if (v === 'cron') return 'Автоматический (ежемесячный)'
   if (v === 'manual') return 'Ручной (по инициативе председателя)'
   return '—'
 })
 
-function formatDate(value: string | null): string {
+function formatDate(value: string): string {
   if (!value) return '—'
   const d = new Date(value)
   if (Number.isNaN(d.getTime())) return value
@@ -78,17 +78,10 @@ const deepLink = computed(() => ({
 
 onMounted(async () => {
   try {
-    const result = await client.Query(Queries.Processes.GetProcess.query, {
-      variables: { coopname: props.coopname, hash: props.processHash },
+    snapshot.value = await processStore.loadLatestSnapshot({
+      coopname: props.coopname,
+      hash: props.processHash,
     })
-    const process = (result as Record<string, unknown>)[Queries.Processes.GetProcess.name] as
-      | { delta_history?: Array<{ value?: unknown }> }
-      | undefined
-    const deltas = process?.delta_history ?? []
-    const last = deltas.length ? deltas[deltas.length - 1] : null
-    snapshot.value = (last?.value as Record<string, unknown>) ?? null
-  } catch {
-    snapshot.value = null
   } finally {
     loading.value = false
   }
