@@ -178,14 +178,12 @@ const warehouseRows = computed<WarehouseRow[]>(() => {
   const buckets = new Map<string, { key: BucketKey; in: number; out: number; balance: number }>();
   for (const row of items.value) {
     const k = `${row.braname}::${row.product_name_snapshot}`;
-    const b =
-      buckets.get(k) ??
-      ({
-        key: { ku: row.braname, sku: row.product_name_snapshot, title: row.product_name_snapshot },
-        in: 0,
-        out: 0,
-        balance: 0,
-      } as const);
+    const b = buckets.get(k) ?? {
+      key: { ku: row.braname, sku: row.product_name_snapshot, title: row.product_name_snapshot },
+      in: 0,
+      out: 0,
+      balance: 0,
+    };
     const qty = row.quantity_per_label;
     if (row.status === 'LABELED' || row.status === 'RETURNED') {
       b.in += qty;

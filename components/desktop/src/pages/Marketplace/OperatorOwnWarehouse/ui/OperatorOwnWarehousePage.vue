@@ -106,6 +106,7 @@
 import { computed, onMounted, ref } from 'vue';
 import type { QTableProps } from 'quasar';
 import { FailAlert } from 'src/shared/api';
+import { Zeus } from '@coopenomics/sdk';
 import { listInventory, type MarketplaceInventoryItemView } from '../api';
 
 const braname = ref<string>('');
@@ -117,10 +118,10 @@ const loading = ref(false);
 type InventoryStatus = MarketplaceInventoryItemView['status'];
 
 const statusOptions: { label: string; value: InventoryStatus }[] = [
-  { label: 'На складе (LABELED)', value: 'LABELED' },
-  { label: 'Выдано пайщику (ISSUED)', value: 'ISSUED' },
-  { label: 'Возврат на склад (RETURNED)', value: 'RETURNED' },
-  { label: 'Списано (WRITTEN_OFF)', value: 'WRITTEN_OFF' },
+  { label: 'На складе (LABELED)', value: Zeus.MarketplaceInventoryStatus.LABELED },
+  { label: 'Выдано пайщику (ISSUED)', value: Zeus.MarketplaceInventoryStatus.ISSUED },
+  { label: 'Возврат на склад (RETURNED)', value: Zeus.MarketplaceInventoryStatus.RETURNED },
+  { label: 'Списано (WRITTEN_OFF)', value: Zeus.MarketplaceInventoryStatus.WRITTEN_OFF },
 ];
 
 const columns: QTableProps['columns'] = [
