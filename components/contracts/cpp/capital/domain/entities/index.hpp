@@ -17,6 +17,7 @@
 #include "projects.hpp"
 #include "results.hpp"
 #include "debts.hpp"
+#include "role_requests.hpp"
 #include "wallets.hpp"
 #include "plan_pool.hpp"
 #include "fact_pool.hpp"

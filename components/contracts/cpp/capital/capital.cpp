@@ -104,6 +104,15 @@
 #include "app/expense_managment/program_expenses/pgexppay.cpp"
 #include "app/expense_managment/program_expenses/declpgexp.cpp"
 
+// L2-роли (Story 1.7)
+#include "app/participation_management/roles/requestrole.cpp"
+#include "app/participation_management/roles/approverole.cpp"
+#include "app/participation_management/roles/declinerole.cpp"
+#include "app/participation_management/roles/inviterole.cpp"
+#include "app/participation_management/roles/acceptinvite.cpp"
+#include "app/participation_management/roles/declinvite.cpp"
+#include "app/participation_management/roles/requestrateu.cpp"
+
 // Управление расходами
 #include "app/expense_managment/create_expense/approveexpns.cpp"
 #include "app/expense_managment/create_expense/capauthexpns.cpp"
