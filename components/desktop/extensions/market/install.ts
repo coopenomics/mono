@@ -11,12 +11,13 @@ import { OperatorReturnClaimsPage } from 'src/pages/Marketplace/OperatorReturnCl
 import { AdminWriteoffsPage } from 'src/pages/Marketplace/AdminWriteoffs'
 import { OperatorOwnWarehousePage } from 'src/pages/Marketplace/OperatorOwnWarehouse'
 import { AdminWarehouseSummaryPage } from 'src/pages/Marketplace/AdminWarehouseSummary'
-import { OperationsHistoryPage } from 'src/pages/Marketplace/OperationsHistory'
 import { EcosystemRegistryPage } from 'src/pages/Marketplace/EcosystemRegistry'
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace'
 import { agreementsBase } from 'src/shared/lib/consts/workspaces'
+import { registerMarketplaceProcessInfoHandlers } from './app/extensions'
 
 export default async function (): Promise<IWorkspaceConfig[]> {
+  registerMarketplaceProcessInfoHandlers()
   return [{
     workspace: 'market',
     extension_name: 'market',
@@ -133,24 +134,6 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Сводный склад',
               icon: 'fa-solid fa-warehouse',
-              roles: ['chairman', 'member'],
-              requiresAuth: true,
-              agreements: agreementsBase,
-            },
-          },
-          {
-            // Эпик 9 / Story 9.5: история процессов marketplace для admin-стола.
-            // Лента всех процессов p.mkt.* (supply / return / writeoff) с
-            // фильтрами по типу/инициатору; разворот через стандартный core
-            // `processRegistry.getProcess(process_hash)` — выводит actions,
-            // delta_history и связанные документы. Кнопка «Скачать JSON»
-            // даёт аудиторскую выгрузку конкретного процесса.
-            path: 'history',
-            name: 'marketplace-history',
-            component: markRaw(OperationsHistoryPage),
-            meta: {
-              title: 'История операций',
-              icon: 'fa-solid fa-clock-rotate-left',
               roles: ['chairman', 'member'],
               requiresAuth: true,
               agreements: agreementsBase,
