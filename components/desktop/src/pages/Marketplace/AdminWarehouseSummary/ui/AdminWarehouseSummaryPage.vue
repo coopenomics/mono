@@ -47,9 +47,6 @@ q-page.mp-role-admin.q-pa-md
 
       WarehouseSummaryGrid(:rows='warehouseRows')
 
-      .text-caption.text-grey-7.q-mt-sm
-        | Остаток = «На складе» + «Возврат на склад» − «Списано». Имущество, уже выданное пайщику, в текущем остатке КУ не учитывается.
-
     q-tab-panel.q-px-none(name='flow')
       .row.q-col-gutter-md.q-mb-md
         q-card.mp-card.col-12.col-sm-3
@@ -82,9 +79,6 @@ q-page.mp-role-admin.q-pa-md
       )
         template(#top)
           .text-subtitle1 Топ позиций по обороту
-
-      .text-caption.text-grey-7.q-mt-md
-        | Графики динамики (заказы по дням, поставки по дням, списания по месяцам) подключатся живыми SDK-подписками; до этого видны только табличные итоги.
 </template>
 
 <script lang="ts" setup>
