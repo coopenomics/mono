@@ -197,6 +197,49 @@ export async function dismissOnboardingDialogs(page) {
   ).catch(() => {});
 }
 
+// Реально подписывает каскад типовых соглашений первого входа (Цифровой
+// Кошелёк, ЭП, политика ПД, пользовательское). В отличие от
+// dismissOnboardingDialogs (который DOM-hack'ом убирает порталы и проскакивает
+// вперёд) — клик «Подписать» отправляет wallet::signagree on-chain, что нужно
+// чтобы пайщик стал участником wallet-программы (иначе is_can_transfer fails
+// на любом transfer от/к этому юзеру, см. inc 2026-05-18 #67).
+//
+// Возвращает { signed, attempts }: сколько диалогов реально подписалось vs
+// сколько раз пытались найти следующий. Останавливаемся когда не найден ни
+// один видимый «Подписать» в течение probeMs (значит каскад исчерпан).
+export async function signOnboardingAgreements(page, opts = {}) {
+  const {
+    maxAgreements = 6,
+    probeMs = 6000,
+    dialogTimeoutMs = 30000,
+    pauseBetweenMs = 1500,
+  } = opts;
+  let signed = 0;
+  let attempts = 0;
+
+  for (let i = 0; i < maxAgreements; i++) {
+    attempts++;
+    // Quasar монтирует портал-диалоги в q-portal--dialog--N. На каскаде
+    // соглашений у chairman'а сразу 4 портала; видимый/активный — последний
+    // (top-most), остальные перекрыты overlay. Берём «Подписать» из последнего.
+    const sign = page.locator('button:visible:has-text("Подписать")').last();
+    const visible = await sign.waitFor({ state: 'visible', timeout: probeMs }).then(() => true).catch(() => false);
+    if (!visible) break;
+
+    // Документ может ещё генерироваться (loader на кнопке). Дать ему отрисовать.
+    await page.waitForTimeout(400);
+    // force:true чтобы пройти overlay-intercept от соседних модалок.
+    await sign.click({ force: true });
+
+    // Ждём пока кнопка «Подписать» этого диалога исчезнет — обычно signagree
+    // отправляется через 1-3 секунды (chain confirmation).
+    await sign.waitFor({ state: 'hidden', timeout: dialogTimeoutMs }).catch(() => {});
+    await page.waitForTimeout(pauseBetweenMs);
+    signed++;
+  }
+  return { signed, attempts };
+}
+
 // Создаёт shot-функцию + manifest для сценария.
 export function makeShotContext({ scenarioName, outDir }) {
   const shots = [];
