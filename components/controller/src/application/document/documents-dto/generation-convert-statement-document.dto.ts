@@ -9,7 +9,7 @@ import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed
 type ExcludeCommonProps<T> = Omit<T, 'coopname' | 'username' | 'registry_id' | 'appendix_hash'>;
 
 // интерфейс параметров для генерации
-type action = Cooperative.Registry.GenerationConvertStatement.Action;
+type action = Cooperative.Registry.GenerationMoneyInvestStatement.Action;
 
 @InputType(`BaseGenerationConvertStatementMetaDocumentInput`)
 class BaseGenerationConvertStatementMetaDocumentInputDTO implements ExcludeCommonProps<action> {
