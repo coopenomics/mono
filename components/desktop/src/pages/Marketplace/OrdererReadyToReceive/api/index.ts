@@ -8,8 +8,9 @@ export type {
 import type { MarketplaceOrderIssuanceView } from '../../OperatorIssuance/api';
 
 export async function listMyReadyToReceive(): Promise<MarketplaceOrderIssuanceView[]> {
-  const result = await client.Query(Queries.Marketplace.ListMyReadyToReceive.query, {});
-  return result[
-    Queries.Marketplace.ListMyReadyToReceive.name
-  ] as unknown as MarketplaceOrderIssuanceView[];
+  const { [Queries.Marketplace.ListMyReadyToReceive.name]: result } = await client.Query(
+    Queries.Marketplace.ListMyReadyToReceive.query,
+    {},
+  );
+  return result;
 }

@@ -30,10 +30,6 @@ class BaseMarketplaceIssueActMetaDocumentInputDTO implements ExcludeCommonProps<
   @IsString()
   order_hash!: string;
 
-  @Field({ description: 'Идентификатор записи акта в реестре marketplace (для выдачи — id заказа).' })
-  @IsString()
-  reception_id!: string;
-
   @Field({ description: 'Номер акта для шапки документа.' })
   @IsString()
   act_id!: string;

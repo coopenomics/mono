@@ -8,7 +8,6 @@ import {
   getChairmanSignablePayload,
   openIssuance,
   type MarketplaceOrderIssuanceView,
-  type SignedDocumentInput,
 } from '../api';
 
 /**
@@ -75,12 +74,8 @@ async function confirm(): Promise<void> {
   try {
     const generated = await getChairmanSignablePayload(props.order.id);
     const docSigner = new Classes.Document(wifKey);
-    const signed = await docSigner.signDocument(
-      generated as unknown as Parameters<Classes.Document['signDocument']>[0],
-      globalStore.username,
-      1,
-    );
-    await openIssuance(props.order.id, signed as unknown as SignedDocumentInput);
+    const signed = await docSigner.signDocument(generated, globalStore.username, 1);
+    await openIssuance(props.order.id, signed);
     SuccessAlert('Выдача открыта. Заказчику отправлено уведомление.');
     emit('opened');
     emit('update:modelValue', false);

@@ -165,12 +165,13 @@ export class MarketplaceIssuanceService {
         order_hash: order.order_hash,
         act,
       });
-    } catch (err: any) {
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
       this.logger.warn(
-        `Открытие выдачи order ${order.id}: on-chain signiss1 упал (${err.message}); статус не меняется, повторите подпись.`
+        `Открытие выдачи order ${order.id}: on-chain signiss1 упал (${message}); статус не меняется, повторите подпись.`
       );
       throw new ConflictException(
-        `Открытие выдачи на цепи не выполнено: ${err.message}. Повторите подписание.`
+        `Открытие выдачи на цепи не выполнено: ${message}. Повторите подписание.`
       );
     }
 
@@ -237,12 +238,13 @@ export class MarketplaceIssuanceService {
         delivery_signer: input.delivery_signer,
         act,
       });
-    } catch (err: any) {
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
       this.logger.warn(
-        `Финальная подпись выдачи order ${order.id}: on-chain signiss2 упал (${err.message}); статус не меняется, повторите подпись.`
+        `Финальная подпись выдачи order ${order.id}: on-chain signiss2 упал (${message}); статус не меняется, повторите подпись.`
       );
       throw new ConflictException(
-        `Финальная подпись выдачи на цепи не выполнена: ${err.message}. Повторите подписание.`
+        `Финальная подпись выдачи на цепи не выполнена: ${message}. Повторите подписание.`
       );
     }
 

@@ -357,7 +357,7 @@ export class MarketplaceShipmentCreateService {
     ttn_number: string;
     ttn_data: MarketplaceShipmentTTNData;
   }): Promise<string> {
-    const privatePayload: any = {
+    const privatePayload: Cooperative.Registry.MarketplaceTransportNote.PrivateData = {
       expeditor_full_name: input.ttn_data.expeditor_full_name,
       expeditor_phone: input.ttn_data.expeditor_phone,
       expeditor_id_doc: input.ttn_data.expeditor_id_doc,
@@ -372,11 +372,7 @@ export class MarketplaceShipmentCreateService {
       Cooperative.Registry.MarketplaceTransportNote.registry_id
     );
 
-    // Techdebt: cooptypes 1103.MarketplaceTransportNote.Action в свежей dist
-    // требует все expeditor-поля прямо в action — но они уже сохранены
-    // off-chain в privatePayload и идут на цепь как doc_data_hash.
-    // Cast к any до синхронизации cooptypes/source ↔ dist.
-    const action: any = {
+    const action: Cooperative.Registry.MarketplaceTransportNote.Action = {
       registry_id: Cooperative.Registry.MarketplaceTransportNote.registry_id,
       coopname: input.coopname,
       username: input.supplier_account,

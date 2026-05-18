@@ -11,7 +11,6 @@ import {
   finalizeIssuance,
   getOrdererSignablePayload,
   type MarketplaceOrderIssuanceView,
-  type SignedDocumentInput,
 } from '../api';
 
 /**
@@ -152,20 +151,21 @@ async function confirm(): Promise<void> {
 
   signing.value = true;
   try {
-    let ordererPubKey: string;
+    // Валидация приватного ключа заказчика — ранний фейл до запроса акта,
+    // если введён мусор.
     try {
-      ordererPubKey = PrivateKey.from(ordererWif.value.trim()).toPublic().toString();
-    } catch (err: any) {
-      throw new Error(`Некорректный приватный ключ заказчика: ${err.message ?? err}`);
+      PrivateKey.from(ordererWif.value.trim());
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      throw new Error(`Некорректный приватный ключ заказчика: ${message}`);
     }
-    void ordererPubKey;
 
     const generated = await getOrdererSignablePayload(props.order.id, actualQuantity.value);
 
     // 1) Подпись заказчика (signatureId=1)
     const ordererSigner = new Classes.Document(ordererWif.value.trim());
     const ordererSigned = await ordererSigner.signDocument(
-      generated as unknown as Parameters<Classes.Document['signDocument']>[0],
+      generated,
       props.order.orderer_account,
       1,
     );
@@ -173,7 +173,7 @@ async function confirm(): Promise<void> {
     // 2) Подпись стороны кооператива — текущий оператор как delivery_signer (signatureId=2)
     const operatorSigner = new Classes.Document(operatorWif);
     const fullSigned = await operatorSigner.signDocument(
-      generated as unknown as Parameters<Classes.Document['signDocument']>[0],
+      generated,
       globalStore.username,
       2,
       [ordererSigned],
@@ -183,7 +183,7 @@ async function confirm(): Promise<void> {
       props.order.id,
       actualQuantity.value,
       globalStore.username,
-      fullSigned as unknown as SignedDocumentInput,
+      fullSigned,
     );
     SuccessAlert('Заказ выдан. Статус заказа — RECEIVED.');
     emit('finalized');
