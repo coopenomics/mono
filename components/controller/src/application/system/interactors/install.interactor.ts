@@ -136,14 +136,16 @@ export class InstallInteractor {
     const users = [] as UserDomainEntity[];
     const members = [] as any;
     const sovietExt = [] as any;
+    const addUserActions: RegistratorContract.Actions.AddUser.IAddUser[] = [];
     const soviet = data.soviet;
 
     try {
+      // Шаг 1: создаём users в БД и собираем on-chain action'ы (без отправки)
       for (const member of soviet) {
         const username = generateUsername();
         sovietExt.push({ ...member, username });
 
-        const addUser: RegistratorContract.Actions.AddUser.IAddUser = {
+        addUserActions.push({
           coopname: config.coopname,
           referer: '',
           username,
@@ -154,9 +156,7 @@ export class InstallInteractor {
           spread_initial: false,
           meta: '',
           registration_hash: sha256(username),
-        };
-
-        await this.blockchainPort.addUser(addUser);
+        });
 
         const createUser: CreateUserInputDomainInterface = {
           email: member.individual_data.email,
@@ -168,20 +168,17 @@ export class InstallInteractor {
         };
 
         const user = await this.createUser(createUser);
-        // Обновляем статус пользователя на "зарегистрирован"
         await this.userDomainService.updateUserByUsername(username, {
           status: userStatus['4_Registered'],
           is_registered: true,
         });
 
-        // Настраиваем подписчика уведомлений для члена совета
         try {
           await this.accountDomainService.setupNotificationSubscriber(username, 'члена совета');
         } catch (error: any) {
           logger.error(`Ошибка настройки подписчика NOVU для члена совета ${username}: ${error.message}`, error.stack);
         }
 
-        // Добавляем в массив членов для отправки в блокчейн
         members.push({
           username: username,
           is_voting: true,
@@ -192,8 +189,9 @@ export class InstallInteractor {
         users.push(user);
       }
 
-      // Создаём доску совета
-      await this.blockchainPort.createBoard({
+      // Шаг 2: bundle adduser×N + createBoard ОДНОЙ tx (исключает race
+      // между отдельными tx когда coopback соединён с не-producer nodeos)
+      await this.blockchainPort.installSoviet(addUserActions, {
         coopname: config.coopname,
         username: config.coopname,
         type: 'soviet',
