@@ -34,8 +34,8 @@ export interface Model {
   to_blagorost: boolean
 }
 
-export const title = 'Заявление о конвертации целевого паевого взноса'
-export const description = 'Форма заявления о конвертации целевого паевого взноса в цифровой кошелёк и/или программу «Благорост»'
+export const title = 'Заявление о трансляции паевого взноса из программы "Генерация"'
+export const description = 'Форма заявления о трансляции паевого взноса из программы "Генерация" в Цифровой Кошелёк и/или в программу «Благорост»'
 
 export const context = `<div class="digital-document"><div style="text-align: right"><p>{% trans 'to_council' %} {{ vars.full_abbr_genitive }} "{{ vars.name }}"</p><p>{% trans 'from_shareholder' %} {{ common_user.full_name_or_short_name }}</p></div><div style="text-align: center"><h2>{% trans 'statement_title' %}</h2><h3>{% trans 'statement_subtitle' %}</h3></div><p>{% trans 'statement_text' %} № {{ contributor_contract_number }} {% trans 'from_date' %} {{ contributor_contract_created_at }} {% trans 'and_appendix' %} № {{ appendix_short_hash }}, {% trans 'request_text' %} №{{ project_short_hash }} {% trans 'following_way' %}:</p><ol>{% if to_wallet %}<li>{% trans 'wallet_conversion_text', main_wallet_amount %}</li>{% endif %}{% if to_blagorost %}<li>{% trans 'blagorost_conversion_text', blagorost_wallet_amount %}</li>{% endif %}</ol><div style="margin-top: 40px;"><p>{% trans 'signed_by_digital_signature' %}</p><p style="text-align: right">{{ meta.created_at }}</p></div></div><style>.digital-document {padding: 20px;white-space: pre-wrap;}</style>`
 
