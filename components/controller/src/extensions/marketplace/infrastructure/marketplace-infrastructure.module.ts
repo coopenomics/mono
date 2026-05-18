@@ -28,6 +28,7 @@ import { MarketplaceAplReceptionEntity } from './entities/marketplace-apl-recept
 import { MarketplaceOutgoingPaymentRequestEntity } from './entities/marketplace-outgoing-payment-request.entity';
 import { MarketplaceTtnDocumentEntity } from './entities/marketplace-ttn-document.entity';
 import { MarketplaceReturnClaimEntity } from './entities/marketplace-return-claim.entity';
+import { MarketplaceWriteoffProposalEntity } from './entities/marketplace-writeoff-proposal.entity';
 
 // Repository adapters
 import { CategoryRepositoryAdapter } from './adapters/category-repository.adapter';
@@ -54,6 +55,7 @@ import { MarketplaceAplReceptionRepositoryAdapter } from './adapters/marketplace
 import { MarketplaceOutgoingPaymentRequestRepositoryAdapter } from './adapters/marketplace-outgoing-payment-request-repository.adapter';
 import { MarketplaceTtnDocumentRepositoryAdapter } from './adapters/marketplace-ttn-document-repository.adapter';
 import { MarketplaceReturnClaimRepositoryAdapter } from './adapters/marketplace-return-claim-repository.adapter';
+import { MarketplaceWriteoffProposalRepositoryAdapter } from './adapters/marketplace-writeoff-proposal-repository.adapter';
 
 // Mappers
 import { MarketplaceVitrineMapper } from './mappers/marketplace-vitrine.mapper';
@@ -71,6 +73,7 @@ import { MarketplaceAplReceptionMapper } from './mappers/marketplace-apl-recepti
 import { MarketplaceOutgoingPaymentRequestMapper } from './mappers/marketplace-outgoing-payment-request.mapper';
 import { MarketplaceTtnDocumentMapper } from './mappers/marketplace-ttn-document.mapper';
 import { MarketplaceReturnClaimMapper } from './mappers/marketplace-return-claim.mapper';
+import { MarketplaceWriteoffProposalMapper } from './mappers/marketplace-writeoff-proposal.mapper';
 
 // Repository tokens
 import { CATEGORY_DOMAIN_REPOSITORY } from '../domain/repositories/category-domain.repository';
@@ -97,6 +100,7 @@ import { MARKETPLACE_APL_RECEPTION_REPOSITORY } from '../domain/repositories/mar
 import { MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY } from '../domain/repositories/marketplace-outgoing-payment-request.repository';
 import { MARKETPLACE_TTN_DOCUMENT_REPOSITORY } from '../domain/repositories/marketplace-ttn-document.repository';
 import { MARKETPLACE_RETURN_CLAIM_REPOSITORY } from '../domain/repositories/marketplace-return-claim.repository';
+import { MARKETPLACE_WRITEOFF_PROPOSAL_REPOSITORY } from '../domain/repositories/marketplace-writeoff-proposal.repository';
 
 @Module({
   imports: [
@@ -135,6 +139,7 @@ import { MARKETPLACE_RETURN_CLAIM_REPOSITORY } from '../domain/repositories/mark
         MarketplaceOutgoingPaymentRequestEntity,
         MarketplaceTtnDocumentEntity,
         MarketplaceReturnClaimEntity,
+        MarketplaceWriteoffProposalEntity,
       ],
       synchronize: true,
       logging: false,
@@ -167,6 +172,7 @@ import { MARKETPLACE_RETURN_CLAIM_REPOSITORY } from '../domain/repositories/mark
         MarketplaceOutgoingPaymentRequestEntity,
         MarketplaceTtnDocumentEntity,
         MarketplaceReturnClaimEntity,
+        MarketplaceWriteoffProposalEntity,
       ],
       'marketplace'
     ), // Указываем имя подключения
@@ -294,6 +300,12 @@ import { MARKETPLACE_RETURN_CLAIM_REPOSITORY } from '../domain/repositories/mark
       provide: MARKETPLACE_RETURN_CLAIM_REPOSITORY,
       useClass: MarketplaceReturnClaimRepositoryAdapter,
     },
+    // Эпик 8 — проекты решения совета о списании скоропорта
+    MarketplaceWriteoffProposalMapper,
+    {
+      provide: MARKETPLACE_WRITEOFF_PROPOSAL_REPOSITORY,
+      useClass: MarketplaceWriteoffProposalRepositoryAdapter,
+    },
   ],
   exports: [
     CATEGORY_DOMAIN_REPOSITORY,
@@ -327,6 +339,8 @@ import { MARKETPLACE_RETURN_CLAIM_REPOSITORY } from '../domain/repositories/mark
     MARKETPLACE_TTN_DOCUMENT_REPOSITORY,
     // Эпик 7 — гарантийный возврат
     MARKETPLACE_RETURN_CLAIM_REPOSITORY,
+    // Эпик 8 — списание скоропорта
+    MARKETPLACE_WRITEOFF_PROPOSAL_REPOSITORY,
   ],
 })
 export class MarketplaceInfrastructureModule {}

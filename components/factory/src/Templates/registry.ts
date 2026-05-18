@@ -73,6 +73,8 @@ import * as BlagorostOffer from './1000.BlagorostOffer'
 import * as MarketplaceAplReception from './1102.MarketplaceAplReception'
 import * as MarketplaceTransportNote from './1103.MarketplaceTransportNote'
 import * as MarketplaceReturnStatement from './1104.MarketplaceReturnStatement'
+import * as MarketplaceWriteoffProtocol from './1105.MarketplaceWriteoffProtocol'
+import * as MarketplaceWriteoffStatement from './1106.MarketplaceWriteoffStatement'
 
 export const Registry = {
   1: WalletAgreement,
@@ -137,4 +139,6 @@ export const Registry = {
   1102: MarketplaceAplReception,
   1103: MarketplaceTransportNote,
   1104: MarketplaceReturnStatement,
+  1105: MarketplaceWriteoffProtocol,
+  1106: MarketplaceWriteoffStatement,
 }

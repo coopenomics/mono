@@ -67,6 +67,7 @@ static constexpr eosio::name _free_decision_action = "freedecision"_n;
 static constexpr eosio::name _change_action = "change"_n;
 static constexpr eosio::name _product_contribution_action = "productcntr"_n;
 static constexpr eosio::name _product_return_action = "productrtrn"_n;
+static constexpr eosio::name _marketplace_writeoff_action = "mktwroff"_n;     ///< Списание скоропорта по решению совета (p.mkt.wroff)
 
 // capitalization linked actions
 

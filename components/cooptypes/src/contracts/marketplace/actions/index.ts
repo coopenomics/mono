@@ -104,23 +104,33 @@ export * as AccRetrn from './accRetrn'
  */
 export * as RejRetrn from './rejRetrn'
 
-// ── p.mkt.wroff (3 actions) — Stories Эпика 8 ──────────────────────────
+// ── p.mkt.wroff (4 actions) — Stories Эпика 8 ──────────────────────────
+// Канонический паттерн «решение совета»: propWroff (admin) +
+// soviet::createagenda(type=mktwroff) → onMktWoAuth / onMktWoDecl (callback
+// от soviet) → execWroff per-item (backend).
 
 /**
- * Backend / админ выносит проект списания на повестку совета (Story 8.1).
+ * Backend выносит проект списания на повестку совета (Story 8.1).
  */
 export * as PropWroff from './propWroff'
 
 /**
- * Совет исполняет одну позицию проекта списания (Story 8.3).
+ * Callback от `soviet::exec` после авторизации Протокола (Story 8.4).
+ * PROPOSED → AUTHORIZED, кладёт authorization2 в wroffprops.protocol.
+ */
+export * as OnMktWoAuth from './onMktWoAuth'
+
+/**
+ * Callback от `soviet::cancelexprd` или decline-эффекта (Story 8.4).
+ * PROPOSED → REJECTED, сохраняет reason в wroffprops.reject_reason.
+ */
+export * as OnMktWoDecl from './onMktWoDecl'
+
+/**
+ * Backend исполняет одну позицию авторизованного проекта (Story 8.4).
  * Per-item: o.mkt.wroff + o.mkt.wroff2 (атомарно).
  */
 export * as ExecWroff from './execWroff'
-
-/**
- * Совет отклоняет проект списания целиком (Story 8.3).
- */
-export * as DeclWroff from './declWroff'
 
 // ── service ────────────────────────────────────────────────────────────
 

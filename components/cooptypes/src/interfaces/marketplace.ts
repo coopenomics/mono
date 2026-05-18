@@ -186,13 +186,28 @@ export interface IExecWroff {
   signer: IName
   proposal_hash: IChecksum256
   item_index: IUint64
-  protocol: IDocument2
 }
 
-export interface IDeclWroff {
+/**
+ * Callback от `soviet::exec` после авторизации Протокола Совета о
+ * списании скоропорта (Story 8.4). Сигнатура `(coopname, hash, authorization)`
+ * совпадает с AUTHORIZE_CALLBACK_SIGNATURE в soviet.hpp. Контракт `soviet`
+ * вызывает action от своего имени (require_auth(_soviet)).
+ */
+export interface IOnMktWoAuth {
   coopname: IName
-  decided_by: IName
-  proposal_hash: IChecksum256
+  hash: IChecksum256
+  authorization: IDocument2
+}
+
+/**
+ * Callback от `soviet::cancelexprd` (повестка просрочена) или decline-
+ * эффекта в soviet. Сигнатура `(coopname, hash, reason)` совпадает с
+ * DECLINE_CALLBACK_SIGNATURE в soviet.hpp.
+ */
+export interface IOnMktWoDecl {
+  coopname: IName
+  hash: IChecksum256
   reason: string
 }
 

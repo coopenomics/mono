@@ -66,6 +66,16 @@ export interface MarketplaceInventoryProps {
   orderer_account_snapshot: string;
   labeled_at: Date;
   labeled_by_operator_account: string;
+  /**
+   * Story 8.3 (Эпик 8): срок годности позиции. Проставляется при
+   * маркировке как `labeled_at + Offer.warranty_days * 86400`. По нему
+   * крон Эпика 8 формирует DRAFT-проект списания, когда `expiry_date`
+   * приближается к `now + writeoff.expiry_grace_days`.
+   *
+   * Nullable: для исторических записей без warranty_days и для позиций
+   * с бессрочными офферами (`warranty_days = 0`).
+   */
+  expiry_date: Date | null;
   created_at: Date;
   updated_at: Date;
 }

@@ -19,6 +19,7 @@ export interface MarketplaceInventoryCreateInput {
   orderer_account_snapshot: string;
   labeled_at: Date;
   labeled_by_operator_account: string;
+  expiry_date?: Date | null;
 }
 
 export interface MarketplaceInventoryListFilter {

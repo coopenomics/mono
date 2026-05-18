@@ -81,3 +81,7 @@ export * as MarketplaceTransportNote from './1103.MarketplaceTransportNote'
 
 // Marketplace (Стол заказов) — Эпик 7: гарантийный возврат
 export * as MarketplaceReturnStatement from './1104.MarketplaceReturnStatement'
+
+// Marketplace (Стол заказов) — Эпик 8: списание скоропорта
+export * as MarketplaceWriteoffStatement from './1106.MarketplaceWriteoffStatement'
+export * as MarketplaceWriteoffProtocol from './1105.MarketplaceWriteoffProtocol'

@@ -26,6 +26,7 @@ export class MarketplaceInventoryDomainEntity {
   public readonly orderer_account_snapshot: string;
   public readonly labeled_at: Date;
   public readonly labeled_by_operator_account: string;
+  public readonly expiry_date: Date | null;
   public readonly created_at: Date;
   public updated_at: Date;
 
@@ -54,6 +55,7 @@ export class MarketplaceInventoryDomainEntity {
     this.orderer_account_snapshot = props.orderer_account_snapshot;
     this.labeled_at = props.labeled_at;
     this.labeled_by_operator_account = props.labeled_by_operator_account;
+    this.expiry_date = props.expiry_date ?? null;
     this.created_at = props.created_at;
     this.updated_at = props.updated_at;
   }

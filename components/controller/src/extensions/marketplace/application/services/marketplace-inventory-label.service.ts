@@ -166,6 +166,12 @@ export class MarketplaceInventoryLabelService {
 
     const inventory: MarketplaceInventoryDomainEntity[] = [];
     const labeledAt = new Date();
+    // Story 8.3 (Эпик 8): срок годности позиции. Берётся из Offer.warranty_days
+    // (если задан) — это становится опорой для крон-сканера, который раз в
+    // месяц подбирает кандидатов для проекта списания.
+    const warrantyDays = offer.warranty_days ?? 0;
+    const expiryDate: Date | null =
+      warrantyDays > 0 ? new Date(labeledAt.getTime() + warrantyDays * 86_400_000) : null;
     for (let i = 0; i < labelsPlan.length; i++) {
       const quantity_per_label = labelsPlan[i];
       const barcode_value = await this.generateUniqueBarcode(
@@ -187,6 +193,7 @@ export class MarketplaceInventoryLabelService {
         orderer_account_snapshot: order.orderer_account,
         labeled_at: labeledAt,
         labeled_by_operator_account: input.operator_account,
+        expiry_date: expiryDate,
       });
       inventory.push(row);
     }

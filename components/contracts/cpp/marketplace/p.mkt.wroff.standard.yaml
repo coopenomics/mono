@@ -71,6 +71,12 @@ roles:
 
 # ── Секция 2. Действия контракта (блокчейн-уровень) ─────────────────────────
 # Имена actions ≤12 символов eosio::name.
+# Процесс встроен в канонический паттерн «решение совета»: одновременно с
+# propwroff backend вызывает `soviet::createagenda(type=mktwroff, callback=
+# marketplace::onmktwoauth/onmktwodecl)`. После голосования совета и подписи
+# Протокола (registry 1105) председателем `soviet::exec` зовёт callback —
+# onmktwoauth (PROPOSED → AUTHORIZED) или onmktwodecl (PROPOSED → REJECTED).
+# Только после AUTHORIZED backend циклом запускает per-item execwroff.
 actions:
   - name: marketplace::propwroff
     human: Внести проект списания
@@ -81,25 +87,36 @@ actions:
       складах участков позиции, которые невозможно выдать заказчику —
       просроченные и не востребованные, повреждённые, малооценные — и
       формирует проект решения о списании. Проект выносится на повестку
-      совета.
+      совета через soviet::createagenda с callback'ами onmktwoauth /
+      onmktwodecl.
+
+  - name: marketplace::onmktwoauth
+    human: Callback — авторизация совета
+    actor: soviet
+    role: authorize_callback
+    purpose: >
+      Callback от soviet::exec после авторизации Протокола совета о
+      списании председателем. Переводит проект из proposed в authorized,
+      сохраняет подписанный protocol2. Следом backend циклом по позициям
+      вызывает execwroff per-item.
+
+  - name: marketplace::onmktwodecl
+    human: Callback — отказ совета
+    actor: soviet
+    role: decline_callback
+    purpose: >
+      Callback от soviet после отказа в Протоколе. Переводит проект в
+      rejected и сохраняет подписанный отказ. Без ledger2-движений.
 
   - name: marketplace::execwroff
-    human: Исполнить списание
-    actor: council
+    human: Исполнить позицию списания
+    actor: backend
     role: closer
     purpose: >
-      Совет принял положительное решение по проекту. Кооператив
-      списывает позиции со складов участков — имущество уходит из учёта
-      как безвозвратные потери. По кошелькам заказчиков движений нет.
-
-  - name: marketplace::declwroff
-    human: Отклонить проект списания
-    actor: council
-    role: reject
-    purpose: >
-      Совет отклонил проект списания либо отложил его рассмотрение.
-      Позиции остаются на складах участков и попадут в следующий цикл
-      списания.
+      После авторизации проекта советом backend проходит циклом по
+      позициям и для каждой вызывает execwroff(proposal_hash, item_index).
+      Per-item — атомарная пара o.mkt.wroff + o.mkt.wroff2. Когда все
+      позиции исполнены, статус становится executed.
 
 # ── Секция 3. Граф состояний ────────────────────────────────────────────────
 # Сущность: marketplace::writeoff_proposal (таблица writeoff_proposals,
@@ -110,55 +127,71 @@ entity_human: Проект списания скоропорта
 entity_source: cpp/marketplace/src/writeoff/
 
 states:
-  - name: draft
-    human: Проект сформирован
+  - name: proposed
+    human: На повестке совета
     description: >
       Кооператив сформировал список позиций к списанию и вынес проект
-      решения на повестку совета. Ждёт рассмотрения советом.
+      решения на повестку совета через soviet::createagenda. Ждёт
+      рассмотрения советом.
+    kind: normal
+
+  - name: authorized
+    human: Авторизовано советом
+    description: >
+      Совет принял положительное решение и подписал Протокол. Backend
+      получил callback onmktwoauth и теперь циклом по позициям проводит
+      atomic-пары списания.
     kind: normal
 
   - name: executed
     human: Списание исполнено
     description: >
-      Совет принял положительное решение, кооператив списал позиции со
-      складов участков. Имущество ушло из учёта как безвозвратные
-      потери. По кошелькам заказчиков движений не было.
+      Кооператив списал все позиции со складов участков. Имущество
+      ушло из учёта как безвозвратные потери. По кошелькам заказчиков
+      движений не было.
     kind: final
 
   - name: rejected
     human: Проект отклонён
     description: >
-      Совет отклонил проект списания либо отложил его рассмотрение.
-      Позиции остаются на складах участков и попадут в следующий цикл
-      списания.
+      Совет отклонил проект списания. Позиции остаются на складах
+      участков и попадут в следующий цикл списания.
     kind: final
 
 transitions:
   - from: "∅"
-    to: draft
+    to: proposed
     action: marketplace::propwroff
     actor: backend
     guards:
-      - Наступил регламентный срок очередного цикла списания.
-      - На складах участков найдены позиции, удовлетворяющие критериям списания (просроченные, не выданные первичному заказчику, повреждённые, малооценные).
+      - Наступил регламентный срок очередного цикла списания (или ручной запуск).
+      - Председатель подписал Заявление о списании скоропорта (registry 1106).
+      - На складах участков найдены позиции, удовлетворяющие критериям списания.
 
-  - from: draft
+  - from: proposed
+    to: authorized
+    action: marketplace::onmktwoauth
+    actor: soviet
+    guards:
+      - Совет авторизовал Протокол списания (registry 1105) после голосования.
+
+  - from: authorized
     to: executed
     action: marketplace::execwroff
-    actor: council
+    actor: backend
     ledger_code: p.mkt.wroff
     operations:
       - o.mkt.wroff
       - o.mkt.wroff2
     guards:
-      - Совет принял положительное решение по проекту и оформил его протоколом.
+      - Все позиции проекта последовательно исполнены backend'ом per-item циклом.
 
-  - from: draft
+  - from: proposed
     to: rejected
-    action: marketplace::declwroff
-    actor: council
+    action: marketplace::onmktwodecl
+    actor: soviet
     guards:
-      - Совет принял отрицательное решение по проекту либо не принял решение в установленный регламентом срок.
+      - Совет отклонил Протокол списания.
 
 # ── Секция 4. Сценарий ──────────────────────────────────────────────────────
 scenario:
@@ -227,12 +260,19 @@ scenario:
 # sov.decision (повестка → голосование → протокол). Этот процесс
 # напрямую не оформляет своих документов — только пункт повестки.
 documents:
-  - action: marketplace::execwroff
-    title: Протокол решения совета о списании скоропорта
-    registry_id: 0
+  - action: marketplace::propwroff
+    title: Заявление о списании скоропорта
+    registry_id: 1106
+    signed_by: [chairman]
+    stored_in: "(передаётся в soviet::createagenda как statement; backend хранит хеш на стороне controller'а)"
+    note: "Подписывается председателем перед отправкой в совет. Содержит items[] (braname, asset_title, quantity, amount, reason). Источник правды — components/cooptypes/src/cooperative/registry/1106.MarketplaceWriteoffStatement"
+
+  - action: marketplace::onmktwoauth
+    title: Протокол совета о списании скоропорта
+    registry_id: 1105
     signed_by: [council_members]
-    stored_in: "(authorization — параметр действия execwroff, обслуживается через sov.decision)"
-    note: "TODO: использовать существующий шаблон протокола совета (sov.decision-протокол) с прикреплённым перечнем позиций; либо создать специализированный шаблон в cooptypes/cooperative/registry/<id>.MarketplaceWriteoffProtocol при необходимости отдельной формы."
+    stored_in: "(authorization — параметр callback'а onmktwoauth; кладётся в wroffprops.protocol)"
+    note: "Стандартный sov.decision-протокол с привязанным items[]. Источник — components/cooptypes/src/cooperative/registry/1105.MarketplaceWriteoffProtocol"
 
 # ── Секция 6. Операции (Ledger2) ────────────────────────────────────────────
 # Одна ledger2-операция со СОСТАВНОЙ проводкой: транзит через счёт 91.

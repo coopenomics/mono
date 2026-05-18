@@ -18,6 +18,23 @@ export interface ICoopAcceptanceConfig {
   accepted_by_board_decision_id: string;
 }
 
+/**
+ * Story 8.3 (Эпик 8): настройки авто-проекта списания скоропорта.
+ *
+ * `auto_proposal_enabled` — если true, ежемесячный крон собирает позиции
+ * `MarketplaceInventory.expiry_date <= now + expiry_grace_days` в DRAFT-
+ * проект и шлёт нотификацию председателю на ревью. Если false, крон
+ * только пушит напоминание; председатель формирует корзину вручную.
+ *
+ * `expiry_grace_days` — окно опережения: за сколько дней до фактического
+ * `expiry_date` позиция должна попадать в кандидаты на списание (например,
+ * 7 — отбирать позиции, у которых до истечения срока меньше недели).
+ */
+export interface IWriteoffConfig {
+  auto_proposal_enabled: boolean;
+  expiry_grace_days: number;
+}
+
 // Конфигурация для расширения marketplace
 export interface IConfig {
   enabled: boolean;
@@ -25,6 +42,8 @@ export interface IConfig {
   debug: boolean;
   // Story 1.9: статус принятия положения ЦПП Советом кооператива.
   coopAcceptance: ICoopAcceptanceConfig;
+  // Story 8.3 (Эпик 8): настройки крона списания скоропорта.
+  writeoff: IWriteoffConfig;
 }
 
 // Дефолтные параметры конфигурации
@@ -37,6 +56,10 @@ export const defaultConfig: IConfig = {
     document_registry_id: 0,
     accepted_at: '',
     accepted_by_board_decision_id: '',
+  },
+  writeoff: {
+    auto_proposal_enabled: false,
+    expiry_grace_days: 7,
   },
 };
 
@@ -58,4 +81,10 @@ export const Schema = z.object({
       accepted_at: '',
       accepted_by_board_decision_id: '',
     }),
+  writeoff: z
+    .object({
+      auto_proposal_enabled: z.boolean().default(false),
+      expiry_grace_days: z.number().int().min(0).default(7),
+    })
+    .default({ auto_proposal_enabled: false, expiry_grace_days: 7 }),
 });

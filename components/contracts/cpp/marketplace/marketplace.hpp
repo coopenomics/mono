@@ -31,7 +31,16 @@ using namespace Marketplace;
  *    acceptorder, declineorder, signsupp, signchair, signiss1, signiss2.
  *  - **p.mkt.return** (5 actions): submretrn, aprretrem, rejretrem, accretrn,
  *    rejretrn.
- *  - **p.mkt.wroff** (3 actions): propwroff, execwroff, declwroff.
+ *  - **p.mkt.wroff** (4 actions): propwroff, execwroff, onmktwoauth, onmktwodecl.
+ *    Cписание скоропорта идёт через канонический паттерн «решение совета»:
+ *    backend подписывает Заявление о списании (registry 1106) ключом
+ *    кооператива, вызывает `propwroff` (запись wroffprops::proposed) +
+ *    `soviet::createagenda(type=mktwroff, callback=onmktwoauth/onmktwodecl)`.
+ *    После голосования совета и подписи Протокола (registry 1105) chairman'ом
+ *    soviet::exec автоматически вызывает callback `onmktwoauth` (PROPOSED →
+ *    AUTHORIZED, сохраняется protocol2) или `onmktwodecl` (PROPOSED → REJECTED).
+ *    Только после AUTHORIZED backend циклом по items вызывает `execwroff`
+ *    per-item (atomic пара o.mkt.wroff + o.mkt.wroff2 на каждой позиции).
  *
  * Все per-batch операции на on-chain выполняются per-Order (бэкенд
  * проходит циклом по Order'ам соответствующего batch'а, объединяя их по
@@ -283,8 +292,11 @@ public:
   // ── p.mkt.wroff ──────────────────────────────────────────────────────
 
   /**
-   * @brief Backend / админ выносит проект списания на повестку совета (Story 8.1).
-   * Без ledger2-операций — только создание proposal с N позициями.
+   * @brief Backend выносит проект списания на повестку совета (Story 8.1).
+   * Без ledger2-операций — только создание proposal с N позициями (статус
+   * proposed). Сразу после этого backend вызывает `soviet::createagenda` с
+   * `callback_contract=marketplace`, `confirm_callback=onmktwoauth`,
+   * `decline_callback=onmktwodecl`, `type=mktwroff`, `hash=proposal_hash`.
    * @ingroup public_marketplace_actions
    */
   [[eosio::action]] void propwroff(eosio::name coopname,
@@ -293,27 +305,54 @@ public:
                                     std::vector<wroff_item> items);
 
   /**
-   * @brief Совет исполняет одну позицию проекта списания (Story 8.3).
-   * Per-item: o.mkt.wroff + o.mkt.wroff2 (атомарно в той же транзакции),
-   * `items[item_index].executed = true`. Когда все items.executed → proposal
-   * status переходит в EXECUTED. Авторизация: подписант ∈ branches[items[item_index].braname].
-   * Backend проходит циклом по неисполненным items, вызывая `execwroff` per item.
+   * @brief Callback от `soviet::exec` после авторизации Протокола совета
+   * (registry 1105) председателем (Story 8.4). PROPOSED → AUTHORIZED;
+   * сохраняется `authorization` в `wroffprops.protocol`. Цикл per-item
+   * списания запускает backend через `execwroff` после получения этой дельты.
+   *
+   * Авторизация: контракт `_soviet` (`require_auth(_soviet)`); сигнатура
+   * соответствует `authorize_action_effect` в soviet — `(coopname, hash,
+   * authorization)`.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void onmktwoauth(eosio::name coopname,
+                                      checksum256 hash,
+                                      document2 authorization);
+
+  /**
+   * @brief Callback от `soviet::cancelexprd` (или от любого decline-эффекта в
+   * soviet) — повестка отклонена или просрочена (Story 8.4). PROPOSED →
+   * REJECTED; `reason` сохраняется в `wroffprops.reject_reason`. Без
+   * ledger2-движений.
+   *
+   * Сигнатура `(coopname, hash, reason)` соответствует
+   * `DECLINE_CALLBACK_SIGNATURE` в `lib/core/soviet/soviet.hpp:19`.
+   * Авторизация: `_soviet`.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void onmktwodecl(eosio::name coopname,
+                                      checksum256 hash,
+                                      std::string reason);
+
+  /**
+   * @brief Backend исполняет одну позицию авторизованного проекта списания
+   * (Story 8.4). Per-item: `o.mkt.wroff + o.mkt.wroff2` (атомарно в одной
+   * транзакции), `items[item_index].executed = true`. Когда все items
+   * исполнены, статус AUTHORIZED → EXECUTED.
+   *
+   * Защита от газового лимита (тысячи позиций в одной транзакции Antelope
+   * не помещаются) — backend проходит цикл и вызывает `execwroff` per item.
+   *
+   * Guards:
+   *  - proposal.status == AUTHORIZED (callback `onmktwoauth` уже отработал);
+   *  - подписант (`signer`) авторизован для КУ-источника
+   *    (`branches[items[item_index].braname]`).
    * @ingroup public_marketplace_actions
    */
   [[eosio::action]] void execwroff(eosio::name coopname,
                                     eosio::name signer,
                                     checksum256 proposal_hash,
-                                    uint64_t item_index,
-                                    document2 protocol);
-
-  /**
-   * @brief Совет отклоняет проект списания целиком (Story 8.3).
-   * @ingroup public_marketplace_actions
-   */
-  [[eosio::action]] void declwroff(eosio::name coopname,
-                                    eosio::name decided_by,
-                                    checksum256 proposal_hash,
-                                    std::string reason);
+                                    uint64_t item_index);
 
   // ── service ──────────────────────────────────────────────────────────
 
