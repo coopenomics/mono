@@ -171,6 +171,9 @@ export class Generator implements IGenerator {
       // Marketplace (Стол заказов) — Эпик 5
       [Actions.MarketplaceAplReception.Template.registry_id]: new Actions.MarketplaceAplReception.Factory(this.storage), // 1102
       [Actions.MarketplaceTransportNote.Template.registry_id]: new Actions.MarketplaceTransportNote.Factory(this.storage), // 1103
+
+      // Marketplace (Стол заказов) — Эпик 7: гарантийный возврат
+      [Actions.MarketplaceReturnStatement.Template.registry_id]: new Actions.MarketplaceReturnStatement.Factory(this.storage), // 1104
     }
     await this.storage.connect()
   }

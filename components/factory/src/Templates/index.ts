@@ -72,6 +72,9 @@ export * as SosediAgreement from './699.SosediAgreement'
 export * as MarketplaceAplReception from './1102.MarketplaceAplReception'
 export * as MarketplaceTransportNote from './1103.MarketplaceTransportNote'
 
+// Marketplace (Стол заказов) — Эпик 7: гарантийный возврат
+export * as MarketplaceReturnStatement from './1104.MarketplaceReturnStatement'
+
 export * as AnnualGeneralMeetingAgenda from './300.AnnualGeneralMeetingAgenda'
 export * as AnnualGeneralMeetingSovietDecision from './301.AnnualGeneralMeetingSovietDecision'
 export * as AnnualGeneralMeetingNotification from './302.AnnualGeneralMeetingNotification'

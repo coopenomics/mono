@@ -78,3 +78,6 @@ export * as BlagorostOfferTemplate from './999.BlagorostOfferTemplate'
 // Marketplace (Стол заказов) — Эпик 5
 export * as MarketplaceAplReception from './1102.MarketplaceAplReception'
 export * as MarketplaceTransportNote from './1103.MarketplaceTransportNote'
+
+// Marketplace (Стол заказов) — Эпик 7: гарантийный возврат
+export * as MarketplaceReturnStatement from './1104.MarketplaceReturnStatement'

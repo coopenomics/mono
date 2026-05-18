@@ -98,6 +98,14 @@ import {
   MARKETPLACE_ISSUANCE_SERVICE,
 } from './services/marketplace-issuance.service';
 import { MarketplaceIssuanceResolver } from './resolvers/marketplace-issuance.resolver';
+// Эпик 7 — гарантийный возврат (compensating forward)
+import {
+  MarketplaceReturnClaimService,
+  MARKETPLACE_RETURN_CLAIM_SERVICE,
+} from './services/marketplace-return-claim.service';
+import { MarketplaceReturnClaimImagesService } from './services/marketplace-return-claim-images.service';
+import { MarketplaceReturnClaimResolver } from './resolvers/marketplace-return-claim.resolver';
+import { FileStorageInfrastructureModule } from '~/infrastructure/file-storage';
 
 /**
  * Модуль приложения marketplace
@@ -118,6 +126,11 @@ import { MarketplaceIssuanceResolver } from './resolvers/marketplace-issuance.re
     // DocumentDomainService для генерации preview-документов АПП приёмки
     // через GENERATOR_PORT (registry_id=1102).
     DocumentDomainModule,
+    // Эпик 7 / Story 7.1: bucket для фотографий гарантийного возврата
+    // (`stol-zakazov:images`). Имя bucket'а декларируется через @UseBucket
+    // на MarketplaceReturnClaimImagesService — модуль `forFeature` читает
+    // метадату и провайдит ему `InterFileStorageBucket`.
+    FileStorageInfrastructureModule.forFeature([MarketplaceReturnClaimImagesService]),
   ],
   providers: [
     // GraphQL резолверы
@@ -143,6 +156,7 @@ import { MarketplaceIssuanceResolver } from './resolvers/marketplace-issuance.re
     MarketplaceAplReceptionResolver,
     MarketplaceOutgoingPaymentResolver,
     MarketplaceIssuanceResolver,
+    MarketplaceReturnClaimResolver,
 
     // Guards (Story 1.3 / Story 1.6)
     MarketplaceMembershipGuard,
@@ -261,6 +275,13 @@ import { MarketplaceIssuanceResolver } from './resolvers/marketplace-issuance.re
       useClass: MarketplaceIssuanceService,
     },
     MarketplaceIssuanceService,
+    // Эпик 7 — гарантийный возврат (compensating forward через транзит 91).
+    {
+      provide: MARKETPLACE_RETURN_CLAIM_SERVICE,
+      useClass: MarketplaceReturnClaimService,
+    },
+    MarketplaceReturnClaimService,
+    MarketplaceReturnClaimImagesService,
   ],
   exports: [
     // Экспортируем сервисы для использования в других модулях
@@ -306,6 +327,7 @@ import { MarketplaceIssuanceResolver } from './resolvers/marketplace-issuance.re
     MarketplaceAplReceptionResolver,
     MarketplaceOutgoingPaymentResolver,
     MarketplaceIssuanceResolver,
+    MarketplaceReturnClaimResolver,
 
     // Экспортируем сервисы Story 4.1 для использования в follow-up Stories Эпика 4
     MARKETPLACE_ORDER_CREATE_SERVICE,
@@ -337,6 +359,9 @@ import { MarketplaceIssuanceResolver } from './resolvers/marketplace-issuance.re
     // Story 6.1 / 6.3 / 6.4
     MARKETPLACE_ISSUANCE_SERVICE,
     MarketplaceIssuanceService,
+    // Эпик 7
+    MARKETPLACE_RETURN_CLAIM_SERVICE,
+    MarketplaceReturnClaimService,
   ],
 })
 export class MarketplaceExtensionApplicationModule {}

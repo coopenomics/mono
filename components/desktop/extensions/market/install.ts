@@ -6,6 +6,8 @@ import { PvzListPage } from 'src/pages/Marketplace/PvzList'
 import { DesignSystemPage } from 'src/pages/Marketplace/DesignSystem'
 import { OperatorIssuancePage } from 'src/pages/Marketplace/OperatorIssuance'
 import { OrdererReadyToReceivePage } from 'src/pages/Marketplace/OrdererReadyToReceive'
+import { OrdererReturnClaimsPage } from 'src/pages/Marketplace/OrdererReturnClaims'
+import { OperatorReturnClaimsPage } from 'src/pages/Marketplace/OperatorReturnClaims'
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace'
 import { agreementsBase } from 'src/shared/lib/consts/workspaces'
 
@@ -78,6 +80,23 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             },
           },
           {
+            // Эпик 7 / Story 7.1: orderer-стол гарантийных возвратов. Здесь
+            // пайщик подаёт заявление по выданному заказу в гарантийный срок,
+            // прилагает фото товара и подписывает заявление (registry_id=1104).
+            // Доступ: только сам заказчик (`ReturnClaim: ['create:own', 'read:own']`
+            // в marketplace access-matrix), фильтрация по orderer_account.
+            path: 'returns',
+            name: 'marketplace-returns',
+            component: markRaw(OrdererReturnClaimsPage),
+            meta: {
+              title: 'Гарантийные возвраты',
+              icon: 'fa-solid fa-rotate-left',
+              roles: [],
+              requiresAuth: true,
+              agreements: agreementsBase,
+            },
+          },
+          {
             // Витрина дизайн-системы (Эпик 10): открыта председателю и членам совета
             // для утверждения 13 custom-компонентов до их применения в эпиках 1-9.
             // Скрыта от обычных пайщиков, не выходит в production-меню для них.
@@ -136,6 +155,25 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Выдача заказов',
               icon: 'fa-solid fa-handshake',
+              roles: ['chairman'],
+              requiresAuth: true,
+              agreements: agreementsBase,
+            },
+          },
+          {
+            // Эпик 7 / Story 7.2-7.4: operator-стол гарантийных возвратов.
+            // Председатель КУ рассматривает поступившие заявления удалённо,
+            // приглашает на очный осмотр, принимает или отказывает.
+            // При приёме composite-транзакция accretrn выполняет
+            // compensating forward `o.mkt.return + o.mkt.return2` через
+            // транзит 91 — атомарное восстановление средств заказчику и
+            // возврат имущества на склад участка.
+            path: 'returns',
+            name: 'marketplace-pvz-returns',
+            component: markRaw(OperatorReturnClaimsPage),
+            meta: {
+              title: 'Гарантийные возвраты',
+              icon: 'fa-solid fa-clipboard-check',
               roles: ['chairman'],
               requiresAuth: true,
               agreements: agreementsBase,

@@ -6917,6 +6917,28 @@ input MarketplaceAcceptIndividualOrderInput {
   order_id: String!
 }
 
+input MarketplaceAcceptReturnAtVisitInput {
+  """Кооперативный участок, где идёт очный осмотр."""
+  braname: String!
+
+  """Идентификатор заявления."""
+  claim_id: String!
+
+  """Фото очного осмотра (опционально, до 10 файлов)."""
+  inspection_photos: [MarketplaceReturnClaimPhotoUploadInput!]
+
+  """Результат очного осмотра (обязательно, до 2000 символов)."""
+  inspection_result: String!
+
+  """
+  Сканированный штрих-код имущества для сверки с заказом (если применимо).
+  """
+  scanned_barcode: String
+
+  """Подписанное решение председателя (опционально)."""
+  signed_decision: MarketplaceReturnStatementSignedInput
+}
+
 input MarketplaceAddToWhitelistInput {
   """
   eosio::name пайщика-поставщика (3-12 chars, [.12345abcdefghijklmnopqrstuvwxyz])
@@ -7108,6 +7130,20 @@ enum MarketplaceAplReceptionVariant {
 
 input MarketplaceApproveOfferInput {
   offer_id: String!
+}
+
+input MarketplaceApproveReturnVisitInput {
+  """Кооперативный участок, на который приглашаем пайщика."""
+  braname: String!
+
+  """Идентификатор заявления."""
+  claim_id: String!
+
+  """Комментарий председателя (обязательно, 1-500 символов)."""
+  comment: String!
+
+  """Подписанное решение председателя (опционально, in-system запись)."""
+  signed_decision: MarketplaceReturnStatementSignedInput
 }
 
 type MarketplaceAttribute {
@@ -7517,6 +7553,28 @@ type MarketplaceCreateOrderResult {
   tx_snapshot: MarketplaceOrderCreateTxSnapshot!
 }
 
+input MarketplaceCreateReturnClaimInput {
+  """Возвращаемое количество единиц (по умолчанию — выданное количество)."""
+  actual_quantity: Int
+
+  """Категория дефекта (опционально)."""
+  defect_category: MarketplaceReturnClaimDefectCategory
+
+  """Заказ, по которому подаётся заявление."""
+  order_id: String!
+
+  """Фотографии товара — обязательно от 1 до 10 файлов."""
+  photos: [MarketplaceReturnClaimPhotoUploadInput!]!
+
+  """Текст обращения пайщика (1-500 символов)."""
+  reason_text: String!
+
+  """
+  Подписанное пайщиком заявление о гарантийном возврате имущества (реестр документов 1104).
+  """
+  signed_statement: MarketplaceReturnStatementSignedInput!
+}
+
 input MarketplaceCreateShipmentInput {
   """Идентификатор консолидированной заявки в статусе ACCEPTED."""
   cycle_id: ID!
@@ -7793,11 +7851,6 @@ input MarketplaceIssueActSignedMetaDocumentInput {
   """Идентификатор заказа пайщика, по которому формируется акт выдачи."""
   order_id: String!
 
-  """
-  Идентификатор записи акта в реестре marketplace (для выдачи — id заказа).
-  """
-  reception_id: String!
-
   """ID документа в реестре"""
   registry_id: Int!
 
@@ -7961,6 +8014,11 @@ input MarketplaceListPendingOffersInput {
 
   """Направление сортировки ("ASC" или "DESC")"""
   sortOrder: String! = "ASC"
+}
+
+input MarketplaceListReturnClaimsByBranameInput {
+  """Кооперативный участок (delivery_braname исходного заказа)."""
+  delivery_braname: String!
 }
 
 input MarketplaceListShipmentsInput {
@@ -8376,6 +8434,37 @@ input MarketplaceRejectOfferInput {
   reason: String!
 }
 
+input MarketplaceRejectReturnAtVisitInput {
+  """Кооперативный участок, где идёт очный осмотр."""
+  braname: String!
+
+  """Идентификатор заявления."""
+  claim_id: String!
+
+  """Фото очного осмотра (опционально)."""
+  inspection_photos: [MarketplaceReturnClaimPhotoUploadInput!]
+
+  """Результат и причина отказа (обязательно, до 2000 символов)."""
+  inspection_result: String!
+
+  """Подписанное решение председателя (опционально)."""
+  signed_decision: MarketplaceReturnStatementSignedInput
+}
+
+input MarketplaceRejectReturnRemoteInput {
+  """Кооперативный участок, под чьей юрисдикцией решение."""
+  braname: String!
+
+  """Идентификатор заявления."""
+  claim_id: String!
+
+  """Причина отказа (обязательно, 1-500 символов)."""
+  comment: String!
+
+  """Подписанное решение председателя (опционально)."""
+  signed_decision: MarketplaceReturnStatementSignedInput
+}
+
 input MarketplaceRemoveFromWhitelistInput {
   """eosio::name пайщика-поставщика"""
   member_account: String!
@@ -8609,6 +8698,271 @@ type MarketplaceRequestStatistics {
 
   """Общее количество заявок"""
   totalRequests: Int!
+}
+
+"""Заявление пайщика на гарантийный возврат имущества (Эпик 7)."""
+type MarketplaceReturnClaim {
+  actual_quantity: Int!
+  coopname: String!
+  created_at: DateTime!
+  decision_log: [MarketplaceReturnClaimDecisionEntry!]!
+
+  """Категория дефекта (если указана)."""
+  defect_category: MarketplaceReturnClaimDefectCategory
+
+  """КУ доставки исходного заказа (куда подаётся заявление)."""
+  delivery_braname: String!
+  expected_resolution: MarketplaceReturnClaimExpectedResolution!
+  fact_cost: String!
+  id: String!
+
+  """Снапшот compensating-forward (только при ACCEPTED_AT_VISIT)."""
+  ledger_snapshot: MarketplaceReturnClaimLedgerSnapshot
+
+  """
+  Параметры очного осмотра (заполняется на стадии accept/reject_at_visit).
+  """
+  on_site_inspection: MarketplaceReturnClaimOnSiteInspection
+  order_hash: String!
+  order_id: String!
+
+  """Аккаунт пайщика-заявителя."""
+  orderer_account: String!
+
+  """Фотографии товара, приложенные пайщиком."""
+  photos: [MarketplaceReturnClaimPhoto!]!
+
+  """Текст обращения пайщика."""
+  reason_text: String!
+
+  """Якорный hash on-chain return_request."""
+  request_hash: String!
+
+  """Текущий статус заявления."""
+  status: MarketplaceReturnClaimStatus!
+
+  """Хэш транзакции submretrn в блокчейне."""
+  submretrn_tx_hash: String!
+
+  """Поставщик исходного заказа (для будущего возврата поставщику)."""
+  supplier_account: String!
+  updated_at: DateTime!
+}
+
+"""Запись о решении председателя по заявлению на возврат."""
+type MarketplaceReturnClaimDecisionEntry {
+  """Время фиксации решения."""
+  at: DateTime!
+
+  """Кооперативный участок, под чьей юрисдикцией решение."""
+  braname: String!
+
+  """Аккаунт председателя, принявшего решение."""
+  by_chairman_account: String!
+
+  """Комментарий / причина / результат осмотра."""
+  comment: String!
+
+  """
+  Тип решения: approve_visit / reject_remote / accept_at_visit / reject_at_visit.
+  """
+  decision: String!
+
+  """Стадия решения: «remote» — удалённое, «on_site» — очный осмотр."""
+  stage: String!
+
+  """Хэш транзакции в блокчейне для аудита решения."""
+  tx_hash: String!
+}
+
+"""Категория дефекта, на который ссылается заявление на возврат."""
+enum MarketplaceReturnClaimDefectCategory {
+  BROKEN
+  EXPIRED
+  NOT_AS_DESCRIBED
+  OTHER
+  WRONG_ITEM
+}
+
+"""
+Желаемый исход возврата (в MVP — только восстановление средств на программном кошельке).
+"""
+enum MarketplaceReturnClaimExpectedResolution {
+  FUNDS_RETURN
+}
+
+"""Снапшот compensating-forward пары после успешного приёма возврата."""
+type MarketplaceReturnClaimLedgerSnapshot {
+  """Сумма compensating-forward (восстановленная на программный кошелёк)."""
+  amount: String!
+
+  """Время фиксации возврата."""
+  at: DateTime!
+
+  """Возвращённое количество единиц имущества."""
+  returned_quantity: Int!
+
+  """Хэш транзакции accretrn в блокчейне."""
+  tx_hash: String!
+}
+
+"""Параметры очного осмотра имущества председателем КУ."""
+type MarketplaceReturnClaimOnSiteInspection {
+  """Время очного осмотра."""
+  at: DateTime!
+
+  """Председатель, проводивший очный осмотр."""
+  by_chairman_account: String!
+
+  """Фото очного осмотра."""
+  photos: [MarketplaceReturnClaimPhoto!]!
+
+  """Текстовое описание результатов осмотра."""
+  result_text: String!
+
+  """Сканированный штрих-код имущества (если применимо)."""
+  scanned_barcode: String
+}
+
+"""Снапшот фото-доказательства, приложенного к заявлению на возврат."""
+type MarketplaceReturnClaimPhoto {
+  """Sha256-хеш содержимого фото (используется как анкер on-chain)."""
+  content_hash: String!
+
+  """MIME-тип файла."""
+  mime_type: String!
+
+  """Время загрузки фото в bucket."""
+  uploaded_at: DateTime!
+
+  """Подписанный URL для чтения фото из bucket'а stol-zakazov:images."""
+  url: String!
+}
+
+input MarketplaceReturnClaimPhotoUploadInput {
+  """Содержимое файла, закодированное в base64."""
+  base64: String!
+
+  """MIME-тип фото (image/jpeg, image/png либо image/webp)."""
+  mime_type: String!
+}
+
+"""Результат любого изменения статуса заявления на гарантийный возврат."""
+type MarketplaceReturnClaimResult {
+  """Актуальное состояние заявления."""
+  claim: MarketplaceReturnClaim!
+
+  """Хэш транзакции в блокчейне последнего действия."""
+  tx_hash: String!
+}
+
+input MarketplaceReturnClaimSignablePayloadInput {
+  """Возвращаемое количество (если не указано — выданное количество)."""
+  actual_quantity: Int
+
+  """Категория дефекта (опционально, дублируется в meta документа)."""
+  defect_category: MarketplaceReturnClaimDefectCategory
+
+  """Идентификатор заказа, по которому готовится заявление."""
+  order_id: String!
+
+  """
+  Причина обращения, как её сформулировал пайщик (попадает в текст заявления).
+  """
+  reason_text: String
+}
+
+"""Состояние заявления на гарантийный возврат имущества пайщика."""
+enum MarketplaceReturnClaimStatus {
+  ACCEPTED_AT_VISIT
+  APPROVED_FOR_VISIT
+  PENDING_CHAIRMAN_REVIEW
+  REJECTED_AT_VISIT
+  REJECTED_REMOTELY
+}
+
+input MarketplaceReturnStatementSignedInput {
+  """Хэш содержимого документа"""
+  doc_hash: String!
+
+  """Общий хэш (doc_hash + meta_hash)"""
+  hash: String!
+
+  """Метаданные подписанного заявления о гарантийном возврате имущества."""
+  meta: MarketplaceReturnStatementSignedMetaDocumentInput!
+
+  """Хэш мета-данных"""
+  meta_hash: String!
+
+  """Вектор подписей"""
+  signatures: [SignatureInfoInput!]!
+
+  """Версия стандарта документа"""
+  version: String!
+}
+
+input MarketplaceReturnStatementSignedMetaDocumentInput {
+  """Фактическое количество единиц к возврату."""
+  actual_quantity: Int!
+
+  """Номер блока, на котором был создан документ"""
+  block_num: Int!
+
+  """Имя кооперативного участка доставки (braname) исходного заказа."""
+  braname: String
+
+  """Название кооператива, связанное с документом"""
+  coopname: String!
+
+  """Дата и время создания документа"""
+  created_at: String!
+
+  """Необязательная категория дефекта (пересортица, истёкший срок и т.п.)."""
+  defect_category: String
+
+  """
+  Хэш приватного payload документа (если приватные данные хранятся отдельно).
+  """
+  doc_data_hash: String
+
+  """Стоимость возвращаемой части (4 знака после запятой)."""
+  fact_cost: String!
+
+  """Имя генератора, использованного для создания документа"""
+  generator: String!
+
+  """Язык документа"""
+  lang: String!
+
+  """Ссылки, связанные с документом"""
+  links: [String!]!
+
+  """Канонический order_hash on-chain."""
+  order_hash: String!
+
+  """Идентификатор заказа, по которому подаётся возврат."""
+  order_id: String!
+
+  """Причина обращения, как её сформулировал пайщик."""
+  reason_text: String!
+
+  """ID документа в реестре"""
+  registry_id: Int!
+
+  """Сформировать документ без сохранения (preview-режим)."""
+  skip_save: Boolean!
+
+  """Часовой пояс, в котором был создан документ"""
+  timezone: String!
+
+  """Название документа"""
+  title: String!
+
+  """Имя пользователя, создавшего документ"""
+  username: String!
+
+  """Версия генератора, использованного для создания документа"""
+  version: String!
 }
 
 input MarketplaceSetKUStatusInput {
@@ -10056,6 +10410,11 @@ type Mutation {
   marketplaceAcceptIndividualOrder(input: MarketplaceAcceptIndividualOrderInput!): MarketplaceSupplierOrderActionResult!
 
   """
+  Председатель по результатам очного осмотра принимает гарантийный возврат — атомарно восстанавливает средства на программный кошелёк пайщика и возвращает имущество на склад участка.
+  """
+  marketplaceAcceptReturnAtVisit(data: MarketplaceAcceptReturnAtVisitInput!): MarketplaceReturnClaimResult!
+
+  """
   Добавить категории в доступные для кооператива (целые категории)
   
   Требуемые роли: chairman. 
@@ -10074,6 +10433,11 @@ type Mutation {
 
   """Одобрить Offer (status → ACTIVE) (admin)"""
   marketplaceApproveOffer(input: MarketplaceApproveOfferInput!): MarketplaceOffer!
+
+  """
+  Председатель кооперативного участка по результатам удалённого рассмотрения приглашает пайщика на очный осмотр имущества.
+  """
+  marketplaceApproveReturnVisit(data: MarketplaceApproveReturnVisitInput!): MarketplaceReturnClaimResult!
 
   """
   Отменить свой заказ до его приёма поставщиком; средства разблокируются.
@@ -10104,6 +10468,11 @@ type Mutation {
   Требуемые роли: member, chairman. 
   """
   marketplaceCreateRequest(data: CreateRequestInput!): MarketplaceRequest!
+
+  """
+  Пайщик подаёт заявление на гарантийный возврат имущества — backend кладёт фото в защищённое хранилище и фиксирует заявление в блокчейне.
+  """
+  marketplaceCreateReturnClaim(data: MarketplaceCreateReturnClaimInput!): MarketplaceReturnClaimResult!
 
   """
   Сформировать партии поставки из акцептованной заявки: одна группа на каждый КУ-получатель.
@@ -10149,6 +10518,16 @@ type Mutation {
 
   """Отклонить Offer с причиной (status → REJECTED) (admin)"""
   marketplaceRejectOffer(input: MarketplaceRejectOfferInput!): MarketplaceOffer!
+
+  """
+  Председатель по результатам очного осмотра отказывает в гарантийном возврате — заказчик забирает имущество обратно, движений по средствам нет.
+  """
+  marketplaceRejectReturnAtVisit(data: MarketplaceRejectReturnAtVisitInput!): MarketplaceReturnClaimResult!
+
+  """
+  Председатель отказывает в гарантийном возврате удалённо с указанием причины — финальное решение, движений по средствам нет.
+  """
+  marketplaceRejectReturnRemote(data: MarketplaceRejectReturnRemoteInput!): MarketplaceReturnClaimResult!
 
   """
   Удалить категории из доступных для кооператива (включая все их типы)
@@ -12624,12 +13003,22 @@ type Query {
   marketplaceListMyReadyToReceive: [MarketplaceOrder!]!
 
   """
+  Все заявления текущего пайщика на гарантийный возврат — активные и архивные.
+  """
+  marketplaceListMyReturnClaims: [MarketplaceReturnClaim!]!
+
+  """
   История выплат поставщику в столе поставщика — статусы по каждому заказу.
   """
   marketplaceListOutgoingPaymentsAsSupplier(statuses: [MarketplaceOutgoingPaymentRequestStatus!]): [MarketplaceOutgoingPaymentRequest!]!
 
   """Список Offer'ов на модерации (admin)"""
   marketplaceListPendingOffers(input: MarketplaceListPendingOffersInput): MarketplaceOfferPaginationResult!
+
+  """
+  Список заявлений на гарантийный возврат, привязанных к кооперативному участку доставки — для председателя своего КУ.
+  """
+  marketplaceListReturnClaimsByBraname(data: MarketplaceListReturnClaimsByBranameInput!): [MarketplaceReturnClaim!]!
 
   """
   Список партий поставки текущего поставщика — для стола подготовки поставки и истории.
@@ -12661,6 +13050,14 @@ type Query {
 
   """Получить обязательные атрибуты для категории и типа товара marketplace"""
   marketplaceRequiredAttributes(data: GetRequiredAttributesInput!): [MarketplaceAttribute!]!
+
+  """Получить одно заявление на гарантийный возврат по идентификатору."""
+  marketplaceReturnClaim(claim_id: String!): MarketplaceReturnClaim!
+
+  """
+  Превью заявления на гарантийный возврат имущества для подписания пайщиком-заказчиком.
+  """
+  marketplaceReturnClaimSignablePayload(data: MarketplaceReturnClaimSignablePayloadInput!): GeneratedDocument!
 
   """Поиск атрибутов marketplace по названию"""
   marketplaceSearchAttributes(input: SearchAttributesInput!): [MarketplaceAttribute!]!

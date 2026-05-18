@@ -10,11 +10,17 @@ import {
   MARKETPLACE_APL_SUPPLIER_SIGN_REQUEST_EVENT,
   MARKETPLACE_CASHIER_NEW_PAYMENT_EVENT,
   MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT,
+  MARKETPLACE_RETURN_CLAIM_DECIDED_EVENT,
+  MARKETPLACE_RETURN_CLAIM_FINALIZED_EVENT,
+  MARKETPLACE_RETURN_CLAIM_SUBMITTED_EVENT,
   MARKETPLACE_SUPPLIER_PAYMENT_CONFIRMED_EVENT,
   MARKETPLACE_SUPPLIER_PAYMENT_DECLINED_EVENT,
   type MarketplaceAplSupplierSignRequestEvent,
   type MarketplaceCashierNewPaymentEvent,
   type MarketplaceOrderReadyToReceiveEvent,
+  type MarketplaceReturnClaimDecidedEvent,
+  type MarketplaceReturnClaimFinalizedEvent,
+  type MarketplaceReturnClaimSubmittedEvent,
   type MarketplaceSupplierPaymentConfirmedEvent,
   type MarketplaceSupplierPaymentDeclinedEvent,
 } from '../events/marketplace-notification.events';
@@ -213,6 +219,155 @@ export class MarketplaceNotificationService implements OnModuleInit {
     } catch (err: any) {
       this.logger.warn(
         `Order ${event.order_id}: ошибка отправки push заказчику о готовности (${err.message}) — flow не блокируется.`
+      );
+    }
+  }
+
+  @OnEvent(MARKETPLACE_RETURN_CLAIM_SUBMITTED_EVENT)
+  async handleReturnClaimSubmitted(event: MarketplaceReturnClaimSubmittedEvent): Promise<void> {
+    try {
+      // В MVP кооперативный участок — это account-like префикс; председатель
+      // КУ соответствует account == delivery_braname или назначен через
+      // coop_ku.chairman_account. Для подачи в Novu используем `delivery_braname`
+      // как fallback adressee; полная интеграция с `coop_ku.chairman_account`
+      // — Phase 2 (после расширения cooperative-coop_ku модели в core).
+      const chairmanAccount = event.delivery_braname;
+      const chairman = await this.accountPort.getAccount(chairmanAccount);
+      const subscriberId = chairman.provider_account?.subscriber_id?.trim();
+      const email = chairman.provider_account?.email;
+      if (!subscriberId || !email) {
+        this.logger.warn(
+          `Заявление на возврат ${event.claim_id}: subscriber_id/email председателя ${chairmanAccount} не найден — push пропущен.`
+        );
+        return;
+      }
+      const chairmanName = await this.accountPort.getDisplayName(chairmanAccount);
+      const ordererName = await this.accountPort.getDisplayName(event.orderer_account);
+      const reasonExcerpt =
+        event.reason_text.length > 240 ? event.reason_text.slice(0, 240) + '…' : event.reason_text;
+      const payload: Workflows.MarketplaceReturnClaimSubmitted.IPayload = {
+        chairmanName,
+        ordererName,
+        brananame: event.delivery_braname,
+        coopname: event.coopname,
+        claim_id: event.claim_id,
+        order_id: event.order_id,
+        reasonExcerpt,
+        deepLinkUrl: `${config.frontend_url}/${event.coopname}/market-pvz/returns/${event.claim_id}`,
+      };
+      const triggerData: WorkflowTriggerDomainInterface = {
+        name: Workflows.MarketplaceReturnClaimSubmitted.id,
+        to: { subscriberId, email },
+        payload,
+      };
+      await this.novuWorkflowPort.triggerWorkflow(triggerData);
+      this.logger.log(
+        `Заявление на возврат ${event.claim_id}: push председателю ${chairmanAccount} отправлен.`
+      );
+    } catch (err: any) {
+      this.logger.warn(
+        `Заявление на возврат ${event.claim_id}: ошибка push председателю (${err.message}) — flow не блокируется.`
+      );
+    }
+  }
+
+  @OnEvent(MARKETPLACE_RETURN_CLAIM_DECIDED_EVENT)
+  async handleReturnClaimDecided(event: MarketplaceReturnClaimDecidedEvent): Promise<void> {
+    // approve_visit, reject_remote, accept_at_visit, reject_at_visit — для
+    // approve_visit отправляем приглашение на очный осмотр; финальные исходы
+    // ещё раз продублируются finalized-событием с восстановленной суммой.
+    if (event.decision !== 'approve_visit') {
+      // Финал — пользуем finalized-листенер.
+      return;
+    }
+    try {
+      const orderer = await this.accountPort.getAccount(event.orderer_account);
+      const subscriberId = orderer.provider_account?.subscriber_id?.trim();
+      const email = orderer.provider_account?.email;
+      if (!subscriberId || !email) {
+        this.logger.warn(
+          `Заявление на возврат ${event.claim_id}: subscriber_id/email заказчика ${event.orderer_account} не найден — push пропущен.`
+        );
+        return;
+      }
+      const ordererName = await this.accountPort.getDisplayName(event.orderer_account);
+      const decisionHuman = `Председатель пригласил вас на очный осмотр на КУ ${event.braname}`;
+      const payload: Workflows.MarketplaceReturnClaimDecided.IPayload = {
+        ordererName,
+        decisionHuman,
+        brananame: event.braname,
+        coopname: event.coopname,
+        claim_id: event.claim_id,
+        order_id: '',
+        comment: event.comment,
+        deepLinkUrl: `${config.frontend_url}/${event.coopname}/market/returns/${event.claim_id}`,
+      };
+      const triggerData: WorkflowTriggerDomainInterface = {
+        name: Workflows.MarketplaceReturnClaimDecided.id,
+        to: { subscriberId, email },
+        payload,
+      };
+      await this.novuWorkflowPort.triggerWorkflow(triggerData);
+      this.logger.log(
+        `Заявление на возврат ${event.claim_id}: push заказчику ${event.orderer_account} (одобрен очный визит) отправлен.`
+      );
+    } catch (err: any) {
+      this.logger.warn(
+        `Заявление на возврат ${event.claim_id}: ошибка push заказчику (${err.message}) — flow не блокируется.`
+      );
+    }
+  }
+
+  @OnEvent(MARKETPLACE_RETURN_CLAIM_FINALIZED_EVENT)
+  async handleReturnClaimFinalized(event: MarketplaceReturnClaimFinalizedEvent): Promise<void> {
+    try {
+      const orderer = await this.accountPort.getAccount(event.orderer_account);
+      const subscriberId = orderer.provider_account?.subscriber_id?.trim();
+      const email = orderer.provider_account?.email;
+      if (!subscriberId || !email) {
+        this.logger.warn(
+          `Заявление на возврат ${event.claim_id}: subscriber_id/email заказчика ${event.orderer_account} не найден — push пропущен.`
+        );
+        return;
+      }
+      const ordererName = await this.accountPort.getDisplayName(event.orderer_account);
+      let outcomeHuman: string;
+      let returnedAmount: string | undefined;
+      switch (event.decision) {
+        case 'accept_at_visit':
+          outcomeHuman = 'Возврат принят — средства восстановлены на программе Стола Заказов';
+          returnedAmount = event.ledger_snapshot?.amount;
+          break;
+        case 'reject_remote':
+          outcomeHuman = 'Возврат отклонён удалённо председателем';
+          break;
+        case 'reject_at_visit':
+          outcomeHuman = 'Возврат отклонён по результатам очного осмотра';
+          break;
+        default:
+          outcomeHuman = 'Возврат завершён';
+      }
+      const payload: Workflows.MarketplaceReturnClaimFinalized.IPayload = {
+        ordererName,
+        outcomeHuman,
+        coopname: event.coopname,
+        claim_id: event.claim_id,
+        order_id: '',
+        returnedAmount,
+        deepLinkUrl: `${config.frontend_url}/${event.coopname}/market/returns/${event.claim_id}`,
+      };
+      const triggerData: WorkflowTriggerDomainInterface = {
+        name: Workflows.MarketplaceReturnClaimFinalized.id,
+        to: { subscriberId, email },
+        payload,
+      };
+      await this.novuWorkflowPort.triggerWorkflow(triggerData);
+      this.logger.log(
+        `Заявление на возврат ${event.claim_id}: финальный push заказчику ${event.orderer_account} отправлен (${event.decision}).`
+      );
+    } catch (err: any) {
+      this.logger.warn(
+        `Заявление на возврат ${event.claim_id}: ошибка финального push заказчику (${err.message}) — flow не блокируется.`
       );
     }
   }

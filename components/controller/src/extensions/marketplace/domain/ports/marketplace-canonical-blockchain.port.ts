@@ -153,6 +153,65 @@ export interface MarketplaceCanonicalBlockchainPort {
    * `delivery_braname`. Подписи в `act.signatures` — `{delivery_signer, orderer}`.
    */
   signIss2(data: MarketContract.Actions.SignIss2.ISignIss2): Promise<TransactResult>;
+
+  /**
+   * Story 7.1 / FR29: пайщик подаёт заявление на гарантийный возврат.
+   * Без ledger2-операций — создаётся on-chain `return_request` в статусе
+   * `pendrev`, ставится двусторонняя связь `order.return_request_id`.
+   *
+   * Авторизация — кооператив (`require_auth(coopname)`); C++ проверяет:
+   * actor=order.orderer, order.status=received, warranty_until>now(),
+   * photos.size()>0, actual_quantity ∈ (0, order.actual_quantity].
+   */
+  submRetrn(data: MarketContract.Actions.SubmRetrn.ISubmRetrn): Promise<TransactResult>;
+
+  /**
+   * Story 7.2 / FR31: председатель КУ удалённо одобряет очный визит.
+   * Без ledger2-операций. Статус return_request: `pendrev → approvvisit`.
+   *
+   * Авторизация — кооператив (`require_auth(coopname)`); C++ проверяет
+   * `Branch::is_user_authorized(coopname, braname, signer)` (председатель /
+   * trustee / trusted указанного КУ).
+   */
+  aprRetRem(data: MarketContract.Actions.AprRetRem.IAprRetRem): Promise<TransactResult>;
+
+  /**
+   * Story 7.2 / FR31: председатель КУ удалённо отказывает в возврате.
+   * Без ledger2-операций. Статус: `pendrev → rejremote`; `reason_remote`
+   * сохраняется для UI заказчика.
+   *
+   * Авторизация — кооператив (`require_auth(coopname)`); C++ проверяет
+   * авторизацию `signer` для `braname` + `reason.size() ∈ (0, 500]`.
+   */
+  rejRetRem(data: MarketContract.Actions.RejRetRem.IRejRetRem): Promise<TransactResult>;
+
+  /**
+   * Story 7.3 / 7.4 — FR32, FR33: председатель по результатам очного
+   * осмотра принимает гарантийный возврат. Композитная транзакция через
+   * транзит 91 (compensating forward, AR9/AR14):
+   *
+   *   1. `o.mkt.return(fact_cost, orderer)` (ISSUE, Дт 91 / Кт 86) —
+   *      восстанавливает `.available` на `w.mkt.member` заказчика.
+   *   2. `o.mkt.return2(fact_cost, orderer)` (NONE, Дт 10 / Кт 91) —
+   *      имущество возвращается на склад КУ через закрытие транзита.
+   *
+   * Статус return_request: `approvvisit → accepted` (final). Order.status
+   * остаётся `received` — возврат фиксируется отдельной сущностью.
+   *
+   * Авторизация — кооператив (`require_auth(coopname)`); C++ проверяет
+   * авторизацию `signer` для `braname` + статус заявления.
+   */
+  accRetrn(data: MarketContract.Actions.AccRetrn.IAccRetrn): Promise<TransactResult>;
+
+  /**
+   * Story 7.3 / FR32: председатель отказывает в возврате на очном
+   * осмотре. Без ledger2-операций. Статус: `approvvisit → rejatku`;
+   * `reason_visit` сохраняется для UI заказчика.
+   *
+   * Авторизация — кооператив (`require_auth(coopname)`); C++ проверяет
+   * авторизацию `signer` для `braname` + `reason.size() ∈ (0, 500]`.
+   */
+  rejRetrn(data: MarketContract.Actions.RejRetrn.IRejRetrn): Promise<TransactResult>;
 }
 
 export const MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT = Symbol('MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT');

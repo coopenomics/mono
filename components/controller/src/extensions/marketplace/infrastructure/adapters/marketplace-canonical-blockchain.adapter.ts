@@ -244,4 +244,89 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
       data,
     });
   }
+
+  async submRetrn(data: MarketContract.Actions.SubmRetrn.ISubmRetrn): Promise<TransactResult> {
+    const wif = await this.vaultDomainService.getWif(data.coopname);
+    if (!wif) {
+      throw new HttpApiError(
+        httpStatus.BAD_GATEWAY,
+        'Не найден приватный ключ кооператива для submit submretrn'
+      );
+    }
+    this.blockchainService.initialize(data.coopname, wif);
+    return await this.blockchainService.transact({
+      account: MarketContract.contractName.production,
+      name: MarketContract.Actions.SubmRetrn.actionName,
+      authorization: [{ actor: data.coopname, permission: 'active' }],
+      data,
+    });
+  }
+
+  async aprRetRem(data: MarketContract.Actions.AprRetRem.IAprRetRem): Promise<TransactResult> {
+    const wif = await this.vaultDomainService.getWif(data.coopname);
+    if (!wif) {
+      throw new HttpApiError(
+        httpStatus.BAD_GATEWAY,
+        'Не найден приватный ключ кооператива для submit aprretrem'
+      );
+    }
+    this.blockchainService.initialize(data.coopname, wif);
+    return await this.blockchainService.transact({
+      account: MarketContract.contractName.production,
+      name: MarketContract.Actions.AprRetRem.actionName,
+      authorization: [{ actor: data.coopname, permission: 'active' }],
+      data,
+    });
+  }
+
+  async rejRetRem(data: MarketContract.Actions.RejRetRem.IRejRetRem): Promise<TransactResult> {
+    const wif = await this.vaultDomainService.getWif(data.coopname);
+    if (!wif) {
+      throw new HttpApiError(
+        httpStatus.BAD_GATEWAY,
+        'Не найден приватный ключ кооператива для submit rejretrem'
+      );
+    }
+    this.blockchainService.initialize(data.coopname, wif);
+    return await this.blockchainService.transact({
+      account: MarketContract.contractName.production,
+      name: MarketContract.Actions.RejRetRem.actionName,
+      authorization: [{ actor: data.coopname, permission: 'active' }],
+      data,
+    });
+  }
+
+  async accRetrn(data: MarketContract.Actions.AccRetrn.IAccRetrn): Promise<TransactResult> {
+    const wif = await this.vaultDomainService.getWif(data.coopname);
+    if (!wif) {
+      throw new HttpApiError(
+        httpStatus.BAD_GATEWAY,
+        'Не найден приватный ключ кооператива для submit accretrn'
+      );
+    }
+    this.blockchainService.initialize(data.coopname, wif);
+    return await this.blockchainService.transact({
+      account: MarketContract.contractName.production,
+      name: MarketContract.Actions.AccRetrn.actionName,
+      authorization: [{ actor: data.coopname, permission: 'active' }],
+      data,
+    });
+  }
+
+  async rejRetrn(data: MarketContract.Actions.RejRetrn.IRejRetrn): Promise<TransactResult> {
+    const wif = await this.vaultDomainService.getWif(data.coopname);
+    if (!wif) {
+      throw new HttpApiError(
+        httpStatus.BAD_GATEWAY,
+        'Не найден приватный ключ кооператива для submit rejretrn'
+      );
+    }
+    this.blockchainService.initialize(data.coopname, wif);
+    return await this.blockchainService.transact({
+      account: MarketContract.contractName.production,
+      name: MarketContract.Actions.RejRetrn.actionName,
+      authorization: [{ actor: data.coopname, permission: 'active' }],
+      data,
+    });
+  }
 }

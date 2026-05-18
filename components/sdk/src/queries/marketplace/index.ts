@@ -30,3 +30,9 @@ export * as ListMyReadyToReceive from './listMyReadyToReceive'
 export * as IssueActChairmanSignablePayload from './issueActChairmanSignablePayload'
 /** Эпик 6: превью акта выдачи для финальной подписи заказчика */
 export * as IssueActOrdererSignablePayload from './issueActOrdererSignablePayload'
+/** Эпик 7: все заявления текущего пайщика на гарантийный возврат */
+export * as ListMyReturnClaims from './listMyReturnClaims'
+/** Эпик 7: заявления на возврат текущего КУ для operator-стола */
+export * as ListReturnClaimsByBraname from './listReturnClaimsByBraname'
+/** Эпик 7: превью заявления на гарантийный возврат для подписи заказчиком */
+export * as ReturnClaimSignablePayload from './returnClaimSignablePayload'

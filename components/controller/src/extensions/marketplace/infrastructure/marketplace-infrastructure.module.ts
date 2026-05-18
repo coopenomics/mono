@@ -27,6 +27,7 @@ import { MarketplaceInventoryEntity } from './entities/marketplace-inventory.ent
 import { MarketplaceAplReceptionEntity } from './entities/marketplace-apl-reception.entity';
 import { MarketplaceOutgoingPaymentRequestEntity } from './entities/marketplace-outgoing-payment-request.entity';
 import { MarketplaceTtnDocumentEntity } from './entities/marketplace-ttn-document.entity';
+import { MarketplaceReturnClaimEntity } from './entities/marketplace-return-claim.entity';
 
 // Repository adapters
 import { CategoryRepositoryAdapter } from './adapters/category-repository.adapter';
@@ -52,6 +53,7 @@ import { MarketplaceInventoryRepositoryAdapter } from './adapters/marketplace-in
 import { MarketplaceAplReceptionRepositoryAdapter } from './adapters/marketplace-apl-reception-repository.adapter';
 import { MarketplaceOutgoingPaymentRequestRepositoryAdapter } from './adapters/marketplace-outgoing-payment-request-repository.adapter';
 import { MarketplaceTtnDocumentRepositoryAdapter } from './adapters/marketplace-ttn-document-repository.adapter';
+import { MarketplaceReturnClaimRepositoryAdapter } from './adapters/marketplace-return-claim-repository.adapter';
 
 // Mappers
 import { MarketplaceVitrineMapper } from './mappers/marketplace-vitrine.mapper';
@@ -68,6 +70,7 @@ import { MarketplaceInventoryMapper } from './mappers/marketplace-inventory.mapp
 import { MarketplaceAplReceptionMapper } from './mappers/marketplace-apl-reception.mapper';
 import { MarketplaceOutgoingPaymentRequestMapper } from './mappers/marketplace-outgoing-payment-request.mapper';
 import { MarketplaceTtnDocumentMapper } from './mappers/marketplace-ttn-document.mapper';
+import { MarketplaceReturnClaimMapper } from './mappers/marketplace-return-claim.mapper';
 
 // Repository tokens
 import { CATEGORY_DOMAIN_REPOSITORY } from '../domain/repositories/category-domain.repository';
@@ -93,6 +96,7 @@ import { MARKETPLACE_INVENTORY_REPOSITORY } from '../domain/repositories/marketp
 import { MARKETPLACE_APL_RECEPTION_REPOSITORY } from '../domain/repositories/marketplace-apl-reception.repository';
 import { MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY } from '../domain/repositories/marketplace-outgoing-payment-request.repository';
 import { MARKETPLACE_TTN_DOCUMENT_REPOSITORY } from '../domain/repositories/marketplace-ttn-document.repository';
+import { MARKETPLACE_RETURN_CLAIM_REPOSITORY } from '../domain/repositories/marketplace-return-claim.repository';
 
 @Module({
   imports: [
@@ -130,6 +134,7 @@ import { MARKETPLACE_TTN_DOCUMENT_REPOSITORY } from '../domain/repositories/mark
         MarketplaceAplReceptionEntity,
         MarketplaceOutgoingPaymentRequestEntity,
         MarketplaceTtnDocumentEntity,
+        MarketplaceReturnClaimEntity,
       ],
       synchronize: true,
       logging: false,
@@ -161,6 +166,7 @@ import { MARKETPLACE_TTN_DOCUMENT_REPOSITORY } from '../domain/repositories/mark
         MarketplaceAplReceptionEntity,
         MarketplaceOutgoingPaymentRequestEntity,
         MarketplaceTtnDocumentEntity,
+        MarketplaceReturnClaimEntity,
       ],
       'marketplace'
     ), // Указываем имя подключения
@@ -282,6 +288,12 @@ import { MARKETPLACE_TTN_DOCUMENT_REPOSITORY } from '../domain/repositories/mark
       provide: MARKETPLACE_TTN_DOCUMENT_REPOSITORY,
       useClass: MarketplaceTtnDocumentRepositoryAdapter,
     },
+    // Эпик 7 — заявления на гарантийный возврат имущества
+    MarketplaceReturnClaimMapper,
+    {
+      provide: MARKETPLACE_RETURN_CLAIM_REPOSITORY,
+      useClass: MarketplaceReturnClaimRepositoryAdapter,
+    },
   ],
   exports: [
     CATEGORY_DOMAIN_REPOSITORY,
@@ -313,6 +325,8 @@ import { MARKETPLACE_TTN_DOCUMENT_REPOSITORY } from '../domain/repositories/mark
     MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY,
     // Story 5.4 — локальный реестр ТТН
     MARKETPLACE_TTN_DOCUMENT_REPOSITORY,
+    // Эпик 7 — гарантийный возврат
+    MARKETPLACE_RETURN_CLAIM_REPOSITORY,
   ],
 })
 export class MarketplaceInfrastructureModule {}

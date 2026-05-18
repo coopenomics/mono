@@ -24,3 +24,13 @@ export * as SignAplReceptionAsChairman from './signAplReceptionAsChairman'
 export * as OpenIssuance from './openIssuance'
 /** Эпик 6: заказчик закрывает выдачу финальной подписью с указанием фактического количества */
 export * as FinalizeIssuance from './finalizeIssuance'
+/** Эпик 7: заказчик подаёт заявление на гарантийный возврат имущества */
+export * as CreateReturnClaim from './createReturnClaim'
+/** Эпик 7: председатель КУ удалённо приглашает заказчика на очный осмотр */
+export * as ApproveReturnVisit from './approveReturnVisit'
+/** Эпик 7: председатель КУ удалённо отказывает в гарантийном возврате */
+export * as RejectReturnRemote from './rejectReturnRemote'
+/** Эпик 7: председатель КУ принимает гарантийный возврат на очном осмотре (compensating forward) */
+export * as AcceptReturnAtVisit from './acceptReturnAtVisit'
+/** Эпик 7: председатель КУ отказывает в гарантийном возврате на очном осмотре */
+export * as RejectReturnAtVisit from './rejectReturnAtVisit'
