@@ -28,6 +28,9 @@ import { workflow as marketplaceCashierNewPaymentWorkflow } from './marketplace-
 import { workflow as marketplaceSupplierPaymentConfirmedWorkflow } from './marketplace-supplier-payment-confirmed';
 import { workflow as marketplaceSupplierPaymentDeclinedWorkflow } from './marketplace-supplier-payment-declined';
 import { workflow as marketplaceOrderReadyWorkflow } from './marketplace-order-ready';
+import { workflow as marketplaceReturnClaimSubmittedWorkflow } from './marketplace-return-claim-submitted';
+import { workflow as marketplaceReturnClaimDecidedWorkflow } from './marketplace-return-claim-decided';
+import { workflow as marketplaceReturnClaimFinalizedWorkflow } from './marketplace-return-claim-finalized';
 
 // Импортируем все воркфлоу
 export * as Welcome from './welcome';
@@ -58,6 +61,9 @@ export * as MarketplaceCashierNewPayment from './marketplace-cashier-new-payment
 export * as MarketplaceSupplierPaymentConfirmed from './marketplace-supplier-payment-confirmed';
 export * as MarketplaceSupplierPaymentDeclined from './marketplace-supplier-payment-declined';
 export * as MarketplaceOrderReady from './marketplace-order-ready';
+export * as MarketplaceReturnClaimSubmitted from './marketplace-return-claim-submitted';
+export * as MarketplaceReturnClaimDecided from './marketplace-return-claim-decided';
+export * as MarketplaceReturnClaimFinalized from './marketplace-return-claim-finalized';
 
 // Массив всех воркфлоу для автоматической регистрации
 export const allWorkflows: WorkflowDefinition[] = [
@@ -89,6 +95,9 @@ export const allWorkflows: WorkflowDefinition[] = [
   marketplaceSupplierPaymentConfirmedWorkflow,
   marketplaceSupplierPaymentDeclinedWorkflow,
   marketplaceOrderReadyWorkflow,
+  marketplaceReturnClaimSubmittedWorkflow,
+  marketplaceReturnClaimDecidedWorkflow,
+  marketplaceReturnClaimFinalizedWorkflow,
 ];
 
 // Экспортируем воркфлоу по ID для удобного доступа
