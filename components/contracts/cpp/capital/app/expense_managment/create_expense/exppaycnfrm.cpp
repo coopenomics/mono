@@ -28,9 +28,16 @@ void capital::exppaycnfrm(eosio::name coopname, checksum256 expense_hash) {
   
   // Обновляем used_expense_pool в проекте
   Capital::Projects::complete_expense(coopname, project.id, expense.amount);
-  
+
+  // Списываем сумму расхода с программного фонда в пул хозрасходов:
+  // TRANSFER BLAGOROST_FUND → SOV_EXPENSES (без Dr/Cr — оба под счётом 80).
+  // Бухгалтерская проводка Dr 26 / Cr 51 на расчётном фиксируется gateway отдельно.
+  auto memo = Capital::Memo::get_expense_pay_memo(expense_hash);
+  Ledger2::apply(_capital, coopname,
+                 operations::capital::PAY_EXPENSE,
+                 expense.amount, expense.username,
+                 expense_hash, memo);
+
   // Удаляем запись расхода
   Capital::Expenses::delete_expense(coopname, expense.id);
-  
-  //TODO: здесь должна быть проводка по фонду
 }

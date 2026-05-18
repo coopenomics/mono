@@ -91,4 +91,8 @@ namespace Capital::Memo {
     return "Погашение займа деньгами участником " + username.to_string() + " (долг " + checksum256_to_hex(debt_hash) + ")";
   }
 
+  inline std::string get_expense_pay_memo(checksum256 expense_hash) {
+    return "Оплата целевого расхода программы «Благорост»: " + checksum256_to_hex(expense_hash);
+  }
+
 } // namespace Capital::Memo

@@ -53,6 +53,7 @@ namespace processes {
     inline constexpr eosio::name PROPERTY  = "p.cap.prop"_n;     ///< Приём имущественного паевого взноса (одноактовый).
     inline constexpr eosio::name PREIMP    = "p.cap.preimp"_n;   ///< Первичный учёт РИД-взноса до перехода на электронный учёт (одноактовый, anchor = preimp register hash).
     inline constexpr eosio::name WTHCAP    = "p.cap.wthcap"_n;   ///< Возврат паевого из ЦПП «Благорост» в кошелёк пайщика (одноактовый).
+    inline constexpr eosio::name EXPENSE   = "p.cap.expns"_n;    ///< Целевой расход программы (создание → одобрение председателя → авторизация совета → outpay → подтверждение оплаты). Anchor — expense_hash.
   }
 
   // marketplace

@@ -80,6 +80,7 @@ namespace operations {
     inline constexpr eosio::name WITHDRAW_FROM_CAPITAL = "o.cap.wthcap"_n; ///< Возврат паевого из ЦПП «Благорост» в кошелёк пайщика (TRANSFER BLAGOROST_FUND → SHARE_FUND_PAY, без Dr/Cr).
     inline constexpr eosio::name CONVERT_TO_SHARE    = "o.cap.cnvshr"_n;   ///< Конвертация сегмента: РИД → главный кошелёк (TRANSFER GENERATOR_FUND → SHARE_FUND_PAY, без Dr/Cr — бухпроводка уже была сделана в ACCEPT_RID).
     inline constexpr eosio::name CONVERT_TO_BLAGO    = "o.cap.cnvbl"_n;    ///< Конвертация сегмента: РИД → ЦПП «Благорост» (TRANSFER GENERATOR_FUND → BLAGOROST_FUND, без Dr/Cr — бухпроводка уже была сделана в ACCEPT_RID).
+    inline constexpr eosio::name PAY_EXPENSE         = "o.cap.expns"_n;    ///< Оплата целевого расхода программы (TRANSFER BLAGOROST_FUND → SOV_EXPENSES, без Dr/Cr). Бухгалтерская проводка Dr 26 / Cr 51 фиксируется отдельным процессом на уровне расчётного.
   }
 
   // marketplace
@@ -304,6 +305,16 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_wallets::GENERATOR_FUND, ledger2_wallets::BLAGOROST_FUND,
     0, 0,
     "Конвертация сегмента: РИД → ЦПП «Благорост»" },
+
+  // 20. Оплата целевого расхода программы: TRANSFER BLAGOROST_FUND → SOV_EXPENSES, без Dr/Cr.
+  // Закрывает TODO в exppaycnfrm.cpp: списывает сумму расхода из программного фонда
+  // «Благорост» в пул «Хозяйственные расходы из числа целевого финансирования».
+  // Соответствующая бухпроводка Dr 26 / Cr 51 на расчётный счёт делается параллельно
+  // на стороне gateway (вне ledger2-цикла) и здесь не дублируется.
+  { operations::capital::PAY_EXPENSE, processes::capital::EXPENSE, WalletOp::TRANSFER,
+    ledger2_wallets::BLAGOROST_FUND, ledger2_wallets::SOV_EXPENSES,
+    0, 0,
+    "Оплата целевого расхода по программе «Благорост»" },
 
   // ----- Миграционные (o.mig.*) — вызываются только из migrate.cpp -----
 
