@@ -383,7 +383,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     this.blockchainService.initialize(input.coopname, wif);
     return await this.blockchainService.transact({
       account: SovietContract.contractName.production,
-      name: SovietContract.Actions.Agenda.CreateAgenda.actionName,
+      name: SovietContract.Actions.Decisions.CreateAgenda.actionName,
       authorization: [{ actor: input.coopname, permission: 'active' }],
       data: {
         coopname: input.coopname,

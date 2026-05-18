@@ -1,6 +1,7 @@
 import { Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { Cooperative } from 'cooptypes';
+import config from '~/config/config';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
 import { PaginationInputDTO } from '~/application/common/dto/pagination.dto';
 import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
@@ -70,7 +71,7 @@ export class MarketplaceWriteoffResolver {
   async marketplaceOpenWriteoffDraft(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember
   ): Promise<MarketplaceWriteoffProposalDTO | null> {
-    const draft = await this.service.getOpenDraft(member.coopname);
+    const draft = await this.service.getOpenDraft(config.coopname);
     return draft ? toMarketplaceWriteoffProposalDTO(draft) : null;
   }
 
@@ -86,7 +87,7 @@ export class MarketplaceWriteoffResolver {
     @Args('options', { nullable: true }) options?: PaginationInputDTO
   ): Promise<PaginatedMarketplaceWriteoffProposalsDTO> {
     const result = await this.service.listProposals({
-      coopname: member.coopname,
+      coopname: config.coopname,
       statuses: data.statuses as unknown as MarketplaceWriteoffProposalStatusEnum[] | undefined,
       pagination: options,
     });
@@ -124,7 +125,7 @@ export class MarketplaceWriteoffResolver {
     @Args('data') data: MarketplaceCreateWriteoffDraftInputDTO
   ): Promise<MarketplaceWriteoffProposalDTO> {
     const draft = await this.service.createDraft({
-      coopname: member.coopname,
+      coopname: config.coopname,
       trigger: 'manual',
       proposed_by_account: member.username,
       cycle_started_at: data.cycle_started_at ? new Date(data.cycle_started_at) : undefined,

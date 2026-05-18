@@ -27,6 +27,10 @@ import {
   MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
   type MarketplaceCanonicalBlockchainPort,
 } from '../../domain/ports/marketplace-canonical-blockchain.port';
+import {
+  MARKETPLACE_ASSET_CONFIG,
+  type MarketplaceAssetConfig,
+} from './marketplace-asset.config';
 import { MarketplaceWriteoffProposalDomainEntity } from '../../domain/entities/marketplace-writeoff-proposal.entity';
 import {
   MarketplaceWriteoffProposalStatuses,
@@ -41,9 +45,6 @@ import {
   MARKETPLACE_WRITEOFF_EXECUTED_EVENT,
   MARKETPLACE_WRITEOFF_REJECTED_EVENT,
 } from '../events/marketplace-notification.events';
-
-const ASSET_DECIMALS = 4;
-const ASSET_SYMBOL = 'RUB';
 
 export interface MarketplaceWriteoffItemInput {
   braname: string;
@@ -89,11 +90,21 @@ export class MarketplaceWriteoffService {
     private readonly inventoryRepo: MarketplaceInventoryDomainRepository,
     @Inject(MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT)
     private readonly chainPort: MarketplaceCanonicalBlockchainPort,
+    @Inject(MARKETPLACE_ASSET_CONFIG)
+    private readonly assetConfig: MarketplaceAssetConfig,
     private readonly documentDomainService: DocumentDomainService,
     private readonly eventBus: EventEmitter2,
     private readonly logger: WinstonLoggerService
   ) {
     this.logger.setContext(MarketplaceWriteoffService.name);
+  }
+
+  private get assetSymbol(): string {
+    return this.assetConfig.symbol;
+  }
+
+  private get assetDecimals(): number {
+    return this.assetConfig.decimals;
   }
 
   // ── Чтение ─────────────────────────────────────────────────────────
@@ -246,9 +257,7 @@ export class MarketplaceWriteoffService {
       coopname: draft.coopname,
       username: input.chairman_account,
       proposal_hash: proposalHash,
-      statement: input.signed_statement.toDocument
-        ? input.signed_statement.toDocument()
-        : (input.signed_statement as unknown),
+      statement: input.signed_statement,
       meta: JSON.stringify({
         registry_id: Cooperative.Registry.MarketplaceWriteoffStatement.registry_id,
         proposal_hash: proposalHash,
@@ -260,9 +269,7 @@ export class MarketplaceWriteoffService {
     // 3. PG: DRAFT → ON_AGENDA (decision_id заполнит реактор-наблюдатель за soviet.decisions)
     const submitted = await this.repo.submitToCouncil(draft.id, {
       proposal_hash: proposalHash,
-      statement_doc: input.signed_statement.toDocument
-        ? input.signed_statement.toDocument()
-        : (input.signed_statement as unknown),
+      statement_doc: input.signed_statement,
       decision_id: null,
       submitted_at: new Date(),
       proposed_by_account: input.chairman_account,
@@ -490,11 +497,11 @@ export class MarketplaceWriteoffService {
   }
 
   formatAsset(value: number): string {
-    return `${this.formatAssetNumber(value)} ${ASSET_SYMBOL}`;
+    return `${this.formatAssetNumber(value)} ${this.assetSymbol}`;
   }
 
   formatAssetNumber(value: number): string {
-    return value.toFixed(ASSET_DECIMALS);
+    return value.toFixed(this.assetDecimals);
   }
 
   private verifyDocumentSignature(document: ISignedDocumentDomainInterface): void {

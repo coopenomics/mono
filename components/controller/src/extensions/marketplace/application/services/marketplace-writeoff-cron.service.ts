@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -7,15 +7,14 @@ import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import config from '~/config/config';
 import { ExtensionDomainService } from '~/domain/extension/services/extension-domain.service';
 import { MarketplaceInventoryEntity } from '../../infrastructure/entities/marketplace-inventory.entity';
-import {
-  MarketplaceWriteoffProposalTriggers,
-  type MarketplaceWriteoffProposalItem,
-} from '../../domain/entities/marketplace-writeoff-proposal.types';
+import { MarketplaceWriteoffProposalTriggers } from '../../domain/entities/marketplace-writeoff-proposal.types';
 import { MarketplaceWriteoffService } from './marketplace-writeoff.service';
+import {
+  MARKETPLACE_ASSET_CONFIG,
+  type MarketplaceAssetConfig,
+} from './marketplace-asset.config';
 import type { IConfig } from '../../types';
 import { MARKETPLACE_WRITEOFF_DRAFT_BUILT_EVENT } from '../events/marketplace-notification.events';
-
-const ASSET_DECIMALS = 4;
 
 /**
  * Story 8.3 (Эпик 8): крон-сканер скоропорта.
@@ -33,6 +32,8 @@ export class MarketplaceWriteoffCronService implements OnModuleInit {
     private readonly inventoryRepo: Repository<MarketplaceInventoryEntity>,
     private readonly writeoffService: MarketplaceWriteoffService,
     private readonly extensionDomainService: ExtensionDomainService,
+    @Inject(MARKETPLACE_ASSET_CONFIG)
+    private readonly assetConfig: MarketplaceAssetConfig,
     private readonly eventBus: EventEmitter2,
     private readonly logger: WinstonLoggerService
   ) {
@@ -105,7 +106,7 @@ export class MarketplaceWriteoffCronService implements OnModuleInit {
         // Stub: до Phase 2 нет attached unit cost — крон ставит 0 placeholder,
         // председатель руками поправит при ревью drafts'а. Это даёт UX —
         // позиции уже видны, остаётся только проставить суммы.
-        amount: (0).toFixed(ASSET_DECIMALS),
+        amount: (0).toFixed(this.assetConfig.decimals),
         reason: this.deriveReason(inv.expiry_date, horizon),
         inventory_id: inv.id,
       })
