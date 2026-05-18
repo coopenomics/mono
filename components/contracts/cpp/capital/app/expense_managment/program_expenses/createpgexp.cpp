@@ -32,4 +32,8 @@ void capital::createpgexp(name coopname, checksum256 expense_hash, name creator,
 
   Capital::Expenses::create_program_expense(coopname, expense_hash, creator,
                                             amount, description, statement);
+
+  // event ridge: создатель расхода и председатель видят появление заявки.
+  require_recipient(creator);
+  require_recipient(coopname);
 }

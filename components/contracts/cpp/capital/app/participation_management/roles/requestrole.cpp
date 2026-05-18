@@ -34,4 +34,8 @@ void capital::requestrole(name coopname, checksum256 request_hash, checksum256 p
     Capital::RoleRequests::RequestType::ROLE,
     statement
   );
+
+  // event ridge: заявитель и мастер компонента видят новую заявку.
+  require_recipient(username);
+  require_recipient(master);
 }

@@ -13,4 +13,8 @@ void capital::declinerole(name coopname, checksum256 request_hash, std::string r
 
   auto req = Capital::RoleRequests::get_role_request_or_fail(coopname, request_hash);
   Capital::RoleRequests::decline(coopname, req.id, reason);
+
+  // event ridge: заявитель и мастер компонента видят отказ.
+  require_recipient(req.username);
+  require_recipient(req.master);
 }

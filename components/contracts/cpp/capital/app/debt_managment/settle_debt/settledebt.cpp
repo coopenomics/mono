@@ -43,4 +43,8 @@ void capital::settledebt(name coopname, checksum256 debt_hash, eosio::asset amou
 
   Capital::Contributors::decrease_debt_amount(coopname, contributor->id, amount);
   Capital::Debts::mark_settled(coopname, exist_debt.id, memo, _capital);
+
+  // event ridge: и должник, и председатель видят факт погашения.
+  require_recipient(exist_debt.username);
+  require_recipient(coopname);
 }

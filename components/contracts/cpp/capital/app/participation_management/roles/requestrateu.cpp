@@ -33,4 +33,8 @@ void capital::requestrateu(name coopname, checksum256 request_hash, checksum256 
     Capital::RoleRequests::RequestType::RATE_UPDATE,
     statement
   );
+
+  // event ridge: заявитель и мастер компонента видят запрос на обновление ставки.
+  require_recipient(username);
+  require_recipient(master);
 }

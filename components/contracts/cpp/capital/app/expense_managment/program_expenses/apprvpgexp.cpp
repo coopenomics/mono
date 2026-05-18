@@ -34,4 +34,8 @@ void capital::apprvpgexp(name coopname, name approver, checksum256 expense_hash,
     expense.expense_statement,
     std::string("")
   );
+
+  // event ridge: автор расхода и approver (председатель/доверенный) уведомляются.
+  require_recipient(expense.username);
+  require_recipient(approver);
 }

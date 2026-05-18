@@ -15,4 +15,8 @@ void capital::declinvite(name coopname, checksum256 request_hash, std::string re
                "Отказаться можно только от инвайта");
 
   Capital::RoleRequests::decline(coopname, req.id, reason);
+
+  // event ridge: кандидат и мастер видят отказ от инвайта.
+  require_recipient(req.username);
+  require_recipient(req.master);
 }

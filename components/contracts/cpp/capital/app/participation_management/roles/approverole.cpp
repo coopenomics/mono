@@ -31,4 +31,8 @@ void capital::approverole(name coopname, checksum256 request_hash,
   Capital::Segments::set_approved_rate(
     coopname, req.project_hash, req.username, approved_rate, approved_hours
   );
+
+  // event ridge: заявитель и мастер компонента видят решение.
+  require_recipient(req.username);
+  require_recipient(req.master);
 }

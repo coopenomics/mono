@@ -31,4 +31,8 @@ void capital::pgexppay(name coopname, checksum256 expense_hash) {
 
   // Запись больше не нужна как ожидающая — закрываем процесс.
   Capital::Expenses::delete_program_expense(coopname, expense.id);
+
+  // event ridge: автор расхода и председатель уведомляются о факте оплаты.
+  require_recipient(expense.username);
+  require_recipient(coopname);
 }

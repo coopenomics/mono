@@ -20,4 +20,8 @@ void capital::acceptinvite(name coopname, checksum256 request_hash) {
   Capital::Segments::set_approved_rate(
     coopname, req.project_hash, req.username, req.rate_per_hour, req.hours_per_day
   );
+
+  // event ridge: кандидат и мастер видят принятие инвайта.
+  require_recipient(req.username);
+  require_recipient(req.master);
 }

@@ -32,4 +32,8 @@ void capital::inviterole(name coopname, checksum256 request_hash, checksum256 pr
     Capital::RoleRequests::RequestType::ROLE,
     statement
   );
+
+  // event ridge: кандидат и мастер видят инвайт.
+  require_recipient(candidate);
+  require_recipient(master);
 }

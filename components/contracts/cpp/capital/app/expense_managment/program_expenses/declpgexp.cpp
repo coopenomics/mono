@@ -30,4 +30,8 @@ void capital::declpgexp(name coopname, checksum256 expense_hash, std::string rea
 
   Capital::State::release_program_expense(coopname, expense.amount);
   Capital::Expenses::delete_program_expense(coopname, expense.id);
+
+  // event ridge: автор расхода и председатель уведомляются об отклонении.
+  require_recipient(expense.username);
+  require_recipient(coopname);
 }

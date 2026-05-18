@@ -30,4 +30,8 @@ void capital::authpgexp(name coopname, checksum256 expense_hash, document2 autho
     Names::Capital::CONFIRM_PROGRAM_EXPENSE_PAYMENT,
     Names::Capital::DECLINE_PROGRAM_EXPENSE
   );
+
+  // event ridge: автор расхода и председатель уведомляются о решении совета.
+  require_recipient(expense.username);
+  require_recipient(coopname);
 }
