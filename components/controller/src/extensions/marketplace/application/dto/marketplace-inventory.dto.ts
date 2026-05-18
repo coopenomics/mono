@@ -130,6 +130,81 @@ export class MarketplaceLabelInventoryResultDTO {
   inventory!: MarketplaceInventoryItemDTO[];
 }
 
+@InputType('MarketplaceLabelShipmentInventoryOverride')
+export class MarketplaceLabelShipmentInventoryOverrideDTO {
+  @Field(() => ID, { description: 'Заказ в составе партии, для которого задаётся отдельная стратегия.' })
+  @IsString()
+  @IsNotEmpty()
+  order_id!: string;
+
+  @Field(() => MarketplaceBarcodeStrategyEnum, {
+    nullable: true,
+    description: 'Стратегия маркировки именно для этого заказа партии.',
+  })
+  @IsOptional()
+  @IsEnum(MarketplaceBarcodeStrategyEnum)
+  strategy?: MarketplaceBarcodeStrategyEnum;
+
+  @Field(() => Int, {
+    nullable: true,
+    description: 'Размер упаковки для стратегии PER_PACKAGE именно для этого заказа.',
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  pack_size?: number;
+}
+
+@InputType('MarketplaceLabelShipmentInventoryInput')
+export class MarketplaceLabelShipmentInventoryInputDTO {
+  @Field(() => ID, { description: 'Партия поставки, для всех заказов которой формируются этикетки.' })
+  @IsString()
+  @IsNotEmpty()
+  shipment_id!: string;
+
+  @Field(() => MarketplaceBarcodeStrategyEnum, {
+    nullable: true,
+    description: 'Стратегия маркировки по умолчанию для всех заказов партии.',
+  })
+  @IsOptional()
+  @IsEnum(MarketplaceBarcodeStrategyEnum)
+  default_strategy?: MarketplaceBarcodeStrategyEnum;
+
+  @Field(() => MarketplaceBarcodeFormatEnum, {
+    nullable: true,
+    description: 'Формат штрих-кода для всей партии. По умолчанию — CODE128.',
+  })
+  @IsOptional()
+  @IsEnum(MarketplaceBarcodeFormatEnum)
+  format?: MarketplaceBarcodeFormatEnum;
+
+  @Field(() => [MarketplaceLabelShipmentInventoryOverrideDTO], {
+    nullable: true,
+    description: 'Перекрытия стратегии для отдельных заказов партии (если состав смешанный).',
+  })
+  @IsOptional()
+  @IsArray()
+  per_order_overrides?: MarketplaceLabelShipmentInventoryOverrideDTO[];
+}
+
+@ObjectType('MarketplaceLabelShipmentInventoryResult')
+export class MarketplaceLabelShipmentInventoryResultDTO {
+  @Field(() => [MarketplaceInventoryItemDTO], {
+    description: 'Сгенерированные наклейки по всем промаркированным заказам партии.',
+  })
+  inventory!: MarketplaceInventoryItemDTO[];
+
+  @Field(() => [ID], {
+    description: 'Идентификаторы заказов, которые были промаркированы этим вызовом.',
+  })
+  labeled_order_ids!: string[];
+
+  @Field(() => [ID], {
+    description: 'Идентификаторы заказов, пропущенных из-за уже существующей маркировки (идемпотентность).',
+  })
+  skipped_order_ids!: string[];
+}
+
 @InputType('MarketplaceListInventoryInput')
 export class MarketplaceListInventoryInputDTO {
   @Field(() => ID, { nullable: true, description: 'Фильтр по заказу.' })

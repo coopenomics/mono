@@ -59,6 +59,29 @@ export interface MarketplaceLabelInventoryResult {
   inventory: MarketplaceInventoryDomainEntity[];
 }
 
+export interface MarketplaceLabelShipmentInventoryOverride {
+  order_id: string;
+  strategy?: MarketplaceBarcodeStrategy;
+  pack_size?: number;
+}
+
+export interface MarketplaceLabelShipmentInventoryInputDto {
+  coopname: string;
+  operator_account: string;
+  shipment_id: string;
+  /** Стратегия по умолчанию для всех Order'ов партии (если override не задан). */
+  default_strategy?: MarketplaceBarcodeStrategy;
+  format?: MarketplaceBarcodeFormat;
+  /** Per-Order перекрытие стратегии (например, смешанные Offer'ы в партии). */
+  per_order_overrides?: MarketplaceLabelShipmentInventoryOverride[];
+}
+
+export interface MarketplaceLabelShipmentInventoryResult {
+  inventory: MarketplaceInventoryDomainEntity[];
+  labeled_order_ids: string[];
+  skipped_order_ids: string[];
+}
+
 /**
  * Story 5.5: маркировка имущества внутренним штрих-кодом оператором КУ.
  *
@@ -97,6 +120,87 @@ export class MarketplaceInventoryLabelService {
     private readonly logger: WinstonLoggerService
   ) {
     this.logger.setContext(MarketplaceInventoryLabelService.name);
+  }
+
+  /**
+   * Массовая маркировка имущества всех Order'ов одной партии поставки.
+   *
+   * Идемпотентна: если часть Order'ов уже промаркированы — они пропускаются
+   * без ошибки; обычный execute() кидает ConflictException, что в batch
+   * сценарии превращает каждый повторный показ страницы во fatal.
+   *
+   * Поведение:
+   *   1. Shipment найден и принадлежит coopname.
+   *   2. Загружаются все Order'ы цикла, фильтруются по delivery_braname партии.
+   *   3. Каждому Order'у применяется execute() — единый источник правил маркировки.
+   *   4. Уже промаркированные пропускаются (idempotency через ConflictException
+   *      от execute(): обрабатывается как «skipped»).
+   *   5. Результат — собранные этикетки всех Order'ов + per-Order статус.
+   */
+  async labelShipment(
+    input: MarketplaceLabelShipmentInventoryInputDto
+  ): Promise<MarketplaceLabelShipmentInventoryResult> {
+    if (!input.shipment_id) {
+      throw new BadRequestException('Не указан shipment_id.');
+    }
+
+    const shipment = await this.shipmentRepo.findById(input.shipment_id);
+    if (!shipment || shipment.coopname !== input.coopname) {
+      throw new NotFoundException('Партия поставки не найдена.');
+    }
+
+    const allCycleOrders = await this.orderRepo.findByCycleId(
+      shipment.coopname,
+      shipment.cycle_id
+    );
+    const shipmentOrders = allCycleOrders.filter(
+      (o) => o.delivery_braname === shipment.braname
+    );
+
+    if (shipmentOrders.length === 0) {
+      throw new BadRequestException(
+        'В партии нет заказов для маркировки — состав партии пуст.'
+      );
+    }
+
+    const overrideByOrder = new Map(
+      (input.per_order_overrides ?? []).map((o) => [
+        o.order_id,
+        { strategy: o.strategy, pack_size: o.pack_size },
+      ])
+    );
+
+    const inventory: MarketplaceInventoryDomainEntity[] = [];
+    const skipped: string[] = [];
+    const labeled: string[] = [];
+
+    for (const order of shipmentOrders) {
+      const override = overrideByOrder.get(order.id);
+      try {
+        const result = await this.execute({
+          coopname: input.coopname,
+          operator_account: input.operator_account,
+          order_id: order.id,
+          strategy: override?.strategy ?? input.default_strategy,
+          format: input.format,
+          pack_size: override?.pack_size,
+        });
+        inventory.push(...result.inventory);
+        labeled.push(order.id);
+      } catch (e) {
+        if (e instanceof ConflictException) {
+          skipped.push(order.id);
+          continue;
+        }
+        throw e;
+      }
+    }
+
+    this.logger.log(
+      `Inventory: партия ${shipment.id} — маркировано ${labeled.length} заказов, пропущено ${skipped.length} (уже промаркированы).`
+    );
+
+    return { inventory, labeled_order_ids: labeled, skipped_order_ids: skipped };
   }
 
   async execute(
