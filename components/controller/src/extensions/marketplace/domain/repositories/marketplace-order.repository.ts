@@ -2,6 +2,7 @@ import type { MarketplaceOrderDomainEntity } from '../entities/marketplace-order
 import type {
   MarketplaceOrderCreateTxSnapshot,
   MarketplaceOrderCycleType,
+  MarketplaceOrderIssuanceFactSnapshot,
   MarketplaceOrderStatus,
 } from '../entities/marketplace-order.types';
 import type {
@@ -113,4 +114,56 @@ export interface MarketplaceOrderDomainRepository
    * у которой истёк `expires_at` без ответа поставщика.
    */
   findByCycleId(coopname: string, cycle_id: string): Promise<MarketplaceOrderDomainEntity[]>;
+
+  // ── Story 6.1 / 6.3: выдача пайщику на КУ ─────────────────────────
+
+  /**
+   * Story 6.1: применяет первую подпись АПП-выдачи (председатель КУ открыл
+   * выдачу). Переводит Order ACCEPTED_TO_COOP → READY_TO_RECEIVE и
+   * заполняет `current_warehouse_braname` (= delivery_braname),
+   * `chairman_signed_at`, `chairman_account`, `signiss1_tx_hash`.
+   */
+  applyIssuanceOpened(
+    id: string,
+    patch: {
+      chairman_account: string;
+      signiss1_tx_hash: string;
+      current_warehouse_braname: string;
+    }
+  ): Promise<MarketplaceOrderDomainEntity>;
+
+  /**
+   * Story 6.3: применяет финальную подпись АПП-выдачи (заказчик получил
+   * имущество). Переводит Order READY_TO_RECEIVE → RECEIVED и заполняет
+   * `issuance_fact`, `orderer_signed_at`, `delivery_signer_account`,
+   * `signiss2_tx_hash`, `warranty_until` (если warranty_period_secs > 0).
+   */
+  applyIssuanceFinalized(
+    id: string,
+    patch: {
+      delivery_signer_account: string;
+      signiss2_tx_hash: string;
+      issuance_fact: MarketplaceOrderIssuanceFactSnapshot;
+      warranty_until: Date | null;
+    }
+  ): Promise<MarketplaceOrderDomainEntity>;
+
+  /**
+   * Story 6.1: ленты выдачи для operator-стола. Возвращает Order'ы в
+   * статусах ACCEPTED_TO_COOP (ожидают открытия) и READY_TO_RECEIVE
+   * (ожидают финальной подписи заказчика) по конкретному КУ выдачи.
+   */
+  listForIssuanceByBraname(
+    coopname: string,
+    delivery_braname: string
+  ): Promise<MarketplaceOrderDomainEntity[]>;
+
+  /**
+   * Story 6.3: ленты «к получению» для orderer-стола. Возвращает Order'ы
+   * заказчика в статусе READY_TO_RECEIVE.
+   */
+  listReadyToReceiveByOrderer(
+    coopname: string,
+    orderer_account: string
+  ): Promise<MarketplaceOrderDomainEntity[]>;
 }

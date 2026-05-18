@@ -61,6 +61,20 @@ export interface MarketplaceOrderCreateTxSnapshot {
   signed_at: string;
 }
 
+/**
+ * Снапшот фактической выдачи имущества пайщику после `signiss2`. Хранит
+ * сверку «факт vs заказ» и итоговую корреспонденцию через транзит 91 для
+ * аудита и UI карточки заказа в статусе RECEIVED.
+ */
+export interface MarketplaceOrderIssuanceFactSnapshot {
+  /** Фактически выданное количество единиц. */
+  actual_quantity: number;
+  /** Фактическая стоимость выдачи (= actual_quantity × unit_price). */
+  fact_cost: string;
+  /** Совпадает ли факт с заказом: equal / less / more (см. FR23). */
+  diff_state: 'equal' | 'less' | 'more';
+}
+
 export interface MarketplaceOrderProps {
   id: string;
   coopname: string;
@@ -84,6 +98,22 @@ export interface MarketplaceOrderProps {
   received_at: Date | null;
   cancelled_at: Date | null;
   create_tx: MarketplaceOrderCreateTxSnapshot | null;
+  /** ПВЗ, на котором имущество фактически лежит к моменту выдачи. */
+  current_warehouse_braname: string | null;
+  /** Снапшот фактической выдачи — заполняется в момент `signiss2`. */
+  issuance_fact: MarketplaceOrderIssuanceFactSnapshot | null;
+  /** Время первой подписи (председатель КУ выдачи открыл выдачу — `signiss1`). */
+  chairman_signed_at: Date | null;
+  /** Backend account, открывший выдачу первой подписью. */
+  chairman_account: string | null;
+  /** tx_hash on-chain транзакции `signiss1`. */
+  signiss1_tx_hash: string | null;
+  /** Время финальной подписи заказчика (получение имущества — `signiss2`). */
+  orderer_signed_at: Date | null;
+  /** Backend account стороны кооператива при `signiss2` (председатель/доверенный). */
+  delivery_signer_account: string | null;
+  /** tx_hash on-chain транзакции `signiss2`. */
+  signiss2_tx_hash: string | null;
   on_chain_id: string | null;
   on_chain_block_num: number | null;
   on_chain_present: boolean;

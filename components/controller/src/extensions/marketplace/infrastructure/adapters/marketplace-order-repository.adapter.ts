@@ -7,7 +7,10 @@ import type {
   MarketplaceOrderDomainRepository,
   MarketplaceOrderListFilter,
 } from '../../domain/repositories/marketplace-order.repository';
-import type { MarketplaceOrderStatus } from '../../domain/entities/marketplace-order.types';
+import type {
+  MarketplaceOrderIssuanceFactSnapshot,
+  MarketplaceOrderStatus,
+} from '../../domain/entities/marketplace-order.types';
 import type {
   PaginationInputDomainInterface,
   PaginationResultDomainInterface,
@@ -262,6 +265,87 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
       .delete()
       .where('on_chain_block_num > :bn', { bn: blockNum })
       .execute();
+  }
+
+  // ── Story 6.1 / 6.3: выдача пайщику ──────────────────────────────
+
+  async applyIssuanceOpened(
+    id: string,
+    patch: {
+      chairman_account: string;
+      signiss1_tx_hash: string;
+      current_warehouse_braname: string;
+    }
+  ): Promise<MarketplaceOrderDomainEntity> {
+    await this.repo.update(
+      { id },
+      {
+        status: 'READY_TO_RECEIVE',
+        chairman_signed_at: new Date(),
+        chairman_account: patch.chairman_account,
+        signiss1_tx_hash: patch.signiss1_tx_hash,
+        current_warehouse_braname: patch.current_warehouse_braname,
+      } as Record<string, unknown>
+    );
+    const row = await this.repo.findOneOrFail({ where: { id } });
+    return this.mapper.toDomain(row);
+  }
+
+  async applyIssuanceFinalized(
+    id: string,
+    patch: {
+      delivery_signer_account: string;
+      signiss2_tx_hash: string;
+      issuance_fact: MarketplaceOrderIssuanceFactSnapshot;
+      warranty_until: Date | null;
+    }
+  ): Promise<MarketplaceOrderDomainEntity> {
+    await this.repo.update(
+      { id },
+      {
+        status: 'RECEIVED',
+        received_at: new Date(),
+        orderer_signed_at: new Date(),
+        delivery_signer_account: patch.delivery_signer_account,
+        signiss2_tx_hash: patch.signiss2_tx_hash,
+        issuance_fact: patch.issuance_fact,
+        warranty_until: patch.warranty_until,
+      } as Record<string, unknown>
+    );
+    const row = await this.repo.findOneOrFail({ where: { id } });
+    return this.mapper.toDomain(row);
+  }
+
+  async listForIssuanceByBraname(
+    coopname: string,
+    delivery_braname: string
+  ): Promise<MarketplaceOrderDomainEntity[]> {
+    const rows = await this.repo
+      .createQueryBuilder('o')
+      .where('o.coopname = :coop AND o.delivery_braname = :br AND o.status IN (:...sts)', {
+        coop: coopname,
+        br: delivery_braname,
+        sts: ['ACCEPTED_TO_COOP', 'READY_TO_RECEIVE'],
+      })
+      .orderBy('o.accepted_at', 'ASC')
+      .getMany();
+    return rows.map((r) => this.mapper.toDomain(r));
+  }
+
+  async listReadyToReceiveByOrderer(
+    coopname: string,
+    orderer_account: string
+  ): Promise<MarketplaceOrderDomainEntity[]> {
+    const rows = await this.repo
+      .createQueryBuilder('o')
+      .where('o.coopname = :coop AND o.orderer_account = :u AND o.status = :st', {
+        coop: coopname,
+        u: orderer_account,
+        st: 'READY_TO_RECEIVE',
+      })
+      .orderBy('o.accepted_at', 'ASC')
+      .getMany();
+    return rows.map((r) => this.mapper.toDomain(r));
   }
 
   // ── private ──

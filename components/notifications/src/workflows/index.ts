@@ -27,6 +27,7 @@ import { workflow as marketplaceAplSupplierSignRequestWorkflow } from './marketp
 import { workflow as marketplaceCashierNewPaymentWorkflow } from './marketplace-cashier-new-payment';
 import { workflow as marketplaceSupplierPaymentConfirmedWorkflow } from './marketplace-supplier-payment-confirmed';
 import { workflow as marketplaceSupplierPaymentDeclinedWorkflow } from './marketplace-supplier-payment-declined';
+import { workflow as marketplaceOrderReadyWorkflow } from './marketplace-order-ready';
 
 // Импортируем все воркфлоу
 export * as Welcome from './welcome';
@@ -56,6 +57,7 @@ export * as MarketplaceAplSupplierSignRequest from './marketplace-apl-supplier-s
 export * as MarketplaceCashierNewPayment from './marketplace-cashier-new-payment';
 export * as MarketplaceSupplierPaymentConfirmed from './marketplace-supplier-payment-confirmed';
 export * as MarketplaceSupplierPaymentDeclined from './marketplace-supplier-payment-declined';
+export * as MarketplaceOrderReady from './marketplace-order-ready';
 
 // Массив всех воркфлоу для автоматической регистрации
 export const allWorkflows: WorkflowDefinition[] = [
@@ -86,6 +88,7 @@ export const allWorkflows: WorkflowDefinition[] = [
   marketplaceCashierNewPaymentWorkflow,
   marketplaceSupplierPaymentConfirmedWorkflow,
   marketplaceSupplierPaymentDeclinedWorkflow,
+  marketplaceOrderReadyWorkflow,
 ];
 
 // Экспортируем воркфлоу по ID для удобного доступа
