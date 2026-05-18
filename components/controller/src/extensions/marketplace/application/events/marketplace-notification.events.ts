@@ -125,3 +125,75 @@ export interface MarketplaceReturnClaimFinalizedEvent {
     tx_hash: string;
   } | null;
 }
+
+// ── Эпик 8: списание скоропорта ─────────────────────────────────────
+
+/**
+ * Cron / админ сформировал DRAFT-проект списания — председатель приглашён
+ * проверить корзину и подписать Заявление о списании (1106).
+ */
+export const MARKETPLACE_WRITEOFF_DRAFT_BUILT_EVENT = 'marketplace.writeoff.chairman.draftBuilt';
+
+/**
+ * Председатель подписал Заявление и отправил проект в совет —
+ * `propwroff` + `soviet::createagenda(mktwroff)` отработали. Совет
+ * получает приглашение проголосовать.
+ */
+export const MARKETPLACE_WRITEOFF_PROPOSED_EVENT = 'marketplace.writeoff.council.proposed';
+
+/**
+ * Совет авторизовал Протокол списания (1105) — председатель и общий
+ * админ узнают, что backend запускает списание per-item.
+ */
+export const MARKETPLACE_WRITEOFF_AUTHORIZED_EVENT = 'marketplace.writeoff.admin.authorized';
+
+/**
+ * Все позиции проекта успешно списаны через atomic execwroff per-item —
+ * проект финализирован.
+ */
+export const MARKETPLACE_WRITEOFF_EXECUTED_EVENT = 'marketplace.writeoff.admin.executed';
+
+/**
+ * Совет отказал в проекте списания (или срок повестки истёк) — общий
+ * админ получает причину отказа.
+ */
+export const MARKETPLACE_WRITEOFF_REJECTED_EVENT = 'marketplace.writeoff.admin.rejected';
+
+export interface MarketplaceWriteoffDraftBuiltPayload {
+  coopname: string;
+  proposal_id: string;
+  trigger: 'cron' | 'manual';
+  items_count: number;
+  total_amount: string;
+}
+
+export interface MarketplaceWriteoffProposedPayload {
+  coopname: string;
+  proposal_id: string;
+  proposal_hash: string;
+  items_count: number;
+  total_amount: string;
+}
+
+export interface MarketplaceWriteoffAuthorizedPayload {
+  coopname: string;
+  proposal_id: string;
+  proposal_hash: string;
+  items_count: number;
+  total_amount: string;
+}
+
+export interface MarketplaceWriteoffExecutedPayload {
+  coopname: string;
+  proposal_id: string;
+  proposal_hash: string;
+  items_count: number;
+  total_amount: string;
+}
+
+export interface MarketplaceWriteoffRejectedPayload {
+  coopname: string;
+  proposal_id: string;
+  proposal_hash: string;
+  reason: string;
+}

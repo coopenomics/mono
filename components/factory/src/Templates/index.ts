@@ -75,6 +75,10 @@ export * as MarketplaceTransportNote from './1103.MarketplaceTransportNote'
 // Marketplace (Стол заказов) — Эпик 7: гарантийный возврат
 export * as MarketplaceReturnStatement from './1104.MarketplaceReturnStatement'
 
+// Marketplace (Стол заказов) — Эпик 8: списание скоропорта (заявление + протокол)
+export * as MarketplaceWriteoffStatement from './1106.MarketplaceWriteoffStatement'
+export * as MarketplaceWriteoffProtocol from './1105.MarketplaceWriteoffProtocol'
+
 export * as AnnualGeneralMeetingAgenda from './300.AnnualGeneralMeetingAgenda'
 export * as AnnualGeneralMeetingSovietDecision from './301.AnnualGeneralMeetingSovietDecision'
 export * as AnnualGeneralMeetingNotification from './302.AnnualGeneralMeetingNotification'

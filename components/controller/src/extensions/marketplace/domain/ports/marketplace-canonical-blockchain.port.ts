@@ -212,6 +212,49 @@ export interface MarketplaceCanonicalBlockchainPort {
    * авторизацию `signer` для `braname` + `reason.size() ∈ (0, 500]`.
    */
   rejRetrn(data: MarketContract.Actions.RejRetrn.IRejRetrn): Promise<TransactResult>;
+
+  /**
+   * Story 8.1 / FR37: backend вносит проект решения совета о списании
+   * скоропорта. Без ledger2-операций — создаётся on-chain wroffprops в
+   * статусе `proposed`. Сразу следующим действием backend вызывает
+   * `soviet::createagenda(type=mktwroff, callback_contract=marketplace,
+   * confirm_callback=onmktwoauth, decline_callback=onmktwodecl)` —
+   * проект становится повесткой совета.
+   *
+   * Авторизация — кооператив (`require_auth(coopname)`).
+   */
+  propWroff(data: MarketContract.Actions.PropWroff.IPropWroff): Promise<TransactResult>;
+
+  /**
+   * Story 8.4: backend исполняет одну позицию авторизованного проекта
+   * списания. Per-item atomic-пара `o.mkt.wroff` (Дт 91 / Кт 10) +
+   * `o.mkt.wroff2` (Дт 86 / Кт 91); когда последняя позиция исполнена,
+   * статус AUTHORIZED → EXECUTED. Backend проходит цикл по
+   * `items[*].executed === false`.
+   *
+   * Авторизация — кооператив (`require_auth(coopname)`); C++ проверяет
+   * статус проекта (AUTHORIZED) и авторизацию `signer` для
+   * `items[item_index].braname`.
+   */
+  execWroff(data: MarketContract.Actions.ExecWroff.IExecWroff): Promise<TransactResult>;
+
+  /**
+   * Story 8.4: backend выносит проект списания на повестку совета через
+   * canonical `soviet::createagenda`. Statement — подписанное Заявление
+   * председателя (registry 1106); type = `mktwroff` (см. consts
+   * `_marketplace_writeoff_action`); callback_contract = `marketplace`;
+   * confirm_callback = `onmktwoauth`; decline_callback = `onmktwodecl`.
+   *
+   * Авторизация — кооператив (`require_auth(coopname)`); soviet::create
+   * проверяет, что `marketplace` ∈ contracts_whitelist.
+   */
+  createWriteoffAgenda(input: {
+    coopname: string;
+    username: string;
+    proposal_hash: string;
+    statement: unknown;
+    meta: string;
+  }): Promise<TransactResult>;
 }
 
 export const MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT = Symbol('MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT');

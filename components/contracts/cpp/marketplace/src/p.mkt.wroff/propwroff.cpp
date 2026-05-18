@@ -1,12 +1,15 @@
 /**
- * @brief Backend / админ выносит проект списания скоропорта на повестку
- * совета (Story 8.1, p.mkt.wroff).
+ * @brief Backend выносит проект списания скоропорта на повестку совета
+ * (Story 8.1, p.mkt.wroff).
  *
- * Без ledger2-операций. Создаётся writeoff_proposal в статусе proposed
- * (= "draft" в YAML); total_amount = Σ items.amount; все items создаются
- * с executed=false. Списание выполняется отдельно — `execwroff(proposal_hash,
- * item_index, protocol)` исполняет одну позицию за вызов; backend проходит
- * циклом по items, что снимает ограничение на размер протокола.
+ * Без ledger2-операций. Создаётся writeoff_proposal в статусе proposed;
+ * total_amount = Σ items.amount; все items создаются с executed=false.
+ * Сразу после этого action'а backend в той же транзакции вызывает
+ * `soviet::createagenda(type=mktwroff, callback_contract=_marketplace,
+ * confirm_callback=onmktwoauth, decline_callback=onmktwodecl, hash=
+ * proposal_hash, statement=signed_writeoff_statement)`. Списание
+ * выполняется per-item через `execwroff` только после callback'а
+ * `onmktwoauth` (status proposed → authorized).
  *
  * Guards:
  *  - actor backend (auth coopname).

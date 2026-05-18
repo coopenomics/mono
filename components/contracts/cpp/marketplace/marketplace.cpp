@@ -26,10 +26,14 @@
 #include "src/p.mkt.return/accretrn.cpp"
 #include "src/p.mkt.return/rejretrn.cpp"
 
-// ── p.mkt.wroff (3 actions) ───── Stories Эпика 8 ──────────────────────
+// ── p.mkt.wroff (4 actions) ───── Stories Эпика 8 ──────────────────────
+// Канонический паттерн «решение совета»: propwroff (admin) → soviet::createagenda
+// → onmktwoauth / onmktwodecl (callback от soviet после голосования) → execwroff
+// per-item (backend цикл).
 #include "src/p.mkt.wroff/propwroff.cpp"
+#include "src/p.mkt.wroff/onmktwoauth.cpp"
+#include "src/p.mkt.wroff/onmktwodecl.cpp"
 #include "src/p.mkt.wroff/execwroff.cpp"
-#include "src/p.mkt.wroff/declwroff.cpp"
 
 [[eosio::action]] void marketplace::migrate() {
   // Donor-таблиц нет (AR30 — donor-actions удалены вместе с requests/segments/

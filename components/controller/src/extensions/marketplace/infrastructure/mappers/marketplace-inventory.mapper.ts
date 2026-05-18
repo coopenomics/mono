@@ -19,6 +19,7 @@ export class MarketplaceInventoryMapper {
       orderer_account_snapshot: row.orderer_account_snapshot,
       labeled_at: row.labeled_at,
       labeled_by_operator_account: row.labeled_by_operator_account,
+      expiry_date: row.expiry_date,
       created_at: row.created_at,
       updated_at: row.updated_at,
     });

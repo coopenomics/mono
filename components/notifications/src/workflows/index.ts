@@ -31,6 +31,11 @@ import { workflow as marketplaceOrderReadyWorkflow } from './marketplace-order-r
 import { workflow as marketplaceReturnClaimSubmittedWorkflow } from './marketplace-return-claim-submitted';
 import { workflow as marketplaceReturnClaimDecidedWorkflow } from './marketplace-return-claim-decided';
 import { workflow as marketplaceReturnClaimFinalizedWorkflow } from './marketplace-return-claim-finalized';
+import { workflow as marketplaceWriteoffDraftBuiltWorkflow } from './marketplace-writeoff-draft-built';
+import { workflow as marketplaceWriteoffProposedWorkflow } from './marketplace-writeoff-proposed';
+import { workflow as marketplaceWriteoffAuthorizedWorkflow } from './marketplace-writeoff-authorized';
+import { workflow as marketplaceWriteoffExecutedWorkflow } from './marketplace-writeoff-executed';
+import { workflow as marketplaceWriteoffRejectedWorkflow } from './marketplace-writeoff-rejected';
 
 // Импортируем все воркфлоу
 export * as Welcome from './welcome';
@@ -64,6 +69,11 @@ export * as MarketplaceOrderReady from './marketplace-order-ready';
 export * as MarketplaceReturnClaimSubmitted from './marketplace-return-claim-submitted';
 export * as MarketplaceReturnClaimDecided from './marketplace-return-claim-decided';
 export * as MarketplaceReturnClaimFinalized from './marketplace-return-claim-finalized';
+export * as MarketplaceWriteoffDraftBuilt from './marketplace-writeoff-draft-built';
+export * as MarketplaceWriteoffProposed from './marketplace-writeoff-proposed';
+export * as MarketplaceWriteoffAuthorized from './marketplace-writeoff-authorized';
+export * as MarketplaceWriteoffExecuted from './marketplace-writeoff-executed';
+export * as MarketplaceWriteoffRejected from './marketplace-writeoff-rejected';
 
 // Массив всех воркфлоу для автоматической регистрации
 export const allWorkflows: WorkflowDefinition[] = [
@@ -98,6 +108,11 @@ export const allWorkflows: WorkflowDefinition[] = [
   marketplaceReturnClaimSubmittedWorkflow,
   marketplaceReturnClaimDecidedWorkflow,
   marketplaceReturnClaimFinalizedWorkflow,
+  marketplaceWriteoffDraftBuiltWorkflow,
+  marketplaceWriteoffProposedWorkflow,
+  marketplaceWriteoffAuthorizedWorkflow,
+  marketplaceWriteoffExecutedWorkflow,
+  marketplaceWriteoffRejectedWorkflow,
 ];
 
 // Экспортируем воркфлоу по ID для удобного доступа

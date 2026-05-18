@@ -33,6 +33,7 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
       orderer_account_snapshot: input.orderer_account_snapshot,
       labeled_at: input.labeled_at,
       labeled_by_operator_account: input.labeled_by_operator_account,
+      expiry_date: input.expiry_date ?? null,
     });
     const saved = await this.repo.save(row);
     return this.mapper.toDomain(saved);

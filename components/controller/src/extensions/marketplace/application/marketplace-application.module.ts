@@ -106,6 +106,13 @@ import {
 import { MarketplaceReturnClaimImagesService } from './services/marketplace-return-claim-images.service';
 import { MarketplaceReturnClaimResolver } from './resolvers/marketplace-return-claim.resolver';
 import { FileStorageInfrastructureModule } from '~/infrastructure/file-storage';
+// Эпик 8 — списание скоропорта через решение совета
+import { MarketplaceWriteoffService } from './services/marketplace-writeoff.service';
+import { MarketplaceWriteoffCronService } from './services/marketplace-writeoff-cron.service';
+import { MarketplaceWriteoffResolver } from './resolvers/marketplace-writeoff.resolver';
+import { ExtensionDomainModule } from '~/domain/extension/extension-domain.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { MarketplaceInventoryEntity } from '../infrastructure/entities/marketplace-inventory.entity';
 
 /**
  * Модуль приложения marketplace
@@ -131,6 +138,10 @@ import { FileStorageInfrastructureModule } from '~/infrastructure/file-storage';
     // на MarketplaceReturnClaimImagesService — модуль `forFeature` читает
     // метадату и провайдит ему `InterFileStorageBucket`.
     FileStorageInfrastructureModule.forFeature([MarketplaceReturnClaimImagesService]),
+    // Эпик 8: writeoff cron сканер должен видеть marketplace_inventory
+    TypeOrmModule.forFeature([MarketplaceInventoryEntity], 'marketplace'),
+    // Доступ к ExtensionDomainService для чтения writeoff-конфига расширения
+    ExtensionDomainModule,
   ],
   providers: [
     // GraphQL резолверы
@@ -282,6 +293,10 @@ import { FileStorageInfrastructureModule } from '~/infrastructure/file-storage';
     },
     MarketplaceReturnClaimService,
     MarketplaceReturnClaimImagesService,
+    // Эпик 8 — списание скоропорта
+    MarketplaceWriteoffService,
+    MarketplaceWriteoffCronService,
+    MarketplaceWriteoffResolver,
   ],
   exports: [
     // Экспортируем сервисы для использования в других модулях
@@ -362,6 +377,9 @@ import { FileStorageInfrastructureModule } from '~/infrastructure/file-storage';
     // Эпик 7
     MARKETPLACE_RETURN_CLAIM_SERVICE,
     MarketplaceReturnClaimService,
+    // Эпик 8
+    MarketplaceWriteoffService,
+    MarketplaceWriteoffResolver,
   ],
 })
 export class MarketplaceExtensionApplicationModule {}

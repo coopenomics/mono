@@ -8,6 +8,7 @@ import { OperatorIssuancePage } from 'src/pages/Marketplace/OperatorIssuance'
 import { OrdererReadyToReceivePage } from 'src/pages/Marketplace/OrdererReadyToReceive'
 import { OrdererReturnClaimsPage } from 'src/pages/Marketplace/OrdererReturnClaims'
 import { OperatorReturnClaimsPage } from 'src/pages/Marketplace/OperatorReturnClaims'
+import { AdminWriteoffsPage } from 'src/pages/Marketplace/AdminWriteoffs'
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace'
 import { agreementsBase } from 'src/shared/lib/consts/workspaces'
 
@@ -92,6 +93,25 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               title: 'Гарантийные возвраты',
               icon: 'fa-solid fa-rotate-left',
               roles: [],
+              requiresAuth: true,
+              agreements: agreementsBase,
+            },
+          },
+          {
+            // Эпик 8 / Story 8.7: admin-стол списания скоропорта. Председатель
+            // или общий администратор собирает черновик проекта списания
+            // (вручную или из крон-предложения), подписывает Заявление 1106
+            // и отправляет проект в совет — `propwroff` + `soviet::createagenda
+            // (type=mktwroff)`. Совет голосует через стандартный sov.decision
+            // flow и подписывает Протокол 1105; backend сам циклом проводит
+            // per-item списания через `execwroff` (пары o.mkt.wroff + o.mkt.wroff2).
+            path: 'writeoffs',
+            name: 'marketplace-writeoffs',
+            component: markRaw(AdminWriteoffsPage),
+            meta: {
+              title: 'Списания скоропорта',
+              icon: 'fa-solid fa-trash-can-arrow-up',
+              roles: ['chairman', 'member'],
               requiresAuth: true,
               agreements: agreementsBase,
             },

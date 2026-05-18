@@ -16,6 +16,7 @@ import { marketplaceBootstrapV2Migration } from '~/extensions/marketplace/migrat
 import { marketplaceBootstrapV3Migration } from '~/extensions/marketplace/migrations/marketplace-bootstrap-v3.migration';
 import { marketplaceBootstrapV4Migration } from '~/extensions/marketplace/migrations/marketplace-bootstrap-v4.migration';
 import { marketplaceBootstrapV5Migration } from '~/extensions/marketplace/migrations/marketplace-bootstrap-v5.migration';
+import { marketplaceBootstrapV6Migration } from '~/extensions/marketplace/migrations/marketplace-bootstrap-v6.migration';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 
 import { ExtensionsModule } from '~/extensions/extensions.module';
@@ -64,6 +65,7 @@ export class ExtensionDomainModule {
     this.migrationService.registerMigration(marketplaceBootstrapV3Migration);
     this.migrationService.registerMigration(marketplaceBootstrapV4Migration);
     this.migrationService.registerMigration(marketplaceBootstrapV5Migration);
+    this.migrationService.registerMigration(marketplaceBootstrapV6Migration);
 
     // Устанавливаем расширения по умолчанию
     await this.extensionInteractor.installDefaultApps();

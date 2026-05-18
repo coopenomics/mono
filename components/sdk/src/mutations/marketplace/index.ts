@@ -34,3 +34,11 @@ export * as RejectReturnRemote from './rejectReturnRemote'
 export * as AcceptReturnAtVisit from './acceptReturnAtVisit'
 /** Эпик 7: председатель КУ отказывает в гарантийном возврате на очном осмотре */
 export * as RejectReturnAtVisit from './rejectReturnAtVisit'
+/** Эпик 8: общий администратор создаёт черновик проекта списания скоропорта */
+export * as CreateWriteoffDraft from './createWriteoffDraft'
+/** Эпик 8: общий администратор изменяет состав черновика проекта списания */
+export * as UpdateWriteoffDraft from './updateWriteoffDraft'
+/** Эпик 8: удаление черновика проекта списания до отправки в совет */
+export * as CancelWriteoffDraft from './cancelWriteoffDraft'
+/** Эпик 8: председатель отправляет черновик с подписанным Заявлением 1106 в совет */
+export * as SubmitWriteoffDraft from './submitWriteoffDraft'

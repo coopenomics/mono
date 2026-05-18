@@ -26,6 +26,8 @@ import type {
 @Index(['coopname', 'order_id', 'status'])
 @Index(['coopname', 'braname', 'status'])
 @Index(['coopname', 'shipment_id'])
+// Story 8.3: cron сканирует позиции LABELED с приближающимся expiry_date.
+@Index('IDX_marketplace_inventory_expiry_scan', ['coopname', 'status', 'expiry_date'])
 export class MarketplaceInventoryEntity {
   @PrimaryGeneratedColumn('uuid')
   public id!: string;
@@ -65,6 +67,13 @@ export class MarketplaceInventoryEntity {
 
   @Column({ type: 'varchar', length: 13 })
   public labeled_by_operator_account!: string;
+
+  /**
+   * Story 8.3: срок годности (labeled_at + Offer.warranty_days * 86400);
+   * nullable для бессрочных Offer'ов и legacy-записей без warranty_days.
+   */
+  @Column({ type: 'timestamptz', nullable: true })
+  public expiry_date!: Date | null;
 
   @CreateDateColumn({ type: 'timestamptz' })
   public created_at!: Date;

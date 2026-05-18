@@ -75,16 +75,23 @@ export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, str
     Vitrine: ['manage', 'read'],
     Warehouse: ['read:all'],
     Extension: ['configure'],
+    // Эпик 8: общий администратор формирует и редактирует DRAFT-проект
+    // списания, подписывает Заявление 1106 и отправляет проект в совет.
+    Writeoff: ['manage_draft', 'propose', 'read:all'],
   },
   board_readonly: {
     Warehouse: ['read:all'],
     Order: ['read:all'],
     Offer: ['read:all'],
     Agenda: ['read'],
+    Writeoff: ['read:all'],
   },
   board: {
     Agenda: ['manage'],
-    Writeoff: ['decide'],
+    // Эпик 8: совет — авторизация Протокола 1105 идёт через стандартный
+    // sov.decision flow (votefor / authorize), `decide` остаётся как
+    // capability-маркер для UI «может ли роль видеть и принимать решение».
+    Writeoff: ['decide', 'read:all'],
     Decision: ['create', 'sign'],
   },
 };

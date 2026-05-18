@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { MarketContract } from 'cooptypes';
+import { MarketContract, SovietContract } from 'cooptypes';
 import type { TransactResult } from '@wharfkit/session';
 import { BlockchainService } from '~/infrastructure/blockchain/blockchain.service';
 import {
@@ -327,6 +327,75 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
       name: MarketContract.Actions.RejRetrn.actionName,
       authorization: [{ actor: data.coopname, permission: 'active' }],
       data,
+    });
+  }
+
+  // ── Эпик 8 / p.mkt.wroff ───────────────────────────────────────────
+
+  async propWroff(data: MarketContract.Actions.PropWroff.IPropWroff): Promise<TransactResult> {
+    const wif = await this.vaultDomainService.getWif(data.coopname);
+    if (!wif) {
+      throw new HttpApiError(
+        httpStatus.BAD_GATEWAY,
+        'Не найден приватный ключ кооператива для submit propwroff'
+      );
+    }
+    this.blockchainService.initialize(data.coopname, wif);
+    return await this.blockchainService.transact({
+      account: MarketContract.contractName.production,
+      name: MarketContract.Actions.PropWroff.actionName,
+      authorization: [{ actor: data.coopname, permission: 'active' }],
+      data,
+    });
+  }
+
+  async execWroff(data: MarketContract.Actions.ExecWroff.IExecWroff): Promise<TransactResult> {
+    const wif = await this.vaultDomainService.getWif(data.coopname);
+    if (!wif) {
+      throw new HttpApiError(
+        httpStatus.BAD_GATEWAY,
+        'Не найден приватный ключ кооператива для submit execwroff'
+      );
+    }
+    this.blockchainService.initialize(data.coopname, wif);
+    return await this.blockchainService.transact({
+      account: MarketContract.contractName.production,
+      name: MarketContract.Actions.ExecWroff.actionName,
+      authorization: [{ actor: data.coopname, permission: 'active' }],
+      data,
+    });
+  }
+
+  async createWriteoffAgenda(input: {
+    coopname: string;
+    username: string;
+    proposal_hash: string;
+    statement: unknown;
+    meta: string;
+  }): Promise<TransactResult> {
+    const wif = await this.vaultDomainService.getWif(input.coopname);
+    if (!wif) {
+      throw new HttpApiError(
+        httpStatus.BAD_GATEWAY,
+        'Не найден приватный ключ кооператива для submit createagenda(mktwroff)'
+      );
+    }
+    this.blockchainService.initialize(input.coopname, wif);
+    return await this.blockchainService.transact({
+      account: SovietContract.contractName.production,
+      name: SovietContract.Actions.Decisions.CreateAgenda.actionName,
+      authorization: [{ actor: input.coopname, permission: 'active' }],
+      data: {
+        coopname: input.coopname,
+        username: input.username,
+        type: 'mktwroff',
+        hash: input.proposal_hash,
+        callback_contract: MarketContract.contractName.production,
+        confirm_callback: 'onmktwoauth',
+        decline_callback: 'onmktwodecl',
+        statement: input.statement,
+        meta: input.meta,
+      },
     });
   }
 }
