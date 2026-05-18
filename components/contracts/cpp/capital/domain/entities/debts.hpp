@@ -15,10 +15,11 @@ namespace Capital::Debts {
 
  */
 namespace Status {
-  constexpr name CREATED = "created"_n;      ///< Долг создан
-  constexpr name APPROVED = "approved"_n;    ///< Долг одобрен
-  constexpr name AUTHORIZED = "authorized"_n; ///< Долг авторизован советом
-  constexpr name PAID = "paid"_n;            ///< Долг выплачен (готов к использованию)
+  constexpr name CREATED = "created"_n;        ///< Долг создан
+  constexpr name APPROVED = "approved"_n;      ///< Долг одобрен председателем
+  constexpr name AUTHORIZED = "authorized"_n;  ///< Долг авторизован советом, ожидает повторной отправки на оплату
+  constexpr name PAY_PENDING = "paypending"_n; ///< Долг отправлен в gateway на оплату (исходящий платёж создан, ждём debtpaycnfrm/debtpaydcln)
+  constexpr name PAID = "paid"_n;              ///< Долг выплачен пайщику, активный (ждёт погашения)
 }
 
 /**
@@ -42,7 +43,8 @@ struct [[eosio::table, eosio::contract(CAPITAL)]] debt {
   document2        approved_statement;        ///< Одобренное заявление
   document2        authorization;             ///< Авторизация совета
   std::string      memo;                      ///< Примечание
-  
+  std::string      last_pay_error;            ///< Последняя ошибка outpay от gateway (заполняется debtpaydcln; пусто = успех или ещё не отправлен)
+
   uint64_t primary_key() const { return id; } ///< Первичный ключ (1)
 
   uint64_t by_username() const { return username.value; } ///< Индекс по имени пользователя (2)
@@ -142,6 +144,56 @@ inline void update_debt_status(
     if (!memo.empty()) {
       d.memo = memo;
     }
+  });
+}
+
+/**
+ * @brief Переводит долг в PAY_PENDING — фиксирует решение совета и факт отправки в gateway.
+ * Допустимо из APPROVED (первая отправка после авторизации совета) или из AUTHORIZED
+ * (повторная отправка после предыдущего отказа gateway). Очищает last_pay_error.
+ */
+inline void start_pay(
+  eosio::name coopname,
+  uint64_t debt_id,
+  const document2 &authorization,
+  eosio::name payer = name{}
+) {
+  if (payer == name{}) payer = coopname;
+
+  debts_index debts(_capital, coopname.value);
+  auto debt = debts.find(debt_id);
+  eosio::check(debt != debts.end(), "Долг не найден");
+  eosio::check(debt->status == Status::APPROVED || debt->status == Status::AUTHORIZED,
+               "Старт оплаты допустим только из approved/authorized");
+
+  debts.modify(debt, payer, [&](auto &d) {
+    d.status = Status::PAY_PENDING;
+    d.authorization = authorization;
+    d.last_pay_error = "";
+  });
+}
+
+/**
+ * @brief Возвращает долг из PAY_PENDING в AUTHORIZED с записью причины ошибки оплаты.
+ * Долг не удаляется — решение совета уже принято, доступна повторная отправка в gateway.
+ */
+inline void mark_pay_declined(
+  eosio::name coopname,
+  uint64_t debt_id,
+  const std::string &reason,
+  eosio::name payer = name{}
+) {
+  if (payer == name{}) payer = coopname;
+
+  debts_index debts(_capital, coopname.value);
+  auto debt = debts.find(debt_id);
+  eosio::check(debt != debts.end(), "Долг не найден");
+  eosio::check(debt->status == Status::PAY_PENDING,
+               "Отказ оплаты допустим только из статуса pay_pending");
+
+  debts.modify(debt, payer, [&](auto &d) {
+    d.status = Status::AUTHORIZED;
+    d.last_pay_error = reason;
   });
 }
 

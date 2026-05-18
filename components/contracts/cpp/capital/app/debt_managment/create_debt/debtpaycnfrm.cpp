@@ -18,9 +18,9 @@ void capital::debtpaycnfrm(name coopname, checksum256 debt_hash) {
   auto contributor = Capital::Contributors::get_contributor(coopname, exist_debt.username);
   eosio::check(contributor.has_value(), "Контрибьютор не найден");
 
-  // Проверяем что долг в статусе 'authorized' (готов к выплате)
-  eosio::check(exist_debt.status == Capital::Debts::Status::AUTHORIZED,
-               "Долг должен быть в статусе 'authorized' для подтверждения оплаты");
+  // Проверяем что долг в статусе 'pay_pending' (outpay в полёте до gateway)
+  eosio::check(exist_debt.status == Capital::Debts::Status::PAY_PENDING,
+               "Долг должен быть в статусе 'pay_pending' для подтверждения оплаты");
 
   // Обновляем статус долга на PAID
   Capital::Debts::update_debt_status(coopname, exist_debt.id, Capital::Debts::Status::PAID, _gateway);
