@@ -53,7 +53,7 @@ export class DistributionManagementService {
     const document = await this.documentInteractor.generateDocument({
       data: {
         ...enrichedData,
-        registry_id: Cooperative.Registry.GenerationMoneyInvestStatement.registry_id,
+        registry_id: Cooperative.Registry.GenerationConvertStatement.registry_id,
       },
       options,
     });
