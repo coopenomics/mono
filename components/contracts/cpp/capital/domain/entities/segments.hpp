@@ -112,7 +112,13 @@ namespace Capital::Segments {
     eosio::asset available_for_program = asset(0, _root_govern_symbol); ///< Доступная сумма для конвертации в программу (intellectual_cost - debt_amount)
     eosio::asset available_for_wallet = asset(0, _root_govern_symbol); ///< Доступная сумма для конвертации в кошелек (provisional_amount - debt_amount)
     double share_percent = 0.0;                                            ///< Доля участника в результате (intellectual_cost / fact.total * 100)
-    
+
+    // Допуски L2 — утверждаются мастером компонента/сегмента через approverole (Story 1.7).
+    // Используются в createcmmt вместо глобального contributors.rate_per_hour, если ≠ 0.
+    // 0 (значение по умолчанию) означает «approved-ставка не выставлена, fallback на contributors».
+    eosio::asset approved_rate_per_hour = asset(0, _root_govern_symbol); ///< Утверждённая мастером ставка часа на этом сегменте
+    uint64_t approved_hours_per_day = 0;                                  ///< Утверждённое мастером количество часов в день на этом сегменте
+
     uint64_t primary_key() const { return id; }                           ///< Первичный ключ (1)
     
     checksum256 by_project_hash() const { return project_hash; }          ///< Индекс по хэшу проекта (2)
@@ -154,6 +160,30 @@ namespace Capital::Segments {
     auto segment_itr = segments.find(segment_id);
     eosio::check(segment_itr != segments.end(), msg);
     return segment(*segment_itr);
+  }
+
+  /**
+   * @brief Фиксирует утверждённую мастером ставку часа и норматив часов в день на сегменте.
+   *        Вызывается из action approverole (Story 1.7). createcmmt далее берёт эту
+   *        ставку для расчёта generation_amounts вместо глобальной из contributors.
+   */
+  inline void set_approved_rate(
+    eosio::name coopname,
+    const checksum256 &project_hash,
+    eosio::name username,
+    const eosio::asset &rate_per_hour,
+    uint64_t hours_per_day
+  ) {
+    segments_index segments(_capital, coopname.value);
+    auto idx  = segments.get_index<"byprojuser"_n>();
+    auto rkey = combine_checksum_ids(project_hash, username);
+    auto it = idx.find(rkey);
+    eosio::check(it != idx.end(), "Сегмент участника на этом проекте не найден");
+
+    idx.modify(it, coopname, [&](auto &s) {
+      s.approved_rate_per_hour = rate_per_hour;
+      s.approved_hours_per_day = hours_per_day;
+    });
   }
 
 
