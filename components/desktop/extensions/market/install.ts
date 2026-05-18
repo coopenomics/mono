@@ -9,6 +9,10 @@ import { OrdererReadyToReceivePage } from 'src/pages/Marketplace/OrdererReadyToR
 import { OrdererReturnClaimsPage } from 'src/pages/Marketplace/OrdererReturnClaims'
 import { OperatorReturnClaimsPage } from 'src/pages/Marketplace/OperatorReturnClaims'
 import { AdminWriteoffsPage } from 'src/pages/Marketplace/AdminWriteoffs'
+import { OperatorOwnWarehousePage } from 'src/pages/Marketplace/OperatorOwnWarehouse'
+import { AdminWarehouseSummaryPage } from 'src/pages/Marketplace/AdminWarehouseSummary'
+import { OperationsHistoryPage } from 'src/pages/Marketplace/OperationsHistory'
+import { EcosystemRegistryPage } from 'src/pages/Marketplace/EcosystemRegistry'
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace'
 import { agreementsBase } from 'src/shared/lib/consts/workspaces'
 
@@ -117,6 +121,59 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             },
           },
           {
+            // Эпик 9 / Story 9.2: admin-стол сводного склада кооператива.
+            // Использует canon-виджет WarehouseSummaryGrid (UX-DR16) и поверх
+            // marketplace_inventory агрегирует приход/расход/остаток по
+            // ku × sku. Вторая вкладка — поток заказов/поставок (FR37/FR38),
+            // на MVP — табличные итоги, графики динамики подключаются по
+            // AR37 SDK-подписки платформы.
+            path: 'warehouse-summary',
+            name: 'marketplace-warehouse-summary',
+            component: markRaw(AdminWarehouseSummaryPage),
+            meta: {
+              title: 'Сводный склад',
+              icon: 'fa-solid fa-warehouse',
+              roles: ['chairman', 'member'],
+              requiresAuth: true,
+              agreements: agreementsBase,
+            },
+          },
+          {
+            // Эпик 9 / Story 9.5: история процессов marketplace для admin-стола.
+            // Лента всех процессов p.mkt.* (supply / return / writeoff) с
+            // фильтрами по типу/инициатору; разворот через стандартный core
+            // `processRegistry.getProcess(process_hash)` — выводит actions,
+            // delta_history и связанные документы. Кнопка «Скачать JSON»
+            // даёт аудиторскую выгрузку конкретного процесса.
+            path: 'history',
+            name: 'marketplace-history',
+            component: markRaw(OperationsHistoryPage),
+            meta: {
+              title: 'История операций',
+              icon: 'fa-solid fa-clock-rotate-left',
+              roles: ['chairman', 'member'],
+              requiresAuth: true,
+              agreements: agreementsBase,
+            },
+          },
+          {
+            // Эпик 9 / Story 9.4: раздел экосистемы — список controller'ов
+            // других кооперативов с расширением «Стол заказов». MVP — режим
+            // read-only заглушки до подключения платформенного
+            // `ecosystem_registry` (NFR-Sc2 / AR18). Полная активация —
+            // вторая фаза (межкооперативная торговля).
+            path: 'ecosystem',
+            name: 'marketplace-ecosystem',
+            component: markRaw(EcosystemRegistryPage),
+            meta: {
+              title: 'Экосистема',
+              icon: 'fa-solid fa-network-wired',
+              roles: ['chairman', 'member'],
+              requiresAuth: true,
+              agreements: agreementsBase,
+            },
+          },
+          {
             // Витрина дизайн-системы (Эпик 10): открыта председателю и членам совета
             // для утверждения 13 custom-компонентов до их применения в эпиках 1-9.
             // Скрыта от обычных пайщиков, не выходит в production-меню для них.
@@ -194,6 +251,25 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Гарантийные возвраты',
               icon: 'fa-solid fa-clipboard-check',
+              roles: ['chairman'],
+              requiresAuth: true,
+              agreements: agreementsBase,
+            },
+          },
+          {
+            // Эпик 9 / Story 9.1: operator-стол «Склад моего КУ».
+            // Таблица marketplace_inventory отфильтрована по braname; per-row
+            // статусы (LABELED / ISSUED / RETURNED / WRITTEN_OFF), фильтры по
+            // статусу/orderer, summary count by status. Backend-доступ —
+            // `Warehouse: ['read:own-KU']` гарантирует, что оператор видит
+            // только свой участок. Real-time через AR37 SDK-подписки
+            // платформы (подключается отдельным шагом эпика).
+            path: 'warehouse',
+            name: 'marketplace-pvz-warehouse',
+            component: markRaw(OperatorOwnWarehousePage),
+            meta: {
+              title: 'Склад моего КУ',
+              icon: 'fa-solid fa-boxes-stacked',
               roles: ['chairman'],
               requiresAuth: true,
               agreements: agreementsBase,
