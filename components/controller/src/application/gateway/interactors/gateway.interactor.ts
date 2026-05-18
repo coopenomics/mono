@@ -14,6 +14,7 @@ import type { PaymentDomainInterface } from '~/domain/gateway/interfaces/payment
 import type { CreateInitialPaymentInputDomainInterface } from '~/domain/gateway/interfaces/create-initial-payment-input-domain.interface';
 import type { CreateDepositPaymentInputDomainInterface } from '~/domain/gateway/interfaces/create-deposit-payment-input-domain.interface';
 import type { CreateWithdrawPaymentInputDomainInterface } from '~/domain/gateway/interfaces/create-withdraw-payment-input-domain.interface';
+import type { CreateSystemOutgoingPaymentInputDomainInterface } from '~/domain/gateway/interfaces/create-system-outgoing-payment-input-domain.interface';
 import config from '~/config/config';
 import type { CompleteIncomeDomainInterface } from '~/domain/gateway/interfaces/complete-income-domain.interface';
 import type { CompleteOutcomeDomainInterface } from '~/domain/gateway/interfaces/complete-outcome-domain.interface';
@@ -505,6 +506,75 @@ export class GatewayInteractor {
     );
 
     return new PaymentDomainEntity(createdPayment);
+  }
+
+  /**
+   * Story 598-17 / AR35: создать системный исходящий платёж без
+   * пользовательского `statement` и без `method_id`. Источник
+   * авторизации — extension, идентифицируется через `related_extension`.
+   *
+   * Идемпотентность: при повторном вызове с тем же `payment_hash`
+   * возвращается существующая запись.
+   */
+  async createSystemOutgoingPayment(
+    data: CreateSystemOutgoingPaymentInputDomainInterface
+  ): Promise<PaymentDomainEntity> {
+    await this.paymentRepository.expireOutdatedPayments();
+    QuantityUtils.validateSymbol(data.symbol);
+
+    const existingPayment = await this.paymentRepository.findByHash(data.payment_hash);
+    if (existingPayment) {
+      this.logger.log(
+        `createSystemOutgoingPayment: hash ${data.payment_hash} уже существует, возвращаем существующий ID=${existingPayment.id}`
+      );
+      return new PaymentDomainEntity(existingPayment);
+    }
+
+    const settings = await this.systemDomainPort.getSettings();
+    const provider = settings.provider_name;
+    const now = new Date();
+
+    const paymentDetails: PaymentDetailsDomainInterface = data.payment_details ?? {
+      data: { related_extension: data.related_extension, related_entity_id: data.related_entity_id },
+      amount_plus_fee: data.quantity.toString(),
+      amount_without_fee: data.quantity.toString(),
+      fee_amount: '0',
+      fee_percent: 0,
+      fact_fee_percent: 0,
+      tolerance_percent: 0,
+    };
+
+    const paymentData: PaymentDomainInterface = {
+      id: '',
+      coopname: data.coopname,
+      username: data.username,
+      quantity: data.quantity,
+      symbol: data.symbol,
+      type: PaymentTypeEnum.WITHDRAWAL,
+      direction: PaymentDirectionEnum.OUTGOING,
+      provider,
+      status: PaymentStatusEnum.PENDING,
+      memo: data.memo,
+      secret: generateUniqueHash(),
+      payment_details: paymentDetails,
+      expired_at: this.createPaymentExpirationDate(-1),
+      created_at: now,
+      updated_at: now,
+      hash: data.payment_hash,
+      related_extension: data.related_extension,
+      related_entity_id: data.related_entity_id,
+    };
+
+    const created = await this.paymentRepository.create(paymentData);
+    if (!created.id) {
+      throw new Error('createSystemOutgoingPayment: не удалось создать платёж — отсутствует ID');
+    }
+
+    this.logger.log(
+      `Создан системный исходящий платёж: id=${created.id} extension=${data.related_extension} entity=${data.related_entity_id} amount=${data.quantity} ${data.symbol}`
+    );
+
+    return new PaymentDomainEntity(created);
   }
 
   /**

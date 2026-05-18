@@ -49,3 +49,10 @@ export const MARKETPLACE_UNITS_OF_MEASURE: MarketplaceUnitOfMeasure[] = [
   MarketplaceUnitsOfMeasure.LITER,
   MarketplaceUnitsOfMeasure.PACK,
 ];
+
+export type {
+  MarketplaceBarcodeStrategy,
+} from './marketplace-inventory.types';
+export {
+  MarketplaceBarcodeStrategies,
+} from './marketplace-inventory.types';

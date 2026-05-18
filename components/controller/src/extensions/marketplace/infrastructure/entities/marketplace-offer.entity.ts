@@ -77,6 +77,22 @@ export class MarketplaceOfferEntity {
   @Column({ type: 'integer', default: 0 })
   public warranty_days!: number;
 
+  /**
+   * Стратегия маркировки штрих-кодом per-Offer (Story 5.5 / техдолг 598-22):
+   * атрибут товара, не операции маркировки оператора. Используется
+   * `MarketplaceInventoryLabelService` как источник истины; per-call
+   * override параметр оставлен только для admin-сценариев перекрытия.
+   */
+  @Column({ type: 'varchar', length: 32, default: 'PER_ORDER' })
+  public barcode_strategy!: 'PER_ORDER' | 'PER_UNIT' | 'PER_PACKAGE';
+
+  /**
+   * Размер упаковки для `barcode_strategy = PER_PACKAGE`. Обязателен при
+   * этой стратегии, валидируется на уровне сервиса/модерации.
+   */
+  @Column({ type: 'integer', nullable: true })
+  public pack_size!: number | null;
+
   @Column({ type: 'varchar', length: 32 })
   public status!: 'PENDING_MODERATION' | 'ACTIVE' | 'REJECTED' | 'WITHDRAWN';
 

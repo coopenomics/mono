@@ -1,0 +1,54 @@
+import { Inject, Injectable, UseGuards } from '@nestjs/common';
+import { Args, Query, Resolver } from '@nestjs/graphql';
+import config from '~/config/config';
+import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
+import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
+import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
+import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
+import {
+  MarketplaceOutgoingPaymentRequestDTO,
+  MarketplaceOutgoingPaymentRequestStatusEnum,
+  toMarketplaceOutgoingPaymentRequestDTO,
+} from '../dto/marketplace-outgoing-payment.dto';
+import {
+  MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY,
+  type MarketplaceOutgoingPaymentRequestDomainRepository,
+} from '../../domain/repositories/marketplace-outgoing-payment-request.repository';
+import type { MarketplaceOutgoingPaymentRequestStatus } from '../../domain/entities/marketplace-outgoing-payment-request.types';
+
+/**
+ * Story 5.6 / 5.7 + 598-16 (L12): резолвер истории выплат поставщику
+ * на стороне marketplace. Подтверждение и отказ выплат выполняет общий
+ * стол кассира кооператива (через расширение gateway). Здесь —
+ * только read-only лента для marketplace-стола поставщика, чтобы он
+ * видел статус каждого выплат в одном UI с заказами.
+ */
+@Resolver()
+@Injectable()
+export class MarketplaceOutgoingPaymentResolver {
+  constructor(
+    @Inject(MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY)
+    private readonly paymentRepo: MarketplaceOutgoingPaymentRequestDomainRepository
+  ) {}
+
+  @Query(() => [MarketplaceOutgoingPaymentRequestDTO], {
+    name: 'marketplaceListOutgoingPaymentsAsSupplier',
+    description: 'История выплат поставщику в столе поставщика — статусы по каждому заказу.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard)
+  async marketplaceListOutgoingPaymentsAsSupplier(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('statuses', {
+      type: () => [MarketplaceOutgoingPaymentRequestStatusEnum],
+      nullable: true,
+    })
+    statuses?: MarketplaceOutgoingPaymentRequestStatusEnum[]
+  ): Promise<MarketplaceOutgoingPaymentRequestDTO[]> {
+    const list = await this.paymentRepo.listByPayee(
+      config.coopname,
+      member.username,
+      statuses as unknown as MarketplaceOutgoingPaymentRequestStatus[] | undefined
+    );
+    return list.map(toMarketplaceOutgoingPaymentRequestDTO);
+  }
+}

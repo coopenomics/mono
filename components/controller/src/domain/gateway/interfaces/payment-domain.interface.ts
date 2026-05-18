@@ -92,4 +92,15 @@ export interface PaymentDomainInterface {
 
   /** Подписанный документ заявления (для исходящих платежей) */
   statement?: ISignedDocumentDomainInterface;
+
+  /**
+   * Расширение, инициировавшее платёж (например, `marketplace`). Заполняется
+   * для системных outgoing_payment'ов, когда у платежа нет пользовательского
+   * заявления и нет привязки к payment_method. Кассирский стол использует
+   * это поле для разделения «обычных» и extension-инициированных платежей.
+   */
+  related_extension?: string | null;
+
+  /** ID сущности расширения (например, marketplace_outgoing_payment_request.id). */
+  related_entity_id?: string | null;
 }

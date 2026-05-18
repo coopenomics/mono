@@ -21,6 +21,12 @@ import { MarketplaceOfferEntity } from './entities/marketplace-offer.entity';
 import { MarketplaceModerationLogEntity } from './entities/marketplace-moderation-log.entity';
 import { MarketplaceOrderEntity } from './entities/marketplace-order.entity';
 import { MarketplaceConsolidatedRequestEntity } from './entities/marketplace-consolidated-request.entity';
+import { MarketplaceShipmentEntity } from './entities/marketplace-shipment.entity';
+import { MarketplaceSupplyValidationLogEntity } from './entities/marketplace-supply-validation-log.entity';
+import { MarketplaceInventoryEntity } from './entities/marketplace-inventory.entity';
+import { MarketplaceAplReceptionEntity } from './entities/marketplace-apl-reception.entity';
+import { MarketplaceOutgoingPaymentRequestEntity } from './entities/marketplace-outgoing-payment-request.entity';
+import { MarketplaceTtnDocumentEntity } from './entities/marketplace-ttn-document.entity';
 
 // Repository adapters
 import { CategoryRepositoryAdapter } from './adapters/category-repository.adapter';
@@ -40,6 +46,12 @@ import { MarketplaceModerationLogRepositoryAdapter } from './adapters/marketplac
 import { MarketplaceOrderRepositoryAdapter } from './adapters/marketplace-order-repository.adapter';
 import { MarketplaceCanonicalBlockchainAdapter } from './adapters/marketplace-canonical-blockchain.adapter';
 import { MarketplaceConsolidatedRequestRepositoryAdapter } from './adapters/marketplace-consolidated-request-repository.adapter';
+import { MarketplaceShipmentRepositoryAdapter } from './adapters/marketplace-shipment-repository.adapter';
+import { MarketplaceSupplyValidationLogRepositoryAdapter } from './adapters/marketplace-supply-validation-log-repository.adapter';
+import { MarketplaceInventoryRepositoryAdapter } from './adapters/marketplace-inventory-repository.adapter';
+import { MarketplaceAplReceptionRepositoryAdapter } from './adapters/marketplace-apl-reception-repository.adapter';
+import { MarketplaceOutgoingPaymentRequestRepositoryAdapter } from './adapters/marketplace-outgoing-payment-request-repository.adapter';
+import { MarketplaceTtnDocumentRepositoryAdapter } from './adapters/marketplace-ttn-document-repository.adapter';
 
 // Mappers
 import { MarketplaceVitrineMapper } from './mappers/marketplace-vitrine.mapper';
@@ -50,6 +62,12 @@ import { MarketplaceModerationLogMapper } from './mappers/marketplace-moderation
 import { MarketplaceOrderMapper } from './mappers/marketplace-order.mapper';
 import { MarketplaceOrderDeltaMapper } from './mappers/marketplace-order-delta.mapper';
 import { MarketplaceConsolidatedRequestMapper } from './mappers/marketplace-consolidated-request.mapper';
+import { MarketplaceShipmentMapper } from './mappers/marketplace-shipment.mapper';
+import { MarketplaceSupplyValidationLogMapper } from './mappers/marketplace-supply-validation-log.mapper';
+import { MarketplaceInventoryMapper } from './mappers/marketplace-inventory.mapper';
+import { MarketplaceAplReceptionMapper } from './mappers/marketplace-apl-reception.mapper';
+import { MarketplaceOutgoingPaymentRequestMapper } from './mappers/marketplace-outgoing-payment-request.mapper';
+import { MarketplaceTtnDocumentMapper } from './mappers/marketplace-ttn-document.mapper';
 
 // Repository tokens
 import { CATEGORY_DOMAIN_REPOSITORY } from '../domain/repositories/category-domain.repository';
@@ -69,6 +87,12 @@ import { MARKETPLACE_MODERATION_LOG_REPOSITORY } from '../domain/repositories/ma
 import { MARKETPLACE_ORDER_REPOSITORY } from '../domain/repositories/marketplace-order.repository';
 import { MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT } from '../domain/ports/marketplace-canonical-blockchain.port';
 import { MARKETPLACE_CONSOLIDATED_REQUEST_REPOSITORY } from '../domain/repositories/marketplace-consolidated-request.repository';
+import { MARKETPLACE_SHIPMENT_REPOSITORY } from '../domain/repositories/marketplace-shipment.repository';
+import { MARKETPLACE_SUPPLY_VALIDATION_LOG_REPOSITORY } from '../domain/repositories/marketplace-supply-validation-log.repository';
+import { MARKETPLACE_INVENTORY_REPOSITORY } from '../domain/repositories/marketplace-inventory.repository';
+import { MARKETPLACE_APL_RECEPTION_REPOSITORY } from '../domain/repositories/marketplace-apl-reception.repository';
+import { MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY } from '../domain/repositories/marketplace-outgoing-payment-request.repository';
+import { MARKETPLACE_TTN_DOCUMENT_REPOSITORY } from '../domain/repositories/marketplace-ttn-document.repository';
 
 @Module({
   imports: [
@@ -100,6 +124,12 @@ import { MARKETPLACE_CONSOLIDATED_REQUEST_REPOSITORY } from '../domain/repositor
         MarketplaceModerationLogEntity,
         MarketplaceOrderEntity,
         MarketplaceConsolidatedRequestEntity,
+        MarketplaceShipmentEntity,
+        MarketplaceSupplyValidationLogEntity,
+        MarketplaceInventoryEntity,
+        MarketplaceAplReceptionEntity,
+        MarketplaceOutgoingPaymentRequestEntity,
+        MarketplaceTtnDocumentEntity,
       ],
       synchronize: true,
       logging: false,
@@ -125,6 +155,12 @@ import { MARKETPLACE_CONSOLIDATED_REQUEST_REPOSITORY } from '../domain/repositor
         MarketplaceModerationLogEntity,
         MarketplaceOrderEntity,
         MarketplaceConsolidatedRequestEntity,
+        MarketplaceShipmentEntity,
+        MarketplaceSupplyValidationLogEntity,
+        MarketplaceInventoryEntity,
+        MarketplaceAplReceptionEntity,
+        MarketplaceOutgoingPaymentRequestEntity,
+        MarketplaceTtnDocumentEntity,
       ],
       'marketplace'
     ), // Указываем имя подключения
@@ -211,6 +247,41 @@ import { MARKETPLACE_CONSOLIDATED_REQUEST_REPOSITORY } from '../domain/repositor
       provide: MARKETPLACE_CONSOLIDATED_REQUEST_REPOSITORY,
       useClass: MarketplaceConsolidatedRequestRepositoryAdapter,
     },
+    // Story 5.1 / 5.2 — партия поставки + журнал валидаций
+    MarketplaceShipmentMapper,
+    MarketplaceSupplyValidationLogMapper,
+    {
+      provide: MARKETPLACE_SHIPMENT_REPOSITORY,
+      useClass: MarketplaceShipmentRepositoryAdapter,
+    },
+    {
+      provide: MARKETPLACE_SUPPLY_VALIDATION_LOG_REPOSITORY,
+      useClass: MarketplaceSupplyValidationLogRepositoryAdapter,
+    },
+    // Story 5.5 — инвентарь КУ с маркировкой штрих-кодом
+    MarketplaceInventoryMapper,
+    {
+      provide: MARKETPLACE_INVENTORY_REPOSITORY,
+      useClass: MarketplaceInventoryRepositoryAdapter,
+    },
+    // Story 5.3 / 5.4 — АПП приёмки на КУ
+    MarketplaceAplReceptionMapper,
+    {
+      provide: MARKETPLACE_APL_RECEPTION_REPOSITORY,
+      useClass: MarketplaceAplReceptionRepositoryAdapter,
+    },
+    // Story 5.6 / 5.7 — реестр исходящих платежей поставщикам
+    MarketplaceOutgoingPaymentRequestMapper,
+    {
+      provide: MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY,
+      useClass: MarketplaceOutgoingPaymentRequestRepositoryAdapter,
+    },
+    // Story 5.4 — локальный реестр ТТН (registry_id=1103, не on-chain)
+    MarketplaceTtnDocumentMapper,
+    {
+      provide: MARKETPLACE_TTN_DOCUMENT_REPOSITORY,
+      useClass: MarketplaceTtnDocumentRepositoryAdapter,
+    },
   ],
   exports: [
     CATEGORY_DOMAIN_REPOSITORY,
@@ -231,6 +302,17 @@ import { MARKETPLACE_CONSOLIDATED_REQUEST_REPOSITORY } from '../domain/repositor
     MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
     MarketplaceOrderDeltaMapper,
     MARKETPLACE_CONSOLIDATED_REQUEST_REPOSITORY,
+    // Story 5.1 / 5.2
+    MARKETPLACE_SHIPMENT_REPOSITORY,
+    MARKETPLACE_SUPPLY_VALIDATION_LOG_REPOSITORY,
+    // Story 5.5
+    MARKETPLACE_INVENTORY_REPOSITORY,
+    // Story 5.3 / 5.4
+    MARKETPLACE_APL_RECEPTION_REPOSITORY,
+    // Story 5.6 / 5.7
+    MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY,
+    // Story 5.4 — локальный реестр ТТН
+    MARKETPLACE_TTN_DOCUMENT_REPOSITORY,
   ],
 })
 export class MarketplaceInfrastructureModule {}

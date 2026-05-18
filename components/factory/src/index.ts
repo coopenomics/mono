@@ -8,7 +8,7 @@ import type { IFilterDocuments, IGeneratedDocument, Numbers, externalDataTypes, 
 import type { IGenerate, IGenerationOptions } from './Interfaces/Documents'
 import * as Actions from './Actions'
 
-import { type ISearchResult, MongoDBConnector, SearchService } from './Services/Databazor'
+import { DocDataService, type ISearchResult, MongoDBConnector, SearchService } from './Services/Databazor'
 import type { ExternalIndividualData } from './Models/Individual'
 import { Individual } from './Models/Individual'
 import type { ExternalEntrepreneurData, ExternalOrganizationData, IVars } from './Models'
@@ -39,6 +39,16 @@ export interface IGenerator {
   generate: (data: IGenerate, options?: IGenerationOptions) => Promise<IGeneratedDocument>
   getDocument: (filter: Filter<IFilterDocuments>) => Promise<IGeneratedDocument>
 
+  /**
+   * Сохранить приватные данные документа off-chain; возвращает hash для
+   * публикации on-chain как `doc_data_hash`. См. раздел
+   * «Document Generation Pattern: doc_data» в архитектуре.
+   */
+  saveDocData: <P extends Record<string, unknown>>(payload: P, registry_id: number) => Promise<{ hash: string }>
+
+  /** Прочитать приватный payload по `doc_data_hash`. null — если запись удалена. */
+  getDocData: <P = Record<string, unknown>>(hash: string) => Promise<P | null>
+
   constructCooperative: (username: string, block_num?: number) => Promise<CooperativeData | null>
   save: ((type: 'individual', data: ExternalIndividualData) => Promise<InsertOneResult>) & ((type: 'entrepreneur', data: ExternalEntrepreneurData) => Promise<InsertOneResult>) & ((type: 'organization', data: ExternalOrganizationData) => Promise<InsertOneResult>) & ((type: 'paymentMethod', data: PaymentData) => Promise<InsertOneResult>) & ((type: 'vars', data: IVars) => Promise<InsertOneResult>) & ((type: 'project', data: ExternalProjectData) => Promise<InsertOneResult>) & ((type: 'udata', data: ExternalUdata) => Promise<InsertOneResult>)
   get: (type: dataTypes, filter: Filter<internalFilterTypes>) => Promise<externalDataTypes | null>
@@ -64,12 +74,18 @@ export class Generator implements IGenerator {
   // Сервис поиска
   private searchService!: SearchService
 
+  // Сервис приватных данных документов (off-chain payload + on-chain hash)
+  private docDataService!: DocDataService
+
   // Метод подключения к хранилищу
   async connect(mongoUri: string): Promise<void> {
     this.storage = new MongoDBConnector(mongoUri)
 
     // Инициализация сервиса поиска
     this.searchService = new SearchService(this.storage)
+
+    // Инициализация сервиса приватных данных документов
+    this.docDataService = new DocDataService(this.storage)
 
     // Инициализация фабрик документов
     this.factories = {
@@ -151,6 +167,10 @@ export class Generator implements IGenerator {
       [Actions.GenerationToCapitalizationConvertStatement.Template.registry_id]: new Actions.GenerationToCapitalizationConvertStatement.Factory(this.storage), // 1082
 
       [Actions.CapitalizationToMainWalletConvertStatement.Template.registry_id]: new Actions.CapitalizationToMainWalletConvertStatement.Factory(this.storage), // 1090
+
+      // Marketplace (Стол заказов) — Эпик 5
+      [Actions.MarketplaceAplReception.Template.registry_id]: new Actions.MarketplaceAplReception.Factory(this.storage), // 1102
+      [Actions.MarketplaceTransportNote.Template.registry_id]: new Actions.MarketplaceTransportNote.Factory(this.storage), // 1103
     }
     await this.storage.connect()
   }
@@ -173,6 +193,14 @@ export class Generator implements IGenerator {
 
   async getDocument(filter: Filter<IFilterDocuments>): Promise<IGeneratedDocument> {
     return await this.storage.getDocument(filter)
+  }
+
+  async saveDocData<P extends Record<string, unknown>>(payload: P, registry_id: number): Promise<{ hash: string }> {
+    return this.docDataService.save(payload, registry_id)
+  }
+
+  async getDocData<P = Record<string, unknown>>(hash: string): Promise<P | null> {
+    return this.docDataService.get<P>(hash)
   }
 
   async save(type: 'individual', data: ExternalIndividualData): Promise<InsertOneResult>

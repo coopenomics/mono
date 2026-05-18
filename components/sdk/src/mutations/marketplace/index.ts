@@ -10,3 +10,13 @@ export * as CreateOrder from './createOrder'
 export * as CancelOrder from './cancelOrder'
 /** Опубликовать новое предложение поставщика на модерацию */
 export * as CreateOffer from './createOffer'
+/** Эпик 5: сформировать партии поставки из акцептованной заявки */
+export * as CreateShipment from './createShipment'
+/** Эпик 5: наклеить штрих-коды на единицы заказа (оператор КУ) */
+export * as LabelInventory from './labelInventory'
+/** Эпик 5: создать акт приёмки партии (оператор КУ) */
+export * as CreateAplReception from './createAplReception'
+/** Эпик 5: первая подпись поставщика на акте приёмки */
+export * as SignAplReceptionAsSupplier from './signAplReceptionAsSupplier'
+/** Эпик 5: закрывающая подпись председателя КУ */
+export * as SignAplReceptionAsChairman from './signAplReceptionAsChairman'

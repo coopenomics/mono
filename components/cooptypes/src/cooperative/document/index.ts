@@ -113,6 +113,18 @@ export interface IGenerate extends Omit<Partial<IMetaDocument>, 'title'> {
 }
 
 /**
+ * Зарезервированная ссылка на приватный payload документа.
+ * Action конкретного документа расширяет этот интерфейс, если хочет
+ * хранить персональные/приватные данные off-chain — payload лежит в
+ * коллекции `doc_private_data` фабрики, on-chain публикуется только
+ * `doc_data_hash`. См. раздел «Document Generation Pattern: doc_data»
+ * в архитектуре.
+ */
+export interface IDocDataRef {
+  doc_data_hash?: string
+}
+
+/**
  * Интерфейс генерации заявления на вступление в кооператив
  */
 export interface IGenerateJoinCoop extends IGenerate {

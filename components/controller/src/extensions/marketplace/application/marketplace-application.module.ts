@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { MarketplaceExtensionDomainModule } from '../domain/marketplace-domain.module';
+import { GatewayInfrastructureModule } from '~/infrastructure/gateway/gateway-infrastructure.module';
+import { DocumentDomainModule } from '~/domain/document/document.module';
 import { CategoryTreeResolver } from './resolvers/category-tree.resolver';
 import { AttributeResolver } from './resolvers/attribute.resolver';
 import { AvailableCategoryAdminResolver } from './resolvers/available-category-admin.resolver';
@@ -70,6 +72,27 @@ import {
   MarketplaceCycleAggregatorService,
   MARKETPLACE_CYCLE_AGGREGATOR_SERVICE,
 } from './services/marketplace-cycle-aggregator.service';
+import {
+  MarketplaceShipmentCreateService,
+  MARKETPLACE_SHIPMENT_CREATE_SERVICE,
+} from './services/marketplace-shipment-create.service';
+import { MarketplaceShipmentResolver } from './resolvers/marketplace-shipment.resolver';
+import {
+  MarketplaceInventoryLabelService,
+  MARKETPLACE_INVENTORY_LABEL_SERVICE,
+} from './services/marketplace-inventory-label.service';
+import { MarketplaceInventoryResolver } from './resolvers/marketplace-inventory.resolver';
+import {
+  MarketplaceAplReceptionService,
+  MARKETPLACE_APL_RECEPTION_SERVICE,
+} from './services/marketplace-apl-reception.service';
+import { MarketplaceAplReceptionResolver } from './resolvers/marketplace-apl-reception.resolver';
+import {
+  MarketplacePayoutSyncService,
+  MARKETPLACE_PAYOUT_SYNC_SERVICE,
+} from './services/marketplace-payout-sync.service';
+import { MarketplaceOutgoingPaymentResolver } from './resolvers/marketplace-outgoing-payment.resolver';
+import { MarketplaceNotificationService } from './services/marketplace-notification.service';
 
 /**
  * Модуль приложения marketplace
@@ -83,6 +106,13 @@ import {
     // идемпотентен — если AppModule тоже инициализирует его, NestJS использует
     // singleton SchedulerRegistry.
     ScheduleModule.forRoot(),
+    // Story 598-17 / AR35: marketplace AplReception/OutgoingPayment сервисам
+    // нужен GATEWAY_INTERACTOR_PORT для синхронизации с core-реестром
+    // исходящих платежей. Модуль уже экспортирует токен — просто импорт.
+    GatewayInfrastructureModule,
+    // DocumentDomainService для генерации preview-документов АПП приёмки
+    // через GENERATOR_PORT (registry_id=1102).
+    DocumentDomainModule,
   ],
   providers: [
     // GraphQL резолверы
@@ -103,6 +133,10 @@ import {
     MarketplaceCatalogResolver,
     MarketplaceOrderResolver,
     MarketplaceCycleResolver,
+    MarketplaceShipmentResolver,
+    MarketplaceInventoryResolver,
+    MarketplaceAplReceptionResolver,
+    MarketplaceOutgoingPaymentResolver,
 
     // Guards (Story 1.3 / Story 1.6)
     MarketplaceMembershipGuard,
@@ -182,6 +216,38 @@ import {
       useClass: MarketplaceCycleAggregatorService,
     },
     MarketplaceCycleAggregatorService,
+    // Story 5.1 / 5.2 — формирование партий поставки + валидация состава
+    {
+      provide: MARKETPLACE_SHIPMENT_CREATE_SERVICE,
+      useClass: MarketplaceShipmentCreateService,
+    },
+    MarketplaceShipmentCreateService,
+    // Story 5.5 — маркировка имущества штрих-кодом
+    {
+      provide: MARKETPLACE_INVENTORY_LABEL_SERVICE,
+      useClass: MarketplaceInventoryLabelService,
+    },
+    MarketplaceInventoryLabelService,
+    // Story 5.3 / 5.4 — АПП приёмки на КУ
+    {
+      provide: MARKETPLACE_APL_RECEPTION_SERVICE,
+      useClass: MarketplaceAplReceptionService,
+    },
+    MarketplaceAplReceptionService,
+    // Story 5.6 / 5.7 + 598-16 (L12) — слушатель callback'ов от gateway
+    // (payconfirm/paydecline) для зеркалирования статуса выплаты поставщику.
+    // Сам кассир работает в общем столе кооператива через расширение
+    // gateway, marketplace только подписывается на blockchain-action delta.
+    {
+      provide: MARKETPLACE_PAYOUT_SYNC_SERVICE,
+      useClass: MarketplacePayoutSyncService,
+    },
+    MarketplacePayoutSyncService,
+    // Story 598-20 — push-уведомления marketplace flow (АПП Б поставщику,
+    // новая выплата кассиру, подтверждённая выплата поставщику).
+    // Слушает per-contract event-bus, отправка через Novu без обратного
+    // влияния на основной flow (INV-12: emit после save в PG).
+    MarketplaceNotificationService,
   ],
   exports: [
     // Экспортируем сервисы для использования в других модулях
@@ -222,6 +288,10 @@ import {
     MarketplaceCatalogResolver,
     MarketplaceOrderResolver,
     MarketplaceCycleResolver,
+    MarketplaceShipmentResolver,
+    MarketplaceInventoryResolver,
+    MarketplaceAplReceptionResolver,
+    MarketplaceOutgoingPaymentResolver,
 
     // Экспортируем сервисы Story 4.1 для использования в follow-up Stories Эпика 4
     MARKETPLACE_ORDER_CREATE_SERVICE,
@@ -238,6 +308,18 @@ import {
     // Story 4.2
     MARKETPLACE_CYCLE_AGGREGATOR_SERVICE,
     MarketplaceCycleAggregatorService,
+    // Story 5.1 / 5.2
+    MARKETPLACE_SHIPMENT_CREATE_SERVICE,
+    MarketplaceShipmentCreateService,
+    // Story 5.5
+    MARKETPLACE_INVENTORY_LABEL_SERVICE,
+    MarketplaceInventoryLabelService,
+    // Story 5.3 / 5.4
+    MARKETPLACE_APL_RECEPTION_SERVICE,
+    MarketplaceAplReceptionService,
+    // Story 5.6 / 5.7 + 598-16
+    MARKETPLACE_PAYOUT_SYNC_SERVICE,
+    MarketplacePayoutSyncService,
   ],
 })
 export class MarketplaceExtensionApplicationModule {}

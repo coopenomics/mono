@@ -131,6 +131,8 @@ export class MarketplaceOfferRepositoryAdapter implements MarketplaceOfferDomain
       max_wait_days: input.max_wait_days,
       min_threshold: input.min_threshold,
       warranty_days: input.warranty_days,
+      barcode_strategy: input.barcode_strategy,
+      pack_size: input.pack_size,
       status: 'PENDING_MODERATION',
     });
     const saved = await this.repo.save(row);

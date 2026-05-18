@@ -45,6 +45,8 @@ function makeOffer(overrides: Partial<MarketplaceOfferDomainEntity> = {}): Marke
     max_wait_days: null,
     min_threshold: null,
     warranty_days: 0,
+    barcode_strategy: 'PER_ORDER',
+    pack_size: null,
     status: 'PENDING_MODERATION',
     approved_by: null,
     approved_at: null,

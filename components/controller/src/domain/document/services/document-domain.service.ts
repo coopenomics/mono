@@ -25,6 +25,14 @@ export class DocumentDomainService {
     return await this.generatorInfrastructureService.generateDocument(data);
   }
 
+  public async saveDocData<P extends Record<string, unknown>>(payload: P, registry_id: number): Promise<{ hash: string }> {
+    return await this.generatorInfrastructureService.saveDocData(payload, registry_id);
+  }
+
+  public async getDocData<P = Record<string, unknown>>(hash: string): Promise<P | null> {
+    return await this.generatorInfrastructureService.getDocData<P>(hash);
+  }
+
   public async getDocumentByHash(hash: string): Promise<DocumentDomainEntity | null> {
     const document = await this.documentRepository.findByHash(hash);
     return document;

@@ -1,0 +1,736 @@
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import {
+  MARKETPLACE_APL_SUPPLIER_SIGN_REQUEST_EVENT,
+  MARKETPLACE_CASHIER_NEW_PAYMENT_EVENT,
+  type MarketplaceAplSupplierSignRequestEvent,
+  type MarketplaceCashierNewPaymentEvent,
+} from '../events/marketplace-notification.events';
+import {
+  MARKETPLACE_SHIPMENT_REPOSITORY,
+  type MarketplaceShipmentDomainRepository,
+} from '../../domain/repositories/marketplace-shipment.repository';
+import {
+  MARKETPLACE_ORDER_REPOSITORY,
+  type MarketplaceOrderDomainRepository,
+} from '../../domain/repositories/marketplace-order.repository';
+import {
+  MARKETPLACE_OFFER_COUNTERS_SERVICE,
+  MarketplaceOfferCountersService,
+} from './marketplace-offer-counters.service';
+import {
+  MARKETPLACE_APL_RECEPTION_REPOSITORY,
+  type MarketplaceAplReceptionDomainRepository,
+} from '../../domain/repositories/marketplace-apl-reception.repository';
+import {
+  MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY,
+  type MarketplaceOutgoingPaymentRequestDomainRepository,
+} from '../../domain/repositories/marketplace-outgoing-payment-request.repository';
+import {
+  MARKETPLACE_ASSET_CONFIG,
+  type MarketplaceAssetConfig,
+} from './marketplace-asset.config';
+import {
+  MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
+  type MarketplaceCanonicalBlockchainPort,
+} from '../../domain/ports/marketplace-canonical-blockchain.port';
+import {
+  GATEWAY_INTERACTOR_PORT,
+  type GatewayInteractorPort,
+} from '~/domain/wallet/ports/gateway-interactor.port';
+import { Cooperative, type MarketContract } from 'cooptypes';
+import { createHash } from 'crypto';
+import { HttpApiError } from '~/utils/httpApiError';
+import { PublicKey, Signature } from '@wharfkit/antelope';
+import http from 'http-status';
+import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
+import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
+import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { MarketplaceAplReceptionSignedDocumentInputDTO } from '~/application/document/documents-dto/marketplace-apl-reception-document.dto';
+import {
+  MarketplaceAplReceptionStatuses,
+  MarketplaceAplReceptionVariants,
+  type MarketplaceAplReceptionFactQuantityEntry,
+  type MarketplaceAplReceptionVariant,
+} from '../../domain/entities/marketplace-apl-reception.types';
+import {
+  MarketplaceShipmentDeliveryVariants,
+  MarketplaceShipmentStatuses,
+} from '../../domain/entities/marketplace-shipment.types';
+import type { MarketplaceAplReceptionDomainEntity } from '../../domain/entities/marketplace-apl-reception.entity';
+import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
+
+export interface MarketplaceAplReceptionCreateInputDto {
+  coopname: string;
+  /** Account оператора КУ, формирующего АПП (из core-сессии). */
+  operator_account: string;
+  shipment_id: string;
+  /** Опционально для Варианта Б — фактическое количество per-Order; при отсутствии берётся order.quantity. */
+  fact_quantity_per_order?: MarketplaceAplReceptionFactQuantityEntry[];
+}
+
+export interface MarketplaceAplReceptionSignSupplierInputDto {
+  coopname: string;
+  /** Account поставщика — для Варианта А лично подписывает на стойке оператора;
+   * для Варианта Б — через push в свой стол. */
+  supplier_account: string;
+  apl_reception_id: string;
+  /**
+   * Подписанные клиентом канонические Document2 per-Order. Backend
+   * верифицирует каждую подпись и отправляет on-chain `signsupp` с
+   * этим документом. Каждый документ должен иметь meta.order_id одного
+   * из Order'ов группы.
+   */
+  signed_documents: MarketplaceAplReceptionSignedDocumentInputDTO[];
+}
+
+export interface MarketplaceAplReceptionSignChairmanInputDto {
+  coopname: string;
+  chairman_account: string;
+  apl_reception_id: string;
+  /** То же что у поставщика — но для on-chain `signchair`. */
+  signed_documents: MarketplaceAplReceptionSignedDocumentInputDTO[];
+}
+
+export interface MarketplaceAplReceptionResult {
+  apl_reception: MarketplaceAplReceptionDomainEntity;
+}
+
+/**
+ * Story 5.3 / 5.4: state machine АПП приёмки на КУ.
+ *
+ * Flow:
+ *   1. `create(shipment_id, variant, fact_quantity?)`: оператор формирует
+ *      АПП по партии в статусе SUPPLY_PREPARED. fact_quantity для
+ *      Варианта Б позволяет указать расхождение против заявки; для
+ *      Варианта А — `quantity = order.quantity` по умолчанию.
+ *      Статус АПП → PENDING_SUPPLIER_SIGN; Shipment → RECEPTION_IN_PROGRESS.
+ *      Для Варианта Б — backend инициирует push поставщику (Story 5.4).
+ *
+ *   2. `signAsSupplier(apl_reception_id)`: первая подпись поставщика.
+ *      Backend per-Order переводит status в PG; on-chain `signsupp`
+ *      не выполняется в этом MVP (FR45 signing infrastructure — техдолг
+ *      Story 5.4); on-chain интеграция отдельным follow-up'ом со
+ *      связкой document factory + AR33. Статус АПП →
+ *      PENDING_CHAIRMAN_RECEPTION_SIGN.
+ *
+ *   3. `signAsChairman(apl_reception_id, chairman_account)`:
+ *      закрывающая подпись. Story 5.6 расширяет этот шаг до atomic
+ *      on-chain `signchair` per-Order + создания outgoing_payment.
+ *      Здесь — backend-only переход в ACCEPTED_TO_COOP; Order'ы группы
+ *      переводятся в ACCEPTED_TO_COOP, Shipment → ACCEPTED_TO_COOP.
+ *      offerer_counters.onOrderRolledBack/onOrderConsumed не дёргаем —
+ *      consumed-переход выполняется на выдаче (Эпик 6).
+ *
+ * Edge-case (Story 5.4 «поставщик не подписывает»): АПП остаётся в
+ * PENDING_SUPPLIER_SIGN. MVP не автоматизирует разрешение; кооператив
+ * решает через свои процедуры. Compensating-транзакций нет.
+ */
+@Injectable()
+export class MarketplaceAplReceptionService {
+  constructor(
+    @Inject(MARKETPLACE_SHIPMENT_REPOSITORY)
+    private readonly shipmentRepo: MarketplaceShipmentDomainRepository,
+    @Inject(MARKETPLACE_ORDER_REPOSITORY)
+    private readonly orderRepo: MarketplaceOrderDomainRepository,
+    @Inject(MARKETPLACE_APL_RECEPTION_REPOSITORY)
+    private readonly receptionRepo: MarketplaceAplReceptionDomainRepository,
+    @Inject(MARKETPLACE_OFFER_COUNTERS_SERVICE)
+    private readonly offerCounters: MarketplaceOfferCountersService,
+    @Inject(MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT)
+    private readonly chainPort: MarketplaceCanonicalBlockchainPort,
+    @Inject(MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY)
+    private readonly paymentRepo: MarketplaceOutgoingPaymentRequestDomainRepository,
+    @Inject(MARKETPLACE_ASSET_CONFIG)
+    private readonly assetConfig: MarketplaceAssetConfig,
+    @Inject(GATEWAY_INTERACTOR_PORT)
+    private readonly coreGateway: GatewayInteractorPort,
+    private readonly documentDomainService: DocumentDomainService,
+    private readonly eventBus: EventEmitter2,
+    private readonly logger: WinstonLoggerService
+  ) {
+    this.logger.setContext(MarketplaceAplReceptionService.name);
+    // chainPort и offerCounters сохраняются для будущих recipients
+    // (consumed-переход на выдаче, ledger-операции после L12 split).
+    void this.offerCounters;
+  }
+
+  /**
+   * Preview-документы для подписания на клиенте. Один документ на каждый
+   * Order группы — рендерится в платформенном пакете factory под
+   * registry_id=1102. Клиент берёт hash каждого документа, подписывает
+   * приватным ключом и возвращает целиком в mutation подписи.
+   */
+  async getSupplierSignablePayloads(
+    coopname: string,
+    apl_reception_id: string
+  ): Promise<DocumentDomainEntity[]> {
+    const reception = await this.loadReception(coopname, apl_reception_id);
+    const groupOrders = await this.loadGroupOrders(reception);
+    const docs: DocumentDomainEntity[] = [];
+    for (const order of groupOrders) {
+      docs.push(
+        await this.generateReceptionDocument({
+          reception,
+          order,
+          username: reception.offerer_account,
+        })
+      );
+    }
+    return docs;
+  }
+
+  async getChairmanSignablePayloads(
+    coopname: string,
+    apl_reception_id: string,
+    chairman_account: string
+  ): Promise<DocumentDomainEntity[]> {
+    const reception = await this.loadReception(coopname, apl_reception_id);
+    const groupOrders = await this.loadGroupOrders(reception);
+    const docs: DocumentDomainEntity[] = [];
+    for (const order of groupOrders) {
+      docs.push(
+        await this.generateReceptionDocument({
+          reception,
+          order,
+          username: chairman_account,
+          chairman_account,
+        })
+      );
+    }
+    return docs;
+  }
+
+  private async generateReceptionDocument(input: {
+    reception: MarketplaceAplReceptionDomainEntity;
+    order: MarketplaceOrderDomainEntity;
+    username: string;
+    chairman_account?: string;
+  }): Promise<DocumentDomainEntity> {
+    const fact = input.reception.fact_quantity_per_order.find(
+      (f) => f.order_id === input.order.id
+    );
+    // `user` шаблона 1102 = пайщик-получатель имущества (orderer_account).
+    // `transmitter` = передающая сторона — председатель КУ или доверенное
+    // им лицо (известен по chairman_account на этапе закрывающей подписи;
+    // на этапе превью используется оператор, создавший АПП).
+    const transmitter = input.chairman_account ?? input.reception.created_by_operator_account;
+    const action: Cooperative.Registry.MarketplaceAplReception.Action = {
+      registry_id: Cooperative.Registry.MarketplaceAplReception.registry_id,
+      coopname: input.reception.coopname,
+      username: input.order.orderer_account,
+      order_id: input.order.id,
+      order_hash: input.order.order_hash,
+      act_id: this.formatActId(input.reception.id, input.order.id),
+      transmitter,
+      braname: input.reception.braname,
+      skip_save: true,
+    };
+    return this.documentDomainService.generateDocument({ data: action });
+  }
+
+  private formatActId(reception_id: string, order_id: string): string {
+    const receptionShort = reception_id.replace(/-/g, '').slice(0, 8).toUpperCase();
+    const orderShort = order_id.replace(/-/g, '').slice(0, 6).toUpperCase();
+    return `APL-${receptionShort}-${orderShort}`;
+  }
+
+  async create(
+    input: MarketplaceAplReceptionCreateInputDto
+  ): Promise<MarketplaceAplReceptionResult> {
+    if (!input.shipment_id) {
+      throw new BadRequestException('Не указан shipment_id.');
+    }
+
+    const shipment = await this.shipmentRepo.findById(input.shipment_id);
+    if (!shipment || shipment.coopname !== input.coopname) {
+      throw new NotFoundException('Партия поставки не найдена.');
+    }
+    if (shipment.status !== MarketplaceShipmentStatuses.SUPPLY_PREPARED) {
+      throw new BadRequestException(
+        `Партия не готова к приёмке: статус «${shipment.status}», ожидался SUPPLY_PREPARED.`
+      );
+    }
+    // Один Shipment — одна активная АПП.
+    const existing = await this.receptionRepo.findByShipmentId(input.coopname, shipment.id);
+    if (existing) {
+      throw new ConflictException(
+        `АПП для партии ${shipment.id} уже сформирована (id=${existing.id}); повторное создание запрещено.`
+      );
+    }
+
+    const orders = await this.orderRepo.findByCycleId(shipment.coopname, shipment.cycle_id);
+    const groupOrders = orders.filter((o) => o.delivery_braname === shipment.braname);
+    if (groupOrders.length === 0) {
+      throw new BadRequestException(
+        'В партии поставки нет Order\'ов на этот КУ — нечего принимать.'
+      );
+    }
+
+    const fact = this.buildFactQuantity(input.fact_quantity_per_order ?? [], groupOrders);
+    const total = this.computeTotalAmount(fact, groupOrders);
+    const variant: MarketplaceAplReceptionVariant =
+      shipment.delivery_variant === MarketplaceShipmentDeliveryVariants.EXPEDITOR
+        ? MarketplaceAplReceptionVariants.EXPEDITOR
+        : MarketplaceAplReceptionVariants.IN_PERSON;
+
+    const reception = await this.receptionRepo.create({
+      coopname: shipment.coopname,
+      shipment_id: shipment.id,
+      cycle_id: shipment.cycle_id,
+      braname: shipment.braname,
+      offerer_account: shipment.offerer_account,
+      variant,
+      status: MarketplaceAplReceptionStatuses.PENDING_SUPPLIER_SIGN,
+      fact_quantity_per_order: fact,
+      ttn_number: shipment.ttn_number,
+      expeditor_data: shipment.ttn_data,
+      created_by_operator_account: input.operator_account,
+      total_amount: total,
+    });
+
+    // Партия переходит в «приёмка идёт».
+    await this.shipmentRepo.applyStatusTransition(
+      shipment.id,
+      MarketplaceShipmentStatuses.RECEPTION_IN_PROGRESS
+    );
+
+    this.logger.log(
+      `АПП ${reception.id} (вариант ${variant}) для партии ${shipment.id}, ku=${shipment.braname}, orders=${groupOrders.length}, total=${total}`
+    );
+
+    // Story 598-20: push поставщику для Варианта Б — экспедитор привёз
+    // партию, требуется первая подпись поставщика. Для Варианта А
+    // поставщик подписывает на стойке оператора, push не нужен.
+    if (variant === MarketplaceAplReceptionVariants.EXPEDITOR) {
+      const event: MarketplaceAplSupplierSignRequestEvent = {
+        coopname: reception.coopname,
+        apl_reception_id: reception.id,
+        supplier_account: reception.offerer_account,
+        ku_name: reception.braname,
+        ttn_number: reception.ttn_number ?? '—',
+        expeditor_name: reception.expeditor_data?.expeditor_full_name ?? 'экспедитор',
+      };
+      this.eventBus.emit(MARKETPLACE_APL_SUPPLIER_SIGN_REQUEST_EVENT, event);
+    }
+
+    return { apl_reception: reception };
+  }
+
+  async signAsSupplier(
+    input: MarketplaceAplReceptionSignSupplierInputDto
+  ): Promise<MarketplaceAplReceptionResult> {
+    const reception = await this.loadReception(input.coopname, input.apl_reception_id);
+    if (reception.offerer_account !== input.supplier_account) {
+      throw new ForbiddenException('АПП подписывает только поставщик-владелец Offer\'ов.');
+    }
+    if (!reception.awaits_supplier) {
+      throw new ConflictException(
+        `АПП находится в статусе «${reception.status}», подпись поставщика недопустима.`
+      );
+    }
+
+    let txHash: string;
+    try {
+      const groupOrders = await this.loadGroupOrders(reception);
+      txHash = await this.submitOnChainSignSupp(
+        reception,
+        groupOrders,
+        input.signed_documents,
+        input.supplier_account
+      );
+    } catch (err: any) {
+      this.logger.warn(
+        `АПП ${reception.id}: on-chain signsupp упал (${err.message}); статус не меняется, повторите подпись.`
+      );
+      throw new ConflictException(
+        `Подпись на цепи не выполнена: ${err.message}. Повторите подписание.`
+      );
+    }
+
+    const updated = await this.receptionRepo.applySignatures(reception.id, {
+      supplier_signed_at: new Date(),
+      supplier_signsupp_tx_hash: txHash,
+      status: MarketplaceAplReceptionStatuses.PENDING_CHAIRMAN_RECEPTION_SIGN,
+    });
+
+    this.logger.log(`АПП ${reception.id}: подпись поставщика принята (tx=${txHash}).`);
+
+    return { apl_reception: updated };
+  }
+
+  async signAsChairman(
+    input: MarketplaceAplReceptionSignChairmanInputDto
+  ): Promise<MarketplaceAplReceptionResult> {
+    const reception = await this.loadReception(input.coopname, input.apl_reception_id);
+    if (!reception.awaits_chairman) {
+      throw new ConflictException(
+        `АПП находится в статусе «${reception.status}», закрывающая подпись председателя недопустима.`
+      );
+    }
+
+    let txHash: string;
+    try {
+      const groupOrders = await this.loadGroupOrders(reception);
+      txHash = await this.submitOnChainSignChair(
+        reception,
+        groupOrders,
+        input.signed_documents,
+        input.chairman_account
+      );
+    } catch (err: any) {
+      this.logger.warn(
+        `АПП ${reception.id}: on-chain signchair упал (${err.message}); статус не меняется, повторите подпись.`
+      );
+      throw new ConflictException(
+        `Закрывающая подпись на цепи не выполнена: ${err.message}. Повторите подписание.`
+      );
+    }
+    const acceptedAt = new Date();
+
+    const updated = await this.receptionRepo.applySignatures(reception.id, {
+      chairman_signed_at: acceptedAt,
+      chairman_account: input.chairman_account,
+      chairman_signchair_tx_hash: txHash,
+      status: MarketplaceAplReceptionStatuses.ACCEPTED_TO_COOP,
+    });
+
+    // Order'ы группы → ACCEPTED_TO_COOP (FR19a выдача разблокируется только
+    // после этого момента).
+    const orders = await this.orderRepo.findByCycleId(reception.coopname, reception.cycle_id);
+    for (const o of orders.filter((x) => x.delivery_braname === reception.braname)) {
+      await this.orderRepo.applyStatusTransition(
+        o.id,
+        'ACCEPTED_TO_COOP',
+        `АПП #${reception.id} закрывающая подпись председателя ${input.chairman_account}`
+      );
+    }
+
+    await this.shipmentRepo.applyStatusTransition(
+      reception.shipment_id,
+      MarketplaceShipmentStatuses.ACCEPTED_TO_COOP
+    );
+
+    // Story 5.6 / 598-16 (L12): инициируем выплаты поставщику per-Order
+    // через gateway. Кассир увидит каждую выплату в общем реестре
+    // платежей кооператива и подтвердит/отклонит её там.
+    const orderHashByOrderId = new Map(orders.map((o) => [o.id, o.order_hash] as const));
+    await this.initiatePayouts(updated, orders, orderHashByOrderId, input.chairman_account);
+
+    // Story 598-20: push кассиру о новой партии выплат — одно
+    // суммарное уведомление на АПП с агрегатом по поставщику.
+    const event: MarketplaceCashierNewPaymentEvent = {
+      coopname: updated.coopname,
+      apl_reception_id: updated.id,
+      payment_request_id: updated.id,
+      supplier_account: updated.offerer_account,
+      amount: `${updated.total_amount} ${this.assetConfig.symbol}`,
+    };
+    this.eventBus.emit(MARKETPLACE_CASHIER_NEW_PAYMENT_EVENT, event);
+
+    this.logger.log(
+      `АПП ${reception.id}: закрывающая подпись председателя ${input.chairman_account} принята (tx=${txHash}); выплаты по ${orders.filter((x) => x.delivery_braname === reception.braname).length} заказам инициированы через gateway.`
+    );
+
+    return { apl_reception: updated };
+  }
+
+  /**
+   * Story 5.6 + 598-16 (L12) + AR35: per-Order инициирует выплату поставщику.
+   *
+   * Для каждого Order'а группы:
+   *   1. создаёт audit-projection marketplace_outgoing_payment_request
+   *      в статусе PENDING (идемпотентно по order_hash);
+   *   2. регистрирует системный платёж в core-реестре gateway —
+   *      кассир увидит выплату в общей ленте;
+   *   3. отправляет on-chain `marketplace::payout` → inline
+   *      `gateway::createoutpay` (gateway::outcomes pending). Кассир в
+   *      своём столе подтверждает/отказывает; callback'и
+   *      `marketplace::payconfirm` / `paydecline` дойдут до listener'а
+   *      в `MarketplacePayoutSyncService` и обновят статус projection +
+   *      core payment + emit push поставщику.
+   *
+   * Ошибки на отдельной выплате не блокируют АПП и другие выплаты —
+   * statement остаётся ACCEPTED_TO_COOP, кооператив может повторить
+   * через ручной retry (отдельный API-шаг).
+   */
+  private async initiatePayouts(
+    reception: MarketplaceAplReceptionDomainEntity,
+    allOrders: MarketplaceOrderDomainEntity[],
+    orderHashByOrderId: Map<string, string>,
+    chairman_account: string
+  ): Promise<void> {
+    const factByOrderId = new Map(
+      reception.fact_quantity_per_order.map((f) => [f.order_id, f.fact_quantity])
+    );
+    const groupOrders = allOrders.filter((o) => o.delivery_braname === reception.braname);
+
+    for (const order of groupOrders) {
+      const orderHash = orderHashByOrderId.get(order.id);
+      if (!orderHash) {
+        this.logger.warn(
+          `initiatePayouts: у заказа ${order.id} нет order_hash — выплата невозможна.`
+        );
+        continue;
+      }
+      const factQuantity = factByOrderId.get(order.id) ?? order.quantity;
+      const amount = (factQuantity * Number.parseFloat(order.price_per_unit)).toFixed(4);
+      const purpose = `Выплата поставщику ${reception.offerer_account} по заказу ${order.id} (АПП ${reception.id}, председатель ${chairman_account})`;
+
+      await this.initiatePayoutForOrder({
+        coopname: reception.coopname,
+        order_hash: orderHash,
+        order_id: order.id,
+        apl_reception_id: reception.id,
+        payee_account: reception.offerer_account,
+        amount,
+        purpose,
+      });
+    }
+  }
+
+  private async initiatePayoutForOrder(input: {
+    coopname: string;
+    order_hash: string;
+    order_id: string;
+    apl_reception_id: string;
+    payee_account: string;
+    amount: string;
+    purpose: string;
+  }): Promise<void> {
+    let projection;
+    try {
+      projection = await this.paymentRepo.createIfNotExists({
+        coopname: input.coopname,
+        order_hash: input.order_hash,
+        order_id: input.order_id,
+        apl_reception_id: input.apl_reception_id,
+        payee_account: input.payee_account,
+        amount: input.amount,
+        symbol: this.assetConfig.symbol,
+        purpose: input.purpose,
+      });
+    } catch (err: any) {
+      this.logger.warn(
+        `initiatePayouts: создание projection для order ${input.order_id} упало: ${err.message}; пропускаю.`
+      );
+      return;
+    }
+
+    if (!projection.core_payment_id) {
+      try {
+        const paymentHash = createHash('sha256')
+          .update(`marketplace:${input.coopname}:${input.order_hash}`)
+          .digest('hex');
+        const corePayment = await this.coreGateway.createSystemOutgoingPayment({
+          coopname: input.coopname,
+          username: input.payee_account,
+          quantity: Number.parseFloat(input.amount),
+          symbol: this.assetConfig.symbol,
+          memo: input.purpose,
+          related_extension: 'marketplace',
+          related_entity_id: projection.id,
+          payment_hash: paymentHash,
+        });
+        if (corePayment.id) {
+          await this.paymentRepo.applyCorePaymentId(
+            input.coopname,
+            input.order_hash,
+            corePayment.id
+          );
+        }
+      } catch (err: any) {
+        this.logger.warn(
+          `initiatePayouts: core createSystemOutgoingPayment для order ${input.order_id} упал: ${err.message}; кассирский стол core не увидит выплату до повторной попытки.`
+        );
+      }
+    }
+
+    try {
+      await this.chainPort.payOut({
+        coopname: input.coopname,
+        order_hash: input.order_hash,
+      });
+    } catch (err: any) {
+      this.logger.warn(
+        `initiatePayouts: on-chain payOut для order ${input.order_id} упал: ${err.message}; projection остаётся PENDING, gateway::outcomes не создан. Требуется retry.`
+      );
+    }
+  }
+
+  // ── private ──
+
+  private async loadReception(
+    coopname: string,
+    id: string
+  ): Promise<MarketplaceAplReceptionDomainEntity> {
+    const reception = await this.receptionRepo.findById(id);
+    if (!reception || reception.coopname !== coopname) {
+      throw new NotFoundException('АПП приёмки не найден.');
+    }
+    return reception;
+  }
+
+  private async loadGroupOrders(
+    reception: MarketplaceAplReceptionDomainEntity
+  ): Promise<MarketplaceOrderDomainEntity[]> {
+    const orders = await this.orderRepo.findByCycleId(reception.coopname, reception.cycle_id);
+    return orders.filter((o) => o.delivery_braname === reception.braname);
+  }
+
+  /**
+   * Per-Order on-chain `signsupp`. Каждый Order группы должен иметь свой
+   * подписанный документ с meta.order_id, привязка идёт по нему.
+   * Возвращает tx_hash последнего успешного submit; промежуточные —
+   * в debug-логе.
+   */
+  private async submitOnChainSignSupp(
+    reception: MarketplaceAplReceptionDomainEntity,
+    groupOrders: MarketplaceOrderDomainEntity[],
+    signed_documents: MarketplaceAplReceptionSignedDocumentInputDTO[],
+    offerer: string
+  ): Promise<string> {
+    const byOrderId = this.indexSignedDocumentsByOrderId(signed_documents);
+    let lastTxHash = '';
+    for (const order of groupOrders) {
+      const signed = byOrderId.get(order.id);
+      if (!signed) {
+        throw new BadRequestException(
+          `Нет подписанного акта приёмки для Order ${order.id}; нужны акты по всем Order'ам группы (${groupOrders.length}).`
+        );
+      }
+      this.verifyDocumentSignature(signed);
+      const act = signed.toDocument() as MarketContract.Actions.SignSupp.ISignSupp['act'];
+      const tx = await this.chainPort.signSupp({
+        coopname: reception.coopname,
+        offerer,
+        order_hash: order.order_hash,
+        accept_braname: reception.braname,
+        act,
+      });
+      const txHash = this.extractTxHash(tx);
+      if (txHash) lastTxHash = txHash;
+      this.logger.debug(`signsupp on-chain OK: order ${order.id} → tx ${txHash || '<no-id>'}`);
+    }
+    return lastTxHash || `signsupp-${reception.id}`;
+  }
+
+  /** Аналог `submitOnChainSignSupp` для закрывающей подписи председателя. */
+  private async submitOnChainSignChair(
+    reception: MarketplaceAplReceptionDomainEntity,
+    groupOrders: MarketplaceOrderDomainEntity[],
+    signed_documents: MarketplaceAplReceptionSignedDocumentInputDTO[],
+    signer: string
+  ): Promise<string> {
+    const byOrderId = this.indexSignedDocumentsByOrderId(signed_documents);
+    let lastTxHash = '';
+    for (const order of groupOrders) {
+      const signed = byOrderId.get(order.id);
+      if (!signed) {
+        throw new BadRequestException(
+          `Нет подписанного акта приёмки председателя для Order ${order.id}; нужны акты по всем Order'ам группы.`
+        );
+      }
+      this.verifyDocumentSignature(signed);
+      const act = signed.toDocument() as MarketContract.Actions.SignChair.ISignChair['act'];
+      const tx = await this.chainPort.signChair({
+        coopname: reception.coopname,
+        signer,
+        order_hash: order.order_hash,
+        act,
+      });
+      const txHash = this.extractTxHash(tx);
+      if (txHash) lastTxHash = txHash;
+      this.logger.debug(`signchair on-chain OK: order ${order.id} → tx ${txHash || '<no-id>'}`);
+    }
+    return lastTxHash || `signchair-${reception.id}`;
+  }
+
+  private indexSignedDocumentsByOrderId(
+    docs: MarketplaceAplReceptionSignedDocumentInputDTO[]
+  ): Map<string, MarketplaceAplReceptionSignedDocumentInputDTO> {
+    const out = new Map<string, MarketplaceAplReceptionSignedDocumentInputDTO>();
+    for (const d of docs) {
+      const orderId = d.meta?.order_id;
+      if (!orderId) {
+        throw new BadRequestException(
+          'Каждый подписанный акт приёмки должен содержать meta.order_id, по которому он привязывается к Order группы.'
+        );
+      }
+      out.set(orderId, d);
+    }
+    return out;
+  }
+
+  private verifyDocumentSignature(document: ISignedDocumentDomainInterface): void {
+    const sig = document.signatures?.[0];
+    if (!sig) {
+      throw new HttpApiError(http.BAD_REQUEST, 'Документ не подписан: signatures пуст.');
+    }
+    const publicKey = PublicKey.from(sig.public_key);
+    const signature = Signature.from(sig.signature);
+    const verified = signature.verifyDigest(sig.signed_hash, publicKey);
+    if (!verified) {
+      throw new HttpApiError(http.BAD_REQUEST, 'Недействительная подпись акта приёмки.');
+    }
+  }
+
+  private extractTxHash(tx: unknown): string {
+    const candidate = tx as
+      | { response?: { transaction_id?: string }; resolved?: { transaction?: { id?: string } }; transaction?: { id?: string } }
+      | undefined;
+    return (
+      candidate?.response?.transaction_id ??
+      candidate?.resolved?.transaction?.id ??
+      candidate?.transaction?.id ??
+      ''
+    );
+  }
+
+  private buildFactQuantity(
+    provided: MarketplaceAplReceptionFactQuantityEntry[],
+    groupOrders: MarketplaceOrderDomainEntity[]
+  ): MarketplaceAplReceptionFactQuantityEntry[] {
+    const providedMap = new Map(provided.map((p) => [p.order_id, p.fact_quantity]));
+    const out: MarketplaceAplReceptionFactQuantityEntry[] = [];
+    for (const o of groupOrders) {
+      const fact = providedMap.get(o.id);
+      if (fact !== undefined) {
+        if (!Number.isInteger(fact) || fact < 0) {
+          throw new BadRequestException(
+            `Некорректное fact_quantity для Order ${o.id}: ${fact}.`
+          );
+        }
+        out.push({ order_id: o.id, fact_quantity: fact });
+      } else {
+        out.push({ order_id: o.id, fact_quantity: o.quantity });
+      }
+    }
+    return out;
+  }
+
+  private computeTotalAmount(
+    fact: MarketplaceAplReceptionFactQuantityEntry[],
+    orders: MarketplaceOrderDomainEntity[]
+  ): string {
+    const byId = new Map(orders.map((o) => [o.id, o]));
+    let total = 0;
+    for (const entry of fact) {
+      const order = byId.get(entry.order_id);
+      if (!order) continue;
+      total += entry.fact_quantity * Number.parseFloat(order.price_per_unit);
+    }
+    return total.toFixed(4);
+  }
+
+}
+
+export const MARKETPLACE_APL_RECEPTION_SERVICE = Symbol('MARKETPLACE_APL_RECEPTION_SERVICE');

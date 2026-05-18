@@ -10,6 +10,7 @@ import {
   MarketplaceCategoryDTO,
   MarketplaceOfferDTO,
   MarketplaceOfferPaginationResultDTO,
+  toMarketplaceOfferDTO,
 } from '../dto/marketplace-offer.dto';
 import {
   MarketplaceCreateOfferInputDTO,
@@ -30,37 +31,7 @@ import {
 } from '../services/marketplace-category.service';
 import type { MarketplaceOfferDomainEntity } from '../../domain/entities/marketplace-offer.entity';
 
-function toDTO(o: MarketplaceOfferDomainEntity): MarketplaceOfferDTO {
-  return new MarketplaceOfferDTO({
-    id: o.id,
-    coopname: o.coopname,
-    supplier_account: o.supplier_account,
-    vitrine_id: o.vitrine_id,
-    product_name: o.product_name,
-    description: o.description,
-    category_id: o.category_id,
-    price_per_unit: o.price_per_unit,
-    unit_of_measure: o.unit_of_measure,
-    quantity_available: o.quantity_available,
-    quantity_blocked: o.quantity_blocked,
-    quantity_consumed: o.quantity_consumed,
-    unlimited_flag: o.unlimited_flag,
-    cycle_type: o.cycle_type,
-    cycle_days: o.cycle_days,
-    target_volume: o.target_volume,
-    max_wait_days: o.max_wait_days,
-    min_threshold: o.min_threshold,
-    warranty_days: o.warranty_days,
-    status: o.status,
-    approved_by: o.approved_by,
-    approved_at: o.approved_at,
-    rejected_by: o.rejected_by,
-    rejected_at: o.rejected_at,
-    reject_reason: o.reject_reason,
-    created_at: o.created_at,
-    updated_at: o.updated_at,
-  });
-}
+const toDTO = toMarketplaceOfferDTO;
 
 /**
  * Story 3.2 + 3.5: GraphQL для Offer'ов и категорий.
@@ -128,6 +99,8 @@ export class MarketplaceOfferResolver {
       max_wait_days: input.max_wait_days ?? null,
       min_threshold: input.min_threshold ?? null,
       warranty_days: input.warranty_days,
+      barcode_strategy: input.barcode_strategy ?? null,
+      pack_size: input.pack_size ?? null,
     });
     return toDTO(offer);
   }

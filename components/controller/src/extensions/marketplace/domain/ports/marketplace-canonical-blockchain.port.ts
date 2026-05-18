@@ -71,6 +71,35 @@ export interface MarketplaceCanonicalBlockchainPort {
   declineOrder(data: MarketContract.Actions.DeclineOrder.IDeclineOrder): Promise<TransactResult>;
 
   /**
+   * Story 5.3 / 5.4: первая подпись поставщика на АПП приёмки одного
+   * Order'а (поле `act` — IDocument2 с подписью поставщика). C++
+   * marketplace::signsupp переводит on-chain статус Order'а
+   * `accepted → supply_prepared` и фиксирует акт в `agreements`.
+   *
+   * Авторизация — кооператив (`require_auth(coopname)`); C++ проверяет
+   * `signature in act.signatures` соответствие `offerer`.
+   */
+  signSupp(data: MarketContract.Actions.SignSupp.ISignSupp): Promise<TransactResult>;
+
+  /**
+   * Story 5.6: закрывающая подпись председателя КУ на АПП приёмки одного
+   * Order'а. C++ marketplace::signchair выполняет ledger2-операцию
+   * `o.mkt.purch` (Дт 10 / Кт 86 — имущество на склад КУ за счёт ЦФ),
+   * переводит on-chain статус Order'а `supply_prepared → accepted_to_coop`
+   * и устанавливает `current_warehouse_braname = accept_braname`.
+   *
+   * Locked Decision L12 / PR #389: o.mkt.payout вынесен из signchair в
+   * отдельный action `marketplace::payout` (см. метод `payOut`); приёмка
+   * на КУ закрывает только корреспонденцию 10/86, обязательство 86/51
+   * (выплата поставщику) формируется отдельной транзакцией после
+   * фактического банковского перевода кассиром.
+   *
+   * Авторизация — кооператив (`require_auth(coopname)`); C++ проверяет
+   * `signer == председатель КУ`.
+   */
+  signChair(data: MarketContract.Actions.SignChair.ISignChair): Promise<TransactResult>;
+
+  /**
    * E11 техдолг 598-16 / Locked Decision L12: инициация исходящей выплаты
    * поставщику по одному Order'у через контракт gateway. Триггерит C++
    * `marketplace::payout` → inline `gateway::createoutpay` — gateway

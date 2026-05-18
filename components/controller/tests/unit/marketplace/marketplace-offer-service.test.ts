@@ -45,6 +45,8 @@ function makeOffer(overrides: Partial<MarketplaceOfferDomainEntity> = {}): Marke
     max_wait_days: null,
     min_threshold: null,
     warranty_days: 0,
+    barcode_strategy: 'PER_ORDER',
+    pack_size: null,
     status: 'PENDING_MODERATION',
     approved_by: null,
     approved_at: null,
@@ -168,6 +170,81 @@ describe('MarketplaceOfferService.create', () => {
     await expect(service.create(baseCreateRequest({ product_name: '   ' }))).rejects.toThrow(
       BadRequestException
     );
+  });
+
+  // ── техдолг 598-22: barcode_strategy + pack_size ──
+
+  it('barcode_strategy PER_PACKAGE без pack_size → 400', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.countRecentCreatedBy.mockResolvedValue(0);
+    const service = new MarketplaceOfferService(repo, cats);
+
+    await expect(
+      service.create(baseCreateRequest({ barcode_strategy: 'PER_PACKAGE' }))
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('barcode_strategy PER_PACKAGE + pack_size > MAX_PACK_SIZE → 400', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.countRecentCreatedBy.mockResolvedValue(0);
+    const service = new MarketplaceOfferService(repo, cats);
+
+    await expect(
+      service.create(
+        baseCreateRequest({
+          barcode_strategy: 'PER_PACKAGE',
+          pack_size: MarketplaceOfferService.MAX_PACK_SIZE + 1,
+        })
+      )
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('barcode_strategy PER_ORDER + pack_size заполнено → 400 (несовместимая комбинация)', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.countRecentCreatedBy.mockResolvedValue(0);
+    const service = new MarketplaceOfferService(repo, cats);
+
+    await expect(
+      service.create(baseCreateRequest({ barcode_strategy: 'PER_ORDER', pack_size: 5 }))
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('barcode_strategy PER_PACKAGE + pack_size валидный → OK, передаются в репозиторий', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.countRecentCreatedBy.mockResolvedValue(0);
+    repo.create.mockImplementation(async (input) => makeOffer({
+      barcode_strategy: input.barcode_strategy,
+      pack_size: input.pack_size,
+    }));
+    const service = new MarketplaceOfferService(repo, cats);
+
+    const offer = await service.create(
+      baseCreateRequest({ barcode_strategy: 'PER_PACKAGE', pack_size: 12 })
+    );
+    expect(offer.barcode_strategy).toBe('PER_PACKAGE');
+    expect(offer.pack_size).toBe(12);
+    expect(repo.create).toHaveBeenCalledWith(
+      expect.objectContaining({ barcode_strategy: 'PER_PACKAGE', pack_size: 12 })
+    );
+  });
+
+  it('barcode_strategy не задан → дефолт PER_ORDER, pack_size=null', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.countRecentCreatedBy.mockResolvedValue(0);
+    repo.create.mockImplementation(async (input) => makeOffer({
+      barcode_strategy: input.barcode_strategy,
+      pack_size: input.pack_size,
+    }));
+    const service = new MarketplaceOfferService(repo, cats);
+
+    const offer = await service.create(baseCreateRequest());
+    expect(offer.barcode_strategy).toBe('PER_ORDER');
+    expect(offer.pack_size).toBeNull();
   });
 
   it('product_name > 200 → 400', async () => {
