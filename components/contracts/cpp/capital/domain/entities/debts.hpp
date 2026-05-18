@@ -20,6 +20,7 @@ namespace Status {
   constexpr name AUTHORIZED = "authorized"_n;  ///< Долг авторизован советом, ожидает повторной отправки на оплату
   constexpr name PAY_PENDING = "paypending"_n; ///< Долг отправлен в gateway на оплату (исходящий платёж создан, ждём debtpaycnfrm/debtpaydcln)
   constexpr name PAID = "paid"_n;              ///< Долг выплачен пайщику, активный (ждёт погашения)
+  constexpr name SETTLED = "settled"_n;        ///< Долг полностью погашен (деньгами через settledebt либо результатом через signact2)
 }
 
 /**
@@ -194,6 +195,36 @@ inline void mark_pay_declined(
   debts.modify(debt, payer, [&](auto &d) {
     d.status = Status::AUTHORIZED;
     d.last_pay_error = reason;
+  });
+}
+
+/**
+ * @brief Закрывает долг как погашенный — переводит в SETTLED, сохраняет документ-основание
+ *        в поле memo (если передан) и фиксирует дату погашения.
+ *
+ * Деньги и проводка REPAY к этому моменту уже должны быть применены в Ledger2,
+ * а contributors.debt_amount — уменьшен. Функция отвечает только за состояние записи.
+ */
+inline void mark_settled(
+  eosio::name coopname,
+  uint64_t debt_id,
+  const std::string &settle_memo = "",
+  eosio::name payer = name{}
+) {
+  if (payer == name{}) payer = coopname;
+
+  debts_index debts(_capital, coopname.value);
+  auto debt = debts.find(debt_id);
+  eosio::check(debt != debts.end(), "Долг не найден");
+  eosio::check(debt->status == Status::PAID,
+               "Погашение допустимо только из статуса paid");
+
+  debts.modify(debt, payer, [&](auto &d) {
+    d.status = Status::SETTLED;
+    d.repaid_at = eosio::current_time_point();
+    if (!settle_memo.empty()) {
+      d.memo = settle_memo;
+    }
   });
 }
 

@@ -320,6 +320,6 @@ public:
     void declinedebt(name coopname, eosio::name username, checksum256 debt_hash, std::string reason);
     
     [[eosio::action]]
-    void settledebt(name coopname, name username, eosio::asset amount, document2 statement);
+    void settledebt(name coopname, checksum256 debt_hash, eosio::asset amount, document2 statement);
 
 };

@@ -87,4 +87,8 @@ namespace Capital::Memo {
     return "Внесение имущества в программу Благорост: " + checksum256_to_hex(property_hash);
   }
 
+  inline std::string get_settle_debt_memo(eosio::name username, checksum256 debt_hash) {
+    return "Погашение займа деньгами участником " + username.to_string() + " (долг " + checksum256_to_hex(debt_hash) + ")";
+  }
+
 } // namespace Capital::Memo
