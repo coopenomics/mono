@@ -1,27 +1,36 @@
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue';
-import { FailAlert, NotifyAlert } from 'src/shared/api';
+import { FailAlert } from 'src/shared/api';
 import {
   listIssuancesByBraname,
   type MarketplaceOrderIssuanceView,
 } from '../api';
+import IssueActOpenDialog from './IssueActOpenDialog.vue';
+import IssueActFinalizeDialog from './IssueActFinalizeDialog.vue';
 
 /**
- * Story 6.1 / 6.3: каркас operator-стола выдачи имущества пайщику.
+ * Story 6.1 / 6.3 / 6.6: operator-стол выдачи имущества пайщику.
  *
  * Показывает Order'ы на КУ выдачи в статусах ACCEPTED_TO_COOP (ожидают
  * открытия первой подписью председателя — `signiss1`) и READY_TO_RECEIVE
  * (ожидают финальной подписи заказчика на ПВЗ — `signiss2`).
  *
- * Полный flow подписи (BarcodeScanner с штрих-кода заказа, CorrectionTable
- * со сверкой факт vs заказ, TakeoverDialog для двух подписей) включается
- * следующим UI PR. Бэкенд уже принимает signed_document с подписями и
- * исполняет все три ветки сверки в C++ `signiss2`.
+ * - «Открыть выдачу» вызывает IssueActOpenDialog — full-screen takeover
+ *   с превью акта (registry_id=1102) и подписью председателя.
+ * - «Завершить выдачу» вызывает IssueActFinalizeDialog — BarcodeScanner
+ *   для проверки штрих-кода заказа + CorrectionTable со сверкой
+ *   факт vs заказ + двойная подпись (заказчик + delivery_signer) и
+ *   композитная транзакция `signiss2` с корректирующими операциями
+ *   по FR23-FR25.
  */
 
 const braname = ref<string>('');
 const items = ref<MarketplaceOrderIssuanceView[]>([]);
 const loading = ref(false);
+
+const openDialog = ref(false);
+const finalizeDialog = ref(false);
+const selectedOrder = ref<MarketplaceOrderIssuanceView | null>(null);
 
 async function load(): Promise<void> {
   if (!braname.value.trim()) return;
@@ -35,18 +44,22 @@ async function load(): Promise<void> {
   }
 }
 
-function openIssuance(item: MarketplaceOrderIssuanceView): void {
-  NotifyAlert(
-    `Диалог открытия выдачи заказа ${item.id.slice(0, 8)} в разработке`,
-    'Backend принимает только подписанный канонический акт выдачи (signed_document с подписью председателя). UI-флоу подписи через приватный ключ председателя — следующий этап работ.',
-  );
+function startOpen(item: MarketplaceOrderIssuanceView): void {
+  selectedOrder.value = item;
+  openDialog.value = true;
 }
 
-function finalizeIssuance(item: MarketplaceOrderIssuanceView): void {
-  NotifyAlert(
-    `Диалог финальной подписи заказа ${item.id.slice(0, 8)} в разработке`,
-    'Backend принимает signed_document с двумя подписями (заказчик + делегат кооператива), actual_quantity и delivery_signer. Композитная транзакция signiss2 на цепи исполнит корректирующие операции по сверке факт vs заказ.',
-  );
+function startFinalize(item: MarketplaceOrderIssuanceView): void {
+  selectedOrder.value = item;
+  finalizeDialog.value = true;
+}
+
+function onOpened(): void {
+  void load();
+}
+
+function onFinalized(): void {
+  void load();
 }
 
 onMounted(() => {
@@ -85,7 +98,7 @@ q-page.mp-role-operator.mp-issuance.q-pa-md
           no-caps
           dense
           label="Открыть выдачу"
-          @click="openIssuance(props.row)"
+          @click="startOpen(props.row)"
         )
         q-btn(
           v-else-if="props.row.status === 'READY_TO_RECEIVE'"
@@ -94,6 +107,17 @@ q-page.mp-role-operator.mp-issuance.q-pa-md
           no-caps
           dense
           label="Завершить выдачу"
-          @click="finalizeIssuance(props.row)"
+          @click="startFinalize(props.row)"
         )
+
+  IssueActOpenDialog(
+    v-model="openDialog"
+    :order="selectedOrder"
+    @opened="onOpened"
+  )
+  IssueActFinalizeDialog(
+    v-model="finalizeDialog"
+    :order="selectedOrder"
+    @finalized="onFinalized"
+  )
 </template>
