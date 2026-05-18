@@ -103,6 +103,73 @@ export class PermissionsService {
     return appendix !== null;
   }
 
+  /**
+   * Возвращает список хешей проектов из переданного множества, к которым у пользователя
+   * есть доступ для просмотра артефактов (подтверждённый appendix). Председатель/член совета
+   * видит весь список без ограничений.
+   *
+   * Каскад вниз: если задан parentProjectHash и у пользователя есть допуск к нему,
+   * все компоненты этого родителя считаются разрешёнными.
+   */
+  async filterProjectHashesWithArtifactAccess(
+    candidateHashes: string[],
+    currentUser?: MonoAccountDomainInterface,
+    parentProjectHash?: string
+  ): Promise<string[]> {
+    if (this.isBoardMember(currentUser)) {
+      return [...candidateHashes];
+    }
+    const username = currentUser?.username;
+    if (!username || candidateHashes.length === 0) {
+      return [];
+    }
+
+    // Каскадный допуск через родительский проект: если он подтверждён — все компоненты доступны.
+    if (parentProjectHash) {
+      const parentAppendix = await this.appendixRepository.findConfirmedByUsernameAndProjectHash(
+        username,
+        parentProjectHash
+      );
+      if (parentAppendix) {
+        return [...candidateHashes];
+      }
+    }
+
+    // Иначе — фильтруем по индивидуальному допуску на каждый проект из списка.
+    const checks = await Promise.all(
+      candidateHashes.map(async (hash) => {
+        const appendix = await this.appendixRepository.findConfirmedByUsernameAndProjectHash(username, hash);
+        return appendix ? hash : null;
+      })
+    );
+    return checks.filter((hash): hash is string => hash !== null);
+  }
+
+  /**
+   * Проверяет, может ли пользователь просматривать артефакты конкретного проекта или компонента.
+   * Председатель/член совета — да; иначе — собственный допуск или допуск к родителю.
+   */
+  async canViewProjectArtifacts(
+    project: ProjectDomainEntity,
+    currentUser?: MonoAccountDomainInterface
+  ): Promise<boolean> {
+    if (this.isBoardMember(currentUser)) {
+      return true;
+    }
+    const username = currentUser?.username;
+    if (!username || !project.coopname) {
+      return false;
+    }
+    const ownAccess = await this.isProjectContributor(username, project.coopname, project.project_hash);
+    if (ownAccess) {
+      return true;
+    }
+    if (project.parent_hash) {
+      return await this.isProjectContributor(username, project.coopname, project.parent_hash);
+    }
+    return false;
+  }
+
 
   /**
    * Рассчитывает права доступа пользователя к задаче через матрицу доступа
@@ -223,6 +290,8 @@ export class PermissionsService {
         can_complete_requirement: false,
         has_clearance: false,
         pending_clearance: false,
+        has_parent_clearance: false,
+        can_view_artifacts: false,
         is_guest: true,
       };
     }
@@ -241,6 +310,16 @@ export class PermissionsService {
     const pending_clearance = project.coopname
       ? (await this.appendixRepository.findCreatedByUsernameAndProjectHash(username, project.project_hash)) !== null
       : false;
+
+    // Проверяем допуск к родителю — каскадно вниз по иерархии проектов:
+    // если есть допуск к корневому проекту, пользователь видит артефакты всех его компонентов.
+    const has_parent_clearance = project.parent_hash && project.coopname
+      ? await this.isProjectContributor(username, project.coopname, project.parent_hash)
+      : false;
+
+    // Право просматривать артефакты: председатель/член совета — всегда; в остальных случаях —
+    // собственный допуск ИЛИ допуск к родителю (для компонента).
+    const can_view_artifacts = this.isBoardMember(currentUser) || has_clearance || has_parent_clearance;
 
     // Рассчитываем права на основе матрицы доступа
     const can_edit_project = this.projectPermissionsService.hasProjectPermission(roles, ProjectAction.EDIT_PROJECT);
@@ -284,6 +363,8 @@ export class PermissionsService {
       can_complete_requirement,
       has_clearance,
       pending_clearance,
+      has_parent_clearance,
+      can_view_artifacts,
       is_guest: false,
     };
   }
