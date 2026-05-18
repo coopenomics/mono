@@ -146,9 +146,7 @@ export class Generator implements IGenerator {
       [Actions.CapitalizationPropertyInvestDecision.Template.registry_id]: new Actions.CapitalizationPropertyInvestDecision.Factory(this.storage), // 1071
       [Actions.CapitalizationPropertyInvestAct.Template.registry_id]: new Actions.CapitalizationPropertyInvestAct.Factory(this.storage), // 1072
 
-      [Actions.GenerationToMainWalletConvertStatement.Template.registry_id]: new Actions.GenerationToMainWalletConvertStatement.Factory(this.storage), // 1080
-      [Actions.GenerationToProjectConvertStatement.Template.registry_id]: new Actions.GenerationToProjectConvertStatement.Factory(this.storage), // 1081
-      [Actions.GenerationToCapitalizationConvertStatement.Template.registry_id]: new Actions.GenerationToCapitalizationConvertStatement.Factory(this.storage), // 1082
+      [Actions.GenerationConvertStatement.Template.registry_id]: new Actions.GenerationConvertStatement.Factory(this.storage), // 1080
 
       [Actions.CapitalizationToMainWalletConvertStatement.Template.registry_id]: new Actions.CapitalizationToMainWalletConvertStatement.Factory(this.storage), // 1090
     }

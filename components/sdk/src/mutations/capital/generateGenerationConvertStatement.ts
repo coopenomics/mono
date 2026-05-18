@@ -1,10 +1,10 @@
 import { documentSelector } from '../../selectors'
 import { $, type GraphQLTypes, type InputType, type ModelTypes, Selector } from '../../zeus/index'
 
-export const name = 'capitalGenerateGenerationToProjectConvertStatement'
+export const name = 'capitalGenerateGenerationConvertStatement'
 
 export const mutation = Selector('Mutation')({
-  [name]: [{ data: $('data', 'GenerateDocumentInput!'), options: $('options', 'GenerateDocumentOptionsInput') }, documentSelector],
+  [name]: [{ data: $('data', 'GenerationConvertStatementGenerateDocumentInput!'), options: $('options', 'GenerateDocumentOptionsInput') }, documentSelector],
 })
 
 export interface IInput {
@@ -13,7 +13,7 @@ export interface IInput {
    */
   [key: string]: unknown
 
-  data: ModelTypes['GenerateDocumentInput']
+  data: ModelTypes['GenerationConvertStatementGenerateDocumentInput']
   options?: ModelTypes['GenerateDocumentOptionsInput']
 }
 

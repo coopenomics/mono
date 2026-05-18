@@ -1,25 +1,25 @@
 import { Cooperative, DraftContract } from 'cooptypes'
-import { GenerationToMainWalletConvertStatement } from '../Templates'
+import { GenerationConvertStatement } from '../Templates'
 import { DocFactory } from '../Factory'
 import { Udata } from '../Models/Udata'
 import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
 
-export { GenerationToMainWalletConvertStatement as Template } from '../Templates'
+export { GenerationConvertStatement as Template } from '../Templates'
 
-export class Factory extends DocFactory<GenerationToMainWalletConvertStatement.Action> {
+export class Factory extends DocFactory<GenerationConvertStatement.Action> {
   constructor(storage: MongoDBConnector) {
     super(storage)
   }
 
-  async generateDocument(data: GenerationToMainWalletConvertStatement.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    let template: ITemplate<GenerationToMainWalletConvertStatement.Model>
+  async generateDocument(data: GenerationConvertStatement.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
+    let template: ITemplate<GenerationConvertStatement.Model>
 
     if (process.env.SOURCE === 'local') {
-      template = GenerationToMainWalletConvertStatement.Template
+      template = GenerationConvertStatement.Template
     }
     else {
-      template = await this.getTemplate(DraftContract.contractName.production, GenerationToMainWalletConvertStatement.registry_id, data.block_num)
+      template = await this.getTemplate(DraftContract.contractName.production, GenerationConvertStatement.registry_id, data.block_num)
     }
 
     const meta: IMetaDocument = await this.getMeta({ title: template.title, ...data })
@@ -53,7 +53,7 @@ export class Factory extends DocFactory<GenerationToMainWalletConvertStatement.A
       throw new Error('Дата создания договора УХД участника не найдена в Udata')
     }
 
-    const combinedData: GenerationToMainWalletConvertStatement.Model = {
+    const combinedData: GenerationConvertStatement.Model = {
       meta,
       coop,
       vars,
@@ -64,8 +64,8 @@ export class Factory extends DocFactory<GenerationToMainWalletConvertStatement.A
       appendix_short_hash: this.getShortHash(data.appendix_hash),
       project_hash: data.project_hash,
       project_short_hash: this.getShortHash(data.project_hash),
-      main_wallet_amount: data.main_wallet_amount,
-      blagorost_wallet_amount: data.blagorost_wallet_amount,
+      main_wallet_amount: super.formatAsset(data.main_wallet_amount),
+      blagorost_wallet_amount: super.formatAsset(data.blagorost_wallet_amount),
       to_wallet: data.to_wallet,
       to_blagorost: data.to_blagorost,
     }

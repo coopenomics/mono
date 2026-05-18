@@ -461,6 +461,9 @@ export const AllTypesProps: Record<string,any> = {
 	GenerationContractSignedMetaDocumentInput:{
 
 	},
+	GenerationConvertStatementGenerateDocumentInput:{
+
+	},
 	GenerationMoneyInvestStatementGenerateDocumentInput:{
 
 	},
@@ -469,9 +472,6 @@ export const AllTypesProps: Record<string,any> = {
 		signatures:"SignatureInfoInput"
 	},
 	GenerationMoneyInvestStatementSignedMetaDocumentInput:{
-
-	},
-	GenerationToMainWalletConvertStatementGenerateDocumentInput:{
 
 	},
 	GetAccountInput:{
@@ -770,6 +770,10 @@ export const AllTypesProps: Record<string,any> = {
 			data:"GenerationContractGenerateDocumentInput",
 			options:"GenerateDocumentOptionsInput"
 		},
+		capitalGenerateGenerationConvertStatement:{
+			data:"GenerationConvertStatementGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
 		capitalGenerateGenerationMoneyInvestStatement:{
 			data:"GenerationMoneyInvestStatementGenerateDocumentInput",
 			options:"GenerateDocumentOptionsInput"
@@ -783,18 +787,6 @@ export const AllTypesProps: Record<string,any> = {
 			options:"GenerateDocumentOptionsInput"
 		},
 		capitalGenerateGenerationPropertyInvestStatement:{
-			data:"GenerateDocumentInput",
-			options:"GenerateDocumentOptionsInput"
-		},
-		capitalGenerateGenerationToCapitalizationConvertStatement:{
-			data:"GenerateDocumentInput",
-			options:"GenerateDocumentOptionsInput"
-		},
-		capitalGenerateGenerationToMainWalletConvertStatement:{
-			data:"GenerationToMainWalletConvertStatementGenerateDocumentInput",
-			options:"GenerateDocumentOptionsInput"
-		},
-		capitalGenerateGenerationToProjectConvertStatement:{
 			data:"GenerateDocumentInput",
 			options:"GenerateDocumentOptionsInput"
 		},
@@ -3526,13 +3518,11 @@ export const ReturnTypes: Record<string,any> = {
 		capitalGenerateExpenseDecision:"GeneratedDocument",
 		capitalGenerateExpenseStatement:"GeneratedDocument",
 		capitalGenerateGenerationContract:"GeneratedDocument",
+		capitalGenerateGenerationConvertStatement:"GeneratedDocument",
 		capitalGenerateGenerationMoneyInvestStatement:"GeneratedDocument",
 		capitalGenerateGenerationPropertyInvestAct:"GeneratedDocument",
 		capitalGenerateGenerationPropertyInvestDecision:"GeneratedDocument",
 		capitalGenerateGenerationPropertyInvestStatement:"GeneratedDocument",
-		capitalGenerateGenerationToCapitalizationConvertStatement:"GeneratedDocument",
-		capitalGenerateGenerationToMainWalletConvertStatement:"GeneratedDocument",
-		capitalGenerateGenerationToProjectConvertStatement:"GeneratedDocument",
 		capitalGenerateGetLoanDecision:"GeneratedDocument",
 		capitalGenerateGetLoanStatement:"GeneratedDocument",
 		capitalGenerateProgramMoneyInvestStatement:"GeneratedDocument",

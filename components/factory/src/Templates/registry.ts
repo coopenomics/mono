@@ -49,9 +49,7 @@ import * as CapitalizationPropertyInvestStatement from './1070.CapitalizationPro
 import * as CapitalizationPropertyInvestDecision from './1071.CapitalizationPropertyInvestDecision'
 import * as CapitalizationPropertyInvestAct from './1072.CapitalizationPropertyInvestAct'
 
-import * as GenerationToMainWalletConvertStatement from './1080.GenerationToMainWalletConvertStatement'
-import * as GenerationToProjectConvertStatement from './1081.GenerationToProjectConvertStatement'
-import * as GenerationToCapitalizationConvertStatement from './1082.GenerationToCapitalizationConvertStatement'
+import * as GenerationConvertStatement from './1080.GenerationConvertStatement'
 
 import * as CapitalizationToMainWalletConvertStatement from './1090.CapitalizationToMainWalletConvertStatement'
 
@@ -127,8 +125,6 @@ export const Registry = {
   1070: CapitalizationPropertyInvestStatement,
   1071: CapitalizationPropertyInvestDecision,
   1072: CapitalizationPropertyInvestAct,
-  1080: GenerationToMainWalletConvertStatement,
-  1081: GenerationToProjectConvertStatement,
-  1082: GenerationToCapitalizationConvertStatement,
+  1080: GenerationConvertStatement,
   1090: CapitalizationToMainWalletConvertStatement,
 }

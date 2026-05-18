@@ -1805,7 +1805,7 @@ type CapitalCommit {
   data: JSON
 
   """Описание коммита"""
-  description: String!
+  description: String
 
   """Отображаемое имя пользователя"""
   display_name: String
@@ -1814,7 +1814,7 @@ type CapitalCommit {
   id: Int
 
   """Метаданные коммита"""
-  meta: String!
+  meta: String
 
   """Флаг присутствия записи в блокчейне"""
   present: Boolean!
@@ -6161,6 +6161,53 @@ input GenerationContractSignedMetaDocumentInput {
   version: String!
 }
 
+input GenerationConvertStatementGenerateDocumentInput {
+  """Сумма для перевода в программу «Благорост»"""
+  blagorost_wallet_amount: String!
+
+  """Номер блока, на котором был создан документ"""
+  block_num: Int
+
+  """Название кооператива, связанное с документом"""
+  coopname: String!
+
+  """Дата и время создания документа"""
+  created_at: String
+
+  """Имя генератора, использованного для создания документа"""
+  generator: String
+
+  """Язык документа"""
+  lang: String
+
+  """Ссылки, связанные с документом"""
+  links: [String!]
+
+  """Сумма для перевода в Цифровой Кошелёк"""
+  main_wallet_amount: String!
+
+  """Хэш проекта"""
+  project_hash: String!
+
+  """Часовой пояс, в котором был создан документ"""
+  timezone: String
+
+  """Название документа"""
+  title: String
+
+  """Признак перевода в программу «Благорост»"""
+  to_blagorost: Boolean!
+
+  """Признак перевода в Цифровой Кошелёк"""
+  to_wallet: Boolean!
+
+  """Имя пользователя, создавшего документ"""
+  username: String!
+
+  """Версия генератора, использованного для создания документа"""
+  version: String
+}
+
 input GenerationMoneyInvestStatementGenerateDocumentInput {
   """Сумма инвестирования"""
   amount: String!
@@ -6270,56 +6317,6 @@ input GenerationMoneyInvestStatementSignedMetaDocumentInput {
 
   """Версия генератора, использованного для создания документа"""
   version: String!
-}
-
-input GenerationToMainWalletConvertStatementGenerateDocumentInput {
-  """Хэш приложения"""
-  appendix_hash: String!
-
-  """Сумма для перевода на благорост кошелек"""
-  blagorost_wallet_amount: String!
-
-  """Номер блока, на котором был создан документ"""
-  block_num: Int
-
-  """Название кооператива, связанное с документом"""
-  coopname: String!
-
-  """Дата и время создания документа"""
-  created_at: String
-
-  """Имя генератора, использованного для создания документа"""
-  generator: String
-
-  """Язык документа"""
-  lang: String
-
-  """Ссылки, связанные с документом"""
-  links: [String!]
-
-  """Сумма для перевода на основной кошелек"""
-  main_wallet_amount: String!
-
-  """Хэш проекта"""
-  project_hash: String!
-
-  """Часовой пояс, в котором был создан документ"""
-  timezone: String
-
-  """Название документа"""
-  title: String
-
-  """Перевод на благорост кошелек"""
-  to_blagorost: Boolean!
-
-  """Перевод на основной кошелек"""
-  to_wallet: Boolean!
-
-  """Имя пользователя, создавшего документ"""
-  username: String!
-
-  """Версия генератора, использованного для создания документа"""
-  version: String
 }
 
 input GetAccountInput {
@@ -7686,6 +7683,13 @@ type Mutation {
   capitalGenerateGenerationContract(data: GenerationContractGenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
   """
+  Сгенерировать заявление о конвертации целевого паевого взноса (в Цифровой Кошелёк и/или в программу «Благорост»)
+  
+  Требуемые роли: chairman, member. 
+  """
+  capitalGenerateGenerationConvertStatement(data: GenerationConvertStatementGenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
+
+  """
   Сгенерировать заявление об инвестировании в генерацию
   
   Требуемые роли: chairman, member. 
@@ -7712,27 +7716,6 @@ type Mutation {
   Требуемые роли: chairman, member. 
   """
   capitalGenerateGenerationPropertyInvestStatement(data: GenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
-
-  """
-  Сгенерировать заявление о конвертации из генерации в благорост
-  
-  Требуемые роли: chairman, member. 
-  """
-  capitalGenerateGenerationToCapitalizationConvertStatement(data: GenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
-
-  """
-  Сгенерировать заявление о конвертации из генерации в основной кошелек
-  
-  Требуемые роли: chairman, member. 
-  """
-  capitalGenerateGenerationToMainWalletConvertStatement(data: GenerationToMainWalletConvertStatementGenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
-
-  """
-  Сгенерировать заявление о конвертации из генерации в проектный кошелек
-  
-  Требуемые роли: chairman, member. 
-  """
-  capitalGenerateGenerationToProjectConvertStatement(data: GenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
   """
   Сгенерировать решение о получении займа

@@ -42,9 +42,7 @@ export * as GenerateGenerationPropertyInvestAct from './generateGenerationProper
 export * as GenerateGenerationPropertyInvestDecision from './generateGenerationPropertyInvestDecision'
 export * as GenerateGenerationPropertyInvestStatement from './generateGenerationPropertyInvestStatement'
 
-export * as GenerateGenerationToCapitalizationConvertStatement from './generateGenerationToCapitalizationConvertStatement'
-export * as GenerateGenerationToMainWalletConvertStatement from './generateGenerationToMainWalletConvertStatement'
-export * as GenerateGenerationToProjectConvertStatement from './generateGenerationToProjectConvertStatement'
+export * as GenerateGenerationConvertStatement from './generateGenerationConvertStatement'
 export * as GenerateGetLoanDecision from './generateGetLoanDecision'
 export * as GenerateGetLoanStatement from './generateGetLoanStatement'
 export * as GenerateProgramMoneyInvestStatement from './generateProgramMoneyInvestStatement'

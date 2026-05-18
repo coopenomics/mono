@@ -5,12 +5,12 @@ import type {
 import { client } from 'src/shared/api/client';
 import { Mutations } from '@coopenomics/sdk';
 
-async function generateGenerationToMainWalletConvertStatement(
-  data: Mutations.Capital.GenerateGenerationToMainWalletConvertStatement.IInput['data'],
+async function generateGenerationConvertStatement(
+  data: Mutations.Capital.GenerateGenerationConvertStatement.IInput['data'],
   options?: IGenerateDocumentOptionsInput,
 ): Promise<IGeneratedDocumentOutput> {
-  const { [Mutations.Capital.GenerateGenerationToMainWalletConvertStatement.name]: result } =
-    await client.Mutation(Mutations.Capital.GenerateGenerationToMainWalletConvertStatement.mutation, {
+  const { [Mutations.Capital.GenerateGenerationConvertStatement.name]: result } =
+    await client.Mutation(Mutations.Capital.GenerateGenerationConvertStatement.mutation, {
       variables: {
         data,
         options,
@@ -21,5 +21,5 @@ async function generateGenerationToMainWalletConvertStatement(
 }
 
 export const api = {
-  generateGenerationToMainWalletConvertStatement,
+  generateGenerationConvertStatement,
 };

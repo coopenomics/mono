@@ -125,7 +125,7 @@ export class MutationLogMapperService {
     // Результаты и конвертация
     capitalPushResult: LogEventType.RESULT_PUSHED,
     capitalConvertSegment: LogEventType.SEGMENT_CONVERTED,
-    capitalGenerateGenerationToMainWalletConvertStatement: LogEventType.PROJECT_WITHDRAWAL,
+    capitalGenerateGenerationConvertStatement: LogEventType.PROJECT_WITHDRAWAL,
     capitalGenerateCapitalizationToMainWalletConvertStatement: LogEventType.PROGRAM_WITHDRAWAL,
 
     // Генерация - Stories, Issues, Cycles

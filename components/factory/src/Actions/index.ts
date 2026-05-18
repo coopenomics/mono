@@ -54,9 +54,7 @@ export * as CapitalizationPropertyInvestStatement from './1070.CapitalizationPro
 export * as CapitalizationPropertyInvestDecision from './1071.CapitalizationPropertyInvestDecision'
 export * as CapitalizationPropertyInvestAct from './1072.CapitalizationPropertyInvestAct'
 
-export * as GenerationToMainWalletConvertStatement from './1080.GenerationToMainWalletConvertStatement'
-export * as GenerationToProjectConvertStatement from './1081.GenerationToProjectConvertStatement'
-export * as GenerationToCapitalizationConvertStatement from './1082.GenerationToCapitalizationConvertStatement'
+export * as GenerationConvertStatement from './1080.GenerationConvertStatement'
 
 export * as CapitalizationToMainWalletConvertStatement from './1090.CapitalizationToMainWalletConvertStatement'
 

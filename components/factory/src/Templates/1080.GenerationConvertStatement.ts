@@ -6,13 +6,13 @@ import { IMetaJSONSchema } from '../Schema/MetaSchema'
 import { VarsSchema } from '../Schema/VarsSchema'
 import { CommonUserSchema } from '../Schema/CommonUserSchema'
 
-export const registry_id = Cooperative.Registry.GenerationToMainWalletConvertStatement.registry_id
+export const registry_id = Cooperative.Registry.GenerationConvertStatement.registry_id
 
 // Модель действия для генерации
-export type Action = Cooperative.Registry.GenerationToMainWalletConvertStatement.Action
+export type Action = Cooperative.Registry.GenerationConvertStatement.Action
 
 // Модель данных
-export type Model = Cooperative.Registry.GenerationToMainWalletConvertStatement.Model
+export type Model = Cooperative.Registry.GenerationConvertStatement.Model
 
 // Схема для сверки
 export const Schema: JSONSchemaType<Model> = {
@@ -38,9 +38,9 @@ export const Schema: JSONSchemaType<Model> = {
 }
 
 export const Template: ITemplate<Model> = {
-  title: Cooperative.Registry.GenerationToMainWalletConvertStatement.title,
-  description: Cooperative.Registry.GenerationToMainWalletConvertStatement.description,
+  title: Cooperative.Registry.GenerationConvertStatement.title,
+  description: Cooperative.Registry.GenerationConvertStatement.description,
   model: Schema,
-  context: Cooperative.Registry.GenerationToMainWalletConvertStatement.context,
-  translations: Cooperative.Registry.GenerationToMainWalletConvertStatement.translations,
+  context: Cooperative.Registry.GenerationConvertStatement.context,
+  translations: Cooperative.Registry.GenerationConvertStatement.translations,
 }
