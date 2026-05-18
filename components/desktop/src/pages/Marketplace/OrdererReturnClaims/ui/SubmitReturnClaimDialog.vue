@@ -19,7 +19,7 @@ import {
  *     UI кодирует содержимое в base64 и отправляет вместе с mutation,
  *     backend кладёт в bucket `stol-zakazov:images` и публикует sha256
  *     хеши on-chain параметром `photos[]` submretrn.
- *  3. Подпись заявления (registry_id=800, ReturnByAssetStatement):
+ *  3. Подпись заявления (registry_id=1104, MarketplaceReturnStatement):
  *     backend возвращает preview HTML + hash; пайщик подписывает
  *     приватным ключом из useGlobalStore и шлёт результат вместе с
  *     reason_text + photos.
@@ -166,6 +166,8 @@ async function confirm(): Promise<void> {
     const generated = await getReturnClaimSignablePayload(
       props.orderId,
       actualQuantity.value ?? undefined,
+      reasonText.value,
+      defectCategory.value || undefined,
     );
     const signer = new Classes.Document(wifKey);
     const signed = await signer.signDocument(generated, globalStore.username, 1);
@@ -316,7 +318,7 @@ TakeoverDialog(
             .q-ml-md Формирую предварительное заявление…
           q-card(v-else-if="previewHtml" flat bordered).mp-return-submit__preview
             q-card-section.q-pa-md
-              .text-caption.text-grey Превью заявления (registry_id=800)
+              .text-caption.text-grey Превью заявления (registry_id=1104)
             q-separator
             q-card-section.q-pa-md
               div(v-html="previewHtml")

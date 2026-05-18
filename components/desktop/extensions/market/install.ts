@@ -82,7 +82,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
           {
             // Эпик 7 / Story 7.1: orderer-стол гарантийных возвратов. Здесь
             // пайщик подаёт заявление по выданному заказу в гарантийный срок,
-            // прилагает фото товара и подписывает заявление (registry_id=800).
+            // прилагает фото товара и подписывает заявление (registry_id=1104).
             // Доступ: только сам заказчик (`ReturnClaim: ['create:own', 'read:own']`
             // в marketplace access-matrix), фильтрация по orderer_account.
             path: 'returns',

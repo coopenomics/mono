@@ -33,12 +33,18 @@ export async function listMyReturnClaims(): Promise<MarketplaceReturnClaimView[]
 export async function getReturnClaimSignablePayload(
   order_id: string,
   actual_quantity?: number,
+  reason_text?: string,
+  defect_category?: string,
 ): Promise<MarketplaceGeneratedDocumentView> {
   const { [Queries.Marketplace.ReturnClaimSignablePayload.name]: result } = await client.Query(
     Queries.Marketplace.ReturnClaimSignablePayload.query,
-    { variables: { data: { order_id, actual_quantity } } },
+    {
+      variables: {
+        data: { order_id, actual_quantity, reason_text, defect_category },
+      },
+    },
   );
-  return result as MarketplaceGeneratedDocumentView;
+  return result;
 }
 
 export interface CreateReturnClaimArgs {
