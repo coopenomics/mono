@@ -229,6 +229,7 @@ export class MarketplaceAplReceptionService {
       username: input.order.orderer_account,
       order_id: input.order.id,
       order_hash: input.order.order_hash,
+      reception_id: input.reception.id,
       act_id: this.formatActId(input.reception.id, input.order.id),
       transmitter,
       braname: input.reception.braname,

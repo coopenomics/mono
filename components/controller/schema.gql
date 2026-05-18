@@ -6995,9 +6995,7 @@ input MarketplaceAplReceptionSignedDocumentInput {
   """Общий хэш (doc_hash + meta_hash)"""
   hash: String!
 
-  """
-  Метаданные подписанного акта приёмки — содержат order_id, order_hash, КУ-приёмник и фактическое количество.
-  """
+  """Метаданные подписанного акта приёмки-передачи имущества."""
   meta: MarketplaceAplReceptionSignedMetaDocumentInput!
 
   """Хэш мета-данных"""
@@ -7011,22 +7009,20 @@ input MarketplaceAplReceptionSignedDocumentInput {
 }
 
 input MarketplaceAplReceptionSignedMetaDocumentInput {
-  """Имя кооперативного участка-приёмника партии."""
+  """Имя кооперативного участка, выдающего имущество пайщику."""
   accept_braname: String!
 
-  """Номер акта приёмки для шапки документа."""
+  """Номер акта для шапки документа."""
   act_id: String!
 
   """Номер блока, на котором был создан документ"""
   block_num: Int!
 
-  """
-  Имя кооперативного участка-приёмника для ветки «филиал» в шаблоне акта.
-  """
+  """Имя кооперативного участка, выдающего имущество."""
   braname: String
 
   """
-  Account председателя — подписанта закрывающей подписи (если уже известен).
+  Учётная запись председателя — подписанта закрывающей подписи (если уже известен).
   """
   chairman_account: String
 
@@ -7035,6 +7031,11 @@ input MarketplaceAplReceptionSignedMetaDocumentInput {
 
   """Дата и время создания документа"""
   created_at: String!
+
+  """
+  Хэш приватного payload документа (если приватные данные хранятся отдельно).
+  """
+  doc_data_hash: String
 
   """Фактически принятое количество единиц."""
   fact_quantity: Int!
@@ -7048,24 +7049,24 @@ input MarketplaceAplReceptionSignedMetaDocumentInput {
   """Ссылки, связанные с документом"""
   links: [String!]!
 
-  """Канонический хэш Order'а в блокчейне."""
+  """Канонический хэш заказа в блокчейне."""
   order_hash: String!
 
-  """Идентификатор Order'а, к которому относится акт приёмки."""
+  """Идентификатор заказа пайщика, по которому формируется акт."""
   order_id: String!
 
-  """Идентификатор записи акта приёмки."""
+  """Идентификатор записи акта в реестре marketplace."""
   reception_id: String!
 
   """ID документа в реестре"""
   registry_id: Int!
 
-  """
-  Флаг пропуска сохранения документа (preview-режим для отображения пользователю перед подписью).
-  """
+  """Сформировать документ без сохранения (preview-режим)."""
   skip_save: Boolean!
 
-  """Account поставщика — отправителя партии."""
+  """
+  Учётная запись поставщика, передавшего партию на кооперативный участок.
+  """
   supplier_account: String!
 
   """Часовой пояс, в котором был создан документ"""
@@ -7074,11 +7075,11 @@ input MarketplaceAplReceptionSignedMetaDocumentInput {
   """Название документа"""
   title: String!
 
-  """Сумма по Order'у с учётом фактического количества."""
+  """Сумма по заказу с учётом фактического количества."""
   total_amount: String!
 
   """
-  Account поставщика — отправителя партии (строка «Передал заказ» в акте).
+  Учётная запись передающей стороны — председатель кооперативного участка или доверенное им лицо.
   """
   transmitter: String!
 
@@ -7637,6 +7638,24 @@ type MarketplaceDictionaryValue {
   value: String!
 }
 
+input MarketplaceFinalizeIssuanceInput {
+  """Фактически выдаваемое количество единиц (равно/меньше/больше заказа)."""
+  actual_quantity: Int!
+
+  """
+  Учётная запись стороны кооператива, подписывающей акт вместе с заказчиком.
+  """
+  delivery_signer: String!
+
+  """Идентификатор заказа, который выдаём пайщику."""
+  order_id: ID!
+
+  """
+  Подписанный заказчиком и стороной кооператива акт выдачи. Backend верифицирует подписи и отправляет on-chain финальную подпись со всеми корректирующими операциями.
+  """
+  signed_document: MarketplaceIssueActSignedDocumentInput!
+}
+
 """Параметры запроса одного заказа."""
 input MarketplaceGetOrderInput {
   """Идентификатор заказа."""
@@ -7692,6 +7711,115 @@ enum MarketplaceInventoryStatus {
   LABELED
   RETURNED
   WRITTEN_OFF
+}
+
+"""Результат подписания акта выдачи имущества пайщику."""
+type MarketplaceIssuanceResult {
+  """Заказ после применения подписи."""
+  order: MarketplaceOrder!
+
+  """Хэш транзакции подписи в блокчейне."""
+  tx_hash: String!
+}
+
+input MarketplaceIssueActPayloadInput {
+  """
+  Фактически выдаваемое количество для финальной подписи (если не указано — берётся заказ).
+  """
+  actual_quantity: Int
+
+  """Заказ, по которому формируется preview акта выдачи."""
+  order_id: ID!
+}
+
+input MarketplaceIssueActSignedDocumentInput {
+  """Хэш содержимого документа"""
+  doc_hash: String!
+
+  """Общий хэш (doc_hash + meta_hash)"""
+  hash: String!
+
+  """Метаданные подписанного акта выдачи имущества."""
+  meta: MarketplaceIssueActSignedMetaDocumentInput!
+
+  """Хэш мета-данных"""
+  meta_hash: String!
+
+  """Вектор подписей"""
+  signatures: [SignatureInfoInput!]!
+
+  """Версия стандарта документа"""
+  version: String!
+}
+
+input MarketplaceIssueActSignedMetaDocumentInput {
+  """Номер акта для шапки документа."""
+  act_id: String!
+
+  """
+  Фактически выдаваемое количество единиц (заполняется на финальной подписи).
+  """
+  actual_quantity: Int
+
+  """Номер блока, на котором был создан документ"""
+  block_num: Int!
+
+  """Имя кооперативного участка, выдающего имущество пайщику."""
+  braname: String
+
+  """Название кооператива, связанное с документом"""
+  coopname: String!
+
+  """Дата и время создания документа"""
+  created_at: String!
+
+  """
+  Хэш приватного payload документа (если приватные данные хранятся отдельно).
+  """
+  doc_data_hash: String
+
+  """Имя генератора, использованного для создания документа"""
+  generator: String!
+
+  """Язык документа"""
+  lang: String!
+
+  """Ссылки, связанные с документом"""
+  links: [String!]!
+
+  """Канонический хэш заказа в блокчейне."""
+  order_hash: String!
+
+  """Идентификатор заказа пайщика, по которому формируется акт выдачи."""
+  order_id: String!
+
+  """
+  Идентификатор записи акта в реестре marketplace (для выдачи — id заказа).
+  """
+  reception_id: String!
+
+  """ID документа в реестре"""
+  registry_id: Int!
+
+  """Сформировать документ без сохранения (preview-режим)."""
+  skip_save: Boolean!
+
+  """Часовой пояс, в котором был создан документ"""
+  timezone: String!
+
+  """Название документа"""
+  title: String!
+
+  """
+  Учётная запись передающей стороны — председатель кооперативного участка или доверенное им лицо.
+  """
+  transmitter: String!
+
+  """Имя пользователя, создавшего документ"""
+  username: String!
+
+  """Версия генератора, использованного для создания документа"""
+  version: String!
 }
 
 type MarketplaceKUDetails {
@@ -7781,6 +7909,11 @@ input MarketplaceListInventoryInput {
 
   """Фильтр по состояниям инвентаря."""
   statuses: [MarketplaceInventoryStatus!]
+}
+
+input MarketplaceListIssuancesByBranameInput {
+  """Кооперативный участок выдачи."""
+  delivery_braname: String!
 }
 
 input MarketplaceListMyOffersInput {
@@ -7935,6 +8068,16 @@ type MarketplaceOnboardingState {
   template_registry_id: Int!
 }
 
+input MarketplaceOpenIssuanceInput {
+  """Идентификатор заказа, выдачу которого открываем."""
+  order_id: ID!
+
+  """
+  Подписанный председателем кооперативного участка акт выдачи. Backend верифицирует подпись и отправляет on-chain первую подпись.
+  """
+  signed_document: MarketplaceIssueActSignedDocumentInput!
+}
+
 """Заказ пайщика по предложению поставщика."""
 type MarketplaceOrder {
   """Когда поставщик принял заказ."""
@@ -7945,6 +8088,14 @@ type MarketplaceOrder {
 
   """Когда заказ был отменён."""
   cancelled_at: DateTime
+
+  """Учётная запись председателя, открывшего выдачу первой подписью."""
+  chairman_account: String
+
+  """
+  Когда председатель кооперативного участка открыл выдачу первой подписью.
+  """
+  chairman_signed_at: DateTime
 
   """Кооператив, в котором сделан заказ."""
   coopname: String!
@@ -7957,6 +8108,11 @@ type MarketplaceOrder {
   """Когда запись о заказе создана в системе."""
   created_at: DateTime!
 
+  """
+  Кооперативный участок, на котором имущество физически лежит к моменту выдачи.
+  """
+  current_warehouse_braname: String
+
   """Идентификатор партии-накопителя, если заказ присоединён."""
   cycle_id: String
 
@@ -7966,8 +8122,18 @@ type MarketplaceOrder {
   """Имя пункта выдачи (ПВЗ), куда пайщик хочет получить заказ."""
   delivery_braname: String!
 
+  """
+  Учётная запись стороны кооператива, поставившей подпись вместе с заказчиком.
+  """
+  delivery_signer_account: String
+
   """Идентификатор заказа."""
   id: String!
+
+  """
+  Фактическая выдача после финальной подписи заказчика (заполняется на ПВЗ).
+  """
+  issuance_fact: MarketplaceOrderIssuanceFactSnapshot
 
   """Текстовая причина последнего изменения статуса."""
   last_status_reason: String
@@ -7984,6 +8150,9 @@ type MarketplaceOrder {
   """Аккаунт пайщика-заказчика."""
   orderer_account: String!
 
+  """Когда заказчик поставил финальную подпись на акте выдачи."""
+  orderer_signed_at: DateTime
+
   """Цена за единицу товара на момент заказа."""
   price_per_unit: String!
 
@@ -7992,6 +8161,12 @@ type MarketplaceOrder {
 
   """Когда пайщик получил заказ."""
   received_at: DateTime
+
+  """Хэш транзакции открытия выдачи в блокчейне."""
+  signiss1_tx_hash: String
+
+  """Хэш транзакции финальной подписи выдачи в блокчейне."""
+  signiss2_tx_hash: String
 
   """Текущий этап жизненного цикла заказа."""
   status: MarketplaceOrderStatus!
@@ -8048,6 +8223,27 @@ enum MarketplaceOrderCycleType {
 
   """Поставка стартует, когда набран целевой объём."""
   VOLUME_BASED
+}
+
+"""
+Сверка фактической выдачи с заказом: equal — совпало, less — выдано меньше, more — выдано больше с доплатой.
+"""
+enum MarketplaceOrderIssuanceFactDiffState {
+  EQUAL
+  LESS
+  MORE
+}
+
+"""Фактическая выдача имущества пайщику на ПВЗ."""
+type MarketplaceOrderIssuanceFactSnapshot {
+  """Фактически выданное количество единиц."""
+  actual_quantity: Int!
+
+  """Сверка фактической выдачи с заказом."""
+  diff_state: MarketplaceOrderIssuanceFactDiffState!
+
+  """Фактическая стоимость выдачи (actual_quantity × цена за единицу)."""
+  fact_cost: String!
 }
 
 """Постраничный список заказов."""
@@ -9937,9 +10133,19 @@ type Mutation {
   marketplaceDetailKU(data: MarketplaceDetailKUInput!): MarketplaceKUDetails!
 
   """
+  Заказчик ставит финальную подпись акта выдачи — имущество переходит к нему, в зависимости от сверки факта применяются корректирующие операции.
+  """
+  marketplaceFinalizeIssuance(data: MarketplaceFinalizeIssuanceInput!): MarketplaceIssuanceResult!
+
+  """
   Оператор КУ маркирует имущество заказа внутренним штрих-кодом (Code128 или EAN-13).
   """
   marketplaceLabelInventory(data: MarketplaceLabelInventoryInput!): MarketplaceLabelInventoryResult!
+
+  """
+  Председатель кооперативного участка открывает выдачу первой подписью акта — заказ готов к получению пайщиком.
+  """
+  marketplaceOpenIssuance(data: MarketplaceOpenIssuanceInput!): MarketplaceIssuanceResult!
 
   """Отклонить Offer с причиной (status → REJECTED) (admin)"""
   marketplaceRejectOffer(input: MarketplaceRejectOfferInput!): MarketplaceOffer!
@@ -12359,6 +12565,16 @@ type Query {
   """
   marketplaceGetUserRequests(data: GetUserRequestsInput): [MarketplaceRequest!]!
 
+  """
+  Превью акта выдачи имущества для подписания председателем кооперативного участка.
+  """
+  marketplaceIssueActChairmanSignablePayload(data: MarketplaceIssueActPayloadInput!): GeneratedDocument!
+
+  """
+  Превью акта выдачи имущества для финальной подписи заказчика с указанием фактического количества.
+  """
+  marketplaceIssueActOrdererSignablePayload(data: MarketplaceIssueActPayloadInput!): GeneratedDocument!
+
   """Список актов приёмки, ожидающих подписи текущего поставщика."""
   marketplaceListAplReceptionsAsSupplier: [MarketplaceAplReception!]!
 
@@ -12384,6 +12600,11 @@ type Query {
   marketplaceListInventory(data: MarketplaceListInventoryInput): [MarketplaceInventoryItem!]!
 
   """
+  Список заказов на кооперативном участке, ожидающих открытия и финальной подписи выдачи (для оператора кооперативного участка).
+  """
+  marketplaceListIssuancesByBraname(data: MarketplaceListIssuancesByBranameInput!): [MarketplaceOrder!]!
+
+  """
   Список marketplace-детализаций ПВЗ кооператива.
   
   Требуемые роли: chairman, member, user. 
@@ -12398,6 +12619,9 @@ type Query {
 
   """Список заказов текущего пайщика (стол заказчика)."""
   marketplaceListMyOrders(input: MarketplaceListOrdersInput, options: PaginationInput): MarketplaceOrderPaginationResult!
+
+  """Список заказов текущего пайщика, готовых к получению на пункте выдачи."""
+  marketplaceListMyReadyToReceive: [MarketplaceOrder!]!
 
   """
   История выплат поставщику в столе поставщика — статусы по каждому заказу.

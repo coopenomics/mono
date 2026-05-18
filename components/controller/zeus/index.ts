@@ -6108,7 +6108,7 @@ export type ValueTypes = {
 	doc_hash: string | Variable<any, string>,
 	/** Общий хэш (doc_hash + meta_hash) */
 	hash: string | Variable<any, string>,
-	/** Метаданные подписанного акта приёмки — содержат order_id, order_hash, КУ-приёмник и фактическое количество. */
+	/** Метаданные подписанного акта приёмки-передачи имущества. */
 	meta: ValueTypes["MarketplaceAplReceptionSignedMetaDocumentInput"] | Variable<any, string>,
 	/** Хэш мета-данных */
 	meta_hash: string | Variable<any, string>,
@@ -6118,20 +6118,22 @@ export type ValueTypes = {
 	version: string | Variable<any, string>
 };
 	["MarketplaceAplReceptionSignedMetaDocumentInput"]: {
-	/** Имя кооперативного участка-приёмника партии. */
+	/** Имя кооперативного участка, выдающего имущество пайщику. */
 	accept_braname: string | Variable<any, string>,
-	/** Номер акта приёмки для шапки документа. */
+	/** Номер акта для шапки документа. */
 	act_id: string | Variable<any, string>,
 	/** Номер блока, на котором был создан документ */
 	block_num: number | Variable<any, string>,
-	/** Имя кооперативного участка-приёмника для ветки «филиал» в шаблоне акта. */
+	/** Имя кооперативного участка, выдающего имущество. */
 	braname?: string | undefined | null | Variable<any, string>,
-	/** Account председателя — подписанта закрывающей подписи (если уже известен). */
+	/** Учётная запись председателя — подписанта закрывающей подписи (если уже известен). */
 	chairman_account?: string | undefined | null | Variable<any, string>,
 	/** Название кооператива, связанное с документом */
 	coopname: string | Variable<any, string>,
 	/** Дата и время создания документа */
 	created_at: string | Variable<any, string>,
+	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
+	doc_data_hash?: string | undefined | null | Variable<any, string>,
 	/** Фактически принятое количество единиц. */
 	fact_quantity: number | Variable<any, string>,
 	/** Имя генератора, использованного для создания документа */
@@ -6140,25 +6142,25 @@ export type ValueTypes = {
 	lang: string | Variable<any, string>,
 	/** Ссылки, связанные с документом */
 	links: Array<string> | Variable<any, string>,
-	/** Канонический хэш Order'а в блокчейне. */
+	/** Канонический хэш заказа в блокчейне. */
 	order_hash: string | Variable<any, string>,
-	/** Идентификатор Order'а, к которому относится акт приёмки. */
+	/** Идентификатор заказа пайщика, по которому формируется акт. */
 	order_id: string | Variable<any, string>,
-	/** Идентификатор записи акта приёмки. */
+	/** Идентификатор записи акта в реестре marketplace. */
 	reception_id: string | Variable<any, string>,
 	/** ID документа в реестре */
 	registry_id: number | Variable<any, string>,
-	/** Флаг пропуска сохранения документа (preview-режим для отображения пользователю перед подписью). */
+	/** Сформировать документ без сохранения (preview-режим). */
 	skip_save: boolean | Variable<any, string>,
-	/** Account поставщика — отправителя партии. */
+	/** Учётная запись поставщика, передавшего партию на кооперативный участок. */
 	supplier_account: string | Variable<any, string>,
 	/** Часовой пояс, в котором был создан документ */
 	timezone: string | Variable<any, string>,
 	/** Название документа */
 	title: string | Variable<any, string>,
-	/** Сумма по Order'у с учётом фактического количества. */
+	/** Сумма по заказу с учётом фактического количества. */
 	total_amount: string | Variable<any, string>,
-	/** Account поставщика — отправителя партии (строка «Передал заказ» в акте). */
+	/** Учётная запись передающей стороны — председатель кооперативного участка или доверенное им лицо. */
 	transmitter: string | Variable<any, string>,
 	/** Имя пользователя, создавшего документ */
 	username: string | Variable<any, string>,
@@ -6565,6 +6567,16 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceDictionaryValue']?: Omit<ValueTypes["MarketplaceDictionaryValue"], "...on MarketplaceDictionaryValue">
 }>;
+	["MarketplaceFinalizeIssuanceInput"]: {
+	/** Фактически выдаваемое количество единиц (равно/меньше/больше заказа). */
+	actual_quantity: number | Variable<any, string>,
+	/** Учётная запись стороны кооператива, подписывающей акт вместе с заказчиком. */
+	delivery_signer: string | Variable<any, string>,
+	/** Идентификатор заказа, который выдаём пайщику. */
+	order_id: ValueTypes["ID"] | Variable<any, string>,
+	/** Подписанный заказчиком и стороной кооператива акт выдачи. Backend верифицирует подписи и отправляет on-chain финальную подпись со всеми корректирующими операциями. */
+	signed_document: ValueTypes["MarketplaceIssueActSignedDocumentInput"] | Variable<any, string>
+};
 	/** Параметры запроса одного заказа. */
 ["MarketplaceGetOrderInput"]: {
 	/** Идентификатор заказа. */
@@ -6604,6 +6616,77 @@ export type ValueTypes = {
 }>;
 	/** Состояние единицы имущества в инвентаре КУ. */
 ["MarketplaceInventoryStatus"]:MarketplaceInventoryStatus;
+	/** Результат подписания акта выдачи имущества пайщику. */
+["MarketplaceIssuanceResult"]: AliasType<{
+	/** Заказ после применения подписи. */
+	order?:ValueTypes["MarketplaceOrder"],
+	/** Хэш транзакции подписи в блокчейне. */
+	tx_hash?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceIssuanceResult']?: Omit<ValueTypes["MarketplaceIssuanceResult"], "...on MarketplaceIssuanceResult">
+}>;
+	["MarketplaceIssueActPayloadInput"]: {
+	/** Фактически выдаваемое количество для финальной подписи (если не указано — берётся заказ). */
+	actual_quantity?: number | undefined | null | Variable<any, string>,
+	/** Заказ, по которому формируется preview акта выдачи. */
+	order_id: ValueTypes["ID"] | Variable<any, string>
+};
+	["MarketplaceIssueActSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string | Variable<any, string>,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string | Variable<any, string>,
+	/** Метаданные подписанного акта выдачи имущества. */
+	meta: ValueTypes["MarketplaceIssueActSignedMetaDocumentInput"] | Variable<any, string>,
+	/** Хэш мета-данных */
+	meta_hash: string | Variable<any, string>,
+	/** Вектор подписей */
+	signatures: Array<ValueTypes["SignatureInfoInput"]> | Variable<any, string>,
+	/** Версия стандарта документа */
+	version: string | Variable<any, string>
+};
+	["MarketplaceIssueActSignedMetaDocumentInput"]: {
+	/** Номер акта для шапки документа. */
+	act_id: string | Variable<any, string>,
+	/** Фактически выдаваемое количество единиц (заполняется на финальной подписи). */
+	actual_quantity?: number | undefined | null | Variable<any, string>,
+	/** Номер блока, на котором был создан документ */
+	block_num: number | Variable<any, string>,
+	/** Имя кооперативного участка, выдающего имущество пайщику. */
+	braname?: string | undefined | null | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at: string | Variable<any, string>,
+	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
+	doc_data_hash?: string | undefined | null | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator: string | Variable<any, string>,
+	/** Язык документа */
+	lang: string | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links: Array<string> | Variable<any, string>,
+	/** Канонический хэш заказа в блокчейне. */
+	order_hash: string | Variable<any, string>,
+	/** Идентификатор заказа пайщика, по которому формируется акт выдачи. */
+	order_id: string | Variable<any, string>,
+	/** Идентификатор записи акта в реестре marketplace (для выдачи — id заказа). */
+	reception_id: string | Variable<any, string>,
+	/** ID документа в реестре */
+	registry_id: number | Variable<any, string>,
+	/** Сформировать документ без сохранения (preview-режим). */
+	skip_save: boolean | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string | Variable<any, string>,
+	/** Название документа */
+	title: string | Variable<any, string>,
+	/** Учётная запись передающей стороны — председатель кооперативного участка или доверенное им лицо. */
+	transmitter: string | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version: string | Variable<any, string>
+};
 	["MarketplaceKUDetails"]: AliasType<{
 	addressFull?:boolean | `@${string}`,
 	contactEmail?:boolean | `@${string}`,
@@ -6673,6 +6756,10 @@ export type ValueTypes = {
 	shipment_id?: ValueTypes["ID"] | undefined | null | Variable<any, string>,
 	/** Фильтр по состояниям инвентаря. */
 	statuses?: Array<ValueTypes["MarketplaceInventoryStatus"]> | undefined | null | Variable<any, string>
+};
+	["MarketplaceListIssuancesByBranameInput"]: {
+	/** Кооперативный участок выдачи. */
+	delivery_braname: string | Variable<any, string>
 };
 	["MarketplaceListMyOffersInput"]: {
 	/** Количество элементов на странице */
@@ -6794,6 +6881,12 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceOnboardingState']?: Omit<ValueTypes["MarketplaceOnboardingState"], "...on MarketplaceOnboardingState">
 }>;
+	["MarketplaceOpenIssuanceInput"]: {
+	/** Идентификатор заказа, выдачу которого открываем. */
+	order_id: ValueTypes["ID"] | Variable<any, string>,
+	/** Подписанный председателем кооперативного участка акт выдачи. Backend верифицирует подпись и отправляет on-chain первую подпись. */
+	signed_document: ValueTypes["MarketplaceIssueActSignedDocumentInput"] | Variable<any, string>
+};
 	/** Заказ пайщика по предложению поставщика. */
 ["MarketplaceOrder"]: AliasType<{
 	/** Когда поставщик принял заказ. */
@@ -6802,20 +6895,30 @@ export type ValueTypes = {
 	blocked_at?:boolean | `@${string}`,
 	/** Когда заказ был отменён. */
 	cancelled_at?:boolean | `@${string}`,
+	/** Учётная запись председателя, открывшего выдачу первой подписью. */
+	chairman_account?:boolean | `@${string}`,
+	/** Когда председатель кооперативного участка открыл выдачу первой подписью. */
+	chairman_signed_at?:boolean | `@${string}`,
 	/** Кооператив, в котором сделан заказ. */
 	coopname?:boolean | `@${string}`,
 	/** Снимок транзакции блокировки средств (для отображения движений кошелька). */
 	create_tx?:ValueTypes["MarketplaceOrderCreateTxSnapshot"],
 	/** Когда запись о заказе создана в системе. */
 	created_at?:boolean | `@${string}`,
+	/** Кооперативный участок, на котором имущество физически лежит к моменту выдачи. */
+	current_warehouse_braname?:boolean | `@${string}`,
 	/** Идентификатор партии-накопителя, если заказ присоединён. */
 	cycle_id?:boolean | `@${string}`,
 	/** Способ накопления заказов перед поставкой (копируется из предложения). */
 	cycle_type?:boolean | `@${string}`,
 	/** Имя пункта выдачи (ПВЗ), куда пайщик хочет получить заказ. */
 	delivery_braname?:boolean | `@${string}`,
+	/** Учётная запись стороны кооператива, поставившей подпись вместе с заказчиком. */
+	delivery_signer_account?:boolean | `@${string}`,
 	/** Идентификатор заказа. */
 	id?:boolean | `@${string}`,
+	/** Фактическая выдача после финальной подписи заказчика (заполняется на ПВЗ). */
+	issuance_fact?:ValueTypes["MarketplaceOrderIssuanceFactSnapshot"],
 	/** Текстовая причина последнего изменения статуса. */
 	last_status_reason?:boolean | `@${string}`,
 	/** Хеш предложения в блокчейне (snapshot на момент заказа). */
@@ -6826,12 +6929,18 @@ export type ValueTypes = {
 	order_hash?:boolean | `@${string}`,
 	/** Аккаунт пайщика-заказчика. */
 	orderer_account?:boolean | `@${string}`,
+	/** Когда заказчик поставил финальную подпись на акте выдачи. */
+	orderer_signed_at?:boolean | `@${string}`,
 	/** Цена за единицу товара на момент заказа. */
 	price_per_unit?:boolean | `@${string}`,
 	/** Количество единиц товара в заказе. */
 	quantity?:boolean | `@${string}`,
 	/** Когда пайщик получил заказ. */
 	received_at?:boolean | `@${string}`,
+	/** Хэш транзакции открытия выдачи в блокчейне. */
+	signiss1_tx_hash?:boolean | `@${string}`,
+	/** Хэш транзакции финальной подписи выдачи в блокчейне. */
+	signiss2_tx_hash?:boolean | `@${string}`,
 	/** Текущий этап жизненного цикла заказа. */
 	status?:boolean | `@${string}`,
 	/** Аккаунт поставщика. */
@@ -6866,6 +6975,19 @@ export type ValueTypes = {
 }>;
 	/** Способ накопления заказов перед поставкой. */
 ["MarketplaceOrderCycleType"]:MarketplaceOrderCycleType;
+	/** Сверка фактической выдачи с заказом: equal — совпало, less — выдано меньше, more — выдано больше с доплатой. */
+["MarketplaceOrderIssuanceFactDiffState"]:MarketplaceOrderIssuanceFactDiffState;
+	/** Фактическая выдача имущества пайщику на ПВЗ. */
+["MarketplaceOrderIssuanceFactSnapshot"]: AliasType<{
+	/** Фактически выданное количество единиц. */
+	actual_quantity?:boolean | `@${string}`,
+	/** Сверка фактической выдачи с заказом. */
+	diff_state?:boolean | `@${string}`,
+	/** Фактическая стоимость выдачи (actual_quantity × цена за единицу). */
+	fact_cost?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceOrderIssuanceFactSnapshot']?: Omit<ValueTypes["MarketplaceOrderIssuanceFactSnapshot"], "...on MarketplaceOrderIssuanceFactSnapshot">
+}>;
 	/** Постраничный список заказов. */
 ["MarketplaceOrderPaginationResult"]: AliasType<{
 	/** Текущая страница */
@@ -7656,7 +7778,9 @@ marketplaceDeclineConsolidatedRequest?: [{	input: ValueTypes["MarketplaceDecline
 marketplaceDeclineIndividualOrder?: [{	input: ValueTypes["MarketplaceDeclineIndividualOrderInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplierOrderActionResult"]],
 marketplaceDeclineOrderFromOpenPool?: [{	input: ValueTypes["MarketplaceDeclineOrderFromOpenPoolInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplierOrderActionResult"]],
 marketplaceDetailKU?: [{	data: ValueTypes["MarketplaceDetailKUInput"] | Variable<any, string>},ValueTypes["MarketplaceKUDetails"]],
+marketplaceFinalizeIssuance?: [{	data: ValueTypes["MarketplaceFinalizeIssuanceInput"] | Variable<any, string>},ValueTypes["MarketplaceIssuanceResult"]],
 marketplaceLabelInventory?: [{	data: ValueTypes["MarketplaceLabelInventoryInput"] | Variable<any, string>},ValueTypes["MarketplaceLabelInventoryResult"]],
+marketplaceOpenIssuance?: [{	data: ValueTypes["MarketplaceOpenIssuanceInput"] | Variable<any, string>},ValueTypes["MarketplaceIssuanceResult"]],
 marketplaceRejectOffer?: [{	input: ValueTypes["MarketplaceRejectOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
 marketplaceRemoveAvailableCategories?: [{	input: ValueTypes["RemoveAvailableCategoriesInput"] | Variable<any, string>},boolean | `@${string}`],
 marketplaceRemoveAvailableCategoryTypes?: [{	input: ValueTypes["RemoveAvailableCategoryTypesInput"] | Variable<any, string>},boolean | `@${string}`],
@@ -9047,6 +9171,8 @@ marketplaceGetRequestStatistics?: [{	data: ValueTypes["GetRequestStatisticsInput
 marketplaceGetSearchCategories?: [{	data: ValueTypes["SearchCategoriesInput"] | Variable<any, string>},ValueTypes["MarketplaceCategoryTreeNode"]],
 marketplaceGetShipment?: [{	data: ValueTypes["MarketplaceGetShipmentInput"] | Variable<any, string>},ValueTypes["MarketplaceShipment"]],
 marketplaceGetUserRequests?: [{	data?: ValueTypes["GetUserRequestsInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceRequest"]],
+marketplaceIssueActChairmanSignablePayload?: [{	data: ValueTypes["MarketplaceIssueActPayloadInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+marketplaceIssueActOrdererSignablePayload?: [{	data: ValueTypes["MarketplaceIssueActPayloadInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 	/** Список актов приёмки, ожидающих подписи текущего поставщика. */
 	marketplaceListAplReceptionsAsSupplier?:ValueTypes["MarketplaceAplReception"],
 marketplaceListAplReceptionsByBraname?: [{	data: ValueTypes["MarketplaceListAplReceptionsByBranameInput"] | Variable<any, string>},ValueTypes["MarketplaceAplReception"]],
@@ -9055,10 +9181,13 @@ marketplaceListCatalog?: [{	input?: ValueTypes["MarketplaceListCatalogInput"] | 
 	marketplaceListCategories?:ValueTypes["MarketplaceCategory"],
 marketplaceListConsolidatedRequests?: [{	input?: ValueTypes["MarketplaceListConsolidatedRequestsInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceConsolidatedRequestPaginationResult"]],
 marketplaceListInventory?: [{	data?: ValueTypes["MarketplaceListInventoryInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceInventoryItem"]],
+marketplaceListIssuancesByBraname?: [{	data: ValueTypes["MarketplaceListIssuancesByBranameInput"] | Variable<any, string>},ValueTypes["MarketplaceOrder"]],
 marketplaceListKUDetails?: [{	data: ValueTypes["ListMarketplaceKUInput"] | Variable<any, string>},ValueTypes["MarketplaceKUDetails"]],
 marketplaceListModerationLog?: [{	offer_id: string | Variable<any, string>},ValueTypes["MarketplaceModerationLogEntry"]],
 marketplaceListMyOffers?: [{	input?: ValueTypes["MarketplaceListMyOffersInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOfferPaginationResult"]],
 marketplaceListMyOrders?: [{	input?: ValueTypes["MarketplaceListOrdersInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOrderPaginationResult"]],
+	/** Список заказов текущего пайщика, готовых к получению на пункте выдачи. */
+	marketplaceListMyReadyToReceive?:ValueTypes["MarketplaceOrder"],
 marketplaceListOutgoingPaymentsAsSupplier?: [{	statuses?: Array<ValueTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOutgoingPaymentRequest"]],
 marketplaceListPendingOffers?: [{	input?: ValueTypes["MarketplaceListPendingOffersInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOfferPaginationResult"]],
 marketplaceListShipments?: [{	data?: ValueTypes["MarketplaceListShipmentsInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceShipment"]],
@@ -15541,7 +15670,7 @@ export type ResolverInputTypes = {
 	doc_hash: string,
 	/** Общий хэш (doc_hash + meta_hash) */
 	hash: string,
-	/** Метаданные подписанного акта приёмки — содержат order_id, order_hash, КУ-приёмник и фактическое количество. */
+	/** Метаданные подписанного акта приёмки-передачи имущества. */
 	meta: ResolverInputTypes["MarketplaceAplReceptionSignedMetaDocumentInput"],
 	/** Хэш мета-данных */
 	meta_hash: string,
@@ -15551,20 +15680,22 @@ export type ResolverInputTypes = {
 	version: string
 };
 	["MarketplaceAplReceptionSignedMetaDocumentInput"]: {
-	/** Имя кооперативного участка-приёмника партии. */
+	/** Имя кооперативного участка, выдающего имущество пайщику. */
 	accept_braname: string,
-	/** Номер акта приёмки для шапки документа. */
+	/** Номер акта для шапки документа. */
 	act_id: string,
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
-	/** Имя кооперативного участка-приёмника для ветки «филиал» в шаблоне акта. */
+	/** Имя кооперативного участка, выдающего имущество. */
 	braname?: string | undefined | null,
-	/** Account председателя — подписанта закрывающей подписи (если уже известен). */
+	/** Учётная запись председателя — подписанта закрывающей подписи (если уже известен). */
 	chairman_account?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
 	created_at: string,
+	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
+	doc_data_hash?: string | undefined | null,
 	/** Фактически принятое количество единиц. */
 	fact_quantity: number,
 	/** Имя генератора, использованного для создания документа */
@@ -15573,25 +15704,25 @@ export type ResolverInputTypes = {
 	lang: string,
 	/** Ссылки, связанные с документом */
 	links: Array<string>,
-	/** Канонический хэш Order'а в блокчейне. */
+	/** Канонический хэш заказа в блокчейне. */
 	order_hash: string,
-	/** Идентификатор Order'а, к которому относится акт приёмки. */
+	/** Идентификатор заказа пайщика, по которому формируется акт. */
 	order_id: string,
-	/** Идентификатор записи акта приёмки. */
+	/** Идентификатор записи акта в реестре marketplace. */
 	reception_id: string,
 	/** ID документа в реестре */
 	registry_id: number,
-	/** Флаг пропуска сохранения документа (preview-режим для отображения пользователю перед подписью). */
+	/** Сформировать документ без сохранения (preview-режим). */
 	skip_save: boolean,
-	/** Account поставщика — отправителя партии. */
+	/** Учётная запись поставщика, передавшего партию на кооперативный участок. */
 	supplier_account: string,
 	/** Часовой пояс, в котором был создан документ */
 	timezone: string,
 	/** Название документа */
 	title: string,
-	/** Сумма по Order'у с учётом фактического количества. */
+	/** Сумма по заказу с учётом фактического количества. */
 	total_amount: string,
-	/** Account поставщика — отправителя партии (строка «Передал заказ» в акте). */
+	/** Учётная запись передающей стороны — председатель кооперативного участка или доверенное им лицо. */
 	transmitter: string,
 	/** Имя пользователя, создавшего документ */
 	username: string,
@@ -15977,6 +16108,16 @@ export type ResolverInputTypes = {
 	value?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["MarketplaceFinalizeIssuanceInput"]: {
+	/** Фактически выдаваемое количество единиц (равно/меньше/больше заказа). */
+	actual_quantity: number,
+	/** Учётная запись стороны кооператива, подписывающей акт вместе с заказчиком. */
+	delivery_signer: string,
+	/** Идентификатор заказа, который выдаём пайщику. */
+	order_id: ResolverInputTypes["ID"],
+	/** Подписанный заказчиком и стороной кооператива акт выдачи. Backend верифицирует подписи и отправляет on-chain финальную подпись со всеми корректирующими операциями. */
+	signed_document: ResolverInputTypes["MarketplaceIssueActSignedDocumentInput"]
+};
 	/** Параметры запроса одного заказа. */
 ["MarketplaceGetOrderInput"]: {
 	/** Идентификатор заказа. */
@@ -16015,6 +16156,76 @@ export type ResolverInputTypes = {
 }>;
 	/** Состояние единицы имущества в инвентаре КУ. */
 ["MarketplaceInventoryStatus"]:MarketplaceInventoryStatus;
+	/** Результат подписания акта выдачи имущества пайщику. */
+["MarketplaceIssuanceResult"]: AliasType<{
+	/** Заказ после применения подписи. */
+	order?:ResolverInputTypes["MarketplaceOrder"],
+	/** Хэш транзакции подписи в блокчейне. */
+	tx_hash?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceIssueActPayloadInput"]: {
+	/** Фактически выдаваемое количество для финальной подписи (если не указано — берётся заказ). */
+	actual_quantity?: number | undefined | null,
+	/** Заказ, по которому формируется preview акта выдачи. */
+	order_id: ResolverInputTypes["ID"]
+};
+	["MarketplaceIssueActSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаданные подписанного акта выдачи имущества. */
+	meta: ResolverInputTypes["MarketplaceIssueActSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ResolverInputTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["MarketplaceIssueActSignedMetaDocumentInput"]: {
+	/** Номер акта для шапки документа. */
+	act_id: string,
+	/** Фактически выдаваемое количество единиц (заполняется на финальной подписи). */
+	actual_quantity?: number | undefined | null,
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Имя кооперативного участка, выдающего имущество пайщику. */
+	braname?: string | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
+	doc_data_hash?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** Канонический хэш заказа в блокчейне. */
+	order_hash: string,
+	/** Идентификатор заказа пайщика, по которому формируется акт выдачи. */
+	order_id: string,
+	/** Идентификатор записи акта в реестре marketplace (для выдачи — id заказа). */
+	reception_id: string,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Сформировать документ без сохранения (preview-режим). */
+	skip_save: boolean,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Учётная запись передающей стороны — председатель кооперативного участка или доверенное им лицо. */
+	transmitter: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
 	["MarketplaceKUDetails"]: AliasType<{
 	addressFull?:boolean | `@${string}`,
 	contactEmail?:boolean | `@${string}`,
@@ -16082,6 +16293,10 @@ export type ResolverInputTypes = {
 	shipment_id?: ResolverInputTypes["ID"] | undefined | null,
 	/** Фильтр по состояниям инвентаря. */
 	statuses?: Array<ResolverInputTypes["MarketplaceInventoryStatus"]> | undefined | null
+};
+	["MarketplaceListIssuancesByBranameInput"]: {
+	/** Кооперативный участок выдачи. */
+	delivery_braname: string
 };
 	["MarketplaceListMyOffersInput"]: {
 	/** Количество элементов на странице */
@@ -16198,6 +16413,12 @@ export type ResolverInputTypes = {
 	template_registry_id?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["MarketplaceOpenIssuanceInput"]: {
+	/** Идентификатор заказа, выдачу которого открываем. */
+	order_id: ResolverInputTypes["ID"],
+	/** Подписанный председателем кооперативного участка акт выдачи. Backend верифицирует подпись и отправляет on-chain первую подпись. */
+	signed_document: ResolverInputTypes["MarketplaceIssueActSignedDocumentInput"]
+};
 	/** Заказ пайщика по предложению поставщика. */
 ["MarketplaceOrder"]: AliasType<{
 	/** Когда поставщик принял заказ. */
@@ -16206,20 +16427,30 @@ export type ResolverInputTypes = {
 	blocked_at?:boolean | `@${string}`,
 	/** Когда заказ был отменён. */
 	cancelled_at?:boolean | `@${string}`,
+	/** Учётная запись председателя, открывшего выдачу первой подписью. */
+	chairman_account?:boolean | `@${string}`,
+	/** Когда председатель кооперативного участка открыл выдачу первой подписью. */
+	chairman_signed_at?:boolean | `@${string}`,
 	/** Кооператив, в котором сделан заказ. */
 	coopname?:boolean | `@${string}`,
 	/** Снимок транзакции блокировки средств (для отображения движений кошелька). */
 	create_tx?:ResolverInputTypes["MarketplaceOrderCreateTxSnapshot"],
 	/** Когда запись о заказе создана в системе. */
 	created_at?:boolean | `@${string}`,
+	/** Кооперативный участок, на котором имущество физически лежит к моменту выдачи. */
+	current_warehouse_braname?:boolean | `@${string}`,
 	/** Идентификатор партии-накопителя, если заказ присоединён. */
 	cycle_id?:boolean | `@${string}`,
 	/** Способ накопления заказов перед поставкой (копируется из предложения). */
 	cycle_type?:boolean | `@${string}`,
 	/** Имя пункта выдачи (ПВЗ), куда пайщик хочет получить заказ. */
 	delivery_braname?:boolean | `@${string}`,
+	/** Учётная запись стороны кооператива, поставившей подпись вместе с заказчиком. */
+	delivery_signer_account?:boolean | `@${string}`,
 	/** Идентификатор заказа. */
 	id?:boolean | `@${string}`,
+	/** Фактическая выдача после финальной подписи заказчика (заполняется на ПВЗ). */
+	issuance_fact?:ResolverInputTypes["MarketplaceOrderIssuanceFactSnapshot"],
 	/** Текстовая причина последнего изменения статуса. */
 	last_status_reason?:boolean | `@${string}`,
 	/** Хеш предложения в блокчейне (snapshot на момент заказа). */
@@ -16230,12 +16461,18 @@ export type ResolverInputTypes = {
 	order_hash?:boolean | `@${string}`,
 	/** Аккаунт пайщика-заказчика. */
 	orderer_account?:boolean | `@${string}`,
+	/** Когда заказчик поставил финальную подпись на акте выдачи. */
+	orderer_signed_at?:boolean | `@${string}`,
 	/** Цена за единицу товара на момент заказа. */
 	price_per_unit?:boolean | `@${string}`,
 	/** Количество единиц товара в заказе. */
 	quantity?:boolean | `@${string}`,
 	/** Когда пайщик получил заказ. */
 	received_at?:boolean | `@${string}`,
+	/** Хэш транзакции открытия выдачи в блокчейне. */
+	signiss1_tx_hash?:boolean | `@${string}`,
+	/** Хэш транзакции финальной подписи выдачи в блокчейне. */
+	signiss2_tx_hash?:boolean | `@${string}`,
 	/** Текущий этап жизненного цикла заказа. */
 	status?:boolean | `@${string}`,
 	/** Аккаунт поставщика. */
@@ -16268,6 +16505,18 @@ export type ResolverInputTypes = {
 }>;
 	/** Способ накопления заказов перед поставкой. */
 ["MarketplaceOrderCycleType"]:MarketplaceOrderCycleType;
+	/** Сверка фактической выдачи с заказом: equal — совпало, less — выдано меньше, more — выдано больше с доплатой. */
+["MarketplaceOrderIssuanceFactDiffState"]:MarketplaceOrderIssuanceFactDiffState;
+	/** Фактическая выдача имущества пайщику на ПВЗ. */
+["MarketplaceOrderIssuanceFactSnapshot"]: AliasType<{
+	/** Фактически выданное количество единиц. */
+	actual_quantity?:boolean | `@${string}`,
+	/** Сверка фактической выдачи с заказом. */
+	diff_state?:boolean | `@${string}`,
+	/** Фактическая стоимость выдачи (actual_quantity × цена за единицу). */
+	fact_cost?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	/** Постраничный список заказов. */
 ["MarketplaceOrderPaginationResult"]: AliasType<{
 	/** Текущая страница */
@@ -17035,7 +17284,9 @@ marketplaceDeclineConsolidatedRequest?: [{	input: ResolverInputTypes["Marketplac
 marketplaceDeclineIndividualOrder?: [{	input: ResolverInputTypes["MarketplaceDeclineIndividualOrderInput"]},ResolverInputTypes["MarketplaceSupplierOrderActionResult"]],
 marketplaceDeclineOrderFromOpenPool?: [{	input: ResolverInputTypes["MarketplaceDeclineOrderFromOpenPoolInput"]},ResolverInputTypes["MarketplaceSupplierOrderActionResult"]],
 marketplaceDetailKU?: [{	data: ResolverInputTypes["MarketplaceDetailKUInput"]},ResolverInputTypes["MarketplaceKUDetails"]],
+marketplaceFinalizeIssuance?: [{	data: ResolverInputTypes["MarketplaceFinalizeIssuanceInput"]},ResolverInputTypes["MarketplaceIssuanceResult"]],
 marketplaceLabelInventory?: [{	data: ResolverInputTypes["MarketplaceLabelInventoryInput"]},ResolverInputTypes["MarketplaceLabelInventoryResult"]],
+marketplaceOpenIssuance?: [{	data: ResolverInputTypes["MarketplaceOpenIssuanceInput"]},ResolverInputTypes["MarketplaceIssuanceResult"]],
 marketplaceRejectOffer?: [{	input: ResolverInputTypes["MarketplaceRejectOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
 marketplaceRemoveAvailableCategories?: [{	input: ResolverInputTypes["RemoveAvailableCategoriesInput"]},boolean | `@${string}`],
 marketplaceRemoveAvailableCategoryTypes?: [{	input: ResolverInputTypes["RemoveAvailableCategoryTypesInput"]},boolean | `@${string}`],
@@ -18370,6 +18621,8 @@ marketplaceGetRequestStatistics?: [{	data: ResolverInputTypes["GetRequestStatist
 marketplaceGetSearchCategories?: [{	data: ResolverInputTypes["SearchCategoriesInput"]},ResolverInputTypes["MarketplaceCategoryTreeNode"]],
 marketplaceGetShipment?: [{	data: ResolverInputTypes["MarketplaceGetShipmentInput"]},ResolverInputTypes["MarketplaceShipment"]],
 marketplaceGetUserRequests?: [{	data?: ResolverInputTypes["GetUserRequestsInput"] | undefined | null},ResolverInputTypes["MarketplaceRequest"]],
+marketplaceIssueActChairmanSignablePayload?: [{	data: ResolverInputTypes["MarketplaceIssueActPayloadInput"]},ResolverInputTypes["GeneratedDocument"]],
+marketplaceIssueActOrdererSignablePayload?: [{	data: ResolverInputTypes["MarketplaceIssueActPayloadInput"]},ResolverInputTypes["GeneratedDocument"]],
 	/** Список актов приёмки, ожидающих подписи текущего поставщика. */
 	marketplaceListAplReceptionsAsSupplier?:ResolverInputTypes["MarketplaceAplReception"],
 marketplaceListAplReceptionsByBraname?: [{	data: ResolverInputTypes["MarketplaceListAplReceptionsByBranameInput"]},ResolverInputTypes["MarketplaceAplReception"]],
@@ -18378,10 +18631,13 @@ marketplaceListCatalog?: [{	input?: ResolverInputTypes["MarketplaceListCatalogIn
 	marketplaceListCategories?:ResolverInputTypes["MarketplaceCategory"],
 marketplaceListConsolidatedRequests?: [{	input?: ResolverInputTypes["MarketplaceListConsolidatedRequestsInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["MarketplaceConsolidatedRequestPaginationResult"]],
 marketplaceListInventory?: [{	data?: ResolverInputTypes["MarketplaceListInventoryInput"] | undefined | null},ResolverInputTypes["MarketplaceInventoryItem"]],
+marketplaceListIssuancesByBraname?: [{	data: ResolverInputTypes["MarketplaceListIssuancesByBranameInput"]},ResolverInputTypes["MarketplaceOrder"]],
 marketplaceListKUDetails?: [{	data: ResolverInputTypes["ListMarketplaceKUInput"]},ResolverInputTypes["MarketplaceKUDetails"]],
 marketplaceListModerationLog?: [{	offer_id: string},ResolverInputTypes["MarketplaceModerationLogEntry"]],
 marketplaceListMyOffers?: [{	input?: ResolverInputTypes["MarketplaceListMyOffersInput"] | undefined | null},ResolverInputTypes["MarketplaceOfferPaginationResult"]],
 marketplaceListMyOrders?: [{	input?: ResolverInputTypes["MarketplaceListOrdersInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["MarketplaceOrderPaginationResult"]],
+	/** Список заказов текущего пайщика, готовых к получению на пункте выдачи. */
+	marketplaceListMyReadyToReceive?:ResolverInputTypes["MarketplaceOrder"],
 marketplaceListOutgoingPaymentsAsSupplier?: [{	statuses?: Array<ResolverInputTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null},ResolverInputTypes["MarketplaceOutgoingPaymentRequest"]],
 marketplaceListPendingOffers?: [{	input?: ResolverInputTypes["MarketplaceListPendingOffersInput"] | undefined | null},ResolverInputTypes["MarketplaceOfferPaginationResult"]],
 marketplaceListShipments?: [{	data?: ResolverInputTypes["MarketplaceListShipmentsInput"] | undefined | null},ResolverInputTypes["MarketplaceShipment"]],
@@ -24673,7 +24929,7 @@ export type ModelTypes = {
 	doc_hash: string,
 	/** Общий хэш (doc_hash + meta_hash) */
 	hash: string,
-	/** Метаданные подписанного акта приёмки — содержат order_id, order_hash, КУ-приёмник и фактическое количество. */
+	/** Метаданные подписанного акта приёмки-передачи имущества. */
 	meta: ModelTypes["MarketplaceAplReceptionSignedMetaDocumentInput"],
 	/** Хэш мета-данных */
 	meta_hash: string,
@@ -24683,20 +24939,22 @@ export type ModelTypes = {
 	version: string
 };
 	["MarketplaceAplReceptionSignedMetaDocumentInput"]: {
-	/** Имя кооперативного участка-приёмника партии. */
+	/** Имя кооперативного участка, выдающего имущество пайщику. */
 	accept_braname: string,
-	/** Номер акта приёмки для шапки документа. */
+	/** Номер акта для шапки документа. */
 	act_id: string,
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
-	/** Имя кооперативного участка-приёмника для ветки «филиал» в шаблоне акта. */
+	/** Имя кооперативного участка, выдающего имущество. */
 	braname?: string | undefined | null,
-	/** Account председателя — подписанта закрывающей подписи (если уже известен). */
+	/** Учётная запись председателя — подписанта закрывающей подписи (если уже известен). */
 	chairman_account?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
 	created_at: string,
+	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
+	doc_data_hash?: string | undefined | null,
 	/** Фактически принятое количество единиц. */
 	fact_quantity: number,
 	/** Имя генератора, использованного для создания документа */
@@ -24705,25 +24963,25 @@ export type ModelTypes = {
 	lang: string,
 	/** Ссылки, связанные с документом */
 	links: Array<string>,
-	/** Канонический хэш Order'а в блокчейне. */
+	/** Канонический хэш заказа в блокчейне. */
 	order_hash: string,
-	/** Идентификатор Order'а, к которому относится акт приёмки. */
+	/** Идентификатор заказа пайщика, по которому формируется акт. */
 	order_id: string,
-	/** Идентификатор записи акта приёмки. */
+	/** Идентификатор записи акта в реестре marketplace. */
 	reception_id: string,
 	/** ID документа в реестре */
 	registry_id: number,
-	/** Флаг пропуска сохранения документа (preview-режим для отображения пользователю перед подписью). */
+	/** Сформировать документ без сохранения (preview-режим). */
 	skip_save: boolean,
-	/** Account поставщика — отправителя партии. */
+	/** Учётная запись поставщика, передавшего партию на кооперативный участок. */
 	supplier_account: string,
 	/** Часовой пояс, в котором был создан документ */
 	timezone: string,
 	/** Название документа */
 	title: string,
-	/** Сумма по Order'у с учётом фактического количества. */
+	/** Сумма по заказу с учётом фактического количества. */
 	total_amount: string,
-	/** Account поставщика — отправителя партии (строка «Передал заказ» в акте). */
+	/** Учётная запись передающей стороны — председатель кооперативного участка или доверенное им лицо. */
 	transmitter: string,
 	/** Имя пользователя, создавшего документ */
 	username: string,
@@ -25082,6 +25340,16 @@ export type ModelTypes = {
 	/** Значение */
 	value: string
 };
+	["MarketplaceFinalizeIssuanceInput"]: {
+	/** Фактически выдаваемое количество единиц (равно/меньше/больше заказа). */
+	actual_quantity: number,
+	/** Учётная запись стороны кооператива, подписывающей акт вместе с заказчиком. */
+	delivery_signer: string,
+	/** Идентификатор заказа, который выдаём пайщику. */
+	order_id: ModelTypes["ID"],
+	/** Подписанный заказчиком и стороной кооператива акт выдачи. Backend верифицирует подписи и отправляет on-chain финальную подпись со всеми корректирующими операциями. */
+	signed_document: ModelTypes["MarketplaceIssueActSignedDocumentInput"]
+};
 	/** Параметры запроса одного заказа. */
 ["MarketplaceGetOrderInput"]: {
 	/** Идентификатор заказа. */
@@ -25118,6 +25386,75 @@ export type ModelTypes = {
 	updated_at: ModelTypes["DateTime"]
 };
 	["MarketplaceInventoryStatus"]:MarketplaceInventoryStatus;
+	/** Результат подписания акта выдачи имущества пайщику. */
+["MarketplaceIssuanceResult"]: {
+		/** Заказ после применения подписи. */
+	order: ModelTypes["MarketplaceOrder"],
+	/** Хэш транзакции подписи в блокчейне. */
+	tx_hash: string
+};
+	["MarketplaceIssueActPayloadInput"]: {
+	/** Фактически выдаваемое количество для финальной подписи (если не указано — берётся заказ). */
+	actual_quantity?: number | undefined | null,
+	/** Заказ, по которому формируется preview акта выдачи. */
+	order_id: ModelTypes["ID"]
+};
+	["MarketplaceIssueActSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаданные подписанного акта выдачи имущества. */
+	meta: ModelTypes["MarketplaceIssueActSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ModelTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["MarketplaceIssueActSignedMetaDocumentInput"]: {
+	/** Номер акта для шапки документа. */
+	act_id: string,
+	/** Фактически выдаваемое количество единиц (заполняется на финальной подписи). */
+	actual_quantity?: number | undefined | null,
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Имя кооперативного участка, выдающего имущество пайщику. */
+	braname?: string | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
+	doc_data_hash?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** Канонический хэш заказа в блокчейне. */
+	order_hash: string,
+	/** Идентификатор заказа пайщика, по которому формируется акт выдачи. */
+	order_id: string,
+	/** Идентификатор записи акта в реестре marketplace (для выдачи — id заказа). */
+	reception_id: string,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Сформировать документ без сохранения (preview-режим). */
+	skip_save: boolean,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Учётная запись передающей стороны — председатель кооперативного участка или доверенное им лицо. */
+	transmitter: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
 	["MarketplaceKUDetails"]: {
 		addressFull: string,
 	contactEmail: string,
@@ -25183,6 +25520,10 @@ export type ModelTypes = {
 	shipment_id?: ModelTypes["ID"] | undefined | null,
 	/** Фильтр по состояниям инвентаря. */
 	statuses?: Array<ModelTypes["MarketplaceInventoryStatus"]> | undefined | null
+};
+	["MarketplaceListIssuancesByBranameInput"]: {
+	/** Кооперативный участок выдачи. */
+	delivery_braname: string
 };
 	["MarketplaceListMyOffersInput"]: {
 	/** Количество элементов на странице */
@@ -25294,6 +25635,12 @@ export type ModelTypes = {
 	/** registry_id шаблона оферты ЦПП marketplace в платформенной document factory (Story 1.7). 0 — placeholder, оферта ещё не зарегистрирована. */
 	template_registry_id: number
 };
+	["MarketplaceOpenIssuanceInput"]: {
+	/** Идентификатор заказа, выдачу которого открываем. */
+	order_id: ModelTypes["ID"],
+	/** Подписанный председателем кооперативного участка акт выдачи. Backend верифицирует подпись и отправляет on-chain первую подпись. */
+	signed_document: ModelTypes["MarketplaceIssueActSignedDocumentInput"]
+};
 	/** Заказ пайщика по предложению поставщика. */
 ["MarketplaceOrder"]: {
 		/** Когда поставщик принял заказ. */
@@ -25302,20 +25649,30 @@ export type ModelTypes = {
 	blocked_at?: ModelTypes["DateTime"] | undefined | null,
 	/** Когда заказ был отменён. */
 	cancelled_at?: ModelTypes["DateTime"] | undefined | null,
+	/** Учётная запись председателя, открывшего выдачу первой подписью. */
+	chairman_account?: string | undefined | null,
+	/** Когда председатель кооперативного участка открыл выдачу первой подписью. */
+	chairman_signed_at?: ModelTypes["DateTime"] | undefined | null,
 	/** Кооператив, в котором сделан заказ. */
 	coopname: string,
 	/** Снимок транзакции блокировки средств (для отображения движений кошелька). */
 	create_tx?: ModelTypes["MarketplaceOrderCreateTxSnapshot"] | undefined | null,
 	/** Когда запись о заказе создана в системе. */
 	created_at: ModelTypes["DateTime"],
+	/** Кооперативный участок, на котором имущество физически лежит к моменту выдачи. */
+	current_warehouse_braname?: string | undefined | null,
 	/** Идентификатор партии-накопителя, если заказ присоединён. */
 	cycle_id?: string | undefined | null,
 	/** Способ накопления заказов перед поставкой (копируется из предложения). */
 	cycle_type: ModelTypes["MarketplaceOrderCycleType"],
 	/** Имя пункта выдачи (ПВЗ), куда пайщик хочет получить заказ. */
 	delivery_braname: string,
+	/** Учётная запись стороны кооператива, поставившей подпись вместе с заказчиком. */
+	delivery_signer_account?: string | undefined | null,
 	/** Идентификатор заказа. */
 	id: string,
+	/** Фактическая выдача после финальной подписи заказчика (заполняется на ПВЗ). */
+	issuance_fact?: ModelTypes["MarketplaceOrderIssuanceFactSnapshot"] | undefined | null,
 	/** Текстовая причина последнего изменения статуса. */
 	last_status_reason?: string | undefined | null,
 	/** Хеш предложения в блокчейне (snapshot на момент заказа). */
@@ -25326,12 +25683,18 @@ export type ModelTypes = {
 	order_hash: string,
 	/** Аккаунт пайщика-заказчика. */
 	orderer_account: string,
+	/** Когда заказчик поставил финальную подпись на акте выдачи. */
+	orderer_signed_at?: ModelTypes["DateTime"] | undefined | null,
 	/** Цена за единицу товара на момент заказа. */
 	price_per_unit: string,
 	/** Количество единиц товара в заказе. */
 	quantity: number,
 	/** Когда пайщик получил заказ. */
 	received_at?: ModelTypes["DateTime"] | undefined | null,
+	/** Хэш транзакции открытия выдачи в блокчейне. */
+	signiss1_tx_hash?: string | undefined | null,
+	/** Хэш транзакции финальной подписи выдачи в блокчейне. */
+	signiss2_tx_hash?: string | undefined | null,
 	/** Текущий этап жизненного цикла заказа. */
 	status: ModelTypes["MarketplaceOrderStatus"],
 	/** Аккаунт поставщика. */
@@ -25361,6 +25724,16 @@ export type ModelTypes = {
 	tx_hash: string
 };
 	["MarketplaceOrderCycleType"]:MarketplaceOrderCycleType;
+	["MarketplaceOrderIssuanceFactDiffState"]:MarketplaceOrderIssuanceFactDiffState;
+	/** Фактическая выдача имущества пайщику на ПВЗ. */
+["MarketplaceOrderIssuanceFactSnapshot"]: {
+		/** Фактически выданное количество единиц. */
+	actual_quantity: number,
+	/** Сверка фактической выдачи с заказом. */
+	diff_state: ModelTypes["MarketplaceOrderIssuanceFactDiffState"],
+	/** Фактическая стоимость выдачи (actual_quantity × цена за единицу). */
+	fact_cost: string
+};
 	/** Постраничный список заказов. */
 ["MarketplaceOrderPaginationResult"]: {
 		/** Текущая страница */
@@ -26516,8 +26889,12 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	marketplaceDetailKU: ModelTypes["MarketplaceKUDetails"],
+	/** Заказчик ставит финальную подпись акта выдачи — имущество переходит к нему, в зависимости от сверки факта применяются корректирующие операции. */
+	marketplaceFinalizeIssuance: ModelTypes["MarketplaceIssuanceResult"],
 	/** Оператор КУ маркирует имущество заказа внутренним штрих-кодом (Code128 или EAN-13). */
 	marketplaceLabelInventory: ModelTypes["MarketplaceLabelInventoryResult"],
+	/** Председатель кооперативного участка открывает выдачу первой подписью акта — заказ готов к получению пайщиком. */
+	marketplaceOpenIssuance: ModelTypes["MarketplaceIssuanceResult"],
 	/** Отклонить Offer с причиной (status → REJECTED) (admin) */
 	marketplaceRejectOffer: ModelTypes["MarketplaceOffer"],
 	/** Удалить категории из доступных для кооператива (включая все их типы)
@@ -28081,6 +28458,10 @@ export type ModelTypes = {
 
 Требуемые роли: member, chairman.  */
 	marketplaceGetUserRequests: Array<ModelTypes["MarketplaceRequest"]>,
+	/** Превью акта выдачи имущества для подписания председателем кооперативного участка. */
+	marketplaceIssueActChairmanSignablePayload: ModelTypes["GeneratedDocument"],
+	/** Превью акта выдачи имущества для финальной подписи заказчика с указанием фактического количества. */
+	marketplaceIssueActOrdererSignablePayload: ModelTypes["GeneratedDocument"],
 	/** Список актов приёмки, ожидающих подписи текущего поставщика. */
 	marketplaceListAplReceptionsAsSupplier: Array<ModelTypes["MarketplaceAplReception"]>,
 	/** Список акций приёмки текущего КУ для operator-стола. */
@@ -28093,6 +28474,8 @@ export type ModelTypes = {
 	marketplaceListConsolidatedRequests: ModelTypes["MarketplaceConsolidatedRequestPaginationResult"],
 	/** Список наклеек инвентаря КУ — для admin-стола склада и операторских разделов. */
 	marketplaceListInventory: Array<ModelTypes["MarketplaceInventoryItem"]>,
+	/** Список заказов на кооперативном участке, ожидающих открытия и финальной подписи выдачи (для оператора кооперативного участка). */
+	marketplaceListIssuancesByBraname: Array<ModelTypes["MarketplaceOrder"]>,
 	/** Список marketplace-детализаций ПВЗ кооператива.
 
 Требуемые роли: chairman, member, user.  */
@@ -28103,6 +28486,8 @@ export type ModelTypes = {
 	marketplaceListMyOffers: ModelTypes["MarketplaceOfferPaginationResult"],
 	/** Список заказов текущего пайщика (стол заказчика). */
 	marketplaceListMyOrders: ModelTypes["MarketplaceOrderPaginationResult"],
+	/** Список заказов текущего пайщика, готовых к получению на пункте выдачи. */
+	marketplaceListMyReadyToReceive: Array<ModelTypes["MarketplaceOrder"]>,
 	/** История выплат поставщику в столе поставщика — статусы по каждому заказу. */
 	marketplaceListOutgoingPaymentsAsSupplier: Array<ModelTypes["MarketplaceOutgoingPaymentRequest"]>,
 	/** Список Offer'ов на модерации (admin) */
@@ -34630,7 +35015,7 @@ export type GraphQLTypes = {
 	doc_hash: string,
 	/** Общий хэш (doc_hash + meta_hash) */
 	hash: string,
-	/** Метаданные подписанного акта приёмки — содержат order_id, order_hash, КУ-приёмник и фактическое количество. */
+	/** Метаданные подписанного акта приёмки-передачи имущества. */
 	meta: GraphQLTypes["MarketplaceAplReceptionSignedMetaDocumentInput"],
 	/** Хэш мета-данных */
 	meta_hash: string,
@@ -34640,20 +35025,22 @@ export type GraphQLTypes = {
 	version: string
 };
 	["MarketplaceAplReceptionSignedMetaDocumentInput"]: {
-		/** Имя кооперативного участка-приёмника партии. */
+		/** Имя кооперативного участка, выдающего имущество пайщику. */
 	accept_braname: string,
-	/** Номер акта приёмки для шапки документа. */
+	/** Номер акта для шапки документа. */
 	act_id: string,
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
-	/** Имя кооперативного участка-приёмника для ветки «филиал» в шаблоне акта. */
+	/** Имя кооперативного участка, выдающего имущество. */
 	braname?: string | undefined | null,
-	/** Account председателя — подписанта закрывающей подписи (если уже известен). */
+	/** Учётная запись председателя — подписанта закрывающей подписи (если уже известен). */
 	chairman_account?: string | undefined | null,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
 	created_at: string,
+	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
+	doc_data_hash?: string | undefined | null,
 	/** Фактически принятое количество единиц. */
 	fact_quantity: number,
 	/** Имя генератора, использованного для создания документа */
@@ -34662,25 +35049,25 @@ export type GraphQLTypes = {
 	lang: string,
 	/** Ссылки, связанные с документом */
 	links: Array<string>,
-	/** Канонический хэш Order'а в блокчейне. */
+	/** Канонический хэш заказа в блокчейне. */
 	order_hash: string,
-	/** Идентификатор Order'а, к которому относится акт приёмки. */
+	/** Идентификатор заказа пайщика, по которому формируется акт. */
 	order_id: string,
-	/** Идентификатор записи акта приёмки. */
+	/** Идентификатор записи акта в реестре marketplace. */
 	reception_id: string,
 	/** ID документа в реестре */
 	registry_id: number,
-	/** Флаг пропуска сохранения документа (preview-режим для отображения пользователю перед подписью). */
+	/** Сформировать документ без сохранения (preview-режим). */
 	skip_save: boolean,
-	/** Account поставщика — отправителя партии. */
+	/** Учётная запись поставщика, передавшего партию на кооперативный участок. */
 	supplier_account: string,
 	/** Часовой пояс, в котором был создан документ */
 	timezone: string,
 	/** Название документа */
 	title: string,
-	/** Сумма по Order'у с учётом фактического количества. */
+	/** Сумма по заказу с учётом фактического количества. */
 	total_amount: string,
-	/** Account поставщика — отправителя партии (строка «Передал заказ» в акте). */
+	/** Учётная запись передающей стороны — председатель кооперативного участка или доверенное им лицо. */
 	transmitter: string,
 	/** Имя пользователя, создавшего документ */
 	username: string,
@@ -35087,6 +35474,16 @@ export type GraphQLTypes = {
 	value: string,
 	['...on MarketplaceDictionaryValue']: Omit<GraphQLTypes["MarketplaceDictionaryValue"], "...on MarketplaceDictionaryValue">
 };
+	["MarketplaceFinalizeIssuanceInput"]: {
+		/** Фактически выдаваемое количество единиц (равно/меньше/больше заказа). */
+	actual_quantity: number,
+	/** Учётная запись стороны кооператива, подписывающей акт вместе с заказчиком. */
+	delivery_signer: string,
+	/** Идентификатор заказа, который выдаём пайщику. */
+	order_id: GraphQLTypes["ID"],
+	/** Подписанный заказчиком и стороной кооператива акт выдачи. Backend верифицирует подписи и отправляет on-chain финальную подпись со всеми корректирующими операциями. */
+	signed_document: GraphQLTypes["MarketplaceIssueActSignedDocumentInput"]
+};
 	/** Параметры запроса одного заказа. */
 ["MarketplaceGetOrderInput"]: {
 		/** Идентификатор заказа. */
@@ -35126,6 +35523,77 @@ export type GraphQLTypes = {
 };
 	/** Состояние единицы имущества в инвентаре КУ. */
 ["MarketplaceInventoryStatus"]: MarketplaceInventoryStatus;
+	/** Результат подписания акта выдачи имущества пайщику. */
+["MarketplaceIssuanceResult"]: {
+	__typename: "MarketplaceIssuanceResult",
+	/** Заказ после применения подписи. */
+	order: GraphQLTypes["MarketplaceOrder"],
+	/** Хэш транзакции подписи в блокчейне. */
+	tx_hash: string,
+	['...on MarketplaceIssuanceResult']: Omit<GraphQLTypes["MarketplaceIssuanceResult"], "...on MarketplaceIssuanceResult">
+};
+	["MarketplaceIssueActPayloadInput"]: {
+		/** Фактически выдаваемое количество для финальной подписи (если не указано — берётся заказ). */
+	actual_quantity?: number | undefined | null,
+	/** Заказ, по которому формируется preview акта выдачи. */
+	order_id: GraphQLTypes["ID"]
+};
+	["MarketplaceIssueActSignedDocumentInput"]: {
+		/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаданные подписанного акта выдачи имущества. */
+	meta: GraphQLTypes["MarketplaceIssueActSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<GraphQLTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["MarketplaceIssueActSignedMetaDocumentInput"]: {
+		/** Номер акта для шапки документа. */
+	act_id: string,
+	/** Фактически выдаваемое количество единиц (заполняется на финальной подписи). */
+	actual_quantity?: number | undefined | null,
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Имя кооперативного участка, выдающего имущество пайщику. */
+	braname?: string | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
+	doc_data_hash?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** Канонический хэш заказа в блокчейне. */
+	order_hash: string,
+	/** Идентификатор заказа пайщика, по которому формируется акт выдачи. */
+	order_id: string,
+	/** Идентификатор записи акта в реестре marketplace (для выдачи — id заказа). */
+	reception_id: string,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Сформировать документ без сохранения (preview-режим). */
+	skip_save: boolean,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Учётная запись передающей стороны — председатель кооперативного участка или доверенное им лицо. */
+	transmitter: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
 	["MarketplaceKUDetails"]: {
 	__typename: "MarketplaceKUDetails",
 	addressFull: string,
@@ -35195,6 +35663,10 @@ export type GraphQLTypes = {
 	shipment_id?: GraphQLTypes["ID"] | undefined | null,
 	/** Фильтр по состояниям инвентаря. */
 	statuses?: Array<GraphQLTypes["MarketplaceInventoryStatus"]> | undefined | null
+};
+	["MarketplaceListIssuancesByBranameInput"]: {
+		/** Кооперативный участок выдачи. */
+	delivery_braname: string
 };
 	["MarketplaceListMyOffersInput"]: {
 		/** Количество элементов на странице */
@@ -35316,6 +35788,12 @@ export type GraphQLTypes = {
 	template_registry_id: number,
 	['...on MarketplaceOnboardingState']: Omit<GraphQLTypes["MarketplaceOnboardingState"], "...on MarketplaceOnboardingState">
 };
+	["MarketplaceOpenIssuanceInput"]: {
+		/** Идентификатор заказа, выдачу которого открываем. */
+	order_id: GraphQLTypes["ID"],
+	/** Подписанный председателем кооперативного участка акт выдачи. Backend верифицирует подпись и отправляет on-chain первую подпись. */
+	signed_document: GraphQLTypes["MarketplaceIssueActSignedDocumentInput"]
+};
 	/** Заказ пайщика по предложению поставщика. */
 ["MarketplaceOrder"]: {
 	__typename: "MarketplaceOrder",
@@ -35325,20 +35803,30 @@ export type GraphQLTypes = {
 	blocked_at?: GraphQLTypes["DateTime"] | undefined | null,
 	/** Когда заказ был отменён. */
 	cancelled_at?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Учётная запись председателя, открывшего выдачу первой подписью. */
+	chairman_account?: string | undefined | null,
+	/** Когда председатель кооперативного участка открыл выдачу первой подписью. */
+	chairman_signed_at?: GraphQLTypes["DateTime"] | undefined | null,
 	/** Кооператив, в котором сделан заказ. */
 	coopname: string,
 	/** Снимок транзакции блокировки средств (для отображения движений кошелька). */
 	create_tx?: GraphQLTypes["MarketplaceOrderCreateTxSnapshot"] | undefined | null,
 	/** Когда запись о заказе создана в системе. */
 	created_at: GraphQLTypes["DateTime"],
+	/** Кооперативный участок, на котором имущество физически лежит к моменту выдачи. */
+	current_warehouse_braname?: string | undefined | null,
 	/** Идентификатор партии-накопителя, если заказ присоединён. */
 	cycle_id?: string | undefined | null,
 	/** Способ накопления заказов перед поставкой (копируется из предложения). */
 	cycle_type: GraphQLTypes["MarketplaceOrderCycleType"],
 	/** Имя пункта выдачи (ПВЗ), куда пайщик хочет получить заказ. */
 	delivery_braname: string,
+	/** Учётная запись стороны кооператива, поставившей подпись вместе с заказчиком. */
+	delivery_signer_account?: string | undefined | null,
 	/** Идентификатор заказа. */
 	id: string,
+	/** Фактическая выдача после финальной подписи заказчика (заполняется на ПВЗ). */
+	issuance_fact?: GraphQLTypes["MarketplaceOrderIssuanceFactSnapshot"] | undefined | null,
 	/** Текстовая причина последнего изменения статуса. */
 	last_status_reason?: string | undefined | null,
 	/** Хеш предложения в блокчейне (snapshot на момент заказа). */
@@ -35349,12 +35837,18 @@ export type GraphQLTypes = {
 	order_hash: string,
 	/** Аккаунт пайщика-заказчика. */
 	orderer_account: string,
+	/** Когда заказчик поставил финальную подпись на акте выдачи. */
+	orderer_signed_at?: GraphQLTypes["DateTime"] | undefined | null,
 	/** Цена за единицу товара на момент заказа. */
 	price_per_unit: string,
 	/** Количество единиц товара в заказе. */
 	quantity: number,
 	/** Когда пайщик получил заказ. */
 	received_at?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Хэш транзакции открытия выдачи в блокчейне. */
+	signiss1_tx_hash?: string | undefined | null,
+	/** Хэш транзакции финальной подписи выдачи в блокчейне. */
+	signiss2_tx_hash?: string | undefined | null,
 	/** Текущий этап жизненного цикла заказа. */
 	status: GraphQLTypes["MarketplaceOrderStatus"],
 	/** Аккаунт поставщика. */
@@ -35388,6 +35882,19 @@ export type GraphQLTypes = {
 };
 	/** Способ накопления заказов перед поставкой. */
 ["MarketplaceOrderCycleType"]: MarketplaceOrderCycleType;
+	/** Сверка фактической выдачи с заказом: equal — совпало, less — выдано меньше, more — выдано больше с доплатой. */
+["MarketplaceOrderIssuanceFactDiffState"]: MarketplaceOrderIssuanceFactDiffState;
+	/** Фактическая выдача имущества пайщику на ПВЗ. */
+["MarketplaceOrderIssuanceFactSnapshot"]: {
+	__typename: "MarketplaceOrderIssuanceFactSnapshot",
+	/** Фактически выданное количество единиц. */
+	actual_quantity: number,
+	/** Сверка фактической выдачи с заказом. */
+	diff_state: GraphQLTypes["MarketplaceOrderIssuanceFactDiffState"],
+	/** Фактическая стоимость выдачи (actual_quantity × цена за единицу). */
+	fact_cost: string,
+	['...on MarketplaceOrderIssuanceFactSnapshot']: Omit<GraphQLTypes["MarketplaceOrderIssuanceFactSnapshot"], "...on MarketplaceOrderIssuanceFactSnapshot">
+};
 	/** Постраничный список заказов. */
 ["MarketplaceOrderPaginationResult"]: {
 	__typename: "MarketplaceOrderPaginationResult",
@@ -36594,8 +37101,12 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	marketplaceDetailKU: GraphQLTypes["MarketplaceKUDetails"],
+	/** Заказчик ставит финальную подпись акта выдачи — имущество переходит к нему, в зависимости от сверки факта применяются корректирующие операции. */
+	marketplaceFinalizeIssuance: GraphQLTypes["MarketplaceIssuanceResult"],
 	/** Оператор КУ маркирует имущество заказа внутренним штрих-кодом (Code128 или EAN-13). */
 	marketplaceLabelInventory: GraphQLTypes["MarketplaceLabelInventoryResult"],
+	/** Председатель кооперативного участка открывает выдачу первой подписью акта — заказ готов к получению пайщиком. */
+	marketplaceOpenIssuance: GraphQLTypes["MarketplaceIssuanceResult"],
 	/** Отклонить Offer с причиной (status → REJECTED) (admin) */
 	marketplaceRejectOffer: GraphQLTypes["MarketplaceOffer"],
 	/** Удалить категории из доступных для кооператива (включая все их типы)
@@ -38291,6 +38802,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: member, chairman.  */
 	marketplaceGetUserRequests: Array<GraphQLTypes["MarketplaceRequest"]>,
+	/** Превью акта выдачи имущества для подписания председателем кооперативного участка. */
+	marketplaceIssueActChairmanSignablePayload: GraphQLTypes["GeneratedDocument"],
+	/** Превью акта выдачи имущества для финальной подписи заказчика с указанием фактического количества. */
+	marketplaceIssueActOrdererSignablePayload: GraphQLTypes["GeneratedDocument"],
 	/** Список актов приёмки, ожидающих подписи текущего поставщика. */
 	marketplaceListAplReceptionsAsSupplier: Array<GraphQLTypes["MarketplaceAplReception"]>,
 	/** Список акций приёмки текущего КУ для operator-стола. */
@@ -38303,6 +38818,8 @@ export type GraphQLTypes = {
 	marketplaceListConsolidatedRequests: GraphQLTypes["MarketplaceConsolidatedRequestPaginationResult"],
 	/** Список наклеек инвентаря КУ — для admin-стола склада и операторских разделов. */
 	marketplaceListInventory: Array<GraphQLTypes["MarketplaceInventoryItem"]>,
+	/** Список заказов на кооперативном участке, ожидающих открытия и финальной подписи выдачи (для оператора кооперативного участка). */
+	marketplaceListIssuancesByBraname: Array<GraphQLTypes["MarketplaceOrder"]>,
 	/** Список marketplace-детализаций ПВЗ кооператива.
 
 Требуемые роли: chairman, member, user.  */
@@ -38313,6 +38830,8 @@ export type GraphQLTypes = {
 	marketplaceListMyOffers: GraphQLTypes["MarketplaceOfferPaginationResult"],
 	/** Список заказов текущего пайщика (стол заказчика). */
 	marketplaceListMyOrders: GraphQLTypes["MarketplaceOrderPaginationResult"],
+	/** Список заказов текущего пайщика, готовых к получению на пункте выдачи. */
+	marketplaceListMyReadyToReceive: Array<GraphQLTypes["MarketplaceOrder"]>,
 	/** История выплат поставщику в столе поставщика — статусы по каждому заказу. */
 	marketplaceListOutgoingPaymentsAsSupplier: Array<GraphQLTypes["MarketplaceOutgoingPaymentRequest"]>,
 	/** Список Offer'ов на модерации (admin) */
@@ -40223,6 +40742,12 @@ export enum MarketplaceOrderCycleType {
 	TIME_BASED = "TIME_BASED",
 	VOLUME_BASED = "VOLUME_BASED"
 }
+/** Сверка фактической выдачи с заказом: equal — совпало, less — выдано меньше, more — выдано больше с доплатой. */
+export enum MarketplaceOrderIssuanceFactDiffState {
+	EQUAL = "EQUAL",
+	LESS = "LESS",
+	MORE = "MORE"
+}
 /** Этап жизненного цикла заказа. */
 export enum MarketplaceOrderStatus {
 	ACCEPTED = "ACCEPTED",
@@ -40700,19 +41225,26 @@ type ZEUS_VARIABLES = {
 	["MarketplaceDeclineIndividualOrderInput"]: ValueTypes["MarketplaceDeclineIndividualOrderInput"];
 	["MarketplaceDeclineOrderFromOpenPoolInput"]: ValueTypes["MarketplaceDeclineOrderFromOpenPoolInput"];
 	["MarketplaceDetailKUInput"]: ValueTypes["MarketplaceDetailKUInput"];
+	["MarketplaceFinalizeIssuanceInput"]: ValueTypes["MarketplaceFinalizeIssuanceInput"];
 	["MarketplaceGetOrderInput"]: ValueTypes["MarketplaceGetOrderInput"];
 	["MarketplaceGetShipmentInput"]: ValueTypes["MarketplaceGetShipmentInput"];
 	["MarketplaceInventoryStatus"]: ValueTypes["MarketplaceInventoryStatus"];
+	["MarketplaceIssueActPayloadInput"]: ValueTypes["MarketplaceIssueActPayloadInput"];
+	["MarketplaceIssueActSignedDocumentInput"]: ValueTypes["MarketplaceIssueActSignedDocumentInput"];
+	["MarketplaceIssueActSignedMetaDocumentInput"]: ValueTypes["MarketplaceIssueActSignedMetaDocumentInput"];
 	["MarketplaceLabelInventoryInput"]: ValueTypes["MarketplaceLabelInventoryInput"];
 	["MarketplaceListAplReceptionsByBranameInput"]: ValueTypes["MarketplaceListAplReceptionsByBranameInput"];
 	["MarketplaceListCatalogInput"]: ValueTypes["MarketplaceListCatalogInput"];
 	["MarketplaceListConsolidatedRequestsInput"]: ValueTypes["MarketplaceListConsolidatedRequestsInput"];
 	["MarketplaceListInventoryInput"]: ValueTypes["MarketplaceListInventoryInput"];
+	["MarketplaceListIssuancesByBranameInput"]: ValueTypes["MarketplaceListIssuancesByBranameInput"];
 	["MarketplaceListMyOffersInput"]: ValueTypes["MarketplaceListMyOffersInput"];
 	["MarketplaceListOrdersInput"]: ValueTypes["MarketplaceListOrdersInput"];
 	["MarketplaceListPendingOffersInput"]: ValueTypes["MarketplaceListPendingOffersInput"];
 	["MarketplaceListShipmentsInput"]: ValueTypes["MarketplaceListShipmentsInput"];
+	["MarketplaceOpenIssuanceInput"]: ValueTypes["MarketplaceOpenIssuanceInput"];
 	["MarketplaceOrderCycleType"]: ValueTypes["MarketplaceOrderCycleType"];
+	["MarketplaceOrderIssuanceFactDiffState"]: ValueTypes["MarketplaceOrderIssuanceFactDiffState"];
 	["MarketplaceOrderStatus"]: ValueTypes["MarketplaceOrderStatus"];
 	["MarketplaceOutgoingPaymentRequestStatus"]: ValueTypes["MarketplaceOutgoingPaymentRequestStatus"];
 	["MarketplaceRejectOfferInput"]: ValueTypes["MarketplaceRejectOfferInput"];

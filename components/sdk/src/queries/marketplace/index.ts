@@ -22,3 +22,11 @@ export * as ListOutgoingPaymentsAsSupplier from './listOutgoingPaymentsAsSupplie
 export * as AplReceptionSupplierSignablePayloads from './aplReceptionSupplierSignablePayloads'
 /** Эпик 5: подписные документы Document2 для председателя КУ (FR45 / 598-15) */
 export * as AplReceptionChairmanSignablePayloads from './aplReceptionChairmanSignablePayloads'
+/** Эпик 6: лента выдач текущего КУ для operator-стола */
+export * as ListIssuancesByBraname from './listIssuancesByBraname'
+/** Эпик 6: заказы пайщика, готовые к получению на ПВЗ */
+export * as ListMyReadyToReceive from './listMyReadyToReceive'
+/** Эпик 6: превью акта выдачи для подписи председателем КУ (первая подпись) */
+export * as IssueActChairmanSignablePayload from './issueActChairmanSignablePayload'
+/** Эпик 6: превью акта выдачи для финальной подписи заказчика */
+export * as IssueActOrdererSignablePayload from './issueActOrdererSignablePayload'
