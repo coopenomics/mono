@@ -72,6 +72,7 @@ export * as MarketplaceOfferTemplate from './1100.MarketplaceOfferTemplate'
 export * as MarketplaceOffer from './1101.MarketplaceOffer'
 export * as MarketplaceAplReception from './1102.MarketplaceAplReception'
 export * as MarketplaceTransportNote from './1103.MarketplaceTransportNote'
+export * as MarketplaceReturnStatement from './1104.MarketplaceReturnStatement'
 
 export * as SosediAgreement from './699.SosediAgreement'
 
