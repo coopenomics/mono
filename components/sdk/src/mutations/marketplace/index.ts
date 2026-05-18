@@ -20,3 +20,7 @@ export * as CreateAplReception from './createAplReception'
 export * as SignAplReceptionAsSupplier from './signAplReceptionAsSupplier'
 /** Эпик 5: закрывающая подпись председателя КУ */
 export * as SignAplReceptionAsChairman from './signAplReceptionAsChairman'
+/** Эпик 6: председатель КУ открывает выдачу первой подписью акта */
+export * as OpenIssuance from './openIssuance'
+/** Эпик 6: заказчик закрывает выдачу финальной подписью с указанием фактического количества */
+export * as FinalizeIssuance from './finalizeIssuance'

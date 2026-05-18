@@ -35,6 +35,9 @@ export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, str
     Offer: ['read'],
     KU: ['read'],
     Vitrine: ['read'],
+    // Story 6.3 / FR24: заказчик закрывает АПП-выдачу финальной подписью
+    // на ПВЗ и видит свои заказы, готовые к получению.
+    Issuance: ['sign:final', 'read:own'],
   },
   offerer: {
     Offer: ['create:own', 'update:own', 'delete:own', 'read'],
@@ -46,7 +49,9 @@ export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, str
   },
   operator: {
     Receiving: ['create', 'sign:closing'],
-    Issuance: ['create', 'sign:first'],
+    // Story 6.1: оператор/председатель КУ открывает выдачу первой подписью
+    // АПП-выдачи (`signiss1`) и видит ленту выдач на своём КУ.
+    Issuance: ['create', 'sign:first', 'read:own-KU'],
     Inventory: ['label'],
     Warehouse: ['read:own-KU'],
     KU: ['read:own-KU'],

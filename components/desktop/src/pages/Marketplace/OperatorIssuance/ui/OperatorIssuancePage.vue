@@ -1,0 +1,123 @@
+<script lang="ts" setup>
+import { onMounted, ref } from 'vue';
+import { FailAlert } from 'src/shared/api';
+import {
+  listIssuancesByBraname,
+  type MarketplaceOrderIssuanceView,
+} from '../api';
+import IssueActOpenDialog from './IssueActOpenDialog.vue';
+import IssueActFinalizeDialog from './IssueActFinalizeDialog.vue';
+
+/**
+ * Story 6.1 / 6.3 / 6.6: operator-стол выдачи имущества пайщику.
+ *
+ * Показывает Order'ы на КУ выдачи в статусах ACCEPTED_TO_COOP (ожидают
+ * открытия первой подписью председателя — `signiss1`) и READY_TO_RECEIVE
+ * (ожидают финальной подписи заказчика на ПВЗ — `signiss2`).
+ *
+ * - «Открыть выдачу» вызывает IssueActOpenDialog — full-screen takeover
+ *   с превью акта (registry_id=1102) и подписью председателя.
+ * - «Завершить выдачу» вызывает IssueActFinalizeDialog — BarcodeScanner
+ *   для проверки штрих-кода заказа + CorrectionTable со сверкой
+ *   факт vs заказ + двойная подпись (заказчик + delivery_signer) и
+ *   композитная транзакция `signiss2` с корректирующими операциями
+ *   по FR23-FR25.
+ */
+
+const braname = ref<string>('');
+const items = ref<MarketplaceOrderIssuanceView[]>([]);
+const loading = ref(false);
+
+const openDialog = ref(false);
+const finalizeDialog = ref(false);
+const selectedOrder = ref<MarketplaceOrderIssuanceView | null>(null);
+
+async function load(): Promise<void> {
+  if (!braname.value.trim()) return;
+  loading.value = true;
+  try {
+    items.value = await listIssuancesByBraname(braname.value.trim());
+  } catch (e) {
+    FailAlert(e, 'Не удалось загрузить ленту выдач');
+  } finally {
+    loading.value = false;
+  }
+}
+
+function startOpen(item: MarketplaceOrderIssuanceView): void {
+  selectedOrder.value = item;
+  openDialog.value = true;
+}
+
+function startFinalize(item: MarketplaceOrderIssuanceView): void {
+  selectedOrder.value = item;
+  finalizeDialog.value = true;
+}
+
+function onOpened(): void {
+  void load();
+}
+
+function onFinalized(): void {
+  void load();
+}
+
+onMounted(() => {
+  // braname придёт из current member operator-роли при подключении к роутингу.
+});
+</script>
+
+<template lang="pug">
+q-page.mp-role-operator.mp-issuance.q-pa-md
+  .row.q-mb-md.q-gutter-md
+    q-input.col-3(v-model="braname" dense outlined label="ID кооперативного участка выдачи")
+    q-btn(no-caps color="primary" :loading="loading" label="Загрузить ленту выдач" @click="load")
+
+  q-table(
+    :rows="items"
+    :columns="[
+      { name: 'order', label: 'Заказ', field: (r: MarketplaceOrderIssuanceView) => r.id.slice(0, 8), align: 'left' },
+      { name: 'orderer', label: 'Заказчик', field: 'orderer_account', align: 'left' },
+      { name: 'quantity', label: 'Количество', field: 'quantity', align: 'right' },
+      { name: 'total_cost', label: 'Сумма', field: 'total_cost', align: 'right' },
+      { name: 'status', label: 'Статус', field: 'status', align: 'left' },
+      { name: 'actions', label: '', field: 'id', align: 'right' },
+    ]"
+    row-key="id"
+    flat
+    bordered
+    :loading="loading"
+    no-data-label="Нет заказов, ожидающих выдачи на этом кооперативном участке."
+  )
+    template(#body-cell-actions="props")
+      q-td(:props="props")
+        q-btn(
+          v-if="props.row.status === 'ACCEPTED_TO_COOP'"
+          color="primary"
+          unelevated
+          no-caps
+          dense
+          label="Открыть выдачу"
+          @click="startOpen(props.row)"
+        )
+        q-btn(
+          v-else-if="props.row.status === 'READY_TO_RECEIVE'"
+          color="accent"
+          unelevated
+          no-caps
+          dense
+          label="Завершить выдачу"
+          @click="startFinalize(props.row)"
+        )
+
+  IssueActOpenDialog(
+    v-model="openDialog"
+    :order="selectedOrder"
+    @opened="onOpened"
+  )
+  IssueActFinalizeDialog(
+    v-model="finalizeDialog"
+    :order="selectedOrder"
+    @finalized="onFinalized"
+  )
+</template>

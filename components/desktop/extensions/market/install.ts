@@ -4,6 +4,8 @@ import { CreateMarketplaceOfferPage } from 'src/pages/Marketplace/CreateMarketpl
 import { MyOrdersPage } from 'src/pages/Marketplace/MyOrders'
 import { PvzListPage } from 'src/pages/Marketplace/PvzList'
 import { DesignSystemPage } from 'src/pages/Marketplace/DesignSystem'
+import { OperatorIssuancePage } from 'src/pages/Marketplace/OperatorIssuance'
+import { OrdererReadyToReceivePage } from 'src/pages/Marketplace/OrdererReadyToReceive'
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace'
 import { agreementsBase } from 'src/shared/lib/consts/workspaces'
 
@@ -61,6 +63,21 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             },
           },
           {
+            // Эпик 6 / Story 6.7: лента заказов пайщика, готовых к получению
+            // на пункте выдачи (статус READY_TO_RECEIVE) — визуальное
+            // продолжение push-уведомления marketplace-order-ready (FR22).
+            path: 'ready-to-receive',
+            name: 'marketplace-ready-to-receive',
+            component: markRaw(OrdererReadyToReceivePage),
+            meta: {
+              title: 'Готово к получению',
+              icon: 'fa-solid fa-box-check',
+              roles: [],
+              requiresAuth: true,
+              agreements: agreementsBase,
+            },
+          },
+          {
             // Витрина дизайн-системы (Эпик 10): открыта председателю и членам совета
             // для утверждения 13 custom-компонентов до их применения в эпиках 1-9.
             // Скрыта от обычных пайщиков, не выходит в production-меню для них.
@@ -102,6 +119,23 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'ПВЗ кооператива',
               icon: 'fa-solid fa-map-location-dot',
+              roles: ['chairman'],
+              requiresAuth: true,
+              agreements: agreementsBase,
+            },
+          },
+          {
+            // Эпик 6 / Story 6.6: operator-стол выдачи имущества пайщику
+            // на ПВЗ. Лента заказов в ACCEPTED_TO_COOP (ожидают открытия
+            // первой подписью signiss1) и READY_TO_RECEIVE (ожидают
+            // финальной подписи заказчика signiss2). Открыто председателю
+            // КУ — он же operator в access matrix marketplace.
+            path: 'issuance',
+            name: 'marketplace-issuance',
+            component: markRaw(OperatorIssuancePage),
+            meta: {
+              title: 'Выдача заказов',
+              icon: 'fa-solid fa-handshake',
               roles: ['chairman'],
               requiresAuth: true,
               agreements: agreementsBase,

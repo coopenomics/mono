@@ -9,6 +9,7 @@ import {
 import type {
   MarketplaceOrderCreateTxSnapshot,
   MarketplaceOrderCycleType,
+  MarketplaceOrderIssuanceFactSnapshot,
   MarketplaceOrderStatus,
 } from '../../domain/entities/marketplace-order.types';
 
@@ -114,6 +115,40 @@ export class MarketplaceOrderEntity {
    */
   @Column({ type: 'jsonb', nullable: true })
   public create_tx!: MarketplaceOrderCreateTxSnapshot | null;
+
+  // ── Story 6.1 / FR21 — открытие выдачи (signiss1) ──────────────────────
+
+  /**
+   * ПВЗ, на котором имущество фактически лежит к моменту выдачи. На
+   * `signiss1` приравнивается `delivery_braname`; промежуточные перемещения
+   * по заготовочным КУ контрактом не подписываются.
+   */
+  @Column({ type: 'varchar', length: 13, nullable: true })
+  public current_warehouse_braname!: string | null;
+
+  /** Снапшот фактической выдачи после `signiss2` (factual quantity, fact_cost, diff_state). */
+  @Column({ type: 'jsonb', nullable: true })
+  public issuance_fact!: MarketplaceOrderIssuanceFactSnapshot | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  public chairman_signed_at!: Date | null;
+
+  @Column({ type: 'varchar', length: 13, nullable: true })
+  public chairman_account!: string | null;
+
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  public signiss1_tx_hash!: string | null;
+
+  // ── Story 6.3 / FR24 — финальная подпись заказчика (signiss2) ──────────
+
+  @Column({ type: 'timestamptz', nullable: true })
+  public orderer_signed_at!: Date | null;
+
+  @Column({ type: 'varchar', length: 13, nullable: true })
+  public delivery_signer_account!: string | null;
+
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  public signiss2_tx_hash!: string | null;
 
   // ── On-chain mirror (поля от syncer'а через `marketplace::orders` row) ──
 

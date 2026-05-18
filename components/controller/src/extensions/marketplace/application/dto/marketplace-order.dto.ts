@@ -34,6 +34,38 @@ registerEnumType(MarketplaceOrderStatusEnum, {
   description: 'Этап жизненного цикла заказа.',
 });
 
+export enum MarketplaceOrderIssuanceFactDiffStateEnum {
+  EQUAL = 'equal',
+  LESS = 'less',
+  MORE = 'more',
+}
+
+registerEnumType(MarketplaceOrderIssuanceFactDiffStateEnum, {
+  name: 'MarketplaceOrderIssuanceFactDiffState',
+  description:
+    'Сверка фактической выдачи с заказом: equal — совпало, less — выдано меньше, more — выдано больше с доплатой.',
+});
+
+@ObjectType('MarketplaceOrderIssuanceFactSnapshot', {
+  description: 'Фактическая выдача имущества пайщику на ПВЗ.',
+})
+export class MarketplaceOrderIssuanceFactSnapshotDTO {
+  @Field(() => Int, { description: 'Фактически выданное количество единиц.' })
+  public readonly actual_quantity!: number;
+
+  @Field(() => String, { description: 'Фактическая стоимость выдачи (actual_quantity × цена за единицу).' })
+  public readonly fact_cost!: string;
+
+  @Field(() => MarketplaceOrderIssuanceFactDiffStateEnum, {
+    description: 'Сверка фактической выдачи с заказом.',
+  })
+  public readonly diff_state!: MarketplaceOrderIssuanceFactDiffStateEnum;
+
+  constructor(init: Partial<MarketplaceOrderIssuanceFactSnapshotDTO>) {
+    Object.assign(this, init);
+  }
+}
+
 @ObjectType('MarketplaceOrderCreateTxSnapshot', {
   description: 'Снимок транзакции блокировки средств: ссылки на блок, флаги конверсии и сумма.',
 })
@@ -133,6 +165,54 @@ export class MarketplaceOrderDTO {
     description: 'Снимок транзакции блокировки средств (для отображения движений кошелька).',
   })
   public readonly create_tx!: MarketplaceOrderCreateTxSnapshotDTO | null;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Кооперативный участок, на котором имущество физически лежит к моменту выдачи.',
+  })
+  public readonly current_warehouse_braname!: string | null;
+
+  @Field(() => MarketplaceOrderIssuanceFactSnapshotDTO, {
+    nullable: true,
+    description: 'Фактическая выдача после финальной подписи заказчика (заполняется на ПВЗ).',
+  })
+  public readonly issuance_fact!: MarketplaceOrderIssuanceFactSnapshotDTO | null;
+
+  @Field(() => Date, {
+    nullable: true,
+    description: 'Когда председатель кооперативного участка открыл выдачу первой подписью.',
+  })
+  public readonly chairman_signed_at!: Date | null;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Учётная запись председателя, открывшего выдачу первой подписью.',
+  })
+  public readonly chairman_account!: string | null;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Хэш транзакции открытия выдачи в блокчейне.',
+  })
+  public readonly signiss1_tx_hash!: string | null;
+
+  @Field(() => Date, {
+    nullable: true,
+    description: 'Когда заказчик поставил финальную подпись на акте выдачи.',
+  })
+  public readonly orderer_signed_at!: Date | null;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Учётная запись стороны кооператива, поставившей подпись вместе с заказчиком.',
+  })
+  public readonly delivery_signer_account!: string | null;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Хэш транзакции финальной подписи выдачи в блокчейне.',
+  })
+  public readonly signiss2_tx_hash!: string | null;
 
   @Field(() => Date, { description: 'Когда запись о заказе создана в системе.' })
   public readonly created_at!: Date;
@@ -262,6 +342,20 @@ export function toMarketplaceOrderDTO(o: MarketplaceOrderDomainEntity): Marketpl
     received_at: o.received_at,
     cancelled_at: o.cancelled_at,
     create_tx: o.create_tx ? new MarketplaceOrderCreateTxSnapshotDTO(o.create_tx) : null,
+    current_warehouse_braname: o.current_warehouse_braname,
+    issuance_fact: o.issuance_fact
+      ? new MarketplaceOrderIssuanceFactSnapshotDTO({
+          actual_quantity: o.issuance_fact.actual_quantity,
+          fact_cost: o.issuance_fact.fact_cost,
+          diff_state: o.issuance_fact.diff_state as MarketplaceOrderIssuanceFactDiffStateEnum,
+        })
+      : null,
+    chairman_signed_at: o.chairman_signed_at,
+    chairman_account: o.chairman_account,
+    signiss1_tx_hash: o.signiss1_tx_hash,
+    orderer_signed_at: o.orderer_signed_at,
+    delivery_signer_account: o.delivery_signer_account,
+    signiss2_tx_hash: o.signiss2_tx_hash,
     created_at: o.created_at,
     updated_at: o.updated_at,
   });

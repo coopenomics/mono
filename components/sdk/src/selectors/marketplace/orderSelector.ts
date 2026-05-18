@@ -17,6 +17,20 @@ export const marketplaceOrderCreateTxSnapshotSelector = Selector('MarketplaceOrd
   rawOrderCreateTxSnapshotSelector,
 )
 
+const rawOrderIssuanceFactSnapshotSelector = {
+  actual_quantity: true,
+  fact_cost: true,
+  diff_state: true,
+}
+
+const _validateIssuanceFact: MakeAllFieldsRequired<
+  ValueTypes['MarketplaceOrderIssuanceFactSnapshot']
+> = rawOrderIssuanceFactSnapshotSelector
+
+export const marketplaceOrderIssuanceFactSnapshotSelector = Selector(
+  'MarketplaceOrderIssuanceFactSnapshot',
+)(rawOrderIssuanceFactSnapshotSelector)
+
 const rawOrderSelector = {
   id: true,
   coopname: true,
@@ -40,6 +54,14 @@ const rawOrderSelector = {
   received_at: true,
   cancelled_at: true,
   create_tx: rawOrderCreateTxSnapshotSelector,
+  current_warehouse_braname: true,
+  issuance_fact: rawOrderIssuanceFactSnapshotSelector,
+  chairman_signed_at: true,
+  chairman_account: true,
+  signiss1_tx_hash: true,
+  orderer_signed_at: true,
+  delivery_signer_account: true,
+  signiss2_tx_hash: true,
   created_at: true,
   updated_at: true,
 }
@@ -63,4 +85,9 @@ export const marketplaceOrderPaginationResultSelector = Selector('MarketplaceOrd
   totalCount: true,
   totalPages: true,
   currentPage: true,
+})
+
+export const marketplaceIssuanceResultSelector = Selector('MarketplaceIssuanceResult')({
+  order: rawOrderSelector,
+  tx_hash: true,
 })

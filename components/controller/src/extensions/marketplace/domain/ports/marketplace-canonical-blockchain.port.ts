@@ -116,6 +116,43 @@ export interface MarketplaceCanonicalBlockchainPort {
    * Авторизация — кооператив (`require_auth(coopname)`).
    */
   payOut(data: MarketContract.Actions.PayOut.IPayout): Promise<TransactResult>;
+
+  /**
+   * Story 6.1 / FR21: председатель КУ выдачи открывает выдачу первой
+   * подписью АПП-выдачи. Без ledger2-операций. Per-Order: статус
+   * `accepted_to_coop → ready_to_receive`, `current_warehouse_braname`
+   * приравнивается `delivery_braname` (фиксация логистической передачи
+   * на склад выдачи). Сохраняется `issue_act_signiss1` в Order row.
+   *
+   * Авторизация — кооператив (`require_auth(coopname)`); C++ проверяет,
+   * что `signer` уполномочен для `delivery_braname` (председатель /
+   * trustee / trusted).
+   */
+  signIss1(data: MarketContract.Actions.SignIss1.ISignIss1): Promise<TransactResult>;
+
+  /**
+   * Story 6.3 / FR24: заказчик закрывает выдачу финальной подписью.
+   * Per-Order композитная транзакция через транзит 91:
+   *
+   *   1. Корректирующие операции (если факт ≠ заказ):
+   *      - actual < ordered: `o.mkt.unblk(ordered_cost - fact_cost)` —
+   *        возврат разницы на `w.mkt.member.available`.
+   *      - actual > ordered: `o.wal.conv` (conditional) +
+   *        `o.mkt.assign` (conditional) + `o.mkt.block(diff)` —
+   *        доплата с паевого; при нехватке средств транзакция фейлится
+   *        (L6 guard, FR25).
+   *   2. Композитная пара выдачи: `o.mkt.consum(fact_cost)`
+   *      (REVOKE, Дт 91 / Кт 10) + `o.mkt.consum2(fact_cost)`
+   *      (NONE, Дт 86 / Кт 91) — закрытие транзита.
+   *
+   * Статус Order'а: `ready_to_receive → received`; заполняются
+   * `actual_quantity`, `fact_cost`, `issue_act_signiss2`, `warranty_until`.
+   *
+   * Авторизация — кооператив (`require_auth(coopname)`); C++ проверяет
+   * `orderer == order.orderer` и авторизацию `delivery_signer` для
+   * `delivery_braname`. Подписи в `act.signatures` — `{delivery_signer, orderer}`.
+   */
+  signIss2(data: MarketContract.Actions.SignIss2.ISignIss2): Promise<TransactResult>;
 }
 
 export const MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT = Symbol('MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT');

@@ -196,4 +196,52 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
       data,
     });
   }
+
+  async signIss1(data: MarketContract.Actions.SignIss1.ISignIss1): Promise<TransactResult> {
+    const wif = await this.vaultDomainService.getWif(data.coopname);
+    if (!wif) {
+      throw new HttpApiError(
+        httpStatus.BAD_GATEWAY,
+        'Не найден приватный ключ кооператива для submit signiss1'
+      );
+    }
+
+    this.blockchainService.initialize(data.coopname, wif);
+
+    return await this.blockchainService.transact({
+      account: MarketContract.contractName.production,
+      name: MarketContract.Actions.SignIss1.actionName,
+      authorization: [
+        {
+          actor: data.coopname,
+          permission: 'active',
+        },
+      ],
+      data,
+    });
+  }
+
+  async signIss2(data: MarketContract.Actions.SignIss2.ISignIss2): Promise<TransactResult> {
+    const wif = await this.vaultDomainService.getWif(data.coopname);
+    if (!wif) {
+      throw new HttpApiError(
+        httpStatus.BAD_GATEWAY,
+        'Не найден приватный ключ кооператива для submit signiss2'
+      );
+    }
+
+    this.blockchainService.initialize(data.coopname, wif);
+
+    return await this.blockchainService.transact({
+      account: MarketContract.contractName.production,
+      name: MarketContract.Actions.SignIss2.actionName,
+      authorization: [
+        {
+          actor: data.coopname,
+          permission: 'active',
+        },
+      ],
+      data,
+    });
+  }
 }

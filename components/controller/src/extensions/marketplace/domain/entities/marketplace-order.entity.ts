@@ -1,6 +1,7 @@
 import type {
   MarketplaceOrderCreateTxSnapshot,
   MarketplaceOrderCycleType,
+  MarketplaceOrderIssuanceFactSnapshot,
   MarketplaceOrderProps,
   MarketplaceOrderStatus,
 } from './marketplace-order.types';
@@ -46,6 +47,24 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
   public received_at: Date | null;
   public cancelled_at: Date | null;
   public create_tx: MarketplaceOrderCreateTxSnapshot | null;
+  /**
+   * Story 6.1 / FR21: ПВЗ, на котором имущество фактически лежит к моменту
+   * выдачи. На `signiss1` приравнивается `delivery_braname` (фиксация
+   * логистической передачи на склад выдачи) — промежуточные перемещения
+   * по заготовочным КУ контрактом не подписываются, точка хранения
+   * переходит «скачком».
+   */
+  public current_warehouse_braname: string | null;
+  /** Story 6.3 / FR23-24: снапшот фактической выдачи после `signiss2`. */
+  public issuance_fact: MarketplaceOrderIssuanceFactSnapshot | null;
+  /** Story 6.1 / FR21: момент открытия выдачи председателем КУ (`signiss1`). */
+  public chairman_signed_at: Date | null;
+  public chairman_account: string | null;
+  public signiss1_tx_hash: string | null;
+  /** Story 6.3 / FR24: момент финальной подписи заказчика (`signiss2`). */
+  public orderer_signed_at: Date | null;
+  public delivery_signer_account: string | null;
+  public signiss2_tx_hash: string | null;
   public on_chain_id: string | null;
   public on_chain_block_num: number | null;
   public on_chain_present: boolean;
@@ -80,6 +99,14 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
     this.received_at = props.received_at;
     this.cancelled_at = props.cancelled_at;
     this.create_tx = props.create_tx;
+    this.current_warehouse_braname = props.current_warehouse_braname;
+    this.issuance_fact = props.issuance_fact;
+    this.chairman_signed_at = props.chairman_signed_at;
+    this.chairman_account = props.chairman_account;
+    this.signiss1_tx_hash = props.signiss1_tx_hash;
+    this.orderer_signed_at = props.orderer_signed_at;
+    this.delivery_signer_account = props.delivery_signer_account;
+    this.signiss2_tx_hash = props.signiss2_tx_hash;
     this.on_chain_id = props.on_chain_id;
     this.on_chain_block_num = props.on_chain_block_num;
     this.on_chain_present = props.on_chain_present;
@@ -170,6 +197,27 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
       this.status === 'ACCEPTED_TO_COOP' ||
       this.status === 'READY_TO_RECEIVE'
     );
+  }
+
+  /**
+   * Story 6.1: ожидает первой подписи председателя КУ (открытие выдачи).
+   */
+  public get awaits_chairman_issue_open(): boolean {
+    return this.status === 'ACCEPTED_TO_COOP' && this.chairman_signed_at === null;
+  }
+
+  /**
+   * Story 6.3: ожидает финальной подписи заказчика (получение имущества).
+   */
+  public get awaits_orderer_issue_final(): boolean {
+    return this.status === 'READY_TO_RECEIVE' && this.orderer_signed_at === null;
+  }
+
+  /**
+   * Story 6.3: имущество выдано пайщику — Order закрыт получением.
+   */
+  public get is_received(): boolean {
+    return this.status === 'RECEIVED';
   }
 }
 

@@ -686,6 +686,9 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceDetailKUInput:{
 		workingHours:"WorkingHoursInput"
 	},
+	MarketplaceFinalizeIssuanceInput:{
+		signed_document:"MarketplaceIssueActSignedDocumentInput"
+	},
 	MarketplaceGetOrderInput:{
 
 	},
@@ -693,6 +696,16 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	MarketplaceInventoryStatus: "enum" as const,
+	MarketplaceIssueActPayloadInput:{
+
+	},
+	MarketplaceIssueActSignedDocumentInput:{
+		meta:"MarketplaceIssueActSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	MarketplaceIssueActSignedMetaDocumentInput:{
+
+	},
 	MarketplaceLabelInventoryInput:{
 		format:"MarketplaceBarcodeFormat",
 		strategy:"MarketplaceBarcodeStrategy"
@@ -709,6 +722,9 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceListInventoryInput:{
 		statuses:"MarketplaceInventoryStatus"
 	},
+	MarketplaceListIssuancesByBranameInput:{
+
+	},
 	MarketplaceListMyOffersInput:{
 
 	},
@@ -721,7 +737,11 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceListShipmentsInput:{
 		statuses:"MarketplaceShipmentStatus"
 	},
+	MarketplaceOpenIssuanceInput:{
+		signed_document:"MarketplaceIssueActSignedDocumentInput"
+	},
 	MarketplaceOrderCycleType: "enum" as const,
+	MarketplaceOrderIssuanceFactDiffState: "enum" as const,
 	MarketplaceOrderStatus: "enum" as const,
 	MarketplaceOutgoingPaymentRequestStatus: "enum" as const,
 	MarketplaceRejectOfferInput:{
@@ -1258,8 +1278,14 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceDetailKU:{
 			data:"MarketplaceDetailKUInput"
 		},
+		marketplaceFinalizeIssuance:{
+			data:"MarketplaceFinalizeIssuanceInput"
+		},
 		marketplaceLabelInventory:{
 			data:"MarketplaceLabelInventoryInput"
+		},
+		marketplaceOpenIssuance:{
+			data:"MarketplaceOpenIssuanceInput"
 		},
 		marketplaceRejectOffer:{
 			input:"MarketplaceRejectOfferInput"
@@ -1821,6 +1847,12 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceGetUserRequests:{
 			data:"GetUserRequestsInput"
 		},
+		marketplaceIssueActChairmanSignablePayload:{
+			data:"MarketplaceIssueActPayloadInput"
+		},
+		marketplaceIssueActOrdererSignablePayload:{
+			data:"MarketplaceIssueActPayloadInput"
+		},
 		marketplaceListAplReceptionsByBraname:{
 			data:"MarketplaceListAplReceptionsByBranameInput"
 		},
@@ -1833,6 +1865,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceListInventory:{
 			data:"MarketplaceListInventoryInput"
+		},
+		marketplaceListIssuancesByBraname:{
+			data:"MarketplaceListIssuancesByBranameInput"
 		},
 		marketplaceListKUDetails:{
 			data:"ListMarketplaceKUInput"
@@ -3882,6 +3917,10 @@ export const ReturnTypes: Record<string,any> = {
 		status:"MarketplaceInventoryStatus",
 		updated_at:"DateTime"
 	},
+	MarketplaceIssuanceResult:{
+		order:"MarketplaceOrder",
+		tx_hash:"String"
+	},
 	MarketplaceKUDetails:{
 		addressFull:"String",
 		contactEmail:"String",
@@ -3963,21 +4002,29 @@ export const ReturnTypes: Record<string,any> = {
 		accepted_at:"DateTime",
 		blocked_at:"DateTime",
 		cancelled_at:"DateTime",
+		chairman_account:"String",
+		chairman_signed_at:"DateTime",
 		coopname:"String",
 		create_tx:"MarketplaceOrderCreateTxSnapshot",
 		created_at:"DateTime",
+		current_warehouse_braname:"String",
 		cycle_id:"String",
 		cycle_type:"MarketplaceOrderCycleType",
 		delivery_braname:"String",
+		delivery_signer_account:"String",
 		id:"String",
+		issuance_fact:"MarketplaceOrderIssuanceFactSnapshot",
 		last_status_reason:"String",
 		offer_hash:"String",
 		offer_id:"String",
 		order_hash:"String",
 		orderer_account:"String",
+		orderer_signed_at:"DateTime",
 		price_per_unit:"String",
 		quantity:"Int",
 		received_at:"DateTime",
+		signiss1_tx_hash:"String",
+		signiss2_tx_hash:"String",
 		status:"MarketplaceOrderStatus",
 		supplier_account:"String",
 		total_cost:"String",
@@ -3992,6 +4039,11 @@ export const ReturnTypes: Record<string,any> = {
 		did_convert:"Boolean",
 		signed_at:"String",
 		tx_hash:"String"
+	},
+	MarketplaceOrderIssuanceFactSnapshot:{
+		actual_quantity:"Int",
+		diff_state:"MarketplaceOrderIssuanceFactDiffState",
+		fact_cost:"String"
 	},
 	MarketplaceOrderPaginationResult:{
 		currentPage:"Int",
@@ -4431,7 +4483,9 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceDeclineIndividualOrder:"MarketplaceSupplierOrderActionResult",
 		marketplaceDeclineOrderFromOpenPool:"MarketplaceSupplierOrderActionResult",
 		marketplaceDetailKU:"MarketplaceKUDetails",
+		marketplaceFinalizeIssuance:"MarketplaceIssuanceResult",
 		marketplaceLabelInventory:"MarketplaceLabelInventoryResult",
+		marketplaceOpenIssuance:"MarketplaceIssuanceResult",
 		marketplaceRejectOffer:"MarketplaceOffer",
 		marketplaceRemoveAvailableCategories:"Boolean",
 		marketplaceRemoveAvailableCategoryTypes:"Boolean",
@@ -5049,16 +5103,20 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceGetSearchCategories:"MarketplaceCategoryTreeNode",
 		marketplaceGetShipment:"MarketplaceShipment",
 		marketplaceGetUserRequests:"MarketplaceRequest",
+		marketplaceIssueActChairmanSignablePayload:"GeneratedDocument",
+		marketplaceIssueActOrdererSignablePayload:"GeneratedDocument",
 		marketplaceListAplReceptionsAsSupplier:"MarketplaceAplReception",
 		marketplaceListAplReceptionsByBraname:"MarketplaceAplReception",
 		marketplaceListCatalog:"MarketplaceOfferPaginationResult",
 		marketplaceListCategories:"MarketplaceCategory",
 		marketplaceListConsolidatedRequests:"MarketplaceConsolidatedRequestPaginationResult",
 		marketplaceListInventory:"MarketplaceInventoryItem",
+		marketplaceListIssuancesByBraname:"MarketplaceOrder",
 		marketplaceListKUDetails:"MarketplaceKUDetails",
 		marketplaceListModerationLog:"MarketplaceModerationLogEntry",
 		marketplaceListMyOffers:"MarketplaceOfferPaginationResult",
 		marketplaceListMyOrders:"MarketplaceOrderPaginationResult",
+		marketplaceListMyReadyToReceive:"MarketplaceOrder",
 		marketplaceListOutgoingPaymentsAsSupplier:"MarketplaceOutgoingPaymentRequest",
 		marketplaceListPendingOffers:"MarketplaceOfferPaginationResult",
 		marketplaceListShipments:"MarketplaceShipment",

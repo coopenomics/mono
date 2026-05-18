@@ -93,6 +93,11 @@ import {
 } from './services/marketplace-payout-sync.service';
 import { MarketplaceOutgoingPaymentResolver } from './resolvers/marketplace-outgoing-payment.resolver';
 import { MarketplaceNotificationService } from './services/marketplace-notification.service';
+import {
+  MarketplaceIssuanceService,
+  MARKETPLACE_ISSUANCE_SERVICE,
+} from './services/marketplace-issuance.service';
+import { MarketplaceIssuanceResolver } from './resolvers/marketplace-issuance.resolver';
 
 /**
  * Модуль приложения marketplace
@@ -137,6 +142,7 @@ import { MarketplaceNotificationService } from './services/marketplace-notificat
     MarketplaceInventoryResolver,
     MarketplaceAplReceptionResolver,
     MarketplaceOutgoingPaymentResolver,
+    MarketplaceIssuanceResolver,
 
     // Guards (Story 1.3 / Story 1.6)
     MarketplaceMembershipGuard,
@@ -248,6 +254,13 @@ import { MarketplaceNotificationService } from './services/marketplace-notificat
     // Слушает per-contract event-bus, отправка через Novu без обратного
     // влияния на основной flow (INV-12: emit после save в PG).
     MarketplaceNotificationService,
+    // Story 6.1 / 6.3 / 6.4 — выдача пайщику с двойной подписью АПП
+    // (signiss1 + signiss2) и тремя ветками сверки факт vs заказ.
+    {
+      provide: MARKETPLACE_ISSUANCE_SERVICE,
+      useClass: MarketplaceIssuanceService,
+    },
+    MarketplaceIssuanceService,
   ],
   exports: [
     // Экспортируем сервисы для использования в других модулях
@@ -292,6 +305,7 @@ import { MarketplaceNotificationService } from './services/marketplace-notificat
     MarketplaceInventoryResolver,
     MarketplaceAplReceptionResolver,
     MarketplaceOutgoingPaymentResolver,
+    MarketplaceIssuanceResolver,
 
     // Экспортируем сервисы Story 4.1 для использования в follow-up Stories Эпика 4
     MARKETPLACE_ORDER_CREATE_SERVICE,
@@ -320,6 +334,9 @@ import { MarketplaceNotificationService } from './services/marketplace-notificat
     // Story 5.6 / 5.7 + 598-16
     MARKETPLACE_PAYOUT_SYNC_SERVICE,
     MarketplacePayoutSyncService,
+    // Story 6.1 / 6.3 / 6.4
+    MARKETPLACE_ISSUANCE_SERVICE,
+    MarketplaceIssuanceService,
   ],
 })
 export class MarketplaceExtensionApplicationModule {}

@@ -15,6 +15,14 @@ export const MARKETPLACE_SUPPLIER_PAYMENT_CONFIRMED_EVENT =
 export const MARKETPLACE_SUPPLIER_PAYMENT_DECLINED_EVENT =
   'marketplace.outgoingPayment.supplier.declined';
 
+/**
+ * Story 6.4 / FR22: пайщику-заказчику отправляется multi-channel
+ * уведомление, что его заказ готов на ПВЗ к получению. Эмитится после
+ * успешной первой подписи АПП-выдачи председателем КУ (`signiss1`).
+ */
+export const MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT =
+  'marketplace.order.orderer.readyToReceive';
+
 export interface MarketplaceAplSupplierSignRequestEvent {
   coopname: string;
   apl_reception_id: string;
@@ -48,4 +56,13 @@ export interface MarketplaceSupplierPaymentDeclinedEvent {
   supplier_account: string;
   amount: string;
   reason: string;
+}
+
+export interface MarketplaceOrderReadyToReceiveEvent {
+  coopname: string;
+  order_id: string;
+  order_hash: string;
+  orderer_account: string;
+  /** Кооперативный участок, где имущество готово к выдаче. */
+  braname: string;
 }

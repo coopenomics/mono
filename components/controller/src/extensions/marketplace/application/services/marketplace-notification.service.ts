@@ -9,10 +9,12 @@ import type { WorkflowTriggerDomainInterface } from '~/domain/notification/inter
 import {
   MARKETPLACE_APL_SUPPLIER_SIGN_REQUEST_EVENT,
   MARKETPLACE_CASHIER_NEW_PAYMENT_EVENT,
+  MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT,
   MARKETPLACE_SUPPLIER_PAYMENT_CONFIRMED_EVENT,
   MARKETPLACE_SUPPLIER_PAYMENT_DECLINED_EVENT,
   type MarketplaceAplSupplierSignRequestEvent,
   type MarketplaceCashierNewPaymentEvent,
+  type MarketplaceOrderReadyToReceiveEvent,
   type MarketplaceSupplierPaymentConfirmedEvent,
   type MarketplaceSupplierPaymentDeclinedEvent,
 } from '../events/marketplace-notification.events';
@@ -174,6 +176,43 @@ export class MarketplaceNotificationService implements OnModuleInit {
     } catch (err: any) {
       this.logger.warn(
         `Payment ${event.payment_request_id}: ошибка отправки push поставщику (${err.message}) — flow не блокируется.`
+      );
+    }
+  }
+
+  @OnEvent(MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT)
+  async handleOrderReadyToReceive(event: MarketplaceOrderReadyToReceiveEvent): Promise<void> {
+    try {
+      const ordererAccount = await this.accountPort.getAccount(event.orderer_account);
+      const subscriberId = ordererAccount.provider_account?.subscriber_id?.trim();
+      const email = ordererAccount.provider_account?.email;
+      if (!subscriberId || !email) {
+        this.logger.warn(
+          `Order ${event.order_id}: subscriber_id/email заказчика ${event.orderer_account} не найден — push пропущен.`
+        );
+        return;
+      }
+
+      const ordererName = await this.accountPort.getDisplayName(event.orderer_account);
+      const payload: Workflows.MarketplaceOrderReady.IPayload = {
+        ordererName,
+        kuName: event.braname,
+        coopname: event.coopname,
+        order_id: event.order_id,
+        deepLinkUrl: `${config.frontend_url}/${event.coopname}/orderer/MyOrders`,
+      };
+      const triggerData: WorkflowTriggerDomainInterface = {
+        name: Workflows.MarketplaceOrderReady.id,
+        to: { subscriberId, email },
+        payload,
+      };
+      await this.novuWorkflowPort.triggerWorkflow(triggerData);
+      this.logger.log(
+        `Order ${event.order_id}: push заказчику ${event.orderer_account} о готовности к получению отправлен.`
+      );
+    } catch (err: any) {
+      this.logger.warn(
+        `Order ${event.order_id}: ошибка отправки push заказчику о готовности (${err.message}) — flow не блокируется.`
       );
     }
   }
