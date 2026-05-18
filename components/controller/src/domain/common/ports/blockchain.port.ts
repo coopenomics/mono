@@ -42,10 +42,6 @@ export interface BlockchainPort {
   // System installation methods
   addUser(data: RegistratorContract.Actions.AddUser.IAddUser): Promise<void>;
   createBoard(data: SovietContract.Actions.Boards.CreateBoard.ICreateboard): Promise<void>;
-  installSoviet(
-    addUsers: RegistratorContract.Actions.AddUser.IAddUser[],
-    createBoardData: SovietContract.Actions.Boards.CreateBoard.ICreateboard
-  ): Promise<void>;
 }
 
 export const BLOCKCHAIN_PORT = Symbol('BlockchainPort');

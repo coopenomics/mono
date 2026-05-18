@@ -319,40 +319,4 @@ export class BlockchainService implements BlockchainPort {
 
     await this.transact(actions);
   }
-
-  // Шлёт adduser×N + createBoard ОДНОЙ транзакцией. Раздельные tx
-  // ловят race на не-producer-нодах (partner-coopback соединён со своим
-  // nodeos, который p2p-репликой подтягивает блоки от producer'а — между
-  // accept'ом adduser и push'ем createBoard нет гарантии что
-  // soviet::participants[username] уже виден в local state). Bundle
-  // делает обе action'ы атомарными в одном блоке.
-  public async installSoviet(
-    addUsers: RegistratorContract.Actions.AddUser.IAddUser[],
-    createBoardData: SovietContract.Actions.Boards.CreateBoard.ICreateboard
-  ): Promise<void> {
-    const wif = await this.vaultDomainService.getWif(config.coopname);
-    if (!wif) throw new Error(`Не найден приватный ключ для кооператива ${config.coopname}`);
-
-    this.initialize(config.coopname, wif);
-
-    const actions: any[] = [];
-
-    for (const data of addUsers) {
-      actions.push({
-        account: RegistratorContract.contractName.production,
-        name: RegistratorContract.Actions.AddUser.actionName,
-        authorization: [{ actor: config.coopname, permission: 'active' }],
-        data,
-      });
-    }
-
-    actions.push({
-      account: SovietContract.contractName.production,
-      name: SovietContract.Actions.Boards.CreateBoard.actionName,
-      authorization: [{ actor: config.coopname, permission: 'active' }],
-      data: createBoardData,
-    });
-
-    await this.transact(actions);
-  }
 }
