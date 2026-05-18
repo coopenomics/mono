@@ -4,6 +4,7 @@ import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
 import {
   OperationsPage,
   PostingsPage,
+  ProcessesPage,
   WalletsPage,
   CoopWalletsPage,
   ParticipantWalletsPage,
@@ -52,6 +53,19 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Реестр проводок',
               icon: 'fa-solid fa-arrows-split-up-and-left',
+              roles: ['chairman'],
+              agreements: agreementsBase,
+              requiresAuth: true,
+            },
+            children: [],
+          },
+          {
+            path: 'processes',
+            name: 'reports-processes',
+            component: markRaw(ProcessesPage),
+            meta: {
+              title: 'Реестр процессов',
+              icon: 'fa-solid fa-diagram-project',
               roles: ['chairman'],
               agreements: agreementsBase,
               requiresAuth: true,

@@ -1,10 +1,24 @@
 import { Queries } from '@coopenomics/sdk'
 import { client } from 'src/shared/api/client'
-import type { IProcessGetInput, IProcessSnapshot, IProcessView } from '../types'
+import type {
+  IProcessGetInput,
+  IProcessListInput,
+  IProcessListResult,
+  IProcessSnapshot,
+  IProcessView,
+} from '../types'
 
 async function getProcess(input: IProcessGetInput): Promise<IProcessView | undefined> {
   const { [Queries.Processes.GetProcess.name]: output } = await client.Query(
     Queries.Processes.GetProcess.query,
+    { variables: input },
+  )
+  return output
+}
+
+async function listProcesses(input: IProcessListInput): Promise<IProcessListResult | undefined> {
+  const { [Queries.Processes.ListProcesses.name]: output } = await client.Query(
+    Queries.Processes.ListProcesses.query,
     { variables: input },
   )
   return output
@@ -25,5 +39,6 @@ function pickLatestSnapshot(view: IProcessView | undefined): IProcessSnapshot | 
 
 export const processApi = {
   getProcess,
+  listProcesses,
   pickLatestSnapshot,
 }

@@ -1,7 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref, type Ref } from 'vue'
 import { processApi } from '../api'
-import type { IProcessGetInput, IProcessSnapshot, IProcessView } from '../types'
+import type {
+  IProcessGetInput,
+  IProcessListInput,
+  IProcessListResult,
+  IProcessSnapshot,
+  IProcessView,
+} from '../types'
 
 const namespace = 'processStore'
 
@@ -9,6 +15,7 @@ interface IProcessStore {
   loading: Ref<boolean>
   loadProcess: (input: IProcessGetInput) => Promise<IProcessView | undefined>
   loadLatestSnapshot: (input: IProcessGetInput) => Promise<IProcessSnapshot | null>
+  loadProcesses: (input: IProcessListInput) => Promise<IProcessListResult | undefined>
 }
 
 export const useProcessStore = defineStore(namespace, (): IProcessStore => {
@@ -30,9 +37,21 @@ export const useProcessStore = defineStore(namespace, (): IProcessStore => {
     return processApi.pickLatestSnapshot(view)
   }
 
+  async function loadProcesses(
+    input: IProcessListInput,
+  ): Promise<IProcessListResult | undefined> {
+    loading.value = true
+    try {
+      return await processApi.listProcesses(input)
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     loading,
     loadProcess,
     loadLatestSnapshot,
+    loadProcesses,
   }
 })
