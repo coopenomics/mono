@@ -72,6 +72,7 @@ import * as GeneratorProgramTemplate from './994.GeneratorProgramTemplate'
 import * as BlagorostOffer from './1000.BlagorostOffer'
 import * as MarketplaceAplReception from './1102.MarketplaceAplReception'
 import * as MarketplaceTransportNote from './1103.MarketplaceTransportNote'
+import * as MarketplaceReturnStatement from './1104.MarketplaceReturnStatement'
 
 export const Registry = {
   1: WalletAgreement,
@@ -135,4 +136,5 @@ export const Registry = {
   1090: CapitalizationToMainWalletConvertStatement,
   1102: MarketplaceAplReception,
   1103: MarketplaceTransportNote,
+  1104: MarketplaceReturnStatement,
 }
