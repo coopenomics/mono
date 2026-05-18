@@ -6044,6 +6044,20 @@ export type ValueTypes = {
 	/** Идентификатор заказа индивидуального типа, который поставщик принимает. */
 	order_id: string | Variable<any, string>
 };
+	["MarketplaceAcceptReturnAtVisitInput"]: {
+	/** Кооперативный участок, где идёт очный осмотр. */
+	braname: string | Variable<any, string>,
+	/** Идентификатор заявления. */
+	claim_id: string | Variable<any, string>,
+	/** Фото очного осмотра (опционально, до 10 файлов). */
+	inspection_photos?: Array<ValueTypes["MarketplaceReturnClaimPhotoUploadInput"]> | undefined | null | Variable<any, string>,
+	/** Результат очного осмотра (обязательно, до 2000 символов). */
+	inspection_result: string | Variable<any, string>,
+	/** Сканированный штрих-код имущества для сверки с заказом (если применимо). */
+	scanned_barcode?: string | undefined | null | Variable<any, string>,
+	/** Подписанное решение председателя (опционально). */
+	signed_decision?: ValueTypes["MarketplaceReturnClaimSignedStatementInput"] | undefined | null | Variable<any, string>
+};
 	["MarketplaceAddToWhitelistInput"]: {
 	/** eosio::name пайщика-поставщика (3-12 chars, [.12345abcdefghijklmnopqrstuvwxyz]) */
 	member_account: string | Variable<any, string>
@@ -6173,6 +6187,16 @@ export type ValueTypes = {
 ["MarketplaceAplReceptionVariant"]:MarketplaceAplReceptionVariant;
 	["MarketplaceApproveOfferInput"]: {
 	offer_id: string | Variable<any, string>
+};
+	["MarketplaceApproveReturnVisitInput"]: {
+	/** Кооперативный участок, на который приглашаем пайщика. */
+	braname: string | Variable<any, string>,
+	/** Идентификатор заявления. */
+	claim_id: string | Variable<any, string>,
+	/** Комментарий председателя (обязательно, 1-500 символов). */
+	comment: string | Variable<any, string>,
+	/** Подписанное решение председателя (опционально, in-system запись). */
+	signed_decision?: ValueTypes["MarketplaceReturnClaimSignedStatementInput"] | undefined | null | Variable<any, string>
 };
 	["MarketplaceAttribute"]: AliasType<{
 	/** ID комплексного атрибута */
@@ -6475,6 +6499,20 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceCreateOrderResult']?: Omit<ValueTypes["MarketplaceCreateOrderResult"], "...on MarketplaceCreateOrderResult">
 }>;
+	["MarketplaceCreateReturnClaimInput"]: {
+	/** Возвращаемое количество единиц (по умолчанию — выданное количество). */
+	actual_quantity?: number | undefined | null | Variable<any, string>,
+	/** Категория дефекта (опционально). */
+	defect_category?: ValueTypes["MarketplaceReturnClaimDefectCategory"] | undefined | null | Variable<any, string>,
+	/** Заказ, по которому подаётся заявление. */
+	order_id: string | Variable<any, string>,
+	/** Фотографии товара — обязательно от 1 до 10 файлов. */
+	photos: Array<ValueTypes["MarketplaceReturnClaimPhotoUploadInput"]> | Variable<any, string>,
+	/** Текст обращения пайщика (1-500 символов). */
+	reason_text: string | Variable<any, string>,
+	/** Подписанное пайщиком заявление (реестр документов 800). */
+	signed_statement: ValueTypes["MarketplaceReturnClaimSignedStatementInput"] | Variable<any, string>
+};
 	["MarketplaceCreateShipmentInput"]: {
 	/** Идентификатор консолидированной заявки в статусе ACCEPTED. */
 	cycle_id: ValueTypes["ID"] | Variable<any, string>,
@@ -6670,8 +6708,6 @@ export type ValueTypes = {
 	order_hash: string | Variable<any, string>,
 	/** Идентификатор заказа пайщика, по которому формируется акт выдачи. */
 	order_id: string | Variable<any, string>,
-	/** Идентификатор записи акта в реестре marketplace (для выдачи — id заказа). */
-	reception_id: string | Variable<any, string>,
 	/** ID документа в реестре */
 	registry_id: number | Variable<any, string>,
 	/** Сформировать документ без сохранения (preview-режим). */
@@ -6791,6 +6827,10 @@ export type ValueTypes = {
 	sortBy?: string | undefined | null | Variable<any, string>,
 	/** Направление сортировки ("ASC" или "DESC") */
 	sortOrder: string | Variable<any, string>
+};
+	["MarketplaceListReturnClaimsByBranameInput"]: {
+	/** Кооперативный участок (delivery_braname исходного заказа). */
+	delivery_braname: string | Variable<any, string>
 };
 	["MarketplaceListShipmentsInput"]: {
 	/** Фильтр по КУ-получателю. */
@@ -7070,6 +7110,28 @@ export type ValueTypes = {
 	/** Причина отказа (≤1000) */
 	reason: string | Variable<any, string>
 };
+	["MarketplaceRejectReturnAtVisitInput"]: {
+	/** Кооперативный участок, где идёт очный осмотр. */
+	braname: string | Variable<any, string>,
+	/** Идентификатор заявления. */
+	claim_id: string | Variable<any, string>,
+	/** Фото очного осмотра (опционально). */
+	inspection_photos?: Array<ValueTypes["MarketplaceReturnClaimPhotoUploadInput"]> | undefined | null | Variable<any, string>,
+	/** Результат и причина отказа (обязательно, до 2000 символов). */
+	inspection_result: string | Variable<any, string>,
+	/** Подписанное решение председателя (опционально). */
+	signed_decision?: ValueTypes["MarketplaceReturnClaimSignedStatementInput"] | undefined | null | Variable<any, string>
+};
+	["MarketplaceRejectReturnRemoteInput"]: {
+	/** Кооперативный участок, под чьей юрисдикцией решение. */
+	braname: string | Variable<any, string>,
+	/** Идентификатор заявления. */
+	claim_id: string | Variable<any, string>,
+	/** Причина отказа (обязательно, 1-500 символов). */
+	comment: string | Variable<any, string>,
+	/** Подписанное решение председателя (опционально). */
+	signed_decision?: ValueTypes["MarketplaceReturnClaimSignedStatementInput"] | undefined | null | Variable<any, string>
+};
 	["MarketplaceRemoveFromWhitelistInput"]: {
 	/** eosio::name пайщика-поставщика */
 	member_account: string | Variable<any, string>
@@ -7238,6 +7300,196 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceRequestStatistics']?: Omit<ValueTypes["MarketplaceRequestStatistics"], "...on MarketplaceRequestStatistics">
 }>;
+	/** Заявление пайщика на гарантийный возврат имущества (Эпик 7). */
+["MarketplaceReturnClaim"]: AliasType<{
+	actual_quantity?:boolean | `@${string}`,
+	coopname?:boolean | `@${string}`,
+	created_at?:boolean | `@${string}`,
+	decision_log?:ValueTypes["MarketplaceReturnClaimDecisionEntry"],
+	/** Категория дефекта (если указана). */
+	defect_category?:boolean | `@${string}`,
+	/** КУ доставки исходного заказа (куда подаётся заявление). */
+	delivery_braname?:boolean | `@${string}`,
+	expected_resolution?:boolean | `@${string}`,
+	fact_cost?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	/** Снапшот compensating-forward (только при ACCEPTED_AT_VISIT). */
+	ledger_snapshot?:ValueTypes["MarketplaceReturnClaimLedgerSnapshot"],
+	/** Параметры очного осмотра (заполняется на стадии accept/reject_at_visit). */
+	on_site_inspection?:ValueTypes["MarketplaceReturnClaimOnSiteInspection"],
+	order_hash?:boolean | `@${string}`,
+	order_id?:boolean | `@${string}`,
+	/** Аккаунт пайщика-заявителя. */
+	orderer_account?:boolean | `@${string}`,
+	/** Фотографии товара, приложенные пайщиком. */
+	photos?:ValueTypes["MarketplaceReturnClaimPhoto"],
+	/** Текст обращения пайщика. */
+	reason_text?:boolean | `@${string}`,
+	/** Якорный hash on-chain return_request. */
+	request_hash?:boolean | `@${string}`,
+	/** Текущий статус заявления. */
+	status?:boolean | `@${string}`,
+	/** Хэш транзакции submretrn в блокчейне. */
+	submretrn_tx_hash?:boolean | `@${string}`,
+	/** Поставщик исходного заказа (для будущего возврата поставщику). */
+	supplier_account?:boolean | `@${string}`,
+	updated_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceReturnClaim']?: Omit<ValueTypes["MarketplaceReturnClaim"], "...on MarketplaceReturnClaim">
+}>;
+	/** Запись о решении председателя по заявлению на возврат. */
+["MarketplaceReturnClaimDecisionEntry"]: AliasType<{
+	/** Время фиксации решения. */
+	at?:boolean | `@${string}`,
+	/** Кооперативный участок, под чьей юрисдикцией решение. */
+	braname?:boolean | `@${string}`,
+	/** Аккаунт председателя, принявшего решение. */
+	by_chairman_account?:boolean | `@${string}`,
+	/** Комментарий / причина / результат осмотра. */
+	comment?:boolean | `@${string}`,
+	/** Тип решения: approve_visit / reject_remote / accept_at_visit / reject_at_visit. */
+	decision?:boolean | `@${string}`,
+	/** Стадия решения: «remote» — удалённое, «on_site» — очный осмотр. */
+	stage?:boolean | `@${string}`,
+	/** Хэш транзакции в блокчейне для аудита решения. */
+	tx_hash?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceReturnClaimDecisionEntry']?: Omit<ValueTypes["MarketplaceReturnClaimDecisionEntry"], "...on MarketplaceReturnClaimDecisionEntry">
+}>;
+	/** Категория дефекта, на который ссылается заявление на возврат. */
+["MarketplaceReturnClaimDefectCategory"]:MarketplaceReturnClaimDefectCategory;
+	/** Желаемый исход возврата (в MVP — только восстановление средств на программном кошельке). */
+["MarketplaceReturnClaimExpectedResolution"]:MarketplaceReturnClaimExpectedResolution;
+	/** Снапшот compensating-forward пары после успешного приёма возврата. */
+["MarketplaceReturnClaimLedgerSnapshot"]: AliasType<{
+	/** Сумма compensating-forward (восстановленная на программный кошелёк). */
+	amount?:boolean | `@${string}`,
+	/** Время фиксации возврата. */
+	at?:boolean | `@${string}`,
+	/** Возвращённое количество единиц имущества. */
+	returned_quantity?:boolean | `@${string}`,
+	/** Хэш транзакции accretrn в блокчейне. */
+	tx_hash?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceReturnClaimLedgerSnapshot']?: Omit<ValueTypes["MarketplaceReturnClaimLedgerSnapshot"], "...on MarketplaceReturnClaimLedgerSnapshot">
+}>;
+	/** Параметры очного осмотра имущества председателем КУ. */
+["MarketplaceReturnClaimOnSiteInspection"]: AliasType<{
+	/** Время очного осмотра. */
+	at?:boolean | `@${string}`,
+	/** Председатель, проводивший очный осмотр. */
+	by_chairman_account?:boolean | `@${string}`,
+	/** Фото очного осмотра. */
+	photos?:ValueTypes["MarketplaceReturnClaimPhoto"],
+	/** Текстовое описание результатов осмотра. */
+	result_text?:boolean | `@${string}`,
+	/** Сканированный штрих-код имущества (если применимо). */
+	scanned_barcode?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceReturnClaimOnSiteInspection']?: Omit<ValueTypes["MarketplaceReturnClaimOnSiteInspection"], "...on MarketplaceReturnClaimOnSiteInspection">
+}>;
+	/** Снапшот фото-доказательства, приложенного к заявлению на возврат. */
+["MarketplaceReturnClaimPhoto"]: AliasType<{
+	/** Sha256-хеш содержимого фото (используется как анкер on-chain). */
+	content_hash?:boolean | `@${string}`,
+	/** MIME-тип файла. */
+	mime_type?:boolean | `@${string}`,
+	/** Время загрузки фото в bucket. */
+	uploaded_at?:boolean | `@${string}`,
+	/** Подписанный URL для чтения фото из bucket'а stol-zakazov:images. */
+	url?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceReturnClaimPhoto']?: Omit<ValueTypes["MarketplaceReturnClaimPhoto"], "...on MarketplaceReturnClaimPhoto">
+}>;
+	["MarketplaceReturnClaimPhotoUploadInput"]: {
+	/** Содержимое файла, закодированное в base64. */
+	base64: string | Variable<any, string>,
+	/** MIME-тип фото (image/jpeg, image/png либо image/webp). */
+	mime_type: string | Variable<any, string>
+};
+	["MarketplaceReturnClaimRequestPayloadInput"]: {
+	/** Валюта расчёта (например «RUB»). */
+	currency: string | Variable<any, string>,
+	/** Якорный hash заявления на возврат (request_hash). */
+	hash: string | Variable<any, string>,
+	/** Идентификатор программы Стола Заказов в кооперативе. */
+	program_id: number | Variable<any, string>,
+	/** Заголовок имущества, по которому подаётся возврат. */
+	title: string | Variable<any, string>,
+	/** Итоговая возвращаемая сумма (десятичное число строкой). */
+	total_cost: string | Variable<any, string>,
+	/** Тип операции в каноне ICommonRequest (для возврата — «RETURN»). */
+	type: string | Variable<any, string>,
+	/** Стоимость единицы (десятичное число строкой). */
+	unit_cost: string | Variable<any, string>,
+	/** Единица измерения (например «ед.»). */
+	unit_of_measurement: string | Variable<any, string>,
+	/** Возвращаемое количество единиц. */
+	units: number | Variable<any, string>
+};
+	/** Результат любого изменения статуса заявления на гарантийный возврат. */
+["MarketplaceReturnClaimResult"]: AliasType<{
+	/** Актуальное состояние заявления. */
+	claim?:ValueTypes["MarketplaceReturnClaim"],
+	/** Хэш транзакции в блокчейне последнего действия. */
+	tx_hash?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceReturnClaimResult']?: Omit<ValueTypes["MarketplaceReturnClaimResult"], "...on MarketplaceReturnClaimResult">
+}>;
+	["MarketplaceReturnClaimSignablePayloadInput"]: {
+	/** Возвращаемое количество (если не указано — выданное количество). */
+	actual_quantity?: number | undefined | null | Variable<any, string>,
+	/** Категория дефекта (опционально, дублируется в meta документа). */
+	defect_category?: ValueTypes["MarketplaceReturnClaimDefectCategory"] | undefined | null | Variable<any, string>,
+	/** Идентификатор заказа, по которому готовится заявление. */
+	order_id: string | Variable<any, string>
+};
+	["MarketplaceReturnClaimSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at: string | Variable<any, string>,
+	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
+	doc_data_hash?: string | undefined | null | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator: string | Variable<any, string>,
+	/** Язык документа */
+	lang: string | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links: Array<string> | Variable<any, string>,
+	/** ID документа в реестре */
+	registry_id: number | Variable<any, string>,
+	/** Описание возвращаемого имущества — копируется из Order пайщика и используется как якорь возврата (hash совпадает с request_hash в on-chain заявлении). */
+	request: ValueTypes["MarketplaceReturnClaimRequestPayloadInput"] | Variable<any, string>,
+	/** Сформировать документ без сохранения (preview-режим). */
+	skip_save: boolean | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string | Variable<any, string>,
+	/** Название документа */
+	title: string | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version: string | Variable<any, string>
+};
+	["MarketplaceReturnClaimSignedStatementInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string | Variable<any, string>,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string | Variable<any, string>,
+	/** Метаданные подписанного заявления на возврат имущества. */
+	meta: ValueTypes["MarketplaceReturnClaimSignedMetaDocumentInput"] | Variable<any, string>,
+	/** Хэш мета-данных */
+	meta_hash: string | Variable<any, string>,
+	/** Вектор подписей */
+	signatures: Array<ValueTypes["SignatureInfoInput"]> | Variable<any, string>,
+	/** Версия стандарта документа */
+	version: string | Variable<any, string>
+};
+	/** Состояние заявления на гарантийный возврат имущества пайщика. */
+["MarketplaceReturnClaimStatus"]:MarketplaceReturnClaimStatus;
 	["MarketplaceSetKUStatusInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>,
@@ -7760,10 +8012,12 @@ markReportPeriod?: [{	data: ValueTypes["MarkReportPeriodInput"] | Variable<any, 
 marketplaceAcceptConsolidatedRequest?: [{	input: ValueTypes["MarketplaceAcceptConsolidatedRequestInput"] | Variable<any, string>},ValueTypes["MarketplaceConsolidatedRequestActionResult"]],
 marketplaceAcceptCpp?: [{	input: ValueTypes["MarketplaceAcceptCppInput"] | Variable<any, string>},ValueTypes["MarketplaceCppStatus"]],
 marketplaceAcceptIndividualOrder?: [{	input: ValueTypes["MarketplaceAcceptIndividualOrderInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplierOrderActionResult"]],
+marketplaceAcceptReturnAtVisit?: [{	data: ValueTypes["MarketplaceAcceptReturnAtVisitInput"] | Variable<any, string>},ValueTypes["MarketplaceReturnClaimResult"]],
 marketplaceAddAvailableCategories?: [{	input: ValueTypes["AddAvailableCategoriesInput"] | Variable<any, string>},ValueTypes["MarketplaceAvailableCategory"]],
 marketplaceAddAvailableCategoryTypes?: [{	input: ValueTypes["AddAvailableCategoryTypesInput"] | Variable<any, string>},ValueTypes["MarketplaceAvailableCategory"]],
 marketplaceAddToWhitelist?: [{	input: ValueTypes["MarketplaceAddToWhitelistInput"] | Variable<any, string>},ValueTypes["MarketplaceWhitelistEntry"]],
 marketplaceApproveOffer?: [{	input: ValueTypes["MarketplaceApproveOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
+marketplaceApproveReturnVisit?: [{	data: ValueTypes["MarketplaceApproveReturnVisitInput"] | Variable<any, string>},ValueTypes["MarketplaceReturnClaimResult"]],
 marketplaceCancelOrder?: [{	input: ValueTypes["MarketplaceCancelOrderInput"] | Variable<any, string>},ValueTypes["MarketplaceCancelOrderResult"]],
 	/** Очистить все доступные категории (сделать доступными все)
 
@@ -7773,6 +8027,7 @@ marketplaceCreateAplReception?: [{	data: ValueTypes["MarketplaceCreateAplRecepti
 marketplaceCreateOffer?: [{	input: ValueTypes["MarketplaceCreateOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
 marketplaceCreateOrder?: [{	input: ValueTypes["MarketplaceCreateOrderInput"] | Variable<any, string>},ValueTypes["MarketplaceCreateOrderResult"]],
 marketplaceCreateRequest?: [{	data: ValueTypes["CreateRequestInput"] | Variable<any, string>},ValueTypes["MarketplaceRequest"]],
+marketplaceCreateReturnClaim?: [{	data: ValueTypes["MarketplaceCreateReturnClaimInput"] | Variable<any, string>},ValueTypes["MarketplaceReturnClaimResult"]],
 marketplaceCreateShipment?: [{	data: ValueTypes["MarketplaceCreateShipmentInput"] | Variable<any, string>},ValueTypes["MarketplaceCreateShipmentResult"]],
 marketplaceDeclineConsolidatedRequest?: [{	input: ValueTypes["MarketplaceDeclineConsolidatedRequestInput"] | Variable<any, string>},ValueTypes["MarketplaceConsolidatedRequestActionResult"]],
 marketplaceDeclineIndividualOrder?: [{	input: ValueTypes["MarketplaceDeclineIndividualOrderInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplierOrderActionResult"]],
@@ -7782,6 +8037,8 @@ marketplaceFinalizeIssuance?: [{	data: ValueTypes["MarketplaceFinalizeIssuanceIn
 marketplaceLabelInventory?: [{	data: ValueTypes["MarketplaceLabelInventoryInput"] | Variable<any, string>},ValueTypes["MarketplaceLabelInventoryResult"]],
 marketplaceOpenIssuance?: [{	data: ValueTypes["MarketplaceOpenIssuanceInput"] | Variable<any, string>},ValueTypes["MarketplaceIssuanceResult"]],
 marketplaceRejectOffer?: [{	input: ValueTypes["MarketplaceRejectOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
+marketplaceRejectReturnAtVisit?: [{	data: ValueTypes["MarketplaceRejectReturnAtVisitInput"] | Variable<any, string>},ValueTypes["MarketplaceReturnClaimResult"]],
+marketplaceRejectReturnRemote?: [{	data: ValueTypes["MarketplaceRejectReturnRemoteInput"] | Variable<any, string>},ValueTypes["MarketplaceReturnClaimResult"]],
 marketplaceRemoveAvailableCategories?: [{	input: ValueTypes["RemoveAvailableCategoriesInput"] | Variable<any, string>},boolean | `@${string}`],
 marketplaceRemoveAvailableCategoryTypes?: [{	input: ValueTypes["RemoveAvailableCategoryTypesInput"] | Variable<any, string>},boolean | `@${string}`],
 marketplaceRemoveFromWhitelist?: [{	input: ValueTypes["MarketplaceRemoveFromWhitelistInput"] | Variable<any, string>},boolean | `@${string}`],
@@ -9188,8 +9445,11 @@ marketplaceListMyOffers?: [{	input?: ValueTypes["MarketplaceListMyOffersInput"] 
 marketplaceListMyOrders?: [{	input?: ValueTypes["MarketplaceListOrdersInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOrderPaginationResult"]],
 	/** Список заказов текущего пайщика, готовых к получению на пункте выдачи. */
 	marketplaceListMyReadyToReceive?:ValueTypes["MarketplaceOrder"],
+	/** Все заявления текущего пайщика на гарантийный возврат — активные и архивные. */
+	marketplaceListMyReturnClaims?:ValueTypes["MarketplaceReturnClaim"],
 marketplaceListOutgoingPaymentsAsSupplier?: [{	statuses?: Array<ValueTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOutgoingPaymentRequest"]],
 marketplaceListPendingOffers?: [{	input?: ValueTypes["MarketplaceListPendingOffersInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOfferPaginationResult"]],
+marketplaceListReturnClaimsByBraname?: [{	data: ValueTypes["MarketplaceListReturnClaimsByBranameInput"] | Variable<any, string>},ValueTypes["MarketplaceReturnClaim"]],
 marketplaceListShipments?: [{	data?: ValueTypes["MarketplaceListShipmentsInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceShipment"]],
 marketplaceListSupplierOrders?: [{	input?: ValueTypes["MarketplaceListOrdersInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOrderPaginationResult"]],
 	/** Список пайщиков-поставщиков, допущенных к публикации оферт */
@@ -9201,6 +9461,8 @@ marketplaceListSupplierOrders?: [{	input?: ValueTypes["MarketplaceListOrdersInpu
 	/** Статус видимости оферты Стола заказов в core registration-flow (платформенный AgreementRegistry) */
 	marketplaceRegistrationOfferStatus?:ValueTypes["MarketplaceRegistrationOfferStatus"],
 marketplaceRequiredAttributes?: [{	data: ValueTypes["GetRequiredAttributesInput"] | Variable<any, string>},ValueTypes["MarketplaceAttribute"]],
+marketplaceReturnClaim?: [{	claim_id: string | Variable<any, string>},ValueTypes["MarketplaceReturnClaim"]],
+marketplaceReturnClaimSignablePayload?: [{	data: ValueTypes["MarketplaceReturnClaimSignablePayloadInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 marketplaceSearchAttributes?: [{	input: ValueTypes["SearchAttributesInput"] | Variable<any, string>},ValueTypes["MarketplaceAttribute"]],
 marketplaceSearchDictionaryValues?: [{	input: ValueTypes["SearchDictionaryValuesInput"] | Variable<any, string>},ValueTypes["MarketplaceDictionaryValue"]],
 marketplaceSearchRequests?: [{	data: ValueTypes["SearchRequestsInput"] | Variable<any, string>},ValueTypes["MarketplaceRequest"]],
@@ -15609,6 +15871,20 @@ export type ResolverInputTypes = {
 	/** Идентификатор заказа индивидуального типа, который поставщик принимает. */
 	order_id: string
 };
+	["MarketplaceAcceptReturnAtVisitInput"]: {
+	/** Кооперативный участок, где идёт очный осмотр. */
+	braname: string,
+	/** Идентификатор заявления. */
+	claim_id: string,
+	/** Фото очного осмотра (опционально, до 10 файлов). */
+	inspection_photos?: Array<ResolverInputTypes["MarketplaceReturnClaimPhotoUploadInput"]> | undefined | null,
+	/** Результат очного осмотра (обязательно, до 2000 символов). */
+	inspection_result: string,
+	/** Сканированный штрих-код имущества для сверки с заказом (если применимо). */
+	scanned_barcode?: string | undefined | null,
+	/** Подписанное решение председателя (опционально). */
+	signed_decision?: ResolverInputTypes["MarketplaceReturnClaimSignedStatementInput"] | undefined | null
+};
 	["MarketplaceAddToWhitelistInput"]: {
 	/** eosio::name пайщика-поставщика (3-12 chars, [.12345abcdefghijklmnopqrstuvwxyz]) */
 	member_account: string
@@ -15735,6 +16011,16 @@ export type ResolverInputTypes = {
 ["MarketplaceAplReceptionVariant"]:MarketplaceAplReceptionVariant;
 	["MarketplaceApproveOfferInput"]: {
 	offer_id: string
+};
+	["MarketplaceApproveReturnVisitInput"]: {
+	/** Кооперативный участок, на который приглашаем пайщика. */
+	braname: string,
+	/** Идентификатор заявления. */
+	claim_id: string,
+	/** Комментарий председателя (обязательно, 1-500 символов). */
+	comment: string,
+	/** Подписанное решение председателя (опционально, in-system запись). */
+	signed_decision?: ResolverInputTypes["MarketplaceReturnClaimSignedStatementInput"] | undefined | null
 };
 	["MarketplaceAttribute"]: AliasType<{
 	/** ID комплексного атрибута */
@@ -16020,6 +16306,20 @@ export type ResolverInputTypes = {
 	tx_snapshot?:ResolverInputTypes["MarketplaceOrderCreateTxSnapshot"],
 		__typename?: boolean | `@${string}`
 }>;
+	["MarketplaceCreateReturnClaimInput"]: {
+	/** Возвращаемое количество единиц (по умолчанию — выданное количество). */
+	actual_quantity?: number | undefined | null,
+	/** Категория дефекта (опционально). */
+	defect_category?: ResolverInputTypes["MarketplaceReturnClaimDefectCategory"] | undefined | null,
+	/** Заказ, по которому подаётся заявление. */
+	order_id: string,
+	/** Фотографии товара — обязательно от 1 до 10 файлов. */
+	photos: Array<ResolverInputTypes["MarketplaceReturnClaimPhotoUploadInput"]>,
+	/** Текст обращения пайщика (1-500 символов). */
+	reason_text: string,
+	/** Подписанное пайщиком заявление (реестр документов 800). */
+	signed_statement: ResolverInputTypes["MarketplaceReturnClaimSignedStatementInput"]
+};
 	["MarketplaceCreateShipmentInput"]: {
 	/** Идентификатор консолидированной заявки в статусе ACCEPTED. */
 	cycle_id: ResolverInputTypes["ID"],
@@ -16209,8 +16509,6 @@ export type ResolverInputTypes = {
 	order_hash: string,
 	/** Идентификатор заказа пайщика, по которому формируется акт выдачи. */
 	order_id: string,
-	/** Идентификатор записи акта в реестре marketplace (для выдачи — id заказа). */
-	reception_id: string,
 	/** ID документа в реестре */
 	registry_id: number,
 	/** Сформировать документ без сохранения (preview-режим). */
@@ -16328,6 +16626,10 @@ export type ResolverInputTypes = {
 	sortBy?: string | undefined | null,
 	/** Направление сортировки ("ASC" или "DESC") */
 	sortOrder: string
+};
+	["MarketplaceListReturnClaimsByBranameInput"]: {
+	/** Кооперативный участок (delivery_braname исходного заказа). */
+	delivery_braname: string
 };
 	["MarketplaceListShipmentsInput"]: {
 	/** Фильтр по КУ-получателю. */
@@ -16595,6 +16897,28 @@ export type ResolverInputTypes = {
 	/** Причина отказа (≤1000) */
 	reason: string
 };
+	["MarketplaceRejectReturnAtVisitInput"]: {
+	/** Кооперативный участок, где идёт очный осмотр. */
+	braname: string,
+	/** Идентификатор заявления. */
+	claim_id: string,
+	/** Фото очного осмотра (опционально). */
+	inspection_photos?: Array<ResolverInputTypes["MarketplaceReturnClaimPhotoUploadInput"]> | undefined | null,
+	/** Результат и причина отказа (обязательно, до 2000 символов). */
+	inspection_result: string,
+	/** Подписанное решение председателя (опционально). */
+	signed_decision?: ResolverInputTypes["MarketplaceReturnClaimSignedStatementInput"] | undefined | null
+};
+	["MarketplaceRejectReturnRemoteInput"]: {
+	/** Кооперативный участок, под чьей юрисдикцией решение. */
+	braname: string,
+	/** Идентификатор заявления. */
+	claim_id: string,
+	/** Причина отказа (обязательно, 1-500 символов). */
+	comment: string,
+	/** Подписанное решение председателя (опционально). */
+	signed_decision?: ResolverInputTypes["MarketplaceReturnClaimSignedStatementInput"] | undefined | null
+};
 	["MarketplaceRemoveFromWhitelistInput"]: {
 	/** eosio::name пайщика-поставщика */
 	member_account: string
@@ -16759,6 +17083,190 @@ export type ResolverInputTypes = {
 	totalRequests?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Заявление пайщика на гарантийный возврат имущества (Эпик 7). */
+["MarketplaceReturnClaim"]: AliasType<{
+	actual_quantity?:boolean | `@${string}`,
+	coopname?:boolean | `@${string}`,
+	created_at?:boolean | `@${string}`,
+	decision_log?:ResolverInputTypes["MarketplaceReturnClaimDecisionEntry"],
+	/** Категория дефекта (если указана). */
+	defect_category?:boolean | `@${string}`,
+	/** КУ доставки исходного заказа (куда подаётся заявление). */
+	delivery_braname?:boolean | `@${string}`,
+	expected_resolution?:boolean | `@${string}`,
+	fact_cost?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	/** Снапшот compensating-forward (только при ACCEPTED_AT_VISIT). */
+	ledger_snapshot?:ResolverInputTypes["MarketplaceReturnClaimLedgerSnapshot"],
+	/** Параметры очного осмотра (заполняется на стадии accept/reject_at_visit). */
+	on_site_inspection?:ResolverInputTypes["MarketplaceReturnClaimOnSiteInspection"],
+	order_hash?:boolean | `@${string}`,
+	order_id?:boolean | `@${string}`,
+	/** Аккаунт пайщика-заявителя. */
+	orderer_account?:boolean | `@${string}`,
+	/** Фотографии товара, приложенные пайщиком. */
+	photos?:ResolverInputTypes["MarketplaceReturnClaimPhoto"],
+	/** Текст обращения пайщика. */
+	reason_text?:boolean | `@${string}`,
+	/** Якорный hash on-chain return_request. */
+	request_hash?:boolean | `@${string}`,
+	/** Текущий статус заявления. */
+	status?:boolean | `@${string}`,
+	/** Хэш транзакции submretrn в блокчейне. */
+	submretrn_tx_hash?:boolean | `@${string}`,
+	/** Поставщик исходного заказа (для будущего возврата поставщику). */
+	supplier_account?:boolean | `@${string}`,
+	updated_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Запись о решении председателя по заявлению на возврат. */
+["MarketplaceReturnClaimDecisionEntry"]: AliasType<{
+	/** Время фиксации решения. */
+	at?:boolean | `@${string}`,
+	/** Кооперативный участок, под чьей юрисдикцией решение. */
+	braname?:boolean | `@${string}`,
+	/** Аккаунт председателя, принявшего решение. */
+	by_chairman_account?:boolean | `@${string}`,
+	/** Комментарий / причина / результат осмотра. */
+	comment?:boolean | `@${string}`,
+	/** Тип решения: approve_visit / reject_remote / accept_at_visit / reject_at_visit. */
+	decision?:boolean | `@${string}`,
+	/** Стадия решения: «remote» — удалённое, «on_site» — очный осмотр. */
+	stage?:boolean | `@${string}`,
+	/** Хэш транзакции в блокчейне для аудита решения. */
+	tx_hash?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Категория дефекта, на который ссылается заявление на возврат. */
+["MarketplaceReturnClaimDefectCategory"]:MarketplaceReturnClaimDefectCategory;
+	/** Желаемый исход возврата (в MVP — только восстановление средств на программном кошельке). */
+["MarketplaceReturnClaimExpectedResolution"]:MarketplaceReturnClaimExpectedResolution;
+	/** Снапшот compensating-forward пары после успешного приёма возврата. */
+["MarketplaceReturnClaimLedgerSnapshot"]: AliasType<{
+	/** Сумма compensating-forward (восстановленная на программный кошелёк). */
+	amount?:boolean | `@${string}`,
+	/** Время фиксации возврата. */
+	at?:boolean | `@${string}`,
+	/** Возвращённое количество единиц имущества. */
+	returned_quantity?:boolean | `@${string}`,
+	/** Хэш транзакции accretrn в блокчейне. */
+	tx_hash?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Параметры очного осмотра имущества председателем КУ. */
+["MarketplaceReturnClaimOnSiteInspection"]: AliasType<{
+	/** Время очного осмотра. */
+	at?:boolean | `@${string}`,
+	/** Председатель, проводивший очный осмотр. */
+	by_chairman_account?:boolean | `@${string}`,
+	/** Фото очного осмотра. */
+	photos?:ResolverInputTypes["MarketplaceReturnClaimPhoto"],
+	/** Текстовое описание результатов осмотра. */
+	result_text?:boolean | `@${string}`,
+	/** Сканированный штрих-код имущества (если применимо). */
+	scanned_barcode?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Снапшот фото-доказательства, приложенного к заявлению на возврат. */
+["MarketplaceReturnClaimPhoto"]: AliasType<{
+	/** Sha256-хеш содержимого фото (используется как анкер on-chain). */
+	content_hash?:boolean | `@${string}`,
+	/** MIME-тип файла. */
+	mime_type?:boolean | `@${string}`,
+	/** Время загрузки фото в bucket. */
+	uploaded_at?:boolean | `@${string}`,
+	/** Подписанный URL для чтения фото из bucket'а stol-zakazov:images. */
+	url?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceReturnClaimPhotoUploadInput"]: {
+	/** Содержимое файла, закодированное в base64. */
+	base64: string,
+	/** MIME-тип фото (image/jpeg, image/png либо image/webp). */
+	mime_type: string
+};
+	["MarketplaceReturnClaimRequestPayloadInput"]: {
+	/** Валюта расчёта (например «RUB»). */
+	currency: string,
+	/** Якорный hash заявления на возврат (request_hash). */
+	hash: string,
+	/** Идентификатор программы Стола Заказов в кооперативе. */
+	program_id: number,
+	/** Заголовок имущества, по которому подаётся возврат. */
+	title: string,
+	/** Итоговая возвращаемая сумма (десятичное число строкой). */
+	total_cost: string,
+	/** Тип операции в каноне ICommonRequest (для возврата — «RETURN»). */
+	type: string,
+	/** Стоимость единицы (десятичное число строкой). */
+	unit_cost: string,
+	/** Единица измерения (например «ед.»). */
+	unit_of_measurement: string,
+	/** Возвращаемое количество единиц. */
+	units: number
+};
+	/** Результат любого изменения статуса заявления на гарантийный возврат. */
+["MarketplaceReturnClaimResult"]: AliasType<{
+	/** Актуальное состояние заявления. */
+	claim?:ResolverInputTypes["MarketplaceReturnClaim"],
+	/** Хэш транзакции в блокчейне последнего действия. */
+	tx_hash?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceReturnClaimSignablePayloadInput"]: {
+	/** Возвращаемое количество (если не указано — выданное количество). */
+	actual_quantity?: number | undefined | null,
+	/** Категория дефекта (опционально, дублируется в meta документа). */
+	defect_category?: ResolverInputTypes["MarketplaceReturnClaimDefectCategory"] | undefined | null,
+	/** Идентификатор заказа, по которому готовится заявление. */
+	order_id: string
+};
+	["MarketplaceReturnClaimSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
+	doc_data_hash?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Описание возвращаемого имущества — копируется из Order пайщика и используется как якорь возврата (hash совпадает с request_hash в on-chain заявлении). */
+	request: ResolverInputTypes["MarketplaceReturnClaimRequestPayloadInput"],
+	/** Сформировать документ без сохранения (preview-режим). */
+	skip_save: boolean,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
+	["MarketplaceReturnClaimSignedStatementInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаданные подписанного заявления на возврат имущества. */
+	meta: ResolverInputTypes["MarketplaceReturnClaimSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ResolverInputTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	/** Состояние заявления на гарантийный возврат имущества пайщика. */
+["MarketplaceReturnClaimStatus"]:MarketplaceReturnClaimStatus;
 	["MarketplaceSetKUStatusInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -17266,10 +17774,12 @@ markReportPeriod?: [{	data: ResolverInputTypes["MarkReportPeriodInput"]},boolean
 marketplaceAcceptConsolidatedRequest?: [{	input: ResolverInputTypes["MarketplaceAcceptConsolidatedRequestInput"]},ResolverInputTypes["MarketplaceConsolidatedRequestActionResult"]],
 marketplaceAcceptCpp?: [{	input: ResolverInputTypes["MarketplaceAcceptCppInput"]},ResolverInputTypes["MarketplaceCppStatus"]],
 marketplaceAcceptIndividualOrder?: [{	input: ResolverInputTypes["MarketplaceAcceptIndividualOrderInput"]},ResolverInputTypes["MarketplaceSupplierOrderActionResult"]],
+marketplaceAcceptReturnAtVisit?: [{	data: ResolverInputTypes["MarketplaceAcceptReturnAtVisitInput"]},ResolverInputTypes["MarketplaceReturnClaimResult"]],
 marketplaceAddAvailableCategories?: [{	input: ResolverInputTypes["AddAvailableCategoriesInput"]},ResolverInputTypes["MarketplaceAvailableCategory"]],
 marketplaceAddAvailableCategoryTypes?: [{	input: ResolverInputTypes["AddAvailableCategoryTypesInput"]},ResolverInputTypes["MarketplaceAvailableCategory"]],
 marketplaceAddToWhitelist?: [{	input: ResolverInputTypes["MarketplaceAddToWhitelistInput"]},ResolverInputTypes["MarketplaceWhitelistEntry"]],
 marketplaceApproveOffer?: [{	input: ResolverInputTypes["MarketplaceApproveOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
+marketplaceApproveReturnVisit?: [{	data: ResolverInputTypes["MarketplaceApproveReturnVisitInput"]},ResolverInputTypes["MarketplaceReturnClaimResult"]],
 marketplaceCancelOrder?: [{	input: ResolverInputTypes["MarketplaceCancelOrderInput"]},ResolverInputTypes["MarketplaceCancelOrderResult"]],
 	/** Очистить все доступные категории (сделать доступными все)
 
@@ -17279,6 +17789,7 @@ marketplaceCreateAplReception?: [{	data: ResolverInputTypes["MarketplaceCreateAp
 marketplaceCreateOffer?: [{	input: ResolverInputTypes["MarketplaceCreateOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
 marketplaceCreateOrder?: [{	input: ResolverInputTypes["MarketplaceCreateOrderInput"]},ResolverInputTypes["MarketplaceCreateOrderResult"]],
 marketplaceCreateRequest?: [{	data: ResolverInputTypes["CreateRequestInput"]},ResolverInputTypes["MarketplaceRequest"]],
+marketplaceCreateReturnClaim?: [{	data: ResolverInputTypes["MarketplaceCreateReturnClaimInput"]},ResolverInputTypes["MarketplaceReturnClaimResult"]],
 marketplaceCreateShipment?: [{	data: ResolverInputTypes["MarketplaceCreateShipmentInput"]},ResolverInputTypes["MarketplaceCreateShipmentResult"]],
 marketplaceDeclineConsolidatedRequest?: [{	input: ResolverInputTypes["MarketplaceDeclineConsolidatedRequestInput"]},ResolverInputTypes["MarketplaceConsolidatedRequestActionResult"]],
 marketplaceDeclineIndividualOrder?: [{	input: ResolverInputTypes["MarketplaceDeclineIndividualOrderInput"]},ResolverInputTypes["MarketplaceSupplierOrderActionResult"]],
@@ -17288,6 +17799,8 @@ marketplaceFinalizeIssuance?: [{	data: ResolverInputTypes["MarketplaceFinalizeIs
 marketplaceLabelInventory?: [{	data: ResolverInputTypes["MarketplaceLabelInventoryInput"]},ResolverInputTypes["MarketplaceLabelInventoryResult"]],
 marketplaceOpenIssuance?: [{	data: ResolverInputTypes["MarketplaceOpenIssuanceInput"]},ResolverInputTypes["MarketplaceIssuanceResult"]],
 marketplaceRejectOffer?: [{	input: ResolverInputTypes["MarketplaceRejectOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
+marketplaceRejectReturnAtVisit?: [{	data: ResolverInputTypes["MarketplaceRejectReturnAtVisitInput"]},ResolverInputTypes["MarketplaceReturnClaimResult"]],
+marketplaceRejectReturnRemote?: [{	data: ResolverInputTypes["MarketplaceRejectReturnRemoteInput"]},ResolverInputTypes["MarketplaceReturnClaimResult"]],
 marketplaceRemoveAvailableCategories?: [{	input: ResolverInputTypes["RemoveAvailableCategoriesInput"]},boolean | `@${string}`],
 marketplaceRemoveAvailableCategoryTypes?: [{	input: ResolverInputTypes["RemoveAvailableCategoryTypesInput"]},boolean | `@${string}`],
 marketplaceRemoveFromWhitelist?: [{	input: ResolverInputTypes["MarketplaceRemoveFromWhitelistInput"]},boolean | `@${string}`],
@@ -18638,8 +19151,11 @@ marketplaceListMyOffers?: [{	input?: ResolverInputTypes["MarketplaceListMyOffers
 marketplaceListMyOrders?: [{	input?: ResolverInputTypes["MarketplaceListOrdersInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["MarketplaceOrderPaginationResult"]],
 	/** Список заказов текущего пайщика, готовых к получению на пункте выдачи. */
 	marketplaceListMyReadyToReceive?:ResolverInputTypes["MarketplaceOrder"],
+	/** Все заявления текущего пайщика на гарантийный возврат — активные и архивные. */
+	marketplaceListMyReturnClaims?:ResolverInputTypes["MarketplaceReturnClaim"],
 marketplaceListOutgoingPaymentsAsSupplier?: [{	statuses?: Array<ResolverInputTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null},ResolverInputTypes["MarketplaceOutgoingPaymentRequest"]],
 marketplaceListPendingOffers?: [{	input?: ResolverInputTypes["MarketplaceListPendingOffersInput"] | undefined | null},ResolverInputTypes["MarketplaceOfferPaginationResult"]],
+marketplaceListReturnClaimsByBraname?: [{	data: ResolverInputTypes["MarketplaceListReturnClaimsByBranameInput"]},ResolverInputTypes["MarketplaceReturnClaim"]],
 marketplaceListShipments?: [{	data?: ResolverInputTypes["MarketplaceListShipmentsInput"] | undefined | null},ResolverInputTypes["MarketplaceShipment"]],
 marketplaceListSupplierOrders?: [{	input?: ResolverInputTypes["MarketplaceListOrdersInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["MarketplaceOrderPaginationResult"]],
 	/** Список пайщиков-поставщиков, допущенных к публикации оферт */
@@ -18651,6 +19167,8 @@ marketplaceListSupplierOrders?: [{	input?: ResolverInputTypes["MarketplaceListOr
 	/** Статус видимости оферты Стола заказов в core registration-flow (платформенный AgreementRegistry) */
 	marketplaceRegistrationOfferStatus?:ResolverInputTypes["MarketplaceRegistrationOfferStatus"],
 marketplaceRequiredAttributes?: [{	data: ResolverInputTypes["GetRequiredAttributesInput"]},ResolverInputTypes["MarketplaceAttribute"]],
+marketplaceReturnClaim?: [{	claim_id: string},ResolverInputTypes["MarketplaceReturnClaim"]],
+marketplaceReturnClaimSignablePayload?: [{	data: ResolverInputTypes["MarketplaceReturnClaimSignablePayloadInput"]},ResolverInputTypes["GeneratedDocument"]],
 marketplaceSearchAttributes?: [{	input: ResolverInputTypes["SearchAttributesInput"]},ResolverInputTypes["MarketplaceAttribute"]],
 marketplaceSearchDictionaryValues?: [{	input: ResolverInputTypes["SearchDictionaryValuesInput"]},ResolverInputTypes["MarketplaceDictionaryValue"]],
 marketplaceSearchRequests?: [{	data: ResolverInputTypes["SearchRequestsInput"]},ResolverInputTypes["MarketplaceRequest"]],
@@ -24871,6 +25389,20 @@ export type ModelTypes = {
 	/** Идентификатор заказа индивидуального типа, который поставщик принимает. */
 	order_id: string
 };
+	["MarketplaceAcceptReturnAtVisitInput"]: {
+	/** Кооперативный участок, где идёт очный осмотр. */
+	braname: string,
+	/** Идентификатор заявления. */
+	claim_id: string,
+	/** Фото очного осмотра (опционально, до 10 файлов). */
+	inspection_photos?: Array<ModelTypes["MarketplaceReturnClaimPhotoUploadInput"]> | undefined | null,
+	/** Результат очного осмотра (обязательно, до 2000 символов). */
+	inspection_result: string,
+	/** Сканированный штрих-код имущества для сверки с заказом (если применимо). */
+	scanned_barcode?: string | undefined | null,
+	/** Подписанное решение председателя (опционально). */
+	signed_decision?: ModelTypes["MarketplaceReturnClaimSignedStatementInput"] | undefined | null
+};
 	["MarketplaceAddToWhitelistInput"]: {
 	/** eosio::name пайщика-поставщика (3-12 chars, [.12345abcdefghijklmnopqrstuvwxyz]) */
 	member_account: string
@@ -24992,6 +25524,16 @@ export type ModelTypes = {
 	["MarketplaceAplReceptionVariant"]:MarketplaceAplReceptionVariant;
 	["MarketplaceApproveOfferInput"]: {
 	offer_id: string
+};
+	["MarketplaceApproveReturnVisitInput"]: {
+	/** Кооперативный участок, на который приглашаем пайщика. */
+	braname: string,
+	/** Идентификатор заявления. */
+	claim_id: string,
+	/** Комментарий председателя (обязательно, 1-500 символов). */
+	comment: string,
+	/** Подписанное решение председателя (опционально, in-system запись). */
+	signed_decision?: ModelTypes["MarketplaceReturnClaimSignedStatementInput"] | undefined | null
 };
 	["MarketplaceAttribute"]: {
 		/** ID комплексного атрибута */
@@ -25256,6 +25798,20 @@ export type ModelTypes = {
 		order: ModelTypes["MarketplaceOrder"],
 	tx_snapshot: ModelTypes["MarketplaceOrderCreateTxSnapshot"]
 };
+	["MarketplaceCreateReturnClaimInput"]: {
+	/** Возвращаемое количество единиц (по умолчанию — выданное количество). */
+	actual_quantity?: number | undefined | null,
+	/** Категория дефекта (опционально). */
+	defect_category?: ModelTypes["MarketplaceReturnClaimDefectCategory"] | undefined | null,
+	/** Заказ, по которому подаётся заявление. */
+	order_id: string,
+	/** Фотографии товара — обязательно от 1 до 10 файлов. */
+	photos: Array<ModelTypes["MarketplaceReturnClaimPhotoUploadInput"]>,
+	/** Текст обращения пайщика (1-500 символов). */
+	reason_text: string,
+	/** Подписанное пайщиком заявление (реестр документов 800). */
+	signed_statement: ModelTypes["MarketplaceReturnClaimSignedStatementInput"]
+};
 	["MarketplaceCreateShipmentInput"]: {
 	/** Идентификатор консолидированной заявки в статусе ACCEPTED. */
 	cycle_id: ModelTypes["ID"],
@@ -25438,8 +25994,6 @@ export type ModelTypes = {
 	order_hash: string,
 	/** Идентификатор заказа пайщика, по которому формируется акт выдачи. */
 	order_id: string,
-	/** Идентификатор записи акта в реестре marketplace (для выдачи — id заказа). */
-	reception_id: string,
 	/** ID документа в реестре */
 	registry_id: number,
 	/** Сформировать документ без сохранения (preview-режим). */
@@ -25555,6 +26109,10 @@ export type ModelTypes = {
 	sortBy?: string | undefined | null,
 	/** Направление сортировки ("ASC" или "DESC") */
 	sortOrder: string
+};
+	["MarketplaceListReturnClaimsByBranameInput"]: {
+	/** Кооперативный участок (delivery_braname исходного заказа). */
+	delivery_braname: string
 };
 	["MarketplaceListShipmentsInput"]: {
 	/** Фильтр по КУ-получателю. */
@@ -25806,6 +26364,28 @@ export type ModelTypes = {
 	/** Причина отказа (≤1000) */
 	reason: string
 };
+	["MarketplaceRejectReturnAtVisitInput"]: {
+	/** Кооперативный участок, где идёт очный осмотр. */
+	braname: string,
+	/** Идентификатор заявления. */
+	claim_id: string,
+	/** Фото очного осмотра (опционально). */
+	inspection_photos?: Array<ModelTypes["MarketplaceReturnClaimPhotoUploadInput"]> | undefined | null,
+	/** Результат и причина отказа (обязательно, до 2000 символов). */
+	inspection_result: string,
+	/** Подписанное решение председателя (опционально). */
+	signed_decision?: ModelTypes["MarketplaceReturnClaimSignedStatementInput"] | undefined | null
+};
+	["MarketplaceRejectReturnRemoteInput"]: {
+	/** Кооперативный участок, под чьей юрисдикцией решение. */
+	braname: string,
+	/** Идентификатор заявления. */
+	claim_id: string,
+	/** Причина отказа (обязательно, 1-500 символов). */
+	comment: string,
+	/** Подписанное решение председателя (опционально). */
+	signed_decision?: ModelTypes["MarketplaceReturnClaimSignedStatementInput"] | undefined | null
+};
 	["MarketplaceRemoveFromWhitelistInput"]: {
 	/** eosio::name пайщика-поставщика */
 	member_account: string
@@ -25966,6 +26546,181 @@ export type ModelTypes = {
 	/** Общее количество заявок */
 	totalRequests: number
 };
+	/** Заявление пайщика на гарантийный возврат имущества (Эпик 7). */
+["MarketplaceReturnClaim"]: {
+		actual_quantity: number,
+	coopname: string,
+	created_at: ModelTypes["DateTime"],
+	decision_log: Array<ModelTypes["MarketplaceReturnClaimDecisionEntry"]>,
+	/** Категория дефекта (если указана). */
+	defect_category?: ModelTypes["MarketplaceReturnClaimDefectCategory"] | undefined | null,
+	/** КУ доставки исходного заказа (куда подаётся заявление). */
+	delivery_braname: string,
+	expected_resolution: ModelTypes["MarketplaceReturnClaimExpectedResolution"],
+	fact_cost: string,
+	id: string,
+	/** Снапшот compensating-forward (только при ACCEPTED_AT_VISIT). */
+	ledger_snapshot?: ModelTypes["MarketplaceReturnClaimLedgerSnapshot"] | undefined | null,
+	/** Параметры очного осмотра (заполняется на стадии accept/reject_at_visit). */
+	on_site_inspection?: ModelTypes["MarketplaceReturnClaimOnSiteInspection"] | undefined | null,
+	order_hash: string,
+	order_id: string,
+	/** Аккаунт пайщика-заявителя. */
+	orderer_account: string,
+	/** Фотографии товара, приложенные пайщиком. */
+	photos: Array<ModelTypes["MarketplaceReturnClaimPhoto"]>,
+	/** Текст обращения пайщика. */
+	reason_text: string,
+	/** Якорный hash on-chain return_request. */
+	request_hash: string,
+	/** Текущий статус заявления. */
+	status: ModelTypes["MarketplaceReturnClaimStatus"],
+	/** Хэш транзакции submretrn в блокчейне. */
+	submretrn_tx_hash: string,
+	/** Поставщик исходного заказа (для будущего возврата поставщику). */
+	supplier_account: string,
+	updated_at: ModelTypes["DateTime"]
+};
+	/** Запись о решении председателя по заявлению на возврат. */
+["MarketplaceReturnClaimDecisionEntry"]: {
+		/** Время фиксации решения. */
+	at: ModelTypes["DateTime"],
+	/** Кооперативный участок, под чьей юрисдикцией решение. */
+	braname: string,
+	/** Аккаунт председателя, принявшего решение. */
+	by_chairman_account: string,
+	/** Комментарий / причина / результат осмотра. */
+	comment: string,
+	/** Тип решения: approve_visit / reject_remote / accept_at_visit / reject_at_visit. */
+	decision: string,
+	/** Стадия решения: «remote» — удалённое, «on_site» — очный осмотр. */
+	stage: string,
+	/** Хэш транзакции в блокчейне для аудита решения. */
+	tx_hash: string
+};
+	["MarketplaceReturnClaimDefectCategory"]:MarketplaceReturnClaimDefectCategory;
+	["MarketplaceReturnClaimExpectedResolution"]:MarketplaceReturnClaimExpectedResolution;
+	/** Снапшот compensating-forward пары после успешного приёма возврата. */
+["MarketplaceReturnClaimLedgerSnapshot"]: {
+		/** Сумма compensating-forward (восстановленная на программный кошелёк). */
+	amount: string,
+	/** Время фиксации возврата. */
+	at: ModelTypes["DateTime"],
+	/** Возвращённое количество единиц имущества. */
+	returned_quantity: number,
+	/** Хэш транзакции accretrn в блокчейне. */
+	tx_hash: string
+};
+	/** Параметры очного осмотра имущества председателем КУ. */
+["MarketplaceReturnClaimOnSiteInspection"]: {
+		/** Время очного осмотра. */
+	at: ModelTypes["DateTime"],
+	/** Председатель, проводивший очный осмотр. */
+	by_chairman_account: string,
+	/** Фото очного осмотра. */
+	photos: Array<ModelTypes["MarketplaceReturnClaimPhoto"]>,
+	/** Текстовое описание результатов осмотра. */
+	result_text: string,
+	/** Сканированный штрих-код имущества (если применимо). */
+	scanned_barcode?: string | undefined | null
+};
+	/** Снапшот фото-доказательства, приложенного к заявлению на возврат. */
+["MarketplaceReturnClaimPhoto"]: {
+		/** Sha256-хеш содержимого фото (используется как анкер on-chain). */
+	content_hash: string,
+	/** MIME-тип файла. */
+	mime_type: string,
+	/** Время загрузки фото в bucket. */
+	uploaded_at: ModelTypes["DateTime"],
+	/** Подписанный URL для чтения фото из bucket'а stol-zakazov:images. */
+	url: string
+};
+	["MarketplaceReturnClaimPhotoUploadInput"]: {
+	/** Содержимое файла, закодированное в base64. */
+	base64: string,
+	/** MIME-тип фото (image/jpeg, image/png либо image/webp). */
+	mime_type: string
+};
+	["MarketplaceReturnClaimRequestPayloadInput"]: {
+	/** Валюта расчёта (например «RUB»). */
+	currency: string,
+	/** Якорный hash заявления на возврат (request_hash). */
+	hash: string,
+	/** Идентификатор программы Стола Заказов в кооперативе. */
+	program_id: number,
+	/** Заголовок имущества, по которому подаётся возврат. */
+	title: string,
+	/** Итоговая возвращаемая сумма (десятичное число строкой). */
+	total_cost: string,
+	/** Тип операции в каноне ICommonRequest (для возврата — «RETURN»). */
+	type: string,
+	/** Стоимость единицы (десятичное число строкой). */
+	unit_cost: string,
+	/** Единица измерения (например «ед.»). */
+	unit_of_measurement: string,
+	/** Возвращаемое количество единиц. */
+	units: number
+};
+	/** Результат любого изменения статуса заявления на гарантийный возврат. */
+["MarketplaceReturnClaimResult"]: {
+		/** Актуальное состояние заявления. */
+	claim: ModelTypes["MarketplaceReturnClaim"],
+	/** Хэш транзакции в блокчейне последнего действия. */
+	tx_hash: string
+};
+	["MarketplaceReturnClaimSignablePayloadInput"]: {
+	/** Возвращаемое количество (если не указано — выданное количество). */
+	actual_quantity?: number | undefined | null,
+	/** Категория дефекта (опционально, дублируется в meta документа). */
+	defect_category?: ModelTypes["MarketplaceReturnClaimDefectCategory"] | undefined | null,
+	/** Идентификатор заказа, по которому готовится заявление. */
+	order_id: string
+};
+	["MarketplaceReturnClaimSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
+	doc_data_hash?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Описание возвращаемого имущества — копируется из Order пайщика и используется как якорь возврата (hash совпадает с request_hash в on-chain заявлении). */
+	request: ModelTypes["MarketplaceReturnClaimRequestPayloadInput"],
+	/** Сформировать документ без сохранения (preview-режим). */
+	skip_save: boolean,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
+	["MarketplaceReturnClaimSignedStatementInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаданные подписанного заявления на возврат имущества. */
+	meta: ModelTypes["MarketplaceReturnClaimSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ModelTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["MarketplaceReturnClaimStatus"]:MarketplaceReturnClaimStatus;
 	["MarketplaceSetKUStatusInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -26849,6 +27604,8 @@ export type ModelTypes = {
 	marketplaceAcceptCpp: ModelTypes["MarketplaceCppStatus"],
 	/** Поставщик принимает один индивидуальный заказ. */
 	marketplaceAcceptIndividualOrder: ModelTypes["MarketplaceSupplierOrderActionResult"],
+	/** Председатель по результатам очного осмотра принимает гарантийный возврат — атомарно восстанавливает средства на программный кошелёк пайщика и возвращает имущество на склад участка. */
+	marketplaceAcceptReturnAtVisit: ModelTypes["MarketplaceReturnClaimResult"],
 	/** Добавить категории в доступные для кооператива (целые категории)
 
 Требуемые роли: chairman.  */
@@ -26861,6 +27618,8 @@ export type ModelTypes = {
 	marketplaceAddToWhitelist: ModelTypes["MarketplaceWhitelistEntry"],
 	/** Одобрить Offer (status → ACTIVE) (admin) */
 	marketplaceApproveOffer: ModelTypes["MarketplaceOffer"],
+	/** Председатель кооперативного участка по результатам удалённого рассмотрения приглашает пайщика на очный осмотр имущества. */
+	marketplaceApproveReturnVisit: ModelTypes["MarketplaceReturnClaimResult"],
 	/** Отменить свой заказ до его приёма поставщиком; средства разблокируются. */
 	marketplaceCancelOrder: ModelTypes["MarketplaceCancelOrderResult"],
 	/** Очистить все доступные категории (сделать доступными все)
@@ -26877,6 +27636,8 @@ export type ModelTypes = {
 
 Требуемые роли: member, chairman.  */
 	marketplaceCreateRequest: ModelTypes["MarketplaceRequest"],
+	/** Пайщик подаёт заявление на гарантийный возврат имущества — backend кладёт фото в защищённое хранилище и фиксирует заявление в блокчейне. */
+	marketplaceCreateReturnClaim: ModelTypes["MarketplaceReturnClaimResult"],
 	/** Сформировать партии поставки из акцептованной заявки: одна группа на каждый КУ-получатель. */
 	marketplaceCreateShipment: ModelTypes["MarketplaceCreateShipmentResult"],
 	/** Поставщик отклоняет сводную заявку — все заказы пакета отменяются, средства разблокируются. */
@@ -26897,6 +27658,10 @@ export type ModelTypes = {
 	marketplaceOpenIssuance: ModelTypes["MarketplaceIssuanceResult"],
 	/** Отклонить Offer с причиной (status → REJECTED) (admin) */
 	marketplaceRejectOffer: ModelTypes["MarketplaceOffer"],
+	/** Председатель по результатам очного осмотра отказывает в гарантийном возврате — заказчик забирает имущество обратно, движений по средствам нет. */
+	marketplaceRejectReturnAtVisit: ModelTypes["MarketplaceReturnClaimResult"],
+	/** Председатель отказывает в гарантийном возврате удалённо с указанием причины — финальное решение, движений по средствам нет. */
+	marketplaceRejectReturnRemote: ModelTypes["MarketplaceReturnClaimResult"],
 	/** Удалить категории из доступных для кооператива (включая все их типы)
 
 Требуемые роли: chairman.  */
@@ -28488,10 +29253,14 @@ export type ModelTypes = {
 	marketplaceListMyOrders: ModelTypes["MarketplaceOrderPaginationResult"],
 	/** Список заказов текущего пайщика, готовых к получению на пункте выдачи. */
 	marketplaceListMyReadyToReceive: Array<ModelTypes["MarketplaceOrder"]>,
+	/** Все заявления текущего пайщика на гарантийный возврат — активные и архивные. */
+	marketplaceListMyReturnClaims: Array<ModelTypes["MarketplaceReturnClaim"]>,
 	/** История выплат поставщику в столе поставщика — статусы по каждому заказу. */
 	marketplaceListOutgoingPaymentsAsSupplier: Array<ModelTypes["MarketplaceOutgoingPaymentRequest"]>,
 	/** Список Offer'ов на модерации (admin) */
 	marketplaceListPendingOffers: ModelTypes["MarketplaceOfferPaginationResult"],
+	/** Список заявлений на гарантийный возврат, привязанных к кооперативному участку доставки — для председателя своего КУ. */
+	marketplaceListReturnClaimsByBraname: Array<ModelTypes["MarketplaceReturnClaim"]>,
 	/** Список партий поставки текущего поставщика — для стола подготовки поставки и истории. */
 	marketplaceListShipments: Array<ModelTypes["MarketplaceShipment"]>,
 	/** Список заказов, по которым текущий пайщик является поставщиком (стол поставщика). */
@@ -28506,6 +29275,10 @@ export type ModelTypes = {
 	marketplaceRegistrationOfferStatus: ModelTypes["MarketplaceRegistrationOfferStatus"],
 	/** Получить обязательные атрибуты для категории и типа товара marketplace */
 	marketplaceRequiredAttributes: Array<ModelTypes["MarketplaceAttribute"]>,
+	/** Получить одно заявление на гарантийный возврат по идентификатору. */
+	marketplaceReturnClaim: ModelTypes["MarketplaceReturnClaim"],
+	/** Превью заявления на гарантийный возврат имущества для подписания пайщиком-заказчиком. */
+	marketplaceReturnClaimSignablePayload: ModelTypes["GeneratedDocument"],
 	/** Поиск атрибутов marketplace по названию */
 	marketplaceSearchAttributes: Array<ModelTypes["MarketplaceAttribute"]>,
 	/** Поиск значений словаря marketplace */
@@ -34951,6 +35724,20 @@ export type GraphQLTypes = {
 		/** Идентификатор заказа индивидуального типа, который поставщик принимает. */
 	order_id: string
 };
+	["MarketplaceAcceptReturnAtVisitInput"]: {
+		/** Кооперативный участок, где идёт очный осмотр. */
+	braname: string,
+	/** Идентификатор заявления. */
+	claim_id: string,
+	/** Фото очного осмотра (опционально, до 10 файлов). */
+	inspection_photos?: Array<GraphQLTypes["MarketplaceReturnClaimPhotoUploadInput"]> | undefined | null,
+	/** Результат очного осмотра (обязательно, до 2000 символов). */
+	inspection_result: string,
+	/** Сканированный штрих-код имущества для сверки с заказом (если применимо). */
+	scanned_barcode?: string | undefined | null,
+	/** Подписанное решение председателя (опционально). */
+	signed_decision?: GraphQLTypes["MarketplaceReturnClaimSignedStatementInput"] | undefined | null
+};
 	["MarketplaceAddToWhitelistInput"]: {
 		/** eosio::name пайщика-поставщика (3-12 chars, [.12345abcdefghijklmnopqrstuvwxyz]) */
 	member_account: string
@@ -35080,6 +35867,16 @@ export type GraphQLTypes = {
 ["MarketplaceAplReceptionVariant"]: MarketplaceAplReceptionVariant;
 	["MarketplaceApproveOfferInput"]: {
 		offer_id: string
+};
+	["MarketplaceApproveReturnVisitInput"]: {
+		/** Кооперативный участок, на который приглашаем пайщика. */
+	braname: string,
+	/** Идентификатор заявления. */
+	claim_id: string,
+	/** Комментарий председателя (обязательно, 1-500 символов). */
+	comment: string,
+	/** Подписанное решение председателя (опционально, in-system запись). */
+	signed_decision?: GraphQLTypes["MarketplaceReturnClaimSignedStatementInput"] | undefined | null
 };
 	["MarketplaceAttribute"]: {
 	__typename: "MarketplaceAttribute",
@@ -35382,6 +36179,20 @@ export type GraphQLTypes = {
 	tx_snapshot: GraphQLTypes["MarketplaceOrderCreateTxSnapshot"],
 	['...on MarketplaceCreateOrderResult']: Omit<GraphQLTypes["MarketplaceCreateOrderResult"], "...on MarketplaceCreateOrderResult">
 };
+	["MarketplaceCreateReturnClaimInput"]: {
+		/** Возвращаемое количество единиц (по умолчанию — выданное количество). */
+	actual_quantity?: number | undefined | null,
+	/** Категория дефекта (опционально). */
+	defect_category?: GraphQLTypes["MarketplaceReturnClaimDefectCategory"] | undefined | null,
+	/** Заказ, по которому подаётся заявление. */
+	order_id: string,
+	/** Фотографии товара — обязательно от 1 до 10 файлов. */
+	photos: Array<GraphQLTypes["MarketplaceReturnClaimPhotoUploadInput"]>,
+	/** Текст обращения пайщика (1-500 символов). */
+	reason_text: string,
+	/** Подписанное пайщиком заявление (реестр документов 800). */
+	signed_statement: GraphQLTypes["MarketplaceReturnClaimSignedStatementInput"]
+};
 	["MarketplaceCreateShipmentInput"]: {
 		/** Идентификатор консолидированной заявки в статусе ACCEPTED. */
 	cycle_id: GraphQLTypes["ID"],
@@ -35577,8 +36388,6 @@ export type GraphQLTypes = {
 	order_hash: string,
 	/** Идентификатор заказа пайщика, по которому формируется акт выдачи. */
 	order_id: string,
-	/** Идентификатор записи акта в реестре marketplace (для выдачи — id заказа). */
-	reception_id: string,
 	/** ID документа в реестре */
 	registry_id: number,
 	/** Сформировать документ без сохранения (preview-режим). */
@@ -35698,6 +36507,10 @@ export type GraphQLTypes = {
 	sortBy?: string | undefined | null,
 	/** Направление сортировки ("ASC" или "DESC") */
 	sortOrder: string
+};
+	["MarketplaceListReturnClaimsByBranameInput"]: {
+		/** Кооперативный участок (delivery_braname исходного заказа). */
+	delivery_braname: string
 };
 	["MarketplaceListShipmentsInput"]: {
 		/** Фильтр по КУ-получателю. */
@@ -35977,6 +36790,28 @@ export type GraphQLTypes = {
 	/** Причина отказа (≤1000) */
 	reason: string
 };
+	["MarketplaceRejectReturnAtVisitInput"]: {
+		/** Кооперативный участок, где идёт очный осмотр. */
+	braname: string,
+	/** Идентификатор заявления. */
+	claim_id: string,
+	/** Фото очного осмотра (опционально). */
+	inspection_photos?: Array<GraphQLTypes["MarketplaceReturnClaimPhotoUploadInput"]> | undefined | null,
+	/** Результат и причина отказа (обязательно, до 2000 символов). */
+	inspection_result: string,
+	/** Подписанное решение председателя (опционально). */
+	signed_decision?: GraphQLTypes["MarketplaceReturnClaimSignedStatementInput"] | undefined | null
+};
+	["MarketplaceRejectReturnRemoteInput"]: {
+		/** Кооперативный участок, под чьей юрисдикцией решение. */
+	braname: string,
+	/** Идентификатор заявления. */
+	claim_id: string,
+	/** Причина отказа (обязательно, 1-500 символов). */
+	comment: string,
+	/** Подписанное решение председателя (опционально). */
+	signed_decision?: GraphQLTypes["MarketplaceReturnClaimSignedStatementInput"] | undefined | null
+};
 	["MarketplaceRemoveFromWhitelistInput"]: {
 		/** eosio::name пайщика-поставщика */
 	member_account: string
@@ -36145,6 +36980,196 @@ export type GraphQLTypes = {
 	totalRequests: number,
 	['...on MarketplaceRequestStatistics']: Omit<GraphQLTypes["MarketplaceRequestStatistics"], "...on MarketplaceRequestStatistics">
 };
+	/** Заявление пайщика на гарантийный возврат имущества (Эпик 7). */
+["MarketplaceReturnClaim"]: {
+	__typename: "MarketplaceReturnClaim",
+	actual_quantity: number,
+	coopname: string,
+	created_at: GraphQLTypes["DateTime"],
+	decision_log: Array<GraphQLTypes["MarketplaceReturnClaimDecisionEntry"]>,
+	/** Категория дефекта (если указана). */
+	defect_category?: GraphQLTypes["MarketplaceReturnClaimDefectCategory"] | undefined | null,
+	/** КУ доставки исходного заказа (куда подаётся заявление). */
+	delivery_braname: string,
+	expected_resolution: GraphQLTypes["MarketplaceReturnClaimExpectedResolution"],
+	fact_cost: string,
+	id: string,
+	/** Снапшот compensating-forward (только при ACCEPTED_AT_VISIT). */
+	ledger_snapshot?: GraphQLTypes["MarketplaceReturnClaimLedgerSnapshot"] | undefined | null,
+	/** Параметры очного осмотра (заполняется на стадии accept/reject_at_visit). */
+	on_site_inspection?: GraphQLTypes["MarketplaceReturnClaimOnSiteInspection"] | undefined | null,
+	order_hash: string,
+	order_id: string,
+	/** Аккаунт пайщика-заявителя. */
+	orderer_account: string,
+	/** Фотографии товара, приложенные пайщиком. */
+	photos: Array<GraphQLTypes["MarketplaceReturnClaimPhoto"]>,
+	/** Текст обращения пайщика. */
+	reason_text: string,
+	/** Якорный hash on-chain return_request. */
+	request_hash: string,
+	/** Текущий статус заявления. */
+	status: GraphQLTypes["MarketplaceReturnClaimStatus"],
+	/** Хэш транзакции submretrn в блокчейне. */
+	submretrn_tx_hash: string,
+	/** Поставщик исходного заказа (для будущего возврата поставщику). */
+	supplier_account: string,
+	updated_at: GraphQLTypes["DateTime"],
+	['...on MarketplaceReturnClaim']: Omit<GraphQLTypes["MarketplaceReturnClaim"], "...on MarketplaceReturnClaim">
+};
+	/** Запись о решении председателя по заявлению на возврат. */
+["MarketplaceReturnClaimDecisionEntry"]: {
+	__typename: "MarketplaceReturnClaimDecisionEntry",
+	/** Время фиксации решения. */
+	at: GraphQLTypes["DateTime"],
+	/** Кооперативный участок, под чьей юрисдикцией решение. */
+	braname: string,
+	/** Аккаунт председателя, принявшего решение. */
+	by_chairman_account: string,
+	/** Комментарий / причина / результат осмотра. */
+	comment: string,
+	/** Тип решения: approve_visit / reject_remote / accept_at_visit / reject_at_visit. */
+	decision: string,
+	/** Стадия решения: «remote» — удалённое, «on_site» — очный осмотр. */
+	stage: string,
+	/** Хэш транзакции в блокчейне для аудита решения. */
+	tx_hash: string,
+	['...on MarketplaceReturnClaimDecisionEntry']: Omit<GraphQLTypes["MarketplaceReturnClaimDecisionEntry"], "...on MarketplaceReturnClaimDecisionEntry">
+};
+	/** Категория дефекта, на который ссылается заявление на возврат. */
+["MarketplaceReturnClaimDefectCategory"]: MarketplaceReturnClaimDefectCategory;
+	/** Желаемый исход возврата (в MVP — только восстановление средств на программном кошельке). */
+["MarketplaceReturnClaimExpectedResolution"]: MarketplaceReturnClaimExpectedResolution;
+	/** Снапшот compensating-forward пары после успешного приёма возврата. */
+["MarketplaceReturnClaimLedgerSnapshot"]: {
+	__typename: "MarketplaceReturnClaimLedgerSnapshot",
+	/** Сумма compensating-forward (восстановленная на программный кошелёк). */
+	amount: string,
+	/** Время фиксации возврата. */
+	at: GraphQLTypes["DateTime"],
+	/** Возвращённое количество единиц имущества. */
+	returned_quantity: number,
+	/** Хэш транзакции accretrn в блокчейне. */
+	tx_hash: string,
+	['...on MarketplaceReturnClaimLedgerSnapshot']: Omit<GraphQLTypes["MarketplaceReturnClaimLedgerSnapshot"], "...on MarketplaceReturnClaimLedgerSnapshot">
+};
+	/** Параметры очного осмотра имущества председателем КУ. */
+["MarketplaceReturnClaimOnSiteInspection"]: {
+	__typename: "MarketplaceReturnClaimOnSiteInspection",
+	/** Время очного осмотра. */
+	at: GraphQLTypes["DateTime"],
+	/** Председатель, проводивший очный осмотр. */
+	by_chairman_account: string,
+	/** Фото очного осмотра. */
+	photos: Array<GraphQLTypes["MarketplaceReturnClaimPhoto"]>,
+	/** Текстовое описание результатов осмотра. */
+	result_text: string,
+	/** Сканированный штрих-код имущества (если применимо). */
+	scanned_barcode?: string | undefined | null,
+	['...on MarketplaceReturnClaimOnSiteInspection']: Omit<GraphQLTypes["MarketplaceReturnClaimOnSiteInspection"], "...on MarketplaceReturnClaimOnSiteInspection">
+};
+	/** Снапшот фото-доказательства, приложенного к заявлению на возврат. */
+["MarketplaceReturnClaimPhoto"]: {
+	__typename: "MarketplaceReturnClaimPhoto",
+	/** Sha256-хеш содержимого фото (используется как анкер on-chain). */
+	content_hash: string,
+	/** MIME-тип файла. */
+	mime_type: string,
+	/** Время загрузки фото в bucket. */
+	uploaded_at: GraphQLTypes["DateTime"],
+	/** Подписанный URL для чтения фото из bucket'а stol-zakazov:images. */
+	url: string,
+	['...on MarketplaceReturnClaimPhoto']: Omit<GraphQLTypes["MarketplaceReturnClaimPhoto"], "...on MarketplaceReturnClaimPhoto">
+};
+	["MarketplaceReturnClaimPhotoUploadInput"]: {
+		/** Содержимое файла, закодированное в base64. */
+	base64: string,
+	/** MIME-тип фото (image/jpeg, image/png либо image/webp). */
+	mime_type: string
+};
+	["MarketplaceReturnClaimRequestPayloadInput"]: {
+		/** Валюта расчёта (например «RUB»). */
+	currency: string,
+	/** Якорный hash заявления на возврат (request_hash). */
+	hash: string,
+	/** Идентификатор программы Стола Заказов в кооперативе. */
+	program_id: number,
+	/** Заголовок имущества, по которому подаётся возврат. */
+	title: string,
+	/** Итоговая возвращаемая сумма (десятичное число строкой). */
+	total_cost: string,
+	/** Тип операции в каноне ICommonRequest (для возврата — «RETURN»). */
+	type: string,
+	/** Стоимость единицы (десятичное число строкой). */
+	unit_cost: string,
+	/** Единица измерения (например «ед.»). */
+	unit_of_measurement: string,
+	/** Возвращаемое количество единиц. */
+	units: number
+};
+	/** Результат любого изменения статуса заявления на гарантийный возврат. */
+["MarketplaceReturnClaimResult"]: {
+	__typename: "MarketplaceReturnClaimResult",
+	/** Актуальное состояние заявления. */
+	claim: GraphQLTypes["MarketplaceReturnClaim"],
+	/** Хэш транзакции в блокчейне последнего действия. */
+	tx_hash: string,
+	['...on MarketplaceReturnClaimResult']: Omit<GraphQLTypes["MarketplaceReturnClaimResult"], "...on MarketplaceReturnClaimResult">
+};
+	["MarketplaceReturnClaimSignablePayloadInput"]: {
+		/** Возвращаемое количество (если не указано — выданное количество). */
+	actual_quantity?: number | undefined | null,
+	/** Категория дефекта (опционально, дублируется в meta документа). */
+	defect_category?: GraphQLTypes["MarketplaceReturnClaimDefectCategory"] | undefined | null,
+	/** Идентификатор заказа, по которому готовится заявление. */
+	order_id: string
+};
+	["MarketplaceReturnClaimSignedMetaDocumentInput"]: {
+		/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
+	doc_data_hash?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Описание возвращаемого имущества — копируется из Order пайщика и используется как якорь возврата (hash совпадает с request_hash в on-chain заявлении). */
+	request: GraphQLTypes["MarketplaceReturnClaimRequestPayloadInput"],
+	/** Сформировать документ без сохранения (preview-режим). */
+	skip_save: boolean,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
+	["MarketplaceReturnClaimSignedStatementInput"]: {
+		/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаданные подписанного заявления на возврат имущества. */
+	meta: GraphQLTypes["MarketplaceReturnClaimSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<GraphQLTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	/** Состояние заявления на гарантийный возврат имущества пайщика. */
+["MarketplaceReturnClaimStatus"]: MarketplaceReturnClaimStatus;
 	["MarketplaceSetKUStatusInput"]: {
 		/** Имя аккаунта кооператива */
 	coopname: string,
@@ -37061,6 +38086,8 @@ export type GraphQLTypes = {
 	marketplaceAcceptCpp: GraphQLTypes["MarketplaceCppStatus"],
 	/** Поставщик принимает один индивидуальный заказ. */
 	marketplaceAcceptIndividualOrder: GraphQLTypes["MarketplaceSupplierOrderActionResult"],
+	/** Председатель по результатам очного осмотра принимает гарантийный возврат — атомарно восстанавливает средства на программный кошелёк пайщика и возвращает имущество на склад участка. */
+	marketplaceAcceptReturnAtVisit: GraphQLTypes["MarketplaceReturnClaimResult"],
 	/** Добавить категории в доступные для кооператива (целые категории)
 
 Требуемые роли: chairman.  */
@@ -37073,6 +38100,8 @@ export type GraphQLTypes = {
 	marketplaceAddToWhitelist: GraphQLTypes["MarketplaceWhitelistEntry"],
 	/** Одобрить Offer (status → ACTIVE) (admin) */
 	marketplaceApproveOffer: GraphQLTypes["MarketplaceOffer"],
+	/** Председатель кооперативного участка по результатам удалённого рассмотрения приглашает пайщика на очный осмотр имущества. */
+	marketplaceApproveReturnVisit: GraphQLTypes["MarketplaceReturnClaimResult"],
 	/** Отменить свой заказ до его приёма поставщиком; средства разблокируются. */
 	marketplaceCancelOrder: GraphQLTypes["MarketplaceCancelOrderResult"],
 	/** Очистить все доступные категории (сделать доступными все)
@@ -37089,6 +38118,8 @@ export type GraphQLTypes = {
 
 Требуемые роли: member, chairman.  */
 	marketplaceCreateRequest: GraphQLTypes["MarketplaceRequest"],
+	/** Пайщик подаёт заявление на гарантийный возврат имущества — backend кладёт фото в защищённое хранилище и фиксирует заявление в блокчейне. */
+	marketplaceCreateReturnClaim: GraphQLTypes["MarketplaceReturnClaimResult"],
 	/** Сформировать партии поставки из акцептованной заявки: одна группа на каждый КУ-получатель. */
 	marketplaceCreateShipment: GraphQLTypes["MarketplaceCreateShipmentResult"],
 	/** Поставщик отклоняет сводную заявку — все заказы пакета отменяются, средства разблокируются. */
@@ -37109,6 +38140,10 @@ export type GraphQLTypes = {
 	marketplaceOpenIssuance: GraphQLTypes["MarketplaceIssuanceResult"],
 	/** Отклонить Offer с причиной (status → REJECTED) (admin) */
 	marketplaceRejectOffer: GraphQLTypes["MarketplaceOffer"],
+	/** Председатель по результатам очного осмотра отказывает в гарантийном возврате — заказчик забирает имущество обратно, движений по средствам нет. */
+	marketplaceRejectReturnAtVisit: GraphQLTypes["MarketplaceReturnClaimResult"],
+	/** Председатель отказывает в гарантийном возврате удалённо с указанием причины — финальное решение, движений по средствам нет. */
+	marketplaceRejectReturnRemote: GraphQLTypes["MarketplaceReturnClaimResult"],
 	/** Удалить категории из доступных для кооператива (включая все их типы)
 
 Требуемые роли: chairman.  */
@@ -38832,10 +39867,14 @@ export type GraphQLTypes = {
 	marketplaceListMyOrders: GraphQLTypes["MarketplaceOrderPaginationResult"],
 	/** Список заказов текущего пайщика, готовых к получению на пункте выдачи. */
 	marketplaceListMyReadyToReceive: Array<GraphQLTypes["MarketplaceOrder"]>,
+	/** Все заявления текущего пайщика на гарантийный возврат — активные и архивные. */
+	marketplaceListMyReturnClaims: Array<GraphQLTypes["MarketplaceReturnClaim"]>,
 	/** История выплат поставщику в столе поставщика — статусы по каждому заказу. */
 	marketplaceListOutgoingPaymentsAsSupplier: Array<GraphQLTypes["MarketplaceOutgoingPaymentRequest"]>,
 	/** Список Offer'ов на модерации (admin) */
 	marketplaceListPendingOffers: GraphQLTypes["MarketplaceOfferPaginationResult"],
+	/** Список заявлений на гарантийный возврат, привязанных к кооперативному участку доставки — для председателя своего КУ. */
+	marketplaceListReturnClaimsByBraname: Array<GraphQLTypes["MarketplaceReturnClaim"]>,
 	/** Список партий поставки текущего поставщика — для стола подготовки поставки и истории. */
 	marketplaceListShipments: Array<GraphQLTypes["MarketplaceShipment"]>,
 	/** Список заказов, по которым текущий пайщик является поставщиком (стол поставщика). */
@@ -38850,6 +39889,10 @@ export type GraphQLTypes = {
 	marketplaceRegistrationOfferStatus: GraphQLTypes["MarketplaceRegistrationOfferStatus"],
 	/** Получить обязательные атрибуты для категории и типа товара marketplace */
 	marketplaceRequiredAttributes: Array<GraphQLTypes["MarketplaceAttribute"]>,
+	/** Получить одно заявление на гарантийный возврат по идентификатору. */
+	marketplaceReturnClaim: GraphQLTypes["MarketplaceReturnClaim"],
+	/** Превью заявления на гарантийный возврат имущества для подписания пайщиком-заказчиком. */
+	marketplaceReturnClaimSignablePayload: GraphQLTypes["GeneratedDocument"],
 	/** Поиск атрибутов marketplace по названию */
 	marketplaceSearchAttributes: Array<GraphQLTypes["MarketplaceAttribute"]>,
 	/** Поиск значений словаря marketplace */
@@ -40770,6 +41813,26 @@ export enum MarketplaceOutgoingPaymentRequestStatus {
 	DECLINED = "DECLINED",
 	PENDING = "PENDING"
 }
+/** Категория дефекта, на который ссылается заявление на возврат. */
+export enum MarketplaceReturnClaimDefectCategory {
+	BROKEN = "BROKEN",
+	EXPIRED = "EXPIRED",
+	NOT_AS_DESCRIBED = "NOT_AS_DESCRIBED",
+	OTHER = "OTHER",
+	WRONG_ITEM = "WRONG_ITEM"
+}
+/** Желаемый исход возврата (в MVP — только восстановление средств на программном кошельке). */
+export enum MarketplaceReturnClaimExpectedResolution {
+	FUNDS_RETURN = "FUNDS_RETURN"
+}
+/** Состояние заявления на гарантийный возврат имущества пайщика. */
+export enum MarketplaceReturnClaimStatus {
+	ACCEPTED_AT_VISIT = "ACCEPTED_AT_VISIT",
+	APPROVED_FOR_VISIT = "APPROVED_FOR_VISIT",
+	PENDING_CHAIRMAN_REVIEW = "PENDING_CHAIRMAN_REVIEW",
+	REJECTED_AT_VISIT = "REJECTED_AT_VISIT",
+	REJECTED_REMOTELY = "REJECTED_REMOTELY"
+}
 /** Вариант доставки партии на КУ: A — поставщик везёт лично, B — экспедитор по ТТН. */
 export enum MarketplaceShipmentDeliveryVariant {
 	EXPEDITOR = "EXPEDITOR",
@@ -41204,6 +42267,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceAcceptConsolidatedRequestInput"]: ValueTypes["MarketplaceAcceptConsolidatedRequestInput"];
 	["MarketplaceAcceptCppInput"]: ValueTypes["MarketplaceAcceptCppInput"];
 	["MarketplaceAcceptIndividualOrderInput"]: ValueTypes["MarketplaceAcceptIndividualOrderInput"];
+	["MarketplaceAcceptReturnAtVisitInput"]: ValueTypes["MarketplaceAcceptReturnAtVisitInput"];
 	["MarketplaceAddToWhitelistInput"]: ValueTypes["MarketplaceAddToWhitelistInput"];
 	["MarketplaceAplReceptionByIdInput"]: ValueTypes["MarketplaceAplReceptionByIdInput"];
 	["MarketplaceAplReceptionFactEntryInput"]: ValueTypes["MarketplaceAplReceptionFactEntryInput"];
@@ -41212,6 +42276,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceAplReceptionStatus"]: ValueTypes["MarketplaceAplReceptionStatus"];
 	["MarketplaceAplReceptionVariant"]: ValueTypes["MarketplaceAplReceptionVariant"];
 	["MarketplaceApproveOfferInput"]: ValueTypes["MarketplaceApproveOfferInput"];
+	["MarketplaceApproveReturnVisitInput"]: ValueTypes["MarketplaceApproveReturnVisitInput"];
 	["MarketplaceAttributeType"]: ValueTypes["MarketplaceAttributeType"];
 	["MarketplaceBarcodeFormat"]: ValueTypes["MarketplaceBarcodeFormat"];
 	["MarketplaceBarcodeStrategy"]: ValueTypes["MarketplaceBarcodeStrategy"];
@@ -41220,6 +42285,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceCreateAplReceptionInput"]: ValueTypes["MarketplaceCreateAplReceptionInput"];
 	["MarketplaceCreateOfferInput"]: ValueTypes["MarketplaceCreateOfferInput"];
 	["MarketplaceCreateOrderInput"]: ValueTypes["MarketplaceCreateOrderInput"];
+	["MarketplaceCreateReturnClaimInput"]: ValueTypes["MarketplaceCreateReturnClaimInput"];
 	["MarketplaceCreateShipmentInput"]: ValueTypes["MarketplaceCreateShipmentInput"];
 	["MarketplaceDeclineConsolidatedRequestInput"]: ValueTypes["MarketplaceDeclineConsolidatedRequestInput"];
 	["MarketplaceDeclineIndividualOrderInput"]: ValueTypes["MarketplaceDeclineIndividualOrderInput"];
@@ -41241,6 +42307,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceListMyOffersInput"]: ValueTypes["MarketplaceListMyOffersInput"];
 	["MarketplaceListOrdersInput"]: ValueTypes["MarketplaceListOrdersInput"];
 	["MarketplaceListPendingOffersInput"]: ValueTypes["MarketplaceListPendingOffersInput"];
+	["MarketplaceListReturnClaimsByBranameInput"]: ValueTypes["MarketplaceListReturnClaimsByBranameInput"];
 	["MarketplaceListShipmentsInput"]: ValueTypes["MarketplaceListShipmentsInput"];
 	["MarketplaceOpenIssuanceInput"]: ValueTypes["MarketplaceOpenIssuanceInput"];
 	["MarketplaceOrderCycleType"]: ValueTypes["MarketplaceOrderCycleType"];
@@ -41248,7 +42315,17 @@ type ZEUS_VARIABLES = {
 	["MarketplaceOrderStatus"]: ValueTypes["MarketplaceOrderStatus"];
 	["MarketplaceOutgoingPaymentRequestStatus"]: ValueTypes["MarketplaceOutgoingPaymentRequestStatus"];
 	["MarketplaceRejectOfferInput"]: ValueTypes["MarketplaceRejectOfferInput"];
+	["MarketplaceRejectReturnAtVisitInput"]: ValueTypes["MarketplaceRejectReturnAtVisitInput"];
+	["MarketplaceRejectReturnRemoteInput"]: ValueTypes["MarketplaceRejectReturnRemoteInput"];
 	["MarketplaceRemoveFromWhitelistInput"]: ValueTypes["MarketplaceRemoveFromWhitelistInput"];
+	["MarketplaceReturnClaimDefectCategory"]: ValueTypes["MarketplaceReturnClaimDefectCategory"];
+	["MarketplaceReturnClaimExpectedResolution"]: ValueTypes["MarketplaceReturnClaimExpectedResolution"];
+	["MarketplaceReturnClaimPhotoUploadInput"]: ValueTypes["MarketplaceReturnClaimPhotoUploadInput"];
+	["MarketplaceReturnClaimRequestPayloadInput"]: ValueTypes["MarketplaceReturnClaimRequestPayloadInput"];
+	["MarketplaceReturnClaimSignablePayloadInput"]: ValueTypes["MarketplaceReturnClaimSignablePayloadInput"];
+	["MarketplaceReturnClaimSignedMetaDocumentInput"]: ValueTypes["MarketplaceReturnClaimSignedMetaDocumentInput"];
+	["MarketplaceReturnClaimSignedStatementInput"]: ValueTypes["MarketplaceReturnClaimSignedStatementInput"];
+	["MarketplaceReturnClaimStatus"]: ValueTypes["MarketplaceReturnClaimStatus"];
 	["MarketplaceSetKUStatusInput"]: ValueTypes["MarketplaceSetKUStatusInput"];
 	["MarketplaceShipmentDeliveryVariant"]: ValueTypes["MarketplaceShipmentDeliveryVariant"];
 	["MarketplaceShipmentGroupInput"]: ValueTypes["MarketplaceShipmentGroupInput"];
