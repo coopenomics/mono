@@ -29,3 +29,17 @@ export const marketplaceInventoryItemSelector = Selector('MarketplaceInventoryIt
 export const marketplaceLabelInventoryResultSelector = Selector('MarketplaceLabelInventoryResult')({
   inventory: rawInventorySelector,
 })
+
+const rawLabelShipmentInventoryResultSelector = {
+  inventory: rawInventorySelector,
+  labeled_order_ids: true,
+  skipped_order_ids: true,
+}
+
+const _validateLabelShipmentInventoryResult: MakeAllFieldsRequired<
+  ValueTypes['MarketplaceLabelShipmentInventoryResult']
+> = rawLabelShipmentInventoryResultSelector
+
+export const marketplaceLabelShipmentInventoryResultSelector = Selector(
+  'MarketplaceLabelShipmentInventoryResult',
+)(rawLabelShipmentInventoryResultSelector)

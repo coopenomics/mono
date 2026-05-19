@@ -725,6 +725,14 @@ export const AllTypesProps: Record<string,any> = {
 		format:"MarketplaceBarcodeFormat",
 		strategy:"MarketplaceBarcodeStrategy"
 	},
+	MarketplaceLabelShipmentInventoryInput:{
+		default_strategy:"MarketplaceBarcodeStrategy",
+		format:"MarketplaceBarcodeFormat",
+		per_order_overrides:"MarketplaceLabelShipmentInventoryOverride"
+	},
+	MarketplaceLabelShipmentInventoryOverride:{
+		strategy:"MarketplaceBarcodeStrategy"
+	},
 	MarketplaceListAplReceptionsByBranameInput:{
 
 	},
@@ -1356,6 +1364,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceLabelInventory:{
 			data:"MarketplaceLabelInventoryInput"
+		},
+		marketplaceLabelShipmentInventory:{
+			data:"MarketplaceLabelShipmentInventoryInput"
 		},
 		marketplaceOpenIssuance:{
 			data:"MarketplaceOpenIssuanceInput"
@@ -4045,6 +4056,11 @@ export const ReturnTypes: Record<string,any> = {
 	MarketplaceLabelInventoryResult:{
 		inventory:"MarketplaceInventoryItem"
 	},
+	MarketplaceLabelShipmentInventoryResult:{
+		inventory:"MarketplaceInventoryItem",
+		labeled_order_ids:"ID",
+		skipped_order_ids:"ID"
+	},
 	MarketplaceMemberWallet:{
 		coopname:"String",
 		username:"String",
@@ -4684,6 +4700,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceDetailKU:"MarketplaceKUDetails",
 		marketplaceFinalizeIssuance:"MarketplaceIssuanceResult",
 		marketplaceLabelInventory:"MarketplaceLabelInventoryResult",
+		marketplaceLabelShipmentInventory:"MarketplaceLabelShipmentInventoryResult",
 		marketplaceOpenIssuance:"MarketplaceIssuanceResult",
 		marketplaceRejectOffer:"MarketplaceOffer",
 		marketplaceRejectReturnAtVisit:"MarketplaceReturnClaimResult",

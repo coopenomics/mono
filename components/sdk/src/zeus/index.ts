@@ -6766,6 +6766,34 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceLabelInventoryResult']?: Omit<ValueTypes["MarketplaceLabelInventoryResult"], "...on MarketplaceLabelInventoryResult">
 }>;
+	["MarketplaceLabelShipmentInventoryInput"]: {
+	/** Стратегия маркировки по умолчанию для всех заказов партии. */
+	default_strategy?: ValueTypes["MarketplaceBarcodeStrategy"] | undefined | null | Variable<any, string>,
+	/** Формат штрих-кода для всей партии. По умолчанию — CODE128. */
+	format?: ValueTypes["MarketplaceBarcodeFormat"] | undefined | null | Variable<any, string>,
+	/** Перекрытия стратегии для отдельных заказов партии (если состав смешанный). */
+	per_order_overrides?: Array<ValueTypes["MarketplaceLabelShipmentInventoryOverride"]> | undefined | null | Variable<any, string>,
+	/** Партия поставки, для всех заказов которой формируются этикетки. */
+	shipment_id: ValueTypes["ID"] | Variable<any, string>
+};
+	["MarketplaceLabelShipmentInventoryOverride"]: {
+	/** Заказ в составе партии, для которого задаётся отдельная стратегия. */
+	order_id: ValueTypes["ID"] | Variable<any, string>,
+	/** Размер упаковки для стратегии PER_PACKAGE именно для этого заказа. */
+	pack_size?: number | undefined | null | Variable<any, string>,
+	/** Стратегия маркировки именно для этого заказа партии. */
+	strategy?: ValueTypes["MarketplaceBarcodeStrategy"] | undefined | null | Variable<any, string>
+};
+	["MarketplaceLabelShipmentInventoryResult"]: AliasType<{
+	/** Сгенерированные наклейки по всем промаркированным заказам партии. */
+	inventory?:ValueTypes["MarketplaceInventoryItem"],
+	/** Идентификаторы заказов, которые были промаркированы этим вызовом. */
+	labeled_order_ids?:boolean | `@${string}`,
+	/** Идентификаторы заказов, пропущенных из-за уже существующей маркировки (идемпотентность). */
+	skipped_order_ids?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceLabelShipmentInventoryResult']?: Omit<ValueTypes["MarketplaceLabelShipmentInventoryResult"], "...on MarketplaceLabelShipmentInventoryResult">
+}>;
 	["MarketplaceListAplReceptionsByBranameInput"]: {
 	/** Идентификатор КУ-получателя. */
 	braname: string | Variable<any, string>
@@ -8118,6 +8146,7 @@ marketplaceDeclineOrderFromOpenPool?: [{	input: ValueTypes["MarketplaceDeclineOr
 marketplaceDetailKU?: [{	data: ValueTypes["MarketplaceDetailKUInput"] | Variable<any, string>},ValueTypes["MarketplaceKUDetails"]],
 marketplaceFinalizeIssuance?: [{	data: ValueTypes["MarketplaceFinalizeIssuanceInput"] | Variable<any, string>},ValueTypes["MarketplaceIssuanceResult"]],
 marketplaceLabelInventory?: [{	data: ValueTypes["MarketplaceLabelInventoryInput"] | Variable<any, string>},ValueTypes["MarketplaceLabelInventoryResult"]],
+marketplaceLabelShipmentInventory?: [{	data: ValueTypes["MarketplaceLabelShipmentInventoryInput"] | Variable<any, string>},ValueTypes["MarketplaceLabelShipmentInventoryResult"]],
 marketplaceOpenIssuance?: [{	data: ValueTypes["MarketplaceOpenIssuanceInput"] | Variable<any, string>},ValueTypes["MarketplaceIssuanceResult"]],
 marketplaceRejectOffer?: [{	input: ValueTypes["MarketplaceRejectOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
 marketplaceRejectReturnAtVisit?: [{	data: ValueTypes["MarketplaceRejectReturnAtVisitInput"] | Variable<any, string>},ValueTypes["MarketplaceReturnClaimResult"]],
@@ -16667,6 +16696,33 @@ export type ResolverInputTypes = {
 	inventory?:ResolverInputTypes["MarketplaceInventoryItem"],
 		__typename?: boolean | `@${string}`
 }>;
+	["MarketplaceLabelShipmentInventoryInput"]: {
+	/** Стратегия маркировки по умолчанию для всех заказов партии. */
+	default_strategy?: ResolverInputTypes["MarketplaceBarcodeStrategy"] | undefined | null,
+	/** Формат штрих-кода для всей партии. По умолчанию — CODE128. */
+	format?: ResolverInputTypes["MarketplaceBarcodeFormat"] | undefined | null,
+	/** Перекрытия стратегии для отдельных заказов партии (если состав смешанный). */
+	per_order_overrides?: Array<ResolverInputTypes["MarketplaceLabelShipmentInventoryOverride"]> | undefined | null,
+	/** Партия поставки, для всех заказов которой формируются этикетки. */
+	shipment_id: ResolverInputTypes["ID"]
+};
+	["MarketplaceLabelShipmentInventoryOverride"]: {
+	/** Заказ в составе партии, для которого задаётся отдельная стратегия. */
+	order_id: ResolverInputTypes["ID"],
+	/** Размер упаковки для стратегии PER_PACKAGE именно для этого заказа. */
+	pack_size?: number | undefined | null,
+	/** Стратегия маркировки именно для этого заказа партии. */
+	strategy?: ResolverInputTypes["MarketplaceBarcodeStrategy"] | undefined | null
+};
+	["MarketplaceLabelShipmentInventoryResult"]: AliasType<{
+	/** Сгенерированные наклейки по всем промаркированным заказам партии. */
+	inventory?:ResolverInputTypes["MarketplaceInventoryItem"],
+	/** Идентификаторы заказов, которые были промаркированы этим вызовом. */
+	labeled_order_ids?:boolean | `@${string}`,
+	/** Идентификаторы заказов, пропущенных из-за уже существующей маркировки (идемпотентность). */
+	skipped_order_ids?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["MarketplaceListAplReceptionsByBranameInput"]: {
 	/** Идентификатор КУ-получателя. */
 	braname: string
@@ -17979,6 +18035,7 @@ marketplaceDeclineOrderFromOpenPool?: [{	input: ResolverInputTypes["MarketplaceD
 marketplaceDetailKU?: [{	data: ResolverInputTypes["MarketplaceDetailKUInput"]},ResolverInputTypes["MarketplaceKUDetails"]],
 marketplaceFinalizeIssuance?: [{	data: ResolverInputTypes["MarketplaceFinalizeIssuanceInput"]},ResolverInputTypes["MarketplaceIssuanceResult"]],
 marketplaceLabelInventory?: [{	data: ResolverInputTypes["MarketplaceLabelInventoryInput"]},ResolverInputTypes["MarketplaceLabelInventoryResult"]],
+marketplaceLabelShipmentInventory?: [{	data: ResolverInputTypes["MarketplaceLabelShipmentInventoryInput"]},ResolverInputTypes["MarketplaceLabelShipmentInventoryResult"]],
 marketplaceOpenIssuance?: [{	data: ResolverInputTypes["MarketplaceOpenIssuanceInput"]},ResolverInputTypes["MarketplaceIssuanceResult"]],
 marketplaceRejectOffer?: [{	input: ResolverInputTypes["MarketplaceRejectOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
 marketplaceRejectReturnAtVisit?: [{	data: ResolverInputTypes["MarketplaceRejectReturnAtVisitInput"]},ResolverInputTypes["MarketplaceReturnClaimResult"]],
@@ -26248,6 +26305,32 @@ export type ModelTypes = {
 		/** Сгенерированные наклейки: одна или несколько в зависимости от стратегии. */
 	inventory: Array<ModelTypes["MarketplaceInventoryItem"]>
 };
+	["MarketplaceLabelShipmentInventoryInput"]: {
+	/** Стратегия маркировки по умолчанию для всех заказов партии. */
+	default_strategy?: ModelTypes["MarketplaceBarcodeStrategy"] | undefined | null,
+	/** Формат штрих-кода для всей партии. По умолчанию — CODE128. */
+	format?: ModelTypes["MarketplaceBarcodeFormat"] | undefined | null,
+	/** Перекрытия стратегии для отдельных заказов партии (если состав смешанный). */
+	per_order_overrides?: Array<ModelTypes["MarketplaceLabelShipmentInventoryOverride"]> | undefined | null,
+	/** Партия поставки, для всех заказов которой формируются этикетки. */
+	shipment_id: ModelTypes["ID"]
+};
+	["MarketplaceLabelShipmentInventoryOverride"]: {
+	/** Заказ в составе партии, для которого задаётся отдельная стратегия. */
+	order_id: ModelTypes["ID"],
+	/** Размер упаковки для стратегии PER_PACKAGE именно для этого заказа. */
+	pack_size?: number | undefined | null,
+	/** Стратегия маркировки именно для этого заказа партии. */
+	strategy?: ModelTypes["MarketplaceBarcodeStrategy"] | undefined | null
+};
+	["MarketplaceLabelShipmentInventoryResult"]: {
+		/** Сгенерированные наклейки по всем промаркированным заказам партии. */
+	inventory: Array<ModelTypes["MarketplaceInventoryItem"]>,
+	/** Идентификаторы заказов, которые были промаркированы этим вызовом. */
+	labeled_order_ids: Array<ModelTypes["ID"]>,
+	/** Идентификаторы заказов, пропущенных из-за уже существующей маркировки (идемпотентность). */
+	skipped_order_ids: Array<ModelTypes["ID"]>
+};
 	["MarketplaceListAplReceptionsByBranameInput"]: {
 	/** Идентификатор КУ-получателя. */
 	braname: string
@@ -27931,6 +28014,8 @@ export type ModelTypes = {
 	marketplaceFinalizeIssuance: ModelTypes["MarketplaceIssuanceResult"],
 	/** Оператор КУ маркирует имущество заказа внутренним штрих-кодом (Code128 или EAN-13). */
 	marketplaceLabelInventory: ModelTypes["MarketplaceLabelInventoryResult"],
+	/** Массовая маркировка имущества всех заказов одной партии поставки за один вызов. Идемпотентно: уже промаркированные заказы пропускаются. */
+	marketplaceLabelShipmentInventory: ModelTypes["MarketplaceLabelShipmentInventoryResult"],
 	/** Председатель кооперативного участка открывает выдачу первой подписью акта — заказ готов к получению пайщиком. */
 	marketplaceOpenIssuance: ModelTypes["MarketplaceIssuanceResult"],
 	/** Отклонить Offer с причиной (status → REJECTED) (admin) */
@@ -36745,6 +36830,34 @@ export type GraphQLTypes = {
 	inventory: Array<GraphQLTypes["MarketplaceInventoryItem"]>,
 	['...on MarketplaceLabelInventoryResult']: Omit<GraphQLTypes["MarketplaceLabelInventoryResult"], "...on MarketplaceLabelInventoryResult">
 };
+	["MarketplaceLabelShipmentInventoryInput"]: {
+		/** Стратегия маркировки по умолчанию для всех заказов партии. */
+	default_strategy?: GraphQLTypes["MarketplaceBarcodeStrategy"] | undefined | null,
+	/** Формат штрих-кода для всей партии. По умолчанию — CODE128. */
+	format?: GraphQLTypes["MarketplaceBarcodeFormat"] | undefined | null,
+	/** Перекрытия стратегии для отдельных заказов партии (если состав смешанный). */
+	per_order_overrides?: Array<GraphQLTypes["MarketplaceLabelShipmentInventoryOverride"]> | undefined | null,
+	/** Партия поставки, для всех заказов которой формируются этикетки. */
+	shipment_id: GraphQLTypes["ID"]
+};
+	["MarketplaceLabelShipmentInventoryOverride"]: {
+		/** Заказ в составе партии, для которого задаётся отдельная стратегия. */
+	order_id: GraphQLTypes["ID"],
+	/** Размер упаковки для стратегии PER_PACKAGE именно для этого заказа. */
+	pack_size?: number | undefined | null,
+	/** Стратегия маркировки именно для этого заказа партии. */
+	strategy?: GraphQLTypes["MarketplaceBarcodeStrategy"] | undefined | null
+};
+	["MarketplaceLabelShipmentInventoryResult"]: {
+	__typename: "MarketplaceLabelShipmentInventoryResult",
+	/** Сгенерированные наклейки по всем промаркированным заказам партии. */
+	inventory: Array<GraphQLTypes["MarketplaceInventoryItem"]>,
+	/** Идентификаторы заказов, которые были промаркированы этим вызовом. */
+	labeled_order_ids: Array<GraphQLTypes["ID"]>,
+	/** Идентификаторы заказов, пропущенных из-за уже существующей маркировки (идемпотентность). */
+	skipped_order_ids: Array<GraphQLTypes["ID"]>,
+	['...on MarketplaceLabelShipmentInventoryResult']: Omit<GraphQLTypes["MarketplaceLabelShipmentInventoryResult"], "...on MarketplaceLabelShipmentInventoryResult">
+};
 	["MarketplaceListAplReceptionsByBranameInput"]: {
 		/** Идентификатор КУ-получателя. */
 	braname: string
@@ -38520,6 +38633,8 @@ export type GraphQLTypes = {
 	marketplaceFinalizeIssuance: GraphQLTypes["MarketplaceIssuanceResult"],
 	/** Оператор КУ маркирует имущество заказа внутренним штрих-кодом (Code128 или EAN-13). */
 	marketplaceLabelInventory: GraphQLTypes["MarketplaceLabelInventoryResult"],
+	/** Массовая маркировка имущества всех заказов одной партии поставки за один вызов. Идемпотентно: уже промаркированные заказы пропускаются. */
+	marketplaceLabelShipmentInventory: GraphQLTypes["MarketplaceLabelShipmentInventoryResult"],
 	/** Председатель кооперативного участка открывает выдачу первой подписью акта — заказ готов к получению пайщиком. */
 	marketplaceOpenIssuance: GraphQLTypes["MarketplaceIssuanceResult"],
 	/** Отклонить Offer с причиной (status → REJECTED) (admin) */
@@ -42722,6 +42837,8 @@ type ZEUS_VARIABLES = {
 	["MarketplaceIssueActSignedDocumentInput"]: ValueTypes["MarketplaceIssueActSignedDocumentInput"];
 	["MarketplaceIssueActSignedMetaDocumentInput"]: ValueTypes["MarketplaceIssueActSignedMetaDocumentInput"];
 	["MarketplaceLabelInventoryInput"]: ValueTypes["MarketplaceLabelInventoryInput"];
+	["MarketplaceLabelShipmentInventoryInput"]: ValueTypes["MarketplaceLabelShipmentInventoryInput"];
+	["MarketplaceLabelShipmentInventoryOverride"]: ValueTypes["MarketplaceLabelShipmentInventoryOverride"];
 	["MarketplaceListAplReceptionsByBranameInput"]: ValueTypes["MarketplaceListAplReceptionsByBranameInput"];
 	["MarketplaceListCatalogInput"]: ValueTypes["MarketplaceListCatalogInput"];
 	["MarketplaceListConsolidatedRequestsInput"]: ValueTypes["MarketplaceListConsolidatedRequestsInput"];

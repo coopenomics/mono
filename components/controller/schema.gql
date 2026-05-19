@@ -7926,6 +7926,46 @@ type MarketplaceLabelInventoryResult {
   inventory: [MarketplaceInventoryItem!]!
 }
 
+input MarketplaceLabelShipmentInventoryInput {
+  """Стратегия маркировки по умолчанию для всех заказов партии."""
+  default_strategy: MarketplaceBarcodeStrategy
+
+  """Формат штрих-кода для всей партии. По умолчанию — CODE128."""
+  format: MarketplaceBarcodeFormat
+
+  """
+  Перекрытия стратегии для отдельных заказов партии (если состав смешанный).
+  """
+  per_order_overrides: [MarketplaceLabelShipmentInventoryOverride!]
+
+  """Партия поставки, для всех заказов которой формируются этикетки."""
+  shipment_id: ID!
+}
+
+input MarketplaceLabelShipmentInventoryOverride {
+  """Заказ в составе партии, для которого задаётся отдельная стратегия."""
+  order_id: ID!
+
+  """Размер упаковки для стратегии PER_PACKAGE именно для этого заказа."""
+  pack_size: Int
+
+  """Стратегия маркировки именно для этого заказа партии."""
+  strategy: MarketplaceBarcodeStrategy
+}
+
+type MarketplaceLabelShipmentInventoryResult {
+  """Сгенерированные наклейки по всем промаркированным заказам партии."""
+  inventory: [MarketplaceInventoryItem!]!
+
+  """Идентификаторы заказов, которые были промаркированы этим вызовом."""
+  labeled_order_ids: [ID!]!
+
+  """
+  Идентификаторы заказов, пропущенных из-за уже существующей маркировки (идемпотентность).
+  """
+  skipped_order_ids: [ID!]!
+}
+
 input MarketplaceListAplReceptionsByBranameInput {
   """Идентификатор КУ-получателя."""
   braname: String!
@@ -10641,6 +10681,11 @@ type Mutation {
   Оператор КУ маркирует имущество заказа внутренним штрих-кодом (Code128 или EAN-13).
   """
   marketplaceLabelInventory(data: MarketplaceLabelInventoryInput!): MarketplaceLabelInventoryResult!
+
+  """
+  Массовая маркировка имущества всех заказов одной партии поставки за один вызов. Идемпотентно: уже промаркированные заказы пропускаются.
+  """
+  marketplaceLabelShipmentInventory(data: MarketplaceLabelShipmentInventoryInput!): MarketplaceLabelShipmentInventoryResult!
 
   """
   Председатель кооперативного участка открывает выдачу первой подписью акта — заказ готов к получению пайщиком.

@@ -14,6 +14,8 @@ export * as CreateOffer from './createOffer'
 export * as CreateShipment from './createShipment'
 /** Эпик 5: наклеить штрих-коды на единицы заказа (оператор КУ) */
 export * as LabelInventory from './labelInventory'
+/** Эпик 5: наклеить штрих-коды на все заказы партии разом (оператор КУ) */
+export * as LabelShipmentInventory from './labelShipmentInventory'
 /** Эпик 5: создать акт приёмки партии (оператор КУ) */
 export * as CreateAplReception from './createAplReception'
 /** Эпик 5: первая подпись поставщика на акте приёмки */

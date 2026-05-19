@@ -1,74 +1,137 @@
 <script lang="ts" setup>
-import { onMounted, ref } from 'vue';
-import { Loading } from 'quasar';
-import { SuccessAlert, FailAlert } from 'src/shared/api';
-import { BarcodeDisplay } from 'src/widgets/Marketplace/BarcodeDisplay';
+import { computed, onMounted, ref } from 'vue'
+import { Loading } from 'quasar'
+import { SuccessAlert, FailAlert } from 'src/shared/api'
+import { BarcodeDisplay } from 'src/widgets/Marketplace/BarcodeDisplay'
 import {
   fetchInventoryByBraname,
+  fetchShipmentsForLabeling,
   labelInventory,
+  labelShipmentInventory,
   type MarketplaceInventoryItemView,
-} from '../api';
+  type MarketplaceShipmentView,
+} from '../api'
 
-/**
- * Story 5.5 + техдолг 598-21: операторский стол маркировки имущества.
- *
- * Левая колонка — ввод order_id и кнопка «Сгенерировать этикетки».
- * Правая колонка — batch-режим печати: все этикетки текущей партии
- * выводятся в одну сетку для печати на принтере 80×40 мм одним заданием.
- *
- * Стратегия маркировки читается из Offer по умолчанию (per-Offer
- * `barcode_strategy`, техдолг 598-22), кнопки переопределения остаются
- * как admin-override. Канон widget: `BarcodeDisplay` (UX-DR12).
- */
+type LabelingMode = 'PER_ORDER' | 'BATCH'
+type BarcodeStrategy = 'PER_ORDER' | 'PER_UNIT' | 'PER_PACKAGE'
+type BarcodeFormat = 'CODE128' | 'EAN13'
 
-const braname = ref<string>('');
-const orderIdInput = ref<string>('');
-const items = ref<MarketplaceInventoryItemView[]>([]);
-const loading = ref<boolean>(false);
+const braname = ref<string>('')
+const items = ref<MarketplaceInventoryItemView[]>([])
+const loading = ref<boolean>(false)
+
+const mode = ref<LabelingMode>('BATCH')
+
+const orderIdInput = ref<string>('')
+
+const shipments = ref<MarketplaceShipmentView[]>([])
+const selectedShipmentId = ref<string | null>(null)
+const defaultStrategy = ref<BarcodeStrategy | null>(null)
+const defaultFormat = ref<BarcodeFormat>('CODE128')
+const lastBatchSummary = ref<{ labeled: number; skipped: number } | null>(null)
+
+const strategyOptions = [
+  { label: 'По умолчанию из карточки товара', value: null },
+  { label: 'Одна этикетка на весь заказ', value: 'PER_ORDER' },
+  { label: 'Отдельная этикетка на каждую единицу', value: 'PER_UNIT' },
+  { label: 'Этикетка на упаковку', value: 'PER_PACKAGE' },
+] as const
+
+const formatOptions = [
+  { label: 'CODE128', value: 'CODE128' as const },
+  { label: 'EAN13', value: 'EAN13' as const },
+]
+
+const shipmentOptions = computed(() =>
+  shipments.value.map((s) => ({
+    label: `${s.id.slice(0, 8)} · ${s.braname} · ${s.delivery_variant} · ${s.status}`,
+    value: s.id,
+  })),
+)
 
 async function loadInventory(): Promise<void> {
-  if (!braname.value.trim()) return;
-  loading.value = true;
+  if (!braname.value.trim()) return
+  loading.value = true
   try {
-    items.value = await fetchInventoryByBraname(braname.value.trim());
+    items.value = await fetchInventoryByBraname(braname.value.trim())
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить инвентарь');
+    FailAlert(e, 'Не удалось загрузить инвентарь')
   } finally {
-    loading.value = false;
+    loading.value = false
   }
 }
 
-async function generateLabels(): Promise<void> {
-  if (!orderIdInput.value.trim()) {
-    FailAlert(new Error('Укажите идентификатор заказа.'));
-    return;
-  }
-  Loading.show({ message: 'Генерирую этикетки…' });
+async function loadShipments(): Promise<void> {
   try {
-    const result = await labelInventory({ order_id: orderIdInput.value.trim() });
-    SuccessAlert(`Сгенерировано ${result.inventory.length} этикеток — можно печатать`);
-    orderIdInput.value = '';
-    await loadInventory();
+    shipments.value = await fetchShipmentsForLabeling(braname.value.trim() || undefined)
   } catch (e) {
-    FailAlert(e, 'Не удалось сгенерировать этикетки');
+    FailAlert(e, 'Не удалось загрузить список партий')
+  }
+}
+
+async function generateLabelsPerOrder(): Promise<void> {
+  if (!orderIdInput.value.trim()) {
+    FailAlert(new Error('Укажите идентификатор заказа.'))
+    return
+  }
+  Loading.show({ message: 'Генерирую этикетки…' })
+  try {
+    const result = await labelInventory({ order_id: orderIdInput.value.trim() })
+    SuccessAlert(`Сгенерировано ${result.inventory.length} этикеток — можно печатать`)
+    orderIdInput.value = ''
+    await loadInventory()
+  } catch (e) {
+    FailAlert(e, 'Не удалось сгенерировать этикетки')
   } finally {
-    Loading.hide();
+    Loading.hide()
+  }
+}
+
+async function generateLabelsForShipment(): Promise<void> {
+  if (!selectedShipmentId.value) {
+    FailAlert(new Error('Выберите партию для маркировки.'))
+    return
+  }
+  Loading.show({ message: 'Маркирую партию…' })
+  try {
+    const result = await labelShipmentInventory({
+      shipment_id: selectedShipmentId.value,
+      default_strategy: defaultStrategy.value ?? undefined,
+      format: defaultFormat.value,
+    })
+    lastBatchSummary.value = {
+      labeled: result.labeled_order_ids.length,
+      skipped: result.skipped_order_ids.length,
+    }
+    const skipNote = result.skipped_order_ids.length
+      ? ` Пропущено уже промаркированных: ${result.skipped_order_ids.length}.`
+      : ''
+    SuccessAlert(
+      `Партия промаркирована. Заказов в работе: ${result.labeled_order_ids.length}.${skipNote} Готовы к печати ${result.inventory.length} этикеток.`,
+    )
+    if (!braname.value && result.inventory[0]?.braname) {
+      braname.value = result.inventory[0].braname
+    }
+    await loadInventory()
+  } catch (e) {
+    FailAlert(e, 'Не удалось промаркировать партию')
+  } finally {
+    Loading.hide()
   }
 }
 
 function openPrintWindow(): void {
-  window.print();
+  window.print()
 }
 
-onMounted(() => {
-  // В реальной интеграции braname придёт из current member / маршрута оператора.
-  // Здесь — пустой input до явного ввода.
-});
+onMounted(async () => {
+  await loadShipments()
+})
 </script>
 
 <template lang="pug">
 q-page.mp-role-operator.mp-inventory-labeling.q-pa-md
-  .row.q-mb-md.q-gutter-md.no-print
+  .row.q-mb-md.q-gutter-md.no-print.items-center
     q-input.col-3(
       v-model="braname"
       dense
@@ -77,22 +140,84 @@ q-page.mp-role-operator.mp-inventory-labeling.q-pa-md
       @keyup.enter="loadInventory"
     )
     q-btn(no-caps color="primary" :loading="loading" label="Загрузить инвентарь" @click="loadInventory")
+    q-btn(flat no-caps icon="refresh" label="Обновить список партий" @click="loadShipments")
     q-space
     q-btn(flat no-caps icon="print" label="Печать партии" :disable="!items.length" @click="openPrintWindow")
 
-  .row.q-gutter-md.q-mb-md.no-print
-    q-input.col-4(
-      v-model="orderIdInput"
-      dense
-      outlined
-      label="ID заказа для маркировки"
+  .row.q-mb-md.no-print
+    q-btn-toggle(
+      v-model="mode"
+      no-caps
+      unelevated
+      toggle-color="primary"
+      :options="[{ label: 'Маркировка партии целиком', value: 'BATCH' }, { label: 'Поштучно по заказу', value: 'PER_ORDER' }]"
     )
-    q-btn(no-caps unelevated color="primary" label="Сгенерировать этикетки" @click="generateLabels")
-    span.text-caption.text-grey-7.self-center
-      | Стратегия маркировки берётся из карточки товара поставщика (per-Offer).
+
+  q-card.q-mb-md.no-print(flat bordered v-if="mode === 'BATCH'")
+    q-card-section
+      .text-subtitle2.q-mb-sm Маркировка партии целиком
+      .text-caption.text-grey-7.q-mb-md
+        | Выберите партию поставки и стратегию по умолчанию. Сервер сам пройдёт по всем заказам партии и сгенерирует этикетки.
+        | Уже промаркированные заказы пропускаются автоматически.
+      .row.q-gutter-md.q-mb-sm
+        q-select.col-5(
+          v-model="selectedShipmentId"
+          dense
+          outlined
+          emit-value
+          map-options
+          label="Партия поставки"
+          :options="shipmentOptions"
+          :disable="!shipmentOptions.length"
+        )
+        q-select.col-3(
+          v-model="defaultStrategy"
+          dense
+          outlined
+          emit-value
+          map-options
+          label="Стратегия маркировки по умолчанию"
+          :options="strategyOptions"
+        )
+        q-select.col-3(
+          v-model="defaultFormat"
+          dense
+          outlined
+          emit-value
+          map-options
+          label="Формат штрих-кода"
+          :options="formatOptions"
+        )
+      .row.q-gutter-md.items-center
+        q-btn(
+          no-caps
+          unelevated
+          color="primary"
+          label="Промаркировать партию"
+          :disable="!selectedShipmentId"
+          @click="generateLabelsForShipment"
+        )
+        span.text-caption.text-grey-7(v-if="lastBatchSummary")
+          | Последний прогон: промаркировано {{ lastBatchSummary.labeled }}, пропущено {{ lastBatchSummary.skipped }}.
+        span.text-caption.text-grey-7(v-else)
+          | Стратегия по умолчанию переопределяет per-Offer настройку только если выбрана явно.
+
+  q-card.q-mb-md.no-print(flat bordered v-else)
+    q-card-section
+      .text-subtitle2.q-mb-sm Маркировка одного заказа
+      .row.q-gutter-md
+        q-input.col-4(
+          v-model="orderIdInput"
+          dense
+          outlined
+          label="ID заказа для маркировки"
+        )
+        q-btn(no-caps unelevated color="primary" label="Сгенерировать этикетки" @click="generateLabelsPerOrder")
+        span.text-caption.text-grey-7.self-center
+          | Стратегия маркировки берётся из карточки товара поставщика (per-Offer).
 
   .text-grey-7.text-center.q-pa-xl.no-print(v-if="!items.length")
-    | Инвентарь пуст. Загрузите КУ и нажмите «Сгенерировать этикетки» для нового заказа.
+    | Инвентарь пуст. Загрузите КУ, промаркируйте партию или отдельный заказ — этикетки появятся справа.
 
   .mp-inventory-labeling__grid(v-else)
     .mp-inventory-labeling__label(v-for="item in items" :key="item.id")
@@ -122,7 +247,16 @@ q-page.mp-role-operator.mp-inventory-labeling.q-pa-md
 @media print {
   .no-print { display: none !important; }
   .mp-inventory-labeling__grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4mm;
+  }
+  .mp-inventory-labeling__label {
+    page-break-inside: avoid;
+    width: 100%;
+  }
+  @page {
+    size: A4;
+    margin: 8mm;
   }
 }
 </style>
