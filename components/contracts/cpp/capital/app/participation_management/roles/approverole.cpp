@@ -32,6 +32,14 @@ void capital::approverole(name coopname, checksum256 request_hash,
     coopname, req.project_hash, req.username, approved_rate, approved_hours
   );
 
+  // Только для ROLE-заявок: подключаем участника к проекту по заявленной роли.
+  // RATE_UPDATE роль не меняет, только ставку — inline action не нужен.
+  if (req.request_type == Capital::RoleRequests::RequestType::ROLE) {
+    Capital::RoleRequests::apply_role_to_project(
+      coopname, req.project_hash, req.username, req.role
+    );
+  }
+
   // event ridge: заявитель и мастер компонента видят решение.
   require_recipient(req.username);
   require_recipient(req.master);

@@ -44,15 +44,16 @@ struct [[eosio::table, eosio::contract(CAPITAL)]] role_request {
   checksum256   request_hash;                                        ///< Хеш заявки (анкер)
   checksum256   project_hash;                                        ///< Проект / компонент
   eosio::name   username;                                            ///< Заявитель (REQUEST) или кандидат (INVITE)
-  eosio::name   master;                                              ///< Мастер компонента (одобряющий)
-  eosio::name   role;                                                ///< Желаемая роль: creator | author | contributor (и т.п.)
-  eosio::asset  rate_per_hour     = asset(0, _root_govern_symbol);   ///< Желаемая ставка
-  uint64_t      hours_per_day     = 0;                               ///< Желаемая норма часов
+  eosio::name   master;                                              ///< Мастер компонента (одобряющий) — при invite на роль master это координатор/председатель
+  eosio::name   role;                                                ///< Заявляемая роль: creator | author | master (контрибьютор — L1, сюда не попадает)
+  eosio::asset  rate_per_hour     = asset(0, _root_govern_symbol);   ///< Заявленная пайщиком/мастером ставка часа (всегда явная, не из contributors)
+  uint64_t      hours_per_day     = 0;                               ///< Заявленная норма часов
   eosio::asset  approved_rate     = asset(0, _root_govern_symbol);   ///< Утверждённая ставка (≠ requested при approve)
   uint64_t      approved_hours    = 0;                               ///< Утверждённая норма часов
   eosio::name   direction         = Direction::REQUEST;              ///< request | invite
   eosio::name   request_type      = RequestType::ROLE;               ///< role | rateupdate
   eosio::name   status            = Status::PENDING;                 ///< pending | approved | declined
+  std::string   description;                                         ///< Текст заявки / приглашения (может быть пустым)
   document2     statement;                                           ///< Заявление пайщика / инвайт-документ мастера
   document2     master_decision;                                     ///< Решение мастера (approve/decline)
   std::string   decline_reason;                                      ///< Причина отказа (если DECLINED)
@@ -96,6 +97,7 @@ inline void create(
   uint64_t hours_per_day,
   eosio::name direction,
   eosio::name request_type,
+  const std::string &description,
   const document2 &statement
 ) {
   role_requests_index t(_capital, coopname.value);
@@ -116,9 +118,53 @@ inline void create(
     r.direction = direction;
     r.request_type = request_type;
     r.status = Status::PENDING;
+    r.description = description;
     r.statement = statement;
     r.created_at = current_time_point();
   });
+}
+
+/**
+ * @brief Проверяет, что role входит в допустимый набор {creator, author, master}.
+ *        Контрибьюторы и инвесторы — это L1-роли и через role_requests не идут.
+ */
+inline void validate_role_or_fail(eosio::name role) {
+  eosio::check(
+    role == "creator"_n || role == "author"_n || role == "master"_n,
+    "Допустимые роли заявки: creator, author, master"
+  );
+}
+
+/**
+ * @brief Применяет заявленную роль к проекту через inline action:
+ *        author → addauthor, master → setmaster, creator → no-op
+ *        (creator фиксируется фактически при первом createcmmt).
+ *
+ * Вызывается из approverole/acceptinvite после фиксации решения, чтобы
+ * заявленная при подаче роль немедленно отражалась в реестре участников.
+ * Inline action идёт под permission coopname — председатель/backend подписывает.
+ */
+inline void apply_role_to_project(
+  eosio::name coopname,
+  const checksum256 &project_hash,
+  eosio::name username,
+  eosio::name role
+) {
+  if (role == "author"_n) {
+    eosio::action(
+      eosio::permission_level{coopname, "active"_n},
+      _capital,
+      "addauthor"_n,
+      std::make_tuple(coopname, project_hash, username)
+    ).send();
+  } else if (role == "master"_n) {
+    eosio::action(
+      eosio::permission_level{coopname, "active"_n},
+      _capital,
+      "setmaster"_n,
+      std::make_tuple(coopname, project_hash, username)
+    ).send();
+  }
 }
 
 inline void approve(

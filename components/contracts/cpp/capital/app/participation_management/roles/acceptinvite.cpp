@@ -21,6 +21,13 @@ void capital::acceptinvite(name coopname, checksum256 request_hash) {
     coopname, req.project_hash, req.username, req.rate_per_hour, req.hours_per_day
   );
 
+  // Подключаем кандидата к проекту по приглашённой роли.
+  if (req.request_type == Capital::RoleRequests::RequestType::ROLE) {
+    Capital::RoleRequests::apply_role_to_project(
+      coopname, req.project_hash, req.username, req.role
+    );
+  }
+
   // event ridge: кандидат и мастер видят принятие инвайта.
   require_recipient(req.username);
   require_recipient(req.master);

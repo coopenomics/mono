@@ -353,7 +353,7 @@ public:
     void requestrole(name coopname, checksum256 request_hash, checksum256 project_hash,
                      name username, name master, name role,
                      eosio::asset rate_per_hour, uint64_t hours_per_day,
-                     document2 statement);
+                     std::string description, document2 statement);
 
     [[eosio::action]]
     void approverole(name coopname, checksum256 request_hash,
@@ -367,7 +367,7 @@ public:
     void inviterole(name coopname, checksum256 request_hash, checksum256 project_hash,
                     name candidate, name master, name role,
                     eosio::asset rate_per_hour, uint64_t hours_per_day,
-                    document2 statement);
+                    std::string description, document2 statement);
 
     [[eosio::action]]
     void acceptinvite(name coopname, checksum256 request_hash);
@@ -379,6 +379,6 @@ public:
     void requestrateu(name coopname, checksum256 request_hash, checksum256 project_hash,
                       name username, name master,
                       eosio::asset new_rate, uint64_t new_hours,
-                      document2 statement);
+                      std::string description, document2 statement);
 
 };

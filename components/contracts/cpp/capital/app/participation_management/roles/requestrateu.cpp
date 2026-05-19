@@ -10,6 +10,7 @@
  * @param master       Мастер компонента (ожидаемый одобряющий)
  * @param new_rate     Желаемая новая ставка
  * @param new_hours    Желаемая новая норма часов
+ * @param description  Текст заявки на обновление ставки (может быть пустым)
  * @param statement    Заявление (RateUpdateStatement — Эпик 3)
  * @ingroup public_actions
  * @ingroup public_capital_actions
@@ -17,7 +18,7 @@
 void capital::requestrateu(name coopname, checksum256 request_hash, checksum256 project_hash,
                            name username, name master,
                            eosio::asset new_rate, uint64_t new_hours,
-                           document2 statement) {
+                           std::string description, document2 statement) {
   require_auth(coopname);
 
   verify_document_or_fail(statement);
@@ -25,13 +26,13 @@ void capital::requestrateu(name coopname, checksum256 request_hash, checksum256 
   eosio::check(new_rate.amount > 0, "Новая ставка должна быть положительной");
   eosio::check(new_hours > 0 && new_hours <= 8, "Норма часов — от 1 до 8");
 
-  // role не значим для RATE_UPDATE — кладём "rate"_n как маркер.
+  // role не значим для RATE_UPDATE — кладём "rate"_n как маркер (валидацию ролей не запускаем).
   Capital::RoleRequests::create(
     coopname, request_hash, project_hash, username, master, "rate"_n,
     new_rate, new_hours,
     Capital::RoleRequests::Direction::REQUEST,
     Capital::RoleRequests::RequestType::RATE_UPDATE,
-    statement
+    description, statement
   );
 
   // event ridge: заявитель и мастер компонента видят запрос на обновление ставки.
