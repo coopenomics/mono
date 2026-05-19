@@ -90,14 +90,16 @@ export class CommitOutputDTO extends BaseOutputDTO {
   commit_hash!: string;
 
   @Field(() => String, {
+    nullable: true,
     description: 'Описание коммита',
   })
-  description!: string;
+  description?: string;
 
   @Field(() => String, {
+    nullable: true,
     description: 'Метаданные коммита',
   })
-  meta!: string;
+  meta?: string;
 
   @Field(() => GraphQLJSON, {
     nullable: true,

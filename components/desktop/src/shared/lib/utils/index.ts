@@ -1,4 +1,5 @@
 export * from './formatDateForEos';
+export * from './floorDecimalString';
 export * from './formatToAsset';
 export * from './formatAsset2Digits';
 export * from './addAssets';

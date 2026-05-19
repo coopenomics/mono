@@ -7,11 +7,17 @@ name: Build contracts container
 # ke-bootstrap'ом (отдельный артефакт), который при старте ноды деплоит
 # контракты через `cleos set contract`.
 #
-# Триггер — push в одну из веток-окружений (dev / testnet / main).
-# Маппинг:
+# Триггер — push в одну из веток-окружений (dev / testnet / main) с
+# изменением .cpp/CMakeLists/build-скриптов. Маппинг:
 #   dev     → IS_TESTNET=ON,  tag=dev
 #   testnet → IS_TESTNET=ON,  tag=testnet
 #   main    → IS_TESTNET=OFF, tag=main + latest
+#
+# ВАЖНО: тэги `v*` тут НЕ обрабатываются — они уезжают в `release.yaml`,
+# который делает релиз атомарно (контракты + контейнеры + webhook в
+# одном job'е). См. release.yaml для контекста — там в комментарии
+# описана причина (гонка build-contracts и build-containers по push'у
+# тэга, инцидент 2026-05-13 с ledger2 walletop sweep'ом).
 #
 # Сам compile идёт через CDT-образ `dicoop/blockchain_v5.1.1:dev`
 # (тот же, что использует `components/contracts/build.sh|build-all.sh`).
@@ -22,24 +28,12 @@ name: Build contracts container
 #   TELEGRAM_BOT_TOKEN  / TELEGRAM_CHAT_ID — уведомления
 
 on:
-  push:
-    branches: [dev, testnet, main]
-    paths:
-      - 'components/contracts/cpp/**'
-      - 'components/contracts/CMakeLists.txt'
-      - 'components/contracts/build.sh'
-      - 'components/contracts/build-all.sh'
-      - 'components/contracts/docker/**'
-      - '.github/workflows/build-contracts.yaml'
-    # Дополнительно ловим все push'и тэгов: build-containers.yaml зависит от
-    # успеха этой сборки через workflow_run, и без unconditional запуска по
-    # тегу build-containers не получит триггер для коммитов, где .cpp не
-    # менялся (например `chore(release): publish` правит только версии
-    # пакетов). См. историю гонки 2026-05-13: webhook деплоя сработал на
-    # 2:34 быстрее обновления `dicoop/contracts:testnet`, на чейн уехал
-    # старый wasm.
-    tags:
-      - '*'
+  # Только ручной запуск. Тэги (релизы) обрабатывает release.yaml,
+  # который собирает контракты атомарно вместе с контейнерами и
+  # webhook'ом — отдельная сборка по push'у в ветку только мешает
+  # (две параллельные сборки на каждый release-bump). Здесь оставляем
+  # workflow_dispatch для ручной пересборки `dicoop/contracts:<branch>`
+  # (например, чтобы прокатить wasm на dev-ноду без релизного тэга).
   workflow_dispatch:
 
 jobs:
@@ -48,55 +42,30 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          # Полная история нужна, чтобы при push'е тэга резолвить ветку
-          # через `git branch -r --contains $SHA` (см. следующий step).
-          fetch-depth: 0
 
       - name: Determine build mode and docker tag
-        # Источник режима — ВЕТКА, не имя тэга. Сначала пытаемся взять
-        # `github.ref_name` как ветку (push веток); если не подошло — это
-        # push тэга, и мы ищем какая из dev/testnet/main содержит коммит.
-        # Тэг такого окружения нести семантику не должен (например,
-        # `v2026.5.13-alpha-2` → ветка testnet, BUILD_MODE=test).
         run: |
-          REF="${{ github.ref_name }}"
-          REF_TYPE="${{ github.ref_type }}"
-          BRANCH=""
-          if [ "$REF_TYPE" = "branch" ]; then
-            BRANCH="$REF"
-          else
-            SHA="${{ github.sha }}"
-            for candidate in main testnet dev; do
-              if git branch -r --contains "$SHA" 2>/dev/null | grep -qE "^[[:space:]]*origin/${candidate}$"; then
-                BRANCH="$candidate"
-                break
-              fi
-            done
-          fi
-
-          case "$BRANCH" in
+          case "${{ github.ref_name }}" in
             main)
-              echo "BUILD_MODE=prod"      >> $GITHUB_ENV
-              echo "DOCKER_TAG=main"      >> $GITHUB_ENV
-              echo "EXTRA_TAG=latest"     >> $GITHUB_ENV
+              echo "BUILD_MODE=prod"      >> "$GITHUB_ENV"
+              echo "DOCKER_TAG=main"      >> "$GITHUB_ENV"
+              echo "EXTRA_TAG=latest"     >> "$GITHUB_ENV"
               ;;
             testnet)
-              echo "BUILD_MODE=test"      >> $GITHUB_ENV
-              echo "DOCKER_TAG=testnet"   >> $GITHUB_ENV
-              echo "EXTRA_TAG="           >> $GITHUB_ENV
+              echo "BUILD_MODE=test"      >> "$GITHUB_ENV"
+              echo "DOCKER_TAG=testnet"   >> "$GITHUB_ENV"
+              echo "EXTRA_TAG="           >> "$GITHUB_ENV"
               ;;
             dev)
-              echo "BUILD_MODE=test"      >> $GITHUB_ENV
-              echo "DOCKER_TAG=dev"       >> $GITHUB_ENV
-              echo "EXTRA_TAG="           >> $GITHUB_ENV
+              echo "BUILD_MODE=test"      >> "$GITHUB_ENV"
+              echo "DOCKER_TAG=dev"       >> "$GITHUB_ENV"
+              echo "EXTRA_TAG="           >> "$GITHUB_ENV"
               ;;
             *)
-              echo "Unsupported ref: ref_name=$REF ref_type=$REF_TYPE resolved_branch='$BRANCH'" >&2
+              echo "Unsupported branch ${{ github.ref_name }}" >&2
               exit 1
               ;;
           esac
-          echo "Resolved BRANCH=$BRANCH (ref_name=$REF ref_type=$REF_TYPE)"
 
       - name: Pull CDT toolchain image
         run: docker pull dicoop/blockchain_v5.1.1:dev

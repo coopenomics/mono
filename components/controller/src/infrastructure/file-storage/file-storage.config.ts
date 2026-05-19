@@ -3,8 +3,8 @@
  * Передаётся в `FileStorageInfrastructureModule.forRoot(options)`.
  */
 export interface FileStorageInfrastructureOptions {
-  /** URL S3-совместимого бэкенда. Для MinIO — `http://minio:9000`. */
-  endpoint: string;
+  /** URL S3-совместимого бэкенда. Для MinIO — `http://minio:9000`. Пусто/undefined = file storage отключён (no-op). */
+  endpoint?: string;
   accessKey: string;
   secretKey: string;
   /** Имя физического бакета на сервере (например, `coop-voskhod`). */

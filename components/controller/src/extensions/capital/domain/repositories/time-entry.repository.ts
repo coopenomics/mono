@@ -60,6 +60,21 @@ export interface TimeEntryRepository {
   commitTimeEntries(entries: TimeEntryDomainEntity[], commitHash: string): Promise<void>;
 
   /**
+   * Найти закоммиченные time-entries по commit_hash. Используется при decline,
+   * чтобы понять какие задачи затронуты до отката.
+   */
+  findCommittedByCommitHash(commitHash: string): Promise<TimeEntryDomainEntity[]>;
+
+  /**
+   * Откатить закоммиченные time-entries по commit_hash обратно в uncommitted
+   * (is_committed=false, commit_hash=NULL). Используется при decline коммита, чтобы
+   * часы вернулись в доступный пул. Идемпотентно.
+   *
+   * @returns количество затронутых записей
+   */
+  revertCommittedEntriesByCommitHash(commitHash: string): Promise<number>;
+
+  /**
    * Удалить запись времени
    */
   delete(id: string): Promise<void>;

@@ -42,6 +42,14 @@ export class TimeTrackingService {
   }
 
   /**
+   * Откатить time-entries отклонённого коммита обратно в uncommitted и нормализовать
+   * раскладку estimate-долей для затронутых задач.
+   */
+  async revertEntriesForDeclinedCommit(commitHash: string): Promise<void> {
+    await this.timeTrackingInteractor.revertEntriesForDeclinedCommit(commitHash);
+  }
+
+  /**
    * Получить статистику времени для участника по проекту (DTO версия)
    */
   async getTimeStats(contributorHash: string, projectHash: string) {

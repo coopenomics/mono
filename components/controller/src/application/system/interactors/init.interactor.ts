@@ -27,10 +27,14 @@ export class InitInteractor {
     }
 
     // Определяем тип инициализации:
-    // - Если mono не существует - это ПЕРВАЯ инициализация (может быть как серверная так и пользовательская)
-    // - Если existingMono.init_by_server уже установлен - сохраняем его (не меняем источник)
-    // - Если mono существует но init_by_server не установлен - значит это пользовательская инициализация
-    const isServerInit = !existingMono ? true : existingMono.init_by_server === true;
+    // - Если data.is_server_init === true (вызов от провайдера через server-secret) — ВСЕГДА серверная.
+    //   Это разблокирует перезапись user-init данных провайдером при следующем initSystem.
+    // - Иначе сохраняем прежнюю логику: первая инициализация = серверная, повторная — наследует флаг.
+    const isServerInit = data.is_server_init === true
+      ? true
+      : !existingMono
+        ? true
+        : existingMono.init_by_server === true;
 
     // Проверяем права на обновление:
     // Пользователь не может обновлять данные, установленные сервером
@@ -58,11 +62,11 @@ export class InitInteractor {
       await this.monoStatusRepository.setStatus(SystemStatus.initialized);
     }
 
-    // Устанавливаем флаг источника инициализации только если это первая инициализация
-    // - Для серверной инициализации (первый раз): устанавливаем true
-    // - Для пользовательской инициализации (первый раз): устанавливаем false
-    // - При повторной инициализации: НЕ меняем флаг (сохраняем изначальный источник)
-    if (!existingMono) {
+    // Устанавливаем флаг источника инициализации:
+    // - Первая инициализация: ставим isServerInit как есть (true для server-side, true для user-side при первом init — историческое поведение).
+    // - Повторная: если is_server_init=true пришёл от провайдера — поднимаем флаг в true (даже если до этого было user-init).
+    //   Это нужно чтобы провайдер мог перезаписать данные после того как пользователь успел заполнить форму первым.
+    if (!existingMono || data.is_server_init === true) {
       await this.monoStatusRepository.setInitByServer(isServerInit);
     }
 
