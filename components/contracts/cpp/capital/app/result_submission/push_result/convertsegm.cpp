@@ -112,12 +112,15 @@ void capital::convertsegm(eosio::name coopname, eosio::name username,
   // Инкрементируем счётчик сконвертированных сегментов
   Capital::Projects::increment_converted_segments(coopname, current_project.id);
 
-  // Регистрируем заявление о трансляции (1080) в реестре документов и сразу
-  // помечаем процесс p.cap.rid завершённым: package = result_hash — анкер процесса.
-  // make_complete_document шлёт newsubmitted + newresolved одной парой, off-chain
-  // controller видит документ в registry со статусом completed.
-  // Делаем ДО delete_result, чтобы линковка прошла, пока result_hash ещё анкер.
-  Soviet::make_complete_document(
+  // Линкуем заявление о трансляции (1080) к пакету процесса p.cap.rid
+  // (package = result_hash, ведущий документ пакета — заявление о внесении РИД, 1040).
+  // Не make_complete_document: тот вытаскивает 1080 на верхний уровень реестра
+  // как самостоятельный документ. Нужен newlink — тот же канон, что в signact1/signact2:
+  // off-chain controller добавляет документ в группу пакета по action+package, не как top-level.
+  // Делаем ДО delete_result, чтобы линковка прошла, пока result_hash ещё анкер процесса.
+  Action::send<newlink_interface>(
+    _soviet,
+    "newlink"_n,
     _capital,
     coopname,
     username,
