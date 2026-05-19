@@ -348,17 +348,17 @@ public:
     [[eosio::action]]
     void declpgexp(name coopname, checksum256 expense_hash, std::string reason);
 
-    // L2-роли и approved-ставки сегмента (Story 1.7)
+    // L2-роли и approved-ставки сегмента (Story 1.7) — бездокументарная схема,
+    // решения фиксируются только подписью транзакции (require_auth coopname).
     [[eosio::action]]
     void requestrole(name coopname, checksum256 request_hash, checksum256 project_hash,
                      name username, name master, name role,
                      eosio::asset rate_per_hour, uint64_t hours_per_day,
-                     std::string description, document2 statement);
+                     std::string description);
 
     [[eosio::action]]
     void approverole(name coopname, checksum256 request_hash,
-                     eosio::asset approved_rate, uint64_t approved_hours,
-                     document2 master_decision);
+                     eosio::asset approved_rate, uint64_t approved_hours);
 
     [[eosio::action]]
     void declinerole(name coopname, checksum256 request_hash, std::string reason);
@@ -367,7 +367,7 @@ public:
     void inviterole(name coopname, checksum256 request_hash, checksum256 project_hash,
                     name candidate, name master, name role,
                     eosio::asset rate_per_hour, uint64_t hours_per_day,
-                    std::string description, document2 statement);
+                    std::string description);
 
     [[eosio::action]]
     void acceptinvite(name coopname, checksum256 request_hash);
@@ -379,6 +379,6 @@ public:
     void requestrateu(name coopname, checksum256 request_hash, checksum256 project_hash,
                       name username, name master,
                       eosio::asset new_rate, uint64_t new_hours,
-                      std::string description, document2 statement);
+                      std::string description);
 
 };

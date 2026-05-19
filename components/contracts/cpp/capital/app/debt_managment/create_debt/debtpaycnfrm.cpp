@@ -32,11 +32,16 @@ void capital::debtpaycnfrm(name coopname, checksum256 debt_hash) {
   // Увеличиваем долг contributor (теперь долг активен и должен быть погашен через внесение результата)
   Capital::Contributors::increase_debt_amount(coopname, contributor->id, exist_debt.amount);
 
-  // Централизованный учёт займа: дублируем запись в контракт loan через inline action.
-  // loan.debts становится единым реестром выданных займов для всех контрактов
-  // (capital, marketplace и др.) — общий механизм погашения и проверки лимитов.
+  // Локальный счётчик займов пайщика на проекте этого сегмента (+1).
+  // Используется в signact2 как лимит «10 займов на проект» без обхода byprojhash.
+  Capital::Segments::increase_active_debts_count(coopname, exist_debt.project_hash, exist_debt.username);
+
+  // Централизованный учёт займа в контракте loan — loan-контракт независим от capital,
+  // знает только (coopname, username, debt_hash, amount, repaid_at) + source_contract
+  // (заполняется самим loan::createdebt из payer-авторизации). Локальная привязка к
+  // проекту/программе остаётся в Capital::Debts (поле project_hash).
   // due_at уже проставлен в confirm_paid, читаем обновлённое значение.
   auto fresh_debt = Capital::Debts::get_debt_or_fail(coopname, debt_hash);
-  Loan::create_debt(_capital, coopname, exist_debt.username, exist_debt.project_hash,
+  Loan::create_debt(_capital, coopname, exist_debt.username,
                     debt_hash, fresh_debt.due_at, exist_debt.amount);
 };

@@ -120,6 +120,12 @@ namespace Capital::Segments {
     eosio::binary_extension<eosio::asset> approved_rate_per_hour;         ///< Утверждённая мастером ставка часа на этом сегменте
     eosio::binary_extension<uint64_t> approved_hours_per_day;             ///< Утверждённое мастером количество часов в день на этом сегменте
 
+    // Счётчик активных (PAID/OVERDUE) займов пайщика на проекте этого сегмента.
+    // Инкрементируется в Capital::Debts::confirm_paid, декрементируется в mark_settled.
+    // Используется как лимит «10 займов на проект в одном паевом взносе» (signact2),
+    // чтобы не перебирать byprojhash и не упираться в 30-сек лимит транзакции.
+    eosio::binary_extension<uint32_t> active_debts_count;
+
     uint64_t primary_key() const { return id; }                           ///< Первичный ключ (1)
     
     checksum256 by_project_hash() const { return project_hash; }          ///< Индекс по хэшу проекта (2)
@@ -449,12 +455,55 @@ inline void increase_debt_amount(eosio::name coopname, uint64_t segment_id, eosi
 inline void decrease_debt_amount(eosio::name coopname, uint64_t segment_id, eosio::asset amount) {
   Capital::Segments::segments_index segments(_capital, coopname.value);
   auto segment = segments.find(segment_id);
-  
+
   eosio::check(segment->debt_amount >= amount, "Пайщик не может погасить долг больше, чем должен");
-  
+
   segments.modify(segment, coopname, [&](auto &s) {
     s.debt_amount -= amount;
   });
+}
+
+/**
+ * @brief Увеличивает счётчик активных займов пайщика на сегменте на +1.
+ *        Вызывается в Capital::Debts::confirm_paid после перехода долга в PAID.
+ */
+inline void increase_active_debts_count(eosio::name coopname, const checksum256 &project_hash, eosio::name username) {
+  segments_index segments(_capital, coopname.value);
+  auto idx = segments.get_index<"byprojuser"_n>();
+  auto rkey = combine_checksum_ids(project_hash, username);
+  auto it = idx.find(rkey);
+  eosio::check(it != idx.end(), "Сегмент участника на этом проекте не найден");
+  idx.modify(it, coopname, [&](auto &s) {
+    uint32_t cur = s.active_debts_count.has_value() ? *s.active_debts_count : 0;
+    s.active_debts_count.emplace(cur + 1);
+  });
+}
+
+/**
+ * @brief Уменьшает счётчик активных займов пайщика на сегменте на -1.
+ *        Вызывается в Capital::Debts::mark_settled (settledebt и signact2-погашение).
+ */
+inline void decrease_active_debts_count(eosio::name coopname, const checksum256 &project_hash, eosio::name username) {
+  segments_index segments(_capital, coopname.value);
+  auto idx = segments.get_index<"byprojuser"_n>();
+  auto rkey = combine_checksum_ids(project_hash, username);
+  auto it = idx.find(rkey);
+  eosio::check(it != idx.end(), "Сегмент участника на этом проекте не найден");
+  idx.modify(it, coopname, [&](auto &s) {
+    uint32_t cur = s.active_debts_count.has_value() ? *s.active_debts_count : 0;
+    eosio::check(cur > 0, "Счётчик активных займов уже на нуле");
+    s.active_debts_count.emplace(cur - 1);
+  });
+}
+
+/**
+ * @brief Текущее значение счётчика активных займов пайщика на сегменте.
+ *        Используется в signact2 как лимит обхода долгов проекта (≤10).
+ */
+inline uint32_t get_active_debts_count(eosio::name coopname, const checksum256 &project_hash, eosio::name username) {
+  auto seg = get_segment(coopname, project_hash, username);
+  if (!seg.has_value()) return 0;
+  return seg->active_debts_count.has_value() ? *seg->active_debts_count : 0;
 }
 
 /**

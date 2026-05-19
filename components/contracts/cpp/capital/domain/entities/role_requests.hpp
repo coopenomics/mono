@@ -34,7 +34,23 @@ namespace RequestType {
 }
 
 /**
+ * @brief Допустимые роли заявки на L2-допуск.
+ * Контрибьюторы и инвесторы — L1, через role_requests не идут.
+ */
+namespace Role {
+  constexpr name CREATOR = "creator"_n;
+  constexpr name AUTHOR  = "author"_n;
+  constexpr name MASTER  = "master"_n;
+  constexpr name NONE    = name{};   ///< Для RATE_UPDATE: поле role не значимо
+}
+
+/**
  * @brief Очередь заявок на L2-допуск/инвайт и на обновление approved-ставки.
+ *
+ * Бездокументарная схема: подача и решение оформляются только транзакцией
+ * блокчейна (require_auth coopname). Юридическое заявление при приёме на роль
+ * не требуется — допуск даётся через подпись действия на стороне кооператива.
+ *
  * @par Область памяти (scope): coopname
  * @par Имя таблицы (table): rolerequests
  */
@@ -45,19 +61,17 @@ struct [[eosio::table, eosio::contract(CAPITAL)]] role_request {
   checksum256   project_hash;                                        ///< Проект / компонент
   eosio::name   username;                                            ///< Заявитель (REQUEST) или кандидат (INVITE)
   eosio::name   master;                                              ///< Мастер компонента (одобряющий) — при invite на роль master это координатор/председатель
-  eosio::name   role;                                                ///< Заявляемая роль: creator | author | master (контрибьютор — L1, сюда не попадает)
-  eosio::asset  rate_per_hour     = asset(0, _root_govern_symbol);   ///< Заявленная пайщиком/мастером ставка часа (всегда явная, не из contributors)
-  uint64_t      hours_per_day     = 0;                               ///< Заявленная норма часов
-  eosio::asset  approved_rate     = asset(0, _root_govern_symbol);   ///< Утверждённая ставка (≠ requested при approve)
-  uint64_t      approved_hours    = 0;                               ///< Утверждённая норма часов
-  eosio::name   direction         = Direction::REQUEST;              ///< request | invite
-  eosio::name   request_type      = RequestType::ROLE;               ///< role | rateupdate
-  eosio::name   status            = Status::PENDING;                 ///< pending | approved | declined
+  eosio::name   role             = Role::NONE;                       ///< Role::CREATOR | Role::AUTHOR | Role::MASTER (для RequestType::RATE_UPDATE — Role::NONE)
+  eosio::asset  rate_per_hour    = asset(0, _root_govern_symbol);    ///< Заявленная пайщиком/мастером ставка часа (всегда явная, не из contributors)
+  uint64_t      hours_per_day    = 0;                                ///< Заявленная норма часов
+  eosio::asset  approved_rate    = asset(0, _root_govern_symbol);    ///< Утверждённая ставка (≠ requested при approve)
+  uint64_t      approved_hours   = 0;                                ///< Утверждённая норма часов
+  eosio::name   direction        = Direction::REQUEST;               ///< request | invite
+  eosio::name   request_type     = RequestType::ROLE;                ///< role | rateupdate
+  eosio::name   status           = Status::PENDING;                  ///< pending | approved | declined
   std::string   description;                                         ///< Текст заявки / приглашения (может быть пустым)
-  document2     statement;                                           ///< Заявление пайщика / инвайт-документ мастера
-  document2     master_decision;                                     ///< Решение мастера (approve/decline)
   std::string   decline_reason;                                      ///< Причина отказа (если DECLINED)
-  time_point_sec created_at        = current_time_point();
+  time_point_sec created_at      = current_time_point();
 
   uint64_t   primary_key() const   { return id; }
   checksum256 by_request_hash() const { return request_hash; }
@@ -97,8 +111,7 @@ inline void create(
   uint64_t hours_per_day,
   eosio::name direction,
   eosio::name request_type,
-  const std::string &description,
-  const document2 &statement
+  const std::string &description
 ) {
   role_requests_index t(_capital, coopname.value);
   eosio::check(!get_role_request(coopname, request_hash).has_value(),
@@ -119,25 +132,25 @@ inline void create(
     r.request_type = request_type;
     r.status = Status::PENDING;
     r.description = description;
-    r.statement = statement;
     r.created_at = current_time_point();
   });
 }
 
 /**
- * @brief Проверяет, что role входит в допустимый набор {creator, author, master}.
+ * @brief Проверяет, что role входит в допустимый набор Role::{CREATOR, AUTHOR, MASTER}.
  *        Контрибьюторы и инвесторы — это L1-роли и через role_requests не идут.
+ *        Не применяется к заявкам RequestType::RATE_UPDATE (там role = Role::NONE).
  */
 inline void validate_role_or_fail(eosio::name role) {
   eosio::check(
-    role == "creator"_n || role == "author"_n || role == "master"_n,
+    role == Role::CREATOR || role == Role::AUTHOR || role == Role::MASTER,
     "Допустимые роли заявки: creator, author, master"
   );
 }
 
 /**
  * @brief Применяет заявленную роль к проекту через inline action:
- *        author → addauthor, master → setmaster, creator → no-op
+ *        Role::AUTHOR → addauthor, Role::MASTER → setmaster, Role::CREATOR → no-op
  *        (creator фиксируется фактически при первом createcmmt).
  *
  * Вызывается из approverole/acceptinvite после фиксации решения, чтобы
@@ -150,14 +163,14 @@ inline void apply_role_to_project(
   eosio::name username,
   eosio::name role
 ) {
-  if (role == "author"_n) {
+  if (role == Role::AUTHOR) {
     eosio::action(
       eosio::permission_level{coopname, "active"_n},
       _capital,
       "addauthor"_n,
       std::make_tuple(coopname, project_hash, username)
     ).send();
-  } else if (role == "master"_n) {
+  } else if (role == Role::MASTER) {
     eosio::action(
       eosio::permission_level{coopname, "active"_n},
       _capital,
@@ -171,8 +184,7 @@ inline void approve(
   eosio::name coopname,
   uint64_t request_id,
   const eosio::asset &approved_rate,
-  uint64_t approved_hours,
-  const document2 &master_decision
+  uint64_t approved_hours
 ) {
   role_requests_index t(_capital, coopname.value);
   auto itr = t.find(request_id);
@@ -182,7 +194,6 @@ inline void approve(
     r.status = Status::APPROVED;
     r.approved_rate = approved_rate;
     r.approved_hours = approved_hours;
-    r.master_decision = master_decision;
   });
 }
 

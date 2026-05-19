@@ -52,7 +52,7 @@ namespace Names {
     constexpr eosio::name DECLINE_EXPENSE = "capdeclexpns"_n;
 
     // Коллбэки для программных расходов
-    constexpr eosio::name CREATE_PROGRAM_EXPENSE = "createpgexp"_n;
+    // (CREATE_PROGRAM_EXPENSE объявлен ниже в блоке "акцептов" — общий для обоих контекстов)
     constexpr eosio::name AUTHORIZE_PROGRAM_EXPENSE = "authpgexp"_n;
     constexpr eosio::name DECLINE_PROGRAM_EXPENSE = "declpgexp"_n;
     constexpr eosio::name CONFIRM_PROGRAM_EXPENSE_PAYMENT = "pgexppay"_n;

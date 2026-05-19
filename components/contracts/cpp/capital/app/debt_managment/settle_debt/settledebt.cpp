@@ -45,7 +45,10 @@ void capital::settledebt(name coopname, checksum256 debt_hash, eosio::asset amou
   Capital::Contributors::decrease_debt_amount(coopname, contributor->id, amount);
   Capital::Debts::mark_settled(coopname, exist_debt.id, memo, _capital);
 
-  // Централизованный учёт: удаляем запись из loan.debts через inline action.
+  // Локальный счётчик займов пайщика на сегменте этого проекта (-1).
+  Capital::Segments::decrease_active_debts_count(coopname, exist_debt.project_hash, exist_debt.username);
+
+  // Централизованный учёт: уменьшаем сводную и удаляем запись из loan.debts через inline action.
   Loan::settle_debt(_capital, coopname, exist_debt.username, debt_hash, amount);
 
   // event ridge: и должник, и председатель видят факт погашения.
