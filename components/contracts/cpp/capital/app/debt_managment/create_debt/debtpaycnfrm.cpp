@@ -18,7 +18,9 @@ void capital::debtpaycnfrm(name coopname, checksum256 debt_hash) {
   auto contributor = Capital::Contributors::get_contributor(coopname, exist_debt.username);
   eosio::check(contributor.has_value(), "Контрибьютор не найден");
 
-  // Переводим долг в PAID + проставляем due_at = now + 3 месяца (срок погашения).
+  // Переводим долг в PAID + проставляем due_at = now + 1 год (срок погашения,
+  // решение 2026-05-19 — срок зафиксирован, не привязан к календарному
+  // сроку проекта).
   // confirm_paid внутри проверяет статус pay_pending и атомарно сбрасывает last_pay_error.
   Capital::Debts::confirm_paid(coopname, exist_debt.id, _gateway);
 

@@ -48,7 +48,15 @@ describe('CAPITAL — расширения «Благорост» (Эпик 1)',
     )
 
     it.todo(
-      'Story 1.3: debtpaycnfrm проставляет due_at = now + 3 месяца'
+      'Story 1.3: debtpaycnfrm проставляет due_at = now + 1 год (фиксированный срок, решение 2026-05-19)'
+    )
+
+    it.todo(
+      'Story 1.13: dfltdebt — компонент cancelled/rejected → автоматическое закрытие займа через обращение взыскания на коммиты-обеспечение: o.cap.dflt (Дт 04 / Кт 08, TRANSFER GENERATOR_FUND → COOP_NMA) + o.cap.lnwoff (Дт 80 / Кт 58, BURN LOAN_ISSUED); сегмент уменьшен на сумму займа; долг удалён; без подписи пайщика и без сбора совета'
+    )
+
+    it.todo(
+      'Story 1.13: dfltdebt отвергается, если родительский компонент не в статусе cancelled/rejected'
     )
 
     it.todo(

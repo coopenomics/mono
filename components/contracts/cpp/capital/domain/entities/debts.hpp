@@ -46,7 +46,7 @@ struct [[eosio::table, eosio::contract(CAPITAL)]] debt {
   document2        authorization;             ///< Авторизация совета
   std::string      memo;                      ///< Примечание
   std::string      last_pay_error;            ///< Последняя ошибка outpay от gateway (заполняется debtpaydcln; пусто = успех или ещё не отправлен)
-  time_point_sec   due_at;                    ///< Срок погашения (current_time_point + 3 мес. при переходе в paid); now > due_at → overdue
+  time_point_sec   due_at;                    ///< Срок погашения (current_time_point + 1 год при переходе в paid; решение 2026-05-19); now > due_at → overdue
 
   uint64_t primary_key() const { return id; } ///< Первичный ключ (1)
 
@@ -201,15 +201,21 @@ inline void mark_pay_declined(
 }
 
 /**
- * @brief Кол-во секунд в стандартном сроке погашения займа (3 месяца ≈ 90 дней).
+ * @brief Кол-во секунд в стандартном сроке погашения займа (1 год = 365 дней).
+ *
+ * Решение 2026-05-19 (Игорь Смуров / Алексей Муравьёв): срок займа
+ * фиксированный — год, не привязан к календарному сроку проекта. Если
+ * родительский компонент явно перешёл в `cancelled/rejected` раньше — займ
+ * закрывается досрочно через обращение взыскания на коммиты-обеспечение
+ * (см. `default_debt` / o.cap.dflt + o.cap.lnwoff).
  */
-constexpr uint32_t DEFAULT_DEBT_TERM_SECONDS = 90 * 24 * 60 * 60;
+constexpr uint32_t DEFAULT_DEBT_TERM_SECONDS = 365 * 24 * 60 * 60;
 
 /**
  * @brief Переводит долг в PAID, фиксирует дату выплаты и проставляет due_at.
  *
  * Используется в debtpaycnfrm после успешной outpay из gateway. due_at рассчитывается
- * от current_time_point на 3 месяца вперёд; долги с now > due_at и status == PAID
+ * от current_time_point на год вперёд; долги с now > due_at и status == PAID
  * далее перейдут в OVERDUE через markdebtoverd.
  */
 inline void confirm_paid(
