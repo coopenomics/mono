@@ -97,7 +97,9 @@ export default async ({ page, shot }) => {
   console.log(`[09] saved fixture → ${CHAIRMAN_FIXTURE_PATH}`);
 
   // ---- 4. Чекбокс «Я сохранил ключ» + submit -----------------------------
-  await page.locator('label:has-text("Я сохранил ключ")').click();
+  // Quasar q-checkbox рендерит label в <div class="q-checkbox__label">, не <label>.
+  // Кликаем по самому q-checkbox по тексту его лейбла.
+  await page.locator('.q-checkbox:has-text("Я сохранил ключ")').click();
   await page.waitForTimeout(300);
 
   await shot(
