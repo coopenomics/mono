@@ -650,9 +650,29 @@ export class GenerationService {
   /**
    * Получение историй с фильтрацией
    */
-  async getStories(filter?: StoryFilterInputDTO, options?: PaginationInputDTO): Promise<PaginationResult<StoryOutputDTO>> {
-    // Если указан issue_hash, ищем только по конкретной задаче
+  async getStories(
+    filter?: StoryFilterInputDTO,
+    options?: PaginationInputDTO,
+    currentUser?: MonoAccountDomainInterface
+  ): Promise<PaginationResult<StoryOutputDTO>> {
+    const emptyResult: PaginationResult<StoryOutputDTO> = {
+      items: [],
+      totalCount: 0,
+      currentPage: options?.page || 1,
+      totalPages: 0,
+    };
+
+    // Если указан issue_hash, ищем только по конкретной задаче.
+    // Артефакт задачи виден только тем, у кого есть допуск к проекту/компоненту задачи.
     if (filter?.issue_hash) {
+      const issue = await this.issueRepository.findByIssueHash(filter.issue_hash);
+      if (!issue) {
+        return emptyResult;
+      }
+      const project = await this.projectRepository.findByHash(issue.project_hash);
+      if (!project || !(await this.permissionsService.canViewProjectArtifacts(project, currentUser))) {
+        return emptyResult;
+      }
       const result = await this.storyRepository.findAllPaginated(filter, options);
       return {
         items: result.items as StoryOutputDTO[],
@@ -672,19 +692,51 @@ export class GenerationService {
       // обратной потребности.
       const showIssuesRequirements = filter.show_issues_requirements === true;
 
-      // Собираем все project_hash для фильтрации
-      let projectHashesToFilter: string[] = [filter.project_hash];
+      // Корневой проект запроса: артефакты root показываются только если на нём есть прямой допуск.
+      const rootProject = await this.projectRepository.findByHash(filter.project_hash);
+      if (!rootProject) {
+        return emptyResult;
+      }
 
+      // Список потенциальных хешей: сам проект + дочерние компоненты (если запрошены).
+      let candidateHashes: string[] = [filter.project_hash];
       if (showComponentsRequirements) {
-        // Получаем дочерние компоненты проекта
         try {
           const components = await this.projectRepository.findComponentsByParentHash(filter.project_hash);
           const componentHashes = components.map((component) => component.project_hash);
-          projectHashesToFilter = projectHashesToFilter.concat(componentHashes);
+          candidateHashes = candidateHashes.concat(componentHashes);
         } catch (error) {
           console.warn(`Failed to fetch components for project ${filter.project_hash}`, { error });
-          // Продолжаем с только родительским проектом
         }
+      }
+
+      // Если запрос идёт со страницы компонента (rootProject — компонент), каскад от его родителя
+      // (допуск к родителю-проекту распространяется на этот компонент).
+      const parentForCascade = rootProject.parent_hash || undefined;
+
+      // Оставляем только те проекты, к которым у пользователя есть доступ. Допуск к корневому
+      // проекту автоматически открывает все его компоненты (parentForCascade=undefined для корня,
+      // но допуск на root уже сидит в candidateHashes как первый элемент).
+      const allowedFromRootSide = await this.permissionsService.filterProjectHashesWithArtifactAccess(
+        candidateHashes,
+        currentUser,
+        filter.project_hash
+      );
+
+      // Дополнительно: если страница компонента — пускаем доступ через каскад от родителя.
+      let projectHashesToFilter = allowedFromRootSide;
+      if (parentForCascade) {
+        const allowedFromParentSide = await this.permissionsService.filterProjectHashesWithArtifactAccess(
+          candidateHashes,
+          currentUser,
+          parentForCascade
+        );
+        const merged = new Set<string>([...allowedFromRootSide, ...allowedFromParentSide]);
+        projectHashesToFilter = [...merged];
+      }
+
+      if (projectHashesToFilter.length === 0) {
+        return emptyResult;
       }
 
       // Собираем все issue_hash для фильтрации задач
@@ -744,7 +796,14 @@ export class GenerationService {
       };
     }
 
-    // Для остальных случаев используем стандартную пагинацию
+    // Для остальных случаев (без project_hash/issue_hash) — стандартная пагинация только
+    // для председателя/члена совета. Обычным пайщикам общий список артефактов недоступен:
+    // обращение должно быть строго в скоупе проекта или задачи, где допуск проверен выше.
+    const role = currentUser?.role;
+    const isBoard = role === 'chairman' || role === 'member';
+    if (!isBoard) {
+      return emptyResult;
+    }
     const result = await this.storyRepository.findAllPaginated(filter, options);
     return {
       items: result.items as StoryOutputDTO[],
@@ -755,11 +814,32 @@ export class GenerationService {
   }
 
   /**
-   * Получение истории по хэшу
+   * Получение истории по хэшу. Доступ — только пользователям с допуском к проекту/компоненту,
+   * к которому привязан артефакт (или председателю/члену совета).
    */
-  async getStoryByHash(storyHash: string): Promise<StoryOutputDTO | null> {
+  async getStoryByHash(
+    storyHash: string,
+    currentUser?: MonoAccountDomainInterface
+  ): Promise<StoryOutputDTO | null> {
     const storyEntity = await this.storyRepository.findByStoryHash(storyHash);
-    return storyEntity ? (storyEntity as StoryOutputDTO) : null;
+    if (!storyEntity) {
+      return null;
+    }
+    // Story может быть привязана к проекту (project_hash) или к задаче (issue_hash → её project_hash).
+    let scopeProjectHash: string | undefined = storyEntity.project_hash;
+    if (!scopeProjectHash && storyEntity.issue_hash) {
+      const issue = await this.issueRepository.findByIssueHash(storyEntity.issue_hash);
+      scopeProjectHash = issue?.project_hash;
+    }
+    if (!scopeProjectHash) {
+      // У артефакта нет ни проекта, ни задачи — некорректное состояние, не отдаём.
+      return null;
+    }
+    const project = await this.projectRepository.findByHash(scopeProjectHash);
+    if (!project || !(await this.permissionsService.canViewProjectArtifacts(project, currentUser))) {
+      return null;
+    }
+    return storyEntity as StoryOutputDTO;
   }
 
   /**

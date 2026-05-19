@@ -2666,7 +2666,9 @@ export const ReturnTypes: Record<string,any> = {
 		can_manage_issues:"Boolean",
 		can_set_master:"Boolean",
 		can_set_plan:"Boolean",
+		can_view_artifacts:"Boolean",
 		has_clearance:"Boolean",
+		has_parent_clearance:"Boolean",
 		is_guest:"Boolean",
 		pending_clearance:"Boolean"
 	},

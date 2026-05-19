@@ -675,11 +675,27 @@ export abstract class DocFactory<T extends IGenerate> {
     }
   }
 
+  /**
+   * Truncate (toward-zero) числовой строки до displayPrecision знаков
+   * на уровне строки — без FP-погрешности (0.29 * 100 = 28.999... в IEEE 754).
+   * Принцип: «никогда не показать в документе сумму больше реальной».
+   */
+  private truncateDecimal(numericStr: string, displayPrecision: number): string {
+    const negative = numericStr.startsWith('-')
+    const abs = negative ? numericStr.slice(1) : numericStr
+    const [intPartRaw, decPartRaw = ''] = abs.split('.')
+    const intPart = intPartRaw || '0'
+    const decPart = decPartRaw.padEnd(displayPrecision, '0').slice(0, displayPrecision)
+    const result = displayPrecision > 0 ? `${intPart}.${decPart}` : intPart
+    return negative ? `-${result}` : result
+  }
+
   public formatShare(value: string | number, precision: number = 2): string {
-    const parsed = typeof value === 'string' ? Number.parseFloat(value) : value
+    const str = typeof value === 'string' ? value : value.toString()
+    const parsed = Number.parseFloat(str)
     if (Number.isNaN(parsed))
       return typeof value === 'string' ? value : value.toString()
-    return parsed.toFixed(precision)
+    return this.truncateDecimal(parsed.toFixed(precision + 4), precision)
   }
 
   public formatAsset(asset: string, precision: number = 2): string {
@@ -689,7 +705,7 @@ export abstract class DocFactory<T extends IGenerate> {
     if (!match)
       return asset
     const [, amount, symbol] = match
-    return `${Number.parseFloat(amount).toFixed(precision)} ${symbol}`
+    return `${this.truncateDecimal(amount, precision)} ${symbol}`
   }
 
   public formatPaymentDetails(paymentMethod: any, recipientName: string): string {

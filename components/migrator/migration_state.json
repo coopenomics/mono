@@ -1,5 +1,5 @@
 {
   "local": "049_migrate_phase2_progwallets.ts",
-  "test": "046_create_drafts.ts",
-  "prod": "049_migrate_phase2_progwallets.ts"
+  "test": "050_create_1082_draft.ts",
+  "prod": "050_create_1082_draft.ts"
 }

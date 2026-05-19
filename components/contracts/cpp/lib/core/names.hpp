@@ -124,5 +124,6 @@ namespace Names {
     constexpr eosio::name CREATE_WITHDRAW_2 = "createwthd2"_n; // акцепт возврата из проекта
     constexpr eosio::name CREATE_WITHDRAW_3 = "createwthd3"_n; // акцепт возврата из программы
     constexpr eosio::name CREATE_RESULT = "createresult"_n; // акцепт результата
+    constexpr eosio::name CONVERT_SEGMENT = "convertsegm"_n; // финальная фаза p.cap.rid — трансляция паевого взноса
   }
 }

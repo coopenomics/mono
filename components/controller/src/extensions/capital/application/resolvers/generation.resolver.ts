@@ -220,9 +220,10 @@ export class GenerationResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async getCapitalStories(
     @Args('filter', { nullable: true }) filter?: StoryFilterInputDTO,
-    @Args('options', { nullable: true }) options?: PaginationInputDTO
+    @Args('options', { nullable: true }) options?: PaginationInputDTO,
+    @CurrentUser() currentUser?: MonoAccountDomainInterface
   ): Promise<PaginationResult<StoryOutputDTO>> {
-    return await this.generationService.getStories(filter, options);
+    return await this.generationService.getStories(filter, options, currentUser);
   }
 
   // ============ ISSUE QUERIES ============
@@ -293,8 +294,11 @@ export class GenerationResolver {
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member', 'user'])
-  async getCapitalStory(@Args('data') data: GetStoryByHashInputDTO): Promise<StoryOutputDTO | null> {
-    return await this.generationService.getStoryByHash(data.story_hash);
+  async getCapitalStory(
+    @Args('data') data: GetStoryByHashInputDTO,
+    @CurrentUser() currentUser?: MonoAccountDomainInterface
+  ): Promise<StoryOutputDTO | null> {
+    return await this.generationService.getStoryByHash(data.story_hash, currentUser);
   }
 
   /**
