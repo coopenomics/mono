@@ -1,4 +1,4 @@
-import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Optional, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -31,7 +31,8 @@ export class MarketplaceWriteoffCronService implements OnModuleInit {
     @InjectRepository(MarketplaceInventoryEntity, 'marketplace')
     private readonly inventoryRepo: Repository<MarketplaceInventoryEntity>,
     private readonly writeoffService: MarketplaceWriteoffService,
-    private readonly extensionDomainService: ExtensionDomainService,
+    @Optional()
+    private readonly extensionDomainService: ExtensionDomainService | null,
     @Inject(MARKETPLACE_ASSET_CONFIG)
     private readonly assetConfig: MarketplaceAssetConfig,
     private readonly eventBus: EventEmitter2,
@@ -64,7 +65,7 @@ export class MarketplaceWriteoffCronService implements OnModuleInit {
       return;
     }
 
-    const extension = await this.extensionDomainService.getAppByName('market');
+    const extension = this.extensionDomainService ? await this.extensionDomainService.getAppByName('market') : null;
     const cfg = extension?.config as IConfig | undefined;
     const auto = cfg?.writeoff?.auto_proposal_enabled ?? false;
     const graceDays = cfg?.writeoff?.expiry_grace_days ?? 7;
