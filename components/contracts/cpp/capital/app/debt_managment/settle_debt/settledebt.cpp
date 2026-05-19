@@ -24,8 +24,9 @@ void capital::settledebt(name coopname, checksum256 debt_hash, eosio::asset amou
 
   auto exist_debt = Capital::Debts::get_debt_or_fail(coopname, debt_hash);
 
-  eosio::check(exist_debt.status == Capital::Debts::Status::PAID,
-               "Погашение деньгами доступно только для активного займа (статус paid)");
+  eosio::check(exist_debt.status == Capital::Debts::Status::PAID
+            || exist_debt.status == Capital::Debts::Status::OVERDUE,
+               "Погашение допустимо для активного (paid) или просроченного (overdue) займа");
 
   eosio::check(amount.is_valid(), "Сумма погашения некорректна");
   eosio::check(amount.symbol == exist_debt.amount.symbol,
@@ -43,6 +44,9 @@ void capital::settledebt(name coopname, checksum256 debt_hash, eosio::asset amou
 
   Capital::Contributors::decrease_debt_amount(coopname, contributor->id, amount);
   Capital::Debts::mark_settled(coopname, exist_debt.id, memo, _capital);
+
+  // Централизованный учёт: удаляем запись из loan.debts через inline action.
+  Loan::settle_debt(_capital, coopname, exist_debt.username, debt_hash, amount);
 
   // event ridge: и должник, и председатель видят факт погашения.
   require_recipient(exist_debt.username);

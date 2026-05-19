@@ -61,10 +61,34 @@ void capital::signact2(eosio::name coopname, eosio::name chairman, checksum256 r
   }
 
   // Возврат беспроцентного займа пайщика: Dr 80 / Cr 58, TRANSFER LOAN_ISSUED → SHARE_FUND_PAY.
-  // Семантика: пайщик погасил ссуду результатом (интеллектуальным взносом),
+  // Семантика: пайщик погасил ссуду результатом (паевой взнос интеллектуальным результатом),
   // у кооперативa уменьшилось фин. вложение 58, деньги вернулись на расчётный.
   if (result -> debt_amount.amount > 0){
     Ledger2::apply(_capital, coopname, operations::capital::REPAY, result -> debt_amount, result -> username, result_hash, memo);
+
+    // Централизованное погашение конкретных займов в loan-контракте.
+    // Собираем все активные (PAID/OVERDUE) займы пайщика на этом проекте,
+    // лимит 10 — иначе одна транзакция EOSIO с 11+ inline actions не уложится в лимит.
+    Capital::Debts::debts_index debts(_capital, coopname.value);
+    auto byproj = debts.get_index<"byprojhash"_n>();
+    std::vector<std::tuple<uint64_t, checksum256, eosio::asset>> to_settle;
+    for (auto it = byproj.find(result->project_hash);
+         it != byproj.end() && it->project_hash == result->project_hash; ++it) {
+      if (it->username == result->username
+          && (it->status == Capital::Debts::Status::PAID
+              || it->status == Capital::Debts::Status::OVERDUE)) {
+        to_settle.emplace_back(it->id, it->debt_hash, it->amount);
+      }
+    }
+    eosio::check(to_settle.size() <= 10,
+                 "Превышен лимит займов на проект для одного паевого взноса (10)");
+    for (auto& tup : to_settle) {
+      auto id = std::get<0>(tup);
+      auto dh = std::get<1>(tup);
+      auto amt = std::get<2>(tup);
+      Loan::settle_debt(_capital, coopname, result->username, dh, amt);
+      Capital::Debts::mark_settled(coopname, id, memo, _capital);
+    }
   }
   
   // Обновляем накопительные показатели контрибьютора на основе его ролей в сегменте

@@ -60,6 +60,32 @@ describe('CAPITAL — расширения «Благорост» (Эпик 1)',
     )
   })
 
+  describe('A2 — Централизованный учёт займов (loan-контракт)', () => {
+    it.todo(
+      'Story 1.12: debtpaycnfrm создаёт запись в loan.debts через inline createdebt (с project_hash)'
+    )
+
+    it.todo(
+      'Story 1.12: settledebt в capital удаляет запись из loan.debts через inline settledebt'
+    )
+
+    it.todo(
+      'Story 1.12: signact2 с N≤10 займами на проекте — все погашаются inline-actions в loan'
+    )
+
+    it.todo(
+      'Story 1.12: signact2 с >10 займами на проекте — fail с "Превышен лимит займов на проект для одного паевого взноса"'
+    )
+
+    it.todo(
+      'Story 1.12: loan.createdebt от аккаунта вне contracts_whitelist — fail (только capital/marketplace/...)'
+    )
+
+    it.todo(
+      'Story 1.12: count_user_project_debts возвращает корректное число активных займов пайщика на проекте'
+    )
+  })
+
   describe('B — Расходы программы', () => {
     it.todo(
       'Story 1.4: exppaycnfrm после complete_expense делает Ledger2 PAY_EXPENSE (BLAGOROST_FUND → SOV_EXPENSES)'

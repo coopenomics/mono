@@ -12,7 +12,7 @@
 using namespace eosio;
 using std::string;
 
-#define CREATEDEBT_SIGNATURE name coopname, name username, checksum256 debt_hash, time_point_sec repaid_at, asset quantity
+#define CREATEDEBT_SIGNATURE name coopname, name username, checksum256 project_hash, checksum256 debt_hash, time_point_sec repaid_at, asset quantity
 #define SETTLEDEBT_SIGNATURE name coopname, name username, checksum256 debt_hash, asset quantity
 
 using createdebt_interface = void(CREATEDEBT_SIGNATURE);
@@ -51,9 +51,33 @@ inline void assert_no_expired_debts(name coopname, name username) {
   }
 }
 
+/**
+ * @brief Кол-во активных займов пайщика на конкретном проекте.
+ *        Используется в capital::signact2 для лимита 10 займов на проект
+ *        при автоматическом погашении из паевого взноса.
+ */
+inline uint64_t count_user_project_debts(
+  name coopname, const checksum256 &project_hash, name username
+) {
+  debts_index debts(_loan, coopname.value);
+  auto idx = debts.get_index<"byuserproj"_n>();
+  auto p_bytes = project_hash.extract_as_byte_array();
+  uint64_t hi = (uint64_t)p_bytes[0] << 56 | (uint64_t)p_bytes[1] << 48
+              | (uint64_t)p_bytes[2] << 40 | (uint64_t)p_bytes[3] << 32
+              | (uint64_t)p_bytes[4] << 24 | (uint64_t)p_bytes[5] << 16
+              | (uint64_t)p_bytes[6] << 8  | (uint64_t)p_bytes[7];
+  uint128_t key = ((uint128_t)hi << 64) | username.value;
+
+  uint64_t cnt = 0;
+  for (auto it = idx.lower_bound(key); it != idx.end() && it->by_user_project() == key; ++it) {
+    ++cnt;
+  }
+  return cnt;
+}
+
 inline void create_debt(name calling_contract, CREATEDEBT_SIGNATURE) {
   Action::send<createdebt_interface>(_loan, Names::Loan::CREATE_DEBT, calling_contract, coopname, username,
-                                      debt_hash, repaid_at, quantity);
+                                      project_hash, debt_hash, repaid_at, quantity);
 }
 
 inline void settle_debt(name calling_contract, SETTLEDEBT_SIGNATURE) {

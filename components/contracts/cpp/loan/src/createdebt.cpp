@@ -3,8 +3,10 @@ using namespace Loan;
 /**
  * @brief Создание долгового обязательства.
  * Создает новое долговое обязательство для пользователя с указанным сроком погашения
+ * и привязкой к проекту вызывающего контракта.
  * @param coopname Наименование кооператива
  * @param username Имя пользователя-должника
+ * @param project_hash Хэш проекта/программы (для лимита займов на проект при паевом взносе)
  * @param debt_hash Хэш долгового обязательства
  * @param repaid_at Срок погашения долга
  * @param quantity Сумма долга
@@ -13,7 +15,7 @@ using namespace Loan;
 
  * @note Авторизация требуется от аккаунта: @p contracts_whitelist
  */
-void loan::createdebt(name coopname, name username, checksum256 debt_hash, time_point_sec repaid_at, asset quantity) {
+void loan::createdebt(name coopname, name username, checksum256 project_hash, checksum256 debt_hash, time_point_sec repaid_at, asset quantity) {
   name payer = check_auth_and_get_payer_or_fail(contracts_whitelist);
 
   check(quantity.amount > 0, "Сумма должна быть положительной");
@@ -33,6 +35,7 @@ void loan::createdebt(name coopname, name username, checksum256 debt_hash, time_
     d.amount = quantity;
     d.created_at = time_point_sec(current_time_point());
     d.repaid_at = repaid_at;
+    d.project_hash.emplace(project_hash);
   });
 
   Loan::summaries_index summaries(_loan, coopname.value);
