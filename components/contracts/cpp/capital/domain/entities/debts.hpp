@@ -22,7 +22,7 @@ namespace Status {
   constexpr name PAID = "paid"_n;              ///< Долг выплачен пайщику, активный (ждёт погашения)
   constexpr name OVERDUE = "overdue"_n;        ///< Долг просрочен (now > due_at) — выставляется action markdebtoverd
   constexpr name SETTLED = "settled"_n;        ///< Долг полностью погашен (деньгами через settledebt либо результатом через signact2)
-  constexpr name SEIZED = "seized"_n;          ///< Долг закрыт изъятием коммитов-обеспечения в НМА кооператива (через seizecollat при отмене родительского компонента; решение 2026-05-19)
+  constexpr name WRITEOFF = "writeoff"_n;      ///< Долг списан (write-off) за счёт созданного НМА из коммитов-обеспечения (через closedebt при отмене родительского компонента; решение 2026-05-19)
 }
 
 /**
@@ -206,9 +206,9 @@ inline void mark_pay_declined(
  *
  * Решение 2026-05-19 (Игорь Смуров / Алексей Муравьёв): срок займа
  * фиксированный — год, не привязан к календарному сроку проекта. Если
- * родительский компонент явно перешёл в `cancelled/rejected` раньше — займ
- * закрывается досрочно через изъятие коммитов-обеспечения в НМА кооператива
- * (см. action `capital::seizecollat`, операции o.cap.seize + o.cap.wroff).
+ * родительский компонент явно перешёл в `cancelled` раньше — долг закрывается
+ * досрочно через создание НМА кооператива из коммитов-обеспечения и списание
+ * долга (см. action `capital::closedebt`, операции o.cap.crtnma + o.cap.dbtwrf).
  */
 constexpr uint32_t DEFAULT_DEBT_TERM_SECONDS = 365 * 24 * 60 * 60;
 
@@ -298,14 +298,14 @@ inline void mark_settled(
 }
 
 /**
- * @brief Закрывает долг как изъятый — переводит в SEIZED.
+ * @brief Закрывает долг как списанный — переводит в WRITEOFF.
  *
- * Применяется в seizecollat после применения o.cap.seize + o.cap.wroff и
+ * Применяется в closedebt после применения o.cap.crtnma + o.cap.dbtwrf и
  * декремента сегмента. Семантически зеркалит mark_settled, но не пишет
- * memo о погашении: займ закрыт имущественно через коммиты-обеспечение,
- * без зачисления на share пайщика. Решение 2026-05-19.
+ * memo о погашении: долг закрыт имущественно через созданное НМА из
+ * коммитов-обеспечения, без зачисления на share пайщика. Решение 2026-05-19.
  */
-inline void mark_seized(
+inline void mark_writeoff(
   eosio::name coopname,
   uint64_t debt_id,
   eosio::name payer = name{}
@@ -316,10 +316,10 @@ inline void mark_seized(
   auto debt = debts.find(debt_id);
   eosio::check(debt != debts.end(), "Долг не найден");
   eosio::check(debt->status == Status::PAID || debt->status == Status::OVERDUE,
-               "Изъятие обеспечения допустимо только из статуса paid или overdue");
+               "Списание долга допустимо только из статуса paid или overdue");
 
   debts.modify(debt, payer, [&](auto &d) {
-    d.status = Status::SEIZED;
+    d.status = Status::WRITEOFF;
     d.repaid_at = eosio::current_time_point();
   });
 }

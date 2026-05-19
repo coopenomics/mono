@@ -52,19 +52,19 @@ describe('CAPITAL — расширения «Благорост» (Эпик 1)',
     )
 
     it.todo(
-      'Story 1.13: seizecollat — компонент cancelled → автоматическое закрытие займа через изъятие коммитов-обеспечения в НМА кооператива: o.cap.seize (Дт 04 / Кт 08, TRANSFER GENERATOR_FUND → NMA) + o.cap.wroff (Дт 80 / Кт 58, BURN LOAN_ISSUED); сегмент уменьшен на сумму займа; долг → SEIZED; без подписи пайщика и без сбора совета (решение 2026-05-19)'
+      'Story 1.13: closedebt — компонент cancelled → автоматическое закрытие долга: o.cap.crtnma (Дт 04 / Кт 08, TRANSFER GENERATOR_FUND → NMA, создание НМА из коммитов-обеспечения) + o.cap.dbtwrf (Дт 80 / Кт 58, BURN LOAN_ISSUED, write-off долга); сегмент уменьшен на сумму займа; долг → WRITEOFF; без подписи пайщика и без сбора совета (решение 2026-05-19)'
     )
 
     it.todo(
-      'Story 1.13: seizecollat отвергается, если родительский компонент не в статусе cancelled'
+      'Story 1.13: closedebt отвергается, если родительский компонент не в статусе cancelled'
     )
 
     it.todo(
-      'Story 1.13: seizecollat отвергается, если долг не в статусе paid/overdue'
+      'Story 1.13: closedebt отвергается, если долг не в статусе paid/overdue'
     )
 
     it.todo(
-      'Story 1.13: seizecollat — глобальный contributors.debt_amount пайщика уменьшен; запись в loan.debts удалена; loan.summaries.total опущен'
+      'Story 1.13: closedebt — глобальный contributors.debt_amount пайщика уменьшен; запись в loan.debts удалена; loan.summaries.total опущен'
     )
 
     it.todo(

@@ -48,7 +48,7 @@ namespace processes {
   namespace capital {
     inline constexpr eosio::name IMPORT    = "p.cap.import"_n;   ///< Оффлайн-импорт пайщика Благорост (o.cap.drppre (опц.) + o.cap.import).
     inline constexpr eosio::name INVEST    = "p.cap.invest"_n;   ///< Инвестиция в ЦПП Благорост (wallet-only 2001→9001).
-    inline constexpr eosio::name DEBT      = "p.cap.debt"_n;     ///< Займ пайщику (o.cap.lend + o.cap.repay; альтернативная ветка невозврата — o.cap.seize + o.cap.wroff, решение 2026-05-19).
+    inline constexpr eosio::name DEBT      = "p.cap.debt"_n;     ///< Займ пайщику (o.cap.lend + o.cap.repay; альтернативная ветка невозврата — o.cap.crtnma + o.cap.dbtwrf, решение 2026-05-19).
     inline constexpr eosio::name RID       = "p.cap.rid"_n;      ///< Приём РИД в паевой фонд: o.cap.commit (коммиты) + o.cap.accept (акт-2) + опц. o.cap.repay + o.cap.cnvshr/o.cap.cnvbl (финальная конвертация сегмента). Анкер процесса — result_hash.
     inline constexpr eosio::name PROPERTY  = "p.cap.prop"_n;     ///< Приём имущественного паевого взноса (одноактовый).
     inline constexpr eosio::name PREIMP    = "p.cap.preimp"_n;   ///< Первичный учёт РИД-взноса до перехода на электронный учёт (одноактовый, anchor = preimp register hash).
