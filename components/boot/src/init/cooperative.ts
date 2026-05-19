@@ -172,8 +172,8 @@ export class CooperativeClass {
       params: {
         is_cooperative: true,
         coop_type: 'conscoop',
-        announce: 'Тестовый кооператив',
-        description: 'Тестовое описание',
+        announce: 'voskhod-dev.coopenomics.world',
+        description: 'Восход — тестовый кооператив-оператор (dev-стенд)',
         initial: `100.0000 ${config.token.govern_symbol}`,
         minimum: `300.0000 ${config.token.govern_symbol}`,
         org_initial: `1000.0000 ${config.token.govern_symbol}`,
