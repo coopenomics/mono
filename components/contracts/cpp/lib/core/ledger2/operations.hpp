@@ -77,8 +77,8 @@ namespace operations {
     inline constexpr eosio::name DROP_PREIMP         = "o.cap.drppre"_n;   ///< Закрытие пред-импорт-учёта при переходе на электронный учёт (Dr 80 / Cr 04, BURN PREIMP_FUND). Вызывается из capital::importcontr перед o.cap.import.
     inline constexpr eosio::name LEND                = "o.cap.lend"_n;     ///< Выдача беспроцентного займа пайщику (Dr 58 / Cr 51, ISSUE LOAN_ISSUED).
     inline constexpr eosio::name REPAY               = "o.cap.repay"_n;    ///< Возврат займа пайщика по акту-2 (Dr 80 / Cr 58, TRANSFER LOAN_ISSUED → SHARE_FUND_PAY).
-    inline constexpr eosio::name FORECLOSE           = "o.cap.dflt"_n;     ///< Обращение взыскания на коммиты-обеспечение при невозврате займа (Dr 04 / Cr 08, TRANSFER GENERATOR_FUND → COOP_NMA). Решение 2026-05-19.
-    inline constexpr eosio::name LOAN_WRITEOFF       = "o.cap.lnwoff"_n;   ///< Списание займа в счёт обращения взыскания (Dr 80 / Cr 58, BURN LOAN_ISSUED). Зеркало REPAY без зачисления на share пайщика. Решение 2026-05-19.
+    inline constexpr eosio::name SEIZE_COLLATERAL    = "o.cap.seize"_n;    ///< Изъятие коммитов-обеспечения в НМА кооператива при невозврате займа (Dr 04 / Cr 08, TRANSFER GENERATOR_FUND → NMA). Решение 2026-05-19.
+    inline constexpr eosio::name WRITE_OFF_LOAN      = "o.cap.wroff"_n;    ///< Списание займа за счёт изъятого обеспечения (Dr 80 / Cr 58, BURN LOAN_ISSUED). Зеркало REPAY без зачисления на share пайщика — займ погашен имущественно. Решение 2026-05-19.
     inline constexpr eosio::name WITHDRAW_FROM_CAPITAL = "o.cap.wthcap"_n; ///< Возврат паевого из ЦПП «Благорост» в кошелёк пайщика (TRANSFER BLAGOROST_FUND → SHARE_FUND_PAY, без Dr/Cr).
     inline constexpr eosio::name CONVERT_TO_SHARE    = "o.cap.cnvshr"_n;   ///< Конвертация сегмента: РИД → главный кошелёк (TRANSFER GENERATOR_FUND → SHARE_FUND_PAY, без Dr/Cr — бухпроводка уже была сделана в ACCEPT_RID).
     inline constexpr eosio::name CONVERT_TO_BLAGO    = "o.cap.cnvbl"_n;    ///< Конвертация сегмента: РИД → ЦПП «Благорост» (TRANSFER GENERATOR_FUND → BLAGOROST_FUND, без Dr/Cr — бухпроводка уже была сделана в ACCEPT_RID).
@@ -255,27 +255,27 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_accounts::SHARE_FUND, ledger2_accounts::FINANCIAL_INVESTMENTS,
     "Возврат беспроцентного займа пайщика по акту-2" },
 
-  // 11a. Обращение взыскания на коммиты-обеспечение при невозврате займа:
-  // Dr 04 / Cr 08, TRANSFER GENERATOR_FUND → COOP_NMA.
-  // Срабатывает автоматически из `dfltdebt`, когда родительский компонент
-  // перешёл в `cancelled/rejected` (решение 2026-05-19 — без сбора совета,
-  // без подписи пайщика). РИД-коммиты, накопленные на GENERATOR_FUND пайщика
-  // как обеспечение, переходят в имущество кооператива (НМА). Пара по 04
-  // зеркалит `o.cap.accept`, но без участия пайщика — сегмент уменьшается
-  // на сумму обращения, кошелёк COOP_NMA пополняется.
-  { operations::capital::FORECLOSE, processes::capital::DEBT, WalletOp::TRANSFER,
-    ledger2_wallets::GENERATOR_FUND, ledger2_wallets::COOP_NMA,
+  // 11a. Изъятие коммитов-обеспечения в НМА кооператива при невозврате займа:
+  // Dr 04 / Cr 08, TRANSFER GENERATOR_FUND → NMA.
+  // Срабатывает автоматически из `capital::seizecollat`, когда родительский
+  // компонент перешёл в `cancelled/rejected` (решение 2026-05-19 — без сбора
+  // совета, без подписи пайщика). РИД-коммиты, накопленные на GENERATOR_FUND
+  // пайщика как обеспечение, переходят в имущество кооператива (НМА). Пара
+  // по 04 зеркалит `o.cap.accept`, но без участия пайщика — сегмент пайщика
+  // уменьшается на сумму обращения, кошелёк NMA пополняется.
+  { operations::capital::SEIZE_COLLATERAL, processes::capital::DEBT, WalletOp::TRANSFER,
+    ledger2_wallets::GENERATOR_FUND, ledger2_wallets::NMA,
     ledger2_accounts::INTANGIBLE_ASSETS, ledger2_accounts::NON_CURRENT_INVESTMENTS,
-    "Обращение взыскания на коммиты-обеспечение при невозврате займа" },
+    "Изъятие коммитов-обеспечения в НМА кооператива" },
 
-  // 11b. Списание займа в счёт обращения взыскания: Dr 80 / Cr 58, BURN LOAN_ISSUED.
-  // Парная к `o.cap.dflt` операция, закрывает обязательство пайщика по займу.
+  // 11b. Списание займа за счёт изъятого обеспечения: Dr 80 / Cr 58, BURN LOAN_ISSUED.
+  // Парная к `o.cap.seize` операция, закрывает обязательство пайщика по займу.
   // Зеркало `o.cap.repay`, но без зачисления на share пайщика (платёж сделан
   // имущественно — через коммиты-обеспечение). Решение 2026-05-19.
-  { operations::capital::LOAN_WRITEOFF, processes::capital::DEBT, WalletOp::BURN,
+  { operations::capital::WRITE_OFF_LOAN, processes::capital::DEBT, WalletOp::BURN,
     ledger2_wallets::LOAN_ISSUED, eosio::name{},
     ledger2_accounts::SHARE_FUND, ledger2_accounts::FINANCIAL_INVESTMENTS,
-    "Списание займа в счёт обращения взыскания на обеспечение" },
+    "Списание займа за счёт изъятого обеспечения" },
 
   // 12. Подтверждение поставки: Dr 51 / Cr 80, ISSUE SHARE_FUND_PAY
   { operations::marketplace::CONFIRM_SUPPLY, processes::marketplace::REQUEST, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::SHARE_FUND_PAY,

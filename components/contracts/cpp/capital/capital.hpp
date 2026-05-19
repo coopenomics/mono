@@ -329,6 +329,9 @@ public:
     void markdebtoverd(name coopname);
 
     [[eosio::action]]
+    void seizecollat(name coopname, checksum256 debt_hash);
+
+    [[eosio::action]]
     void topupprogexp(name coopname, eosio::asset amount);
 
     [[eosio::action]]

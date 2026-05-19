@@ -63,7 +63,7 @@ struct ledger2_wallets {
   static constexpr eosio::name BLAGOROST_FUND       = "w.cap.blago"_n;   ///< Благорост — единый агрегированный кошелёк программы (USER_SHARED; ADR-009)
   static constexpr eosio::name GENERATOR_FUND       = "w.cap.gen"_n;     ///< Генератор — единый агрегированный кошелёк программы (USER_SHARED; ADR-009)
   static constexpr eosio::name PREIMP_FUND          = "w.cap.preimp"_n;  ///< Первичный учёт РИД-взносов до перехода на электронный учёт (USER_SHARED; o.cap.preimp / o.cap.drppre)
-  static constexpr eosio::name COOP_NMA             = "w.cap.coopn"_n;   ///< Имущество кооператива — НМА из коммитов-обеспечения при невозврате займа (COOPERATIVE; решение 2026-05-19)
+  static constexpr eosio::name NMA                  = "w.cap.nma"_n;     ///< НМА кооператива — собственное имущество, перешедшее из коммитов-обеспечения при невозврате займа (COOPERATIVE; решение 2026-05-19)
 
   // marketplace — выплаты
   static constexpr eosio::name SUPPLIER_PAYMENTS    = "w.mkt.payout"_n;  ///< Выплаты поставщикам (sink RECEIVE_CONFIRM, COOPERATIVE)
@@ -113,7 +113,7 @@ inline constexpr std::array<Ledger2WalletMeta, 15> LEDGER2_WALLET_REGISTRY = {{
   { ledger2_wallets::MIN_SHARE_USED,    "Использованные минимальные паевые взносы",                 WalletKind::COOPERATIVE },
   { ledger2_wallets::LOAN_ISSUED,       "Выданные пайщикам беспроцентные займы",                    WalletKind::COOPERATIVE },
   { ledger2_wallets::SUPPLIER_PAYMENTS, "Выплаты поставщикам",                                      WalletKind::COOPERATIVE },
-  { ledger2_wallets::COOP_NMA,          "Имущество кооператива — НМА из коммитов-обеспечения",      WalletKind::COOPERATIVE },
+  { ledger2_wallets::NMA,               "НМА кооператива (из коммитов-обеспечения по займам)",      WalletKind::COOPERATIVE },
 }};
 
 static constexpr size_t LEDGER2_WALLET_REGISTRY_SIZE = LEDGER2_WALLET_REGISTRY.size();

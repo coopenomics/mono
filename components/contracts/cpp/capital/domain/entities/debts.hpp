@@ -22,6 +22,7 @@ namespace Status {
   constexpr name PAID = "paid"_n;              ///< Долг выплачен пайщику, активный (ждёт погашения)
   constexpr name OVERDUE = "overdue"_n;        ///< Долг просрочен (now > due_at) — выставляется action markdebtoverd
   constexpr name SETTLED = "settled"_n;        ///< Долг полностью погашен (деньгами через settledebt либо результатом через signact2)
+  constexpr name SEIZED = "seized"_n;          ///< Долг закрыт изъятием коммитов-обеспечения в НМА кооператива (через seizecollat при отмене родительского компонента; решение 2026-05-19)
 }
 
 /**
@@ -206,8 +207,8 @@ inline void mark_pay_declined(
  * Решение 2026-05-19 (Игорь Смуров / Алексей Муравьёв): срок займа
  * фиксированный — год, не привязан к календарному сроку проекта. Если
  * родительский компонент явно перешёл в `cancelled/rejected` раньше — займ
- * закрывается досрочно через обращение взыскания на коммиты-обеспечение
- * (см. `default_debt` / o.cap.dflt + o.cap.lnwoff).
+ * закрывается досрочно через изъятие коммитов-обеспечения в НМА кооператива
+ * (см. action `capital::seizecollat`, операции o.cap.seize + o.cap.wroff).
  */
 constexpr uint32_t DEFAULT_DEBT_TERM_SECONDS = 365 * 24 * 60 * 60;
 
@@ -293,6 +294,33 @@ inline void mark_settled(
     if (!settle_memo.empty()) {
       d.memo = settle_memo;
     }
+  });
+}
+
+/**
+ * @brief Закрывает долг как изъятый — переводит в SEIZED.
+ *
+ * Применяется в seizecollat после применения o.cap.seize + o.cap.wroff и
+ * декремента сегмента. Семантически зеркалит mark_settled, но не пишет
+ * memo о погашении: займ закрыт имущественно через коммиты-обеспечение,
+ * без зачисления на share пайщика. Решение 2026-05-19.
+ */
+inline void mark_seized(
+  eosio::name coopname,
+  uint64_t debt_id,
+  eosio::name payer = name{}
+) {
+  if (payer == name{}) payer = coopname;
+
+  debts_index debts(_capital, coopname.value);
+  auto debt = debts.find(debt_id);
+  eosio::check(debt != debts.end(), "Долг не найден");
+  eosio::check(debt->status == Status::PAID || debt->status == Status::OVERDUE,
+               "Изъятие обеспечения допустимо только из статуса paid или overdue");
+
+  debts.modify(debt, payer, [&](auto &d) {
+    d.status = Status::SEIZED;
+    d.repaid_at = eosio::current_time_point();
   });
 }
 
