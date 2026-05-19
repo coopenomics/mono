@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { ref, watch } from 'vue';
-import { useStore } from 'src/shared/store';
+import { useSessionStore } from 'src/entities/Session';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { DigitalDocument } from 'src/shared/lib/document';
 import {
@@ -26,7 +26,7 @@ const emit = defineEmits<{
   (e: 'submitted'): void;
 }>();
 
-const store = useStore() as { account: { username: string } };
+const session = useSessionStore();
 
 const previewDoc = ref<MarketplaceWriteoffStatementDocumentView | null>(null);
 const loading = ref(false);
@@ -56,7 +56,7 @@ async function signAndSubmit(): Promise<void> {
   submitting.value = true;
   try {
     const digital = new DigitalDocument(previewDoc.value);
-    const signed = await digital.sign(store.account.username);
+    const signed = await digital.sign(session.username);
     await submitWriteoffDraft({
       draft_id: props.draft.id,
       signed_statement: signed,

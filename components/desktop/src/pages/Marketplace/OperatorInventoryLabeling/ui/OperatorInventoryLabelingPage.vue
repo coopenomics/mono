@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { Loading } from 'quasar'
 import { SuccessAlert, FailAlert } from 'src/shared/api'
 import { BarcodeDisplay } from 'src/widgets/Marketplace/BarcodeDisplay'
+import { Zeus } from '@coopenomics/sdk'
 import {
   fetchInventoryByBraname,
   fetchShipmentsForLabeling,
@@ -13,8 +14,8 @@ import {
 } from '../api'
 
 type LabelingMode = 'PER_ORDER' | 'BATCH'
-type BarcodeStrategy = 'PER_ORDER' | 'PER_UNIT' | 'PER_PACKAGE'
-type BarcodeFormat = 'CODE128' | 'EAN13'
+type BarcodeStrategy = Zeus.MarketplaceBarcodeStrategy
+type BarcodeFormat = Zeus.MarketplaceBarcodeFormat
 
 const braname = ref<string>('')
 const items = ref<MarketplaceInventoryItemView[]>([])
@@ -27,19 +28,19 @@ const orderIdInput = ref<string>('')
 const shipments = ref<MarketplaceShipmentView[]>([])
 const selectedShipmentId = ref<string | null>(null)
 const defaultStrategy = ref<BarcodeStrategy | null>(null)
-const defaultFormat = ref<BarcodeFormat>('CODE128')
+const defaultFormat = ref<BarcodeFormat>(Zeus.MarketplaceBarcodeFormat.CODE128)
 const lastBatchSummary = ref<{ labeled: number; skipped: number } | null>(null)
 
-const strategyOptions = [
+const strategyOptions: Array<{ label: string; value: BarcodeStrategy | null }> = [
   { label: 'По умолчанию из карточки товара', value: null },
-  { label: 'Одна этикетка на весь заказ', value: 'PER_ORDER' },
-  { label: 'Отдельная этикетка на каждую единицу', value: 'PER_UNIT' },
-  { label: 'Этикетка на упаковку', value: 'PER_PACKAGE' },
-] as const
+  { label: 'Одна этикетка на весь заказ', value: Zeus.MarketplaceBarcodeStrategy.PER_ORDER },
+  { label: 'Отдельная этикетка на каждую единицу', value: Zeus.MarketplaceBarcodeStrategy.PER_UNIT },
+  { label: 'Этикетка на упаковку', value: Zeus.MarketplaceBarcodeStrategy.PER_PACKAGE },
+]
 
-const formatOptions = [
-  { label: 'CODE128', value: 'CODE128' as const },
-  { label: 'EAN13', value: 'EAN13' as const },
+const formatOptions: Array<{ label: string; value: BarcodeFormat }> = [
+  { label: 'CODE128', value: Zeus.MarketplaceBarcodeFormat.CODE128 },
+  { label: 'EAN13', value: Zeus.MarketplaceBarcodeFormat.EAN13 },
 ]
 
 const shipmentOptions = computed(() =>
