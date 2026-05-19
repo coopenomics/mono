@@ -1,5 +1,9 @@
 import { randomUUID } from 'node:crypto'
+import { existsSync, readFileSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import axios from 'axios'
+import ecc from 'eosjs-ecc'
 import { Generator, Registry } from '@coopenomics/factory'
 import type { Cooperative } from 'cooptypes'
 import { DraftContract } from 'cooptypes'
@@ -11,6 +15,9 @@ import { sleep } from '../utils'
 import { generateRandomSHA256 } from '../utils/randomHash'
 import { initUsersInPostgres, initVaultInPostgres } from '../postgres-init'
 import { CooperativeClass } from './cooperative'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
 
 export async function startInfra() {
   // инициализируем инстанс с ключами
@@ -585,7 +592,33 @@ export async function installExtraData(blockchain: Blockchain) {
   console.log('\n=== installExtraData: регистрируем partner1 как coop (active) ===')
 
   const username = 'partner1'
-  const account = await blockchain.generateKeypair(username, undefined, 'Аккаунт partner1')
+
+  // Берём WIF из docs-harness/state/cooperatives/partner1.json, если он там есть.
+  // Без этого boot:extra на каждом запуске генерирует случайный privateKey,
+  // а harness 08 (chairman install wizard /partner1/install) подаёт WIF из
+  // фикстуры на шаге 1 — они расходятся, startInstall mutation не принимает
+  // ключ, wizard зависает на шаге 1 без видимой ошибки. На репозиторий
+  // фикстура коммит'ится разработчиком вручную; здесь только читаем.
+  let seededKeys: { privateKey: string; publicKey: string } | undefined
+  try {
+    const fixturePath = resolve(
+      __dirname,
+      '../../../docs-harness/state/cooperatives/partner1.json',
+    )
+    if (existsSync(fixturePath)) {
+      const fx = JSON.parse(readFileSync(fixturePath, 'utf-8'))
+      if (fx?.wif) {
+        // publicKey не хранится в фикстуре — деривим из приватного.
+        const pub = fx.publicKey || await ecc.privateToPublic(fx.wif)
+        seededKeys = { privateKey: fx.wif, publicKey: pub }
+        console.log(`✓ partner1: используем seeded WIF из фикстуры (pub=${pub.slice(0, 12)}…)`)
+      }
+    }
+  } catch (e: any) {
+    console.warn(`⚠ partner1 fixture read failed (${e.message}) — генерируем новый ключ`)
+  }
+
+  const account = await blockchain.generateKeypair(username, seededKeys, 'Аккаунт partner1')
 
   await blockchain.createAccount({
     coopname: config.provider,
