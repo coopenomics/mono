@@ -47,7 +47,7 @@ q-btn(
               .row.items-center.q-gutter-x-sm
                 span.text-caption.text-grey-7 Удовлетворение результатом
                 span.text-body2.text-weight-medium.text-accent
-                  | {{ formData.satisfaction_stars }} / 5
+                  | {{ satisfactionLabel }}
               q-rating(
                 v-model='formData.satisfaction_stars',
                 :max='5',
@@ -124,7 +124,12 @@ const formData = ref({
   creator_hours: 0,
   description: '',
   review_text: '',
-  satisfaction_stars: 5,
+  satisfaction_stars: 0,
+});
+
+const satisfactionLabel = computed(() => {
+  const stars = formData.value.satisfaction_stars;
+  return stars > 0 ? `${stars} / 5` : 'не указано';
 });
 
 const commitBreakdown = computed(() => {
@@ -161,7 +166,7 @@ const commitCostCaption = computed(() => {
 watch(showDialog, (isOpen) => {
   if (isOpen) {
     formData.value.creator_hours = props.uncommittedHours || 0;
-    formData.value.satisfaction_stars = 5;
+    formData.value.satisfaction_stars = 0;
     formData.value.review_text = '';
   }
 });
@@ -172,13 +177,17 @@ const clear = () => {
     creator_hours: props.uncommittedHours || 0,
     description: '',
     review_text: '',
-    satisfaction_stars: 5,
+    satisfaction_stars: 0,
   };
 };
 
 const handleCreateCommit = async () => {
   try {
     isSubmitting.value = true;
+
+    const reviewText = formData.value.review_text.trim();
+    const stars = formData.value.satisfaction_stars;
+    const hasFeedback = stars >= 1 || reviewText.length > 0;
 
     const commitDataPayload: ICreateCommitInput = {
       coopname: system.info.coopname,
@@ -187,15 +196,17 @@ const handleCreateCommit = async () => {
       username: session.username || createCommitInput.value.username,
       description: '',
       meta: JSON.stringify({}),
-      data: [
-        {
-          type: 'contribution_feedback',
-          data: {
-            review_text: formData.value.review_text.trim(),
-            satisfaction_stars: formData.value.satisfaction_stars,
-          },
-        },
-      ],
+      data: hasFeedback
+        ? [
+            {
+              type: 'contribution_feedback',
+              data: {
+                review_text: reviewText,
+                satisfaction_stars: stars,
+              },
+            },
+          ]
+        : [],
     };
 
     await createCommit(commitDataPayload);

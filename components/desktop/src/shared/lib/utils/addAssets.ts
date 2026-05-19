@@ -1,8 +1,14 @@
+import { floorDecimalString } from './floorDecimalString';
+
 /**
- * Суммирует два актива (IAsset) с одинаковой валютой
- * @param asset1 - первый актив (например "100.00 RUB")
- * @param asset2 - второй актив (например "50.00 RUB")
- * @returns сумма активов в формате IAsset (например "150.00 RUB")
+ * Суммирует два актива (IAsset) с одинаковой валютой и возвращает
+ * результат с 2 знаками после запятой, обрезанный вниз (toward-zero),
+ * чтобы согласоваться с `formatAsset2Digits`: пользователь никогда
+ * не видит сумму больше реальной.
+ *
+ * @param asset1 - первый актив (например "100.0000 RUB")
+ * @param asset2 - второй актив (например "50.0000 RUB")
+ * @returns сумма активов с 2 знаками (например "150.00 RUB")
  */
 export const addAssets = (asset1: string, asset2: string): string => {
   if (!asset1 || asset1 === '0') return asset2 || '0.00';
@@ -33,8 +39,9 @@ export const addAssets = (asset1: string, asset2: string): string => {
   const sum = value1 + value2;
   const currencySymbol = parsed1.currency || parsed2.currency;
 
-  // Форматируем результат как строку без пробелов для совместимости с formatAsset2Digits
-  const formattedNumber = sum.toFixed(2);
+  // Truncate вниз через строку (с запасом точности до 10 знаков, чтобы FP-шум
+  // не округлил 0.29 как 0.28). Никогда не показываем сумму больше реальной.
+  const formattedNumber = floorDecimalString(sum.toFixed(10), 2);
 
   return currencySymbol
     ? `${formattedNumber} ${currencySymbol}`

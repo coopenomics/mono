@@ -7,9 +7,11 @@ import { RolesGuard } from '~/application/auth/guards/roles.guard';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
+import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
+import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 import { TransactionDTO } from '~/application/common/dto/transaction-result-response.dto';
 import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
-import { GenerationToMainWalletConvertStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/generation-to-main-wallet-convert-statement-document.dto';
+import { GenerationConvertStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/generation-convert-statement-document.dto';
 import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
 import { GenerateDocumentInputDTO } from '~/application/document/dto/generate-document-input.dto';
 
@@ -57,60 +59,24 @@ export class DistributionManagementResolver {
   // ============ ГЕНЕРАЦИЯ ДОКУМЕНТОВ ============
 
   /**
-   * Мутация для генерации заявления о конвертации из генерации в основной кошелек
+   * Мутация для генерации заявления о конвертации целевого паевого взноса
+   * (универсальный шаблон: в Цифровой Кошелёк и/или в программу «Благорост»)
    */
   @Mutation(() => GeneratedDocumentDTO, {
-    name: 'capitalGenerateGenerationToMainWalletConvertStatement',
-    description: 'Сгенерировать заявление о конвертации из генерации в основной кошелек',
+    name: 'capitalGenerateGenerationConvertStatement',
+    description: 'Сгенерировать заявление о конвертации целевого паевого взноса (в Цифровой Кошелёк и/или в программу «Благорост»)',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member'])
-  async generateGenerationToMainWalletConvertStatement(
-    @Args('data', { type: () => GenerationToMainWalletConvertStatementGenerateDocumentInputDTO })
-    data: GenerationToMainWalletConvertStatementGenerateDocumentInputDTO,
+  async generateGenerationConvertStatement(
+    @Args('data', { type: () => GenerationConvertStatementGenerateDocumentInputDTO })
+    data: GenerationConvertStatementGenerateDocumentInputDTO,
     @Args('options', { type: () => GenerateDocumentOptionsInputDTO, nullable: true })
-    options: GenerateDocumentOptionsInputDTO
+    options: GenerateDocumentOptionsInputDTO,
+    @CurrentUser() currentUser: MonoAccountDomainInterface
   ): Promise<GeneratedDocumentDTO> {
-    return this.distributionManagementService.generateGenerationToMainWalletConvertStatement(data, options);
-  }
-
-  /**
-   * Мутация для генерации заявления о конвертации из генерации в проектный кошелек
-   */
-  @Mutation(() => GeneratedDocumentDTO, {
-    name: 'capitalGenerateGenerationToProjectConvertStatement',
-    description: 'Сгенерировать заявление о конвертации из генерации в проектный кошелек',
-  })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
-  async generateGenerationToProjectConvertStatement(
-    @Args('data', { type: () => GenerateDocumentInputDTO })
-    data: GenerateDocumentInputDTO,
-    @Args('options', { type: () => GenerateDocumentOptionsInputDTO, nullable: true })
-    options: GenerateDocumentOptionsInputDTO
-  ): Promise<GeneratedDocumentDTO> {
-    return this.distributionManagementService.generateGenerationToProjectConvertStatement(data, options);
-  }
-
-  /**
-   * Мутация для генерации заявления о конвертации из генерации в благорост
-   */
-  @Mutation(() => GeneratedDocumentDTO, {
-    name: 'capitalGenerateGenerationToCapitalizationConvertStatement',
-    description: 'Сгенерировать заявление о конвертации из генерации в благорост',
-  })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
-  async generateGenerationToCapitalizationConvertStatement(
-    @Args('data', { type: () => GenerateDocumentInputDTO })
-    data: GenerateDocumentInputDTO,
-    @Args('options', { type: () => GenerateDocumentOptionsInputDTO, nullable: true })
-    options: GenerateDocumentOptionsInputDTO
-  ): Promise<GeneratedDocumentDTO> {
-    return this.distributionManagementService.generateGenerationToCapitalizationConvertStatement(data, options);
+    return this.distributionManagementService.generateGenerationConvertStatement(data, options, currentUser);
   }
 
   /**

@@ -121,6 +121,24 @@ export class TimeEntryTypeormRepository implements TimeEntryRepository {
     await this.repository.update({ _id: In(ids) }, { commit_hash: commitHash, is_committed: true, _updated_at: new Date() });
   }
 
+  async findCommittedByCommitHash(commitHash: string): Promise<TimeEntryDomainEntity[]> {
+    const entities = await this.repository.find({
+      where: { commit_hash: commitHash, is_committed: true },
+    });
+    return entities.map((entity) => this.toDomain(entity));
+  }
+
+  async revertCommittedEntriesByCommitHash(commitHash: string): Promise<number> {
+    const result = await this.repository
+      .createQueryBuilder()
+      .update(TimeEntryEntity)
+      .set({ is_committed: false, commit_hash: null as unknown as undefined, _updated_at: new Date() })
+      .where('commit_hash = :commitHash', { commitHash })
+      .andWhere('is_committed = true')
+      .execute();
+    return result.affected ?? 0;
+  }
+
   async delete(id: string): Promise<void> {
     await this.repository.delete(id);
   }

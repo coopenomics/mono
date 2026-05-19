@@ -358,6 +358,11 @@ export class GenerationInteractor {
     commit.status = CommitStatus.DECLINED;
     await this.commitRepository.save(commit);
 
+    // Откатываем time-entries обратно в uncommitted и нормализуем раскладку долей
+    // по затронутым DONE-задачам. Иначе часы остаются в total_committed_hours и
+    // не возвращаются в доступный пул.
+    await this.timeTrackingService.revertEntriesForDeclinedCommit(data.commit_hash);
+
     // Создаём данные для блокчейна
     const blockchainData: CapitalContract.Actions.CommitDecline.ICommitDecline = {
       coopname: data.coopname,
@@ -428,6 +433,10 @@ export class GenerationInteractor {
 
       // Сохранить изменения
       await this.commitRepository.save(commit);
+
+      // Откатить time-entries и нормализовать раскладку (идемпотентно: если decline
+      // уже был обработан через локальный путь, revert вернёт 0 затронутых).
+      await this.timeTrackingService.revertEntriesForDeclinedCommit(actionPayload.commit_hash);
 
       this.logger.debug(`Коммит ${actionPayload.commit_hash} отклонен`);
     } catch (error: any) {

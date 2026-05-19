@@ -44,24 +44,35 @@ import { signReadUrl } from './signing';
 @Injectable()
 export class MinioFileStorageAdapter implements InterFileStoragePort, OnApplicationBootstrap {
   private readonly logger = new Logger(MinioFileStorageAdapter.name);
-  private readonly s3: S3Client;
+  private readonly s3: S3Client | null;
+  private readonly enabled: boolean;
 
   constructor(
     @Inject(FILE_STORAGE_OPTIONS)
     private readonly opts: FileStorageInfrastructureOptions,
   ) {
-    this.s3 = new S3Client({
-      endpoint: opts.endpoint,
-      region: opts.region ?? 'us-east-1',
-      credentials: {
-        accessKeyId: opts.accessKey,
-        secretAccessKey: opts.secretKey,
-      },
-      forcePathStyle: opts.forcePathStyle ?? true,
-    });
+    this.enabled = typeof opts.endpoint === 'string' && opts.endpoint.length > 0;
+    this.s3 = this.enabled
+      ? new S3Client({
+          endpoint: opts.endpoint,
+          region: opts.region ?? 'us-east-1',
+          credentials: {
+            accessKeyId: opts.accessKey,
+            secretAccessKey: opts.secretKey,
+          },
+          forcePathStyle: opts.forcePathStyle ?? true,
+        })
+      : null;
   }
 
   async onApplicationBootstrap(): Promise<void> {
+    if (!this.enabled || !this.s3) {
+      this.logger.warn(
+        'File storage не сконфигурирован (MINIO_ENDPOINT пуст) — модуль стартует в no-op режиме. ' +
+          'Загрузка/чтение файлов будут отклонены до настройки бэкенда.',
+      );
+      return;
+    }
     await this.ensureBucketExists();
     const registered = BucketRegistry.list();
     this.logger.log(
@@ -73,9 +84,19 @@ export class MinioFileStorageAdapter implements InterFileStoragePort, OnApplicat
     );
   }
 
+  private assertEnabled(): S3Client {
+    if (!this.enabled || !this.s3) {
+      throw new InterFileStorageBackendUnavailableError(
+        'File storage не сконфигурирован: MINIO_ENDPOINT пуст. Задайте переменную окружения, чтобы включить загрузку/чтение файлов.',
+      );
+    }
+    return this.s3;
+  }
+
   private async ensureBucketExists(): Promise<void> {
+    const s3 = this.assertEnabled();
     try {
-      await this.s3.send(new HeadBucketCommand({ Bucket: this.opts.bucket }));
+      await s3.send(new HeadBucketCommand({ Bucket: this.opts.bucket }));
       return;
     } catch (e) {
       if (!isNotFound(e)) {
@@ -86,7 +107,7 @@ export class MinioFileStorageAdapter implements InterFileStoragePort, OnApplicat
       }
     }
     try {
-      await this.s3.send(new CreateBucketCommand({ Bucket: this.opts.bucket }));
+      await s3.send(new CreateBucketCommand({ Bucket: this.opts.bucket }));
       this.logger.log(`Создан физический бакет '${this.opts.bucket}'`);
     } catch (e) {
       throw new InterFileStorageBackendUnavailableError(
@@ -97,8 +118,9 @@ export class MinioFileStorageAdapter implements InterFileStoragePort, OnApplicat
   }
 
   getBucket(spec: InterFileStorageBucketSpec): InterFileStorageBucket {
+    const s3 = this.assertEnabled();
     validateSpec(spec);
-    return new MinioBucketHandle(this.s3, this.opts, spec);
+    return new MinioBucketHandle(s3, this.opts, spec);
   }
 
   /**
@@ -107,8 +129,9 @@ export class MinioFileStorageAdapter implements InterFileStoragePort, OnApplicat
    * @throws InterFileStorageObjectNotFoundError, InterFileStorageBackendUnavailableError
    */
   async fetchObjectForReadProxy(physicalKey: string): Promise<FileStorageObjectStream> {
+    const s3 = this.assertEnabled();
     try {
-      const r = await this.s3.send(
+      const r = await s3.send(
         new GetObjectCommand({ Bucket: this.opts.bucket, Key: physicalKey }),
       );
       return {

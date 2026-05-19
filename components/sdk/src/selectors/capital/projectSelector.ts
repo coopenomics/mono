@@ -100,6 +100,8 @@ const rawProjectPermissionsSelector = {
   can_set_plan: true,
   has_clearance: true,
   pending_clearance: true,
+  has_parent_clearance: true,
+  can_view_artifacts: true,
   is_guest: true,
   can_create_requirement: true,
   can_edit_requirement: true,
