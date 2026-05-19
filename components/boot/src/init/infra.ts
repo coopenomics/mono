@@ -645,6 +645,52 @@ export async function installExtraData(blockchain: Blockchain) {
     registration_hash,
   })
 
+  // Подписываем за partner1 wallet-agreement у воскхода. Без записи в
+  // `wallet::users[voskhod].programs` eosio.token::is_can_transfer блокирует
+  // любую tx от partner1 («Отправитель не является участником целевой
+  // потребительской программы кошелька»), что валит installSystem'у
+  // partner-dev на этапе registrator::adduser → Ledger2::apply.
+  // В обычном UI-flow это делал сам партнёр через личный кабинет (harness
+  // 02-sign-and-submit), boot:extra срезает UI и подписывает за него.
+  //
+  // Прямой вызов `wallet::signagree` — soviet::sndagreement для program_id>0
+  // в текущем CDT отдаёт assert «подписывается через wallet::signagree»;
+  // источник правды для is_valid_participant_of_program_by_type — именно
+  // `wallet::users.programs[]` (см. lib/core/programs.hpp).
+  const partnerDoc = {
+    hash: registration_hash,
+    signatures: [],
+    meta: '{}',
+    version: '1.0.0',
+    doc_hash: registration_hash,
+    meta_hash: registration_hash,
+  } as any
+
+  await blockchain.api.transact(
+    {
+      actions: [
+        {
+          account: 'wallet',
+          name: 'signagree',
+          authorization: [
+            {
+              actor: config.provider,
+              permission: 'active',
+            },
+          ],
+          data: {
+            coopname: config.provider,
+            username: account.username,
+            program_id: 1, // wallet program у воскхода (см. soviet::make_base_coagreements)
+            document: partnerDoc,
+            draft_id: 1,
+          },
+        },
+      ],
+    },
+    { blocksBehind: 3, expireSeconds: 30 },
+  )
+
   await blockchain.registerCooperative({
     username: account.username,
     coopname: account.username,
