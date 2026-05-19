@@ -1,10 +1,10 @@
 /**
- * @brief Погашает активный заём пайщика деньгами.
+ * @brief Погашает активный заём пайщика.
  *
- * Прямой канал погашения (без сдачи результата): пайщик-должник либо председатель
- * вносит сумму, ровно равную остатку долга, и заём закрывается. В ledger2 фиксируется
- * операция REPAY (Dr 80 / Cr 58), глобальный долг пайщика в contributors.debt_amount
- * уменьшается, запись долга переходит в SETTLED.
+ * Прямой канал погашения (без сдачи результата): сумма, ровно равная остатку долга,
+ * закрывает заём. В ledger2 фиксируется операция REPAY (Dr 80 / Cr 58),
+ * глобальный долг пайщика в contributors.debt_amount уменьшается, запись долга
+ * переходит в SETTLED.
  *
  * Альтернативный путь закрытия — через подписание акта-2 по результату (см. signact2.cpp),
  * там та же операция REPAY вызывается на сумму result->debt_amount.
@@ -16,13 +16,13 @@
  * @ingroup public_actions
  * @ingroup public_capital_actions
  *
- * @note Авторизация требуется либо от должника, либо от @p coopname (председатель).
+ * @note Авторизация только от @p coopname. Пайщик транзакции не подписывает — backend кооператива
+ *       подставляет себя.
  */
 void capital::settledebt(name coopname, checksum256 debt_hash, eosio::asset amount, document2 statement) {
-  auto exist_debt = Capital::Debts::get_debt_or_fail(coopname, debt_hash);
+  require_auth(coopname);
 
-  eosio::check(eosio::has_auth(exist_debt.username) || eosio::has_auth(coopname),
-               "Погасить заём может либо сам должник, либо председатель кооператива");
+  auto exist_debt = Capital::Debts::get_debt_or_fail(coopname, debt_hash);
 
   eosio::check(exist_debt.status == Capital::Debts::Status::PAID,
                "Погашение деньгами доступно только для активного займа (статус paid)");

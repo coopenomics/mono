@@ -315,7 +315,10 @@ public:
     
     [[eosio::action]]
     void debtpaydcln(name coopname, checksum256 debt_hash, std::string reason);
-    
+
+    [[eosio::action]]
+    void debtpayretry(eosio::name coopname, checksum256 debt_hash);
+
     [[eosio::action]]
     void declinedebt(name coopname, eosio::name username, checksum256 debt_hash, std::string reason);
     

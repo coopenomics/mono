@@ -6,7 +6,7 @@
  * Из OVERDUE долг можно так же закрыть settledebt или signact2 как из PAID.
  *
  * Action рассчитан на запуск из backend через @Cron (см. Эпик 4) — раз в сутки.
- * Один вызов помечает не более 100 записей чтобы уложиться в 30-секундный
+ * Один вызов помечает не более 25 записей чтобы уложиться в 0.5-секундный
  * лимит транзакции EOSIO; backend повторяет до тех пор, пока action не
  * помечает 0 — это сигнал, что в текущем scope больше нечего переводить.
  *
@@ -19,6 +19,6 @@
 void capital::markdebtoverd(name coopname) {
   require_auth(coopname);
 
-  constexpr uint32_t MAX_PER_BATCH = 100;
+  constexpr uint32_t MAX_PER_BATCH = 25;
   Capital::Debts::sweep_overdue(coopname, MAX_PER_BATCH);
 }

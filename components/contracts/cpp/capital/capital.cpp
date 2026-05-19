@@ -92,6 +92,7 @@
 #include "app/debt_managment/create_debt/debtauthcnfr.cpp"
 #include "app/debt_managment/create_debt/debtpaycnfrm.cpp"
 #include "app/debt_managment/create_debt/debtpaydcln.cpp"
+#include "app/debt_managment/create_debt/debtpayretry.cpp"
 #include "app/debt_managment/create_debt/declinedebt.cpp"
 #include "app/debt_managment/create_debt/markdebtoverd.cpp"
 #include "app/debt_managment/settle_debt/settledebt.cpp"

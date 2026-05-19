@@ -23,7 +23,7 @@ void capital::inviterole(name coopname, checksum256 request_hash, checksum256 pr
   verify_document_or_fail(statement);
   Wallet::validate_asset(rate_per_hour);
   eosio::check(rate_per_hour.amount > 0, "Ставка часа должна быть положительной");
-  eosio::check(hours_per_day > 0 && hours_per_day <= 12, "Норма часов — от 1 до 12");
+  eosio::check(hours_per_day > 0 && hours_per_day <= 8, "Норма часов — от 1 до 8");
 
   Capital::RoleRequests::create(
     coopname, request_hash, project_hash, candidate, master, role,

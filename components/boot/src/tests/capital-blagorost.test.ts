@@ -28,7 +28,11 @@ describe('CAPITAL — расширения «Благорост» (Эпик 1)',
     )
 
     it.todo(
-      'Story 1.1: повторная отправка outpay после debtpaydcln идёт без новой авторизации совета'
+      'Story 1.1: debtpayretry повторно отправляет outpay из AUTHORIZED без новой авторизации совета'
+    )
+
+    it.todo(
+      'Story 1.1: debtpayretry отвергается если last_pay_error пустой (платёж ещё не пробовали)'
     )
 
     it.todo(
@@ -52,7 +56,7 @@ describe('CAPITAL — расширения «Благорост» (Эпик 1)',
     )
 
     it.todo(
-      'Story 1.3: markdebtoverd обрабатывает не более batch_limit (100) записей за вызов'
+      'Story 1.3: markdebtoverd обрабатывает не более batch_limit (25) записей за вызов'
     )
   })
 

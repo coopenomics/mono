@@ -22,7 +22,7 @@ void capital::approverole(name coopname, checksum256 request_hash,
   verify_document_or_fail(master_decision);
   Wallet::validate_asset(approved_rate);
   eosio::check(approved_rate.amount > 0, "Утверждённая ставка должна быть положительной");
-  eosio::check(approved_hours > 0 && approved_hours <= 12, "Норма часов — от 1 до 12");
+  eosio::check(approved_hours > 0 && approved_hours <= 8, "Норма часов — от 1 до 8");
 
   auto req = Capital::RoleRequests::get_role_request_or_fail(coopname, request_hash);
 

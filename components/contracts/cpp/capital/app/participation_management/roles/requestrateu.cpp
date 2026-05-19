@@ -23,7 +23,7 @@ void capital::requestrateu(name coopname, checksum256 request_hash, checksum256 
   verify_document_or_fail(statement);
   Wallet::validate_asset(new_rate);
   eosio::check(new_rate.amount > 0, "Новая ставка должна быть положительной");
-  eosio::check(new_hours > 0 && new_hours <= 12, "Норма часов — от 1 до 12");
+  eosio::check(new_hours > 0 && new_hours <= 8, "Норма часов — от 1 до 8");
 
   // role не значим для RATE_UPDATE — кладём "rate"_n как маркер.
   Capital::RoleRequests::create(

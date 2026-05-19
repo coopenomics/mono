@@ -52,8 +52,10 @@ void capital::createcmmt(eosio::name coopname, eosio::name username, checksum256
   // компонента дифференцировать ставку по проекту без изменения договора УХД.
   auto segment_opt = Capital::Segments::get_segment(coopname, project_hash, username);
   eosio::asset effective_rate = contributor->rate_per_hour;
-  if (segment_opt.has_value() && segment_opt->approved_rate_per_hour.amount > 0) {
-    effective_rate = segment_opt->approved_rate_per_hour;
+  if (segment_opt.has_value()
+      && segment_opt->approved_rate_per_hour.has_value()
+      && segment_opt->approved_rate_per_hour->amount > 0) {
+    effective_rate = *segment_opt->approved_rate_per_hour;
   }
 
   // считаем сумму фактических затрат создателя на основе ставки в час и потраченного времени

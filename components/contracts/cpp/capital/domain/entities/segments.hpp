@@ -2,6 +2,7 @@
 
 #include <eosio/eosio.hpp>
 #include <eosio/asset.hpp>
+#include <eosio/binary_extension.hpp>
 
 using namespace eosio;
 
@@ -114,10 +115,10 @@ namespace Capital::Segments {
     double share_percent = 0.0;                                            ///< Доля участника в результате (intellectual_cost / fact.total * 100)
 
     // Допуски L2 — утверждаются мастером компонента/сегмента через approverole (Story 1.7).
-    // Используются в createcmmt вместо глобального contributors.rate_per_hour, если ≠ 0.
-    // 0 (значение по умолчанию) означает «approved-ставка не выставлена, fallback на contributors».
-    eosio::asset approved_rate_per_hour = asset(0, _root_govern_symbol); ///< Утверждённая мастером ставка часа на этом сегменте
-    uint64_t approved_hours_per_day = 0;                                  ///< Утверждённое мастером количество часов в день на этом сегменте
+    // Используются в createcmmt вместо глобального contributors.rate_per_hour, если значение установлено.
+    // binary_extension: таблица segments уже в продакшене, расширение схемы только хвостом.
+    eosio::binary_extension<eosio::asset> approved_rate_per_hour;         ///< Утверждённая мастером ставка часа на этом сегменте
+    eosio::binary_extension<uint64_t> approved_hours_per_day;             ///< Утверждённое мастером количество часов в день на этом сегменте
 
     uint64_t primary_key() const { return id; }                           ///< Первичный ключ (1)
     
@@ -181,8 +182,8 @@ namespace Capital::Segments {
     eosio::check(it != idx.end(), "Сегмент участника на этом проекте не найден");
 
     idx.modify(it, coopname, [&](auto &s) {
-      s.approved_rate_per_hour = rate_per_hour;
-      s.approved_hours_per_day = hours_per_day;
+      s.approved_rate_per_hour.emplace(rate_per_hour);
+      s.approved_hours_per_day.emplace(hours_per_day);
     });
   }
 

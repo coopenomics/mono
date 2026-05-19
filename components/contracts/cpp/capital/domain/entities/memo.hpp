@@ -88,7 +88,7 @@ namespace Capital::Memo {
   }
 
   inline std::string get_settle_debt_memo(eosio::name username, checksum256 debt_hash) {
-    return "Погашение займа деньгами участником " + username.to_string() + " (долг " + checksum256_to_hex(debt_hash) + ")";
+    return "Погашение займа участником " + username.to_string() + " (заём " + checksum256_to_hex(debt_hash) + ")";
   }
 
   inline std::string get_expense_pay_memo(checksum256 expense_hash) {
