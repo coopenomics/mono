@@ -11,6 +11,8 @@ import {
   MarketplaceInventoryItemDTO,
   MarketplaceLabelInventoryInputDTO,
   MarketplaceLabelInventoryResultDTO,
+  MarketplaceLabelShipmentInventoryInputDTO,
+  MarketplaceLabelShipmentInventoryResultDTO,
   MarketplaceListInventoryInputDTO,
   toMarketplaceInventoryItemDTO,
 } from '../dto/marketplace-inventory.dto';
@@ -60,6 +62,36 @@ export class MarketplaceInventoryResolver {
     });
     const dto = new MarketplaceLabelInventoryResultDTO();
     dto.inventory = result.inventory.map(toMarketplaceInventoryItemDTO);
+    return dto;
+  }
+
+  @Mutation(() => MarketplaceLabelShipmentInventoryResultDTO, {
+    name: 'marketplaceLabelShipmentInventory',
+    description:
+      'Массовая маркировка имущества всех заказов одной партии поставки за один вызов. Идемпотентно: уже промаркированные заказы пропускаются.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Inventory', 'label')
+  async marketplaceLabelShipmentInventory(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('data') data: MarketplaceLabelShipmentInventoryInputDTO
+  ): Promise<MarketplaceLabelShipmentInventoryResultDTO> {
+    const result = await this.labelService.labelShipment({
+      coopname: config.coopname,
+      operator_account: member.username,
+      shipment_id: data.shipment_id,
+      default_strategy: data.default_strategy as unknown as MarketplaceBarcodeStrategy | undefined,
+      format: data.format as unknown as MarketplaceBarcodeFormat | undefined,
+      per_order_overrides: data.per_order_overrides?.map((o) => ({
+        order_id: o.order_id,
+        strategy: o.strategy as unknown as MarketplaceBarcodeStrategy | undefined,
+        pack_size: o.pack_size,
+      })),
+    });
+    const dto = new MarketplaceLabelShipmentInventoryResultDTO();
+    dto.inventory = result.inventory.map(toMarketplaceInventoryItemDTO);
+    dto.labeled_order_ids = result.labeled_order_ids;
+    dto.skipped_order_ids = result.skipped_order_ids;
     return dto;
   }
 

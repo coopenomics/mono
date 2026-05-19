@@ -11,6 +11,13 @@ export type IProcessAction = NonNullable<IProcessView>['actions'][number]
 
 export type IProcessDocument = NonNullable<IProcessView>['documents'][number]
 
+export type IProcessListResult =
+  Queries.Processes.ListProcesses.IOutput[typeof Queries.Processes.ListProcesses.name]
+
+export type IProcessListInput = Queries.Processes.ListProcesses.IInput
+
+export type IProcessSummary = NonNullable<IProcessListResult>['items'][number]
+
 /**
  * Текущий снэпшот процесса в bs-таблице расширения (marketplace::orders, …).
  * GraphQL-схема отдаёт `value: JSON`, поэтому строгое описание полей даёт
