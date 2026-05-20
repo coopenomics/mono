@@ -1,4 +1,4 @@
-import { Injectable, UseGuards } from '@nestjs/common';
+import { ForbiddenException, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import config from '~/config/config';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
@@ -206,8 +206,18 @@ export class MarketplaceReturnClaimResolver {
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('ReturnClaim', 'read:own-KU')
   async marketplaceListReturnClaimsByBraname(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceListReturnClaimsByBranameInputDTO
   ): Promise<MarketplaceReturnClaimDTO[]> {
+    // Ownership `:own-KU` — MVP-приближение: член-operator является
+    // chairman'ом braname если его username совпадает с account КУ
+    // (соответствует текущему fallback'у marketplace-notification.service.ts).
+    // Полная интеграция с `coop_ku.chairman_account` — Phase 2.
+    if (member.username !== data.delivery_braname) {
+      throw new ForbiddenException(
+        'Чтение заявлений возможно только для участка, председателем которого вы являетесь.'
+      );
+    }
     const claims = await this.service.listByDeliveryBraname(
       config.coopname,
       data.delivery_braname
@@ -221,8 +231,20 @@ export class MarketplaceReturnClaimResolver {
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('ReturnClaim', 'read:own')
-  async marketplaceReturnClaim(@Args('claim_id') claim_id: string): Promise<MarketplaceReturnClaimDTO> {
+  async marketplaceReturnClaim(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('claim_id') claim_id: string
+  ): Promise<MarketplaceReturnClaimDTO> {
     const claim = await this.service.findById(config.coopname, claim_id);
+    // Ownership-проверка `:own` — matrix capability проверена guard'ом,
+    // здесь верифицируем что пайщик действительно владелец заявления
+    // (orderer Order'а либо председатель КУ доставки этого заявления).
+    const isOwnerOrderer = claim.orderer_account === member.username;
+    const isChairmanOfDeliveryKu = member.marketplace_roles.includes('operator')
+      && claim.delivery_braname === member.username;
+    if (!isOwnerOrderer && !isChairmanOfDeliveryKu) {
+      throw new ForbiddenException('Это чужое заявление на возврат.');
+    }
     return this.toClaimDTO(claim);
   }
 

@@ -66,6 +66,11 @@ const actualQuantity = ref<number | null>(null);
 const photos = ref<ReturnClaimPhotoUploadInput[]>([]);
 const previewHtml = ref<string>('');
 const previewLoading = ref(false);
+// Документ, который реально подписывается — генерируется ОДИН раз вместе с
+// preview (с полными reason_text/defect_category/actual_quantity). При confirm()
+// подписываем именно его — гарантия, что пайщик подписал то, что видел.
+type GeneratedDocumentSnapshot = Awaited<ReturnType<typeof getReturnClaimSignablePayload>>;
+const signableDocument = ref<GeneratedDocumentSnapshot | null>(null);
 const submitting = ref(false);
 
 watch(
@@ -78,6 +83,7 @@ watch(
       actualQuantity.value = null;
       photos.value = [];
       previewHtml.value = '';
+      signableDocument.value = null;
     }
   },
   { immediate: false },
@@ -111,11 +117,19 @@ async function loadPreview(): Promise<void> {
   if (!props.orderId) return;
   previewLoading.value = true;
   try {
+    // Генерируем и preview, и подписываемый документ одним вызовом со ВСЕМИ
+    // полями (reason_text, defect_category, actual_quantity). Hash документа
+    // зависит от полей — если позднее их изменить, нужно загрузить заново;
+    // подписываем именно сохранённый snapshot, чтобы пайщик не подписал
+    // документ, отличный от показанного preview.
     const doc = await getReturnClaimSignablePayload({
       order_id: props.orderId,
       actual_quantity: actualQuantity.value ?? undefined,
+      reason_text: reasonText.value,
+      defect_category: defectCategory.value || undefined,
     });
     previewHtml.value = doc.html;
+    signableDocument.value = doc;
   } catch (e) {
     FailAlert(e, 'Не удалось сформировать предварительное заявление');
     step.value = STEP_PHOTOS;
@@ -129,8 +143,8 @@ function goToPhotos(): void {
     FailAlert(new Error('Опишите причину возврата.'));
     return;
   }
-  if (reasonText.value.length > 500) {
-    FailAlert(new Error('Причина возврата не должна превышать 500 символов.'));
+  if (reasonText.value.length > 2000) {
+    FailAlert(new Error('Причина возврата не должна превышать 2000 символов.'));
     return;
   }
   step.value = STEP_PHOTOS;
@@ -154,7 +168,7 @@ async function confirm(): Promise<void> {
     await goToSign();
     return;
   }
-  if (!previewHtml.value) {
+  if (!signableDocument.value) {
     FailAlert(new Error('Заявление ещё формируется, подождите.'));
     return;
   }
@@ -166,14 +180,8 @@ async function confirm(): Promise<void> {
 
   submitting.value = true;
   try {
-    const generated = await getReturnClaimSignablePayload({
-      order_id: props.orderId,
-      actual_quantity: actualQuantity.value ?? undefined,
-      reason_text: reasonText.value,
-      defect_category: defectCategory.value || undefined,
-    });
     const signer = new Classes.Document(wifKey);
-    const signed = await signer.signDocument(generated, globalStore.username, 1);
+    const signed = await signer.signDocument(signableDocument.value, globalStore.username, 1);
 
     await createReturnClaim({
       order_id: props.orderId,
@@ -230,7 +238,7 @@ const confirmDisabled = computed(() => {
   if (submitting.value) return true;
   if (step.value === STEP_DESCRIBE) return !reasonText.value.trim();
   if (step.value === STEP_PHOTOS) return photos.value.length === 0;
-  return !previewHtml.value;
+  return !signableDocument.value;
 });
 </script>
 
@@ -264,7 +272,7 @@ TakeoverDialog(
             type="textarea"
             label="Причина возврата"
             counter
-            maxlength="500"
+            maxlength="2000"
             autogrow
           )
           q-select(

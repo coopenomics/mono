@@ -88,6 +88,14 @@ export class MarketplaceReturnClaimImagesService {
     return this.bucket.getReadUrl(bucketKey);
   }
 
+  /**
+   * Удаляет orphaned-объект из bucket'а — вызывается из сервиса при провале
+   * on-chain submit'а, чтобы не оставлять mёртвые файлы в `stol-zakazov:images`.
+   */
+  async deletePhoto(bucketKey: string): Promise<void> {
+    await this.bucket.delete(bucketKey);
+  }
+
   private extFromMime(mime: string): string {
     switch (mime) {
       case 'image/jpeg':
