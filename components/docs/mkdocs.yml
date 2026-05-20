@@ -206,6 +206,8 @@ nav:
       - Заказы участка: new/marketplace/branch-chairman/branch-orders.md
       - Обработка возвратов: new/marketplace/branch-chairman/return-approve.md
     - Стол председателя кооператива (Marketplace):
+      - Обзор Стола председателя: new/marketplace/chairman/dashboard.md
+      - Экскурсия по разделам Стола заказов: new/marketplace/chairman/market-tour.md
       - Модерация предложений: new/marketplace/chairman/offer-moderation.md
       - Категории ЦПП: new/marketplace/chairman/category-whitelist.md
       - Сеть ПВЗ: new/marketplace/chairman/branches.md

@@ -66,25 +66,26 @@ function loadConfigSync(): boolean {
 
   }
 
-  // // Пробуем загрузить резервную конфигурацию
-  // try {
-  //   console.log('DEBUG: Загружаем резервную конфигурацию синхронно');
+  // Пробуем резервный config.default.js (для SPA-dev режима, где SSR middleware
+  // не запущен и нет /config.js — без этого фронт получает пустой BACKEND_URL).
+  try {
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', `/config.default.js?t=${Date.now()}`, false);
+    xhr.send();
 
-  //   const xhr = new XMLHttpRequest();
-  //   xhr.open('GET', '/config.default.js', false);
-  //   xhr.send();
-
-  //   if (xhr.status === 200) {
-  //     eval(xhr.responseText);
-
-  //     if (window.__APP_CONFIG__) {
-  //       console.log('DEBUG: config.default.js загружен синхронно');
-  //       return true;
-  //     }
-  //   }
-  // } catch (error) {
-  //   console.warn('DEBUG: Ошибка загрузки резервной конфигурации:', error);
-  // }
+    if (xhr.status === 200) {
+      const ct = (xhr.getResponseHeader('content-type') || '').toLowerCase();
+      if (!ct.includes('javascript')) {
+        return false;
+      }
+      eval(xhr.responseText);
+      if (window.__APP_CONFIG__) {
+        return true;
+      }
+    }
+  } catch {
+    // молча — следующая ветка вернёт false
+  }
 
   return false;
 }
