@@ -175,7 +175,15 @@ export class MarketplaceIssuanceService {
       );
     }
 
-    const txHash = this.extractTxHash(tx) || `signiss1-${order.id}`;
+    const txHash = this.extractTxHash(tx);
+    if (!txHash) {
+      // Если on-chain ответ не содержит хэша, мы не сможем восстановить
+      // tx по запросу аудитора; синтетический hash 'signiss1-<uuid>' попадёт
+      // в audit-trail как несуществующий — лучше отдать ошибку и повторить.
+      throw new ConflictException(
+        `Не получен tx_hash от блокчейна для open issuance order ${order.id}. Повторите подписание.`
+      );
+    }
     const updated = await this.orderRepo.applyIssuanceOpened(order.id, {
       chairman_account: input.chairman_account,
       signiss1_tx_hash: txHash,
@@ -186,7 +194,7 @@ export class MarketplaceIssuanceService {
       `Выдача order ${order.id} открыта председателем ${input.chairman_account} (tx=${txHash}); статус READY_TO_RECEIVE.`
     );
 
-    // Story 6.4 / FR22: push заказчику — заказ готов на ПВЗ.
+    // Story 6.1 / FR22: push заказчику — заказ готов на ПВЗ.
     const event: MarketplaceOrderReadyToReceiveEvent = {
       coopname: updated.coopname,
       order_id: updated.id,
@@ -248,7 +256,12 @@ export class MarketplaceIssuanceService {
       );
     }
 
-    const txHash = this.extractTxHash(tx) || `signiss2-${order.id}`;
+    const txHash = this.extractTxHash(tx);
+    if (!txHash) {
+      throw new ConflictException(
+        `Не получен tx_hash от блокчейна для finalize issuance order ${order.id}. Повторите подписание.`
+      );
+    }
     const factSnapshot = this.buildIssuanceFactSnapshot(order, input.actual_quantity);
     const warrantyUntil =
       order.warranty_period_secs > 0
