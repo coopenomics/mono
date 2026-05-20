@@ -37,7 +37,7 @@ const total = ref(0);
 const loading = ref(false);
 const selectedCategoryId = ref<number>(ALL_KEY);
 const sort = ref<CatalogSort>('created_at_desc');
-const offset = ref(0);
+const currentPage = ref(1);
 
 const hasMore = computed(() => items.value.length < total.value);
 
@@ -89,11 +89,11 @@ async function loadPage(append: boolean): Promise<void> {
   try {
     const page = await fetchCatalog({
       category_id: selectedCategoryId.value === ALL_KEY ? null : selectedCategoryId.value,
+      page: currentPage.value,
       limit: PAGE_SIZE,
-      offset: offset.value,
       sort: sort.value,
     });
-    total.value = page.total;
+    total.value = page.totalCount;
     items.value = append ? items.value.concat(page.items) : page.items;
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
@@ -105,19 +105,19 @@ async function loadPage(append: boolean): Promise<void> {
 
 function selectCategory(id: number): void {
   selectedCategoryId.value = id;
-  offset.value = 0;
+  currentPage.value = 1;
   void loadPage(false);
 }
 
 function changeSort(newSort: CatalogSort): void {
   sort.value = newSort;
-  offset.value = 0;
+  currentPage.value = 1;
   void loadPage(false);
 }
 
 async function onLoadMore(): Promise<void> {
   if (!hasMore.value || loading.value) return;
-  offset.value = items.value.length;
+  currentPage.value += 1;
   await loadPage(true);
 }
 

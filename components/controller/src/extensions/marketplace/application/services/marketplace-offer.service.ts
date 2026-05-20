@@ -183,9 +183,24 @@ export class MarketplaceOfferService {
       });
     }
 
-    const normalizedPatch: OfferUpdateInput & { status: MarketplaceOfferStatus } = {
+    const normalizedPatch: OfferUpdateInput & {
+      status: MarketplaceOfferStatus;
+      approved_by: string | null;
+      approved_at: Date | null;
+      rejected_by: string | null;
+      rejected_at: Date | null;
+      reject_reason: string | null;
+    } = {
       ...patch,
       status: 'PENDING_MODERATION',
+      // edit повторно отправляет оффер на модерацию — поля прошлых решений
+      // (approve/reject) не должны утечь в UI как «уже одобрен» / «отклонён
+      // с прошлой причиной».
+      approved_by: null,
+      approved_at: null,
+      rejected_by: null,
+      rejected_at: null,
+      reject_reason: null,
     };
 
     if (patch.unlimited_flag === true) {

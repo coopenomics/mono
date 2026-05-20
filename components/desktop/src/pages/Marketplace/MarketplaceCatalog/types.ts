@@ -31,8 +31,10 @@ export interface MarketplaceOfferView {
 }
 
 export interface MarketplaceOfferPage {
-  total: number;
   items: MarketplaceOfferView[];
+  totalCount: number;
+  totalPages: number;
+  currentPage: number;
 }
 
 export interface MarketplaceCategoryView {
