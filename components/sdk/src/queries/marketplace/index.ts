@@ -6,6 +6,10 @@ export * as ListMyOrders from './listMyOrders'
 export * as GetOrder from './getOrder'
 /** Базовый справочник категорий товаров */
 export * as ListCategories from './listCategories'
+/** Каталог активных Offer'ов (Story 3.5) */
+export * as ListCatalog from './listCatalog'
+/** Счётчики активных Offer'ов per category для фильтр-чипов (Story 3.5) */
+export * as CategoryOfferCounts from './categoryOfferCounts'
 /** Эпик 5: партии поставки кооператива */
 export * as ListShipments from './listShipments'
 /** Эпик 5: одна партия поставки по идентификатору */

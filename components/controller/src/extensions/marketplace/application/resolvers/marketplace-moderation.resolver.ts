@@ -55,7 +55,9 @@ export class MarketplaceModerationResolver {
       page: input?.page ?? 1,
       limit: input?.limit ?? 50,
       sortBy: input?.sortBy ?? 'created_at',
-      sortOrder: (input?.sortOrder ?? 'DESC') as 'ASC' | 'DESC',
+      // FIFO: первой берётся самая старая заявка — модератор не должен
+      // пропускать давно ждущие офферы из-за свежих.
+      sortOrder: (input?.sortOrder ?? 'ASC') as 'ASC' | 'DESC',
     };
     const result = await this.service.listPending(config.coopname, pagination);
     return {
