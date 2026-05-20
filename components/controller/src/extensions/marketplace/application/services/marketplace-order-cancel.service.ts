@@ -142,7 +142,16 @@ export class MarketplaceOrderCancelService {
 
   private normalizeTxHash(tx: unknown): string {
     const t = tx as { transaction?: { id?: string }; processed?: { id?: string } };
-    return t?.transaction?.id ?? t?.processed?.id ?? 'unknown';
+    const hash = t?.transaction?.id ?? t?.processed?.id;
+    if (!hash) {
+      // fail-fast: цепь приняла action, но не вернула tx_hash — audit-trail
+      // станет фантомным ('unknown') без возможности cross-reference. Лучше
+      // отбить отмену пайщику и попросить retry, чем записать «unknown».
+      throw new BadRequestException(
+        'Отмена заказа: цепь не вернула tx_hash. Повторите попытку.'
+      );
+    }
+    return hash;
   }
 
   private rethrowChainError(error: any): never {

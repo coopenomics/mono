@@ -322,7 +322,14 @@ export class MarketplaceOrderCreateService {
 
   private normalizeTxResult(tx: unknown): { tx_hash: string; block_num: number } {
     const t = tx as { transaction?: { id?: string }; processed?: { id?: string; block_num?: number } };
-    const tx_hash = t?.transaction?.id ?? t?.processed?.id ?? 'unknown';
+    const tx_hash = t?.transaction?.id ?? t?.processed?.id;
+    if (!tx_hash) {
+      // fail-fast: цепь приняла createorder, но не вернула tx_hash —
+      // запись Order в БД без tx_hash сделает audit-trail фантомным.
+      throw new BadRequestException(
+        'Создание заказа: цепь не вернула tx_hash. Повторите попытку.'
+      );
+    }
     const block_num = t?.processed?.block_num ?? 0;
     return { tx_hash, block_num };
   }
