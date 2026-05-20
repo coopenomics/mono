@@ -85,9 +85,18 @@ export class MarketplaceOrderCancelService {
     if (order.orderer_account !== input.orderer_account) {
       throw new ForbiddenException('Отменить заказ может только его заказчик.');
     }
-    if (order.status !== 'ACTIVE') {
+    // Story 4.4 AC: отмена доступна заказчиком пока поставщик не запустил
+    // поставку. Это охватывает ACTIVE (in pool) и ACCEPTED_PENDING_SUPPLIER*
+    // (batch/individual ожидание подтверждения). После ACCEPTED отмена
+    // только через гарантийный возврат (Эпик 7).
+    const CANCELABLE_STATUSES = [
+      'ACTIVE',
+      'ACCEPTED_PENDING_SUPPLIER',
+      'ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL',
+    ] as const;
+    if (!(CANCELABLE_STATUSES as readonly string[]).includes(order.status)) {
       throw new BadRequestException(
-        `Нельзя отменить заказ в статусе «${order.status}». Отмена доступна только для активных заказов до акцепта поставщика.`
+        `Нельзя отменить заказ в статусе «${order.status}». Отмена доступна только до запуска поставщиком поставки.`
       );
     }
 

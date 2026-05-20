@@ -67,6 +67,7 @@ export class MarketplaceCycleResolver {
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Offer', 'read')
   async marketplaceListConsolidatedRequests(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('input', { nullable: true }) input?: MarketplaceListConsolidatedRequestsInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO
   ): Promise<MarketplaceConsolidatedRequestPaginationResultDTO> {
@@ -79,6 +80,10 @@ export class MarketplaceCycleResolver {
     const result = await this.cycleRepo.list(
       {
         coopname: config.coopname,
+        // Поставщик видит только свои сводные заявки (read:to-self).
+        // Без этого фильтра любой пайщик-поставщик получал весь
+        // список консолидированных заявок кооператива.
+        supplier_account: member.username,
         offer_id: input?.offer_id,
         status: input?.status,
       },
