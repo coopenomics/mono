@@ -120,18 +120,37 @@ describe('MarketplaceOrderCancelService', () => {
   });
 
   it.each([
-    'ACCEPTED_PENDING_SUPPLIER',
-    'ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL',
     'ACCEPTED',
     'RECEIVED',
     'CANCELLED_BY_ORDERER',
-  ] as const)('BadRequest когда status = %s (не ACTIVE)', async (status) => {
+  ] as const)('BadRequest когда status = %s (после акцепта/получения/уже отменён)', async (status) => {
     mocks.orderRepo.findById.mockResolvedValue(buildOrder({ status }));
 
     await expect(
       service.execute({ coopname: 'voskhod', orderer_account: 'orderer1', order_id: 'order-1' })
     ).rejects.toThrow(BadRequestException);
     expect(mocks.chainPort.cancelOrder).not.toHaveBeenCalled();
+  });
+
+  // Story 4.4 AC: ACCEPTED_PENDING_SUPPLIER* — отмена доступна до запуска
+  // поставщиком поставки. См. can_be_cancelled_by_orderer.
+  it.each([
+    'ACTIVE',
+    'ACCEPTED_PENDING_SUPPLIER',
+    'ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL',
+  ] as const)('cancel доступен в статусе %s', async (status) => {
+    mocks.orderRepo.findById.mockResolvedValue(buildOrder({ status }));
+    mocks.chainPort.cancelOrder.mockResolvedValue({ transaction: { id: 'tx-cancel-abc' } } as any);
+    mocks.orderRepo.applyStatusTransition.mockResolvedValue(buildOrder({ status: 'CANCELLED_BY_ORDERER' }));
+
+    await service.execute({ coopname: 'voskhod', orderer_account: 'orderer1', order_id: 'order-1' });
+
+    expect(mocks.chainPort.cancelOrder).toHaveBeenCalled();
+    expect(mocks.orderRepo.applyStatusTransition).toHaveBeenCalledWith(
+      'order-1',
+      'CANCELLED_BY_ORDERER',
+      expect.any(String)
+    );
   });
 
   it('chain.cancelOrder fail — clean BadRequestException, Order не модифицирован', async () => {
