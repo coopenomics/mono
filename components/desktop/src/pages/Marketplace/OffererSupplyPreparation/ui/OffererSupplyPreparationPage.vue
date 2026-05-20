@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import type { QTableProps } from 'quasar';
 import { onMounted, ref } from 'vue';
 import { FailAlert } from 'src/shared/api';
 import { listShipments, type MarketplaceShipmentView } from '../api';
@@ -13,6 +14,15 @@ import { listShipments, type MarketplaceShipmentView } from '../api';
 
 const items = ref<MarketplaceShipmentView[]>([]);
 const loading = ref(false);
+
+const columns: QTableProps['columns'] = [
+  { name: 'cycle_id', label: 'Цикл', field: 'cycle_id', align: 'left' },
+  { name: 'braname', label: 'КУ', field: 'braname', align: 'left' },
+  { name: 'delivery_variant', label: 'Вариант', field: 'delivery_variant', align: 'center' },
+  { name: 'status', label: 'Статус', field: 'status', align: 'left' },
+  { name: 'total_amount', label: 'Сумма', field: 'total_amount', align: 'right' },
+  { name: 'ttn_number', label: 'ТТН', field: 'ttn_number', align: 'left' },
+];
 
 async function load(): Promise<void> {
   loading.value = true;
@@ -39,14 +49,7 @@ q-page.mp-role-offerer.mp-supply-preparation.q-pa-md
 
   q-table(
     :rows="items"
-    :columns="[
-      { name: 'cycle_id', label: 'Цикл', field: 'cycle_id', align: 'left' },
-      { name: 'braname', label: 'КУ', field: 'braname', align: 'left' },
-      { name: 'delivery_variant', label: 'Вариант', field: 'delivery_variant', align: 'center' },
-      { name: 'status', label: 'Статус', field: 'status', align: 'left' },
-      { name: 'total_amount', label: 'Сумма', field: 'total_amount', align: 'right' },
-      { name: 'ttn_number', label: 'ТТН', field: 'ttn_number', align: 'left' },
-    ]"
+    :columns="columns"
     row-key="id"
     flat
     bordered

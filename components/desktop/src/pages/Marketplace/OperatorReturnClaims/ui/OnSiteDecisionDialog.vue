@@ -169,6 +169,11 @@ const confirmDisabled = computed(() => {
   if (decision.value === DECISION_ACCEPT && !scannedCode.value.trim()) return true;
   return false;
 });
+
+const decisionOptions = [
+  { label: 'Принять возврат (compensating forward выполнится атомарно)', value: DECISION_ACCEPT, color: 'positive' },
+  { label: 'Отказать на месте (имущество остаётся у заказчика)', value: DECISION_REJECT, color: 'negative' },
+];
 </script>
 
 <template lang="pug">
@@ -235,10 +240,7 @@ TakeoverDialog(
         .text-subtitle1.q-mb-sm 4. Решение
         q-option-group(
           v-model="decision"
-          :options="[
-            { label: 'Принять возврат (compensating forward выполнится атомарно)', value: DECISION_ACCEPT, color: 'positive' },
-            { label: 'Отказать на месте (имущество остаётся у заказчика)', value: DECISION_REJECT, color: 'negative' },
-          ]"
+          :options="decisionOptions"
           type="radio"
         )
         q-banner.q-mt-md(v-if="decision === DECISION_ACCEPT" rounded class="bg-positive text-white")

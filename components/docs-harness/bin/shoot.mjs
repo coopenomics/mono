@@ -40,6 +40,21 @@ const KNOWN_FIXTURES = {
   // 05-additional-contributors). Используется в сценарии adaptation для
   // снимков мастера выбора ролей / часов / ставки / документов УХД.
   newadapter: { email: 'andrey.sidorov@example.com', firstName: 'Андрей', lastName: 'Сидоров', middleName: 'Михайлович' },
+
+  // === Marketplace MVP «Стол заказов» ===
+  // Председатели КУ — обычные пайщики, на которых председатель кооператива
+  // повесил branch.trustee через branch::createbranch.
+  chairkrg: { email: 'chairkrg@voskhod.coop', firstName: 'Пётр', lastName: 'Иванов', middleName: 'Сергеевич' },
+  chairodn: { email: 'chairodn@voskhod.coop', firstName: 'Сергей', lastName: 'Орлов', middleName: 'Васильевич' },
+  chairmyt: { email: 'chairmyt@voskhod.coop', firstName: 'Алексей', lastName: 'Мытищенко', middleName: 'Григорьевич' },
+  // Доверенное лицо КУ Красногорск (branch.trusted[]).
+  trustedkrg: { email: 'trustedkrg@voskhod.coop', firstName: 'Михаил', lastName: 'Петров', middleName: 'Андреевич' },
+  // Оператор КУ Красногорск (marketplace-роль operator).
+  opkrg: { email: 'opkrg@voskhod.coop', firstName: 'Александр', lastName: 'Кузнецов', middleName: 'Владимирович' },
+  // Поставщик (marketplace-роль offerer): публикует Предложения.
+  sidorov: { email: 'sidorov@voskhod.coop', firstName: 'Дмитрий', lastName: 'Сидоров', middleName: 'Николаевич' },
+  // Заказчица (marketplace-роль orderer): оформляет Заказы.
+  petrova: { email: 'petrova@voskhod.coop', firstName: 'Екатерина', lastName: 'Петрова', middleName: 'Александровна' },
 };
 
 const log = (m) => console.error(`◇ ${m}`);

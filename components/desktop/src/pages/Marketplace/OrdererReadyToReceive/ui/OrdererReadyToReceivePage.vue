@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import type { QTableProps } from 'quasar';
 import { onMounted, ref } from 'vue';
 import { FailAlert } from 'src/shared/api';
 import { listMyReadyToReceive, type MarketplaceOrderIssuanceView } from '../api';
@@ -17,6 +18,14 @@ import { listMyReadyToReceive, type MarketplaceOrderIssuanceView } from '../api'
 
 const items = ref<MarketplaceOrderIssuanceView[]>([]);
 const loading = ref(false);
+
+const columns: QTableProps['columns'] = [
+  { name: 'order', label: 'Заказ', field: (r: MarketplaceOrderIssuanceView) => r.id.slice(0, 8), align: 'left' },
+  { name: 'ku', label: 'Пункт выдачи', field: 'delivery_braname', align: 'left' },
+  { name: 'quantity', label: 'Количество', field: 'quantity', align: 'right' },
+  { name: 'total_cost', label: 'Сумма заказа', field: 'total_cost', align: 'right' },
+  { name: 'opened_at', label: 'Открыто к выдаче', field: 'chairman_signed_at', align: 'left' },
+];
 
 async function load(): Promise<void> {
   loading.value = true;
@@ -40,13 +49,7 @@ q-page.mp-role-orderer.mp-issuance-ready.q-pa-md
 
   q-table(
     :rows="items"
-    :columns="[
-      { name: 'order', label: 'Заказ', field: (r: MarketplaceOrderIssuanceView) => r.id.slice(0, 8), align: 'left' },
-      { name: 'ku', label: 'Пункт выдачи', field: 'delivery_braname', align: 'left' },
-      { name: 'quantity', label: 'Количество', field: 'quantity', align: 'right' },
-      { name: 'total_cost', label: 'Сумма заказа', field: 'total_cost', align: 'right' },
-      { name: 'opened_at', label: 'Открыто к выдаче', field: 'chairman_signed_at', align: 'left' },
-    ]"
+    :columns="columns"
     row-key="id"
     flat
     bordered
