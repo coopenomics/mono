@@ -16,6 +16,12 @@ import {
   MARKETPLACE_CATEGORY_REPOSITORY,
   type MarketplaceCategoryDomainRepository,
 } from '../../domain/repositories/marketplace-category.repository';
+import {
+  MARKETPLACE_ORDER_REPOSITORY,
+  type MarketplaceOrderDomainRepository,
+} from '../../domain/repositories/marketplace-order.repository';
+import { MarketplaceOrderStatuses } from '../../domain/entities/marketplace-order.types';
+import type { MarketplaceOrderStatus } from '../../domain/entities/marketplace-order.types';
 import type { MarketplaceOfferDomainEntity } from '../../domain/entities/marketplace-offer.entity';
 import type {
   MarketplaceBarcodeStrategy,
@@ -88,8 +94,26 @@ export class MarketplaceOfferService {
     @Inject(MARKETPLACE_OFFER_REPOSITORY)
     private readonly repo: MarketplaceOfferDomainRepository,
     @Inject(MARKETPLACE_CATEGORY_REPOSITORY)
-    private readonly categoryRepo: MarketplaceCategoryDomainRepository
+    private readonly categoryRepo: MarketplaceCategoryDomainRepository,
+    @Inject(MARKETPLACE_ORDER_REPOSITORY)
+    private readonly orderRepo: MarketplaceOrderDomainRepository
   ) {}
+
+  /**
+   * Не-терминальные статусы Order'а, при которых нельзя позволить
+   * supplier'у withdraw'нуть Offer — у пайщика-orderer'а либо средства
+   * заблокированы (ACTIVE/ACCEPTED_PENDING_*), либо заказ на КУ ожидает
+   * выдачи (ACCEPTED/READY_TO_RECEIVE). Терминальные RECEIVED, CANCELLED
+   * и EXPIRED — не мешают.
+   */
+  public static readonly WITHDRAW_BLOCKING_STATUSES = [
+    MarketplaceOrderStatuses.ACTIVE,
+    MarketplaceOrderStatuses.ACCEPTED_PENDING_SUPPLIER,
+    MarketplaceOrderStatuses.ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL,
+    MarketplaceOrderStatuses.ACCEPTED,
+    MarketplaceOrderStatuses.ACCEPTED_TO_COOP,
+    MarketplaceOrderStatuses.READY_TO_RECEIVE,
+  ];
 
   async create(input: OfferCreateRequest): Promise<MarketplaceOfferDomainEntity> {
     this.validateCreateInput(input);
@@ -198,7 +222,7 @@ export class MarketplaceOfferService {
   async withdraw(id: string, supplier_account: string): Promise<MarketplaceOfferDomainEntity> {
     const offer = await this.requireOwnedEditable(id, supplier_account, ['withdraw']);
 
-    if (await this.hasActiveOrders(offer.id)) {
+    if (await this.hasActiveOrders(offer.coopname, offer.id)) {
       throw new ConflictException(
         'Нельзя снять предложение: по нему есть незакрытые заказы. Сначала отмените или закройте их.'
       );
@@ -410,12 +434,20 @@ export class MarketplaceOfferService {
   }
 
   /**
-   * Заглушка-точка интеграции с Эпиком 4 (PR #375 canonical actions
-   * `o.mkt.assign/block/unblock`). До мерджа Эпика 4 в marketplace2
-   * Order'ов нет — withdraw разрешён всегда. Story 4.x перепишет на
-   * `OrderRepository.countActiveByOffer(offer_id)`.
+   * Story 3.2: блокировка withdraw'а Offer'а при наличии незавершённых
+   * Order'ов по нему. Проверяет все не-терминальные статусы
+   * (WITHDRAW_BLOCKING_STATUSES) через `MarketplaceOrderDomainRepository.list`
+   * с пагинацией 1×1 — нам нужен только factOfExistence (totalCount > 0).
    */
-  private async hasActiveOrders(_offer_id: string): Promise<boolean> {
-    return false;
+  private async hasActiveOrders(coopname: string, offer_id: string): Promise<boolean> {
+    const probe = await this.orderRepo.list(
+      {
+        coopname,
+        offer_id,
+        status: MarketplaceOfferService.WITHDRAW_BLOCKING_STATUSES,
+      },
+      { page: 1, limit: 1, sortBy: 'created_at', sortOrder: 'DESC' }
+    );
+    return probe.totalCount > 0;
   }
 }
