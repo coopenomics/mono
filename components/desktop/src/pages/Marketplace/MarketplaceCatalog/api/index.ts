@@ -46,18 +46,23 @@ export async function fetchCatalog(
     sortBy,
     sortOrder,
   };
-  const result = await client.Query(Queries.Marketplace.ListCatalog.query, {
-    variables: { input },
-  });
-  return result[Queries.Marketplace.ListCatalog.name] as MarketplaceOfferPage;
+  const { [Queries.Marketplace.ListCatalog.name]: page } = await client.Query(
+    Queries.Marketplace.ListCatalog.query,
+    { variables: { input } },
+  );
+  return page;
 }
 
 export async function fetchCategories(): Promise<MarketplaceCategoryView[]> {
-  const result = await client.Query(Queries.Marketplace.ListCategories.query);
-  return (result[Queries.Marketplace.ListCategories.name] ?? []) as MarketplaceCategoryView[];
+  const { [Queries.Marketplace.ListCategories.name]: list } = await client.Query(
+    Queries.Marketplace.ListCategories.query,
+  );
+  return list;
 }
 
 export async function fetchCategoryOfferCounts(): Promise<MarketplaceCategoryOfferCount[]> {
-  const result = await client.Query(Queries.Marketplace.CategoryOfferCounts.query);
-  return (result[Queries.Marketplace.CategoryOfferCounts.name] ?? []) as MarketplaceCategoryOfferCount[];
+  const { [Queries.Marketplace.CategoryOfferCounts.name]: list } = await client.Query(
+    Queries.Marketplace.CategoryOfferCounts.query,
+  );
+  return list;
 }
