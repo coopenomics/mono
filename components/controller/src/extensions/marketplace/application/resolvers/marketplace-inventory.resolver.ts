@@ -1,12 +1,13 @@
-import { Inject, Injectable, UseGuards } from '@nestjs/common';
+import { ForbiddenException, Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import config from '~/config/config';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
-import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
+import { RequireMarketplaceRole } from '../decorators/marketplace-role.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
+import type { MarketplaceRole } from '../membership/marketplace-roles.mapper';
 import {
   MarketplaceInventoryItemDTO,
   MarketplaceLabelInventoryInputDTO,
@@ -25,6 +26,11 @@ import {
   type MarketplaceInventoryDomainRepository,
   type MarketplaceInventoryListFilter,
 } from '../../domain/repositories/marketplace-inventory.repository';
+import {
+  MARKETPLACE_BRANCH_OWNERSHIP_SERVICE,
+  MarketplaceBranchOwnershipService,
+} from '../services/marketplace-branch-ownership.service';
+import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import type {
   MarketplaceBarcodeFormat,
   MarketplaceBarcodeStrategy,
@@ -38,7 +44,9 @@ export class MarketplaceInventoryResolver {
     @Inject(MARKETPLACE_INVENTORY_LABEL_SERVICE)
     private readonly labelService: MarketplaceInventoryLabelService,
     @Inject(MARKETPLACE_INVENTORY_REPOSITORY)
-    private readonly inventoryRepo: MarketplaceInventoryDomainRepository
+    private readonly inventoryRepo: MarketplaceInventoryDomainRepository,
+    @Inject(MARKETPLACE_BRANCH_OWNERSHIP_SERVICE)
+    private readonly branchOwnership: MarketplaceBranchOwnershipService
   ) {}
 
   @Mutation(() => MarketplaceLabelInventoryResultDTO, {
@@ -97,19 +105,41 @@ export class MarketplaceInventoryResolver {
 
   @Query(() => [MarketplaceInventoryItemDTO], {
     name: 'marketplaceListInventory',
-    description: 'Список наклеек инвентаря КУ — для admin-стола склада и операторских разделов.',
+    description:
+      'Список наклеек инвентаря КУ: admin/совет видят весь склад кооператива, оператор — только свой участок.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Warehouse', 'read:own-KU')
+  @RequireMarketplaceRole('admin', 'board_readonly', 'operator')
   async marketplaceListInventory(
-    @CurrentMarketplaceMember() _member: IMarketplaceCurrentMember,
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data', { nullable: true }) data?: MarketplaceListInventoryInputDTO
   ): Promise<MarketplaceInventoryItemDTO[]> {
+    const roles = member.marketplace_roles as MarketplaceRole[];
+    const isAdmin = roles.includes('admin') || roles.includes('board_readonly');
+    const isOperator = roles.includes('operator');
+
+    let branameFilter = data?.braname;
+    if (!isAdmin) {
+      if (!isOperator) {
+        throw new ForbiddenException('Нет доступа к складу.');
+      }
+      if (!branameFilter) {
+        throw new ForbiddenException(
+          'Оператор обязан указать кооперативный участок для чтения склада.'
+        );
+      }
+      await this.branchOwnership.assertCanActAsBraname(
+        config.coopname,
+        member.username,
+        branameFilter
+      );
+    }
+
     const filter: MarketplaceInventoryListFilter = {
       coopname: config.coopname,
       order_id: data?.order_id,
       shipment_id: data?.shipment_id,
-      braname: data?.braname,
+      braname: branameFilter,
       status: data?.statuses?.length
         ? (data.statuses as MarketplaceInventoryStatus[])
         : undefined,

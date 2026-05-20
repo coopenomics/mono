@@ -24,6 +24,10 @@ import {
   MARKETPLACE_APL_RECEPTION_REPOSITORY,
   type MarketplaceAplReceptionDomainRepository,
 } from '../../domain/repositories/marketplace-apl-reception.repository';
+import {
+  MARKETPLACE_BRANCH_OWNERSHIP_SERVICE,
+  MarketplaceBranchOwnershipService,
+} from '../services/marketplace-branch-ownership.service';
 import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 
@@ -44,7 +48,9 @@ export class MarketplaceAplReceptionResolver {
     @Inject(MARKETPLACE_APL_RECEPTION_SERVICE)
     private readonly service: MarketplaceAplReceptionService,
     @Inject(MARKETPLACE_APL_RECEPTION_REPOSITORY)
-    private readonly receptionRepo: MarketplaceAplReceptionDomainRepository
+    private readonly receptionRepo: MarketplaceAplReceptionDomainRepository,
+    @Inject(MARKETPLACE_BRANCH_OWNERSHIP_SERVICE)
+    private readonly branchOwnership: MarketplaceBranchOwnershipService
   ) {}
 
   @Mutation(() => MarketplaceAplReceptionResultDTO, {
@@ -155,9 +161,14 @@ export class MarketplaceAplReceptionResolver {
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Receiving', 'create')
   async marketplaceListAplReceptionsByBraname(
-    @CurrentMarketplaceMember() _member: IMarketplaceCurrentMember,
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceListAplReceptionsByBranameInputDTO
   ): Promise<MarketplaceAplReceptionDTO[]> {
+    await this.branchOwnership.assertCanActAsBraname(
+      config.coopname,
+      member.username,
+      data.braname
+    );
     const list = await this.receptionRepo.listByBraname(config.coopname, data.braname);
     return list.map(toMarketplaceAplReceptionDTO);
   }
