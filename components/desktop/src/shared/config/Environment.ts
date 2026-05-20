@@ -47,6 +47,14 @@ function loadConfigSync(): boolean {
     xhr.send();
 
     if (xhr.status === 200) {
+      // В dev-режиме Vite на несуществующий /config.js отдаёт index.html
+      // (catch-all для SPA). eval(htmlString) бросает SyntaxError, который
+      // всплывает как "Quasar boot error" и ломает последующую init-app.
+      // Запускаем eval только если content-type явно JavaScript.
+      const ct = (xhr.getResponseHeader('content-type') || '').toLowerCase();
+      if (!ct.includes('javascript')) {
+        return false;
+      }
       // Выполняем JavaScript код из ответа
       eval(xhr.responseText);
 
