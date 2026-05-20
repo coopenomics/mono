@@ -1,5 +1,11 @@
 // Unit-тесты фабрики geocoderPortFactory: выбор реализации по
 // config.geocoder.provider. Noop-провайдер всегда отвечает FAILED.
+//
+// Тест использует jest.resetModules + динамический import для подмены
+// config.geocoder.provider между кейсами. Из-за этого статический
+// import класса adapter'а и динамический import factory отдают разные
+// инстансы конструктора — `instanceof` сравнение не работает. Поэтому
+// проверяем имя конструктора через `constructor.name`.
 
 jest.mock('~/config/config', () => ({
   __esModule: true,
@@ -14,9 +20,6 @@ jest.mock('~/config/config', () => ({
   },
 }));
 
-import { NoopGeocoderAdapter } from '~/extensions/marketplace/infrastructure/adapters/noop-geocoder.adapter';
-import { YandexGeocoderAdapter } from '~/extensions/marketplace/infrastructure/adapters/yandex-geocoder.adapter';
-
 describe('geocoderPortFactory', () => {
   afterEach(() => {
     jest.resetModules();
@@ -27,7 +30,7 @@ describe('geocoderPortFactory', () => {
       '~/extensions/marketplace/infrastructure/adapters/geocoder.factory'
     );
     const port = geocoderPortFactory();
-    expect(port).toBeInstanceOf(NoopGeocoderAdapter);
+    expect(port.constructor.name).toBe('NoopGeocoderAdapter');
     const r = await port.geocode('addr');
     expect(r.status).toBe('FAILED');
     if (r.status === 'FAILED') expect(r.errorMessage).toMatch(/GEOCODER_PROVIDER=noop/);
@@ -51,6 +54,6 @@ describe('geocoderPortFactory', () => {
       '~/extensions/marketplace/infrastructure/adapters/geocoder.factory'
     );
     const port = geocoderPortFactory();
-    expect(port).toBeInstanceOf(YandexGeocoderAdapter);
+    expect(port.constructor.name).toBe('YandexGeocoderAdapter');
   });
 });

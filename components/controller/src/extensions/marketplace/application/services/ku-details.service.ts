@@ -101,17 +101,24 @@ export class KuDetailsService {
     try {
       const result = await this.geocoder.geocode(addressFull);
       if (result.status === 'OK') {
-        await this.repo.updateGeocode(coopname, coreBraname, {
+        const saved = await this.repo.updateGeocode(coopname, coreBraname, {
           status: 'OK',
           lat: result.lat,
           lng: result.lng,
           geocodedAt: new Date(),
+          expectedAddressFull: addressFull,
         });
+        if (!saved) {
+          this.logger.warn(
+            `Геокодинг (${coopname}, ${coreBraname}) завершён, но адрес был изменён до записи — координаты не сохранены`
+          );
+        }
       } else {
         await this.repo.updateGeocode(coopname, coreBraname, {
           status: 'FAILED',
           errorMessage: result.errorMessage,
           geocodedAt: new Date(),
+          expectedAddressFull: addressFull,
         });
       }
     } catch (err: unknown) {
@@ -121,6 +128,7 @@ export class KuDetailsService {
         status: 'FAILED',
         errorMessage: message,
         geocodedAt: new Date(),
+        expectedAddressFull: addressFull,
       });
     }
   }

@@ -62,10 +62,15 @@ export class KuDetailsRepositoryAdapter implements KuDetailsDomainRepository {
       lng?: number;
       errorMessage?: string;
       geocodedAt: Date;
+      expectedAddressFull?: string;
     }
   ): Promise<KuDetailsDomainEntity | null> {
     const existing = await this.repo.findOne({ where: { coopname, coreBraname } });
     if (!existing) return null;
+
+    if (payload.expectedAddressFull !== undefined && existing.addressFull !== payload.expectedAddressFull) {
+      return null;
+    }
 
     existing.geocodeStatus = payload.status;
     existing.lat = payload.lat;
