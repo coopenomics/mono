@@ -218,8 +218,8 @@ export class MarketplaceReturnClaimService {
     if (!input.reason_text || input.reason_text.trim().length === 0) {
       throw new BadRequestException('Опишите причину возврата.');
     }
-    if (input.reason_text.length > 500) {
-      throw new BadRequestException('Причина возврата не должна превышать 500 символов.');
+    if (input.reason_text.length > 2000) {
+      throw new BadRequestException('Причина возврата не должна превышать 2000 символов.');
     }
     if (!Array.isArray(input.photos) || input.photos.length === 0) {
       throw new BadRequestException('Приложите хотя бы одну фотографию товара.');
@@ -227,6 +227,7 @@ export class MarketplaceReturnClaimService {
     if (input.photos.length > 10) {
       throw new BadRequestException('Можно приложить не более 10 фотографий.');
     }
+    this.validatePhotoPayloads(input.photos);
 
     const order = await this.loadOrderForReturn(input.coopname, input.order_id, input.orderer_account);
     const actual_quantity = this.resolveActualQuantity(order, input.actual_quantity);
@@ -275,14 +276,21 @@ export class MarketplaceReturnClaimService {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       this.logger.warn(
-        `Подача заявления на возврат order ${order.id}: on-chain submretrn упал (${message}); заявление не зарегистрировано.`
+        `Подача заявления на возврат order ${order.id}: on-chain submretrn упал (${message}); заявление не зарегистрировано, фото удалены из bucket.`
       );
+      await this.cleanupBucketPhotos(photos);
       throw new ConflictException(
         `Подача заявления на возврат не выполнена: ${message}. Повторите попытку.`
       );
     }
 
-    const txHash = this.extractTxHash(tx) || `submretrn-${claimId}`;
+    const txHash = this.extractTxHash(tx);
+    if (!txHash) {
+      await this.cleanupBucketPhotos(photos);
+      throw new ConflictException(
+        'Подача заявления на возврат: цепь не вернула tx_hash — заявление не зарегистрировано, попробуйте ещё раз.'
+      );
+    }
     const claim = await this.claimRepo.create({
       id: claimId,
       coopname: order.coopname,
@@ -333,6 +341,7 @@ export class MarketplaceReturnClaimService {
         `Заявление в статусе «${claim.status}», удалённое одобрение недопустимо.`
       );
     }
+    this.assertBranameMatchesClaim(claim, input.braname, 'удалённое одобрение');
 
     if (input.signed_decision) this.verifySignatures(input.signed_decision);
 
@@ -359,7 +368,12 @@ export class MarketplaceReturnClaimService {
       );
     }
 
-    const txHash = this.extractTxHash(tx) || `aprretrem-${claim.id}`;
+    const txHash = this.extractTxHash(tx);
+    if (!txHash) {
+      throw new ConflictException(
+        'Одобрение очного визита: цепь не вернула tx_hash — статус не меняем, попробуйте ещё раз.'
+      );
+    }
     const entry: MarketplaceReturnClaimDecisionLogEntry = {
       stage: 'remote',
       decision: 'approve_visit',
@@ -392,6 +406,7 @@ export class MarketplaceReturnClaimService {
         `Заявление в статусе «${claim.status}», удалённый отказ недопустим.`
       );
     }
+    this.assertBranameMatchesClaim(claim, input.braname, 'удалённый отказ');
     if (input.signed_decision) this.verifySignatures(input.signed_decision);
 
     const decisionDoc = input.signed_decision
@@ -418,7 +433,12 @@ export class MarketplaceReturnClaimService {
       );
     }
 
-    const txHash = this.extractTxHash(tx) || `rejretrem-${claim.id}`;
+    const txHash = this.extractTxHash(tx);
+    if (!txHash) {
+      throw new ConflictException(
+        'Отказ удалённо: цепь не вернула tx_hash — статус не меняем, попробуйте ещё раз.'
+      );
+    }
     const entry: MarketplaceReturnClaimDecisionLogEntry = {
       stage: 'remote',
       decision: 'reject_remote',
@@ -450,16 +470,10 @@ export class MarketplaceReturnClaimService {
         `Заявление в статусе «${claim.status}», приём возврата на месте недопустим.`
       );
     }
-    if (input.scanned_barcode) {
-      // FR32: барскод сверяется с Order. В MVP минимальная сверка — что
-      // штрих-код принадлежит заказу. Глубокая логика inventory будет
-      // реализована вместе с canonical Inventory (Эпик 5/9).
-      if (!input.scanned_barcode.includes(claim.order_id.slice(0, 8))) {
-        throw new BadRequestException(
-          'Штрих-код не соответствует заказу. Проверьте имущество.'
-        );
-      }
-    }
+    this.assertBranameMatchesClaim(claim, input.braname, 'приём возврата на месте');
+    // Story 7.3/FR32: считанный штрих-код фиксируется в decision_log/inspection
+    // для аудита; полноценная сверка с marketplace_inventory будет реализована
+    // вместе с canonical Inventory (Эпик 5/9).
     if (input.signed_decision) this.verifySignatures(input.signed_decision);
 
     const decisionDoc = input.signed_decision
@@ -486,14 +500,21 @@ export class MarketplaceReturnClaimService {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       this.logger.warn(
-        `Приём возврата claim ${claim.id}: on-chain accretrn упал (${message}); compensating forward не выполнен.`
+        `Приём возврата claim ${claim.id}: on-chain accretrn упал (${message}); compensating forward не выполнен, фото осмотра удалены из bucket.`
       );
+      await this.cleanupBucketPhotos(inspectionPhotos);
       throw new ConflictException(
         `Приём возврата на цепи не выполнен: ${message}. Compensating forward не применён.`
       );
     }
 
-    const txHash = this.extractTxHash(tx) || `accretrn-${claim.id}`;
+    const txHash = this.extractTxHash(tx);
+    if (!txHash) {
+      await this.cleanupBucketPhotos(inspectionPhotos);
+      throw new ConflictException(
+        'Приём возврата: цепь не вернула tx_hash — compensating forward не подтверждён, статус не меняем.'
+      );
+    }
     const at = new Date();
     const entry: MarketplaceReturnClaimDecisionLogEntry = {
       stage: 'on_site',
@@ -543,6 +564,7 @@ export class MarketplaceReturnClaimService {
         `Заявление в статусе «${claim.status}», отказ на месте недопустим.`
       );
     }
+    this.assertBranameMatchesClaim(claim, input.braname, 'отказ на месте');
     if (input.signed_decision) this.verifySignatures(input.signed_decision);
 
     const decisionDoc = input.signed_decision
@@ -570,14 +592,21 @@ export class MarketplaceReturnClaimService {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       this.logger.warn(
-        `Отказ на месте claim ${claim.id}: on-chain rejretrn упал (${message}); статус не меняется.`
+        `Отказ на месте claim ${claim.id}: on-chain rejretrn упал (${message}); статус не меняется, фото осмотра удалены из bucket.`
       );
+      await this.cleanupBucketPhotos(inspectionPhotos);
       throw new ConflictException(
         `Отказ на цепи не выполнен: ${message}.`
       );
     }
 
-    const txHash = this.extractTxHash(tx) || `rejretrn-${claim.id}`;
+    const txHash = this.extractTxHash(tx);
+    if (!txHash) {
+      await this.cleanupBucketPhotos(inspectionPhotos);
+      throw new ConflictException(
+        'Отказ на месте: цепь не вернула tx_hash — статус не меняем, попробуйте ещё раз.'
+      );
+    }
     const at = new Date();
     const entry: MarketplaceReturnClaimDecisionLogEntry = {
       stage: 'on_site',
@@ -631,12 +660,62 @@ export class MarketplaceReturnClaimService {
         `Возврат возможен только по выданному заказу (текущий статус «${order.status}»).`
       );
     }
-    if (order.warranty_until !== null && order.warranty_until.getTime() <= Date.now()) {
+    if (order.warranty_until === null) {
+      throw new ConflictException(
+        'По этому заказу гарантия не предусмотрена — возврат невозможен.'
+      );
+    }
+    if (order.warranty_until.getTime() <= Date.now()) {
       throw new ConflictException(
         `Гарантийный срок истёк ${order.warranty_until.toISOString().slice(0, 10)}.`
       );
     }
     return order;
+  }
+
+  private assertBranameMatchesClaim(
+    claim: MarketplaceReturnClaimDomainEntity,
+    braname: string,
+    actionLabel: string
+  ): void {
+    if (!braname || braname.trim().length === 0) {
+      throw new BadRequestException(`Не указан кооперативный участок для действия «${actionLabel}».`);
+    }
+    if (claim.delivery_braname !== braname) {
+      throw new ForbiddenException(
+        `Заявление привязано к кооперативному участку «${claim.delivery_braname}»; действие «${actionLabel}» от участка «${braname}» недопустимо.`
+      );
+    }
+  }
+
+  private async cleanupBucketPhotos(photos: MarketplaceReturnClaimPhoto[]): Promise<void> {
+    if (!photos || photos.length === 0) return;
+    for (const photo of photos) {
+      try {
+        await this.imagesService.deletePhoto(photo.bucket_key);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        this.logger.warn(
+          `Cleanup фото возврата ${photo.bucket_key} не выполнен (${message}); orphaned-объект остаётся в bucket.`
+        );
+      }
+    }
+  }
+
+  private validatePhotoPayloads(files: MarketplaceReturnClaimImageUploadDTO[]): void {
+    const MAX_BYTES = 10 * 1024 * 1024;
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      if (!f || typeof f.base64 !== 'string' || f.base64.length === 0) {
+        throw new BadRequestException(`Фото #${i + 1}: пустое содержимое.`);
+      }
+      const approxBytes = Math.floor((f.base64.length * 3) / 4);
+      if (approxBytes > MAX_BYTES) {
+        throw new BadRequestException(
+          `Фото #${i + 1}: размер ${(approxBytes / 1024 / 1024).toFixed(1)} МБ превышает лимит 10 МБ.`
+        );
+      }
+    }
   }
 
   private resolveActualQuantity(order: MarketplaceOrderDomainEntity, requested?: number): number {
@@ -727,6 +806,7 @@ export class MarketplaceReturnClaimService {
     if (input.files.length > 10) {
       throw new BadRequestException('Можно приложить не более 10 фотографий очного осмотра.');
     }
+    this.validatePhotoPayloads(input.files);
     return this.uploadPhotos({
       files: input.files,
       claimId: input.claimId,
