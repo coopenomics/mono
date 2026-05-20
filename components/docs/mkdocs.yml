@@ -182,6 +182,7 @@ nav:
       - L2 — Выбор ЦПП пайщиком: new/marketplace/onboarding/member-pick-cpp.md
       - L3 — Гейт первого входа: new/marketplace/onboarding/extension-gate.md
     - Стол заказчика:
+      - Обзор разделов заказчика: new/marketplace/orderer/marketplace-tour.md
       - Каталог витрины: new/marketplace/orderer/catalog.md
       - Оформление заказа: new/marketplace/orderer/order-create.md
       - Мои заказы: new/marketplace/orderer/orders.md
