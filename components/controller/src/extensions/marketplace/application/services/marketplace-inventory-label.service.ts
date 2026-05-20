@@ -378,11 +378,14 @@ export class MarketplaceInventoryLabelService {
 
   private makeEAN13(order_id: string, index: number, attempt: number): string {
     const numeric = order_id.replace(/[^0-9]/g, '').slice(0, 6).padStart(6, '0');
-    const tail = (Date.now() + attempt * 1_000 + index)
+    // Хвост — 6 криптослучайных цифр. Date.now() при массовой batch-маркировке
+    // (несколько Order'ов в одну миллисекунду) даёт коллизию даже при
+    // attempt-offset; randomBytes устраняет это.
+    const randTail = (randomBytes(4).readUInt32BE(0) + attempt + index)
       .toString()
       .slice(-6)
       .padStart(6, '0');
-    const base12 = `${numeric}${tail}`.slice(0, 12).padEnd(12, '0');
+    const base12 = `${numeric}${randTail}`.slice(0, 12).padEnd(12, '0');
     const check = this.calcEAN13Checksum(base12);
     return `${base12}${check}`;
   }
