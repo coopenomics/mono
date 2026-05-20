@@ -1,8 +1,7 @@
 import { Resolver, Query, Args } from '@nestjs/graphql';
 import { Injectable, UseGuards } from '@nestjs/common';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
+import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import { AttributeDomainService } from '../../domain/services/attribute-domain.service';
 import { AttributeDTO, AttributeGroupDTO, AttributeStatsDTO, DictionaryValueDTO } from '../dto/attribute.dto';
 import { SearchAttributesInput } from '../dto/search-attributes-input.dto';
@@ -31,9 +30,13 @@ export class AttributeValidationResult {
 }
 
 /**
- * GraphQL резолвер для атрибутов marketplace
+ * GraphQL резолвер для атрибутов marketplace.
+ *
+ * Доступ — пайщикам кооператива (через `MarketplaceMembershipGuard`).
+ * Story 1.3 / 1.8: словарь атрибутов — закрытый ресурс marketplace.
  */
 @Resolver(() => AttributeDTO)
+@UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard)
 @Injectable()
 export class AttributeResolver {
   constructor(private readonly attributeService: AttributeDomainService) {}
@@ -203,8 +206,6 @@ export class AttributeResolver {
     name: 'marketplaceAttributeStats',
     description: 'Получить статистику по атрибутам marketplace',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
   async getAttributeStats(): Promise<AttributeStatsDTO> {
     const stats = await this.attributeService.getAttributeStats();
     return new AttributeStatsDTO(stats);

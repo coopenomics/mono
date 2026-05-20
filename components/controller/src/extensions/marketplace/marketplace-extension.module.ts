@@ -20,7 +20,7 @@ import { registerMarketplaceInAgreementRegistry } from './application/registrati
 /**
  * Optional-инжектируемый порт файлового хранилища. Имя расширения marketplace
  * подключается к bucket через `@coopenomics/inter` (см. AR31 в epics.md).
- * До merge PR #359 `feat(file-storage)` адаптера ещё нет — поэтому через
+ * Адаптер file-storage подключается опционально через DI — поэтому через
  * `@Optional` и опциональный токен.
  */
 export const MARKETPLACE_FILE_STORAGE_PORT = Symbol('MARKETPLACE_FILE_STORAGE_PORT');
@@ -98,13 +98,13 @@ export class MarketplacePlugin extends BaseExtModule {
   /**
    * Bucket для хранения изображений Стола заказов и фотографий гарантийного
    * возврата. Имя — `coop-<coopname>` (см. AR31). Если адаптер file-storage
-   * не подключён (PR #359 не вмержен), пропускаем шаг с warn-логом; install
-   * расширения не падает — оставшиеся шаги выполняются.
+   * отключён конфигурацией — пропускаем шаг с info-логом; install расширения
+   * не падает, оставшиеся шаги выполняются.
    */
   private async initBucket(): Promise<void> {
     if (!this.fileStorage) {
-      this.logger.warn(
-        'File storage не настроен — пропускаем bucket init (PR #359 не вмержен)'
+      this.logger.info(
+        'File storage отключён конфигурацией — пропускаем bucket init'
       );
       return;
     }

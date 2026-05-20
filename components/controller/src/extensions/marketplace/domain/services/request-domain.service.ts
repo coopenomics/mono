@@ -136,7 +136,7 @@ export class RequestDomainService {
       parentHash: params.parentHash,
       coopname: params.coopname,
       username: params.username,
-      // braname://TODO: добавить участок поставки / получения
+      // TODO: добавить участок поставки / получения
       type: params.type,
       status: RequestStatus.DRAFT,
       name: params.name,

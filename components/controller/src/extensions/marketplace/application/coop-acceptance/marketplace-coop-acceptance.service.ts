@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException, Optional } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException, Optional } from '@nestjs/common';
 
 import {
   EXTENSION_REPOSITORY,
@@ -96,7 +96,21 @@ export class MarketplaceCoopAcceptanceService {
       );
     }
 
-    const accepted_at = input.accepted_at ?? new Date().toISOString();
+    const now = new Date();
+    const accepted_at = input.accepted_at ?? now.toISOString();
+    if (input.accepted_at) {
+      const parsed = new Date(input.accepted_at);
+      if (Number.isNaN(parsed.getTime())) {
+        throw new BadRequestException(
+          `Некорректный формат accepted_at: '${input.accepted_at}' — ожидается ISO-8601`
+        );
+      }
+      if (parsed.getTime() > now.getTime() + 60_000) {
+        throw new BadRequestException(
+          `accepted_at не может быть в будущем (${input.accepted_at})`
+        );
+      }
+    }
     const acceptance: ICoopAcceptanceConfig = {
       accepted: true,
       document_registry_id: input.document_registry_id,
