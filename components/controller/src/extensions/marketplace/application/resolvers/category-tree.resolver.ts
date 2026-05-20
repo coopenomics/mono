@@ -1,8 +1,7 @@
 import { Resolver, Query, Args, Int } from '@nestjs/graphql';
 import { Inject, UseGuards } from '@nestjs/common';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
+import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import { CategoryTreeService, CATEGORY_TREE_SERVICE } from '../services/category-tree.service';
 import { CategoryTreeDomainService, CATEGORY_TREE_DOMAIN_SERVICE } from '../../domain/services/category-tree-domain.service';
 import { CategoryDTO, ProductTypeDTO } from '../dto/category-tree.dto';
@@ -13,9 +12,13 @@ import { GetProductTypeByIdInput } from '../dto/get-product-type-by-id-input.dto
 import { SearchCategoriesInput } from '../dto/search-categories-input.dto';
 
 /**
- * GraphQL резолвер для работы с деревом категорий marketplace
+ * GraphQL резолвер для работы с деревом категорий marketplace.
+ *
+ * Доступ — пайщикам кооператива (через `MarketplaceMembershipGuard`).
+ * Story 1.3 / 1.8: каталог категорий — закрытый ресурс marketplace, не публичный.
  */
 @Resolver(() => CategoryDTO)
+@UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard)
 export class CategoryTreeResolver {
   constructor(
     @Inject(CATEGORY_TREE_SERVICE)
@@ -82,8 +85,6 @@ export class CategoryTreeResolver {
     name: 'marketplaceGetCategoryTreeStats',
     description: 'Получить статистику по дереву категорий',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
   async getCategoryTreeStats(): Promise<CategoryTreeStatsDTO> {
     return this.categoryTreeService.getCategoryTreeStats();
   }
