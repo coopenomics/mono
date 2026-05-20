@@ -1,4 +1,4 @@
-import { Injectable, UseGuards } from '@nestjs/common';
+import { BadRequestException, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { Cooperative } from 'cooptypes';
 import config from '~/config/config';
@@ -178,7 +178,7 @@ export class MarketplaceWriteoffResolver {
   ): Promise<GeneratedDocumentDTO> {
     const draft = await this.service.getProposal(data.draft_id);
     if (!draft.is_draft) {
-      throw new Error('Подписать Заявление можно только для черновика (DRAFT)');
+      throw new BadRequestException('Подписать Заявление можно только для черновика (DRAFT)');
     }
     const proposalHash = this.service.computeProposalHash({
       coopname: draft.coopname,

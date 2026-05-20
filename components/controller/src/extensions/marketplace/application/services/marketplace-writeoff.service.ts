@@ -238,8 +238,17 @@ export class MarketplaceWriteoffService {
       );
     }
 
+    // Pre-gate: защита от двойного клика — если другой проект с тем же hash уже
+    // успешно отправлен в совет, повторный submit перезапишет on-chain состояние.
+    const alreadySubmitted = await this.repo.findByHash(draft.coopname, proposalHash);
+    if (alreadySubmitted && alreadySubmitted.id !== draft.id) {
+      throw new ConflictException(
+        `Проект с этим расчётом уже отправлен в совет (id=${alreadySubmitted.id}, статус=${alreadySubmitted.status}).`
+      );
+    }
+
     // 1. on-chain propwroff: фиксируем wroffprops::proposed
-    await this.chainPort.propWroff({
+    const propTx = await this.chainPort.propWroff({
       coopname: draft.coopname,
       proposed_by: input.chairman_account,
       proposal_hash: proposalHash,
@@ -253,7 +262,7 @@ export class MarketplaceWriteoffService {
     });
 
     // 2. createagenda: ставим повестку совета с callback'ами marketplace
-    await this.chainPort.createWriteoffAgenda({
+    const agendaTx = await this.chainPort.createWriteoffAgenda({
       coopname: draft.coopname,
       username: input.chairman_account,
       proposal_hash: proposalHash,
@@ -266,6 +275,14 @@ export class MarketplaceWriteoffService {
       }),
     });
 
+    const propTxHash = this.extractTxHash(propTx);
+    const agendaTxHash = this.extractTxHash(agendaTx);
+    if (!propTxHash || !agendaTxHash) {
+      throw new ConflictException(
+        'Подача проекта в совет: цепь не вернула tx_hash (propwroff/createagenda). Повторите.'
+      );
+    }
+
     // 3. PG: DRAFT → ON_AGENDA (decision_id заполнит реактор-наблюдатель за soviet.decisions)
     const submitted = await this.repo.submitToCouncil(draft.id, {
       proposal_hash: proposalHash,
@@ -277,7 +294,12 @@ export class MarketplaceWriteoffService {
         at: new Date().toISOString(),
         actor: input.chairman_account,
         action: 'submitted_to_council',
-        payload: { proposal_hash: proposalHash, items_count: draft.items.length },
+        payload: {
+          proposal_hash: proposalHash,
+          items_count: draft.items.length,
+          propwroff_tx_hash: propTxHash,
+          createagenda_tx_hash: agendaTxHash,
+        },
       },
     });
 
@@ -332,8 +354,17 @@ export class MarketplaceWriteoffService {
       total_amount: updated.total_amount,
     });
 
-    // Сразу запускаем исполнение
-    await this.executeAuthorizedProposal(updated.id, input.authorized_by ?? proposal.proposed_by_account ?? input.coopname);
+    // Сразу запускаем исполнение. Signer должен быть пользователем
+    // (chairman), уполномоченным по КУ каждой позиции; coopname как fallback
+    // запрещён — это аккаунт кооператива, не пайщик, и контракт execwroff
+    // не сможет проверить is_user_authorized.
+    const signer = input.authorized_by ?? proposal.proposed_by_account;
+    if (!signer) {
+      throw new ConflictException(
+        `Проект списания ${proposal.id}: после авторизации нет ни authorized_by, ни proposed_by — исполнение не запущено.`
+      );
+    }
+    await this.executeAuthorizedProposal(updated.id, signer);
   }
 
   async onCouncilDeclined(input: {
@@ -396,33 +427,41 @@ export class MarketplaceWriteoffService {
     for (let i = 0; i < working.items.length; i++) {
       const item = working.items[i];
       if (item.executed) continue;
+      let execTxHash: string;
       try {
-        await this.chainPort.execWroff({
+        const execTx = await this.chainPort.execWroff({
           coopname: working.coopname,
           signer,
           proposal_hash: working.proposal_hash,
           item_index: String(i) as MarketContract.Actions.ExecWroff.IExecWroff['item_index'],
         });
-        working = await this.repo.markItemExecuted(id, i, {
-          at: new Date().toISOString(),
-          actor: signer,
-          action: 'item_executed',
-          payload: { item_index: i, braname: item.braname, amount: item.amount },
-        });
-        if (item.inventory_id) {
-          try {
-            await this.inventoryRepo.applyStatusTransition(item.inventory_id, 'WRITTEN_OFF');
-          } catch (e) {
-            this.logger.warn(
-              `[WRITEOFF] не удалось перевести inventory ${item.inventory_id} в WRITTEN_OFF: ${(e as Error).message}`
-            );
-          }
+        execTxHash = this.extractTxHash(execTx);
+        if (!execTxHash) {
+          throw new Error('on-chain execwroff не вернул tx_hash');
         }
       } catch (e) {
         this.logger.error(
           `[WRITEOFF] не удалось исполнить позицию ${i} проекта ${id}: ${(e as Error).message}`
         );
         throw e;
+      }
+      working = await this.repo.markItemExecuted(id, i, {
+        at: new Date().toISOString(),
+        actor: signer,
+        action: 'item_executed',
+        payload: {
+          item_index: i,
+          braname: item.braname,
+          amount: item.amount,
+          execwroff_tx_hash: execTxHash,
+        },
+      });
+      if (item.inventory_id) {
+        // Inventory transition обязателен — иначе позиция остаётся
+        // RETURNED_TO_WAREHOUSE в БД и может повторно попасть в следующий
+        // cron-цикл. Если update упадёт — re-throw, чтобы видна была проблема
+        // и proposal остался в EXECUTING для retry.
+        await this.inventoryRepo.applyStatusTransition(item.inventory_id, 'WRITTEN_OFF');
       }
     }
 
@@ -502,6 +541,22 @@ export class MarketplaceWriteoffService {
 
   formatAssetNumber(value: number): string {
     return value.toFixed(this.assetDecimals);
+  }
+
+  private extractTxHash(tx: unknown): string {
+    const candidate = tx as
+      | {
+          response?: { transaction_id?: string };
+          resolved?: { transaction?: { id?: string } };
+          transaction?: { id?: string };
+        }
+      | undefined;
+    return (
+      candidate?.response?.transaction_id ??
+      candidate?.resolved?.transaction?.id ??
+      candidate?.transaction?.id ??
+      ''
+    );
   }
 
   private verifyDocumentSignature(document: ISignedDocumentDomainInterface): void {
