@@ -62,3 +62,5 @@ export * as ListMyOffers from './listMyOffers'
 export * as GetAvailableCategories from './getAvailableCategories'
 /** Статистика доступности категорий: всего/категорий/типов/есть ли ограничения */
 export * as GetAvailabilityStats from './getAvailabilityStats'
+/** Эпик 1 / Story 1.4: состояние L3 онбординга пайщика в Marketplace */
+export * as MarketplaceOnboardingState from './marketplaceOnboardingState'

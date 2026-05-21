@@ -26,6 +26,7 @@ import { BranchChairmanBranchOrdersPage } from 'src/pages/Marketplace/BranchChai
 import { BoardAgendaWriteoffPage } from 'src/pages/Marketplace/BoardAgendaWriteoff'
 import { ChairmanCategoryWhitelistPage } from 'src/pages/Marketplace/ChairmanCategoryWhitelist'
 import { BoardPayoutsReadonlyPage } from 'src/pages/Marketplace/BoardPayoutsReadonly'
+import { OnboardingMemberPickCppPage } from 'src/pages/Marketplace/OnboardingMemberPickCpp'
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace'
 import { agreementsBase } from 'src/shared/lib/consts/workspaces'
 import { registerMarketplaceProcessInfoHandlers } from './app/extensions'
@@ -365,6 +366,22 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               title: 'Подключение ЦПП',
               icon: 'fa-solid fa-handshake',
               roles: ['chairman', 'member'],
+              requiresAuth: true,
+              agreements: agreementsBase,
+            },
+          },
+          {
+            // Эпик 1 / Story 1.4 + 1.11: L3 онбординг пайщика — gate ЦПП
+            // «Стол заказов». Реальная подпись делается через core
+            // Registrator-мастер; здесь информационная страница со списком
+            // документов + переход в мастер.
+            path: 'onboarding/member-cpp',
+            name: 'marketplace-onboarding-member-cpp',
+            component: markRaw(OnboardingMemberPickCppPage),
+            meta: {
+              title: 'Подключение к Marketplace',
+              icon: 'fa-solid fa-handshake-angle',
+              roles: [],
               requiresAuth: true,
               agreements: agreementsBase,
             },
