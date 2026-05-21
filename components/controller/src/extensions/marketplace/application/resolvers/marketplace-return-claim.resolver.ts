@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, UseGuards } from '@nestjs/common';
+import { ForbiddenException, Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import config from '~/config/config';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
@@ -22,6 +22,10 @@ import {
 } from '../dto/marketplace-return-claim.dto';
 import { MarketplaceReturnClaimService } from '../services/marketplace-return-claim.service';
 import { toMarketplaceReturnClaimDTO } from './marketplace-return-claim.mapper';
+import {
+  MARKETPLACE_BRANCH_OWNERSHIP_SERVICE,
+  MarketplaceBranchOwnershipService,
+} from '../services/marketplace-branch-ownership.service';
 
 function toGeneratedDocumentDTO(e: DocumentDomainEntity): GeneratedDocumentDTO {
   const dto = new GeneratedDocumentDTO();
@@ -46,7 +50,11 @@ function toGeneratedDocumentDTO(e: DocumentDomainEntity): GeneratedDocumentDTO {
 @Resolver()
 @Injectable()
 export class MarketplaceReturnClaimResolver {
-  constructor(private readonly service: MarketplaceReturnClaimService) {}
+  constructor(
+    private readonly service: MarketplaceReturnClaimService,
+    @Inject(MARKETPLACE_BRANCH_OWNERSHIP_SERVICE)
+    private readonly branchOwnership: MarketplaceBranchOwnershipService
+  ) {}
 
   @Query(() => GeneratedDocumentDTO, {
     name: 'marketplaceReturnClaimSignablePayload',
@@ -105,6 +113,11 @@ export class MarketplaceReturnClaimResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceApproveReturnVisitInputDTO
   ): Promise<MarketplaceReturnClaimResultDTO> {
+    await this.branchOwnership.assertCanActAsBraname(
+      config.coopname,
+      member.username,
+      data.braname
+    );
     const result = await this.service.approveReturnVisit({
       coopname: config.coopname,
       chairman_account: member.username,
@@ -127,6 +140,11 @@ export class MarketplaceReturnClaimResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceRejectReturnRemoteInputDTO
   ): Promise<MarketplaceReturnClaimResultDTO> {
+    await this.branchOwnership.assertCanActAsBraname(
+      config.coopname,
+      member.username,
+      data.braname
+    );
     const result = await this.service.rejectReturnRemote({
       coopname: config.coopname,
       chairman_account: member.username,
@@ -149,6 +167,11 @@ export class MarketplaceReturnClaimResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceAcceptReturnAtVisitInputDTO
   ): Promise<MarketplaceReturnClaimResultDTO> {
+    await this.branchOwnership.assertCanActAsBraname(
+      config.coopname,
+      member.username,
+      data.braname
+    );
     const result = await this.service.acceptReturnAtVisit({
       coopname: config.coopname,
       chairman_account: member.username,
@@ -173,6 +196,11 @@ export class MarketplaceReturnClaimResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceRejectReturnAtVisitInputDTO
   ): Promise<MarketplaceReturnClaimResultDTO> {
+    await this.branchOwnership.assertCanActAsBraname(
+      config.coopname,
+      member.username,
+      data.braname
+    );
     const result = await this.service.rejectReturnAtVisit({
       coopname: config.coopname,
       chairman_account: member.username,
@@ -209,15 +237,11 @@ export class MarketplaceReturnClaimResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceListReturnClaimsByBranameInputDTO
   ): Promise<MarketplaceReturnClaimDTO[]> {
-    // Ownership `:own-KU` — MVP-приближение: член-operator является
-    // chairman'ом braname если его username совпадает с account КУ
-    // (соответствует текущему fallback'у marketplace-notification.service.ts).
-    // Полная интеграция с `coop_ku.chairman_account` — Phase 2.
-    if (member.username !== data.delivery_braname) {
-      throw new ForbiddenException(
-        'Чтение заявлений возможно только для участка, председателем которого вы являетесь.'
-      );
-    }
+    await this.branchOwnership.assertCanActAsBraname(
+      config.coopname,
+      member.username,
+      data.delivery_braname
+    );
     const claims = await this.service.listByDeliveryBraname(
       config.coopname,
       data.delivery_braname
@@ -236,13 +260,13 @@ export class MarketplaceReturnClaimResolver {
     @Args('claim_id') claim_id: string
   ): Promise<MarketplaceReturnClaimDTO> {
     const claim = await this.service.findById(config.coopname, claim_id);
-    // Ownership-проверка `:own` — matrix capability проверена guard'ом,
-    // здесь верифицируем что пайщик действительно владелец заявления
-    // (orderer Order'а либо председатель КУ доставки этого заявления).
-    const isOwnerOrderer = claim.orderer_account === member.username;
-    const isChairmanOfDeliveryKu = member.marketplace_roles.includes('operator')
-      && claim.delivery_braname === member.username;
-    if (!isOwnerOrderer && !isChairmanOfDeliveryKu) {
+    const isOwner = claim.orderer_account === member.username;
+    const isChairmanOrTrustee = await this.branchOwnership.canActAsBraname(
+      config.coopname,
+      member.username,
+      claim.delivery_braname
+    );
+    if (!isOwner && !isChairmanOrTrustee) {
       throw new ForbiddenException('Это чужое заявление на возврат.');
     }
     return this.toClaimDTO(claim);

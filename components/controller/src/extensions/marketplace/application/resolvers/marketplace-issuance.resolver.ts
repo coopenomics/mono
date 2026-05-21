@@ -23,6 +23,10 @@ import {
   MARKETPLACE_ORDER_REPOSITORY,
   type MarketplaceOrderDomainRepository,
 } from '../../domain/repositories/marketplace-order.repository';
+import {
+  MARKETPLACE_BRANCH_OWNERSHIP_SERVICE,
+  MarketplaceBranchOwnershipService,
+} from '../services/marketplace-branch-ownership.service';
 import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 
@@ -43,7 +47,9 @@ export class MarketplaceIssuanceResolver {
     @Inject(MARKETPLACE_ISSUANCE_SERVICE)
     private readonly service: MarketplaceIssuanceService,
     @Inject(MARKETPLACE_ORDER_REPOSITORY)
-    private readonly orderRepo: MarketplaceOrderDomainRepository
+    private readonly orderRepo: MarketplaceOrderDomainRepository,
+    @Inject(MARKETPLACE_BRANCH_OWNERSHIP_SERVICE)
+    private readonly branchOwnership: MarketplaceBranchOwnershipService
   ) {}
 
   @Mutation(() => MarketplaceIssuanceResultDTO, {
@@ -139,8 +145,14 @@ export class MarketplaceIssuanceResolver {
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Issuance', 'read:own-KU')
   async marketplaceListIssuancesByBraname(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceListIssuancesByBranameInputDTO
   ): Promise<MarketplaceOrderDTO[]> {
+    await this.branchOwnership.assertCanActAsBraname(
+      config.coopname,
+      member.username,
+      data.delivery_braname
+    );
     const orders = await this.orderRepo.listForIssuanceByBraname(
       config.coopname,
       data.delivery_braname
