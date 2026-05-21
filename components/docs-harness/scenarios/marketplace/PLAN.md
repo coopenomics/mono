@@ -324,53 +324,48 @@ export const meta = {
 
 ### 9.6. Дыры UI — нереализованные страницы Marketplace
 
-Проверка на 2026-05-21: следующие 8 страниц физически отсутствуют в `components/desktop/src/pages/Marketplace/` и в `components/desktop/extensions/market/install.ts`. План §9.2 их перечисляет, но снять harness'ом их нельзя — нет ни Vue-компонента, ни роута. Каждая ждёт реализации соответствующего Эпика:
+**Статус на 2026-05-21 (вечер): все 9 страниц реализованы и запушены в worktree.** Раньше PLAN.md перечислял 9 «дыр» — теперь это карта реализованных страниц с роутами и коммитами:
 
-| План | Файл Vue | Роут | Ждёт Эпик |
+| План | Файл Vue | Роут | Коммит |
 |---|---|---|---|
-| `onboarding/coop-accept-cpp` | OnboardingCoopAcceptCpp.vue | `/onboarding/coop-cpp` | Эпик 1 / Story 1.x — L1 ЦПП |
-| `onboarding/member-pick-cpp` | OnboardingMemberPickCpp.vue | `/onboarding/member-cpp` | Эпик 1 / Story 1.x — L2 ЦПП |
-| `chairman/category-whitelist` | ChairmanCategoryWhitelist.vue | `/market/categories` | Эпик 3 / Story 3.x — белый список |
-| `offerer/offers` | OffererMyOffers.vue | `/market/my-offers` | Эпик 3 / Story 3.1 — мои Предложения |
-| `offerer/incoming-orders` | OffererIncomingOrders.vue | `/market/incoming-orders` | Эпик 4 / Story 4.x — входящие Заказы |
-| `branch-chairman/branch-orders` | BranchChairmanBranchOrders.vue | `/market-pvz/branch-orders` | Эпик 6 / Story 6.x — заказы участка |
-| `board/agenda-writeoff` | BoardAgendaWriteoff.vue | `/soviet/agendas/...` (за пределами market extension) | Эпик 8 / Story 8.x — голосование совета |
-| `board/payouts-readonly` | BoardPayoutsReadonly.vue | `/market/payouts` | Эпик 5 / Story 5.x — выплаты поставщикам |
-| `orderer/consolidated` | OrdererConsolidated.vue | `/market/consolidated` | Эпик 4 / Story 4.4 — Сводный заказ orderer'а |
+| `onboarding/coop-accept-cpp` | OnboardingCoopAcceptCpp.vue | `/market/onboarding/coop-cpp` | `510ccf545bb` |
+| `onboarding/member-pick-cpp` | OnboardingMemberPickCpp.vue | `/market/onboarding/member-cpp` | `147951356ab` |
+| `chairman/category-whitelist` | ChairmanCategoryWhitelist.vue | `/market/category-whitelist` | `50538b45d43` |
+| `offerer/offers` | OffererMyOffers.vue | `/market/my-offers` | `69d3e79f36c` |
+| `offerer/incoming-orders` | OffererIncomingOrders.vue | `/market/incoming-orders` | `69d3e79f36c` |
+| `branch-chairman/branch-orders` | BranchChairmanBranchOrders.vue | `/market-pvz/branch-orders` | `d1bebf6f645` |
+| `board/agenda-writeoff` | BoardAgendaWriteoff.vue | `/market/board-writeoff` | `2a41354c328` |
+| `board/payouts-readonly` | BoardPayoutsReadonly.vue | `/market/payouts` | `261be9a2702` (placeholder, требует Phase 2 backend) |
+| `orderer/consolidated` | OrdererConsolidated.vue | `/market/consolidated` | `e40b74fcf91` |
 
 **`board/warehouse-readonly`** в плане был — но `AdminWarehouseSummaryPage` уже доступна `roles: ['chairman', 'member']`, и сценарий `chairman/warehouse-summary` снимает её. Сценарий «board/warehouse-readonly» как отдельный — дубль; объединяем с `chairman/warehouse-summary` в прозе («сводный склад читают и председатель, и совет — UI одинаковый»).
 
-**Что делать с этими 8 пунктами в документации.** Создать `docs/new/marketplace/<role>/<page>.md` с admonition `!!!warning "Эпик X — в разработке"` и описанием **целевого** поведения по PRD (без скриншота). Это даёт пользователю карту маршрута и подсказку «функционал планируется», вместо пустого 404 в навигации.
+**Что делать дальше с этими 9 страницами в документации.** Прогон harness'ом со снятием скриншотов теперь возможен; existing MD-заглушки с admonition `!!!warning "Эпик X — в разработке"` надо обновить — снять admonition или переписать на actual proza по факту экрана. Это можно делать инкрементально по мере прогона `bin/shoot.mjs <раздел>/<имя>`.
 
-### 9.7. Аудит SDK/backend по 9 страницам (2026-05-21)
+### 9.7. Аудит SDK/backend по 9 страницам (2026-05-21, окончательно)
 
-PRD MVP в `/home/admin/blago/production/1-prilozhenie-stol-zakazov/_bmad-output/planning-artifacts/{prd,architecture,ux-design-specification}.md` + Эпики 1/3/4/5/6/8 в `components/3-minimalnyy-produkt/issues/598-*.md` — все backend Stories DONE. Дыра — Vue UI. Аудит:
+**Аудит был пересмотрен по факту:** многое из «нужно backend-доработать» на самом деле было уже DONE — `marketplaceListSupplierOrders`, `marketplaceListMyOffers`, available-categories endpoints, marketplaceOnboardingState. Окончательная сводка:
 
-| Страница | Backend | Zeus | SDK wrapper | Что нужно для UI |
-|---|---|---|---|---|
-| `onboarding/coop-accept-cpp` | ✅ Story 1.9 (`MarketplaceAcceptCpp`, `MarketplaceCppStatus`) | ✅ | ❌ | + SDK wrappers + Vue page + роут |
-| `onboarding/member-pick-cpp` | ✅ Story 1.11 (через core `registration-flow` + `wallet::signagree`) | core | core | + Vue шаг в Registrator мастер |
-| `chairman/category-whitelist` | ⚠️ Story 3.x не выделена — категории засеяны в installExtraData | partial | ❌ | + mutation на включ/выключ в backend + UI |
-| `offerer/offers` (Мои предложения) | ⚠️ нужен фильтр author=me в `marketplaceListCatalog` или новая query | partial | ❌ | + SDK + Vue page + роут |
-| `offerer/incoming-orders` | ⚠️ нужна query `marketplaceListIncomingOrders` (для offerer'а) | partial | ❌ | + backend query + SDK + Vue |
-| `branch-chairman/branch-orders` | ⚠️ нужна агрегационная query по КУ (объединить existing listIssuances/Receptions/Returns ByBraname) | yes | partial | + objedinjajushaja query + Vue |
-| `board/agenda-writeoff` | ⚠️ через core soviet agendas — не marketplace | core | core | + дополнить core UI soviet или дать deeplink |
-| `board/payouts-readonly` | ⚠️ нужна query `listOutgoingPaymentsForBoard` (агрегат) | partial | ❌ | + backend + SDK + Vue |
-| `orderer/consolidated` | ✅ есть `getOrder` + `cycle_type` в Offer | ✅ | ✅ | + только Vue (UX-DR4 ConsolidatedOrderHeader из widgets) |
+| Страница | Backend | SDK обёртка | Что добавлено в worktree |
+|---|---|---|---|
+| `onboarding/coop-accept-cpp` | ✅ Story 1.9 | ✅ создан wrapper | Vue + роут (`mp-role-admin`) |
+| `onboarding/member-pick-cpp` | ✅ Story 1.4 (`marketplaceOnboardingState`) | ✅ создан wrapper | Vue с canon `OnboardingCPPGate`; редирект на Registrator для подписи |
+| `chairman/category-whitelist` | ✅ available-category-admin.resolver.ts | ✅ создано 4 wrappers (Get/Stats/Add/Remove) | Vue с диалогом ID-через-запятую (tree-выбор — следующий шаг) |
+| `offerer/offers` | ✅ `marketplaceListMyOffers` (был всё время) | ✅ создан wrapper | Vue с canon `CatalogOfferCard`, client-side фильтр + поиск |
+| `offerer/incoming-orders` | ✅ `marketplaceListSupplierOrders` (был всё время) | ✅ создан wrapper | Vue с canon `OrderCard role='offerer'`, фильтр по статусу |
+| `branch-chairman/branch-orders` | ✅ 3 existing query (`*ByBraname`) | ✅ reuse существующих | Vue с 3 табами и Promise.all |
+| `board/agenda-writeoff` | ✅ `marketplaceListWriteoffProposals` | ✅ reuse через AdminWriteoffs/api | Vue read-only лента, фильтр по статусу |
+| `board/payouts-readonly` | ⚠️ требует доп. `Payment / read:all` policy | — | Informational placeholder со ссылками на нужные файлы |
+| `orderer/consolidated` | ✅ `marketplaceListMyOrders` + cycle_id | ✅ reuse MyOrders/api | Vue с группировкой по cycle_id |
 
-**Главный вывод.** Backend Эпиков 1-8 покрыт. Из 9 UI-страниц 3 (`coop-accept-cpp`, `consolidated`, `member-pick-cpp` через core) можно сделать сразу — нужны только Vue + роуты + (для L1) SDK wrappers. Остальные 6 требуют либо расширения backend (новая query), либо доработки SDK (фильтры в существующих).
+**Уроки.** PLAN.md до пересмотра считал, что backend для 6 из 9 страниц нужно доработать — реально требовалась доработка только для `board/payouts-readonly`. Перед оценкой «нужен ли backend» нужно делать grep `marketplace-*.resolver.ts:@Query` и `@Mutation` — список из 70+ marketplace-резолверов покрывает почти все use-case'ы MVP. Аудит §9.7 (исходный) был слишком пессимистичен из-за отсутствия проверки resolver-каталога.
 
-**Очерёдность реализации (приоритет MVP «прямая поставка» J2):**
+**Что осталось технического долга после 9 страниц:**
 
-1. `onboarding/coop-accept-cpp` — критичный gate, backend полностью готов (Story 1.9), **самая компактная задача**.
-2. `orderer/consolidated` — backend готов, есть canon-виджет, в J2 нужен заказчику для отслеживания партии.
-3. `offerer/incoming-orders` + расширение backend `marketplaceListIncomingOrders` — без неё J2 не закрывается на стороне offerer'а.
-4. `offerer/offers` (Мои предложения) — расширение `marketplaceListCatalog` фильтром author=me или новая query.
-5. `branch-chairman/branch-orders` — агрегат по КУ; полезно председателю.
-6. `chairman/category-whitelist` — настройка кооператива, может ждать.
-7. `board/payouts-readonly` — read-only, низкий приоритет MVP.
-8. `board/agenda-writeoff` — через core soviet, обходится deeplink'ом.
-9. `onboarding/member-pick-cpp` — UX-доработка core registration мастера; идёт после кодовой части.
+1. **`board/payouts-readonly` backend**: расширить `marketplace-access-matrix.ts` `Payment / read:all` и добавить query `marketplaceListOutgoingPayments` (опц. `supplier_account`).
+2. **`chairman/category-whitelist` tree-выбор**: подключить `marketplaceGetCategoryTree` через диалог-tree.
+3. **`branch-chairman/branch-orders` auto-detect braname**: подтянуть `marketplaceWhoAmI` или `marketplace_member_wallet` вместо ручного ввода (председатель КУ привязан к одному branch через trustee).
+4. **Прогон harness'а** по каждой из 9 страниц + проза в `docs/new/marketplace/...`.
 
 
 ---
