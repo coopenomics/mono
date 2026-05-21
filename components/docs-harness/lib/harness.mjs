@@ -63,9 +63,7 @@ export async function openBrowser({ storageState } = {}) {
 // Учитывает что vue-router в текущем десктопе работает в hash-режиме
 // (URL вида http://host/#/voskhod/...), а не history.
 export async function loginAsChairman(page, context) {
-  await page.goto(`${env.BASE_URL}/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded', timeout: 60000 });
-  await page.waitForSelector('button:has-text("Войти")', { timeout: 60000 });
-  await cleanViteOverlays(page);
+  await ensureSigninReady(page);
   await page.locator('label:has-text("электронную почту")').locator('input').fill(env.CHAIRMAN_EMAIL);
   await page.locator('label:has-text("ключ доступа")').locator('input').fill(env.CHAIRMAN_WIF);
   await cleanViteOverlays(page);
@@ -82,9 +80,7 @@ export async function loginAsChairman(page, context) {
 // Логин обычного пайщика по фикстуре (state/participants/<username>.json).
 // fixture: { username, email, wif, ... }
 export async function loginAs(page, fixture) {
-  await page.goto(`${env.BASE_URL}/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded', timeout: 60000 });
-  await page.waitForSelector('button:has-text("Войти")', { timeout: 60000 });
-  await cleanViteOverlays(page);
+  await ensureSigninReady(page);
   await page.locator('label:has-text("электронную почту")').locator('input').fill(fixture.email);
   await page.locator('label:has-text("ключ доступа")').locator('input').fill(fixture.wif);
   await cleanViteOverlays(page);
@@ -94,6 +90,36 @@ export async function loginAs(page, fixture) {
     { timeout: 30000 },
   ).catch(() => {});
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+}
+
+// Дойти до страницы /auth/signin и гарантировать, что кнопка «Войти» видна.
+// Учитывает «прогрев» Vite/Quasar после рестарта контейнера desktop dev:
+// первый goto может оставить пустой spinner + vite-plugin-checker overlay;
+// делаем 1-2 reload'а с очисткой overlay'а перед тем как ждать кнопку.
+export async function ensureSigninReady(page) {
+  const url = `${env.BASE_URL}/${env.COOPNAME}/auth/signin`;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt === 0) {
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    } else {
+      // reload даёт Vite/Quasar шанс перекомпилировать модули после первого
+      // тёплого старта и снимает вите-checker overlay, который перехватывает
+      // клики и не даёт Playwright взаимодействовать с UI.
+      await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
+    }
+    await page.waitForTimeout(1500);
+    await cleanViteOverlays(page);
+    const found = await page.locator('button:has-text("Войти")').first()
+      .waitFor({ state: 'visible', timeout: attempt === 0 ? 20_000 : 30_000 })
+      .then(() => true)
+      .catch(() => false);
+    if (found) {
+      await cleanViteOverlays(page);
+      return;
+    }
+    console.log(`  ⚠️  signin ещё не готов (попытка ${attempt + 1}/3), делаю reload`);
+  }
+  throw new Error(`auth/signin не отрисовался после 3 попыток reload — desktop dev завис или ошибка компиляции`);
 }
 
 // Скрывает каскад модалок-документов первого входа (Положение о ЦПП Кошелёк,
