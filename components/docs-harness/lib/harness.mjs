@@ -311,15 +311,21 @@ export async function signOnboardingAgreements(page, opts = {}) {
 // overlay и custom-element <vite-error-overlay>, чтобы они не попадали на
 // скриншоты при срабатывании HMR во время сценария. Безопасна: если оверлеев
 // нет — ничего не делает.
-export async function cleanViteOverlays(page) {
-  await page.evaluate(() => {
+export async function cleanViteOverlays(page, opts = {}) {
+  const preserveNotifications = opts.preserveNotifications === true;
+  await page.evaluate((preserveNotifications) => {
     document.querySelectorAll('vite-error-overlay').forEach((el) => el.remove());
     document.querySelectorAll('vite-plugin-checker-error-overlay').forEach((el) => el.remove());
     // q-notification toast'ы — это user-feedback, но в момент скриншота
-    // мешают «чистому» кадру; снимаем.
-    document.querySelectorAll('.q-notification').forEach((el) => el.remove());
-    document.querySelectorAll('.q-notifications__list > *').forEach((el) => el.remove());
-  });
+    // обычно мешают «чистому» кадру; снимаем. Если сценарий специально
+    // снимает тост (например, заглушки UI до полной реализации) — передавайте
+    // shot(page, name, desc, { preserveNotifications: true }), и тогда тост
+    // останется в кадре.
+    if (!preserveNotifications) {
+      document.querySelectorAll('.q-notification').forEach((el) => el.remove());
+      document.querySelectorAll('.q-notifications__list > *').forEach((el) => el.remove());
+    }
+  }, preserveNotifications);
 }
 
 // Создаёт shot-функцию + manifest для сценария.
@@ -333,7 +339,7 @@ export function makeShotContext({ scenarioName, outDir }) {
     if (opts.expect) await opts.expect(page);
 
     await page.waitForTimeout(opts.delay ?? 300);
-    await cleanViteOverlays(page);
+    await cleanViteOverlays(page, { preserveNotifications: opts.preserveNotifications === true });
     await page.screenshot({ path: filePath, fullPage: opts.fullPage ?? false });
     const entry = {
       name,
