@@ -23,6 +23,7 @@ import { OrdererConsolidatedPage } from 'src/pages/Marketplace/OrdererConsolidat
 import { OffererIncomingOrdersPage } from 'src/pages/Marketplace/OffererIncomingOrders'
 import { OffererMyOffersPage } from 'src/pages/Marketplace/OffererMyOffers'
 import { BranchChairmanBranchOrdersPage } from 'src/pages/Marketplace/BranchChairmanBranchOrders'
+import { BoardAgendaWriteoffPage } from 'src/pages/Marketplace/BoardAgendaWriteoff'
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace'
 import { agreementsBase } from 'src/shared/lib/consts/workspaces'
 import { registerMarketplaceProcessInfoHandlers } from './app/extensions'
@@ -243,6 +244,22 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Сводный склад',
               icon: 'fa-solid fa-warehouse',
+              roles: ['chairman', 'member'],
+              requiresAuth: true,
+              agreements: agreementsBase,
+            },
+          },
+          {
+            // Эпик 8 / Story 8.x: read-only лента writeoff-проектов для совета.
+            // Совет видит проекты в статусах ON_AGENDA / AUTHORIZED /
+            // EXECUTING / EXECUTED / REJECTED. Голосование совета идёт
+            // через core soviet agenda (sov-flow), здесь только обзор.
+            path: 'board-writeoff',
+            name: 'marketplace-board-writeoff',
+            component: markRaw(BoardAgendaWriteoffPage),
+            meta: {
+              title: 'Повестка совета — списания',
+              icon: 'fa-solid fa-gavel',
               roles: ['chairman', 'member'],
               requiresAuth: true,
               agreements: agreementsBase,
