@@ -48,3 +48,7 @@ export * as CancelWriteoffDraft from './cancelWriteoffDraft'
 export * as SubmitWriteoffDraft from './submitWriteoffDraft'
 /** Эпик 1 / Story 1.9: принятие ЦПП Marketplace кооперативом (L1 onboarding, chairman-only) */
 export * as MarketplaceAcceptCpp from './marketplaceAcceptCpp'
+/** Добавить категории в whitelist кооператива (chairman-only) */
+export * as AddAvailableCategories from './addAvailableCategories'
+/** Удалить категории из whitelist кооператива (chairman-only) */
+export * as RemoveAvailableCategories from './removeAvailableCategories'

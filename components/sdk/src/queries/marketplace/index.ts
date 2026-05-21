@@ -58,3 +58,7 @@ export * as MarketplaceCppStatus from './marketplaceCppStatus'
 export * as ListSupplierOrders from './listSupplierOrders'
 /** Эпик 3 / Story 3.4: собственные Offer'ы поставщика (стол поставщика, все статусы) */
 export * as ListMyOffers from './listMyOffers'
+/** Доступные категории и типы товаров для кооператива (admin-настройка whitelist'а) */
+export * as GetAvailableCategories from './getAvailableCategories'
+/** Статистика доступности категорий: всего/категорий/типов/есть ли ограничения */
+export * as GetAvailabilityStats from './getAvailabilityStats'

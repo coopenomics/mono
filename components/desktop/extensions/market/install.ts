@@ -24,6 +24,7 @@ import { OffererIncomingOrdersPage } from 'src/pages/Marketplace/OffererIncoming
 import { OffererMyOffersPage } from 'src/pages/Marketplace/OffererMyOffers'
 import { BranchChairmanBranchOrdersPage } from 'src/pages/Marketplace/BranchChairmanBranchOrders'
 import { BoardAgendaWriteoffPage } from 'src/pages/Marketplace/BoardAgendaWriteoff'
+import { ChairmanCategoryWhitelistPage } from 'src/pages/Marketplace/ChairmanCategoryWhitelist'
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace'
 import { agreementsBase } from 'src/shared/lib/consts/workspaces'
 import { registerMarketplaceProcessInfoHandlers } from './app/extensions'
@@ -245,6 +246,22 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               title: 'Сводный склад',
               icon: 'fa-solid fa-warehouse',
               roles: ['chairman', 'member'],
+              requiresAuth: true,
+              agreements: agreementsBase,
+            },
+          },
+          {
+            // Эпик 3 / Story 3.x: chairman-настройка whitelist'а доступных
+            // категорий. Пустой whitelist = весь глобальный каталог; иначе
+            // публиковать Offer'ы можно только в перечисленных категориях.
+            // Backend: available-category-admin.resolver.ts (@AuthRoles chairman).
+            path: 'category-whitelist',
+            name: 'marketplace-category-whitelist',
+            component: markRaw(ChairmanCategoryWhitelistPage),
+            meta: {
+              title: 'Доступные категории',
+              icon: 'fa-solid fa-filter',
+              roles: ['chairman'],
               requiresAuth: true,
               agreements: agreementsBase,
             },
