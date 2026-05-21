@@ -54,3 +54,7 @@ export * as GetWriteoffProposal from './getWriteoffProposal'
 export * as WriteoffStatementSignablePayload from './writeoffStatementSignablePayload'
 /** Эпик 1 / Story 1.9: статус принятия ЦПП Marketplace кооперативом (L1 onboarding) */
 export * as MarketplaceCppStatus from './marketplaceCppStatus'
+/** Эпик 4 / Story 4.5: заказы, по которым текущий пайщик — поставщик (стол поставщика) */
+export * as ListSupplierOrders from './listSupplierOrders'
+/** Эпик 3 / Story 3.4: собственные Offer'ы поставщика (стол поставщика, все статусы) */
+export * as ListMyOffers from './listMyOffers'

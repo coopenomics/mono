@@ -20,6 +20,8 @@ import { AdminWarehouseSummaryPage } from 'src/pages/Marketplace/AdminWarehouseS
 import { EcosystemRegistryPage } from 'src/pages/Marketplace/EcosystemRegistry'
 import { OnboardingCoopAcceptCppPage } from 'src/pages/Marketplace/OnboardingCoopAcceptCpp'
 import { OrdererConsolidatedPage } from 'src/pages/Marketplace/OrdererConsolidated'
+import { OffererIncomingOrdersPage } from 'src/pages/Marketplace/OffererIncomingOrders'
+import { OffererMyOffersPage } from 'src/pages/Marketplace/OffererMyOffers'
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace'
 import { agreementsBase } from 'src/shared/lib/consts/workspaces'
 import { registerMarketplaceProcessInfoHandlers } from './app/extensions'
@@ -104,6 +106,37 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Готово к получению',
               icon: 'fa-solid fa-box-check',
+              roles: [],
+              requiresAuth: true,
+              agreements: agreementsBase,
+            },
+          },
+          {
+            // Эпик 3 / Story 3.4: «Мои предложения» — поставщик видит все
+            // свои Offer'ы во всех 4 статусах (PENDING_MODERATION / ACTIVE /
+            // REJECTED / WITHDRAWN). Канон CatalogOfferCard, client-side
+            // фильтр + поиск, polling 30s (статус меняет модерация).
+            path: 'my-offers',
+            name: 'marketplace-my-offers',
+            component: markRaw(OffererMyOffersPage),
+            meta: {
+              title: 'Мои предложения',
+              icon: 'fa-solid fa-clipboard-list',
+              roles: [],
+              requiresAuth: true,
+              agreements: agreementsBase,
+            },
+          },
+          {
+            // Эпик 4 / Story 4.5: «Входящие заказы» — поставщик видит заказы,
+            // по которым он supplier. Канон OrderCard с role='offerer'.
+            // Действия по акцепту партии — отдельно на «Подготовка отгрузки».
+            path: 'incoming-orders',
+            name: 'marketplace-incoming-orders',
+            component: markRaw(OffererIncomingOrdersPage),
+            meta: {
+              title: 'Входящие заказы',
+              icon: 'fa-solid fa-inbox',
               roles: [],
               requiresAuth: true,
               agreements: agreementsBase,
