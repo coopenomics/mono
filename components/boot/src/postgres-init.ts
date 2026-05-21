@@ -294,6 +294,33 @@ export async function initExtensionsInPostgres() {
       ON CONFLICT (name) DO NOTHING
     `, ['reports', true, '{}', 1])
 
+    // market — расширение «Стол заказов» (Marketplace MVP). Без записи в
+    // extensions MarketplacePlugin.initialize() бросает «Конфиг не найден»,
+    // bootstrap-миграции v1-v6 не запускаются → marketplace_category пустая,
+    // marketplaceListCategories возвращает [], форма create-offer падает на
+    // валидации «Категория *». schema_version=0 чтобы все 6 миграций marketplace
+    // прогнались по порядку (v4 → upsertBaseline для 9 категорий).
+    const marketConfig = {
+      enabled: true,
+      debug: false,
+      lastSyncTimestamp: '',
+      coopAcceptance: {
+        accepted: false,
+        document_registry_id: 0,
+        accepted_at: '',
+        accepted_by_board_decision_id: '',
+      },
+      writeoff: {
+        auto_proposal_enabled: false,
+        expiry_grace_days: 7,
+      },
+    }
+    await client.query(`
+      INSERT INTO "extensions" (name, enabled, config, schema_version)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (name) DO NOTHING
+    `, ['market', true, JSON.stringify(marketConfig), 0])
+
     console.log('Extensions инициализированы в PostgreSQL')
   }
   catch (error) {

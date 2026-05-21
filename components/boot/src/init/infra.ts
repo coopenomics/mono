@@ -697,34 +697,6 @@ async function getOnChainActiveKey(blockchain: Blockchain, username: string): Pr
   }
 }
 
-async function ensureMarketplaceExtensionEnabled(pg: PgClient): Promise<void> {
-  // Дефолт-конфиг marketplace (из components/controller/.../marketplace/types.ts).
-  // schema_version=0 → ExtensionSchemaMigrationService при init coopback пройдёт
-  // миграции v1→v6 по порядку; v4 (marketplace-bootstrap-v4) сделает
-  // marketplaceCategoryRepository.upsertBaseline() и заполнит marketplace_category.
-  const defaultMarketplaceConfig = {
-    enabled: true,
-    debug: false,
-    lastSyncTimestamp: '',
-    coopAcceptance: {
-      accepted: false,
-      document_registry_id: 0,
-      accepted_at: '',
-      accepted_by_board_decision_id: '',
-    },
-    writeoff: {
-      auto_proposal_enabled: false,
-      expiry_grace_days: 7,
-    },
-  }
-  await pg.query(`
-    INSERT INTO extensions (name, enabled, schema_version, config, created_at, updated_at)
-    VALUES ('market', true, 0, $1::jsonb, NOW(), NOW())
-    ON CONFLICT (name) DO NOTHING
-  `, [JSON.stringify(defaultMarketplaceConfig)])
-  console.log('[mvp] extension `market` активирован (schema_version=0 → миграции v1-v6 при следующем старте coopback)')
-}
-
 async function ensureMarketplaceParticipant(
   blockchain: Blockchain,
   generator: Generator,
@@ -1139,16 +1111,6 @@ export async function installExtraData(blockchain: Blockchain) {
     }
     await ensureParticipantBranchOnChain(blockchain, coopname, a.username, a.braname, wif)
   }
-
-  // 5. Активируем extension `market` в реестре расширений кооператива.
-  // Без этой записи MarketplacePlugin.initialize() бросает «Конфиг не найден»,
-  // bootstrap-миграции v1-v6 не запускаются → marketplace_category пустая →
-  // фронт UI Стола заказов («Категория *» в форме offer-create) залипает на
-  // валидации. В проде это делает chairman через GraphQL installExtension;
-  // в boot:extra сидируем напрямую через PG с schema_version=0, чтобы при
-  // следующем старте coopback миграции прогнались по порядку и засеяли
-  // baseline-категории (9 продовольственных + «Прочее»).
-  await ensureMarketplaceExtensionEnabled(pg)
 
   await pg.end()
   await mongoose.disconnect().catch(() => {})
