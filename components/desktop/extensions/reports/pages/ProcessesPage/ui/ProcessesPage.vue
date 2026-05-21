@@ -133,7 +133,7 @@ div.page-shell
                           )
                             q-item-section
                               q-item-label.font-monospace {{ a.account }}::{{ a.name }}
-                              q-item-label(caption) {{ formatDate(a.created_at) }} · seq {{ a.global_sequence }}
+                              q-item-label(caption) {{ formatDate(String(a.created_at ?? '')) }} · seq {{ a.global_sequence }}
                   .col-12.col-md-6
                     q-card(flat bordered)
                       q-card-section.q-pb-none
@@ -143,11 +143,11 @@ div.page-shell
                         q-list(v-else dense)
                           q-item(
                             v-for='d in processDetails.get(props.row.processHash)!.documents'
-                            :key='d.registry_id + "-" + d.document_hash'
+                            :key='d.source.code + "::" + d.source.table + "::" + d.source.primary_key + "-" + d.hash'
                           )
                             q-item-section
-                              q-item-label registry_id {{ d.registry_id }}
-                              q-item-label(caption).font-monospace {{ d.document_hash }}
+                              q-item-label {{ d.source.code }} · {{ d.source.table }} (key {{ d.source.primary_key }})
+                              q-item-label(caption).font-monospace {{ d.hash }}
 
               .q-mt-md(v-if='hasProcessInfo(props.row.processType)')
                 q-card(flat bordered)
@@ -374,6 +374,7 @@ async function load() {
       pagination: {
         page: pagination.value.page,
         limit: pagination.value.rowsPerPage,
+        sortOrder: 'DESC',
       },
     })
     if (myId !== lastRequestId) return

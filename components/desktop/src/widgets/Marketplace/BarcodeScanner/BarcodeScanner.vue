@@ -37,7 +37,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, type PropType } from 'vue'
+import { onBeforeUnmount, ref, type PropType } from 'vue'
 
 export type ScannerState = 'idle' | 'requesting' | 'scanning' | 'success' | 'error'
 
@@ -82,6 +82,16 @@ function start() {
     }, 1500)
   }, 600)
 }
+
+// Чистим pending-таймер при unmount, чтобы scanned/error не эмитился на
+// уже размонтированный компонент (TakeoverDialog закрывают раньше, чем
+// сработает 1500 ms таймер «сканирования»).
+onBeforeUnmount(() => {
+  if (timer) {
+    clearTimeout(timer)
+    timer = null
+  }
+})
 
 defineExpose({ start, state, lastCode })
 </script>

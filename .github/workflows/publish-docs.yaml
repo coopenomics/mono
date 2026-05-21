@@ -1,16 +1,42 @@
 name: Publish Docs
 
+# Публикация только по продакшн-тэгам, лежащим на main (без -alpha/-beta/-rc/-test).
+# Раньше триггерилось на каждый push в main/testnet/dev/reports/marketplace2 →
+# docs пересобирались по 5+ раз в день впустую. Теперь — только релиз.
 on:
   push:
-    branches:
-      - main
-      - testnet
-      - dev
-      - reports
-      - marketplace2
+    tags: ['v*']
 
 jobs:
+  gate:
+    runs-on: ubuntu-latest
+    outputs:
+      should_publish: ${{ steps.check.outputs.should_publish }}
+    steps:
+      - name: Checkout (для git branch --contains)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Gate — main + non-alpha
+        id: check
+        run: |
+          TAG="${{ github.ref_name }}"
+          if [[ "$TAG" =~ -(alpha|beta|rc|test) ]]; then
+            echo "Тэг $TAG — pre-release, docs не публикуем"
+            echo "should_publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if ! git branch -r --contains "${{ github.sha }}" | grep -qE "^[[:space:]]*origin/main$"; then
+            echo "Тэг $TAG не на main — docs не публикуем"
+            echo "should_publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "Тэг $TAG — продакшн релиз на main, публикуем docs"
+          echo "should_publish=true" >> "$GITHUB_OUTPUT"
+
   build-and-publish-docs:
+    needs: gate
+    if: needs.gate.outputs.should_publish == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository

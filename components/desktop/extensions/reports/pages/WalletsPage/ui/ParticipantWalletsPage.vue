@@ -209,7 +209,7 @@ const WalletCell = {
           { class: ['cell-line', valueClass, props.bold ? 'bold' : ''].join(' ') },
           [
             h(QIcon, { name: icon, size: '12px', class: 'cell-icon' }),
-            h('span', { class: 'cell-value' }, formatAsset2Digits(`${amount.toFixed(4)} RUB`)),
+            h('span', { class: 'cell-value' }, formatAsset2Digits(`${amount} RUB`)),
             h(QTooltip, { anchor: 'top middle', self: 'bottom middle', delay: 200 }, () => tooltip),
           ],
         )

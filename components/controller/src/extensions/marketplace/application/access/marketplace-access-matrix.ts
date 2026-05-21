@@ -47,7 +47,10 @@ export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, str
     Offer: ['create:own', 'update:own', 'delete:own', 'read'],
     Order: ['read:to-self'],
     Shipment: ['create:own'],
-    Receiving: ['sign:first'],
+    // Story 5.3/5.4: поставщик подписывает АПП первым (по приходу
+    // имущества). `sign:first` оставлен для backward-compat, `sign:as-supplier`
+    // — каноническая action из AC Story 5.4.
+    Receiving: ['sign:first', 'sign:as-supplier'],
     KU: ['read'],
     Vitrine: ['read'],
   },

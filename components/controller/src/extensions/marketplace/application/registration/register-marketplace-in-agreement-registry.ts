@@ -18,7 +18,7 @@ import {
  *     создан в document factory — Story 1.7 не выполнена) — port не вызывается,
  *     SignUp не предлагает оферту marketplace; функция возвращает false;
  *   • при реальном `registry_id > 0` — `registerAgreement` × 1 для оферты ЦПП
- *     «Стол заказов» с типами аккаунтов `individual` + `entrepreneur`.
+ *     «Стол заказов» с типами аккаунтов `individual` + `entrepreneur` + `organization`.
  *
  * Идемпотентность гарантируется самим `AgreementRegistryService` (повторный
  * register с тем же id+extension_name перезаписывает запись, см. док-комментарий
@@ -41,7 +41,11 @@ export function registerMarketplaceInAgreementRegistry(
     title: 'Оферта по целевой потребительской программе «Стол заказов»',
     checkbox_text: 'Я прочитал и принимаю',
     link_text: 'оферту по целевой потребительской программе «Стол заказов»',
-    applicable_account_types: [AccountType.individual, AccountType.entrepreneur],
+    applicable_account_types: [
+      AccountType.individual,
+      AccountType.entrepreneur,
+      AccountType.organization,
+    ],
     order: 7,
     extension_name: MARKETPLACE_EXTENSION_NAME,
   });

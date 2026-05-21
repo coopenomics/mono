@@ -1,4 +1,4 @@
-import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Optional, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -31,7 +31,8 @@ export class MarketplaceWriteoffCronService implements OnModuleInit {
     @InjectRepository(MarketplaceInventoryEntity, 'marketplace')
     private readonly inventoryRepo: Repository<MarketplaceInventoryEntity>,
     private readonly writeoffService: MarketplaceWriteoffService,
-    private readonly extensionDomainService: ExtensionDomainService,
+    @Optional()
+    private readonly extensionDomainService: ExtensionDomainService | null,
     @Inject(MARKETPLACE_ASSET_CONFIG)
     private readonly assetConfig: MarketplaceAssetConfig,
     private readonly eventBus: EventEmitter2,
@@ -64,7 +65,7 @@ export class MarketplaceWriteoffCronService implements OnModuleInit {
       return;
     }
 
-    const extension = await this.extensionDomainService.getAppByName('market');
+    const extension = this.extensionDomainService ? await this.extensionDomainService.getAppByName('market') : null;
     const cfg = extension?.config as IConfig | undefined;
     const auto = cfg?.writeoff?.auto_proposal_enabled ?? false;
     const graceDays = cfg?.writeoff?.expiry_grace_days ?? 7;
@@ -80,6 +81,11 @@ export class MarketplaceWriteoffCronService implements OnModuleInit {
       return;
     }
 
+    // Сейчас крон-сборка покрывает ОДИН тип кандидата из AC Story 8.1
+    // (expiry_date истекает). Три других категории (RETURNED_TO_WAREHOUSE,
+    // EXCESS_RETURNED_TO_WAREHOUSE, items «без юр. оформления» старше
+    // threshold writeoff_returned_age_days) — Phase 2: требуется
+    // расширение marketplace_inventory.status + поля returned_at / age_days.
     const horizon = new Date(Date.now() + graceDays * 86_400_000);
     const candidates = await this.inventoryRepo.find({
       where: {
@@ -98,18 +104,39 @@ export class MarketplaceWriteoffCronService implements OnModuleInit {
       return;
     }
 
-    const items: Parameters<typeof this.writeoffService.createDraft>[0]['items'] = candidates.map(
-      (inv) => ({
-        braname: inv.braname,
-        asset_title: inv.product_name_snapshot,
-        quantity: String(inv.quantity_per_label),
-        // Stub: до Phase 2 нет attached unit cost — крон ставит 0 placeholder,
-        // председатель руками поправит при ревью drafts'а. Это даёт UX —
-        // позиции уже видны, остаётся только проставить суммы.
-        amount: (0).toFixed(this.assetConfig.decimals),
-        reason: this.deriveReason(inv.expiry_date, horizon),
-        inventory_id: inv.id,
-      })
+    // Фильтруем позиции без unit_cost — без суммы validateAndNormalizeItems
+    // отобьёт весь draft. До появления attached unit_cost (Phase 2) такие
+    // позиции крон не включает; председатель добавит их вручную.
+    const itemsWithCost = candidates.filter((inv) => {
+      const cost = this.resolveUnitCost(inv);
+      return cost !== null && cost > 0;
+    });
+
+    if (itemsWithCost.length === 0) {
+      this.logger.info(
+        `[WRITEOFF_CRON] найдено ${candidates.length} кандидатов, но ни у одного нет unit_cost — DRAFT не создан, председателю отправлено напоминание (coopname=${coopname})`
+      );
+      this.eventBus.emit('marketplace.writeoff.cron.reminder', {
+        coopname,
+        fired_at: new Date().toISOString(),
+        candidates_count: candidates.length,
+      });
+      return;
+    }
+
+    const items: Parameters<typeof this.writeoffService.createDraft>[0]['items'] = itemsWithCost.map(
+      (inv) => {
+        const unitCost = this.resolveUnitCost(inv) as number;
+        const total = unitCost * Number(inv.quantity_per_label);
+        return {
+          braname: inv.braname,
+          asset_title: inv.product_name_snapshot,
+          quantity: String(inv.quantity_per_label),
+          amount: total.toFixed(this.assetConfig.decimals),
+          reason: this.deriveReason(inv.expiry_date, horizon),
+          inventory_id: inv.id,
+        };
+      }
     );
 
     const created = await this.writeoffService.createDraft({
@@ -138,5 +165,19 @@ export class MarketplaceWriteoffCronService implements OnModuleInit {
     if (expiry.getTime() <= horizon.getTime())
       return 'Срок годности истекает в ближайшее время';
     return 'Скоропорт';
+  }
+
+  private resolveUnitCost(inv: MarketplaceInventoryEntity): number | null {
+    const candidates: Array<string | number | null | undefined> = [
+      (inv as unknown as { unit_cost?: string | number }).unit_cost,
+      (inv as unknown as { unit_price?: string | number }).unit_price,
+      (inv as unknown as { price_per_unit?: string | number }).price_per_unit,
+    ];
+    for (const v of candidates) {
+      if (v === null || v === undefined) continue;
+      const n = typeof v === 'number' ? v : Number(v);
+      if (Number.isFinite(n) && n > 0) return n;
+    }
+    return null;
   }
 }

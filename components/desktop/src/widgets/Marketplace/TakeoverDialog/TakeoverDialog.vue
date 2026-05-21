@@ -6,7 +6,14 @@
     transition-show="slide-up"
     transition-hide="slide-down"
   >
-    <q-card class="mp-takeover" :class="`mp-takeover--${kind}`">
+    <q-card
+      class="mp-takeover"
+      :class="`mp-takeover--${kind}`"
+      role="dialog"
+      aria-modal="true"
+      :aria-labelledby="titleId"
+      :aria-describedby="leadText ? leadId : undefined"
+    >
       <div class="mp-takeover__bar">
         <q-btn
           flat
@@ -18,12 +25,12 @@
           @click="onCancel"
         />
         <q-icon v-if="kindIcon" :name="kindIcon" :class="`mp-takeover__icon mp-takeover__icon--${kind}`" />
-        <div class="mp-takeover__title">{{ title }}</div>
+        <div :id="titleId" class="mp-takeover__title">{{ title }}</div>
         <q-space />
       </div>
 
       <q-card-section class="mp-takeover__body">
-        <div v-if="leadText" class="mp-takeover__lead">{{ leadText }}</div>
+        <div v-if="leadText" :id="leadId" class="mp-takeover__lead">{{ leadText }}</div>
         <slot />
       </q-card-section>
 
@@ -49,7 +56,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, type PropType } from 'vue'
+import { computed, useId, type PropType } from 'vue'
 
 export type TakeoverKind = 'info' | 'success' | 'warning' | 'danger'
 
@@ -74,6 +81,10 @@ const open = computed({
   get: () => props.modelValue,
   set: (v: boolean) => emit('update:modelValue', v),
 })
+
+const uid = useId()
+const titleId = `mp-takeover-title-${uid}`
+const leadId = `mp-takeover-lead-${uid}`
 
 const KIND_MAP: Record<TakeoverKind, { icon: string; confirmColor: string }> = {
   info:    { icon: 'fa-solid fa-circle-info',          confirmColor: 'primary'  },

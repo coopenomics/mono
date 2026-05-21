@@ -3095,8 +3095,12 @@ export type ValueTypes = {
 	can_set_master?:boolean | `@${string}`,
 	/** Может ли устанавливать план проекта */
 	can_set_plan?:boolean | `@${string}`,
+	/** Может ли просматривать артефакты (требования) проекта/компонента */
+	can_view_artifacts?:boolean | `@${string}`,
 	/** Имеет ли подтвержденное приложение для проекта */
 	has_clearance?:boolean | `@${string}`,
+	/** Имеет ли допуск к родительскому проекту (для компонента) */
+	has_parent_clearance?:boolean | `@${string}`,
 	/** Является ли пользователь гостем (неавторизованным) */
 	is_guest?:boolean | `@${string}`,
 	/** Есть ли запрос на получение допуска в рассмотрении */
@@ -5337,6 +5341,38 @@ export type ValueTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string | Variable<any, string>
 };
+	["GenerationConvertStatementGenerateDocumentInput"]: {
+	/** Сумма для перевода в программу «Благорост» */
+	blagorost_wallet_amount: string | Variable<any, string>,
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null | Variable<any, string>,
+	/** Язык документа */
+	lang?: string | undefined | null | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null | Variable<any, string>,
+	/** Сумма для перевода в Цифровой Кошелёк */
+	main_wallet_amount: string | Variable<any, string>,
+	/** Хэш проекта */
+	project_hash: string | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null | Variable<any, string>,
+	/** Название документа */
+	title?: string | undefined | null | Variable<any, string>,
+	/** Признак перевода в программу «Благорост» */
+	to_blagorost: boolean | Variable<any, string>,
+	/** Признак перевода в Цифровой Кошелёк */
+	to_wallet: boolean | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null | Variable<any, string>
+};
 	["GenerationMoneyInvestStatementGenerateDocumentInput"]: {
 	/** Сумма инвестирования */
 	amount: string | Variable<any, string>,
@@ -5412,40 +5448,6 @@ export type ValueTypes = {
 	username: string | Variable<any, string>,
 	/** Версия генератора, использованного для создания документа */
 	version: string | Variable<any, string>
-};
-	["GenerationToMainWalletConvertStatementGenerateDocumentInput"]: {
-	/** Хэш приложения */
-	appendix_hash: string | Variable<any, string>,
-	/** Сумма для перевода на благорост кошелек */
-	blagorost_wallet_amount: string | Variable<any, string>,
-	/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null | Variable<any, string>,
-	/** Название кооператива, связанное с документом */
-	coopname: string | Variable<any, string>,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null | Variable<any, string>,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null | Variable<any, string>,
-	/** Язык документа */
-	lang?: string | undefined | null | Variable<any, string>,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null | Variable<any, string>,
-	/** Сумма для перевода на основной кошелек */
-	main_wallet_amount: string | Variable<any, string>,
-	/** Хэш проекта */
-	project_hash: string | Variable<any, string>,
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null | Variable<any, string>,
-	/** Название документа */
-	title?: string | undefined | null | Variable<any, string>,
-	/** Перевод на благорост кошелек */
-	to_blagorost: boolean | Variable<any, string>,
-	/** Перевод на основной кошелек */
-	to_wallet: boolean | Variable<any, string>,
-	/** Имя пользователя, создавшего документ */
-	username: string | Variable<any, string>,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null | Variable<any, string>
 };
 	["GetAccountInput"]: {
 	/** Имя аккаунта пользователя */
@@ -8021,13 +8023,11 @@ capitalGenerateComponentGenerationContract?: [{	data: ValueTypes["ComponentGener
 capitalGenerateExpenseDecision?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalGenerateExpenseStatement?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalGenerateGenerationContract?: [{	data: ValueTypes["GenerationContractGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+capitalGenerateGenerationConvertStatement?: [{	data: ValueTypes["GenerationConvertStatementGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalGenerateGenerationMoneyInvestStatement?: [{	data: ValueTypes["GenerationMoneyInvestStatementGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalGenerateGenerationPropertyInvestAct?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalGenerateGenerationPropertyInvestDecision?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalGenerateGenerationPropertyInvestStatement?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
-capitalGenerateGenerationToCapitalizationConvertStatement?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
-capitalGenerateGenerationToMainWalletConvertStatement?: [{	data: ValueTypes["GenerationToMainWalletConvertStatementGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
-capitalGenerateGenerationToProjectConvertStatement?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalGenerateGetLoanDecision?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalGenerateGetLoanStatement?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalGenerateProgramMoneyInvestStatement?: [{	data: ValueTypes["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
@@ -13123,8 +13123,12 @@ export type ResolverInputTypes = {
 	can_set_master?:boolean | `@${string}`,
 	/** Может ли устанавливать план проекта */
 	can_set_plan?:boolean | `@${string}`,
+	/** Может ли просматривать артефакты (требования) проекта/компонента */
+	can_view_artifacts?:boolean | `@${string}`,
 	/** Имеет ли подтвержденное приложение для проекта */
 	has_clearance?:boolean | `@${string}`,
+	/** Имеет ли допуск к родительскому проекту (для компонента) */
+	has_parent_clearance?:boolean | `@${string}`,
 	/** Является ли пользователь гостем (неавторизованным) */
 	is_guest?:boolean | `@${string}`,
 	/** Есть ли запрос на получение допуска в рассмотрении */
@@ -15309,6 +15313,38 @@ export type ResolverInputTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string
 };
+	["GenerationConvertStatementGenerateDocumentInput"]: {
+	/** Сумма для перевода в программу «Благорост» */
+	blagorost_wallet_amount: string,
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Сумма для перевода в Цифровой Кошелёк */
+	main_wallet_amount: string,
+	/** Хэш проекта */
+	project_hash: string,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Признак перевода в программу «Благорост» */
+	to_blagorost: boolean,
+	/** Признак перевода в Цифровой Кошелёк */
+	to_wallet: boolean,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
 	["GenerationMoneyInvestStatementGenerateDocumentInput"]: {
 	/** Сумма инвестирования */
 	amount: string,
@@ -15384,40 +15420,6 @@ export type ResolverInputTypes = {
 	username: string,
 	/** Версия генератора, использованного для создания документа */
 	version: string
-};
-	["GenerationToMainWalletConvertStatementGenerateDocumentInput"]: {
-	/** Хэш приложения */
-	appendix_hash: string,
-	/** Сумма для перевода на благорост кошелек */
-	blagorost_wallet_amount: string,
-	/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null,
-	/** Язык документа */
-	lang?: string | undefined | null,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null,
-	/** Сумма для перевода на основной кошелек */
-	main_wallet_amount: string,
-	/** Хэш проекта */
-	project_hash: string,
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null,
-	/** Название документа */
-	title?: string | undefined | null,
-	/** Перевод на благорост кошелек */
-	to_blagorost: boolean,
-	/** Перевод на основной кошелек */
-	to_wallet: boolean,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null
 };
 	["GetAccountInput"]: {
 	/** Имя аккаунта пользователя */
@@ -17910,13 +17912,11 @@ capitalGenerateComponentGenerationContract?: [{	data: ResolverInputTypes["Compon
 capitalGenerateExpenseDecision?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalGenerateExpenseStatement?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalGenerateGenerationContract?: [{	data: ResolverInputTypes["GenerationContractGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
+capitalGenerateGenerationConvertStatement?: [{	data: ResolverInputTypes["GenerationConvertStatementGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalGenerateGenerationMoneyInvestStatement?: [{	data: ResolverInputTypes["GenerationMoneyInvestStatementGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalGenerateGenerationPropertyInvestAct?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalGenerateGenerationPropertyInvestDecision?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalGenerateGenerationPropertyInvestStatement?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
-capitalGenerateGenerationToCapitalizationConvertStatement?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
-capitalGenerateGenerationToMainWalletConvertStatement?: [{	data: ResolverInputTypes["GenerationToMainWalletConvertStatementGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
-capitalGenerateGenerationToProjectConvertStatement?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalGenerateGetLoanDecision?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalGenerateGetLoanStatement?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalGenerateProgramMoneyInvestStatement?: [{	data: ResolverInputTypes["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
@@ -22049,13 +22049,13 @@ export type ModelTypes = {
 	/** Обогащенные данные коммита (diff-патч, исходная ссылка и т.д.) */
 	data?: ModelTypes["JSON"] | undefined | null,
 	/** Описание коммита */
-	description: string,
+	description?: string | undefined | null,
 	/** Отображаемое имя пользователя */
 	display_name?: string | undefined | null,
 	/** ID в блокчейне */
 	id?: number | undefined | null,
 	/** Метаданные коммита */
-	meta: string,
+	meta?: string | undefined | null,
 	/** Флаг присутствия записи в блокчейне */
 	present: boolean,
 	/** Проект, к которому относится коммит */
@@ -22852,8 +22852,12 @@ export type ModelTypes = {
 	can_set_master: boolean,
 	/** Может ли устанавливать план проекта */
 	can_set_plan: boolean,
+	/** Может ли просматривать артефакты (требования) проекта/компонента */
+	can_view_artifacts: boolean,
 	/** Имеет ли подтвержденное приложение для проекта */
 	has_clearance: boolean,
+	/** Имеет ли допуск к родительскому проекту (для компонента) */
+	has_parent_clearance: boolean,
 	/** Является ли пользователь гостем (неавторизованным) */
 	is_guest: boolean,
 	/** Есть ли запрос на получение допуска в рассмотрении */
@@ -24973,6 +24977,38 @@ export type ModelTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string
 };
+	["GenerationConvertStatementGenerateDocumentInput"]: {
+	/** Сумма для перевода в программу «Благорост» */
+	blagorost_wallet_amount: string,
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Сумма для перевода в Цифровой Кошелёк */
+	main_wallet_amount: string,
+	/** Хэш проекта */
+	project_hash: string,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Признак перевода в программу «Благорост» */
+	to_blagorost: boolean,
+	/** Признак перевода в Цифровой Кошелёк */
+	to_wallet: boolean,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
 	["GenerationMoneyInvestStatementGenerateDocumentInput"]: {
 	/** Сумма инвестирования */
 	amount: string,
@@ -25048,40 +25084,6 @@ export type ModelTypes = {
 	username: string,
 	/** Версия генератора, использованного для создания документа */
 	version: string
-};
-	["GenerationToMainWalletConvertStatementGenerateDocumentInput"]: {
-	/** Хэш приложения */
-	appendix_hash: string,
-	/** Сумма для перевода на благорост кошелек */
-	blagorost_wallet_amount: string,
-	/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null,
-	/** Язык документа */
-	lang?: string | undefined | null,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null,
-	/** Сумма для перевода на основной кошелек */
-	main_wallet_amount: string,
-	/** Хэш проекта */
-	project_hash: string,
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null,
-	/** Название документа */
-	title?: string | undefined | null,
-	/** Перевод на благорост кошелек */
-	to_blagorost: boolean,
-	/** Перевод на основной кошелек */
-	to_wallet: boolean,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null
 };
 	["GetAccountInput"]: {
 	/** Имя аккаунта пользователя */
@@ -27594,6 +27596,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member.  */
 	capitalGenerateGenerationContract: ModelTypes["GeneratedDocument"],
+	/** Сгенерировать заявление о конвертации целевого паевого взноса (в Цифровой Кошелёк и/или в программу «Благорост»)
+
+Требуемые роли: chairman, member.  */
+	capitalGenerateGenerationConvertStatement: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать заявление об инвестировании в генерацию
 
 Требуемые роли: chairman, member.  */
@@ -27610,18 +27616,6 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member.  */
 	capitalGenerateGenerationPropertyInvestStatement: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать заявление о конвертации из генерации в благорост
-
-Требуемые роли: chairman, member.  */
-	capitalGenerateGenerationToCapitalizationConvertStatement: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать заявление о конвертации из генерации в основной кошелек
-
-Требуемые роли: chairman, member.  */
-	capitalGenerateGenerationToMainWalletConvertStatement: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать заявление о конвертации из генерации в проектный кошелек
-
-Требуемые роли: chairman, member.  */
-	capitalGenerateGenerationToProjectConvertStatement: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать решение о получении займа
 
 Требуемые роли: chairman, member.  */
@@ -32319,13 +32313,13 @@ export type GraphQLTypes = {
 	/** Обогащенные данные коммита (diff-патч, исходная ссылка и т.д.) */
 	data?: GraphQLTypes["JSON"] | undefined | null,
 	/** Описание коммита */
-	description: string,
+	description?: string | undefined | null,
 	/** Отображаемое имя пользователя */
 	display_name?: string | undefined | null,
 	/** ID в блокчейне */
 	id?: number | undefined | null,
 	/** Метаданные коммита */
-	meta: string,
+	meta?: string | undefined | null,
 	/** Флаг присутствия записи в блокчейне */
 	present: boolean,
 	/** Проект, к которому относится коммит */
@@ -33160,8 +33154,12 @@ export type GraphQLTypes = {
 	can_set_master: boolean,
 	/** Может ли устанавливать план проекта */
 	can_set_plan: boolean,
+	/** Может ли просматривать артефакты (требования) проекта/компонента */
+	can_view_artifacts: boolean,
 	/** Имеет ли подтвержденное приложение для проекта */
 	has_clearance: boolean,
+	/** Имеет ли допуск к родительскому проекту (для компонента) */
+	has_parent_clearance: boolean,
 	/** Является ли пользователь гостем (неавторизованным) */
 	is_guest: boolean,
 	/** Есть ли запрос на получение допуска в рассмотрении */
@@ -35401,6 +35399,38 @@ export type GraphQLTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string
 };
+	["GenerationConvertStatementGenerateDocumentInput"]: {
+		/** Сумма для перевода в программу «Благорост» */
+	blagorost_wallet_amount: string,
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Сумма для перевода в Цифровой Кошелёк */
+	main_wallet_amount: string,
+	/** Хэш проекта */
+	project_hash: string,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Признак перевода в программу «Благорост» */
+	to_blagorost: boolean,
+	/** Признак перевода в Цифровой Кошелёк */
+	to_wallet: boolean,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
 	["GenerationMoneyInvestStatementGenerateDocumentInput"]: {
 		/** Сумма инвестирования */
 	amount: string,
@@ -35476,40 +35506,6 @@ export type GraphQLTypes = {
 	username: string,
 	/** Версия генератора, использованного для создания документа */
 	version: string
-};
-	["GenerationToMainWalletConvertStatementGenerateDocumentInput"]: {
-		/** Хэш приложения */
-	appendix_hash: string,
-	/** Сумма для перевода на благорост кошелек */
-	blagorost_wallet_amount: string,
-	/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null,
-	/** Язык документа */
-	lang?: string | undefined | null,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null,
-	/** Сумма для перевода на основной кошелек */
-	main_wallet_amount: string,
-	/** Хэш проекта */
-	project_hash: string,
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null,
-	/** Название документа */
-	title?: string | undefined | null,
-	/** Перевод на благорост кошелек */
-	to_blagorost: boolean,
-	/** Перевод на основной кошелек */
-	to_wallet: boolean,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null
 };
 	["GetAccountInput"]: {
 		/** Имя аккаунта пользователя */
@@ -38213,6 +38209,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member.  */
 	capitalGenerateGenerationContract: GraphQLTypes["GeneratedDocument"],
+	/** Сгенерировать заявление о конвертации целевого паевого взноса (в Цифровой Кошелёк и/или в программу «Благорост»)
+
+Требуемые роли: chairman, member.  */
+	capitalGenerateGenerationConvertStatement: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать заявление об инвестировании в генерацию
 
 Требуемые роли: chairman, member.  */
@@ -38229,18 +38229,6 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member.  */
 	capitalGenerateGenerationPropertyInvestStatement: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать заявление о конвертации из генерации в благорост
-
-Требуемые роли: chairman, member.  */
-	capitalGenerateGenerationToCapitalizationConvertStatement: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать заявление о конвертации из генерации в основной кошелек
-
-Требуемые роли: chairman, member.  */
-	capitalGenerateGenerationToMainWalletConvertStatement: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать заявление о конвертации из генерации в проектный кошелек
-
-Требуемые роли: chairman, member.  */
-	capitalGenerateGenerationToProjectConvertStatement: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать решение о получении займа
 
 Требуемые роли: chairman, member.  */
@@ -42734,10 +42722,10 @@ type ZEUS_VARIABLES = {
 	["GenerationContractGenerateDocumentInput"]: ValueTypes["GenerationContractGenerateDocumentInput"];
 	["GenerationContractSignedDocumentInput"]: ValueTypes["GenerationContractSignedDocumentInput"];
 	["GenerationContractSignedMetaDocumentInput"]: ValueTypes["GenerationContractSignedMetaDocumentInput"];
+	["GenerationConvertStatementGenerateDocumentInput"]: ValueTypes["GenerationConvertStatementGenerateDocumentInput"];
 	["GenerationMoneyInvestStatementGenerateDocumentInput"]: ValueTypes["GenerationMoneyInvestStatementGenerateDocumentInput"];
 	["GenerationMoneyInvestStatementSignedDocumentInput"]: ValueTypes["GenerationMoneyInvestStatementSignedDocumentInput"];
 	["GenerationMoneyInvestStatementSignedMetaDocumentInput"]: ValueTypes["GenerationMoneyInvestStatementSignedMetaDocumentInput"];
-	["GenerationToMainWalletConvertStatementGenerateDocumentInput"]: ValueTypes["GenerationToMainWalletConvertStatementGenerateDocumentInput"];
 	["GetAccountInput"]: ValueTypes["GetAccountInput"];
 	["GetAccountsInput"]: ValueTypes["GetAccountsInput"];
 	["GetBranchesInput"]: ValueTypes["GetBranchesInput"];

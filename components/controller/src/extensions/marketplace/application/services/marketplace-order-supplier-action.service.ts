@@ -188,7 +188,16 @@ export class MarketplaceOrderSupplierActionService {
 
   private normalizeTxHash(tx: unknown): string {
     const t = tx as { transaction?: { id?: string }; processed?: { id?: string } };
-    return t?.transaction?.id ?? t?.processed?.id ?? 'unknown';
+    const hash = t?.transaction?.id ?? t?.processed?.id;
+    if (!hash) {
+      // fail-fast: цепь приняла action, но не вернула tx_hash —
+      // лучше отбить поставщику и попросить retry, чем записать
+      // 'unknown' в audit-trail.
+      throw new BadRequestException(
+        'Действие поставщика: цепь не вернула tx_hash. Повторите попытку.'
+      );
+    }
+    return hash;
   }
 
   private rethrowChainError(error: any): never {

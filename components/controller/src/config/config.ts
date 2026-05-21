@@ -93,8 +93,9 @@ const envVarsSchema = z.object({
     .default('https://союз-русь.рф/anketa')
     .describe('ссылка на анкету для получения членства в союзе кооперативов'),
   IS_UNIONED: z
-    .boolean()
-    .default(true)
+    .string()
+    .default('true')
+    .transform((v) => v === 'true')
     .describe('флаг, указывающий что требуется членство в союзе для подключения к кооперативной экономике'),
   MATRIX_UNION_PERSON_ID: z.string().optional().describe('Matrix userId представителя союза для связи с кооперативами'),
   MATRIX_UNION_NAME: z.string().default('СПО РУСЬ').describe('Название союза для подписания комнат связи'),
@@ -195,11 +196,13 @@ const envVarsSchema = z.object({
   WHISPER_MODEL: z.string().default('whisper-1').describe('Модель Whisper для STT'),
   WHISPER_LANGUAGE: z.string().default('ru').describe('Язык для Whisper STT'),
 
-  // Файловое хранилище (MinIO в dev/контуре кооператива; S3 в проде по плану E59-N)
+  // Файловое хранилище (MinIO в dev/контуре кооператива; S3 в проде по плану E59-N).
+  // MINIO_ENDPOINT без default: если не задан — file storage стартует в no-op,
+  // HeadBucket не делается, операции get/put отдают понятную ошибку.
   MINIO_ENDPOINT: z
     .string()
-    .default('http://minio:9000')
-    .describe('Endpoint S3-совместимого бэкенда; в compose — service name'),
+    .optional()
+    .describe('Endpoint S3-совместимого бэкенда; в compose — service name. Пусто = file storage отключён.'),
   MINIO_ACCESS_KEY: z.string().default('minioadmin').describe('Access-key для MinIO/S3'),
   MINIO_SECRET_KEY: z.string().default('minioadmin').describe('Secret-key для MinIO/S3'),
   MINIO_BUCKET: z

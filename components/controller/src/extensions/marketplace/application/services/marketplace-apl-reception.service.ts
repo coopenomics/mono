@@ -617,10 +617,20 @@ export class MarketplaceAplReceptionService {
         act,
       });
       const txHash = this.extractTxHash(tx);
-      if (txHash) lastTxHash = txHash;
-      this.logger.debug(`signsupp on-chain OK: order ${order.id} → tx ${txHash || '<no-id>'}`);
+      if (!txHash) {
+        // fail-fast: цепь приняла signsupp, но не вернула tx_hash. Часть
+        // ордеров группы уже обработана выше — позволять создавать запись
+        // в БД с фантомным fallback'ом ('signsupp-<reception_id>')
+        // означает потерять связь с конкретным tx. Лучше отбить — ретрай
+        // безопасен (цепь идемпотентна по order_hash).
+        throw new ConflictException(
+          `signsupp по Order ${order.id}: цепь не вернула tx_hash. Повторите подписание группы.`
+        );
+      }
+      lastTxHash = txHash;
+      this.logger.debug(`signsupp on-chain OK: order ${order.id} → tx ${txHash}`);
     }
-    return lastTxHash || `signsupp-${reception.id}`;
+    return lastTxHash;
   }
 
   /** Аналог `submitOnChainSignSupp` для закрывающей подписи председателя. */
@@ -648,10 +658,15 @@ export class MarketplaceAplReceptionService {
         act,
       });
       const txHash = this.extractTxHash(tx);
-      if (txHash) lastTxHash = txHash;
-      this.logger.debug(`signchair on-chain OK: order ${order.id} → tx ${txHash || '<no-id>'}`);
+      if (!txHash) {
+        throw new ConflictException(
+          `signchair по Order ${order.id}: цепь не вернула tx_hash. Повторите подписание группы.`
+        );
+      }
+      lastTxHash = txHash;
+      this.logger.debug(`signchair on-chain OK: order ${order.id} → tx ${txHash}`);
     }
-    return lastTxHash || `signchair-${reception.id}`;
+    return lastTxHash;
   }
 
   private indexSignedDocumentsByOrderId(

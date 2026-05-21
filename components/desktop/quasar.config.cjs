@@ -116,6 +116,17 @@ module.exports = configure(function (ctx) {
             unhandledErrors: true,
             logLevels: ['error', 'warn', 'info', 'log', 'debug'],
           };
+          // Vite 5.4+ блокирует cross-origin Host без явного allowedHosts.
+          // В dev-loop ходим через L7-прокси voskhod-dev.coopenomics.world,
+          // partner-dev.coopenomics.world и api-dev.coopenomics.world — без
+          // этой опции SSR/HMR-сервер возвращает 403 «Blocked request».
+          viteConf.server.allowedHosts = [
+            'voskhod-dev.coopenomics.world',
+            'partner-dev.coopenomics.world',
+            'api-dev.coopenomics.world',
+            'localhost',
+            '127.0.0.1',
+          ];
         }
 
         if (!isClient) {

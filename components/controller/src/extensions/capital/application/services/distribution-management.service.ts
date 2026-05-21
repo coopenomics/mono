@@ -5,10 +5,11 @@ import type { RefreshProgramInputDTO } from '../dto/distribution_management/refr
 import type { TransactResult } from '@wharfkit/session';
 import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
 import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
-import { GenerationToMainWalletConvertStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/generation-to-main-wallet-convert-statement-document.dto';
+import { GenerationConvertStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/generation-convert-statement-document.dto';
 import { DocumentInteractor } from '~/application/document/interactors/document.interactor';
 import { Cooperative } from 'cooptypes';
 import type { GenerateDocumentInputDTO } from '~/application/document/dto/generate-document-input.dto';
+import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 
 /**
  * Сервис уровня приложения для управления распределением в CAPITAL
@@ -40,50 +41,19 @@ export class DistributionManagementService {
   // ============ МЕТОДЫ ГЕНЕРАЦИИ ДОКУМЕНТОВ ============
 
   /**
-   * Генерация заявления о конвертации из генерации в основной кошелек
+   * Генерация заявления о конвертации целевого паевого взноса
+   * (универсальный шаблон: в Цифровой Кошелёк и/или в программу «Благорост»)
    */
-  async generateGenerationToMainWalletConvertStatement(
-    data: GenerationToMainWalletConvertStatementGenerateDocumentInputDTO,
-    options: GenerateDocumentOptionsInputDTO
+  async generateGenerationConvertStatement(
+    data: GenerationConvertStatementGenerateDocumentInputDTO,
+    options: GenerateDocumentOptionsInputDTO,
+    currentUser: MonoAccountDomainInterface
   ): Promise<GeneratedDocumentDTO> {
+    const enrichedData = await this.distributionManagementInteractor.prepareGenerationConvertStatementData(data, currentUser);
     const document = await this.documentInteractor.generateDocument({
       data: {
-        ...data,
-        registry_id: Cooperative.Registry.GenerationToMainWalletConvertStatement.registry_id,
-      },
-      options,
-    });
-    return document as GeneratedDocumentDTO;
-  }
-
-  /**
-   * Генерация заявления о конвертации из генерации в проектный кошелек
-   */
-  async generateGenerationToProjectConvertStatement(
-    data: GenerateDocumentInputDTO,
-    options: GenerateDocumentOptionsInputDTO
-  ): Promise<GeneratedDocumentDTO> {
-    const document = await this.documentInteractor.generateDocument({
-      data: {
-        ...data,
-        registry_id: Cooperative.Registry.GenerationToProjectConvertStatement.registry_id,
-      },
-      options,
-    });
-    return document as GeneratedDocumentDTO;
-  }
-
-  /**
-   * Генерация заявления о конвертации из генерации в благорост
-   */
-  async generateGenerationToCapitalizationConvertStatement(
-    data: GenerateDocumentInputDTO,
-    options: GenerateDocumentOptionsInputDTO
-  ): Promise<GeneratedDocumentDTO> {
-    const document = await this.documentInteractor.generateDocument({
-      data: {
-        ...data,
-        registry_id: Cooperative.Registry.GenerationToCapitalizationConvertStatement.registry_id,
+        ...enrichedData,
+        registry_id: Cooperative.Registry.GenerationConvertStatement.registry_id,
       },
       options,
     });

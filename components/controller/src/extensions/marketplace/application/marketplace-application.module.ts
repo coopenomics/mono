@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { MarketplaceExtensionDomainModule } from '../domain/marketplace-domain.module';
+import { MarketplaceInfrastructureModule } from '../infrastructure/marketplace-infrastructure.module';
+import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
 import { GatewayInfrastructureModule } from '~/infrastructure/gateway/gateway-infrastructure.module';
 import { DocumentDomainModule } from '~/domain/document/document.module';
 import { CategoryTreeResolver } from './resolvers/category-tree.resolver';
@@ -114,7 +116,6 @@ import { FileStorageInfrastructureModule } from '~/infrastructure/file-storage';
 import { MarketplaceWriteoffService } from './services/marketplace-writeoff.service';
 import { MarketplaceWriteoffCronService } from './services/marketplace-writeoff-cron.service';
 import { MarketplaceWriteoffResolver } from './resolvers/marketplace-writeoff.resolver';
-import { ExtensionDomainModule } from '~/domain/extension/extension-domain.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MarketplaceInventoryEntity } from '../infrastructure/entities/marketplace-inventory.entity';
 
@@ -125,6 +126,13 @@ import { MarketplaceInventoryEntity } from '../infrastructure/entities/marketpla
 @Module({
   imports: [
     MarketplaceExtensionDomainModule,
+    // Резолверы (Story 3.x/4.x/5.x/...) инжектят MARKETPLACE_*_REPOSITORY и
+    // MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT — прямой импорт инфраструктуры
+    // (а не транзит через ExtensionsModule, который ломается forwardRef'ом
+    // на ExtensionDomainModule ниже).
+    MarketplaceInfrastructureModule,
+    // ACCOUNT_DATA_PORT для MarketplaceNotificationService (Эпик 5+ push-уведомления).
+    AccountInfrastructureModule,
     // Story 4.2: @Cron в MarketplaceCycleAggregatorService (time_based aggregator
     // каждые 5 минут + volume_based expire каждый час). ScheduleModule.forRoot()
     // идемпотентен — если AppModule тоже инициализирует его, NestJS использует
@@ -144,8 +152,9 @@ import { MarketplaceInventoryEntity } from '../infrastructure/entities/marketpla
     FileStorageInfrastructureModule.forFeature([MarketplaceReturnClaimImagesService]),
     // Эпик 8: writeoff cron сканер должен видеть marketplace_inventory
     TypeOrmModule.forFeature([MarketplaceInventoryEntity], 'marketplace'),
-    // Доступ к ExtensionDomainService для чтения writeoff-конфига расширения
-    ExtensionDomainModule,
+    // ExtensionDomainService инжектится @Optional() в MarketplaceWriteoffCronService —
+    // импортировать ExtensionDomainModule сюда нельзя (цикл AppModule → ExtensionDomainModule →
+    // ExtensionsModule → MarketplacePluginModule → MarketplaceExtensionApplicationModule).
   ],
   providers: [
     // GraphQL резолверы

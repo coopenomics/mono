@@ -1,0 +1,276 @@
+name: Release
+
+# Атомарный релизный workflow. Триггерится исключительно push'ем тэга
+# `v*`. В одном job'е по порядку:
+#   1) собирает контракты под mode (prod/test) и пушит `dicoop/contracts:<branch>`,
+#   2) собирает базовый образ + сервисные контейнеры и пушит `dicoop/<svc>:<tag>`,
+#   3) шлёт webhook деплоя (testnet/production по типу тэга).
+#
+# Зачем атомарно: раньше `build-contracts` и `build-containers`
+# крутились параллельно по push'у тэга, и webhook от build-containers
+# (~8 мин) обгонял окончание build-contracts (~11 мин) → ансибл на
+# тестнете подхватывал ПРЕДЫДУЩИЙ образ контрактов и перетирал чейн
+# старым wasm. Попытка связать их через workflow_run упёрлась в
+# default-branch caveat и потерю head_sha в YAML-выражениях. Теперь
+# нет двух workflow'ов — нет гонки, нет fallback'ов.
+#
+# Триггер по веткам (dev/testnet/main без тэга) тут НЕ обрабатывается —
+# для CI-обновления `dicoop/contracts:<branch>` без релиза остаётся
+# `build-contracts.yaml`.
+#
+# Резолв ветки. Тэг семантики окружения не несёт (например
+# `v2026.5.13-alpha-2` может лежать на testnet или dev — определяет
+# именно ветка, на которую сделан merge перед тэгом). Поэтому ищем
+# первое совпадение SHA с remote-ветками main/testnet/dev.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve branch, build mode and tags
+        run: |
+          TAG_NAME="${{ github.ref_name }}"
+          SHA="${{ github.sha }}"
+          BRANCH=""
+          for candidate in main testnet dev; do
+            if git branch -r --contains "$SHA" 2>/dev/null | grep -qE "^[[:space:]]*origin/${candidate}$"; then
+              BRANCH="$candidate"
+              break
+            fi
+          done
+          if [ -z "$BRANCH" ]; then
+            echo "::error::Тэг $TAG_NAME ($SHA) не лежит ни на одной из dev/testnet/main"
+            exit 1
+          fi
+
+          case "$BRANCH" in
+            main)
+              BUILD_MODE=prod
+              CONTRACTS_TAG=main
+              CONTRACTS_EXTRA=latest
+              ;;
+            testnet)
+              BUILD_MODE=test
+              CONTRACTS_TAG=testnet
+              CONTRACTS_EXTRA=
+              ;;
+            dev)
+              BUILD_MODE=test
+              CONTRACTS_TAG=dev
+              CONTRACTS_EXTRA=
+              ;;
+          esac
+
+          # Прод-тэги (без -alpha/-beta/-rc/-test) уезжают на боевой
+          # webhook + получают тэг :latest у сервисных образов.
+          if [[ "$TAG_NAME" =~ -(alpha|beta|rc|test) ]]; then
+            IS_PROD=false
+            WEBHOOK_URL='${{ vars.TESTNET_WEBHOOK_URL }}'
+          else
+            IS_PROD=true
+            WEBHOOK_URL='${{ vars.PRODUCTION_WEBHOOK_URL }}'
+          fi
+
+          {
+            echo "TAG_NAME=$TAG_NAME"
+            echo "SHA=$SHA"
+            echo "BRANCH=$BRANCH"
+            echo "BUILD_MODE=$BUILD_MODE"
+            echo "CONTRACTS_TAG=$CONTRACTS_TAG"
+            echo "CONTRACTS_EXTRA=$CONTRACTS_EXTRA"
+            echo "IS_PROD=$IS_PROD"
+            echo "WEBHOOK_URL=$WEBHOOK_URL"
+          } >> "$GITHUB_ENV"
+
+          echo "Release $TAG_NAME → branch=$BRANCH, build_mode=$BUILD_MODE, contracts:$CONTRACTS_TAG, prod=$IS_PROD"
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # === Этап 1: контракты ===
+
+      - name: Pull CDT toolchain image
+        run: docker pull dicoop/blockchain_v5.1.1:dev
+
+      - name: Compile contracts
+        working-directory: components/contracts
+        run: |
+          ./build-all.sh "$BUILD_MODE"
+          echo "--- build/contracts ---"
+          ls -la build/contracts/
+
+      - name: Stage contracts docker context
+        working-directory: components/contracts
+        run: |
+          ROOT="docker/.context"
+          rm -rf "$ROOT"
+          mkdir -p "$ROOT/contracts"
+
+          # Имена контрактов = аргументы add_contract_build(...) только в
+          # незакомменченных строках (CMake-комментарий начинается с `#`).
+          NAMES=$(grep -E '^[[:space:]]*add_contract_build\(' CMakeLists.txt \
+                   | sed -E 's/^[[:space:]]*add_contract_build\(([^)]*)\).*/\1/')
+          echo "Contracts to package:"
+          echo "$NAMES"
+
+          MANIFEST="$ROOT/contracts/manifest.json"
+
+          pack_one() {
+            local NAME="$1" WASM="$2" ABI="$3"
+            if [ ! -f "$WASM" ] || [ ! -f "$ABI" ]; then
+              echo "::warning::Skipping $NAME: artifacts missing ($WASM / $ABI)" >&2
+              return 1
+            fi
+            mkdir -p "$ROOT/contracts/$NAME"
+            cp "$WASM" "$ROOT/contracts/$NAME/$NAME.wasm"
+            cp "$ABI"  "$ROOT/contracts/$NAME/$NAME.abi"
+            local SHA_WASM=$(sha256sum "$WASM" | awk '{print $1}')
+            local SHA_ABI=$(sha256sum  "$ABI"  | awk '{print $1}')
+            printf '    {"name":"%s","sha256_wasm":"%s","sha256_abi":"%s"}' \
+                   "$NAME" "$SHA_WASM" "$SHA_ABI"
+          }
+
+          {
+            printf '{\n'
+            printf '  "build_mode": "%s",\n' "$BUILD_MODE"
+            printf '  "git_sha": "%s",\n' "$SHA"
+            printf '  "tag": "%s",\n'    "$TAG_NAME"
+            printf '  "branch": "%s",\n' "$BRANCH"
+            printf '  "built_at": "%s",\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            printf '  "contracts": [\n'
+
+            FIRST=1
+            emit() {
+              entry=$(pack_one "$@") || return 0
+              [ $FIRST -eq 0 ] && printf ',\n'
+              FIRST=0
+              printf '%s' "$entry"
+            }
+
+            for c in $NAMES; do
+              if [ "$c" = "system" ]; then
+                # У system многоконтрактная сборка: разносим под-контракты
+                # eosio.* как полноценные элементы каталога, сам "system"
+                # как имя пропускаем.
+                for sub in build/contracts/system/contracts/eosio.*/; do
+                  [ -d "$sub" ] || continue
+                  sub_name=$(basename "$sub")
+                  emit "$sub_name" "$sub/$sub_name.wasm" "$sub/$sub_name.abi"
+                done
+              else
+                emit "$c" "build/contracts/$c/$c.wasm" "build/contracts/$c/$c.abi"
+              fi
+            done
+
+            printf '\n  ]\n'
+            printf '}\n'
+          } > "$MANIFEST"
+
+          cp docker/Dockerfile     "$ROOT/Dockerfile"
+          cp docker/entrypoint.sh  "$ROOT/entrypoint.sh"
+          chmod +x "$ROOT/entrypoint.sh"
+
+          echo "--- manifest.json ---"
+          cat "$MANIFEST"
+
+      - name: Build and push contracts image
+        working-directory: components/contracts
+        run: |
+          IMAGE="dicoop/contracts"
+          SHORT_SHA="${SHA::7}"
+          docker build \
+            --label "org.opencontainers.image.revision=$SHA" \
+            --label "org.opencontainers.image.created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --label "build.mode=$BUILD_MODE" \
+            -t "$IMAGE:$CONTRACTS_TAG" \
+            ./docker/.context
+          docker push "$IMAGE:$CONTRACTS_TAG"
+
+          docker tag "$IMAGE:$CONTRACTS_TAG" "$IMAGE:$CONTRACTS_TAG-$SHORT_SHA"
+          docker push "$IMAGE:$CONTRACTS_TAG-$SHORT_SHA"
+
+          if [ -n "$CONTRACTS_EXTRA" ]; then
+            docker tag "$IMAGE:$CONTRACTS_TAG" "$IMAGE:$CONTRACTS_EXTRA"
+            docker push "$IMAGE:$CONTRACTS_EXTRA"
+          fi
+
+      - name: Verify pushed contracts image
+        run: |
+          docker run --rm "dicoop/contracts:$CONTRACTS_TAG" list
+          echo "---"
+          docker run --rm "dicoop/contracts:$CONTRACTS_TAG" sha256
+
+      # === Этап 2: контейнеры приложений ===
+
+      - name: Build and push base image
+        run: |
+          docker build --target runtime -t "dicoop/mono-base:$TAG_NAME" .
+          docker push "dicoop/mono-base:$TAG_NAME"
+          if [ "$IS_PROD" = "true" ]; then
+            docker tag "dicoop/mono-base:$TAG_NAME" dicoop/mono-base:latest
+            docker push dicoop/mono-base:latest
+          fi
+
+      - name: Build and push service images
+        run: |
+          build_service() {
+            local SVC="$1" PKG="$2" CMD="$3"
+            local DOCKERFILE="Dockerfile.$SVC"
+            {
+              echo "FROM dicoop/mono-base:$TAG_NAME"
+              echo "CMD [\"pnpm\", \"-F\", \"$PKG\", \"run\", \"$CMD\"]"
+            } > "$DOCKERFILE"
+            docker build -t "dicoop/$SVC:$TAG_NAME" -f "$DOCKERFILE" .
+            docker push "dicoop/$SVC:$TAG_NAME"
+            if [ "$IS_PROD" = "true" ]; then
+              docker tag "dicoop/$SVC:$TAG_NAME" "dicoop/$SVC:latest"
+              docker push "dicoop/$SVC:latest"
+            fi
+          }
+
+          build_service desktop       '@coopenomics/desktop'        start
+          build_service coopback      '@coopenomics/controller'     start
+          # TEMP: cooparser — пока не мигрировали потребителей на dicoop/parser
+          # из отдельного coopenomics/parser repo.
+          build_service cooparser     '@coopenomics/parser'         start
+          build_service notificator   'coop-notificator'            start
+          build_service notifications '@coopenomics/notifications'  sync
+
+      # === Этап 3: webhook деплоя ===
+
+      - name: Trigger deployment webhook
+        run: |
+          curl -X POST "$WEBHOOK_URL" \
+            -H 'Content-Type: application/json' \
+            -d "$TAG_NAME"
+
+      - name: Telegram notify success
+        if: success()
+        run: |
+          EXTRA=""
+          if [ "$IS_PROD" = "true" ]; then
+            EXTRA=" (с тегом latest)"
+          fi
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d "text=✅ [GITHUB MONO] Релиз $TAG_NAME ($BRANCH, contracts:$CONTRACTS_TAG, sha=${SHA::7})$EXTRA"
+
+      - name: Telegram notify failure
+        if: failure()
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d "text=❌ [GITHUB MONO] Ошибка релиза $TAG_NAME ($BRANCH, sha=${SHA::7})"

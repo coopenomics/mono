@@ -1,18 +1,48 @@
-# .github/workflows/trigger-coopenomics.yml
 name: Trigger Contracts Docs Deploy
 
+# Триггерит rebuild docs в coopenomics/coopenomics только по продакшн-
+# тэгам на main. Раньше дёргался на каждый push в dev/testnet/main/capital,
+# теперь — только формальный релиз (без -alpha/-beta/-rc/-test).
 on:
   push:
-    branches: [dev, testnet, main, capital] # или когда нужно триггерить
+    tags: ['v*']
 
 jobs:
+  gate:
+    runs-on: ubuntu-latest
+    outputs:
+      should_trigger: ${{ steps.check.outputs.should_trigger }}
+    steps:
+      - name: Checkout (для git branch --contains)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Gate — main + non-alpha
+        id: check
+        run: |
+          TAG="${{ github.ref_name }}"
+          if [[ "$TAG" =~ -(alpha|beta|rc|test) ]]; then
+            echo "Тэг $TAG — pre-release, docs deploy не дёргаем"
+            echo "should_trigger=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if ! git branch -r --contains "${{ github.sha }}" | grep -qE "^[[:space:]]*origin/main$"; then
+            echo "Тэг $TAG не на main — docs deploy не дёргаем"
+            echo "should_trigger=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "Тэг $TAG — продакшн релиз на main, дёргаем coopenomics"
+          echo "should_trigger=true" >> "$GITHUB_OUTPUT"
+
   trigger-coopenomics:
+    needs: gate
+    if: needs.gate.outputs.should_trigger == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Trigger Coopenomics deployment
         uses: peter-evans/repository-dispatch@v2
         with:
           token: ${{ secrets.COOPENOMICS_PAT }}
-          repository: coopenomics/coopenomics # укажи правильный owner/repo
+          repository: coopenomics/coopenomics
           event-type: deploy_from_mono
           client-payload: '{"repository": "${{ github.repository }}", "sha": "${{ github.sha }}", "ref": "${{ github.ref }}", "actor": "${{ github.actor }}"}'

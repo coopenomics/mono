@@ -101,6 +101,7 @@ import { MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY } from '../domain/repos
 import { MARKETPLACE_TTN_DOCUMENT_REPOSITORY } from '../domain/repositories/marketplace-ttn-document.repository';
 import { MARKETPLACE_RETURN_CLAIM_REPOSITORY } from '../domain/repositories/marketplace-return-claim.repository';
 import { MARKETPLACE_WRITEOFF_PROPOSAL_REPOSITORY } from '../domain/repositories/marketplace-writeoff-proposal.repository';
+import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
 
 @Module({
   imports: [
@@ -176,6 +177,9 @@ import { MARKETPLACE_WRITEOFF_PROPOSAL_REPOSITORY } from '../domain/repositories
       ],
       'marketplace'
     ), // Указываем имя подключения
+    // Поставляет VAULT_DOMAIN_SERVICE для MarketplaceCanonicalBlockchainAdapter
+    // (WIF кооператива по data.coopname для подписи on-chain транзакций).
+    VaultDomainModule,
   ],
   providers: [
     {

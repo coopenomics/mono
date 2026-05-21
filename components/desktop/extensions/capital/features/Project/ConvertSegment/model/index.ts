@@ -30,10 +30,17 @@ export function useConvertSegment() {
       capital_amount: number;
     }
   ) {
-    // 1. Генерируем документ заявления о конвертации
+    // 1. Генерируем документ заявления о конвертации.
+    // Шаблон 1080 — универсальный: одно заявление с двумя суммами и двумя флагами.
+    // appendix_hash подтягивается на бекенде по (username, project_hash).
     const generatedDocument = await api.generateConvertStatement({
       coopname: segmentData.coopname,
       username: segmentData.username,
+      project_hash: segmentData.project_hash,
+      main_wallet_amount: formatToEosioAsset(segmentData.wallet_amount),
+      blagorost_wallet_amount: formatToEosioAsset(segmentData.capital_amount),
+      to_wallet: segmentData.wallet_amount > 0,
+      to_blagorost: segmentData.capital_amount > 0,
     });
 
     // 2. Подписываем документ конвертации

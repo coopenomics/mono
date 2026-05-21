@@ -1,6 +1,7 @@
 import { Resolver, Mutation, Query, Args, Int } from '@nestjs/graphql';
 import { Injectable, Inject, UseGuards } from '@nestjs/common';
 import { RequestDomainService, REQUEST_DOMAIN_SERVICE } from '../../domain/services/request-domain.service';
+import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import { RolesGuard } from '~/application/auth/guards/roles.guard';
 import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
 import { RequestDTO } from '../dto/request.dto';
@@ -21,9 +22,13 @@ import { CurrentUser } from '~/application/auth/decorators/current-user.decorato
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 
 /**
- * GraphQL resolver для работы с заявками marketplace
+ * GraphQL resolver для работы с заявками marketplace.
+ *
+ * Доступ — пайщикам кооператива (через `MarketplaceMembershipGuard`).
+ * Story 1.3 / 1.8: заявки — закрытый ресурс marketplace, не публичный.
  */
 @Resolver(() => RequestDTO)
+@UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard)
 @Injectable()
 export class RequestResolver {
   constructor(

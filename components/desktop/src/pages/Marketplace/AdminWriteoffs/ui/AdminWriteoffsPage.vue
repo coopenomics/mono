@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { Zeus } from '@coopenomics/sdk';
 import { FailAlert } from 'src/shared/api';
 import {
   getOpenWriteoffDraft,
@@ -42,8 +43,15 @@ async function load(): Promise<void> {
   try {
     const [openDraft, councilPage, archivePage] = await Promise.all([
       getOpenWriteoffDraft(),
-      listWriteoffProposals({ statuses: ['ON_AGENDA', 'AUTHORIZED', 'EXECUTING'] }),
-      listWriteoffProposals({ statuses: ['EXECUTED', 'REJECTED'] }),
+      listWriteoffProposals({ statuses: [
+        Zeus.MarketplaceWriteoffProposalStatus.ON_AGENDA,
+        Zeus.MarketplaceWriteoffProposalStatus.AUTHORIZED,
+        Zeus.MarketplaceWriteoffProposalStatus.EXECUTING,
+      ] }),
+      listWriteoffProposals({ statuses: [
+        Zeus.MarketplaceWriteoffProposalStatus.EXECUTED,
+        Zeus.MarketplaceWriteoffProposalStatus.REJECTED,
+      ] }),
     ]);
     draft.value = openDraft;
     inCouncil.value = councilPage.items;
@@ -146,7 +154,7 @@ q-page.mp-role-admin.mp-writeoffs.q-pa-md
         .col
           .text-subtitle1 Открытый черновик
           .text-caption.text-grey {{ draft.items.length }} позиций · {{ draft.total_amount }}
-          .text-caption.text-grey Источник: {{ draft.trigger === 'cron' ? 'крон-сервис' : 'ручное создание' }} · {{ formatDate(draft.created_at) }}
+          .text-caption.text-grey Источник: {{ draft.trigger === Zeus.MarketplaceWriteoffProposalTrigger.CRON ? 'крон-сервис' : 'ручное создание' }} · {{ formatDate(draft.created_at) }}
         q-btn(
           flat color="primary" no-caps
           icon="fa-solid fa-pen"

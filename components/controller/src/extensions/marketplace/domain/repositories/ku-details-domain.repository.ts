@@ -12,6 +12,12 @@ export interface KuDetailsDomainRepository {
 
   save(entity: KuDetailsDomainEntity): Promise<KuDetailsDomainEntity>;
 
+  /**
+   * Записывает результат геокодинга. `expectedAddressFull` — guard от race
+   * condition: если адрес КУ был изменён пока геокодинг работал, результат
+   * не сохраняется (репозиторий возвращает null), и UI не получает
+   * координаты несуществующего адреса.
+   */
   updateGeocode(
     coopname: string,
     coreBraname: string,
@@ -21,6 +27,7 @@ export interface KuDetailsDomainRepository {
       lng?: number;
       errorMessage?: string;
       geocodedAt: Date;
+      expectedAddressFull?: string;
     }
   ): Promise<KuDetailsDomainEntity | null>;
 

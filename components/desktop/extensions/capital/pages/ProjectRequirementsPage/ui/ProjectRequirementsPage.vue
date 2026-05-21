@@ -2,6 +2,18 @@
 div
   .flex.flex-center.q-pa-lg(v-if='!permissionsLoaded')
     q-spinner(color='primary' size='40px')
+  ArtifactsAccessPlaceholder(
+    v-else-if='!canViewArtifacts'
+    scope='project'
+    :pending='projectPermissions?.pending_clearance === true'
+  )
+    template(#action)
+      PendingClearanceButton(v-if='projectPermissions?.pending_clearance')
+      MakeClearanceButton(
+        v-else-if='project'
+        :project='project'
+        @clearance-submitted='handleClearanceSubmitted'
+      )
   RequirementsListWidget(
     v-else
     :filter='requirementsFilter',
@@ -17,11 +29,15 @@ import { computed, ref, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { RequirementsListWidget } from 'app/extensions/capital/widgets/RequirementsListWidget';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
-import type { IProjectPermissions } from 'app/extensions/capital/entities/Project/model';
+import type { IProject, IProjectPermissions } from 'app/extensions/capital/entities/Project/model';
+import { ArtifactsAccessPlaceholder } from 'app/extensions/capital/shared/ui/ArtifactsAccessPlaceholder';
+import { PendingClearanceButton } from 'app/extensions/capital/shared/ui/PendingClearanceButton';
+import { MakeClearanceButton } from 'app/extensions/capital/features/Contributor/MakeClearance';
 
 const route = useRoute();
 const projectStore = useProjectStore();
 
+const project = ref<IProject | null>(null);
 const projectPermissions = ref<IProjectPermissions | null>(null);
 const permissionsLoaded = ref(false);
 
@@ -35,18 +51,32 @@ const requirementsFilter = computed(() => ({
   show_issues_requirements: false,
 }));
 
-// Загрузка разрешений проекта (до списка артефактов — иначе canEdit временно false)
+// Право просмотра артефактов: либо председатель/член совета, либо собственный допуск.
+// На странице корневого проекта допуск к родителю смысла не имеет — но поле есть, оставляем для единообразия.
+const canViewArtifacts = computed(() => {
+  const perms = projectPermissions.value;
+  if (!perms) return false;
+  return perms.can_view_artifacts ?? (perms.has_clearance || perms.has_parent_clearance);
+});
+
+// Загрузка проекта и его разрешений
 const loadProjectPermissions = async () => {
   permissionsLoaded.value = false;
   try {
-    const project = await projectStore.loadProject({ hash: projectHash.value });
-    projectPermissions.value = project?.permissions ?? null;
+    const loaded = await projectStore.loadProject({ hash: projectHash.value });
+    project.value = loaded ?? null;
+    projectPermissions.value = loaded?.permissions ?? null;
   } catch (error) {
     console.error('Ошибка при загрузке разрешений проекта:', error);
+    project.value = null;
     projectPermissions.value = null;
   } finally {
     permissionsLoaded.value = true;
   }
+};
+
+const handleClearanceSubmitted = async () => {
+  await loadProjectPermissions();
 };
 
 watch(projectHash, () => {

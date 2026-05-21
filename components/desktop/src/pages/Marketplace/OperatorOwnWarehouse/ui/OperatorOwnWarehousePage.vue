@@ -72,9 +72,7 @@ q-page.mp-role-operator.q-pa-md
 
     template(#no-data)
       .full-width.text-center.q-pa-md.text-grey-7
-        | {{ braname
-        |   ? 'Наклеек по этому КУ нет — проверьте код или фильтры по состояниям.'
-        |   : 'Введите код КУ и нажмите «Обновить».' }}
+        | {{ braname ? 'Наклеек по этому КУ нет — проверьте код или фильтры по состояниям.' : 'Введите код КУ и нажмите «Обновить».' }}
 </template>
 
 <script lang="ts" setup>

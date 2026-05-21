@@ -96,12 +96,14 @@ export class MarketplaceReturnClaimRepositoryAdapter
     delivery_braname: string,
     status?: MarketplaceReturnClaimStatus | MarketplaceReturnClaimStatus[]
   ): Promise<MarketplaceReturnClaimDomainEntity[]> {
+    // Если status не передан — возвращаем ВСЕ заявления (включая архив):
+    // operator-стол на КУ показывает три секции (pending/approved/archive),
+    // и архивная секция требует финальные статусы. Раньше дефолт был
+    // ACTIVE_STATUSES — это делало секцию архива всегда пустой.
     const where: Record<string, unknown> = { coopname, delivery_braname };
-    where.status = Array.isArray(status)
-      ? In(status)
-      : status
-        ? status
-        : In(ACTIVE_STATUSES);
+    if (status !== undefined) {
+      where.status = Array.isArray(status) ? In(status) : status;
+    }
     const rows = await this.repo.find({ where, order: { created_at: 'DESC' } });
     return rows.map((r) => this.mapper.toDomain(r));
   }

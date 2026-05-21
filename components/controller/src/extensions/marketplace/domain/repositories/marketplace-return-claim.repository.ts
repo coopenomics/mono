@@ -61,8 +61,9 @@ export interface MarketplaceReturnClaimDomainRepository {
 
   /**
    * Заявления, отображаемые в operator-столе на КУ доставки исходного
-   * заказа. По умолчанию — нефинализированные (PENDING_CHAIRMAN_REVIEW +
-   * APPROVED_FOR_VISIT); при `status` запрашивается явная подвыборка.
+   * заказа. Если `status` не передан — возвращаются ВСЕ заявления
+   * (operator-стол показывает три секции: pending, approved, archive);
+   * при `status` запрашивается явная подвыборка.
    */
   listByDeliveryBraname(
     coopname: string,
