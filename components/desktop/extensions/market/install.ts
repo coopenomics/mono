@@ -8,6 +8,10 @@ import { OperatorIssuancePage } from 'src/pages/Marketplace/OperatorIssuance'
 import { OrdererReadyToReceivePage } from 'src/pages/Marketplace/OrdererReadyToReceive'
 import { OrdererReturnClaimsPage } from 'src/pages/Marketplace/OrdererReturnClaims'
 import { OperatorReturnClaimsPage } from 'src/pages/Marketplace/OperatorReturnClaims'
+import { OperatorReceptionPage } from 'src/pages/Marketplace/OperatorReception'
+import { OperatorInventoryLabelingPage } from 'src/pages/Marketplace/OperatorInventoryLabeling'
+import { OffererPendingAplReceptionsPage } from 'src/pages/Marketplace/OffererPendingAplReceptions'
+import { OffererSupplyPreparationPage } from 'src/pages/Marketplace/OffererSupplyPreparation'
 import { AdminWriteoffsPage } from 'src/pages/Marketplace/AdminWriteoffs'
 import { ChairmanModerationPage } from 'src/pages/Marketplace/ChairmanModeration'
 import { OperatorOwnWarehousePage } from 'src/pages/Marketplace/OperatorOwnWarehouse'
@@ -81,6 +85,40 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Готово к получению',
               icon: 'fa-solid fa-box-check',
+              roles: [],
+              requiresAuth: true,
+              agreements: agreementsBase,
+            },
+          },
+          {
+            // Эпик 5 / Story 5.5: offerer-стол подготовки отгрузки. Поставщик
+            // видит сформированные сводные заказы (статус CONFIRMED → SHIPPING)
+            // и подтверждает готовность к отгрузке через `marketplaceMarkSupplyReady`.
+            // После этого ПВЗ открывает приёмку. На MVP — лента + per-row
+            // действие «Готов к отгрузке».
+            path: 'supply-prep',
+            name: 'marketplace-supply-prep',
+            component: markRaw(OffererSupplyPreparationPage),
+            meta: {
+              title: 'Подготовка отгрузки',
+              icon: 'fa-solid fa-truck-ramp-box',
+              roles: [],
+              requiresAuth: true,
+              agreements: agreementsBase,
+            },
+          },
+          {
+            // Эпик 5 / Story 5.7: offerer-стол ожидающих подписи актов приёмки.
+            // Поставщик первой подписью signapl1 подтверждает факт приёмки
+            // партии ПВЗ — после этого ПВЗ закрывает акт второй подписью
+            // (см. `apl-reception-close` в branch-chairman). Бессрочного
+            // open-state не бывает: signapl1 — это окно ~24ч.
+            path: 'apl-receptions',
+            name: 'marketplace-apl-receptions',
+            component: markRaw(OffererPendingAplReceptionsPage),
+            meta: {
+              title: 'Подпись приёмки',
+              icon: 'fa-solid fa-file-signature',
               roles: [],
               requiresAuth: true,
               agreements: agreementsBase,
@@ -217,6 +255,40 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'ПВЗ кооператива',
               icon: 'fa-solid fa-map-location-dot',
+              roles: ['chairman'],
+              requiresAuth: true,
+              agreements: agreementsBase,
+            },
+          },
+          {
+            // Эпик 5 / Story 5.6: operator-стол приёмки партии на ПВЗ.
+            // Председатель КУ открывает акт приёмки (registry_id=1102) против
+            // ожидаемой поставки, сверяет фактические единицы с планом партии
+            // и подписывает signapl1 (поставщик ставит вторую). На входе —
+            // лента CONFIRMED партий, на выходе — переход в LABELING.
+            path: 'reception',
+            name: 'marketplace-pvz-reception',
+            component: markRaw(OperatorReceptionPage),
+            meta: {
+              title: 'Приёмка партии',
+              icon: 'fa-solid fa-box-open',
+              roles: ['chairman'],
+              requiresAuth: true,
+              agreements: agreementsBase,
+            },
+          },
+          {
+            // Эпик 5 / Story 5.8 + Эпик 6: operator-стол маркировки
+            // имущества. После закрытия акта приёмки оператор клеит
+            // EAN-13 на каждую единицу через `BarcodeDisplay` (UX-DR12) +
+            // фиксирует факт маркировки через `marketplaceLabelInventoryItem`.
+            // На MVP — single + shipment-batch режимы.
+            path: 'labeling',
+            name: 'marketplace-pvz-labeling',
+            component: markRaw(OperatorInventoryLabelingPage),
+            meta: {
+              title: 'Маркировка имущества',
+              icon: 'fa-solid fa-tag',
               roles: ['chairman'],
               requiresAuth: true,
               agreements: agreementsBase,

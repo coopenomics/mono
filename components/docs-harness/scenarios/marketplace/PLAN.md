@@ -1,6 +1,6 @@
 # План E2E-документации Marketplace MVP «Стол заказов»
 
-Последнее обновление: 2026-05-20 (план, до старта).
+Последнее обновление: 2026-05-21 (фаза 1 в работе; см. §9 «Текущее состояние»).
 Цель: ночной прогон harness + проза в `components/docs/docs/new/marketplace/...` + добавление новых разделов в `mkdocs.yml`. Параллельно — UI-багфиксы по факту.
 
 ## 0. Терминология (зафиксировать в UI/доках)
@@ -254,6 +254,76 @@ export const meta = {
 ## 8. Снятые факты (заполняется ночью)
 
 (Пусто на момент старта плана. Будет дополнено по результатам ручных прогонов и снятых GraphQL-вызовов.)
+
+## 9. Текущее состояние (живой статус)
+
+Срез на **2026-05-21**, ветка `worktree-marketplace-docs-impl`, последний коммит `e67d7ca77b8` (страница модерации offer'ов председателем).
+
+### 9.1. Фаза 0 — закрыта
+
+- ✅ Worktree + ветка `worktree-marketplace-docs-impl` от `dev`.
+- ✅ Backend mono-ai-4: coopback `:3028`, chain `:8918`, mongo `:27047`, postgres `:5562`. Desktop dev `:2999`.
+- ✅ `installExtraData` расширен 7 ролевыми пайщиками (`chairkrg`/`trustedkrg`/`opkrg`/`sidorov`/`petrova`/`chairodn`/`chairmyt`) + 3 КУ Подмосковья (`krg`/`odn`/`myt`) — `068e425c4a9`.
+- ✅ `installExtraData` активирует `market` extension и сеет marketplace категории — `433ae6dc6a4`.
+- ✅ Каждой КУ дефолтный `bank_transfer` payment method — фикс NPE `getBranches` — `2a73af90d31`.
+- ✅ `KNOWN_FIXTURES` в `bin/shoot.mjs` пополнены.
+- ✅ Onboarding gate L3 — `loginAsChairman` теперь автоподписывает соглашения после reboot:extra.
+- ✅ PDF EROFS — `factory/dist` патч на `os.tmpdir()` смонтирован через override — `730ccefdeaa`.
+- ✅ SDK обёртки для модерации (`ListPendingOffers`/`ListModerationLog`/`ApproveOffer`) + страница `ChairmanModerationPage.vue` — `e67d7ca77b8`.
+
+### 9.2. Фаза 1 — Сценарии
+
+**Сценариев по плану: 30. Реализовано .mjs: 19/30 (63%).**
+
+| Раздел | По плану | Файлы в репо | Статус |
+|---|---|---|---|
+| `onboarding/` | 3 | `extension-gate` | 1/3 — нет `coop-accept-cpp`, `member-pick-cpp` |
+| `orderer/` | 6 | `catalog`, `orders`, `ready-to-receive`*, `returns`*, `marketplace-tour`† | 4/6 — нет `order-create`, `consolidated` (†extra: «обзор стола заказчика глазами пайщика») |
+| `offerer/` | 5 | `offer-create` | 1/5 — нет `offers`, `incoming-orders`, `shipment-prep`, `apl-reception-sign` |
+| `operator/` | 5 | `issuance`*, `returns`*, `warehouse`* | 3/5 — нет `incoming-shipments`, `apl-reception-create`, `inventory-label`. (Существующие — empty-state замены под другими именами: `warehouse`≈`inventory-list`, `issuance`≈`orders-board`, `returns`→branch-chairman.) |
+| `branch-chairman/` | 4 | `pvz-list`† | 0/4 — нет `apl-reception-close`, `issuance-open`, `branch-orders`, `return-approve` (†extra: список ПВЗ) |
+| `chairman/` | 4 | `offer-moderation`, `writeoff-propose`, `branches`, + `dashboard-overview`†, `design-system`†, `ecosystem`†, `market-tour`†, `warehouse-summary`† | 3/4 — нет `category-whitelist`; 5 extra сняты для admin-обзора |
+| `board/` | 3 | — (папки нет) | 0/3 — нет `agenda-writeoff`, `warehouse-readonly`, `payouts-readonly` |
+
+`*` — есть .mjs под более «человеческим» именем (`ready-to-receive` вместо плановой `receive`, `returns` вместо `return-claim`/`return-approve`, `warehouse` вместо `inventory-list`, `issuance` вместо `orders-board`).
+`†` — extra-сценарии сверх плана: общие обзорные шоты столов; задокументированы в `docs/new/marketplace/...` отдельными MD.
+
+### 9.3. Что снято прозой в `components/docs/docs/new/marketplace/`
+
+По git log (`5c333f8fa19..HEAD`):
+- Стол председателя — обзор, экосистема, сводный склад, списания скоропорта, дизайн-система Эпик 10 (3 шота), модерация offer'ов (3 шота, в работе через текущий commit).
+- Стол заказчика — обзор «глазами пайщика» (4 шота), каталог (empty), мои заказы (empty), готово к получению (empty), гарантийные возвраты (empty).
+- Стол оператора — открытие выдачи (empty), склад моего КУ (empty), обработка возвратов на ПВЗ (empty).
+- Стол председателя КУ — сеть ПВЗ кооператива (empty).
+- Онбординг — L3 (3 шота, гейт первого входа).
+- Все MD получили frontmatter (`b0055eb8cec`).
+
+### 9.4. Что осталось сделать в Фазе 1 (приоритет)
+
+**Магистраль I (ближайшие циклы /loop)** — закрыть empty-state шоты для остатка плана:
+
+1. `onboarding/coop-accept-cpp.mjs` — председатель подключает ЦПП Marketplace на уровне кооператива (L1).
+2. `onboarding/member-pick-cpp.mjs` — пайщик выбирает ЦПП Marketplace при вступлении (L2).
+3. `chairman/category-whitelist.mjs` — управление белым списком категорий.
+4. `offerer/offers.mjs` — Мои предложения (sidorov, empty после reboot).
+5. `offerer/incoming-orders.mjs` — Входящие заказы (sidorov, empty).
+6. `branch-chairman/branch-orders.mjs` — Заказы участка (chairkrg, empty).
+7. `board/agenda-writeoff.mjs` — Голосование совета по списанию (anna, empty).
+8. `board/warehouse-readonly.mjs` — Сводный склад кооператива (anna, read-only).
+9. `board/payouts-readonly.mjs` — Выплаты поставщикам (anna, read-only).
+
+**Магистраль II (после empty-state)** — потоки I/II/III/IV с реальными данными, требующими цепочки транзакций через UI или новые `installExtraData` сидеры:
+
+10. `offerer/shipment-prep.mjs`, `offerer/apl-reception-sign.mjs`.
+11. `operator/incoming-shipments.mjs`, `operator/apl-reception-create.mjs`, `operator/inventory-label.mjs`.
+12. `branch-chairman/apl-reception-close.mjs`, `branch-chairman/issuance-open.mjs`, `branch-chairman/return-approve.mjs`.
+13. `orderer/order-create.mjs`, `orderer/consolidated.mjs`.
+
+### 9.5. Известные блокеры
+
+- **opensearch не поднимать в dev** (`feedback_no_opensearch_in_dev.md`) — `docker-compose.override.yaml` уже выставляет `profiles: ["never"]` для `opensearch`.
+- **Desktop рестартовать только по явному разрешению** (`feedback_desktop_no_restart.md`) — было одноразовое разрешение для подхвата свежего `sdk/dist`; новые правки SDK потребуют либо новой апрува, либо ждать естественного цикла reload.
+- **`schema.gql` автоген** — не коммитить (`M components/controller/schema.gql` в working tree игнорируется по правилу пользователя).
 
 
 ---
