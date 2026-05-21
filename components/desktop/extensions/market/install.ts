@@ -18,6 +18,7 @@ import { ChairmanModerationPage } from 'src/pages/Marketplace/ChairmanModeration
 import { OperatorOwnWarehousePage } from 'src/pages/Marketplace/OperatorOwnWarehouse'
 import { AdminWarehouseSummaryPage } from 'src/pages/Marketplace/AdminWarehouseSummary'
 import { EcosystemRegistryPage } from 'src/pages/Marketplace/EcosystemRegistry'
+import { OnboardingCoopAcceptCppPage } from 'src/pages/Marketplace/OnboardingCoopAcceptCpp'
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace'
 import { agreementsBase } from 'src/shared/lib/consts/workspaces'
 import { registerMarketplaceProcessInfoHandlers } from './app/extensions'
@@ -241,6 +242,26 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Дизайн-система',
               icon: 'fa-solid fa-palette',
+              roles: ['chairman', 'member'],
+              requiresAuth: true,
+              agreements: agreementsBase,
+            },
+          },
+          {
+            // Эпик 1 / Story 1.9-1.10: L1 онбординг — приём кооперативом ЦПП
+            // «Стол заказов». Председатель кооператива принимает Положение
+            // ЦПП Marketplace, подписывая оферту в
+            // `coop_registration_offers_registry`. После этого:
+            // 1) пайщики могут проходить L3 onboarding gate;
+            // 2) расширение market становится активным
+            //    (extension.config.coopAcceptance.status='active').
+            // Backend: marketplaceCppStatus + marketplaceAcceptCpp.
+            path: 'onboarding/coop-cpp',
+            name: 'marketplace-onboarding-coop-cpp',
+            component: markRaw(OnboardingCoopAcceptCppPage),
+            meta: {
+              title: 'Подключение ЦПП',
+              icon: 'fa-solid fa-handshake',
               roles: ['chairman', 'member'],
               requiresAuth: true,
               agreements: agreementsBase,

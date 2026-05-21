@@ -52,3 +52,5 @@ export * as ListWriteoffProposals from './listWriteoffProposals'
 export * as GetWriteoffProposal from './getWriteoffProposal'
 /** Эпик 8: превью Заявления 1106 для подписания председателем */
 export * as WriteoffStatementSignablePayload from './writeoffStatementSignablePayload'
+/** Эпик 1 / Story 1.9: статус принятия ЦПП Marketplace кооперативом (L1 onboarding) */
+export * as MarketplaceCppStatus from './marketplaceCppStatus'

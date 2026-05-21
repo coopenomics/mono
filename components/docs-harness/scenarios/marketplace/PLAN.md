@@ -342,6 +342,36 @@ export const meta = {
 
 **Что делать с этими 8 пунктами в документации.** Создать `docs/new/marketplace/<role>/<page>.md` с admonition `!!!warning "Эпик X — в разработке"` и описанием **целевого** поведения по PRD (без скриншота). Это даёт пользователю карту маршрута и подсказку «функционал планируется», вместо пустого 404 в навигации.
 
+### 9.7. Аудит SDK/backend по 9 страницам (2026-05-21)
+
+PRD MVP в `/home/admin/blago/production/1-prilozhenie-stol-zakazov/_bmad-output/planning-artifacts/{prd,architecture,ux-design-specification}.md` + Эпики 1/3/4/5/6/8 в `components/3-minimalnyy-produkt/issues/598-*.md` — все backend Stories DONE. Дыра — Vue UI. Аудит:
+
+| Страница | Backend | Zeus | SDK wrapper | Что нужно для UI |
+|---|---|---|---|---|
+| `onboarding/coop-accept-cpp` | ✅ Story 1.9 (`MarketplaceAcceptCpp`, `MarketplaceCppStatus`) | ✅ | ❌ | + SDK wrappers + Vue page + роут |
+| `onboarding/member-pick-cpp` | ✅ Story 1.11 (через core `registration-flow` + `wallet::signagree`) | core | core | + Vue шаг в Registrator мастер |
+| `chairman/category-whitelist` | ⚠️ Story 3.x не выделена — категории засеяны в installExtraData | partial | ❌ | + mutation на включ/выключ в backend + UI |
+| `offerer/offers` (Мои предложения) | ⚠️ нужен фильтр author=me в `marketplaceListCatalog` или новая query | partial | ❌ | + SDK + Vue page + роут |
+| `offerer/incoming-orders` | ⚠️ нужна query `marketplaceListIncomingOrders` (для offerer'а) | partial | ❌ | + backend query + SDK + Vue |
+| `branch-chairman/branch-orders` | ⚠️ нужна агрегационная query по КУ (объединить existing listIssuances/Receptions/Returns ByBraname) | yes | partial | + objedinjajushaja query + Vue |
+| `board/agenda-writeoff` | ⚠️ через core soviet agendas — не marketplace | core | core | + дополнить core UI soviet или дать deeplink |
+| `board/payouts-readonly` | ⚠️ нужна query `listOutgoingPaymentsForBoard` (агрегат) | partial | ❌ | + backend + SDK + Vue |
+| `orderer/consolidated` | ✅ есть `getOrder` + `cycle_type` в Offer | ✅ | ✅ | + только Vue (UX-DR4 ConsolidatedOrderHeader из widgets) |
+
+**Главный вывод.** Backend Эпиков 1-8 покрыт. Из 9 UI-страниц 3 (`coop-accept-cpp`, `consolidated`, `member-pick-cpp` через core) можно сделать сразу — нужны только Vue + роуты + (для L1) SDK wrappers. Остальные 6 требуют либо расширения backend (новая query), либо доработки SDK (фильтры в существующих).
+
+**Очерёдность реализации (приоритет MVP «прямая поставка» J2):**
+
+1. `onboarding/coop-accept-cpp` — критичный gate, backend полностью готов (Story 1.9), **самая компактная задача**.
+2. `orderer/consolidated` — backend готов, есть canon-виджет, в J2 нужен заказчику для отслеживания партии.
+3. `offerer/incoming-orders` + расширение backend `marketplaceListIncomingOrders` — без неё J2 не закрывается на стороне offerer'а.
+4. `offerer/offers` (Мои предложения) — расширение `marketplaceListCatalog` фильтром author=me или новая query.
+5. `branch-chairman/branch-orders` — агрегат по КУ; полезно председателю.
+6. `chairman/category-whitelist` — настройка кооператива, может ждать.
+7. `board/payouts-readonly` — read-only, низкий приоритет MVP.
+8. `board/agenda-writeoff` — через core soviet, обходится deeplink'ом.
+9. `onboarding/member-pick-cpp` — UX-доработка core registration мастера; идёт после кодовой части.
+
 
 ---
 
