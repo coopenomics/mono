@@ -186,6 +186,7 @@ nav:
       - Каталог витрины: new/marketplace/orderer/catalog.md
       - Оформление заказа: new/marketplace/orderer/order-create.md
       - Мои заказы: new/marketplace/orderer/orders.md
+      - Готовые к получению: new/marketplace/orderer/ready-to-receive.md
       - Сводный заказ: new/marketplace/orderer/consolidated.md
       - Получение заказа: new/marketplace/orderer/receive.md
       - Возврат имущества: new/marketplace/orderer/return-claim.md
