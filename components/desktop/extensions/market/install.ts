@@ -19,6 +19,7 @@ import { OperatorOwnWarehousePage } from 'src/pages/Marketplace/OperatorOwnWareh
 import { AdminWarehouseSummaryPage } from 'src/pages/Marketplace/AdminWarehouseSummary'
 import { EcosystemRegistryPage } from 'src/pages/Marketplace/EcosystemRegistry'
 import { OnboardingCoopAcceptCppPage } from 'src/pages/Marketplace/OnboardingCoopAcceptCpp'
+import { OrdererConsolidatedPage } from 'src/pages/Marketplace/OrdererConsolidated'
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace'
 import { agreementsBase } from 'src/shared/lib/consts/workspaces'
 import { registerMarketplaceProcessInfoHandlers } from './app/extensions'
@@ -72,6 +73,22 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Мои заказы',
               icon: 'fa-solid fa-cart-shopping',
+              roles: [],
+              requiresAuth: true,
+              agreements: agreementsBase,
+            },
+          },
+          {
+            // Эпик 4 / Story 4.4: сводный обзор заказов пайщика, сгруппированных
+            // по партиям (cycle_id). Дополняет «Мои заказы» — там плоский список,
+            // здесь — партии time_based/volume_based/open_subscription с этапом
+            // партии и суммарной стоимостью. Канон OrderCard для отдельных заказов.
+            path: 'consolidated',
+            name: 'marketplace-consolidated',
+            component: markRaw(OrdererConsolidatedPage),
+            meta: {
+              title: 'Сводный заказ',
+              icon: 'fa-solid fa-layer-group',
               roles: [],
               requiresAuth: true,
               agreements: agreementsBase,
