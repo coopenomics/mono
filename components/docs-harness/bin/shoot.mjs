@@ -227,12 +227,13 @@ function ensureOneFixture(name) {
   const pg = readPgEnv();
   const env = {
     ...process.env,
-    MONGO_URI: `mongodb://127.0.0.1:${PORTS.mongo}/cooperative-x`,
+    MONGO_URI: `mongodb://127.0.0.1:${PORTS.mongo}/cooperative-x?directConnection=true`,
     POSTGRES_HOST: '127.0.0.1',
     POSTGRES_PORT: PORTS.postgres,
     POSTGRES_USERNAME: pg.POSTGRES_USERNAME || 'postgres',
     POSTGRES_PASSWORD: pg.POSTGRES_PASSWORD || 'postgres!23!23',
     POSTGRES_DATABASE: pg.POSTGRES_DATABASE || 'voskhod',
+    CHAIN_URL: `http://127.0.0.1:${PORTS.chain}`,
   };
   const r = spawnSync('pnpm', [
     '--filter', '@coopenomics/boot', 'exec', 'esno',
@@ -305,7 +306,11 @@ async function runPrepare(prepareSpecs) {
 // 5. Прогон + 6. Скелет draft.md если его ещё нет
 function runScenario() {
   log(`Прогоняю сценарий ${scenario}...`);
-  const r = spawnSync('node', ['run.mjs', scenario], { cwd: HARNESS_ROOT, stdio: 'inherit' });
+  const env = {
+    ...process.env,
+    BASE_URL: process.env.BASE_URL || `http://127.0.0.1:${PORTS.desktop}`,
+  };
+  const r = spawnSync('node', ['run.mjs', scenario], { cwd: HARNESS_ROOT, stdio: 'inherit', env });
   if (r.status !== 0) die(`сценарий упал — смотри shots/${scenario}/FAIL.png и console.log`);
 }
 

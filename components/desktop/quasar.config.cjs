@@ -127,6 +127,8 @@ module.exports = configure(function (ctx) {
             'localhost',
             '127.0.0.1',
           ];
+          viteConf.server.fs = viteConf.server.fs || {};
+          viteConf.server.fs.strict = false;
         }
 
         if (!isClient) {
