@@ -25,6 +25,7 @@ import { OffererMyOffersPage } from 'src/pages/Marketplace/OffererMyOffers'
 import { BranchChairmanBranchOrdersPage } from 'src/pages/Marketplace/BranchChairmanBranchOrders'
 import { BoardAgendaWriteoffPage } from 'src/pages/Marketplace/BoardAgendaWriteoff'
 import { ChairmanCategoryWhitelistPage } from 'src/pages/Marketplace/ChairmanCategoryWhitelist'
+import { BoardPayoutsReadonlyPage } from 'src/pages/Marketplace/BoardPayoutsReadonly'
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace'
 import { agreementsBase } from 'src/shared/lib/consts/workspaces'
 import { registerMarketplaceProcessInfoHandlers } from './app/extensions'
@@ -245,6 +246,22 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Сводный склад',
               icon: 'fa-solid fa-warehouse',
+              roles: ['chairman', 'member'],
+              requiresAuth: true,
+              agreements: agreementsBase,
+            },
+          },
+          {
+            // Эпик 5 / Story 5.x: informational placeholder для совета —
+            // лента выплат всех поставщиков. Текущий backend отдаёт только
+            // выплаты текущего пайщика-supplier'а; для совета нужна доп.
+            // query с read:all policy. Подключится в Phase 2.
+            path: 'payouts',
+            name: 'marketplace-board-payouts',
+            component: markRaw(BoardPayoutsReadonlyPage),
+            meta: {
+              title: 'Выплаты — совет',
+              icon: 'fa-solid fa-coins',
               roles: ['chairman', 'member'],
               requiresAuth: true,
               agreements: agreementsBase,
