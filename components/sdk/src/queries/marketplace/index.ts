@@ -10,6 +10,10 @@ export * as ListCategories from './listCategories'
 export * as ListCatalog from './listCatalog'
 /** Счётчики активных Offer'ов per category для фильтр-чипов (Story 3.5) */
 export * as CategoryOfferCounts from './categoryOfferCounts'
+/** Эпик 3: пагинированный список offer'ов в статусе PENDING_MODERATION для модерации председателем */
+export * as ListPendingOffers from './listPendingOffers'
+/** Эпик 3: журнал решений модерации по одному offer'у (approve/reject) */
+export * as ListModerationLog from './listModerationLog'
 /** Эпик 5: партии поставки кооператива */
 export * as ListShipments from './listShipments'
 /** Эпик 5: одна партия поставки по идентификатору */

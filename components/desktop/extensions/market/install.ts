@@ -9,6 +9,7 @@ import { OrdererReadyToReceivePage } from 'src/pages/Marketplace/OrdererReadyToR
 import { OrdererReturnClaimsPage } from 'src/pages/Marketplace/OrdererReturnClaims'
 import { OperatorReturnClaimsPage } from 'src/pages/Marketplace/OperatorReturnClaims'
 import { AdminWriteoffsPage } from 'src/pages/Marketplace/AdminWriteoffs'
+import { ChairmanModerationPage } from 'src/pages/Marketplace/ChairmanModeration'
 import { OperatorOwnWarehousePage } from 'src/pages/Marketplace/OperatorOwnWarehouse'
 import { AdminWarehouseSummaryPage } from 'src/pages/Marketplace/AdminWarehouseSummary'
 import { EcosystemRegistryPage } from 'src/pages/Marketplace/EcosystemRegistry'
@@ -134,6 +135,24 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Сводный склад',
               icon: 'fa-solid fa-warehouse',
+              roles: ['chairman', 'member'],
+              requiresAuth: true,
+              agreements: agreementsBase,
+            },
+          },
+          {
+            // Эпик 3 / Story 3.6: admin-стол модерации offer'ов. Председатель
+            // (или общий администратор) видит ленту предложений в статусе
+            // PENDING_MODERATION и одобряет их через `marketplaceApproveOffer`
+            // (status → APPROVED → попадает в публичный каталог Story 3.5).
+            // Скрытие в access-matrix: `Marketplace.Offer: ['moderate']`
+            // открыто только chairman + member-совета.
+            path: 'moderation',
+            name: 'marketplace-moderation',
+            component: markRaw(ChairmanModerationPage),
+            meta: {
+              title: 'Модерация',
+              icon: 'fa-solid fa-clipboard-check',
               roles: ['chairman', 'member'],
               requiresAuth: true,
               agreements: agreementsBase,

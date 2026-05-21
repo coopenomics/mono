@@ -62,6 +62,11 @@ export async function openBrowser({ storageState } = {}) {
 // Логин председателя через форму. Кэширует storageState.
 // Учитывает что vue-router в текущем десктопе работает в hash-режиме
 // (URL вида http://host/#/voskhod/...), а не history.
+//
+// После reboot:extra появляются новые версии соглашений (Положение ЦПП,
+// пользовательское и т.д.); chairman должен их подписать прежде чем
+// попасть на admin-страницы. Каскад автоматически проходим через
+// signOnboardingAgreements — если соглашений нет, helper тихо выходит.
 export async function loginAsChairman(page, context) {
   await ensureSigninReady(page);
   await page.locator('label:has-text("электронную почту")').locator('input').fill(env.CHAIRMAN_EMAIL);
@@ -75,6 +80,18 @@ export async function loginAsChairman(page, context) {
     { timeout: 30000 },
   ).catch(() => {});
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  const { signed } = await signOnboardingAgreements(page);
+  // После каскада подписей соглашений нужно дать backend'у обработать chain-
+  // транзакции (sndagreement → newagreement) и обновить session: на быстром
+  // signOnboardingAgreements клиент может потерять текущего пользователя
+  // (header «UNDEFINED UNDEFINED» + 404 при дальнейшей навигации). Soft-reload
+  // фиксирует state, если что-то реально подписали.
+  if (signed > 0) {
+    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+    await page.waitForTimeout(2000);
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  }
 }
 
 // Логин обычного пайщика по фикстуре (state/participants/<username>.json).

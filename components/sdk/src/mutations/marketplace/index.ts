@@ -10,6 +10,8 @@ export * as CreateOrder from './createOrder'
 export * as CancelOrder from './cancelOrder'
 /** Опубликовать новое предложение поставщика на модерацию */
 export * as CreateOffer from './createOffer'
+/** Эпик 3: председатель одобряет offer в статусе PENDING_MODERATION (status -> APPROVED) */
+export * as ApproveOffer from './approveOffer'
 /** Эпик 5: сформировать партии поставки из акцептованной заявки */
 export * as CreateShipment from './createShipment'
 /** Эпик 5: наклеить штрих-коды на единицы заказа (оператор КУ) */
