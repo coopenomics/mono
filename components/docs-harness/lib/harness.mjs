@@ -118,9 +118,18 @@ export async function dismissOnboardingDialogs(page) {
     if (window.__onboardingDialogsBlocker) return;
 
     const isOnboarding = (el) => {
+      // ModalBase теперь рендерит title как <span> в .q-bar — ищем его текст
+      // напрямую, не привязываясь к .q-toolbar__title / .modal-base__title.
+      const bar = el.querySelector('.q-bar');
+      const barText = bar?.textContent || '';
       const title = el.querySelector('.q-toolbar__title, .modal-base__title, h1, h2, h3, h4')?.textContent || '';
       if (/Прочитайте и подпишите/i.test(title)) return true;
+      if (/Прочитайте и подпишите/i.test(barText)) return true;
       const body = el.textContent || '';
+      // SignAgreementDialog в состоянии «Формируем документ...» — Loader
+      // показывается вместо submit-кнопки, поэтому /Подписать/ в body нет.
+      // Ловим этот случай отдельно по фразе самого лоадера.
+      if (/Формируем документ/i.test(body)) return true;
       return /Прочитайте и подпишите документ/i.test(body) && /Подписать/i.test(body);
     };
 
@@ -203,6 +212,7 @@ export async function dismissOnboardingDialogs(page) {
       const portals = Array.from(document.querySelectorAll('[id^="q-portal--dialog--"]'));
       const isOnboarding = (el) => {
         const body = el.textContent || '';
+        if (/Формируем документ/i.test(body)) return true;
         return /Прочитайте и подпишите документ/i.test(body) && /Подписать/i.test(body);
       };
       return !portals.some((p) => isOnboarding(p) && getComputedStyle(p).display !== 'none');

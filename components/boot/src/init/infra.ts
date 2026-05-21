@@ -1,8 +1,13 @@
 import { randomUUID } from 'node:crypto'
+import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import axios from 'axios'
+import ecc from 'eosjs-ecc'
+import { Client as PgClient } from 'pg'
 import { Generator, Registry } from '@coopenomics/factory'
 import type { Cooperative } from 'cooptypes'
-import { DraftContract } from 'cooptypes'
+import { BranchContract, DraftContract, RegistratorContract, SovietContract } from 'cooptypes'
 import mongoose, { Types } from 'mongoose'
 import type { Account, Contract } from '../types'
 import config from '../configs'
@@ -11,7 +16,6 @@ import { sleep } from '../utils'
 import { generateRandomSHA256 } from '../utils/randomHash'
 import { initUsersInPostgres, initVaultInPostgres } from '../postgres-init'
 import { CooperativeClass } from './cooperative'
-import { generateRandomSHA256 } from '../utils/randomHash'
 
 export async function startInfra() {
   // инициализируем инстанс с ключами
@@ -571,8 +575,501 @@ export async function installInitialData(blockchain: Blockchain, isExtended = fa
   console.log('Начальные данные установлены')
 }
 
+// === Marketplace MVP «Стол заказов» фикстуры (см. docs-harness/scenarios/marketplace/PLAN.md §1) ===
+// Заводятся в installExtraData чтобы reboot:extra сразу давал рабочий стенд для harness:
+//   3 КУ (krg/odn/myt) + 5 ролевых пайщиков + 2 минимальных председателя КУ.
+// WIF новых пайщиков сохраняем в components/docs-harness/state/participants/<username>.json,
+// чтобы doc-shoot harness ходил под ними не пересоздавая ключи на каждом прогоне.
+
+interface MarketplaceFixture {
+  username: string
+  first_name: string
+  last_name: string
+  middle_name: string
+  email: string
+}
+
+const MARKETPLACE_PARTICIPANTS: MarketplaceFixture[] = [
+  // Поток I/II — оба КУ-стороны и приёмки
+  { username: 'chairkrg', first_name: 'Пётр', last_name: 'Иванов', middle_name: 'Сергеевич', email: 'chairkrg@voskhod.coop' },
+  { username: 'trustedkrg', first_name: 'Михаил', last_name: 'Петров', middle_name: 'Андреевич', email: 'trustedkrg@voskhod.coop' },
+  { username: 'opkrg', first_name: 'Александр', last_name: 'Кузнецов', middle_name: 'Владимирович', email: 'opkrg@voskhod.coop' },
+  // Поток I/II — поставщик + заказчик
+  { username: 'sidorov', first_name: 'Дмитрий', last_name: 'Сидоров', middle_name: 'Николаевич', email: 'sidorov@voskhod.coop' },
+  { username: 'petrova', first_name: 'Екатерина', last_name: 'Петрова', middle_name: 'Александровна', email: 'petrova@voskhod.coop' },
+  // «Для вида» — без полного штата, чисто чтобы карта ПВЗ была не из одного КУ
+  { username: 'chairodn', first_name: 'Сергей', last_name: 'Орлов', middle_name: 'Васильевич', email: 'chairodn@voskhod.coop' },
+  { username: 'chairmyt', first_name: 'Алексей', last_name: 'Мытищенко', middle_name: 'Григорьевич', email: 'chairmyt@voskhod.coop' },
+]
+
+interface MarketplaceBranchSeed {
+  braname: string
+  trustee: string
+  short_name: string
+  full_name: string
+  city: string
+  fact_address: string
+  phone: string
+  email: string
+  based_on: string
+}
+
+const MARKETPLACE_BRANCHES: MarketplaceBranchSeed[] = [
+  {
+    braname: 'krg',
+    trustee: 'chairkrg',
+    short_name: 'КУ Красногорск',
+    full_name: 'Кооперативный участок «Красногорск»',
+    city: 'Красногорск',
+    fact_address: 'Московская область, г. Красногорск, ул. Заводская, д. 1',
+    phone: '+79991230101',
+    email: 'krg@voskhod.coop',
+    based_on: 'решение собрания совета №СС-1 от 20 мая 2026 г',
+  },
+  {
+    braname: 'odn',
+    trustee: 'chairodn',
+    short_name: 'КУ Одинцово',
+    full_name: 'Кооперативный участок «Одинцово»',
+    city: 'Одинцово',
+    fact_address: 'Московская область, г. Одинцово, ул. Центральная, д. 12',
+    phone: '+79991230202',
+    email: 'odn@voskhod.coop',
+    based_on: 'решение собрания совета №СС-1 от 20 мая 2026 г',
+  },
+  {
+    braname: 'myt',
+    trustee: 'chairmyt',
+    short_name: 'КУ Мытищи',
+    full_name: 'Кооперативный участок «Мытищи»',
+    city: 'Мытищи',
+    fact_address: 'Московская область, г. Мытищи, Олимпийский проспект, д. 5',
+    phone: '+79991230303',
+    email: 'myt@voskhod.coop',
+    based_on: 'решение собрания совета №СС-1 от 20 мая 2026 г',
+  },
+]
+
+// trusted[] КУ Красногорск — кроме председателя ещё доверенное лицо и оператор.
+const MARKETPLACE_TRUSTED_KRG = ['trustedkrg', 'opkrg']
+
+// Кто к какому КУ присоединяется (registry 101 — SelectBranchStatement).
+// Это не marketplace-функция, а функция управления: когда у кооператива >=3 КУ
+// (см. cooperator_account.is_branched), каждый пайщик обязан выбрать КУ, на
+// котором он голосует на общих собраниях. Председатели КУ остаются на «своих»
+// участках; председатель кооператива (ant) и совет — на главном (krg).
+const PARTICIPANT_BRANCH_ASSIGNMENT: Array<{ username: string, braname: string }> = [
+  // Совет — все голосуют через КУ Красногорск (главный)
+  { username: 'ant', braname: 'krg' },
+  { username: 'petr', braname: 'krg' },
+  { username: 'anna', braname: 'krg' },
+  { username: 'mikhail', braname: 'krg' },
+  { username: 'olga', braname: 'krg' },
+  // Marketplace-фикстуры
+  { username: 'chairkrg', braname: 'krg' },
+  { username: 'trustedkrg', braname: 'krg' },
+  { username: 'opkrg', braname: 'krg' },
+  { username: 'sidorov', braname: 'krg' },
+  { username: 'petrova', braname: 'krg' },
+  // Председатели прочих КУ
+  { username: 'chairodn', braname: 'odn' },
+  { username: 'chairmyt', braname: 'myt' },
+]
+
+// Где harness ищет фикстуры по умолчанию. components/boot/src/init/infra.ts → ../../docs-harness/state/participants.
+function harnessFixturesDir(): string {
+  const here = path.dirname(fileURLToPath(import.meta.url))
+  return path.resolve(here, '..', '..', '..', 'docs-harness', 'state', 'participants')
+}
+
+async function getOnChainActiveKey(blockchain: Blockchain, username: string): Promise<string | null> {
+  try {
+    const acc = await blockchain.api.rpc.get_account(username)
+    const active = acc.permissions?.find((p: any) => p.perm_name === 'active')
+    return active?.required_auth?.keys?.[0]?.key ?? null
+  }
+  catch {
+    return null
+  }
+}
+
+async function ensureMarketplaceParticipant(
+  blockchain: Blockchain,
+  generator: Generator,
+  pg: PgClient,
+  coopname: string,
+  fixture: MarketplaceFixture,
+): Promise<{ username: string, wif: string | null, publicKey: string }> {
+  const existingKey = await getOnChainActiveKey(blockchain, fixture.username)
+  let wif: string | null = null
+  let publicKey: string
+
+  if (existingKey) {
+    console.log(`[mvp] ${fixture.username}: уже on-chain, ключ ${existingKey}`)
+    publicKey = existingKey
+  }
+  else {
+    wif = await ecc.randomKey()
+    publicKey = ecc.privateToPublic(wif)
+    console.log(`[mvp] ${fixture.username}: новый keypair pub=${publicKey}`)
+
+    const addData: RegistratorContract.Actions.AddUser.IAddUser = {
+      coopname,
+      referer: '',
+      username: fixture.username,
+      type: 'individual',
+      created_at: new Date().toISOString().slice(0, 19),
+      initial: '100.0000 RUB',
+      minimum: '100.0000 RUB',
+      spread_initial: false,
+      meta: `Marketplace fixture ${fixture.first_name} ${fixture.last_name}`,
+      registration_hash: generateRandomSHA256(),
+    }
+    await blockchain.api.transact({
+      actions: [{
+        account: RegistratorContract.contractName.production,
+        name: RegistratorContract.Actions.AddUser.actionName,
+        authorization: [{ actor: coopname, permission: 'active' }],
+        data: addData,
+      }],
+    }, { blocksBehind: 3, expireSeconds: 30 })
+
+    const keyData: RegistratorContract.Actions.ChangeKey.IChangeKey = {
+      coopname,
+      username: fixture.username,
+      public_key: publicKey,
+      changer: coopname,
+    }
+    await blockchain.api.transact({
+      actions: [{
+        account: RegistratorContract.contractName.production,
+        name: RegistratorContract.Actions.ChangeKey.actionName,
+        authorization: [{ actor: coopname, permission: 'active' }],
+        data: keyData,
+      }],
+    }, { blocksBehind: 3, expireSeconds: 30 })
+  }
+
+  // Mongo individual upsert
+  const individual: Cooperative.Users.IIndividualData = {
+    username: fixture.username,
+    first_name: fixture.first_name,
+    last_name: fixture.last_name,
+    middle_name: fixture.middle_name,
+    birthdate: '1990/01/01',
+    phone: '+70000000000',
+    email: fixture.email,
+    full_address: 'Тестовый адрес (marketplace fixture)',
+    passport: {
+      series: 1111,
+      number: 100000 + Math.floor(Math.random() * 899999),
+      issued_by: 'УФМС России (тест)',
+      issued_at: '2010/01/01',
+      code: '000-000',
+    },
+  }
+  await generator.save('individual', individual)
+
+  // PG users upsert
+  await pg.query(`
+    INSERT INTO "users" (username, email, type, role, status, is_registered,
+                        has_account, is_email_verified, public_key,
+                        created_at, updated_at)
+    VALUES ($1, $2, 'individual', 'user', 'active', true,
+            true, true, $3,
+            CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    ON CONFLICT (username) DO UPDATE SET
+      email = EXCLUDED.email,
+      public_key = EXCLUDED.public_key,
+      status = 'active',
+      is_registered = true,
+      updated_at = CURRENT_TIMESTAMP
+  `, [fixture.username, fixture.email, publicKey])
+
+  return { username: fixture.username, wif, publicKey }
+}
+
+async function ensureMarketplaceBranch(
+  blockchain: Blockchain,
+  generator: Generator,
+  coopname: string,
+  b: MarketplaceBranchSeed,
+) {
+  // Mongo organization upsert (для desktop UI «Реестр КУ»)
+  const orgData: Cooperative.Users.IOrganizationData = {
+    username: b.braname,
+    type: 'coop',
+    short_name: b.short_name,
+    full_name: b.full_name,
+    represented_by: {
+      first_name: '',
+      last_name: '',
+      middle_name: '',
+      position: 'председатель кооперативного участка',
+      based_on: b.based_on,
+    },
+    country: 'Российская Федерация',
+    city: b.city,
+    fact_address: b.fact_address,
+    full_address: b.fact_address,
+    email: b.email,
+    phone: b.phone,
+    details: { inn: '', ogrn: '', kpp: '' },
+  }
+  try {
+    await generator.save('organization', orgData)
+  }
+  catch (e: any) {
+    console.log(`[mvp] organization ${b.braname} save failed: ${e.message ?? e}`)
+  }
+
+  // On-chain createbranch (idempotent)
+  const existing = await blockchain.api.rpc.get_table_rows({
+    code: 'branch',
+    scope: coopname,
+    table: 'branches',
+    lower_bound: b.braname,
+    upper_bound: b.braname,
+    limit: 1,
+  }).catch(() => ({ rows: [] }))
+
+  if (existing.rows && existing.rows.length > 0) {
+    console.log(`[mvp] createbranch ${b.braname}: уже on-chain, пропускаю`)
+    return
+  }
+
+  const data: BranchContract.Actions.CreateBranch.ICreateBranch = {
+    coopname,
+    braname: b.braname,
+    trustee: b.trustee,
+  }
+  await blockchain.api.transact({
+    actions: [{
+      account: BranchContract.contractName.production,
+      name: BranchContract.Actions.CreateBranch.actionName,
+      authorization: [{ actor: coopname, permission: 'active' }],
+      data,
+    }],
+  }, { blocksBehind: 3, expireSeconds: 30 })
+  console.log(`[mvp] createbranch ${b.braname} → trustee=${b.trustee} OK`)
+}
+
+// Эмулирует процесс «выбора КУ пайщиком»: генерирует псевдо-документ
+// (registry 101 SelectBranchStatement) с meta {coopname, username, braname} и
+// отправляет on-chain soviet::selectbranch action под кооперативной active-permission
+// (как делает backend branch.adapter.ts:selectBranch). После этого
+// participant_account.braname для пользователя on-chain становится `braname`
+// → desktop watch-branch-overlay видит noBraname=false и не показывает overlay.
+//
+// `userWif` — приватный ключ пайщика. Контракт soviet::selectbranch вызывает
+// verify_document_or_fail → assert_recover_key(sig.signed_hash, sig.signature,
+// sig.public_key) для каждой подписи. Поэтому signature ДОЛЖНА быть реальной
+// ECDSA подписью signed_hash приватным ключом пайщика, иначе action падает
+// «expected key different than recovered key».
+async function ensureParticipantBranchOnChain(
+  blockchain: Blockchain,
+  coopname: string,
+  username: string,
+  braname: string,
+  userWif: string,
+) {
+  // Idempotent reboot:extra: skip если пайщик уже на этом КУ
+  try {
+    const acc = await blockchain.api.rpc.get_table_rows({
+      code: 'registrator',
+      scope: coopname,
+      table: 'accounts',
+      lower_bound: username,
+      upper_bound: username,
+      limit: 1,
+      json: true,
+    })
+    const current = acc?.rows?.[0]?.participant_account?.braname
+    if (current === braname) {
+      console.log(`[mvp] selectbranch ${username} → ${braname}: уже выбран, пропускаю`)
+      return
+    }
+  }
+  catch {}
+
+  const now = new Date().toISOString().replace('T', ' ').slice(0, 19)
+  // Уникальный hash для каждого пайщика — иначе soviet::newsubmitted ругается на duplicate
+  const seed = `${coopname}/${username}/${braname}/${Date.now()}/${Math.random()}`
+  const hash: string = ecc.sha256(seed)
+  const publicKey: string = ecc.privateToPublic(userWif)
+  const signature: string = ecc.signHash(hash, userWif)
+
+  const document: any = {
+    version: '1.0.0',
+    hash,
+    doc_hash: hash,
+    meta_hash: hash,
+    meta: JSON.stringify({
+      registry_id: 101,
+      coopname,
+      username,
+      braname,
+      created_at: now,
+    }),
+    signatures: [{
+      id: 1,
+      signed_hash: hash,
+      signer: username,
+      public_key: publicKey,
+      signature,
+      signed_at: now.replace(' ', 'T'),
+      meta: '{}',
+    }],
+  }
+
+  const data = {
+    coopname,
+    username,
+    braname,
+    document,
+  } as SovietContract.Actions.Branches.SelectBranch.ISelectBranch
+  try {
+    await blockchain.api.transact({
+      actions: [{
+        account: SovietContract.contractName.production,
+        name: SovietContract.Actions.Branches.SelectBranch.actionName,
+        authorization: [{ actor: coopname, permission: 'active' }],
+        data,
+      }],
+    }, { blocksBehind: 3, expireSeconds: 30 })
+    console.log(`[mvp] selectbranch ${username} → ${braname} OK`)
+  }
+  catch (e: any) {
+    console.log(`[mvp] selectbranch ${username} → ${braname} failed: ${e.message ?? e}`)
+  }
+}
+
+async function ensureMarketplaceTrusted(
+  blockchain: Blockchain,
+  coopname: string,
+  braname: string,
+  trusted: string,
+) {
+  const data: BranchContract.Actions.AddTrusted.IAddTrusted = {
+    coopname,
+    braname,
+    trusted,
+  }
+  try {
+    await blockchain.api.transact({
+      actions: [{
+        account: BranchContract.contractName.production,
+        name: BranchContract.Actions.AddTrusted.actionName,
+        authorization: [{ actor: coopname, permission: 'active' }],
+        data,
+      }],
+    }, { blocksBehind: 3, expireSeconds: 30 })
+    console.log(`[mvp] addtrusted ${braname} ← ${trusted} OK`)
+  }
+  catch (e: any) {
+    const msg = String(e.message ?? e)
+    if (msg.includes('already')) {
+      console.log(`[mvp] addtrusted ${braname} ← ${trusted}: уже добавлен`)
+    }
+    else {
+      console.log(`[mvp] addtrusted ${braname} ← ${trusted} failed: ${msg}`)
+    }
+  }
+}
+
 export async function installExtraData(blockchain: Blockchain) {
-  // В расширенном режиме пайщики уже добавлены в installInitialData
-  // Здесь можно добавить дополнительную логику инициализации если потребуется
-  console.log('Дополнительная инициализация для расширенного режима выполнена')
+  console.log('=== Marketplace MVP фикстуры (PLAN.md §1) ===')
+
+  const coopname = config.provider
+  const mongoUri = process.env.MONGO_URI
+  if (!mongoUri) throw new Error('MONGO_URI не задан — installExtraData требует Mongo для individual/organization')
+
+  const generator = new Generator()
+  await generator.connect(mongoUri)
+
+  const pg = new PgClient({
+    host: process.env.POSTGRES_HOST,
+    port: Number.parseInt(process.env.POSTGRES_PORT || '5432'),
+    user: process.env.POSTGRES_USERNAME,
+    password: process.env.POSTGRES_PASSWORD,
+    database: process.env.POSTGRES_DATABASE,
+  })
+  await pg.connect()
+
+  // 1. Создаём 7 ролевых пайщиков (включая 3 trustee для КУ).
+  // Заодно собираем WIFs для использования в selectBranch шаге ниже.
+  const fixturesDir = harnessFixturesDir()
+  try {
+    fs.mkdirSync(fixturesDir, { recursive: true })
+  }
+  catch {}
+
+  // Совет (ant/petr/anna/mikhail/olga) использует общий default WIF — он же
+  // EOSIO_PRV_KEY (см. installInitialData → blockchain.changeKey задаёт всем
+  // default_public_key). Marketplace-фикстуры — свои random WIFs.
+  const userWifs: Record<string, string> = {
+    ant: config.private_keys[0],
+    petr: config.private_keys[0],
+    anna: config.private_keys[0],
+    mikhail: config.private_keys[0],
+    olga: config.private_keys[0],
+  }
+
+  for (const fixture of MARKETPLACE_PARTICIPANTS) {
+    try {
+      const r = await ensureMarketplaceParticipant(blockchain, generator, pg, coopname, fixture)
+      if (r.wif) {
+        userWifs[fixture.username] = r.wif
+        const fp = path.join(fixturesDir, `${fixture.username}.json`)
+        fs.writeFileSync(fp, JSON.stringify({
+          username: fixture.username,
+          email: fixture.email,
+          wif: r.wif,
+          publicKey: r.publicKey,
+          coopname,
+        }))
+        console.log(`[mvp] fixture saved → ${fp}`)
+      }
+      else {
+        // Reboot после которого пайщик уже on-chain — попробуем прочитать WIF из state/<username>.json
+        try {
+          const fp = path.join(fixturesDir, `${fixture.username}.json`)
+          if (fs.existsSync(fp)) {
+            const cached = JSON.parse(fs.readFileSync(fp, 'utf8'))
+            if (cached.wif) userWifs[fixture.username] = cached.wif
+          }
+        }
+        catch {}
+      }
+    }
+    catch (e: any) {
+      console.log(`[mvp] participant ${fixture.username} failed: ${e.message ?? e}`)
+    }
+  }
+
+  // 2. Создаём 3 КУ (krg/odn/myt) — trustee должны быть уже on-chain
+  for (const b of MARKETPLACE_BRANCHES)
+    await ensureMarketplaceBranch(blockchain, generator, coopname, b)
+
+  // 3. Доверенные лица КУ Красногорск (доверенное лицо + оператор)
+  for (const trusted of MARKETPLACE_TRUSTED_KRG)
+    await ensureMarketplaceTrusted(blockchain, coopname, 'krg', trusted)
+
+  // 4. Выбор КУ для каждого пайщика (registry 101 SelectBranchStatement).
+  // После создания >=3 КУ кооператив стал is_branched=true, и каждый пайщик
+  // обязан выбрать КУ — иначе на первом входе показывается blocking overlay.
+  // Это требование управления (общие собрания), не marketplace.
+  for (const a of PARTICIPANT_BRANCH_ASSIGNMENT) {
+    const wif = userWifs[a.username]
+    if (!wif) {
+      console.log(`[mvp] selectbranch ${a.username}: WIF не найден, пропускаю`)
+      continue
+    }
+    await ensureParticipantBranchOnChain(blockchain, coopname, a.username, a.braname, wif)
+  }
+
+  await pg.end()
+  await mongoose.disconnect().catch(() => {})
+
+  console.log('=== Marketplace MVP фикстуры установлены ===')
 }
