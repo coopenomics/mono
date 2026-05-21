@@ -90,24 +90,45 @@ export default async ({ page, shot }) => {
   await setField('Цена', '120');
   await setField('Доступное количество', '50');
   await setField('Гарантия', '7');
+
+  // q-select «Категория *» — Quasar рендерит label как div.q-field__label
+  // (не HTML <label>). Селектор готов, но в текущей среде marketplace-resolver'ы
+  // на backend :2998 не зарегистрированы — fetchCategories() возвращает [],
+  // меню q-select остаётся пустым, и submit падает с «Выберите категорию».
+  // Когда backend marketplace-extension будет поднят, нижеследующий блок выберет
+  // первый baseline-пункт автоматически.
+  const categoryField = page
+    .locator('.q-field')
+    .filter({ has: page.locator('.q-field__label', { hasText: 'Категория' }) })
+    .first();
+  if (await categoryField.count() > 0) {
+    await categoryField.locator('.q-field__control').click({ timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(1500);
+    const firstItem = page.locator('.q-menu .q-item').first();
+    if (await firstItem.count() > 0) {
+      await firstItem.click({ timeout: 5000 }).catch(() => {});
+    }
+    await page.waitForTimeout(1000);
+  }
+
   await page.waitForTimeout(1000);
   await cleanViteOverlays(page);
   await shot(
     page,
     '02-filled-form',
-    'Та же форма с заполненными полями: название, описание, цена, количество, гарантия',
+    'Та же форма с заполненными полями: название, описание, цена, количество, категория, гарантия, тип отсечки заказов',
   );
 
-  // --- 03. После клика «Создать»: либо успех + редирект, либо валидационная подсветка ---
-  const submitBtn = page.locator('button:has-text("Создать")').first();
+  // --- 03. После клика «Опубликовать на модерацию»: либо успех + редирект, либо валидационная подсветка ---
+  const submitBtn = page.locator('button:has-text("Опубликовать на модерацию")').first();
   if (await submitBtn.count() > 0) {
     await submitBtn.click().catch(() => {});
-    await page.waitForTimeout(5000);
+    await page.waitForTimeout(6000);
     await cleanViteOverlays(page);
     await shot(
       page,
       '03-after-submit',
-      'Состояние UI после клика «Создать»: либо подтверждение, либо подсветка незаполненных полей',
+      'Состояние UI после клика «Опубликовать на модерацию»: либо подтверждение, либо подсветка незаполненных полей',
     );
   }
 
