@@ -2,6 +2,8 @@
 title: Создание предложения в Столе заказов
 generated_by: docs-harness
 scenario: marketplace/offerer/offer-create
+tags:
+  - Пайщик
 ---
 
 # Создание предложения в Столе заказов

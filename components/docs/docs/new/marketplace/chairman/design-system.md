@@ -2,6 +2,9 @@
 title: Дизайн-система Стола заказов
 generated_by: docs-harness
 scenario: marketplace/chairman/design-system
+tags:
+  - Председатель
+  - Член совета
 ---
 
 # Дизайн-система Стола заказов

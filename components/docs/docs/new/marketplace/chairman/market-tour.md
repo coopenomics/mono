@@ -2,6 +2,8 @@
 title: Разделы Стола заказов — экскурсия для председателя
 generated_by: docs-harness
 scenario: marketplace/chairman/market-tour
+tags:
+  - Председатель
 ---
 
 # Разделы Стола заказов — экскурсия для председателя

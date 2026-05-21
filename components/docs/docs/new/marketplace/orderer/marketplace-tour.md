@@ -2,6 +2,8 @@
 title: Стол заказчика — обзор разделов глазами пайщика
 generated_by: docs-harness
 scenario: marketplace/orderer/marketplace-tour
+tags:
+  - Пайщик
 ---
 
 # Стол заказчика — обзор разделов глазами пайщика

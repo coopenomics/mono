@@ -2,6 +2,8 @@
 title: Стол председателя ПК — обзор разделов
 generated_by: docs-harness
 scenario: marketplace/chairman/dashboard-overview
+tags:
+  - Председатель
 ---
 
 # Стол председателя ПК — обзор разделов
