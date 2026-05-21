@@ -6,7 +6,11 @@ tags:
 # Кооперативные категории
 
 !!!info "Реализовано — ожидается прогон harness"
-    Страница `/market/category-whitelist` реализована (коммит `50538b45d43`). Председатель видит whitelist разрешённых категорий с stat-карточками; пустой whitelist означает, что доступен весь глобальный каталог. Backend готов — `available-category-admin.resolver.ts` (@AuthRoles chairman). В MVP добавление через ручной ввод ID; tree-выбор через `marketplaceGetCategoryTree` подключится на следующем шаге Story 3.x. Скриншоты — после прогона `bin/shoot.mjs chairman/category-whitelist`.
+    Страница `/market/category-whitelist` реализована (коммит `50538b45d43`). Председатель видит whitelist разрешённых категорий с stat-карточками; пустой whitelist означает, что доступен весь глобальный каталог. Backend готов — `available-category-admin.resolver.ts` (@AuthRoles chairman). В MVP добавление через ручной ввод ID; tree-выбор через `marketplaceGetCategoryTree` подключится на следующем шаге Story 3.x.
+
+![Whitelist категорий: stat-карточки и пустой список](/assets/new/marketplace/chairman/category-whitelist/01-overview.png)
+
+![Диалог добавления категорий по ID](/assets/new/marketplace/chairman/category-whitelist/02-add-dialog.png)
 
 Стол заказов работает с фиксированным набором из **10 кооперативных категорий**. Они едины для всей кооперативной сети, но каждый кооператив сам решает, **какие из них включены** в его Столе.
 

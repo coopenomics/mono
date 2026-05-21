@@ -6,7 +6,11 @@ tags:
 # Заказы участка
 
 !!!info "Реализовано — ожидается прогон harness"
-    Страница `/market-pvz/branch-orders` реализована (коммит `d1bebf6f645`). Три ленты с табами и счётчиками: приёмки (Эпик 5), выдачи (Эпик 6), возвраты (Эпик 7) — все через существующие `*ByBraname` query, объединённые через Promise.all. braname вводится вручную; auto-detect через `marketplace_whoami` подключится на следующем шаге Story 6.x+1. Скриншоты — после прогона `bin/shoot.mjs branch-chairman/branch-orders`.
+    Страница `/market-pvz/branch-orders` реализована (коммит `d1bebf6f645`). Три ленты с табами и счётчиками: приёмки (Эпик 5), выдачи (Эпик 6), возвраты (Эпик 7) — все через существующие `*ByBraname` query, объединённые через Promise.all. braname вводится вручную; auto-detect через `marketplace_whoami` подключится на следующем шаге Story 6.x+1.
+
+![Пустое состояние: подсказка ввести ID КУ](/assets/new/marketplace/branch-chairman/branch-orders/01-empty-input.png)
+
+![После ввода braname `krg` — 3 таба с счётчиками](/assets/new/marketplace/branch-chairman/branch-orders/02-loaded-tabs.png)
 
 Лента **Заказы участка** даёт председателю общую картину всего, что происходит с Заказами на его ПВЗ. Это сводный обзор, более широкий, чем оператор видит в своих специализированных лентах.
 

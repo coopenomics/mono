@@ -6,7 +6,11 @@ tags:
 # Входящие заказы
 
 !!!info "Реализовано — ожидается прогон harness"
-    Страница `/market/incoming-orders` реализована (коммит `69d3e79f36c`). Поставщик видит заказы где он `supplier` через канон `OrderCard role='offerer'` с фильтром по статусу. Backend `marketplaceListSupplierOrders` уже был DONE (read:to-self policy). Действия по акцепту партии — отдельно на `/market/supply-prep`. Polling 15s. Скриншоты — после прогона `bin/shoot.mjs offerer/incoming-orders`.
+    Страница `/market/incoming-orders` реализована (коммит `69d3e79f36c`). Поставщик видит заказы где он `supplier` через канон `OrderCard role='offerer'` с фильтром по статусу. Backend `marketplaceListSupplierOrders` уже был DONE (read:to-self policy). Действия по акцепту партии — отдельно на `/market/supply-prep`. Polling 15s.
+
+![Лента входящих заказов поставщика с табами фильтра](/assets/new/marketplace/offerer/incoming-orders/01-overview.png)
+
+![Фильтр «Ждут моего акцепта» — заказы в статусе ACCEPTED_PENDING_SUPPLIER](/assets/new/marketplace/offerer/incoming-orders/02-pending-filter.png)
 
 Когда сводный заказ закрывается и партия фиксируется (статус **CONFIRMED**), все Заказы пайщиков из этой партии становятся **входящими** для поставщика. Они появляются в ленте «Входящие заказы».
 

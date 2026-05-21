@@ -6,7 +6,11 @@ tags:
 # Голосование по списанию
 
 !!!info "Реализовано — ожидается прогон harness"
-    Read-only страница совета `/market/board-writeoff` реализована (коммит `2a41354c328`). Совет видит ленту проектов списания в статусах ON_AGENDA / AUTHORIZED / EXECUTING / EXECUTED / REJECTED с фильтром по статусу. Само голосование совета — через core soviet agenda (`/soviet/agendas`, тип `mktwroff`). Скриншоты будут добавлены после прогона `bin/shoot.mjs board/agenda-writeoff` против стенда с подхваченными worktree-страницами.
+    Read-only страница совета `/market/board-writeoff` реализована (коммит `2a41354c328`). Совет видит ленту проектов списания в статусах ON_AGENDA / AUTHORIZED / EXECUTING / EXECUTED / REJECTED с фильтром по статусу. Само голосование совета — через core soviet agenda (`/soviet/agendas`, тип `mktwroff`).
+
+![Лента проектов списания для совета](/assets/new/marketplace/board/agenda-writeoff/01-overview.png)
+
+![Фильтр «На повестке»](/assets/new/marketplace/board/agenda-writeoff/02-on-agenda.png)
 
 Члены совета голосуют по предложениям председателя о списании имущества (просроченного, испорченного, невостребованного). Это страница в их рабочем кабинете — раздел Marketplace на Столе совета.
 

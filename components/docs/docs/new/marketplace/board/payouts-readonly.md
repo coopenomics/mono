@@ -8,6 +8,8 @@ tags:
 !!!info "Placeholder — раздел в подготовке"
     Страница `/market/payouts` реализована как informational placeholder (коммит `261be9a2702`). Совету пока недоступен read-обзор по всем поставщикам — `marketplaceListOutgoingPaymentsAsSupplier` отдаёт только историю текущего пайщика. Для совета нужна доп. policy `Payment / read:all` в `marketplace-access-matrix.ts` + query `marketplaceListOutgoingPayments` с опц. `supplier_account`. До этого совет видит выплаты через core cassir-стол кооператива. Описание ниже отражает целевое поведение.
 
+![Informational placeholder — раздел в подготовке](/assets/new/marketplace/board/payouts-readonly/01-placeholder.png)
+
 Совет имеет **read-only доступ** к ленте всех денежных выплат поставщикам — от подписи акта приёма-передачи до фактического перевода средств. Эта страница — финансовый контроль совета над основным потоком исходящих платежей.
 
 ## Что показывается
