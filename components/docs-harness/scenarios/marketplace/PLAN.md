@@ -279,8 +279,8 @@ export const meta = {
 |---|---|---|---|
 | `onboarding/` | 3 | `extension-gate` | 1/3 — нет `coop-accept-cpp`, `member-pick-cpp` |
 | `orderer/` | 6 | `catalog`, `orders`, `ready-to-receive`*, `returns`*, `marketplace-tour`† | 4/6 — нет `order-create`, `consolidated` (†extra: «обзор стола заказчика глазами пайщика») |
-| `offerer/` | 5 | `offer-create` | 1/5 — нет `offers`, `incoming-orders`, `shipment-prep`, `apl-reception-sign` |
-| `operator/` | 5 | `issuance`*, `returns`*, `warehouse`* | 3/5 — нет `incoming-shipments`, `apl-reception-create`, `inventory-label`. (Существующие — empty-state замены под другими именами: `warehouse`≈`inventory-list`, `issuance`≈`orders-board`, `returns`→branch-chairman.) |
+| `offerer/` | 5 (+1 `payments` сверх плана) | `offer-create`, `shipment-prep`, `apl-reception-sign`, `payments`† | 3/5 — нет `offers`, `incoming-orders` (†extra: история выплат — добавлен ad-hoc, Эпик 5 / Story 5.9) |
+| `operator/` | 5 | `apl-reception-create`, `inventory-label`, `issuance`*, `returns`*, `warehouse`* | 5/5 — все 5 покрыты (`warehouse`≈`inventory-list`, `issuance`≈`orders-board`, `returns`→branch-chairman). |
 | `branch-chairman/` | 4 | `pvz-list`† | 0/4 — нет `apl-reception-close`, `issuance-open`, `branch-orders`, `return-approve` (†extra: список ПВЗ) |
 | `chairman/` | 4 | `offer-moderation`, `writeoff-propose`, `branches`, + `dashboard-overview`†, `design-system`†, `ecosystem`†, `market-tour`†, `warehouse-summary`† | 3/4 — нет `category-whitelist`; 5 extra сняты для admin-обзора |
 | `board/` | 3 | — (папки нет) | 0/3 — нет `agenda-writeoff`, `warehouse-readonly`, `payouts-readonly` |

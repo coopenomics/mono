@@ -196,6 +196,7 @@ nav:
       - Входящие заказы: new/marketplace/offerer/incoming-orders.md
       - Подготовка отгрузки: new/marketplace/offerer/shipment-prep.md
       - Подпись акта приёмки: new/marketplace/offerer/apl-reception-sign.md
+      - История выплат: new/marketplace/offerer/payments.md
     - Стол оператора ПВЗ:
       - Ожидаемые поставки: new/marketplace/operator/incoming-shipments.md
       - Приёмка партии: new/marketplace/operator/apl-reception-create.md

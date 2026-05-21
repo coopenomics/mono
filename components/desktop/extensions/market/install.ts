@@ -12,6 +12,7 @@ import { OperatorReceptionPage } from 'src/pages/Marketplace/OperatorReception'
 import { OperatorInventoryLabelingPage } from 'src/pages/Marketplace/OperatorInventoryLabeling'
 import { OffererPendingAplReceptionsPage } from 'src/pages/Marketplace/OffererPendingAplReceptions'
 import { OffererSupplyPreparationPage } from 'src/pages/Marketplace/OffererSupplyPreparation'
+import { OffererPaymentHistoryPage } from 'src/pages/Marketplace/OffererPaymentHistory'
 import { AdminWriteoffsPage } from 'src/pages/Marketplace/AdminWriteoffs'
 import { ChairmanModerationPage } from 'src/pages/Marketplace/ChairmanModeration'
 import { OperatorOwnWarehousePage } from 'src/pages/Marketplace/OperatorOwnWarehouse'
@@ -119,6 +120,23 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Подпись приёмки',
               icon: 'fa-solid fa-file-signature',
+              roles: [],
+              requiresAuth: true,
+              agreements: agreementsBase,
+            },
+          },
+          {
+            // Эпик 5 / Story 5.9: offerer-стол «История выплат». Поставщик
+            // видит список MarketplaceOutgoingPaymentRequest со статусами
+            // INITIATED / CONFIRMED / FAILED по своим закрытым актам приёмки.
+            // Запрос идёт через `listOutgoingPaymentsAsSupplier` с фильтром
+            // payee_account = current user.
+            path: 'payments',
+            name: 'marketplace-payments',
+            component: markRaw(OffererPaymentHistoryPage),
+            meta: {
+              title: 'История выплат',
+              icon: 'fa-solid fa-money-bill-transfer',
               roles: [],
               requiresAuth: true,
               agreements: agreementsBase,
