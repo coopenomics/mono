@@ -22,6 +22,7 @@ import { OnboardingCoopAcceptCppPage } from 'src/pages/Marketplace/OnboardingCoo
 import { OrdererConsolidatedPage } from 'src/pages/Marketplace/OrdererConsolidated'
 import { OffererIncomingOrdersPage } from 'src/pages/Marketplace/OffererIncomingOrders'
 import { OffererMyOffersPage } from 'src/pages/Marketplace/OffererMyOffers'
+import { BranchChairmanBranchOrdersPage } from 'src/pages/Marketplace/BranchChairmanBranchOrders'
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace'
 import { agreementsBase } from 'src/shared/lib/consts/workspaces'
 import { registerMarketplaceProcessInfoHandlers } from './app/extensions'
@@ -414,6 +415,22 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Гарантийные возвраты',
               icon: 'fa-solid fa-clipboard-check',
+              roles: ['chairman'],
+              requiresAuth: true,
+              agreements: agreementsBase,
+            },
+          },
+          {
+            // Эпик 6 / Story 6.x: «Сводный стол КУ» — объединяет ленты
+            // приёмок / выдач / возвратов в один экран с табами и счётчиками
+            // для председателя КУ. Read-only обзор; действия — на /reception,
+            // /issuance, /returns.
+            path: 'branch-orders',
+            name: 'marketplace-pvz-branch-orders',
+            component: markRaw(BranchChairmanBranchOrdersPage),
+            meta: {
+              title: 'Сводный стол КУ',
+              icon: 'fa-solid fa-list-check',
               roles: ['chairman'],
               requiresAuth: true,
               agreements: agreementsBase,
