@@ -1,6 +1,6 @@
 # План E2E-документации Marketplace MVP «Стол заказов»
 
-Последнее обновление: 2026-05-21 (фаза 1 в работе; см. §9 «Текущее состояние»).
+Последнее обновление: 2026-05-21 (фаза 1 — empty-state магистраль I исчерпана UI-кодом; см. §9 «Текущее состояние»).
 Цель: ночной прогон harness + проза в `components/docs/docs/new/marketplace/...` + добавление новых разделов в `mkdocs.yml`. Параллельно — UI-багфиксы по факту.
 
 ## 0. Терминология (зафиксировать в UI/доках)
@@ -273,17 +273,17 @@ export const meta = {
 
 ### 9.2. Фаза 1 — Сценарии
 
-**Сценариев по плану: 30. Реализовано .mjs: 19/30 (63%).**
+**Сценариев по плану: 30. Реализовано .mjs: 25/30 (83%).**
 
 | Раздел | По плану | Файлы в репо | Статус |
 |---|---|---|---|
-| `onboarding/` | 3 | `extension-gate` | 1/3 — нет `coop-accept-cpp`, `member-pick-cpp` |
-| `orderer/` | 6 | `catalog`, `orders`, `ready-to-receive`*, `returns`*, `marketplace-tour`† | 4/6 — нет `order-create`, `consolidated` (†extra: «обзор стола заказчика глазами пайщика») |
-| `offerer/` | 5 (+1 `payments` сверх плана) | `offer-create`, `shipment-prep`, `apl-reception-sign`, `payments`† | 3/5 — нет `offers`, `incoming-orders` (†extra: история выплат — добавлен ad-hoc, Эпик 5 / Story 5.9) |
+| `onboarding/` | 3 | `extension-gate` | 1/3 — UI L1/L2 не реализован в Vue (см. §9.6) |
+| `orderer/` | 6 | `catalog` (с offer), `order-create` (stub Notify), `orders`, `ready-to-receive`*, `returns`*, `marketplace-tour`† | 5/6 — нет `consolidated` (Эпик 4 в разработке) |
+| `offerer/` | 5 (+1 `payments` сверх плана) | `offer-create`, `shipment-prep`, `apl-reception-sign`, `payments`† | 3/5 — нет `offers`, `incoming-orders` (UI не реализован, §9.6) |
 | `operator/` | 5 | `apl-reception-create`, `inventory-label`, `issuance`*, `returns`*, `warehouse`* | 5/5 — все 5 покрыты (`warehouse`≈`inventory-list`, `issuance`≈`orders-board`, `returns`→branch-chairman). |
-| `branch-chairman/` | 4 | `pvz-list`† | 0/4 — нет `apl-reception-close`, `issuance-open`, `branch-orders`, `return-approve` (†extra: список ПВЗ) |
-| `chairman/` | 4 | `offer-moderation`, `writeoff-propose`, `branches`, + `dashboard-overview`†, `design-system`†, `ecosystem`†, `market-tour`†, `warehouse-summary`† | 3/4 — нет `category-whitelist`; 5 extra сняты для admin-обзора |
-| `board/` | 3 | — (папки нет) | 0/3 — нет `agenda-writeoff`, `warehouse-readonly`, `payouts-readonly` |
+| `branch-chairman/` | 4 | `pvz-list`† | 0/4 — UI не реализован (§9.6) |
+| `chairman/` | 4 | `offer-moderation`, `writeoff-propose`, `branches`, + `dashboard-overview`†, `design-system`†, `ecosystem`†, `market-tour`†, `warehouse-summary`† | 3/4 — нет `category-whitelist` (UI не реализован, §9.6); 5 extra сняты для admin-обзора |
+| `board/` | 3 | — (папки нет) | 0/3 — UI совета для marketplace не реализован (§9.6) |
 
 `*` — есть .mjs под более «человеческим» именем (`ready-to-receive` вместо плановой `receive`, `returns` вместо `return-claim`/`return-approve`, `warehouse` вместо `inventory-list`, `issuance` вместо `orders-board`).
 `†` — extra-сценарии сверх плана: общие обзорные шоты столов; задокументированы в `docs/new/marketplace/...` отдельными MD.
@@ -300,30 +300,47 @@ export const meta = {
 
 ### 9.4. Что осталось сделать в Фазе 1 (приоритет)
 
-**Магистраль I (ближайшие циклы /loop)** — закрыть empty-state шоты для остатка плана:
+**Магистраль I — empty-state шоты — фактически исчерпана UI-кодом.** Из 9 оставшихся пунктов плана **0 могут быть сняты harness'ом**: все требуют UI-страниц, которых нет в `components/desktop/extensions/market/install.ts`. См. §9.6 «Дыры UI».
 
-1. `onboarding/coop-accept-cpp.mjs` — председатель подключает ЦПП Marketplace на уровне кооператива (L1).
-2. `onboarding/member-pick-cpp.mjs` — пайщик выбирает ЦПП Marketplace при вступлении (L2).
-3. `chairman/category-whitelist.mjs` — управление белым списком категорий.
-4. `offerer/offers.mjs` — Мои предложения (sidorov, empty после reboot).
-5. `offerer/incoming-orders.mjs` — Входящие заказы (sidorov, empty).
-6. `branch-chairman/branch-orders.mjs` — Заказы участка (chairkrg, empty).
-7. `board/agenda-writeoff.mjs` — Голосование совета по списанию (anna, empty).
-8. `board/warehouse-readonly.mjs` — Сводный склад кооператива (anna, read-only).
-9. `board/payouts-readonly.mjs` — Выплаты поставщикам (anna, read-only).
+**Магистраль II (приоритет)** — потоки с реальными данными. Требуют либо сидера в `installExtraData` (создаёт APPROVED offer + ORDER + SHIPMENT в БД), либо последовательности через API. Для перешота уже существующих empty-state шотов нужны данные:
 
-**Магистраль II (после empty-state)** — потоки I/II/III/IV с реальными данными, требующими цепочки транзакций через UI или новые `installExtraData` сидеры:
+1. `orderer/orders.mjs` (existing) — после создания ORDER переснять «Мои заказы» с реальными карточками.
+2. `orderer/consolidated.mjs` (NEW) — Сводный заказ orderer'а (UX-DR4 ConsolidatedOrderHeader).
+3. `orderer/ready-to-receive.mjs` (existing) — после shipment с фактом доставки.
+4. `offerer/shipment-prep.mjs` (existing) — после accept ORDER поставщиком.
+5. `offerer/apl-reception-sign.mjs` (existing) — после receive shipment в КУ.
+6. `operator/apl-reception-create.mjs` (existing) — после receipt из ERP.
+7. `operator/inventory-label.mjs` (existing) — после APP.
+8. `operator/warehouse.mjs` (existing) — после labeling.
+9. `operator/issuance.mjs` (existing) — после ORDER → SHIPMENT → APP.
 
-10. `offerer/shipment-prep.mjs`, `offerer/apl-reception-sign.mjs`.
-11. `operator/incoming-shipments.mjs`, `operator/apl-reception-create.mjs`, `operator/inventory-label.mjs`.
-12. `branch-chairman/apl-reception-close.mjs`, `branch-chairman/issuance-open.mjs`, `branch-chairman/return-approve.mjs`.
-13. `orderer/order-create.mjs`, `orderer/consolidated.mjs`.
+**Подход к Магистрали II.** Расширить `installExtraData` ещё одним сидером (`marketplace-flow.ts`?): один APPROVED offer + один ORDER от petrova + ACCEPT поставщиком + SHIPMENT в `krg`. Для каждой стадии переснять соответствующий empty-state как «с данными» в отдельном шоте `02-with-data` (рядом с `01-empty`).
 
 ### 9.5. Известные блокеры
 
 - **opensearch не поднимать в dev** (`feedback_no_opensearch_in_dev.md`) — `docker-compose.override.yaml` уже выставляет `profiles: ["never"]` для `opensearch`.
 - **Desktop рестартовать только по явному разрешению** (`feedback_desktop_no_restart.md`) — было одноразовое разрешение для подхвата свежего `sdk/dist`; новые правки SDK потребуют либо новой апрува, либо ждать естественного цикла reload.
 - **`schema.gql` автоген** — не коммитить (`M components/controller/schema.gql` в working tree игнорируется по правилу пользователя).
+
+### 9.6. Дыры UI — нереализованные страницы Marketplace
+
+Проверка на 2026-05-21: следующие 8 страниц физически отсутствуют в `components/desktop/src/pages/Marketplace/` и в `components/desktop/extensions/market/install.ts`. План §9.2 их перечисляет, но снять harness'ом их нельзя — нет ни Vue-компонента, ни роута. Каждая ждёт реализации соответствующего Эпика:
+
+| План | Файл Vue | Роут | Ждёт Эпик |
+|---|---|---|---|
+| `onboarding/coop-accept-cpp` | OnboardingCoopAcceptCpp.vue | `/onboarding/coop-cpp` | Эпик 1 / Story 1.x — L1 ЦПП |
+| `onboarding/member-pick-cpp` | OnboardingMemberPickCpp.vue | `/onboarding/member-cpp` | Эпик 1 / Story 1.x — L2 ЦПП |
+| `chairman/category-whitelist` | ChairmanCategoryWhitelist.vue | `/market/categories` | Эпик 3 / Story 3.x — белый список |
+| `offerer/offers` | OffererMyOffers.vue | `/market/my-offers` | Эпик 3 / Story 3.1 — мои Предложения |
+| `offerer/incoming-orders` | OffererIncomingOrders.vue | `/market/incoming-orders` | Эпик 4 / Story 4.x — входящие Заказы |
+| `branch-chairman/branch-orders` | BranchChairmanBranchOrders.vue | `/market-pvz/branch-orders` | Эпик 6 / Story 6.x — заказы участка |
+| `board/agenda-writeoff` | BoardAgendaWriteoff.vue | `/soviet/agendas/...` (за пределами market extension) | Эпик 8 / Story 8.x — голосование совета |
+| `board/payouts-readonly` | BoardPayoutsReadonly.vue | `/market/payouts` | Эпик 5 / Story 5.x — выплаты поставщикам |
+| `orderer/consolidated` | OrdererConsolidated.vue | `/market/consolidated` | Эпик 4 / Story 4.4 — Сводный заказ orderer'а |
+
+**`board/warehouse-readonly`** в плане был — но `AdminWarehouseSummaryPage` уже доступна `roles: ['chairman', 'member']`, и сценарий `chairman/warehouse-summary` снимает её. Сценарий «board/warehouse-readonly» как отдельный — дубль; объединяем с `chairman/warehouse-summary` в прозе («сводный склад читают и председатель, и совет — UI одинаковый»).
+
+**Что делать с этими 8 пунктами в документации.** Создать `docs/new/marketplace/<role>/<page>.md` с admonition `!!!warning "Эпик X — в разработке"` и описанием **целевого** поведения по PRD (без скриншота). Это даёт пользователю карту маршрута и подсказку «функционал планируется», вместо пустого 404 в навигации.
 
 
 ---
