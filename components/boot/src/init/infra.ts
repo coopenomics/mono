@@ -612,6 +612,7 @@ interface MarketplaceBranchSeed {
   phone: string
   email: string
   based_on: string
+  bank_name: string
 }
 
 const MARKETPLACE_BRANCHES: MarketplaceBranchSeed[] = [
@@ -625,6 +626,7 @@ const MARKETPLACE_BRANCHES: MarketplaceBranchSeed[] = [
     phone: '+79991230101',
     email: 'krg@voskhod.coop',
     based_on: 'решение собрания совета №СС-1 от 20 мая 2026 г',
+    bank_name: 'ПАО Сбербанк',
   },
   {
     braname: 'odn',
@@ -636,6 +638,7 @@ const MARKETPLACE_BRANCHES: MarketplaceBranchSeed[] = [
     phone: '+79991230202',
     email: 'odn@voskhod.coop',
     based_on: 'решение собрания совета №СС-1 от 20 мая 2026 г',
+    bank_name: 'АО «Тинькофф Банк»',
   },
   {
     braname: 'myt',
@@ -647,6 +650,7 @@ const MARKETPLACE_BRANCHES: MarketplaceBranchSeed[] = [
     phone: '+79991230303',
     email: 'myt@voskhod.coop',
     based_on: 'решение собрания совета №СС-1 от 20 мая 2026 г',
+    bank_name: 'ВТБ ПАО',
   },
 ]
 
@@ -882,6 +886,42 @@ async function ensureMarketplaceBranch(
   console.log(`[mvp] createbranch ${b.braname} → trustee=${b.trustee} OK`)
 }
 
+// Создаёт дефолтный bank_transfer paymentMethod для КУ (in Mongo paymentMethods).
+// Без него branch.interactor.getBranch() падает с
+// `Cannot destructure property 'username' of 'object null'` в
+// `new BankPaymentMethodDTO(await paymentMethodRepository.get({username: braname, ...}))`
+// → весь getBranches возвращает 500 → desktop UI «Кооперативные участки»
+// показывает «Нет данных».
+async function ensureBranchPaymentMethod(
+  generator: Generator,
+  braname: string,
+  bankName: string,
+) {
+  const paymentMethod = {
+    username: braname,
+    method_id: `${braname}-default-bank`,
+    method_type: 'bank_transfer' as const,
+    is_default: true,
+    data: {
+      currency: 'RUB',
+      bank_name: bankName,
+      account_number: '40703810400000000000', // dummy расчётный счёт
+      details: {
+        bik: '044525000',
+        corr: '30101810400000000000',
+        kpp: '500301001',
+      },
+    },
+  }
+  try {
+    await generator.save('paymentMethod', paymentMethod)
+    console.log(`[mvp] payment method для ${braname} → ${bankName} OK`)
+  }
+  catch (e: any) {
+    console.log(`[mvp] payment method ${braname} failed: ${e.message ?? e}`)
+  }
+}
+
 // Эмулирует процесс «выбора КУ пайщиком»: генерирует псевдо-документ
 // (registry 101 SelectBranchStatement) с meta {coopname, username, braname} и
 // отправляет on-chain soviet::selectbranch action под кооперативной active-permission
@@ -1076,8 +1116,12 @@ export async function installExtraData(blockchain: Blockchain) {
   }
 
   // 2. Создаём 3 КУ (krg/odn/myt) — trustee должны быть уже on-chain
-  for (const b of MARKETPLACE_BRANCHES)
+  for (const b of MARKETPLACE_BRANCHES) {
     await ensureMarketplaceBranch(blockchain, generator, coopname, b)
+    // Дефолтный bank_transfer метод для КУ — без него getBranches падает NPE
+    // (PaymentMethodDomainEntity.constructor destructures null).
+    await ensureBranchPaymentMethod(generator, b.braname, b.bank_name)
+  }
 
   // 3. Доверенные лица КУ Красногорск (доверенное лицо + оператор)
   for (const trusted of MARKETPLACE_TRUSTED_KRG)
