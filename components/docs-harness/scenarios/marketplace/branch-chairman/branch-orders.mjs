@@ -1,37 +1,24 @@
-// Сценарий: Председатель КУ видит сводный стол участка с 3 табами.
-// Эпик 6 / Story 6.x — Приёмки, Выдачи, Возвраты для одного braname.
+// Сценарий: Сводный стол КУ (председателя кооператива).
+// Эпик 6 / Story 6.x — Приёмки, Выдачи, Возвраты по braname.
 //
-// Объединяет существующие 3 query (ListAplReceptionsByBraname,
-// ListIssuancesByBraname, ListReturnClaimsByBraname) через Promise.all.
-// braname вводится вручную; auto-detect через marketplaceWhoAmI — следующий
-// шаг Story 6.x+1.
-//
-// Фикстура: chairkrg (Пётр Сергеевич Иванов), председатель КУ Красногорск.
+// Замечание: меж-роли «председатель КУ» в desktop matrix нет — роут
+// /market-pvz/* открыт только `roles: ['chairman']` (председатель
+// кооператива). На текущем MVP председатель сам открывает стол КУ для
+// аудита. Отдельный access-уровень «branch chairman» подключится
+// в Story 6.x+1 вместе с auto-detect braname через marketplaceWhoAmI.
 
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { loginAs, env, cleanViteOverlays } from '../../../lib/harness.mjs';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-const loadFixture = (username) =>
-  JSON.parse(
-    fs.readFileSync(path.resolve(__dirname, `../../../state/participants/${username}.json`), 'utf8'),
-  );
+import { loginAsChairman, dismissOnboardingDialogs } from '../../../lib/harness.mjs';
 
 export const meta = {
   title: 'Сводный стол КУ: приёмки, выдачи, возвраты',
   docPath: 'new/marketplace/branch-chairman/branch-orders.md',
   assetsDir: 'assets/new/marketplace/branch-chairman/branch-orders',
   role: 'chairman',
-  fixture: 'chairkrg',
 };
 
-export default async ({ page, shot }) => {
-  const fixture = loadFixture('chairkrg');
-  await loginAs(page, fixture);
-  await page.evaluate(() => localStorage.setItem('harness:noBranchOverlay', '1'));
+export default async ({ page, context, shot, env }) => {
+  await loginAsChairman(page, context);
+  await dismissOnboardingDialogs(page);
 
   await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/market-pvz/branch-orders`, {
     waitUntil: 'domcontentloaded',
@@ -39,7 +26,7 @@ export default async ({ page, shot }) => {
   await page.waitForSelector('text=Сводный стол кооперативного участка', { timeout: 60000 });
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
   await page.waitForTimeout(1000);
-  await cleanViteOverlays(page);
+  await dismissOnboardingDialogs(page);
 
   await shot(
     page,
@@ -47,14 +34,13 @@ export default async ({ page, shot }) => {
     'Сводный стол КУ до ввода braname: подсказка «Введите ID вашего КУ» + поле ввода. Auto-detect через marketplace_whoami появится на следующем шаге Story 6.x+1 — председатель КУ привязан к одному branch через trustee.',
   );
 
-  // Ввести braname для КУ Красногорск
   const branameInput = page.locator('input[aria-label*="braname"], label:has-text("braname") input, label:has-text("ID кооперативного участка") input').first();
   if (await branameInput.isVisible().catch(() => false)) {
     await branameInput.fill('krg');
     await page.locator('button:has-text("Загрузить")').click();
     await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await page.waitForTimeout(1500);
-    await cleanViteOverlays(page);
+    await dismissOnboardingDialogs(page);
     await shot(
       page,
       '02-loaded-tabs',

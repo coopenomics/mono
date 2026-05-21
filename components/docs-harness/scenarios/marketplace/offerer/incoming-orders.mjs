@@ -4,7 +4,8 @@
 // Канон OrderCard с role='offerer'. Фильтр по статусу через q-tabs.
 // Действия по акцепту партии — на отдельной странице «Подготовка отгрузки».
 //
-// Фикстура: sidorov (Дмитрий Николаевич Сидоров), поставщик.
+// Фикстура: ivanpetrov (как и offer-create.mjs — единая модель пайщика
+// для marketplace MVP scenarios).
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -18,18 +19,44 @@ const loadFixture = (username) =>
     fs.readFileSync(path.resolve(__dirname, `../../../state/participants/${username}.json`), 'utf8'),
   );
 
+async function signAllAgreements(page) {
+  await page.waitForFunction(
+    () => !document.body.innerText.includes('Формируем документ'),
+    { timeout: 30000 },
+  ).catch(() => {});
+  await page.waitForTimeout(500);
+
+  for (let i = 0; i < 8; i++) {
+    const clicked = await page.evaluate(() => {
+      const portals = Array.from(document.querySelectorAll('[id^="q-portal--dialog--"]'))
+        .filter((p) => getComputedStyle(p).display !== 'none');
+      if (portals.length === 0) return false;
+      const top = portals[portals.length - 1];
+      const btn = Array.from(top.querySelectorAll('button'))
+        .find((b) => b.textContent?.trim() === 'Подписать' && !b.disabled);
+      if (!btn) return false;
+      btn.scrollIntoView({ block: 'center', behavior: 'instant' });
+      btn.click();
+      return true;
+    });
+    if (!clicked) break;
+    await page.waitForTimeout(3500);
+  }
+}
+
 export const meta = {
   title: 'Входящие заказы поставщика',
   docPath: 'new/marketplace/offerer/incoming-orders.md',
   assetsDir: 'assets/new/marketplace/offerer/incoming-orders',
   role: 'user',
-  fixture: 'sidorov',
+  fixture: 'ivanpetrov',
 };
 
 export default async ({ page, shot }) => {
-  const fixture = loadFixture('sidorov');
+  const fixture = loadFixture('ivanpetrov');
   await loginAs(page, fixture);
   await page.evaluate(() => localStorage.setItem('harness:noBranchOverlay', '1'));
+  await signAllAgreements(page);
 
   await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/market/incoming-orders`, {
     waitUntil: 'domcontentloaded',
@@ -45,10 +72,9 @@ export default async ({ page, shot }) => {
     'Стол поставщика: лента входящих заказов от пайщиков. Фильтр по статусу через табы — «Все», «Ждут моего акцепта», «Индивидуальные ожидающие», «Приняты», «Поставка готова», «Приняты кооперативом», «Получены», «Отменены». Polling 15s.',
   );
 
-  // Переключиться на фильтр «Ждут моего акцепта» — это критичный статус для J2.
-  const pendingTab = page.locator('button:has-text("Ждут моего акцепта"), [role="tab"]:has-text("Ждут моего акцепта")').first();
+  const pendingTab = page.locator('[role="tab"]:has-text("Ждут моего акцепта"), button:has-text("Ждут моего акцепта")').first();
   if (await pendingTab.isVisible().catch(() => false)) {
-    await pendingTab.click();
+    await pendingTab.click().catch(() => {});
     await page.waitForTimeout(900);
     await cleanViteOverlays(page);
     await shot(
