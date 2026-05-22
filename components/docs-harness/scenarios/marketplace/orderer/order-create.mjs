@@ -113,8 +113,8 @@ export default async ({ page, shot }) => {
   await page.waitForTimeout(600);
   await shot(
     page,
-    '03-order-create-onchain-error',
-    'Текущий блокер магистрали II: backend отдаёт `cycle_type=\'time_based\'`, а контракт `marketplace::createorder` ожидает eosio::name `timebased` (без подчёркивания) — assertion fail «Неизвестный тип цикла отсечки заявок». UI корректно показывает читаемое сообщение через extractErrorMessage(). После фикса mapper\'а в backend submit отработает и появится положительный Notify «Заказ создан».',
+    '03-order-create-no-funds',
+    'Текущий блокер магистрали II: у тестового пайщика пустой L3-кошелёк (0,00 RUB), а заказ требует 240 RUB. Backend (после фикса cycle_type mapper) корректно делает `chainPort.createOrder`, контракт `marketplace::createorder` валидирует cycle_type и идёт дальше — но вызывает `o.wal.block` для блокировки средств, который падает с assertion «Недостаточно средств». UI корректно показывает читаемое сообщение через `extractErrorMessage()`. После пополнения L3-кошелька (Task #137 — эмиссия тестовых средств в installExtraData) submit отработает и появится положительный Notify «Заказ создан».',
     { preserveNotifications: true },
   );
 };

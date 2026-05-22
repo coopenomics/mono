@@ -367,6 +367,22 @@ export const meta = {
 3. **`branch-chairman/branch-orders` auto-detect braname**: подтянуть `marketplaceWhoAmI` или `marketplace_member_wallet` вместо ручного ввода (председатель КУ привязан к одному branch через trustee).
 4. **~~Прогон harness'а~~ ✅ выполнен** — 9 PNG установлены, admonition сняты (коммит `ee06d405136`, 2026-05-22). MD-проза готова.
 
+### 9.11. cycle_type mapper фикснут — следующий блокер: пустой L3-кошелёк (2026-05-22)
+
+Прогресс по §9.10:
+
+- **Фикс mapper'а cycle_type → eosio::name выполнен.** Добавлены `MARKETPLACE_CYCLE_TYPE_CHAIN_NAME` registry + `toChainCycleType(cycle)` helper в `marketplace-offer.types.ts`. В `marketplace-order-create.service.ts:160` boundary с chain: `cycle_type: toChainCycleType(offer.cycle_type)`. Соответствует enum-правилу CLAUDE.md (без magic-string в service-коде). Mapping: `time_based`→`timebased`, `volume_based`→`volumebased`, `open_subscription`→`opensubscr`, `individual`→`individual`.
+- **Перепрогон harness `orderer/order-create`:** assertion «Неизвестный тип цикла отсечки заявок» больше не срабатывает, pipeline проходит дальше — до `o.wal.block` блокировки средств.
+- **Новый блокер:** у тестовых пайщиков пустой L3-кошелёк (`ekaterina = 0,00 RUB` слева в кошельке). Контракт падает «**Недостаточно средств для заказа: требуется 240.0000 RUB, доступно 0.0000 RUB**». UI корректно показывает Notify через `extractErrorMessage()`. PNG: `03-order-create-no-funds.png`.
+
+**Что нужно дальше (Task #137):** в `installExtraData` (`components/boot/src/init/infra.ts`) добавить step эмиссии/пополнения L3-кошельков тестовых пайщиков (ekaterina, ivanpetrov и др.) на 10000+ RUB. Использовать существующий механизм (gateway::createincome, wallet::payadd или ledger emission через председателя) — не выдумывать. После пополнения магистраль II должна пройти e2e: order-create → orderer/orders → consolidated → offerer/incoming-orders → flow до payOut.
+
+**Что UI/доки покрыли в этой итерации:**
+
+- ✅ Фикс mapper зафиксирован в коде.
+- ✅ admonition в `order-create.md` обновлён: старый блокер cycle_type помечен resolved, новый блокер (нет средств) описан явно.
+- ✅ Скриншот переснят и переименован `03-order-create-no-funds.png`.
+
 ### 9.10. orderer/order-create — реальный submit + найден on-chain блокер (2026-05-22)
 
 Развилка §9.9 решена в пользу (A) — UI. Реализовано:

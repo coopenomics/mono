@@ -27,6 +27,7 @@ import {
 } from './marketplace-cycle-aggregator.service';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import type { MarketplaceOrderCreateTxSnapshot } from '../../domain/entities/marketplace-order.types';
+import { toChainCycleType } from '../../domain/entities/marketplace-offer.types';
 
 export interface MarketplaceOrderCreateInputDto {
   /** coopname кооператива. Берётся из core-сессии в resolver'е. */
@@ -157,7 +158,7 @@ export class MarketplaceOrderCreateService {
         delivery_braname: input.delivery_braname,
         quantity: input.quantity,
         unit_price: unit_price_asset,
-        cycle_type: offer.cycle_type,
+        cycle_type: toChainCycleType(offer.cycle_type),
         warranty_period_secs,
         batch_hash: MarketplaceOrderCreateService.ZERO_HASH,
       });

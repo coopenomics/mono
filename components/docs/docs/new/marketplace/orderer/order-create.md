@@ -37,11 +37,14 @@ tags:
 4. По подтверждению из chain — уменьшает `quantity_available` у Предложения на количество Заказа.
 
 !!!warning "Известный блокер магистрали II (2026-05-22)"
-    Backend хранит `cycle_type='time_based'`, а on-chain контракт `marketplace::createorder` ожидает `eosio::name` `timebased` (без подчёркивания). В результате chain submit падает assertion'ом **«Неизвестный тип цикла отсечки заявок»**, и Order не сохраняется. UI отображает читаемое сообщение поверх диалога:
+    У тестовых пайщиков в текущем стенде пустой L3-кошелёк (0,00 RUB), а Order требует блокировки `цена × количество`. Backend проходит весь pipeline (membership-guard → создание order_hash → counter → on-chain `marketplace::createorder` → внутренний `o.wal.block`), но `o.wal.block` падает assertion'ом **«Недостаточно средств для заказа»**, и Order не сохраняется. UI отображает читаемое сообщение поверх диалога:
 
-    ![Notify: «Неизвестный тип цикла отсечки заявок» — chain отверг submit](/assets/new/marketplace/orderer/order-create/03-order-create-onchain-error.png)
+    ![Notify: «Недостаточно средств для заказа: требуется 240.0000 RUB, доступно 0.0000 RUB»](/assets/new/marketplace/orderer/order-create/03-order-create-no-funds.png)
 
-    Фикс — на стороне backend mapper'а, который преобразует строковый `cycle_type` Offer'а в `eosio::name` для action payload (`time_based` → `timebased`, `volume_based` → `volumebased`, `open_subscription` → `opensubscr`). См. инвариант enum-name в `components/contracts/cpp/lib/domain/table_marketplace_orders.hpp:69-71`. До фикса магистраль II заблокирована на стадии createorder.
+    Фикс — добавить эмиссию/пополнение L3-кошельков тестовых пайщиков в `installExtraData` (`components/boot/src/init/infra.ts`), чтобы каждый пайщик-заказчик в стенде получал стартовый баланс, достаточный для прогона e2e сценариев. До фикса магистраль II останавливается на стадии `o.wal.block`.
+
+    !!!note "Решённый блокер: cycle_type mapping (2026-05-22)"
+        До этого был более ранний блокер: backend хранил `cycle_type='time_based'`, а контракт ожидает `eosio::name` `timebased` (без подчёркивания, грамматика `eosio::name`). Фикс — `toChainCycleType()` helper в `marketplace-offer.types.ts` + конвертация на boundary `chainPort.createOrder` в `marketplace-order-create.service.ts:160`. Маппинг: `time_based`→`timebased`, `volume_based`→`volumebased`, `open_subscription`→`opensubscr`, `individual`→`individual`.
 
 ## Что дальше (после фикса)
 
