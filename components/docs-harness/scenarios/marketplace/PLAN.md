@@ -1,6 +1,6 @@
 # План E2E-документации Marketplace MVP «Стол заказов»
 
-Последнее обновление: 2026-05-21 (фаза 1 — empty-state магистраль I исчерпана UI-кодом; см. §9 «Текущее состояние»).
+Последнее обновление: 2026-05-22 (9 страниц реализованы, harness прогнан, PNG установлены, admonition «реализовано»; см. §9 «Текущее состояние»).
 Цель: ночной прогон harness + проза в `components/docs/docs/new/marketplace/...` + добавление новых разделов в `mkdocs.yml`. Параллельно — UI-багфиксы по факту.
 
 ## 0. Терминология (зафиксировать в UI/доках)
@@ -365,7 +365,44 @@ export const meta = {
 1. **`board/payouts-readonly` backend**: расширить `marketplace-access-matrix.ts` `Payment / read:all` и добавить query `marketplaceListOutgoingPayments` (опц. `supplier_account`).
 2. **`chairman/category-whitelist` tree-выбор**: подключить `marketplaceGetCategoryTree` через диалог-tree.
 3. **`branch-chairman/branch-orders` auto-detect braname**: подтянуть `marketplaceWhoAmI` или `marketplace_member_wallet` вместо ручного ввода (председатель КУ привязан к одному branch через trustee).
-4. **Прогон harness'а** по каждой из 9 страниц + проза в `docs/new/marketplace/...`.
+4. **~~Прогон harness'а~~ ✅ выполнен** — 9 PNG установлены, admonition сняты (коммит `ee06d405136`, 2026-05-22). MD-проза готова.
+
+### 9.8. Магистраль II — план сидера (2026-05-22)
+
+Empty-state магистраль I покрыта. Магистраль II (страницы «с данными») требует сидера в БД. Backend marketplace resolvers богатый:
+
+| Mutation | Что делает | Кем |
+|---|---|---|
+| `marketplaceCreateOffer` | Создаёт Offer в статусе `PENDING_MODERATION` (off-chain Postgres) | `sidorov` |
+| `marketplaceApproveOffer` | Перевод Offer'а в `ACTIVE` | `ant` (chairman) |
+| `marketplaceCreateOrder` | Создаёт Order на конкретный Offer | `petrova` |
+| `marketplaceAcceptOrderBySupplier` | Поставщик акцептует Order в партию | `sidorov` |
+| `marketplaceConfirmCycle` | Цикл фиксируется в `CONFIRMED` | `sidorov` |
+| APP-цепочка signSupp/signChair/signIss1/signIss2 | Акт приёмки и выдачи (on-chain через cooptypes) | `opkrg` → `chairkrg` → `petrova` |
+
+**Подход — отдельный TS-скрипт** `components/boot/src/scripts/seed-marketplace-flow.ts`:
+- Использует HTTP GraphQL клиент к coopback `:3028`.
+- Login chain: `sidorov → ant → petrova → sidorov → opkrg → chairkrg → petrova` (через `Mutations.Auth.Login` + WIF из `state/participants/*.json`).
+- На on-chain действиях (signSupp/signChair/signIss) — собирает транзакцию через `cooptypes` actions и подписывает через `eosjs`.
+- Запускается из `package.json` как `pnpm --filter @coopenomics/boot seed:marketplace-flow`.
+- Идемпотентен: проверяет наличие Offer/Order перед созданием.
+
+**Альтернатива** — композитный harness scenario `_magistral-II-seed.mjs` через Playwright UI flows. Проще в реализации (переиспользует существующие сценарии), но медленнее (~5-10 мин на прогон) и требует поднятого desktop dev.
+
+**Что после сидера**: переснять с реальными данными следующие шоты:
+- `orderer/catalog.mjs` — карточка APPROVED Offer на витрине
+- `orderer/orders.mjs` — лента активных Заказов
+- `orderer/consolidated.mjs` — сводный заказ по cycle_id
+- `offerer/offers.mjs` — Offer ACTIVE в кабинете поставщика
+- `offerer/incoming-orders.mjs` — реальный Order от petrova
+- `offerer/shipment-prep.mjs` — после AcceptOrder
+- `operator/apl-reception-create.mjs` — после shipment
+- `operator/inventory-label.mjs` — после APP
+- `operator/warehouse.mjs` — реальный inventory
+- `operator/issuance.mjs` — Order готов к выдаче
+- `branch-chairman/branch-orders.mjs` — 3 таба с данными
+- `orderer/ready-to-receive.mjs` — Order в RECEIVED
+- `offerer/apl-reception-sign.mjs` — first signature
 
 
 ---
