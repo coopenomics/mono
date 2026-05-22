@@ -367,6 +367,42 @@ export const meta = {
 3. **`branch-chairman/branch-orders` auto-detect braname**: подтянуть `marketplaceWhoAmI` или `marketplace_member_wallet` вместо ручного ввода (председатель КУ привязан к одному branch через trustee).
 4. **~~Прогон harness'а~~ ✅ выполнен** — 9 PNG установлены, admonition сняты (коммит `ee06d405136`, 2026-05-22). MD-проза готова.
 
+### 9.12. Попытка пополнить L3-кошелёк → следующий блокер: пайщик не член кооператива (2026-05-22)
+
+Создан one-shot скрипт `components/boot/src/scripts/marketplace-deposit-fund.ts` —
+эмиссия в Main Wallet через `wallet::createdeposit + gateway::completeincome` от
+имени кооператива. Pattern из `seed-capital/phases/08-investments.ts`.
+
+Прогон `FUND_USERNAMES=ekaterina pnpm --filter @coopenomics/boot exec esno ...` → **fail:**
+`assertion failure with message: Пайщик не найден в кооперативе` (тот же fail для `sidorov`).
+
+**Root cause:** `wallet::createdeposit` через цепочку lookup'ов упирается в
+`coops_access_helpers.hpp:57`: `eosio::check(participant_row != participants_tbl.end(), "Пайщик не найден в кооперативе")`.
+Текущий seed (add-plain-participant + ensureMarketplaceParticipant) создаёт
+on-chain registrator account + mongo individual + pg user, но **НЕ заводит
+запись в `soviet::participants`** — это требует прохождения через `joincoop`
+decision type: совет (3 votefor + authorize + exec) утверждает заявление и
+оплату регистрационного взноса (`soviet::admin/validate.cpp:29`,
+`sndagreement.cpp:65`, `wallet/addbal.cpp:43`).
+
+**Архитектурное пояснение пользователя:** у пайщика несколько кошельков —
+**Main Wallet** (главный, на главной странице + мини в левом нижнем углу),
+**кошельки членских взносов** (по разным стандартам) и **кошельки программ**
+(Стола заказов и др.). Пополнение всегда идёт в Main; контракт сам конвертирует
+Main → членских взносов → программа через `o.wal.conv`/`o.mkt.assign`/`o.mkt.block`.
+Но membership должна существовать ДО пополнения — иначе нет Main Wallet'а
+пайщика как такового.
+
+**Развилка для следующего шага** (вынесена в вопрос пользователю):
+- (A) Автомат `joincoop` в installExtraData — для каждого тестового пайщика
+  делать soviet decision type=joincoop + 3 votefor + authorize + exec, без
+  UI-шагов. Быстро даёт рабочий стенд для всех harness-сценариев.
+- (B) Прогон через UI: новый сценарий `onboarding/join-coop` — ekaterina
+  открывает «Заявление на вступление в кооператив», ant авторизует. Даёт
+  документацию реального UX, медленнее.
+- (C) Расширить `add-plain-participant.ts` чтобы он сразу делал full joincoop.
+  Альтернатива (A), но в одном месте — каждый новый пайщик автоматически член.
+
 ### 9.11. cycle_type mapper фикснут — следующий блокер: пустой L3-кошелёк (2026-05-22)
 
 Прогресс по §9.10:
