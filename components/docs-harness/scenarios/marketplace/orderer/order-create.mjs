@@ -1,9 +1,8 @@
-// Сценарий: orderer-стол «Оформление заказа» (Эпик 4 / Story 4.1).
-// На текущей реализации `onSelectOffer` в MarketplaceCatalogPage — это
-// заглушка: клик по «Заказать» вызывает Quasar Notify с сообщением
-// «Создание заказа на Offer X — будет доступно после Эпика 4». Полный
-// диалог формы заказа (количество + ПВЗ доставки + подпись Membership)
-// подключается следующим UI-PR'ом Эпика 4.
+// Сценарий: orderer-стол «Оформление заказа».
+// MVP-форма — q-dialog поверх каталога: при клике «Заказать» открывается
+// OrderCreateDialog с полями quantity + delivery_braname; submit вызывает
+// `marketplaceCreateOrder`. По успеху — Notify «Заказ создан», каталог
+// перезагружается, остаток APPROVED Offer'а уменьшается.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -18,7 +17,7 @@ const loadFixture = (username) =>
   );
 
 export const meta = {
-  title: 'Стол заказчика — оформление заказа (в разработке)',
+  title: 'Стол заказчика — оформление заказа',
   docPath: 'new/marketplace/orderer/order-create.md',
   assetsDir: 'assets/new/marketplace/orderer/order-create',
   role: 'user',
@@ -71,24 +70,42 @@ export default async ({ page, shot }) => {
   await page.waitForTimeout(1500);
   await cleanViteOverlays(page);
 
-  // Клик «Заказать» на первой карточке — текущая реализация показывает Notify.
   const orderBtn = page.locator('button:has-text("Заказать")').first();
-  const hasOrderBtn = await orderBtn.count();
-  if (!hasOrderBtn) {
+  if (!(await orderBtn.count())) {
     throw new Error('В каталоге нет CatalogOfferCard с действием «Заказать» — нужен хотя бы один APPROVED offer (chairman/offer-moderation).');
   }
   await orderBtn.click();
 
-  // Ждём появления Quasar Notify (.q-notification) с info-сообщением.
-  // cleanViteOverlays удаляет .q-notification (см. harness.mjs:320) — поэтому
-  // НЕ вызываем его перед shot, иначе тост уйдёт за миг до снимка.
-  await page.locator('.q-notification').first().waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
-  await page.waitForTimeout(300);
-
+  const dialog = page.locator('.mp-order-create-dialog').first();
+  await dialog.waitFor({ state: 'visible', timeout: 5000 });
+  await page.waitForTimeout(400);
+  await cleanViteOverlays(page);
   await shot(
     page,
-    '01-order-create-stub-notify',
-    `Текущая реализация «Заказать» — заглушка Story 4.1: при клике на карточку offer'а появляется уведомление «Создание заказа на Offer X — будет доступно после Эпика 4». URL: \`${page.url()}\`. Полный диалог формы заказа (количество, ПВЗ доставки, подпись Membership-заявки) подключается следующим UI-PR'ом Эпика 4.`,
+    '01-order-create-dialog',
+    'Диалог оформления заказа: q-input «Количество», q-select «ПВЗ доставки», итоговая сумма (цена × количество), кнопки «Отмена» и «Подтвердить заказ». Открывается при клике «Заказать» на карточке APPROVED offer\'а в каталоге.',
+  );
+
+  const qty = dialog.locator('input[type="number"]').first();
+  await qty.click({ clickCount: 3 });
+  await qty.fill('2');
+  await page.waitForTimeout(300);
+  await cleanViteOverlays(page);
+  await shot(
+    page,
+    '02-order-create-filled',
+    'Форма с количеством 2 и автоматически выбранным ПВЗ доставки. Итоговая сумма обновляется немедленно (price_per_unit × quantity). Кнопка «Подтвердить заказ» становится активной, когда оба поля валидны.',
+  );
+
+  const confirmBtn = dialog.locator('button:has-text("Подтвердить заказ")').first();
+  await confirmBtn.click();
+
+  await page.locator('.q-notification').first().waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
+  await page.waitForTimeout(600);
+  await shot(
+    page,
+    '03-order-create-success',
+    'Уведомление «Заказ создан» после успешного submit. Диалог закрывается, каталог перезагружается с обновлённым остатком offer\'а. Order появляется в ленте «Мои заказы» в статусе CREATED.',
     { preserveNotifications: true },
   );
 };

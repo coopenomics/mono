@@ -1,10 +1,12 @@
-import { Queries } from '@coopenomics/sdk';
+import { Mutations, Queries } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 import type {
+  BranchOption,
   CatalogSort,
   MarketplaceCategoryOfferCount,
   MarketplaceCategoryView,
   MarketplaceOfferPage,
+  MarketplaceOrderCreated,
 } from '../types';
 
 /**
@@ -65,4 +67,28 @@ export async function fetchCategoryOfferCounts(): Promise<MarketplaceCategoryOff
     Queries.Marketplace.CategoryOfferCounts.query,
   );
   return list;
+}
+
+export async function fetchBranchOptions(coopname: string): Promise<BranchOption[]> {
+  const { [Queries.Branches.GetBranches.name]: list } = await client.Query(
+    Queries.Branches.GetBranches.query,
+    { variables: { data: { coopname, braname: null } } },
+  );
+  return (list ?? []).map((b) => ({
+    braname: b.braname,
+    short_name: b.short_name ?? b.full_name ?? b.braname,
+    city: b.city ?? null,
+  }));
+}
+
+export async function submitCreateOrder(input: {
+  offer_id: string;
+  quantity: number;
+  delivery_braname: string;
+}): Promise<MarketplaceOrderCreated> {
+  const { [Mutations.Marketplace.CreateOrder.name]: result } = await client.Mutation(
+    Mutations.Marketplace.CreateOrder.mutation,
+    { variables: { input } },
+  );
+  return result;
 }

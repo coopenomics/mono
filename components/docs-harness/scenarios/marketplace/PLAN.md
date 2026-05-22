@@ -1,6 +1,6 @@
 # План E2E-документации Marketplace MVP «Стол заказов»
 
-Последнее обновление: 2026-05-22 (9 страниц реализованы, harness прогнан, PNG установлены, admonition «реализовано»; см. §9 «Текущее состояние»).
+Последнее обновление: 2026-05-22 (orderer/order-create переключён со stub Notify на реальный `marketplaceCreateOrder` через диалог в каталоге — см. §9.10).
 Цель: ночной прогон harness + проза в `components/docs/docs/new/marketplace/...` + добавление новых разделов в `mkdocs.yml`. Параллельно — UI-багфиксы по факту.
 
 ## 0. Терминология (зафиксировать в UI/доках)
@@ -366,6 +366,22 @@ export const meta = {
 2. **`chairman/category-whitelist` tree-выбор**: подключить `marketplaceGetCategoryTree` через диалог-tree.
 3. **`branch-chairman/branch-orders` auto-detect braname**: подтянуть `marketplaceWhoAmI` или `marketplace_member_wallet` вместо ручного ввода (председатель КУ привязан к одному branch через trustee).
 4. **~~Прогон harness'а~~ ✅ выполнен** — 9 PNG установлены, admonition сняты (коммит `ee06d405136`, 2026-05-22). MD-проза готова.
+
+### 9.10. orderer/order-create — реальный submit (2026-05-22)
+
+Развилка §9.9 решена в пользу (A) — UI. Реализовано:
+
+- **SDK уже был готов** — `Mutations.Marketplace.CreateOrder` существует, никаких новых обёрток не требуется.
+- **API-слой** `pages/Marketplace/MarketplaceCatalog/api/index.ts` — добавлены `fetchBranchOptions(coopname)` через `Queries.Branches.GetBranches` и `submitCreateOrder({offer_id, quantity, delivery_braname})` через `Mutations.Marketplace.CreateOrder`.
+- **Dialog-компонент** `pages/Marketplace/MarketplaceCatalog/ui/OrderCreateDialog.vue` — q-dialog с двумя полями: q-input «Количество» (с верхней границей по `quantity_available` для не-безлимитных Offer'ов) + q-select «ПВЗ доставки» (автовыбор единственного ПВЗ). Расчёт итоговой суммы — `price_per_unit × quantity`, обновляется реактивно.
+- **MarketplaceCatalogPage.vue** — `onSelectOffer` больше не вызывает stub Notify; вместо этого открывает `OrderCreateDialog` с выбранным offer'ом. По `@created` — каталог перезагружается.
+- **Сценарий** `orderer/order-create.mjs` переписан под новый UI: 3 шота — пустой диалог / заполненная форма / Notify «Заказ создан».
+- **Проза** `docs/new/marketplace/orderer/order-create.md` приведена в соответствие с реальным MVP: убраны выдуманные «акт о паевом взносе», «комиссия кооператива», «срок ожидания партии», «программный кошелёк Стола заказов» — описание только того, что в UI и backend сейчас есть (соответствует convention «не упоминать неиспользуемое»).
+
+**Что разблокирует.** После сабмита Order появляется в Postgres со статусом CREATED. Следующие страницы магистрали II можно снимать с реальными данными: `orderer/orders`, `orderer/consolidated`, `offerer/incoming-orders`.
+
+**Что НЕ покрыто в этой итерации** (отдельный блокер при первом прогоне):
+- Если Ekaterina не Membership Стола заказов — backend Membership-guard вернёт ошибку. UI её покажет в Notify. Membership-flow (`OnboardingMemberPickCpp`) уже реализован — нужно прогнать его перед order-create или включить шаг подписания в installExtraData.
 
 ### 9.9. Магистраль II — старт (2026-05-22, коммит `2db39b56bfa`)
 
