@@ -90,11 +90,20 @@ export default async ({ page, shot }) => {
   await qty.click({ clickCount: 3 });
   await qty.fill('2');
   await page.waitForTimeout(300);
+
+  // Открыть q-select «ПВЗ доставки» и выбрать первый option из выпадашки.
+  const branchSelect = dialog.locator('.q-select').first();
+  await branchSelect.click();
+  await page.waitForTimeout(400);
+  const firstOption = page.locator('.q-menu .q-item').first();
+  await firstOption.waitFor({ state: 'visible', timeout: 5000 });
+  await firstOption.click();
+  await page.waitForTimeout(300);
   await cleanViteOverlays(page);
   await shot(
     page,
     '02-order-create-filled',
-    'Форма с количеством 2 и автоматически выбранным ПВЗ доставки. Итоговая сумма обновляется немедленно (price_per_unit × quantity). Кнопка «Подтвердить заказ» становится активной, когда оба поля валидны.',
+    'Форма с количеством 2 и выбранным ПВЗ доставки. Итоговая сумма обновляется немедленно (price_per_unit × quantity). Кнопка «Подтвердить заказ» становится активной, когда оба поля валидны.',
   );
 
   const confirmBtn = dialog.locator('button:has-text("Подтвердить заказ")').first();
@@ -104,8 +113,8 @@ export default async ({ page, shot }) => {
   await page.waitForTimeout(600);
   await shot(
     page,
-    '03-order-create-success',
-    'Уведомление «Заказ создан» после успешного submit. Диалог закрывается, каталог перезагружается с обновлённым остатком offer\'а. Order появляется в ленте «Мои заказы» в статусе CREATED.',
+    '03-order-create-onchain-error',
+    'Текущий блокер магистрали II: backend отдаёт `cycle_type=\'time_based\'`, а контракт `marketplace::createorder` ожидает eosio::name `timebased` (без подчёркивания) — assertion fail «Неизвестный тип цикла отсечки заявок». UI корректно показывает читаемое сообщение через extractErrorMessage(). После фикса mapper\'а в backend submit отработает и появится положительный Notify «Заказ создан».',
     { preserveNotifications: true },
   );
 };

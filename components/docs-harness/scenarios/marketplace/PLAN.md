@@ -367,21 +367,40 @@ export const meta = {
 3. **`branch-chairman/branch-orders` auto-detect braname**: подтянуть `marketplaceWhoAmI` или `marketplace_member_wallet` вместо ручного ввода (председатель КУ привязан к одному branch через trustee).
 4. **~~Прогон harness'а~~ ✅ выполнен** — 9 PNG установлены, admonition сняты (коммит `ee06d405136`, 2026-05-22). MD-проза готова.
 
-### 9.10. orderer/order-create — реальный submit (2026-05-22)
+### 9.10. orderer/order-create — реальный submit + найден on-chain блокер (2026-05-22)
 
 Развилка §9.9 решена в пользу (A) — UI. Реализовано:
 
-- **SDK уже был готов** — `Mutations.Marketplace.CreateOrder` существует, никаких новых обёрток не требуется.
-- **API-слой** `pages/Marketplace/MarketplaceCatalog/api/index.ts` — добавлены `fetchBranchOptions(coopname)` через `Queries.Branches.GetBranches` и `submitCreateOrder({offer_id, quantity, delivery_braname})` через `Mutations.Marketplace.CreateOrder`.
-- **Dialog-компонент** `pages/Marketplace/MarketplaceCatalog/ui/OrderCreateDialog.vue` — q-dialog с двумя полями: q-input «Количество» (с верхней границей по `quantity_available` для не-безлимитных Offer'ов) + q-select «ПВЗ доставки» (автовыбор единственного ПВЗ). Расчёт итоговой суммы — `price_per_unit × quantity`, обновляется реактивно.
-- **MarketplaceCatalogPage.vue** — `onSelectOffer` больше не вызывает stub Notify; вместо этого открывает `OrderCreateDialog` с выбранным offer'ом. По `@created` — каталог перезагружается.
-- **Сценарий** `orderer/order-create.mjs` переписан под новый UI: 3 шота — пустой диалог / заполненная форма / Notify «Заказ создан».
-- **Проза** `docs/new/marketplace/orderer/order-create.md` приведена в соответствие с реальным MVP: убраны выдуманные «акт о паевом взносе», «комиссия кооператива», «срок ожидания партии», «программный кошелёк Стола заказов» — описание только того, что в UI и backend сейчас есть (соответствует convention «не упоминать неиспользуемое»).
+- **SDK** — `Mutations.Marketplace.CreateOrder` уже был готов.
+- **API-слой** — `fetchBranchOptions(coopname)` через `Queries.Marketplace.ListKUDetails` (с `onlyActive:true`); `submitCreateOrder` через `Mutations.Marketplace.CreateOrder`. Изначально пробовал `Queries.Branches.GetBranches` — но он требует chairman-видимости и в свежем worktree падает с NPE PaymentMethodDomainEntity (см. фикс #118 — не дошёл до mono-ai-4).
+- **Dialog-компонент** `OrderCreateDialog.vue` — q-input «Количество» (с верхней границей `quantity_available` для не-безлимитных) + q-select «ПВЗ доставки» (автовыбор если одно ПВЗ). Расчёт итоговой суммы — реактивный. `extractErrorMessage()` достаёт `message` из Error/ApolloError/graphQLErrors[0]/response.errors[0] — иначе UI показывает `[object Object]`.
+- **MarketplaceCatalogPage.vue** — `onSelectOffer` открывает `OrderCreateDialog` вместо stub Notify.
+- **`marketplace_ku_details` seed** — в свежем стенде таблица пустая, ПВЗ-список приходит [] и select disabled. Засеял 3 строки через прямой psql INSERT (`krg/odn/myt` со `status=ACTIVE`). **TODO:** добавить step в `installExtraData` (boot/src/init/infra.ts) чтобы reboot:extra ставил эти записи автоматически.
+- **Сценарий** `orderer/order-create.mjs` — 3 шота: пустой диалог / заполненная форма / Notify ошибки.
+- **Проза** приведена к фактам (без выдуманных «акт о паевом взносе», «комиссия», «программный кошелёк»).
 
-**Что разблокирует.** После сабмита Order появляется в Postgres со статусом CREATED. Следующие страницы магистрали II можно снимать с реальными данными: `orderer/orders`, `orderer/consolidated`, `offerer/incoming-orders`.
+**НАЙДЕННЫЙ on-chain блокер магистрали II:** backend Postgres хранит `cycle_type='time_based'` (snake_case), а контракт `marketplace::createorder` ожидает `eosio::name`-литерал `timebased` (без подчёркивания) — `eosio::name` грамматика не допускает `_`. Assert: «Неизвестный тип цикла отсечки заявок» (`components/contracts/cpp/marketplace/src/p.mkt.supply/createorder.cpp:52`). Контракт-enum: `components/contracts/cpp/lib/domain/table_marketplace_orders.hpp:69-71` — `timebased / volumebased / opensubscr`.
 
-**Что НЕ покрыто в этой итерации** (отдельный блокер при первом прогоне):
-- Если Ekaterina не Membership Стола заказов — backend Membership-guard вернёт ошибку. UI её покажет в Notify. Membership-flow (`OnboardingMemberPickCpp`) уже реализован — нужно прогнать его перед order-create или включить шаг подписания в installExtraData.
+**Фикс — в backend mapper'е** `marketplace-order-create.service.ts`, который преобразует строковый `MarketplaceOfferCycleType` в `eosio::name` payload для action. Должен быть mapping таблица:
+
+| Postgres `cycle_type` | eosio::name action payload |
+|---|---|
+| `time_based` | `timebased` |
+| `volume_based` | `volumebased` |
+| `open_subscription` | `opensubscr` |
+
+После фикса mapper'а UI/SDK/backend цепочка пройдёт до конца и Order сохранится в Postgres со статусом CREATED.
+
+**Что UI/доки покрыли в этой итерации:**
+
+- ✅ UI оформления Order + читаемые ошибки.
+- ✅ `marketplace_ku_details` seed.
+- ✅ Документация фиксирует блокер в admonition «Известный блокер магистрали II» — пайщик / разработчик видит честно.
+
+**Что НЕ покрыто:**
+
+- ❌ Реальный Order в Postgres → дальнейшая магистраль II (`orderer/orders`, `consolidated`, `offerer/incoming-orders` с реальными данными) остаётся в empty-state.
+- ❌ Membership-flow `OnboardingMemberPickCpp` для ekaterina перед order-create — если Membership-guard вернёт ошибку, она тоже отобразится через `extractErrorMessage`. В текущем прогоне Membership пропустил, потому что up-front упёрлись в on-chain assert.
 
 ### 9.9. Магистраль II — старт (2026-05-22, коммит `2db39b56bfa`)
 

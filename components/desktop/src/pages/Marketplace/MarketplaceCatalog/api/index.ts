@@ -70,14 +70,14 @@ export async function fetchCategoryOfferCounts(): Promise<MarketplaceCategoryOff
 }
 
 export async function fetchBranchOptions(coopname: string): Promise<BranchOption[]> {
-  const { [Queries.Branches.GetBranches.name]: list } = await client.Query(
-    Queries.Branches.GetBranches.query,
-    { variables: { data: { coopname, braname: null } } },
+  const { [Queries.Marketplace.ListKUDetails.name]: list } = await client.Query(
+    Queries.Marketplace.ListKUDetails.query,
+    { variables: { data: { coopname, onlyActive: true } } },
   );
-  return (list ?? []).map((b) => ({
-    braname: b.braname,
-    short_name: b.short_name ?? b.full_name ?? b.braname,
-    city: b.city ?? null,
+  return (list ?? []).map((d) => ({
+    braname: d.coreBraname,
+    short_name: d.addressFull || d.coreBraname,
+    city: null,
   }));
 }
 

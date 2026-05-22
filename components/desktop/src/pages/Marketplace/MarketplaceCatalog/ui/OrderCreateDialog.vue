@@ -89,6 +89,26 @@ watch(
   },
 );
 
+function extractErrorMessage(e: unknown): string {
+  if (e instanceof Error && e.message) return e.message;
+  if (Array.isArray(e) && e.length > 0) return extractErrorMessage(e[0]);
+  if (e && typeof e === 'object') {
+    const err = e as Record<string, unknown>;
+    if (typeof err.message === 'string') return err.message;
+    const gql = err.graphQLErrors;
+    if (Array.isArray(gql) && gql.length > 0) return extractErrorMessage(gql[0]);
+    const resp = err.response as Record<string, unknown> | undefined;
+    if (resp && Array.isArray(resp.errors) && resp.errors.length > 0) {
+      return extractErrorMessage(resp.errors[0]);
+    }
+  }
+  try {
+    return JSON.stringify(e);
+  } catch {
+    return String(e);
+  }
+}
+
 async function onSubmit(): Promise<void> {
   if (!props.offer || !branch.value) return;
   submitting.value = true;
@@ -102,8 +122,7 @@ async function onSubmit(): Promise<void> {
     emit('created');
     open.value = false;
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    Notify.create({ type: 'negative', message });
+    Notify.create({ type: 'negative', message: extractErrorMessage(e) });
   } finally {
     submitting.value = false;
   }
