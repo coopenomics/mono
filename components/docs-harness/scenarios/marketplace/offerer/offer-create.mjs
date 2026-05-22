@@ -91,6 +91,19 @@ export default async ({ page, shot }) => {
   await setField('Доступное количество', '50');
   await setField('Гарантия', '7');
 
+  // Тип отсечки — «Индивидуально (individual)»: переход
+  // Order.status: ACTIVE → ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL происходит
+  // синхронно в marketplace-order-create.service.ts:248 без cron-агрегатора.
+  // Это разблокирует magistral II сразу же — заказ ekaterina появляется
+  // в offerer/incoming-orders в табе «Индивидуальные ожидающие».
+  // (default time_based с cycle_days=7 ждёт 7 дней до перехода — слишком долго
+  // для harness/документации.)
+  const individualRadio = page.locator('label.q-radio', { hasText: 'Индивидуально' }).first();
+  if (await individualRadio.count() > 0) {
+    await individualRadio.click({ timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(500);
+  }
+
   // q-select «Категория *» — Quasar рендерит label как div.q-field__label
   // (не HTML <label>). Селектор готов, но в текущей среде marketplace-resolver'ы
   // на backend :2998 не зарегистрированы — fetchCategories() возвращает [],
