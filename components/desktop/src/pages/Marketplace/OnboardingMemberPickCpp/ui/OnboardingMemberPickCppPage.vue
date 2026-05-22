@@ -67,7 +67,7 @@ async function load(): Promise<void> {
   }
 }
 
-async function onAccept(): Promise<void> {
+async function onAccept(_documentIds: string[]): Promise<void>
   // L3 подпись прямо со стола: фоллоуап Эпика 1 (mutation
   // `marketplaceSignOnboardingOffer`). Frontend рендерит оферту 1101 через
   // documentFactory, подписывает локальным WIF, отправляет на backend, а тот

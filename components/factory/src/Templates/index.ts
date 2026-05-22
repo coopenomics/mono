@@ -66,6 +66,10 @@ export * as GenerationConvertStatement from './1080.GenerationConvertStatement'
 export * as CapitalizationToMainWalletConvertStatement from './1090.CapitalizationToMainWalletConvertStatement'
 export * as SosediAgreement from './699.SosediAgreement'
 
+// Marketplace (Стол заказов) — Эпик 1 (онбординг ЦПП)
+export * as MarketplaceOfferTemplate from './1100.MarketplaceOfferTemplate'
+export * as MarketplaceOffer from './1101.MarketplaceOffer'
+
 // Marketplace (Стол заказов) — Эпик 5
 export * as MarketplaceAplReception from './1102.MarketplaceAplReception'
 export * as MarketplaceTransportNote from './1103.MarketplaceTransportNote'

@@ -3,9 +3,17 @@ import type { ICommonUser, ICooperativeData, IVars } from '../../model'
 
 export const registry_id = 1101
 
-// Модель действия для генерации
+// Модель действия для генерации.
+//
+// Эпик 1 / Story 1.11 + Story 1.4 (L3 fallback). Backend marketplace вычисляет
+// `marketplace_agreement_number` и `marketplace_agreement_created_at` в момент
+// L3-подписи (или core registration-flow при L2) и передаёт их в render
+// явно — без обращения к Udata, потому что они уникальны для одной подписи
+// и не переиспользуются как для Благороста.
 export interface Action extends IGenerate {
   registry_id: number
+  marketplace_agreement_number: string
+  marketplace_agreement_created_at: string
 }
 
 export type Meta = IMetaDocument & Action

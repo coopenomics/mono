@@ -817,6 +817,9 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceSignAplReceptionInput:{
 		signed_documents:"MarketplaceAplReceptionSignedDocumentInput"
 	},
+	MarketplaceSignOnboardingOfferInput:{
+		document:"SignedDigitalDocumentInput"
+	},
 	MarketplaceSubmitWriteoffDraftInput:{
 		signed_statement:"SignedDigitalDocumentInput"
 	},
@@ -1395,6 +1398,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceSignAplReceptionAsSupplier:{
 			data:"MarketplaceSignAplReceptionInput"
+		},
+		marketplaceSignOnboardingOffer:{
+			input:"MarketplaceSignOnboardingOfferInput"
 		},
 		marketplaceSubmitWriteoffDraft:{
 			data:"MarketplaceSubmitWriteoffDraftInput"
@@ -4705,6 +4711,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceSetKUStatus:"MarketplaceKUDetails",
 		marketplaceSignAplReceptionAsChairman:"MarketplaceAplReceptionResult",
 		marketplaceSignAplReceptionAsSupplier:"MarketplaceAplReceptionResult",
+		marketplaceSignOnboardingOffer:"MarketplaceOnboardingState",
 		marketplaceSubmitWriteoffDraft:"MarketplaceWriteoffProposal",
 		marketplaceTriggerOpenSubscription:"MarketplaceConsolidatedRequest",
 		marketplaceUpdateOffer:"MarketplaceOffer",

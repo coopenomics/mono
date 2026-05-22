@@ -68,6 +68,8 @@ import * as GeneratorOfferTemplate from './995.GeneratorOfferTemplate'
 import * as GeneratorOffer from './996.GeneratorOffer'
 import * as GeneratorProgramTemplate from './994.GeneratorProgramTemplate'
 import * as BlagorostOffer from './1000.BlagorostOffer'
+import * as MarketplaceOfferTemplate from './1100.MarketplaceOfferTemplate'
+import * as MarketplaceOffer from './1101.MarketplaceOffer'
 import * as MarketplaceAplReception from './1102.MarketplaceAplReception'
 import * as MarketplaceTransportNote from './1103.MarketplaceTransportNote'
 import * as MarketplaceReturnStatement from './1104.MarketplaceReturnStatement'
@@ -132,6 +134,8 @@ export const Registry = {
   1072: CapitalizationPropertyInvestAct,
   1080: GenerationConvertStatement,
   1090: CapitalizationToMainWalletConvertStatement,
+  1100: MarketplaceOfferTemplate,
+  1101: MarketplaceOffer,
   1102: MarketplaceAplReception,
   1103: MarketplaceTransportNote,
   1104: MarketplaceReturnStatement,
