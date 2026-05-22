@@ -367,6 +367,24 @@ export const meta = {
 3. **`branch-chairman/branch-orders` auto-detect braname**: подтянуть `marketplaceWhoAmI` или `marketplace_member_wallet` вместо ручного ввода (председатель КУ привязан к одному branch через trustee).
 4. **~~Прогон harness'а~~ ✅ выполнен** — 9 PNG установлены, admonition сняты (коммит `ee06d405136`, 2026-05-22). MD-проза готова.
 
+### 9.9. Магистраль II — старт (2026-05-22, коммит `2db39b56bfa`)
+
+Первая цепочка через UI выполнена:
+
+1. `offerer/offer-create` — Сидоров публикует Offer «Картофель Адретта 25 кг», статус PENDING_MODERATION.
+2. `chairman/offer-moderation` — председатель одобряет → статус ACTIVE.
+3. `orderer/catalog` — Петрова видит Offer в каталоге.
+4. `offerer/my-offers` — Сидоров видит свой ACTIVE Offer в кабинете.
+
+**Следующий блокер — `orderer/order-create`** — UI выводит stub Notify, реального сабмита `marketplaceCreateOrder` нет (см. шот `01-order-create-stub-notify.png`). Без него вся цепочка Order → Accept → Shipment → APP останавливается.
+
+**Две альтернативы (выбрать в следующем цикле):**
+
+- (A) Доработать UI `pages/Marketplace/OrdererOrderCreate.vue` — заменить stub Notify на реальный `Mutations.Marketplace.CreateOrder`. Требует SDK обёртки (есть `marketplaceCreateOrder` resolver в backend), формы submit и обработки flow «подписание Membership при первом Order» (PRD J2 шаг 2: `o.wal.conv + o.mkt.assign + o.mkt.block`).
+- (B) TS-сидер `seed-marketplace-flow-step2.ts` через GraphQL: login petrova → `marketplaceCreateOrder` mutation. Не требует UI работы, но требует подписания JWT-токена через WIF (LoginInput: email + now + signature).
+
+(A) даёт документируемую страницу `order-create.md`, (B) — быстрый сидер. Реалистично — (A), потому что это часть MVP UI.
+
 ### 9.8. Магистраль II — план сидера (2026-05-22)
 
 Empty-state магистраль I покрыта. Магистраль II (страницы «с данными») требует сидера в БД. Backend marketplace resolvers богатый:
