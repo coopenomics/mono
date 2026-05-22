@@ -43,6 +43,44 @@ export const MarketplaceOrderStatuses = {
 } as const satisfies Record<string, MarketplaceOrderStatus>;
 
 /**
+ * Порядок forward-перехода по линейной части state-machine. Backend и
+ * цепь обновляют status асинхронно: backend выставляет
+ * `ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL` сразу после submit'а createorder
+ * (cycle-hook), а delta от парсера приходит с `ACTIVE` — оригинальное
+ * состояние on-chain row. Чтобы синхронизация не «откатывала» backend
+ * forward в обратную сторону, sync применяет incoming status только
+ * если его ранг ≥ текущего (см. `updateFromBlockchain`).
+ *
+ * Терминальные ветки (CANCELLED_*, EXPIRED_*, RETURNED) отмечены
+ * отдельным флагом `MARKETPLACE_ORDER_STATUS_TERMINAL` — они могут
+ * прийти с цепи из любого forward-состояния и должны быть применены.
+ */
+export const MARKETPLACE_ORDER_STATUS_RANK: Record<MarketplaceOrderStatus, number> = {
+  ACTIVE: 0,
+  ACCEPTED_PENDING_SUPPLIER: 1,
+  ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL: 1,
+  ACCEPTED: 2,
+  SUPPLY_PREPARED: 3,
+  ACCEPTED_TO_COOP: 4,
+  READY_TO_RECEIVE: 5,
+  RECEIVED: 6,
+  RETURNED: 7,
+  CANCELLED_BY_ORDERER: 99,
+  CANCELLED_BY_SUPPLIER: 99,
+  EXPIRED_NO_THRESHOLD: 99,
+  EXPIRED_NO_VOLUME: 99,
+};
+
+export const MARKETPLACE_ORDER_STATUS_TERMINAL: ReadonlySet<MarketplaceOrderStatus> = new Set([
+  'RECEIVED',
+  'RETURNED',
+  'CANCELLED_BY_ORDERER',
+  'CANCELLED_BY_SUPPLIER',
+  'EXPIRED_NO_THRESHOLD',
+  'EXPIRED_NO_VOLUME',
+]);
+
+/**
  * Снапшот ledger2 транзакции `createorder` (3-step atomic series) для
  * аудита и UI WalletTimeline. Хранится в `marketplace_order.create_tx`.
  */

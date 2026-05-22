@@ -5,6 +5,10 @@ import type {
   MarketplaceOrderProps,
   MarketplaceOrderStatus,
 } from './marketplace-order.types';
+import {
+  MARKETPLACE_ORDER_STATUS_RANK,
+  MARKETPLACE_ORDER_STATUS_TERMINAL,
+} from './marketplace-order.types';
 import type { IBlockchainSynchronizable } from '~/shared/interfaces/blockchain-sync.interface';
 
 /**
@@ -129,14 +133,18 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
   }
 
   /**
-   * Story 4.1: вызывается из `AbstractEntitySyncService.handleSyncDelta`
-   * при поступлении дельты `marketplace::orders` row. Обновляет
-   * on-chain-зеркало без затрагивания backend-only полей (`cycle_id`,
-   * `create_tx`, `last_status_reason`).
+   * Вызывается из `AbstractEntitySyncService.handleSyncDelta` при
+   * поступлении дельты `marketplace::orders` row. Обновляет on-chain
+   * зеркало без затрагивания backend-only полей (`cycle_id`, `create_tx`,
+   * `last_status_reason`).
    *
-   * Мутация состояния — единственный allowed point (по ADR-008 принципу
-   * «sync обновляет только blockchain-зеркало, не destructively touch
-   * backend snapshot»).
+   * Status применяется монотонно: backend cycle-hook ставит forward-
+   * статус (`ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL`) сразу после submit'а,
+   * delta от парсера приходит с исходным on-chain статусом (`ACTIVE`) —
+   * затирать его в обратную сторону нельзя, иначе пайщик-поставщик не
+   * увидит заказ в табе «Ждут моего акцепта». Терминальные статусы
+   * (CANCELLED_*, EXPIRED_*, RETURNED, RECEIVED) всегда применяются —
+   * цепь финальный источник истины для отмены/завершения.
    */
   public updateFromBlockchain(
     blockchainData: MarketplaceOrderBlockchainData,
@@ -151,7 +159,14 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
     this.on_chain_id = blockchainData.on_chain_id;
     this.on_chain_block_num = blockNum;
     this.on_chain_present = present;
-    this.status = blockchainData.status;
+
+    const incomingRank = MARKETPLACE_ORDER_STATUS_RANK[blockchainData.status];
+    const currentRank = MARKETPLACE_ORDER_STATUS_RANK[this.status];
+    const isTerminal = MARKETPLACE_ORDER_STATUS_TERMINAL.has(blockchainData.status);
+    if (isTerminal || incomingRank >= currentRank) {
+      this.status = blockchainData.status;
+    }
+
     this.updated_at = new Date();
   }
 
