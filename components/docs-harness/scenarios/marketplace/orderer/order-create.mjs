@@ -79,6 +79,12 @@ export default async ({ page, shot }) => {
     waitUntil: 'domcontentloaded',
     timeout: 45000,
   });
+  // Vite optimizeDeps на холодном старте занимает >20s; ждём отрисовки страницы
+  // (mp-onboarding-gate / banner / любая q-page) — иначе ловим пустой Quasar
+  // bootstrap-спиннер и сценарий проваливается на gate.isVisible.
+  await page.locator('.mp-onboarding-gate, text=Вы уже подключены к Marketplace, .q-page').first()
+    .waitFor({ state: 'visible', timeout: 90000 })
+    .catch(() => {});
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(1500);
   await cleanViteOverlays(page);
@@ -150,6 +156,10 @@ export default async ({ page, shot }) => {
     waitUntil: 'domcontentloaded',
     timeout: 45000,
   });
+  // Ждём отрисовки каталога (offer-card ИЛИ empty-state) — пустой спиннер == Vite ещё грузит.
+  await page.locator('button:has-text("Заказать"), .mp-catalog-empty, .q-page').first()
+    .waitFor({ state: 'visible', timeout: 90000 })
+    .catch(() => {});
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(2500);
   await cleanViteOverlays(page);

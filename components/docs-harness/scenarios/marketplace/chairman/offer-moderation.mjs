@@ -21,8 +21,12 @@ export default async ({ page, shot }) => {
     waitUntil: 'domcontentloaded',
     timeout: 45000,
   });
+  // Ждём заголовок страницы — надёжнее timeout'а на холодный Vite optimizeDeps.
+  await page.locator('text="Модерация предложений"').first()
+    .waitFor({ state: 'visible', timeout: 90000 })
+    .catch(() => {});
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
-  await page.waitForTimeout(3000);
+  await page.waitForTimeout(1500);
   await cleanViteOverlays(page);
 
   await shot(

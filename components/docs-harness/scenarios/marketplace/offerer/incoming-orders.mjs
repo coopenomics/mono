@@ -54,14 +54,18 @@ export const meta = {
 
 export default async ({ page, shot }) => {
   const fixture = loadFixture('ivanpetrov');
+  // Флаг harness:noBranchOverlay читается в watch-branch-overlay при mount'е
+  // процесса (на первом auth-tick), а не реактивно на изменение localStorage.
+  // Поэтому ставим его через addInitScript ДО loginAs — иначе оверлей «Выберите
+  // КУ» рендерится первым и перекрывает страницу incoming-orders.
+  await page.addInitScript(() => localStorage.setItem('harness:noBranchOverlay', '1'));
   await loginAs(page, fixture);
-  await page.evaluate(() => localStorage.setItem('harness:noBranchOverlay', '1'));
   await signAllAgreements(page);
 
   await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/market/incoming-orders`, {
     waitUntil: 'domcontentloaded',
   });
-  await page.waitForSelector('text=Входящие заказы', { timeout: 60000 });
+  await page.waitForSelector('text=Входящие заказы', { timeout: 90000 });
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
   await page.waitForTimeout(1500);
   await cleanViteOverlays(page);
