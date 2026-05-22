@@ -70,7 +70,7 @@ export async function signOnboardingOffer(): Promise<MarketplaceOnboardingStateV
 
   const { [Mutations.Marketplace.MarketplaceSignOnboardingOffer.name]: result } = await client.Mutation(
     Mutations.Marketplace.MarketplaceSignOnboardingOffer.mutation,
-    { input: { document: document.signedDocument } },
+    { variables: { input: { document: document.signedDocument } } },
   );
   return result as MarketplaceOnboardingStateView;
 }

@@ -180,20 +180,21 @@ function ensureDist() {
   return true;
 }
 
-// 3. desktop dev: поднимаем если нет; если только что собрали dist и dev уже работал —
-//    рестартуем, иначе vite-plugin-checker держит кэш «no module» и vue-tsc overlay
-//    перехватывает клики в playwright (видел на 989-9, фикс через рестарт).
-async function ensureDesktop(distRebuilt) {
+// 3. desktop dev: если порт уже отвечает — НИЧЕГО не трогаем. Vite в контейнере
+//    сам подхватит обновления dist через fs-watch на симлинке node_modules.
+//    Раньше при distRebuilt orchestrator пытался `pkill -f 'quasar.js dev'`
+//    на хосте + spawn хостовый `pnpm run dev` — но quasar в контейнере
+//    (mono-ai-4-desktop-1), pkill ничего не находит, а параллельный хостовый
+//    pnpm dev писал в `node_modules/.q-cache` под admin'ом, тогда как
+//    контейнер пишет туда под node — EACCES, кэш разваливается, Vite
+//    перестаёт резолвить `@coopenomics/sdk`, UI отдаёт пустой спиннер.
+//    Инцидент 2026-05-22: пользователю пришлось руками перезапустить
+//    контейнер. Урок: если порт отвечает, доверяем vite watch.
+async function ensureDesktop(_distRebuilt) {
   log(`Проверяю desktop :${PORTS.desktop}...`);
   const wasUp = curlOk(`http://127.0.0.1:${PORTS.desktop}`);
-  if (wasUp && !distRebuilt) { ok('desktop dev живой'); return; }
-  if (wasUp && distRebuilt) {
-    log('Перезапускаю desktop dev (после билда dist нужен fresh vue-tsc cache)...');
-    spawnSync('pkill', ['-f', 'quasar.js dev'], { stdio: 'ignore' });
-    await sleep(2000);
-  } else {
-    log('desktop dev не запущен, поднимаю в фоне...');
-  }
+  if (wasUp) { ok('desktop dev живой (vite сам подхватит dist через fs-watch)'); return; }
+  log('desktop dev не запущен на :' + PORTS.desktop + ', поднимаю в фоне...');
   const logFile = '/tmp/desktop-dev.log';
   const out = fs.openSync(logFile, 'a');
   const child = spawn('pnpm', ['run', 'dev'], {
