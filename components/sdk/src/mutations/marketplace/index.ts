@@ -8,6 +8,10 @@ export * as RetryKUGeocode from './retryKUGeocode'
 export * as CreateOrder from './createOrder'
 /** Отменить свой заказ до приёма поставщиком */
 export * as CancelOrder from './cancelOrder'
+/** Эпик 4 / Story 4.5: поставщик акцептует индивидуальный заказ */
+export * as AcceptIndividualOrder from './acceptIndividualOrder'
+/** Эпик 4 / Story 4.5: поставщик отказывается от индивидуального заказа с указанием причины */
+export * as DeclineIndividualOrder from './declineIndividualOrder'
 /** Опубликовать новое предложение поставщика на модерацию */
 export * as CreateOffer from './createOffer'
 /** Эпик 3: председатель одобряет offer в статусе PENDING_MODERATION (status -> APPROVED) */

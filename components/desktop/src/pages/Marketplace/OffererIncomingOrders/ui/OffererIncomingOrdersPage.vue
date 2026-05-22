@@ -1,12 +1,12 @@
 <script lang="ts" setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue';
-import { Notify } from 'quasar';
+import { Dialog, Notify } from 'quasar';
 import {
   OrderCard,
   type Order as OrderCardModel,
   type OrderStatus as OrderCardStatus,
 } from 'src/widgets/Marketplace/OrderCard';
-import { fetchSupplierOrders } from '../api';
+import { acceptIndividualOrder, declineIndividualOrder, fetchSupplierOrders } from '../api';
 import type {
   MarketplaceOrderStatusView,
   MarketplaceOrderView,
@@ -124,6 +124,52 @@ function loadMore(): void {
   }
 }
 
+async function onAccept(orderId: string): Promise<void> {
+  loading.value = true;
+  try {
+    await acceptIndividualOrder(orderId);
+    Notify.create({ type: 'positive', message: 'Заказ принят', timeout: 4000 });
+    await load(1, false);
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    Notify.create({ type: 'negative', message, timeout: 6000 });
+  } finally {
+    loading.value = false;
+  }
+}
+
+function onDecline(orderId: string): void {
+  Dialog.create({
+    title: 'Отказ от заказа',
+    message: 'Укажите причину отказа — она будет показана пайщику в его заказе.',
+    prompt: { model: '', type: 'textarea', isValid: (val: string) => val.trim().length > 0 },
+    cancel: { label: 'Отмена', flat: true, noCaps: true },
+    ok: { label: 'Отказать', color: 'negative', noCaps: true },
+    persistent: true,
+  }).onOk(async (reason: string) => {
+    loading.value = true;
+    try {
+      await declineIndividualOrder(orderId, reason.trim());
+      Notify.create({ type: 'info', message: 'Заказ отклонён', timeout: 4000 });
+      await load(1, false);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      Notify.create({ type: 'negative', message, timeout: 6000 });
+    } finally {
+      loading.value = false;
+    }
+  });
+}
+
+function onCardAction(payload: { key: string; order: OrderCardModel }): void {
+  const orderId = String(payload.order.id);
+  if (payload.key === 'accept') {
+    void onAccept(orderId);
+  } else if (payload.key === 'decline') {
+    onDecline(orderId);
+  }
+}
+
 onMounted(async () => {
   await load(1, false);
   pollTimer = setInterval(() => {
@@ -177,7 +223,8 @@ q-page.mp-role-offerer.mp-incoming-orders(role="region", aria-label="Входя�
       v-for="card in cards",
       :key="card.id",
       :order="card",
-      role="offerer"
+      role="offerer",
+      @action="onCardAction"
     )
 
   div.mp-incoming-orders__more(v-if="hasMore")

@@ -1,4 +1,4 @@
-import { Queries } from '@coopenomics/sdk';
+import { Mutations, Queries } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 import type {
   MarketplaceOrderPage,
@@ -44,4 +44,16 @@ export async function fetchSupplierOrders(
     },
   });
   return result[Queries.Marketplace.ListSupplierOrders.name] as unknown as MarketplaceOrderPage;
+}
+
+export async function acceptIndividualOrder(order_id: string): Promise<void> {
+  await client.Mutation(Mutations.Marketplace.AcceptIndividualOrder.mutation, {
+    variables: { input: { order_id } },
+  });
+}
+
+export async function declineIndividualOrder(order_id: string, reason: string): Promise<void> {
+  await client.Mutation(Mutations.Marketplace.DeclineIndividualOrder.mutation, {
+    variables: { input: { order_id, reason } },
+  });
 }
