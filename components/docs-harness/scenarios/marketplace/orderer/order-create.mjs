@@ -113,8 +113,8 @@ export default async ({ page, shot }) => {
   await page.waitForTimeout(600);
   await shot(
     page,
-    '03-order-create-no-funds',
-    'Текущий блокер магистрали II: у тестового пайщика пустой L3-кошелёк (0,00 RUB), а заказ требует 240 RUB. Backend (после фикса cycle_type mapper) корректно делает `chainPort.createOrder`, контракт `marketplace::createorder` валидирует cycle_type и идёт дальше — но вызывает `o.wal.block` для блокировки средств, который падает с assertion «Недостаточно средств». UI корректно показывает читаемое сообщение через `extractErrorMessage()`. После пополнения L3-кошелька (Task #137 — эмиссия тестовых средств в installExtraData) submit отработает и появится положительный Notify «Заказ создан».',
+    '03-order-create-no-agreement',
+    'Текущий блокер магистрали II: у тестового пайщика не подписана ЦПП «Стол заказов» (program_id=2, draft_id=699 в `soviet::coagreements`). Backend проходит pipeline вплоть до on-chain `marketplace::createorder` → внутреннего `o.mkt.assign` (TRANSFER из `w.wal.member` в `w.mkt.member`), который требует записи в `wallet::users.programs[]` с program_id=2. Контракт корректно валит assertion «walletop: у пайщика X не подписано соглашение program_id=2 для кошелька w.mkt.member». UI показывает читаемое сообщение через `extractErrorMessage()`. Корректное разблокирование — реализовать factory adapter 1100.MarketplaceOfferTemplate в `components/factory/src/Actions` и L3 mutation `marketplaceSignOnboardingOffer` (фоллоуап Эпика 1, см. controller/extensions/marketplace/application/onboarding/README.md); после этого пайщик подпишет ЦПП через UI «Стол заказов — пакет ЦПП» (страница `onboarding/member-pick-cpp`), и submit отработает с Notify «Заказ создан».',
     { preserveNotifications: true },
   );
 };
