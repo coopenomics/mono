@@ -8,6 +8,7 @@ import {
 } from 'src/widgets/Marketplace/OnboardingCPPGate';
 import {
   fetchOnboardingState,
+  signOnboardingOffer,
   type MarketplaceOnboardingStateView,
 } from '../api';
 
@@ -66,19 +67,39 @@ async function load(): Promise<void> {
   }
 }
 
-function onAccept(_documentIds: string[]): void {
-  // L2 подпись делается через core wallet::signagree. На MVP — редирект
-  // пайщика в Registrator-мастер, где собран нужный шаг подписи. После
-  // подписи backend через listener marketplace::onAgreementSigned пересчитает
-  // requires_gate и пайщик попадёт на /market автоматически (см. Story 1.11).
-  Notify.create({
-    type: 'info',
-    message: 'Подписание ЦПП — через Registrator. Перенаправляем…',
-    timeout: 1500,
-  });
-  setTimeout(() => {
-    void router.push({ name: 'registrator' });
-  }, 800);
+async function onAccept(_documentIds: string[]): Promise<void> {
+  // L3 подпись прямо со стола: фоллоуап Эпика 1 (mutation
+  // `marketplaceSignOnboardingOffer`). Frontend рендерит оферту 1101 через
+  // documentFactory, подписывает локальным WIF, отправляет на backend, а тот
+  // вызывает on-chain `wallet::signagree` от лица coopname.
+  // После успешной подписи перезагружаем состояние онбординга — если
+  // requires_gate=false, ведём пайщика на каталог.
+  loading.value = true;
+  try {
+    state.value = await signOnboardingOffer();
+    if (state.value && !state.value.requires_gate) {
+      Notify.create({
+        type: 'positive',
+        message: 'Оферта ЦПП «Стол заказов» подписана. Открываем каталог…',
+        timeout: 1500,
+      });
+      setTimeout(() => {
+        void router.push({ name: 'marketplace-catalog' });
+      }, 800);
+    } else {
+      // Sync ещё не подтянул запись из chain — даём UI шанс перезапросить
+      // вручную через перезагрузку страницы.
+      Notify.create({
+        type: 'info',
+        message: 'Подпись отправлена. Подтверждение из блокчейна ожидается — обновите страницу через несколько секунд.',
+      });
+    }
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    Notify.create({ type: 'negative', message });
+  } finally {
+    loading.value = false;
+  }
 }
 
 function onDecline(): void {
@@ -115,9 +136,10 @@ q-page.mp-role-orderer.mp-member-cpp(role="region", aria-label="Подключе
     v-if="state && state.requires_gate && cppDocuments.length",
     title="Стол заказов — пакет ЦПП",
     subtitle="Эпик 1 / L3 онбординг пайщика",
-    lead-text="Ознакомьтесь с офертой и Положением ЦПП «Стол заказов». Подпись делается через Registrator-мастер кооператива.",
+    lead-text="Ознакомьтесь с офертой и Положением ЦПП «Стол заказов». При нажатии «Подписать» документ будет подписан вашим электронным ключом и отправлен в блокчейн.",
     :documents="cppDocuments",
-    confirm-label="Перейти к подписанию",
+    confirm-label="Подписать оферту"
+    :busy="loading",
     @accept="onAccept",
     @decline="onDecline"
   )

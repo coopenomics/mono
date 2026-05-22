@@ -42,7 +42,8 @@
         unelevated
         color="primary"
         :label="confirmLabel"
-        :disable="!allRequiredAccepted"
+        :disable="!allRequiredAccepted || busy"
+        :loading="busy"
         @click="$emit('accept', acceptedDocs)"
       />
     </q-card-actions>
@@ -67,6 +68,7 @@ const props = defineProps({
   leadText: { type: String, default: 'Ознакомьтесь с пакетом документов и подтвердите согласие.' },
   documents: { type: Array as PropType<CPPDocument[]>, required: true },
   confirmLabel: { type: String, default: 'Принять и продолжить' },
+  busy: { type: Boolean, default: false },
 })
 
 defineEmits<{

@@ -73,6 +73,10 @@ export * as BlagorostProgramTemplate from './998.BlagorostProgramTemplate'
 export * as GenerationContractTemplate from './997.GenerationContractTemplate'
 export * as BlagorostOfferTemplate from './999.BlagorostOfferTemplate'
 
+// Marketplace (Стол заказов) — Эпик 1 (онбординг ЦПП)
+export * as MarketplaceOfferTemplate from './1100.MarketplaceOfferTemplate'
+export * as MarketplaceOffer from './1101.MarketplaceOffer'
+
 // Marketplace (Стол заказов) — Эпик 5
 export * as MarketplaceAplReception from './1102.MarketplaceAplReception'
 export * as MarketplaceTransportNote from './1103.MarketplaceTransportNote'

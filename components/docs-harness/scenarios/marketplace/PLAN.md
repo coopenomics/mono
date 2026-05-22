@@ -367,6 +367,23 @@ export const meta = {
 3. **`branch-chairman/branch-orders` auto-detect braname**: подтянуть `marketplaceWhoAmI` или `marketplace_member_wallet` вместо ручного ввода (председатель КУ привязан к одному branch через trustee).
 4. **~~Прогон harness'а~~ ✅ выполнен** — 9 PNG установлены, admonition сняты (коммит `ee06d405136`, 2026-05-22). MD-проза готова.
 
+### 9.14. Backend-фоллоуап Эпика 1 реализован (вариант A) — magistral II разблокирована (2026-05-22 вечер)
+
+Пользователь выбрал (A): полная реализация. Сделано:
+
+- **Factory adapters 1100 + 1101** в `components/factory/src/{Actions,Templates}/` + регистрация в `Templates/registry.ts` и factory `src/index.ts` map. Сборка зелёная.
+- **cooptypes расширены** под marketplace: `IVars.marketplace_program?` + `IVars.marketplace_offer_template?`; `UdataKey.MARKETPLACE_AGREEMENT_NUMBER/CREATED_AT`; Action `1101.MarketplaceOffer` теперь принимает `marketplace_agreement_number` + `marketplace_agreement_created_at`.
+- **VarsSchema** в factory расширена соответствующими полями (валидация JSONSchema).
+- **L3 mutation `marketplaceSignOnboardingOffer`** в `marketplace-onboarding.resolver.ts` + метод `signOnboardingOffer()` в `MarketplaceOnboardingService` — лукап coagreement по `MARKETPLACE_AGREEMENT_TYPE`, делегирование в `walletBlockchainPort.signProgramAgreement` (program_id из coagreement, draft_id оттуда же, document — подписан фронтом).
+- **DTO** `MarketplaceSignOnboardingOfferInputDTO` — только signed document; coopname+username берутся из guard'а/config'а (защита от подмены).
+- **SDK обёртка** `Mutations.Marketplace.MarketplaceSignOnboardingOffer` + zeus regen.
+- **Vue dialog** `OnboardingMemberPickCpp`: `onAccept` теперь рендерит оферту (registry_id=1101), подписывает локальным WIF и отправляет через новую mutation; после успеха — Notify «Оферта подписана» + редирект на `/market/catalog`. Раньше был редирект в Registrator — убран.
+- **`OnboardingCPPGate`** widget получил пропс `busy: boolean` для loading-state кнопки подписи.
+
+**Реальная проверка остаётся на e2e-прогон harness'а `orderer/order-create`:** ekaterina входит, видит gate, подписывает → caталог → «Заказать» → Notify «Заказ создан». Сценарий сделать следующим шагом.
+
+**Лицензия на дальнейшую работу:** пользователь явно подтвердил «полная реализация — стандартный сценарий, при регистрации и для существующих пайщиков должно работать». Текст оферты остаётся «рыбой» в cooptypes 1100/1101 (юр.отдел доделает позже без рисков для подписей: registry_id и flow не меняются).
+
 ### 9.13. Магистраль II заблокирована backend-фоллоуапом Эпика 1 — ждём решения пользователя (2026-05-22 вечер)
 
 После фикса cycle_type mapper'а (§9.11) и пополнения L3 Main Wallet (§9.12 был решён через `CHAIN_URL=8918`: ekaterina + ivanpetrov + petrova + sidorov по 10000 RUB на стенде) — магистраль II упёрлась в **новый блокер**: для submit'а Order'а контракт `o.mkt.assign` требует записи в `wallet::users.programs[]` с `program_id=2` (ЦПП «Стол заказов»). У ekaterina этой записи нет — она подписала только ЦПП Кошелёк (program_id=1) через signin onboarding.
