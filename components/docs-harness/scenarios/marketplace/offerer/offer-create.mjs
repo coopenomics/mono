@@ -63,8 +63,14 @@ export default async ({ page, shot }) => {
 
   // --- 01. Пустая форма создания предложения ---
   await page.goto(`${env.BASE_URL}/${env.COOPNAME}/market/create-offer`, { waitUntil: 'domcontentloaded', timeout: 45000 });
+  // Vite dev на холодном старте долго optimizeDeps'ит chunk'и страницы;
+  // вместо waitForTimeout ждём конкретно label «Название» — это надёжный
+  // сигнал что форма отрисовалась, а не пустой Quasar-спиннер.
+  await page.locator('label:has-text("Название")').first()
+    .waitFor({ state: 'visible', timeout: 90000 })
+    .catch(() => {});
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
-  await page.waitForTimeout(3000);
+  await page.waitForTimeout(1500);
   await cleanViteOverlays(page);
   await shot(
     page,
@@ -98,11 +104,15 @@ export default async ({ page, shot }) => {
   // в offerer/incoming-orders в табе «Индивидуальные ожидающие».
   // (default time_based с cycle_days=7 ждёт 7 дней до перехода — слишком долго
   // для harness/документации.)
-  const individualRadio = page.locator('label.q-radio', { hasText: 'Индивидуально' }).first();
+  // Quasar q-radio в q-option-group рендерится как <div class="q-radio">,
+  // не <label> — пробуем оба варианта селектора плюс фолбэк по тексту.
+  const individualRadio = page.locator('.q-radio:has-text("Индивидуально")').first();
   if (await individualRadio.count() > 0) {
     await individualRadio.click({ timeout: 5000 }).catch(() => {});
-    await page.waitForTimeout(500);
+  } else {
+    await page.getByText('Индивидуально (individual)').click({ timeout: 5000 }).catch(() => {});
   }
+  await page.waitForTimeout(800);
 
   // q-select «Категория *» — Quasar рендерит label как div.q-field__label
   // (не HTML <label>). Селектор готов, но в текущей среде marketplace-resolver'ы
