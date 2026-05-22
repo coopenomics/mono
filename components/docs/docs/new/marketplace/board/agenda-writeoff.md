@@ -5,7 +5,7 @@ tags:
 
 # Голосование по списанию
 
-!!!info "Реализовано — ожидается прогон harness"
+!!!info "Реализовано"
     Read-only страница совета `/market/board-writeoff` реализована (коммит `2a41354c328`). Совет видит ленту проектов списания в статусах ON_AGENDA / AUTHORIZED / EXECUTING / EXECUTED / REJECTED с фильтром по статусу. Само голосование совета — через core soviet agenda (`/soviet/agendas`, тип `mktwroff`).
 
 ![Лента проектов списания для совета](/assets/new/marketplace/board/agenda-writeoff/01-overview.png)

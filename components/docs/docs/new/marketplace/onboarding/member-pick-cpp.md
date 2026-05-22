@@ -5,7 +5,7 @@ tags:
 
 # L2 — Выбор ЦПП при вступлении в кооператив
 
-!!!info "Реализовано — ожидается прогон harness"
+!!!info "Реализовано"
     Страница `/market/onboarding/member-cpp` реализована (коммит `147951356ab`). На странице — канон-виджет `OnboardingCPPGate` (UX-DR17) с пакетом ЦПП (оферта + Положение). Реальная подпись делается через core Registrator-мастер (`wallet::signagree`) — после клика «Перейти к подписанию» страница редиректит в мастер. Когда `requires_gate=false` — баннер «уже подключены» с переходом к каталогу.
 
 ![Точка входа на подключение к Marketplace — gate ЦПП или баннер «уже подключены»](/assets/new/marketplace/onboarding/member-pick-cpp/01-gate-or-done.png)

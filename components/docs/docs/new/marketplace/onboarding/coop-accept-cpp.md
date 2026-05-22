@@ -6,7 +6,7 @@ tags:
 
 # L1 — Подключение ЦПП Marketplace кооперативом
 
-!!!info "Реализовано — ожидается прогон harness"
+!!!info "Реализовано"
     Страница `/market/onboarding/coop-cpp` реализована (коммит `510ccf545bb`). Председатель видит chip-статус ЦПП (Подключено / Не подключено), карточку с реквизитами решения совета и кнопку «Принять ЦПП Marketplace». Backend Story 1.9 (`marketplaceCppStatus` + `marketplaceAcceptCpp`) полностью готов. В MVP — stub `accepted_by_board_decision_id`; полноценная повестка совета подключится в Эпике 8 (FR40).
 
 ![Статус расширения «Не подключено» + кнопка принятия](/assets/new/marketplace/onboarding/coop-accept-cpp/01-status.png)

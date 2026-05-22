@@ -5,7 +5,7 @@ tags:
 
 # Сводный заказ
 
-!!!info "Реализовано — ожидается прогон harness"
+!!!info "Реализовано"
     Страница `/market/consolidated` реализована (коммит `e40b74fcf91`). Заказы пайщика-заказчика группируются по `cycle_id` (time_based / volume_based / open_subscription / individual) с суммарной стоимостью партии и общим этапом партии (минимальный активный по STAGE_RANK). Внутри партии — карточки `OrderCard role='orderer'`. Polling 15s.
 
 ![Empty-state: у пайщика ещё нет заказов](/assets/new/marketplace/orderer/consolidated/01-overview.png)

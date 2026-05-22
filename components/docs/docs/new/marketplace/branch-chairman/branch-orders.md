@@ -5,7 +5,7 @@ tags:
 
 # Заказы участка
 
-!!!info "Реализовано — ожидается прогон harness"
+!!!info "Реализовано"
     Страница `/market-pvz/branch-orders` реализована (коммит `d1bebf6f645`). Три ленты с табами и счётчиками: приёмки (Эпик 5), выдачи (Эпик 6), возвраты (Эпик 7) — все через существующие `*ByBraname` query, объединённые через Promise.all. braname вводится вручную; auto-detect через `marketplace_whoami` подключится на следующем шаге Story 6.x+1.
 
 ![Пустое состояние: подсказка ввести ID КУ](/assets/new/marketplace/branch-chairman/branch-orders/01-empty-input.png)

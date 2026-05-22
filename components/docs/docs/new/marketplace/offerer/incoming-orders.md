@@ -5,7 +5,7 @@ tags:
 
 # Входящие заказы
 
-!!!info "Реализовано — ожидается прогон harness"
+!!!info "Реализовано"
     Страница `/market/incoming-orders` реализована (коммит `69d3e79f36c`). Поставщик видит заказы где он `supplier` через канон `OrderCard role='offerer'` с фильтром по статусу. Backend `marketplaceListSupplierOrders` уже был DONE (read:to-self policy). Действия по акцепту партии — отдельно на `/market/supply-prep`. Polling 15s.
 
 ![Лента входящих заказов поставщика с табами фильтра](/assets/new/marketplace/offerer/incoming-orders/01-overview.png)

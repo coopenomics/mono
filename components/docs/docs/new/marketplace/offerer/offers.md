@@ -5,7 +5,7 @@ tags:
 
 # Мои предложения
 
-!!!info "Реализовано — ожидается прогон harness"
+!!!info "Реализовано"
     Страница `/market/my-offers` реализована (коммит `69d3e79f36c`). Поставщик видит свои Offer'ы во всех 4 статусах (PENDING_MODERATION / ACTIVE / REJECTED / WITHDRAWN) через канон `CatalogOfferCard` с client-side фильтром и поиском. Для REJECTED — reject_reason под карточкой. Backend `marketplaceListMyOffers` уже был DONE. Polling 30s.
 
 ![Каталог Offer'ов поставщика со stat-карточками и фильтром](/assets/new/marketplace/offerer/offers/01-overview.png)
