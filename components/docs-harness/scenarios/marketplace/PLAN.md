@@ -257,9 +257,44 @@ export const meta = {
 
 ## 9. Текущее состояние (живой статус)
 
-Срез на **2026-05-22 (день)**, ветка `feat/marketplace-l3-onboarding-sign` (PR #24).
+Срез на **2026-05-22 (день+вечер)**, ветка `worktree-marketplace-docs-impl` (PR #17; PR #24 закрыт, коммиты перенесены fast-forward в родительскую ветку).
 
-### 9.15. Magistral II частично снята; следующий блокер — cycle_days в фикстуре offer'а (2026-05-22)
+### 9.16. Magistral II ЗАКРЫТА через UI — три корневые причины холодного Vite найдены (2026-05-22 вечер)
+
+Полный 4-шаговый прогон Magistral II:
+
+1. `offerer/offer-create` (ivanpetrov, cycle_type=individual) → offer `7330c7c9` PENDING_MODERATION.
+2. `chairman/offer-moderation` (ant approve) → offer → ACTIVE.
+3. `orderer/order-create` (ekaterina, qty=2) → order `15e70181` создан, 240 RUB списано из Main Wallet.
+4. `offerer/incoming-orders` (ivanpetrov) → **2 карточки заказов** (15e70181 + старый 09c9d6c8) с действиями «Принять/Отказать» в табе «Все».
+
+**Три корневые причины, которые годами мешали harness'у работать стабильно после `reboot:extra` / docker restart:**
+
+#### Причина 1: cooptypes/dist/index.mjs мог отсутствовать (root cause Vite-залипания)
+
+В `components/cooptypes/package.json` `exports."."."import": "./dist/index.mjs"`. unbuild (`rollup.emitCJS: true` + дефолтный ESM) должен производить **оба** файла — `.mjs` + `.cjs`. Но если предыдущий билд сбился частично (или кто-то ручно удалил `.mjs`), Vite в desktop dev пытается резолвить `import` и виснет на отсутствующем модуле бесконечно — все Quasar-страницы отдают пустой bootstrap-спиннер, harness ловит «01-empty-form» как пустую картинку 7KB. Лечится `pnpm --filter cooptypes build` + копирование в host'овый `/home/admin/mono-ai-4/components/cooptypes/dist/` (desktop bind-mount'ит хостовый каталог, не worktree). После rebuild Vite через fs-watch подхватывает.
+
+#### Причина 2: Vite optimizeDeps >20s vs `waitForTimeout(3000)`
+
+Quasar SPA на холодном Vite (после рестарта desktop / chunk eviction) делает **первое** разрешение route-chunk'а 30-90 секунд (`optimizeDeps` + dependency-graph traversal). Сценарии писали `await page.waitForLoadState('networkidle', 20000); await page.waitForTimeout(3000)` — это давало 23 секунды, и при холодном старте они истекали ДО того как Vue монтировал страницу. shot захватывал пустой спиннер.
+
+**Фикс:** в каждом сценарии после goto ставить `await page.locator('<якорь>').first().waitFor({ state: 'visible', timeout: 90000 })`, где `<якорь>` — конкретный элемент целевой страницы (label «Название», text="Модерация предложений", `.mp-onboarding-gate`, `.q-page` как fallback). Это надёжно отличает «страница отрисовалась» от «Vite ещё грузит».
+
+#### Причина 3: `localStorage.setItem('harness:noBranchOverlay', '1')` после loginAs опаздывает
+
+`components/desktop/src/processes/watch-branch-overlay/index.ts` читает флаг **только в `checkConditions()`**, который вызывается:
+- один раз при mount'е процесса,
+- по `watch([session.isAuth, system.info, account.account], …, { deep: true })`.
+
+setItem на localStorage **не** триггерит watch, потому что watch смотрит на pinia-store, не на storage. Если процесс уже отработал свой первый auth-tick с пустым localStorage → overlay активен и остаётся даже после setItem. Сценарии писали `await page.evaluate(() => localStorage.setItem(...))` **после** `loginAs(page, fixture)` — оверлей рендерится первым и перекрывает целевую страницу.
+
+**Фикс:** `await page.addInitScript(() => localStorage.setItem('harness:noBranchOverlay', '1'))` ДО `loginAs`. `addInitScript` устанавливает скрипт, который Playwright выполняет на каждой странице ПЕРЕД любым document load — флаг гарантированно установлен к первому auth-tick'у.
+
+#### Что осталось
+
+- **Race-condition парсера vs backend cycle-hook** (2026-05-22): `marketplace-order-create.service.ts:248` ставит `ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL` для individual offer'а, затем `BlockchainConsumerService` обрабатывает chain action `createorder` и `MarketplaceOrderSyncService` (~2с спустя) перетирает status обратно в ACTIVE. Не критично для UI (в incoming-orders заказ виден со статусом «Размещён»), но рассогласование backend vs chain-truth — кандидат в Story 4.x фикс.
+
+### 9.15. (исторический) — Magistral II частично снята; следующий блокер — cycle_days в фикстуре offer'а (2026-05-22)
 
 Magistral II разблокирована тремя коммитами PR #24 (`e7144e9f3d2` factory 1100/1101 + L3 mutation; `1ae4d8959fd` variables wrapper + harness fix; `fa10ddec399` normalizeTxResult). Прогон `orderer/order-create` зелёный: Notify «Заказ создан», списание Main Wallet ekaterina 10000→9520, decrement offer 50→48.
 
