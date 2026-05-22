@@ -322,8 +322,30 @@ export class MarketplaceOrderCreateService {
   }
 
   private normalizeTxResult(tx: unknown): { tx_hash: string; block_num: number } {
-    const t = tx as { transaction?: { id?: string }; processed?: { id?: string; block_num?: number } };
-    const tx_hash = t?.transaction?.id ?? t?.processed?.id;
+    // wharfkit @1.6.x TransactResult: после `session.transact(..., { broadcast: true })`
+    // nodeos JSON-ответ лежит в `tx.response.transaction_id` (не в
+    // `.transaction.id` — это `ResolvedTransaction` без `.id`-поля).
+    // Fallback'и для совместимости с другими версиями session-API:
+    // `.resolved.transaction.id` и плоский `.transaction.id` (см. также
+    // `extractTxHash` в apl-reception / return-claim / issuance сервисах).
+    const t = tx as {
+      response?: { transaction_id?: string; processed?: { id?: string; block_num?: number } };
+      resolved?: { transaction?: { id?: string | { toString?: () => string } } };
+      transaction?: { id?: string | { toString?: () => string } };
+    };
+    const stringifyId = (v?: string | { toString?: () => string }): string | undefined => {
+      if (typeof v === 'string') return v;
+      if (typeof v?.toString === 'function') {
+        const s = v.toString();
+        return s && s !== '[object Object]' ? s : undefined;
+      }
+      return undefined;
+    };
+    const tx_hash =
+      t?.response?.transaction_id ??
+      t?.response?.processed?.id ??
+      stringifyId(t?.resolved?.transaction?.id) ??
+      stringifyId(t?.transaction?.id);
     if (!tx_hash) {
       // fail-fast: цепь приняла createorder, но не вернула tx_hash —
       // запись Order в БД без tx_hash сделает audit-trail фантомным.
@@ -331,7 +353,7 @@ export class MarketplaceOrderCreateService {
         'Создание заказа: цепь не вернула tx_hash. Повторите попытку.'
       );
     }
-    const block_num = t?.processed?.block_num ?? 0;
+    const block_num = t?.response?.processed?.block_num ?? 0;
     return { tx_hash, block_num };
   }
 
