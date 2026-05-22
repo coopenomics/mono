@@ -5,6 +5,12 @@ tags:
 
 # Модерация предложений
 
+![Очередь Предложений на модерации](/assets/new/marketplace/chairman/offer-moderation/01-moderation-list.png)
+
+![Диалог подтверждения одобрения](/assets/new/marketplace/chairman/offer-moderation/02-moderation-confirm-dialog.png)
+
+![Лента после одобрения](/assets/new/marketplace/chairman/offer-moderation/03-moderation-after-approve.png)
+
 Каждое опубликованное поставщиком Предложение проходит ручную модерацию председателем кооператива. Без одобрения Предложение не попадает в [каталог витрины][catalog].
 
 ## Зачем модерация

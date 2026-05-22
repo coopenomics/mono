@@ -8,8 +8,8 @@ import { cleanViteOverlays, env, loginAsChairman } from '../../../lib/harness.mj
 
 export const meta = {
   title: 'Стол председателя — модерация предложений',
-  docPath: 'new/marketplace/board/offer-moderation.md',
-  assetsDir: 'assets/new/marketplace/board/offer-moderation',
+  docPath: 'new/marketplace/chairman/offer-moderation.md',
+  assetsDir: 'assets/new/marketplace/chairman/offer-moderation',
   role: 'chairman',
 };
 
