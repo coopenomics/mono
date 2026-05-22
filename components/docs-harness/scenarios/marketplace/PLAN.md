@@ -257,7 +257,28 @@ export const meta = {
 
 ## 9. Текущее состояние (живой статус)
 
-Срез на **2026-05-21**, ветка `worktree-marketplace-docs-impl`, последний коммит `e67d7ca77b8` (страница модерации offer'ов председателем).
+Срез на **2026-05-22 (день)**, ветка `feat/marketplace-l3-onboarding-sign` (PR #24).
+
+### 9.15. Magistral II частично снята; следующий блокер — cycle_days в фикстуре offer'а (2026-05-22)
+
+Magistral II разблокирована тремя коммитами PR #24 (`e7144e9f3d2` factory 1100/1101 + L3 mutation; `1ae4d8959fd` variables wrapper + harness fix; `fa10ddec399` normalizeTxResult). Прогон `orderer/order-create` зелёный: Notify «Заказ создан», списание Main Wallet ekaterina 10000→9520, decrement offer 50→48.
+
+**Снято в этой итерации:**
+
+- `offerer/incoming-orders.mjs` — 2 шота (01-overview — диалог Quasar onboarding «Выберите КУ» для ivanpetrov; 02-pending-filter — таб «Ждут моего акцепта», пусто). Empty-state корректна, потому что заказ ekaterina висит в status=ACTIVE.
+
+**Корневой блокер для большинства magistral II reshoot'ов:**
+
+В Postgres `marketplace_order` для ekaterina один заказ со status=ACTIVE (создан commit fa10ddec399). Backend `MarketplaceCycleAggregatorService` имеет `@Cron(CronExpression.EVERY_5_MINUTES)` (Story 4.2), который для time_based offer'ов с `cycle_days=N` сравнивает `offer.created_at + N` с now() и тогда переводит Order: `ACTIVE → ACCEPTED_PENDING_SUPPLIER`. **Текущая фикстура offer'а через UI `offerer/offer-create.mjs` использует default `cycle_days=7`** — заказ застревает в ACTIVE на 7 дней, страницы поставщика (incoming-orders), сводный заказ (consolidated), и далее по цепочке остаются пустыми.
+
+**Канон-вариант для harness/документации:** добавить offer с `cycle_type=individual` (синхронный переход `ACTIVE → ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL` прямо в `marketplace-order-create.service.ts:248` без cron). Альтернатива — `cycle_days=0` или admin-mutation `forceCycleResolve` (dev-only).
+
+**Реализация (следующий шаг):**
+
+- (Опция 1) Изменить сценарий `offerer/offer-create.mjs` чтобы создавать **два** offer'а: текущий time_based 7d + дополнительный individual. Тогда magistral II разворачивается на individual-offer'е без 7-дневного ожидания.
+- (Опция 2) Реализовать таску #122 — `seed-marketplace-flow.ts` TS-скрипт в `components/boot/src/scripts/`. Поднимает Login chain через WIF из `state/participants/*.json` и проводит магистраль до конца через GraphQL mutations. Запускается перед harness прогоном (или из installExtraData).
+
+**Дополнительная находка:** в backend есть некритичный noise `MutationLoggingInterceptor` пишет `null value in column "username"` при анонимных mutations — не блокирует pipeline, но загрязняет логи. Кандидат в отдельный фикс (MutationLoggingInterceptor должен skip'ать когда нет JWT).
 
 ### 9.1. Фаза 0 — закрыта
 
