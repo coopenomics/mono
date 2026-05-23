@@ -1,0 +1,92 @@
+name: Typecheck
+
+# Валидация TypeScript-типов для desktop (Vue 3 + Quasar) и controller (NestJS).
+#
+# Зачем это отдельный workflow:
+#  1. `quasar build --mode ssr` в release.yaml использует Vite/esbuild и
+#     vue-tsc отключён через vite-plugin-checker (см. quasar.config.cjs):
+#     TS-ошибки в .vue/.ts НЕ ловятся при docker build образа desktop.
+#  2. У `@coopenomics/controller` нет build-скрипта вовсе — `lerna run build`
+#     его молча пропускает; в проде `ts-node` стартует и валится на типах
+#     только в рантайме при загрузке модуля. Кейс PR #392 (rename 1080→1020
+#     в cooptypes) проскочил именно так.
+#
+# Триггеры:
+#  - pull_request на dev — гейт перед мерджем в основную ветку;
+#  - workflow_call — переиспользуется из release.yaml как `needs:` у release-job,
+#    чтобы битый тэг не уехал в DockerHub.
+#
+# Push в dev/testnet/main НЕ триггерит — намеренно (PR-гейт достаточен,
+# а тэги покрывает workflow_call из release.yaml).
+
+on:
+  pull_request:
+    branches: [dev]
+  workflow_call:
+
+jobs:
+  desktop:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install workspace
+        run: pnpm install --frozen-lockfile
+
+      # cooptypes/factory/sdk собираются здесь, потому что desktop
+      # импортирует типы из @coopenomics/sdk (zeus-генерация поверх
+      # controller GraphQL-схемы), а sdk в свою очередь зависит от
+      # cooptypes. Без `unbuild` dist/ пусто — vue-tsc упадёт на
+      # «Cannot find module '@coopenomics/sdk'».
+      - name: Build type dependencies (cooptypes → factory → sdk)
+        run: pnpm lerna run build --scope cooptypes --scope @coopenomics/factory --scope @coopenomics/sdk
+
+      # quasar prepare генерирует .quasar/* (auto-imports d.ts, типы для
+      # quasar плагинов). Без него vue-tsc ругается на отсутствующие
+      # глобальные компоненты QBtn/QCard/etc.
+      - name: Quasar prepare
+        run: pnpm --filter @coopenomics/desktop run prepare
+
+      # vue-tsc проверяет и .ts, и <script lang="ts"> в .vue.
+      # --skipLibCheck — иначе валится на типах из транзитивных deps
+      # (Quasar/Vue/Vite сами по себе чистые, но в графе есть legacy).
+      # Из памяти: на dev-сервере висло ~час из-за конкуренции с quasar dev;
+      # на чистом ubuntu-latest без живого стека ожидаемо в разы быстрее.
+      # Если упрётся в OOM/таймаут — fallback на `pnpm typecheck`
+      # (tsc --noEmit --skipLibCheck без vue-tsc, без SFC шаблонов).
+      - name: vue-tsc (desktop)
+        run: pnpm --filter @coopenomics/desktop exec vue-tsc --noEmit --skipLibCheck
+
+  controller:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install workspace
+        run: pnpm install --frozen-lockfile
+
+      # controller импортирует cooptypes и factory. Без build dist/
+      # типы не резолвятся — TS2307 на каждом import.
+      - name: Build type dependencies (cooptypes → factory)
+        run: pnpm lerna run build --scope cooptypes --scope @coopenomics/factory
+
+      - name: tsc --noEmit (controller)
+        run: pnpm --filter @coopenomics/controller run typecheck

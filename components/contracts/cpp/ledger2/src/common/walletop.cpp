@@ -1,5 +1,5 @@
 /**
- * @brief Атомарная операция по кошельку (issue/transfer/block/unblock/burn).
+ * @brief Атомарная операция по кошельку (issue/transfer/block/unblock/burn/burn_blocked).
  *
  * Внутренний action ledger2 — вызывается только через inline из apply().
  * Auth: только сам ledger2 (require_auth(get_self())).
@@ -56,9 +56,10 @@ void ledger2::walletop(eosio::name coopname,
   // op_code = 5 (NONE) намеренно не допускается: NONE-операции — это только
   // бухпроводка без кошелькового движения, apply.cpp не диспатчит для них walletop.
   // Прямой вызов с op_code=5 был бы no-op и сбил бы инвариант parity.
-  // op_code = 6 (REVOKE) — целевое расходование blocked в пустоту; обязательная пара Dr/Cr;
-  // допускается, обрабатывается отдельным case ниже (введён 2026-05-11 под o.mkt.consum).
-  eosio::check(op_code <= 6 && op_code != 5, "walletop: неизвестный op_code");
+  // Допустимы 0..4 (ISSUE/TRANSFER/BLOCK/UNBLOCK/BURN) и 6 (BURN_BLOCKED).
+  eosio::check(op_code <= static_cast<uint8_t>(WalletOp::BURN_BLOCKED) &&
+               op_code != static_cast<uint8_t>(WalletOp::NONE),
+               "walletop: неизвестный op_code");
 
   wallets2_index   wallets(get_self(), coopname.value);
   userwallets_index user_wallets(get_self(), coopname.value);
@@ -171,7 +172,7 @@ void ledger2::walletop(eosio::name coopname,
   // миграций 048/049.
   //
   // walletop по построению применяет одно и то же `amount` к L2 и L3 (см.
-  // ниже case'ы ISSUE/TRANSFER/BLOCK/UNBLOCK/BURN), а sender-guard на
+  // ниже case'ы ISSUE/TRANSFER/BLOCK/UNBLOCK/BURN/BURN_BLOCKED), а sender-guard на
   // строке 46-47 запрещает обход. Поэтому инвариант сохраняется по
   // конструкции; полную сверку выполняет бэкенд («стол бухгалтера»),
   // вне транзакционного hot path.
@@ -305,47 +306,18 @@ void ledger2::walletop(eosio::name coopname,
       break;
     }
     case WalletOp::NONE: {
-      // unreachable: apply.cpp не диспатчит walletop для NONE-операций
-      // (бухпроводка без кошелькового движения). Pre-check на op_code != 5 выше
-      // отсекает прямой вызов с этим кодом. case оставлен для исчерпывающего
-      // switch — иначе компилятор предупредит про unhandled enum value.
-      eosio::check(false, "walletop NONE: must be unreachable");
+      // Недостижимо: проверка op_code != NONE стоит на входе action; этот case
+      // нужен только чтобы покрыть enum в switch (-Wswitch).
+      eosio::check(false, "walletop NONE: запрещённый op_code");
       break;
     }
-    case WalletOp::REVOKE: {
-      // Целевое расходование заблокированной суммы: amount списывается с
-      // wallet_from.blocked в пустоту, без зачисления на wallet_to.
-      //
-      // Отличие от BURN:
-      //  - BURN списывает available (свободный остаток). Применяется к штатному
-      //    «сжиганию» свободных средств (например, DROP_PREIMP при переходе на
-      //    электронный учёт РИД-взноса). Dr/Cr пара опциональна.
-      //  - REVOKE списывает blocked (зарезервированный остаток). Применяется на
-      //    финализации заранее зарезервированной операции, когда резерв
-      //    «уходит в потребление», а не возвращается. Обязательная пара Dr/Cr
-      //    на уровне OPERATION_REGISTRY (compile-time validator
-      //    revoke_pattern_correct в operations.hpp).
-      //
-      // Применение в членской модели Стола заказов: o.mkt.consum (выдача
-      // имущества пайщику по АПП выдачи). Пайщик заблокировал сумму под Order
-      // на createorder (BLOCK на w.mkt.member). При фактической выдаче
-      // имущества этот blocked-резерв должен «сгореть» как целевое
-      // потребление с одновременной фиксацией Дт 91 / Кт 10 (выбытие
-      // имущества со склада на счёт «прочие»). Альтернатива через
-      // UNBLOCK + BURN — это две операции с искажённой семантикой:
-      // «снял резерв» (которого по факту не снимал — потребил) +
-      // «сжёг свободные» (которые в моменте не были свободными). REVOKE
-      // одной операцией точно описывает целевое расходование blocked.
-      //
-      // Не путать с rollback: ledger2 не использует ledger2::revert в
-      // membership-модели marketplace; компенсирующие проводки делаются
-      // forward через обратную операцию (см. RETURN_BY_MEMBER + RETURN_TRANSIT_CLOSE).
-      eosio::check(wallet_from.value != 0, "walletop REVOKE: требуется wallet_from");
-      eosio::check(wallet_to.value == 0, "walletop REVOKE: wallet_to должен быть пустым");
+    case WalletOp::BURN_BLOCKED: {
+      eosio::check(wallet_from.value != 0, "walletop BURN_BLOCKED: требуется wallet_from");
+      eosio::check(wallet_to.value == 0, "walletop BURN_BLOCKED: wallet_to должен быть пустым");
 
       auto it = wallets.find(wallet_from.value);
       eosio::check(it != wallets.end() && it->blocked >= amount,
-                   std::string{"walletop REVOKE: недостаточно blocked на кошельке "} +
+                   std::string{"walletop BURN_BLOCKED: недостаточно blocked на кошельке "} +
                      wallet_from.to_string());
       wallets.modify(it, payer, [&](auto& w) { w.blocked -= amount; });
 
@@ -353,7 +325,7 @@ void ledger2::walletop(eosio::name coopname,
         auto uw = find_l3(wallet_from);
         eosio::check(uw != user_wallets.get_index<"byuserwallet"_n>().end() &&
                      uw->blocked >= amount,
-                     std::string{"walletop REVOKE: недостаточно L3-blocked у пайщика "} +
+                     std::string{"walletop BURN_BLOCKED: недостаточно L3-blocked у пайщика "} +
                        username.to_string() + " на " + wallet_from.to_string());
         auto uw_pri = user_wallets.find(uw->id);
         user_wallets.modify(uw_pri, payer, [&](auto& r) { r.blocked -= amount; });

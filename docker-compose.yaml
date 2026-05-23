@@ -25,21 +25,11 @@ services:
       - mongo_data:/data/db
     ports:
       - "127.0.0.1:${MONGO_HOST_PORT:-27017}:27017"
-    entrypoint: >
-      /bin/bash -c "
-      mongod --replSet rs0 --bind_ip_all &
-      sleep 5;
-      mongosh --eval '
-        try {
-          rs.status();
-        } catch (e) {
-          rs.initiate({
-            _id: \"rs0\",
-            members: [{ _id: 0, host: \"mongo:27017\" }]
-          });
-        }
-      ';
-      tail -f /dev/null"
+    # Локально гоняем mongo как standalone. Раньше был --replSet rs0 + rs.initiate
+    # в entrypoint, но проект не использует transactions / change streams /
+    # readConcern:'majority' — replica-set не нужен. Бонус: rs.initiate race
+    # на arm64 (sleep 5 не успевал, см. инцидент 2026-05-23) уходит.
+    command: ["mongod", "--bind_ip_all"]
 
   monoredis:
     image: redis:latest

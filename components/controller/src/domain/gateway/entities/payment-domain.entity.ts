@@ -91,6 +91,7 @@ export class PaymentDomainEntity implements PaymentDomainInterface {
    */
   getStatusLabel(): string {
     const statusLabels: Record<PaymentStatusEnum, string> = {
+      [PaymentStatusEnum.AWAITING_AUTHORIZATION]: 'Ожидает решения совета',
       [PaymentStatusEnum.PENDING]: 'Ожидает обработки',
       [PaymentStatusEnum.PROCESSING]: 'В процессе',
       [PaymentStatusEnum.PAID]: 'Оплачен',

@@ -117,23 +117,21 @@ public:
                                  std::string memo);
 
   /**
-   * @brief Миграция остатков с legacy-ledger в ledger2 (курсорный режим).
+   * @brief Универсальное миграционное действие — точка расширения для
+   * разовых исправлений состояния, которые можно провести автоматически
+   * после деплоя контракта.
    *
-   * @param from_coop_index  начальный индекс в таблице registrator::coops (0 — с начала)
-   * @param limit            максимум кооп. за один вызов (UINT64_MAX — до конца)
+   * Тело периодически переписывается под текущую задачу миграции; после
+   * прогона на проде очищается до пустого `require_auth(get_self())`.
+   * История прошлых миграций — в git-истории `ledger2/src/migrate/migrate.cpp`.
    *
-   * Полный прогон: `migrate(0, UINT64_MAX)`. Продовый прогон порциями:
-   * `migrate(0, 10)`, `migrate(10, 10)`, ... Мета-таблица хранит
-   * `last_migrated_coop_index` для возобновления.
-   *
-   * Все балансы вносятся через inline `apply(operations::migration::*)` — единый путь учёта
-   * с полной двойной проводкой и audit-trail (пересмотр 2026-04-20:
-   * детерминированное разнесение на 6 целевых кошельков без транзитного
-   * счёта 99 и без зеркала CASH_MAIN).
+   * Текущая задача — см. doxygen-блок в migrate.cpp.
    *
    * @ingroup public_ledger2_actions
+   *
+   * @note Авторизация требуется от аккаунта: @p ledger2 (get_self()).
    */
-  [[eosio::action]] void migrate(uint64_t from_coop_index, uint64_t limit);
+  [[eosio::action]] void migrate();
 
   /**
    * @brief Идемпотентная per-record миграция L3-балансов (Phase 1/2; ADR-008).

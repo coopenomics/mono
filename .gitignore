@@ -21,3 +21,4 @@ components/reports-standarts/**/СФР_1118018397_*.xml
 components/contracts/cpp/ledger2/scripts/out/
 
 .env.testnet
+.pnpm-store

@@ -1,5 +1,5 @@
 import { Field, ObjectType, InputType, Int, Float, registerEnumType, GraphQLISODateTime } from '@nestjs/graphql';
-import { IsString, IsOptional, IsInt, Min, Max, MaxLength, IsUUID } from 'class-validator';
+import { IsString, IsOptional, IsInt, Min, Max, IsUUID } from 'class-validator';
 import { TranscriptionStatus } from '../../domain/entities/call-transcription.entity';
 
 // Регистрируем enum для GraphQL
@@ -120,8 +120,7 @@ export class UpdateCallTranscriptionMemoInputDTO {
   @IsUUID('4')
   id!: string;
 
-  @Field({ description: 'Текст заметки (до 4000 символов)' })
+  @Field({ description: 'Текст заметки' })
   @IsString()
-  @MaxLength(4000)
   memo!: string;
 }

@@ -1,26 +1,20 @@
-import { expect } from 'vitest'
-import { signAgreement } from '../soviet/signAgreement'
-import { getCoopProgramWallet, getUserProgramWallet } from './walletUtils'
+import { walletDraftId, walletProgramId } from '../capital/consts'
+import { signProgramAgreement } from './signProgramAgreement'
 
+// После Эпика 2 / компонента 48 подпись соглашения ЦПП «Цифровой Кошелёк»
+// (program_id=1) идёт через `wallet::signagree`, а не `soviet::sndagreement`.
 export async function signWalletAgreement(
   blockchain: any,
   coopname: string,
   username: string,
   fakeDocument: any,
 ) {
-  const txId = await signAgreement(blockchain, coopname, username, 'wallet', fakeDocument)
-
-  const wallet = await getUserProgramWallet(blockchain, coopname, username, 1)
-  expect(wallet).toEqual(expect.objectContaining({
+  return signProgramAgreement(
+    blockchain,
     coopname,
     username,
-    available: expect.any(String),
-    blocked: expect.any(String),
-    program_id: 1,
-    membership_contribution: expect.any(String),
-  }))
-
-  const program = await getCoopProgramWallet(blockchain, coopname, 1)
-
-  return { wallet, program, txId }
+    walletProgramId,
+    walletDraftId,
+    fakeDocument,
+  )
 }

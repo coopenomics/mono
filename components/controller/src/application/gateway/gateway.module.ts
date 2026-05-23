@@ -2,6 +2,7 @@ import { Module, forwardRef } from '@nestjs/common';
 import { GatewayResolver } from './resolvers/gateway.resolver';
 import { GatewayService } from './services/gateway.service';
 import { PaymentNotificationService } from './services/payment-notification.service';
+import { WithdrawAuthorizationListener } from './services/withdraw-authorization.listener';
 import { PaymentController } from './controllers/payment.controller';
 import { GatewayInteractor } from './interactors/gateway.interactor';
 import { GatewayNotificationHandler } from './handlers/gateway-notification.handler';
@@ -27,7 +28,14 @@ import { RedisModule } from '~/infrastructure/redis/redis.module';
     RedisModule,
   ],
   controllers: [PaymentController],
-  providers: [GatewayResolver, GatewayService, PaymentNotificationService, GatewayInteractor, GatewayNotificationHandler],
+  providers: [
+    GatewayResolver,
+    GatewayService,
+    PaymentNotificationService,
+    GatewayInteractor,
+    GatewayNotificationHandler,
+    WithdrawAuthorizationListener,
+  ],
   exports: [GatewayService, PaymentNotificationService, GatewayInteractor],
 })
 export class GatewayModule {}

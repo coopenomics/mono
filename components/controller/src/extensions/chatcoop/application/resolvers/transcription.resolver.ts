@@ -164,7 +164,7 @@ export class TranscriptionResolver {
     description: 'Обновить заметку (memo) к транскрипции звонка',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @AuthRoles(['chairman', 'member'])
   async updateTranscriptionMemo(
     @CurrentUser() currentUser: MonoAccountDomainInterface,
     @Args('data', { type: () => UpdateCallTranscriptionMemoInputDTO }) data: UpdateCallTranscriptionMemoInputDTO

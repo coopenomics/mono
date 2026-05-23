@@ -28,7 +28,6 @@ public:
     [[eosio::action]] void completewthd(COMPLETEWTHD_SIGNATURE);
     [[eosio::action]] void declinewthd(DECLINEWTHD_SIGNATURE);
     [[eosio::action]] void authwthd(AUTHWTHD_SIGNATURE);
-    [[eosio::action]] void approvewthd(eosio::name coopname, checksum256 withdraw_hash, document2 approved_statement);
 
     // программные соглашения (Эпик 2 компонента 48; ADR-008)
     [[eosio::action]] void signagree(eosio::name coopname, eosio::name username, uint64_t program_id, document2 document, uint64_t draft_id);

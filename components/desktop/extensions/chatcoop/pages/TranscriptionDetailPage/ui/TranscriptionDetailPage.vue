@@ -47,6 +47,7 @@ div.transcription-detail-page
           dd.detail-meta__value-num {{ transcription.transcription.participants?.length ?? 0 }}
 
     section.tr-section.tr-section--memo
+      h2.tr-section__label Заметка о звонке
       TranscriptionMemoEditor(
         :transcription-id="transcription.transcription.id"
         :memo="transcription.transcription.memo ?? ''"
@@ -131,9 +132,9 @@ watch(
 
 <style scoped>
 .transcription-detail-page {
-  max-width: 720px;
+  max-width: 1040px;
   margin: 0 auto;
-  padding: 16px 20px 40px;
+  padding: 16px 32px 40px;
   --tr-text: rgba(0, 0, 0, 0.87);
   --tr-muted: rgba(0, 0, 0, 0.52);
   --tr-border: rgba(0, 0, 0, 0.08);

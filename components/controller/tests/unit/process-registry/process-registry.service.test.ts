@@ -9,13 +9,13 @@
  *
  * Покрывают:
  *  (a) одноактовый процесс sov.axncnv — нет entity-таблиц;
- *  (b) мульти-эффектный cap.act2res — 2 apply с action_code cap.act2shr+
+ *  (b) мульти-эффектный cap.act2res — 2 apply с operation_code cap.act2shr+
  *      cap.act2ln под одним process_hash, оба попадают в actions[], разделить
- *      UI по action.data.action_code;
+ *      UI по action.data.operation_code;
  *  (c) процесс без документов (wall.deposit) — dep-дельта без signed-полей;
  *  (d) reg.regist с двумя apply (reg.entrfee + reg.minshare) — единый процесс;
  *  (e) миграционный mig.opening — только actions, entity-дельт нет;
- *  (f) валидация hex-64, fail-fast на unknown action_code, 404 без apply-якоря.
+ *  (f) валидация hex-64, fail-fast на unknown operation_code, 404 без apply-якоря.
  */
 
 import { ProcessRegistryService } from '../../../src/domain/process-registry/services/process-registry.service';
@@ -141,7 +141,7 @@ describe('ProcessRegistryService.getProcess', () => {
     const apply = makeAction({
       account: 'ledger2',
       name: 'apply',
-      data: { action_code: 'sov.axncnv', process_hash: HASH, coopname: COOP, username: 'provider' },
+      data: { operation_code: 'sov.axncnv', process_hash: HASH, coopname: COOP, username: 'provider' },
     });
     const walletop = makeAction({
       account: 'ledger2',
@@ -162,20 +162,20 @@ describe('ProcessRegistryService.getProcess', () => {
   });
 
   test('(b) cap.act2res: один процесс, два apply (act2shr+act2ln) в actions', async () => {
-    // Оба action_code маппятся в cap.act2res (один процесс акта-2 с двумя
-    // эффектами). UI использует action.data.action_code как discriminator
+    // Оба operation_code маппятся в cap.act2res (один процесс акта-2 с двумя
+    // эффектами). UI использует action.data.operation_code как discriminator
     // для раздельного отображения «приём пая» / «погашение займа» внутри
     // одной карточки процесса.
     const applyShr = makeAction({
       account: 'ledger2',
       name: 'apply',
-      data: { action_code: 'cap.act2shr', process_hash: HASH, coopname: COOP },
+      data: { operation_code: 'cap.act2shr', process_hash: HASH, coopname: COOP },
       global_sequence: '10',
     });
     const applyLn = makeAction({
       account: 'ledger2',
       name: 'apply',
-      data: { action_code: 'cap.act2ln', process_hash: HASH, coopname: COOP },
+      data: { operation_code: 'cap.act2ln', process_hash: HASH, coopname: COOP },
       global_sequence: '11',
     });
     const resultsDelta = makeDelta({
@@ -197,7 +197,7 @@ describe('ProcessRegistryService.getProcess', () => {
     expect(view.process_type).toBe('cap.act2res');
     expect(view.actions).toHaveLength(2);
     const actionCodes = view.actions
-      .map((a) => (a.data as any)?.action_code)
+      .map((a) => (a.data as any)?.operation_code)
       .filter(Boolean)
       .sort();
     expect(actionCodes).toEqual(['cap.act2ln', 'cap.act2shr']);
@@ -209,7 +209,7 @@ describe('ProcessRegistryService.getProcess', () => {
     const apply = makeAction({
       account: 'ledger2',
       name: 'apply',
-      data: { action_code: 'wall.depcpl', process_hash: HASH, coopname: COOP },
+      data: { operation_code: 'wall.depcpl', process_hash: HASH, coopname: COOP },
     });
     const deposit = makeDelta({
       code: 'wallet',
@@ -231,17 +231,17 @@ describe('ProcessRegistryService.getProcess', () => {
   test('(d) reg.regist с двумя apply (entrfee + minshare): единый процесс', async () => {
     // Registrar эмитит два inline ledger2::apply с одним process_hash:
     // reg.entrfee (вступительный взнос) + reg.minshare (минимальный паевой).
-    // Оба action_code → один process_type "reg.regist".
+    // Оба operation_code → один process_type "reg.regist".
     const applyEntr = makeAction({
       account: 'ledger2',
       name: 'apply',
-      data: { action_code: 'reg.entrfee', process_hash: HASH, coopname: COOP, username: 'newuser' },
+      data: { operation_code: 'reg.entrfee', process_hash: HASH, coopname: COOP, username: 'newuser' },
       global_sequence: '100',
     });
     const applyShare = makeAction({
       account: 'ledger2',
       name: 'apply',
-      data: { action_code: 'reg.minshare', process_hash: HASH, coopname: COOP, username: 'newuser' },
+      data: { operation_code: 'reg.minshare', process_hash: HASH, coopname: COOP, username: 'newuser' },
       global_sequence: '101',
     });
     const candidate = makeDelta({
@@ -266,7 +266,7 @@ describe('ProcessRegistryService.getProcess', () => {
     const migApply = makeAction({
       account: 'ledger2',
       name: 'apply',
-      data: { action_code: 'mig.opncash', process_hash: HASH, coopname: COOP },
+      data: { operation_code: 'mig.opncash', process_hash: HASH, coopname: COOP },
     });
 
     const svc = makeService({ actions: [migApply], entityDeltasPerLocation: [] });
@@ -281,15 +281,15 @@ describe('ProcessRegistryService.getProcess', () => {
     await expect(svc.getProcess('not-a-hash', COOP)).rejects.toThrow(/hex-64/);
   });
 
-  test('(f2) unknown action_code → fail-fast BadRequest', async () => {
+  test('(f2) unknown operation_code → fail-fast BadRequest', async () => {
     const bogus = makeAction({
       account: 'ledger2',
       name: 'apply',
-      data: { action_code: 'unknown.proc', process_hash: HASH, coopname: COOP },
+      data: { operation_code: 'unknown.proc', process_hash: HASH, coopname: COOP },
     });
     const svc = makeService({ actions: [bogus], entityDeltasPerLocation: [] });
     await expect(svc.getProcess(HASH, COOP)).rejects.toThrow(
-      /Неизвестный action_code|ACTION_CODE_TO_PROCESS_TYPE/,
+      /Неизвестный operation_code|ACTION_CODE_TO_PROCESS_TYPE/,
     );
   });
 

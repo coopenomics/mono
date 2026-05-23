@@ -1,10 +1,8 @@
-soviet/soviet.abi
-soviet/soviet.wasm
-registrator/registrator.abi
-registrator/registrator.wasm
+cpp/**/*.wasm
+cpp/**/*.abi
+!cpp/tests/test_contracts/**/*.wasm
+!cpp/tests/test_contracts/**/*.abi
 networks.sh
-ano/ano.wasm
-ano/ano.abi
 Testing/
 docs/html/*
 docs/xml/*

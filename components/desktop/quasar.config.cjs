@@ -149,7 +149,21 @@ module.exports = configure(function (ctx) {
       },
       // viteVuePluginOptions: {},
 
-      vitePlugins: [],
+      vitePlugins: [
+        [
+          'vite-plugin-checker',
+          {
+            // vueTsc отключён в dev — пожирал 100% CPU/RAM на больших правках
+            // (Quasar + Vue 3 + Milkdown/BPMN/VueFlow/Mermaid/OpenLayers).
+            // Типы проверяем отдельно: `pnpm typecheck` и в IDE через Volar.
+            eslint: {
+              lintCommand: 'eslint "./**/*.{js,ts,mjs,cjs,vue}"',
+            },
+            overlay: true,
+          },
+          { server: false },
+        ],
+      ],
 
       optimizeDeps: {
         include: ['@dicebear/core', '@dicebear/collection'],

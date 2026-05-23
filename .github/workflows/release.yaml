@@ -1,36 +1,54 @@
 name: Release
 
-# Атомарный релизный workflow. Триггерится исключительно push'ем тэга
-# `v*`. В одном job'е по порядку:
-#   1) собирает контракты под mode (prod/test) и пушит `dicoop/contracts:<branch>`,
-#   2) собирает базовый образ + сервисные контейнеры и пушит `dicoop/<svc>:<tag>`,
-#   3) шлёт webhook деплоя (testnet/production по типу тэга).
+# Единый релизный workflow по push'у тэга `v*`.
 #
-# Зачем атомарно: раньше `build-contracts` и `build-containers`
-# крутились параллельно по push'у тэга, и webhook от build-containers
-# (~8 мин) обгонял окончание build-contracts (~11 мин) → ансибл на
-# тестнете подхватывал ПРЕДЫДУЩИЙ образ контрактов и перетирал чейн
-# старым wasm. Попытка связать их через workflow_run упёрлась в
-# default-branch caveat и потерю head_sha в YAML-выражениях. Теперь
-# нет двух workflow'ов — нет гонки, нет fallback'ов.
+# Порядок (через jobs.needs):
+#   1) release             — контракты + контейнеры + webhook деплоя (атомарно)
+#   2) publish-packages    — npm publish через lerna (если не -alpha)
+#   3) publish-docs        — mkdocs + standards-site → gh-pages (если не -alpha + ветка main)
+#   4) trigger-coopenomics — repository_dispatch в coopenomics/coopenomics (тот же гейт, что docs)
 #
-# Триггер по веткам (dev/testnet/main без тэга) тут НЕ обрабатывается —
-# для CI-обновления `dicoop/contracts:<branch>` без релиза остаётся
-# `build-contracts.yaml`.
+# Зачем последовательно: пакеты/доки/внешний триггер не должны уезжать,
+# если релиз контрактов или контейнеров провалился. Раньше четыре workflow'а
+# стартовали параллельно по одному тэгу — отсюда гонка из инцидента 2026-05-13
+# с ledger2 walletop sweep'ом (см. историю release.yaml до объединения).
 #
-# Резолв ветки. Тэг семантики окружения не несёт (например
-# `v2026.5.13-alpha-2` может лежать на testnet или dev — определяет
-# именно ветка, на которую сделан merge перед тэгом). Поэтому ищем
-# первое совпадение SHA с remote-ветками main/testnet/dev.
+# Гейт `-alpha` унифицирован: пакеты + доки + триггер docs пропускают только
+# не-alpha тэги. -beta/-rc/-test в проекте не используются (см. CLAUDE.md),
+# поэтому проще иметь один паттерн `!contains(github.ref, '-alpha')`.
+# IS_PROD в release-job остаётся на `(alpha|beta|rc|test)` — он определяет
+# деплой-webhook (testnet vs production) и тэг `:latest` у образов;
+# намеренно строже, чтобы случайный -rc-тэг не уехал на прод.
+#
+# Резолв ветки. Тэг семантики окружения не несёт (например `v2026.5.13-alpha-2`
+# может лежать на testnet или dev — определяет именно ветка, на которую сделан
+# merge перед тэгом). Поэтому ищем первое совпадение SHA с remote-ветками
+# main/testnet/dev. branch экспортируется как outputs.branch для downstream jobs.
 
 on:
   push:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
+  # Гейт TS-типов перед сборкой образов. Reusable workflow `typecheck.yaml`
+  # запускает vue-tsc на desktop и tsc --noEmit на controller. Нужно потому,
+  # что `lerna run build` в корневом Dockerfile НЕ ловит TS-ошибки:
+  # quasar build идёт через esbuild с выключенным vueTsc, а у controller'а
+  # build-скрипта вообще нет (ts-node в рантайме).
+  typecheck:
+    uses: ./.github/workflows/typecheck.yaml
+
   release:
+    needs: typecheck
     runs-on: ubuntu-latest
+    outputs:
+      tag_name: ${{ steps.resolve.outputs.tag_name }}
+      branch: ${{ steps.resolve.outputs.branch }}
+      is_prod: ${{ steps.resolve.outputs.is_prod }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -38,6 +56,7 @@ jobs:
           fetch-depth: 0
 
       - name: Resolve branch, build mode and tags
+        id: resolve
         run: |
           TAG_NAME="${{ github.ref_name }}"
           SHA="${{ github.sha }}"
@@ -71,8 +90,9 @@ jobs:
               ;;
           esac
 
-          # Прод-тэги (без -alpha/-beta/-rc/-test) уезжают на боевой
-          # webhook + получают тэг :latest у сервисных образов.
+          # IS_PROD определяет webhook деплоя (PRODUCTION vs TESTNET) и тэг :latest.
+          # Сознательно строже гейта publish-* — случайный -rc/-beta тэг не должен
+          # уехать на прод-вебхук, даже если в npm/docs его опубликовали.
           if [[ "$TAG_NAME" =~ -(alpha|beta|rc|test) ]]; then
             IS_PROD=false
             WEBHOOK_URL='${{ vars.TESTNET_WEBHOOK_URL }}'
@@ -91,6 +111,12 @@ jobs:
             echo "IS_PROD=$IS_PROD"
             echo "WEBHOOK_URL=$WEBHOOK_URL"
           } >> "$GITHUB_ENV"
+
+          {
+            echo "tag_name=$TAG_NAME"
+            echo "branch=$BRANCH"
+            echo "is_prod=$IS_PROD"
+          } >> "$GITHUB_OUTPUT"
 
           echo "Release $TAG_NAME → branch=$BRANCH, build_mode=$BUILD_MODE, contracts:$CONTRACTS_TAG, prod=$IS_PROD"
 
@@ -257,20 +283,180 @@ jobs:
             -H 'Content-Type: application/json' \
             -d "$TAG_NAME"
 
-      - name: Telegram notify success
-        if: success()
-        run: |
-          EXTRA=""
-          if [ "$IS_PROD" = "true" ]; then
-            EXTRA=" (с тегом latest)"
-          fi
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -d "text=✅ [GITHUB MONO] Релиз $TAG_NAME ($BRANCH, contracts:$CONTRACTS_TAG, sha=${SHA::7})$EXTRA"
+  # ============================================================================
+  # publish-packages — npm publish (бывший publish-packages.yaml).
+  # Гейт: не-alpha. Не зависит от ветки.
+  # Жёстко прибиваем версию pnpm, которой сгенерён lockfile (lockfileVersion 9.0
+  # = pnpm 9/10). Иначе action-setup может подтянуть другую версию и переписать
+  # pnpm-lock.yaml → Lerna EUNCOMMIT.
+  # ============================================================================
+  publish-packages:
+    needs: release
+    if: ${{ !contains(github.ref, '-alpha') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-      - name: Telegram notify failure
-        if: failure()
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lerna run build
+      - run: pnpm lerna publish from-package --yes
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  # ============================================================================
+  # publish-docs — mkdocs + standards-site → gh-pages (бывший publish-docs.yaml).
+  # Гейт: не-alpha + ветка main.
+  # ВНИМАНИЕ: gh-pages step пушит на github.com/coopenomics/mono — это GitHub
+  # Pages. При переезде на Gitea Actions нужно будет либо подложить PAT для
+  # внешнего push'а в GitHub, либо переключить публикацию на Gitea Pages.
+  # ============================================================================
+  publish-docs:
+    needs: release
+    if: ${{ !contains(github.ref, '-alpha') && needs.release.outputs.branch == 'main' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Версия pnpm берётся из `packageManager` корневого package.json,
+      # синхронно с publish-packages job'ом и Dockerfile'ами.
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Python requirements
         run: |
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -d "text=❌ [GITHUB MONO] Ошибка релиза $TAG_NAME ($BRANCH, sha=${SHA::7})"
+          python -m venv venv
+          source venv/bin/activate
+          pip install mkdocs-material mkdocs-macros-plugin mkdocs-section-index pymdown-extensions
+        working-directory: ./components/docs
+
+      - name: Install Node.js dependencies
+        run: pnpm install
+        working-directory: ./components/docs
+
+      - name: Patch spectaql-config.yml for CI
+        run: |
+          sed -i.bak "0,/url:.*/s|url:.*|url: 'https://testnet.coopenomics.world/backend/v1/graphql'|" spectaql-config.yml
+        working-directory: ./components/controller
+
+      - name: Show patched spectaql-config.yml
+        run: cat spectaql-config.yml
+        working-directory: ./components/controller
+
+      - name: Build cooptypes
+        run: pnpm run build
+        working-directory: ./components/cooptypes
+
+      - name: Generate controller docs
+        run: pnpm run docs
+        working-directory: ./components/controller
+
+      - name: Copy controller docs
+        run: |
+          mkdir -p ./components/docs/docs/graphql
+          cp -r ./components/controller/docs/* ./components/docs/docs/graphql/
+
+      - name: Generate sdk docs
+        run: pnpm run docs
+        working-directory: ./components/sdk
+
+      - name: Copy sdk docs
+        run: |
+          mkdir -p ./components/docs/docs/sdk
+          cp -r ./components/sdk/docs/* ./components/docs/docs/sdk/
+
+      - name: Generate cooptypes docs
+        run: pnpm run docs
+        working-directory: ./components/cooptypes
+
+      - name: Copy cooptypes docs
+        run: |
+          mkdir -p ./components/docs/docs/cooptypes
+          cp -r ./components/cooptypes/docs/* ./components/docs/docs/cooptypes/
+
+      # ── standards-site → /standards/ на docs.цифровой-кооператив.рф ──
+      # Отдельный Vue-сайт с BPMN-графом кооперативных стандартов,
+      # публикуется как поддиректория на том же домене. Vite собирает
+      # с base='/standards/' (см. vite.config.ts), относительные пути
+      # внутри dist/ и hash-router работают корректно.
+      # dist кладём в docs/standards/ ДО mkdocs build — так же, как
+      # graphql/sdk/cooptypes; mkdocs сам включит его в итоговый site/.
+      - name: Build standards-site
+        run: pnpm run build
+        working-directory: ./components/contracts/standards-site
+
+      - name: Copy standards-site into docs/standards
+        run: |
+          mkdir -p ./components/docs/docs/standards
+          cp -r ./components/contracts/standards-site/dist/* ./components/docs/docs/standards/
+
+      - name: Build docs (mkdocs)
+        run: |
+          source venv/bin/activate
+          mkdocs build
+        working-directory: ./components/docs
+
+      - name: Remove specific large file before publishing
+        run: |
+          rm -f ./components/docs/site/sdk/typedoc.json
+          if [ -f "./components/docs/site/sdk/typedoc.json" ]; then
+            echo "ERROR: typedoc.json still exists!"
+            exit 1
+          else
+            echo "SUCCESS: typedoc.json removed successfully"
+          fi
+
+      - name: Publish to GitHub Pages
+        run: npx gh-pages --nojekyll -d site --repo https://x-access-token:${GITHUB_TOKEN}@github.com/coopenomics/mono.git
+        working-directory: ./components/docs
+        env:
+          GIT_AUTHOR_NAME: github-actions
+          GIT_AUTHOR_EMAIL: github-actions@github.com
+          GIT_COMMITTER_NAME: github-actions
+          GIT_COMMITTER_EMAIL: github-actions@github.com
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Trigger docs deployment webhook
+        if: ${{ success() }}
+        run: |
+          curl -X POST "${{ vars.DOCS_DEPLOY_WEBHOOK_URL }}" \
+            -H 'Content-Type: application/json' \
+            -d '{"ref":"${{ github.ref }}","sha":"${{ github.sha }}","branch":"${{ github.ref_name }}"}'
+
+  # ============================================================================
+  # trigger-coopenomics-docs — repository_dispatch в coopenomics/coopenomics
+  # (бывший build-contracts-docs.yaml). Гейт идентичен publish-docs.
+  # ============================================================================
+  trigger-coopenomics-docs:
+    needs: release
+    if: ${{ !contains(github.ref, '-alpha') && needs.release.outputs.branch == 'main' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Coopenomics deployment
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets.COOPENOMICS_PAT }}
+          repository: coopenomics/coopenomics
+          event-type: deploy_from_mono
+          client-payload: '{"repository": "${{ github.repository }}", "sha": "${{ github.sha }}", "ref": "${{ github.ref }}", "actor": "${{ github.actor }}"}'

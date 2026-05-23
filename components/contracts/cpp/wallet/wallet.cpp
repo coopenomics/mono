@@ -6,7 +6,6 @@
 #include "src/deposit/createdpst.cpp"
 #include "src/deposit/declinedpst.cpp"
 
-#include "src/withdraw/approvewthd.cpp"
 #include "src/withdraw/authwthd.cpp"
 #include "src/withdraw/completewthd.cpp"
 #include "src/withdraw/createwthd.cpp"

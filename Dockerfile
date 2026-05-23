@@ -83,12 +83,23 @@ WORKDIR /app
 # ссылка на системный интерпретатор; без него `weasyprint` падает с
 # `python: not found`. `procps`/`wget` — для дебага/healthcheck'ов
 # из docker-compose.
+#
+# `ca-certificates` обязателен: node:22-slim его не содержит, а
+# native-биндинги типа @livekit/rtc-node (Rust + rustls + rustls-native-certs)
+# читают корни ТОЛЬКО из системного store. Без файла
+# /etc/ssl/certs/ca-certificates.crt любой TLS handshake из такого
+# биндинга падает с "invalid peer certificate: UnknownIssuer" —
+# даже для валидной LE-цепочки (Node-стек при этом работает,
+# у него свои вшитые корни). Инцидент 2026-05-21: secretary в
+# coopback не мог подключиться к wss://chatcooprtc.coopenomics.world.
 RUN apt-get update && apt-get install -y --no-install-recommends \
+      ca-certificates \
       python3 \
       libpango-1.0-0 libpangoft2-1.0-0 libpangocairo-1.0-0 libcairo2 \
       libffi8 libjpeg62-turbo libopenjp2-7 zlib1g shared-mime-info \
       procps wget \
- && rm -rf /var/lib/apt/lists/*
+ && rm -rf /var/lib/apt/lists/* \
+ && update-ca-certificates
 
 # Python venv с WeasyPrint, готовый к использованию.
 COPY --from=builder /venv /venv

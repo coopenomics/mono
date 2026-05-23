@@ -11,11 +11,11 @@
  *
  * Идентификаторы кошельков (`wallet_from`/`wallet_to`) — eosio::name с
  * префиксом `w.<contract>.<waltype>` (см. `./wallets.ts`). Пустая строка
- * (`""`) — sentinel «кошелёк вне системы» для ISSUE и BURN.
+ * (`""`) — sentinel «кошелёк вне системы» для ISSUE, BURN и BURN_BLOCKED.
  */
 import type { IName } from '../interfaces/ledger2'
 
-export type WalletOp = 'ISSUE' | 'TRANSFER' | 'BLOCK' | 'UNBLOCK' | 'BURN' | 'NONE' | 'REVOKE'
+export type WalletOp = 'ISSUE' | 'TRANSFER' | 'BLOCK' | 'UNBLOCK' | 'BURN' | 'BURN_BLOCKED' | 'NONE'
 
 export interface OperationMeta {
   /** Машинный идентификатор — eosio::name в контракте. */
@@ -34,7 +34,7 @@ export interface OperationMeta {
   wallet_op: WalletOp | null
   /** Кошелёк-источник (null для ISSUE и для adjustment-операций). */
   wallet_from: IName | null
-  /** Кошелёк-приёмник (null для BLOCK/UNBLOCK/BURN и для adjustment-операций). */
+  /** Кошелёк-приёмник (null для BLOCK/UNBLOCK/BURN/BURN_BLOCKED и для adjustment-операций). */
   wallet_to: IName | null
   /** Код счёта Дт (null без бухпроводки, ADR-003: ⇔ credit == null). */
   debit: number | null
@@ -84,7 +84,7 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     human_name: 'Разблокировка паевого после отклонения запроса на возврат' },
 
   { code: 'o.wal.wthcpl',  process_type: 'p.wal.wthdrw',  contract: 'wallet',
-    name: 'COMPLETE_WITHDRAW', wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.wal.wthdrw',
+    name: 'COMPLETE_WITHDRAW', wallet_op: 'BURN_BLOCKED', wallet_from: 'w.wal.share', wallet_to: null,
     debit: 80, credit: 51,
     human_name: 'Возврат паевого взноса пайщику' },
 
@@ -151,87 +151,16 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: null, credit: null,
     human_name: 'Конвертация сегмента: РИД → ЦПП «Благорост»' },
 
-  // marketplace — членская модель «Стола заказов» (refactor 2026-05-11).
-  // Старые o.mkt.supply (CONFIRM_SUPPLY) и o.mkt.recv (CONFIRM_RECEIPT) удалены
-  // вместе с клиринговой моделью (out-of-MVP до изменений в законодательстве).
+  // marketplace
+  { code: 'o.mkt.supply',  process_type: 'p.mkt.reqst',   contract: 'marketplace',
+    name: 'CONFIRM_SUPPLY', wallet_op: 'ISSUE',    wallet_from: null, wallet_to: 'w.wal.share',
+    debit: 51, credit: 80,
+    human_name: 'Подтверждение поставки' },
 
-  // 12a. Conditional-шаг createorder: цифровой рубль → членский кошелёк.
-  { code: 'o.wal.conv',    process_type: 'p.mkt.supply',  contract: 'wallet',
-    name: 'CONVERT_TO_MEMBER', wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.wal.member',
-    debit: 80, credit: 86,
-    human_name: 'Конвертация цифрового рубля в членский кошелёк пайщика' },
-
-  // 12b. Целевое назначение членского в программу Marketplace (оба на 86).
-  { code: 'o.mkt.assign',  process_type: 'p.mkt.supply',  contract: 'marketplace',
-    name: 'ASSIGN_TO_PROGRAM', wallet_op: 'TRANSFER', wallet_from: 'w.wal.member', wallet_to: 'w.mkt.member',
-    debit: null, credit: null,
-    human_name: 'Целевое назначение членского взноса в программу «Стол заказов»' },
-
-  // 12c. Блокировка членского под Order.
-  { code: 'o.mkt.block',   process_type: 'p.mkt.supply',  contract: 'marketplace',
-    name: 'BLOCK_FOR_ORDER', wallet_op: 'BLOCK', wallet_from: 'w.mkt.member', wallet_to: null,
-    debit: null, credit: null,
-    human_name: 'Блокировка членского взноса под заказ' },
-
-  // 12d. Разблокировка при отмене Order.
-  { code: 'o.mkt.unblk',   process_type: 'p.mkt.supply',  contract: 'marketplace',
-    name: 'UNBLOCK_ON_CANCEL', wallet_op: 'UNBLOCK', wallet_from: 'w.mkt.member', wallet_to: null,
-    debit: null, credit: null,
-    human_name: 'Разблокировка членского взноса при отмене заказа' },
-
-  // 12e. Вывод программного членского в универсальный (явное действие пайщика).
-  { code: 'o.mkt.recall',  process_type: 'p.mkt.supply',  contract: 'marketplace',
-    name: 'RECALL_TO_UNIVERSAL', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.member', wallet_to: 'w.wal.member',
-    debit: null, credit: null,
-    human_name: 'Вывод членского взноса в универсальный членский кошелёк' },
-
-  // 12f. Приёмка имущества кооперативом по АПП приёмки (только бухпроводка).
-  { code: 'o.mkt.purch',   process_type: 'p.mkt.supply',  contract: 'marketplace',
-    name: 'PURCHASE_FROM_SUPPLIER', wallet_op: 'NONE', wallet_from: null, wallet_to: null,
-    debit: 10, credit: 86,
-    human_name: 'Приёмка имущества кооперативом по АПП приёмки' },
-
-  // 12g. Оплата поставщику с расчётного счёта (атомарно с PURCH).
-  { code: 'o.mkt.payout',  process_type: 'p.mkt.supply',  contract: 'marketplace',
-    name: 'PAY_SUPPLIER', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.mkt.payout',
-    debit: 86, credit: 51,
-    human_name: 'Оплата поставщику с расчётного счёта по факту приёмки' },
-
-  // 12h. Выдача имущества пайщику — часть 1 (выбытие со склада на «прочие»).
-  { code: 'o.mkt.consum',  process_type: 'p.mkt.supply',  contract: 'marketplace',
-    name: 'CONSUME_BY_MEMBER', wallet_op: 'REVOKE', wallet_from: 'w.mkt.member', wallet_to: null,
-    debit: 91, credit: 10,
-    human_name: 'Выдача имущества пайщику по АПП выдачи — выбытие со склада' },
-
-  // 12h2. Выдача имущества пайщику — часть 2 (закрытие транзита 91 на ЦФ).
-  { code: 'o.mkt.consum2', process_type: 'p.mkt.supply',  contract: 'marketplace',
-    name: 'CONSUME_TRANSIT_CLOSE', wallet_op: 'NONE', wallet_from: null, wallet_to: null,
-    debit: 86, credit: 91,
-    human_name: 'Выдача имущества пайщику — закрытие транзита на ЦФ программы' },
-
-  // 12i. Гарантийный возврат — часть 1 (восстановление средств в программе).
-  { code: 'o.mkt.return',  process_type: 'p.mkt.return',  contract: 'marketplace',
-    name: 'RETURN_BY_MEMBER', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.mkt.member',
-    debit: 91, credit: 86,
-    human_name: 'Гарантийный возврат — восстановление средств в программе' },
-
-  // 12i2. Гарантийный возврат — часть 2 (имущество назад на склад через транзит).
-  { code: 'o.mkt.return2', process_type: 'p.mkt.return',  contract: 'marketplace',
-    name: 'RETURN_TRANSIT_CLOSE', wallet_op: 'NONE', wallet_from: null, wallet_to: null,
-    debit: 10, credit: 91,
-    human_name: 'Гарантийный возврат — имущество назад на склад через транзит' },
-
-  // 12j. Утилизация скоропорта — часть 1 (выбытие со склада на «прочие»).
-  { code: 'o.mkt.wroff',   process_type: 'p.mkt.wroff',   contract: 'marketplace',
-    name: 'WRITE_OFF_PERISHABLE', wallet_op: 'NONE', wallet_from: null, wallet_to: null,
-    debit: 91, credit: 10,
-    human_name: 'Утилизация скоропорта — выбытие со склада' },
-
-  // 12j2. Утилизация скоропорта — часть 2 (закрытие транзита 91 на ЦФ).
-  { code: 'o.mkt.wroff2',  process_type: 'p.mkt.wroff',   contract: 'marketplace',
-    name: 'WRITE_OFF_TRANSIT_CLOSE', wallet_op: 'NONE', wallet_from: null, wallet_to: null,
-    debit: 86, credit: 91,
-    human_name: 'Утилизация скоропорта — закрытие транзита на ЦФ программы' },
+  { code: 'o.mkt.recv',    process_type: 'p.mkt.reqst',   contract: 'marketplace',
+    name: 'CONFIRM_RECEIPT', wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.mkt.payout',
+    debit: 80, credit: 51,
+    human_name: 'Подтверждение получения — выплата поставщику' },
 
   // soviet
   { code: 'o.sov.axncnv',  process_type: 'p.sov.axncnv',  contract: 'soviet',

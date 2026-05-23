@@ -1,13 +1,11 @@
-import axios from 'axios'
-import { describe, expect, it } from 'vitest'
-import { Registry } from '@coopenomics/factory'
-import { RegistratorContract, Cooperative as TCooperative } from 'cooptypes'
-import type { Account, Contract, Keys } from '../types'
-import config, { GOVERN_SYMBOL, SYMBOL } from '../configs'
+import config from '../configs'
 import Blockchain from '../blockchain'
-import { sendPostToCoopbackWithSecret, sleep } from '../utils'
 import { generateRandomSHA256 } from '../utils/randomHash'
 import { fakeDocument } from '../tests/shared/fakeDocument'
+import { signProgramAgreement } from './sign-program-agreement'
+import { walletDraftId, walletProgramId } from '../tests/capital/consts'
+import { RegistratorContract } from 'cooptypes'
+import type { Keys } from '../types'
 
 export class ParticipantsClass {
   public blockchain: Blockchain
@@ -157,13 +155,17 @@ export class ParticipantsClass {
 
     console.log('Отправляем подписанное положение о ЦПП Кошелька оператору')
 
-    await this.blockchain.sendAgreement({
-      coopname: config.provider,
-      administrator: config.provider,
-      username: username!,
-      agreement_type: 'wallet',
-      document: fakeDocument,
-    })
+    // После Эпика 2 / компонента 48 soviet::sndagreement отказывается на
+    // program_id > 0; программные соглашения подписываются через
+    // wallet::signagree (auth: coopname@active).
+    await signProgramAgreement(
+      this.blockchain,
+      config.provider,
+      username!,
+      walletProgramId,
+      walletDraftId,
+      fakeDocument,
+    )
 
     console.log('создаём кошелёк')
 
