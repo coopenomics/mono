@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type { MarketplaceWriteoffProposalView } from '../api';
 
-const props = defineProps<{
+defineProps<{
   modelValue: boolean;
   proposal: MarketplaceWriteoffProposalView;
 }>();

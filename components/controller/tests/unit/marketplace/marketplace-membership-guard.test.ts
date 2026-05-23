@@ -16,6 +16,7 @@
 import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 
 import { MarketplaceMembershipGuard } from '~/extensions/marketplace/application/guards/marketplace-membership.guard';
+import type { MarketplaceKuChairmenService } from '~/extensions/marketplace/application/services/marketplace-ku-chairmen.service';
 import type { MarketplaceWhitelistService } from '~/extensions/marketplace/application/services/marketplace-whitelist.service';
 
 jest.mock('~/config/config', () => ({
@@ -47,9 +48,15 @@ function makeWhitelistService(isOffererResult: boolean): MarketplaceWhitelistSer
   } as unknown as MarketplaceWhitelistService;
 }
 
+function makeKuChairmenService(isKuChairmanResult: boolean): MarketplaceKuChairmenService {
+  return {
+    isKuChairman: jest.fn().mockResolvedValue(isKuChairmanResult),
+  } as unknown as MarketplaceKuChairmenService;
+}
+
 describe('MarketplaceMembershipGuard', () => {
   it('user.role=user, status=active, whitelist пуст → ctx [User] + marketplace_roles [orderer, offerer]', async () => {
-    const guard = new MarketplaceMembershipGuard(makeWhitelistService(true));
+    const guard = new MarketplaceMembershipGuard(makeWhitelistService(true), makeKuChairmenService(false));
     const req = { user: { username: 'alice', role: 'user', status: 'active' }, headers: {} };
     const ctx = makeCtx(req);
 
@@ -63,7 +70,7 @@ describe('MarketplaceMembershipGuard', () => {
   });
 
   it('user.role=user, whitelist непустой и пайщика там нет → marketplace_roles [orderer] (без offerer)', async () => {
-    const guard = new MarketplaceMembershipGuard(makeWhitelistService(false));
+    const guard = new MarketplaceMembershipGuard(makeWhitelistService(false), makeKuChairmenService(false));
     const req = { user: { username: 'alice', role: 'user', status: 'active' }, headers: {} };
     const ctx = makeCtx(req);
 
@@ -72,7 +79,7 @@ describe('MarketplaceMembershipGuard', () => {
   });
 
   it('user.role=member, status=active → core_roles [User, Member] + marketplace_roles [orderer, offerer, board_readonly]', async () => {
-    const guard = new MarketplaceMembershipGuard(makeWhitelistService(true));
+    const guard = new MarketplaceMembershipGuard(makeWhitelistService(true), makeKuChairmenService(false));
     const req = { user: { username: 'bob', role: 'member', status: 'active' }, headers: {} };
     const ctx = makeCtx(req);
     await expect(guard.canActivate(ctx as any)).resolves.toBe(true);
@@ -85,7 +92,7 @@ describe('MarketplaceMembershipGuard', () => {
   });
 
   it('user.role=chairman, status=active → marketplace_roles полный набор', async () => {
-    const guard = new MarketplaceMembershipGuard(makeWhitelistService(true));
+    const guard = new MarketplaceMembershipGuard(makeWhitelistService(true), makeKuChairmenService(false));
     const req = { user: { username: 'chair', role: 'chairman', status: 'active' }, headers: {} };
     const ctx = makeCtx(req);
     await expect(guard.canActivate(ctx as any)).resolves.toBe(true);
@@ -100,7 +107,7 @@ describe('MarketplaceMembershipGuard', () => {
   });
 
   it('status != active → 403 Forbidden «Доступ только для пайщиков кооператива»', async () => {
-    const guard = new MarketplaceMembershipGuard(makeWhitelistService(false));
+    const guard = new MarketplaceMembershipGuard(makeWhitelistService(false), makeKuChairmenService(false));
     const req = { user: { username: 'alice', role: 'user', status: '4_Registered' }, headers: {} };
     const ctx = makeCtx(req);
     await expect(guard.canActivate(ctx as any)).rejects.toThrow(ForbiddenException);
@@ -110,19 +117,29 @@ describe('MarketplaceMembershipGuard', () => {
   });
 
   it('нет user (нет JWT) → 401 Unauthorized', async () => {
-    const guard = new MarketplaceMembershipGuard(makeWhitelistService(false));
+    const guard = new MarketplaceMembershipGuard(makeWhitelistService(false), makeKuChairmenService(false));
     const req = { headers: {} };
     const ctx = makeCtx(req);
     await expect(guard.canActivate(ctx as any)).rejects.toThrow(UnauthorizedException);
   });
 
-  it('server-secret bypass → true, currentMember не выставляется, whitelist не дёргается', async () => {
+  it('server-secret bypass → true, currentMember не выставляется, whitelist/branches не дёргаются', async () => {
     const ws = makeWhitelistService(true);
-    const guard = new MarketplaceMembershipGuard(ws);
+    const ku = makeKuChairmenService(false);
+    const guard = new MarketplaceMembershipGuard(ws, ku);
     const req = { headers: { 'server-secret': 'test-secret' } };
     const ctx = makeCtx(req);
     await expect(guard.canActivate(ctx as any)).resolves.toBe(true);
     expect((ctx as any)._gqlCtx.currentMember).toBeUndefined();
     expect(ws.isOfferer).not.toHaveBeenCalled();
+    expect(ku.isKuChairman).not.toHaveBeenCalled();
+  });
+
+  it('isKuChairman=true → marketplace_roles содержит operator', async () => {
+    const guard = new MarketplaceMembershipGuard(makeWhitelistService(false), makeKuChairmenService(true));
+    const req = { user: { username: 'chairkrg', role: 'user', status: 'active' }, headers: {} };
+    const ctx = makeCtx(req);
+    await expect(guard.canActivate(ctx as any)).resolves.toBe(true);
+    expect((ctx as any)._gqlCtx.currentMember.marketplace_roles).toEqual(['orderer', 'operator']);
   });
 });

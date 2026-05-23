@@ -1,3 +1,5 @@
+/** Контекст пайщика для Стола заказов: core_roles + marketplace_roles */
+export * as WhoAmI from './whoAmI'
 /** Список marketplace-детализаций ПВЗ кооператива */
 export * as ListKUDetails from './listKUDetails'
 /** Заказы пайщика-заказчика (стол заказчика) */
@@ -10,6 +12,10 @@ export * as ListCategories from './listCategories'
 export * as ListCatalog from './listCatalog'
 /** Счётчики активных Offer'ов per category для фильтр-чипов (Story 3.5) */
 export * as CategoryOfferCounts from './categoryOfferCounts'
+/** Эпик 3: пагинированный список offer'ов в статусе PENDING_MODERATION для модерации председателем */
+export * as ListPendingOffers from './listPendingOffers'
+/** Эпик 3: журнал решений модерации по одному offer'у (approve/reject) */
+export * as ListModerationLog from './listModerationLog'
 /** Эпик 5: партии поставки кооператива */
 export * as ListShipments from './listShipments'
 /** Эпик 5: одна партия поставки по идентификатору */
@@ -48,3 +54,15 @@ export * as ListWriteoffProposals from './listWriteoffProposals'
 export * as GetWriteoffProposal from './getWriteoffProposal'
 /** Эпик 8: превью Заявления 1106 для подписания председателем */
 export * as WriteoffStatementSignablePayload from './writeoffStatementSignablePayload'
+/** Эпик 1 / Story 1.9: статус принятия ЦПП Marketplace кооперативом (L1 onboarding) */
+export * as MarketplaceCppStatus from './marketplaceCppStatus'
+/** Эпик 4 / Story 4.5: заказы, по которым текущий пайщик — поставщик (стол поставщика) */
+export * as ListSupplierOrders from './listSupplierOrders'
+/** Эпик 3 / Story 3.4: собственные Offer'ы поставщика (стол поставщика, все статусы) */
+export * as ListMyOffers from './listMyOffers'
+/** Доступные категории и типы товаров для кооператива (admin-настройка whitelist'а) */
+export * as GetAvailableCategories from './getAvailableCategories'
+/** Статистика доступности категорий: всего/категорий/типов/есть ли ограничения */
+export * as GetAvailabilityStats from './getAvailabilityStats'
+/** Эпик 1 / Story 1.4: состояние L3 онбординга пайщика в Marketplace */
+export * as MarketplaceOnboardingState from './marketplaceOnboardingState'

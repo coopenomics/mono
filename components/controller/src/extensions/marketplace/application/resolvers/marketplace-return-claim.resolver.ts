@@ -21,6 +21,11 @@ import {
   MarketplaceReturnClaimSignablePayloadInputDTO,
 } from '../dto/marketplace-return-claim.dto';
 import { MarketplaceReturnClaimService } from '../services/marketplace-return-claim.service';
+import {
+  MARKETPLACE_KU_CHAIRMEN_SERVICE,
+  type MarketplaceKuChairmenService,
+} from '../services/marketplace-ku-chairmen.service';
+import { Inject } from '@nestjs/common';
 import { toMarketplaceReturnClaimDTO } from './marketplace-return-claim.mapper';
 
 function toGeneratedDocumentDTO(e: DocumentDomainEntity): GeneratedDocumentDTO {
@@ -46,7 +51,11 @@ function toGeneratedDocumentDTO(e: DocumentDomainEntity): GeneratedDocumentDTO {
 @Resolver()
 @Injectable()
 export class MarketplaceReturnClaimResolver {
-  constructor(private readonly service: MarketplaceReturnClaimService) {}
+  constructor(
+    private readonly service: MarketplaceReturnClaimService,
+    @Inject(MARKETPLACE_KU_CHAIRMEN_SERVICE)
+    private readonly kuChairmenService: MarketplaceKuChairmenService
+  ) {}
 
   @Query(() => GeneratedDocumentDTO, {
     name: 'marketplaceReturnClaimSignablePayload',
@@ -209,13 +218,17 @@ export class MarketplaceReturnClaimResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceListReturnClaimsByBranameInputDTO
   ): Promise<MarketplaceReturnClaimDTO[]> {
-    // Ownership `:own-KU` — MVP-приближение: член-operator является
-    // chairman'ом braname если его username совпадает с account КУ
-    // (соответствует текущему fallback'у marketplace-notification.service.ts).
-    // Полная интеграция с `coop_ku.chairman_account` — Phase 2.
-    if (member.username !== data.delivery_braname) {
+    // Ownership `:own-KU` — пайщик должен быть trustee или trusted
+    // именно того КУ, к которому привязано заявление. Проверка идёт
+    // через единый источник истины состава КУ (MarketplaceKuChairmenService).
+    const isMember = await this.kuChairmenService.isMemberOfBranch(
+      config.coopname,
+      data.delivery_braname,
+      member.username
+    );
+    if (!isMember) {
       throw new ForbiddenException(
-        'Чтение заявлений возможно только для участка, председателем которого вы являетесь.'
+        'Чтение заявлений возможно только для участка, на котором вы являетесь председателем или доверенным лицом.'
       );
     }
     const claims = await this.service.listByDeliveryBraname(
@@ -237,12 +250,18 @@ export class MarketplaceReturnClaimResolver {
   ): Promise<MarketplaceReturnClaimDTO> {
     const claim = await this.service.findById(config.coopname, claim_id);
     // Ownership-проверка `:own` — matrix capability проверена guard'ом,
-    // здесь верифицируем что пайщик действительно владелец заявления
-    // (orderer Order'а либо председатель КУ доставки этого заявления).
+    // здесь верифицируем, что пайщик действительно владелец заявления:
+    // либо заказчик Order'а, либо член КУ доставки (trustee/trusted —
+    // в marketplace-домене они равны в правах).
     const isOwnerOrderer = claim.orderer_account === member.username;
-    const isChairmanOfDeliveryKu = member.marketplace_roles.includes('operator')
-      && claim.delivery_braname === member.username;
-    if (!isOwnerOrderer && !isChairmanOfDeliveryKu) {
+    const isOperatorOfDeliveryKu =
+      member.marketplace_roles.includes('operator') &&
+      (await this.kuChairmenService.isMemberOfBranch(
+        config.coopname,
+        claim.delivery_braname,
+        member.username
+      ));
+    if (!isOwnerOrderer && !isOperatorOfDeliveryKu) {
       throw new ForbiddenException('Это чужое заявление на возврат.');
     }
     return this.toClaimDTO(claim);

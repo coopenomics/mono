@@ -1,0 +1,11 @@
+{
+  "protocol_feature_type": "builtin",
+  "dependencies": [],
+  "description_digest": "2ad6b7aabba8edbc87b46f3340df4d0db0e4b65474db3e1cd5db33fb685a506b",
+  "subjective_restrictions": {
+    "earliest_allowed_activation_time": "1970-01-01T00:00:00.000",
+    "preactivation_required": true,
+    "enabled": true
+  },
+  "builtin_feature_codename": "ASSERT_RECOVER_KEY_ACCOUNT"
+}

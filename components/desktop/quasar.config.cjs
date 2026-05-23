@@ -149,21 +149,7 @@ module.exports = configure(function (ctx) {
       },
       // viteVuePluginOptions: {},
 
-      vitePlugins: [
-        [
-          'vite-plugin-checker',
-          {
-            vueTsc: {
-              tsconfigPath: 'tsconfig.vue-tsc.json',
-            },
-            eslint: {
-              lintCommand: 'eslint "./**/*.{js,ts,mjs,cjs,vue}"',
-            },
-            overlay: true,
-          },
-          { server: false },
-        ],
-      ],
+      vitePlugins: [],
 
       optimizeDeps: {
         include: ['@dicebear/core', '@dicebear/collection'],

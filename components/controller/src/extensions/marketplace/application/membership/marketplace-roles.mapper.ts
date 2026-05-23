@@ -18,10 +18,13 @@ export type MarketplaceRole =
 /**
  * Контекст для расширенных marketplace-ролей.
  *
- * `isOfferer` (whitelist поставщиков) реализуется в Эпике 3 — пока всегда
- * false. `isKuChairman` (председатель КУ) — в Эпике 2; до этого момента
- * `operator` никому не выдаётся. Поля оставлены в сигнатуре, чтобы
- * добавить источники без изменения mapper.
+ * `isOfferer` (whitelist поставщиков) — Эпик 3,
+ * `MarketplaceWhitelistService.isOfferer`.
+ *
+ * `isKuChairman` — Эпик 2 (ПВЗ): пайщик имеет операционные полномочия
+ * на хотя бы одном КУ кооператива. Источник — `MarketplaceKuChairmenService.isKuChairman`,
+ * семантика «trustee ИЛИ trusted одного из branches» (trustee и trusted
+ * равны в правах по столу ПВЗ — приёмка, выдача, маркировка, склад).
  */
 export interface IMarketplaceRoleContext {
   isOfferer?: boolean;
