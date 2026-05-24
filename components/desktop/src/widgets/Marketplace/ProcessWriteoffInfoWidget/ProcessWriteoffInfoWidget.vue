@@ -39,6 +39,7 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue'
 import { useProcessStore, type IProcessSnapshot } from 'src/entities/Process'
+import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits'
 
 interface Props {
   processHash: string
