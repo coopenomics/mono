@@ -6,7 +6,7 @@
 // Канон-виджет `OrderCard` для отдельных заказов в партии.
 // Polling 15s — обновляет список без перезагрузки.
 //
-// Фикстура: ivanpetrov (Иван Сергеевич Петров), пайщик-заказчик.
+// Фикстура: ekaterina (Екатерина Смирнова), пайщица-заказчица.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -25,11 +25,11 @@ export const meta = {
   docPath: 'new/marketplace/orderer/consolidated.md',
   assetsDir: 'assets/new/marketplace/orderer/consolidated',
   role: 'user',
-  fixture: 'ivanpetrov',
+  fixture: 'ekaterina',
 };
 
 export default async ({ page, shot }) => {
-  const fixture = loadFixture('ivanpetrov');
+  const fixture = loadFixture('ekaterina');
   await loginAs(page, fixture);
   await page.evaluate(() => localStorage.setItem('harness:noBranchOverlay', '1'));
 

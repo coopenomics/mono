@@ -4,18 +4,34 @@
 // сумма, валюта, банковский референс и назначение. На пустом стенде
 // выплат ещё нет, страница показывает empty-state.
 
-import { cleanViteOverlays, env, loginAsChairman } from '../../../lib/harness.mjs';
+import { cleanViteOverlays, dismissOnboardingDialogs, env, loginAs, signOnboardingAgreements } from '../../../lib/harness.mjs';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const loadFixture = (username) =>
+  JSON.parse(
+    fs.readFileSync(path.resolve(__dirname, `../../../state/participants/${username}.json`), 'utf8'),
+  );
 
 export const meta = {
   title: 'Стол поставщика — история выплат',
   docPath: 'new/marketplace/offerer/payments.md',
   assetsDir: 'assets/new/marketplace/offerer/payments',
-  role: 'chairman',
+  role: 'user',
+  fixture: 'ivanpetrov',
+  fixtures: ['ivanpetrov'],
 };
 
 export default async ({ page, shot }) => {
-  await loginAsChairman(page);
-  await page.evaluate(() => localStorage.setItem('harness:noBranchOverlay', '1'));
+  // История выплат — перспектива поставщика (ivanpetrov), не председателя.
+  const fixture = loadFixture('ivanpetrov');
+  await page.addInitScript(() => localStorage.setItem('harness:noBranchOverlay', '1'));
+  await loginAs(page, fixture);
+  await signOnboardingAgreements(page);
+  await dismissOnboardingDialogs(page);
 
   await page.goto(`${env.BASE_URL}/${env.COOPNAME}/market/payments`, {
     waitUntil: 'domcontentloaded',
@@ -23,11 +39,13 @@ export default async ({ page, shot }) => {
   });
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(3500);
+  await signOnboardingAgreements(page);
+  await dismissOnboardingDialogs(page);
   await cleanViteOverlays(page);
 
   await shot(
     page,
-    '01-payments-empty',
-    `Стол «История выплат» поставщика. URL: \`${page.url()}\`. Empty state: на стенде ещё нет закрытых актов приёмки, поэтому платёжных запросов от кооператива не сформировано.`,
+    '01-payments',
+    `Стол «История выплат» поставщика: дата, сумма, валюта, статус, банковский референс и назначение платежа. URL: \`${page.url()}\`. По каждому закрытому акту приёмки кооператив формирует платёжный запрос поставщику; здесь — список запросов в статусе «Ожидает» с суммой по заказу.`,
   );
 };

@@ -1,7 +1,9 @@
 // Сценарий: orderer-стол «Мои заказы» (/:coopname/market/my-orders).
-// Снимает раздел «Мои заказы» пайщицы Екатерины (Story 4.6): пустой список,
-// строку фильтров по статусам, состояние «нет заказов». Цель — задокументировать
-// orderer-таблицу на старте стенда, до того как пайщик впервые оформил заказ.
+// Снимает раздел «Мои заказы» пайщицы Екатерины (Story 4.6): список её заказов
+// карточками с номером, датой, кол-вом, суммой, ПВЗ и статусом, а также
+// строку фильтр-табов по статусам (Все / Активные / Ждут поставщика / Приняты /
+// Готовы к выдаче / Получены / Отменены). Цель — задокументировать orderer-таблицу
+// на стенде с реальными заказами магистрали II.
 //
 // Фикстура: ekaterina (создана сценарием extension-gate; в её state уже
 // подписаны общие соглашения, повторного онбординга на стенде не будет).
@@ -19,7 +21,7 @@ const loadFixture = (username) =>
   );
 
 export const meta = {
-  title: 'Стол заказчика — «Мои заказы» (пустой список)',
+  title: 'Стол заказчика — «Мои заказы»',
   docPath: 'new/marketplace/orderer/orders.md',
   assetsDir: 'assets/new/marketplace/orderer/orders',
   role: 'user',
@@ -82,28 +84,26 @@ export default async ({ page, shot }) => {
 
   await shot(
     page,
-    '01-my-orders-empty',
-    `Раздел «Мои заказы» пайщицы Екатерины. URL: \`${page.url()}\`. Заказов ещё нет.`,
+    '01-my-orders',
+    `Раздел «Мои заказы» пайщицы Екатерины. URL: \`${page.url()}\`. Список её заказов карточками: номер, дата, кол-во, сумма, ПВЗ и статус.`,
   );
 
-  // --- 02. Раскрытие фильтра по статусу (если есть селект) ---
-  const filterOpened = await page.evaluate(() => {
-    const labels = Array.from(document.querySelectorAll('label, .q-field__label'));
-    const statusLabel = labels.find((l) => /статус/i.test(l.textContent || ''));
-    if (!statusLabel) return false;
-    const field = statusLabel.closest('.q-field, .q-select');
-    if (!field) return false;
-    field.scrollIntoView({ block: 'center', behavior: 'instant' });
-    field.click();
+  // --- 02. Фильтр «Получены»: переключаем кнопку q-btn-toggle ---
+  const tabSwitched = await page.evaluate(() => {
+    const btns = Array.from(document.querySelectorAll('.q-btn-toggle .q-btn'));
+    const target = btns.find((b) => /^получены$/i.test((b.textContent || '').trim()));
+    if (!target) return false;
+    target.scrollIntoView({ block: 'center', behavior: 'instant' });
+    target.click();
     return true;
   });
-  if (filterOpened) {
-    await page.waitForTimeout(800);
+  if (tabSwitched) {
+    await page.waitForTimeout(1200);
     await cleanViteOverlays(page);
     await shot(
       page,
-      '02-status-filter-open',
-      `Раскрытый селектор фильтра по статусу заказа: какие статусы доступны orderer'у.`,
+      '02-filter-received',
+      `Фильтр-табы по статусу заказа. Выбран таб «Получены» — список сужается до завершённых заказов (статус «Выдан»).`,
     );
   }
 };
