@@ -140,7 +140,7 @@ q-page.mp-role-admin.mp-board-writeoff(role="region", aria-label="Повестк
           q-item-label(caption)
             | Создан: {{ formatDate(p.created_at) }}
             | / Триггер: {{ p.trigger }}
-            | / Сумма потерь:
+            | / Сумма списания:
             | {{ p.total_loss_amount ?? '—' }}
         q-item-section(side, top)
           q-chip(

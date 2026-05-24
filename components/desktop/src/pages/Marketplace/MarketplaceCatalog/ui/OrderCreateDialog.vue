@@ -1,8 +1,11 @@
 <script lang="ts" setup>
 import { computed, ref, watch } from 'vue';
 import { Notify } from 'quasar';
+import { useSystemStore } from 'src/entities/System/model';
 import { fetchBranchOptions, submitCreateOrder } from '../api';
 import type { BranchOption, MarketplaceOfferView } from '../types';
+
+const system = useSystemStore();
 
 const props = defineProps<{
   modelValue: boolean;
@@ -161,9 +164,9 @@ q-dialog(v-model="open", :persistent="submitting")
         :disable="branchOptions.length === 0"
       )
       div.text-body2(v-if="offer")
-        | Цена: {{ Number(offer.price_per_unit).toLocaleString('ru-RU') }} ₽ за {{ unitLabel }}
+        | Цена: {{ Number(offer.price_per_unit).toLocaleString('ru-RU') }} {{ system.governSymbol }} за {{ unitLabel }}
       div.text-h6.text-primary(v-if="offer")
-        | Итого: {{ totalSum.toLocaleString('ru-RU') }} ₽
+        | Итого: {{ totalSum.toLocaleString('ru-RU') }} {{ system.governSymbol }}
     q-card-actions(align="right")
       q-btn(flat, label="Отмена", :disable="submitting", @click="open = false")
       q-btn(

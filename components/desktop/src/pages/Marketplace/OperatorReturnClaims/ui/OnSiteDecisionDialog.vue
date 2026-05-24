@@ -171,7 +171,7 @@ const confirmDisabled = computed(() => {
 });
 
 const decisionOptions = [
-  { label: 'Принять возврат (compensating forward выполнится атомарно)', value: DECISION_ACCEPT, color: 'positive' },
+  { label: 'Принять возврат', value: DECISION_ACCEPT, color: 'positive' },
   { label: 'Отказать на месте (имущество остаётся у заказчика)', value: DECISION_REJECT, color: 'negative' },
 ];
 </script>

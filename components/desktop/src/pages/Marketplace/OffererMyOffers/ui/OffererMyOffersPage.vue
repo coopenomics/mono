@@ -127,7 +127,7 @@ q-page.mp-role-offerer.mp-my-offers(role="region", aria-label="Мои предл
     div
       div.text-h5 Мои предложения
       div.text-caption.mp-my-offers__subtitle
-        | Все ваши Offer'ы в кооперативе: на модерации, опубликованные, отклонённые и снятые. Чтобы опубликовать новый — перейдите на «Создать предложение».
+        | Все ваши предложения в кооперативе: на модерации, опубликованные, отклонённые и снятые. Чтобы опубликовать новое — перейдите на «Создать предложение».
     q-space
     q-btn(flat, dense, round, icon="fa-solid fa-rotate", :loading="loading", @click="load(1, false)", aria-label="Обновить")
 
@@ -181,7 +181,7 @@ q-page.mp-role-offerer.mp-my-offers(role="region", aria-label="Мои предл
   div.mp-my-offers__empty(v-if="!loading && filtered.length === 0")
     q-icon(name="fa-solid fa-clipboard-list", size="48px", color="grey-5")
     div.text-subtitle1.q-mt-md Нет предложений в этом фильтре
-    div.text-caption Если у вас нет ни одного Offer'а — создайте первое на странице «Создать предложение».
+    div.text-caption Если у вас нет ни одного предложения — создайте первое на странице «Создать предложение».
 
   div.mp-my-offers__grid(v-if="filtered.length > 0")
     div.mp-my-offers__cell(
