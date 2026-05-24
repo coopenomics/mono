@@ -39,7 +39,7 @@ const cppDocuments = computed<CPPDocument[]>(() => {
     {
       id: 'cpp-marketplace-offer',
       title: 'Оферта на присоединение к ЦПП «Стол заказов»',
-      description: `Шаблон документа № ${state.value.template_registry_id} в реестре кооператива.`,
+      description: 'Заявление о присоединении к программе с условиями участия.',
       required: true,
       locked: false,
     },
@@ -123,7 +123,7 @@ q-page.mp-role-orderer.mp-member-cpp(role="region", aria-label="Подключе
   q-banner(v-if="alreadyDone", rounded, class="bg-positive text-white q-mt-md")
     template(#avatar)
       q-icon(name="fa-solid fa-circle-check", color="white")
-    div.text-subtitle2 Вы уже подключены к Marketplace
+    div.text-subtitle2 Вы уже подключены к Столу заказов
     div.text-body2
       | Подпись ЦПП Стола заказов уже выполнена.
       template(v-if="state?.completed_at")
@@ -135,7 +135,7 @@ q-page.mp-role-orderer.mp-member-cpp(role="region", aria-label="Подключе
   OnboardingCPPGate(
     v-if="state && state.requires_gate && cppDocuments.length",
     title="Стол заказов — пакет ЦПП",
-    subtitle="Эпик 1 / L3 онбординг пайщика",
+    subtitle="Подключение пайщика к программе",
     lead-text="Ознакомьтесь с офертой и Положением ЦПП «Стол заказов». При нажатии «Подписать» документ будет подписан вашим электронным ключом и отправлен в блокчейн.",
     :documents="cppDocuments",
     confirm-label="Подписать оферту"
