@@ -36,6 +36,16 @@ const signing = ref(false);
 
 const ordersCount = computed(() => props.reception?.fact_quantity_per_order?.length ?? 0);
 
+const VARIANT_LABEL: Record<string, string> = {
+  IN_PERSON: 'Очная приёмка',
+  EXPEDITOR: 'Через экспедитора',
+  A: 'Очная приёмка',
+  B: 'Через экспедитора',
+};
+const variantLabel = computed(() =>
+  props.reception ? (VARIANT_LABEL[props.reception.variant] ?? props.reception.variant) : '',
+);
+
 async function confirm(): Promise<void> {
   if (!props.reception) return;
 
@@ -89,7 +99,7 @@ q-dialog(
     q-card-section
       .text-h6 Закрывающая подпись акта приёмки
       .text-caption.text-grey(v-if="reception")
-        | АПП {{ reception.id.slice(0, 8) }} · КУ {{ reception.braname }} · вариант {{ reception.variant }}
+        | АПП {{ reception.id.slice(0, 8) }} · КУ {{ reception.braname }} · {{ variantLabel }}
 
     q-card-section.q-pt-none
       q-banner.q-mb-md(rounded class="bg-primary text-white")

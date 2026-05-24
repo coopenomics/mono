@@ -44,6 +44,34 @@ const totals = computed(() => ({
 
 const hasBranch = computed(() => braname.value.trim().length > 0);
 
+const STATUS_LABEL: Record<string, string> = {
+  // приёмка партии
+  PENDING_SUPPLIER_SIGN: 'Ждёт подписи поставщика',
+  PENDING_CHAIRMAN_RECEPTION_SIGN: 'Ждёт подписи председателя КУ',
+  // заказ / выдача
+  ACTIVE: 'Ждёт цикла / решения',
+  ACCEPTED_PENDING_SUPPLIER: 'Ждёт поставщика',
+  ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL: 'Ждёт поставщика',
+  ACCEPTED: 'Принят поставщиком',
+  SUPPLY_PREPARED: 'Поставка готовится',
+  ACCEPTED_TO_COOP: 'Принят кооперативом',
+  READY_TO_RECEIVE: 'Готов к выдаче',
+  RECEIVED: 'Получен',
+  RETURNED: 'Возвращён',
+  CANCELLED: 'Отменён',
+  CANCELLED_BY_ORDERER: 'Отменён заказчиком',
+  CANCELLED_BY_SUPPLIER: 'Отменён поставщиком',
+  // гарантийный возврат
+  PENDING_CHAIRMAN_REVIEW: 'Ждёт удалённого рассмотрения',
+  APPROVED_FOR_VISIT: 'Очный визит одобрен',
+  ACCEPTED_AT_VISIT: 'Возврат принят',
+  REJECTED_REMOTELY: 'Отказано удалённо',
+  REJECTED_AT_VISIT: 'Отказано на месте',
+};
+function statusLabel(v?: string | null): string {
+  return v ? (STATUS_LABEL[v] ?? v) : '—';
+}
+
 async function loadAll(): Promise<void> {
   const name = braname.value.trim();
   if (!name) return;
@@ -153,24 +181,24 @@ q-page.mp-role-operator.mp-branch-orders(role="region", aria-label="Сводны
         div.mp-branch-orders__empty(v-if="!loading && receptions.length === 0")
           q-icon(name="fa-solid fa-box-open", size="40px", color="grey-5")
           div.text-subtitle1.q-mt-sm Нет активных приёмок
-          div.text-caption Партии в статусе CONFIRMED появятся здесь после подтверждения поставщиком.
+          div.text-caption Подтверждённые поставщиком партии появятся здесь.
         q-list(v-else, separator)
           q-item(v-for="r in receptions", :key="r.id")
             q-item-section
               q-item-label № {{ r.id.slice(0, 8) }} — партия {{ r.shipment_id?.slice?.(0, 8) ?? '—' }}
-              q-item-label(caption) Создана: {{ formatDate(r.created_at) }} / Статус: {{ r.status ?? '—' }}
+              q-item-label(caption) Создана: {{ formatDate(r.created_at) }} / Статус: {{ statusLabel(r.status) }}
 
       q-tab-panel(name="issuances")
         div.mp-branch-orders__empty(v-if="!loading && issuances.length === 0")
           q-icon(name="fa-solid fa-people-carry-box", size="40px", color="grey-5")
           div.text-subtitle1.q-mt-sm Нет заказов на выдачу
-          div.text-caption Заказы в статусе ACCEPTED_TO_COOP / READY_TO_RECEIVE появятся здесь после маркировки на ПВЗ.
+          div.text-caption Заказы, принятые кооперативом и готовые к выдаче, появятся здесь после маркировки на ПВЗ.
         q-list(v-else, separator)
           q-item(v-for="o in issuances", :key="o.id")
             q-item-section
               q-item-label № {{ o.id.slice(0, 8) }} — {{ o.orderer_account }}
               q-item-label(caption)
-                | Кол-во: {{ o.quantity }} ед. / Статус: {{ o.status }} / Создан: {{ formatDate(o.created_at) }}
+                | Кол-во: {{ o.quantity }} ед. / Статус: {{ statusLabel(o.status) }} / Создан: {{ formatDate(o.created_at) }}
 
       q-tab-panel(name="returns")
         div.mp-branch-orders__empty(v-if="!loading && returns.length === 0")
@@ -181,7 +209,7 @@ q-page.mp-role-operator.mp-branch-orders(role="region", aria-label="Сводны
           q-item(v-for="c in returns", :key="c.id")
             q-item-section
               q-item-label № {{ c.id.slice(0, 8) }} — {{ c.orderer_account }}
-              q-item-label(caption) Статус: {{ c.status }} / Создано: {{ formatDate(c.created_at) }}
+              q-item-label(caption) Статус: {{ statusLabel(c.status) }} / Создано: {{ formatDate(c.created_at) }}
 
   div.mp-branch-orders__hint(v-if="!hasBranch")
     q-icon(name="fa-solid fa-circle-info", color="primary")

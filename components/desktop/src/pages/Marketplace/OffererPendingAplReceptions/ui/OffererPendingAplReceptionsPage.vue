@@ -13,11 +13,25 @@ const loading = ref(false);
 const signDialog = ref(false);
 const selected = ref<MarketplaceAplReceptionView | null>(null);
 
+const RECEPTION_STATUS_LABEL: Record<string, string> = {
+  PENDING_SUPPLIER_SIGN: 'Ждёт подписи поставщика',
+  PENDING_CHAIRMAN_RECEPTION_SIGN: 'Ждёт подписи председателя КУ',
+  ACCEPTED_TO_COOP: 'Принят кооперативом',
+  CANCELLED: 'Отменён',
+};
+
+const RECEPTION_VARIANT_LABEL: Record<string, string> = {
+  IN_PERSON: 'Очная приёмка',
+  EXPEDITOR: 'Через экспедитора',
+  A: 'Очная приёмка',
+  B: 'Через экспедитора',
+};
+
 const columns: QTableProps['columns'] = [
   { name: 'id', label: 'АПП', field: (r: MarketplaceAplReceptionView) => r.id.slice(0, 8), align: 'left' },
   { name: 'braname', label: 'КУ', field: 'braname', align: 'left' },
-  { name: 'variant', label: 'Вариант', field: 'variant', align: 'center' },
-  { name: 'status', label: 'Статус', field: 'status', align: 'left' },
+  { name: 'variant', label: 'Вариант', field: 'variant', align: 'center', format: (v: string) => RECEPTION_VARIANT_LABEL[v] ?? v },
+  { name: 'status', label: 'Статус', field: 'status', align: 'left', format: (v: string) => RECEPTION_STATUS_LABEL[v] ?? v },
   { name: 'total_amount', label: 'Сумма', field: 'total_amount', align: 'right' },
   { name: 'actions', label: 'Действия', field: 'id', align: 'right' },
 ];

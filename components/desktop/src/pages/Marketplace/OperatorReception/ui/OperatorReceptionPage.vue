@@ -24,10 +24,33 @@ const loading = ref(false);
 
 const shipmentIdInput = ref('');
 
+const RECEPTION_STATUS_LABEL: Record<string, string> = {
+  PENDING_SUPPLIER_SIGN: 'Ждёт подписи поставщика',
+  PENDING_CHAIRMAN_RECEPTION_SIGN: 'Ждёт подписи председателя КУ',
+  ACCEPTED_TO_COOP: 'Принят кооперативом',
+  CANCELLED: 'Отменён',
+};
+
+const RECEPTION_VARIANT_LABEL: Record<string, string> = {
+  IN_PERSON: 'Очная приёмка',
+  EXPEDITOR: 'Через экспедитора',
+  A: 'Очная приёмка',
+  B: 'Через экспедитора',
+};
+
+// Ждущие подписи приёмки — наверх: председатель приходит на стол, чтобы
+// подписать акты, а не листать уже принятые партии.
+const STATUS_SORT_PRIORITY: Record<string, number> = {
+  PENDING_CHAIRMAN_RECEPTION_SIGN: 0,
+  PENDING_SUPPLIER_SIGN: 1,
+  ACCEPTED_TO_COOP: 2,
+  CANCELLED: 3,
+};
+
 const columns: QTableProps['columns'] = [
   { name: 'id', label: 'АПП', field: (r: MarketplaceAplReceptionView) => r.id.slice(0, 8), align: 'left' },
-  { name: 'variant', label: 'Вариант', field: 'variant', align: 'center' },
-  { name: 'status', label: 'Статус', field: 'status', align: 'left' },
+  { name: 'variant', label: 'Вариант', field: 'variant', align: 'center', format: (v: string) => RECEPTION_VARIANT_LABEL[v] ?? v },
+  { name: 'status', label: 'Статус', field: 'status', align: 'left', format: (v: string) => RECEPTION_STATUS_LABEL[v] ?? v },
   { name: 'total_amount', label: 'Сумма', field: 'total_amount', align: 'right' },
   { name: 'actions', label: '', field: 'id', align: 'right' },
 ];
@@ -36,7 +59,11 @@ async function load(): Promise<void> {
   if (!braname.value.trim()) return;
   loading.value = true;
   try {
-    items.value = await listAplReceptionsByBraname(braname.value.trim());
+    const list = await listAplReceptionsByBraname(braname.value.trim());
+    items.value = [...list].sort(
+      (a, b) =>
+        (STATUS_SORT_PRIORITY[a.status] ?? 99) - (STATUS_SORT_PRIORITY[b.status] ?? 99),
+    );
   } catch (e) {
     FailAlert(e, 'Не удалось загрузить акты приёмки');
   } finally {
