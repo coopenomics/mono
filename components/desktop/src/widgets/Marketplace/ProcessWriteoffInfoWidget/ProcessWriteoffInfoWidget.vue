@@ -13,13 +13,13 @@
         .text-body2 {{ triggerLabel }}
       .col-12.col-sm-6
         .text-caption.text-grey-7 Состояние решения
-        .text-body2 {{ field('status') || '—' }}
+        .text-body2 {{ statusLabel }}
       .col-12.col-sm-6
         .text-caption.text-grey-7 Расчётный цикл начат
         .text-body2 {{ formatDate(field('cycle_started_at')) }}
       .col-12.col-sm-6
         .text-caption.text-grey-7 Итоговая сумма
-        .text-body2.font-monospace {{ field('total_amount') || '—' }}
+        .text-body2.font-monospace {{ field('total_amount') ? formatAsset2Digits(field('total_amount')) : '—' }}
       .col-12.col-sm-6
         .text-caption.text-grey-7 Решение совета
         .text-body2 {{ field('decision_id') || 'не зарегистрировано' }}
@@ -61,6 +61,23 @@ const triggerLabel = computed(() => {
   if (v === 'cron') return 'Автоматический (ежемесячный)'
   if (v === 'manual') return 'Ручной (по инициативе председателя)'
   return '—'
+})
+
+// Подписи статусов проекта списания — согласованы с лентой совета
+// (BoardAgendaWriteoffPage) и админ-столом (AdminWriteoffs).
+const WRITEOFF_STATUS_LABEL: Record<string, string> = {
+  DRAFT: 'Черновик',
+  PROPOSED: 'На повестке совета',
+  ON_AGENDA: 'На повестке совета',
+  AUTHORIZED: 'Одобрено советом',
+  EXECUTING: 'Идёт списание',
+  EXECUTED: 'Исполнено',
+  REJECTED: 'Отклонено',
+  DECLINED: 'Отклонено',
+}
+const statusLabel = computed(() => {
+  const raw = field('status')
+  return WRITEOFF_STATUS_LABEL[raw] || raw || '—'
 })
 
 function formatDate(value: string): string {

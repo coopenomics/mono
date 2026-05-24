@@ -294,15 +294,20 @@ public:
   /**
    * @brief Backend выносит проект списания на повестку совета (Story 8.1).
    * Без ledger2-операций — только создание proposal с N позициями (статус
-   * proposed). Сразу после этого backend вызывает `soviet::createagenda` с
-   * `callback_contract=marketplace`, `confirm_callback=onmktwoauth`,
-   * `decline_callback=onmktwodecl`, `type=mktwroff`, `hash=proposal_hash`.
+   * proposed) и тем же inline-вызовом ставит повестку: `soviet::createagenda`
+   * от `permission_level{_marketplace, active}` с `callback_contract=marketplace`,
+   * `confirm_callback=onmktwoauth`, `decline_callback=onmktwodecl`,
+   * `type=mktwroff`, `hash=proposal_hash`, `statement` (Заявление 1106).
+   * Проект может подаваться председателем (за подписью) либо автоматически —
+   * мост повестки целиком на контракте, без участия backend.
    * @ingroup public_marketplace_actions
    */
   [[eosio::action]] void propwroff(eosio::name coopname,
                                     eosio::name proposed_by,
                                     checksum256 proposal_hash,
-                                    std::vector<wroff_item> items);
+                                    std::vector<wroff_item> items,
+                                    document2 statement,
+                                    std::string meta);
 
   /**
    * @brief Callback от `soviet::exec` после авторизации Протокола совета

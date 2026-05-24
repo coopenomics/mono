@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert } from 'src/shared/api';
+import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import {
   getOpenWriteoffDraft,
   listWriteoffProposals,
@@ -153,7 +154,7 @@ q-page.mp-role-admin.mp-writeoffs.q-pa-md
       .row.items-center
         .col
           .text-subtitle1 Открытый черновик
-          .text-caption.text-grey {{ draft.items.length }} позиций · {{ draft.total_amount }}
+          .text-caption.text-grey {{ draft.items.length }} позиций · {{ formatAsset2Digits(draft.total_amount) }}
           .text-caption.text-grey Источник: {{ draft.trigger === Zeus.MarketplaceWriteoffProposalTrigger.CRON ? 'крон-сервис' : 'ручное создание' }} · {{ formatDate(draft.created_at) }}
         q-btn(
           flat color="primary" no-caps
@@ -173,7 +174,7 @@ q-page.mp-role-admin.mp-writeoffs.q-pa-md
       q-spinner-tabs(v-if="loading" indeterminate)
       .col
         .text-subtitle1 В работе совета
-        .text-caption.text-grey {{ inCouncil.length }} проект(ов) на сумму {{ totalActiveAmount }} ₽
+        .text-caption.text-grey {{ inCouncil.length }} проект(ов) на сумму {{ formatAsset2Digits(totalActiveAmount) }} ₽
 
   q-card(v-if="inCouncil.length === 0" flat bordered).q-pa-md.q-mb-md
     .text-grey Нет проектов на повестке. Откройте новый черновик или дождитесь, пока крон-сервис подберёт скоропорт.
@@ -183,7 +184,7 @@ q-page.mp-role-admin.mp-writeoffs.q-pa-md
       v-for="p in inCouncil" :key="p.id" clickable @click="openDetails(p)"
     )
       q-item-section
-        q-item-label.text-weight-medium {{ p.items.length }} позиций · {{ p.total_amount }}
+        q-item-label.text-weight-medium {{ p.items.length }} позиций · {{ formatAsset2Digits(p.total_amount) }}
         q-item-label(caption) Подал {{ p.proposed_by_account ?? '—' }} · {{ formatDate(p.submitted_at) }}
       q-item-section(side)
         q-chip(:color="statusColor(p.status)" text-color="white" dense) {{ humanStatus(p.status) }}
@@ -196,7 +197,7 @@ q-page.mp-role-admin.mp-writeoffs.q-pa-md
       v-for="p in archive" :key="p.id" clickable @click="openDetails(p)"
     )
       q-item-section
-        q-item-label.text-weight-medium {{ p.items.length }} позиций · {{ p.total_amount }}
+        q-item-label.text-weight-medium {{ p.items.length }} позиций · {{ formatAsset2Digits(p.total_amount) }}
         q-item-label(caption) {{ humanStatus(p.status) }} · {{ formatDate(p.executed_at ?? p.rejected_at ?? p.updated_at) }}
         q-item-label(caption v-if="p.reject_reason") Причина отказа: {{ p.reject_reason }}
       q-item-section(side)

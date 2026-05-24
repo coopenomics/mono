@@ -90,7 +90,6 @@ function buildMocks() {
   const chainPort: jest.Mocked<MarketplaceCanonicalBlockchainPort> = {
     propWroff: jest.fn().mockResolvedValue({ transaction: { id: 'tx-prop' } } as any),
     execWroff: jest.fn().mockResolvedValue({ transaction: { id: 'tx-exec' } } as any),
-    createWriteoffAgenda: jest.fn().mockResolvedValue({ transaction: { id: 'tx-agenda' } } as any),
   } as unknown as jest.Mocked<MarketplaceCanonicalBlockchainPort>;
 
   const assetConfig: MarketplaceAssetConfig = { symbol: 'RUB', decimals: 4 };
@@ -369,7 +368,7 @@ describe('MarketplaceWriteoffService', () => {
       return { draft, proposalHash };
     }
 
-    it('happy — propWroff + createWriteoffAgenda + submitToCouncil', async () => {
+    it('happy — propWroff (с мостом повестки в контракте) + submitToCouncil', async () => {
       const { proposalHash } = setupDraft();
 
       const result = await service.submitToCouncil({
@@ -378,18 +377,15 @@ describe('MarketplaceWriteoffService', () => {
         signed_statement: buildSignedStatement(proposalHash),
       });
 
+      // propWroff несёт statement + meta: повестку совета ставит сам контракт
+      // (inline createagenda), отдельного backend-вызова больше нет.
       expect(mocks.chainPort.propWroff).toHaveBeenCalledWith(
         expect.objectContaining({
           coopname: 'voskhod',
           proposed_by: 'chairman1',
           proposal_hash: proposalHash,
-        })
-      );
-      expect(mocks.chainPort.createWriteoffAgenda).toHaveBeenCalledWith(
-        expect.objectContaining({
-          coopname: 'voskhod',
-          username: 'chairman1',
-          proposal_hash: proposalHash,
+          statement: expect.anything(),
+          meta: expect.any(String),
         })
       );
       expect(mocks.repo.submitToCouncil).toHaveBeenCalledWith(

@@ -5,6 +5,7 @@ import {
   listWriteoffProposals,
   type MarketplaceWriteoffProposalsPageView,
 } from '../../AdminWriteoffs/api';
+import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 
 /**
  * Эпик 8 / Story 8.x: read-only лента писеof проектов для совета.
@@ -141,7 +142,7 @@ q-page.mp-role-admin.mp-board-writeoff(role="region", aria-label="Повестк
             | Создан: {{ formatDate(p.created_at) }}
             | / Триггер: {{ p.trigger }}
             | / Сумма списания:
-            | {{ p.total_loss_amount ?? '—' }}
+            | {{ p.total_amount ? formatAsset2Digits(p.total_amount) : '—' }}
         q-item-section(side, top)
           q-chip(
             :color="STATUS_COLOR[p.status]",

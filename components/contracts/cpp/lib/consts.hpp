@@ -110,6 +110,7 @@ static const std::set<eosio::name> soviet_actions = {
     //MARKETPLACE
     "authoffs2c"_n, //заявление на взнос имуществом
     "authoffc2r"_n, //заявление на возврат паевого взноса имуществом
+    "mktwroff"_n, //проект списания скоропорта на повестку совета (p.mkt.wroff)
 };
 
 //program_ids
