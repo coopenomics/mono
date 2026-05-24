@@ -488,6 +488,40 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             },
           },
           {
+            // Эпик 5 / Story 5.6: operator-стол приёмки партии на ПВЗ.
+            // Председатель КУ открывает акт приёмки (registry_id=1102) против
+            // ожидаемой поставки, сверяет фактические единицы с планом партии
+            // и подписывает signapl1 (поставщик ставит вторую). На входе —
+            // лента CONFIRMED партий, на выходе — переход в LABELING.
+            path: 'reception',
+            name: 'marketplace-pvz-reception',
+            component: markRaw(OperatorReceptionPage),
+            meta: {
+              title: 'Приёмка партии',
+              icon: 'fa-solid fa-box-open',
+              roles: ['chairman'],
+              requiresAuth: true,
+              agreements: agreementsBase,
+            },
+          },
+          {
+            // Эпик 5 / Story 5.8 + Эпик 6: operator-стол маркировки
+            // имущества. После закрытия акта приёмки оператор клеит
+            // EAN-13 на каждую единицу через `BarcodeDisplay` (UX-DR12) +
+            // фиксирует факт маркировки через `marketplaceLabelInventoryItem`.
+            // На MVP — single + shipment-batch режимы.
+            path: 'labeling',
+            name: 'marketplace-pvz-labeling',
+            component: markRaw(OperatorInventoryLabelingPage),
+            meta: {
+              title: 'Маркировка имущества',
+              icon: 'fa-solid fa-tag',
+              roles: ['chairman'],
+              requiresAuth: true,
+              agreements: agreementsBase,
+            },
+          },
+          {
             // Эпик 6 / Story 6.6: operator-стол выдачи имущества пайщику
             // на ПВЗ. Лента заказов в ACCEPTED_TO_COOP (ожидают открытия
             // первой подписью signiss1) и READY_TO_RECEIVE (ожидают
@@ -538,6 +572,22 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               title: 'Сводный стол КУ',
               icon: 'fa-solid fa-list-check',
               roles: [],
+              requiresAuth: true,
+              agreements: agreementsBase,
+            },
+          },
+          {
+            // Эпик 6 / Story 6.x: «Сводный стол КУ» — объединяет ленты
+            // приёмок / выдач / возвратов в один экран с табами и счётчиками
+            // для председателя КУ. Read-only обзор; действия — на /reception,
+            // /issuance, /returns.
+            path: 'branch-orders',
+            name: 'marketplace-pvz-branch-orders',
+            component: markRaw(BranchChairmanBranchOrdersPage),
+            meta: {
+              title: 'Сводный стол КУ',
+              icon: 'fa-solid fa-list-check',
+              roles: ['chairman'],
               requiresAuth: true,
               agreements: agreementsBase,
             },

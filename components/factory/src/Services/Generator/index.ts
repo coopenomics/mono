@@ -1,5 +1,6 @@
 /* eslint-disable unused-imports/no-unused-vars */
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { exec } from 'node:child_process'
 import { PDFDocument } from 'pdf-lib'
@@ -47,7 +48,9 @@ export class PDFService implements IPDFService {
 
   private static async generatePDFBuffer(htmlContent: string): Promise<Uint8Array> {
     const tempId = uuidv4() // Генерируем уникальный ID для временных файлов
-    const tempDir = path.join(__dirname, 'tmp')
+    // Используем системный tmpdir вместо __dirname/tmp: dist/ при докер-сборке
+    // монтируется read-only, и попытка mkdir внутри bundle падает EROFS.
+    const tempDir = path.join(os.tmpdir(), 'factory-pdf')
 
     // Создаем папку tmp, если её нет (с обработкой race condition)
     try {

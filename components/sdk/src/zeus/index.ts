@@ -1,68 +1,43 @@
 /* eslint-disable */
 
-import { AllTypesProps, ReturnTypes, Ops } from './const';
+import { AllTypesProps, ReturnTypes, Ops } from './const.js';
 
 
 export const HOST="Specify host"
 
 
 export const HEADERS = {}
-import { createClient, type Sink } from 'graphql-ws'; // keep
-
-export const apiSubscription = (options: chainOptions) => {
-  const client = createClient({
-    url: String(options[0]),
-    connectionParams: Object.fromEntries(new Headers(options[1]?.headers).entries()),
-  });
-
-  const ws = new Proxy(
-    {
-      close: () => client.dispose(),
-    } as WebSocket,
-    {
-      get(target, key) {
-        if (key === 'close') return target.close;
-        throw new Error(`Unimplemented property '${String(key)}', only 'close()' is available.`);
-      },
-    },
-  );
-
-  return (query: string) => {
-    let onMessage: ((event: any) => void) | undefined;
-    let onError: Sink['error'] | undefined;
-    let onClose: Sink['complete'] | undefined;
-
-    client.subscribe(
-      { query },
-      {
-        next({ data }) {
-          onMessage && onMessage(data);
-        },
-        error(error) {
-          onError && onError(error);
-        },
-        complete() {
-          onClose && onClose();
-        },
-      },
-    );
-
+export const apiSubscription = (options: chainOptions) => (query: string) => {
+  try {
+    const queryString = options[0] + '?query=' + encodeURIComponent(query);
+    const wsString = queryString.replace('http', 'ws');
+    const host = (options.length > 1 && options[1]?.websocket?.[0]) || wsString;
+    const webSocketOptions = options[1]?.websocket || [host];
+    const ws = new WebSocket(...webSocketOptions);
     return {
       ws,
-      on(listener: typeof onMessage) {
-        onMessage = listener;
+      on: (e: (args: any) => void) => {
+        ws.onmessage = (event: any) => {
+          if (event.data) {
+            const parsed = JSON.parse(event.data);
+            const data = parsed.data;
+            return e(data);
+          }
+        };
       },
-      error(listener: typeof onError) {
-        onError = listener;
+      off: (e: (args: any) => void) => {
+        ws.onclose = e;
       },
-      open(listener: (socket: unknown) => void) {
-        client.on('opened', listener);
+      error: (e: (args: any) => void) => {
+        ws.onerror = e;
       },
-      off(listener: typeof onClose) {
-        onClose = listener;
+      open: (e: () => void) => {
+        ws.onopen = e;
       },
     };
-  };
+  } catch {
+    throw new Error('No websockets implemented');
+  }
 };
 export const apiSubscriptionSSE = (options: chainOptions) => (query: string, variables?: Record<string, unknown>) => {
   const url = options[0];

@@ -34,6 +34,33 @@ export const MARKETPLACE_OFFER_CYCLE_TYPES: MarketplaceOfferCycleType[] = [
   MarketplaceOfferCycleTypes.INDIVIDUAL,
 ];
 
+/**
+ * Маппинг domain (snake_case, PG-storage) → chain (eosio::name, без `_`).
+ * Контракт p.mkt.supply ожидает `eosio::name` (см. table_marketplace_orders.hpp:
+ * TIME_BASED="timebased"_n, VOLUME_BASED="volumebased"_n,
+ * OPEN_SUBSCRIPT="opensubscr"_n, INDIVIDUAL="individual"_n).
+ *
+ * Грамматика eosio::name запрещает `_`, поэтому domain-имена `time_based`/
+ * `volume_based`/`open_subscription` нельзя передавать в action как есть.
+ * Использовать на boundary chain submit (`chainPort.createOrder`).
+ */
+export const MARKETPLACE_CYCLE_TYPE_CHAIN_NAME = {
+  [MarketplaceOfferCycleTypes.TIME_BASED]: 'timebased',
+  [MarketplaceOfferCycleTypes.VOLUME_BASED]: 'volumebased',
+  [MarketplaceOfferCycleTypes.OPEN_SUBSCRIPTION]: 'opensubscr',
+  [MarketplaceOfferCycleTypes.INDIVIDUAL]: 'individual',
+} as const satisfies Record<MarketplaceOfferCycleType, string>;
+
+export function toChainCycleType(cycle: string): string {
+  const mapped = (MARKETPLACE_CYCLE_TYPE_CHAIN_NAME as Record<string, string>)[cycle];
+  if (!mapped) {
+    throw new Error(
+      `toChainCycleType: неизвестный domain cycle_type «${cycle}»; ожидался один из ${MARKETPLACE_OFFER_CYCLE_TYPES.join(', ')}`
+    );
+  }
+  return mapped;
+}
+
 export type MarketplaceUnitOfMeasure = 'piece' | 'kg' | 'liter' | 'pack';
 
 export const MarketplaceUnitsOfMeasure = {

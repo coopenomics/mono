@@ -96,8 +96,6 @@ async function onAccept(_documentIds: string[]): Promise<void> {
     }
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
-    // eslint-disable-next-line no-console
-    console.error('[OnboardingMemberPickCpp] onAccept failed:', e);
     Notify.create({ type: 'negative', message });
   } finally {
     loading.value = false;
