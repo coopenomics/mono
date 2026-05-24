@@ -123,6 +123,24 @@ const envVarsSchema = z.object({
     .string()
     .default('1000')
     .transform((val) => parseInt(val, 10)),
+  /**
+   * Задержка (мс) перед emit'ом action-события во внутреннюю шину. Даёт
+   * дельтам того же блока сохраниться в БД раньше, чем обработчики action
+   * полезут читать состояние (DEC-007, ранее хардкод-константа 3000).
+   */
+  BLOCKCHAIN_ACTION_EMIT_DELAY_MS: z
+    .string()
+    .default('3000')
+    .transform((val) => parseInt(val, 10)),
+  /**
+   * Потолок ожидания (мс) завершения обработчиков отката форка перед тем,
+   * как consumer продолжит обработку (TTL force-resume). Защищает от
+   * зависшего синкера, который иначе заблокировал бы поток навсегда.
+   */
+  BLOCKCHAIN_FORK_PAUSE_TIMEOUT_MS: z
+    .string()
+    .default('30000')
+    .transform((val) => parseInt(val, 10)),
 
   // Параметры NOVU
   NOVU_APP_ID: z.string().min(1, { message: 'Не должно быть пустым' }),
@@ -231,6 +249,8 @@ export default {
     root_precision: envVars.data.ROOT_PRECISION,
     root_govern_precision: envVars.data.ROOT_GOVERN_PRECISION,
     post_transact_chain_read_delay_ms: envVars.data.POST_TRANSACT_CHAIN_READ_DELAY_MS,
+    action_emit_delay_ms: envVars.data.BLOCKCHAIN_ACTION_EMIT_DELAY_MS,
+    fork_pause_timeout_ms: envVars.data.BLOCKCHAIN_FORK_PAUSE_TIMEOUT_MS,
   },
   mongoose: {
     url: envVars.data.MONGODB_URL + (envVars.data.NODE_ENV === 'test' ? '-test' : ''),
