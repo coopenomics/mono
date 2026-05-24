@@ -55,6 +55,12 @@ export async function openBrowser({ storageState } = {}) {
       consoleLog.push(`[reqfail] ${u} — ${r.failure()?.errorText}`);
     }
   });
+  page.on('response', async r => {
+    const u = r.url();
+    if (u.includes('/v1/') || u.includes('/config') || u.includes('/get_info') || u.includes('get_account')) {
+      consoleLog.push(`[resp ${r.status()}] ${r.request().method()} ${u}`);
+    }
+  });
 
   return { browser, context, page, consoleLog };
 }
@@ -63,7 +69,7 @@ export async function openBrowser({ storageState } = {}) {
 // Учитывает что vue-router в текущем десктопе работает в hash-режиме
 // (URL вида http://host/#/voskhod/...), а не history.
 export async function loginAsChairman(page, context) {
-  await page.goto(`${env.BASE_URL}/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.waitForSelector('button:has-text("Войти")', { timeout: 60000 });
   await cleanViteOverlays(page);
   await page.locator('label:has-text("электронную почту")').locator('input').fill(env.CHAIRMAN_EMAIL);
@@ -82,7 +88,7 @@ export async function loginAsChairman(page, context) {
 // Логин обычного пайщика по фикстуре (state/participants/<username>.json).
 // fixture: { username, email, wif, ... }
 export async function loginAs(page, fixture) {
-  await page.goto(`${env.BASE_URL}/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.waitForSelector('button:has-text("Войти")', { timeout: 60000 });
   await cleanViteOverlays(page);
   await page.locator('label:has-text("электронную почту")').locator('input').fill(fixture.email);
@@ -258,15 +264,18 @@ export async function signOnboardingAgreements(page, opts = {}) {
 // overlay и custom-element <vite-error-overlay>, чтобы они не попадали на
 // скриншоты при срабатывании HMR во время сценария. Безопасна: если оверлеев
 // нет — ничего не делает.
-export async function cleanViteOverlays(page) {
-  await page.evaluate(() => {
+export async function cleanViteOverlays(page, opts = {}) {
+  await page.evaluate((preserveNotifications) => {
     document.querySelectorAll('vite-error-overlay').forEach((el) => el.remove());
     document.querySelectorAll('vite-plugin-checker-error-overlay').forEach((el) => el.remove());
-    // q-notification toast'ы — это user-feedback, но в момент скриншота
-    // мешают «чистому» кадру; снимаем.
-    document.querySelectorAll('.q-notification').forEach((el) => el.remove());
-    document.querySelectorAll('.q-notifications__list > *').forEach((el) => el.remove());
-  });
+    // q-notification toast'ы — это user-feedback, обычно мешают «чистому»
+    // кадру; снимаем. Но для success/fail-кадров, где тост — суть кадра,
+    // сценарий передаёт preserveNotifications.
+    if (!preserveNotifications) {
+      document.querySelectorAll('.q-notification').forEach((el) => el.remove());
+      document.querySelectorAll('.q-notifications__list > *').forEach((el) => el.remove());
+    }
+  }, opts.preserveNotifications ?? false);
 }
 
 // Создаёт shot-функцию + manifest для сценария.
@@ -280,7 +289,7 @@ export function makeShotContext({ scenarioName, outDir }) {
     if (opts.expect) await opts.expect(page);
 
     await page.waitForTimeout(opts.delay ?? 300);
-    await cleanViteOverlays(page);
+    await cleanViteOverlays(page, { preserveNotifications: opts.preserveNotifications });
     await page.screenshot({ path: filePath, fullPage: opts.fullPage ?? false });
     const entry = {
       name,

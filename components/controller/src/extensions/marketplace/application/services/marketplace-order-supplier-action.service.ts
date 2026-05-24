@@ -5,9 +5,18 @@ import {
   type MarketplaceOrderDomainRepository,
 } from '../../domain/repositories/marketplace-order.repository';
 import {
+  MARKETPLACE_CONSOLIDATED_REQUEST_REPOSITORY,
+  type MarketplaceConsolidatedRequestDomainRepository,
+} from '../../domain/repositories/marketplace-consolidated-request.repository';
+import {
   MARKETPLACE_OFFER_COUNTERS_SERVICE,
   MarketplaceOfferCountersService,
 } from './marketplace-offer-counters.service';
+import {
+  MARKETPLACE_SHIPMENT_CREATE_SERVICE,
+  MarketplaceShipmentCreateService,
+} from './marketplace-shipment-create.service';
+import { MarketplaceShipmentDeliveryVariants } from '../../domain/entities/marketplace-shipment.types';
 import {
   MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
   type MarketplaceCanonicalBlockchainPort,
@@ -41,8 +50,12 @@ export class MarketplaceOrderSupplierActionService {
   constructor(
     @Inject(MARKETPLACE_ORDER_REPOSITORY)
     private readonly orderRepo: MarketplaceOrderDomainRepository,
+    @Inject(MARKETPLACE_CONSOLIDATED_REQUEST_REPOSITORY)
+    private readonly cycleRepo: MarketplaceConsolidatedRequestDomainRepository,
     @Inject(MARKETPLACE_OFFER_COUNTERS_SERVICE)
     private readonly offerCounters: MarketplaceOfferCountersService,
+    @Inject(MARKETPLACE_SHIPMENT_CREATE_SERVICE)
+    private readonly shipmentCreate: MarketplaceShipmentCreateService,
     @Inject(MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT)
     private readonly chainPort: MarketplaceCanonicalBlockchainPort,
     private readonly logger: WinstonLoggerService
@@ -88,7 +101,74 @@ export class MarketplaceOrderSupplierActionService {
     this.logger.log(
       `MarketplaceOrderSupplierActionService.acceptIndividual: Order ${order.id} (hash=${order.order_hash}) принят поставщиком ${input.offerer_account}; tx=${txHash!}`
     );
-    return { order: updated, tx_hash: txHash! };
+
+    // individual: один заказ — самостоятельная единица поставки. Чтобы
+    // переиспользовать канон формирования партии (Shipment строится только
+    // из консолидированной заявки в статусе ACCEPTED — backend-only L10),
+    // синтезируем «заявку из одного заказа» и сразу прогоняем её через
+    // shipment-create. На выходе — Shipment SUPPLY_PREPARED + Order →
+    // SUPPLY_PREPARED, по которому оператор КУ откроет акт приёмки.
+    const prepared = await this.synthesizeIndividualShipment(updated, input.offerer_account);
+    return { order: prepared, tx_hash: txHash! };
+  }
+
+  /**
+   * individual flow: обернуть один ACCEPTED Order в консолидированную заявку
+   * и сформировать по ней Shipment Варианта А (самовывоз поставщика, без ТТН).
+   * Best-effort: если синтез упал, Order остаётся ACCEPTED — партию можно
+   * сформировать вручную через стол поставщика; основной accept уже on-chain.
+   */
+  private async synthesizeIndividualShipment(
+    order: MarketplaceOrderDomainEntity,
+    offerer_account: string
+  ): Promise<MarketplaceOrderDomainEntity> {
+    try {
+      const now = new Date();
+      const cycle = await this.cycleRepo.create({
+        coopname: order.coopname,
+        offer_id: order.offer_id,
+        supplier_account: offerer_account,
+        cycle_type: MarketplaceOrderCycleTypes.INDIVIDUAL,
+        total_quantity: order.quantity,
+        total_amount: order.total_cost,
+        status: 'ACCEPTED',
+        cycle_started_at: order.blocked_at ?? order.created_at ?? now,
+        cycle_ended_at: now,
+        expires_at: null,
+        triggered_by_supplier_at: now,
+      });
+
+      await this.orderRepo.assignToCycle(
+        [order.id],
+        cycle.id,
+        MarketplaceOrderStatuses.ACCEPTED
+      );
+
+      await this.shipmentCreate.execute({
+        coopname: order.coopname,
+        offerer_account,
+        cycle_id: cycle.id,
+        groups: [
+          {
+            braname: order.delivery_braname,
+            delivery_variant: MarketplaceShipmentDeliveryVariants.SELF,
+            ttn_data: null,
+          },
+        ],
+      });
+
+      const refreshed = await this.orderRepo.findById(order.id);
+      this.logger.log(
+        `MarketplaceOrderSupplierActionService.synthesizeIndividualShipment: Order ${order.id} → SUPPLY_PREPARED через заявку ${cycle.id} (КУ ${order.delivery_braname})`
+      );
+      return refreshed ?? order;
+    } catch (error: any) {
+      this.logger.error(
+        `MarketplaceOrderSupplierActionService.synthesizeIndividualShipment: синтез партии упал для Order ${order.id}: ${error.message}; Order остаётся ACCEPTED, партию сформировать вручную.`,
+        error.stack
+      );
+      return order;
+    }
   }
 
   async declineIndividual(input: MarketplaceSupplierDeclineInput): Promise<MarketplaceSupplierActionResult> {
@@ -187,8 +267,22 @@ export class MarketplaceOrderSupplierActionService {
   }
 
   private normalizeTxHash(tx: unknown): string {
-    const t = tx as { transaction?: { id?: string }; processed?: { id?: string } };
-    const hash = t?.transaction?.id ?? t?.processed?.id;
+    // wharfkit TransactResult держит Antelope push_transaction response под
+    // `response` (response.processed.id / response.transaction_id). Для
+    // совместимости со spec-тестами поддерживаем и плоский processed.id.
+    const t = tx as {
+      transaction?: { id?: string };
+      processed?: { id?: string };
+      response?: {
+        transaction_id?: string;
+        processed?: { id?: string };
+      };
+    };
+    const hash =
+      t?.response?.processed?.id ??
+      t?.response?.transaction_id ??
+      t?.processed?.id ??
+      t?.transaction?.id;
     if (!hash) {
       // fail-fast: цепь приняла action, но не вернула tx_hash —
       // лучше отбить поставщику и попросить retry, чем записать

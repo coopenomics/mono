@@ -22,6 +22,17 @@ export type MarketplaceIssuanceResultView =
 export type SignedDocumentInput = Types.Document.ISignedDocumentInput;
 export type MarketplaceGeneratedDocumentView = Types.Document.IGeneratedDocument;
 
+/**
+ * Агрегат документа выдачи: исходный документ (rawDocument) + документ с
+ * уже наложенной подписью председателя (document). Заказчик накладывает
+ * финальную подпись поверх, не перегенерируя документ.
+ */
+export interface MarketplaceIssuanceAggregateView {
+  hash: string;
+  rawDocument: Types.Document.IGeneratedDocument;
+  document: Types.Document.ISignedDocument;
+}
+
 export async function listIssuancesByBraname(
   delivery_braname: string,
 ): Promise<MarketplaceOrderIssuanceView[]> {
@@ -52,13 +63,12 @@ export async function getChairmanSignablePayload(
 
 export async function getOrdererSignablePayload(
   order_id: string,
-  actual_quantity?: number,
-): Promise<MarketplaceGeneratedDocumentView> {
+): Promise<MarketplaceIssuanceAggregateView> {
   const { [Queries.Marketplace.IssueActOrdererSignablePayload.name]: result } =
     await client.Query(Queries.Marketplace.IssueActOrdererSignablePayload.query, {
-      variables: { data: { order_id, actual_quantity } },
+      variables: { data: { order_id } },
     });
-  return result as MarketplaceGeneratedDocumentView;
+  return result as unknown as MarketplaceIssuanceAggregateView;
 }
 
 export async function openIssuance(

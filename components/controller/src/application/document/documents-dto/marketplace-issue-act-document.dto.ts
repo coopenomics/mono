@@ -30,6 +30,27 @@ class BaseMarketplaceIssueActMetaDocumentInputDTO implements ExcludeCommonProps<
   @IsString()
   order_hash!: string;
 
+  @Field({ description: 'Имя приёмного кооперативного участка, на который передаётся партия.' })
+  @IsString()
+  accept_braname!: string;
+
+  @Field({ description: 'Идентификатор записи акта приёмки в инфраструктуре marketplace.' })
+  @IsString()
+  reception_id!: string;
+
+  @Field(() => Int, { description: 'Фактически принятое количество единиц по заказу.' })
+  @IsInt()
+  @Min(0)
+  fact_quantity!: number;
+
+  @Field({ description: 'Сумма по заказу с учётом фактического количества.' })
+  @IsString()
+  total_amount!: string;
+
+  @Field({ description: 'Учётная запись поставщика, передавшего партию на кооперативный участок.' })
+  @IsString()
+  supplier_account!: string;
+
   @Field({ description: 'Номер акта для шапки документа.' })
   @IsString()
   act_id!: string;

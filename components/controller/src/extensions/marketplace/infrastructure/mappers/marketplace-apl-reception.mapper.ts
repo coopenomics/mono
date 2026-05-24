@@ -20,6 +20,7 @@ export class MarketplaceAplReceptionMapper {
       created_by_operator_account: row.created_by_operator_account,
       supplier_signed_at: row.supplier_signed_at,
       supplier_signsupp_tx_hash: row.supplier_signsupp_tx_hash,
+      supplier_signed_documents: row.supplier_signed_documents,
       chairman_signed_at: row.chairman_signed_at,
       chairman_account: row.chairman_account,
       chairman_signchair_tx_hash: row.chairman_signchair_tx_hash,

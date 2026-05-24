@@ -1,4 +1,4 @@
-import { Mutations, Queries } from '@coopenomics/sdk';
+import { Mutations, Queries, type Types } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 
 export interface MarketplaceAplReceptionView {
@@ -17,32 +17,8 @@ export interface MarketplaceAplReceptionView {
   chairman_signed_at: string | null;
 }
 
-export interface SignatureInfoView {
-  id: number;
-  signer: string;
-  public_key: string;
-  signature: string;
-  signed_at: string;
-  signed_hash: string;
-  meta: string;
-}
-
-export interface SignedDocumentInput {
-  version: string;
-  hash: string;
-  doc_hash: string;
-  meta_hash: string;
-  meta: Record<string, unknown>;
-  signatures: SignatureInfoView[];
-}
-
-export interface MarketplaceAplReceptionDocumentView {
-  full_title: string;
-  html: string;
-  hash: string;
-  meta: Record<string, unknown>;
-  binary: string;
-}
+export type SignedDocumentInput = Types.Document.ISignedDocumentInput;
+export type MarketplaceAplReceptionDocumentView = Types.Document.IGeneratedDocument;
 
 export async function listAplReceptionsAsSupplier(): Promise<MarketplaceAplReceptionView[]> {
   const result = await client.Query(Queries.Marketplace.ListAplReceptionsAsSupplier.query, {});

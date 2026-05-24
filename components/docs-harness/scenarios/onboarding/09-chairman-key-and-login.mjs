@@ -60,7 +60,7 @@ export default async ({ page, shot }) => {
   console.log(`[09] token (head): ${token.slice(0, 40)}…`);
 
   // ---- 2. Открываем /auth/invite?token=… ---------------------------------
-  const inviteUrl = `${env.BASE_URL}/${env.COOPNAME}/auth/invite?token=${token}`;
+  const inviteUrl = `${env.BASE_URL}/#/${env.COOPNAME}/auth/invite?token=${token}`;
   await page.goto(inviteUrl, { waitUntil: 'domcontentloaded', timeout: 60_000 });
   await page.waitForLoadState('networkidle', { timeout: 30_000 }).catch(() => {});
   await page.waitForSelector('.invite-title:has-text("СОХРАНИТЕ КЛЮЧ")', { timeout: 30_000 });

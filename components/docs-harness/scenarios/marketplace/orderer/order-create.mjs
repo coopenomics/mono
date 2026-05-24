@@ -34,6 +34,11 @@ export const meta = {
   role: 'user',
   fixture: 'ekaterina',
   fixtures: ['ekaterina'],
+  // Pre-flight pre-fund Main Wallet: marketplaceCreateOrder требует положительный
+  // баланс program_id=1 у пайщика, иначе backend тихо отказывает (см. task #176).
+  // Идемпотентно для смысла «есть деньги» — каждый запуск добавляет ещё одну
+  // эмиссию (баланс растёт), что безопасно для dev-стенда.
+  prepare: ['marketplace-deposits:fund'],
 };
 
 async function signAllAgreements(page) {
@@ -58,6 +63,34 @@ async function signAllAgreements(page) {
 export default async ({ page, shot }) => {
   const fixture = loadFixture('ekaterina');
 
+  // Сетевая телеметрия — Quasar Notify положительный живёт 2.5с и Playwright
+  // может его пропустить (см. offer-create.mjs). Реальный success-сигнал —
+  // mutation вернула 200 OK без GraphQL errors.
+  let createOrderSent = false;
+  let createOrderStatus = null;
+  let createOrderBody = null;
+  page.on('request', (req) => {
+    if (req.url().includes('/v1/graphql') && req.method() === 'POST') {
+      try {
+        const body = req.postData() || '';
+        if (/marketplaceCreateOrder|MarketplaceCreateOrder/.test(body)) {
+          createOrderSent = true;
+        }
+      } catch {}
+    }
+  });
+  page.on('response', async (res) => {
+    if (createOrderSent && createOrderStatus === null && res.url().includes('/v1/graphql')) {
+      try {
+        const body = await res.text();
+        if (body.includes('marketplaceCreateOrder')) {
+          createOrderStatus = res.status();
+          createOrderBody = body.slice(0, 1200);
+        }
+      } catch {}
+    }
+  });
+
   await loginAs(page, fixture);
   await page.evaluate(() => localStorage.setItem('harness:noBranchOverlay', '1'));
 
@@ -75,7 +108,7 @@ export default async ({ page, shot }) => {
   // banner «Вы уже подключены». Сценарий поддерживает оба исхода:
   // на свежей цепочке первый прогон снимет полный flow; повторные
   // прогоны пропустят подпись (уже зафиксирована on-chain).
-  await page.goto(`${env.BASE_URL}/${env.COOPNAME}/market/onboarding/member-cpp`, {
+  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/market/onboarding/member-cpp`, {
     waitUntil: 'domcontentloaded',
     timeout: 45000,
   });
@@ -113,20 +146,36 @@ export default async ({ page, shot }) => {
     );
 
     // Проставить обязательные чекбоксы (gate проверяет required+allRequiredAccepted).
-    const checkboxes = gate.locator('.q-checkbox');
-    const cbCount = await checkboxes.count();
-    for (let i = 0; i < cbCount; i++) {
-      const cb = checkboxes.nth(i);
-      const aria = await cb.getAttribute('aria-checked').catch(() => null);
-      if (aria !== 'true') {
-        await cb.click();
-        await page.waitForTimeout(150);
-      }
+    // q-item tag="label" обернул и q-checkbox, и текст документа — Quasar
+    // распознает клик по label и обновляет v-model. Раньше кликали по
+    // `.q-checkbox` корню, но Playwright не всегда триггерит v-model на
+    // корневом div (зависит от Quasar версии) — клик по label-родителю
+    // работает надёжнее.
+    const items = gate.locator('.q-list > .q-item');
+    const itemCount = await items.count();
+    for (let i = 0; i < itemCount; i++) {
+      await items.nth(i).click();
+      await page.waitForTimeout(200);
     }
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(400);
 
     const signBtn = gate.locator('button:has-text("Подписать оферту")').first();
     await signBtn.waitFor({ state: 'visible', timeout: 5000 });
+    // Sanity: если кнопка disabled — значит чекбоксы не сработали; кидаем
+    // понятную ошибку вместо silent click no-op.
+    const disabled = await signBtn.isDisabled();
+    if (disabled) {
+      const checkedDump = await page.evaluate(() => {
+        const cbs = Array.from(document.querySelectorAll('.mp-onboarding-gate .q-checkbox'));
+        return cbs.map((c) => ({
+          aria: c.getAttribute('aria-checked'),
+          truthy: c.classList.contains('q-checkbox--true') || !!c.querySelector('.q-checkbox__inner--truthy'),
+        }));
+      });
+      throw new Error(
+        `[order-create] кнопка «Подписать оферту» disabled после кликов по чекбоксам. State: ${JSON.stringify(checkedDump)}`,
+      );
+    }
     await signBtn.click();
 
     // Ждём либо Notify «Оферта подписана» + редирект на /market/catalog,
@@ -152,7 +201,7 @@ export default async ({ page, shot }) => {
   }
 
   // === Шаг 2: переход на каталог ===
-  await page.goto(`${env.BASE_URL}/${env.COOPNAME}/market/catalog`, {
+  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/market/catalog`, {
     waitUntil: 'domcontentloaded',
     timeout: 45000,
   });
@@ -204,16 +253,45 @@ export default async ({ page, shot }) => {
     'Форма с количеством 2 и выбранным ПВЗ доставки. Итоговая сумма обновляется немедленно (price_per_unit × quantity). Кнопка «Подтвердить заказ» становится активной, когда оба поля валидны.',
   );
 
-  // === Шаг 4: submit + Notify «Заказ создан» ===
+  // === Шаг 4: submit + assert через network telemetry ===
+  // Quasar Notify положительный живёт 2.5с (default) — Playwright опрашивает
+  // ~80ms и обычно ловит, но при тормозящем dev-сервере успевает пропустить.
+  // Source-of-truth = GraphQL mutation response: 200 без `errors` ⇒ Order создан
+  // в БД (см. backend log MarketplaceOrderCreateService Order ... создан).
   const confirmBtn = dialog.locator('button:has-text("Подтвердить заказ")').first();
   await confirmBtn.click();
 
-  await page.locator('.q-notification').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
-  await page.waitForTimeout(800);
+  let waited = 0;
+  while (!createOrderSent && waited < 10000) {
+    await page.waitForTimeout(200);
+    waited += 200;
+  }
+  if (!createOrderSent) {
+    throw new Error('[order-create] submit нажат, но мутация marketplaceCreateOrder НЕ ушла');
+  }
+  let waitedRes = 0;
+  while (createOrderStatus === null && waitedRes < 30000) {
+    await page.waitForTimeout(200);
+    waitedRes += 200;
+  }
+  console.log(
+    `[order-create] marketplaceCreateOrder sent=${createOrderSent} status=${createOrderStatus} waitedMs=${waited}+${waitedRes}`,
+  );
+  if (createOrderStatus !== 200) {
+    console.log(`[order-create] response body: ${createOrderBody}`);
+    throw new Error(`[order-create] mutation вернула статус ${createOrderStatus}`);
+  }
+  if (createOrderBody && /"errors":\s*\[/.test(createOrderBody)) {
+    throw new Error(`[order-create] mutation вернула GraphQL errors: ${createOrderBody}`);
+  }
+
+  await page.waitForTimeout(1500);
+  await cleanViteOverlays(page);
   await shot(
     page,
     '04-order-created',
-    'Magistral II разблокирована: после подписи L3-оферты submit `marketplaceCreateOrder` проходит pipeline (createorder → o.mkt.assign → TRANSFER из w.wal.member в w.mkt.member). UI показывает Notify «Заказ создан». В Witkin/MyOrders появляется новый PENDING-заказ.',
+    'Magistral II разблокирована: после подписи L3-оферты submit `marketplaceCreateOrder` проходит pipeline (createorder → o.mkt.assign → TRANSFER из w.wal.member в w.mkt.member). Диалог закрыт, в карточке offer\'а счётчик «Доступно» уменьшился на quantity. В Witkin/MyOrders появится новый PENDING-заказ после parser sync.',
     { preserveNotifications: true },
   );
+  await dialog.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
 };

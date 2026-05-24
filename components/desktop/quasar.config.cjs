@@ -176,7 +176,7 @@ module.exports = configure(function (ctx) {
       // Vue DevTools + Vite: подключение скрипта в dev (расширение браузера)
       vueDevtools: false,
       open: false,
-      port: 2999,
+      port: parseInt(process.env.DESKTOP_PORT || '2999', 10),
       strictPort: true,
       host: '0.0.0.0',
     },

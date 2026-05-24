@@ -23,10 +23,13 @@ import {
  *  2. CorrectionTable показывает «план vs факт» — оператор корректирует
  *     `actual_quantity` (равно / меньше / больше); UI считает
  *     `fact_cost = actual_quantity × unit_price` и `diff_state`.
- *  3. Заказчик подходит, вводит свой приватный ключ (или сессию)
- *     для подписи первой стороной (signatureId=1).
- *  4. Оператор (`delivery_signer`) подписывает второй стороной
- *     (signatureId=2) текущим ключом из useGlobalStore.
+ *  3. Backend отдаёт акт, уже подписанный председателем при открытии
+ *     выдачи (signatureId=1, on-chain signiss1) — в виде агрегата
+ *     (rawDocument + document с подписью председателя).
+ *  4. Заказчик вводит свой приватный ключ и накладывает финальную
+ *     подпись (signatureId=2) поверх подписи председателя; документ не
+ *     перегенерируется. `delivery_signer` = председатель, открывший
+ *     выдачу (order.chairman_account).
  *  5. Подписанный документ уходит mutation `marketplaceFinalizeIssuance`
  *     с указанием `actual_quantity` и `delivery_signer` — C++ контракт
  *     исполняет три ветки сверки в одной композитной транзакции
@@ -149,6 +152,12 @@ async function confirm(): Promise<void> {
     return;
   }
 
+  const deliverySigner = props.order.chairman_account;
+  if (!deliverySigner) {
+    FailAlert(new Error('Не найден председатель, открывший выдачу. Сначала откройте выдачу первой подписью.'));
+    return;
+  }
+
   signing.value = true;
   try {
     // Валидация приватного ключа заказчика — ранний фейл до запроса акта,
@@ -160,29 +169,23 @@ async function confirm(): Promise<void> {
       throw new Error(`Некорректный приватный ключ заказчика: ${message}`);
     }
 
-    const generated = await getOrdererSignablePayload(props.order.id, actualQuantity.value);
+    // Backend отдаёт акт, уже подписанный председателем при открытии выдачи
+    // (signatureId=1, on-chain signiss1). Заказчик накладывает финальную
+    // подпись (signatureId=2) поверх — документ не перегенерируется.
+    const aggregate = await getOrdererSignablePayload(props.order.id);
 
-    // 1) Подпись заказчика (signatureId=1)
     const ordererSigner = new Classes.Document(ordererWif.value.trim());
-    const ordererSigned = await ordererSigner.signDocument(
-      generated,
+    const fullSigned = await ordererSigner.signDocument(
+      aggregate.rawDocument,
       props.order.orderer_account,
-      1,
-    );
-
-    // 2) Подпись стороны кооператива — текущий оператор как delivery_signer (signatureId=2)
-    const operatorSigner = new Classes.Document(operatorWif);
-    const fullSigned = await operatorSigner.signDocument(
-      generated,
-      globalStore.username,
       2,
-      [ordererSigned],
+      [aggregate.document],
     );
 
     await finalizeIssuance(
       props.order.id,
       actualQuantity.value,
-      globalStore.username,
+      deliverySigner,
       fullSigned,
     );
     SuccessAlert('Заказ выдан. Статус заказа — RECEIVED.');
@@ -249,9 +252,9 @@ TakeoverDialog(
           .row.justify-end.q-mt-md
             q-btn(unelevated no-caps color="primary" label="Перейти к подписи" @click="goToSign")
 
-        q-step(:name="STEP_SIGN" title="Двойная подпись" icon="fa-solid fa-pen-nib")
+        q-step(:name="STEP_SIGN" title="Финальная подпись" icon="fa-solid fa-pen-nib")
           q-banner.q-mb-md(rounded class="bg-primary text-white")
-            | Заказчик подписывает первым (signatureId=1) приватным ключом своего пайского аккаунта; оператор (delivery_signer) — вторым ключом из активной сессии (signatureId=2).
+            | Председатель уже подписал акт при открытии выдачи. Заказчик ставит финальную подпись своим приватным ключом поверх подписи председателя — имущество переходит к нему.
           q-input(
             v-model="ordererWif"
             outlined

@@ -100,7 +100,7 @@ const formattedBalance = computed(() => {
 // Форматированный баланс RUB из MicroWallet
 const formattedRubBalance = computed(() => {
   const available = walletStore.program_wallets[0]?.available || '0';
-  return formatAsset2Digits(`${available} ${system.info.symbols.root_govern_symbol}`);
+  return formatAsset2Digits(`${available} ${system.info.symbols?.root_govern_symbol ?? '₽'}`);
 });
 
 // Подсказка с расчетом AXON
@@ -139,7 +139,7 @@ const handlerSubmit = async () => {
   try {
     // Выполняем конвертацию RUB в AXON
     const success = await convertToAxon({
-      convertAmount: formatToAsset(depositAmount.value, system.info.symbols.root_govern_symbol, system.info.symbols.root_govern_precision),
+      convertAmount: formatToAsset(depositAmount.value, system.info.symbols?.root_govern_symbol ?? '₽', system.info.symbols?.root_govern_precision ?? 2),
       username: session.username || '',
       coopname: system.info.coopname || ''
     });

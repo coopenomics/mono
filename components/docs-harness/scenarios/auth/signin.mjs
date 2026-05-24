@@ -28,7 +28,7 @@ export const meta = {
 
 export default async ({ page, shot, expect, env }) => {
   // --- Шаг 1. Форма входа ---
-  await page.goto(`${env.BASE_URL}/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('button:has-text("Войти")', { timeout: 60000 });
   await page.waitForTimeout(800);
   await shot(page, '01-form', 'Пустая форма входа: поля email и ключ доступа, кнопка «Войти»');

@@ -15,9 +15,13 @@ export const registry_id = 1102
 //     `getUser(transmitter) → getFirstLastMiddleName`.
 //
 // Текст шаблона и переводы — 1-к-1 с 802.ReturnByAssetAct (юр.выверенный
-// текст). В Action попадают только переменные, которые подставляются в
-// шаблон; прочие признаки (например, идентификатор записи АПП в
-// инфраструктуре marketplace) попадают в meta автоматически.
+// текст). В Action входят как переменные шаблона (order_id/act_id/
+// transmitter/braname), так и инфраструктурные признаки записи АПП
+// (reception_id/accept_braname/fact_quantity/total_amount/
+// supplier_account) — последние не подставляются в текст, но обязаны
+// попасть в meta подписанного документа, чтобы on-chain акт был
+// самоописывающимся. meta генерируется фабрикой как `{...data}`, поэтому
+// любое поле Action автоматически оказывается в meta.
 //
 // `doc_data_hash` — зарезервированное опциональное поле для приватных
 // данных off-chain (см. раздел «Document Generation Pattern: doc_data»).
@@ -33,6 +37,16 @@ export interface Action extends IGenerate, IDocDataRef {
   transmitter: string
   /** Имя кооперативного участка, выдающего имущество (braname). */
   braname?: string
+  /** Имя приёмного кооперативного участка, на который передаётся партия. */
+  accept_braname: string
+  /** Идентификатор записи акта приёмки в инфраструктуре marketplace. */
+  reception_id: string
+  /** Фактически принятое количество единиц по заказу. */
+  fact_quantity: number
+  /** Сумма по заказу с учётом фактического количества (строка, 4 знака). */
+  total_amount: string
+  /** USERNAME поставщика, передавшего партию на кооперативный участок. */
+  supplier_account: string
 }
 
 export type Meta = IMetaDocument & Action

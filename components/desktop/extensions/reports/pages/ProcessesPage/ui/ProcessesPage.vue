@@ -70,7 +70,7 @@ div.page-shell
           q-td(auto-width)
             ExpandToggleButton(
               :expanded='expanded.get(props.row.processHash)'
-              @click='toggleExpand(props.row.processHash, props.row.processType)'
+              @click='toggleExpand(props.row.processHash)'
             )
           q-td
             q-chip(
@@ -399,7 +399,7 @@ function onRequest(props: { pagination: { page: number; rowsPerPage: number; row
   load()
 }
 
-async function toggleExpand(processHash: string, processType: string) {
+async function toggleExpand(processHash: string) {
   const wasOpen = expanded.value.get(processHash)
   expanded.value.set(processHash, !wasOpen)
   if (!wasOpen && !detailLoaded.value.has(processHash)) {

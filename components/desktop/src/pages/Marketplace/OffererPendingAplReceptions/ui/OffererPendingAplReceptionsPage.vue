@@ -1,14 +1,17 @@
 <script lang="ts" setup>
 import type { QTableProps } from 'quasar';
 import { onMounted, ref } from 'vue';
-import { FailAlert, NotifyAlert } from 'src/shared/api';
+import { FailAlert } from 'src/shared/api';
 import {
   listAplReceptionsAsSupplier,
   type MarketplaceAplReceptionView,
 } from '../api';
+import SignAplReceptionDialog from './SignAplReceptionDialog.vue';
 
 const items = ref<MarketplaceAplReceptionView[]>([]);
 const loading = ref(false);
+const signDialog = ref(false);
+const selected = ref<MarketplaceAplReceptionView | null>(null);
 
 const columns: QTableProps['columns'] = [
   { name: 'id', label: 'АПП', field: (r: MarketplaceAplReceptionView) => r.id.slice(0, 8), align: 'left' },
@@ -31,10 +34,8 @@ async function load(): Promise<void> {
 }
 
 function sign(item: MarketplaceAplReceptionView): void {
-  NotifyAlert(
-    `Диалог подписи АПП ${item.id.slice(0, 8)} в разработке`,
-    'Backend принимает только подписанный канонический акт (signed_document с подписью). UI-флоу подписи через приватный ключ поставщика — следующий этап работ.'
-  );
+  selected.value = item;
+  signDialog.value = true;
 }
 
 onMounted(() => {
@@ -68,4 +69,10 @@ q-page.mp-role-offerer.mp-pending-apl.q-pa-md
           label="Подписать"
           @click="sign(props.row)"
         )
+
+  SignAplReceptionDialog(
+    v-model="signDialog"
+    :reception="selected"
+    @signed="load"
+  )
 </template>

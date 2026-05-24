@@ -25,6 +25,7 @@ import {
   type MarketplaceAplReceptionDomainRepository,
 } from '../../domain/repositories/marketplace-apl-reception.repository';
 import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
+import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 
 function toGeneratedDocumentDTO(e: DocumentDomainEntity): GeneratedDocumentDTO {
@@ -130,22 +131,23 @@ export class MarketplaceAplReceptionResolver {
     return docs.map(toGeneratedDocumentDTO);
   }
 
-  @Query(() => [GeneratedDocumentDTO], {
+  @Query(() => [DocumentAggregateDTO], {
     name: 'marketplaceAplReceptionChairmanSignablePayloads',
-    description: 'Preview-документы акта приёмки для закрывающей подписи председателя КУ.',
+    description:
+      'Акты приёмки, уже подписанные поставщиком, для закрывающей подписи председателя КУ. Каждый элемент содержит исходный документ для ознакомления и подпись поставщика; председатель накладывает свою подпись поверх.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Receiving', 'sign:closing')
   async marketplaceAplReceptionChairmanSignablePayloads(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceAplReceptionByIdInputDTO
-  ): Promise<GeneratedDocumentDTO[]> {
-    const docs = await this.service.getChairmanSignablePayloads(
+  ): Promise<DocumentAggregateDTO[]> {
+    const aggregates = await this.service.getChairmanSignablePayloads(
       config.coopname,
       data.apl_reception_id,
       member.username
     );
-    return docs.map(toGeneratedDocumentDTO);
+    return aggregates.map((a) => new DocumentAggregateDTO(a));
   }
 
   @Query(() => [MarketplaceAplReceptionDTO], {

@@ -24,6 +24,7 @@ import {
   type MarketplaceOrderDomainRepository,
 } from '../../domain/repositories/marketplace-order.repository';
 import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
+import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 
 function toGeneratedDocumentDTO(e: DocumentDomainEntity): GeneratedDocumentDTO {
@@ -113,22 +114,21 @@ export class MarketplaceIssuanceResolver {
     return toGeneratedDocumentDTO(doc);
   }
 
-  @Query(() => GeneratedDocumentDTO, {
+  @Query(() => DocumentAggregateDTO, {
     name: 'marketplaceIssueActOrdererSignablePayload',
     description:
-      'Превью акта выдачи имущества для финальной подписи заказчика с указанием фактического количества.',
+      'Акт выдачи, уже подписанный председателем, для финальной подписи заказчика. Содержит исходный документ для ознакомления и подпись председателя; заказчик накладывает свою подпись поверх.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Issuance', 'sign:final')
   async marketplaceIssueActOrdererSignablePayload(
     @Args('data') data: MarketplaceIssueActPayloadInputDTO
-  ): Promise<GeneratedDocumentDTO> {
-    const doc = await this.service.getFinalizeIssuanceSignablePayload(
+  ): Promise<DocumentAggregateDTO> {
+    const aggregate = await this.service.getFinalizeIssuanceSignablePayload(
       config.coopname,
-      data.order_id,
-      data.actual_quantity
+      data.order_id
     );
-    return toGeneratedDocumentDTO(doc);
+    return new DocumentAggregateDTO(aggregate);
   }
 
   @Query(() => [MarketplaceOrderDTO], {

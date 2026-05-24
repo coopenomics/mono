@@ -85,14 +85,14 @@ const getProgramIcon = (program: any): string => {
 // Форматированная сумма доступных средств для программы
 const getFormattedAvailable = (program: any) => {
   const available = program?.available || '0';
-  return formatAsset2Digits(`${available} ${info.symbols.root_govern_symbol}`);
+  return formatAsset2Digits(`${available} ${info.symbols?.root_govern_symbol ?? '₽'}`);
 };
 
 
 // Форматированная сумма заблокированных средств для программы.
 // Видимость блока — через hasBlocked(); сюда попадаем только если blocked > 0.
 const getFormattedBlocked = (program: any) => {
-  return formatAsset2Digits(`${program?.blocked || '0'} ${info.symbols.root_govern_symbol}`);
+  return formatAsset2Digits(`${program?.blocked || '0'} ${info.symbols?.root_govern_symbol ?? '₽'}`);
 };
 
 // Показать блок «Заблокировано» только если сумма реально > 0.

@@ -17,8 +17,33 @@ export const meta = {
   role: 'chairman',
 };
 
+async function signAllAgreements(page) {
+  await page.waitForFunction(
+    () => !document.body.innerText.includes('Формируем документ'),
+    { timeout: 30000 },
+  ).catch(() => {});
+  await page.waitForTimeout(500);
+  for (let i = 0; i < 8; i++) {
+    const clicked = await page.evaluate(() => {
+      const portals = Array.from(document.querySelectorAll('[id^="q-portal--dialog--"]'))
+        .filter((p) => getComputedStyle(p).display !== 'none');
+      if (portals.length === 0) return false;
+      const top = portals[portals.length - 1];
+      const btn = Array.from(top.querySelectorAll('button'))
+        .find((b) => b.textContent?.trim() === 'Подписать' && !b.disabled);
+      if (!btn) return false;
+      btn.scrollIntoView({ block: 'center', behavior: 'instant' });
+      btn.click();
+      return true;
+    });
+    if (!clicked) break;
+    await page.waitForTimeout(3500);
+  }
+}
+
 export default async ({ page, context, shot, env }) => {
   await loginAsChairman(page, context);
+  await signAllAgreements(page);
   await dismissOnboardingDialogs(page);
 
   // 1. Открыть страницу подключения ЦПП
@@ -27,6 +52,11 @@ export default async ({ page, context, shot, env }) => {
   });
   await page.waitForSelector('text=Подключение ЦПП', { timeout: 60000 });
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  // Карточка статуса монтируется по `v-if="status"` — ждём кнопку accept или
+  // chip «Подключено» (любой из двух финальных состояний компонента).
+  await page.locator('button:has-text("Принять ЦПП Marketplace"), .q-chip:has-text("Подключено")').first()
+    .waitFor({ state: 'visible', timeout: 30000 })
+    .catch(() => {});
   await page.waitForTimeout(800);
   await dismissOnboardingDialogs(page);
   await shot(
@@ -46,7 +76,17 @@ export default async ({ page, context, shot, env }) => {
       '02-confirm-dialog',
       'Диалог подтверждения принятия ЦПП «Стол заказов». В MVP — stub решения совета; полноценная повестка подключится в Эпике 8 (FR40).',
     );
-    await page.keyboard.press('Escape');
-    await page.waitForTimeout(500);
+    // 3. Подтверждаем accept — внутри диалога ищем кнопку «Принять» (не «Отмена»).
+    const confirmBtn = page.locator('.q-dialog button:has-text("Принять")').last();
+    if (await confirmBtn.count()) {
+      await confirmBtn.click();
+      await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => {});
+      await page.waitForTimeout(8000); // ждём parser обработает delta и migration отработает
+      await shot(
+        page,
+        '03-after-accept',
+        'Страница после принятия ЦПП «Стол заказов» — chip обновился в «Подключено», baseline-категории засеяны через bootstrap-миграцию.',
+      );
+    }
   }
 };

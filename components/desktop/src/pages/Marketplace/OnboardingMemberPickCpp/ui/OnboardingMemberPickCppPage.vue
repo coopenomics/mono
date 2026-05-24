@@ -67,7 +67,7 @@ async function load(): Promise<void> {
   }
 }
 
-async function onAccept(_documentIds: string[]): Promise<void>
+async function onAccept(_documentIds: string[]): Promise<void> {
   // L3 подпись прямо со стола: фоллоуап Эпика 1 (mutation
   // `marketplaceSignOnboardingOffer`). Frontend рендерит оферту 1101 через
   // documentFactory, подписывает локальным WIF, отправляет на backend, а тот
@@ -96,6 +96,8 @@ async function onAccept(_documentIds: string[]): Promise<void>
     }
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
+    // eslint-disable-next-line no-console
+    console.error('[OnboardingMemberPickCpp] onAccept failed:', e);
     Notify.create({ type: 'negative', message });
   } finally {
     loading.value = false;

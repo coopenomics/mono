@@ -229,42 +229,66 @@ export default class Blockchain {
       // console.log(data)
       // console.log("abi: ", serializedAbiHexString)
 
-      await this.api.transact(
-        {
-          actions: [
+      // Retry на CPU-timeout: тяжёлые WASM'ы (capital, marketplace, soviet)
+      // на старте требуют ~290-300ms CPU при первой компиляции в eos-vm.
+      // Дефолт chain `max_transaction_cpu_usage=290000us` срезает их.
+      // CPU usage варьируется по +-N us; повторные попытки иногда влезают.
+      const MAX_ATTEMPTS = 8
+      let lastErr: unknown
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        try {
+          await this.api.transact(
             {
-              account: 'eosio',
-              name: 'setcode',
-              authorization: [
+              actions: [
                 {
-                  actor: contract.target,
-                  permission: 'active',
+                  account: 'eosio',
+                  name: 'setcode',
+                  authorization: [
+                    {
+                      actor: contract.target,
+                      permission: 'active',
+                    },
+                  ],
+                  data,
+                },
+                {
+                  account: 'eosio',
+                  name: 'setabi',
+                  authorization: [
+                    {
+                      actor: contract.target,
+                      permission: 'active',
+                    },
+                  ],
+                  data: {
+                    account: contract.target,
+                    abi: serializedAbiHexString,
+                  },
                 },
               ],
-              data,
             },
             {
-              account: 'eosio',
-              name: 'setabi',
-              authorization: [
-                {
-                  actor: contract.target,
-                  permission: 'active',
-                },
-              ],
-              data: {
-                account: contract.target,
-                abi: serializedAbiHexString,
-              },
+              blocksBehind: 3,
+              expireSeconds: 30,
             },
-          ],
-        },
-        {
-          blocksBehind: 3,
-          expireSeconds: 30,
-        },
-      )
-      console.log('contract setted: ', contract.target)
+          )
+          if (attempt > 1) console.log(`contract setted (attempt ${attempt}): `, contract.target)
+          else console.log('contract setted: ', contract.target)
+          lastErr = undefined
+          break
+        }
+        catch (txErr) {
+          const txMsg = txErr instanceof Error ? txErr.message : String(txErr)
+          const isCpuTimeout = /executing for too long|max_transaction_cpu_usage/i.test(txMsg)
+          if (!isCpuTimeout || attempt === MAX_ATTEMPTS) {
+            lastErr = txErr
+            break
+          }
+          console.warn(`[setContract] CPU timeout on '${contract.target}' attempt ${attempt}/${MAX_ATTEMPTS} — retrying in 2s`)
+          await new Promise(resolve => setTimeout(resolve, 2000))
+        }
+      }
+      if (lastErr) throw lastErr
     }
     catch (e) {
       // Отсутствующий wasm/abi — soft warn. Контракт может быть

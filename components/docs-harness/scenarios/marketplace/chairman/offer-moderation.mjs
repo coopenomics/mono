@@ -14,10 +14,34 @@ export const meta = {
 };
 
 export default async ({ page, shot }) => {
+  // Network probe регистрируем ДО любого navigate — иначе можем пропустить
+  // mutation на startup. Считаем ВСЕ POST на /v1/graphql.
+  let approveSent = false;
+  let approveStatus = null;
+  let allGraphqlPosts = 0;
+  page.on('request', (req) => {
+    if (req.url().includes('/v1/graphql') && req.method() === 'POST') {
+      allGraphqlPosts += 1;
+      try {
+        const body = req.postData() || '';
+        if (/approveOffer|ApproveOffer/.test(body)) approveSent = true;
+      } catch {}
+    }
+  });
+  page.on('response', async (res) => {
+    if (approveSent && approveStatus === null && res.url().includes('/v1/graphql')) {
+      try {
+        const body = await res.text();
+        if (body.includes('approveOffer')) approveStatus = res.status();
+      } catch {}
+    }
+  });
+  page.on('pageerror', (err) => console.log(`[page-error] ${err.message}`));
+
   await loginAsChairman(page);
   await page.evaluate(() => localStorage.setItem('harness:noBranchOverlay', '1'));
 
-  await page.goto(`${env.BASE_URL}/${env.COOPNAME}/market/moderation`, {
+  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/market/moderation`, {
     waitUntil: 'domcontentloaded',
     timeout: 45000,
   });
@@ -36,10 +60,13 @@ export default async ({ page, shot }) => {
   );
 
   // Если в ленте есть хотя бы один offer — открыть диалог подтверждения и снять.
-  const firstApprove = page.locator('button:has-text("Одобрить")').first();
+  const firstApprove = page.locator('.q-card button:has-text("Одобрить")').first();
   if (await firstApprove.count()) {
     await firstApprove.click();
-    await page.waitForTimeout(700);
+    // Quasar Dialog имеет анимацию ~300ms; до конца transition её inner
+    // получает actual visibility. Раньше ждали 700ms — мало для слабой машины.
+    await page.locator('.q-dialog__inner').first().waitFor({ state: 'visible', timeout: 10000 });
+    await page.waitForTimeout(800);
     await cleanViteOverlays(page);
     await shot(
       page,
@@ -47,11 +74,24 @@ export default async ({ page, shot }) => {
       'Диалог подтверждения одобрения. По «Одобрить» offer переходит в статус APPROVED и сразу появляется в публичном каталоге Story 3.5. По «Отмена» статус остаётся PENDING_MODERATION.',
     );
 
-    // Подтвердить одобрение и снять обновлённую ленту.
-    const okBtn = page.locator('.q-dialog button:has-text("Одобрить")').last();
-    await okBtn.click();
+    // OK-кнопка Quasar Dialog. Теперь когда SDK содержит Mutations.Marketplace.ApproveOffer,
+    // onOk callback в ChairmanModerationPage реально дойдёт до approveOffer и
+    // mutation пойдёт в /v1/graphql. Это force-click чтобы обойти возможные
+    // pointer-events overlay'и.
+    const okBtn = page.locator('.q-dialog__inner button:has-text("Одобрить")').first();
+    await okBtn.waitFor({ state: 'visible', timeout: 5000 });
+    await okBtn.click({ force: true });
+
+    // Ждём пока mutation реально отправится — Apollo может холодно стартануть.
+    let waited = 0;
+    while (!approveSent && waited < 10000) {
+      await page.waitForTimeout(200);
+      waited += 200;
+    }
+    console.log(`[offer-moderation] approve mutation sent=${approveSent} status=${approveStatus} waitedMs=${waited} totalGraphqlPosts=${allGraphqlPosts}`);
+
     await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
-    await page.waitForTimeout(1500);
+    await page.waitForTimeout(2000);
     await cleanViteOverlays(page);
     await shot(
       page,

@@ -30,6 +30,7 @@ function buildProps(overrides: Partial<MarketplaceOrderProps> = {}): Marketplace
     chairman_signed_at: null,
     chairman_account: null,
     signiss1_tx_hash: null,
+    issue_act_signiss1_document: null,
     orderer_signed_at: null,
     delivery_signer_account: null,
     signiss2_tx_hash: null,

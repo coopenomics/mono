@@ -7817,6 +7817,9 @@ input MarketplaceIssueActSignedDocumentInput {
 }
 
 input MarketplaceIssueActSignedMetaDocumentInput {
+  """Имя приёмного кооперативного участка, на который передаётся партия."""
+  accept_braname: String!
+
   """Номер акта для шапки документа."""
   act_id: String!
 
@@ -7842,6 +7845,9 @@ input MarketplaceIssueActSignedMetaDocumentInput {
   """
   doc_data_hash: String
 
+  """Фактически принятое количество единиц по заказу."""
+  fact_quantity: Int!
+
   """Имя генератора, использованного для создания документа"""
   generator: String!
 
@@ -7857,17 +7863,28 @@ input MarketplaceIssueActSignedMetaDocumentInput {
   """Идентификатор заказа пайщика, по которому формируется акт выдачи."""
   order_id: String!
 
+  """Идентификатор записи акта приёмки в инфраструктуре marketplace."""
+  reception_id: String!
+
   """ID документа в реестре"""
   registry_id: Int!
 
   """Сформировать документ без сохранения (preview-режим)."""
   skip_save: Boolean!
 
+  """
+  Учётная запись поставщика, передавшего партию на кооперативный участок.
+  """
+  supplier_account: String!
+
   """Часовой пояс, в котором был создан документ"""
   timezone: String!
 
   """Название документа"""
   title: String!
+
+  """Сумма по заказу с учётом фактического количества."""
+  total_amount: String!
 
   """
   Учётная запись передающей стороны — председатель кооперативного участка или доверенное им лицо.
@@ -9128,6 +9145,13 @@ input MarketplaceSignAplReceptionInput {
   signed_documents: [MarketplaceAplReceptionSignedDocumentInput!]!
 }
 
+input MarketplaceSignOnboardingOfferInput {
+  """
+  Подписанный пайщиком инстанс оферты ЦПП «Стол заказов» (registry_id=1101)
+  """
+  document: SignedDigitalDocumentInput!
+}
+
 input MarketplaceSubmitWriteoffDraftInput {
   draft_id: String!
 
@@ -10238,6 +10262,11 @@ type Mutation {
   marketplaceSignAplReceptionAsSupplier(data: MarketplaceSignAplReceptionInput!): MarketplaceAplReceptionResult!
 
   """
+  L3-подпись оферты ЦПП «Стол заказов» пайщиком после gate-диалога: on-chain wallet::signagree + ответ в виде обновлённого состояния онбординга
+  """
+  marketplaceSignOnboardingOffer(input: MarketplaceSignOnboardingOfferInput!): MarketplaceOnboardingState!
+
+  """
   Отправить черновик в совет. Принимает подписанное председателем Заявление 1106. После успешного приёма выполняются propwroff и soviet::createagenda(mktwroff).
   """
   marketplaceSubmitWriteoffDraft(data: MarketplaceSubmitWriteoffDraftInput!): MarketplaceWriteoffProposal!
@@ -11195,6 +11224,7 @@ type PaymentMethodPaginationResult {
 
 """Статус платежа"""
 enum PaymentStatus {
+  AWAITING_AUTHORIZATION
   CANCELLED
   COMPLETED
   EXPIRED
@@ -12236,9 +12266,9 @@ type Query {
   listReportDrafts(filter: ListReportDraftsFilterInput): [ReportDraft!]!
 
   """
-  Preview-документы акта приёмки для закрывающей подписи председателя КУ.
+  Акты приёмки, уже подписанные поставщиком, для закрывающей подписи председателя КУ. Каждый элемент содержит исходный документ для ознакомления и подпись поставщика; председатель накладывает свою подпись поверх.
   """
-  marketplaceAplReceptionChairmanSignablePayloads(data: MarketplaceAplReceptionByIdInput!): [GeneratedDocument!]!
+  marketplaceAplReceptionChairmanSignablePayloads(data: MarketplaceAplReceptionByIdInput!): [DocumentAggregate!]!
 
   """
   Preview-документы акта приёмки для подписи поставщиком — один документ на каждый Order группы. Клиент подписывает hash приватным ключом и возвращает результат в mutation marketplaceSignAplReceptionAsSupplier.
@@ -12330,9 +12360,9 @@ type Query {
   marketplaceIssueActChairmanSignablePayload(data: MarketplaceIssueActPayloadInput!): GeneratedDocument!
 
   """
-  Превью акта выдачи имущества для финальной подписи заказчика с указанием фактического количества.
+  Акт выдачи, уже подписанный председателем, для финальной подписи заказчика. Содержит исходный документ для ознакомления и подпись председателя; заказчик накладывает свою подпись поверх.
   """
-  marketplaceIssueActOrdererSignablePayload(data: MarketplaceIssueActPayloadInput!): GeneratedDocument!
+  marketplaceIssueActOrdererSignablePayload(data: MarketplaceIssueActPayloadInput!): DocumentAggregate!
 
   """Список актов приёмки, ожидающих подписи текущего поставщика."""
   marketplaceListAplReceptionsAsSupplier: [MarketplaceAplReception!]!
@@ -14066,7 +14096,7 @@ input UpdateBankAccountInput {
 input UpdateCallTranscriptionMemoInput {
   id: String!
 
-  """Текст заметки (до 4000 символов)"""
+  """Текст заметки"""
   memo: String!
 }
 

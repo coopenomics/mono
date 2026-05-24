@@ -6,6 +6,7 @@
  */
 
 import type { MarketplaceShipmentTTNData } from './marketplace-shipment.types';
+import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
 
 /**
  * Вариант приёмки: А — поставщик лично прибыл; Б — экспедитор + ТТН
@@ -77,6 +78,13 @@ export interface MarketplaceAplReceptionProps {
   created_by_operator_account: string;
   supplier_signed_at: Date | null;
   supplier_signsupp_tx_hash: string | null;
+  /**
+   * Документы, подписанные поставщиком (один на Order группы), как их прислал
+   * клиент в signsupp. Хранятся, чтобы при закрывающей подписи отдать
+   * председателю подпись поставщика (поле `document` агрегата) — фронт цепь
+   * не читает. Тело документа достаётся отдельно по doc_hash из стора.
+   */
+  supplier_signed_documents: ISignedDocumentDomainInterface[] | null;
   chairman_signed_at: Date | null;
   chairman_account: string | null;
   chairman_signchair_tx_hash: string | null;

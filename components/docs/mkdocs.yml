@@ -175,6 +175,21 @@ nav:
   - Общие собрания: new/meet/index.md
   - Бухгалтерия: new/buh/index.md
 
+  - Стол заказов:
+      - Подключение приложения: new/marketplace/onboarding/install-market.md
+      - Принятие программы кооперативом: new/marketplace/onboarding/coop-accept-cpp.md
+      - Создание предложения: new/marketplace/offerer/offer-create.md
+      - Модерация предложений: new/marketplace/chairman/offer-moderation.md
+      - Обзор для пайщика: new/marketplace/orderer/marketplace-tour.md
+      - Оформление заказа: new/marketplace/orderer/order-create.md
+      - Входящие заказы поставщика: new/marketplace/offerer/incoming-orders.md
+      - Подготовка поставки: new/marketplace/offerer/shipment-prep.md
+      - Открытие приёмки партии: new/marketplace/operator/apl-reception-create.md
+      - Подпись приёмки поставщиком: new/marketplace/offerer/apl-reception-sign.md
+      - Закрывающая подпись приёмки: new/marketplace/operator/apl-reception-chairman-sign.md
+      - Маркировка имущества: new/marketplace/operator/inventory-label.md
+      - Финальная подпись выдачи: new/marketplace/operator/issuance-finalize.md
+
   - Благорост:
     - Адаптация: new/blagorost/adaptation.md
     - Профиль: new/blagorost/profile.md

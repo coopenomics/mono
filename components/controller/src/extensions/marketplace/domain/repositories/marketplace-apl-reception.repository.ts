@@ -5,6 +5,7 @@ import type {
   MarketplaceAplReceptionStatus,
   MarketplaceAplReceptionVariant,
 } from '../entities/marketplace-apl-reception.types';
+import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
 
 export const MARKETPLACE_APL_RECEPTION_REPOSITORY = Symbol('MARKETPLACE_APL_RECEPTION_REPOSITORY');
 
@@ -26,6 +27,7 @@ export interface MarketplaceAplReceptionCreateInput {
 export interface MarketplaceAplReceptionUpdateSignaturesInput {
   supplier_signed_at?: Date | null;
   supplier_signsupp_tx_hash?: string | null;
+  supplier_signed_documents?: ISignedDocumentDomainInterface[] | null;
   chairman_signed_at?: Date | null;
   chairman_account?: string | null;
   chairman_signchair_tx_hash?: string | null;

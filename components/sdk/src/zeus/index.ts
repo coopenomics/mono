@@ -1,43 +1,68 @@
 /* eslint-disable */
 
-import { AllTypesProps, ReturnTypes, Ops } from './const.js';
+import { AllTypesProps, ReturnTypes, Ops } from './const';
 
 
 export const HOST="Specify host"
 
 
 export const HEADERS = {}
-export const apiSubscription = (options: chainOptions) => (query: string) => {
-  try {
-    const queryString = options[0] + '?query=' + encodeURIComponent(query);
-    const wsString = queryString.replace('http', 'ws');
-    const host = (options.length > 1 && options[1]?.websocket?.[0]) || wsString;
-    const webSocketOptions = options[1]?.websocket || [host];
-    const ws = new WebSocket(...webSocketOptions);
+import { createClient, type Sink } from 'graphql-ws'; // keep
+
+export const apiSubscription = (options: chainOptions) => {
+  const client = createClient({
+    url: String(options[0]),
+    connectionParams: Object.fromEntries(new Headers(options[1]?.headers).entries()),
+  });
+
+  const ws = new Proxy(
+    {
+      close: () => client.dispose(),
+    } as WebSocket,
+    {
+      get(target, key) {
+        if (key === 'close') return target.close;
+        throw new Error(`Unimplemented property '${String(key)}', only 'close()' is available.`);
+      },
+    },
+  );
+
+  return (query: string) => {
+    let onMessage: ((event: any) => void) | undefined;
+    let onError: Sink['error'] | undefined;
+    let onClose: Sink['complete'] | undefined;
+
+    client.subscribe(
+      { query },
+      {
+        next({ data }) {
+          onMessage && onMessage(data);
+        },
+        error(error) {
+          onError && onError(error);
+        },
+        complete() {
+          onClose && onClose();
+        },
+      },
+    );
+
     return {
       ws,
-      on: (e: (args: any) => void) => {
-        ws.onmessage = (event: any) => {
-          if (event.data) {
-            const parsed = JSON.parse(event.data);
-            const data = parsed.data;
-            return e(data);
-          }
-        };
+      on(listener: typeof onMessage) {
+        onMessage = listener;
       },
-      off: (e: (args: any) => void) => {
-        ws.onclose = e;
+      error(listener: typeof onError) {
+        onError = listener;
       },
-      error: (e: (args: any) => void) => {
-        ws.onerror = e;
+      open(listener: (socket: unknown) => void) {
+        client.on('opened', listener);
       },
-      open: (e: () => void) => {
-        ws.onopen = e;
+      off(listener: typeof onClose) {
+        onClose = listener;
       },
     };
-  } catch {
-    throw new Error('No websockets implemented');
-  }
+  };
 };
 export const apiSubscriptionSSE = (options: chainOptions) => (query: string, variables?: Record<string, unknown>) => {
   const url = options[0];
@@ -6664,6 +6689,8 @@ export type ValueTypes = {
 	version: string | Variable<any, string>
 };
 	["MarketplaceIssueActSignedMetaDocumentInput"]: {
+	/** Имя приёмного кооперативного участка, на который передаётся партия. */
+	accept_braname: string | Variable<any, string>,
 	/** Номер акта для шапки документа. */
 	act_id: string | Variable<any, string>,
 	/** Фактически выдаваемое количество единиц (заполняется на финальной подписи). */
@@ -6678,6 +6705,8 @@ export type ValueTypes = {
 	created_at: string | Variable<any, string>,
 	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
 	doc_data_hash?: string | undefined | null | Variable<any, string>,
+	/** Фактически принятое количество единиц по заказу. */
+	fact_quantity: number | Variable<any, string>,
 	/** Имя генератора, использованного для создания документа */
 	generator: string | Variable<any, string>,
 	/** Язык документа */
@@ -6688,14 +6717,20 @@ export type ValueTypes = {
 	order_hash: string | Variable<any, string>,
 	/** Идентификатор заказа пайщика, по которому формируется акт выдачи. */
 	order_id: string | Variable<any, string>,
+	/** Идентификатор записи акта приёмки в инфраструктуре marketplace. */
+	reception_id: string | Variable<any, string>,
 	/** ID документа в реестре */
 	registry_id: number | Variable<any, string>,
 	/** Сформировать документ без сохранения (preview-режим). */
 	skip_save: boolean | Variable<any, string>,
+	/** Учётная запись поставщика, передавшего партию на кооперативный участок. */
+	supplier_account: string | Variable<any, string>,
 	/** Часовой пояс, в котором был создан документ */
 	timezone: string | Variable<any, string>,
 	/** Название документа */
 	title: string | Variable<any, string>,
+	/** Сумма по заказу с учётом фактического количества. */
+	total_amount: string | Variable<any, string>,
 	/** Учётная запись передающей стороны — председатель кооперативного участка или доверенное им лицо. */
 	transmitter: string | Variable<any, string>,
 	/** Имя пользователя, создавшего документ */
@@ -9460,7 +9495,7 @@ getUserWebPushSubscriptions?: [{	data: ValueTypes["GetUserSubscriptionsInput"] |
 	/** Получить статистику веб-пуш подписок (только для председателя) */
 	getWebPushSubscriptionStats?:ValueTypes["SubscriptionStatsDto"],
 listReportDrafts?: [{	filter?: ValueTypes["ListReportDraftsFilterInput"] | undefined | null | Variable<any, string>},ValueTypes["ReportDraft"]],
-marketplaceAplReceptionChairmanSignablePayloads?: [{	data: ValueTypes["MarketplaceAplReceptionByIdInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+marketplaceAplReceptionChairmanSignablePayloads?: [{	data: ValueTypes["MarketplaceAplReceptionByIdInput"] | Variable<any, string>},ValueTypes["DocumentAggregate"]],
 marketplaceAplReceptionSupplierSignablePayloads?: [{	data: ValueTypes["MarketplaceAplReceptionByIdInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 marketplaceAspectAttributes?: [{	data: ValueTypes["GetRequiredAttributesInput"] | Variable<any, string>},ValueTypes["MarketplaceAttribute"]],
 	/** Получить статистику по атрибутам marketplace */
@@ -9497,7 +9532,7 @@ marketplaceGetSearchCategories?: [{	data: ValueTypes["SearchCategoriesInput"] | 
 marketplaceGetShipment?: [{	data: ValueTypes["MarketplaceGetShipmentInput"] | Variable<any, string>},ValueTypes["MarketplaceShipment"]],
 marketplaceGetUserRequests?: [{	data?: ValueTypes["GetUserRequestsInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceRequest"]],
 marketplaceIssueActChairmanSignablePayload?: [{	data: ValueTypes["MarketplaceIssueActPayloadInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
-marketplaceIssueActOrdererSignablePayload?: [{	data: ValueTypes["MarketplaceIssueActPayloadInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+marketplaceIssueActOrdererSignablePayload?: [{	data: ValueTypes["MarketplaceIssueActPayloadInput"] | Variable<any, string>},ValueTypes["DocumentAggregate"]],
 	/** Список актов приёмки, ожидающих подписи текущего поставщика. */
 	marketplaceListAplReceptionsAsSupplier?:ValueTypes["MarketplaceAplReception"],
 marketplaceListAplReceptionsByBraname?: [{	data: ValueTypes["MarketplaceListAplReceptionsByBranameInput"] | Variable<any, string>},ValueTypes["MarketplaceAplReception"]],
@@ -10688,7 +10723,7 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 };
 	["UpdateCallTranscriptionMemoInput"]: {
 	id: string | Variable<any, string>,
-	/** Текст заметки (до 4000 символов) */
+	/** Текст заметки */
 	memo: string | Variable<any, string>
 };
 	["UpdateChatCoopCalendarEventInput"]: {
@@ -16563,6 +16598,8 @@ export type ResolverInputTypes = {
 	version: string
 };
 	["MarketplaceIssueActSignedMetaDocumentInput"]: {
+	/** Имя приёмного кооперативного участка, на который передаётся партия. */
+	accept_braname: string,
 	/** Номер акта для шапки документа. */
 	act_id: string,
 	/** Фактически выдаваемое количество единиц (заполняется на финальной подписи). */
@@ -16577,6 +16614,8 @@ export type ResolverInputTypes = {
 	created_at: string,
 	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
 	doc_data_hash?: string | undefined | null,
+	/** Фактически принятое количество единиц по заказу. */
+	fact_quantity: number,
 	/** Имя генератора, использованного для создания документа */
 	generator: string,
 	/** Язык документа */
@@ -16587,14 +16626,20 @@ export type ResolverInputTypes = {
 	order_hash: string,
 	/** Идентификатор заказа пайщика, по которому формируется акт выдачи. */
 	order_id: string,
+	/** Идентификатор записи акта приёмки в инфраструктуре marketplace. */
+	reception_id: string,
 	/** ID документа в реестре */
 	registry_id: number,
 	/** Сформировать документ без сохранения (preview-режим). */
 	skip_save: boolean,
+	/** Учётная запись поставщика, передавшего партию на кооперативный участок. */
+	supplier_account: string,
 	/** Часовой пояс, в котором был создан документ */
 	timezone: string,
 	/** Название документа */
 	title: string,
+	/** Сумма по заказу с учётом фактического количества. */
+	total_amount: string,
 	/** Учётная запись передающей стороны — председатель кооперативного участка или доверенное им лицо. */
 	transmitter: string,
 	/** Имя пользователя, создавшего документ */
@@ -19259,7 +19304,7 @@ getUserWebPushSubscriptions?: [{	data: ResolverInputTypes["GetUserSubscriptionsI
 	/** Получить статистику веб-пуш подписок (только для председателя) */
 	getWebPushSubscriptionStats?:ResolverInputTypes["SubscriptionStatsDto"],
 listReportDrafts?: [{	filter?: ResolverInputTypes["ListReportDraftsFilterInput"] | undefined | null},ResolverInputTypes["ReportDraft"]],
-marketplaceAplReceptionChairmanSignablePayloads?: [{	data: ResolverInputTypes["MarketplaceAplReceptionByIdInput"]},ResolverInputTypes["GeneratedDocument"]],
+marketplaceAplReceptionChairmanSignablePayloads?: [{	data: ResolverInputTypes["MarketplaceAplReceptionByIdInput"]},ResolverInputTypes["DocumentAggregate"]],
 marketplaceAplReceptionSupplierSignablePayloads?: [{	data: ResolverInputTypes["MarketplaceAplReceptionByIdInput"]},ResolverInputTypes["GeneratedDocument"]],
 marketplaceAspectAttributes?: [{	data: ResolverInputTypes["GetRequiredAttributesInput"]},ResolverInputTypes["MarketplaceAttribute"]],
 	/** Получить статистику по атрибутам marketplace */
@@ -19296,7 +19341,7 @@ marketplaceGetSearchCategories?: [{	data: ResolverInputTypes["SearchCategoriesIn
 marketplaceGetShipment?: [{	data: ResolverInputTypes["MarketplaceGetShipmentInput"]},ResolverInputTypes["MarketplaceShipment"]],
 marketplaceGetUserRequests?: [{	data?: ResolverInputTypes["GetUserRequestsInput"] | undefined | null},ResolverInputTypes["MarketplaceRequest"]],
 marketplaceIssueActChairmanSignablePayload?: [{	data: ResolverInputTypes["MarketplaceIssueActPayloadInput"]},ResolverInputTypes["GeneratedDocument"]],
-marketplaceIssueActOrdererSignablePayload?: [{	data: ResolverInputTypes["MarketplaceIssueActPayloadInput"]},ResolverInputTypes["GeneratedDocument"]],
+marketplaceIssueActOrdererSignablePayload?: [{	data: ResolverInputTypes["MarketplaceIssueActPayloadInput"]},ResolverInputTypes["DocumentAggregate"]],
 	/** Список актов приёмки, ожидающих подписи текущего поставщика. */
 	marketplaceListAplReceptionsAsSupplier?:ResolverInputTypes["MarketplaceAplReception"],
 marketplaceListAplReceptionsByBraname?: [{	data: ResolverInputTypes["MarketplaceListAplReceptionsByBranameInput"]},ResolverInputTypes["MarketplaceAplReception"]],
@@ -20450,7 +20495,7 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 };
 	["UpdateCallTranscriptionMemoInput"]: {
 	id: string,
-	/** Текст заметки (до 4000 символов) */
+	/** Текст заметки */
 	memo: string
 };
 	["UpdateChatCoopCalendarEventInput"]: {
@@ -26141,6 +26186,8 @@ export type ModelTypes = {
 	version: string
 };
 	["MarketplaceIssueActSignedMetaDocumentInput"]: {
+	/** Имя приёмного кооперативного участка, на который передаётся партия. */
+	accept_braname: string,
 	/** Номер акта для шапки документа. */
 	act_id: string,
 	/** Фактически выдаваемое количество единиц (заполняется на финальной подписи). */
@@ -26155,6 +26202,8 @@ export type ModelTypes = {
 	created_at: string,
 	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
 	doc_data_hash?: string | undefined | null,
+	/** Фактически принятое количество единиц по заказу. */
+	fact_quantity: number,
 	/** Имя генератора, использованного для создания документа */
 	generator: string,
 	/** Язык документа */
@@ -26165,14 +26214,20 @@ export type ModelTypes = {
 	order_hash: string,
 	/** Идентификатор заказа пайщика, по которому формируется акт выдачи. */
 	order_id: string,
+	/** Идентификатор записи акта приёмки в инфраструктуре marketplace. */
+	reception_id: string,
 	/** ID документа в реестре */
 	registry_id: number,
 	/** Сформировать документ без сохранения (preview-режим). */
 	skip_save: boolean,
+	/** Учётная запись поставщика, передавшего партию на кооперативный участок. */
+	supplier_account: string,
 	/** Часовой пояс, в котором был создан документ */
 	timezone: string,
 	/** Название документа */
 	title: string,
+	/** Сумма по заказу с учётом фактического количества. */
+	total_amount: string,
 	/** Учётная запись передающей стороны — председатель кооперативного участка или доверенное им лицо. */
 	transmitter: string,
 	/** Имя пользователя, создавшего документ */
@@ -28999,8 +29054,8 @@ export type ModelTypes = {
 	getWebPushSubscriptionStats: ModelTypes["SubscriptionStatsDto"],
 	/** Список черновиков форм отчётов текущего пользователя (с опциональной фильтрацией) */
 	listReportDrafts: Array<ModelTypes["ReportDraft"]>,
-	/** Preview-документы акта приёмки для закрывающей подписи председателя КУ. */
-	marketplaceAplReceptionChairmanSignablePayloads: Array<ModelTypes["GeneratedDocument"]>,
+	/** Акты приёмки, уже подписанные поставщиком, для закрывающей подписи председателя КУ. Каждый элемент содержит исходный документ для ознакомления и подпись поставщика; председатель накладывает свою подпись поверх. */
+	marketplaceAplReceptionChairmanSignablePayloads: Array<ModelTypes["DocumentAggregate"]>,
 	/** Preview-документы акта приёмки для подписи поставщиком — один документ на каждый Order группы. Клиент подписывает hash приватным ключом и возвращает результат в mutation marketplaceSignAplReceptionAsSupplier. */
 	marketplaceAplReceptionSupplierSignablePayloads: Array<ModelTypes["GeneratedDocument"]>,
 	/** Получить аспектные атрибуты для категории и типа товара marketplace */
@@ -29055,8 +29110,8 @@ export type ModelTypes = {
 	marketplaceGetUserRequests: Array<ModelTypes["MarketplaceRequest"]>,
 	/** Превью акта выдачи имущества для подписания председателем кооперативного участка. */
 	marketplaceIssueActChairmanSignablePayload: ModelTypes["GeneratedDocument"],
-	/** Превью акта выдачи имущества для финальной подписи заказчика с указанием фактического количества. */
-	marketplaceIssueActOrdererSignablePayload: ModelTypes["GeneratedDocument"],
+	/** Акт выдачи, уже подписанный председателем, для финальной подписи заказчика. Содержит исходный документ для ознакомления и подпись председателя; заказчик накладывает свою подпись поверх. */
+	marketplaceIssueActOrdererSignablePayload: ModelTypes["DocumentAggregate"],
 	/** Список актов приёмки, ожидающих подписи текущего поставщика. */
 	marketplaceListAplReceptionsAsSupplier: Array<ModelTypes["MarketplaceAplReception"]>,
 	/** Список акций приёмки текущего КУ для operator-стола. */
@@ -30191,7 +30246,7 @@ export type ModelTypes = {
 };
 	["UpdateCallTranscriptionMemoInput"]: {
 	id: string,
-	/** Текст заметки (до 4000 символов) */
+	/** Текст заметки */
 	memo: string
 };
 	["UpdateChatCoopCalendarEventInput"]: {
@@ -36197,7 +36252,9 @@ export type GraphQLTypes = {
 	version: string
 };
 	["MarketplaceIssueActSignedMetaDocumentInput"]: {
-		/** Номер акта для шапки документа. */
+		/** Имя приёмного кооперативного участка, на который передаётся партия. */
+	accept_braname: string,
+	/** Номер акта для шапки документа. */
 	act_id: string,
 	/** Фактически выдаваемое количество единиц (заполняется на финальной подписи). */
 	actual_quantity?: number | undefined | null,
@@ -36211,6 +36268,8 @@ export type GraphQLTypes = {
 	created_at: string,
 	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
 	doc_data_hash?: string | undefined | null,
+	/** Фактически принятое количество единиц по заказу. */
+	fact_quantity: number,
 	/** Имя генератора, использованного для создания документа */
 	generator: string,
 	/** Язык документа */
@@ -36221,14 +36280,20 @@ export type GraphQLTypes = {
 	order_hash: string,
 	/** Идентификатор заказа пайщика, по которому формируется акт выдачи. */
 	order_id: string,
+	/** Идентификатор записи акта приёмки в инфраструктуре marketplace. */
+	reception_id: string,
 	/** ID документа в реестре */
 	registry_id: number,
 	/** Сформировать документ без сохранения (preview-режим). */
 	skip_save: boolean,
+	/** Учётная запись поставщика, передавшего партию на кооперативный участок. */
+	supplier_account: string,
 	/** Часовой пояс, в котором был создан документ */
 	timezone: string,
 	/** Название документа */
 	title: string,
+	/** Сумма по заказу с учётом фактического количества. */
+	total_amount: string,
 	/** Учётная запись передающей стороны — председатель кооперативного участка или доверенное им лицо. */
 	transmitter: string,
 	/** Имя пользователя, создавшего документ */
@@ -39287,8 +39352,8 @@ export type GraphQLTypes = {
 	getWebPushSubscriptionStats: GraphQLTypes["SubscriptionStatsDto"],
 	/** Список черновиков форм отчётов текущего пользователя (с опциональной фильтрацией) */
 	listReportDrafts: Array<GraphQLTypes["ReportDraft"]>,
-	/** Preview-документы акта приёмки для закрывающей подписи председателя КУ. */
-	marketplaceAplReceptionChairmanSignablePayloads: Array<GraphQLTypes["GeneratedDocument"]>,
+	/** Акты приёмки, уже подписанные поставщиком, для закрывающей подписи председателя КУ. Каждый элемент содержит исходный документ для ознакомления и подпись поставщика; председатель накладывает свою подпись поверх. */
+	marketplaceAplReceptionChairmanSignablePayloads: Array<GraphQLTypes["DocumentAggregate"]>,
 	/** Preview-документы акта приёмки для подписи поставщиком — один документ на каждый Order группы. Клиент подписывает hash приватным ключом и возвращает результат в mutation marketplaceSignAplReceptionAsSupplier. */
 	marketplaceAplReceptionSupplierSignablePayloads: Array<GraphQLTypes["GeneratedDocument"]>,
 	/** Получить аспектные атрибуты для категории и типа товара marketplace */
@@ -39343,8 +39408,8 @@ export type GraphQLTypes = {
 	marketplaceGetUserRequests: Array<GraphQLTypes["MarketplaceRequest"]>,
 	/** Превью акта выдачи имущества для подписания председателем кооперативного участка. */
 	marketplaceIssueActChairmanSignablePayload: GraphQLTypes["GeneratedDocument"],
-	/** Превью акта выдачи имущества для финальной подписи заказчика с указанием фактического количества. */
-	marketplaceIssueActOrdererSignablePayload: GraphQLTypes["GeneratedDocument"],
+	/** Акт выдачи, уже подписанный председателем, для финальной подписи заказчика. Содержит исходный документ для ознакомления и подпись председателя; заказчик накладывает свою подпись поверх. */
+	marketplaceIssueActOrdererSignablePayload: GraphQLTypes["DocumentAggregate"],
 	/** Список актов приёмки, ожидающих подписи текущего поставщика. */
 	marketplaceListAplReceptionsAsSupplier: Array<GraphQLTypes["MarketplaceAplReception"]>,
 	/** Список акций приёмки текущего КУ для operator-стола. */
@@ -40564,7 +40629,7 @@ export type GraphQLTypes = {
 };
 	["UpdateCallTranscriptionMemoInput"]: {
 		id: string,
-	/** Текст заметки (до 4000 символов) */
+	/** Текст заметки */
 	memo: string
 };
 	["UpdateChatCoopCalendarEventInput"]: {
@@ -41379,6 +41444,7 @@ export enum PaymentDirection {
 }
 /** Статус платежа */
 export enum PaymentStatus {
+	AWAITING_AUTHORIZATION = "AWAITING_AUTHORIZATION",
 	CANCELLED = "CANCELLED",
 	COMPLETED = "COMPLETED",
 	EXPIRED = "EXPIRED",

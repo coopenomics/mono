@@ -1,3 +1,5 @@
+import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+
 export type MarketplaceOrderCycleType =
   | 'time_based'
   | 'volume_based'
@@ -108,6 +110,12 @@ export interface MarketplaceOrderProps {
   chairman_account: string | null;
   /** tx_hash on-chain транзакции `signiss1`. */
   signiss1_tx_hash: string | null;
+  /**
+   * Документ акта выдачи, подписанный председателем при открытии выдачи
+   * (`signiss1`). Заказчик получает его как DocumentAggregate и накладывает
+   * вторую подпись поверх — backend цепь не читает (канон двухподписного акта).
+   */
+  issue_act_signiss1_document: ISignedDocumentDomainInterface | null;
   /** Время финальной подписи заказчика (получение имущества — `signiss2`). */
   orderer_signed_at: Date | null;
   /** Backend account стороны кооператива при `signiss2` (председатель/доверенный). */

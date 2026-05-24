@@ -2,12 +2,13 @@
 import type { QTableProps } from 'quasar';
 import { onMounted, ref } from 'vue';
 import { Loading } from 'quasar';
-import { SuccessAlert, FailAlert, NotifyAlert } from 'src/shared/api';
+import { SuccessAlert, FailAlert } from 'src/shared/api';
 import {
   createAplReception,
   listAplReceptionsByBraname,
   type MarketplaceAplReceptionView,
 } from '../api';
+import SignAplReceptionChairmanDialog from './SignAplReceptionChairmanDialog.vue';
 
 /**
  * Story 5.3 + 5.4: operator-стол приёмки партий.
@@ -61,11 +62,16 @@ async function createReceptionForShipment(): Promise<void> {
   }
 }
 
+const signDialogOpen = ref(false);
+const signTarget = ref<MarketplaceAplReceptionView | null>(null);
+
 function signChairman(item: MarketplaceAplReceptionView): void {
-  NotifyAlert(
-    `Диалог подписи АПП ${item.id.slice(0, 8)} в разработке`,
-    'Backend принимает только подписанный канонический акт (signed_document с подписью). UI-флоу подписи через приватный ключ председателя — следующий этап работ.'
-  );
+  signTarget.value = item;
+  signDialogOpen.value = true;
+}
+
+async function onChairmanSigned(): Promise<void> {
+  await load();
 }
 
 onMounted(() => {
@@ -102,4 +108,10 @@ q-page.mp-role-operator.mp-reception.q-pa-md
           label="Подписать председателем"
           @click="signChairman(props.row)"
         )
+
+  SignAplReceptionChairmanDialog(
+    v-model="signDialogOpen"
+    :reception="signTarget"
+    @signed="onChairmanSigned"
+  )
 </template>

@@ -6,6 +6,7 @@ import type {
   MarketplaceAplReceptionVariant,
 } from './marketplace-apl-reception.types';
 import { MarketplaceAplReceptionStatuses } from './marketplace-apl-reception.types';
+import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
 
 /**
  * Story 5.3 / 5.4: домен АПП приёмки. Backend-only state machine; on-chain
@@ -27,6 +28,7 @@ export class MarketplaceAplReceptionDomainEntity {
   public readonly created_by_operator_account: string;
   public supplier_signed_at: Date | null;
   public supplier_signsupp_tx_hash: string | null;
+  public supplier_signed_documents: ISignedDocumentDomainInterface[] | null;
   public chairman_signed_at: Date | null;
   public chairman_account: string | null;
   public chairman_signchair_tx_hash: string | null;
@@ -52,6 +54,7 @@ export class MarketplaceAplReceptionDomainEntity {
     this.created_by_operator_account = props.created_by_operator_account;
     this.supplier_signed_at = props.supplier_signed_at;
     this.supplier_signsupp_tx_hash = props.supplier_signsupp_tx_hash;
+    this.supplier_signed_documents = props.supplier_signed_documents;
     this.chairman_signed_at = props.chairman_signed_at;
     this.chairman_account = props.chairman_account;
     this.chairman_signchair_tx_hash = props.chairman_signchair_tx_hash;

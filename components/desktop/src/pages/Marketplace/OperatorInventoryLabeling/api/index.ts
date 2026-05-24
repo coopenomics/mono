@@ -1,4 +1,4 @@
-import { Mutations, Queries } from '@coopenomics/sdk'
+import { Mutations, Queries, Zeus } from '@coopenomics/sdk'
 import { client } from 'src/shared/api/client'
 
 export interface MarketplaceOrderForLabeling {
@@ -50,16 +50,20 @@ export async function fetchInventoryByBraname(braname: string): Promise<Marketpl
   return result[Queries.Marketplace.ListInventory.name] as unknown as MarketplaceInventoryItemView[]
 }
 
-const SHIPMENT_STATUSES_FOR_LABELING = new Set(['SUPPLY_PREPARED', 'RECEPTION_IN_PROGRESS'])
+const SHIPMENT_STATUSES_FOR_LABELING: Zeus.MarketplaceShipmentStatus[] = [
+  Zeus.MarketplaceShipmentStatus.SUPPLY_PREPARED,
+  Zeus.MarketplaceShipmentStatus.RECEPTION_IN_PROGRESS,
+]
 
 export async function fetchShipmentsForLabeling(braname?: string): Promise<MarketplaceShipmentView[]> {
-  const data: Queries.Marketplace.ListShipments.IInput['data'] = {}
+  const data: Queries.Marketplace.ListShipments.IInput['data'] = {
+    statuses: SHIPMENT_STATUSES_FOR_LABELING,
+  }
   if (braname) data.braname = braname
   const result = await client.Query(Queries.Marketplace.ListShipments.query, {
     variables: { data },
   })
-  const shipments = result[Queries.Marketplace.ListShipments.name] as unknown as MarketplaceShipmentView[]
-  return shipments.filter((s) => SHIPMENT_STATUSES_FOR_LABELING.has(s.status))
+  return result[Queries.Marketplace.ListShipments.name] as unknown as MarketplaceShipmentView[]
 }
 
 export async function labelInventory(data: Mutations.Marketplace.LabelInventory.IInput['data']): Promise<{ inventory: MarketplaceInventoryItemView[] }> {

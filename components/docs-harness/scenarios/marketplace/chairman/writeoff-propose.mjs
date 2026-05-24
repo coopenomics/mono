@@ -17,7 +17,7 @@ export default async ({ page, shot }) => {
   await loginAsChairman(page);
   await page.evaluate(() => localStorage.setItem('harness:noBranchOverlay', '1'));
 
-  await page.goto(`${env.BASE_URL}/${env.COOPNAME}/market/writeoffs`, { waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/market/writeoffs`, { waitUntil: 'domcontentloaded', timeout: 45000 });
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(3000);
   await cleanViteOverlays(page);

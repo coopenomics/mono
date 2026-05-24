@@ -1,8 +1,31 @@
-import { Mutations, Queries } from '@coopenomics/sdk';
+import { Mutations, Queries, type Types } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 import type { MarketplaceAplReceptionView, SignedDocumentInput } from '../../OffererPendingAplReceptions/api';
 
 export type { MarketplaceAplReceptionView } from '../../OffererPendingAplReceptions/api';
+
+/**
+ * Агрегат документа: исходный документ (rawDocument) + документ с уже
+ * наложенной подписью поставщика (document). Председатель накладывает
+ * закрывающую подпись поверх, не перегенерируя документ.
+ */
+export interface MarketplaceDocumentAggregateView {
+  hash: string;
+  rawDocument: Types.Document.IGeneratedDocument;
+  document: Types.Document.ISignedDocument;
+}
+
+export async function fetchChairmanSignablePayloads(
+  apl_reception_id: string,
+): Promise<MarketplaceDocumentAggregateView[]> {
+  const result = await client.Query(
+    Queries.Marketplace.AplReceptionChairmanSignablePayloads.query,
+    { variables: { data: { apl_reception_id } } },
+  );
+  return result[
+    Queries.Marketplace.AplReceptionChairmanSignablePayloads.name
+  ] as unknown as MarketplaceDocumentAggregateView[];
+}
 
 export async function listAplReceptionsByBraname(braname: string): Promise<MarketplaceAplReceptionView[]> {
   const result = await client.Query(Queries.Marketplace.ListAplReceptionsByBraname.query, {

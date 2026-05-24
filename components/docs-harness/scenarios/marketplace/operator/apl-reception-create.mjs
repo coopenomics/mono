@@ -8,7 +8,7 @@ import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { cleanViteOverlays, env, loginAs } from '../../../lib/harness.mjs';
+import { cleanViteOverlays, dismissOnboardingDialogs, env, loginAs } from '../../../lib/harness.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -40,6 +40,7 @@ export const meta = {
   assetsDir: 'assets/new/marketplace/operator/apl-reception-create',
   role: 'user',
   fixture: 'chairkrg',
+  fixtures: ['chairkrg'],
 };
 
 export default async ({ page, shot }) => {
@@ -51,13 +52,19 @@ export default async ({ page, shot }) => {
   // core-role `chairman` (chairkrg = branch chairman своего КУ).
   await page.addInitScript(() => localStorage.setItem('harness:noBranchOverlay', '1'));
   await loginAs(page, fixture);
+  // chairkrg — свежая фикстура: при первом входе рендерится каскад из 4
+  // SignAgreementDialog (Цифровой Кошелёк / ЭП / ПД / пользовательское),
+  // чьи q-portal--dialog--N перехватывают клики по форме приёмки. Убираем
+  // их DOM-hack'ом (канон harness: вызываем после login и каждой навигации).
+  await dismissOnboardingDialogs(page);
 
-  await page.goto(`${env.BASE_URL}/${env.COOPNAME}/market-pvz/reception`, {
+  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/market-pvz/reception`, {
     waitUntil: 'domcontentloaded',
     timeout: 45000,
   });
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(2500);
+  await dismissOnboardingDialogs(page);
   await cleanViteOverlays(page);
 
   await shot(

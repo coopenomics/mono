@@ -83,6 +83,24 @@ export interface MarketplaceOrderCreateResult {
 export class MarketplaceOrderCreateService {
   private static readonly ZERO_HASH = '0'.repeat(64);
 
+  // BD-канонические значения cycle_type (`'time_based' | 'volume_based' |
+  // 'open_subscription' | 'individual'`) содержат `_` и длиннее 13 символов,
+  // что недопустимо в `eosio::name` (a–z, 1–5, точки; max 13 chars). Контракт
+  // marketplace ожидает значения из namespace CycleType — `timebased`,
+  // `volumebased`, `opensubscr`, `individual` (см.
+  // contracts/cpp/lib/domain/table_marketplace_orders.hpp). Без mapper'а submit
+  // падает «Неизвестный тип цикла отсечки заявок».
+  private static cycleTypeToChain(cycleType: string): string {
+    switch (cycleType) {
+      case 'time_based': return 'timebased';
+      case 'volume_based': return 'volumebased';
+      case 'open_subscription': return 'opensubscr';
+      case 'individual': return 'individual';
+      default:
+        throw new BadRequestException(`Неизвестный cycle_type Offer'а: «${cycleType}»`);
+    }
+  }
+
   private get assetSymbol(): string {
     return this.assetConfig.symbol;
   }
@@ -157,7 +175,7 @@ export class MarketplaceOrderCreateService {
         delivery_braname: input.delivery_braname,
         quantity: input.quantity,
         unit_price: unit_price_asset,
-        cycle_type: offer.cycle_type,
+        cycle_type: MarketplaceOrderCreateService.cycleTypeToChain(offer.cycle_type),
         warranty_period_secs,
         batch_hash: MarketplaceOrderCreateService.ZERO_HASH,
       });
@@ -321,8 +339,23 @@ export class MarketplaceOrderCreateService {
   }
 
   private normalizeTxResult(tx: unknown): { tx_hash: string; block_num: number } {
-    const t = tx as { transaction?: { id?: string }; processed?: { id?: string; block_num?: number } };
-    const tx_hash = t?.transaction?.id ?? t?.processed?.id;
+    // wharfkit TransactResult держит Antelope push_transaction response под
+    // `response`. Стандартные пути: response.processed.id (tx_hash),
+    // response.transaction_id (резерв), response.processed.block_num.
+    // Spec-тесты пишут плоский processed.id — поддерживаем оба shape.
+    const t = tx as {
+      transaction?: { id?: string };
+      processed?: { id?: string; block_num?: number };
+      response?: {
+        transaction_id?: string;
+        processed?: { id?: string; block_num?: number };
+      };
+    };
+    const tx_hash =
+      t?.response?.processed?.id ??
+      t?.response?.transaction_id ??
+      t?.processed?.id ??
+      t?.transaction?.id;
     if (!tx_hash) {
       // fail-fast: цепь приняла createorder, но не вернула tx_hash —
       // запись Order в БД без tx_hash сделает audit-trail фантомным.
@@ -330,7 +363,8 @@ export class MarketplaceOrderCreateService {
         'Создание заказа: цепь не вернула tx_hash. Повторите попытку.'
       );
     }
-    const block_num = t?.processed?.block_num ?? 0;
+    const block_num =
+      t?.response?.processed?.block_num ?? t?.processed?.block_num ?? 0;
     return { tx_hash, block_num };
   }
 

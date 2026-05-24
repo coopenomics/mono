@@ -5,6 +5,7 @@ import type {
   MarketplaceOrderProps,
   MarketplaceOrderStatus,
 } from './marketplace-order.types';
+import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
 import type { IBlockchainSynchronizable } from '~/shared/interfaces/blockchain-sync.interface';
 
 /**
@@ -61,6 +62,7 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
   public chairman_signed_at: Date | null;
   public chairman_account: string | null;
   public signiss1_tx_hash: string | null;
+  public issue_act_signiss1_document: ISignedDocumentDomainInterface | null;
   /** Story 6.3 / FR24: момент финальной подписи заказчика (`signiss2`). */
   public orderer_signed_at: Date | null;
   public delivery_signer_account: string | null;
@@ -104,6 +106,7 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
     this.chairman_signed_at = props.chairman_signed_at;
     this.chairman_account = props.chairman_account;
     this.signiss1_tx_hash = props.signiss1_tx_hash;
+    this.issue_act_signiss1_document = props.issue_act_signiss1_document;
     this.orderer_signed_at = props.orderer_signed_at;
     this.delivery_signer_account = props.delivery_signer_account;
     this.signiss2_tx_hash = props.signiss2_tx_hash;
@@ -151,7 +154,23 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
     this.on_chain_id = blockchainData.on_chain_id;
     this.on_chain_block_num = blockNum;
     this.on_chain_present = present;
-    this.status = blockchainData.status;
+    // Forward-only guard. Backend опережает цепь на нескольких переходах
+    // «прямого пути»: cycle-hook / synthesizeIndividualShipment переводят
+    // Order в ACCEPTED_PENDING_SUPPLIER(_INDIVIDUAL) и далее SUPPLY_PREPARED
+    // ДО того, как соответствующая on-chain дельта (`active`→`accepted`)
+    // материализуется. Запоздавшая дельта с более РАННИМ статусом не должна
+    // откатывать backend назад — иначе individual-заказ «возвращается» в
+    // каталог (ACTIVE) или SUPPLY_PREPARED сбрасывается в ACCEPTED и партия
+    // на приёмке теряет заказ. Терминальные статусы (отмена/возврат/
+    // просрочка) — rank=undefined → применяются всегда: это реальные
+    // on-chain события, которые перекрывают любой backend-прогресс.
+    const incomingRank = MARKETPLACE_ORDER_FORWARD_RANK[blockchainData.status];
+    const currentRank = MARKETPLACE_ORDER_FORWARD_RANK[this.status];
+    const isBackendAhead =
+      incomingRank !== undefined && currentRank !== undefined && incomingRank < currentRank;
+    if (!isBackendAhead) {
+      this.status = blockchainData.status;
+    }
     this.updated_at = new Date();
   }
 
@@ -220,6 +239,25 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
     return this.status === 'RECEIVED';
   }
 }
+
+/**
+ * Монотонный ранг статусов «прямого пути» Order'а. Используется в
+ * `updateFromBlockchain` как forward-only guard: запоздавшая on-chain
+ * дельта с меньшим рангом не откатывает опережающий backend-статус.
+ * Терминальные статусы (RETURNED / CANCELLED_* / EXPIRED_*) намеренно НЕ
+ * входят в таблицу (rank=undefined) — они применяются всегда, перекрывая
+ * любой backend-прогресс.
+ */
+const MARKETPLACE_ORDER_FORWARD_RANK: Partial<Record<MarketplaceOrderStatus, number>> = {
+  ACTIVE: 0,
+  ACCEPTED_PENDING_SUPPLIER: 1,
+  ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL: 1,
+  ACCEPTED: 2,
+  SUPPLY_PREPARED: 3,
+  ACCEPTED_TO_COOP: 4,
+  READY_TO_RECEIVE: 5,
+  RECEIVED: 6,
+};
 
 /**
  * Blockchain-снимок поля `marketplace::orders` row после mapper'а.

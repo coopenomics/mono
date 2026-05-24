@@ -141,8 +141,22 @@ export class MarketplaceOrderCancelService {
   }
 
   private normalizeTxHash(tx: unknown): string {
-    const t = tx as { transaction?: { id?: string }; processed?: { id?: string } };
-    const hash = t?.transaction?.id ?? t?.processed?.id;
+    // wharfkit TransactResult держит Antelope push_transaction response под
+    // `response` (response.processed.id / response.transaction_id). Для
+    // совместимости со spec-тестами поддерживаем и плоский processed.id.
+    const t = tx as {
+      transaction?: { id?: string };
+      processed?: { id?: string };
+      response?: {
+        transaction_id?: string;
+        processed?: { id?: string };
+      };
+    };
+    const hash =
+      t?.response?.processed?.id ??
+      t?.response?.transaction_id ??
+      t?.processed?.id ??
+      t?.transaction?.id;
     if (!hash) {
       // fail-fast: цепь приняла action, но не вернула tx_hash — audit-trail
       // станет фантомным ('unknown') без возможности cross-reference. Лучше

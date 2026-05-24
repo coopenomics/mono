@@ -13,7 +13,7 @@ export const meta = {
 
 export default async ({ page, shot }) => {
   // Login as chairman через стандартный pattern.
-  await page.goto(`${env.BASE_URL}/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.evaluate(() => localStorage.setItem('harness:noBranchOverlay', '1'));
   await page.waitForSelector('button:has-text("Войти")', { timeout: 60000 });
   await cleanViteOverlays(page);
@@ -29,7 +29,7 @@ export default async ({ page, shot }) => {
 
   // Дизайн-система — длинная скроллящаяся страница; снимем 3 проекта
   // через window.scrollTo, чтобы пройтись по верху, середине и низу.
-  await page.goto(`${env.BASE_URL}/${env.COOPNAME}/market/design-system`, { waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/market/design-system`, { waitUntil: 'domcontentloaded', timeout: 45000 });
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(3000);
   await cleanViteOverlays(page);

@@ -38,6 +38,7 @@ export class MarketplaceOrderMapper {
       chairman_signed_at: row.chairman_signed_at,
       chairman_account: row.chairman_account,
       signiss1_tx_hash: row.signiss1_tx_hash,
+      issue_act_signiss1_document: row.issue_act_signiss1_document,
       orderer_signed_at: row.orderer_signed_at,
       delivery_signer_account: row.delivery_signer_account,
       signiss2_tx_hash: row.signiss2_tx_hash,

@@ -8,6 +8,10 @@ export * as RetryKUGeocode from './retryKUGeocode'
 export * as CreateOrder from './createOrder'
 /** Отменить свой заказ до приёма поставщиком */
 export * as CancelOrder from './cancelOrder'
+/** Эпик 4: поставщик принимает индивидуальный заказ (cycle_type=individual) */
+export * as AcceptIndividualOrder from './acceptIndividualOrder'
+/** Эпик 4: поставщик отклоняет индивидуальный заказ с указанием причины */
+export * as DeclineIndividualOrder from './declineIndividualOrder'
 /** Опубликовать новое предложение поставщика на модерацию */
 export * as CreateOffer from './createOffer'
 /** Эпик 5: сформировать партии поставки из акцептованной заявки */
@@ -52,3 +56,11 @@ export * as MarketplaceSignOnboardingOffer from './marketplaceSignOnboardingOffe
 export * as AddAvailableCategories from './addAvailableCategories'
 /** Удалить категории из whitelist кооператива (chairman-only) */
 export * as RemoveAvailableCategories from './removeAvailableCategories'
+/** Эпик 3 / Story 3.6: председатель одобряет offer (PENDING_MODERATION → APPROVED) */
+export * as ApproveOffer from './approveOffer'
+/** Эпик 3 / Story 3.6: председатель отклоняет offer (PENDING_MODERATION → REJECTED) */
+export * as RejectOffer from './rejectOffer'
+/** Поставщик меняет содержимое своего offer'а до модерации */
+export * as UpdateOffer from './updateOffer'
+/** Поставщик отзывает свой offer (любой статус, кроме APPROVED/REJECTED) */
+export * as WithdrawOffer from './withdrawOffer'
