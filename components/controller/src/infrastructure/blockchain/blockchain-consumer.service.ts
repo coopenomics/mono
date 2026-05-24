@@ -248,14 +248,6 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
     await this.processActionDelayed(action);
   }
 
-  /**
-   * Задержка emit'а action-события — даёт время дельтам того же блока
-   * (capital_appendixes, capital_projects, ...) сохраниться раньше, чем
-   * обработчики action полезут их читать. Подобрана опытно: при <1.5с
-   * на быстрой машине race ещё происходит, при ~3с гонок не наблюдаем.
-   */
-  private static readonly ACTION_EMIT_DELAY_MS = 3000;
-
   private async processActionDelayed(action: IAction): Promise<void> {
     // Проверяем, является ли действие исключением
     const isException = this.isActionException(action.account, action.name);
@@ -277,10 +269,12 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
       throw error; // Перебрасываем ошибку чтобы сообщение не было подтверждено
     }
 
-    // Публикуем событие с задержкой — пусть сначала прокатятся дельты этого же блока.
-    // saveAction уже выполнен, так что данные не потеряем; задерживаем только emit.
+    // Публикуем событие с задержкой — пусть сначала прокатятся дельты этого же блока
+    // (capital_appendixes, capital_projects, ...), чтобы обработчики action видели
+    // уже персистентное состояние. saveAction уже выполнен, так что данные не
+    // потеряем; задерживаем только emit. Задержка вынесена в конфиг (DEC-007).
     const eventName = `action::${action.account}::${action.name}`;
-    const delayMs = BlockchainConsumerService.ACTION_EMIT_DELAY_MS;
+    const delayMs = config.blockchain.action_emit_delay_ms;
     setTimeout(() => {
       this.eventsService.emit(eventName, action);
       this.logger.debug(
@@ -366,10 +360,26 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
       throw error; // Перебрасываем ошибку чтобы сообщение не было подтверждено
     }
 
-    // Публикуем событие во внутреннюю шину с типизированным именем
+    // Барьер форка (Story 1.3, временное решение до Epic 3 / ForkRegistry).
+    // Раньше fork эмитился fire-and-forget: processFork возвращался и сообщение
+    // ACK'алось ДО завершения откатов в @OnEvent('fork::*')-синкерах, из-за чего
+    // следующая дельта (того же/соседнего блока) обрабатывалась параллельно с
+    // откатом — гонка. Consumer-loop последователен (COUNT 1, await handleMessage),
+    // поэтому ожидание здесь = пауза обработки: ждём завершения всех откатов до
+    // продолжения потока. TTL force-resume: если синкер завис, не блокируем
+    // consumer навсегда — продолжаем после fork_pause_timeout_ms с предупреждением.
     const eventName = `fork::${block_num}`;
-    this.eventsService.emit(eventName, { block_num });
+    const completed = await this.eventsService.emitAsyncWithTimeout(
+      eventName,
+      { block_num },
+      config.blockchain.fork_pause_timeout_ms
+    );
+    if (!completed) {
+      this.logger.warn(
+        `Барьер форка ${eventName}: откаты не завершились за ${config.blockchain.fork_pause_timeout_ms}ms — продолжаем (force-resume)`
+      );
+    }
 
-    this.logger.debug(`Форк опубликован в событийную шину: ${eventName}`);
+    this.logger.debug(`Форк обработан (откаты завершены/таймаут): ${eventName}`);
   }
 }

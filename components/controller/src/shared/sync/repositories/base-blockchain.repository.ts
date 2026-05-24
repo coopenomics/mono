@@ -82,6 +82,15 @@ export abstract class BaseBlockchainRepository<
     // Проверяем, существует ли уже по кастомному ключу
     const existing = await this.findBySyncKey(syncKey, syncValue);
     if (existing) {
+      // Guard монотонности block_num (DEC-008, Story 1.1): на create-пути не
+      // даём устаревшей дельте (из более раннего блока) затереть более свежую
+      // запись — иначе состояние в БД откатывается назад при гонке дельт.
+      // block_num из PG может прийти строкой (bigint), поэтому сравниваем
+      // через Number (см. controller/CLAUDE.md, bigint-as-string).
+      const existingBlockNum = existing.getBlockNum();
+      if (existingBlockNum != null && Number(blockNum) < Number(existingBlockNum)) {
+        return existing; // stale overwrite предотвращён
+      }
       // Обновляем существующую сущность
       existing.updateFromBlockchain(blockchainData, blockNum, present);
       return await this.save(existing);
