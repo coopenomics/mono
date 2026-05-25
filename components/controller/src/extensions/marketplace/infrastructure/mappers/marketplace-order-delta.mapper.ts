@@ -16,12 +16,20 @@ import type { MarketplaceOrderStatus } from '../../domain/entities/marketplace-o
  *
  * Sync-key: `order_hash` (backend имя) = `hash` поле on-chain row.
  *
- * Status mapping: on-chain `eosio::name` = lowercase snake_case
- * (`active`, `accepted`, `ship_ready`, `supply_prepared`,
- * `accepted_to_coop`, `ready_to_receive`, `received`, `returned`,
- * `cancelled_by_orderer`, `cancelled_by_supplier`, `expired_no_threshold`,
- * `expired_no_volume`, `accepted_pending_supplier`,
- * `accepted_pending_supplier_individual`). Backend хранит как UPPERCASE.
+ * Status mapping: on-chain `eosio::name` — короткие имена (≤12 символов),
+ * как объявлено в C++ `OrderStatus` (table_marketplace_orders.hpp): ровно
+ * 7 значений `active`, `cancelled`, `accepted`, `supplyprep`, `acceptcoop`,
+ * `readyrecv`, `received`. Это НЕ snake_case доменных статусов — раньше
+ * STATUS_MAP ошибочно ждал `supply_prepared`/`accepted_to_coop`/
+ * `ready_to_receive`, из-за чего happy-path read-back дельты падали в
+ * «schema drift» и не материализовали bc.status (#220).
+ *
+ * Доменный `MarketplaceOrderStatus` богаче: расщепляет `cancelled` на
+ * CANCELLED_BY_ORDERER/CANCELLED_BY_SUPPLIER и добавляет промежуточные
+ * ACCEPTED_PENDING_SUPPLIER, EXPIRED_NO_*, RETURNED, которых on-chain enum НЕ
+ * содержит — их выставляет только backend (cycle-hook / app-слой), и они
+ * никогда не приходят дельтой. Поэтому STATUS_MAP содержит ровно on-chain
+ * значения; `cancelled` обрабатывается отдельно (см. KNOWN_UNMAPPED_STATUSES).
  */
 @Injectable()
 export class MarketplaceOrderDeltaMapper extends AbstractBlockchainDeltaMapper<
@@ -29,19 +37,24 @@ export class MarketplaceOrderDeltaMapper extends AbstractBlockchainDeltaMapper<
 > {
   private static readonly STATUS_MAP: Record<string, MarketplaceOrderStatus> = {
     active: 'ACTIVE',
-    accepted_pending_supplier: 'ACCEPTED_PENDING_SUPPLIER',
-    accepted_pending_supplier_individual: 'ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL',
     accepted: 'ACCEPTED',
-    supply_prepared: 'SUPPLY_PREPARED',
-    accepted_to_coop: 'ACCEPTED_TO_COOP',
-    ready_to_receive: 'READY_TO_RECEIVE',
+    supplyprep: 'SUPPLY_PREPARED',
+    acceptcoop: 'ACCEPTED_TO_COOP',
+    readyrecv: 'READY_TO_RECEIVE',
     received: 'RECEIVED',
-    returned: 'RETURNED',
-    cancelled_by_orderer: 'CANCELLED_BY_ORDERER',
-    cancelled_by_supplier: 'CANCELLED_BY_SUPPLIER',
-    expired_no_threshold: 'EXPIRED_NO_THRESHOLD',
-    expired_no_volume: 'EXPIRED_NO_VOLUME',
   };
+
+  /**
+   * On-chain `cancelled` — единый терминальный статус. Домен расщепляет его
+   * на CANCELLED_BY_ORDERER / CANCELLED_BY_SUPPLIER (а просрочки — на
+   * EXPIRED_NO_*), и точный под-статус выставляет backend в БД ДО прихода
+   * дельты: отмену/просрочку всегда инициирует app-слой (cancelorder /
+   * declineorder / expireorder), затем подтягивается on-chain delta. Read-back
+   * generic `cancelled` не несёт нового и НЕ должен перетирать точный под-статус
+   * (updateFromBlockchain применяет терминальные статусы безусловно). Поэтому
+   * дельту с `cancelled` намеренно пропускаем — это не schema drift, alert не нужен.
+   */
+  private static readonly KNOWN_UNMAPPED_STATUSES: ReadonlySet<string> = new Set(['cancelled']);
 
   constructor(private readonly logger: WinstonLoggerService) {
     super();
@@ -57,11 +70,18 @@ export class MarketplaceOrderDeltaMapper extends AbstractBlockchainDeltaMapper<
         );
         return null;
       }
-      const status = MarketplaceOrderDeltaMapper.STATUS_MAP[value.status?.toLowerCase()];
+      const rawStatus = value.status?.toLowerCase();
+      const status = MarketplaceOrderDeltaMapper.STATUS_MAP[rawStatus];
       if (!status) {
-        this.logger.error(
-          `MarketplaceOrderDeltaMapper: неизвестный on-chain status "${value.status}" для order_hash=${value.hash} — schema drift, требуется обновление STATUS_MAP`
-        );
+        if (MarketplaceOrderDeltaMapper.KNOWN_UNMAPPED_STATUSES.has(rawStatus)) {
+          this.logger.debug(
+            `MarketplaceOrderDeltaMapper: on-chain status "${value.status}" (order_hash=${value.hash}) намеренно не маппится — точный терминальный под-статус хранит backend; дельта пропущена`
+          );
+        } else {
+          this.logger.error(
+            `MarketplaceOrderDeltaMapper: неизвестный on-chain status "${value.status}" для order_hash=${value.hash} — schema drift, требуется обновление STATUS_MAP`
+          );
+        }
         return null;
       }
       return {
