@@ -80,7 +80,7 @@ _Критичные правила и паттерны для AI-агентов 
 **parser2 integration:**
 - `ParserClient` subscribe с `subscriptionId = "controller-${coopname}"`, `consumerName = "primary"` (детерминирован), `startFromBlock: 'last_known'`.
 - Redis keys per-chain: `ce:parser2:<chain_id>:events`. НЕ писать в этот stream руками.
-- `event_id` формат: `${chain}:{kind}:{block_num}:{block_id_short}:{natural_key}` — вычисляется parser2, consumer читает как есть.
+- `event_id` формат (parser2 v1.0.3 `computeEventId`, БАЙТ-В-БАЙТ): action `${chain}:a:${block_num}:${block_id[0..16]}:${global_sequence}`; delta `${chain}:d:${block_num}:${block_id[0..16]}:${code}:${scope}:${table}:${primary_key}`; native-delta `:n:`, fork `:f:`. На parser2-транспорте `event.event_id` приходит готовым — читать как есть. Legacy-зеркало в `infrastructure/blockchain/event-id.util.ts` ОБЯЗАНО совпадать байт-в-байт (golden-тест против исходника parser2) — иначе при cutover один и тот же event получит разные id в legacy и в движке и дедуп промахнётся. Дискриминант — буква (`a`/`d`/`n`/`f`), НЕ слово; block_id режется до 16 hex-символов.
 
 **EventEmitter2:**
 - `delta::{contract}::{table}` — внутренняя шина для syncer'ов.
