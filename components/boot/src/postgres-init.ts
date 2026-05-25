@@ -1,6 +1,5 @@
 /* eslint-disable node/prefer-global/process */
 import { Client } from 'pg'
-import type { Cooperative } from 'cooptypes'
 
 export async function initSystemStatus() {
   console.log('Инициализация статуса системы для coopname: voskhod')
@@ -157,6 +156,82 @@ export async function initUsersInPostgres(
   }
 }
 
+/**
+ * Засев dev-фикстуры карты ПВЗ: 3 кооперативных участка Подмосковья
+ * (krg/odn/myt, status=ACTIVE) в таблицу `marketplace_ku_details`.
+ *
+ * Зачем: на свежем стенде после `reboot:extra` таблица пуста — select ПВЗ
+ * приходит пустым/disabled, harness-сценарии и UI выбора участка ломаются.
+ * Раньше строки заводили ручным `psql INSERT` после каждого reboot.
+ *
+ * Ordering: DDL `marketplace_ku_details` создаёт контроллер (TypeORM
+ * `synchronize:true`) при старте coopback — ПОЗЖЕ, чем boot:extra. Поэтому
+ * сидер вызывается из `extra_reboot.sh` уже ПОСЛЕ `up -d coopback`, а не из
+ * installExtraData; здесь дополнительно проверяем существование таблицы и
+ * мягко пропускаем seed, если контроллер ещё не создал её. Идемпотентно
+ * (`ON CONFLICT (coopname, core_braname) DO NOTHING`). Данные совпадают с
+ * `seed-marketplace-branches.ts` (адреса/контакты тех же krg/odn/myt).
+ *
+ * Не для прода: прод не запускает `extra_reboot.sh`, ПВЗ там заводит
+ * председатель через UI — этот сидер живёт только в dev-reboot-цепочке.
+ */
+export async function seedMarketplaceKuDetails(coopname = 'voskhod') {
+  const client = new Client({
+    host: process.env.POSTGRES_HOST,
+    port: parseInt(process.env.POSTGRES_PORT || '5432'),
+    user: process.env.POSTGRES_USERNAME,
+    password: process.env.POSTGRES_PASSWORD,
+    database: process.env.POSTGRES_DATABASE,
+  })
+
+  // Будни 09:00–18:00, суббота 10:00–16:00, воскресенье выходной.
+  const weekday = { open: '09:00', close: '18:00', breaks: [] as Array<{ start: string, end: string }> }
+  const workingHours = {
+    mon: weekday,
+    tue: weekday,
+    wed: weekday,
+    thu: weekday,
+    fri: weekday,
+    sat: { open: '10:00', close: '16:00', breaks: [] as Array<{ start: string, end: string }> },
+  }
+
+  const KU = [
+    { braname: 'krg', address: 'Московская область, г. Красногорск, ул. Заводская, д. 1', phone: '+79991230101', email: 'krg@voskhod.coop' },
+    { braname: 'odn', address: 'Московская область, г. Одинцово, ул. Центральная, д. 12', phone: '+79991230202', email: 'odn@voskhod.coop' },
+    { braname: 'myt', address: 'Московская область, г. Мытищи, Олимпийский проспект, д. 5', phone: '+79991230303', email: 'myt@voskhod.coop' },
+  ]
+
+  try {
+    await client.connect()
+    console.log('Подключение к PostgreSQL установлено для сидинга ПВЗ marketplace')
+
+    const exists = await client.query(`SELECT to_regclass('public.marketplace_ku_details') AS t`)
+    if (!exists.rows[0]?.t) {
+      console.warn('⚠ marketplace_ku_details ещё не создана контроллером — пропускаем seed ПВЗ')
+      return
+    }
+
+    for (const ku of KU) {
+      await client.query(`
+        INSERT INTO marketplace_ku_details
+          (coopname, core_braname, address_full, contact_phone, contact_email,
+           working_hours_json, status, geocode_status, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, 'ACTIVE', 'PENDING', now(), now())
+        ON CONFLICT (coopname, core_braname) DO NOTHING
+      `, [coopname, ku.braname, ku.address, ku.phone, ku.email, JSON.stringify(workingHours)])
+    }
+
+    console.log(`Засеяно ${KU.length} ПВЗ (krg/odn/myt, ACTIVE) в marketplace_ku_details для ${coopname}`)
+  }
+  catch (error) {
+    console.error('Ошибка сидинга ПВЗ marketplace в PostgreSQL:', error)
+    throw error
+  }
+  finally {
+    await client.end()
+  }
+}
+
 export async function initVaultInPostgres() {
   const client = new Client({
     host: process.env.POSTGRES_HOST,
@@ -241,9 +316,9 @@ export async function initExtensionsInPostgres() {
     // Вставляем запись для capital extension
     const capitalConfig = {
       level_depth_base: 100000000,
-      onboarding_init_at: "2026-02-09T07:16:18.380Z",
+      onboarding_init_at: '2026-02-09T07:16:18.380Z',
       expense_pool_percent: 100,
-      onboarding_expire_at: "2026-03-11T07:16:18.380Z",
+      onboarding_expire_at: '2026-03-11T07:16:18.380Z',
       voting_period_in_days: 1,
       authors_voting_percent: 62.8,
       creators_voting_percent: 62.8,
@@ -253,15 +328,15 @@ export async function initExtensionsInPostgres() {
       energy_decay_rate_per_day: 0.02,
       coordinator_invite_validity_days: 30,
       onboarding_blagorost_provision_done: true,
-      onboarding_blagorost_provision_hash: "CDE57D987E3C945E79E108920CE02A4A80CFA7980CAA912949BB6C2111B7027A",
+      onboarding_blagorost_provision_hash: 'CDE57D987E3C945E79E108920CE02A4A80CFA7980CAA912949BB6C2111B7027A',
       onboarding_blagorost_offer_template_done: true,
-      onboarding_blagorost_offer_template_hash: "5CA88BBD303E5CCDA01E565FFE47E51855515176EC6C957F0FBDBCA4C53DBFD2",
+      onboarding_blagorost_offer_template_hash: '5CA88BBD303E5CCDA01E565FFE47E51855515176EC6C957F0FBDBCA4C53DBFD2',
       onboarding_generator_offer_template_done: true,
-      onboarding_generator_offer_template_hash: "8DA31574E8CC764C3A1FCAE1172726656A3DCDB1BB82AB0E567E2732070C3A44",
+      onboarding_generator_offer_template_hash: '8DA31574E8CC764C3A1FCAE1172726656A3DCDB1BB82AB0E567E2732070C3A44',
       onboarding_generator_program_template_done: true,
-      onboarding_generator_program_template_hash: "E55564D8946C55C93490B5277968FC890FDCB10A049DB5B2E0FE9F67FDA80896",
+      onboarding_generator_program_template_hash: 'E55564D8946C55C93490B5277968FC890FDCB10A049DB5B2E0FE9F67FDA80896',
       onboarding_generation_contract_template_done: true,
-      onboarding_generation_contract_template_hash: "A4BD579D6130CCE2D8C34337DFA591807C1F028A148DD53689881B12AC2627E2",
+      onboarding_generation_contract_template_hash: 'A4BD579D6130CCE2D8C34337DFA591807C1F028A148DD53689881B12AC2627E2',
       github_sync_branch: 'dev',
       github_sync_poll_interval_minutes: 5,
       github_api_token_encrypted: '',
@@ -282,7 +357,7 @@ export async function initExtensionsInPostgres() {
       JSON.stringify(capitalConfig),
       1,
       new Date('2026-02-09T02:13:06.620Z'),
-      new Date('2026-02-09T02:27:57.155Z')
+      new Date('2026-02-09T02:27:57.155Z'),
     ])
 
     // reports — встроенный extension, конфиг пустой (BuiltinSchema).

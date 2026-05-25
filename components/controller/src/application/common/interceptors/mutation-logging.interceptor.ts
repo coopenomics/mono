@@ -38,6 +38,13 @@ export class MutationLoggingInterceptor implements NestInterceptor {
     const mutationName = info.fieldName;
     const args = gqlContext.getArgs();
     const user = ctx.req?.user;
+    // Публичные мутации (логин, регистрация) выполняются без JWT — у них нет
+    // user.username, а колонка mutation_logs.username NOT NULL. Пишем sentinel
+    // вместо undefined, иначе INSERT падает «null value in column username» на
+    // каждой анонимной мутации (sentinel вместо nullable-колонки — чтобы фикс не
+    // зависел от synchronize и работал на проде, где миграция эту колонку не
+    // трогала).
+    const username = user?.username ?? 'anonymous';
     const startTime = Date.now();
 
     // Санитизация аргументов - удаляем wif ключи
@@ -49,14 +56,14 @@ export class MutationLoggingInterceptor implements NestInterceptor {
         // Логируем успешное выполнение
         const duration = Date.now() - startTime;
         this.logger.info(`[INTERCEPTOR] Мутация ${mutationName} выполнена успешно за ${duration}мс`, {
-          username: user?.username,
+          username,
           coopname,
           arguments: sanitizedArgs,
         });
         this.saveMutationLog({
           coopname,
           mutation_name: mutationName,
-          username: user?.username,
+          username,
           arguments: sanitizedArgs,
           duration_ms: duration,
           status: 'success',
@@ -68,7 +75,7 @@ export class MutationLoggingInterceptor implements NestInterceptor {
         // Логируем ошибку
         const duration = Date.now() - startTime;
         this.logger.info(`[INTERCEPTOR] Мутация ${mutationName} завершилась ошибкой за ${duration}мс: ${error.message}`, {
-          username: user?.username,
+          username,
           coopname,
           arguments: sanitizedArgs,
           error: error.message,
@@ -76,7 +83,7 @@ export class MutationLoggingInterceptor implements NestInterceptor {
         this.saveMutationLog({
           coopname,
           mutation_name: mutationName,
-          username: user?.username,
+          username,
           arguments: sanitizedArgs,
           duration_ms: duration,
           status: 'error',
