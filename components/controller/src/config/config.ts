@@ -141,21 +141,6 @@ const envVarsSchema = z.object({
     .string()
     .default('30000')
     .transform((val) => parseInt(val, 10)),
-  /**
-   * Активирует idempotency-gate (Story 2.3, INV-09): повторно доставленное
-   * событие с уже отмеченным event_id игнорируется как no-op. По умолчанию
-   * OFF в релизе 1.1.1 — локальная формула event_id ещё не сверена с
-   * авторитетной из parser2 (валидация в Epic 3 phase 2), а ложный дубль =
-   * silent data loss (тот же класс багов, что чинил Эпик 1). Dual-write меток
-   * (Story 2.2) наполняет consumer_dedup независимо от флага; пока флаг false
-   * первичной защитой остаётся block_num-guard (DEC-020). Флаг переводится в
-   * true после сверки формулы в Epic 3.
-   */
-  BLOCKCHAIN_DEDUP_ENABLED: z
-    .string()
-    .default('false')
-    .transform((val) => val === 'true'),
-
   // Параметры NOVU
   NOVU_APP_ID: z.string().min(1, { message: 'Не должно быть пустым' }),
   NOVU_BACKEND_URL: z.string().min(1, { message: 'Не должно быть пустым' }).default('https://novu.coopenomics.world/api'),
@@ -265,7 +250,6 @@ export default {
     post_transact_chain_read_delay_ms: envVars.data.POST_TRANSACT_CHAIN_READ_DELAY_MS,
     action_emit_delay_ms: envVars.data.BLOCKCHAIN_ACTION_EMIT_DELAY_MS,
     fork_pause_timeout_ms: envVars.data.BLOCKCHAIN_FORK_PAUSE_TIMEOUT_MS,
-    dedup_enabled: envVars.data.BLOCKCHAIN_DEDUP_ENABLED,
   },
   mongoose: {
     url: envVars.data.MONGODB_URL + (envVars.data.NODE_ENV === 'test' ? '-test' : ''),
