@@ -46,7 +46,7 @@ export interface MarketplaceLabelInventoryInputDto {
    * операторского стола не передаётся.
    */
   strategy?: MarketplaceBarcodeStrategy;
-  /** Формат штрих-кода. По умолчанию `CODE128` (произвольная длина). */
+  /** Формат штрих-кода. По умолчанию `EAN13` — стандарт маркировки маркетплейса (UX-DR11/DR12). */
   format?: MarketplaceBarcodeFormat;
   /**
    * Admin-override размера упаковки для `PER_PACKAGE`. По умолчанию —
@@ -261,7 +261,7 @@ export class MarketplaceInventoryLabelService {
     const strategy = input.strategy ?? offer.barcode_strategy;
     const pack_size =
       input.pack_size !== undefined ? input.pack_size : offer.pack_size ?? undefined;
-    const format = input.format ?? MarketplaceBarcodeFormats.CODE128;
+    const format = input.format ?? MarketplaceBarcodeFormats.EAN13;
 
     const labelsPlan = this.planLabels(order.quantity, strategy, pack_size);
     if (labelsPlan.length === 0) {
