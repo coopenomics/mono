@@ -177,6 +177,7 @@ nav:
 
   - Стол заказов:
     - Введение: new/marketplace/index.md
+    - Типы снабжения (отсечка заказов): new/marketplace/supply-types.md
     - Подключение и онбординг:
       - Подключение приложения: new/marketplace/onboarding/install-market.md
       - L1 — Принятие программы кооперативом: new/marketplace/onboarding/coop-accept-cpp.md

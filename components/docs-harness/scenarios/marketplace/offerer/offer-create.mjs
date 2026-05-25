@@ -171,13 +171,21 @@ export default async ({ page, shot }) => {
   };
 
   // cycle_type параметризуется через env MP_CYCLE_TYPE (default time_based).
-  // individual нужен для магистрали II (немедленный acceptIndividual →
-  // синтез заявки-из-одного-заказа → SUPPLY_PREPARED shipment).
+  //   individual        — немедленный acceptIndividual → синтез заявки-из-одного-
+  //                        заказа → SUPPLY_PREPARED shipment (магистраль II).
+  //   volume_based       — партия стартует при sum(orders) >= target_volume
+  //                        (синхронный evaluateVolumeBasedAfterCreate).
+  //   open_subscription  — партия закрывается по сигналу поставщика вручную.
+  //   time_based         — партия по cron на cycle_end (created_at + cycle_days).
   const cycleType = process.env.MP_CYCLE_TYPE || 'time_based';
-  const productName =
-    cycleType === 'individual'
-      ? 'Мёд алтайский ПК «Восход» (individual, демо)'
-      : 'Берёзовый сок ПК «Восход» (демо)';
+  const targetVolume = process.env.MP_TARGET_VOLUME || '5';
+  const productNames = {
+    individual: 'Мёд алтайский ПК «Восход» (individual, демо)',
+    volume_based: 'Картофель Адретта мешок 25 кг (volume, демо)',
+    open_subscription: 'Сыр Костромской ПК «Восход» (подписка, демо)',
+    time_based: 'Берёзовый сок ПК «Восход» (демо)',
+  };
+  const productName = productNames[cycleType] || productNames.time_based;
 
   await setField('Название товара *', productName);
   await setField('Описание', 'Свежий берёзовый сок, разлив 1 л. Поставка через ПВЗ Красногорск.');
@@ -187,14 +195,29 @@ export default async ({ page, shot }) => {
   await setField('Доступное количество *', '50');
   await setField('Гарантия (дней)', '7');
 
-  // «Тип отсечки заказов» — q-option-group (radio). По умолчанию time_based:
-  // тогда заполняем «Длительность цикла (дней) *». Для individual кликаем
-  // radio «Индивидуально» — cycle-поля скрываются (v-if isTimeBased).
-  if (cycleType === 'individual') {
-    const radio = page.locator('.q-radio:has-text("Индивидуально")').first();
+  // «Тип отсечки заказов» — q-option-group (radio). Radio-label = полный текст
+  // CYCLE_TYPES (например «По объёму (volume_based)»). После клика по radio
+  // onCycleTypeChange переключает v-if блок с cycle-полями → ждём их появления.
+  const pickCycleRadio = async (radioText) => {
+    const radio = page.locator(`.q-radio:has-text("${radioText}")`).first();
+    if (await radio.count() === 0) {
+      throw new Error(`[offer-create] radio «${radioText}» не найден в форме cycle_type`);
+    }
     await radio.click();
-    await page.waitForTimeout(400);
+    await page.waitForTimeout(500);
+  };
+
+  if (cycleType === 'individual') {
+    await pickCycleRadio('Индивидуально');
+  } else if (cycleType === 'volume_based') {
+    await pickCycleRadio('По объёму');
+    await setField('Целевой объём *', targetVolume);
+    await setField('Максимальный срок ожидания (дней) *', '30');
+  } else if (cycleType === 'open_subscription') {
+    await pickCycleRadio('Открытая подписка');
+    await setField('Лимит ожидания пайщика (дней, опц.)', '30');
   } else {
+    // time_based (default)
     await setField('Длительность цикла (дней) *', '7');
   }
 
