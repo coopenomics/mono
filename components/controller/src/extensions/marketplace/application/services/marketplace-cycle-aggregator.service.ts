@@ -489,7 +489,55 @@ export class MarketplaceCycleAggregatorService {
     this.logger.log(
       `MarketplaceCycleAggregatorService: offer=${offer_id} cycle_type=${cycle_type} → consolidated_request=${cycle.id} status=${status}; assigned ${affected}/${orderIds.length} Order'ов`
     );
+
+    // open_subscription: триггер поставщика — это одновременно создание и
+    // акцепт заявки. БД уже помечена ACCEPTED, но on-chain Order остаётся в
+    // статусе блокировки. Без on-chain `acceptOrder` последующий `signsupp`
+    // на акте приёмки падает ассертом «Заказ не в статусе акцепта». Для
+    // time_based/volume_based on-chain accept делает отдельный шаг
+    // marketplaceAcceptConsolidatedRequest; для triggered-пути выполняем его
+    // здесь, иначе магистраль open_subscription блокируется на приёмке.
+    if (triggered) {
+      await this.acceptPoolOnChain(pool, supplier_account);
+    }
+
     return cycle;
+  }
+
+  /**
+   * open_subscription: per-Order on-chain `acceptOrder` (offerer = поставщик).
+   * Best-effort, симметрично expirePoolOnChain: chain fail одного Order'а —
+   * лог error + продолжаем; Order остаётся ACCEPTED в БД (assignToCycle уже
+   * прошёл), рассинхрон чинится manual reconciliation / повторным запуском.
+   */
+  private async acceptPoolOnChain(
+    pool: MarketplaceOrderDomainEntity[],
+    offerer_account: string
+  ): Promise<{ succeeded: number; failed: number }> {
+    let succeeded = 0;
+    let failed = 0;
+    for (const order of pool) {
+      try {
+        await this.chainPort.acceptOrder({
+          coopname: order.coopname,
+          offerer: offerer_account,
+          order_hash: order.order_hash,
+        });
+        succeeded++;
+      } catch (chainErr: any) {
+        failed++;
+        this.logger.error(
+          `MarketplaceCycleAggregatorService.acceptPoolOnChain: chain.acceptOrder упал для Order ${order.id} (order_hash=${order.order_hash}, offerer=${offerer_account}): ${chainErr.message}. Order остаётся ACCEPTED в БД, on-chain accept не прошёл — повтор через manual reconciliation.`,
+          chainErr.stack
+        );
+      }
+    }
+    if (failed > 0) {
+      this.logger.warn(
+        `MarketplaceCycleAggregatorService.acceptPoolOnChain: завершено для пула из ${pool.length} Order'ов (succeeded=${succeeded}, failed=${failed})`
+      );
+    }
+    return { succeeded, failed };
   }
 
   private computeTotalAmount(price_per_unit: string, quantity: number): string {

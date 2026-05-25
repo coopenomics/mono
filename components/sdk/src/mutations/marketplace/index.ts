@@ -12,6 +12,12 @@ export * as CancelOrder from './cancelOrder'
 export * as AcceptIndividualOrder from './acceptIndividualOrder'
 /** Эпик 4: поставщик отклоняет индивидуальный заказ с указанием причины */
 export * as DeclineIndividualOrder from './declineIndividualOrder'
+/** Эпик 4: поставщик принимает сводную заявку партии (групповой cycle_type) */
+export * as AcceptConsolidatedRequest from './acceptConsolidatedRequest'
+/** Эпик 4: поставщик отклоняет сводную заявку партии — заказы отменяются, средства разблокируются */
+export * as DeclineConsolidatedRequest from './declineConsolidatedRequest'
+/** Эпик 4: поставщик вручную запускает поставку по предложению с открытой подпиской (cycle_type=open_subscription) */
+export * as TriggerOpenSubscription from './triggerOpenSubscription'
 /** Опубликовать новое предложение поставщика на модерацию */
 export * as CreateOffer from './createOffer'
 /** Эпик 5: сформировать партии поставки из акцептованной заявки */

@@ -6,7 +6,13 @@ import {
   type Order as OrderCardModel,
   type OrderStatus as OrderCardStatus,
 } from 'src/widgets/Marketplace/OrderCard';
-import { acceptIndividualOrder, declineIndividualOrder, fetchSupplierOrders } from '../api';
+import {
+  acceptConsolidatedRequest,
+  acceptIndividualOrder,
+  declineConsolidatedRequest,
+  declineIndividualOrder,
+  fetchSupplierOrders,
+} from '../api';
 import type {
   MarketplaceOrderStatusView,
   MarketplaceOrderView,
@@ -111,8 +117,21 @@ function loadMore(): void {
 async function onAccept(orderId: string): Promise<void> {
   loading.value = true;
   try {
-    await acceptIndividualOrder(orderId);
-    Notify.create({ type: 'positive', message: 'Заказ принят', timeout: 4000 });
+    // Индивидуальный заказ акцептуется поштучно (order_id); групповой
+    // (cycle_type volume_based/open_subscription/time_based) — целиком сводной
+    // заявкой по cycle_id. Иначе acceptIndividualOrder на групповом заказе
+    // падает: заказ привязан к сводной заявке, а не к индивидуальному циклу.
+    const order = items.value.find((o) => o.id === orderId);
+    if (order && order.status === 'ACCEPTED_PENDING_SUPPLIER') {
+      if (!order.cycle_id) {
+        throw new Error('У группового заказа отсутствует идентификатор сводной заявки (cycle_id).');
+      }
+      await acceptConsolidatedRequest(order.cycle_id);
+      Notify.create({ type: 'positive', message: 'Сводная заявка партии принята', timeout: 4000 });
+    } else {
+      await acceptIndividualOrder(orderId);
+      Notify.create({ type: 'positive', message: 'Заказ принят', timeout: 4000 });
+    }
     await load(1, false);
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
@@ -133,8 +152,17 @@ function onDecline(orderId: string): void {
   }).onOk(async (reason: string) => {
     loading.value = true;
     try {
-      await declineIndividualOrder(orderId, reason.trim());
-      Notify.create({ type: 'info', message: 'Заказ отклонён', timeout: 4000 });
+      const order = items.value.find((o) => o.id === orderId);
+      if (order && order.status === 'ACCEPTED_PENDING_SUPPLIER') {
+        if (!order.cycle_id) {
+          throw new Error('У группового заказа отсутствует идентификатор сводной заявки (cycle_id).');
+        }
+        await declineConsolidatedRequest(order.cycle_id, reason.trim());
+        Notify.create({ type: 'info', message: 'Сводная заявка партии отклонена', timeout: 4000 });
+      } else {
+        await declineIndividualOrder(orderId, reason.trim());
+        Notify.create({ type: 'info', message: 'Заказ отклонён', timeout: 4000 });
+      }
       await load(1, false);
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
