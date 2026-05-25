@@ -7,23 +7,15 @@ import { IAction, IDelta } from '~/types/common';
  * но обработчики (processDelta/processAction → syncer'ы) остаются прежними: они
  * работают с IDelta/IAction. Маппер — единственная точка перевода (DEC-T09).
  *
- * Дельта мапится один-в-один — все поля DeltaEvent есть в IDelta.
+ * Все поля действия — РЕАЛЬНЫЕ из SHiP-трейса (parser2 их отдаёт): transaction_id,
+ * creator_action_ordinal, receipt (с auth_sequence), console, elapsed, context_free,
+ * account_ram_deltas. Это полный паритет с тем, что давал parser1, — ledger2
+ * (cross-link родительского apply по transaction_id + action_ordinal) и
+ * blockchain-explorer работают без потерь.
  *
- * Action мапится с потерями: parser2 ActionEvent несёт декодированный action
- * (account/name/data/authorization/global_sequence/action_ordinal/block), но НЕ
- * несёт полей трассировки транзакции, которые давал parser1:
- *   - transaction_id
- *   - creator_action_ordinal
- *   - account_ram_deltas / console / elapsed / context_free
- *   - полная receipt (act_digest / recv_sequence / auth_sequence / *_sequence)
- *
- * ⚠️ ВАЖНО (ledger2): typeorm-ledger2-state.repository связывает операцию с
- * родительским apply по `transaction_id` + `action_ordinal`/`creator_action_ordinal`.
- * Под parser2 эти поля action'а пусты → cross-link родительского apply может
- * не находиться. transaction_id/creator_action_ordinal заполняются заглушками,
- * см. отчёт миграции — это первый кандидат на проверку при прогоне на parser2.
- * receipt собирается с дефолтами (не null), чтобы read-path explorer'а и
- * notification-фильтр по receipt.receiver не падали.
+ * bigint-поля (global_sequence, receipt.*Sequence) приходят по проводу строками
+ * (parser2 сериализует bigint→string), поэтому String() безопасен и для bigint, и
+ * для string.
  */
 
 export function mapParserDeltaToIDelta(event: DeltaEvent): IDelta {
@@ -42,35 +34,48 @@ export function mapParserDeltaToIDelta(event: DeltaEvent): IDelta {
 
 export function mapParserActionToIAction(event: ActionEvent): IAction {
   const globalSequence = String(event.global_sequence);
+  const r = event.receipt;
+  const receipt = r
+    ? {
+        receiver: r.receiver,
+        act_digest: r.actDigest,
+        global_sequence: String(r.globalSequence),
+        recv_sequence: String(r.recvSequence),
+        auth_sequence: r.authSequence.map((s) => ({ account: s.account, sequence: String(s.sequence) })),
+        code_sequence: r.codeSequence,
+        abi_sequence: r.abiSequence,
+      }
+    : {
+        // Трассировки нет — receipt не null (read-path explorer'а и фильтр
+        // notification по receipt.receiver не должны падать).
+        receiver: event.account,
+        act_digest: '',
+        global_sequence: globalSequence,
+        recv_sequence: '0',
+        auth_sequence: [],
+        code_sequence: 0,
+        abi_sequence: 0,
+      };
+
   return {
-    // parser2 не отдаёт transaction_id трассировки — см. предупреждение про ledger2 выше.
-    transaction_id: '',
+    transaction_id: event.transaction_id,
     account: event.account,
     block_num: event.block_num,
     block_id: event.block_id,
     chain_id: event.chain_id,
     name: event.name,
-    // parser2 эмитит action уже единожды (дедуп по global_sequence), контекста
-    // receiver≠account нет — выставляем receiver=account, чтобы guard processAction
-    // (receiver != account → skip) пропускал событие.
-    receiver: event.account,
+    // parser2 эмитит action уже единожды (дедуп по global_sequence); receiver=account,
+    // чтобы guard processAction (receiver != account → skip) пропускал событие.
+    receiver: receipt.receiver,
     authorization: event.authorization.map((a) => ({ actor: a.actor, permission: a.permission })),
     data: event.data,
     action_ordinal: event.action_ordinal,
     global_sequence: globalSequence,
-    account_ram_deltas: [],
-    console: '',
-    receipt: {
-      receiver: event.account,
-      act_digest: '',
-      global_sequence: globalSequence,
-      recv_sequence: '0',
-      auth_sequence: [],
-      code_sequence: 0,
-      abi_sequence: 0,
-    },
-    creator_action_ordinal: 0,
-    context_free: false,
-    elapsed: 0,
+    account_ram_deltas: event.account_ram_deltas.map((d) => ({ account: d.account, delta: d.delta })),
+    console: event.console,
+    receipt,
+    creator_action_ordinal: event.creator_action_ordinal,
+    context_free: event.context_free,
+    elapsed: event.elapsed,
   };
 }
