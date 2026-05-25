@@ -20,9 +20,14 @@ import type { MarketplaceReturnClaimView } from '../../OperatorReturnClaims/api'
  * на соответствующих специализированных страницах /market-pvz/reception,
  * /issuance, /returns — здесь только сводный read-обзор для председателя КУ.
  *
- * Поле braname — пока ручной ввод; в Story 6.x+1 подключится auto-detect
- * из marketplace_whoami / marketplace_member_wallet (председатель привязан
- * к одному КУ через trustee).
+ * Поле braname — пока ручной ввод; auto-detect требует, чтобы backend отдавал
+ * привязку «пользователь → КУ»: на сервере она уже есть в
+ * MarketplaceKuChairmenService.listBranamesForMember (читает on-chain
+ * branch.trustee/trusted), но не проброшена во фронт. getBranches возвращает
+ * trustee=null (individual председателя не найден в PG-хранилище репозитория),
+ * а marketplaceWhoAmI поля braname не содержит. Подключить auto-detect —
+ * добавить поле `branches` в MarketplaceCurrentMember через listBranamesForMember
+ * + регенерация SDK (generate-schema/client — только CI).
  */
 
 const POLL_INTERVAL_MS = 20_000;

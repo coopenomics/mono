@@ -5,6 +5,7 @@ import { TakeoverDialog } from 'src/widgets/Marketplace/TakeoverDialog';
 import {
   approveReturnVisit,
   rejectReturnRemote,
+  defectCategoryLabel,
   type MarketplaceReturnClaimView,
 } from '../api';
 
@@ -123,7 +124,7 @@ TakeoverDialog(
           .text-subtitle1 Обращение пайщика
           .q-mt-sm {{ claim.reason_text }}
           .q-mt-sm.text-caption.text-grey(v-if="claim.defect_category")
-            | Категория дефекта: {{ claim.defect_category }}
+            | Категория дефекта: {{ defectCategoryLabel(claim.defect_category) }}
 
       q-card(flat bordered).q-mb-md
         q-card-section

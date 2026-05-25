@@ -197,7 +197,7 @@ TakeoverDialog(
           .text-subtitle1 1. Сверка штрих-кода имущества
           BarcodeScanner.q-mt-sm(start-label="Сканировать штрих-код имущества" @scanned="onScanned")
           .text-caption.text-grey.q-mt-sm
-            | Mock-режим сканера для каркасной фазы — следующий этап заменит на реальную камеру / USB-сканер по UX-DR26.
+            | Отсканируйте штрих-код имущества камерой или USB-сканером, чтобы сверить его с возвращаемым заказом.
           .text-caption.q-mt-sm(v-if="scannedCode")
             | Считано: <strong>{{ scannedCode }}</strong>
 

@@ -42,6 +42,8 @@ import {
 } from '../../domain/entities/marketplace-return-claim.types';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import type { MarketplaceReturnStatementSignedInputDTO } from '~/application/document/documents-dto/marketplace-return-statement-document.dto';
+import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
+import { EMPTY_HASH, DEFAULT_DOCUMENT_VERSION } from '~/shared/utils/constants';
 import {
   MARKETPLACE_RETURN_CLAIM_SUBMITTED_EVENT,
   MARKETPLACE_RETURN_CLAIM_DECIDED_EVENT,
@@ -259,7 +261,7 @@ export class MarketplaceReturnClaimService {
       orderId: order.id,
     });
 
-    const statementAct = input.signed_statement.toDocument() as MarketContract.Actions.SubmRetrn.ISubmRetrn['statement'];
+    const statementAct = new SignedDigitalDocumentInputDTO(input.signed_statement).toDocument() as MarketContract.Actions.SubmRetrn.ISubmRetrn['statement'];
 
     let tx;
     try {
@@ -346,7 +348,7 @@ export class MarketplaceReturnClaimService {
     if (input.signed_decision) this.verifySignatures(input.signed_decision);
 
     const decisionDoc = input.signed_decision
-      ? (input.signed_decision.toDocument() as MarketContract.Actions.AprRetRem.IAprRetRem['decision'])
+      ? (new SignedDigitalDocumentInputDTO(input.signed_decision).toDocument() as MarketContract.Actions.AprRetRem.IAprRetRem['decision'])
       : this.emptyDocument();
 
     let tx;
@@ -410,7 +412,7 @@ export class MarketplaceReturnClaimService {
     if (input.signed_decision) this.verifySignatures(input.signed_decision);
 
     const decisionDoc = input.signed_decision
-      ? (input.signed_decision.toDocument() as MarketContract.Actions.RejRetRem.IRejRetRem['decision'])
+      ? (new SignedDigitalDocumentInputDTO(input.signed_decision).toDocument() as MarketContract.Actions.RejRetRem.IRejRetRem['decision'])
       : this.emptyDocument();
 
     let tx;
@@ -477,7 +479,7 @@ export class MarketplaceReturnClaimService {
     if (input.signed_decision) this.verifySignatures(input.signed_decision);
 
     const decisionDoc = input.signed_decision
-      ? (input.signed_decision.toDocument() as MarketContract.Actions.AccRetrn.IAccRetrn['decision'])
+      ? (new SignedDigitalDocumentInputDTO(input.signed_decision).toDocument() as MarketContract.Actions.AccRetrn.IAccRetrn['decision'])
       : this.emptyDocument();
 
     const inspectionPhotos = await this.uploadOptionalPhotos({
@@ -568,7 +570,7 @@ export class MarketplaceReturnClaimService {
     if (input.signed_decision) this.verifySignatures(input.signed_decision);
 
     const decisionDoc = input.signed_decision
-      ? (input.signed_decision.toDocument() as MarketContract.Actions.RejRetrn.IRejRetrn['decision'])
+      ? (new SignedDigitalDocumentInputDTO(input.signed_decision).toDocument() as MarketContract.Actions.RejRetrn.IRejRetrn['decision'])
       : this.emptyDocument();
 
     const inspectionPhotos = await this.uploadOptionalPhotos({
@@ -830,12 +832,17 @@ export class MarketplaceReturnClaimService {
     }
   }
 
+  // Решение председателя без приложенного подписанного документа: signed_decision
+  // опционален (фронт удалённого/очного решения шлёт только комментарий). Поля
+  // hash/doc_hash/meta_hash контракта document2 — checksum256, поэтому пустая
+  // строка не кодируется в ABI («Checksum size mismatch, expected 32 bytes got 0»).
+  // Канонический sentinel «документа нет» — zero-hash (как parent_hash/batch_hash).
   private emptyDocument(): MarketContract.Actions.AprRetRem.IAprRetRem['decision'] {
     return {
-      version: '',
-      hash: '',
-      doc_hash: '',
-      meta_hash: '',
+      version: DEFAULT_DOCUMENT_VERSION,
+      hash: EMPTY_HASH,
+      doc_hash: EMPTY_HASH,
+      meta_hash: EMPTY_HASH,
       meta: '',
       signatures: [],
     };

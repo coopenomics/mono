@@ -60,7 +60,9 @@ async function toPhotoDTO(
     url,
     content_hash: photo.content_hash,
     mime_type: photo.mime_type,
-    uploaded_at: photo.uploaded_at,
+    // photos лежит в jsonb-колонке, поэтому из БД дата приходит ISO-строкой;
+    // кастомный DateTime-скаляр сериализует только Date — регидратируем.
+    uploaded_at: new Date(photo.uploaded_at),
   };
 }
 
@@ -73,7 +75,7 @@ function toDecisionEntryDTO(
     by_chairman_account: entry.by_chairman_account,
     braname: entry.braname,
     comment: entry.comment,
-    at: entry.at,
+    at: new Date(entry.at),
     tx_hash: entry.tx_hash,
   };
 }
@@ -88,7 +90,7 @@ async function toInspectionDTO(
     photos,
     scanned_barcode: inspection.scanned_barcode ?? undefined,
     by_chairman_account: inspection.by_chairman_account,
-    at: inspection.at,
+    at: new Date(inspection.at),
   };
 }
 
@@ -99,6 +101,6 @@ function toLedgerSnapshotDTO(
     amount: s.amount,
     returned_quantity: s.returned_quantity,
     tx_hash: s.tx_hash,
-    at: s.at,
+    at: new Date(s.at),
   };
 }

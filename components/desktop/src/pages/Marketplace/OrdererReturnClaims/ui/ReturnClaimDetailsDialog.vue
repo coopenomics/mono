@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
 import { TakeoverDialog } from 'src/widgets/Marketplace/TakeoverDialog';
-import type { MarketplaceReturnClaimView } from '../api';
+import { defectCategoryLabel, type MarketplaceReturnClaimView } from '../api';
 
 /**
  * Story 7.1-7.4 — детали заявления для пайщика: текущий статус, причина,
@@ -85,7 +85,7 @@ TakeoverDialog(
           .text-subtitle1 Причина обращения
           .q-mt-sm {{ claim.reason_text }}
           .q-mt-sm.text-caption.text-grey(v-if="claim.defect_category")
-            | Категория дефекта: {{ claim.defect_category }}
+            | Категория дефекта: {{ defectCategoryLabel(claim.defect_category) }}
           .q-mt-sm.text-caption.text-grey
             | Якорный hash on-chain: {{ claim.request_hash.slice(0, 16) }}…
 

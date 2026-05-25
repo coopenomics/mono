@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue';
 import { FailAlert } from 'src/shared/api';
 import {
   listReturnClaimsByBraname,
+  defectCategoryLabel,
   type MarketplaceReturnClaimView,
 } from '../api';
 import RemoteDecisionDialog from './RemoteDecisionDialog.vue';
@@ -119,7 +120,7 @@ q-page.mp-role-operator.mp-return-operator.q-pa-md
         q-item-label(caption) {{ c.actual_quantity }} ед. · {{ c.fact_cost }} ₽
         q-item-label(caption) {{ c.reason_text.slice(0, 240) }}{{ c.reason_text.length > 240 ? '…' : '' }}
         q-item-label(caption v-if="c.defect_category")
-          | Категория: {{ c.defect_category }}
+          | Категория: {{ defectCategoryLabel(c.defect_category) }}
         .row.q-mt-xs.q-gutter-sm
           a.mp-return-operator__thumb(
             v-for="(p, i) in c.photos" :key="p.content_hash"

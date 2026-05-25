@@ -1,5 +1,20 @@
-import { Mutations, Queries, type Types } from '@coopenomics/sdk';
+import { Mutations, Queries, Zeus, type Types } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
+
+const DEFECT_CATEGORY_LABELS: Record<string, string> = {
+  [Zeus.MarketplaceReturnClaimDefectCategory.BROKEN]: 'Повреждено / сломано',
+  [Zeus.MarketplaceReturnClaimDefectCategory.EXPIRED]: 'Истёк срок годности',
+  [Zeus.MarketplaceReturnClaimDefectCategory.NOT_AS_DESCRIBED]: 'Не соответствует описанию',
+  [Zeus.MarketplaceReturnClaimDefectCategory.WRONG_ITEM]: 'Не тот товар',
+  [Zeus.MarketplaceReturnClaimDefectCategory.OTHER]: 'Другое',
+};
+
+// Человекочитаемая метка категории дефекта; для незнакомых значений возвращаем
+// исходное (а не сырой enum «BROKEN» в UI заказчика и председателя).
+export function defectCategoryLabel(category?: string | null): string {
+  if (!category) return '';
+  return DEFECT_CATEGORY_LABELS[category] ?? category;
+}
 
 export type MarketplaceReturnClaimView =
   Queries.Marketplace.ListMyReturnClaims.IOutput['marketplaceListMyReturnClaims'][number];

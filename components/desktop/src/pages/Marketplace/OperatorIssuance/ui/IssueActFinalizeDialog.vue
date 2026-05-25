@@ -240,7 +240,7 @@ TakeoverDialog(
         q-step(:name="STEP_SCAN" title="Штрих-код" icon="fa-solid fa-barcode" :done="step !== STEP_SCAN")
           BarcodeScanner(start-label="Сканировать штрих-код заказа" @scanned="onScanned")
           .text-caption.text-grey.q-mt-sm
-            | Mock-режим сканера для каркасной фазы — следующий этап заменит на реальную камеру / USB-сканер по UX-DR26.
+            | Отсканируйте штрих-код заказа камерой или USB-сканером, чтобы сверить его с выдаваемым имуществом.
 
         q-step(:name="STEP_FACT" title="Сверка факта" icon="fa-solid fa-scale-balanced" :done="step === STEP_SIGN")
           .q-mb-sm Заказ {{ order?.id.slice(0, 8) }} · план {{ order?.quantity }} ед. · подтверждённый штрих-код «{{ scannedCode }}»

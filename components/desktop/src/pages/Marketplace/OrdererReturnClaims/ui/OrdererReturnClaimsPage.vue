@@ -2,6 +2,8 @@
 import { computed, onMounted, ref } from 'vue';
 import { FailAlert } from 'src/shared/api';
 import { listMyReturnClaims, type MarketplaceReturnClaimView } from '../api';
+import { fetchMyOrders } from '../../MyOrders/api';
+import type { MarketplaceOrderView } from '../../MyOrders/types';
 import SubmitReturnClaimDialog from './SubmitReturnClaimDialog.vue';
 import ReturnClaimDetailsDialog from './ReturnClaimDetailsDialog.vue';
 
@@ -21,10 +23,28 @@ import ReturnClaimDetailsDialog from './ReturnClaimDetailsDialog.vue';
 const items = ref<MarketplaceReturnClaimView[]>([]);
 const loading = ref(false);
 
-const orderIdInput = ref('');
+const selectedOrderId = ref<string | null>(null);
+const eligibleOrders = ref<MarketplaceOrderView[]>([]);
+const eligibleLoading = ref(false);
 const submitDialog = ref(false);
 const detailsDialog = ref(false);
 const selectedClaim = ref<MarketplaceReturnClaimView | null>(null);
+
+// Не предлагаем заказы, по которым уже открыта заявка: backend всё равно
+// отклонит повторную (ConflictException), а пайщику бессмысленно её начинать.
+const orderOptions = computed(() => {
+  const openOrderIds = new Set(
+    items.value
+      .filter((c) => c.status === 'PENDING_CHAIRMAN_REVIEW' || c.status === 'APPROVED_FOR_VISIT')
+      .map((c) => c.order_id),
+  );
+  return eligibleOrders.value
+    .filter((o) => !openOrderIds.has(o.id))
+    .map((o) => ({
+      value: o.id,
+      label: `Заказ ${o.id.slice(0, 8)} · ${o.quantity} ед. · ${o.total_cost} ₽`,
+    }));
+});
 
 const activeClaims = computed(() =>
   items.value.filter(
@@ -51,9 +71,21 @@ async function load(): Promise<void> {
   }
 }
 
+async function loadEligibleOrders(): Promise<void> {
+  eligibleLoading.value = true;
+  try {
+    const result = await fetchMyOrders({ statuses: ['RECEIVED'], limit: 100 });
+    eligibleOrders.value = result.items;
+  } catch (e) {
+    FailAlert(e, 'Не удалось загрузить полученные заказы');
+  } finally {
+    eligibleLoading.value = false;
+  }
+}
+
 function openSubmit(): void {
-  if (!orderIdInput.value.trim()) {
-    FailAlert(new Error('Укажите идентификатор полученного заказа.'));
+  if (!selectedOrderId.value) {
+    FailAlert(new Error('Выберите полученный заказ.'));
     return;
   }
   submitDialog.value = true;
@@ -65,8 +97,9 @@ function openDetails(claim: MarketplaceReturnClaimView): void {
 }
 
 function onSubmitted(): void {
-  orderIdInput.value = '';
+  selectedOrderId.value = null;
   void load();
+  void loadEligibleOrders();
 }
 
 function humanStatus(status: MarketplaceReturnClaimView['status']): string {
@@ -109,8 +142,12 @@ function statusColor(status: MarketplaceReturnClaimView['status']): string {
   }
 }
 
-onMounted(() => {
-  void load();
+onMounted(async () => {
+  // Сначала заявки, потом заказы: orderOptions исключает заказы с открытой
+  // заявкой, и без этого порядка возникает окно, когда select показывает
+  // заказ, по которому возврат уже начат (backend всё равно отклонит).
+  await load();
+  await loadEligibleOrders();
 });
 </script>
 
@@ -123,17 +160,22 @@ q-page.mp-role-orderer.mp-return-claims.q-pa-md
   q-card.q-mb-md(flat bordered).mp-return-claims__submit
     q-card-section
       .row.q-gutter-md.items-center
-        q-input.col(
-          v-model="orderIdInput"
+        q-select.col(
+          v-model="selectedOrderId"
+          :options="orderOptions"
+          :loading="eligibleLoading"
           outlined
           dense
-          label="Идентификатор полученного заказа"
+          emit-value
+          map-options
+          label="Полученный заказ"
+          :hint="orderOptions.length === 0 ? 'Нет полученных заказов, доступных для возврата' : 'Выберите заказ, по которому оформляете возврат'"
         )
         q-btn(
           unelevated no-caps color="primary"
           icon="fa-solid fa-clipboard-list"
           label="Подать заявление"
-          :disable="!orderIdInput.trim()"
+          :disable="!selectedOrderId"
           @click="openSubmit"
         )
 
@@ -171,7 +213,7 @@ q-page.mp-role-orderer.mp-return-claims.q-pa-md
 
   SubmitReturnClaimDialog(
     v-model="submitDialog"
-    :order-id="orderIdInput"
+    :order-id="selectedOrderId ?? ''"
     @submitted="onSubmitted"
   )
 

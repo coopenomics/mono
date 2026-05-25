@@ -16,7 +16,7 @@
         .text-body2.font-monospace {{ field('orderer') || field('orderer_account') || '—' }}
       .col-12.col-sm-6
         .text-caption.text-grey-7 Состояние заявления
-        .text-body2 {{ field('status') || '—' }}
+        .text-body2 {{ statusLabel }}
       .col-12.col-sm-6
         .text-caption.text-grey-7 Исходный заказ
         .text-body2.font-monospace {{ shortHash(field('order_hash') || field('parent_order_hash')) }}
@@ -60,6 +60,19 @@ function shortHash(v: string): string {
   if (!v) return '—'
   return v.length > 16 ? `${v.slice(0, 8)}…${v.slice(-4)}` : v
 }
+
+// Подписи статусов гарантийного возврата — канон ReturnClaimDetailsDialog.
+const RETURN_STATUS_LABEL: Record<string, string> = {
+  PENDING_CHAIRMAN_REVIEW: 'На рассмотрении председателя',
+  APPROVED_FOR_VISIT: 'Очный визит одобрен',
+  ACCEPTED_AT_VISIT: 'Возврат принят',
+  REJECTED_REMOTELY: 'Отказано удалённо',
+  REJECTED_AT_VISIT: 'Отказано на месте',
+}
+const statusLabel = computed(() => {
+  const raw = field('status')
+  return RETURN_STATUS_LABEL[raw] || raw || '—'
+})
 
 const deepLink = computed(() => ({
   name: 'marketplace-pvz-returns',
