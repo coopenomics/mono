@@ -50,6 +50,9 @@ import { TypeOrmActionRepository } from './repositories/typeorm-action.repositor
 import { TypeOrmDeltaRepository } from './repositories/typeorm-delta.repository';
 import { TypeOrmForkRepository } from './repositories/typeorm-fork.repository';
 import { TypeOrmSyncStateRepository } from './repositories/typeorm-sync-state.repository';
+import { ConsumerDedupEntity } from './entities/consumer-dedup.entity';
+import { CONSUMER_DEDUP_REPOSITORY_PORT } from '~/domain/parser/ports/consumer-dedup-repository.port';
+import { TypeOrmConsumerDedupRepository } from './repositories/typeorm-consumer-dedup.repository';
 import { SettingsEntity } from './entities/settings.entity';
 import { SETTINGS_REPOSITORY } from '~/domain/settings/repositories/settings.repository';
 import { SettingsTypeormRepository } from './repositories/settings.typeorm-repository';
@@ -122,6 +125,7 @@ import { UserWalletIndexInitializer } from './blockchain/services/user-wallet-in
       DeltaEntity,
       ForkEntity,
       SyncStateEntity,
+      ConsumerDedupEntity,
       EntityVersionTypeormEntity,
       SettingsEntity,
       TokenEntity,
@@ -198,6 +202,10 @@ import { UserWalletIndexInitializer } from './blockchain/services/user-wallet-in
       useClass: TypeOrmSyncStateRepository,
     },
     {
+      provide: CONSUMER_DEDUP_REPOSITORY_PORT,
+      useClass: TypeOrmConsumerDedupRepository,
+    },
+    {
       provide: SETTINGS_REPOSITORY,
       useClass: SettingsTypeormRepository,
     },
@@ -269,6 +277,7 @@ import { UserWalletIndexInitializer } from './blockchain/services/user-wallet-in
     DELTA_REPOSITORY_PORT,
     FORK_REPOSITORY_PORT,
     SYNC_STATE_REPOSITORY_PORT,
+    CONSUMER_DEDUP_REPOSITORY_PORT,
     SETTINGS_REPOSITORY,
     TOKEN_REPOSITORY,
     USER_REPOSITORY,

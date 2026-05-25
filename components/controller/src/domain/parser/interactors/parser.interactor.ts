@@ -11,10 +11,12 @@ import type { ActionRepositoryPort } from '../ports/action-repository.port';
 import type { DeltaRepositoryPort } from '../ports/delta-repository.port';
 import type { ForkRepositoryPort } from '../ports/fork-repository.port';
 import type { SyncStateRepositoryPort } from '../ports/sync-state-repository.port';
+import type { ConsumerDedupRepositoryPort } from '../ports/consumer-dedup-repository.port';
 import { ACTION_REPOSITORY_PORT } from '../ports/action-repository.port';
 import { DELTA_REPOSITORY_PORT } from '../ports/delta-repository.port';
 import { FORK_REPOSITORY_PORT } from '../ports/fork-repository.port';
 import { SYNC_STATE_REPOSITORY_PORT } from '../ports/sync-state-repository.port';
+import { CONSUMER_DEDUP_REPOSITORY_PORT } from '../ports/consumer-dedup-repository.port';
 
 /**
  * Интерактор парсера блокчейна
@@ -30,8 +32,25 @@ export class ParserInteractor {
     @Inject(FORK_REPOSITORY_PORT)
     private readonly forkRepository: ForkRepositoryPort,
     @Inject(SYNC_STATE_REPOSITORY_PORT)
-    private readonly syncStateRepository: SyncStateRepositoryPort
+    private readonly syncStateRepository: SyncStateRepositoryPort,
+    @Inject(CONSUMER_DEDUP_REPOSITORY_PORT)
+    private readonly consumerDedupRepository: ConsumerDedupRepositoryPort
   ) {}
+
+  /**
+   * Отмечено ли событие как уже применённое (Story 2.3, INV-09).
+   */
+  async isEventApplied(eventId: string): Promise<boolean> {
+    return await this.consumerDedupRepository.isApplied(eventId);
+  }
+
+  /**
+   * Отметить событие применённым в consumer_dedup (Story 2.2 dual-write).
+   * Идемпотентно: повтор после краха между save и mark не падает.
+   */
+  async markEventApplied(eventId: string): Promise<void> {
+    await this.consumerDedupRepository.markApplied(eventId);
+  }
 
   /**
    * Сохранение действия блокчейна

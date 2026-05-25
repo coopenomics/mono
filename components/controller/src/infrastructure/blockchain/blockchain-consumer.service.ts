@@ -6,6 +6,7 @@ import { RedisStreamService, StreamMessage } from '~/infrastructure/redis/redis-
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { EventsService } from '~/infrastructure/events/events.service';
 import { ParserInteractor } from '~/domain/parser/interactors/parser.interactor';
+import { computeActionEventId, computeDeltaEventId } from './event-id.util';
 import { config } from '~/config';
 
 export interface BlockchainEventData {
@@ -258,6 +259,15 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
       return;
     }
 
+    // Idempotency: признак уникальности события (Story 2.2/2.3, INV-09).
+    const eventId = computeActionEventId(action);
+
+    // Dedup-gate (Story 2.3, за флагом — см. processDeltaDelayed).
+    if (config.blockchain.dedup_enabled && (await this.parserInteractor.isEventApplied(eventId))) {
+      this.logger.debug(`Action-дубликат пропущен (no-op): ${eventId}`);
+      return;
+    }
+
     try {
       // Сохраняем действие в базу данных через интерактор
       await this.parserInteractor.saveAction(action);
@@ -268,6 +278,9 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
       this.logger.error(`Не удалось сохранить действие ${action.account}::${action.name}: ${error.message}`, error.stack);
       throw error; // Перебрасываем ошибку чтобы сообщение не было подтверждено
     }
+
+    // Dual-write метки в consumer_dedup ПОСЛЕ save, ДО отложенного emit (Story 2.2).
+    await this.parserInteractor.markEventApplied(eventId);
 
     // Публикуем событие с задержкой — пусть сначала прокатятся дельты этого же блока
     // (capital_appendixes, capital_projects, ...), чтобы обработчики action видели
@@ -325,6 +338,17 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
       return;
     }
 
+    // Idempotency: признак уникальности события (Story 2.2/2.3, INV-09).
+    const eventId = computeDeltaEventId(delta);
+
+    // Dedup-gate (Story 2.3): повторно доставленная дельта = no-op. За флагом —
+    // формула event_id ещё не сверена с parser2 (Epic 3), а ложный дубль =
+    // silent data loss; пока флаг false первичной защитой остаётся block_num-guard.
+    if (config.blockchain.dedup_enabled && (await this.parserInteractor.isEventApplied(eventId))) {
+      this.logger.debug(`Дельта-дубликат пропущена (no-op): ${eventId}`);
+      return;
+    }
+
     try {
       // Сохраняем дельту в базу данных через интерактор
       await this.parserInteractor.saveDelta(delta);
@@ -333,6 +357,12 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
       this.logger.error(`Не удалось сохранить дельту ${delta.code}::${delta.table}: ${error.message}`, error.stack);
       throw error; // Перебрасываем ошибку чтобы сообщение не было подтверждено
     }
+
+    // Dual-write метки в consumer_dedup ПОСЛЕ save (Story 2.2). Если markApplied
+    // упадёт — handleMessage пробросит ошибку, сообщение останется pending и
+    // переиграется (saveDelta идемпотентен через block_num-guard, mark — через
+    // ON CONFLICT DO NOTHING).
+    await this.parserInteractor.markEventApplied(eventId);
 
     // Публикуем событие во внутреннюю шину с типизированным именем
     const eventName = `delta::${delta.code}::${delta.table}`;
