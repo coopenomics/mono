@@ -3,7 +3,9 @@ import { Args, Query, Resolver } from '@nestjs/graphql';
 import config from '~/config/config';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
+import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
+import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import {
   MarketplaceOutgoingPaymentRequestDTO,
@@ -49,6 +51,28 @@ export class MarketplaceOutgoingPaymentResolver {
       member.username,
       statuses as unknown as MarketplaceOutgoingPaymentRequestStatus[] | undefined
     );
+    return list.map(toMarketplaceOutgoingPaymentRequestDTO);
+  }
+
+  @Query(() => [MarketplaceOutgoingPaymentRequestDTO], {
+    name: 'marketplaceListOutgoingPayments',
+    description:
+      'Лента выплат поставщикам по всему кооперативу — для совета. Опциональные фильтры: по поставщику-получателю и по статусам.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Payment', 'read:all')
+  async marketplaceListOutgoingPayments(
+    @Args('supplier_account', { nullable: true }) supplier_account?: string,
+    @Args('statuses', {
+      type: () => [MarketplaceOutgoingPaymentRequestStatusEnum],
+      nullable: true,
+    })
+    statuses?: MarketplaceOutgoingPaymentRequestStatusEnum[]
+  ): Promise<MarketplaceOutgoingPaymentRequestDTO[]> {
+    const list = await this.paymentRepo.listAll(config.coopname, {
+      payee_account: supplier_account ?? undefined,
+      statuses: statuses as unknown as MarketplaceOutgoingPaymentRequestStatus[] | undefined,
+    });
     return list.map(toMarketplaceOutgoingPaymentRequestDTO);
   }
 }

@@ -279,10 +279,10 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             },
           },
           {
-            // Эпик 5 / Story 5.x: informational placeholder для совета —
-            // лента выплат всех поставщиков. Текущий backend отдаёт только
-            // выплаты текущего пайщика-supplier'а; для совета нужна доп.
-            // query с read:all policy. Подключится в Phase 2.
+            // Эпик 5 / Story 5.x: read-only лента выплат поставщикам по всему
+            // кооперативу для совета. Backend marketplaceListOutgoingPayments
+            // под capability Payment:read:all (board/board_readonly/admin),
+            // опциональный фильтр по поставщику. Подтверждает выплаты кассир.
             path: 'payouts',
             name: 'marketplace-board-payouts',
             component: markRaw(BoardPayoutsReadonlyPage),

@@ -82,6 +82,20 @@ export class MarketplaceOutgoingPaymentRequestRepositoryAdapter
     return rows.map((r) => this.mapper.toDomain(r));
   }
 
+  async listAll(
+    coopname: string,
+    filter?: {
+      payee_account?: string;
+      statuses?: MarketplaceOutgoingPaymentRequestStatus[];
+    }
+  ): Promise<MarketplaceOutgoingPaymentRequestDomainEntity[]> {
+    const where: Record<string, unknown> = { coopname };
+    if (filter?.payee_account) where.payee_account = filter.payee_account;
+    if (filter?.statuses && filter.statuses.length > 0) where.status = In(filter.statuses);
+    const rows = await this.repo.find({ where, order: { created_at: 'DESC' } });
+    return rows.map((r) => this.mapper.toDomain(r));
+  }
+
   async applyCompletion(
     coopname: string,
     order_hash: string,

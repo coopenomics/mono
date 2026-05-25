@@ -48,6 +48,19 @@ export interface MarketplaceOutgoingPaymentRequestDomainRepository {
   ): Promise<MarketplaceOutgoingPaymentRequestDomainEntity[]>;
 
   /**
+   * Лента выплат по всему кооперативу для совета (read:all). Опциональные
+   * фильтры по поставщику-получателю и статусам. В отличие от listByPayee
+   * не привязана к текущему пайщику.
+   */
+  listAll(
+    coopname: string,
+    filter?: {
+      payee_account?: string;
+      statuses?: MarketplaceOutgoingPaymentRequestStatus[];
+    }
+  ): Promise<MarketplaceOutgoingPaymentRequestDomainEntity[]>;
+
+  /**
    * Переход PENDING → COMPLETED. Listener `action::marketplace::payconfirm`.
    * Идемпотентен — повторный вызов не меняет уже COMPLETED-запись.
    */

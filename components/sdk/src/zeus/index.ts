@@ -9594,6 +9594,7 @@ marketplaceListMyOrders?: [{	input?: ValueTypes["MarketplaceListOrdersInput"] | 
 	marketplaceListMyReadyToReceive?:ValueTypes["MarketplaceOrder"],
 	/** Все заявления текущего пайщика на гарантийный возврат — активные и архивные. */
 	marketplaceListMyReturnClaims?:ValueTypes["MarketplaceReturnClaim"],
+marketplaceListOutgoingPayments?: [{	statuses?: Array<ValueTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null | Variable<any, string>,	supplier_account?: string | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOutgoingPaymentRequest"]],
 marketplaceListOutgoingPaymentsAsSupplier?: [{	statuses?: Array<ValueTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOutgoingPaymentRequest"]],
 marketplaceListPendingOffers?: [{	input?: ValueTypes["MarketplaceListPendingOffersInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOfferPaginationResult"]],
 marketplaceListReturnClaimsByBraname?: [{	data: ValueTypes["MarketplaceListReturnClaimsByBranameInput"] | Variable<any, string>},ValueTypes["MarketplaceReturnClaim"]],
@@ -19448,6 +19449,7 @@ marketplaceListMyOrders?: [{	input?: ResolverInputTypes["MarketplaceListOrdersIn
 	marketplaceListMyReadyToReceive?:ResolverInputTypes["MarketplaceOrder"],
 	/** Все заявления текущего пайщика на гарантийный возврат — активные и архивные. */
 	marketplaceListMyReturnClaims?:ResolverInputTypes["MarketplaceReturnClaim"],
+marketplaceListOutgoingPayments?: [{	statuses?: Array<ResolverInputTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null,	supplier_account?: string | undefined | null},ResolverInputTypes["MarketplaceOutgoingPaymentRequest"]],
 marketplaceListOutgoingPaymentsAsSupplier?: [{	statuses?: Array<ResolverInputTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null},ResolverInputTypes["MarketplaceOutgoingPaymentRequest"]],
 marketplaceListPendingOffers?: [{	input?: ResolverInputTypes["MarketplaceListPendingOffersInput"] | undefined | null},ResolverInputTypes["MarketplaceOfferPaginationResult"]],
 marketplaceListReturnClaimsByBraname?: [{	data: ResolverInputTypes["MarketplaceListReturnClaimsByBranameInput"]},ResolverInputTypes["MarketplaceReturnClaim"]],
@@ -29691,6 +29693,8 @@ export type ModelTypes = {
 	marketplaceListMyReadyToReceive: Array<ModelTypes["MarketplaceOrder"]>,
 	/** Все заявления текущего пайщика на гарантийный возврат — активные и архивные. */
 	marketplaceListMyReturnClaims: Array<ModelTypes["MarketplaceReturnClaim"]>,
+	/** Лента выплат поставщикам по всему кооперативу — для совета. Опциональные фильтры: по поставщику-получателю и по статусам. */
+	marketplaceListOutgoingPayments: Array<ModelTypes["MarketplaceOutgoingPaymentRequest"]>,
 	/** История выплат поставщику в столе поставщика — статусы по каждому заказу. */
 	marketplaceListOutgoingPaymentsAsSupplier: Array<ModelTypes["MarketplaceOutgoingPaymentRequest"]>,
 	/** Список Offer'ов на модерации (admin) */
@@ -40462,6 +40466,8 @@ export type GraphQLTypes = {
 	marketplaceListMyReadyToReceive: Array<GraphQLTypes["MarketplaceOrder"]>,
 	/** Все заявления текущего пайщика на гарантийный возврат — активные и архивные. */
 	marketplaceListMyReturnClaims: Array<GraphQLTypes["MarketplaceReturnClaim"]>,
+	/** Лента выплат поставщикам по всему кооперативу — для совета. Опциональные фильтры: по поставщику-получателю и по статусам. */
+	marketplaceListOutgoingPayments: Array<GraphQLTypes["MarketplaceOutgoingPaymentRequest"]>,
 	/** История выплат поставщику в столе поставщика — статусы по каждому заказу. */
 	marketplaceListOutgoingPaymentsAsSupplier: Array<GraphQLTypes["MarketplaceOutgoingPaymentRequest"]>,
 	/** Список Offer'ов на модерации (admin) */

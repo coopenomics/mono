@@ -1979,6 +1979,9 @@ export const AllTypesProps: Record<string,any> = {
 			input:"MarketplaceListOrdersInput",
 			options:"PaginationInput"
 		},
+		marketplaceListOutgoingPayments:{
+			statuses:"MarketplaceOutgoingPaymentRequestStatus"
+		},
 		marketplaceListOutgoingPaymentsAsSupplier:{
 			statuses:"MarketplaceOutgoingPaymentRequestStatus"
 		},
@@ -5350,6 +5353,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceListMyOrders:"MarketplaceOrderPaginationResult",
 		marketplaceListMyReadyToReceive:"MarketplaceOrder",
 		marketplaceListMyReturnClaims:"MarketplaceReturnClaim",
+		marketplaceListOutgoingPayments:"MarketplaceOutgoingPaymentRequest",
 		marketplaceListOutgoingPaymentsAsSupplier:"MarketplaceOutgoingPaymentRequest",
 		marketplaceListPendingOffers:"MarketplaceOfferPaginationResult",
 		marketplaceListReturnClaimsByBraname:"MarketplaceReturnClaim",

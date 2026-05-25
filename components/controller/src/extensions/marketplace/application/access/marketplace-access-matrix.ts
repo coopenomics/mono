@@ -81,6 +81,7 @@ export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, str
     Vitrine: ['manage', 'read'],
     Warehouse: ['read:all'],
     Shipment: ['read:all'],
+    Payment: ['read:all'],
     Extension: ['configure'],
     // Эпик 8: общий администратор формирует и редактирует DRAFT-проект
     // списания, подписывает Заявление 1106 и отправляет проект в совет.
@@ -92,6 +93,9 @@ export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, str
     Offer: ['read:all'],
     Agenda: ['read'],
     Writeoff: ['read:all'],
+    // Совет ведёт read-only надзор за расчётами кооператива с поставщиками:
+    // подтверждение/отказ выплат делает кассир, совету нужен только обзор.
+    Payment: ['read:all'],
   },
   board: {
     Agenda: ['manage'],
@@ -100,6 +104,7 @@ export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, str
     // capability-маркер для UI «может ли роль видеть и принимать решение».
     Writeoff: ['decide', 'read:all'],
     Decision: ['create', 'sign'],
+    Payment: ['read:all'],
   },
 };
 

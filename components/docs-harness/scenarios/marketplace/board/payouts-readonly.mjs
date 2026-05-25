@@ -1,18 +1,14 @@
-// Сценарий: Совет открывает informational placeholder для выплат
-// поставщикам. Эпик 5 / Story 5.x — раздел в подготовке.
+// Сценарий: совет открывает read-only ленту выплат поставщикам по всему
+// кооперативу. Backend marketplaceListOutgoingPayments под capability
+// Payment:read:all (board/board_readonly/admin), опциональный фильтр по
+// поставщику. Подтверждение/отказ выплат делает кассир кооператива.
 //
-// Текущий backend marketplaceListOutgoingPaymentsAsSupplier отдаёт только
-// выплаты текущего пайщика-supplier'а. Для совета нужна доп. policy
-// Payment / read:all в marketplace-access-matrix + query
-// marketplaceListOutgoingPayments с опц. supplier_account. До этого —
-// placeholder со ссылками на нужные файлы.
-//
-// Фикстура: chairman кооператива (ant).
+// Фикстура: chairman кооператива (ant) — роли admin/board/board_readonly.
 
-import { loginAsChairman, dismissOnboardingDialogs } from '../../../lib/harness.mjs';
+import { loginAsChairman, dismissOnboardingDialogs, cleanViteOverlays } from '../../../lib/harness.mjs';
 
 export const meta = {
-  title: 'Выплаты поставщикам — обзор совета (placeholder)',
+  title: 'Выплаты поставщикам — обзор совета',
   docPath: 'new/marketplace/board/payouts-readonly.md',
   assetsDir: 'assets/new/marketplace/board/payouts-readonly',
   role: 'chairman',
@@ -27,12 +23,13 @@ export default async ({ page, context, shot, env }) => {
   });
   await page.waitForSelector('text=Выплаты поставщикам', { timeout: 60000 });
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
-  await page.waitForTimeout(900);
+  await page.waitForTimeout(1500);
   await dismissOnboardingDialogs(page);
+  await cleanViteOverlays(page);
 
   await shot(
     page,
-    '01-placeholder',
-    'Раздел в подготовке: информационный экран с пояснением, что для совета нужна доп. policy Payment/read:all и query marketplaceListOutgoingPayments. До этого совет видит выплаты через core cassir-стол кооператива. Ссылки на access-matrix и резолвер выплат.',
+    '01-board-payouts',
+    'Лента выплат поставщикам по всему кооперативу для совета: фильтры по поставщику и статусу, сводка-счётчики по статусам и таблица выплат (дата, поставщик, сумма, валюта, статус, назначение). Read-only — подтверждает выплаты кассир кооператива.',
   );
 };
