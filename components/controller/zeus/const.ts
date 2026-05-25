@@ -3016,6 +3016,14 @@ export const ReturnTypes: Record<string,any> = {
 		is_active:"Boolean",
 		program_type:"String"
 	},
+	CooperativeRegistryItem:{
+		announce:"String",
+		coopname:"String",
+		created_at:"String",
+		has_provider_data:"Boolean",
+		status:"String",
+		subscriptions:"ProviderSubscription"
+	},
 	CreateSubscriptionResponse:{
 		message:"String",
 		subscription:"WebPushSubscriptionDto",
@@ -4174,6 +4182,7 @@ export const ReturnTypes: Record<string,any> = {
 		getCapitalOnboardingState:"CapitalOnboardingState",
 		getCapitalProjectLogs:"PaginatedCapitalLogsPaginationResult",
 		getChairmanOnboardingState:"ChairmanOnboardingState",
+		getCooperativesRegistry:"CooperativeRegistryItem",
 		getCurrentInstance:"CurrentInstanceDTO",
 		getCurrentTableStates:"PaginatedCurrentTableStatesPaginationResult",
 		getDeltas:"PaginatedDeltasPaginationResult",
