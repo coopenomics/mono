@@ -59,6 +59,9 @@ export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, str
     // Story 6.1: оператор/председатель КУ открывает выдачу первой подписью
     // АПП-выдачи (`signiss1`) и видит ленту выдач на своём КУ.
     Issuance: ['create', 'sign:first', 'read:own-KU'],
+    // Поток IV шаг 1: оператор/председатель КУ видит ленту ожидаемых партий
+    // поставки на своём участке, чтобы открыть приёмку по приходу.
+    Shipment: ['read:own-KU'],
     Inventory: ['label'],
     Warehouse: ['read:own-KU'],
     KU: ['read:own-KU'],
@@ -77,6 +80,7 @@ export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, str
     Whitelist: ['manage'],
     Vitrine: ['manage', 'read'],
     Warehouse: ['read:all'],
+    Shipment: ['read:all'],
     Extension: ['configure'],
     // Эпик 8: общий администратор формирует и редактирует DRAFT-проект
     // списания, подписывает Заявление 1106 и отправляет проект в совет.

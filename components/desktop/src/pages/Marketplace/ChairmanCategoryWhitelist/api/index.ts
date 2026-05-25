@@ -5,12 +5,15 @@ import { client } from 'src/shared/api/client';
  * Эпик 3 / Story 3.x: admin-настройка whitelist'а доступных категорий.
  * Backend Resolver: available-category-admin.resolver.ts → @AuthRoles(['chairman']).
  *
- * Reuse 4 endpoint'а: Get, Stats, Add, Remove. Tree-выбор подключается
- * на следующем шаге (нужен dialog с marketplaceGetCategoryTree).
+ * Reuse endpoint'ы: Get, Stats, Add, Remove + ListCategories для выбора
+ * категорий по названию (вместо ручного ввода ID).
  */
 
 export type MarketplaceAvailableCategoryView =
   Queries.Marketplace.GetAvailableCategories.IOutput['marketplaceGetAvailableCategories'][number];
+
+export type MarketplaceCategoryView =
+  Queries.Marketplace.ListCategories.IOutput['marketplaceListCategories'][number];
 
 export type MarketplaceAvailabilityStatsView =
   Queries.Marketplace.GetAvailabilityStats.IOutput['marketplaceGetAvailabilityStats'];
@@ -18,6 +21,14 @@ export type MarketplaceAvailabilityStatsView =
 export async function fetchAvailableCategories(): Promise<MarketplaceAvailableCategoryView[]> {
   const { [Queries.Marketplace.GetAvailableCategories.name]: result } = await client.Query(
     Queries.Marketplace.GetAvailableCategories.query,
+    {},
+  );
+  return result;
+}
+
+export async function fetchCategories(): Promise<MarketplaceCategoryView[]> {
+  const { [Queries.Marketplace.ListCategories.name]: result } = await client.Query(
+    Queries.Marketplace.ListCategories.query,
     {},
   );
   return result;

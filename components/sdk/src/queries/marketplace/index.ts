@@ -18,6 +18,8 @@ export * as ListPendingOffers from './listPendingOffers'
 export * as ListModerationLog from './listModerationLog'
 /** Эпик 5: партии поставки кооператива */
 export * as ListShipments from './listShipments'
+/** Поток IV: ожидаемые партии поставки на КУ для стола приёмки оператора ПВЗ */
+export * as ListShipmentsByBraname from './listShipmentsByBraname'
 /** Эпик 5: одна партия поставки по идентификатору */
 export * as GetShipment from './getShipment'
 /** Эпик 5: лента маркированных единиц имущества */

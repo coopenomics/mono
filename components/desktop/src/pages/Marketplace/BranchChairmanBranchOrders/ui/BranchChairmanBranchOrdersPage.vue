@@ -4,6 +4,7 @@ import { Notify } from 'quasar';
 import { listAplReceptionsByBraname } from '../../OperatorReception/api';
 import { listIssuancesByBraname } from '../../OperatorIssuance/api';
 import { listReturnClaimsByBraname } from '../../OperatorReturnClaims/api';
+import { fetchWhoAmI } from '../api';
 import type { MarketplaceAplReceptionView } from '../../OffererPendingAplReceptions/api';
 import type { MarketplaceOrderIssuanceView } from '../../OperatorIssuance/api';
 import type { MarketplaceReturnClaimView } from '../../OperatorReturnClaims/api';
@@ -20,19 +21,17 @@ import type { MarketplaceReturnClaimView } from '../../OperatorReturnClaims/api'
  * на соответствующих специализированных страницах /market-pvz/reception,
  * /issuance, /returns — здесь только сводный read-обзор для председателя КУ.
  *
- * Поле braname — пока ручной ввод; auto-detect требует, чтобы backend отдавал
- * привязку «пользователь → КУ»: на сервере она уже есть в
- * MarketplaceKuChairmenService.listBranamesForMember (читает on-chain
- * branch.trustee/trusted), но не проброшена во фронт. getBranches возвращает
- * trustee=null (individual председателя не найден в PG-хранилище репозитория),
- * а marketplaceWhoAmI поля braname не содержит. Подключить auto-detect —
- * добавить поле `branches` в MarketplaceCurrentMember через listBranamesForMember
- * + регенерация SDK (generate-schema/client — только CI).
+ * Поле braname автозаполняется из `marketplaceWhoAmI.branches` — список КУ,
+ * где пайщик доверенное лицо (on-chain branch.trustee/trusted через
+ * MarketplaceKuChairmenService.listBranamesForMember). Один участок —
+ * подставляется сразу; несколько — берётся первый, поле остаётся редактируемым
+ * для ручного переключения.
  */
 
 const POLL_INTERVAL_MS = 20_000;
 
 const braname = ref<string>('');
+const ownBranches = ref<string[]>([]);
 const activeTab = ref<'receptions' | 'issuances' | 'returns'>('receptions');
 
 const receptions = ref<MarketplaceAplReceptionView[]>([]);
@@ -104,7 +103,21 @@ watch(braname, () => {
   returns.value = [];
 });
 
+async function autoDetectBranch(): Promise<void> {
+  try {
+    const me = await fetchWhoAmI();
+    ownBranches.value = me.branches ?? [];
+    if (!braname.value.trim() && ownBranches.value.length > 0) {
+      braname.value = ownBranches.value[0];
+      await loadAll();
+    }
+  } catch {
+    // whoAmI недоступен (не залогинен / не член кооператива) — оставляем ручной ввод
+  }
+}
+
 onMounted(() => {
+  void autoDetectBranch();
   pollTimer = setInterval(() => {
     if (hasBranch.value) void loadAll();
   }, POLL_INTERVAL_MS);
@@ -142,11 +155,23 @@ q-page.mp-role-operator.mp-branch-orders(role="region", aria-label="Сводны
             dense,
             clearable,
             label="ID кооперативного участка (braname)",
-            hint="Введите код вашего КУ — например voskhod-kpvz",
+            hint="Подставлен автоматически по вашему КУ. Измените вручную при необходимости.",
             @keyup.enter="loadAll"
           )
             template(#prepend)
               q-icon(name="fa-solid fa-warehouse")
+          div.q-mt-sm(v-if="ownBranches.length > 1")
+            span.text-caption.q-mr-sm Ваши участки:
+            q-chip(
+              v-for="b in ownBranches",
+              :key="b",
+              clickable,
+              dense,
+              :color="b === braname ? 'primary' : 'grey-3'",
+              :text-color="b === braname ? 'white' : 'dark'",
+              :label="b",
+              @click="braname = b; loadAll()"
+            )
         div.col-12.col-md-4
           q-btn(
             unelevated,

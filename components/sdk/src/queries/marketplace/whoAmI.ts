@@ -7,6 +7,7 @@ export const query = Selector('Query')({
     username: true,
     core_roles: true,
     marketplace_roles: true,
+    branches: true,
   },
 })
 

@@ -5,9 +5,11 @@ import {
   addAvailableCategories,
   fetchAvailabilityStats,
   fetchAvailableCategories,
+  fetchCategories,
   removeAvailableCategories,
   type MarketplaceAvailabilityStatsView,
   type MarketplaceAvailableCategoryView,
+  type MarketplaceCategoryView,
 } from '../api';
 
 /**
@@ -15,8 +17,8 @@ import {
  * категорий товаров для кооператива (chairman-only).
  *
  * MVP: список разрешённых категорий (entire / specific type), статистика
- * и удаление. Добавление — через диалог с ручным вводом ID (tree-выбор
- * через `marketplaceGetCategoryTree` подключится на следующем шаге).
+ * и удаление. Добавление — через диалог с выбором категорий по названию
+ * (marketplaceListCategories), уже добавленные исключаются из списка.
  *
  * Без whitelist'а — кооператив видит весь глобальный каталог.
  * С whitelist'ом — только перечисленные категории доступны для
@@ -25,7 +27,19 @@ import {
 
 const items = ref<MarketplaceAvailableCategoryView[]>([]);
 const stats = ref<MarketplaceAvailabilityStatsView | null>(null);
+const allCategories = ref<MarketplaceCategoryView[]>([]);
 const loading = ref(false);
+
+const addDialogOpen = ref(false);
+const selectedToAdd = ref<number[]>([]);
+const adding = ref(false);
+
+const addableCategoryOptions = computed(() => {
+  const whitelisted = new Set(items.value.map((i) => i.categoryId));
+  return allCategories.value
+    .filter((c) => !whitelisted.has(c.id))
+    .map((c) => ({ label: c.display_name, value: c.id }));
+});
 
 const entireCategories = computed(() =>
   items.value.filter((i) => i.isForEntireCategory),
@@ -35,12 +49,14 @@ const specificTypes = computed(() => items.value.filter((i) => i.isForSpecificTy
 async function load(): Promise<void> {
   loading.value = true;
   try {
-    const [list, st] = await Promise.all([
+    const [list, st, cats] = await Promise.all([
       fetchAvailableCategories(),
       fetchAvailabilityStats(),
+      fetchCategories(),
     ]);
     items.value = list;
     stats.value = st;
+    allCategories.value = cats;
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     Notify.create({ type: 'negative', message });
@@ -50,33 +66,25 @@ async function load(): Promise<void> {
 }
 
 function onAdd(): void {
-  Dialog.create({
-    title: 'Добавить категории в whitelist',
-    message:
-      'Введите ID категорий через запятую (например: 1, 7, 15). Tree-выбор подключится на следующем шаге Story 3.x.',
-    prompt: {
-      model: '',
-      type: 'text',
-      isValid: (v: string) => /^\s*\d+(\s*,\s*\d+)*\s*$/.test(v),
-    },
-    cancel: { label: 'Отмена', flat: true },
-    ok: { label: 'Добавить', color: 'primary', unelevated: true },
-    persistent: true,
-  }).onOk(async (raw: string) => {
-    const ids = raw
-      .split(',')
-      .map((s) => Number(s.trim()))
-      .filter((n) => Number.isFinite(n));
-    if (ids.length === 0) return;
-    try {
-      await addAvailableCategories(ids);
-      Notify.create({ type: 'positive', message: `Добавлено категорий: ${ids.length}` });
-      await load();
-    } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
-      Notify.create({ type: 'negative', message });
-    }
-  });
+  selectedToAdd.value = [];
+  addDialogOpen.value = true;
+}
+
+async function confirmAdd(): Promise<void> {
+  const ids = selectedToAdd.value;
+  if (ids.length === 0) return;
+  adding.value = true;
+  try {
+    await addAvailableCategories(ids);
+    Notify.create({ type: 'positive', message: `Добавлено категорий: ${ids.length}` });
+    addDialogOpen.value = false;
+    await load();
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    Notify.create({ type: 'negative', message });
+  } finally {
+    adding.value = false;
+  }
 }
 
 function onRemove(item: MarketplaceAvailableCategoryView): void {
@@ -172,6 +180,38 @@ q-page.mp-role-admin.mp-category-whitelist(role="region", aria-label="Досту
         q-item-section
           q-item-label Категория № {{ t.categoryId }} → тип № {{ t.typeId ?? '—' }}
           q-item-label(caption) Добавлено: {{ t.addedBy }}, активна: {{ t.isActive ? 'да' : 'нет' }}
+
+  q-dialog(v-model="addDialogOpen")
+    q-card(style="min-width: 420px; max-width: 90vw")
+      q-card-section
+        div.text-h6 Добавить категории в whitelist
+        div.text-caption.text-grey-7 Выберите категории по названию. Уже добавленные в список не показываются.
+      q-card-section
+        q-select(
+          v-model="selectedToAdd",
+          :options="addableCategoryOptions",
+          emit-value,
+          map-options,
+          multiple,
+          use-chips,
+          outlined,
+          dense,
+          label="Категории",
+          :loading="loading"
+        )
+        div.text-caption.text-grey-6.q-mt-sm(v-if="addableCategoryOptions.length === 0")
+          | Все доступные категории уже в whitelist.
+      q-card-actions(align="right")
+        q-btn(flat, no-caps, label="Отмена", v-close-popup)
+        q-btn(
+          unelevated,
+          no-caps,
+          color="primary",
+          label="Добавить",
+          :loading="adding",
+          :disable="selectedToAdd.length === 0",
+          @click="confirmAdd"
+        )
 </template>
 
 <style scoped lang="scss">

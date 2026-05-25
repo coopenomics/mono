@@ -760,6 +760,9 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceListReturnClaimsByBranameInput:{
 
 	},
+	MarketplaceListShipmentsByBranameInput:{
+		statuses:"MarketplaceShipmentStatus"
+	},
 	MarketplaceListShipmentsInput:{
 		statuses:"MarketplaceShipmentStatus"
 	},
@@ -1987,6 +1990,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceListShipments:{
 			data:"MarketplaceListShipmentsInput"
+		},
+		marketplaceListShipmentsByBraname:{
+			data:"MarketplaceListShipmentsByBranameInput"
 		},
 		marketplaceListSupplierOrders:{
 			input:"MarketplaceListOrdersInput",
@@ -3993,6 +3999,7 @@ export const ReturnTypes: Record<string,any> = {
 		shipments:"MarketplaceShipment"
 	},
 	MarketplaceCurrentMember:{
+		branches:"String",
 		core_roles:"String",
 		marketplace_roles:"String",
 		username:"String"
@@ -5347,6 +5354,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceListPendingOffers:"MarketplaceOfferPaginationResult",
 		marketplaceListReturnClaimsByBraname:"MarketplaceReturnClaim",
 		marketplaceListShipments:"MarketplaceShipment",
+		marketplaceListShipmentsByBraname:"MarketplaceShipment",
 		marketplaceListSupplierOrders:"MarketplaceOrderPaginationResult",
 		marketplaceListWhitelist:"MarketplaceWhitelistEntry",
 		marketplaceListWriteoffProposals:"PaginatedMarketplaceWriteoffProposals",

@@ -18,6 +18,7 @@ import { OffererPaymentHistoryPage } from 'src/pages/Marketplace/OffererPaymentH
 import { AdminWriteoffsPage } from 'src/pages/Marketplace/AdminWriteoffs'
 import { ChairmanModerationPage } from 'src/pages/Marketplace/ChairmanModeration'
 import { OperatorOwnWarehousePage } from 'src/pages/Marketplace/OperatorOwnWarehouse'
+import { OperatorIncomingShipmentsPage } from 'src/pages/Marketplace/OperatorIncomingShipments'
 import { AdminWarehouseSummaryPage } from 'src/pages/Marketplace/AdminWarehouseSummary'
 import { EcosystemRegistryPage } from 'src/pages/Marketplace/EcosystemRegistry'
 import { OnboardingCoopAcceptCppPage } from 'src/pages/Marketplace/OnboardingCoopAcceptCpp'
@@ -446,6 +447,24 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'ПВЗ кооператива',
               icon: 'fa-solid fa-map-location-dot',
+              roles: [],
+              requiresAuth: true,
+              agreements: agreementsBase,
+            },
+          },
+          {
+            // Поток IV шаг 1: operator-стол «Ожидаемые поставки». Лента партий,
+            // направленных на КУ оператора (own-KU scoping через
+            // marketplaceListShipmentsByBraname + isMemberOfBranch). Оператор
+            // видит, что поставщик подготовил к отгрузке, и по приходу открывает
+            // приёмку на столе /reception. Read-only обзор.
+            path: 'incoming-shipments',
+            name: 'marketplace-pvz-incoming-shipments',
+            component: markRaw(OperatorIncomingShipmentsPage),
+            beforeEnter: requireMarketplaceOperator,
+            meta: {
+              title: 'Ожидаемые поставки',
+              icon: 'fa-solid fa-truck-arrow-right',
               roles: [],
               requiresAuth: true,
               agreements: agreementsBase,
