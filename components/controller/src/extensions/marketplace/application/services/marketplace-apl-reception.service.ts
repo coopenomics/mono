@@ -47,7 +47,6 @@ import {
   type GatewayInteractorPort,
 } from '~/domain/wallet/ports/gateway-interactor.port';
 import { Cooperative, type MarketContract } from 'cooptypes';
-import { createHash } from 'crypto';
 import { HttpApiError } from '~/utils/httpApiError';
 import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
@@ -560,9 +559,10 @@ export class MarketplaceAplReceptionService {
 
     if (!projection.core_payment_id) {
       try {
-        const paymentHash = createHash('sha256')
-          .update(`marketplace:${input.coopname}:${input.order_hash}`)
-          .digest('hex');
+        // payment_hash обязан совпадать с on-chain gateway::outcomes.outcome_hash,
+        // который marketplace::payout регистрирует как сам order_hash. Иначе
+        // кассирский gateway::outcomplete ищет объект выплаты по другому хэшу и
+        // падает с «Объект возврата не существует с указанным хэшем».
         const corePayment = await this.coreGateway.createSystemOutgoingPayment({
           coopname: input.coopname,
           username: input.payee_account,
@@ -571,7 +571,7 @@ export class MarketplaceAplReceptionService {
           memo: input.purpose,
           related_extension: 'marketplace',
           related_entity_id: projection.id,
-          payment_hash: paymentHash,
+          payment_hash: input.order_hash,
         });
         if (corePayment.id) {
           await this.paymentRepo.applyCorePaymentId(
