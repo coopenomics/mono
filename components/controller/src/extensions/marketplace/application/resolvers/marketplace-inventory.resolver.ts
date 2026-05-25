@@ -1,4 +1,4 @@
-import { Inject, Injectable, UseGuards } from '@nestjs/common';
+import { ForbiddenException, Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import config from '~/config/config';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
@@ -6,6 +6,12 @@ import { CurrentMarketplaceMember } from '../decorators/current-marketplace-memb
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
+import { canAccess } from '../access/marketplace-access-matrix';
+import type { MarketplaceRole } from '../membership/marketplace-roles.mapper';
+import {
+  MARKETPLACE_KU_CHAIRMEN_SERVICE,
+  type MarketplaceKuChairmenService,
+} from '../services/marketplace-ku-chairmen.service';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import {
   MarketplaceInventoryItemDTO,
@@ -38,7 +44,9 @@ export class MarketplaceInventoryResolver {
     @Inject(MARKETPLACE_INVENTORY_LABEL_SERVICE)
     private readonly labelService: MarketplaceInventoryLabelService,
     @Inject(MARKETPLACE_INVENTORY_REPOSITORY)
-    private readonly inventoryRepo: MarketplaceInventoryDomainRepository
+    private readonly inventoryRepo: MarketplaceInventoryDomainRepository,
+    @Inject(MARKETPLACE_KU_CHAIRMEN_SERVICE)
+    private readonly kuChairmenService: MarketplaceKuChairmenService
   ) {}
 
   @Mutation(() => MarketplaceLabelInventoryResultDTO, {
@@ -102,14 +110,42 @@ export class MarketplaceInventoryResolver {
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Warehouse', 'read:own-KU')
   async marketplaceListInventory(
-    @CurrentMarketplaceMember() _member: IMarketplaceCurrentMember,
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data', { nullable: true }) data?: MarketplaceListInventoryInputDTO
   ): Promise<MarketplaceInventoryItemDTO[]> {
+    const coopname = config.coopname;
+    const roles = member.marketplace_roles as MarketplaceRole[];
+
+    // Ownership-фильтрация данных — ответственность резолвера, а не матрицы
+    // (matrix отвечает только за capability). Роль с `Warehouse:read:all`
+    // (admin/совет) видит склад всего кооператива; роль только с
+    // `read:own-KU` (оператор/председатель КУ) ограничивается своими КУ.
+    let branameFilter: string | string[] | undefined = data?.braname;
+    if (!canAccess(roles, 'Warehouse', 'read:all')) {
+      const ownBranames = await this.kuChairmenService.listBranamesForMember(
+        coopname,
+        member.username
+      );
+      if (ownBranames.length === 0) {
+        return [];
+      }
+      if (data?.braname) {
+        if (!ownBranames.includes(data.braname)) {
+          throw new ForbiddenException(
+            'Склад доступен только по участку, на котором вы являетесь председателем или доверенным лицом.'
+          );
+        }
+        branameFilter = data.braname;
+      } else {
+        branameFilter = ownBranames;
+      }
+    }
+
     const filter: MarketplaceInventoryListFilter = {
-      coopname: config.coopname,
+      coopname,
       order_id: data?.order_id,
       shipment_id: data?.shipment_id,
-      braname: data?.braname,
+      braname: branameFilter,
       status: data?.statuses?.length
         ? (data.statuses as MarketplaceInventoryStatus[])
         : undefined,

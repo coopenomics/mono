@@ -60,7 +60,9 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
     const where: Record<string, unknown> = { coopname: filter.coopname };
     if (filter.order_id) where.order_id = filter.order_id;
     if (filter.shipment_id) where.shipment_id = filter.shipment_id;
-    if (filter.braname) where.braname = filter.braname;
+    if (filter.braname) {
+      where.braname = Array.isArray(filter.braname) ? In(filter.braname) : filter.braname;
+    }
     if (filter.status) {
       where.status = Array.isArray(filter.status) ? In(filter.status) : filter.status;
     }

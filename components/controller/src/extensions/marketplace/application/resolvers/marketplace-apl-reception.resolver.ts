@@ -1,4 +1,4 @@
-import { Inject, Injectable, UseGuards } from '@nestjs/common';
+import { ForbiddenException, Inject, Injectable, NotFoundException, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import config from '~/config/config';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
@@ -6,6 +6,12 @@ import { CurrentMarketplaceMember } from '../decorators/current-marketplace-memb
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
+import { canAccess } from '../access/marketplace-access-matrix';
+import type { MarketplaceRole } from '../membership/marketplace-roles.mapper';
+import {
+  MARKETPLACE_KU_CHAIRMEN_SERVICE,
+  type MarketplaceKuChairmenService,
+} from '../services/marketplace-ku-chairmen.service';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import {
   MarketplaceAplReceptionByIdInputDTO,
@@ -45,7 +51,9 @@ export class MarketplaceAplReceptionResolver {
     @Inject(MARKETPLACE_APL_RECEPTION_SERVICE)
     private readonly service: MarketplaceAplReceptionService,
     @Inject(MARKETPLACE_APL_RECEPTION_REPOSITORY)
-    private readonly receptionRepo: MarketplaceAplReceptionDomainRepository
+    private readonly receptionRepo: MarketplaceAplReceptionDomainRepository,
+    @Inject(MARKETPLACE_KU_CHAIRMEN_SERVICE)
+    private readonly kuChairmenService: MarketplaceKuChairmenService
   ) {}
 
   @Mutation(() => MarketplaceAplReceptionResultDTO, {
@@ -122,10 +130,30 @@ export class MarketplaceAplReceptionResolver {
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Receiving', 'sign:first')
   async marketplaceAplReceptionSupplierSignablePayloads(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceAplReceptionByIdInputDTO
   ): Promise<GeneratedDocumentDTO[]> {
+    const coopname = config.coopname;
+    const roles = member.marketplace_roles as MarketplaceRole[];
+
+    // Ownership-фильтрация — ответственность резолвера. `sign:first` есть у
+    // роли offerer (поставщика), поэтому без проверки владельца любой поставщик
+    // прочитал бы акт приёмки чужой партии по подставленному apl_reception_id.
+    // Превью подписи поставщика доступно только поставщику этой приёмки.
+    if (!canAccess(roles, 'Receiving', 'read:all')) {
+      const reception = await this.receptionRepo.findById(data.apl_reception_id);
+      if (!reception || reception.coopname !== coopname) {
+        throw new NotFoundException('Акт приёмки не найден.');
+      }
+      if (reception.offerer_account !== member.username) {
+        throw new ForbiddenException(
+          'Превью акта приёмки доступно только поставщику этой партии.'
+        );
+      }
+    }
+
     const docs = await this.service.getSupplierSignablePayloads(
-      config.coopname,
+      coopname,
       data.apl_reception_id
     );
     return docs.map(toGeneratedDocumentDTO);
@@ -142,8 +170,32 @@ export class MarketplaceAplReceptionResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceAplReceptionByIdInputDTO
   ): Promise<DocumentAggregateDTO[]> {
+    const coopname = config.coopname;
+    const roles = member.marketplace_roles as MarketplaceRole[];
+
+    // Ownership-фильтрация — ответственность резолвера (сервис игнорирует
+    // chairman_account). `sign:closing` есть у роли operator, поэтому оператор
+    // только с правами своего КУ обязан быть членом КУ приёмки, иначе утечёт
+    // акт чужого участка по подставленному apl_reception_id.
+    if (!canAccess(roles, 'Receiving', 'read:all')) {
+      const reception = await this.receptionRepo.findById(data.apl_reception_id);
+      if (!reception || reception.coopname !== coopname) {
+        throw new NotFoundException('Акт приёмки не найден.');
+      }
+      const isMember = await this.kuChairmenService.isMemberOfBranch(
+        coopname,
+        reception.braname,
+        member.username
+      );
+      if (!isMember) {
+        throw new ForbiddenException(
+          'Превью акта приёмки доступно только по участку, на котором вы являетесь председателем или доверенным лицом.'
+        );
+      }
+    }
+
     const aggregates = await this.service.getChairmanSignablePayloads(
-      config.coopname,
+      coopname,
       data.apl_reception_id,
       member.username
     );
@@ -157,10 +209,29 @@ export class MarketplaceAplReceptionResolver {
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Receiving', 'create')
   async marketplaceListAplReceptionsByBraname(
-    @CurrentMarketplaceMember() _member: IMarketplaceCurrentMember,
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceListAplReceptionsByBranameInputDTO
   ): Promise<MarketplaceAplReceptionDTO[]> {
-    const list = await this.receptionRepo.listByBraname(config.coopname, data.braname);
+    const coopname = config.coopname;
+    const roles = member.marketplace_roles as MarketplaceRole[];
+
+    // Ownership-фильтрация — ответственность резолвера (matrix даёт только
+    // capability `Receiving:create`). Оператор только с правами своего КУ обязан
+    // быть членом запрашиваемого участка, иначе утечёт лента приёмок чужого КУ.
+    if (!canAccess(roles, 'Receiving', 'read:all')) {
+      const isMember = await this.kuChairmenService.isMemberOfBranch(
+        coopname,
+        data.braname,
+        member.username
+      );
+      if (!isMember) {
+        throw new ForbiddenException(
+          'Лента приёмок доступна только по участку, на котором вы являетесь председателем или доверенным лицом.'
+        );
+      }
+    }
+
+    const list = await this.receptionRepo.listByBraname(coopname, data.braname);
     return list.map(toMarketplaceAplReceptionDTO);
   }
 

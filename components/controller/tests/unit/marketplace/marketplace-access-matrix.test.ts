@@ -52,9 +52,28 @@ describe('canAccess', () => {
     expect(canAccess(['orderer', 'board_readonly'], 'Order', 'read:all')).toBe(true);
   });
 
-  it('admin может KU:manage, но не KU:read:own-KU (operator-specific)', () => {
+  it('admin может KU:manage, но не KU:read:own-KU (нет KU:read:all → иерархия не применяется)', () => {
     expect(canAccess(['admin'], 'KU', 'manage')).toBe(true);
     expect(canAccess(['admin'], 'KU', 'read:own-KU')).toBe(false);
+  });
+
+  it('иерархия охвата: admin с Warehouse:read:all проходит гейт Warehouse:read:own-KU', () => {
+    // admin имеет Warehouse:['read:all']; резолвер склада декларирует read:own-KU.
+    expect(canAccess(['admin'], 'Warehouse', 'read:own-KU')).toBe(true);
+    expect(canAccess(['board_readonly'], 'Warehouse', 'read:own-KU')).toBe(true);
+  });
+
+  it('иерархия охвата: Order:read:all удовлетворяет Order:read:own / read:to-self', () => {
+    expect(canAccess(['admin'], 'Order', 'read:own')).toBe(true);
+    expect(canAccess(['board_readonly'], 'Order', 'read:to-self')).toBe(true);
+  });
+
+  it('иерархия НЕ работает в обратную сторону: orderer с read:own не получает read:all', () => {
+    expect(canAccess(['orderer'], 'Order', 'read:all')).toBe(false);
+  });
+
+  it('operator с read:own-KU НЕ проходит гейт read:all (нет :all → не суперсет)', () => {
+    expect(canAccess(['operator'], 'Warehouse', 'read:all')).toBe(false);
   });
 
   it('roles=[] → false для любого resource:action', () => {

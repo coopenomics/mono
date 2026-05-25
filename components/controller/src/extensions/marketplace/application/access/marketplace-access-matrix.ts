@@ -101,12 +101,24 @@ export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, str
 
 /**
  * Проверяет, что хотя бы одна из `roles` пайщика имеет в матрице запись
- * `resource` → `action`. Ownership-квалификаторы (`:own`/`:all`/...)
- * матчатся буквально — это значит resolver должен передать ровно тот
- * action, что записан в матрице (например, `'read:own'`, не `'read'`).
- * Для проверки «может ли роль вообще читать resource в любой форме» —
- * используйте `roleHasAnyAction(role, resource, baseAction)`.
+ * `resource` → `action`. Ownership-квалификаторы матчатся буквально, с одним
+ * исключением — иерархией охвата: право `<base>:all` (над всеми объектами в
+ * скоупе) удовлетворяет требование `<base>:own` / `<base>:own-KU` /
+ * `<base>:to-self` того же базового action, потому что «все объекты» — это
+ * надмножество «своих / своего КУ / адресованных себе». Обратное неверно:
+ * `<base>:own*` НЕ удовлетворяет требование `<base>:all`.
+ *
+ * Зачем: резолверы декларируют узкий action (например, `Warehouse:read:own-KU`
+ * для оператора), а роль с широким правом (`admin` → `Warehouse:read:all`)
+ * должна проходить тот же гейт — иначе председатель кооператива получает
+ * Forbidden на сводном складе, имея более широкое право.
+ *
+ * Ownership-фильтрацию данных (вернуть ровно свои/свой-КУ записи) матрица НЕ
+ * делает — это ответственность resolver'а. Для проверки «может ли роль вообще
+ * читать resource в любой форме» используйте `roleHasAnyAction`.
  */
+const SUBSET_QUALIFIERS = new Set(['own', 'own-KU', 'to-self']);
+
 export function canAccess(
   roles: MarketplaceRole[],
   resource: string,
@@ -114,7 +126,18 @@ export function canAccess(
 ): boolean {
   return roles.some((role) => {
     const resourceActions = marketplaceAccessMatrix[role]?.[resource];
-    return resourceActions?.includes(action) ?? false;
+    if (!resourceActions) return false;
+    if (resourceActions.includes(action)) return true;
+
+    const colon = action.indexOf(':');
+    if (colon > 0) {
+      const base = action.slice(0, colon);
+      const qualifier = action.slice(colon + 1);
+      if (SUBSET_QUALIFIERS.has(qualifier)) {
+        return resourceActions.includes(`${base}:all`);
+      }
+    }
+    return false;
   });
 }
 
