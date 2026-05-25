@@ -53,8 +53,13 @@ export class NovuWorkflowAdapter implements NovuWorkflowPort {
 
       return this.mapToTriggerResult(response.data);
     } catch (error: any) {
+      const status = error.response?.status;
+      const body =
+        error.response?.data !== undefined ? JSON.stringify(error.response.data) : undefined;
       this.logger.error(
-        `Ошибка запуска воркфлоу ${triggerData.name}: ${error.message} ${error.response?.data}`,
+        `Ошибка запуска воркфлоу ${triggerData.name}: ${error.message}`
+          + (status !== undefined ? ` [HTTP ${status}]` : '')
+          + (body !== undefined ? ` body=${body}` : ''),
         error.stack
       );
       throw error;
