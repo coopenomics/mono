@@ -49,6 +49,6 @@ tags:
 
 Если по Заказу прошло больше N дней (типовая настройка — 7–14 дней) без появления пайщика, оператор получает напоминание «Свяжитесь с пайщиком {ФИО}». В крайних случаях имущество возвращается на склад и подаётся на списание через совет (см. [Запуск списания][writeoff]).
 
-[receive]: ../orderer/receive.md
+[receive]: ./issuance-finalize.md
 [warehouse]: ./inventory-list.md
 [writeoff]: ../chairman/writeoff-propose.md

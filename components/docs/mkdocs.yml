@@ -190,7 +190,6 @@ nav:
       - Мои заказы: new/marketplace/orderer/orders.md
       - Готовые к получению: new/marketplace/orderer/ready-to-receive.md
       - Сводный заказ: new/marketplace/orderer/consolidated.md
-      - Получение заказа: new/marketplace/orderer/receive.md
       - Возврат имущества: new/marketplace/orderer/return-claim.md
     - Стол поставщика:
       - Создание предложения: new/marketplace/offerer/offer-create.md
@@ -208,7 +207,6 @@ nav:
       - Поток выдач: new/marketplace/operator/orders-board.md
       - Финальная подпись выдачи: new/marketplace/operator/issuance-finalize.md
     - Стол председателя ПВЗ:
-      - Закрывающая подпись приёмки: new/marketplace/branch-chairman/apl-reception-close.md
       - Открытие выдачи: new/marketplace/branch-chairman/issuance-open.md
       - Открытие выдачи (подпись председателя): new/marketplace/branch-chairman/issuance-open-sign.md
       - Заказы участка: new/marketplace/branch-chairman/branch-orders.md

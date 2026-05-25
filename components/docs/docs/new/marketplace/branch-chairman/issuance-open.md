@@ -85,6 +85,6 @@ tags:
 поведение зафиксировано на скриншоте и ожидает доработки workspace-
 переключателя.
 
-[reception]: ./apl-reception-close.md
+[reception]: ../operator/apl-reception-create.md
 [ready]: ../orderer/ready-to-receive.md
-[receive]: ../orderer/receive.md
+[receive]: ../orderer/ready-to-receive.md
