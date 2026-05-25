@@ -98,10 +98,3 @@ export const marketplaceIssuanceResultSelector = Selector('MarketplaceIssuanceRe
   order: rawOrderSelector,
   tx_hash: true,
 })
-
-export const marketplaceSupplierOrderActionResultSelector = Selector(
-  'MarketplaceSupplierOrderActionResult',
-)({
-  order: rawOrderSelector,
-  tx_hash: true,
-})
