@@ -93,6 +93,14 @@ namespace operations {
     inline constexpr eosio::name CONVERT_AXN      = "o.sov.axncnv"_n;   ///< Трансляция паевого взноса в членский (Dr 80 / Cr 86, TRANSFER SHARE_FUND_PAY → DELEGATE_FEES).
   }
 
+  // billing (Epic 12 — контракт billing)
+  // ВНИМАНИЕ: имя константы НЕ `FUND` — `FUND` занят макросом `#define FUND "fund"`
+  // в consts.hpp (имя контракта fund). Используем `CONVERT` (бэкенд-имя действия).
+  namespace billing {
+    inline constexpr eosio::name CONVERT = "o.bil.fund"_n;   ///< Трансляция паевого взноса в членский на биллинг-кошелёк пайщика (Dr 80 / Cr 86, TRANSFER SHARE_FUND_PAY → BILLING_FUND_PAY).
+    inline constexpr eosio::name PAY     = "o.bil.pay"_n;    ///< Оплата подписки членскими взносами пайщика (TRANSFER BILLING_FUND_PAY → INFRA_FEES, без Dr/Cr — оба разреза счёта 86).
+  }
+
   // migration (только из migrate.cpp)
   //
   // В OPERATION_REGISTRY включены **только** те транзиты, которые проводятся
@@ -319,6 +327,27 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_wallets::GENERATOR_FUND, ledger2_wallets::BLAGOROST_FUND,
     0, 0,
     "Конвертация сегмента: РИД → ЦПП «Благорост»" },
+
+  // 20. Биллинг — пополнение биллинг-кошелька: Dr 80 / Cr 86, TRANSFER SHARE_FUND_PAY → BILLING_FUND_PAY.
+  // Зеркало o.sov.axncnv (трансляция паевого в членский), но назначение —
+  // персональный USER_SHARED биллинг-кошелёк пайщика, а не кооперативный пул
+  // делегатских взносов. После конвертации средства невозвратны (членские),
+  // лежат на личном разрезе пайщика до списания за подписки (o.bil.pay). (Epic 12)
+  { operations::billing::CONVERT, processes::billing::CONVERT, WalletOp::TRANSFER,
+    ledger2_wallets::SHARE_FUND_PAY, ledger2_wallets::BILLING_FUND_PAY,
+    ledger2_accounts::SHARE_FUND, ledger2_accounts::TARGET_RECEIPTS,
+    "Трансляция паевого взноса в членский на биллинг-кошелёк пайщика" },
+
+  // 21. Биллинг — оплата подписки: TRANSFER BILLING_FUND_PAY → INFRA_FEES, без Dr/Cr.
+  // Оба кошелька — аналитические разрезы счёта 86 (целевое финансирование):
+  // перенос «членский взнос пайщика, зарезервированный под подписки» →
+  // «членские взносы за инфраструктуру платформы». Бухпроводка не требуется
+  // (реклассификация внутри 86), по аналогии с o.cap.invest/o.wal.wthreq. (Epic 12)
+  { operations::billing::PAY, processes::billing::PAY, WalletOp::TRANSFER,
+    ledger2_wallets::BILLING_FUND_PAY, ledger2_wallets::INFRA_FEES,
+    0, 0,
+    "Оплата подписки за инфраструктуру членскими взносами пайщика" },
+
 
   // ----- Миграционные (o.mig.*) — вызываются только из migrate.cpp -----
 
