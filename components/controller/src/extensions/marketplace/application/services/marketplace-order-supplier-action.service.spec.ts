@@ -2,7 +2,9 @@ import { BadRequestException, ForbiddenException, NotFoundException } from '@nes
 import { MarketplaceOrderSupplierActionService } from './marketplace-order-supplier-action.service';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import type { MarketplaceOrderDomainRepository } from '../../domain/repositories/marketplace-order.repository';
+import type { MarketplaceConsolidatedRequestDomainRepository } from '../../domain/repositories/marketplace-consolidated-request.repository';
 import type { MarketplaceOfferCountersService } from './marketplace-offer-counters.service';
+import type { MarketplaceShipmentCreateService } from './marketplace-shipment-create.service';
 import type { MarketplaceCanonicalBlockchainPort } from '../../domain/ports/marketplace-canonical-blockchain.port';
 
 function buildOrder(overrides: Partial<MarketplaceOrderDomainEntity> = {}): MarketplaceOrderDomainEntity {
@@ -29,7 +31,19 @@ function buildMocks() {
     applyStatusTransition: jest
       .fn()
       .mockImplementation(async (id, status, reason) => buildOrder({ id, status, last_status_reason: reason } as any)),
+    assignToCycle: jest.fn().mockResolvedValue(undefined as any),
   } as unknown as jest.Mocked<MarketplaceOrderDomainRepository>;
+
+  // individual accept оборачивает заказ в синтетическую заявку и формирует
+  // Shipment (synthesizeIndividualShipment) — best-effort, но зависимости
+  // в конструкторе обязательны.
+  const cycleRepo: jest.Mocked<MarketplaceConsolidatedRequestDomainRepository> = {
+    create: jest.fn().mockResolvedValue({ id: 'cycle-1' } as any),
+  } as unknown as jest.Mocked<MarketplaceConsolidatedRequestDomainRepository>;
+
+  const shipmentCreate: jest.Mocked<MarketplaceShipmentCreateService> = {
+    execute: jest.fn().mockResolvedValue({} as any),
+  } as unknown as jest.Mocked<MarketplaceShipmentCreateService>;
 
   const offerCounters: jest.Mocked<MarketplaceOfferCountersService> = {
     onOrderUnblocked: jest.fn().mockResolvedValue({} as any),
@@ -48,7 +62,7 @@ function buildMocks() {
     warn: jest.fn(),
   } as any;
 
-  return { orderRepo, offerCounters, chainPort, logger };
+  return { orderRepo, cycleRepo, shipmentCreate, offerCounters, chainPort, logger };
 }
 
 describe('MarketplaceOrderSupplierActionService', () => {
@@ -59,7 +73,9 @@ describe('MarketplaceOrderSupplierActionService', () => {
     mocks = buildMocks();
     service = new MarketplaceOrderSupplierActionService(
       mocks.orderRepo,
+      mocks.cycleRepo,
       mocks.offerCounters,
+      mocks.shipmentCreate,
       mocks.chainPort,
       mocks.logger
     );
