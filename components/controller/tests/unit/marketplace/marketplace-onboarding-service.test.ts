@@ -37,6 +37,18 @@ const makeLogger = () =>
     debug: jest.fn(),
   } as any);
 
+// getOnboardingState не обращается к blockchain-портам (только agreementRepository),
+// поэтому для этих кейсов достаточно заглушек методов, используемых в других путях.
+const makeSovietPort = () =>
+  ({
+    getCoagreement: jest.fn(),
+  } as any);
+
+const makeWalletPort = () =>
+  ({
+    signProgramAgreement: jest.fn(),
+  } as any);
+
 describe('MarketplaceOnboardingService.getOnboardingState', () => {
   afterEach(() => {
     jest.resetModules();
@@ -54,7 +66,7 @@ describe('MarketplaceOnboardingService.getOnboardingState', () => {
       '~/extensions/marketplace/application/onboarding/marketplace-onboarding.service'
     );
     const repo = makeRepo([]);
-    const service = new MarketplaceOnboardingService(repo, makeLogger());
+    const service = new MarketplaceOnboardingService(repo, makeSovietPort(), makeWalletPort(), makeLogger());
 
     const state = await service.getOnboardingState('alice');
     expect(state.requires_gate).toBe(false);
@@ -69,7 +81,7 @@ describe('MarketplaceOnboardingService.getOnboardingState', () => {
       '~/extensions/marketplace/application/onboarding/marketplace-onboarding.service'
     );
     const repo = makeRepo([]);
-    const service = new MarketplaceOnboardingService(repo, makeLogger());
+    const service = new MarketplaceOnboardingService(repo, makeSovietPort(), makeWalletPort(), makeLogger());
 
     const state = await service.getOnboardingState('alice');
     expect(state.template_registry_id).toBe(1100);
@@ -90,7 +102,7 @@ describe('MarketplaceOnboardingService.getOnboardingState', () => {
       '~/extensions/marketplace/application/onboarding/marketplace-onboarding.service'
     );
     const repo = makeRepo([makeAgreement({ draft_id: 7 })]);
-    const service = new MarketplaceOnboardingService(repo, makeLogger());
+    const service = new MarketplaceOnboardingService(repo, makeSovietPort(), makeWalletPort(), makeLogger());
 
     const state = await service.getOnboardingState('alice');
     expect(state.requires_gate).toBe(false);
@@ -117,7 +129,7 @@ describe('MarketplaceOnboardingService.getOnboardingState', () => {
       makeAgreement({ type: 'capital', draft_id: 999 }), // не marketplace — игнор
       makeAgreement({ type: 'marketplace', draft_id: 8 }), // другой шаблон — игнор
     ]);
-    const service = new MarketplaceOnboardingService(repo, makeLogger());
+    const service = new MarketplaceOnboardingService(repo, makeSovietPort(), makeWalletPort(), makeLogger());
 
     const state = await service.getOnboardingState('alice');
     expect(state.requires_gate).toBe(true);
@@ -139,7 +151,7 @@ describe('MarketplaceOnboardingService.getOnboardingState', () => {
       '~/extensions/marketplace/application/onboarding/marketplace-onboarding.service'
     );
     const repo = makeRepo([makeAgreement({ type: 'marketplace', draft_id: undefined, id: 99 })]);
-    const service = new MarketplaceOnboardingService(repo, makeLogger());
+    const service = new MarketplaceOnboardingService(repo, makeSovietPort(), makeWalletPort(), makeLogger());
 
     const state = await service.getOnboardingState('alice');
     expect(state.requires_gate).toBe(false);

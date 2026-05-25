@@ -35,15 +35,15 @@ const makeAgreementPort = () =>
   } as any);
 
 describe('MarketplacePlugin.initialize', () => {
-  it('пишет warn о fallback и продолжает install, если file-storage не подключён', async () => {
+  it('пишет info о fallback и продолжает install, если file-storage не подключён', async () => {
     const logger = makeLogger();
     const repo = makeRepo();
     const plugin = new MarketplacePlugin(repo, logger, makeAgreementPort(), null);
 
     await plugin.initialize();
 
-    expect(logger.warn).toHaveBeenCalledWith(
-      'File storage не настроен — пропускаем bucket init (PR #359 не вмержен)'
+    expect(logger.info).toHaveBeenCalledWith(
+      'File storage отключён конфигурацией — пропускаем bucket init'
     );
     expect(logger.info).toHaveBeenCalledWith('marketplace-extension готов');
     expect(logger.info).not.toHaveBeenCalledWith(
