@@ -359,3 +359,91 @@ topUpAmount: z
 - **SDK:**
   - `sdk/src/types/controller/extension.types.ts` - копия типов из controller
 
+---
+
+# Канон онбординга расширения (гейтинг столов + редирект при включении)
+
+Отдельный, но связанный механизм: некоторые расширения требуют **подключения
+на уровне кооператива** (например, совет принимает ЦПП) ПРЕЖДЕ чем их рабочие
+столы станут доступны пайщикам. Канон делает это переиспользуемо и **опционально**
+— расширения, которые не объявляют поля ниже, работают как раньше (все столы
+видны сразу после включения).
+
+## Контракт реестра (`extensions.registry.ts`)
+
+`IRegistryExtension` имеет три опциональных поля:
+
+```typescript
+onboarding_route?: string;                  // имя роута страницы подключения
+onboarding_desktop?: string;                // единственный стол, видимый до онбординга
+isOnboarded?: (config: any) => boolean;     // готовность: ЦПП принят и т.п.
+```
+
+Пример для `market`:
+
+```typescript
+onboarding_route: 'marketplace-onboarding-coop-cpp',
+onboarding_desktop: 'market-admin',
+isOnboarded: (config) => Boolean(config?.coopAcceptance?.accepted),
+```
+
+## Как работает (две согласованные половины)
+
+1. **Бэкенд — скрытие столов из переключателя.**
+   `DesktopDomainInteractor.getDesktop()` для каждого расширения вычисляет
+   `isOnboarded(app.config)`. Пока `false` и задан `onboarding_desktop`, в
+   список workspaces попадает ТОЛЬКО `onboarding_desktop` — остальные столы
+   расширения отсутствуют в `getDesktop`, поэтому не появляются в
+   переключателе столов (он строится из `currentDesktop.workspaces`, см.
+   `desktop/src/entities/Desktop/model/store.ts` → `workspaceMenus`).
+   Это runtime-фильтрация данных, схема GraphQL не меняется (кодоген не нужен).
+
+2. **Фронтенд — ограничение содержимого стола + роль.**
+   `extensions/<name>/install.ts` зеркалит решение бэкенда: если в десктопе
+   с бэкенда присутствует `onboarding_desktop`, но нет «обычного» стола —
+   возвращает ТОЛЬКО онбординг-стол с единственным дочерним роутом
+   (`onboarding_route`) и `meta.roles` суженным до той роли, что может
+   проводить онбординг (для market — `['chairman']`). Так до принятия ЦПП
+   никто, кроме председателя, не видит ни столов, ни страниц; председатель
+   видит один стол и одну страницу — «Подключение ЦПП».
+
+   Видимость стола по ролям определяется `meta.roles` РОДИТЕЛЬСКОГО роута
+   стола (`workspaceMenus` берёт meta из `routes[0]`). Если у стола нет
+   привязанных роутов — meta по умолчанию `roles: []` (виден всем), поэтому
+   гейтить только бэкендом недостаточно: фронт обязан вернуть роут с нужной
+   ролью.
+
+3. **Редирект при включении (`InstallButton.vue` / `EnableButton.vue`).**
+   `loadExtensionRoutes()` возвращает `IWorkspaceConfig[]`; кнопки редиректят
+   на `configs[0].defaultRoute`. У онбординг-стола `defaultRoute` = страница
+   подключения, поэтому администратора после включения сразу ведёт на ЦПП,
+   а не на общий каталог приложений.
+
+## Жизненный цикл / ограничения
+
+- `install.ts` и `getDesktop` пере-вычисляются при **старте приложения**
+  (`useInitAppProcess` → `loadDesktop` → `useInitExtensionsProcess`) и при
+  **включении** расширения. Они НЕ реактивны на изменение состояния онбординга
+  в рантайме: после того как совет принял ЦПП и `coopAcceptance.accepted`
+  стал `true`, столы появятся после перезагрузки страницы (или повторного
+  входа). Для MVP это приемлемо.
+- Источник **безопасности** — backend-резолверы расширения (роли/доступ);
+  гейтинг столов — UX-слой поверх них, не замена авторизации.
+- Опциональность: механизм включается только наличием полей в реестре, что
+  не ломает существующие расширения (capital и т.д.). Их переведут позже.
+
+## Связанные файлы (онбординг-канон)
+
+- **Backend:**
+  - `src/extensions/extensions.registry.ts` — поля `onboarding_route` /
+    `onboarding_desktop` / `isOnboarded`.
+  - `src/application/desktop/interactors/desktop.interactor.ts` — фильтрация
+    столов в `getDesktop`.
+- **Frontend:**
+  - `desktop/extensions/<name>/install.ts` — гейт-ветка (для market — Стол
+    администратора с одной страницей подключения, chairman-only).
+  - `desktop/src/processes/init-installed-extensions/index.ts` —
+    `loadExtensionRoutes` возвращает конфиги.
+  - `desktop/src/features/Extension/{InstallExtension,EnableExtension}/ui/*Button.vue`
+    — редирект на `defaultRoute` первого стола.
+
