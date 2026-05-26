@@ -116,5 +116,11 @@ export const Schema = z.object({
           })
         ),
     })
-    .default({ auto_proposal_enabled: false, expiry_grace_days: 7 }),
+    .default({ auto_proposal_enabled: false, expiry_grace_days: 7 })
+    .describe(
+      describeField({
+        label: 'Списание скоропорта',
+        note: 'Настройки автоматического списания товаров с истекающим сроком годности.',
+      })
+    ),
 });
