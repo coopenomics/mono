@@ -87,6 +87,26 @@ const envVarsSchema = z.object({
     .describe('адрес сервиса GRAPHQL'),
   PROVIDER_BASE_URL: z.string().default('').describe('базовый URL сервиса провайдера'),
 
+  // Billing-cron (Epic 12): рекуррентное списание подписок (oracle-паттерн —
+  // Antelope не поддерживает deferred_trx, тик инициирует backend).
+  BILLING_CRON_ENABLED: z
+    .string()
+    .default('false')
+    .transform((v) => v === 'true' || v === '1')
+    .describe('включить периодическое списание подписок (billing::pay)'),
+  BILLING_CRON_EXPRESSION: z
+    .string()
+    .default('0 * * * *')
+    .describe('cron-выражение тика биллинга (по умолчанию ежечасно)'),
+  BILLING_CRON_COOPNAMES: z
+    .string()
+    .default('')
+    .describe('CSV список коопов для списания; пусто — берётся COOPNAME узла'),
+  BILLING_CRON_PAYER: z
+    .string()
+    .default('')
+    .describe('пайщик-плательщик, чей w.wal.bill дебетуется (пусто — списание пропускается)'),
+
   // Параметры союза кооперативов
   UNION_LINK: z
     .string()
@@ -262,6 +282,14 @@ export default {
   coopname: envVars.data.COOPNAME,
   graphql_service: envVars.data.GRAPHQL_SERVICE,
   provider_base_url: envVars.data.PROVIDER_BASE_URL,
+  billing: {
+    cron_enabled: envVars.data.BILLING_CRON_ENABLED,
+    cron_expression: envVars.data.BILLING_CRON_EXPRESSION,
+    coopnames: envVars.data.BILLING_CRON_COOPNAMES.split(',')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0),
+    payer: envVars.data.BILLING_CRON_PAYER,
+  },
   union: {
     link: envVars.data.UNION_LINK,
     is_unioned: envVars.data.IS_UNIONED,
