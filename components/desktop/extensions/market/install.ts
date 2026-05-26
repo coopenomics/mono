@@ -245,6 +245,24 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               children: [],
             },
             {
+              // Редактирование своего предложения. Скрыт из меню (hidden) —
+              // открывается из «Мои предложения» по кнопке «Редактировать».
+              // Та же форма, что и создание; на сабмите вызывает
+              // marketplaceUpdateOffer (статус сбрасывается в PENDING_MODERATION).
+              path: 'edit-offer/:offerId',
+              name: 'marketplace-edit-offer',
+              component: markRaw(CreateMarketplaceOfferPage),
+              meta: {
+                title: 'Редактирование предложения',
+                icon: 'fa-solid fa-pen',
+                roles: [],
+                requiresAuth: true,
+                agreements: agreementsBase,
+                hidden: true,
+              },
+              children: [],
+            },
+            {
               // Эпик 4 / Story 4.5: «Входящие заказы» — поставщик видит заказы,
               // по которым он supplier. Канон OrderCard с role='offerer'.
               // Действия по акцепту партии — отдельно на «Подготовка отгрузки».

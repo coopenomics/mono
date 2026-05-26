@@ -1,8 +1,8 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
 import { Loading, Notify } from 'quasar';
-import { useRouter } from 'vue-router';
-import { createOffer, fetchCategories } from '../api';
+import { useRoute, useRouter } from 'vue-router';
+import { createOffer, fetchCategories, fetchMyOfferById, updateOffer } from '../api';
 import type {
   MarketplaceCategoryView,
   MarketplaceCreateOfferFormState,
@@ -26,6 +26,24 @@ import type {
  */
 
 const router = useRouter();
+const route = useRoute();
+
+// Режим редактирования: роут marketplace-edit-offer передаёт offerId в params.
+// Та же форма префиллится текущими значениями и на сабмите вызывает
+// updateOffer (вместо createOffer); бэкенд сбросит статус в PENDING_MODERATION.
+const editId = computed(() => {
+  const p = route.params.offerId;
+  return typeof p === 'string' && p ? p : null;
+});
+const isEdit = computed(() => editId.value !== null);
+const prefilling = ref(false);
+
+const pageTitle = computed(() =>
+  isEdit.value ? 'Редактирование предложения' : 'Новое предложение'
+);
+const submitLabel = computed(() =>
+  isEdit.value ? 'Сохранить и отправить на модерацию' : 'Опубликовать на модерацию'
+);
 
 const UNITS: Array<{ label: string; value: MarketplaceUnitOfMeasure }> = [
   { label: 'шт.', value: 'piece' },
@@ -169,20 +187,61 @@ async function onSubmit(): Promise<void> {
   };
 
   submitting.value = true;
-  Loading.show({ message: 'Создаю предложение…' });
+  Loading.show({ message: isEdit.value ? 'Сохраняю изменения…' : 'Создаю предложение…' });
   try {
-    const result = await createOffer(payload);
-    Notify.create({
-      type: 'positive',
-      message: `Предложение создано (id ${result.id.slice(0, 8)}), статус: ${result.status}.`,
-    });
-    void router.push({ name: 'marketplace-catalog' });
+    if (isEdit.value && editId.value) {
+      await updateOffer({ id: editId.value, ...payload });
+      Notify.create({
+        type: 'positive',
+        message: 'Изменения сохранены. Предложение отправлено на повторную модерацию.',
+      });
+      void router.push({ name: 'marketplace-my-offers' });
+    } else {
+      const result = await createOffer(payload);
+      Notify.create({
+        type: 'positive',
+        message: `Предложение создано (id ${result.id.slice(0, 8)}), статус: ${result.status}.`,
+      });
+      void router.push({ name: 'marketplace-catalog' });
+    }
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     Notify.create({ type: 'negative', message, timeout: 6000 });
   } finally {
     Loading.hide();
     submitting.value = false;
+  }
+}
+
+async function prefillForEdit(id: string): Promise<void> {
+  prefilling.value = true;
+  try {
+    const offer = await fetchMyOfferById(id);
+    if (!offer) {
+      Notify.create({ type: 'negative', message: 'Предложение не найдено или вам не принадлежит.' });
+      void router.push({ name: 'marketplace-my-offers' });
+      return;
+    }
+    form.value = {
+      product_name: offer.product_name,
+      description: offer.description ?? '',
+      category_id: offer.category_id != null ? Number(offer.category_id) : null,
+      price_per_unit: offer.price_per_unit,
+      unit_of_measure: offer.unit_of_measure as MarketplaceUnitOfMeasure,
+      quantity_available: offer.quantity_available,
+      unlimited_flag: offer.unlimited_flag,
+      cycle_type: offer.cycle_type,
+      cycle_days: offer.cycle_days,
+      target_volume: offer.target_volume,
+      max_wait_days: offer.max_wait_days,
+      min_threshold: offer.min_threshold,
+      warranty_days: offer.warranty_days,
+    };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    Notify.create({ type: 'negative', message });
+  } finally {
+    prefilling.value = false;
   }
 }
 
@@ -193,14 +252,29 @@ onMounted(async () => {
     const message = e instanceof Error ? e.message : String(e);
     Notify.create({ type: 'negative', message });
   }
+  if (editId.value) {
+    await prefillForEdit(editId.value);
+  }
 });
 </script>
 
 <template>
   <q-page class="mp-role-offerer mp-create-offer q-pa-md">
     <div class="row items-center q-mb-md">
-      <div class="text-h5">Новое предложение</div>
+      <div class="text-h5">{{ pageTitle }}</div>
     </div>
+
+    <q-banner v-if="isEdit" class="mp-create-offer__notice q-mb-md" rounded dense>
+      <template #avatar>
+        <q-icon name="fa-solid fa-circle-info" color="warning" />
+      </template>
+      После сохранения предложение снова отправится на модерацию председателю —
+      до одобрения оно будет недоступно в каталоге.
+    </q-banner>
+
+    <q-inner-loading :showing="prefilling">
+      <q-spinner color="primary" size="2em" />
+    </q-inner-loading>
 
     <q-card flat bordered class="mp-create-offer__card">
       <q-card-section>
@@ -371,7 +445,7 @@ onMounted(async () => {
               color="primary"
               no-caps
               type="submit"
-              label="Опубликовать на модерацию"
+              :label="submitLabel"
               :loading="submitting"
             />
           </div>

@@ -59,6 +59,15 @@ export const SECTIONS: DesignSystemSection[] = [
     description: 'Карточка Offer в каталоге Витрины. Канон Стола Заказов, обёртка над widgets/Marketplace/RequestCard с расширенным API status / actions / fallback.',
   },
   {
+    key: 'offer-details-dialog',
+    title: 'OfferDetailsDialog',
+    uxDr: 'UX-DR10',
+    story: 'Story 3.x',
+    primaryRole: ['orderer', 'offerer', 'admin'],
+    status: 'ready',
+    description: 'Модальное окно детального просмотра Offer\'а по клику на карточку: полное описание, мета (категория / тип отсечки / гарантия / поставщик), причина отклонения и slot actions под ролевые кнопки.',
+  },
+  {
     key: 'barcode-scanner',
     title: 'BarcodeScanner',
     uxDr: 'UX-DR11',

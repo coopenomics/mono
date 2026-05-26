@@ -51,3 +51,14 @@ export async function triggerOpenSubscription(offer_id: string): Promise<void> {
     variables: { input: { offer_id } },
   });
 }
+
+/**
+ * Поставщик снимает своё предложение с публикации (статус → WITHDRAWN).
+ * Backend: marketplace-offer.resolver.ts → marketplaceWithdrawOffer
+ * (guard 'Offer' 'delete:own', ownership проверяется в сервисе).
+ */
+export async function withdrawOffer(id: string): Promise<void> {
+  await client.Mutation(Mutations.Marketplace.WithdrawOffer.mutation, {
+    variables: { input: { id } },
+  });
+}
