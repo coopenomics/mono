@@ -336,11 +336,33 @@ export const AppRegistry: INamedExtension = {
     is_builtin: false,
     is_internal: true,
     is_available: true,
+    // Расширение «Стол заказов» предоставляет ЧЕТЫРЕ рабочих стола, разнесённых
+    // по ролям пайщика. Каждый `name` ОБЯЗАН совпадать с workspace из desktop
+    // `extensions/market/install.ts`: фронт привязывает маршруты только к тем
+    // workspace'ам, что объявлены здесь (desktop.interactor → DesktopStore.setRoutes).
+    // Если стол не объявлен в этом списке — его маршруты молча теряются.
+    // Видимость по ролям задаётся на фронте (meta.roles родительского маршрута):
+    // Стол администратора виден только chairman + члену совета, остальные — всем.
     desktops: [
       {
         name: 'market',
-        title: 'Стол заказов',
-        icon: 'fa-solid fa-shop',
+        title: 'Стол заказчика',
+        icon: 'fa-solid fa-cart-shopping',
+      },
+      {
+        name: 'market-supplier',
+        title: 'Стол поставщика',
+        icon: 'fa-solid fa-store',
+      },
+      {
+        name: 'market-pvz',
+        title: 'Стол ПВЗ',
+        icon: 'fa-solid fa-map-location-dot',
+      },
+      {
+        name: 'market-admin',
+        title: 'Стол администратора',
+        icon: 'fa-solid fa-shield-halved',
       },
     ],
     title: 'Стол заказов',
