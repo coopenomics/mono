@@ -59,6 +59,7 @@
         q-tr(v-show="props.expand" :key="`e_${props.row.username}`" :props="props" class="q-virtual-scroll--with-prev")
           q-td(colspan="100%")
             slot(:expand="props.expand" :receiver="props.row.username")
+            CooperativeBillingPanel(v-if="props.expand" :coopname="props.row.username")
             ListOfDocumentsWidget(
               :username="props.row.username"
               :filter="{data: getDataFilter(props.row.document.hash)}"
@@ -79,6 +80,7 @@
   const union = useUnionStore()
 
   import { ListOfDocumentsWidget } from 'src/widgets/Cooperative/Documents/ListOfDocuments';
+  import { CooperativeBillingPanel } from 'src/widgets/Billing/CooperativeBillingPanel';
   const getDataFilter = (hash: string) => {
     return {
       document: {

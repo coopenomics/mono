@@ -3,12 +3,14 @@
   .row
     .col-md-7.col-xs-12.q-pa-sm
       WalletProgramWidget
+  ConvertToBillingDialog
 </template>
 <script lang="ts" setup>
 import { computed, onMounted, markRaw } from 'vue';
 import { WalletProgramWidget } from 'src/widgets/Wallet';
 import { DepositButton } from 'src/features/Wallet/DepositToWallet';
 import { WithdrawButton } from 'src/features/Wallet/WithdrawFromWallet';
+import { ConvertToBillingButton, ConvertToBillingDialog } from 'src/features/Billing/ConvertToBilling';
 import { useHeaderActions } from 'src/shared/hooks';
 import 'src/shared/ui/CardStyles';
 
@@ -23,6 +25,11 @@ const headerButtons = computed(() => [
     id: 'wallet-withdraw-button',
     component: markRaw(WithdrawButton),
     order: 2,
+  },
+  {
+    id: 'wallet-convert-billing-button',
+    component: markRaw(ConvertToBillingButton),
+    order: 3,
   },
 ]);
 
