@@ -128,7 +128,12 @@ export const useDesktopStore = defineStore(namespace, () => {
 
   function workspaceGrants(workspaceName: string): string[] | undefined {
     const ws = currentDesktop.value?.workspaces.find((w) => w.name === workspaceName);
-    return (ws as any)?.grants;
+    // Бэкенд отдаёт `grants: null` для core-столов (нет провайдера грантов) и
+    // массив (возможно пустой `[]`) для grant-управляемых расширений. Схлопываем
+    // null → undefined, чтобы core-столы шли по legacy-ветке `meta.roles`, а
+    // осмысленный пустой набор `[]` (grant-режим без прав) сохранялся как есть.
+    const grants = (ws as any)?.grants;
+    return grants ?? undefined;
   }
 
   function currentUserRole(): string {
