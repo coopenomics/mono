@@ -128,6 +128,42 @@ export const useDesktopStore = defineStore(namespace, () => {
     safeLocalStorageSetItem(STORAGE_KEY_WORKSPACE, name);
   }
 
+  /**
+   * Синхронизирует активный рабочий стол с ТЕКУЩИМ маршрутом.
+   *
+   * Находит workspace, которому принадлежит маршрут — по имени родительского
+   * маршрута стола (`mainRoute.name`), присутствующему в цепочке `to.matched`, —
+   * и делает его активным. БЕЗ навигации и БЕЗ спиннера (isWorkspaceChanging
+   * не трогаем): мы уже находимся на этом маршруте, надо лишь поправить состояние.
+   *
+   * Зачем: `activeWorkspaceName` иначе ставится только кликом по плитке стола,
+   * редиректом с `index` и из localStorage. При прямом заходе по URL или при
+   * переходе кнопкой со стола А на маршрут стола Б активный стол оставался
+   * прежним — в шапке и левом меню «висел» не тот стол. Маппинг идёт по
+   * `mainRoute.name → workspaceName`, поэтому не зависит от совпадения имени
+   * workspace с именем маршрута. Если маршрут не принадлежит ни одному столу
+   * (глобальные /auth/*, и т.п.) — ничего не меняем.
+   *
+   * @returns true, если активный стол был определён по маршруту.
+   */
+  function syncActiveWorkspaceFromRoute(
+    matchedRouteNames: Array<string | symbol | null | undefined>,
+  ): boolean {
+    if (!currentDesktop.value) return false;
+    const names = new Set(
+      matchedRouteNames.filter((n): n is string | symbol => n != null).map(String),
+    );
+    const owner = workspaceMenus.value.find(
+      (menu) => menu.mainRoute?.name != null && names.has(String(menu.mainRoute.name)),
+    );
+    if (!owner) return false;
+    if (activeWorkspaceName.value !== owner.workspaceName) {
+      activeWorkspaceName.value = owner.workspaceName;
+      safeLocalStorageSetItem(STORAGE_KEY_WORKSPACE, owner.workspaceName);
+    }
+    return true;
+  }
+
   // Функция для определения и выбора дефолтного рабочего стола
   function selectDefaultWorkspace(ignoreSaved = false) {
     // Сбрасываем состояние загрузки на случай если оно было установлено
@@ -378,6 +414,7 @@ export const useDesktopStore = defineStore(namespace, () => {
     workspaceMenus,
     activeWorkspaceName,
     selectWorkspace,
+    syncActiveWorkspaceFromRoute,
     selectDefaultWorkspace,
     activeSecondLevelRoutes,
     registerWorkspaceMenus,

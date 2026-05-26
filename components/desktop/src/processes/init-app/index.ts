@@ -69,4 +69,12 @@ export async function useInitAppProcess(router: Router) {
 
   await useInitExtensionsProcess(router);
 
+  // Досинхронизация активного стола с текущим маршрутом ПОСЛЕ установки расширений.
+  // afterEach начального перехода мог сработать раньше, чем install прикрепил
+  // маршруты к workspace'ам (mainRoute ещё был null) — поэтому при холодном
+  // deep-link на /market-supplier/* активным мог остаться дефолтный стол.
+  desktops.syncActiveWorkspaceFromRoute(
+    router.currentRoute.value.matched.map((r) => r.name ?? null),
+  );
+
 }

@@ -127,4 +127,12 @@ export function setupNavigationGuard(router: Router) {
       next({ name: 'permissionDenied', query: to.query });
     }
   });
+
+  // Синхронизация активного рабочего стола с маршрутом после КАЖДОГО успешного
+  // перехода: прямой заход по URL и переход кнопкой со стола А на маршрут стола Б
+  // больше не оставляют активным «не тот» стол (см. DesktopStore). Только меняет
+  // состояние — навигацию afterEach не инициирует, цикла не будет.
+  router.afterEach((to) => {
+    desktops.syncActiveWorkspaceFromRoute(to.matched.map((r) => r.name ?? null));
+  });
 }
