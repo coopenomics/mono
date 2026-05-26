@@ -47,6 +47,16 @@ export interface IRegistryExtension {
   readme: Promise<string>; // README содержимое
   instructions: Promise<string>; // INSTALL содержимое
 
+  // ── Канон онбординга расширения (опционально) ──────────────────────────
+  // Если расширение требует подключения на уровне кооператива (принятие ЦПП
+  // советом и т.п.), оно объявляет три поля. Пока `isOnboarded(config)`
+  // возвращает false, `getDesktop` отдаёт ТОЛЬКО `onboarding_desktop`
+  // (остальные столы скрыты), а фронт ведёт администратора на
+  // `onboarding_route`. Расширения без этих полей работают как раньше.
+  onboarding_route?: string; // имя роута страницы подключения (для редиректа)
+  onboarding_desktop?: string; // единственный стол, видимый до онбординга
+  isOnboarded?: (config: any) => boolean; // готовность: ЦПП принят и т.п.
+
   // Для обратной совместимости: если есть desktops, значит это desktop расширение
   get is_desktop(): boolean;
 }
@@ -374,6 +384,13 @@ export const AppRegistry: INamedExtension = {
     tags: ['стол', 'управление'],
     readme: getReadmeContent('./marketplace'),
     instructions: getInstructionsContent('./marketplace'),
+    // Канон онбординга: пока совет не принял ЦПП «Стол заказов»
+    // (config.coopAcceptance.accepted === false), виден только Стол
+    // администратора со страницей подключения ЦПП.
+    onboarding_route: 'marketplace-onboarding-coop-cpp',
+    onboarding_desktop: 'market-admin',
+    isOnboarded: (config: { coopAcceptance?: { accepted?: boolean } }) =>
+      Boolean(config?.coopAcceptance?.accepted),
     get is_desktop() {
       return !!this.desktops && this.desktops.length > 0;
     },

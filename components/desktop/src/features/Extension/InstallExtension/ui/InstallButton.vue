@@ -7,6 +7,7 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useInstallExtension } from '../model';
 import { useDesktopStore } from 'src/entities/Desktop/model';
+import { useSystemStore } from 'src/entities/System/model';
 import { loadExtensionRoutes } from 'src/processes/init-installed-extensions';
 import {
   extractGraphQLErrorMessages,
@@ -51,10 +52,19 @@ const install = async () => {
 
     // Затем динамически загружаем маршруты для установленного расширения
     console.log('🔧 [InstallExtension] Loading extension routes...');
-    await loadExtensionRoutes(props.extensionName, router);
+    const configs = await loadExtensionRoutes(props.extensionName, router);
     console.log('🔧 [InstallExtension] Extension routes loaded');
 
-    router.push({ name: 'one-extension' });
+    // Редирект на «домашнюю» страницу расширения (defaultRoute первого стола).
+    // Для расширений с онбордингом первый стол — стол подключения, и админа
+    // сразу ведёт на страницу принятия ЦПП, чтобы он не терялся после включения.
+    const home = configs?.[0]?.defaultRoute;
+    if (home) {
+      const coopname = useSystemStore().info?.coopname;
+      router.push(coopname ? { name: home, params: { coopname } } : { name: home });
+    } else {
+      router.push({ name: 'one-extension' });
+    }
     SuccessAlert('Расширение установлено');
   } catch (e: unknown) {
     FailAlert(`Ошибка установки расширения: ${extractGraphQLErrorMessages(e)}`);

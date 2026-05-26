@@ -24,8 +24,20 @@ export class DesktopDomainInteractor {
     for (const app of apps) {
       const registryData = AppRegistry[app.name];
       if (registryData?.desktops) {
-        // Каждый desktop из расширения становится отдельным workspace
-        for (const desktop of registryData.desktops) {
+        // Канон онбординга: если расширение требует подключения на уровне
+        // кооператива и ещё не онбордено (ЦПП не принят), отдаём ТОЛЬКО
+        // стол подключения (`onboarding_desktop`) — остальные столы скрыты
+        // из переключателя, пока совет не примет решение. Расширения без
+        // `isOnboarded`/`onboarding_desktop` работают как раньше (все столы).
+        const onboarded = registryData.isOnboarded
+          ? registryData.isOnboarded(app.config)
+          : true;
+        const desktops =
+          !onboarded && registryData.onboarding_desktop
+            ? registryData.desktops.filter((d) => d.name === registryData.onboarding_desktop)
+            : registryData.desktops;
+
+        for (const desktop of desktops) {
           workspaces.push(
             new DesktopWorkspaceDomainEntity({
               name: desktop.name,

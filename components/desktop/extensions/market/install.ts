@@ -1,6 +1,7 @@
 import { markRaw } from 'vue'
 import type { NavigationGuardWithThis, RouteLocationNormalized } from 'vue-router'
 import { useSessionStore } from 'src/entities/Session'
+import { useDesktopStore } from 'src/entities/Desktop/model'
 import { MarketplaceCatalogPage } from 'src/pages/Marketplace/MarketplaceCatalog'
 import { CreateMarketplaceOfferPage } from 'src/pages/Marketplace/CreateMarketplaceOffer'
 import { MyOrdersPage } from 'src/pages/Marketplace/MyOrders'
@@ -80,6 +81,63 @@ const requireMarketplaceOperator: NavigationGuardWithThis<undefined> = async (
  */
 export default async function (): Promise<IWorkspaceConfig[]> {
   registerMarketplaceProcessInfoHandlers()
+
+  // ── Канон онбординга расширения ────────────────────────────────────────
+  // Пока совет не принял ЦПП «Стол заказов», backend (`getDesktop`) отдаёт из
+  // четырёх столов только `market-admin`. Зеркалим это решение здесь: если в
+  // десктопе с бэкенда есть `market-admin`, но нет `market` (Стол заказчика) —
+  // значит расширение ещё не онбордено, и показываем ТОЛЬКО Стол
+  // администратора с единственной страницей подключения ЦПП и только
+  // председателю. Так чужие столы и страницы недоступны до решения совета.
+  // Источник истины и безопасности — backend; здесь только UI-гейт.
+  const desktop = useDesktopStore()
+  const marketWorkspaceNames = new Set(
+    (desktop.currentDesktop?.workspaces ?? [])
+      .filter((w) => (w as { extension_name?: string }).extension_name === 'market')
+      .map((w) => w.name),
+  )
+  const gatedByOnboarding =
+    marketWorkspaceNames.has('market-admin') && !marketWorkspaceNames.has('market')
+
+  if (gatedByOnboarding) {
+    return [
+      {
+        workspace: 'market-admin',
+        extension_name: 'market',
+        title: 'Стол администратора',
+        icon: 'fa-solid fa-shield-halved',
+        defaultRoute: 'marketplace-onboarding-coop-cpp',
+        routes: [
+          {
+            meta: {
+              title: 'Стол администратора',
+              icon: 'fa-solid fa-shield-halved',
+              roles: ['chairman'],
+            },
+            path: '/:coopname/market-admin',
+            name: 'market-admin',
+            children: [
+              {
+                path: 'onboarding/coop-cpp',
+                name: 'marketplace-onboarding-coop-cpp',
+                component: markRaw(OnboardingCoopAcceptCppPage),
+                meta: {
+                  title: 'Подключение ЦПП',
+                  icon: 'fa-solid fa-handshake',
+                  roles: ['chairman'],
+                  requiresAuth: true,
+                  agreements: agreementsBase,
+                  hidden: false,
+                },
+                children: [],
+              },
+            ],
+          },
+        ],
+      },
+    ]
+  }
+
   return [
     // ───────────────────────── Стол заказчика ─────────────────────────
     {

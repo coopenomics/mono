@@ -15,6 +15,7 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useEnableExtension } from '../model';
 import { useDesktopStore } from 'src/entities/Desktop/model';
+import { useSystemStore } from 'src/entities/System/model';
 import { loadExtensionRoutes } from 'src/processes/init-installed-extensions';
 import {
   extractGraphQLErrorMessages,
@@ -43,7 +44,14 @@ const enable = async () => {
     // Сначала перезагружаем desktop с сервера, чтобы включённое расширение появилось
     await desktop.loadDesktop();
     // Затем динамически загружаем маршруты для включенного расширения
-    await loadExtensionRoutes(props.extensionName, router);
+    const configs = await loadExtensionRoutes(props.extensionName, router);
+    // Редирект на «домашнюю» страницу расширения (defaultRoute первого стола);
+    // для расширений с онбордингом — на страницу подключения ЦПП.
+    const home = configs?.[0]?.defaultRoute;
+    if (home) {
+      const coopname = useSystemStore().info?.coopname;
+      router.push(coopname ? { name: home, params: { coopname } } : { name: home });
+    }
     SuccessAlert('Расширение обновлено');
   } catch (e: any) {
     FailAlert(`Ошибка включения расширения: ${extractGraphQLErrorMessages(e)}`);
