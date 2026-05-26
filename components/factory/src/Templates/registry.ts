@@ -75,6 +75,7 @@ import * as MarketplaceTransportNote from './1103.MarketplaceTransportNote'
 import * as MarketplaceReturnStatement from './1104.MarketplaceReturnStatement'
 import * as MarketplaceWriteoffProtocol from './1105.MarketplaceWriteoffProtocol'
 import * as MarketplaceWriteoffStatement from './1106.MarketplaceWriteoffStatement'
+import * as MarketplaceProgramTemplate from './1107.MarketplaceProgramTemplate'
 
 export const Registry = {
   1: WalletAgreement,
@@ -141,4 +142,5 @@ export const Registry = {
   1104: MarketplaceReturnStatement,
   1105: MarketplaceWriteoffProtocol,
   1106: MarketplaceWriteoffStatement,
+  1107: MarketplaceProgramTemplate,
 }

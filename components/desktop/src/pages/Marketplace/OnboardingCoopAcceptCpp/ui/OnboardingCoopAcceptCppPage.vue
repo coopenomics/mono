@@ -1,85 +1,37 @@
 <script lang="ts" setup>
-import { onMounted, ref, computed } from 'vue';
-import { Notify, Dialog } from 'quasar';
-import {
-  acceptCpp,
-  fetchCppStatus,
-  type MarketplaceCppStatusView,
-} from '../api';
+import { onMounted, computed } from 'vue';
+import { CouncilOnboardingCard } from 'src/shared/ui/CouncilOnboarding';
+import { useMarketplaceOnboarding } from '../model/composable';
 
 /**
- * Эпик 1 / Story 1.9-1.10: L1 — приём кооперативом ЦПП «Стол заказов».
+ * Эпик 1 / Эпик 12: L1 — подключение кооперативом ЦПП «Стол заказов».
  *
- * Стол председателя кооператива. Председатель видит статус ЦПП (`active` /
- * `not_accepted`) и кнопку «Принять ЦПП Marketplace», если ещё не принято.
- *
- * После клика — диалог подтверждения с stub `accepted_by_board_decision_id`
- * (в MVP — текстовая ссылка на решение совета; полноценная повестка совета —
- * FR40 / Эпик 8, Phase 2). На backend срабатывает `marketplaceAcceptCpp`:
- * подписывается оферта в `coop_registration_offers_registry`, флаг
- * `coopAcceptance.status='active'` сохраняется в конфиге расширения. После
- * этого пайщики могут проходить L3 onboarding gate.
+ * Председатель утверждает Советом два документа (Положение ЦПП и шаблон
+ * публичной оферты) через стандартный платформенный механизм онбординга —
+ * тот же, что в Капитале/Благоросте. Каждый документ уходит в Совет проектом
+ * решения; статус шага меняется на «завершён» по РЕАЛЬНОМУ ончейн-решению
+ * совета (без stub-кнопки). Когда оба документа утверждены — расширение
+ * подключается автоматически и пайщики получают доступ к Столу заказов.
  */
 
-const status = ref<MarketplaceCppStatusView | null>(null);
-const loading = ref(false);
-const accepting = ref(false);
+const { config, loading, isCompleted, loadState, handleStepSubmit } =
+  useMarketplaceOnboarding();
 
-const isActive = computed(() => status.value?.status === 'active');
-const chipColor = computed(() => (isActive.value ? 'positive' : 'warning'));
-const chipIcon = computed(() => (isActive.value ? 'fa-solid fa-check' : 'fa-solid fa-hourglass-half'));
-const chipLabel = computed(() => (isActive.value ? 'Подключено' : 'Не подключено'));
-const statusLabel = computed(() =>
-  isActive.value ? 'active — кооператив подключил ЦПП' : 'not_accepted — расширение не подключено',
+const chipColor = computed(() => (isCompleted.value ? 'positive' : 'warning'));
+const chipIcon = computed(() =>
+  isCompleted.value ? 'fa-solid fa-check' : 'fa-solid fa-hourglass-half',
+);
+const chipLabel = computed(() =>
+  isCompleted.value ? 'Подключено' : 'Не подключено',
 );
 
-async function load(): Promise<void> {
-  loading.value = true;
-  try {
-    status.value = await fetchCppStatus();
-  } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    Notify.create({ type: 'negative', message });
-  } finally {
-    loading.value = false;
-  }
-}
-
-function onAccept(): void {
-  Dialog.create({
-    title: 'Принять ЦПП «Стол заказов»?',
-    message:
-      'Подтвердите, что Совет кооператива принял Положение ЦПП «Стол заказов». В MVP — stub решения; полноценная повестка Совета подключится в Эпике 8.',
-    cancel: { label: 'Отмена', flat: true },
-    ok: { label: 'Принять', color: 'primary', unelevated: true },
-    persistent: true,
-  }).onOk(async () => {
-    accepting.value = true;
-    try {
-      status.value = await acceptCpp({
-        document_registry_id: 1100,
-        accepted_by_board_decision_id: `MVP-STUB-${new Date().toISOString().slice(0, 10)}`,
-      });
-      Notify.create({
-        type: 'positive',
-        message: 'ЦПП Marketplace принято. Пайщики могут начать пользоваться Столом заказов.',
-      });
-    } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
-      Notify.create({ type: 'negative', message });
-    } finally {
-      accepting.value = false;
-    }
-  });
-}
-
 onMounted(async () => {
-  await load();
+  await loadState();
 });
 </script>
 
 <template lang="pug">
-q-page.mp-role-admin.mp-onboarding-l1(role="region", aria-label="Подключение ЦПП Marketplace")
+q-page.mp-role-admin.mp-onboarding-l1(role="region", aria-label="Подключение ЦПП Стол заказов")
   div.mp-onboarding-l1__header
     div
       div.text-h5 Подключение ЦПП «Стол заказов»
@@ -90,36 +42,15 @@ q-page.mp-role-admin.mp-onboarding-l1(role="region", aria-label="Подключ�
       q-icon(:name="chipIcon", left)
       | {{ chipLabel }}
 
-  q-inner-loading(:showing="loading && !status")
-    q-spinner(color="primary", size="2em")
-
-  q-card.mp-onboarding-l1__card(v-if="status", flat, bordered)
-    q-card-section
-      div.text-subtitle1.q-mb-sm Статус расширения
-      div.row.q-col-gutter-md
-        div.col-12.col-md-6
-          div.text-caption Статус
-          div.text-body1 {{ statusLabel }}
-        div.col-12.col-md-6(v-if="status.document_registry_id")
-          div.text-caption Реестр оферты
-          div.text-body1 № {{ status.document_registry_id }}
-        div.col-12.col-md-6(v-if="status.accepted_at")
-          div.text-caption Принято
-          div.text-body1 {{ status.accepted_at }}
-        div.col-12.col-md-6(v-if="status.accepted_by_board_decision_id")
-          div.text-caption Решение Совета
-          div.text-body1 {{ status.accepted_by_board_decision_id }}
-
-    q-card-actions(v-if="!isActive", align="right")
-      q-btn(
-        unelevated,
-        no-caps,
-        color="primary",
-        icon="fa-solid fa-handshake",
-        label="Принять ЦПП Marketplace",
-        :loading="accepting",
-        @click="onAccept"
-      )
+  div.mp-onboarding-l1__card
+    CouncilOnboardingCard(
+      :config="config",
+      :loading="loading",
+      title="Подключение ЦПП «Стол заказов»",
+      :completion-title="config.completionTitle",
+      :completion-message="config.completionMessage",
+      @step-submit="handleStepSubmit"
+    )
 </template>
 
 <style scoped lang="scss">
@@ -141,7 +72,7 @@ q-page.mp-role-admin.mp-onboarding-l1(role="region", aria-label="Подключ�
   }
 
   &__card {
-    max-width: 720px;
+    max-width: 860px;
   }
 }
 </style>

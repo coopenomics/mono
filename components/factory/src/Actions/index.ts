@@ -74,6 +74,7 @@ export * as GenerationContractTemplate from './997.GenerationContractTemplate'
 export * as BlagorostOfferTemplate from './999.BlagorostOfferTemplate'
 
 // Marketplace (Стол заказов) — Эпик 1 (онбординг ЦПП)
+export * as MarketplaceProgramTemplate from './1107.MarketplaceProgramTemplate'
 export * as MarketplaceOfferTemplate from './1100.MarketplaceOfferTemplate'
 export * as MarketplaceOffer from './1101.MarketplaceOffer'
 
