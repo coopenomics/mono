@@ -4737,6 +4737,8 @@ export type ValueTypes = {
 	defaultRoute?:boolean | `@${string}`,
 	/** Имя расширения, которому принадлежит этот workspace */
 	extension_name?:boolean | `@${string}`,
+	/** Права доступа текущего пользователя в расширении (вид «Resource:action»). Фронт показывает страницу/стол, если её требование входит в этот список. Отсутствует у расширений, не использующих канон прав доступа. */
+	grants?:boolean | `@${string}`,
 	/** Иконка для меню */
 	icon?:boolean | `@${string}`,
 	/** Уникальное имя workspace */
@@ -6767,7 +6769,7 @@ export type ValueTypes = {
 	['...on MarketplaceKUDetails']?: Omit<ValueTypes["MarketplaceKUDetails"], "...on MarketplaceKUDetails">
 }>;
 	["MarketplaceLabelInventoryInput"]: {
-	/** Формат штрих-кода. По умолчанию — CODE128. */
+	/** Формат штрих-кода. По умолчанию — EAN-13. */
 	format?: ValueTypes["MarketplaceBarcodeFormat"] | undefined | null | Variable<any, string>,
 	/** Заказ, для которого формируются наклейки. */
 	order_id: ValueTypes["ID"] | Variable<any, string>,
@@ -6785,7 +6787,7 @@ export type ValueTypes = {
 	["MarketplaceLabelShipmentInventoryInput"]: {
 	/** Стратегия маркировки по умолчанию для всех заказов партии. */
 	default_strategy?: ValueTypes["MarketplaceBarcodeStrategy"] | undefined | null | Variable<any, string>,
-	/** Формат штрих-кода для всей партии. По умолчанию — CODE128. */
+	/** Формат штрих-кода для всей партии. По умолчанию — EAN-13. */
 	format?: ValueTypes["MarketplaceBarcodeFormat"] | undefined | null | Variable<any, string>,
 	/** Перекрытия стратегии для отдельных заказов партии (если состав смешанный). */
 	per_order_overrides?: Array<ValueTypes["MarketplaceLabelShipmentInventoryOverride"]> | undefined | null | Variable<any, string>,
@@ -14753,6 +14755,8 @@ export type ResolverInputTypes = {
 	defaultRoute?:boolean | `@${string}`,
 	/** Имя расширения, которому принадлежит этот workspace */
 	extension_name?:boolean | `@${string}`,
+	/** Права доступа текущего пользователя в расширении (вид «Resource:action»). Фронт показывает страницу/стол, если её требование входит в этот список. Отсутствует у расширений, не использующих канон прав доступа. */
+	grants?:boolean | `@${string}`,
 	/** Иконка для меню */
 	icon?:boolean | `@${string}`,
 	/** Уникальное имя workspace */
@@ -16721,7 +16725,7 @@ export type ResolverInputTypes = {
 		__typename?: boolean | `@${string}`
 }>;
 	["MarketplaceLabelInventoryInput"]: {
-	/** Формат штрих-кода. По умолчанию — CODE128. */
+	/** Формат штрих-кода. По умолчанию — EAN-13. */
 	format?: ResolverInputTypes["MarketplaceBarcodeFormat"] | undefined | null,
 	/** Заказ, для которого формируются наклейки. */
 	order_id: ResolverInputTypes["ID"],
@@ -16738,7 +16742,7 @@ export type ResolverInputTypes = {
 	["MarketplaceLabelShipmentInventoryInput"]: {
 	/** Стратегия маркировки по умолчанию для всех заказов партии. */
 	default_strategy?: ResolverInputTypes["MarketplaceBarcodeStrategy"] | undefined | null,
-	/** Формат штрих-кода для всей партии. По умолчанию — CODE128. */
+	/** Формат штрих-кода для всей партии. По умолчанию — EAN-13. */
 	format?: ResolverInputTypes["MarketplaceBarcodeFormat"] | undefined | null,
 	/** Перекрытия стратегии для отдельных заказов партии (если состав смешанный). */
 	per_order_overrides?: Array<ResolverInputTypes["MarketplaceLabelShipmentInventoryOverride"]> | undefined | null,
@@ -24464,6 +24468,8 @@ export type ModelTypes = {
 	defaultRoute?: string | undefined | null,
 	/** Имя расширения, которому принадлежит этот workspace */
 	extension_name: string,
+	/** Права доступа текущего пользователя в расширении (вид «Resource:action»). Фронт показывает страницу/стол, если её требование входит в этот список. Отсутствует у расширений, не использующих канон прав доступа. */
+	grants?: Array<string> | undefined | null,
 	/** Иконка для меню */
 	icon?: string | undefined | null,
 	/** Уникальное имя workspace */
@@ -26354,7 +26360,7 @@ export type ModelTypes = {
 	workingHours: ModelTypes["WorkingHours"]
 };
 	["MarketplaceLabelInventoryInput"]: {
-	/** Формат штрих-кода. По умолчанию — CODE128. */
+	/** Формат штрих-кода. По умолчанию — EAN-13. */
 	format?: ModelTypes["MarketplaceBarcodeFormat"] | undefined | null,
 	/** Заказ, для которого формируются наклейки. */
 	order_id: ModelTypes["ID"],
@@ -26370,7 +26376,7 @@ export type ModelTypes = {
 	["MarketplaceLabelShipmentInventoryInput"]: {
 	/** Стратегия маркировки по умолчанию для всех заказов партии. */
 	default_strategy?: ModelTypes["MarketplaceBarcodeStrategy"] | undefined | null,
-	/** Формат штрих-кода для всей партии. По умолчанию — CODE128. */
+	/** Формат штрих-кода для всей партии. По умолчанию — EAN-13. */
 	format?: ModelTypes["MarketplaceBarcodeFormat"] | undefined | null,
 	/** Перекрытия стратегии для отдельных заказов партии (если состав смешанный). */
 	per_order_overrides?: Array<ModelTypes["MarketplaceLabelShipmentInventoryOverride"]> | undefined | null,
@@ -34868,6 +34874,8 @@ export type GraphQLTypes = {
 	defaultRoute?: string | undefined | null,
 	/** Имя расширения, которому принадлежит этот workspace */
 	extension_name: string,
+	/** Права доступа текущего пользователя в расширении (вид «Resource:action»). Фронт показывает страницу/стол, если её требование входит в этот список. Отсутствует у расширений, не использующих канон прав доступа. */
+	grants?: Array<string> | undefined | null,
 	/** Иконка для меню */
 	icon?: string | undefined | null,
 	/** Уникальное имя workspace */
@@ -36897,7 +36905,7 @@ export type GraphQLTypes = {
 	['...on MarketplaceKUDetails']: Omit<GraphQLTypes["MarketplaceKUDetails"], "...on MarketplaceKUDetails">
 };
 	["MarketplaceLabelInventoryInput"]: {
-		/** Формат штрих-кода. По умолчанию — CODE128. */
+		/** Формат штрих-кода. По умолчанию — EAN-13. */
 	format?: GraphQLTypes["MarketplaceBarcodeFormat"] | undefined | null,
 	/** Заказ, для которого формируются наклейки. */
 	order_id: GraphQLTypes["ID"],
@@ -36915,7 +36923,7 @@ export type GraphQLTypes = {
 	["MarketplaceLabelShipmentInventoryInput"]: {
 		/** Стратегия маркировки по умолчанию для всех заказов партии. */
 	default_strategy?: GraphQLTypes["MarketplaceBarcodeStrategy"] | undefined | null,
-	/** Формат штрих-кода для всей партии. По умолчанию — CODE128. */
+	/** Формат штрих-кода для всей партии. По умолчанию — EAN-13. */
 	format?: GraphQLTypes["MarketplaceBarcodeFormat"] | undefined | null,
 	/** Перекрытия стратегии для отдельных заказов партии (если состав смешанный). */
 	per_order_overrides?: Array<GraphQLTypes["MarketplaceLabelShipmentInventoryOverride"]> | undefined | null,
