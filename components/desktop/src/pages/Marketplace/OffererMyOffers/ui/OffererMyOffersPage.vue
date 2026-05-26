@@ -1,13 +1,17 @@
 <script lang="ts" setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue';
-import { Notify } from 'quasar';
+import { Dialog, Notify } from 'quasar';
 import {
   CatalogOfferCard,
   type CatalogOffer,
   type CatalogOfferStatus,
 } from 'src/widgets/Marketplace/CatalogOfferCard';
-import { fetchMyOffers } from '../api';
-import type { MarketplaceOfferStatusView, MarketplaceOfferView } from '../types';
+import { fetchMyOffers, triggerOpenSubscription } from '../api';
+import type {
+  MarketplaceOfferCycleTypeView,
+  MarketplaceOfferStatusView,
+  MarketplaceOfferView,
+} from '../types';
 
 /**
  * Эпик 3 / Story 3.4: offerer-стол «Мои предложения».
@@ -31,6 +35,9 @@ const currentPage = ref(1);
 const loading = ref(false);
 const statusFilter = ref<MarketplaceOfferStatusView | null>(null);
 const search = ref('');
+// id предложений, по которым прямо сейчас идёт запуск поставки — блокируем
+// повторное нажатие кнопки до ответа backend.
+const triggeringIds = ref<Set<string>>(new Set());
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 
 const STATUS_FILTER_OPTIONS: Array<{ label: string; value: MarketplaceOfferStatusView | null }> = [
@@ -60,7 +67,7 @@ const filtered = computed(() => {
   return list;
 });
 
-const cards = computed<Array<CatalogOffer & { domainStatus: MarketplaceOfferStatusView; rejectReason: string | null }>>(() =>
+const cards = computed<Array<CatalogOffer & { domainStatus: MarketplaceOfferStatusView; cycleType: MarketplaceOfferCycleTypeView; rejectReason: string | null }>>(() =>
   filtered.value.map((o) => ({
     id: o.id,
     title: o.product_name,
@@ -70,6 +77,7 @@ const cards = computed<Array<CatalogOffer & { domainStatus: MarketplaceOfferStat
     unitLabel: o.unit_of_measure,
     status: STATUS_TO_CARD[o.status],
     domainStatus: o.status,
+    cycleType: o.cycle_type,
     rejectReason: o.reject_reason,
   })),
 );
@@ -103,6 +111,46 @@ async function load(page: number, append: boolean): Promise<void> {
 function loadMore(): void {
   if (hasMore.value && !loading.value) {
     void load(currentPage.value + 1, true);
+  }
+}
+
+/**
+ * Эпик 4 / Story 4.2: ручной запуск поставки по предложению с открытой
+ * подпиской. Доступен только для ACTIVE-предложений с cycle_type=open_subscription.
+ * Нажатие = акцепт всего накопленного пула заказов, действие необратимо —
+ * поэтому подтверждаем через диалог. После успеха перезагружаем список
+ * (остатки и счётчики меняются по итогам формирования партии).
+ */
+function triggerSupply(offerId: string, title: string): void {
+  Dialog.create({
+    title: 'Запустить поставку?',
+    message:
+      `Все накопленные заказы по предложению «${title}» будут разом зафиксированы в одну ` +
+      'партию и приняты к поставке. Отменить запуск нельзя.',
+    cancel: { label: 'Отмена', flat: true, noCaps: true },
+    ok: { label: 'Запустить поставку', color: 'primary', unelevated: true, noCaps: true },
+    persistent: true,
+  }).onOk(() => {
+    void runTrigger(offerId);
+  });
+}
+
+async function runTrigger(offerId: string): Promise<void> {
+  triggeringIds.value = new Set(triggeringIds.value).add(offerId);
+  try {
+    await triggerOpenSubscription(offerId);
+    Notify.create({
+      type: 'positive',
+      message: 'Поставка запущена: заказы зафиксированы в партию и приняты.',
+    });
+    await load(1, false);
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    Notify.create({ type: 'negative', message });
+  } finally {
+    const next = new Set(triggeringIds.value);
+    next.delete(offerId);
+    triggeringIds.value = next;
   }
 }
 
@@ -192,6 +240,16 @@ q-page.mp-role-offerer.mp-my-offers(role="region", aria-label="Мои предл
       div.mp-my-offers__reason(v-if="card.domainStatus === 'REJECTED' && card.rejectReason")
         q-icon(name="fa-solid fa-circle-exclamation", color="negative", size="14px")
         | {{ card.rejectReason }}
+      q-btn(
+        v-if="card.domainStatus === 'ACTIVE' && card.cycleType === 'open_subscription'",
+        color="primary",
+        unelevated,
+        no-caps,
+        icon="fa-solid fa-truck-fast",
+        label="Запустить поставку",
+        :loading="triggeringIds.has(card.id)",
+        @click="triggerSupply(card.id, card.title)"
+      )
 
   div.mp-my-offers__more(v-if="hasMore")
     q-btn(

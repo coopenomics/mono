@@ -1,4 +1,4 @@
-import { Queries } from '@coopenomics/sdk';
+import { Mutations, Queries } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 import type { MarketplaceOfferPage } from '../types';
 
@@ -34,4 +34,20 @@ export async function fetchMyOffers(
     },
   });
   return result[Queries.Marketplace.ListMyOffers.name] as unknown as MarketplaceOfferPage;
+}
+
+/**
+ * Эпик 4 / Story 4.2: поставщик вручную запускает поставку по своему
+ * предложению с открытой подпиской (cycle_type=open_subscription).
+ *
+ * Backend Resolver: marketplace-cycle.resolver.ts → marketplaceTriggerOpenSubscription
+ * (guard 'Offer' 'update:own'). Нажатие = акцепт всего накопленного пула:
+ * сервер формирует сводную заявку status=ACCEPTED и принимает заказы разом.
+ * Ошибки backend (пустой пул, не open_subscription, не ACTIVE, чужой Offer)
+ * приходят как GraphQL-исключения — пробрасываем их вызывающему компоненту.
+ */
+export async function triggerOpenSubscription(offer_id: string): Promise<void> {
+  await client.Mutation(Mutations.Marketplace.TriggerOpenSubscription.mutation, {
+    variables: { input: { offer_id } },
+  });
 }
