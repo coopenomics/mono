@@ -72,7 +72,7 @@ Workflow:
 pnpm jest tests/unit/marketplace/marketplace-onboarding-service.test.ts --runInBand
 ```
 
-`pnpm generate-schema` / `pnpm generate-client` — **не запускать локально**; та же memory/CPU полка вешает контейнер controller'а. Либо CI, либо пользователь сам когда контейнер остановлен.
+`pnpm generate-schema` / `pnpm generate-client` — **запускать локально можно** (ограничение снято 2026-05-26). Раньше боялись, что memory/CPU-полка повесит контейнер controller'а, но на практике генерация отрабатывает; запускать при поднятом controller'е.
 
 Перед коммитом достаточно `tsc --noEmit` (быстрый, не блокирует).
 

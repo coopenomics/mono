@@ -1,0 +1,34 @@
+import { Field, InputType } from '@nestjs/graphql';
+import { IsString, Matches, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
+
+/**
+ * Input мутации `billingConvert` (действие `billing::convert`, operation `o.bil.fund`).
+ *
+ * Конвертирует паевой взнос пайщика в членский на персональный биллинг-кошелёк
+ * (`w.wal.bill`). `amount` — строка с символом, как в apply: `"1500.0000 RUB"`.
+ * `document` — подписанное пайщиком заявление (document2): согласие на конвертацию.
+ */
+@InputType('BillingConvertInput')
+export class BillingConvertInputDTO {
+  @Field(() => String, { description: 'Имя аккаунта кооператива' })
+  @IsString()
+  coopname!: string;
+
+  @Field(() => String, { description: 'Имя аккаунта пайщика — владельца биллинг-кошелька' })
+  @IsString()
+  username!: string;
+
+  @Field(() => String, { description: 'Сумма с символом, например "1500.0000 RUB"' })
+  @IsString()
+  @Matches(/^\d+(\.\d+)?\s+[A-Z]{1,7}$/, { message: 'Формат "<amount> <SYMBOL>", например "1500.0000 RUB"' })
+  amount!: string;
+
+  @Field(() => SignedDigitalDocumentInputDTO, {
+    description: 'Подписанное пайщиком заявление на конвертацию (document2)',
+  })
+  @ValidateNested()
+  @Type(() => SignedDigitalDocumentInputDTO)
+  document!: SignedDigitalDocumentInputDTO;
+}

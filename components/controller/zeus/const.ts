@@ -128,6 +128,12 @@ export const AllTypesProps: Record<string,any> = {
 	BankAccountInput:{
 		details:"BankAccountDetailsInput"
 	},
+	BillingConvertInput:{
+		document:"SignedDigitalDocumentInput"
+	},
+	BillingPayInput:{
+
+	},
 	BuhotchSignerType: "enum" as const,
 	CalculateVotesInput:{
 
@@ -643,6 +649,12 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		addTrustedAccount:{
 			data:"AddTrustedAccountInput"
+		},
+		billingConvert:{
+			input:"BillingConvertInput"
+		},
+		billingPay:{
+			input:"BillingPayInput"
 		},
 		cancelRequest:{
 			data:"CancelRequestInput"
@@ -2112,6 +2124,10 @@ export const ReturnTypes: Record<string,any> = {
 		title:"String",
 		voting:"CapitalProjectVotingData"
 	},
+	BillingResult:{
+		paymentHash:"String",
+		transactionId:"String"
+	},
 	BlockchainAccount:{
 		account_name:"String",
 		core_liquid_balance:"String",
@@ -3506,6 +3522,8 @@ export const ReturnTypes: Record<string,any> = {
 		addParticipant:"Account",
 		addPaymentMethod:"PaymentMethod",
 		addTrustedAccount:"Branch",
+		billingConvert:"BillingResult",
+		billingPay:"BillingResult",
 		cancelRequest:"Transaction",
 		capitalAddAuthor:"CapitalProject",
 		capitalApproveCommit:"CapitalCommit",

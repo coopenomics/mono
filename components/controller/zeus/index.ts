@@ -2079,6 +2079,34 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on BaseCapitalProject']?: Omit<ValueTypes["BaseCapitalProject"], "...on BaseCapitalProject">
 }>;
+	["BillingConvertInput"]: {
+	/** Сумма с символом, например "1500.0000 RUB" */
+	amount: string | Variable<any, string>,
+	/** Имя аккаунта кооператива */
+	coopname: string | Variable<any, string>,
+	/** Подписанное пайщиком заявление на конвертацию (document2) */
+	document: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>,
+	/** Имя аккаунта пайщика — владельца биллинг-кошелька */
+	username: string | Variable<any, string>
+};
+	["BillingPayInput"]: {
+	/** Сумма с символом, например "1500.0000 RUB" */
+	amount: string | Variable<any, string>,
+	/** Имя аккаунта кооператива */
+	coopname: string | Variable<any, string>,
+	/** Назначение платежа */
+	memo: string | Variable<any, string>,
+	/** Детерминированный идентификатор платежа (payment_hash из getBillingSummary провайдера) */
+	paymentHash: string | Variable<any, string>,
+	/** Имя аккаунта пайщика — владельца биллинг-кошелька */
+	username: string | Variable<any, string>
+};
+	["BillingResult"]: AliasType<{
+	paymentHash?:boolean | `@${string}`,
+	transactionId?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on BillingResult']?: Omit<ValueTypes["BillingResult"], "...on BillingResult">
+}>;
 	["BlockchainAccount"]: AliasType<{
 	/** Имя аккаунта */
 	account_name?:boolean | `@${string}`,
@@ -6417,6 +6445,8 @@ acceptChildOrder?: [{	data: ValueTypes["AcceptChildOrderInput"] | Variable<any, 
 addParticipant?: [{	data: ValueTypes["AddParticipantInput"] | Variable<any, string>},ValueTypes["Account"]],
 addPaymentMethod?: [{	data: ValueTypes["AddPaymentMethodInput"] | Variable<any, string>},ValueTypes["PaymentMethod"]],
 addTrustedAccount?: [{	data: ValueTypes["AddTrustedAccountInput"] | Variable<any, string>},ValueTypes["Branch"]],
+billingConvert?: [{	input: ValueTypes["BillingConvertInput"] | Variable<any, string>},ValueTypes["BillingResult"]],
+billingPay?: [{	input: ValueTypes["BillingPayInput"] | Variable<any, string>},ValueTypes["BillingResult"]],
 cancelRequest?: [{	data: ValueTypes["CancelRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalAddAuthor?: [{	data: ValueTypes["AddAuthorInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
 capitalApproveCommit?: [{	data: ValueTypes["CommitApproveInput"] | Variable<any, string>},ValueTypes["CapitalCommit"]],
@@ -10523,6 +10553,33 @@ export type ResolverInputTypes = {
 	title?:boolean | `@${string}`,
 	/** Данные голосования по методу Водянова */
 	voting?:ResolverInputTypes["CapitalProjectVotingData"],
+		__typename?: boolean | `@${string}`
+}>;
+	["BillingConvertInput"]: {
+	/** Сумма с символом, например "1500.0000 RUB" */
+	amount: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Подписанное пайщиком заявление на конвертацию (document2) */
+	document: ResolverInputTypes["SignedDigitalDocumentInput"],
+	/** Имя аккаунта пайщика — владельца биллинг-кошелька */
+	username: string
+};
+	["BillingPayInput"]: {
+	/** Сумма с символом, например "1500.0000 RUB" */
+	amount: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Назначение платежа */
+	memo: string,
+	/** Детерминированный идентификатор платежа (payment_hash из getBillingSummary провайдера) */
+	paymentHash: string,
+	/** Имя аккаунта пайщика — владельца биллинг-кошелька */
+	username: string
+};
+	["BillingResult"]: AliasType<{
+	paymentHash?:boolean | `@${string}`,
+	transactionId?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["BlockchainAccount"]: AliasType<{
@@ -14748,6 +14805,8 @@ acceptChildOrder?: [{	data: ResolverInputTypes["AcceptChildOrderInput"]},Resolve
 addParticipant?: [{	data: ResolverInputTypes["AddParticipantInput"]},ResolverInputTypes["Account"]],
 addPaymentMethod?: [{	data: ResolverInputTypes["AddPaymentMethodInput"]},ResolverInputTypes["PaymentMethod"]],
 addTrustedAccount?: [{	data: ResolverInputTypes["AddTrustedAccountInput"]},ResolverInputTypes["Branch"]],
+billingConvert?: [{	input: ResolverInputTypes["BillingConvertInput"]},ResolverInputTypes["BillingResult"]],
+billingPay?: [{	input: ResolverInputTypes["BillingPayInput"]},ResolverInputTypes["BillingResult"]],
 cancelRequest?: [{	data: ResolverInputTypes["CancelRequestInput"]},ResolverInputTypes["Transaction"]],
 capitalAddAuthor?: [{	data: ResolverInputTypes["AddAuthorInput"]},ResolverInputTypes["CapitalProject"]],
 capitalApproveCommit?: [{	data: ResolverInputTypes["CommitApproveInput"]},ResolverInputTypes["CapitalCommit"]],
@@ -18737,6 +18796,32 @@ export type ModelTypes = {
 	title: string,
 	/** Данные голосования по методу Водянова */
 	voting: ModelTypes["CapitalProjectVotingData"]
+};
+	["BillingConvertInput"]: {
+	/** Сумма с символом, например "1500.0000 RUB" */
+	amount: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Подписанное пайщиком заявление на конвертацию (document2) */
+	document: ModelTypes["SignedDigitalDocumentInput"],
+	/** Имя аккаунта пайщика — владельца биллинг-кошелька */
+	username: string
+};
+	["BillingPayInput"]: {
+	/** Сумма с символом, например "1500.0000 RUB" */
+	amount: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Назначение платежа */
+	memo: string,
+	/** Детерминированный идентификатор платежа (payment_hash из getBillingSummary провайдера) */
+	paymentHash: string,
+	/** Имя аккаунта пайщика — владельца биллинг-кошелька */
+	username: string
+};
+	["BillingResult"]: {
+		paymentHash?: string | undefined | null,
+	transactionId: string
 };
 	["BlockchainAccount"]: {
 		/** Имя аккаунта */
@@ -22836,6 +22921,14 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	addTrustedAccount: ModelTypes["Branch"],
+	/** Конвертация паевого взноса пайщика в членский на биллинг-кошелёк (operation o.bil.fund). Требует подписанное пайщиком заявление (document2).
+
+Требуемые роли: user, member, chairman.  */
+	billingConvert: ModelTypes["BillingResult"],
+	/** Списание стоимости подписок с биллинг-кошелька пайщика в инфраструктурный кошелёк кооператива (operation o.bil.pay). Идемпотентно по payment_hash.
+
+Требуемые роли: chairman.  */
+	billingPay: ModelTypes["BillingResult"],
 	/** Отменить заявку */
 	cancelRequest: ModelTypes["Transaction"],
 	/** Добавление автора проекта в CAPITAL контракте
@@ -27406,6 +27499,34 @@ export type GraphQLTypes = {
 	voting: GraphQLTypes["CapitalProjectVotingData"],
 	['...on BaseCapitalProject']: Omit<GraphQLTypes["BaseCapitalProject"], "...on BaseCapitalProject">
 };
+	["BillingConvertInput"]: {
+		/** Сумма с символом, например "1500.0000 RUB" */
+	amount: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Подписанное пайщиком заявление на конвертацию (document2) */
+	document: GraphQLTypes["SignedDigitalDocumentInput"],
+	/** Имя аккаунта пайщика — владельца биллинг-кошелька */
+	username: string
+};
+	["BillingPayInput"]: {
+		/** Сумма с символом, например "1500.0000 RUB" */
+	amount: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Назначение платежа */
+	memo: string,
+	/** Детерминированный идентификатор платежа (payment_hash из getBillingSummary провайдера) */
+	paymentHash: string,
+	/** Имя аккаунта пайщика — владельца биллинг-кошелька */
+	username: string
+};
+	["BillingResult"]: {
+	__typename: "BillingResult",
+	paymentHash?: string | undefined | null,
+	transactionId: string,
+	['...on BillingResult']: Omit<GraphQLTypes["BillingResult"], "...on BillingResult">
+};
 	["BlockchainAccount"]: {
 	__typename: "BlockchainAccount",
 	/** Имя аккаунта */
@@ -31753,6 +31874,14 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	addTrustedAccount: GraphQLTypes["Branch"],
+	/** Конвертация паевого взноса пайщика в членский на биллинг-кошелёк (operation o.bil.fund). Требует подписанное пайщиком заявление (document2).
+
+Требуемые роли: user, member, chairman.  */
+	billingConvert: GraphQLTypes["BillingResult"],
+	/** Списание стоимости подписок с биллинг-кошелька пайщика в инфраструктурный кошелёк кооператива (operation o.bil.pay). Идемпотентно по payment_hash.
+
+Требуемые роли: chairman.  */
+	billingPay: GraphQLTypes["BillingResult"],
 	/** Отменить заявку */
 	cancelRequest: GraphQLTypes["Transaction"],
 	/** Добавление автора проекта в CAPITAL контракте
@@ -36003,6 +36132,8 @@ type ZEUS_VARIABLES = {
 	["AssetContributionStatementSignedMetaDocumentInput"]: ValueTypes["AssetContributionStatementSignedMetaDocumentInput"];
 	["BankAccountDetailsInput"]: ValueTypes["BankAccountDetailsInput"];
 	["BankAccountInput"]: ValueTypes["BankAccountInput"];
+	["BillingConvertInput"]: ValueTypes["BillingConvertInput"];
+	["BillingPayInput"]: ValueTypes["BillingPayInput"];
 	["BuhotchSignerType"]: ValueTypes["BuhotchSignerType"];
 	["CalculateVotesInput"]: ValueTypes["CalculateVotesInput"];
 	["CalendarEntryStatus"]: ValueTypes["CalendarEntryStatus"];

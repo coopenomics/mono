@@ -1,0 +1,52 @@
+import { Args, Mutation, Resolver } from '@nestjs/graphql';
+import { UseGuards } from '@nestjs/common';
+import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
+import { RolesGuard } from '~/application/auth/guards/roles.guard';
+import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
+import { BillingService } from '../services/billing.service';
+import { BillingConvertInputDTO } from '../dto/billing-convert-input.dto';
+import { BillingPayInputDTO } from '../dto/billing-pay-input.dto';
+import { BillingResultDTO } from '../dto/billing-result.dto';
+
+/**
+ * GraphQL фасад billing (Epic 12 — оплата инфраструктурных подписок).
+ * - `billingConvert` — пайщик конвертирует паевой взнос в членский на личный
+ *   биллинг-кошелёк (`w.wal.bill`), приложив подписанное заявление (document2);
+ * - `billingPay` — списание стоимости подписок с биллинг-кошелька в
+ *   инфраструктурный кошелёк кооператива (оператор/председатель), идемпотентно.
+ *
+ * Подпись `coopname@active` (backend ретранслирует после JWT). Состав и цены
+ * подписок on-chain не хранятся — они живут на стороне оператора (provider).
+ */
+@Resolver()
+export class BillingResolver {
+  constructor(private readonly service: BillingService) {}
+
+  @Mutation(() => BillingResultDTO, {
+    name: 'billingConvert',
+    description:
+      'Конвертация паевого взноса пайщика в членский на биллинг-кошелёк (operation o.bil.fund). ' +
+      'Требует подписанное пайщиком заявление (document2).',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['user', 'member', 'chairman'])
+  billingConvert(
+    @Args('input', { type: () => BillingConvertInputDTO }) input: BillingConvertInputDTO,
+  ): Promise<BillingResultDTO> {
+    return this.service.convert(input);
+  }
+
+  @Mutation(() => BillingResultDTO, {
+    name: 'billingPay',
+    description:
+      'Списание стоимости подписок с биллинг-кошелька пайщика в инфраструктурный ' +
+      'кошелёк кооператива (operation o.bil.pay). Идемпотентно по payment_hash.',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman'])
+  billingPay(
+    @Args('input', { type: () => BillingPayInputDTO }) input: BillingPayInputDTO,
+  ): Promise<BillingResultDTO> {
+    return this.service.pay(input);
+  }
+}
