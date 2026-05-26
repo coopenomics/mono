@@ -80,14 +80,9 @@ const userRole = computed(() =>
 const groupedItems = computed<GroupedItem[]>(() => {
 
   const result = desktop.workspaceMenus
-    .filter(
-      (item) => {
-        const hasRole = item.meta?.roles?.includes(userRole.value);
-        const noRoles = item.meta?.roles === undefined || item.meta?.roles.length === 0;
-        const passes = hasRole || noRoles;
-        return passes;
-      }
-    )
+    // Видимость столов/страниц — канон авторизации (grants) с fallback на
+    // legacy roles, единая логика в DesktopStore (isWorkspaceVisible/isPageVisible).
+    .filter((item) => desktop.isWorkspaceVisible(item))
     .map(workspace => ({
       workspaceName: workspace.workspaceName,
       title: workspace.title,
@@ -95,11 +90,7 @@ const groupedItems = computed<GroupedItem[]>(() => {
       isActive: desktop.activeWorkspaceName === workspace.workspaceName,
       pages: (workspace.mainRoute?.children || [])
         .filter((page: any) => {
-          // Фильтрация по ролям, условиям и скрытым страницам
-          const rolesMatch =
-            page.meta?.roles?.includes(userRole.value) ||
-            !page.meta?.roles ||
-            page.meta.roles.length === 0;
+          const accessMatch = desktop.isPageVisible(page.meta, workspace.workspaceName);
           const conditionMatch = page.meta?.conditions
               ? evaluateCondition(page.meta.conditions, {
                 isCoop: session.privateAccount?.type === 'organization' &&
@@ -112,7 +103,7 @@ const groupedItems = computed<GroupedItem[]>(() => {
             : true;
           const hiddenMatch = page.meta?.hidden ? !page.meta.hidden : true;
 
-          return rolesMatch && conditionMatch && hiddenMatch;
+          return accessMatch && conditionMatch && hiddenMatch;
         })
         .map((page: any) => ({
           name: page.name,

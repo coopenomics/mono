@@ -61,6 +61,7 @@ import { AgreementModule } from './application/agreement/agreement.module';
 import { ParticipantModule } from './application/participant/participant.module';
 import { AgendaModule } from './application/agenda/agenda.module';
 import { DesktopModule } from './application/desktop/desktop.module';
+import { ExtensionGrantsModule } from './application/desktop/extension-grants.registry';
 import { MeetModule } from './application/meet/meet.module';
 import { GatewayModule } from './application/gateway/gateway.module';
 import { WalletModule } from './application/wallet/wallet.module';
@@ -143,6 +144,7 @@ import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketpla
     AgendaModule,
     AppStoreModule,
     AuthModule,
+    ExtensionGrantsModule,
     DesktopModule,
     BranchModule,
     LoggerModule,

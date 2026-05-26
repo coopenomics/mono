@@ -79,7 +79,6 @@ div
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { useSessionStore } from 'src/entities/Session';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { ModalBase } from 'src/shared/ui/ModalBase';
 
@@ -100,7 +99,6 @@ interface GroupedApp {
 }
 
 const router = useRouter();
-const session = useSessionStore();
 const desktop = useDesktopStore();
 
 // Состояние карусели и диалога
@@ -148,20 +146,11 @@ const isActive = (workspaceName: string): boolean => {
 // workspaceMenus – список рабочих столов из store
 const workspaceMenus = computed(() => desktop.workspaceMenus);
 
-// Вычисляем роль пользователя
-const userRole = computed(() =>
-  session.isChairman ? 'chairman' : session.isMember ? 'member' : 'user'
-);
-
-// Фильтрация по ролям
+// Видимость столов — канон авторизации (grants) с fallback на legacy roles;
+// единая логика инкапсулирована в DesktopStore.isWorkspaceVisible.
 const menuWorkspaces = computed(() => {
   return workspaceMenus.value
-    .filter(
-      (item) =>
-        item.meta.roles?.includes(userRole.value) ||
-        item.meta.roles === undefined ||
-        item.meta.roles.length === 0
-    )
+    .filter((item) => desktop.isWorkspaceVisible(item))
     .map(item => ({
       ...item,
       extensionName: (item as any).extensionName || 'unknown'

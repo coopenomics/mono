@@ -7,6 +7,9 @@ const rawWorkspaceSelector = {
   title: true,
   icon: true,
   defaultRoute: true,
+  // Канон авторизации столов: права текущего пользователя в расширении.
+  // Поле появляется в Zeus-типах после generate-schema + generate-client.
+  grants: true,
 }
 
 // Проверка валидности

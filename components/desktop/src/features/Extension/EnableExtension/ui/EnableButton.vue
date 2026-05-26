@@ -44,13 +44,14 @@ const enable = async () => {
     // Сначала перезагружаем desktop с сервера, чтобы включённое расширение появилось
     await desktop.loadDesktop();
     // Затем динамически загружаем маршруты для включенного расширения
-    const configs = await loadExtensionRoutes(props.extensionName, router);
-    // Редирект на «домашнюю» страницу расширения (defaultRoute первого стола);
-    // для расширений с онбордингом — на страницу подключения ЦПП.
-    const home = configs?.[0]?.defaultRoute;
-    if (home) {
+    await loadExtensionRoutes(props.extensionName, router);
+    // Редирект на первую ДОСТУПНУЮ страницу расширения (канон grants): для
+    // расширений с онбордингом — страница подключения ЦПП, иначе первый
+    // видимый стол. См. DesktopStore.firstAccessibleRoute.
+    const target = desktop.firstAccessibleRoute(props.extensionName);
+    if (target) {
       const coopname = useSystemStore().info?.coopname;
-      router.push(coopname ? { name: home, params: { coopname } } : { name: home });
+      router.push(coopname ? { name: target.name, params: { coopname } } : { name: target.name });
     }
     SuccessAlert('Расширение обновлено');
   } catch (e: any) {

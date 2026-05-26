@@ -52,16 +52,17 @@ const install = async () => {
 
     // Затем динамически загружаем маршруты для установленного расширения
     console.log('🔧 [InstallExtension] Loading extension routes...');
-    const configs = await loadExtensionRoutes(props.extensionName, router);
+    await loadExtensionRoutes(props.extensionName, router);
     console.log('🔧 [InstallExtension] Extension routes loaded');
 
-    // Редирект на «домашнюю» страницу расширения (defaultRoute первого стола).
-    // Для расширений с онбордингом первый стол — стол подключения, и админа
-    // сразу ведёт на страницу принятия ЦПП, чтобы он не терялся после включения.
-    const home = configs?.[0]?.defaultRoute;
-    if (home) {
+    // Редирект на первую ДОСТУПНУЮ пользователю страницу расширения (канон
+    // grants): для расширений с онбордингом это страница подключения ЦПП, иначе —
+    // первый видимый стол/страница. Так администратор не попадает на ещё
+    // закрытый дефолтный роут (permissionDenied).
+    const target = desktop.firstAccessibleRoute(props.extensionName);
+    if (target) {
       const coopname = useSystemStore().info?.coopname;
-      router.push(coopname ? { name: home, params: { coopname } } : { name: home });
+      router.push(coopname ? { name: target.name, params: { coopname } } : { name: target.name });
     } else {
       router.push({ name: 'one-extension' });
     }

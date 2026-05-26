@@ -74,6 +74,7 @@ import {
   MARKETPLACE_ORDER_SUPPLIER_ACTION_SERVICE,
 } from './services/marketplace-order-supplier-action.service';
 import { MarketplaceOrderSyncService } from '../sync/marketplace-order-sync.service';
+import { MarketplaceDesktopGrantsProvider } from './desktop/marketplace-desktop-grants.provider';
 import {
   MarketplaceCycleAggregatorService,
   MARKETPLACE_CYCLE_AGGREGATOR_SERVICE,
@@ -185,6 +186,10 @@ import { MarketplaceInventoryEntity } from '../infrastructure/entities/marketpla
     // Guards (Story 1.3 / Story 1.6)
     MarketplaceMembershipGuard,
     MarketplaceRoleGuard,
+
+    // Канон авторизации столов: провайдер грантов market для getDesktop
+    // (само-регистрируется в глобальном ExtensionGrantsRegistry).
+    MarketplaceDesktopGrantsProvider,
 
     // Сервисы приложения
     {

@@ -47,15 +47,12 @@ export interface IRegistryExtension {
   readme: Promise<string>; // README содержимое
   instructions: Promise<string>; // INSTALL содержимое
 
-  // ── Канон онбординга расширения (опционально) ──────────────────────────
-  // Если расширение требует подключения на уровне кооператива (принятие ЦПП
-  // советом и т.п.), оно объявляет три поля. Пока `isOnboarded(config)`
-  // возвращает false, `getDesktop` отдаёт ТОЛЬКО `onboarding_desktop`
-  // (остальные столы скрыты), а фронт ведёт администратора на
-  // `onboarding_route`. Расширения без этих полей работают как раньше.
-  onboarding_route?: string; // имя роута страницы подключения (для редиректа)
-  onboarding_desktop?: string; // единственный стол, видимый до онбординга
-  isOnboarded?: (config: any) => boolean; // готовность: ЦПП принят и т.п.
+  // Канон авторизации/онбординга столов теперь выражается через grants:
+  // расширение публикует ExtensionDesktopGrantsProvider (см.
+  // domain/desktop/ports/extension-grants.port.ts), а гейтинг до принятия ЦПП
+  // сворачивается в вычисление грантов (нет прав → стол/страница не видны).
+  // Отдельные поля onboarding_route/onboarding_desktop/isOnboarded больше не
+  // нужны. Подробности — components/context/notes/EXTENSIONS_SCHEMA_SYSTEM.md.
 
   // Для обратной совместимости: если есть desktops, значит это desktop расширение
   get is_desktop(): boolean;
@@ -351,8 +348,11 @@ export const AppRegistry: INamedExtension = {
     // `extensions/market/install.ts`: фронт привязывает маршруты только к тем
     // workspace'ам, что объявлены здесь (desktop.interactor → DesktopStore.setRoutes).
     // Если стол не объявлен в этом списке — его маршруты молча теряются.
-    // Видимость по ролям задаётся на фронте (meta.roles родительского маршрута):
-    // Стол администратора виден только chairman + члену совета, остальные — всем.
+    // Видимость столов/страниц — канон авторизации (grants): backend
+    // (MarketplaceDesktopGrantsProvider) выдаёт права текущему пользователю,
+    // фронт сверяет с ними `meta.requires` маршрутов. До принятия ЦПП советом
+    // у председателя только Extension:configure (страница подключения), у
+    // остальных — пусто; после принятия — полный набор по ролям.
     desktops: [
       {
         name: 'market',
@@ -384,13 +384,6 @@ export const AppRegistry: INamedExtension = {
     tags: ['стол', 'управление'],
     readme: getReadmeContent('./marketplace'),
     instructions: getInstructionsContent('./marketplace'),
-    // Канон онбординга: пока совет не принял ЦПП «Стол заказов»
-    // (config.coopAcceptance.accepted === false), виден только Стол
-    // администратора со страницей подключения ЦПП.
-    onboarding_route: 'marketplace-onboarding-coop-cpp',
-    onboarding_desktop: 'market-admin',
-    isOnboarded: (config: { coopAcceptance?: { accepted?: boolean } }) =>
-      Boolean(config?.coopAcceptance?.accepted),
     get is_desktop() {
       return !!this.desktops && this.desktops.length > 0;
     },

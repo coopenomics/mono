@@ -6,6 +6,7 @@ export class DesktopWorkspaceDomainEntity implements DesktopWorkspaceDomainInter
   public readonly extension_name: string;
   public readonly icon?: string;
   public readonly defaultRoute?: string;
+  public readonly grants?: string[];
 
   constructor(data: DesktopWorkspaceDomainInterface) {
     this.name = data.name;
@@ -13,5 +14,6 @@ export class DesktopWorkspaceDomainEntity implements DesktopWorkspaceDomainInter
     this.extension_name = data.extension_name;
     this.icon = data.icon;
     this.defaultRoute = data.defaultRoute;
+    this.grants = data.grants;
   }
 }
