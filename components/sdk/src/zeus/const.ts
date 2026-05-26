@@ -1514,6 +1514,9 @@ export const AllTypesProps: Record<string,any> = {
 			filters:"ActionFiltersInput",
 			pagination:"PaginationInput"
 		},
+		getBillingSummary:{
+
+		},
 		getBranches:{
 			data:"GetBranchesInput"
 		},
@@ -2127,6 +2130,23 @@ export const ReturnTypes: Record<string,any> = {
 	BillingResult:{
 		paymentHash:"String",
 		transactionId:"String"
+	},
+	BillingSummary:{
+		coopname:"String",
+		currency:"String",
+		items:"BillingSummaryItem",
+		nextPaymentDue:"String",
+		paymentHash:"String",
+		periodDays:"Int",
+		totalAmount:"Float"
+	},
+	BillingSummaryItem:{
+		amount:"Float",
+		isFree:"Boolean",
+		status:"String",
+		subscriptionId:"Int",
+		subscriptionTypeId:"Int",
+		subscriptionTypeName:"String"
 	},
 	BlockchainAccount:{
 		account_name:"String",
@@ -4187,6 +4207,7 @@ export const ReturnTypes: Record<string,any> = {
 		getActions:"PaginatedActionsPaginationResult",
 		getAgenda:"AgendaWithDocuments",
 		getAvailableReports:"AvailableReport",
+		getBillingSummary:"BillingSummary",
 		getBranches:"Branch",
 		getCapitalIssueLogs:"PaginatedCapitalLogsPaginationResult",
 		getCapitalOnboardingState:"CapitalOnboardingState",

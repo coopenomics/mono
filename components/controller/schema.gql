@@ -1401,6 +1401,25 @@ type BillingResult {
   transactionId: String!
 }
 
+type BillingSummary {
+  coopname: String!
+  currency: String!
+  items: [BillingSummaryItem!]!
+  nextPaymentDue: String
+  paymentHash: String!
+  periodDays: Int!
+  totalAmount: Float!
+}
+
+type BillingSummaryItem {
+  amount: Float!
+  isFree: Boolean!
+  status: String!
+  subscriptionId: Int!
+  subscriptionTypeId: Int!
+  subscriptionTypeName: String!
+}
+
 type BlockchainAccount {
   """Имя аккаунта"""
   account_name: String!
@@ -10468,6 +10487,13 @@ type Query {
   Требуемые роли: chairman. 
   """
   getAvailableReports: [AvailableReport!]!
+
+  """
+  Сумма к оплате кооператива за период (стоимость платных подписок, разбивка, дата следующего платежа, payment_hash). Источник — provider backend оператора. Для реестра кооперативов Восхода.
+  
+  Требуемые роли: chairman, member. 
+  """
+  getBillingSummary(coopname: String!, period: Float): BillingSummary!
 
   """Получить список кооперативных участков"""
   getBranches(data: GetBranchesInput!): [Branch!]!

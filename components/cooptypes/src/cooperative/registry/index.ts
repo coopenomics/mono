@@ -65,6 +65,8 @@ export * as GenerationConvertStatement from './1080.GenerationConvertStatement'
 
 export * as CapitalizationToMainWalletConvertStatement from './1090.CapitalizationToMainWalletConvertStatement'
 
+export * as BillingConversionStatement from './1095.BillingConversionStatement'
+
 export * as SosediAgreement from './699.SosediAgreement'
 
 // общие собрания

@@ -2107,6 +2107,27 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on BillingResult']?: Omit<ValueTypes["BillingResult"], "...on BillingResult">
 }>;
+	["BillingSummary"]: AliasType<{
+	coopname?:boolean | `@${string}`,
+	currency?:boolean | `@${string}`,
+	items?:ValueTypes["BillingSummaryItem"],
+	nextPaymentDue?:boolean | `@${string}`,
+	paymentHash?:boolean | `@${string}`,
+	periodDays?:boolean | `@${string}`,
+	totalAmount?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on BillingSummary']?: Omit<ValueTypes["BillingSummary"], "...on BillingSummary">
+}>;
+	["BillingSummaryItem"]: AliasType<{
+	amount?:boolean | `@${string}`,
+	isFree?:boolean | `@${string}`,
+	status?:boolean | `@${string}`,
+	subscriptionId?:boolean | `@${string}`,
+	subscriptionTypeId?:boolean | `@${string}`,
+	subscriptionTypeName?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on BillingSummaryItem']?: Omit<ValueTypes["BillingSummaryItem"], "...on BillingSummaryItem">
+}>;
 	["BlockchainAccount"]: AliasType<{
 	/** Имя аккаунта */
 	account_name?:boolean | `@${string}`,
@@ -7866,6 +7887,7 @@ getActions?: [{	filters?: ValueTypes["ActionFiltersInput"] | undefined | null | 
 
 Требуемые роли: chairman.  */
 	getAvailableReports?:ValueTypes["AvailableReport"],
+getBillingSummary?: [{	coopname: string | Variable<any, string>,	period?: number | undefined | null | Variable<any, string>},ValueTypes["BillingSummary"]],
 getBranches?: [{	data: ValueTypes["GetBranchesInput"] | Variable<any, string>},ValueTypes["Branch"]],
 getCapitalIssueLogs?: [{	data: ValueTypes["GetCapitalIssueLogsInput"] | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalLogsPaginationResult"]],
 	/** Получить состояние онбординга capital
@@ -10580,6 +10602,25 @@ export type ResolverInputTypes = {
 	["BillingResult"]: AliasType<{
 	paymentHash?:boolean | `@${string}`,
 	transactionId?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["BillingSummary"]: AliasType<{
+	coopname?:boolean | `@${string}`,
+	currency?:boolean | `@${string}`,
+	items?:ResolverInputTypes["BillingSummaryItem"],
+	nextPaymentDue?:boolean | `@${string}`,
+	paymentHash?:boolean | `@${string}`,
+	periodDays?:boolean | `@${string}`,
+	totalAmount?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["BillingSummaryItem"]: AliasType<{
+	amount?:boolean | `@${string}`,
+	isFree?:boolean | `@${string}`,
+	status?:boolean | `@${string}`,
+	subscriptionId?:boolean | `@${string}`,
+	subscriptionTypeId?:boolean | `@${string}`,
+	subscriptionTypeName?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["BlockchainAccount"]: AliasType<{
@@ -16171,6 +16212,7 @@ getActions?: [{	filters?: ResolverInputTypes["ActionFiltersInput"] | undefined |
 
 Требуемые роли: chairman.  */
 	getAvailableReports?:ResolverInputTypes["AvailableReport"],
+getBillingSummary?: [{	coopname: string,	period?: number | undefined | null},ResolverInputTypes["BillingSummary"]],
 getBranches?: [{	data: ResolverInputTypes["GetBranchesInput"]},ResolverInputTypes["Branch"]],
 getCapitalIssueLogs?: [{	data: ResolverInputTypes["GetCapitalIssueLogsInput"],	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalLogsPaginationResult"]],
 	/** Получить состояние онбординга capital
@@ -18822,6 +18864,23 @@ export type ModelTypes = {
 	["BillingResult"]: {
 		paymentHash?: string | undefined | null,
 	transactionId: string
+};
+	["BillingSummary"]: {
+		coopname: string,
+	currency: string,
+	items: Array<ModelTypes["BillingSummaryItem"]>,
+	nextPaymentDue?: string | undefined | null,
+	paymentHash: string,
+	periodDays: number,
+	totalAmount: number
+};
+	["BillingSummaryItem"]: {
+		amount: number,
+	isFree: boolean,
+	status: string,
+	subscriptionId: number,
+	subscriptionTypeId: number,
+	subscriptionTypeName: string
 };
 	["BlockchainAccount"]: {
 		/** Имя аккаунта */
@@ -24787,6 +24846,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	getAvailableReports: Array<ModelTypes["AvailableReport"]>,
+	/** Сумма к оплате кооператива за период (стоимость платных подписок, разбивка, дата следующего платежа, payment_hash). Источник — provider backend оператора. Для реестра кооперативов Восхода.
+
+Требуемые роли: chairman, member.  */
+	getBillingSummary: ModelTypes["BillingSummary"],
 	/** Получить список кооперативных участков */
 	getBranches: Array<ModelTypes["Branch"]>,
 	/** Получить логи событий по задаче */
@@ -27526,6 +27589,27 @@ export type GraphQLTypes = {
 	paymentHash?: string | undefined | null,
 	transactionId: string,
 	['...on BillingResult']: Omit<GraphQLTypes["BillingResult"], "...on BillingResult">
+};
+	["BillingSummary"]: {
+	__typename: "BillingSummary",
+	coopname: string,
+	currency: string,
+	items: Array<GraphQLTypes["BillingSummaryItem"]>,
+	nextPaymentDue?: string | undefined | null,
+	paymentHash: string,
+	periodDays: number,
+	totalAmount: number,
+	['...on BillingSummary']: Omit<GraphQLTypes["BillingSummary"], "...on BillingSummary">
+};
+	["BillingSummaryItem"]: {
+	__typename: "BillingSummaryItem",
+	amount: number,
+	isFree: boolean,
+	status: string,
+	subscriptionId: number,
+	subscriptionTypeId: number,
+	subscriptionTypeName: string,
+	['...on BillingSummaryItem']: Omit<GraphQLTypes["BillingSummaryItem"], "...on BillingSummaryItem">
 };
 	["BlockchainAccount"]: {
 	__typename: "BlockchainAccount",
@@ -33871,6 +33955,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	getAvailableReports: Array<GraphQLTypes["AvailableReport"]>,
+	/** Сумма к оплате кооператива за период (стоимость платных подписок, разбивка, дата следующего платежа, payment_hash). Источник — provider backend оператора. Для реестра кооперативов Восхода.
+
+Требуемые роли: chairman, member.  */
+	getBillingSummary: GraphQLTypes["BillingSummary"],
 	/** Получить список кооперативных участков */
 	getBranches: Array<GraphQLTypes["Branch"]>,
 	/** Получить логи событий по задаче */

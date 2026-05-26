@@ -1,5 +1,6 @@
 export * as Accounts from './accounts'
 export * as Agenda from './agenda'
+export * as Billing from './billing'
 export * as Agreements from './agreements'
 export * as BlockchainExplorer from './blockchain-explorer'
 export * as Branches from './branches'

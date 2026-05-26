@@ -1,4 +1,4 @@
-import { Args, Mutation, Resolver } from '@nestjs/graphql';
+import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
 import { RolesGuard } from '~/application/auth/guards/roles.guard';
@@ -7,6 +7,7 @@ import { BillingService } from '../services/billing.service';
 import { BillingConvertInputDTO } from '../dto/billing-convert-input.dto';
 import { BillingPayInputDTO } from '../dto/billing-pay-input.dto';
 import { BillingResultDTO } from '../dto/billing-result.dto';
+import { BillingSummaryDTO } from '../dto/billing-summary.dto';
 
 /**
  * GraphQL фасад billing (Epic 12 — оплата инфраструктурных подписок).
@@ -21,6 +22,22 @@ import { BillingResultDTO } from '../dto/billing-result.dto';
 @Resolver()
 export class BillingResolver {
   constructor(private readonly service: BillingService) {}
+
+  @Query(() => BillingSummaryDTO, {
+    name: 'getBillingSummary',
+    description:
+      'Сумма к оплате кооператива за период (стоимость платных подписок, разбивка, ' +
+      'дата следующего платежа, payment_hash). Источник — provider backend оператора. ' +
+      'Для реестра кооперативов Восхода.',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member'])
+  getBillingSummary(
+    @Args('coopname', { type: () => String }) coopname: string,
+    @Args('period', { type: () => Number, nullable: true }) period?: number,
+  ): Promise<BillingSummaryDTO> {
+    return this.service.getBillingSummary(coopname, period ?? 30);
+  }
 
   @Mutation(() => BillingResultDTO, {
     name: 'billingConvert',

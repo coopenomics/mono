@@ -3,9 +3,11 @@ import {
   BILLING_BLOCKCHAIN_PORT,
   type BillingBlockchainPort,
 } from '~/domain/billing/ports/billing-blockchain.port';
+import { BillingProviderClient } from '~/infrastructure/billing/billing-provider.client';
 import type { BillingConvertInputDTO } from '../dto/billing-convert-input.dto';
 import type { BillingPayInputDTO } from '../dto/billing-pay-input.dto';
 import type { BillingResultDTO } from '../dto/billing-result.dto';
+import type { BillingSummaryDTO } from '../dto/billing-summary.dto';
 
 /**
  * Application-сервис billing (Epic 12). Тонкий фасад: валидацию входа делают
@@ -17,7 +19,32 @@ import type { BillingResultDTO } from '../dto/billing-result.dto';
 export class BillingService {
   constructor(
     @Inject(BILLING_BLOCKCHAIN_PORT) private readonly blockchainPort: BillingBlockchainPort,
+    private readonly providerClient: BillingProviderClient,
   ) {}
+
+  /**
+   * Сумма к оплате кооператива за период — проекция provider getBillingSummary
+   * для реестра кооперативов (сумма/дата след. платежа/free-метки/payment_hash).
+   */
+  async getBillingSummary(coopname: string, periodDays = 30): Promise<BillingSummaryDTO> {
+    const s = await this.providerClient.getBillingSummary(coopname, periodDays);
+    return {
+      coopname: s.coopname,
+      periodDays: s.period_days,
+      totalAmount: s.total_amount,
+      currency: s.currency,
+      paymentHash: s.payment_hash,
+      nextPaymentDue: s.next_payment_due,
+      items: (s.items ?? []).map((i) => ({
+        subscriptionId: i.subscription_id,
+        subscriptionTypeId: i.subscription_type_id,
+        subscriptionTypeName: i.subscription_type_name,
+        status: i.status,
+        amount: i.amount,
+        isFree: i.is_free,
+      })),
+    };
+  }
 
   async convert(input: BillingConvertInputDTO): Promise<BillingResultDTO> {
     const result = await this.blockchainPort.convert({
