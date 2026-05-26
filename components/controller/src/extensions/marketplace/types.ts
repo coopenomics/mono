@@ -31,18 +31,16 @@ export interface ICoopAcceptanceConfig {
 /**
  * Story 8.3 (Эпик 8): настройки авто-проекта списания скоропорта.
  *
- * `auto_proposal_enabled` — если true, ежемесячный крон собирает позиции
- * `MarketplaceInventory.expiry_date <= now + expiry_grace_days` в DRAFT-
- * проект и шлёт нотификацию председателю на ревью. Если false, крон
+ * `auto_proposal_enabled` — если true, ежемесячный крон собирает позиции с
+ * УЖЕ истёкшим сроком годности (`MarketplaceInventory.expiry_date <= now`) в
+ * DRAFT-проект и шлёт нотификацию председателю на ревью. Если false, крон
  * только пушит напоминание; председатель формирует корзину вручную.
  *
- * `expiry_grace_days` — окно опережения: за сколько дней до фактического
- * `expiry_date` позиция должна попадать в кандидаты на списание (например,
- * 7 — отбирать позиции, у которых до истечения срока меньше недели).
+ * Списываем по факту порчи (срок годности истёк), а не заранее: на списание
+ * попадает только то, что уже непригодно.
  */
 export interface IWriteoffConfig {
   auto_proposal_enabled: boolean;
-  expiry_grace_days: number;
 }
 
 // Конфигурация для расширения marketplace
@@ -63,8 +61,7 @@ export const defaultConfig: IConfig = {
     accepted_by_board_decision_id: '',
   },
   writeoff: {
-    auto_proposal_enabled: false,
-    expiry_grace_days: 7,
+    auto_proposal_enabled: true,
   },
 };
 
@@ -95,32 +92,19 @@ export const Schema = z.object({
     .object({
       auto_proposal_enabled: z
         .boolean()
-        .default(false)
+        .default(true)
         .describe(
           describeField({
-            label: 'Автоматически формировать проект списания скоропорта',
-            note: 'Если включено, по расписанию собирается проект списания товаров с истекающим сроком годности и отправляется председателю на ревью. Если выключено — приходит только напоминание.',
-          })
-        ),
-      expiry_grace_days: z
-        .number()
-        .int()
-        .min(0)
-        .default(7)
-        .describe(
-          describeField({
-            label: 'Запас по сроку годности',
-            note: 'За сколько дней до истечения срока годности товар попадает в кандидаты на списание.',
-            rules: ['val >= 0'],
-            append: 'дн.',
+            label: 'Автоматически формировать проект списания',
+            note: 'Если включено, раз в месяц собирается проект списания товаров с истёкшим сроком годности и отправляется председателю на ревью. Если выключено — приходит только напоминание.',
           })
         ),
     })
-    .default({ auto_proposal_enabled: false, expiry_grace_days: 7 })
+    .default({ auto_proposal_enabled: true })
     .describe(
       describeField({
         label: 'Списание скоропорта',
-        note: 'Настройки автоматического списания товаров с истекающим сроком годности.',
+        note: 'Настройки автоматического списания товаров с истёкшим сроком годности.',
       })
     ),
 });

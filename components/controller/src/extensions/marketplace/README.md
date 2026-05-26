@@ -171,8 +171,7 @@ interface IConfig {
   };
   // Настройки автосписания скоропорта (видимы в форме установки).
   writeoff: {
-    auto_proposal_enabled: boolean; // Автоформирование проекта списания
-    expiry_grace_days: number;      // Запас по сроку годности (дней)
+    auto_proposal_enabled: boolean; // Автоформирование проекта списания (по умолчанию вкл.)
   };
 }
 ```
