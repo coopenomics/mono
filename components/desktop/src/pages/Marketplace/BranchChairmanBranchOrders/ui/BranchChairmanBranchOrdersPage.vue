@@ -23,7 +23,7 @@ import type { MarketplaceReturnClaimView } from '../../OperatorReturnClaims/api'
  *
  * Поле braname автозаполняется из `marketplaceWhoAmI.branches` — список КУ,
  * где пайщик доверенное лицо (on-chain branch.trustee/trusted через
- * MarketplaceKuChairmenService.listBranamesForMember). Один участок —
+ * MarketplaceKuChairmanService.listBranamesForMember). Один участок —
  * подставляется сразу; несколько — берётся первый, поле остаётся редактируемым
  * для ручного переключения.
  */

@@ -9,9 +9,9 @@ import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import { canAccess } from '../access/marketplace-access-matrix';
 import type { MarketplaceRole } from '../membership/marketplace-roles.mapper';
 import {
-  MARKETPLACE_KU_CHAIRMEN_SERVICE,
-  type MarketplaceKuChairmenService,
-} from '../services/marketplace-ku-chairmen.service';
+  MARKETPLACE_KU_CHAIRMAN_SERVICE,
+  type MarketplaceKuChairmanService,
+} from '../services/marketplace-ku-chairman.service';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import {
   MarketplaceInventoryItemDTO,
@@ -45,8 +45,8 @@ export class MarketplaceInventoryResolver {
     private readonly labelService: MarketplaceInventoryLabelService,
     @Inject(MARKETPLACE_INVENTORY_REPOSITORY)
     private readonly inventoryRepo: MarketplaceInventoryDomainRepository,
-    @Inject(MARKETPLACE_KU_CHAIRMEN_SERVICE)
-    private readonly kuChairmenService: MarketplaceKuChairmenService
+    @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
+    private readonly kuChairmanService: MarketplaceKuChairmanService
   ) {}
 
   @Mutation(() => MarketplaceLabelInventoryResultDTO, {
@@ -122,7 +122,7 @@ export class MarketplaceInventoryResolver {
     // `read:own-KU` (оператор/председатель КУ) ограничивается своими КУ.
     let branameFilter: string | string[] | undefined = data?.braname;
     if (!canAccess(roles, 'Warehouse', 'read:all')) {
-      const ownBranames = await this.kuChairmenService.listBranamesForMember(
+      const ownBranames = await this.kuChairmanService.listBranamesForMember(
         coopname,
         member.username
       );

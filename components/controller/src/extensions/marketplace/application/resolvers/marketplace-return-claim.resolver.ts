@@ -22,9 +22,9 @@ import {
 } from '../dto/marketplace-return-claim.dto';
 import { MarketplaceReturnClaimService } from '../services/marketplace-return-claim.service';
 import {
-  MARKETPLACE_KU_CHAIRMEN_SERVICE,
-  type MarketplaceKuChairmenService,
-} from '../services/marketplace-ku-chairmen.service';
+  MARKETPLACE_KU_CHAIRMAN_SERVICE,
+  type MarketplaceKuChairmanService,
+} from '../services/marketplace-ku-chairman.service';
 import { Inject } from '@nestjs/common';
 import { toMarketplaceReturnClaimDTO } from './marketplace-return-claim.mapper';
 
@@ -53,8 +53,8 @@ function toGeneratedDocumentDTO(e: DocumentDomainEntity): GeneratedDocumentDTO {
 export class MarketplaceReturnClaimResolver {
   constructor(
     private readonly service: MarketplaceReturnClaimService,
-    @Inject(MARKETPLACE_KU_CHAIRMEN_SERVICE)
-    private readonly kuChairmenService: MarketplaceKuChairmenService
+    @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
+    private readonly kuChairmanService: MarketplaceKuChairmanService
   ) {}
 
   @Query(() => GeneratedDocumentDTO, {
@@ -220,8 +220,8 @@ export class MarketplaceReturnClaimResolver {
   ): Promise<MarketplaceReturnClaimDTO[]> {
     // Ownership `:own-KU` — пайщик должен быть trustee или trusted
     // именно того КУ, к которому привязано заявление. Проверка идёт
-    // через единый источник истины состава КУ (MarketplaceKuChairmenService).
-    const isMember = await this.kuChairmenService.isMemberOfBranch(
+    // через единый источник истины состава КУ (MarketplaceKuChairmanService).
+    const isMember = await this.kuChairmanService.isMemberOfBranch(
       config.coopname,
       data.delivery_braname,
       member.username
@@ -256,7 +256,7 @@ export class MarketplaceReturnClaimResolver {
     const isOwnerOrderer = claim.orderer_account === member.username;
     const isOperatorOfDeliveryKu =
       member.marketplace_roles.includes('operator') &&
-      (await this.kuChairmenService.isMemberOfBranch(
+      (await this.kuChairmanService.isMemberOfBranch(
         config.coopname,
         claim.delivery_braname,
         member.username

@@ -7,9 +7,9 @@ import { NOVU_WORKFLOW_PORT, type NovuWorkflowPort } from '~/domain/notification
 import { ACCOUNT_DATA_PORT, type AccountDataPort } from '~/domain/account/ports/account-data.port';
 import type { WorkflowTriggerDomainInterface } from '~/domain/notification/interfaces/workflow-trigger-domain.interface';
 import {
-  MARKETPLACE_KU_CHAIRMEN_SERVICE,
-  type MarketplaceKuChairmenService,
-} from './marketplace-ku-chairmen.service';
+  MARKETPLACE_KU_CHAIRMAN_SERVICE,
+  type MarketplaceKuChairmanService,
+} from './marketplace-ku-chairman.service';
 import {
   MARKETPLACE_APL_SUPPLIER_SIGN_REQUEST_EVENT,
   MARKETPLACE_CASHIER_NEW_PAYMENT_EVENT,
@@ -51,8 +51,8 @@ export class MarketplaceNotificationService implements OnModuleInit {
     private readonly novuWorkflowPort: NovuWorkflowPort,
     @Inject(ACCOUNT_DATA_PORT)
     private readonly accountPort: AccountDataPort,
-    @Inject(MARKETPLACE_KU_CHAIRMEN_SERVICE)
-    private readonly kuChairmenService: MarketplaceKuChairmenService,
+    @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
+    private readonly kuChairmanService: MarketplaceKuChairmanService,
     private readonly logger: WinstonLoggerService
   ) {
     this.logger.setContext(MarketplaceNotificationService.name);
@@ -236,7 +236,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
       // равны в правах по столу ПВЗ, новый return-claim видят все. Veerom
       // (несколько Novu-триггеров) сохраняет инвариант «никто не пропустил»
       // без ввода понятия «главный получатель уведомления».
-      const operators = await this.kuChairmenService.listOperatorsOfBranch(
+      const operators = await this.kuChairmanService.listOperatorsOfBranch(
         event.coopname,
         event.delivery_braname
       );

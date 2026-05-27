@@ -7,7 +7,7 @@ import {
   type BranchBlockchainPort,
 } from '~/domain/branch/interfaces/branch-blockchain.port';
 
-export const MARKETPLACE_KU_CHAIRMEN_SERVICE = Symbol('MARKETPLACE_KU_CHAIRMEN_SERVICE');
+export const MARKETPLACE_KU_CHAIRMAN_SERVICE = Symbol('MARKETPLACE_KU_CHAIRMAN_SERVICE');
 
 interface IBranchesCacheEntry {
   branches: BranchContract.Tables.Branches.IBranch[];
@@ -41,7 +41,7 @@ interface IBranchesCacheEntry {
  * состав КУ, дёргают `invalidate(coopname)`.
  */
 @Injectable()
-export class MarketplaceKuChairmenService {
+export class MarketplaceKuChairmanService {
   private static readonly BRANCHES_CACHE_TTL_MS = 60_000;
   private readonly branchesCache = new Map<string, IBranchesCacheEntry>();
 
@@ -114,7 +114,7 @@ export class MarketplaceKuChairmenService {
     const branches = await this.branchPort.getBranches(coopname);
     this.branchesCache.set(coopname, {
       branches,
-      expires_at: now + MarketplaceKuChairmenService.BRANCHES_CACHE_TTL_MS,
+      expires_at: now + MarketplaceKuChairmanService.BRANCHES_CACHE_TTL_MS,
     });
     return branches;
   }

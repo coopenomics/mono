@@ -19,11 +19,11 @@ import { MarketplaceIssuanceResolver } from '~/extensions/marketplace/applicatio
 const makeResolver = (isMember: boolean) => {
   const service = {} as any;
   const orderRepo = { listForIssuanceByBraname: jest.fn().mockResolvedValue([]) } as any;
-  const kuChairmenService = {
+  const kuChairmanService = {
     isMemberOfBranch: jest.fn().mockResolvedValue(isMember),
   } as any;
-  const resolver = new MarketplaceIssuanceResolver(service, orderRepo, kuChairmenService);
-  return { resolver, orderRepo, kuChairmenService };
+  const resolver = new MarketplaceIssuanceResolver(service, orderRepo, kuChairmanService);
+  return { resolver, orderRepo, kuChairmanService };
 };
 
 const asMember = (roles: string[]) =>
@@ -31,11 +31,11 @@ const asMember = (roles: string[]) =>
 
 describe('marketplaceListIssuancesByBraname ownership-scoping', () => {
   it('operator-член запрашиваемого КУ → лента отдаётся', async () => {
-    const { resolver, orderRepo, kuChairmenService } = makeResolver(true);
+    const { resolver, orderRepo, kuChairmanService } = makeResolver(true);
     await resolver.marketplaceListIssuancesByBraname(asMember(['operator']), {
       delivery_braname: 'krg',
     } as any);
-    expect(kuChairmenService.isMemberOfBranch).toHaveBeenCalledWith('voskhod', 'krg', 'op');
+    expect(kuChairmanService.isMemberOfBranch).toHaveBeenCalledWith('voskhod', 'krg', 'op');
     expect(orderRepo.listForIssuanceByBraname).toHaveBeenCalledWith('voskhod', 'krg');
   });
 
@@ -68,18 +68,18 @@ const makePayloadResolver = (order: any, isMember: boolean) => {
     }),
   } as any;
   const orderRepo = { findById: jest.fn().mockResolvedValue(order) } as any;
-  const kuChairmenService = { isMemberOfBranch: jest.fn().mockResolvedValue(isMember) } as any;
-  const resolver = new MarketplaceIssuanceResolver(service, orderRepo, kuChairmenService);
-  return { resolver, service, orderRepo, kuChairmenService };
+  const kuChairmanService = { isMemberOfBranch: jest.fn().mockResolvedValue(isMember) } as any;
+  const resolver = new MarketplaceIssuanceResolver(service, orderRepo, kuChairmanService);
+  return { resolver, service, orderRepo, kuChairmanService };
 };
 
 describe('marketplaceIssueActChairmanSignablePayload ownership-scoping', () => {
   it('operator-член КУ заказа → превью отдаётся', async () => {
-    const { resolver, service, kuChairmenService } = makePayloadResolver(orderOf({}), true);
+    const { resolver, service, kuChairmanService } = makePayloadResolver(orderOf({}), true);
     await resolver.marketplaceIssueActChairmanSignablePayload(asMember(['operator']), {
       order_id: 'o1',
     } as any);
-    expect(kuChairmenService.isMemberOfBranch).toHaveBeenCalledWith('voskhod', 'krg', 'op');
+    expect(kuChairmanService.isMemberOfBranch).toHaveBeenCalledWith('voskhod', 'krg', 'op');
     expect(service.getOpenIssuanceSignablePayload).toHaveBeenCalledWith('voskhod', 'o1', 'op');
   });
 

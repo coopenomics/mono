@@ -28,6 +28,7 @@ import {
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import type { MarketplaceOrderCreateTxSnapshot } from '../../domain/entities/marketplace-order.types';
 import { toChainCycleType } from '../../domain/entities/marketplace-offer.types';
+import { rethrowChainError } from '../shared/chain-tx.util';
 
 export interface MarketplaceOrderCreateInputDto {
   /** coopname кооператива. Берётся из core-сессии в resolver'е. */
@@ -180,7 +181,7 @@ export class MarketplaceOrderCreateService {
           compErr.stack
         );
       }
-      this.rethrowChainError(error);
+      rethrowChainError(error);
     }
 
     // ── 5. Persist PG row Order с tx snapshot ──────────────────────
@@ -355,19 +356,6 @@ export class MarketplaceOrderCreateService {
     }
     const block_num = t?.response?.processed?.block_num ?? 0;
     return { tx_hash, block_num };
-  }
-
-  /**
-   * Антелопе chain exception приходит в exception.message с трейсом и
-   * `assertion failure with message: <текст>`. Эта функция вытаскивает
-   * чистое сообщение и оборачивает в BadRequestException для clean
-   * пользовательского ответа.
-   */
-  private rethrowChainError(error: any): never {
-    const raw: string = error?.message ?? String(error);
-    const match = raw.match(/assertion failure with message: (.+?)(?:\n|$)/);
-    const clean = match ? match[1].trim() : raw;
-    throw new BadRequestException(clean);
   }
 }
 

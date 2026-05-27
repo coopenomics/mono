@@ -1,8 +1,13 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
+import { WalletContract } from 'cooptypes';
 import { PAYMENT_REPOSITORY, PaymentRepository } from '~/domain/gateway/repositories/payment.repository';
 import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum';
 import type { ActionDomainInterface } from '~/domain/parser/interfaces/action-domain.interface';
+
+const WALLET = WalletContract.contractName.production;
+const AUTH_WITHDRAW_EVENT = `action::${WALLET}::${WalletContract.Actions.AuthWithdraw.actionName}`;
+const DECLINE_WITHDRAW_EVENT = `action::${WALLET}::${WalletContract.Actions.DeclineWithdraw.actionName}`;
 
 /**
  * Переключает статус исходящего платежа в зависимости от on-chain решения совета.
@@ -23,7 +28,7 @@ export class WithdrawAuthorizationListener {
     private readonly paymentRepository: PaymentRepository,
   ) {}
 
-  @OnEvent('action::wallet::authwthd')
+  @OnEvent(AUTH_WITHDRAW_EVENT)
   async onAuthWithdraw(action: ActionDomainInterface): Promise<void> {
     const withdraw_hash = action?.data?.withdraw_hash as string | undefined;
     if (!withdraw_hash) return;
@@ -41,7 +46,7 @@ export class WithdrawAuthorizationListener {
     this.logger.log(`authwthd: платёж ${payment.id} → PENDING (совет авторизовал выплату)`);
   }
 
-  @OnEvent('action::wallet::declinewthd')
+  @OnEvent(DECLINE_WITHDRAW_EVENT)
   async onDeclineWithdraw(action: ActionDomainInterface): Promise<void> {
     const withdraw_hash = action?.data?.withdraw_hash as string | undefined;
     if (!withdraw_hash) return;

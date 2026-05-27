@@ -13,6 +13,7 @@ import {
   type MarketplaceCanonicalBlockchainPort,
 } from '../../domain/ports/marketplace-canonical-blockchain.port';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
+import { normalizeChainTxHash, rethrowChainError } from '../shared/chain-tx.util';
 
 export interface MarketplaceOrderCancelInputDto {
   /** coopname кооператива. Берётся из core-сессии в resolver'е. */
@@ -108,13 +109,16 @@ export class MarketplaceOrderCancelService {
         orderer: input.orderer_account,
         order_hash: order.order_hash,
       });
-      txHash = this.normalizeTxHash(tx);
+      txHash = normalizeChainTxHash(
+        tx,
+        'Отмена заказа: цепь не вернула tx_hash. Повторите попытку.'
+      );
     } catch (error: any) {
       this.logger.error(
         `MarketplaceOrderCancelService: chain.cancelOrder fail для Order ${order.id} (orderer=${input.orderer_account}): ${error.message}`,
         error.stack
       );
-      this.rethrowChainError(error);
+      rethrowChainError(error);
     }
 
     // ── 3. Counter onOrderUnblocked (best-effort) ───────────────────
@@ -138,41 +142,6 @@ export class MarketplaceOrderCancelService {
     );
 
     return { order: updated, tx_hash: txHash! };
-  }
-
-  private normalizeTxHash(tx: unknown): string {
-    // wharfkit TransactResult держит Antelope push_transaction response под
-    // `response` (response.processed.id / response.transaction_id). Для
-    // совместимости со spec-тестами поддерживаем и плоский processed.id.
-    const t = tx as {
-      transaction?: { id?: string };
-      processed?: { id?: string };
-      response?: {
-        transaction_id?: string;
-        processed?: { id?: string };
-      };
-    };
-    const hash =
-      t?.response?.processed?.id ??
-      t?.response?.transaction_id ??
-      t?.processed?.id ??
-      t?.transaction?.id;
-    if (!hash) {
-      // fail-fast: цепь приняла action, но не вернула tx_hash — audit-trail
-      // станет фантомным ('unknown') без возможности cross-reference. Лучше
-      // отбить отмену пайщику и попросить retry, чем записать «unknown».
-      throw new BadRequestException(
-        'Отмена заказа: цепь не вернула tx_hash. Повторите попытку.'
-      );
-    }
-    return hash;
-  }
-
-  private rethrowChainError(error: any): never {
-    const raw: string = error?.message ?? String(error);
-    const match = raw.match(/assertion failure with message: (.+?)(?:\n|$)/);
-    const clean = match ? match[1].trim() : raw;
-    throw new BadRequestException(clean);
   }
 }
 

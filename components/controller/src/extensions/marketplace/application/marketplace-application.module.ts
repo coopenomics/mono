@@ -33,9 +33,9 @@ import {
   MARKETPLACE_WHITELIST_SERVICE,
 } from './services/marketplace-whitelist.service';
 import {
-  MarketplaceKuChairmenService,
-  MARKETPLACE_KU_CHAIRMEN_SERVICE,
-} from './services/marketplace-ku-chairmen.service';
+  MarketplaceKuChairmanService,
+  MARKETPLACE_KU_CHAIRMAN_SERVICE,
+} from './services/marketplace-ku-chairman.service';
 import {
   MarketplaceVitrineService,
   MARKETPLACE_VITRINE_SERVICE,
@@ -204,10 +204,10 @@ import { MarketplaceInventoryEntity } from '../infrastructure/entities/marketpla
     // Эпик 2 / Story 2.x — источник isKuChairman (trustee ИЛИ trusted
     // одного из branches кооператива) для marketplace-роли `operator`.
     {
-      provide: MARKETPLACE_KU_CHAIRMEN_SERVICE,
-      useClass: MarketplaceKuChairmenService,
+      provide: MARKETPLACE_KU_CHAIRMAN_SERVICE,
+      useClass: MarketplaceKuChairmanService,
     },
-    MarketplaceKuChairmenService,
+    MarketplaceKuChairmanService,
     {
       provide: MARKETPLACE_VITRINE_SERVICE,
       useClass: MarketplaceVitrineService,
@@ -328,8 +328,8 @@ import { MarketplaceInventoryEntity } from '../infrastructure/entities/marketpla
     MarketplaceCoopAcceptanceService,
     MARKETPLACE_WHITELIST_SERVICE,
     MarketplaceWhitelistService,
-    MARKETPLACE_KU_CHAIRMEN_SERVICE,
-    MarketplaceKuChairmenService,
+    MARKETPLACE_KU_CHAIRMAN_SERVICE,
+    MarketplaceKuChairmanService,
     MARKETPLACE_VITRINE_SERVICE,
     MarketplaceVitrineService,
     MARKETPLACE_OFFER_SERVICE,

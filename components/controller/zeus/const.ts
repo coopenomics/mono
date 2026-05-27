@@ -754,6 +754,12 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceListOrdersInput:{
 		statuses:"MarketplaceOrderStatus"
 	},
+	MarketplaceListOutgoingPaymentsAsSupplierFilterInput:{
+		statuses:"MarketplaceOutgoingPaymentRequestStatus"
+	},
+	MarketplaceListOutgoingPaymentsFilterInput:{
+		statuses:"MarketplaceOutgoingPaymentRequestStatus"
+	},
 	MarketplaceListPendingOffersInput:{
 
 	},
@@ -1980,10 +1986,10 @@ export const AllTypesProps: Record<string,any> = {
 			options:"PaginationInput"
 		},
 		marketplaceListOutgoingPayments:{
-			statuses:"MarketplaceOutgoingPaymentRequestStatus"
+			filter:"MarketplaceListOutgoingPaymentsFilterInput"
 		},
 		marketplaceListOutgoingPaymentsAsSupplier:{
-			statuses:"MarketplaceOutgoingPaymentRequestStatus"
+			filter:"MarketplaceListOutgoingPaymentsAsSupplierFilterInput"
 		},
 		marketplaceListPendingOffers:{
 			input:"MarketplaceListPendingOffersInput"

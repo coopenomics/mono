@@ -22,7 +22,7 @@ export type MarketplaceRole =
  * `MarketplaceWhitelistService.isOfferer`.
  *
  * `isKuChairman` — Эпик 2 (ПВЗ): пайщик имеет операционные полномочия
- * на хотя бы одном КУ кооператива. Источник — `MarketplaceKuChairmenService.isKuChairman`,
+ * на хотя бы одном КУ кооператива. Источник — `MarketplaceKuChairmanService.isKuChairman`,
  * семантика «trustee ИЛИ trusted одного из branches» (trustee и trusted
  * равны в правах по столу ПВЗ — приёмка, выдача, маркировка, склад).
  */

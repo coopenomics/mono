@@ -1,55 +1,21 @@
 /**
  * Эпик 3 / Story 3.4: типы offerer-стола «Мои предложения».
- * Источник истины — backend MarketplaceOfferDTO + MarketplaceOfferStatuses.
+ * Источник истины — Zeus-вывод операции marketplaceListMyOffers из @coopenomics/sdk.
  */
 
-export type MarketplaceOfferStatusView =
-  | 'PENDING_MODERATION'
-  | 'ACTIVE'
-  | 'REJECTED'
-  | 'WITHDRAWN';
+import { Queries } from '@coopenomics/sdk';
 
-export type MarketplaceOfferCycleTypeView =
-  | 'time_based'
-  | 'volume_based'
-  | 'open_subscription'
-  | 'individual';
+export type MarketplaceOfferPage =
+  Queries.Marketplace.ListMyOffers.IOutput['marketplaceListMyOffers'];
 
-export interface MarketplaceOfferView {
-  id: string;
-  coopname: string;
-  supplier_account: string;
-  vitrine_id: string | null;
-  product_name: string;
-  description: string | null;
-  category_id: string | null;
-  price_per_unit: string;
-  unit_of_measure: string;
-  quantity_available: number;
-  quantity_blocked: number;
-  quantity_consumed: number;
-  unlimited_flag: boolean;
-  cycle_type: MarketplaceOfferCycleTypeView;
-  cycle_days: number | null;
-  target_volume: number | null;
-  max_wait_days: number | null;
-  min_threshold: number | null;
-  warranty_days: number;
-  barcode_strategy: string;
-  pack_size: number | null;
-  status: MarketplaceOfferStatusView;
-  approved_by: string | null;
-  approved_at: string | null;
-  rejected_by: string | null;
-  rejected_at: string | null;
-  reject_reason: string | null;
-  created_at: string;
-  updated_at: string;
-}
+export type MarketplaceOfferView = MarketplaceOfferPage['items'][number];
 
-export interface MarketplaceOfferPage {
-  items: MarketplaceOfferView[];
-  totalCount: number;
-  totalPages: number;
-  currentPage: number;
-}
+/**
+ * Источник статусов/типов цикла — Zeus-enum'ы из @coopenomics/sdk. Берём
+ * строковое значение поля Zeus-вывода (`${...}`), чтобы UI-карты статусов и
+ * фильтры одинаково принимали и строковые литералы, и enum-значения из
+ * самих предложений.
+ */
+export type MarketplaceOfferStatusView = `${MarketplaceOfferView['status']}`;
+
+export type MarketplaceOfferCycleTypeView = `${MarketplaceOfferView['cycle_type']}`;

@@ -427,7 +427,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
         // Стол ПВЗ открыт двум профилям пайщиков:
         //  - cooperative chairman (core-роль `chairman`) — видит все КУ;
         //  - председатель КУ или его доверенное лицо (marketplace-роль
-        //    `operator`, выдаётся через `MarketplaceKuChairmenService`).
+        //    `operator`, выдаётся через `MarketplaceKuChairmanService`).
         // OR-логика подключается router-guard'ом при наличии обоих
         // ограничений (см. processes/navigation-guard-setup).
         meta: {

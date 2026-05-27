@@ -16,8 +16,13 @@ export function defectCategoryLabel(category?: string | null): string {
   return DEFECT_CATEGORY_LABELS[category] ?? category;
 }
 
-export type MarketplaceReturnClaimView =
+type _RawReturnClaim =
   Queries.Marketplace.ListReturnClaimsByBraname.IOutput['marketplaceListReturnClaimsByBraname'][number];
+
+/** DateTime из Zeus приходит как `unknown`; дату создания переопределяем на строку для UI. */
+export type MarketplaceReturnClaimView = Omit<_RawReturnClaim, 'created_at'> & {
+  created_at: string;
+};
 
 export type MarketplaceReturnClaimResultView =
   Mutations.Marketplace.ApproveReturnVisit.IOutput['marketplaceApproveReturnVisit'];
@@ -44,7 +49,8 @@ export async function listReturnClaimsByBraname(
     Queries.Marketplace.ListReturnClaimsByBraname.query,
     { variables: { data } },
   );
-  return result;
+  // Zeus отдаёт DateTime как unknown; сужаем дату создания до строки во view-типе.
+  return result as MarketplaceReturnClaimView[];
 }
 
 export async function approveReturnVisit(

@@ -6867,6 +6867,16 @@ export type ValueTypes = {
 	/** Фильтр по аккаунту поставщика. */
 	supplier_account?: string | undefined | null | Variable<any, string>
 };
+	["MarketplaceListOutgoingPaymentsAsSupplierFilterInput"]: {
+	/** Фильтр по статусам выплат. Пусто — показывать все статусы. */
+	statuses?: Array<ValueTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null | Variable<any, string>
+};
+	["MarketplaceListOutgoingPaymentsFilterInput"]: {
+	/** Фильтр по статусам выплат. Пусто — показывать все статусы. */
+	statuses?: Array<ValueTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null | Variable<any, string>,
+	/** Поставщик-получатель выплаты. Пусто — по всем поставщикам. */
+	supplier_account?: string | undefined | null | Variable<any, string>
+};
 	["MarketplaceListPendingOffersInput"]: {
 	/** Количество элементов на странице */
 	limit: number | Variable<any, string>,
@@ -9594,8 +9604,8 @@ marketplaceListMyOrders?: [{	input?: ValueTypes["MarketplaceListOrdersInput"] | 
 	marketplaceListMyReadyToReceive?:ValueTypes["MarketplaceOrder"],
 	/** Все заявления текущего пайщика на гарантийный возврат — активные и архивные. */
 	marketplaceListMyReturnClaims?:ValueTypes["MarketplaceReturnClaim"],
-marketplaceListOutgoingPayments?: [{	statuses?: Array<ValueTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null | Variable<any, string>,	supplier_account?: string | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOutgoingPaymentRequest"]],
-marketplaceListOutgoingPaymentsAsSupplier?: [{	statuses?: Array<ValueTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOutgoingPaymentRequest"]],
+marketplaceListOutgoingPayments?: [{	filter?: ValueTypes["MarketplaceListOutgoingPaymentsFilterInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOutgoingPaymentRequest"]],
+marketplaceListOutgoingPaymentsAsSupplier?: [{	filter?: ValueTypes["MarketplaceListOutgoingPaymentsAsSupplierFilterInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOutgoingPaymentRequest"]],
 marketplaceListPendingOffers?: [{	input?: ValueTypes["MarketplaceListPendingOffersInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOfferPaginationResult"]],
 marketplaceListReturnClaimsByBraname?: [{	data: ValueTypes["MarketplaceListReturnClaimsByBranameInput"] | Variable<any, string>},ValueTypes["MarketplaceReturnClaim"]],
 marketplaceListShipments?: [{	data?: ValueTypes["MarketplaceListShipmentsInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceShipment"]],
@@ -16819,6 +16829,16 @@ export type ResolverInputTypes = {
 	/** Фильтр по аккаунту поставщика. */
 	supplier_account?: string | undefined | null
 };
+	["MarketplaceListOutgoingPaymentsAsSupplierFilterInput"]: {
+	/** Фильтр по статусам выплат. Пусто — показывать все статусы. */
+	statuses?: Array<ResolverInputTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null
+};
+	["MarketplaceListOutgoingPaymentsFilterInput"]: {
+	/** Фильтр по статусам выплат. Пусто — показывать все статусы. */
+	statuses?: Array<ResolverInputTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null,
+	/** Поставщик-получатель выплаты. Пусто — по всем поставщикам. */
+	supplier_account?: string | undefined | null
+};
 	["MarketplaceListPendingOffersInput"]: {
 	/** Количество элементов на странице */
 	limit: number,
@@ -19449,8 +19469,8 @@ marketplaceListMyOrders?: [{	input?: ResolverInputTypes["MarketplaceListOrdersIn
 	marketplaceListMyReadyToReceive?:ResolverInputTypes["MarketplaceOrder"],
 	/** Все заявления текущего пайщика на гарантийный возврат — активные и архивные. */
 	marketplaceListMyReturnClaims?:ResolverInputTypes["MarketplaceReturnClaim"],
-marketplaceListOutgoingPayments?: [{	statuses?: Array<ResolverInputTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null,	supplier_account?: string | undefined | null},ResolverInputTypes["MarketplaceOutgoingPaymentRequest"]],
-marketplaceListOutgoingPaymentsAsSupplier?: [{	statuses?: Array<ResolverInputTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null},ResolverInputTypes["MarketplaceOutgoingPaymentRequest"]],
+marketplaceListOutgoingPayments?: [{	filter?: ResolverInputTypes["MarketplaceListOutgoingPaymentsFilterInput"] | undefined | null},ResolverInputTypes["MarketplaceOutgoingPaymentRequest"]],
+marketplaceListOutgoingPaymentsAsSupplier?: [{	filter?: ResolverInputTypes["MarketplaceListOutgoingPaymentsAsSupplierFilterInput"] | undefined | null},ResolverInputTypes["MarketplaceOutgoingPaymentRequest"]],
 marketplaceListPendingOffers?: [{	input?: ResolverInputTypes["MarketplaceListPendingOffersInput"] | undefined | null},ResolverInputTypes["MarketplaceOfferPaginationResult"]],
 marketplaceListReturnClaimsByBraname?: [{	data: ResolverInputTypes["MarketplaceListReturnClaimsByBranameInput"]},ResolverInputTypes["MarketplaceReturnClaim"]],
 marketplaceListShipments?: [{	data?: ResolverInputTypes["MarketplaceListShipmentsInput"] | undefined | null},ResolverInputTypes["MarketplaceShipment"]],
@@ -26448,6 +26468,16 @@ export type ModelTypes = {
 	/** Один или несколько статусов заказа, по которым нужно отфильтровать список. */
 	statuses?: Array<ModelTypes["MarketplaceOrderStatus"]> | undefined | null,
 	/** Фильтр по аккаунту поставщика. */
+	supplier_account?: string | undefined | null
+};
+	["MarketplaceListOutgoingPaymentsAsSupplierFilterInput"]: {
+	/** Фильтр по статусам выплат. Пусто — показывать все статусы. */
+	statuses?: Array<ModelTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null
+};
+	["MarketplaceListOutgoingPaymentsFilterInput"]: {
+	/** Фильтр по статусам выплат. Пусто — показывать все статусы. */
+	statuses?: Array<ModelTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null,
+	/** Поставщик-получатель выплаты. Пусто — по всем поставщикам. */
 	supplier_account?: string | undefined | null
 };
 	["MarketplaceListPendingOffersInput"]: {
@@ -36997,6 +37027,16 @@ export type GraphQLTypes = {
 	/** Фильтр по аккаунту поставщика. */
 	supplier_account?: string | undefined | null
 };
+	["MarketplaceListOutgoingPaymentsAsSupplierFilterInput"]: {
+		/** Фильтр по статусам выплат. Пусто — показывать все статусы. */
+	statuses?: Array<GraphQLTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null
+};
+	["MarketplaceListOutgoingPaymentsFilterInput"]: {
+		/** Фильтр по статусам выплат. Пусто — показывать все статусы. */
+	statuses?: Array<GraphQLTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null,
+	/** Поставщик-получатель выплаты. Пусто — по всем поставщикам. */
+	supplier_account?: string | undefined | null
+};
 	["MarketplaceListPendingOffersInput"]: {
 		/** Количество элементов на странице */
 	limit: number,
@@ -42933,6 +42973,8 @@ type ZEUS_VARIABLES = {
 	["MarketplaceListIssuancesByBranameInput"]: ValueTypes["MarketplaceListIssuancesByBranameInput"];
 	["MarketplaceListMyOffersInput"]: ValueTypes["MarketplaceListMyOffersInput"];
 	["MarketplaceListOrdersInput"]: ValueTypes["MarketplaceListOrdersInput"];
+	["MarketplaceListOutgoingPaymentsAsSupplierFilterInput"]: ValueTypes["MarketplaceListOutgoingPaymentsAsSupplierFilterInput"];
+	["MarketplaceListOutgoingPaymentsFilterInput"]: ValueTypes["MarketplaceListOutgoingPaymentsFilterInput"];
 	["MarketplaceListPendingOffersInput"]: ValueTypes["MarketplaceListPendingOffersInput"];
 	["MarketplaceListReturnClaimsByBranameInput"]: ValueTypes["MarketplaceListReturnClaimsByBranameInput"];
 	["MarketplaceListShipmentsByBranameInput"]: ValueTypes["MarketplaceListShipmentsByBranameInput"];

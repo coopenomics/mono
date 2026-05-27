@@ -1336,10 +1336,18 @@ type Branch {
   """Краткое название организации"""
   short_name: String!
 
-  """Доверенные аккаунты"""
+  """
+  Доверенные аккаунты
+  
+  Требуемые роли: chairman, member. 
+  """
   trusted: [Individual!]!
 
-  """Председатель кооперативного участка"""
+  """
+  Председатель кооперативного участка
+  
+  Требуемые роли: chairman, member. 
+  """
   trustee: Individual!
 
   """Тип организации"""
@@ -7595,6 +7603,10 @@ input MarketplaceCreateWriteoffDraftInput {
 }
 
 type MarketplaceCurrentMember {
+  """
+  Кооперативные участки, в которых пайщик — доверенное лицо (для столов оператора ПВЗ)
+  """
+  branches: [String!]!
   core_roles: [String!]!
   marketplace_roles: [String!]!
   username: String!
@@ -8065,6 +8077,19 @@ input MarketplaceListOrdersInput {
   supplier_account: String
 }
 
+input MarketplaceListOutgoingPaymentsAsSupplierFilterInput {
+  """Фильтр по статусам выплат. Пусто — показывать все статусы."""
+  statuses: [MarketplaceOutgoingPaymentRequestStatus!]
+}
+
+input MarketplaceListOutgoingPaymentsFilterInput {
+  """Фильтр по статусам выплат. Пусто — показывать все статусы."""
+  statuses: [MarketplaceOutgoingPaymentRequestStatus!]
+
+  """Поставщик-получатель выплаты. Пусто — по всем поставщикам."""
+  supplier_account: String
+}
+
 input MarketplaceListPendingOffersInput {
   """Количество элементов на странице"""
   limit: Int! = 10
@@ -8082,6 +8107,14 @@ input MarketplaceListPendingOffersInput {
 input MarketplaceListReturnClaimsByBranameInput {
   """Кооперативный участок (delivery_braname исходного заказа)."""
   delivery_braname: String!
+}
+
+input MarketplaceListShipmentsByBranameInput {
+  """Кооперативный участок получения партий."""
+  braname: String!
+
+  """Фильтр по статусам партий — например, ожидаемые к приёмке."""
+  statuses: [MarketplaceShipmentStatus!]
 }
 
 input MarketplaceListShipmentsInput {
@@ -9656,214 +9689,460 @@ input MoveCapitalIssueToComponentInput {
 type Mutation {
   """
   Добавить активного пайщика, который вступил в кооператив, не используя платформу (заполнив заявление собственноручно, оплатив вступительный и минимальный паевый взносы, и получив протокол решения совета)
+  
+  Требуемые роли: chairman, member. 
   """
   addParticipant(data: AddParticipantInput!): Account!
 
   """Добавить метод оплаты (банковский счёт или СБП)"""
   addPaymentMethod(data: AddPaymentMethodInput!): PaymentMethod!
 
-  """Добавить доверенное лицо кооперативного участка"""
+  """
+  Добавить доверенное лицо кооперативного участка
+  
+  Требуемые роли: chairman. 
+  """
   addTrustedAccount(data: AddTrustedAccountInput!): Branch!
 
-  """Архивировать карточку"""
+  """
+  Архивировать карточку
+  
+  Требуемые роли: chairman, member, user. 
+  """
   archiveProductCard(id: String!): Boolean!
 
-  """Добавление автора проекта в CAPITAL контракте"""
+  """
+  Добавление автора проекта в CAPITAL контракте
+  
+  Требуемые роли: chairman. 
+  """
   capitalAddAuthor(data: AddAuthorInput!): CapitalProject!
 
-  """Одобрение коммита в CAPITAL контракте"""
+  """
+  Одобрение коммита в CAPITAL контракте
+  
+  Требуемые роли: chairman, member, user. 
+  """
   capitalApproveCommit(data: CommitApproveInput!): CapitalCommit!
 
-  """Расчет голосов в CAPITAL контракте"""
+  """
+  Расчет голосов в CAPITAL контракте
+  
+  Требуемые роли: chairman, member, user. 
+  """
   capitalCalculateVotes(data: CalculateVotesInput!): CapitalSegment!
 
-  """Закрытие проекта от инвестиций в CAPITAL контракте"""
+  """
+  Закрытие проекта от инвестиций в CAPITAL контракте
+  
+  Требуемые роли: chairman. 
+  """
   capitalCloseProject(data: CloseProjectInput!): CapitalProject!
 
-  """Завершение шага процесса"""
+  """
+  Завершение шага процесса
+  
+  Требуемые роли: chairman, member, user. 
+  """
   capitalCompleteProcessStep(data: CompleteProcessStepInput!): ProcessInstance!
 
   """
   Завершение регистрации в Capital через отправку документов в блокчейн (regcontrib)
+  
+  Требуемые роли: chairman. 
   """
   capitalCompleteRegistration(data: CompleteCapitalRegistrationInputDTO!): Transaction!
 
-  """Завершение голосования в CAPITAL контракте"""
+  """
+  Завершение голосования в CAPITAL контракте
+  
+  Требуемые роли: chairman. 
+  """
   capitalCompleteVoting(data: CompleteVotingInput!): Transaction!
 
-  """Конвертация сегмента в CAPITAL контракте"""
+  """
+  Конвертация сегмента в CAPITAL контракте
+  
+  Требуемые роли: chairman, member. 
+  """
   capitalConvertSegment(data: ConvertSegmentInput!): CapitalSegment!
 
-  """Создание коммита в CAPITAL контракте"""
+  """
+  Создание коммита в CAPITAL контракте
+  
+  Требуемые роли: chairman. 
+  """
   capitalCreateCommit(data: CreateCommitInput!): CapitalCommit!
 
-  """Создание цикла в CAPITAL контракте"""
+  """
+  Создание цикла в CAPITAL контракте
+  
+  Требуемые роли: chairman. 
+  """
   capitalCreateCycle(data: CreateCycleInput!): CapitalCycle!
 
-  """Получение ссуды в CAPITAL контракте"""
+  """
+  Получение ссуды в CAPITAL контракте
+  
+  Требуемые роли: participant. 
+  """
   capitalCreateDebt(data: CreateDebtInput!): Transaction!
 
-  """Создание расхода в CAPITAL контракте"""
+  """
+  Создание расхода в CAPITAL контракте
+  
+  Требуемые роли: chairman. 
+  """
   capitalCreateExpense(data: CreateExpenseInput!): Transaction!
 
-  """Создание задачи в CAPITAL контракте"""
+  """
+  Создание задачи в CAPITAL контракте
+  
+  Требуемые роли: chairman, member, user. 
+  """
   capitalCreateIssue(data: CreateIssueInput!): CapitalIssue!
 
-  """Создание шаблона процесса"""
+  """
+  Создание шаблона процесса
+  
+  Требуемые роли: chairman, member. 
+  """
   capitalCreateProcessTemplate(data: CreateProcessTemplateInput!): ProcessTemplate!
 
-  """Инвестирование в программу благорост (денежная программная инвестиция)"""
+  """
+  Инвестирование в программу благорост (денежная программная инвестиция)
+  
+  Требуемые роли: participant. 
+  """
   capitalCreateProgramInvest(data: CreateProgramInvestInput!): Transaction!
 
-  """Создание программного имущественного взноса в CAPITAL контракте"""
+  """
+  Создание программного имущественного взноса в CAPITAL контракте
+  
+  Требуемые роли: participant. 
+  """
   capitalCreateProgramProperty(data: CreateProgramPropertyInput!): Transaction!
 
-  """Создание проекта в CAPITAL контракте"""
+  """
+  Создание проекта в CAPITAL контракте
+  
+  Требуемые роли: chairman, member. 
+  """
   capitalCreateProject(data: CreateProjectInput!): Transaction!
 
-  """Инвестирование в проект CAPITAL контракта"""
+  """
+  Инвестирование в проект CAPITAL контракта
+  
+  Требуемые роли: participant. 
+  """
   capitalCreateProjectInvest(data: CreateProjectInvestInput!): Transaction!
 
-  """Создание проектного имущественного взноса в CAPITAL контракте"""
+  """
+  Создание проектного имущественного взноса в CAPITAL контракте
+  
+  Требуемые роли: participant. 
+  """
   capitalCreateProjectProperty(data: CreateProjectPropertyInput!): Transaction!
 
-  """Создание истории в CAPITAL контракте"""
+  """
+  Создание истории в CAPITAL контракте
+  
+  Требуемые роли: chairman, member, user. 
+  """
   capitalCreateStory(data: CreateStoryInput!): CapitalStory!
 
-  """Отклонение коммита в CAPITAL контракте"""
+  """
+  Отклонение коммита в CAPITAL контракте
+  
+  Требуемые роли: chairman, member, user. 
+  """
   capitalDeclineCommit(data: CommitDeclineInput!): CapitalCommit!
 
-  """Удаление задачи по хэшу"""
+  """
+  Удаление задачи по хэшу
+  
+  Требуемые роли: chairman. 
+  """
   capitalDeleteIssue(data: DeleteCapitalIssueByHashInput!): Boolean!
 
-  """Удаление шаблона процесса"""
+  """
+  Удаление шаблона процесса
+  
+  Требуемые роли: chairman, member. 
+  """
   capitalDeleteProcessTemplate(id: String!): Boolean!
 
-  """Удаление проекта в CAPITAL контракте"""
+  """
+  Удаление проекта в CAPITAL контракте
+  
+  Требуемые роли: chairman. 
+  """
   capitalDeleteProject(data: DeleteProjectInput!): Transaction!
 
-  """Удаление истории по хэшу"""
+  """
+  Удаление истории по хэшу
+  
+  Требуемые роли: chairman, member, user. 
+  """
   capitalDeleteStory(data: DeleteCapitalStoryByHashInput!): Boolean!
 
-  """Редактирование параметров участника в CAPITAL контракте"""
+  """
+  Редактирование параметров участника в CAPITAL контракте
+  
+  Требуемые роли: chairman. 
+  """
   capitalEditContributor(data: EditContributorInput!): CapitalContributor!
 
-  """Редактирование проекта в CAPITAL контракте"""
+  """
+  Редактирование проекта в CAPITAL контракте
+  
+  Требуемые роли: chairman, member, user. 
+  """
   capitalEditProject(data: EditProjectInput!): Transaction!
 
   """
   Финализация проекта в CAPITAL контракте после завершения всех конвертаций участников
+  
+  Требуемые роли: chairman. 
   """
   capitalFinalizeProject(data: FinalizeProjectInput!): CapitalProject!
 
-  """Финансирование программы CAPITAL контракта"""
+  """
+  Финансирование программы CAPITAL контракта
+  
+  Требуемые роли: chairman. 
+  """
   capitalFundProgram(data: FundProgramInput!): Transaction!
 
-  """Сгенерировать соглашение о благороста"""
+  """
+  Сгенерировать соглашение о благороста
+  
+  Требуемые роли: chairman, member. 
+  """
   capitalGenerateCapitalizationAgreement(data: GenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
-  """Сгенерировать заявление об инвестировании в благорост"""
+  """
+  Сгенерировать заявление об инвестировании в благорост
+  
+  Требуемые роли: chairman, member. 
+  """
   capitalGenerateCapitalizationMoneyInvestStatement(data: GenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
-  """Сгенерировать акт об инвестировании имуществом в благорост"""
+  """
+  Сгенерировать акт об инвестировании имуществом в благорост
+  
+  Требуемые роли: chairman, member. 
+  """
   capitalGenerateCapitalizationPropertyInvestAct(data: GenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
-  """Сгенерировать решение об инвестировании имуществом в благорост"""
+  """
+  Сгенерировать решение об инвестировании имуществом в благорост
+  
+  Требуемые роли: chairman, member. 
+  """
   capitalGenerateCapitalizationPropertyInvestDecision(data: GenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
-  """Сгенерировать заявление об инвестировании имуществом в благорост"""
+  """
+  Сгенерировать заявление об инвестировании имуществом в благорост
+  
+  Требуемые роли: chairman, member. 
+  """
   capitalGenerateCapitalizationPropertyInvestStatement(data: GenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
-  """Сгенерировать заявление о конвертации из благороста в основной кошелек"""
+  """
+  Сгенерировать заявление о конвертации из благороста в основной кошелек
+  
+  Требуемые роли: chairman, member. 
+  """
   capitalGenerateCapitalizationToMainWalletConvertStatement(data: GenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
-  """Сгенерировать документ дополнения к приложению для компонента"""
+  """
+  Сгенерировать документ дополнения к приложению для компонента
+  
+  Требуемые роли: chairman, member. 
+  """
   capitalGenerateComponentGenerationContract(data: ComponentGenerationContractGenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
-  """Сгенерировать решение о расходе"""
+  """
+  Сгенерировать решение о расходе
+  
+  Требуемые роли: chairman, member. 
+  """
   capitalGenerateExpenseDecision(data: GenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
-  """Сгенерировать заявление о расходе"""
+  """
+  Сгенерировать заявление о расходе
+  
+  Требуемые роли: chairman, member. 
+  """
   capitalGenerateExpenseStatement(data: GenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
-  """Сгенерировать генерационное соглашение"""
+  """
+  Сгенерировать генерационное соглашение
+  
+  Требуемые роли: chairman, member. 
+  """
   capitalGenerateGenerationContract(data: GenerationContractGenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
   """
   Сгенерировать заявление о конвертации целевого паевого взноса (в Цифровой Кошелёк и/или в программу «Благорост»)
+  
+  Требуемые роли: chairman, member. 
   """
   capitalGenerateGenerationConvertStatement(data: GenerationConvertStatementGenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
-  """Сгенерировать заявление об инвестировании в генерацию"""
+  """
+  Сгенерировать заявление об инвестировании в генерацию
+  
+  Требуемые роли: chairman, member. 
+  """
   capitalGenerateGenerationMoneyInvestStatement(data: GenerationMoneyInvestStatementGenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
-  """Сгенерировать акт об инвестировании имуществом в генерацию"""
+  """
+  Сгенерировать акт об инвестировании имуществом в генерацию
+  
+  Требуемые роли: chairman, member. 
+  """
   capitalGenerateGenerationPropertyInvestAct(data: GenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
-  """Сгенерировать решение об инвестировании имуществом в генерацию"""
+  """
+  Сгенерировать решение об инвестировании имуществом в генерацию
+  
+  Требуемые роли: chairman, member. 
+  """
   capitalGenerateGenerationPropertyInvestDecision(data: GenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
-  """Сгенерировать заявление об инвестировании имуществом в генерацию"""
+  """
+  Сгенерировать заявление об инвестировании имуществом в генерацию
+  
+  Требуемые роли: chairman, member. 
+  """
   capitalGenerateGenerationPropertyInvestStatement(data: GenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
-  """Сгенерировать решение о получении займа"""
+  """
+  Сгенерировать решение о получении займа
+  
+  Требуемые роли: chairman, member. 
+  """
   capitalGenerateGetLoanDecision(data: GenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
-  """Сгенерировать заявление о получении займа"""
+  """
+  Сгенерировать заявление о получении займа
+  
+  Требуемые роли: chairman, member. 
+  """
   capitalGenerateGetLoanStatement(data: GenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
   """
   Сгенерировать заявление об инвестировании в программу благороста (без привязки к проекту)
+  
+  Требуемые роли: chairman, member, user. 
   """
   capitalGenerateProgramMoneyInvestStatement(data: ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
-  """Сгенерировать документ приложения к договору участия для проекта"""
+  """
+  Сгенерировать документ приложения к договору участия для проекта
+  
+  Требуемые роли: chairman, member. 
+  """
   capitalGenerateProjectGenerationContract(data: ProjectGenerationContractGenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
   """
   Генерация пачки документов для завершения регистрации в Capital (GenerationContract, StorageAgreement, BlagorostAgreement)
+  
+  Требуемые роли: chairman, member. 
   """
   capitalGenerateRegistrationDocuments(data: GenerateCapitalRegistrationDocumentsInputDTO!): GenerateCapitalRegistrationDocumentsOutputDTO!
 
-  """Сгенерировать акт о вкладе результатов"""
+  """
+  Сгенерировать акт о вкладе результатов
+  
+  Требуемые роли: chairman, member. 
+  """
   capitalGenerateResultContributionAct(data: ResultContributionActGenerateInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
-  """Сгенерировать решение о вкладе результатов"""
+  """
+  Сгенерировать решение о вкладе результатов
+  
+  Требуемые роли: chairman, member. 
+  """
   capitalGenerateResultContributionDecision(data: ResultContributionDecisionGenerateInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
-  """Сгенерировать заявление о вкладе результатов"""
+  """
+  Сгенерировать заявление о вкладе результатов
+  
+  Требуемые роли: chairman, member. 
+  """
   capitalGenerateResultContributionStatement(data: ResultContributionStatementGenerateInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
-  """Импорт участника в CAPITAL контракт"""
+  """
+  Импорт участника в CAPITAL контракт
+  
+  Требуемые роли: chairman. 
+  """
   capitalImportContributor(data: ImportContributorInput!): Transaction!
 
-  """Подписание приложения в CAPITAL контракте"""
+  """
+  Подписание приложения в CAPITAL контракте
+  
+  Требуемые роли: chairman. 
+  """
   capitalMakeClearance(data: MakeClearanceInput!): Transaction!
 
   """
   Перенос задачи между компонентами одного проекта (без закоммиченного времени и использованных Git-привязок)
+  
+  Требуемые роли: chairman, member, user. 
   """
   capitalMoveIssueToComponent(data: MoveCapitalIssueToComponentInput!): CapitalIssue!
 
-  """Открытие проекта для инвестиций в CAPITAL контракте"""
+  """
+  Открытие проекта для инвестиций в CAPITAL контракте
+  
+  Требуемые роли: chairman. 
+  """
   capitalOpenProject(data: OpenProjectInput!): CapitalProject!
 
-  """Внесение результата в CAPITAL контракте"""
+  """
+  Внесение результата в CAPITAL контракте
+  
+  Требуемые роли: chairman, member, user. 
+  """
   capitalPushResult(data: PushResultInput!): CapitalSegment!
 
-  """Обновление CRPS пайщика в программе CAPITAL контракта"""
+  """
+  Обновление CRPS пайщика в программе CAPITAL контракта
+  
+  Требуемые роли: chairman. 
+  """
   capitalRefreshProgram(data: RefreshProgramInput!): Transaction!
 
-  """Обновление сегмента в CAPITAL контракте"""
+  """
+  Обновление сегмента в CAPITAL контракте
+  
+  Требуемые роли: chairman, member, user. 
+  """
   capitalRefreshSegment(data: RefreshSegmentInput!): CapitalSegment
 
-  """Регистрация участника в CAPITAL контракте"""
+  """
+  Регистрация участника в CAPITAL контракте
+  
+  Требуемые роли: chairman. 
+  """
   capitalRegisterContributor(data: RegisterContributorInput!): Transaction!
 
-  """Установка конфигурации CAPITAL контракта"""
+  """
+  Установка конфигурации CAPITAL контракта
+  
+  Требуемые роли: chairman. 
+  """
   capitalSetConfig(data: SetConfigInput!): Transaction!
 
-  """Установка мастера проекта в CAPITAL контракте"""
+  """
+  Установка мастера проекта в CAPITAL контракте
+  
+  Требуемые роли: chairman. 
+  """
   capitalSetMaster(data: SetMasterInput!): Transaction!
 
   """Установка плана проекта в CAPITAL контракте"""
@@ -9872,156 +10151,322 @@ type Mutation {
   """Сохранение URL репозитория разработки проекта/компонента (только БД)"""
   capitalSetProjectDevelopmentRepositoryUrl(data: SetCapitalProjectDevelopmentRepositoryUrlInput!): CapitalProject!
 
-  """Подписание акта о вкладе результатов председателем"""
+  """
+  Подписание акта о вкладе результатов председателем
+  
+  Требуемые роли: chairman. 
+  """
   capitalSignActAsChairman(data: SignActAsChairmanInput!): CapitalSegment!
 
-  """Подписание акта о вкладе результатов участником"""
+  """
+  Подписание акта о вкладе результатов участником
+  
+  Требуемые роли: chairman, member, user. 
+  """
   capitalSignActAsContributor(data: SignActAsContributorInput!): CapitalSegment!
 
-  """Запуск экземпляра процесса"""
+  """
+  Запуск экземпляра процесса
+  
+  Требуемые роли: chairman, member, user. 
+  """
   capitalStartProcess(data: StartProcessInput!): ProcessInstance!
 
-  """Запуск проекта в CAPITAL контракте"""
+  """
+  Запуск проекта в CAPITAL контракте
+  
+  Требуемые роли: chairman. 
+  """
   capitalStartProject(data: StartProjectInput!): CapitalProject!
 
-  """Запуск голосования в CAPITAL контракте"""
+  """
+  Запуск голосования в CAPITAL контракте
+  
+  Требуемые роли: chairman. 
+  """
   capitalStartVoting(data: StartVotingInput!): Transaction!
 
-  """Остановка проекта в CAPITAL контракте"""
+  """
+  Остановка проекта в CAPITAL контракте
+  
+  Требуемые роли: chairman. 
+  """
   capitalStopProject(data: StopProjectInput!): CapitalProject!
 
-  """Голосование в CAPITAL контракте"""
+  """
+  Голосование в CAPITAL контракте
+  
+  Требуемые роли: chairman, member, user. 
+  """
   capitalSubmitVote(data: SubmitVoteInput!): Transaction!
 
-  """Обновление задачи в CAPITAL контракте"""
+  """
+  Обновление задачи в CAPITAL контракте
+  
+  Требуемые роли: chairman, member, user. 
+  """
   capitalUpdateIssue(data: UpdateIssueInput!): CapitalIssue!
 
-  """Обновление шаблона процесса (шаги, рёбра, статус)"""
+  """
+  Обновление шаблона процесса (шаги, рёбра, статус)
+  
+  Требуемые роли: chairman, member. 
+  """
   capitalUpdateProcessTemplate(data: UpdateProcessTemplateInput!): ProcessTemplate!
 
-  """Обновление истории в CAPITAL контракте"""
+  """
+  Обновление истории в CAPITAL контракте
+  
+  Требуемые роли: chairman, member, user. 
+  """
   capitalUpdateStory(data: UpdateStoryInput!): CapitalStory!
 
-  """Подтверждение одобрения документа председателем совета"""
+  """
+  Подтверждение одобрения документа председателем совета
+  
+  Требуемые роли: chairman. 
+  """
   chairmanConfirmApprove(data: ConfirmApproveInput!): Approval!
 
-  """Отклонение одобрения документа председателем совета"""
+  """
+  Отклонение одобрения документа председателем совета
+  
+  Требуемые роли: chairman. 
+  """
   chairmanDeclineApprove(data: DeclineApproveInput!): Approval!
 
-  """Создать Matrix аккаунт с именем пользователя и паролем"""
+  """
+  Создать Matrix аккаунт с именем пользователя и паролем
+  
+  Требуемые роли: chairman, member, user. 
+  """
   chatcoopCreateAccount(data: CreateMatrixAccountInputDTO!): Boolean!
 
-  """Создать событие календаря"""
+  """
+  Создать событие календаря
+  
+  Требуемые роли: chairman, member. 
+  """
   chatcoopCreateCalendarEvent(data: CreateChatCoopCalendarEventInput!): ChatCoopCalendarEvent!
 
-  """Выдать или обновить персональный URL подписки ICS (секрет в query)"""
+  """
+  Выдать или обновить персональный URL подписки ICS (секрет в query)
+  
+  Требуемые роли: chairman, member, user. 
+  """
   chatcoopCreateCalendarIcsSubscription: ChatCoopCalendarIcsUrlResponse!
 
-  """Удалить событие календаря"""
+  """
+  Удалить событие календаря
+  
+  Требуемые роли: chairman, member. 
+  """
   chatcoopDeleteCalendarEvent(id: String!): Boolean!
 
-  """Обновить событие календаря"""
+  """
+  Обновить событие календаря
+  
+  Требуемые роли: chairman, member. 
+  """
   chatcoopUpdateCalendarEvent(data: UpdateChatCoopCalendarEventInput!): ChatCoopCalendarEvent!
 
-  """Обновить заметку (memo) к транскрипции звонка"""
+  """
+  Обновить заметку (memo) к транскрипции звонка
+  
+  Требуемые роли: chairman, member. 
+  """
   chatcoopUpdateTranscriptionMemo(data: UpdateCallTranscriptionMemoInput!): CallTranscription!
 
-  """Выполнить шаг онбординга capital (создание предложения повестки)"""
+  """
+  Выполнить шаг онбординга capital (создание предложения повестки)
+  
+  Требуемые роли: chairman. 
+  """
   completeCapitalOnboardingStep(data: CapitalOnboardingStepInput!): CapitalOnboardingState!
 
-  """Выполнить один из шагов онбординга (создание предложения повестки)"""
+  """
+  Выполнить один из шагов онбординга (создание предложения повестки)
+  
+  Требуемые роли: chairman. 
+  """
   completeChairmanAgendaStep(data: ChairmanOnboardingAgendaInput!): ChairmanOnboardingState!
 
   """
   Выполнить шаг онбординга по созданию общего собрания (сохранить hash повестки)
+  
+  Требуемые роли: chairman. 
   """
   completeChairmanGeneralMeetStep(data: ChairmanOnboardingGeneralMeetInput!): ChairmanOnboardingState!
 
   """
   Выполнить шаг онбординга кооператива на расширение (решение совета или общее собрание)
+  
+  Требуемые роли: chairman. 
   """
   completeExtensionOnboardingStep(data: CompleteExtensionOnboardingStepInput!): ExtensionOnboardingState!
 
-  """Подтвердить соглашение пайщика администратором"""
+  """
+  Подтвердить соглашение пайщика администратором
+  
+  Требуемые роли: chairman, member. 
+  """
   confirmAgreement(data: ConfirmAgreementInput!): Transaction!
 
   """
   Сгенерировать документ предложения повестки очередного общего собрания пайщиков
+  
+  Требуемые роли: chairman, member. 
   """
   createAnnualGeneralMeet(data: CreateAnnualGeneralMeetInput!): MeetAggregate!
 
-  """Создать кооперативный участок"""
+  """
+  Создать кооперативный участок
+  
+  Требуемые роли: chairman. 
+  """
   createBranch(data: CreateBranchInput!): Branch!
 
-  """Создать категорию (админ)"""
+  """
+  Создать категорию (админ)
+  
+  Требуемые роли: chairman. 
+  """
   createCategory(data: CreateCategoryInput!): Category!
 
   """
   Создание объекта паевого платежа производится мутацией createDepositPayment. Выполнение мутации возвращает идентификатор платежа и данные для его совершения в зависимости от выбранного платежного провайдера.
+  
+  Требуемые роли: chairman, member. 
   """
   createDepositPayment(data: CreateDepositPaymentInput!): GatewayPayment!
 
   """
   Создание объекта регистрационного платежа производится мутацией createInitialPayment. Выполнение мутации возвращает идентификатор платежа и данные для его совершения в зависимости от выбранного платежного провайдера.
+  
+  Требуемые роли: chairman, member. 
   """
   createInitialPayment(data: CreateInitialPaymentInput!): GatewayPayment!
 
-  """Создать карточку товара/услуги"""
+  """
+  Создать карточку товара/услуги
+  
+  Требуемые роли: chairman, member, user. 
+  """
   createProductCard(data: CreateProductCardInput!): ProductCard!
 
   """
   Создать повестку дня и проект решения, и сохранить в хранилище для дальнейшей генерации документа и его публикации
+  
+  Требуемые роли: chairman, member. 
   """
   createProjectOfFreeDecision(data: CreateProjectFreeDecisionInput!): CreatedProjectFreeDecision!
 
-  """Создать веб-пуш подписку для пользователя"""
+  """
+  Создать веб-пуш подписку для пользователя
+  
+  Требуемые роли: chairman, member. 
+  """
   createWebPushSubscription(data: CreateSubscriptionInput!): CreateSubscriptionResponse!
 
-  """Создать заявку на вывод средств"""
+  """
+  Создать заявку на вывод средств
+  
+  Требуемые роли: chairman, member. 
+  """
   createWithdraw(data: CreateWithdrawInput!): CreateWithdrawResponse!
 
-  """Деактивировать веб-пуш подписку по ID"""
+  """
+  Деактивировать веб-пуш подписку по ID
+  
+  Требуемые роли: chairman, member. 
+  """
   deactivateWebPushSubscriptionById(data: DeactivateSubscriptionInput!): Boolean!
 
-  """Отклонить соглашение пайщика администратором"""
+  """
+  Отклонить соглашение пайщика администратором
+  
+  Требуемые роли: chairman, member. 
+  """
   declineAgreement(data: DeclineAgreementInput!): Transaction!
 
-  """Удалить кооперативный участок"""
+  """
+  Удалить кооперативный участок
+  
+  Требуемые роли: chairman. 
+  """
   deleteBranch(data: DeleteBranchInput!): Boolean!
 
-  """Удалить категорию (админ)"""
+  """
+  Удалить категорию (админ)
+  
+  Требуемые роли: chairman. 
+  """
   deleteCategory(id: String!): Boolean!
 
   """Удалить метод оплаты"""
   deletePaymentMethod(data: DeletePaymentMethodInput!): Boolean!
 
-  """Удалить черновик карточки"""
+  """
+  Удалить черновик карточки
+  
+  Требуемые роли: chairman, member, user. 
+  """
   deleteProductCard(id: String!): Boolean!
 
-  """Удалить черновик по id (только владелец)"""
+  """
+  Удалить черновик по id (только владелец)
+  
+  Требуемые роли: chairman. 
+  """
   deleteReportDraft(id: String!): Boolean!
 
-  """Удалить доверенное лицо кооперативного участка"""
+  """
+  Удалить доверенное лицо кооперативного участка
+  
+  Требуемые роли: chairman. 
+  """
   deleteTrustedAccount(data: DeleteTrustedAccountInput!): Branch!
 
-  """Изменить кооперативный участок"""
+  """
+  Изменить кооперативный участок
+  
+  Требуемые роли: chairman. 
+  """
   editBranch(data: EditBranchInput!): Branch!
 
-  """Сгенерировать предложение повестки общего собрания пайщиков"""
+  """
+  Сгенерировать предложение повестки общего собрания пайщиков
+  
+  Требуемые роли: chairman, member. 
+  """
   generateAnnualGeneralMeetAgendaDocument(data: AnnualGeneralMeetingAgendaGenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
-  """Сгенерировать документ решения общего собрания пайщиков"""
+  """
+  Сгенерировать документ решения общего собрания пайщиков
+  
+  Требуемые роли: chairman, member. 
+  """
   generateAnnualGeneralMeetDecisionDocument(data: AnnualGeneralMeetingDecisionGenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
   """
   Сгенерировать документ уведомления о проведении общего собрания пайщиков
+  
+  Требуемые роли: chairman, member. 
   """
   generateAnnualGeneralMeetNotificationDocument(data: AnnualGeneralMeetingNotificationGenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
-  """Сгенерировать бюллетень для голосования на общем собрании пайщиков"""
+  """
+  Сгенерировать бюллетень для голосования на общем собрании пайщиков
+  
+  Требуемые роли: member. 
+  """
   generateBallotForAnnualGeneralMeetDocument(data: AnnualGeneralMeetingVotingBallotGenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
-  """Генерирует заявление на конвертацию паевого взноса в членский взнос"""
+  """
+  Генерирует заявление на конвертацию паевого взноса в членский взнос
+  
+  Требуемые роли: member, chairman. 
+  """
   generateConvertToAxonStatement(data: ConvertToAxonStatementGenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
   """
@@ -10029,55 +10474,101 @@ type Mutation {
   """
   generateDocument(input: GenerateAnyDocumentInput!): GeneratedDocument!
 
-  """Сгенерировать протокол решения по предложенной повестке"""
+  """
+  Сгенерировать протокол решения по предложенной повестке
+  
+  Требуемые роли: chairman, member. 
+  """
   generateFreeDecision(data: FreeDecisionGenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
-  """Сгенерировать документ заявления о вступлении в кооператив."""
+  """
+  Сгенерировать документ заявления о вступлении в кооператив.
+  
+  Требуемые роли: chairman, member. 
+  """
   generateParticipantApplication(data: ParticipantApplicationGenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
-  """Сгенерировать документ протокол решения собрания совета"""
+  """
+  Сгенерировать документ протокол решения собрания совета
+  
+  Требуемые роли: chairman, member. 
+  """
   generateParticipantApplicationDecision(data: ParticipantApplicationDecisionGenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
-  """Сгенерировать документ согласия с политикой конфиденциальности."""
+  """
+  Сгенерировать документ согласия с политикой конфиденциальности.
+  
+  Требуемые роли: chairman, member. 
+  """
   generatePrivacyAgreement(data: GenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
-  """Сгенерировать документ проекта свободного решения"""
+  """
+  Сгенерировать документ проекта свободного решения
+  
+  Требуемые роли: chairman, member. 
+  """
   generateProjectOfFreeDecision(data: ProjectFreeDecisionGenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
   """
   Генерирует пакет документов для регистрации пайщика. Возвращает список документов с метаданными для отображения на фронтенде.
+  
+  Требуемые роли: chairman, member. 
   """
   generateRegistrationDocuments(data: GenerateRegistrationDocumentsInput!): GenerateRegistrationDocumentsOutput!
 
   """
   Сгенерировать XML отчёта из edits-состояния формы (результат редактора). Перед записью XML проходит XSD-валидацию; всё сохраняется в архив отчётов.
+  
+  Требуемые роли: chairman. 
   """
   generateReportFromEdits(editsJson: String!, period: Int, reportType: ReportType!, year: Int!): GeneratedReport!
 
-  """Сгенерировать документ решения совета о возврате паевого взноса"""
+  """
+  Сгенерировать документ решения совета о возврате паевого взноса
+  
+  Требуемые роли: chairman, member. 
+  """
   generateReturnByMoneyDecisionDocument(data: ReturnByMoneyDecisionGenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
-  """Сгенерировать документ заявления на возврат паевого взноса"""
+  """
+  Сгенерировать документ заявления на возврат паевого взноса
+  
+  Требуемые роли: chairman, member. 
+  """
   generateReturnByMoneyStatementDocument(data: ReturnByMoneyGenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
-  """Сгенерировать документ, подтверждающий выбор кооперативного участка"""
+  """
+  Сгенерировать документ, подтверждающий выбор кооперативного участка
+  
+  Требуемые роли: chairman, member, user. 
+  """
   generateSelectBranchDocument(data: SelectBranchGenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
   """
   Сгенерировать документ соглашения о порядка и правилах использования простой электронной подписи.
+  
+  Требуемые роли: chairman, member. 
   """
   generateSignatureAgreement(data: GenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
   """
   Сгенерировать документ решения Совета по проведению общего собрания пайщиков
+  
+  Требуемые роли: chairman, member. 
   """
   generateSovietDecisionOnAnnualMeetDocument(data: AnnualGeneralMeetingSovietDecisionGenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
-  """Сгенерировать документ пользовательского соглашения."""
+  """
+  Сгенерировать документ пользовательского соглашения.
+  
+  Требуемые роли: chairman, member. 
+  """
   generateUserAgreement(data: GenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
   """
   Сгенерировать документ соглашения о целевой потребительской программе "Цифровой Кошелёк"
+  
+  Требуемые роли: chairman, member. 
   """
   generateWalletAgreement(data: GenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
@@ -10086,7 +10577,11 @@ type Mutation {
   """
   initSystem(data: Init!): SystemInfo!
 
-  """Установить расширение"""
+  """
+  Установить расширение
+  
+  Требуемые роли: chairman. 
+  """
   installExtension(data: ExtensionInput!): Extension!
 
   """Произвести установку членов совета перед началом работы"""
@@ -10102,6 +10597,8 @@ type Mutation {
 
   """
   Поставить или снять отметку на ячейку календаря. mark=null — снять. Сейчас поддерживается только NOT_REQUIRED («не надо сдавать»).
+  
+  Требуемые роли: chairman. 
   """
   markReportPeriod(data: MarkReportPeriodInput!): Boolean!
 
@@ -10123,10 +10620,18 @@ type Mutation {
   """
   marketplaceAcceptReturnAtVisit(data: MarketplaceAcceptReturnAtVisitInput!): MarketplaceReturnClaimResult!
 
-  """Добавить категории в доступные для кооператива (целые категории)"""
+  """
+  Добавить категории в доступные для кооператива (целые категории)
+  
+  Требуемые роли: chairman. 
+  """
   marketplaceAddAvailableCategories(input: AddAvailableCategoriesInput!): [MarketplaceAvailableCategory!]!
 
-  """Добавить конкретные типы товаров в доступные для кооператива"""
+  """
+  Добавить конкретные типы товаров в доступные для кооператива
+  
+  Требуемые роли: chairman. 
+  """
   marketplaceAddAvailableCategoryTypes(input: AddAvailableCategoryTypesInput!): [MarketplaceAvailableCategory!]!
 
   """Добавить пайщика в whitelist поставщиков (admin)"""
@@ -10148,7 +10653,11 @@ type Mutation {
   """Удалить черновик. Доступно только пока проект в статусе DRAFT."""
   marketplaceCancelWriteoffDraft(id: String!): Boolean!
 
-  """Очистить все доступные категории (сделать доступными все)"""
+  """
+  Очистить все доступные категории (сделать доступными все)
+  
+  Требуемые роли: chairman. 
+  """
   marketplaceClearAvailableCategories: Boolean!
 
   """
@@ -10162,7 +10671,11 @@ type Mutation {
   """Оформить заказ по предложению и заблокировать средства пайщика."""
   marketplaceCreateOrder(input: MarketplaceCreateOrderInput!): MarketplaceCreateOrderResult!
 
-  """Создать новую заявку на поставку или заказ товара"""
+  """
+  Создать новую заявку на поставку или заказ товара
+  
+  Требуемые роли: member, chairman. 
+  """
   marketplaceCreateRequest(data: CreateRequestInput!): MarketplaceRequest!
 
   """
@@ -10197,6 +10710,8 @@ type Mutation {
 
   """
   Детализирует существующий в core кооперативный участок как ПВЗ Стола заказов. Создаёт запись marketplace_ku_details, либо обновляет существующую. При смене адреса запускает повторный геокодинг — координаты сбрасываются в PENDING и обновляются асинхронно.
+  
+  Требуемые роли: chairman. 
   """
   marketplaceDetailKU(data: MarketplaceDetailKUInput!): MarketplaceKUDetails!
 
@@ -10233,22 +10748,42 @@ type Mutation {
   """
   marketplaceRejectReturnRemote(data: MarketplaceRejectReturnRemoteInput!): MarketplaceReturnClaimResult!
 
-  """Удалить категории из доступных для кооператива (включая все их типы)"""
+  """
+  Удалить категории из доступных для кооператива (включая все их типы)
+  
+  Требуемые роли: chairman. 
+  """
   marketplaceRemoveAvailableCategories(input: RemoveAvailableCategoriesInput!): Boolean!
 
-  """Удалить конкретные типы товаров из доступных для кооператива"""
+  """
+  Удалить конкретные типы товаров из доступных для кооператива
+  
+  Требуемые роли: chairman. 
+  """
   marketplaceRemoveAvailableCategoryTypes(input: RemoveAvailableCategoryTypesInput!): Boolean!
 
   """Удалить пайщика из whitelist (admin); auto-coop запись неудаляема"""
   marketplaceRemoveFromWhitelist(input: MarketplaceRemoveFromWhitelistInput!): Boolean!
 
-  """Заменить все доступные категории и типы новым списком"""
+  """
+  Заменить все доступные категории и типы новым списком
+  
+  Требуемые роли: chairman. 
+  """
   marketplaceReplaceAvailableItems(input: ReplaceAvailableItemsInput!): [MarketplaceAvailableCategory!]!
 
-  """Повторно запускает геокодинг адреса ПВЗ."""
+  """
+  Повторно запускает геокодинг адреса ПВЗ.
+  
+  Требуемые роли: chairman. 
+  """
   marketplaceRetryKUGeocode(coopname: String!, coreBraname: String!): MarketplaceKUDetails!
 
-  """Активирует или деактивирует ПВЗ Стола заказов."""
+  """
+  Активирует или деактивирует ПВЗ Стола заказов.
+  
+  Требуемые роли: chairman. 
+  """
   marketplaceSetKUStatus(data: MarketplaceSetKUStatusInput!): MarketplaceKUDetails!
 
   """
@@ -10285,19 +10820,31 @@ type Mutation {
   """Поставщик снимает свой Offer (статус → WITHDRAWN)"""
   marketplaceWithdrawOffer(input: MarketplaceWithdrawOfferInput!): MarketplaceOffer!
 
-  """Уведомление о проведении общего собрания пайщиков"""
+  """
+  Уведомление о проведении общего собрания пайщиков
+  
+  Требуемые роли: chairman, member. 
+  """
   notifyOnAnnualGeneralMeet(data: NotifyOnAnnualGeneralMeetInput!): MeetAggregate!
 
   """
   Обрабатывает подписанное заявление на конвертацию и выполняет блокчейн-транзакцию
+  
+  Требуемые роли: member, chairman. 
   """
   processConvertToAxonStatement(data: ProcessConvertToAxonStatementInput!): Boolean!
 
-  """Опубликовать карточку"""
+  """
+  Опубликовать карточку
+  
+  Требуемые роли: chairman, member, user. 
+  """
   publishProductCard(id: String!): Boolean!
 
   """
   Опубликовать предложенную повестку и проект решения для дальнейшего голосования совета по нему
+  
+  Требуемые роли: chairman, member. 
   """
   publishProjectOfFreeDecision(data: PublishProjectFreeDecisionInput!): Boolean!
 
@@ -10309,21 +10856,33 @@ type Mutation {
 
   """
   Зарегистрировать заявление и подписанные положения, подготовив пакет документов к отправке в совет на голосование после поступления оплаты.
+  
+  Требуемые роли: chairman, member. 
   """
   registerParticipant(data: RegisterParticipantInput!): Account!
 
   """Заменить приватный ключ аккаунта"""
   resetKey(data: ResetKeyInput!): Boolean!
 
-  """Перезапуск общего собрания пайщиков"""
+  """
+  Перезапуск общего собрания пайщиков
+  
+  Требуемые роли: chairman. 
+  """
   restartAnnualGeneralMeet(data: RestartAnnualGeneralMeetInput!): MeetAggregate!
 
   """
   Сохранить/обновить черновик формы отчёта (upsert по owner+type+year+period)
+  
+  Требуемые роли: chairman. 
   """
   saveReportDraft(input: SaveReportDraftInput!): ReportDraft!
 
-  """Выбрать кооперативный участок"""
+  """
+  Выбрать кооперативный участок
+  
+  Требуемые роли: chairman, member, user. 
+  """
   selectBranch(data: SelectBranchInput!): Boolean!
 
   """Отправить соглашение"""
@@ -10331,16 +10890,26 @@ type Mutation {
 
   """
   Управление статусом платежа осущствляется мутацией setPaymentStatus. При переходе платежа в статус PAID вызывается эффект в блокчейне, который завершает операцию автоматическим переводом платежа в статус COMPLETED. При установке статуса REFUNDED запускается процесс отмены платежа в блокчейне. Остальные статусы не приводят к эффектам в блокчейне.
+  
+  Требуемые роли: chairman, member. 
   """
   setPaymentStatus(data: SetPaymentStatusInput!): GatewayPayment!
 
   """Сохранить приватный ключ в зашифрованном серверном хранилище"""
   setWif(data: SetWifInput!): Boolean!
 
-  """Подписание решения председателем на общем собрании пайщиков"""
+  """
+  Подписание решения председателем на общем собрании пайщиков
+  
+  Требуемые роли: chairman, member. 
+  """
   signByPresiderOnAnnualGeneralMeet(data: SignByPresiderOnAnnualGeneralMeetInput!): MeetAggregate!
 
-  """Подписание решения секретарём на общем собрании пайщиков"""
+  """
+  Подписание решения секретарём на общем собрании пайщиков
+  
+  Требуемые роли: chairman, member. 
+  """
   signBySecretaryOnAnnualGeneralMeet(data: SignBySecretaryOnAnnualGeneralMeetInput!): MeetAggregate!
 
   """
@@ -10355,42 +10924,70 @@ type Mutation {
 
   """
   Запустить воркфлоу уведомлений (только для председателя или server-secret)
+  
+  Требуемые роли: chairman. 
   """
   triggerNotificationWorkflow(data: TriggerNotificationWorkflowInput!): Boolean!
 
-  """Удалить расширение"""
+  """
+  Удалить расширение
+  
+  Требуемые роли: chairman. 
+  """
   uninstallExtension(data: UninstallExtensionInput!): Boolean!
 
   """
   Обновить аккаунт в системе провайдера. Обновление аккаунта пользователя производится по username. Мутация позволяет изменить приватные данные пользователя, а также, адрес электронной почты в MONO. Использовать мутацию может только председатель совета.
+  
+  Требуемые роли: chairman. 
   """
   updateAccount(data: UpdateAccountInput!): Account!
 
   """Обновить банковский счёт"""
   updateBankAccount(data: UpdateBankAccountInput!): PaymentMethod!
 
-  """Обновить расширение"""
+  """
+  Обновить расширение
+  
+  Требуемые роли: chairman. 
+  """
   updateExtension(data: ExtensionInput!): Extension!
 
   """
   Обновить ручные реквизиты кооператива. ИНН/КПП/ОГРН игнорируются — это ончейн
+  
+  Требуемые роли: chairman. 
   """
   updateReportRequisites(input: UpdateReportRequisitesInput!): ReportRequisitesView!
 
-  """Обновить настройки системы (рабочие столы и маршруты по умолчанию)"""
+  """
+  Обновить настройки системы (рабочие столы и маршруты по умолчанию)
+  
+  Требуемые роли: chairman. 
+  """
   updateSettings(data: UpdateSettingsInput!): Settings!
 
-  """Обновить параметры системы"""
+  """
+  Обновить параметры системы
+  
+  Требуемые роли: chairman. 
+  """
   updateSystem(data: Update!): SystemInfo!
 
   """Подтвердить email адрес пользователя"""
   verifyEmail(data: VerifyEmailInputDTO!): Boolean!
 
-  """Голосование на общем собрании пайщиков"""
+  """
+  Голосование на общем собрании пайщиков
+  
+  Требуемые роли: member. 
+  """
   voteOnAnnualGeneralMeet(data: VoteOnAnnualGeneralMeetInput!): MeetAggregate!
 
   """
   Перевод между кошельками одного бух.счёта (operation o.adj.walmove). Только председатель. Backend проверяет связь wallet→account до подписания.
+  
+  Требуемые роли: chairman. 
   """
   walmoveWallets(input: WalmoveInput!): Ledger2AdjustmentResult!
 }
@@ -11926,6 +12523,8 @@ type Query {
 
   """
   Построить предзаполненные edits для формы: дефолты (ledger2 + реквизиты + корректировки), с наложением dirty-полей существующего черновика (если он есть).
+  
+  Требуемые роли: chairman. 
   """
   buildInitialReportEdits(period: Int, reportType: ReportType!, year: Int!): BuildInitialReportEdits!
 
@@ -11937,10 +12536,18 @@ type Query {
   """Получение списка кандидатов расширения CAPITAL с обогащенными данными"""
   capitalCandidates(filter: CandidateFilterInput, options: PaginationInput): PaginatedCapitalCandidatesPaginationResult!
 
-  """Получение коммита по хэшу"""
+  """
+  Получение коммита по хэшу
+  
+  Требуемые роли: chairman, member, user. 
+  """
   capitalCommit(data: GetCapitalCommitByHashInput!): CapitalCommit
 
-  """Получение списка коммитов кооператива с фильтрацией"""
+  """
+  Получение списка коммитов кооператива с фильтрацией
+  
+  Требуемые роли: chairman, member, user. 
+  """
   capitalCommits(filter: CapitalCommitFilter, options: PaginationInput): PaginatedCapitalCommitsPaginationResult!
 
   """Получение участника по ID, имени пользователя или хешу участника"""
@@ -11949,7 +12556,11 @@ type Query {
   """Получение списка участников кооператива с фильтрацией"""
   capitalContributors(filter: CapitalContributorFilter, options: PaginationInput): PaginatedCapitalContributorsPaginationResult!
 
-  """Получение списка циклов кооператива с фильтрацией"""
+  """
+  Получение списка циклов кооператива с фильтрацией
+  
+  Требуемые роли: chairman, member, user. 
+  """
   capitalCycles(filter: CapitalCycleFilter, options: PaginationInput): PaginatedCapitalCyclesPaginationResult!
 
   """Получение долга по внутреннему ID базы данных"""
@@ -11982,10 +12593,18 @@ type Query {
   """Получение списка инвестиций кооператива с фильтрацией"""
   capitalInvests(filter: CapitalInvestFilter, options: PaginationInput): PaginatedCapitalInvestsPaginationResult!
 
-  """Получение задачи по хэшу"""
+  """
+  Получение задачи по хэшу
+  
+  Требуемые роли: chairman, member, user. 
+  """
   capitalIssue(data: GetCapitalIssueByHashInput!): CapitalIssue
 
-  """Получение списка задач кооператива с фильтрацией"""
+  """
+  Получение списка задач кооператива с фильтрацией
+  
+  Требуемые роли: chairman, member, user. 
+  """
   capitalIssues(filter: CapitalIssueFilter, options: PaginationInput): PaginatedCapitalIssuesPaginationResult!
 
   """Получение проекта по хешу с компонентами"""
@@ -11997,10 +12616,18 @@ type Query {
   """Получение списка проектов кооператива с фильтрацией и компонентами"""
   capitalProjects(filter: CapitalProjectFilter, options: PaginationInput): PaginatedCapitalProjectsPaginationResult!
 
-  """Получение результата по внутреннему ID базы данных"""
+  """
+  Получение результата по внутреннему ID базы данных
+  
+  Требуемые роли: chairman, member, user. 
+  """
   capitalResult(data: GetResultInput!): CapitalResult
 
-  """Получение списка результатов кооператива с фильтрацией"""
+  """
+  Получение списка результатов кооператива с фильтрацией
+  
+  Требуемые роли: chairman, member, user. 
+  """
   capitalResults(filter: ResultFilter, options: PaginationInput): PaginatedCapitalResultsPaginationResult!
 
   """Получение одного сегмента кооператива по фильтрам"""
@@ -12012,21 +12639,39 @@ type Query {
   """Получение полного состояния CAPITAL контракта кооператива"""
   capitalState(data: GetCapitalConfigInput!): CapitalState
 
-  """Получение списка историй кооператива с фильтрацией"""
+  """
+  Получение списка историй кооператива с фильтрацией
+  
+  Требуемые роли: chairman, member, user. 
+  """
   capitalStories(filter: CapitalStoryFilter, options: PaginationInput): PaginatedCapitalStoriesPaginationResult!
 
-  """Получение истории по хэшу"""
+  """
+  Получение истории по хэшу
+  
+  Требуемые роли: chairman, member, user. 
+  """
   capitalStory(data: GetCapitalStoryByHashInput!): CapitalStory
 
-  """Получение пагинированного списка записей времени"""
+  """
+  Получение пагинированного списка записей времени
+  
+  Требуемые роли: chairman, member, user. 
+  """
   capitalTimeEntries(filter: CapitalTimeEntriesFilter, options: PaginationInput): PaginatedCapitalTimeEntriesPaginationResult!
 
   """
   Получение пагинированного списка агрегированных записей времени по задачам с информацией о задачах и участниках
+  
+  Требуемые роли: chairman, member, user. 
   """
   capitalTimeEntriesByIssues(filter: CapitalTimeEntriesFilter, options: PaginationInput): PaginatedCapitalTimeEntriesByIssuesPaginationResult!
 
-  """Гибкий запрос статистики времени участников по проектам с пагинацией"""
+  """
+  Гибкий запрос статистики времени участников по проектам с пагинацией
+  
+  Требуемые роли: chairman, member, user. Исключение: доступ разрешен, если `data.username` совпадает с `username` текущего пользователя.
+  """
   capitalTimeStats(data: CapitalTimeStatsInput, options: PaginationInput): CapitalTimeStats!
 
   """Получение голоса по внутреннему ID базы данных"""
@@ -12041,43 +12686,81 @@ type Query {
   """Получение списка одобрений председателя совета с фильтрацией"""
   chairmanApprovals(filter: ApprovalFilter, options: PaginationInput): PaginatedChairmanApprovalsPaginationResult!
 
-  """Проверяет доступность Matrix username"""
+  """
+  Проверяет доступность Matrix username
+  
+  Требуемые роли: chairman, member, user. 
+  """
   chatcoopCheckUsernameAvailability(data: CheckMatrixUsernameInput!): Boolean!
 
-  """Проверить статус Matrix аккаунта пользователя и получить iframe URL"""
+  """
+  Проверить статус Matrix аккаунта пользователя и получить iframe URL
+  
+  Требуемые роли: chairman, member, user. 
+  """
   chatcoopGetAccountStatus: MatrixAccountStatusResponseDTO!
 
   """
   Максимальный origin_server_ts в истории комнаты (мс), если есть сообщения
+  
+  Требуемые роли: chairman, member, user. 
   """
   chatcoopGetMaxOriginServerTsForRoom(data: GetMaxOriginServerTsForRoomInput!): Float
 
-  """Строки истории сообщений Matrix за календарные сутки UTC"""
+  """
+  Строки истории сообщений Matrix за календарные сутки UTC
+  
+  Требуемые роли: chairman, member, user. 
+  """
   chatcoopGetRoomMessagesForUtcDate(data: GetRoomMessagesForUtcDateInput!): [ChatcoopRoomMessageLine!]!
 
-  """Получить детальную транскрипцию с сегментами"""
+  """
+  Получить детальную транскрипцию с сегментами
+  
+  Требуемые роли: chairman, member, user. 
+  """
   chatcoopGetTranscription(data: GetTranscriptionInput!): CallTranscriptionWithSegments
 
-  """Получить список транскрипций звонков"""
+  """
+  Получить список транскрипций звонков
+  
+  Требуемые роли: chairman, member, user. 
+  """
   chatcoopGetTranscriptions(data: GetTranscriptionsInput): [CallTranscription!]!
 
-  """Список событий календаря кооператива"""
+  """
+  Список событий календаря кооператива
+  
+  Требуемые роли: chairman, member, user. 
+  """
   chatcoopListCalendarEvents: [ChatCoopCalendarEvent!]!
 
   """
   Незашифрованные комнаты из реестра ChatCoop для привязки события календаря
+  
+  Требуемые роли: chairman, member. 
   """
   chatcoopListCalendarRooms: [ChatCoopCalendarRoomOption!]!
 
-  """Комнаты Matrix, привязанные к проекту Capital (реестр ChatCoop)"""
+  """
+  Комнаты Matrix, привязанные к проекту Capital (реестр ChatCoop)
+  
+  Требуемые роли: chairman, member, user. 
+  """
   chatcoopListProjectCommunicationRooms(data: GetProjectCommunicationRoomsInput!): [ChatcoopProjectCommunicationRoom!]!
 
   """
   UTC-даты (YYYY-MM-DD), в которых есть сообщения новее afterOriginServerTsExclusive, для комнаты Matrix
+  
+  Требуемые роли: chairman, member, user. 
   """
   chatcoopListUtcDatesWithNewRoomMessages(data: ListUtcDatesWithNewRoomMessagesInput!): [String!]!
 
-  """Проверить готовность реквизитов для генерации конкретной формы"""
+  """
+  Проверить готовность реквизитов для генерации конкретной формы
+  
+  Требуемые роли: chairman. 
+  """
   checkReportReadiness(reportType: ReportType!): ReportReadinessView!
 
   """
@@ -12090,21 +12773,39 @@ type Query {
   """
   cooperativePrograms(coopname: String!): [CooperativeProgram!]!
 
-  """Получить сводную информацию о аккаунте"""
+  """
+  Получить сводную информацию о аккаунте
+  
+  Требуемые роли: chairman, member. 
+  """
   getAccount(data: GetAccountInput!): Account!
 
-  """Получить сводную информацию о аккаунтах системы"""
+  """
+  Получить сводную информацию о аккаунтах системы
+  
+  Требуемые роли: chairman, member. 
+  """
   getAccounts(data: GetAccountsInput, options: PaginationInput): AccountsPaginationResult!
 
   """
   Получить список действий блокчейна с возможностью фильтрации по аккаунту, имени действия, блоку и другим параметрам.
+  
+  Требуемые роли: chairman, member. 
   """
   getActions(filters: ActionFiltersInput, pagination: PaginationInput): PaginatedActionsPaginationResult!
 
-  """Получить список вопросов совета кооператива для голосования"""
+  """
+  Получить список вопросов совета кооператива для голосования
+  
+  Требуемые роли: chairman, member. 
+  """
   getAgenda: [AgendaWithDocuments!]!
 
-  """Получить список доступных типов отчётов"""
+  """
+  Получить список доступных типов отчётов
+  
+  Требуемые роли: chairman. 
+  """
   getAvailableReports: [AvailableReport!]!
 
   """Получить список кооперативных участков"""
@@ -12113,7 +12814,11 @@ type Query {
   """Получить логи событий по задаче"""
   getCapitalIssueLogs(data: GetCapitalIssueLogsInput!, options: PaginationInput): PaginatedCapitalLogsPaginationResult!
 
-  """Получить состояние онбординга capital"""
+  """
+  Получить состояние онбординга capital
+  
+  Требуемые роли: chairman, member, user. 
+  """
   getCapitalOnboardingState: CapitalOnboardingState!
 
   """Получить логи событий по проекту с фильтрацией и пагинацией"""
@@ -12122,33 +12827,59 @@ type Query {
   """Получить дерево категорий"""
   getCategories: [Category!]!
 
-  """Получить состояние онбординга председателя"""
+  """
+  Получить состояние онбординга председателя
+  
+  Требуемые роли: chairman. 
+  """
   getChairmanOnboardingState: ChairmanOnboardingState!
 
-  """Получить текущий инстанс пользователя"""
+  """
+  Получить текущий инстанс пользователя
+  
+  Требуемые роли: member, chairman, user. 
+  """
   getCurrentInstance: CurrentInstanceDTO
 
   """
   Получить текущие состояния таблиц блокчейна с фильтрацией по контракту, области и таблице.
+  
+  Требуемые роли: chairman, member. 
   """
   getCurrentTableStates(filters: CurrentTableStatesFiltersInput, pagination: PaginationInput): PaginatedCurrentTableStatesPaginationResult!
 
   """
   Получить список дельт блокчейна с возможностью фильтрации по контракту, таблице, блоку и другим параметрам.
+  
+  Требуемые роли: chairman, member. 
   """
   getDeltas(filters: DeltaFiltersInput, pagination: PaginationInput): PaginatedDeltasPaginationResult!
 
   """Получить состав приложений рабочего стола"""
   getDesktop: Desktop!
+
+  "\n\nТребуемые роли: chairman, member. "
   getDocuments(data: GetDocumentsInput!): DocumentsAggregatePaginationResult!
 
-  """Получить логи расширений с фильтрацией и пагинацией"""
+  """
+  Получить логи расширений с фильтрацией и пагинацией
+  
+  Требуемые роли: chairman, member. 
+  """
   getExtensionLogs(data: GetExtensionLogsInput, options: PaginationInput): ExtensionLogsPaginationResult!
 
-  """Получить состояние онбординга кооператива на расширение"""
+  """
+  Получить состояние онбординга кооператива на расширение
+  
+  Требуемые роли: chairman, member, user. 
+  """
   getExtensionOnboardingState(extension_name: String!): ExtensionOnboardingState!
 
-  """Получить список расширений"""
+  """
+  Получить список расширений
+  
+  Требуемые роли: chairman. 
+  """
   getExtensions(data: GetExtensionsInput): [Extension!]!
 
   """Получить статус установки кооператива с приватными данными"""
@@ -12156,46 +12887,74 @@ type Query {
 
   """
   Получить полное состояние плана счетов кооператива. Возвращает все счета из стандартного плана счетов с актуальными данными из блокчейна. Если счет не активен в блокчейне, возвращает нулевые значения.
+  
+  Требуемые роли: chairman, member. 
   """
   getLedger(data: GetLedgerInput!): LedgerState!
 
-  """Актуальные балансы счетов кооператива из ledger2::accounts (id ×1000)."""
+  """
+  Актуальные балансы счетов кооператива из ledger2::accounts (id ×1000).
+  
+  Требуемые роли: chairman, member. 
+  """
   getLedger2Accounts(coopname: String!): [Ledger2Account!]!
 
   """
   История операций ledger2 с серверными фильтрами (action/accountId/username/date-range).
+  
+  Требуемые роли: chairman, member. 
   """
   getLedger2History(input: GetLedger2HistoryInput!): Ledger2HistoryResponse!
 
   """
   Реестр проводок: пары debit+credit (Дт/Кт/Сумма), восстановленные из blockchain_actions по правилу «ближайший parent apply». Источник для фронт-страницы «Реестр проводок».
+  
+  Требуемые роли: chairman, member. 
   """
   getLedger2Postings(input: GetLedger2PostingsInput!): Ledger2PostingsResponse!
 
   """
   Общекооперативные кошельки из ledger2::wallets (eosio::name w.<contract>.<waltype>). Кошельки пайщиков живут в контракте soviet — сюда не попадают.
+  
+  Требуемые роли: chairman, member. 
   """
   getLedger2Wallets(coopname: String!): [Ledger2Wallet!]!
 
   """
   Получить историю операций по счетам кооператива. Возвращает список операций с возможностью фильтрации по account_id и пагинацией. Операции сортируются по дате создания (новые первыми).
+  
+  Требуемые роли: chairman, member. 
   """
   getLedgerHistory(data: GetLedgerHistoryInput!): LedgerHistoryResponse!
 
-  """Получить данные собрания по хешу"""
+  """
+  Получить данные собрания по хешу
+  
+  Требуемые роли: chairman, member, user. 
+  """
   getMeet(data: GetMeetInput!): MeetAggregate!
 
-  """Получить список всех собраний кооператива"""
+  """
+  Получить список всех собраний кооператива
+  
+  Требуемые роли: chairman, member, user. 
+  """
   getMeets(data: GetMeetsInput!): [MeetAggregate!]!
 
   """Мои карточки"""
   getMyProductCards: [ProductCard!]!
 
-  """Получить список методов оплаты"""
+  """
+  Получить список методов оплаты
+  
+  Требуемые роли: chairman. Исключение: доступ разрешен, если `data.username` совпадает с `username` текущего пользователя.
+  """
   getPaymentMethods(data: GetPaymentMethodsInput): PaymentMethodPaginationResult!
 
   """
   Получить список платежей с возможностью фильтрации по типу, статусу и направлению.
+  
+  Требуемые роли: chairman, member. Исключение: доступ разрешен, если `data.username` совпадает с `username` текущего пользователя.
   """
   getPayments(data: PaymentFiltersInput, options: PaginationInput): PaginatedGatewayPaymentsPaginationResult!
 
@@ -12205,16 +12964,32 @@ type Query {
   """Получить карточки товаров/услуг"""
   getProductCards(category_id: String, limit: Int = 20, page: Int = 1, search: String, status: ProductCardStatus, type: ProductCardType): [ProductCard!]!
 
-  """Получить один программный кошелек по фильтру"""
+  """
+  Получить один программный кошелек по фильтру
+  
+  Требуемые роли: chairman, member. 
+  """
   getProgramWallet(filter: ProgramWalletFilterInput!): ProgramWallet
 
-  """Получить список программных кошельков с фильтрацией и пагинацией"""
+  """
+  Получить список программных кошельков с фильтрацией и пагинацией
+  
+  Требуемые роли: chairman, member. 
+  """
   getProgramWallets(filter: ProgramWalletFilterInput, options: PaginationInput): ProgramWalletsPaginationResult!
 
-  """Получить подписку провайдера по ID"""
+  """
+  Получить подписку провайдера по ID
+  
+  Требуемые роли: member, chairman. 
+  """
   getProviderSubscriptionById(id: Float!): ProviderSubscription!
 
-  """Получить подписки пользователя у провайдера"""
+  """
+  Получить подписки пользователя у провайдера
+  
+  Требуемые роли: member, chairman, user. 
+  """
   getProviderSubscriptions: [ProviderSubscription!]!
 
   """
@@ -12225,43 +13000,69 @@ type Query {
   """Получить конфигурацию программ регистрации для кооператива"""
   getRegistrationConfig(account_type: AccountType!, coopname: String!): RegistrationConfig!
 
-  """Получить сгенерированный отчёт по UUID — XML возвращается дословно"""
+  """
+  Получить сгенерированный отчёт по UUID — XML возвращается дословно
+  
+  Требуемые роли: chairman. 
+  """
   getReport(id: String!): GeneratedReport!
 
   """
   Матрица отчётов × периодов для календарного виджета. year = календарный год сдачи (когда приходит дедлайн). Для ячеек с dueYearOffset=1 (годовая БУХОТЧ, Q4 кварталок, декабрь ПСВ) reportYear = year - 1 — именно он возвращается в периоде.
+  
+  Требуемые роли: chairman. 
   """
   getReportCalendar(year: Int!): [ReportCalendarRow!]!
 
   """
   Получить черновик формы отчёта по типу+году+периоду (null если не существует)
+  
+  Требуемые роли: chairman. 
   """
   getReportDraft(period: Int, reportType: ReportType!, year: Int!): ReportDraft
 
-  """История сгенерированных отчётов (постраничная, без XML)"""
+  """
+  История сгенерированных отчётов (постраничная, без XML)
+  
+  Требуемые роли: chairman. 
+  """
   getReportHistory(filter: ReportHistoryFilterInput): ReportHistoryPage!
 
   """
   Предрасчёт полей отчёта без XML — для отображения формы перед генерацией
+  
+  Требуемые роли: chairman. 
   """
   getReportPreview(input: ReportPreviewInput!): ReportPreview!
 
   """
   Объединённый вид реквизитов кооператива (ончейн + ручные) с источником каждого поля
+  
+  Требуемые роли: chairman. 
   """
   getReportRequisites: ReportRequisitesView!
 
   """Получить сводную публичную информацию о системе"""
   getSystemInfo: SystemInfo!
 
-  """Получить веб-пуш подписки пользователя"""
+  """
+  Получить веб-пуш подписки пользователя
+  
+  Требуемые роли: chairman, member. 
+  """
   getUserWebPushSubscriptions(data: GetUserSubscriptionsInput!): [WebPushSubscriptionDto!]!
 
-  """Получить статистику веб-пуш подписок (только для председателя)"""
+  """
+  Получить статистику веб-пуш подписок (только для председателя)
+  
+  Требуемые роли: chairman. 
+  """
   getWebPushSubscriptionStats: SubscriptionStatsDto!
 
   """
   Список черновиков форм отчётов текущего пользователя (с опциональной фильтрацией)
+  
+  Требуемые роли: chairman. 
   """
   listReportDrafts(filter: ListReportDraftsFilterInput): [ReportDraft!]!
 
@@ -12303,19 +13104,35 @@ type Query {
   """Найти потенциальные совпадения для заявки"""
   marketplaceFindPotentialMatches(data: FindPotentialMatchesInput!): [MarketplaceRequest!]!
 
-  """Получить статистику по доступности категорий в кооперативе"""
+  """
+  Получить статистику по доступности категорий в кооперативе
+  
+  Требуемые роли: chairman. 
+  """
   marketplaceGetAvailabilityStats: MarketplaceAvailabilityStats!
 
-  """Получить все доступные категории и типы для кооператива"""
+  """
+  Получить все доступные категории и типы для кооператива
+  
+  Требуемые роли: chairman. 
+  """
   marketplaceGetAvailableCategories: [MarketplaceAvailableCategory!]!
 
-  """Получить дерево доступных категорий и типов для кооператива"""
+  """
+  Получить дерево доступных категорий и типов для кооператива
+  
+  Требуемые роли: chairman. 
+  """
   marketplaceGetAvailableCategoryTree: [MarketplaceCategoryTreeNode!]!
 
   """Получить категорию marketplace по ID"""
   marketplaceGetCategoryById(data: GetCategoryByIdInput!): MarketplaceCategoryTreeNode
 
-  """Получить все доступные правила для конкретной категории"""
+  """
+  Получить все доступные правила для конкретной категории
+  
+  Требуемые роли: chairman. 
+  """
   marketplaceGetCategoryRules(categoryId: Int!): [MarketplaceAvailableCategory!]!
 
   """Получить полное дерево категорий marketplace с типами товаров"""
@@ -12324,7 +13141,11 @@ type Query {
   """Получить статистику по дереву категорий"""
   marketplaceGetCategoryTreeStats: MarketplaceCategoryTreeStats!
 
-  """Получить заявки кооператива"""
+  """
+  Получить заявки кооператива
+  
+  Требуемые роли: member, chairman. 
+  """
   marketplaceGetCoopRequests(data: GetCoopRequestsInput!): [MarketplaceRequest!]!
 
   """Получить один заказ по его идентификатору (доступ зависит от роли)."""
@@ -12339,7 +13160,11 @@ type Query {
   """Получить заявку по хэшу"""
   marketplaceGetRequestByHash(data: GetRequestByHashInput!): MarketplaceRequest
 
-  """Получить статистику заявок кооператива"""
+  """
+  Получить статистику заявок кооператива
+  
+  Требуемые роли: chairman, member. 
+  """
   marketplaceGetRequestStatistics(data: GetRequestStatisticsInput!): MarketplaceRequestStatistics!
 
   """Получить все корневые категории marketplace"""
@@ -12351,7 +13176,11 @@ type Query {
   """Получить партию поставки по идентификатору."""
   marketplaceGetShipment(data: MarketplaceGetShipmentInput!): MarketplaceShipment!
 
-  """Получить заявки текущего пользователя"""
+  """
+  Получить заявки текущего пользователя
+  
+  Требуемые роли: member, chairman. 
+  """
   marketplaceGetUserRequests(data: GetUserRequestsInput): [MarketplaceRequest!]!
 
   """
@@ -12393,7 +13222,11 @@ type Query {
   """
   marketplaceListIssuancesByBraname(data: MarketplaceListIssuancesByBranameInput!): [MarketplaceOrder!]!
 
-  """Список marketplace-детализаций ПВЗ кооператива."""
+  """
+  Список marketplace-детализаций ПВЗ кооператива.
+  
+  Требуемые роли: chairman, member, user. 
+  """
   marketplaceListKUDetails(data: ListMarketplaceKUInput!): [MarketplaceKUDetails!]!
 
   """История решений модерации по Offer'у (admin)"""
@@ -12414,9 +13247,14 @@ type Query {
   marketplaceListMyReturnClaims: [MarketplaceReturnClaim!]!
 
   """
+  Лента выплат поставщикам по всему кооперативу — для совета. Опциональные фильтры: по поставщику-получателю и по статусам.
+  """
+  marketplaceListOutgoingPayments(filter: MarketplaceListOutgoingPaymentsFilterInput): [MarketplaceOutgoingPaymentRequest!]!
+
+  """
   История выплат поставщику в столе поставщика — статусы по каждому заказу.
   """
-  marketplaceListOutgoingPaymentsAsSupplier(statuses: [MarketplaceOutgoingPaymentRequestStatus!]): [MarketplaceOutgoingPaymentRequest!]!
+  marketplaceListOutgoingPaymentsAsSupplier(filter: MarketplaceListOutgoingPaymentsAsSupplierFilterInput): [MarketplaceOutgoingPaymentRequest!]!
 
   """Список Offer'ов на модерации (admin)"""
   marketplaceListPendingOffers(input: MarketplaceListPendingOffersInput): MarketplaceOfferPaginationResult!
@@ -12430,6 +13268,11 @@ type Query {
   Список партий поставки текущего поставщика — для стола подготовки поставки и истории.
   """
   marketplaceListShipments(data: MarketplaceListShipmentsInput): [MarketplaceShipment!]!
+
+  """
+  Список партий поставки, ожидаемых на кооперативном участке, — для стола приёмки оператора пункта выдачи.
+  """
+  marketplaceListShipmentsByBraname(data: MarketplaceListShipmentsByBranameInput!): [MarketplaceShipment!]!
 
   """
   Список заказов, по которым текущий пайщик является поставщиком (стол поставщика).
@@ -12483,7 +13326,9 @@ type Query {
   """Валидация значений атрибута marketplace"""
   marketplaceValidateAttributeValues(input: ValidateAttributeValuesInput!): MarketplaceAttributeValidation!
 
-  """Контекст пайщика для Стола заказов: core_roles + marketplace_roles"""
+  """
+  Контекст пайщика для Стола заказов: core_roles + marketplace_roles + участки оператора
+  """
   marketplaceWhoAmI: MarketplaceCurrentMember!
 
   """Детали одного проекта списания: items, decision_log, протокол."""
@@ -12499,10 +13344,18 @@ type Query {
   """
   onecoopGetDocuments(data: GetOneCoopDocumentsInput!): OneCoopDocumentsResponse!
 
-  """Получить полную картину процесса ledger2 по process_hash"""
+  """
+  Получить полную картину процесса ledger2 по process_hash
+  
+  Требуемые роли: chairman, member. 
+  """
   process(coopname: String!, hash: String!): ProcessView!
 
-  """Листинг процессов ledger2 с пагинацией и фильтрами"""
+  """
+  Листинг процессов ledger2 с пагинацией и фильтрами
+  
+  Требуемые роли: chairman, member. 
+  """
   processes(filter: ProcessesFilter!, pagination: PaginationInput!): ProcessSummaryPaginationResult!
 
   """Полнотекстовый поиск по документам кооператива"""
@@ -12510,11 +13363,15 @@ type Query {
 
   """
   Поиск приватных данных аккаунтов по запросу. Поиск осуществляется по полям ФИО, ИНН, ОГРН, наименованию организации и другим приватным данным.
+  
+  Требуемые роли: chairman, member. 
   """
   searchPrivateAccounts(data: SearchPrivateAccountsInput!): [PrivateAccountSearchResult!]!
 
   """
   Валидировать edits-состояние формы: возвращает список ошибок полей с JSONPath (совпадает с editedFields-путями на клиенте).
+  
+  Требуемые роли: chairman. 
   """
   validateReportEdits(editsJson: String!, reportType: ReportType!): [FieldError!]!
 }

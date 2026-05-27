@@ -21,15 +21,15 @@ import { MarketplaceInventoryResolver } from '~/extensions/marketplace/applicati
 const makeResolver = (ownBranames: string[]) => {
   const inventoryRepo = { list: jest.fn().mockResolvedValue([]) } as any;
   const labelService = {} as any;
-  const kuChairmenService = {
+  const kuChairmanService = {
     listBranamesForMember: jest.fn().mockResolvedValue(ownBranames),
   } as any;
   const resolver = new MarketplaceInventoryResolver(
     labelService,
     inventoryRepo,
-    kuChairmenService
+    kuChairmanService
   );
-  return { resolver, inventoryRepo, kuChairmenService };
+  return { resolver, inventoryRepo, kuChairmanService };
 };
 
 const asMember = (roles: string[]) =>
@@ -37,20 +37,20 @@ const asMember = (roles: string[]) =>
 
 describe('marketplaceListInventory ownership-scoping', () => {
   it('admin (read:all) без braname → НЕ скоупит, braname=undefined, КУ-сервис не дёргается', async () => {
-    const { resolver, inventoryRepo, kuChairmenService } = makeResolver(['krg']);
+    const { resolver, inventoryRepo, kuChairmanService } = makeResolver(['krg']);
     await resolver.marketplaceListInventory(asMember(['admin']), undefined);
-    expect(kuChairmenService.listBranamesForMember).not.toHaveBeenCalled();
+    expect(kuChairmanService.listBranamesForMember).not.toHaveBeenCalled();
     expect(inventoryRepo.list).toHaveBeenCalledWith(
       expect.objectContaining({ coopname: 'voskhod', braname: undefined })
     );
   });
 
   it('board_readonly (read:all) с braname → braname как пришёл, без скоупа', async () => {
-    const { resolver, inventoryRepo, kuChairmenService } = makeResolver(['krg']);
+    const { resolver, inventoryRepo, kuChairmanService } = makeResolver(['krg']);
     await resolver.marketplaceListInventory(asMember(['board_readonly']), {
       braname: 'krg',
     } as any);
-    expect(kuChairmenService.listBranamesForMember).not.toHaveBeenCalled();
+    expect(kuChairmanService.listBranamesForMember).not.toHaveBeenCalled();
     expect(inventoryRepo.list).toHaveBeenCalledWith(
       expect.objectContaining({ braname: 'krg' })
     );

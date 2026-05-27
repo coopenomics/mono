@@ -70,7 +70,7 @@ const cards = computed<Array<CatalogOffer & { domainStatus: MarketplaceOfferStat
     unitLabel: o.unit_of_measure,
     status: STATUS_TO_CARD[o.status],
     domainStatus: o.status,
-    rejectReason: o.reject_reason,
+    rejectReason: o.reject_reason ?? null,
   })),
 );
 

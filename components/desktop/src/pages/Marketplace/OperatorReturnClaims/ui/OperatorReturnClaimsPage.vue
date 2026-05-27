@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { Zeus } from '@coopenomics/sdk';
 import { FailAlert } from 'src/shared/api';
 import {
   listReturnClaimsByBraname,
@@ -29,17 +30,17 @@ const onSiteDialog = ref(false);
 const selectedClaim = ref<MarketplaceReturnClaimView | null>(null);
 
 const pendingClaims = computed(() =>
-  items.value.filter((c) => c.status === 'PENDING_CHAIRMAN_REVIEW'),
+  items.value.filter((c) => c.status === Zeus.MarketplaceReturnClaimStatus.PENDING_CHAIRMAN_REVIEW),
 );
 const approvedClaims = computed(() =>
-  items.value.filter((c) => c.status === 'APPROVED_FOR_VISIT'),
+  items.value.filter((c) => c.status === Zeus.MarketplaceReturnClaimStatus.APPROVED_FOR_VISIT),
 );
 const archiveClaims = computed(() =>
   items.value.filter(
     (c) =>
-      c.status === 'ACCEPTED_AT_VISIT' ||
-      c.status === 'REJECTED_REMOTELY' ||
-      c.status === 'REJECTED_AT_VISIT',
+      c.status === Zeus.MarketplaceReturnClaimStatus.ACCEPTED_AT_VISIT ||
+      c.status === Zeus.MarketplaceReturnClaimStatus.REJECTED_REMOTELY ||
+      c.status === Zeus.MarketplaceReturnClaimStatus.REJECTED_AT_VISIT,
   ),
 );
 
@@ -84,15 +85,15 @@ function formatDateTime(value: unknown): string {
 
 function humanStatus(status: MarketplaceReturnClaimView['status']): string {
   switch (status) {
-    case 'PENDING_CHAIRMAN_REVIEW':
+    case Zeus.MarketplaceReturnClaimStatus.PENDING_CHAIRMAN_REVIEW:
       return 'Ждёт удалённого рассмотрения';
-    case 'APPROVED_FOR_VISIT':
+    case Zeus.MarketplaceReturnClaimStatus.APPROVED_FOR_VISIT:
       return 'Очный визит одобрен';
-    case 'ACCEPTED_AT_VISIT':
+    case Zeus.MarketplaceReturnClaimStatus.ACCEPTED_AT_VISIT:
       return 'Возврат принят';
-    case 'REJECTED_REMOTELY':
+    case Zeus.MarketplaceReturnClaimStatus.REJECTED_REMOTELY:
       return 'Отказано удалённо';
-    case 'REJECTED_AT_VISIT':
+    case Zeus.MarketplaceReturnClaimStatus.REJECTED_AT_VISIT:
       return 'Отказано на месте';
     default:
       return status;

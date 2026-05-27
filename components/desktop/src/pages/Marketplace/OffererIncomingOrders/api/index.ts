@@ -28,22 +28,26 @@ export async function fetchSupplierOrders(
   variables: ListSupplierOrdersVariables = {},
 ): Promise<MarketplaceOrderPage> {
   const { page, limit, sortBy, sortOrder, statuses, orderer_account, offer_id } = variables;
-  const result = await client.Query(Queries.Marketplace.ListSupplierOrders.query, {
-    variables: {
-      input: {
-        orderer_account,
-        offer_id,
-        statuses,
-      },
-      options: {
-        page: page ?? 1,
-        limit: limit ?? 50,
-        sortBy: sortBy ?? 'updated_at',
-        sortOrder: sortOrder ?? 'DESC',
+  const { [Queries.Marketplace.ListSupplierOrders.name]: result } = await client.Query(
+    Queries.Marketplace.ListSupplierOrders.query,
+    {
+      variables: {
+        input: {
+          orderer_account,
+          offer_id,
+          statuses,
+        },
+        options: {
+          page: page ?? 1,
+          limit: limit ?? 50,
+          sortBy: sortBy ?? 'updated_at',
+          sortOrder: sortOrder ?? 'DESC',
+        },
       },
     },
-  });
-  return result[Queries.Marketplace.ListSupplierOrders.name] as unknown as MarketplaceOrderPage;
+  );
+  // Zeus отдаёт DateTime как unknown; сужаем скалярную дату до строки во view-типе.
+  return result as MarketplaceOrderPage;
 }
 
 export async function acceptIndividualOrder(order_id: string): Promise<void> {

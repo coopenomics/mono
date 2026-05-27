@@ -9,9 +9,9 @@ import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import { canAccess } from '../access/marketplace-access-matrix';
 import type { MarketplaceRole } from '../membership/marketplace-roles.mapper';
 import {
-  MARKETPLACE_KU_CHAIRMEN_SERVICE,
-  type MarketplaceKuChairmenService,
-} from '../services/marketplace-ku-chairmen.service';
+  MARKETPLACE_KU_CHAIRMAN_SERVICE,
+  type MarketplaceKuChairmanService,
+} from '../services/marketplace-ku-chairman.service';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import {
   MarketplaceFinalizeIssuanceInputDTO,
@@ -51,8 +51,8 @@ export class MarketplaceIssuanceResolver {
     private readonly service: MarketplaceIssuanceService,
     @Inject(MARKETPLACE_ORDER_REPOSITORY)
     private readonly orderRepo: MarketplaceOrderDomainRepository,
-    @Inject(MARKETPLACE_KU_CHAIRMEN_SERVICE)
-    private readonly kuChairmenService: MarketplaceKuChairmenService
+    @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
+    private readonly kuChairmanService: MarketplaceKuChairmanService
   ) {}
 
   @Mutation(() => MarketplaceIssuanceResultDTO, {
@@ -126,7 +126,7 @@ export class MarketplaceIssuanceResolver {
       if (!order || order.coopname !== coopname) {
         throw new NotFoundException('Заказ не найден.');
       }
-      const isMember = await this.kuChairmenService.isMemberOfBranch(
+      const isMember = await this.kuChairmanService.isMemberOfBranch(
         coopname,
         order.delivery_braname,
         member.username
@@ -202,7 +202,7 @@ export class MarketplaceIssuanceResolver {
     // только с `read:own-KU` (оператор/председатель КУ) обязана быть членом
     // запрашиваемого участка, иначе утечёт лента выдач чужого КУ.
     if (!canAccess(roles, 'Issuance', 'read:all')) {
-      const isMember = await this.kuChairmenService.isMemberOfBranch(
+      const isMember = await this.kuChairmanService.isMemberOfBranch(
         coopname,
         data.delivery_braname,
         member.username

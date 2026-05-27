@@ -23,15 +23,18 @@ export async function fetchMyOffers(
   variables: ListMyOffersVariables = {},
 ): Promise<MarketplaceOfferPage> {
   const { page, limit, sortBy, sortOrder } = variables;
-  const result = await client.Query(Queries.Marketplace.ListMyOffers.query, {
-    variables: {
-      input: {
-        page: page ?? 1,
-        limit: limit ?? 50,
-        sortBy: sortBy ?? 'updated_at',
-        sortOrder: sortOrder ?? 'DESC',
+  const { [Queries.Marketplace.ListMyOffers.name]: result } = await client.Query(
+    Queries.Marketplace.ListMyOffers.query,
+    {
+      variables: {
+        input: {
+          page: page ?? 1,
+          limit: limit ?? 50,
+          sortBy: sortBy ?? 'updated_at',
+          sortOrder: sortOrder ?? 'DESC',
+        },
       },
     },
-  });
-  return result[Queries.Marketplace.ListMyOffers.name] as unknown as MarketplaceOfferPage;
+  );
+  return result;
 }

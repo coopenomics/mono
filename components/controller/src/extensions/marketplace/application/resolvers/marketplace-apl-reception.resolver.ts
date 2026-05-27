@@ -9,9 +9,9 @@ import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import { canAccess } from '../access/marketplace-access-matrix';
 import type { MarketplaceRole } from '../membership/marketplace-roles.mapper';
 import {
-  MARKETPLACE_KU_CHAIRMEN_SERVICE,
-  type MarketplaceKuChairmenService,
-} from '../services/marketplace-ku-chairmen.service';
+  MARKETPLACE_KU_CHAIRMAN_SERVICE,
+  type MarketplaceKuChairmanService,
+} from '../services/marketplace-ku-chairman.service';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import {
   MarketplaceAplReceptionByIdInputDTO,
@@ -52,8 +52,8 @@ export class MarketplaceAplReceptionResolver {
     private readonly service: MarketplaceAplReceptionService,
     @Inject(MARKETPLACE_APL_RECEPTION_REPOSITORY)
     private readonly receptionRepo: MarketplaceAplReceptionDomainRepository,
-    @Inject(MARKETPLACE_KU_CHAIRMEN_SERVICE)
-    private readonly kuChairmenService: MarketplaceKuChairmenService
+    @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
+    private readonly kuChairmanService: MarketplaceKuChairmanService
   ) {}
 
   @Mutation(() => MarketplaceAplReceptionResultDTO, {
@@ -182,7 +182,7 @@ export class MarketplaceAplReceptionResolver {
       if (!reception || reception.coopname !== coopname) {
         throw new NotFoundException('Акт приёмки не найден.');
       }
-      const isMember = await this.kuChairmenService.isMemberOfBranch(
+      const isMember = await this.kuChairmanService.isMemberOfBranch(
         coopname,
         reception.braname,
         member.username
@@ -219,7 +219,7 @@ export class MarketplaceAplReceptionResolver {
     // capability `Receiving:create`). Оператор только с правами своего КУ обязан
     // быть членом запрашиваемого участка, иначе утечёт лента приёмок чужого КУ.
     if (!canAccess(roles, 'Receiving', 'read:all')) {
-      const isMember = await this.kuChairmenService.isMemberOfBranch(
+      const isMember = await this.kuChairmanService.isMemberOfBranch(
         coopname,
         data.braname,
         member.username
