@@ -162,7 +162,10 @@ import { MutationLoggingInterceptor } from './application/common/interceptors/mu
     NotificationModule,
     LedgerModule,
     Ledger2Module,
-    BillingModule,
+    // Single-Hub v5: BillingModule подключается ТОЛЬКО на Восходе-хабе
+    // (BILLING_HUB_MODE=true). На спицах модуль не регистрируется —
+    // ни GraphQL Billing.*, ни крон-сервис, ни provider-client.
+    ...(process.env.BILLING_HUB_MODE === 'true' ? [BillingModule] : []),
     ProcessRegistryModule,
     BlockchainExplorerModule,
     ProviderModule,

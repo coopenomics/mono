@@ -87,13 +87,15 @@ const envVarsSchema = z.object({
     .describe('адрес сервиса GRAPHQL'),
   PROVIDER_BASE_URL: z.string().default('').describe('базовый URL сервиса провайдера'),
 
-  // Billing-cron (Epic 12): рекуррентное списание подписок (oracle-паттерн —
-  // Antelope не поддерживает deferred_trx, тик инициирует backend).
-  BILLING_CRON_ENABLED: z
+  // Billing Single-Hub v5: BillingModule подключается только на Восходе-хабе.
+  // На спицах флаг false → модуль вообще не регистрируется, endpoints/cron
+  // не появляются. Antelope не поддерживает deferred_trx — тик крона
+  // инициирует backend.
+  BILLING_HUB_MODE: z
     .string()
     .default('false')
     .transform((v) => v === 'true' || v === '1')
-    .describe('включить периодическое списание подписок (billing::pay)'),
+    .describe('узел работает как биллинг-хаб (только Восход): включает BillingModule, крон и GraphQL Billing.*'),
   BILLING_CRON_EXPRESSION: z
     .string()
     .default('0 * * * *')
@@ -283,7 +285,7 @@ export default {
   graphql_service: envVars.data.GRAPHQL_SERVICE,
   provider_base_url: envVars.data.PROVIDER_BASE_URL,
   billing: {
-    cron_enabled: envVars.data.BILLING_CRON_ENABLED,
+    hub_mode: envVars.data.BILLING_HUB_MODE,
     cron_expression: envVars.data.BILLING_CRON_EXPRESSION,
     coopnames: envVars.data.BILLING_CRON_COOPNAMES.split(',')
       .map((s) => s.trim())

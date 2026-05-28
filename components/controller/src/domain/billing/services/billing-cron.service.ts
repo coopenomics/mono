@@ -38,10 +38,6 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit() {
-    if (!config.billing.cron_enabled) {
-      this.logger.log('BillingCronService отключён (BILLING_CRON_ENABLED=false)');
-      return;
-    }
     if (!this.providerClient.isConfigured()) {
       this.logger.warn('BillingCronService: PROVIDER_BASE_URL не задан — тик не будет запущен');
       return;
