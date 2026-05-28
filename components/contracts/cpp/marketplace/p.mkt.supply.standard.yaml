@@ -20,8 +20,14 @@
 #                   в любой программе либо вывести обратно на паевой через
 #                   операцию контракта wallet.
 #   • w.mkt.member  (контракт marketplace, USER_SHARED) — членский в
-#                   программе Marketplace. На нём идут BLOCK/UNBLOCK/REVOKE
-#                   под конкретный Order.
+#                   программе Marketplace. На нём лежит «свободный» остаток
+#                   программы; средства под конкретный Order переводятся
+#                   на отдельный кошелёк-резерв w.mkt.order.
+#   • w.mkt.order   (контракт marketplace, USER_SHARED) — резерв средств
+#                   пайщика под конкретный Order. Сюда уходят средства
+#                   при создании заказа (createorder) и отсюда возвращаются
+#                   обратно на w.mkt.member при отмене/истечении заказа,
+#                   либо сжигаются при выдаче имущества (signiss2).
 # Платформенные кошельки w.wal.share (Цифровой Кошелёк, паевые деньгами) и
 # w.mkt.payout (Выплаты поставщикам) — без изменений. Имущество
 # отслеживается бухгалтерской аналитикой по счёту 10 (per-КУ субсчета),
@@ -40,10 +46,12 @@
 #                     (TRANSFER, w.wal.member → w.mkt.member, без проводки —
 #                      Дт=Кт по 86 смарт-контракт игнорирует) — conditional,
 #                     только если на w.mkt.member.available не хватает
-#   • o.mkt.block  — блокировка средств под Order на программном кошельке
-#                     (BLOCK)
-#   • o.mkt.unblk  — разблокировка при отмене Order'а
-#                     (UNBLOCK; средства остаются на w.mkt.member.available
+#   • o.mkt.block  — резервирование средств под Order
+#                     (TRANSFER, w.mkt.member → w.mkt.order, без проводки —
+#                      оба на 86)
+#   • o.mkt.unblk  — снятие резерва при отмене Order'а
+#                     (TRANSFER, w.mkt.order → w.mkt.member, без проводки;
+#                      средства возвращаются на w.mkt.member.available
 #                      и могут быть потрачены на следующий заказ)
 #   • o.mkt.recall  — вывод из программы в общий членский кошелёк пайщика
 #                     (TRANSFER, w.mkt.member → w.wal.member, без проводки) —
@@ -54,7 +62,7 @@
 #   • o.mkt.payout  — оплата поставщику с расчётного счёта
 #                     (TRANSFER, ∅ → w.mkt.payout, Дт 86 / Кт 51)
 #   • o.mkt.consum  — выдача имущества пайщику по АПП выдачи, часть 1
-#                     (REVOKE, w.mkt.member.blocked → 0, Дт 91 / Кт 10 —
+#                     (BURN с w.mkt.order — сжигание резерва, Дт 91 / Кт 10 —
 #                      выбытие имущества со склада на «прочие»)
 #   • o.mkt.consum2  — выдача имущества пайщику, часть 2 — закрытие транзита
 #                     (NONE, Дт 86 / Кт 91; кошельки не двигаются).
@@ -70,6 +78,7 @@
 #   • cpp/lib/core/ledger2/processes.hpp              — processes::marketplace::SUPPLY
 #   • cpp/lib/core/ledger2/wallets.hpp                — w.wal.member (universal member, contract wallet),
 #                                                       w.mkt.member (programmatic per-user),
+#                                                       w.mkt.order  (программный резерв под Order),
 #                                                       w.wal.share (платформенный),
 #                                                       w.mkt.payout (платформенный)
 #   • cpp/lib/core/ledger2/accounts.hpp               — Расчётный (51),
@@ -784,7 +793,11 @@ documents:
 #                     USER_SHARED). Сюда стекаются возвраты из всех программ;
 #                     пайщик расходует «как баллы» в любую программу.
 #   • w.mkt.member  — ЦПП «Стол Заказов» — членский в программе (USER_SHARED).
-#                     На нём идут BLOCK/UNBLOCK/REVOKE под Order.
+#                     Хранит свободный остаток членского пайщика в программе.
+#   • w.mkt.order   — ЦПП «Стол Заказов» — резерв средств пайщика под
+#                     конкретный Order (USER_SHARED). Сюда переводятся
+#                     средства на createorder; обратно — на cancel/expire/
+#                     decline; сжигаются BURN'ом на signiss2.
 #   • w.wal.share   — ЦПП «Цифровой Кошелёк» — паевые взносы деньгами
 #                     [платформенный]
 #   • w.mkt.payout  — Выплаты поставщикам
@@ -857,54 +870,65 @@ operations:
       аналитика «по программе» фиксируется на L2/L3.
 
   - ledger_code: o.mkt.block
-    human_name: Блокировка членского взноса под заказ
-    wallet_op: BLOCK
-    # L1 — операция чисто L3, бухгалтерия не двигается
+    human_name: Резервирование членского взноса под заказ
+    wallet_op: TRANSFER
+    # L1 — без проводки (оба кошелька на 86, Дт=Кт нетто-нулевое; смарт-контракт игнорирует)
     debit: null
     credit: null
-    # L2 — без перевода между кошельками кооператива
-    wallet_from: null
-    wallet_to: null
-    # L3 — split available → blocked на одном кошельке заказчика
-    user_wallet: w.mkt.member       # ЦПП «Стол Заказов» — членские взносы заказчика
-    user_ref: order.orderer
-    available_delta: -order.total_cost
-    blocked_delta: +order.total_cost
+    # L2 — реальный перевод между двумя программными кошельками
+    wallet_from: w.mkt.member       # ЦПП «Стол Заказов» — свободные средства программы
+    wallet_to: w.mkt.order          # ЦПП «Стол Заказов» — резерв под Order
+    # L3 — две стороны движения у одного и того же пайщика
+    l3:
+      - user_wallet: w.mkt.member
+        user_ref: order.orderer
+        available_delta: -order.total_cost
+        blocked_delta: null
+      - user_wallet: w.mkt.order
+        user_ref: order.orderer
+        available_delta: +order.total_cost
+        blocked_delta: null
     amount_ref: order.total_cost
     triggered_by: marketplace::createorder
     description: >
-      Атомарная серия — шаг 2 из 2. Блокировка суммы order.total_cost под
-      конкретный Order на кошельке заказчика w.mkt.member. Это операция
-      уровня 3 — split available → blocked на одном кошельке без перевода
-      между кошельками кооператива и без бухгалтерских проводок.
-      Блокировка снимается либо при выдаче (o.mkt.consum, REVOKE blocked → 0),
-      либо при отмене (o.mkt.unblk + o.mkt.recall — UNBLOCK + возврат).
+      Атомарная серия — шаг 3 из 3. Резервирование суммы order.total_cost
+      под конкретный Order: средства переводятся со «свободного» программного
+      членского кошелька (w.mkt.member) на отдельный кошелёк-резерв
+      (w.mkt.order). Бухгалтерских проводок нет (оба кошелька на счёте 86 —
+      перевод внутри одной аналитики, фиктивная Дт=Кт игнорируется).
+      Резерв снимается либо при выдаче (o.mkt.consum — сжигание резерва BURN'ом
+      при подписании АПП выдачи), либо при отмене (o.mkt.unblk — обратный
+      TRANSFER w.mkt.order → w.mkt.member).
 
   - ledger_code: o.mkt.unblk
-    human_name: Разблокировка членского взноса при отмене
-    wallet_op: UNBLOCK
-    # L1 — без проводок
+    human_name: Снятие резерва членского взноса при отмене
+    wallet_op: TRANSFER
+    # L1 — без проводки (оба кошелька на 86, зеркало o.mkt.block)
     debit: null
     credit: null
-    # L2 — без перевода
-    wallet_from: null
-    wallet_to: null
-    # L3 — обратное движение blocked → available
-    user_wallet: w.mkt.member
-    user_ref: order.orderer
-    available_delta: +order.total_cost
-    blocked_delta: -order.total_cost
+    # L2 — обратный перевод из резерва в свободные средства программы
+    wallet_from: w.mkt.order        # ЦПП «Стол Заказов» — резерв под Order
+    wallet_to: w.mkt.member         # ЦПП «Стол Заказов» — свободные средства программы
+    # L3 — две стороны движения у одного и того же пайщика
+    l3:
+      - user_wallet: w.mkt.order
+        user_ref: order.orderer
+        available_delta: -order.total_cost
+        blocked_delta: null
+      - user_wallet: w.mkt.member
+        user_ref: order.orderer
+        available_delta: +order.total_cost
+        blocked_delta: null
     amount_ref: order.total_cost
     triggered_by: marketplace::cancelorder | marketplace::expirecycle | marketplace::declinebatch
     description: >
-      Зеркало o.mkt.block. Снятие блокировки на кошельке заказчика
-      w.mkt.member при отмене Order'а (заказчик отменяет до акцепта;
-      цикл истёк без достижения порога; поставщик отказался от партии).
-      На уровне 3 blocked → available. Без L1, без L2. Сумма остаётся
-      на w.mkt.member.available заказчика — может быть потрачена на
-      следующий заказ в Столе заказов. Вывод в общий членский кошелёк
-      (w.wal.member) — отдельное явное действие пайщика через o.mkt.recall,
-      не часть авто-flow отмены.
+      Зеркало o.mkt.block. Снятие резерва при отмене Order'а (заказчик
+      отменяет до акцепта; цикл истёк без достижения порога; поставщик
+      отказался от партии). Средства возвращаются с кошелька-резерва
+      (w.mkt.order) на «свободный» программный членский (w.mkt.member.available)
+      заказчика — могут быть потрачены на следующий заказ в Столе заказов.
+      Вывод в общий членский кошелёк (w.wal.member) — отдельное явное
+      действие пайщика через o.mkt.recall, не часть авто-flow отмены.
 
   - ledger_code: o.mkt.recall
     human_name: Вывод членского взноса в общий членский кошелёк
@@ -1000,7 +1024,7 @@ operations:
 
   - ledger_code: o.mkt.consum
     human_name: Выдача имущества пайщику — выбытие со склада
-    wallet_op: REVOKE
+    wallet_op: BURN
     # L1 — часть 1 композитной проводки через транзит счёта 91:
     # Дт 91 / Кт 10 — выбытие имущества со склада на «прочие». Закрытие
     # транзита выполняется отдельной операцией o.mkt.consum2 (Дт 86 / Кт 91),
@@ -1008,22 +1032,21 @@ operations:
     # сразу после в действии signiss2). Согласовано с Ангелиной 2026-05-11.
     debit: 91                      # Прочие доходы и расходы (NEW)
     credit: 10                     # Материалы (NEW)
-    # L2 — без перевода между кошельками кооператива (REVOKE списывает
-    # blocked в пустоту, это L3-семантика)
-    wallet_from: null
-    wallet_to: null
-    # L3 — blocked заказчика обнуляется (целевое расходование членского взноса)
-    user_wallet: w.mkt.member
+    # L2 — BURN на кошельке-резерве (резерв сжигается, средства уходят из системы)
+    wallet_from: w.mkt.order        # ЦПП «Стол Заказов» — резерв под Order
+    wallet_to: null                 # BURN — без получателя
+    # L3 — резерв заказчика обнуляется (целевое расходование членского взноса)
+    user_wallet: w.mkt.order
     user_ref: order.orderer
-    available_delta: null
-    blocked_delta: -order.fact_cost
+    available_delta: -order.fact_cost
+    blocked_delta: null
     amount_ref: order.fact_cost
     triggered_by: marketplace::signiss2
     description: >
       Выдача имущества заказчику-пайщику по АПП выдачи (финальная подпись
       заказчика), часть 1 композитной бухгалтерской проводки через транзит
-      счёта 91 «Прочие доходы и расходы». REVOKE на программном кошельке
-      пайщика — заблокированная сумма списывается без увеличения куда-либо
+      счёта 91 «Прочие доходы и расходы». BURN на кошельке-резерве
+      (w.mkt.order) — зарезервированная сумма сжигается без получателя
       (целевое расходование членского взноса). Проводка Дт 91 / Кт 10 —
       выбытие имущества со склада на «прочие». Сразу после этой операции
       в той же транзакции signiss2 контракт вызывает o.mkt.consum2
