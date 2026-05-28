@@ -7,7 +7,8 @@
  *     на `w.mkt.member.available` суммарно не хватает суммы заказа.
  *  2. `o.mkt.assign` (conditional) — TRANSFER w.wal.member → w.mkt.member,
  *     без проводки. Только если на `w.mkt.member.available` не хватает.
- *  3. `o.mkt.block` (всегда) — BLOCK на `w.mkt.member` пайщика на total_cost.
+ *  3. `o.mkt.block` (всегда) — TRANSFER w.mkt.member → w.mkt.order пайщика на
+ *     total_cost (резерв средств под этот Order; без проводки — оба кошелька на 86).
  *
  * Guards (из p.mkt.supply.standard.yaml + Locked Decision L6):
  *  - quantity > 0; unit_price > 0 в _root_govern_symbol; cycle_type валидный.
@@ -20,7 +21,7 @@
  *  - Подписка пайщика на оферту ЦПП «Стол заказов» (L2/L3 онбординг) —
  *    автоматически проверяется в `ledger2::walletop` через
  *    `assert_program_signed` (cross-contract в `wallet::users.programs[]`)
- *    при первом ASSIGN/BLOCK на USER_SHARED-кошельке программы.
+ *    при первом ASSIGN/TRANSFER на USER_SHARED-кошельке программы.
  *
  * Сообщения проверок — для прямого показа пользователю (UI ловит check'ом).
  *
@@ -142,7 +143,8 @@ void marketplace::createorder(eosio::name coopname,
                    Marketplace::Memo::get_create_order_assign_memo(new_id));
   }
 
-  // ── Шаг 3: o.mkt.block (всегда) ──────────────────────────────────────
+  // ── Шаг 3: o.mkt.block (всегда) — TRANSFER w.mkt.member → w.mkt.order ──
+  // Резервируем total_cost на отдельный кошелёк w.mkt.order под этот Order.
   Ledger2::apply(_marketplace, coopname,
                  operations::marketplace::BLOCK_FOR_ORDER,
                  total_cost, orderer, order_hash,

@@ -1,9 +1,10 @@
 /**
  * @brief Заказчик отменяет заказ до акцепта поставщиком (Story 4.4, p.mkt.supply).
  *
- * Триггерит `o.mkt.unblk` на full `order.total_cost`. Сумма остаётся на
- * `w.mkt.member.available` заказчика — может быть потрачена на следующий
- * заказ программы либо выведена явным `o.mkt.recall` (отдельное действие).
+ * Триггерит `o.mkt.unblk` на full `order.total_cost` — TRANSFER w.mkt.order →
+ * w.mkt.member (снятие резерва). Сумма возвращается на `w.mkt.member.available`
+ * заказчика — может быть потрачена на следующий заказ программы либо выведена
+ * явным `o.mkt.recall` (отдельное действие).
  *
  * Guards:
  *  - Order существует.

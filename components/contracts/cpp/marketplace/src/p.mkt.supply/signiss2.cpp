@@ -4,11 +4,12 @@
  * Per-Order атомарная транзакция с поддержкой actual_quantity ≠ ordered (Story 6.2):
  *
  * 1) actual == ordered:
- *      Ledger2::apply(o.mkt.consum,  fact_cost) — Дт 91 / Кт 10, REVOKE на blocked.
+ *      Ledger2::apply(o.mkt.consum,  fact_cost) — Дт 91 / Кт 10, BURN с w.mkt.order (резерв).
  *      Ledger2::apply(o.mkt.consum2, fact_cost) — Дт 86 / Кт 91, NONE.
  *
- * 2) actual < ordered (выдано меньше — остаток на blocked возвращается):
- *      Ledger2::apply(o.mkt.unblk, ordered_cost - fact_cost) — снятие резерва на разницу.
+ * 2) actual < ordered (выдано меньше — остаток резерва возвращается):
+ *      Ledger2::apply(o.mkt.unblk, ordered_cost - fact_cost) — TRANSFER w.mkt.order →
+ *          w.mkt.member на разницу (снятие части резерва).
  *      затем — те же consum + consum2 на fact_cost.
  *
  * 3) actual > ordered (доплата с паевого):
@@ -16,7 +17,7 @@
  *      проверка достаточности средств для diff (через w.wal.share + w.wal.member).
  *      Conditional o.wal.conv (если на w.wal.member недостача).
  *      Conditional o.mkt.assign (если на w.mkt.member недостача).
- *      o.mkt.block(diff) — резервируем доплату на этот же Order.
+ *      o.mkt.block(diff) — TRANSFER w.mkt.member → w.mkt.order, резервируем доплату на этот же Order.
  *      затем — consum + consum2 на fact_cost.
  *
  * Status: ready_to_receive → received. actual_quantity, fact_cost,
@@ -64,7 +65,7 @@ void marketplace::signiss2(eosio::name coopname,
 
   // ── Корректирующие операции (если факт ≠ заказ) ─────────────────────
   if (fact_cost < o.total_cost) {
-    // actual < ordered: возвращаем разницу с blocked → available
+    // actual < ordered: снимаем разницу резерва → .available членского
     const eosio::asset diff = o.total_cost - fact_cost;
     Ledger2::apply(_marketplace, coopname,
                    operations::marketplace::UNBLOCK_ON_CANCEL,
