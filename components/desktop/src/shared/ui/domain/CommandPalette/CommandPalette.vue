@@ -218,8 +218,17 @@ function moveSelection(delta: number): void {
   const list = activeList.value;
   if (!list.length) return;
   const currentIdx = list.findIndex((e) => e.key === activeKey.value);
-  const safe = currentIdx === -1 ? 0 : currentIdx;
-  const next = (safe + delta + list.length) % list.length;
+  let next: number;
+  if (currentIdx === -1) {
+    // Нет текущего выделения — ↓ ставит на первый, ↑ на последний.
+    next = delta > 0 ? 0 : list.length - 1;
+  } else {
+    // Clamp в границах списка: на верхней/нижней позиции стрелка дальше
+    // не «оборачивает» курсор в противоположный конец — он остаётся на
+    // месте (привычное поведение скролла в нативных меню/listbox).
+    next = Math.max(0, Math.min(list.length - 1, currentIdx + delta));
+  }
+  if (next === currentIdx) return;
   activeKey.value = list[next].key;
   nextTick(() => scrollActiveIntoView());
 }
