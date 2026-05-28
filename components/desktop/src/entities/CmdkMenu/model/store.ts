@@ -532,6 +532,7 @@ const selectGroupByName = (workspaceName: string) => {
     contentRef,
 
     // Computed
+    groupedItems,
     filteredItems,
     flatSearchResults,
     isSearchMode,
