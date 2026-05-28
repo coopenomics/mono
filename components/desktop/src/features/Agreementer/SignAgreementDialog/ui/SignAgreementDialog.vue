@@ -8,7 +8,7 @@ BaseDialog(
   :close-on-escape='false'
 )
   div.row.justify-center
-    q-card(flat).col-md-8.col-col-xs-12
+    q-card(flat).col-md-8.col-col-xs-12.q-pa-lg
       Loader(v-if="isLoading" :text='`Формируем документ...`')
       Form(
         :handler-submit="sign"
