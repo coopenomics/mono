@@ -754,12 +754,6 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceListOrdersInput:{
 		statuses:"MarketplaceOrderStatus"
 	},
-	MarketplaceListOutgoingPaymentsAsSupplierFilterInput:{
-		statuses:"MarketplaceOutgoingPaymentRequestStatus"
-	},
-	MarketplaceListOutgoingPaymentsFilterInput:{
-		statuses:"MarketplaceOutgoingPaymentRequestStatus"
-	},
 	MarketplaceListPendingOffersInput:{
 
 	},
@@ -1986,10 +1980,10 @@ export const AllTypesProps: Record<string,any> = {
 			options:"PaginationInput"
 		},
 		marketplaceListOutgoingPayments:{
-			filter:"MarketplaceListOutgoingPaymentsFilterInput"
+			statuses:"MarketplaceOutgoingPaymentRequestStatus"
 		},
 		marketplaceListOutgoingPaymentsAsSupplier:{
-			filter:"MarketplaceListOutgoingPaymentsAsSupplierFilterInput"
+			statuses:"MarketplaceOutgoingPaymentRequestStatus"
 		},
 		marketplaceListPendingOffers:{
 			input:"MarketplaceListPendingOffersInput"
@@ -4171,7 +4165,9 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	MarketplaceOrderCreateTxSnapshot:{
 		block_num:"Int",
-		locked_amount:"String",
+		blocked_amount:"String",
+		did_assign:"Boolean",
+		did_convert:"Boolean",
 		signed_at:"String",
 		tx_hash:"String"
 	},
