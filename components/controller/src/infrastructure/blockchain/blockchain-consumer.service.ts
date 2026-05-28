@@ -156,7 +156,7 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
           this.logger.debug(`Fork-дубликат пропущен (no-op): ${eventId}`);
           return;
         }
-        await this.processFork(event.forked_from_block);
+        await this.processFork(event.forked_from_block, eventId);
         await this.parserInteractor.markEventApplied(eventId, event.forked_from_block);
         return;
       }
@@ -321,11 +321,13 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
    * INV-T03: к моменту, когда handleEvent resolves и parser2 берёт следующее событие,
    * вся цепочка rollback завершена (sequential XREADGROUP = natural barrier).
    */
-  private async processFork(block_num: number): Promise<void> {
-    this.logger.log(`Обработка форка на блоке ${block_num}: запуск ForkRegistry rollback`);
+  private async processFork(block_num: number, forkEventId?: string | null): Promise<void> {
+    this.logger.log(`Обработка форка на блоке ${block_num} (eventId=${forkEventId ?? 'n/a'}): запуск ForkRegistry rollback`);
 
     // 1. Sequential rollback всех зарегистрированных syncer'ов.
-    await this.forkRegistry.runAll(block_num);
+    //    Story 4.4: forkEventId пробрасывается syncer'ам — они кладут его в архив
+    //    invalidated_entities для forensic-группировки.
+    await this.forkRegistry.runAll(block_num, forkEventId);
     this.logger.debug(`ForkRegistry: rollback завершён для ${this.forkRegistry.size()} syncer(s)`);
 
     // 2. Очистка consumer_dedup для блоков отрезанной ветки.

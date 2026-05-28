@@ -145,32 +145,56 @@ export abstract class AbstractEntitySyncService<TEntity extends IBlockchainSynch
   }
 
   /**
-   * Обработка форка — удаление данных после указанного блока + восстановление из versions.
+   * Обработка форка — архивирование снесённых сущностей + восстановление из versions
+   * + архивирование инвалидированных версий.
    *
    * Story 4.1: ошибки больше НЕ глотаются — обязательный re-throw для контракта
    * sequential ForkRegistry.runAll (INV-T03). Если rollback упадёт — parser2 не
    * ACK'нет fork-event, повторная доставка пересыграет цепочку. Уже отработавшие
    * syncer'ы в цепи будут no-op (versions уже подняты), сбойный — попробует ещё раз.
+   *
+   * Story 4.4: hard-delete заменён на «архив + delete» атомарно. Порядок:
+   *   1) archiveInvalidatedSince — live-ряды WHERE block_num > N переезжают в
+   *      invalidated_entities, оригинал удаляется (одна транзакция).
+   *   2) restoreFromVersions — поднять previous_data из ещё-живых entity_versions.
+   *   3) archiveInvalidatedVersionsSince — entity_versions WHERE entity_table=... AND
+   *      block_num > N переезжают в invalidated_entity_versions, оригинал удаляется.
+   *      Запускается ПОСЛЕ restore, иначе restore не сможет прочитать живые версии.
+   * Если репо не реализует archive методы (off-chain) — graceful no-op + fallback
+   * на старую findByBlockNumGreaterThan/deleteByBlockNumGreaterThan для бэк-совместимости.
    */
-  async handleFork(forkBlockNum: number): Promise<void> {
-    this.logger.log(`Handling fork for ${this.entityName} at block ${forkBlockNum}`);
+  async handleFork(forkBlockNum: number, forkEventId?: string | null): Promise<void> {
+    this.logger.log(`Handling fork for ${this.entityName} at block ${forkBlockNum} (eventId=${forkEventId ?? 'n/a'})`);
 
-    const affectedEntities = await this.repository.findByBlockNumGreaterThan(forkBlockNum);
-
-    this.logger.debug(
-      `Found ${affectedEntities.length} ${this.entityName} entities affected by fork at block ${forkBlockNum}`
-    );
-
-    await this.repository.deleteByBlockNumGreaterThan(forkBlockNum);
-
-    this.logger.log(`Removed ${affectedEntities.length} ${this.entityName} entities after fork at block ${forkBlockNum}`);
+    let archivedLive = 0;
+    if (this.repository.archiveInvalidatedSince) {
+      archivedLive = await this.repository.archiveInvalidatedSince(forkBlockNum, forkEventId);
+      this.logger.log(
+        `Архивировано ${archivedLive} live-рядов ${this.entityName} на форке ${forkBlockNum}`
+      );
+    } else {
+      // Бэк-совместимость для off-chain репозиториев без архива (Story 4.3 allowlist)
+      const affected = await this.repository.findByBlockNumGreaterThan(forkBlockNum);
+      await this.repository.deleteByBlockNumGreaterThan(forkBlockNum);
+      archivedLive = affected.length;
+      this.logger.warn(
+        `${this.entityName}: archiveInvalidatedSince не реализован — fallback на hard-delete (${archivedLive} рядов)`
+      );
+    }
 
     if (this.repository.restoreFromVersions) {
       await this.repository.restoreFromVersions(forkBlockNum);
       this.logger.log(`Restored ${this.entityName} entities from versions after fork at block ${forkBlockNum}`);
     }
 
-    await this.afterForkProcessing(forkBlockNum, affectedEntities);
+    if (this.repository.archiveInvalidatedVersionsSince) {
+      const archivedVersions = await this.repository.archiveInvalidatedVersionsSince(forkBlockNum, forkEventId);
+      this.logger.log(
+        `Архивировано ${archivedVersions} версий ${this.entityName} на форке ${forkBlockNum}`
+      );
+    }
+
+    await this.afterForkProcessing(forkBlockNum, []);
   }
 
   /**

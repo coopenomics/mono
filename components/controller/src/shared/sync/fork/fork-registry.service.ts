@@ -88,12 +88,17 @@ export class ForkRegistryService implements OnApplicationBootstrap {
    *
    * Порядок: сначала syncer'ы с заданным `forkRollbackPriority` (по возрастанию),
    * затем — без приоритета (в порядке обхода Discovery, что обычно соответствует DI-графу).
+   *
+   * Story 4.4: `forkEventId` пробрасывается в каждый syncer.handleFork — syncer кладёт
+   * его в архив invalidated_entities для группировки по форкам.
    */
-  async runAll(forkBlockNum: number): Promise<void> {
+  async runAll(forkBlockNum: number, forkEventId?: string | null): Promise<void> {
     const ordered = this.orderedForRollback();
-    this.logger.debug(`ForkRegistry: runAll(blockNum=${forkBlockNum}) — ${ordered.length} syncer(s)`);
+    this.logger.debug(
+      `ForkRegistry: runAll(blockNum=${forkBlockNum}, eventId=${forkEventId ?? 'n/a'}) — ${ordered.length} syncer(s)`
+    );
     for (const syncer of ordered) {
-      await syncer.handleFork(forkBlockNum);
+      await syncer.handleFork(forkBlockNum, forkEventId);
     }
   }
 

@@ -1,6 +1,7 @@
 // app.module.ts
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
 
 // Infrastructure modules
@@ -86,6 +87,7 @@ import { MutationLoggingInterceptor } from './application/common/interceptors/mu
     ConfigModule.forRoot({
       isGlobal: true, // Чтобы .env был доступен глобально
     }),
+    ScheduleModule.forRoot(), // @Cron / @Interval / @Timeout (Story 4.4 retention)
     ThrottlerModule.forRoot([
       {
         ttl: 60000,

@@ -128,6 +128,33 @@ export abstract class BaseBlockchainRepository<
   }
 
   /**
+   * Story 4.4: архивировать live-ряды WHERE block_num > forkBlockNum в invalidated_entities
+   * и удалить из исходной таблицы (атомарно). Возвращает count. Заменяет в hot-path
+   * handleFork прежнюю пару findByBlockNumGreaterThan + deleteByBlockNumGreaterThan.
+   */
+  async archiveInvalidatedSince(forkBlockNum: number, forkEventId?: string | null): Promise<number> {
+    return this.entityVersioningService.archiveAndDeleteLiveAfterFork(
+      this.repository,
+      this.getEntityTableName(),
+      forkBlockNum,
+      forkEventId
+    );
+  }
+
+  /**
+   * Story 4.4: архивировать entity_versions WHERE entity_table=... AND block_num > forkBlockNum
+   * в invalidated_entity_versions и удалить из entity_versions (атомарно). Возвращает count.
+   * Должен вызываться ПОСЛЕ restoreFromVersions — иначе restore не сможет прочитать ещё-живые версии.
+   */
+  async archiveInvalidatedVersionsSince(forkBlockNum: number, forkEventId?: string | null): Promise<number> {
+    return this.entityVersioningService.archiveAndDeleteVersionsAfterFork(
+      this.getEntityTableName(),
+      forkBlockNum,
+      forkEventId
+    );
+  }
+
+  /**
    * Обновить сущность
    */
   async update(entity: TDomainEntity): Promise<TDomainEntity> {

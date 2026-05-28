@@ -12,6 +12,7 @@ jest.mock('@coopenomics/parser2', () => ({ ParserClient: class {} }), { virtual:
  * - blockNum прокидывается одинаково во все шаги.
  * - markEventApplied в process{Action,Delta} вызывается с block_num.
  * - 4.2: EventEmitter `fork::*` НЕ эмитится (deprecated broadcast удалён).
+ * - 4.4: forkEventId (controller-формат) прокидывается из handleEvent → processFork → runAll.
  */
 
 import { BlockchainConsumerService } from '~/infrastructure/blockchain/blockchain-consumer.service';
@@ -103,7 +104,7 @@ describe('BlockchainConsumerService.processFork (Stories 4.1 + 4.2)', () => {
 
     await (service as any).processFork(12345);
 
-    expect(fork.runAll).toHaveBeenCalledWith(12345);
+    expect(fork.runAll).toHaveBeenCalledWith(12345, undefined);
     expect(parser.deleteDedupAfterBlock).toHaveBeenCalledWith(12345);
     expect(parser.saveFork).toHaveBeenCalledWith(expect.objectContaining({ block_num: 12345 }));
     // Story 4.2: никакого broadcast'а `fork::*` через EventEmitter.
@@ -209,6 +210,26 @@ describe('BlockchainConsumerService.processFork (Stories 4.1 + 4.2)', () => {
     for (const call of allEmitCalls) {
       expect(call[0]).not.toMatch(/^fork::/);
     }
+  });
+
+  it('Story 4.4: handleEvent для fork прокидывает controller event_id в processFork → runAll', async () => {
+    const parser = makeParserInteractorStub();
+    parser.isEventApplied.mockResolvedValueOnce(false);
+    const fork = makeForkRegistryStub();
+    const { service } = makeService({ parserInteractor: parser, forkRegistry: fork });
+
+    await (service as any).handleEvent(FORK_EVENT);
+
+    expect(fork.runAll).toHaveBeenCalledWith(100, EXPECTED_CONTROLLER_ID);
+  });
+
+  it('Story 4.4: processFork(N, eventId) прокидывает eventId в runAll', async () => {
+    const fork = makeForkRegistryStub();
+    const { service } = makeService({ forkRegistry: fork });
+
+    await (service as any).processFork(555, 'c1:fork:555:deadbeef');
+
+    expect(fork.runAll).toHaveBeenCalledWith(555, 'c1:fork:555:deadbeef');
   });
 });
 

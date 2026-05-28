@@ -16,8 +16,13 @@ export interface IForkAwareSyncer {
   /**
    * Откатить сущности этого syncer'а до состояния на блок forkBlockNum включительно.
    * При ошибке — обязан re-throw (silent catch ломает контракт sequential apply).
+   *
+   * Story 4.4: `forkEventId` (optional) — локально-вычисленный controller-формат
+   * event_id (см. computeForkEventId), пробрасывается syncer'ом в архив инвалидированных
+   * сущностей (invalidated_entities.fork_event_id) для группировки по форкам. Старые
+   * вызовы без второго параметра остаются валидными — поле в архиве записывается NULL.
    */
-  handleFork(forkBlockNum: number): Promise<void>;
+  handleFork(forkBlockNum: number, forkEventId?: string | null): Promise<void>;
 
   /**
    * Опциональный приоритет для FK-зависимостей внутри одного контракта (меньше = раньше).

@@ -42,6 +42,10 @@ import { SyncStateEntity } from './entities/sync-state.entity';
 import { EntityVersionTypeormEntity } from '~/shared/sync/entities/entity-version.typeorm-entity';
 import { EntityVersionRepository } from '~/shared/sync/repositories/entity-version.repository';
 import { EntityVersioningService } from '~/shared/sync/services/entity-versioning.service';
+import { InvalidatedEntityTypeormEntity } from '~/shared/sync/entities/invalidated-entity.typeorm-entity';
+import { InvalidatedEntityVersionTypeormEntity } from '~/shared/sync/entities/invalidated-entity-version.typeorm-entity';
+import { InvalidatedEntityRepository } from '~/shared/sync/repositories/invalidated-entity.repository';
+import { InvalidatedEntityVersionRepository } from '~/shared/sync/repositories/invalidated-entity-version.repository';
 import { ACTION_REPOSITORY_PORT } from '~/domain/parser/ports/action-repository.port';
 import { DELTA_REPOSITORY_PORT } from '~/domain/parser/ports/delta-repository.port';
 import { FORK_REPOSITORY_PORT } from '~/domain/parser/ports/fork-repository.port';
@@ -127,6 +131,8 @@ import { UserWalletIndexInitializer } from './blockchain/services/user-wallet-in
       SyncStateEntity,
       ConsumerDedupEntity,
       EntityVersionTypeormEntity,
+      InvalidatedEntityTypeormEntity,
+      InvalidatedEntityVersionTypeormEntity,
       SettingsEntity,
       TokenEntity,
       UserEntity,
@@ -259,6 +265,8 @@ import { UserWalletIndexInitializer } from './blockchain/services/user-wallet-in
     UserWalletIndexInitializer,
     EntityVersionRepository,
     EntityVersioningService,
+    InvalidatedEntityRepository,
+    InvalidatedEntityVersionRepository,
   ],
   exports: [
     NestTypeOrmModule,
@@ -295,6 +303,8 @@ import { UserWalletIndexInitializer } from './blockchain/services/user-wallet-in
     UserWalletSyncService,
     EntityVersionRepository,
     EntityVersioningService,
+    InvalidatedEntityRepository,
+    InvalidatedEntityVersionRepository,
   ],
 })
 export class TypeOrmModule {}
