@@ -4170,9 +4170,7 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	MarketplaceOrderCreateTxSnapshot:{
 		block_num:"Int",
-		blocked_amount:"String",
-		did_assign:"Boolean",
-		did_convert:"Boolean",
+		locked_amount:"String",
 		signed_at:"String",
 		tx_hash:"String"
 	},

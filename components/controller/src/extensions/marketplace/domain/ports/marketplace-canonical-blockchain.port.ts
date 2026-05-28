@@ -27,7 +27,7 @@ export interface MarketplaceCanonicalBlockchainPort {
   /**
    * Story 4.3: backend cron закрывает один Order по таймауту цикла (или
    * pending-acceptance timeout). Per-Order: триггерит C++
-   * `marketplace::expireorder` → o.mkt.unblk на total_cost + статус
+   * `marketplace::expireorder` → o.mkt.unlock на total_cost + статус
    * Order'а на цепи active → cancelled.
    *
    * Авторизация — кооператив (`require_auth(coopname)`).
@@ -36,10 +36,10 @@ export interface MarketplaceCanonicalBlockchainPort {
 
   /**
    * Story 4.4: заказчик отменяет Order до акцепта поставщиком. Триггерит
-   * C++ `marketplace::cancelorder` → серия `UNBLOCK_ON_CANCEL` (o.mkt.unblk)
-   * на `order.total_cost` + on-chain Order.status: ACTIVE → CANCELLED.
-   * Сумма остаётся на `w.mkt.member.available` пайщика-заказчика (может
-   * быть потрачена на следующий заказ или явно выведена `o.mkt.recall`).
+   * C++ `marketplace::cancelorder` → `UNLOCK_ORDER` (o.mkt.unlock) на
+   * `order.total_cost` + on-chain Order.status: ACTIVE → CANCELLED.
+   * Сумма возвращается на `w.wal.member.available` пайщика-заказчика
+   * (может быть потрачена пайщиком в членских программах).
    *
    * Авторизация — кооператив (`require_auth(coopname)`); C++ дополнительно
    * проверяет `actor == order.orderer` через параметр (passed-in name).
@@ -58,9 +58,9 @@ export interface MarketplaceCanonicalBlockchainPort {
   acceptOrder(data: MarketContract.Actions.AcceptOrder.IAcceptOrder): Promise<TransactResult>;
 
   /**
-   * Story 4.5: поставщик отказывается от одного Order'а до акцепта. C++
-   * серия: `o.mkt.unblk` на `order.total_cost` (средства возвращаются на
-   * `w.mkt.member.available` пайщика-заказчика) + on-chain Order.status:
+   * Story 4.5: поставщик отказывается от одного Order'а до акцепта. C++:
+   * `o.mkt.unlock` на `order.total_cost` (средства возвращаются на
+   * `w.wal.member.available` пайщика-заказчика) + on-chain Order.status:
    * active → cancelled. Backend для batch консолидированной заявки
    * (time/volume) проходит циклом per-Order; для individual / open_pool
    * decline вызывается один раз.
@@ -224,10 +224,9 @@ export interface MarketplaceCanonicalBlockchainPort {
 
   /**
    * Story 8.4: backend исполняет одну позицию авторизованного проекта
-   * списания. Per-item atomic-пара `o.mkt.wroff` (Дт 91 / Кт 10) +
-   * `o.mkt.wroff2` (Дт 86 / Кт 91); когда последняя позиция исполнена,
-   * статус AUTHORIZED → EXECUTED. Backend проходит цикл по
-   * `items[*].executed === false`.
+   * списания. Per-item: `o.mkt.wroff` (Дт 86 / Кт 10); когда последняя
+   * позиция исполнена, статус AUTHORIZED → EXECUTED. Backend проходит
+   * цикл по `items[*].executed === false`.
    *
    * Авторизация — кооператив (`require_auth(coopname)`); C++ проверяет
    * статус проекта (AUTHORIZED) и авторизацию `signer` для

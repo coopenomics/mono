@@ -30,8 +30,8 @@ export const MarketplaceReturnClaimDefectCategories = {
 
 /**
  * Какое разрешение ожидает пайщик. В MVP — только возврат средств на
- * программный кошелёк (`w.mkt.member.available`). Расширения (`REPLACEMENT`,
- * `REPAIR`) — Phase 2 (out of MVP).
+ * универсальный членский кошелёк (`w.wal.member.available`). Расширения
+ * (`REPLACEMENT`, `REPAIR`) — Phase 2 (out of MVP).
  */
 export type MarketplaceReturnClaimExpectedResolution = 'FUNDS_RETURN';
 
@@ -101,9 +101,9 @@ export interface MarketplaceReturnClaimDecisionLogEntry {
 }
 
 /**
- * Снапшот compensating-forward пары `o.mkt.return + o.mkt.return2`,
- * выполненной в композитной транзакции `accretrn` (Story 7.4). Снимок —
- * для архива и UI; источник правды — ledger2 journal.
+ * Снапшот compensating-forward `o.mkt.return`, выполненной в транзакции
+ * `accretrn` (Story 7.4). Снимок — для архива и UI; источник правды —
+ * ledger2 journal.
  */
 export interface MarketplaceReturnClaimLedgerSnapshot {
   /** Сумма compensating forward (равна order.fact_cost для returned_quantity = actual_quantity Order'а). */

@@ -62,7 +62,7 @@ export interface MarketplaceLedger2OperationRow {
 
 /** Текущий баланс кошелька (`getLedger2Wallets` row). */
 export interface MarketplaceWalletRow {
-  wallet: string // 'w.mkt.member' / 'w.mkt.payout' / ...
+  wallet: string // 'w.mkt.order' / 'w.mkt.payout' / ...
   balance: string // asset «100.0000 RUB»
   blocked?: string | null
 }
@@ -177,12 +177,12 @@ export function checkInvariantI1PayoutBalance(
 //   Δ86_marketplace = Σ credit(86, mkt) − Σ debit(86, mkt)
 //
 // Marketplace contribution на счёт 86 формирует:
-//   + o.wal.conv     (Cr 86, +)   — конвертация цифрового рубля в членский
+//   + o.mkt.lock     (Cr 86, +)   — резервирование (Дт 80 / Кт 86)
 //   + o.mkt.purch    (Cr 86, +)   — приём имущества
-//   + o.mkt.consum2  (Dr 86, −)   — закрытие транзита при выдаче пайщику
+//   + o.mkt.consum   (Dr 86, −)   — выдача имущества пайщику
 //   + o.mkt.return   (Cr 86, +)   — гарантийный возврат восстанавливает ЦФ
 //   + o.mkt.payout   (Dr 86, −)   — выплата поставщику
-//   + o.mkt.wroff2   (Dr 86, −)   — списание скоропорта закрывает транзит
+//   + o.mkt.wroff    (Dr 86, −)   — списание скоропорта
 //
 // Инвариант не требует наличия конкретного balance(86), но проверяет, что
 // `delta` от marketplace в принципе считается без NaN/расхождений в подсчётах
@@ -230,7 +230,7 @@ export function checkInvariantI2Account86Delta(
 //   +o.mkt.purch  (Dr 10)
 //   −o.mkt.consum (Cr 10)
 //   −o.mkt.wroff  (Cr 10)
-//   +o.mkt.return2 (Dr 10)
+//   +o.mkt.return (Dr 10)
 //
 // Сверяем delta по 10 с показанием `getLedger2Accounts.balance(10)`.
 // Если на входе нет accounts[10] — return ok с computed=delta (для
@@ -273,23 +273,11 @@ export function checkInvariantI3Account10Materials(
 }
 
 // ---------------------------------------------------------------------------
-// I4 — Транзитный счёт 91 в стационарном состоянии = 0.
+// I4 — Счёт 91 в marketplace = 0.
 //
-// 91 «Прочие доходы и расходы» используется как транзит между «выбытием» и
-// «закрытием на ЦФ» в составных операциях marketplace:
-//   o.mkt.consum  (Dr 91 / Cr 10)
-//   o.mkt.consum2 (Dr 86 / Cr 91)
-//   o.mkt.return  (Dr 91 / Cr 86)
-//   o.mkt.return2 (Dr 10 / Cr 91)
-//   o.mkt.wroff   (Dr 91 / Cr 10)
-//   o.mkt.wroff2  (Dr 86 / Cr 91)
-//
-// Каждая ПАРА (X / X2) идёт под одним process_hash и закрывается атомарно.
-// Поэтому для каждого process_hash sum(Dr 91) = sum(Cr 91). Глобально после
-// всех закрытых процессов: Σ debit(91) − Σ credit(91) = 0.
-//
-// Если найден process_hash, у которого 91 не сбалансировано — это нарушение
-// (либо процесс ещё не закрыт, либо багаль в композите).
+// 91 «Прочие доходы и расходы» в marketplace-операциях не используется —
+// все выбытие/возврат имущества идут напрямую между 10 и 86. Этот
+// инвариант для marketplace-rows тривиально пройден (Σ marketplace 91 = 0).
 // ---------------------------------------------------------------------------
 export function checkInvariantI4Account91Transit(
   rows: readonly MarketplaceLedger2OperationRow[],

@@ -78,12 +78,11 @@ struct wroff_item {
  *
  * scope = coopname; primary_key = id; уникальность через `byhash` индекс на
  * `proposal.hash` — этот hash используется как `process_hash` во всех
- * ledger2-операциях процесса (WROFF + WROFF2 — по паре per-item).
+ * ledger2-операциях процесса (o.mkt.wroff per-item).
  *
  * `items` — vector<wroff_item> позиций к списанию; на execwroff контракт
- * последовательно вызывает `Ledger2::apply(o.mkt.wroff, item.amount, …)` +
- * `Ledger2::apply(o.mkt.wroff2, item.amount, …)` для каждой позиции в
- * одной транзакции Antelope.
+ * последовательно вызывает `Ledger2::apply(o.mkt.wroff, item.amount, …)`
+ * для каждой позиции в одной транзакции Antelope.
  *
  * `protocol` — document2 решения совета (signed_by: council_members).
  * Подпись — через стандартный sov.decision-протокол (см. p.mkt.wroff.standard.yaml

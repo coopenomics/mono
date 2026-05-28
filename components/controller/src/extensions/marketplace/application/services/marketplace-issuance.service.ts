@@ -72,10 +72,10 @@ export interface MarketplaceIssuanceResult {
  *     Backend верифицирует обе подписи в `signed_document.signatures`,
  *     отправляет on-chain `signiss2` с указанным `actual_quantity` — C++
  *     контракт сам исполняет корректирующие операции
- *     (`o.mkt.unblk` / `o.wal.conv` + `o.mkt.assign` + `o.mkt.block`,
- *     FR23) и композитную пару `o.mkt.consum` + `o.mkt.consum2` через
- *     транзит 91 (FR24). Backend сохраняет снапшот фактической выдачи
- *     (`issuance_fact`) и переводит Order READY_TO_RECEIVE → RECEIVED.
+ *     (`o.mkt.unlock` если actual<ordered / `o.mkt.lock` если actual>ordered,
+ *     FR23) и `o.mkt.consum` (BURN w.mkt.order, Дт 86 / Кт 10, FR24).
+ *     Backend сохраняет снапшот фактической выдачи (`issuance_fact`) и
+ *     переводит Order READY_TO_RECEIVE → RECEIVED.
  *
  * При расхождении фактического количества с заказом и нехватке средств
  * пайщика на доплату (`actual > заказ`, L6 guard) транзакция `signiss2`

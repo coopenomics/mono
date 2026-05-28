@@ -91,12 +91,8 @@ export interface MarketplaceOrderCreateTxSnapshot {
   tx_hash: string;
   /** Block number применения. */
   block_num: number;
-  /** Был ли выполнен `o.wal.conv` (если у заказчика хватало членского). */
-  did_convert: boolean;
-  /** Был ли выполнен `o.mkt.assign` (если в программе уже было available). */
-  did_assign: boolean;
-  /** Сумма BLOCK на `w.mkt.member` пайщика (= total_cost Order'а). */
-  blocked_amount: string;
+  /** Сумма резерва на `w.mkt.order` пайщика (= total_cost Order'а). */
+  locked_amount: string;
   /** ISO timestamp. */
   signed_at: string;
 }

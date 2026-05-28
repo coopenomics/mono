@@ -7064,16 +7064,12 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceOrder']?: Omit<ValueTypes["MarketplaceOrder"], "...on MarketplaceOrder">
 }>;
-	/** Снимок транзакции блокировки средств: ссылки на блок, флаги конверсии и сумма. */
+	/** Снимок транзакции резервирования средств: ссылки на блок и сумма резерва. */
 ["MarketplaceOrderCreateTxSnapshot"]: AliasType<{
 	/** Номер блока, в который попала транзакция. */
 	block_num?:boolean | `@${string}`,
-	/** Сумма заблокированных средств (строка денежного актива). */
-	blocked_amount?:boolean | `@${string}`,
-	/** Был ли выполнен перевод средств между кошельками пайщика. */
-	did_assign?:boolean | `@${string}`,
-	/** Была ли выполнена конверсия паевого взноса в членский. */
-	did_convert?:boolean | `@${string}`,
+	/** Сумма зарезервированных средств (строка денежного актива). */
+	locked_amount?:boolean | `@${string}`,
 	/** Время подписания заказа (ISO 8601). */
 	signed_at?:boolean | `@${string}`,
 	/** Идентификатор транзакции в блокчейне. */
@@ -17020,16 +17016,12 @@ export type ResolverInputTypes = {
 	warranty_until?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	/** Снимок транзакции блокировки средств: ссылки на блок, флаги конверсии и сумма. */
+	/** Снимок транзакции резервирования средств: ссылки на блок и сумма резерва. */
 ["MarketplaceOrderCreateTxSnapshot"]: AliasType<{
 	/** Номер блока, в который попала транзакция. */
 	block_num?:boolean | `@${string}`,
-	/** Сумма заблокированных средств (строка денежного актива). */
-	blocked_amount?:boolean | `@${string}`,
-	/** Был ли выполнен перевод средств между кошельками пайщика. */
-	did_assign?:boolean | `@${string}`,
-	/** Была ли выполнена конверсия паевого взноса в членский. */
-	did_convert?:boolean | `@${string}`,
+	/** Сумма зарезервированных средств (строка денежного актива). */
+	locked_amount?:boolean | `@${string}`,
 	/** Время подписания заказа (ISO 8601). */
 	signed_at?:boolean | `@${string}`,
 	/** Идентификатор транзакции в блокчейне. */
@@ -26655,16 +26647,12 @@ export type ModelTypes = {
 	/** Дата окончания гарантии. */
 	warranty_until?: ModelTypes["DateTime"] | undefined | null
 };
-	/** Снимок транзакции блокировки средств: ссылки на блок, флаги конверсии и сумма. */
+	/** Снимок транзакции резервирования средств: ссылки на блок и сумма резерва. */
 ["MarketplaceOrderCreateTxSnapshot"]: {
 		/** Номер блока, в который попала транзакция. */
 	block_num: number,
-	/** Сумма заблокированных средств (строка денежного актива). */
-	blocked_amount: string,
-	/** Был ли выполнен перевод средств между кошельками пайщика. */
-	did_assign: boolean,
-	/** Была ли выполнена конверсия паевого взноса в членский. */
-	did_convert: boolean,
+	/** Сумма зарезервированных средств (строка денежного актива). */
+	locked_amount: string,
 	/** Время подписания заказа (ISO 8601). */
 	signed_at: string,
 	/** Идентификатор транзакции в блокчейне. */
@@ -37224,17 +37212,13 @@ export type GraphQLTypes = {
 	warranty_until?: GraphQLTypes["DateTime"] | undefined | null,
 	['...on MarketplaceOrder']: Omit<GraphQLTypes["MarketplaceOrder"], "...on MarketplaceOrder">
 };
-	/** Снимок транзакции блокировки средств: ссылки на блок, флаги конверсии и сумма. */
+	/** Снимок транзакции резервирования средств: ссылки на блок и сумма резерва. */
 ["MarketplaceOrderCreateTxSnapshot"]: {
 	__typename: "MarketplaceOrderCreateTxSnapshot",
 	/** Номер блока, в который попала транзакция. */
 	block_num: number,
-	/** Сумма заблокированных средств (строка денежного актива). */
-	blocked_amount: string,
-	/** Был ли выполнен перевод средств между кошельками пайщика. */
-	did_assign: boolean,
-	/** Была ли выполнена конверсия паевого взноса в членский. */
-	did_convert: boolean,
+	/** Сумма зарезервированных средств (строка денежного актива). */
+	locked_amount: string,
 	/** Время подписания заказа (ISO 8601). */
 	signed_at: string,
 	/** Идентификатор транзакции в блокчейне. */

@@ -15,11 +15,10 @@
  * явно разрешённая модель мульти-операционных процессов:
  *   - processes::registrator::ACCEPT  ← o.reg.payent + o.reg.putmin
  *   - processes::capital::RID         ← o.cap.commit + o.cap.accept (+ o.cap.repay) + o.cap.cnvshr/o.cap.cnvbl
- *   - processes::marketplace::SUPPLY  ← o.wal.conv + o.mkt.assign + o.mkt.block + o.mkt.unblk +
- *                                       o.mkt.recall + o.mkt.purch + o.mkt.payout +
- *                                       o.mkt.consum + o.mkt.consum2 (composite через 91)
- *   - processes::marketplace::RETURN  ← o.mkt.return + o.mkt.return2 (composite через 91)
- *   - processes::marketplace::WRITEOFF ← o.mkt.wroff + o.mkt.wroff2 (composite через 91)
+ *   - processes::marketplace::SUPPLY  ← o.mkt.lock + o.mkt.unlock + o.mkt.purch +
+ *                                       o.mkt.payout + o.mkt.consum
+ *   - processes::marketplace::RETURN  ← o.mkt.return
+ *   - processes::marketplace::WRITEOFF ← o.mkt.wroff
  *
  * Одноактовые процессы: `capital::IMPORT`, `capital::PROPERTY`,
  * `capital::INVEST`, `soviet::AXN_CONVERT` (process_type совпадает с
