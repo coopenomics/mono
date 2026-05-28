@@ -3,14 +3,15 @@
 jest.mock('@coopenomics/parser2', () => ({ ParserClient: class {} }), { virtual: true });
 
 /**
- * Unit-тесты BlockchainConsumerService.processFork (Story 4.1, ADR-005).
+ * Unit-тесты BlockchainConsumerService.processFork (Stories 4.1 + 4.2, ADR-005).
  *
  * Контрактные инварианты:
- * - Порядок шагов: forkRegistry.runAll → consumerDedup.deleteAfterBlock → saveFork → (deprecated emit).
+ * - Порядок шагов: forkRegistry.runAll → consumerDedup.deleteAfterBlock → saveFork.
  * - Ошибка в runAll останавливает цепочку: дальнейшие шаги НЕ вызываются, ошибка пробрасывается.
  * - Ошибка в deleteAfterBlock останавливает saveFork.
  * - blockNum прокидывается одинаково во все шаги.
  * - markEventApplied в process{Action,Delta} вызывается с block_num.
+ * - 4.2: EventEmitter `fork::*` НЕ эмитится (deprecated broadcast удалён).
  */
 
 import { BlockchainConsumerService } from '~/infrastructure/blockchain/blockchain-consumer.service';
@@ -64,8 +65,8 @@ function makeService(overrides: {
   return { service, logger, events, parser, fork };
 }
 
-describe('BlockchainConsumerService.processFork (Story 4.1)', () => {
-  it('вызывает шаги В ПРАВИЛЬНОМ ПОРЯДКЕ: runAll → deleteDedupAfterBlock → saveFork → emit', async () => {
+describe('BlockchainConsumerService.processFork (Stories 4.1 + 4.2)', () => {
+  it('вызывает шаги В ПРАВИЛЬНОМ ПОРЯДКЕ: runAll → deleteDedupAfterBlock → saveFork (БЕЗ deprecated emit)', async () => {
     const calls: string[] = [];
     const parser = makeParserInteractorStub();
     parser.deleteDedupAfterBlock.mockImplementation(async () => {
@@ -88,7 +89,10 @@ describe('BlockchainConsumerService.processFork (Story 4.1)', () => {
     const { service } = makeService({ events, parserInteractor: parser, forkRegistry: fork });
     await (service as any).processFork(100);
 
-    expect(calls).toEqual(['runAll', 'deleteDedupAfterBlock', 'saveFork', 'emit']);
+    expect(calls).toEqual(['runAll', 'deleteDedupAfterBlock', 'saveFork']);
+    // Story 4.2: emit более НЕ должен вызываться.
+    expect(events.emitAsyncWithTimeout).not.toHaveBeenCalled();
+    expect(events.emit).not.toHaveBeenCalledWith(expect.stringMatching(/^fork::/), expect.anything());
   });
 
   it('прокидывает forked_from_block во ВСЕ шаги (один и тот же N)', async () => {
@@ -102,11 +106,8 @@ describe('BlockchainConsumerService.processFork (Story 4.1)', () => {
     expect(fork.runAll).toHaveBeenCalledWith(12345);
     expect(parser.deleteDedupAfterBlock).toHaveBeenCalledWith(12345);
     expect(parser.saveFork).toHaveBeenCalledWith(expect.objectContaining({ block_num: 12345 }));
-    expect(events.emitAsyncWithTimeout).toHaveBeenCalledWith(
-      'fork::12345',
-      expect.objectContaining({ block_num: 12345 }),
-      expect.any(Number)
-    );
+    // Story 4.2: никакого broadcast'а `fork::*` через EventEmitter.
+    expect(events.emitAsyncWithTimeout).not.toHaveBeenCalled();
   });
 
   it('ошибка в forkRegistry.runAll: deleteDedupAfterBlock и saveFork НЕ вызываются, ошибка пробрасывается', async () => {
@@ -196,14 +197,18 @@ describe('BlockchainConsumerService.processFork (Story 4.1)', () => {
     expect(parser.markEventApplied).not.toHaveBeenCalled();
   });
 
-  it('deprecated broadcast не завершился вовремя — service логирует warn, но НЕ бросает', async () => {
+  it('Story 4.2 regression: deprecated `fork::*` broadcast полностью удалён — events.emit НИКОГДА не вызывается с fork:: префиксом', async () => {
     const events = makeEventsServiceStub();
-    events.emitAsyncWithTimeout.mockResolvedValueOnce(false);
-    const logger = makeLoggerStub();
-    const { service } = makeService({ events, logger });
+    const { service } = makeService({ events });
 
-    await expect((service as any).processFork(100)).resolves.toBeUndefined();
-    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('deprecated broadcast не завершился'));
+    await (service as any).processFork(777);
+
+    expect(events.emitAsyncWithTimeout).not.toHaveBeenCalled();
+    // Также проверяем синхронный emit — на случай если рудимент остался в виде events.emit('fork::...').
+    const allEmitCalls = (events.emit as jest.Mock).mock.calls;
+    for (const call of allEmitCalls) {
+      expect(call[0]).not.toMatch(/^fork::/);
+    }
   });
 });
 

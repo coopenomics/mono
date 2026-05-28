@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
-import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { AbstractEntitySyncService } from '../../../../shared/services/abstract-entity-sync.service';
 import { ExpenseDomainEntity } from '../../domain/entities/expense.entity';
@@ -48,14 +48,5 @@ export class ExpenseSyncService
     });
 
     this.logger.debug('Сервис синхронизации расходов полностью инициализирован с подписками на паттерны');
-  }
-
-  /**
-   * Обработка форков для расходов
-   * Теперь подписывается на все форки независимо от контракта
-   */
-  @OnEvent('fork::*')
-  async handleExpenseFork(forkData: { block_num: number }): Promise<void> {
-    await this.handleFork(forkData.block_num);
   }
 }

@@ -308,7 +308,7 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
   }
 
   /**
-   * Обработка форка (fork) из блокчейна (Story 4.1, ADR-005).
+   * Обработка форка (fork) из блокчейна (ADR-005).
    *
    * Порядок шагов (контрактный):
    *   1) ForkRegistry.runAll(blockNum) — sequential откат сущностей всех syncer'ов.
@@ -317,10 +317,6 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
    *      Делается ПОСЛЕ успешного rollback (иначе при сбое syncer'ов мы потеряем
    *      возможность повторить весь форк по тому же event_id).
    *   3) saveFork(blockNum) — фиксация форка для аудита и future-pool re-submit (Epic 5).
-   *   4) [DEPRECATED, Story 4.2 удалит] emitAsyncWithTimeout('fork::*', ...) +
-   *      pause-barrier — старый broadcast путь для @OnEvent('fork::*') syncer'ов;
-   *      оставлен на этот релиз для backward compat (capital syncer'ы пока ловят оба пути,
-   *      второй вызов будет no-op так как versions/entities уже откачены).
    *
    * INV-T03: к моменту, когда handleEvent resolves и parser2 берёт следующее событие,
    * вся цепочка rollback завершена (sequential XREADGROUP = natural barrier).
@@ -343,22 +339,6 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
     });
     this.logger.debug(`Форк сохранён в БД на блоке ${block_num}`);
 
-    // 4. DEPRECATED (Story 4.2 удалит вместе с pause-barrier и @OnEvent fork::* декораторами).
-    // Старый broadcast путь оставлен на релиз 1.1.2 для backward compat: capital syncer'ы
-    // подписаны на 'fork::*' через @OnEvent — после ForkRegistry повторный вызов будет no-op
-    // (entities уже на нужном blockNum), но мы продолжаем эмитить для контракта старого пути.
-    const eventName = `fork::${block_num}`;
-    const completed = await this.eventsService.emitAsyncWithTimeout(
-      eventName,
-      { block_num },
-      config.blockchain.fork_pause_timeout_ms
-    );
-    if (!completed) {
-      this.logger.warn(
-        `Барьер форка ${eventName}: deprecated broadcast не завершился за ${config.blockchain.fork_pause_timeout_ms}ms (Story 4.2 удалит)`
-      );
-    }
-
-    this.logger.log(`Форк обработан на блоке ${block_num} (ForkRegistry + deprecated broadcast)`);
+    this.logger.log(`Форк обработан на блоке ${block_num}`);
   }
 }
