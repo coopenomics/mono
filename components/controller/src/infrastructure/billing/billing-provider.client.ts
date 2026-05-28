@@ -1,9 +1,17 @@
-import { Injectable, Logger } from '@nestjs/common';
-import axios from 'axios';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import {
+  Client as ProviderClient,
+  configureClient,
+  BillingService,
+  SubscriptionsService,
+  type BillingInvoiceCreateRequestDTO,
+  type BillingInvoiceResponseDTO,
+  type BillingPaymentConfirmedResponseDTO,
+} from '@coopenomics/provider-client';
 import config from '~/config/config';
 
 /**
- * Позиция разбивки суммы к оплате (из provider getBillingSummary, Story 12.5).
+ * Позиция разбивки суммы к оплате (из provider getBillingSummary).
  */
 export interface ProviderBillingSummaryItem {
   subscription_id: number;
@@ -15,7 +23,7 @@ export interface ProviderBillingSummaryItem {
 }
 
 /**
- * Ответ агрегатора «сумма к оплате» провайдера (Story 12.5).
+ * Ответ агрегатора «сумма к оплате» провайдера (provider /subscriptions/billing-summary).
  */
 export interface ProviderBillingSummary {
   coopname: string;
@@ -28,22 +36,25 @@ export interface ProviderBillingSummary {
 }
 
 /**
- * HTTP-клиент к provider backend (Восход) для биллинга подписок (Epic 12).
+ * Клиент к provider backend для биллинга подписок (Single-Hub v5).
  *
- * Провайдер — источник истины по составу/ценам подписок (on-chain их нет).
- * Доступ защищён `server-secret` (ServerSecretGuard на стороне провайдера).
- * `provider_base_url` и `server_secret` берутся из конфига узла.
+ * Использует `@coopenomics/provider-client` (auto-generated openapi-typescript-codegen
+ * из provider/components/backend/swagger.json) — без сырого axios. Provider —
+ * источник истины по составу/ценам подписок и по payment_hash. Доступ защищён
+ * `server-secret` (ServerSecretGuard на стороне провайдера).
  */
 @Injectable()
-export class BillingProviderClient {
+export class BillingProviderClient implements OnModuleInit {
   private readonly logger = new Logger(BillingProviderClient.name);
 
   private get baseUrl(): string {
     return config.provider_base_url.replace(/\/+$/, '');
   }
 
-  private headers() {
-    return { 'server-secret': config.server_secret };
+  onModuleInit(): void {
+    if (this.baseUrl) {
+      configureClient(this.baseUrl, config.server_secret);
+    }
   }
 
   isConfigured(): boolean {
@@ -51,42 +62,51 @@ export class BillingProviderClient {
   }
 
   /**
-   * Сумма к оплате кооператива за период (по умолчанию 30 дней).
+   * Сумма к оплате кооператива за период (по умолчанию 30 дней). На v5 этот
+   * метод используется только для UI «Сумма к оплате» / cron-уведомлений;
+   * payment_hash здесь — справочный (детерминированный sha256 от состава), реальная
+   * запись invoice создаётся через {@link createInvoice}.
    */
   async getBillingSummary(coopname: string, periodDays = 30): Promise<ProviderBillingSummary> {
-    const url = `${this.baseUrl}/subscriptions/billing-summary/${coopname}`;
-    const { data } = await axios.get<ProviderBillingSummary>(url, {
-      params: { period: periodDays },
-      headers: this.headers(),
-    });
-    return data;
+    return (await SubscriptionsService.subscriptionControllerGetBillingSummary(
+      coopname,
+      String(periodDays),
+    )) as unknown as ProviderBillingSummary;
   }
 
   /**
-   * Подтверждение проведённого on-chain платежа: провайдер фиксирует факт и
-   * продлевает (`extend`) все подписки, входившие в `payment_hash`. Идемпотентно
-   * по `transaction_id = payment_hash` (Epic 3 / Story 12.5).
+   * Выписать invoice на батч-оплату (POST /billing/invoice). Идемпотентно по
+   * детерминированному `payment_hash` (sha256 от состава + anchor_due). Coopback
+   * Воскхода вызывает перед on-chain `billing::pay`.
+   */
+  async createInvoice(input: BillingInvoiceCreateRequestDTO): Promise<BillingInvoiceResponseDTO> {
+    const res = await BillingService.billingControllerCreateInvoice(input);
+    this.logger.log(
+      `createInvoice ${input.coopname} payment_hash=${res.payment_hash} status=${res.status}`,
+    );
+    return res;
+  }
+
+  /**
+   * Подтверждение on-chain оплаты (POST /billing/payment-confirmed). Парсер
+   * блокчейна Воскхода ловит pay-event, coopback Воскхода дёргает этот endpoint —
+   * провайдер переводит invoice в PAID, продлевает подписки batch'а. Идемпотентно
+   * по `payment_hash` (повтор → no-op).
    */
   async confirmPayment(input: {
-    coopname: string;
     paymentHash: string;
-    amount: number;
-    blockchainTransactionId: string;
-    periodDays?: number;
-  }): Promise<void> {
-    const url = `${this.baseUrl}/subscriptions/confirm-batch-payment`;
-    await axios.post(
-      url,
-      {
-        coopname: input.coopname,
-        transaction_id: input.paymentHash,
-        payment_hash: input.paymentHash,
-        amount: input.amount,
-        blockchain_transaction_id: input.blockchainTransactionId,
-        period_days: input.periodDays ?? 30,
-      },
-      { headers: this.headers() },
+    txId: string;
+  }): Promise<BillingPaymentConfirmedResponseDTO> {
+    const res = await BillingService.billingControllerPaymentConfirmed({
+      payment_hash: input.paymentHash,
+      tx_id: input.txId,
+    });
+    this.logger.log(
+      `confirmPayment payment_hash=${input.paymentHash} applied=${res.applied} status=${res.status}`,
     );
-    this.logger.log(`confirmPayment ${input.coopname} payment_hash=${input.paymentHash}`);
+    return res;
   }
 }
+
+// Re-export, чтобы потребитель не дублировал зависимость на provider-client
+export { ProviderClient };

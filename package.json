@@ -2,6 +2,9 @@
   "name": "monocoop",
   "packageManager": "pnpm@10.33.0",
   "pnpm": {
+    "overrides": {
+      "@coopenomics/provider-client": "file:/home/ant/provider/components/client"
+    },
     "onlyBuiltDependencies": [
       "@apollo/protobufjs",
       "@eosrio/node-abieos",

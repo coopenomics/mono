@@ -108,34 +108,38 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
         return; // срок ещё не подошёл
       }
 
+      // v5: создаём invoice ДО pay — это фиксирует payment_hash в БД провайдера
+      // (PENDING с TTL), чтобы парсер pay-event смог его подтвердить позже.
+      // Идемпотентно по составу: повторный createInvoice с тем же набором подписок
+      // вернёт существующую запись.
+      const invoice = await this.providerClient.createInvoice({
+        coopname,
+        items: summary.items.map((i) => ({
+          subscription_id: i.subscription_id,
+          period_days: summary.period_days,
+        })),
+      });
+      const paymentHash = invoice.payment_hash;
+
       const quantity = `${summary.total_amount.toFixed(config.blockchain.root_govern_precision)} ${summary.currency || config.blockchain.root_govern_symbol}`;
 
-      const result = await this.blockchainPort.pay({
+      await this.blockchainPort.pay({
         coopname,
         username: payer,
         quantity,
-        paymentHash: summary.payment_hash,
+        paymentHash,
         memo: `Оплата подписок за ${summary.period_days} дн.`,
       });
 
-      const transactionId =
-        result && typeof result === 'object' && 'transaction_id' in result
-          ? String((result as { transaction_id?: unknown }).transaction_id ?? '')
-          : '';
-
-      await this.providerClient.confirmPayment({
-        coopname,
-        paymentHash: summary.payment_hash,
-        amount: summary.total_amount,
-        blockchainTransactionId: transactionId,
-        periodDays: summary.period_days,
-      });
-
-      this.logger.log(`Списано ${quantity} за подписки ${coopname} (payment_hash=${summary.payment_hash})`);
+      // На v5 НЕ зовём здесь confirmPayment — это сделает парсер pay-event
+      // (`PaymentConfirmedHandler`), когда увидит on-chain billing::pay для
+      // этого payment_hash. Так гарантируется idempotency: подтверждение
+      // привязано к финальности on-chain события, а не к успеху transact().
+      this.logger.log(`Подписки ${coopname}: pay submitted (payment_hash=${paymentHash}, ${quantity})`);
     } catch (error: any) {
-      // Падение списания (например, недостаток средств на w.wal.bill) не должно
+      // Падение submit'а (например, недостаток средств на w.wal.bill) не должно
       // зацикливать узел: фиксируем и продолжаем. Перевод подписки в past_due/grace
-      // и уведомления — на стороне провайдера (Epic 4/9).
+      // и уведомления — на стороне провайдера.
       this.logger.error(`BillingCronService: списание для ${coopname} не выполнено: ${error?.message ?? error}`);
     }
   }
