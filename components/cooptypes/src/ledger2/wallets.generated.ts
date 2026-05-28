@@ -20,9 +20,9 @@ export interface WalletMeta {
  */
 export const LEDGER2_WALLET_REGISTRY: readonly WalletMeta[] = [
   { name: "w.reg.minshr", human_name: "Минимальный паевой взнос", kind: "USER_SHARED" },
-  { name: "w.wal.share", human_name: "Паевой взнос пайщика", kind: "USER_SHARED" },
-  { name: "w.wal.member", human_name: "ЦК — членская часть пайщика", kind: "USER_SHARED" },
-  { name: "w.wal.bill", human_name: "Членские взносы пайщика на оплату подписок", kind: "USER_SHARED" },
+  { name: "w.wal.share", human_name: "ЦК — паевой", kind: "USER_SHARED" },
+  { name: "w.wal.member", human_name: "ЦК — членский", kind: "USER_SHARED" },
+  { name: "w.wal.bill", human_name: "ЦК — биллинг", kind: "USER_SHARED" },
   { name: "w.cap.blago", human_name: "ЦПП «Благорост» — единый кошелёк программы у пайщика", kind: "USER_SHARED" },
   { name: "w.cap.preimp", human_name: "Первичный учёт РИД-взносов до перехода на электронный учёт", kind: "USER_SHARED" },
   { name: "w.cap.gen", human_name: "ЦПП «Генератор» — единый кошелёк программы", kind: "COOPERATIVE" },
@@ -52,9 +52,9 @@ export interface ProgramWalletMapping {
  */
 export const LEDGER2_USER_SHARED_PROGRAM_MAPPING: readonly ProgramWalletMapping[] = [
   { wallet_name: "w.reg.minshr", required_program_id: 0, program_label: null },
-  { wallet_name: "w.wal.share", required_program_id: 1, program_label: "ЦК" },
-  { wallet_name: "w.wal.member", required_program_id: 1, program_label: "ЦК" },
-  { wallet_name: "w.wal.bill", required_program_id: 1, program_label: "ЦК — биллинг-кошелёк под ЦК-соглашением (Epic 12)" },
+  { wallet_name: "w.wal.share", required_program_id: 1, program_label: "ЦК — паевой" },
+  { wallet_name: "w.wal.member", required_program_id: 1, program_label: "ЦК — членский" },
+  { wallet_name: "w.wal.bill", required_program_id: 1, program_label: "ЦК — биллинг" },
   { wallet_name: "w.cap.blago", required_program_id: 4, program_label: "Благорост" },
   { wallet_name: "w.cap.gen", required_program_id: 3, program_label: "Генератор" },
   { wallet_name: "w.cap.preimp", required_program_id: 0, program_label: null },
