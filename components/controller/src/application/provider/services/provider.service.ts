@@ -1,9 +1,12 @@
 import { Injectable, Logger, BadRequestException, Inject } from '@nestjs/common';
+import { RegistratorContract } from 'cooptypes';
 import { ProviderSubscriptionDTO } from '../dto/provider-subscription.dto';
 import { CurrentInstanceDTO } from '../dto/current-instance.dto';
+import { CooperativeRegistryItemDTO } from '../dto/cooperative-registry-item.dto';
 import { InstanceStatus } from '~/domain/instance-status.enum';
 import { Client, configureClient } from '@coopenomics/provider-client';
 import { config } from '~/config';
+import { BLOCKCHAIN_PORT, type BlockchainPort } from '~/domain/common/ports/blockchain.port';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import { ConvertToAxonStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/convert-to-axon-statement-document.dto';
 import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
@@ -19,7 +22,8 @@ export class ProviderService {
 
   constructor(
     private readonly documentDomainService: DocumentDomainService,
-    @Inject(SYSTEM_BLOCKCHAIN_PORT) private readonly systemBlockchainPort: SystemBlockchainPort
+    @Inject(SYSTEM_BLOCKCHAIN_PORT) private readonly systemBlockchainPort: SystemBlockchainPort,
+    @Inject(BLOCKCHAIN_PORT) private readonly blockchainPort: BlockchainPort
   ) {
     // Проверяем наличие PROVIDER_BASE_URL
     const providerBaseUrl = config.provider_base_url;
@@ -41,6 +45,47 @@ export class ProviderService {
    */
   isProviderAvailable(): boolean {
     return config.provider_base_url !== '';
+  }
+
+  /**
+   * Реестр кооперативов для оператора: сводит on-chain список кооперативов
+   * (registrator.coops) с данными провайдера (подписки/инстанс/биллинг по coopname).
+   *
+   * On-chain — источник истины по статусу кооператива (pending|active|blocked).
+   * Provider — источник данных подписок; если провайдер не настроен или у кооператива
+   * нет подписки, поле subscriptions остаётся пустым (кооператив всё равно в списке).
+   */
+  async getCooperativesRegistry(): Promise<CooperativeRegistryItemDTO[]> {
+    const coops = (await this.blockchainPort.getAllRows(
+      RegistratorContract.contractName.production,
+      RegistratorContract.contractName.production,
+      RegistratorContract.Tables.Cooperatives.tableName
+    )) as RegistratorContract.Tables.Cooperatives.ICooperative[];
+
+    const providerAvailable = this.isProviderAvailable();
+
+    return Promise.all(
+      coops.map(async (coop) => {
+        const item = new CooperativeRegistryItemDTO();
+        item.coopname = coop.username;
+        item.announce = coop.announce;
+        item.status = coop.status;
+        item.created_at = coop.created_at;
+        item.subscriptions = [];
+
+        if (providerAvailable) {
+          try {
+            item.subscriptions = await this.getUserSubscriptions(coop.username);
+          } catch (error: any) {
+            // Провайдер недоступен или у кооператива нет подписок — не роняем весь реестр.
+            this.logger.warn(`Не удалось получить подписки провайдера для ${coop.username}: ${error.message}`);
+          }
+        }
+
+        item.has_provider_data = item.subscriptions.length > 0;
+        return item;
+      })
+    );
   }
 
   /**

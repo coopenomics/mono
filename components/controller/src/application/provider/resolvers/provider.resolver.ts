@@ -3,6 +3,7 @@ import { UseGuards } from '@nestjs/common';
 import { ProviderService } from '../services/provider.service';
 import { ProviderSubscriptionDTO } from '../dto/provider-subscription.dto';
 import { CurrentInstanceDTO } from '../dto/current-instance.dto';
+import { CooperativeRegistryItemDTO } from '../dto/cooperative-registry-item.dto';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
 import { RolesGuard } from '~/application/auth/guards/roles.guard';
 import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
@@ -17,6 +18,16 @@ import { Throttle } from '@nestjs/throttler';
 @Resolver()
 export class ProviderResolver {
   constructor(private readonly providerService: ProviderService) {}
+
+  @Query(() => [CooperativeRegistryItemDTO], {
+    name: 'getCooperativesRegistry',
+    description: 'Реестр кооперативов оператора: список кооперативов из блокчейна с данными провайдера (подписки, инстанс, биллинг)',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['member', 'chairman'])
+  async getCooperativesRegistry(): Promise<CooperativeRegistryItemDTO[]> {
+    return this.providerService.getCooperativesRegistry();
+  }
 
   @Query(() => [ProviderSubscriptionDTO], {
     name: 'getProviderSubscriptions',

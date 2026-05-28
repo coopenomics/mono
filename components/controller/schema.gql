@@ -4450,6 +4450,26 @@ type CooperativeProgram {
   program_type: String!
 }
 
+type CooperativeRegistryItem {
+  """Анонсированный домен/сайт кооператива (registrator.coops.announce)"""
+  announce: String
+
+  """Имя аккаунта кооператива (coopname)"""
+  coopname: String!
+
+  """Дата регистрации заявки кооператива (on-chain)"""
+  created_at: String
+
+  """Есть ли у кооператива данные провайдера (хотя бы одна подписка)"""
+  has_provider_data: Boolean!
+
+  """Статус кооператива в блокчейне: pending | active | blocked"""
+  status: String!
+
+  """Подписки кооператива у провайдера (с инстансом и биллингом)"""
+  subscriptions: [ProviderSubscription!]!
+}
+
 """Страна регистрации пользователя"""
 enum Country {
   Russia
@@ -10520,6 +10540,13 @@ type Query {
   Требуемые роли: chairman. 
   """
   getChairmanOnboardingState: ChairmanOnboardingState!
+
+  """
+  Реестр кооперативов оператора: список кооперативов из блокчейна с данными провайдера (подписки, инстанс, биллинг)
+  
+  Требуемые роли: member, chairman. 
+  """
+  getCooperativesRegistry: [CooperativeRegistryItem!]!
 
   """
   Получить текущий инстанс пользователя

@@ -4318,6 +4318,22 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on CooperativeProgram']?: Omit<ValueTypes["CooperativeProgram"], "...on CooperativeProgram">
 }>;
+	["CooperativeRegistryItem"]: AliasType<{
+	/** Анонсированный домен/сайт кооператива (registrator.coops.announce) */
+	announce?:boolean | `@${string}`,
+	/** Имя аккаунта кооператива (coopname) */
+	coopname?:boolean | `@${string}`,
+	/** Дата регистрации заявки кооператива (on-chain) */
+	created_at?:boolean | `@${string}`,
+	/** Есть ли у кооператива данные провайдера (хотя бы одна подписка) */
+	has_provider_data?:boolean | `@${string}`,
+	/** Статус кооператива в блокчейне: pending | active | blocked */
+	status?:boolean | `@${string}`,
+	/** Подписки кооператива у провайдера (с инстансом и биллингом) */
+	subscriptions?:ValueTypes["ProviderSubscription"],
+		__typename?: boolean | `@${string}`,
+	['...on CooperativeRegistryItem']?: Omit<ValueTypes["CooperativeRegistryItem"], "...on CooperativeRegistryItem">
+}>;
 	/** Страна регистрации пользователя */
 ["Country"]:Country;
 	["CreateAnnualGeneralMeetInput"]: {
@@ -7899,6 +7915,10 @@ getCapitalProjectLogs?: [{	data: ValueTypes["GetCapitalLogsInput"] | Variable<an
 
 Требуемые роли: chairman.  */
 	getChairmanOnboardingState?:ValueTypes["ChairmanOnboardingState"],
+	/** Реестр кооперативов оператора: список кооперативов из блокчейна с данными провайдера (подписки, инстанс, биллинг)
+
+Требуемые роли: member, chairman.  */
+	getCooperativesRegistry?:ValueTypes["CooperativeRegistryItem"],
 	/** Получить текущий инстанс пользователя
 
 Требуемые роли: member, chairman, user.  */
@@ -12751,6 +12771,21 @@ export type ResolverInputTypes = {
 	program_type?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["CooperativeRegistryItem"]: AliasType<{
+	/** Анонсированный домен/сайт кооператива (registrator.coops.announce) */
+	announce?:boolean | `@${string}`,
+	/** Имя аккаунта кооператива (coopname) */
+	coopname?:boolean | `@${string}`,
+	/** Дата регистрации заявки кооператива (on-chain) */
+	created_at?:boolean | `@${string}`,
+	/** Есть ли у кооператива данные провайдера (хотя бы одна подписка) */
+	has_provider_data?:boolean | `@${string}`,
+	/** Статус кооператива в блокчейне: pending | active | blocked */
+	status?:boolean | `@${string}`,
+	/** Подписки кооператива у провайдера (с инстансом и биллингом) */
+	subscriptions?:ResolverInputTypes["ProviderSubscription"],
+		__typename?: boolean | `@${string}`
+}>;
 	/** Страна регистрации пользователя */
 ["Country"]:Country;
 	["CreateAnnualGeneralMeetInput"]: {
@@ -16224,6 +16259,10 @@ getCapitalProjectLogs?: [{	data: ResolverInputTypes["GetCapitalLogsInput"]},Reso
 
 Требуемые роли: chairman.  */
 	getChairmanOnboardingState?:ResolverInputTypes["ChairmanOnboardingState"],
+	/** Реестр кооперативов оператора: список кооперативов из блокчейна с данными провайдера (подписки, инстанс, биллинг)
+
+Требуемые роли: member, chairman.  */
+	getCooperativesRegistry?:ResolverInputTypes["CooperativeRegistryItem"],
 	/** Получить текущий инстанс пользователя
 
 Требуемые роли: member, chairman, user.  */
@@ -20943,6 +20982,20 @@ export type ModelTypes = {
 	/** Тип программы: wallet/generator/blagorost/marketplace и т.п. */
 	program_type: string
 };
+	["CooperativeRegistryItem"]: {
+		/** Анонсированный домен/сайт кооператива (registrator.coops.announce) */
+	announce?: string | undefined | null,
+	/** Имя аккаунта кооператива (coopname) */
+	coopname: string,
+	/** Дата регистрации заявки кооператива (on-chain) */
+	created_at?: string | undefined | null,
+	/** Есть ли у кооператива данные провайдера (хотя бы одна подписка) */
+	has_provider_data: boolean,
+	/** Статус кооператива в блокчейне: pending | active | blocked */
+	status: string,
+	/** Подписки кооператива у провайдера (с инстансом и биллингом) */
+	subscriptions: Array<ModelTypes["ProviderSubscription"]>
+};
 	["Country"]:Country;
 	["CreateAnnualGeneralMeetInput"]: {
 	/** Повестка собрания */
@@ -24864,6 +24917,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	getChairmanOnboardingState: ModelTypes["ChairmanOnboardingState"],
+	/** Реестр кооперативов оператора: список кооперативов из блокчейна с данными провайдера (подписки, инстанс, биллинг)
+
+Требуемые роли: member, chairman.  */
+	getCooperativesRegistry: Array<ModelTypes["CooperativeRegistryItem"]>,
 	/** Получить текущий инстанс пользователя
 
 Требуемые роли: member, chairman, user.  */
@@ -29801,6 +29858,22 @@ export type GraphQLTypes = {
 	program_type: string,
 	['...on CooperativeProgram']: Omit<GraphQLTypes["CooperativeProgram"], "...on CooperativeProgram">
 };
+	["CooperativeRegistryItem"]: {
+	__typename: "CooperativeRegistryItem",
+	/** Анонсированный домен/сайт кооператива (registrator.coops.announce) */
+	announce?: string | undefined | null,
+	/** Имя аккаунта кооператива (coopname) */
+	coopname: string,
+	/** Дата регистрации заявки кооператива (on-chain) */
+	created_at?: string | undefined | null,
+	/** Есть ли у кооператива данные провайдера (хотя бы одна подписка) */
+	has_provider_data: boolean,
+	/** Статус кооператива в блокчейне: pending | active | blocked */
+	status: string,
+	/** Подписки кооператива у провайдера (с инстансом и биллингом) */
+	subscriptions: Array<GraphQLTypes["ProviderSubscription"]>,
+	['...on CooperativeRegistryItem']: Omit<GraphQLTypes["CooperativeRegistryItem"], "...on CooperativeRegistryItem">
+};
 	/** Страна регистрации пользователя */
 ["Country"]: Country;
 	["CreateAnnualGeneralMeetInput"]: {
@@ -33973,6 +34046,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	getChairmanOnboardingState: GraphQLTypes["ChairmanOnboardingState"],
+	/** Реестр кооперативов оператора: список кооперативов из блокчейна с данными провайдера (подписки, инстанс, биллинг)
+
+Требуемые роли: member, chairman.  */
+	getCooperativesRegistry: Array<GraphQLTypes["CooperativeRegistryItem"]>,
 	/** Получить текущий инстанс пользователя
 
 Требуемые роли: member, chairman, user.  */
