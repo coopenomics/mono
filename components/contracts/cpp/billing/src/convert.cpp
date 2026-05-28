@@ -56,14 +56,16 @@ void billing::convert(name coopname, name username, asset amount,
 
   // Фиксируем заявление в общем реестре документов кооператива (newsubmitted +
   // newresolved в soviet — как в registrator::regcoop / capital::createpinv /
-  // soviet::converttoaxn). package_hash = convert_hash — документ привязан к
-  // конкретному процессу конвертации; повтор с тем же convert_hash на уровне
-  // soviet-реестра идемпотентен.
+  // soviet::converttoaxn). action_name = operations::billing::CONVERT
+  // (= "o.bil.fund"_n) — уникальное имя ledger2-операции, не пересекается с
+  // generic "convert"_n из других контрактов. package_hash = convert_hash —
+  // документ привязан к конкретному процессу; повтор с тем же convert_hash на
+  // уровне soviet-реестра идемпотентен.
   Soviet::make_complete_document(
     _billing,
     coopname,
     username,
-    "convert"_n,
+    operations::billing::CONVERT,
     convert_hash,
     document
   );
