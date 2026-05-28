@@ -101,6 +101,10 @@ import {
 import { MarketplaceOutgoingPaymentResolver } from './resolvers/marketplace-outgoing-payment.resolver';
 import { MarketplaceNotificationService } from './services/marketplace-notification.service';
 import {
+  MarketplaceBranchOwnershipService,
+  MARKETPLACE_BRANCH_OWNERSHIP_SERVICE,
+} from './services/marketplace-branch-ownership.service';
+import {
   MarketplaceIssuanceService,
   MARKETPLACE_ISSUANCE_SERVICE,
 } from './services/marketplace-issuance.service';
@@ -304,6 +308,11 @@ import { MarketplaceInventoryEntity } from '../infrastructure/entities/marketpla
     // Слушает per-contract event-bus, отправка через Novu без обратного
     // влияния на основной flow (INV-12: emit после save в PG).
     MarketplaceNotificationService,
+    {
+      provide: MARKETPLACE_BRANCH_OWNERSHIP_SERVICE,
+      useClass: MarketplaceBranchOwnershipService,
+    },
+    MarketplaceBranchOwnershipService,
     // Story 6.1 / 6.3 / 6.4 — выдача пайщику с двойной подписью АПП
     // (signiss1 + signiss2) и тремя ветками сверки факт vs заказ.
     {

@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, UseGuards } from '@nestjs/common';
+import { ForbiddenException, Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import config from '~/config/config';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
@@ -25,8 +25,11 @@ import {
   MARKETPLACE_KU_CHAIRMEN_SERVICE,
   type MarketplaceKuChairmenService,
 } from '../services/marketplace-ku-chairmen.service';
-import { Inject } from '@nestjs/common';
 import { toMarketplaceReturnClaimDTO } from './marketplace-return-claim.mapper';
+import {
+  MARKETPLACE_BRANCH_OWNERSHIP_SERVICE,
+  MarketplaceBranchOwnershipService,
+} from '../services/marketplace-branch-ownership.service';
 
 function toGeneratedDocumentDTO(e: DocumentDomainEntity): GeneratedDocumentDTO {
   const dto = new GeneratedDocumentDTO();
@@ -54,7 +57,9 @@ export class MarketplaceReturnClaimResolver {
   constructor(
     private readonly service: MarketplaceReturnClaimService,
     @Inject(MARKETPLACE_KU_CHAIRMEN_SERVICE)
-    private readonly kuChairmenService: MarketplaceKuChairmenService
+    private readonly kuChairmenService: MarketplaceKuChairmenService,
+    @Inject(MARKETPLACE_BRANCH_OWNERSHIP_SERVICE)
+    private readonly branchOwnership: MarketplaceBranchOwnershipService
   ) {}
 
   @Query(() => GeneratedDocumentDTO, {
@@ -114,6 +119,11 @@ export class MarketplaceReturnClaimResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceApproveReturnVisitInputDTO
   ): Promise<MarketplaceReturnClaimResultDTO> {
+    await this.branchOwnership.assertCanActAsBraname(
+      config.coopname,
+      member.username,
+      data.braname
+    );
     const result = await this.service.approveReturnVisit({
       coopname: config.coopname,
       chairman_account: member.username,
@@ -136,6 +146,11 @@ export class MarketplaceReturnClaimResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceRejectReturnRemoteInputDTO
   ): Promise<MarketplaceReturnClaimResultDTO> {
+    await this.branchOwnership.assertCanActAsBraname(
+      config.coopname,
+      member.username,
+      data.braname
+    );
     const result = await this.service.rejectReturnRemote({
       coopname: config.coopname,
       chairman_account: member.username,
@@ -158,6 +173,11 @@ export class MarketplaceReturnClaimResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceAcceptReturnAtVisitInputDTO
   ): Promise<MarketplaceReturnClaimResultDTO> {
+    await this.branchOwnership.assertCanActAsBraname(
+      config.coopname,
+      member.username,
+      data.braname
+    );
     const result = await this.service.acceptReturnAtVisit({
       coopname: config.coopname,
       chairman_account: member.username,
@@ -182,6 +202,11 @@ export class MarketplaceReturnClaimResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceRejectReturnAtVisitInputDTO
   ): Promise<MarketplaceReturnClaimResultDTO> {
+    await this.branchOwnership.assertCanActAsBraname(
+      config.coopname,
+      member.username,
+      data.braname
+    );
     const result = await this.service.rejectReturnAtVisit({
       coopname: config.coopname,
       chairman_account: member.username,

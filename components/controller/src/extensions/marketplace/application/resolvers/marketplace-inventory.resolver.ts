@@ -3,7 +3,7 @@ import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import config from '~/config/config';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
-import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
+import { RequireMarketplaceRole } from '../decorators/marketplace-role.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import { canAccess } from '../access/marketplace-access-matrix';
@@ -31,6 +31,7 @@ import {
   type MarketplaceInventoryDomainRepository,
   type MarketplaceInventoryListFilter,
 } from '../../domain/repositories/marketplace-inventory.repository';
+import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import type {
   MarketplaceBarcodeFormat,
   MarketplaceBarcodeStrategy,
@@ -105,10 +106,11 @@ export class MarketplaceInventoryResolver {
 
   @Query(() => [MarketplaceInventoryItemDTO], {
     name: 'marketplaceListInventory',
-    description: 'Список наклеек инвентаря КУ — для admin-стола склада и операторских разделов.',
+    description:
+      'Список наклеек инвентаря КУ: admin/совет видят весь склад кооператива, оператор — только свой участок.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Warehouse', 'read:own-KU')
+  @RequireMarketplaceRole('admin', 'board_readonly', 'operator')
   async marketplaceListInventory(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data', { nullable: true }) data?: MarketplaceListInventoryInputDTO
