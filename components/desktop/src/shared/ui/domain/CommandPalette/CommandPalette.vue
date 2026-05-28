@@ -34,7 +34,7 @@ q-dialog(
       template(v-if='!isSearchMode')
         template(v-for='ws in workspaces', :key='ws.name')
           .command-palette__workspace(
-            :class='{ "is-active": ws.isActive, "is-sticky": ws.isActive }'
+            :class='{ "is-active": ws.isActive }'
           )
             button.command-palette__workspace-row(
               type='button',
@@ -344,11 +344,6 @@ function onHide(): void {
 /* ===== Hierarchy ===== */
 .command-palette__workspace {
   background: var(--p-surface);
-}
-.command-palette__workspace.is-sticky {
-  position: sticky;
-  top: 0;
-  z-index: 1;
 }
 
 .command-palette__workspace-row {
