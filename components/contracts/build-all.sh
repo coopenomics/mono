@@ -5,9 +5,10 @@
 # флаги сборки в одном месте и не разъезжаются.
 
 mode="${1:-prod}"
+BLOCKCHAIN_IMAGE="${BLOCKCHAIN_IMAGE:-dicoop/blockchain:latest}"
 
 docker run --rm --name cdt \
   --volume "$(pwd):/project" \
   -w /project \
-  dicoop/blockchain:latest \
+  "$BLOCKCHAIN_IMAGE" \
   /bin/bash -c "./build_contracts_cdt.sh $mode"
