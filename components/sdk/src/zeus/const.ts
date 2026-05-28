@@ -128,6 +128,12 @@ export const AllTypesProps: Record<string,any> = {
 	BankAccountInput:{
 		details:"BankAccountDetailsInput"
 	},
+	BillingConvertInput:{
+		document:"SignedDigitalDocumentInput"
+	},
+	BillingPayInput:{
+
+	},
 	BuhotchSignerType: "enum" as const,
 	CalculateVotesInput:{
 
@@ -643,6 +649,12 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		addTrustedAccount:{
 			data:"AddTrustedAccountInput"
+		},
+		billingConvert:{
+			input:"BillingConvertInput"
+		},
+		billingPay:{
+			input:"BillingPayInput"
 		},
 		cancelRequest:{
 			data:"CancelRequestInput"
@@ -1502,6 +1514,9 @@ export const AllTypesProps: Record<string,any> = {
 			filters:"ActionFiltersInput",
 			pagination:"PaginationInput"
 		},
+		getBillingSummary:{
+
+		},
 		getBranches:{
 			data:"GetBranchesInput"
 		},
@@ -2111,6 +2126,27 @@ export const ReturnTypes: Record<string,any> = {
 		status:"ProjectStatus",
 		title:"String",
 		voting:"CapitalProjectVotingData"
+	},
+	BillingResult:{
+		paymentHash:"String",
+		transactionId:"String"
+	},
+	BillingSummary:{
+		coopname:"String",
+		currency:"String",
+		items:"BillingSummaryItem",
+		nextPaymentDue:"String",
+		paymentHash:"String",
+		periodDays:"Int",
+		totalAmount:"Float"
+	},
+	BillingSummaryItem:{
+		amount:"Float",
+		isFree:"Boolean",
+		status:"String",
+		subscriptionId:"Int",
+		subscriptionTypeId:"Int",
+		subscriptionTypeName:"String"
 	},
 	BlockchainAccount:{
 		account_name:"String",
@@ -3513,6 +3549,8 @@ export const ReturnTypes: Record<string,any> = {
 		addParticipant:"Account",
 		addPaymentMethod:"PaymentMethod",
 		addTrustedAccount:"Branch",
+		billingConvert:"BillingResult",
+		billingPay:"BillingResult",
 		cancelRequest:"Transaction",
 		capitalAddAuthor:"CapitalProject",
 		capitalApproveCommit:"CapitalCommit",
@@ -4176,6 +4214,7 @@ export const ReturnTypes: Record<string,any> = {
 		getActions:"PaginatedActionsPaginationResult",
 		getAgenda:"AgendaWithDocuments",
 		getAvailableReports:"AvailableReport",
+		getBillingSummary:"BillingSummary",
 		getBranches:"Branch",
 		getCapitalIssueLogs:"PaginatedCapitalLogsPaginationResult",
 		getCapitalOnboardingState:"CapitalOnboardingState",

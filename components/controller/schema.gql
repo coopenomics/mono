@@ -1359,6 +1359,67 @@ type BaseCapitalProject {
   voting: CapitalProjectVotingData!
 }
 
+input BillingConvertInput {
+  """
+  Сумма с символом, например "1500.0000 RUB"
+  """
+  amount: String!
+
+  """Имя аккаунта кооператива"""
+  coopname: String!
+
+  """Подписанное пайщиком заявление на конвертацию (document2)"""
+  document: SignedDigitalDocumentInput!
+
+  """Имя аккаунта пайщика — владельца биллинг-кошелька"""
+  username: String!
+}
+
+input BillingPayInput {
+  """
+  Сумма с символом, например "1500.0000 RUB"
+  """
+  amount: String!
+
+  """Имя аккаунта кооператива"""
+  coopname: String!
+
+  """Назначение платежа"""
+  memo: String!
+
+  """
+  Детерминированный идентификатор платежа (payment_hash из getBillingSummary провайдера)
+  """
+  paymentHash: String!
+
+  """Имя аккаунта пайщика — владельца биллинг-кошелька"""
+  username: String!
+}
+
+type BillingResult {
+  paymentHash: String
+  transactionId: String!
+}
+
+type BillingSummary {
+  coopname: String!
+  currency: String!
+  items: [BillingSummaryItem!]!
+  nextPaymentDue: String
+  paymentHash: String!
+  periodDays: Int!
+  totalAmount: Float!
+}
+
+type BillingSummaryItem {
+  amount: Float!
+  isFree: Boolean!
+  status: String!
+  subscriptionId: Int!
+  subscriptionTypeId: Int!
+  subscriptionTypeName: String!
+}
+
 type BlockchainAccount {
   """Имя аккаунта"""
   account_name: String!
@@ -7486,6 +7547,20 @@ type Mutation {
   """
   addTrustedAccount(data: AddTrustedAccountInput!): Branch!
 
+  """
+  Конвертация паевого взноса пайщика в членский на биллинг-кошелёк (operation o.bil.fund). Требует подписанное пайщиком заявление (document2).
+  
+  Требуемые роли: user, member, chairman. 
+  """
+  billingConvert(input: BillingConvertInput!): BillingResult!
+
+  """
+  Списание стоимости подписок с биллинг-кошелька пайщика в инфраструктурный кошелёк кооператива (operation o.bil.pay). Идемпотентно по payment_hash.
+  
+  Требуемые роли: chairman. 
+  """
+  billingPay(input: BillingPayInput!): BillingResult!
+
   """Отменить заявку"""
   cancelRequest(data: CancelRequestInput!): Transaction!
 
@@ -10435,6 +10510,13 @@ type Query {
   Требуемые роли: chairman. 
   """
   getAvailableReports: [AvailableReport!]!
+
+  """
+  Сумма к оплате кооператива за период (стоимость платных подписок, разбивка, дата следующего платежа, payment_hash). Источник — provider backend оператора. Для реестра кооперативов Восхода.
+  
+  Требуемые роли: chairman, member. 
+  """
+  getBillingSummary(coopname: String!, period: Float): BillingSummary!
 
   """Получить список кооперативных участков"""
   getBranches(data: GetBranchesInput!): [Branch!]!

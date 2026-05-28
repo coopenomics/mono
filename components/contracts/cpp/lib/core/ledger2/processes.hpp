@@ -65,6 +65,14 @@ namespace processes {
     inline constexpr eosio::name AXN_CONVERT = "p.sov.axncnv"_n; ///< Конвертация паевого RUB → делегатский ЧВ (одноактовый).
   }
 
+  // billing (Epic 12 — контракт billing)
+  // ВНИМАНИЕ: имя константы НЕ `FUND` — `FUND` занят макросом `#define FUND "fund"`
+  // в consts.hpp (имя контракта fund). Используем `CONVERT` (бэкенд-имя действия).
+  namespace billing {
+    inline constexpr eosio::name CONVERT = "p.bil.fund"_n; ///< Пополнение биллинг-кошелька пайщика (трансляция паевого в членский, одноактовый; anchor = hash заявления document2).
+    inline constexpr eosio::name PAY     = "p.bil.pay"_n;  ///< Оплата подписки с биллинг-кошелька (одноактовый; anchor = payment_hash из БД провайдера).
+  }
+
   // migration
   namespace migration {
     inline constexpr eosio::name TRANSIT   = "p.mig.trans"_n;    ///< Транзитный перенос остатков legacy (серия apply на кооп).

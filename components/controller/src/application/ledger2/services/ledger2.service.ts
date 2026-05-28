@@ -1,6 +1,7 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { createHash, randomBytes } from 'node:crypto';
 import { Ledger2 } from 'cooptypes';
+import { TransactionUtils } from '~/shared/utils/transaction.utils';
 import {
   LEDGER2_STATE_PORT,
   type Ledger2StatePort,
@@ -136,7 +137,7 @@ export class Ledger2Service {
 
     return {
       processHash,
-      transactionId: this.extractTransactionId(result),
+      transactionId: TransactionUtils.extractTransactionId(result),
     };
   }
 
@@ -184,17 +185,5 @@ export class Ledger2Service {
    */
   private generateProcessHash(): string {
     return createHash('sha256').update(randomBytes(32)).digest('hex');
-  }
-
-  private extractTransactionId(result: unknown): string {
-    if (result && typeof result === 'object' && 'transaction_id' in result) {
-      const tx = (result as { transaction_id?: unknown }).transaction_id;
-      if (typeof tx === 'string') return tx;
-    }
-    if (result && typeof result === 'object' && 'response' in result) {
-      const resp = (result as { response?: { transaction_id?: unknown } }).response;
-      if (resp && typeof resp.transaction_id === 'string') return resp.transaction_id;
-    }
-    return '';
   }
 }

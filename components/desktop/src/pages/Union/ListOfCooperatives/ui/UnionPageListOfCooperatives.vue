@@ -95,6 +95,8 @@
 
               div.text-grey.q-pa-sm(v-else) У кооператива нет подписок у провайдера.
 
+            CooperativeBillingPanel(v-if="props.expand" :coopname="props.row.coopname")
+
   </template>
   <script setup lang="ts">
   import { useLoadCooperatives } from 'src/features/Union/LoadCooperatives';
@@ -106,6 +108,7 @@
   import { useActivateCooperative } from 'src/features/Union/ActivateCooperative';
   import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
   import { useBlockCooperative } from 'src/features/Union/BlockCooperative';
+  import { CooperativeBillingPanel } from 'src/widgets/Billing/CooperativeBillingPanel';
   const union = useUnionStore()
 
   type ICooperativeSubscription = ICooperativeRegistryItem['subscriptions'][number]

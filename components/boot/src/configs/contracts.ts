@@ -128,4 +128,9 @@ export default [
     path: path.join(userBase, 'apps'),
     target: 'apps',
   },
+  {
+    name: 'billing',
+    path: path.join(userBase, 'billing'),
+    target: 'billing',
+  },
 ]

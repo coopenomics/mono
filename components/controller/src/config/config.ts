@@ -87,6 +87,24 @@ const envVarsSchema = z.object({
     .describe('адрес сервиса GRAPHQL'),
   PROVIDER_BASE_URL: z.string().default('').describe('базовый URL сервиса провайдера'),
 
+  // Billing Single-Hub v5: BillingModule подключается только на Восходе-хабе.
+  // На спицах флаг false → модуль вообще не регистрируется, endpoints/cron
+  // не появляются. Antelope не поддерживает deferred_trx — тик крона
+  // инициирует backend.
+  BILLING_HUB_MODE: z
+    .string()
+    .default('false')
+    .transform((v) => v === 'true' || v === '1')
+    .describe('узел работает как биллинг-хаб (только Восход): включает BillingModule, крон и GraphQL Billing.*'),
+  BILLING_CRON_EXPRESSION: z
+    .string()
+    .default('0 * * * *')
+    .describe('cron-выражение тика биллинга (по умолчанию ежечасно)'),
+  BILLING_CRON_PAYER: z
+    .string()
+    .default('')
+    .describe('пайщик-плательщик, чей w.wal.bill дебетуется (пусто — списание пропускается)'),
+
   // Параметры союза кооперативов
   UNION_LINK: z
     .string()
@@ -262,6 +280,13 @@ export default {
   coopname: envVars.data.COOPNAME,
   graphql_service: envVars.data.GRAPHQL_SERVICE,
   provider_base_url: envVars.data.PROVIDER_BASE_URL,
+  billing: {
+    hub_mode: envVars.data.BILLING_HUB_MODE,
+    cron_expression: envVars.data.BILLING_CRON_EXPRESSION,
+    // Список коопов — из on-chain `registrator.coops` через ProviderService
+    // (см. BillingCronService.activeCoopnames). Env-override отсутствует.
+    payer: envVars.data.BILLING_CRON_PAYER,
+  },
   union: {
     link: envVars.data.UNION_LINK,
     is_unioned: envVars.data.IS_UNIONED,

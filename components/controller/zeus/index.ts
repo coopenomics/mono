@@ -2079,6 +2079,55 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on BaseCapitalProject']?: Omit<ValueTypes["BaseCapitalProject"], "...on BaseCapitalProject">
 }>;
+	["BillingConvertInput"]: {
+	/** Сумма с символом, например "1500.0000 RUB" */
+	amount: string | Variable<any, string>,
+	/** Имя аккаунта кооператива */
+	coopname: string | Variable<any, string>,
+	/** Подписанное пайщиком заявление на конвертацию (document2) */
+	document: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>,
+	/** Имя аккаунта пайщика — владельца биллинг-кошелька */
+	username: string | Variable<any, string>
+};
+	["BillingPayInput"]: {
+	/** Сумма с символом, например "1500.0000 RUB" */
+	amount: string | Variable<any, string>,
+	/** Имя аккаунта кооператива */
+	coopname: string | Variable<any, string>,
+	/** Назначение платежа */
+	memo: string | Variable<any, string>,
+	/** Детерминированный идентификатор платежа (payment_hash из getBillingSummary провайдера) */
+	paymentHash: string | Variable<any, string>,
+	/** Имя аккаунта пайщика — владельца биллинг-кошелька */
+	username: string | Variable<any, string>
+};
+	["BillingResult"]: AliasType<{
+	paymentHash?:boolean | `@${string}`,
+	transactionId?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on BillingResult']?: Omit<ValueTypes["BillingResult"], "...on BillingResult">
+}>;
+	["BillingSummary"]: AliasType<{
+	coopname?:boolean | `@${string}`,
+	currency?:boolean | `@${string}`,
+	items?:ValueTypes["BillingSummaryItem"],
+	nextPaymentDue?:boolean | `@${string}`,
+	paymentHash?:boolean | `@${string}`,
+	periodDays?:boolean | `@${string}`,
+	totalAmount?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on BillingSummary']?: Omit<ValueTypes["BillingSummary"], "...on BillingSummary">
+}>;
+	["BillingSummaryItem"]: AliasType<{
+	amount?:boolean | `@${string}`,
+	isFree?:boolean | `@${string}`,
+	status?:boolean | `@${string}`,
+	subscriptionId?:boolean | `@${string}`,
+	subscriptionTypeId?:boolean | `@${string}`,
+	subscriptionTypeName?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on BillingSummaryItem']?: Omit<ValueTypes["BillingSummaryItem"], "...on BillingSummaryItem">
+}>;
 	["BlockchainAccount"]: AliasType<{
 	/** Имя аккаунта */
 	account_name?:boolean | `@${string}`,
@@ -6433,6 +6482,8 @@ acceptChildOrder?: [{	data: ValueTypes["AcceptChildOrderInput"] | Variable<any, 
 addParticipant?: [{	data: ValueTypes["AddParticipantInput"] | Variable<any, string>},ValueTypes["Account"]],
 addPaymentMethod?: [{	data: ValueTypes["AddPaymentMethodInput"] | Variable<any, string>},ValueTypes["PaymentMethod"]],
 addTrustedAccount?: [{	data: ValueTypes["AddTrustedAccountInput"] | Variable<any, string>},ValueTypes["Branch"]],
+billingConvert?: [{	input: ValueTypes["BillingConvertInput"] | Variable<any, string>},ValueTypes["BillingResult"]],
+billingPay?: [{	input: ValueTypes["BillingPayInput"] | Variable<any, string>},ValueTypes["BillingResult"]],
 cancelRequest?: [{	data: ValueTypes["CancelRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalAddAuthor?: [{	data: ValueTypes["AddAuthorInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
 capitalApproveCommit?: [{	data: ValueTypes["CommitApproveInput"] | Variable<any, string>},ValueTypes["CapitalCommit"]],
@@ -7852,6 +7903,7 @@ getActions?: [{	filters?: ValueTypes["ActionFiltersInput"] | undefined | null | 
 
 Требуемые роли: chairman.  */
 	getAvailableReports?:ValueTypes["AvailableReport"],
+getBillingSummary?: [{	coopname: string | Variable<any, string>,	period?: number | undefined | null | Variable<any, string>},ValueTypes["BillingSummary"]],
 getBranches?: [{	data: ValueTypes["GetBranchesInput"] | Variable<any, string>},ValueTypes["Branch"]],
 getCapitalIssueLogs?: [{	data: ValueTypes["GetCapitalIssueLogsInput"] | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalLogsPaginationResult"]],
 	/** Получить состояние онбординга capital
@@ -10543,6 +10595,52 @@ export type ResolverInputTypes = {
 	title?:boolean | `@${string}`,
 	/** Данные голосования по методу Водянова */
 	voting?:ResolverInputTypes["CapitalProjectVotingData"],
+		__typename?: boolean | `@${string}`
+}>;
+	["BillingConvertInput"]: {
+	/** Сумма с символом, например "1500.0000 RUB" */
+	amount: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Подписанное пайщиком заявление на конвертацию (document2) */
+	document: ResolverInputTypes["SignedDigitalDocumentInput"],
+	/** Имя аккаунта пайщика — владельца биллинг-кошелька */
+	username: string
+};
+	["BillingPayInput"]: {
+	/** Сумма с символом, например "1500.0000 RUB" */
+	amount: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Назначение платежа */
+	memo: string,
+	/** Детерминированный идентификатор платежа (payment_hash из getBillingSummary провайдера) */
+	paymentHash: string,
+	/** Имя аккаунта пайщика — владельца биллинг-кошелька */
+	username: string
+};
+	["BillingResult"]: AliasType<{
+	paymentHash?:boolean | `@${string}`,
+	transactionId?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["BillingSummary"]: AliasType<{
+	coopname?:boolean | `@${string}`,
+	currency?:boolean | `@${string}`,
+	items?:ResolverInputTypes["BillingSummaryItem"],
+	nextPaymentDue?:boolean | `@${string}`,
+	paymentHash?:boolean | `@${string}`,
+	periodDays?:boolean | `@${string}`,
+	totalAmount?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["BillingSummaryItem"]: AliasType<{
+	amount?:boolean | `@${string}`,
+	isFree?:boolean | `@${string}`,
+	status?:boolean | `@${string}`,
+	subscriptionId?:boolean | `@${string}`,
+	subscriptionTypeId?:boolean | `@${string}`,
+	subscriptionTypeName?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["BlockchainAccount"]: AliasType<{
@@ -14783,6 +14881,8 @@ acceptChildOrder?: [{	data: ResolverInputTypes["AcceptChildOrderInput"]},Resolve
 addParticipant?: [{	data: ResolverInputTypes["AddParticipantInput"]},ResolverInputTypes["Account"]],
 addPaymentMethod?: [{	data: ResolverInputTypes["AddPaymentMethodInput"]},ResolverInputTypes["PaymentMethod"]],
 addTrustedAccount?: [{	data: ResolverInputTypes["AddTrustedAccountInput"]},ResolverInputTypes["Branch"]],
+billingConvert?: [{	input: ResolverInputTypes["BillingConvertInput"]},ResolverInputTypes["BillingResult"]],
+billingPay?: [{	input: ResolverInputTypes["BillingPayInput"]},ResolverInputTypes["BillingResult"]],
 cancelRequest?: [{	data: ResolverInputTypes["CancelRequestInput"]},ResolverInputTypes["Transaction"]],
 capitalAddAuthor?: [{	data: ResolverInputTypes["AddAuthorInput"]},ResolverInputTypes["CapitalProject"]],
 capitalApproveCommit?: [{	data: ResolverInputTypes["CommitApproveInput"]},ResolverInputTypes["CapitalCommit"]],
@@ -16147,6 +16247,7 @@ getActions?: [{	filters?: ResolverInputTypes["ActionFiltersInput"] | undefined |
 
 Требуемые роли: chairman.  */
 	getAvailableReports?:ResolverInputTypes["AvailableReport"],
+getBillingSummary?: [{	coopname: string,	period?: number | undefined | null},ResolverInputTypes["BillingSummary"]],
 getBranches?: [{	data: ResolverInputTypes["GetBranchesInput"]},ResolverInputTypes["Branch"]],
 getCapitalIssueLogs?: [{	data: ResolverInputTypes["GetCapitalIssueLogsInput"],	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalLogsPaginationResult"]],
 	/** Получить состояние онбординга capital
@@ -18776,6 +18877,49 @@ export type ModelTypes = {
 	title: string,
 	/** Данные голосования по методу Водянова */
 	voting: ModelTypes["CapitalProjectVotingData"]
+};
+	["BillingConvertInput"]: {
+	/** Сумма с символом, например "1500.0000 RUB" */
+	amount: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Подписанное пайщиком заявление на конвертацию (document2) */
+	document: ModelTypes["SignedDigitalDocumentInput"],
+	/** Имя аккаунта пайщика — владельца биллинг-кошелька */
+	username: string
+};
+	["BillingPayInput"]: {
+	/** Сумма с символом, например "1500.0000 RUB" */
+	amount: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Назначение платежа */
+	memo: string,
+	/** Детерминированный идентификатор платежа (payment_hash из getBillingSummary провайдера) */
+	paymentHash: string,
+	/** Имя аккаунта пайщика — владельца биллинг-кошелька */
+	username: string
+};
+	["BillingResult"]: {
+		paymentHash?: string | undefined | null,
+	transactionId: string
+};
+	["BillingSummary"]: {
+		coopname: string,
+	currency: string,
+	items: Array<ModelTypes["BillingSummaryItem"]>,
+	nextPaymentDue?: string | undefined | null,
+	paymentHash: string,
+	periodDays: number,
+	totalAmount: number
+};
+	["BillingSummaryItem"]: {
+		amount: number,
+	isFree: boolean,
+	status: string,
+	subscriptionId: number,
+	subscriptionTypeId: number,
+	subscriptionTypeName: string
 };
 	["BlockchainAccount"]: {
 		/** Имя аккаунта */
@@ -22889,6 +23033,14 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	addTrustedAccount: ModelTypes["Branch"],
+	/** Конвертация паевого взноса пайщика в членский на биллинг-кошелёк (operation o.bil.fund). Требует подписанное пайщиком заявление (document2).
+
+Требуемые роли: user, member, chairman.  */
+	billingConvert: ModelTypes["BillingResult"],
+	/** Списание стоимости подписок с биллинг-кошелька пайщика в инфраструктурный кошелёк кооператива (operation o.bil.pay). Идемпотентно по payment_hash.
+
+Требуемые роли: chairman.  */
+	billingPay: ModelTypes["BillingResult"],
 	/** Отменить заявку */
 	cancelRequest: ModelTypes["Transaction"],
 	/** Добавление автора проекта в CAPITAL контракте
@@ -24747,6 +24899,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	getAvailableReports: Array<ModelTypes["AvailableReport"]>,
+	/** Сумма к оплате кооператива за период (стоимость платных подписок, разбивка, дата следующего платежа, payment_hash). Источник — provider backend оператора. Для реестра кооперативов Восхода.
+
+Требуемые роли: chairman, member.  */
+	getBillingSummary: ModelTypes["BillingSummary"],
 	/** Получить список кооперативных участков */
 	getBranches: Array<ModelTypes["Branch"]>,
 	/** Получить логи событий по задаче */
@@ -27462,6 +27618,55 @@ export type GraphQLTypes = {
 	/** Данные голосования по методу Водянова */
 	voting: GraphQLTypes["CapitalProjectVotingData"],
 	['...on BaseCapitalProject']: Omit<GraphQLTypes["BaseCapitalProject"], "...on BaseCapitalProject">
+};
+	["BillingConvertInput"]: {
+		/** Сумма с символом, например "1500.0000 RUB" */
+	amount: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Подписанное пайщиком заявление на конвертацию (document2) */
+	document: GraphQLTypes["SignedDigitalDocumentInput"],
+	/** Имя аккаунта пайщика — владельца биллинг-кошелька */
+	username: string
+};
+	["BillingPayInput"]: {
+		/** Сумма с символом, например "1500.0000 RUB" */
+	amount: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Назначение платежа */
+	memo: string,
+	/** Детерминированный идентификатор платежа (payment_hash из getBillingSummary провайдера) */
+	paymentHash: string,
+	/** Имя аккаунта пайщика — владельца биллинг-кошелька */
+	username: string
+};
+	["BillingResult"]: {
+	__typename: "BillingResult",
+	paymentHash?: string | undefined | null,
+	transactionId: string,
+	['...on BillingResult']: Omit<GraphQLTypes["BillingResult"], "...on BillingResult">
+};
+	["BillingSummary"]: {
+	__typename: "BillingSummary",
+	coopname: string,
+	currency: string,
+	items: Array<GraphQLTypes["BillingSummaryItem"]>,
+	nextPaymentDue?: string | undefined | null,
+	paymentHash: string,
+	periodDays: number,
+	totalAmount: number,
+	['...on BillingSummary']: Omit<GraphQLTypes["BillingSummary"], "...on BillingSummary">
+};
+	["BillingSummaryItem"]: {
+	__typename: "BillingSummaryItem",
+	amount: number,
+	isFree: boolean,
+	status: string,
+	subscriptionId: number,
+	subscriptionTypeId: number,
+	subscriptionTypeName: string,
+	['...on BillingSummaryItem']: Omit<GraphQLTypes["BillingSummaryItem"], "...on BillingSummaryItem">
 };
 	["BlockchainAccount"]: {
 	__typename: "BlockchainAccount",
@@ -31826,6 +32031,14 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	addTrustedAccount: GraphQLTypes["Branch"],
+	/** Конвертация паевого взноса пайщика в членский на биллинг-кошелёк (operation o.bil.fund). Требует подписанное пайщиком заявление (document2).
+
+Требуемые роли: user, member, chairman.  */
+	billingConvert: GraphQLTypes["BillingResult"],
+	/** Списание стоимости подписок с биллинг-кошелька пайщика в инфраструктурный кошелёк кооператива (operation o.bil.pay). Идемпотентно по payment_hash.
+
+Требуемые роли: chairman.  */
+	billingPay: GraphQLTypes["BillingResult"],
 	/** Отменить заявку */
 	cancelRequest: GraphQLTypes["Transaction"],
 	/** Добавление автора проекта в CAPITAL контракте
@@ -33815,6 +34028,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	getAvailableReports: Array<GraphQLTypes["AvailableReport"]>,
+	/** Сумма к оплате кооператива за период (стоимость платных подписок, разбивка, дата следующего платежа, payment_hash). Источник — provider backend оператора. Для реестра кооперативов Восхода.
+
+Требуемые роли: chairman, member.  */
+	getBillingSummary: GraphQLTypes["BillingSummary"],
 	/** Получить список кооперативных участков */
 	getBranches: Array<GraphQLTypes["Branch"]>,
 	/** Получить логи событий по задаче */
@@ -36080,6 +36297,8 @@ type ZEUS_VARIABLES = {
 	["AssetContributionStatementSignedMetaDocumentInput"]: ValueTypes["AssetContributionStatementSignedMetaDocumentInput"];
 	["BankAccountDetailsInput"]: ValueTypes["BankAccountDetailsInput"];
 	["BankAccountInput"]: ValueTypes["BankAccountInput"];
+	["BillingConvertInput"]: ValueTypes["BillingConvertInput"];
+	["BillingPayInput"]: ValueTypes["BillingPayInput"];
 	["BuhotchSignerType"]: ValueTypes["BuhotchSignerType"];
 	["CalculateVotesInput"]: ValueTypes["CalculateVotesInput"];
 	["CalendarEntryStatus"]: ValueTypes["CalendarEntryStatus"];
