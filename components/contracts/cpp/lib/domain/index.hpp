@@ -77,6 +77,3 @@
 #include "table_apps_pricings.hpp"
 #include "table_apps_globals.hpp"
 #include "table_apps_clients.hpp"
-
-// billing (Epic 12 — оплата подписок членскими взносами)
-#include "table_billing_payments.hpp"

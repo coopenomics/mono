@@ -10,8 +10,10 @@ using namespace eosio;
  * контракта в `contracts_whitelist` + фактом конвертации (`convert` = согласие).
  *
  * Состав подписок on-chain не раскрывается: контракт несёт только сумму,
- * `payment_hash` (ссылка на запись в БД провайдера) и memo. Повторный вызов с
- * тем же `payment_hash` — идемпотентный no-op (как `transaction_id` в Epic 3).
+ * `payment_hash` (ссылка на запись в БД провайдера) и memo. Дедуп по
+ * `payment_hash` — у provider'а (Single-Hub v5: парсер Восхода ловит pay-event,
+ * coopback Восхода дёргает provider `POST /billing/payment-confirmed`, provider
+ * сам отвечает на повторы). Контракт своих таблиц не ведёт.
  *
  * @param coopname     Кооператив-плательщик.
  * @param username     Пайщик, с чьего биллинг-кошелька списываем.
@@ -34,12 +36,6 @@ void billing::pay(name coopname, name username, asset amount,
   check(payment_hash != checksum256{}, "payment_hash обязателен");
   check(memo.size() < 256, "memo не должен превышать 255 символов");
 
-  // Идемпотентность: повторный вызов с тем же payment_hash — no-op.
-  auto existing = Billing::get_payment(coopname, payment_hash);
-  if (existing.has_value()) {
-    return;
-  }
-
   const std::string ledger_memo =
       memo.empty() ? std::string("Оплата подписки за инфраструктуру") : memo;
 
@@ -55,16 +51,4 @@ void billing::pay(name coopname, name username, asset amount,
     payment_hash,
     ledger_memo
   );
-
-  // Фиксируем факт оплаты для дедупа последующих вызовов.
-  Billing::payments_index payments(_billing, coopname.value);
-  uint64_t new_id = get_global_id_in_scope(_billing, coopname, "payments"_n);
-  payments.emplace(coopname, [&](auto& p) {
-    p.id           = new_id;
-    p.coopname     = coopname;
-    p.username     = username;
-    p.amount       = amount;
-    p.payment_hash = payment_hash;
-    p.paid_at      = time_point_sec(current_time_point());
-  });
 }

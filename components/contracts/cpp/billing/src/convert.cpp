@@ -45,4 +45,15 @@ void billing::convert(name coopname, name username, asset amount, document2 docu
     document.hash,
     memo
   );
+
+  // Фиксируем заявление в общем реестре документов кооператива (newsubmitted + newresolved
+  // в soviet — как в registrator::regcoop / capital::createpinv / soviet::converttoaxn).
+  Soviet::make_complete_document(
+    _billing,
+    coopname,
+    username,
+    "convert"_n,
+    document.hash,
+    document
+  );
 }
