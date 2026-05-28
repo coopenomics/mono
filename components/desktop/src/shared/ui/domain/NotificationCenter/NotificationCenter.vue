@@ -146,7 +146,7 @@ function plural(n: number, one: string, few: string, many: string): string {
   background: var(--p-surface);
   color: var(--p-ink);
   border-radius: var(--p-r-md, 12px);
-  box-shadow: var(--p-elev-2);
+  box-shadow: var(--p-shadow-pop);
   overflow: hidden;
 }
 

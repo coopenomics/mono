@@ -68,7 +68,7 @@ function close(): void {
   height: 100vh;
   background: var(--p-surface);
   color: var(--p-ink);
-  box-shadow: var(--p-elev-3);
+  box-shadow: var(--p-shadow-modal);
 }
 
 .details-drawer__header {

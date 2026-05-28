@@ -284,7 +284,7 @@ function onHide(): void {
   background: var(--p-surface);
   color: var(--p-ink);
   border-radius: var(--p-r-md, 12px);
-  box-shadow: var(--p-elev-3);
+  box-shadow: var(--p-shadow-modal);
   overflow: hidden;
 }
 
