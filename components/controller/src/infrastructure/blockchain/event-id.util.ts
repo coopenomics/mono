@@ -1,16 +1,13 @@
 import { IAction, IDelta } from '~/types/common';
 
 /**
- * Локальное вычисление event_id по формуле parser2 (Story 2.2, DEC-T08 phase 1).
+ * Локальное вычисление event_id — основа идемпотентности (INV-09).
  *
- * Формат (см. controller/CLAUDE.md): `${chain}:${kind}:${block_num}:${block_id_short}:${natural_key}`.
- * Признак уникальности события — основа идемпотентности (INV-09). До миграции
- * на parser2 (Epic 3) считается здесь параллельно текущему flow; в Epic 3 phase 2
- * сверяется с авторитетным event_id, который отдаёт сам движок.
- *
- * ВАЖНО: формула ещё не верифицирована против parser2, поэтому dedup-gate
- * (Story 2.3) по умолчанию выключен (BLOCKCHAIN_DEDUP_ENABLED=false). Ложный
- * дубль = silent data loss, поэтому активация — только после сверки.
+ * Формат: `${chain}:${kind}:${block_num}:${block_id_short}:${natural_key}`, где
+ * kind = action|delta. Контроллер ведёт собственный consumer_dedup в этом формате
+ * (parser2 кладёт свой event_id в событие, но мы считаем по своим полям —
+ * формат не зависит от транспорта). Дедуп безусловный: повторно доставленное
+ * событие с уже отмеченным event_id игнорируется как no-op.
  */
 
 /** Длина короткого префикса block_id в event_id. */
