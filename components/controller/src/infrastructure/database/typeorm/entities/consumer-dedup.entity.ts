@@ -11,6 +11,12 @@ import { Entity, PrimaryColumn, Column, Index, CreateDateColumn } from 'typeorm'
  *
  * event_id вычисляется локально по формуле parser2 (Story 2.2); после миграции
  * на parser2 (Epic 3) формула сверяется с авторитетной из движка.
+ *
+ * Story 4.1: добавлена колонка block_num — для очистки дедупа на форке
+ * (deleteAfterBlock). Колонка nullable: старые записи (до Epic 4) её не имеют,
+ * они доживут до своего retention по applied_at и не будут попадать под
+ * WHERE block_num > N (PG NULL-сравнения возвращают unknown, строка не удалится).
+ * Новые записи всегда несут block_num.
  */
 @Entity('consumer_dedup')
 export class ConsumerDedupEntity {
@@ -20,4 +26,8 @@ export class ConsumerDedupEntity {
   @Index('idx_consumer_dedup_applied_at')
   @CreateDateColumn({ type: 'timestamptz' })
   applied_at!: Date;
+
+  @Index('idx_consumer_dedup_block_num')
+  @Column({ type: 'bigint', nullable: true })
+  block_num!: string | null;
 }

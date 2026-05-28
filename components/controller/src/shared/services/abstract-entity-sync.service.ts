@@ -7,6 +7,7 @@ import type {
   IBlockchainSyncRepository,
   ISyncResult,
 } from '~/shared/interfaces/blockchain-sync.interface';
+import { FORK_AWARE_MARKER, type IForkAwareSyncer } from '~/shared/sync/fork';
 
 /**
  * Абстрактный сервис для синхронизации сущностей с блокчейном
@@ -14,11 +15,22 @@ import type {
  * Предоставляет базовую логику для:
  * - Обработки дельт блокчейна
  * - Создания/обновления сущностей
- * - Обработки форков
+ * - Обработки форков (Story 4.1: реализует IForkAwareSyncer — ForkRegistryService
+ *   собирает наследников через DiscoveryService по symbol-маркеру и обходит
+ *   sequential при форке)
  */
 @Injectable()
-export abstract class AbstractEntitySyncService<TEntity extends IBlockchainSynchronizable, TBlockchainData = any> {
+export abstract class AbstractEntitySyncService<TEntity extends IBlockchainSynchronizable, TBlockchainData = any>
+  implements IForkAwareSyncer
+{
   protected abstract readonly entityName: string;
+
+  /**
+   * Symbol-маркер для ForkRegistryService (Story 4.1). Все 20+ наследников
+   * автоматически попадают в реестр через bootstrap-сканирование Discovery —
+   * без правок их onModuleInit.
+   */
+  readonly [FORK_AWARE_MARKER] = true;
 
   constructor(
     protected readonly repository: IBlockchainSyncRepository<TEntity>,
@@ -133,37 +145,32 @@ export abstract class AbstractEntitySyncService<TEntity extends IBlockchainSynch
   }
 
   /**
-   * Обработка форка - удаление данных после указанного блока
+   * Обработка форка — удаление данных после указанного блока + восстановление из versions.
+   *
+   * Story 4.1: ошибки больше НЕ глотаются — обязательный re-throw для контракта
+   * sequential ForkRegistry.runAll (INV-T03). Если rollback упадёт — parser2 не
+   * ACK'нет fork-event, повторная доставка пересыграет цепочку. Уже отработавшие
+   * syncer'ы в цепи будут no-op (versions уже подняты), сбойный — попробует ещё раз.
    */
   async handleFork(forkBlockNum: number): Promise<void> {
-    try {
-      this.logger.log(`Handling fork for ${this.entityName} at block ${forkBlockNum}`);
+    this.logger.log(`Handling fork for ${this.entityName} at block ${forkBlockNum}`);
 
-      // Находим все сущности, обновленные после форка
-      const affectedEntities = await this.repository.findByBlockNumGreaterThan(forkBlockNum);
+    const affectedEntities = await this.repository.findByBlockNumGreaterThan(forkBlockNum);
 
-      this.logger.debug(
-        `Found ${affectedEntities.length} ${this.entityName} entities affected by fork at block ${forkBlockNum}`
-      );
+    this.logger.debug(
+      `Found ${affectedEntities.length} ${this.entityName} entities affected by fork at block ${forkBlockNum}`
+    );
 
-      // Удаляем затронутые форком сущности
-      await this.repository.deleteByBlockNumGreaterThan(forkBlockNum);
+    await this.repository.deleteByBlockNumGreaterThan(forkBlockNum);
 
-      this.logger.log(`Removed ${affectedEntities.length} ${this.entityName} entities after fork at block ${forkBlockNum}`);
+    this.logger.log(`Removed ${affectedEntities.length} ${this.entityName} entities after fork at block ${forkBlockNum}`);
 
-      // Восстанавливаем сущности из версий
-      if (this.repository.restoreFromVersions) {
-        await this.repository.restoreFromVersions(forkBlockNum);
-        this.logger.log(`Restored ${this.entityName} entities from versions after fork at block ${forkBlockNum}`);
-      }
-
-      // Вызываем метод для дополнительных действий после форка
-      await this.afterForkProcessing(forkBlockNum, affectedEntities);
-    } catch (error: any) {
-      this.logger.error(`Error handling fork for ${this.entityName}: ${error.message}`, error.stack);
-      // Не перебрасываем ошибку, чтобы не падало приложение
-      return;
+    if (this.repository.restoreFromVersions) {
+      await this.repository.restoreFromVersions(forkBlockNum);
+      this.logger.log(`Restored ${this.entityName} entities from versions after fork at block ${forkBlockNum}`);
     }
+
+    await this.afterForkProcessing(forkBlockNum, affectedEntities);
   }
 
   /**
