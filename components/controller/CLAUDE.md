@@ -58,6 +58,7 @@ _Критичные правила и паттерны для AI-агентов 
 ### Language-Specific (TypeScript)
 
 - **Bigint из PostgreSQL приходит как STRING.** Всегда `Number(blockNum) < Number(currentBlockNum)`, никогда не полагаться на `<`/`>` для `bigint`-колонок напрямую.
+- **block_num — разнобой типов в текущей кодовой базе (Story 4.3 audit).** `BaseTypeormEntity` (capital + shared) использует `@Column({ type: 'integer' }) block_num!: number` (PG возвращает number — корректно). Инфраструктурные entity (`ActionEntity`, `DeltaEntity`, `ForkEntity`, `SyncStateEntity`) используют `@Column({ type: 'bigint' }) block_num!: number` — **type-mismatch** (runtime будет string, TS говорит number). `ConsumerDedupEntity` — `bigint` + `string | null` (корректно). Это технический долг (Epic 9 backlog: bigint Transformer). Hot-path везде явно делает `Number()` либо использует TypeORM bind, так что runtime safe. При добавлении нового блокчейн-зеркала — выбрать одно из: (a) `integer` + `number`; (b) `bigint` + Transformer возвращающий `number`; (c) `bigint` + `string` с явным `Number()` в кодe. НЕ `bigint` + declaration `number` без Transformer.
 - **`Object.assign(this, blockchainData)` запрещено** в sync-сущностях — ломает типизацию. Только явное копирование полей.
 - **Lowercase hash полей (`project_hash`, `listing_hash`)** — нормализация **в конструкторе/mapValue**, НЕ в mapper'ах и НЕ повторно в `updateFromBlockchain`.
 - **Discriminated union для write-mutation response:** `{ status: 'applied' | 'pending' | 'failed' | 'conflict' }`. Клиент должен switch на статусе.
@@ -76,6 +77,7 @@ _Критичные правила и паттерны для AI-агентов 
 - `@Column({ type: 'bigint', nullable: true })` для `block_num`. Для `jsonb` — `@Column({ type: 'jsonb' })`.
 - `ADD COLUMN NOT NULL` на больших таблицах — **двухэтапно**: ADD nullable → backfill → ALTER NOT NULL.
 - Repository `extends BaseBlockchainRepository<DomainEntity, TypeormEntity>`. `findBySyncKey`, `createIfNotExists`, `deleteByBlockNumGreaterThan`, `restoreFromVersions` — **наследуются**, не реализовывать руками.
+- **Контракт «entity с block_num → repo extends BaseBlockchainRepository» (Story 4.3).** Любая `*.typeorm-entity.ts` extends `BaseTypeormEntity` ОБЯЗАНА иметь репозиторий extends `BaseBlockchainRepository` — иначе `entity_versions` не пишется (silent), а форк-rollback превращается в hard delete без восстановления. CI grep-guard: `tests/unit/blockchain/base-blockchain-repository.contract.test.ts`. Allowlist для 5 off-chain entity (`comment`, `cycle`, `issue`, `story`, `time-entry` — vestigial block_num, не блокчейн-зеркала). Новое исключение в allowlist — только с обоснованием в audit-report.
 
 **parser2 integration:**
 - `ParserClient` subscribe с `subscriptionId = "controller-${coopname}"`, `consumerName = "primary"` (детерминирован), `startFromBlock: 'last_known'`.
