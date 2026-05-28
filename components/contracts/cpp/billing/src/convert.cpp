@@ -11,15 +11,22 @@ using namespace eosio;
  * зарезервированный под оплату подписок. Сам факт конвертации трактуется как
  * согласие пайщика на последующие рекуррентные списания (см. `pay`).
  *
- * @param coopname Кооператив-плательщик (его подписью релеит бэкенд после JWT).
- * @param username Пайщик, чей паевой конвертируется.
- * @param amount   Сумма конвертации (RUB, > 0).
- * @param document Подписанное пайщиком заявление (обязательно, непустой hash).
+ * @param coopname     Кооператив-плательщик (его подписью релеит бэкенд после JWT).
+ * @param username     Пайщик, чей паевой конвертируется.
+ * @param amount       Сумма конвертации (RUB, > 0).
+ * @param convert_hash Детерминированный sha256-якорь процесса конвертации
+ *                     (coopname, username, amount, anchor). Используется как
+ *                     process_hash ledger2-операции и как package_hash в
+ *                     Soviet::make_complete_document — по нему документ
+ *                     находится в реестре кооператива. Обеспечивает связность
+ *                     процесса и идемпотентность на уровне soviet-реестра.
+ * @param document     Подписанное пайщиком заявление (обязательно, непустой hash).
  *
  * @ingroup public_billing_actions
  * @note Авторизация требуется от аккаунта: @p coopname
  */
-void billing::convert(name coopname, name username, asset amount, document2 document) {
+void billing::convert(name coopname, name username, asset amount,
+                      checksum256 convert_hash, document2 document) {
   require_auth(coopname);
 
   // Плательщик должен быть кооперативом (presence-only, без статуса).
@@ -27,6 +34,7 @@ void billing::convert(name coopname, name username, asset amount, document2 docu
 
   check(amount.is_valid() && amount.amount > 0, "Сумма конвертации должна быть положительной");
   check(amount.symbol == _root_govern_symbol, "Неверный символ валюты для конвертации");
+  check(convert_hash != checksum256{}, "convert_hash обязателен (детерминированный якорь процесса)");
 
   // Заявление обязательно и должно быть подписано пайщиком. Ловушка: пустой
   // checksum256 ломает ABI-кодирование/верификацию — документ должен быть реальным.
@@ -42,18 +50,21 @@ void billing::convert(name coopname, name username, asset amount, document2 docu
     operations::billing::CONVERT,
     amount,
     username,
-    document.hash,
+    convert_hash,
     memo
   );
 
-  // Фиксируем заявление в общем реестре документов кооператива (newsubmitted + newresolved
-  // в soviet — как в registrator::regcoop / capital::createpinv / soviet::converttoaxn).
+  // Фиксируем заявление в общем реестре документов кооператива (newsubmitted +
+  // newresolved в soviet — как в registrator::regcoop / capital::createpinv /
+  // soviet::converttoaxn). package_hash = convert_hash — документ привязан к
+  // конкретному процессу конвертации; повтор с тем же convert_hash на уровне
+  // soviet-реестра идемпотентен.
   Soviet::make_complete_document(
     _billing,
     coopname,
     username,
     "convert"_n,
-    document.hash,
+    convert_hash,
     document
   );
 }

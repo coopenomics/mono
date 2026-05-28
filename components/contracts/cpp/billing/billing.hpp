@@ -57,8 +57,14 @@ public:
   [[eosio::action]] void migrate();
 
   // Конвертация паевого взноса в членский на биллинг-кошелёк пайщика.
+  // convert_hash — детерминированный sha256 от (coopname, username, amount,
+  // anchor) — служит process-якорем: используется как ключ операции ledger2
+  // и как package_hash для Soviet::make_complete_document (документ в реестре
+  // ищется именно по convert_hash). Повтор с тем же convert_hash —
+  // идемпотентный no-op на уровне реестра soviet (newresolved уже зафиксирован).
   [[eosio::action]] void convert(eosio::name coopname, eosio::name username,
-                                 eosio::asset amount, document2 document);
+                                 eosio::asset amount, eosio::checksum256 convert_hash,
+                                 document2 document);
 
   // Списание с биллинг-кошелька стоимости подписок (оплата провайдеру).
   [[eosio::action]] void pay(eosio::name coopname, eosio::name username,
