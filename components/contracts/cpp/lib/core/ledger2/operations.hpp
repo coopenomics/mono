@@ -89,12 +89,12 @@ namespace operations {
   // вызываемые последовательно в одной транзакции Antelope — атомарность через транзакцию.
   namespace marketplace {
     inline constexpr eosio::name ASSIGN_TO_PROGRAM       = "o.mkt.assign"_n;   ///< Целевое назначение членского взноса пайщика в программу Marketplace (TRANSFER CK_MEMBER → MARKETPLACE_MEMBER, без проводки — оба кошелька на счёте 86). Conditional-шаг серии createorder.
-    inline constexpr eosio::name BLOCK_FOR_ORDER         = "o.mkt.block"_n;    ///< Блокировка членского взноса заказчика под конкретный Order (BLOCK на MARKETPLACE_MEMBER, без Dr/Cr).
-    inline constexpr eosio::name UNBLOCK_ON_CANCEL       = "o.mkt.unblk"_n;    ///< Разблокировка членского взноса при отмене Order'а (UNBLOCK на MARKETPLACE_MEMBER, без Dr/Cr). Сумма остаётся на .available и может быть потрачена на следующий заказ в программе.
+    inline constexpr eosio::name BLOCK_FOR_ORDER         = "o.mkt.block"_n;    ///< Резервирование членского взноса заказчика под конкретный Order (TRANSFER MARKETPLACE_MEMBER → MARKETPLACE_ORDER_LOCK, без Dr/Cr — оба кошелька на 86). Имя o.mkt.block сохранено для совместимости op_code в blockchain_actions; семантика — резерв через отдельный кошелёк, не BLOCK.
+    inline constexpr eosio::name UNBLOCK_ON_CANCEL       = "o.mkt.unblk"_n;    ///< Снятие резерва при отмене Order'а (TRANSFER MARKETPLACE_ORDER_LOCK → MARKETPLACE_MEMBER, без Dr/Cr). Сумма возвращается на .available членского и может быть потрачена на следующий заказ в программе. Имя o.mkt.unblk сохранено для совместимости op_code.
     inline constexpr eosio::name RECALL_TO_UNIVERSAL     = "o.mkt.recall"_n;   ///< Вывод программного членского взноса в универсальный членский кошелёк пайщика (TRANSFER MARKETPLACE_MEMBER → CK_MEMBER, без проводки — оба кошелька на счёте 86). Явное действие пайщика, не часть авто-flow отмены.
     inline constexpr eosio::name PURCHASE_FROM_SUPPLIER  = "o.mkt.purch"_n;    ///< Приёмка имущества кооперативом по АПП приёмки от поставщика (Dr 10 / Cr 86, NONE — только бухпроводка, кошельки не двигаются; имущество — аналитика по 10). Атомарно с PAY_SUPPLIER на закрывающей подписи председателя.
     inline constexpr eosio::name PAY_SUPPLIER            = "o.mkt.payout"_n;   ///< Оплата поставщику с расчётного счёта по факту приёмки (Dr 86 / Cr 51, ISSUE ∅ → SUPPLIER_PAYMENTS). Атомарно с PURCHASE_FROM_SUPPLIER.
-    inline constexpr eosio::name CONSUME_BY_MEMBER       = "o.mkt.consum"_n;   ///< Выдача имущества пайщику по АПП выдачи (часть 1 композитной проводки через транзит 91): Dr 91 / Cr 10, BURN_BLOCKED MARKETPLACE_MEMBER.blocked → 0 — выбытие имущества со склада на «прочие». Закрытие транзита — отдельной операцией CONSUME_TRANSIT_CLOSE, атомарно в той же транзакции signiss2.
+    inline constexpr eosio::name CONSUME_BY_MEMBER       = "o.mkt.consum"_n;   ///< Выдача имущества пайщику по АПП выдачи (часть 1 композитной проводки через транзит 91): Dr 91 / Cr 10, BURN с MARKETPLACE_ORDER_LOCK — сжигание резерва заказа (целевой расход членского) + выбытие имущества со склада на «прочие». Закрытие транзита — отдельной операцией CONSUME_TRANSIT_CLOSE, атомарно в той же транзакции signiss2.
     inline constexpr eosio::name CONSUME_TRANSIT_CLOSE   = "o.mkt.consum2"_n;  ///< Выдача имущества пайщику (часть 2 композитной проводки): Dr 86 / Cr 91, NONE — закрытие транзита 91 на счёт ЦФ программы. Срабатывает после CONSUME_BY_MEMBER в той же транзакции.
     inline constexpr eosio::name RETURN_BY_MEMBER        = "o.mkt.return"_n;   ///< Гарантийный возврат имущества пайщиком — compensating forward к CONSUME_BY_MEMBER (часть 1 композитной проводки): Dr 91 / Cr 86, ISSUE ∅ → MARKETPLACE_MEMBER — восстановление «прочих» за счёт ЦФ + восстановление .available заказчика. Реверты ledger2::revert в Столе заказов не используются.
     inline constexpr eosio::name RETURN_TRANSIT_CLOSE    = "o.mkt.return2"_n;  ///< Гарантийный возврат (часть 2 композитной проводки): Dr 10 / Cr 91, NONE — имущество назад на склад через закрытие транзита. Срабатывает после RETURN_BY_MEMBER в той же транзакции decretvisit.
@@ -285,19 +285,21 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     0, 0,
     "Целевое назначение членского взноса в программу «Стол заказов»" },
 
-  // 12c. p.mkt.supply: Блокировка под Order (BLOCK на w.mkt.member, без Dr/Cr).
-  { operations::marketplace::BLOCK_FOR_ORDER, processes::marketplace::SUPPLY, WalletOp::BLOCK,
-    ledger2_wallets::MARKETPLACE_MEMBER, eosio::name{},
+  // 12c. p.mkt.supply: Резервирование под Order (TRANSFER w.mkt.member → w.mkt.order,
+  //      без Dr/Cr — оба кошелька на счёте 86). Заменяет механику BLOCK 2026-05-28:
+  //      резерв через отдельный кошелёк, а не через .blocked одного кошелька.
+  { operations::marketplace::BLOCK_FOR_ORDER, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
+    ledger2_wallets::MARKETPLACE_MEMBER, ledger2_wallets::MARKETPLACE_ORDER_LOCK,
     0, 0,
-    "Блокировка членского взноса под заказ" },
+    "Резервирование членского взноса под заказ" },
 
-  // 12d. p.mkt.supply: Разблокировка при отмене Order'а (UNBLOCK, без Dr/Cr).
-  //      Срабатывает на cancelorder / expirecycle / declinebatch. Сумма остаётся
-  //      на w.mkt.member.available и может быть потрачена на следующий заказ.
-  { operations::marketplace::UNBLOCK_ON_CANCEL, processes::marketplace::SUPPLY, WalletOp::UNBLOCK,
-    ledger2_wallets::MARKETPLACE_MEMBER, eosio::name{},
+  // 12d. p.mkt.supply: Снятие резерва при отмене Order'а (TRANSFER w.mkt.order → w.mkt.member,
+  //      без Dr/Cr — зеркало 12c). Срабатывает на cancelorder / expirecycle / declinebatch.
+  //      Сумма возвращается на w.mkt.member.available и может быть потрачена на следующий заказ.
+  { operations::marketplace::UNBLOCK_ON_CANCEL, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
+    ledger2_wallets::MARKETPLACE_ORDER_LOCK, ledger2_wallets::MARKETPLACE_MEMBER,
     0, 0,
-    "Разблокировка членского взноса при отмене заказа" },
+    "Снятие резерва членского взноса при отмене заказа" },
 
   // 12e. p.mkt.supply: Вывод программного членского в универсальный членский
   //      (TRANSFER w.mkt.member → w.wal.member, без Dr/Cr — оба на 86).
@@ -324,13 +326,13 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     "Оплата поставщику с расчётного счёта по факту приёмки" },
 
   // 12h. p.mkt.supply: Выдача имущества пайщику по АПП выдачи — часть 1.
-  //      BURN_BLOCKED на w.mkt.member.blocked → 0 (целевой расход членского) +
+  //      BURN с w.mkt.order → 0 (сжигание резерва — целевой расход членского) +
   //      Dr 91 / Cr 10 (выбытие имущества со склада на «прочие»).
   //      Согласовано с Ангелиной 2026-05-11. Атомарность с CONSUME_TRANSIT_CLOSE
   //      обеспечивается транзакцией Antelope — контракт вызывает обе операции
-  //      последовательно в signiss2. (REVOKE объединён с BURN_BLOCKED 2026-05-24.)
-  { operations::marketplace::CONSUME_BY_MEMBER, processes::marketplace::SUPPLY, WalletOp::BURN_BLOCKED,
-    ledger2_wallets::MARKETPLACE_MEMBER, eosio::name{},
+  //      последовательно в signiss2. (BURN_BLOCKED → BURN с резерва 2026-05-28.)
+  { operations::marketplace::CONSUME_BY_MEMBER, processes::marketplace::SUPPLY, WalletOp::BURN,
+    ledger2_wallets::MARKETPLACE_ORDER_LOCK, eosio::name{},
     ledger2_accounts::OTHER_INCOME_EXPENSES, ledger2_accounts::MATERIALS,
     "Выдача имущества пайщику по АПП выдачи — выбытие со склада" },
 
