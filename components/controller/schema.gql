@@ -13205,7 +13205,7 @@ type Query {
   marketplaceListConsolidatedRequests(input: MarketplaceListConsolidatedRequestsInput, options: PaginationInput): MarketplaceConsolidatedRequestPaginationResult!
 
   """
-  Список наклеек инвентаря КУ — для admin-стола склада и операторских разделов.
+  Список наклеек инвентаря КУ: admin/совет видят весь склад кооператива, оператор — только свой участок.
   """
   marketplaceListInventory(data: MarketplaceListInventoryInput): [MarketplaceInventoryItem!]!
 

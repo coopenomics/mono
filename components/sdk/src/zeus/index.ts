@@ -29681,7 +29681,7 @@ export type ModelTypes = {
 	marketplaceListCategories: Array<ModelTypes["MarketplaceCategory"]>,
 	/** Постраничный список сводных заявок поставщика — для стола поставщика и для прослеживания состояния заказов. */
 	marketplaceListConsolidatedRequests: ModelTypes["MarketplaceConsolidatedRequestPaginationResult"],
-	/** Список наклеек инвентаря КУ — для admin-стола склада и операторских разделов. */
+	/** Список наклеек инвентаря КУ: admin/совет видят весь склад кооператива, оператор — только свой участок. */
 	marketplaceListInventory: Array<ModelTypes["MarketplaceInventoryItem"]>,
 	/** Список заказов на кооперативном участке, ожидающих открытия и финальной подписи выдачи (для оператора кооперативного участка). */
 	marketplaceListIssuancesByBraname: Array<ModelTypes["MarketplaceOrder"]>,
@@ -40456,7 +40456,7 @@ export type GraphQLTypes = {
 	marketplaceListCategories: Array<GraphQLTypes["MarketplaceCategory"]>,
 	/** Постраничный список сводных заявок поставщика — для стола поставщика и для прослеживания состояния заказов. */
 	marketplaceListConsolidatedRequests: GraphQLTypes["MarketplaceConsolidatedRequestPaginationResult"],
-	/** Список наклеек инвентаря КУ — для admin-стола склада и операторских разделов. */
+	/** Список наклеек инвентаря КУ: admin/совет видят весь склад кооператива, оператор — только свой участок. */
 	marketplaceListInventory: Array<GraphQLTypes["MarketplaceInventoryItem"]>,
 	/** Список заказов на кооперативном участке, ожидающих открытия и финальной подписи выдачи (для оператора кооперативного участка). */
 	marketplaceListIssuancesByBraname: Array<GraphQLTypes["MarketplaceOrder"]>,
