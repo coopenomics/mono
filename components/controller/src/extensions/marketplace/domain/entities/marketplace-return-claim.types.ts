@@ -1,8 +1,8 @@
 /**
  * Эпик 7 (Story 7.1-7.4): типы заявления на гарантийный возврат имущества.
  * Backend-only state machine, on-chain якорь — `marketplace::return_request`
- * (анкер процесса p.mkt.return). Compensating-forward пара
- * `o.mkt.return + o.mkt.return2` через транзит 91 выполняется в `accretrn`.
+ * (анкер процесса p.mkt.return). Compensating-forward `o.mkt.return`
+ * (ISSUE w.wal.member, Дт 10 / Кт 86) выполняется в `accretrn`.
  *
  * Источник правды графа состояний — `p.mkt.return.standard.yaml` секция
  * `states:`; контрактные имена статусов в `ReturnStatus::*` ядра

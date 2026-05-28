@@ -103,8 +103,8 @@ export interface MarketplaceOrderCreateTxSnapshot {
 
 /**
  * Снапшот фактической выдачи имущества пайщику после `signiss2`. Хранит
- * сверку «факт vs заказ» и итоговую корреспонденцию через транзит 91 для
- * аудита и UI карточки заказа в статусе RECEIVED.
+ * сверку «факт vs заказ» и итоговую корреспонденцию для аудита и UI
+ * карточки заказа в статусе RECEIVED.
  */
 export interface MarketplaceOrderIssuanceFactSnapshot {
   /** Фактически выданное количество единиц. */

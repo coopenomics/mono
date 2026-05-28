@@ -5,14 +5,9 @@
  * Никаких NestJS / TypeORM / реального chain'а — работа на синтетических
  * массивах `Ledger2OperationDTO`.
  *
- * Архитектура 2026-05-28: reserve-кошелёк w.mkt.order; счёт 91 в marketplace
- * не используется (все операции напрямую между 10 и 86); промежуточный
- * программный кошелёк w.mkt.member упразднён — источник и приёмок резерва
- * это универсальный членский w.wal.member.
- *
- * Операции:
- *   - o.mkt.lock:   TRANSFER w.wal.member → w.mkt.order
- *   - o.mkt.unlock: TRANSFER w.mkt.order → w.wal.member
+ * Операции marketplace:
+ *   - o.mkt.lock:   TRANSFER w.wal.share → w.mkt.order, Дт 80 / Кт 86
+ *   - o.mkt.unlock: TRANSFER w.mkt.order → w.wal.member, без проводки
  *   - o.mkt.consum: BURN w.mkt.order, Дт 86 / Кт 10
  *   - o.mkt.return: ISSUE → w.wal.member, Дт 10 / Кт 86
  *   - o.mkt.wroff:  NONE, Дт 86 / Кт 10
@@ -98,32 +93,22 @@ function buildApplyTrio(params: {
 
 /**
  * Happy-path order flow (createorder → signsupp → signiss2):
- *   1. o.wal.conv   (Dr 80 / Cr 86) — конвертация цифрового рубля (conditional)
- *   2. o.mkt.lock   (TRANSFER w.wal.member → w.mkt.order, без проводок) — резерв
- *   3. o.mkt.purch  (Dr 10 / Cr 86) — приёмка
- *   4. o.mkt.payout (Dr 86 / Cr 51, ISSUE w.mkt.payout) — задолженность поставщику
- *   5. o.mkt.consum (Dr 86 / Cr 10, BURN w.mkt.order) — выдача (одна операция без 91)
+ *   1. o.mkt.lock   (TRANSFER w.wal.share → w.mkt.order, Dr 80 / Cr 86) — резерв
+ *   2. o.mkt.purch  (Dr 10 / Cr 86) — приёмка
+ *   3. o.mkt.payout (Dr 86 / Cr 51, ISSUE w.mkt.payout) — задолженность поставщику
+ *   4. o.mkt.consum (Dr 86 / Cr 10, BURN w.mkt.order) — выдача
  */
 function happyPathOrderFlow(amount = 100): MarketplaceLedger2OperationRow[] {
   const orderHash = newProcessHash()
   return [
     ...buildApplyTrio({
       processHash: orderHash,
-      operationCode: 'o.wal.conv',
-      amount,
-      walletFrom: 'w.wal.share',
-      walletTo: 'w.wal.member',
-      debitAccount: 80,
-      creditAccount: 86,
-    }),
-    ...buildApplyTrio({
-      processHash: orderHash,
       operationCode: 'o.mkt.lock',
       amount,
-      walletFrom: 'w.wal.member',
+      walletFrom: 'w.wal.share',
       walletTo: 'w.mkt.order',
-      debitAccount: null,
-      creditAccount: null,
+      debitAccount: 80,
+      creditAccount: 86,
     }),
     ...buildApplyTrio({
       processHash: orderHash,
@@ -162,10 +147,10 @@ function cancelOrderFlow(amount = 100): MarketplaceLedger2OperationRow[] {
       processHash: orderHash,
       operationCode: 'o.mkt.lock',
       amount,
-      walletFrom: 'w.wal.member',
+      walletFrom: 'w.wal.share',
       walletTo: 'w.mkt.order',
-      debitAccount: null,
-      creditAccount: null,
+      debitAccount: 80,
+      creditAccount: 86,
     }),
     ...buildApplyTrio({
       processHash: orderHash,
@@ -374,7 +359,7 @@ describe('I5 — согласованность резерва на w.mkt.order'
       processHash: orderHash,
       operationCode: 'o.mkt.lock',
       amount: 60,
-      walletFrom: 'w.wal.member',
+      walletFrom: 'w.wal.share',
       walletTo: 'w.mkt.order',
       debitAccount: null,
       creditAccount: null,
@@ -390,7 +375,7 @@ describe('I5 — согласованность резерва на w.mkt.order'
       processHash: orderHash,
       operationCode: 'o.mkt.lock',
       amount: 60,
-      walletFrom: 'w.wal.member',
+      walletFrom: 'w.wal.share',
       walletTo: 'w.mkt.order',
       debitAccount: null,
       creditAccount: null,
@@ -423,7 +408,7 @@ describe('I6 — нет orphan o.mkt.lock', () => {
       processHash: orderHash,
       operationCode: 'o.mkt.lock',
       amount: 30,
-      walletFrom: 'w.wal.member',
+      walletFrom: 'w.wal.share',
       walletTo: 'w.mkt.order',
       debitAccount: null,
       creditAccount: null,
@@ -455,7 +440,7 @@ describe('I6 — нет orphan o.mkt.lock', () => {
         processHash: orderHash,
         operationCode: 'o.mkt.lock',
         amount: 30,
-        walletFrom: 'w.wal.member',
+        walletFrom: 'w.wal.share',
         walletTo: 'w.mkt.order',
         debitAccount: null,
         creditAccount: null,

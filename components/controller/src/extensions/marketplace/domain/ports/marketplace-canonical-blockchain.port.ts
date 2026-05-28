@@ -132,18 +132,15 @@ export interface MarketplaceCanonicalBlockchainPort {
 
   /**
    * Story 6.3 / FR24: заказчик закрывает выдачу финальной подписью.
-   * Per-Order композитная транзакция через транзит 91:
+   * Per-Order транзакция:
    *
    *   1. Корректирующие операции (если факт ≠ заказ):
-   *      - actual < ordered: `o.mkt.unblk(ordered_cost - fact_cost)` —
-   *        возврат разницы на `w.mkt.member.available`.
-   *      - actual > ordered: `o.wal.conv` (conditional) +
-   *        `o.mkt.assign` (conditional) + `o.mkt.block(diff)` —
-   *        доплата с паевого; при нехватке средств транзакция фейлится
-   *        (L6 guard, FR25).
-   *   2. Композитная пара выдачи: `o.mkt.consum(fact_cost)`
-   *      (REVOKE, Дт 91 / Кт 10) + `o.mkt.consum2(fact_cost)`
-   *      (NONE, Дт 86 / Кт 91) — закрытие транзита.
+   *      - actual < ordered: `o.mkt.unlock(ordered_cost - fact_cost)` —
+   *        снятие разницы резерва на `w.wal.member.available`.
+   *      - actual > ordered: `o.mkt.lock(diff)` — добор разницы с паевого
+   *        (TRANSFER w.wal.share → w.mkt.order, Дт 80 / Кт 86); при
+   *        нехватке средств транзакция фейлится (L6 guard, FR25).
+   *   2. Выдача: `o.mkt.consum(fact_cost)` — BURN w.mkt.order, Дт 86 / Кт 10.
    *
    * Статус Order'а: `ready_to_receive → received`; заполняются
    * `actual_quantity`, `fact_cost`, `issue_act_signiss2`, `warranty_until`.
@@ -187,13 +184,11 @@ export interface MarketplaceCanonicalBlockchainPort {
 
   /**
    * Story 7.3 / 7.4 — FR32, FR33: председатель по результатам очного
-   * осмотра принимает гарантийный возврат. Композитная транзакция через
-   * транзит 91 (compensating forward, AR9/AR14):
+   * осмотра принимает гарантийный возврат (compensating forward, AR9/AR14):
    *
-   *   1. `o.mkt.return(fact_cost, orderer)` (ISSUE, Дт 91 / Кт 86) —
-   *      восстанавливает `.available` на `w.mkt.member` заказчика.
-   *   2. `o.mkt.return2(fact_cost, orderer)` (NONE, Дт 10 / Кт 91) —
-   *      имущество возвращается на склад КУ через закрытие транзита.
+   *   1. `o.mkt.return(fact_cost, orderer)` (ISSUE w.wal.member, Дт 10 / Кт 86) —
+   *      восстанавливает `.available` на `w.wal.member` заказчика и возвращает
+   *      имущество на склад КУ.
    *
    * Статус return_request: `approvvisit → accepted` (final). Order.status
    * остаётся `received` — возврат фиксируется отдельной сущностью.

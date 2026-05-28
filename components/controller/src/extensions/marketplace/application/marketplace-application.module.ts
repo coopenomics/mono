@@ -306,7 +306,7 @@ import { MarketplaceInventoryEntity } from '../infrastructure/entities/marketpla
       useClass: MarketplaceIssuanceService,
     },
     MarketplaceIssuanceService,
-    // Эпик 7 — гарантийный возврат (compensating forward через транзит 91).
+    // Эпик 7 — гарантийный возврат (compensating forward к o.mkt.consum).
     {
       provide: MARKETPLACE_RETURN_CLAIM_SERVICE,
       useClass: MarketplaceReturnClaimService,

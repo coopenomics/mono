@@ -5,8 +5,8 @@
  *
  * 1) actual == ordered:
  *      Ledger2::apply(o.mkt.consum, fact_cost) — BURN w.mkt.order, Дт 86 / Кт 10
- *      (сжигание резерва заказа + выбытие имущества со склада через целевое
- *      финансирование, одной операцией без транзита 91).
+ *      (сжигание резерва заказа и выбытие имущества со склада через целевое
+ *      финансирование).
  *
  * 2) actual < ordered (выдано меньше — остаток резерва возвращается):
  *      Ledger2::apply(o.mkt.unlock, ordered_cost - fact_cost) — TRANSFER w.mkt.order →
@@ -15,10 +15,9 @@
  *
  * 3) actual > ordered (доплата с паевого):
  *      diff = fact_cost - ordered_cost
- *      проверка достаточности средств для diff (через w.wal.share + w.wal.member).
- *      Conditional o.wal.conv (если на w.wal.member недостача — паевой → членский).
- *      o.mkt.lock(diff) — TRANSFER w.wal.member → w.mkt.order, добор резерва на этот же Order.
- *      затем — consum на fact_cost.
+ *      проверка достаточности средств для diff на w.wal.share.
+ *      o.mkt.lock(diff) — TRANSFER w.wal.share → w.mkt.order, Дт 80 / Кт 86 —
+ *      добор резерва на этот же Order. Затем — consum на fact_cost.
  *
  * Status: ready_to_receive → received. actual_quantity, fact_cost,
  * issue_act_signiss2, warranty_until заполняются.
@@ -73,31 +72,16 @@ void marketplace::signiss2(eosio::name coopname,
                    Marketplace::Memo::get_signiss2_correction_less_memo(o.id));
 
   } else if (fact_cost > o.total_cost) {
-    // actual > ordered: добираем разницу с паевого + conv (conditional) + lock
+    // actual > ordered: добираем разницу с паевого через дополнительный lock
     const eosio::asset diff = fact_cost - o.total_cost;
 
-    // Проверка доступности diff в двух кошельках (share + universal member)
-    auto bal_share  = Marketplace::get_user_wallet_balance(
+    // Проверка доступности diff на паевом заказчика
+    auto bal_share = Marketplace::get_user_wallet_balance(
         coopname, ledger2_wallets::SHARE_FUND_PAY, orderer);
-    auto bal_member = Marketplace::get_user_wallet_balance(
-        coopname, ledger2_wallets::CK_MEMBER, orderer);
-
-    eosio::asset total_avail = bal_share.available + bal_member.available;
-    eosio::check(total_avail >= diff,
+    eosio::check(bal_share.available >= diff,
                  std::string{"Недостаточно средств для дооплаты по факту: требуется "} +
-                   diff.to_string() + ", доступно " + total_avail.to_string());
+                   diff.to_string() + ", доступно " + bal_share.available.to_string());
 
-    const eosio::asset zero = eosio::asset(0, _root_govern_symbol);
-    eosio::asset need_to_conv = (bal_member.available >= diff)
-                                  ? zero
-                                  : (diff - bal_member.available);
-
-    if (need_to_conv.amount > 0) {
-      Ledger2::apply(_marketplace, coopname,
-                     operations::wallet::CONVERT_TO_MEMBER,
-                     need_to_conv, orderer, o.hash,
-                     Marketplace::Memo::get_signiss2_correction_more_convert_memo(o.id));
-    }
     Ledger2::apply(_marketplace, coopname,
                    operations::marketplace::LOCK_ORDER,
                    diff, orderer, o.hash,

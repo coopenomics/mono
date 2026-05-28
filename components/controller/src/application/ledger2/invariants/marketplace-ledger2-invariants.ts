@@ -333,15 +333,14 @@ export function checkInvariantI4Account91Transit(
 
 // ---------------------------------------------------------------------------
 // I5 — Согласованность резерва под Order на кошельке w.mkt.order:
-//   sum(TRANSFER w.wal.member → w.mkt.order)        // o.mkt.lock   — резерв вошёл
-//   − sum(TRANSFER w.mkt.order → w.wal.member)      // o.mkt.unlock — резерв снят
-//   − sum(BURN w.mkt.order)                         // o.mkt.consum — резерв сожжён (выдача)
+//   sum(TRANSFER w.wal.share → w.mkt.order)         // o.mkt.lock   — резерв вошёл (Дт 80 / Кт 86)
+//   − sum(TRANSFER w.mkt.order → w.wal.member)      // o.mkt.unlock — резерв снят (без проводки)
+//   − sum(BURN w.mkt.order)                         // o.mkt.consum — резерв сожжён (Дт 86 / Кт 10)
 //     = sum(available у w.mkt.order-кошельков пайщиков).
 //
-// Архитектура 2026-05-28: вместо механики BLOCK/UNBLOCK на одном кошельке —
-// пара TRANSFER через отдельный USER_SHARED-кошелёк w.mkt.order. Источник и
-// приёмник средств — универсальный членский w.wal.member; промежуточного
-// программного кошелька (бывший w.mkt.member) нет.
+// Архитектура 2026-05-28: средства заказчика идут с паевого (w.wal.share)
+// напрямую на резерв-кошелёк w.mkt.order при createorder; возврат при отмене
+// поступает на универсальный членский w.wal.member.
 //
 // На входе тестов wallets обычно содержит aggregated available по всем
 // w.mkt.order-row. Можно подать одну строку с агрегированным `balance`.
@@ -353,8 +352,8 @@ export function checkInvariantI5ReserveConsistency(
   let computed = 0n
   for (const r of rows) {
     if (r.action !== 'walletop') continue
-    // o.mkt.lock: TRANSFER w.wal.member → w.mkt.order  (резерв входит)
-    if (r.walletFrom === 'w.wal.member' && r.walletTo === 'w.mkt.order') {
+    // o.mkt.lock: TRANSFER w.wal.share → w.mkt.order  (резерв входит)
+    if (r.walletFrom === 'w.wal.share' && r.walletTo === 'w.mkt.order') {
       computed += parseAssetToBigInt(r.quantity)
     }
     // o.mkt.unlock: TRANSFER w.mkt.order → w.wal.member  (резерв снят)

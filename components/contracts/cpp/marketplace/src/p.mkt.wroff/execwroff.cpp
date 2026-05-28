@@ -4,7 +4,7 @@
  *
  * Per-item операция:
  *  - Ledger2::apply(o.mkt.wroff, item.amount, …, hash=proposal.hash) — Дт 86 / Кт 10
- *    (списание со склада через целевое финансирование, одной операцией без транзита 91).
+ *    (списание со склада через целевое финансирование).
  *
  * Вызывается ТОЛЬКО после того, как совет авторизовал проект (status =
  * AUTHORIZED через callback `onmktwoauth`). Backend проходит циклом по
@@ -39,7 +39,7 @@ void marketplace::execwroff(eosio::name coopname,
   eosio::check(branch.is_user_authorized(signer),
                "Подписант не уполномочен исполнять списание данного кооперативного участка");
 
-  // o.mkt.wroff: Дт 86 / Кт 10 (одна операция без транзита 91)
+  // o.mkt.wroff: Дт 86 / Кт 10
   Ledger2::apply(_marketplace, coopname,
                  operations::marketplace::WRITE_OFF_PERISHABLE,
                  item.amount, item.braname, p.hash,

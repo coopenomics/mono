@@ -3,8 +3,7 @@
  *
  *  - Ledger2::apply(o.mkt.return, fact_cost, orderer, hash=request.hash)
  *    — ISSUE w.wal.member, Дт 10 / Кт 86. Восстановление средств на универсальном
- *    членском заказчика + возврат имущества на склад через целевое финансирование,
- *    одной операцией без транзита 91.
+ *    членском заказчика и возврат имущества на склад через целевое финансирование.
  *
  * Compensating forward, не revert (Locked Decision L3 — AR14): новое событие в
  * journal с прикладным полем `original_consume_op_id` (заполняется backend'ом
@@ -38,7 +37,7 @@ void marketplace::accretrn(eosio::name coopname,
     verify_document_or_fail(decision, { signer });
   }
 
-  // o.mkt.return: ISSUE w.wal.member, Дт 10 / Кт 86 (одна операция без транзита 91)
+  // o.mkt.return: ISSUE w.wal.member, Дт 10 / Кт 86
   Ledger2::apply(_marketplace, coopname,
                  operations::marketplace::RETURN_BY_MEMBER,
                  r.fact_cost, r.orderer, r.hash,

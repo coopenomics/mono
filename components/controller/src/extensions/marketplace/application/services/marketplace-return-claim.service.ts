@@ -135,8 +135,8 @@ export interface MarketplaceReturnClaimResult {
  *  - aprretrem  (Story 7.2) — председатель одобряет очный визит; APPROVED_FOR_VISIT
  *  - rejretrem  (Story 7.2) — отказ удалённо; REJECTED_REMOTELY (final)
  *  - accretrn   (Story 7.4) — приём возврата на очном осмотре; ACCEPTED_AT_VISIT
- *                              (final, композитная пара o.mkt.return + o.mkt.return2
- *                              через транзит 91, восстановление w.mkt.member.available)
+ *                              (final, o.mkt.return — ISSUE w.wal.member, Дт 10 / Кт 86,
+ *                              восстановление w.wal.member.available)
  *  - rejretrn   (Story 7.3) — отказ на очном осмотре; REJECTED_AT_VISIT (final)
  *
  * Фотографии товара и очного осмотра лежат в bucket'е `stol-zakazov:images`

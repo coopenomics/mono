@@ -84,18 +84,14 @@ namespace operations {
   }
 
   // marketplace — членская модель «Стола заказов».
-  // Упрощённая схема 2026-05-28: средства движутся через универсальный членский
-  // (w.wal.member) ↔ резерв под Order (w.mkt.order) без промежуточного программного
-  // кошелька; счёт 91 (транзит) больше не используется — выбытие/возврат имущества
-  // идут напрямую между 10 (Материалы) и 86 (Целевое финансирование).
   namespace marketplace {
-    inline constexpr eosio::name LOCK_ORDER             = "o.mkt.lock"_n;     ///< Резервирование членского взноса заказчика под конкретный Order (TRANSFER w.wal.member → w.mkt.order, без Dr/Cr — оба кошелька на 86). Единственный шаг ledger2 при createorder (плюс conditional o.wal.conv если на w.wal.member недостаточно).
-    inline constexpr eosio::name UNLOCK_ORDER           = "o.mkt.unlock"_n;   ///< Снятие резерва при отмене Order'а (TRANSFER w.mkt.order → w.wal.member, без Dr/Cr). Средства возвращаются на универсальный членский — могут быть потрачены на следующий заказ либо выведены пайщиком на паевой через wallet-операцию.
+    inline constexpr eosio::name LOCK_ORDER             = "o.mkt.lock"_n;     ///< Резервирование средств заказчика под конкретный Order (TRANSFER w.wal.share → w.mkt.order, Dr 80 / Cr 86 — паевой переходит в целевое финансирование на резерв-кошелёк). Единственный обязательный шаг ledger2 при createorder.
+    inline constexpr eosio::name UNLOCK_ORDER           = "o.mkt.unlock"_n;   ///< Снятие резерва при отмене Order'а (TRANSFER w.mkt.order → w.wal.member, без Dr/Cr — оба кошелька на 86). Средства возвращаются на универсальный членский — могут быть потрачены пайщиком в членских программах.
     inline constexpr eosio::name PURCHASE_FROM_SUPPLIER = "o.mkt.purch"_n;    ///< Приёмка имущества кооперативом по АПП приёмки от поставщика (Dr 10 / Cr 86, NONE — только бухпроводка, кошельки не двигаются; имущество — аналитика по 10). Атомарно с PAY_SUPPLIER на закрывающей подписи председателя.
     inline constexpr eosio::name PAY_SUPPLIER           = "o.mkt.payout"_n;   ///< Оплата поставщику с расчётного счёта по факту приёмки (Dr 86 / Cr 51, ISSUE ∅ → SUPPLIER_PAYMENTS). Атомарно с PURCHASE_FROM_SUPPLIER.
-    inline constexpr eosio::name CONSUME_BY_MEMBER      = "o.mkt.consum"_n;   ///< Выдача имущества пайщику по АПП выдачи (BURN с w.mkt.order, Dr 86 / Cr 10 — сжигание резерва заказа + выбытие имущества со склада через целевое финансирование, одной операцией без транзита 91).
-    inline constexpr eosio::name RETURN_BY_MEMBER       = "o.mkt.return"_n;   ///< Гарантийный возврат имущества пайщиком — compensating forward к CONSUME_BY_MEMBER (ISSUE ∅ → w.wal.member, Dr 10 / Cr 86 — восстановление средств на универсальном членском заказчика + возврат имущества на склад через целевое финансирование, одной операцией без транзита 91). Реверты ledger2::revert в Столе заказов не используются.
-    inline constexpr eosio::name WRITE_OFF_PERISHABLE   = "o.mkt.wroff"_n;    ///< Утилизация скоропорта со склада (NONE Dr 86 / Cr 10, одной операцией без транзита 91). По протоколу совета.
+    inline constexpr eosio::name CONSUME_BY_MEMBER      = "o.mkt.consum"_n;   ///< Выдача имущества пайщику по АПП выдачи (BURN с w.mkt.order, Dr 86 / Cr 10 — сжигание резерва заказа и выбытие имущества со склада через целевое финансирование).
+    inline constexpr eosio::name RETURN_BY_MEMBER       = "o.mkt.return"_n;   ///< Гарантийный возврат имущества пайщиком — compensating forward к CONSUME_BY_MEMBER (ISSUE ∅ → w.wal.member, Dr 10 / Cr 86 — восстановление средств на универсальном членском заказчика и возврат имущества на склад). Реверты ledger2::revert в Столе заказов не используются.
+    inline constexpr eosio::name WRITE_OFF_PERISHABLE   = "o.mkt.wroff"_n;    ///< Утилизация скоропорта со склада (NONE Dr 86 / Cr 10). По протоколу совета.
   }
 
   // soviet
@@ -266,33 +262,26 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_accounts::SHARE_FUND, ledger2_accounts::FINANCIAL_INVESTMENTS,
     "Возврат беспроцентного займа пайщика по акту-2" },
 
-  // 12a. p.mkt.supply: Конвертация цифрового рубля в членский (Dr 80 / Cr 86,
-  //      TRANSFER SHARE_FUND_PAY → CK_MEMBER). Conditional-шаг createorder/signiss2 —
-  //      срабатывает только если на w.wal.member.available не хватает суммы.
-  { operations::wallet::CONVERT_TO_MEMBER, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
-    ledger2_wallets::SHARE_FUND_PAY, ledger2_wallets::CK_MEMBER,
-    ledger2_accounts::SHARE_FUND, ledger2_accounts::TARGET_RECEIPTS,
-    "Конвертация цифрового рубля в членский кошелёк пайщика" },
-
-  // 12b. p.mkt.supply: Резервирование под Order (TRANSFER w.wal.member → w.mkt.order,
-  //      без Dr/Cr — оба кошелька на счёте 86). Единственный обязательный шаг при
-  //      createorder; для signiss2 — на разницу при actual > ordered.
+  // 12a. p.mkt.supply: Резервирование под Order (TRANSFER w.wal.share → w.mkt.order,
+  //      Dr 80 / Cr 86). Единственный обязательный шаг ledger2 при createorder;
+  //      для signiss2 — на разницу при actual > ordered. Паевой переходит в
+  //      целевое финансирование на резерв-кошелёк под конкретный заказ.
   { operations::marketplace::LOCK_ORDER, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
-    ledger2_wallets::CK_MEMBER, ledger2_wallets::MARKETPLACE_ORDER_LOCK,
-    0, 0,
-    "Резервирование членского взноса под заказ" },
+    ledger2_wallets::SHARE_FUND_PAY, ledger2_wallets::MARKETPLACE_ORDER_LOCK,
+    ledger2_accounts::SHARE_FUND, ledger2_accounts::TARGET_RECEIPTS,
+    "Резервирование под заказ" },
 
-  // 12c. p.mkt.supply: Снятие резерва (TRANSFER w.mkt.order → w.wal.member,
-  //      без Dr/Cr — зеркало 12b). Срабатывает на cancelorder / declineorder /
-  //      expireorder; для signiss2 — на разницу при actual < ordered. Средства
-  //      возвращаются на универсальный членский — могут быть потрачены на
-  //      следующий заказ либо выведены пайщиком на паевой через wallet-операцию.
+  // 12b. p.mkt.supply: Снятие резерва (TRANSFER w.mkt.order → w.wal.member,
+  //      без Dr/Cr — оба кошелька на 86). Срабатывает на cancelorder /
+  //      declineorder / expireorder; для signiss2 — на разницу при
+  //      actual < ordered. Средства возвращаются на универсальный членский —
+  //      могут быть потрачены пайщиком в членских программах.
   { operations::marketplace::UNLOCK_ORDER, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
     ledger2_wallets::MARKETPLACE_ORDER_LOCK, ledger2_wallets::CK_MEMBER,
     0, 0,
-    "Снятие резерва членского взноса при отмене заказа" },
+    "Снятие резерва при отмене заказа" },
 
-  // 12d. p.mkt.supply: Приёмка имущества кооперативом по АПП приёмки
+  // 12c. p.mkt.supply: Приёмка имущества кооперативом по АПП приёмки
   //      (Dr 10 / Cr 86, NONE — только бухпроводка, кошельки не двигаются).
   //      Имущество — аналитикой по счёту 10 (per-КУ субсчета), без отдельного кошелька.
   //      Атомарно с PAY_SUPPLIER на закрывающей подписи председателя АПП приёмки.
@@ -301,34 +290,33 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_accounts::MATERIALS, ledger2_accounts::TARGET_RECEIPTS,
     "Приёмка имущества кооперативом по АПП приёмки" },
 
-  // 12e. p.mkt.supply: Оплата поставщику с расчётного счёта
+  // 12d. p.mkt.supply: Оплата поставщику с расчётного счёта
   //      (Dr 86 / Cr 51, ISSUE ∅ → w.mkt.payout). Атомарно с PURCHASE_FROM_SUPPLIER.
   { operations::marketplace::PAY_SUPPLIER, processes::marketplace::SUPPLY, WalletOp::ISSUE,
     eosio::name{}, ledger2_wallets::SUPPLIER_PAYMENTS,
     ledger2_accounts::TARGET_RECEIPTS, ledger2_accounts::BANK_ACCOUNT,
     "Оплата поставщику с расчётного счёта по факту приёмки" },
 
-  // 12f. p.mkt.supply: Выдача имущества пайщику по АПП выдачи
-  //      (BURN с w.mkt.order, Dr 86 / Cr 10 — сжигание резерва заказа + выбытие
-  //      имущества со склада через целевое финансирование, одной операцией без
-  //      транзита 91). Согласовано с Ангелиной 2026-05-11.
+  // 12e. p.mkt.supply: Выдача имущества пайщику по АПП выдачи
+  //      (BURN с w.mkt.order, Dr 86 / Cr 10 — сжигание резерва заказа и
+  //      выбытие имущества со склада через целевое финансирование).
   { operations::marketplace::CONSUME_BY_MEMBER, processes::marketplace::SUPPLY, WalletOp::BURN,
     ledger2_wallets::MARKETPLACE_ORDER_LOCK, eosio::name{},
     ledger2_accounts::TARGET_RECEIPTS, ledger2_accounts::MATERIALS,
     "Выдача имущества пайщику по АПП выдачи" },
 
-  // 12g. p.mkt.return: Гарантийный возврат имущества пайщиком
+  // 12f. p.mkt.return: Гарантийный возврат имущества пайщиком
   //      (ISSUE ∅ → w.wal.member, Dr 10 / Cr 86 — восстановление средств на
-  //      универсальном членском заказчика + возврат имущества на склад через
-  //      целевое финансирование, одной операцией без транзита 91). Compensating
-  //      forward к CONSUME_BY_MEMBER; ledger2::revert в Столе заказов не используется.
+  //      универсальном членском заказчика и возврат имущества на склад).
+  //      Compensating forward к CONSUME_BY_MEMBER; ledger2::revert в Столе
+  //      заказов не используется.
   { operations::marketplace::RETURN_BY_MEMBER, processes::marketplace::RETURN, WalletOp::ISSUE,
     eosio::name{}, ledger2_wallets::CK_MEMBER,
     ledger2_accounts::MATERIALS, ledger2_accounts::TARGET_RECEIPTS,
     "Гарантийный возврат — восстановление средств и имущества" },
 
-  // 12h. p.mkt.wroff: Утилизация скоропорта со склада (NONE Dr 86 / Cr 10,
-  //      одной операцией без транзита 91). По протоколу совета.
+  // 12g. p.mkt.wroff: Утилизация скоропорта со склада (NONE Dr 86 / Cr 10).
+  //      По протоколу совета.
   { operations::marketplace::WRITE_OFF_PERISHABLE, processes::marketplace::WRITEOFF, WalletOp::NONE,
     eosio::name{}, eosio::name{},
     ledger2_accounts::TARGET_RECEIPTS, ledger2_accounts::MATERIALS,

@@ -1,12 +1,10 @@
 /**
  * @brief Заказчик размещает заказ на товар (Story 4.1, p.mkt.supply шаг 1).
  *
- * Серия операций (атомарно в одной транзакции Antelope):
- *  1. `o.wal.conv` (conditional) — TRANSFER w.wal.share → w.wal.member,
- *     Дт 80 / Кт 86. Только если на `w.wal.member.available` заказчика
- *     не хватает суммы заказа.
- *  2. `o.mkt.lock` (всегда) — TRANSFER w.wal.member → w.mkt.order пайщика на
- *     total_cost (резерв средств под этот Order; без проводки — оба кошелька на 86).
+ * Одна ledger2-операция:
+ *  - `o.mkt.lock` (TRANSFER w.wal.share → w.mkt.order пайщика на total_cost,
+ *    Дт 80 / Кт 86) — резерв средств заказчика под этот Order. Паевой пайщика
+ *    переходит в целевое финансирование на резерв-кошелёк.
  *
  * Guards (из p.mkt.supply.standard.yaml + Locked Decision L6):
  *  - quantity > 0; unit_price > 0 в _root_govern_symbol; cycle_type валидный.
@@ -14,18 +12,14 @@
  *  - Заказчик — активный пайщик кооператива (`get_participant_or_fail`).
  *  - `delivery_braname` существует в `branches` (КУ выдачи задаётся пайщиком
  *    из доступных и неизменен после создания Order'а).
- *  - Σ available двух кошельков (w.wal.share + w.wal.member) >= total_cost;
- *    иначе createorder фейлится без создания Order'а.
+ *  - w.wal.share.available заказчика >= total_cost; иначе createorder фейлится
+ *    без создания Order'а.
  *  - Подписка пайщика на оферту ЦПП «Стол заказов» (L2/L3 онбординг) —
  *    автоматически проверяется в `ledger2::walletop` через
  *    `assert_program_signed` (cross-contract в `wallet::users.programs[]`)
  *    при первом TRANSFER на USER_SHARED-кошельке программы (w.mkt.order).
  *
  * Сообщения проверок — для прямого показа пользователю (UI ловит check'ом).
- *
- * @note process_hash для обеих ledger2-операций — `order_hash`. Это
- *       даёт backend'у одну точку группировки операций процесса
- *       p.mkt.supply через `getProcess(process_hash)` (Story 9.3).
  *
  * @ingroup public_marketplace_actions
  */
@@ -71,25 +65,12 @@ void marketplace::createorder(eosio::name coopname,
   eosio::check(total_cost.amount > 0,
                "Итоговая сумма заказа должна быть больше нуля");
 
-  // ── Достаточность средств: Σ available двух кошельков >= total_cost ─
-  auto bal_share  = Marketplace::get_user_wallet_balance(
+  // ── Достаточность средств: w.wal.share.available >= total_cost ──────
+  auto bal_share = Marketplace::get_user_wallet_balance(
       coopname, ledger2_wallets::SHARE_FUND_PAY, orderer);
-  auto bal_member = Marketplace::get_user_wallet_balance(
-      coopname, ledger2_wallets::CK_MEMBER, orderer);
-
-  eosio::asset total_available = bal_share.available + bal_member.available;
-  eosio::check(total_available >= total_cost,
+  eosio::check(bal_share.available >= total_cost,
                std::string{"Недостаточно средств для заказа: требуется "} +
-                 total_cost.to_string() + ", доступно " + total_available.to_string());
-
-  // ── Расчёт conditional-доли конвертации ─────────────────────────────
-  // Сначала тратим w.wal.member.available; недостающее берём из w.wal.share
-  // через o.wal.conv (паевой → членский).
-  const eosio::asset zero = eosio::asset(0, _root_govern_symbol);
-
-  eosio::asset need_to_conv = (bal_member.available >= total_cost)
-                                ? zero
-                                : (total_cost - bal_member.available);
+                 total_cost.to_string() + ", доступно " + bal_share.available.to_string());
 
   // ── Создание Order entity (id потребуется для memo) ─────────────────
   orders_index orders(_marketplace, coopname.value);
@@ -119,16 +100,7 @@ void marketplace::createorder(eosio::name coopname,
     o.batch_hash  = batch_hash;
   });
 
-  // ── Шаг 1: o.wal.conv (conditional, w.wal.share → w.wal.member) ──────
-  if (need_to_conv.amount > 0) {
-    Ledger2::apply(_marketplace, coopname,
-                   operations::wallet::CONVERT_TO_MEMBER,
-                   need_to_conv, orderer, order_hash,
-                   Marketplace::Memo::get_create_order_convert_memo(new_id));
-  }
-
-  // ── Шаг 2: o.mkt.lock (всегда, TRANSFER w.wal.member → w.mkt.order) ──
-  // Резервируем total_cost на отдельный кошелёк w.mkt.order под этот Order.
+  // ── o.mkt.lock: TRANSFER w.wal.share → w.mkt.order (Дт 80 / Кт 86) ───
   Ledger2::apply(_marketplace, coopname,
                  operations::marketplace::LOCK_ORDER,
                  total_cost, orderer, order_hash,
