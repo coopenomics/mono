@@ -25,6 +25,7 @@ export const LEDGER2_WALLET_REGISTRY: readonly WalletMeta[] = [
   { name: "w.cap.blago", human_name: "ЦПП «Благорост» — единый кошелёк программы у пайщика", kind: "USER_SHARED" },
   { name: "w.cap.preimp", human_name: "Первичный учёт РИД-взносов до перехода на электронный учёт", kind: "USER_SHARED" },
   { name: "w.mkt.member", human_name: "ЦПП «Стол Заказов» — программный членский у пайщика", kind: "USER_SHARED" },
+  { name: "w.mkt.order", human_name: "ЦПП «Стол Заказов» — резерв под заказ у пайщика", kind: "USER_SHARED" },
   { name: "w.cap.gen", human_name: "ЦПП «Генератор» — единый кошелёк программы", kind: "COOPERATIVE" },
   { name: "w.reg.entry", human_name: "Вступительные взносы", kind: "COOPERATIVE" },
   { name: "w.wal.wthdrw", human_name: "Возвраты паевых взносов пайщикам (deprecated, не используется в новых операциях)", kind: "COOPERATIVE" },
@@ -57,4 +58,5 @@ export const LEDGER2_USER_SHARED_PROGRAM_MAPPING: readonly ProgramWalletMapping[
   { wallet_name: "w.cap.gen", required_program_id: 3, program_label: "Генератор" },
   { wallet_name: "w.cap.preimp", required_program_id: 0, program_label: null },
   { wallet_name: "w.mkt.member", required_program_id: 2, program_label: "Marketplace" },
+  { wallet_name: "w.mkt.order", required_program_id: 2, program_label: "Marketplace" },
 ] as const

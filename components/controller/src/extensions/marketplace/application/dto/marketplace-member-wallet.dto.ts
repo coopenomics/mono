@@ -1,23 +1,30 @@
 import { Field, Int, ObjectType } from '@nestjs/graphql';
 
 /**
- * Story 1.5: кошельки пайщика на Столе заказов.
+ * Кошельки пайщика на Столе заказов.
  *
  * По стандарту контракта marketplace (см. `marketplace/p.mkt.supply.standard.yaml`,
- * раздел «wallets») в процессах ЦПП «Стол Заказов» у пайщика участвуют три
+ * раздел «wallets») в процессах ЦПП «Стол Заказов» у пайщика участвуют четыре
  * USER_SHARED-кошелька:
  *
  *   1. `w.wal.share`  — ЦПП «Цифровой Кошелёк», паевые взносы деньгами (program_id=1).
  *   2. `w.wal.member` — Универсальный членский кошелёк (program_id=1), играет роль
  *                       транзитного: средства идут share → member → mkt.member.
  *   3. `w.mkt.member` — Программный членский кошелёк ЦПП «Стол Заказов»
- *                       (program_id=2), формируется при первом orderoffer/createorder.
+ *                       (program_id=2), .available — свободные средства программы.
+ *   4. `w.mkt.order`  — Резерв средств пайщика под конкретный Order (program_id=2).
+ *                       Сюда движутся средства на createorder (TRANSFER из
+ *                       w.mkt.member), обратно — на cancel/decline/expire.
+ *                       Сжигается BURN'ом на signiss2 (выдача имущества).
  *
  * Источник балансов — core `UserWalletRepository.findByUsername` (PG-кеш
  * `ledger2::userwallets`); RPC к chain не выполняется (ADR-011). Каждый
  * кошелёк отдаётся «как есть» — `available` и `blocked` напрямую из L3,
  * без сворачивания/переименования. Если L3-записи ещё нет (пайщик не
- * двигал средства через данный кошелёк) — возвращаем `0/0`.
+ * двигал средства через данный кошелёк) — возвращаем `0/0`. Поле `blocked`
+ * для marketplace-кошельков всегда `0` после миграции с BLOCK/UNBLOCK на
+ * пары TRANSFER (2026-05-28) — резерв выражается через .available
+ * отдельного кошелька w.mkt.order.
  *
  * Платформенный кошелёк `w.mkt.payout` (COOPERATIVE, не per-user) сюда не
  * включается — это кошелёк выплат поставщикам, отображается в admin-вьюхе
@@ -25,7 +32,7 @@ import { Field, Int, ObjectType } from '@nestjs/graphql';
  */
 @ObjectType('MarketplaceWalletEntry')
 export class MarketplaceWalletEntryDTO {
-  @Field(() => String, { description: 'eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.member)' })
+  @Field(() => String, { description: 'eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.member / w.mkt.order)' })
   public readonly name!: string;
 
   @Field(() => String, { description: 'Человекочитаемое название (из cooptypes LEDGER2_WALLET_REGISTRY)' })
@@ -46,7 +53,10 @@ export class MarketplaceWalletEntryDTO {
   @Field(() => String, { description: 'Доступный остаток (`userwallets.available`)' })
   public readonly available!: string;
 
-  @Field(() => String, { description: 'Заблокированный остаток (`userwallets.blocked`)' })
+  @Field(() => String, {
+    description:
+      'Заблокированный остаток (`userwallets.blocked`). Для marketplace-кошельков всегда `0` — резерв выражается через `.available` кошелька w.mkt.order. Поле остаётся для wallet/withdraw flow и legacy данных.',
+  })
   public readonly blocked!: string;
 
   constructor(init: {
@@ -77,7 +87,7 @@ export class MarketplaceMemberWalletDTO {
   public readonly coopname!: string;
 
   @Field(() => [MarketplaceWalletEntryDTO], {
-    description: 'Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.member',
+    description: 'Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.member → mkt.order',
   })
   public readonly wallets!: MarketplaceWalletEntryDTO[];
 

@@ -6911,7 +6911,7 @@ export type ValueTypes = {
 	["MarketplaceMemberWallet"]: AliasType<{
 	coopname?:boolean | `@${string}`,
 	username?:boolean | `@${string}`,
-	/** Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.member */
+	/** Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.member → mkt.order */
 	wallets?:ValueTypes["MarketplaceWalletEntry"],
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceMemberWallet']?: Omit<ValueTypes["MarketplaceMemberWallet"], "...on MarketplaceMemberWallet">
@@ -7691,7 +7691,7 @@ export type ValueTypes = {
 	["MarketplaceWalletEntry"]: AliasType<{
 	/** Доступный остаток (`userwallets.available`) */
 	available?:boolean | `@${string}`,
-	/** Заблокированный остаток (`userwallets.blocked`) */
+	/** Заблокированный остаток (`userwallets.blocked`). Для marketplace-кошельков всегда `0` — резерв выражается через `.available` кошелька w.mkt.order. Поле остаётся для wallet/withdraw flow и legacy данных. */
 	blocked?:boolean | `@${string}`,
 	/** Человекочитаемое название (из cooptypes LEDGER2_WALLET_REGISTRY) */
 	human_name?:boolean | `@${string}`,
@@ -7699,7 +7699,7 @@ export type ValueTypes = {
 	kind?:boolean | `@${string}`,
 	/** UX-метка кошелька в формате `<тип взноса> | <программа>` (например «Паевой | Цифровой Кошелёк», «Членский | Стол Заказов») */
 	label?:boolean | `@${string}`,
-	/** eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.member) */
+	/** eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.member / w.mkt.order) */
 	name?:boolean | `@${string}`,
 	/** program_id: 1 — Цифровой Кошелёк, 2 — Стол Заказов */
 	program_id?:boolean | `@${string}`,
@@ -9614,7 +9614,7 @@ marketplaceListSupplierOrders?: [{	input?: ValueTypes["MarketplaceListOrdersInpu
 	/** Список пайщиков-поставщиков, допущенных к публикации оферт */
 	marketplaceListWhitelist?:ValueTypes["MarketplaceWhitelistEntry"],
 marketplaceListWriteoffProposals?: [{	data: ValueTypes["MarketplaceListWriteoffProposalsInput"] | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedMarketplaceWriteoffProposals"]],
-	/** Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.member */
+	/** Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.member, w.mkt.order */
 	marketplaceMemberWallet?:ValueTypes["MarketplaceMemberWallet"],
 	/** Состояние онбординга пайщика в Столе заказов: показывать ли gate или пропускать на стол */
 	marketplaceOnboardingState?:ValueTypes["MarketplaceOnboardingState"],
@@ -16873,7 +16873,7 @@ export type ResolverInputTypes = {
 	["MarketplaceMemberWallet"]: AliasType<{
 	coopname?:boolean | `@${string}`,
 	username?:boolean | `@${string}`,
-	/** Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.member */
+	/** Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.member → mkt.order */
 	wallets?:ResolverInputTypes["MarketplaceWalletEntry"],
 		__typename?: boolean | `@${string}`
 }>;
@@ -17627,7 +17627,7 @@ export type ResolverInputTypes = {
 	["MarketplaceWalletEntry"]: AliasType<{
 	/** Доступный остаток (`userwallets.available`) */
 	available?:boolean | `@${string}`,
-	/** Заблокированный остаток (`userwallets.blocked`) */
+	/** Заблокированный остаток (`userwallets.blocked`). Для marketplace-кошельков всегда `0` — резерв выражается через `.available` кошелька w.mkt.order. Поле остаётся для wallet/withdraw flow и legacy данных. */
 	blocked?:boolean | `@${string}`,
 	/** Человекочитаемое название (из cooptypes LEDGER2_WALLET_REGISTRY) */
 	human_name?:boolean | `@${string}`,
@@ -17635,7 +17635,7 @@ export type ResolverInputTypes = {
 	kind?:boolean | `@${string}`,
 	/** UX-метка кошелька в формате `<тип взноса> | <программа>` (например «Паевой | Цифровой Кошелёк», «Членский | Стол Заказов») */
 	label?:boolean | `@${string}`,
-	/** eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.member) */
+	/** eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.member / w.mkt.order) */
 	name?:boolean | `@${string}`,
 	/** program_id: 1 — Цифровой Кошелёк, 2 — Стол Заказов */
 	program_id?:boolean | `@${string}`,
@@ -19479,7 +19479,7 @@ marketplaceListSupplierOrders?: [{	input?: ResolverInputTypes["MarketplaceListOr
 	/** Список пайщиков-поставщиков, допущенных к публикации оферт */
 	marketplaceListWhitelist?:ResolverInputTypes["MarketplaceWhitelistEntry"],
 marketplaceListWriteoffProposals?: [{	data: ResolverInputTypes["MarketplaceListWriteoffProposalsInput"],	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedMarketplaceWriteoffProposals"]],
-	/** Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.member */
+	/** Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.member, w.mkt.order */
 	marketplaceMemberWallet?:ResolverInputTypes["MarketplaceMemberWallet"],
 	/** Состояние онбординга пайщика в Столе заказов: показывать ли gate или пропускать на стол */
 	marketplaceOnboardingState?:ResolverInputTypes["MarketplaceOnboardingState"],
@@ -26514,7 +26514,7 @@ export type ModelTypes = {
 	["MarketplaceMemberWallet"]: {
 		coopname: string,
 	username: string,
-	/** Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.member */
+	/** Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.member → mkt.order */
 	wallets: Array<ModelTypes["MarketplaceWalletEntry"]>
 };
 	["MarketplaceModerationLogEntry"]: {
@@ -27233,7 +27233,7 @@ export type ModelTypes = {
 	["MarketplaceWalletEntry"]: {
 		/** Доступный остаток (`userwallets.available`) */
 	available: string,
-	/** Заблокированный остаток (`userwallets.blocked`) */
+	/** Заблокированный остаток (`userwallets.blocked`). Для marketplace-кошельков всегда `0` — резерв выражается через `.available` кошелька w.mkt.order. Поле остаётся для wallet/withdraw flow и legacy данных. */
 	blocked: string,
 	/** Человекочитаемое название (из cooptypes LEDGER2_WALLET_REGISTRY) */
 	human_name: string,
@@ -27241,7 +27241,7 @@ export type ModelTypes = {
 	kind: string,
 	/** UX-метка кошелька в формате `<тип взноса> | <программа>` (например «Паевой | Цифровой Кошелёк», «Членский | Стол Заказов») */
 	label: string,
-	/** eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.member) */
+	/** eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.member / w.mkt.order) */
 	name: string,
 	/** program_id: 1 — Цифровой Кошелёк, 2 — Стол Заказов */
 	program_id: number
@@ -29741,7 +29741,7 @@ export type ModelTypes = {
 	marketplaceListWhitelist: Array<ModelTypes["MarketplaceWhitelistEntry"]>,
 	/** Лента всех проектов списания кооператива с фильтром по статусу. */
 	marketplaceListWriteoffProposals: ModelTypes["PaginatedMarketplaceWriteoffProposals"],
-	/** Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.member */
+	/** Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.member, w.mkt.order */
 	marketplaceMemberWallet: ModelTypes["MarketplaceMemberWallet"],
 	/** Состояние онбординга пайщика в Столе заказов: показывать ли gate или пропускать на стол */
 	marketplaceOnboardingState: ModelTypes["MarketplaceOnboardingState"],
@@ -37072,7 +37072,7 @@ export type GraphQLTypes = {
 	__typename: "MarketplaceMemberWallet",
 	coopname: string,
 	username: string,
-	/** Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.member */
+	/** Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.member → mkt.order */
 	wallets: Array<GraphQLTypes["MarketplaceWalletEntry"]>,
 	['...on MarketplaceMemberWallet']: Omit<GraphQLTypes["MarketplaceMemberWallet"], "...on MarketplaceMemberWallet">
 };
@@ -37852,7 +37852,7 @@ export type GraphQLTypes = {
 	__typename: "MarketplaceWalletEntry",
 	/** Доступный остаток (`userwallets.available`) */
 	available: string,
-	/** Заблокированный остаток (`userwallets.blocked`) */
+	/** Заблокированный остаток (`userwallets.blocked`). Для marketplace-кошельков всегда `0` — резерв выражается через `.available` кошелька w.mkt.order. Поле остаётся для wallet/withdraw flow и legacy данных. */
 	blocked: string,
 	/** Человекочитаемое название (из cooptypes LEDGER2_WALLET_REGISTRY) */
 	human_name: string,
@@ -37860,7 +37860,7 @@ export type GraphQLTypes = {
 	kind: string,
 	/** UX-метка кошелька в формате `<тип взноса> | <программа>` (например «Паевой | Цифровой Кошелёк», «Членский | Стол Заказов») */
 	label: string,
-	/** eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.member) */
+	/** eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.member / w.mkt.order) */
 	name: string,
 	/** program_id: 1 — Цифровой Кошелёк, 2 — Стол Заказов */
 	program_id: number,
@@ -40524,7 +40524,7 @@ export type GraphQLTypes = {
 	marketplaceListWhitelist: Array<GraphQLTypes["MarketplaceWhitelistEntry"]>,
 	/** Лента всех проектов списания кооператива с фильтром по статусу. */
 	marketplaceListWriteoffProposals: GraphQLTypes["PaginatedMarketplaceWriteoffProposals"],
-	/** Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.member */
+	/** Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.member, w.mkt.order */
 	marketplaceMemberWallet: GraphQLTypes["MarketplaceMemberWallet"],
 	/** Состояние онбординга пайщика в Столе заказов: показывать ли gate или пропускать на стол */
 	marketplaceOnboardingState: GraphQLTypes["MarketplaceOnboardingState"],
