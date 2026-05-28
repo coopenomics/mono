@@ -164,17 +164,21 @@ function evalCondition(
 
 const paletteWorkspaces = computed<CommandPaletteWorkspace[]>(() => {
   const ctx = filterContext.value;
-  return desktop.workspaceMenus.map((ws) => {
+  return desktop.workspaceMenus
+    // Canon-grants: фильтр столов — для grant-стола виден если есть хотя бы одна
+    // доступная по грантам страница; для legacy — по meta.roles родительского
+    // маршрута.
+    .filter((ws) => desktop.isWorkspaceVisible(ws))
+    .map((ws) => {
     const children = (ws.mainRoute?.children ?? []) as RouteRecordRaw[];
     const pages = children
       .filter((r) => {
         const meta = (r.meta ?? {}) as RouteMetaShape;
         if (meta.hidden) return false;
         if (!evalCondition(meta.conditions, ctx)) return false;
-        if (meta.roles && meta.roles.length && !meta.roles.includes(userRole.value)) {
-          return false;
-        }
-        return true;
+        // Canon-grants: для grant-стола сверка meta.requires с выданными
+        // бэкендом правами; для legacy — fallback на meta.roles.
+        return desktop.isPageVisible(r.meta, ws.workspaceName);
       })
       .map((r) => {
         const meta = (r.meta ?? {}) as RouteMetaShape;

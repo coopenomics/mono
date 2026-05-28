@@ -119,15 +119,15 @@ interface MenuMeta {
 
 const filteredRoutes = computed<RouteRecordRaw[]>(() => {
   const ctx = filterContext.value;
+  const wsName = desktop.activeWorkspaceName;
+  if (!wsName) return [];
   return (desktop.activeSecondLevelRoutes as RouteRecordRaw[]).filter((r) => {
     const meta = (r.meta ?? {}) as MenuMeta;
-    const rolesOk =
-      !meta.roles ||
-      meta.roles.length === 0 ||
-      meta.roles.includes(ctx.userRole);
-    const condOk = evalCondition(meta.conditions, ctx);
-    const visibleOk = !meta.hidden;
-    return rolesOk && condOk && visibleOk;
+    if (meta.hidden) return false;
+    if (!evalCondition(meta.conditions, ctx)) return false;
+    // Canon-grants: для grant-стола проверяется meta.requires против выданных
+    // бэкендом прав; для legacy-стола fallback на meta.roles по core-роли.
+    return desktop.isPageVisible(r.meta, wsName);
   });
 });
 
