@@ -26,22 +26,29 @@ const logger = winston.createLogger({
     })
   ),
   transports: [
-    new DailyRotateFile({
-      filename: 'logs/application-%DATE%.log',
-      datePattern: 'YYYY-MM-DD',
-      zippedArchive: true,
-      maxSize: '20m',
-      maxFiles: '30d',
-      level: 'info',
-    }),
-    new DailyRotateFile({
-      filename: 'logs/error-%DATE%.log',
-      datePattern: 'YYYY-MM-DD',
-      zippedArchive: true,
-      maxSize: '20m',
-      maxFiles: '30d',
-      level: 'error',
-    }),
+    // При генерации схемы (build-time codegen) файловые транспорты не подключаем:
+    // процесс запускается из-под пользователя рядом с работающим контейнером, чей logs/
+    // принадлежит root, — запись туда падает с EACCES. На рантайм не влияет (флаг ставится только в codegen).
+    ...(process.env.CONTROLLER_SCHEMA_GEN
+      ? []
+      : [
+          new DailyRotateFile({
+            filename: 'logs/application-%DATE%.log',
+            datePattern: 'YYYY-MM-DD',
+            zippedArchive: true,
+            maxSize: '20m',
+            maxFiles: '30d',
+            level: 'info',
+          }),
+          new DailyRotateFile({
+            filename: 'logs/error-%DATE%.log',
+            datePattern: 'YYYY-MM-DD',
+            zippedArchive: true,
+            maxSize: '20m',
+            maxFiles: '30d',
+            level: 'error',
+          }),
+        ]),
     new winston.transports.Console({
       stderrLevels: ['error'],
       level: config.env === 'development' ? 'debug' : 'info',

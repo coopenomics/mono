@@ -12,10 +12,9 @@
     color='negative'
     size='xs'
   )
-  q-icon(
+  q-icon.direction-cell__move(
     v-else
     name='fa-solid fa-right-left'
-    color='grey-6'
     size='xs'
   )
   span.text-caption {{ label }}
@@ -34,3 +33,9 @@ const label = computed(() => {
   return 'Перевод'
 })
 </script>
+
+<style scoped lang="scss">
+.direction-cell__move {
+  color: var(--p-ink-3);
+}
+</style>

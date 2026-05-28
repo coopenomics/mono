@@ -1,11 +1,12 @@
 <template lang="pug">
-q-page.padding
-  ParticipantsTable(
-    :accounts='accountStore.accounts.items',
-    :loading='onLoading',
-    @toggle-expand='toggleExpand',
-    @update='update'
-  )
+q-page.participants-page
+  .participants-page__card
+    ParticipantsTable(
+      :accounts='accountStore.accounts.items',
+      :loading='onLoading',
+      @toggle-expand='toggleExpand',
+      @update='update'
+    )
 </template>
 
 <script setup lang="ts">
@@ -27,7 +28,6 @@ import {
 const accountStore = useAccountStore();
 const onLoading = ref(false);
 const expanded = reactive(new Map<string, boolean>());
-const currentTab = reactive<Record<string, string>>({});
 
 // Инжектим кнопку добавления пользователя в заголовок
 const { registerAction } = useHeaderActions();
@@ -47,7 +47,6 @@ onMounted(() => {
 
 const toggleExpand = (id: string) => {
   expanded.set(id, !expanded.get(id));
-  if (!currentTab[id]) currentTab[id] = 'info';
 };
 
 const loadParticipants = async () => {
@@ -84,3 +83,23 @@ const update = (
   }
 };
 </script>
+
+<style lang="scss" scoped>
+.participants-page {
+  padding: var(--p-6, 24px);
+}
+
+/* Таблица реестра в обрамлённой канон-поверхности */
+.participants-page__card {
+  background: var(--p-surface);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-lg, 16px);
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .participants-page {
+    padding: var(--p-4, 16px);
+  }
+}
+</style>

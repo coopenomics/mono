@@ -12,7 +12,7 @@ interface ISecretaryRoomStore {
   error: Ref<string | null>;
   loadRooms: () => Promise<ISecretaryRoom[]>;
   createRoom: (data: ICreateSecretaryRoomInput) => Promise<ISecretaryRoom>;
-  removeRoom: (matrixRoomId: string) => Promise<void>;
+  removeRoom: (id: string) => Promise<void>;
   clearError: () => void;
 }
 
@@ -50,11 +50,11 @@ export const useSecretaryRoomStore = defineStore(namespace, (): ISecretaryRoomSt
     }
   };
 
-  const removeRoom = async (matrixRoomId: string): Promise<void> => {
+  const removeRoom = async (id: string): Promise<void> => {
     isMutating.value = true;
     error.value = null;
     try {
-      await api.removeSecretaryRoom(matrixRoomId);
+      await api.removeSecretaryRoom(id);
       await loadRooms();
     } finally {
       isMutating.value = false;

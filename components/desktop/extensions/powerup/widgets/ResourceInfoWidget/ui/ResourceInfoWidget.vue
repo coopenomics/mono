@@ -1,26 +1,23 @@
 <template lang="pug">
-.resource-info-widget
-  .resource-info-card
-    ColorCard(color='orange')
-      | Внимание! Не допускайте исчерпание квот ресурсов — это заблокирует возможность обработки новых документов в кооперативе.
+.resource-info-card
+  .resource-info-card__head
+    .resource-info-card__icon
+      q-icon(name="help_outline", size="20px")
+    .resource-info-card__title Как это работает
 
-    .resource-info-description
+  .resource-info-card__body
+    p.resource-info-card__lead
       | Вычислительные ресурсы арендуются на 24 часа у делегатов блокчейн-платформы. Минимальная квота — 5 AXON в сутки.
+    p.resource-info-card__text
       | Когда использование любого ресурса превышает 70% от доступной квоты, система автоматически арендует
       | дополнительную квоту за 5 AXON из вашего баланса.
-    div.full-width.text-right
-      q-btn(
-        dense
-        flat
-        color="white"
-        label="Как это работает"
-        icon="help_outline"
-        @click="showHowItWorksDialog = true"
-      ).q-ml-lg
 
+  BaseButton.resource-info-card__action(variant="secondary", size="sm", @click="showHowItWorksDialog = true")
+    template(#icon-left)
+      q-icon(name="menu_book", size="16px")
+    | Подробнее о системе ресурсов
 
-
-  // Диалог "Как это работает"
+  //- Диалог "Как это работает"
   q-dialog(v-model="showHowItWorksDialog")
     ModalBase(title="Как работает система ресурсов", :style="dialogStyle")
       .q-pa-md
@@ -234,18 +231,13 @@
                     | Планируйте расходы заранее и отслеживайте фактическое потребление, чтобы оптимизировать затраты.
 
       template(#actions)
-        q-btn(
-          flat
-          label="Закрыть"
-          color="primary"
-          v-close-popup
-        )
-
+        BaseButton(variant="ghost", v-close-popup) Закрыть
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { ModalBase, ColorCard } from 'src/shared/ui'
+import { ModalBase } from 'src/shared/ui'
+import { BaseButton } from 'src/shared/ui/base/BaseButton'
 
 // Диалог "Как это работает"
 const showHowItWorksDialog = ref(false)
@@ -259,80 +251,80 @@ const dialogStyle = ref({
 </script>
 
 <style lang="scss" scoped>
-.resource-info-widget {
-  .resource-info-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 16px;
-    padding: 2rem;
-    color: white;
-    box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
-
-    .resource-info-header {
-      margin-bottom: 1.5rem;
-
-      .resource-info-title {
-        color: white;
-        margin-bottom: 0;
-        font-size: 2.5rem;
-        font-weight: 700;
-        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-      }
-    }
-
-    .resource-info-description {
-      color: rgba(255, 255, 255, 0.9);
-      font-size: 1.1rem;
-      line-height: 1.6;
-      margin-bottom: 1.5rem;
-
-    }
-
-    :deep(.color-card) {
-      font-size: 1.1rem;
-      line-height: 1.5;
-      font-weight: 600;
-    }
-
-
-    .resource-actions {
-      .how-it-works-btn {
-        margin-top: 0.5rem;
-
-        &:hover {
-          background: rgba(255, 255, 255, 0.1);
-        }
-      }
-    }
-
-    @media (max-width: 768px) {
-      padding: 1.5rem;
-
-      .resource-info-header {
-        .resource-info-title {
-          font-size: 2rem;
-        }
-      }
-
-      .resource-info-description {
-        font-size: 1rem;
-      }
-    }
-  }
+/* Канон-карточка «Как это работает»: плоская surface, без градиента. */
+.resource-info-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-4, 16px);
+  background: var(--p-surface);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-lg, 16px);
+  padding: var(--p-5, 20px);
+  height: 100%;
 }
 
-.how-it-works-content {
-  .intro-section,
-  .resources-section,
-  .automation-section,
-  .conclusion-section {
-    .text-h6 {
-      font-weight: 600;
-      margin-bottom: 1rem;
-    }
+.resource-info-card__head {
+  display: flex;
+  align-items: center;
+  gap: var(--p-3, 12px);
+}
 
-    p {
-      line-height: 1.6;
-    }
+.resource-info-card__icon {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  border-radius: var(--p-r-md, 12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--p-primary-soft);
+  color: var(--p-primary);
+}
+
+.resource-info-card__title {
+  font-size: var(--p-fs-h2, 18px);
+  font-weight: 600;
+  color: var(--p-ink);
+}
+
+.resource-info-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-2, 8px);
+}
+
+.resource-info-card__lead {
+  margin: 0;
+  font-size: var(--p-fs-body, 14px);
+  font-weight: 500;
+  color: var(--p-ink);
+  line-height: 1.55;
+}
+
+.resource-info-card__text {
+  margin: 0;
+  font-size: var(--p-fs-body-sm, 13px);
+  color: var(--p-ink-2);
+  line-height: 1.55;
+}
+
+.resource-info-card__action {
+  align-self: flex-start;
+  margin-top: auto;
+}
+
+/* — Содержимое диалога — канон-токены вместо хардкод-цветов — */
+.how-it-works-content {
+  color: var(--p-ink-1);
+
+  .text-h6 {
+    font-weight: 600;
+    margin-bottom: var(--p-4, 16px);
+    color: var(--p-ink);
+  }
+
+  p {
+    line-height: 1.6;
   }
 
   .resource-explanation,
@@ -340,90 +332,64 @@ const dialogStyle = ref({
     .explanation-item {
       .text-subtitle1 {
         font-weight: 600;
-        margin-bottom: 0.5rem;
+        margin-bottom: var(--p-2, 8px);
+        color: var(--p-ink);
       }
 
       p {
-        margin-left: 1.5rem;
-        padding-left: 0.5rem;
-        border-left: 3px solid #667eea;
-        background: rgba(102, 126, 234, 0.05);
-        padding: 0.5rem 0 0.5rem 1rem;
+        margin-left: var(--p-6, 24px);
+        border-left: 3px solid var(--p-primary-line);
+        background: var(--p-primary-soft);
+        border-radius: 0 var(--p-r-sm, 8px) var(--p-r-sm, 8px) 0;
+        padding: var(--p-2, 8px) 0 var(--p-2, 8px) var(--p-4, 16px);
+        line-height: 1.6;
       }
     }
   }
 
   .important-note {
-    background: #fff3cd;
-    border: 1px solid #ffeaa7;
-    border-radius: 8px;
-    padding: 1rem;
+    background: var(--p-warn-soft);
+    border: 1px solid var(--p-warn);
+    border-radius: var(--p-r-md, 12px);
+    padding: var(--p-4, 16px);
 
     ul {
-      margin-top: 0.5rem;
-      padding-left: 1.5rem;
+      margin-top: var(--p-2, 8px);
+      padding-left: var(--p-6, 24px);
 
       li {
-        margin-bottom: 0.25rem;
-      }
-    }
-  }
-
-  .benefits-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-
-    .benefit-item {
-      background: #f8f9fa;
-      border-radius: 8px;
-      padding: 1rem;
-      text-align: center;
-
-      .text-subtitle2 {
-        font-weight: 600;
-        margin-bottom: 0.5rem;
-      }
-
-      p {
-        margin: 0;
-        font-size: 0.9rem;
+        margin-bottom: var(--p-1, 4px);
       }
     }
   }
 
   .faq-section {
-    .text-h6 {
-      font-weight: 600;
-      margin-bottom: 1rem;
-    }
-
     :deep(.q-expansion-item) {
-      margin-bottom: 0.75rem;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
+      margin-bottom: var(--p-3, 12px);
+      border: 1px solid var(--p-line-1);
+      border-radius: var(--p-r-md, 12px);
       overflow: hidden;
 
-      .q-expansion-item__container {
-        .q-item {
-          background: #f8f9fa;
-          font-weight: 500;
+      .q-item {
+        background: var(--p-surface-2);
+        font-weight: 500;
+        color: var(--p-ink);
 
-          &:hover {
-            background: #e9ecef;
-          }
+        &:hover {
+          background: var(--p-surface-3);
         }
       }
 
       .q-card {
-        background: white;
+        background: var(--p-surface);
         box-shadow: none;
 
         .q-card__section {
           line-height: 1.6;
+          color: var(--p-ink-1);
 
           p {
-            margin-bottom: 0.75rem;
+            margin-bottom: var(--p-3, 12px);
 
             &:last-child {
               margin-bottom: 0;
@@ -431,51 +397,25 @@ const dialogStyle = ref({
           }
 
           ul, ol {
-            margin-top: 0.5rem;
-            margin-bottom: 0.5rem;
-            padding-left: 1.5rem;
+            margin-top: var(--p-2, 8px);
+            margin-bottom: var(--p-2, 8px);
+            padding-left: var(--p-6, 24px);
 
             li {
-              margin-bottom: 0.5rem;
+              margin-bottom: var(--p-2, 8px);
               line-height: 1.5;
             }
           }
 
           b {
-            color: #667eea;
+            color: var(--p-primary);
             font-weight: 600;
           }
 
           .text-negative {
-            color: #c10015;
+            color: var(--p-neg);
             font-weight: 500;
           }
-        }
-      }
-    }
-  }
-
-  .delegates-section,
-  .accounts-section {
-    .text-h6 {
-      font-weight: 600;
-      margin-bottom: 1rem;
-    }
-
-    .resource-explanation {
-      .explanation-item {
-        .text-subtitle1 {
-          font-weight: 600;
-          margin-bottom: 0.5rem;
-        }
-
-        p {
-          margin-left: 1.5rem;
-          padding-left: 0.5rem;
-          border-left: 3px solid #667eea;
-          background: rgba(102, 126, 234, 0.05);
-          padding: 0.5rem 0 0.5rem 1rem;
-          line-height: 1.6;
         }
       }
     }

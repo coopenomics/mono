@@ -20,6 +20,8 @@ export interface UpsertManagedMatrixRoomInput {
  */
 export interface ChatcoopManagedMatrixRoomRepository {
   upsertRoom(input: UpsertManagedMatrixRoomInput): Promise<ManagedMatrixRoomDomainEntity>;
+  /** Поиск по внутреннему идентификатору реестра (не Matrix room id) — для операций из интерфейса. */
+  findById(id: string): Promise<ManagedMatrixRoomDomainEntity | null>;
   findByMatrixRoomId(matrixRoomId: string): Promise<ManagedMatrixRoomDomainEntity | null>;
   findByKind(kind: ChatcoopManagedMatrixRoomKind): Promise<ManagedMatrixRoomDomainEntity[]>;
   /** Комнаты проекта Capital (kind capital_project, projectHash задан). */

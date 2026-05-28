@@ -10,7 +10,8 @@ form.full-width(@submit.prevent='submit')
           label='Рабочий стол для авторизованных пользователей'
           placeholder='Выберите рабочий стол'
           dense
-          standout="bg-teal text-white"
+          outlined
+          color="primary"
           emit-value
           map-options
           option-value='value'
@@ -26,7 +27,8 @@ form.full-width(@submit.prevent='submit')
           label='Страница для авторизованных пользователей'
           placeholder='Выберите страницу'
           dense
-          standout="bg-teal text-white"
+          outlined
+          color="primary"
           emit-value
           map-options
           option-value='value'
@@ -45,7 +47,8 @@ form.full-width(@submit.prevent='submit')
           label='Рабочий стол для неавторизованных пользователей'
           placeholder='Выберите рабочий стол'
           dense
-          standout="bg-teal text-white"
+          outlined
+          color="primary"
           emit-value
           map-options
           option-value='value'
@@ -61,7 +64,8 @@ form.full-width(@submit.prevent='submit')
           label='Страница для неавторизованных пользователей'
           placeholder='Выберите страницу'
           dense
-          standout="bg-teal text-white"
+          outlined
+          color="primary"
           emit-value
           map-options
           option-value='value'

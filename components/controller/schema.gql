@@ -1748,7 +1748,6 @@ type CallTranscription {
   createdAt: DateTime!
   endedAt: DateTime
   id: String!
-  matrixRoomId: String!
 
   """Пользовательская заметка о содержании звонка"""
   memo: String!
@@ -1757,6 +1756,8 @@ type CallTranscription {
   Отображаемые имена участников (Synapse displayname); в БД хранятся канонические Matrix user id
   """
   participants: [String!]!
+
+  """Внутреннее имя комнаты звонка (LiveKit room name), не Matrix room id"""
   roomId: String!
   roomName: String!
   startedAt: DateTime!
@@ -3903,11 +3904,13 @@ type ChatcoopSecretaryRoom {
   """Комната зашифрована (E2EE) — секретарь не транскрибирует такие комнаты"""
   encrypted: Boolean!
 
+  """
+  Внутренний идентификатор комнаты в реестре (для операций; это НЕ Matrix room id)
+  """
+  id: String!
+
   """Тип комнаты"""
   kind: ManagedRoomKind!
-
-  """Идентификатор комнаты Matrix"""
-  matrixRoomId: String!
 
   """Секретарь присутствует в комнате"""
   secretaryInRoom: Boolean!
@@ -8101,7 +8104,7 @@ type Mutation {
   chatcoopDeleteCalendarEvent(id: String!): Boolean!
 
   """
-  Удалить комнату секретаря: вывести секретаря и снять комнату с синхронизации (возвращает matrixRoomId)
+  Удалить комнату секретаря: вывести секретаря и снять комнату с синхронизации (возвращает идентификатор комнаты в реестре)
   
   Требуемые роли: chairman, member. 
   """
@@ -11049,8 +11052,8 @@ type RegistrationProgram {
 }
 
 input RemoveSecretaryRoomInput {
-  """Идентификатор комнаты Matrix, которую нужно удалить"""
-  matrixRoomId: String!
+  """Идентификатор комнаты в реестре, которую нужно удалить"""
+  id: String!
 }
 
 type ReportCalendarPeriodEntry {

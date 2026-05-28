@@ -1,59 +1,54 @@
 <template lang="pug">
-div.row.justify-center.q-pa-md
-  div.col-md-8.col-sm-10.col-xs-12
-    .installation-container
-      q-card(flat).installation-card
-        div(v-if="!installStore.is_finish")
-          .installation-header
-            .text-h5.installation-title Установка Цифрового Кооператива
-            .subtitle.text-body2.text-grey-7.q-mt-sm
-              | шаг за шагом
+.install-page
+  .install-shell
+    //- ===== Шаг за шагом =====
+    .install-card(v-if='!installStore.is_finish')
+      header.install-card__head
+        h1.install-card__title Установка Цифрового Кооператива
+        p.install-card__sub Пошаговая настройка вашего кооператива
 
-          //- Индикатор шагов
-          q-stepper.q-mt-lg(v-model="installStore.current_step" vertical flat)
-            q-step(:name="'key'" title="Введите ключ установки" icon="key" :done="isStepDone('key')")
-              .step-content.q-pa-md
-                .step-description.text-body2.q-mb-md
-                  | Для начала введите ключ, который был выдан Вам при регистрации в качестве пайщика:
-                RequestKeyForm
+      VerticalStepper.install-card__stepper(
+        :steps='steps',
+        :active-key='installStore.current_step',
+        :completed='completedKeys',
+        @change='goToStep'
+      )
+        template(#active='{ step }')
+          //- ---------- Шаг 1: ключ установки ----------
+          .install-step(v-if='step.key === "key"')
+            p.install-step__intro
+              | Введите ключ, который был выдан вам при регистрации в качестве пайщика.
+            RequestKeyForm
 
-            q-step(:name="'init'" title="Инициализация системы" icon="business" :done="isStepDone('init')")
-              .step-content.q-pa-md
-                SetInitForm
+          //- ---------- Шаг 2: данные организации ----------
+          .install-step(v-else-if='step.key === "init"')
+            SetInitForm
 
-            q-step(:name="'soviet'" title="Члены совета" icon="people" :done="isStepDone('soviet')")
-              .step-content.q-pa-md
-                .step-description.text-body2.q-mb-md
-                  | Введите данные председателя и членов совета. Всем им будут созданы аккаунты пайщиков и отправлены приглашения на электронную почту:
-                SetSovietForm
+          //- ---------- Шаг 3: члены совета ----------
+          .install-step(v-else-if='step.key === "soviet"')
+            p.install-step__intro
+              | Введите данные председателя и членов совета. Каждому будет создан
+              | аккаунт пайщика и отправлено приглашение на электронную почту.
+            SetSovietForm
 
-            q-step(:name="'vars'" title="Переменные документов" icon="settings" :done="isStepDone('vars')")
-              .step-content.q-pa-md
-                .step-description.text-body2.q-mb-md
-                  | Установите переменные для документов кооператива, которые будут использоваться при генерации документов:
-                SetVariablesForm
+          //- ---------- Шаг 4: переменные документов ----------
+          .install-step(v-else-if='step.key === "vars"')
+            p.install-step__intro
+              | Задайте постоянные параметры, по которым фабрика генерирует
+              | документы кооператива.
+            SetVariablesForm
 
-        div(v-else)
-          .completion-section.q-pa-xl
-            .completion-header
-              q-icon(name="check_circle" color="positive" size="64px")
-              .completion-title.text-h5.text-positive.q-mt-md Установка завершена
-              .completion-subtitle.text-body2.text-grey-7.q-mt-sm
-                | Ваш Цифровой Кооператив готов к работе
-
-            .completion-details.q-mt-xl
-              .detail-text.text-body2.q-mb-lg
-                | Всем членам совета отправлены приглашения на электронные почты со ссылками для получения цифровых подписей. Перейдите по своей ссылке из письма, получите ключ председателя, после чего, используйте его для входа в свою систему.
-
-              q-btn(
-                @click="goToSignin"
-                color="primary"
-                label="Войти в систему"
-                size="lg"
-                unelevated
-                no-caps
-              ).q-mt-md
-          //- p.text-grey Ключ установки, который ранее вводился здесь, теперь используется только для входа в кабинет оператора, пайщиком которого вы стали при подключении к системе. В вашей же системе у вас новый ключ, который вы выпускаете себе сами.
+    //- ===== Завершение =====
+    .install-done(v-else)
+      .install-done__icon
+        q-icon(name='fa-solid fa-circle-check', size='44px')
+      h2.install-done__title Установка завершена
+      p.install-done__sub Ваш Цифровой Кооператив готов к работе
+      p.install-done__hint
+        | Всем членам совета отправлены приглашения на электронные почты со
+        | ссылками для получения цифровых подписей. Перейдите по своей ссылке из
+        | письма, получите ключ председателя и используйте его для входа в систему.
+      BaseButton.install-done__btn(variant='primary', @click='goToSignin') Войти в систему
 </template>
 
 <script setup lang="ts">
@@ -62,160 +57,153 @@ import { RequestKeyForm, SetInitForm, SetSovietForm, SetVariablesForm } from 'sr
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useSystemStore } from 'src/entities/System/model';
+import { VerticalStepper } from 'src/shared/ui/domain/VerticalStepper';
+import type { StepperStep } from 'src/shared/ui/domain/VerticalStepper';
+import { BaseButton } from 'src/shared/ui/base/BaseButton';
 
 const router = useRouter();
 const systemStore = useSystemStore();
-const installStore = useInstallCooperativeStore()
+const installStore = useInstallCooperativeStore();
+
+const steps: StepperStep[] = [
+  { key: 'key', label: 'Ключ установки', description: 'Ключ, выданный при регистрации пайщиком' },
+  { key: 'init', label: 'Данные организации', description: 'Реквизиты для документооборота с пайщиками' },
+  { key: 'soviet', label: 'Члены совета', description: 'Председатель и члены совета — им создадутся аккаунты' },
+  { key: 'vars', label: 'Настройка фабрики документов', description: 'Постоянные параметры для генерации документов' },
+];
 
 const stepOrder = ['key', 'init', 'soviet', 'vars'] as const;
 
-const isStepDone = computed(() => (step: typeof stepOrder[number]) => {
+// Завершёнными считаем все шаги до текущего — на них можно вернуться кликом.
+const completedKeys = computed(() => {
   const currentIndex = stepOrder.indexOf(installStore.current_step);
-  const stepIndex = stepOrder.indexOf(step);
-  return stepIndex < currentIndex;
+  return stepOrder.slice(0, Math.max(0, currentIndex)) as unknown as string[];
 });
+
+// Переход по клику в степпере разрешён только назад, на пройденный шаг.
+const goToStep = (key: string) => {
+  if (completedKeys.value.includes(key)) {
+    installStore.current_step = key as typeof stepOrder[number];
+  }
+};
 
 const goToSignin = () => {
   router.push({
     name: 'signin',
-    params: { coopname: systemStore.info.coopname }
+    params: { coopname: systemStore.info.coopname },
   });
 };
 </script>
 
-<style scoped>
-.installation-container {
-  max-width: 900px;
-  margin: 0 auto;
-  position: relative;
+<style scoped lang="scss">
+.install-page {
+  display: flex;
+  justify-content: center;
+  padding: var(--p-6, 24px);
+  min-height: 100%;
+  @media (max-width: 600px) {
+    padding: var(--p-4, 16px);
+  }
 }
 
-.installation-card {
-  border-radius: 20px;
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.08),
-    0 2px 8px rgba(0, 0, 0, 0.04);
+.install-shell {
+  width: 100%;
+  max-width: 720px;
+}
+
+/* ===== Карточка визарда ===== */
+.install-card {
   position: relative;
   overflow: hidden;
+  background: var(--p-surface, #fff);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-lg, 14px);
+  padding: var(--p-6, 24px);
+  box-shadow:
+    0 1px 2px rgba(9, 9, 11, 0.04),
+    0 8px 24px rgba(9, 9, 11, 0.06);
+  @media (max-width: 600px) {
+    padding: var(--p-5, 20px);
+  }
 }
-
-.installation-card::before {
+/* Статичный accent-стрип сверху — визуальный якорь без анимации. */
+.install-card::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, var(--q-primary) 0%, var(--q-secondary) 50%, var(--q-accent) 100%);
-  background-size: 200% 100%;
-  animation: shimmer 4s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
+  height: 3px;
+  background: var(--p-primary);
 }
 
-@keyframes shimmer {
-  0% { background-position: 100% 0; }
-  100% { background-position: -100% 0; }
+.install-card__head {
+  margin-bottom: var(--p-5, 20px);
 }
-
-/* Заголовок с градиентом */
-.installation-header {
-  text-align: center;
-  margin-bottom: 2rem;
-  padding-top: 2rem;
-}
-
-.installation-title {
+.install-card__title {
+  font-size: var(--p-fs-h1, 24px);
+  line-height: var(--p-lh-h1, 1.25);
+  letter-spacing: var(--p-ls-h1);
   font-weight: 700;
-  letter-spacing: -0.5px;
-  background: linear-gradient(135deg, var(--q-primary) 0%, rgba(25, 118, 210, 0.8) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-shadow: 0 2px 4px rgba(25, 118, 210, 0.3);
+  color: var(--p-ink);
+  margin: 0;
+}
+.install-card__sub {
+  margin: var(--p-1, 4px) 0 0;
+  font-size: var(--p-fs-body-sm, 13px);
+  color: var(--p-ink-2);
 }
 
-/* Содержимое шагов */
-.step-content {
-  background: rgba(25, 118, 210, 0.02);
-  border-radius: 12px;
-  border: 1px solid rgba(25, 118, 210, 0.05);
-  margin-top: 1rem;
+/* ===== Содержимое шага ===== */
+.install-step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-4, 16px);
+}
+.install-step__intro {
+  margin: 0;
+  font-size: var(--p-fs-body-sm, 13px);
+  line-height: var(--p-lh-body, 1.55);
+  color: var(--p-ink-2);
 }
 
-.step-description {
-  color: #666;
-  line-height: 1.5;
-}
-
-/* Секция завершения */
-.completion-section {
+/* ===== Экран завершения ===== */
+.install-done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
-  position: relative;
+  background: var(--p-surface, #fff);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-lg, 14px);
+  padding: var(--p-8, 40px) var(--p-6, 24px);
+  box-shadow:
+    0 1px 2px rgba(9, 9, 11, 0.04),
+    0 8px 24px rgba(9, 9, 11, 0.06);
 }
-
-.completion-header {
-  position: relative;
-  margin-bottom: 1rem;
+.install-done__icon {
+  color: var(--p-pos);
+  margin-bottom: var(--p-4, 16px);
 }
-
-.completion-title {
+.install-done__title {
+  font-size: var(--p-fs-h2, 18px);
   font-weight: 700;
-  letter-spacing: -0.5px;
-  background: linear-gradient(135deg, var(--q-positive) 0%, #4CAF50 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-shadow: 0 2px 4px rgba(76, 175, 80, 0.3);
+  color: var(--p-ink);
+  margin: 0;
 }
-
-.completion-details {
-  margin-top: 2rem;
+.install-done__sub {
+  margin: var(--p-1, 4px) 0 0;
+  font-size: var(--p-fs-body, 14px);
+  color: var(--p-ink-2);
 }
-
-.detail-text {
-  color: #666;
-  line-height: 1.6;
+.install-done__hint {
+  margin: var(--p-5, 20px) 0 0;
+  max-width: 460px;
+  font-size: var(--p-fs-body-sm, 13px);
+  line-height: var(--p-lh-body, 1.55);
+  color: var(--p-ink-2);
 }
-
-/* Адаптивность */
-@media (max-width: 768px) {
-  .installation-container {
-    padding: 1rem;
-  }
-
-  .installation-card {
-    border-radius: 16px;
-  }
-
-  .installation-header {
-    padding-top: 1.5rem;
-    margin-bottom: 1.5rem;
-  }
-
-  .step-content {
-    padding: 1rem;
-  }
-
-  .completion-section {
-    padding: 2rem 1rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .installation-container {
-    padding: 0.5rem;
-  }
-
-  .installation-card {
-    border-radius: 12px;
-  }
-
-  .step-content {
-    padding: 0.75rem;
-  }
-
-  .completion-section {
-    padding: 1.5rem 0.75rem;
-  }
+.install-done__btn {
+  margin-top: var(--p-6, 24px);
 }
 </style>

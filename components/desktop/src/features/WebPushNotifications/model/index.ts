@@ -235,7 +235,17 @@ export function useWebPushNotifications() {
     async (): Promise<ServiceWorkerRegistration | null> => {
       try {
         if (!('serviceWorker' in navigator)) {
-          throw new Error('Service Worker не поддерживается');
+          return null;
+        }
+
+        // Если ни один Service Worker не зарегистрирован (обычный dev-режим без
+        // PWA — register-service-worker.ts регистрирует SW только в проде или
+        // при ENABLE_PWA_DEV=true), то navigator.serviceWorker.ready НИКОГДА не
+        // зарезолвится. Не ждём 5 секунд впустую и не шумим в консоль ошибкой —
+        // выходим сразу и тихо.
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        if (registrations.length === 0) {
+          return null;
         }
 
         // Добавляем timeout для navigator.serviceWorker.ready
@@ -250,7 +260,9 @@ export function useWebPushNotifications() {
 
         return registration;
       } catch (error) {
-        console.error('Ошибка получения Service Worker:', error);
+        // Недоступность Service Worker — не ошибка приложения, лишь отсутствие
+        // условий для push-подписки. Предупреждение, а не error.
+        console.warn('Service Worker недоступен, push-подписка пропущена:', error);
         return null;
       }
     };
@@ -263,7 +275,10 @@ export function useWebPushNotifications() {
       try {
         const registration = await getServiceWorkerRegistration();
         if (!registration) {
-          throw new Error('Service Worker не готов');
+          // Service Worker недоступен (например, dev без PWA) — это не сбой
+          // пользователя. Тихо возвращаем null, выше это обработается как
+          // «подписка недоступна» без красной ошибки.
+          return null;
         }
 
         // Проверяем существующую подписку
@@ -343,7 +358,12 @@ export function useWebPushNotifications() {
       // Создаем подписку в браузере
       const browserSubscription = await createBrowserSubscription();
       if (!browserSubscription) {
-        throw new Error('Не удалось создать подписку в браузере');
+        // Подписка недоступна в текущем окружении (нет активного Service
+        // Worker). Это НЕ ошибка пользователя — не показываем красный алерт,
+        // просто молча выходим, чтобы push никогда не влиял на работу
+        // остального приложения.
+        console.warn('Push-подписка недоступна: Service Worker не активен');
+        return false;
       }
 
       // Преобразуем в формат для сервера

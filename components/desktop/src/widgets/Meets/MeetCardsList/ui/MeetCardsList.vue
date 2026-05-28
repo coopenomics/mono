@@ -1,22 +1,28 @@
 <template lang="pug">
-div.meet-cards-list
-  div(v-if='loading')
-    .q-mb-md(v-for='i in 3', :key='i')
-      q-skeleton.rounded-borders(type='rect', height='148px')
+.meet-cards-list
+  .meet-cards-list__items(v-if='loading')
+    span.skel.meet-cards-list__skel(v-for='i in 3', :key='i')
 
-  .empty-state.q-pa-xl.card-container(v-else-if='!loading && !meets.length')
-    .empty-icon
-      q-icon(name='event_busy', size='56px', color='grey-5')
-    .empty-text У кооператива нет предстоящих общих собраний
-    .empty-subtitle Общие собрания пока не проводились
+  EmptyState(
+    v-else-if='!meets.length',
+    title='Нет общих собраний',
+    body='У кооператива пока нет предстоящих или проведённых общих собраний.'
+  )
+    template(#icon)
+      q-icon(name='event_busy', size='48px')
 
-  .row.q-col-gutter-md(v-else)
-    .col-12(v-for='meet in meets', :key='meet.hash')
-      MeetCompactCard(:meet='meet', @navigate='navigateToMeetDetails(meet)')
+  .meet-cards-list__items(v-else)
+    MeetCompactCard(
+      v-for='meet in meets',
+      :key='meet.hash',
+      :meet='meet',
+      @navigate='navigateToMeetDetails(meet)'
+    )
 </template>
 
 <script setup lang="ts">
 import { MeetCompactCard } from 'src/shared/ui/MeetCompactCard';
+import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import type { IMeet } from 'src/entities/Meet';
 import { useRouter } from 'vue-router';
 import { useDesktopStore } from 'src/entities/Desktop/model';
@@ -47,11 +53,15 @@ const navigateToMeetDetails = (meet: IMeet) => {
 </script>
 
 <style lang="scss" scoped>
-@import 'src/shared/ui/CardStyles/index.scss';
-
-.meet-cards-list {
-  .empty-state.card-container {
-    padding: 48px 24px;
-  }
+.meet-cards-list__items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-5, 20px);
+}
+.meet-cards-list__skel {
+  display: block;
+  width: 100%;
+  height: 168px;
+  border-radius: var(--p-r-lg, 16px);
 }
 </style>

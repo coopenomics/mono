@@ -211,6 +211,7 @@ export async function pullProjectCommunicationArtifacts(
     cursors = {
       messageLastTsByRoom: {},
       transcriptionLastEndedExclusiveByProject: {},
+      transcriptionLastEndedExclusiveByRoom: {},
     }
   }
 
@@ -369,7 +370,6 @@ export async function pullProjectCommunicationArtifacts(
           = dateFromUnknown(tr.endedAt) ?? (tr.endedAt as Date | string | null | undefined)
         const md = renderCallTranscriptionMarkdown(
           {
-            matrixRoomId: String(tr.matrixRoomId),
             roomId: String(tr.roomId),
             startedAt,
             endedAt: endedAtTr,
@@ -577,7 +577,6 @@ export async function pullNonProjectCommunicationArtifacts(
           = dateFromUnknown(tr.endedAt) ?? (tr.endedAt as Date | string | null | undefined)
         const md = renderCallTranscriptionMarkdown(
           {
-            matrixRoomId: String(tr.matrixRoomId),
             roomId: String(tr.roomId),
             startedAt,
             endedAt: endedAtTr,

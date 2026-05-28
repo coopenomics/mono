@@ -64,6 +64,29 @@ export class MeetTrackerService {
     this.logger.info('MeetTrackerService инициализирован');
   }
 
+  /**
+   * Сохраняет состояние трекинга собраний read-modify-write по СВЕЖЕМУ config.
+   *
+   * `this.pluginConfig` — снимок, захваченный при initialize() (boot), а
+   * cron-проверка крутится часами; update() заменяет весь config JSONB целиком.
+   * Если писать захваченный снимок, затрутся поля, записанные в БД после boot
+   * другими сервисами (онбординг-флаги и т.п.) — это и есть наблюдавшийся
+   * сброс онбординга. Поэтому берём актуальный config из БД и накладываем
+   * только поля, которыми владеет meet-tracker.
+   */
+  private async persistTrackedState(): Promise<void> {
+    const fresh = await this.extensionRepository.findByName(this.extensionName);
+    const baseConfig = fresh?.config ?? this.pluginConfig.config;
+    const nextConfig: IConfig = {
+      ...baseConfig,
+      trackedMeets: this.pluginConfig.config.trackedMeets,
+      closedMeetIds: this.pluginConfig.config.closedMeetIds,
+      lastCheckTimestamp: this.pluginConfig.config.lastCheckTimestamp,
+    };
+    await this.extensionRepository.update({ name: this.extensionName, config: nextConfig });
+    this.pluginConfig = { ...this.pluginConfig, config: nextConfig };
+  }
+
   // Приватная функция для обновления trackedMeet на основе свежих данных
   private getUpdatedTrackedMeet(trackedMeet: TrackedMeet, meetData: any, extendedStatus: string): TrackedMeet {
     return {
@@ -145,7 +168,7 @@ export class MeetTrackerService {
             this.pluginConfig.config.trackedMeets[trackedMeetIndex].notifications.endNotification = true;
             if (!closedMeetIds.includes(meetID)) {
               closedMeetIds.push(meetID);
-              await this.extensionRepository.update(this.pluginConfig);
+              await this.persistTrackedState();
             }
           }
           this.logger.info(`Удаление закрытого собрания ${meetHash} (№${meetID}) из списка отслеживаемых`);
@@ -310,7 +333,7 @@ export class MeetTrackerService {
       this.pluginConfig.config.lastCheckTimestamp = now.toISOString();
 
       // Сохраняем изменения в конфигурации
-      await this.extensionRepository.update(this.pluginConfig);
+      await this.persistTrackedState();
     } catch (error: any) {
       this.logger.error(`Ошибка при проверке собраний: ${error.message}`, error.stack);
     }

@@ -1,42 +1,20 @@
 <template lang="pug">
-.info-card
-  div
-    span.text-h1 {{ extension.title }}
-      q-chip(
-        square
-        dense
-        size='sm'
-        color='green'
-        outline
-        v-if='extension.is_installed && extension.enabled'
-      ).q-ml-sm установлено
-      q-chip(
-        square
-        dense
-        size='sm'
-        color='orange'
-        outline
-        v-if='extension.is_installed && !extension.enabled'
-      ).q-ml-sm отключено
-      q-chip(
-        size='sm',
-        dense,
-        color='orange',
-        v-if='!extension.is_available',
-        outline
-      ) в разработке
-    div
-      q-chip(
-        outline,
-        v-for='tag in extension.tags',
-        v-bind:key='tag',
-        dense,
-        size='sm'
-      ) {{ tag }}
+.extension-info
+  .extension-info__head
+    h2.extension-info__title {{ extension.title }}
+    span.badge.badge--pos(v-if='extension.is_installed && extension.enabled')
+      q-icon(name='fa-solid fa-check' size='11px')
+      | Установлено
+    span.badge.badge--warn(v-else-if='extension.is_installed && !extension.enabled')
+      q-icon(name='fa-solid fa-pause' size='11px')
+      | Отключено
+    span.badge.badge--warn(v-else-if='!extension.is_available')
+      q-icon(name='fa-solid fa-screwdriver-wrench' size='11px')
+      | В разработке
 
   ClientOnly
     template(#default)
-      vue-markdown.description.q-mt-md(:source='extension.readme')
+      vue-markdown.description(:source='extension.readme')
 </template>
 
 <script lang="ts" setup>
@@ -55,3 +33,27 @@ interface Props {
 
 defineProps<Props>();
 </script>
+
+<style scoped lang="scss">
+.extension-info__head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--p-3, 12px);
+  margin-bottom: var(--p-5, 20px);
+}
+
+.extension-info__title {
+  margin: 0;
+  font-size: var(--p-fs-h1, 24px);
+  font-weight: 700;
+  letter-spacing: var(--p-ls-h1, -0.01em);
+  color: var(--p-ink);
+}
+
+.description {
+  color: var(--p-ink-1);
+  font-size: var(--p-fs-body);
+  line-height: 1.6;
+}
+</style>

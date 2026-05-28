@@ -1,5 +1,5 @@
 <template lang="pug">
-q-card(flat)
+.agenda-page
   QuestionsTable(
     :decisions='decisions',
     :loading='loading',
@@ -30,6 +30,21 @@ const session = useSessionStore();
 
 const processingDecisions = ref<Record<number, boolean>>({});
 
+// После голоса бэкенду нужно несколько секунд, чтобы учесть голос из блокчейна.
+// Если нажать «Утвердить» сразу — утверждение упадёт с ошибкой «голос ещё не
+// учтён». Поэтому после успешного голоса держим кнопки строки (в т.ч.
+// «Утвердить») в состоянии загрузки ещё столько миллисекунд.
+const VOTE_SETTLE_MS = 3000;
+
+// Реактивно проставляет/снимает состояние загрузки по пункту повестки
+// (замена ручному мутированию + setTimeout-хаку для триггера реактивности).
+const setProcessing = (decision_id: number, value: boolean) => {
+  processingDecisions.value = {
+    ...processingDecisions.value,
+    [decision_id]: value,
+  };
+};
+
 // Инжектим кнопку создания решения в заголовок
 const { registerAction } = useHeaderActions();
 
@@ -55,70 +70,77 @@ const {
   formatDecisionTitle,
 } = decisionProcessor;
 
+// Пункты, которые председатель только что УТВЕРДИЛ. Повестка показывает все
+// неутверждённые вопросы, поэтому скрывать пункт нужно только после утверждения
+// (не после голосования — там пункт остаётся, лишь помечается голос). После
+// утверждения пункт исполняется и уходит из повестки, но данные из блокчейна
+// доходят с задержкой — поллинг успевал на мгновение вернуть уже утверждённый
+// пункт («исчез → вернулся → исчез»). Держим его скрытым локально; в пределах
+// сессии страницы обратно не показываем — намеренно просто.
+const actedDecisionIds = ref<Set<number>>(new Set());
+
 // Данные
-const decisions = computed(() => decisionProcessor.decisions.value);
+const decisions = computed(() =>
+  decisionProcessor.decisions.value.filter(
+    (row) => !actedDecisionIds.value.has(Number(row.table?.id)),
+  ),
+);
 
 // Обработчики событий
 const onAuthorizeDecision = async (row) => {
   const decision_id = Number(row.table.id);
-  processingDecisions.value[decision_id] = true;
+  setProcessing(decision_id, true);
 
   try {
     await authorizeAndExecuteDecision(row);
+    // Оптимистично прячем пункт и обновляем список тихо (без скелетонов).
+    actedDecisionIds.value.add(decision_id);
     SuccessAlert('Решение принято и исполнено');
-    await loadDecisions(route.params.coopname as string);
+    await loadDecisions(route.params.coopname as string, true);
   } catch (e) {
     FailAlert(e);
   } finally {
-    // Гарантированно сбрасываем состояние загрузки
-    processingDecisions.value[decision_id] = false;
-
-    // Добавляем таймаут для гарантии обновления UI
-    setTimeout(() => {
-      processingDecisions.value = { ...processingDecisions.value };
-    }, 100);
+    setProcessing(decision_id, false);
   }
 };
 
 const onVoteFor = async (row) => {
-  processingDecisions.value[row.table.id] = true;
+  const decision_id = Number(row.table.id);
+  setProcessing(decision_id, true);
 
   try {
     await voteForDecision(row);
+    // Голос НЕ убирает пункт из повестки — он остаётся неутверждённым, лишь
+    // помечается отметкой голоса. Обновляем список тихо (без скелетонов).
     SuccessAlert('Голос принят');
-    await loadDecisions(route.params.coopname as string);
+    await loadDecisions(route.params.coopname as string, true);
+    // Держим загрузку ещё VOTE_SETTLE_MS, чтобы «Утвердить» нельзя было нажать
+    // до того, как бэкенд учтёт голос (иначе утверждение упадёт с ошибкой).
+    setTimeout(() => setProcessing(decision_id, false), VOTE_SETTLE_MS);
   } catch (e) {
     console.error(e)
     FailAlert(e);
-  } finally {
-    // Гарантированно сбрасываем состояние загрузки
-    processingDecisions.value[row.table.id] = false;
-
-    // Добавляем таймаут для гарантии обновления UI
-    setTimeout(() => {
-      processingDecisions.value = { ...processingDecisions.value };
-    }, 100);
+    setProcessing(decision_id, false);
   }
 };
 
 const onVoteAgainst = async (row) => {
-  processingDecisions.value[row.table.id] = true;
+  const decision_id = Number(row.table.id);
+  setProcessing(decision_id, true);
 
   try {
     await voteAgainstDecision(row);
+    // Голос НЕ убирает пункт из повестки — он остаётся неутверждённым, лишь
+    // помечается отметкой голоса. Обновляем список тихо (без скелетонов).
     SuccessAlert('Голос принят');
-    await loadDecisions(route.params.coopname as string);
+    await loadDecisions(route.params.coopname as string, true);
+    // Держим загрузку ещё VOTE_SETTLE_MS, чтобы «Утвердить» нельзя было нажать
+    // до того, как бэкенд учтёт голос (иначе утверждение упадёт с ошибкой).
+    setTimeout(() => setProcessing(decision_id, false), VOTE_SETTLE_MS);
   } catch (e) {
     console.error(e)
     FailAlert(e);
-  } finally {
-    // Гарантированно сбрасываем состояние загрузки
-    processingDecisions.value[row.table.id] = false;
-
-    // Добавляем таймаут для гарантии обновления UI
-    setTimeout(() => {
-      processingDecisions.value = { ...processingDecisions.value };
-    }, 100);
+    setProcessing(decision_id, false);
   }
 };
 
@@ -132,3 +154,15 @@ const interval = setInterval(
 );
 onBeforeUnmount(() => clearInterval(interval));
 </script>
+
+<style lang="scss" scoped>
+/* Полная ширина контента, как на canon-страницах документов/собраний. */
+.agenda-page {
+  padding: var(--p-6, 24px);
+}
+@media (max-width: 768px) {
+  .agenda-page {
+    padding: var(--p-4, 16px);
+  }
+}
+</style>

@@ -1,0 +1,127 @@
+/* Канон-стиль ресурсной карточки монитора (CPU / NET / RAM).
+   Общий для трёх виджетов — каждый переопределяет лишь акцент иконки.
+   Плоская surface-карточка вместо «переворачивающейся» 3D-карты:
+   детали раскрываются inline через q-slide-transition, ничего не прыгает. */
+.resource-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-4, 16px);
+  background: var(--p-surface);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-lg, 16px);
+  padding: var(--p-5, 20px);
+  height: 100%;
+}
+
+.resource-card__head {
+  display: flex;
+  align-items: center;
+  gap: var(--p-3, 12px);
+}
+
+.resource-card__icon {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  border-radius: var(--p-r-md, 12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  i {
+    font-size: 1.1rem;
+  }
+}
+
+.resource-card__title {
+  font-size: var(--p-fs-h3, 15px);
+  font-weight: 600;
+  color: var(--p-ink);
+}
+
+.resource-card__gauge {
+  display: flex;
+  justify-content: center;
+  padding: var(--p-2, 8px) 0;
+}
+
+.gauge-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  .gauge-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--p-ink);
+  }
+
+  .gauge-label {
+    font-size: var(--p-fs-meta, 12px);
+    color: var(--p-ink-3);
+    margin-top: 2px;
+  }
+}
+
+.resource-card__note {
+  background: var(--p-surface-2);
+  border-radius: var(--p-r-md, 12px);
+  padding: var(--p-3, 12px) var(--p-4, 16px);
+  color: var(--p-ink-2);
+  font-size: var(--p-fs-body-sm, 13px);
+  line-height: 1.5;
+}
+
+.resource-card__toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--p-1, 4px);
+  align-self: center;
+  margin-top: auto;
+  padding: var(--p-1, 4px) var(--p-2, 8px);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  color: var(--p-primary);
+  font-size: var(--p-fs-body-sm, 13px);
+  font-weight: 500;
+  border-radius: var(--p-r-sm, 8px);
+  transition: background var(--p-dur-fast, 120ms) var(--p-ease-standard);
+
+  &:hover {
+    background: var(--p-primary-soft);
+  }
+}
+
+.resource-card__details {
+  border-top: 1px solid var(--p-line);
+  padding-top: var(--p-2, 8px);
+
+  .detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--p-3, 12px);
+    padding: var(--p-2, 8px) 0;
+    border-bottom: 1px solid var(--p-line);
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  .detail-label {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-2);
+  }
+
+  .detail-value {
+    font-size: var(--p-fs-mono, 13px);
+    font-weight: 600;
+    color: var(--p-ink);
+    font-family: var(--p-mono);
+    text-align: right;
+  }
+}

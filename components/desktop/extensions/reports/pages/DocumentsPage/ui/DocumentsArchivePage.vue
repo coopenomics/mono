@@ -1,5 +1,5 @@
 <template lang="pug">
-.q-pa-md
+.documents-archive
   .row.items-center.q-mb-md
     .text-h6.col Архив сгенерированных отчётов
 
@@ -28,36 +28,32 @@
       @update:model-value='onFilterChange'
     )
 
-  q-table(
-    :rows='reportStore.archive.items'
-    :columns='archiveColumns'
-    row-key='id'
-    flat
-    :loading='reportStore.archiveLoading'
-    :pagination='archivePagination'
-    @request='onArchiveRequest'
-  )
-    template(#body-cell-valid='props')
-      q-td(:props='props')
-        q-chip(
-          :color='props.row.isValid ? "positive" : "negative"'
-          text-color='white'
-          dense
-          size='sm'
-        ) {{ props.row.isValid ? 'Валиден' : 'Ошибки' }}
+  q-card(flat)
+    q-table(
+      :rows='reportStore.archive.items'
+      :columns='archiveColumns'
+      row-key='id'
+      flat
+      :loading='reportStore.archiveLoading'
+      :pagination='archivePagination'
+      @request='onArchiveRequest'
+    )
+      template(#body-cell-valid='props')
+        q-td(:props='props')
+          BaseBadge(:variant='props.row.isValid ? "pos" : "neg"') {{ props.row.isValid ? 'Валиден' : 'Ошибки' }}
 
-    template(#body-cell-createdAt='props')
-      q-td(:props='props') {{ formatDate(props.row.createdAt) }}
+      template(#body-cell-createdAt='props')
+        q-td(:props='props') {{ formatDate(props.row.createdAt) }}
 
-    template(#body-cell-actions='props')
-      q-td(:props='props')
-        q-btn(
-          flat dense
-          icon='fa-solid fa-download'
-          color='primary'
-          @click='downloadArchive(props.row.id)'
-        )
-          q-tooltip Скачать XML
+      template(#body-cell-actions='props')
+        q-td(:props='props')
+          q-btn(
+            flat dense
+            icon='fa-solid fa-download'
+            color='primary'
+            @click='downloadArchive(props.row.id)'
+          )
+            q-tooltip Скачать XML
 </template>
 
 <script setup lang="ts">
@@ -68,6 +64,7 @@ import {
   useReportStore,
   type IReportType,
 } from 'src/entities/Report'
+import { BaseBadge } from 'src/shared/ui/base/BaseBadge'
 
 const MVP_REPORT_TYPES = ['BUHOTCH', 'NDFL6', 'RSV', 'PSV', 'FSS4'] as IReportType[]
 

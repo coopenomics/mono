@@ -1,5 +1,5 @@
 <template lang="pug">
-span(v-if='accountCode === null || accountCode === undefined').text-grey-6 —
+span(v-if='accountCode === null || accountCode === undefined').t-faint —
 span.account-id-cell(v-else)
   EntityIdBadge(
     :rawId='accountCode'

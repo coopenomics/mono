@@ -18,10 +18,10 @@ async function createSecretaryRoom(data: ICreateSecretaryRoomInput): Promise<ISe
   return row;
 }
 
-async function removeSecretaryRoom(matrixRoomId: string): Promise<string> {
+async function removeSecretaryRoom(id: string): Promise<string> {
   const { [Mutations.ChatCoop.RemoveSecretaryRoom.name]: result } = await client.Mutation(
     Mutations.ChatCoop.RemoveSecretaryRoom.mutation,
-    { variables: { data: { matrixRoomId } } },
+    { variables: { data: { id } } },
   );
   return result;
 }

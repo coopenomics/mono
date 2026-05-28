@@ -1,7 +1,6 @@
-import config from '../configs'
 import { initExtensionsInPostgres, initSystemStatus } from '../postgres-init'
 import { installExtraData, installInitialData, startInfra } from './infra'
-import { CooperativeClass, startCoop } from './cooperative'
+import { startCoop } from './cooperative'
 
 export async function boot() {
   const blockchain = await startInfra()
@@ -14,12 +13,11 @@ export async function boot() {
 }
 
 export async function bootClean() {
-  const blockchain = await startInfra()
-
-  console.log('Создаём программы (Благорост и маркетплейс)')
-
-  const cooperative = new CooperativeClass(blockchain)
-  await cooperative.createPrograms(config.provider)
+  // Только инфраструктура: контракты, фичи, токен, системные параметры.
+  // Ни совета, ни программ — программы (createPrograms) требуют существующий
+  // совет и создаются в boot/bootExtra внутри installInitialData. В clean их
+  // не делаем (иначе soviet::createprog падает с «Совет не найден»).
+  await startInfra()
 }
 
 export async function bootExtra() {

@@ -2,43 +2,36 @@
 div
   q-form(ref='localUserDataForm')
     slot(name='top')
-    p.full-width.text-center.text-bold(v-if='showTypeButtons') Выберите тип аккаунта
-    .row(v-if='showTypeButtons')
-      .col-xs-12.col-sm-12.col-md-4.q-pa-sm
-        q-btn.full-width(
-          glossy,
-          label='Физлицо',
-          color='primary',
-          @click='selectType("individual")',
-          style='height: 75px'
+
+    .user-data-form__type(v-if='showTypeButtons')
+      p.user-data-form__type-title Выберите тип аккаунта
+      .user-data-form__type-list
+        BaseRadioCard(
+          :model-value='userData.type ?? null',
+          value='individual',
+          title='Физлицо',
+          description='Гражданин — частное лицо',
+          @update:model-value='selectType("individual")'
         )
-      .col-xs-12.col-sm-12.col-md-4.q-pa-sm
-        q-btn.full-width(
-          glossy,
-          label='ИП',
-          color='primary',
-          @click='selectType("entrepreneur")',
-          style='height: 75px'
+        BaseRadioCard(
+          :model-value='userData.type ?? null',
+          value='entrepreneur',
+          title='ИП',
+          description='Индивидуальный предприниматель',
+          @update:model-value='selectType("entrepreneur")'
         )
-      .col-xs-12.col-sm-12.col-md-4.q-pa-sm
-        q-btn.full-width(
-          glossy,
-          label='Организация',
-          color='primary',
-          @click='selectType("organization")',
-          style='height: 75px'
+        BaseRadioCard(
+          :model-value='userData.type ?? null',
+          value='organization',
+          title='Организация',
+          description='Юридическое лицо (ООО, кооператив и др.)',
+          @update:model-value='selectType("organization")'
         )
 
-    .full-width.text-center(v-else)
-      q-btn(
-        flat,
-        color='grey-7',
-        full-width,
-        :label='getSelectedTypeLabel()',
-        @click='changeAccountType',
-        size='sm',
-        icon='arrow_back'
-      )
+    .user-data-form__change(v-else)
+      BaseButton(variant='ghost', @click='changeAccountType')
+        q-icon(name='arrow_back', size='16px').q-mr-sm
+        | {{ getSelectedTypeLabel() }}
 
     div(v-if='userData.type === "individual"')
       IndividualDataForm(v-model:userData='userData')
@@ -58,6 +51,8 @@ import type { IUserData } from 'src/shared/lib/types/user/IUserData';
 import { IndividualDataForm } from '../IndividualDataForm';
 import { OrganizationDataForm } from '../OrganizationDataForm';
 import { EntrepreneurDataForm } from '../EntrepreneurDataForm';
+import { BaseButton } from 'src/shared/ui/base/BaseButton';
+import { BaseRadioCard } from 'src/shared/ui/base/BaseRadioCard';
 
 const props = defineProps<{ userData: IUserData }>();
 const emit = defineEmits<{
@@ -97,8 +92,29 @@ const getSelectedTypeLabel = () => {
 
 const localUserDataForm = ref(null);
 </script>
-<style>
-.dataInput .q-btn-selected {
-  color: teal;
+
+<style scoped>
+.user-data-form__type {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3, 12px);
+  margin: var(--p-4, 16px) 0;
+}
+.user-data-form__type-title {
+  font-size: var(--p-fs-body, 14px);
+  font-weight: 500;
+  color: var(--p-ink);
+  margin: 0;
+  text-align: center;
+}
+.user-data-form__type-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3, 12px);
+}
+.user-data-form__change {
+  display: flex;
+  justify-content: center;
+  margin: 0 0 var(--p-3, 12px);
 }
 </style>

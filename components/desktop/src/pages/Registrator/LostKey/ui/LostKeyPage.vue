@@ -1,13 +1,29 @@
-<template lang="pug">
-.row.justify-center.q-pa-sm
-  .col-md-5.col-sm-6.col-xs-12
-    LostKey.q-mt-lg
-    q-btn(flat size="sm" @click="router.go(-1)") назад
-
+<template>
+  <div class="lostkey-page">
+    <LostKey>
+      <template #footer>
+        <BaseButton variant="ghost" size="sm" @click="goBack">Назад</BaseButton>
+      </template>
+    </LostKey>
+  </div>
 </template>
-<script lang="ts" setup>
-import { LostKey } from 'src/widgets/Registrator/LostKey/ui';
-import { useRouter } from 'vue-router';
-const router = useRouter()
 
+<script lang="ts" setup>
+import { useRouter } from 'vue-router';
+import { LostKey } from 'src/widgets/Registrator/LostKey/ui';
+
+const router = useRouter();
+function goBack(): void {
+  router.go(-1);
+}
 </script>
+
+<style scoped>
+.lostkey-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--p-6, 24px);
+  min-height: 100%;
+}
+</style>

@@ -1,45 +1,71 @@
 <template lang="pug">
 q-dialog(v-model='show', maximized, @hide='onClose')
-  ModalBase(title='Импорт пайщиков')
-    .q-pa-md
-      q-card(flat class='q-mb-md' v-if='!selectedType')
-        q-card-section
-          .text-subtitle1.q-mb-sm Тип аккаунтов
-          q-option-group(
-            v-model='selectedType',
-            :options='typeOptions',
-            :inline='false',
-            :dense='false',
-            size='lg'
-          )
+  q-card.import-wizard
+    //- ===== Шапка =====
+    header.import-wizard__bar
+      .import-wizard__bar-title Импорт пайщиков
+      q-btn(
+        flat,
+        round,
+        dense,
+        icon='close',
+        aria-label='Закрыть',
+        @click='show = false'
+      )
 
-      q-card(flat class='q-mb-md' v-if='selectedType')
-        q-card-section
-          .row.items-center.q-gutter-sm
-            q-chip(color='primary', text-color='white') {{ selectedTypeLabelFull }}
+    //- ===== Тело =====
+    .import-wizard__body
+      .import-wizard__col
+        p.import-wizard__intro
+          | Массовая загрузка действующих пайщиков из CSV-файла. Выберите тип аккаунтов,
+          | скачайте шаблон, заполните его данными и загрузите обратно — система
+          | проверит записи и заведёт пайщиков в реестр без заявлений и оплаты взноса
+          | (это уже сделано вне цифровой системы).
+
+        //- ---------- Выбор типа ----------
+        section.import-wizard__section(v-if='!selectedType')
+          h3.import-wizard__section-title Тип аккаунтов
+          p.import-wizard__section-hint От типа зависит набор полей в шаблоне импорта.
+          .import-wizard__type-list
+            BaseRadioCard(
+              v-for='opt in typeCards',
+              :key='opt.value',
+              :model-value='selectedType ?? null',
+              :value='opt.value',
+              :title='opt.label',
+              :description='opt.description',
+              @update:model-value='selectedType = opt.value'
+            )
+
+        //- ---------- Выбранный тип + шаблон ----------
+        section.import-wizard__section(v-if='selectedType')
+          .import-wizard__type-bar
+            .import-wizard__type-current
+              q-icon(name='groups', size='18px')
+              span {{ selectedTypeLabelFull }}
             q-space
-            q-btn(flat color='primary' icon='download' @click='downloadSample') Скачать шаблон CSV
-            q-btn(flat color='grey-7' icon='undo' @click='backToType') Назад
+            BaseButton(variant='ghost', size='sm', @click='downloadSample')
+              q-icon(name='download', size='16px')
+              span.q-ml-sm Шаблон CSV
+            BaseButton(variant='ghost', size='sm', @click='backToType')
+              q-icon(name='undo', size='16px')
+              span.q-ml-sm Сменить тип
 
-      q-card(flat class='q-mb-md' v-if='selectedType && !fileChosen')
-        q-card-section
-          .text-subtitle1.q-mb-sm Загрузка CSV
-          .upload-area(
-            :class='{ "upload-area--drag": isDragOver }',
+        //- ---------- Загрузка CSV ----------
+        section.import-wizard__section(v-if='selectedType && !fileChosen')
+          h3.import-wizard__section-title Загрузка CSV
+          p.import-wizard__section-hint Скачайте шаблон выше, заполните данными пайщиков и загрузите файл сюда.
+          .import-dropzone(
+            :class='{ "import-dropzone--drag": isDragOver }',
             @dragover.prevent='onDrag',
             @dragleave.prevent='onLeave',
-            @drop.prevent='onDrop'
+            @drop.prevent='onDrop',
+            @click='fileInput?.click()'
           )
-            q-icon(name='cloud_upload', size='36px', color='primary')
-            div.q-mt-sm Перетащите или выберите CSV
-            .text-caption(v-if='selectedFile') {{ selectedFile.name }}
-            .text-caption(v-else-if='fileName') {{ fileName }}
-            q-btn.q-mt-sm(
-              color='primary',
-              flat,
-              size='sm',
-              @click='fileInput?.click()'
-            ) Выбрать файл
+            q-icon(name='cloud_upload', size='36px')
+            .import-dropzone__hint Перетащите CSV-файл или нажмите, чтобы выбрать
+            .import-dropzone__file(v-if='selectedFile') {{ selectedFile.name }}
+            .import-dropzone__file(v-else-if='fileName') {{ fileName }}
           input(
             ref='fileInput',
             type='file',
@@ -47,162 +73,152 @@ q-dialog(v-model='show', maximized, @hide='onClose')
             style='display:none',
             @change='onFileSelected'
           )
-          q-banner(
-            v-if='parseError',
-            class='q-mt-md',
-            type='negative',
-            rounded,
-            dense
-          ) {{ parseError }}
+          .import-wizard__error(v-if='parseError') {{ parseError }}
 
-      q-separator
-
-      q-card-section(v-if='rows.length && !isImporting && !importResults.length')
-        .row.items-center.q-gutter-sm.q-mb-sm
-          q-icon(name='table_chart', size='20px')
-          .text-subtitle1 Предварительный просмотр ({{ rows.length }})
-          q-space
-          q-chip(
-            v-if='hasErrors',
-            color='warning',
-            text-color='white',
-            dense,
-            icon='error'
-          ) Есть строки с ошибками
-
-        q-table(
-          :rows='rows',
-          :columns='previewColumns',
-          row-key='rowNumber',
-          flat,
-          dense,
-          :pagination='{ rowsPerPage: 10 }'
-        )
-          template(#body-cell-data='props')
-            q-td
-              q-btn(flat dense round icon='more_horiz')
-                q-tooltip(max-width='320px')
-                  div(v-for='item in detailsList(props.row)' :key='item.label')
-                    strong {{ item.label }}:
-                    span  {{ item.value }}
-          template(#body-cell-status='props')
-            q-td
-              q-chip(
-                :color='getStatusColor(props.value)',
-                text-color='white',
-                dense,
-                :label='getStatusText(props.value)'
-              )
-          template(#body-cell-error='props')
-            q-td
-              span(v-if='props.value') {{ props.value }}
-              span(v-else) -
-
-      q-card(flat class='q-mb-md' v-if='rows.length && (!importResults.length || isImporting)')
-        q-card-section
-          .row.items-center.q-gutter-sm.q-mb-sm
+        //- ---------- Предпросмотр ----------
+        section.import-wizard__section(v-if='rows.length && !isImporting && !importResults.length')
+          .import-wizard__section-head
+            h3.import-wizard__section-title Предпросмотр ({{ rows.length }})
             q-space
+            .import-wizard__warn(v-if='hasErrors')
+              q-icon(name='error', size='16px')
+              span Есть строки с ошибками
+
+          q-table(
+            :rows='rows',
+            :columns='previewColumns',
+            row-key='rowNumber',
+            flat,
+            dense,
+            :pagination='{ rowsPerPage: 10 }'
+          )
+            template(#body-cell-data='props')
+              q-td
+                q-btn(flat dense round icon='more_horiz')
+                  q-tooltip(max-width='320px')
+                    div(v-for='item in detailsList(props.row)' :key='item.label')
+                      strong {{ item.label }}:
+                      span  {{ item.value }}
+            template(#body-cell-status='props')
+              q-td
+                q-chip(
+                  :color='getStatusColor(props.value)',
+                  text-color='white',
+                  dense,
+                  :label='getStatusText(props.value)'
+                )
+            template(#body-cell-error='props')
+              q-td
+                span(v-if='props.value') {{ props.value }}
+                span(v-else) -
+
+        //- ---------- Запуск импорта ----------
+        section.import-wizard__section(v-if='rows.length && (!importResults.length || isImporting)')
+          .import-wizard__actions
             q-toggle(
               v-model='spreadInitial',
               color='primary',
-              label='Начислить вступительный взнос в кошелек'
+              label='Начислить вступительный взнос в кошелёк'
             )
-            q-btn(
-              color='primary',
-              :disable='!rows.length || hasErrors || isImporting',
+            q-space
+            BaseButton(
+              variant='primary',
+              :disabled='!rows.length || hasErrors || isImporting',
               :loading='isImporting',
-              icon='play_arrow',
-              label='Импортировать',
               @click='startImport'
             )
-            q-btn(
-              color='negative',
-              flat,
+              q-icon(name='play_arrow', size='16px')
+              span.q-ml-sm Импортировать
+            BaseButton(
               v-if='isImporting',
-              icon='stop',
-              label='Остановить',
+              variant='danger',
               @click='stopImport'
             )
+              q-icon(name='stop', size='16px')
+              span.q-ml-sm Остановить
 
-          .q-mt-sm(v-if='isImporting')
-            .text-caption.q-mb-xs Прогресс: {{ importProgress }}/{{ totalItems }} ({{ progressPercent }}%)
+          .import-wizard__progress(v-if='isImporting')
+            .import-wizard__progress-label Прогресс: {{ importProgress }}/{{ totalItems }} ({{ progressPercent }}%)
             q-linear-progress(
               :value='progressPercent / 100',
               color='primary',
               rounded,
               size='8px'
             )
-            .row.q-gutter-md.q-mt-sm
-              .col-auto.text-body2
-                q-icon(name='check_circle', color='positive', size='18px').q-mr-xs
+            .import-wizard__progress-counts
+              span.import-wizard__count
+                q-icon(name='check_circle', color='positive', size='16px')
                 | Успешно: {{ successCount }}
-              .col-auto.text-body2
-                q-icon(name='error', color='negative', size='18px').q-mr-xs
+              span.import-wizard__count
+                q-icon(name='error', color='negative', size='16px')
                 | Ошибок: {{ errorCount }}
 
-      q-card(flat v-if='importResults.length || isImporting')
-        q-card-section
-          .row.items-center.q-gutter-sm.q-mb-sm
-            q-icon(name='fact_check', size='20px')
-            .text-subtitle1 Результаты импорта
+        //- ---------- Результаты ----------
+        section.import-wizard__section(v-if='importResults.length || isImporting')
+          .import-wizard__section-head
+            h3.import-wizard__section-title Результаты импорта
             q-space
-            q-btn(
-              color='primary',
-              flat,
-              icon='refresh',
-              :disable='!hasErrors',
+            BaseButton(
+              variant='ghost',
+              size='sm',
+              :disabled='!hasErrors',
               @click='retryFailed'
-            ) Повторить ошибки
-            q-btn(
-              v-if='importResults.length'
-              color='secondary',
-              flat,
-              icon='file_download',
+            )
+              q-icon(name='refresh', size='16px')
+              span.q-ml-sm Повторить ошибки
+            BaseButton(
+              v-if='importResults.length',
+              variant='ghost',
+              size='sm',
               @click='downloadResults'
-            ) Скачать результаты
-            q-btn(
+            )
+              q-icon(name='file_download', size='16px')
+              span.q-ml-sm Скачать результаты
+            BaseButton(
               v-if='hasData',
-              color='grey-7',
-              flat,
-              icon='clear',
+              variant='ghost',
+              size='sm',
               @click='clearAll'
-            ) Очистить
+            )
+              q-icon(name='clear', size='16px')
+              span.q-ml-sm Очистить
 
-        q-table(
-          :rows='importResults',
-          :columns='resultColumns',
-          row-key='rowNumber',
-          dense,
-          flat,
-          :pagination='{ rowsPerPage: 10 }'
-        )
-          template(#body-cell-status='props')
-            q-td
-              q-chip(
-                :color='getStatusColor(props.value)',
-                text-color='white',
-                dense,
-                :label='getStatusText(props.value)'
-              )
-          template(#body-cell-actions='props')
-            q-td
-              q-btn(
-                v-if='props.row.status === "error"',
-                size='sm',
-                color='primary',
-                flat,
-                icon='refresh',
-                @click='retry(props.rowIndex)'
-              )
-          template(#body-cell-error='props')
-            q-td
-              span(v-if='props.value') {{ props.value }}
-              span(v-else) -
+          q-table(
+            :rows='importResults',
+            :columns='resultColumns',
+            row-key='rowNumber',
+            dense,
+            flat,
+            :pagination='{ rowsPerPage: 10 }'
+          )
+            template(#body-cell-status='props')
+              q-td
+                q-chip(
+                  :color='getStatusColor(props.value)',
+                  text-color='white',
+                  dense,
+                  :label='getStatusText(props.value)'
+                )
+            template(#body-cell-actions='props')
+              q-td
+                q-btn(
+                  v-if='props.row.status === "error"',
+                  size='sm',
+                  color='primary',
+                  flat,
+                  icon='refresh',
+                  @click='retry(props.rowIndex)'
+                )
+            template(#body-cell-error='props')
+              q-td
+                span(v-if='props.value') {{ props.value }}
+                span(v-else) -
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import { ModalBase } from 'src/shared/ui/ModalBase';
+import { BaseButton } from 'src/shared/ui/base/BaseButton';
+import { BaseRadioCard } from 'src/shared/ui/base/BaseRadioCard';
 import { useParticipantCsvParser } from '../lib/useParticipantCsvParser';
 import {
   type ParticipantType,
@@ -293,10 +309,18 @@ const hasErrors = computed(
     importResults.value.some((row) => row.status === 'error'),
 );
 
-const typeOptions: { label: string; value: ParticipantType }[] = [
-  { label: 'Физические лица', value: 'individual' },
-  { label: 'Индивидуальные предприниматели', value: 'entrepreneur' },
-  { label: 'Юридические лица', value: 'organization' },
+const typeCards: { label: string; description: string; value: ParticipantType }[] = [
+  { label: 'Физические лица', description: 'Граждане — частные лица', value: 'individual' },
+  {
+    label: 'Индивидуальные предприниматели',
+    description: 'ИП с паспортными и банковскими реквизитами',
+    value: 'entrepreneur',
+  },
+  {
+    label: 'Юридические лица',
+    description: 'Организации (ООО, кооперативы и др.) с представителем',
+    value: 'organization',
+  },
 ];
 
 const detailsList = (row: any) => {
@@ -585,16 +609,166 @@ const downloadResults = () => {
 </script>
 
 <style scoped lang="scss">
-.upload-area {
-  border: 2px dashed #e0e0e0;
-  border-radius: 8px;
-  padding: 16px;
-  text-align: center;
-  transition: border-color 0.2s ease;
-  cursor: pointer;
+.import-wizard {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--p-canvas);
+}
 
-  &--drag {
-    border-color: #1976d2;
-  }
+/* ===== Шапка ===== */
+.import-wizard__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--p-3, 12px);
+  padding: var(--p-3, 12px) var(--p-4, 16px);
+  background: var(--p-surface);
+  border-bottom: 1px solid var(--p-line);
+  flex-shrink: 0;
+}
+.import-wizard__bar-title {
+  font-size: var(--p-fs-h2, 18px);
+  font-weight: 600;
+  color: var(--p-ink);
+}
+
+/* ===== Тело ===== */
+.import-wizard__body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: var(--p-6, 24px) var(--p-4, 16px);
+}
+.import-wizard__col {
+  max-width: 880px;
+  margin: 0 auto;
+}
+.import-wizard__intro {
+  margin: 0 0 var(--p-5, 20px);
+  font-size: var(--p-fs-body-sm, 13px);
+  line-height: 1.55;
+  color: var(--p-ink-2);
+}
+
+/* ===== Секции ===== */
+.import-wizard__section {
+  margin-bottom: var(--p-5, 20px);
+}
+.import-wizard__section-head {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2, 8px);
+  margin-bottom: var(--p-3, 12px);
+}
+.import-wizard__section-title {
+  margin: 0 0 var(--p-1, 4px);
+  font-size: var(--p-fs-h3, 15px);
+  font-weight: 600;
+  color: var(--p-ink);
+}
+.import-wizard__section-hint {
+  margin: 0 0 var(--p-3, 12px);
+  font-size: var(--p-fs-meta, 12px);
+  color: var(--p-ink-2);
+}
+.import-wizard__type-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3, 12px);
+}
+
+/* Текущий выбранный тип + действия с шаблоном */
+.import-wizard__type-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2, 8px);
+  padding: var(--p-3, 12px) var(--p-4, 16px);
+  background: var(--p-surface);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-md, 12px);
+}
+.import-wizard__type-current {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--p-2, 8px);
+  font-size: var(--p-fs-body-sm, 13px);
+  font-weight: 600;
+  color: var(--p-ink);
+}
+
+/* Зона загрузки CSV */
+.import-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--p-2, 8px);
+  padding: var(--p-6, 24px);
+  text-align: center;
+  color: var(--p-primary);
+  border: 1px dashed var(--p-line-2, var(--p-line));
+  border-radius: var(--p-r-md, 12px);
+  background: var(--p-surface);
+  cursor: pointer;
+  transition: border-color var(--p-dur-fast, 120ms) var(--p-ease-standard),
+    background-color var(--p-dur-fast, 120ms) var(--p-ease-standard);
+}
+.import-dropzone:hover,
+.import-dropzone--drag {
+  border-color: var(--p-primary);
+  background: var(--p-primary-soft);
+}
+.import-dropzone__hint {
+  font-size: var(--p-fs-body-sm, 13px);
+  color: var(--p-ink-2);
+}
+.import-dropzone__file {
+  font-size: var(--p-fs-meta, 12px);
+  color: var(--p-ink);
+  font-weight: 600;
+}
+
+.import-wizard__error {
+  margin-top: var(--p-3, 12px);
+  padding: var(--p-2, 8px) var(--p-3, 12px);
+  font-size: var(--p-fs-body-sm, 13px);
+  color: var(--p-neg);
+  background: var(--p-neg-soft);
+  border-radius: var(--p-r-sm, 8px);
+}
+
+.import-wizard__warn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--p-1, 4px);
+  font-size: var(--p-fs-meta, 12px);
+  color: var(--p-warn);
+}
+
+/* Действия импорта */
+.import-wizard__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2, 8px);
+  margin-bottom: var(--p-3, 12px);
+}
+.import-wizard__progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-2, 8px);
+}
+.import-wizard__progress-label {
+  font-size: var(--p-fs-meta, 12px);
+  color: var(--p-ink-2);
+}
+.import-wizard__progress-counts {
+  display: flex;
+  gap: var(--p-4, 16px);
+}
+.import-wizard__count {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--p-1, 4px);
+  font-size: var(--p-fs-body-sm, 13px);
+  color: var(--p-ink-1);
 }
 </style>

@@ -1,12 +1,17 @@
 <template lang="pug">
-span.entity-id-badge__pill.list-item-title.text-caption(
+span.entity-id-badge__pill(
   v-if="displayLabel"
   @click.stop="onActivate"
 )
   span.entity-id-badge__prefix(v-if="$slots.prefix")
     slot(name="prefix")
   span.entity-id-badge__label {{ displayLabel }}
-
+  q-icon.entity-id-badge__copy(
+    v-if="copyOnClick"
+    name="content_copy"
+    size="13px"
+  )
+    q-tooltip Скопировать
 </template>
 
 <script lang="ts" setup>
@@ -23,8 +28,11 @@ const props = withDefaults(
     copyOnClick?: boolean;
     /** При copyOnClick — копировать `[id][@username]` сессии вместо голого id */
     addressClipboard?: boolean;
+    /** Что именно класть в буфер (если отличается от отображаемого id —
+        например показываем короткий хеш, а копируем полный) */
+    copyValue?: string | null;
   }>(),
-  { copyOnClick: false, addressClipboard: false },
+  { copyOnClick: false, addressClipboard: false, copyValue: null },
 );
 
 const sessionStore = useSessionStore();
@@ -42,12 +50,12 @@ const displayLabel = computed((): string => {
 });
 
 const clipboardText = computed((): string => {
-  const id = displayLabel.value;
-  if (!id) return '';
-  if (!props.addressClipboard) return id;
+  const base = props.copyValue ? String(props.copyValue).trim() : displayLabel.value;
+  if (!base) return '';
+  if (!props.addressClipboard) return base;
   const u = String(sessionStore.username ?? '').trim();
-  if (u) return `[${id}][@${u}]`;
-  return `[${id}]`;
+  if (u) return `[${base}][@${u}]`;
+  return `[${base}]`;
 });
 
 const onActivate = async (e: MouseEvent) => {
@@ -70,17 +78,22 @@ const onActivate = async (e: MouseEvent) => {
 .entity-id-badge__pill {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   padding: 2px 8px;
-  border-radius: 4px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  border-radius: var(--p-r-xs, 6px);
+  font-family: var(--p-mono);
+  font-size: var(--p-fs-mono-sm, 12px);
   font-weight: 500;
-  line-height: 1.3;
+  line-height: 1.4;
   cursor: pointer;
   vertical-align: middle;
-  background: rgba(60, 60, 67, 0.1);
-  color: rgba(60, 60, 67, 0.72);
-  transition: color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  background: var(--p-surface-2);
+  color: var(--p-ink-2);
+  transition: color var(--p-dur-fast, 120ms) ease, background var(--p-dur-fast, 120ms) ease;
+}
+.entity-id-badge__pill:hover {
+  background: var(--p-line-1);
+  color: var(--p-ink-1);
 }
 
 .entity-id-badge__prefix {
@@ -99,15 +112,11 @@ const onActivate = async (e: MouseEvent) => {
   min-width: 0;
 }
 
-.body--dark .entity-id-badge__pill,
-.q-dark .entity-id-badge__pill {
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.62);
+.entity-id-badge__copy {
+  color: var(--p-ink-3);
+  flex-shrink: 0;
 }
-
-/* Как глобальный .list-item-title:hover (scoped перекрывает глобаль — дублируем) */
-.entity-id-badge__pill.list-item-title:hover {
-  color: var(--q-accent);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--q-accent) 35%, transparent);
+.entity-id-badge__pill:hover .entity-id-badge__copy {
+  color: var(--p-primary);
 }
 </style>

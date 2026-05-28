@@ -1,0 +1,319 @@
+/* ============================================================
+   MONO Platform v2 — Quasar overrides
+   Стилизация q-* компонентов под canon-tokens. Подключается ПОСЛЕ
+   автоматических Quasar styles, чтобы перебивать их через те же классы.
+   Принцип: BaseInput/Button/etc — тонкие обёртки q-input/q-btn/etc,
+   а визуал даёт этот файл. Существующий код с прямыми q-* тоже получает
+   canon-look без правок.
+   ============================================================ */
+
+/* ===== Field (q-input / q-select / q-input-mask / etc) =====
+   ЦВЕТА + rounded. Границу Quasar красит сам через --q-primary
+   (см. tokens.css → Quasar brand mapping). Геометрию/transitions
+   не трогаем. */
+
+/* Цвет фона и rounded углы */
+.q-field--outlined .q-field__control {
+  background: var(--p-surface);
+  color: var(--p-ink);
+  border-radius: var(--p-r-sm, 8px);
+}
+.q-field--outlined .q-field__control::before,
+.q-field--outlined .q-field__control::after {
+  border-radius: var(--p-r-sm, 8px);
+}
+/* Цвет текста значения */
+.q-field--outlined .q-field__native,
+.q-field--outlined .q-field__input {
+  color: var(--p-ink);
+}
+/* Цвет placeholder */
+.q-field--outlined .q-field__native::placeholder,
+.q-field--outlined .q-field__input::placeholder {
+  color: var(--p-ink-3);
+}
+/* Цвет метки */
+.q-field--outlined .q-field__label {
+  color: var(--p-ink-2);
+}
+/* Цвет hint/error в нижней строке */
+.q-field__bottom {
+  color: var(--p-ink-3);
+}
+.q-field--error .q-field__bottom,
+.q-field--error .q-field__messages {
+  color: var(--p-neg);
+}
+/* Цвет prefix/suffix */
+.q-field__prefix,
+.q-field__suffix {
+  color: var(--p-ink-3);
+}
+
+/* ===== Button (q-btn) ===== */
+.q-btn {
+  text-transform: none;
+  font-size: var(--p-fs-body-sm);
+  font-weight: 450;
+  border-radius: var(--p-r-sm, 8px);
+  font-family: var(--p-sans, inherit);
+  letter-spacing: 0;
+  min-height: 36px;
+  padding: 0 14px;
+  transition: background var(--p-dur-fast, 120ms), border-color var(--p-dur-fast, 120ms),
+    color var(--p-dur-fast, 120ms);
+}
+.q-btn.q-btn--rectangle {
+  border-radius: var(--p-r-sm, 8px);
+}
+.q-btn__content {
+  gap: 8px;
+}
+.q-btn:before {
+  box-shadow: none;
+}
+
+/* Primary — заливка primary (canon teal через --q-primary) */
+.q-btn--standard.bg-primary,
+.q-btn--unelevated.bg-primary,
+.q-btn--standard.text-primary.bg-primary {
+  background: var(--p-primary) !important;
+  color: var(--p-ink-on-primary) !important;
+}
+.q-btn--standard.bg-primary:hover,
+.q-btn--unelevated.bg-primary:hover {
+  background: var(--p-primary-hover) !important;
+}
+.q-btn--standard.bg-primary:active,
+.q-btn--unelevated.bg-primary:active {
+  background: var(--p-primary-press) !important;
+}
+
+/* Secondary — outline (hairline 1px, не «жирная рамка») */
+.q-btn--outline {
+  background: var(--p-surface);
+}
+.q-btn--outline:before {
+  border: 1px solid var(--p-line-1) !important;
+  border-radius: var(--p-r-sm, 8px);
+}
+.q-btn--outline {
+  color: var(--p-ink) !important;
+}
+.q-btn--outline:hover {
+  background: var(--p-surface-2);
+}
+.q-btn--outline:hover:before {
+  border-color: var(--p-line-2) !important;
+}
+
+/* Ghost — flat */
+.q-btn--flat {
+  color: var(--p-ink) !important;
+}
+.q-btn--flat:hover {
+  background: var(--p-surface-2);
+}
+.q-btn--flat.text-grey-7,
+.q-btn--flat.text-grey {
+  color: var(--p-ink-2) !important;
+}
+
+/* Danger */
+.q-btn--unelevated.bg-negative,
+.q-btn--standard.bg-negative {
+  background: transparent !important;
+  color: var(--p-neg) !important;
+}
+.q-btn--unelevated.bg-negative:hover,
+.q-btn--standard.bg-negative:hover {
+  background: var(--p-neg-soft) !important;
+}
+
+/* Sizes */
+.q-btn--dense,
+.q-btn[size="sm"] {
+  min-height: 28px;
+  padding: 0 10px;
+  font-size: var(--p-fs-meta);
+}
+.q-btn[size="lg"] {
+  min-height: 44px;
+  padding: 0 18px;
+  font-size: var(--p-fs-body);
+}
+
+/* Focus-ring */
+.q-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--p-focus-ring);
+}
+
+/* ===== Card (q-card) ===== */
+.q-card {
+  background: var(--p-surface);
+  border: 1px solid var(--p-line-1);
+  border-radius: var(--p-r-md, 12px);
+  color: var(--p-ink);
+  box-shadow: none;
+}
+.q-card__section--vert {
+  padding: var(--p-5, 20px);
+}
+.q-card__actions {
+  padding: var(--p-3, 12px) var(--p-5, 20px);
+}
+
+/* ===== Chip ===== */
+.q-chip {
+  background: var(--p-surface-2);
+  color: var(--p-ink);
+  border-radius: var(--p-r-pill, 999px);
+  font-size: var(--p-fs-meta);
+  font-weight: 450;
+  height: 26px;
+  padding: 0 12px;
+  margin: 0;
+}
+.q-chip .q-chip__icon {
+  font-size: 14px;
+  margin-right: 6px;
+}
+.q-chip--dense {
+  height: 22px;
+  padding: 0 10px;
+}
+.q-chip.bg-primary {
+  background: var(--p-primary-soft) !important;
+  color: var(--p-primary) !important;
+}
+.q-chip.bg-positive {
+  background: var(--p-pos-soft) !important;
+  color: var(--p-pos) !important;
+}
+.q-chip.bg-negative {
+  background: var(--p-neg-soft) !important;
+  color: var(--p-neg) !important;
+}
+.q-chip.bg-warning {
+  background: var(--p-warn-soft) !important;
+  color: var(--p-warn) !important;
+}
+.q-chip.bg-info {
+  background: var(--p-info-soft) !important;
+  color: var(--p-info) !important;
+}
+
+/* ===== Badge ===== */
+.q-badge {
+  background: var(--p-primary-soft);
+  color: var(--p-primary);
+  border-radius: var(--p-r-xs, 4px);
+  font-size: var(--p-fs-meta);
+  font-weight: 600;
+  padding: 2px 8px;
+}
+.q-badge.bg-primary { background: var(--p-primary-soft) !important; color: var(--p-primary) !important; }
+.q-badge.bg-positive { background: var(--p-pos-soft) !important; color: var(--p-pos) !important; }
+.q-badge.bg-negative { background: var(--p-neg-soft) !important; color: var(--p-neg) !important; }
+.q-badge.bg-warning { background: var(--p-warn-soft) !important; color: var(--p-warn) !important; }
+.q-badge.bg-info { background: var(--p-info-soft) !important; color: var(--p-info) !important; }
+
+/* ===== Banner ===== */
+.q-banner {
+  background: var(--p-info-soft);
+  color: var(--p-ink);
+  border-left: 3px solid var(--p-info);
+  border-radius: var(--p-r-sm, 8px);
+  padding: 12px 16px;
+  font-size: var(--p-fs-body);
+}
+.q-banner--top-padding {
+  padding-top: 12px;
+}
+
+/* ===== Dialog / Menu ===== */
+.q-dialog__backdrop {
+  background: var(--p-overlay);
+}
+.q-dialog__inner > .q-card {
+  box-shadow: var(--p-shadow-modal);
+  border-radius: var(--p-r-md, 12px);
+}
+.q-menu {
+  background: var(--p-surface);
+  border: 1px solid var(--p-line-1);
+  border-radius: var(--p-r-sm, 8px);
+  box-shadow: var(--p-shadow-pop);
+  color: var(--p-ink);
+}
+
+/* ===== Item (dropdown / list rows) ===== */
+.q-item {
+  font-size: var(--p-fs-body);
+  color: var(--p-ink);
+  min-height: 40px;
+  padding: 8px 12px;
+}
+.q-item__section--main {
+  font-size: var(--p-fs-body);
+}
+.q-item:hover,
+.q-item.q-manual-focusable--focused {
+  background: var(--p-surface-2);
+  color: var(--p-ink);
+}
+.q-item--active,
+.q-item--active:hover {
+  background: var(--p-primary-soft);
+  color: var(--p-primary);
+}
+
+/* ===== Table ===== */
+.q-table {
+  background: var(--p-surface);
+  color: var(--p-ink);
+}
+.q-table thead th {
+  font-size: var(--p-fs-meta);
+  color: var(--p-ink-2);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--p-line);
+  background: var(--p-surface);
+}
+.q-table tbody td {
+  font-size: var(--p-fs-body);
+  border-bottom: 1px solid var(--p-line);
+}
+.q-table tbody tr:hover {
+  background: var(--p-surface-2);
+}
+.q-table__top {
+  padding: 12px 16px;
+}
+
+/* ===== Toggle / Checkbox (минимальная coherence — без полного rewrite) ===== */
+.q-checkbox__inner--truthy .q-checkbox__bg,
+.q-toggle__inner--truthy .q-toggle__track {
+  color: var(--p-primary);
+}
+
+/* ===== Page background ====================================================
+   По умолчанию Quasar красит body--light в #ffffff, body--dark в #1d1d1d.
+   Это даёт визуальный сдвиг относительно нашей шапки/рейла, окрашенных
+   через `--p-canvas`. Чтобы вся страница совпадала с утверждённым canvas
+   из tokens.css, явно прокидываем токен на body и q-page-container.
+   --------------------------------------------------------------------- */
+body.body--light,
+body.body--dark {
+  background-color: var(--p-canvas);
+  color: var(--p-ink);
+}
+.q-layout,
+.q-page-container,
+.q-page {
+  background-color: var(--p-canvas);
+  color: var(--p-ink);
+}

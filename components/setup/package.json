@@ -1,6 +1,6 @@
 {
   "name": "@coopenomics/setup",
-  "version": "2026.5.25-3",
+  "version": "2026.5.27-2",
   "private": true,
   "description": "Интерактивный мастер настройки окружения",
   "main": "index.js",

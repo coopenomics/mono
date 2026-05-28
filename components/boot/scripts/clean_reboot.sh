@@ -10,20 +10,23 @@ if [ -f "$ROOT_DIR/.env" ]; then
   set +a
 fi
 
-# Останавливаем и удаляем контейнеры вместе с volumes
-echo "Останавливаем и удаляем контейнеры с volumes..."
-docker compose down -v mongo postgres monoredis cooparser coopback || true
+# Останавливаем и удаляем контейнеры (сеть НЕ трогаем — к ней может быть
+# подключён внешний контейнер вроде provider-backend; down её снёс бы с ошибкой).
+echo "Останавливаем и удаляем контейнеры..."
+docker compose rm -fsv mongo postgres monoredis cooparser coopback || true
 
 # Останавливаем blockchain контейнер перед удалением данных
 echo "Останавливаем blockchain контейнер..."
 docker compose stop node || true
 
-# Удаляем blockchain data.
-# Контейнерный wipe (alpine под root) стирает данные независимо от их владельца —
-# без sudo на любой ноде (на Pi нет passwordless sudo; на проде nodeos пишет
-# данные под root). Единый способ с reboot.sh / extra_reboot.sh.
+# Удаляем тома баз данных для чистого старта (named volumes rm -v не чистит)
+echo "Удаляем тома баз данных..."
+PROJECT="${COMPOSE_PROJECT_NAME:-$(basename "$ROOT_DIR")}"
+docker volume rm "${PROJECT}_postgres_data" "${PROJECT}_mongo_data" 2>/dev/null || true
+
+# Удаляем blockchain data через контейнер (alpine под root стирает данные
+# независимо от владельца — без sudo на любой ноде; на проде nodeos пишет под root).
 echo "Удаляем blockchain data..."
-# sudo chmod -R 755 ../blockchain-data/ 2>/dev/null || true
 docker run --rm -v "$(cd .. && pwd)/blockchain-data:/d" alpine sh -c 'rm -rf /d/* /d/.[!.]* 2>/dev/null || true'
 
 # Пересоздаем и запускаем базы данных + Redis (monoredis).

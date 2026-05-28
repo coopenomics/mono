@@ -367,7 +367,6 @@ export async function runRestore(ctx: AuthenticatedContext, userPath: string): P
   if (entry.entity_type === 'call_transcription') {
     interface TranscriptionRestorePack {
       transcription: {
-        matrixRoomId: string
         roomId: string
         startedAt: Date | string
         endedAt: Date | string | null | undefined
@@ -394,7 +393,6 @@ export async function runRestore(ctx: AuthenticatedContext, userPath: string): P
     }
     const content = renderCallTranscriptionMarkdown(
       {
-        matrixRoomId: tr.matrixRoomId,
         roomId: tr.roomId,
         startedAt: tr.startedAt,
         endedAt: tr.endedAt,

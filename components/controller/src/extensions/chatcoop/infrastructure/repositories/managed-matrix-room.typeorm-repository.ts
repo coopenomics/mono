@@ -39,6 +39,11 @@ export class ManagedMatrixRoomTypeormRepository implements ChatcoopManagedMatrix
     return ManagedMatrixRoomMapper.toDomain(row);
   }
 
+  async findById(id: string): Promise<ManagedMatrixRoomDomainEntity | null> {
+    const row = await this.repository.findOne({ where: { id } });
+    return row ? ManagedMatrixRoomMapper.toDomain(row) : null;
+  }
+
   async findByMatrixRoomId(matrixRoomId: string): Promise<ManagedMatrixRoomDomainEntity | null> {
     const row = await this.repository.findOne({ where: { matrixRoomId } });
     return row ? ManagedMatrixRoomMapper.toDomain(row) : null;

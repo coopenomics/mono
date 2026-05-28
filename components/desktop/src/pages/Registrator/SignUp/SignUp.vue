@@ -1,8 +1,7 @@
 <template lang="pug">
-div
-  AuthCard(:maxWidth="1000")
-    p.text-h6.text-center.q-mb-md ВСТУПИТЬ В ПАЙЩИКИ
-    q-stepper(
+.signup-page
+  AuthCard.signup-page__card(:max-width='720', title='Вступить в пайщики')
+    q-stepper.signup-page__stepper(
       v-model='store.step',
       vertical,
       animated,
@@ -26,8 +25,9 @@ div
       PayInitial
 
       WaitingRegistration
-  div.q-pa-md.full-width.text-center
-    q-btn(@click='out', dense, size='sm', flat color="grey") начать с начала
+
+  .signup-page__restart
+    q-btn(@click='out', dense, size='sm', flat color='grey') начать с начала
 </template>
 
 <script lang="ts" setup>
@@ -41,7 +41,7 @@ import ReadStatement from './ReadStatement.vue';
 import PayInitial from './PayInitial.vue';
 import WaitingRegistration from './WaitingRegistration.vue';
 import SelectBranch from './SelectBranch.vue';
-import { AuthCard } from 'src/shared/ui/AuthCard';
+import { AuthCard } from 'src/shared/ui/domain/AuthCard';
 
 import { useRegistratorStore } from 'src/entities/Registrator';
 import { useLogoutUser } from 'src/features/User/Logout';
@@ -224,4 +224,40 @@ watch(
 
 const isBranched = computed(() => info.cooperator_account.is_branched);
 </script>
-<style></style>
+
+<style scoped>
+.signup-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--p-6, 24px);
+  min-height: 100%;
+}
+.signup-page__card {
+  width: 100%;
+}
+/* Canon-стайлинг q-stepper внутри AuthCard: убираем собственный фон
+   и тень q-stepper'а, чтобы он не «карточка в карточке» на тёмной теме —
+   AuthCard уже даёт surface + shadow. */
+.signup-page__stepper {
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+.signup-page__stepper :deep(.q-stepper__nav) {
+  padding: 0;
+}
+.signup-page__stepper :deep(.q-stepper__step-inner) {
+  background: transparent;
+}
+.signup-page__stepper :deep(.q-stepper__dot:before),
+.signup-page__stepper :deep(.q-stepper__dot:after),
+.signup-page__stepper :deep(.q-stepper__line:before),
+.signup-page__stepper :deep(.q-stepper__line:after) {
+  background: var(--p-line);
+}
+.signup-page__restart {
+  margin-top: var(--p-4, 16px);
+  text-align: center;
+}
+</style>

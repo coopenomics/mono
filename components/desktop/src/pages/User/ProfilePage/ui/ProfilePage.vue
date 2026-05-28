@@ -1,169 +1,113 @@
 <template lang="pug">
-.q-pa-md
-  // Единая карточка профиля
-  .row
-    .col-12.q-pa-sm
-      q-card(flat, v-if='currentProfile')
-        // Основная информация
-        .profile-section
-          .info-content
-            .info-group
+.profile-page(v-if='currentProfile')
+  //- Шапка-удостоверение: ФИО/наименование пайщика + роль в кооперативе.
+  IdentityPanel(:identity='identity')
 
-              .info-item
-                .info-label Имя аккаунта
-                .info-value.username-value
-                  span.username-text {{ session.username || '' }}
-                  q-btn.copy-btn(
-                    icon='content_copy',
-                    flat,
-                    dense,
-                    size='sm',
-                    color='primary',
-                    @click='copyUsername'
-                  )
-                    q-tooltip Скопировать имя аккаунта
+  //- Учётная запись: имя аккаунта и публичный ключ — копируемые,
+  //- моноширинные (это технические идентификаторы блокчейн-аккаунта).
+  BaseCard(title='Учётная запись')
+    DataRow(label='Имя аккаунта', :value='session.username', copyable, mono)
+    DataRow(label='Публичный ключ', :value='publicKey', copyable, mono)
 
-              .info-item
-                .info-label Публичный ключ
-                .info-value
-                  span {{ publicKey || 'Не указан' }}
-                  q-btn.copy-btn(
-                    v-if='publicKey',
-                    icon='content_copy',
-                    flat,
-                    dense,
-                    size='sm',
-                    color='primary',
-                    @click='copyPublicKey'
-                  )
-                    q-tooltip Скопировать публичный ключ
+  BaseCard(title='Личные данные')
+    DataRow(label='Email', :value='currentProfile.email')
+    DataRow(label='Телефон', :value='currentProfile.phone')
+    DataRow(
+      v-if='hasBirthdate',
+      label='Дата рождения',
+      :value='formatDate(getBirthdate())'
+    )
+    DataRow(
+      v-if='currentProfile.full_address',
+      label='Адрес',
+      :value='currentProfile.full_address'
+    )
+    template(v-if='organizationProfile')
+      DataRow(
+        v-if='organizationProfile.type',
+        label='Тип организации',
+        :value='getOrganizationType(organizationProfile.type)'
+      )
+      DataRow(
+        v-if='organizationProfile.short_name',
+        label='Краткое наименование',
+        :value='organizationProfile.short_name'
+      )
 
-        // Разделитель
-        q-separator.q-my-lg
+  BaseCard(v-if='hasRequisites', title='Документы и реквизиты')
+    //- Паспортные данные — физическое лицо
+    template(v-if='individualProfile?.passport')
+      DataRow(label='Серия и номер паспорта', :value='passportSeriesNumber')
+      DataRow(
+        label='Дата выдачи',
+        :value='formatDate(individualProfile.passport.issued_at)'
+      )
+      DataRow(label='Код подразделения', :value='individualProfile.passport.code')
+      DataRow(
+        v-if='individualProfile.passport.issued_by',
+        label='Кем выдан',
+        :value='individualProfile.passport.issued_by'
+      )
+    //- Реквизиты индивидуального предпринимателя
+    template(v-if='entrepreneurProfile?.details')
+      DataRow(
+        v-if='entrepreneurProfile.details.inn',
+        label='ИНН',
+        :value='entrepreneurProfile.details.inn',
+        copyable,
+        mono
+      )
+      DataRow(
+        v-if='entrepreneurProfile.details.ogrn',
+        label='ОГРН',
+        :value='entrepreneurProfile.details.ogrn',
+        copyable,
+        mono
+      )
+      DataRow(
+        v-if='entrepreneurProfile.city',
+        label='Город',
+        :value='entrepreneurProfile.city'
+      )
+    //- Реквизиты организации
+    template(v-if='organizationProfile')
+      DataRow(
+        v-if='organizationProfile.details?.inn',
+        label='ИНН',
+        :value='organizationProfile.details.inn',
+        copyable,
+        mono
+      )
+      DataRow(
+        v-if='organizationProfile.details?.ogrn',
+        label='ОГРН',
+        :value='organizationProfile.details.ogrn',
+        copyable,
+        mono
+      )
+      DataRow(
+        v-if='organizationProfile.fact_address',
+        label='Фактический адрес',
+        :value='organizationProfile.fact_address'
+      )
+      DataRow(
+        v-if='organizationProfile.represented_by',
+        label='Представитель',
+        :value='getRepresentativeName(organizationProfile.represented_by)'
+      )
+      DataRow(
+        v-if='organizationProfile.represented_by?.position',
+        label='Должность',
+        :value='organizationProfile.represented_by.position'
+      )
 
-        .profile-section.profile-card
-          .info-content
-            .info-group
-              .info-item
-                .info-label {{ getUserTypeLabel() }}
-                .info-value.user-display-name
-                  span.q-mr-sm(v-if='isIP') ИП
-                  | {{ displayName }}
-
-              .info-item
-                .info-label Роль
-                .info-value
-                  q-badge(color='primary') {{ role }}
-
-        // Разделитель
-        q-separator.q-my-lg
-
-        // Личная информация
-        .profile-section
-          .info-content
-            .info-group
-              .info-item
-                .info-label Email
-                .info-value {{ currentProfile.email || 'Не указан' }}
-
-              .info-item
-                .info-label Телефон
-                .info-value {{ currentProfile.phone || 'Не указан' }}
-
-              .info-item(v-if='hasBirthdate')
-                .info-label Дата рождения
-                .info-value {{ formatDate(getBirthdate()) || 'Не указана' }}
-
-              .info-item(v-if='currentProfile.full_address')
-                .info-label Адрес
-                .info-value {{ currentProfile.full_address }}
-
-              // Специфичная информация для организаций
-              .info-item(
-                v-if='userType === "organization" && organizationProfile?.type'
-              )
-                .info-label Тип организации
-                .info-value {{ getOrganizationType(organizationProfile.type) }}
-
-              .info-item(
-                v-if='userType === "organization" && organizationProfile?.short_name'
-              )
-                .info-label Краткое наименование
-                .info-value {{ organizationProfile.short_name }}
-
-        // Разделитель
-        q-separator.q-my-lg
-
-        // Документы и реквизиты
-        .profile-section
-          .info-content
-            // Паспортные данные только для физических лиц
-            .info-group(
-              v-if='userType === "individual" && individualProfile?.passport'
-            )
-              .info-item
-                .info-label Серия и номер паспорта
-                .info-value {{ individualProfile.passport.series }} {{ individualProfile.passport.number }}
-
-              .info-item
-                .info-label Дата выдачи
-                .info-value {{ formatDate(individualProfile.passport.issued_at) }}
-
-              .info-item
-                .info-label Код подразделения
-                .info-value {{ individualProfile.passport.code }}
-
-              .info-item(v-if='individualProfile.passport.issued_by')
-                .info-label Кем выдан
-                .info-value {{ individualProfile.passport.issued_by }}
-
-            // Данные ИП
-            .info-group(
-              v-if='userType === "entrepreneur" && entrepreneurProfile?.details'
-            )
-              .info-item(v-if='entrepreneurProfile.details.inn')
-                .info-label ИНН
-                .info-value {{ entrepreneurProfile.details.inn }}
-
-              .info-item(v-if='entrepreneurProfile.details.ogrn')
-                .info-label ОГРН
-                .info-value {{ entrepreneurProfile.details.ogrn }}
-
-              .info-item(v-if='entrepreneurProfile.city')
-                .info-label Город
-                .info-value {{ entrepreneurProfile.city }}
-
-            // Реквизиты организаций
-            .info-group(
-              v-if='userType === "organization" && organizationProfile'
-            )
-              .info-item(v-if='organizationProfile.details?.inn')
-                .info-label ИНН
-                .info-value {{ organizationProfile.details.inn }}
-
-              .info-item(v-if='organizationProfile.details?.ogrn')
-                .info-label ОГРН
-                .info-value {{ organizationProfile.details.ogrn }}
-
-              .info-item(v-if='organizationProfile.fact_address')
-                .info-label Фактический адрес
-                .info-value {{ organizationProfile.fact_address }}
-
-              .info-item(v-if='organizationProfile.represented_by')
-                .info-label Представитель
-                .info-value {{ getRepresentativeName(organizationProfile.represented_by) }}
-
-              .info-item(v-if='organizationProfile.represented_by?.position')
-                .info-label Должность
-                .info-value {{ organizationProfile.represented_by.position }}
-
-      // Пустое состояние
-      q-card.empty-card.q-pa-lg(flat, v-if='!currentProfile')
-        .empty-content
-          .empty-icon
-            q-icon(name='info', size='48px', color='grey-5')
-          .empty-text Профиль не заполнен
-          .empty-subtitle Обратитесь к администратору для заполнения профиля
+.profile-page(v-else)
+  EmptyState(
+    title='Профиль не заполнен',
+    body='Обратитесь к администратору для заполнения профиля'
+  )
+    template(#icon)
+      q-icon(name='badge', size='48px')
 </template>
 
 <script lang="ts" setup>
@@ -175,9 +119,11 @@ import type {
 } from 'src/shared/lib/types/user/IUserData';
 import { computed } from 'vue';
 import { useDisplayName } from 'src/shared/lib/composables/useDisplayName';
-import { copyToClipboard } from 'quasar';
-import { SuccessAlert, FailAlert } from 'src/shared/api';
-import 'src/shared/ui/CardStyles/index.scss';
+import { IdentityPanel } from 'src/shared/ui/domain/IdentityPanel';
+import type { Identity } from 'src/shared/ui/domain/IdentityPanel';
+import { DataRow } from 'src/shared/ui/domain/DataRow';
+import { BaseCard } from 'src/shared/ui/base/BaseCard';
+import { EmptyState } from 'src/shared/ui/base/EmptyState';
 
 const session = useSessionStore();
 
@@ -232,9 +178,18 @@ const role = computed(() => {
   else return 'Пайщик';
 });
 
+// Шапка-удостоверение: имя/наименование пайщика (с пометкой ИП) + роль.
+const identity = computed<Identity>(() => ({
+  fullName: (isIP.value ? 'ИП ' : '') + (displayName.value || ''),
+  role: role.value,
+}));
+
 // Публичный ключ из блокчейн-аккаунта
 const publicKey = computed(() => {
-  return session.blockchainAccount?.permissions?.[0]?.required_auth?.keys?.[0]?.key || '';
+  return (
+    session.blockchainAccount?.permissions?.[0]?.required_auth?.keys?.[0]?.key ||
+    ''
+  );
 });
 
 // Проверяем наличие birthdate для типов, у которых оно есть
@@ -242,6 +197,25 @@ const hasBirthdate = computed(() => {
   return (
     (userType.value === 'individual' && individualProfile.value?.birthdate) ||
     (userType.value === 'entrepreneur' && entrepreneurProfile.value?.birthdate)
+  );
+});
+
+// Серия и номер паспорта одной строкой
+const passportSeriesNumber = computed(() => {
+  const p = individualProfile.value?.passport;
+  if (!p) return '';
+  return `${p.series} ${p.number}`;
+});
+
+// Есть ли что показывать в блоке «Документы и реквизиты»
+const hasRequisites = computed(() => {
+  return Boolean(
+    individualProfile.value?.passport ||
+      entrepreneurProfile.value?.details ||
+      (organizationProfile.value &&
+        (organizationProfile.value.details ||
+          organizationProfile.value.fact_address ||
+          organizationProfile.value.represented_by)),
   );
 });
 
@@ -254,38 +228,6 @@ const getBirthdate = () => {
     return entrepreneurProfile.value.birthdate;
   }
   return undefined;
-};
-
-// Получаем лейбл типа пользователя
-const getUserTypeLabel = () => {
-  const labels = {
-    individual: 'ФИО',
-    entrepreneur: 'ФИО предпринимателя',
-    organization: 'Наименование организации',
-  };
-  return labels[userType.value || 'individual'] || 'ФИО';
-};
-
-// Копирование имени аккаунта
-const copyUsername = async () => {
-  const username = session.username || '';
-  try {
-    await copyToClipboard(username);
-    SuccessAlert('Имя аккаунта скопировано в буфер обмена');
-  } catch {
-    FailAlert('Ошибка при копировании');
-  }
-};
-
-// Копирование публичного ключа
-const copyPublicKey = async () => {
-  const key = publicKey.value;
-  try {
-    await copyToClipboard(key);
-    SuccessAlert('Публичный ключ скопирован в буфер обмена');
-  } catch {
-    FailAlert('Ошибка при копировании');
-  }
 };
 
 // Утилиты для форматирования
@@ -316,42 +258,16 @@ const getRepresentativeName = (representative: any) => {
 </script>
 
 <style lang="scss" scoped>
-// Пустое состояние
-.empty-card {
-  .empty-content {
-    text-align: center;
-    padding: 40px 20px;
-
-    .empty-icon {
-      margin-bottom: 16px;
-    }
-
-    .empty-text {
-      font-size: 18px;
-      font-weight: 500;
-      margin-bottom: 8px;
-      color: rgba(0, 0, 0, 0.7);
-
-      .q-dark & {
-        color: rgba(255, 255, 255, 0.7);
-      }
-    }
-
-    .empty-subtitle {
-      font-size: 14px;
-      color: rgba(0, 0, 0, 0.5);
-
-      .q-dark & {
-        color: rgba(255, 255, 255, 0.5);
-      }
-    }
-  }
+.profile-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3, 12px);
+  padding: var(--p-6, 24px);
 }
 
-// Адаптивность
 @media (max-width: 768px) {
-  .profile-card .info-value.user-display-name {
-    font-size: 20px;
+  .profile-page {
+    padding: var(--p-4, 16px);
   }
 }
 </style>

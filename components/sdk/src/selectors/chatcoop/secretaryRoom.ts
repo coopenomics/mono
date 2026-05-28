@@ -2,7 +2,7 @@ import type { MakeAllFieldsRequired } from '../../utils/MakeAllFieldsRequired'
 import { type ModelTypes, Selector, type ValueTypes } from '../../zeus/index'
 
 const rawChatcoopSecretaryRoomSelector = {
-  matrixRoomId: true,
+  id: true,
   displayLabel: true,
   kind: true,
   encrypted: true,

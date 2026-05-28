@@ -293,6 +293,7 @@ watch(slideIndex, (newIndex) => {
 
 .btn-font {
   font-size: 8px !important;
+  text-transform: capitalize;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   .btn-menu:hover & {
@@ -568,6 +569,7 @@ watch(slideIndex, (newIndex) => {
   font-size: 11px !important;
   line-height: 1.3;
   text-align: center;
+  text-transform: capitalize;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;

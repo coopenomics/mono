@@ -1,79 +1,75 @@
 <template lang="pug">
-div.meet-details-voting-root.page-main-card.card-container.q-pa-lg
-  .meet-voted-banner(v-if='meet?.processing?.isVoted')
-    .meet-voted-banner__icon(aria-hidden='true')
-      q-icon(name='how_to_vote', color='positive', size='28px')
-    .meet-voted-banner__body
-      .meet-voted-banner__title Вы уже приняли участие в голосовании.
+.meet-voting
+  .meet-voting__voted(v-if='meet?.processing?.isVoted')
+    .meet-voting__voted-icon(aria-hidden='true')
+      q-icon(name='how_to_vote', size='24px')
+    .meet-voting__voted-text Вы уже приняли участие в голосовании.
 
-  div(v-if='!meet?.processing?.isVoted')
-    .meet-vote-head.q-mb-lg
-      .meet-vote-title Голосование
-      .meet-vote-line(aria-hidden='true')
+  template(v-else)
+    .meet-voting__head
+      q-icon(name='how_to_vote', size='18px')
+      span.meet-voting__title Голосование
 
-    .vote-question.info-card.q-mb-md(
-      v-for='(item, index) in meetAgendaItems',
-      :key='index'
-    )
-      .vote-question-layout
-        .vote-question-layout__badge
+    .meet-voting__items
+      .meet-vote-card(
+        v-for='(item, index) in meetAgendaItems',
+        :key='index'
+      )
+        .meet-vote-card__head
           AgendaNumberAvatar(:number='index + 1')
-        .vote-question-layout__content
-          .text-body1.text-weight-medium.q-mb-sm {{ item.title }}
-          .vote-question-context.q-mb-md(
-            v-if='item.context',
-            v-html='parseLinks(item.context)'
-          )
-          .vote-decision-block.q-mb-md
-            .vote-decision-label Проект решения
-            .vote-decision-text {{ item.decision }}
-          q-separator.q-mb-md
-          .vote-prompt.q-mb-sm Ваш голос
-          .row.q-col-gutter-sm
-            .col-12.col-md-4
-              label.vote-option.vote-option--for
-                q-radio(
-                  v-model='votes[index]',
-                  val='for',
-                  color='positive',
-                  size='md',
-                  label='ЗА'
-                )
-            .col-12.col-md-4
-              label.vote-option.vote-option--against
-                q-radio(
-                  v-model='votes[index]',
-                  val='against',
-                  color='negative',
-                  size='md',
-                  label='ПРОТИВ'
-                )
-            .col-12.col-md-4
-              label.vote-option.vote-option--abstain
-                q-radio(
-                  v-model='votes[index]',
-                  val='abstained',
-                  color='grey',
-                  size='md',
-                  label='ВОЗДЕРЖАЛСЯ'
-                )
+          span.meet-vote-card__title {{ item.title }}
 
-    .text-center.q-mt-lg
-      q-btn.q-px-xl(
-        color='primary',
-        label='ГОЛОСОВАТЬ',
-        unelevated,
-        no-caps,
+        .meet-vote-card__context(
+          v-if='item.context',
+          v-html='parseLinks(item.context)'
+        )
+
+        .meet-vote-card__decision
+          span.meet-vote-card__decision-label Проект решения
+          span.meet-vote-card__decision-text {{ item.decision }}
+
+        .meet-vote-card__prompt Ваш голос
+        .meet-vote-card__options
+          label.vote-option.vote-option--for
+            q-radio(
+              v-model='votes[index]',
+              val='for',
+              color='positive',
+              size='md',
+              label='ЗА'
+            )
+          label.vote-option.vote-option--against
+            q-radio(
+              v-model='votes[index]',
+              val='against',
+              color='negative',
+              size='md',
+              label='ПРОТИВ'
+            )
+          label.vote-option.vote-option--abstain
+            q-radio(
+              v-model='votes[index]',
+              val='abstained',
+              color='grey',
+              size='md',
+              label='ВОЗДЕРЖАЛСЯ'
+            )
+
+    .meet-voting__foot
+      BaseButton(
+        variant='primary',
         size='lg',
         :loading='isVoting',
-        @click='submitVote',
-        :disable='!allVotesSelected'
+        :disabled='!allVotesSelected',
+        @click='submitVote'
       )
+        span Голосовать
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
 import { AgendaNumberAvatar } from 'src/shared/ui/AgendaNumberAvatar';
+import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import type { IMeet } from 'src/entities/Meet';
 import { useSessionStore } from 'src/entities/Session';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
@@ -107,10 +103,7 @@ const isVoting = ref(false);
 
 // Устанавливаем собрание из пропсов при монтировании
 onMounted(() => {
-  // Устанавливаем собрание из пропсов в композабл
   setMeet(props.meet);
-
-  // Сбрасываем голоса при открытии компонента
   resetVotes();
 });
 
@@ -164,339 +157,171 @@ const submitVote = async () => {
 </script>
 
 <style lang="scss" scoped>
-@import 'src/shared/ui/CardStyles/index.scss';
-
-// Внешняя секция: на светлой странице --q-surface совпадает с фоном — даём явное «полотно»
-.meet-details-voting-root.card-container {
-  background-color: color-mix(in srgb, var(--q-primary) 6%, #ffffff);
+.meet-voting {
+  background: var(--p-surface);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-lg, 16px);
+  padding: var(--p-5, 20px);
 }
 
-.body--dark .meet-details-voting-root.card-container,
-.q-dark .meet-details-voting-root.card-container {
-  background-color: color-mix(
-    in srgb,
-    var(--q-dark-page, #1f1c1c) 92%,
-    var(--q-primary) 8%
-  );
-}
-
-// Уже проголосовали — в одном стиле с карточками (не q-banner по центру)
-.meet-voted-banner {
+/* Уже проголосовали — спокойный позитивный баннер */
+.meet-voting__voted {
   display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  margin-bottom: 24px;
-  padding: 16px 18px;
-  border-radius: 12px;
-  border: 1px solid color-mix(in srgb, var(--q-positive, #21ba45) 22%, rgba(0, 0, 0, 0.07));
-  border-left: 3px solid var(--q-positive, #21ba45);
-  background-color: color-mix(in srgb, var(--q-positive, #21ba45) 9%, #ffffff);
+  align-items: center;
+  gap: var(--p-3, 12px);
+  padding: var(--p-4, 16px);
+  border-radius: var(--p-r-md, 12px);
+  background: var(--p-pos-soft);
 }
-
-.body--dark .meet-voted-banner,
-.q-dark .meet-voted-banner {
-  background-color: color-mix(
-    in srgb,
-    var(--q-positive, #21ba45) 14%,
-    var(--q-dark-page, #1f1c1c)
-  );
-  border-color: color-mix(in srgb, var(--q-positive, #21ba45) 32%, rgba(255, 255, 255, 0.18));
-  border-left-color: var(--q-positive, #21ba45);
-}
-
-.meet-voted-banner__icon {
-  flex-shrink: 0;
+.meet-voting__voted-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  background-color: color-mix(in srgb, var(--q-positive, #21ba45) 12%, #ffffff);
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--p-r-sm, 8px);
+  background: var(--p-surface);
+  color: var(--p-pos);
 }
-
-.body--dark .meet-voted-banner__icon,
-.q-dark .meet-voted-banner__icon {
-  background-color: color-mix(
-    in srgb,
-    var(--q-positive, #21ba45) 20%,
-    rgba(255, 255, 255, 0.05)
-  );
-}
-
-.meet-voted-banner__body {
-  flex: 1;
-  min-width: 0;
-  padding-top: 2px;
-  text-align: left;
-}
-
-.meet-voted-banner__title {
-  font-size: 16px;
+.meet-voting__voted-text {
+  font-size: var(--p-fs-body, 14px);
   font-weight: 600;
   line-height: 1.4;
-  letter-spacing: -0.01em;
+  color: var(--p-ink-1);
 }
 
-// Светлая: пункты повестки — та же тональность, что оболочка (не серый дефолт .info-card)
-.meet-details-voting-root .vote-question.info-card {
-  background-color: color-mix(in srgb, var(--q-primary) 6%, #ffffff);
-  border-color: color-mix(in srgb, var(--q-primary) 18%, rgba(0, 0, 0, 0.06));
+.meet-voting__head {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2, 8px);
+  color: var(--p-ink-2);
+  margin-bottom: var(--p-4, 16px);
 }
-
-.body--dark .meet-details-voting-root .vote-question.info-card,
-.q-dark .meet-details-voting-root .vote-question.info-card {
-  background-color: color-mix(
-    in srgb,
-    var(--q-dark-page, #1f1c1c) 90%,
-    var(--q-primary) 10%
-  );
-  border-color: rgba(255, 255, 255, 0.26);
-}
-
-.meet-vote-head {
-  text-align: center;
-}
-
-.meet-vote-title {
-  font-size: 18px;
+.meet-voting__title {
+  font-size: var(--p-fs-h2, 18px);
   font-weight: 600;
-  letter-spacing: -0.01em;
-  margin-bottom: 10px;
+  color: var(--p-ink);
 }
 
-.meet-vote-line {
-  height: 3px;
-  width: 48px;
-  margin: 0 auto;
-  border-radius: 999px;
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--q-primary) 70%, transparent),
-    color-mix(in srgb, var(--q-secondary) 70%, transparent)
-  );
+.meet-voting__items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3, 12px);
 }
 
-// Номер + текст: на мобилке — колонка, текст на всю ширину (не жмётся об аватар)
-.vote-question-layout {
+.meet-vote-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3, 12px);
+  padding: var(--p-4, 16px);
+  background: var(--p-surface);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-md, 12px);
+}
+.meet-vote-card__head {
   display: flex;
   align-items: flex-start;
-  gap: 16px;
+  gap: var(--p-3, 12px);
 }
-
-.vote-question-layout__badge {
-  flex-shrink: 0;
-  line-height: 0;
+.meet-vote-card__title {
+  font-size: var(--p-fs-body, 14px);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--p-ink-1);
+  padding-top: 6px;
+  overflow-wrap: anywhere;
 }
-
-.vote-question-layout__content {
-  flex: 1 1 0;
-  min-width: 0;
-}
-
-@media (max-width: 599px) {
-  .vote-question-layout {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-  }
-}
-
-// Текст приложений / ссылок — без отдельной подписи
-.vote-question-context {
-  font-size: 14px;
+.meet-vote-card__context {
+  font-size: var(--p-fs-body-sm, 13px);
   line-height: 1.5;
-  font-weight: 400;
-  opacity: 0.82;
-  word-break: break-word;
+  color: var(--p-ink-2);
+  overflow-wrap: anywhere;
 
   :deep(a) {
+    color: var(--p-primary);
     word-break: break-word;
   }
 }
 
-// Проект решения — визуальный акцент
-.vote-decision-block {
-  border-radius: 10px;
-  padding: 12px 14px;
-  border-left: 3px solid var(--q-primary);
-  background-color: color-mix(in srgb, var(--q-primary) 11%, #ffffff);
+/* Проект решения — спокойный акцент */
+.meet-vote-card__decision {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--p-3, 12px) var(--p-4, 16px);
+  border-radius: var(--p-r-sm, 8px);
+  background: var(--p-primary-soft);
 }
-
-.body--dark .vote-decision-block,
-.q-dark .vote-decision-block {
-  background-color: color-mix(
-    in srgb,
-    var(--q-primary) 16%,
-    var(--q-dark-page, #1f1c1c)
-  );
-  border-left-color: var(--q-primary);
-}
-
-.vote-decision-label {
-  font-size: 11px;
+.meet-vote-card__decision-label {
+  font-size: var(--p-fs-meta, 12px);
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--q-primary);
-  margin-bottom: 6px;
-  opacity: 0.95;
-}
-
-.vote-decision-text {
-  font-size: 14px;
-  line-height: 1.45;
-  font-weight: 500;
-  word-break: break-word;
-}
-
-.vote-prompt {
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
   letter-spacing: 0.04em;
-  opacity: 0.65;
+  text-transform: uppercase;
+  color: var(--p-primary);
+}
+.meet-vote-card__decision-text {
+  font-size: var(--p-fs-body-sm, 13px);
+  line-height: 1.45;
+  color: var(--p-ink-1);
+  overflow-wrap: anywhere;
+}
+
+.meet-vote-card__prompt {
+  font-size: var(--p-fs-meta, 12px);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--p-ink-3);
+}
+
+.meet-vote-card__options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--p-2, 8px);
+}
+@media (max-width: 599px) {
+  .meet-vote-card__options {
+    grid-template-columns: 1fr;
+  }
 }
 
 .vote-option {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
   width: 100%;
-  box-sizing: border-box;
   min-height: 48px;
-  padding: 10px 14px;
-  border-radius: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  padding: var(--p-2, 8px) var(--p-3, 12px);
+  border-radius: var(--p-r-sm, 8px);
+  border: 1px solid var(--p-line);
+  background: var(--p-surface-2);
   cursor: pointer;
-  transition:
-    border-color 0.2s ease,
-    background-color 0.2s ease,
-    box-shadow 0.2s ease;
-
-  .body--dark &,
-  .q-dark & {
-    border-color: rgba(255, 255, 255, 0.3);
-  }
+  transition: border-color var(--p-dur-fast, 120ms) var(--p-ease-standard);
+}
+.vote-option:hover {
+  border-color: var(--p-line-2);
+}
+.vote-option--for:hover {
+  border-color: var(--p-pos);
+}
+.vote-option--against:hover {
+  border-color: var(--p-neg);
 }
 
 :deep(.vote-option .q-radio) {
   width: 100%;
-  max-width: 100%;
   justify-content: flex-start;
 }
-
-// Светлая: явные пастели (color-mix с --q-surface часто даёт «невидимый» фон)
-.vote-option--for {
-  background-color: #e8f5e9;
-
-  .body--dark &,
-  .q-dark & {
-    background: color-mix(
-      in srgb,
-      var(--q-positive, #21ba45) 16%,
-      rgba(255, 255, 255, 0.06)
-    );
-  }
-}
-
-.vote-option--against {
-  background-color: #ffebee;
-
-  .body--dark &,
-  .q-dark & {
-    background: color-mix(
-      in srgb,
-      var(--q-negative, #c10015) 18%,
-      rgba(255, 255, 255, 0.06)
-    );
-  }
-}
-
-.vote-option--abstain {
-  background-color: #eceff1;
-
-  .body--dark &,
-  .q-dark & {
-    background: color-mix(in srgb, var(--q-primary) 10%, rgba(255, 255, 255, 0.06));
-  }
-}
-
-.vote-option:hover {
-  border-color: color-mix(in srgb, var(--q-primary) 25%, rgba(0, 0, 0, 0.08));
-  box-shadow: 0 1px 0 color-mix(in srgb, var(--q-primary) 12%, transparent);
-
-  .body--dark &,
-  .q-dark & {
-    border-color: color-mix(in srgb, var(--q-primary) 40%, rgba(255, 255, 255, 0.38));
-  }
-}
-
-.vote-option--for:hover {
-  border-color: color-mix(
-    in srgb,
-    var(--q-positive, #21ba45) 45%,
-    rgba(0, 0, 0, 0.08)
-  );
-  background-color: #dcedc8;
-}
-
-.body--dark .vote-option--for:hover,
-.q-dark .vote-option--for:hover {
-  border-color: color-mix(
-    in srgb,
-    var(--q-positive, #21ba45) 55%,
-    rgba(255, 255, 255, 0.35)
-  );
-  background: color-mix(
-    in srgb,
-    var(--q-positive, #21ba45) 22%,
-    rgba(255, 255, 255, 0.06)
-  );
-}
-
-.vote-option--against:hover {
-  border-color: color-mix(
-    in srgb,
-    var(--q-negative, #c10015) 45%,
-    rgba(0, 0, 0, 0.08)
-  );
-  background-color: #ffcdd2;
-}
-
-.body--dark .vote-option--against:hover,
-.q-dark .vote-option--against:hover {
-  border-color: color-mix(
-    in srgb,
-    var(--q-negative, #c10015) 55%,
-    rgba(255, 255, 255, 0.35)
-  );
-  background: color-mix(
-    in srgb,
-    var(--q-negative, #c10015) 24%,
-    rgba(255, 255, 255, 0.06)
-  );
-}
-
-.vote-option--abstain:hover {
-  border-color: color-mix(in srgb, var(--q-primary) 28%, rgba(0, 0, 0, 0.08));
-  background-color: #e0e0e0;
-}
-
-.body--dark .vote-option--abstain:hover,
-.q-dark .vote-option--abstain:hover {
-  border-color: color-mix(in srgb, var(--q-primary) 40%, rgba(255, 255, 255, 0.38));
-  background: color-mix(in srgb, var(--q-primary) 14%, rgba(255, 255, 255, 0.06));
-}
-
 :deep(.vote-option .q-radio__label) {
-  font-size: 15px;
-  font-weight: 700;
+  font-size: var(--p-fs-body-sm, 13px);
+  font-weight: 600;
   letter-spacing: 0.02em;
+  color: var(--p-ink-1);
 }
 
-.body--dark :deep(.vote-option .q-radio__label),
-.q-dark :deep(.vote-option .q-radio__label) {
-  color: rgba(255, 255, 255, 0.92);
+.meet-voting__foot {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--p-5, 20px);
 }
 </style>

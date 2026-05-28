@@ -9,12 +9,16 @@ div(v-if="store")
       v-model:selectedBranch="store.state.selectedBranch"
       :branches="branches"
     )
-    div.q-mt-lg
-      q-btn.col-md-6.col-xs-12(flat, @click='store.prev()')
+    .row.q-gutter-md.q-mt-lg.q-mb-lg
+      BaseButton(variant='ghost', @click='store.prev()')
         i.fa.fa-arrow-left
         span.q-ml-md назад
 
-      q-btn.q-mt-lg.q-mb-lg(color='primary', label='Продолжить', :disabled='!store.state.selectedBranch' @click='store.next()')
+      BaseButton(
+        variant='primary',
+        :disabled='!store.state.selectedBranch',
+        @click='store.next()'
+      ) Продолжить
 
 </template>
 
@@ -27,6 +31,7 @@ const { info } = useSystemStore()
 
 import { computed, watch, ref } from 'vue'
 import { BranchSelector } from 'src/shared/ui/BranchSelector';
+import { BaseButton } from 'src/shared/ui/base/BaseButton';
 
 const store = useRegistratorStore()
 const branchStore = useBranchStore()

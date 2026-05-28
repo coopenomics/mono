@@ -222,6 +222,47 @@ export function getSignersFromDocumentPackage(packageAggregate: IDocumentPackage
 }
 
 /**
+ * Уникальный список подписантов пакета документов как массив отображаемых
+ * имён («Фамилия И.О.») — для рендера отдельными бейджами в таблице.
+ */
+export function getSignersListFromDocumentPackage(
+  packageAggregate: IDocumentPackageAggregate,
+): string[] {
+  const signersSet = new Set<string>();
+
+  const processDocumentSignatures = (
+    documentAggregate?: IDocumentAggregate | null,
+  ) => {
+    if (!documentAggregate?.document?.signatures) return;
+    documentAggregate.document.signatures.forEach((signature) => {
+      if (signature.signer_certificate) {
+        const displayName = getShortNameFromCertificate(
+          signature.signer_certificate,
+        );
+        if (displayName) signersSet.add(displayName);
+      }
+    });
+  };
+
+  if (packageAggregate.statement?.documentAggregate) {
+    processDocumentSignatures(packageAggregate.statement.documentAggregate);
+  }
+  if (packageAggregate.decision?.documentAggregate) {
+    processDocumentSignatures(packageAggregate.decision.documentAggregate);
+  }
+  if (packageAggregate.acts?.length) {
+    packageAggregate.acts.forEach((act) => {
+      if (act.documentAggregate) processDocumentSignatures(act.documentAggregate);
+    });
+  }
+  if (packageAggregate.links?.length) {
+    packageAggregate.links.forEach((link) => processDocumentSignatures(link));
+  }
+
+  return Array.from(signersSet);
+}
+
+/**
  * Извлекает уникальный список фамилий подписантов из пакета документов
  */
 export function getSignerSurnamesFromDocumentPackage(packageAggregate: IDocumentPackageAggregate): string {

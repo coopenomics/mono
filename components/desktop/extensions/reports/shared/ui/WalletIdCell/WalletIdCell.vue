@@ -1,5 +1,5 @@
 <template lang="pug">
-span(v-if='!walletName').text-grey-6 —
+span(v-if='!walletName').t-faint —
 span.wallet-id-cell(v-else)
   EntityIdBadge(
     :rawId='walletName'

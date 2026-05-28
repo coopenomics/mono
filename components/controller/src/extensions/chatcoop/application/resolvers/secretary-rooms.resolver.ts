@@ -31,8 +31,8 @@ function mapManagedKind(kind: ChatcoopManagedMatrixRoomKind): ManagedRoomKindGql
 
 function toDto(room: ManagedMatrixRoomDomainEntity): ChatcoopSecretaryRoomDTO {
   return {
-    matrixRoomId: room.matrixRoomId,
-    displayLabel: room.displayLabel || room.matrixRoomId,
+    id: room.id,
+    displayLabel: room.displayLabel || 'Без названия',
     kind: mapManagedKind(room.kind),
     encrypted: room.encrypted,
     secretaryInRoom: room.secretaryInRoom,
@@ -85,14 +85,14 @@ export class SecretaryRoomsResolver {
 
   @Mutation(() => String, {
     name: 'chatcoopRemoveSecretaryRoom',
-    description: 'Удалить комнату секретаря: вывести секретаря и снять комнату с синхронизации (возвращает matrixRoomId)',
+    description: 'Удалить комнату секретаря: вывести секретаря и снять комнату с синхронизации (возвращает идентификатор комнаты в реестре)',
   })
   @AuthRoles(['chairman', 'member'])
   async removeSecretaryRoom(
     @CurrentUser() user: MonoAccountDomainInterface,
     @Args('data', { type: () => RemoveSecretaryRoomInputDTO }) data: RemoveSecretaryRoomInputDTO
   ): Promise<string> {
-    this.logger.log(`chatcoopRemoveSecretaryRoom user=${user.username} room=${data.matrixRoomId}`);
-    return this.service.removeSecretaryRoom(data.matrixRoomId);
+    this.logger.log(`chatcoopRemoveSecretaryRoom user=${user.username} room=${data.id}`);
+    return this.service.removeSecretaryRoom(data.id);
   }
 }

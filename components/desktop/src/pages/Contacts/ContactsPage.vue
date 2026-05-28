@@ -1,57 +1,37 @@
 <template lang="pug">
-.contacts-page.q-pa-lg
-  .page-header.q-mb-lg
-    .eyebrow Контактные данные
-    .title {{ contacts?.full_name || 'Организация' }}
+.contacts-page
+  header.contacts-page__header
+    span.contacts-page__eyebrow Контактные данные
+    h1.contacts-page__title {{ contacts?.full_name || 'Организация' }}
 
-  .row.q-col-gutter-md.q-mb-md(v-if='chairman')
-    .col-12
-      ColorCard(color='orange')
-        .card-section.chairman-card
-          .card-section-title Председатель совета
-          .info-list
-            .info-row
-              .label ФИО
-              .value {{ chairman }}
+  .contacts-card
+    //- Реквизиты и председатель — единая сетка полей.
+    .contacts-grid
+      .field
+        span.field__label ИНН
+        span.field__value {{ displayValue(contacts?.details?.inn) }}
+      .field
+        span.field__label ОГРН
+        span.field__value {{ displayValue(contacts?.details?.ogrn) }}
+      .field(v-if='chairman')
+        span.field__label Председатель совета
+        span.field__value {{ chairman }}
 
-  .row.q-col-gutter-md.q-mb-md
-    .col-md-4.col-sm-6.col-12
-      ColorCard(color='indigo')
-        .card-section
-          .card-section-title Регистрационные данные
-          .info-list
-            .info-row
-              .label ИНН
-              .value {{ displayValue(contacts?.details?.inn) }}
-            .info-row
-              .label ОГРН
-              .value {{ displayValue(contacts?.details?.ogrn) }}
-
-    .col-md-4.col-sm-6.col-12
-      ColorCard(color='teal')
-        .card-section
-          .card-section-title Контакты
-          .info-list
-            .info-row
-              .label Телефон
-              .value {{ displayValue(contacts?.phone) }}
-            .info-row
-              .label Электронная почта
-              .value {{ displayValue(contacts?.email) }}
-
-    .col-md-4.col-sm-12.col-12
-      ColorCard(color='blue')
-        .card-section
-          .card-section-title Адрес
-          .info-list
-            .info-row
-              .label Юридический адрес
-              .value {{ displayValue(contacts?.full_address) }}
+    //- Контакты — те же поля, значения-ссылки, без иконок и заголовка.
+    .contacts-grid.contacts-grid--contacts
+      .field(v-if='contacts?.phone')
+        span.field__label Телефон
+        a.field__value.field__value--link(:href='`tel:${phoneHref}`') {{ contacts.phone }}
+      .field(v-if='contacts?.email')
+        span.field__label Email
+        a.field__value.field__value--link(:href='`mailto:${contacts.email}`') {{ contacts.email }}
+      .field.field--wide(v-if='contacts?.full_address')
+        span.field__label Адрес
+        span.field__value {{ contacts.full_address }}
 </template>
 
 <script lang="ts" setup>
 import { computed } from 'vue';
-import ColorCard from 'src/shared/ui/ColorCard/ui/ColorCard.vue';
 import { useSystemStore } from 'src/entities/System/model';
 
 const { info } = useSystemStore();
@@ -63,76 +43,93 @@ const chairman = computed(() => {
   if (!chair) {
     return '';
   }
-  return [chair.last_name, chair.first_name, chair.middle_name].filter(Boolean).join(' ');
+  return [chair.last_name, chair.first_name, chair.middle_name]
+    .filter(Boolean)
+    .join(' ');
 });
+
+const phoneHref = computed(() =>
+  (contacts.value?.phone || '').replace(/\s+/g, ''),
+);
 
 const displayValue = (value?: string | null) => value || '—';
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+/* Полная ширина, как на canon-страницах документов/платежей. */
 .contacts-page {
-  width: 100%;
+  padding: var(--p-6, 24px);
+}
+@media (max-width: 768px) {
+  .contacts-page {
+    padding: var(--p-4, 16px);
+  }
 }
 
-.page-header {
+.contacts-page__header {
   display: grid;
-  gap: 4px;
+  gap: var(--p-1, 4px);
+  margin-bottom: var(--p-5, 20px);
 }
-
-.eyebrow {
+.contacts-page__eyebrow {
+  font-size: var(--p-fs-eyebrow, 11px);
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  font-size: 12px;
-  opacity: 0.7;
+  color: var(--p-ink-3);
 }
-
-.title {
-  font-size: 24px;
+.contacts-page__title {
+  margin: 0;
+  font-size: var(--p-fs-h1, 24px);
   font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--p-ink);
 }
 
-.card-section {
+/* Единая спокойная поверхность; одна линия делит реквизиты и контакты. */
+.contacts-card {
+  background: var(--p-surface);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-lg, 16px);
+  padding: var(--p-5, 20px);
+}
+
+.contacts-grid {
   display: grid;
-  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--p-4, 16px) var(--p-6, 24px);
+}
+.contacts-grid--contacts {
+  margin-top: var(--p-5, 20px);
+  padding-top: var(--p-5, 20px);
+  border-top: 1px solid var(--p-line);
 }
 
-.card-section-title {
-  font-weight: 600;
-  font-size: 14px;
-}
-
-.info-list {
-  display: grid;
-  gap: 6px;
-}
-
-.info-row {
+.field {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 8px 10px;
-  border-radius: 10px;
-  background: rgba(0, 0, 0, 0.02);
+  flex-direction: column;
+  gap: var(--p-1, 4px);
+  min-width: 0;
 }
-
-.label {
-  font-size: 12px;
-  opacity: 0.7;
+.field--wide {
+  grid-column: 1 / -1;
 }
-
-.value {
-  font-size: 14px;
-  font-weight: 600;
-  text-align: right;
-  max-width: 60%;
-  word-break: break-word;
+.field__label {
+  font-size: var(--p-fs-meta, 12px);
+  color: var(--p-ink-2);
 }
-
-.q-dark .info-row {
-  background: rgba(255, 255, 255, 0.04);
+.field__value {
+  font-size: var(--p-fs-body, 14px);
+  font-weight: 500;
+  color: var(--p-ink-1);
+  overflow-wrap: anywhere;
 }
-
-.chairman-card .info-row {
-  background: rgba(255, 152, 0, 0.08);
+a.field__value--link {
+  color: var(--p-primary);
+  text-decoration: none;
+  transition: color var(--p-dur-fast, 120ms) var(--p-ease-standard);
+}
+a.field__value--link:hover {
+  color: var(--p-primary-hover);
+  text-decoration: underline;
 }
 </style>

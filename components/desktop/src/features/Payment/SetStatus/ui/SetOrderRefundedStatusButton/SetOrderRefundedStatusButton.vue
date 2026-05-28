@@ -1,21 +1,21 @@
 <template lang="pug">
-q-btn(color="red" clickable size="sm" @click="showDialog=true")
-  div
-    q-icon(name="cancel").q-mr-xs
-    span Отклонить платеж
+BaseButton(variant="danger" size="sm" @click="showDialog=true")
+  template(#icon-left)
+    q-icon(name="cancel" size="14px").q-mr-xs
+  | Отклонить
 
-  q-dialog(v-model="showDialog" @hide="close")
-    ModalBase(title='Отклонить платеж')
-      Form(:handler-submit="setRefund" :is-submitting="isSubmitting" :button-cancel-txt="'Отменить'" :button-submit-txt="'Продолжить'" @cancel="close").q-pa-sm
-        div(style="max-width: 300px;")
-          p Вы уверены, что хотите отклонить платеж? При отклонении входящего платежа - верните средства пайщику. При отклонении исходящего платежа - система запустит соответствующую автоматическую цепочку обратных действий.
-
+q-dialog(v-model="showDialog" @hide="close")
+  ModalBase(title='Отклонить платеж')
+    Form(:handler-submit="setRefund" :is-submitting="isSubmitting" :button-cancel-txt="'Отменить'" :button-submit-txt="'Продолжить'" @cancel="close").q-pa-sm
+      div(style="max-width: 300px;")
+        p Вы уверены, что хотите отклонить платеж? При отклонении входящего платежа - верните средства пайщику. При отклонении исходящего платежа - система запустит соответствующую автоматическую цепочку обратных действий.
 </template>
 <script lang="ts" setup>
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSetStatus } from '../../model';
 import { ref } from 'vue';
 import { ModalBase } from 'src/shared/ui/ModalBase';
+import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { Form } from 'src/shared/ui/Form';
 const {setRefundedStatus} = useSetStatus()
 const isSubmitting = ref(false)

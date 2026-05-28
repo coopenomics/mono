@@ -1,6 +1,6 @@
 <template lang="pug">
 q-btn(
-  v-if='isActive',
+  v-if='canContribute',
   @click='showDialog = true',
   :color='micro ? "accent" : "primary"',
   :flat='micro',
@@ -71,7 +71,8 @@ import { useDepositDialog } from '../../model/useDepositDialog';
 
 const { info } = useSystemStore();
 
-const { loadUserWallet } = useWalletStore();
+const walletStore = useWalletStore();
+const { loadUserWallet } = walletStore;
 const { createDeposit } = useCreateDepositPayment();
 
 //TODO move username to Session entity
@@ -87,6 +88,12 @@ const paymentOrder = ref();
 // пользователя по тупиковому пути.
 const isActive = computed(
   () => session.userAccount?.status === 'active',
+);
+
+// Внести паевой взнос можно только после подписи соглашения цифрового
+// кошелька — до этого кошелёк не активен (как и скрытая карточка кошелька).
+const canContribute = computed(
+  () => isActive.value && walletStore.isWalletAgreementSigned,
 );
 
 const clear = (): void => {

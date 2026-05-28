@@ -1,6 +1,6 @@
 <template lang="pug">
-div.page-shell
-  q-card.q-mt-md(flat)
+.accounts-page
+  q-card(flat)
     q-table.full-height(
       flat
       :grid='isMobile'
@@ -43,7 +43,7 @@ div.page-shell
             .q-pa-sm
               .row.items-center.q-mb-sm
                 .col
-                  .text-caption.text-grey-6 История проводок
+                  .text-caption.t-faint История проводок
                 .col-auto
                   q-btn(
                     flat dense size='sm' color='primary'
@@ -81,7 +81,7 @@ div.page-shell
                       @click='copyFullHash(cp.row.processHash)'
                     )
                       q-tooltip Клик — копировать полный хэш
-                    span.text-grey-6(v-else) —
+                    span.t-faint(v-else) —
                 template(#body-cell-quantity='cp')
                   q-td.text-right(:props='cp') {{ cp.row.quantity ? formatAsset2Digits(cp.row.quantity) : '—' }}
                 template(#body-cell-createdAt='cp')
@@ -115,13 +115,13 @@ div.page-shell
                   q-tooltip К операциям счёта
             .row.q-mt-sm
               .col-4
-                .text-caption.text-grey-6 Дебет
+                .text-caption.t-faint Дебет
                 .text-body2 {{ formatAsset2Digits(props.row.debitBalance) }}
               .col-4
-                .text-caption.text-grey-6 Кредит
+                .text-caption.t-faint Кредит
                 .text-body2 {{ formatAsset2Digits(props.row.creditBalance) }}
               .col-4
-                .text-caption.text-grey-6 Сальдо
+                .text-caption.t-faint Сальдо
                 .text-body2.text-weight-bold {{ formatAsset2Digits(props.row.balance) }}
 </template>
 
@@ -234,19 +234,23 @@ onMounted(async () => {
 </script>
 
 <style scoped lang="scss">
+.accounts-page {
+  padding: var(--p-6, 24px);
+  @media (max-width: 768px) {
+    padding: var(--p-4, 16px);
+  }
+}
 .font-monospace {
   font-family: 'JetBrains Mono', 'Courier New', monospace;
   letter-spacing: 0.03em;
 }
-// Тип счёта (Активный/Пассивный) и сторона проводки (Дебет/Кредит): subtle
-// hue-различие при максимальной читаемости. quasar text-blue-grey-8 /
-// text-brown-7 нечитаемы на тёмной теме — здесь theme-aware-варианты.
+// Тип счёта (Активный/Пассивный) и сторона проводки (Дебет/Кредит):
+// различие словом + спокойный канон-контраст. Активный/Дебет — основной
+// ink, Пассивный/Кредит — приглушённый; оба theme-aware через токены.
 .account-type-active {
-  color: #37474F; // blue-grey-9
-  .body--dark & { color: #B0BEC5; } // blue-grey-3
+  color: var(--p-ink);
 }
 .account-type-passive {
-  color: #5D4037; // brown-8
-  .body--dark & { color: #BCAAA4; } // brown-3
+  color: var(--p-ink-2);
 }
 </style>

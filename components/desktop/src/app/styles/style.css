@@ -168,19 +168,6 @@ pre {
   line-height: 1.4em;
 }
 
-.card {
-  cursor: pointer;
-  transition:
-    transform 0.3s ease,
-    box-shadow 0.3s ease;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-
-  &:hover {
-    transform: scale(1.03);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-  }
-}
-
 /* Глобальный стиль ссылок для светлой и тёмной темы */
 a {
   color: #1c64f2;
@@ -199,23 +186,16 @@ a:visited {
   color: #d97706;
 }
 
-/* Стили для псевдо-ссылок в чекбоксах */
+/* Стили для псевдо-ссылок в чекбоксах согласий — единый accent-цвет
+   (тёплая терракота) и в light, и в dark. */
 .agreement-link {
-  color: #1c64f2;
+  color: var(--p-accent);
   text-decoration: underline;
   cursor: pointer;
   transition: color 0.2s;
 }
 .agreement-link:visited {
-  color: #7c3aed;
-}
-.body--dark .agreement-link,
-.q-dark .agreement-link {
-  color: #ff9f43;
-}
-.body--dark .agreement-link:visited,
-.q-dark .agreement-link:visited {
-  color: #d97706;
+  color: var(--p-accent);
 }
 
 /* Стили для заголовков элементов списков (проекты, компоненты, задачи) */

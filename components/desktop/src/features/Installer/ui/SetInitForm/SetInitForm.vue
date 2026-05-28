@@ -1,63 +1,73 @@
 <template lang="pug">
-div
-  div(v-if="!loading && installationStatus")
-    //- Если данные установлены сервером - показываем readonly
-    div(v-if="installationStatus.init_by_server")
-      q-card(flat).q-mb-md
-        q-card-section
-          div Вам предустановлены данные кооператива. Пожалуйста, проверьте их, и в случае обнаружения ошибок, обратитесь к вашему оператору для внесения изменений.
+.set-init
+  div(v-if='!loading && installationStatus')
+    //- Если данные установлены сервером — показываем readonly
+    div(v-if='installationStatus.init_by_server')
+      .install-note
+        | Вам предустановлены данные кооператива. Пожалуйста, проверьте их, и
+        | в случае обнаружения ошибок обратитесь к вашему оператору для внесения
+        | изменений.
 
       CreateOrganizationDataForm(
-        :data="installationStatus.organization_data || installStore.organization_data"
-        readonly
+        :data='installationStatus.organization_data || installStore.organization_data',
+        readonly,
         hideMatchButton
       )
 
-      div.flex.justify-between.q-mt-md
-        q-btn(@click="back" color="grey" label="Назад" icon="arrow_back")
-        q-btn(@click="next" color="primary" label="Далее" icon="arrow_forward" :loading="saving")
+      .set-init__actions
+        BaseButton(variant='ghost', @click='back')
+          q-icon(name='arrow_back', size='16px')
+          span.q-ml-sm Назад
+        BaseButton(variant='primary', :loading='saving', @click='next')
+          span.q-mr-sm Далее
+          q-icon(name='arrow_forward', size='16px')
 
-    //- Если данных нет или они введены пользователем (не сервером) - показываем форму для ввода/редактирования
+    //- Если данных нет или они введены пользователем — форма для ввода/редактирования
     div(v-else)
-      q-card(flat).q-mb-md
-        q-card-section
-          div Заполните данные кооператива. Эти данные будут использоваться для организации документооборота с пайщиками.
+      .install-note
+        | Заполните данные кооператива. Они будут использоваться для организации
+        | документооборота с пайщиками.
 
       CreateOrganizationDataForm(
-        :data="installStore.organization_data"
-        @update:data="onOrganizationDataUpdate"
+        :data='installStore.organization_data',
+        @update:data='onOrganizationDataUpdate'
       )
         template(#top)
           q-input(
-            ref="emailInput"
-            autofocus
-            v-model="organizationEmail"
-            label="Email организации"
-            type="email"
-            standout="bg-teal text-white"
-            :rules="[val => notEmpty(val)]"
-            autocomplete="off"
+            ref='emailInput',
+            autofocus,
+            outlined,
+            dense,
+            color='primary',
+            v-model='organizationEmail',
+            label='Email организации',
+            type='email',
+            :rules='[val => notEmpty(val)]',
+            autocomplete='off'
           )
 
-      div.flex.justify-between.q-mt-md
-        q-btn(@click="back" color="grey" label="Назад" icon="arrow_back")
-        q-btn(
-          @click="saveAndNext"
-          color="primary"
-          label="Продолжить"
-          icon="arrow_forward"
-          :loading="saving"
-          :disable="!isValidData"
+      .set-init__actions
+        BaseButton(variant='ghost', @click='back')
+          q-icon(name='arrow_back', size='16px')
+          span.q-ml-sm Назад
+        BaseButton(
+          variant='primary',
+          :loading='saving',
+          :disabled='!isValidData',
+          @click='saveAndNext'
         )
+          span.q-mr-sm Продолжить
+          q-icon(name='arrow_forward', size='16px')
 
-  div(v-else-if="loading")
-    Loader(text="Загрузка данных...")
+  div(v-else-if='loading')
+    Loader(text='Загрузка данных...')
 
-  div(v-else)
-    div.text-center.q-pa-lg
-      q-icon(name="error" size="50px" color="negative")
-      div.text-h6.q-mt-md Ошибка загрузки данных
-      q-btn(@click="loadData" color="primary" label="Повторить" icon="refresh")
+  .set-init__error(v-else)
+    q-icon(name='error', size='48px', color='negative')
+    p.set-init__error-text Ошибка загрузки данных
+    BaseButton(variant='secondary', @click='loadData')
+      q-icon(name='refresh', size='16px')
+      span.q-ml-sm Повторить
 </template>
 
 <script setup lang="ts">
@@ -71,6 +81,7 @@ import { extractGraphQLErrorMessages } from 'src/shared/api/errors';
 import { useSystemStore } from 'src/entities/System/model';
 import { notEmpty } from 'src/shared/lib/utils';
 import { Zeus } from '@coopenomics/sdk';
+import { BaseButton } from 'src/shared/ui/base/BaseButton';
 
 defineEmits<{
   next: []
@@ -254,3 +265,39 @@ watch(() => installStore.current_step, (newStep) => {
   }
 });
 </script>
+
+<style scoped lang="scss">
+.install-note {
+  padding: var(--p-3, 12px) var(--p-4, 16px);
+  margin-bottom: var(--p-4, 16px);
+  background: var(--p-surface-2);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-md, 12px);
+  font-size: var(--p-fs-body-sm, 13px);
+  line-height: var(--p-lh-body, 1.55);
+  color: var(--p-ink-2);
+}
+
+.set-init__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--p-2, 8px);
+  margin-top: var(--p-5, 20px);
+}
+
+.set-init__error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--p-3, 12px);
+  padding: var(--p-6, 24px);
+}
+.set-init__error-text {
+  margin: 0;
+  font-size: var(--p-fs-body, 14px);
+  font-weight: 600;
+  color: var(--p-ink);
+}
+</style>

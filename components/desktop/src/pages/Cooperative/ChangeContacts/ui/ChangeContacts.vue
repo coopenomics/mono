@@ -1,10 +1,11 @@
 <template lang="pug">
-div.page-shell
-  q-card.hero-card(flat)
-    .hero-title Контакты кооператива
-    .hero-subtitle
-      | Эти контакты показываются пайщикам и в подвале сайта для
-      | незарегистрированных пользователей. Держите их актуальными.
+.contacts-page
+  .banner
+    q-icon.banner__icon(name='fa-solid fa-circle-info' size='18px')
+    .banner__body
+      | Эти контакты показываются всем — в разделе «Контакты кооператива»
+      | пайщикам и в подвале сайта незарегистрированным посетителям.
+      | Держите их актуальными.
 
   q-card.surface-card(flat)
     .section-title Публичные контакты
@@ -12,14 +13,16 @@ div.page-shell
 
     q-input(
       v-model="phone"
-      standout="bg-teal text-white"
+      outlined
+      color="primary"
       dense
       label="Телефон"
       type="tel"
     )
     q-input(
       v-model="email"
-      standout="bg-teal text-white"
+      outlined
+      color="primary"
       dense
       label="Электронная почта"
       type="email"
@@ -73,49 +76,40 @@ const update = async () => {
 </script>
 
 <style scoped lang="scss">
-.page-shell {
+.contacts-page {
   width: 100%;
-  padding: 24px 12px 32px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-}
-
-.hero-card {
-  border-radius: 18px;
-  padding: 18px 20px;
-}
-
-.hero-title {
-  font-size: 22px;
-  font-weight: 600;
-}
-
-.hero-subtitle {
-  line-height: 1.55;
-  max-width: 900px;
+  gap: var(--p-5, 20px);
+  padding: var(--p-6, 24px);
+  @media (max-width: 768px) {
+    padding: var(--p-4, 16px);
+  }
 }
 
 .surface-card {
-  border-radius: 16px;
-  padding: 18px 16px;
+  border-radius: var(--p-r-md, 12px);
+  padding: var(--p-5, 20px);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--p-3, 12px);
 }
 
 .section-title {
-  font-size: 16px;
+  font-size: var(--p-fs-h3);
   font-weight: 600;
+  color: var(--p-ink);
 }
 
 .section-note {
+  font-size: var(--p-fs-body-sm);
   line-height: 1.45;
+  color: var(--p-ink-2);
 }
 
 .action-row {
   display: flex;
   justify-content: flex-start;
-  padding-top: 6px;
+  padding-top: var(--p-2, 8px);
 }
 </style>

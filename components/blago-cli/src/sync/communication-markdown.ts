@@ -43,7 +43,6 @@ export function projectCommunicationDayToMarkdown(
 }
 
 export interface TranscriptionHeaderModel {
-  matrixRoomId: string
   roomId: string
   startedAt: Date | string
   endedAt: Date | string | null | undefined
@@ -71,7 +70,6 @@ export function renderCallTranscriptionMarkdown(
   const header = [
     `# Транскрипция звонка`,
     ``,
-    `- Matrix room: \`${transcription.matrixRoomId}\``,
     `- LiveKit room: \`${transcription.roomId}\``,
     `- Начало: ${start.toISOString()}`,
     `- Окончание: ${end ? end.toISOString() : '—'}`,

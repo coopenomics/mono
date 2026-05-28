@@ -2,12 +2,11 @@
 q-btn(
   @click='show = true',
   color='primary',
-  push,
   no-wrap,
   :stretch='isMobile',
   :size='isMobile ? "sm" : "md"'
 )
-  span.q-pr-sm предложить
+  span.q-pr-sm Предложить
   i.fa-solid.fa-plus
 
   q-dialog(v-model='show', persistent, :maximized='true')

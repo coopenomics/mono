@@ -40,13 +40,16 @@ export function useNotificationPermissionDialog() {
     LocalStorage.setItem(PERMISSION_CHOICE_KEY, choiceData);
   };
 
-  // Проверяем, нужно ли показывать диалог
+  // Проверяем, нужно ли показывать диалог.
+  // ВАЖНО: геттер ДОЛЖЕН быть чистым — никаких мутаций store здесь.
+  // Раньше тут вызывался updateSupport(), который присваивал store.support
+  // новый объект на каждое чтение computed. Побочный эффект в геттере давал
+  // каскад инвалидаций/ре-рендеров после выдачи разрешения и подвешивал весь
+  // UI (роутер менялся, а DOM «застывал»). Актуализация support вынесена в
+  // showDialog().
   const shouldShowDialog = computed(() => {
     // Пользователь должен быть авторизован
     if (!sessionStore.isAuth) return false;
-
-    // Обновляем поддержку
-    updateSupport();
 
     // Браузер должен поддерживать push уведомления
     if (!support.value.isSupported) return false;
@@ -66,6 +69,9 @@ export function useNotificationPermissionDialog() {
 
   // Показать диалог
   const showDialog = () => {
+    // Актуализируем поддержку браузера ПЕРЕД проверкой предиката
+    // (вынесено из computed shouldShowDialog, чтобы геттер оставался чистым).
+    updateSupport();
     if (shouldShowDialog.value) {
       store.isPermissionDialogVisible = true;
     }

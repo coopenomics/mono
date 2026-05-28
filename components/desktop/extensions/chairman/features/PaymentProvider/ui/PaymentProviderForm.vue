@@ -1,43 +1,41 @@
 <template lang="pug">
-form.full-width(@submit.prevent='submit')
-  .q-gutter-md
-    // Провайдер платежей по умолчанию
-    .row.q-gutter-md
-      .col-md-6.col-sm-12
-        q-select(
-          v-model='formData.provider_name'
-          :options='providerOptions'
-          label='Провайдер входящих платежей'
-          placeholder='Выберите провайдера'
-          dense
-          standout="bg-teal text-white"
-          emit-value
-          map-options
-          option-value='value'
-          option-label='label'
-          :loading='loading'
-        )
+form.pp-form(@submit.prevent='submit')
+  q-select.pp-form__select(
+    v-model='formData.provider_name'
+    :options='providerOptions'
+    label='Провайдер входящих платежей'
+    placeholder='Выберите провайдера'
+    dense
+    outlined
+    color='primary'
+    emit-value
+    map-options
+    option-value='value'
+    option-label='label'
+    :loading='loading'
+  )
 
-      .col-md-12(v-if='selectedProviderDescription')
-        .q-mt-sm.text-caption.text-grey-7 {{ selectedProviderDescription }}
+  .pp-form__hint(v-if='selectedProviderDescription') {{ selectedProviderDescription }}
 
-  .q-mt-md
-    .row.justify-start.q-gutter-sm
-      q-btn(
-        flat
-        label='Отменить'
-        color='grey'
-        @click='resetForm'
-        :loading='loading'
-        :disable='!hasChanges'
-      )
-      q-btn(
-        type='submit'
-        label='Сохранить'
-        color='primary'
-        :loading='loading'
-        :disable='!hasChanges'
-      )
+  .pp-form__actions
+    q-btn(
+      flat
+      no-caps
+      label='Отменить'
+      color='grey-7'
+      @click='resetForm'
+      :loading='loading'
+      :disable='!hasChanges'
+    )
+    q-btn(
+      type='submit'
+      no-caps
+      unelevated
+      label='Сохранить'
+      color='primary'
+      :loading='loading'
+      :disable='!hasChanges'
+    )
 </template>
 
 <script lang="ts" setup>
@@ -133,8 +131,24 @@ const submit = async () => {
 }
 </script>
 
-<style scoped>
-.full-width {
+<style scoped lang="scss">
+.pp-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-4, 16px);
   width: 100%;
+}
+.pp-form__select {
+  max-width: 480px;
+}
+.pp-form__hint {
+  max-width: 640px;
+  font-size: var(--p-fs-body-sm);
+  line-height: 1.5;
+  color: var(--p-ink-2);
+}
+.pp-form__actions {
+  display: flex;
+  gap: var(--p-2, 8px);
 }
 </style>

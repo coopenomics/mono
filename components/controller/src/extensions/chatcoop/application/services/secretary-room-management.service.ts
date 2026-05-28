@@ -120,9 +120,12 @@ export class SecretaryRoomManagementService {
    * Удаляет комнату секретаря: выводит секретаря из Matrix-комнаты и убирает запись из реестра ChatCoop.
    * Сама Matrix-комната не уничтожается — её участники сохраняют доступ и историю, но транскрипция/синхронизация прекращаются.
    * Разрешено только для kind `secretary` — системные и проектные комнаты так удалять нельзя.
+   *
+   * На вход — внутренний идентификатор реестра (`id`), а НЕ Matrix room id: интерфейс не оперирует
+   * Matrix room id, чтобы не раздавать handle для входа в приватные комнаты.
    */
-  async removeSecretaryRoom(matrixRoomId: string): Promise<string> {
-    const room = await this.managedRooms.findByMatrixRoomId(matrixRoomId);
+  async removeSecretaryRoom(id: string): Promise<string> {
+    const room = await this.managedRooms.findById(id);
     if (!room) {
       throw new NotFoundException('Комната не найдена в реестре ChatCoop');
     }
@@ -130,6 +133,7 @@ export class SecretaryRoomManagementService {
       throw new BadRequestException('Удалять можно только комнаты секретаря (системные и проектные защищены)');
     }
 
+    const matrixRoomId = room.matrixRoomId;
     const st = await this.chatcoopState.getSingleton();
     const secretaryId = st.secretaryMatrixUserId;
     if (typeof secretaryId === 'string' && secretaryId.trim().length > 0) {
@@ -142,7 +146,7 @@ export class SecretaryRoomManagementService {
 
     await this.managedRooms.setSecretaryInRoom(matrixRoomId, false);
     await this.managedRooms.deleteByMatrixRoomId(matrixRoomId);
-    this.logger.log(`Комната секретаря ${matrixRoomId} удалена из реестра`);
-    return matrixRoomId;
+    this.logger.log(`Комната секретаря ${id} удалена из реестра`);
+    return id;
   }
 }

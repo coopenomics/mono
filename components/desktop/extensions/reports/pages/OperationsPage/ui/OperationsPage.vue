@@ -1,7 +1,7 @@
 <template lang="pug">
-div.page-shell
+.operations-page
   //- Активные фильтры (чипы) + фильтры по датам
-  q-card.q-mt-md(flat)
+  q-card(flat)
     q-card-section
       .row.q-gutter-sm.items-center.q-mb-sm(
         v-if='filters.accountId !== null || filters.walletName || filters.processHash || filters.applyGlobalSequence || filters.username'
@@ -146,7 +146,7 @@ div.page-shell
               @click='copyFullHash(props.row.processHash)'
             )
               q-tooltip Клик — копировать полный хэш
-            span.text-grey-6(v-else) —
+            span.t-faint(v-else) —
           q-td {{ formatDate(props.row.createdAt) }}
           q-td
             q-chip(
@@ -172,14 +172,14 @@ div.page-shell
               )
                 .text-h6.text-weight-medium {{ rowLabel(props.row) }}
                 .row.items-center.q-gutter-sm.q-mb-xs(v-if='props.row.operationCode')
-                  .text-caption.text-grey-7 Тип процесса:
+                  .text-caption.t-muted Тип процесса:
                   EntityIdBadge(
                     :rawId='props.row.operationCode'
                     copy-on-click
                   )
                     q-tooltip Клик — копировать
                 .row.items-center.q-gutter-sm.q-mb-xs(v-if='props.row.processHash')
-                  .text-caption.text-grey-7 ID процесса:
+                  .text-caption.t-muted ID процесса:
                   EntityIdBadge(
                     :rawId='props.row.processHash'
                     copy-on-click
@@ -187,7 +187,7 @@ div.page-shell
                     q-tooltip Клик — копировать
                 .row.items-center.q-gutter-sm(v-if='props.row.memo')
                   q-icon(name='fa-solid fa-note-sticky' color='grey-6' size='xs')
-                  .text-caption.text-grey-8 {{ props.row.memo }}
+                  .text-caption.t-muted {{ props.row.memo }}
 
               //- Тело: две таблицы рядом на md+, друг под другом на маленьких
               template(v-if='childLoading.get(props.row.globalSequence)')
@@ -219,7 +219,7 @@ div.page-shell
                             WalletIdCell(:wallet-name='cp.row.walletTo')
                         template(#body-cell-quantity='cp')
                           q-td.text-right(:props='cp') {{ formatAmount(cp.row.quantity) }}
-                      .text-caption.text-grey-6(v-else) Движений по кошелькам нет
+                      .text-caption.t-faint(v-else) Движений по кошелькам нет
 
                 //- Таблица 2: Проводки по счетам (Дт → Кт парами)
                 .col-12.col-md-6
@@ -244,28 +244,28 @@ div.page-shell
                             AccountIdCell(:account-code='cp.row.creditCode')
                         template(#body-cell-quantity='cp')
                           q-td.text-right(:props='cp') {{ formatAmount(cp.row.quantity) }}
-                      .text-caption.text-grey-6(v-else) Проводок нет
+                      .text-caption.t-faint(v-else) Проводок нет
 
       template(#item='props')
         .col-12
           q-card.q-pa-md.q-mb-sm
             .row.items-center.q-gutter-x-md
               .col
-                .text-caption.text-grey-6 {{ formatDate(props.row.createdAt) }}
+                .text-caption.t-faint {{ formatDate(props.row.createdAt) }}
                 .text-body2.text-weight-medium {{ actionLabel(props.row.operationCode) }}
-                .text-caption.text-grey-6.font-monospace {{ props.row.operationCode || '-' }}
+                .text-caption.t-faint.font-monospace {{ props.row.operationCode || '-' }}
               .col-auto.text-right
-                .text-caption.text-grey-6 Сумма
+                .text-caption.t-faint Сумма
                 .text-body1.text-weight-bold.font-monospace {{ formatAmount(props.row.quantity) }}
-              .col-12.text-caption.text-grey-7
+              .col-12.text-caption.t-muted
                 | Пайщик: {{ fioCache.get(props.row.username ?? '') || props.row.username || '-' }}
               .col-12.row.q-gutter-xs.q-mt-xs.items-center
-                .text-caption.text-grey-7 № операции
+                .text-caption.t-muted № операции
                 EntityIdBadge(
                   :rawId='props.row.globalSequence'
                   @click='copyText(String(props.row.globalSequence))'
                 )
-                .text-caption.text-grey-7 № процесса
+                .text-caption.t-muted № процесса
                 EntityIdBadge(
                   v-if='props.row.processHash'
                   :rawId='shortHash(props.row.processHash)'
@@ -831,12 +831,18 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.operations-page {
+  padding: var(--p-6, 24px);
+}
+@media (max-width: 768px) {
+  .operations-page { padding: var(--p-4, 16px); }
+}
 .font-monospace {
   font-family: 'JetBrains Mono', 'Courier New', monospace;
   letter-spacing: 0.03em;
 }
 .op-header {
-  border-left: 4px solid #9e9e9e;
+  border-left: 4px solid var(--p-line-2);
   padding: 4px 0 4px 12px;
 }
 </style>

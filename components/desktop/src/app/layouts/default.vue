@@ -2,13 +2,13 @@
 q-layout(view='lHh LpR fff')
   Header(:showDrawer='showDrawer', @toggle-left-drawer='toggleLeftDrawer')
 
-  q-drawer(
+  q-drawer.app-left-drawer(
     v-if='showDrawer && loggedIn',
     v-model='leftDrawerOpen',
     side='left',
     bordered,
     persistent,
-    :width='200'
+    :width='248'
   )
     LeftDrawerMenu
 
@@ -97,6 +97,22 @@ const buttonStyle = computed(() => ({
 </script>
 
 <style lang="scss">
+/* Левый дровер фиксированный — горизонтального скролла быть не должно.
+   У .rail есть собственный border-right (1px), который при content-box даёт
+   ~1px overflow внутри контента дровера и порождает паразитный горизонтальный
+   скроллбар; трекпадом его можно «оттянуть», обнажая правую границу.
+   Гасим overflow-x и эластичное оттягивание, а .rail приводим к border-box. */
+.app-left-drawer {
+  .q-drawer__content {
+    overflow-x: hidden;
+    overscroll-behavior-x: contain;
+  }
+  .rail {
+    width: 100%;
+    box-sizing: border-box;
+  }
+}
+
 .drawer-right {
   border-left: 1px solid #00800038 !important;
 }
@@ -107,7 +123,7 @@ const buttonStyle = computed(() => ({
 
 .fixed-top-right {
   position: fixed !important;
-  top: 51px; // Под header'ом
+  top: var(--p-topbar-h); // Под header'ом (canon: 56px)
   right: 0px;
   z-index: 10;
 }

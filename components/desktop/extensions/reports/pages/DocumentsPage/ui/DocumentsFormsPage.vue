@@ -1,58 +1,59 @@
 <template lang="pug">
-.q-pa-md
+.documents-forms
   .row.items-center.q-mb-md
     .text-h6.col Доступные формы
     q-btn(flat dense icon='fa-solid fa-rotate' @click='loadReports' :loading='reportStore.loading')
       q-tooltip Обновить
 
-  q-table(
-    :rows='visibleReports'
-    :columns='columns'
-    row-key='type'
-    flat
-    :loading='reportStore.loading'
-    hide-pagination
-    :pagination='{ rowsPerPage: 0 }'
-  )
-    template(#body-cell-period='props')
-      q-td(:props='props')
-        q-chip(:color='periodColor(props.row.period)' text-color='white' dense) {{ periodLabel(props.row.period) }}
+  q-card(flat)
+    q-table(
+      :rows='visibleReports'
+      :columns='columns'
+      row-key='type'
+      flat
+      :loading='reportStore.loading'
+      hide-pagination
+      :pagination='{ rowsPerPage: 0 }'
+    )
+      template(#body-cell-period='props')
+        q-td(:props='props')
+          BaseBadge(:variant='periodVariant(props.row.period)') {{ periodLabel(props.row.period) }}
 
-    template(#body-cell-ready='props')
-      q-td(:props='props')
-        q-icon(
-          v-if='props.row.readyToGenerate'
-          name='fa-solid fa-check-circle'
-          color='positive'
-          size='20px'
-        )
-          q-tooltip Реквизиты заполнены
-        q-icon(
-          v-else
-          name='fa-solid fa-triangle-exclamation'
-          color='warning'
-          size='20px'
-        )
-          q-tooltip {{ missingTooltip(props.row) }}
+      template(#body-cell-ready='props')
+        q-td(:props='props')
+          q-icon(
+            v-if='props.row.readyToGenerate'
+            name='fa-solid fa-check-circle'
+            color='positive'
+            size='20px'
+          )
+            q-tooltip Реквизиты заполнены
+          q-icon(
+            v-else
+            name='fa-solid fa-triangle-exclamation'
+            color='warning'
+            size='20px'
+          )
+            q-tooltip {{ missingTooltip(props.row) }}
 
-    template(#body-cell-actions='props')
-      q-td(:props='props')
-        q-btn(
-          v-if='props.row.readyToGenerate'
-          flat dense
-          icon='fa-solid fa-pen-to-square'
-          color='primary'
-          @click='openEditor(props.row)'
-        )
-          q-tooltip Открыть редактор формы
-        q-btn(
-          v-else
-          flat dense
-          icon='fa-solid fa-gear'
-          color='warning'
-          :to='{ name: "reports-settings", query: { focus: firstMissing(props.row) } }'
-        )
-          q-tooltip Заполнить реквизиты
+      template(#body-cell-actions='props')
+        q-td(:props='props')
+          q-btn(
+            v-if='props.row.readyToGenerate'
+            flat dense
+            icon='fa-solid fa-pen-to-square'
+            color='primary'
+            @click='openEditor(props.row)'
+          )
+            q-tooltip Открыть редактор формы
+          q-btn(
+            v-else
+            flat dense
+            icon='fa-solid fa-gear'
+            color='warning'
+            :to='{ name: "reports-settings", query: { focus: firstMissing(props.row) } }'
+          )
+            q-tooltip Заполнить реквизиты
 
   ReportEditorDialog(
     v-if='showEditor'
@@ -74,6 +75,8 @@ import {
   type IAvailableReport,
   type IReportType,
 } from 'src/entities/Report'
+import { BaseBadge } from 'src/shared/ui/base/BaseBadge'
+import type { BaseBadgeProps } from 'src/shared/ui/base/BaseBadge/BaseBadge.types'
 import ReportEditorDialog from './ReportEditorDialog.vue'
 
 const MVP_REPORT_TYPES = ['BUHOTCH', 'NDFL6', 'RSV', 'PSV', 'FSS4'] as IReportType[]
@@ -102,8 +105,8 @@ function periodLabel(p: string) {
   return ({ yearly: 'Ежегодно', quarterly: 'Ежеквартально', monthly: 'Ежемесячно' }[p] ?? p)
 }
 
-function periodColor(p: string) {
-  return ({ yearly: 'deep-purple', quarterly: 'blue', monthly: 'teal' }[p] ?? 'grey')
+function periodVariant(p: string): BaseBadgeProps['variant'] {
+  return ({ yearly: 'accent', quarterly: 'info', monthly: 'pos' }[p] ?? 'neutral') as BaseBadgeProps['variant']
 }
 
 function missingTooltip(r: IAvailableReport) {

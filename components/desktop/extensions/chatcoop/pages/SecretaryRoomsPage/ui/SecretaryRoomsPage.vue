@@ -34,7 +34,7 @@ q-page.secretary-rooms-page(padding)
     bordered
     :rows="store.rooms"
     :columns="columns"
-    row-key="matrixRoomId"
+    row-key="id"
     :loading="store.isLoading"
     :rows-per-page-options="[0]"
     hide-pagination
@@ -43,7 +43,6 @@ q-page.secretary-rooms-page(padding)
     template(#body-cell-displayLabel="props")
       q-td(:props="props")
         .sr-name {{ props.row.displayLabel }}
-        .sr-room-id {{ props.row.matrixRoomId }}
     template(#body-cell-kind="props")
       q-td(:props="props")
         q-badge(:color="kindColor(props.row.kind)" :label="kindLabel(props.row.kind)" outline)
@@ -199,7 +198,7 @@ function confirmRemove(room: ISecretaryRoom): void {
     persistent: true,
   }).onOk(async () => {
     try {
-      await store.removeRoom(room.matrixRoomId);
+      await store.removeRoom(room.id);
       $q.notify({ type: 'positive', message: 'Комната удалена' });
     } catch (err) {
       $q.notify({ type: 'negative', message: extractError(err) });
@@ -262,17 +261,6 @@ onMounted(async () => {
 .sr-name {
   font-weight: 500;
   line-height: 1.35;
-}
-
-.sr-room-id {
-  margin-top: 2px;
-  font-size: 0.75rem;
-  color: rgba(0, 0, 0, 0.45);
-  word-break: break-all;
-}
-
-.body--dark .sr-room-id {
-  color: rgba(255, 255, 255, 0.45);
 }
 
 .sr-dialog {

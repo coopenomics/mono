@@ -2,12 +2,11 @@
 q-btn(
   @click='showDialog = true',
   color='primary',
-  push,
   :stretch='isMobile',
   :size='isMobile ? "sm" : "md"',
   no-wrap
 )
-  span.q-pr-sm добавить
+  span.q-pr-sm Добавить
   i.fa-solid.fa-user-plus
 
 AddUserDialog(v-model='showDialog')

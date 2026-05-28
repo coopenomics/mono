@@ -163,6 +163,19 @@ const baseRoutes: RouteRecordRaw[] = [
   },
 ];
 
+// MONO Platform v2 — dev-only showcase route at /_dev/ui.
+// Монтируется на корневом уровне, ВНЕ DynamicLayoutWrapper: legacy default.vue
+// рисует QDrawer/QHeader с собственными цветами и градиентами — он бы перекрыл
+// чистый canon-канвас витрины базовых компонентов.
+if (process.env.DEV) {
+  baseRoutes.push({
+    path: '/_dev/ui',
+    name: 'dev-ui-showcase',
+    component: () => import('src/pages/_dev/ui/index.vue'),
+    meta: { title: 'MONO v2 — базовые компоненты', icon: 'fa-solid fa-flask' },
+  });
+}
+
 const rs = baseRoutes;
 
 export { rs as routes };

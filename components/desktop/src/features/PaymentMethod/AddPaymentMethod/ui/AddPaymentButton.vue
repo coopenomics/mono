@@ -1,14 +1,15 @@
 <template lang="pug">
 q-btn(
   @click='showDialog = true',
-  color='primary',
-  push,
-  :stretch='isMobile',
-  :size='isMobile ? "sm" : "md"',
+  :color='micro ? "accent" : "primary"',
+  :flat='micro',
+  :dense='micro',
+  :size='micro ? "sm" : undefined',
   no-wrap
 )
-  i.fa-solid.fa-plus
-  span.q-pl-sm добавить
+  q-icon(name='fa-solid fa-plus')
+  span.q-ml-sm(v-if='!micro') Добавить
+  q-tooltip(v-if='micro') Добавить реквизиты
 
 q-dialog(v-model='showDialog', @hide='clear')
   ModalBase(:title='"Добавить метод платежа"')
@@ -105,17 +106,20 @@ import { useAddPaymentMethod } from '../model';
 import { FailAlert } from 'src/shared/api';
 import { ModalBase } from 'src/shared/ui/ModalBase';
 import { Form } from 'src/shared/ui/Form';
-import { useWindowSize } from 'src/shared/hooks';
 
 const props = defineProps({
   username: {
     type: String,
     required: true,
   },
+  // micro — компактный вид кнопки в шапке (иконка + tooltip) на мобильном.
+  micro: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const username = computed(() => props.username);
-const { isMobile } = useWindowSize();
 const methodType = ref();
 
 const methods = ref([

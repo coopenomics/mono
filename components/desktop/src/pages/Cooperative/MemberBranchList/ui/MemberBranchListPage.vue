@@ -1,10 +1,10 @@
 <template lang="pug">
-div.page-shell
-  q-card.hero-card(flat)
-    .hero-title Кооперативные участки
-    .hero-subtitle
-      p Создание кооперативных участков сейчас происходит за пределами цифровой системы. Здесь добавляются уже созданные и юридически оформленные участки с их председателями.
-      p.q-mt-sm При добавлении трёх участков кооператив автоматически переходит на мажоритарную систему управления. Действующим пайщикам будет предложено выбрать участок и делегировать голос его председателю. Новые пайщики делают выбор при регистрации.
+.branches-page
+  .banner
+    q-icon.banner__icon(name='fa-solid fa-circle-info' size='18px')
+    .banner__body
+      p.q-mt-none.q-mb-sm Создание кооперативных участков сейчас происходит за пределами цифровой системы. Здесь добавляются уже созданные и юридически оформленные участки с их председателями.
+      p.q-my-none При добавлении трёх участков кооператив автоматически переходит на мажоритарную систему управления. Действующим пайщикам будет предложено выбрать участок и делегировать голос его председателю. Новые пайщики делают выбор при регистрации.
 
   q-table(
     flat
@@ -54,7 +54,7 @@ div.page-shell
               p.text-center.text-overline карточка председателя
               EditableIndividualCard(:participantData="props.row.trustee" :readonly="true").q-mt-sm
               div.text-wrap
-                p.text-grey для замены председателя участка — измените его имя аккаунта в карточке участка на аккаунт одного из пайщиков.
+                p.t-muted для замены председателя участка — измените его имя аккаунта в карточке участка на аккаунт одного из пайщиков.
               div.q-mt-md.flex.justify-center
                 DeleteBranchButton(:branch="props.row")
 </template>
@@ -108,27 +108,15 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-.page-shell {
+.branches-page {
   width: 100%;
-  padding: 24px 12px 32px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-}
-
-.hero-card {
-  border-radius: 18px;
-  padding: 18px 20px;
-}
-
-.hero-title {
-  font-size: 22px;
-  font-weight: 600;
-}
-
-.hero-subtitle {
-  line-height: 1.55;
-  max-width: 900px;
+  gap: var(--p-5, 20px);
+  padding: var(--p-6, 24px);
+  @media (max-width: 768px) {
+    padding: var(--p-4, 16px);
+  }
 }
 
 .table-head {

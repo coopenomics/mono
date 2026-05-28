@@ -1,14 +1,21 @@
 <template lang="pug">
-.q-pa-md.meet-details-page
+.meet-details-page
+  //- Canon back-link под шапкой, слева (вместо кнопки «Назад» в топбаре).
+  button.meet-back(type='button', @click='goBack')
+    q-icon(name='arrow_back', size='18px')
+    span К списку собраний
+
   div(v-if='loading')
     q-skeleton.q-mb-md.rounded-borders(type='rect', height='220px')
     q-skeleton.q-mb-md.rounded-borders(type='rect', height='140px', v-for='i in 2', :key='i')
 
-  .empty-state.q-pa-xl.card-container(v-else-if='!meet')
-    .empty-icon
-      q-icon(name='search_off', size='56px', color='grey-5')
-    .empty-text Собрание не найдено
-    .empty-subtitle Проверьте правильность хеша или вернитесь к списку собраний
+  EmptyState(
+    v-else-if='!meet',
+    title='Собрание не найдено',
+    body='Проверьте правильность ссылки или вернитесь к списку собраний.'
+  )
+    template(#icon)
+      q-icon(name='search_off', size='48px')
 
   div(v-else)
     MeetDetailsInfo.q-mb-lg(:meet='meet')
@@ -37,21 +44,22 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, computed, onUnmounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { onMounted, ref, computed, onUnmounted, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { MeetDetailsInfo } from 'src/widgets/Meets/MeetDetailsInfo';
 import { MeetDetailsActions } from 'src/widgets/Meets/MeetDetailsActions';
 import { MeetDetailsAgenda } from 'src/widgets/Meets/MeetDetailsAgenda';
 import { MeetDetailsVoting } from 'src/widgets/Meets/MeetDetailsVoting';
 import { MeetDetailsResults } from 'src/widgets/Meets/MeetDetailsResults';
+import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import { useMeetStore } from 'src/entities/Meet';
 import { useDesktopStore } from 'src/entities/Desktop';
-import { useBackButton } from 'src/shared/lib/navigation';
 import { useVoteOnMeet } from 'src/features/Meet/VoteOnMeet';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert } from 'src/shared/api';
 
 const route = useRoute();
+const router = useRouter();
 const meetStore = useMeetStore();
 const desktopStore = useDesktopStore();
 
@@ -60,6 +68,12 @@ const meetHash = computed(() => route.params.hash as string);
 
 const meet = computed(() => meetStore.currentMeet);
 const loading = ref(true);
+
+// Название собрания — в заголовок шапки (вместо «Детали собрания»).
+const meetTitle = computed(() => {
+  const id = meet.value?.processing?.meet?.id;
+  return id ? `Общее собрание № ${id}` : 'Детали собрания';
+});
 
 const isProcessed = computed(() => !!meet.value?.processed);
 
@@ -88,19 +102,24 @@ const loadMeetDetails = async () => {
 };
 
 const workspace = computed(() => desktopStore.activeWorkspaceName);
-const buttonText = computed(() =>
-  workspace.value === 'soviet' ? 'Назад' : 'Назад',
-);
 const targetRouteName = computed(() =>
   workspace.value === 'soviet' ? 'meets' : 'user-meets',
 );
 
-useBackButton({
-  text: buttonText.value,
-  routeName: targetRouteName.value,
-  params: { coopname: coopname.value },
-  componentId: 'meet-details-' + meetHash.value,
-});
+// Возврат к списку собраний (back-link под шапкой).
+const goBack = (): void => {
+  void router.push({
+    name: targetRouteName.value,
+    params: { coopname: coopname.value },
+  });
+};
+
+// Имя собрания держим в заголовке шапки, пока открыта страница.
+watch(
+  meetTitle,
+  (title) => desktopStore.setPageTitleOverride(title),
+  { immediate: true },
+);
 
 onMounted(() => {
   loadMeetDetails();
@@ -108,6 +127,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  desktopStore.clearPageTitleOverride();
   if (intervalId) {
     clearInterval(intervalId);
     intervalId = null;
@@ -116,16 +136,30 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss" scoped>
-@import 'src/shared/ui/CardStyles/index.scss';
-
+/* Полная ширина контента, как на canon-страницах документов/платежей. */
 .meet-details-page {
-  max-width: 960px;
-  margin-left: auto;
-  margin-right: auto;
+  padding: var(--p-6, 24px);
+}
+@media (max-width: 768px) {
+  .meet-details-page {
+    padding: var(--p-4, 16px);
+  }
 }
 
-.empty-state.card-container {
-  padding: 48px 24px;
-  text-align: center;
+.meet-back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--p-1, 4px);
+  margin-bottom: var(--p-4, 16px);
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--p-ink-2);
+  font-size: var(--p-fs-body-sm, 13px);
+  cursor: pointer;
+  transition: color var(--p-dur-fast, 120ms) var(--p-ease-standard);
+}
+.meet-back:hover {
+  color: var(--p-ink);
 }
 </style>

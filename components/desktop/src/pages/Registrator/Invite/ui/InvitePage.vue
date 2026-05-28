@@ -1,9 +1,18 @@
 <template lang="pug">
-.row.justify-center.q-pa-sm
-  .col-md-5.col-sm-6.col-xs-12
-    Invite.q-mt-lg
-
+.invite-page
+  Invite
 </template>
+
 <script lang="ts" setup>
 import { Invite } from 'src/widgets/Registrator/Invite';
 </script>
+
+<style scoped>
+.invite-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--p-6, 24px);
+  min-height: 100%;
+}
+</style>

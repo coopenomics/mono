@@ -1,58 +1,51 @@
 <template lang="pug">
-div.meet-info-card-root
-  .meet-info-title.q-mb-lg.text-center.text-primary
-    | Общее собрание № {{ meet.processing?.meet?.id }}
+.meet-info-card
+  //- Единая calm-поверхность с тремя секциями через hairline (вместо
+  //- трёх вложенных цветных карточек). Заголовок собрания не дублируем —
+  //- он в шапке страницы.
+  .meet-info
+    section.meet-info__sec
+      .meet-info__sec-head
+        q-icon(name='event', size='18px')
+        span Даты проведения
+      .meet-info__rows
+        .meet-info__row
+          span.meet-info__label Открытие
+          span.meet-info__value {{ meetStatus.formattedOpenDate }} ({{ timezoneLabel }})
+        .meet-info__row
+          span.meet-info__label Закрытие
+          span.meet-info__value {{ meetStatus.formattedCloseDate }} ({{ timezoneLabel }})
 
-  .row.q-col-gutter-md.items-stretch
-    // Блок с датами
-    .col-12.col-md-4
-      .info-block.full-height
-        .info-block-header
-          q-icon(name='event', size='20px')
-          .info-block-title Даты проведения
-        .info-block-content
-          .date-item
-            .info-label Открытие
-            .info-value {{ meetStatus.formattedOpenDate }} ({{ timezoneLabel }})
-          .date-item.q-mt-md
-            .info-label Закрытие
-            .info-value {{ meetStatus.formattedCloseDate }} ({{ timezoneLabel }})
+    section.meet-info__sec
+      .meet-info__sec-head
+        q-icon(name='people', size='18px')
+        span Ведущие
+      .meet-info__rows
+        .meet-info__row
+          span.meet-info__label Председатель собрания
+          span.meet-info__value {{ getNameFromCertificate(meet.processing?.meet?.presider_certificate) || 'Не назначен' }}
+        .meet-info__row
+          span.meet-info__label Секретарь собрания
+          span.meet-info__value {{ getNameFromCertificate(meet.processing?.meet?.secretary_certificate) || 'Не назначен' }}
 
-    // Блок с участниками
-    .col-12.col-md-4
-      .info-block.full-height
-        .info-block-header
-          q-icon(name='people', size='20px')
-          .info-block-title Ведущие
-        .info-block-content
-          .info-label Председатель собрания:
-          .info-value {{ getNameFromCertificate(meet.processing?.meet?.presider_certificate) || 'Не назначен' }}
-          .q-mt-md
-          .info-label Секретарь собрания:
-          .info-value {{ getNameFromCertificate(meet.processing?.meet?.secretary_certificate) || 'Не назначен' }}
+    section.meet-info__sec
+      .meet-info__sec-head
+        q-icon(name='pie_chart', size='18px')
+        span Явка и кворум
+      .meet-info__metrics
+        .meet-info__metric
+          span.meet-info__label Кворум
+          span.meet-info__num {{ meet.processing?.meet?.quorum_percent }}%
+        .meet-info__metric
+          span.meet-info__label Явка
+          span.meet-info__num {{ turnoutPercent }}%
+      .meet-info__note Собрание состоится при явке не менее {{ meet.processing?.meet?.quorum_percent }}% пайщиков
 
-    // Блок с кворумом
-    .col-12.col-md-4
-      .info-block.full-height
-        .info-block-header
-          q-icon(name='pie_chart', size='20px')
-          .info-block-title Явка и кворум
-        .info-block-content
-          .row
-            .col-6.text-center
-              .info-label Кворум
-              .info-value.large {{ meet.processing?.meet?.quorum_percent }}%
-            .col-6.text-center
-              .info-label Явка
-              .info-value.large {{ (Math.round((meet.processing?.meet?.current_quorum_percent ?? 0) * 10) / 10).toFixed(1) }}%
-          .info-label.q-mt-md.text-center.text-caption Собрание состоится при явке не менее {{ meet.processing?.meet?.quorum_percent }}% пайщиков
-
-  // Статус собрания
-  .q-mt-lg
-    MeetStatusBanner(:meet='meet')
+  MeetStatusBanner.meet-info-card__banner(:meet='meet')
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 import type { IMeet } from 'src/entities/Meet';
 import { useMeetStatus } from 'src/shared/lib/composables';
 import { getNameFromCertificate } from 'src/shared/lib/utils/getNameFromCertificate';
@@ -65,83 +58,101 @@ const props = defineProps<{
 
 const timezoneLabel = getTimezoneLabel();
 const meetStatus = useMeetStatus(props.meet);
+
+const turnoutPercent = computed(() => {
+  const v = props.meet.processing?.meet?.current_quorum_percent ?? 0;
+  return (Math.round(v * 10) / 10).toFixed(1);
+});
 </script>
 
 <style lang="scss" scoped>
-@import 'src/shared/ui/CardStyles/index.scss';
+.meet-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  background: var(--p-surface);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-lg, 16px);
+  overflow: hidden;
+}
 
-.meet-info-card-root {
-  .meet-info-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    line-height: 1.3;
-    letter-spacing: -0.01em;
+.meet-info__sec {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3, 12px);
+  padding: var(--p-5, 20px);
+}
+/* Разделители-волоски между секциями (вертикальные на десктопе). */
+.meet-info__sec + .meet-info__sec {
+  border-left: 1px solid var(--p-line);
+}
+
+@media (max-width: 768px) {
+  .meet-info {
+    grid-template-columns: 1fr;
+  }
+  .meet-info__sec + .meet-info__sec {
+    border-left: 0;
+    border-top: 1px solid var(--p-line);
   }
 }
 
-.info-block {
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 12px;
-  padding: 16px;
-  height: 100%;
-  background-color: color-mix(in srgb, var(--q-primary) 4%, var(--q-surface));
-  transition:
-    border-color 0.2s ease,
-    background-color 0.2s ease;
+.meet-info__sec-head {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2, 8px);
+  color: var(--p-ink-2);
+  font-size: var(--p-fs-body-sm, 13px);
+  font-weight: 600;
+}
 
-  .body--dark &,
-  .q-dark & {
-    background-color: color-mix(
-      in srgb,
-      var(--q-dark-page, #1f1c1c) 88%,
-      var(--q-primary) 12%
-    );
-    border-color: rgba(255, 255, 255, 0.3);
-  }
+.meet-info__rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3, 12px);
+}
+.meet-info__row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.meet-info__label {
+  font-size: var(--p-fs-meta, 12px);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--p-ink-3);
+}
+.meet-info__value {
+  font-size: var(--p-fs-body, 14px);
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--p-ink-1);
+  overflow-wrap: anywhere;
+}
 
-  &:hover {
-    border-color: color-mix(in srgb, var(--q-primary) 22%, rgba(0, 0, 0, 0.08));
+.meet-info__metrics {
+  display: flex;
+  gap: var(--p-4, 16px);
+}
+.meet-info__metric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+.meet-info__num {
+  font-size: var(--p-fs-h1, 24px);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--p-ink);
+}
+.meet-info__note {
+  font-size: var(--p-fs-meta, 12px);
+  line-height: 1.45;
+  color: var(--p-ink-3);
+}
 
-    .body--dark &,
-    .q-dark & {
-      border-color: color-mix(in srgb, var(--q-primary) 42%, rgba(255, 255, 255, 0.34));
-    }
-  }
-
-  .info-block-header {
-    display: flex;
-    align-items: center;
-    color: var(--q-primary);
-    margin-bottom: 14px;
-
-    .info-block-title {
-      font-size: 15px;
-      font-weight: 600;
-      margin-left: 8px;
-    }
-  }
-
-  .info-label {
-    font-size: 12px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
-    opacity: 0.6;
-    margin-bottom: 4px;
-  }
-
-  .info-value {
-    font-size: 15px;
-    font-weight: 500;
-    line-height: 1.4;
-    word-break: break-word;
-
-    &.large {
-      font-size: 22px;
-      font-weight: 600;
-      color: var(--q-primary);
-      letter-spacing: -0.02em;
-    }
-  }
+.meet-info-card__banner {
+  margin-top: var(--p-4, 16px);
 }
 </style>

@@ -1,6 +1,6 @@
 <template lang="pug">
 .row.justify-center
-  div.documents-gap.col-md-7.col-xs-12
+  div.documents-gap.col-md-10.col-xs-12
     // Отображение основного документа с агрегатом
     BaseDocument(
       v-if="documentData.statement && documentData.statement.documentAggregate"

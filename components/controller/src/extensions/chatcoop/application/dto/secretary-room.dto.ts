@@ -19,8 +19,8 @@ registerEnumType(ManagedRoomKindGql, {
 
 @ObjectType('ChatcoopSecretaryRoom')
 export class ChatcoopSecretaryRoomDTO {
-  @Field({ description: 'Идентификатор комнаты Matrix' })
-  matrixRoomId!: string;
+  @Field({ description: 'Внутренний идентификатор комнаты в реестре (для операций; это НЕ Matrix room id)' })
+  id!: string;
 
   @Field({ description: 'Название комнаты' })
   displayLabel!: string;
@@ -53,8 +53,8 @@ export class CreateSecretaryRoomInputDTO {
 
 @InputType('RemoveSecretaryRoomInput')
 export class RemoveSecretaryRoomInputDTO {
-  @Field({ description: 'Идентификатор комнаты Matrix, которую нужно удалить' })
+  @Field({ description: 'Идентификатор комнаты в реестре, которую нужно удалить' })
   @IsString()
   @IsNotEmpty()
-  matrixRoomId!: string;
+  id!: string;
 }

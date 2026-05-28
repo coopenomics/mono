@@ -1,5 +1,6 @@
 <template lang="pug">
 q-btn(
+  v-if='walletStore.isWalletAgreementSigned',
   @click='showDialog = true',
   :color='micro ? "accent" : "primary"',
   :flat='micro',
@@ -7,7 +8,7 @@ q-btn(
   :size='micro ? "sm" : undefined'
 )
   q-icon(:name='micro ? "fa-solid fa-arrow-down" : "fa-solid fa-chevron-down"')
-  span(v-if='!micro').q-ml-sm получить возврат
+  span(v-if='!micro').q-ml-sm Получить возврат
   q-tooltip(v-if='micro') Вернуть
 
   q-dialog(v-model='showDialog', @hide='clear')

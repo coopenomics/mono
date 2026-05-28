@@ -3,12 +3,11 @@ q-btn(
   color='primary',
   @click='show = true',
   icon='upload_file',
-  push,
   :stretch='isMobile',
   :size='isMobile ? "sm" : "md"',
   :disable='disable'
 )
-  span.q-pr-sm импорт
+  span.q-pr-sm Импорт
   ParticipantsImportDialog(v-model='show')
 </template>
 

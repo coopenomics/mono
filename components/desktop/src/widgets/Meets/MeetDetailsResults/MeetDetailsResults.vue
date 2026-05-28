@@ -1,56 +1,48 @@
 <template lang="pug">
-.meet-details-results
-  .page-main-card.card-container.q-pa-lg
-    .meet-results-head.q-mb-lg
-      .meet-results-title РЕЗУЛЬТАТЫ
-      .meet-results-line(aria-hidden='true')
+.meet-results
+  .meet-results__card
+    .meet-results__head
+      q-icon(name='fact_check', size='18px')
+      span.meet-results__title Результаты
 
-    .result-item.info-card.q-mb-md(
-      v-for='(item, index) in meetAgendaItems',
-      :key='index'
-    )
-      .result-question-layout
-        .result-question-layout__badge
+    .meet-results__items
+      .meet-result-card(
+        v-for='(item, index) in meetAgendaItems',
+        :key='index'
+      )
+        .meet-result-card__head
           AgendaNumberAvatar(:number='item.number')
-        .result-question-layout__content
-          .text-body1.text-weight-medium.result-item-title.q-mb-sm {{ item.title }}
+          span.meet-result-card__title {{ item.title }}
 
-          .result-item-context.q-mb-md(
-            v-if='item.context',
-            v-html='parseLinks(item.context)'
-          )
+        .meet-result-card__context(
+          v-if='item.context',
+          v-html='parseLinks(item.context)'
+        )
 
-          .result-outcome-panel.q-mb-md(:class='getOutcomePanelClass(item)')
-            .result-outcome-panel__head
-              span.result-outcome-panel__label Решение
-              q-badge.text-weight-bold(
-                :color='getResultBadgeColor(item)',
-                :label='getResultText(item)',
-                :icon='getResultIcon(item)'
-              )
-            .result-outcome-panel__decision(v-if='item.decision') {{ item.decision }}
+        .meet-result-card__outcome
+          .meet-result-card__outcome-row
+            span.meet-result-card__outcome-label Решение
+            span.outcome-chip(:class='getOutcomeChipClass(item)')
+              q-icon(:name='getResultIcon(item)', size='14px')
+              span {{ getResultText(item) }}
+          .meet-result-card__decision(v-if='item.decision') {{ item.decision }}
 
-          .row.q-col-gutter-sm
-            .col-12.col-md-4
-              .vote-stat.vote-stat--for
-                .vote-stat-label ЗА
-                .vote-stat-value {{ item.votes_for }}
-            .col-12.col-md-4
-              .vote-stat.vote-stat--against
-                .vote-stat-label ПРОТИВ
-                .vote-stat-value {{ item.votes_against }}
-            .col-12.col-md-4
-              .vote-stat.vote-stat--neutral
-                .vote-stat-label ВОЗДЕРЖАЛИСЬ
-                .vote-stat-value {{ item.votes_abstained }}
+        .meet-result-card__votes
+          .vote-stat.vote-stat--for
+            span.vote-stat__label За
+            span.vote-stat__value {{ item.votes_for }}
+          .vote-stat.vote-stat--against
+            span.vote-stat__label Против
+            span.vote-stat__value {{ item.votes_against }}
+          .vote-stat.vote-stat--neutral
+            span.vote-stat__label Воздержались
+            span.vote-stat__value {{ item.votes_abstained }}
 
-
-  .meet-protocol-card__body
-    ExpandableDocument(
-      v-if="protocolDocumentAggregate"
-      :documentAggregate='protocolDocumentAggregate',
-      title='Протокол решения общего собрания пайщиков'
-    ).q-mt-lg
+  ExpandableDocument.meet-results__protocol(
+    v-if='protocolDocumentAggregate',
+    :documentAggregate='protocolDocumentAggregate',
+    title='Протокол решения общего собрания пайщиков'
+  )
 </template>
 
 <script setup lang="ts">
@@ -83,258 +75,165 @@ const getResultIcon = (question: any) => {
   return question.accepted ? 'check_circle' : 'cancel';
 };
 
-const getResultBadgeColor = (question: any) => {
-  if (question.accepted === undefined) return 'grey-5';
-  return question.accepted ? 'positive' : 'negative';
-};
-
-const getOutcomePanelClass = (question: any) => {
-  if (question.accepted === undefined) return 'result-outcome-panel--unknown';
-  return question.accepted
-    ? 'result-outcome-panel--accepted'
-    : 'result-outcome-panel--rejected';
+const getOutcomeChipClass = (question: any) => {
+  if (question.accepted === undefined) return 'outcome-chip--unknown';
+  return question.accepted ? 'outcome-chip--pos' : 'outcome-chip--neg';
 };
 </script>
 
 <style lang="scss" scoped>
-@import 'src/shared/ui/CardStyles/index.scss';
-
-.meet-results-head {
-  text-align: center;
+.meet-results__card {
+  background: var(--p-surface);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-lg, 16px);
+  padding: var(--p-5, 20px);
 }
 
-.meet-results-title {
-  font-size: 18px;
+.meet-results__head {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2, 8px);
+  color: var(--p-ink-2);
+  margin-bottom: var(--p-4, 16px);
+}
+.meet-results__title {
+  font-size: var(--p-fs-h2, 18px);
   font-weight: 600;
-  letter-spacing: -0.01em;
-  margin-bottom: 10px;
+  color: var(--p-ink);
 }
 
-.meet-results-line {
-  height: 3px;
-  width: 48px;
-  margin: 0 auto;
-  border-radius: 999px;
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--q-primary) 70%, transparent),
-    color-mix(in srgb, var(--q-secondary) 70%, transparent)
-  );
+.meet-results__items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3, 12px);
 }
 
-.result-item-title {
-  line-height: 1.35;
-  word-break: break-word;
+.meet-result-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3, 12px);
+  padding: var(--p-4, 16px);
+  background: var(--p-surface);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-md, 12px);
 }
-
-.result-question-layout {
+.meet-result-card__head {
   display: flex;
   align-items: flex-start;
-  gap: 16px;
+  gap: var(--p-3, 12px);
 }
-
-.result-question-layout__badge {
-  flex-shrink: 0;
-  line-height: 0;
+.meet-result-card__title {
+  font-size: var(--p-fs-body, 14px);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--p-ink-1);
+  padding-top: 6px;
+  overflow-wrap: anywhere;
 }
-
-.result-question-layout__content {
-  flex: 1 1 0;
-  min-width: 0;
-}
-
-@media (max-width: 599px) {
-  .result-question-layout {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-  }
-}
-
-.result-item-context {
-  font-size: 14px;
+.meet-result-card__context {
+  font-size: var(--p-fs-body-sm, 13px);
   line-height: 1.5;
-  font-weight: 400;
-  opacity: 0.82;
-  word-break: break-word;
+  color: var(--p-ink-2);
+  overflow-wrap: anywhere;
 
   :deep(a) {
+    color: var(--p-primary);
     word-break: break-word;
   }
 }
 
-.result-outcome-panel {
-  border-radius: 10px;
-  padding: 12px 14px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-left-width: 3px;
-}
-
-.result-outcome-panel__head {
+.meet-result-card__outcome {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: var(--p-2, 8px);
+  padding: var(--p-3, 12px) var(--p-4, 16px);
+  border-radius: var(--p-r-sm, 8px);
+  background: var(--p-surface-2);
+}
+.meet-result-card__outcome-row {
+  display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px 12px;
-  margin-bottom: 8px;
+  gap: var(--p-3, 12px);
 }
-
-.result-outcome-panel__label {
-  font-size: 11px;
+.meet-result-card__outcome-label {
+  font-size: var(--p-fs-meta, 12px);
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--q-primary);
-  opacity: 0.95;
-}
-
-.result-outcome-panel__decision {
-  font-size: 14px;
-  line-height: 1.45;
-  font-weight: 500;
-  word-break: break-word;
-}
-
-.result-outcome-panel--accepted {
-  border-left-color: var(--q-positive, #21ba45);
-  background-color: color-mix(in srgb, var(--q-positive, #21ba45) 9%, #ffffff);
-}
-
-.result-outcome-panel--rejected {
-  border-left-color: var(--q-negative, #c10015);
-  background-color: color-mix(in srgb, var(--q-negative, #c10015) 8%, #ffffff);
-}
-
-.result-outcome-panel--unknown {
-  border-left-color: var(--q-primary);
-  background-color: color-mix(in srgb, var(--q-primary) 8%, #ffffff);
-}
-
-.body--dark .result-outcome-panel--accepted,
-.q-dark .result-outcome-panel--accepted {
-  background-color: color-mix(
-    in srgb,
-    var(--q-positive, #21ba45) 14%,
-    var(--q-dark-page, #1f1c1c)
-  );
-  border-color: color-mix(in srgb, var(--q-positive, #21ba45) 28%, rgba(255, 255, 255, 0.15));
-  border-left-color: var(--q-positive, #21ba45);
-}
-
-.body--dark .result-outcome-panel--rejected,
-.q-dark .result-outcome-panel--rejected {
-  background-color: color-mix(
-    in srgb,
-    var(--q-negative, #c10015) 14%,
-    var(--q-dark-page, #1f1c1c)
-  );
-  border-color: color-mix(in srgb, var(--q-negative, #c10015) 28%, rgba(255, 255, 255, 0.15));
-  border-left-color: var(--q-negative, #c10015);
-}
-
-.body--dark .result-outcome-panel--unknown,
-.q-dark .result-outcome-panel--unknown {
-  background-color: color-mix(
-    in srgb,
-    var(--q-primary) 12%,
-    var(--q-dark-page, #1f1c1c)
-  );
-  border-color: rgba(255, 255, 255, 0.2);
-  border-left-color: var(--q-primary);
-}
-
-.result-votes-caption {
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
   letter-spacing: 0.04em;
-  opacity: 0.65;
+  text-transform: uppercase;
+  color: var(--p-ink-3);
+}
+.meet-result-card__decision {
+  font-size: var(--p-fs-body-sm, 13px);
+  line-height: 1.45;
+  color: var(--p-ink-1);
+  overflow-wrap: anywhere;
 }
 
-.meet-protocol-card__body {
-  :deep(.expandable-document) {
-    margin-bottom: 0;
-    border-radius: 10px;
-    border-color: rgba(0, 0, 0, 0.08);
+/* Итог решения — спокойный токен-чип */
+.outcome-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: var(--p-fs-meta, 12px);
+  font-weight: 600;
+}
+.outcome-chip--pos {
+  background: var(--p-pos-soft);
+  color: var(--p-pos);
+}
+.outcome-chip--neg {
+  background: var(--p-neg-soft);
+  color: var(--p-neg);
+}
+.outcome-chip--unknown {
+  background: var(--p-surface-2);
+  color: var(--p-ink-2);
+}
+
+.meet-result-card__votes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--p-2, 8px);
+}
+@media (max-width: 599px) {
+  .meet-result-card__votes {
+    grid-template-columns: 1fr;
   }
-
-  :deep(.expandable-document .document-header) {
-    border-radius: 10px;
-  }
 }
-
-.body--dark .meet-protocol-card__body :deep(.expandable-document),
-.q-dark .meet-protocol-card__body :deep(.expandable-document) {
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
 .vote-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--p-3, 12px);
+  border-radius: var(--p-r-sm, 8px);
+  background: var(--p-surface-2);
   text-align: center;
-  border-radius: 12px;
-  padding: 14px 12px;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-
-  .body--dark &,
-  .q-dark & {
-    border-color: rgba(255, 255, 255, 0.3);
-  }
 }
-
-.vote-stat-label {
-  font-size: 12px;
+.vote-stat--for {
+  background: var(--p-pos-soft);
+}
+.vote-stat--against {
+  background: var(--p-neg-soft);
+}
+.vote-stat__label {
+  font-size: var(--p-fs-meta, 12px);
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.02em;
-  opacity: 0.6;
-  margin-bottom: 6px;
+  color: var(--p-ink-2);
 }
-
-.vote-stat-value {
-  font-size: 22px;
+.vote-stat__value {
+  font-size: var(--p-fs-h2, 18px);
   font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--p-ink);
 }
 
-.vote-stat--for {
-  background: color-mix(
-    in srgb,
-    var(--q-positive, #21ba45) 10%,
-    var(--q-surface)
-  );
-  border-left: 3px solid var(--q-positive, #21ba45);
-
-  .body--dark &,
-  .q-dark & {
-    background: color-mix(
-      in srgb,
-      var(--q-positive, #21ba45) 18%,
-      rgba(255, 255, 255, 0.06)
-    );
-  }
-}
-
-.vote-stat--against {
-  background: color-mix(in srgb, var(--q-negative, #c10015) 10%, var(--q-surface));
-  border-left: 3px solid var(--q-negative, #c10015);
-
-  .body--dark &,
-  .q-dark & {
-    background: color-mix(
-      in srgb,
-      var(--q-negative, #c10015) 18%,
-      rgba(255, 255, 255, 0.06)
-    );
-  }
-}
-
-.vote-stat--neutral {
-  background: color-mix(in srgb, var(--q-primary) 6%, var(--q-surface));
-  border-left: 3px solid color-mix(in srgb, var(--q-primary) 55%, transparent);
-
-  .body--dark &,
-  .q-dark & {
-    background: color-mix(in srgb, var(--q-primary) 12%, rgba(255, 255, 255, 0.06));
-  }
+.meet-results__protocol {
+  display: block;
+  margin-top: var(--p-5, 20px);
 }
 </style>

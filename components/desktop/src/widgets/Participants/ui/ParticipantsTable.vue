@@ -1,5 +1,5 @@
 <template lang="pug">
-q-table.full-height(
+q-table(
   flat,
   :grid='isMobile',
   :rows='accounts',
@@ -51,7 +51,6 @@ q-table.full-height(
       q-td.no-hover(colspan='100%' style="padding: 0px !important;")
         ParticipantDetails(
           :participant='props.row',
-          :tab-name='currentTab[props.row.username]',
           @update='(newData) => onUpdate(props.row, newData)'
         )
 
@@ -96,7 +95,6 @@ const emit = defineEmits<{
 
 // Локальное состояние
 const expanded = reactive(new Map<string, boolean>());
-const currentTab = reactive<Record<string, string>>({});
 const pagination = ref({ rowsPerPage: 10 });
 const { isMobile } = useWindowSize();
 
@@ -146,7 +144,6 @@ const formatDate = (date?: string) =>
 // События
 const onToggleExpand = (id: string) => {
   expanded.set(id, !expanded.get(id));
-  if (!currentTab[id]) currentTab[id] = 'info';
   emit('toggle-expand', id);
 };
 

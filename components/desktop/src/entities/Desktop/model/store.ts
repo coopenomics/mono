@@ -49,6 +49,10 @@ export const useDesktopStore = defineStore(namespace, () => {
   const currentDesktop = ref<IDesktopWithNavigation>();
   const isWorkspaceChanging = ref<boolean>(false);
   const leftDrawerOpen = ref<boolean>(true);
+  // Транзиентное переопределение заголовка шапки: detail-страница задаёт
+  // динамическое имя (например название собрания), затем очищает при уходе.
+  // Имеет приоритет над route.meta.title. Не персистентно.
+  const pageTitleOverride = ref<string | null>(null);
 
   async function loadDesktop(): Promise<void> {
     const newDesktop = await api.getDesktop();
@@ -241,6 +245,14 @@ export const useDesktopStore = defineStore(namespace, () => {
     () => currentDesktop.value?.backNavigationButton,
   );
 
+  // Переопределение заголовка шапки (см. pageTitleOverride выше).
+  function setPageTitleOverride(title: string) {
+    pageTitleOverride.value = title;
+  }
+  function clearPageTitleOverride() {
+    pageTitleOverride.value = null;
+  }
+
   // Функция для управления состоянием загрузки
   function setWorkspaceChanging(value: boolean) {
     isWorkspaceChanging.value = value;
@@ -392,5 +404,8 @@ export const useDesktopStore = defineStore(namespace, () => {
     setBackNavigationButton,
     removeBackNavigationButton,
     backNavigationButton,
+    pageTitleOverride,
+    setPageTitleOverride,
+    clearPageTitleOverride,
   };
 });

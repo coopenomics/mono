@@ -23,16 +23,16 @@ div
             text='политикой конфиденциальности'
           )
 
-        q-btn(flat, @click='store.prev()')
-          i.fa.fa-arrow-left
-          span.q-ml-md назад
+        .row.q-gutter-md.q-mt-lg.q-mb-lg
+          BaseButton(variant='ghost', @click='store.prev()')
+            i.fa.fa-arrow-left
+            span.q-ml-md назад
 
-        q-btn.q-mt-lg.q-mb-lg(
-          :disabled='!store.state.agreements.condidential',
-          color='primary',
-          label='Продолжить',
-          @click='setData(userDataForm)'
-        )
+          BaseButton(
+            variant='primary',
+            :disabled='!store.state.agreements.condidential',
+            @click='setData(userDataForm)'
+          ) Продолжить
 </template>
 
 <script lang="ts" setup>
@@ -40,6 +40,7 @@ import { ref } from 'vue';
 import { UserDataForm } from 'src/shared/ui/UserDataForm/UserDataForm';
 import { useRegistratorStore } from 'src/entities/Registrator';
 import { StaticPrivacyDialog } from 'src/features/Agreementer/StaticPrivacyDialog';
+import { BaseButton } from 'src/shared/ui/base/BaseButton';
 
 const store = useRegistratorStore();
 

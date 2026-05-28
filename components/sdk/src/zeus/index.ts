@@ -2384,11 +2384,11 @@ export type ValueTypes = {
 	createdAt?:boolean | `@${string}`,
 	endedAt?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
-	matrixRoomId?:boolean | `@${string}`,
 	/** Пользовательская заметка о содержании звонка */
 	memo?:boolean | `@${string}`,
 	/** Отображаемые имена участников (Synapse displayname); в БД хранятся канонические Matrix user id */
 	participants?:boolean | `@${string}`,
+	/** Внутреннее имя комнаты звонка (LiveKit room name), не Matrix room id */
 	roomId?:boolean | `@${string}`,
 	roomName?:boolean | `@${string}`,
 	startedAt?:boolean | `@${string}`,
@@ -3939,10 +3939,10 @@ export type ValueTypes = {
 	editable?:boolean | `@${string}`,
 	/** Комната зашифрована (E2EE) — секретарь не транскрибирует такие комнаты */
 	encrypted?:boolean | `@${string}`,
+	/** Внутренний идентификатор комнаты в реестре (для операций; это НЕ Matrix room id) */
+	id?:boolean | `@${string}`,
 	/** Тип комнаты */
 	kind?:boolean | `@${string}`,
-	/** Идентификатор комнаты Matrix */
-	matrixRoomId?:boolean | `@${string}`,
 	/** Секретарь присутствует в комнате */
 	secretaryInRoom?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
@@ -8146,8 +8146,8 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	['...on RegistrationProgram']?: Omit<ValueTypes["RegistrationProgram"], "...on RegistrationProgram">
 }>;
 	["RemoveSecretaryRoomInput"]: {
-	/** Идентификатор комнаты Matrix, которую нужно удалить */
-	matrixRoomId: string | Variable<any, string>
+	/** Идентификатор комнаты в реестре, которую нужно удалить */
+	id: string | Variable<any, string>
 };
 	["ReportCalendarPeriodEntry"]: AliasType<{
 	dueDate?:boolean | `@${string}`,
@@ -10867,11 +10867,11 @@ export type ResolverInputTypes = {
 	createdAt?:boolean | `@${string}`,
 	endedAt?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
-	matrixRoomId?:boolean | `@${string}`,
 	/** Пользовательская заметка о содержании звонка */
 	memo?:boolean | `@${string}`,
 	/** Отображаемые имена участников (Synapse displayname); в БД хранятся канонические Matrix user id */
 	participants?:boolean | `@${string}`,
+	/** Внутреннее имя комнаты звонка (LiveKit room name), не Matrix room id */
 	roomId?:boolean | `@${string}`,
 	roomName?:boolean | `@${string}`,
 	startedAt?:boolean | `@${string}`,
@@ -12378,10 +12378,10 @@ export type ResolverInputTypes = {
 	editable?:boolean | `@${string}`,
 	/** Комната зашифрована (E2EE) — секретарь не транскрибирует такие комнаты */
 	encrypted?:boolean | `@${string}`,
+	/** Внутренний идентификатор комнаты в реестре (для операций; это НЕ Matrix room id) */
+	id?:boolean | `@${string}`,
 	/** Тип комнаты */
 	kind?:boolean | `@${string}`,
-	/** Идентификатор комнаты Matrix */
-	matrixRoomId?:boolean | `@${string}`,
 	/** Секретарь присутствует в комнате */
 	secretaryInRoom?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
@@ -16464,8 +16464,8 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 		__typename?: boolean | `@${string}`
 }>;
 	["RemoveSecretaryRoomInput"]: {
-	/** Идентификатор комнаты Matrix, которую нужно удалить */
-	matrixRoomId: string
+	/** Идентификатор комнаты в реестре, которую нужно удалить */
+	id: string
 };
 	["ReportCalendarPeriodEntry"]: AliasType<{
 	dueDate?:boolean | `@${string}`,
@@ -19112,11 +19112,11 @@ export type ModelTypes = {
 		createdAt: ModelTypes["DateTime"],
 	endedAt?: ModelTypes["DateTime"] | undefined | null,
 	id: string,
-	matrixRoomId: string,
 	/** Пользовательская заметка о содержании звонка */
 	memo: string,
 	/** Отображаемые имена участников (Synapse displayname); в БД хранятся канонические Matrix user id */
 	participants: Array<string>,
+	/** Внутреннее имя комнаты звонка (LiveKit room name), не Matrix room id */
 	roomId: string,
 	roomName: string,
 	startedAt: ModelTypes["DateTime"],
@@ -20578,10 +20578,10 @@ export type ModelTypes = {
 	editable: boolean,
 	/** Комната зашифрована (E2EE) — секретарь не транскрибирует такие комнаты */
 	encrypted: boolean,
+	/** Внутренний идентификатор комнаты в реестре (для операций; это НЕ Matrix room id) */
+	id: string,
 	/** Тип комнаты */
 	kind: ModelTypes["ManagedRoomKind"],
-	/** Идентификатор комнаты Matrix */
-	matrixRoomId: string,
 	/** Секретарь присутствует в комнате */
 	secretaryInRoom: boolean
 };
@@ -23310,7 +23310,7 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member.  */
 	chatcoopDeleteCalendarEvent: boolean,
-	/** Удалить комнату секретаря: вывести секретаря и снять комнату с синхронизации (возвращает matrixRoomId)
+	/** Удалить комнату секретаря: вывести секретаря и снять комнату с синхронизации (возвращает идентификатор комнаты в реестре)
 
 Требуемые роли: chairman, member.  */
 	chatcoopRemoveSecretaryRoom: string,
@@ -25192,8 +25192,8 @@ export type ModelTypes = {
 	title: string
 };
 	["RemoveSecretaryRoomInput"]: {
-	/** Идентификатор комнаты Matrix, которую нужно удалить */
-	matrixRoomId: string
+	/** Идентификатор комнаты в реестре, которую нужно удалить */
+	id: string
 };
 	["ReportCalendarPeriodEntry"]: {
 		dueDate: string,
@@ -27868,11 +27868,11 @@ export type GraphQLTypes = {
 	createdAt: GraphQLTypes["DateTime"],
 	endedAt?: GraphQLTypes["DateTime"] | undefined | null,
 	id: string,
-	matrixRoomId: string,
 	/** Пользовательская заметка о содержании звонка */
 	memo: string,
 	/** Отображаемые имена участников (Synapse displayname); в БД хранятся канонические Matrix user id */
 	participants: Array<string>,
+	/** Внутреннее имя комнаты звонка (LiveKit room name), не Matrix room id */
 	roomId: string,
 	roomName: string,
 	startedAt: GraphQLTypes["DateTime"],
@@ -29423,10 +29423,10 @@ export type GraphQLTypes = {
 	editable: boolean,
 	/** Комната зашифрована (E2EE) — секретарь не транскрибирует такие комнаты */
 	encrypted: boolean,
+	/** Внутренний идентификатор комнаты в реестре (для операций; это НЕ Matrix room id) */
+	id: string,
 	/** Тип комнаты */
 	kind: GraphQLTypes["ManagedRoomKind"],
-	/** Идентификатор комнаты Matrix */
-	matrixRoomId: string,
 	/** Секретарь присутствует в комнате */
 	secretaryInRoom: boolean,
 	['...on ChatcoopSecretaryRoom']: Omit<GraphQLTypes["ChatcoopSecretaryRoom"], "...on ChatcoopSecretaryRoom">
@@ -32288,7 +32288,7 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member.  */
 	chatcoopDeleteCalendarEvent: boolean,
-	/** Удалить комнату секретаря: вывести секретаря и снять комнату с синхронизации (возвращает matrixRoomId)
+	/** Удалить комнату секретаря: вывести секретаря и снять комнату с синхронизации (возвращает идентификатор комнаты в реестре)
 
 Требуемые роли: chairman, member.  */
 	chatcoopRemoveSecretaryRoom: string,
@@ -34314,8 +34314,8 @@ export type GraphQLTypes = {
 	['...on RegistrationProgram']: Omit<GraphQLTypes["RegistrationProgram"], "...on RegistrationProgram">
 };
 	["RemoveSecretaryRoomInput"]: {
-		/** Идентификатор комнаты Matrix, которую нужно удалить */
-	matrixRoomId: string
+		/** Идентификатор комнаты в реестре, которую нужно удалить */
+	id: string
 };
 	["ReportCalendarPeriodEntry"]: {
 	__typename: "ReportCalendarPeriodEntry",
