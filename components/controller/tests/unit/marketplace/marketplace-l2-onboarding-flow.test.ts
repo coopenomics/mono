@@ -41,12 +41,24 @@ const makeLogger = () =>
     debug: jest.fn(),
   } as any);
 
+// getOnboardingState не обращается к blockchain-портам (только agreementRepository),
+// поэтому для этого scenario достаточно заглушек методов, используемых в других путях.
+const makeSovietPort = () =>
+  ({
+    getCoagreement: jest.fn(),
+  } as any);
+
+const makeWalletPort = () =>
+  ({
+    signProgramAgreement: jest.fn(),
+  } as any);
+
 describe('L2 онбординг (Story 1.11) — scenario: подпись через core registration-flow', () => {
   it('пайщик подписал marketplace_offer при вступлении → marketplace stol открывается без gate', async () => {
     const repo = makeRepo([
       makeAgreement({ id: 777, draft_id: 1100, username: 'alice' }),
     ]);
-    const service = new MarketplaceOnboardingService(repo, makeLogger());
+    const service = new MarketplaceOnboardingService(repo, makeSovietPort(), makeWalletPort(), makeLogger());
 
     const state = await service.getOnboardingState('alice');
 
@@ -59,7 +71,7 @@ describe('L2 онбординг (Story 1.11) — scenario: подпись чер
 
   it('пайщик НЕ выбрал marketplace при регистрации → L3 gate сработает при первом входе', async () => {
     const repo = makeRepo([]); // нет подписи marketplace
-    const service = new MarketplaceOnboardingService(repo, makeLogger());
+    const service = new MarketplaceOnboardingService(repo, makeSovietPort(), makeWalletPort(), makeLogger());
 
     const state = await service.getOnboardingState('bob');
 
@@ -73,7 +85,7 @@ describe('L2 онбординг (Story 1.11) — scenario: подпись чер
     // фильтрации (т.е. полагается на repo) — все возвращённые записи считаются
     // «своими» (валидный инвариант: репо изолирует by username).
     const repo = makeRepo([makeAgreement({ username: 'alice', type: 'marketplace' })]);
-    const service = new MarketplaceOnboardingService(repo, makeLogger());
+    const service = new MarketplaceOnboardingService(repo, makeSovietPort(), makeWalletPort(), makeLogger());
     const state = await service.getOnboardingState('alice');
     expect(state.requires_gate).toBe(false);
   });

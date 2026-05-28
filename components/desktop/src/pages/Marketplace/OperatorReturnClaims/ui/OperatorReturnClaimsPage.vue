@@ -1,8 +1,10 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { Zeus } from '@coopenomics/sdk';
 import { FailAlert } from 'src/shared/api';
 import {
   listReturnClaimsByBraname,
+  defectCategoryLabel,
   type MarketplaceReturnClaimView,
 } from '../api';
 import RemoteDecisionDialog from './RemoteDecisionDialog.vue';
@@ -28,17 +30,17 @@ const onSiteDialog = ref(false);
 const selectedClaim = ref<MarketplaceReturnClaimView | null>(null);
 
 const pendingClaims = computed(() =>
-  items.value.filter((c) => c.status === 'PENDING_CHAIRMAN_REVIEW'),
+  items.value.filter((c) => c.status === Zeus.MarketplaceReturnClaimStatus.PENDING_CHAIRMAN_REVIEW),
 );
 const approvedClaims = computed(() =>
-  items.value.filter((c) => c.status === 'APPROVED_FOR_VISIT'),
+  items.value.filter((c) => c.status === Zeus.MarketplaceReturnClaimStatus.APPROVED_FOR_VISIT),
 );
 const archiveClaims = computed(() =>
   items.value.filter(
     (c) =>
-      c.status === 'ACCEPTED_AT_VISIT' ||
-      c.status === 'REJECTED_REMOTELY' ||
-      c.status === 'REJECTED_AT_VISIT',
+      c.status === Zeus.MarketplaceReturnClaimStatus.ACCEPTED_AT_VISIT ||
+      c.status === Zeus.MarketplaceReturnClaimStatus.REJECTED_REMOTELY ||
+      c.status === Zeus.MarketplaceReturnClaimStatus.REJECTED_AT_VISIT,
   ),
 );
 
@@ -83,15 +85,15 @@ function formatDateTime(value: unknown): string {
 
 function humanStatus(status: MarketplaceReturnClaimView['status']): string {
   switch (status) {
-    case 'PENDING_CHAIRMAN_REVIEW':
+    case Zeus.MarketplaceReturnClaimStatus.PENDING_CHAIRMAN_REVIEW:
       return 'Ждёт удалённого рассмотрения';
-    case 'APPROVED_FOR_VISIT':
+    case Zeus.MarketplaceReturnClaimStatus.APPROVED_FOR_VISIT:
       return 'Очный визит одобрен';
-    case 'ACCEPTED_AT_VISIT':
+    case Zeus.MarketplaceReturnClaimStatus.ACCEPTED_AT_VISIT:
       return 'Возврат принят';
-    case 'REJECTED_REMOTELY':
+    case Zeus.MarketplaceReturnClaimStatus.REJECTED_REMOTELY:
       return 'Отказано удалённо';
-    case 'REJECTED_AT_VISIT':
+    case Zeus.MarketplaceReturnClaimStatus.REJECTED_AT_VISIT:
       return 'Отказано на месте';
     default:
       return status;
@@ -119,7 +121,7 @@ q-page.mp-role-operator.mp-return-operator.q-pa-md
         q-item-label(caption) {{ c.actual_quantity }} ед. · {{ c.fact_cost }} ₽
         q-item-label(caption) {{ c.reason_text.slice(0, 240) }}{{ c.reason_text.length > 240 ? '…' : '' }}
         q-item-label(caption v-if="c.defect_category")
-          | Категория: {{ c.defect_category }}
+          | Категория: {{ defectCategoryLabel(c.defect_category) }}
         .row.q-mt-xs.q-gutter-sm
           a.mp-return-operator__thumb(
             v-for="(p, i) in c.photos" :key="p.content_hash"

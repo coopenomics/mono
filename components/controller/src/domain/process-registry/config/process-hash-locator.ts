@@ -125,6 +125,13 @@ export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Ob
   'p.mkt.return': [{ code: 'marketplace', table: 'retrequests', field: 'hash' }],
   'p.mkt.wroff':  [{ code: 'marketplace', table: 'wroffprops',  field: 'hash' }],
 
+  // legacy donor process: o.mkt.supply / o.mkt.recv в cooptypes/operations.ts
+  // ссылаются на p.mkt.reqst, который не имеет entity-таблицы (clearing). По
+  // CLAUDE.md эти операции помечены как удалённые (membership-модель их не
+  // использует), но запись в cooptypes ещё есть — оставляем пустой locator,
+  // чтобы fail-fast валидация не падала. Удалить, когда operations.ts очистят.
+  'p.mkt.reqst':  [],
+
   // p.sov.axncnv — одноактовый процесс: данные из blockchain_actions +
   // документ statement (DocumentFieldDetector).
   'p.sov.axncnv': [],

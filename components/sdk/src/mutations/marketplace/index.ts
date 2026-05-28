@@ -8,6 +8,10 @@ export * as RetryKUGeocode from './retryKUGeocode'
 export * as CreateOrder from './createOrder'
 /** Отменить свой заказ до приёма поставщиком */
 export * as CancelOrder from './cancelOrder'
+/** Эпик 4: поставщик принимает индивидуальный заказ (cycle_type=individual) */
+export * as AcceptIndividualOrder from './acceptIndividualOrder'
+/** Эпик 4: поставщик отклоняет индивидуальный заказ с указанием причины */
+export * as DeclineIndividualOrder from './declineIndividualOrder'
 /** Опубликовать новое предложение поставщика на модерацию */
 export * as CreateOffer from './createOffer'
 /** Эпик 5: сформировать партии поставки из акцептованной заявки */
@@ -44,3 +48,19 @@ export * as UpdateWriteoffDraft from './updateWriteoffDraft'
 export * as CancelWriteoffDraft from './cancelWriteoffDraft'
 /** Эпик 8: председатель отправляет черновик с подписанным Заявлением 1106 в совет */
 export * as SubmitWriteoffDraft from './submitWriteoffDraft'
+/** Эпик 1 / Story 1.9: принятие ЦПП Marketplace кооперативом (L1 onboarding, chairman-only) */
+export * as MarketplaceAcceptCpp from './marketplaceAcceptCpp'
+/** Эпик 1 фоллоуап: L3-подпись оферты ЦПП «Стол заказов» пайщиком прямо со стола */
+export * as MarketplaceSignOnboardingOffer from './marketplaceSignOnboardingOffer'
+/** Добавить категории в whitelist кооператива (chairman-only) */
+export * as AddAvailableCategories from './addAvailableCategories'
+/** Удалить категории из whitelist кооператива (chairman-only) */
+export * as RemoveAvailableCategories from './removeAvailableCategories'
+/** Эпик 3 / Story 3.6: председатель одобряет offer (PENDING_MODERATION → APPROVED) */
+export * as ApproveOffer from './approveOffer'
+/** Эпик 3 / Story 3.6: председатель отклоняет offer (PENDING_MODERATION → REJECTED) */
+export * as RejectOffer from './rejectOffer'
+/** Поставщик меняет содержимое своего offer'а до модерации */
+export * as UpdateOffer from './updateOffer'
+/** Поставщик отзывает свой offer (любой статус, кроме APPROVED/REJECTED) */
+export * as WithdrawOffer from './withdrawOffer'

@@ -166,6 +166,10 @@ export class Generator implements IGenerator {
 
       [Actions.CapitalizationToMainWalletConvertStatement.Template.registry_id]: new Actions.CapitalizationToMainWalletConvertStatement.Factory(this.storage), // 1090
 
+      // Marketplace (Стол заказов) — Эпик 1: онбординг ЦПП
+      [Actions.MarketplaceOfferTemplate.Template.registry_id]: new Actions.MarketplaceOfferTemplate.Factory(this.storage), // 1100
+      [Actions.MarketplaceOffer.Template.registry_id]: new Actions.MarketplaceOffer.Factory(this.storage), // 1101
+
       // Marketplace (Стол заказов) — Эпик 5
       [Actions.MarketplaceAplReception.Template.registry_id]: new Actions.MarketplaceAplReception.Factory(this.storage), // 1102
       [Actions.MarketplaceTransportNote.Template.registry_id]: new Actions.MarketplaceTransportNote.Factory(this.storage), // 1103

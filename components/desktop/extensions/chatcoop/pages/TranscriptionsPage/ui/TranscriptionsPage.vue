@@ -1,10 +1,10 @@
 <template lang="pug">
-div.transcriptions-page
-  header.page-head
-    div.page-head__text
-      h1.page-head__title Транскрипции звонков
-      p.page-head__subtitle Записи распознанной речи из кооперативных звонков
-    q-btn.page-head__action(
+q-page.transcriptions-page(padding)
+  header.tr-head
+    div.tr-head__text
+      h1.tr-head__title Транскрипции звонков
+      p.tr-head__subtitle Записи распознанной речи из кооперативных звонков
+    q-btn.tr-head__action(
       flat
       round
       dense
@@ -15,57 +15,55 @@ div.transcriptions-page
     )
       q-tooltip Обновить
 
-  WindowLoader(v-if="transcriptionStore.isLoading && transcriptionStore.transcriptions.length === 0" text="Загрузка транскрипций...")
+  .text-caption.text-grey-7.q-mb-xs
+    | Время указано в вашем часовом поясе.
 
-  div.tr-panel(v-else-if="transcriptionStore.error")
-    p.tr-panel__error {{ transcriptionStore.error }}
-    q-btn(flat dense no-caps color="primary" @click="handleRefresh") Повторить
-
-  div.tr-empty(v-else-if="transcriptionStore.transcriptions.length === 0")
-    q-icon.tr-empty__icon(name="fa-solid fa-file-lines" size="40px")
-    p.tr-empty__title Нет транскрипций
-    p.tr-empty__hint Они появятся здесь после звонков с включённым секретарём
-
-
-  div.tr-list(v-else)
-    button.tr-list__row(
-      v-for="transcription in transcriptionStore.transcriptions"
-      :key="transcription.id"
-      type="button"
-      @click="goToDetail(transcription.id)"
-    )
-      div.tr-list__main
-        span.tr-list__name {{ transcription.roomName || 'Звонок' }}
-        span.tr-list__meta
-          | {{ formatDateTime(transcription.startedAt) }}
-          template(v-if="transcription.endedAt")
-            span.tr-list__meta-sep —
-            | {{ formatDuration(transcription.startedAt, transcription.endedAt) }}
-        p.tr-list__memo(v-if="transcription.memo") {{ transcription.memo }}
-      div.tr-list__side
-        q-badge.tr-badge(
-          :color="getStatusColor(transcription.status)"
-          :label="getStatusLabel(transcription.status)"
+  q-table(
+    flat
+    bordered
+    :rows="transcriptionStore.transcriptions"
+    :columns="columns"
+    row-key="id"
+    v-model:pagination="pagination"
+    :rows-per-page-options="[25]"
+    :loading="transcriptionStore.isLoading"
+    no-data-label="Нет транскрипций"
+    @row-click="onRowClick"
+  )
+    template(#body-cell-title="props")
+      q-td.tr-title-cell(:props="props")
+        .tr-title-cell__name {{ props.row.roomName || 'Звонок' }}
+        .tr-title-cell__memo(v-if="props.row.memo") {{ memoPreview(props.row.memo) }}
+    template(#body-cell-startedAt="props")
+      q-td(:props="props") {{ formatDateTime(props.row.startedAt) }}
+    template(#body-cell-duration="props")
+      q-td(:props="props")
+        | {{ props.row.endedAt ? formatDuration(props.row.startedAt, props.row.endedAt) : '—' }}
+    template(#body-cell-participants="props")
+      q-td(:props="props") {{ props.row.participants?.length ?? 0 }}
+    template(#body-cell-status="props")
+      q-td(:props="props")
+        q-badge(
+          :color="getStatusColor(props.row.status)"
+          :label="getStatusLabel(props.row.status)"
           outline
         )
-        span.tr-list__count {{ formatParticipantsCount(transcription.participants?.length ?? 0) }}
 
   div.tr-loadmore(v-if="hasMore")
     q-btn(flat dense no-caps color="grey-7" @click="loadMore" :loading="transcriptionStore.isLoading") Загрузить ещё
 </template>
 
 <script lang="ts" setup>
-import { onMounted, computed } from 'vue';
+import { onMounted, computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { WindowLoader } from 'src/shared/ui/Loader';
 import {
   formatDateTime,
   formatDuration,
-  formatParticipantsCount,
   getStatusColor,
-  getStatusLabel
+  getStatusLabel,
 } from '../../../shared/lib/transcriptionUtils';
 import { useTranscriptionStore } from '../../../entities/Transcription/model';
+import type { ITranscription } from '../../../entities/Transcription/model/types';
 
 const router = useRouter();
 const transcriptionStore = useTranscriptionStore();
@@ -73,15 +71,43 @@ const transcriptionStore = useTranscriptionStore();
 const pageSize = 20;
 let currentOffset = 0;
 
+const pagination = ref({
+  page: 1,
+  rowsPerPage: 25,
+});
+
+const columns = [
+  {
+    name: 'title',
+    label: 'Звонок',
+    field: 'roomName',
+    align: 'left' as const,
+    style: 'min-width: 320px;',
+  },
+  { name: 'startedAt', label: 'Начало', field: 'startedAt', align: 'left' as const },
+  { name: 'duration', label: 'Длительность', field: 'endedAt', align: 'left' as const },
+  { name: 'participants', label: 'Участники', field: 'participants', align: 'right' as const },
+  { name: 'status', label: 'Статус', field: 'status', align: 'left' as const },
+];
+
 const hasMore = computed(() => {
   return transcriptionStore.transcriptions.length >= currentOffset + pageSize;
 });
+
+function memoPreview(memo: string): string {
+  const firstLine = memo.split('\n').find((line) => line.trim().length > 0) ?? '';
+  return firstLine.length > 180 ? `${firstLine.slice(0, 177)}…` : firstLine;
+}
 
 function goToDetail(id: string): void {
   router.push({
     name: 'chatcoop-transcription-detail',
     params: { id },
   });
+}
+
+function onRowClick(_evt: Event, row: ITranscription): void {
+  goToDetail(row.id);
 }
 
 async function handleRefresh(): Promise<void> {
@@ -100,189 +126,77 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.transcriptions-page {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 20px 20px 32px;
-}
-
-.page-head {
+.tr-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 28px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--tr-border);
+  margin-bottom: 16px;
 }
 
-.page-head__title {
+.tr-head__title {
   margin: 0;
   font-size: 1.35rem;
   font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.25;
-  color: var(--tr-text);
 }
 
-.page-head__subtitle {
+.tr-head__subtitle {
   margin: 6px 0 0;
   font-size: 0.8125rem;
   line-height: 1.45;
-  color: var(--tr-muted);
-  max-width: 36rem;
+  color: rgba(0, 0, 0, 0.55);
+  max-width: 48rem;
 }
 
-.page-head__action {
-  color: var(--tr-muted);
+.body--dark .tr-head__subtitle {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.tr-head__action {
+  color: rgba(0, 0, 0, 0.55);
   flex-shrink: 0;
 }
 
-.tr-panel,
-.tr-empty {
-  border: 1px solid var(--tr-border);
-  border-radius: 10px;
-  padding: 24px 20px;
-  text-align: center;
+.body--dark .tr-head__action {
+  color: rgba(255, 255, 255, 0.55);
 }
 
-.tr-panel__error {
-  margin: 0 0 12px;
-  color: var(--q-negative, #c10015);
-  font-size: 0.9rem;
+.tr-title-cell {
+  max-width: 520px;
+  white-space: normal;
+  word-break: break-word;
 }
 
-.tr-empty__icon {
-  color: var(--tr-muted);
-  opacity: 0.55;
-}
-
-.tr-empty__title {
-  margin: 14px 0 6px;
-  font-size: 0.95rem;
+.tr-title-cell__name {
   font-weight: 500;
-  color: var(--tr-text);
-}
-
-.tr-empty__hint {
-  margin: 0;
-  font-size: 0.8125rem;
-  color: var(--tr-muted);
-  line-height: 1.45;
-}
-
-.tr-list {
-  border: 1px solid var(--tr-border);
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.tr-list__row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  width: 100%;
-  padding: 14px 18px;
-  margin: 0;
-  border: none;
-  border-bottom: 1px solid var(--tr-border);
-  background: transparent;
-  text-align: left;
-  cursor: pointer;
-  transition: background 0.12s ease;
-  color: inherit;
-  font: inherit;
-}
-
-.tr-list__row:last-child {
-  border-bottom: none;
-}
-
-.tr-list__row:hover {
-  background: var(--tr-hover);
-}
-
-.tr-list__row:focus-visible {
-  outline: 2px solid var(--q-primary);
-  outline-offset: -2px;
-}
-
-.tr-list__main {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-
-.tr-list__name {
-  font-size: 0.9375rem;
-  font-weight: 500;
-  color: var(--tr-text);
   line-height: 1.35;
 }
 
-.tr-list__meta {
-  font-size: 0.8125rem;
-  color: var(--tr-muted);
-  line-height: 1.4;
-}
-
-.tr-list__meta-sep {
-  margin: 0 0.25em;
-  opacity: 0.65;
-}
-
-.tr-list__memo {
-  margin: 6px 0 0;
+.tr-title-cell__memo {
+  margin-top: 4px;
   font-size: 0.8125rem;
   line-height: 1.45;
-  color: var(--tr-muted);
+  color: rgba(0, 0, 0, 0.55);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   word-break: break-word;
-  text-align: left;
 }
 
-.tr-list__side {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.tr-list__count {
-  font-size: 0.8125rem;
-  color: var(--tr-muted);
-  line-height: 1.3;
-  text-align: right;
-}
-
-.tr-badge {
-  font-weight: 500;
-  font-size: 0.7rem;
+.body--dark .tr-title-cell__memo {
+  color: rgba(255, 255, 255, 0.55);
 }
 
 .tr-loadmore {
   display: flex;
   justify-content: center;
-  margin-top: 20px;
+  margin-top: 16px;
 }
 
-.transcriptions-page {
-  --tr-text: rgba(0, 0, 0, 0.87);
-  --tr-muted: rgba(0, 0, 0, 0.52);
-  --tr-border: rgba(0, 0, 0, 0.08);
-  --tr-hover: rgba(0, 0, 0, 0.03);
-}
-
-.body--dark .transcriptions-page {
-  --tr-text: rgba(255, 255, 255, 0.9);
-  --tr-muted: rgba(255, 255, 255, 0.45);
-  --tr-border: rgba(255, 255, 255, 0.1);
-  --tr-hover: rgba(255, 255, 255, 0.04);
+:deep(.q-table tbody tr) {
+  cursor: pointer;
 }
 </style>

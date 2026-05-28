@@ -483,7 +483,10 @@ export class GatewayInteractor {
       type: PaymentTypeEnum.WITHDRAWAL,
       direction: PaymentDirectionEnum.OUTGOING,
       provider: provider,
-      status: PaymentStatusEnum.PENDING,
+      // Платёж создаётся до решения совета и не должен видеться кассиром как
+      // готовый к выплате. Переход AWAITING_AUTHORIZATION → PENDING происходит
+      // в WithdrawAuthorizationListener при on-chain action wallet::authwthd.
+      status: PaymentStatusEnum.AWAITING_AUTHORIZATION,
       memo: `Возврат паевого взноса №${data.payment_hash.slice(0, 8)}`,
       secret: generateUniqueHash(),
       payment_method_id: data.method_id,

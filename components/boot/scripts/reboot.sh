@@ -21,15 +21,15 @@ docker compose stop node || true
 # Удаляем blockchain data
 echo "Удаляем blockchain data..."
 # sudo chmod -R 755 ../blockchain-data/ 2>/dev/null || true
-sudo rm -rf ../blockchain-data/
+docker run --rm -v "$(cd .. && pwd)/blockchain-data:/d" alpine sh -c 'rm -rf /d/* /d/.[!.]* 2>/dev/null || true'
 
 # Пересоздаем и запускаем базы данных
 echo "Пересоздаем и запускаем базы данных..."
 docker compose up -d mongo postgres monoredis
 
-# Ждем готовности MongoDB
+# Ждем готовности MongoDB (standalone, ping вместо ожидания PRIMARY).
 echo "Ждем готовности MongoDB..."
-until docker compose exec -T mongo mongosh --eval "db.adminCommand('ping')" --quiet > /dev/null 2>&1; do
+until docker compose exec -T mongo mongosh --quiet --eval "db.adminCommand({ping:1}).ok" > /dev/null 2>&1; do
   echo "MongoDB еще не готов, ждем..."
   sleep 2
 done

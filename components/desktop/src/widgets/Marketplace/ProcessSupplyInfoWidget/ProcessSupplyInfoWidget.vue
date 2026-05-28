@@ -19,7 +19,7 @@
         .text-body2.font-monospace {{ field('offerer') || field('offerer_account') || '—' }}
       .col-12.col-sm-6
         .text-caption.text-grey-7 Состояние заказа
-        .text-body2 {{ field('status') || '—' }}
+        .text-body2 {{ statusLabel }}
       .col-12.col-sm-6
         .text-caption.text-grey-7 Единиц в заказе
         .text-body2 {{ field('units_total') || field('units') || '—' }}
@@ -55,6 +55,27 @@ function field(name: string): string {
   const v = snapshot.value?.[name]
   return typeof v === 'string' ? v : v != null ? String(v) : ''
 }
+
+// Подписи статусов заказа — канон стола «Мои заказы» (MyOrdersPage STATUS_LABEL).
+const ORDER_STATUS_LABEL: Record<string, string> = {
+  ACTIVE: 'Ждёт цикла / решения',
+  ACCEPTED_PENDING_SUPPLIER: 'Ждёт поставщика',
+  ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL: 'Ждёт поставщика',
+  ACCEPTED: 'Принят поставщиком',
+  SUPPLY_PREPARED: 'Поставка готовится',
+  ACCEPTED_TO_COOP: 'Принят кооперативом',
+  READY_TO_RECEIVE: 'Готов к выдаче',
+  RECEIVED: 'Получен',
+  RETURNED: 'Возвращён',
+  CANCELLED_BY_ORDERER: 'Отменён заказчиком',
+  CANCELLED_BY_SUPPLIER: 'Отменён поставщиком',
+  EXPIRED_NO_THRESHOLD: 'Цикл закрыт без минимального порога',
+  EXPIRED_NO_VOLUME: 'Цикл закрыт без объёма',
+}
+const statusLabel = computed(() => {
+  const raw = field('status')
+  return ORDER_STATUS_LABEL[raw] || raw || '—'
+})
 
 const deepLink = computed(() => ({
   name: 'marketplace-pvz-issuance',

@@ -41,6 +41,7 @@ import { runPush } from '../sync/push.js'
 import { runClearStaging, runRemove } from '../sync/remove.js'
 import { restoreAllFromServer, RESTORE_ALL_PATH_SENTINELS, runRestore } from '../sync/restore.js'
 import { runStatus } from '../sync/status.js'
+import { runUpdateTranscriptionMemo } from '../sync/update-transcription-memo.js'
 import { writeWorkspaceIndexMarkdown } from '../sync/workspace-index.js'
 import { error, formatThrownValue, info, success, warn } from '../ui/output.js'
 
@@ -234,6 +235,48 @@ export async function runCli(argv: string[]): Promise<void> {
           issueHash: opts.issueHash,
         })
         success(`Требование создано на сервере: ${relativePath} (добавлено в staging)`)
+      },
+    )
+
+  const transcriptionCmd = program
+    .command('transcription')
+    .description(
+      'Управление транскрипциями звонков: публикация краткого содержания (memo) на сервер (отображается в desktop на странице транскрипции).',
+    )
+
+  transcriptionCmd
+    .command('memo')
+    .description(
+      'Опубликовать краткое содержание (memo) для транскрипции звонка через GraphQL-мутацию chatcoopUpdateTranscriptionMemo. <pathOrId>: путь к `meetings/<stem>.md` (id берётся из .blago/index.json, entityType=call_transcription) или UUID транскрипции. Без --text/--file читает sibling-файл `<stem>.memo.md` рядом с meeting. Доступно председателю и членам совета.',
+    )
+    .argument(
+      '<pathOrId>',
+      'путь к meeting-файлу или UUID транскрипции',
+    )
+    .option('--file <path>', 'путь к файлу с текстом memo (markdown)')
+    .option('--text <inline>', 'текст memo строкой (приоритет над --file и sibling)')
+    .action(
+      async (
+        pathOrId: string,
+        opts: { file?: string, text?: string },
+      ) => {
+        const root = requireRoot()
+        const cfg = await loadConfig(root)
+        const ctx = await ensureAuthenticatedContext(root, cfg)
+        const result = await runUpdateTranscriptionMemo(
+          ctx,
+          pathOrId,
+          { inlineText: opts.text, filePath: opts.file },
+          startDir(),
+        )
+        const sourceLabel = result.memoSource === 'inline'
+          ? '--text'
+          : result.memoSource === 'file'
+            ? `--file ${result.memoFile ?? ''}`
+            : `sibling ${result.memoFile ?? ''}`
+        success(
+          `Memo обновлено на сервере: транскрипция ${result.transcriptionId} (символов: ${result.memoLength}; источник: ${sourceLabel}).`,
+        )
       },
     )
 

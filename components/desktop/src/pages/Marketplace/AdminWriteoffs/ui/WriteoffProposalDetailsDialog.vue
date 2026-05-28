@@ -1,7 +1,8 @@
 <script lang="ts" setup>
 import type { MarketplaceWriteoffProposalView } from '../api';
+import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 
-const props = defineProps<{
+defineProps<{
   modelValue: boolean;
   proposal: MarketplaceWriteoffProposalView;
 }>();
@@ -55,7 +56,7 @@ q-dialog(
           div {{ fmt(proposal.cycle_started_at) }}
         .col
           .text-caption.text-grey Сумма
-          div {{ proposal.total_amount }}
+          div {{ formatAsset2Digits(proposal.total_amount) }}
         .col
           .text-caption.text-grey Идентификатор on-chain
           div(style="font-family: monospace; word-break: break-all") {{ proposal.proposal_hash || '—' }}
@@ -81,7 +82,7 @@ q-dialog(
             td {{ it.braname }}
             td {{ it.asset_title }}
             td {{ it.quantity }}
-            td {{ it.amount }}
+            td {{ formatAsset2Digits(it.amount) }}
             td {{ it.reason }}
             td(:class="it.executed ? 'text-positive' : 'text-grey-7'") {{ it.executed ? 'Исполнено' : 'Ожидает' }}
 

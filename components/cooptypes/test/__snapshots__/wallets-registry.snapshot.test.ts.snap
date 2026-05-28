@@ -58,14 +58,14 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
     "name": "w.cap.blago",
   },
   {
-    "human_name": "ЦПП «Генератор» — единый кошелёк программы у пайщика",
-    "kind": "USER_SHARED",
-    "name": "w.cap.gen",
-  },
-  {
     "human_name": "Первичный учёт РИД-взносов до перехода на электронный учёт",
     "kind": "USER_SHARED",
     "name": "w.cap.preimp",
+  },
+  {
+    "human_name": "ЦПП «Генератор» — единый кошелёк программы",
+    "kind": "COOPERATIVE",
+    "name": "w.cap.gen",
   },
   {
     "human_name": "Вступительные взносы",
@@ -73,7 +73,7 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
     "name": "w.reg.entry",
   },
   {
-    "human_name": "Возвраты паевых взносов пайщикам",
+    "human_name": "Возвраты паевых взносов пайщикам (deprecated, не используется в новых операциях)",
     "kind": "COOPERATIVE",
     "name": "w.wal.wthdrw",
   },

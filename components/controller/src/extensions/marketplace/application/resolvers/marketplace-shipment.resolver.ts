@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException, UseGuards } from '@nestjs/common';
+import { ForbiddenException, Inject, Injectable, NotFoundException, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import config from '~/config/config';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
@@ -6,11 +6,18 @@ import { CurrentMarketplaceMember } from '../decorators/current-marketplace-memb
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
+import { canAccess } from '../access/marketplace-access-matrix';
+import type { MarketplaceRole } from '../membership/marketplace-roles.mapper';
+import {
+  MARKETPLACE_KU_CHAIRMAN_SERVICE,
+  type MarketplaceKuChairmanService,
+} from '../services/marketplace-ku-chairman.service';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import {
   MarketplaceCreateShipmentInputDTO,
   MarketplaceCreateShipmentResultDTO,
   MarketplaceGetShipmentInputDTO,
+  MarketplaceListShipmentsByBranameInputDTO,
   MarketplaceListShipmentsInputDTO,
   MarketplaceShipmentDTO,
   toMarketplaceShipmentDTO,
@@ -37,7 +44,9 @@ export class MarketplaceShipmentResolver {
     @Inject(MARKETPLACE_SHIPMENT_CREATE_SERVICE)
     private readonly createService: MarketplaceShipmentCreateService,
     @Inject(MARKETPLACE_SHIPMENT_REPOSITORY)
-    private readonly shipmentRepo: MarketplaceShipmentDomainRepository
+    private readonly shipmentRepo: MarketplaceShipmentDomainRepository,
+    @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
+    private readonly kuChairmanService: MarketplaceKuChairmanService
   ) {}
 
   @Mutation(() => MarketplaceCreateShipmentResultDTO, {
@@ -84,6 +93,48 @@ export class MarketplaceShipmentResolver {
       cycle_id: data?.cycle_id,
       braname: data?.braname,
       status: data?.statuses?.length
+        ? (data.statuses as MarketplaceShipmentStatus[])
+        : undefined,
+    };
+    const list = await this.shipmentRepo.list(filter);
+    return list.map(toMarketplaceShipmentDTO);
+  }
+
+  @Query(() => [MarketplaceShipmentDTO], {
+    name: 'marketplaceListShipmentsByBraname',
+    description:
+      'Список партий поставки, ожидаемых на кооперативном участке, — для стола приёмки оператора пункта выдачи.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Shipment', 'read:own-KU')
+  async marketplaceListShipmentsByBraname(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('data') data: MarketplaceListShipmentsByBranameInputDTO
+  ): Promise<MarketplaceShipmentDTO[]> {
+    const coopname = config.coopname;
+    const roles = member.marketplace_roles as MarketplaceRole[];
+
+    // Ownership-фильтрация — ответственность резолвера (matrix даёт только
+    // capability). Роль с `Shipment:read:all` видит партии любого КУ; роль
+    // только с `read:own-KU` (оператор/председатель КУ) обязана быть членом
+    // запрашиваемого участка, иначе утечёт лента поставок чужого КУ.
+    if (!canAccess(roles, 'Shipment', 'read:all')) {
+      const isMember = await this.kuChairmanService.isMemberOfBranch(
+        coopname,
+        data.braname,
+        member.username
+      );
+      if (!isMember) {
+        throw new ForbiddenException(
+          'Лента поставок доступна только по участку, на котором вы являетесь председателем или доверенным лицом.'
+        );
+      }
+    }
+
+    const filter: MarketplaceShipmentListFilter = {
+      coopname,
+      braname: data.braname,
+      status: data.statuses?.length
         ? (data.statuses as MarketplaceShipmentStatus[])
         : undefined,
     };

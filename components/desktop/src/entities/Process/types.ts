@@ -1,4 +1,4 @@
-import type { Queries, Zeus } from '@coopenomics/sdk'
+import type { Queries } from '@coopenomics/sdk'
 
 export type IProcessView =
   Queries.Processes.GetProcess.IOutput[typeof Queries.Processes.GetProcess.name]

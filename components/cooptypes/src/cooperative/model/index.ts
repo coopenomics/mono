@@ -93,6 +93,15 @@ export interface IVars {
     protocol_number: string
     protocol_day_month_year: string
   }
+  // Стол заказов
+  marketplace_program?: { // Положение о ЦПП «СТОЛ ЗАКАЗОВ»
+    protocol_number: string
+    protocol_day_month_year: string
+  }
+  marketplace_offer_template?: { // Шаблон публичной оферты ЦПП «СТОЛ ЗАКАЗОВ»
+    protocol_number: string
+    protocol_day_month_year: string
+  }
 
 }
 
@@ -178,6 +187,12 @@ export enum UdataKey {
 
   /** Дата создания дополнительного соглашения по хранению имущества */
   BLAGOROST_STORAGE_AGREEMENT_CREATED_AT = 'blagorost_storage_agreement_created_at',
+
+  /** Номер оферты ЦПП «Стол заказов» (Эпик 1 / Story 1.7 / 1.11) */
+  MARKETPLACE_AGREEMENT_NUMBER = 'marketplace_agreement_number',
+
+  /** Дата создания оферты ЦПП «Стол заказов» */
+  MARKETPLACE_AGREEMENT_CREATED_AT = 'marketplace_agreement_created_at',
 }
 
 /**

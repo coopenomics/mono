@@ -127,6 +127,8 @@ module.exports = configure(function (ctx) {
             'localhost',
             '127.0.0.1',
           ];
+          viteConf.server.fs = viteConf.server.fs || {};
+          viteConf.server.fs.strict = false;
         }
 
         if (!isClient) {
@@ -153,9 +155,9 @@ module.exports = configure(function (ctx) {
         [
           'vite-plugin-checker',
           {
-            vueTsc: {
-              tsconfigPath: 'tsconfig.vue-tsc.json',
-            },
+            // vueTsc отключён в dev — пожирал 100% CPU/RAM на больших правках
+            // (Quasar + Vue 3 + Milkdown/BPMN/VueFlow/Mermaid/OpenLayers).
+            // Типы проверяем отдельно: `pnpm typecheck` и в IDE через Volar.
             eslint: {
               lintCommand: 'eslint "./**/*.{js,ts,mjs,cjs,vue}"',
             },
@@ -176,7 +178,7 @@ module.exports = configure(function (ctx) {
       // Vue DevTools + Vite: подключение скрипта в dev (расширение браузера)
       vueDevtools: false,
       open: false,
-      port: 2999,
+      port: parseInt(process.env.DESKTOP_PORT || '2999', 10),
       strictPort: true,
       host: '0.0.0.0',
     },

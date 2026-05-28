@@ -60,7 +60,7 @@ export default async ({ page, shot }) => {
   console.log(`[09] token (head): ${token.slice(0, 40)}…`);
 
   // ---- 2. Открываем /auth/invite?token=… ---------------------------------
-  const inviteUrl = `${env.BASE_URL}/${env.COOPNAME}/auth/invite?token=${token}`;
+  const inviteUrl = `${env.BASE_URL}/#/${env.COOPNAME}/auth/invite?token=${token}`;
   await page.goto(inviteUrl, { waitUntil: 'domcontentloaded', timeout: 60_000 });
   await page.waitForLoadState('networkidle', { timeout: 30_000 }).catch(() => {});
   await page.waitForSelector('.invite-title:has-text("СОХРАНИТЕ КЛЮЧ")', { timeout: 30_000 });
@@ -97,7 +97,9 @@ export default async ({ page, shot }) => {
   console.log(`[09] saved fixture → ${CHAIRMAN_FIXTURE_PATH}`);
 
   // ---- 4. Чекбокс «Я сохранил ключ» + submit -----------------------------
-  await page.locator('label:has-text("Я сохранил ключ")').click();
+  // Quasar q-checkbox рендерит label в <div class="q-checkbox__label">, не <label>.
+  // Кликаем по самому q-checkbox по тексту его лейбла.
+  await page.locator('.q-checkbox:has-text("Я сохранил ключ")').click();
   await page.waitForTimeout(300);
 
   await shot(

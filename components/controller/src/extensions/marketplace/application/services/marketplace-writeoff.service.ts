@@ -15,6 +15,7 @@ import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import type { PaginationInputDTO } from '~/application/common/dto/pagination.dto';
 import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
 import {
   MARKETPLACE_WRITEOFF_PROPOSAL_REPOSITORY,
   type MarketplaceWriteoffProposalDomainRepository,
@@ -72,7 +73,7 @@ export interface MarketplaceUpdateWriteoffDraftInput {
 export interface MarketplaceSubmitWriteoffDraftInput {
   id: string;
   chairman_account: string;
-  signed_statement: ISignedDocumentDomainInterface;
+  signed_statement: SignedDigitalDocumentInputDTO;
 }
 
 export interface MarketplaceListWriteoffProposalsInput {
@@ -247,7 +248,11 @@ export class MarketplaceWriteoffService {
       );
     }
 
-    // 1. on-chain propwroff: фиксируем wroffprops::proposed
+    // on-chain propwroff: фиксируем wroffprops::proposed И ставит повестку совета
+    // одним action'ом — контракт сам делает inline `soviet::createagenda(mktwroff)`
+    // от permission_level{marketplace, active} (marketplace в contracts_whitelist).
+    // statement + meta форвардятся в createagenda; backend createagenda НЕ зовёт
+    // (кооператив не в whitelist, отдельный вызов создал бы дубль повестки).
     const propTx = await this.chainPort.propWroff({
       coopname: draft.coopname,
       proposed_by: input.chairman_account,
@@ -255,18 +260,13 @@ export class MarketplaceWriteoffService {
       items: draft.items.map((it) => ({
         source_order_id: '0',
         braname: it.braname,
-        amount: it.amount,
+        // it.amount хранится как голое число ("120.0000"); on-chain поле
+        // wroff_item.amount — asset, нужен символ ("120.0000 RUB").
+        amount: this.formatAsset(Number(it.amount)),
         meta: it.reason,
         executed: false,
       })) as MarketContract.Actions.PropWroff.IPropWroff['items'],
-    });
-
-    // 2. createagenda: ставим повестку совета с callback'ами marketplace
-    const agendaTx = await this.chainPort.createWriteoffAgenda({
-      coopname: draft.coopname,
-      username: input.chairman_account,
-      proposal_hash: proposalHash,
-      statement: input.signed_statement,
+      statement: new SignedDigitalDocumentInputDTO(input.signed_statement).toDocument() as MarketContract.Actions.PropWroff.IPropWroff['statement'],
       meta: JSON.stringify({
         registry_id: Cooperative.Registry.MarketplaceWriteoffStatement.registry_id,
         proposal_hash: proposalHash,
@@ -276,10 +276,9 @@ export class MarketplaceWriteoffService {
     });
 
     const propTxHash = this.extractTxHash(propTx);
-    const agendaTxHash = this.extractTxHash(agendaTx);
-    if (!propTxHash || !agendaTxHash) {
+    if (!propTxHash) {
       throw new ConflictException(
-        'Подача проекта в совет: цепь не вернула tx_hash (propwroff/createagenda). Повторите.'
+        'Подача проекта в совет: цепь не вернула tx_hash (propwroff). Повторите.'
       );
     }
 
@@ -298,7 +297,6 @@ export class MarketplaceWriteoffService {
           proposal_hash: proposalHash,
           items_count: draft.items.length,
           propwroff_tx_hash: propTxHash,
-          createagenda_tx_hash: agendaTxHash,
         },
       },
     });

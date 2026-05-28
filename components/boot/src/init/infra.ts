@@ -1,5 +1,9 @@
 import { randomUUID } from 'node:crypto'
+import { existsSync, readFileSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import axios from 'axios'
+import ecc from 'eosjs-ecc'
 import { Generator, Registry } from '@coopenomics/factory'
 import type { Cooperative } from 'cooptypes'
 import { DraftContract } from 'cooptypes'
@@ -11,7 +15,9 @@ import { sleep } from '../utils'
 import { generateRandomSHA256 } from '../utils/randomHash'
 import { initUsersInPostgres, initVaultInPostgres } from '../postgres-init'
 import { CooperativeClass } from './cooperative'
-import { generateRandomSHA256 } from '../utils/randomHash'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
 
 export async function startInfra() {
   // инициализируем инстанс с ключами
@@ -572,7 +578,182 @@ export async function installInitialData(blockchain: Blockchain, isExtended = fa
 }
 
 export async function installExtraData(blockchain: Blockchain) {
-  // В расширенном режиме пайщики уже добавлены в installInitialData
-  // Здесь можно добавить дополнительную логику инициализации если потребуется
-  console.log('Дополнительная инициализация для расширенного режима выполнена')
+  // Регистрируем partner1 как coop с авто-approve от провайдера (Восхода).
+  // Без этого реальный UI flow требует ручной активации председателем —
+  // провайдер не подтянет partner1 в свою DB пока в registrator.coops его
+  // нет. На dev-стенде хотим иметь готовый partner1 active сразу после
+  // `reboot:extra`, чтобы прыгать из 0 → 8 (Hostkey rent → install → ACTIVE)
+  // одним нажатием.
+  //
+  // Упрощённый flow (без sendAgreement через soviet — он отказывается на
+  // program_id > 0 с проверкой «подписывается через wallet::signagree»).
+  // Минимум для попадания в registrator.coops со status=active:
+  //   newaccount → reguser(type=organization) → regcoop → stcoopstatus(active)
+  console.log('\n=== installExtraData: регистрируем partner1 как coop (active) ===')
+
+  const username = 'partner1'
+
+  // Берём WIF из docs-harness/state/cooperatives/partner1.json, если он там есть.
+  // Без этого boot:extra на каждом запуске генерирует случайный privateKey,
+  // а harness 08 (chairman install wizard /partner1/install) подаёт WIF из
+  // фикстуры на шаге 1 — они расходятся, startInstall mutation не принимает
+  // ключ, wizard зависает на шаге 1 без видимой ошибки. На репозиторий
+  // фикстура коммит'ится разработчиком вручную; здесь только читаем.
+  let seededKeys: { privateKey: string; publicKey: string } | undefined
+  try {
+    const fixturePath = resolve(
+      __dirname,
+      '../../../docs-harness/state/cooperatives/partner1.json',
+    )
+    if (existsSync(fixturePath)) {
+      const fx = JSON.parse(readFileSync(fixturePath, 'utf-8'))
+      if (fx?.wif) {
+        // publicKey не хранится в фикстуре — деривим из приватного.
+        const pub = fx.publicKey || await ecc.privateToPublic(fx.wif)
+        seededKeys = { privateKey: fx.wif, publicKey: pub }
+        console.log(`✓ partner1: используем seeded WIF из фикстуры (pub=${pub.slice(0, 12)}…)`)
+      }
+    }
+  } catch (e: any) {
+    console.warn(`⚠ partner1 fixture read failed (${e.message}) — генерируем новый ключ`)
+  }
+
+  const account = await blockchain.generateKeypair(username, seededKeys, 'Аккаунт partner1')
+
+  await blockchain.createAccount({
+    coopname: config.provider,
+    referer: '',
+    username: account.username,
+    public_key: account.publicKey,
+    meta: '',
+  })
+
+  const registration_hash = generateRandomSHA256()
+  await blockchain.registerUser({
+    coopname: config.provider,
+    braname: '',
+    username: account.username,
+    type: 'organization',
+    statement: {
+      hash: registration_hash,
+      signatures: [],
+      meta: '{}',
+      version: '1.0.0',
+      doc_hash: registration_hash,
+      meta_hash: registration_hash,
+    } as any,
+    registration_hash,
+  })
+
+  await blockchain.registerCooperative({
+    username: account.username,
+    coopname: account.username,
+    params: {
+      is_cooperative: true,
+      coop_type: 'conscoop',
+      announce: 'partner-dev.coopenomics.world',
+      description: 'Партнёрский кооператив (тестовый dev-стенд)',
+      initial: `100.0000 ${config.token.govern_symbol}`,
+      minimum: `300.0000 ${config.token.govern_symbol}`,
+      org_initial: `1000.0000 ${config.token.govern_symbol}`,
+      org_minimum: `3000.0000 ${config.token.govern_symbol}`,
+    },
+    document: {
+      hash: registration_hash,
+      signatures: [],
+      meta: '{}',
+      version: '1.0.0',
+      doc_hash: registration_hash,
+      meta_hash: registration_hash,
+    } as any,
+  })
+
+  await blockchain.preInit({
+    coopname: account.username,
+    username: config.provider,
+    status: 'active',
+  })
+
+  // Ресурсы для партнёра: powerup CPU/NET. transfer токенов пропускаем —
+  // eosio.token::transfer падает на проверке membership в wallet program,
+  // которая для partner1 не настроена. Для provider sync + Hostkey-flow
+  // токены не нужны: tx от имени partner1 пойдут от soviet/admin.
+  await blockchain.powerup({
+    payer: 'eosio',
+    receiver: account.username,
+    days: config.powerup.days,
+    payment: `100.0000 ${config.token.symbol}`,
+    transfer: true,
+  })
+
+  // === Засев partner1 в воскход-coopback (Mongo organizations + paymentMethods + Postgres users) ===
+  //
+  // Provider при initSystem-инициализации partner1 запрашивает у воскход-coopback'а
+  // приватные данные организации через GraphQL `getAccount(partner1).private_account`.
+  // Resolver идёт по ветке `username != config.coopname` → userRepository.findByUsername
+  // (Postgres users), затем organizationRepository.findByUsername (Mongo organizations).
+  // Без этих записей resolver вернёт private_account=null → провайдер упадёт
+  // «Unsupported account type: undefined» при подготовке organization_data.
+  console.log('Засеваем partner1 как пайщика-organization в воскход-coopback')
+
+  const partnerEmail = `chairman.${account.username}@example.com`
+
+  const generator = new Generator()
+  await generator.connect(process.env.MONGO_URI as string)
+
+  await generator.save('organization', {
+    username: account.username,
+    type: 'coop',
+    short_name: 'ПК "Партнёр-1"',
+    full_name: 'Потребительский Кооператив "Партнёр-1"',
+    represented_by: {
+      first_name: 'Иван',
+      last_name: 'Иванов',
+      middle_name: 'Иванович',
+      position: 'Председатель',
+      based_on: 'Решение общего собрания №1',
+    },
+    country: 'Российская Федерация',
+    city: 'Москва',
+    fact_address: '117593 г. Москва, ул. Тестовая, дом 1',
+    full_address: '117593 г. Москва, ул. Тестовая, дом 1',
+    email: partnerEmail,
+    phone: '+71234567891',
+    details: {
+      inn: '7728130612',
+      ogrn: '1247700283347',
+      kpp: '772801002',
+    },
+  } as any)
+
+  await generator.save('paymentMethod', {
+    is_default: true,
+    method_id: randomUUID(),
+    method_type: 'bank_transfer',
+    username: account.username,
+    data: {
+      account_number: '40703810038000110118',
+      currency: 'RUB',
+      card_number: '',
+      bank_name: 'ПАО Сбербанк',
+      details: {
+        bik: '044525225',
+        corr: '30101810400000000225',
+        kpp: '772801002',
+      },
+    },
+  })
+
+  await mongoose.disconnect().catch(() => {})
+
+  await initUsersInPostgres([{
+    username: account.username,
+    email: partnerEmail,
+    type: 'organization',
+    role: 'user',
+    status: 'joined',
+    is_registered: true,
+  }])
+
+  console.log(`=== partner1 (${account.username}) засеян в воскход-coopback (Mongo+Postgres) ===\n`)
 }

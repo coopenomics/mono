@@ -35,7 +35,7 @@ export default async ({ page, shot }) => {
   }
 
   // --- 1. Логин под chairman'ом Восхода. ---
-  await page.goto(`${env.BASE_URL}/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
   await page.waitForSelector('button:has-text("Войти")', { timeout: 30_000 });
   await page.locator('label:has-text("электронную почту")').first().locator('input').fill(env.CHAIRMAN_EMAIL);
   await page.locator('label:has-text("ключ доступа")').first().locator('input').fill(env.CHAIRMAN_WIF);
@@ -51,7 +51,7 @@ export default async ({ page, shot }) => {
 
   // --- 2. Идём в реестр одобрений. ---
   // Восход — SPA с hash-роутингом, поэтому URL формируется как `/#/<route>`.
-  await page.goto(`${env.BASE_URL}/${env.COOPNAME}/chairman/approvals`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/chairman/approvals`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
   await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => {});
   await page.waitForTimeout(1500);
   console.log(`[03-operator-approve] url after goto: ${page.url()}`);

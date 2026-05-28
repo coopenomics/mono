@@ -48,14 +48,17 @@ void capital::signact2(eosio::name coopname, eosio::name chairman, checksum256 r
   // Приём результата интеллектуальной деятельности (РИД) в паевой фонд.
   // Схема ревью 2026-04-20 (Ангелина Matrix 2026-04-19): две раздельные проводки
   // в разных action'ах по фазам жизненного цикла РИД.
-  //   1) COMMIT_RID (Dr 08 / Cr 80) — теперь в `approvecmmt` на каждом одобрении
-  //      мастером конкретного коммита, на дельту `available_for_program`.
-  //      «Собираем на 08 частями по мере накопления коммитов».
+  //   1) COMMIT_RID (Dr 08 / Cr 80) — в `approvecmmt` на каждом одобрении
+  //      мастером конкретного коммита, на полный `commit.amounts.total_contribution`.
   //   2) ACCEPT_RID (Dr 04 / Cr 08) — здесь, на полный накопленный
   //      `segment.available_for_program`. «Переносим с 08 на 04 когда РИД
   //      собран и подписан акт-2».
-  // Инвариант: Σ COMMIT_RID (по коммитам сегмента) == ACCEPT_RID → GENERATOR_FUND
-  // (w.cap.gen) закрывается в ноль, 08-й счёт закрывается в ноль по этому сегменту.
+  // Инвариант (программный уровень, НЕ сегмент): Σ COMMIT_RID по всем коммитам
+  // программы == Σ ACCEPT_RID по всем сегментам — `wallets2[w.cap.gen]` (единый
+  // кооперативный пул, COOPERATIVE) закрывается в ноль после конвертации всех
+  // сегментов программы. На уровне отдельного сегмента инвариант НЕ выполняется
+  // (CRPS перераспределяет доли между сегментами без compensating TRANSFER) —
+  // именно поэтому L3-разрез по пайщику снят (см. wallets.hpp:103).
   if (segment.available_for_program.amount > 0) {
     Ledger2::apply(_capital, coopname, operations::capital::ACCEPT_RID, segment.available_for_program, result -> username, result_hash, memo);
   }

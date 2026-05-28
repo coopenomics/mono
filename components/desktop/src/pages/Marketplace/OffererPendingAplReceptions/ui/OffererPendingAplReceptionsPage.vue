@@ -1,13 +1,40 @@
 <script lang="ts" setup>
+import type { QTableProps } from 'quasar';
 import { onMounted, ref } from 'vue';
-import { FailAlert, NotifyAlert } from 'src/shared/api';
+import { FailAlert } from 'src/shared/api';
 import {
   listAplReceptionsAsSupplier,
   type MarketplaceAplReceptionView,
 } from '../api';
+import SignAplReceptionDialog from './SignAplReceptionDialog.vue';
 
 const items = ref<MarketplaceAplReceptionView[]>([]);
 const loading = ref(false);
+const signDialog = ref(false);
+const selected = ref<MarketplaceAplReceptionView | null>(null);
+
+const RECEPTION_STATUS_LABEL: Record<string, string> = {
+  PENDING_SUPPLIER_SIGN: 'Ждёт подписи поставщика',
+  PENDING_CHAIRMAN_RECEPTION_SIGN: 'Ждёт подписи председателя КУ',
+  ACCEPTED_TO_COOP: 'Принят кооперативом',
+  CANCELLED: 'Отменён',
+};
+
+const RECEPTION_VARIANT_LABEL: Record<string, string> = {
+  IN_PERSON: 'Очная приёмка',
+  EXPEDITOR: 'Через экспедитора',
+  A: 'Очная приёмка',
+  B: 'Через экспедитора',
+};
+
+const columns: QTableProps['columns'] = [
+  { name: 'id', label: 'АПП', field: (r: MarketplaceAplReceptionView) => r.id.slice(0, 8), align: 'left' },
+  { name: 'braname', label: 'КУ', field: 'braname', align: 'left' },
+  { name: 'variant', label: 'Вариант', field: 'variant', align: 'center', format: (v: string) => RECEPTION_VARIANT_LABEL[v] ?? v },
+  { name: 'status', label: 'Статус', field: 'status', align: 'left', format: (v: string) => RECEPTION_STATUS_LABEL[v] ?? v },
+  { name: 'total_amount', label: 'Сумма', field: 'total_amount', align: 'right' },
+  { name: 'actions', label: 'Действия', field: 'id', align: 'right' },
+];
 
 async function load(): Promise<void> {
   loading.value = true;
@@ -21,10 +48,8 @@ async function load(): Promise<void> {
 }
 
 function sign(item: MarketplaceAplReceptionView): void {
-  NotifyAlert(
-    `Диалог подписи АПП ${item.id.slice(0, 8)} в разработке`,
-    'Backend принимает только подписанный канонический акт (signed_document с подписью). UI-флоу подписи через приватный ключ поставщика — следующий этап работ.'
-  );
+  selected.value = item;
+  signDialog.value = true;
 }
 
 onMounted(() => {
@@ -41,14 +66,7 @@ q-page.mp-role-offerer.mp-pending-apl.q-pa-md
 
   q-table(
     :rows="items"
-    :columns="[
-      { name: 'id', label: 'АПП', field: (r: MarketplaceAplReceptionView) => r.id.slice(0, 8), align: 'left' },
-      { name: 'braname', label: 'КУ', field: 'braname', align: 'left' },
-      { name: 'variant', label: 'Вариант', field: 'variant', align: 'center' },
-      { name: 'status', label: 'Статус', field: 'status', align: 'left' },
-      { name: 'total_amount', label: 'Сумма', field: 'total_amount', align: 'right' },
-      { name: 'actions', label: 'Действия', field: 'id', align: 'right' },
-    ]"
+    :columns="columns"
     row-key="id"
     flat
     bordered
@@ -65,4 +83,10 @@ q-page.mp-role-offerer.mp-pending-apl.q-pa-md
           label="Подписать"
           @click="sign(props.row)"
         )
+
+  SignAplReceptionDialog(
+    v-model="signDialog"
+    :reception="selected"
+    @signed="load"
+  )
 </template>

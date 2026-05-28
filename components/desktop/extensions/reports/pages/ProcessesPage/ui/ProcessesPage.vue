@@ -70,7 +70,7 @@ div.page-shell
           q-td(auto-width)
             ExpandToggleButton(
               :expanded='expanded.get(props.row.processHash)'
-              @click='toggleExpand(props.row.processHash, props.row.processType)'
+              @click='toggleExpand(props.row.processHash)'
             )
           q-td
             q-chip(
@@ -128,7 +128,7 @@ div.page-shell
                         .text-body2(v-if='!processDetails.get(props.row.processHash)?.actions?.length') Нет событий
                         q-list(v-else dense)
                           q-item(
-                            v-for='a in processDetails.get(props.row.processHash)!.actions'
+                            v-for='a in (processDetails.get(props.row.processHash)?.actions ?? [])'
                             :key='a.global_sequence'
                           )
                             q-item-section
@@ -142,7 +142,7 @@ div.page-shell
                         .text-body2(v-if='!processDetails.get(props.row.processHash)?.documents?.length') Документы не приложены
                         q-list(v-else dense)
                           q-item(
-                            v-for='d in processDetails.get(props.row.processHash)!.documents'
+                            v-for='d in (processDetails.get(props.row.processHash)?.documents ?? [])'
                             :key='d.source.code + "::" + d.source.table + "::" + d.source.primary_key + "-" + d.hash'
                           )
                             q-item-section
@@ -399,7 +399,7 @@ function onRequest(props: { pagination: { page: number; rowsPerPage: number; row
   load()
 }
 
-async function toggleExpand(processHash: string, processType: string) {
+async function toggleExpand(processHash: string) {
   const wasOpen = expanded.value.get(processHash)
   expanded.value.set(processHash, !wasOpen)
   if (!wasOpen && !detailLoaded.value.has(processHash)) {

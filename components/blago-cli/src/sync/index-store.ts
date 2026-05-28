@@ -14,6 +14,8 @@ export type BlagoEntityType =
   | 'room_message_day'
   /** Файл `meetings/*.md` (транскрипция звонка), только pull с сервера */
   | 'call_transcription'
+  /** Файл `meetings/<stem>.memo.md` — краткое содержание звонка; pull с сервера + публикация через `blago transcription memo` */
+  | 'call_transcription_memo'
 
 export interface IndexEntry {
   entity_type: BlagoEntityType

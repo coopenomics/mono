@@ -14,39 +14,43 @@ export interface ListMyOrdersVariables {
 
 export async function fetchMyOrders(variables: ListMyOrdersVariables = {}): Promise<MarketplaceOrderPage> {
   const { page, limit, sortBy, sortOrder, statuses, supplier_account, offer_id } = variables;
-  const result = await client.Query(Queries.Marketplace.ListMyOrders.query, {
-    variables: {
-      input: {
-        supplier_account,
-        offer_id,
-        statuses,
-      },
-      options: {
-        page: page ?? 1,
-        limit: limit ?? 50,
-        sortBy: sortBy ?? 'updated_at',
-        sortOrder: sortOrder ?? 'DESC',
+  const { [Queries.Marketplace.ListMyOrders.name]: result } = await client.Query(
+    Queries.Marketplace.ListMyOrders.query,
+    {
+      variables: {
+        input: {
+          supplier_account,
+          offer_id,
+          statuses,
+        },
+        options: {
+          page: page ?? 1,
+          limit: limit ?? 50,
+          sortBy: sortBy ?? 'updated_at',
+          sortOrder: sortOrder ?? 'DESC',
+        },
       },
     },
-  });
-  return result[Queries.Marketplace.ListMyOrders.name] as unknown as MarketplaceOrderPage;
+  );
+  // Zeus отдаёт DateTime как unknown; сужаем скалярную дату до строки во view-типе.
+  return result as MarketplaceOrderPage;
 }
 
 export async function fetchOrder(order_id: string): Promise<MarketplaceOrderView> {
-  const result = await client.Query(Queries.Marketplace.GetOrder.query, {
-    variables: { input: { order_id } },
-  });
-  return result[Queries.Marketplace.GetOrder.name] as unknown as MarketplaceOrderView;
+  const { [Queries.Marketplace.GetOrder.name]: result } = await client.Query(
+    Queries.Marketplace.GetOrder.query,
+    { variables: { input: { order_id } } },
+  );
+  return result as MarketplaceOrderView;
 }
 
-export interface CancelOrderResult {
-  order: MarketplaceOrderView;
-  tx_hash: string;
-}
+export type CancelOrderResult =
+  Mutations.Marketplace.CancelOrder.IOutput['marketplaceCancelOrder'];
 
 export async function cancelOrder(order_id: string): Promise<CancelOrderResult> {
-  const result = await client.Mutation(Mutations.Marketplace.CancelOrder.mutation, {
-    variables: { input: { order_id } },
-  });
-  return result[Mutations.Marketplace.CancelOrder.name] as unknown as CancelOrderResult;
+  const { [Mutations.Marketplace.CancelOrder.name]: result } = await client.Mutation(
+    Mutations.Marketplace.CancelOrder.mutation,
+    { variables: { input: { order_id } } },
+  );
+  return result;
 }

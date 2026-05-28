@@ -6511,6 +6511,11 @@ type IndividualCertificate {
 
 input Init {
   """
+  Признак того, что инициализация выполняется со стороны провайдера. При true coopback ставит init_by_server=true (org_data становится readonly для пользовательского визарда). Поле передаёт provider в callInitSystemMutation.
+  """
+  is_server_init: Boolean
+
+  """
   Объект организации кооператива, которая обслуживает данный экземпляр программного обеспечения MONO
   """
   organization_data: CreateInitOrganizationDataInput!
@@ -7598,6 +7603,10 @@ input MarketplaceCreateWriteoffDraftInput {
 }
 
 type MarketplaceCurrentMember {
+  """
+  Кооперативные участки, в которых пайщик — доверенное лицо (для столов оператора ПВЗ)
+  """
+  branches: [String!]!
   core_roles: [String!]!
   marketplace_roles: [String!]!
   username: String!
@@ -7820,6 +7829,9 @@ input MarketplaceIssueActSignedDocumentInput {
 }
 
 input MarketplaceIssueActSignedMetaDocumentInput {
+  """Имя приёмного кооперативного участка, на который передаётся партия."""
+  accept_braname: String!
+
   """Номер акта для шапки документа."""
   act_id: String!
 
@@ -7845,6 +7857,9 @@ input MarketplaceIssueActSignedMetaDocumentInput {
   """
   doc_data_hash: String
 
+  """Фактически принятое количество единиц по заказу."""
+  fact_quantity: Int!
+
   """Имя генератора, использованного для создания документа"""
   generator: String!
 
@@ -7860,17 +7875,28 @@ input MarketplaceIssueActSignedMetaDocumentInput {
   """Идентификатор заказа пайщика, по которому формируется акт выдачи."""
   order_id: String!
 
+  """Идентификатор записи акта приёмки в инфраструктуре marketplace."""
+  reception_id: String!
+
   """ID документа в реестре"""
   registry_id: Int!
 
   """Сформировать документ без сохранения (preview-режим)."""
   skip_save: Boolean!
 
+  """
+  Учётная запись поставщика, передавшего партию на кооперативный участок.
+  """
+  supplier_account: String!
+
   """Часовой пояс, в котором был создан документ"""
   timezone: String!
 
   """Название документа"""
   title: String!
+
+  """Сумма по заказу с учётом фактического количества."""
+  total_amount: String!
 
   """
   Учётная запись передающей стороны — председатель кооперативного участка или доверенное им лицо.
@@ -8051,6 +8077,19 @@ input MarketplaceListOrdersInput {
   supplier_account: String
 }
 
+input MarketplaceListOutgoingPaymentsAsSupplierFilterInput {
+  """Фильтр по статусам выплат. Пусто — показывать все статусы."""
+  statuses: [MarketplaceOutgoingPaymentRequestStatus!]
+}
+
+input MarketplaceListOutgoingPaymentsFilterInput {
+  """Фильтр по статусам выплат. Пусто — показывать все статусы."""
+  statuses: [MarketplaceOutgoingPaymentRequestStatus!]
+
+  """Поставщик-получатель выплаты. Пусто — по всем поставщикам."""
+  supplier_account: String
+}
+
 input MarketplaceListPendingOffersInput {
   """Количество элементов на странице"""
   limit: Int! = 10
@@ -8068,6 +8107,14 @@ input MarketplaceListPendingOffersInput {
 input MarketplaceListReturnClaimsByBranameInput {
   """Кооперативный участок (delivery_braname исходного заказа)."""
   delivery_braname: String!
+}
+
+input MarketplaceListShipmentsByBranameInput {
+  """Кооперативный участок получения партий."""
+  braname: String!
+
+  """Фильтр по статусам партий — например, ожидаемые к приёмке."""
+  statuses: [MarketplaceShipmentStatus!]
 }
 
 input MarketplaceListShipmentsInput {
@@ -9129,6 +9176,13 @@ input MarketplaceSignAplReceptionInput {
   Подписанные клиентом акты приёмки — один документ на каждый Order группы. Backend верифицирует подпись и отправляет on-chain signsupp/signchair с этим документом.
   """
   signed_documents: [MarketplaceAplReceptionSignedDocumentInput!]!
+}
+
+input MarketplaceSignOnboardingOfferInput {
+  """
+  Подписанный пайщиком инстанс оферты ЦПП «Стол заказов» (registry_id=1101)
+  """
+  document: SignedDigitalDocumentInput!
 }
 
 input MarketplaceSubmitWriteoffDraftInput {
@@ -10219,7 +10273,7 @@ type Mutation {
   """
   Обновить заметку (memo) к транскрипции звонка
   
-  Требуемые роли: chairman, member, user. 
+  Требуемые роли: chairman, member. 
   """
   chatcoopUpdateTranscriptionMemo(data: UpdateCallTranscriptionMemoInput!): CallTranscription!
 
@@ -10741,6 +10795,11 @@ type Mutation {
   Поставщик ставит первую подпись на акте приёмки (лично — Вариант А; асинхронно через push — Вариант Б).
   """
   marketplaceSignAplReceptionAsSupplier(data: MarketplaceSignAplReceptionInput!): MarketplaceAplReceptionResult!
+
+  """
+  L3-подпись оферты ЦПП «Стол заказов» пайщиком после gate-диалога: on-chain wallet::signagree + ответ в виде обновлённого состояния онбординга
+  """
+  marketplaceSignOnboardingOffer(input: MarketplaceSignOnboardingOfferInput!): MarketplaceOnboardingState!
 
   """
   Отправить черновик в совет. Принимает подписанное председателем Заявление 1106. После успешного приёма выполняются propwroff и soviet::createagenda(mktwroff).
@@ -11762,6 +11821,7 @@ type PaymentMethodPaginationResult {
 
 """Статус платежа"""
 enum PaymentStatus {
+  AWAITING_AUTHORIZATION
   CANCELLED
   COMPLETED
   EXPIRED
@@ -13007,9 +13067,9 @@ type Query {
   listReportDrafts(filter: ListReportDraftsFilterInput): [ReportDraft!]!
 
   """
-  Preview-документы акта приёмки для закрывающей подписи председателя КУ.
+  Акты приёмки, уже подписанные поставщиком, для закрывающей подписи председателя КУ. Каждый элемент содержит исходный документ для ознакомления и подпись поставщика; председатель накладывает свою подпись поверх.
   """
-  marketplaceAplReceptionChairmanSignablePayloads(data: MarketplaceAplReceptionByIdInput!): [GeneratedDocument!]!
+  marketplaceAplReceptionChairmanSignablePayloads(data: MarketplaceAplReceptionByIdInput!): [DocumentAggregate!]!
 
   """
   Preview-документы акта приёмки для подписи поставщиком — один документ на каждый Order группы. Клиент подписывает hash приватным ключом и возвращает результат в mutation marketplaceSignAplReceptionAsSupplier.
@@ -13019,11 +13079,7 @@ type Query {
   """Получить аспектные атрибуты для категории и типа товара marketplace"""
   marketplaceAspectAttributes(data: GetRequiredAttributesInput!): [MarketplaceAttribute!]!
 
-  """
-  Получить статистику по атрибутам marketplace
-  
-  Требуемые роли: chairman, member. 
-  """
+  """Получить статистику по атрибутам marketplace"""
   marketplaceAttributeStats: MarketplaceAttributeStats!
 
   """Получить атрибуты для конкретной категории и типа товара marketplace"""
@@ -13082,11 +13138,7 @@ type Query {
   """Получить полное дерево категорий marketplace с типами товаров"""
   marketplaceGetCategoryTree(input: GetCategoryTreeInput): [MarketplaceCategoryTreeNode!]!
 
-  """
-  Получить статистику по дереву категорий
-  
-  Требуемые роли: chairman, member. 
-  """
+  """Получить статистику по дереву категорий"""
   marketplaceGetCategoryTreeStats: MarketplaceCategoryTreeStats!
 
   """
@@ -13137,9 +13189,9 @@ type Query {
   marketplaceIssueActChairmanSignablePayload(data: MarketplaceIssueActPayloadInput!): GeneratedDocument!
 
   """
-  Превью акта выдачи имущества для финальной подписи заказчика с указанием фактического количества.
+  Акт выдачи, уже подписанный председателем, для финальной подписи заказчика. Содержит исходный документ для ознакомления и подпись председателя; заказчик накладывает свою подпись поверх.
   """
-  marketplaceIssueActOrdererSignablePayload(data: MarketplaceIssueActPayloadInput!): GeneratedDocument!
+  marketplaceIssueActOrdererSignablePayload(data: MarketplaceIssueActPayloadInput!): DocumentAggregate!
 
   """Список актов приёмки, ожидающих подписи текущего поставщика."""
   marketplaceListAplReceptionsAsSupplier: [MarketplaceAplReception!]!
@@ -13195,9 +13247,14 @@ type Query {
   marketplaceListMyReturnClaims: [MarketplaceReturnClaim!]!
 
   """
+  Лента выплат поставщикам по всему кооперативу — для совета. Опциональные фильтры: по поставщику-получателю и по статусам.
+  """
+  marketplaceListOutgoingPayments(filter: MarketplaceListOutgoingPaymentsFilterInput): [MarketplaceOutgoingPaymentRequest!]!
+
+  """
   История выплат поставщику в столе поставщика — статусы по каждому заказу.
   """
-  marketplaceListOutgoingPaymentsAsSupplier(statuses: [MarketplaceOutgoingPaymentRequestStatus!]): [MarketplaceOutgoingPaymentRequest!]!
+  marketplaceListOutgoingPaymentsAsSupplier(filter: MarketplaceListOutgoingPaymentsAsSupplierFilterInput): [MarketplaceOutgoingPaymentRequest!]!
 
   """Список Offer'ов на модерации (admin)"""
   marketplaceListPendingOffers(input: MarketplaceListPendingOffersInput): MarketplaceOfferPaginationResult!
@@ -13211,6 +13268,11 @@ type Query {
   Список партий поставки текущего поставщика — для стола подготовки поставки и истории.
   """
   marketplaceListShipments(data: MarketplaceListShipmentsInput): [MarketplaceShipment!]!
+
+  """
+  Список партий поставки, ожидаемых на кооперативном участке, — для стола приёмки оператора пункта выдачи.
+  """
+  marketplaceListShipmentsByBraname(data: MarketplaceListShipmentsByBranameInput!): [MarketplaceShipment!]!
 
   """
   Список заказов, по которым текущий пайщик является поставщиком (стол поставщика).
@@ -13264,7 +13326,9 @@ type Query {
   """Валидация значений атрибута marketplace"""
   marketplaceValidateAttributeValues(input: ValidateAttributeValuesInput!): MarketplaceAttributeValidation!
 
-  """Контекст пайщика для Стола заказов: core_roles + marketplace_roles"""
+  """
+  Контекст пайщика для Стола заказов: core_roles + marketplace_roles + участки оператора
+  """
   marketplaceWhoAmI: MarketplaceCurrentMember!
 
   """Детали одного проекта списания: items, decision_log, протокол."""
@@ -14889,7 +14953,7 @@ input UpdateBankAccountInput {
 input UpdateCallTranscriptionMemoInput {
   id: String!
 
-  """Текст заметки (до 4000 символов)"""
+  """Текст заметки"""
   memo: String!
 }
 

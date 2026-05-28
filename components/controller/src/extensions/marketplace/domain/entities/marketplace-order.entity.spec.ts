@@ -30,6 +30,7 @@ function buildProps(overrides: Partial<MarketplaceOrderProps> = {}): Marketplace
     chairman_signed_at: null,
     chairman_account: null,
     signiss1_tx_hash: null,
+    issue_act_signiss1_document: null,
     orderer_signed_at: null,
     delivery_signer_account: null,
     signiss2_tx_hash: null,
@@ -151,5 +152,82 @@ describe('MarketplaceOrderDomainEntity', () => {
     expect(() => new MarketplaceOrderDomainEntity(buildProps({ order_hash: 'short' }))).toThrow(
       /order_hash должен быть 64-символьным/
     );
+  });
+
+  // Monotonic state machine: backend cycle-hook продвигает status forward
+  // сразу после submit'а, delta от парсера приходит позже с on-chain
+  // status'ом — sync не должен «откатывать» backend forward в обратную
+  // сторону.
+  describe('updateFromBlockchain — monotonic status', () => {
+    it('применяет forward-переход (ACTIVE → ACCEPTED)', () => {
+      const order = new MarketplaceOrderDomainEntity(buildProps({ status: 'ACTIVE' }));
+
+      order.updateFromBlockchain(
+        { order_hash: 'a'.repeat(64), on_chain_id: '10', status: 'ACCEPTED' },
+        2_000_000,
+        true
+      );
+
+      expect(order.status).toBe('ACCEPTED');
+    });
+
+    it('игнорирует backward-откат (ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL ← ACTIVE)', () => {
+      const order = new MarketplaceOrderDomainEntity(
+        buildProps({ status: 'ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL' })
+      );
+
+      order.updateFromBlockchain(
+        { order_hash: 'a'.repeat(64), on_chain_id: '11', status: 'ACTIVE' },
+        2_100_000,
+        true
+      );
+
+      expect(order.status).toBe('ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL');
+      expect(order.on_chain_id).toBe('11');
+      expect(order.on_chain_block_num).toBe(2_100_000);
+    });
+
+    it('игнорирует backward-откат (ACCEPTED ← ACTIVE)', () => {
+      const order = new MarketplaceOrderDomainEntity(buildProps({ status: 'ACCEPTED' }));
+
+      order.updateFromBlockchain(
+        { order_hash: 'a'.repeat(64), on_chain_id: '12', status: 'ACTIVE' },
+        2_200_000,
+        true
+      );
+
+      expect(order.status).toBe('ACCEPTED');
+    });
+
+    it('применяет терминальный CANCELLED_BY_ORDERER поверх любого forward-статуса', () => {
+      const order = new MarketplaceOrderDomainEntity(buildProps({ status: 'ACCEPTED' }));
+
+      order.updateFromBlockchain(
+        { order_hash: 'a'.repeat(64), on_chain_id: '13', status: 'CANCELLED_BY_ORDERER' },
+        2_300_000,
+        false
+      );
+
+      expect(order.status).toBe('CANCELLED_BY_ORDERER');
+      expect(order.on_chain_present).toBe(false);
+    });
+
+    it('применяет тот же ранг (ACCEPTED_PENDING_SUPPLIER ↔ ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL)', () => {
+      const order = new MarketplaceOrderDomainEntity(
+        buildProps({ status: 'ACCEPTED_PENDING_SUPPLIER' })
+      );
+
+      order.updateFromBlockchain(
+        {
+          order_hash: 'a'.repeat(64),
+          on_chain_id: '14',
+          status: 'ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL',
+        },
+        2_400_000,
+        true
+      );
+
+      expect(order.status).toBe('ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL');
+    });
   });
 });

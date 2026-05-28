@@ -33,7 +33,7 @@ export const meta = {
 export default async ({ page, shot }) => {
   const partner = JSON.parse(fs.readFileSync(COOP_FIXTURE_PATH, 'utf8'));
 
-  await page.goto(`${env.BASE_URL}/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
   await page.waitForSelector('button:has-text("Войти")', { timeout: 60_000 });
   await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {});
   await page.waitForTimeout(500);

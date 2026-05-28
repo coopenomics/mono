@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import { Notify } from 'quasar';
 import {
   CatalogOfferCard,
@@ -17,6 +18,7 @@ import type {
   MarketplaceCategoryView,
   MarketplaceOfferView,
 } from '../types';
+import OrderCreateDialog from './OrderCreateDialog.vue';
 
 /**
  * Story 3.5: каталог Стола заказов на orderer-столе.
@@ -121,12 +123,19 @@ async function onLoadMore(): Promise<void> {
   await loadPage(true);
 }
 
+const route = useRoute();
+const coopname = computed(() => String(route.params.coopname ?? ''));
+const orderDialogOpen = ref(false);
+const orderDialogOffer = ref<MarketplaceOfferView | null>(null);
+
 function onSelectOffer(offer: MarketplaceOfferView): void {
-  // Story 4.1 Order-форма; пока — заглушка
-  Notify.create({
-    type: 'info',
-    message: `Создание заказа на Offer ${offer.id} — будет доступно после Эпика 4`,
-  });
+  if (!canOrder(offer)) return;
+  orderDialogOffer.value = offer;
+  orderDialogOpen.value = true;
+}
+
+async function onOrderCreated(): Promise<void> {
+  await loadPage(false);
 }
 
 onMounted(async () => {
@@ -205,6 +214,13 @@ q-page.mp-role-orderer.mp-catalog-page(role="region", aria-label="Каталог
     template(v-slot:loading)
       div.row.justify-center.q-my-md
         q-spinner(color="primary", size="2em")
+
+  OrderCreateDialog(
+    v-model="orderDialogOpen",
+    :coopname="coopname",
+    :offer="orderDialogOffer",
+    @created="onOrderCreated"
+  )
 </template>
 
 <style scoped lang="scss">

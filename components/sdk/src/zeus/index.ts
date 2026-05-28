@@ -5796,6 +5796,8 @@ export type ValueTypes = {
 	['...on IndividualCertificate']?: Omit<ValueTypes["IndividualCertificate"], "...on IndividualCertificate">
 }>;
 	["Init"]: {
+	/** Признак того, что инициализация выполняется со стороны провайдера. При true coopback ставит init_by_server=true (org_data становится readonly для пользовательского визарда). Поле передаёт provider в callInitSystemMutation. */
+	is_server_init?: boolean | undefined | null | Variable<any, string>,
 	/** Объект организации кооператива, которая обслуживает данный экземпляр программного обеспечения MONO */
 	organization_data: ValueTypes["CreateInitOrganizationDataInput"] | Variable<any, string>
 };
@@ -6533,6 +6535,8 @@ export type ValueTypes = {
 	items: Array<ValueTypes["MarketplaceWriteoffItemInput"]> | Variable<any, string>
 };
 	["MarketplaceCurrentMember"]: AliasType<{
+	/** Кооперативные участки, в которых пайщик — доверенное лицо (для столов оператора ПВЗ) */
+	branches?:boolean | `@${string}`,
 	core_roles?:boolean | `@${string}`,
 	marketplace_roles?:boolean | `@${string}`,
 	username?:boolean | `@${string}`,
@@ -6691,6 +6695,8 @@ export type ValueTypes = {
 	version: string | Variable<any, string>
 };
 	["MarketplaceIssueActSignedMetaDocumentInput"]: {
+	/** Имя приёмного кооперативного участка, на который передаётся партия. */
+	accept_braname: string | Variable<any, string>,
 	/** Номер акта для шапки документа. */
 	act_id: string | Variable<any, string>,
 	/** Фактически выдаваемое количество единиц (заполняется на финальной подписи). */
@@ -6705,6 +6711,8 @@ export type ValueTypes = {
 	created_at: string | Variable<any, string>,
 	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
 	doc_data_hash?: string | undefined | null | Variable<any, string>,
+	/** Фактически принятое количество единиц по заказу. */
+	fact_quantity: number | Variable<any, string>,
 	/** Имя генератора, использованного для создания документа */
 	generator: string | Variable<any, string>,
 	/** Язык документа */
@@ -6715,14 +6723,20 @@ export type ValueTypes = {
 	order_hash: string | Variable<any, string>,
 	/** Идентификатор заказа пайщика, по которому формируется акт выдачи. */
 	order_id: string | Variable<any, string>,
+	/** Идентификатор записи акта приёмки в инфраструктуре marketplace. */
+	reception_id: string | Variable<any, string>,
 	/** ID документа в реестре */
 	registry_id: number | Variable<any, string>,
 	/** Сформировать документ без сохранения (preview-режим). */
 	skip_save: boolean | Variable<any, string>,
+	/** Учётная запись поставщика, передавшего партию на кооперативный участок. */
+	supplier_account: string | Variable<any, string>,
 	/** Часовой пояс, в котором был создан документ */
 	timezone: string | Variable<any, string>,
 	/** Название документа */
 	title: string | Variable<any, string>,
+	/** Сумма по заказу с учётом фактического количества. */
+	total_amount: string | Variable<any, string>,
 	/** Учётная запись передающей стороны — председатель кооперативного участка или доверенное им лицо. */
 	transmitter: string | Variable<any, string>,
 	/** Имя пользователя, создавшего документ */
@@ -6853,6 +6867,16 @@ export type ValueTypes = {
 	/** Фильтр по аккаунту поставщика. */
 	supplier_account?: string | undefined | null | Variable<any, string>
 };
+	["MarketplaceListOutgoingPaymentsAsSupplierFilterInput"]: {
+	/** Фильтр по статусам выплат. Пусто — показывать все статусы. */
+	statuses?: Array<ValueTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null | Variable<any, string>
+};
+	["MarketplaceListOutgoingPaymentsFilterInput"]: {
+	/** Фильтр по статусам выплат. Пусто — показывать все статусы. */
+	statuses?: Array<ValueTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null | Variable<any, string>,
+	/** Поставщик-получатель выплаты. Пусто — по всем поставщикам. */
+	supplier_account?: string | undefined | null | Variable<any, string>
+};
 	["MarketplaceListPendingOffersInput"]: {
 	/** Количество элементов на странице */
 	limit: number | Variable<any, string>,
@@ -6866,6 +6890,12 @@ export type ValueTypes = {
 	["MarketplaceListReturnClaimsByBranameInput"]: {
 	/** Кооперативный участок (delivery_braname исходного заказа). */
 	delivery_braname: string | Variable<any, string>
+};
+	["MarketplaceListShipmentsByBranameInput"]: {
+	/** Кооперативный участок получения партий. */
+	braname: string | Variable<any, string>,
+	/** Фильтр по статусам партий — например, ожидаемые к приёмке. */
+	statuses?: Array<ValueTypes["MarketplaceShipmentStatus"]> | undefined | null | Variable<any, string>
 };
 	["MarketplaceListShipmentsInput"]: {
 	/** Фильтр по КУ-получателю. */
@@ -7600,6 +7630,10 @@ export type ValueTypes = {
 	/** Подписанные клиентом акты приёмки — один документ на каждый Order группы. Backend верифицирует подпись и отправляет on-chain signsupp/signchair с этим документом. */
 	signed_documents: Array<ValueTypes["MarketplaceAplReceptionSignedDocumentInput"]> | Variable<any, string>
 };
+	["MarketplaceSignOnboardingOfferInput"]: {
+	/** Подписанный пайщиком инстанс оферты ЦПП «Стол заказов» (registry_id=1101) */
+	document: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>
+};
 	["MarketplaceSubmitWriteoffDraftInput"]: {
 	draft_id: string | Variable<any, string>,
 	/** Подписанное председателем Заявление о списании скоропорта (registry_id=1106). */
@@ -8159,6 +8193,7 @@ marketplaceRetryKUGeocode?: [{	coopname: string | Variable<any, string>,	coreBra
 marketplaceSetKUStatus?: [{	data: ValueTypes["MarketplaceSetKUStatusInput"] | Variable<any, string>},ValueTypes["MarketplaceKUDetails"]],
 marketplaceSignAplReceptionAsChairman?: [{	data: ValueTypes["MarketplaceSignAplReceptionInput"] | Variable<any, string>},ValueTypes["MarketplaceAplReceptionResult"]],
 marketplaceSignAplReceptionAsSupplier?: [{	data: ValueTypes["MarketplaceSignAplReceptionInput"] | Variable<any, string>},ValueTypes["MarketplaceAplReceptionResult"]],
+marketplaceSignOnboardingOffer?: [{	input: ValueTypes["MarketplaceSignOnboardingOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOnboardingState"]],
 marketplaceSubmitWriteoffDraft?: [{	data: ValueTypes["MarketplaceSubmitWriteoffDraftInput"] | Variable<any, string>},ValueTypes["MarketplaceWriteoffProposal"]],
 marketplaceTriggerOpenSubscription?: [{	input: ValueTypes["MarketplaceTriggerOpenSubscriptionInput"] | Variable<any, string>},ValueTypes["MarketplaceConsolidatedRequest"]],
 marketplaceUpdateOffer?: [{	input: ValueTypes["MarketplaceUpdateOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
@@ -9508,12 +9543,10 @@ getUserWebPushSubscriptions?: [{	data: ValueTypes["GetUserSubscriptionsInput"] |
 Требуемые роли: chairman.  */
 	getWebPushSubscriptionStats?:ValueTypes["SubscriptionStatsDto"],
 listReportDrafts?: [{	filter?: ValueTypes["ListReportDraftsFilterInput"] | undefined | null | Variable<any, string>},ValueTypes["ReportDraft"]],
-marketplaceAplReceptionChairmanSignablePayloads?: [{	data: ValueTypes["MarketplaceAplReceptionByIdInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+marketplaceAplReceptionChairmanSignablePayloads?: [{	data: ValueTypes["MarketplaceAplReceptionByIdInput"] | Variable<any, string>},ValueTypes["DocumentAggregate"]],
 marketplaceAplReceptionSupplierSignablePayloads?: [{	data: ValueTypes["MarketplaceAplReceptionByIdInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 marketplaceAspectAttributes?: [{	data: ValueTypes["GetRequiredAttributesInput"] | Variable<any, string>},ValueTypes["MarketplaceAttribute"]],
-	/** Получить статистику по атрибутам marketplace
-
-Требуемые роли: chairman, member.  */
+	/** Получить статистику по атрибутам marketplace */
 	marketplaceAttributeStats?:ValueTypes["MarketplaceAttributeStats"],
 marketplaceCategoryAttributes?: [{	input: ValueTypes["GetCategoryAttributesInput"] | Variable<any, string>},ValueTypes["MarketplaceAttribute"]],
 marketplaceCategoryAttributesGrouped?: [{	input: ValueTypes["GetCategoryAttributesInput"] | Variable<any, string>},ValueTypes["MarketplaceAttributeGroup"]],
@@ -9539,9 +9572,7 @@ marketplaceFindPotentialMatches?: [{	data: ValueTypes["FindPotentialMatchesInput
 marketplaceGetCategoryById?: [{	data: ValueTypes["GetCategoryByIdInput"] | Variable<any, string>},ValueTypes["MarketplaceCategoryTreeNode"]],
 marketplaceGetCategoryRules?: [{	categoryId: number | Variable<any, string>},ValueTypes["MarketplaceAvailableCategory"]],
 marketplaceGetCategoryTree?: [{	input?: ValueTypes["GetCategoryTreeInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceCategoryTreeNode"]],
-	/** Получить статистику по дереву категорий
-
-Требуемые роли: chairman, member.  */
+	/** Получить статистику по дереву категорий */
 	marketplaceGetCategoryTreeStats?:ValueTypes["MarketplaceCategoryTreeStats"],
 marketplaceGetCoopRequests?: [{	data: ValueTypes["GetCoopRequestsInput"] | Variable<any, string>},ValueTypes["MarketplaceRequest"]],
 marketplaceGetOrder?: [{	input: ValueTypes["MarketplaceGetOrderInput"] | Variable<any, string>},ValueTypes["MarketplaceOrder"]],
@@ -9555,7 +9586,7 @@ marketplaceGetSearchCategories?: [{	data: ValueTypes["SearchCategoriesInput"] | 
 marketplaceGetShipment?: [{	data: ValueTypes["MarketplaceGetShipmentInput"] | Variable<any, string>},ValueTypes["MarketplaceShipment"]],
 marketplaceGetUserRequests?: [{	data?: ValueTypes["GetUserRequestsInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceRequest"]],
 marketplaceIssueActChairmanSignablePayload?: [{	data: ValueTypes["MarketplaceIssueActPayloadInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
-marketplaceIssueActOrdererSignablePayload?: [{	data: ValueTypes["MarketplaceIssueActPayloadInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+marketplaceIssueActOrdererSignablePayload?: [{	data: ValueTypes["MarketplaceIssueActPayloadInput"] | Variable<any, string>},ValueTypes["DocumentAggregate"]],
 	/** Список актов приёмки, ожидающих подписи текущего поставщика. */
 	marketplaceListAplReceptionsAsSupplier?:ValueTypes["MarketplaceAplReception"],
 marketplaceListAplReceptionsByBraname?: [{	data: ValueTypes["MarketplaceListAplReceptionsByBranameInput"] | Variable<any, string>},ValueTypes["MarketplaceAplReception"]],
@@ -9573,10 +9604,12 @@ marketplaceListMyOrders?: [{	input?: ValueTypes["MarketplaceListOrdersInput"] | 
 	marketplaceListMyReadyToReceive?:ValueTypes["MarketplaceOrder"],
 	/** Все заявления текущего пайщика на гарантийный возврат — активные и архивные. */
 	marketplaceListMyReturnClaims?:ValueTypes["MarketplaceReturnClaim"],
-marketplaceListOutgoingPaymentsAsSupplier?: [{	statuses?: Array<ValueTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOutgoingPaymentRequest"]],
+marketplaceListOutgoingPayments?: [{	filter?: ValueTypes["MarketplaceListOutgoingPaymentsFilterInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOutgoingPaymentRequest"]],
+marketplaceListOutgoingPaymentsAsSupplier?: [{	filter?: ValueTypes["MarketplaceListOutgoingPaymentsAsSupplierFilterInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOutgoingPaymentRequest"]],
 marketplaceListPendingOffers?: [{	input?: ValueTypes["MarketplaceListPendingOffersInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOfferPaginationResult"]],
 marketplaceListReturnClaimsByBraname?: [{	data: ValueTypes["MarketplaceListReturnClaimsByBranameInput"] | Variable<any, string>},ValueTypes["MarketplaceReturnClaim"]],
 marketplaceListShipments?: [{	data?: ValueTypes["MarketplaceListShipmentsInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceShipment"]],
+marketplaceListShipmentsByBraname?: [{	data: ValueTypes["MarketplaceListShipmentsByBranameInput"] | Variable<any, string>},ValueTypes["MarketplaceShipment"]],
 marketplaceListSupplierOrders?: [{	input?: ValueTypes["MarketplaceListOrdersInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOrderPaginationResult"]],
 	/** Список пайщиков-поставщиков, допущенных к публикации оферт */
 	marketplaceListWhitelist?:ValueTypes["MarketplaceWhitelistEntry"],
@@ -9596,7 +9629,7 @@ marketplaceSearchAttributes?: [{	input: ValueTypes["SearchAttributesInput"] | Va
 marketplaceSearchDictionaryValues?: [{	input: ValueTypes["SearchDictionaryValuesInput"] | Variable<any, string>},ValueTypes["MarketplaceDictionaryValue"]],
 marketplaceSearchRequests?: [{	data: ValueTypes["SearchRequestsInput"] | Variable<any, string>},ValueTypes["MarketplaceRequest"]],
 marketplaceValidateAttributeValues?: [{	input: ValueTypes["ValidateAttributeValuesInput"] | Variable<any, string>},ValueTypes["MarketplaceAttributeValidation"]],
-	/** Контекст пайщика для Стола заказов: core_roles + marketplace_roles */
+	/** Контекст пайщика для Стола заказов: core_roles + marketplace_roles + участки оператора */
 	marketplaceWhoAmI?:ValueTypes["MarketplaceCurrentMember"],
 marketplaceWriteoffProposal?: [{	id: string | Variable<any, string>},ValueTypes["MarketplaceWriteoffProposal"]],
 marketplaceWriteoffStatementSignablePayload?: [{	data: ValueTypes["MarketplaceWriteoffStatementSignablePayloadInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
@@ -10746,7 +10779,7 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 };
 	["UpdateCallTranscriptionMemoInput"]: {
 	id: string | Variable<any, string>,
-	/** Текст заметки (до 4000 символов) */
+	/** Текст заметки */
 	memo: string | Variable<any, string>
 };
 	["UpdateChatCoopCalendarEventInput"]: {
@@ -15766,6 +15799,8 @@ export type ResolverInputTypes = {
 		__typename?: boolean | `@${string}`
 }>;
 	["Init"]: {
+	/** Признак того, что инициализация выполняется со стороны провайдера. При true coopback ставит init_by_server=true (org_data становится readonly для пользовательского визарда). Поле передаёт provider в callInitSystemMutation. */
+	is_server_init?: boolean | undefined | null,
 	/** Объект организации кооператива, которая обслуживает данный экземпляр программного обеспечения MONO */
 	organization_data: ResolverInputTypes["CreateInitOrganizationDataInput"]
 };
@@ -16470,6 +16505,8 @@ export type ResolverInputTypes = {
 	items: Array<ResolverInputTypes["MarketplaceWriteoffItemInput"]>
 };
 	["MarketplaceCurrentMember"]: AliasType<{
+	/** Кооперативные участки, в которых пайщик — доверенное лицо (для столов оператора ПВЗ) */
+	branches?:boolean | `@${string}`,
 	core_roles?:boolean | `@${string}`,
 	marketplace_roles?:boolean | `@${string}`,
 	username?:boolean | `@${string}`,
@@ -16623,6 +16660,8 @@ export type ResolverInputTypes = {
 	version: string
 };
 	["MarketplaceIssueActSignedMetaDocumentInput"]: {
+	/** Имя приёмного кооперативного участка, на который передаётся партия. */
+	accept_braname: string,
 	/** Номер акта для шапки документа. */
 	act_id: string,
 	/** Фактически выдаваемое количество единиц (заполняется на финальной подписи). */
@@ -16637,6 +16676,8 @@ export type ResolverInputTypes = {
 	created_at: string,
 	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
 	doc_data_hash?: string | undefined | null,
+	/** Фактически принятое количество единиц по заказу. */
+	fact_quantity: number,
 	/** Имя генератора, использованного для создания документа */
 	generator: string,
 	/** Язык документа */
@@ -16647,14 +16688,20 @@ export type ResolverInputTypes = {
 	order_hash: string,
 	/** Идентификатор заказа пайщика, по которому формируется акт выдачи. */
 	order_id: string,
+	/** Идентификатор записи акта приёмки в инфраструктуре marketplace. */
+	reception_id: string,
 	/** ID документа в реестре */
 	registry_id: number,
 	/** Сформировать документ без сохранения (preview-режим). */
 	skip_save: boolean,
+	/** Учётная запись поставщика, передавшего партию на кооперативный участок. */
+	supplier_account: string,
 	/** Часовой пояс, в котором был создан документ */
 	timezone: string,
 	/** Название документа */
 	title: string,
+	/** Сумма по заказу с учётом фактического количества. */
+	total_amount: string,
 	/** Учётная запись передающей стороны — председатель кооперативного участка или доверенное им лицо. */
 	transmitter: string,
 	/** Имя пользователя, создавшего документ */
@@ -16782,6 +16829,16 @@ export type ResolverInputTypes = {
 	/** Фильтр по аккаунту поставщика. */
 	supplier_account?: string | undefined | null
 };
+	["MarketplaceListOutgoingPaymentsAsSupplierFilterInput"]: {
+	/** Фильтр по статусам выплат. Пусто — показывать все статусы. */
+	statuses?: Array<ResolverInputTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null
+};
+	["MarketplaceListOutgoingPaymentsFilterInput"]: {
+	/** Фильтр по статусам выплат. Пусто — показывать все статусы. */
+	statuses?: Array<ResolverInputTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null,
+	/** Поставщик-получатель выплаты. Пусто — по всем поставщикам. */
+	supplier_account?: string | undefined | null
+};
 	["MarketplaceListPendingOffersInput"]: {
 	/** Количество элементов на странице */
 	limit: number,
@@ -16795,6 +16852,12 @@ export type ResolverInputTypes = {
 	["MarketplaceListReturnClaimsByBranameInput"]: {
 	/** Кооперативный участок (delivery_braname исходного заказа). */
 	delivery_braname: string
+};
+	["MarketplaceListShipmentsByBranameInput"]: {
+	/** Кооперативный участок получения партий. */
+	braname: string,
+	/** Фильтр по статусам партий — например, ожидаемые к приёмке. */
+	statuses?: Array<ResolverInputTypes["MarketplaceShipmentStatus"]> | undefined | null
 };
 	["MarketplaceListShipmentsInput"]: {
 	/** Фильтр по КУ-получателю. */
@@ -17505,6 +17568,10 @@ export type ResolverInputTypes = {
 	/** Подписанные клиентом акты приёмки — один документ на каждый Order группы. Backend верифицирует подпись и отправляет on-chain signsupp/signchair с этим документом. */
 	signed_documents: Array<ResolverInputTypes["MarketplaceAplReceptionSignedDocumentInput"]>
 };
+	["MarketplaceSignOnboardingOfferInput"]: {
+	/** Подписанный пайщиком инстанс оферты ЦПП «Стол заказов» (registry_id=1101) */
+	document: ResolverInputTypes["SignedDigitalDocumentInput"]
+};
 	["MarketplaceSubmitWriteoffDraftInput"]: {
 	draft_id: string,
 	/** Подписанное председателем Заявление о списании скоропорта (registry_id=1106). */
@@ -18048,6 +18115,7 @@ marketplaceRetryKUGeocode?: [{	coopname: string,	coreBraname: string},ResolverIn
 marketplaceSetKUStatus?: [{	data: ResolverInputTypes["MarketplaceSetKUStatusInput"]},ResolverInputTypes["MarketplaceKUDetails"]],
 marketplaceSignAplReceptionAsChairman?: [{	data: ResolverInputTypes["MarketplaceSignAplReceptionInput"]},ResolverInputTypes["MarketplaceAplReceptionResult"]],
 marketplaceSignAplReceptionAsSupplier?: [{	data: ResolverInputTypes["MarketplaceSignAplReceptionInput"]},ResolverInputTypes["MarketplaceAplReceptionResult"]],
+marketplaceSignOnboardingOffer?: [{	input: ResolverInputTypes["MarketplaceSignOnboardingOfferInput"]},ResolverInputTypes["MarketplaceOnboardingState"]],
 marketplaceSubmitWriteoffDraft?: [{	data: ResolverInputTypes["MarketplaceSubmitWriteoffDraftInput"]},ResolverInputTypes["MarketplaceWriteoffProposal"]],
 marketplaceTriggerOpenSubscription?: [{	input: ResolverInputTypes["MarketplaceTriggerOpenSubscriptionInput"]},ResolverInputTypes["MarketplaceConsolidatedRequest"]],
 marketplaceUpdateOffer?: [{	input: ResolverInputTypes["MarketplaceUpdateOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
@@ -19340,12 +19408,10 @@ getUserWebPushSubscriptions?: [{	data: ResolverInputTypes["GetUserSubscriptionsI
 Требуемые роли: chairman.  */
 	getWebPushSubscriptionStats?:ResolverInputTypes["SubscriptionStatsDto"],
 listReportDrafts?: [{	filter?: ResolverInputTypes["ListReportDraftsFilterInput"] | undefined | null},ResolverInputTypes["ReportDraft"]],
-marketplaceAplReceptionChairmanSignablePayloads?: [{	data: ResolverInputTypes["MarketplaceAplReceptionByIdInput"]},ResolverInputTypes["GeneratedDocument"]],
+marketplaceAplReceptionChairmanSignablePayloads?: [{	data: ResolverInputTypes["MarketplaceAplReceptionByIdInput"]},ResolverInputTypes["DocumentAggregate"]],
 marketplaceAplReceptionSupplierSignablePayloads?: [{	data: ResolverInputTypes["MarketplaceAplReceptionByIdInput"]},ResolverInputTypes["GeneratedDocument"]],
 marketplaceAspectAttributes?: [{	data: ResolverInputTypes["GetRequiredAttributesInput"]},ResolverInputTypes["MarketplaceAttribute"]],
-	/** Получить статистику по атрибутам marketplace
-
-Требуемые роли: chairman, member.  */
+	/** Получить статистику по атрибутам marketplace */
 	marketplaceAttributeStats?:ResolverInputTypes["MarketplaceAttributeStats"],
 marketplaceCategoryAttributes?: [{	input: ResolverInputTypes["GetCategoryAttributesInput"]},ResolverInputTypes["MarketplaceAttribute"]],
 marketplaceCategoryAttributesGrouped?: [{	input: ResolverInputTypes["GetCategoryAttributesInput"]},ResolverInputTypes["MarketplaceAttributeGroup"]],
@@ -19371,9 +19437,7 @@ marketplaceFindPotentialMatches?: [{	data: ResolverInputTypes["FindPotentialMatc
 marketplaceGetCategoryById?: [{	data: ResolverInputTypes["GetCategoryByIdInput"]},ResolverInputTypes["MarketplaceCategoryTreeNode"]],
 marketplaceGetCategoryRules?: [{	categoryId: number},ResolverInputTypes["MarketplaceAvailableCategory"]],
 marketplaceGetCategoryTree?: [{	input?: ResolverInputTypes["GetCategoryTreeInput"] | undefined | null},ResolverInputTypes["MarketplaceCategoryTreeNode"]],
-	/** Получить статистику по дереву категорий
-
-Требуемые роли: chairman, member.  */
+	/** Получить статистику по дереву категорий */
 	marketplaceGetCategoryTreeStats?:ResolverInputTypes["MarketplaceCategoryTreeStats"],
 marketplaceGetCoopRequests?: [{	data: ResolverInputTypes["GetCoopRequestsInput"]},ResolverInputTypes["MarketplaceRequest"]],
 marketplaceGetOrder?: [{	input: ResolverInputTypes["MarketplaceGetOrderInput"]},ResolverInputTypes["MarketplaceOrder"]],
@@ -19387,7 +19451,7 @@ marketplaceGetSearchCategories?: [{	data: ResolverInputTypes["SearchCategoriesIn
 marketplaceGetShipment?: [{	data: ResolverInputTypes["MarketplaceGetShipmentInput"]},ResolverInputTypes["MarketplaceShipment"]],
 marketplaceGetUserRequests?: [{	data?: ResolverInputTypes["GetUserRequestsInput"] | undefined | null},ResolverInputTypes["MarketplaceRequest"]],
 marketplaceIssueActChairmanSignablePayload?: [{	data: ResolverInputTypes["MarketplaceIssueActPayloadInput"]},ResolverInputTypes["GeneratedDocument"]],
-marketplaceIssueActOrdererSignablePayload?: [{	data: ResolverInputTypes["MarketplaceIssueActPayloadInput"]},ResolverInputTypes["GeneratedDocument"]],
+marketplaceIssueActOrdererSignablePayload?: [{	data: ResolverInputTypes["MarketplaceIssueActPayloadInput"]},ResolverInputTypes["DocumentAggregate"]],
 	/** Список актов приёмки, ожидающих подписи текущего поставщика. */
 	marketplaceListAplReceptionsAsSupplier?:ResolverInputTypes["MarketplaceAplReception"],
 marketplaceListAplReceptionsByBraname?: [{	data: ResolverInputTypes["MarketplaceListAplReceptionsByBranameInput"]},ResolverInputTypes["MarketplaceAplReception"]],
@@ -19405,10 +19469,12 @@ marketplaceListMyOrders?: [{	input?: ResolverInputTypes["MarketplaceListOrdersIn
 	marketplaceListMyReadyToReceive?:ResolverInputTypes["MarketplaceOrder"],
 	/** Все заявления текущего пайщика на гарантийный возврат — активные и архивные. */
 	marketplaceListMyReturnClaims?:ResolverInputTypes["MarketplaceReturnClaim"],
-marketplaceListOutgoingPaymentsAsSupplier?: [{	statuses?: Array<ResolverInputTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null},ResolverInputTypes["MarketplaceOutgoingPaymentRequest"]],
+marketplaceListOutgoingPayments?: [{	filter?: ResolverInputTypes["MarketplaceListOutgoingPaymentsFilterInput"] | undefined | null},ResolverInputTypes["MarketplaceOutgoingPaymentRequest"]],
+marketplaceListOutgoingPaymentsAsSupplier?: [{	filter?: ResolverInputTypes["MarketplaceListOutgoingPaymentsAsSupplierFilterInput"] | undefined | null},ResolverInputTypes["MarketplaceOutgoingPaymentRequest"]],
 marketplaceListPendingOffers?: [{	input?: ResolverInputTypes["MarketplaceListPendingOffersInput"] | undefined | null},ResolverInputTypes["MarketplaceOfferPaginationResult"]],
 marketplaceListReturnClaimsByBraname?: [{	data: ResolverInputTypes["MarketplaceListReturnClaimsByBranameInput"]},ResolverInputTypes["MarketplaceReturnClaim"]],
 marketplaceListShipments?: [{	data?: ResolverInputTypes["MarketplaceListShipmentsInput"] | undefined | null},ResolverInputTypes["MarketplaceShipment"]],
+marketplaceListShipmentsByBraname?: [{	data: ResolverInputTypes["MarketplaceListShipmentsByBranameInput"]},ResolverInputTypes["MarketplaceShipment"]],
 marketplaceListSupplierOrders?: [{	input?: ResolverInputTypes["MarketplaceListOrdersInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["MarketplaceOrderPaginationResult"]],
 	/** Список пайщиков-поставщиков, допущенных к публикации оферт */
 	marketplaceListWhitelist?:ResolverInputTypes["MarketplaceWhitelistEntry"],
@@ -19428,7 +19494,7 @@ marketplaceSearchAttributes?: [{	input: ResolverInputTypes["SearchAttributesInpu
 marketplaceSearchDictionaryValues?: [{	input: ResolverInputTypes["SearchDictionaryValuesInput"]},ResolverInputTypes["MarketplaceDictionaryValue"]],
 marketplaceSearchRequests?: [{	data: ResolverInputTypes["SearchRequestsInput"]},ResolverInputTypes["MarketplaceRequest"]],
 marketplaceValidateAttributeValues?: [{	input: ResolverInputTypes["ValidateAttributeValuesInput"]},ResolverInputTypes["MarketplaceAttributeValidation"]],
-	/** Контекст пайщика для Стола заказов: core_roles + marketplace_roles */
+	/** Контекст пайщика для Стола заказов: core_roles + marketplace_roles + участки оператора */
 	marketplaceWhoAmI?:ResolverInputTypes["MarketplaceCurrentMember"],
 marketplaceWriteoffProposal?: [{	id: string},ResolverInputTypes["MarketplaceWriteoffProposal"]],
 marketplaceWriteoffStatementSignablePayload?: [{	data: ResolverInputTypes["MarketplaceWriteoffStatementSignablePayloadInput"]},ResolverInputTypes["GeneratedDocument"]],
@@ -20541,7 +20607,7 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 };
 	["UpdateCallTranscriptionMemoInput"]: {
 	id: string,
-	/** Текст заметки (до 4000 символов) */
+	/** Текст заметки */
 	memo: string
 };
 	["UpdateChatCoopCalendarEventInput"]: {
@@ -25428,6 +25494,8 @@ export type ModelTypes = {
 	username: string
 };
 	["Init"]: {
+	/** Признак того, что инициализация выполняется со стороны провайдера. При true coopback ставит init_by_server=true (org_data становится readonly для пользовательского визарда). Поле передаёт provider в callInitSystemMutation. */
+	is_server_init?: boolean | undefined | null,
 	/** Объект организации кооператива, которая обслуживает данный экземпляр программного обеспечения MONO */
 	organization_data: ModelTypes["CreateInitOrganizationDataInput"]
 };
@@ -26087,7 +26155,9 @@ export type ModelTypes = {
 	items: Array<ModelTypes["MarketplaceWriteoffItemInput"]>
 };
 	["MarketplaceCurrentMember"]: {
-		core_roles: Array<string>,
+		/** Кооперативные участки, в которых пайщик — доверенное лицо (для столов оператора ПВЗ) */
+	branches: Array<string>,
+	core_roles: Array<string>,
 	marketplace_roles: Array<string>,
 	username: string
 };
@@ -26234,6 +26304,8 @@ export type ModelTypes = {
 	version: string
 };
 	["MarketplaceIssueActSignedMetaDocumentInput"]: {
+	/** Имя приёмного кооперативного участка, на который передаётся партия. */
+	accept_braname: string,
 	/** Номер акта для шапки документа. */
 	act_id: string,
 	/** Фактически выдаваемое количество единиц (заполняется на финальной подписи). */
@@ -26248,6 +26320,8 @@ export type ModelTypes = {
 	created_at: string,
 	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
 	doc_data_hash?: string | undefined | null,
+	/** Фактически принятое количество единиц по заказу. */
+	fact_quantity: number,
 	/** Имя генератора, использованного для создания документа */
 	generator: string,
 	/** Язык документа */
@@ -26258,14 +26332,20 @@ export type ModelTypes = {
 	order_hash: string,
 	/** Идентификатор заказа пайщика, по которому формируется акт выдачи. */
 	order_id: string,
+	/** Идентификатор записи акта приёмки в инфраструктуре marketplace. */
+	reception_id: string,
 	/** ID документа в реестре */
 	registry_id: number,
 	/** Сформировать документ без сохранения (preview-режим). */
 	skip_save: boolean,
+	/** Учётная запись поставщика, передавшего партию на кооперативный участок. */
+	supplier_account: string,
 	/** Часовой пояс, в котором был создан документ */
 	timezone: string,
 	/** Название документа */
 	title: string,
+	/** Сумма по заказу с учётом фактического количества. */
+	total_amount: string,
 	/** Учётная запись передающей стороны — председатель кооперативного участка или доверенное им лицо. */
 	transmitter: string,
 	/** Имя пользователя, создавшего документ */
@@ -26390,6 +26470,16 @@ export type ModelTypes = {
 	/** Фильтр по аккаунту поставщика. */
 	supplier_account?: string | undefined | null
 };
+	["MarketplaceListOutgoingPaymentsAsSupplierFilterInput"]: {
+	/** Фильтр по статусам выплат. Пусто — показывать все статусы. */
+	statuses?: Array<ModelTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null
+};
+	["MarketplaceListOutgoingPaymentsFilterInput"]: {
+	/** Фильтр по статусам выплат. Пусто — показывать все статусы. */
+	statuses?: Array<ModelTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null,
+	/** Поставщик-получатель выплаты. Пусто — по всем поставщикам. */
+	supplier_account?: string | undefined | null
+};
 	["MarketplaceListPendingOffersInput"]: {
 	/** Количество элементов на странице */
 	limit: number,
@@ -26403,6 +26493,12 @@ export type ModelTypes = {
 	["MarketplaceListReturnClaimsByBranameInput"]: {
 	/** Кооперативный участок (delivery_braname исходного заказа). */
 	delivery_braname: string
+};
+	["MarketplaceListShipmentsByBranameInput"]: {
+	/** Кооперативный участок получения партий. */
+	braname: string,
+	/** Фильтр по статусам партий — например, ожидаемые к приёмке. */
+	statuses?: Array<ModelTypes["MarketplaceShipmentStatus"]> | undefined | null
 };
 	["MarketplaceListShipmentsInput"]: {
 	/** Фильтр по КУ-получателю. */
@@ -27079,6 +27175,10 @@ export type ModelTypes = {
 	apl_reception_id: ModelTypes["ID"],
 	/** Подписанные клиентом акты приёмки — один документ на каждый Order группы. Backend верифицирует подпись и отправляет on-chain signsupp/signchair с этим документом. */
 	signed_documents: Array<ModelTypes["MarketplaceAplReceptionSignedDocumentInput"]>
+};
+	["MarketplaceSignOnboardingOfferInput"]: {
+	/** Подписанный пайщиком инстанс оферты ЦПП «Стол заказов» (registry_id=1101) */
+	document: ModelTypes["SignedDigitalDocumentInput"]
 };
 	["MarketplaceSubmitWriteoffDraftInput"]: {
 	draft_id: string,
@@ -27762,7 +27862,7 @@ export type ModelTypes = {
 	chatcoopUpdateCalendarEvent: ModelTypes["ChatCoopCalendarEvent"],
 	/** Обновить заметку (memo) к транскрипции звонка
 
-Требуемые роли: chairman, member, user.  */
+Требуемые роли: chairman, member.  */
 	chatcoopUpdateTranscriptionMemo: ModelTypes["CallTranscription"],
 	/** Выполнить шаг онбординга capital (создание предложения повестки)
 
@@ -28044,6 +28144,8 @@ export type ModelTypes = {
 	marketplaceSignAplReceptionAsChairman: ModelTypes["MarketplaceAplReceptionResult"],
 	/** Поставщик ставит первую подпись на акте приёмки (лично — Вариант А; асинхронно через push — Вариант Б). */
 	marketplaceSignAplReceptionAsSupplier: ModelTypes["MarketplaceAplReceptionResult"],
+	/** L3-подпись оферты ЦПП «Стол заказов» пайщиком после gate-диалога: on-chain wallet::signagree + ответ в виде обновлённого состояния онбординга */
+	marketplaceSignOnboardingOffer: ModelTypes["MarketplaceOnboardingState"],
 	/** Отправить черновик в совет. Принимает подписанное председателем Заявление 1106. После успешного приёма выполняются propwroff и soviet::createagenda(mktwroff). */
 	marketplaceSubmitWriteoffDraft: ModelTypes["MarketplaceWriteoffProposal"],
 	/** Поставщик запускает поставку по предложению с открытой подпиской: формируется сводная заявка, заказы в её пуле принимаются. */
@@ -29521,15 +29623,13 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	listReportDrafts: Array<ModelTypes["ReportDraft"]>,
-	/** Preview-документы акта приёмки для закрывающей подписи председателя КУ. */
-	marketplaceAplReceptionChairmanSignablePayloads: Array<ModelTypes["GeneratedDocument"]>,
+	/** Акты приёмки, уже подписанные поставщиком, для закрывающей подписи председателя КУ. Каждый элемент содержит исходный документ для ознакомления и подпись поставщика; председатель накладывает свою подпись поверх. */
+	marketplaceAplReceptionChairmanSignablePayloads: Array<ModelTypes["DocumentAggregate"]>,
 	/** Preview-документы акта приёмки для подписи поставщиком — один документ на каждый Order группы. Клиент подписывает hash приватным ключом и возвращает результат в mutation marketplaceSignAplReceptionAsSupplier. */
 	marketplaceAplReceptionSupplierSignablePayloads: Array<ModelTypes["GeneratedDocument"]>,
 	/** Получить аспектные атрибуты для категории и типа товара marketplace */
 	marketplaceAspectAttributes: Array<ModelTypes["MarketplaceAttribute"]>,
-	/** Получить статистику по атрибутам marketplace
-
-Требуемые роли: chairman, member.  */
+	/** Получить статистику по атрибутам marketplace */
 	marketplaceAttributeStats: ModelTypes["MarketplaceAttributeStats"],
 	/** Получить атрибуты для конкретной категории и типа товара marketplace */
 	marketplaceCategoryAttributes: Array<ModelTypes["MarketplaceAttribute"]>,
@@ -29563,9 +29663,7 @@ export type ModelTypes = {
 	marketplaceGetCategoryRules: Array<ModelTypes["MarketplaceAvailableCategory"]>,
 	/** Получить полное дерево категорий marketplace с типами товаров */
 	marketplaceGetCategoryTree: Array<ModelTypes["MarketplaceCategoryTreeNode"]>,
-	/** Получить статистику по дереву категорий
-
-Требуемые роли: chairman, member.  */
+	/** Получить статистику по дереву категорий */
 	marketplaceGetCategoryTreeStats: ModelTypes["MarketplaceCategoryTreeStats"],
 	/** Получить заявки кооператива
 
@@ -29595,8 +29693,8 @@ export type ModelTypes = {
 	marketplaceGetUserRequests: Array<ModelTypes["MarketplaceRequest"]>,
 	/** Превью акта выдачи имущества для подписания председателем кооперативного участка. */
 	marketplaceIssueActChairmanSignablePayload: ModelTypes["GeneratedDocument"],
-	/** Превью акта выдачи имущества для финальной подписи заказчика с указанием фактического количества. */
-	marketplaceIssueActOrdererSignablePayload: ModelTypes["GeneratedDocument"],
+	/** Акт выдачи, уже подписанный председателем, для финальной подписи заказчика. Содержит исходный документ для ознакомления и подпись председателя; заказчик накладывает свою подпись поверх. */
+	marketplaceIssueActOrdererSignablePayload: ModelTypes["DocumentAggregate"],
 	/** Список актов приёмки, ожидающих подписи текущего поставщика. */
 	marketplaceListAplReceptionsAsSupplier: Array<ModelTypes["MarketplaceAplReception"]>,
 	/** Список акций приёмки текущего КУ для operator-стола. */
@@ -29625,6 +29723,8 @@ export type ModelTypes = {
 	marketplaceListMyReadyToReceive: Array<ModelTypes["MarketplaceOrder"]>,
 	/** Все заявления текущего пайщика на гарантийный возврат — активные и архивные. */
 	marketplaceListMyReturnClaims: Array<ModelTypes["MarketplaceReturnClaim"]>,
+	/** Лента выплат поставщикам по всему кооперативу — для совета. Опциональные фильтры: по поставщику-получателю и по статусам. */
+	marketplaceListOutgoingPayments: Array<ModelTypes["MarketplaceOutgoingPaymentRequest"]>,
 	/** История выплат поставщику в столе поставщика — статусы по каждому заказу. */
 	marketplaceListOutgoingPaymentsAsSupplier: Array<ModelTypes["MarketplaceOutgoingPaymentRequest"]>,
 	/** Список Offer'ов на модерации (admin) */
@@ -29633,6 +29733,8 @@ export type ModelTypes = {
 	marketplaceListReturnClaimsByBraname: Array<ModelTypes["MarketplaceReturnClaim"]>,
 	/** Список партий поставки текущего поставщика — для стола подготовки поставки и истории. */
 	marketplaceListShipments: Array<ModelTypes["MarketplaceShipment"]>,
+	/** Список партий поставки, ожидаемых на кооперативном участке, — для стола приёмки оператора пункта выдачи. */
+	marketplaceListShipmentsByBraname: Array<ModelTypes["MarketplaceShipment"]>,
 	/** Список заказов, по которым текущий пайщик является поставщиком (стол поставщика). */
 	marketplaceListSupplierOrders: ModelTypes["MarketplaceOrderPaginationResult"],
 	/** Список пайщиков-поставщиков, допущенных к публикации оферт */
@@ -29661,7 +29763,7 @@ export type ModelTypes = {
 	marketplaceSearchRequests: Array<ModelTypes["MarketplaceRequest"]>,
 	/** Валидация значений атрибута marketplace */
 	marketplaceValidateAttributeValues: ModelTypes["MarketplaceAttributeValidation"],
-	/** Контекст пайщика для Стола заказов: core_roles + marketplace_roles */
+	/** Контекст пайщика для Стола заказов: core_roles + marketplace_roles + участки оператора */
 	marketplaceWhoAmI: ModelTypes["MarketplaceCurrentMember"],
 	/** Детали одного проекта списания: items, decision_log, протокол. */
 	marketplaceWriteoffProposal: ModelTypes["MarketplaceWriteoffProposal"],
@@ -30741,7 +30843,7 @@ export type ModelTypes = {
 };
 	["UpdateCallTranscriptionMemoInput"]: {
 	id: string,
-	/** Текст заметки (до 4000 символов) */
+	/** Текст заметки */
 	memo: string
 };
 	["UpdateChatCoopCalendarEventInput"]: {
@@ -35854,7 +35956,9 @@ export type GraphQLTypes = {
 	['...on IndividualCertificate']: Omit<GraphQLTypes["IndividualCertificate"], "...on IndividualCertificate">
 };
 	["Init"]: {
-		/** Объект организации кооператива, которая обслуживает данный экземпляр программного обеспечения MONO */
+		/** Признак того, что инициализация выполняется со стороны провайдера. При true coopback ставит init_by_server=true (org_data становится readonly для пользовательского визарда). Поле передаёт provider в callInitSystemMutation. */
+	is_server_init?: boolean | undefined | null,
+	/** Объект организации кооператива, которая обслуживает данный экземпляр программного обеспечения MONO */
 	organization_data: GraphQLTypes["CreateInitOrganizationDataInput"]
 };
 	["Install"]: {
@@ -36592,6 +36696,8 @@ export type GraphQLTypes = {
 };
 	["MarketplaceCurrentMember"]: {
 	__typename: "MarketplaceCurrentMember",
+	/** Кооперативные участки, в которых пайщик — доверенное лицо (для столов оператора ПВЗ) */
+	branches: Array<string>,
 	core_roles: Array<string>,
 	marketplace_roles: Array<string>,
 	username: string,
@@ -36749,7 +36855,9 @@ export type GraphQLTypes = {
 	version: string
 };
 	["MarketplaceIssueActSignedMetaDocumentInput"]: {
-		/** Номер акта для шапки документа. */
+		/** Имя приёмного кооперативного участка, на который передаётся партия. */
+	accept_braname: string,
+	/** Номер акта для шапки документа. */
 	act_id: string,
 	/** Фактически выдаваемое количество единиц (заполняется на финальной подписи). */
 	actual_quantity?: number | undefined | null,
@@ -36763,6 +36871,8 @@ export type GraphQLTypes = {
 	created_at: string,
 	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
 	doc_data_hash?: string | undefined | null,
+	/** Фактически принятое количество единиц по заказу. */
+	fact_quantity: number,
 	/** Имя генератора, использованного для создания документа */
 	generator: string,
 	/** Язык документа */
@@ -36773,14 +36883,20 @@ export type GraphQLTypes = {
 	order_hash: string,
 	/** Идентификатор заказа пайщика, по которому формируется акт выдачи. */
 	order_id: string,
+	/** Идентификатор записи акта приёмки в инфраструктуре marketplace. */
+	reception_id: string,
 	/** ID документа в реестре */
 	registry_id: number,
 	/** Сформировать документ без сохранения (preview-режим). */
 	skip_save: boolean,
+	/** Учётная запись поставщика, передавшего партию на кооперативный участок. */
+	supplier_account: string,
 	/** Часовой пояс, в котором был создан документ */
 	timezone: string,
 	/** Название документа */
 	title: string,
+	/** Сумма по заказу с учётом фактического количества. */
+	total_amount: string,
 	/** Учётная запись передающей стороны — председатель кооперативного участка или доверенное им лицо. */
 	transmitter: string,
 	/** Имя пользователя, создавшего документ */
@@ -36911,6 +37027,16 @@ export type GraphQLTypes = {
 	/** Фильтр по аккаунту поставщика. */
 	supplier_account?: string | undefined | null
 };
+	["MarketplaceListOutgoingPaymentsAsSupplierFilterInput"]: {
+		/** Фильтр по статусам выплат. Пусто — показывать все статусы. */
+	statuses?: Array<GraphQLTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null
+};
+	["MarketplaceListOutgoingPaymentsFilterInput"]: {
+		/** Фильтр по статусам выплат. Пусто — показывать все статусы. */
+	statuses?: Array<GraphQLTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null,
+	/** Поставщик-получатель выплаты. Пусто — по всем поставщикам. */
+	supplier_account?: string | undefined | null
+};
 	["MarketplaceListPendingOffersInput"]: {
 		/** Количество элементов на странице */
 	limit: number,
@@ -36924,6 +37050,12 @@ export type GraphQLTypes = {
 	["MarketplaceListReturnClaimsByBranameInput"]: {
 		/** Кооперативный участок (delivery_braname исходного заказа). */
 	delivery_braname: string
+};
+	["MarketplaceListShipmentsByBranameInput"]: {
+		/** Кооперативный участок получения партий. */
+	braname: string,
+	/** Фильтр по статусам партий — например, ожидаемые к приёмке. */
+	statuses?: Array<GraphQLTypes["MarketplaceShipmentStatus"]> | undefined | null
 };
 	["MarketplaceListShipmentsInput"]: {
 		/** Фильтр по КУ-получателю. */
@@ -37658,6 +37790,10 @@ export type GraphQLTypes = {
 	/** Подписанные клиентом акты приёмки — один документ на каждый Order группы. Backend верифицирует подпись и отправляет on-chain signsupp/signchair с этим документом. */
 	signed_documents: Array<GraphQLTypes["MarketplaceAplReceptionSignedDocumentInput"]>
 };
+	["MarketplaceSignOnboardingOfferInput"]: {
+		/** Подписанный пайщиком инстанс оферты ЦПП «Стол заказов» (registry_id=1101) */
+	document: GraphQLTypes["SignedDigitalDocumentInput"]
+};
 	["MarketplaceSubmitWriteoffDraftInput"]: {
 		draft_id: string,
 	/** Подписанное председателем Заявление о списании скоропорта (registry_id=1106). */
@@ -38375,7 +38511,7 @@ export type GraphQLTypes = {
 	chatcoopUpdateCalendarEvent: GraphQLTypes["ChatCoopCalendarEvent"],
 	/** Обновить заметку (memo) к транскрипции звонка
 
-Требуемые роли: chairman, member, user.  */
+Требуемые роли: chairman, member.  */
 	chatcoopUpdateTranscriptionMemo: GraphQLTypes["CallTranscription"],
 	/** Выполнить шаг онбординга capital (создание предложения повестки)
 
@@ -38657,6 +38793,8 @@ export type GraphQLTypes = {
 	marketplaceSignAplReceptionAsChairman: GraphQLTypes["MarketplaceAplReceptionResult"],
 	/** Поставщик ставит первую подпись на акте приёмки (лично — Вариант А; асинхронно через push — Вариант Б). */
 	marketplaceSignAplReceptionAsSupplier: GraphQLTypes["MarketplaceAplReceptionResult"],
+	/** L3-подпись оферты ЦПП «Стол заказов» пайщиком после gate-диалога: on-chain wallet::signagree + ответ в виде обновлённого состояния онбординга */
+	marketplaceSignOnboardingOffer: GraphQLTypes["MarketplaceOnboardingState"],
 	/** Отправить черновик в совет. Принимает подписанное председателем Заявление 1106. После успешного приёма выполняются propwroff и soviet::createagenda(mktwroff). */
 	marketplaceSubmitWriteoffDraft: GraphQLTypes["MarketplaceWriteoffProposal"],
 	/** Поставщик запускает поставку по предложению с открытой подпиской: формируется сводная заявка, заказы в её пуле принимаются. */
@@ -40268,15 +40406,13 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	listReportDrafts: Array<GraphQLTypes["ReportDraft"]>,
-	/** Preview-документы акта приёмки для закрывающей подписи председателя КУ. */
-	marketplaceAplReceptionChairmanSignablePayloads: Array<GraphQLTypes["GeneratedDocument"]>,
+	/** Акты приёмки, уже подписанные поставщиком, для закрывающей подписи председателя КУ. Каждый элемент содержит исходный документ для ознакомления и подпись поставщика; председатель накладывает свою подпись поверх. */
+	marketplaceAplReceptionChairmanSignablePayloads: Array<GraphQLTypes["DocumentAggregate"]>,
 	/** Preview-документы акта приёмки для подписи поставщиком — один документ на каждый Order группы. Клиент подписывает hash приватным ключом и возвращает результат в mutation marketplaceSignAplReceptionAsSupplier. */
 	marketplaceAplReceptionSupplierSignablePayloads: Array<GraphQLTypes["GeneratedDocument"]>,
 	/** Получить аспектные атрибуты для категории и типа товара marketplace */
 	marketplaceAspectAttributes: Array<GraphQLTypes["MarketplaceAttribute"]>,
-	/** Получить статистику по атрибутам marketplace
-
-Требуемые роли: chairman, member.  */
+	/** Получить статистику по атрибутам marketplace */
 	marketplaceAttributeStats: GraphQLTypes["MarketplaceAttributeStats"],
 	/** Получить атрибуты для конкретной категории и типа товара marketplace */
 	marketplaceCategoryAttributes: Array<GraphQLTypes["MarketplaceAttribute"]>,
@@ -40310,9 +40446,7 @@ export type GraphQLTypes = {
 	marketplaceGetCategoryRules: Array<GraphQLTypes["MarketplaceAvailableCategory"]>,
 	/** Получить полное дерево категорий marketplace с типами товаров */
 	marketplaceGetCategoryTree: Array<GraphQLTypes["MarketplaceCategoryTreeNode"]>,
-	/** Получить статистику по дереву категорий
-
-Требуемые роли: chairman, member.  */
+	/** Получить статистику по дереву категорий */
 	marketplaceGetCategoryTreeStats: GraphQLTypes["MarketplaceCategoryTreeStats"],
 	/** Получить заявки кооператива
 
@@ -40342,8 +40476,8 @@ export type GraphQLTypes = {
 	marketplaceGetUserRequests: Array<GraphQLTypes["MarketplaceRequest"]>,
 	/** Превью акта выдачи имущества для подписания председателем кооперативного участка. */
 	marketplaceIssueActChairmanSignablePayload: GraphQLTypes["GeneratedDocument"],
-	/** Превью акта выдачи имущества для финальной подписи заказчика с указанием фактического количества. */
-	marketplaceIssueActOrdererSignablePayload: GraphQLTypes["GeneratedDocument"],
+	/** Акт выдачи, уже подписанный председателем, для финальной подписи заказчика. Содержит исходный документ для ознакомления и подпись председателя; заказчик накладывает свою подпись поверх. */
+	marketplaceIssueActOrdererSignablePayload: GraphQLTypes["DocumentAggregate"],
 	/** Список актов приёмки, ожидающих подписи текущего поставщика. */
 	marketplaceListAplReceptionsAsSupplier: Array<GraphQLTypes["MarketplaceAplReception"]>,
 	/** Список акций приёмки текущего КУ для operator-стола. */
@@ -40372,6 +40506,8 @@ export type GraphQLTypes = {
 	marketplaceListMyReadyToReceive: Array<GraphQLTypes["MarketplaceOrder"]>,
 	/** Все заявления текущего пайщика на гарантийный возврат — активные и архивные. */
 	marketplaceListMyReturnClaims: Array<GraphQLTypes["MarketplaceReturnClaim"]>,
+	/** Лента выплат поставщикам по всему кооперативу — для совета. Опциональные фильтры: по поставщику-получателю и по статусам. */
+	marketplaceListOutgoingPayments: Array<GraphQLTypes["MarketplaceOutgoingPaymentRequest"]>,
 	/** История выплат поставщику в столе поставщика — статусы по каждому заказу. */
 	marketplaceListOutgoingPaymentsAsSupplier: Array<GraphQLTypes["MarketplaceOutgoingPaymentRequest"]>,
 	/** Список Offer'ов на модерации (admin) */
@@ -40380,6 +40516,8 @@ export type GraphQLTypes = {
 	marketplaceListReturnClaimsByBraname: Array<GraphQLTypes["MarketplaceReturnClaim"]>,
 	/** Список партий поставки текущего поставщика — для стола подготовки поставки и истории. */
 	marketplaceListShipments: Array<GraphQLTypes["MarketplaceShipment"]>,
+	/** Список партий поставки, ожидаемых на кооперативном участке, — для стола приёмки оператора пункта выдачи. */
+	marketplaceListShipmentsByBraname: Array<GraphQLTypes["MarketplaceShipment"]>,
 	/** Список заказов, по которым текущий пайщик является поставщиком (стол поставщика). */
 	marketplaceListSupplierOrders: GraphQLTypes["MarketplaceOrderPaginationResult"],
 	/** Список пайщиков-поставщиков, допущенных к публикации оферт */
@@ -40408,7 +40546,7 @@ export type GraphQLTypes = {
 	marketplaceSearchRequests: Array<GraphQLTypes["MarketplaceRequest"]>,
 	/** Валидация значений атрибута marketplace */
 	marketplaceValidateAttributeValues: GraphQLTypes["MarketplaceAttributeValidation"],
-	/** Контекст пайщика для Стола заказов: core_roles + marketplace_roles */
+	/** Контекст пайщика для Стола заказов: core_roles + marketplace_roles + участки оператора */
 	marketplaceWhoAmI: GraphQLTypes["MarketplaceCurrentMember"],
 	/** Детали одного проекта списания: items, decision_log, протокол. */
 	marketplaceWriteoffProposal: GraphQLTypes["MarketplaceWriteoffProposal"],
@@ -41573,7 +41711,7 @@ export type GraphQLTypes = {
 };
 	["UpdateCallTranscriptionMemoInput"]: {
 		id: string,
-	/** Текст заметки (до 4000 символов) */
+	/** Текст заметки */
 	memo: string
 };
 	["UpdateChatCoopCalendarEventInput"]: {
@@ -42388,6 +42526,7 @@ export enum PaymentDirection {
 }
 /** Статус платежа */
 export enum PaymentStatus {
+	AWAITING_AUTHORIZATION = "AWAITING_AUTHORIZATION",
 	CANCELLED = "CANCELLED",
 	COMPLETED = "COMPLETED",
 	EXPIRED = "EXPIRED",
@@ -42834,8 +42973,11 @@ type ZEUS_VARIABLES = {
 	["MarketplaceListIssuancesByBranameInput"]: ValueTypes["MarketplaceListIssuancesByBranameInput"];
 	["MarketplaceListMyOffersInput"]: ValueTypes["MarketplaceListMyOffersInput"];
 	["MarketplaceListOrdersInput"]: ValueTypes["MarketplaceListOrdersInput"];
+	["MarketplaceListOutgoingPaymentsAsSupplierFilterInput"]: ValueTypes["MarketplaceListOutgoingPaymentsAsSupplierFilterInput"];
+	["MarketplaceListOutgoingPaymentsFilterInput"]: ValueTypes["MarketplaceListOutgoingPaymentsFilterInput"];
 	["MarketplaceListPendingOffersInput"]: ValueTypes["MarketplaceListPendingOffersInput"];
 	["MarketplaceListReturnClaimsByBranameInput"]: ValueTypes["MarketplaceListReturnClaimsByBranameInput"];
+	["MarketplaceListShipmentsByBranameInput"]: ValueTypes["MarketplaceListShipmentsByBranameInput"];
 	["MarketplaceListShipmentsInput"]: ValueTypes["MarketplaceListShipmentsInput"];
 	["MarketplaceListWriteoffProposalsInput"]: ValueTypes["MarketplaceListWriteoffProposalsInput"];
 	["MarketplaceOpenIssuanceInput"]: ValueTypes["MarketplaceOpenIssuanceInput"];
@@ -42860,6 +43002,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceShipmentStatus"]: ValueTypes["MarketplaceShipmentStatus"];
 	["MarketplaceShipmentTTNDataInput"]: ValueTypes["MarketplaceShipmentTTNDataInput"];
 	["MarketplaceSignAplReceptionInput"]: ValueTypes["MarketplaceSignAplReceptionInput"];
+	["MarketplaceSignOnboardingOfferInput"]: ValueTypes["MarketplaceSignOnboardingOfferInput"];
 	["MarketplaceSubmitWriteoffDraftInput"]: ValueTypes["MarketplaceSubmitWriteoffDraftInput"];
 	["MarketplaceTriggerOpenSubscriptionInput"]: ValueTypes["MarketplaceTriggerOpenSubscriptionInput"];
 	["MarketplaceUpdateOfferInput"]: ValueTypes["MarketplaceUpdateOfferInput"];

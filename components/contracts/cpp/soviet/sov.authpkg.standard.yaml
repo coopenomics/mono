@@ -10,7 +10,7 @@
 #       ↓
 #   authorized=true → exec → callback в исходный контракт (confirmreg /
 #                            authmeet / approvereg / authpgprp / authrslt
-#                            / authcontrib / approvewthd / ... — конкретный
+#                            / authcontrib / authwthd / ... — конкретный
 #                            handler заранее зашит в decision.type).
 #
 # Документ повестки приходит из контракта-инициатора (без registry_id —

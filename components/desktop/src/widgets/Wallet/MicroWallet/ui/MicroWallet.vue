@@ -47,7 +47,7 @@ const formattedBalance = computed(() => {
     (w) => w.program_type === Zeus.ProgramType.MAIN,
   );
   const available = walletEntry?.available || '0';
-  return formatAsset2Digits(`${available} ${info.symbols.root_govern_symbol}`);
+  return formatAsset2Digits(`${available} ${info.symbols?.root_govern_symbol ?? '₽'}`);
 });
 
 // Профиль

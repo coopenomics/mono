@@ -7,6 +7,10 @@ import { NOVU_WORKFLOW_PORT, type NovuWorkflowPort } from '~/domain/notification
 import { ACCOUNT_DATA_PORT, type AccountDataPort } from '~/domain/account/ports/account-data.port';
 import type { WorkflowTriggerDomainInterface } from '~/domain/notification/interfaces/workflow-trigger-domain.interface';
 import {
+  MARKETPLACE_KU_CHAIRMAN_SERVICE,
+  type MarketplaceKuChairmanService,
+} from './marketplace-ku-chairman.service';
+import {
   MARKETPLACE_APL_SUPPLIER_SIGN_REQUEST_EVENT,
   MARKETPLACE_CASHIER_NEW_PAYMENT_EVENT,
   MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT,
@@ -47,6 +51,8 @@ export class MarketplaceNotificationService implements OnModuleInit {
     private readonly novuWorkflowPort: NovuWorkflowPort,
     @Inject(ACCOUNT_DATA_PORT)
     private readonly accountPort: AccountDataPort,
+    @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
+    private readonly kuChairmanService: MarketplaceKuChairmanService,
     private readonly logger: WinstonLoggerService
   ) {
     this.logger.setContext(MarketplaceNotificationService.name);
@@ -226,47 +232,63 @@ export class MarketplaceNotificationService implements OnModuleInit {
   @OnEvent(MARKETPLACE_RETURN_CLAIM_SUBMITTED_EVENT)
   async handleReturnClaimSubmitted(event: MarketplaceReturnClaimSubmittedEvent): Promise<void> {
     try {
-      // В MVP кооперативный участок — это account-like префикс; председатель
-      // КУ соответствует account == delivery_braname или назначен через
-      // coop_ku.chairman_account. Для подачи в Novu используем `delivery_braname`
-      // как fallback adressee; полная интеграция с `coop_ku.chairman_account`
-      // — Phase 2 (после расширения cooperative-coop_ku модели в core).
-      const chairmanAccount = event.delivery_braname;
-      const chairman = await this.accountPort.getAccount(chairmanAccount);
-      const subscriberId = chairman.provider_account?.subscriber_id?.trim();
-      const email = chairman.provider_account?.email;
-      if (!subscriberId || !email) {
+      // Адресуем всем операторам КУ доставки (trustee + trusted) — они
+      // равны в правах по столу ПВЗ, новый return-claim видят все. Veerom
+      // (несколько Novu-триггеров) сохраняет инвариант «никто не пропустил»
+      // без ввода понятия «главный получатель уведомления».
+      const operators = await this.kuChairmanService.listOperatorsOfBranch(
+        event.coopname,
+        event.delivery_braname
+      );
+      if (operators.length === 0) {
         this.logger.warn(
-          `Заявление на возврат ${event.claim_id}: subscriber_id/email председателя ${chairmanAccount} не найден — push пропущен.`
+          `Заявление на возврат ${event.claim_id}: у КУ ${event.delivery_braname} нет ни председателя, ни доверенных лиц — push пропущен.`
         );
         return;
       }
-      const chairmanName = await this.accountPort.getDisplayName(chairmanAccount);
       const ordererName = await this.accountPort.getDisplayName(event.orderer_account);
       const reasonExcerpt =
         event.reason_text.length > 240 ? event.reason_text.slice(0, 240) + '…' : event.reason_text;
-      const payload: Workflows.MarketplaceReturnClaimSubmitted.IPayload = {
-        chairmanName,
-        ordererName,
-        brananame: event.delivery_braname,
-        coopname: event.coopname,
-        claim_id: event.claim_id,
-        order_id: event.order_id,
-        reasonExcerpt,
-        deepLinkUrl: `${config.frontend_url}/${event.coopname}/market-pvz/returns/${event.claim_id}`,
-      };
-      const triggerData: WorkflowTriggerDomainInterface = {
-        name: Workflows.MarketplaceReturnClaimSubmitted.id,
-        to: { subscriberId, email },
-        payload,
-      };
-      await this.novuWorkflowPort.triggerWorkflow(triggerData);
-      this.logger.log(
-        `Заявление на возврат ${event.claim_id}: push председателю ${chairmanAccount} отправлен.`
-      );
+      for (const operatorAccount of operators) {
+        try {
+          const operator = await this.accountPort.getAccount(operatorAccount);
+          const subscriberId = operator.provider_account?.subscriber_id?.trim();
+          const email = operator.provider_account?.email;
+          if (!subscriberId || !email) {
+            this.logger.warn(
+              `Заявление на возврат ${event.claim_id}: subscriber_id/email оператора ${operatorAccount} не найден — push пропущен.`
+            );
+            continue;
+          }
+          const chairmanName = await this.accountPort.getDisplayName(operatorAccount);
+          const payload: Workflows.MarketplaceReturnClaimSubmitted.IPayload = {
+            chairmanName,
+            ordererName,
+            brananame: event.delivery_braname,
+            coopname: event.coopname,
+            claim_id: event.claim_id,
+            order_id: event.order_id,
+            reasonExcerpt,
+            deepLinkUrl: `${config.frontend_url}/${event.coopname}/market-pvz/returns/${event.claim_id}`,
+          };
+          const triggerData: WorkflowTriggerDomainInterface = {
+            name: Workflows.MarketplaceReturnClaimSubmitted.id,
+            to: { subscriberId, email },
+            payload,
+          };
+          await this.novuWorkflowPort.triggerWorkflow(triggerData);
+          this.logger.log(
+            `Заявление на возврат ${event.claim_id}: push оператору ${operatorAccount} отправлен.`
+          );
+        } catch (innerErr: any) {
+          this.logger.warn(
+            `Заявление на возврат ${event.claim_id}: ошибка push оператору ${operatorAccount} (${innerErr.message}) — продолжаем веер.`
+          );
+        }
+      }
     } catch (err: any) {
       this.logger.warn(
-        `Заявление на возврат ${event.claim_id}: ошибка push председателю (${err.message}) — flow не блокируется.`
+        `Заявление на возврат ${event.claim_id}: ошибка push операторам КУ (${err.message}) — flow не блокируется.`
       );
     }
   }

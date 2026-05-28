@@ -169,6 +169,11 @@ const confirmDisabled = computed(() => {
   if (decision.value === DECISION_ACCEPT && !scannedCode.value.trim()) return true;
   return false;
 });
+
+const decisionOptions = [
+  { label: 'Принять возврат', value: DECISION_ACCEPT, color: 'positive' },
+  { label: 'Отказать на месте (имущество остаётся у заказчика)', value: DECISION_REJECT, color: 'negative' },
+];
 </script>
 
 <template lang="pug">
@@ -192,7 +197,7 @@ TakeoverDialog(
           .text-subtitle1 1. Сверка штрих-кода имущества
           BarcodeScanner.q-mt-sm(start-label="Сканировать штрих-код имущества" @scanned="onScanned")
           .text-caption.text-grey.q-mt-sm
-            | Mock-режим сканера для каркасной фазы — следующий этап заменит на реальную камеру / USB-сканер по UX-DR26.
+            | Отсканируйте штрих-код имущества камерой или USB-сканером, чтобы сверить его с возвращаемым заказом.
           .text-caption.q-mt-sm(v-if="scannedCode")
             | Считано: <strong>{{ scannedCode }}</strong>
 
@@ -235,10 +240,7 @@ TakeoverDialog(
         .text-subtitle1.q-mb-sm 4. Решение
         q-option-group(
           v-model="decision"
-          :options="[
-            { label: 'Принять возврат (compensating forward выполнится атомарно)', value: DECISION_ACCEPT, color: 'positive' },
-            { label: 'Отказать на месте (имущество остаётся у заказчика)', value: DECISION_REJECT, color: 'negative' },
-          ]"
+          :options="decisionOptions"
           type="radio"
         )
         q-banner.q-mt-md(v-if="decision === DECISION_ACCEPT" rounded class="bg-positive text-white")

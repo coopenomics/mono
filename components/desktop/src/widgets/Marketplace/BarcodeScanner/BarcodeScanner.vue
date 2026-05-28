@@ -22,7 +22,7 @@
         <q-icon name="fa-solid fa-circle-check" size="64px" color="positive" />
         <div class="mp-barcode-scanner__code">{{ lastCode }}</div>
         <div class="mp-barcode-scanner__caption mp-barcode-scanner__caption--small">
-          Visual feedback вместо звука «пик» (UX-DR26)
+          Штрих-код считан
         </div>
         <q-btn unelevated no-caps color="primary" label="Сканировать ещё" class="mp-barcode-scanner__btn" @click="start" />
       </div>

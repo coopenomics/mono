@@ -19,10 +19,21 @@ export class MarketplaceCurrentMemberDTO {
   @Field(() => [String])
   public readonly marketplace_roles!: string[];
 
-  constructor(init: { username: string; core_roles: string[]; marketplace_roles: string[] }) {
+  @Field(() => [String], {
+    description: 'Кооперативные участки, в которых пайщик — доверенное лицо (для столов оператора ПВЗ)',
+  })
+  public readonly branches!: string[];
+
+  constructor(init: {
+    username: string;
+    core_roles: string[];
+    marketplace_roles: string[];
+    branches: string[];
+  }) {
     this.username = init.username;
     this.core_roles = init.core_roles;
     this.marketplace_roles = init.marketplace_roles;
+    this.branches = init.branches;
   }
 }
 

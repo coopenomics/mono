@@ -40,6 +40,21 @@ const KNOWN_FIXTURES = {
   // 05-additional-contributors). Используется в сценарии adaptation для
   // снимков мастера выбора ролей / часов / ставки / документов УХД.
   newadapter: { email: 'andrey.sidorov@example.com', firstName: 'Андрей', lastName: 'Сидоров', middleName: 'Михайлович' },
+
+  // === Marketplace MVP «Стол заказов» ===
+  // Председатели КУ — обычные пайщики, на которых председатель кооператива
+  // повесил branch.trustee через branch::createbranch.
+  chairkrg: { email: 'chairkrg@voskhod.coop', firstName: 'Пётр', lastName: 'Иванов', middleName: 'Сергеевич' },
+  chairodn: { email: 'chairodn@voskhod.coop', firstName: 'Сергей', lastName: 'Орлов', middleName: 'Васильевич' },
+  chairmyt: { email: 'chairmyt@voskhod.coop', firstName: 'Алексей', lastName: 'Мытищенко', middleName: 'Григорьевич' },
+  // Доверенное лицо КУ Красногорск (branch.trusted[]).
+  trustedkrg: { email: 'trustedkrg@voskhod.coop', firstName: 'Михаил', lastName: 'Петров', middleName: 'Андреевич' },
+  // Оператор КУ Красногорск (marketplace-роль operator).
+  opkrg: { email: 'opkrg@voskhod.coop', firstName: 'Александр', lastName: 'Кузнецов', middleName: 'Владимирович' },
+  // Поставщик (marketplace-роль offerer): публикует Предложения.
+  sidorov: { email: 'sidorov@voskhod.coop', firstName: 'Дмитрий', lastName: 'Сидоров', middleName: 'Николаевич' },
+  // Заказчица (marketplace-роль orderer): оформляет Заказы.
+  petrova: { email: 'petrova@voskhod.coop', firstName: 'Екатерина', lastName: 'Петрова', middleName: 'Александровна' },
 };
 
 const log = (m) => console.error(`◇ ${m}`);
@@ -185,6 +200,7 @@ async function ensureDesktop(distRebuilt) {
     cwd: path.join(REPO_ROOT, 'components/desktop'),
     detached: true,
     stdio: ['ignore', out, out],
+    env: { ...process.env, DESKTOP_PORT: String(PORTS.desktop) },
   });
   child.unref();
   log(`Жду пока :${PORTS.desktop} начнёт отвечать (до 180с, лог в ${logFile})...`);
@@ -218,6 +234,8 @@ function ensureOneFixture(name) {
     POSTGRES_USERNAME: pg.POSTGRES_USERNAME || 'postgres',
     POSTGRES_PASSWORD: pg.POSTGRES_PASSWORD || 'postgres!23!23',
     POSTGRES_DATABASE: pg.POSTGRES_DATABASE || 'voskhod',
+    CHAIN_URL: `http://127.0.0.1:${PORTS.chain}`,
+    CONTROLLER_GRAPHQL_URL: `http://127.0.0.1:${PORTS.controller}/v1/graphql`,
   };
   const r = spawnSync('pnpm', [
     '--filter', '@coopenomics/boot', 'exec', 'esno',
@@ -265,9 +283,24 @@ async function loadMeta() {
   }
 }
 
+function readRootEnv() {
+  const envPath = path.join(REPO_ROOT, '.env');
+  if (!fs.existsSync(envPath)) return {};
+  const out = {};
+  for (const line of fs.readFileSync(envPath, 'utf8').split('\n')) {
+    const m = line.match(/^([A-Z_][A-Z0-9_]*)=(.*)$/);
+    if (m) out[m[1]] = m[2].replace(/^["']|["']$/g, '');
+  }
+  return out;
+}
+
 async function runPrepare(prepareSpecs) {
   if (!Array.isArray(prepareSpecs) || prepareSpecs.length === 0) return;
   log(`Прогоняю prepare-фазы (${prepareSpecs.length}): ${prepareSpecs.join(', ')}`);
+  // .env репо содержит host-порты mono-ai-N (CHAIN_URL=:8918, MONGO_URI=:27047, POSTGRES_PORT=5562
+  // для mono-ai-4 и т.д.). boot/.env по умолчанию для docker-network (mongo:27017,postgres:5532)
+  // не подходит для host-запуска seed-скриптов, поэтому prepare-фазы получают переменные из root .env.
+  const rootEnv = readRootEnv();
   for (const spec of prepareSpecs) {
     const m = spec.match(/^([\w-]+):([\w-]+)$/);
     if (!m) die(`prepare: не понимаю спецификацию «${spec}» (формат: <group>:<phase>)`);
@@ -281,7 +314,7 @@ async function runPrepare(prepareSpecs) {
     const r = spawnSync('pnpm', [
       '--filter', '@coopenomics/boot', 'exec', 'esno',
       scriptPath, phase,
-    ], { cwd: REPO_ROOT, stdio: 'inherit' });
+    ], { cwd: REPO_ROOT, stdio: 'inherit', env: { ...process.env, ...rootEnv } });
     if (r.status !== 0) die(`prepare ${spec} упала`);
   }
   ok('prepare-фазы пройдены');

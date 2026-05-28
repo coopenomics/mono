@@ -1,4 +1,4 @@
-import { Inject, Injectable, UseGuards } from '@nestjs/common';
+import { ForbiddenException, Inject, Injectable, NotFoundException, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import config from '~/config/config';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
@@ -6,6 +6,12 @@ import { CurrentMarketplaceMember } from '../decorators/current-marketplace-memb
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
+import { canAccess } from '../access/marketplace-access-matrix';
+import type { MarketplaceRole } from '../membership/marketplace-roles.mapper';
+import {
+  MARKETPLACE_KU_CHAIRMAN_SERVICE,
+  type MarketplaceKuChairmanService,
+} from '../services/marketplace-ku-chairman.service';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import {
   MarketplaceFinalizeIssuanceInputDTO,
@@ -23,11 +29,8 @@ import {
   MARKETPLACE_ORDER_REPOSITORY,
   type MarketplaceOrderDomainRepository,
 } from '../../domain/repositories/marketplace-order.repository';
-import {
-  MARKETPLACE_BRANCH_OWNERSHIP_SERVICE,
-  MarketplaceBranchOwnershipService,
-} from '../services/marketplace-branch-ownership.service';
 import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
+import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 
 function toGeneratedDocumentDTO(e: DocumentDomainEntity): GeneratedDocumentDTO {
@@ -48,8 +51,8 @@ export class MarketplaceIssuanceResolver {
     private readonly service: MarketplaceIssuanceService,
     @Inject(MARKETPLACE_ORDER_REPOSITORY)
     private readonly orderRepo: MarketplaceOrderDomainRepository,
-    @Inject(MARKETPLACE_BRANCH_OWNERSHIP_SERVICE)
-    private readonly branchOwnership: MarketplaceBranchOwnershipService
+    @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
+    private readonly kuChairmanService: MarketplaceKuChairmanService
   ) {}
 
   @Mutation(() => MarketplaceIssuanceResultDTO, {
@@ -111,30 +114,73 @@ export class MarketplaceIssuanceResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceIssueActPayloadInputDTO
   ): Promise<GeneratedDocumentDTO> {
+    const coopname = config.coopname;
+    const roles = member.marketplace_roles as MarketplaceRole[];
+
+    // Ownership-фильтрация — ответственность резолвера (matrix даёт только
+    // capability). Превью акта раскрывает ФИО/состав заказа, поэтому оператор
+    // только с `read:own-KU` обязан быть членом КУ выдачи запрашиваемого заказа,
+    // иначе утечёт акт чужого участка по подставленному order_id.
+    if (!canAccess(roles, 'Issuance', 'read:all')) {
+      const order = await this.orderRepo.findById(data.order_id);
+      if (!order || order.coopname !== coopname) {
+        throw new NotFoundException('Заказ не найден.');
+      }
+      const isMember = await this.kuChairmanService.isMemberOfBranch(
+        coopname,
+        order.delivery_braname,
+        member.username
+      );
+      if (!isMember) {
+        throw new ForbiddenException(
+          'Превью акта выдачи доступно только по участку, на котором вы являетесь председателем или доверенным лицом.'
+        );
+      }
+    }
+
     const doc = await this.service.getOpenIssuanceSignablePayload(
-      config.coopname,
+      coopname,
       data.order_id,
       member.username
     );
     return toGeneratedDocumentDTO(doc);
   }
 
-  @Query(() => GeneratedDocumentDTO, {
+  @Query(() => DocumentAggregateDTO, {
     name: 'marketplaceIssueActOrdererSignablePayload',
     description:
-      'Превью акта выдачи имущества для финальной подписи заказчика с указанием фактического количества.',
+      'Акт выдачи, уже подписанный председателем, для финальной подписи заказчика. Содержит исходный документ для ознакомления и подпись председателя; заказчик накладывает свою подпись поверх.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Issuance', 'sign:final')
   async marketplaceIssueActOrdererSignablePayload(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceIssueActPayloadInputDTO
-  ): Promise<GeneratedDocumentDTO> {
-    const doc = await this.service.getFinalizeIssuanceSignablePayload(
-      config.coopname,
-      data.order_id,
-      data.actual_quantity
+  ): Promise<DocumentAggregateDTO> {
+    const coopname = config.coopname;
+    const roles = member.marketplace_roles as MarketplaceRole[];
+
+    // Ownership-фильтрация — ответственность резолвера. `sign:final` есть у
+    // каждого пайщика (роль orderer), поэтому без проверки владельца любой
+    // пайщик прочитал бы акт чужого заказа по подставленному order_id. Превью
+    // финальной подписи доступно только заказчику этого заказа.
+    if (!canAccess(roles, 'Issuance', 'read:all')) {
+      const order = await this.orderRepo.findById(data.order_id);
+      if (!order || order.coopname !== coopname) {
+        throw new NotFoundException('Заказ не найден.');
+      }
+      if (order.orderer_account !== member.username) {
+        throw new ForbiddenException(
+          'Превью акта выдачи доступно только заказчику этого заказа.'
+        );
+      }
+    }
+
+    const aggregate = await this.service.getFinalizeIssuanceSignablePayload(
+      coopname,
+      data.order_id
     );
-    return toGeneratedDocumentDTO(doc);
+    return new DocumentAggregateDTO(aggregate);
   }
 
   @Query(() => [MarketplaceOrderDTO], {
@@ -148,13 +194,28 @@ export class MarketplaceIssuanceResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceListIssuancesByBranameInputDTO
   ): Promise<MarketplaceOrderDTO[]> {
-    await this.branchOwnership.assertCanActAsBraname(
-      config.coopname,
-      member.username,
-      data.delivery_braname
-    );
+    const coopname = config.coopname;
+    const roles = member.marketplace_roles as MarketplaceRole[];
+
+    // Ownership-фильтрация — ответственность резолвера (matrix даёт только
+    // capability). Роль с `Issuance:read:all` видит ленту любого КУ; роль
+    // только с `read:own-KU` (оператор/председатель КУ) обязана быть членом
+    // запрашиваемого участка, иначе утечёт лента выдач чужого КУ.
+    if (!canAccess(roles, 'Issuance', 'read:all')) {
+      const isMember = await this.kuChairmanService.isMemberOfBranch(
+        coopname,
+        data.delivery_braname,
+        member.username
+      );
+      if (!isMember) {
+        throw new ForbiddenException(
+          'Лента выдач доступна только по участку, на котором вы являетесь председателем или доверенным лицом.'
+        );
+      }
+    }
+
     const orders = await this.orderRepo.listForIssuanceByBraname(
-      config.coopname,
+      coopname,
       data.delivery_braname
     );
     return orders.map(toMarketplaceOrderDTO);

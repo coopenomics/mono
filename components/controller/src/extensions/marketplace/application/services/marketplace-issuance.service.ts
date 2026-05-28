@@ -14,8 +14,10 @@ import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { HttpApiError } from '~/utils/httpApiError';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
+import type { DocumentDomainAggregate } from '~/domain/document/aggregates/document-domain.aggregate';
 import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
 import type { MarketplaceIssueActSignedDocumentInputDTO } from '~/application/document/documents-dto/marketplace-issue-act-document.dto';
+import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
 import {
   MARKETPLACE_ORDER_REPOSITORY,
   type MarketplaceOrderDomainRepository,
@@ -119,27 +121,36 @@ export class MarketplaceIssuanceService {
   }
 
   /**
-   * Preview-документ для финальной подписи заказчика (вторая подпись АПП
-   * выдачи). Содержит фактическое количество, на которое настроены
-   * корректирующие операции в композитной транзакции `signiss2`.
+   * Документ для финальной подписи заказчика (вторая подпись АПП выдачи).
+   * Канон двухподписного акта (как закрытие АПП приёмки председателем):
+   * backend отдаёт DocumentAggregate — исходный документ из стора по doc_hash
+   * (`rawDocument`, для ознакомления) + документ, уже подписанный председателем
+   * (`document`, с его подписью). Заказчик накладывает свою подпись поверх:
+   * `signDocument(rawDocument, orderer, 2, [document])`. Фронтенд цепь не читает.
    */
   async getFinalizeIssuanceSignablePayload(
     coopname: string,
-    order_id: string,
-    actual_quantity?: number
-  ): Promise<DocumentDomainEntity> {
+    order_id: string
+  ): Promise<DocumentDomainAggregate> {
     const order = await this.loadOrder(coopname, order_id);
     if (order.status !== 'READY_TO_RECEIVE') {
       throw new ConflictException(
         `Заказ в статусе «${order.status}», финальная подпись выдачи недопустима.`
       );
     }
-    const transmitter = order.chairman_account ?? order.orderer_account;
-    return this.generateIssueActDocument({
-      order,
-      transmitter,
-      actual_quantity: actual_quantity ?? order.quantity,
-    });
+    const signed = order.issue_act_signiss1_document;
+    if (!signed) {
+      throw new ConflictException(
+        `Заказ ${order.id}: нет документа, подписанного председателем при открытии выдачи — финальная подпись недоступна до открытия выдачи.`
+      );
+    }
+    const aggregate = await this.documentDomainService.buildDocumentAggregate(signed);
+    if (!aggregate) {
+      throw new ConflictException(
+        `Заказ ${order.id}: исходный документ акта выдачи по doc_hash ${signed.doc_hash} не найден в сторе. Требуется заново открыть выдачу (тело документа не сохранено).`
+      );
+    }
+    return aggregate;
   }
 
   async openIssuance(input: MarketplaceOpenIssuanceInput): Promise<MarketplaceIssuanceResult> {
@@ -155,7 +166,7 @@ export class MarketplaceIssuanceService {
 
     this.verifyDocumentSignature(input.signed_document);
 
-    const act = input.signed_document.toDocument() as MarketContract.Actions.SignIss1.ISignIss1['act'];
+    const act = new SignedDigitalDocumentInputDTO(input.signed_document).toDocument() as MarketContract.Actions.SignIss1.ISignIss1['act'];
 
     let tx;
     try {
@@ -188,6 +199,10 @@ export class MarketplaceIssuanceService {
       chairman_account: input.chairman_account,
       signiss1_tx_hash: txHash,
       current_warehouse_braname: order.delivery_braname,
+      // канон 2-подписи: сохраняем подписанный председателем документ, чтобы
+      // заказчик получил его как DocumentAggregate и наложил вторую подпись.
+      issue_act_signiss1_document:
+        input.signed_document as unknown as ISignedDocumentDomainInterface,
     });
 
     this.logger.log(
@@ -211,9 +226,18 @@ export class MarketplaceIssuanceService {
     input: MarketplaceFinalizeIssuanceInput
   ): Promise<MarketplaceIssuanceResult> {
     const order = await this.loadOrder(input.coopname, input.order_id);
-    if (order.orderer_account !== input.orderer_account) {
+    // Канон выдачи (UX-DR4): финальную подпись заказчик ставит на устройстве
+    // оператора КУ (operator-assisted POS) либо со своего стола. Авторизуем
+    // по самой подписи, а не по JWT submitter'а: закрывающую подпись акта
+    // обязан нести ключ заказчика-владельца заказа. Криптовалидность всех
+    // подписей проверяется ниже в verifyDocumentSignature; submitter уже
+    // ограничен RoleGuard'ом 'Issuance','sign:final'.
+    const ordererSigned = (input.signed_document.signatures ?? []).some(
+      (sig) => sig.signer === order.orderer_account
+    );
+    if (!ordererSigned) {
       throw new ForbiddenException(
-        'Финальную подпись акта выдачи ставит только заказчик-владелец заказа.'
+        'Финальная подпись акта выдачи должна быть выполнена ключом заказчика-владельца заказа.'
       );
     }
     if (order.status !== 'READY_TO_RECEIVE') {
@@ -234,7 +258,7 @@ export class MarketplaceIssuanceService {
 
     this.verifyDocumentSignature(input.signed_document);
 
-    const act = input.signed_document.toDocument() as MarketContract.Actions.SignIss2.ISignIss2['act'];
+    const act = new SignedDigitalDocumentInputDTO(input.signed_document).toDocument() as MarketContract.Actions.SignIss2.ISignIss2['act'];
 
     let tx;
     try {
@@ -300,6 +324,9 @@ export class MarketplaceIssuanceService {
     transmitter: string;
     actual_quantity: number;
   }): Promise<DocumentDomainEntity> {
+    const total_amount = (
+      input.actual_quantity * Number.parseFloat(input.order.price_per_unit)
+    ).toFixed(4);
     const action: Cooperative.Registry.MarketplaceAplReception.Action = {
       registry_id: Cooperative.Registry.MarketplaceAplReception.registry_id,
       coopname: input.order.coopname,
@@ -310,7 +337,14 @@ export class MarketplaceIssuanceService {
       act_id: this.formatActId(input.order.id),
       transmitter: input.transmitter,
       braname: input.order.delivery_braname,
-      skip_save: true,
+      accept_braname: input.order.delivery_braname,
+      fact_quantity: input.actual_quantity,
+      total_amount,
+      supplier_account: input.order.supplier_account,
+      // false: тело акта выдачи сохраняется в стор документов, чтобы заказчик
+      // мог получить исходник по doc_hash через buildDocumentAggregate и
+      // наложить вторую подпись поверх подписи председателя (канон 2-подписи).
+      skip_save: false,
     };
     return this.documentDomainService.generateDocument({ data: action });
   }

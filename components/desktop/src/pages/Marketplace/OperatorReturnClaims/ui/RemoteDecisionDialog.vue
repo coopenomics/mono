@@ -5,6 +5,7 @@ import { TakeoverDialog } from 'src/widgets/Marketplace/TakeoverDialog';
 import {
   approveReturnVisit,
   rejectReturnRemote,
+  defectCategoryLabel,
   type MarketplaceReturnClaimView,
 } from '../api';
 
@@ -95,6 +96,11 @@ const kind = computed<'info' | 'warning'>(() =>
 const confirmLabel = computed(() =>
   decision.value === DECISION_APPROVE ? 'Пригласить на очный осмотр' : 'Отказать удалённо',
 );
+
+const decisionOptions = [
+  { label: 'Пригласить заказчика на очный осмотр на КУ', value: DECISION_APPROVE, color: 'primary' },
+  { label: 'Отказать удалённо (без очного визита)', value: DECISION_REJECT, color: 'warning' },
+];
 </script>
 
 <template lang="pug">
@@ -118,7 +124,7 @@ TakeoverDialog(
           .text-subtitle1 Обращение пайщика
           .q-mt-sm {{ claim.reason_text }}
           .q-mt-sm.text-caption.text-grey(v-if="claim.defect_category")
-            | Категория дефекта: {{ claim.defect_category }}
+            | Категория дефекта: {{ defectCategoryLabel(claim.defect_category) }}
 
       q-card(flat bordered).q-mb-md
         q-card-section
@@ -134,10 +140,7 @@ TakeoverDialog(
         .text-subtitle1.q-mb-sm Решение
         q-option-group(
           v-model="decision"
-          :options="[
-            { label: 'Пригласить заказчика на очный осмотр на КУ', value: DECISION_APPROVE, color: 'primary' },
-            { label: 'Отказать удалённо (без очного визита)', value: DECISION_REJECT, color: 'warning' },
-          ]"
+          :options="decisionOptions"
           type="radio"
           inline
         )

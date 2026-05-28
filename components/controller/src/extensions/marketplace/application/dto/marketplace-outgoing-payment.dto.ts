@@ -1,4 +1,5 @@
-import { Field, ID, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { Field, ID, InputType, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { IsArray, IsEnum, IsOptional, IsString } from 'class-validator';
 import type { MarketplaceOutgoingPaymentRequestDomainEntity } from '../../domain/entities/marketplace-outgoing-payment-request.entity';
 
 export enum MarketplaceOutgoingPaymentRequestStatusEnum {
@@ -14,6 +15,38 @@ registerEnumType(MarketplaceOutgoingPaymentRequestStatusEnum, {
     'Подтверждение и отказ выполняет общий стол кассира кооператива; ' +
     'marketplace отображает результат только для истории.',
 });
+
+@InputType('MarketplaceListOutgoingPaymentsAsSupplierFilterInput')
+export class MarketplaceListOutgoingPaymentsAsSupplierFilterInputDTO {
+  @Field(() => [MarketplaceOutgoingPaymentRequestStatusEnum], {
+    nullable: true,
+    description: 'Фильтр по статусам выплат. Пусто — показывать все статусы.',
+  })
+  @IsOptional()
+  @IsArray()
+  @IsEnum(MarketplaceOutgoingPaymentRequestStatusEnum, { each: true })
+  statuses?: MarketplaceOutgoingPaymentRequestStatusEnum[];
+}
+
+@InputType('MarketplaceListOutgoingPaymentsFilterInput')
+export class MarketplaceListOutgoingPaymentsFilterInputDTO {
+  @Field(() => String, {
+    nullable: true,
+    description: 'Поставщик-получатель выплаты. Пусто — по всем поставщикам.',
+  })
+  @IsOptional()
+  @IsString()
+  supplier_account?: string;
+
+  @Field(() => [MarketplaceOutgoingPaymentRequestStatusEnum], {
+    nullable: true,
+    description: 'Фильтр по статусам выплат. Пусто — показывать все статусы.',
+  })
+  @IsOptional()
+  @IsArray()
+  @IsEnum(MarketplaceOutgoingPaymentRequestStatusEnum, { each: true })
+  statuses?: MarketplaceOutgoingPaymentRequestStatusEnum[];
+}
 
 @ObjectType('MarketplaceOutgoingPaymentRequest')
 export class MarketplaceOutgoingPaymentRequestDTO {

@@ -39,6 +39,7 @@ export class MarketplaceAplReceptionRepositoryAdapter
       total_amount: input.total_amount,
       supplier_signed_at: null,
       supplier_signsupp_tx_hash: null,
+      supplier_signed_documents: null,
       chairman_signed_at: null,
       chairman_account: null,
       chairman_signchair_tx_hash: null,
@@ -98,6 +99,9 @@ export class MarketplaceAplReceptionRepositoryAdapter
     if (patch.supplier_signed_at !== undefined) data.supplier_signed_at = patch.supplier_signed_at;
     if (patch.supplier_signsupp_tx_hash !== undefined) {
       data.supplier_signsupp_tx_hash = patch.supplier_signsupp_tx_hash;
+    }
+    if (patch.supplier_signed_documents !== undefined) {
+      data.supplier_signed_documents = patch.supplier_signed_documents;
     }
     if (patch.chairman_signed_at !== undefined) data.chairman_signed_at = patch.chairman_signed_at;
     if (patch.chairman_account !== undefined) data.chairman_account = patch.chairman_account;

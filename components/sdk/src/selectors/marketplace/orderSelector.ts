@@ -80,6 +80,13 @@ export const marketplaceCancelOrderResultSelector = Selector('MarketplaceCancelO
   tx_hash: true,
 })
 
+export const marketplaceSupplierOrderActionResultSelector = Selector(
+  'MarketplaceSupplierOrderActionResult',
+)({
+  order: rawOrderSelector,
+  tx_hash: true,
+})
+
 export const marketplaceOrderPaginationResultSelector = Selector('MarketplaceOrderPaginationResult')({
   items: rawOrderSelector,
   totalCount: true,

@@ -26,7 +26,8 @@ export interface MarketplaceInventoryListFilter {
   coopname: string;
   order_id?: string;
   shipment_id?: string;
-  braname?: string;
+  // Массив branames — для ownership-скоупинга оператора по нескольким своим КУ.
+  braname?: string | string[];
   status?: MarketplaceInventoryStatus | MarketplaceInventoryStatus[];
 }
 

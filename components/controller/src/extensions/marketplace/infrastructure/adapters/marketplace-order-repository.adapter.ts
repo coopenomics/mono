@@ -17,6 +17,7 @@ import type {
 } from '~/domain/common/interfaces/pagination.interface';
 import { MarketplaceOrderEntity } from '../entities/marketplace-order.entity';
 import { MarketplaceOrderMapper } from '../mappers/marketplace-order.mapper';
+import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
 
 @Injectable()
 export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomainRepository {
@@ -275,6 +276,7 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
       chairman_account: string;
       signiss1_tx_hash: string;
       current_warehouse_braname: string;
+      issue_act_signiss1_document: ISignedDocumentDomainInterface;
     }
   ): Promise<MarketplaceOrderDomainEntity> {
     await this.repo.update(
@@ -285,6 +287,7 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
         chairman_account: patch.chairman_account,
         signiss1_tx_hash: patch.signiss1_tx_hash,
         current_warehouse_braname: patch.current_warehouse_braname,
+        issue_act_signiss1_document: patch.issue_act_signiss1_document,
       } as Record<string, unknown>
     );
     const row = await this.repo.findOneOrFail({ where: { id } });

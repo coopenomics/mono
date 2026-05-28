@@ -53,8 +53,10 @@ import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
+import type { DocumentDomainAggregate } from '~/domain/document/aggregates/document-domain.aggregate';
 import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
 import type { MarketplaceAplReceptionSignedDocumentInputDTO } from '~/application/document/documents-dto/marketplace-apl-reception-document.dto';
+import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
 import {
   MarketplaceAplReceptionStatuses,
   MarketplaceAplReceptionVariants,
@@ -188,25 +190,39 @@ export class MarketplaceAplReceptionService {
     return docs;
   }
 
+  /**
+   * Канон двухподписного акта (как приём РИД в Capital): председатель НЕ
+   * генерирует документ заново, а получает уже подписанный поставщиком акт.
+   * Возвращаем агрегат на каждый Order группы: `rawDocument` — исходный
+   * документ для ознакомления и наложения подписи (оригинальный порядок meta
+   * по doc_hash), `document` — supplier-подписанный документ с подписью
+   * поставщика. Фронт делает signDocument(rawDocument, chairman, 2,
+   * [document]) — цепь не читает.
+   */
   async getChairmanSignablePayloads(
     coopname: string,
     apl_reception_id: string,
     chairman_account: string
-  ): Promise<DocumentDomainEntity[]> {
+  ): Promise<DocumentDomainAggregate[]> {
+    void chairman_account;
     const reception = await this.loadReception(coopname, apl_reception_id);
-    const groupOrders = await this.loadGroupOrders(reception);
-    const docs: DocumentDomainEntity[] = [];
-    for (const order of groupOrders) {
-      docs.push(
-        await this.generateReceptionDocument({
-          reception,
-          order,
-          username: chairman_account,
-          chairman_account,
-        })
+    const signedDocs = reception.supplier_signed_documents;
+    if (!signedDocs || signedDocs.length === 0) {
+      throw new ConflictException(
+        `АПП ${reception.id}: нет supplier-подписанных документов — закрывающая подпись председателя недоступна до подписи поставщика.`
       );
     }
-    return docs;
+    const aggregates: DocumentDomainAggregate[] = [];
+    for (const signed of signedDocs) {
+      const aggregate = await this.documentDomainService.buildDocumentAggregate(signed);
+      if (!aggregate) {
+        throw new ConflictException(
+          `АПП ${reception.id}: исходный документ по doc_hash ${signed.doc_hash} не найден в сторе. Требуется пересоздать АПП (тело документа не сохранено).`
+        );
+      }
+      aggregates.push(aggregate);
+    }
+    return aggregates;
   }
 
   private async generateReceptionDocument(input: {
@@ -223,6 +239,10 @@ export class MarketplaceAplReceptionService {
     // им лицо (известен по chairman_account на этапе закрывающей подписи;
     // на этапе превью используется оператор, создавший АПП).
     const transmitter = input.chairman_account ?? input.reception.created_by_operator_account;
+    const fact_quantity = fact?.fact_quantity ?? input.order.quantity;
+    const total_amount = (
+      fact_quantity * Number.parseFloat(input.order.price_per_unit)
+    ).toFixed(4);
     const action: Cooperative.Registry.MarketplaceAplReception.Action = {
       registry_id: Cooperative.Registry.MarketplaceAplReception.registry_id,
       coopname: input.reception.coopname,
@@ -232,7 +252,16 @@ export class MarketplaceAplReceptionService {
       act_id: this.formatActId(input.reception.id, input.order.id),
       transmitter,
       braname: input.reception.braname,
-      skip_save: true,
+      accept_braname: input.reception.braname,
+      reception_id: input.reception.id,
+      fact_quantity,
+      total_amount,
+      supplier_account: input.reception.offerer_account,
+      // Тело документа сохраняется в стор: председателю при закрывающей
+      // подписи нужен ИСХОДНЫЙ документ (оригинальный порядок ключей meta)
+      // по doc_hash через buildDocumentAggregate — как приём РИД в Capital.
+      // On-chain meta-строка переупорядочена и для re-sign непригодна.
+      skip_save: false,
     };
     return this.documentDomainService.generateDocument({ data: action });
   }
@@ -359,6 +388,10 @@ export class MarketplaceAplReceptionService {
     const updated = await this.receptionRepo.applySignatures(reception.id, {
       supplier_signed_at: new Date(),
       supplier_signsupp_tx_hash: txHash,
+      // Сохраняем supplier-подписанные документы, чтобы при закрывающей
+      // подписи отдать председателю подпись поставщика (Capital-паттерн
+      // приёма РИД); фронт цепь не читает.
+      supplier_signed_documents: input.signed_documents as ISignedDocumentDomainInterface[],
       status: MarketplaceAplReceptionStatuses.PENDING_CHAIRMAN_RECEPTION_SIGN,
     });
 
@@ -608,7 +641,7 @@ export class MarketplaceAplReceptionService {
         );
       }
       this.verifyDocumentSignature(signed);
-      const act = signed.toDocument() as MarketContract.Actions.SignSupp.ISignSupp['act'];
+      const act = this.toChainDocument(signed) as MarketContract.Actions.SignSupp.ISignSupp['act'];
       const tx = await this.chainPort.signSupp({
         coopname: reception.coopname,
         offerer,
@@ -650,7 +683,7 @@ export class MarketplaceAplReceptionService {
         );
       }
       this.verifyDocumentSignature(signed);
-      const act = signed.toDocument() as MarketContract.Actions.SignChair.ISignChair['act'];
+      const act = this.toChainDocument(signed) as MarketContract.Actions.SignChair.ISignChair['act'];
       const tx = await this.chainPort.signChair({
         coopname: reception.coopname,
         signer,
@@ -683,6 +716,16 @@ export class MarketplaceAplReceptionService {
       out.set(orderId, d);
     }
     return out;
+  }
+
+  // Глобальный ValidationPipe сконфигурирован без transform:true, поэтому
+  // элементы signed_documents приходят в resolver плоскими объектами без
+  // методов класса. Оборачиваем в DTO, чтобы получить toDocument() с
+  // корректной сериализацией meta перед отправкой on-chain.
+  private toChainDocument(
+    signed: MarketplaceAplReceptionSignedDocumentInputDTO
+  ): Cooperative.Document.IChainDocument2 {
+    return new SignedDigitalDocumentInputDTO(signed).toDocument();
   }
 
   private verifyDocumentSignature(document: ISignedDocumentDomainInterface): void {

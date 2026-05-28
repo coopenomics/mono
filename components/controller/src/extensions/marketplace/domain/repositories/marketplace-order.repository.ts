@@ -10,6 +10,7 @@ import type {
   PaginationResultDomainInterface,
 } from '~/domain/common/interfaces/pagination.interface';
 import type { IBlockchainSyncRepository } from '~/shared/interfaces/blockchain-sync.interface';
+import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
 
 export const MARKETPLACE_ORDER_REPOSITORY = Symbol('MARKETPLACE_ORDER_REPOSITORY');
 
@@ -129,6 +130,7 @@ export interface MarketplaceOrderDomainRepository
       chairman_account: string;
       signiss1_tx_hash: string;
       current_warehouse_braname: string;
+      issue_act_signiss1_document: ISignedDocumentDomainInterface;
     }
   ): Promise<MarketplaceOrderDomainEntity>;
 

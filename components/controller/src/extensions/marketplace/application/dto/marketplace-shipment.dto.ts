@@ -216,6 +216,22 @@ export class MarketplaceListShipmentsInputDTO {
   statuses?: MarketplaceShipmentStatusEnum[];
 }
 
+@InputType('MarketplaceListShipmentsByBranameInput')
+export class MarketplaceListShipmentsByBranameInputDTO {
+  @Field(() => String, { description: 'Кооперативный участок получения партий.' })
+  @IsString()
+  @IsNotEmpty()
+  braname!: string;
+
+  @Field(() => [MarketplaceShipmentStatusEnum], {
+    nullable: true,
+    description: 'Фильтр по статусам партий — например, ожидаемые к приёмке.',
+  })
+  @IsOptional()
+  @IsArray()
+  statuses?: MarketplaceShipmentStatusEnum[];
+}
+
 export function toMarketplaceShipmentDTO(
   e: MarketplaceShipmentDomainEntity
 ): MarketplaceShipmentDTO {

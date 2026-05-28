@@ -12,6 +12,7 @@ import type {
   MarketplaceOrderIssuanceFactSnapshot,
   MarketplaceOrderStatus,
 } from '../../domain/entities/marketplace-order.types';
+import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
 
 /**
  * Story 4.1: TypeORM-сущность Order'а Стола заказов. Зеркало
@@ -138,6 +139,9 @@ export class MarketplaceOrderEntity {
 
   @Column({ type: 'varchar', length: 64, nullable: true })
   public signiss1_tx_hash!: string | null;
+
+  @Column({ type: 'jsonb', nullable: true })
+  public issue_act_signiss1_document!: ISignedDocumentDomainInterface | null;
 
   // ── Story 6.3 / FR24 — финальная подпись заказчика (signiss2) ──────────
 

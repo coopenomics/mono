@@ -3,11 +3,16 @@
 import type { AuthenticatedContext } from '../session/index.js'
 import type { IndexFile } from './index-store.js'
 
+import * as fs from 'node:fs/promises'
+import * as path from 'node:path'
+
 import { createHash } from 'node:crypto'
 
 import { Queries, Zeus } from '@coopenomics/sdk'
 
+import { sha256Hex } from '../lib/hash.js'
 import { formatThrownValue, warn } from '../ui/output.js'
+import { findByHash, normalizeRelativePath, upsertEntry } from './index-store.js'
 
 import {
   loadCommunicationCursors,
@@ -40,6 +45,121 @@ function toUpdatedIso(v: Date | string): string {
 
 function messageDayEntityHash(projectHash: string, utcDate: string): string {
   return createHash('sha256').update(`${projectHash}:${utcDate}`, 'utf8').digest('hex')
+}
+
+function transcriptionMemoEntityHash(transcriptionId: string): string {
+  return `${transcriptionId.toLowerCase()}:memo`
+}
+
+async function readFileIfExists(abs: string): Promise<string | null> {
+  try {
+    return await fs.readFile(abs, 'utf8')
+  }
+  catch {
+    return null
+  }
+}
+
+function normalizeMemoContent(memo: string): string {
+  if (memo.length === 0) {
+    return ''
+  }
+  return memo.endsWith('\n') ? memo : `${memo}\n`
+}
+
+/**
+ * Гарантирует наличие файла `meetings/<stem>.memo.md` после pull.
+ *
+ * Файл создаётся **всегда** (даже если на сервере memo пуст), чтобы пользователь мог редактировать
+ * sibling «в одно касание», а команда `blago transcription memo` всегда находила его. Конфликты с
+ * локальными правками разруливаются:
+ *
+ *  - индекс есть → штатный `syncEntityFile` (он умеет merge-markers «<<<<<<< blago/local …»);
+ *  - индекса нет, файла нет → пишем серверный memo и индексируем (baseline = сервер);
+ *  - индекса нет, файл есть, содержимое совпадает с сервером → просто индексируем (baseline = совпавший контент);
+ *  - индекса нет, файл есть, серверный memo пустой → оставляем локальный черновик и индексируем его (baseline = локальный);
+ *  - индекса нет, файл есть, оба непустые и различаются → пишем merge-markers, индексируем merged.
+ */
+async function syncTranscriptionMemoFile(params: {
+  root: string
+  index: IndexFile
+  transcriptionId: string
+  relativePath: string
+  serverMemo: string
+  remoteUpdatedAtIso: string
+}): Promise<void> {
+  const { root, index, transcriptionId, relativePath, serverMemo, remoteUpdatedAtIso } = params
+  const rel = normalizeRelativePath(relativePath)
+  const abs = path.join(root, rel)
+  const entityHash = transcriptionMemoEntityHash(transcriptionId)
+  const serverContent = normalizeMemoContent(serverMemo)
+  const prev = findByHash(index, 'call_transcription_memo', entityHash)
+
+  if (prev) {
+    await syncEntityFile({
+      root,
+      index,
+      entityType: 'call_transcription_memo',
+      entityHash,
+      relativePath: rel,
+      content: serverContent,
+      remoteUpdatedAt: remoteUpdatedAtIso,
+      label: `memo транскрипции ${transcriptionId}`,
+    })
+    return
+  }
+
+  await fs.mkdir(path.dirname(abs), { recursive: true })
+  const local = await readFileIfExists(abs)
+
+  if (local === null) {
+    await fs.writeFile(abs, serverContent, 'utf8')
+    upsertEntry(index, {
+      entity_type: 'call_transcription_memo',
+      entity_hash: entityHash,
+      relative_path: rel,
+      remote_updated_at: remoteUpdatedAtIso,
+      content_etag_local: sha256Hex(serverContent),
+    })
+    return
+  }
+
+  if (local === serverContent) {
+    upsertEntry(index, {
+      entity_type: 'call_transcription_memo',
+      entity_hash: entityHash,
+      relative_path: rel,
+      remote_updated_at: remoteUpdatedAtIso,
+      content_etag_local: sha256Hex(local),
+    })
+    return
+  }
+
+  if (serverContent.trim().length === 0) {
+    // Сервер ничего не знает — берём локальный черновик как baseline. Опубликовать его можно
+    // через `blago transcription memo <meeting-path>`.
+    upsertEntry(index, {
+      entity_type: 'call_transcription_memo',
+      entity_hash: entityHash,
+      relative_path: rel,
+      remote_updated_at: remoteUpdatedAtIso,
+      content_etag_local: sha256Hex(local),
+    })
+    return
+  }
+
+  const merged = `<<<<<<< blago/local\n${local}\n=======\n${serverContent}\n>>>>>>> blago/remote\n`
+  await fs.writeFile(abs, merged, 'utf8')
+  upsertEntry(index, {
+    entity_type: 'call_transcription_memo',
+    entity_hash: entityHash,
+    relative_path: rel,
+    remote_updated_at: remoteUpdatedAtIso,
+    content_etag_local: sha256Hex(merged),
+  })
+  warn(
+    `Конфликт memo транскрипции ${transcriptionId}: локальный черновик и серверная версия различаются. В «${rel}» записаны маркеры слияния («<<<<<<< blago/local» … «>>>>>>> blago/remote»). Оставьте одну версию текста и опубликуйте через «blago transcription memo».`,
+  )
 }
 
 function dateFromUnknown(value: unknown): Date | undefined {
@@ -184,13 +304,16 @@ export async function pullProjectCommunicationArtifacts(
     try {
       const tKey = row.project_hash
       const tExIso = cursors.transcriptionLastEndedExclusiveByProject[tKey]
-      // Как сообщения с after=0: без курсора — полная выгрузка завершённых транскрипций в meetings/.
-      // (GitHub-синк при первом запуске только ставит курсор без файлов — для локального зеркала так не делаем.)
+      // Курсор `transcriptionLastEndedExclusiveByProject` влияет ТОЛЬКО на скачивание meeting.md
+      // (тяжёлый GetTranscription с сегментами). Sibling-файл `.memo.md` синхронизируется для всех
+      // COMPLETED-транскрипций каждый pull — поле `memo` приходит в лёгком GetTranscriptions.
       const lowerBoundExclusive = tExIso === undefined ? new Date(0) : new Date(tExIso)
 
       interface TranscriptionCandidate {
         id: string
         endedAt: Date
+        memo: string
+        updatedAt: Date | undefined
       }
       const byId = new Map<string, TranscriptionCandidate>()
       for (const roomId of matrixIds) {
@@ -203,18 +326,23 @@ export async function pullProjectCommunicationArtifacts(
           if (t.status !== Zeus.TranscriptionStatus.COMPLETED || !end) {
             continue
           }
-          if (!(end.getTime() > lowerBoundExclusive.getTime())) {
-            continue
-          }
           const prev = byId.get(t.id)
           if (!prev || end > prev.endedAt) {
-            byId.set(t.id, { id: t.id, endedAt: end })
+            byId.set(t.id, {
+              id: t.id,
+              endedAt: end,
+              memo: typeof t.memo === 'string' ? t.memo : '',
+              updatedAt: dateFromUnknown(t.updatedAt),
+            })
           }
         }
       }
-      const candidates = [...byId.values()].sort((a, b) => a.endedAt.getTime() - b.endedAt.getTime())
+      const allCompleted = [...byId.values()].sort((a, b) => a.endedAt.getTime() - b.endedAt.getTime())
+
+      // 1) meeting.md — только новые после курсора (тяжёлый GetTranscription с сегментами).
+      const newMeetings = allCompleted.filter(c => c.endedAt.getTime() > lowerBoundExclusive.getTime())
       let maxEnded: Date | null = null
-      for (const c of candidates) {
+      for (const c of newMeetings) {
         const packQ = await ctx.client.Query(Queries.ChatCoop.GetTranscription.query, {
           variables: { data: { id: c.id } },
         })
@@ -253,10 +381,28 @@ export async function pullProjectCommunicationArtifacts(
           remoteUpdatedAt: toUpdatedIso(c.endedAt),
           label: `транскрипция ${c.id}`,
         })
+
         if (!maxEnded || c.endedAt > maxEnded) {
           maxEnded = c.endedAt
         }
       }
+
+      // 2) sibling .memo.md — для ВСЕХ COMPLETED-транскрипций (бэкфил независимо от курсора).
+      //    Поле tr.memo пришло в лёгком GetTranscriptions, повторных запросов не делаем.
+      for (const c of allCompleted) {
+        const stem = transcriptionMeetingFileStemUtc(c.endedAt)
+        const memoRel = `${basePath}/meetings/${stem}.memo.md`
+        const memoRemoteUpdatedAt = toUpdatedIso(c.updatedAt ?? c.endedAt)
+        await syncTranscriptionMemoFile({
+          root: ctx.root,
+          index,
+          transcriptionId: c.id,
+          relativePath: memoRel,
+          serverMemo: c.memo,
+          remoteUpdatedAtIso: memoRemoteUpdatedAt,
+        })
+      }
+
       if (maxEnded) {
         cursors.transcriptionLastEndedExclusiveByProject[tKey] = maxEnded.toISOString()
       }

@@ -4,6 +4,8 @@ import config, { GOVERN_SYMBOL, SYMBOL } from '../configs'
 import Blockchain from '../blockchain'
 import { generateRandomSHA256 } from '../utils/randomHash'
 import { processLastDecision } from '../tests/soviet/processLastDecision'
+import { signProgramAgreement } from './sign-program-agreement'
+import { walletDraftId, walletProgramId } from '../tests/capital/consts'
 
 const test_hash
   = '157192b276da23cc84ab078fc8755c051c5f0430bf4802e55718221e6b76c777'
@@ -156,13 +158,17 @@ export class CooperativeClass {
 
     console.log('Отправляем подписанное положение о ЦПП Кошелька оператору')
 
-    await this.blockchain.sendAgreement({
-      coopname: config.provider,
-      administrator: config.provider,
-      username: username!,
-      agreement_type: 'wallet',
+    // После Эпика 2 / компонента 48 soviet::sndagreement отказывается на
+    // program_id > 0; программные соглашения подписываются через
+    // wallet::signagree (auth: coopname@active).
+    await signProgramAgreement(
+      this.blockchain,
+      config.provider,
+      username!,
+      walletProgramId,
+      walletDraftId,
       document,
-    })
+    )
 
     console.log('Переводим аккаунт в кооператив')
 
@@ -172,8 +178,8 @@ export class CooperativeClass {
       params: {
         is_cooperative: true,
         coop_type: 'conscoop',
-        announce: 'Тестовый кооператив',
-        description: 'Тестовое описание',
+        announce: 'voskhod-dev.coopenomics.world',
+        description: 'Восход — тестовый кооператив-оператор (dev-стенд)',
         initial: `100.0000 ${config.token.govern_symbol}`,
         minimum: `300.0000 ${config.token.govern_symbol}`,
         org_initial: `1000.0000 ${config.token.govern_symbol}`,

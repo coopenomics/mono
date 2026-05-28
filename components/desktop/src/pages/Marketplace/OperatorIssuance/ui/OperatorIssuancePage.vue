@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import type { QTableProps } from 'quasar';
 import { onMounted, ref } from 'vue';
 import { FailAlert } from 'src/shared/api';
 import {
@@ -31,6 +32,29 @@ const loading = ref(false);
 const openDialog = ref(false);
 const finalizeDialog = ref(false);
 const selectedOrder = ref<MarketplaceOrderIssuanceView | null>(null);
+
+const ORDER_STATUS_LABEL: Record<string, string> = {
+  ACTIVE: 'Ждёт цикла / решения',
+  ACCEPTED_PENDING_SUPPLIER: 'Ждёт поставщика',
+  ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL: 'Ждёт поставщика',
+  ACCEPTED: 'Принят поставщиком',
+  SUPPLY_PREPARED: 'Поставка готовится',
+  ACCEPTED_TO_COOP: 'Принят кооперативом',
+  READY_TO_RECEIVE: 'Готов к выдаче',
+  RECEIVED: 'Получен',
+  RETURNED: 'Возвращён',
+  CANCELLED_BY_ORDERER: 'Отменён заказчиком',
+  CANCELLED_BY_SUPPLIER: 'Отменён поставщиком',
+};
+
+const columns: QTableProps['columns'] = [
+  { name: 'order', label: 'Заказ', field: (r: MarketplaceOrderIssuanceView) => r.id.slice(0, 8), align: 'left' },
+  { name: 'orderer', label: 'Заказчик', field: 'orderer_account', align: 'left' },
+  { name: 'quantity', label: 'Количество', field: 'quantity', align: 'right' },
+  { name: 'total_cost', label: 'Сумма', field: 'total_cost', align: 'right' },
+  { name: 'status', label: 'Статус', field: 'status', align: 'left', format: (v: string) => ORDER_STATUS_LABEL[v] ?? v },
+  { name: 'actions', label: '', field: 'id', align: 'right' },
+];
 
 async function load(): Promise<void> {
   if (!braname.value.trim()) return;
@@ -75,14 +99,7 @@ q-page.mp-role-operator.mp-issuance.q-pa-md
 
   q-table(
     :rows="items"
-    :columns="[
-      { name: 'order', label: 'Заказ', field: (r: MarketplaceOrderIssuanceView) => r.id.slice(0, 8), align: 'left' },
-      { name: 'orderer', label: 'Заказчик', field: 'orderer_account', align: 'left' },
-      { name: 'quantity', label: 'Количество', field: 'quantity', align: 'right' },
-      { name: 'total_cost', label: 'Сумма', field: 'total_cost', align: 'right' },
-      { name: 'status', label: 'Статус', field: 'status', align: 'left' },
-      { name: 'actions', label: '', field: 'id', align: 'right' },
-    ]"
+    :columns="columns"
     row-key="id"
     flat
     bordered

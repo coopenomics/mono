@@ -8,6 +8,10 @@ import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-membe
 import { mapUserRoleToCoreRoles } from '../membership/core-roles.mapper';
 import { mapCoreRolesToMarketplaceRoles } from '../membership/marketplace-roles.mapper';
 import {
+  MARKETPLACE_KU_CHAIRMAN_SERVICE,
+  type MarketplaceKuChairmanService,
+} from '../services/marketplace-ku-chairman.service';
+import {
   MARKETPLACE_WHITELIST_SERVICE,
   type MarketplaceWhitelistService,
 } from '../services/marketplace-whitelist.service';
@@ -32,7 +36,9 @@ import {
 export class MarketplaceMembershipGuard implements CanActivate {
   constructor(
     @Inject(MARKETPLACE_WHITELIST_SERVICE)
-    private readonly whitelistService: MarketplaceWhitelistService
+    private readonly whitelistService: MarketplaceWhitelistService,
+    @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
+    private readonly kuChairmanService: MarketplaceKuChairmanService
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -55,12 +61,16 @@ export class MarketplaceMembershipGuard implements CanActivate {
     }
 
     const coreRoles = mapUserRoleToCoreRoles(user.role);
-    // Story 3.1: source `isOfferer` берётся из whitelist-сервиса (с TTL-кешем,
-    // см. MarketplaceWhitelistService). Story 2.x source `isKuChairman` —
-    // реализуется в Эпике 2 (ПВЗ), пока false.
-    const isOfferer = await this.whitelistService.isOfferer(config.coopname, user.username);
+    // Story 3.1 / Эпик 2: оба источника берутся из dedicated-сервисов с
+    // TTL-кешем (MarketplaceWhitelistService / MarketplaceKuChairmanService),
+    // чтобы guard на каждом GraphQL-запросе не лез в RPC и в БД на N+1.
+    const [isOfferer, isKuChairman] = await Promise.all([
+      this.whitelistService.isOfferer(config.coopname, user.username),
+      this.kuChairmanService.isKuChairman(config.coopname, user.username),
+    ]);
     const marketplaceRoles = mapCoreRolesToMarketplaceRoles(coreRoles, {
       isOfferer,
+      isKuChairman,
     });
 
     const currentMember: IMarketplaceCurrentMember = {

@@ -1,8 +1,28 @@
-import { Mutations, Queries } from '@coopenomics/sdk';
+import { Mutations, Queries, Zeus } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 
-export type MarketplaceReturnClaimView =
+const DEFECT_CATEGORY_LABELS: Record<string, string> = {
+  [Zeus.MarketplaceReturnClaimDefectCategory.BROKEN]: 'Повреждено / сломано',
+  [Zeus.MarketplaceReturnClaimDefectCategory.EXPIRED]: 'Истёк срок годности',
+  [Zeus.MarketplaceReturnClaimDefectCategory.NOT_AS_DESCRIBED]: 'Не соответствует описанию',
+  [Zeus.MarketplaceReturnClaimDefectCategory.WRONG_ITEM]: 'Не тот товар',
+  [Zeus.MarketplaceReturnClaimDefectCategory.OTHER]: 'Другое',
+};
+
+// Человекочитаемая метка категории дефекта; для незнакомых значений возвращаем
+// исходное (а не сырой enum «BROKEN» в UI председателя КУ).
+export function defectCategoryLabel(category?: string | null): string {
+  if (!category) return '';
+  return DEFECT_CATEGORY_LABELS[category] ?? category;
+}
+
+type _RawReturnClaim =
   Queries.Marketplace.ListReturnClaimsByBraname.IOutput['marketplaceListReturnClaimsByBraname'][number];
+
+/** DateTime из Zeus приходит как `unknown`; дату создания переопределяем на строку для UI. */
+export type MarketplaceReturnClaimView = Omit<_RawReturnClaim, 'created_at'> & {
+  created_at: string;
+};
 
 export type MarketplaceReturnClaimResultView =
   Mutations.Marketplace.ApproveReturnVisit.IOutput['marketplaceApproveReturnVisit'];
@@ -29,7 +49,8 @@ export async function listReturnClaimsByBraname(
     Queries.Marketplace.ListReturnClaimsByBraname.query,
     { variables: { data } },
   );
-  return result;
+  // Zeus отдаёт DateTime как unknown; сужаем дату создания до строки во view-типе.
+  return result as MarketplaceReturnClaimView[];
 }
 
 export async function approveReturnVisit(

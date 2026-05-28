@@ -3,6 +3,10 @@
  * Покрывает все состояния входящих и исходящих платежей
  */
 export enum PaymentStatusEnum {
+  // Для исходящих платежей: совет ещё не утвердил выплату.
+  // Кассиру такие платежи скрываются — он работает только с PENDING.
+  AWAITING_AUTHORIZATION = 'awaiting_authorization',
+
   // Начальные состояния
   PENDING = 'pending',
 
@@ -26,6 +30,7 @@ export enum PaymentStatusEnum {
  * Человекочитаемые названия статусов
  */
 export const PAYMENT_STATUS_LABELS: Record<PaymentStatusEnum, string> = {
+  [PaymentStatusEnum.AWAITING_AUTHORIZATION]: 'Ожидает решения совета',
   [PaymentStatusEnum.PENDING]: 'Ожидает оплаты',
   [PaymentStatusEnum.PROCESSING]: 'Обрабатывается',
   [PaymentStatusEnum.PAID]: 'Оплачен',

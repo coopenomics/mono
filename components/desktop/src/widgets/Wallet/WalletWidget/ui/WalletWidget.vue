@@ -43,19 +43,19 @@ const totalBlocked = computed(() => {
   const blocked = parseFloat(walletStore.program_wallets[0]?.blocked || '0');
   const minimum = parseFloat(session.participantAccount?.minimum_amount || '0');
   const total = (blocked + minimum).toString();
-  return formatAsset2Digits(`${total} ${info.symbols.root_govern_symbol}`);
+  return formatAsset2Digits(`${total} ${info.symbols?.root_govern_symbol ?? '₽'}`);
 });
 
 // Доступные средства с форматированием
 const availableBalance = computed(() => {
   const available = walletStore.program_wallets[0]?.available || '0';
-  return formatAsset2Digits(`${available} ${info.symbols.root_govern_symbol}`);
+  return formatAsset2Digits(`${available} ${info.symbols?.root_govern_symbol ?? '₽'}`);
 });
 
 // Минимальный остаток с форматированием
 const minimumBalance = computed(() => {
   const minimum = session.participantAccount?.minimum_amount || '0';
-  return formatAsset2Digits(`${minimum} ${info.symbols.root_govern_symbol}`);
+  return formatAsset2Digits(`${minimum} ${info.symbols?.root_govern_symbol ?? '₽'}`);
 });
 </script>
 

@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { computed, ref, watch } from 'vue';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import {
   cancelWriteoffDraft,
   createWriteoffDraft,
@@ -175,7 +176,7 @@ q-dialog(
       q-btn.q-mt-sm(flat no-caps icon="add" label="Добавить позицию" @click="addItem")
 
     q-card-section.row.items-center
-      .text-body1 ИТОГО: {{ totalAmount }} ₽
+      .text-body1 ИТОГО: {{ formatAsset2Digits(totalAmount) }} ₽
       q-space
       q-btn.q-mr-sm(
         v-if="existingDraft"

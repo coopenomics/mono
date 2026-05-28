@@ -1,5 +1,5 @@
 import { Field, ID, InputType, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
-import { ArrayMinSize, IsArray, IsInt, IsNotEmpty, IsString, Min, ValidateNested } from 'class-validator';
+import { ArrayMinSize, IsArray, IsInt, IsNotEmpty, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import type { MarketplaceAplReceptionDomainEntity } from '../../domain/entities/marketplace-apl-reception.entity';
 import { MarketplaceAplReceptionSignedDocumentInputDTO } from '~/application/document/documents-dto/marketplace-apl-reception-document.dto';
@@ -132,6 +132,7 @@ export class MarketplaceCreateAplReceptionInputDTO {
     description:
       'Опционально для Варианта Б — фактически принятое количество per-Order. Для пропущенных Order\'ов берётся order.quantity.',
   })
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => MarketplaceAplReceptionFactEntryInputDTO)

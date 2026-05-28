@@ -179,6 +179,8 @@ export interface IPropWroff {
   proposed_by: IName
   proposal_hash: IChecksum256
   items: IWroffItem[]
+  statement: IDocument2
+  meta: string
 }
 
 export interface IExecWroff {

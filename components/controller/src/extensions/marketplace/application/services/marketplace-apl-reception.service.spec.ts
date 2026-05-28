@@ -51,6 +51,7 @@ function buildReception(
     created_by_operator_account: 'operator1',
     supplier_signed_at: null,
     supplier_signsupp_tx_hash: null,
+    supplier_signed_documents: null,
     chairman_signed_at: null,
     chairman_account: null,
     chairman_signchair_tx_hash: null,
