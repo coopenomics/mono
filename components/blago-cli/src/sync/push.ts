@@ -6,7 +6,7 @@ import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 
 import { Mutations, Queries } from '@coopenomics/sdk'
-import { parseBlagoMarkdown } from '../format/index.js'
+import { parseBlagoMarkdown, peekBlagoEntityType } from '../format/index.js'
 import { sha256Hex } from '../lib/hash.js'
 import { effectiveParentHash } from '../lib/parent-hash.js'
 import { warn } from '../ui/output.js'
@@ -58,6 +58,30 @@ export async function runPush(ctx: AuthenticatedContext): Promise<void> {
     }
     staging = await loadStaging(ctx.root)
   }
+  // Не-сущности (README/notes/CLAUDE/AGENTS и пр., в .md без type=project|issue|story) тоже не должны валить весь push.
+  // Чистим их автоматически — иначе одна забытая заметка блокирует отправку реальных правок.
+  const stagingAbs = (p: string): string => path.join(ctx.root, normalizeRelativePath(p))
+  const nonEntityInStaging: string[] = []
+  for (const p of staging.paths) {
+    try {
+      const raw = await fs.readFile(stagingAbs(p), 'utf8')
+      if (peekBlagoEntityType(raw) === undefined) {
+        nonEntityInStaging.push(normalizeRelativePath(p))
+      }
+    }
+    catch {
+      // нечитаемый файл — пусть основной цикл бросит понятную ошибку с путём
+    }
+  }
+  if (nonEntityInStaging.length > 0) {
+    const drop = new Set(nonEntityInStaging)
+    const kept = staging.paths.filter(p => !drop.has(normalizeRelativePath(p)))
+    await saveStaging(ctx.root, { paths: [...new Set(kept.map(p => normalizeRelativePath(p)))].sort() })
+    for (const p of nonEntityInStaging) {
+      warn(`Убрано из staging (нет blago-frontmatter type=project|issue|story): ${p}`)
+    }
+    staging = await loadStaging(ctx.root)
+  }
   if (staging.paths.length === 0) {
     throw new Error('Нечего отправлять. Добавьте файлы: blago add <путь | id проекта | projectId-issueId>')
   }
@@ -75,8 +99,24 @@ export async function runPush(ctx: AuthenticatedContext): Promise<void> {
     }
     const abs = path.join(ctx.root, n)
     const raw = await fs.readFile(abs, 'utf8')
-    const parsed = parseBlagoMarkdown(raw)
-    const { type, hash } = validateParsedForPush(parsed)
+    let parsed: ReturnType<typeof parseBlagoMarkdown>
+    try {
+      parsed = parseBlagoMarkdown(raw)
+    }
+    catch (err) {
+      // Без префикса путём из staging вылезает «type: undefined» без указания файла.
+      const msg = err instanceof Error ? err.message : String(err)
+      throw new Error(`Файл «${n}»: ${msg}`)
+    }
+    let type: ReturnType<typeof validateParsedForPush>['type']
+    let hash: string
+    try {
+      ({ type, hash } = validateParsedForPush(parsed))
+    }
+    catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      throw new Error(`Файл «${n}»: ${msg}`)
+    }
     const entry = findByHash(index, type, hash)
     const pKind = pendingKindForEntityType(type)
     const pending = pKind ? await findPendingForParsed(ctx.root, pKind, hash) : undefined

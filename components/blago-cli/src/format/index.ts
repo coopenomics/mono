@@ -38,6 +38,22 @@ export function parseBlagoMarkdown(raw: string): ParsedBlagoFile {
   }
 }
 
+/** Не бросает: возвращает тип сущности blago, если файл — корректный project/issue/story; иначе undefined. */
+export function peekBlagoEntityType(raw: string): EntityFrontmatterType | undefined {
+  let file: ReturnType<typeof matter>
+  try {
+    file = matter(raw)
+  }
+  catch {
+    return undefined
+  }
+  const t = file.data?.type
+  if (t === 'project' || t === 'issue' || t === 'story') {
+    return t
+  }
+  return undefined
+}
+
 export function serializeBlagoMarkdown(data: Record<string, unknown>, body: string): string {
   const trimmed = body.endsWith('\n') ? body : `${body}\n`
   // matter.stringify(string, data) сначала парсит string как frontmatter — body, начинающийся

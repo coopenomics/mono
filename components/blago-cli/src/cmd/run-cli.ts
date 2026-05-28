@@ -362,9 +362,9 @@ export async function runCli(argv: string[]): Promise<void> {
     )
     .action(async (paths: string[]) => {
       const root = requireRoot()
-      const { stagedPaths, skippedUnchanged, skippedIgnored, skippedPullOnlyArtifacts } = await runAdd(root, paths)
+      const { stagedPaths, skippedUnchanged, skippedIgnored, skippedPullOnlyArtifacts, skippedNonEntity } = await runAdd(root, paths)
       success(
-        `Staging обновлён: в списке ${stagedPaths.length} путь(ей). Пропущено без изменений относительно индекса: ${skippedUnchanged}; по .blagoignore: ${skippedIgnored}; артефакты только pull (messages/ и meetings/): ${skippedPullOnlyArtifacts}.`,
+        `Staging обновлён: в списке ${stagedPaths.length} путь(ей). Пропущено без изменений относительно индекса: ${skippedUnchanged}; по .blagoignore: ${skippedIgnored}; артефакты только pull (messages/ и meetings/): ${skippedPullOnlyArtifacts}; не blago-сущности (нет type=project/issue/story во frontmatter): ${skippedNonEntity}.`,
       )
     })
 
