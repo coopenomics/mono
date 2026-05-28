@@ -9,9 +9,9 @@ import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import { canAccess } from '../access/marketplace-access-matrix';
 import type { MarketplaceRole } from '../membership/marketplace-roles.mapper';
 import {
-  MARKETPLACE_KU_CHAIRMEN_SERVICE,
-  type MarketplaceKuChairmenService,
-} from '../services/marketplace-ku-chairmen.service';
+  MARKETPLACE_KU_CHAIRMAN_SERVICE,
+  type MarketplaceKuChairmanService,
+} from '../services/marketplace-ku-chairman.service';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import {
   MarketplaceCreateShipmentInputDTO,
@@ -45,8 +45,8 @@ export class MarketplaceShipmentResolver {
     private readonly createService: MarketplaceShipmentCreateService,
     @Inject(MARKETPLACE_SHIPMENT_REPOSITORY)
     private readonly shipmentRepo: MarketplaceShipmentDomainRepository,
-    @Inject(MARKETPLACE_KU_CHAIRMEN_SERVICE)
-    private readonly kuChairmenService: MarketplaceKuChairmenService
+    @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
+    private readonly kuChairmanService: MarketplaceKuChairmanService
   ) {}
 
   @Mutation(() => MarketplaceCreateShipmentResultDTO, {
@@ -119,7 +119,7 @@ export class MarketplaceShipmentResolver {
     // только с `read:own-KU` (оператор/председатель КУ) обязана быть членом
     // запрашиваемого участка, иначе утечёт лента поставок чужого КУ.
     if (!canAccess(roles, 'Shipment', 'read:all')) {
-      const isMember = await this.kuChairmenService.isMemberOfBranch(
+      const isMember = await this.kuChairmanService.isMemberOfBranch(
         coopname,
         data.braname,
         member.username

@@ -15,11 +15,10 @@
  * явно разрешённая модель мульти-операционных процессов:
  *   - processes::registrator::ACCEPT  ← o.reg.payent + o.reg.putmin
  *   - processes::capital::RID         ← o.cap.commit + o.cap.accept (+ o.cap.repay) + o.cap.cnvshr/o.cap.cnvbl
- *   - processes::marketplace::SUPPLY  ← o.wal.conv + o.mkt.assign + o.mkt.block + o.mkt.unblk +
- *                                       o.mkt.recall + o.mkt.purch + o.mkt.payout +
- *                                       o.mkt.consum + o.mkt.consum2 (composite через 91)
- *   - processes::marketplace::RETURN  ← o.mkt.return + o.mkt.return2 (composite через 91)
- *   - processes::marketplace::WRITEOFF ← o.mkt.wroff + o.mkt.wroff2 (composite через 91)
+ *   - processes::marketplace::SUPPLY  ← o.mkt.lock + o.mkt.unlock + o.mkt.purch +
+ *                                       o.mkt.payout + o.mkt.consum
+ *   - processes::marketplace::RETURN  ← o.mkt.return
+ *   - processes::marketplace::WRITEOFF ← o.mkt.wroff
  *
  * Одноактовые процессы: `capital::IMPORT`, `capital::PROPERTY`,
  * `capital::INVEST`, `soviet::AXN_CONVERT` (process_type совпадает с
@@ -61,9 +60,9 @@ namespace processes {
 
   // marketplace
   namespace marketplace {
-    inline constexpr eosio::name SUPPLY    = "p.mkt.supply"_n;   ///< Прямая поставка-приобретение имущества (9 операций: o.wal.conv + o.mkt.assign + o.mkt.block + o.mkt.unblk + o.mkt.recall + o.mkt.purch + o.mkt.payout + o.mkt.consum + o.mkt.consum2 — последние две композитная проводка через транзит 91). Старый p.mkt.reqst (клиринговый) удалён 2026-05-11.
-    inline constexpr eosio::name RETURN    = "p.mkt.return"_n;   ///< Гарантийный возврат имущества пайщиком — compensating forward к o.mkt.consum (o.mkt.return + o.mkt.return2 — композитная проводка через транзит 91).
-    inline constexpr eosio::name WRITEOFF  = "p.mkt.wroff"_n;    ///< Утилизация скоропорта со склада КУ (o.mkt.wroff + o.mkt.wroff2 — композитная проводка через транзит 91, по протоколу совета).
+    inline constexpr eosio::name SUPPLY    = "p.mkt.supply"_n;   ///< Прямая поставка-приобретение имущества (5 операций: o.mkt.lock + o.mkt.unlock + o.mkt.purch + o.mkt.payout + o.mkt.consum).
+    inline constexpr eosio::name RETURN    = "p.mkt.return"_n;   ///< Гарантийный возврат имущества пайщиком — compensating forward к o.mkt.consum (o.mkt.return).
+    inline constexpr eosio::name WRITEOFF  = "p.mkt.wroff"_n;    ///< Утилизация скоропорта со склада КУ (o.mkt.wroff, по протоколу совета).
   }
 
   // soviet

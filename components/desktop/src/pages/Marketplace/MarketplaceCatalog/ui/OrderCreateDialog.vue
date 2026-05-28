@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { computed, ref, watch } from 'vue';
-import { Notify } from 'quasar';
+import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { fetchBranchOptions, submitCreateOrder } from '../api';
 import type { BranchOption, MarketplaceOfferView } from '../types';
@@ -81,8 +81,7 @@ watch(
           branch.value = branches.value[0]!.braname;
         }
       } catch (e) {
-        const message = e instanceof Error ? e.message : String(e);
-        Notify.create({ type: 'negative', message: `Не удалось загрузить ПВЗ: ${message}` });
+        FailAlert(e, 'Не удалось загрузить ПВЗ');
       } finally {
         loadingBranches.value = false;
       }
@@ -91,26 +90,6 @@ watch(
     }
   },
 );
-
-function extractErrorMessage(e: unknown): string {
-  if (e instanceof Error && e.message) return e.message;
-  if (Array.isArray(e) && e.length > 0) return extractErrorMessage(e[0]);
-  if (e && typeof e === 'object') {
-    const err = e as Record<string, unknown>;
-    if (typeof err.message === 'string') return err.message;
-    const gql = err.graphQLErrors;
-    if (Array.isArray(gql) && gql.length > 0) return extractErrorMessage(gql[0]);
-    const resp = err.response as Record<string, unknown> | undefined;
-    if (resp && Array.isArray(resp.errors) && resp.errors.length > 0) {
-      return extractErrorMessage(resp.errors[0]);
-    }
-  }
-  try {
-    return JSON.stringify(e);
-  } catch {
-    return String(e);
-  }
-}
 
 async function onSubmit(): Promise<void> {
   if (!props.offer || !branch.value) return;
@@ -121,11 +100,11 @@ async function onSubmit(): Promise<void> {
       quantity: Number(quantity.value),
       delivery_braname: branch.value,
     });
-    Notify.create({ type: 'positive', message: 'Заказ создан' });
+    SuccessAlert('Заказ создан');
     emit('created');
     open.value = false;
   } catch (e) {
-    Notify.create({ type: 'negative', message: extractErrorMessage(e) });
+    FailAlert(e);
   } finally {
     submitting.value = false;
   }

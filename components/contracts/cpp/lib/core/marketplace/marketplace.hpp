@@ -110,8 +110,8 @@ inline void update_writeoff_proposal(eosio::name coopname, uint64_t proposal_id,
 // ── Cross-contract read: ledger2 wallet/userwallet balances ─────────────
 //
 // Используется в createorder для guard'а Locked Decision L6 (без отрицательного
-// баланса) и для решения о пропуске conditional операций o.wal.conv / o.mkt.assign
-// (если на целевом кошельке уже хватает available — соответствующий шаг скипается).
+// баланса) — проверка достаточности средств заказчика на паевом кошельке
+// перед вызовом o.mkt.lock.
 //
 // ВАЖНО: контракт marketplace не вызывает ledger2::walletop напрямую, а только
 // читает state (RAM-таблицы wallets2 / userwallets через cross-contract scope).

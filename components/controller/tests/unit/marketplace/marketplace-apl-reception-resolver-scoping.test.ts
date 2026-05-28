@@ -30,11 +30,11 @@ const makeResolver = (reception: any, isMember: boolean) => {
     findById: jest.fn().mockResolvedValue(reception),
     listByBraname: jest.fn().mockResolvedValue([]),
   } as any;
-  const kuChairmenService = {
+  const kuChairmanService = {
     isMemberOfBranch: jest.fn().mockResolvedValue(isMember),
   } as any;
-  const resolver = new MarketplaceAplReceptionResolver(service, receptionRepo, kuChairmenService);
-  return { resolver, service, receptionRepo, kuChairmenService };
+  const resolver = new MarketplaceAplReceptionResolver(service, receptionRepo, kuChairmanService);
+  return { resolver, service, receptionRepo, kuChairmanService };
 };
 
 const asMember = (roles: string[]) =>
@@ -42,11 +42,11 @@ const asMember = (roles: string[]) =>
 
 describe('marketplaceListAplReceptionsByBraname ownership-scoping', () => {
   it('operator-член запрашиваемого КУ → лента отдаётся', async () => {
-    const { resolver, receptionRepo, kuChairmenService } = makeResolver(receptionOf({}), true);
+    const { resolver, receptionRepo, kuChairmanService } = makeResolver(receptionOf({}), true);
     await resolver.marketplaceListAplReceptionsByBraname(asMember(['operator']), {
       braname: 'krg',
     } as any);
-    expect(kuChairmenService.isMemberOfBranch).toHaveBeenCalledWith('voskhod', 'krg', 'op');
+    expect(kuChairmanService.isMemberOfBranch).toHaveBeenCalledWith('voskhod', 'krg', 'op');
     expect(receptionRepo.listByBraname).toHaveBeenCalledWith('voskhod', 'krg');
   });
 
@@ -83,11 +83,11 @@ describe('marketplaceAplReceptionSupplierSignablePayloads ownership-scoping', ()
 
 describe('marketplaceAplReceptionChairmanSignablePayloads ownership-scoping', () => {
   it('operator-член КУ приёмки → превью отдаётся', async () => {
-    const { resolver, service, kuChairmenService } = makeResolver(receptionOf({}), true);
+    const { resolver, service, kuChairmanService } = makeResolver(receptionOf({}), true);
     await resolver.marketplaceAplReceptionChairmanSignablePayloads(asMember(['operator']), {
       apl_reception_id: 'r1',
     } as any);
-    expect(kuChairmenService.isMemberOfBranch).toHaveBeenCalledWith('voskhod', 'krg', 'op');
+    expect(kuChairmanService.isMemberOfBranch).toHaveBeenCalledWith('voskhod', 'krg', 'op');
     expect(service.getChairmanSignablePayloads).toHaveBeenCalledWith('voskhod', 'r1', 'op');
   });
 

@@ -5,10 +5,7 @@ export const name = 'marketplaceListOutgoingPayments'
 
 export const query = Selector('Query')({
   [name]: [
-    {
-      supplier_account: $('supplier_account', 'String'),
-      statuses: $('statuses', '[MarketplaceOutgoingPaymentRequestStatus!]'),
-    },
+    { filter: $('filter', 'MarketplaceListOutgoingPaymentsFilterInput') },
     marketplaceOutgoingPaymentRequestSelector,
   ],
 })
@@ -19,8 +16,7 @@ export interface IInput {
    */
   [key: string]: unknown
 
-  supplier_account?: string
-  statuses?: ModelTypes['MarketplaceOutgoingPaymentRequestStatus'][]
+  filter?: ModelTypes['MarketplaceListOutgoingPaymentsFilterInput']
 }
 
 export type IOutput = InputType<GraphQLTypes['Query'], typeof query>

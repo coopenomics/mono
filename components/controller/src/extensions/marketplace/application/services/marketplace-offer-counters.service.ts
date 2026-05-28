@@ -12,7 +12,7 @@ export const MARKETPLACE_OFFER_COUNTERS_SERVICE = Symbol('MARKETPLACE_OFFER_COUN
  * Story 3.4: backend ведёт `quantity_available` / `quantity_blocked` /
  * `quantity_consumed` на Offer'е при операциях с Order'ом.
  *
- * Точка интеграции с Эпиком 4 (`o.mkt.block` / `o.mkt.unblock` /
+ * Точка интеграции с Эпиком 4 (`o.mkt.lock` / `o.mkt.unblock` /
  * `o.mkt.consume`+`o.mkt.consume2` canonical actions из PR #375):
  * order-side syncer вызывает эти методы внутри `dispatch` после `save`
  * сущности Order и до `emit pubsub` (см. controller/CLAUDE.md

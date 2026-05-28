@@ -101,7 +101,7 @@ const cards = computed<Array<CatalogOffer & { domainStatus: MarketplaceOfferStat
     status: STATUS_TO_CARD[o.status],
     domainStatus: o.status,
     cycleType: o.cycle_type,
-    rejectReason: o.reject_reason,
+    rejectReason: o.reject_reason ?? null,
   })),
 );
 

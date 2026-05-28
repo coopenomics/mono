@@ -28,6 +28,7 @@ import {
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import type { MarketplaceOrderCreateTxSnapshot } from '../../domain/entities/marketplace-order.types';
 import { toChainCycleType } from '../../domain/entities/marketplace-offer.types';
+import { rethrowChainError } from '../shared/chain-tx.util';
 
 export interface MarketplaceOrderCreateInputDto {
   /** coopname кооператива. Берётся из core-сессии в resolver'е. */
@@ -66,14 +67,14 @@ export interface MarketplaceOrderCreateResult {
  *      +consumed=lifetime сразу для UI каталога (Story 3.5 не должен
  *      показать Offer как «доступный K единиц» в момент гонки).
  *
- *   4. Chain submit `createorder` через canonical adapter. Серия атомарна
- *      в C++ `ledger2::apply`: o.wal.conv (cond) → o.mkt.assign (cond) →
- *      o.mkt.block. Любой `eosio::check` фейл = exception → backend ловит,
+ *   4. Chain submit `createorder` через canonical adapter. Один шаг
+ *      в C++ `ledger2::apply`: o.mkt.lock (TRANSFER w.wal.share → w.mkt.order,
+ *      Дт 80 / Кт 86). Любой `eosio::check` фейл = exception → backend ловит,
  *      выполняет compensating `onOrderRolledBack` и пробрасывает clean
  *      error пайщику.
  *
  *   5. Persist PG row Order через `persistAfterBlock(input)` со снапшотом
- *      tx (tx_hash, block_num, did_convert, did_assign, blocked_amount).
+ *      tx (tx_hash, block_num, locked_amount).
  *      Idempotent через unique `(coopname, order_hash)` — повторный submit
  *      того же order_hash возвращает existing row без double-create.
  *
@@ -180,17 +181,15 @@ export class MarketplaceOrderCreateService {
           compErr.stack
         );
       }
-      this.rethrowChainError(error);
+      rethrowChainError(error);
     }
 
     // ── 5. Persist PG row Order с tx snapshot ──────────────────────
-    const blocked_amount = total_cost_amount;
+    const locked_amount = total_cost_amount;
     const create_tx: MarketplaceOrderCreateTxSnapshot = {
       tx_hash: txHash!,
       block_num: appliedBlock!,
-      did_convert: false, // backend snapshot не разбирает inline-traces в Story 4.1; snapshot для UX лишь
-      did_assign: false,
-      blocked_amount,
+      locked_amount,
       signed_at: new Date().toISOString(),
     };
 
@@ -204,7 +203,7 @@ export class MarketplaceOrderCreateService {
       delivery_braname: input.delivery_braname,
       quantity: input.quantity,
       price_per_unit: offer.price_per_unit,
-      total_cost: blocked_amount,
+      total_cost: locked_amount,
       cycle_type: offer.cycle_type,
       cycle_id: null,
       warranty_period_secs,
@@ -215,7 +214,7 @@ export class MarketplaceOrderCreateService {
     });
 
     this.logger.log(
-      `MarketplaceOrderCreateService: Order ${order.id} (hash=${order_hash}) создан для ${input.orderer_account}; offer=${offer.id}, qty=${input.quantity}, total=${blocked_amount}; tx=${txHash}`
+      `MarketplaceOrderCreateService: Order ${order.id} (hash=${order_hash}) создан для ${input.orderer_account}; offer=${offer.id}, qty=${input.quantity}, total=${locked_amount}; tx=${txHash}`
     );
 
     // Story 4.2: per-cycle_type hook сразу после persist.
@@ -355,19 +354,6 @@ export class MarketplaceOrderCreateService {
     }
     const block_num = t?.response?.processed?.block_num ?? 0;
     return { tx_hash, block_num };
-  }
-
-  /**
-   * Антелопе chain exception приходит в exception.message с трейсом и
-   * `assertion failure with message: <текст>`. Эта функция вытаскивает
-   * чистое сообщение и оборачивает в BadRequestException для clean
-   * пользовательского ответа.
-   */
-  private rethrowChainError(error: any): never {
-    const raw: string = error?.message ?? String(error);
-    const match = raw.match(/assertion failure with message: (.+?)(?:\n|$)/);
-    const clean = match ? match[1].trim() : raw;
-    throw new BadRequestException(clean);
   }
 }
 

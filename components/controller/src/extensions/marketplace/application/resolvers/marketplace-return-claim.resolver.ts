@@ -22,9 +22,9 @@ import {
 } from '../dto/marketplace-return-claim.dto';
 import { MarketplaceReturnClaimService } from '../services/marketplace-return-claim.service';
 import {
-  MARKETPLACE_KU_CHAIRMEN_SERVICE,
-  type MarketplaceKuChairmenService,
-} from '../services/marketplace-ku-chairmen.service';
+  MARKETPLACE_KU_CHAIRMAN_SERVICE,
+  type MarketplaceKuChairmanService,
+} from '../services/marketplace-ku-chairman.service';
 import { toMarketplaceReturnClaimDTO } from './marketplace-return-claim.mapper';
 import {
   MARKETPLACE_BRANCH_OWNERSHIP_SERVICE,
@@ -56,8 +56,8 @@ function toGeneratedDocumentDTO(e: DocumentDomainEntity): GeneratedDocumentDTO {
 export class MarketplaceReturnClaimResolver {
   constructor(
     private readonly service: MarketplaceReturnClaimService,
-    @Inject(MARKETPLACE_KU_CHAIRMEN_SERVICE)
-    private readonly kuChairmenService: MarketplaceKuChairmenService,
+    @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
+    private readonly kuChairmanService: MarketplaceKuChairmanService,
     @Inject(MARKETPLACE_BRANCH_OWNERSHIP_SERVICE)
     private readonly branchOwnership: MarketplaceBranchOwnershipService
   ) {}
@@ -119,11 +119,6 @@ export class MarketplaceReturnClaimResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceApproveReturnVisitInputDTO
   ): Promise<MarketplaceReturnClaimResultDTO> {
-    await this.branchOwnership.assertCanActAsBraname(
-      config.coopname,
-      member.username,
-      data.braname
-    );
     const result = await this.service.approveReturnVisit({
       coopname: config.coopname,
       chairman_account: member.username,
@@ -146,11 +141,6 @@ export class MarketplaceReturnClaimResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceRejectReturnRemoteInputDTO
   ): Promise<MarketplaceReturnClaimResultDTO> {
-    await this.branchOwnership.assertCanActAsBraname(
-      config.coopname,
-      member.username,
-      data.braname
-    );
     const result = await this.service.rejectReturnRemote({
       coopname: config.coopname,
       chairman_account: member.username,
@@ -173,11 +163,6 @@ export class MarketplaceReturnClaimResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceAcceptReturnAtVisitInputDTO
   ): Promise<MarketplaceReturnClaimResultDTO> {
-    await this.branchOwnership.assertCanActAsBraname(
-      config.coopname,
-      member.username,
-      data.braname
-    );
     const result = await this.service.acceptReturnAtVisit({
       coopname: config.coopname,
       chairman_account: member.username,
@@ -202,11 +187,6 @@ export class MarketplaceReturnClaimResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceRejectReturnAtVisitInputDTO
   ): Promise<MarketplaceReturnClaimResultDTO> {
-    await this.branchOwnership.assertCanActAsBraname(
-      config.coopname,
-      member.username,
-      data.braname
-    );
     const result = await this.service.rejectReturnAtVisit({
       coopname: config.coopname,
       chairman_account: member.username,
@@ -245,8 +225,8 @@ export class MarketplaceReturnClaimResolver {
   ): Promise<MarketplaceReturnClaimDTO[]> {
     // Ownership `:own-KU` — пайщик должен быть trustee или trusted
     // именно того КУ, к которому привязано заявление. Проверка идёт
-    // через единый источник истины состава КУ (MarketplaceKuChairmenService).
-    const isMember = await this.kuChairmenService.isMemberOfBranch(
+    // через единый источник истины состава КУ (MarketplaceKuChairmanService).
+    const isMember = await this.kuChairmanService.isMemberOfBranch(
       config.coopname,
       data.delivery_braname,
       member.username
@@ -281,7 +261,7 @@ export class MarketplaceReturnClaimResolver {
     const isOwnerOrderer = claim.orderer_account === member.username;
     const isOperatorOfDeliveryKu =
       member.marketplace_roles.includes('operator') &&
-      (await this.kuChairmenService.isMemberOfBranch(
+      (await this.kuChairmanService.isMemberOfBranch(
         config.coopname,
         claim.delivery_braname,
         member.username

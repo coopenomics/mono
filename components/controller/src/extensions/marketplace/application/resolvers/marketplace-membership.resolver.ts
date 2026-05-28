@@ -9,9 +9,9 @@ import { MarketplaceCurrentMemberDTO } from '../dto/marketplace-current-member.d
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import {
-  MARKETPLACE_KU_CHAIRMEN_SERVICE,
-  type MarketplaceKuChairmenService,
-} from '../services/marketplace-ku-chairmen.service';
+  MARKETPLACE_KU_CHAIRMAN_SERVICE,
+  type MarketplaceKuChairmanService,
+} from '../services/marketplace-ku-chairman.service';
 
 /**
  * Story 1.3: тестовый whoami-эндпоинт расширения marketplace.
@@ -25,8 +25,8 @@ import {
 @Injectable()
 export class MarketplaceMembershipResolver {
   constructor(
-    @Inject(MARKETPLACE_KU_CHAIRMEN_SERVICE)
-    private readonly kuChairmenService: MarketplaceKuChairmenService
+    @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
+    private readonly kuChairmanService: MarketplaceKuChairmanService
   ) {}
 
   @Query(() => MarketplaceCurrentMemberDTO, {
@@ -37,7 +37,7 @@ export class MarketplaceMembershipResolver {
   async marketplaceWhoAmI(
     @CurrentMarketplaceMember() currentMember: IMarketplaceCurrentMember
   ): Promise<MarketplaceCurrentMemberDTO> {
-    const branches = await this.kuChairmenService.listBranamesForMember(
+    const branches = await this.kuChairmanService.listBranamesForMember(
       config.coopname,
       currentMember.username
     );

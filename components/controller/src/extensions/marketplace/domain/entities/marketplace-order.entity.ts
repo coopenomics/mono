@@ -202,9 +202,9 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
   }
 
   /**
-   * Был ли Order в block-состоянии (т.е. при rollback'е цепи нужно
-   * вернуть Story 3.4 counter через `onOrderRolledBack`). Все статусы
-   * до `RECEIVED` включают активный BLOCK на `w.mkt.member`.
+   * Был ли Order в состоянии активного резерва (т.е. при rollback'е цепи
+   * нужно вернуть Story 3.4 counter через `onOrderRolledBack`). Все
+   * статусы до `RECEIVED` включают активный резерв на `w.mkt.order`.
    */
   public get is_in_block_state(): boolean {
     return (

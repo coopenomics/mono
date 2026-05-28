@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { Zeus } from '@coopenomics/sdk';
 import { FailAlert } from 'src/shared/api';
 import { listMyReturnClaims, type MarketplaceReturnClaimView } from '../api';
 import { fetchMyOrders } from '../../MyOrders/api';
@@ -35,7 +36,11 @@ const selectedClaim = ref<MarketplaceReturnClaimView | null>(null);
 const orderOptions = computed(() => {
   const openOrderIds = new Set(
     items.value
-      .filter((c) => c.status === 'PENDING_CHAIRMAN_REVIEW' || c.status === 'APPROVED_FOR_VISIT')
+      .filter(
+        (c) =>
+          c.status === Zeus.MarketplaceReturnClaimStatus.PENDING_CHAIRMAN_REVIEW ||
+          c.status === Zeus.MarketplaceReturnClaimStatus.APPROVED_FOR_VISIT,
+      )
       .map((c) => c.order_id),
   );
   return eligibleOrders.value
@@ -48,15 +53,17 @@ const orderOptions = computed(() => {
 
 const activeClaims = computed(() =>
   items.value.filter(
-    (c) => c.status === 'PENDING_CHAIRMAN_REVIEW' || c.status === 'APPROVED_FOR_VISIT',
+    (c) =>
+      c.status === Zeus.MarketplaceReturnClaimStatus.PENDING_CHAIRMAN_REVIEW ||
+      c.status === Zeus.MarketplaceReturnClaimStatus.APPROVED_FOR_VISIT,
   ),
 );
 const archiveClaims = computed(() =>
   items.value.filter(
     (c) =>
-      c.status === 'ACCEPTED_AT_VISIT' ||
-      c.status === 'REJECTED_REMOTELY' ||
-      c.status === 'REJECTED_AT_VISIT',
+      c.status === Zeus.MarketplaceReturnClaimStatus.ACCEPTED_AT_VISIT ||
+      c.status === Zeus.MarketplaceReturnClaimStatus.REJECTED_REMOTELY ||
+      c.status === Zeus.MarketplaceReturnClaimStatus.REJECTED_AT_VISIT,
   ),
 );
 
@@ -104,15 +111,15 @@ function onSubmitted(): void {
 
 function humanStatus(status: MarketplaceReturnClaimView['status']): string {
   switch (status) {
-    case 'PENDING_CHAIRMAN_REVIEW':
+    case Zeus.MarketplaceReturnClaimStatus.PENDING_CHAIRMAN_REVIEW:
       return 'На рассмотрении председателя';
-    case 'APPROVED_FOR_VISIT':
+    case Zeus.MarketplaceReturnClaimStatus.APPROVED_FOR_VISIT:
       return 'Очный визит одобрен';
-    case 'ACCEPTED_AT_VISIT':
+    case Zeus.MarketplaceReturnClaimStatus.ACCEPTED_AT_VISIT:
       return 'Возврат принят';
-    case 'REJECTED_REMOTELY':
+    case Zeus.MarketplaceReturnClaimStatus.REJECTED_REMOTELY:
       return 'Отказано удалённо';
-    case 'REJECTED_AT_VISIT':
+    case Zeus.MarketplaceReturnClaimStatus.REJECTED_AT_VISIT:
       return 'Отказано на месте';
     default:
       return status;
@@ -128,14 +135,14 @@ function formatDate(value: unknown): string {
 
 function statusColor(status: MarketplaceReturnClaimView['status']): string {
   switch (status) {
-    case 'PENDING_CHAIRMAN_REVIEW':
+    case Zeus.MarketplaceReturnClaimStatus.PENDING_CHAIRMAN_REVIEW:
       return 'primary';
-    case 'APPROVED_FOR_VISIT':
+    case Zeus.MarketplaceReturnClaimStatus.APPROVED_FOR_VISIT:
       return 'info';
-    case 'ACCEPTED_AT_VISIT':
+    case Zeus.MarketplaceReturnClaimStatus.ACCEPTED_AT_VISIT:
       return 'positive';
-    case 'REJECTED_REMOTELY':
-    case 'REJECTED_AT_VISIT':
+    case Zeus.MarketplaceReturnClaimStatus.REJECTED_REMOTELY:
+    case Zeus.MarketplaceReturnClaimStatus.REJECTED_AT_VISIT:
       return 'negative';
     default:
       return 'grey';

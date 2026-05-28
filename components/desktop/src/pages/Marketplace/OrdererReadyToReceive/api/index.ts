@@ -12,5 +12,6 @@ export async function listMyReadyToReceive(): Promise<MarketplaceOrderIssuanceVi
     Queries.Marketplace.ListMyReadyToReceive.query,
     {},
   );
-  return result;
+  // Zeus отдаёт DateTime как unknown; сужаем скалярную дату до строки во view-типе.
+  return result as MarketplaceOrderIssuanceView[];
 }

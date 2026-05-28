@@ -1,4 +1,4 @@
-import { MarketplaceKuChairmenService } from './marketplace-ku-chairmen.service';
+import { MarketplaceKuChairmanService } from './marketplace-ku-chairman.service';
 import type { BranchBlockchainPort } from '~/domain/branch/interfaces/branch-blockchain.port';
 
 function buildPort(branches: Array<{ braname: string; trustee: string; trusted: string[] }>) {
@@ -10,14 +10,14 @@ function buildPort(branches: Array<{ braname: string; trustee: string; trusted: 
   return port as BranchBlockchainPort & { getBranches: jest.Mock };
 }
 
-describe('MarketplaceKuChairmenService', () => {
+describe('MarketplaceKuChairmanService', () => {
   describe('isKuChairman', () => {
     it('возвращает true для trustee любого КУ', async () => {
       const port = buildPort([
         { braname: 'krg', trustee: 'chairkrg', trusted: ['opkrg'] },
         { braname: 'myt', trustee: 'chairmyt', trusted: [] },
       ]);
-      const service = new MarketplaceKuChairmenService(port);
+      const service = new MarketplaceKuChairmanService(port);
 
       expect(await service.isKuChairman('voskhod', 'chairkrg')).toBe(true);
       expect(await service.isKuChairman('voskhod', 'chairmyt')).toBe(true);
@@ -27,7 +27,7 @@ describe('MarketplaceKuChairmenService', () => {
       const port = buildPort([
         { braname: 'krg', trustee: 'chairkrg', trusted: ['opkrg', 'trustedkrg'] },
       ]);
-      const service = new MarketplaceKuChairmenService(port);
+      const service = new MarketplaceKuChairmanService(port);
 
       expect(await service.isKuChairman('voskhod', 'opkrg')).toBe(true);
       expect(await service.isKuChairman('voskhod', 'trustedkrg')).toBe(true);
@@ -37,7 +37,7 @@ describe('MarketplaceKuChairmenService', () => {
       const port = buildPort([
         { braname: 'krg', trustee: 'chairkrg', trusted: ['opkrg'] },
       ]);
-      const service = new MarketplaceKuChairmenService(port);
+      const service = new MarketplaceKuChairmanService(port);
 
       expect(await service.isKuChairman('voskhod', 'ivanpetrov')).toBe(false);
     });
@@ -46,7 +46,7 @@ describe('MarketplaceKuChairmenService', () => {
       const port = buildPort([
         { braname: 'krg', trustee: 'chairkrg', trusted: [] },
       ]);
-      const service = new MarketplaceKuChairmenService(port);
+      const service = new MarketplaceKuChairmanService(port);
 
       await service.isKuChairman('voskhod', 'chairkrg');
       await service.isKuChairman('voskhod', 'someoneelse');
@@ -59,7 +59,7 @@ describe('MarketplaceKuChairmenService', () => {
       const port = buildPort([
         { braname: 'krg', trustee: 'chairkrg', trusted: [] },
       ]);
-      const service = new MarketplaceKuChairmenService(port);
+      const service = new MarketplaceKuChairmanService(port);
 
       await service.isKuChairman('voskhod', 'chairkrg');
       service.invalidate('voskhod');
@@ -75,7 +75,7 @@ describe('MarketplaceKuChairmenService', () => {
         { braname: 'krg', trustee: 'chairkrg', trusted: ['opkrg'] },
         { braname: 'myt', trustee: 'chairmyt', trusted: [] },
       ]);
-      const service = new MarketplaceKuChairmenService(port);
+      const service = new MarketplaceKuChairmanService(port);
 
       expect(await service.isMemberOfBranch('voskhod', 'krg', 'chairkrg')).toBe(true);
       expect(await service.isMemberOfBranch('voskhod', 'krg', 'opkrg')).toBe(true);
@@ -90,7 +90,7 @@ describe('MarketplaceKuChairmenService', () => {
       const port = buildPort([
         { braname: 'krg', trustee: 'chairkrg', trusted: ['opkrg', 'trustedkrg'] },
       ]);
-      const service = new MarketplaceKuChairmenService(port);
+      const service = new MarketplaceKuChairmanService(port);
 
       expect(await service.listOperatorsOfBranch('voskhod', 'krg')).toEqual([
         'chairkrg',
@@ -101,7 +101,7 @@ describe('MarketplaceKuChairmenService', () => {
 
     it('пустой список для несуществующего КУ', async () => {
       const port = buildPort([]);
-      const service = new MarketplaceKuChairmenService(port);
+      const service = new MarketplaceKuChairmanService(port);
 
       expect(await service.listOperatorsOfBranch('voskhod', 'nope')).toEqual([]);
     });
@@ -114,7 +114,7 @@ describe('MarketplaceKuChairmenService', () => {
         { braname: 'myt', trustee: 'chairmyt', trusted: [] },
         { braname: 'odn', trustee: 'chairodn', trusted: ['ekaterina'] },
       ]);
-      const service = new MarketplaceKuChairmenService(port);
+      const service = new MarketplaceKuChairmanService(port);
 
       expect(await service.listBranamesForMember('voskhod', 'ekaterina')).toEqual(['krg', 'odn']);
       expect(await service.listBranamesForMember('voskhod', 'chairmyt')).toEqual(['myt']);
@@ -127,14 +127,14 @@ describe('MarketplaceKuChairmenService', () => {
       const port = buildPort([
         { braname: 'krg', trustee: 'chairkrg', trusted: ['opkrg'] },
       ]);
-      const service = new MarketplaceKuChairmenService(port);
+      const service = new MarketplaceKuChairmanService(port);
 
       expect(await service.getTrusteeOfBranch('voskhod', 'krg')).toBe('chairkrg');
     });
 
     it('возвращает null для несуществующего', async () => {
       const port = buildPort([]);
-      const service = new MarketplaceKuChairmenService(port);
+      const service = new MarketplaceKuChairmanService(port);
 
       expect(await service.getTrusteeOfBranch('voskhod', 'nope')).toBeNull();
     });

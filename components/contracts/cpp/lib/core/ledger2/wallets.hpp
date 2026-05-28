@@ -64,9 +64,9 @@ struct ledger2_wallets {
   static constexpr eosio::name GENERATOR_FUND       = "w.cap.gen"_n;     ///< Генератор — единый агрегированный кошелёк программы (COOPERATIVE — кооперативный пул, без L3-разреза по пайщику; L3-разрез из ADR-009 отменён из-за несовместимости с CRPS-перераспределением, см. wallets.hpp:107)
   static constexpr eosio::name PREIMP_FUND          = "w.cap.preimp"_n;  ///< Первичный учёт РИД-взносов до перехода на электронный учёт (USER_SHARED; o.cap.preimp / o.cap.drppre)
 
-  // marketplace — программный членский + выплаты
-  static constexpr eosio::name MARKETPLACE_MEMBER   = "w.mkt.member"_n;  ///< ЦПП «Стол Заказов» — программный членский кошелёк пайщика (USER_SHARED; BLOCK/UNBLOCK/BURN_BLOCKED под Order)
-  static constexpr eosio::name SUPPLIER_PAYMENTS    = "w.mkt.payout"_n;  ///< Выплаты поставщикам (sink PAYOUT, COOPERATIVE)
+  // marketplace — резерв под Order + выплаты
+  static constexpr eosio::name MARKETPLACE_ORDER_LOCK = "w.mkt.order"_n;   ///< ЦПП «Стол Заказов» — резерв средств пайщика под конкретный Order (USER_SHARED). TRANSFER w.wal.share → w.mkt.order на createorder (Дт 80 / Кт 86); обратный TRANSFER на w.wal.member при cancel/decline/expire (без проводки); BURN с w.mkt.order на signiss2 (Дт 86 / Кт 10).
+  static constexpr eosio::name SUPPLIER_PAYMENTS      = "w.mkt.payout"_n;  ///< Выплаты поставщикам (sink PAYOUT, COOPERATIVE)
 };
 
 /**
@@ -97,12 +97,12 @@ struct Ledger2WalletMeta {
 
 inline constexpr std::array<Ledger2WalletMeta, 15> LEDGER2_WALLET_REGISTRY = {{
   // USER_SHARED (6) — L3-разрез по пайщику
-  { ledger2_wallets::MIN_SHARE_FUND,    "Минимальный паевой взнос",                                 WalletKind::USER_SHARED },
-  { ledger2_wallets::SHARE_FUND_PAY,    "Паевой взнос пайщика",                                     WalletKind::USER_SHARED },
-  { ledger2_wallets::CK_MEMBER,         "ЦК — членская часть пайщика",                              WalletKind::USER_SHARED },
-  { ledger2_wallets::BLAGOROST_FUND,    "ЦПП «Благорост» — единый кошелёк программы у пайщика",     WalletKind::USER_SHARED },
-  { ledger2_wallets::PREIMP_FUND,       "Первичный учёт РИД-взносов до перехода на электронный учёт", WalletKind::USER_SHARED },
-  { ledger2_wallets::MARKETPLACE_MEMBER, "ЦПП «Стол Заказов» — программный членский у пайщика",     WalletKind::USER_SHARED },
+  { ledger2_wallets::MIN_SHARE_FUND,        "Минимальный паевой взнос",                                 WalletKind::USER_SHARED },
+  { ledger2_wallets::SHARE_FUND_PAY,        "Паевой взнос пайщика",                                     WalletKind::USER_SHARED },
+  { ledger2_wallets::CK_MEMBER,             "ЦК — членская часть пайщика",                              WalletKind::USER_SHARED },
+  { ledger2_wallets::BLAGOROST_FUND,        "ЦПП «Благорост» — единый кошелёк программы у пайщика",     WalletKind::USER_SHARED },
+  { ledger2_wallets::PREIMP_FUND,           "Первичный учёт РИД-взносов до перехода на электронный учёт", WalletKind::USER_SHARED },
+  { ledger2_wallets::MARKETPLACE_ORDER_LOCK,"ЦПП «Стол Заказов» — резерв под заказ у пайщика",         WalletKind::USER_SHARED },
 
   // COOPERATIVE (9) — единый кооперативный баланс, без L3
   // GENERATOR_FUND переведён сюда из USER_SHARED (см. wallets.hpp:64) —
@@ -231,13 +231,13 @@ struct Ledger2WalletProgramMapping {
 };
 
 inline constexpr std::array<Ledger2WalletProgramMapping, 7> LEDGER2_USER_SHARED_PROGRAM_MAPPING = {{
-  { ledger2_wallets::MIN_SHARE_FUND,    0 /* w.reg.minshr — без проверки */    },
-  { ledger2_wallets::SHARE_FUND_PAY,    1 /* ЦК */                              },
-  { ledger2_wallets::CK_MEMBER,         1 /* ЦК */                              },
-  { ledger2_wallets::BLAGOROST_FUND,    4 /* Благорост */                       },
-  { ledger2_wallets::GENERATOR_FUND,    3 /* Генератор */                       },
-  { ledger2_wallets::PREIMP_FUND,       0 /* w.cap.preimp — РИД-учёт до перехода на электронный учёт, без проверки */ },
-  { ledger2_wallets::MARKETPLACE_MEMBER, 2 /* Marketplace */                    },
+  { ledger2_wallets::MIN_SHARE_FUND,         0 /* w.reg.minshr — без проверки */    },
+  { ledger2_wallets::SHARE_FUND_PAY,         1 /* ЦК */                              },
+  { ledger2_wallets::CK_MEMBER,              1 /* ЦК */                              },
+  { ledger2_wallets::BLAGOROST_FUND,         4 /* Благорост */                       },
+  { ledger2_wallets::GENERATOR_FUND,         3 /* Генератор */                       },
+  { ledger2_wallets::PREIMP_FUND,            0 /* w.cap.preimp — РИД-учёт до перехода на электронный учёт, без проверки */ },
+  { ledger2_wallets::MARKETPLACE_ORDER_LOCK, 2 /* Marketplace */                    },
 }};
 
 /**

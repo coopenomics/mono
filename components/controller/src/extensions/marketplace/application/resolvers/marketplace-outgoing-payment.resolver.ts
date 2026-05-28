@@ -8,8 +8,9 @@ import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.gua
 import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import {
+  MarketplaceListOutgoingPaymentsAsSupplierFilterInputDTO,
+  MarketplaceListOutgoingPaymentsFilterInputDTO,
   MarketplaceOutgoingPaymentRequestDTO,
-  MarketplaceOutgoingPaymentRequestStatusEnum,
   toMarketplaceOutgoingPaymentRequestDTO,
 } from '../dto/marketplace-outgoing-payment.dto';
 import {
@@ -40,16 +41,13 @@ export class MarketplaceOutgoingPaymentResolver {
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard)
   async marketplaceListOutgoingPaymentsAsSupplier(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
-    @Args('statuses', {
-      type: () => [MarketplaceOutgoingPaymentRequestStatusEnum],
-      nullable: true,
-    })
-    statuses?: MarketplaceOutgoingPaymentRequestStatusEnum[]
+    @Args('filter', { nullable: true })
+    filter?: MarketplaceListOutgoingPaymentsAsSupplierFilterInputDTO
   ): Promise<MarketplaceOutgoingPaymentRequestDTO[]> {
     const list = await this.paymentRepo.listByPayee(
       config.coopname,
       member.username,
-      statuses as unknown as MarketplaceOutgoingPaymentRequestStatus[] | undefined
+      filter?.statuses as MarketplaceOutgoingPaymentRequestStatus[] | undefined
     );
     return list.map(toMarketplaceOutgoingPaymentRequestDTO);
   }
@@ -62,16 +60,12 @@ export class MarketplaceOutgoingPaymentResolver {
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Payment', 'read:all')
   async marketplaceListOutgoingPayments(
-    @Args('supplier_account', { nullable: true }) supplier_account?: string,
-    @Args('statuses', {
-      type: () => [MarketplaceOutgoingPaymentRequestStatusEnum],
-      nullable: true,
-    })
-    statuses?: MarketplaceOutgoingPaymentRequestStatusEnum[]
+    @Args('filter', { nullable: true })
+    filter?: MarketplaceListOutgoingPaymentsFilterInputDTO
   ): Promise<MarketplaceOutgoingPaymentRequestDTO[]> {
     const list = await this.paymentRepo.listAll(config.coopname, {
-      payee_account: supplier_account ?? undefined,
-      statuses: statuses as unknown as MarketplaceOutgoingPaymentRequestStatus[] | undefined,
+      payee_account: filter?.supplier_account ?? undefined,
+      statuses: filter?.statuses as MarketplaceOutgoingPaymentRequestStatus[] | undefined,
     });
     return list.map(toMarketplaceOutgoingPaymentRequestDTO);
   }

@@ -34,17 +34,17 @@ const loading = ref(false);
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 
 const CYCLE_TYPE_LABEL: Record<MarketplaceOrderCycleTypeView, string> = {
-  time_based: 'По времени',
-  volume_based: 'По объёму',
-  open_subscription: 'Открытая подписка',
-  individual: 'Индивидуальный',
+  TIME_BASED: 'По времени',
+  VOLUME_BASED: 'По объёму',
+  OPEN_SUBSCRIPTION: 'Открытая подписка',
+  INDIVIDUAL: 'Индивидуальный',
 };
 
 const CYCLE_TYPE_HINT: Record<MarketplaceOrderCycleTypeView, string> = {
-  time_based: 'Партия закрывается по таймеру; заказы внутри окна объединяются для одной поставки.',
-  volume_based: 'Партия закрывается при достижении порога объёма заказов.',
-  open_subscription: 'Открытый пул заказов; партии формируются по решению поставщика.',
-  individual: 'Каждый заказ обслуживается поставщиком отдельно.',
+  TIME_BASED: 'Партия закрывается по таймеру; заказы внутри окна объединяются для одной поставки.',
+  VOLUME_BASED: 'Партия закрывается при достижении порога объёма заказов.',
+  OPEN_SUBSCRIPTION: 'Открытый пул заказов; партии формируются по решению поставщика.',
+  INDIVIDUAL: 'Каждый заказ обслуживается поставщиком отдельно.',
 };
 
 const STATUS_LABEL: Record<MarketplaceOrderStatusView, string> = {
@@ -121,7 +121,7 @@ const groups = computed<ConsolidatedGroup[]>(() => {
     if (!g) {
       g = {
         key,
-        cycle_id: o.cycle_id,
+        cycle_id: o.cycle_id ?? null,
         cycle_type: o.cycle_type,
         offer_id: o.offer_id,
         supplier_account: o.supplier_account,

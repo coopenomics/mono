@@ -110,9 +110,9 @@ export class MarketplaceOrderEntity {
   public cancelled_at!: Date | null;
 
   /**
-   * Снапшот ledger2 createorder-серии: tx_hash, block_num, did_convert,
-   * did_assign, blocked_amount. Используется для отображения свежего
-   * BLOCK-движения в `WalletTimeline` (UX-DR8) сразу после успеха.
+   * Снапшот ledger2 createorder-операции: tx_hash, block_num, locked_amount.
+   * Используется для отображения свежего движения резерва в `WalletTimeline`
+   * (UX-DR8) сразу после успеха.
    */
   @Column({ type: 'jsonb', nullable: true })
   public create_tx!: MarketplaceOrderCreateTxSnapshot | null;

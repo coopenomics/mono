@@ -33,9 +33,9 @@ import {
   MARKETPLACE_WHITELIST_SERVICE,
 } from './services/marketplace-whitelist.service';
 import {
-  MarketplaceKuChairmenService,
-  MARKETPLACE_KU_CHAIRMEN_SERVICE,
-} from './services/marketplace-ku-chairmen.service';
+  MarketplaceKuChairmanService,
+  MARKETPLACE_KU_CHAIRMAN_SERVICE,
+} from './services/marketplace-ku-chairman.service';
 import {
   MarketplaceVitrineService,
   MARKETPLACE_VITRINE_SERVICE,
@@ -100,10 +100,6 @@ import {
 } from './services/marketplace-payout-sync.service';
 import { MarketplaceOutgoingPaymentResolver } from './resolvers/marketplace-outgoing-payment.resolver';
 import { MarketplaceNotificationService } from './services/marketplace-notification.service';
-import {
-  MarketplaceBranchOwnershipService,
-  MARKETPLACE_BRANCH_OWNERSHIP_SERVICE,
-} from './services/marketplace-branch-ownership.service';
 import {
   MarketplaceIssuanceService,
   MARKETPLACE_ISSUANCE_SERVICE,
@@ -213,10 +209,10 @@ import { MarketplaceInventoryEntity } from '../infrastructure/entities/marketpla
     // Эпик 2 / Story 2.x — источник isKuChairman (trustee ИЛИ trusted
     // одного из branches кооператива) для marketplace-роли `operator`.
     {
-      provide: MARKETPLACE_KU_CHAIRMEN_SERVICE,
-      useClass: MarketplaceKuChairmenService,
+      provide: MARKETPLACE_KU_CHAIRMAN_SERVICE,
+      useClass: MarketplaceKuChairmanService,
     },
-    MarketplaceKuChairmenService,
+    MarketplaceKuChairmanService,
     {
       provide: MARKETPLACE_VITRINE_SERVICE,
       useClass: MarketplaceVitrineService,
@@ -308,11 +304,6 @@ import { MarketplaceInventoryEntity } from '../infrastructure/entities/marketpla
     // Слушает per-contract event-bus, отправка через Novu без обратного
     // влияния на основной flow (INV-12: emit после save в PG).
     MarketplaceNotificationService,
-    {
-      provide: MARKETPLACE_BRANCH_OWNERSHIP_SERVICE,
-      useClass: MarketplaceBranchOwnershipService,
-    },
-    MarketplaceBranchOwnershipService,
     // Story 6.1 / 6.3 / 6.4 — выдача пайщику с двойной подписью АПП
     // (signiss1 + signiss2) и тремя ветками сверки факт vs заказ.
     {
@@ -320,7 +311,7 @@ import { MarketplaceInventoryEntity } from '../infrastructure/entities/marketpla
       useClass: MarketplaceIssuanceService,
     },
     MarketplaceIssuanceService,
-    // Эпик 7 — гарантийный возврат (compensating forward через транзит 91).
+    // Эпик 7 — гарантийный возврат (compensating forward к o.mkt.consum).
     {
       provide: MARKETPLACE_RETURN_CLAIM_SERVICE,
       useClass: MarketplaceReturnClaimService,
@@ -342,8 +333,8 @@ import { MarketplaceInventoryEntity } from '../infrastructure/entities/marketpla
     MarketplaceCoopAcceptanceService,
     MARKETPLACE_WHITELIST_SERVICE,
     MarketplaceWhitelistService,
-    MARKETPLACE_KU_CHAIRMEN_SERVICE,
-    MarketplaceKuChairmenService,
+    MARKETPLACE_KU_CHAIRMAN_SERVICE,
+    MarketplaceKuChairmanService,
     MARKETPLACE_VITRINE_SERVICE,
     MarketplaceVitrineService,
     MARKETPLACE_OFFER_SERVICE,

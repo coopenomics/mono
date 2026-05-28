@@ -40,7 +40,7 @@ using namespace Marketplace;
  *    soviet::exec автоматически вызывает callback `onmktwoauth` (PROPOSED →
  *    AUTHORIZED, сохраняется protocol2) или `onmktwodecl` (PROPOSED → REJECTED).
  *    Только после AUTHORIZED backend циклом по items вызывает `execwroff`
- *    per-item (atomic пара o.mkt.wroff + o.mkt.wroff2 на каждой позиции).
+ *    per-item (o.mkt.wroff на каждой позиции).
  *
  * Все per-batch операции на on-chain выполняются per-Order (бэкенд
  * проходит циклом по Order'ам соответствующего batch'а, объединяя их по
@@ -81,7 +81,7 @@ public:
 
   /**
    * @brief Заказчик размещает заказ на товар из каталога (Story 4.1).
-   * Серия: o.wal.conv (conditional) → o.mkt.assign (conditional) → o.mkt.block.
+   * Один шаг ledger2: o.mkt.lock (TRANSFER w.wal.share → w.mkt.order).
    * @ingroup public_marketplace_actions
    */
   [[eosio::action]] void createorder(eosio::name coopname,
@@ -97,7 +97,7 @@ public:
                                       checksum256 batch_hash);
 
   /**
-   * @brief Заказчик отменяет заказ до акцепта (Story 4.4). Триггерит o.mkt.unblk.
+   * @brief Заказчик отменяет заказ до акцепта (Story 4.4). Триггерит o.mkt.unlock.
    * @ingroup public_marketplace_actions
    */
   [[eosio::action]] void cancelorder(eosio::name coopname,
@@ -106,7 +106,7 @@ public:
 
   /**
    * @brief Backend закрывает Order по таймауту цикла отсечки (Story 4.3).
-   * Per-Order: o.mkt.unblk + статус active → cancelled. Backend вычисляет
+   * Per-Order: o.mkt.unlock + статус active → cancelled. Backend вычисляет
    * threshold по batch'у вне контракта; для каждого истёкшего Order'а
    * вызывается отдельный `expireorder`.
    * @ingroup public_marketplace_actions
@@ -126,7 +126,7 @@ public:
 
   /**
    * @brief Поставщик отказывается от одного Order'а до акцепта (Story 4.5).
-   * Per-Order: o.mkt.unblk на total_cost + статус active → cancelled.
+   * Per-Order: o.mkt.unlock на total_cost + статус active → cancelled.
    * Backend проходит циклом по orders батча, вызывая `declineorder` per Order.
    * @ingroup public_marketplace_actions
    */
@@ -213,9 +213,9 @@ public:
   /**
    * @brief Заказчик ставит финальную подпись АПП-выдачи (Story 6.3).
    * Per-Order с поддержкой actual_quantity ≠ ordered (Story 6.2).
-   * Atomic: [o.mkt.unblk на разницу если actual<ordered |
-   *          o.wal.conv+o.mkt.assign+o.mkt.block на разницу если actual>ordered]
-   *         + o.mkt.consum + o.mkt.consum2.
+   * Atomic: [o.mkt.unlock на разницу если actual<ordered |
+   *          o.mkt.lock на разницу если actual>ordered]
+   *         + o.mkt.consum.
    * Подпись акта: orderer + любой авторизованный из branches[o.delivery_braname].
    * @ingroup public_marketplace_actions
    */
@@ -267,7 +267,7 @@ public:
 
   /**
    * @brief Председатель принимает возврат на очном осмотре (Story 7.4).
-   * Atomic: o.mkt.return + o.mkt.return2 (compensating forward).
+   * Один шаг: o.mkt.return (compensating forward к o.mkt.consum).
    * Авторизация: подписант ∈ branches[braname].
    * @ingroup public_marketplace_actions
    */
@@ -341,9 +341,8 @@ public:
 
   /**
    * @brief Backend исполняет одну позицию авторизованного проекта списания
-   * (Story 8.4). Per-item: `o.mkt.wroff + o.mkt.wroff2` (атомарно в одной
-   * транзакции), `items[item_index].executed = true`. Когда все items
-   * исполнены, статус AUTHORIZED → EXECUTED.
+   * (Story 8.4). Per-item: `o.mkt.wroff`, `items[item_index].executed = true`.
+   * Когда все items исполнены, статус AUTHORIZED → EXECUTED.
    *
    * Защита от газового лимита (тысячи позиций в одной транзакции Antelope
    * не помещаются) — backend проходит цикл и вызывает `execwroff` per item.

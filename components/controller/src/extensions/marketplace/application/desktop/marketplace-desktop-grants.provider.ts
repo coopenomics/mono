@@ -15,9 +15,9 @@ import {
   type MarketplaceWhitelistService,
 } from '../services/marketplace-whitelist.service';
 import {
-  MARKETPLACE_KU_CHAIRMEN_SERVICE,
-  type MarketplaceKuChairmenService,
-} from '../services/marketplace-ku-chairmen.service';
+  MARKETPLACE_KU_CHAIRMAN_SERVICE,
+  type MarketplaceKuChairmanService,
+} from '../services/marketplace-ku-chairman.service';
 
 /**
  * Провайдер грантов «Стола заказов» для канона авторизации столов.
@@ -47,7 +47,7 @@ export class MarketplaceDesktopGrantsProvider
     @Inject(MARKETPLACE_WHITELIST_SERVICE)
     private readonly whitelistService: MarketplaceWhitelistService,
     @Inject(MARKETPLACE_KU_CHAIRMEN_SERVICE)
-    private readonly kuChairmenService: MarketplaceKuChairmenService,
+    private readonly kuChairmanService: MarketplaceKuChairmanService,
   ) {}
 
   onModuleInit(): void {
@@ -68,7 +68,7 @@ export class MarketplaceDesktopGrantsProvider
 
     const [isOfferer, isKuChairman] = await Promise.all([
       this.whitelistService.isOfferer(ctx.coopname, ctx.username),
-      this.kuChairmenService.isKuChairman(ctx.coopname, ctx.username),
+      this.kuChairmanService.isKuChairman(ctx.coopname, ctx.username),
     ]);
     const roles = mapCoreRolesToMarketplaceRoles(coreRoles, {
       isOfferer,

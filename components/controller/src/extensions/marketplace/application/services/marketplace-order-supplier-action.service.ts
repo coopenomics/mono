@@ -26,6 +26,7 @@ import {
   MarketplaceOrderCycleTypes,
   MarketplaceOrderStatuses,
 } from '../../domain/entities/marketplace-order.types';
+import { normalizeChainTxHash, rethrowChainError } from '../shared/chain-tx.util';
 
 export interface MarketplaceSupplierAcceptInput {
   coopname: string;
@@ -83,13 +84,16 @@ export class MarketplaceOrderSupplierActionService {
         offerer: input.offerer_account,
         order_hash: order.order_hash,
       });
-      txHash = this.normalizeTxHash(tx);
+      txHash = normalizeChainTxHash(
+        tx,
+        'Действие поставщика: цепь не вернула tx_hash. Повторите попытку.'
+      );
     } catch (error: any) {
       this.logger.error(
         `MarketplaceOrderSupplierActionService.acceptIndividual: chain.acceptOrder fail для Order ${order.id}: ${error.message}`,
         error.stack
       );
-      this.rethrowChainError(error);
+      rethrowChainError(error);
     }
 
     const updated = await this.orderRepo.applyStatusTransition(
@@ -221,13 +225,16 @@ export class MarketplaceOrderSupplierActionService {
         offerer: offerer_account,
         order_hash: order.order_hash,
       });
-      txHash = this.normalizeTxHash(tx);
+      txHash = normalizeChainTxHash(
+        tx,
+        'Действие поставщика: цепь не вернула tx_hash. Повторите попытку.'
+      );
     } catch (error: any) {
       this.logger.error(
         `MarketplaceOrderSupplierActionService: chain.declineOrder fail для Order ${order.id}: ${error.message}`,
         error.stack
       );
-      this.rethrowChainError(error);
+      rethrowChainError(error);
     }
 
     try {
@@ -264,41 +271,6 @@ export class MarketplaceOrderSupplierActionService {
       throw new ForbiddenException('Действие доступно только поставщику-владельцу Offer\'а.');
     }
     return order;
-  }
-
-  private normalizeTxHash(tx: unknown): string {
-    // wharfkit TransactResult держит Antelope push_transaction response под
-    // `response` (response.processed.id / response.transaction_id). Для
-    // совместимости со spec-тестами поддерживаем и плоский processed.id.
-    const t = tx as {
-      transaction?: { id?: string };
-      processed?: { id?: string };
-      response?: {
-        transaction_id?: string;
-        processed?: { id?: string };
-      };
-    };
-    const hash =
-      t?.response?.processed?.id ??
-      t?.response?.transaction_id ??
-      t?.processed?.id ??
-      t?.transaction?.id;
-    if (!hash) {
-      // fail-fast: цепь приняла action, но не вернула tx_hash —
-      // лучше отбить поставщику и попросить retry, чем записать
-      // 'unknown' в audit-trail.
-      throw new BadRequestException(
-        'Действие поставщика: цепь не вернула tx_hash. Повторите попытку.'
-      );
-    }
-    return hash;
-  }
-
-  private rethrowChainError(error: any): never {
-    const raw: string = error?.message ?? String(error);
-    const match = raw.match(/assertion failure with message: (.+?)(?:\n|$)/);
-    const clean = match ? match[1].trim() : raw;
-    throw new BadRequestException(clean);
   }
 }
 
