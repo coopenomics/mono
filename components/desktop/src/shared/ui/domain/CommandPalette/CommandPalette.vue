@@ -380,6 +380,11 @@ function onHide(): void {
 }
 .command-palette__workspace.is-active .command-palette__workspace-row.is-selected {
   background: var(--p-primary-soft);
+}
+/* Универсальная рамка selected для строки стола — иначе при наведении
+   на неактивный стол курсор «теряется»: page'и имеют outline по selected,
+   а workspace-row до фикса получали outline только в is-active. */
+.command-palette__workspace-row.is-selected {
   outline: 2px solid var(--p-primary);
   outline-offset: -2px;
 }
