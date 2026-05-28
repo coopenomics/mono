@@ -655,8 +655,10 @@ body {
 .toast {
   display: flex; align-items: flex-start; gap: 12px;
   padding: 12px 14px;
-  background: var(--p-ink);
-  color: var(--p-canvas);
+  /* Тост — всегда тёмная поверхность в обеих темах (см. quasar-canon.css):
+     фиксированные литералы, не инвертируемые var(--p-ink)/var(--p-canvas). */
+  background: #18181b;
+  color: #fafafa;
   border-radius: var(--p-r-sm);
   box-shadow: var(--p-shadow-pop);
   font-size: var(--p-fs-body-sm);
