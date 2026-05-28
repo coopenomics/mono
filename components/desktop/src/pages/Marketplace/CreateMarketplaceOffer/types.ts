@@ -57,3 +57,29 @@ export interface MarketplaceCreateOfferResult {
   product_name: string;
   cycle_type: MarketplaceOfferCycleType;
 }
+
+export interface MarketplaceUpdateOfferPayload extends MarketplaceCreateOfferPayload {
+  id: string;
+}
+
+/**
+ * Подмножество полей Offer'а, нужных форме для префилла при редактировании.
+ * Полный DTO приходит из marketplaceListMyOffers (см. fetchMyOfferById).
+ */
+export interface MarketplaceOfferEditPrefill {
+  id: string;
+  product_name: string;
+  description: string | null;
+  category_id: string | number | null;
+  price_per_unit: string;
+  unit_of_measure: string;
+  quantity_available: number;
+  unlimited_flag: boolean;
+  cycle_type: MarketplaceOfferCycleType;
+  cycle_days: number | null;
+  target_volume: number | null;
+  max_wait_days: number | null;
+  min_threshold: number | null;
+  warranty_days: number;
+  status: 'PENDING_MODERATION' | 'ACTIVE' | 'REJECTED' | 'WITHDRAWN';
+}

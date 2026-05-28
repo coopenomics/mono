@@ -359,3 +359,138 @@ topUpAmount: z
 - **SDK:**
   - `sdk/src/types/controller/extension.types.ts` - копия типов из controller
 
+---
+
+# Канон авторизации столов (grants)
+
+Единый механизм видимости рабочих столов и страниц расширения. Решает проблему
+дублирования: раньше «кто что видит» задавалось в ДВУХ несвязанных местах с
+разными словарями — `meta.roles` на фронте (core-роли) и access-matrix на бэке
+(marketplace capability). Теперь авторизацию вычисляет ТОЛЬКО backend, а фронт
+её лишь отражает. Онбординг (гейтинг до принятия ЦПП) — частный случай этого же
+механизма, а не отдельный код.
+
+## Принцип
+
+> Авторизацию вычисляет backend один раз. Фронт декларирует СТРУКТУРУ (какие
+> роуты есть, их компоненты, заголовки) и НИКОГДА не переопределяет, кому они
+> видны.
+
+- **backend** = КТО получает КАКОЕ право (capability) — единый источник истины;
+- **frontend** = КАКАЯ страница требует КАКОГО права (`meta.requires`).
+
+`getDesktop` отдаёт по каждому столу набор прав текущего пользователя
+(`DesktopWorkspace.grants: string[]`). Фронт показывает страницу/стол, если
+её `meta.requires` входит в `grants` (plain `includes`).
+
+## Контракт
+
+**1. Порт расширения** (`domain/desktop/ports/extension-grants.port.ts`):
+
+```typescript
+interface IExtensionDesktopGrantsProvider {
+  readonly extensionName: string;                       // 'market'
+  resolveGrants(ctx: IDesktopGrantsContext): Promise<string[]>; // гость → []
+}
+```
+
+`IDesktopGrantsContext` = `{ coopname, username?, userRole?, userStatus?, config }`.
+
+**2. Глобальный реестр** (`application/desktop/extension-grants.registry.ts`,
+`@Global`): расширение САМО регистрирует свой провайдер в `onModuleInit`
+(self-registration) — платформа не импортирует модули расширений (нет цикла).
+
+**3. `getDesktop`** (`desktop.interactor.ts`): для каждого desktop-расширения
+зовёт `grantsRegistry.resolve(name, ctx)` и кладёт результат в
+`DesktopWorkspace.grants` всех столов расширения. Резолвер `getDesktop` —
+под `OptionalGqlJwtAuthGuard` (открыт и гостю: состав ответа зависит от того,
+кто спрашивает).
+
+**4. Маршруты фронта** (`extensions/<name>/install.ts`): каждый роут объявляет
+`meta.requires: 'Resource:action'` вместо `meta.roles`.
+
+**5. Стор фронта** (`entities/Desktop/model/store.ts`) — ЕДИНАЯ логика видимости,
+все потребители (переключатель столов, левое меню, cmdk-поиск, навигационный
+гард) зовут её, а не фильтруют сами:
+- `isPageVisible(meta, workspaceName)` — для пункта/доступа к странице;
+- `isWorkspaceVisible(menuItem)` — стол виден, если есть ≥1 доступная страница;
+- `hasRouteAccess(matchedNames, meta)` — для навигационного гарда (глушит лишь
+  при явном невыполненном `requires`);
+- `firstAccessibleRoute(extensionName)` — для редиректа после установки/включения.
+
+## Разворот грантов (важная деталь)
+
+Фронт сверяет `requires` простым `includes` и НЕ знает иерархию охвата. Поэтому
+право `<base>:all` РАЗВОРАЧИВАЕТСЯ провайдером в подмножества `:own` / `:own-KU`
+/ `:to-self` — та же иерархия, что в `canAccess` (marketplace-access-matrix).
+Так у админа (`Warehouse:read:all`) проходит требование оператора
+(`Warehouse:read:own-KU`), а вся policy остаётся на backend
+(см. `marketplace/application/access/marketplace-grants.ts`).
+
+## Онбординг как частный случай грантов
+
+Отдельного кода гейтинга больше нет. Провайдер market
+(`marketplace-desktop-grants.provider.ts`) при `config.coopAcceptance.accepted
+!== true` отдаёт:
+- председателю — только `['Extension:configure']`;
+- остальным — `[]`.
+
+Страница «Подключение ЦПП» требует `Extension:configure`; все прочие admin-страницы
+требуют `Order:read:all` / `Whitelist:manage`, прочие столы — `Offer:read` /
+`Warehouse:read:own-KU`. Поэтому до принятия ЦПП виден лишь Стол администратора
+с одной страницей подключения и только председателю; у всех остальных — ничего.
+После принятия провайдер отдаёт полный набор по ролям, и столы появляются.
+
+## Маппинг видимости market (как воспроизведена прежняя картина по ролям)
+
+| Стол           | requires страниц            | Кому виден (после ЦПП)            |
+|----------------|-----------------------------|-----------------------------------|
+| market         | `Offer:read`, `Order:read:own`, … | любой онбординутый пайщик    |
+| market-supplier| `Offer:read`                | любой онбординутый пайщик          |
+| market-pvz     | `Warehouse:read:own-KU`     | оператор КУ + председатель (admin) |
+| market-admin   | `Order:read:all`            | совет + председатель               |
+| └ category-whitelist | `Whitelist:manage`    | только председатель                |
+| └ onboarding/coop-cpp | `Extension:configure`| только председатель (до и после)  |
+
+## Миграционная безопасность (опционально)
+
+- Расширение БЕЗ провайдера → `grants === undefined` → фронт работает по-старому
+  (видимость по `meta.roles`). Стор сам выбирает ветку: grant-стол (по
+  `requires`) или legacy (по `roles`). capital/soviet/participant не тронуты.
+- Роут с `requires` → новый канон; роут без `requires` в grant-столе скрыт
+  (иначе пустой набор грантов открыл бы его); роут с `roles` без grants → legacy.
+
+## Жизненный цикл / ограничения
+
+- `getDesktop` (и грантов) пере-вычисляется при **старте приложения** и при
+  **включении** расширения; НЕ реактивен в рантайме. После принятия ЦПП советом
+  столы появятся после перезагрузки страницы. Для MVP приемлемо.
+- Источник **безопасности** — backend-резолверы расширения (guard + access-matrix);
+  grants на фронте — UX-слой поверх, не замена enforcement.
+- **Codegen обязателен:** поле `grants` в `DesktopWorkspace` — это изменение
+  GraphQL-схемы. Нужно `generate-schema` → `generate-client` → сборка SDK; в
+  SDK добавлен `grants: true` в `selectors/desktop/workspaceSelector.ts`. До
+  регена SDK не запрашивает поле, фронт видит `grants===undefined` и market
+  падает на legacy (а `meta.roles` у market удалены → временно «видно всем»).
+
+## Связанные файлы
+
+- **Backend:**
+  - `src/domain/desktop/ports/extension-grants.port.ts` — порт + токен.
+  - `src/application/desktop/extension-grants.registry.ts` — `@Global` реестр.
+  - `src/application/desktop/interactors/desktop.interactor.ts` — сборка грантов.
+  - `src/application/desktop/resolvers/desktop.resolver.ts` — `OptionalGqlJwtAuthGuard`.
+  - `src/application/auth/{guards/optional-graphql-jwt-auth.guard,decorators/optional-current-user.decorator}.ts`.
+  - `src/extensions/marketplace/application/desktop/marketplace-desktop-grants.provider.ts`.
+  - `src/extensions/marketplace/application/access/marketplace-grants.ts` — разворот.
+- **SDK:** `src/selectors/desktop/workspaceSelector.ts` — `grants: true`.
+- **Frontend:**
+  - `desktop/src/entities/Desktop/model/store.ts` — `isPageVisible` /
+    `isWorkspaceVisible` / `hasRouteAccess` / `firstAccessibleRoute`.
+  - `desktop/src/processes/navigation-guard-setup/index.ts` — единый гард.
+  - `desktop/src/widgets/Desktop/{WorkspaceMenu,SecondLevelMenuList}/*`,
+    `desktop/src/entities/CmdkMenu/model/store.ts` — потребители.
+  - `desktop/extensions/market/install.ts` — `meta.requires` на всех роутах.
+  - `desktop/src/features/Extension/{InstallExtension,EnableExtension}/ui/*Button.vue`
+    — редирект через `firstAccessibleRoute`.
+

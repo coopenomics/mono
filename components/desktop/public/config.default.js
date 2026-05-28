@@ -29,4 +29,5 @@ window.__APP_CONFIG__ = {
   VAPID_PUBLIC_KEY: 'BLomcBkzOF0jGYU_kfZ07-dhl6_euyZKGoZb-yKcP6vzNXvb49DQgce_7EyXhL4PPwS0MklVYQbq_mzJhFiLHaw',
   SENTRY_DSN: '',
   OPENREPLAY_PROJECT_KEY: '',
+  YANDEX_MAPS_API_KEY: '',
 };

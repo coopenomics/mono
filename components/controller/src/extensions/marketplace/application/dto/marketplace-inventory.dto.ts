@@ -106,7 +106,7 @@ export class MarketplaceLabelInventoryInputDTO {
 
   @Field(() => MarketplaceBarcodeFormatEnum, {
     nullable: true,
-    description: 'Формат штрих-кода. По умолчанию — CODE128.',
+    description: 'Формат штрих-кода. По умолчанию — EAN-13.',
   })
   @IsOptional()
   @IsEnum(MarketplaceBarcodeFormatEnum)
@@ -172,7 +172,7 @@ export class MarketplaceLabelShipmentInventoryInputDTO {
 
   @Field(() => MarketplaceBarcodeFormatEnum, {
     nullable: true,
-    description: 'Формат штрих-кода для всей партии. По умолчанию — CODE128.',
+    description: 'Формат штрих-кода для всей партии. По умолчанию — EAN-13.',
   })
   @IsOptional()
   @IsEnum(MarketplaceBarcodeFormatEnum)

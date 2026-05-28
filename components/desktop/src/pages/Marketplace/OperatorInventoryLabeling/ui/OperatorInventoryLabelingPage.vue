@@ -28,7 +28,8 @@ const orderIdInput = ref<string>('')
 const shipments = ref<MarketplaceShipmentView[]>([])
 const selectedShipmentId = ref<string | null>(null)
 const defaultStrategy = ref<BarcodeStrategy | null>(null)
-const defaultFormat = ref<BarcodeFormat>(Zeus.MarketplaceBarcodeFormat.CODE128)
+// EAN-13 — стандарт маркировки маркетплейса (UX-DR11/DR12), не QR/CODE128.
+const defaultFormat = ref<BarcodeFormat>(Zeus.MarketplaceBarcodeFormat.EAN13)
 const lastBatchSummary = ref<{ labeled: number; skipped: number } | null>(null)
 
 const strategyOptions: Array<{ label: string; value: BarcodeStrategy | null }> = [

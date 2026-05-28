@@ -1,4 +1,11 @@
 import { z } from 'zod';
+import type { DeserializedDescriptionOfExtension } from '~/types/shared';
+
+// Сериализация человекочитаемого описания поля для формы установки расширения
+// (тот же механизм, что в capital-extension.module.ts).
+function describeField(description: DeserializedDescriptionOfExtension): string {
+  return JSON.stringify(description);
+}
 
 /**
  * Story 1.9: L1-онбординг кооператива — решение совета о принятии положения ЦПП.
@@ -10,6 +17,9 @@ import { z } from 'zod';
  * будет интегрировано с document factory).
  * `accepted_by_board_decision_id` — id решения Совета (FR40, Эпик 8); в MVP
  * пустая строка либо stub-значение председателя.
+ *
+ * Это внутреннее системное состояние (ставится решением совета), а не
+ * настройка установки — в форме установки расширения скрыто (`visible: false`).
  */
 export interface ICoopAcceptanceConfig {
   accepted: boolean;
@@ -21,26 +31,26 @@ export interface ICoopAcceptanceConfig {
 /**
  * Story 8.3 (Эпик 8): настройки авто-проекта списания скоропорта.
  *
- * `auto_proposal_enabled` — если true, ежемесячный крон собирает позиции
- * `MarketplaceInventory.expiry_date <= now + expiry_grace_days` в DRAFT-
- * проект и шлёт нотификацию председателю на ревью. Если false, крон
- * только пушит напоминание; председатель формирует корзину вручную.
+ * `auto_proposal_enabled` — если true, ежемесячный крон собирает позиции с
+ * давно истёкшим сроком годности в DRAFT-проект и шлёт нотификацию
+ * председателю на ревью. Если false, крон только пушит напоминание;
+ * председатель формирует корзину вручную.
  *
- * `expiry_grace_days` — окно опережения: за сколько дней до фактического
- * `expiry_date` позиция должна попадать в кандидаты на списание (например,
- * 7 — отбирать позиции, у которых до истечения срока меньше недели).
+ * `post_expiry_grace_days` — сколько дней товар должен пролежать ПОСЛЕ
+ * истечения срока годности, прежде чем попасть в кандидаты на списание.
+ * Крон отбирает позиции с `expiry_date <= now - post_expiry_grace_days`.
+ * Свежепросроченное ещё может быть забрано получателем — списываем только
+ * окончательно испорченное (пролежавшее лишнее время).
  */
 export interface IWriteoffConfig {
   auto_proposal_enabled: boolean;
-  expiry_grace_days: number;
+  post_expiry_grace_days: number;
 }
 
 // Конфигурация для расширения marketplace
 export interface IConfig {
-  enabled: boolean;
-  lastSyncTimestamp: string;
-  debug: boolean;
-  // Story 1.9: статус принятия положения ЦПП Советом кооператива.
+  // Story 1.9: статус принятия положения ЦПП Советом кооператива (системное
+  // состояние, скрыто из формы установки).
   coopAcceptance: ICoopAcceptanceConfig;
   // Story 8.3 (Эпик 8): настройки крона списания скоропорта.
   writeoff: IWriteoffConfig;
@@ -48,9 +58,6 @@ export interface IConfig {
 
 // Дефолтные параметры конфигурации
 export const defaultConfig: IConfig = {
-  enabled: true,
-  lastSyncTimestamp: '',
-  debug: false,
   coopAcceptance: {
     accepted: false,
     document_registry_id: 0,
@@ -58,16 +65,14 @@ export const defaultConfig: IConfig = {
     accepted_by_board_decision_id: '',
   },
   writeoff: {
-    auto_proposal_enabled: false,
-    expiry_grace_days: 7,
+    auto_proposal_enabled: true,
+    post_expiry_grace_days: 7,
   },
 };
 
-// Схема валидации конфигурации
+// Схема валидации конфигурации. Описания полей (label/note) — на русском, для
+// формы установки расширения; системное состояние ЦПП скрыто (`visible: false`).
 export const Schema = z.object({
-  enabled: z.boolean().default(true),
-  lastSyncTimestamp: z.string().default(''),
-  debug: z.boolean().default(false),
   coopAcceptance: z
     .object({
       accepted: z.boolean().default(false),
@@ -80,11 +85,44 @@ export const Schema = z.object({
       document_registry_id: 0,
       accepted_at: '',
       accepted_by_board_decision_id: '',
-    }),
+    })
+    .describe(
+      describeField({
+        label: 'Принятие положения ЦПП',
+        note: 'Системное состояние: заполняется решением совета при подключении ЦПП «Стол заказов».',
+        visible: false,
+      })
+    ),
   writeoff: z
     .object({
-      auto_proposal_enabled: z.boolean().default(false),
-      expiry_grace_days: z.number().int().min(0).default(7),
+      auto_proposal_enabled: z
+        .boolean()
+        .default(true)
+        .describe(
+          describeField({
+            label: 'Автоматически формировать проект списания',
+            note: 'Если включено, раз в месяц собирается проект списания товаров с истёкшим сроком годности и отправляется председателю на ревью. Если выключено — приходит только напоминание.',
+          })
+        ),
+      post_expiry_grace_days: z
+        .number()
+        .int()
+        .min(0)
+        .default(7)
+        .describe(
+          describeField({
+            label: 'Списывать спустя (после истечения срока)',
+            note: 'Сколько дней товар должен пролежать после истечения срока годности, прежде чем попадёт в проект списания. Свежепросроченное ещё может быть забрано получателем — списываем только окончательно испорченное.',
+            rules: ['val >= 0'],
+            append: 'дн.',
+          })
+        ),
     })
-    .default({ auto_proposal_enabled: false, expiry_grace_days: 7 }),
+    .default({ auto_proposal_enabled: true, post_expiry_grace_days: 7 })
+    .describe(
+      describeField({
+        label: 'Списание скоропорта',
+        note: 'Настройки автоматического списания товаров с истёкшим сроком годности.',
+      })
+    ),
 });

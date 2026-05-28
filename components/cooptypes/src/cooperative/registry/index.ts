@@ -73,6 +73,8 @@ export * as MarketplaceTransportNote from './1103.MarketplaceTransportNote'
 export * as MarketplaceReturnStatement from './1104.MarketplaceReturnStatement'
 export * as MarketplaceWriteoffProtocol from './1105.MarketplaceWriteoffProtocol'
 export * as MarketplaceWriteoffStatement from './1106.MarketplaceWriteoffStatement'
+// Положение ЦПП «Стол заказов» (онбординг — первый документ, утверждаемый Советом)
+export * as MarketplaceProgramTemplate from './1107.MarketplaceProgramTemplate'
 
 export * as SosediAgreement from './699.SosediAgreement'
 

@@ -1,7 +1,13 @@
 export interface IWorkspaceRouteMeta {
   title: string
   icon: string
-  roles: string[]
+  // Канон авторизации столов. `requires` — capability вида «Resource:action»;
+  // страница/стол видны, если требование входит в grants стола (с бэкенда).
+  // Расширения с grants объявляют `requires` на маршрутах вместо `roles`.
+  // `roles` — legacy-механизм видимости по core-роли (chairman/member/user);
+  // остаётся для расширений без grants. Подробнее: EXTENSIONS_SCHEMA_SYSTEM.md.
+  requires?: string
+  roles?: string[]
   agreements?: string[]
   conditions?: string
   action?: string // Имя действия вместо перехода на страницу

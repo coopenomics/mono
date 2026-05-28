@@ -21,9 +21,14 @@ import { MARKETPLACE_WRITEOFF_DRAFT_BUILT_EVENT } from '../events/marketplace-no
  *
  * Раз в месяц проходит по `marketplace_inventory.expiry_date`. Если в
  * настройках расширения `writeoff.auto_proposal_enabled = true` —
- * формирует DRAFT-проект списания со всеми позициями, попавшими в окно
- * `expiry_date <= now + expiry_grace_days`. Иначе — только эмитит
- * напоминание председателю, чтобы тот собрал корзину вручную.
+ * формирует DRAFT-проект списания со всеми позициями, у которых срок
+ * годности истёк уже как минимум `writeoff.post_expiry_grace_days` дней
+ * назад (`expiry_date <= now - grace`). Иначе — только эмитит напоминание
+ * председателю, чтобы тот собрал корзину вручную.
+ *
+ * Списываем по факту порчи, а не заранее, и с отступом: свежепросроченное
+ * ещё может быть забрано получателем — в кандидаты идёт только то, что
+ * пролежало просроченным достаточно долго и окончательно испортилось.
  */
 @Injectable()
 export class MarketplaceWriteoffCronService implements OnModuleInit {
@@ -67,8 +72,8 @@ export class MarketplaceWriteoffCronService implements OnModuleInit {
 
     const extension = this.extensionDomainService ? await this.extensionDomainService.getAppByName('market') : null;
     const cfg = extension?.config as IConfig | undefined;
-    const auto = cfg?.writeoff?.auto_proposal_enabled ?? false;
-    const graceDays = cfg?.writeoff?.expiry_grace_days ?? 7;
+    const auto = cfg?.writeoff?.auto_proposal_enabled ?? true;
+    const graceDays = cfg?.writeoff?.post_expiry_grace_days ?? 7;
 
     if (!auto) {
       this.logger.info(
@@ -86,12 +91,12 @@ export class MarketplaceWriteoffCronService implements OnModuleInit {
     // EXCESS_RETURNED_TO_WAREHOUSE, items «без юр. оформления» старше
     // threshold writeoff_returned_age_days) — Phase 2: требуется
     // расширение marketplace_inventory.status + поля returned_at / age_days.
-    const horizon = new Date(Date.now() + graceDays * 86_400_000);
+    const cutoff = new Date(Date.now() - graceDays * 86_400_000);
     const candidates = await this.inventoryRepo.find({
       where: {
         coopname,
         status: 'LABELED',
-        expiry_date: LessThanOrEqual(horizon),
+        expiry_date: LessThanOrEqual(cutoff),
       },
       take: 200,
       order: { expiry_date: 'ASC' },
@@ -99,7 +104,7 @@ export class MarketplaceWriteoffCronService implements OnModuleInit {
 
     if (candidates.length === 0) {
       this.logger.info(
-        `[WRITEOFF_CRON] не найдено позиций для списания в окне +${graceDays} дней (coopname=${coopname})`
+        `[WRITEOFF_CRON] не найдено позиций, просроченных более чем на ${graceDays} дн. (coopname=${coopname})`
       );
       return;
     }
@@ -133,7 +138,7 @@ export class MarketplaceWriteoffCronService implements OnModuleInit {
           asset_title: inv.product_name_snapshot,
           quantity: String(inv.quantity_per_label),
           amount: total.toFixed(this.assetConfig.decimals),
-          reason: this.deriveReason(inv.expiry_date, horizon),
+          reason: this.deriveReason(inv.expiry_date),
           inventory_id: inv.id,
         };
       }
@@ -159,12 +164,9 @@ export class MarketplaceWriteoffCronService implements OnModuleInit {
     });
   }
 
-  private deriveReason(expiry: Date | null, horizon: Date): string {
+  private deriveReason(expiry: Date | null): string {
     if (!expiry) return 'Срок годности не задан';
-    if (expiry.getTime() <= Date.now()) return 'Истёк срок годности';
-    if (expiry.getTime() <= horizon.getTime())
-      return 'Срок годности истекает в ближайшее время';
-    return 'Скоропорт';
+    return 'Истёк срок годности';
   }
 
   private resolveUnitCost(inv: MarketplaceInventoryEntity): number | null {

@@ -42,6 +42,23 @@ export async function useInitAppProcess(router: Router) {
   }
 
   const desktops = useDesktopStore();
+  const session = useSessionStore();
+
+  // Восстанавливаем сессию (прикрепляем JWT к client) ДО первого getDesktop.
+  // Видимость grant-столов расширений (market и пр.) выводится из `grants`,
+  // которые backend считает по АВТОРИЗОВАННОМУ пользователю. На холодной
+  // перезагрузке client пересоздаётся без токена; если getDesktop уходит
+  // гостем — grant-столы получают пустой набор прав и не отображаются, а
+  // повторного refetch после восстановления сессии нет (init-wallet грузит
+  // только account/wallet). Поэтому раньше столы расширения «появлялись»
+  // только после ручного вкл/выкл расширения (EnableButton зовёт loadDesktop
+  // уже авторизованным). session.init идемпотентен (guard hasCreditials) —
+  // повторный вызов внутри init-wallet станет no-op.
+  try {
+    await session.init();
+  } catch (error) {
+    console.warn('Session init before desktop load failed:', error);
+  }
 
   try {
   await desktops.loadDesktop();
@@ -58,7 +75,6 @@ export async function useInitAppProcess(router: Router) {
   // Выбираем authorized-рабочий стол только если пайщик принят советом
   // (status='active'). На промежуточных статусах оставляем дефолтный
   // (non_authorized) — публичную главную.
-  const session = useSessionStore();
   if (session.isFullyActive) {
     desktops.selectDefaultWorkspace();
   }
@@ -68,5 +84,13 @@ export async function useInitAppProcess(router: Router) {
   setupNavigationGuard(router);
 
   await useInitExtensionsProcess(router);
+
+  // Досинхронизация активного стола с текущим маршрутом ПОСЛЕ установки расширений.
+  // afterEach начального перехода мог сработать раньше, чем install прикрепил
+  // маршруты к workspace'ам (mainRoute ещё был null) — поэтому при холодном
+  // deep-link на /market-supplier/* активным мог остаться дефолтный стол.
+  desktops.syncActiveWorkspaceFromRoute(
+    router.currentRoute.value.matched.map((r) => r.name ?? null),
+  );
 
 }

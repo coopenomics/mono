@@ -86,19 +86,17 @@ const filteredRoutes = computed<IRoute[]>(() => {
   const activeRoutes = desktop.activeSecondLevelRoutes as unknown as IRoute[];
 
 
+  const wsName = desktop.activeWorkspaceName ?? '';
   const filtered = activeRoutes.filter((r) => {
-    const rolesMatch =
-      r.meta?.roles?.includes(context.value.userRole) ||
-      (r.meta?.roles && r.meta.roles.length === 0);
+    // Видимость пункта — канон авторизации (grants) с fallback на legacy roles,
+    // единая логика в DesktopStore.isPageVisible. Поверх — conditions и hidden.
+    const accessMatch = desktop.isPageVisible(r.meta as any, wsName);
     const conditionMatch = r.meta?.conditions
       ? evaluateCondition(r.meta.conditions, context.value)
       : true;
     const hiddenMatch = r.meta?.hidden ? !r.meta.hidden : true;
 
-    const result = rolesMatch && conditionMatch && hiddenMatch;
-
-
-    return result;
+    return accessMatch && conditionMatch && hiddenMatch;
   });
 
   return filtered;

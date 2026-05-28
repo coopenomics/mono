@@ -5041,6 +5041,11 @@ type DesktopWorkspace {
   """Имя расширения, которому принадлежит этот workspace"""
   extension_name: String!
 
+  """
+  Права доступа текущего пользователя в расширении (вид «Resource:action»). Фронт показывает страницу/стол, если её требование входит в этот список. Отсутствует у расширений, не использующих канон прав доступа.
+  """
+  grants: [String!]
+
   """Иконка для меню"""
   icon: String
 
@@ -7935,7 +7940,7 @@ type MarketplaceKUDetails {
 }
 
 input MarketplaceLabelInventoryInput {
-  """Формат штрих-кода. По умолчанию — CODE128."""
+  """Формат штрих-кода. По умолчанию — EAN-13."""
   format: MarketplaceBarcodeFormat
 
   """Заказ, для которого формируются наклейки."""
@@ -7959,7 +7964,7 @@ input MarketplaceLabelShipmentInventoryInput {
   """Стратегия маркировки по умолчанию для всех заказов партии."""
   default_strategy: MarketplaceBarcodeStrategy
 
-  """Формат штрих-кода для всей партии. По умолчанию — CODE128."""
+  """Формат штрих-кода для всей партии. По умолчанию — EAN-13."""
   format: MarketplaceBarcodeFormat
 
   """
@@ -8077,19 +8082,6 @@ input MarketplaceListOrdersInput {
   supplier_account: String
 }
 
-input MarketplaceListOutgoingPaymentsAsSupplierFilterInput {
-  """Фильтр по статусам выплат. Пусто — показывать все статусы."""
-  statuses: [MarketplaceOutgoingPaymentRequestStatus!]
-}
-
-input MarketplaceListOutgoingPaymentsFilterInput {
-  """Фильтр по статусам выплат. Пусто — показывать все статусы."""
-  statuses: [MarketplaceOutgoingPaymentRequestStatus!]
-
-  """Поставщик-получатель выплаты. Пусто — по всем поставщикам."""
-  supplier_account: String
-}
-
 input MarketplaceListPendingOffersInput {
   """Количество элементов на странице"""
   limit: Int! = 10
@@ -8137,7 +8129,7 @@ type MarketplaceMemberWallet {
   username: String!
 
   """
-  Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.order
+  Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.member
   """
   wallets: [MarketplaceWalletEntry!]!
 }
@@ -8346,14 +8338,20 @@ type MarketplaceOrder {
 }
 
 """
-Снимок транзакции резервирования средств: ссылки на блок и сумма резерва.
+Снимок транзакции блокировки средств: ссылки на блок, флаги конверсии и сумма.
 """
 type MarketplaceOrderCreateTxSnapshot {
   """Номер блока, в который попала транзакция."""
   block_num: Int!
 
-  """Сумма зарезервированных средств (строка денежного актива)."""
-  locked_amount: String!
+  """Сумма заблокированных средств (строка денежного актива)."""
+  blocked_amount: String!
+
+  """Был ли выполнен перевод средств между кошельками пайщика."""
+  did_assign: Boolean!
+
+  """Была ли выполнена конверсия паевого взноса в членский."""
+  did_convert: Boolean!
 
   """Время подписания заказа (ISO 8601)."""
   signed_at: String!
@@ -9248,9 +9246,7 @@ type MarketplaceWalletEntry {
   """Доступный остаток (`userwallets.available`)"""
   available: String!
 
-  """
-  Заблокированный остаток (`userwallets.blocked`). Для marketplace-кошельков всегда `0` — резерв выражается через `.available` кошелька w.mkt.order. Поле остаётся для wallet/withdraw flow и legacy данных.
-  """
+  """Заблокированный остаток (`userwallets.blocked`)"""
   blocked: String!
 
   """Человекочитаемое название (из cooptypes LEDGER2_WALLET_REGISTRY)"""
@@ -9264,7 +9260,7 @@ type MarketplaceWalletEntry {
   """
   label: String!
 
-  """eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.order)"""
+  """eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.member)"""
   name: String!
 
   """program_id: 1 — Цифровой Кошелёк, 2 — Стол Заказов"""
@@ -13209,7 +13205,7 @@ type Query {
   marketplaceListConsolidatedRequests(input: MarketplaceListConsolidatedRequestsInput, options: PaginationInput): MarketplaceConsolidatedRequestPaginationResult!
 
   """
-  Список наклеек инвентаря КУ — для admin-стола склада и операторских разделов.
+  Список наклеек инвентаря КУ: admin/совет видят весь склад кооператива, оператор — только свой участок.
   """
   marketplaceListInventory(data: MarketplaceListInventoryInput): [MarketplaceInventoryItem!]!
 
@@ -13245,12 +13241,12 @@ type Query {
   """
   Лента выплат поставщикам по всему кооперативу — для совета. Опциональные фильтры: по поставщику-получателю и по статусам.
   """
-  marketplaceListOutgoingPayments(filter: MarketplaceListOutgoingPaymentsFilterInput): [MarketplaceOutgoingPaymentRequest!]!
+  marketplaceListOutgoingPayments(statuses: [MarketplaceOutgoingPaymentRequestStatus!], supplier_account: String): [MarketplaceOutgoingPaymentRequest!]!
 
   """
   История выплат поставщику в столе поставщика — статусы по каждому заказу.
   """
-  marketplaceListOutgoingPaymentsAsSupplier(filter: MarketplaceListOutgoingPaymentsAsSupplierFilterInput): [MarketplaceOutgoingPaymentRequest!]!
+  marketplaceListOutgoingPaymentsAsSupplier(statuses: [MarketplaceOutgoingPaymentRequestStatus!]): [MarketplaceOutgoingPaymentRequest!]!
 
   """Список Offer'ов на модерации (admin)"""
   marketplaceListPendingOffers(input: MarketplaceListPendingOffersInput): MarketplaceOfferPaginationResult!
@@ -13282,7 +13278,7 @@ type Query {
   marketplaceListWriteoffProposals(data: MarketplaceListWriteoffProposalsInput!, options: PaginationInput): PaginatedMarketplaceWriteoffProposals!
 
   """
-  Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.order
+  Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.member
   """
   marketplaceMemberWallet: MarketplaceMemberWallet!
 

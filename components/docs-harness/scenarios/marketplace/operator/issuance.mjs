@@ -3,7 +3,7 @@
 // ACCEPTED_TO_COOP (ожидают открытия первой подписью signiss1) и
 // READY_TO_RECEIVE (ожидают финальной подписи заказчика signiss2).
 
-import { cleanViteOverlays, env, loginAsChairman } from '../../../lib/harness.mjs';
+import { cleanViteOverlays, dismissOnboardingDialogs, env, loginAsChairman } from '../../../lib/harness.mjs';
 
 export const meta = {
   title: 'Стол ПВЗ — открытие выдачи',
@@ -13,17 +13,19 @@ export const meta = {
 };
 
 export default async ({ page, shot }) => {
+  await page.addInitScript(() => localStorage.setItem('harness:noBranchOverlay', '1'));
   await loginAsChairman(page);
-  await page.evaluate(() => localStorage.setItem('harness:noBranchOverlay', '1'));
+  await dismissOnboardingDialogs(page);
 
   await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/market-pvz/issuance`, { waitUntil: 'domcontentloaded', timeout: 45000 });
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(3500);
+  await dismissOnboardingDialogs(page);
   await cleanViteOverlays(page);
 
   await shot(
     page,
     '01-issuance-empty',
-    `«Выдача заказов» председателя КУ. URL: \`${page.url()}\`.`,
+    'Стол «Выдача заказов» председателя КУ: лента заказов, готовых к выдаче. По каждому заказу видны заказчик, количество, сумма и статус («Готов к выдаче»), кнопка «Завершить выдачу» накладывает финальную подпись заказчика (signiss2) и переводит заказ в «Получен».',
   );
 };

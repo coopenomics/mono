@@ -105,6 +105,7 @@ import { useDesignSystemState, MARKETPLACE_ROLES, BREAKPOINTS } from '../composa
 import TokensSection from './sections/TokensSection.vue'
 import PlaceholderSection from './sections/PlaceholderSection.vue'
 import CatalogOfferCardSection from './sections/CatalogOfferCardSection.vue'
+import OfferDetailsDialogSection from './sections/OfferDetailsDialogSection.vue'
 import OrderCardSection from './sections/OrderCardSection.vue'
 import TakeoverDialogSection from './sections/TakeoverDialogSection.vue'
 import WalletTimelineSection from './sections/WalletTimelineSection.vue'
@@ -131,6 +132,7 @@ const statusColor = STATUS_COLOR
 const SECTION_COMPONENTS: Record<string, unknown> = {
   tokens: TokensSection,
   'catalog-offer-card': CatalogOfferCardSection,
+  'offer-details-dialog': OfferDetailsDialogSection,
   'order-card': OrderCardSection,
   'takeover-dialog': TakeoverDialogSection,
   'wallet-timeline': WalletTimelineSection,

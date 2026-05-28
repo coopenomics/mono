@@ -47,6 +47,13 @@ export interface IRegistryExtension {
   readme: Promise<string>; // README содержимое
   instructions: Promise<string>; // INSTALL содержимое
 
+  // Канон авторизации/онбординга столов теперь выражается через grants:
+  // расширение публикует ExtensionDesktopGrantsProvider (см.
+  // domain/desktop/ports/extension-grants.port.ts), а гейтинг до принятия ЦПП
+  // сворачивается в вычисление грантов (нет прав → стол/страница не видны).
+  // Отдельные поля onboarding_route/onboarding_desktop/isOnboarded больше не
+  // нужны. Подробности — components/context/notes/EXTENSIONS_SCHEMA_SYSTEM.md.
+
   // Для обратной совместимости: если есть desktops, значит это desktop расширение
   get is_desktop(): boolean;
 }
@@ -336,11 +343,36 @@ export const AppRegistry: INamedExtension = {
     is_builtin: false,
     is_internal: true,
     is_available: true,
+    // Расширение «Стол заказов» предоставляет ЧЕТЫРЕ рабочих стола, разнесённых
+    // по ролям пайщика. Каждый `name` ОБЯЗАН совпадать с workspace из desktop
+    // `extensions/market/install.ts`: фронт привязывает маршруты только к тем
+    // workspace'ам, что объявлены здесь (desktop.interactor → DesktopStore.setRoutes).
+    // Если стол не объявлен в этом списке — его маршруты молча теряются.
+    // Видимость столов/страниц — канон авторизации (grants): backend
+    // (MarketplaceDesktopGrantsProvider) выдаёт права текущему пользователю,
+    // фронт сверяет с ними `meta.requires` маршрутов. До принятия ЦПП советом
+    // у председателя только Extension:configure (страница подключения), у
+    // остальных — пусто; после принятия — полный набор по ролям.
     desktops: [
       {
         name: 'market',
-        title: 'Стол заказов',
-        icon: 'fa-solid fa-shop',
+        title: 'Стол заказчика',
+        icon: 'fa-solid fa-cart-shopping',
+      },
+      {
+        name: 'market-supplier',
+        title: 'Стол поставщика',
+        icon: 'fa-solid fa-store',
+      },
+      {
+        name: 'market-pvz',
+        title: 'Стол ПВЗ',
+        icon: 'fa-solid fa-map-location-dot',
+      },
+      {
+        name: 'market-admin',
+        title: 'Стол администратора',
+        icon: 'fa-solid fa-shield-halved',
       },
     ],
     title: 'Стол заказов',

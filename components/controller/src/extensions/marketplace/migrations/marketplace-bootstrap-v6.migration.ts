@@ -9,8 +9,8 @@ import { defaultConfig, IConfig } from '../types';
  *    EXECUTING → EXECUTED / REJECTED) — Story 8.1;
  *  - колонка `marketplace_inventory.expiry_date` (Story 8.3) — TypeORM
  *    `synchronize:true` создаёт её ADD COLUMN nullable, backfill не нужен;
- *  - блок настроек `IConfig.writeoff` (`auto_proposal_enabled`,
- *    `expiry_grace_days`) — bootstrap-merge со значениями по умолчанию.
+ *  - блок настроек `IConfig.writeoff` (`auto_proposal_enabled`) —
+ *    bootstrap-merge со значениями по умолчанию.
  *
  * DDL выполняется `synchronize:true` по декларации сущностей; миграция нужна
  * для bump schema_version и для гарантии, что текущая инсталляция понимает

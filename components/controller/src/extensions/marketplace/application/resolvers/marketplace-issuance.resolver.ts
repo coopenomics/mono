@@ -162,16 +162,29 @@ export class MarketplaceIssuanceResolver {
 
     // Ownership-фильтрация — ответственность резолвера. `sign:final` есть у
     // каждого пайщика (роль orderer), поэтому без проверки владельца любой
-    // пайщик прочитал бы акт чужого заказа по подставленному order_id. Превью
-    // финальной подписи доступно только заказчику этого заказа.
+    // пайщик прочитал бы акт чужого заказа по подставленному order_id.
+    //
+    // Канон выдачи (UX-DR4, см. finalizeIssuance): заказчик ставит финальную
+    // подпись на устройстве оператора КУ (operator-assisted POS) — сессия при
+    // этом оператора, а не заказчика. Поэтому превью доступно либо самому
+    // заказчику, либо члену КУ выдачи (председатель/доверенное лицо/оператор),
+    // который проводит выдачу — иначе превью утечёт по подставленному order_id.
+    // Сама финальная подпись всё равно обязана нести ключ заказчика-владельца —
+    // это отдельно проверяет finalizeIssuance по signer'у подписи.
     if (!canAccess(roles, 'Issuance', 'read:all')) {
       const order = await this.orderRepo.findById(data.order_id);
       if (!order || order.coopname !== coopname) {
         throw new NotFoundException('Заказ не найден.');
       }
-      if (order.orderer_account !== member.username) {
+      const isOrderer = order.orderer_account === member.username;
+      const isKuMember = await this.kuChairmanService.isMemberOfBranch(
+        coopname,
+        order.delivery_braname,
+        member.username
+      );
+      if (!isOrderer && !isKuMember) {
         throw new ForbiddenException(
-          'Превью акта выдачи доступно только заказчику этого заказа.'
+          'Превью акта выдачи доступно заказчику или члену кооперативного участка выдачи.'
         );
       }
     }

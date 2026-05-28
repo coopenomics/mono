@@ -62,9 +62,12 @@ export class MarketplacePayoutSyncService {
         this.logger.warn('payconfirm: пустые coopname/outcome_hash — пропускаю.');
         return;
       }
+      // On-chain hash приходит в верхнем регистре, а order_hash в projection
+      // хранится в нижнем — нормализуем, иначе applyCompletion не найдёт заявку.
+      const outcomeHash = data.outcome_hash.toLowerCase();
       const updated = await this.paymentRepo.applyCompletion(
         data.coopname,
-        data.outcome_hash,
+        outcomeHash,
         {
           completed_at: new Date(),
           payout_tx_hash: action.transaction_id,
@@ -72,7 +75,7 @@ export class MarketplacePayoutSyncService {
       );
       if (!updated) {
         this.logger.warn(
-          `payconfirm: marketplace_outgoing_payment_request для outcome ${data.outcome_hash} не найден — projection не создалась? Пропускаю.`
+          `payconfirm: marketplace_outgoing_payment_request для outcome ${outcomeHash} не найден — projection не создалась? Пропускаю.`
         );
         return;
       }
@@ -117,14 +120,15 @@ export class MarketplacePayoutSyncService {
         this.logger.warn('paydecline: пустые coopname/outcome_hash — пропускаю.');
         return;
       }
+      const outcomeHash = data.outcome_hash.toLowerCase();
       const updated = await this.paymentRepo.applyDecline(
         data.coopname,
-        data.outcome_hash,
+        outcomeHash,
         data.reason ?? 'причина не указана'
       );
       if (!updated) {
         this.logger.warn(
-          `paydecline: marketplace_outgoing_payment_request для outcome ${data.outcome_hash} не найден — пропускаю.`
+          `paydecline: marketplace_outgoing_payment_request для outcome ${outcomeHash} не найден — пропускаю.`
         );
         return;
       }

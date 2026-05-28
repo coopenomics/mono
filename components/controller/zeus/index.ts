@@ -4737,6 +4737,8 @@ export type ValueTypes = {
 	defaultRoute?:boolean | `@${string}`,
 	/** Имя расширения, которому принадлежит этот workspace */
 	extension_name?:boolean | `@${string}`,
+	/** Права доступа текущего пользователя в расширении (вид «Resource:action»). Фронт показывает страницу/стол, если её требование входит в этот список. Отсутствует у расширений, не использующих канон прав доступа. */
+	grants?:boolean | `@${string}`,
 	/** Иконка для меню */
 	icon?:boolean | `@${string}`,
 	/** Уникальное имя workspace */
@@ -6767,7 +6769,7 @@ export type ValueTypes = {
 	['...on MarketplaceKUDetails']?: Omit<ValueTypes["MarketplaceKUDetails"], "...on MarketplaceKUDetails">
 }>;
 	["MarketplaceLabelInventoryInput"]: {
-	/** Формат штрих-кода. По умолчанию — CODE128. */
+	/** Формат штрих-кода. По умолчанию — EAN-13. */
 	format?: ValueTypes["MarketplaceBarcodeFormat"] | undefined | null | Variable<any, string>,
 	/** Заказ, для которого формируются наклейки. */
 	order_id: ValueTypes["ID"] | Variable<any, string>,
@@ -6785,7 +6787,7 @@ export type ValueTypes = {
 	["MarketplaceLabelShipmentInventoryInput"]: {
 	/** Стратегия маркировки по умолчанию для всех заказов партии. */
 	default_strategy?: ValueTypes["MarketplaceBarcodeStrategy"] | undefined | null | Variable<any, string>,
-	/** Формат штрих-кода для всей партии. По умолчанию — CODE128. */
+	/** Формат штрих-кода для всей партии. По умолчанию — EAN-13. */
 	format?: ValueTypes["MarketplaceBarcodeFormat"] | undefined | null | Variable<any, string>,
 	/** Перекрытия стратегии для отдельных заказов партии (если состав смешанный). */
 	per_order_overrides?: Array<ValueTypes["MarketplaceLabelShipmentInventoryOverride"]> | undefined | null | Variable<any, string>,
@@ -6867,16 +6869,6 @@ export type ValueTypes = {
 	/** Фильтр по аккаунту поставщика. */
 	supplier_account?: string | undefined | null | Variable<any, string>
 };
-	["MarketplaceListOutgoingPaymentsAsSupplierFilterInput"]: {
-	/** Фильтр по статусам выплат. Пусто — показывать все статусы. */
-	statuses?: Array<ValueTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null | Variable<any, string>
-};
-	["MarketplaceListOutgoingPaymentsFilterInput"]: {
-	/** Фильтр по статусам выплат. Пусто — показывать все статусы. */
-	statuses?: Array<ValueTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null | Variable<any, string>,
-	/** Поставщик-получатель выплаты. Пусто — по всем поставщикам. */
-	supplier_account?: string | undefined | null | Variable<any, string>
-};
 	["MarketplaceListPendingOffersInput"]: {
 	/** Количество элементов на странице */
 	limit: number | Variable<any, string>,
@@ -6911,7 +6903,7 @@ export type ValueTypes = {
 	["MarketplaceMemberWallet"]: AliasType<{
 	coopname?:boolean | `@${string}`,
 	username?:boolean | `@${string}`,
-	/** Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.order */
+	/** Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.member */
 	wallets?:ValueTypes["MarketplaceWalletEntry"],
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceMemberWallet']?: Omit<ValueTypes["MarketplaceMemberWallet"], "...on MarketplaceMemberWallet">
@@ -7064,12 +7056,16 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceOrder']?: Omit<ValueTypes["MarketplaceOrder"], "...on MarketplaceOrder">
 }>;
-	/** Снимок транзакции резервирования средств: ссылки на блок и сумма резерва. */
+	/** Снимок транзакции блокировки средств: ссылки на блок, флаги конверсии и сумма. */
 ["MarketplaceOrderCreateTxSnapshot"]: AliasType<{
 	/** Номер блока, в который попала транзакция. */
 	block_num?:boolean | `@${string}`,
-	/** Сумма зарезервированных средств (строка денежного актива). */
-	locked_amount?:boolean | `@${string}`,
+	/** Сумма заблокированных средств (строка денежного актива). */
+	blocked_amount?:boolean | `@${string}`,
+	/** Был ли выполнен перевод средств между кошельками пайщика. */
+	did_assign?:boolean | `@${string}`,
+	/** Была ли выполнена конверсия паевого взноса в членский. */
+	did_convert?:boolean | `@${string}`,
 	/** Время подписания заказа (ISO 8601). */
 	signed_at?:boolean | `@${string}`,
 	/** Идентификатор транзакции в блокчейне. */
@@ -7687,7 +7683,7 @@ export type ValueTypes = {
 	["MarketplaceWalletEntry"]: AliasType<{
 	/** Доступный остаток (`userwallets.available`) */
 	available?:boolean | `@${string}`,
-	/** Заблокированный остаток (`userwallets.blocked`). Для marketplace-кошельков всегда `0` — резерв выражается через `.available` кошелька w.mkt.order. Поле остаётся для wallet/withdraw flow и legacy данных. */
+	/** Заблокированный остаток (`userwallets.blocked`) */
 	blocked?:boolean | `@${string}`,
 	/** Человекочитаемое название (из cooptypes LEDGER2_WALLET_REGISTRY) */
 	human_name?:boolean | `@${string}`,
@@ -7695,7 +7691,7 @@ export type ValueTypes = {
 	kind?:boolean | `@${string}`,
 	/** UX-метка кошелька в формате `<тип взноса> | <программа>` (например «Паевой | Цифровой Кошелёк», «Членский | Стол Заказов») */
 	label?:boolean | `@${string}`,
-	/** eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.order) */
+	/** eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.member) */
 	name?:boolean | `@${string}`,
 	/** program_id: 1 — Цифровой Кошелёк, 2 — Стол Заказов */
 	program_id?:boolean | `@${string}`,
@@ -9600,8 +9596,8 @@ marketplaceListMyOrders?: [{	input?: ValueTypes["MarketplaceListOrdersInput"] | 
 	marketplaceListMyReadyToReceive?:ValueTypes["MarketplaceOrder"],
 	/** Все заявления текущего пайщика на гарантийный возврат — активные и архивные. */
 	marketplaceListMyReturnClaims?:ValueTypes["MarketplaceReturnClaim"],
-marketplaceListOutgoingPayments?: [{	filter?: ValueTypes["MarketplaceListOutgoingPaymentsFilterInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOutgoingPaymentRequest"]],
-marketplaceListOutgoingPaymentsAsSupplier?: [{	filter?: ValueTypes["MarketplaceListOutgoingPaymentsAsSupplierFilterInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOutgoingPaymentRequest"]],
+marketplaceListOutgoingPayments?: [{	statuses?: Array<ValueTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null | Variable<any, string>,	supplier_account?: string | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOutgoingPaymentRequest"]],
+marketplaceListOutgoingPaymentsAsSupplier?: [{	statuses?: Array<ValueTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOutgoingPaymentRequest"]],
 marketplaceListPendingOffers?: [{	input?: ValueTypes["MarketplaceListPendingOffersInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOfferPaginationResult"]],
 marketplaceListReturnClaimsByBraname?: [{	data: ValueTypes["MarketplaceListReturnClaimsByBranameInput"] | Variable<any, string>},ValueTypes["MarketplaceReturnClaim"]],
 marketplaceListShipments?: [{	data?: ValueTypes["MarketplaceListShipmentsInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceShipment"]],
@@ -9610,7 +9606,7 @@ marketplaceListSupplierOrders?: [{	input?: ValueTypes["MarketplaceListOrdersInpu
 	/** Список пайщиков-поставщиков, допущенных к публикации оферт */
 	marketplaceListWhitelist?:ValueTypes["MarketplaceWhitelistEntry"],
 marketplaceListWriteoffProposals?: [{	data: ValueTypes["MarketplaceListWriteoffProposalsInput"] | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedMarketplaceWriteoffProposals"]],
-	/** Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.order */
+	/** Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.member */
 	marketplaceMemberWallet?:ValueTypes["MarketplaceMemberWallet"],
 	/** Состояние онбординга пайщика в Столе заказов: показывать ли gate или пропускать на стол */
 	marketplaceOnboardingState?:ValueTypes["MarketplaceOnboardingState"],
@@ -14759,6 +14755,8 @@ export type ResolverInputTypes = {
 	defaultRoute?:boolean | `@${string}`,
 	/** Имя расширения, которому принадлежит этот workspace */
 	extension_name?:boolean | `@${string}`,
+	/** Права доступа текущего пользователя в расширении (вид «Resource:action»). Фронт показывает страницу/стол, если её требование входит в этот список. Отсутствует у расширений, не использующих канон прав доступа. */
+	grants?:boolean | `@${string}`,
 	/** Иконка для меню */
 	icon?:boolean | `@${string}`,
 	/** Уникальное имя workspace */
@@ -16727,7 +16725,7 @@ export type ResolverInputTypes = {
 		__typename?: boolean | `@${string}`
 }>;
 	["MarketplaceLabelInventoryInput"]: {
-	/** Формат штрих-кода. По умолчанию — CODE128. */
+	/** Формат штрих-кода. По умолчанию — EAN-13. */
 	format?: ResolverInputTypes["MarketplaceBarcodeFormat"] | undefined | null,
 	/** Заказ, для которого формируются наклейки. */
 	order_id: ResolverInputTypes["ID"],
@@ -16744,7 +16742,7 @@ export type ResolverInputTypes = {
 	["MarketplaceLabelShipmentInventoryInput"]: {
 	/** Стратегия маркировки по умолчанию для всех заказов партии. */
 	default_strategy?: ResolverInputTypes["MarketplaceBarcodeStrategy"] | undefined | null,
-	/** Формат штрих-кода для всей партии. По умолчанию — CODE128. */
+	/** Формат штрих-кода для всей партии. По умолчанию — EAN-13. */
 	format?: ResolverInputTypes["MarketplaceBarcodeFormat"] | undefined | null,
 	/** Перекрытия стратегии для отдельных заказов партии (если состав смешанный). */
 	per_order_overrides?: Array<ResolverInputTypes["MarketplaceLabelShipmentInventoryOverride"]> | undefined | null,
@@ -16825,16 +16823,6 @@ export type ResolverInputTypes = {
 	/** Фильтр по аккаунту поставщика. */
 	supplier_account?: string | undefined | null
 };
-	["MarketplaceListOutgoingPaymentsAsSupplierFilterInput"]: {
-	/** Фильтр по статусам выплат. Пусто — показывать все статусы. */
-	statuses?: Array<ResolverInputTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null
-};
-	["MarketplaceListOutgoingPaymentsFilterInput"]: {
-	/** Фильтр по статусам выплат. Пусто — показывать все статусы. */
-	statuses?: Array<ResolverInputTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null,
-	/** Поставщик-получатель выплаты. Пусто — по всем поставщикам. */
-	supplier_account?: string | undefined | null
-};
 	["MarketplaceListPendingOffersInput"]: {
 	/** Количество элементов на странице */
 	limit: number,
@@ -16869,7 +16857,7 @@ export type ResolverInputTypes = {
 	["MarketplaceMemberWallet"]: AliasType<{
 	coopname?:boolean | `@${string}`,
 	username?:boolean | `@${string}`,
-	/** Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.order */
+	/** Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.member */
 	wallets?:ResolverInputTypes["MarketplaceWalletEntry"],
 		__typename?: boolean | `@${string}`
 }>;
@@ -17016,12 +17004,16 @@ export type ResolverInputTypes = {
 	warranty_until?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	/** Снимок транзакции резервирования средств: ссылки на блок и сумма резерва. */
+	/** Снимок транзакции блокировки средств: ссылки на блок, флаги конверсии и сумма. */
 ["MarketplaceOrderCreateTxSnapshot"]: AliasType<{
 	/** Номер блока, в который попала транзакция. */
 	block_num?:boolean | `@${string}`,
-	/** Сумма зарезервированных средств (строка денежного актива). */
-	locked_amount?:boolean | `@${string}`,
+	/** Сумма заблокированных средств (строка денежного актива). */
+	blocked_amount?:boolean | `@${string}`,
+	/** Был ли выполнен перевод средств между кошельками пайщика. */
+	did_assign?:boolean | `@${string}`,
+	/** Была ли выполнена конверсия паевого взноса в членский. */
+	did_convert?:boolean | `@${string}`,
 	/** Время подписания заказа (ISO 8601). */
 	signed_at?:boolean | `@${string}`,
 	/** Идентификатор транзакции в блокчейне. */
@@ -17619,7 +17611,7 @@ export type ResolverInputTypes = {
 	["MarketplaceWalletEntry"]: AliasType<{
 	/** Доступный остаток (`userwallets.available`) */
 	available?:boolean | `@${string}`,
-	/** Заблокированный остаток (`userwallets.blocked`). Для marketplace-кошельков всегда `0` — резерв выражается через `.available` кошелька w.mkt.order. Поле остаётся для wallet/withdraw flow и legacy данных. */
+	/** Заблокированный остаток (`userwallets.blocked`) */
 	blocked?:boolean | `@${string}`,
 	/** Человекочитаемое название (из cooptypes LEDGER2_WALLET_REGISTRY) */
 	human_name?:boolean | `@${string}`,
@@ -17627,7 +17619,7 @@ export type ResolverInputTypes = {
 	kind?:boolean | `@${string}`,
 	/** UX-метка кошелька в формате `<тип взноса> | <программа>` (например «Паевой | Цифровой Кошелёк», «Членский | Стол Заказов») */
 	label?:boolean | `@${string}`,
-	/** eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.order) */
+	/** eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.member) */
 	name?:boolean | `@${string}`,
 	/** program_id: 1 — Цифровой Кошелёк, 2 — Стол Заказов */
 	program_id?:boolean | `@${string}`,
@@ -19461,8 +19453,8 @@ marketplaceListMyOrders?: [{	input?: ResolverInputTypes["MarketplaceListOrdersIn
 	marketplaceListMyReadyToReceive?:ResolverInputTypes["MarketplaceOrder"],
 	/** Все заявления текущего пайщика на гарантийный возврат — активные и архивные. */
 	marketplaceListMyReturnClaims?:ResolverInputTypes["MarketplaceReturnClaim"],
-marketplaceListOutgoingPayments?: [{	filter?: ResolverInputTypes["MarketplaceListOutgoingPaymentsFilterInput"] | undefined | null},ResolverInputTypes["MarketplaceOutgoingPaymentRequest"]],
-marketplaceListOutgoingPaymentsAsSupplier?: [{	filter?: ResolverInputTypes["MarketplaceListOutgoingPaymentsAsSupplierFilterInput"] | undefined | null},ResolverInputTypes["MarketplaceOutgoingPaymentRequest"]],
+marketplaceListOutgoingPayments?: [{	statuses?: Array<ResolverInputTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null,	supplier_account?: string | undefined | null},ResolverInputTypes["MarketplaceOutgoingPaymentRequest"]],
+marketplaceListOutgoingPaymentsAsSupplier?: [{	statuses?: Array<ResolverInputTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null},ResolverInputTypes["MarketplaceOutgoingPaymentRequest"]],
 marketplaceListPendingOffers?: [{	input?: ResolverInputTypes["MarketplaceListPendingOffersInput"] | undefined | null},ResolverInputTypes["MarketplaceOfferPaginationResult"]],
 marketplaceListReturnClaimsByBraname?: [{	data: ResolverInputTypes["MarketplaceListReturnClaimsByBranameInput"]},ResolverInputTypes["MarketplaceReturnClaim"]],
 marketplaceListShipments?: [{	data?: ResolverInputTypes["MarketplaceListShipmentsInput"] | undefined | null},ResolverInputTypes["MarketplaceShipment"]],
@@ -19471,7 +19463,7 @@ marketplaceListSupplierOrders?: [{	input?: ResolverInputTypes["MarketplaceListOr
 	/** Список пайщиков-поставщиков, допущенных к публикации оферт */
 	marketplaceListWhitelist?:ResolverInputTypes["MarketplaceWhitelistEntry"],
 marketplaceListWriteoffProposals?: [{	data: ResolverInputTypes["MarketplaceListWriteoffProposalsInput"],	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedMarketplaceWriteoffProposals"]],
-	/** Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.order */
+	/** Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.member */
 	marketplaceMemberWallet?:ResolverInputTypes["MarketplaceMemberWallet"],
 	/** Состояние онбординга пайщика в Столе заказов: показывать ли gate или пропускать на стол */
 	marketplaceOnboardingState?:ResolverInputTypes["MarketplaceOnboardingState"],
@@ -24476,6 +24468,8 @@ export type ModelTypes = {
 	defaultRoute?: string | undefined | null,
 	/** Имя расширения, которому принадлежит этот workspace */
 	extension_name: string,
+	/** Права доступа текущего пользователя в расширении (вид «Resource:action»). Фронт показывает страницу/стол, если её требование входит в этот список. Отсутствует у расширений, не использующих канон прав доступа. */
+	grants?: Array<string> | undefined | null,
 	/** Иконка для меню */
 	icon?: string | undefined | null,
 	/** Уникальное имя workspace */
@@ -26366,7 +26360,7 @@ export type ModelTypes = {
 	workingHours: ModelTypes["WorkingHours"]
 };
 	["MarketplaceLabelInventoryInput"]: {
-	/** Формат штрих-кода. По умолчанию — CODE128. */
+	/** Формат штрих-кода. По умолчанию — EAN-13. */
 	format?: ModelTypes["MarketplaceBarcodeFormat"] | undefined | null,
 	/** Заказ, для которого формируются наклейки. */
 	order_id: ModelTypes["ID"],
@@ -26382,7 +26376,7 @@ export type ModelTypes = {
 	["MarketplaceLabelShipmentInventoryInput"]: {
 	/** Стратегия маркировки по умолчанию для всех заказов партии. */
 	default_strategy?: ModelTypes["MarketplaceBarcodeStrategy"] | undefined | null,
-	/** Формат штрих-кода для всей партии. По умолчанию — CODE128. */
+	/** Формат штрих-кода для всей партии. По умолчанию — EAN-13. */
 	format?: ModelTypes["MarketplaceBarcodeFormat"] | undefined | null,
 	/** Перекрытия стратегии для отдельных заказов партии (если состав смешанный). */
 	per_order_overrides?: Array<ModelTypes["MarketplaceLabelShipmentInventoryOverride"]> | undefined | null,
@@ -26462,16 +26456,6 @@ export type ModelTypes = {
 	/** Фильтр по аккаунту поставщика. */
 	supplier_account?: string | undefined | null
 };
-	["MarketplaceListOutgoingPaymentsAsSupplierFilterInput"]: {
-	/** Фильтр по статусам выплат. Пусто — показывать все статусы. */
-	statuses?: Array<ModelTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null
-};
-	["MarketplaceListOutgoingPaymentsFilterInput"]: {
-	/** Фильтр по статусам выплат. Пусто — показывать все статусы. */
-	statuses?: Array<ModelTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null,
-	/** Поставщик-получатель выплаты. Пусто — по всем поставщикам. */
-	supplier_account?: string | undefined | null
-};
 	["MarketplaceListPendingOffersInput"]: {
 	/** Количество элементов на странице */
 	limit: number,
@@ -26506,7 +26490,7 @@ export type ModelTypes = {
 	["MarketplaceMemberWallet"]: {
 		coopname: string,
 	username: string,
-	/** Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.order */
+	/** Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.member */
 	wallets: Array<ModelTypes["MarketplaceWalletEntry"]>
 };
 	["MarketplaceModerationLogEntry"]: {
@@ -26647,12 +26631,16 @@ export type ModelTypes = {
 	/** Дата окончания гарантии. */
 	warranty_until?: ModelTypes["DateTime"] | undefined | null
 };
-	/** Снимок транзакции резервирования средств: ссылки на блок и сумма резерва. */
+	/** Снимок транзакции блокировки средств: ссылки на блок, флаги конверсии и сумма. */
 ["MarketplaceOrderCreateTxSnapshot"]: {
 		/** Номер блока, в который попала транзакция. */
 	block_num: number,
-	/** Сумма зарезервированных средств (строка денежного актива). */
-	locked_amount: string,
+	/** Сумма заблокированных средств (строка денежного актива). */
+	blocked_amount: string,
+	/** Был ли выполнен перевод средств между кошельками пайщика. */
+	did_assign: boolean,
+	/** Была ли выполнена конверсия паевого взноса в членский. */
+	did_convert: boolean,
 	/** Время подписания заказа (ISO 8601). */
 	signed_at: string,
 	/** Идентификатор транзакции в блокчейне. */
@@ -27221,7 +27209,7 @@ export type ModelTypes = {
 	["MarketplaceWalletEntry"]: {
 		/** Доступный остаток (`userwallets.available`) */
 	available: string,
-	/** Заблокированный остаток (`userwallets.blocked`). Для marketplace-кошельков всегда `0` — резерв выражается через `.available` кошелька w.mkt.order. Поле остаётся для wallet/withdraw flow и legacy данных. */
+	/** Заблокированный остаток (`userwallets.blocked`) */
 	blocked: string,
 	/** Человекочитаемое название (из cooptypes LEDGER2_WALLET_REGISTRY) */
 	human_name: string,
@@ -27229,7 +27217,7 @@ export type ModelTypes = {
 	kind: string,
 	/** UX-метка кошелька в формате `<тип взноса> | <программа>` (например «Паевой | Цифровой Кошелёк», «Членский | Стол Заказов») */
 	label: string,
-	/** eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.order) */
+	/** eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.member) */
 	name: string,
 	/** program_id: 1 — Цифровой Кошелёк, 2 — Стол Заказов */
 	program_id: number
@@ -29693,7 +29681,7 @@ export type ModelTypes = {
 	marketplaceListCategories: Array<ModelTypes["MarketplaceCategory"]>,
 	/** Постраничный список сводных заявок поставщика — для стола поставщика и для прослеживания состояния заказов. */
 	marketplaceListConsolidatedRequests: ModelTypes["MarketplaceConsolidatedRequestPaginationResult"],
-	/** Список наклеек инвентаря КУ — для admin-стола склада и операторских разделов. */
+	/** Список наклеек инвентаря КУ: admin/совет видят весь склад кооператива, оператор — только свой участок. */
 	marketplaceListInventory: Array<ModelTypes["MarketplaceInventoryItem"]>,
 	/** Список заказов на кооперативном участке, ожидающих открытия и финальной подписи выдачи (для оператора кооперативного участка). */
 	marketplaceListIssuancesByBraname: Array<ModelTypes["MarketplaceOrder"]>,
@@ -29729,7 +29717,7 @@ export type ModelTypes = {
 	marketplaceListWhitelist: Array<ModelTypes["MarketplaceWhitelistEntry"]>,
 	/** Лента всех проектов списания кооператива с фильтром по статусу. */
 	marketplaceListWriteoffProposals: ModelTypes["PaginatedMarketplaceWriteoffProposals"],
-	/** Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.order */
+	/** Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.member */
 	marketplaceMemberWallet: ModelTypes["MarketplaceMemberWallet"],
 	/** Состояние онбординга пайщика в Столе заказов: показывать ли gate или пропускать на стол */
 	marketplaceOnboardingState: ModelTypes["MarketplaceOnboardingState"],
@@ -34886,6 +34874,8 @@ export type GraphQLTypes = {
 	defaultRoute?: string | undefined | null,
 	/** Имя расширения, которому принадлежит этот workspace */
 	extension_name: string,
+	/** Права доступа текущего пользователя в расширении (вид «Resource:action»). Фронт показывает страницу/стол, если её требование входит в этот список. Отсутствует у расширений, не использующих канон прав доступа. */
+	grants?: Array<string> | undefined | null,
 	/** Иконка для меню */
 	icon?: string | undefined | null,
 	/** Уникальное имя workspace */
@@ -36915,7 +36905,7 @@ export type GraphQLTypes = {
 	['...on MarketplaceKUDetails']: Omit<GraphQLTypes["MarketplaceKUDetails"], "...on MarketplaceKUDetails">
 };
 	["MarketplaceLabelInventoryInput"]: {
-		/** Формат штрих-кода. По умолчанию — CODE128. */
+		/** Формат штрих-кода. По умолчанию — EAN-13. */
 	format?: GraphQLTypes["MarketplaceBarcodeFormat"] | undefined | null,
 	/** Заказ, для которого формируются наклейки. */
 	order_id: GraphQLTypes["ID"],
@@ -36933,7 +36923,7 @@ export type GraphQLTypes = {
 	["MarketplaceLabelShipmentInventoryInput"]: {
 		/** Стратегия маркировки по умолчанию для всех заказов партии. */
 	default_strategy?: GraphQLTypes["MarketplaceBarcodeStrategy"] | undefined | null,
-	/** Формат штрих-кода для всей партии. По умолчанию — CODE128. */
+	/** Формат штрих-кода для всей партии. По умолчанию — EAN-13. */
 	format?: GraphQLTypes["MarketplaceBarcodeFormat"] | undefined | null,
 	/** Перекрытия стратегии для отдельных заказов партии (если состав смешанный). */
 	per_order_overrides?: Array<GraphQLTypes["MarketplaceLabelShipmentInventoryOverride"]> | undefined | null,
@@ -37015,16 +37005,6 @@ export type GraphQLTypes = {
 	/** Фильтр по аккаунту поставщика. */
 	supplier_account?: string | undefined | null
 };
-	["MarketplaceListOutgoingPaymentsAsSupplierFilterInput"]: {
-		/** Фильтр по статусам выплат. Пусто — показывать все статусы. */
-	statuses?: Array<GraphQLTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null
-};
-	["MarketplaceListOutgoingPaymentsFilterInput"]: {
-		/** Фильтр по статусам выплат. Пусто — показывать все статусы. */
-	statuses?: Array<GraphQLTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null,
-	/** Поставщик-получатель выплаты. Пусто — по всем поставщикам. */
-	supplier_account?: string | undefined | null
-};
 	["MarketplaceListPendingOffersInput"]: {
 		/** Количество элементов на странице */
 	limit: number,
@@ -37060,7 +37040,7 @@ export type GraphQLTypes = {
 	__typename: "MarketplaceMemberWallet",
 	coopname: string,
 	username: string,
-	/** Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.order */
+	/** Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.member */
 	wallets: Array<GraphQLTypes["MarketplaceWalletEntry"]>,
 	['...on MarketplaceMemberWallet']: Omit<GraphQLTypes["MarketplaceMemberWallet"], "...on MarketplaceMemberWallet">
 };
@@ -37212,13 +37192,17 @@ export type GraphQLTypes = {
 	warranty_until?: GraphQLTypes["DateTime"] | undefined | null,
 	['...on MarketplaceOrder']: Omit<GraphQLTypes["MarketplaceOrder"], "...on MarketplaceOrder">
 };
-	/** Снимок транзакции резервирования средств: ссылки на блок и сумма резерва. */
+	/** Снимок транзакции блокировки средств: ссылки на блок, флаги конверсии и сумма. */
 ["MarketplaceOrderCreateTxSnapshot"]: {
 	__typename: "MarketplaceOrderCreateTxSnapshot",
 	/** Номер блока, в который попала транзакция. */
 	block_num: number,
-	/** Сумма зарезервированных средств (строка денежного актива). */
-	locked_amount: string,
+	/** Сумма заблокированных средств (строка денежного актива). */
+	blocked_amount: string,
+	/** Был ли выполнен перевод средств между кошельками пайщика. */
+	did_assign: boolean,
+	/** Была ли выполнена конверсия паевого взноса в членский. */
+	did_convert: boolean,
 	/** Время подписания заказа (ISO 8601). */
 	signed_at: string,
 	/** Идентификатор транзакции в блокчейне. */
@@ -37836,7 +37820,7 @@ export type GraphQLTypes = {
 	__typename: "MarketplaceWalletEntry",
 	/** Доступный остаток (`userwallets.available`) */
 	available: string,
-	/** Заблокированный остаток (`userwallets.blocked`). Для marketplace-кошельков всегда `0` — резерв выражается через `.available` кошелька w.mkt.order. Поле остаётся для wallet/withdraw flow и legacy данных. */
+	/** Заблокированный остаток (`userwallets.blocked`) */
 	blocked: string,
 	/** Человекочитаемое название (из cooptypes LEDGER2_WALLET_REGISTRY) */
 	human_name: string,
@@ -37844,7 +37828,7 @@ export type GraphQLTypes = {
 	kind: string,
 	/** UX-метка кошелька в формате `<тип взноса> | <программа>` (например «Паевой | Цифровой Кошелёк», «Членский | Стол Заказов») */
 	label: string,
-	/** eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.order) */
+	/** eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.member) */
 	name: string,
 	/** program_id: 1 — Цифровой Кошелёк, 2 — Стол Заказов */
 	program_id: number,
@@ -40472,7 +40456,7 @@ export type GraphQLTypes = {
 	marketplaceListCategories: Array<GraphQLTypes["MarketplaceCategory"]>,
 	/** Постраничный список сводных заявок поставщика — для стола поставщика и для прослеживания состояния заказов. */
 	marketplaceListConsolidatedRequests: GraphQLTypes["MarketplaceConsolidatedRequestPaginationResult"],
-	/** Список наклеек инвентаря КУ — для admin-стола склада и операторских разделов. */
+	/** Список наклеек инвентаря КУ: admin/совет видят весь склад кооператива, оператор — только свой участок. */
 	marketplaceListInventory: Array<GraphQLTypes["MarketplaceInventoryItem"]>,
 	/** Список заказов на кооперативном участке, ожидающих открытия и финальной подписи выдачи (для оператора кооперативного участка). */
 	marketplaceListIssuancesByBraname: Array<GraphQLTypes["MarketplaceOrder"]>,
@@ -40508,7 +40492,7 @@ export type GraphQLTypes = {
 	marketplaceListWhitelist: Array<GraphQLTypes["MarketplaceWhitelistEntry"]>,
 	/** Лента всех проектов списания кооператива с фильтром по статусу. */
 	marketplaceListWriteoffProposals: GraphQLTypes["PaginatedMarketplaceWriteoffProposals"],
-	/** Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.order */
+	/** Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.member */
 	marketplaceMemberWallet: GraphQLTypes["MarketplaceMemberWallet"],
 	/** Состояние онбординга пайщика в Столе заказов: показывать ли gate или пропускать на стол */
 	marketplaceOnboardingState: GraphQLTypes["MarketplaceOnboardingState"],
@@ -42957,8 +42941,6 @@ type ZEUS_VARIABLES = {
 	["MarketplaceListIssuancesByBranameInput"]: ValueTypes["MarketplaceListIssuancesByBranameInput"];
 	["MarketplaceListMyOffersInput"]: ValueTypes["MarketplaceListMyOffersInput"];
 	["MarketplaceListOrdersInput"]: ValueTypes["MarketplaceListOrdersInput"];
-	["MarketplaceListOutgoingPaymentsAsSupplierFilterInput"]: ValueTypes["MarketplaceListOutgoingPaymentsAsSupplierFilterInput"];
-	["MarketplaceListOutgoingPaymentsFilterInput"]: ValueTypes["MarketplaceListOutgoingPaymentsFilterInput"];
 	["MarketplaceListPendingOffersInput"]: ValueTypes["MarketplaceListPendingOffersInput"];
 	["MarketplaceListReturnClaimsByBranameInput"]: ValueTypes["MarketplaceListReturnClaimsByBranameInput"];
 	["MarketplaceListShipmentsByBranameInput"]: ValueTypes["MarketplaceListShipmentsByBranameInput"];

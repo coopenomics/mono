@@ -46,6 +46,23 @@ export async function approveOffer(offer_id: string): Promise<MarketplacePending
   return result;
 }
 
+/**
+ * Председатель отклоняет предложение с обязательной причиной (≤1000).
+ * Backend: marketplace-moderation.resolver.ts → marketplaceRejectOffer
+ * (статус → REJECTED, причина сохраняется в reject_reason и видна поставщику
+ * в «Мои предложения»).
+ */
+export async function rejectOffer(
+  offer_id: string,
+  reason: string,
+): Promise<MarketplacePendingOfferView> {
+  const { [Mutations.Marketplace.RejectOffer.name]: result } = await client.Mutation(
+    Mutations.Marketplace.RejectOffer.mutation,
+    { variables: { input: { offer_id, reason } } },
+  );
+  return result;
+}
+
 export async function fetchModerationLog(
   offer_id: string,
 ): Promise<MarketplaceModerationLogEntryView> {

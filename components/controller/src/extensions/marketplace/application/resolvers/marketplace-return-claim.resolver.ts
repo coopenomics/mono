@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, UseGuards } from '@nestjs/common';
+import { ForbiddenException, Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import config from '~/config/config';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
@@ -25,8 +25,11 @@ import {
   MARKETPLACE_KU_CHAIRMAN_SERVICE,
   type MarketplaceKuChairmanService,
 } from '../services/marketplace-ku-chairman.service';
-import { Inject } from '@nestjs/common';
 import { toMarketplaceReturnClaimDTO } from './marketplace-return-claim.mapper';
+import {
+  MARKETPLACE_BRANCH_OWNERSHIP_SERVICE,
+  MarketplaceBranchOwnershipService,
+} from '../services/marketplace-branch-ownership.service';
 
 function toGeneratedDocumentDTO(e: DocumentDomainEntity): GeneratedDocumentDTO {
   const dto = new GeneratedDocumentDTO();
@@ -54,7 +57,9 @@ export class MarketplaceReturnClaimResolver {
   constructor(
     private readonly service: MarketplaceReturnClaimService,
     @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
-    private readonly kuChairmanService: MarketplaceKuChairmanService
+    private readonly kuChairmanService: MarketplaceKuChairmanService,
+    @Inject(MARKETPLACE_BRANCH_OWNERSHIP_SERVICE)
+    private readonly branchOwnership: MarketplaceBranchOwnershipService
   ) {}
 
   @Query(() => GeneratedDocumentDTO, {

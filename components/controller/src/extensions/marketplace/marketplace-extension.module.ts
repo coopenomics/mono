@@ -15,7 +15,13 @@ import {
   AGREEMENT_REGISTRATION_PORT,
   type AgreementRegistrationPort,
 } from '~/domain/registration/ports/agreement-registration.port';
+import {
+  ONBOARDING_STEP_REGISTRATION_PORT,
+  type OnboardingStepRegistrationPort,
+} from '~/domain/onboarding/ports/onboarding-step-registration.port';
+import { Cooperative } from 'cooptypes';
 import { registerMarketplaceInAgreementRegistry } from './application/registration/register-marketplace-in-agreement-registry';
+import { registerMarketplaceOnboardingSteps } from './application/onboarding/register-marketplace-onboarding-steps';
 
 /**
  * Optional-инжектируемый порт файлового хранилища. Имя расширения marketplace
@@ -36,6 +42,8 @@ export class MarketplacePlugin extends BaseExtModule {
     private readonly logger: WinstonLoggerService,
     @Inject(AGREEMENT_REGISTRATION_PORT)
     private readonly agreementRegistrationPort: AgreementRegistrationPort,
+    @Inject(ONBOARDING_STEP_REGISTRATION_PORT)
+    private readonly onboardingStepRegistration: OnboardingStepRegistrationPort,
     @Optional()
     @Inject(MARKETPLACE_FILE_STORAGE_PORT)
     private readonly fileStorage: IMarketplaceFileStoragePort | null = null
@@ -62,10 +70,62 @@ export class MarketplacePlugin extends BaseExtModule {
       config: merge({}, defaultConfig, pluginData.config),
     };
 
+    // Декларируем шаги L1-онбординга в платформенном реестре. Дальше весь flow
+    // (free-decision → tracking-rule → DecisionTrackedEvent → _done →
+    // ONBOARDING_COMPLETED → restartApp) делает generic-слой.
+    registerMarketplaceOnboardingSteps(this.onboardingStepRegistration);
+
+    // Свести L1-состояние из платформенного онбординга: если совет утвердил оба
+    // документа (оба onboarding_*_done=true проставлены generic-слушателем по
+    // реальному ончейн-решению), но coopAcceptance.accepted ещё не выставлен —
+    // выставляем его здесь. Метод идемпотентен: вызывается и на обычном boot, и
+    // на auto-restart после ONBOARDING_COMPLETED_EVENT.
+    await this.syncCoopAcceptanceFromOnboarding();
+
     await this.initBucket();
     this.registerInAgreementRegistry();
 
     this.logger.info('marketplace-extension готов');
+  }
+
+  /**
+   * Единый источник L1-истины для grants-провайдера и `marketplaceCppStatus` —
+   * флаг `coopAcceptance.accepted`. Он выводится из платформенного состояния
+   * онбординга: «оба документа утверждены Советом» = оба
+   * `onboarding_marketplace_*_done`. Так состояние расширения меняется СТРОГО по
+   * реально отреканному ончейн-решению совета, без stub-кнопки.
+   */
+  private async syncCoopAcceptanceFromOnboarding(): Promise<void> {
+    const cfg = this.plugin.config as unknown as Record<string, unknown>;
+    const allStepsDone =
+      Boolean(cfg.onboarding_marketplace_provision_done) &&
+      Boolean(cfg.onboarding_marketplace_offer_template_done);
+
+    if (!allStepsDone) return;
+    if (this.plugin.config.coopAcceptance?.accepted) return;
+
+    const acceptedAt =
+      (cfg.onboarding_marketplace_offer_template_at as string | undefined) ||
+      new Date().toISOString();
+    const boardDecisionRef =
+      (cfg.onboarding_marketplace_provision_hash as string | undefined) || '';
+
+    const nextConfig: IConfig = {
+      ...this.plugin.config,
+      coopAcceptance: {
+        accepted: true,
+        document_registry_id:
+          Cooperative.Registry.MarketplaceProgramTemplate.registry_id,
+        accepted_at: acceptedAt,
+        accepted_by_board_decision_id: boardDecisionRef,
+      },
+    };
+
+    await this.extensionRepository.update({ name: this.name, config: nextConfig });
+    this.plugin = { ...this.plugin, config: nextConfig };
+    this.logger.info(
+      '[MARKETPLACE.L1] coopAcceptance.accepted выставлен по завершению онбординга совета'
+    );
   }
 
   /**

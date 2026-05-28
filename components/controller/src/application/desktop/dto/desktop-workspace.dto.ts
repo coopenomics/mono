@@ -26,11 +26,22 @@ export class DesktopWorkspaceDTO implements DesktopWorkspaceDomainInterface {
   @IsString()
   public readonly defaultRoute?: string;
 
+  @Field(() => [String], {
+    nullable: true,
+    description:
+      'Права доступа текущего пользователя в расширении (вид «Resource:action»). ' +
+      'Фронт показывает страницу/стол, если её требование входит в этот список. ' +
+      'Отсутствует у расширений, не использующих канон прав доступа.',
+  })
+  @IsOptional()
+  public readonly grants?: string[];
+
   constructor(data: DesktopWorkspaceDomainInterface) {
     this.name = data.name;
     this.title = data.title;
     this.extension_name = data.extension_name;
     this.icon = data.icon;
     this.defaultRoute = data.defaultRoute;
+    this.grants = data.grants;
   }
 }

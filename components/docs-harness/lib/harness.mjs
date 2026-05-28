@@ -69,8 +69,11 @@ export async function openBrowser({ storageState } = {}) {
 // Учитывает что vue-router в текущем десктопе работает в hash-режиме
 // (URL вида http://host/#/voskhod/...), а не history.
 export async function loginAsChairman(page, context) {
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded', timeout: 60000 });
-  await page.waitForSelector('button:has-text("Войти")', { timeout: 60000 });
+  // timeout 150s: первый заход на роут signin компилирует его chunk в холодном
+  // Vite (optimizeDeps + on-demand transform модульного графа), что не укладывается
+  // в 60с; последующие сценарии переиспользуют скомпилированный chunk и быстры.
+  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded', timeout: 150000 });
+  await page.waitForSelector('button:has-text("Войти")', { timeout: 150000 });
   await cleanViteOverlays(page);
   await page.locator('label:has-text("электронную почту")').locator('input').fill(env.CHAIRMAN_EMAIL);
   await page.locator('label:has-text("ключ доступа")').locator('input').fill(env.CHAIRMAN_WIF);
@@ -88,8 +91,10 @@ export async function loginAsChairman(page, context) {
 // Логин обычного пайщика по фикстуре (state/participants/<username>.json).
 // fixture: { username, email, wif, ... }
 export async function loginAs(page, fixture) {
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded', timeout: 60000 });
-  await page.waitForSelector('button:has-text("Войти")', { timeout: 60000 });
+  // timeout 150s: см. комментарий в loginAsChairman — холодная компиляция chunk'а
+  // роута signin в Vite не укладывается в 60с на первом заходе.
+  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded', timeout: 150000 });
+  await page.waitForSelector('button:has-text("Войти")', { timeout: 150000 });
   await cleanViteOverlays(page);
   await page.locator('label:has-text("электронную почту")').locator('input').fill(fixture.email);
   await page.locator('label:has-text("ключ доступа")').locator('input').fill(fixture.wif);
@@ -127,7 +132,11 @@ export async function dismissOnboardingDialogs(page) {
       const title = el.querySelector('.q-toolbar__title, .modal-base__title, h1, h2, h3, h4')?.textContent || '';
       if (/Прочитайте и подпишите/i.test(title)) return true;
       const body = el.textContent || '';
-      return /Прочитайте и подпишите документ/i.test(body) && /Подписать/i.test(body);
+      // «Подписать» есть только когда документ уже сформирован; на стадии
+      // «Формируем документ…» (PDF ещё рендерится, на стенде подпись зависает)
+      // кнопки нет — ловим диалог и по этой фразе, иначе кадр захватит спиннер.
+      if (/Прочитайте и подпишите документ/i.test(body) && /Подписать/i.test(body)) return true;
+      return /Формируем документ/i.test(body) && /Прочитайте и подпишите/i.test(body);
     };
 
     // Quasar q-dialog рендерит контент через Teleport в q-portal--dialog--N.

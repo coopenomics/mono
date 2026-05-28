@@ -162,13 +162,25 @@ query SearchAttributes {
 
 ```typescript
 interface IConfig {
-  enabled: boolean;                // Включено ли расширение
-  lastSyncTimestamp: string;       // Последняя синхронизация
-  categorySyncEnabled: boolean;    // Синхронизация категорий
-  attributeSyncEnabled: boolean;   // Синхронизация атрибутов
-  debug: boolean;                  // Режим отладки
+  // Системное состояние принятия положения ЦПП советом (скрыто из формы установки).
+  coopAcceptance: {
+    accepted: boolean;
+    document_registry_id: number;
+    accepted_at: string;
+    accepted_by_board_decision_id: string;
+  };
+  // Настройки автосписания скоропорта (видимы в форме установки).
+  writeoff: {
+    auto_proposal_enabled: boolean; // Автоформирование проекта списания (по умолчанию вкл.)
+    post_expiry_grace_days: number; // Списывать спустя N дней после истечения срока (по умолчанию 7)
+  };
 }
 ```
+
+В форме установки расширения показываются только пользовательские настройки
+(блок `writeoff`); `coopAcceptance` — внутреннее состояние, помечено
+`visible: false`. Человекочитаемые подписи полей задаются через `describeField`
+в `Schema` (см. `types.ts`), как в расширении `capital`.
 
 ## Использование
 

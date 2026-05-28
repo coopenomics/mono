@@ -22,7 +22,7 @@ const makeLogger = () =>
   } as any);
 
 function makeRepo(initialConfig: any = {}) {
-  const state = { name: 'market', config: { enabled: true, debug: false, ...initialConfig } };
+  const state = { name: 'market', config: { ...initialConfig } };
   const updateMock = jest.fn().mockImplementation(async (patch: any) => {
     Object.assign(state.config, patch.config);
     return state;

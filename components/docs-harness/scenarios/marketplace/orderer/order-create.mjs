@@ -218,7 +218,24 @@ export default async ({ page, shot }) => {
   await cleanViteOverlays(page);
 
   // === Шаг 3: открыть OrderCreateDialog ===
-  const orderBtn = page.locator('button:has-text("Заказать")').first();
+  // MP_ORDER_OFFER (подстрока названия) выбирает конкретную карточку — иначе
+  // берём первую. Нужно чтобы детерминированно заказывать offer нужного
+  // cycle_type (individual/volume_based/open_subscription), а не первый в ленте.
+  const offerNeedle = process.env.MP_ORDER_OFFER;
+  let orderBtn;
+  if (offerNeedle) {
+    const card = page
+      .locator('.mp-catalog-offer-card', { hasText: offerNeedle })
+      .filter({ has: page.locator('button:has-text("Заказать")') })
+      .first();
+    if (!(await card.count())) {
+      throw new Error(`[order-create] карточка offer'а с «${offerNeedle}» и кнопкой «Заказать» не найдена в каталоге`);
+    }
+    await card.scrollIntoViewIfNeeded();
+    orderBtn = card.locator('button:has-text("Заказать")').first();
+  } else {
+    orderBtn = page.locator('button:has-text("Заказать")').first();
+  }
   if (!(await orderBtn.count())) {
     throw new Error('В каталоге нет CatalogOfferCard с действием «Заказать» — нужен хотя бы один APPROVED offer (chairman/offer-moderation).');
   }
@@ -234,9 +251,10 @@ export default async ({ page, shot }) => {
     'Диалог оформления заказа: q-input «Количество», q-select «ПВЗ доставки», итоговая сумма (цена × количество), кнопки «Отмена» и «Подтвердить заказ». Открывается при клике «Заказать» на карточке APPROVED offer\'а в каталоге.',
   );
 
+  const orderQty = process.env.MP_ORDER_QTY || '2';
   const qty = dialog.locator('input[type="number"]').first();
   await qty.click({ clickCount: 3 });
-  await qty.fill('2');
+  await qty.fill(orderQty);
   await page.waitForTimeout(300);
 
   const branchSelect = dialog.locator('.q-select').first();

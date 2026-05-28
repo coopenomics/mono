@@ -19,12 +19,24 @@ import { listMyReadyToReceive, type MarketplaceOrderIssuanceView } from '../api'
 const items = ref<MarketplaceOrderIssuanceView[]>([]);
 const loading = ref(false);
 
+function formatDate(value: unknown): string {
+  if (value === null || value === undefined || value === '') return '—';
+  const parsed = new Date(String(value));
+  return Number.isNaN(parsed.getTime()) ? String(value) : parsed.toLocaleString('ru-RU');
+}
+
 const columns: QTableProps['columns'] = [
   { name: 'order', label: 'Заказ', field: (r: MarketplaceOrderIssuanceView) => r.id.slice(0, 8), align: 'left' },
   { name: 'ku', label: 'Пункт выдачи', field: 'delivery_braname', align: 'left' },
   { name: 'quantity', label: 'Количество', field: 'quantity', align: 'right' },
   { name: 'total_cost', label: 'Сумма заказа', field: 'total_cost', align: 'right' },
-  { name: 'opened_at', label: 'Открыто к выдаче', field: 'chairman_signed_at', align: 'left' },
+  {
+    name: 'opened_at',
+    label: 'Открыто к выдаче',
+    field: 'chairman_signed_at',
+    align: 'left',
+    format: (v: unknown) => formatDate(v),
+  },
 ];
 
 async function load(): Promise<void> {
