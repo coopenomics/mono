@@ -4,9 +4,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-overrides:
-  '@coopenomics/provider-client': file:/home/ant/provider/components/client
-
 importers:
 
   .:
@@ -275,8 +272,8 @@ importers:
         specifier: workspace:*
         version: link:../notifications
       '@coopenomics/provider-client':
-        specifier: file:/home/ant/provider/components/client
-        version: file:../provider/components/client
+        specifier: 2026.5.27-4
+        version: 2026.5.27-4
       '@coopenomics/sdk':
         specifier: workspace:*
         version: link:../sdk
@@ -2723,8 +2720,8 @@ packages:
     resolution: {integrity: sha512-Ir+AOibqzrIsL6ajt3Rz3LskB7OiMVHqltZmspbW/TJuTVuyOMirVqAkjfY6JISiLHgyNqicAC8AyHHGzNd/dA==}
     engines: {node: '>=0.1.90'}
 
-  '@coopenomics/provider-client@file:../provider/components/client':
-    resolution: {directory: ../provider/components/client, type: directory}
+  '@coopenomics/provider-client@2026.5.27-4':
+    resolution: {integrity: sha512-VYfoiuBa9OKNzsXhj5+oovEOAqdYG9FFHksXsZPIV2mnZGeRSnGSu/sAr9XkH8902L+JyK3HLERxEMjATeZSyQ==}
 
   '@corvu/utils@0.4.2':
     resolution: {integrity: sha512-Ox2kYyxy7NoXdKWdHeDEjZxClwzO4SKM8plAaVwmAJPxHMqA0rLOoAsa+hBDwRLpctf+ZRnAd/ykguuJidnaTA==}
@@ -21414,7 +21411,7 @@ snapshots:
 
   '@colors/colors@1.6.0': {}
 
-  '@coopenomics/provider-client@file:../provider/components/client':
+  '@coopenomics/provider-client@2026.5.27-4':
     dependencies:
       axios: 1.13.6
     transitivePeerDependencies:
