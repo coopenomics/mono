@@ -10,14 +10,15 @@ div.connection-dashboard
     .col-12.col-md-6
       DomainCard
 
-      SubscriptionsCard
+      SubscriptionsManagement
 
 
 
 </template>
 
 <script setup lang="ts">
-import { AxonWallet, DomainCard, SubscriptionsCard } from './index'
+import { AxonWallet, DomainCard } from './index'
+import { SubscriptionsManagement } from 'src/widgets/Billing/SubscriptionsManagement'
 
 </script>
 
