@@ -1,7 +1,9 @@
-// Epic 12: интерфейсы контракта billing (оплата подписок членскими взносами).
-// Формат повторяет авто-генерируемые ABI-интерфейсы (eosio-abi2ts), но billing
-// мал и стабилен (ровно convert/pay/migrate + таблица payments), поэтому
-// поддерживается вручную до подключения контракта в общий abi2ts-пайплайн.
+// Epic 12 (Single-Hub v5): интерфейсы контракта billing.
+// Контракт минимален и blockchain-blind: только convert/pay/migrate, без
+// собственных таблиц (источник истины по payment_hash живёт на provider в
+// таблице billing_invoice). Формат повторяет авто-генерируемые ABI-интерфейсы
+// (eosio-abi2ts), поддерживается вручную до подключения контракта в общий
+// abi2ts-пайплайн.
 
 export type IAsset = string
 export type IName = string
@@ -33,12 +35,16 @@ export interface IDocument2 {
 
 /**
  * Конвертация паевого взноса пайщика в членский на персональный биллинг-кошелёк
- * (`w.wal.bill`). Несёт подписанное заявление пайщика (`document`).
+ * (`w.wal.bill`). Идемпотентна по `convert_hash` — детерминированный процесс-якорь
+ * процесса billing::convert (используется и как `process_hash` в ledger2, и как
+ * `package_hash` при `Soviet::make_complete_document`). Несёт подписанное
+ * заявление пайщика (`document`, 1095.BillingConversionStatement).
  */
 export interface IConvert {
   coopname: IName
   username: IName
   amount: IAsset
+  convert_hash: IChecksum256
   document: IDocument2
 }
 
@@ -56,20 +62,7 @@ export interface IPay {
 }
 
 /**
- * Сервисное действие миграции таблиц контракта.
+ * Сервисное действие миграции таблиц контракта (no-op в v5 — таблиц нет).
  */
 export interface IMigrate {
-}
-
-/**
- * Строка таблицы платежей (`payments`, scope = коопнейм). Хранит факт оплаты
- * подписок: сумму, идентификатор платежа и время.
- */
-export interface IPayment {
-  id: IUint64
-  coopname: IName
-  username: IName
-  amount: IAsset
-  payment_hash: IChecksum256
-  paid_at: ITimePointSec
 }

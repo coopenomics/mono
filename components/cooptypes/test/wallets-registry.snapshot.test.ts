@@ -32,7 +32,11 @@ describe('ledger2 wallets registry (generated from C++)', () => {
     }
   })
 
-  it('ЦК split: program_id=1 → share + member', () => {
-    expect(walletNamesForProgram(1).sort()).toEqual(['w.wal.member', 'w.wal.share'])
+  it('ЦК split: program_id=1 → share + member + bill', () => {
+    expect(walletNamesForProgram(1).sort()).toEqual([
+      'w.wal.bill',
+      'w.wal.member',
+      'w.wal.share',
+    ])
   })
 })

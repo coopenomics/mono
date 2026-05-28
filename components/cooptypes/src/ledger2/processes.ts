@@ -42,6 +42,10 @@ export const LEDGER2_PROCESS_REGISTRY: readonly ProcessMeta[] = [
   // soviet
   { type: 'p.sov.axncnv',   contract: 'soviet',       name: 'AXN_CONVERT', human_name: 'Конвертация паевого в делегатский ЧВ' },
 
+  // billing (Single-Hub v5)
+  { type: 'p.bil.fund',     contract: 'billing',      name: 'CONVERT',     human_name: 'Пополнение биллинг-кошелька пайщика' },
+  { type: 'p.bil.pay',      contract: 'billing',      name: 'PAY',         human_name: 'Оплата подписки членскими взносами' },
+
   // migration
   { type: 'p.mig.trans',    contract: 'migration',    name: 'TRANSIT',     human_name: 'Миграция legacy → ledger2' },
 

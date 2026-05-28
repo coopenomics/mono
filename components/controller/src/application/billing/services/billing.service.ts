@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { createHash } from 'node:crypto';
 import {
   BILLING_BLOCKCHAIN_PORT,
   type BillingBlockchainPort,
@@ -70,13 +71,24 @@ export class BillingService {
   }
 
   async convert(input: BillingConvertInputDTO): Promise<BillingResultDTO> {
+    const document = input.document.toDocument();
+    const convertHash = this.deriveConvertHash(document.hash);
     const result = await this.blockchainPort.convert({
       coopname: input.coopname,
       username: input.username,
       quantity: input.amount,
-      document: input.document.toDocument(),
+      convertHash,
+      document,
     });
     return { transactionId: TransactionUtils.extractTransactionId(result) };
+  }
+
+  // Идемпотентный process-якорь convert: один и тот же подписанный document.hash
+  // (канон 1095.BillingConversionStatement) всегда даёт один convert_hash. Контракт
+  // использует его и как ledger2 process_hash, и как Soviet package_hash — повторный
+  // вызов с тем же документом не порождает дубль операции.
+  private deriveConvertHash(documentHash: string): string {
+    return createHash('sha256').update(`${documentHash}/billing.convert`).digest('hex');
   }
 
   async pay(input: BillingPayInputDTO): Promise<BillingResultDTO> {

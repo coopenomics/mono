@@ -47,6 +47,7 @@ export class BillingBlockchainAdapter implements BillingBlockchainPort {
       coopname: data.coopname,
       username: data.username,
       amount: formattedQuantity,
+      convert_hash: data.convertHash,
       document: data.document as BillingContract.Actions.Convert.IConvert['document'],
     };
 

@@ -12,6 +12,12 @@ export interface BillingConvertBlockchainDomainInterface {
   username: string;
   /** Сумма с символом, например `"1500.0000 RUB"`. */
   quantity: string;
+  /**
+   * Детерминированный process-якорь действия `billing::convert`. Используется и как
+   * `process_hash` в ledger2::apply, и как `package_hash` в `Soviet::make_complete_document`.
+   * Уникальность гарантирует идемпотентность и связность шагов процесса.
+   */
+  convertHash: string;
   /** Подписанное пайщиком заявление (document2). */
   document: Cooperative.Document.IChainDocument2;
 }

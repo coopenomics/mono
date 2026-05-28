@@ -168,6 +168,17 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: 80, credit: 86,
     human_name: 'Трансляция паевого в членский взнос инфраструктуры' },
 
+  // billing (Single-Hub v5: contract blockchain-blind, source of truth — provider's billing_invoice)
+  { code: 'o.bil.fund',    process_type: 'p.bil.fund',    contract: 'billing',
+    name: 'CONVERT',        wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.wal.bill',
+    debit: 80, credit: 86,
+    human_name: 'Трансляция паевого в членский на биллинг-кошелёк пайщика' },
+
+  { code: 'o.bil.pay',     process_type: 'p.bil.pay',     contract: 'billing',
+    name: 'PAY',            wallet_op: 'TRANSFER', wallet_from: 'w.wal.bill', wallet_to: 'w.sov.infra',
+    debit: null, credit: null,
+    human_name: 'Оплата подписки за инфраструктуру членскими взносами пайщика' },
+
   // migration
   { code: 'o.mig.minshr',  process_type: 'p.mig.trans',   contract: 'migration',
     name: 'MIN_SHARE',      wallet_op: 'ISSUE',    wallet_from: null, wallet_to: 'w.reg.minshr',

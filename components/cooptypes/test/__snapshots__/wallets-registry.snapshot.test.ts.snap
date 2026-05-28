@@ -8,14 +8,19 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_USER_SHARED_PRO
     "wallet_name": "w.reg.minshr",
   },
   {
-    "program_label": "ЦК",
+    "program_label": "ЦК — паевой",
     "required_program_id": 1,
     "wallet_name": "w.wal.share",
   },
   {
-    "program_label": "ЦК",
+    "program_label": "ЦК — членский",
     "required_program_id": 1,
     "wallet_name": "w.wal.member",
+  },
+  {
+    "program_label": "ЦК — биллинг",
+    "required_program_id": 1,
+    "wallet_name": "w.wal.bill",
   },
   {
     "program_label": "Благорост",
@@ -43,14 +48,19 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
     "name": "w.reg.minshr",
   },
   {
-    "human_name": "Паевой взнос пайщика",
+    "human_name": "ЦК — паевой",
     "kind": "USER_SHARED",
     "name": "w.wal.share",
   },
   {
-    "human_name": "ЦК — членская часть пайщика",
+    "human_name": "ЦК — членский",
     "kind": "USER_SHARED",
     "name": "w.wal.member",
+  },
+  {
+    "human_name": "ЦК — биллинг",
+    "kind": "USER_SHARED",
+    "name": "w.wal.bill",
   },
   {
     "human_name": "ЦПП «Благорост» — единый кошелёк программы у пайщика",
@@ -76,6 +86,11 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
     "human_name": "Возвраты паевых взносов пайщикам (deprecated, не используется в новых операциях)",
     "kind": "COOPERATIVE",
     "name": "w.wal.wthdrw",
+  },
+  {
+    "human_name": "Резерв паевого под заявку на возврат",
+    "kind": "COOPERATIVE",
+    "name": "w.wal.wpend",
   },
   {
     "human_name": "Членские взносы за инфраструктуру кооп. платформы",
