@@ -819,6 +819,48 @@ export class MatrixApiService {
   }
 
   /**
+   * Приглашает пользователя в комнату (от имени Matrix-админа, который состоит в комнате).
+   * Пользователь увидит приглашение и войдёт сам — в отличие от {@link joinRoom} (force-join).
+   */
+  async inviteUser(userId: string, roomId: string): Promise<void> {
+    try {
+      const adminToken = await this.loginAdmin();
+      await this.httpClient.post(
+        `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/invite`,
+        { user_id: userId },
+        { headers: { Authorization: `Bearer ${adminToken}` } }
+      );
+      this.logger.log(`Пользователь ${userId} приглашён в комнату ${roomId}`);
+    } catch (error: any) {
+      this.logger.error(
+        `Не удалось пригласить пользователя ${userId} в комнату ${roomId}: ${JSON.stringify(error?.response?.data)}`
+      );
+      throw new Error('Не удалось пригласить пользователя в комнату');
+    }
+  }
+
+  /**
+   * Исключает пользователя из комнаты (от имени Matrix-админа с power 100).
+   * Используется для вывода секретаря из комнаты по требованию председателя/совета.
+   */
+  async kickUser(userId: string, roomId: string, reason?: string): Promise<void> {
+    try {
+      const adminToken = await this.loginAdmin();
+      await this.httpClient.post(
+        `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/kick`,
+        reason ? { user_id: userId, reason } : { user_id: userId },
+        { headers: { Authorization: `Bearer ${adminToken}` } }
+      );
+      this.logger.log(`Пользователь ${userId} исключён из комнаты ${roomId}`);
+    } catch (error: any) {
+      this.logger.error(
+        `Не удалось исключить пользователя ${userId} из комнаты ${roomId}: ${JSON.stringify(error?.response?.data)}`
+      );
+      throw new Error('Не удалось исключить пользователя из комнаты');
+    }
+  }
+
+  /**
    * Получает текущие права пользователей в комнате
    */
   async getRoomPowerLevels(roomId: string): Promise<any> {

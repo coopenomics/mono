@@ -1,41 +1,43 @@
 <template lang="pug">
-q-btn(
-  size='sm',
-  color='primary',
-  @click='showDialog = true',
-  :loading='isSubmitting',
-  label='Добавить соавтора'
-)
+div
+  q-btn(
+    size='sm',
+    color='primary',
+    @click='showDialog = true',
+    :loading='isSubmitting',
+    label='Добавить соавтора'
+  )
 
-  q-dialog(v-model='showDialog', @hide='close')
-    ModalBase(title='Добавить соавторов')
-      Form.q-pa-sm(
-        :handler-submit='handleAddAuthors',
-        :is-submitting='isSubmitting',
-        :button-cancel-txt='"Отменить"',
-        :button-submit-txt='"Добавить"',
-        @cancel='close'
-      )
-        div(style='max-width: 400px')
-          .text-body2.q-mb-sm
-            | ⚠️ После добавления соавторов их удаление будет невозможно. Для добавления соавторов они должны предварительно получить допуск на участие в проекте.
+  BaseDialog(
+    v-model='showDialog',
+    title='Добавить соавторов',
+    size='md',
+    @update:model-value='(v) => !v && close()'
+  )
+    Form.q-pa-sm(
+      :handler-submit='handleAddAuthors',
+      :is-submitting='isSubmitting',
+      :button-cancel-txt='"Отменить"',
+      :button-submit-txt='"Добавить"',
+      @cancel='close'
+    )
+      div(style='max-width: 400px')
+        .text-body2.q-mb-sm
+          | ⚠️ После добавления соавторов их удаление будет невозможно. Для добавления соавторов они должны предварительно получить допуск на участие в проекте.
 
-          ContributorSelector(
-            v-model='selectedAuthors'
-            :multi-select='true'
-            :dense='true'
-            :disable='isSubmitting'
-            :project-hash='props.project.project_hash'
-            placeholder='Выберите соавторов...'
-            label='Соавторы'
-            class='authors-selector'
-          )
+        ContributorSelector(
+          v-model='selectedAuthors'
+          :multi-select='true'
+          :dense='true'
+          :disable='isSubmitting'
+          :project-hash='props.project.project_hash'
+          placeholder='Выберите соавторов...'
+          label='Соавторы'
+          class='authors-selector'
+        )
 
-          .text-caption.text-grey-6.q-mt-sm(v-if='selectedAuthors.length > 0')
-            | Выбрано соавторов: {{ selectedAuthors.length }}
-
-
-
+        .text-caption.text-grey-6.q-mt-sm(v-if='selectedAuthors.length > 0')
+          | Выбрано соавторов: {{ selectedAuthors.length }}
 </template>
 
 <script setup lang="ts">
@@ -43,7 +45,7 @@ import { ref, watch } from 'vue';
 import { useAddAuthor } from '../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
 import { ContributorSelector } from '../../../../entities/Contributor';
-import { ModalBase } from 'src/shared/ui/ModalBase';
+import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { Form } from 'src/shared/ui/Form';
 import type { IProject } from '../../../../entities/Project/model';
 import type { IContributor } from '../../../../entities/Contributor/model';

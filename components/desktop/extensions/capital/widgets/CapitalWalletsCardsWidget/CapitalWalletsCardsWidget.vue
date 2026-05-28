@@ -33,7 +33,6 @@ import { computed } from 'vue';
 import { useWalletStore } from 'src/entities/Wallet/model';
 import { ColorCard } from 'src/shared/ui';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { addAssets } from 'src/shared/lib/utils/addAssets';
 import { Zeus } from '@coopenomics/sdk';
 import { CreateProgramInvestButton } from 'app/extensions/capital/features/ProgramInvest/CreateProgramInvest/ui';
 
@@ -47,8 +46,7 @@ const generatorWallet = computed(() => {
 
   return {
     available: wallet?.available || '0.00',
-    blocked: wallet?.blocked || '0.00',
-    total: addAssets(wallet?.available || '0.00', wallet?.blocked || '0.00'),
+    total: wallet?.available || '0.00',
   };
 });
 
@@ -61,8 +59,7 @@ const blagorostWallet = computed(() => {
 
   return {
     available: wallet?.available || '0.00',
-    blocked: wallet?.blocked || '0.00',
-    total: addAssets(wallet?.available || '0.00', wallet?.blocked || '0.00'),
+    total: wallet?.available || '0.00',
   };
 });
 

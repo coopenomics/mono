@@ -28,7 +28,7 @@ import {
   storyFileRelativePath,
   workspaceBasePath,
 } from './layout.js'
-import { pullProjectCommunicationArtifacts } from './pull-communication.js'
+import { pullNonProjectCommunicationArtifacts, pullProjectCommunicationArtifacts } from './pull-communication.js'
 import { scaffoldBmadWorkspacesAfterPull } from './scaffold-bmad-workspace.js'
 import { syncEntityFile } from './sync-entity-file.js'
 import { writeWorkspaceIndexMarkdown } from './workspace-index.js'
@@ -328,6 +328,8 @@ export async function runPull(ctx: AuthenticatedContext, options: RunPullOptions
   }
 
   await pullProjectCommunicationArtifacts(ctx, index, allProjects, projectByHash)
+
+  await pullNonProjectCommunicationArtifacts(ctx, index)
 
   await scaffoldBmadWorkspacesAfterPull(ctx, allProjects, projectByHash)
 

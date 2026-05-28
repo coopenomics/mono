@@ -1,86 +1,35 @@
 <template lang="pug">
-.q-pa-md
-  .row
-    .col-md-7.col-xs-12.q-pa-sm
-      WalletProgramWidget
+.wallet-page
+  WalletProgramWidget
+
+//- Действия страницы в шапке — через canon Teleport в слот-host шапки.
+//- defer: target (#header-actions-host) живёт в layout-шапке, смонтированной
+//- раньше страницы. На мобильном — micro-вариант кнопок (иконка + tooltip),
+//- чтобы не раздувать узкую шапку; на десктопе — полные кнопки с подписью.
+//- Сами кнопки решают свою видимость (DepositButton скрыт, пока пайщик
+//- не принят — status !== 'active').
+Teleport(to='#header-actions-host', defer)
+  DepositButton(:micro='isMobile')
+  WithdrawButton(:micro='isMobile')
 </template>
+
 <script lang="ts" setup>
-import { computed, onMounted, markRaw } from 'vue';
 import { WalletProgramWidget } from 'src/widgets/Wallet';
 import { DepositButton } from 'src/features/Wallet/DepositToWallet';
 import { WithdrawButton } from 'src/features/Wallet/WithdrawFromWallet';
-import { useHeaderActions } from 'src/shared/hooks';
-import 'src/shared/ui/CardStyles';
+import { useWindowSize } from 'src/shared/hooks';
 
-// Кнопки для header
-const headerButtons = computed(() => [
-  {
-    id: 'wallet-deposit-button',
-    component: markRaw(DepositButton),
-    order: 1,
-  },
-  {
-    id: 'wallet-withdraw-button',
-    component: markRaw(WithdrawButton),
-    order: 2,
-  },
-]);
-
-// Регистрируем кнопки в header
-const { registerAction } = useHeaderActions();
-
-onMounted(() => {
-  headerButtons.value.forEach(button => {
-    registerAction(button);
-  });
-});
-
+const { isMobile } = useWindowSize();
 </script>
 
 <style lang="scss" scoped>
-// Минимальный остаток
-.minimum-balance-card {
-  background: rgba(255, 152, 0, 0.05);
-  border: 1px solid rgba(255, 152, 0, 0.2);
-  border-radius: 12px;
-  padding: 16px;
-  transition: all 0.2s ease;
+.wallet-page {
+  padding: var(--p-6, 24px);
+}
 
-  .q-dark & {
-    background: rgba(255, 152, 0, 0.08);
-    border: 1px solid rgba(255, 152, 0, 0.3);
-  }
-
-  &:hover {
-    background: rgba(255, 152, 0, 0.08);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(255, 152, 0, 0.15);
-
-    .q-dark & {
-      background: rgba(255, 152, 0, 0.12);
-    }
-  }
-
-  .minimum-balance-info {
-    display: flex;
-    align-items: center;
-
-    .info-icon {
-      margin-right: 12px;
-    }
-
-    .info-content {
-      .info-label {
-        font-size: 14px;
-        margin-bottom: 2px;
-        opacity: 0.7;
-      }
-
-      .info-value {
-        font-size: 16px;
-        font-weight: 500;
-      }
-    }
+@media (max-width: 768px) {
+  .wallet-page {
+    padding: var(--p-4, 16px);
   }
 }
 </style>

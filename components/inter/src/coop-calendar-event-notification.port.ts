@@ -3,7 +3,7 @@
  * Реализация — ChatcoopCalendarEventNotificationService; токен INTER_COOP_CALENDAR_EVENT_NOTIFICATION в ChatCoopPluginModule.
  */
 /** Совпадает с ChatcoopManagedMatrixRoomKind в реестре управляемых комнат. */
-export type InterCoopCalendarNotificationRoomKind = 'members' | 'council' | 'capital_project';
+export type InterCoopCalendarNotificationRoomKind = 'members' | 'council' | 'capital_project' | 'secretary';
 
 export interface InterCoopCalendarEventNotificationInput {
   title: string;

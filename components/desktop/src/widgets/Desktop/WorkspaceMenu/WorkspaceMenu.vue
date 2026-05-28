@@ -29,58 +29,51 @@ div
         span.btn-font {{ item.title }}
 
   // Диалоговое окно с рабочими столами
-  q-dialog(v-model='showDialog')
-    ModalBase(:title='"Выберите рабочий стол"', style='min-width: 700px; max-width: 90vw')
+  BaseDialog(
+    v-model='showDialog',
+    title='Выберите рабочий стол',
+    size='lg'
+  )
+    // Строка поиска
+    q-input.q-mb-md(
+      v-model='searchQuery',
+      dense,
+      outlined,
+      placeholder='Поиск рабочих столов...',
+      clearable
+    )
+      template(v-slot:prepend)
+        q-icon(name='search')
 
-      q-card-section
-        // Строка поиска
-        q-input.q-mb-md(
-          v-model='searchQuery',
-          dense,
-          outlined,
-          placeholder='Поиск рабочих столов...',
-          clearable
-        )
-          template(v-slot:prepend)
-            q-icon(name='search')
-
-        // Контейнер с группированными рабочими столами в виде сетки
-        .dialog-workspaces-container.q-pt-md
-          .app-group(v-for='(app, index) in filteredGroupedWorkspaces', :key='app.extensionName', :class='`group-color-${index % 10}`')
-            // Цветная полоска как в ColorCard
-            //- .group-color-bar
-
-            // Заголовок приложения
-            //- .app-header.text-caption.text-grey-7.text-uppercase.text-weight-bold(
-            //-   v-if='groupedWorkspaces.length > 1'
-            //- ) {{ app.extensionTitle }}
-
-            // Рабочие столы приложения
-            .workspaces-list
-              q-btn.dialog-workspace-btn(
-                v-for='workspace in app.workspaces',
-                :key='workspace.workspaceName',
-                flat,
-                stack,
-                :class='{ "active": isActive(workspace.workspaceName), "favorite": isFavorite(workspace.workspaceName) }',
-                @click='selectFromDialog(workspace)'
-              )
-                q-icon.dialog-workspace-icon(:name='workspace.icon')
-                span.dialog-workspace-title {{ workspace.title }}
-                // Иконка избранного (подготовка для будущей функциональности)
-                q-icon.favorite-icon(
-                  v-if='isFavorite(workspace.workspaceName)',
-                  name='star',
-                  size='xs',
-                  color='amber'
-                )
+    // Контейнер с группированными рабочими столами в виде сетки
+    .dialog-workspaces-container.q-pt-md
+      .app-group(v-for='(app, index) in filteredGroupedWorkspaces', :key='app.extensionName', :class='`group-color-${index % 10}`')
+        // Рабочие столы приложения
+        .workspaces-list
+          q-btn.dialog-workspace-btn(
+            v-for='workspace in app.workspaces',
+            :key='workspace.workspaceName',
+            flat,
+            stack,
+            :class='{ "active": isActive(workspace.workspaceName), "favorite": isFavorite(workspace.workspaceName) }',
+            @click='selectFromDialog(workspace)'
+          )
+            q-icon.dialog-workspace-icon(:name='workspace.icon')
+            span.dialog-workspace-title {{ workspace.title }}
+            // Иконка избранного (подготовка для будущей функциональности)
+            q-icon.favorite-icon(
+              v-if='isFavorite(workspace.workspaceName)',
+              name='star',
+              size='xs',
+              color='amber'
+            )
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useDesktopStore } from 'src/entities/Desktop/model';
-import { ModalBase } from 'src/shared/ui/ModalBase';
+import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 
 // Интерфейсы для типизации
 interface WorkspaceMenuItem {
@@ -282,6 +275,7 @@ watch(slideIndex, (newIndex) => {
 
 .btn-font {
   font-size: 8px !important;
+  text-transform: capitalize;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   .btn-menu:hover & {
@@ -557,6 +551,7 @@ watch(slideIndex, (newIndex) => {
   font-size: 11px !important;
   line-height: 1.3;
   text-align: center;
+  text-transform: capitalize;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;

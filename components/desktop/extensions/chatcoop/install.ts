@@ -1,5 +1,5 @@
 import { markRaw } from 'vue';
-import { CalendarPage, ChatCoopPage, MobileClientPage, TranscriptionsPage, TranscriptionDetailPage } from './pages';
+import { CalendarPage, ChatCoopPage, MobileClientPage, SecretaryRoomsPage, TranscriptionsPage, TranscriptionDetailPage } from './pages';
 import { agreementsBase } from 'src/shared/lib/consts/workspaces';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
 
@@ -68,6 +68,19 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               title: 'Транскрипции звонков',
               icon: 'fa-solid fa-file-lines',
               roles: ['chairman', 'member', 'user'],
+              agreements: agreementsBase,
+              requiresAuth: true,
+            },
+            children: [],
+          },
+          {
+            path: 'secretary-rooms',
+            name: 'chatcoop-secretary-rooms',
+            component: markRaw(SecretaryRoomsPage),
+            meta: {
+              title: 'Комнаты секретаря',
+              icon: 'fa-solid fa-user-shield',
+              roles: ['chairman', 'member'],
               agreements: agreementsBase,
               requiresAuth: true,
             },

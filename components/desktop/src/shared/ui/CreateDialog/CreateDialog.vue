@@ -1,28 +1,29 @@
 <template lang="pug">
-q-dialog(v-model='showDialog', @hide='clear', @show='onDialogShow')
-  ModalBase(:title='props.title')
-    template(#title v-if='$slots.title')
-      slot(name="title")
-    Form.q-pa-md(
-      ref='formWrapperRef'
-      :handler-submit='handleSubmit',
-      :is-submitting='props.isSubmitting',
-      :button-submit-txt='props.submitText',
-      :button-cancel-txt='"Отмена"',
-      :disabled='props.disabled',
-      @cancel='clear'
-      :style="props.dialogStyle"
-    )
-      slot(name="form-fields")
-        // Default form fields slot
+BaseDialog(
+  v-model='showDialog',
+  :title='props.title',
+  size='md',
+  @update:model-value='onModelUpdate'
+)
+  template(v-if='$slots.title', #head)
+    slot(name="title")
+  Form(
+    ref='formWrapperRef'
+    :handler-submit='handleSubmit',
+    :is-submitting='props.isSubmitting',
+    :button-submit-txt='props.submitText',
+    :button-cancel-txt='"Отмена"',
+    :disabled='props.disabled',
+    @cancel='clear'
+  )
+    slot(name="form-fields")
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, type ComponentPublicInstance } from 'vue';
-import { ModalBase } from '../ModalBase';
+import { ref, nextTick, watch, type ComponentPublicInstance } from 'vue';
+import { BaseDialog } from '../base/BaseDialog';
 import { Form } from '../Form';
 
-/** Поля формы в слоте идут в разметке раньше кнопок Form — берём первый подходящий для ввода элемент. */
 const FOCUSABLE_SELECTOR =
   'input:not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([disabled]), ' +
   'textarea:not([disabled]), ' +
@@ -57,10 +58,15 @@ function focusFirstFieldInForm(): void {
   el?.focus?.();
 }
 
-function onDialogShow(): void {
+function onModelUpdate(v: boolean): void {
+  showDialog.value = v;
+  if (!v) emit('dialogClosed');
+}
+
+watch(showDialog, (next) => {
+  if (!next) return;
   nextTick(() => {
     focusFirstFieldInForm();
-    // У q-field нативный input может появиться после первого тика отрисовки
     nextTick(() => {
       const root = formWrapperRef.value?.$el as HTMLElement | undefined;
       if (root?.contains(document.activeElement)) {
@@ -69,25 +75,21 @@ function onDialogShow(): void {
       focusFirstFieldInForm();
     });
   });
-}
+});
 
-// Функция для открытия диалога
 const openDialog = () => {
   showDialog.value = true;
 };
 
-// Функция для закрытия диалога
 const clear = () => {
   showDialog.value = false;
   emit('dialogClosed');
 };
 
-// Функция для обработки отправки формы
 const handleSubmit = async (formData: any) => {
   emit('submit', formData);
 };
 
-// Экспортируем функции для внешнего использования
 defineExpose({
   openDialog,
   clear,

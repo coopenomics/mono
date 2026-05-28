@@ -1,66 +1,60 @@
 <template lang="pug">
-.question-card__container
-  q-card.question-card(flat)
-    q-card-section.question-card__header-section(
-      :class='{ "cursor-pointer": $q.screen.lt.md }',
-      @click='$q.screen.lt.md ? $emit("toggle-expand") : undefined'
+.question-card
+  //- Верхняя строка кликабельна — раскрывает документ. Исключение — зона
+  //- кнопок голосования (@click.stop): по ним голосуют, документ не раскрывают.
+  .question-card__row(@click='toggleExpand')
+    //- Номер вопроса на зелёной плашке — он же идентификатор: клик копирует.
+    button.question-card__id-avatar(type='button', @click.stop='copyId')
+      | {{ agenda.table.id }}
+      q-tooltip Скопировать № {{ agenda.table.id }}
+
+    .question-card__main
+      .question-card__title {{ getDocumentTitle() }}
+      .question-card__applicant {{ getApplicantName() }}
+
+    //- Кнопки голосования — прижаты к правому краю строки.
+    .question-card__voting(@click.stop)
+      VotingButtons(
+        :decision='agenda.table',
+        :is-voted-for='isVotedFor',
+        :is-voted-against='isVotedAgainst',
+        :is-voted-any='isVotedAny',
+        @vote-for='$emit("vote-for")',
+        @vote-against='$emit("vote-against")'
+      )
+
+    q-icon.question-card__chevron(
+      :name='expanded ? "expand_less" : "expand_more"',
+      size='20px'
     )
-      .question-header
-        .question-icon
-          q-icon(
-            name='fa-solid fa-clipboard-question',
-            size='24px',
-            color='primary'
-          )
 
-        .question-title
-          .title {{ getDocumentTitle() }}
-          .subtitle {{ getApplicantName() }}
-      .question-status
-        .expires-date {{ formatToFromNow(agenda.table.expired_at) }}
-        .status
-          q-badge(
-            :color='getStatusColor()',
-            :text-color='getStatusTextColor()'
-          ) {{ getStatusText() }}
+  //- Нижняя полоска: срок слева, действие председателя справа.
+  //- У обычного пайщика — только срок, узкая панелька.
+  .question-card__footer(@click.stop)
+    span.question-card__expires Истекает {{ formatToFromNow(agenda.table.expired_at) }}
+    .question-card__approve(v-if='isChairman')
+      BaseButton(
+        variant='primary',
+        size='sm',
+        :disabled='!agenda.table.approved',
+        :loading='isProcessing',
+        @click='$emit("authorize")'
+      ) Утвердить
+      q-tooltip(v-if='!agenda.table.approved') Для утверждения решение должно быть принято советом
 
-    q-slide-transition
-      div(v-show='expanded')
-        q-separator
-        q-card-section
-          div
-            .row.items-center.q-mb-md
-              .col-12.text-center
-                VotingButtons(
-                  :decision='agenda.table',
-                  :is-voted-for='isVotedFor',
-                  :is-voted-against='isVotedAgainst',
-                  :is-voted-any='isVotedAny',
-                  @vote-for='$emit("vote-for")',
-                  @vote-against='$emit("vote-against")'
-                )
-                q-btn.q-mt-md(
-                  v-if='isChairman',
-                  size='sm',
-                  color='teal',
-                  :loading='isProcessing',
-                  @click='$emit("authorize")',
-                  unelevated,
-                  push
-                ) Утвердить
-          ComplexDocument(:documents='agenda.documents')
+  q-slide-transition
+    .question-card__doc(v-show='expanded')
+      ComplexDocument(:documents='agenda.documents')
 
-  .card-actions-external
-    ExpandToggleButton(
-      :expanded='expanded',
-      variant='card',
-      @click='$emit("toggle-expand")'
-    )
+      component(
+        v-if='infoComponent',
+        :is='infoComponent',
+        :agenda='agenda'
+      )
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
-import { useQuasar } from 'quasar';
+import { computed, ref } from 'vue';
 import { ComplexDocument } from 'src/shared/ui/ComplexDocument';
 import { formatToFromNow } from 'src/shared/lib/utils/dates/formatToFromNow';
 import { getShortNameFromCertificate } from 'src/shared/lib/utils/getNameFromCertificate';
@@ -68,19 +62,15 @@ import { VotingButtons } from '../VotingButtons';
 import { useSessionStore } from 'src/entities/Session';
 import type { IAgenda } from 'src/entities/Agenda/model';
 import { Cooperative } from 'cooptypes';
-import 'src/shared/ui/CardStyles/index.scss';
-import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
-
-const $q = useQuasar();
+import { BaseButton } from 'src/shared/ui/base/BaseButton';
+import { copyToClipboard } from 'quasar';
+import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { decisionFactory } from 'src/shared/lib/decision-factory';
 
 const props = defineProps({
   agenda: {
     type: Object as () => IAgenda,
     required: true,
-  },
-  expanded: {
-    type: Boolean,
-    default: false,
   },
   isProcessing: {
     type: Boolean,
@@ -100,10 +90,33 @@ const props = defineProps({
   },
 });
 
-defineEmits(['toggle-expand', 'authorize', 'vote-for', 'vote-against']);
+defineEmits(['authorize', 'vote-for', 'vote-against']);
 
 const session = useSessionStore();
 const isChairman = computed(() => session.isChairman);
+
+// Состояние раскрытия — локальное для каждой карточки.
+const expanded = ref(false);
+const toggleExpand = () => {
+  expanded.value = !expanded.value;
+};
+
+// Копирование идентификатора вопроса по клику на плашку с номером.
+const copyId = async () => {
+  try {
+    await copyToClipboard(String(props.agenda.table.id));
+    SuccessAlert('Скопировано');
+  } catch {
+    FailAlert('Не удалось скопировать');
+  }
+};
+
+// Компонент дополнительной информации для конкретного типа решения.
+const infoComponent = computed(() => {
+  const type = props.agenda.table?.type;
+  if (!type) return null;
+  return decisionFactory.getInfoComponent(type);
+});
 
 // Получение заголовка документа с поддержкой агрегатов
 function getDocumentTitle() {
@@ -113,22 +126,20 @@ function getDocumentTitle() {
   const meta = rawDocument?.meta as
     | Cooperative.Document.IMetaDocument
     | undefined;
-  // Используем только агрегаты документа
   if (meta?.title) {
-    const title = meta.title;
-    return formatDecisionTitle(title);
+    return meta.title;
   }
 
   const tableMeta = agenda.table?.statement?.meta;
   if (tableMeta && typeof tableMeta === 'object' && (tableMeta as any).title) {
-    return formatDecisionTitle((tableMeta as any).title);
+    return (tableMeta as any).title;
   }
 
   if (tableMeta && typeof tableMeta === 'string') {
     try {
       const parsed = JSON.parse(tableMeta);
       if (parsed?.title) {
-        return formatDecisionTitle(parsed.title);
+        return parsed.title;
       }
     } catch {
       // ignore parse errors
@@ -138,15 +149,6 @@ function getDocumentTitle() {
   return 'Вопрос без заголовка';
 }
 
-// Форматирование заголовка решения
-const formatDecisionTitle = (title: string) => {
-  if (!title) return 'Без заголовка';
-  if (title.length > 50) {
-    return title.substring(0, 50) + '...';
-  }
-  return title;
-};
-
 // Получение имени заявителя
 const getApplicantName = () => {
   const certificate = props.agenda.table.username_certificate;
@@ -155,118 +157,121 @@ const getApplicantName = () => {
   }
   return `Аккаунт: ${props.agenda.table.username}`;
 };
-
-// Определение статуса голосования
-const getStatusText = () => {
-  if (
-    !props.agenda.table ||
-    !props.agenda.table.votes_for ||
-    !props.agenda.table.votes_against
-  ) {
-    return 'Не проголосовал';
-  }
-
-  try {
-    if (props.isVotedAny(props.agenda.table)) {
-      if (props.isVotedFor(props.agenda.table)) return 'Вы ЗА';
-      if (props.isVotedAgainst(props.agenda.table)) return 'Вы ПРОТИВ';
-    }
-  } catch (error) {
-    console.warn('Ошибка при проверке статуса голосования:', error);
-  }
-  return 'Не проголосовал';
-};
-
-const getStatusColor = () => {
-  if (
-    !props.agenda.table ||
-    !props.agenda.table.votes_for ||
-    !props.agenda.table.votes_against
-  ) {
-    return 'grey';
-  }
-
-  try {
-    if (props.isVotedAny(props.agenda.table)) {
-      if (props.isVotedFor(props.agenda.table)) return 'positive';
-      if (props.isVotedAgainst(props.agenda.table)) return 'negative';
-    }
-  } catch (error) {
-    console.warn('Ошибка при проверке цвета статуса голосования:', error);
-  }
-  return 'grey';
-};
-
-const getStatusTextColor = () => {
-  return 'white';
-};
 </script>
 
 <style lang="scss" scoped>
-.question-card__container {
-  padding: 8px;
-  width: 100%;
-}
-
 .question-card {
-  border-radius: 16px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease-in-out;
-  &:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    transform: translateY(-1px);
-  }
+  background: var(--p-surface);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-lg, 16px);
+  overflow: hidden;
+  transition: border-color var(--p-dur-fast, 120ms) var(--p-ease-standard);
+}
+.question-card:hover {
+  border-color: var(--p-line-2, var(--p-line));
 }
 
-.question-card__header-section {
+.question-card__row {
   display: flex;
-  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--p-4, 16px);
+  padding: var(--p-4, 16px);
+  cursor: pointer;
+  transition: background-color var(--p-dur-fast, 120ms) var(--p-ease-standard);
+}
+.question-card__row:hover {
+  background: var(--p-surface-2);
+}
+
+/* Плашка с номером вопроса — кликабельна, копирует идентификатор */
+.question-card__id-avatar {
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
   align-items: center;
-}
-
-.question-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.question-title .title {
-  font-size: 16px;
-  font-weight: 500;
-  line-height: 1.4;
-  margin-bottom: 4px;
-}
-
-.question-title .subtitle {
-  font-size: 12px;
-  color: #757575;
-}
-
-.question-status {
-  text-align: right;
-}
-
-.question-status .expires-date {
-  font-size: 12px;
-  color: #757575;
-  margin-bottom: 4px;
-}
-
-.question-status .status {
-  margin-top: 4px;
-}
-
-.voting-section {
-  background-color: #f8f9fa;
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 16px;
-}
-
-.card-actions-external {
-  display: flex;
   justify-content: center;
-  padding: 4px;
-  gap: 8px;
+  border: none;
+  border-radius: var(--p-r-sm, 8px);
+  background: var(--p-primary-soft);
+  color: var(--p-primary);
+  font: inherit;
+  font-size: var(--p-fs-body, 14px);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color var(--p-dur-fast, 120ms) var(--p-ease-standard),
+    color var(--p-dur-fast, 120ms) var(--p-ease-standard);
+}
+.question-card__id-avatar:hover {
+  background: var(--p-primary);
+  color: var(--p-ink-on-primary);
+}
+
+.question-card__main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.question-card__title {
+  font-size: var(--p-fs-h3, 15px);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--p-ink);
+  overflow-wrap: anywhere;
+}
+.question-card__applicant {
+  margin-top: 2px;
+  font-size: var(--p-fs-meta, 12px);
+  color: var(--p-ink-2);
+}
+.question-card__expires {
+  font-size: var(--p-fs-meta, 12px);
+  color: var(--p-ink-3);
+  white-space: nowrap;
+}
+
+/* Кнопки голосования — у правого края, отдельная зона действий */
+.question-card__voting {
+  flex: 0 0 auto;
+  cursor: default;
+}
+
+.question-card__chevron {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  margin-top: 2px;
+  color: var(--p-ink-3);
+}
+
+/* Нижняя полоска: срок слева, «Утвердить» справа */
+.question-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--p-3, 12px);
+  padding: var(--p-3, 12px) var(--p-4, 16px);
+  border-top: 1px solid var(--p-line);
+}
+.question-card__approve {
+  display: inline-flex;
+}
+
+/* Раскрываемое содержимое документа */
+.question-card__doc {
+  padding: var(--p-4, 16px);
+  border-top: 1px solid var(--p-line);
+}
+
+/* На узких экранах кнопки голосования переносятся под заголовок */
+@media (max-width: 768px) {
+  .question-card__row {
+    flex-wrap: wrap;
+  }
+  .question-card__main {
+    flex: 1 1 70%;
+  }
+  .question-card__voting {
+    order: 4;
+    flex: 1 1 100%;
+  }
 }
 </style>

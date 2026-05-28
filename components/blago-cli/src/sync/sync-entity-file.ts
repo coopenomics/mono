@@ -4,10 +4,33 @@ import type { BlagoEntityType, IndexFile } from './index-store.js'
 import * as fs from 'node:fs/promises'
 
 import * as path from 'node:path'
+import { parseBlagoMarkdown, serializeBlagoMarkdown } from '../format/index.js'
 import { sha256Hex } from '../lib/hash.js'
 
 import { warn } from '../ui/output.js'
 import { findByHash, normalizeRelativePath, upsertEntry } from './index-store.js'
+
+/**
+ * Канонический вид для сравнения «есть ли реальный конфликт», без волатильных
+ * серверных меток времени. updated_at/created_at сервер бьёт при дочерних мутациях
+ * (создание/удаление issue/story у родителя), и они попадают и во frontmatter, и в
+ * content_etag_local. Из-за этого raw-sha файла расходится с etag, локальный файл
+ * считается «грязным», а pull при изменившемся remote_updated_at пишет маркеры слияния —
+ * хотя содержательно текст совпадает. Сравнение в каноне (без updated_at/created_at)
+ * отличает настоящую правку от чистого bump'а времени.
+ */
+function canonicalForCompare(raw: string): string {
+  try {
+    const parsed = parseBlagoMarkdown(raw)
+    const data = { ...parsed.data }
+    delete data.updated_at
+    delete data.created_at
+    return serializeBlagoMarkdown(data, parsed.body)
+  }
+  catch {
+    return raw
+  }
+}
 
 async function ensureDirForFile(absFile: string): Promise<void> {
   await fs.mkdir(path.dirname(absFile), { recursive: true })
@@ -139,6 +162,21 @@ export async function syncEntityFile(params: {
   const dirty
     = current !== null && current !== undefined && sha256Hex(current) !== prev.content_etag_local
   if (dirty && remoteUpdatedAt !== prev.remote_updated_at) {
+    // Реальный конфликт — только если содержимое расходится вне волатильных меток времени.
+    // Если локальный и серверный тексты совпадают по канону (отличие лишь в updated_at/created_at),
+    // это не конфликт: принимаем серверную версию и лечим etag, без маркеров слияния.
+    if (current !== null && current !== undefined && canonicalForCompare(current) === canonicalForCompare(content)) {
+      await ensureDirForFile(absNew)
+      await fs.writeFile(absNew, content, 'utf8')
+      upsertEntry(index, {
+        entity_type: entityType,
+        entity_hash: entityHash,
+        relative_path: rel,
+        remote_updated_at: remoteUpdatedAt,
+        content_etag_local: sha256Hex(await fs.readFile(absNew, 'utf8')),
+      })
+      return
+    }
     const merged = wrapMergeConflictMarkers(current ?? '', content)
     await ensureDirForFile(absNew)
     await fs.writeFile(absNew, merged, 'utf8')

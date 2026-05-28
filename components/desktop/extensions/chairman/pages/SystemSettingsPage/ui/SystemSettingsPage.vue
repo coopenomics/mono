@@ -1,19 +1,21 @@
 <template lang="pug">
-div.page-shell
-  q-card.hero-card(flat)
-    .hero-title Стартовые страницы
-    .hero-subtitle
-      | Настройте рабочие столы и страницы, которые будут открываться по умолчанию
-      | для новых пользователей при входе на сайт. Единый стиль помогает быстрее
-      | понять, что важно сделать в первую очередь.
+.settings-page
+  //- Заголовок страницы не дублируем — он уже показан крошкой в шапке.
+  //- Пояснение размещаем на канон-поверхности (.banner), а не на голом фоне.
+  .banner
+    q-icon.banner__icon(name='fa-solid fa-circle-info' size='18px')
+    .banner__body
+      | Настройте рабочие столы и страницы, которые будут открываться по
+      | умолчанию для новых пользователей при входе на сайт.
 
-  q-card.surface-card(flat)
-    DefaultPagesForm(
-      :loading='saving'
-      @submit='onSubmit'
-      @success='onSuccess'
-      @error='onError'
-    )
+  q-card(flat)
+    q-card-section
+      DefaultPagesForm(
+        :loading='saving'
+        @submit='onSubmit'
+        @success='onSuccess'
+        @error='onError'
+      )
 </template>
 
 <script lang="ts" setup>
@@ -45,31 +47,14 @@ const onError = (error: Error) => {
 </script>
 
 <style scoped lang="scss">
-.page-shell {
-  width: 100%;
-  padding: 24px 12px 32px;
+// Канон-отступы страницы (как на прочих столах).
+.settings-page {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-}
-
-.hero-card {
-  border-radius: 18px;
-  padding: 18px 20px;
-}
-
-.hero-title {
-  font-size: 22px;
-  font-weight: 600;
-}
-
-.hero-subtitle {
-  line-height: 1.55;
-  max-width: 820px;
-}
-
-.surface-card {
-  border-radius: 16px;
-  padding: 16px 18px;
+  gap: var(--p-5, 20px);
+  padding: var(--p-6, 24px);
+  @media (max-width: 768px) {
+    padding: var(--p-4, 16px);
+  }
 }
 </style>

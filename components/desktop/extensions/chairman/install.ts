@@ -77,7 +77,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'extensions',
             component: markRaw(ExtensionsManagement),
             meta: {
-              title: 'Магазин приложений',
+              title: 'Каталог приложений',
               icon: 'fa-solid fa-puzzle-piece',
               roles: ['chairman'],
               agreements: agreementsBase,

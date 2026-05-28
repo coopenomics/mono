@@ -9,12 +9,13 @@ import { client } from 'src/shared/api/client';
 import type { ILoadPaginatedAgreementsInput, IPaginatedAgreementsResponse } from '../model/types';
 
 async function loadCooperativeAgreements(coopname: string): Promise<SovietContract.Tables.CoopAgreements.ICoopAgreement[]> {
+  // Гард: если system_info ещё не загрузился, coopname будет undefined/''.
+  // Zeus сериализует variables в {} и сервер падает на required $coopname.
+  if (!coopname) return [];
   const { [Queries.Agreements.CooperativeAgreements.name]: rows } = await client.Query(
     Queries.Agreements.CooperativeAgreements.query,
     { variables: { coopname } }
   );
-  // GraphQL возвращает program_id/draft_id как Int; контракт ждёт IUint64 (string|number).
-  // Адаптируем форму без потери данных.
   return (rows ?? []).map((r) => ({
     type: r.type,
     coopname: r.coopname,
@@ -24,6 +25,7 @@ async function loadCooperativeAgreements(coopname: string): Promise<SovietContra
 }
 
 async function loadAgreementTemplates(coopname: string): Promise<DraftContract.Tables.Drafts.IDraft[]> {
+  if (!coopname) return [];
   const { [Queries.Agreements.AgreementTemplates.name]: rows } = await client.Query(
     Queries.Agreements.AgreementTemplates.query,
     { variables: { coopname } }

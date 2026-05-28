@@ -1,5 +1,5 @@
 <template lang="pug">
-.q-pa-md
+.documents-calendar
   ReportsCalendar(ref='calendarRef' @select='onCalendarSelect')
 
   ReportEditorDialog(

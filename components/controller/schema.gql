@@ -1435,7 +1435,6 @@ type CallTranscription {
   createdAt: DateTime!
   endedAt: DateTime
   id: String!
-  matrixRoomId: String!
 
   """Пользовательская заметка о содержании звонка"""
   memo: String!
@@ -1444,6 +1443,8 @@ type CallTranscription {
   Отображаемые имена участников (Synapse displayname); в БД хранятся канонические Matrix user id
   """
   participants: [String!]!
+
+  """Внутреннее имя комнаты звонка (LiveKit room name), не Matrix room id"""
   roomId: String!
   roomName: String!
   startedAt: DateTime!
@@ -3554,6 +3555,17 @@ type ChatCoopCalendarRoomOption {
   matrixRoomId: String!
 }
 
+type ChatcoopNonProjectCommunicationRoom {
+  """Подпись для отображения комнаты"""
+  displayLabel: String!
+
+  """Тип комнаты (пайщики / совет / секретарь)"""
+  kind: NonProjectRoomKind!
+
+  """Идентификатор комнаты Matrix"""
+  matrixRoomId: String!
+}
+
 type ChatcoopProjectCommunicationRoom {
   """Подпись для отображения (комната / проект Capital)"""
   displayLabel: String!
@@ -3575,6 +3587,28 @@ type ChatcoopRoomMessageLine {
 
   """origin_server_ts из Matrix (мс)"""
   originServerTs: Float!
+}
+
+type ChatcoopSecretaryRoom {
+  """Название комнаты"""
+  displayLabel: String!
+
+  """Можно ли удалить комнату из интерфейса (только комнаты секретаря)"""
+  editable: Boolean!
+
+  """Комната зашифрована (E2EE) — секретарь не транскрибирует такие комнаты"""
+  encrypted: Boolean!
+
+  """
+  Внутренний идентификатор комнаты в реестре (для операций; это НЕ Matrix room id)
+  """
+  id: String!
+
+  """Тип комнаты"""
+  kind: ManagedRoomKind!
+
+  """Секретарь присутствует в комнате"""
+  secretaryInRoom: Boolean!
 }
 
 input CheckMatrixUsernameInput {
@@ -4633,6 +4667,16 @@ input CreateRequestInput {
 
   """Ширина упаковки"""
   width: Int
+}
+
+input CreateSecretaryRoomInput {
+  """Название комнаты"""
+  displayName: String!
+
+  """
+  Публичная комната (любой может войти) либо приватная (вход по приглашению создателя)
+  """
+  isPublic: Boolean!
 }
 
 input CreateSovietIndividualDataInput {
@@ -6717,9 +6761,6 @@ type Ledger2Wallet {
   """Доступный баланс"""
   available: String!
 
-  """Заблокированный баланс"""
-  blocked: String!
-
   """eosio::name-идентификатор кошелька (w.<contract>.<waltype>)"""
   id: String!
 
@@ -6897,6 +6938,14 @@ input MakeClearanceInput {
 
   """Имя пользователя"""
   username: String!
+}
+
+"""Тип комнаты: пайщики, совет, проект Capital, комната секретаря"""
+enum ManagedRoomKind {
+  CAPITAL_PROJECT
+  COUNCIL
+  MEMBERS
+  SECRETARY
 }
 
 input MarkReportPeriodInput {
@@ -8082,6 +8131,19 @@ input MarketplaceListOrdersInput {
   supplier_account: String
 }
 
+input MarketplaceListOutgoingPaymentsAsSupplierFilterInput {
+  """Фильтр по статусам выплат. Пусто — показывать все статусы."""
+  statuses: [MarketplaceOutgoingPaymentRequestStatus!]
+}
+
+input MarketplaceListOutgoingPaymentsFilterInput {
+  """Фильтр по статусам выплат. Пусто — показывать все статусы."""
+  statuses: [MarketplaceOutgoingPaymentRequestStatus!]
+
+  """Поставщик-получатель выплаты. Пусто — по всем поставщикам."""
+  supplier_account: String
+}
+
 input MarketplaceListPendingOffersInput {
   """Количество элементов на странице"""
   limit: Int! = 10
@@ -8129,7 +8191,7 @@ type MarketplaceMemberWallet {
   username: String!
 
   """
-  Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.member
+  Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.order
   """
   wallets: [MarketplaceWalletEntry!]!
 }
@@ -8338,20 +8400,14 @@ type MarketplaceOrder {
 }
 
 """
-Снимок транзакции блокировки средств: ссылки на блок, флаги конверсии и сумма.
+Снимок транзакции резервирования средств: ссылки на блок и сумма резерва.
 """
 type MarketplaceOrderCreateTxSnapshot {
   """Номер блока, в который попала транзакция."""
   block_num: Int!
 
-  """Сумма заблокированных средств (строка денежного актива)."""
-  blocked_amount: String!
-
-  """Был ли выполнен перевод средств между кошельками пайщика."""
-  did_assign: Boolean!
-
-  """Была ли выполнена конверсия паевого взноса в членский."""
-  did_convert: Boolean!
+  """Сумма зарезервированных средств (строка денежного актива)."""
+  locked_amount: String!
 
   """Время подписания заказа (ISO 8601)."""
   signed_at: String!
@@ -9246,7 +9302,9 @@ type MarketplaceWalletEntry {
   """Доступный остаток (`userwallets.available`)"""
   available: String!
 
-  """Заблокированный остаток (`userwallets.blocked`)"""
+  """
+  Заблокированный остаток (`userwallets.blocked`). Для marketplace-кошельков всегда `0` — резерв выражается через `.available` кошелька w.mkt.order. Поле остаётся для wallet/withdraw flow и legacy данных.
+  """
   blocked: String!
 
   """Человекочитаемое название (из cooptypes LEDGER2_WALLET_REGISTRY)"""
@@ -9260,7 +9318,7 @@ type MarketplaceWalletEntry {
   """
   label: String!
 
-  """eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.member)"""
+  """eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.order)"""
   name: String!
 
   """program_id: 1 — Цифровой Кошелёк, 2 — Стол Заказов"""
@@ -10249,11 +10307,25 @@ type Mutation {
   chatcoopCreateCalendarIcsSubscription: ChatCoopCalendarIcsUrlResponse!
 
   """
+  Создать комнату с секретарём (публичную или приватную); секретарь подключается сразу
+  
+  Требуемые роли: chairman, member. 
+  """
+  chatcoopCreateSecretaryRoom(data: CreateSecretaryRoomInput!): ChatcoopSecretaryRoom!
+
+  """
   Удалить событие календаря
   
   Требуемые роли: chairman, member. 
   """
   chatcoopDeleteCalendarEvent(id: String!): Boolean!
+
+  """
+  Удалить комнату секретаря: вывести секретаря и снять комнату с синхронизации (возвращает идентификатор комнаты в реестре)
+  
+  Требуемые роли: chairman, member. 
+  """
+  chatcoopRemoveSecretaryRoom(data: RemoveSecretaryRoomInput!): String!
 
   """
   Обновить событие календаря
@@ -10982,6 +11054,13 @@ type Mutation {
   Требуемые роли: chairman. 
   """
   walmoveWallets(input: WalmoveInput!): Ledger2AdjustmentResult!
+}
+
+"""Тип комнаты вне проекта: пайщики, совет, комната секретаря"""
+enum NonProjectRoomKind {
+  COUNCIL
+  MEMBERS
+  SECRETARY
 }
 
 input NotificationWorkflowRecipientInput {
@@ -12222,9 +12301,6 @@ type ProgramWallet {
   """Номер блока последнего обновления"""
   blockNum: Float
 
-  """Заблокированный баланс (формат: "100.0000 RUB")"""
-  blocked: String!
-
   """Имя кооператива"""
   coopname: String!
 
@@ -12735,11 +12811,25 @@ type Query {
   chatcoopListCalendarRooms: [ChatCoopCalendarRoomOption!]!
 
   """
+  Комнаты Matrix вне проектов Capital (пайщики/совет/секретарь) — для синхронизации в blago
+  
+  Требуемые роли: chairman, member, user. 
+  """
+  chatcoopListNonProjectCommunicationRooms: [ChatcoopNonProjectCommunicationRoom!]!
+
+  """
   Комнаты Matrix, привязанные к проекту Capital (реестр ChatCoop)
   
   Требуемые роли: chairman, member, user. 
   """
   chatcoopListProjectCommunicationRooms(data: GetProjectCommunicationRoomsInput!): [ChatcoopProjectCommunicationRoom!]!
+
+  """
+  Все комнаты реестра ChatCoop (системные/проектные — read-only, комнаты секретаря — удаляемые)
+  
+  Требуемые роли: chairman, member. 
+  """
+  chatcoopListSecretaryRooms: [ChatcoopSecretaryRoom!]!
 
   """
   UTC-даты (YYYY-MM-DD), в которых есть сообщения новее afterOriginServerTsExclusive, для комнаты Matrix
@@ -13205,7 +13295,7 @@ type Query {
   marketplaceListConsolidatedRequests(input: MarketplaceListConsolidatedRequestsInput, options: PaginationInput): MarketplaceConsolidatedRequestPaginationResult!
 
   """
-  Список наклеек инвентаря КУ: admin/совет видят весь склад кооператива, оператор — только свой участок.
+  Список наклеек инвентаря КУ — для admin-стола склада и операторских разделов.
   """
   marketplaceListInventory(data: MarketplaceListInventoryInput): [MarketplaceInventoryItem!]!
 
@@ -13241,12 +13331,12 @@ type Query {
   """
   Лента выплат поставщикам по всему кооперативу — для совета. Опциональные фильтры: по поставщику-получателю и по статусам.
   """
-  marketplaceListOutgoingPayments(statuses: [MarketplaceOutgoingPaymentRequestStatus!], supplier_account: String): [MarketplaceOutgoingPaymentRequest!]!
+  marketplaceListOutgoingPayments(filter: MarketplaceListOutgoingPaymentsFilterInput): [MarketplaceOutgoingPaymentRequest!]!
 
   """
   История выплат поставщику в столе поставщика — статусы по каждому заказу.
   """
-  marketplaceListOutgoingPaymentsAsSupplier(statuses: [MarketplaceOutgoingPaymentRequestStatus!]): [MarketplaceOutgoingPaymentRequest!]!
+  marketplaceListOutgoingPaymentsAsSupplier(filter: MarketplaceListOutgoingPaymentsAsSupplierFilterInput): [MarketplaceOutgoingPaymentRequest!]!
 
   """Список Offer'ов на модерации (admin)"""
   marketplaceListPendingOffers(input: MarketplaceListPendingOffersInput): MarketplaceOfferPaginationResult!
@@ -13278,7 +13368,7 @@ type Query {
   marketplaceListWriteoffProposals(data: MarketplaceListWriteoffProposalsInput!, options: PaginationInput): PaginatedMarketplaceWriteoffProposals!
 
   """
-  Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.member
+  Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.order
   """
   marketplaceMemberWallet: MarketplaceMemberWallet!
 
@@ -13630,6 +13720,11 @@ input RemoveAvailableCategoriesInput {
 input RemoveAvailableCategoryTypesInput {
   """Типы товаров для удаления"""
   categoryTypes: [CategoryTypeInput!]!
+}
+
+input RemoveSecretaryRoomInput {
+  """Идентификатор комнаты в реестре, которую нужно удалить"""
+  id: String!
 }
 
 input ReplaceAvailableItemsInput {

@@ -3,10 +3,11 @@
 # программу «Цифровой Кошелёк» (SHARE_FUND_PAY).
 #
 # Четырёхактовый процесс с одной авторизацией советом. Запись заявки живёт в
-# таблице `withdraws` от создания до выплаты или отказа. На закрывающем
-# действии completewthd срабатывает одна операция o.wal.wthcpl — сжигание
-# заблокированной суммы (BURN_BLOCKED w.wal.share): деньги уходят из системы
-# пайщику банковским переводом, получателя на цепи нет.
+# таблице `withdraws` от создания до выплаты или отказа. На подаче заявки сумма
+# переводится в кошелёк-резерв (WITHDRAW_PENDING, w.wal.wpend). На закрывающем
+# действии completewthd срабатывает операция o.wal.wthcpl — сжигание суммы из
+# резерва (BURN w.wal.wpend): деньги уходят из системы пайщику банковским
+# переводом, получателя на цепи нет.
 #
 # Источники правды в коде:
 #   • cpp/wallet/wallet.hpp                                 — actions
@@ -43,8 +44,8 @@ actions:
     actor: contributor
     role: opener
     purpose: >
-      Пайщик создаёт заявку на возврат паевого взноса. Контракт блокирует
-      сумму на кошельке SHARE_FUND_PAY (статус available → blocked) и
+      Пайщик создаёт заявку на возврат паевого взноса. Контракт переводит
+      сумму с кошелька SHARE_FUND_PAY в кошелёк-резерв WITHDRAW_PENDING и
       создаёт повестку в совете о возврате с callback'ом авторизации.
   - name: wallet::authwthd
     human: Авторизовать выплату
@@ -60,16 +61,17 @@ actions:
     role: closer
     purpose: >
       Gateway подтвердил списание средств в пользу пайщика. Это закрывающее
-      действие: применяется операция o.wal.wthcpl (BURN_BLOCKED w.wal.share)
-      — заблокированная сумма сжигается, в бухгалтерии проходит обратная
+      действие: применяется операция o.wal.wthcpl (BURN w.wal.wpend)
+      — сумма из резерва сжигается, в бухгалтерии проходит обратная
       проводка Дт 80 / Кт 51. Запись заявки удаляется.
   - name: wallet::declinewthd
     human: Отклонить
     actor: soviet
     role: reject
     purpose: >
-      Отказ на любом из этапов до выплаты. Сумма разблокируется на кошельке
-      пайщика (UNBLOCK через o.wal.wthdec), запись заявки удаляется.
+      Отказ на любом из этапов до выплаты. Сумма возвращается из резерва на
+      кошелёк пайщика (o.wal.wthdec: WITHDRAW_PENDING → SHARE_FUND_PAY),
+      запись заявки удаляется.
 
 # ── Секция 3. Граф состояний ────────────────────────────────────────────────
 entity: wallet::withdraw
@@ -80,8 +82,8 @@ states:
   - name: pending
     human: Ожидает решения совета
     description: >
-      Заявка создана, сумма заблокирована на кошельке пайщика (available → blocked),
-      повестка отправлена в совет.
+      Заявка создана, сумма переведена в кошелёк-резерв (SHARE_FUND_PAY →
+      WITHDRAW_PENDING), повестка отправлена в совет.
     kind: normal
   - name: authorized
     human: Выплата отправлена
@@ -92,15 +94,15 @@ states:
   - name: completed
     human: Возврат выплачен
     description: >
-      Gateway подтвердил списание, заблокированная сумма сжигается на кошельке
-      пайщика (BURN_BLOCKED w.wal.share). В бухгалтерии прошла обратная
+      Gateway подтвердил списание, сумма из резерва сжигается
+      (BURN w.wal.wpend). В бухгалтерии прошла обратная
       проводка Дт 80 / Кт 51. Запись заявки удалена.
     kind: final
   - name: removed
     human: Отклонено
     description: >
-      Возврат не состоялся: сумма разблокирована (UNBLOCK через o.wal.wthdec),
-      запись удалена.
+      Возврат не состоялся: сумма возвращена из резерва на кошелёк пайщика
+      (o.wal.wthdec: WITHDRAW_PENDING → SHARE_FUND_PAY), запись удалена.
     kind: virtual
     virtual: true
 
@@ -172,7 +174,7 @@ scenario:
         - Сумма возврата ≤ доступного остатка.
       post:
         - В таблице withdraws создана запись со статусом `pending`.
-        - На кошельке пайщика сумма переведена available → blocked.
+        - Сумма переведена с SHARE_FUND_PAY в кошелёк-резерв WITHDRAW_PENDING.
         - Совет получил повестку о возврате.
 
     - step: 2
@@ -197,13 +199,13 @@ scenario:
       action: wallet::completewthd
       description: >
         Gateway подтверждает списание средств в пользу пайщика. Контракт
-        применяет ledger2-операцию o.wal.wthcpl (BURN_BLOCKED w.wal.share с
+        применяет ledger2-операцию o.wal.wthcpl (BURN w.wal.wpend с
         обратной проводкой Дт 80 / Кт 51) и удаляет запись заявки.
       pre:
         - Заявка в статусе `authorized`.
         - Gateway подтвердил списание.
       post:
-        - Заблокированная сумма сожжена с SHARE_FUND_PAY (w.wal.share).
+        - Сумма из резерва сожжена (WITHDRAW_PENDING, w.wal.wpend).
         - В ledger2 применена операция o.wal.wthcpl.
         - Запись заявки удалена.
 
@@ -214,8 +216,8 @@ scenario:
       actor: soviet
       description: >
         Совет принял отрицательное решение либо Gateway отклонил платёж.
-        Сумма разблокирована на кошельке пайщика (UNBLOCK через o.wal.wthdec),
-        запись удалена.
+        Сумма возвращена из резерва на кошелёк пайщика (o.wal.wthdec:
+        WITHDRAW_PENDING → SHARE_FUND_PAY), запись удалена.
 
 # ── Секция 5. Документы и подписи ───────────────────────────────────────────
 documents:
@@ -234,45 +236,45 @@ documents:
 # ── Секция 6. Операции ──────────────────────────────────────────────────────
 operations:
   - ledger_code: o.wal.wthreq
-    human_name: Блокировка паевого под запрос на возврат
-    wallet_op: BLOCK
+    human_name: Резервирование паевого под запрос на возврат
+    wallet_op: TRANSFER
     wallet_from: w.wal.share
-    wallet_to: ~
+    wallet_to: w.wal.wpend
     debit: ~
     credit: ~
     amount_ref: withdraw.quantity
     triggered_by: wallet::createwthd
     description: >
-      На создании заявки контракт блокирует сумму на кошельке пайщика
-      (SHARE_FUND_PAY): available → blocked. Бухгалтерская проводка не
-      создаётся — движение внутри одного бухсчёта 80.
+      На создании заявки контракт переводит сумму с кошелька пайщика
+      (SHARE_FUND_PAY) в кошелёк-резерв (WITHDRAW_PENDING). Бухгалтерская
+      проводка не создаётся — движение внутри одного бухсчёта 80.
 
   - ledger_code: o.wal.wthdec
-    human_name: Разблокировка паевого после отклонения запроса на возврат
-    wallet_op: UNBLOCK
-    wallet_from: w.wal.share
-    wallet_to: ~
+    human_name: Снятие резерва паевого после отклонения запроса на возврат
+    wallet_op: TRANSFER
+    wallet_from: w.wal.wpend
+    wallet_to: w.wal.share
     debit: ~
     credit: ~
     amount_ref: withdraw.quantity
     triggered_by: wallet::declinewthd
     description: >
-      Зеркало REQUEST_WITHDRAW: blocked → available на кошельке пайщика.
-      Бухгалтерская проводка не создаётся.
+      Зеркало REQUEST_WITHDRAW: сумма возвращается из резерва (WITHDRAW_PENDING)
+      на кошелёк пайщика (SHARE_FUND_PAY). Бухгалтерская проводка не создаётся.
 
   - ledger_code: o.wal.wthcpl
     human_name: Возврат паевого взноса пайщику
-    wallet_op: BURN_BLOCKED
-    wallet_from: w.wal.share          # ЦПП «Цифровой Кошелёк» — паевые взносы деньгами
+    wallet_op: BURN
+    wallet_from: w.wal.wpend           # кошелёк-резерв возвратов
     wallet_to: ~                       # деньги уходят из системы, получателя на цепи нет
     debit: 80                  # Паевой фонд (складочный капитал)
     credit: 51                 # Расчётный счёт
     amount_ref: withdraw.quantity
     triggered_by: wallet::completewthd
     description: >
-      Обратная операция к o.wal.depcpl: заблокированная сумма сжигается с
-      кошелька пайщика «ЦПП Цифровой Кошелёк» (w.wal.share) — деньги уходят
-      из системы банковским переводом пайщику. На цепи получателя нет.
+      Обратная операция к o.wal.depcpl: зарезервированная сумма сжигается с
+      кошелька-резерва (w.wal.wpend) — деньги уходят из системы банковским
+      переводом пайщику. На цепи получателя нет.
       В бухгалтерии прошла проводка Дт 80 / Кт 51 — паевой фонд уменьшился,
       деньги ушли с расчётного счёта пайщику.
 

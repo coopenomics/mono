@@ -1,5 +1,5 @@
 <template lang="pug">
-div
+.approvals-page
   q-card(flat)
 
     // Фильтры
@@ -11,7 +11,8 @@ div
           label='Статус'
           placeholder='без фильтра'
           dense
-          standout="bg-teal text-white"
+          outlined
+          color="primary"
           @update:model-value='onFiltersChange'
           style="width: 250px"
         )
@@ -128,3 +129,12 @@ watch(() => route.params.coopname, () => {
   loadApprovals();
 });
 </script>
+
+<style scoped lang="scss">
+.approvals-page {
+  padding: var(--p-6, 24px);
+  @media (max-width: 768px) {
+    padding: var(--p-4, 16px);
+  }
+}
+</style>

@@ -1,43 +1,30 @@
 <template lang="pug">
-.meet-compact-card.q-pa-lg(
+.meet-card(
   role='button',
   tabindex='0',
   @click='$emit("navigate")',
   @keydown.enter.prevent='$emit("navigate")',
   @keydown.space.prevent='$emit("navigate")'
 )
-  .meet-header.q-mb-md
-    .row.items-center.justify-between
-      .col-auto.flex.items-center
-        .meet-icon-wrap.q-mr-md(aria-hidden='true')
-          q-icon(name='event', size='24px', color='primary')
-        .meet-info
-          .meet-title Общее собрание № {{ meet.processing?.meet?.id }}
+  .meet-card__head
+    .meet-card__icon(aria-hidden='true')
+      q-icon(name='event', size='20px')
+    .meet-card__title Общее собрание № {{ meet.processing?.meet?.id }}
 
-  .meet-body.q-mb-md
-    .row.q-col-gutter-sm
-      .col-md-6.col-xs-12
-        .meet-stat-tile
-          .meet-stat-label Открытие
-          .meet-stat-value {{ meetStatus.formattedOpenDate }} {{ getTimezoneLabel() }}
-      .col-md-6.col-xs-12
-        .meet-stat-tile
-          .meet-stat-label Закрытие
-          .meet-stat-value {{ meetStatus.formattedCloseDate }} {{ getTimezoneLabel() }}
-  .meet-status-row
-    MeetStatusBanner(:meet='meet')
+  .meet-card__tiles
+    .meet-card__tile
+      .meet-card__tile-label Открытие
+      .meet-card__tile-value {{ meetStatus.formattedOpenDate }} {{ getTimezoneLabel() }}
+    .meet-card__tile
+      .meet-card__tile-label Закрытие
+      .meet-card__tile-value {{ meetStatus.formattedCloseDate }} {{ getTimezoneLabel() }}
 
-  .row.q-mt-md.items-center
-    .col-auto
-      q-btn(
-        color='primary',
-        icon='arrow_forward',
-        label='Подробнее',
-        flat,
-        dense,
-        no-caps,
-        @click.stop='$emit("navigate")'
-      )
+  MeetStatusBanner(:meet='meet')
+
+  .meet-card__foot
+    span.meet-card__more
+      span Подробнее
+      q-icon(name='arrow_forward', size='16px')
 </template>
 
 <script setup lang="ts">
@@ -59,122 +46,95 @@ const meetStatus = useMeetStatus(props.meet);
 </script>
 
 <style lang="scss" scoped>
-@import 'src/shared/ui/CardStyles/index.scss';
-
-.meet-compact-card {
-  @extend .card-container;
+.meet-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-4, 16px);
+  width: 100%;
+  padding: var(--p-5, 20px);
+  background: var(--p-surface);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-lg, 16px);
   cursor: pointer;
   transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease,
-    background-color 0.2s ease;
-
-  // Тёмная тема: без «засвета» от белой плёнки — опора на фон страницы + лёгкий primary
-  .body--dark &,
-  .q-dark & {
-    background-color: color-mix(
-      in srgb,
-      var(--q-dark-page, #1f1c1c) 92%,
-      var(--q-primary) 8%
-    );
-  }
-
-  &:hover {
-    border-color: color-mix(in srgb, var(--q-primary) 28%, rgba(0, 0, 0, 0.08));
-    box-shadow: 0 2px 12px color-mix(in srgb, var(--q-primary) 14%, transparent);
-
-    // Тёмная тема: граница + тень + лёгкий сдвиг фона к primary (слабее, чем раньше)
-    .body--dark &,
-    .q-dark & {
-      border-color: color-mix(in srgb, var(--q-primary) 35%, rgba(255, 255, 255, 0.72));
-      background-color: color-mix(
-        in srgb,
-        var(--q-dark-page, #1f1c1c) 90%,
-        var(--q-primary) 10%
-      );
-      box-shadow: 0 2px 16px color-mix(in srgb, var(--q-primary) 18%, transparent);
-    }
-  }
-
-  &:focus-visible {
-    outline: 2px solid color-mix(in srgb, var(--q-primary) 55%, transparent);
-    outline-offset: 2px;
-  }
-
-  .meet-icon-wrap {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    background: color-mix(in srgb, var(--q-primary) 10%, transparent);
-  }
-
-  .meet-header {
-    .meet-info {
-      .meet-title {
-        font-size: 18px;
-        font-weight: 600;
-        line-height: 1.25;
-        color: var(--q-primary);
-      }
-    }
-  }
-
-  .meet-stat-tile {
-    border-radius: 12px;
-    padding: 12px 14px;
-    border: 1px solid rgba(0, 0, 0, 0.06);
-    background: color-mix(in srgb, var(--q-primary) 6%, var(--q-surface));
-
-    .body--dark &,
-    .q-dark & {
-      border-color: rgba(255, 255, 255, 0.28);
-      background: color-mix(
-        in srgb,
-        var(--q-dark-page, #1f1c1c) 88%,
-        var(--q-primary) 12%
-      );
-    }
-  }
-
-  .meet-stat-label {
-    font-size: 12px;
-    font-weight: 500;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-    opacity: 0.6;
-    margin-bottom: 4px;
-  }
-
-  .meet-stat-value {
-    font-size: 15px;
-    font-weight: 600;
-    line-height: 1.35;
-    word-break: break-word;
-  }
-
-  .meet-status-row {
-    width: 100%;
-  }
+    border-color var(--p-dur-fast, 120ms) var(--p-ease-standard),
+    box-shadow var(--p-dur-fast, 120ms) var(--p-ease-standard);
+}
+.meet-card:hover {
+  border-color: var(--p-line-1);
+  box-shadow: var(--p-shadow-card);
+}
+.meet-card:focus-visible {
+  outline: none;
+  border-color: var(--p-line-1);
+  box-shadow: inset var(--p-focus-ring);
 }
 
-// Адаптивность
-@media (max-width: 768px) {
-  .meet-compact-card {
-    .meet-header {
-      .row {
-        flex-direction: column;
-        gap: 16px;
-      }
-    }
+.meet-card__head {
+  display: flex;
+  align-items: center;
+  gap: var(--p-3, 12px);
+}
+.meet-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--p-r-md, 12px);
+  background: var(--p-surface-2);
+  color: var(--p-ink-2);
+}
+.meet-card__title {
+  font-size: var(--p-fs-h6, 16px);
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--p-ink);
+}
 
-    .meet-body {
-      .row {
-        flex-direction: column;
-      }
-    }
+.meet-card__tiles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--p-3, 12px);
+}
+@media (max-width: 600px) {
+  .meet-card__tiles {
+    grid-template-columns: 1fr;
   }
+}
+.meet-card__tile {
+  padding: var(--p-3, 12px) var(--p-4, 16px);
+  background: var(--p-surface-2);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-md, 12px);
+}
+.meet-card__tile-label {
+  font-size: var(--p-fs-meta, 12px);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--p-ink-3);
+  margin-bottom: var(--p-1, 4px);
+}
+.meet-card__tile-value {
+  font-size: var(--p-fs-body, 14px);
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--p-ink-1);
+  overflow-wrap: anywhere;
+}
+
+.meet-card__foot {
+  display: flex;
+}
+.meet-card__more {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--p-1, 4px);
+  font-size: var(--p-fs-body-sm, 13px);
+  color: var(--p-ink-2);
+}
+.meet-card:hover .meet-card__more {
+  color: var(--p-ink);
 }
 </style>

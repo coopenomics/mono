@@ -1,6 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type {
   InterCompletedCallTranscriptionHead,
+  InterNonProjectCommunicationRoomRef,
+  InterNonProjectRoomKind,
   InterProjectCommunicationArtifactsPort,
   InterProjectCommunicationRoomRef,
   InterRoomMessageLine,
@@ -46,6 +48,19 @@ export class ChatcoopInterProjectCommunicationArtifactsAdapter implements InterP
       matrixRoomId: r.matrixRoomId,
       displayLabel: r.displayLabel || r.matrixRoomId,
     }));
+  }
+
+  async listNonProjectCommunicationRooms(): Promise<InterNonProjectCommunicationRoomRef[]> {
+    const rooms = await this.managedRooms.findNonProjectCommunicationRooms();
+    return rooms
+      .filter((r): r is typeof r & { kind: InterNonProjectRoomKind } =>
+        r.kind === 'members' || r.kind === 'council' || r.kind === 'secretary'
+      )
+      .map((r) => ({
+        matrixRoomId: r.matrixRoomId,
+        displayLabel: r.displayLabel || r.matrixRoomId,
+        kind: r.kind,
+      }));
   }
 
   async listUtcDatesWithNewMessages(

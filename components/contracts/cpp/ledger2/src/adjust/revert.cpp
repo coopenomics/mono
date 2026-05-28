@@ -67,12 +67,12 @@ void ledger2::revert(eosio::name coopname,
   eosio::check(original_operation_id != 0, "revert: original_operation_id обязателен");
 
   // -------- validate mirror_wallet_op --------
-  eosio::check(mirror_wallet_op <= 5, "revert: неизвестный mirror_wallet_op");
-  // Не позволяем откатывать через BLOCK/UNBLOCK — они асимметричны и нет
-  // адекватного зеркала в одной операции (BLOCK + UNBLOCK — обратные сами по себе).
-  eosio::check(mirror_wallet_op != static_cast<uint8_t>(WalletOp::BLOCK) &&
-               mirror_wallet_op != static_cast<uint8_t>(WalletOp::UNBLOCK),
-               "revert: BLOCK/UNBLOCK не подлежат откату через revert (они симметричны сами себе)");
+  // Зеркало revert — только TRANSFER (обмен wallet_from/wallet_to) либо BURN
+  // (зеркало ISSUE: изъятие с wallet_from). Бывшие BLOCK/UNBLOCK упразднены
+  // (2026-05-24); ISSUE/NONE как зеркало смысла не имеют.
+  eosio::check(mirror_wallet_op == static_cast<uint8_t>(WalletOp::TRANSFER) ||
+               mirror_wallet_op == static_cast<uint8_t>(WalletOp::BURN),
+               "revert: mirror_wallet_op должен быть TRANSFER или BURN");
 
   // -------- validate mirror wallets/accounts --------
   if (mirror_wallet_from.value != 0) {

@@ -11,17 +11,31 @@ import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
 import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 import {
+  ChatcoopNonProjectCommunicationRoomDTO,
   ChatcoopProjectCommunicationRoomDTO,
   ChatcoopRoomMessageLineDTO,
   GetMaxOriginServerTsForRoomInputDTO,
   GetProjectCommunicationRoomsInputDTO,
   GetRoomMessagesForUtcDateInputDTO,
   ListUtcDatesWithNewRoomMessagesInputDTO,
+  NonProjectRoomKindGql,
   RoomMessageKindGql,
 } from '../dto/project-communication.dto';
+import type { InterNonProjectRoomKind } from '@coopenomics/inter';
 
 function mapKind(kind: 'text' | 'audio'): RoomMessageKindGql {
   return kind === 'text' ? RoomMessageKindGql.TEXT : RoomMessageKindGql.AUDIO;
+}
+
+function mapNonProjectKind(kind: InterNonProjectRoomKind): NonProjectRoomKindGql {
+  switch (kind) {
+    case 'members':
+      return NonProjectRoomKindGql.MEMBERS;
+    case 'council':
+      return NonProjectRoomKindGql.COUNCIL;
+    case 'secretary':
+      return NonProjectRoomKindGql.SECRETARY;
+  }
 }
 
 /**
@@ -58,6 +72,24 @@ export class ProjectCommunicationResolver {
     return rooms.map((r) => ({
       matrixRoomId: r.matrixRoomId,
       displayLabel: r.displayLabel,
+    }));
+  }
+
+  @Query(() => [ChatcoopNonProjectCommunicationRoomDTO], {
+    name: 'chatcoopListNonProjectCommunicationRooms',
+    description: 'Комнаты Matrix вне проектов Capital (пайщики/совет/секретарь) — для синхронизации в blago',
+  })
+  @AuthRoles(['chairman', 'member', 'user'])
+  async listNonProjectCommunicationRooms(
+    @CurrentUser() user: MonoAccountDomainInterface
+  ): Promise<ChatcoopNonProjectCommunicationRoomDTO[]> {
+    this.ensureComm();
+    this.logger.debug(`chatcoopListNonProjectCommunicationRooms user=${user.username}`);
+    const rooms = await this.comm!.listNonProjectCommunicationRooms();
+    return rooms.map((r) => ({
+      matrixRoomId: r.matrixRoomId,
+      displayLabel: r.displayLabel,
+      kind: mapNonProjectKind(r.kind),
     }));
   }
 

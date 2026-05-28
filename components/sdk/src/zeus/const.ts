@@ -318,6 +318,9 @@ export const AllTypesProps: Record<string,any> = {
 		images:"RequestImageInput",
 		type:"RequestTypeInput"
 	},
+	CreateSecretaryRoomInput:{
+
+	},
 	CreateSovietIndividualDataInput:{
 		passport:"PassportInput"
 	},
@@ -621,6 +624,7 @@ export const AllTypesProps: Record<string,any> = {
 	MakeClearanceInput:{
 		document:"SignedDigitalDocumentInput"
 	},
+	ManagedRoomKind: "enum" as const,
 	MarkReportPeriodInput:{
 		mark:"ReportSubmissionMark",
 		reportType:"ReportType"
@@ -753,6 +757,12 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	MarketplaceListOrdersInput:{
 		statuses:"MarketplaceOrderStatus"
+	},
+	MarketplaceListOutgoingPaymentsAsSupplierFilterInput:{
+		statuses:"MarketplaceOutgoingPaymentRequestStatus"
+	},
+	MarketplaceListOutgoingPaymentsFilterInput:{
+		statuses:"MarketplaceOutgoingPaymentRequestStatus"
 	},
 	MarketplaceListPendingOffersInput:{
 
@@ -1118,8 +1128,14 @@ export const AllTypesProps: Record<string,any> = {
 		chatcoopCreateCalendarEvent:{
 			data:"CreateChatCoopCalendarEventInput"
 		},
+		chatcoopCreateSecretaryRoom:{
+			data:"CreateSecretaryRoomInput"
+		},
 		chatcoopDeleteCalendarEvent:{
 
+		},
+		chatcoopRemoveSecretaryRoom:{
+			data:"RemoveSecretaryRoomInput"
 		},
 		chatcoopUpdateCalendarEvent:{
 			data:"UpdateChatCoopCalendarEventInput"
@@ -1508,6 +1524,7 @@ export const AllTypesProps: Record<string,any> = {
 			input:"WalmoveInput"
 		}
 	},
+	NonProjectRoomKind: "enum" as const,
 	NotificationWorkflowRecipientInput:{
 
 	},
@@ -1980,10 +1997,10 @@ export const AllTypesProps: Record<string,any> = {
 			options:"PaginationInput"
 		},
 		marketplaceListOutgoingPayments:{
-			statuses:"MarketplaceOutgoingPaymentRequestStatus"
+			filter:"MarketplaceListOutgoingPaymentsFilterInput"
 		},
 		marketplaceListOutgoingPaymentsAsSupplier:{
-			statuses:"MarketplaceOutgoingPaymentRequestStatus"
+			filter:"MarketplaceListOutgoingPaymentsAsSupplierFilterInput"
 		},
 		marketplaceListPendingOffers:{
 			input:"MarketplaceListPendingOffersInput"
@@ -2085,6 +2102,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	RemoveAvailableCategoryTypesInput:{
 		categoryTypes:"CategoryTypeInput"
+	},
+	RemoveSecretaryRoomInput:{
+
 	},
 	ReplaceAvailableItemsInput:{
 		categoryTypes:"CategoryTypeInput"
@@ -2705,7 +2725,6 @@ export const ReturnTypes: Record<string,any> = {
 		createdAt:"DateTime",
 		endedAt:"DateTime",
 		id:"String",
-		matrixRoomId:"String",
 		memo:"String",
 		participants:"String",
 		roomId:"String",
@@ -3384,6 +3403,11 @@ export const ReturnTypes: Record<string,any> = {
 		displayLabel:"String",
 		matrixRoomId:"String"
 	},
+	ChatcoopNonProjectCommunicationRoom:{
+		displayLabel:"String",
+		kind:"NonProjectRoomKind",
+		matrixRoomId:"String"
+	},
 	ChatcoopProjectCommunicationRoom:{
 		displayLabel:"String",
 		matrixRoomId:"String"
@@ -3394,6 +3418,14 @@ export const ReturnTypes: Record<string,any> = {
 		coopUsername:"String",
 		kind:"RoomMessageKind",
 		originServerTs:"Float"
+	},
+	ChatcoopSecretaryRoom:{
+		displayLabel:"String",
+		editable:"Boolean",
+		encrypted:"Boolean",
+		id:"String",
+		kind:"ManagedRoomKind",
+		secretaryInRoom:"Boolean"
 	},
 	ContactsDTO:{
 		chairman:"PublicChairman",
@@ -3808,7 +3840,6 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	Ledger2Wallet:{
 		available:"String",
-		blocked:"String",
 		id:"String",
 		name:"String"
 	},
@@ -4165,9 +4196,7 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	MarketplaceOrderCreateTxSnapshot:{
 		block_num:"Int",
-		blocked_amount:"String",
-		did_assign:"Boolean",
-		did_convert:"Boolean",
+		locked_amount:"String",
 		signed_at:"String",
 		tx_hash:"String"
 	},
@@ -4632,7 +4661,9 @@ export const ReturnTypes: Record<string,any> = {
 		chatcoopCreateAccount:"Boolean",
 		chatcoopCreateCalendarEvent:"ChatCoopCalendarEvent",
 		chatcoopCreateCalendarIcsSubscription:"ChatCoopCalendarIcsUrlResponse",
+		chatcoopCreateSecretaryRoom:"ChatcoopSecretaryRoom",
 		chatcoopDeleteCalendarEvent:"Boolean",
+		chatcoopRemoveSecretaryRoom:"String",
 		chatcoopUpdateCalendarEvent:"ChatCoopCalendarEvent",
 		chatcoopUpdateTranscriptionMemo:"CallTranscription",
 		completeCapitalOnboardingStep:"CapitalOnboardingState",
@@ -5169,7 +5200,6 @@ export const ReturnTypes: Record<string,any> = {
 		agreement_id:"ID",
 		available:"String",
 		blockNum:"Float",
-		blocked:"String",
 		coopname:"String",
 		id:"ID",
 		membership_contribution:"String",
@@ -5258,7 +5288,9 @@ export const ReturnTypes: Record<string,any> = {
 		chatcoopGetTranscriptions:"CallTranscription",
 		chatcoopListCalendarEvents:"ChatCoopCalendarEvent",
 		chatcoopListCalendarRooms:"ChatCoopCalendarRoomOption",
+		chatcoopListNonProjectCommunicationRooms:"ChatcoopNonProjectCommunicationRoom",
 		chatcoopListProjectCommunicationRooms:"ChatcoopProjectCommunicationRoom",
+		chatcoopListSecretaryRooms:"ChatcoopSecretaryRoom",
 		chatcoopListUtcDatesWithNewRoomMessages:"String",
 		checkReportReadiness:"ReportReadinessView",
 		cooperativeAgreements:"CoopAgreement",

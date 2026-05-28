@@ -77,7 +77,7 @@ q-dialog(
             .text-subtitle1.q-mb-sm Пункты повестки для перезапуска:
 
             template(v-if='meetStore.currentMeet?.processing?.questions?.length')
-              .meet-form-agenda-item.info-card.q-mb-sm(
+              .meet-form-agenda-item.q-mb-sm(
                 v-for='(question, index) in meetStore.currentMeet.processing.questions',
                 :key='index'
               )
@@ -221,7 +221,20 @@ const handleSubmit = () => {
 </script>
 
 <style lang="scss" scoped>
-@import 'src/shared/ui/CardStyles/index.scss';
+.meet-form-agenda-item {
+  background-color: rgba(0, 0, 0, 0.03);
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+.meet-form-agenda-item:last-child {
+  margin-bottom: 0;
+}
+.body--dark .meet-form-agenda-item,
+.q-dark .meet-form-agenda-item {
+  background-color: color-mix(in srgb, var(--q-dark-page, #1f1c1c) 90%, var(--q-primary) 10%);
+  border: 1px solid rgba(255, 255, 255, 0.26);
+}
 
 .meet-form-field-label {
   display: block;

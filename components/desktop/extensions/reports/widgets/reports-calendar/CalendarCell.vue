@@ -81,21 +81,17 @@ function onClick() {
 </script>
 
 <style scoped lang="scss">
-// Все цвета через rgba + body--dark overrides; SUBMITTED/DRAFT/OVERDUE
-// сохраняют семантические оттенки, а нейтральные фоны (EMPTY/NOT_REQUIRED/
-// BEFORE_REGISTRATION) тянутся к фону карточки на обеих темах.
+// Цвета через канон-токены MONO Platform — сами адаптируются к тёмной теме.
+// SUBMITTED/DRAFT/OVERDUE сохраняют семантические оттенки (pos/warn/neg),
+// нейтральные статусы (EMPTY/NOT_REQUIRED/BEFORE_REGISTRATION) — приглушённый ink.
 .cell-month {
-  background: var(--cell-bg, #fff);
+  background: var(--p-surface);
   min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: default;
-  transition: background 0.15s;
-
-  .body--dark & {
-    background: rgba(255, 255, 255, 0.03);
-  }
+  transition: background var(--p-dur-fast, 150ms);
 
   .cell-inner {
     display: flex;
@@ -103,7 +99,7 @@ function onClick() {
     align-items: center;
     gap: 2px;
     padding: 4px 6px;
-    border-radius: 4px;
+    border-radius: var(--p-r-xs, 4px);
     min-width: 48px;
   }
   .ci-label {
@@ -117,96 +113,72 @@ function onClick() {
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background: #2e7d32;
-    box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.25);
+    background: var(--p-pos);
+    box-shadow: 0 0 0 2px var(--p-pos-soft);
   }
 
   &.active {
     cursor: pointer;
-    &:hover { background: rgba(33, 150, 243, 0.12); }
-    .body--dark &:hover { background: rgba(33, 150, 243, 0.22); }
+    &:hover { background: var(--p-primary-soft); }
   }
 
   // Submitted и submitted_externally: фон не заливаем, только зелёная точка
-  // внутри — как в СБИС/Контуре. Оба состояния визуально одинаковы,
-  // различие только в тултипе; но submitted_externally рендерим чуть
-  // с меньшей насыщенностью (opacity), чтобы глаз отличал при сравнении.
+  // внутри — как в СБИС/Контуре. Различие только в тултипе; externally —
+  // точка-кольцо и чуть меньшая насыщенность, чтобы глаз отличал при сравнении.
   &.status-SUBMITTED .cell-inner {
-    color: #2e7d32;
+    color: var(--p-pos);
     background: transparent;
   }
   &.status-SUBMITTED_EXTERNALLY .cell-inner {
-    color: #2e7d32;
+    color: var(--p-pos);
     background: transparent;
     opacity: 0.85;
   }
   &.status-SUBMITTED_EXTERNALLY .ci-dot {
-    // точка — с обводкой-кольцом, чтобы визуально отличалась от «настоящей» сдачи
     background: transparent;
-    border: 2px solid #2e7d32;
-    box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.25);
-  }
-  .body--dark &.status-SUBMITTED .cell-inner,
-  .body--dark &.status-SUBMITTED_EXTERNALLY .cell-inner {
-    color: #81c784;
+    border: 2px solid var(--p-pos);
+    box-shadow: 0 0 0 2px var(--p-pos-soft);
   }
 
   // Draft: мягкий оранжевый, сигнал «в работе».
   &.status-DRAFT .cell-inner {
-    color: #ef6c00;
-    background: rgba(255, 152, 0, 0.12);
-  }
-  .body--dark &.status-DRAFT .cell-inner {
-    color: #ffb74d;
-    background: rgba(255, 152, 0, 0.18);
+    color: var(--p-warn);
+    background: var(--p-warn-soft);
   }
 
   // Overdue (не сдан + срок прошёл) — насыщенный красный fill, видно издалека.
   &.status-OVERDUE .cell-inner {
     color: #fff;
-    background: #c62828;
+    background: var(--p-neg);
     font-weight: 600;
   }
   &.status-OVERDUE .ci-icon {
     color: #fff;
   }
 
-  // Not required: нейтральный серый, чтобы не кричал. Клик всё ещё открывает диалог
-  // (можно снять отметку).
+  // Not required: нейтральный серый, чтобы не кричал. Клик всё ещё открывает
+  // диалог (можно снять отметку).
   &.status-NOT_REQUIRED .cell-inner {
-    color: rgba(0, 0, 0, 0.55);
-    background: rgba(0, 0, 0, 0.06);
+    color: var(--p-ink-2);
+    background: var(--p-surface-2);
     opacity: 0.85;
-  }
-  .body--dark &.status-NOT_REQUIRED .cell-inner {
-    color: rgba(255, 255, 255, 0.6);
-    background: rgba(255, 255, 255, 0.06);
   }
 
   // Empty (период будущий/активный, отчёт ещё не нужен) — нейтрально.
   &.status-EMPTY .cell-inner {
-    color: rgba(0, 0, 0, 0.5);
-    background: rgba(0, 0, 0, 0.03);
-  }
-  .body--dark &.status-EMPTY .cell-inner {
-    color: rgba(255, 255, 255, 0.55);
-    background: rgba(255, 255, 255, 0.04);
+    color: var(--p-ink-3);
+    background: var(--p-surface-2);
   }
 
-  // Before registration: период приходится на даты до регистрации кооператива.
-  // Ничего не сдавали и сдавать не надо — ровный приглушённый серый, без
-  // hover-обводки, чтобы не путали с EMPTY-будущим (там клик откроет редактор).
+  // Before registration: период до регистрации кооператива. Ничего не сдавали
+  // и сдавать не надо — ровный приглушённый серый, без hover-обводки.
   &.status-BEFORE_REGISTRATION {
     cursor: default;
     .cell-inner {
-      color: rgba(0, 0, 0, 0.4);
-      background: rgba(0, 0, 0, 0.02);
+      color: var(--p-ink-3);
+      background: var(--p-surface);
     }
     &:hover { background: inherit; }
-  }
-  .body--dark &.status-BEFORE_REGISTRATION .cell-inner {
-    color: rgba(255, 255, 255, 0.4);
-    background: rgba(255, 255, 255, 0.03);
   }
 }
 </style>

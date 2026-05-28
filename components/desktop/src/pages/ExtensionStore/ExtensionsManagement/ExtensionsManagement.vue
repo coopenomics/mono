@@ -1,49 +1,46 @@
 <template lang="pug">
-div
-  // Контент страницы расширений
-  router-view
+.catalog-shell
+  //- На карточке расширения (one-extension) табы каталога не показываем —
+  //- видна только подстраница приложения с кнопкой «Назад» в топбаре.
+  SecondLevelTabs(v-if='showTabs', :tabs='tabs')
+  .catalog-shell__content
+    router-view
 </template>
 
 <script lang="ts" setup>
-import { onMounted, onBeforeUnmount, computed, markRaw } from 'vue';
-import { useHeaderActions } from 'src/shared/hooks';
-import { RouteMenuButton } from 'src/shared/ui';
+import { computed } from 'vue';
+import { useRoute } from 'vue-router';
+import { SecondLevelTabs } from 'src/shared/ui/SecondLevelTabs';
 
-// Массив кнопок меню для шапки
-const menuButtons = computed(() => [
-  {
-    id: 'extensions-showcase-menu',
-    component: markRaw(RouteMenuButton),
-    props: {
-      routeName: 'extstore-showcase',
-      label: 'Витрина',
-    },
-    order: 1,
-  },
-  {
-    id: 'extensions-installed-menu',
-    component: markRaw(RouteMenuButton),
-    props: {
-      routeName: 'appstore-installed',
-      label: 'Установленные',
-    },
-    order: 2,
-  },
-]);
+// Shell-страница «Каталог приложений»: канон-меню второго уровня
+// (Витрина / Установленные) вместо кнопок в топбаре.
+const tabs = [
+  { routeName: 'extstore-showcase', label: 'Витрина', icon: 'fa-solid fa-store' },
+  { routeName: 'appstore-installed', label: 'Установленные', icon: 'fa-solid fa-circle-check' },
+];
 
-// Регистрируем кнопки меню в header
-const { registerAction: registerHeaderAction, clearActions } = useHeaderActions();
-
-// Регистрируем действия в header
-onMounted(() => {
-  // Регистрируем кнопки меню
-  menuButtons.value.forEach(button => {
-    registerHeaderAction(button);
-  });
-});
-
-// Явно очищаем кнопки при уходе со страницы
-onBeforeUnmount(() => {
-  clearActions();
-});
+const route = useRoute();
+// На странице конкретного приложения и его подстраницах табы каталога прячем.
+const showTabs = computed(() =>
+  !route.matched.some((m) => m.name === 'one-extension'),
+);
 </script>
+
+<style scoped lang="scss">
+.catalog-shell {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+.catalog-shell__content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--p-6, 24px);
+  @media (max-width: 768px) {
+    padding: var(--p-4, 16px);
+  }
+}
+</style>

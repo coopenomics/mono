@@ -46,7 +46,7 @@ export class MarketplaceDesktopGrantsProvider
     private readonly grantsRegistry: ExtensionGrantsRegistry,
     @Inject(MARKETPLACE_WHITELIST_SERVICE)
     private readonly whitelistService: MarketplaceWhitelistService,
-    @Inject(MARKETPLACE_KU_CHAIRMEN_SERVICE)
+    @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
     private readonly kuChairmanService: MarketplaceKuChairmanService,
   ) {}
 

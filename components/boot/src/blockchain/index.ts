@@ -315,31 +315,46 @@ export default class Blockchain {
   async activateFeature(feature: Feature) {
     await this.update_pass_instance()
 
-    await this.api.transact(
-      {
-        actions: [
-          {
-            account: 'eosio',
-            name: 'activate',
-            authorization: [
-              {
-                actor: 'eosio',
-                permission: 'active',
+    try {
+      await this.api.transact(
+        {
+          actions: [
+            {
+              account: 'eosio',
+              name: 'activate',
+              authorization: [
+                {
+                  actor: 'eosio',
+                  permission: 'active',
+                },
+              ],
+              data: {
+                feature_digest: feature.hash,
               },
-            ],
-            data: {
-              feature_digest: feature.hash,
             },
-          },
-        ],
-      },
-      {
-        blocksBehind: 3,
-        expireSeconds: 30,
-      },
-    )
+          ],
+        },
+        {
+          blocksBehind: 3,
+          expireSeconds: 30,
+        },
+      )
 
-    console.log('Фича активирована: ', feature.name)
+      console.log('Фича активирована: ', feature.name)
+    }
+    catch (e: any) {
+      // На уже забутстрапленном (не обнулённом) чейне протокол-фича уже активна —
+      // nodeos отдаёт protocol_feature_exception (code 3250000). Это не повод
+      // ронять весь boot: фича на месте, нужный результат достигнут, продолжаем.
+      const errName = e?.json?.error?.name
+      const errCode = e?.json?.error?.code
+      const msg = e instanceof Error ? e.message : String(e)
+      if (errName === 'protocol_feature_exception' || errCode === 3250000 || /already activated/i.test(msg)) {
+        console.warn(`Фича уже активирована, пропускаю: ${feature.name}`)
+        return
+      }
+      throw e
+    }
   }
 
   async createToken(params: TokenContract.Interfaces.ICreate) {

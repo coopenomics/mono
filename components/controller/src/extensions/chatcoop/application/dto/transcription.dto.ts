@@ -39,11 +39,8 @@ export class CallTranscriptionResponseDTO {
   @Field()
   id!: string;
 
-  @Field()
+  @Field({ description: 'Внутреннее имя комнаты звонка (LiveKit room name), не Matrix room id' })
   roomId!: string;
-
-  @Field()
-  matrixRoomId!: string;
 
   @Field()
   roomName!: string;

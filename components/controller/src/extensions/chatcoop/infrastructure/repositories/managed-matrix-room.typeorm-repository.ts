@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Not, Repository } from 'typeorm';
 import type {
   ChatcoopManagedMatrixRoomRepository,
   UpsertManagedMatrixRoomInput,
@@ -39,6 +39,11 @@ export class ManagedMatrixRoomTypeormRepository implements ChatcoopManagedMatrix
     return ManagedMatrixRoomMapper.toDomain(row);
   }
 
+  async findById(id: string): Promise<ManagedMatrixRoomDomainEntity | null> {
+    const row = await this.repository.findOne({ where: { id } });
+    return row ? ManagedMatrixRoomMapper.toDomain(row) : null;
+  }
+
   async findByMatrixRoomId(matrixRoomId: string): Promise<ManagedMatrixRoomDomainEntity | null> {
     const row = await this.repository.findOne({ where: { matrixRoomId } });
     return row ? ManagedMatrixRoomMapper.toDomain(row) : null;
@@ -53,6 +58,16 @@ export class ManagedMatrixRoomTypeormRepository implements ChatcoopManagedMatrix
     const rows = await this.repository.find({
       where: { roomKind: 'capital_project', projectHash },
     });
+    return rows.map(ManagedMatrixRoomMapper.toDomain);
+  }
+
+  async findAll(): Promise<ManagedMatrixRoomDomainEntity[]> {
+    const rows = await this.repository.find();
+    return rows.map(ManagedMatrixRoomMapper.toDomain);
+  }
+
+  async findNonProjectCommunicationRooms(): Promise<ManagedMatrixRoomDomainEntity[]> {
+    const rows = await this.repository.find({ where: { roomKind: Not('capital_project') } });
     return rows.map(ManagedMatrixRoomMapper.toDomain);
   }
 

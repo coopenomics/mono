@@ -23,12 +23,11 @@ export interface IProgramColumn {
 
 export interface IWalletCell {
   available: number
-  blocked: number
 }
 
 export interface IProgramsAndWallets {
   programs: IProgramColumn[]
-  /** matrix[username][program_id] → {available, blocked}. Отсутствие ключа = кошелька нет. */
+  /** matrix[username][program_id] → {available}. Отсутствие ключа = кошелька нет. */
   matrix: Record<string, Record<number, IWalletCell>>
   /** Сумма по каждой программе (по всем кошелькам). */
   totals: Record<number, IWalletCell>
@@ -77,7 +76,7 @@ export async function loadProgramsAndWallets(
 
   const matrix: Record<string, Record<number, IWalletCell>> = {}
   const totals: Record<number, IWalletCell> = {}
-  for (const p of programs) totals[p.id] = { available: 0, blocked: 0 }
+  for (const p of programs) totals[p.id] = { available: 0 }
 
   const wallets = walletsResponse[Queries.Wallet.GetProgramWallets.name]?.items ?? []
 
@@ -85,13 +84,11 @@ export async function loadProgramsAndWallets(
     const username = String(w.username)
     const program_id = Number(w.program_id)
     const avail = parseAsset(w.available)
-    const blocked = parseAsset(w.blocked)
     if (!matrix[username]) matrix[username] = {}
-    matrix[username][program_id] = { available: avail, blocked }
+    matrix[username][program_id] = { available: avail }
     const t = totals[program_id]
     if (t) {
       t.available += avail
-      t.blocked += blocked
     }
   }
 

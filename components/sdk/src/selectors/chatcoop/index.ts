@@ -61,5 +61,6 @@ export const chatCoopCalendarIcsUrlSelector = Selector('ChatCoopCalendarIcsUrlRe
 )
 
 export * from './projectCommunication'
+export * from './secretaryRoom'
 // Экспорт селекторов для транскрипций
 export * from './transcription'

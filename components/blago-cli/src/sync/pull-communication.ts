@@ -25,7 +25,7 @@ import {
   transcriptionMeetingFileStemUtc,
   type CommunicationDayLine,
 } from './communication-markdown.js'
-import { workspaceBasePath, type ProjectPathModel } from './layout.js'
+import { generateSlug, workspaceBasePath, type ProjectPathModel } from './layout.js'
 import { syncEntityFile } from './sync-entity-file.js'
 
 interface ProjectRowLite {
@@ -183,6 +183,19 @@ async function listRooms(ctx: AuthenticatedContext, projectHash: string) {
   return q[Queries.ChatCoop.ListProjectCommunicationRooms.name] ?? []
 }
 
+/** Стабильная папка непроектной комнаты в `rooms/`. Системные — фиксированные, комнаты секретаря — slug + хвост id (уникальность). */
+function nonProjectRoomFolder(kind: string, matrixRoomId: string, displayLabel: string): string {
+  if (kind === 'MEMBERS') {
+    return 'komnata-paishchikov'
+  }
+  if (kind === 'COUNCIL') {
+    return 'komnata-soveta'
+  }
+  const slug = generateSlug(displayLabel) || 'komnata'
+  const shortId = createHash('sha256').update(matrixRoomId, 'utf8').digest('hex').slice(0, 6)
+  return `${slug}-${shortId}`
+}
+
 export async function pullProjectCommunicationArtifacts(
   ctx: AuthenticatedContext,
   index: IndexFile,
@@ -198,6 +211,7 @@ export async function pullProjectCommunicationArtifacts(
     cursors = {
       messageLastTsByRoom: {},
       transcriptionLastEndedExclusiveByProject: {},
+      transcriptionLastEndedExclusiveByRoom: {},
     }
   }
 
@@ -356,7 +370,6 @@ export async function pullProjectCommunicationArtifacts(
           = dateFromUnknown(tr.endedAt) ?? (tr.endedAt as Date | string | null | undefined)
         const md = renderCallTranscriptionMarkdown(
           {
-            matrixRoomId: String(tr.matrixRoomId),
             roomId: String(tr.roomId),
             startedAt,
             endedAt: endedAtTr,
@@ -420,5 +433,209 @@ export async function pullProjectCommunicationArtifacts(
   }
   catch (e) {
     warn(`Не удалось сохранить курсоры переписки: ${formatThrownValue(e)}`)
+  }
+}
+
+/**
+ * Pull переписки и транскрипций из комнат ВНЕ проектов Capital (пайщики, совет, комнаты секретаря).
+ * Раскладка — отдельная верхняя папка `rooms/<folder>/{messages,meetings}/`, чтобы не смешивать с
+ * проектными `meetings/`. Логика идентична проектной, но bucket = одна комната, курсор транскрипций — по matrixRoomId.
+ */
+export async function pullNonProjectCommunicationArtifacts(
+  ctx: AuthenticatedContext,
+  index: IndexFile,
+): Promise<void> {
+  let rooms: { matrixRoomId: string, displayLabel: string, kind: string }[]
+  try {
+    const q = await ctx.client.Query(Queries.ChatCoop.ListNonProjectCommunicationRooms.query, {})
+    rooms = (q[Queries.ChatCoop.ListNonProjectCommunicationRooms.name] ?? []) as typeof rooms
+  }
+  catch (e) {
+    warn(`Список непроектных комнат (chatcoopListNonProjectCommunicationRooms): ${formatThrownValue(e)}`)
+    return
+  }
+  if (rooms.length === 0) {
+    return
+  }
+
+  let cursors: CommunicationCursorsFile
+  try {
+    cursors = await loadCommunicationCursors(ctx.root)
+  }
+  catch (e) {
+    warn(`Курсоры переписки (комнаты): не удалось прочитать, начинаем с пустых: ${formatThrownValue(e)}`)
+    cursors = {
+      messageLastTsByRoom: {},
+      transcriptionLastEndedExclusiveByProject: {},
+      transcriptionLastEndedExclusiveByRoom: {},
+    }
+  }
+
+  for (const room of rooms) {
+    const folder = nonProjectRoomFolder(room.kind, room.matrixRoomId, room.displayLabel)
+    const basePath = `rooms/${folder}`
+    const roomTitle = room.displayLabel || room.matrixRoomId
+
+    // Сообщения комнаты — по календарным суткам UTC новее курсора.
+    try {
+      const last = cursors.messageLastTsByRoom[room.matrixRoomId]
+      const afterTs = last ?? 0
+      const datesQ = await ctx.client.Query(Queries.ChatCoop.ListUtcDatesWithNewRoomMessages.query, {
+        variables: { data: { matrixRoomId: room.matrixRoomId, afterOriginServerTsExclusive: afterTs } },
+      })
+      const dates = (datesQ[Queries.ChatCoop.ListUtcDatesWithNewRoomMessages.name] ?? []).sort()
+      for (const utcDate of dates) {
+        const mq = await ctx.client.Query(Queries.ChatCoop.GetRoomMessagesForUtcDate.query, {
+          variables: { data: { matrixRoomId: room.matrixRoomId, utcDate } },
+        })
+        const linesRaw = mq[Queries.ChatCoop.GetRoomMessagesForUtcDate.name] ?? []
+        const lines: CommunicationDayLine[] = linesRaw.map(m => ({
+          originServerTs: m.originServerTs,
+          authorLabel: m.authorLabel,
+          coopUsername: m.coopUsername,
+          kind: String(m.kind),
+          bodyText: m.bodyText,
+        }))
+        if (lines.length === 0) {
+          continue
+        }
+        const content = projectCommunicationDayToMarkdown(roomTitle, room.matrixRoomId, utcDate, [
+          { displayLabel: room.displayLabel, matrixRoomId: room.matrixRoomId, lines },
+        ])
+        const rel = `${basePath}/messages/${utcDate}.md`
+        const entityHash = messageDayEntityHash(room.matrixRoomId, utcDate)
+        await syncEntityFile({
+          root: ctx.root,
+          index,
+          entityType: 'room_message_day',
+          entityHash,
+          relativePath: rel,
+          content,
+          remoteUpdatedAt: `${utcDate}T23:59:59.999Z`,
+          label: `переписка ${utcDate} (${room.matrixRoomId})`,
+        })
+      }
+
+      const maxQ = await ctx.client.Query(Queries.ChatCoop.GetMaxOriginServerTsForRoom.query, {
+        variables: { data: { matrixRoomId: room.matrixRoomId } },
+      })
+      const maxTs = maxQ[Queries.ChatCoop.GetMaxOriginServerTsForRoom.name] as number | null | undefined
+      if (maxTs !== undefined && maxTs !== null && Number.isFinite(maxTs)) {
+        cursors.messageLastTsByRoom[room.matrixRoomId] = maxTs
+      }
+    }
+    catch (e) {
+      warn(`Переписка Matrix, комната ${room.matrixRoomId} (${roomTitle}): ${formatThrownValue(e)}`)
+    }
+
+    // Транскрипции звонков комнаты + sibling memo.
+    try {
+      const tExIso = cursors.transcriptionLastEndedExclusiveByRoom[room.matrixRoomId]
+      const lowerBoundExclusive = tExIso === undefined ? new Date(0) : new Date(tExIso)
+
+      interface TranscriptionCandidate {
+        id: string
+        endedAt: Date
+        memo: string
+        updatedAt: Date | undefined
+      }
+      const byId = new Map<string, TranscriptionCandidate>()
+      const tq = await ctx.client.Query(Queries.ChatCoop.GetTranscriptions.query, {
+        variables: { data: { matrixRoomId: room.matrixRoomId, limit: CHATCOOP_TRANSCRIPTIONS_QUERY_LIMIT, offset: 0 } },
+      })
+      const list = tq[Queries.ChatCoop.GetTranscriptions.name] ?? []
+      for (const t of list) {
+        const end = dateFromUnknown(t.endedAt)
+        if (t.status !== Zeus.TranscriptionStatus.COMPLETED || !end) {
+          continue
+        }
+        const prev = byId.get(t.id)
+        if (!prev || end > prev.endedAt) {
+          byId.set(t.id, {
+            id: t.id,
+            endedAt: end,
+            memo: typeof t.memo === 'string' ? t.memo : '',
+            updatedAt: dateFromUnknown(t.updatedAt),
+          })
+        }
+      }
+      const allCompleted = [...byId.values()].sort((a, b) => a.endedAt.getTime() - b.endedAt.getTime())
+
+      const newMeetings = allCompleted.filter(c => c.endedAt.getTime() > lowerBoundExclusive.getTime())
+      let maxEnded: Date | null = null
+      for (const c of newMeetings) {
+        const packQ = await ctx.client.Query(Queries.ChatCoop.GetTranscription.query, {
+          variables: { data: { id: c.id } },
+        })
+        const pack = packQ[Queries.ChatCoop.GetTranscription.name]
+        if (!pack?.transcription || pack.transcription.status !== Zeus.TranscriptionStatus.COMPLETED) {
+          continue
+        }
+        const tr = pack.transcription
+        const startedAt: Date | string = dateFromUnknown(tr.startedAt) ?? (tr.startedAt as Date | string)
+        const endedAtTr: Date | string | null | undefined
+          = dateFromUnknown(tr.endedAt) ?? (tr.endedAt as Date | string | null | undefined)
+        const md = renderCallTranscriptionMarkdown(
+          {
+            roomId: String(tr.roomId),
+            startedAt,
+            endedAt: endedAtTr,
+          },
+          pack.segments.map(s => ({
+            speakerName: s.speakerName,
+            text: s.text,
+            startOffset: s.startOffset,
+            endOffset: s.endOffset,
+          })),
+        )
+        const stem = transcriptionMeetingFileStemUtc(c.endedAt)
+        const rel = `${basePath}/meetings/${stem}.md`
+        const entityHash = c.id.toLowerCase()
+        await syncEntityFile({
+          root: ctx.root,
+          index,
+          entityType: 'call_transcription',
+          entityHash,
+          relativePath: rel,
+          content: md,
+          remoteUpdatedAt: toUpdatedIso(c.endedAt),
+          label: `транскрипция ${c.id}`,
+        })
+        if (!maxEnded || c.endedAt > maxEnded) {
+          maxEnded = c.endedAt
+        }
+      }
+
+      for (const c of allCompleted) {
+        const stem = transcriptionMeetingFileStemUtc(c.endedAt)
+        const memoRel = `${basePath}/meetings/${stem}.memo.md`
+        const memoRemoteUpdatedAt = toUpdatedIso(c.updatedAt ?? c.endedAt)
+        await syncTranscriptionMemoFile({
+          root: ctx.root,
+          index,
+          transcriptionId: c.id,
+          relativePath: memoRel,
+          serverMemo: c.memo,
+          remoteUpdatedAtIso: memoRemoteUpdatedAt,
+        })
+      }
+
+      if (maxEnded) {
+        cursors.transcriptionLastEndedExclusiveByRoom[room.matrixRoomId] = maxEnded.toISOString()
+      }
+      else if (tExIso === undefined) {
+        cursors.transcriptionLastEndedExclusiveByRoom[room.matrixRoomId] = new Date().toISOString()
+      }
+    }
+    catch (e) {
+      warn(`Транскрипции звонков, комната ${room.matrixRoomId}: ${formatThrownValue(e)}`)
+    }
+  }
+
+  try {
+    await saveCommunicationCursors(ctx.root, cursors)
+  }
+  catch (e) {
+    warn(`Не удалось сохранить курсоры переписки (комнаты): ${formatThrownValue(e)}`)
   }
 }

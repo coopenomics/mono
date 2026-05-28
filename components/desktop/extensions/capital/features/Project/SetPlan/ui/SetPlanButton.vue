@@ -1,55 +1,61 @@
 <template lang="pug">
-q-btn(
-  v-if="props.project?.permissions?.can_set_plan"
-  size='sm',
-  color='primary',
-  @click='showDialog = true',
-  label='Установить план проекта'
-)
-  q-dialog(v-model='showDialog', @hide='clear')
-    ModalBase(:title='"Установить план проекта"')
-      Form.q-pa-md(
-        :handler-submit='handleSetPlan',
-        :is-submitting='isSubmitting',
-        :button-submit-txt='"Установить план"',
-        :button-cancel-txt='"Отмена"',
-        @cancel='clear'
-        style="width: 600px; max-width: 100% !important;"
+div
+  q-btn(
+    v-if="props.project?.permissions?.can_set_plan"
+    size='sm',
+    color='primary',
+    @click='showDialog = true',
+    label='Установить план проекта'
+  )
+
+  BaseDialog(
+    v-model='showDialog',
+    title='Установить план проекта',
+    size='md',
+    @update:model-value='(v) => !v && clear()'
+  )
+    Form.q-pa-md(
+      :handler-submit='handleSetPlan',
+      :is-submitting='isSubmitting',
+      :button-submit-txt='"Установить план"',
+      :button-cancel-txt='"Отмена"',
+      @cancel='clear'
+      style="width: 600px; max-width: 100% !important;"
+    )
+      q-input(
+        v-model.number='formData.plan_creators_hours'
+        label='Плановое количество часов исполнителей'
+        type='number'
+        :rules='[(val) => val > 0 || "Количество часов должно быть больше 0"]'
+        outlined
       )
-        q-input(
-          v-model.number='formData.plan_creators_hours'
-          label='Плановое количество часов исполнителей'
-          type='number'
-          :rules='[(val) => val > 0 || "Количество часов должно быть больше 0"]'
-          outlined
-        )
-          template(#append)
-            span.text-grey-7 ч
+        template(#append)
+          span.text-grey-7 ч
 
-        q-input(
-          v-model='formData.plan_expenses'
-          label='Плановые расходы'
-          :rules='[(val) => !!val || "Плановые расходы обязательны"]'
-          outlined
-        )
-          template(#append)
-            span.text-grey-7 {{ governSymbol }}
+      q-input(
+        v-model='formData.plan_expenses'
+        label='Плановые расходы'
+        :rules='[(val) => !!val || "Плановые расходы обязательны"]'
+        outlined
+      )
+        template(#append)
+          span.text-grey-7 {{ governSymbol }}
 
-        q-input(
-          v-model='formData.plan_hour_cost'
-          label='Стоимость часа работы'
-          :rules='[(val) => !!val || "Стоимость часа работы обязательна"]'
-          outlined
-        )
-          template(#append)
-            span.text-grey-7 {{ governSymbol }}
+      q-input(
+        v-model='formData.plan_hour_cost'
+        label='Стоимость часа работы'
+        :rules='[(val) => !!val || "Стоимость часа работы обязательна"]'
+        outlined
+      )
+        template(#append)
+          span.text-grey-7 {{ governSymbol }}
 </template>
 
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import { useSetPlan } from '../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
-import { ModalBase } from 'src/shared/ui/ModalBase';
+import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { Form } from 'src/shared/ui/Form';
 import type { IProject } from '../../../../entities/Project/model';
 

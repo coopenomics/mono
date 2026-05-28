@@ -10,24 +10,27 @@ div
 
     span.q-ml-xs Удалить участок
 
-  q-dialog(v-model="showDialog" @hide="clear")
-    ModalBase(:title='"Удаление кооперативного участка"')
-      Form(
-        :handler-submit="handleDeleteBranch"
-        :is-submitting="loading"
-        :button-cancel-txt="'Отменить'"
-        :button-submit-txt="'Удалить'"
-        @cancel="clear"
-      ).q-pa-md
-        div(style="max-width: 500px;")
-          p.text-weight-bold Вы уверены, что хотите удалить кооперативный участок {{ branch?.short_name }}?
-          p Это действие необратимо. Все пайщики будут отключены от участка и увидят приглашение выбрать новый участок.
+  BaseDialog(
+    v-model='showDialog',
+    title='Удаление кооперативного участка',
+    size='md',
+    @update:model-value='(v) => !v && clear()'
+  )
+    Form(
+      :handler-submit="handleDeleteBranch"
+      :is-submitting="loading"
+      :button-cancel-txt="'Отменить'"
+      :button-submit-txt="'Удалить'"
+      @cancel="clear"
+    )
+      p.text-weight-bold Вы уверены, что хотите удалить кооперативный участок {{ branch?.short_name }}?
+      p Это действие необратимо. Все пайщики будут отключены от участка и увидят приглашение выбрать новый участок.
 </template>
 
 <script lang="ts" setup>
 import { ref } from 'vue';
 import type { IBranch } from 'src/entities/Branch/model/types';
-import { ModalBase } from 'src/shared/ui/ModalBase';
+import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { Form } from 'src/shared/ui/Form';
 import { useDeleteBranch } from '../model';
 

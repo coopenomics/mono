@@ -54,32 +54,38 @@ q-card(v-else flat)
             @click="() => handleStepClick(step)"
           )
 
-  q-dialog(v-model="dialogOpen" persistent)
-    ModalBase(:title="dialogTitle" @close="closeDialog" style="min-width: 640px")
-      template(#default)
-        q-card-section
-          div.row.items-center.q-gutter-xs.text-subtitle1.text-weight-medium
-            q-icon(name="help_outline" size="18px" class="text-primary")
-            span Вопрос на повестке
-          div.q-mt-sm.q-pa-sm.text-body1.rounded-borders {{ dialogQuestion }}
+  BaseDialog(
+    v-model='dialogOpen',
+    :title='dialogTitle',
+    size='lg',
+    :close-on-backdrop='false',
+    :close-on-escape='false',
+    @update:model-value='(v) => !v && closeDialog()'
+  )
+    div.row.items-center.q-gutter-xs.text-subtitle1.text-weight-medium
+      q-icon(name="help_outline" size="18px" class="text-primary")
+      span Вопрос на повестке
+    div.q-mt-sm.q-pa-sm.text-body1.rounded-borders {{ dialogQuestion }}
 
-          q-separator.q-my-md
+    q-separator.q-my-md
 
-          div.row.items-center.q-gutter-xs.text-subtitle1.text-weight-medium
-            q-icon(name="gavel" size="18px" class="text-primary")
-            span Проект решения
-          div.q-mt-sm.q-pa-sm.rounded-borders
-            div(v-if="dialogDecisionPrefix") {{ dialogDecisionPrefix }}
-            DocumentHtmlReader(v-if="dialogDecision" :html="dialogDecision" :sanitize="false")
-        div.q-pb-lg
-          q-btn(flat label="Отмена" @click="closeDialog" :disable="submitting")
-          q-btn(color="primary" label="Объявить" :loading="submitting" @click="submitStep")
+    div.row.items-center.q-gutter-xs.text-subtitle1.text-weight-medium
+      q-icon(name="gavel" size="18px" class="text-primary")
+      span Проект решения
+    div.q-mt-sm.q-pa-sm.rounded-borders
+      div(v-if="dialogDecisionPrefix") {{ dialogDecisionPrefix }}
+      DocumentHtmlReader(v-if="dialogDecision" :html="dialogDecision" :sanitize="false")
+
+    template(#footer)
+      BaseButton(variant='ghost' :disabled='submitting' @click='closeDialog') Отмена
+      BaseButton(variant='primary' :loading='submitting' @click='submitStep') Объявить
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { DocumentHtmlReader } from 'src/shared/ui/DocumentHtmlReader';
-import { ModalBase } from 'src/shared/ui/ModalBase';
+import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
+import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { WindowLoader } from 'src/shared/ui/Loader';
 import type { ICouncilOnboardingStep, ICouncilOnboardingConfig } from './types';
 

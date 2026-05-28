@@ -1,0 +1,215 @@
+/* ============================================================
+   MONO Platform v2 — Design Tokens
+   Cool neutral palette, deep-teal accent, Apple-platform feel.
+   Light & dark themes via [data-theme="..."] on <html>.
+   ============================================================ */
+
+:root,
+[data-theme="light"] {
+  /* — Surface (cool neutrals, no warm tint) — */
+  --p-canvas:        #f4f4f5;
+  --p-canvas-2:      #ebebed;
+  --p-surface:       #ffffff;
+  --p-surface-2:     #f7f7f8;
+  --p-surface-3:     #efeff1;
+  --p-overlay:       rgba(9, 9, 11, 0.32);
+
+  /* — Ink — */
+  --p-ink:           #09090b;
+  --p-ink-1:         rgba(9, 9, 11, 0.82);
+  --p-ink-2:         rgba(9, 9, 11, 0.58);
+  --p-ink-3:         rgba(9, 9, 11, 0.40);
+  --p-ink-4:         rgba(9, 9, 11, 0.24);
+  --p-ink-on-primary: #ffffff;
+
+  /* — Lines — */
+  --p-line:          rgba(9, 9, 11, 0.07);
+  --p-line-1:        rgba(9, 9, 11, 0.10);
+  --p-line-2:        rgba(9, 9, 11, 0.16);
+
+  /* — Primary (deep teal, banking-grade) — основной цвет canon-палитры.
+     Проброшен в --q-primary → Quasar красит focus q-field, color="primary"
+     на q-btn, bg-primary utility и т.п. без CSS-overrides. */
+  --p-primary:        #0f766e;
+  --p-primary-hover:  #115e59;
+  --p-primary-press:  #134e4a;
+  --p-primary-soft:   rgba(15, 118, 110, 0.10);
+  --p-primary-line:   rgba(15, 118, 110, 0.24);
+  --p-primary-strong: #064e44;
+
+  /* — Accent (warm terracotta) — второй цвет, для РЕДКОГО выделения:
+     ссылки batch_id, инлайн-подсветки, ссылки-согласия. Спокойный
+     красно-коричневый: тёплый, но не ядовитый. */
+  --p-accent:         #B85C38;
+  --p-accent-soft:    rgba(184, 92, 56, 0.10);
+
+  /* — Status — */
+  --p-pos:           #15803d;
+  --p-pos-soft:      rgba(21, 128, 61, 0.10);
+  --p-neg:           #b91c1c;
+  --p-neg-soft:      rgba(185, 28, 28, 0.08);
+  --p-warn:          #b45309;
+  --p-warn-soft:     rgba(180, 83, 9, 0.10);
+  --p-info:          #1d4ed8;
+  --p-info-soft:     rgba(29, 78, 216, 0.08);
+
+  /* — Per-program tints (used as 24px icon-tile bg + 1px hairline) — */
+  --prog-blagorost:  #16a34a;
+  --prog-blagorost-soft: rgba(22, 163, 74, 0.10);
+  --prog-wallet:     #2563eb;
+  --prog-wallet-soft:rgba(37, 99, 235, 0.10);
+  --prog-generator:  #7c3aed;
+  --prog-generator-soft: rgba(124, 58, 237, 0.10);
+
+  /* — Elevation (used VERY sparingly) — */
+  --p-shadow-card:    0 1px 2px rgba(9, 9, 11, 0.04);
+  --p-shadow-pop:     0 8px 28px rgba(9, 9, 11, 0.10), 0 2px 6px rgba(9, 9, 11, 0.06);
+  --p-shadow-modal:   0 24px 64px rgba(9, 9, 11, 0.18), 0 4px 12px rgba(9, 9, 11, 0.08);
+  --p-focus-ring:     0 0 0 3px rgba(15, 118, 110, 0.22);
+
+  /* — Sidebar (refined: solid graphite with accent rail, not gradient) — */
+  --p-rail-bg:        #ffffff;
+  --p-rail-bg-2:      #fafafa;
+  --p-rail-item:      transparent;
+  --p-rail-item-hover:rgba(9, 9, 11, 0.04);
+  --p-rail-item-active-bg:  rgba(15, 118, 110, 0.08);
+  --p-rail-item-active-fg:  #0f766e;
+  --p-rail-rail-color:#0f766e;
+
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  /* — Surface — */
+  --p-canvas:        #0a0a0a;
+  --p-canvas-2:      #111113;
+  --p-surface:       #141416;
+  --p-surface-2:     #1a1a1d;
+  --p-surface-3:     #232327;
+  --p-overlay:       rgba(0, 0, 0, 0.62);
+
+  /* — Ink — */
+  --p-ink:           #fafafa;
+  --p-ink-1:         rgba(250, 250, 250, 0.88);
+  --p-ink-2:         rgba(250, 250, 250, 0.62);
+  --p-ink-3:         rgba(250, 250, 250, 0.40);
+  --p-ink-4:         rgba(250, 250, 250, 0.20);
+  --p-ink-on-primary: #04231f;
+
+  /* — Lines — */
+  --p-line:          rgba(255, 255, 255, 0.06);
+  --p-line-1:        rgba(255, 255, 255, 0.10);
+  --p-line-2:        rgba(255, 255, 255, 0.16);
+
+  /* — Primary (canon teal — dark variant) — */
+  --p-primary:        #2dd4bf;
+  --p-primary-hover:  #5eead4;
+  --p-primary-press:  #14b8a6;
+  --p-primary-soft:   rgba(45, 212, 191, 0.14);
+  --p-primary-line:   rgba(45, 212, 191, 0.30);
+  --p-primary-strong: #99f6e4;
+
+  /* — Accent (warm terracotta — dark variant, мягче и приглушённее) — */
+  --p-accent:         #E89472;
+  --p-accent-soft:    rgba(232, 148, 114, 0.14);
+
+  /* — Status — */
+  --p-pos:           #34d399;
+  --p-pos-soft:      rgba(52, 211, 153, 0.14);
+  --p-neg:           #fb7185;
+  --p-neg-soft:      rgba(251, 113, 133, 0.14);
+  --p-warn:          #fbbf24;
+  --p-warn-soft:     rgba(251, 191, 36, 0.14);
+  --p-info:          #60a5fa;
+  --p-info-soft:     rgba(96, 165, 250, 0.14);
+
+  /* — Programs — */
+  --prog-blagorost:  #4ade80;
+  --prog-blagorost-soft: rgba(74, 222, 128, 0.16);
+  --prog-wallet:     #60a5fa;
+  --prog-wallet-soft:rgba(96, 165, 250, 0.16);
+  --prog-generator:  #a78bfa;
+  --prog-generator-soft: rgba(167, 139, 250, 0.16);
+
+  /* — Elevation — */
+  --p-shadow-card:    0 1px 2px rgba(0, 0, 0, 0.4);
+  --p-shadow-pop:     0 12px 36px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.4);
+  --p-shadow-modal:   0 32px 80px rgba(0, 0, 0, 0.65), 0 4px 16px rgba(0, 0, 0, 0.4);
+  --p-focus-ring:     0 0 0 3px rgba(45, 212, 191, 0.32);
+
+  /* — Sidebar — */
+  --p-rail-bg:        #0d0d0f;
+  --p-rail-bg-2:      #111113;
+  --p-rail-item:      transparent;
+  --p-rail-item-hover:rgba(255, 255, 255, 0.05);
+  --p-rail-item-active-bg:  rgba(45, 212, 191, 0.12);
+  --p-rail-item-active-fg:  #5eead4;
+  --p-rail-rail-color:#2dd4bf;
+
+  color-scheme: dark;
+}
+
+/* — Quasar brand mapping — пробрасываем canon-палитру в Quasar-движок
+   через его CSS-переменные. Quasar внутренне читает --q-primary etc.
+   для focus-границ q-field, color="primary" на q-btn, bg-primary
+   utility-классов и т.д. Резолвится lazy — автоматически следует за
+   текущей темой через --p-primary. */
+:root {
+  --q-primary:  var(--p-primary);
+  --q-accent:   var(--p-accent);
+  --q-negative: var(--p-neg);
+  --q-positive: var(--p-pos);
+  --q-warning:  var(--p-warn);
+  --q-info:     var(--p-info);
+}
+
+/* — Typography — */
+:root {
+  --p-sans: "Inter", "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --p-display: "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif;
+  --p-mono: "JetBrains Mono", "SF Mono", "IBM Plex Mono", ui-monospace, monospace;
+
+  /* Type scale — banking-feeling, modest sizes, generous line-height */
+  --p-fs-display:   34px;  --p-lh-display:   1.10;  --p-ls-display:   -0.022em;
+  --p-fs-h1:        24px;  --p-lh-h1:        1.20;  --p-ls-h1:        -0.018em;
+  --p-fs-h2:        18px;  --p-lh-h2:        1.30;  --p-ls-h2:        -0.012em;
+  --p-fs-h3:        15px;  --p-lh-h3:        1.40;  --p-ls-h3:        -0.005em;
+  --p-fs-body:      14px;  --p-lh-body:      1.55;  --p-ls-body:      -0.002em;
+  --p-fs-body-sm:   13px;  --p-lh-body-sm:   1.50;
+  --p-fs-meta:      12px;  --p-lh-meta:      1.40;
+  --p-fs-eyebrow:   11px;  --p-lh-eyebrow:   1.20;  --p-ls-eyebrow:   0.08em;
+  --p-fs-mono-sm:   12px;
+  --p-fs-mono:      13px;
+
+  /* Spacing — 4-step base */
+  --p-1:  4px;
+  --p-2:  8px;
+  --p-3: 12px;
+  --p-4: 16px;
+  --p-5: 20px;
+  --p-6: 24px;
+  --p-7: 32px;
+  --p-8: 40px;
+  --p-9: 56px;
+  --p-10: 72px;
+
+  /* Radii — one Apple-style scale */
+  --p-r-xs:  6px;
+  --p-r-sm:  8px;
+  --p-r-md: 12px;
+  --p-r-lg: 16px;
+  --p-r-xl: 20px;
+  --p-r-pill: 999px;
+
+  /* Motion */
+  --p-dur-fast:  120ms;
+  --p-dur-base:  180ms;
+  --p-dur-slow:  280ms;
+  --p-ease-standard: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --p-ease-snappy:   cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* Layout */
+  --p-rail-w: 248px;
+  --p-topbar-h: 56px;
+}
+

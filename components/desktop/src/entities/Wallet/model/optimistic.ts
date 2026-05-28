@@ -3,7 +3,7 @@
  *
  * Любая фича, инициирующая движение денег между кошельками (инвестиция, вывод,
  * перевод и т.п.), синхронно описывает, на сколько и в каких кошельках
- * изменяется `available` / `blocked`. Стор моментально отражает изменение в UI
+ * изменяется `available`. Стор моментально отражает изменение в UI
  * через overlay поверх серверной правды; при следующем `loadUserWallet`
  * сервер-снимок выигрывает и overlay сбрасывается.
  *
@@ -23,8 +23,6 @@ export interface IWalletPatchEntry {
   program_id?: number | string;
   /** Дельта `available` как asset-строка ("-50.0000 RUB" или "50.0000 RUB"). */
   available_delta?: string;
-  /** Дельта `blocked` как asset-строка. */
-  blocked_delta?: string;
 }
 
 export interface IWalletPatch {

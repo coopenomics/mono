@@ -47,7 +47,7 @@ q-dialog(
         .stub-requisites(v-if='!readinessLoading && notReady')
           q-icon(name='fa-solid fa-circle-info' size='56px' color='orange')
           .text-h6.q-mt-md.q-mb-sm Сначала заполните реквизиты
-          .text-body2.text-grey-8.q-mb-md
+          .text-body2.t-muted.q-mb-md
             | Для отчёта «{{ reportTitle }}» не хватает обязательных полей. Заполните их в разделе «Реквизиты», после чего вернитесь сюда.
           .missing-chips.q-mb-lg
             q-chip(
@@ -735,15 +735,15 @@ function goToRequisites(): void {
 <style scoped lang="scss">
 .editor-container {
   overflow: auto;
-  background: #f5f6f8;
+  background: var(--p-canvas);
   position: relative;
 }
 
 .action-panel {
   width: 260px;
   flex: 0 0 260px;
-  border-left: 1px solid rgba(0, 0, 0, 0.08);
-  background: var(--q-neutral-2, #fafafa);
+  border-left: 1px solid var(--p-line);
+  background: var(--p-surface-2);
 }
 
 // Mobile: панель становится slide-in overlay справа. Без action-panel--open
@@ -756,7 +756,7 @@ function goToRequisites(): void {
   width: min(85vw, 320px);
   flex: none;
   z-index: 6001; // выше q-dialog (которое ~6000); иначе поверх не ложится
-  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--p-shadow-modal, -4px 0 16px rgba(0, 0, 0, 0.18));
   transform: translateX(100%);
   transition: transform 0.22s ease-out;
   overflow-y: auto;
@@ -769,7 +769,7 @@ function goToRequisites(): void {
 .action-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--p-overlay, rgba(0, 0, 0, 0.4));
   z-index: 6000;
   animation: fade-in 0.2s ease-out;
 }
@@ -790,7 +790,7 @@ function goToRequisites(): void {
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: #666;
+  color: var(--p-ink-2);
   text-align: center;
   padding: 40px;
 }
@@ -804,7 +804,7 @@ function goToRequisites(): void {
   margin: 48px auto;
   padding: 32px;
   text-align: center;
-  color: #333;
+  color: var(--p-ink-1);
 
   .missing-chips {
     display: flex;
@@ -826,27 +826,27 @@ function goToRequisites(): void {
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  border-radius: 4px;
-  font-size: 13px;
+  border-radius: var(--p-r-xs, 4px);
+  font-size: var(--p-fs-body-sm, 13px);
   font-weight: 500;
   &.ok {
-    background: #e8f5e9;
-    color: #2e7d32;
+    background: var(--p-pos-soft);
+    color: var(--p-pos);
   }
   &.bad {
-    background: #ffebee;
-    color: #c62828;
+    background: var(--p-neg-soft);
+    color: var(--p-neg);
   }
 }
 
 .mark-hint {
-  font-size: 12px;
-  color: #666;
+  font-size: var(--p-fs-meta, 12px);
+  color: var(--p-ink-2);
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 6px 8px;
-  background: #eceff1;
-  border-radius: 4px;
+  background: var(--p-surface-2);
+  border-radius: var(--p-r-xs, 4px);
 }
 </style>

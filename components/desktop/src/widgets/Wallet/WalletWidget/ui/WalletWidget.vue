@@ -15,12 +15,10 @@ q-card.main-wallet-card(flat)
 
     ColorCard(
       color='orange'
-      v-if='totalBlocked !== "0.00"'
-    ).blocked-balance
-      .balance-label Заблокировано
-      .balance-value {{ totalBlocked }}
-      div(v-if='session.participantAccount?.minimum_amount').info-content.q-pa-sm.text-grey
-        .info-label Минимальный неснижаемый остаток: {{ minimumBalance }}
+      v-if='minimumAmount > 0'
+    ).minimum-reserve
+      .balance-label Минимальный неснижаемый остаток
+      .balance-value {{ minimumBalance }}
 
 </template>
 
@@ -38,12 +36,9 @@ const walletStore = useWalletStore();
 const session = useSessionStore();
 const { info } = useSystemStore();
 
-// Сумма заблокированных средств и минимального неснижаемого остатка
-const totalBlocked = computed(() => {
-  const blocked = parseFloat(walletStore.program_wallets[0]?.blocked || '0');
-  const minimum = parseFloat(session.participantAccount?.minimum_amount || '0');
-  const total = (blocked + minimum).toString();
-  return formatAsset2Digits(`${total} ${info.symbols?.root_govern_symbol ?? '₽'}`);
+// Минимальный неснижаемый остаток (число — для условия видимости карточки)
+const minimumAmount = computed(() => {
+  return parseFloat(session.participantAccount?.minimum_amount || '0');
 });
 
 // Доступные средства с форматированием
@@ -89,7 +84,7 @@ const minimumBalance = computed(() => {
     margin-bottom: 32px;
 
     .main-balance,
-    .blocked-balance {
+    .minimum-reserve {
       // Переопределяем размеры шрифтов для сохранения оригинального дизайна
       .balance-label {
         font-size: 14px;
@@ -107,8 +102,8 @@ const minimumBalance = computed(() => {
       padding: 20px; // Больше padding для основного баланса
     }
 
-    .blocked-balance {
-      padding: 16px; // Меньше padding для заблокированного баланса
+    .minimum-reserve {
+      padding: 16px; // Меньше padding для карточки минимального остатка
     }
   }
 

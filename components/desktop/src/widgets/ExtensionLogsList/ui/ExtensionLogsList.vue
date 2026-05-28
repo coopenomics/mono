@@ -1,54 +1,73 @@
 <template lang="pug">
-div
-  .q-pa-md
-    .row.q-mb-md
-      .col-md-6.col-sm-6.col-xs-12.q-pa-sm
-        q-input(
-          v-model="dateFrom"
-          type="date"
-          label="Дата от"
-          filled
-          dense
-          clearable
-          @clear="handleFilterChange"
-          @update:model-value="handleFilterChange"
-        )
-
-      .col-md-6.col-sm-6.col-xs-12.q-pa-sm
-        q-input(
-          v-model="dateTo"
-          type="date"
-          label="Дата до"
-          filled
-          dense
-          clearable
-          @clear="handleFilterChange"
-          @update:model-value="handleFilterChange"
-        )
-
-    q-table.full-height(
-      flat
-      v-model:pagination="pagination"
-      :rows="logs"
-      :columns="columns"
-      row-key="id"
-      :loading="loading"
-      :no-data-label="'Логи не найдены'"
-      @request="onRequest"
+.extension-logs
+  //- Фильтр по диапазону дат
+  .extension-logs__filters
+    BaseInput.extension-logs__date(
+      v-model="dateFrom"
+      type="date"
+      label="Дата от"
+      clearable
+      @clear="handleFilterChange"
+      @update:model-value="handleFilterChange"
     )
-      template(#body="props")
-        q-tr(:props="props")
-          q-td {{ showGlobalIds ? props.row.id : props.row.extension_local_id }}
-          q-td {{ formatDate(props.row.created_at) }}
-          q-td
-            slot(name="log-item" :log="JSON.parse(props.row.data || '{}')" :row="props.row" :showGlobalIds="showGlobalIds")
-              // Default slot content - show raw JSON
-              pre {{ props.row.data }}
+    BaseInput.extension-logs__date(
+      v-model="dateTo"
+      type="date"
+      label="Дата до"
+      clearable
+      @clear="handleFilterChange"
+      @update:model-value="handleFilterChange"
+    )
+
+  //- Скелетон при первичной загрузке
+  .extension-logs__skeleton(v-if="loading && !logs.length")
+    .log-card(v-for="n in 4", :key="n")
+      .log-card__head
+        q-skeleton(type="text", width="80px")
+        q-skeleton(type="text", width="120px")
+      q-skeleton.q-mt-sm(type="rect", height="60px")
+
+  //- Список записей лога
+  .extension-logs__list(v-else-if="logs.length")
+    .log-card(v-for="row in logs", :key="row.id")
+      .log-card__head
+        span.log-card__id \#{{ showGlobalIds ? row.id : row.extension_local_id }}
+        span.log-card__date {{ formatDate(row.created_at) }}
+      .log-card__body
+        slot(
+          name="log-item",
+          :log="parseData(row.data)",
+          :row="row",
+          :showGlobalIds="showGlobalIds"
+        )
+          pre.log-card__raw {{ row.data }}
+
+    .extension-logs__foot
+      span.extension-logs__count {{ rangeLabel }}
+      BaseButton(
+        v-if="hasMore",
+        variant="ghost",
+        size="sm",
+        :loading="loading",
+        @click="loadMore"
+      ) Загрузить ещё
+
+  //- Пусто
+  EmptyState(
+    v-else,
+    title="Логи не найдены",
+    body="За выбранный период записей нет."
+  )
+    template(#icon)
+      q-icon(name="receipt_long", size="48px")
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useExtensionStore, type IExtensionLogsResult } from 'src/entities/Extension/model/store'
+import { BaseButton } from 'src/shared/ui/base/BaseButton'
+import { BaseInput } from 'src/shared/ui/base/BaseInput'
+import { EmptyState } from 'src/shared/ui/base/EmptyState'
 import { date } from 'quasar'
 
 interface Props {
@@ -63,90 +82,71 @@ const props = withDefaults(defineProps<Props>(), {
 
 const extensionStore = useExtensionStore()
 
-// Reactive data
 const logs = ref<any[]>([])
 const loading = ref(false)
 const dateFrom = ref('')
 const dateTo = ref('')
 
-// Table configuration
-const columns = [
-  {
-    name: 'id',
-    label: 'ID',
-    align: 'left' as const,
-    field: 'id' as const,
-    style: 'width: 80px'
-  },
-  {
-    name: 'created_at',
-    label: 'Дата',
-    align: 'left' as const,
-    field: 'created_at' as const,
-    style: 'width: 140px'
-  },
-  {
-    name: 'data',
-    label: 'Данные',
-    align: 'left' as const,
-    field: 'data' as const
-  }
-]
+const LIMIT = 25
+const currentPage = ref(1)
+const totalCount = ref(0)
 
-const pagination = ref({
-  page: 1,
-  rowsPerPage: 25,
-  rowsNumber: 0,
-})
+const hasMore = computed(() => logs.value.length < totalCount.value)
 
-// Methods
+const rangeLabel = computed(() =>
+  logs.value.length ? `1–${logs.value.length} из ${totalCount.value}` : `0 из ${totalCount.value}`,
+)
+
 const formatDate = (dateString: string) => {
   return date.formatDate(new Date(dateString), 'DD.MM.YYYY HH:mm')
 }
 
+const parseData = (data: string) => {
+  try {
+    return JSON.parse(data || '{}')
+  } catch {
+    return {}
+  }
+}
+
 const handleFilterChange = () => {
-  pagination.value.page = 1 // Reset to first page when filters change
-  loadLogs()
+  currentPage.value = 1
+  loadLogs(1)
 }
 
-const onRequest = (props: any) => {
-  const { page, rowsPerPage } = props.pagination
-  loadLogs(page, rowsPerPage)
+const loadMore = () => {
+  if (loading.value || !hasMore.value) return
+  loadLogs(currentPage.value + 1)
 }
 
-const loadLogs = async (
-  page = pagination.value.page,
-  rowsPerPage = pagination.value.rowsPerPage
-) => {
+const loadLogs = async (page = 1) => {
   loading.value = true
   try {
     const filter: any = {}
 
-    // Always use extensionName prop if provided
     if (props.extensionName) {
       filter.name = props.extensionName
     }
-
     if (dateFrom.value) {
       filter.createdFrom = new Date(dateFrom.value)
     }
-
     if (dateTo.value) {
       filter.createdTo = new Date(dateTo.value)
     }
 
     const options = {
       page,
-      limit: rowsPerPage,
+      limit: LIMIT,
       sortBy: 'created_at',
       sortOrder: 'DESC'
     }
 
     const result: IExtensionLogsResult = await extensionStore.loadExtensionLogs({ data: filter, options })
 
-    logs.value = result.items
-    pagination.value.rowsNumber = result.totalCount
-    pagination.value.page = result.currentPage
+    // Первая страница — замена, последующие — дозагрузка.
+    logs.value = page === 1 ? result.items : [...logs.value, ...result.items]
+    totalCount.value = result.totalCount
+    currentPage.value = result.currentPage
   } catch (error) {
     console.error('Error loading extension logs:', error)
   } finally {
@@ -154,16 +154,83 @@ const loadLogs = async (
   }
 }
 
-// No need to watch extensionName changes as it's fixed for this component instance
-
-// Initial load
 onMounted(() => {
-  loadLogs()
+  loadLogs(1)
 })
 </script>
 
-<style scoped>
-.full-height {
-  height: calc(100vh - 200px);
+<style lang="scss" scoped>
+.extension-logs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-5, 20px);
+}
+
+.extension-logs__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--p-3, 12px);
+}
+
+.extension-logs__date {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.extension-logs__list,
+.extension-logs__skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3, 12px);
+}
+
+.log-card {
+  background: var(--p-surface);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-md, 12px);
+  padding: var(--p-4, 16px);
+}
+
+.log-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--p-3, 12px);
+  padding-bottom: var(--p-3, 12px);
+  margin-bottom: var(--p-3, 12px);
+  border-bottom: 1px solid var(--p-line);
+}
+
+.log-card__id {
+  font-family: var(--p-mono);
+  font-size: var(--p-fs-mono-sm, 12px);
+  color: var(--p-ink-3);
+}
+
+.log-card__date {
+  font-size: var(--p-fs-body-sm, 13px);
+  color: var(--p-ink-2);
+}
+
+.log-card__raw {
+  margin: 0;
+  font-family: var(--p-mono);
+  font-size: var(--p-fs-mono-sm, 12px);
+  color: var(--p-ink-2);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.extension-logs__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--p-3, 12px);
+  padding-top: var(--p-2, 8px);
+}
+
+.extension-logs__count {
+  font-size: var(--p-fs-meta, 12px);
+  color: var(--p-ink-3);
 }
 </style>

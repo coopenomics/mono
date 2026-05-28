@@ -3,7 +3,7 @@ import type { ChatcoopManagedMatrixRoomKind } from '../../domain/entities/manage
 import { ManagedMatrixRoomTypeormEntity } from '../entities/managed-matrix-room.typeorm-entity';
 
 function parseKind(raw: string): ChatcoopManagedMatrixRoomKind {
-  if (raw === 'members' || raw === 'council' || raw === 'capital_project') {
+  if (raw === 'members' || raw === 'council' || raw === 'capital_project' || raw === 'secretary') {
     return raw;
   }
   return 'capital_project';

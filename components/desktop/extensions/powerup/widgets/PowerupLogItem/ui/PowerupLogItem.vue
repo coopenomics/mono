@@ -1,33 +1,30 @@
 <template lang="pug">
-div.log-details
+.log-details
   .detail-row
-    .detail-label Тип операции:
-    .detail-value
-      q-chip(
-        :color="getTypeColor(log.type)"
-        text-color="white"
-        size="sm"
-        dense
-      ) {{ getTypeLabel(log.type) }}
+    span.detail-label Тип операции
+    span.detail-value
+      BaseBadge(:variant="getTypeVariant(log.type)") {{ getTypeLabel(log.type) }}
 
   .detail-row
-    .detail-label Сумма:
-    .detail-value {{ log.amount }}
+    span.detail-label Сумма
+    span.detail-value {{ log.amount }}
 
   .detail-row
-    .detail-label RAM:
-    .detail-value {{ formatBytes(log.resources.ram_usage) }} / {{ formatBytes(log.resources.ram_quota) }} ({{ calculateRamPercent(log.resources.ram_usage, log.resources.ram_quota).toFixed(2) }}% использовано)
+    span.detail-label RAM
+    span.detail-value {{ formatBytes(log.resources.ram_usage) }} / {{ formatBytes(log.resources.ram_quota) }} ({{ calculateRamPercent(log.resources.ram_usage, log.resources.ram_quota).toFixed(2) }}% использовано)
 
   .detail-row
-    .detail-label CPU:
-    .detail-value {{ formatCpuNet(log.resources.cpu_limit) }} ({{ calculateCpuNetPercent(log.resources.cpu_limit).toFixed(2) }}% использовано)
+    span.detail-label CPU
+    span.detail-value {{ formatCpuNet(log.resources.cpu_limit) }} ({{ calculateCpuNetPercent(log.resources.cpu_limit).toFixed(2) }}% использовано)
 
   .detail-row
-    .detail-label NET:
-    .detail-value {{ formatCpuNet(log.resources.net_limit) }} ({{ calculateCpuNetPercent(log.resources.net_limit).toFixed(2) }}% использовано)
+    span.detail-label NET
+    span.detail-value {{ formatCpuNet(log.resources.net_limit) }} ({{ calculateCpuNetPercent(log.resources.net_limit).toFixed(2) }}% использовано)
 </template>
 
 <script lang="ts" setup>
+import { BaseBadge } from 'src/shared/ui/base/BaseBadge'
+import type { BaseBadgeVariant } from 'src/shared/ui/base/BaseBadge'
 
 interface PowerupLog {
   type: 'daily' | 'now'
@@ -52,8 +49,8 @@ const getTypeLabel = (type: string) => {
   return type === 'daily' ? 'Ежедневное пополнение' : 'Немедленное пополнение'
 }
 
-const getTypeColor = (type: string) => {
-  return type === 'daily' ? 'green' : 'blue'
+const getTypeVariant = (type: string): BaseBadgeVariant => {
+  return type === 'daily' ? 'pos' : 'info'
 }
 
 const formatBytes = (value: any) => {
@@ -102,23 +99,26 @@ const calculateCpuNetPercent = (resource: any) => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.5rem 0;
-    border-bottom: 1px solid rgba(241, 243, 244, 0.3);
+    gap: var(--p-3, 12px);
+    padding: var(--p-2, 8px) 0;
+    border-bottom: 1px solid var(--p-line);
 
     &:last-child {
       border-bottom: none;
     }
+  }
 
-    .detail-label {
-      font-size: 0.85rem;
-      font-weight: 500;
-    }
+  .detail-label {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-2);
+  }
 
-    .detail-value {
-      font-size: 0.85rem;
-      font-weight: 600;
-      font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
-    }
+  .detail-value {
+    font-size: var(--p-fs-mono, 13px);
+    font-weight: 600;
+    color: var(--p-ink);
+    font-family: var(--p-mono);
+    text-align: right;
   }
 }
 </style>

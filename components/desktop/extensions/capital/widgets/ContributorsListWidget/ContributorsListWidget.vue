@@ -244,45 +244,30 @@ const calculateInvestorTotal = (contributor: IContributor) => {
 // Функции для расчета сумм кошельков
 const calculateMainWalletTotal = (contributor: IContributor) => {
   const availableStr = contributor?.main_wallet?.available || '0.0000';
-  const blockedStr = contributor?.main_wallet?.blocked || '0.0000';
+  const total = Number(availableStr.split(' ')[0] || '0');
 
-  const available = Number(availableStr.split(' ')[0] || '0');
-  const blocked = Number(blockedStr.split(' ')[0] || '0');
-
-  const total = available + blocked;
-
-  // Определяем валюту из любого поля, которое ее содержит, или используем системный символ
-  const currency = availableStr.split(' ')[1] || blockedStr.split(' ')[1] || governSymbol.value;
+  // Определяем валюту из поля available или используем системный символ
+  const currency = availableStr.split(' ')[1] || governSymbol.value;
 
   return currency ? `${total} ${currency}` : total.toString();
 };
 
 const calculateGenerationWalletTotal = (contributor: IContributor) => {
   const availableStr = contributor?.generation_wallet?.available || '0.0000';
-  const blockedStr = contributor?.generation_wallet?.blocked || '0.0000';
+  const total = Number(availableStr.split(' ')[0] || '0');
 
-  const available = Number(availableStr.split(' ')[0] || '0');
-  const blocked = Number(blockedStr.split(' ')[0] || '0');
-
-  const total = available + blocked;
-
-  // Определяем валюту из любого поля, которое ее содержит, или используем системный символ
-  const currency = availableStr.split(' ')[1] || blockedStr.split(' ')[1] || governSymbol.value;
+  // Определяем валюту из поля available или используем системный символ
+  const currency = availableStr.split(' ')[1] || governSymbol.value;
 
   return currency ? `${total} ${currency}` : total.toString();
 };
 
 const calculateBlagorostWalletTotal = (contributor: IContributor) => {
   const availableStr = contributor?.blagorost_wallet?.available || '0.0000';
-  const blockedStr = contributor?.blagorost_wallet?.blocked || '0.0000';
+  const total = Number(availableStr.split(' ')[0] || '0');
 
-  const available = Number(availableStr.split(' ')[0] || '0');
-  const blocked = Number(blockedStr.split(' ')[0] || '0');
-
-  const total = available + blocked;
-
-  // Определяем валюту из любого поля, которое ее содержит, или используем системный символ
-  const currency = availableStr.split(' ')[1] || blockedStr.split(' ')[1] || governSymbol.value;
+  // Определяем валюту из поля available или используем системный символ
+  const currency = availableStr.split(' ')[1] || governSymbol.value;
 
   return currency ? `${total} ${currency}` : total.toString();
 };

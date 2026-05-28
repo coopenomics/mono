@@ -17,7 +17,4 @@ export class Ledger2WalletDTO {
 
   @Field(() => String, { description: 'Доступный баланс' })
   available!: string;
-
-  @Field(() => String, { description: 'Заблокированный баланс' })
-  blocked!: string;
 }

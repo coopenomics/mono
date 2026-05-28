@@ -52,7 +52,6 @@ div
 import { onMounted, ref, computed } from 'vue';
 import { useSystemStore } from 'src/entities/System/model';
 import { useExpandableState } from 'src/shared/lib/composables';
-import 'src/shared/ui/TitleStyles';
 import { WindowLoader } from 'src/shared/ui/Loader';
 import { ColorCard } from 'src/shared/ui/ColorCard/ui';
 import { ResultSubmissionSegmentsWidget, ResultSubmissionActionsWidget } from 'app/extensions/capital/widgets';

@@ -76,51 +76,30 @@ const timeText = computed(() => {
 </script>
 
 <style lang="scss" scoped>
-// Минимальный остаток - точно как в WalletPage
+// Нейтральный canon-контейнер; цвет статуса несёт иконка (config-driven).
 .meet-status-card {
-  background: rgba(255, 152, 0, 0.05);
-  border: 1px solid rgba(255, 152, 0, 0.2);
-  border-radius: 12px;
-  padding: 16px;
-  transition:
-    background-color 0.2s ease,
-    border-color 0.2s ease;
+  background: var(--p-surface-2);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-md, 12px);
+  padding: var(--p-4, 16px);
+  box-shadow: none;
+}
 
-  .body--dark &,
-  .q-dark & {
-    background: rgba(255, 152, 0, 0.08);
-    border: 1px solid rgba(255, 200, 120, 0.45);
-  }
-
-  &:hover {
-    background: rgba(255, 152, 0, 0.07);
-
-    .body--dark &,
-    .q-dark & {
-      background: rgba(255, 152, 0, 0.11);
-    }
-  }
-
-  .minimum-balance-info {
-    display: flex;
-    align-items: center;
-
-    .info-icon {
-      margin-right: 12px;
-    }
-
-    .info-content {
-      .info-label {
-        font-size: 14px;
-        margin-bottom: 2px;
-        opacity: 0.7;
-      }
-
-      .info-value {
-        font-size: 16px;
-        font-weight: 500;
-      }
-    }
-  }
+.minimum-balance-info {
+  display: flex;
+  align-items: center;
+}
+.minimum-balance-info .info-icon {
+  margin-right: var(--p-3, 12px);
+}
+.minimum-balance-info .info-content .info-label {
+  font-size: var(--p-fs-body-sm, 13px);
+  margin-bottom: 2px;
+  color: var(--p-ink-2);
+}
+.minimum-balance-info .info-content .info-value {
+  font-size: var(--p-fs-body, 14px);
+  font-weight: 500;
+  color: var(--p-ink-1);
 }
 </style>

@@ -1,5 +1,3 @@
-#include <vector>
-
 /**
  * @brief Универсальное миграционное действие контракта ledger2 — точка
  * расширения для разовых исправлений состояния, которые можно провести
@@ -9,23 +7,33 @@
  * после её прогона на проде тело очищается до пустого `require_auth(get_self())`
  * (как в `capital::migrate`).
  *
- * Текущая задача (2026-05-21): чистка осиротевших L3-записей `w.cap.gen`
- * на voskhod после смены WalletKind GENERATOR_FUND с USER_SHARED на
- * COOPERATIVE (см. `lib/core/ledger2/wallets.hpp`).
+ * Текущая задача (2026-05-24): свёртка `blocked → available` по ВСЕМ коопам.
  *
- * Контекст: на voskhod `convertsegm` падал «недостаточно L3-средств у
- * пайщика» в проектах, где CRPS перераспределял доли между сегментами.
- * w.cap.gen был USER_SHARED, а CRPS в approvecmmt не делал per-user
- * компенсирующих TRANSFER между сегментами: `Σ COMMIT_RID == Σ ACCEPT_RID`
- * соблюдался только на проекте, не на пайщике.
+ * Контекст: механика «заблокированного» баланса упразднена (см.
+ * `lib/core/ledger2/operations.hpp` — удалены WalletOp BLOCK/UNBLOCK/BURN_BLOCKED;
+ * резерв возврата паевого теперь выражается переводом на кошелёк-резерв
+ * `w.wal.wpend`). Поле `blocked` остаётся в таблицах `wallets2`/`userwallets`
+ * как deprecated (физическое удаление поля = небезопасная смена layout таблицы
+ * на живых коопах, выносится в отдельный cleanup-деплой). Перед тем как поле
+ * перестанет поддерживаться кодом, накопленные `blocked`-остатки нужно вернуть
+ * в `available`, чтобы средства не «зависли» на упразднённом субсчёте.
  *
- * Архитектурный фикс: w.cap.gen — COOPERATIVE-пул без L3. Чтобы UI/бэкенд
- * не врали остатками по «личным» w.cap.gen, удаляем осиротевшие L3-записи
- * прямым `userwallets.erase`. L2-баланс `wallets2[w.cap.gen]` уже верен
- * (синхронен с Σ старых userwallets), его не трогаем.
+ * Действие: пройти всех кооперативов (cooperatives2 в scope registrator) и для
+ * каждого свернуть `blocked → available` на уровнях L2 (`wallets2`) и L3
+ * (`userwallets`): `available += blocked; blocked = 0`. Сумма средств на кошельке
+ * не меняется — только субсчёт.
  *
- * Идемпотентно: повторный вызов на чистой БД — no-op (lower_bound пуст).
- * Только voskhod: на остальных кооперативах w.cap.gen не использовался.
+ * Идемпотентно: после свёртки `blocked == 0`, повторный прогон — no-op.
+ *
+ * Сигнатура без аргументов — действие вызывается автоматически при деплое
+ * контракта (как и прочие задачи migrate); проходит по всем кооперативам сам.
+ *
+ * ПРЕДУСЛОВИЕ (операционное): на момент прогона не должно быть заявок на возврат
+ * «в полёте» (статусы pending/authorized в `wallet::withdraws`) — их `blocked`
+ * относится к старой механике и при свёртке в `available` вернётся пайщику как
+ * свободные средства, а последующий `completewthd` (BURN с `w.wal.wpend`) не
+ * найдёт резерва. Незавершённые заявки нужно довести (complete/decline) ДО
+ * деплоя с этой миграцией.
  *
  * @ingroup public_ledger2_actions
  *
@@ -34,24 +42,31 @@
 void ledger2::migrate() {
   require_auth(get_self());
 
-  const eosio::name target_coop = "voskhod"_n;
+  cooperatives2_index coops(_registrator, _registrator.value);
 
-  userwallets_index user_wallets(get_self(), target_coop.value);
-  auto idx = user_wallets.get_index<"bywallet"_n>();
+  for (auto c = coops.begin(); c != coops.end(); ++c) {
+    const eosio::name coopname = c->username;
 
-  // Собираем primary id записей до erase (модификация контейнера при
-  // итерации через secondary index — небезопасна).
-  std::vector<uint64_t> ids_to_erase;
-  for (auto it = idx.lower_bound(ledger2_wallets::GENERATOR_FUND.value);
-       it != idx.end() && it->wallet_name == ledger2_wallets::GENERATOR_FUND;
-       ++it) {
-    ids_to_erase.push_back(it->id);
-  }
+    // --- L3: userwallets[coopname] ---
+    // Модифицируем только не-ключевые поля (available/blocked) — итерация по
+    // первичному индексу с modify безопасна (порядок строк не меняется).
+    userwallets_index user_wallets(get_self(), coopname.value);
+    for (auto it = user_wallets.begin(); it != user_wallets.end(); ++it) {
+      if (it->blocked.amount <= 0) continue;
+      user_wallets.modify(it, get_self(), [&](auto& r) {
+        r.available += r.blocked;
+        r.blocked    = eosio::asset(0, r.blocked.symbol);
+      });
+    }
 
-  for (uint64_t id : ids_to_erase) {
-    auto pri = user_wallets.find(id);
-    if (pri != user_wallets.end()) {
-      user_wallets.erase(pri);
+    // --- L2: wallets2[coopname] ---
+    wallets2_index wallets(get_self(), coopname.value);
+    for (auto it = wallets.begin(); it != wallets.end(); ++it) {
+      if (it->blocked.amount <= 0) continue;
+      wallets.modify(it, get_self(), [&](auto& w) {
+        w.available += w.blocked;
+        w.blocked    = eosio::asset(0, w.blocked.symbol);
+      });
     }
   }
 }

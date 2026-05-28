@@ -1,8 +1,8 @@
 <template lang="pug">
-div.page-shell
-  q-card.hero-card(flat)
-    .hero-title Ключ кооператива
-    .hero-subtitle
+.key-page
+  .banner
+    q-icon.banner__icon(name='fa-solid fa-circle-info' size='18px')
+    .banner__body
       | Приватный ключ используется для подписи транзакций в блокчейне. Хранится
       | зашифрованным на сервере. Обновляйте его при смене ключа у аккаунта
       | кооператива или при восстановлении доступа.
@@ -15,7 +15,8 @@ div.page-shell
       v-model='privateKey'
       label='Приватный ключ'
       type='password'
-      standout="bg-teal text-white"
+      outlined
+      color='primary'
       dense
       :loading='loading'
       :disable='loading'
@@ -78,49 +79,40 @@ const updateKey = async () => {
 </script>
 
 <style lang="scss" scoped>
-.page-shell {
+.key-page {
   width: 100%;
-  padding: 24px 12px 32px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-}
-
-.hero-card {
-  border-radius: 18px;
-  padding: 18px 20px;
-}
-
-.hero-title {
-  font-size: 22px;
-  font-weight: 600;
-}
-
-.hero-subtitle {
-  line-height: 1.55;
-  max-width: 900px;
+  gap: var(--p-5, 20px);
+  padding: var(--p-6, 24px);
+  @media (max-width: 768px) {
+    padding: var(--p-4, 16px);
+  }
 }
 
 .surface-card {
-  border-radius: 16px;
-  padding: 18px 16px;
+  border-radius: var(--p-r-md, 12px);
+  padding: var(--p-5, 20px);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--p-3, 12px);
 }
 
 .section-title {
-  font-size: 16px;
+  font-size: var(--p-fs-h3);
   font-weight: 600;
+  color: var(--p-ink);
 }
 
 .section-note {
+  font-size: var(--p-fs-body-sm);
   line-height: 1.45;
+  color: var(--p-ink-2);
 }
 
 .action-row {
   display: flex;
   justify-content: flex-start;
-  padding-top: 6px;
+  padding-top: var(--p-2, 8px);
 }
 </style>

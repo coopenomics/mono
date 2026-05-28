@@ -1,5 +1,5 @@
 <template lang="pug">
-q-page.padding
+q-page.documents-page
   ListOfDocumentsWidget(
     :username='coopname',
     :filter='{}',
@@ -34,3 +34,16 @@ onMounted(() => {
   }
 });
 </script>
+
+<style lang="scss" scoped>
+/* Поля страницы как в реестре пайщиков — таблица сама обрамлена (.table-wrap) */
+.documents-page {
+  padding: var(--p-6, 24px);
+}
+
+@media (max-width: 768px) {
+  .documents-page {
+    padding: var(--p-4, 16px);
+  }
+}
+</style>

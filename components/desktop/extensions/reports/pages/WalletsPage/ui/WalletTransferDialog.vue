@@ -1,95 +1,87 @@
 <template lang="pug">
-q-dialog(
+BaseDialog(
   :model-value='modelValue'
   @update:model-value='emit("update:modelValue", $event)'
-  persistent
+  size='lg'
+  title='Перевод между кошельками'
+  :close-on-backdrop='!loading'
+  :close-on-escape='!loading'
 )
-  q-card(style='min-width: 480px; max-width: 540px;')
-    q-bar.bg-primary.text-white
-      .text-subtitle1 Перевод между кошельками
-      q-space
-      q-btn(flat dense icon='fa-solid fa-xmark' @click='close')
-        q-tooltip Закрыть
+  p.transfer-dialog__lead
+    | Перевод между кошельками одного бухгалтерского счёта без изменения сальдо счёта.
+    | Доступен только председателю.
 
-    q-card-section.q-pa-md
-      .text-caption.caption-muted.q-mb-md
-        | Перевод между кошельками одного бухгалтерского счёта без изменения сальдо счёта.
-        | Доступен только председателю.
+  q-form(@submit.prevent='submit' ref='formRef' greedy)
+    q-select.q-mb-sm(
+      v-model='form.fromWallet'
+      :options='fromOptions'
+      option-label='label'
+      option-value='id'
+      emit-value map-options
+      label='Из кошелька'
+      outlined dense
+      :disable='!!props.fixedFromWallet'
+      :rules='[(v) => !!v || "Выберите кошелёк-источник"]'
+      @update:model-value='onFromChange'
+    )
+      template(#option='scope')
+        q-item(v-bind='scope.itemProps')
+          q-item-section
+            q-item-label {{ scope.opt.label }}
+            q-item-label(caption) Доступно: {{ scope.opt.available }}
 
-      q-form(@submit.prevent='submit' ref='formRef' greedy)
-        q-select.q-mb-sm(
-          v-model='form.fromWallet'
-          :options='fromOptions'
-          option-label='label'
-          option-value='id'
-          emit-value map-options
-          label='Из кошелька'
-          outlined dense
-          :disable='!!props.fixedFromWallet'
-          :rules='[(v) => !!v || "Выберите кошелёк-источник"]'
-          @update:model-value='onFromChange'
-        )
-          template(#option='scope')
-            q-item(v-bind='scope.itemProps')
-              q-item-section
-                q-item-label {{ scope.opt.label }}
-                q-item-label(caption) Доступно: {{ scope.opt.available }}
+    q-select.q-mb-sm(
+      v-model='form.toWallet'
+      :options='toOptions'
+      option-label='label'
+      option-value='id'
+      emit-value map-options
+      label='В кошелёк'
+      outlined dense
+      :disable='!form.fromWallet'
+      :hint='toHint'
+      :rules='[(v) => !!v || "Выберите кошелёк-получатель", (v) => v !== form.fromWallet || "Источник и получатель не должны совпадать"]'
+    )
+      template(#option='scope')
+        q-item(v-bind='scope.itemProps')
+          q-item-section
+            q-item-label {{ scope.opt.label }}
+            q-item-label(caption) Доступно: {{ scope.opt.available }}
+      //- Причина пустого списка важнее, чем «No results» по дефолту:
+      //- walmove ходит ТОЛЬКО внутри одного бух.счёта, поэтому если у
+      //- кооператива нет других кошельков на том же счёте — выбора нет.
+      template(#no-option)
+        q-item
+          q-item-section.text-italic.caption-muted
+            | Нет других кошельков на бух.счёте {{ accountIdLabel }}.
+            | Перевод между разными счетами требует решения совета.
 
-        q-select.q-mb-sm(
-          v-model='form.toWallet'
-          :options='toOptions'
-          option-label='label'
-          option-value='id'
-          emit-value map-options
-          label='В кошелёк'
-          outlined dense
-          :disable='!form.fromWallet'
-          :hint='toHint'
-          :rules='[(v) => !!v || "Выберите кошелёк-получатель", (v) => v !== form.fromWallet || "Источник и получатель не должны совпадать"]'
-        )
-          template(#option='scope')
-            q-item(v-bind='scope.itemProps')
-              q-item-section
-                q-item-label {{ scope.opt.label }}
-                q-item-label(caption) Доступно: {{ scope.opt.available }}
-          //- Причина пустого списка важнее, чем «No results» по дефолту:
-          //- walmove ходит ТОЛЬКО внутри одного бух.счёта, поэтому если у
-          //- кооператива нет других кошельков на том же счёте — выбора нет.
-          template(#no-option)
-            q-item
-              q-item-section.text-italic.caption-muted
-                | Нет других кошельков на бух.счёте {{ accountIdLabel }}.
-                | Перевод между разными счетами требует решения совета.
+    .row.items-center.q-gutter-sm.q-mb-sm(v-if='form.fromWallet')
+      .col
+        .text-caption.caption-muted Бух.счёт
+        .text-body2.text-weight-medium {{ accountIdLabel }}
 
-        .row.items-center.q-gutter-sm.q-mb-sm(v-if='form.fromWallet')
-          .col
-            .text-caption.caption-muted Бух.счёт
-            .text-body2.text-weight-medium {{ accountIdLabel }}
+    q-input.q-mb-sm(
+      v-model='form.amountStr'
+      label='Сумма (RUB)'
+      outlined dense type='number' step='0.0001' min='0.0001'
+      :rules='[validateAmount]'
+      hint='До 4 знаков после запятой'
+    )
 
-        q-input.q-mb-sm(
-          v-model='form.amountStr'
-          label='Сумма (RUB)'
-          outlined dense type='number' step='0.0001' min='0.0001'
-          :rules='[validateAmount]'
-          hint='До 4 знаков после запятой'
-        )
+    q-input.q-mb-sm(
+      v-model='form.memo'
+      label='Обоснование'
+      outlined dense type='textarea' rows='3' counter maxlength='255'
+      :rules='[(v) => (v && v.trim().length > 0) || "Обязательно — укажите причину перевода"]'
+    )
 
-        q-input.q-mb-sm(
-          v-model='form.memo'
-          label='Обоснование'
-          outlined dense type='textarea' rows='3' counter maxlength='255'
-          :rules='[(v) => (v && v.trim().length > 0) || "Обязательно — укажите причину перевода"]'
-        )
-
-        .row.justify-end.q-gutter-sm.q-mt-md
-          q-btn(flat label='Отмена' color='grey-7' :disable='loading' @click='close')
-          q-btn(
-            type='submit'
-            color='primary'
-            label='Перевести'
-            :loading='loading'
-            icon='fa-solid fa-arrow-right-arrow-left'
-          )
+  template(#footer)
+    BaseButton(variant='ghost' :disabled='loading' @click='close') Отмена
+    BaseButton(variant='primary' :loading='loading' @click='submit')
+      template(#icon-left)
+        q-icon.q-mr-xs(name='fa-solid fa-arrow-right-arrow-left' size='15px')
+      | Перевести
 </template>
 
 <script setup lang="ts">
@@ -98,6 +90,8 @@ import { Ledger2 } from 'cooptypes'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { useSystemStore } from 'src/entities/System/model'
 import { useLedger2Store, type ILedger2Wallet } from 'src/entities/Ledger2'
+import { BaseDialog } from 'src/shared/ui/base/BaseDialog'
+import { BaseButton } from 'src/shared/ui/base/BaseButton'
 
 interface Props {
   modelValue: boolean
@@ -218,6 +212,11 @@ watch(
 )
 
 async function submit() {
+  if (loading.value) return
+  // Кнопка «Перевести» теперь в footer диалога (вне q-form), поэтому
+  // валидацию правил полей запускаем явно перед отправкой.
+  const valid = await formRef.value?.validate()
+  if (!valid) return
   if (!form.fromWallet || !form.toWallet) return
   if (!sourceAccountId.value) {
     FailAlert(new Error('Не удалось определить бух.счёт для выбранного кошелька'))
@@ -254,9 +253,14 @@ function close() {
 </script>
 
 <style scoped lang="scss">
-// Не использовать quasar `text-grey-X` — фиксированный hex без body--dark.
+.transfer-dialog__lead {
+  margin: 0;
+  color: var(--p-ink-2);
+  font-size: var(--p-fs-body-sm, 13px);
+  line-height: 1.5;
+}
+// Канон-токен --p-ink-2 сам адаптируется к тёмной теме — без rgba-хардкода.
 .caption-muted {
-  color: rgba(0, 0, 0, 0.6);
-  .body--dark & { color: rgba(255, 255, 255, 0.6); }
+  color: var(--p-ink-2);
 }
 </style>

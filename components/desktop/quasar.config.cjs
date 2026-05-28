@@ -42,10 +42,16 @@ module.exports = configure(function (ctx) {
     // app boot file (/src/boot)
     // --> boot files are part of "main.js"
     // https://v2.quasar.dev/quasar-cli-vite/boot-files
-    boot: ['widget', 'init', 'axios', 'sentry', 'network', 'chatwoot'],
+    boot: ['widget', 'init', 'axios', 'sentry', 'network', 'chatwoot', 'theme', 'ui', 'haptics'],
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#css
     css: [
+      // MONO Platform v2 — canon design system: токены и стили базовых компонентов.
+      // Импортируются ДО приложения, чтобы переопределения проекта могли наследоваться.
+      'mono-platform/tokens.css',
+      'mono-platform/components.css',
+      'mono-platform/quasar-canon.css',
+      'legacy-stylers.scss',
       '../app/styles/app.scss',
       '../app/styles/style.css',
       '../app/styles/variables.sass',

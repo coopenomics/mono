@@ -12,6 +12,14 @@ import { PowerupLogItem } from '../../../widgets/PowerupLogItem'
 
 <style lang="scss" scoped>
 .logs-page {
-  height: 100%;
+  padding: var(--p-6, 24px);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+  .logs-page {
+    padding: var(--p-4, 16px);
+  }
 }
 </style>

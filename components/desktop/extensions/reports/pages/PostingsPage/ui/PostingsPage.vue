@@ -1,12 +1,12 @@
 <template lang="pug">
-div.page-shell
+.postings-page
   //- Поиск по «номеру»: умный input — определяет тип ID по формату.
   //- Числовой bigint (≤24 цифр) → debit.global_sequence (точечно одна проводка).
   //- 64-символьная hex-строка → process_hash (все проводки одной операции).
   //- Любая другая строка с операционными префиксами (o.cap...) — игнорируем
   //- (для этого есть реестр операций). Фильтры account_id/username прилетают
   //- через cross-link.
-  q-card.q-mt-md(flat)
+  q-card(flat)
     q-card-section
       .row.q-gutter-sm.items-center.q-mb-sm(
         v-if='filters.accountId !== null || filters.username || filters.debitGlobalSequence || filters.applyGlobalSequence || filters.processHash'
@@ -137,7 +137,7 @@ div.page-shell
               @click='copyText(String(props.row.debitGlobalSequence))'
             )
               q-tooltip Клик — копировать
-            span.text-grey-6(v-else) —
+            span.t-faint(v-else) —
           q-td
             EntityIdBadge(
               v-if='props.row.processHash'
@@ -145,7 +145,7 @@ div.page-shell
               @click='copyFullHash(props.row.processHash)'
             )
               q-tooltip Клик — копировать полный хэш
-            span.text-grey-6(v-else) —
+            span.t-faint(v-else) —
           q-td
             q-chip(
               v-if='props.row.operationCode'
@@ -154,7 +154,7 @@ div.page-shell
               :color='processChipBg(props.row.operationCode)'
               :text-color='processChipText(props.row.operationCode)'
             ) {{ operationLabel(props.row.operationCode) }}
-            span.text-grey-6(v-else) —
+            span.t-faint(v-else) —
           q-td.text-center
             AccountIdCell(:account-code='debitCode(props.row.debitAccountId)')
           q-td.text-center
@@ -176,10 +176,10 @@ div.page-shell
           q-card.q-pa-md.q-mb-sm
             .row.items-center.q-gutter-x-md
               .col
-                .text-caption.text-grey-6 {{ formatDate(props.row.createdAt) }}
+                .text-caption.t-faint {{ formatDate(props.row.createdAt) }}
                 .text-body2.text-weight-medium {{ operationLabel(props.row.operationCode) }}
               .col-auto.text-right
-                .text-caption.text-grey-6 Сумма
+                .text-caption.t-faint Сумма
                 .text-body1.text-weight-bold.font-monospace {{ formatAmount(props.row.quantity) }}
               .col-auto
                 q-btn(
@@ -190,22 +190,22 @@ div.page-shell
                   :to='{ name: "reports-operations", query: { operation_id: props.row.parentApplyGlobalSequence } }'
                 )
             .row.q-mt-sm.items-center.q-gutter-x-md
-              .col-auto.text-caption.text-grey-7 Дебет
+              .col-auto.text-caption.t-muted Дебет
               .col-auto
                 AccountIdCell(:account-code='debitCode(props.row.debitAccountId)')
-              .col-auto.text-caption.text-grey-7 Кредит
+              .col-auto.text-caption.t-muted Кредит
               .col-auto
                 AccountIdCell(:account-code='creditCode(props.row.creditAccountId)')
-            .col-12.text-caption.text-grey-7
+            .col-12.text-caption.t-muted
               | Пайщик: {{ fioCache.get(props.row.username ?? '') || props.row.username || '—' }}
             .col-12.row.q-gutter-xs.q-mt-xs.items-center
-              .text-caption.text-grey-7 № проводки
+              .text-caption.t-muted № проводки
               EntityIdBadge(
                 v-if='props.row.debitGlobalSequence'
                 :rawId='props.row.debitGlobalSequence'
                 @click='copyText(String(props.row.debitGlobalSequence))'
               )
-              .text-caption.text-grey-7 № процесса
+              .text-caption.t-muted № процесса
               EntityIdBadge(
                 v-if='props.row.processHash'
                 :rawId='shortHash(props.row.processHash)'
@@ -599,6 +599,12 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.postings-page {
+  padding: var(--p-6, 24px);
+}
+@media (max-width: 768px) {
+  .postings-page { padding: var(--p-4, 16px); }
+}
 .font-monospace {
   font-family: 'JetBrains Mono', 'Courier New', monospace;
   letter-spacing: 0.03em;

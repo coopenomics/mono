@@ -1,91 +1,136 @@
 <template lang="pug">
-q-dialog(v-model='show', persistent, :maximized='false')
-  q-card
-    div
-      q-bar.bg-gradient-dark.text-white
-        span Добавить пайщика
-        q-space
-        q-btn(v-close-popup, dense, flat, icon='close')
-          q-tooltip Закрыть
+q-dialog(v-model='show', persistent, :maximized='true')
+  q-card.add-user-wizard
+    //- ===== Шапка =====
+    header.add-user-wizard__bar
+      .add-user-wizard__bar-title Добавить пайщика
+      q-btn(
+        flat,
+        round,
+        dense,
+        icon='close',
+        aria-label='Закрыть',
+        :disable='loading',
+        @click='closeDialog'
+      )
 
-      .q-pa-sm.row.justify-center
-        .q-pa-md
-          .q-pb-md
-            span Внимание! Вы собираетесь добавить действующего пайщика в реестр цифрового кооператива. Пайщик получит приглашение на электронную почту и сможет сразу использовать систему без заполнения заявления на вступление и оплаты вступительного взноса, т.к. он сделал это ранее вне цифровой системы.
+    //- ===== Тело: вступление + степпер =====
+    .add-user-wizard__body
+      .add-user-wizard__col
+        p.add-user-wizard__intro
+          | Вы добавляете действующего пайщика в реестр цифрового кооператива.
+          | Он получит приглашение на электронную почту и сможет сразу пользоваться
+          | системой без заполнения заявления на вступление и оплаты взноса —
+          | это уже сделано ранее вне цифровой системы.
 
-          UserDataForm(v-model:userData='state.userData')
-            template(#top)
-              q-input.q-mb-md(
+        VerticalStepper(
+          :steps='steps',
+          :active-key='activeKey',
+          :completed='completedKeys',
+          @change='goToStep'
+        )
+          template(#active='{ step }')
+            //- ---------- Шаг 1: Электронная почта ----------
+            q-form.add-user-wizard__step(v-if='step.key === "contact"', ref='contactForm', greedy)
+              q-input(
                 v-model='state.email',
-                standout='bg-teal text-white',
                 label='Электронная почта',
+                outlined,
+                autocomplete='off',
+                hint='На неё будет отправлено приглашение в кооператив',
                 :rules='[validateEmail, validateExists]'
               )
 
-            template(#bottom)
-              template(v-if='state.userData.type')
-                q-input.q-mt-md(
-                  standout='bg-teal text-white',
-                  v-model='addUserState.created_at',
-                  mask='datetime',
-                  label='Дата и время подписания заявления',
-                  placeholder='год/месяц/день часы:минуты',
-                  :rules='[(val) => notEmpty(val), (val) => validateDateWithinRange(100)(val)]',
-                  autocomplete='off',
-                  hint='когда пайщик был принят в кооператив'
-                )
+            //- ---------- Шаг 2: Тип и данные пайщика ----------
+            .add-user-wizard__step(v-else-if='step.key === "profile"')
+              UserDataForm(v-model:userData='state.userData')
 
-                q-input.q-mt-md(
-                  standout='bg-teal text-white',
-                  v-model='initial',
-                  type='number',
-                  :min='0',
-                  label='Размер вступительного взноса',
-                  :rules='[(val) => moreThenZero(val)]',
-                  hint='был оплачен пайщиком при вступлении'
-                )
-                  template(#append)
-                    span.text-overline {{ coop.governSymbol }}
-                    q-btn(icon='sync', flat, dense, @click='refresh("initial")')
+            //- ---------- Шаг 3: Вступительный взнос ----------
+            q-form.add-user-wizard__step(v-else-if='step.key === "contribution"', greedy)
+              q-input(
+                v-model='addUserState.created_at',
+                outlined,
+                mask='datetime',
+                label='Дата и время подписания заявления',
+                placeholder='год/месяц/день часы:минуты',
+                autocomplete='off',
+                hint='Когда пайщик был принят в кооператив',
+                :rules='[(val) => notEmpty(val), (val) => validateDateWithinRange(100)(val)]'
+              )
+              q-input(
+                v-model='initial',
+                outlined,
+                type='number',
+                :min='0',
+                label='Размер вступительного взноса',
+                hint='Был оплачен пайщиком при вступлении',
+                :rules='[(val) => moreThenZero(val)]'
+              )
+                template(#append)
+                  span.add-user-wizard__symbol {{ coop.governSymbol }}
+                  q-btn(icon='sync', flat, dense, round, size='sm', @click='refresh("initial")')
+                    q-tooltip Вернуть значение из настроек кооператива
+              q-input(
+                v-model='minimum',
+                outlined,
+                type='number',
+                label='Размер минимального паевого взноса',
+                hint='Был оплачен пайщиком при вступлении',
+                :rules='[(val) => moreThenZero(val)]'
+              )
+                template(#append)
+                  span.add-user-wizard__symbol {{ coop.governSymbol }}
+                  q-btn(icon='sync', flat, dense, round, size='sm', @click='refresh("minimum")')
+                    q-tooltip Вернуть значение из настроек кооператива
 
-                q-input.q-mt-md(
-                  standout='bg-teal text-white',
-                  v-model='minimum',
-                  hint='был оплачен пайщиком при вступлении',
-                  type='number',
-                  label='Размер минимального паевого взноса',
-                  :rules='[(val) => moreThenZero(val)]'
-                )
-                  template(#append)
-                    span.text-overline {{ coop.governSymbol }}
-                    q-btn(icon='sync', flat, dense, @click='refresh("minimum")')
+              label.add-user-wizard__option
+                q-checkbox(v-model='addUserState.spread_initial', color='primary')
+                .add-user-wizard__option-text
+                  .add-user-wizard__option-title Добавить вступительный взнос на кошелёк
+                  .add-user-wizard__option-caption Вступительный взнос будет добавлен на счёт кошелька кооператива и станет доступен для списания по фонду хозяйственной деятельности.
 
-                q-card.q-mt-md(flat)
-                  q-item(tag='label', v-ripple)
-                    q-item-section(avatar)
-                      q-checkbox(v-model='addUserState.spread_initial')
-
-                    q-item-section
-                      q-item-label добавить вступительный взнос
-                      q-item-label(caption) Вступительный взнос будет добавлен на счёт кошелька кооператива и станет доступен для списания по фонду хозяйственной деятельности.
-
-                //- q-card.q-mt-md(flat)
-                  //- q-item(tag='label', v-ripple)
-                  //-   q-item-section(avatar)
-                  //-     //- q-checkbox(v-model='spread_minimum', disable)
-
-                    //- q-item-section
-                    //-   q-item-label Начислить минимальный паевый взнос
-                    //-   q-item-label(caption) Минимальный паевый взнос будет зачислен на оборотный счет кооператива и учитываться в процессе возврата при выходе пайщика из кооператива.
-
-              .q-mt-lg
-                q-btn(flat, @click='closeDialog') Отмена
-                q-btn(color='primary', :disable='!state.userData.type', @click='addUserNow', :loading='loading') Добавить
+    //- ===== Подвал: навигация =====
+    footer.add-user-wizard__foot
+      BaseButton(
+        v-if='activeKey === "contact"',
+        variant='ghost',
+        :disabled='loading',
+        @click='closeDialog'
+      ) Отмена
+      BaseButton(
+        v-else,
+        variant='ghost',
+        :disabled='loading',
+        @click='goBack'
+      )
+        q-icon(name='arrow_back', size='16px')
+        span.q-ml-sm Назад
+      q-space
+      BaseButton(
+        v-if='activeKey !== "contribution"',
+        variant='primary',
+        @click='goNext'
+      )
+        span.q-mr-sm Далее
+        q-icon(name='arrow_forward', size='16px')
+      BaseButton(
+        v-else,
+        variant='primary',
+        :disabled='!state.userData.type',
+        :loading='loading',
+        @click='addUserNow'
+      )
+        q-icon(name='person_add', size='16px')
+        span.q-ml-sm Добавить пайщика
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
+import type { QForm } from 'quasar';
 import { UserDataForm } from 'src/shared/ui/UserDataForm/UserDataForm';
+import { VerticalStepper } from 'src/shared/ui/domain/VerticalStepper';
+import type { StepperStep } from 'src/shared/ui/domain/VerticalStepper';
+import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { useAddUser } from '../../model';
 import { useCooperativeStore } from 'src/entities/Cooperative';
 import { useRegistratorStore } from 'src/entities/Registrator';
@@ -118,6 +163,62 @@ const { state, addUserState, clearUserData } = useRegistratorStore();
 const minimum = ref(0);
 const initial = ref(0);
 const loading = ref(false);
+
+// ===== Шаги мастера =====
+const steps: StepperStep[] = [
+  { key: 'contact', label: 'Электронная почта', description: 'Куда отправить приглашение' },
+  { key: 'profile', label: 'Тип и данные пайщика', description: 'Кто вступает и его реквизиты' },
+  { key: 'contribution', label: 'Вступительный взнос', description: 'Что было оплачено при вступлении' },
+];
+const activeKey = ref<string>('contact');
+const completedKeys = ref<string[]>([]);
+
+const contactForm = ref<QForm | null>(null);
+
+function markCompleted(key: string): void {
+  if (!completedKeys.value.includes(key)) completedKeys.value.push(key);
+}
+
+async function goNext(): Promise<void> {
+  if (activeKey.value === 'contact') {
+    const ok = await contactForm.value?.validate();
+    if (!ok) return;
+    markCompleted('contact');
+    activeKey.value = 'profile';
+    return;
+  }
+  if (activeKey.value === 'profile') {
+    if (!state.userData.type) {
+      FailAlert('Выберите тип аккаунта пайщика');
+      return;
+    }
+    markCompleted('profile');
+    activeKey.value = 'contribution';
+  }
+}
+
+function goBack(): void {
+  if (activeKey.value === 'contribution') activeKey.value = 'profile';
+  else if (activeKey.value === 'profile') activeKey.value = 'contact';
+}
+
+// Возврат на завершённый шаг по клику в степпере.
+function goToStep(key: string): void {
+  if (completedKeys.value.includes(key) || key === activeKey.value) {
+    activeKey.value = key;
+  }
+}
+
+// Сброс мастера при каждом открытии диалога.
+watch(
+  () => props.modelValue,
+  (open) => {
+    if (open) {
+      activeKey.value = 'contact';
+      completedKeys.value = [];
+    }
+  },
+);
 
 // Функция для добавления пользователя
 const addUserNow = async () => {
@@ -240,3 +341,98 @@ const validateExists = () => {
   );
 };
 </script>
+
+<style lang="scss" scoped>
+.add-user-wizard {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--p-canvas);
+}
+
+/* ===== Шапка ===== */
+.add-user-wizard__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--p-3, 12px);
+  padding: var(--p-3, 12px) var(--p-4, 16px);
+  background: var(--p-surface);
+  border-bottom: 1px solid var(--p-line);
+  flex-shrink: 0;
+}
+.add-user-wizard__bar-title {
+  font-size: var(--p-fs-h2, 18px);
+  font-weight: 600;
+  color: var(--p-ink);
+}
+
+/* ===== Тело ===== */
+.add-user-wizard__body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: var(--p-6, 24px) var(--p-4, 16px);
+}
+.add-user-wizard__col {
+  max-width: 680px;
+  margin: 0 auto;
+}
+.add-user-wizard__intro {
+  margin: 0 0 var(--p-5, 20px);
+  font-size: var(--p-fs-body-sm, 13px);
+  line-height: 1.55;
+  color: var(--p-ink-2);
+}
+
+.add-user-wizard__step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-4, 16px);
+  padding-bottom: var(--p-2, 8px);
+}
+
+.add-user-wizard__symbol {
+  font-size: var(--p-fs-meta, 12px);
+  color: var(--p-ink-2);
+  margin-right: var(--p-1, 4px);
+}
+
+/* ===== Опция начисления взноса ===== */
+.add-user-wizard__option {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--p-2, 8px);
+  padding: var(--p-3, 12px) var(--p-4, 16px);
+  background: var(--p-surface);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-md, 12px);
+  cursor: pointer;
+}
+.add-user-wizard__option-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: var(--p-1, 4px);
+}
+.add-user-wizard__option-title {
+  font-size: var(--p-fs-body-sm, 13px);
+  font-weight: 600;
+  color: var(--p-ink-1);
+}
+.add-user-wizard__option-caption {
+  font-size: var(--p-fs-meta, 12px);
+  line-height: 1.5;
+  color: var(--p-ink-2);
+}
+
+/* ===== Подвал ===== */
+.add-user-wizard__foot {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2, 8px);
+  padding: var(--p-3, 12px) var(--p-4, 16px);
+  background: var(--p-surface);
+  border-top: 1px solid var(--p-line);
+  flex-shrink: 0;
+}
+</style>

@@ -1,29 +1,27 @@
 <template lang="pug">
-div
-  div.row.q-col-gutter-md
-    div.col-12.col-md-auto(v-if="canCloseBySecretary")
-      q-btn(
-        color="primary"
-        icon="fa-solid fa-signature"
-        label="Подписать протокол"
-        @click="closeMeetBySecretary"
-        :loading="isProcessing"
-      )
-    div.col-12.col-md-auto(v-if="canCloseByPresider")
-      q-btn(
-        color="primary"
-        icon="fa-solid fa-stamp"
-        label="Утвердить протокол"
-        @click="closeMeetByPresider"
-        :loading="isProcessing"
-      )
-    div.col-12.col-md-auto(v-if="canRestartMeet")
-      RestartMeet(
-        show-button
-        @restart="handleRestartMeet"
-        :loading="isProcessing"
-      )
-
+.meet-actions
+  BaseButton(
+    v-if="canCloseBySecretary",
+    variant="primary",
+    :loading="isProcessing",
+    @click="closeMeetBySecretary"
+  )
+    q-icon(name="fa-solid fa-signature", size="16px")
+    span.q-ml-sm Подписать протокол
+  BaseButton(
+    v-if="canCloseByPresider",
+    variant="primary",
+    :loading="isProcessing",
+    @click="closeMeetByPresider"
+  )
+    q-icon(name="fa-solid fa-stamp", size="16px")
+    span.q-ml-sm Утвердить протокол
+  RestartMeet(
+    v-if="canRestartMeet",
+    show-button,
+    :loading="isProcessing",
+    @restart="handleRestartMeet"
+  )
 </template>
 
 <script setup lang="ts">
@@ -32,6 +30,7 @@ import { useRouter } from 'vue-router'
 import { useCloseMeet } from 'src/features/Meet/CloseMeetWithDecision/model'
 import { useRestartMeet } from 'src/features/Meet/RestartMeet/model'
 import { RestartMeet } from 'src/features/Meet/RestartMeet'
+import { BaseButton } from 'src/shared/ui/base/BaseButton'
 import { useMeetStore } from 'src/entities/Meet'
 import type { IMeet } from 'src/entities/Meet'
 
@@ -67,3 +66,12 @@ const {
 } = useRestartMeet(router, isProcessing)
 
 </script>
+
+<style lang="scss" scoped>
+.meet-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--p-3, 12px);
+  align-items: center;
+}
+</style>

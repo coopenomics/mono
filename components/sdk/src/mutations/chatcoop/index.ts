@@ -1,6 +1,8 @@
 export * as CreateAccount from './createAccount'
 export * as CreateCalendarEvent from './createCalendarEvent'
 export * as CreateCalendarIcsSubscription from './createCalendarIcsSubscription'
+export * as CreateSecretaryRoom from './createSecretaryRoom'
 export * as DeleteCalendarEvent from './deleteCalendarEvent'
+export * as RemoveSecretaryRoom from './removeSecretaryRoom'
 export * as UpdateCalendarEvent from './updateCalendarEvent'
 export * as UpdateTranscriptionMemo from './updateTranscriptionMemo'

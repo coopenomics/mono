@@ -1,5 +1,5 @@
 <template lang="pug">
-q-btn.full-width(color='teal', @click='openSettings') настройки
+q-btn.full-width(color='primary', unelevated, no-caps, @click='openSettings') Настройки
 </template>
 
 <script setup lang="ts">

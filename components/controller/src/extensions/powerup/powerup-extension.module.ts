@@ -215,8 +215,18 @@ export class PowerupPlugin extends BaseExtModule implements OnModuleDestroy {
 
       await this.blockchainPort.powerUp(username, quantity);
 
-      this.plugin.config.lastDailyReplenishmentDate = new Date().toISOString();
-      await this.extensionRepository.update(this.plugin);
+      // read-modify-write по СВЕЖЕМУ config: daily-cron держит in-memory снимок
+      // `this.plugin` с момента boot, а update() заменяет весь config JSONB
+      // целиком. Перезапись устаревшего снимка стёрла бы поля, записанные за
+      // сутки другими сервисами (онбординг и т.п.). Берём актуальный config и
+      // трогаем только lastDailyReplenishmentDate.
+      const fresh = await this.extensionRepository.findByName(this.name);
+      const nextConfig = {
+        ...(fresh?.config ?? this.plugin.config),
+        lastDailyReplenishmentDate: new Date().toISOString(),
+      };
+      await this.extensionRepository.update({ name: this.name, config: nextConfig });
+      this.plugin = { ...this.plugin, config: nextConfig };
 
       await this.log({
         type: 'daily',

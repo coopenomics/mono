@@ -5,7 +5,6 @@ export const rawLedger2WalletSelector = {
   id: true,
   name: true,
   available: true,
-  blocked: true,
 }
 
 const _validate: MakeAllFieldsRequired<ValueTypes['Ledger2Wallet']> = rawLedger2WalletSelector

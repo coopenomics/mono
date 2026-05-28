@@ -1,5 +1,5 @@
 /**
- * @brief Атомарная операция по кошельку (issue/transfer/block/unblock/burn/burn_blocked).
+ * @brief Атомарная операция по кошельку (issue/transfer/burn).
  *
  * Внутренний action ledger2 — вызывается только через inline из apply().
  * Auth: только сам ledger2 (require_auth(get_self())).
@@ -53,13 +53,15 @@ void ledger2::walletop(eosio::name coopname,
   eosio::check(amount.symbol == _root_govern_symbol,
                "walletop: некорректный символ валюты");
   eosio::check(memo.size() < 256, "walletop: memo > 255");
-  // op_code = 5 (NONE) намеренно не допускается: NONE-операции — это только
-  // бухпроводка без кошелькового движения, apply.cpp не диспатчит для них walletop.
-  // Прямой вызов с op_code=5 был бы no-op и сбил бы инвариант parity.
-  // Допустимы 0..4 (ISSUE/TRANSFER/BLOCK/UNBLOCK/BURN) и 6 (BURN_BLOCKED).
-  eosio::check(op_code <= static_cast<uint8_t>(WalletOp::BURN_BLOCKED) &&
-               op_code != static_cast<uint8_t>(WalletOp::NONE),
-               "walletop: неизвестный op_code");
+  // Допустимы только ISSUE(0), TRANSFER(1), BURN(4). NONE(5) — это только
+  // бухпроводка без кошелькового движения, apply.cpp для неё walletop не диспатчит;
+  // прямой вызов был бы no-op и сбил бы parity. Бывшие BLOCK(2)/UNBLOCK(3)/
+  // BURN_BLOCKED(6) упразднены (2026-05-24): резерв возврата теперь TRANSFER на
+  // w.wal.wpend, их op_code больше не валиден.
+  eosio::check(op_code == static_cast<uint8_t>(WalletOp::ISSUE) ||
+               op_code == static_cast<uint8_t>(WalletOp::TRANSFER) ||
+               op_code == static_cast<uint8_t>(WalletOp::BURN),
+               "walletop: недопустимый op_code");
 
   wallets2_index   wallets(get_self(), coopname.value);
   userwallets_index user_wallets(get_self(), coopname.value);
@@ -172,7 +174,7 @@ void ledger2::walletop(eosio::name coopname,
   // миграций 048/049.
   //
   // walletop по построению применяет одно и то же `amount` к L2 и L3 (см.
-  // ниже case'ы ISSUE/TRANSFER/BLOCK/UNBLOCK/BURN/BURN_BLOCKED), а sender-guard на
+  // ниже case'ы ISSUE/TRANSFER/BURN), а sender-guard на
   // строке 46-47 запрещает обход. Поэтому инвариант сохраняется по
   // конструкции; полную сверку выполняет бэкенд («стол бухгалтера»),
   // вне транзакционного hot path.
@@ -227,60 +229,6 @@ void ledger2::walletop(eosio::name coopname,
       cleanup_l3_if_empty(wallet_from);
       break;
     }
-    case WalletOp::BLOCK: {
-      eosio::check(wallet_from.value != 0, "walletop BLOCK: требуется wallet_from");
-      eosio::check(wallet_to.value == 0, "walletop BLOCK: wallet_to должен быть пустым");
-
-      auto it = wallets.find(wallet_from.value);
-      eosio::check(it != wallets.end() && it->available >= amount,
-                   std::string{"walletop BLOCK: недостаточно available на кошельке "} +
-                     wallet_from.to_string());
-      wallets.modify(it, payer, [&](auto& w) {
-        w.available -= amount;
-        w.blocked   += amount;
-      });
-
-      if (is_user_shared_l3(wallet_from)) {
-        auto uw = find_l3(wallet_from);
-        eosio::check(uw != user_wallets.get_index<"byuserwallet"_n>().end() &&
-                     uw->available >= amount,
-                     std::string{"walletop BLOCK: недостаточно L3-available у пайщика "} +
-                       username.to_string() + " на " + wallet_from.to_string());
-        auto uw_pri = user_wallets.find(uw->id);
-        user_wallets.modify(uw_pri, payer, [&](auto& r) {
-          r.available -= amount;
-          r.blocked   += amount;
-        });
-      }
-      break;
-    }
-    case WalletOp::UNBLOCK: {
-      eosio::check(wallet_from.value != 0, "walletop UNBLOCK: требуется wallet_from");
-      eosio::check(wallet_to.value == 0, "walletop UNBLOCK: wallet_to должен быть пустым");
-
-      auto it = wallets.find(wallet_from.value);
-      eosio::check(it != wallets.end() && it->blocked >= amount,
-                   std::string{"walletop UNBLOCK: недостаточно blocked на кошельке "} +
-                     wallet_from.to_string());
-      wallets.modify(it, payer, [&](auto& w) {
-        w.blocked   -= amount;
-        w.available += amount;
-      });
-
-      if (is_user_shared_l3(wallet_from)) {
-        auto uw = find_l3(wallet_from);
-        eosio::check(uw != user_wallets.get_index<"byuserwallet"_n>().end() &&
-                     uw->blocked >= amount,
-                     std::string{"walletop UNBLOCK: недостаточно L3-blocked у пайщика "} +
-                       username.to_string() + " на " + wallet_from.to_string());
-        auto uw_pri = user_wallets.find(uw->id);
-        user_wallets.modify(uw_pri, payer, [&](auto& r) {
-          r.blocked   -= amount;
-          r.available += amount;
-        });
-      }
-      break;
-    }
     case WalletOp::BURN: {
       eosio::check(wallet_from.value != 0, "walletop BURN: требуется wallet_from");
       eosio::check(wallet_to.value == 0, "walletop BURN: wallet_to должен быть пустым");
@@ -309,30 +257,6 @@ void ledger2::walletop(eosio::name coopname,
       // Недостижимо: проверка op_code != NONE стоит на входе action; этот case
       // нужен только чтобы покрыть enum в switch (-Wswitch).
       eosio::check(false, "walletop NONE: запрещённый op_code");
-      break;
-    }
-    case WalletOp::BURN_BLOCKED: {
-      eosio::check(wallet_from.value != 0, "walletop BURN_BLOCKED: требуется wallet_from");
-      eosio::check(wallet_to.value == 0, "walletop BURN_BLOCKED: wallet_to должен быть пустым");
-
-      auto it = wallets.find(wallet_from.value);
-      eosio::check(it != wallets.end() && it->blocked >= amount,
-                   std::string{"walletop BURN_BLOCKED: недостаточно blocked на кошельке "} +
-                     wallet_from.to_string());
-      wallets.modify(it, payer, [&](auto& w) { w.blocked -= amount; });
-
-      if (is_user_shared_l3(wallet_from)) {
-        auto uw = find_l3(wallet_from);
-        eosio::check(uw != user_wallets.get_index<"byuserwallet"_n>().end() &&
-                     uw->blocked >= amount,
-                     std::string{"walletop BURN_BLOCKED: недостаточно L3-blocked у пайщика "} +
-                       username.to_string() + " на " + wallet_from.to_string());
-        auto uw_pri = user_wallets.find(uw->id);
-        user_wallets.modify(uw_pri, payer, [&](auto& r) { r.blocked -= amount; });
-      }
-
-      cleanup_l2_if_empty(wallet_from);
-      cleanup_l3_if_empty(wallet_from);
       break;
     }
   }

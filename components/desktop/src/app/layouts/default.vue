@@ -2,13 +2,15 @@
 q-layout(view='lHh LpR fff')
   Header(:showDrawer='showDrawer', @toggle-left-drawer='toggleLeftDrawer')
 
-  q-drawer(
+  //- Левый дровер: .rail внутри LeftDrawerMenu сам рисует canon-границу
+  //- (border-right из var(--p-line)) — q-drawer bordered убран, чтобы
+  //- не было двойной линии.
+  q-drawer.app-left-drawer(
     v-if='showDrawer && loggedIn',
     v-model='leftDrawerOpen',
     side='left',
-    bordered,
     persistent,
-    :width='200'
+    :width='248'
   )
     LeftDrawerMenu
 
@@ -97,25 +99,30 @@ const buttonStyle = computed(() => ({
 </script>
 
 <style lang="scss">
-.drawer-right {
-  border-left: 1px solid #00800038 !important;
+/* Левый дровер фиксированный — горизонтального скролла быть не должно.
+   У .rail есть собственный border-right (1px), который при content-box даёт
+   ~1px overflow внутри контента дровера и порождает паразитный горизонтальный
+   скроллбар; трекпадом его можно «оттянуть», обнажая правую границу.
+   Гасим overflow-x и эластичное оттягивание, а .rail приводим к border-box. */
+.app-left-drawer {
+  .q-drawer__content {
+    overflow-x: hidden;
+    overscroll-behavior-x: contain;
+  }
+  .rail {
+    width: 100%;
+    box-sizing: border-box;
+  }
 }
 
-.drawer-left {
-  border-right: 1px solid #00800038 !important;
+.drawer-right {
+  border-left: 1px solid var(--p-line) !important;
 }
 
 .fixed-top-right {
   position: fixed !important;
-  top: 51px; // Под header'ом
-  right: 0px;
-  z-index: 10;
-}
-
-.drawer-close-btn {
-  position: absolute !important;
-  top: 16px;
-  right: 16px;
+  top: var(--p-topbar-h);
+  right: 0;
   z-index: 10;
 }
 </style>

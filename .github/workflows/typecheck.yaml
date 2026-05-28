@@ -13,11 +13,11 @@ name: Typecheck
 #
 # Триггеры:
 #  - pull_request на dev — гейт перед мерджем в основную ветку;
-#  - workflow_call — переиспользуется из release.yaml как `needs:` у release-job,
-#    чтобы битый тэг не уехал в DockerHub.
+#  - workflow_call — оставлен для переиспользования, но release.yaml его
+#    больше НЕ вызывает (гейт из релиза убран как избыточный — типы
+#    проверяются на PR в dev до того, как код доедет до тэга).
 #
-# Push в dev/testnet/main НЕ триггерит — намеренно (PR-гейт достаточен,
-# а тэги покрывает workflow_call из release.yaml).
+# Push в dev/testnet/main НЕ триггерит — намеренно (PR-гейт на dev достаточен).
 
 on:
   pull_request:
@@ -42,13 +42,15 @@ jobs:
       - name: Install workspace
         run: pnpm install --frozen-lockfile
 
-      # cooptypes/factory/sdk собираются здесь, потому что desktop
-      # импортирует типы из @coopenomics/sdk (zeus-генерация поверх
-      # controller GraphQL-схемы), а sdk в свою очередь зависит от
-      # cooptypes. Без `unbuild` dist/ пусто — vue-tsc упадёт на
-      # «Cannot find module '@coopenomics/sdk'».
-      - name: Build type dependencies (cooptypes → factory → sdk)
-        run: pnpm lerna run build --scope cooptypes --scope @coopenomics/factory --scope @coopenomics/sdk
+      # Полный lerna build по всему workspace — как в корневом Dockerfile.
+      # Не --scope, потому что workspace-пакеты unbuild-типа (sdk, inter,
+      # notifications, factory, cooptypes, …) экспортируют типы только из
+      # сгенерированного dist/. Без dist/ tsc/vue-tsc валятся на TS2307
+      # «Cannot find module». Локально это маскируется ts-node-ом, но в
+      # CI пути резолвятся через package.json → types → dist/.
+      # См. Graphiti / run #148 root cause 2026-05-23.
+      - name: Build all workspace packages
+        run: pnpm lerna run build
 
       # quasar prepare генерирует .quasar/* (auto-imports d.ts, типы для
       # quasar плагинов). Без него vue-tsc ругается на отсутствующие
@@ -83,10 +85,12 @@ jobs:
       - name: Install workspace
         run: pnpm install --frozen-lockfile
 
-      # controller импортирует cooptypes и factory. Без build dist/
-      # типы не резолвятся — TS2307 на каждом import.
-      - name: Build type dependencies (cooptypes → factory)
-        run: pnpm lerna run build --scope cooptypes --scope @coopenomics/factory
+      # Полный lerna build по всему workspace — controller импортирует
+      # @coopenomics/sdk, @coopenomics/inter, @coopenomics/notifications
+      # помимо cooptypes/factory; их dist/ генерируется unbuild и без
+      # этого шага tsc валится на 37 TS2307. См. root cause выше.
+      - name: Build all workspace packages
+        run: pnpm lerna run build
 
       - name: tsc --noEmit (controller)
         run: pnpm --filter @coopenomics/controller run typecheck

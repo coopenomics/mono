@@ -1,82 +1,96 @@
 <template lang="pug">
-q-btn(
-  color='primary',
-  @click='showDialog = true',
-  :loading='loading',
-  icon='add',
-  label='Добавить'
-)
-  q-dialog(v-model='showDialog', @hide='clear')
-    ModalBase(:title='"Импорт участника"')
-      Form.q-pa-md(
-        :handler-submit='handleImportContributor',
-        :is-submitting='isSubmitting',
-        :button-submit-txt='"Импортировать"',
-        :button-cancel-txt='"Отмена"',
-        @cancel='clear'
-        style="width: 600px; max-width: 100% !important;"
+div
+  //- Canon header-кнопка: на мобильном — иконка-only + tooltip.
+  q-btn(
+    @click='showDialog = true',
+    :color='isMobile ? "accent" : "primary"',
+    :flat='isMobile',
+    :dense='isMobile',
+    :size='isMobile ? "sm" : undefined',
+    :loading='loading',
+    icon='add',
+    :label='isMobile ? undefined : "Добавить"',
+    no-wrap
+  )
+    q-tooltip(v-if='isMobile') Добавить участника
+
+  BaseDialog(
+    v-model='showDialog',
+    title='Импорт участника',
+    size='md',
+    @update:model-value='(v) => !v && clear()'
+  )
+    Form.q-pa-md(
+      :handler-submit='handleImportContributor',
+      :is-submitting='isSubmitting',
+      :button-submit-txt='"Импортировать"',
+      :button-cancel-txt='"Отмена"',
+      @cancel='clear'
+      style="width: 600px; max-width: 100% !important;"
+    )
+      q-input(
+        v-model='formData.username'
+        label='Имя пользователя'
+        :rules='[(val) => !!val || "Имя пользователя обязательно"]'
+        outlined
       )
-        q-input(
-          v-model='formData.username'
-          label='Имя пользователя'
-          :rules='[(val) => !!val || "Имя пользователя обязательно"]'
-          outlined
-        )
 
-        q-input(
-          v-model='formData.contribution_amount'
-          label='Сумма взноса'
-          :rules='[(val) => !!val || "Сумма взноса обязательна"]'
-          outlined
-        )
-          template(#append)
-            span.text-grey-7 {{ info.symbols.root_govern_symbol }}
+      q-input(
+        v-model='formData.contribution_amount'
+        label='Сумма взноса'
+        :rules='[(val) => !!val || "Сумма взноса обязательна"]'
+        outlined
+      )
+        template(#append)
+          span.text-grey-7 {{ info.symbols.root_govern_symbol }}
 
-        q-input(
-          v-model='formData.contributor_contract_number'
-          label='Номер договора'
-          :rules='[(val) => !!val || "Номер договора обязателен"]'
-          outlined
-        )
+      q-input(
+        v-model='formData.contributor_contract_number'
+        label='Номер договора'
+        :rules='[(val) => !!val || "Номер договора обязателен"]'
+        outlined
+      )
 
-        q-input(
-          v-model='formData.contributor_contract_created_at'
-          label='Дата договора (ДД.ММ.ГГГГ)'
-          :rules='[(val) => !!val || "Дата договора обязательна"]'
-          outlined
-        )
+      q-input(
+        v-model='formData.contributor_contract_created_at'
+        label='Дата договора (ДД.ММ.ГГГГ)'
+        :rules='[(val) => !!val || "Дата договора обязательна"]'
+        outlined
+      )
 
-        q-input(
-          v-model='formData.blagorost_agreement_number'
-          label='Номер соглашения Благорост'
-          :rules='[(val) => !!val || "Номер соглашения Благорост обязателен"]'
-          outlined
-        )
+      q-input(
+        v-model='formData.blagorost_agreement_number'
+        label='Номер соглашения Благорост'
+        :rules='[(val) => !!val || "Номер соглашения Благорост обязателен"]'
+        outlined
+      )
 
-        q-input(
-          v-model='formData.blagorost_agreement_created_at'
-          label='Дата соглашения Благорост (ДД.ММ.ГГГГ)'
-          :rules='[(val) => !!val || "Дата соглашения Благорост обязательна"]'
-          outlined
-        )
+      q-input(
+        v-model='formData.blagorost_agreement_created_at'
+        label='Дата соглашения Благорост (ДД.ММ.ГГГГ)'
+        :rules='[(val) => !!val || "Дата соглашения Благорост обязательна"]'
+        outlined
+      )
 
-        q-input(
-          v-model='formData.memo'
-          label='Примечание'
-          outlined
-        )
+      q-input(
+        v-model='formData.memo'
+        label='Примечание'
+        outlined
+      )
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useImportContributor } from '../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
-import { ModalBase } from 'src/shared/ui/ModalBase';
+import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { Form } from 'src/shared/ui/Form';
 import { useSystemStore } from 'src/entities/System/model';
+import { useWindowSize } from 'src/shared/hooks';
 
 const { importContributor } = useImportContributor();
 const { info } = useSystemStore();
+const { isMobile } = useWindowSize();
 
 const showDialog = ref(false);
 const isSubmitting = ref(false);

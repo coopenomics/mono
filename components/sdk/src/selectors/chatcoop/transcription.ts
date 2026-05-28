@@ -24,7 +24,6 @@ export { rawTranscriptionSegmentSelector };
 const rawCallTranscriptionSelector = {
   id: true,
   roomId: true,
-  matrixRoomId: true,
   roomName: true,
   startedAt: true,
   endedAt: true,

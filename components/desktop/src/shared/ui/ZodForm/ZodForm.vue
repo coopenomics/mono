@@ -11,7 +11,6 @@ div.settings-form
 
     .setting-input
       component(
-        standout="bg-teal text-white"
         :is="getComponentType(item.property)"
         v-bind="getComponentProps(item.property, item.propertyName)"
       )
@@ -279,6 +278,17 @@ div.settings-form
       componentProps.schema = property;
     }
 
+    // Канон-визуал для полей ввода и селектов — тот же рецепт, что в BaseInput
+    // (outlined + dense + color=primary + reserve-hint-space), вместо standout.
+    const componentType = getComponentType(property);
+    if (componentType === QInput || componentType === QSelect) {
+      componentProps.outlined = true;
+      componentProps.dense = true;
+      componentProps.color = 'primary';
+      componentProps.reserveHintSpace = true;
+      componentProps.noErrorIcon = true;
+    }
+
     return componentProps;
   }
 
@@ -299,7 +309,7 @@ div.settings-form
 <style lang="scss" scoped>
 .settings-form {
   .setting-item {
-    margin-bottom: 2.5rem;
+    margin-bottom: var(--p-7, 32px);
 
     &:last-child {
       margin-bottom: 0;
@@ -307,17 +317,19 @@ div.settings-form
   }
 
   .setting-header {
-    margin-bottom: 1.5rem;
+    margin-bottom: var(--p-4, 16px);
 
     .setting-title {
       font-weight: 600;
-      margin-bottom: 0.5rem;
-      font-size: 1.1rem;
+      margin-bottom: var(--p-1, 4px);
+      font-size: var(--p-fs-h3, 15px);
+      color: var(--p-ink);
     }
 
     .setting-hint {
       line-height: 1.5;
-      font-size: 0.95rem;
+      font-size: var(--p-fs-body-sm, 13px);
+      color: var(--p-ink-2);
     }
   }
 
@@ -329,34 +341,21 @@ div.settings-form
     :deep(.q-field__prepend),
     :deep(.q-field__append) {
       font-weight: 600;
-      font-size: 0.9rem;
+      font-size: var(--p-fs-body-sm, 13px);
+      color: var(--p-ink-2);
     }
 
     // Стили для вложенных объектов
     :deep(.settings-form) {
-      background: rgba(var(--q-primary-rgb), 0.04);
-      border: 1px solid rgba(var(--q-primary-rgb), 0.15);
-      border-radius: 8px;
-      padding: 1.5rem;
-      margin-top: 1rem;
+      background: var(--p-surface-2);
+      border: 1px solid var(--p-line);
+      border-radius: var(--p-r-md, 12px);
+      padding: var(--p-5, 20px);
+      margin-top: var(--p-3, 12px);
       margin-bottom: 0;
-      transition: all 0.2s ease;
-
-      .q-dark & {
-        background: rgba(var(--q-primary-rgb), 0.08);
-        border-color: rgba(var(--q-primary-rgb), 0.25);
-      }
-
-      &:hover {
-        background: rgba(var(--q-primary-rgb), 0.06);
-
-        .q-dark & {
-          background: rgba(var(--q-primary-rgb), 0.12);
-        }
-      }
 
       .setting-item {
-        margin-bottom: 2rem;
+        margin-bottom: var(--p-5, 20px);
 
         &:last-child {
           margin-bottom: 0;
@@ -364,15 +363,11 @@ div.settings-form
       }
 
       .setting-header {
-        margin-bottom: 1rem;
+        margin-bottom: var(--p-3, 12px);
 
         .setting-title {
-          font-size: 1rem;
+          font-size: var(--p-fs-body, 14px);
           font-weight: 500;
-        }
-
-        .setting-hint {
-          font-size: 0.9rem;
         }
       }
     }
@@ -382,15 +377,7 @@ div.settings-form
 // Адаптивность для мобильных устройств
 @media (max-width: 768px) {
   .settings-form .setting-item {
-    margin-bottom: 2rem;
-  }
-
-  .setting-header .setting-title {
-    font-size: 1rem;
-  }
-
-  .setting-header .setting-hint {
-    font-size: 0.9rem;
+    margin-bottom: var(--p-6, 24px);
   }
 }
 </style>

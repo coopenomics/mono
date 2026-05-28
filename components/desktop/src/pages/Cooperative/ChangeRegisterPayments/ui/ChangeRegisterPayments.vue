@@ -64,19 +64,19 @@ watch(
 </script>
 
 <template lang="pug">
-div.page-shell
-  q-card.hero-card(flat)
-    .hero-title Регистрационные взносы
-    .hero-subtitle
-      | Укажите размеры вступительных и минимальных паевых взносов для пайщиков. Их величины должны соответствовать определенным в Уставе.
-
+.contributions-page
+  .banner
+    q-icon.banner__icon(name='fa-solid fa-circle-info' size='18px')
+    .banner__body
+      | Укажите размеры вступительных и минимальных паевых взносов для пайщиков. Их величины должны соответствовать определённым в Уставе.
 
   .section-grid.two-col
     q-card.surface-card(flat bordered)
       .section-title Физические лица и ИП
       .section-note Минимальные взносы для новых пайщиков.
       q-input(
-        standout="bg-teal text-white"
+        outlined
+        color="primary"
         dense
         v-model="localCoop.initial"
         label="Вступительный взнос"
@@ -85,7 +85,8 @@ div.page-shell
           span.text-overline {{ currency }}
 
       q-input(
-        standout="bg-teal text-white"
+        outlined
+        color="primary"
         dense
         v-model="localCoop.minimum"
         label="Минимальный паевый взнос"
@@ -97,7 +98,8 @@ div.page-shell
       .section-title Юридические лица
       .section-note Для организаций и кооперативов.
       q-input(
-        standout="bg-teal text-white"
+        outlined
+        color="primary"
         dense
         v-model="localCoop.org_initial"
         label="Вступительный взнос"
@@ -105,7 +107,8 @@ div.page-shell
         template(#append)
           span.text-overline {{ currency }}
       q-input(
-        standout="bg-teal text-white"
+        outlined
+        color="primary"
         dense
         v-model="localCoop.org_minimum"
         label="Минимальный паевый взнос"
@@ -123,32 +126,20 @@ div.page-shell
 </template>
 
 <style scoped lang="scss">
-.page-shell {
+.contributions-page {
   width: 100%;
-  padding: 24px 12px 32px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-}
-
-.hero-card {
-  border-radius: 18px;
-  padding: 18px 20px;
-}
-
-.hero-title {
-  font-size: 22px;
-  font-weight: 600;
-}
-
-.hero-subtitle {
-  line-height: 1.55;
-  max-width: 900px;
+  gap: var(--p-5, 20px);
+  padding: var(--p-6, 24px);
+  @media (max-width: 768px) {
+    padding: var(--p-4, 16px);
+  }
 }
 
 .section-grid {
   display: grid;
-  gap: 14px;
+  gap: var(--p-4, 16px);
 }
 
 .two-col {
@@ -162,26 +153,29 @@ div.page-shell
 }
 
 .surface-card {
-  border-radius: 16px;
-  padding: 18px 16px;
+  border-radius: var(--p-r-md, 12px);
+  padding: var(--p-5, 20px);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--p-3, 12px);
 }
 
 .section-title {
-  font-size: 16px;
+  font-size: var(--p-fs-h3);
   font-weight: 600;
+  color: var(--p-ink);
 }
 
 .section-note {
+  font-size: var(--p-fs-body-sm);
   line-height: 1.45;
-  margin-bottom: 6px;
+  color: var(--p-ink-2);
+  margin-bottom: var(--p-1, 4px);
 }
 
 .action-row {
   display: flex;
   justify-content: flex-start;
-  padding-top: 8px;
+  padding-top: var(--p-2, 8px);
 }
 </style>

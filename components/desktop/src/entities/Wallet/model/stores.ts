@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import { Zeus } from '@coopenomics/sdk';
 import { api } from '../api';
 import {
   IDepositData,
@@ -19,6 +20,10 @@ import {
 
 const namespace = 'wallet';
 
+// Тип главного соглашения цифрового кошелька в списке соглашений пайщика
+// (канон agreementsBase = ['wallet', 'signature', 'privacy', 'user']).
+const WALLET_AGREEMENT_TYPE = 'wallet';
+
 interface IWalletStore {
   /*  доменный интерфейс кошелька пользователя */
   program_wallets: Ref<ExtendedProgramWalletData[]>;
@@ -26,6 +31,12 @@ interface IWalletStore {
   withdraws: Ref<IWithdrawData[]>;
   methods: Ref<IPaymentMethodData[]>;
   agreements: Ref<IUserAgreement[]>;
+  /**
+   * Подписано ли пайщиком главное соглашение цифрового кошелька. Пока оно не
+   * подписано, кошелёк не активен — операции взноса и возврата недоступны
+   * (так же скрыта карточка кошелька в столе пайщика).
+   */
+  isWalletAgreementSigned: Ref<boolean>;
 
   loadUserWallet: (params: ILoadUserWallet) => Promise<void>;
 
@@ -53,6 +64,14 @@ export const useWalletStore = defineStore(namespace, (): IWalletStore => {
   const agreements = ref<IUserAgreement[]>([]);
   const _patches = ref<IWalletPatch[]>([]);
 
+  const isWalletAgreementSigned = computed<boolean>(() =>
+    agreements.value.some(
+      (a) =>
+        a.type === WALLET_AGREEMENT_TYPE &&
+        a.status !== Zeus.AgreementStatus.DECLINED,
+    ),
+  );
+
   const program_wallets = computed<ExtendedProgramWalletData[]>(() => {
     if (_patches.value.length === 0) return _program_wallets_base.value;
     const overlay = _program_wallets_base.value.map((w) => ({ ...w }));
@@ -62,9 +81,6 @@ export const useWalletStore = defineStore(namespace, (): IWalletStore => {
           if (!matchesEntry(item, entry)) continue;
           if (entry.available_delta) {
             item.available = applyAssetDelta(item.available ?? '0.0000 RUB', entry.available_delta);
-          }
-          if (entry.blocked_delta) {
-            item.blocked = applyAssetDelta(item.blocked ?? '0.0000 RUB', entry.blocked_delta);
           }
         }
       }
@@ -128,6 +144,7 @@ export const useWalletStore = defineStore(namespace, (): IWalletStore => {
     withdraws,
     methods,
     agreements,
+    isWalletAgreementSigned,
     loadUserWallet,
     applyOptimisticPatch,
     revertOptimisticPatch,

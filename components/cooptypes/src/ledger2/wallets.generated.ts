@@ -28,6 +28,7 @@ export const LEDGER2_WALLET_REGISTRY: readonly WalletMeta[] = [
   { name: "w.cap.gen", human_name: "ЦПП «Генератор» — единый кошелёк программы", kind: "COOPERATIVE" },
   { name: "w.reg.entry", human_name: "Вступительные взносы", kind: "COOPERATIVE" },
   { name: "w.wal.wthdrw", human_name: "Возвраты паевых взносов пайщикам (deprecated, не используется в новых операциях)", kind: "COOPERATIVE" },
+  { name: "w.wal.wpend", human_name: "Резерв паевого под заявку на возврат", kind: "COOPERATIVE" },
   { name: "w.sov.infra", human_name: "Членские взносы за инфраструктуру кооп. платформы", kind: "COOPERATIVE" },
   { name: "w.sov.delgte", human_name: "Делегатские членские взносы", kind: "COOPERATIVE" },
   { name: "w.sov.expns", human_name: "Хозяйственные расходы из числа целевого финансирования", kind: "COOPERATIVE" },

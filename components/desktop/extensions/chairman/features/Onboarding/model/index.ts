@@ -106,8 +106,8 @@ export const useOnboardingFlow = () => {
     const importStep: AgendaStep = {
       key: 'import_participants',
       type: 'import',
-      title: 'Импорт пайщиков',
-      description: 'Загрузите пайщиков через CSV-файл.',
+      title: 'Импорт пайщиков (опционально)',
+      description: 'Необязательный шаг. Если у вас уже есть пайщики кооператива — загрузите их списком через CSV-файл. Если нет — просто двигайтесь дальше.',
       done: false,
       pending: false,
     };

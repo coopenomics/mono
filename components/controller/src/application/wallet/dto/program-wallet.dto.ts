@@ -28,9 +28,6 @@ export class ProgramWalletDTO {
   @Field(() => String, { description: 'Доступный баланс (формат: "100.0000 RUB")' })
   available!: string;
 
-  @Field(() => String, { description: 'Заблокированный баланс (формат: "100.0000 RUB")' })
-  blocked!: string;
-
   @Field(() => String, { description: 'Паевой взнос (формат: "100.0000 RUB")' })
   membership_contribution!: string;
 
@@ -49,7 +46,6 @@ export class ProgramWalletDTO {
     dto.agreement_id = entity.agreement_id;
     dto.username = entity.username;
     dto.available = entity.available;
-    dto.blocked = entity.blocked;
     dto.membership_contribution = entity.membership_contribution;
     dto.blockNum = entity.blockNum;
     return dto;

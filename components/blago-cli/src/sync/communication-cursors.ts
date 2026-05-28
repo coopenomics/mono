@@ -9,12 +9,15 @@ export interface CommunicationCursorsFile {
   messageLastTsByRoom: Record<string, number>
   /** project_hash → ISO instant: транскрипции с endedAt ≤ этого момента уже выгружены */
   transcriptionLastEndedExclusiveByProject: Record<string, string>
+  /** matrixRoomId → ISO instant: транскрипции непроектной комнаты с endedAt ≤ этого момента уже выгружены */
+  transcriptionLastEndedExclusiveByRoom: Record<string, string>
 }
 
 function empty(): CommunicationCursorsFile {
   return {
     messageLastTsByRoom: {},
     transcriptionLastEndedExclusiveByProject: {},
+    transcriptionLastEndedExclusiveByRoom: {},
   }
 }
 
@@ -31,6 +34,11 @@ export async function loadCommunicationCursors(root: string): Promise<Communicat
         parsed.transcriptionLastEndedExclusiveByProject !== undefined
         && typeof parsed.transcriptionLastEndedExclusiveByProject === 'object'
           ? { ...parsed.transcriptionLastEndedExclusiveByProject }
+          : {},
+      transcriptionLastEndedExclusiveByRoom:
+        parsed.transcriptionLastEndedExclusiveByRoom !== undefined
+        && typeof parsed.transcriptionLastEndedExclusiveByRoom === 'object'
+          ? { ...parsed.transcriptionLastEndedExclusiveByRoom }
           : {},
     }
   }

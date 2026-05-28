@@ -1,44 +1,37 @@
 <template lang="pug">
-.column.flex-1.min-h-0.min-w-0.no-wrap
-  router-view
+.reports-shell
+  SecondLevelTabs(:tabs='tabs')
+  .reports-shell__content
+    router-view
 </template>
 
 <script setup lang="ts">
-import { computed, markRaw, onBeforeUnmount, onMounted } from 'vue'
-import { useHeaderActions } from 'src/shared/hooks/useHeaderActions'
-import RouteMenuButton from 'src/shared/ui/RouteMenuButton/RouteMenuButton.vue'
+import { SecondLevelTabs } from 'src/shared/ui/SecondLevelTabs'
 
-// Shell-страница «Кошельки»: инжектит две кнопки в шапку сайта
-// (Кооператив / Пайщики), переключает через именованные дочерние маршруты.
-// Паттерн один-в-один как DocumentsPage.
-const { registerAction, clearActions } = useHeaderActions()
-
-const menuButtons = computed(() => [
-  {
-    id: 'reports-wallets-coop-menu',
-    component: markRaw(RouteMenuButton),
-    props: {
-      routeName: 'reports-wallets-coop',
-      label: 'Кооператив',
-    },
-    order: 1,
-  },
-  {
-    id: 'reports-wallets-participants-menu',
-    component: markRaw(RouteMenuButton),
-    props: {
-      routeName: 'reports-wallets-participants',
-      label: 'Пайщики',
-    },
-    order: 2,
-  },
-])
-
-onMounted(() => {
-  menuButtons.value.forEach((b) => registerAction(b))
-})
-
-onBeforeUnmount(() => {
-  clearActions()
-})
+// Shell-страница «Реестр кошельков»: канон-меню второго уровня
+// (Кооператив / Пайщики). Кнопка «Перевести» живёт в топбаре —
+// её регистрирует дочерняя CoopWalletsPage через useHeaderActions.
+const tabs = [
+  { routeName: 'reports-wallets-coop', label: 'Кооператив', icon: 'fa-solid fa-building' },
+  { routeName: 'reports-wallets-participants', label: 'Пайщики', icon: 'fa-solid fa-users' },
+]
 </script>
+
+<style scoped lang="scss">
+.reports-shell {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+.reports-shell__content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--p-6, 24px);
+  @media (max-width: 768px) {
+    padding: var(--p-4, 16px);
+  }
+}
+</style>

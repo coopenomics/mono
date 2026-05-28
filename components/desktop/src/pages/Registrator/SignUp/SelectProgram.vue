@@ -8,46 +8,33 @@ div
     div(v-if='isLoading').full-width.text-center.q-mt-lg.q-mb-lg
       Loader(text='Загружаем доступные программы...')
 
-    div(v-else-if='programs.length > 0')
-      p.text-body1.q-mb-md Выберите программу, в которой вы хотите участвовать:
-
-      q-list.q-mt-md(separator)
-        q-item(
+    .programs(v-else-if='programs.length > 0')
+      p.programs__hint Выберите программу, в которой вы хотите участвовать
+      .programs__list
+        BaseRadioCard(
           v-for='program in programs',
           :key='program.key',
-          clickable,
-          v-ripple,
-          :active='registratorStore.state.selectedProgramKey === program.key',
-
-          @click='selectProgram(program.key)'
+          :model-value='registratorStore.state.selectedProgramKey',
+          :value='program.key',
+          :title='program.title',
+          :description='program.description',
+          :meta='program.requirements',
+          @update:model-value='selectProgram(program.key)'
         )
-          q-item-section
-            q-item-label.text-h6 {{ program.title }}
-            q-item-label(caption).q-mt-sm.text-body2 {{ program.description }}
-            q-item-label(v-if='program.requirements', caption).q-mt-xs.text-weight-medium.text-primary
-              | {{ program.requirements }}
-          q-item-section(side, top)
-            q-radio(
-              :model-value='registratorStore.state.selectedProgramKey',
-              :val='program.key',
-              @update:model-value='selectProgram(program.key)',
-              color='primary'
-            )
 
-    div(v-else).text-center.q-mt-lg
-      p.text-body1 Доступных программ не найдено
+    .programs--empty(v-else)
+      p Доступных программ не найдено
 
-    div.q-mt-lg
-      q-btn.col-md-6.col-xs-12(flat, @click='registratorStore.prev()')
+    .row.q-gutter-md.q-mt-lg.q-mb-lg
+      BaseButton(variant='ghost', @click='registratorStore.prev()')
         i.fa.fa-arrow-left
         span.q-ml-md назад
 
-      q-btn.q-mt-lg.q-mb-lg(
-        color='primary',
-        label='Продолжить',
+      BaseButton(
+        variant='primary',
         :disabled='!registratorStore.state.selectedProgramKey',
         @click='registratorStore.next()'
-      )
+      ) Продолжить
 </template>
 
 <script lang="ts" setup>
@@ -58,6 +45,8 @@ import { Loader } from 'src/shared/ui/Loader';
 import { FailAlert } from 'src/shared/api';
 import { client } from 'src/shared/api/client';
 import { Queries } from '@coopenomics/sdk';
+import { BaseButton } from 'src/shared/ui/base/BaseButton';
+import { BaseRadioCard } from 'src/shared/ui/base/BaseRadioCard';
 
 const registratorStore = useRegistratorStore();
 const systemStore = useSystemStore();
@@ -124,3 +113,24 @@ watch(() => registratorStore.state.step, (value: number) => {
   }
 }, { immediate: true });
 </script>
+
+<style scoped>
+.programs {
+  margin: var(--p-4, 16px) 0;
+}
+.programs__hint {
+  font-size: var(--p-fs-body, 14px);
+  color: var(--p-ink-2);
+  margin: 0 0 var(--p-3, 12px);
+}
+.programs__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3, 12px);
+}
+.programs--empty {
+  text-align: center;
+  color: var(--p-ink-2);
+  margin: var(--p-6, 24px) 0;
+}
+</style>

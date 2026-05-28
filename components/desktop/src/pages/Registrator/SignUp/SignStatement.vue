@@ -16,17 +16,14 @@ div
         :class='{ "signature-started": signatureStarted }'
       )
         p.signature-hint Оставьте собственноручную подпись в рамке
-      .q-mt-lg.q-mb-lg
-        q-btn.col-md-4.col-xs-12(flat, @click='store.prev()')
+      .row.q-gutter-md.q-mt-lg.q-mb-lg
+        BaseButton(variant='ghost', @click='store.prev()')
           i.fa.fa-arrow-left
           span.q-ml-md назад
-        q-btn.col-md-4.col-xs-12(flat, @click='clearCanvas')
-          span.q-ml-md очистить
-        q-btn.col-md-4.col-xs-12(
-          color='primary',
-          label='Продолжить',
-          @click='setSignature'
-        )
+
+        BaseButton(variant='ghost', @click='clearCanvas') очистить
+
+        BaseButton(variant='primary', @click='setSignature') Продолжить
 </template>
 
 <script lang="ts" setup>
@@ -35,6 +32,7 @@ import { FailAlert } from 'src/shared/api';
 import { Loader } from 'src/shared/ui/Loader';
 import { useRegistratorStore } from 'src/entities/Registrator';
 import { useCreateUser } from 'src/features/User/CreateUser';
+import { BaseButton } from 'src/shared/ui/base/BaseButton';
 
 // Импортируем класс
 import { Classes } from '@coopenomics/sdk';
@@ -170,56 +168,40 @@ const setSignature = async () => {
 </script>
 
 <style scoped>
+/* Canon-вариант контейнера подписи: dashed-рамка по canon-линии,
+   surface-2 фон, никаких glow/shadow и hover-ужесточения. */
 .signature-container {
-  min-height: 300px;
-  padding: 16px;
-  border: 3px solid var(--q-primary);
-  border-radius: 12px;
-  box-shadow:
-    0 0 8px var(--q-primary),
-    0 0 16px var(--q-primary),
-    inset 0 0 8px rgba(255, 255, 255, 0.1);
-  background: transparent;
+  min-height: 220px;
+  padding: var(--p-4, 16px);
+  border: 1px dashed var(--p-line-2, var(--p-line));
+  border-radius: var(--p-radius-lg, 12px);
+  background: var(--p-canvas-2, var(--p-canvas));
   position: relative;
-  transition: all 0.3s ease;
+  transition: border-color 0.2s ease;
 }
 
 .signature-container:hover {
-  box-shadow:
-    0 0 12px var(--q-primary),
-    0 0 24px var(--q-primary),
-    inset 0 0 12px rgba(255, 255, 255, 0.15);
+  border-color: var(--p-primary);
 }
 
+/* Подсказка-метка по центру, спокойный canon-fill.
+   Pointer-events отключены — клики идут на canvas сквозь подсказку. */
 .signature-hint {
   position: absolute;
-  top: 8px;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   margin: 0;
-  color: var(--q-primary);
-  font-weight: 500;
-  font-size: 14px;
+  color: var(--p-ink-2);
+  font-size: var(--p-fs-body-sm, 13px);
   text-align: center;
-  background: rgba(255, 255, 255, 0.95);
-  padding: 4px 12px;
-  border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(4px);
-  z-index: 1;
   pointer-events: none;
+  user-select: none;
+  transition: opacity 0.25s ease;
 }
 
-.body--dark .signature-hint {
-  background: rgba(0, 0, 0, 0.8);
-  color: var(--q-primary);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
+/* После начала подписи подсказка исчезает плавно. */
 .signature-container.signature-started .signature-hint {
   opacity: 0;
-  transform: translateX(-50%) translateY(-10px);
-  pointer-events: none;
-  transition: all 0.5s ease-out;
 }
 </style>

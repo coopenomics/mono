@@ -1,7 +1,7 @@
 <template lang="pug">
-.page-main-card.card-container.q-pa-lg
+.meet-details-info
   MeetInfoCard(:meet='meet')
-  .meet-details-actions.q-mt-lg(v-if='$slots.actions')
+  .meet-details-info__actions(v-if='$slots.actions')
     slot(name='actions')
 </template>
 
@@ -15,12 +15,11 @@ defineProps<{
 </script>
 
 <style lang="scss" scoped>
-@import 'src/shared/ui/CardStyles/index.scss';
-
-.meet-details-actions {
+.meet-details-info__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: var(--p-3, 12px);
   align-items: center;
+  margin-top: var(--p-4, 16px);
 }
 </style>

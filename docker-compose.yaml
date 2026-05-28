@@ -57,6 +57,12 @@ services:
     env_file:
       - ./components/controller/.env
     restart: unless-stopped
+    # Пишем bind-mount ./:/app от хостового ant (uid 1000), иначе codegen
+    # (generate-client/schema, логи) кладёт root-owned файлы и ломает git checkout.
+    # HOME=/tmp — чтобы pnpm/кэш не сорили в репозиторий.
+    user: "1000:1000"
+    environment:
+      HOME: /tmp
     volumes:
       - ./:/app
     ports:
@@ -72,6 +78,10 @@ services:
     env_file:
       - ./components/parser/.env
     restart: unless-stopped
+    # См. coopback: пишем от хостового ant (uid 1000), HOME=/tmp.
+    user: "1000:1000"
+    environment:
+      HOME: /tmp
     volumes:
       - ./:/app
     working_dir: /app
@@ -85,6 +95,10 @@ services:
     env_file:
       - ./components/desktop/.env
     restart: unless-stopped
+    # См. coopback: пишем от хостового ant (uid 1000), HOME=/tmp.
+    user: "1000:1000"
+    environment:
+      HOME: /tmp
     ports:
       - "127.0.0.1:${DESKTOP_HOST_PORT:-2999}:2999"
     volumes:

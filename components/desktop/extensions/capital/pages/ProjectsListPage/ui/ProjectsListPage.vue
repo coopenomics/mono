@@ -45,7 +45,6 @@ div
 import { onMounted, onBeforeMount, onBeforeUnmount, ref, computed, markRaw, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useExpandableState } from 'src/shared/lib/composables';
-import 'src/shared/ui/TitleStyles';
 import { Fab } from 'src/shared/ui';
 import { FilterDialogWithButton } from 'app/extensions/capital/shared/ui';
 import { useHeaderActions } from 'src/shared/hooks';

@@ -1,35 +1,41 @@
 <template lang="pug">
-q-btn(
-  color='primary',
-  :loading='isGenerating',
-  @click='showDialog = true',
-  label='Инвестировать в проект'
-)
-  q-dialog(v-model='showDialog', @hide='clear')
-    ModalBase(:title='"Инвестирование в проект"')
-      Form.q-pa-sm(
-        :handler-submit='handleInvest',
-        :is-submitting='isGenerating',
-        :button-cancel-txt='"Отменить"',
-        :button-submit-txt='"Инвестировать"',
-        @cancel='clear'
+div
+  q-btn(
+    color='primary',
+    :loading='isGenerating',
+    @click='showDialog = true',
+    label='Инвестировать в проект'
+  )
+
+  BaseDialog(
+    v-model='showDialog',
+    title='Инвестирование в проект',
+    size='md',
+    @update:model-value='(v) => !v && clear()'
+  )
+    Form.q-pa-sm(
+      :handler-submit='handleInvest',
+      :is-submitting='isGenerating',
+      :button-cancel-txt='"Отменить"',
+      :button-submit-txt='"Инвестировать"',
+      @cancel='clear'
+    )
+      q-input(
+        v-model='quantity',
+        standout='bg-teal text-white',
+        placeholder='Введите сумму инвестиций',
+        type='number',
+        :min='0',
+        :rules='[(val) => val > 0 || "Сумма инвестиций должна быть положительной"]'
       )
-        q-input(
-          v-model='quantity',
-          standout='bg-teal text-white',
-          placeholder='Введите сумму инвестиций',
-          type='number',
-          :min='0',
-          :rules='[(val) => val > 0 || "Сумма инвестиций должна быть положительной"]'
-        )
-          template(#append)
-            span.text-overline {{ currency }}
+        template(#append)
+          span.text-overline {{ currency }}
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { Form } from 'src/shared/ui/Form';
-import { ModalBase } from 'src/shared/ui/ModalBase';
+import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { useCreateProjectInvest } from '../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
 import { useSetPlan } from '../../../Project/SetPlan/model';

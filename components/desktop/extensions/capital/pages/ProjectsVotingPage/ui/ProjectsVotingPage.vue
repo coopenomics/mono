@@ -42,7 +42,6 @@ import { onMounted, onBeforeUnmount, ref } from 'vue';
 import { useSystemStore } from 'src/entities/System/model';
 import { useExpandableState, useDataPoller } from 'src/shared/lib/composables';
 import { POLL_INTERVALS } from 'src/shared/lib/consts';
-import 'src/shared/ui/TitleStyles';
 import { WindowLoader } from 'src/shared/ui/Loader';
 import { ListVotingProjectWidget, ProjectVotingSegmentsWidget, SegmentVotesWidget } from 'app/extensions/capital/widgets';
 import { useSessionStore } from 'src/entities/Session';

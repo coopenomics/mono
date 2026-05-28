@@ -1,32 +1,47 @@
 <template lang="pug">
-div.buttons-container
-  div.votes-group
-    div.button-wrapper
-      q-btn(v-if="isVotedFor(decision) || !isVotedAny(decision)" :disabled="isVotedAny(decision)" dense push @click="$emit('vote-against')").text-red
-        q-icon(name="fa-regular fa-thumbs-down")
-        span.vote-count {{decision.votes_against.length}}
+.vote-controls
+  //- Против
+  .vote-side
+    button.vote-btn.vote-btn--against(
+      type='button',
+      :class='{ "is-active": isVotedAgainst(decision), "is-locked": isVotedAny(decision) }',
+      :disabled='isVotedAny(decision)',
+      @click.stop='$emit("vote-against")'
+    )
+      q-icon(name='thumb_down', size='15px')
+      span.vote-btn__count {{ decision.votes_against.length }}
+    .vote-voters(v-if='decision.votes_against_certificates?.length')
+      span.vote-voter(
+        v-for='c in decision.votes_against_certificates',
+        :key='getVoterKey(c)'
+      ) {{ getShortNameFromCertificate(c) }}
 
-      q-btn(v-if="isVotedAgainst(decision)" disabled dense push).text-red
-        q-icon(name="fas fa-thumbs-down")
-        span.vote-count {{decision.votes_against.length}}
+  //- Индикатор принятия решения советом — галочка закрашивается,
+  //- когда собрано достаточно голосов «за».
+  .vote-status
+    q-checkbox(
+      :model-value='approved',
+      disable,
+      color='primary',
+      size='md'
+    )
+      q-tooltip {{ approved ? 'Решение принято советом' : 'Решение ещё не принято советом' }}
 
-    div.voters-list
-      div.voter-name(v-for="certificate in decision.votes_against_certificates" :key="getVoterKey(certificate)") {{ getShortNameFromCertificate(certificate) }}
-
-  q-checkbox(v-model="approved" disable size="lg" style="margin-top: -9px;").q-mx-xs
-
-  div.votes-group
-    div.button-wrapper
-      q-btn(v-if="isVotedAgainst(decision) || !isVotedAny(decision)" :disabled="isVotedAny(decision)" dense push @click="$emit('vote-for')").text-green
-        span.vote-count {{decision.votes_for.length}}
-        q-icon(name="fa-regular fa-thumbs-up" style="transform: scaleX(-1)")
-
-      q-btn(v-if="isVotedFor(decision)" disabled dense push).text-green
-        span.vote-count {{decision.votes_for.length}}
-        q-icon(name="fas fa-thumbs-up" style="transform: scaleX(-1)")
-
-    div.voters-list
-      div.voter-name(v-for="certificate in decision.votes_for_certificates" :key="getVoterKey(certificate)") {{ getShortNameFromCertificate(certificate) }}
+  //- За
+  .vote-side
+    button.vote-btn.vote-btn--for(
+      type='button',
+      :class='{ "is-active": isVotedFor(decision), "is-locked": isVotedAny(decision) }',
+      :disabled='isVotedAny(decision)',
+      @click.stop='$emit("vote-for")'
+    )
+      span.vote-btn__count {{ decision.votes_for.length }}
+      q-icon(name='thumb_up', size='15px')
+    .vote-voters(v-if='decision.votes_for_certificates?.length')
+      span.vote-voter(
+        v-for='c in decision.votes_for_certificates',
+        :key='getVoterKey(c)'
+      ) {{ getShortNameFromCertificate(c) }}
 </template>
 
 <script setup lang="ts">
@@ -66,55 +81,92 @@ const getVoterKey = (certificate: any) => {
 }
 </script>
 
-<style scoped>
-.buttons-container {
+<style lang="scss" scoped>
+.vote-controls {
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  min-width: 150px;
+  gap: var(--p-3, 12px);
 }
 
-.votes-group {
-  width: 60px;
+.vote-side {
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: var(--p-2, 8px);
+  min-width: 64px;
 }
 
-.button-wrapper {
-  height: 32px;
-  display: flex;
+/* Кнопка голоса — спокойная поверхность, токены pos/neg на активе и hover */
+.vote-btn {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
+  min-width: 64px;
+  height: 34px;
+  padding: 0 var(--p-3, 12px);
+  background: var(--p-surface-2);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-sm, 8px);
+  color: var(--p-ink-1);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--p-dur-fast, 120ms) var(--p-ease-standard),
+    border-color var(--p-dur-fast, 120ms) var(--p-ease-standard),
+    color var(--p-dur-fast, 120ms) var(--p-ease-standard);
+}
+.vote-btn__count {
+  font-size: var(--p-fs-body, 14px);
+  line-height: 1;
 }
 
-.vote-count {
-  min-width: 25px;
-  display: inline-block;
-  text-align: center;
+.vote-btn--against:not(.is-locked):hover {
+  border-color: var(--p-neg);
+  color: var(--p-neg);
+}
+.vote-btn--for:not(.is-locked):hover {
+  border-color: var(--p-pos);
+  color: var(--p-pos);
 }
 
-.q-btn {
-  min-width: 60px;
-  height: 32px;
+.vote-btn--against.is-active {
+  background: var(--p-neg-soft);
+  border-color: var(--p-neg);
+  color: var(--p-neg);
+}
+.vote-btn--for.is-active {
+  background: var(--p-pos-soft);
+  border-color: var(--p-pos);
+  color: var(--p-pos);
 }
 
-.voters-list {
-  margin-top: 4px;
-  max-width: 100px;
-  min-height: 20px;
+/* Заблокирована, но не выбранная — приглушаем */
+.vote-btn.is-locked {
+  cursor: default;
+}
+.vote-btn.is-locked:not(.is-active) {
+  opacity: 0.45;
+}
+
+.vote-status {
+  display: flex;
+  align-items: center;
+  height: 34px;
+}
+
+.vote-voters {
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 2px;
+  max-width: 110px;
 }
-
-.voter-name {
-  font-size: 10px;
-  line-height: 1.2;
+.vote-voter {
+  font-size: var(--p-fs-eyebrow, 11px);
+  line-height: 1.25;
   text-align: center;
-  margin-bottom: 2px;
-  color: #666;
-  word-wrap: break-word;
-  hyphens: auto;
+  color: var(--p-ink-2);
+  overflow-wrap: anywhere;
 }
 </style>

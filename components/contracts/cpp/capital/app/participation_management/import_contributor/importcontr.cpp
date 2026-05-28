@@ -72,8 +72,8 @@ void capital::importcontrib(eosio::name coopname, eosio::name username, checksum
     auto idx = user_wallets.get_index<"byuserwallet"_n>();
     auto preimp_it = idx.find(combine_ids(ledger2_wallets::PREIMP_FUND.value, username.value));
     if (preimp_it != idx.end() && preimp_it->available.amount > 0) {
-      eosio::check(preimp_it->blocked.amount == 0,
-                   "preimp.blocked > 0 не поддерживается при импорте — обратиться в поддержку");
+      // Поле blocked упразднено (2026-05-24): резерв/блокировка на кошельках
+      // больше не используется, проверка preimp.blocked == 0 излишня.
       Ledger2::apply(
         _capital, coopname, operations::capital::DROP_PREIMP,
         preimp_it->available, username, contributor_hash,

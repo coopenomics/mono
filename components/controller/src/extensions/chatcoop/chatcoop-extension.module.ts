@@ -13,6 +13,8 @@ import { ChatCoopCalendarResolver } from './application/resolvers/chatcoop-calen
 import { ChatCoopCalendarFeedController } from './application/controllers/chatcoop-calendar-feed.controller';
 import { TranscriptionResolver } from './application/resolvers/transcription.resolver';
 import { ProjectCommunicationResolver } from './application/resolvers/project-communication.resolver';
+import { SecretaryRoomsResolver } from './application/resolvers/secretary-rooms.resolver';
+import { SecretaryRoomManagementService } from './application/services/secretary-room-management.service';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { ConfigModule } from '@nestjs/config';
 import { z } from 'zod';
@@ -527,6 +529,7 @@ export class ChatCoopPlugin extends BaseExtModule {
     // Application Services
     ChatCoopApplicationService,
     CapitalProjectMatrixSyncService,
+    SecretaryRoomManagementService,
     MatrixApiService,
     ChatCoopSecretaryMatrixTokenService,
     SecretaryAgentService,
@@ -604,6 +607,7 @@ export class ChatCoopPlugin extends BaseExtModule {
     TranscriptionResolver,
     ActiveUserStatusGuard,
     ProjectCommunicationResolver,
+    SecretaryRoomsResolver,
   ],
   exports: [
     ChatCoopPlugin,

@@ -1,24 +1,22 @@
 <template lang="pug">
-.row.justify-center
-  .col-12
-    DocumentsTable(
-      :documents='documentStore.documents',
-      :loading='documentStore.loading',
-      @toggle-expand='toggleExpand',
-      @load='loadMoreDocuments'
-    )
-      template(#top, v-if='showFilter')
-        .full-width
-          q-btn-toggle.full-width(
-            size='sm',
-            :model-value='typeForToggle',
-            @update:model-value='onTypeChange',
-            spread,
-            toggle-color='teal',
-            color='white',
-            text-color='black',
-            :options='[ { label: "Все входящие", value: "newsubmitted" }, { label: "Только утверждённые", value: "newresolved" }, ]'
-          )
+DocumentsTable(
+  :documents='documentStore.documents',
+  :loading='documentStore.loading',
+  :pagination='documentStore.pagination',
+  @toggle-expand='toggleExpand',
+  @load='loadMoreDocuments'
+)
+  template(#top, v-if='showFilter')
+    .full-width
+      q-btn-toggle.full-width(
+        size='sm',
+        :model-value='typeForToggle',
+        @update:model-value='onTypeChange',
+        spread,
+        unelevated,
+        toggle-color='primary',
+        :options='[ { label: "Все входящие", value: "newsubmitted" }, { label: "Только утверждённые", value: "newresolved" }, ]'
+      )
 </template>
 
 <script setup lang="ts">

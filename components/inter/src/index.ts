@@ -30,6 +30,8 @@ export type {
 
 export type {
   InterCompletedCallTranscriptionHead,
+  InterNonProjectCommunicationRoomRef,
+  InterNonProjectRoomKind,
   InterProjectCommunicationArtifactsPort,
   InterProjectCommunicationRoomRef,
   InterRoomMessageKind,

@@ -23,6 +23,32 @@ export class ChatcoopProjectCommunicationRoomDTO {
   displayLabel!: string;
 }
 
+/**
+ * Тип непроектной комнаты: пайщики, совет или комната секретаря.
+ */
+export enum NonProjectRoomKindGql {
+  MEMBERS = 'MEMBERS',
+  COUNCIL = 'COUNCIL',
+  SECRETARY = 'SECRETARY',
+}
+
+registerEnumType(NonProjectRoomKindGql, {
+  name: 'NonProjectRoomKind',
+  description: 'Тип комнаты вне проекта: пайщики, совет, комната секретаря',
+});
+
+@ObjectType('ChatcoopNonProjectCommunicationRoom')
+export class ChatcoopNonProjectCommunicationRoomDTO {
+  @Field({ description: 'Идентификатор комнаты Matrix' })
+  matrixRoomId!: string;
+
+  @Field({ description: 'Подпись для отображения комнаты' })
+  displayLabel!: string;
+
+  @Field(() => NonProjectRoomKindGql, { description: 'Тип комнаты (пайщики / совет / секретарь)' })
+  kind!: NonProjectRoomKindGql;
+}
+
 @ObjectType('ChatcoopRoomMessageLine')
 export class ChatcoopRoomMessageLineDTO {
   @Field(() => Float, { description: 'origin_server_ts из Matrix (мс)' })

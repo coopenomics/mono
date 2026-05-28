@@ -1,18 +1,46 @@
 <template lang="pug">
 div
   q-btn(@click="show = true" color="primary" size="sm" icon="add") предложить повестку
-  q-dialog(v-model="show" persistent :maximized="false" )
-    ModalBase(style="width: 500px; max-width: 100% !important;" :title="'Предложить повестку'" :show_close="true")
-      Form(:handler-submit="create" :is-submitting="isSubmitting" :showSubmit="!isLoading" :showCancel="true" :button-submit-txt="'Создать'" @cancel="clear" ).q-pa-md
-        div().q-mb-lg
-          q-input(dense v-model="createProjectInput.question" standout="bg-teal text-white" placeholder="" label="Вопрос на повестку дня" :rules="[val => notEmpty(val)]" autocomplete="off"  type="textarea")
-          q-input(dense v-model="createProjectInput.decision" standout="bg-teal text-white" placeholder="" label="Предлагаемое решение вопроса для голосования" :rules="[val => notEmpty(val)]" autocomplete="off"  type="textarea")
 
-
+  BaseDialog(
+    v-model='show',
+    title='Предложить повестку',
+    size='md',
+    :close-on-backdrop='false',
+    :close-on-escape='false'
+  )
+    Form(
+      :handler-submit="create"
+      :is-submitting="isSubmitting"
+      :showSubmit="!isLoading"
+      :showCancel="true"
+      :button-submit-txt="'Создать'"
+      @cancel="clear"
+    )
+      q-input(
+        dense
+        v-model="createProjectInput.question"
+        standout="bg-teal text-white"
+        placeholder=""
+        label="Вопрос на повестку дня"
+        :rules="[val => notEmpty(val)]"
+        autocomplete="off"
+        type="textarea"
+      )
+      q-input(
+        dense
+        v-model="createProjectInput.decision"
+        standout="bg-teal text-white"
+        placeholder=""
+        label="Предлагаемое решение вопроса для голосования"
+        :rules="[val => notEmpty(val)]"
+        autocomplete="off"
+        type="textarea"
+      )
 </template>
 
 <script lang="ts" setup>
-import { ModalBase } from 'src/shared/ui/ModalBase';
+import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { Form } from 'src/shared/ui/Form';
 import { ref } from 'vue';
 import { useCreateProjectOfFreeDecision } from '../model';

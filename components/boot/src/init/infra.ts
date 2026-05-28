@@ -15,6 +15,9 @@ import { sleep } from '../utils'
 import { generateRandomSHA256 } from '../utils/randomHash'
 import { initUsersInPostgres, initVaultInPostgres } from '../postgres-init'
 import { CooperativeClass } from './cooperative'
+import { signProgramAgreement } from './sign-program-agreement'
+import { fakeDocument } from '../tests/shared/fakeDocument'
+import { walletDraftId, walletProgramId } from '../tests/capital/consts'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -674,10 +677,17 @@ export async function installExtraData(blockchain: Blockchain) {
     status: 'active',
   })
 
-  // Ресурсы для партнёра: powerup CPU/NET. transfer токенов пропускаем —
-  // eosio.token::transfer падает на проверке membership в wallet program,
-  // которая для partner1 не настроена. Для provider sync + Hostkey-flow
-  // токены не нужны: tx от имени partner1 пойдут от soviet/admin.
+  // Записываем partner1 в ЦПП Кошелька оператора (voskhod, program_id=1).
+  // БЕЗ этого провайдерский performInitialTransfers (150 AXON на partner1 ДО
+  // перехода в ACTIVE, см. provider CLAUDE.md §13) падает ассертом
+  // eosio.token::is_can_transfer «Получатель не является участником целевой
+  // потребительской программы кошелька» — и инстанс навсегда застревает в
+  // INSTALL. wallet::signagree (auth voskhod@active) делает partner1 членом
+  // ЦПП Кошелька. Та же механика, что для обычных пайщиков в participant.ts.
+  console.log('Подписываем wallet-соглашение за partner1 (членство в ЦПП Кошелька)')
+  await signProgramAgreement(blockchain, config.provider, account.username, walletProgramId, walletDraftId, fakeDocument)
+
+  // Ресурсы для партнёра: powerup CPU/NET.
   await blockchain.powerup({
     payer: 'eosio',
     receiver: account.username,

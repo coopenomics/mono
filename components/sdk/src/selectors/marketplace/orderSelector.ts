@@ -4,9 +4,7 @@ import type { MakeAllFieldsRequired } from '../../utils/MakeAllFieldsRequired'
 const rawOrderCreateTxSnapshotSelector = {
   tx_hash: true,
   block_num: true,
-  did_convert: true,
-  did_assign: true,
-  blocked_amount: true,
+  locked_amount: true,
   signed_at: true,
 }
 

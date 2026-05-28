@@ -1,17 +1,30 @@
 <template lang="pug">
-q-dialog(v-model="show" persistent :maximized="true" )
-  ModalBase(:title="title" :show_close="false")
-    div(style="padding-bottom: 50px; padding-top: 50px;").row.justify-center
-      q-card(flat).col-md-8.col-col-xs-12
-        Loader(v-if="isLoading" :text='`Формируем документ...`')
-        Form(:handler-submit="sign" :is-submitting="isSubmitting" :showSubmit="!isLoading" :showCancel="false" :button-submit-txt="'Подписать'" @cancel="clear").q-pa-lg
-          slot
+BaseDialog(
+  v-model='show',
+  :title='title',
+  :maximized='true',
+  :hide-close-button='true',
+  :close-on-backdrop='false',
+  :close-on-escape='false'
+)
+  div.row.justify-center
+    q-card(flat).col-md-8.col-col-xs-12
+      Loader(v-if="isLoading" :text='`Формируем документ...`')
+      Form(
+        :handler-submit="sign"
+        :is-submitting="isSubmitting"
+        :showSubmit="!isLoading"
+        :showCancel="false"
+        :button-submit-txt="'Подписать'"
+        @cancel="clear"
+      )
+        slot
 </template>
 
 <script lang="ts" setup>
 import { useAgreementStore } from 'src/entities/Agreement';
 import { computed, ref } from 'vue';
-import { ModalBase } from 'src/shared/ui/ModalBase';
+import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { Form } from 'src/shared/ui/Form';
 import { SovietContract } from 'cooptypes';
 import { FailAlert, SuccessAlert } from 'src/shared/api';

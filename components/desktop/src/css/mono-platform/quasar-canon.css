@@ -1,0 +1,467 @@
+/* ============================================================
+   MONO Platform v2 — Quasar overrides
+   Стилизация q-* компонентов под canon-tokens. Подключается ПОСЛЕ
+   автоматических Quasar styles, чтобы перебивать их через те же классы.
+   Принцип: BaseInput/Button/etc — тонкие обёртки q-input/q-btn/etc,
+   а визуал даёт этот файл. Существующий код с прямыми q-* тоже получает
+   canon-look без правок.
+   ============================================================ */
+
+/* ===== Field (q-input / q-select / q-input-mask / etc) =====
+   ЦВЕТА + rounded. Границу Quasar красит сам через --q-primary
+   (см. tokens.css → Quasar brand mapping). Геометрию/transitions
+   не трогаем. */
+
+/* Цвет фона и rounded углы */
+.q-field--outlined .q-field__control {
+  background: var(--p-surface);
+  color: var(--p-ink);
+  border-radius: var(--p-r-sm, 8px);
+}
+.q-field--outlined .q-field__control::before,
+.q-field--outlined .q-field__control::after {
+  border-radius: var(--p-r-sm, 8px);
+}
+/* Цвет текста значения */
+.q-field--outlined .q-field__native,
+.q-field--outlined .q-field__input {
+  color: var(--p-ink);
+}
+/* Цвет placeholder */
+.q-field--outlined .q-field__native::placeholder,
+.q-field--outlined .q-field__input::placeholder {
+  color: var(--p-ink-3);
+}
+/* Цвет метки */
+.q-field--outlined .q-field__label {
+  color: var(--p-ink-2);
+}
+/* Цвет hint/error в нижней строке */
+.q-field__bottom {
+  color: var(--p-ink-3);
+}
+.q-field--error .q-field__bottom,
+.q-field--error .q-field__messages {
+  color: var(--p-neg);
+}
+/* Цвет prefix/suffix */
+.q-field__prefix,
+.q-field__suffix {
+  color: var(--p-ink-3);
+}
+
+/* ===== Button (q-btn) ===== */
+.q-btn {
+  text-transform: none;
+  font-size: var(--p-fs-body-sm);
+  font-weight: 450;
+  border-radius: var(--p-r-sm, 8px);
+  font-family: var(--p-sans, inherit);
+  letter-spacing: 0;
+  min-height: 36px;
+  padding: 0 14px;
+  transition: background var(--p-dur-fast, 120ms), border-color var(--p-dur-fast, 120ms),
+    color var(--p-dur-fast, 120ms);
+}
+.q-btn.q-btn--rectangle {
+  border-radius: var(--p-r-sm, 8px);
+}
+.q-btn__content {
+  gap: 8px;
+}
+.q-btn:before {
+  box-shadow: none;
+}
+
+/* Primary — заливка primary (canon teal через --q-primary) */
+.q-btn--standard.bg-primary,
+.q-btn--unelevated.bg-primary,
+.q-btn--standard.text-primary.bg-primary {
+  background: var(--p-primary) !important;
+  color: var(--p-ink-on-primary) !important;
+}
+.q-btn--standard.bg-primary:hover,
+.q-btn--unelevated.bg-primary:hover {
+  background: var(--p-primary-hover) !important;
+}
+.q-btn--standard.bg-primary:active,
+.q-btn--unelevated.bg-primary:active {
+  background: var(--p-primary-press) !important;
+}
+
+/* Secondary — outline (hairline 1px, не «жирная рамка») */
+.q-btn--outline {
+  background: var(--p-surface);
+}
+.q-btn--outline:before {
+  border: 1px solid var(--p-line-1) !important;
+  border-radius: var(--p-r-sm, 8px);
+}
+.q-btn--outline {
+  color: var(--p-ink) !important;
+}
+.q-btn--outline:hover {
+  background: var(--p-surface-2);
+}
+.q-btn--outline:hover:before {
+  border-color: var(--p-line-2) !important;
+}
+
+/* Ghost — flat */
+.q-btn--flat {
+  color: var(--p-ink) !important;
+}
+.q-btn--flat:hover {
+  background: var(--p-surface-2);
+}
+.q-btn--flat.text-grey-7,
+.q-btn--flat.text-grey {
+  color: var(--p-ink-2) !important;
+}
+
+/* Danger */
+.q-btn--unelevated.bg-negative,
+.q-btn--standard.bg-negative {
+  background: transparent !important;
+  color: var(--p-neg) !important;
+}
+.q-btn--unelevated.bg-negative:hover,
+.q-btn--standard.bg-negative:hover {
+  background: var(--p-neg-soft) !important;
+}
+
+/* Sizes */
+.q-btn--dense,
+.q-btn[size="sm"] {
+  min-height: 28px;
+  padding: 0 10px;
+  font-size: var(--p-fs-meta);
+}
+.q-btn[size="lg"] {
+  min-height: 44px;
+  padding: 0 18px;
+  font-size: var(--p-fs-body);
+}
+
+/* Focus-ring */
+.q-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--p-focus-ring);
+}
+
+/* ===== Card (q-card) ===== */
+.q-card {
+  background: var(--p-surface);
+  border: 1px solid var(--p-line-1);
+  border-radius: var(--p-r-md, 12px);
+  color: var(--p-ink);
+  box-shadow: none;
+}
+.q-card__section--vert {
+  padding: var(--p-5, 20px);
+}
+.q-card__actions {
+  padding: var(--p-3, 12px) var(--p-5, 20px);
+}
+
+/* ===== Chip ===== */
+.q-chip {
+  background: var(--p-surface-2);
+  color: var(--p-ink);
+  border-radius: var(--p-r-pill, 999px);
+  font-size: var(--p-fs-meta);
+  font-weight: 450;
+  height: 26px;
+  padding: 0 12px;
+  margin: 0;
+}
+.q-chip .q-chip__icon {
+  font-size: 14px;
+  margin-right: 6px;
+}
+.q-chip--dense {
+  height: 22px;
+  padding: 0 10px;
+}
+.q-chip.bg-primary {
+  background: var(--p-primary-soft) !important;
+  color: var(--p-primary) !important;
+}
+.q-chip.bg-positive {
+  background: var(--p-pos-soft) !important;
+  color: var(--p-pos) !important;
+}
+.q-chip.bg-negative {
+  background: var(--p-neg-soft) !important;
+  color: var(--p-neg) !important;
+}
+.q-chip.bg-warning {
+  background: var(--p-warn-soft) !important;
+  color: var(--p-warn) !important;
+}
+.q-chip.bg-info {
+  background: var(--p-info-soft) !important;
+  color: var(--p-info) !important;
+}
+
+/* ===== Badge ===== */
+.q-badge {
+  background: var(--p-primary-soft);
+  color: var(--p-primary);
+  border-radius: var(--p-r-xs, 4px);
+  font-size: var(--p-fs-meta);
+  font-weight: 600;
+  padding: 2px 8px;
+}
+.q-badge.bg-primary { background: var(--p-primary-soft) !important; color: var(--p-primary) !important; }
+.q-badge.bg-positive { background: var(--p-pos-soft) !important; color: var(--p-pos) !important; }
+.q-badge.bg-negative { background: var(--p-neg-soft) !important; color: var(--p-neg) !important; }
+.q-badge.bg-warning { background: var(--p-warn-soft) !important; color: var(--p-warn) !important; }
+.q-badge.bg-info { background: var(--p-info-soft) !important; color: var(--p-info) !important; }
+
+/* ===== Banner ===== */
+.q-banner {
+  background: var(--p-info-soft);
+  color: var(--p-ink);
+  border-left: 3px solid var(--p-info);
+  border-radius: var(--p-r-sm, 8px);
+  padding: 12px 16px;
+  font-size: var(--p-fs-body);
+}
+.q-banner--top-padding {
+  padding-top: 12px;
+}
+
+/* ===== Dialog / Menu ===== */
+.q-dialog__backdrop {
+  background: var(--p-overlay);
+}
+.q-dialog__inner > .q-card {
+  box-shadow: var(--p-shadow-modal);
+  border-radius: var(--p-r-md, 12px);
+}
+.q-menu {
+  background: var(--p-surface);
+  border: 1px solid var(--p-line-1);
+  border-radius: var(--p-r-sm, 8px);
+  box-shadow: var(--p-shadow-pop);
+  color: var(--p-ink);
+}
+
+/* ===== Item (dropdown / list rows) ===== */
+.q-item {
+  font-size: var(--p-fs-body);
+  color: var(--p-ink);
+  min-height: 40px;
+  padding: 8px 12px;
+}
+.q-item__section--main {
+  font-size: var(--p-fs-body);
+}
+.q-item:hover,
+.q-item.q-manual-focusable--focused {
+  background: var(--p-surface-2);
+  color: var(--p-ink);
+}
+.q-item--active,
+.q-item--active:hover {
+  background: var(--p-primary-soft);
+  color: var(--p-primary);
+}
+
+/* ===== Table ===== */
+.q-table {
+  background: var(--p-surface);
+  color: var(--p-ink);
+}
+.q-table thead th {
+  font-size: var(--p-fs-meta);
+  color: var(--p-ink-2);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--p-line);
+  background: var(--p-surface);
+}
+.q-table tbody td {
+  font-size: var(--p-fs-body);
+  border-bottom: 1px solid var(--p-line);
+}
+.q-table tbody tr:hover {
+  background: var(--p-surface-2);
+}
+.q-table__top {
+  padding: 12px 16px;
+}
+
+/* ===== Toggle / Checkbox (минимальная coherence — без полного rewrite) ===== */
+.q-checkbox__inner--truthy .q-checkbox__bg,
+.q-toggle__inner--truthy .q-toggle__track {
+  color: var(--p-primary);
+}
+
+/* ===== Page background ====================================================
+   По умолчанию Quasar красит body--light в #ffffff, body--dark в #1d1d1d.
+   Это даёт визуальный сдвиг относительно нашей шапки/рейла, окрашенных
+   через `--p-canvas`. Чтобы вся страница совпадала с утверждённым canvas
+   из tokens.css, явно прокидываем токен на body и q-page-container.
+   --------------------------------------------------------------------- */
+body.body--light,
+body.body--dark {
+  background-color: var(--p-canvas);
+  color: var(--p-ink);
+}
+.q-layout,
+.q-page-container,
+.q-page {
+  background-color: var(--p-canvas);
+  color: var(--p-ink);
+}
+
+/* ===== Notification (q-notification, Quasar Notify) ============================
+   Canon-тост по MONO Platform v2 (shared/MONO Design System.html → .toast):
+   тёмный фон (var(--p-ink) для нейтрального; deep-tinted #052e16/#4c0a0a/
+   #3d2400/#0c1e3f для positive/negative/warning/info), светлый текст,
+   ЦВЕТНАЯ ИКОНКА по типу (--p-pos/--p-neg/--p-warn/--p-info). Появление
+   bottom-right, max-width 420px. Позиция и таймаут — в shared/api/alerts.ts,
+   визуал — здесь (один источник правды для всех Notify.create).
+   --------------------------------------------------------------------- */
+.q-notifications__list--bottom-right,
+.q-notifications__list--bottom-left,
+.q-notifications__list--bottom {
+  padding: 0 24px 24px;
+}
+.q-notifications__list--top-right,
+.q-notifications__list--top-left,
+.q-notifications__list--top {
+  padding: 24px 24px 0;
+}
+.q-notification {
+  background: var(--p-ink) !important;
+  color: var(--p-canvas) !important;
+  border: 0;
+  border-radius: var(--p-r-sm, 8px);
+  box-shadow: var(--p-shadow-pop, 0 8px 28px rgba(0, 0, 0, 0.18));
+  padding: 12px 14px;
+  min-height: auto;
+  max-width: 420px;
+  font-family: var(--p-sans, inherit);
+  font-size: var(--p-fs-body-sm, 13px);
+  line-height: 1.45;
+  gap: 12px;
+}
+.q-notification__message {
+  color: inherit;
+  font-weight: 500;
+  padding: 2px 0;
+}
+.q-notification__caption {
+  color: inherit;
+  opacity: 0.7;
+  font-size: var(--p-fs-meta, 12px);
+  line-height: 1.45;
+  padding-top: 2px;
+}
+.q-notification__icon {
+  color: inherit;
+  opacity: 0.7;
+  font-size: 18px;
+  margin-right: 4px;
+  margin-top: 1px;
+}
+.q-notification__avatar {
+  margin-right: 4px;
+}
+.q-notification__actions {
+  color: inherit;
+  padding: 0;
+  margin-left: 4px;
+}
+.q-notification__actions .q-btn {
+  background: transparent !important;
+  color: inherit !important;
+  min-height: 28px;
+  padding: 0 8px;
+  opacity: 0.85;
+  font-weight: 500;
+}
+.q-notification__actions .q-btn:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Цветной deep-tinted фон + цветная иконка по типу */
+.q-notification.bg-positive,
+.q-notification--standard.bg-positive {
+  background: #052e16 !important;
+}
+.q-notification.bg-positive .q-notification__icon {
+  color: var(--p-pos);
+  opacity: 1;
+}
+.q-notification.bg-negative,
+.q-notification--standard.bg-negative {
+  background: #4c0a0a !important;
+}
+.q-notification.bg-negative .q-notification__icon {
+  color: var(--p-neg);
+  opacity: 1;
+}
+.q-notification.bg-warning,
+.q-notification--standard.bg-warning {
+  background: #3d2400 !important;
+}
+.q-notification.bg-warning .q-notification__icon {
+  color: var(--p-warn);
+  opacity: 1;
+}
+.q-notification.bg-info,
+.q-notification--standard.bg-info {
+  background: #0c1e3f !important;
+}
+.q-notification.bg-info .q-notification__icon {
+  color: var(--p-info);
+  opacity: 1;
+}
+
+/* Мобильник: тост на всю ширину минус 16px полей */
+@media (max-width: 600px) {
+  .q-notifications__list--bottom-right,
+  .q-notifications__list--bottom-left,
+  .q-notifications__list--bottom,
+  .q-notifications__list--top-right,
+  .q-notifications__list--top-left,
+  .q-notifications__list--top {
+    padding: 8px;
+  }
+  .q-notification {
+    max-width: calc(100vw - 16px);
+  }
+}
+
+/* ===== Topbar — мобильная минимизация CTA-кнопок ==============================
+   На узких экранах кнопки действий в шапке (`.topbar__actions`) сворачиваются
+   до иконки: текстовый label у `BaseButton` (.base-btn__label) скрывается,
+   icon-слоты остаются. Это позволяет страницам не дублировать пропсы вроде
+   `:icon-only-on-mobile` — централизованное правило срабатывает по канону.
+   Кнопка без иконки на узком экране станет «голой», поэтому для CTA в шапке
+   icon-слот обязателен (это и есть негласный канон шапки).
+   --------------------------------------------------------------------- */
+@media (max-width: 600px) {
+  .topbar__actions .base-btn__label {
+    display: none;
+  }
+  .topbar__actions .q-btn {
+    padding: 0 8px;
+  }
+  .topbar__actions .q-btn__content {
+    gap: 0;
+  }
+  /* Бренд-название в шапке без логина — ellipsis, чтобы не растекалось. */
+  .topbar__brand b {
+    max-width: 50vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

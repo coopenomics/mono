@@ -1,5 +1,5 @@
 <template lang="pug">
-q-btn.full-width(color='teal', @click='install', :loading='isInstalling') включить
+q-btn.full-width(color='primary', unelevated, no-caps, @click='install', :loading='isInstalling') Включить
 </template>
 
 <script setup lang="ts">

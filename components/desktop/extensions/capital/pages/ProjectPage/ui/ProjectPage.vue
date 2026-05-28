@@ -267,6 +267,7 @@ const menuButtons = computed(() => {
       props: {
         routeName: 'project-description',
         label: 'Описание',
+        icon: 'description',
         routeParams: { project_hash: projectHash.value },
         query,
       },
@@ -278,6 +279,7 @@ const menuButtons = computed(() => {
       props: {
         routeName: 'project-requirements',
         label: 'Артефакты',
+        icon: 'inventory_2',
         routeParams: { project_hash: projectHash.value },
         query,
       },
@@ -289,6 +291,7 @@ const menuButtons = computed(() => {
       props: {
         routeName: 'project-components',
         label: 'Компоненты',
+        icon: 'widgets',
         routeParams: { project_hash: projectHash.value },
         query,
       },
@@ -300,6 +303,7 @@ const menuButtons = computed(() => {
       props: {
         routeName: 'project-planning',
         label: 'План',
+        icon: 'timeline',
         routeParams: { project_hash: projectHash.value },
         query,
       },
@@ -311,6 +315,7 @@ const menuButtons = computed(() => {
       props: {
         routeName: 'project-contributors',
         label: 'Участники',
+        icon: 'groups',
         routeParams: { project_hash: projectHash.value },
         query,
       },
@@ -322,6 +327,7 @@ const menuButtons = computed(() => {
       props: {
         routeName: 'project-history',
         label: 'История',
+        icon: 'history',
         routeParams: { project_hash: projectHash.value },
         query,
       },

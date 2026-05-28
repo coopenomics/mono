@@ -1,72 +1,77 @@
 <template lang="pug">
-q-btn(
-  color='accent',
-  @click.stop='showDialog = true',
-  :loading='loading',
-  label="Коммит",
-  icon="add",
-  :size='mini ? "sm" : "md"',
-  :dense="isMobile"
-  :disabled='disabled'
-)
+div
+  q-btn(
+    color='accent',
+    @click.stop='showDialog = true',
+    :loading='loading',
+    label="Коммит",
+    icon="add",
+    :size='mini ? "sm" : "md"',
+    :dense="isMobile"
+    :disabled='disabled'
+  )
 
-  q-dialog(v-model='showDialog', @hide='clear')
-    ModalBase(:title='"Зафиксировать взнос"')
-      Form.create-commit-form(
-        :class='isMobile ? "q-pb-md" : "q-pb-lg"',
-        :handler-submit='handleCreateCommit',
-        :is-submitting='isSubmitting',
-        :button-submit-txt='"Зафиксировать"',
-        :button-cancel-txt='"Отмена"',
-        @cancel='clear'
-      )
-        .create-commit-dialog-content.column.q-gutter-y-sm
-          section.create-commit-block
-            .column.q-gutter-y-sm
-              .create-commit-kv
-                .text-caption.text-grey-7 Компонент проекта
-                .text-body1.text-weight-medium.text-primary {{ projectLabel }}
-              .create-commit-kv
-                .text-caption.text-grey-7 Время
-                .text-body1.text-weight-medium
-                  | {{ formatHours(formData.creator_hours) }}
-              .create-commit-kv(v-if='commitCostFormatted')
-                .text-caption.text-grey-7 Себестоимость
-                .text-body1.text-weight-medium.text-primary {{ commitCostFormatted }}
-                .text-caption.text-grey-6.q-pl-sm {{ commitCostCaption }}
-              .create-commit-kv(v-else-if='contributorStore.self')
-                .text-caption.text-grey-7 Себестоимость
-                .text-body2.text-grey-6 Ставка в час не задана — сумму посчитать нельзя.
-              template(v-if='commitBreakdown?.tail && commitBreakdown.tail > 1e-6')
-                q-separator(color='grey-5', style='opacity: 0.35')
-                .text-caption.text-grey-7
-                  | После фиксации в накоплении останется {{ formatHours(commitBreakdown.tail) }}.
+  BaseDialog(
+    v-model='showDialog',
+    title='Зафиксировать взнос',
+    size='md',
+    @update:model-value='(v) => !v && clear()'
+  )
+    Form.create-commit-form(
+      :class='isMobile ? "q-pb-md" : "q-pb-lg"',
+      :handler-submit='handleCreateCommit',
+      :is-submitting='isSubmitting',
+      :button-submit-txt='"Зафиксировать"',
+      :button-cancel-txt='"Отмена"',
+      @cancel='clear'
+    )
+      .create-commit-dialog-content.column.q-gutter-y-sm
+        section.create-commit-block
+          .column.q-gutter-y-sm
+            .create-commit-kv
+              .text-caption.text-grey-7 Компонент проекта
+              .text-body1.text-weight-medium.text-primary {{ projectLabel }}
+            .create-commit-kv
+              .text-caption.text-grey-7 Время
+              .text-body1.text-weight-medium
+                | {{ formatHours(formData.creator_hours) }}
+            .create-commit-kv(v-if='commitCostFormatted')
+              .text-caption.text-grey-7 Себестоимость
+              .text-body1.text-weight-medium.text-primary {{ commitCostFormatted }}
+              .text-caption.text-grey-6.q-pl-sm {{ commitCostCaption }}
+            .create-commit-kv(v-else-if='contributorStore.self')
+              .text-caption.text-grey-7 Себестоимость
+              .text-body2.text-grey-6 Ставка в час не задана — сумму посчитать нельзя.
+            template(v-if='commitBreakdown?.tail && commitBreakdown.tail > 1e-6')
+              q-separator(color='grey-5', style='opacity: 0.35')
+              .text-caption.text-grey-7
+                | После фиксации в накоплении останется {{ formatHours(commitBreakdown.tail) }}.
 
-          section.create-commit-block
-            .column.q-gutter-y-md
-              .row.items-center.q-gutter-x-sm
-                span.text-caption.text-grey-7 Удовлетворение результатом
-                span.text-body2.text-weight-medium.text-accent
-                  | {{ satisfactionLabel }}
-              q-rating(
-                v-model='formData.satisfaction_stars',
-                :max='5',
-                :size='isMobile ? "lg" : "md"',
-                color-selected='accent'
-              )
-              q-input(
-                v-model='formData.review_text',
-                type='textarea',
-                autogrow,
-                color="accent"
-                filled,
-                stack-label,
-                label='Отзыв (необязательно)',
-                placeholder='Например, что сработало хорошо или что стоит учесть дальше…',
-                :maxlength='8000',
-                counter,
-                :input-style='{ minHeight: "96px" }'
-              )
+        section.create-commit-block
+          .column.q-gutter-y-md
+            .row.items-center.q-gutter-x-sm
+              span.text-caption.text-grey-7 Удовлетворение результатом
+              span.text-body2.text-weight-medium.text-accent
+                | {{ satisfactionLabel }}
+            q-rating(
+              v-model='formData.satisfaction_stars',
+              :max='5',
+              :size='isMobile ? "lg" : "md"',
+              color-selected='accent'
+            )
+            q-input(
+              v-model='formData.review_text',
+              type='textarea',
+              autogrow,
+              color="accent"
+              filled,
+              stack-label,
+              label='Отзыв (необязательно)',
+              placeholder='Например, что сработало хорошо или что стоит учесть дальше…',
+              :maxlength='8000',
+              counter,
+              :input-style='{ minHeight: "96px" }'
+            )
 </template>
 
 <script setup lang="ts">
@@ -75,7 +80,7 @@ import { useCreateCommit, type ICreateCommitInput } from '../model';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
-import { ModalBase } from 'src/shared/ui/ModalBase';
+import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { Form } from 'src/shared/ui/Form';
 import { useWindowSize } from 'src/shared/hooks';
 import { formatHours } from 'src/shared/lib/utils';

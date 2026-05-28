@@ -1,256 +1,172 @@
 <template lang="pug">
-AuthCard
-  div(v-if="token")
-      //- Заголовок с градиентом
-      .invite-header
-        .text-h6.invite-title СОХРАНИТЕ КЛЮЧ
-        .subtitle.text-body2.text-grey-7.q-mt-sm
-          | Новый приватный ключ доступа и цифровой подписи сгенерирован для вас
+AuthCard.invite(
+  v-if='token',
+  :max-width='480',
+  title='Сохраните ключ',
+  subtitle='Новый приватный ключ доступа и цифровой подписи сгенерирован для вас'
+)
+  p.invite__instruction
+    | Подтвердите, что надёжно сохранили ключ. Рекомендуем хранить его в
+    | бесплатном менеджере паролей, например
+    a.q-ml-xs.invite__link(href='https://bitwarden.com/download', target='_blank') Bitwarden
+    | .
 
+  .invite__key(v-if='account && account.private_key')
+    .invite__key-head
+      span.invite__key-label Приватный ключ
+      q-btn(
+        flat,
+        dense,
+        round,
+        size='sm',
+        color='primary',
+        icon='content_copy',
+        aria-label='Скопировать ключ',
+        @click='copyMnemonic'
+      )
+        q-tooltip Скопировать
+    code.invite__key-value {{ account.private_key }}
 
-      //- Основная инструкция
-      .instruction-card.q-mt-xl
-        .instruction-text
-          | Пожалуйста, подтвердите надёжное сохранение ключа. Мы рекомендуем сохранить его в бесплатном менеджере паролей, таком как
-          a(href="https://bitwarden.com/download" target="_blank").q-ml-xs.bitwarden-link Bitwarden
-          | .
+  q-checkbox.invite__confirm(v-model='i_save', label='Я сохранил ключ', dense)
 
-      //- Поле ключа
-      .key-field.q-mt-xl
-        q-input(
-          v-if='account && account.private_key',
-          v-model='account.private_key',
-          label='Приватный ключ',
-          :readonly='true',
-          outlined
-        )
+  BaseButton.invite__submit(
+    variant='primary',
+    block,
+    :disabled='!i_save',
+    :loading='loading',
+    @click='finish'
+  ) Установить ключ
 
-        //- Кнопка копирования под инпутом
-        .copy-section.q-mt-md
-          q-btn(
-            flat,
-            @click='copyMnemonic',
-            icon="content_copy",
-            label="Скопировать"
-          ).copy-btn
-
-      //- Чекбокс подтверждения
-      .confirmation-section.q-mt-lg
-        q-checkbox(v-model="i_save", label="Я сохранил ключ")
-
-      //- Кнопка установки
-      .action-buttons.q-mt-xl
-        q-btn(
-          :disabled="!i_save",
-          @click="finish",
-          color="primary",
-          :loading="loading",
-          label="Установить ключ"
-        ).primary-btn
-
-  div(v-else)
-    //- Заголовок приглашения
-    .invite-header
-      .text-h6.invite-title ПРИГЛАШЕНИЕ
-      .subtitle.text-body2.text-grey-7.q-mt-sm
-        | Вы получили приглашение на подключение к кооперативу
-
+AuthCard.invite(
+  v-else,
+  :max-width='480',
+  title='Приглашение',
+  subtitle='Вы получили приглашение на подключение к кооперативу'
+)
+  p.invite__instruction
+    | Чтобы продолжить, перейдите по персональной ссылке из письма-приглашения.
+    | В ней содержится одноразовый код, по которому для вас будет выпущен ключ
+    | доступа.
+  .invite__actions
+    BaseButton(variant='ghost', @click='goToSignin') Перейти ко входу
 </template>
+
 <script lang="ts" setup>
 import { copyToClipboard } from 'quasar';
 import { useCreateUser } from 'src/features/User/CreateUser';
 import { useResetKey } from 'src/features/User/ResetKey/model';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { type IGeneratedAccount } from 'src/shared/lib/types/user';
-import { AuthCard } from 'src/shared/ui';
+import { AuthCard } from 'src/shared/ui/domain/AuthCard';
+import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-const route = useRoute()
-const router = useRouter()
+const route = useRoute();
+const router = useRouter();
 
-const { generateAccount } = useCreateUser()
-const account = ref<IGeneratedAccount | undefined>()
+const { generateAccount } = useCreateUser();
+const account = ref<IGeneratedAccount | undefined>();
 
-const i_save = ref(false)
-const token = ref(route.query.token)
-const loading = ref(false)
+const i_save = ref(false);
+const token = ref(route.query.token);
+const loading = ref(false);
 
-const { resetKey } = useResetKey()
+const { resetKey } = useResetKey();
 
-account.value = generateAccount()
-
+account.value = generateAccount();
 
 const copyMnemonic = () => {
-  const toCopy = `${account.value?.private_key}`
+  const toCopy = `${account.value?.private_key}`;
 
   copyToClipboard(toCopy)
     .then(() => {
-      SuccessAlert('Ключ был скопирован в буфер обмена')
+      SuccessAlert('Ключ был скопирован в буфер обмена');
     })
     .catch((e) => {
-      console.log(e)
-    })
-}
+      console.log(e);
+    });
+};
+
+const goToSignin = () => {
+  router.push({ name: 'signin' });
+};
 
 const finish = async () => {
   try {
-
     if (!account.value) {
-      FailAlert('Возникла ошибка при генерации приватного ключа')
-      return
+      FailAlert('Возникла ошибка при генерации приватного ключа');
+      return;
     }
-    loading.value = true
-    await resetKey({ token: token.value as string, public_key: account.value.public_key })
+    loading.value = true;
+    await resetKey({
+      token: token.value as string,
+      public_key: account.value.public_key,
+    });
 
-    SuccessAlert('Ключ доступа успешно установлен')
-    loading.value = false
+    SuccessAlert('Ключ доступа успешно установлен');
+    loading.value = false;
 
-    router.push({ name: 'signin' })
-
+    router.push({ name: 'signin' });
   } catch (e: any) {
-    loading.value = false
-    FailAlert(e)
+    loading.value = false;
+    FailAlert(e);
   }
-}
-
+};
 </script>
 
 <style scoped>
-
-/* Заголовок с градиентом */
-.invite-header {
-  text-align: center;
-  margin-bottom: 2rem;
+.invite__instruction {
+  color: var(--p-ink-2);
+  font-size: var(--p-fs-body-sm, 13px);
+  line-height: var(--p-lh-body, 1.55);
+  margin: 0 0 var(--p-4, 16px);
 }
-
-.invite-title {
-  font-weight: 700;
-  letter-spacing: -0.5px;
-  background: linear-gradient(135deg, var(--q-primary) 0%, rgba(25, 118, 210, 0.8) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-shadow: 0 2px 4px rgba(25, 118, 210, 0.3);
-}
-
-/* Карточка инструкции */
-.instruction-card {
-  padding: 1rem;
-  background: rgba(25, 118, 210, 0.02);
-  border-radius: 16px;
-  border: 1px solid rgba(25, 118, 210, 0.1);
-  text-align: justify;
-  line-height: 1.6;
-}
-
-.instruction-text {
-  font-size: 0.95rem;
-}
-
-.bitwarden-link {
-  color: var(--q-primary);
+.invite__link {
+  color: var(--p-primary);
   text-decoration: none;
   font-weight: 500;
-  transition: opacity 0.3s ease;
 }
-
-.bitwarden-link:hover {
-  opacity: 0.8;
+.invite__link:hover {
+  text-decoration: underline;
 }
-
-/* Поле ключа */
-.key-field {
-  position: relative;
+/* Ключ — выделенная панель, а не readonly-инпут (у того dashed-рамка
+   и обрезка значения). Панель показывает ключ целиком и даёт ему вес. */
+.invite__key {
+  margin-bottom: var(--p-4, 16px);
+  padding: var(--p-3, 12px) var(--p-4, 16px);
+  background: var(--p-surface-2);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-md, 12px);
 }
-
-.key-field .q-field {
-  border-radius: 12px;
+.invite__key-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--p-2, 8px);
+  margin-bottom: var(--p-1, 4px);
 }
-
-.key-field .q-field__control {
-  border-radius: 12px;
-  background: rgba(0, 0, 0, 0.02);
+.invite__key-label {
+  font-size: var(--p-fs-meta, 12px);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--p-ink-3);
 }
-
-/* Секция подтверждения */
-.confirmation-section {
+.invite__key-value {
+  display: block;
+  font-family: var(--p-mono);
+  font-size: var(--p-fs-mono, 13px);
+  line-height: 1.5;
+  color: var(--p-ink);
+  word-break: break-all;
+}
+.invite__confirm {
+  display: flex;
+  margin-bottom: var(--p-4, 16px);
+}
+.invite__actions {
   display: flex;
   justify-content: center;
-  padding: 1rem;
-  background: rgba(76, 175, 80, 0.02);
-  border-radius: 12px;
-  border: 1px solid rgba(76, 175, 80, 0.1);
-}
-
-/* Секция копирования под инпутом */
-.copy-section {
-  display: flex;
-  justify-content: flex-end;
-}
-
-/* Кнопки действий */
-.action-buttons {
-  display: flex;
-  justify-content: center;
-}
-
-.copy-btn {
-  border-radius: 12px;
-  padding: 0.5rem 1.5rem;
-  font-weight: 500;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.copy-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.primary-btn {
-  border-radius: 12px;
-  padding: 0.75rem 2rem;
-  font-weight: 500;
-  min-width: 160px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.primary-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(25, 118, 210, 0.3);
-}
-
-.primary-btn:disabled {
-  opacity: 0.6;
-}
-
-/* Адаптивность */
-@media (max-width: 768px) {
-  .primary-btn {
-    width: 100%;
-  }
-
-  .instruction-card {
-    padding: 1.5rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .invite-header {
-    margin-bottom: 1.5rem;
-  }
-
-  .invite-title {
-    font-size: 1.25rem;
-  }
-
-  .instruction-card {
-    padding: 1rem;
-  }
-
-  .confirmation-section {
-    padding: 0.75rem;
-  }
 }
 </style>

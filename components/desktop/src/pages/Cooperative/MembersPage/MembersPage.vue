@@ -1,10 +1,10 @@
 <template lang="pug">
-div.page-shell
-  q-card.hero-card(flat)
-    .hero-title Члены совета
-    .hero-subtitle
-      | Состав членов совета должен быть утвержден общим собранием пайщиков.
-
+.members-page
+  //- Заголовок не дублируем (он в шапке-крошке); пояснение — на канон-поверхности.
+  .banner
+    q-icon.banner__icon(name='fa-solid fa-circle-info' size='18px')
+    .banner__body
+      | Состав членов совета должен быть утверждён общим собранием пайщиков.
 
   CooperativeMembers
 </template>
@@ -27,41 +27,13 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-.page-shell {
-  width: 100%;
-  padding: 24px 12px 32px;
+.members-page {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-}
-
-.hero-card {
-  border-radius: 18px;
-  padding: 18px 20px;
-}
-
-.hero-title {
-  font-size: 22px;
-  font-weight: 600;
-}
-
-.hero-subtitle {
-  line-height: 1.55;
-  max-width: 820px;
-}
-
-.table-head {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.banner-title {
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.banner-meta {
-  line-height: 1.4;
+  gap: var(--p-5, 20px);
+  padding: var(--p-6, 24px);
+  @media (max-width: 768px) {
+    padding: var(--p-4, 16px);
+  }
 }
 </style>

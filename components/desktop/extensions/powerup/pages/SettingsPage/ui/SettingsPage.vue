@@ -2,7 +2,7 @@
 .settings-page
 
   .settings-content(v-if='extension')
-    .settings-container.q-pa-md
+    .settings-container
       ExtensionSettings(
         :schema='extension.schema',
         :config='extension.config',
@@ -16,11 +16,11 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, onActivated, ref, markRaw, onBeforeUnmount } from 'vue';
+import { computed, onMounted, onActivated, ref, markRaw, onBeforeUnmount, watch } from 'vue';
 import { useExtensionStore } from 'src/entities/Extension/model';
 import { ExtensionSettings } from 'src/widgets/ExtensionSettings';
 import { useUpdateExtension } from 'src/features/Extension/UpdateExtension/model';
-import { useHeaderActions } from 'src/shared/hooks';
+import { useHeaderActions, useWindowSize } from 'src/shared/hooks';
 import { QBtn } from 'quasar';
 import {
   extractGraphQLErrorMessages,
@@ -34,19 +34,31 @@ const isSaving = ref(false);
 
 // Регистрируем действия в header
 const { registerAction: registerHeaderAction, clearActions } = useHeaderActions();
+const { isMobile } = useWindowSize();
 
-// Кнопка сохранения для header
+// Canon header-кнопка: на мобильном — иконка-only + tooltip,
+// на десктопе — иконка + лейбл.
 const saveButton = computed(() => ({
   id: 'settings-save-button',
   component: markRaw(QBtn),
   props: {
-    color: 'primary',
-    label: 'Сохранить',
+    color: isMobile.value ? 'accent' : 'primary',
+    flat: isMobile.value,
+    dense: isMobile.value,
+    size: isMobile.value ? 'sm' : undefined,
+    icon: isMobile.value ? 'save' : undefined,
+    label: isMobile.value ? undefined : 'Сохранить',
     loading: isSaving.value,
     onClick: saveSettings,
   },
   order: 1,
 }));
+
+// Реактивно подменяем регистрацию при смене isMobile / isSaving —
+// registerAction по тому же id просто заменяет запись в реестре.
+watch(saveButton, (next) => {
+  registerHeaderAction(next);
+});
 
 
 const loadExtensionData = async () => {
@@ -112,7 +124,7 @@ const saveSettings = async () => {
 
 <style lang="scss" scoped>
 .settings-page {
-  padding: 1rem;
+  padding: var(--p-6, 24px);
   max-width: 1200px;
   margin: 0 auto;
 }
@@ -121,6 +133,12 @@ const saveSettings = async () => {
   .settings-container {
     max-width: 1000px;
     margin: 0 auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .settings-page {
+    padding: var(--p-4, 16px);
   }
 }
 </style>

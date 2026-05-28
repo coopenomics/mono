@@ -1,10 +1,12 @@
 <template lang="pug">
 q-btn.full-width(
   v-if='!isEmpty',
-  color='teal',
+  color='primary',
+  unelevated,
+  no-caps,
   @click='save',
   :loading='isSaving'
-) сохранить
+) Сохранить
 </template>
 
 <script setup lang="ts">

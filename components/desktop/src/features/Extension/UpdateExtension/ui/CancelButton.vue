@@ -1,5 +1,5 @@
 <template lang="pug">
-q-btn.full-width(@click='cancel', flat, icon='fas fa-arrow-left') назад
+q-btn.full-width(@click='cancel', flat, no-caps, color='grey-7') Отменить
 </template>
 
 <script setup lang="ts">

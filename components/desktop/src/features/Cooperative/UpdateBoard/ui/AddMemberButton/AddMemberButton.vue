@@ -1,20 +1,24 @@
 <template lang="pug">
-div.header-action
-  q-btn(
-    color='primary',
-    :stretch='isMobile',
-    :size='isMobile ? "sm" : "md"',
-    no-wrap,
-    @click='showDialog = true'
-  )
-    span.q-pr-sm Добавить члена
-    i.fa-solid.fa-user-plus
+//- Canon header-кнопка: на мобильном — только иконка + tooltip,
+//- на десктопе — иконка + лейбл. Без обёртки .header-action, чтобы
+//- не растягивать кнопку по высоте шапки.
+q-btn(
+  @click='showDialog = true',
+  :color='isMobile ? "accent" : "primary"',
+  :flat='isMobile',
+  :dense='isMobile',
+  :size='isMobile ? "sm" : undefined',
+  no-wrap
+)
+  q-icon(name='fa-solid fa-user-plus')
+  span.q-ml-sm(v-if='!isMobile') Добавить члена
+  q-tooltip(v-if='isMobile') Добавить члена
 
-  AddMemberDialog(
-    v-model='showDialog',
-    :loading='loading',
-    @add='addMember'
-  )
+AddMemberDialog(
+  v-model='showDialog',
+  :loading='loading',
+  @add='addMember'
+)
 </template>
 
 <script setup lang="ts">
@@ -102,10 +106,3 @@ const updateBoard = async (members: any[]) => {
 };
 </script>
 
-<style scoped lang="scss">
-.header-action {
-  height: 100%;
-  display: flex;
-  align-items: center;
-}
-</style>

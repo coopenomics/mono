@@ -1,81 +1,135 @@
 <template lang="pug">
-div(v-if="installStore")
-  div(v-for="(member,index) in installStore.soviet" v-bind:key="member.id")
-    q-card(style="position: relative; padding-top: 6px;" flat)
+.set-soviet(v-if='installStore')
+  .soviet-member(v-for='(member, index) in installStore.soviet', :key='member.id')
+    .soviet-member__head
+      span.soviet-member__role
+        | {{ index + 1 }}.&nbsp;
+        | {{ member.role === 'chairman' ? 'Председатель совета' : 'Член совета' }}
+      q-btn(
+        v-if='member.role === "member"',
+        flat,
+        dense,
+        round,
+        size='sm',
+        icon='close',
+        aria-label='Удалить члена совета',
+        @click='del(member.id)'
+      )
 
-      q-badge(v-if="member.role=='chairman'" :label="`${index+1}. Председатель совета`" style="position: absolute; top: 0; left: 0; z-index: 1; height: 32px; display: flex; align-items: center;").q-pa-sm.full-width
-      q-badge(v-if="member.role=='member'" :label="`${index+1}. Член совета`" style="position: absolute; top: 0; left: 0; z-index: 1; height: 32px; display: flex; align-items: center;").q-pa-sm.full-width
+    IndividualDataForm(v-model:userData='installStore.soviet[index]')
+      template(#top)
+        q-input(
+          autofocus,
+          outlined,
+          dense,
+          color='primary',
+          v-model='installStore.soviet[index].individual_data.email',
+          label='Электронная почта',
+          type='email',
+          :rules='[val => notEmpty(val), val => validEmail(val)]'
+        )
 
-        q-btn(style="top: -2px; right: -5px;"  @click="del(member.id)" color="grey" icon="close" dense size="xs" round)
-
-      IndividualDataForm(v-model:userData="installStore.soviet[index]").q-mt-lg
-        template(#top)
-          q-input(
-            autofocus
-            standout="bg-teal text-white"
-            v-model="installStore.soviet[index].individual_data.email"
-            label="Электронная почта"
-            type="email"
-            :rules="[val => notEmpty(val), val => validEmail(val)]"
-          )
-
-  div.flex.justify-between
-    q-btn(@click="back" color="grey" icon="arrow_back" label="Назад")
-    div.flex.q-gutter-sm
-      q-btn(@click="add" color="primary" icon="add" label="Добавить члена совета")
-      q-btn(@click="next" color="primary" icon="arrow_forward" label="Продолжить" :loading="loading")
-
-
+  .set-soviet__actions
+    BaseButton(variant='ghost', @click='back')
+      q-icon(name='arrow_back', size='16px')
+      span.q-ml-sm Назад
+    .set-soviet__actions-right
+      BaseButton(variant='secondary', @click='add')
+        q-icon(name='add', size='16px')
+        span.q-ml-sm Добавить члена совета
+      BaseButton(variant='primary', :loading='loading', @click='next')
+        span.q-mr-sm Продолжить
+        q-icon(name='arrow_forward', size='16px')
 </template>
-<script lang="ts" setup>
 
+<script lang="ts" setup>
 import { useInstallCooperativeStore } from 'src/entities/Installer/model';
-const installStore = useInstallCooperativeStore()
 import { IndividualDataForm } from 'src/shared/ui/UserDataForm/IndividualDataForm';
 import type { IIndividualData } from 'src/shared/lib/types/user/IUserData';
 import { FailAlert } from 'src/shared/api';
 import { ref } from 'vue';
 import { validEmail } from 'src/shared/lib/utils/validEmailRule';
 import { notEmpty } from 'src/shared/lib/utils';
+import { BaseButton } from 'src/shared/ui/base/BaseButton';
 
-installStore.is_finish = false
+const installStore = useInstallCooperativeStore();
+
+installStore.is_finish = false;
 
 const add = () => {
-  let role: 'chairman' | 'member' = 'chairman'
+  let role: 'chairman' | 'member' = 'chairman';
 
   if (installStore.soviet.length > 0)
-    role = 'member'
+    role = 'member';
 
-  installStore.soviet.push({id: Date.now(), type: 'individual', role, individual_data: {} as IIndividualData})
-}
+  installStore.soviet.push({ id: Date.now(), type: 'individual', role, individual_data: {} as IIndividualData });
+};
 
 const del = (id: number) => {
-  installStore.soviet = installStore.soviet.filter(el => el.id !==  id)
-}
-const loading = ref(false)
+  installStore.soviet = installStore.soviet.filter(el => el.id !== id);
+};
+const loading = ref(false);
 
 const back = () => {
-  installStore.current_step = 'init'
-}
+  installStore.current_step = 'init';
+};
 
 const next = async () => {
   try {
     if (installStore.soviet.length === 0) {
-      FailAlert('Необходимо добавить хотя бы одного члена совета')
-      return
+      FailAlert('Необходимо добавить хотя бы одного члена совета');
+      return;
     }
 
-    loading.value = true
-    installStore.current_step = 'vars'
-    loading.value = false
-  } catch(e: any){
-    FailAlert(e)
-    loading.value = false
+    loading.value = true;
+    installStore.current_step = 'vars';
+    loading.value = false;
+  } catch (e: any) {
+    FailAlert(e);
+    loading.value = false;
   }
-
-}
+};
 
 if (installStore.soviet.length == 0)
-  add()
-
+  add();
 </script>
+
+<style scoped lang="scss">
+.set-soviet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-4, 16px);
+}
+
+.soviet-member {
+  padding: var(--p-4, 16px);
+  background: var(--p-surface);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-md, 12px);
+}
+.soviet-member__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 28px;
+}
+.soviet-member__role {
+  font-size: var(--p-fs-body-sm, 13px);
+  font-weight: 600;
+  color: var(--p-ink-1);
+}
+
+.set-soviet__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--p-2, 8px);
+  flex-wrap: wrap;
+}
+.set-soviet__actions-right {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2, 8px);
+  flex-wrap: wrap;
+}
+</style>

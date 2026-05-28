@@ -256,12 +256,20 @@ export class DecisionExpiredNotificationService implements OnModuleInit, OnModul
         }
       }
 
-      // Обновляем дату последней проверки (только это поле, чтобы не перезаписать другие параметры конфига)
+      // Обновляем дату последней проверки. ВАЖНО: read-modify-write по СВЕЖЕМУ
+      // config из БД, а не по захваченному при initialize() снимку `plugin`.
+      // Cron-замыкание держит in-memory снимок с момента boot; за время между
+      // boot и тиком онбординг-флаги (`onboarding_*_done/_hash`) и прочие поля
+      // могли быть записаны в БД другими сервисами. Перезапись устаревшего
+      // снимка стёрла бы их (lost update). Поэтому берём актуальный config и
+      // трогаем только lastCheckDate.
+      const fresh = await this.extensionRepository.findByName('chairman');
+      const baseConfig = fresh?.config ?? plugin.config;
       const updatedConfig = {
-        ...plugin.config,
+        ...baseConfig,
         lastCheckDate: new Date().toISOString(),
       };
-      await this.extensionRepository.update({ ...plugin, config: updatedConfig });
+      await this.extensionRepository.update({ name: 'chairman', config: updatedConfig });
 
       this.logger.debug('Проверка истекших решений завершена');
     } catch (error) {

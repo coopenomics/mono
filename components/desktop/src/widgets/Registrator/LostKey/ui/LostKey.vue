@@ -1,133 +1,66 @@
-<template lang="pug">
-AuthCard(:maxWidth="600")
-  //- Заголовок с градиентом
-
-  .lost-key-header
-    .text-h6.lost-key-title ПЕРЕВЫПУСК КЛЮЧА
-    .subtitle.text-body2.text-grey-7.q-mt-sm
-      | Введите адрес электронной почты для восстановления доступа
-
-  //- Форма восстановления
-  .form-card.q-mt-xl
-    form(@submit.prevent="submit").full-width
-      .email-field.q-mb-md
-        q-input(
-          label="Электронная почта"
-          v-model="email"
-          outlined
-          autocorrect="off"
-          autocapitalize="off"
-          autocomplete="off"
-          spellcheck="false"
-          :rules='[validateEmail]'
-        )
-
-      q-btn(
-        color="primary"
+<template>
+  <AuthCard
+    title="Перевыпуск ключа"
+    subtitle="Введите электронную почту для восстановления доступа"
+  >
+    <BaseForm :loading="loading" :error="errorMessage" @submit="submit">
+      <BaseInput
+        v-model="email"
+        label="Электронная почта"
+        type="email"
+        autocomplete="email"
+        :error="emailError"
+        required
+      />
+      <BaseButton
         type="submit"
+        variant="primary"
+        block
         :loading="loading"
-        label="Продолжить"
-      ).submit-btn.full-width
+        :disabled="!isValidEmail"
+      >
+        Продолжить
+      </BaseButton>
+    </BaseForm>
+    <template v-if="$slots.footer" #footer>
+      <slot name="footer" />
+    </template>
+  </AuthCard>
 </template>
-<script lang="ts" setup>
-import { useCreateUser } from 'src/features/User/CreateUser';
-import { useLostKey } from 'src/features/User/LostKey/model';
 
-import { FailAlert } from 'src/shared/api';
-import { AuthCard } from 'src/shared/ui';
+<script lang="ts" setup>
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { useCreateUser } from 'src/features/User/CreateUser';
+import { useLostKey } from 'src/features/User/LostKey/model';
+import { FailAlert } from 'src/shared/api';
+import { AuthCard } from 'src/shared/ui/domain/AuthCard';
 
-const email = ref('')
-const loading = ref(false)
+const router = useRouter();
+const { startResetKey } = useLostKey();
+const { emailIsValid } = useCreateUser();
 
-const { startResetKey } = useLostKey()
-const { emailIsValid } = useCreateUser()
-const isValidEmail = computed(() => emailIsValid(email.value))
+const email = ref('');
+const loading = ref(false);
+const errorMessage = ref('');
 
-const validateEmail = () => {
-  return isValidEmail.value || 'Введите корректный email'
-}
+const isValidEmail = computed(() => emailIsValid(email.value));
+const emailError = computed(() =>
+  email.value && !isValidEmail.value ? 'Введите корректный email' : '',
+);
 
-
-
-const router = useRouter()
-
-const submit = async () => {
+const submit = async (): Promise<void> => {
+  if (!isValidEmail.value) return;
+  loading.value = true;
+  errorMessage.value = '';
   try {
-    loading.value = true
-    await startResetKey({ email: email.value })
-    router.push({ name: 'resetkey' })
-    loading.value = false
+    await startResetKey({ email: email.value });
+    void router.push({ name: 'resetkey' });
   } catch (e: any) {
-    loading.value = false
-    FailAlert(e)
+    errorMessage.value = e?.message || 'Не удалось отправить запрос. Попробуйте позже.';
+    FailAlert(e);
+  } finally {
+    loading.value = false;
   }
-}
-
+};
 </script>
-
-<style scoped>
-
-/* Заголовок с градиентом */
-.lost-key-header {
-  text-align: center;
-  margin-bottom: 2rem;
-}
-
-.lost-key-title {
-  font-weight: 700;
-  letter-spacing: -0.5px;
-  background: linear-gradient(135deg, var(--q-primary) 0%, rgba(25, 118, 210, 0.8) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-shadow: 0 2px 4px rgba(25, 118, 210, 0.3);
-}
-
-/* Карточка формы */
-.form-card {
-  position: relative;
-}
-
-.email-field .q-field {
-  border-radius: 12px;
-}
-
-.email-field .q-field__control {
-  border-radius: 12px;
-  background: rgba(0, 0, 0, 0.02);
-}
-
-/* Кнопка отправки */
-.submit-btn {
-  border-radius: 12px;
-  padding: 0.75rem 2rem;
-  font-weight: 500;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.submit-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(25, 118, 210, 0.3);
-}
-
-.submit-btn:disabled {
-  opacity: 0.6;
-}
-
-/* Адаптивность */
-@media (max-width: 480px) {
-  .lost-key-header {
-    margin-bottom: 1.5rem;
-  }
-
-  .lost-key-title {
-    font-size: 1.25rem;
-  }
-
-  .submit-btn {
-    padding: 0.5rem 1.5rem;
-  }
-}
-</style>

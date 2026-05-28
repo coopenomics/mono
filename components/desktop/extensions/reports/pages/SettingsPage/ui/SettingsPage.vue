@@ -1,10 +1,10 @@
 <template lang="pug">
-q-form.page-shell(@submit.prevent='save' @validation-error='onValidationError' greedy)
+q-form.settings-page(@submit.prevent='save' @validation-error='onValidationError' greedy)
   //- Реквизиты организации (read-only — берутся из профиля кооператива)
   q-card.q-mt-md(flat)
     q-card-section.q-py-sm
       .text-h6 Реквизиты организации
-      .text-caption.text-grey-7 Справочные данные кооператива — не редактируются
+      .text-caption.t-muted Справочные данные кооператива — не редактируются
 
     q-separator
 
@@ -23,7 +23,7 @@ q-form.page-shell(@submit.prevent='save' @validation-error='onValidationError' g
   q-card.q-mt-md(flat)
     q-card-section.q-py-sm
       .text-h6 Классификаторы
-      .text-caption.text-grey-7 ОКВЭД, ОКФС, ОКОПФ, ОКТМО, ОКПО — обязательны для большинства отчётов ФНС
+      .text-caption.t-muted ОКВЭД, ОКФС, ОКОПФ, ОКТМО, ОКПО — обязательны для большинства отчётов ФНС
 
     q-separator
 
@@ -50,7 +50,7 @@ q-form.page-shell(@submit.prevent='save' @validation-error='onValidationError' g
   q-card.q-mt-md(flat)
     q-card-section.q-py-sm
       .text-h6 СФР (для ЕФС-1)
-      .text-caption.text-grey-7 Регистрационный номер СФР и должность председателя
+      .text-caption.t-muted Регистрационный номер СФР и должность председателя
 
     q-separator
 
@@ -81,7 +81,7 @@ q-form.page-shell(@submit.prevent='save' @validation-error='onValidationError' g
   q-card.q-mt-md(flat)
     q-card-section.q-py-sm
       .text-h6 Подписант
-      .text-caption.text-grey-7 Кто подписывает отчёты: председатель или представитель (по доверенности)
+      .text-caption.t-muted Кто подписывает отчёты: председатель или представитель (по доверенности)
 
     q-separator
 
@@ -331,6 +331,14 @@ onMounted(async () => {
 </script>
 
 <style scoped lang="scss">
+// Top-level страница сама задаёт канон-отступы (как WalletPage).
+.settings-page {
+  padding: var(--p-6, 24px);
+  @media (max-width: 768px) {
+    padding: var(--p-4, 16px);
+  }
+}
+
 .save-bar {
   position: sticky;
   bottom: 0;
@@ -339,24 +347,19 @@ onMounted(async () => {
   z-index: 10;
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-top: 16px;
-  padding: 12px 16px;
-  background: #fff;
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.04);
+  gap: var(--p-3, 12px);
+  margin-top: var(--p-4, 16px);
+  padding: var(--p-3, 12px) var(--p-4, 16px);
+  background: var(--p-surface);
+  border-top: 1px solid var(--p-line);
+  border-radius: var(--p-r-md, 12px) var(--p-r-md, 12px) 0 0;
 }
 
 .save-bar-status {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
-  color: #2e7d32;
-}
-
-.body--dark .save-bar {
-  background: #1d1d1d;
-  border-top-color: rgba(255, 255, 255, 0.08);
+  font-size: var(--p-fs-body-sm, 13px);
+  color: var(--p-pos);
 }
 </style>

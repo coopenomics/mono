@@ -1,6 +1,6 @@
 <template lang="pug">
 div.page-shell
-  q-card.q-mt-md(flat)
+  q-card(flat)
     q-table.full-height.pw-table(
       flat
       :grid='isMobile'
@@ -115,27 +115,25 @@ function programTypeFor(colName: string): string {
 
 function totalFor(username: string): IWalletCell {
   const row = data.value.matrix[username]
-  if (!row) return { available: 0, blocked: 0 }
-  let a = 0, b = 0
+  if (!row) return { available: 0 }
+  let a = 0
   for (const c of Object.values(row)) {
     a += c.available
-    b += c.blocked
   }
-  return { available: a, blocked: b }
+  return { available: a }
 }
 
 const grandTotal = computed<IWalletCell>(() => {
-  let a = 0, b = 0
+  let a = 0
   for (const c of Object.values(data.value.totals)) {
     a += c.available
-    b += c.blocked
   }
-  return { available: a, blocked: b }
+  return { available: a }
 })
 
 function cellClass(cell?: IWalletCell): string {
   if (!cell) return 'cell-empty'
-  if (cell.available === 0 && cell.blocked === 0) return 'cell-zero'
+  if (cell.available === 0) return 'cell-zero'
   return 'cell-has-value'
 }
 
@@ -149,7 +147,7 @@ const columns = computed(() => {
     label: prog.title,
     field: (row: IAccount) => {
       const c = data.value.matrix[row.username]?.[prog.id]
-      return c ? c.available + c.blocked : 0
+      return c ? c.available : 0
     },
     sortable: true,
   }))
@@ -168,7 +166,7 @@ const columns = computed(() => {
       label: 'Итого',
       field: (row: IAccount) => {
         const t = totalFor(row.username)
-        return t.available + t.blocked
+        return t.available
       },
       sortable: true,
     },
@@ -182,9 +180,8 @@ const columns = computed(() => {
   ]
 })
 
-// Inline-рендер ячейки «available / blocked с иконками». Вынесен в h-function,
-// чтобы не таскать ещё одну SFC. Иконки: lock-open / lock + q-tooltip — чтобы
-// без подписей было понятно где «доступно», где «заблокировано».
+// Inline-рендер ячейки «доступно». Вынесен в h-function, чтобы не таскать ещё
+// одну SFC. Иконка lock-open + q-tooltip «Доступно».
 const WalletCell = {
   name: 'WalletCell',
   props: {
@@ -197,26 +194,17 @@ const WalletCell = {
       if (!c) {
         return h('div', { class: 'cell-dash' }, '—')
       }
-      const renderLine = (
-        amount: number,
-        kind: 'avail' | 'blocked',
-      ) => {
-        const valueClass = amount > 0 ? `value-${kind}` : 'value-zero'
-        const tooltip = kind === 'avail' ? 'Доступно' : 'Заблокировано'
-        const icon = kind === 'avail' ? 'fa-solid fa-lock-open' : 'fa-solid fa-lock'
-        return h(
+      const valueClass = c.available > 0 ? 'value-avail' : 'value-zero'
+      return h('div', { class: 'wallet-cell' }, [
+        h(
           'div',
           { class: ['cell-line', valueClass, props.bold ? 'bold' : ''].join(' ') },
           [
-            h(QIcon, { name: icon, size: '12px', class: 'cell-icon' }),
-            h('span', { class: 'cell-value' }, formatAsset2Digits(`${amount} RUB`)),
-            h(QTooltip, { anchor: 'top middle', self: 'bottom middle', delay: 200 }, () => tooltip),
+            h(QIcon, { name: 'fa-solid fa-lock-open', size: '12px', class: 'cell-icon' }),
+            h('span', { class: 'cell-value' }, formatAsset2Digits(`${c.available} RUB`)),
+            h(QTooltip, { anchor: 'top middle', self: 'bottom middle', delay: 200 }, () => 'Доступно'),
           ],
-        )
-      }
-      return h('div', { class: 'wallet-cell' }, [
-        renderLine(c.available, 'avail'),
-        renderLine(c.blocked, 'blocked'),
+        ),
       ])
     }
   },
@@ -251,12 +239,9 @@ onMounted(() => void reload())
 </script>
 
 <style scoped lang="scss">
-// Все цвета через quasar runtime variables (`var(--q-*)`) и body--dark
-// overrides — без хардкода hex. Иначе светлая/тёмная темы выглядят плохо.
-// Не использовать quasar `text-grey-6` — он не реагирует на body--dark.
+// Канон-токены сами адаптируются к тёмной теме — без rgba-хардкода.
 .caption-muted {
-  color: rgba(0, 0, 0, 0.6);
-  .body--dark & { color: rgba(255, 255, 255, 0.6); }
+  color: var(--p-ink-2);
 }
 
 .pw-table {
@@ -277,19 +262,11 @@ onMounted(() => void reload())
   }
 
   :deep(.row-totals) {
-    background: rgba(0, 0, 0, 0.04);
+    background: var(--p-surface-2);
     font-weight: 600;
 
     td {
-      border-top: 2px solid rgba(0, 0, 0, 0.12);
-    }
-
-    .body--dark & {
-      background: rgba(255, 255, 255, 0.06);
-
-      td {
-        border-top-color: rgba(255, 255, 255, 0.12);
-      }
+      border-top: 2px solid var(--p-line-2);
     }
   }
 
@@ -315,7 +292,7 @@ onMounted(() => void reload())
 </style>
 
 <!--
-  «available + blocked» рендерятся через render-функцию `WalletCell`,
+  «available» рендерится через render-функцию `WalletCell`,
   у которой нет своего scoped-id. scoped + :deep до неё не доходит
   стабильно, поэтому стили лежат в global-блоке. Класс `.wallet-cell`
   достаточно специфичен — конфликтов с другими компонентами нет.
@@ -336,10 +313,10 @@ onMounted(() => void reload())
     font-size: 14px;
     font-weight: 500;
 
-    &.value-avail { color: var(--q-positive); }
-    &.value-blocked { color: var(--q-warning); }
+    &.value-avail { color: var(--p-pos); }
+    &.value-blocked { color: var(--p-warn); }
     &.value-zero {
-      color: rgba(0, 0, 0, 0.55);
+      color: var(--p-ink-3);
       font-weight: 400;
     }
     &.bold { font-weight: 700; }
@@ -351,12 +328,7 @@ onMounted(() => void reload())
   }
 
   .cell-dash {
-    color: rgba(0, 0, 0, 0.55);
+    color: var(--p-ink-3);
   }
-}
-
-.body--dark .wallet-cell {
-  .cell-line.value-zero { color: rgba(255, 255, 255, 0.7); }
-  .cell-dash { color: rgba(255, 255, 255, 0.7); }
 }
 </style>

@@ -16,6 +16,22 @@ export const chatcoopProjectCommunicationRoomSelector = Selector('ChatcoopProjec
 )
 export { rawChatcoopProjectCommunicationRoomSelector }
 
+const rawChatcoopNonProjectCommunicationRoomSelector = {
+  matrixRoomId: true,
+  displayLabel: true,
+  kind: true,
+}
+
+const _validateNonProjectRoom: MakeAllFieldsRequired<ValueTypes['ChatcoopNonProjectCommunicationRoom']> =
+  rawChatcoopNonProjectCommunicationRoomSelector
+
+export type ChatcoopNonProjectCommunicationRoomModel = ModelTypes['ChatcoopNonProjectCommunicationRoom']
+
+export const chatcoopNonProjectCommunicationRoomSelector = Selector('ChatcoopNonProjectCommunicationRoom')(
+  rawChatcoopNonProjectCommunicationRoomSelector,
+)
+export { rawChatcoopNonProjectCommunicationRoomSelector }
+
 const rawChatcoopRoomMessageLineSelector = {
   originServerTs: true,
   authorLabel: true,

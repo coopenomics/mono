@@ -26,8 +26,21 @@ export interface InterProjectCommunicationRoomRef {
   displayLabel: string;
 }
 
+/** Тип непроектной комнаты ChatCoop, синхронизируемой в blago отдельной верхней папкой. */
+export type InterNonProjectRoomKind = 'members' | 'council' | 'secretary';
+
+/** Комната ChatCoop вне проекта Capital (пайщики/совет/секретарь) — для синхронизации переписки и транскрипций в blago. */
+export interface InterNonProjectCommunicationRoomRef {
+  matrixRoomId: string;
+  displayLabel: string;
+  kind: InterNonProjectRoomKind;
+}
+
 export interface InterProjectCommunicationArtifactsPort {
   listCommunicationRoomsForProject(projectHash: string): Promise<InterProjectCommunicationRoomRef[]>;
+
+  /** Комнаты вне проектов Capital (пайщики/совет/секретарь) — синхронизируются в blago отдельной верхней папкой. */
+  listNonProjectCommunicationRooms(): Promise<InterNonProjectCommunicationRoomRef[]>;
 
   listUtcDatesWithNewMessages(
     matrixRoomId: string,

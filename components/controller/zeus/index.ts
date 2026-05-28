@@ -2163,11 +2163,11 @@ export type ValueTypes = {
 	createdAt?:boolean | `@${string}`,
 	endedAt?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
-	matrixRoomId?:boolean | `@${string}`,
 	/** Пользовательская заметка о содержании звонка */
 	memo?:boolean | `@${string}`,
 	/** Отображаемые имена участников (Synapse displayname); в БД хранятся канонические Matrix user id */
 	participants?:boolean | `@${string}`,
+	/** Внутреннее имя комнаты звонка (LiveKit room name), не Matrix room id */
 	roomId?:boolean | `@${string}`,
 	roomName?:boolean | `@${string}`,
 	startedAt?:boolean | `@${string}`,
@@ -3690,6 +3690,16 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on ChatCoopCalendarRoomOption']?: Omit<ValueTypes["ChatCoopCalendarRoomOption"], "...on ChatCoopCalendarRoomOption">
 }>;
+	["ChatcoopNonProjectCommunicationRoom"]: AliasType<{
+	/** Подпись для отображения комнаты */
+	displayLabel?:boolean | `@${string}`,
+	/** Тип комнаты (пайщики / совет / секретарь) */
+	kind?:boolean | `@${string}`,
+	/** Идентификатор комнаты Matrix */
+	matrixRoomId?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ChatcoopNonProjectCommunicationRoom']?: Omit<ValueTypes["ChatcoopNonProjectCommunicationRoom"], "...on ChatcoopNonProjectCommunicationRoom">
+}>;
 	["ChatcoopProjectCommunicationRoom"]: AliasType<{
 	/** Подпись для отображения (комната / проект Capital) */
 	displayLabel?:boolean | `@${string}`,
@@ -3710,6 +3720,22 @@ export type ValueTypes = {
 	originServerTs?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on ChatcoopRoomMessageLine']?: Omit<ValueTypes["ChatcoopRoomMessageLine"], "...on ChatcoopRoomMessageLine">
+}>;
+	["ChatcoopSecretaryRoom"]: AliasType<{
+	/** Название комнаты */
+	displayLabel?:boolean | `@${string}`,
+	/** Можно ли удалить комнату из интерфейса (только комнаты секретаря) */
+	editable?:boolean | `@${string}`,
+	/** Комната зашифрована (E2EE) — секретарь не транскрибирует такие комнаты */
+	encrypted?:boolean | `@${string}`,
+	/** Внутренний идентификатор комнаты в реестре (для операций; это НЕ Matrix room id) */
+	id?:boolean | `@${string}`,
+	/** Тип комнаты */
+	kind?:boolean | `@${string}`,
+	/** Секретарь присутствует в комнате */
+	secretaryInRoom?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ChatcoopSecretaryRoom']?: Omit<ValueTypes["ChatcoopSecretaryRoom"], "...on ChatcoopSecretaryRoom">
 }>;
 	["CheckMatrixUsernameInput"]: {
 	username: string | Variable<any, string>
@@ -4442,6 +4468,12 @@ export type ValueTypes = {
 	weightUnit?: string | undefined | null | Variable<any, string>,
 	/** Ширина упаковки */
 	width?: number | undefined | null | Variable<any, string>
+};
+	["CreateSecretaryRoomInput"]: {
+	/** Название комнаты */
+	displayName: string | Variable<any, string>,
+	/** Публичная комната (любой может войти) либо приватная (вход по приглашению создателя) */
+	isPublic: boolean | Variable<any, string>
 };
 	["CreateSovietIndividualDataInput"]: {
 	/** Дата рождения */
@@ -5931,8 +5963,6 @@ export type ValueTypes = {
 	["Ledger2Wallet"]: AliasType<{
 	/** Доступный баланс */
 	available?:boolean | `@${string}`,
-	/** Заблокированный баланс */
-	blocked?:boolean | `@${string}`,
 	/** eosio::name-идентификатор кошелька (w.<contract>.<waltype>) */
 	id?:boolean | `@${string}`,
 	/** Название кошелька */
@@ -6028,6 +6058,8 @@ export type ValueTypes = {
 	/** Имя пользователя */
 	username: string | Variable<any, string>
 };
+	/** Тип комнаты: пайщики, совет, проект Capital, комната секретаря */
+["ManagedRoomKind"]:ManagedRoomKind;
 	["MarkReportPeriodInput"]: {
 	mark?: ValueTypes["ReportSubmissionMark"] | undefined | null | Variable<any, string>,
 	period?: number | undefined | null | Variable<any, string>,
@@ -6869,6 +6901,16 @@ export type ValueTypes = {
 	/** Фильтр по аккаунту поставщика. */
 	supplier_account?: string | undefined | null | Variable<any, string>
 };
+	["MarketplaceListOutgoingPaymentsAsSupplierFilterInput"]: {
+	/** Фильтр по статусам выплат. Пусто — показывать все статусы. */
+	statuses?: Array<ValueTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null | Variable<any, string>
+};
+	["MarketplaceListOutgoingPaymentsFilterInput"]: {
+	/** Фильтр по статусам выплат. Пусто — показывать все статусы. */
+	statuses?: Array<ValueTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null | Variable<any, string>,
+	/** Поставщик-получатель выплаты. Пусто — по всем поставщикам. */
+	supplier_account?: string | undefined | null | Variable<any, string>
+};
 	["MarketplaceListPendingOffersInput"]: {
 	/** Количество элементов на странице */
 	limit: number | Variable<any, string>,
@@ -6903,7 +6945,7 @@ export type ValueTypes = {
 	["MarketplaceMemberWallet"]: AliasType<{
 	coopname?:boolean | `@${string}`,
 	username?:boolean | `@${string}`,
-	/** Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.member */
+	/** Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.order */
 	wallets?:ValueTypes["MarketplaceWalletEntry"],
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceMemberWallet']?: Omit<ValueTypes["MarketplaceMemberWallet"], "...on MarketplaceMemberWallet">
@@ -7056,16 +7098,12 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceOrder']?: Omit<ValueTypes["MarketplaceOrder"], "...on MarketplaceOrder">
 }>;
-	/** Снимок транзакции блокировки средств: ссылки на блок, флаги конверсии и сумма. */
+	/** Снимок транзакции резервирования средств: ссылки на блок и сумма резерва. */
 ["MarketplaceOrderCreateTxSnapshot"]: AliasType<{
 	/** Номер блока, в который попала транзакция. */
 	block_num?:boolean | `@${string}`,
-	/** Сумма заблокированных средств (строка денежного актива). */
-	blocked_amount?:boolean | `@${string}`,
-	/** Был ли выполнен перевод средств между кошельками пайщика. */
-	did_assign?:boolean | `@${string}`,
-	/** Была ли выполнена конверсия паевого взноса в членский. */
-	did_convert?:boolean | `@${string}`,
+	/** Сумма зарезервированных средств (строка денежного актива). */
+	locked_amount?:boolean | `@${string}`,
 	/** Время подписания заказа (ISO 8601). */
 	signed_at?:boolean | `@${string}`,
 	/** Идентификатор транзакции в блокчейне. */
@@ -7683,7 +7721,7 @@ export type ValueTypes = {
 	["MarketplaceWalletEntry"]: AliasType<{
 	/** Доступный остаток (`userwallets.available`) */
 	available?:boolean | `@${string}`,
-	/** Заблокированный остаток (`userwallets.blocked`) */
+	/** Заблокированный остаток (`userwallets.blocked`). Для marketplace-кошельков всегда `0` — резерв выражается через `.available` кошелька w.mkt.order. Поле остаётся для wallet/withdraw flow и legacy данных. */
 	blocked?:boolean | `@${string}`,
 	/** Человекочитаемое название (из cooptypes LEDGER2_WALLET_REGISTRY) */
 	human_name?:boolean | `@${string}`,
@@ -7691,7 +7729,7 @@ export type ValueTypes = {
 	kind?:boolean | `@${string}`,
 	/** UX-метка кошелька в формате `<тип взноса> | <программа>` (например «Паевой | Цифровой Кошелёк», «Членский | Стол Заказов») */
 	label?:boolean | `@${string}`,
-	/** eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.member) */
+	/** eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.order) */
 	name?:boolean | `@${string}`,
 	/** program_id: 1 — Цифровой Кошелёк, 2 — Стол Заказов */
 	program_id?:boolean | `@${string}`,
@@ -8092,7 +8130,9 @@ chatcoopCreateCalendarEvent?: [{	data: ValueTypes["CreateChatCoopCalendarEventIn
 
 Требуемые роли: chairman, member, user.  */
 	chatcoopCreateCalendarIcsSubscription?:ValueTypes["ChatCoopCalendarIcsUrlResponse"],
+chatcoopCreateSecretaryRoom?: [{	data: ValueTypes["CreateSecretaryRoomInput"] | Variable<any, string>},ValueTypes["ChatcoopSecretaryRoom"]],
 chatcoopDeleteCalendarEvent?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
+chatcoopRemoveSecretaryRoom?: [{	data: ValueTypes["RemoveSecretaryRoomInput"] | Variable<any, string>},boolean | `@${string}`],
 chatcoopUpdateCalendarEvent?: [{	data: ValueTypes["UpdateChatCoopCalendarEventInput"] | Variable<any, string>},ValueTypes["ChatCoopCalendarEvent"]],
 chatcoopUpdateTranscriptionMemo?: [{	data: ValueTypes["UpdateCallTranscriptionMemoInput"] | Variable<any, string>},ValueTypes["CallTranscription"]],
 completeCapitalOnboardingStep?: [{	data: ValueTypes["CapitalOnboardingStepInput"] | Variable<any, string>},ValueTypes["CapitalOnboardingState"]],
@@ -8223,6 +8263,8 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 		__typename?: boolean | `@${string}`,
 	['...on Mutation']?: Omit<ValueTypes["Mutation"], "...on Mutation">
 }>;
+	/** Тип комнаты вне проекта: пайщики, совет, комната секретаря */
+["NonProjectRoomKind"]:NonProjectRoomKind;
 	["NotificationWorkflowRecipientInput"]: {
 	/** Username получателя */
 	username: string | Variable<any, string>
@@ -9198,8 +9240,6 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	available?:boolean | `@${string}`,
 	/** Номер блока последнего обновления */
 	blockNum?:boolean | `@${string}`,
-	/** Заблокированный баланс (формат: "100.0000 RUB") */
-	blocked?:boolean | `@${string}`,
 	/** Имя кооператива */
 	coopname?:boolean | `@${string}`,
 	/** Уникальный идентификатор кошелька в блокчейне */
@@ -9453,7 +9493,15 @@ chatcoopGetTranscriptions?: [{	data?: ValueTypes["GetTranscriptionsInput"] | und
 
 Требуемые роли: chairman, member.  */
 	chatcoopListCalendarRooms?:ValueTypes["ChatCoopCalendarRoomOption"],
+	/** Комнаты Matrix вне проектов Capital (пайщики/совет/секретарь) — для синхронизации в blago
+
+Требуемые роли: chairman, member, user.  */
+	chatcoopListNonProjectCommunicationRooms?:ValueTypes["ChatcoopNonProjectCommunicationRoom"],
 chatcoopListProjectCommunicationRooms?: [{	data: ValueTypes["GetProjectCommunicationRoomsInput"] | Variable<any, string>},ValueTypes["ChatcoopProjectCommunicationRoom"]],
+	/** Все комнаты реестра ChatCoop (системные/проектные — read-only, комнаты секретаря — удаляемые)
+
+Требуемые роли: chairman, member.  */
+	chatcoopListSecretaryRooms?:ValueTypes["ChatcoopSecretaryRoom"],
 chatcoopListUtcDatesWithNewRoomMessages?: [{	data: ValueTypes["ListUtcDatesWithNewRoomMessagesInput"] | Variable<any, string>},boolean | `@${string}`],
 checkReportReadiness?: [{	reportType: ValueTypes["ReportType"] | Variable<any, string>},ValueTypes["ReportReadinessView"]],
 cooperativeAgreements?: [{	coopname: string | Variable<any, string>},ValueTypes["CoopAgreement"]],
@@ -9596,8 +9644,8 @@ marketplaceListMyOrders?: [{	input?: ValueTypes["MarketplaceListOrdersInput"] | 
 	marketplaceListMyReadyToReceive?:ValueTypes["MarketplaceOrder"],
 	/** Все заявления текущего пайщика на гарантийный возврат — активные и архивные. */
 	marketplaceListMyReturnClaims?:ValueTypes["MarketplaceReturnClaim"],
-marketplaceListOutgoingPayments?: [{	statuses?: Array<ValueTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null | Variable<any, string>,	supplier_account?: string | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOutgoingPaymentRequest"]],
-marketplaceListOutgoingPaymentsAsSupplier?: [{	statuses?: Array<ValueTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOutgoingPaymentRequest"]],
+marketplaceListOutgoingPayments?: [{	filter?: ValueTypes["MarketplaceListOutgoingPaymentsFilterInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOutgoingPaymentRequest"]],
+marketplaceListOutgoingPaymentsAsSupplier?: [{	filter?: ValueTypes["MarketplaceListOutgoingPaymentsAsSupplierFilterInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOutgoingPaymentRequest"]],
 marketplaceListPendingOffers?: [{	input?: ValueTypes["MarketplaceListPendingOffersInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOfferPaginationResult"]],
 marketplaceListReturnClaimsByBraname?: [{	data: ValueTypes["MarketplaceListReturnClaimsByBranameInput"] | Variable<any, string>},ValueTypes["MarketplaceReturnClaim"]],
 marketplaceListShipments?: [{	data?: ValueTypes["MarketplaceListShipmentsInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceShipment"]],
@@ -9606,7 +9654,7 @@ marketplaceListSupplierOrders?: [{	input?: ValueTypes["MarketplaceListOrdersInpu
 	/** Список пайщиков-поставщиков, допущенных к публикации оферт */
 	marketplaceListWhitelist?:ValueTypes["MarketplaceWhitelistEntry"],
 marketplaceListWriteoffProposals?: [{	data: ValueTypes["MarketplaceListWriteoffProposalsInput"] | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedMarketplaceWriteoffProposals"]],
-	/** Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.member */
+	/** Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.order */
 	marketplaceMemberWallet?:ValueTypes["MarketplaceMemberWallet"],
 	/** Состояние онбординга пайщика в Столе заказов: показывать ли gate или пропускать на стол */
 	marketplaceOnboardingState?:ValueTypes["MarketplaceOnboardingState"],
@@ -9819,6 +9867,10 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	["RemoveAvailableCategoryTypesInput"]: {
 	/** Типы товаров для удаления */
 	categoryTypes: Array<ValueTypes["CategoryTypeInput"]> | Variable<any, string>
+};
+	["RemoveSecretaryRoomInput"]: {
+	/** Идентификатор комнаты в реестре, которую нужно удалить */
+	id: string | Variable<any, string>
 };
 	["ReplaceAvailableItemsInput"]: {
 	/** ID категорий (целые категории) */
@@ -12239,11 +12291,11 @@ export type ResolverInputTypes = {
 	createdAt?:boolean | `@${string}`,
 	endedAt?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
-	matrixRoomId?:boolean | `@${string}`,
 	/** Пользовательская заметка о содержании звонка */
 	memo?:boolean | `@${string}`,
 	/** Отображаемые имена участников (Synapse displayname); в БД хранятся канонические Matrix user id */
 	participants?:boolean | `@${string}`,
+	/** Внутреннее имя комнаты звонка (LiveKit room name), не Matrix room id */
 	roomId?:boolean | `@${string}`,
 	roomName?:boolean | `@${string}`,
 	startedAt?:boolean | `@${string}`,
@@ -13724,6 +13776,15 @@ export type ResolverInputTypes = {
 	matrixRoomId?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["ChatcoopNonProjectCommunicationRoom"]: AliasType<{
+	/** Подпись для отображения комнаты */
+	displayLabel?:boolean | `@${string}`,
+	/** Тип комнаты (пайщики / совет / секретарь) */
+	kind?:boolean | `@${string}`,
+	/** Идентификатор комнаты Matrix */
+	matrixRoomId?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["ChatcoopProjectCommunicationRoom"]: AliasType<{
 	/** Подпись для отображения (комната / проект Capital) */
 	displayLabel?:boolean | `@${string}`,
@@ -13741,6 +13802,21 @@ export type ResolverInputTypes = {
 	kind?:boolean | `@${string}`,
 	/** origin_server_ts из Matrix (мс) */
 	originServerTs?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["ChatcoopSecretaryRoom"]: AliasType<{
+	/** Название комнаты */
+	displayLabel?:boolean | `@${string}`,
+	/** Можно ли удалить комнату из интерфейса (только комнаты секретаря) */
+	editable?:boolean | `@${string}`,
+	/** Комната зашифрована (E2EE) — секретарь не транскрибирует такие комнаты */
+	encrypted?:boolean | `@${string}`,
+	/** Внутренний идентификатор комнаты в реестре (для операций; это НЕ Matrix room id) */
+	id?:boolean | `@${string}`,
+	/** Тип комнаты */
+	kind?:boolean | `@${string}`,
+	/** Секретарь присутствует в комнате */
+	secretaryInRoom?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["CheckMatrixUsernameInput"]: {
@@ -14469,6 +14545,12 @@ export type ResolverInputTypes = {
 	weightUnit?: string | undefined | null,
 	/** Ширина упаковки */
 	width?: number | undefined | null
+};
+	["CreateSecretaryRoomInput"]: {
+	/** Название комнаты */
+	displayName: string,
+	/** Публичная комната (любой может войти) либо приватная (вход по приглашению создателя) */
+	isPublic: boolean
 };
 	["CreateSovietIndividualDataInput"]: {
 	/** Дата рождения */
@@ -15918,8 +16000,6 @@ export type ResolverInputTypes = {
 	["Ledger2Wallet"]: AliasType<{
 	/** Доступный баланс */
 	available?:boolean | `@${string}`,
-	/** Заблокированный баланс */
-	blocked?:boolean | `@${string}`,
 	/** eosio::name-идентификатор кошелька (w.<contract>.<waltype>) */
 	id?:boolean | `@${string}`,
 	/** Название кошелька */
@@ -16011,6 +16091,8 @@ export type ResolverInputTypes = {
 	/** Имя пользователя */
 	username: string
 };
+	/** Тип комнаты: пайщики, совет, проект Capital, комната секретаря */
+["ManagedRoomKind"]:ManagedRoomKind;
 	["MarkReportPeriodInput"]: {
 	mark?: ResolverInputTypes["ReportSubmissionMark"] | undefined | null,
 	period?: number | undefined | null,
@@ -16823,6 +16905,16 @@ export type ResolverInputTypes = {
 	/** Фильтр по аккаунту поставщика. */
 	supplier_account?: string | undefined | null
 };
+	["MarketplaceListOutgoingPaymentsAsSupplierFilterInput"]: {
+	/** Фильтр по статусам выплат. Пусто — показывать все статусы. */
+	statuses?: Array<ResolverInputTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null
+};
+	["MarketplaceListOutgoingPaymentsFilterInput"]: {
+	/** Фильтр по статусам выплат. Пусто — показывать все статусы. */
+	statuses?: Array<ResolverInputTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null,
+	/** Поставщик-получатель выплаты. Пусто — по всем поставщикам. */
+	supplier_account?: string | undefined | null
+};
 	["MarketplaceListPendingOffersInput"]: {
 	/** Количество элементов на странице */
 	limit: number,
@@ -16857,7 +16949,7 @@ export type ResolverInputTypes = {
 	["MarketplaceMemberWallet"]: AliasType<{
 	coopname?:boolean | `@${string}`,
 	username?:boolean | `@${string}`,
-	/** Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.member */
+	/** Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.order */
 	wallets?:ResolverInputTypes["MarketplaceWalletEntry"],
 		__typename?: boolean | `@${string}`
 }>;
@@ -17004,16 +17096,12 @@ export type ResolverInputTypes = {
 	warranty_until?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	/** Снимок транзакции блокировки средств: ссылки на блок, флаги конверсии и сумма. */
+	/** Снимок транзакции резервирования средств: ссылки на блок и сумма резерва. */
 ["MarketplaceOrderCreateTxSnapshot"]: AliasType<{
 	/** Номер блока, в который попала транзакция. */
 	block_num?:boolean | `@${string}`,
-	/** Сумма заблокированных средств (строка денежного актива). */
-	blocked_amount?:boolean | `@${string}`,
-	/** Был ли выполнен перевод средств между кошельками пайщика. */
-	did_assign?:boolean | `@${string}`,
-	/** Была ли выполнена конверсия паевого взноса в членский. */
-	did_convert?:boolean | `@${string}`,
+	/** Сумма зарезервированных средств (строка денежного актива). */
+	locked_amount?:boolean | `@${string}`,
 	/** Время подписания заказа (ISO 8601). */
 	signed_at?:boolean | `@${string}`,
 	/** Идентификатор транзакции в блокчейне. */
@@ -17611,7 +17699,7 @@ export type ResolverInputTypes = {
 	["MarketplaceWalletEntry"]: AliasType<{
 	/** Доступный остаток (`userwallets.available`) */
 	available?:boolean | `@${string}`,
-	/** Заблокированный остаток (`userwallets.blocked`) */
+	/** Заблокированный остаток (`userwallets.blocked`). Для marketplace-кошельков всегда `0` — резерв выражается через `.available` кошелька w.mkt.order. Поле остаётся для wallet/withdraw flow и legacy данных. */
 	blocked?:boolean | `@${string}`,
 	/** Человекочитаемое название (из cooptypes LEDGER2_WALLET_REGISTRY) */
 	human_name?:boolean | `@${string}`,
@@ -17619,7 +17707,7 @@ export type ResolverInputTypes = {
 	kind?:boolean | `@${string}`,
 	/** UX-метка кошелька в формате `<тип взноса> | <программа>` (например «Паевой | Цифровой Кошелёк», «Членский | Стол Заказов») */
 	label?:boolean | `@${string}`,
-	/** eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.member) */
+	/** eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.order) */
 	name?:boolean | `@${string}`,
 	/** program_id: 1 — Цифровой Кошелёк, 2 — Стол Заказов */
 	program_id?:boolean | `@${string}`,
@@ -18006,7 +18094,9 @@ chatcoopCreateCalendarEvent?: [{	data: ResolverInputTypes["CreateChatCoopCalenda
 
 Требуемые роли: chairman, member, user.  */
 	chatcoopCreateCalendarIcsSubscription?:ResolverInputTypes["ChatCoopCalendarIcsUrlResponse"],
+chatcoopCreateSecretaryRoom?: [{	data: ResolverInputTypes["CreateSecretaryRoomInput"]},ResolverInputTypes["ChatcoopSecretaryRoom"]],
 chatcoopDeleteCalendarEvent?: [{	id: string},boolean | `@${string}`],
+chatcoopRemoveSecretaryRoom?: [{	data: ResolverInputTypes["RemoveSecretaryRoomInput"]},boolean | `@${string}`],
 chatcoopUpdateCalendarEvent?: [{	data: ResolverInputTypes["UpdateChatCoopCalendarEventInput"]},ResolverInputTypes["ChatCoopCalendarEvent"]],
 chatcoopUpdateTranscriptionMemo?: [{	data: ResolverInputTypes["UpdateCallTranscriptionMemoInput"]},ResolverInputTypes["CallTranscription"]],
 completeCapitalOnboardingStep?: [{	data: ResolverInputTypes["CapitalOnboardingStepInput"]},ResolverInputTypes["CapitalOnboardingState"]],
@@ -18136,6 +18226,8 @@ voteOnAnnualGeneralMeet?: [{	data: ResolverInputTypes["VoteOnAnnualGeneralMeetIn
 walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputTypes["Ledger2AdjustmentResult"]],
 		__typename?: boolean | `@${string}`
 }>;
+	/** Тип комнаты вне проекта: пайщики, совет, комната секретаря */
+["NonProjectRoomKind"]:NonProjectRoomKind;
 	["NotificationWorkflowRecipientInput"]: {
 	/** Username получателя */
 	username: string
@@ -19059,8 +19151,6 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	available?:boolean | `@${string}`,
 	/** Номер блока последнего обновления */
 	blockNum?:boolean | `@${string}`,
-	/** Заблокированный баланс (формат: "100.0000 RUB") */
-	blocked?:boolean | `@${string}`,
 	/** Имя кооператива */
 	coopname?:boolean | `@${string}`,
 	/** Уникальный идентификатор кошелька в блокчейне */
@@ -19310,7 +19400,15 @@ chatcoopGetTranscriptions?: [{	data?: ResolverInputTypes["GetTranscriptionsInput
 
 Требуемые роли: chairman, member.  */
 	chatcoopListCalendarRooms?:ResolverInputTypes["ChatCoopCalendarRoomOption"],
+	/** Комнаты Matrix вне проектов Capital (пайщики/совет/секретарь) — для синхронизации в blago
+
+Требуемые роли: chairman, member, user.  */
+	chatcoopListNonProjectCommunicationRooms?:ResolverInputTypes["ChatcoopNonProjectCommunicationRoom"],
 chatcoopListProjectCommunicationRooms?: [{	data: ResolverInputTypes["GetProjectCommunicationRoomsInput"]},ResolverInputTypes["ChatcoopProjectCommunicationRoom"]],
+	/** Все комнаты реестра ChatCoop (системные/проектные — read-only, комнаты секретаря — удаляемые)
+
+Требуемые роли: chairman, member.  */
+	chatcoopListSecretaryRooms?:ResolverInputTypes["ChatcoopSecretaryRoom"],
 chatcoopListUtcDatesWithNewRoomMessages?: [{	data: ResolverInputTypes["ListUtcDatesWithNewRoomMessagesInput"]},boolean | `@${string}`],
 checkReportReadiness?: [{	reportType: ResolverInputTypes["ReportType"]},ResolverInputTypes["ReportReadinessView"]],
 cooperativeAgreements?: [{	coopname: string},ResolverInputTypes["CoopAgreement"]],
@@ -19453,8 +19551,8 @@ marketplaceListMyOrders?: [{	input?: ResolverInputTypes["MarketplaceListOrdersIn
 	marketplaceListMyReadyToReceive?:ResolverInputTypes["MarketplaceOrder"],
 	/** Все заявления текущего пайщика на гарантийный возврат — активные и архивные. */
 	marketplaceListMyReturnClaims?:ResolverInputTypes["MarketplaceReturnClaim"],
-marketplaceListOutgoingPayments?: [{	statuses?: Array<ResolverInputTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null,	supplier_account?: string | undefined | null},ResolverInputTypes["MarketplaceOutgoingPaymentRequest"]],
-marketplaceListOutgoingPaymentsAsSupplier?: [{	statuses?: Array<ResolverInputTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null},ResolverInputTypes["MarketplaceOutgoingPaymentRequest"]],
+marketplaceListOutgoingPayments?: [{	filter?: ResolverInputTypes["MarketplaceListOutgoingPaymentsFilterInput"] | undefined | null},ResolverInputTypes["MarketplaceOutgoingPaymentRequest"]],
+marketplaceListOutgoingPaymentsAsSupplier?: [{	filter?: ResolverInputTypes["MarketplaceListOutgoingPaymentsAsSupplierFilterInput"] | undefined | null},ResolverInputTypes["MarketplaceOutgoingPaymentRequest"]],
 marketplaceListPendingOffers?: [{	input?: ResolverInputTypes["MarketplaceListPendingOffersInput"] | undefined | null},ResolverInputTypes["MarketplaceOfferPaginationResult"]],
 marketplaceListReturnClaimsByBraname?: [{	data: ResolverInputTypes["MarketplaceListReturnClaimsByBranameInput"]},ResolverInputTypes["MarketplaceReturnClaim"]],
 marketplaceListShipments?: [{	data?: ResolverInputTypes["MarketplaceListShipmentsInput"] | undefined | null},ResolverInputTypes["MarketplaceShipment"]],
@@ -19463,7 +19561,7 @@ marketplaceListSupplierOrders?: [{	input?: ResolverInputTypes["MarketplaceListOr
 	/** Список пайщиков-поставщиков, допущенных к публикации оферт */
 	marketplaceListWhitelist?:ResolverInputTypes["MarketplaceWhitelistEntry"],
 marketplaceListWriteoffProposals?: [{	data: ResolverInputTypes["MarketplaceListWriteoffProposalsInput"],	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedMarketplaceWriteoffProposals"]],
-	/** Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.member */
+	/** Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.order */
 	marketplaceMemberWallet?:ResolverInputTypes["MarketplaceMemberWallet"],
 	/** Состояние онбординга пайщика в Столе заказов: показывать ли gate или пропускать на стол */
 	marketplaceOnboardingState?:ResolverInputTypes["MarketplaceOnboardingState"],
@@ -19669,6 +19767,10 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	["RemoveAvailableCategoryTypesInput"]: {
 	/** Типы товаров для удаления */
 	categoryTypes: Array<ResolverInputTypes["CategoryTypeInput"]>
+};
+	["RemoveSecretaryRoomInput"]: {
+	/** Идентификатор комнаты в реестре, которую нужно удалить */
+	id: string
 };
 	["ReplaceAvailableItemsInput"]: {
 	/** ID категорий (целые категории) */
@@ -22016,11 +22118,11 @@ export type ModelTypes = {
 		createdAt: ModelTypes["DateTime"],
 	endedAt?: ModelTypes["DateTime"] | undefined | null,
 	id: string,
-	matrixRoomId: string,
 	/** Пользовательская заметка о содержании звонка */
 	memo: string,
 	/** Отображаемые имена участников (Synapse displayname); в БД хранятся канонические Matrix user id */
 	participants: Array<string>,
+	/** Внутреннее имя комнаты звонка (LiveKit room name), не Matrix room id */
 	roomId: string,
 	roomName: string,
 	startedAt: ModelTypes["DateTime"],
@@ -23458,6 +23560,14 @@ export type ModelTypes = {
 		displayLabel: string,
 	matrixRoomId: string
 };
+	["ChatcoopNonProjectCommunicationRoom"]: {
+		/** Подпись для отображения комнаты */
+	displayLabel: string,
+	/** Тип комнаты (пайщики / совет / секретарь) */
+	kind: ModelTypes["NonProjectRoomKind"],
+	/** Идентификатор комнаты Matrix */
+	matrixRoomId: string
+};
 	["ChatcoopProjectCommunicationRoom"]: {
 		/** Подпись для отображения (комната / проект Capital) */
 	displayLabel: string,
@@ -23474,6 +23584,20 @@ export type ModelTypes = {
 	kind: ModelTypes["RoomMessageKind"],
 	/** origin_server_ts из Matrix (мс) */
 	originServerTs: number
+};
+	["ChatcoopSecretaryRoom"]: {
+		/** Название комнаты */
+	displayLabel: string,
+	/** Можно ли удалить комнату из интерфейса (только комнаты секретаря) */
+	editable: boolean,
+	/** Комната зашифрована (E2EE) — секретарь не транскрибирует такие комнаты */
+	encrypted: boolean,
+	/** Внутренний идентификатор комнаты в реестре (для операций; это НЕ Matrix room id) */
+	id: string,
+	/** Тип комнаты */
+	kind: ModelTypes["ManagedRoomKind"],
+	/** Секретарь присутствует в комнате */
+	secretaryInRoom: boolean
 };
 	["CheckMatrixUsernameInput"]: {
 	username: string
@@ -24193,6 +24317,12 @@ export type ModelTypes = {
 	weightUnit?: string | undefined | null,
 	/** Ширина упаковки */
 	width?: number | undefined | null
+};
+	["CreateSecretaryRoomInput"]: {
+	/** Название комнаты */
+	displayName: string,
+	/** Публичная комната (любой может войти) либо приватная (вход по приглашению создателя) */
+	isPublic: boolean
 };
 	["CreateSovietIndividualDataInput"]: {
 	/** Дата рождения */
@@ -25593,8 +25723,6 @@ export type ModelTypes = {
 	["Ledger2Wallet"]: {
 		/** Доступный баланс */
 	available: string,
-	/** Заблокированный баланс */
-	blocked: string,
 	/** eosio::name-идентификатор кошелька (w.<contract>.<waltype>) */
 	id: string,
 	/** Название кошелька */
@@ -25680,6 +25808,7 @@ export type ModelTypes = {
 	/** Имя пользователя */
 	username: string
 };
+	["ManagedRoomKind"]:ManagedRoomKind;
 	["MarkReportPeriodInput"]: {
 	mark?: ModelTypes["ReportSubmissionMark"] | undefined | null,
 	period?: number | undefined | null,
@@ -26456,6 +26585,16 @@ export type ModelTypes = {
 	/** Фильтр по аккаунту поставщика. */
 	supplier_account?: string | undefined | null
 };
+	["MarketplaceListOutgoingPaymentsAsSupplierFilterInput"]: {
+	/** Фильтр по статусам выплат. Пусто — показывать все статусы. */
+	statuses?: Array<ModelTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null
+};
+	["MarketplaceListOutgoingPaymentsFilterInput"]: {
+	/** Фильтр по статусам выплат. Пусто — показывать все статусы. */
+	statuses?: Array<ModelTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null,
+	/** Поставщик-получатель выплаты. Пусто — по всем поставщикам. */
+	supplier_account?: string | undefined | null
+};
 	["MarketplaceListPendingOffersInput"]: {
 	/** Количество элементов на странице */
 	limit: number,
@@ -26490,7 +26629,7 @@ export type ModelTypes = {
 	["MarketplaceMemberWallet"]: {
 		coopname: string,
 	username: string,
-	/** Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.member */
+	/** Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.order */
 	wallets: Array<ModelTypes["MarketplaceWalletEntry"]>
 };
 	["MarketplaceModerationLogEntry"]: {
@@ -26631,16 +26770,12 @@ export type ModelTypes = {
 	/** Дата окончания гарантии. */
 	warranty_until?: ModelTypes["DateTime"] | undefined | null
 };
-	/** Снимок транзакции блокировки средств: ссылки на блок, флаги конверсии и сумма. */
+	/** Снимок транзакции резервирования средств: ссылки на блок и сумма резерва. */
 ["MarketplaceOrderCreateTxSnapshot"]: {
 		/** Номер блока, в который попала транзакция. */
 	block_num: number,
-	/** Сумма заблокированных средств (строка денежного актива). */
-	blocked_amount: string,
-	/** Был ли выполнен перевод средств между кошельками пайщика. */
-	did_assign: boolean,
-	/** Была ли выполнена конверсия паевого взноса в членский. */
-	did_convert: boolean,
+	/** Сумма зарезервированных средств (строка денежного актива). */
+	locked_amount: string,
 	/** Время подписания заказа (ISO 8601). */
 	signed_at: string,
 	/** Идентификатор транзакции в блокчейне. */
@@ -27209,7 +27344,7 @@ export type ModelTypes = {
 	["MarketplaceWalletEntry"]: {
 		/** Доступный остаток (`userwallets.available`) */
 	available: string,
-	/** Заблокированный остаток (`userwallets.blocked`) */
+	/** Заблокированный остаток (`userwallets.blocked`). Для marketplace-кошельков всегда `0` — резерв выражается через `.available` кошелька w.mkt.order. Поле остаётся для wallet/withdraw flow и legacy данных. */
 	blocked: string,
 	/** Человекочитаемое название (из cooptypes LEDGER2_WALLET_REGISTRY) */
 	human_name: string,
@@ -27217,7 +27352,7 @@ export type ModelTypes = {
 	kind: string,
 	/** UX-метка кошелька в формате `<тип взноса> | <программа>` (например «Паевой | Цифровой Кошелёк», «Членский | Стол Заказов») */
 	label: string,
-	/** eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.member) */
+	/** eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.order) */
 	name: string,
 	/** program_id: 1 — Цифровой Кошелёк, 2 — Стол Заказов */
 	program_id: number
@@ -27828,10 +27963,18 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	chatcoopCreateCalendarIcsSubscription: ModelTypes["ChatCoopCalendarIcsUrlResponse"],
+	/** Создать комнату с секретарём (публичную или приватную); секретарь подключается сразу
+
+Требуемые роли: chairman, member.  */
+	chatcoopCreateSecretaryRoom: ModelTypes["ChatcoopSecretaryRoom"],
 	/** Удалить событие календаря
 
 Требуемые роли: chairman, member.  */
 	chatcoopDeleteCalendarEvent: boolean,
+	/** Удалить комнату секретаря: вывести секретаря и снять комнату с синхронизации (возвращает идентификатор комнаты в реестре)
+
+Требуемые роли: chairman, member.  */
+	chatcoopRemoveSecretaryRoom: string,
 	/** Обновить событие календаря
 
 Требуемые роли: chairman, member.  */
@@ -28231,6 +28374,7 @@ export type ModelTypes = {
 Требуемые роли: chairman.  */
 	walmoveWallets: ModelTypes["Ledger2AdjustmentResult"]
 };
+	["NonProjectRoomKind"]:NonProjectRoomKind;
 	["NotificationWorkflowRecipientInput"]: {
 	/** Username получателя */
 	username: string
@@ -29085,8 +29229,6 @@ export type ModelTypes = {
 	available: string,
 	/** Номер блока последнего обновления */
 	blockNum?: number | undefined | null,
-	/** Заблокированный баланс (формат: "100.0000 RUB") */
-	blocked: string,
 	/** Имя кооператива */
 	coopname: string,
 	/** Уникальный идентификатор кошелька в блокчейне */
@@ -29411,10 +29553,18 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member.  */
 	chatcoopListCalendarRooms: Array<ModelTypes["ChatCoopCalendarRoomOption"]>,
+	/** Комнаты Matrix вне проектов Capital (пайщики/совет/секретарь) — для синхронизации в blago
+
+Требуемые роли: chairman, member, user.  */
+	chatcoopListNonProjectCommunicationRooms: Array<ModelTypes["ChatcoopNonProjectCommunicationRoom"]>,
 	/** Комнаты Matrix, привязанные к проекту Capital (реестр ChatCoop)
 
 Требуемые роли: chairman, member, user.  */
 	chatcoopListProjectCommunicationRooms: Array<ModelTypes["ChatcoopProjectCommunicationRoom"]>,
+	/** Все комнаты реестра ChatCoop (системные/проектные — read-only, комнаты секретаря — удаляемые)
+
+Требуемые роли: chairman, member.  */
+	chatcoopListSecretaryRooms: Array<ModelTypes["ChatcoopSecretaryRoom"]>,
 	/** UTC-даты (YYYY-MM-DD), в которых есть сообщения новее afterOriginServerTsExclusive, для комнаты Matrix
 
 Требуемые роли: chairman, member, user.  */
@@ -29681,7 +29831,7 @@ export type ModelTypes = {
 	marketplaceListCategories: Array<ModelTypes["MarketplaceCategory"]>,
 	/** Постраничный список сводных заявок поставщика — для стола поставщика и для прослеживания состояния заказов. */
 	marketplaceListConsolidatedRequests: ModelTypes["MarketplaceConsolidatedRequestPaginationResult"],
-	/** Список наклеек инвентаря КУ: admin/совет видят весь склад кооператива, оператор — только свой участок. */
+	/** Список наклеек инвентаря КУ — для admin-стола склада и операторских разделов. */
 	marketplaceListInventory: Array<ModelTypes["MarketplaceInventoryItem"]>,
 	/** Список заказов на кооперативном участке, ожидающих открытия и финальной подписи выдачи (для оператора кооперативного участка). */
 	marketplaceListIssuancesByBraname: Array<ModelTypes["MarketplaceOrder"]>,
@@ -29717,7 +29867,7 @@ export type ModelTypes = {
 	marketplaceListWhitelist: Array<ModelTypes["MarketplaceWhitelistEntry"]>,
 	/** Лента всех проектов списания кооператива с фильтром по статусу. */
 	marketplaceListWriteoffProposals: ModelTypes["PaginatedMarketplaceWriteoffProposals"],
-	/** Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.member */
+	/** Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.order */
 	marketplaceMemberWallet: ModelTypes["MarketplaceMemberWallet"],
 	/** Состояние онбординга пайщика в Столе заказов: показывать ли gate или пропускать на стол */
 	marketplaceOnboardingState: ModelTypes["MarketplaceOnboardingState"],
@@ -29939,6 +30089,10 @@ export type ModelTypes = {
 	["RemoveAvailableCategoryTypesInput"]: {
 	/** Типы товаров для удаления */
 	categoryTypes: Array<ModelTypes["CategoryTypeInput"]>
+};
+	["RemoveSecretaryRoomInput"]: {
+	/** Идентификатор комнаты в реестре, которую нужно удалить */
+	id: string
 };
 	["ReplaceAvailableItemsInput"]: {
 	/** ID категорий (целые категории) */
@@ -32300,11 +32454,11 @@ export type GraphQLTypes = {
 	createdAt: GraphQLTypes["DateTime"],
 	endedAt?: GraphQLTypes["DateTime"] | undefined | null,
 	id: string,
-	matrixRoomId: string,
 	/** Пользовательская заметка о содержании звонка */
 	memo: string,
 	/** Отображаемые имена участников (Synapse displayname); в БД хранятся канонические Matrix user id */
 	participants: Array<string>,
+	/** Внутреннее имя комнаты звонка (LiveKit room name), не Matrix room id */
 	roomId: string,
 	roomName: string,
 	startedAt: GraphQLTypes["DateTime"],
@@ -33826,6 +33980,16 @@ export type GraphQLTypes = {
 	matrixRoomId: string,
 	['...on ChatCoopCalendarRoomOption']: Omit<GraphQLTypes["ChatCoopCalendarRoomOption"], "...on ChatCoopCalendarRoomOption">
 };
+	["ChatcoopNonProjectCommunicationRoom"]: {
+	__typename: "ChatcoopNonProjectCommunicationRoom",
+	/** Подпись для отображения комнаты */
+	displayLabel: string,
+	/** Тип комнаты (пайщики / совет / секретарь) */
+	kind: GraphQLTypes["NonProjectRoomKind"],
+	/** Идентификатор комнаты Matrix */
+	matrixRoomId: string,
+	['...on ChatcoopNonProjectCommunicationRoom']: Omit<GraphQLTypes["ChatcoopNonProjectCommunicationRoom"], "...on ChatcoopNonProjectCommunicationRoom">
+};
 	["ChatcoopProjectCommunicationRoom"]: {
 	__typename: "ChatcoopProjectCommunicationRoom",
 	/** Подпись для отображения (комната / проект Capital) */
@@ -33846,6 +34010,22 @@ export type GraphQLTypes = {
 	/** origin_server_ts из Matrix (мс) */
 	originServerTs: number,
 	['...on ChatcoopRoomMessageLine']: Omit<GraphQLTypes["ChatcoopRoomMessageLine"], "...on ChatcoopRoomMessageLine">
+};
+	["ChatcoopSecretaryRoom"]: {
+	__typename: "ChatcoopSecretaryRoom",
+	/** Название комнаты */
+	displayLabel: string,
+	/** Можно ли удалить комнату из интерфейса (только комнаты секретаря) */
+	editable: boolean,
+	/** Комната зашифрована (E2EE) — секретарь не транскрибирует такие комнаты */
+	encrypted: boolean,
+	/** Внутренний идентификатор комнаты в реестре (для операций; это НЕ Matrix room id) */
+	id: string,
+	/** Тип комнаты */
+	kind: GraphQLTypes["ManagedRoomKind"],
+	/** Секретарь присутствует в комнате */
+	secretaryInRoom: boolean,
+	['...on ChatcoopSecretaryRoom']: Omit<GraphQLTypes["ChatcoopSecretaryRoom"], "...on ChatcoopSecretaryRoom">
 };
 	["CheckMatrixUsernameInput"]: {
 		username: string
@@ -34578,6 +34758,12 @@ export type GraphQLTypes = {
 	weightUnit?: string | undefined | null,
 	/** Ширина упаковки */
 	width?: number | undefined | null
+};
+	["CreateSecretaryRoomInput"]: {
+		/** Название комнаты */
+	displayName: string,
+	/** Публичная комната (любой может войти) либо приватная (вход по приглашению создателя) */
+	isPublic: boolean
 };
 	["CreateSovietIndividualDataInput"]: {
 		/** Дата рождения */
@@ -36068,8 +36254,6 @@ export type GraphQLTypes = {
 	__typename: "Ledger2Wallet",
 	/** Доступный баланс */
 	available: string,
-	/** Заблокированный баланс */
-	blocked: string,
 	/** eosio::name-идентификатор кошелька (w.<contract>.<waltype>) */
 	id: string,
 	/** Название кошелька */
@@ -36164,6 +36348,8 @@ export type GraphQLTypes = {
 	/** Имя пользователя */
 	username: string
 };
+	/** Тип комнаты: пайщики, совет, проект Capital, комната секретаря */
+["ManagedRoomKind"]: ManagedRoomKind;
 	["MarkReportPeriodInput"]: {
 		mark?: GraphQLTypes["ReportSubmissionMark"] | undefined | null,
 	period?: number | undefined | null,
@@ -37005,6 +37191,16 @@ export type GraphQLTypes = {
 	/** Фильтр по аккаунту поставщика. */
 	supplier_account?: string | undefined | null
 };
+	["MarketplaceListOutgoingPaymentsAsSupplierFilterInput"]: {
+		/** Фильтр по статусам выплат. Пусто — показывать все статусы. */
+	statuses?: Array<GraphQLTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null
+};
+	["MarketplaceListOutgoingPaymentsFilterInput"]: {
+		/** Фильтр по статусам выплат. Пусто — показывать все статусы. */
+	statuses?: Array<GraphQLTypes["MarketplaceOutgoingPaymentRequestStatus"]> | undefined | null,
+	/** Поставщик-получатель выплаты. Пусто — по всем поставщикам. */
+	supplier_account?: string | undefined | null
+};
 	["MarketplaceListPendingOffersInput"]: {
 		/** Количество элементов на странице */
 	limit: number,
@@ -37040,7 +37236,7 @@ export type GraphQLTypes = {
 	__typename: "MarketplaceMemberWallet",
 	coopname: string,
 	username: string,
-	/** Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.member */
+	/** Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.order */
 	wallets: Array<GraphQLTypes["MarketplaceWalletEntry"]>,
 	['...on MarketplaceMemberWallet']: Omit<GraphQLTypes["MarketplaceMemberWallet"], "...on MarketplaceMemberWallet">
 };
@@ -37192,17 +37388,13 @@ export type GraphQLTypes = {
 	warranty_until?: GraphQLTypes["DateTime"] | undefined | null,
 	['...on MarketplaceOrder']: Omit<GraphQLTypes["MarketplaceOrder"], "...on MarketplaceOrder">
 };
-	/** Снимок транзакции блокировки средств: ссылки на блок, флаги конверсии и сумма. */
+	/** Снимок транзакции резервирования средств: ссылки на блок и сумма резерва. */
 ["MarketplaceOrderCreateTxSnapshot"]: {
 	__typename: "MarketplaceOrderCreateTxSnapshot",
 	/** Номер блока, в который попала транзакция. */
 	block_num: number,
-	/** Сумма заблокированных средств (строка денежного актива). */
-	blocked_amount: string,
-	/** Был ли выполнен перевод средств между кошельками пайщика. */
-	did_assign: boolean,
-	/** Была ли выполнена конверсия паевого взноса в членский. */
-	did_convert: boolean,
+	/** Сумма зарезервированных средств (строка денежного актива). */
+	locked_amount: string,
 	/** Время подписания заказа (ISO 8601). */
 	signed_at: string,
 	/** Идентификатор транзакции в блокчейне. */
@@ -37820,7 +38012,7 @@ export type GraphQLTypes = {
 	__typename: "MarketplaceWalletEntry",
 	/** Доступный остаток (`userwallets.available`) */
 	available: string,
-	/** Заблокированный остаток (`userwallets.blocked`) */
+	/** Заблокированный остаток (`userwallets.blocked`). Для marketplace-кошельков всегда `0` — резерв выражается через `.available` кошелька w.mkt.order. Поле остаётся для wallet/withdraw flow и legacy данных. */
 	blocked: string,
 	/** Человекочитаемое название (из cooptypes LEDGER2_WALLET_REGISTRY) */
 	human_name: string,
@@ -37828,7 +38020,7 @@ export type GraphQLTypes = {
 	kind: string,
 	/** UX-метка кошелька в формате `<тип взноса> | <программа>` (например «Паевой | Цифровой Кошелёк», «Членский | Стол Заказов») */
 	label: string,
-	/** eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.member) */
+	/** eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.order) */
 	name: string,
 	/** program_id: 1 — Цифровой Кошелёк, 2 — Стол Заказов */
 	program_id: number,
@@ -38469,10 +38661,18 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	chatcoopCreateCalendarIcsSubscription: GraphQLTypes["ChatCoopCalendarIcsUrlResponse"],
+	/** Создать комнату с секретарём (публичную или приватную); секретарь подключается сразу
+
+Требуемые роли: chairman, member.  */
+	chatcoopCreateSecretaryRoom: GraphQLTypes["ChatcoopSecretaryRoom"],
 	/** Удалить событие календаря
 
 Требуемые роли: chairman, member.  */
 	chatcoopDeleteCalendarEvent: boolean,
+	/** Удалить комнату секретаря: вывести секретаря и снять комнату с синхронизации (возвращает идентификатор комнаты в реестре)
+
+Требуемые роли: chairman, member.  */
+	chatcoopRemoveSecretaryRoom: string,
 	/** Обновить событие календаря
 
 Требуемые роли: chairman, member.  */
@@ -38873,6 +39073,8 @@ export type GraphQLTypes = {
 	walmoveWallets: GraphQLTypes["Ledger2AdjustmentResult"],
 	['...on Mutation']: Omit<GraphQLTypes["Mutation"], "...on Mutation">
 };
+	/** Тип комнаты вне проекта: пайщики, совет, комната секретаря */
+["NonProjectRoomKind"]: NonProjectRoomKind;
 	["NotificationWorkflowRecipientInput"]: {
 		/** Username получателя */
 	username: string
@@ -39851,8 +40053,6 @@ export type GraphQLTypes = {
 	available: string,
 	/** Номер блока последнего обновления */
 	blockNum?: number | undefined | null,
-	/** Заблокированный баланс (формат: "100.0000 RUB") */
-	blocked: string,
 	/** Имя кооператива */
 	coopname: string,
 	/** Уникальный идентификатор кошелька в блокчейне */
@@ -40186,10 +40386,18 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member.  */
 	chatcoopListCalendarRooms: Array<GraphQLTypes["ChatCoopCalendarRoomOption"]>,
+	/** Комнаты Matrix вне проектов Capital (пайщики/совет/секретарь) — для синхронизации в blago
+
+Требуемые роли: chairman, member, user.  */
+	chatcoopListNonProjectCommunicationRooms: Array<GraphQLTypes["ChatcoopNonProjectCommunicationRoom"]>,
 	/** Комнаты Matrix, привязанные к проекту Capital (реестр ChatCoop)
 
 Требуемые роли: chairman, member, user.  */
 	chatcoopListProjectCommunicationRooms: Array<GraphQLTypes["ChatcoopProjectCommunicationRoom"]>,
+	/** Все комнаты реестра ChatCoop (системные/проектные — read-only, комнаты секретаря — удаляемые)
+
+Требуемые роли: chairman, member.  */
+	chatcoopListSecretaryRooms: Array<GraphQLTypes["ChatcoopSecretaryRoom"]>,
 	/** UTC-даты (YYYY-MM-DD), в которых есть сообщения новее afterOriginServerTsExclusive, для комнаты Matrix
 
 Требуемые роли: chairman, member, user.  */
@@ -40456,7 +40664,7 @@ export type GraphQLTypes = {
 	marketplaceListCategories: Array<GraphQLTypes["MarketplaceCategory"]>,
 	/** Постраничный список сводных заявок поставщика — для стола поставщика и для прослеживания состояния заказов. */
 	marketplaceListConsolidatedRequests: GraphQLTypes["MarketplaceConsolidatedRequestPaginationResult"],
-	/** Список наклеек инвентаря КУ: admin/совет видят весь склад кооператива, оператор — только свой участок. */
+	/** Список наклеек инвентаря КУ — для admin-стола склада и операторских разделов. */
 	marketplaceListInventory: Array<GraphQLTypes["MarketplaceInventoryItem"]>,
 	/** Список заказов на кооперативном участке, ожидающих открытия и финальной подписи выдачи (для оператора кооперативного участка). */
 	marketplaceListIssuancesByBraname: Array<GraphQLTypes["MarketplaceOrder"]>,
@@ -40492,7 +40700,7 @@ export type GraphQLTypes = {
 	marketplaceListWhitelist: Array<GraphQLTypes["MarketplaceWhitelistEntry"]>,
 	/** Лента всех проектов списания кооператива с фильтром по статусу. */
 	marketplaceListWriteoffProposals: GraphQLTypes["PaginatedMarketplaceWriteoffProposals"],
-	/** Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.member */
+	/** Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.order */
 	marketplaceMemberWallet: GraphQLTypes["MarketplaceMemberWallet"],
 	/** Состояние онбординга пайщика в Столе заказов: показывать ли gate или пропускать на стол */
 	marketplaceOnboardingState: GraphQLTypes["MarketplaceOnboardingState"],
@@ -40727,6 +40935,10 @@ export type GraphQLTypes = {
 	["RemoveAvailableCategoryTypesInput"]: {
 		/** Типы товаров для удаления */
 	categoryTypes: Array<GraphQLTypes["CategoryTypeInput"]>
+};
+	["RemoveSecretaryRoomInput"]: {
+		/** Идентификатор комнаты в реестре, которую нужно удалить */
+	id: string
 };
 	["ReplaceAvailableItemsInput"]: {
 		/** ID категорий (целые категории) */
@@ -42348,6 +42560,13 @@ export enum LogEventType {
 	VOTING_COMPLETED = "VOTING_COMPLETED",
 	VOTING_STARTED = "VOTING_STARTED"
 }
+/** Тип комнаты: пайщики, совет, проект Capital, комната секретаря */
+export enum ManagedRoomKind {
+	CAPITAL_PROJECT = "CAPITAL_PROJECT",
+	COUNCIL = "COUNCIL",
+	MEMBERS = "MEMBERS",
+	SECRETARY = "SECRETARY"
+}
 /** Статус АПП приёмки на КУ. */
 export enum MarketplaceAplReceptionStatus {
 	ACCEPTED_TO_COOP = "ACCEPTED_TO_COOP",
@@ -42476,6 +42695,12 @@ export enum MarketplaceWriteoffProposalStatus {
 export enum MarketplaceWriteoffProposalTrigger {
 	CRON = "CRON",
 	MANUAL = "MANUAL"
+}
+/** Тип комнаты вне проекта: пайщики, совет, комната секретаря */
+export enum NonProjectRoomKind {
+	COUNCIL = "COUNCIL",
+	MEMBERS = "MEMBERS",
+	SECRETARY = "SECRETARY"
 }
 /** Тип юридического лица */
 export enum OrganizationType {
@@ -42788,6 +43013,7 @@ type ZEUS_VARIABLES = {
 	["CreateProjectInvestInput"]: ValueTypes["CreateProjectInvestInput"];
 	["CreateProjectPropertyInput"]: ValueTypes["CreateProjectPropertyInput"];
 	["CreateRequestInput"]: ValueTypes["CreateRequestInput"];
+	["CreateSecretaryRoomInput"]: ValueTypes["CreateSecretaryRoomInput"];
 	["CreateSovietIndividualDataInput"]: ValueTypes["CreateSovietIndividualDataInput"];
 	["CreateStoryInput"]: ValueTypes["CreateStoryInput"];
 	["CreateSubscriptionInput"]: ValueTypes["CreateSubscriptionInput"];
@@ -42895,6 +43121,7 @@ type ZEUS_VARIABLES = {
 	["LoginInput"]: ValueTypes["LoginInput"];
 	["LogoutInput"]: ValueTypes["LogoutInput"];
 	["MakeClearanceInput"]: ValueTypes["MakeClearanceInput"];
+	["ManagedRoomKind"]: ValueTypes["ManagedRoomKind"];
 	["MarkReportPeriodInput"]: ValueTypes["MarkReportPeriodInput"];
 	["MarketplaceAcceptConsolidatedRequestInput"]: ValueTypes["MarketplaceAcceptConsolidatedRequestInput"];
 	["MarketplaceAcceptCppInput"]: ValueTypes["MarketplaceAcceptCppInput"];
@@ -42941,6 +43168,8 @@ type ZEUS_VARIABLES = {
 	["MarketplaceListIssuancesByBranameInput"]: ValueTypes["MarketplaceListIssuancesByBranameInput"];
 	["MarketplaceListMyOffersInput"]: ValueTypes["MarketplaceListMyOffersInput"];
 	["MarketplaceListOrdersInput"]: ValueTypes["MarketplaceListOrdersInput"];
+	["MarketplaceListOutgoingPaymentsAsSupplierFilterInput"]: ValueTypes["MarketplaceListOutgoingPaymentsAsSupplierFilterInput"];
+	["MarketplaceListOutgoingPaymentsFilterInput"]: ValueTypes["MarketplaceListOutgoingPaymentsFilterInput"];
 	["MarketplaceListPendingOffersInput"]: ValueTypes["MarketplaceListPendingOffersInput"];
 	["MarketplaceListReturnClaimsByBranameInput"]: ValueTypes["MarketplaceListReturnClaimsByBranameInput"];
 	["MarketplaceListShipmentsByBranameInput"]: ValueTypes["MarketplaceListShipmentsByBranameInput"];
@@ -42979,6 +43208,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceWriteoffProposalTrigger"]: ValueTypes["MarketplaceWriteoffProposalTrigger"];
 	["MarketplaceWriteoffStatementSignablePayloadInput"]: ValueTypes["MarketplaceWriteoffStatementSignablePayloadInput"];
 	["MoveCapitalIssueToComponentInput"]: ValueTypes["MoveCapitalIssueToComponentInput"];
+	["NonProjectRoomKind"]: ValueTypes["NonProjectRoomKind"];
 	["NotificationWorkflowRecipientInput"]: ValueTypes["NotificationWorkflowRecipientInput"];
 	["NotifyOnAnnualGeneralMeetInput"]: ValueTypes["NotifyOnAnnualGeneralMeetInput"];
 	["OpenProjectInput"]: ValueTypes["OpenProjectInput"];
@@ -43025,6 +43255,7 @@ type ZEUS_VARIABLES = {
 	["RegisterParticipantInput"]: ValueTypes["RegisterParticipantInput"];
 	["RemoveAvailableCategoriesInput"]: ValueTypes["RemoveAvailableCategoriesInput"];
 	["RemoveAvailableCategoryTypesInput"]: ValueTypes["RemoveAvailableCategoryTypesInput"];
+	["RemoveSecretaryRoomInput"]: ValueTypes["RemoveSecretaryRoomInput"];
 	["ReplaceAvailableItemsInput"]: ValueTypes["ReplaceAvailableItemsInput"];
 	["ReportHistoryFilterInput"]: ValueTypes["ReportHistoryFilterInput"];
 	["ReportPreviewInput"]: ValueTypes["ReportPreviewInput"];

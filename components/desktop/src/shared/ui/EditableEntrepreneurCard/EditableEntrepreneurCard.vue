@@ -129,7 +129,6 @@ q-form(ref="form")
   import { EditableActions } from 'src/shared/ui/EditableActions';
   import { type IUpdateAccountInput, useUpdateAccount } from 'src/features/Account/UpdateAccount/model';
   import { type IEntrepreneurData } from 'src/entities/Account/types';
-  import 'src/shared/ui/InputStyles/index.scss';
 
   const emit = defineEmits(['update']);
   const { updateAccount } = useUpdateAccount();

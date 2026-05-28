@@ -11,7 +11,6 @@ export const rawProgramWalletSelector = {
   agreement_id: true,
   username: true,
   available: true,
-  blocked: true,
   membership_contribution: true,
   program_type: true,
   blockNum: true,

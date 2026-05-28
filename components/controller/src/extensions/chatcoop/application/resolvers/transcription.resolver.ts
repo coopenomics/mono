@@ -54,7 +54,6 @@ export class TranscriptionResolver {
     return {
       id: domain.id,
       roomId: domain.roomId,
-      matrixRoomId: domain.matrixRoomId,
       roomName: domain.roomName,
       startedAt: domain.startedAt,
       endedAt: domain.endedAt,

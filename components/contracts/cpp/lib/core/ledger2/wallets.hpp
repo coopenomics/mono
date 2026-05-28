@@ -27,7 +27,7 @@
  *   w.mkt.* — Маркетплейс (выплаты поставщикам)
  *
  * Sentinel `eosio::name{}` (пустое имя, value=0) — «кошелёк вне системы»
- * для ISSUE (нет wallet_from) и для BURN/BLOCK/UNBLOCK (нет wallet_to).
+ * для ISSUE (нет wallet_from) и для BURN (нет wallet_to).
  *
  * При первом ISSUE/TRANSFER кошелёк создаётся автоматически по записи
  * из WALLET_REGISTRY. При обнулении available+blocked запись удаляется.
@@ -46,7 +46,8 @@ struct ledger2_wallets {
   // wallet — паевой фонд + возвраты + ЦК
   static constexpr eosio::name SHARE_FUND_PAY       = "w.wal.share"_n;   ///< Паевой взнос пайщика (USER_SHARED)
   static constexpr eosio::name CK_MEMBER            = "w.wal.member"_n;  ///< ЦК — членская часть пайщика (USER_SHARED)
-  static constexpr eosio::name WITHDRAWALS_SINK     = "w.wal.wthdrw"_n;  ///< DEPRECATED 2026-05-21: после переключения o.wal.wthcpl с TRANSFER на BURN_BLOCKED кошелёк больше не получает новых средств. Оставлен в реестре для исторических L2-балансов (накопленные возвраты до перехода). Не использовать в новых операциях.
+  static constexpr eosio::name WITHDRAWALS_SINK     = "w.wal.wthdrw"_n;  ///< DEPRECATED 2026-05-21: исторический sink возвратов. Оставлен в реестре для исторических L2-балансов (накопленные возвраты до перехода). Не использовать в новых операциях.
+  static constexpr eosio::name WITHDRAW_PENDING     = "w.wal.wpend"_n;   ///< Резерв паевого под заявку на возврат (COOPERATIVE-пул). o.wal.wthreq переводит сюда с w.wal.share, o.wal.wthdec возвращает обратно, o.wal.wthcpl сжигает отсюда. Заменил механику blocked/BLOCK/UNBLOCK 2026-05-24.
 
   // registrator — минимальный паевой + вступительные
   static constexpr eosio::name MIN_SHARE_FUND       = "w.reg.minshr"_n;  ///< Минимальный паевой взнос пайщика (USER_SHARED, без сверки соглашений)
@@ -95,7 +96,7 @@ struct Ledger2WalletMeta {
   WalletKind       kind;
 };
 
-inline constexpr std::array<Ledger2WalletMeta, 15> LEDGER2_WALLET_REGISTRY = {{
+inline constexpr std::array<Ledger2WalletMeta, 16> LEDGER2_WALLET_REGISTRY = {{
   // USER_SHARED (6) — L3-разрез по пайщику
   { ledger2_wallets::MIN_SHARE_FUND,        "Минимальный паевой взнос",                                 WalletKind::USER_SHARED },
   { ledger2_wallets::SHARE_FUND_PAY,        "Паевой взнос пайщика",                                     WalletKind::USER_SHARED },
@@ -104,7 +105,7 @@ inline constexpr std::array<Ledger2WalletMeta, 15> LEDGER2_WALLET_REGISTRY = {{
   { ledger2_wallets::PREIMP_FUND,           "Первичный учёт РИД-взносов до перехода на электронный учёт", WalletKind::USER_SHARED },
   { ledger2_wallets::MARKETPLACE_ORDER_LOCK,"ЦПП «Стол Заказов» — резерв под заказ у пайщика",         WalletKind::USER_SHARED },
 
-  // COOPERATIVE (9) — единый кооперативный баланс, без L3
+  // COOPERATIVE (10) — единый кооперативный баланс, без L3
   // GENERATOR_FUND переведён сюда из USER_SHARED (см. wallets.hpp:64) —
   // CRPS-распределение между сегментами проекта не поддерживает per-user
   // компенсирующие TRANSFER на approvecmmt, поэтому L3-проверка walletop
@@ -112,6 +113,7 @@ inline constexpr std::array<Ledger2WalletMeta, 15> LEDGER2_WALLET_REGISTRY = {{
   { ledger2_wallets::GENERATOR_FUND,    "ЦПП «Генератор» — единый кошелёк программы",               WalletKind::COOPERATIVE },
   { ledger2_wallets::ENTRANCE_FEES,     "Вступительные взносы",                                     WalletKind::COOPERATIVE },
   { ledger2_wallets::WITHDRAWALS_SINK,  "Возвраты паевых взносов пайщикам (deprecated, не используется в новых операциях)", WalletKind::COOPERATIVE },
+  { ledger2_wallets::WITHDRAW_PENDING,  "Резерв паевого под заявку на возврат",                     WalletKind::COOPERATIVE },
   { ledger2_wallets::INFRA_FEES,        "Членские взносы за инфраструктуру кооп. платформы",        WalletKind::COOPERATIVE },
   { ledger2_wallets::DELEGATE_FEES,     "Делегатские членские взносы",                              WalletKind::COOPERATIVE },
   { ledger2_wallets::SOV_EXPENSES,      "Хозяйственные расходы из числа целевого финансирования",   WalletKind::COOPERATIVE },
