@@ -119,6 +119,16 @@ export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Ob
   // документ statement (DocumentFieldDetector).
   'p.sov.axncnv': [],
 
+  // p.bil.fund — billing::convert. Одноактовый: anchor — convert_hash
+  // (детерминированный sha256(document.hash + "/billing.convert"), уникален для
+  // signed-документа 1095.BillingConversionStatement). Entity-таблицы под
+  // contract billing нет (single-hub v5: источник истины — provider).
+  'p.bil.fund': [],
+
+  // p.bil.pay — billing::pay. Одноактовый: anchor — payment_hash из БД
+  // провайдера (billing_invoice.payment_hash). Без сущностной таблицы.
+  'p.bil.pay': [],
+
   // p.mig.trans — транзитная миграция legacy → ledger2. Единый process_type
   // для 4 миграционных операций (o.mig.*). Entity-hash в сущностных таблицах
   // нет (миграция пишет только wjournal/journal + accounts2/wallets2 deltas).

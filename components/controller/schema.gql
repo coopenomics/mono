@@ -1359,6 +1359,99 @@ type BaseCapitalProject {
   voting: CapitalProjectVotingData!
 }
 
+input BillingConversionStatementGenerateDocumentInput {
+  """Номер блока, на котором был создан документ"""
+  block_num: Int
+
+  """Сумма к конвертации паевого в членский на биллинг-кошелёк"""
+  convert_amount: String!
+
+  """Название кооператива, связанное с документом"""
+  coopname: String!
+
+  """Дата и время создания документа"""
+  created_at: String
+
+  """Имя генератора, использованного для создания документа"""
+  generator: String
+
+  """Язык документа"""
+  lang: String
+
+  """Ссылки, связанные с документом"""
+  links: [String!]
+
+  """Часовой пояс, в котором был создан документ"""
+  timezone: String
+
+  """Название документа"""
+  title: String
+
+  """Имя пользователя, создавшего документ"""
+  username: String!
+
+  """Версия генератора, использованного для создания документа"""
+  version: String
+}
+
+input BillingConversionStatementSignedDocumentInput {
+  """Хэш содержимого документа"""
+  doc_hash: String!
+
+  """Общий хэш (doc_hash + meta_hash)"""
+  hash: String!
+
+  """Метаинформация заявления на конвертацию паевого в биллинг-кошелёк"""
+  meta: BillingConversionStatementSignedMetaDocumentInput!
+
+  """Хэш мета-данных"""
+  meta_hash: String!
+
+  """Вектор подписей"""
+  signatures: [SignatureInfoInput!]!
+
+  """Версия стандарта документа"""
+  version: String!
+}
+
+input BillingConversionStatementSignedMetaDocumentInput {
+  """Номер блока, на котором был создан документ"""
+  block_num: Int!
+
+  """Сумма к конвертации паевого в членский на биллинг-кошелёк"""
+  convert_amount: String!
+
+  """Название кооператива, связанное с документом"""
+  coopname: String!
+
+  """Дата и время создания документа"""
+  created_at: String!
+
+  """Имя генератора, использованного для создания документа"""
+  generator: String!
+
+  """Язык документа"""
+  lang: String!
+
+  """Ссылки, связанные с документом"""
+  links: [String!]!
+
+  """ID документа в реестре"""
+  registry_id: Int!
+
+  """Часовой пояс, в котором был создан документ"""
+  timezone: String!
+
+  """Название документа"""
+  title: String!
+
+  """Имя пользователя, создавшего документ"""
+  username: String!
+
+  """Версия генератора, использованного для создания документа"""
+  version: String!
+}
+
 input BillingConvertInput {
   """
   Сумма с символом, например "1500.0000 RUB"
@@ -1368,8 +1461,10 @@ input BillingConvertInput {
   """Имя аккаунта кооператива"""
   coopname: String!
 
-  """Подписанное пайщиком заявление на конвертацию (document2)"""
-  document: SignedDigitalDocumentInput!
+  """
+  Подписанное пайщиком заявление 1095.BillingConversionStatement (document2 с типизированной meta: convert_amount).
+  """
+  document: BillingConversionStatementSignedDocumentInput!
 
   """Имя аккаунта пайщика — владельца биллинг-кошелька"""
   username: String!
@@ -7548,7 +7643,7 @@ type Mutation {
   addTrustedAccount(data: AddTrustedAccountInput!): Branch!
 
   """
-  Конвертация паевого взноса пайщика в членский на биллинг-кошелёк (operation o.bil.fund). Требует подписанное пайщиком заявление (document2).
+  Конвертация паевого взноса пайщика в членский на биллинг-кошелёк (operation o.bil.fund). Принимает подписанное пайщиком заявление 1095.BillingConversionStatement.
   
   Требуемые роли: user, member, chairman. 
   """
@@ -8349,6 +8444,13 @@ type Mutation {
   Требуемые роли: member. 
   """
   generateBallotForAnnualGeneralMeetDocument(data: AnnualGeneralMeetingVotingBallotGenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
+
+  """
+  Генерирует заявление 1095.BillingConversionStatement (перед подписью пайщиком) — аналог generateConvertToAxonStatement, канон documents-dto.
+  
+  Требуемые роли: member, chairman. 
+  """
+  generateBillingConversionStatement(data: BillingConversionStatementGenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
   """
   Генерирует заявление на конвертацию паевого взноса в членский взнос

@@ -2079,13 +2079,77 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on BaseCapitalProject']?: Omit<ValueTypes["BaseCapitalProject"], "...on BaseCapitalProject">
 }>;
+	["BillingConversionStatementGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null | Variable<any, string>,
+	/** Сумма к конвертации паевого в членский на биллинг-кошелёк */
+	convert_amount: string | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null | Variable<any, string>,
+	/** Язык документа */
+	lang?: string | undefined | null | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null | Variable<any, string>,
+	/** Название документа */
+	title?: string | undefined | null | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null | Variable<any, string>
+};
+	["BillingConversionStatementSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string | Variable<any, string>,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string | Variable<any, string>,
+	/** Метаинформация заявления на конвертацию паевого в биллинг-кошелёк */
+	meta: ValueTypes["BillingConversionStatementSignedMetaDocumentInput"] | Variable<any, string>,
+	/** Хэш мета-данных */
+	meta_hash: string | Variable<any, string>,
+	/** Вектор подписей */
+	signatures: Array<ValueTypes["SignatureInfoInput"]> | Variable<any, string>,
+	/** Версия стандарта документа */
+	version: string | Variable<any, string>
+};
+	["BillingConversionStatementSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number | Variable<any, string>,
+	/** Сумма к конвертации паевого в членский на биллинг-кошелёк */
+	convert_amount: string | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at: string | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator: string | Variable<any, string>,
+	/** Язык документа */
+	lang: string | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links: Array<string> | Variable<any, string>,
+	/** ID документа в реестре */
+	registry_id: number | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string | Variable<any, string>,
+	/** Название документа */
+	title: string | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version: string | Variable<any, string>
+};
 	["BillingConvertInput"]: {
 	/** Сумма с символом, например "1500.0000 RUB" */
 	amount: string | Variable<any, string>,
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>,
-	/** Подписанное пайщиком заявление на конвертацию (document2) */
-	document: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>,
+	/** Подписанное пайщиком заявление 1095.BillingConversionStatement (document2 с типизированной meta: convert_amount). */
+	document: ValueTypes["BillingConversionStatementSignedDocumentInput"] | Variable<any, string>,
 	/** Имя аккаунта пайщика — владельца биллинг-кошелька */
 	username: string | Variable<any, string>
 };
@@ -6606,6 +6670,7 @@ generateAssetContributionAct?: [{	data: ValueTypes["AssetContributionActGenerate
 generateAssetContributionDecision?: [{	data: ValueTypes["AssetContributionDecisionGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateAssetContributionStatement?: [{	data: ValueTypes["AssetContributionStatementGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateBallotForAnnualGeneralMeetDocument?: [{	data: ValueTypes["AnnualGeneralMeetingVotingBallotGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+generateBillingConversionStatement?: [{	data: ValueTypes["BillingConversionStatementGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateConvertToAxonStatement?: [{	data: ValueTypes["ConvertToAxonStatementGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateDocument?: [{	input: ValueTypes["GenerateAnyDocumentInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateFreeDecision?: [{	data: ValueTypes["FreeDecisionGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
@@ -10597,13 +10662,77 @@ export type ResolverInputTypes = {
 	voting?:ResolverInputTypes["CapitalProjectVotingData"],
 		__typename?: boolean | `@${string}`
 }>;
+	["BillingConversionStatementGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Сумма к конвертации паевого в членский на биллинг-кошелёк */
+	convert_amount: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["BillingConversionStatementSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация заявления на конвертацию паевого в биллинг-кошелёк */
+	meta: ResolverInputTypes["BillingConversionStatementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ResolverInputTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["BillingConversionStatementSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Сумма к конвертации паевого в членский на биллинг-кошелёк */
+	convert_amount: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
 	["BillingConvertInput"]: {
 	/** Сумма с символом, например "1500.0000 RUB" */
 	amount: string,
 	/** Имя аккаунта кооператива */
 	coopname: string,
-	/** Подписанное пайщиком заявление на конвертацию (document2) */
-	document: ResolverInputTypes["SignedDigitalDocumentInput"],
+	/** Подписанное пайщиком заявление 1095.BillingConversionStatement (document2 с типизированной meta: convert_amount). */
+	document: ResolverInputTypes["BillingConversionStatementSignedDocumentInput"],
 	/** Имя аккаунта пайщика — владельца биллинг-кошелька */
 	username: string
 };
@@ -15005,6 +15134,7 @@ generateAssetContributionAct?: [{	data: ResolverInputTypes["AssetContributionAct
 generateAssetContributionDecision?: [{	data: ResolverInputTypes["AssetContributionDecisionGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateAssetContributionStatement?: [{	data: ResolverInputTypes["AssetContributionStatementGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateBallotForAnnualGeneralMeetDocument?: [{	data: ResolverInputTypes["AnnualGeneralMeetingVotingBallotGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
+generateBillingConversionStatement?: [{	data: ResolverInputTypes["BillingConversionStatementGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateConvertToAxonStatement?: [{	data: ResolverInputTypes["ConvertToAxonStatementGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateDocument?: [{	input: ResolverInputTypes["GenerateAnyDocumentInput"]},ResolverInputTypes["GeneratedDocument"]],
 generateFreeDecision?: [{	data: ResolverInputTypes["FreeDecisionGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
@@ -18878,13 +19008,77 @@ export type ModelTypes = {
 	/** Данные голосования по методу Водянова */
 	voting: ModelTypes["CapitalProjectVotingData"]
 };
+	["BillingConversionStatementGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Сумма к конвертации паевого в членский на биллинг-кошелёк */
+	convert_amount: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["BillingConversionStatementSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация заявления на конвертацию паевого в биллинг-кошелёк */
+	meta: ModelTypes["BillingConversionStatementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ModelTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["BillingConversionStatementSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Сумма к конвертации паевого в членский на биллинг-кошелёк */
+	convert_amount: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
 	["BillingConvertInput"]: {
 	/** Сумма с символом, например "1500.0000 RUB" */
 	amount: string,
 	/** Имя аккаунта кооператива */
 	coopname: string,
-	/** Подписанное пайщиком заявление на конвертацию (document2) */
-	document: ModelTypes["SignedDigitalDocumentInput"],
+	/** Подписанное пайщиком заявление 1095.BillingConversionStatement (document2 с типизированной meta: convert_amount). */
+	document: ModelTypes["BillingConversionStatementSignedDocumentInput"],
 	/** Имя аккаунта пайщика — владельца биллинг-кошелька */
 	username: string
 };
@@ -23033,7 +23227,7 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	addTrustedAccount: ModelTypes["Branch"],
-	/** Конвертация паевого взноса пайщика в членский на биллинг-кошелёк (operation o.bil.fund). Требует подписанное пайщиком заявление (document2).
+	/** Конвертация паевого взноса пайщика в членский на биллинг-кошелёк (operation o.bil.fund). Принимает подписанное пайщиком заявление 1095.BillingConversionStatement.
 
 Требуемые роли: user, member, chairman.  */
 	billingConvert: ModelTypes["BillingResult"],
@@ -23493,6 +23687,10 @@ export type ModelTypes = {
 
 Требуемые роли: member.  */
 	generateBallotForAnnualGeneralMeetDocument: ModelTypes["GeneratedDocument"],
+	/** Генерирует заявление 1095.BillingConversionStatement (перед подписью пайщиком) — аналог generateConvertToAxonStatement, канон documents-dto.
+
+Требуемые роли: member, chairman.  */
+	generateBillingConversionStatement: ModelTypes["GeneratedDocument"],
 	/** Генерирует заявление на конвертацию паевого взноса в членский взнос
 
 Требуемые роли: member, chairman.  */
@@ -27619,13 +27817,77 @@ export type GraphQLTypes = {
 	voting: GraphQLTypes["CapitalProjectVotingData"],
 	['...on BaseCapitalProject']: Omit<GraphQLTypes["BaseCapitalProject"], "...on BaseCapitalProject">
 };
+	["BillingConversionStatementGenerateDocumentInput"]: {
+		/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Сумма к конвертации паевого в членский на биллинг-кошелёк */
+	convert_amount: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["BillingConversionStatementSignedDocumentInput"]: {
+		/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация заявления на конвертацию паевого в биллинг-кошелёк */
+	meta: GraphQLTypes["BillingConversionStatementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<GraphQLTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["BillingConversionStatementSignedMetaDocumentInput"]: {
+		/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Сумма к конвертации паевого в членский на биллинг-кошелёк */
+	convert_amount: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
 	["BillingConvertInput"]: {
 		/** Сумма с символом, например "1500.0000 RUB" */
 	amount: string,
 	/** Имя аккаунта кооператива */
 	coopname: string,
-	/** Подписанное пайщиком заявление на конвертацию (document2) */
-	document: GraphQLTypes["SignedDigitalDocumentInput"],
+	/** Подписанное пайщиком заявление 1095.BillingConversionStatement (document2 с типизированной meta: convert_amount). */
+	document: GraphQLTypes["BillingConversionStatementSignedDocumentInput"],
 	/** Имя аккаунта пайщика — владельца биллинг-кошелька */
 	username: string
 };
@@ -32031,7 +32293,7 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	addTrustedAccount: GraphQLTypes["Branch"],
-	/** Конвертация паевого взноса пайщика в членский на биллинг-кошелёк (operation o.bil.fund). Требует подписанное пайщиком заявление (document2).
+	/** Конвертация паевого взноса пайщика в членский на биллинг-кошелёк (operation o.bil.fund). Принимает подписанное пайщиком заявление 1095.BillingConversionStatement.
 
 Требуемые роли: user, member, chairman.  */
 	billingConvert: GraphQLTypes["BillingResult"],
@@ -32491,6 +32753,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: member.  */
 	generateBallotForAnnualGeneralMeetDocument: GraphQLTypes["GeneratedDocument"],
+	/** Генерирует заявление 1095.BillingConversionStatement (перед подписью пайщиком) — аналог generateConvertToAxonStatement, канон documents-dto.
+
+Требуемые роли: member, chairman.  */
+	generateBillingConversionStatement: GraphQLTypes["GeneratedDocument"],
 	/** Генерирует заявление на конвертацию паевого взноса в членский взнос
 
 Требуемые роли: member, chairman.  */
@@ -36297,6 +36563,9 @@ type ZEUS_VARIABLES = {
 	["AssetContributionStatementSignedMetaDocumentInput"]: ValueTypes["AssetContributionStatementSignedMetaDocumentInput"];
 	["BankAccountDetailsInput"]: ValueTypes["BankAccountDetailsInput"];
 	["BankAccountInput"]: ValueTypes["BankAccountInput"];
+	["BillingConversionStatementGenerateDocumentInput"]: ValueTypes["BillingConversionStatementGenerateDocumentInput"];
+	["BillingConversionStatementSignedDocumentInput"]: ValueTypes["BillingConversionStatementSignedDocumentInput"];
+	["BillingConversionStatementSignedMetaDocumentInput"]: ValueTypes["BillingConversionStatementSignedMetaDocumentInput"];
 	["BillingConvertInput"]: ValueTypes["BillingConvertInput"];
 	["BillingPayInput"]: ValueTypes["BillingPayInput"];
 	["BuhotchSignerType"]: ValueTypes["BuhotchSignerType"];

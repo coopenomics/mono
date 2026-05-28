@@ -128,8 +128,18 @@ export const AllTypesProps: Record<string,any> = {
 	BankAccountInput:{
 		details:"BankAccountDetailsInput"
 	},
+	BillingConversionStatementGenerateDocumentInput:{
+
+	},
+	BillingConversionStatementSignedDocumentInput:{
+		meta:"BillingConversionStatementSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	BillingConversionStatementSignedMetaDocumentInput:{
+
+	},
 	BillingConvertInput:{
-		document:"SignedDigitalDocumentInput"
+		document:"BillingConversionStatementSignedDocumentInput"
 	},
 	BillingPayInput:{
 
@@ -1037,6 +1047,10 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		generateBallotForAnnualGeneralMeetDocument:{
 			data:"AnnualGeneralMeetingVotingBallotGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		generateBillingConversionStatement:{
+			data:"BillingConversionStatementGenerateDocumentInput",
 			options:"GenerateDocumentOptionsInput"
 		},
 		generateConvertToAxonStatement:{
@@ -3670,6 +3684,7 @@ export const ReturnTypes: Record<string,any> = {
 		generateAssetContributionDecision:"GeneratedDocument",
 		generateAssetContributionStatement:"GeneratedDocument",
 		generateBallotForAnnualGeneralMeetDocument:"GeneratedDocument",
+		generateBillingConversionStatement:"GeneratedDocument",
 		generateConvertToAxonStatement:"GeneratedDocument",
 		generateDocument:"GeneratedDocument",
 		generateFreeDecision:"GeneratedDocument",
