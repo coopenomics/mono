@@ -6,6 +6,7 @@ import {
 import { BillingProviderClient } from '~/infrastructure/billing/billing-provider.client';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import { AmountFormatterUtils } from '~/shared/utils/amount-formatter.utils';
+import { TransactionUtils } from '~/shared/utils/transaction.utils';
 import { Cooperative } from 'cooptypes';
 import { BillingConversionStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/billing-conversion-statement-document.dto';
 import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
@@ -75,7 +76,7 @@ export class BillingService {
       quantity: input.amount,
       document: input.document.toDocument(),
     });
-    return { transactionId: this.extractTransactionId(result) };
+    return { transactionId: TransactionUtils.extractTransactionId(result) };
   }
 
   async pay(input: BillingPayInputDTO): Promise<BillingResultDTO> {
@@ -87,20 +88,8 @@ export class BillingService {
       memo: input.memo,
     });
     return {
-      transactionId: this.extractTransactionId(result),
+      transactionId: TransactionUtils.extractTransactionId(result),
       paymentHash: input.paymentHash,
     };
-  }
-
-  private extractTransactionId(result: unknown): string {
-    if (result && typeof result === 'object' && 'transaction_id' in result) {
-      const tx = (result as { transaction_id?: unknown }).transaction_id;
-      if (typeof tx === 'string') return tx;
-    }
-    if (result && typeof result === 'object' && 'response' in result) {
-      const resp = (result as { response?: { transaction_id?: unknown } }).response;
-      if (resp && typeof resp.transaction_id === 'string') return resp.transaction_id;
-    }
-    return '';
   }
 }
