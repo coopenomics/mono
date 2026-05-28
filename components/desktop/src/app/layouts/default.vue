@@ -120,19 +120,57 @@ interface RouteMetaShape {
   icon?: string;
   roles?: string[];
   hidden?: boolean;
+  conditions?: string;
 }
 
 const userRole = computed<'chairman' | 'member' | 'user'>(() =>
   session.isChairman ? 'chairman' : session.isMember ? 'member' : 'user',
 );
 
-const paletteWorkspaces = computed<CommandPaletteWorkspace[]>(() =>
-  desktop.workspaceMenus.map((ws) => {
+// Контекст для meta.conditions — те же ключи, что и в LeftDrawerMenu
+// (chairman/install.ts использует isOnboardingHidden, participant/soviet —
+// isCoop + coopname).
+const filterContext = computed(() => {
+  const acc = session.currentUserAccount?.private_account;
+  const isCoop =
+    acc?.type === Zeus.AccountType.organization &&
+    !!acc.organization_data &&
+    'type' in acc.organization_data &&
+    (acc.organization_data as { type: string }).type.toUpperCase() ===
+      Zeus.OrganizationType.COOP;
+  return {
+    isCoop: Boolean(isCoop),
+    userRole: userRole.value,
+    coopname: system.info.coopname,
+    isOnboardingHidden:
+      typeof localStorage !== 'undefined' &&
+      localStorage.getItem('chairman-onboarding-hidden') === 'true',
+  };
+});
+
+function evalCondition(
+  condition: string | undefined,
+  ctx: Record<string, unknown>,
+): boolean {
+  if (!condition) return true;
+  try {
+    const fn = new Function(...Object.keys(ctx), `return ${condition};`);
+    return Boolean(fn(...Object.values(ctx)));
+  } catch (e) {
+    console.error('Error evaluating route condition:', e);
+    return false;
+  }
+}
+
+const paletteWorkspaces = computed<CommandPaletteWorkspace[]>(() => {
+  const ctx = filterContext.value;
+  return desktop.workspaceMenus.map((ws) => {
     const children = (ws.mainRoute?.children ?? []) as RouteRecordRaw[];
     const pages = children
       .filter((r) => {
         const meta = (r.meta ?? {}) as RouteMetaShape;
         if (meta.hidden) return false;
+        if (!evalCondition(meta.conditions, ctx)) return false;
         if (meta.roles && meta.roles.length && !meta.roles.includes(userRole.value)) {
           return false;
         }
@@ -153,12 +191,13 @@ const paletteWorkspaces = computed<CommandPaletteWorkspace[]>(() =>
       isActive: ws.workspaceName === desktop.activeWorkspaceName,
       pages,
     };
-  }),
-);
+  });
+});
 
 function onSelectWorkspace(workspaceName: string): void {
   palette.close();
   desktop.selectWorkspace(workspaceName);
+  desktop.closeLeftDrawerOnMobile();
   const ws = desktop.workspaceMenus.find((m) => m.workspaceName === workspaceName);
   if (ws?.mainRoute?.name) {
     void router.push({
@@ -173,6 +212,7 @@ function onSelectPage(workspaceName: string, pageName: string): void {
   if (workspaceName !== desktop.activeWorkspaceName) {
     desktop.selectWorkspace(workspaceName);
   }
+  desktop.closeLeftDrawerOnMobile();
   void router.push({
     name: pageName,
     params: { coopname: system.info.coopname },
