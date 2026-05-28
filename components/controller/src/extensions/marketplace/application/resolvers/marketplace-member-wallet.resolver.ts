@@ -20,13 +20,12 @@ import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.gua
 /**
  * Релевантные стол-заказам USER_SHARED-кошельки по стандарту marketplace
  * (`marketplace/p.mkt.supply.standard.yaml`, секция «wallets»). Порядок
- * соответствует pipeline средств в orderoffer/createorder:
- * `w.wal.share` (деньги) → `w.wal.member` (универсальный членский) →
- * `w.mkt.member` (программный членский ЦПП).
+ * соответствует pipeline средств в createorder: `w.wal.share` (деньги) →
+ * `w.wal.member` (универсальный членский) → `w.mkt.order` (резерв под Order).
  *
- * `label` — UX-метка в формате `<тип взноса> | <программа>` (review
- * @dacom-dark-sun PR #380 line 34). Не та же что `human_name` из
- * cooptypes (там длинное юр.описание); этот label короткий, для panel/list.
+ * `label` — UX-метка в формате `<тип взноса> | <программа>`. Не та же что
+ * `human_name` из cooptypes (там длинное юр.описание); этот label короткий,
+ * для panel/list.
  */
 const MARKETPLACE_RELEVANT_WALLETS: ReadonlyArray<{
   name: string;
@@ -35,7 +34,7 @@ const MARKETPLACE_RELEVANT_WALLETS: ReadonlyArray<{
 }> = [
   { name: 'w.wal.share', program_id: 1, label: 'Паевой | Цифровой Кошелёк' },
   { name: 'w.wal.member', program_id: 1, label: 'Членский | Цифровой Кошелёк' },
-  { name: 'w.mkt.member', program_id: 2, label: 'Членский | Стол Заказов' },
+  { name: 'w.mkt.order', program_id: 2, label: 'Резерв | Стол Заказов' },
 ];
 
 /**
@@ -65,7 +64,7 @@ export class MarketplaceMemberWalletResolver {
   @Query(() => MarketplaceMemberWalletDTO, {
     name: 'marketplaceMemberWallet',
     description:
-      'Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.member',
+      'Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.order',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard)
   async marketplaceMemberWallet(

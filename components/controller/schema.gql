@@ -8137,7 +8137,7 @@ type MarketplaceMemberWallet {
   username: String!
 
   """
-  Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.member
+  Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.order
   """
   wallets: [MarketplaceWalletEntry!]!
 }
@@ -8346,20 +8346,14 @@ type MarketplaceOrder {
 }
 
 """
-Снимок транзакции блокировки средств: ссылки на блок, флаги конверсии и сумма.
+Снимок транзакции резервирования средств: ссылки на блок и сумма резерва.
 """
 type MarketplaceOrderCreateTxSnapshot {
   """Номер блока, в который попала транзакция."""
   block_num: Int!
 
-  """Сумма заблокированных средств (строка денежного актива)."""
-  blocked_amount: String!
-
-  """Был ли выполнен перевод средств между кошельками пайщика."""
-  did_assign: Boolean!
-
-  """Была ли выполнена конверсия паевого взноса в членский."""
-  did_convert: Boolean!
+  """Сумма зарезервированных средств (строка денежного актива)."""
+  locked_amount: String!
 
   """Время подписания заказа (ISO 8601)."""
   signed_at: String!
@@ -9254,7 +9248,9 @@ type MarketplaceWalletEntry {
   """Доступный остаток (`userwallets.available`)"""
   available: String!
 
-  """Заблокированный остаток (`userwallets.blocked`)"""
+  """
+  Заблокированный остаток (`userwallets.blocked`). Для marketplace-кошельков всегда `0` — резерв выражается через `.available` кошелька w.mkt.order. Поле остаётся для wallet/withdraw flow и legacy данных.
+  """
   blocked: String!
 
   """Человекочитаемое название (из cooptypes LEDGER2_WALLET_REGISTRY)"""
@@ -9268,7 +9264,7 @@ type MarketplaceWalletEntry {
   """
   label: String!
 
-  """eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.member)"""
+  """eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.order)"""
   name: String!
 
   """program_id: 1 — Цифровой Кошелёк, 2 — Стол Заказов"""
@@ -13286,7 +13282,7 @@ type Query {
   marketplaceListWriteoffProposals(data: MarketplaceListWriteoffProposalsInput!, options: PaginationInput): PaginatedMarketplaceWriteoffProposals!
 
   """
-  Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.member
+  Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.order
   """
   marketplaceMemberWallet: MarketplaceMemberWallet!
 

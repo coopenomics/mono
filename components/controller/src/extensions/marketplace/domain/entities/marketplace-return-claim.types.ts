@@ -1,8 +1,8 @@
 /**
  * Эпик 7 (Story 7.1-7.4): типы заявления на гарантийный возврат имущества.
  * Backend-only state machine, on-chain якорь — `marketplace::return_request`
- * (анкер процесса p.mkt.return). Compensating-forward пара
- * `o.mkt.return + o.mkt.return2` через транзит 91 выполняется в `accretrn`.
+ * (анкер процесса p.mkt.return). Compensating-forward `o.mkt.return`
+ * (ISSUE w.wal.member, Дт 10 / Кт 86) выполняется в `accretrn`.
  *
  * Источник правды графа состояний — `p.mkt.return.standard.yaml` секция
  * `states:`; контрактные имена статусов в `ReturnStatus::*` ядра
@@ -30,8 +30,8 @@ export const MarketplaceReturnClaimDefectCategories = {
 
 /**
  * Какое разрешение ожидает пайщик. В MVP — только возврат средств на
- * программный кошелёк (`w.mkt.member.available`). Расширения (`REPLACEMENT`,
- * `REPAIR`) — Phase 2 (out of MVP).
+ * универсальный членский кошелёк (`w.wal.member.available`). Расширения
+ * (`REPLACEMENT`, `REPAIR`) — Phase 2 (out of MVP).
  */
 export type MarketplaceReturnClaimExpectedResolution = 'FUNDS_RETURN';
 
@@ -101,9 +101,9 @@ export interface MarketplaceReturnClaimDecisionLogEntry {
 }
 
 /**
- * Снапшот compensating-forward пары `o.mkt.return + o.mkt.return2`,
- * выполненной в композитной транзакции `accretrn` (Story 7.4). Снимок —
- * для архива и UI; источник правды — ledger2 journal.
+ * Снапшот compensating-forward `o.mkt.return`, выполненной в транзакции
+ * `accretrn` (Story 7.4). Снимок — для архива и UI; источник правды —
+ * ledger2 journal.
  */
 export interface MarketplaceReturnClaimLedgerSnapshot {
   /** Сумма compensating forward (равна order.fact_cost для returned_quantity = actual_quantity Order'а). */

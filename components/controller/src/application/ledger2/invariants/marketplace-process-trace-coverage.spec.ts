@@ -36,33 +36,27 @@ import {
 import { MARKETPLACE_OPERATION_CODES } from './marketplace-ledger2-invariants'
 
 /**
- * Canonical список marketplace-операций (13 шт), полностью покрывающих
+ * Canonical список marketplace-операций (7 шт), полностью покрывающих
  * жизненный цикл Order'а, гарантийного возврата и списания скоропорта.
  * Если этот список расходится с `Ledger2.LEDGER2_OPERATION_REGISTRY` —
  * это поломка контракта/cooptypes.
  */
 const EXPECTED_MARKETPLACE_OP_CODES = [
-  // p.mkt.supply (8 операций)
-  'o.wal.conv', // conditional шаг createorder
-  'o.mkt.assign',
-  'o.mkt.block',
-  'o.mkt.unblk',
-  'o.mkt.recall',
+  // p.mkt.supply (5 операций)
+  'o.mkt.lock',
+  'o.mkt.unlock',
   'o.mkt.purch',
   'o.mkt.payout',
   'o.mkt.consum',
-  'o.mkt.consum2',
-  // p.mkt.return (2)
+  // p.mkt.return (1)
   'o.mkt.return',
-  'o.mkt.return2',
-  // p.mkt.wroff (2)
+  // p.mkt.wroff (1)
   'o.mkt.wroff',
-  'o.mkt.wroff2',
 ] as const
 
-describe('Story 11.2 — coverage 13 marketplace operation_code в cooptypes', () => {
-  it('canonical список содержит ровно 13 кодов', () => {
-    expect(EXPECTED_MARKETPLACE_OP_CODES).toHaveLength(13)
+describe('Story 11.2 — coverage marketplace operation_code в cooptypes', () => {
+  it('canonical список содержит 7 кодов', () => {
+    expect(EXPECTED_MARKETPLACE_OP_CODES).toHaveLength(7)
   })
 
   it('каждый код присутствует в LEDGER2_OPERATION_REGISTRY', () => {
@@ -125,41 +119,17 @@ describe('Story 11.2 — wallet_op + Дт/Кт реестра соответст
    */
   const EXPECTED_REGISTRY = [
     {
-      code: 'o.wal.conv',
+      code: 'o.mkt.lock',
       walletOp: 'TRANSFER',
       walletFrom: 'w.wal.share',
-      walletTo: 'w.wal.member',
+      walletTo: 'w.mkt.order',
       debit: 80,
       credit: 86,
     },
     {
-      code: 'o.mkt.assign',
+      code: 'o.mkt.unlock',
       walletOp: 'TRANSFER',
-      walletFrom: 'w.wal.member',
-      walletTo: 'w.mkt.member',
-      debit: null,
-      credit: null,
-    },
-    {
-      code: 'o.mkt.block',
-      walletOp: 'BLOCK',
-      walletFrom: 'w.mkt.member',
-      walletTo: null,
-      debit: null,
-      credit: null,
-    },
-    {
-      code: 'o.mkt.unblk',
-      walletOp: 'UNBLOCK',
-      walletFrom: 'w.mkt.member',
-      walletTo: null,
-      debit: null,
-      credit: null,
-    },
-    {
-      code: 'o.mkt.recall',
-      walletOp: 'TRANSFER',
-      walletFrom: 'w.mkt.member',
+      walletFrom: 'w.mkt.order',
       walletTo: 'w.wal.member',
       debit: null,
       credit: null,
@@ -182,51 +152,27 @@ describe('Story 11.2 — wallet_op + Дт/Кт реестра соответст
     },
     {
       code: 'o.mkt.consum',
-      walletOp: 'REVOKE',
-      walletFrom: 'w.mkt.member',
-      walletTo: null,
-      debit: 91,
-      credit: 10,
-    },
-    {
-      code: 'o.mkt.consum2',
-      walletOp: 'NONE',
-      walletFrom: null,
+      walletOp: 'BURN',
+      walletFrom: 'w.mkt.order',
       walletTo: null,
       debit: 86,
-      credit: 91,
+      credit: 10,
     },
     {
       code: 'o.mkt.return',
       walletOp: 'ISSUE',
       walletFrom: null,
-      walletTo: 'w.mkt.member',
-      debit: 91,
-      credit: 86,
-    },
-    {
-      code: 'o.mkt.return2',
-      walletOp: 'NONE',
-      walletFrom: null,
-      walletTo: null,
+      walletTo: 'w.wal.member',
       debit: 10,
-      credit: 91,
+      credit: 86,
     },
     {
       code: 'o.mkt.wroff',
       walletOp: 'NONE',
       walletFrom: null,
       walletTo: null,
-      debit: 91,
-      credit: 10,
-    },
-    {
-      code: 'o.mkt.wroff2',
-      walletOp: 'NONE',
-      walletFrom: null,
-      walletTo: null,
       debit: 86,
-      credit: 91,
+      credit: 10,
     },
   ] as const
 
@@ -314,13 +260,10 @@ describe('Story 11.2 — синтетическая трассировка apply
   it('full-flow happy supply (createorder → signsupp → signiss2) — одна process_hash, все операции under p.mkt.supply', () => {
     const processHash = 'supply-flow-hash'
     const sequence = [
-      'o.wal.conv',
-      'o.mkt.assign',
-      'o.mkt.block',
+      'o.mkt.lock',
       'o.mkt.purch',
       'o.mkt.payout',
       'o.mkt.consum',
-      'o.mkt.consum2',
     ]
     const allRows: ActionRow[] = []
     for (const code of sequence) {
@@ -337,12 +280,9 @@ describe('Story 11.2 — синтетическая трассировка apply
     }
   })
 
-  it('full-flow return (submretrn → approve) — обе операции under p.mkt.return', () => {
+  it('full-flow return (submretrn → approve) — o.mkt.return under p.mkt.return', () => {
     const processHash = 'return-flow-hash'
-    const rows = [
-      ...buildTriadeForOp('o.mkt.return', processHash),
-      ...buildTriadeForOp('o.mkt.return2', processHash),
-    ]
+    const rows = buildTriadeForOp('o.mkt.return', processHash)
     const applies = rows.filter((r) => r.name === 'apply')
     for (const apply of applies) {
       expect(OPERATION_CODE_TO_PROCESS_TYPE[apply.data.operation_code as string]).toBe(
@@ -351,12 +291,9 @@ describe('Story 11.2 — синтетическая трассировка apply
     }
   })
 
-  it('full-flow writeoff (execwroff atomic) — обе операции under p.mkt.wroff', () => {
+  it('full-flow writeoff (execwroff) — o.mkt.wroff under p.mkt.wroff', () => {
     const processHash = 'wroff-flow-hash'
-    const rows = [
-      ...buildTriadeForOp('o.mkt.wroff', processHash),
-      ...buildTriadeForOp('o.mkt.wroff2', processHash),
-    ]
+    const rows = buildTriadeForOp('o.mkt.wroff', processHash)
     const applies = rows.filter((r) => r.name === 'apply')
     for (const apply of applies) {
       expect(OPERATION_CODE_TO_PROCESS_TYPE[apply.data.operation_code as string]).toBe(

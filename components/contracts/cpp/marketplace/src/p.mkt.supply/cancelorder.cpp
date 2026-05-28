@@ -1,9 +1,9 @@
 /**
  * @brief Заказчик отменяет заказ до акцепта поставщиком (Story 4.4, p.mkt.supply).
  *
- * Триггерит `o.mkt.unblk` на full `order.total_cost`. Сумма остаётся на
- * `w.mkt.member.available` заказчика — может быть потрачена на следующий
- * заказ программы либо выведена явным `o.mkt.recall` (отдельное действие).
+ * Триггерит `o.mkt.unlock` на full `order.total_cost` — TRANSFER w.mkt.order →
+ * w.wal.member (снятие резерва). Сумма возвращается на универсальный членский
+ * `w.wal.member.available` заказчика — может быть потрачена в членских программах.
  *
  * Guards:
  *  - Order существует.
@@ -24,7 +24,7 @@ void marketplace::cancelorder(eosio::name coopname,
                "Нельзя отменить заказ: он уже акцептован поставщиком");
 
   Ledger2::apply(_marketplace, coopname,
-                 operations::marketplace::UNBLOCK_ON_CANCEL,
+                 operations::marketplace::UNLOCK_ORDER,
                  o.total_cost, orderer, o.hash,
                  Marketplace::Memo::get_cancel_order_memo(o.id));
 

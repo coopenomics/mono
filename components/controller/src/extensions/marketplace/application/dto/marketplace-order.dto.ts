@@ -67,7 +67,7 @@ export class MarketplaceOrderIssuanceFactSnapshotDTO {
 }
 
 @ObjectType('MarketplaceOrderCreateTxSnapshot', {
-  description: 'Снимок транзакции блокировки средств: ссылки на блок, флаги конверсии и сумма.',
+  description: 'Снимок транзакции резервирования средств: ссылки на блок и сумма резерва.',
 })
 export class MarketplaceOrderCreateTxSnapshotDTO {
   @Field(() => String, { description: 'Идентификатор транзакции в блокчейне.' })
@@ -76,14 +76,8 @@ export class MarketplaceOrderCreateTxSnapshotDTO {
   @Field(() => Int, { description: 'Номер блока, в который попала транзакция.' })
   public readonly block_num!: number;
 
-  @Field(() => Boolean, { description: 'Была ли выполнена конверсия паевого взноса в членский.' })
-  public readonly did_convert!: boolean;
-
-  @Field(() => Boolean, { description: 'Был ли выполнен перевод средств между кошельками пайщика.' })
-  public readonly did_assign!: boolean;
-
-  @Field(() => String, { description: 'Сумма заблокированных средств (строка денежного актива).' })
-  public readonly blocked_amount!: string;
+  @Field(() => String, { description: 'Сумма зарезервированных средств (строка денежного актива).' })
+  public readonly locked_amount!: string;
 
   @Field(() => String, { description: 'Время подписания заказа (ISO 8601).' })
   public readonly signed_at!: string;

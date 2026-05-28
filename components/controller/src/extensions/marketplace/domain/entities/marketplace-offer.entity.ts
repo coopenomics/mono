@@ -10,10 +10,10 @@ import type {
  *
  * Offer — pure db-сущность Стола заказов (не реплицируется в blockchain
  * 1:1). On-chain представления появляются на уровне Order'а (Эпик 4
- * через `o.mkt.assign/block/unblock` из PR #375). Поля
- * `quantity_blocked`/`quantity_consumed` подготовлены под Story 3.4
- * counters; `approved_by`/`approved_at`/`rejected_by`/`rejected_at`/
- * `reject_reason` — под Story 3.3 модерацию.
+ * через `o.mkt.lock`/`o.mkt.unlock`). Поля `quantity_blocked`/
+ * `quantity_consumed` подготовлены под Story 3.4 counters;
+ * `approved_by`/`approved_at`/`rejected_by`/`rejected_at`/`reject_reason`
+ * — под Story 3.3 модерацию.
  *
  * Поля `cycle_days`/`target_volume`/`max_wait_days`/`min_threshold`
  * заполняются опционально в зависимости от `cycle_type` — валидация на

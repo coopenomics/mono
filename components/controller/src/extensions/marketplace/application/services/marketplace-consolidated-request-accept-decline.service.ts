@@ -57,7 +57,7 @@ export interface MarketplaceConsolidatedRequestActionResult {
  *
  * Decline (batch):
  *  1. Guard: как в accept + требуется `reason`.
- *  2. Per-Order chain `declineOrder` (C++ серия: o.mkt.unblk на
+ *  2. Per-Order chain `declineOrder` (C++ серия: o.mkt.unlock на
  *     total_cost + on-chain статус active→cancelled).
  *  3. Counter `onOrderUnblocked` per-Order (best-effort: warn на fail).
  *  4. applyStatusTransition Order: ACCEPTED_PENDING_SUPPLIER →

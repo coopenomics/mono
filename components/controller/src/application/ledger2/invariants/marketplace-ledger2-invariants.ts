@@ -62,7 +62,7 @@ export interface MarketplaceLedger2OperationRow {
 
 /** Текущий баланс кошелька (`getLedger2Wallets` row). */
 export interface MarketplaceWalletRow {
-  wallet: string // 'w.mkt.member' / 'w.mkt.payout' / ...
+  wallet: string // 'w.mkt.order' / 'w.mkt.payout' / ...
   balance: string // asset «100.0000 RUB»
   blocked?: string | null
 }
@@ -177,12 +177,12 @@ export function checkInvariantI1PayoutBalance(
 //   Δ86_marketplace = Σ credit(86, mkt) − Σ debit(86, mkt)
 //
 // Marketplace contribution на счёт 86 формирует:
-//   + o.wal.conv     (Cr 86, +)   — конвертация цифрового рубля в членский
+//   + o.mkt.lock     (Cr 86, +)   — резервирование (Дт 80 / Кт 86)
 //   + o.mkt.purch    (Cr 86, +)   — приём имущества
-//   + o.mkt.consum2  (Dr 86, −)   — закрытие транзита при выдаче пайщику
+//   + o.mkt.consum   (Dr 86, −)   — выдача имущества пайщику
 //   + o.mkt.return   (Cr 86, +)   — гарантийный возврат восстанавливает ЦФ
 //   + o.mkt.payout   (Dr 86, −)   — выплата поставщику
-//   + o.mkt.wroff2   (Dr 86, −)   — списание скоропорта закрывает транзит
+//   + o.mkt.wroff    (Dr 86, −)   — списание скоропорта
 //
 // Инвариант не требует наличия конкретного balance(86), но проверяет, что
 // `delta` от marketplace в принципе считается без NaN/расхождений в подсчётах
@@ -230,7 +230,7 @@ export function checkInvariantI2Account86Delta(
 //   +o.mkt.purch  (Dr 10)
 //   −o.mkt.consum (Cr 10)
 //   −o.mkt.wroff  (Cr 10)
-//   +o.mkt.return2 (Dr 10)
+//   +o.mkt.return (Dr 10)
 //
 // Сверяем delta по 10 с показанием `getLedger2Accounts.balance(10)`.
 // Если на входе нет accounts[10] — return ok с computed=delta (для
@@ -273,23 +273,11 @@ export function checkInvariantI3Account10Materials(
 }
 
 // ---------------------------------------------------------------------------
-// I4 — Транзитный счёт 91 в стационарном состоянии = 0.
+// I4 — Счёт 91 в marketplace = 0.
 //
-// 91 «Прочие доходы и расходы» используется как транзит между «выбытием» и
-// «закрытием на ЦФ» в составных операциях marketplace:
-//   o.mkt.consum  (Dr 91 / Cr 10)
-//   o.mkt.consum2 (Dr 86 / Cr 91)
-//   o.mkt.return  (Dr 91 / Cr 86)
-//   o.mkt.return2 (Dr 10 / Cr 91)
-//   o.mkt.wroff   (Dr 91 / Cr 10)
-//   o.mkt.wroff2  (Dr 86 / Cr 91)
-//
-// Каждая ПАРА (X / X2) идёт под одним process_hash и закрывается атомарно.
-// Поэтому для каждого process_hash sum(Dr 91) = sum(Cr 91). Глобально после
-// всех закрытых процессов: Σ debit(91) − Σ credit(91) = 0.
-//
-// Если найден process_hash, у которого 91 не сбалансировано — это нарушение
-// (либо процесс ещё не закрыт, либо багаль в композите).
+// 91 «Прочие доходы и расходы» в marketplace-операциях не используется —
+// все выбытие/возврат имущества идут напрямую между 10 и 86. Этот
+// инвариант для marketplace-rows тривиально пройден (Σ marketplace 91 = 0).
 // ---------------------------------------------------------------------------
 export function checkInvariantI4Account91Transit(
   rows: readonly MarketplaceLedger2OperationRow[],
@@ -332,97 +320,100 @@ export function checkInvariantI4Account91Transit(
 }
 
 // ---------------------------------------------------------------------------
-// I5 — Согласованность блокировок в членских кошельках:
-//   sum(BLOCK w.mkt.member) − sum(UNBLOCK w.mkt.member) − sum(REVOKE w.mkt.member)
-//     = sum(blocked у w.mkt.member-кошельков пайщиков).
+// I5 — Согласованность резерва под Order на кошельке w.mkt.order:
+//   sum(TRANSFER w.wal.share → w.mkt.order)         // o.mkt.lock   — резерв вошёл (Дт 80 / Кт 86)
+//   − sum(TRANSFER w.mkt.order → w.wal.member)      // o.mkt.unlock — резерв снят (без проводки)
+//   − sum(BURN w.mkt.order)                         // o.mkt.consum — резерв сожжён (Дт 86 / Кт 10)
+//     = sum(available у w.mkt.order-кошельков пайщиков).
 //
-// (o.mkt.block → BLOCK, o.mkt.unblk → UNBLOCK, o.mkt.consum → REVOKE.)
+// Архитектура 2026-05-28: средства заказчика идут с паевого (w.wal.share)
+// напрямую на резерв-кошелёк w.mkt.order при createorder; возврат при отмене
+// поступает на универсальный членский w.wal.member.
 //
-// На входе тестов wallets обычно содержит aggregated blocked по всем
-// w.mkt.member-row. Можно подать одну строку с агрегированным `blocked`.
+// На входе тестов wallets обычно содержит aggregated available по всем
+// w.mkt.order-row. Можно подать одну строку с агрегированным `balance`.
 // ---------------------------------------------------------------------------
-export function checkInvariantI5BlockedConsistency(
+export function checkInvariantI5ReserveConsistency(
   rows: readonly MarketplaceLedger2OperationRow[],
   wallets: readonly MarketplaceWalletRow[],
 ): InvariantResult {
   let computed = 0n
   for (const r of rows) {
     if (r.action !== 'walletop') continue
-    if (r.walletFrom !== 'w.mkt.member' && r.walletTo !== 'w.mkt.member') continue
-    if (r.walletFrom === 'w.mkt.member' && r.walletTo == null) {
-      // BLOCK или UNBLOCK или REVOKE — отличаем по operationCode parent apply.
-      // Здесь без apply parent — считаем «направление» по `operationCode`-
-      // подсказке, если она есть; иначе пользователь подаёт уже отфильтрованный
-      // массив. В тестах operationCode подсказка приходит в каждой walletop
-      // через apply-parent reconstruction (см. process-trace-coverage.spec).
-      const opCode = r.operationCode
-      if (opCode === 'o.mkt.block') computed += parseAssetToBigInt(r.quantity)
-      else if (opCode === 'o.mkt.unblk') computed -= parseAssetToBigInt(r.quantity)
-      else if (opCode === 'o.mkt.consum') computed -= parseAssetToBigInt(r.quantity)
+    // o.mkt.lock: TRANSFER w.wal.share → w.mkt.order  (резерв входит)
+    if (r.walletFrom === 'w.wal.share' && r.walletTo === 'w.mkt.order') {
+      computed += parseAssetToBigInt(r.quantity)
+    }
+    // o.mkt.unlock: TRANSFER w.mkt.order → w.wal.member  (резерв снят)
+    else if (r.walletFrom === 'w.mkt.order' && r.walletTo === 'w.wal.member') {
+      computed -= parseAssetToBigInt(r.quantity)
+    }
+    // o.mkt.consum: BURN w.mkt.order  (резерв сожжён при выдаче)
+    else if (r.walletFrom === 'w.mkt.order' && r.walletTo == null) {
+      computed -= parseAssetToBigInt(r.quantity)
     }
   }
-  const memberWallets = wallets.filter((w) => w.wallet === 'w.mkt.member')
-  let totalBlocked = 0n
-  for (const w of memberWallets) {
-    if (w.blocked) totalBlocked += parseAssetToBigInt(w.blocked)
+  const orderWallets = wallets.filter((w) => w.wallet === 'w.mkt.order')
+  let totalReserve = 0n
+  for (const w of orderWallets) {
+    totalReserve += parseAssetToBigInt(w.balance)
   }
-  if (computed !== totalBlocked) {
+  if (computed !== totalReserve) {
     return {
       ok: false,
       invariant: 'I5',
       expected: formatBigIntAsset(computed),
-      actual: formatBigIntAsset(totalBlocked),
+      actual: formatBigIntAsset(totalReserve),
       violation:
-        'I5: блокировки в w.mkt.member не совпадают с историей BLOCK − UNBLOCK − REVOKE. ' +
-        'Возможный источник: пропущенный unblk при отмене Order или повторный block без unblk.',
+        'I5: резерв на w.mkt.order не совпадает с историей lock − unlock − consum. ' +
+        'Возможный источник: пропущенный unlock при отмене Order или повторный lock без unlock.',
     }
   }
   return { ok: true, invariant: 'I5', expected: formatBigIntAsset(computed) }
 }
 
 // ---------------------------------------------------------------------------
-// I6 — Нет зависших o.mkt.block: каждому BLOCK по process_hash должен
-// соответствовать либо UNBLOCK (отмена Order), либо REVOKE через consum
-// (выдача), либо открытый Order (process ещё активен — здесь не проверяем).
+// I6 — Парность операций в жизненном цикле Order'а: каждому o.mkt.lock по
+// process_hash должно соответствовать либо o.mkt.unlock (отмена Order), либо
+// o.mkt.consum (выдача), либо открытый Order (process ещё активен — здесь
+// не проверяем).
 //
-// Здесь обязательная корректировка под жизненный цикл Order'а: одна и та же
-// process_hash (= order_hash) может содержать block + unblk (отмена), block +
-// consum (выдача) или только block (активный Order, не нарушение).
-// Нарушение = block + unblk + consum суммарно превышают/недотягивают block,
-// либо block уже завершился, но есть оставшийся `block`-amount без сопровождения.
+// Одна process_hash (= order_hash) может содержать lock + unlock (отмена),
+// lock + consum (выдача) или только lock (активный Order, не нарушение).
 //
 // Для статической проверки в CI рассматриваем закрытые процессы: если в
-// процессе есть и o.mkt.block и o.mkt.unblk без o.mkt.consum, либо есть
-// o.mkt.consum без o.mkt.block — нарушение.
+// процессе есть o.mkt.unlock без o.mkt.lock, или есть o.mkt.consum без
+// o.mkt.lock — нарушение. Если есть все три (lock + unlock + consum) —
+// тоже нарушение (двойное закрытие резерва).
 // ---------------------------------------------------------------------------
-export function checkInvariantI6NoOrphanedBlocks(
+export function checkInvariantI6NoOrphanedReserves(
   rows: readonly MarketplaceLedger2OperationRow[],
 ): InvariantResult {
   const applyIndex = indexApplyOperationsByProcessHash(rows)
   const violations: Array<{ processHash: string; message: string }> = []
 
   for (const [processHash, codes] of applyIndex) {
-    const hasBlock = codes.includes('o.mkt.block')
-    const hasUnblock = codes.includes('o.mkt.unblk')
+    const hasLock = codes.includes('o.mkt.lock')
+    const hasUnlock = codes.includes('o.mkt.unlock')
     const hasConsum = codes.includes('o.mkt.consum')
 
-    if (hasConsum && !hasBlock) {
+    if (hasConsum && !hasLock) {
       violations.push({
         processHash,
         message:
-          'consum без предшествующего block — невозможно списать заблокированный членский, которого не было.',
+          'consum без предшествующего lock — невозможно списать резерв, которого не было.',
       })
     }
-    if (hasUnblock && !hasBlock) {
+    if (hasUnlock && !hasLock) {
       violations.push({
         processHash,
-        message: 'unblk без block — невозможно разблокировать то, что не блокировалось.',
+        message: 'unlock без lock — невозможно снять резерв, который не вносился.',
       })
     }
-    if (hasBlock && hasUnblock && hasConsum) {
+    if (hasLock && hasUnlock && hasConsum) {
       violations.push({
         processHash,
-        message: 'block + unblk + consum в одном процессе — двойное закрытие блокировки.',
+        message: 'lock + unlock + consum в одном процессе — двойное закрытие резерва.',
       })
     }
   }
@@ -430,7 +421,7 @@ export function checkInvariantI6NoOrphanedBlocks(
     return {
       ok: false,
       invariant: 'I6',
-      violation: 'I6: обнаружены процессы с некорректной парностью block/unblk/consum.',
+      violation: 'I6: обнаружены процессы с некорректной парностью lock/unlock/consum.',
       details: violations,
     }
   }
@@ -451,8 +442,8 @@ export function checkAllMarketplaceLedger2Invariants(
     checkInvariantI2Account86Delta(rows),
     checkInvariantI3Account10Materials(rows, accounts),
     checkInvariantI4Account91Transit(rows),
-    checkInvariantI5BlockedConsistency(rows, wallets),
-    checkInvariantI6NoOrphanedBlocks(rows),
+    checkInvariantI5ReserveConsistency(rows, wallets),
+    checkInvariantI6NoOrphanedReserves(rows),
   ]
 }
 

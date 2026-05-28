@@ -229,7 +229,7 @@ describe('MarketplaceOrderCreateService', () => {
 
     expect(result.tx_snapshot.tx_hash).toBe('tx-hash-xyz');
     expect(result.tx_snapshot.block_num).toBe(9_999_999);
-    expect(result.tx_snapshot.blocked_amount).toBe('300.0000'); // 2 × 150
+    expect(result.tx_snapshot.locked_amount).toBe('300.0000'); // 2 × 150
     expect(result.order.id).toBe('order-uuid-new');
 
     const chainArgs = mocks.chainPort.createOrder.mock.calls[0][0];

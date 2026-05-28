@@ -1,16 +1,18 @@
 /**
- * Unit-тесты MarketplaceMemberWalletResolver (Story 1.5, review-fix 2026-05-14).
+ * Unit-тесты MarketplaceMemberWalletResolver.
  *
- * После review @dacom-dark-sun (PR #380) resolver перепиcан:
- *   - Возвращает массив всех 3 USER_SHARED-кошельков стандарта marketplace
- *     (`w.wal.share`, `w.wal.member`, `w.mkt.member`) — каждый со своим
- *     `name`/`human_name`/`available`/`blocked`, без сворачивания и без
- *     старой нотации `membership_contribution`.
- *   - Источник — core `UserWalletRepository.findByUsername` (PG-кеш
- *     `ledger2::userwallets`), не свёрнутый `WalletService.getProgramWallet`.
- *   - Пайщик без L3-записи по конкретному кошельку → `0/0` (рабочее состояние,
- *     а не ошибка) — например, `w.mkt.member` появляется только после
- *     первого `orderoffer`/`createorder`.
+ * Resolver возвращает массив 3-х USER_SHARED-кошельков стандарта marketplace:
+ *   - `w.wal.share`  — паевые взносы деньгами (program_id=1).
+ *   - `w.wal.member` — универсальный членский (program_id=1). Источник средств
+ *                       при createorder и приёмник при отмене/возврате.
+ *   - `w.mkt.order`  — резерв под Order (program_id=2). Введён 2026-05-28
+ *                       взамен механики .blocked на программном кошельке.
+ *
+ * Каждый кошелёк со своим `name`/`human_name`/`available`/`blocked`, без
+ * сворачивания. Источник — core `UserWalletRepository.findByUsername`
+ * (PG-кеш `ledger2::userwallets`). Пайщик без L3-записи по конкретному
+ * кошельку → `0/0` (рабочее состояние, а не ошибка) — например,
+ * `w.mkt.order` появляется только после первого `createorder`.
  */
 
 jest.mock('~/config/config', () => ({
@@ -33,10 +35,10 @@ const member = {
 };
 
 describe('MarketplaceMemberWalletResolver', () => {
-  it('пайщик с записями share + mkt.member → массив из 3 кошельков, w.wal.member нулевой', async () => {
+  it('пайщик с записями share + mkt.order → массив из 3 кошельков, member нулевой', async () => {
     const repo = makeRepo([
       { wallet_name: 'w.wal.share', available: '125.0000 RUB', blocked: '5.0000 RUB' },
-      { wallet_name: 'w.mkt.member', available: '300.0000 RUB', blocked: '0.0000 RUB' },
+      { wallet_name: 'w.mkt.order', available: '80.0000 RUB', blocked: '0.0000 RUB' },
       // нерелевантные стол-заказам кошельки не должны попасть в выдачу
       { wallet_name: 'w.cap.blago', available: '999.0000 RUB', blocked: '0.0000 RUB' },
     ]);
@@ -65,10 +67,10 @@ describe('MarketplaceMemberWalletResolver', () => {
       blocked: '0',
     });
     expect(dto.wallets[2]).toMatchObject({
-      name: 'w.mkt.member',
+      name: 'w.mkt.order',
       program_id: 2,
-      label: 'Членский | Стол Заказов',
-      available: '300.0000 RUB',
+      label: 'Резерв | Стол Заказов',
+      available: '80.0000 RUB',
       blocked: '0.0000 RUB',
     });
   });
@@ -84,7 +86,11 @@ describe('MarketplaceMemberWalletResolver', () => {
       expect(w.available).toBe('0');
       expect(w.blocked).toBe('0');
     }
-    expect(dto.wallets.map((w) => w.name)).toEqual(['w.wal.share', 'w.wal.member', 'w.mkt.member']);
+    expect(dto.wallets.map((w) => w.name)).toEqual([
+      'w.wal.share',
+      'w.wal.member',
+      'w.mkt.order',
+    ]);
   });
 
   it('human_name подтягивается из cooptypes LEDGER2_WALLET_REGISTRY', async () => {
@@ -95,7 +101,7 @@ describe('MarketplaceMemberWalletResolver', () => {
 
     expect(dto.wallets[0].human_name).toBe('Паевой взнос пайщика');
     expect(dto.wallets[1].human_name).toBe('ЦК — членская часть пайщика');
-    expect(dto.wallets[2].human_name).toBe('ЦПП «Стол Заказов» — программный членский у пайщика');
+    expect(dto.wallets[2].human_name).toBe('ЦПП «Стол Заказов» — резерв под заказ у пайщика');
   });
 
   it('w.mkt.payout (COOPERATIVE) не попадает в выдачу — это кооперативный кошелёк, не пайщика', async () => {

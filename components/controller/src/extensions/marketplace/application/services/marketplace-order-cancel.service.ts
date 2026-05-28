@@ -40,9 +40,9 @@ export interface MarketplaceOrderCancelResult {
  *      backend hook'ом — отмена заказчиком возможна, пока поставщик не
  *      нажал Accept (он же может decline → Story 4.5).
  *
- *   2. Chain submit `cancelorder` через canonical adapter. C++ серия:
- *      `o.mkt.unblk` на full `total_cost` (сумма возвращается на
- *      `w.mkt.member.available` пайщика) + on-chain Order.status:
+ *   2. Chain submit `cancelorder` через canonical adapter. C++:
+ *      `o.mkt.unlock` на full `total_cost` (сумма возвращается на
+ *      `w.wal.member.available` пайщика) + on-chain Order.status:
  *      ACTIVE → CANCELLED.
  *
  *   3. Counter `onOrderUnblocked(offer_id, quantity)` — `quantity_blocked`
