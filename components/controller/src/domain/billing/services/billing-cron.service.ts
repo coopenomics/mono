@@ -6,6 +6,7 @@ import {
   type BillingBlockchainPort,
 } from '~/domain/billing/ports/billing-blockchain.port';
 import { BillingProviderClient } from '~/infrastructure/billing/billing-provider.client';
+import { ProviderService } from '~/application/provider/services/provider.service';
 
 /**
  * Периодическое списание подписок (Epic 12, Story 12.6) — oracle-паттерн.
@@ -35,6 +36,7 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
   constructor(
     @Inject(BILLING_BLOCKCHAIN_PORT) private readonly blockchainPort: BillingBlockchainPort,
     private readonly providerClient: BillingProviderClient,
+    private readonly providerService: ProviderService,
   ) {}
 
   onModuleInit() {
@@ -59,13 +61,20 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  private coopnames(): string[] {
-    return config.billing.coopnames.length > 0 ? config.billing.coopnames : [config.coopname];
+  /**
+   * Список коопов для тика берётся ИЗ on-chain `registrator.coops`
+   * (через ProviderService), отфильтрованный по `status === 'active'`.
+   * Никаких env-CSV — кооперативы всегда есть в блокчейне.
+   */
+  private async activeCoopnames(): Promise<string[]> {
+    const registry = await this.providerService.getCooperativesRegistry();
+    return registry.filter((c) => c.status === 'active').map((c) => c.coopname);
   }
 
   /**
-   * Один тик: обходит коопы, списывает подошедшие к оплате.
-   * Защита от наложения тиков (`running`) — если предыдущий ещё идёт, пропускаем.
+   * Один тик: обходит активные коопы из on-chain реестра, списывает подошедшие
+   * к оплате. Защита от наложения тиков (`running`) — если предыдущий ещё идёт,
+   * пропускаем.
    */
   async tick(): Promise<void> {
     if (this.running) {
@@ -79,7 +88,8 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
     }
     this.running = true;
     try {
-      for (const coopname of this.coopnames()) {
+      const coopnames = await this.activeCoopnames();
+      for (const coopname of coopnames) {
         await this.processCoop(coopname, payer);
       }
     } finally {

@@ -1,7 +1,7 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { IsString, Matches, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
-import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
+import { BillingConversionStatementSignedDocumentInputDTO } from '~/application/document/documents-dto/billing-conversion-statement-document.dto';
 
 /**
  * Input мутации `billingConvert` (действие `billing::convert`, operation `o.bil.fund`).
@@ -25,10 +25,12 @@ export class BillingConvertInputDTO {
   @Matches(/^\d+(\.\d+)?\s+[A-Z]{1,7}$/, { message: 'Формат "<amount> <SYMBOL>", например "1500.0000 RUB"' })
   amount!: string;
 
-  @Field(() => SignedDigitalDocumentInputDTO, {
-    description: 'Подписанное пайщиком заявление на конвертацию (document2)',
+  @Field(() => BillingConversionStatementSignedDocumentInputDTO, {
+    description:
+      'Подписанное пайщиком заявление 1095.BillingConversionStatement ' +
+      '(document2 с типизированной meta: convert_amount).',
   })
   @ValidateNested()
-  @Type(() => SignedDigitalDocumentInputDTO)
-  document!: SignedDigitalDocumentInputDTO;
+  @Type(() => BillingConversionStatementSignedDocumentInputDTO)
+  document!: BillingConversionStatementSignedDocumentInputDTO;
 }

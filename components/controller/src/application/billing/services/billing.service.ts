@@ -4,6 +4,12 @@ import {
   type BillingBlockchainPort,
 } from '~/domain/billing/ports/billing-blockchain.port';
 import { BillingProviderClient } from '~/infrastructure/billing/billing-provider.client';
+import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
+import { AmountFormatterUtils } from '~/shared/utils/amount-formatter.utils';
+import { Cooperative } from 'cooptypes';
+import { BillingConversionStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/billing-conversion-statement-document.dto';
+import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
+import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
 import type { BillingConvertInputDTO } from '../dto/billing-convert-input.dto';
 import type { BillingPayInputDTO } from '../dto/billing-pay-input.dto';
 import type { BillingResultDTO } from '../dto/billing-result.dto';
@@ -20,7 +26,23 @@ export class BillingService {
   constructor(
     @Inject(BILLING_BLOCKCHAIN_PORT) private readonly blockchainPort: BillingBlockchainPort,
     private readonly providerClient: BillingProviderClient,
+    private readonly documentDomainService: DocumentDomainService,
   ) {}
+
+  /**
+   * Генерирует заявление 1095.BillingConversionStatement — подписывает пайщик
+   * на стороне desktop перед `billingConvert`. Канон: provider.service →
+   * generateConvertToAxonStatement.
+   */
+  async generateConversionStatement(
+    data: BillingConversionStatementGenerateDocumentInputDTO,
+    options: GenerateDocumentOptionsInputDTO,
+  ): Promise<GeneratedDocumentDTO> {
+    data.registry_id = Cooperative.Registry.BillingConversionStatement.registry_id;
+    data.convert_amount = AmountFormatterUtils.formatAmount(data.convert_amount);
+    const document = await this.documentDomainService.generateDocument({ data, options });
+    return document as unknown as GeneratedDocumentDTO;
+  }
 
   /**
    * Сумма к оплате кооператива за период — проекция provider getBillingSummary

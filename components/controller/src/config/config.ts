@@ -100,10 +100,6 @@ const envVarsSchema = z.object({
     .string()
     .default('0 * * * *')
     .describe('cron-выражение тика биллинга (по умолчанию ежечасно)'),
-  BILLING_CRON_COOPNAMES: z
-    .string()
-    .default('')
-    .describe('CSV список коопов для списания; пусто — берётся COOPNAME узла'),
   BILLING_CRON_PAYER: z
     .string()
     .default('')
@@ -287,9 +283,8 @@ export default {
   billing: {
     hub_mode: envVars.data.BILLING_HUB_MODE,
     cron_expression: envVars.data.BILLING_CRON_EXPRESSION,
-    coopnames: envVars.data.BILLING_CRON_COOPNAMES.split(',')
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0),
+    // Список коопов — из on-chain `registrator.coops` через ProviderService
+    // (см. BillingCronService.activeCoopnames). Env-override отсутствует.
     payer: envVars.data.BILLING_CRON_PAYER,
   },
   union: {
