@@ -1,17 +1,17 @@
 /**
  * @brief Председатель принимает гарантийный возврат на очном осмотре (Story 7.4, p.mkt.return).
  *
- * Композитная транзакция (атомарно в одной Antelope tx):
- *  - Ledger2::apply(o.mkt.return,  fact_cost, orderer, hash=request.hash)  — Дт 91 / Кт 86, ISSUE w.mkt.member.
- *  - Ledger2::apply(o.mkt.return2, fact_cost, orderer, hash=request.hash)  — Дт 10 / Кт 91, NONE.
+ *  - Ledger2::apply(o.mkt.return, fact_cost, orderer, hash=request.hash)
+ *    — ISSUE w.wal.member, Дт 10 / Кт 86. Восстановление средств на универсальном
+ *    членском заказчика + возврат имущества на склад через целевое финансирование,
+ *    одной операцией без транзита 91.
  *
  * Compensating forward, не revert (Locked Decision L3 — AR14): новое событие в
  * journal с прикладным полем `original_consume_op_id` (заполняется backend'ом
- * в submretrn) для трассировки. Исходные o.mkt.consum / o.mkt.consum2 в
- * журнале НЕ модифицируются.
+ * в submretrn) для трассировки. Исходная o.mkt.consum в журнале НЕ модифицируется.
  *
  * Status: approved_for_visit → return_accepted (final). Имущество возвращается
- * на склад КУ; средства восстанавливаются на w.mkt.member.available заказчика.
+ * на склад КУ; средства восстанавливаются на w.wal.member.available заказчика.
  *
  * Guards:
  *  - Подписант (`signer`) авторизован для указанного КУ (`braname`).
@@ -38,15 +38,11 @@ void marketplace::accretrn(eosio::name coopname,
     verify_document_or_fail(decision, { signer });
   }
 
-  // Композитная пара return + return2
+  // o.mkt.return: ISSUE w.wal.member, Дт 10 / Кт 86 (одна операция без транзита 91)
   Ledger2::apply(_marketplace, coopname,
                  operations::marketplace::RETURN_BY_MEMBER,
                  r.fact_cost, r.orderer, r.hash,
                  Marketplace::Memo::get_return_by_member_memo(r.id, r.original_order_id));
-  Ledger2::apply(_marketplace, coopname,
-                 operations::marketplace::RETURN_TRANSIT_CLOSE,
-                 r.fact_cost, r.orderer, r.hash,
-                 Marketplace::Memo::get_return_transit_close_memo(r.id, r.original_order_id));
 
   Marketplace::update_return_request(coopname, r.id, [&](auto& upd) {
     upd.status         = ReturnStatus::RETURN_ACCEPTED;

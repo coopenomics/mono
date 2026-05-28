@@ -1,10 +1,10 @@
 /**
  * @brief Поставщик отказывается от одного Order'а до акцепта (Story 4.5, p.mkt.supply).
  *
- * Per-Order: o.mkt.unblk на total_cost (TRANSFER w.mkt.order → w.mkt.member —
- * резерв возвращается на .available заказчика) + статус active → cancelled.
- * Backend проходит циклом по orders соответствующего batch'а, вызывая
- * `declineorder` per Order — векторов order_hash нет.
+ * Per-Order: o.mkt.unlock на total_cost (TRANSFER w.mkt.order → w.wal.member —
+ * резерв возвращается на универсальный членский заказчика) + статус active →
+ * cancelled. Backend проходит циклом по orders соответствующего batch'а,
+ * вызывая `declineorder` per Order — векторов order_hash нет.
  *
  * Guards:
  *  - Order существует и в статусе active.
@@ -23,7 +23,7 @@ void marketplace::declineorder(eosio::name coopname,
                "Заказ уже не в активном статусе — отклонить нельзя");
 
   Ledger2::apply(_marketplace, coopname,
-                 operations::marketplace::UNBLOCK_ON_CANCEL,
+                 operations::marketplace::UNLOCK_ORDER,
                  o.total_cost, o.orderer, o.hash,
                  Marketplace::Memo::get_decline_order_memo(o.id));
 

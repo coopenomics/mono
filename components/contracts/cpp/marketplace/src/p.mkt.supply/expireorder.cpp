@@ -8,7 +8,7 @@
  * threshold — это вычисление backend'а; on-chain — только закрытие конкретного
  * Order'а с возвратом резерва.
  *
- * Per-Order: o.mkt.unblk на total_cost (TRANSFER w.mkt.order → w.mkt.member — снятие резерва на .available заказчика) + статус active → cancelled.
+ * Per-Order: o.mkt.unlock на total_cost (TRANSFER w.mkt.order → w.wal.member — снятие резерва на универсальный членский заказчика) + статус active → cancelled.
  *
  * Guards:
  *  - Order существует и в статусе active (после акцепта поставщика
@@ -28,7 +28,7 @@ void marketplace::expireorder(eosio::name coopname,
                "Закрыть по таймауту можно только активный заказ");
 
   Ledger2::apply(_marketplace, coopname,
-                 operations::marketplace::UNBLOCK_ON_CANCEL,
+                 operations::marketplace::UNLOCK_ORDER,
                  o.total_cost, o.orderer, o.hash,
                  Marketplace::Memo::get_expire_order_memo(o.id));
 

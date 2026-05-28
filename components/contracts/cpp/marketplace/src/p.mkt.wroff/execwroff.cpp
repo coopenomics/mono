@@ -2,9 +2,9 @@
  * @brief Backend исполняет одну позицию авторизованного советом проекта
  * списания скоропорта (Story 8.4, p.mkt.wroff).
  *
- * Per-item композитная транзакция (атомарно):
- *  - Ledger2::apply(o.mkt.wroff,  item.amount, …, hash=proposal.hash) — Дт 91 / Кт 10.
- *  - Ledger2::apply(o.mkt.wroff2, item.amount, …, hash=proposal.hash) — Дт 86 / Кт 91.
+ * Per-item операция:
+ *  - Ledger2::apply(o.mkt.wroff, item.amount, …, hash=proposal.hash) — Дт 86 / Кт 10
+ *    (списание со склада через целевое финансирование, одной операцией без транзита 91).
  *
  * Вызывается ТОЛЬКО после того, как совет авторизовал проект (status =
  * AUTHORIZED через callback `onmktwoauth`). Backend проходит циклом по
@@ -39,15 +39,11 @@ void marketplace::execwroff(eosio::name coopname,
   eosio::check(branch.is_user_authorized(signer),
                "Подписант не уполномочен исполнять списание данного кооперативного участка");
 
-  // Композитная пара wroff + wroff2 для одной позиции
+  // o.mkt.wroff: Дт 86 / Кт 10 (одна операция без транзита 91)
   Ledger2::apply(_marketplace, coopname,
                  operations::marketplace::WRITE_OFF_PERISHABLE,
                  item.amount, item.braname, p.hash,
                  Marketplace::Memo::get_writeoff_memo(p.id, item_index));
-  Ledger2::apply(_marketplace, coopname,
-                 operations::marketplace::WRITE_OFF_TRANSIT_CLOSE,
-                 item.amount, item.braname, p.hash,
-                 Marketplace::Memo::get_writeoff_transit_close_memo(p.id, item_index));
 
   // Помечаем позицию исполненной + финализируем proposal если все позиции готовы
   Marketplace::update_writeoff_proposal(coopname, p.id, [&](auto& upd) {

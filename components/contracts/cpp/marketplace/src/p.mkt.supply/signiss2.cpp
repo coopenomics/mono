@@ -4,21 +4,21 @@
  * Per-Order атомарная транзакция с поддержкой actual_quantity ≠ ordered (Story 6.2):
  *
  * 1) actual == ordered:
- *      Ledger2::apply(o.mkt.consum,  fact_cost) — Дт 91 / Кт 10, BURN с w.mkt.order (резерв).
- *      Ledger2::apply(o.mkt.consum2, fact_cost) — Дт 86 / Кт 91, NONE.
+ *      Ledger2::apply(o.mkt.consum, fact_cost) — BURN w.mkt.order, Дт 86 / Кт 10
+ *      (сжигание резерва заказа + выбытие имущества со склада через целевое
+ *      финансирование, одной операцией без транзита 91).
  *
  * 2) actual < ordered (выдано меньше — остаток резерва возвращается):
- *      Ledger2::apply(o.mkt.unblk, ordered_cost - fact_cost) — TRANSFER w.mkt.order →
- *          w.mkt.member на разницу (снятие части резерва).
- *      затем — те же consum + consum2 на fact_cost.
+ *      Ledger2::apply(o.mkt.unlock, ordered_cost - fact_cost) — TRANSFER w.mkt.order →
+ *          w.wal.member на разницу (снятие части резерва на универсальный членский).
+ *      затем — consum на fact_cost.
  *
  * 3) actual > ordered (доплата с паевого):
  *      diff = fact_cost - ordered_cost
  *      проверка достаточности средств для diff (через w.wal.share + w.wal.member).
- *      Conditional o.wal.conv (если на w.wal.member недостача).
- *      Conditional o.mkt.assign (если на w.mkt.member недостача).
- *      o.mkt.block(diff) — TRANSFER w.mkt.member → w.mkt.order, резервируем доплату на этот же Order.
- *      затем — consum + consum2 на fact_cost.
+ *      Conditional o.wal.conv (если на w.wal.member недостача — паевой → членский).
+ *      o.mkt.lock(diff) — TRANSFER w.wal.member → w.mkt.order, добор резерва на этот же Order.
+ *      затем — consum на fact_cost.
  *
  * Status: ready_to_receive → received. actual_quantity, fact_cost,
  * issue_act_signiss2, warranty_until заполняются.
@@ -65,37 +65,32 @@ void marketplace::signiss2(eosio::name coopname,
 
   // ── Корректирующие операции (если факт ≠ заказ) ─────────────────────
   if (fact_cost < o.total_cost) {
-    // actual < ordered: снимаем разницу резерва → .available членского
+    // actual < ordered: снимаем разницу резерва → .available универсального членского
     const eosio::asset diff = o.total_cost - fact_cost;
     Ledger2::apply(_marketplace, coopname,
-                   operations::marketplace::UNBLOCK_ON_CANCEL,
+                   operations::marketplace::UNLOCK_ORDER,
                    diff, orderer, o.hash,
                    Marketplace::Memo::get_signiss2_correction_less_memo(o.id));
 
   } else if (fact_cost > o.total_cost) {
-    // actual > ordered: добираем разницу с паевого + assign + block
+    // actual > ordered: добираем разницу с паевого + conv (conditional) + lock
     const eosio::asset diff = fact_cost - o.total_cost;
 
-    // Проверка доступности diff в трёх кошельках
+    // Проверка доступности diff в двух кошельках (share + universal member)
     auto bal_share  = Marketplace::get_user_wallet_balance(
         coopname, ledger2_wallets::SHARE_FUND_PAY, orderer);
     auto bal_member = Marketplace::get_user_wallet_balance(
         coopname, ledger2_wallets::CK_MEMBER, orderer);
-    auto bal_mkt    = Marketplace::get_user_wallet_balance(
-        coopname, ledger2_wallets::MARKETPLACE_MEMBER, orderer);
 
-    eosio::asset total_avail = bal_share.available + bal_member.available + bal_mkt.available;
+    eosio::asset total_avail = bal_share.available + bal_member.available;
     eosio::check(total_avail >= diff,
                  std::string{"Недостаточно средств для дооплаты по факту: требуется "} +
                    diff.to_string() + ", доступно " + total_avail.to_string());
 
     const eosio::asset zero = eosio::asset(0, _root_govern_symbol);
-    eosio::asset need_to_assign = (bal_mkt.available >= diff)
-                                   ? zero
-                                   : (diff - bal_mkt.available);
-    eosio::asset need_to_conv   = (bal_member.available >= need_to_assign)
-                                   ? zero
-                                   : (need_to_assign - bal_member.available);
+    eosio::asset need_to_conv = (bal_member.available >= diff)
+                                  ? zero
+                                  : (diff - bal_member.available);
 
     if (need_to_conv.amount > 0) {
       Ledger2::apply(_marketplace, coopname,
@@ -103,28 +98,18 @@ void marketplace::signiss2(eosio::name coopname,
                      need_to_conv, orderer, o.hash,
                      Marketplace::Memo::get_signiss2_correction_more_convert_memo(o.id));
     }
-    if (need_to_assign.amount > 0) {
-      Ledger2::apply(_marketplace, coopname,
-                     operations::marketplace::ASSIGN_TO_PROGRAM,
-                     need_to_assign, orderer, o.hash,
-                     Marketplace::Memo::get_signiss2_correction_more_assign_memo(o.id));
-    }
     Ledger2::apply(_marketplace, coopname,
-                   operations::marketplace::BLOCK_FOR_ORDER,
+                   operations::marketplace::LOCK_ORDER,
                    diff, orderer, o.hash,
                    Marketplace::Memo::get_signiss2_correction_more_block_memo(o.id));
   }
   // fact == ordered — без корректировок
 
-  // ── Композитная пара consum + consum2 на fact_cost ──────────────────
+  // ── o.mkt.consum на fact_cost (BURN w.mkt.order, Дт 86 / Кт 10) ──────
   Ledger2::apply(_marketplace, coopname,
                  operations::marketplace::CONSUME_BY_MEMBER,
                  fact_cost, orderer, o.hash,
                  Marketplace::Memo::get_consume_by_member_memo(o.id));
-  Ledger2::apply(_marketplace, coopname,
-                 operations::marketplace::CONSUME_TRANSIT_CLOSE,
-                 fact_cost, orderer, o.hash,
-                 Marketplace::Memo::get_consume_transit_close_memo(o.id));
 
   // ── Закрытие Order'а ────────────────────────────────────────────────
   const auto now = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());

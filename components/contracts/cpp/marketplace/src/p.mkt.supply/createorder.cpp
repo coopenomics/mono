@@ -3,11 +3,9 @@
  *
  * Серия операций (атомарно в одной транзакции Antelope):
  *  1. `o.wal.conv` (conditional) — TRANSFER w.wal.share → w.wal.member,
- *     Дт 80 / Кт 86. Только если на `w.wal.member.available` заказчика и
- *     на `w.mkt.member.available` суммарно не хватает суммы заказа.
- *  2. `o.mkt.assign` (conditional) — TRANSFER w.wal.member → w.mkt.member,
- *     без проводки. Только если на `w.mkt.member.available` не хватает.
- *  3. `o.mkt.block` (всегда) — TRANSFER w.mkt.member → w.mkt.order пайщика на
+ *     Дт 80 / Кт 86. Только если на `w.wal.member.available` заказчика
+ *     не хватает суммы заказа.
+ *  2. `o.mkt.lock` (всегда) — TRANSFER w.wal.member → w.mkt.order пайщика на
  *     total_cost (резерв средств под этот Order; без проводки — оба кошелька на 86).
  *
  * Guards (из p.mkt.supply.standard.yaml + Locked Decision L6):
@@ -16,16 +14,16 @@
  *  - Заказчик — активный пайщик кооператива (`get_participant_or_fail`).
  *  - `delivery_braname` существует в `branches` (КУ выдачи задаётся пайщиком
  *    из доступных и неизменен после создания Order'а).
- *  - Σ available трёх кошельков (w.wal.share + w.wal.member + w.mkt.member)
- *    >= total_cost; иначе createorder фейлится без создания Order'а.
+ *  - Σ available двух кошельков (w.wal.share + w.wal.member) >= total_cost;
+ *    иначе createorder фейлится без создания Order'а.
  *  - Подписка пайщика на оферту ЦПП «Стол заказов» (L2/L3 онбординг) —
  *    автоматически проверяется в `ledger2::walletop` через
  *    `assert_program_signed` (cross-contract в `wallet::users.programs[]`)
- *    при первом ASSIGN/TRANSFER на USER_SHARED-кошельке программы.
+ *    при первом TRANSFER на USER_SHARED-кошельке программы (w.mkt.order).
  *
  * Сообщения проверок — для прямого показа пользователю (UI ловит check'ом).
  *
- * @note process_hash для всех трёх ledger2-операций — `order_hash`. Это
+ * @note process_hash для обеих ledger2-операций — `order_hash`. Это
  *       даёт backend'у одну точку группировки операций процесса
  *       p.mkt.supply через `getProcess(process_hash)` (Story 9.3).
  *
@@ -73,31 +71,25 @@ void marketplace::createorder(eosio::name coopname,
   eosio::check(total_cost.amount > 0,
                "Итоговая сумма заказа должна быть больше нуля");
 
-  // ── Достаточность средств: Σ available трёх кошельков >= total_cost ─
+  // ── Достаточность средств: Σ available двух кошельков >= total_cost ─
   auto bal_share  = Marketplace::get_user_wallet_balance(
       coopname, ledger2_wallets::SHARE_FUND_PAY, orderer);
   auto bal_member = Marketplace::get_user_wallet_balance(
       coopname, ledger2_wallets::CK_MEMBER, orderer);
-  auto bal_mkt    = Marketplace::get_user_wallet_balance(
-      coopname, ledger2_wallets::MARKETPLACE_MEMBER, orderer);
 
-  eosio::asset total_available =
-      bal_share.available + bal_member.available + bal_mkt.available;
+  eosio::asset total_available = bal_share.available + bal_member.available;
   eosio::check(total_available >= total_cost,
                std::string{"Недостаточно средств для заказа: требуется "} +
                  total_cost.to_string() + ", доступно " + total_available.to_string());
 
-  // ── Расчёт conditional-долей серии ──────────────────────────────────
-  // Сначала тратим w.mkt.member.available; недостающее берём из w.wal.member
-  // через assign; недостающее в w.wal.member берём из w.wal.share через conv.
+  // ── Расчёт conditional-доли конвертации ─────────────────────────────
+  // Сначала тратим w.wal.member.available; недостающее берём из w.wal.share
+  // через o.wal.conv (паевой → членский).
   const eosio::asset zero = eosio::asset(0, _root_govern_symbol);
 
-  eosio::asset need_to_assign = (bal_mkt.available >= total_cost)
-                                 ? zero
-                                 : (total_cost - bal_mkt.available);
-  eosio::asset need_to_conv   = (bal_member.available >= need_to_assign)
-                                 ? zero
-                                 : (need_to_assign - bal_member.available);
+  eosio::asset need_to_conv = (bal_member.available >= total_cost)
+                                ? zero
+                                : (total_cost - bal_member.available);
 
   // ── Создание Order entity (id потребуется для memo) ─────────────────
   orders_index orders(_marketplace, coopname.value);
@@ -127,7 +119,7 @@ void marketplace::createorder(eosio::name coopname,
     o.batch_hash  = batch_hash;
   });
 
-  // ── Шаг 1: o.wal.conv (conditional) ──────────────────────────────────
+  // ── Шаг 1: o.wal.conv (conditional, w.wal.share → w.wal.member) ──────
   if (need_to_conv.amount > 0) {
     Ledger2::apply(_marketplace, coopname,
                    operations::wallet::CONVERT_TO_MEMBER,
@@ -135,18 +127,10 @@ void marketplace::createorder(eosio::name coopname,
                    Marketplace::Memo::get_create_order_convert_memo(new_id));
   }
 
-  // ── Шаг 2: o.mkt.assign (conditional) ────────────────────────────────
-  if (need_to_assign.amount > 0) {
-    Ledger2::apply(_marketplace, coopname,
-                   operations::marketplace::ASSIGN_TO_PROGRAM,
-                   need_to_assign, orderer, order_hash,
-                   Marketplace::Memo::get_create_order_assign_memo(new_id));
-  }
-
-  // ── Шаг 3: o.mkt.block (всегда) — TRANSFER w.mkt.member → w.mkt.order ──
+  // ── Шаг 2: o.mkt.lock (всегда, TRANSFER w.wal.member → w.mkt.order) ──
   // Резервируем total_cost на отдельный кошелёк w.mkt.order под этот Order.
   Ledger2::apply(_marketplace, coopname,
-                 operations::marketplace::BLOCK_FOR_ORDER,
+                 operations::marketplace::LOCK_ORDER,
                  total_cost, orderer, order_hash,
                  Marketplace::Memo::get_create_order_block_memo(new_id));
 }

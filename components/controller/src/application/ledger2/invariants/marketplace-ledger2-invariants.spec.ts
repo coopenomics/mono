@@ -5,17 +5,17 @@
  * Никаких NestJS / TypeORM / реального chain'а — работа на синтетических
  * массивах `Ledger2OperationDTO`.
  *
- * Сценарии:
- *   1. Happy path для каждого I1..I6 (закрытый flow, инвариант ok).
- *   2. Violation path (специально сломанная последовательность → инвариант
- *      падает с понятным `violation`).
- *   3. Property-based — random последовательности block/unblk/consum/return
- *      обязаны сохранять I4 (transit = 0) и I6 (нет orphan-резервов).
+ * Архитектура 2026-05-28: reserve-кошелёк w.mkt.order; счёт 91 в marketplace
+ * не используется (все операции напрямую между 10 и 86); промежуточный
+ * программный кошелёк w.mkt.member упразднён — источник и приёмок резерва
+ * это универсальный членский w.wal.member.
  *
- * После миграции на reserve-кошелёк w.mkt.order (2026-05-28):
- *   - o.mkt.block:  TRANSFER w.mkt.member → w.mkt.order
- *   - o.mkt.unblk:  TRANSFER w.mkt.order → w.mkt.member
- *   - o.mkt.consum: BURN с w.mkt.order
+ * Операции:
+ *   - o.mkt.lock:   TRANSFER w.wal.member → w.mkt.order
+ *   - o.mkt.unlock: TRANSFER w.mkt.order → w.wal.member
+ *   - o.mkt.consum: BURN w.mkt.order, Дт 86 / Кт 10
+ *   - o.mkt.return: ISSUE → w.wal.member, Дт 10 / Кт 86
+ *   - o.mkt.wroff:  NONE, Дт 86 / Кт 10
  */
 
 import { createHash, randomBytes } from 'node:crypto'
@@ -45,10 +45,6 @@ const nextSeq = (): string => (seq++).toString()
 const newProcessHash = (): string =>
   createHash('sha256').update(randomBytes(32)).digest('hex')
 
-/**
- * Сборка трио apply + walletop + debit + credit под одним process_hash для
- * данной marketplace-операции. Подражает ledger2::apply pipeline.
- */
 function buildApplyTrio(params: {
   processHash: string
   operationCode: string
@@ -101,14 +97,12 @@ function buildApplyTrio(params: {
 }
 
 /**
- * Полный happy-path order flow (createorder → signsupp → signiss2):
- *   1. o.wal.conv   (Dr 80 / Cr 86) — конвертация цифрового рубля
- *   2. o.mkt.assign (TRANSFER без проводок) — членский в программу
- *   3. o.mkt.block  (TRANSFER w.mkt.member → w.mkt.order) — резерв под Order
- *   4. o.mkt.purch  (Dr 10 / Cr 86) — приёмка
- *   5. o.mkt.payout (Dr 86 / Cr 51, ISSUE w.mkt.payout) — задолженность поставщику
- *   6. o.mkt.consum (Dr 91 / Cr 10, BURN w.mkt.order) — выдача (сжигаем резерв)
- *   7. o.mkt.consum2 (Dr 86 / Cr 91) — закрытие транзита
+ * Happy-path order flow (createorder → signsupp → signiss2):
+ *   1. o.wal.conv   (Dr 80 / Cr 86) — конвертация цифрового рубля (conditional)
+ *   2. o.mkt.lock   (TRANSFER w.wal.member → w.mkt.order, без проводок) — резерв
+ *   3. o.mkt.purch  (Dr 10 / Cr 86) — приёмка
+ *   4. o.mkt.payout (Dr 86 / Cr 51, ISSUE w.mkt.payout) — задолженность поставщику
+ *   5. o.mkt.consum (Dr 86 / Cr 10, BURN w.mkt.order) — выдача (одна операция без 91)
  */
 function happyPathOrderFlow(amount = 100): MarketplaceLedger2OperationRow[] {
   const orderHash = newProcessHash()
@@ -124,18 +118,9 @@ function happyPathOrderFlow(amount = 100): MarketplaceLedger2OperationRow[] {
     }),
     ...buildApplyTrio({
       processHash: orderHash,
-      operationCode: 'o.mkt.assign',
+      operationCode: 'o.mkt.lock',
       amount,
       walletFrom: 'w.wal.member',
-      walletTo: 'w.mkt.member',
-      debitAccount: null,
-      creditAccount: null,
-    }),
-    ...buildApplyTrio({
-      processHash: orderHash,
-      operationCode: 'o.mkt.block',
-      amount,
-      walletFrom: 'w.mkt.member',
       walletTo: 'w.mkt.order',
       debitAccount: null,
       creditAccount: null,
@@ -164,17 +149,8 @@ function happyPathOrderFlow(amount = 100): MarketplaceLedger2OperationRow[] {
       amount,
       walletFrom: 'w.mkt.order',
       walletTo: null,
-      debitAccount: 91,
-      creditAccount: 10,
-    }),
-    ...buildApplyTrio({
-      processHash: orderHash,
-      operationCode: 'o.mkt.consum2',
-      amount,
-      walletFrom: null,
-      walletTo: null,
       debitAccount: 86,
-      creditAccount: 91,
+      creditAccount: 10,
     }),
   ]
 }
@@ -184,19 +160,19 @@ function cancelOrderFlow(amount = 100): MarketplaceLedger2OperationRow[] {
   return [
     ...buildApplyTrio({
       processHash: orderHash,
-      operationCode: 'o.mkt.block',
+      operationCode: 'o.mkt.lock',
       amount,
-      walletFrom: 'w.mkt.member',
+      walletFrom: 'w.wal.member',
       walletTo: 'w.mkt.order',
       debitAccount: null,
       creditAccount: null,
     }),
     ...buildApplyTrio({
       processHash: orderHash,
-      operationCode: 'o.mkt.unblk',
+      operationCode: 'o.mkt.unlock',
       amount,
       walletFrom: 'w.mkt.order',
-      walletTo: 'w.mkt.member',
+      walletTo: 'w.wal.member',
       debitAccount: null,
       creditAccount: null,
     }),
@@ -211,18 +187,9 @@ function returnFlow(amount = 100): MarketplaceLedger2OperationRow[] {
       operationCode: 'o.mkt.return',
       amount,
       walletFrom: null,
-      walletTo: 'w.mkt.member',
-      debitAccount: 91,
-      creditAccount: 86,
-    }),
-    ...buildApplyTrio({
-      processHash: requestHash,
-      operationCode: 'o.mkt.return2',
-      amount,
-      walletFrom: null,
-      walletTo: null,
+      walletTo: 'w.wal.member',
       debitAccount: 10,
-      creditAccount: 91,
+      creditAccount: 86,
     }),
   ]
 }
@@ -236,17 +203,8 @@ function writeoffFlow(amount = 100): MarketplaceLedger2OperationRow[] {
       amount,
       walletFrom: null,
       walletTo: null,
-      debitAccount: 91,
-      creditAccount: 10,
-    }),
-    ...buildApplyTrio({
-      processHash: proposalHash,
-      operationCode: 'o.mkt.wroff2',
-      amount,
-      walletFrom: null,
-      walletTo: null,
       debitAccount: 86,
-      creditAccount: 91,
+      creditAccount: 10,
     }),
   ]
 }
@@ -294,7 +252,6 @@ describe('I1 — баланс w.mkt.payout', () => {
 
   it('happy path: payout + BURN → баланс = 0', () => {
     const rows = happyPathOrderFlow(150)
-    // эмулируем gateway::payconfirm → BURN из w.mkt.payout
     rows.push({
       globalSequence: nextSeq(),
       action: 'walletop',
@@ -348,8 +305,12 @@ describe('I3 — баланс счёта 10 (Материалы)', () => {
     expect(res.ok).toBe(true)
   })
 
-  it('happy path: purch + return2 → balance = 2× purch', () => {
-    const rows = [...happyPathOrderFlow(100).filter((r) => !['o.mkt.consum', 'o.mkt.consum2', 'o.mkt.payout'].includes(r.operationCode ?? ''))]
+  it('happy path: purch + return → balance = 2× purch (имущество вернулось на склад)', () => {
+    const rows = [
+      ...happyPathOrderFlow(100).filter(
+        (r) => !['o.mkt.consum', 'o.mkt.payout'].includes(r.operationCode ?? ''),
+      ),
+    ]
     rows.push(...returnFlow(100))
     const accounts: MarketplaceAccountRow[] = [{ accountId: 10, balance: '200.0000 RUB' }]
     const res = checkInvariantI3Account10Materials(rows, accounts)
@@ -373,51 +334,18 @@ describe('I3 — баланс счёта 10 (Материалы)', () => {
   })
 })
 
-describe('I4 — транзитный счёт 91 = 0', () => {
+describe('I4 — транзитный счёт 91 (в marketplace больше не используется)', () => {
   beforeEach(() => {
     seq = 100n
   })
 
-  it('happy path: consum + consum2 атомарно → 91 = 0', () => {
-    const rows = happyPathOrderFlow(50)
-    const res = checkInvariantI4Account91Transit(rows)
-    expect(res.ok).toBe(true)
-  })
-
-  it('happy path: return + return2 → 91 = 0', () => {
-    const res = checkInvariantI4Account91Transit(returnFlow(80))
-    expect(res.ok).toBe(true)
-  })
-
-  it('happy path: wroff + wroff2 → 91 = 0', () => {
-    const res = checkInvariantI4Account91Transit(writeoffFlow(120))
-    expect(res.ok).toBe(true)
-  })
-
-  it('happy path: смешанный поток из 10 случайных закрытых процессов', () => {
+  it('happy path: новый flow не задевает 91 → I4 пройден тривиально', () => {
     const rows: MarketplaceLedger2OperationRow[] = []
-    for (let i = 0; i < 4; i++) rows.push(...happyPathOrderFlow(50 + i))
-    for (let i = 0; i < 3; i++) rows.push(...returnFlow(20 + i))
-    for (let i = 0; i < 3; i++) rows.push(...writeoffFlow(15 + i))
+    for (let i = 0; i < 3; i++) rows.push(...happyPathOrderFlow(50 + i))
+    for (let i = 0; i < 2; i++) rows.push(...returnFlow(20 + i))
+    for (let i = 0; i < 2; i++) rows.push(...writeoffFlow(15 + i))
     const res = checkInvariantI4Account91Transit(rows)
     expect(res.ok).toBe(true)
-  })
-
-  it('violation: consum без consum2 (процесс не закрыт)', () => {
-    const orderHash = newProcessHash()
-    const rows = buildApplyTrio({
-      processHash: orderHash,
-      operationCode: 'o.mkt.consum',
-      amount: 100,
-      walletFrom: 'w.mkt.order',
-      walletTo: null,
-      debitAccount: 91,
-      creditAccount: 10,
-    })
-    const res = checkInvariantI4Account91Transit(rows)
-    expect(res.ok).toBe(false)
-    expect(res.violation).toMatch(/I4/)
-    expect(res.details?.[0]?.message).toMatch(/transit 91/)
   })
 })
 
@@ -426,84 +354,76 @@ describe('I5 — согласованность резерва на w.mkt.order'
     seq = 100n
   })
 
-  it('happy path: block + consum → reserve = 0', () => {
+  it('happy path: lock + consum → reserve = 0', () => {
     const rows = happyPathOrderFlow(100)
-    const wallets: MarketplaceWalletRow[] = [
-      { wallet: 'w.mkt.order', balance: '0.0000 RUB' },
-    ]
+    const wallets: MarketplaceWalletRow[] = [{ wallet: 'w.mkt.order', balance: '0.0000 RUB' }]
     const res = checkInvariantI5ReserveConsistency(rows, wallets)
     expect(res.ok).toBe(true)
   })
 
-  it('happy path: block + unblk → reserve = 0', () => {
+  it('happy path: lock + unlock → reserve = 0', () => {
     const rows = cancelOrderFlow(50)
-    const wallets: MarketplaceWalletRow[] = [
-      { wallet: 'w.mkt.order', balance: '0.0000 RUB' },
-    ]
+    const wallets: MarketplaceWalletRow[] = [{ wallet: 'w.mkt.order', balance: '0.0000 RUB' }]
     const res = checkInvariantI5ReserveConsistency(rows, wallets)
     expect(res.ok).toBe(true)
   })
 
-  it('happy path: один активный block → reserve = amount', () => {
+  it('happy path: один активный lock → reserve = amount', () => {
     const orderHash = newProcessHash()
     const rows = buildApplyTrio({
       processHash: orderHash,
-      operationCode: 'o.mkt.block',
+      operationCode: 'o.mkt.lock',
       amount: 60,
-      walletFrom: 'w.mkt.member',
+      walletFrom: 'w.wal.member',
       walletTo: 'w.mkt.order',
       debitAccount: null,
       creditAccount: null,
     })
-    const wallets: MarketplaceWalletRow[] = [
-      { wallet: 'w.mkt.order', balance: '60.0000 RUB' },
-    ]
+    const wallets: MarketplaceWalletRow[] = [{ wallet: 'w.mkt.order', balance: '60.0000 RUB' }]
     const res = checkInvariantI5ReserveConsistency(rows, wallets)
     expect(res.ok).toBe(true)
   })
 
-  it('violation: block есть, reserve = 0 (фантомный unblk)', () => {
+  it('violation: lock есть, reserve = 0 (фантомный unlock)', () => {
     const orderHash = newProcessHash()
     const rows = buildApplyTrio({
       processHash: orderHash,
-      operationCode: 'o.mkt.block',
+      operationCode: 'o.mkt.lock',
       amount: 60,
-      walletFrom: 'w.mkt.member',
+      walletFrom: 'w.wal.member',
       walletTo: 'w.mkt.order',
       debitAccount: null,
       creditAccount: null,
     })
-    const wallets: MarketplaceWalletRow[] = [
-      { wallet: 'w.mkt.order', balance: '0.0000 RUB' },
-    ]
+    const wallets: MarketplaceWalletRow[] = [{ wallet: 'w.mkt.order', balance: '0.0000 RUB' }]
     const res = checkInvariantI5ReserveConsistency(rows, wallets)
     expect(res.ok).toBe(false)
     expect(res.violation).toMatch(/I5/)
   })
 })
 
-describe('I6 — нет orphan o.mkt.block', () => {
+describe('I6 — нет orphan o.mkt.lock', () => {
   beforeEach(() => {
     seq = 100n
   })
 
-  it('happy path: block + consum', () => {
+  it('happy path: lock + consum', () => {
     const res = checkInvariantI6NoOrphanedReserves(happyPathOrderFlow(100))
     expect(res.ok).toBe(true)
   })
 
-  it('happy path: block + unblk', () => {
+  it('happy path: lock + unlock', () => {
     const res = checkInvariantI6NoOrphanedReserves(cancelOrderFlow(50))
     expect(res.ok).toBe(true)
   })
 
-  it('happy path: только block (активный Order, ещё не закрытый)', () => {
+  it('happy path: только lock (активный Order, ещё не закрытый)', () => {
     const orderHash = newProcessHash()
     const rows = buildApplyTrio({
       processHash: orderHash,
-      operationCode: 'o.mkt.block',
+      operationCode: 'o.mkt.lock',
       amount: 30,
-      walletFrom: 'w.mkt.member',
+      walletFrom: 'w.wal.member',
       walletTo: 'w.mkt.order',
       debitAccount: null,
       creditAccount: null,
@@ -512,7 +432,7 @@ describe('I6 — нет orphan o.mkt.block', () => {
     expect(res.ok).toBe(true)
   })
 
-  it('violation: consum без block (двойная выдача / битый flow)', () => {
+  it('violation: consum без lock (двойная выдача / битый flow)', () => {
     const orderHash = newProcessHash()
     const rows = buildApplyTrio({
       processHash: orderHash,
@@ -520,32 +440,32 @@ describe('I6 — нет orphan o.mkt.block', () => {
       amount: 30,
       walletFrom: 'w.mkt.order',
       walletTo: null,
-      debitAccount: 91,
+      debitAccount: 86,
       creditAccount: 10,
     })
     const res = checkInvariantI6NoOrphanedReserves(rows)
     expect(res.ok).toBe(false)
-    expect(res.details?.[0]?.message).toMatch(/consum без предшествующего block/)
+    expect(res.details?.[0]?.message).toMatch(/consum без предшествующего lock/)
   })
 
-  it('violation: block + unblk + consum (двойное закрытие)', () => {
+  it('violation: lock + unlock + consum (двойное закрытие)', () => {
     const orderHash = newProcessHash()
     const rows: MarketplaceLedger2OperationRow[] = [
       ...buildApplyTrio({
         processHash: orderHash,
-        operationCode: 'o.mkt.block',
+        operationCode: 'o.mkt.lock',
         amount: 30,
-        walletFrom: 'w.mkt.member',
+        walletFrom: 'w.wal.member',
         walletTo: 'w.mkt.order',
         debitAccount: null,
         creditAccount: null,
       }),
       ...buildApplyTrio({
         processHash: orderHash,
-        operationCode: 'o.mkt.unblk',
+        operationCode: 'o.mkt.unlock',
         amount: 30,
         walletFrom: 'w.mkt.order',
-        walletTo: 'w.mkt.member',
+        walletTo: 'w.wal.member',
         debitAccount: null,
         creditAccount: null,
       }),
@@ -555,7 +475,7 @@ describe('I6 — нет orphan o.mkt.block', () => {
         amount: 30,
         walletFrom: 'w.mkt.order',
         walletTo: null,
-        debitAccount: 91,
+        debitAccount: 86,
         creditAccount: 10,
       }),
     ]
@@ -604,55 +524,6 @@ describe('checkAllMarketplaceLedger2Invariants — батч', () => {
   })
 })
 
-describe('Property-based — случайные последовательности', () => {
-  /**
-   * Для seed-based-генератора используем counter с детерминированной
-   * подмешкой через `randomBytes` (тесты воспроизводимы в CI: jest гонит
-   * single-thread, seed одинаков от прогона к прогону).
-   */
-  const RUN_COUNT = 50
-
-  beforeEach(() => {
-    seq = 100n
-  })
-
-  it('I4 сохраняется на 50 случайных последовательностях из mix happy/cancel/return/writeoff', () => {
-    for (let i = 0; i < RUN_COUNT; i++) {
-      const rows: MarketplaceLedger2OperationRow[] = []
-      const flows = [happyPathOrderFlow, cancelOrderFlow, returnFlow, writeoffFlow]
-      const n = (i % 4) + 2 // 2..5 потоков
-      for (let k = 0; k < n; k++) {
-        const flow = flows[(i + k) % flows.length]
-        rows.push(...flow(10 + ((i + k) % 90)))
-      }
-      const res = checkInvariantI4Account91Transit(rows)
-      expect(res.ok).toBe(true)
-    }
-  })
-
-  it('I6 сохраняется на тех же последовательностях', () => {
-    for (let i = 0; i < RUN_COUNT; i++) {
-      const rows: MarketplaceLedger2OperationRow[] = []
-      const flows = [happyPathOrderFlow, cancelOrderFlow]
-      const n = (i % 3) + 2
-      for (let k = 0; k < n; k++) {
-        const flow = flows[(i + k) % flows.length]
-        rows.push(...flow(10 + ((i + k) % 90)))
-      }
-      const res = checkInvariantI6NoOrphanedReserves(rows)
-      expect(res.ok).toBe(true)
-    }
-  })
-
-  it('инжекция случайного «потерянного consum» ломает I4 + I6', () => {
-    const rows = happyPathOrderFlow(100)
-    // Убираем consum2 — закрытие транзита 91 пропало.
-    const broken = rows.filter((r) => r.operationCode !== 'o.mkt.consum2')
-    const i4 = checkInvariantI4Account91Transit(broken)
-    expect(i4.ok).toBe(false)
-  })
-})
-
 describe('I2 — marketplace-вклад в счёт 86 (sanity)', () => {
   beforeEach(() => {
     seq = 100n
@@ -662,8 +533,8 @@ describe('I2 — marketplace-вклад в счёт 86 (sanity)', () => {
     const rows = happyPathOrderFlow(100)
     const res = checkInvariantI2Account86Delta(rows)
     expect(res.ok).toBe(true)
-    // Cr 86: conv(+100) + purch(+100) + return(0) = +200
-    // Dr 86: payout(−100) + consum2(−100) = −200
+    // Cr 86: conv(+100) + purch(+100) = +200
+    // Dr 86: payout(−100) + consum(−100) = −200
     // delta = 200 − 200 = 0
     expect(res.expected).toBe('0.0000 RUB')
   })

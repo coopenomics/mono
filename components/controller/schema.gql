@@ -8137,7 +8137,7 @@ type MarketplaceMemberWallet {
   username: String!
 
   """
-  Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.member → mkt.order
+  Релевантные стол-заказам USER_SHARED-кошельки пайщика; порядок: share → member → mkt.order
   """
   wallets: [MarketplaceWalletEntry!]!
 }
@@ -9270,9 +9270,7 @@ type MarketplaceWalletEntry {
   """
   label: String!
 
-  """
-  eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.member / w.mkt.order)
-  """
+  """eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.order)"""
   name: String!
 
   """program_id: 1 — Цифровой Кошелёк, 2 — Стол Заказов"""
@@ -13290,7 +13288,7 @@ type Query {
   marketplaceListWriteoffProposals(data: MarketplaceListWriteoffProposalsInput!, options: PaginationInput): PaginatedMarketplaceWriteoffProposals!
 
   """
-  Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.member, w.mkt.order
+  Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.order
   """
   marketplaceMemberWallet: MarketplaceMemberWallet!
 

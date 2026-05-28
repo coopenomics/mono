@@ -333,16 +333,15 @@ export function checkInvariantI4Account91Transit(
 
 // ---------------------------------------------------------------------------
 // I5 — Согласованность резерва под Order на кошельке w.mkt.order:
-//   sum(TRANSFER w.mkt.member → w.mkt.order)        // o.mkt.block  — резерв вошёл
-//   − sum(TRANSFER w.mkt.order → w.mkt.member)      // o.mkt.unblk  — резерв снят
+//   sum(TRANSFER w.wal.member → w.mkt.order)        // o.mkt.lock   — резерв вошёл
+//   − sum(TRANSFER w.mkt.order → w.wal.member)      // o.mkt.unlock — резерв снят
 //   − sum(BURN w.mkt.order)                         // o.mkt.consum — резерв сожжён (выдача)
 //     = sum(available у w.mkt.order-кошельков пайщиков).
 //
-// Переписан 2026-05-28 после миграции marketplace с BLOCK/UNBLOCK/BURN_BLOCKED
-// на пары TRANSFER в отдельный кошелёк-резерв (по аналогии с dev wallet/withdraw
-// → w.wal.wpend). Operation_id'ы o.mkt.block / o.mkt.unblk / o.mkt.consum
-// сохранены; изменилась их семантика в OPERATION_REGISTRY: TRANSFER и BURN
-// вместо BLOCK/UNBLOCK/BURN_BLOCKED.
+// Архитектура 2026-05-28: вместо механики BLOCK/UNBLOCK на одном кошельке —
+// пара TRANSFER через отдельный USER_SHARED-кошелёк w.mkt.order. Источник и
+// приёмник средств — универсальный членский w.wal.member; промежуточного
+// программного кошелька (бывший w.mkt.member) нет.
 //
 // На входе тестов wallets обычно содержит aggregated available по всем
 // w.mkt.order-row. Можно подать одну строку с агрегированным `balance`.
@@ -354,12 +353,12 @@ export function checkInvariantI5ReserveConsistency(
   let computed = 0n
   for (const r of rows) {
     if (r.action !== 'walletop') continue
-    // o.mkt.block: TRANSFER w.mkt.member → w.mkt.order  (резерв входит)
-    if (r.walletFrom === 'w.mkt.member' && r.walletTo === 'w.mkt.order') {
+    // o.mkt.lock: TRANSFER w.wal.member → w.mkt.order  (резерв входит)
+    if (r.walletFrom === 'w.wal.member' && r.walletTo === 'w.mkt.order') {
       computed += parseAssetToBigInt(r.quantity)
     }
-    // o.mkt.unblk: TRANSFER w.mkt.order → w.mkt.member  (резерв снят)
-    else if (r.walletFrom === 'w.mkt.order' && r.walletTo === 'w.mkt.member') {
+    // o.mkt.unlock: TRANSFER w.mkt.order → w.wal.member  (резерв снят)
+    else if (r.walletFrom === 'w.mkt.order' && r.walletTo === 'w.wal.member') {
       computed -= parseAssetToBigInt(r.quantity)
     }
     // o.mkt.consum: BURN w.mkt.order  (резерв сожжён при выдаче)
@@ -379,25 +378,25 @@ export function checkInvariantI5ReserveConsistency(
       expected: formatBigIntAsset(computed),
       actual: formatBigIntAsset(totalReserve),
       violation:
-        'I5: резерв на w.mkt.order не совпадает с историей block − unblk − consum. ' +
-        'Возможный источник: пропущенный unblk при отмене Order или повторный block без unblk.',
+        'I5: резерв на w.mkt.order не совпадает с историей lock − unlock − consum. ' +
+        'Возможный источник: пропущенный unlock при отмене Order или повторный lock без unlock.',
     }
   }
   return { ok: true, invariant: 'I5', expected: formatBigIntAsset(computed) }
 }
 
 // ---------------------------------------------------------------------------
-// I6 — Парность операций в жизненном цикле Order'а: каждому o.mkt.block по
-// process_hash должно соответствовать либо o.mkt.unblk (отмена Order), либо
+// I6 — Парность операций в жизненном цикле Order'а: каждому o.mkt.lock по
+// process_hash должно соответствовать либо o.mkt.unlock (отмена Order), либо
 // o.mkt.consum (выдача), либо открытый Order (process ещё активен — здесь
 // не проверяем).
 //
-// Одна process_hash (= order_hash) может содержать block + unblk (отмена),
-// block + consum (выдача) или только block (активный Order, не нарушение).
+// Одна process_hash (= order_hash) может содержать lock + unlock (отмена),
+// lock + consum (выдача) или только lock (активный Order, не нарушение).
 //
 // Для статической проверки в CI рассматриваем закрытые процессы: если в
-// процессе есть o.mkt.unblk без o.mkt.block, или есть o.mkt.consum без
-// o.mkt.block — нарушение. Если есть все три (block + unblk + consum) —
+// процессе есть o.mkt.unlock без o.mkt.lock, или есть o.mkt.consum без
+// o.mkt.lock — нарушение. Если есть все три (lock + unlock + consum) —
 // тоже нарушение (двойное закрытие резерва).
 // ---------------------------------------------------------------------------
 export function checkInvariantI6NoOrphanedReserves(
@@ -407,27 +406,27 @@ export function checkInvariantI6NoOrphanedReserves(
   const violations: Array<{ processHash: string; message: string }> = []
 
   for (const [processHash, codes] of applyIndex) {
-    const hasBlock = codes.includes('o.mkt.block')
-    const hasUnblock = codes.includes('o.mkt.unblk')
+    const hasLock = codes.includes('o.mkt.lock')
+    const hasUnlock = codes.includes('o.mkt.unlock')
     const hasConsum = codes.includes('o.mkt.consum')
 
-    if (hasConsum && !hasBlock) {
+    if (hasConsum && !hasLock) {
       violations.push({
         processHash,
         message:
-          'consum без предшествующего block — невозможно списать резерв, которого не было.',
+          'consum без предшествующего lock — невозможно списать резерв, которого не было.',
       })
     }
-    if (hasUnblock && !hasBlock) {
+    if (hasUnlock && !hasLock) {
       violations.push({
         processHash,
-        message: 'unblk без block — невозможно снять резерв, который не вносился.',
+        message: 'unlock без lock — невозможно снять резерв, который не вносился.',
       })
     }
-    if (hasBlock && hasUnblock && hasConsum) {
+    if (hasLock && hasUnlock && hasConsum) {
       violations.push({
         processHash,
-        message: 'block + unblk + consum в одном процессе — двойное закрытие резерва.',
+        message: 'lock + unlock + consum в одном процессе — двойное закрытие резерва.',
       })
     }
   }
@@ -435,7 +434,7 @@ export function checkInvariantI6NoOrphanedReserves(
     return {
       ok: false,
       invariant: 'I6',
-      violation: 'I6: обнаружены процессы с некорректной парностью block/unblk/consum.',
+      violation: 'I6: обнаружены процессы с некорректной парностью lock/unlock/consum.',
       details: violations,
     }
   }
