@@ -37,6 +37,10 @@ import {
   MARKETPLACE_KU_CHAIRMAN_SERVICE,
 } from './services/marketplace-ku-chairman.service';
 import {
+  MarketplaceBranchOwnershipService,
+  MARKETPLACE_BRANCH_OWNERSHIP_SERVICE,
+} from './services/marketplace-branch-ownership.service';
+import {
   MarketplaceVitrineService,
   MARKETPLACE_VITRINE_SERVICE,
 } from './services/marketplace-vitrine.service';
@@ -213,6 +217,11 @@ import { MarketplaceInventoryEntity } from '../infrastructure/entities/marketpla
       useClass: MarketplaceKuChairmanService,
     },
     MarketplaceKuChairmanService,
+    {
+      provide: MARKETPLACE_BRANCH_OWNERSHIP_SERVICE,
+      useClass: MarketplaceBranchOwnershipService,
+    },
+    MarketplaceBranchOwnershipService,
     {
       provide: MARKETPLACE_VITRINE_SERVICE,
       useClass: MarketplaceVitrineService,
