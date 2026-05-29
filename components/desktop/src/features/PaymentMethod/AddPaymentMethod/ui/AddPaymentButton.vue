@@ -11,100 +11,104 @@ q-btn(
   span.q-ml-sm(v-if='!micro') Добавить
   q-tooltip(v-if='micro') Добавить реквизиты
 
-q-dialog(v-model='showDialog', @hide='clear')
-  ModalBase(:title='"Добавить метод платежа"')
-    Form.q-pa-sm(
-      :handler-submit='handlerSubmit',
-      :is-submitting='isSubmitting',
-      :button-cancel-txt='"Отменить"',
-      :button-submit-txt='"Продолжить"',
-      @cancel='clear'
+BaseDialog(
+  v-model='showDialog',
+  title='Добавить метод платежа',
+  size='lg',
+  @update:model-value='(v) => !v && clear()'
+)
+  Form(
+    :handler-submit='handlerSubmit',
+    :is-submitting='isSubmitting',
+    :button-cancel-txt='"Отменить"',
+    :button-submit-txt='"Продолжить"',
+    @cancel='clear'
+  )
+    q-select(
+      v-model='methodType',
+      standout='bg-teal text-white',
+      :options='methods',
+      map-options,
+      emit-value,
+      option-label='title',
+      option-value='value',
+      label='Выберите способ получения платежа',
+      :rules='[(val) => notEmpty(val)]'
     )
-      q-select(
-        v-model='methodType',
+
+    div(v-if='methodType == "sbp"')
+      q-input.q-mb-lg(
+        v-model='sbp.phone',
         standout='bg-teal text-white',
-        :options='methods',
-        map-options,
-        emit-value,
-        option-label='title',
-        option-value='value',
-        label='Выберите способ получения платежа',
-        :rules='[(val) => notEmpty(val)]'
+        mask='+7 (###) ###-##-##',
+        fill-mask,
+        label='Номер телефона',
+        hint='Имя и фамилия получателя должны совпадать с теми, которые указаны в Удостоверении.',
+        :rules='[(val) => notEmpty(val)]',
+        autocomplete='off'
       )
 
-      div(v-if='methodType == "sbp"')
-        q-input.q-mb-lg(
-          v-model='sbp.phone',
-          standout='bg-teal text-white',
-          mask='+7 (###) ###-##-##',
-          fill-mask,
-          label='Номер телефона',
-          hint='Имя и фамилия получателя должны совпадать с теми, которые указаны в Удостоверении.',
-          :rules='[(val) => notEmpty(val)]',
-          autocomplete='off'
-        )
+    div(v-if='methodType == "bank_transfer"')
+      q-select(
+        v-model='bank_transfer.currency',
+        label='Валюта счёта',
+        standout='bg-teal text-white',
+        :options='[{ label: "RUB", value: "RUB" }]',
+        emit-value,
+        :rules='[(val) => notEmpty(val)]',
+        map-options
+      )
+      q-input(
+        v-model='bank_transfer.bank_name',
+        standout='bg-teal text-white',
+        label='Наименование банка',
+        :rules='[(val) => notEmpty(val)]',
+        autocomplete='off'
+      )
 
-      div(v-if='methodType == "bank_transfer"')
-        q-select(
-          v-model='bank_transfer.currency',
-          label='Валюта счёта',
-          standout='bg-teal text-white',
-          :options='[{ label: "RUB", value: "RUB" }]',
-          emit-value,
-          :rules='[(val) => notEmpty(val)]',
-          map-options
-        )
-        q-input(
-          v-model='bank_transfer.bank_name',
-          standout='bg-teal text-white',
-          label='Наименование банка',
-          :rules='[(val) => notEmpty(val)]',
-          autocomplete='off'
-        )
+      q-input(
+        v-model='bank_transfer.details.corr',
+        standout='bg-teal text-white',
+        mask='####################',
+        label='Корреспондентский счет',
+        :rules='[(val) => notEmpty(val), (val) => val.length === 20 || "ожидаем 20 цифр"]',
+        autocomplete='off'
+      )
 
-        q-input(
-          v-model='bank_transfer.details.corr',
-          standout='bg-teal text-white',
-          mask='####################',
-          label='Корреспондентский счет',
-          :rules='[(val) => notEmpty(val), (val) => val.length === 20 || "ожидаем 20 цифр"]',
-          autocomplete='off'
-        )
+      q-input(
+        v-model='bank_transfer.details.bik',
+        standout='bg-teal text-white',
+        mask='#########',
+        label='БИК',
+        :rules='[(val) => notEmpty(val), (val) => val.length === 9 || "ожидаем 9 цифр"]',
+        autocomplete='off'
+      )
 
-        q-input(
-          v-model='bank_transfer.details.bik',
-          standout='bg-teal text-white',
-          mask='#########',
-          label='БИК',
-          :rules='[(val) => notEmpty(val), (val) => val.length === 9 || "ожидаем 9 цифр"]',
-          autocomplete='off'
-        )
+      q-input(
+        v-model='bank_transfer.details.kpp',
+        standout='bg-teal text-white',
+        mask='#########',
+        label='КПП',
+        :rules='[(val) => notEmpty(val), (val) => val.length === 9 || "ожидаем 9 цифр"]',
+        autocomplete='off'
+      )
 
-        q-input(
-          v-model='bank_transfer.details.kpp',
-          standout='bg-teal text-white',
-          mask='#########',
-          label='КПП',
-          :rules='[(val) => notEmpty(val), (val) => val.length === 9 || "ожидаем 9 цифр"]',
-          autocomplete='off'
-        )
-
-        q-input.q-mb-lg(
-          v-model='bank_transfer.account_number',
-          standout='bg-teal text-white',
-          mask='####################',
-          label='Номер счета',
-          :rules='[(val) => notEmpty(val), (val) => val.length === 20 || "ожидаем 20 цифр"]',
-          autocomplete='off',
-          hint='Имя и фамилия получателя должны совпадать с теми, которые указаны в Удостоверении.'
-        )
+      q-input.q-mb-lg(
+        v-model='bank_transfer.account_number',
+        standout='bg-teal text-white',
+        mask='####################',
+        label='Номер счета',
+        :rules='[(val) => notEmpty(val), (val) => val.length === 20 || "ожидаем 20 цифр"]',
+        autocomplete='off',
+        hint='Имя и фамилия получателя должны совпадать с теми, которые указаны в Удостоверении.'
+      )
 </template>
 
 <script lang="ts" setup>
 import { computed, ref } from 'vue';
 import { useAddPaymentMethod } from '../model';
 import { FailAlert } from 'src/shared/api';
-import { ModalBase } from 'src/shared/ui/ModalBase';
+import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { Form } from 'src/shared/ui/Form';
 
 const props = defineProps({
@@ -112,7 +116,6 @@ const props = defineProps({
     type: String,
     required: true,
   },
-  // micro — компактный вид кнопки в шапке (иконка + tooltip) на мобильном.
   micro: {
     type: Boolean,
     default: false,

@@ -1,13 +1,16 @@
 <template lang="pug">
+//- Canon header-кнопка: на мобильном — только иконка + tooltip.
 q-btn(
   @click='showDialog = true',
-  color='primary',
-  :stretch='isMobile',
-  :size='isMobile ? "sm" : "md"',
+  :color='isMobile ? "accent" : "primary"',
+  :flat='isMobile',
+  :dense='isMobile',
+  :size='isMobile ? "sm" : undefined',
   no-wrap
 )
-  span.q-pr-sm Добавить
-  i.fa-solid.fa-user-plus
+  q-icon(name='fa-solid fa-user-plus')
+  span.q-ml-sm(v-if='!isMobile') Добавить
+  q-tooltip(v-if='isMobile') Добавить пайщика
 
 AddUserDialog(v-model='showDialog')
 </template>

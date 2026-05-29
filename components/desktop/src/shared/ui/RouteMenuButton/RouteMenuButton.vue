@@ -1,28 +1,36 @@
 <template lang="pug">
+//- Canon: на мобильном — иконка-only (round + tooltip), на десктопе —
+//- иконка + лейбл. Если icon не передан — fallback на label везде.
 q-btn(
-  size="md"
-  :flat="!isActive",
-  color="secondary",
-  :class="{'route-menu-button-active': isActive}",
-  :label="label"
-  @click="handleClick"
-
+  :size='isMobile ? "sm" : "md"',
+  :flat='!isActive',
+  :round='isMobile && !!icon',
+  color='secondary',
+  :class='{ "route-menu-button-active": isActive }',
+  :icon='icon',
+  :label='isMobile && icon ? undefined : label',
+  no-wrap,
+  @click='handleClick'
 )
+  q-tooltip(v-if='isMobile && icon') {{ label }}
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useWindowSize } from 'src/shared/hooks';
 
 const props = defineProps<{
   routeName: string;
   label: string;
+  icon?: string;
   routeParams?: Record<string, any>;
   query?: Record<string, any>;
 }>();
 
 const route = useRoute();
 const router = useRouter();
+const { isMobile } = useWindowSize();
 
 // Определяем, активен ли маршрут
 const isActive = computed(() => {

@@ -38,7 +38,6 @@ import { WindowLoader } from 'src/shared/ui/Loader';
 import { InvitationsListWidget } from 'app/extensions/capital/widgets';
 import { ReferralLinkCard } from 'src/shared/ui/ReferralLinkCard';
 import { ColorCard } from 'src/shared/ui/ColorCard/ui';
-import 'src/shared/ui/TitleStyles';
 
 const { referralLink } = useReferralLink();
 

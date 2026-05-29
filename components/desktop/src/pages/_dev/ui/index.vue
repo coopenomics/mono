@@ -363,8 +363,8 @@
         <span class="dev-ui__sect-num">12</span>
         <h2 class="dev-ui__sect-title">Боковая панель (AppDrawer)</h2>
         <p class="dev-ui__sect-sub">
-          Solid surface (no gradient), активный пункт — soft-accent заливка
-          пилюлей + 2-px рейл слева. Принимает <code>items</code> и
+          Solid surface (no gradient), активный пункт — soft-primary заливка
+          пилюлей + 2-px рейл слева (deep teal). Принимает <code>items</code> и
           <code>activeKey</code> через props.
         </p>
       </div>
@@ -1268,6 +1268,29 @@
       </div>
     </section>
 
+    <!-- ============ 39 TOASTS (E11.x) ============ -->
+    <section class="dev-ui__sect">
+      <div class="dev-ui__sect-head">
+        <span class="dev-ui__sect-num">39</span>
+        <h2 class="dev-ui__sect-title">Тосты (Notify)</h2>
+        <p class="dev-ui__sect-sub">
+          Системный feedback в правом нижнем углу: успех / ошибка / информация
+          / in-app push. Тёмный фон, цветная иконка по типу. API в
+          <code>src/shared/api/alerts.ts</code>, визуал — в
+          <code>quasar-canon.css</code>.
+        </p>
+      </div>
+      <div class="dev-ui__stage">
+        <div class="u-row u-row--wrap u-row--gap-4">
+          <BaseButton variant="primary" @click="showSuccessToast">Успех</BaseButton>
+          <BaseButton variant="secondary" @click="showSuccessWithActionToast">Успех с действием</BaseButton>
+          <BaseButton variant="danger" @click="showFailToast">Ошибка</BaseButton>
+          <BaseButton variant="ghost" @click="showNotifyToast">In-app push</BaseButton>
+          <BaseButton variant="ghost" @click="showNotifyWithAvatarToast">In-app push с аватаром</BaseButton>
+        </div>
+      </div>
+    </section>
+
   </main>
 </template>
 
@@ -1290,6 +1313,7 @@ import { VerticalStepper } from 'src/shared/ui/domain/VerticalStepper';
 import { NotificationCenter } from 'src/shared/ui/domain/NotificationCenter';
 import { CommandPalette } from 'src/shared/ui/domain/CommandPalette';
 import { DetailsDrawer } from 'src/shared/ui/domain/DetailsDrawer';
+import { SuccessAlert, FailAlert, NotifyAlert } from 'src/shared/api';
 import { LostKey } from 'src/widgets/Registrator/LostKey';
 import { ResetKeyForm } from 'src/widgets/Registrator/ResetKey';
 import { useCreateUser } from 'src/features/User/CreateUser';
@@ -1915,6 +1939,35 @@ function onSelectPage(workspaceName: string, pageName: string): void {
 /* ============ DetailsDrawer demo (E11.3) ============ */
 const drawerOpen = ref<boolean>(false);
 const drawerWideOpen = ref<boolean>(false);
+
+// ---- Toasts (E11.x) ----
+function showSuccessToast(): void {
+  SuccessAlert('Паевой взнос зарегистрирован');
+}
+function showSuccessWithActionToast(): void {
+  SuccessAlert('Документ 3498EA4A05 добавлен в реестр', {
+    text: 'Открыть',
+    handler: () => {
+      /* no-op demo */
+    },
+  });
+}
+function showFailToast(): void {
+  FailAlert(
+    new Error('Подпись отклонена нодой'),
+    'Не удалось проверить подпись',
+  );
+}
+function showNotifyToast(): void {
+  NotifyAlert('Заявление отправлено в совет', 'Ожидается 2 из 5 подписей');
+}
+function showNotifyWithAvatarToast(): void {
+  NotifyAlert(
+    'Новое сообщение',
+    'Председатель подписал ваш документ',
+    'https://api.dicebear.com/9.x/initials/svg?seed=PR',
+  );
+}
 </script>
 
 <style scoped>

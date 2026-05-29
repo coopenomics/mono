@@ -1,31 +1,37 @@
 <template lang="pug">
-q-btn(
-  v-if='canDelete'
-  flat
-  color='negative'
-  class='full-width q-mt-md'
-  label='Удалить'
-  @click='showDialog = true'
-  :loading='isSubmitting'
-  size="sm"
-)
-  q-dialog(v-model='showDialog', @hide='close')
-    ModalBase(:title='dialogTitle')
-      Form.q-pa-sm(
-        :handler-submit='confirmDelete'
-        :is-submitting='isSubmitting'
-        :button-cancel-txt='"Отменить"'
-        :button-submit-txt='"Удалить"'
-        @cancel='close'
-      )
-        div(style='max-width: 360px')
-          p {{ confirmMessage }}
+div
+  q-btn(
+    v-if='canDelete'
+    flat
+    color='negative'
+    class='full-width q-mt-md'
+    label='Удалить'
+    @click='showDialog = true'
+    :loading='isSubmitting'
+    size="sm"
+  )
+
+  BaseDialog(
+    v-model='showDialog',
+    :title='dialogTitle',
+    size='sm',
+    @update:model-value='(v) => !v && close()'
+  )
+    Form.q-pa-sm(
+      :handler-submit='confirmDelete'
+      :is-submitting='isSubmitting'
+      :button-cancel-txt='"Отменить"'
+      :button-submit-txt='"Удалить"'
+      @cancel='close'
+    )
+      div(style='max-width: 360px')
+        p {{ confirmMessage }}
 </template>
 
 <script lang="ts" setup>
 import { computed, ref } from 'vue';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
-import { ModalBase } from 'src/shared/ui/ModalBase';
+import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { Form } from 'src/shared/ui/Form';
 import { useDeleteProject } from '../model';
 

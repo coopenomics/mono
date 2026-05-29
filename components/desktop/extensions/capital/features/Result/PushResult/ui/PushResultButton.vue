@@ -1,42 +1,44 @@
 <template lang="pug">
-q-btn(
-  color='primary',
-  @click='showDialog = true',
-  :loading='loading',
-  label='Внести результат'
-)
+div
+  q-btn(
+    color='primary',
+    @click='showDialog = true',
+    :loading='loading',
+    label='Внести результат'
+  )
 
-  q-dialog(v-model='showDialog', @hide='clear')
-    ModalBase(:title='"Подтверждение внесения результата"')
-      .q-pa-md
-        // Общая сумма стоимости сегмента
-        ColorCard(color='green')
-          .card-label Ваш паевой взнос
-          .card-value {{ contributionAmount }}
+  BaseDialog(
+    v-model='showDialog',
+    title='Подтверждение внесения результата',
+    size='md',
+    @update:model-value='(v) => !v && clear()'
+  )
+    .q-pa-md
+      ColorCard(color='green')
+        .card-label Ваш паевой взнос
+        .card-value {{ contributionAmount }}
 
-        // Сумма взятой ссуды (только если > 0)
-        ColorCard(color='orange', v-if='parseFloat(debtAmount) > 0')
-          .card-label Сумма погашаемой ссуды
-          .card-value {{ debtAmount }}
+      ColorCard(color='orange', v-if='parseFloat(debtAmount) > 0')
+        .card-label Сумма погашаемой ссуды
+        .card-value {{ debtAmount }}
 
-      Form.q-pa-md(
-        :handler-submit='handlePushResult',
-        :is-submitting='isSubmitting',
-        :button-submit-txt='"Подтвердить внесение"',
-        :button-cancel-txt='"Отмена"',
-        @cancel='clear'
-      )
+    Form.q-pa-md(
+      :handler-submit='handlePushResult',
+      :is-submitting='isSubmitting',
+      :button-submit-txt='"Подтвердить внесение"',
+      :button-cancel-txt='"Отмена"',
+      @cancel='clear'
+    )
 
-      template(#footer='')
-        .q-pa-md.text-center
-          p.text-caption Подтверждая внесение результата, вы соглашаетесь с генерацией и подписью заявления на паевой взнос
+    .q-pa-md.text-center
+      p.text-caption Подтверждая внесение результата, вы соглашаетесь с генерацией и подписью заявления на паевой взнос
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { usePushResult } from '../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
-import { ModalBase } from 'src/shared/ui/ModalBase';
+import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { Form } from 'src/shared/ui/Form';
 import { ColorCard } from 'src/shared/ui/ColorCard';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';

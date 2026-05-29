@@ -81,6 +81,7 @@ import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import { TableSkeleton } from 'src/shared/ui/base/TableSkeleton';
 import type { TableSkeletonColumn } from 'src/shared/ui/base/TableSkeleton';
+import type { IPayment } from 'src/entities/Payment/model/types';
 import { getShortNameFromCertificate } from 'src/shared/lib/utils/getNameFromCertificate';
 import { formatDateToHumanDateTime } from 'src/shared/lib/utils/dates/formatDateToHumanDateTime';
 import { Zeus } from '@coopenomics/sdk';
@@ -99,7 +100,14 @@ const props = defineProps({
 
 const paymentStore = usePaymentStore();
 const payments = computed(() => paymentStore.payments);
-const items = computed(() => payments.value?.items ?? []);
+// Zeus scalar ID не имеет резолвера → IPayment.id типизирован как unknown,
+// что ломает шаблонные expanded.get/.set(row.id) и :id-биндинги. Внутри
+// виджета сужаем id до string (UI-форма строки): на проводе это всегда
+// строковый ID платежа.
+type IPaymentRow = Omit<IPayment, 'id'> & { id: string };
+const items = computed<IPaymentRow[]>(
+  () => (payments.value?.items ?? []) as unknown as IPaymentRow[],
+);
 const onLoading = ref(false);
 
 // Статус платежа → canon-вариант бейджа (точка + цвет из дизайн-токенов).

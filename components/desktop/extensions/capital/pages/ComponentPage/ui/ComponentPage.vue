@@ -294,6 +294,7 @@ const menuButtons = computed(() => {
       props: {
         routeName: 'component-description',
         label: 'Описание',
+        icon: 'description',
         routeParams: { project_hash: projectHash.value },
         query,
       },
@@ -305,6 +306,7 @@ const menuButtons = computed(() => {
       props: {
         routeName: 'component-tasks',
         label: 'Задачи',
+        icon: 'task_alt',
         routeParams: { project_hash: projectHash.value },
         query,
       },
@@ -316,6 +318,7 @@ const menuButtons = computed(() => {
       props: {
         routeName: 'component-requirements',
         label: 'Артефакты',
+        icon: 'inventory_2',
         routeParams: { project_hash: projectHash.value },
         query,
       },
@@ -327,6 +330,7 @@ const menuButtons = computed(() => {
       props: {
         routeName: 'component-planning',
         label: 'План',
+        icon: 'timeline',
         routeParams: { project_hash: projectHash.value },
         query,
       },
@@ -338,6 +342,7 @@ const menuButtons = computed(() => {
       props: {
         routeName: 'component-voting',
         label: 'Голосование',
+        icon: 'how_to_vote',
         routeParams: { project_hash: projectHash.value },
         query,
       },
@@ -349,6 +354,7 @@ const menuButtons = computed(() => {
       props: {
         routeName: 'component-results',
         label: 'Результаты',
+        icon: 'assessment',
         routeParams: { project_hash: projectHash.value },
         query,
       },
@@ -360,6 +366,7 @@ const menuButtons = computed(() => {
       props: {
         routeName: 'component-contributors',
         label: 'Участники',
+        icon: 'groups',
         routeParams: { project_hash: projectHash.value },
         query,
       },
@@ -371,6 +378,7 @@ const menuButtons = computed(() => {
       props: {
         routeName: 'component-history',
         label: 'История',
+        icon: 'history',
         routeParams: { project_hash: projectHash.value },
         query,
       },

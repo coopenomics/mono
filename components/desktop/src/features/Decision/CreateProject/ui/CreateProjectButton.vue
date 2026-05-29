@@ -1,66 +1,70 @@
 <template lang="pug">
+//- Canon header-кнопка: на мобильном — только иконка + tooltip,
+//- на десктопе — иконка + лейбл.
 q-btn(
   @click='show = true',
-  color='primary',
-  no-wrap,
-  :stretch='isMobile',
-  :size='isMobile ? "sm" : "md"'
+  :color='isMobile ? "accent" : "primary"',
+  :flat='isMobile',
+  :dense='isMobile',
+  :size='isMobile ? "sm" : undefined',
+  no-wrap
 )
-  span.q-pr-sm Предложить
-  i.fa-solid.fa-plus
+  q-icon(name='fa-solid fa-plus')
+  span.q-ml-sm(v-if='!isMobile') Предложить
+  q-tooltip(v-if='isMobile') Предложить повестку
 
-  q-dialog(v-model='show', persistent, :maximized='true')
-    ModalBase(
-      style='max-width: 100% !important',
-      :title='"Предложить повестку"',
-      :show_close='true'
+BaseDialog(
+  v-model='show',
+  title='Предложить повестку',
+  :maximized='true',
+  :close-on-backdrop='false',
+  :close-on-escape='false'
+)
+  Form(
+    :handler-submit='create',
+    :is-submitting='isSubmitting',
+    :showSubmit='!isLoading',
+    :showCancel='true',
+    :button-submit-txt='"Предложить"',
+    @cancel='clear'
+  )
+    q-input(
+      dense,
+      v-model='createProjectInput.title',
+      standout='bg-teal text-white',
+      placeholder='',
+      label='Заголовок документа',
+      counter,
+      :maxlength='200',
+      autocomplete='off',
+      hint='Кратко опишите суть предложения (до 200 символов)'
+    ).q-mb-md
+    q-input(
+      dense,
+      v-model='createProjectInput.question',
+      standout='bg-teal text-white',
+      placeholder='',
+      label='Вопрос на повестке дня',
+      :rules='[(val) => notEmpty(val)]',
+      autocomplete='off',
+      type='textarea'
+      hint="Сформулируйте вопрос к обсуждению на повестке голосования"
+    ).q-mb-md
+    q-input(
+      dense,
+      v-model='createProjectInput.decision',
+      standout='bg-teal text-white',
+      placeholder='',
+      label='Предлагаемое решение вопроса для голосования',
+      :rules='[(val) => notEmpty(val)]',
+      autocomplete='off',
+      type='textarea'
+      hint="Сформулируйте проект решения по поставленному вопросу"
     )
-      Form.q-pa-md(
-        :handler-submit='create',
-        :is-submitting='isSubmitting',
-        :showSubmit='!isLoading',
-        :showCancel='true',
-        :button-submit-txt='"Предложить"',
-        @cancel='clear'
-      )
-        .q-mb-lg
-          q-input(
-            dense,
-            v-model='createProjectInput.title',
-            standout='bg-teal text-white',
-            placeholder='',
-            label='Заголовок документа',
-            counter,
-            :maxlength='200',
-            autocomplete='off',
-            hint='Кратко опишите суть предложения (до 200 символов)'
-          ).q-mb-md
-          q-input(
-            dense,
-            v-model='createProjectInput.question',
-            standout='bg-teal text-white',
-            placeholder='',
-            label='Вопрос на повестке дня',
-            :rules='[(val) => notEmpty(val)]',
-            autocomplete='off',
-            type='textarea'
-            hint="Сформулируйте вопрос к обсуждению на повестке голосования"
-          ).q-mb-md
-          q-input(
-            dense,
-            v-model='createProjectInput.decision',
-            standout='bg-teal text-white',
-            placeholder='',
-            label='Предлагаемое решение вопроса для голосования',
-            :rules='[(val) => notEmpty(val)]',
-            autocomplete='off',
-            type='textarea'
-            hint="Сформулируйте проект решения по поставленному вопросу"
-          )
 </template>
 
 <script lang="ts" setup>
-import { ModalBase } from 'src/shared/ui/ModalBase';
+import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { Form } from 'src/shared/ui/Form';
 import { ref } from 'vue';
 import { useCreateProjectOfFreeDecision } from '../model';

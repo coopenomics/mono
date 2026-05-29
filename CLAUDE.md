@@ -184,6 +184,31 @@ await sendPOST('/v1/graphql', { query: QUERY, variables });
 
 Канон — `features/Branch/CreateBranch/{api,model}/index.ts`: тип в model `export type IXxxInput = Mutations.X.Y.IInput['data']`; функция в api `function (data: IXxxInput) { ... variables: { data } }`. Не делать `as` cast'ов.
 
+## ⚠️ ДИЗАЙН-КАНОН desktop — ОБЯЗАТЕЛЕН К ИСПОЛЬЗОВАНИЮ
+
+**ПРИ ЛЮБОЙ ВЁРСТКЕ В `components/desktop/` НЕ ВЫДУМЫВАТЬ СТИЛИ.** Всегда сначала свериться с каноном. Не строй гипотез о цветах/радиусах/типографике/паттернах из памяти — иди и читай.
+
+**Два источника правды (именно в этом порядке):**
+
+1. **HTML-канон дизайн-системы** — единственный SoT для визуала (цвета, токены, радиусы, тени, типографика, патерны компонентов):
+
+   `/home/admin/blago/production/shared/MONO Design System.html`
+
+   Это самодостаточный HTML с всеми CSS-токенами `--p-*`, образцами компонентов (`.base-button`, `.base-card`, `.toast`, `.chip`, `.banner` и т.д.), цветовой палитрой и demo-блоками. **При сомнении в каноне — открыть этот файл и читать.** Не путать с `auth-prototype/index.html`, не путать с `ux-design-specification.md` — они НЕ канон.
+
+2. **Живая реализация канона** в самом репозитории — `/_dev/ui` страница:
+
+   `components/desktop/src/pages/_dev/ui/index.vue`
+
+   Это уже заверстанная по канону witness-страница со всеми base-/widget-компонентами в действии (BaseButton, BaseInput, BaseCard, BaseChip, EmptyState, Toasts, AppHeader/AppDrawer фрагменты, WalletCard, IdentityPanel, DocumentRow, SignatureCard, ActivityTimeline, KpiCard, VerticalStepper и т.д.). **Когда делаешь новый компонент — сначала посмотри как уже сверстаны соседние в этой странице, используй те же токены / классы / структуру.** Эту страницу можно открыть в браузере (`/_dev/ui` в dev-сборке) — она же служит и для визуальной верификации.
+
+**Запреты:**
+- Никаких magic-цветов в hex/rgb прямо в `<style>` Vue-файла — только токены `var(--p-*)` (см. `components/desktop/src/css/mono-platform/*.css`).
+- Никаких локальных переопределений `.q-btn`/`.q-card`/`.q-notification` в feature-файлах — все Quasar-overrides централизованно в `components/desktop/src/css/mono-platform/quasar-canon.css`.
+- Никаких ад-хок размеров — отступы/радиусы/typescale из токенов (`--p-1`..`--p-12`, `--p-r-sm/md/lg`, `--p-fs-h1..body-sm`).
+
+**Кейс 2026-05-28:** после компакта забыл, что shared/MONO Design System.html — основной SoT, и нашёл «канон» в auth-prototype, который НЕ канон; перевёрстал тосты под нейтральный фон вместо тёмного, пришлось переделывать.
+
 ## Frontend desktop — English имена
 
 В `components/desktop/` и любом Vue/TS frontend коде **все имена идентификаторов — английские**:

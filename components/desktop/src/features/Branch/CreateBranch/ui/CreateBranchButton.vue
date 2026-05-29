@@ -1,89 +1,93 @@
 <template lang="pug">
-div.header-action
-  q-btn(
-    color='primary',
-    :stretch='isMobile',
-    :size='isMobile ? "sm" : "md"',
-    no-wrap,
-    @click='show = true'
+//- Canon header-кнопка: на мобильном — только иконка + tooltip,
+//- на десктопе — иконка + лейбл.
+q-btn(
+  @click='show = true',
+  :color='isMobile ? "accent" : "primary"',
+  :flat='isMobile',
+  :dense='isMobile',
+  :size='isMobile ? "sm" : undefined',
+  no-wrap
+)
+  q-icon(name='fa-solid fa-plus')
+  span.q-ml-sm(v-if='!isMobile') Добавить участок
+  q-tooltip(v-if='isMobile') Добавить участок
+
+BaseDialog(
+  v-model='show',
+  title='Создать кооперативный участок',
+  size='lg',
+  :close-on-backdrop='false',
+  :close-on-escape='false'
+)
+  Form(
+    :handler-submit='create',
+    :is-submitting='isSubmitting',
+    :showSubmit='!isLoading',
+    :showCancel='true',
+    :button-submit-txt='"Создать"',
+    @cancel='clear'
   )
-    i.fa-solid.fa-plus
-    span.q-pl-sm добавить участок
-  q-dialog(v-model='show', persistent, :maximized='false')
-    ModalBase(
-      style='width: 500px; max-width: 100% !important',
-      :title='"Создать кооперативный участок"',
-      :show_close='true'
+    UserSearchSelector(
+      v-model='createBranchInput.trustee',
+      label='Председатель участка',
+      :rules='[(val) => notEmpty(val)]',
+      dense,
+      standout='bg-teal text-white'
     )
-      Form.q-pa-md(
-        :handler-submit='create',
-        :is-submitting='isSubmitting',
-        :showSubmit='!isLoading',
-        :showCancel='true',
-        :button-submit-txt='"Создать"',
-        @cancel='clear'
-      )
-        .q-mb-lg
-          UserSearchSelector(
-            v-model='createBranchInput.trustee',
-            label='Председатель участка',
-            :rules='[(val) => notEmpty(val)]',
-            dense,
-            standout='bg-teal text-white'
-          )
 
-          q-input(
-            dense,
-            v-model='createBranchInput.short_name',
-            standout='bg-teal text-white',
-            placeholder='РОМАШКА',
-            label='Наименование участка',
-            :rules='[(val) => notEmpty(val)]',
-            autocomplete='off'
-          )
-          q-input(
-            dense,
-            v-model='createBranchInput.phone',
-            standout='bg-teal text-white',
-            label='Номер телефона участка',
-            mask='+7 (###) ###-##-##',
-            fill-mask,
-            placeholder='',
-            :rules='[(val) => notEmpty(val), (val) => notEmptyPhone(val)]',
-            autocomplete='off'
-          )
-          q-input(
-            dense,
-            v-model='createBranchInput.fact_address',
-            standout='bg-teal text-white',
-            placeholder='',
-            label='Фактический адрес участка',
-            :rules='[(val) => notEmpty(val)]',
-            autocomplete='off'
-          )
-          q-input(
-            dense,
-            v-model='createBranchInput.email',
-            standout='bg-teal text-white',
-            type='email',
-            label='Email-адрес участка',
-            color='primary',
-            :rules='[validEmail, notEmpty]'
-          )
+    q-input(
+      dense,
+      v-model='createBranchInput.short_name',
+      standout='bg-teal text-white',
+      placeholder='РОМАШКА',
+      label='Наименование участка',
+      :rules='[(val) => notEmpty(val)]',
+      autocomplete='off'
+    )
+    q-input(
+      dense,
+      v-model='createBranchInput.phone',
+      standout='bg-teal text-white',
+      label='Номер телефона участка',
+      mask='+7 (###) ###-##-##',
+      fill-mask,
+      placeholder='',
+      :rules='[(val) => notEmpty(val), (val) => notEmptyPhone(val)]',
+      autocomplete='off'
+    )
+    q-input(
+      dense,
+      v-model='createBranchInput.fact_address',
+      standout='bg-teal text-white',
+      placeholder='',
+      label='Фактический адрес участка',
+      :rules='[(val) => notEmpty(val)]',
+      autocomplete='off'
+    )
+    q-input(
+      dense,
+      v-model='createBranchInput.email',
+      standout='bg-teal text-white',
+      type='email',
+      label='Email-адрес участка',
+      color='primary',
+      :rules='[validEmail, notEmpty]'
+    )
 
-          q-input(
-            dense,
-            v-model='createBranchInput.based_on',
-            standout='bg-teal text-white',
-            label='Председатель действует на основании',
-            placeholder='решение собрания совета №СС-10-04-2025 от 10 апреля 2025 г',
-            :rules='[(val) => notEmpty(val)]',
-            autocomplete='off'
-          )
+    q-input(
+      dense,
+      v-model='createBranchInput.based_on',
+      standout='bg-teal text-white',
+      label='Председатель действует на основании',
+      placeholder='решение собрания совета №СС-10-04-2025 от 10 апреля 2025 г',
+      :rules='[(val) => notEmpty(val)]',
+      autocomplete='off'
+    )
 </template>
 
 <script lang="ts" setup>
-import { ModalBase } from 'src/shared/ui/ModalBase';
+import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { Form } from 'src/shared/ui/Form';
 import { UserSearchSelector } from 'src/shared/ui';
 import { ref } from 'vue';
@@ -121,11 +125,3 @@ const clear = () => {
   show.value = false;
 };
 </script>
-
-<style scoped lang="scss">
-.header-action {
-  height: 100%;
-  display: flex;
-  align-items: center;
-}
-</style>

@@ -12,37 +12,42 @@
     @click="openDialog"
   )
   .text-caption.q-mt-xs.text-grey-7(v-if="moveDisabledReason") {{ moveDisabledReason }}
-  q-dialog(v-model="dialogOpen" @hide="resetDialog")
-    ModalBase(title="Перенос задачи в другой компонент")
-      Form.q-pa-sm(
-        :handler-submit="confirmMove"
-        :is-submitting="isSubmitting"
-        button-cancel-txt="Отменить"
-        button-submit-txt="Перенести"
-        @cancel="close"
-      )
-        div(style="max-width: 420px")
-          p.text-body2.q-mb-sm
-            | Перенос допустим только в рамках одного проекта. Для перемещения доступны другие компоненты проекта в статусах «ожидание» и «активен». Время по задаче переносится вместе с ней.
-          q-select(
-            v-model="selectedHash"
-            :options="targetOptions"
-            option-value="project_hash"
-            option-label="label"
-            emit-value
-            map-options
-            outlined
-            dense
-            label="Компонент для переноса"
-            :loading="optionsLoading"
-          )
+
+  BaseDialog(
+    v-model="dialogOpen",
+    title="Перенос задачи в другой компонент",
+    size="md",
+    @update:model-value="(v) => !v && resetDialog()"
+  )
+    Form.q-pa-sm(
+      :handler-submit="confirmMove"
+      :is-submitting="isSubmitting"
+      button-cancel-txt="Отменить"
+      button-submit-txt="Перенести"
+      @cancel="close"
+    )
+      div(style="max-width: 420px")
+        p.text-body2.q-mb-sm
+          | Перенос допустим только в рамках одного проекта. Для перемещения доступны другие компоненты проекта в статусах «ожидание» и «активен». Время по задаче переносится вместе с ней.
+        q-select(
+          v-model="selectedHash"
+          :options="targetOptions"
+          option-value="project_hash"
+          option-label="label"
+          emit-value
+          map-options
+          outlined
+          dense
+          label="Компонент для переноса"
+          :loading="optionsLoading"
+        )
 </template>
 
 <script lang="ts" setup>
 import { ref, computed, watch } from 'vue';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { EMPTY_HASH } from 'src/shared/lib/consts';
-import { ModalBase } from 'src/shared/ui/ModalBase';
+import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { Form } from 'src/shared/ui/Form';
 import { Zeus } from '@coopenomics/sdk';
 import { api as ProjectApi } from 'app/extensions/capital/entities/Project/api';

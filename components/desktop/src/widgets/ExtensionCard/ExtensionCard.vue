@@ -5,7 +5,7 @@ article.app-card(
 )
   .app-card__head
     AutoAvatar.app-card__avatar(
-      :username='extension.name || extension.title',
+      :username='extension.name || extension.title || ""',
       :size='48',
       radius='var(--p-r-md, 12px)',
       background='var(--p-surface-2)',
@@ -33,7 +33,7 @@ article.app-card(
 import type { IExtension } from 'src/entities/Extension/model/types';
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { AutoAvatar } from 'src/shared/ui/AutoAvatar';
+import { AutoAvatar } from 'src/shared/ui/domain/AutoAvatar';
 
 const props = defineProps<{ extension: IExtension }>();
 

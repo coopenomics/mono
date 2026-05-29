@@ -1,15 +1,52 @@
-// Общие стили для карточек
+// Legacy-стайлеры extensions/capital — глобально загружаются для всех страниц,
+// чтобы не таскать side-effect import'ы по каждому файлу.
+// Слиты из бывших shared/ui/TitleStyles + shared/ui/CardStyles.
+// Долг: переписать на canon-токены (--p-*) и снести этот файл.
+
+// === TitleStyles — ограничение ширины заголовков в таблицах ===
+.title-container {
+  max-width: 300px;
+  min-width: 150px;
+  line-height: 1.4;
+
+  word-break: break-all;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+  white-space: normal;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  line-clamp: 3;
+
+  @media (max-width: 1023px) {
+    max-width: none;
+    word-break: normal;
+    overflow-wrap: break-word;
+    -webkit-line-clamp: none;
+    line-clamp: none;
+    text-overflow: initial;
+  }
+
+  @media (max-width: 599px) {
+    max-width: 200px;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+}
+
+// === CardStyles — общие стили для карточек ===
 .card-container {
   border-radius: 16px;
   width: 100%;
   border: 1px solid rgba(0, 0, 0, 0.08);
   background-color: var(--q-surface);
 
-  // body--dark: глобальная тёмная тема Quasar; q-dark — локально на виджетах
   .body--dark &,
   .q-dark & {
     border: 1px solid rgba(255, 255, 255, 0.34);
-    // Без «засвета» белой плёнки — как фон страницы + лёгкий primary
     background-color: color-mix(
       in srgb,
       var(--q-dark-page, #1f1c1c) 92%,
@@ -40,7 +77,6 @@
   }
 }
 
-// Улучшенный hover-эффект
 .info-card-hover {
   transition: all 0.2s ease;
 
@@ -54,7 +90,6 @@
   }
 }
 
-// Главная карточка страницы с заголовком
 .page-main-card {
   .body--dark &,
   .q-dark & {
@@ -89,8 +124,6 @@
   }
 }
 
-
-// Секции профиля
 .profile-section {
   .section-header {
     display: flex;
@@ -199,7 +232,6 @@
   border-radius: 8px;
 }
 
-// Специальные типы карточек
 .balance-card {
   border-radius: 12px;
   padding: 20px;
@@ -237,7 +269,6 @@
   }
 }
 
-// Пустое состояние
 .empty-state {
   text-align: center;
   padding: 40px 20px;
@@ -259,7 +290,6 @@
   }
 }
 
-// Заголовки секций с иконками
 .section-header {
   display: flex;
   align-items: center;
@@ -281,7 +311,6 @@
   }
 }
 
-// Информационная карточка с предупреждением
 .info-warning-card {
   background: rgba(255, 152, 0, 0.05);
   border: 1px solid rgba(255, 152, 0, 0.2);
@@ -317,7 +346,6 @@
   }
 }
 
-// Специальная карточка секции с предупреждающим стилем
 .section-card-warning {
   border-radius: 16px;
   border: 1px solid rgba(255, 152, 0, 0.2);
@@ -389,7 +417,6 @@
   }
 }
 
-// Адаптивность
 @media (max-width: 768px) {
   .profile-section .info-content .info-group .info-item {
     margin-bottom: 8px;
@@ -412,7 +439,6 @@
     font-size: 18px;
   }
 
-  // Адаптивность для новых классов
   .page-main-card .page-header {
     flex-direction: column;
     align-items: flex-start;

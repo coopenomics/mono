@@ -39,7 +39,7 @@ q-header.app-q-header(:bordered='false')
       NotificationCenter
 
     template(#theme)
-      ToogleDarkLight(:is-mobile='isMobile', :show-text='false', :as-button='true')
+      ThemeToggle(:is-mobile='isMobile', :show-text='false', :as-button='true')
 
     template(v-if='!loggedIn', #profile)
       BaseButton(
@@ -64,7 +64,7 @@ import { useSystemStore } from 'src/entities/System/model';
 import { useWindowSize, useHeaderActionsReader } from 'src/shared/hooks';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { AppHeader } from 'src/shared/ui/layout/AppHeader';
-import { ToogleDarkLight } from 'src/shared/ui/ToogleDarkLight';
+import { ThemeToggle } from 'src/shared/ui/base/ThemeToggle';
 import { BackButton } from 'src/widgets/Header/BackButton';
 import { NotificationCenter } from 'src/widgets/NotificationCenter';
 import logoSvg from 'src/assets/logo.svg?raw';

@@ -58,7 +58,6 @@ import { onMounted, onBeforeUnmount, ref, computed } from 'vue';
 import { useSystemStore } from 'src/entities/System/model';
 import { useExpandableState, useDataPoller } from 'src/shared/lib/composables';
 import { POLL_INTERVALS } from 'src/shared/lib/consts';
-import 'src/shared/ui/TitleStyles';
 import { WindowLoader } from 'src/shared/ui/Loader';
 import { ColorCard } from 'src/shared/ui/ColorCard/ui';
 import { ProjectVotingSegmentsWidget, SegmentVotesWidget } from 'app/extensions/capital/widgets';

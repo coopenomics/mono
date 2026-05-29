@@ -91,11 +91,10 @@ const required_agreements = computed(() => {
 });
 
 const init = async () => {
-  console.log('on init: ', info)
-  // Не загружаем данные если кооператив в режиме установки
   if (info.system_status === 'install') {
     return
   }
+  if (!info.coopname) return
 
   agreementer.loadCooperativeAgreements(info.coopname)
   agreementer.loadAgreementTemplates(info.coopname)
@@ -107,6 +106,10 @@ watch(() => session.isAuth, (newValue) => {
     init()
 })
 
-init()
+// Без этого watch'а init() в setup стартует пока system.loadSystemInfo() ещё не завершён,
+// info.coopname=undefined → GraphQL валится на required $coopname.
+watch(() => info.coopname, (cn) => {
+  if (cn) init()
+}, { immediate: true })
 
 </script>

@@ -58,6 +58,20 @@ export function useDefaultLayoutLogic() {
     desktop.setLeftDrawerOpen(v);
   });
 
+  // На мобиле закрываем левый дровер при любой смене маршрута, чтобы выбор
+  // пункта меню сразу скрывал overlay-дровер — иначе после перехода требуется
+  // лишний тап «закрыть». Watch на route надёжнее ручного вызова в onSelect
+  // конкретных меню: ловит и программные router.push, и WorkspaceSwitcher,
+  // и любые другие источники навигации.
+  watch(
+    () => route.fullPath,
+    () => {
+      if (isMobile.value) {
+        desktop.setLeftDrawerOpen(false);
+      }
+    },
+  );
+
   const toggleLeftDrawer = () => {
     desktop.toggleLeftDrawer();
   };

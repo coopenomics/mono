@@ -20,7 +20,6 @@ import { useSystemStore } from 'src/entities/System/model';
 import { useDesktopHealthWatcherProcess } from 'src/processes/watch-desktop-health';
 import { useSessionStore } from 'src/entities/Session';
 import { env, initOpenReplayTracker } from 'src/shared/config';
-import 'src/shared/ui/CardStyles/index.scss';
 // Start tracker
 const session = useSessionStore();
 const system = useSystemStore();

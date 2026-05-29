@@ -69,7 +69,9 @@ const { info } = system;
 const { showDialog } = useNotificationPermissionDialog();
 
 onMounted(() => {
-  agreementer.loadCooperativeAgreements(info.coopname);
+  if (info.coopname) {
+    agreementer.loadCooperativeAgreements(info.coopname);
+  }
   if (!session.isRegistrationComplete) {
     const userStatus = session.providerAccount?.status;
     if (
@@ -82,6 +84,15 @@ onMounted(() => {
     }
   }
 });
+
+// Догружаем cooperativeAgreements, когда system_info прорастёт.
+// До этого onMounted мог отработать на пустом info.coopname.
+watch(
+  () => info.coopname,
+  (cn) => {
+    if (cn) agreementer.loadCooperativeAgreements(cn);
+  },
+);
 
 const out = async () => {
   const { logout } = await useLogoutUser();

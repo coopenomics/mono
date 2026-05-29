@@ -32,13 +32,14 @@
 </template>
 
 <script setup lang="ts">
+import type { PropType } from 'vue';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
-import { Cooperative } from 'cooptypes';
+import type { IAgenda } from 'src/entities/Agenda/model';
 import { QuestionCard } from '../QuestionCard';
 
 const props = defineProps({
   decisions: {
-    type: Array,
+    type: Array as PropType<IAgenda[]>,
     required: true,
   },
   loading: {
@@ -78,15 +79,15 @@ const isProcessing = (decisionId: number) => {
   return Boolean(props.processingDecisions[decisionId]);
 };
 
-const onAuthorizeDecision = (row: Cooperative.Document.IComplexAgenda) => {
+const onAuthorizeDecision = (row: IAgenda) => {
   emit('authorize', row);
 };
 
-const onVoteFor = (row: Cooperative.Document.IComplexAgenda) => {
+const onVoteFor = (row: IAgenda) => {
   emit('vote-for', row);
 };
 
-const onVoteAgainst = (row: Cooperative.Document.IComplexAgenda) => {
+const onVoteAgainst = (row: IAgenda) => {
   emit('vote-against', row);
 };
 </script>

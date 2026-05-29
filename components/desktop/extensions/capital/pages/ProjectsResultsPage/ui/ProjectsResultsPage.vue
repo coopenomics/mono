@@ -34,7 +34,6 @@ div
 import { onMounted, ref } from 'vue';
 import { useSystemStore } from 'src/entities/System/model';
 import { useExpandableState } from 'src/shared/lib/composables';
-import 'src/shared/ui/TitleStyles';
 import { WindowLoader } from 'src/shared/ui/Loader';
 import { ListResultProjectsWidget, ResultSubmissionSegmentsWidget, ResultSubmissionActionsWidget } from 'app/extensions/capital/widgets';
 import { useSegmentStore } from 'app/extensions/capital/entities/Segment/model';

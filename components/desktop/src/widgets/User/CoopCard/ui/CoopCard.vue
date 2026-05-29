@@ -54,7 +54,7 @@
 <script lang="ts" setup>
 import { DepositButton } from 'src/features/Wallet/DepositToWallet';
 import { WithdrawButton } from 'src/features/Wallet/WithdrawFromWallet';
-import { AutoAvatar } from 'src/shared/ui/AutoAvatar';
+import { AutoAvatar } from 'src/shared/ui/domain/AutoAvatar';
 import { useWalletStore } from 'src/entities/Wallet';
 import { useSessionStore } from 'src/entities/Session';
 const walletStore = useWalletStore();

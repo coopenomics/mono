@@ -38,7 +38,6 @@ import { onMounted, ref } from 'vue';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session/model/store';
 import { useExpandableState } from 'src/shared/lib/composables';
-import 'src/shared/ui/TitleStyles';
 import { WindowLoader } from 'src/shared/ui/Loader';
 import { TimeStatsWidget, TimeIssuesWidget, TimeEntriesWidget } from 'app/extensions/capital/widgets';
 

@@ -34,7 +34,7 @@ q-dialog(
       template(v-if='!isSearchMode')
         template(v-for='ws in workspaces', :key='ws.name')
           .command-palette__workspace(
-            :class='{ "is-active": ws.isActive, "is-sticky": ws.isActive }'
+            :class='{ "is-active": ws.isActive }'
           )
             button.command-palette__workspace-row(
               type='button',
@@ -218,8 +218,17 @@ function moveSelection(delta: number): void {
   const list = activeList.value;
   if (!list.length) return;
   const currentIdx = list.findIndex((e) => e.key === activeKey.value);
-  const safe = currentIdx === -1 ? 0 : currentIdx;
-  const next = (safe + delta + list.length) % list.length;
+  let next: number;
+  if (currentIdx === -1) {
+    // Нет текущего выделения — ↓ ставит на первый, ↑ на последний.
+    next = delta > 0 ? 0 : list.length - 1;
+  } else {
+    // Clamp в границах списка: на верхней/нижней позиции стрелка дальше
+    // не «оборачивает» курсор в противоположный конец — он остаётся на
+    // месте (привычное поведение скролла в нативных меню/listbox).
+    next = Math.max(0, Math.min(list.length - 1, currentIdx + delta));
+  }
+  if (next === currentIdx) return;
   activeKey.value = list[next].key;
   nextTick(() => scrollActiveIntoView());
 }
@@ -345,11 +354,6 @@ function onHide(): void {
 .command-palette__workspace {
   background: var(--p-surface);
 }
-.command-palette__workspace.is-sticky {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-}
 
 .command-palette__workspace-row {
   display: flex;
@@ -368,20 +372,25 @@ function onHide(): void {
   transition: background var(--p-dur-fast, 120ms) var(--p-ease-standard);
 }
 .command-palette__workspace.is-active .command-palette__workspace-row {
-  background: var(--p-accent-soft, var(--p-primary-soft));
+  background: var(--p-primary-soft);
 }
 .command-palette__workspace-row:hover,
 .command-palette__workspace-row.is-selected {
   background: var(--p-surface-2);
 }
 .command-palette__workspace.is-active .command-palette__workspace-row.is-selected {
-  background: var(--p-accent-soft, var(--p-primary-soft));
-  outline: 2px solid var(--p-accent, var(--p-primary));
+  background: var(--p-primary-soft);
+}
+/* Универсальная рамка selected для строки стола — иначе при наведении
+   на неактивный стол курсор «теряется»: page'и имеют outline по selected,
+   а workspace-row до фикса получали outline только в is-active. */
+.command-palette__workspace-row.is-selected {
+  outline: 2px solid var(--p-primary);
   outline-offset: -2px;
 }
 
 .command-palette__workspace-icon {
-  color: var(--p-accent, var(--p-primary));
+  color: var(--p-primary);
   flex: 0 0 auto;
 }
 
@@ -399,8 +408,8 @@ function onHide(): void {
   align-items: center;
   padding: 2px 10px;
   border-radius: 999px;
-  background: var(--p-accent, var(--p-primary));
-  color: var(--p-ink-on-accent, var(--p-ink-on-primary, #fff));
+  background: var(--p-primary);
+  color: var(--p-ink-on-primary, #fff);
   font-size: var(--p-fs-caption, 11px);
   font-weight: 600;
   flex: 0 0 auto;
@@ -435,7 +444,7 @@ function onHide(): void {
   color: var(--p-ink);
 }
 .command-palette__page.is-selected {
-  outline: 2px solid var(--p-accent, var(--p-primary));
+  outline: 2px solid var(--p-primary);
   outline-offset: -2px;
 }
 
@@ -482,15 +491,15 @@ function onHide(): void {
 }
 .command-palette__flat-item:hover,
 .command-palette__flat-item.is-selected {
-  background: var(--p-accent-soft, var(--p-primary-soft));
+  background: var(--p-primary-soft);
 }
 .command-palette__flat-item.is-selected {
-  outline: 2px solid var(--p-accent, var(--p-primary));
+  outline: 2px solid var(--p-primary);
   outline-offset: -2px;
 }
 
 .command-palette__flat-icon {
-  color: var(--p-accent, var(--p-primary));
+  color: var(--p-primary);
   flex: 0 0 auto;
 }
 

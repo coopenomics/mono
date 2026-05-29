@@ -4,18 +4,26 @@ q-item(clickable flat size="sm" @click="showDialog=true").full-width
     q-icon(name="fa-solid fa-square-check").q-mr-xs
     span обработан
 
-  q-dialog(v-model="showDialog" @hide="close")
-    ModalBase(title='отметить обработанным')
-      Form(:handler-submit="setCompleted" :is-submitting="isSubmitting" :button-cancel-txt="'Отменить'" :button-submit-txt="'Продолжить'" @cancel="close").q-pa-sm
-        div(style="max-width: 300px;")
-          p Вы уверены, что хотите отметить платеж обработанным? Отметка НЕ приводит к изменению лицевых счетов и не выполняет никаких действий по обработке платежа, а только заменяет статус платежа.
-
+BaseDialog(
+  v-model='showDialog',
+  title='Отметить обработанным',
+  size='sm',
+  @update:model-value='(v) => !v && close()'
+)
+  Form(
+    :handler-submit="setCompleted"
+    :is-submitting="isSubmitting"
+    :button-cancel-txt="'Отменить'"
+    :button-submit-txt="'Продолжить'"
+    @cancel="close"
+  )
+    p Вы уверены, что хотите отметить платеж обработанным? Отметка НЕ приводит к изменению лицевых счетов и не выполняет никаких действий по обработке платежа, а только заменяет статус платежа.
 </template>
 <script lang="ts" setup>
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSetStatus } from '../../model';
 import { ref } from 'vue';
-import { ModalBase } from 'src/shared/ui/ModalBase';
+import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { Form } from 'src/shared/ui/Form';
 const {setCompletedStatus} = useSetStatus()
 const isSubmitting = ref(false)

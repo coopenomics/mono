@@ -317,3 +317,157 @@ body.body--dark {
   background-color: var(--p-canvas);
   color: var(--p-ink);
 }
+
+/* ===== Notification (q-notification, Quasar Notify) ============================
+   Canon-тост по MONO Platform v2 (shared/MONO Design System.html → .toast):
+   тёмный фон (var(--p-ink) для нейтрального; deep-tinted #052e16/#4c0a0a/
+   #3d2400/#0c1e3f для positive/negative/warning/info), светлый текст,
+   ЦВЕТНАЯ ИКОНКА по типу (--p-pos/--p-neg/--p-warn/--p-info). Появление
+   bottom-right, max-width 420px. Позиция и таймаут — в shared/api/alerts.ts,
+   визуал — здесь (один источник правды для всех Notify.create).
+   --------------------------------------------------------------------- */
+.q-notifications__list--bottom-right,
+.q-notifications__list--bottom-left,
+.q-notifications__list--bottom {
+  padding: 0 24px 24px;
+}
+.q-notifications__list--top-right,
+.q-notifications__list--top-left,
+.q-notifications__list--top {
+  padding: 24px 24px 0;
+}
+.q-notification {
+  /* Тост — ВСЕГДА тёмная всплывающая поверхность в обеих темах. Фоны типов
+     зашиты тёмными deep-tint (#052e16/#4c0a0a/#3d2400/#0c1e3f ниже), поэтому
+     фон и текст здесь — фиксированные литералы, НЕ var(--p-ink)/var(--p-canvas):
+     на dark-теме эти токены инвертируются и текст уходил в тёмный на тёмном —
+     нечитаемо (баг 2026-05-28). Цветные иконки по типу остаются на токенах
+     (--p-pos/--p-neg/--p-warn/--p-info) — они яркие в обеих темах. */
+  background: #18181b !important;
+  color: #fafafa !important;
+  border: 0;
+  border-radius: var(--p-r-sm, 8px);
+  box-shadow: var(--p-shadow-pop, 0 8px 28px rgba(0, 0, 0, 0.18));
+  padding: 12px 14px;
+  min-height: auto;
+  max-width: 420px;
+  font-family: var(--p-sans, inherit);
+  font-size: var(--p-fs-body-sm, 13px);
+  line-height: 1.45;
+  gap: 12px;
+}
+.q-notification__message {
+  color: inherit;
+  font-weight: 500;
+  padding: 2px 0;
+}
+.q-notification__caption {
+  color: inherit;
+  opacity: 0.7;
+  font-size: var(--p-fs-meta, 12px);
+  line-height: 1.45;
+  padding-top: 2px;
+}
+.q-notification__icon {
+  color: inherit;
+  opacity: 0.7;
+  font-size: 18px;
+  margin-right: 4px;
+  margin-top: 1px;
+}
+.q-notification__avatar {
+  margin-right: 4px;
+}
+.q-notification__actions {
+  color: inherit;
+  padding: 0;
+  margin-left: 4px;
+}
+.q-notification__actions .q-btn {
+  background: transparent !important;
+  color: inherit !important;
+  min-height: 28px;
+  padding: 0 8px;
+  opacity: 0.85;
+  font-weight: 500;
+}
+.q-notification__actions .q-btn:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Цветной deep-tinted фон + цветная иконка по типу */
+.q-notification.bg-positive,
+.q-notification--standard.bg-positive {
+  background: #052e16 !important;
+}
+.q-notification.bg-positive .q-notification__icon {
+  color: var(--p-pos);
+  opacity: 1;
+}
+.q-notification.bg-negative,
+.q-notification--standard.bg-negative {
+  background: #4c0a0a !important;
+}
+.q-notification.bg-negative .q-notification__icon {
+  color: var(--p-neg);
+  opacity: 1;
+}
+.q-notification.bg-warning,
+.q-notification--standard.bg-warning {
+  background: #3d2400 !important;
+}
+.q-notification.bg-warning .q-notification__icon {
+  color: var(--p-warn);
+  opacity: 1;
+}
+.q-notification.bg-info,
+.q-notification--standard.bg-info {
+  background: #0c1e3f !important;
+}
+.q-notification.bg-info .q-notification__icon {
+  color: var(--p-info);
+  opacity: 1;
+}
+
+/* Мобильник: тост на всю ширину минус 16px полей */
+@media (max-width: 600px) {
+  .q-notifications__list--bottom-right,
+  .q-notifications__list--bottom-left,
+  .q-notifications__list--bottom,
+  .q-notifications__list--top-right,
+  .q-notifications__list--top-left,
+  .q-notifications__list--top {
+    padding: 8px;
+  }
+  .q-notification {
+    max-width: calc(100vw - 16px);
+  }
+}
+
+/* ===== Topbar — мобильная минимизация CTA-кнопок ==============================
+   На узких экранах кнопки действий в шапке (`.topbar__actions`) сворачиваются
+   до иконки: текстовый label у `BaseButton` (.base-btn__label) скрывается,
+   icon-слоты остаются. Это позволяет страницам не дублировать пропсы вроде
+   `:icon-only-on-mobile` — централизованное правило срабатывает по канону.
+   Кнопка без иконки на узком экране станет «голой», поэтому для CTA в шапке
+   icon-слот обязателен (это и есть негласный канон шапки).
+   --------------------------------------------------------------------- */
+@media (max-width: 600px) {
+  .topbar__actions .base-btn__label {
+    display: none;
+  }
+  .topbar__actions .q-btn {
+    padding: 0 8px;
+  }
+  .topbar__actions .q-btn__content {
+    gap: 0;
+  }
+  /* Бренд-название в шапке без логина — ellipsis, чтобы не растекалось. */
+  .topbar__brand b {
+    max-width: 50vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

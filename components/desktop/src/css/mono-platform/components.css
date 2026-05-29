@@ -655,8 +655,10 @@ body {
 .toast {
   display: flex; align-items: flex-start; gap: 12px;
   padding: 12px 14px;
-  background: var(--p-ink);
-  color: var(--p-canvas);
+  /* Тост — всегда тёмная поверхность в обеих темах (см. quasar-canon.css):
+     фиксированные литералы, не инвертируемые var(--p-ink)/var(--p-canvas). */
+  background: #18181b;
+  color: #fafafa;
   border-radius: var(--p-r-sm);
   box-shadow: var(--p-shadow-pop);
   font-size: var(--p-fs-body-sm);
@@ -1317,8 +1319,9 @@ body {
 .rail__spacer { flex: 1; }
 
 /* ---- User card (sidebar bottom) — premium mini-wallet ----------------
-   Identity row + accent-tinted balance block + split actions. Replaces
-   the dashed-separator approach which looked too "office".
+   Identity row + primary-tinted balance block + split actions.
+   Сохраняем primary (deep teal) на avatar/balance, а не accent —
+   в навигаторе оранжевый только бы рассеивал внимание.
    --------------------------------------------------------------------- */
 .rail__usercard {
   margin: 16px;

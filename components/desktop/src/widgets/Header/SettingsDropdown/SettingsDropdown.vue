@@ -7,7 +7,7 @@ q-btn-dropdown(
   icon='fa-solid fa-cog'
 )
   q-list
-    ToogleDarkLight(:isMobile='isMobile', :showText='true')
+    ThemeToggle(:isMobile='isMobile', :showText='true')
 
     q-item(
       v-if='loggedIn && (isChairman || isMember)',
@@ -35,7 +35,7 @@ q-btn-dropdown(
 </template>
 <script lang="ts" setup>
 import { useRouter } from 'vue-router';
-import { ToogleDarkLight } from '../../../shared/ui/ToogleDarkLight';
+import { ThemeToggle } from 'src/shared/ui/base/ThemeToggle';
 import { computed } from 'vue';
 import { useSessionStore } from 'src/entities/Session';
 

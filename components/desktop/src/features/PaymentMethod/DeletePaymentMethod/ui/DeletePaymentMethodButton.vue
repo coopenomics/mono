@@ -4,18 +4,26 @@ div
     q-icon(name="close")
     span.q-ml-xs удалить
 
-  q-dialog(v-model="showDialog" @hide="clear")
-    ModalBase(:title='"Удалить метод платежа"' )
-      Form(:handler-submit="handlerSubmit" :is-submitting="isSubmitting" :button-cancel-txt="'Отменить'" :button-submit-txt="'Продолжить'" @cancel="clear").q-pa-sm
-        p Вы уверены, что хотите удалить метод платежа?
-
-
-  </template>
+  BaseDialog(
+    v-model='showDialog',
+    title='Удалить метод платежа',
+    size='sm',
+    @update:model-value='(v) => !v && clear()'
+  )
+    Form(
+      :handler-submit="handlerSubmit"
+      :is-submitting="isSubmitting"
+      :button-cancel-txt="'Отменить'"
+      :button-submit-txt="'Продолжить'"
+      @cancel="clear"
+    )
+      p Вы уверены, что хотите удалить метод платежа?
+</template>
 <script lang="ts" setup>
 import { computed, ref } from 'vue';
 import { useDeletePaymentMethod } from '../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
-import { ModalBase } from 'src/shared/ui/ModalBase';
+import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { Form } from 'src/shared/ui/Form';
 
 const props = defineProps({

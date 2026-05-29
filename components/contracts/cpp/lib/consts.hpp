@@ -242,7 +242,7 @@ static constexpr uint64_t _capital_program_id = 4;
 #ifdef IS_TESTNET
     static constexpr uint64_t MIN_SOVIET_MEMBERS_COUNT = 1; /*!< минимальное количество членов совета (тест) */
 #else
-    static constexpr uint64_t MIN_SOVIET_MEMBERS_COUNT = 5; /*!< минимальное количество членов совета (прод) */
+    static constexpr uint64_t MIN_SOVIET_MEMBERS_COUNT = 3; /*!< минимальное количество членов совета (прод) */
 #endif
 
 /**

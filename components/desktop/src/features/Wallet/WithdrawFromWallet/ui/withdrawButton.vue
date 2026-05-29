@@ -11,46 +11,50 @@ q-btn(
   span(v-if='!micro').q-ml-sm Получить возврат
   q-tooltip(v-if='micro') Вернуть
 
-  q-dialog(v-model='showDialog', @hide='clear')
-    ModalBase(:title='"Заявление на возврат паевого взноса"')
-      Form.q-pa-sm(
-        :disabled='!isFormValid',
-        :handler-submit='handlerSubmit',
-        :is-submitting='isSubmitting',
-        :button-cancel-txt='"Отменить"',
-        :button-submit-txt='"Создать заявление"',
-        @cancel='clear'
+  BaseDialog(
+    v-model='showDialog',
+    title='Заявление на возврат паевого взноса',
+    size='md',
+    @update:model-value='(v) => !v && clear()'
+  )
+    Form(
+      :disabled='!isFormValid',
+      :handler-submit='handlerSubmit',
+      :is-submitting='isSubmitting',
+      :button-cancel-txt='"Отменить"',
+      :button-submit-txt='"Создать заявление"',
+      @cancel='clear'
+    )
+      InfoCard(
+        :text='"Заявление будет отправлено в совет кооператива на рассмотрение, после одобрения средства поступят на счёт указанным способом."'
       )
-        InfoCard(
-          :text='"Заявление будет отправлено в совет кооператива на рассмотрение, после одобрения средства поступят на счёт указанным способом."'
+
+      div
+        q-input(
+          v-model.number='quantity',
+          standout='bg-teal text-white',
+          type='number',
+          :min='1',
+          label='Сумма возврата',
+          :rules='quantityRules'
         )
+          template(#append)
+            span.text-overline {{ currency }}
 
-        div
-          q-input(
-            v-model.number='quantity',
-            standout='bg-teal text-white',
-            type='number',
-            :min='1',
-            label='Сумма возврата',
-            :rules='quantityRules'
-          )
-            template(#append)
-              span.text-overline {{ currency }}
-
-        div
-          q-select(
-            v-model='selectedMethod',
-            :options='methodOptions',
-            standout='bg-teal text-white',
-            label='Способ получения',
-            option-label='label',
-            option-value='value',
-            :rules='[(val) => !!val || "Выберите способ получения"]',
-            :loading='loadingMethods'
-          )
-            template(v-slot:no-option)
-              q-item
-                q-item-section.text-grey Методы получения не найдены
+      div
+        q-select(
+          v-model='selectedMethod',
+          :options='methodOptions',
+          standout='bg-teal text-white',
+          label='Способ получения',
+          option-label='label',
+          option-value='value',
+          :rules='[(val) => !!val || "Выберите способ получения"]',
+          :loading='loadingMethods'
+        )
+          template(v-slot:no-option)
+            q-item
+              q-item-section.text-grey Методы получения не найдены
 </template>
 <script setup lang="ts">
 interface Props {
@@ -61,7 +65,7 @@ withDefaults(defineProps<Props>(), {
   micro: false,
 });
 import { ref, computed, watch } from 'vue';
-import { ModalBase } from 'src/shared/ui/ModalBase';
+import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { Form } from 'src/shared/ui/Form';
 import { env } from 'src/shared/config';
 import { useWalletStore } from 'src/entities/Wallet';
@@ -116,10 +120,8 @@ const isFormValid = computed(() => {
 function getMethodLabel(method: IPaymentMethodData): string {
   if (method.method_type === 'sbp' && isSBPData(method.data)) {
     const phone = method.data.phone;
-    // Формат: +7***42 (или +7***XX)
     let formatted = phone;
     if (phone.length >= 6) {
-      // +7***XX
       formatted = `${phone.slice(0, 2)}***${phone.slice(-2)}`;
     } else if (phone.length > 2) {
       formatted = `${phone.slice(0, 2)}***${phone.slice(-2)}`;

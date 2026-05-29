@@ -74,7 +74,7 @@ import { useSystemStore } from 'src/entities/System/model';
 import { EditAboutInput, EditHoursPerDayInput, EditRatePerHourInput } from 'app/extensions/capital/features/Contributor/EditContributor';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import {ColorCard} from 'src/shared/ui';
-import { AutoAvatar } from 'src/shared/ui/AutoAvatar';
+import { AutoAvatar } from 'src/shared/ui/domain/AutoAvatar';
 import { CapitalWalletsCardsWidget } from 'app/extensions/capital/widgets/CapitalWalletsCardsWidget';
 const contributorStore = useContributorStore();
 const system = useSystemStore();

@@ -1,128 +1,145 @@
 <template lang="pug">
-q-btn(color="primary" @click="showDialog = true" icon="file_upload") Импорт из CSV
-  q-dialog(v-model='showDialog', @hide='clear' maximized)
-    ModalBase(:title='"Импорт участников"')
-      .q-pa-md
-        q-card(v-if='!hasConfig' flat)
+div
+  //- Canon header-кнопка: на мобильном — иконка-only + tooltip.
+  q-btn(
+    @click='showDialog = true',
+    :color='isMobile ? "accent" : "primary"',
+    :flat='isMobile',
+    :dense='isMobile',
+    :size='isMobile ? "sm" : undefined',
+    icon='file_upload',
+    :label='isMobile ? undefined : "Импорт из CSV"',
+    no-wrap
+  )
+    q-tooltip(v-if='isMobile') Импорт участников из CSV
+
+  BaseDialog(
+    v-model='showDialog',
+    title='Импорт участников',
+    :maximized='true',
+    @update:model-value='(v) => !v && clear()'
+  )
+    .q-pa-md
+      q-card(v-if='!hasConfig' flat)
+        q-card-section
+          .row.items-center.q-gutter-sm
+            q-icon(name='upload_file', size='24px')
+            div
+              .text-h6 Импорт участников
+              .text-subtitle2 Загрузка участников из CSV файла
+            q-space
+            q-btn(flat color='primary' icon='download' @click='downloadSample') Скачать шаблон CSV
+
+        q-separator
+
+        q-card-section
+          template(v-if='parsedData.length === 0')
+            CsvUploader(@parsed='onCsvParsed')
+
+        template(
+          v-if='parsedData.length > 0 && !isImporting && !isImportCompleted'
+        )
+          q-separator
+
           q-card-section
-            .row.items-center.q-gutter-sm
-              q-icon(name='upload_file', size='24px')
-              div
-                .text-h6 Импорт участников
-                .text-subtitle2 Загрузка участников из CSV файла
-              q-space
-              q-btn(flat color='primary' icon='download' @click='downloadSample') Скачать шаблон CSV
+            .row.items-center.q-gutter-sm.q-mb-md
+              q-icon(name='table_chart', size='20px')
+              .text-subtitle1 Предварительный просмотр данных ({{ parsedData.length }} записей)
+
+            q-table(
+              :rows='parsedData',
+              :columns='previewColumns',
+              :loading='false',
+              :pagination='{ rowsPerPage: 0 }',
+              row-key='id',
+              binary-state-sort
+            )
+              template(#body-cell-status='props')
+                q-td
+                  q-chip(
+                    :color='getStatusColor(props.value)',
+                    text-color='white',
+                    dense
+                  ) {{ getStatusText(props.value) }}
 
           q-separator
 
           q-card-section
-            template(v-if='parsedData.length === 0')
-              CsvUploader(@parsed='onCsvParsed')
+            .row.items-center.q-gutter-sm.q-mb-md
+              q-icon(name='playlist_add_check', size='20px')
+              .text-subtitle1 Импорт данных
 
-          template(
-            v-if='parsedData.length > 0 && !isImporting && !isImportCompleted'
-          )
-            q-separator
-
-            q-card-section
-              .row.items-center.q-gutter-sm.q-mb-md
-                q-icon(name='table_chart', size='20px')
-                .text-subtitle1 Предварительный просмотр данных ({{ parsedData.length }} записей)
-
-              q-table(
-                :rows='parsedData',
-                :columns='previewColumns',
-                :loading='false',
-                :pagination='{ rowsPerPage: 0 }',
-                row-key='id',
-                binary-state-sort
+            .row.justify-end.q-gutter-sm.q-mb-md
+              q-btn(
+                color='primary',
+                :loading='isImporting',
+                @click='startImport',
+                label='Начать импорт',
+                unelevated,
+                icon='play_arrow'
               )
-                template(#body-cell-status='props')
-                  q-td
-                    q-chip(
-                      :color='getStatusColor(props.value)',
-                      text-color='white',
-                      dense
-                    ) {{ getStatusText(props.value) }}
 
-            q-separator
+            template(v-if='importProgress > 0')
+              .q-mt-md
+                .text-body2.q-mb-sm Статистика
+                .row.q-gutter-md
+                  .col-auto
+                    .text-weight-medium
+                      q-icon.q-mr-xs(name='check_circle', color='positive')
+                      | Успешно: {{ successCount }}
+                  .col-auto
+                    .text-weight-medium
+                      q-icon.q-mr-xs(name='error', color='negative')
+                      | Ошибок: {{ errorCount }}
 
-            q-card-section
-              .row.items-center.q-gutter-sm.q-mb-md
-                q-icon(name='playlist_add_check', size='20px')
-                .text-subtitle1 Импорт данных
+        template(v-if='isImporting')
+          q-separator
 
-              .row.justify-end.q-gutter-sm.q-mb-md
-                q-btn(
-                  color='primary',
-                  :loading='isImporting',
-                  @click='startImport',
-                  label='Начать импорт',
-                  unelevated,
-                  icon='play_arrow'
-                )
-
-              template(v-if='importProgress > 0')
-                .q-mt-md
-                  .text-body2.q-mb-sm Статистика
-                  .row.q-gutter-md
-                    .col-auto
-                      .text-weight-medium
-                        q-icon.q-mr-xs(name='check_circle', color='positive')
-                        | Успешно: {{ successCount }}
-                    .col-auto
-                      .text-weight-medium
-                        q-icon.q-mr-xs(name='error', color='negative')
-                        | Ошибок: {{ errorCount }}
-
-          template(v-if='isImporting')
-            q-separator
-
-            q-card-section
-              .row.items-center.q-gutter-sm.q-mb-md
-                q-icon(name='sync', size='20px')
-                .text-subtitle1 Выполняется импорт данных
-
-              .q-mb-md
-                .text-body2.q-mb-sm Прогресс импорта: {{ importProgress }}/{{ parsedData.length }} ({{ progressPercent }}%)
-                q-linear-progress(
-                  :value='progressPercent / 100',
-                  color='primary',
-                  size='8px'
-                )
-
-              .row.justify-end.q-gutter-sm
-                q-btn(
-                  color='negative',
-                  @click='stopImport',
-                  label='Остановить',
-                  flat,
-                  icon='stop'
-                )
-
-          template(v-if='importResults.length > 0 || isImportCompleted')
-            q-separator
-
-            q-card-section
-              .row.items-center.q-gutter-sm.q-mb-md
-                q-icon(name='table_chart', size='20px')
-                .text-subtitle1 Результаты импорта
-
-              ImportResultsTable(
-                :items='importResults',
-                :is-importing='isImporting',
-                :current-index='currentImportIndex',
-                @retry='retryImport',
-                @retry-all-failed='retryAllFailed',
-                @clear='clearAll'
-              )
-        q-card(v-else)
           q-card-section
-            .row.items-center.q-gutter-sm
-              q-icon(name='info', size='24px', color='info')
-              div
-                .text-h6 Конфигурация уже установлена
-                .text-subtitle2 Импорт участников недоступен после установки конфигурации контракта.
+            .row.items-center.q-gutter-sm.q-mb-md
+              q-icon(name='sync', size='20px')
+              .text-subtitle1 Выполняется импорт данных
+
+            .q-mb-md
+              .text-body2.q-mb-sm Прогресс импорта: {{ importProgress }}/{{ parsedData.length }} ({{ progressPercent }}%)
+              q-linear-progress(
+                :value='progressPercent / 100',
+                color='primary',
+                size='8px'
+              )
+
+            .row.justify-end.q-gutter-sm
+              q-btn(
+                color='negative',
+                @click='stopImport',
+                label='Остановить',
+                flat,
+                icon='stop'
+              )
+
+        template(v-if='importResults.length > 0 || isImportCompleted')
+          q-separator
+
+          q-card-section
+            .row.items-center.q-gutter-sm.q-mb-md
+              q-icon(name='table_chart', size='20px')
+              .text-subtitle1 Результаты импорта
+
+            ImportResultsTable(
+              :items='importResults',
+              :is-importing='isImporting',
+              :current-index='currentImportIndex',
+              @retry='retryImport',
+              @retry-all-failed='retryAllFailed',
+              @clear='clearAll'
+            )
+      q-card(v-else)
+        q-card-section
+          .row.items-center.q-gutter-sm
+            q-icon(name='info', size='24px', color='info')
+            div
+              .text-h6 Конфигурация уже установлена
+              .text-subtitle2 Импорт участников недоступен после установки конфигурации контракта.
 </template>
 
 <script setup lang="ts">
@@ -138,7 +155,10 @@ import { ref, computed, onMounted } from 'vue';
 import { FailAlert, NotifyAlert, SuccessAlert } from 'src/shared/api/alerts';
 import { useConfigStore } from 'app/extensions/capital/entities/Config/model';
 import { useSystemStore } from 'src/entities/System/model';
-import { ModalBase } from 'src/shared/ui/ModalBase';
+import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
+import { useWindowSize } from 'src/shared/hooks';
+
+const { isMobile } = useWindowSize();
 
 // Определение колонок для предварительного просмотра
 const previewColumns: QTableProps['columns'] = [

@@ -4,12 +4,13 @@
     :persistent="!closeOnBackdrop"
     :no-esc-dismiss="!closeOnEscape"
     :no-backdrop-dismiss="!closeOnBackdrop"
+    :maximized="maximized"
     @update:model-value="(v: boolean) => emit('update:modelValue', v)"
   >
     <q-card
       flat
-      :class="['base-dialog', `base-dialog--${size}`]"
-      :style="{ maxWidth: maxWidthBySize[size ?? 'md'] }"
+      :class="['base-dialog', maximized ? 'base-dialog--maximized' : `base-dialog--${size}`]"
+      :style="maximized ? undefined : { maxWidth: maxWidthBySize[size ?? 'md'] }"
     >
       <q-card-section
         v-if="title || $slots.head || !hideCloseButton"
@@ -48,6 +49,7 @@ withDefaults(defineProps<BaseDialogProps>(), {
   closeOnBackdrop: true,
   closeOnEscape: true,
   hideCloseButton: false,
+  maximized: false,
 });
 
 const emit = defineEmits<{
@@ -65,6 +67,18 @@ const maxWidthBySize: Record<BaseDialogSize, string> = {
 .base-dialog {
   width: 100%;
 }
+/* Maximized: контейнер растягивается на весь экран, контент скроллится. */
+.base-dialog--maximized {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  display: flex;
+  flex-direction: column;
+}
+.base-dialog--maximized .base-dialog__body {
+  flex: 1 1 auto;
+  overflow: auto;
+}
 .base-dialog__head {
   display: flex;
   align-items: center;
@@ -78,11 +92,6 @@ const maxWidthBySize: Record<BaseDialogSize, string> = {
   letter-spacing: var(--p-ls-h3);
   color: var(--p-ink);
 }
-/* Между описанием диалога и первым инпутом — отступ. Между остальными
-   детьми reserve-hint-space инпутов сам даёт достаточно воздуха.
-   Селектор `:first-child + *` крепится ко второму ребёнку (даём ему
-   margin-top), а не к первому — иначе inline `style="margin:0"` на
-   `<p>`-описании перебивает CSS, и отступ ломается. */
 .base-dialog__body {
   display: flex;
   flex-direction: column;
@@ -91,7 +100,6 @@ const maxWidthBySize: Record<BaseDialogSize, string> = {
 .base-dialog__body > :first-child + * {
   margin-top: var(--p-4, 16px);
 }
-/* Кнопки в footer ближе к body — без избыточного зазора */
 .base-dialog__foot {
   padding-top: var(--p-2, 8px);
 }

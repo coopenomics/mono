@@ -191,7 +191,6 @@ import {
 } from 'src/features/Account/UpdateAccount/model';
 import { type IOrganizationData } from 'src/entities/Account/types';
 import { validEmail } from 'src/shared/lib/utils/validEmailRule';
-import 'src/shared/ui/InputStyles/index.scss';
 import { Zeus } from '@coopenomics/sdk';
 const emit = defineEmits(['update']);
 const { updateAccount } = useUpdateAccount();

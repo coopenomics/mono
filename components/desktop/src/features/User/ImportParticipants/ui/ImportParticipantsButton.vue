@@ -1,14 +1,19 @@
 <template lang="pug">
+//- Canon header-кнопка: на мобильном — только иконка + tooltip.
 q-btn(
-  color='primary',
   @click='show = true',
+  :color='isMobile ? "accent" : "primary"',
+  :flat='isMobile',
+  :dense='isMobile',
+  :size='isMobile ? "sm" : undefined',
   icon='upload_file',
-  :stretch='isMobile',
-  :size='isMobile ? "sm" : "md"',
-  :disable='disable'
+  :disable='disable',
+  no-wrap
 )
-  span.q-pr-sm Импорт
-  ParticipantsImportDialog(v-model='show')
+  span.q-ml-sm(v-if='!isMobile') Импорт
+  q-tooltip(v-if='isMobile') Импорт пайщиков
+
+ParticipantsImportDialog(v-model='show')
 </template>
 
 <script setup lang="ts">

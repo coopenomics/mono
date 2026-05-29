@@ -67,7 +67,6 @@ import { EditAboutInput, EditHoursPerDayInput, EditRatePerHourInput } from 'app/
 import { ContributorGamificationWidget } from 'app/extensions/capital/widgets/ContributorGamificationWidget';
 import { ColorCard } from 'src/shared/ui';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import 'src/shared/ui/CardStyles';
 
 const contributorStore = useContributorStore();
 const { info } = useSystemStore();
