@@ -29,6 +29,8 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
             v-model='form.product_name',
             label='Название товара',
             outlined,
+            dense,
+            no-error-icon,
             reserve-hint-space,
             :maxlength='200',
             counter,
@@ -40,6 +42,8 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
             :options='categoryOptions',
             label='Категория',
             outlined,
+            dense,
+            no-error-icon,
             reserve-hint-space,
             emit-value,
             map-options,
@@ -49,6 +53,8 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
             v-model='form.description',
             label='Описание (необязательно)',
             outlined,
+            dense,
+            no-error-icon,
             reserve-hint-space,
             type='textarea',
             autogrow,
@@ -64,8 +70,11 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
               v-model='form.price_per_unit',
               label='Цена за единицу',
               outlined,
+              dense,
+              no-error-icon,
               reserve-hint-space,
-              hint='До 4 знаков после запятой, например 100.50',
+              suffix='₽',
+              hint='Два знака после запятой, например 100.50',
               :rules='[priceRule]'
             )
             q-select(
@@ -73,25 +82,29 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
               :options='unitOptions',
               label='Единица измерения',
               outlined,
+              dense,
+              no-error-icon,
               reserve-hint-space,
               emit-value,
               map-options
             )
           .offer-wizard__qty
+            BaseCheckbox(
+              :model-value='form.unlimited_flag',
+              label='Без ограничения по количеству',
+              @update:model-value='onToggleUnlimited'
+            )
             q-input(
-              v-if='!form.unlimited_flag',
               v-model.number='form.quantity_available',
               label='Доступное количество',
               type='number',
               min='0',
               outlined,
+              dense,
+              no-error-icon,
               reserve-hint-space,
-              :rules='[(v) => (v !== null && v >= 0) || "Укажите количество или включите «без ограничения»"]'
-            )
-            BaseCheckbox(
-              :model-value='form.unlimited_flag',
-              label='Без ограничения по количеству',
-              @update:model-value='form.unlimited_flag = $event'
+              :disable='form.unlimited_flag',
+              :rules='[(v) => form.unlimited_flag || (v !== null && v >= 0) || "Укажите количество или включите «без ограничения»"]'
             )
           q-input(
             v-model.number='form.warranty_days',
@@ -99,6 +112,8 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
             type='number',
             min='0',
             outlined,
+            dense,
+            no-error-icon,
             reserve-hint-space,
             hint='0 — без гарантийного срока',
             :rules='[(v) => (v !== null && v >= 0) || "Срок гарантии не может быть отрицательным"]'
@@ -126,6 +141,8 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
               type='number',
               min='1',
               outlined,
+              dense,
+              no-error-icon,
               reserve-hint-space,
               hint='Поставка по истечении цикла'
             )
@@ -135,6 +152,8 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
               type='number',
               min='0',
               outlined,
+              dense,
+              no-error-icon,
               reserve-hint-space,
               hint='Если к концу цикла набралось меньше — все заказы отменятся'
             )
@@ -145,6 +164,8 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
               type='number',
               min='1',
               outlined,
+              dense,
+              no-error-icon,
               reserve-hint-space,
               hint='Поставка стартует, когда наберётся этот объём'
             )
@@ -154,6 +175,8 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
               type='number',
               min='1',
               outlined,
+              dense,
+              no-error-icon,
               reserve-hint-space,
               hint='Если за этот срок объём не набрался — заказы отменятся'
             )
@@ -164,6 +187,8 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
               type='number',
               min='1',
               outlined,
+              dense,
+              no-error-icon,
               reserve-hint-space,
               hint='После этого срока заказчик может отменить заказ сам'
             )
@@ -175,35 +200,46 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
           .offer-wizard__field-label Фотографии товара
           p.offer-wizard__hint
             | До {{ MAX_IMAGES }} изображений, каждое до {{ MAX_MB }} МБ (JPEG, PNG или WEBP).
-            | Первое изображение станет обложкой карточки.
+            | Нажмите на снимок, чтобы сделать его обложкой карточки.
 
           .offer-wizard__existing(v-if='isEdit && existingImages.length && !imageDrafts.length')
             .offer-wizard__field-label.offer-wizard__field-label--sub Текущие изображения
             .offer-wizard__grid
               .offer-wizard__thumb(v-for='(img, i) in existingImages', :key='img.url')
                 q-img.offer-wizard__img(:src='img.url', ratio='1')
-                BaseChip.offer-wizard__cover(v-if='i === 0', variant='accent', size='sm') Обложка
+                span.offer-wizard__cover(v-if='i === 0') Обложка
             p.offer-wizard__hint.offer-wizard__hint--muted
               | Загрузка новых изображений заменит текущие.
 
           .offer-wizard__grid(v-if='imageDrafts.length')
-            .offer-wizard__thumb(v-for='(img, i) in imageDrafts', :key='img.preview_url')
+            .offer-wizard__thumb(
+              v-for='(img, i) in imageDrafts',
+              :key='img.preview_url',
+              :class='{ "offer-wizard__thumb--cover": i === coverIndex }',
+              :title='i === coverIndex ? "Это обложка" : "Сделать обложкой"',
+              role='button',
+              tabindex='0',
+              @click='setCover(i)',
+              @keydown.enter='setCover(i)'
+            )
               q-img.offer-wizard__img(:src='img.preview_url', ratio='1')
-              BaseChip.offer-wizard__cover(v-if='i === 0', variant='accent', size='sm') Обложка
+              span.offer-wizard__cover(v-if='i === coverIndex') Обложка
+              span.offer-wizard__set(v-else) Сделать обложкой
               q-btn.offer-wizard__remove(
                 round,
-                dense,
+                unelevated,
                 size='sm',
                 icon='close',
                 color='negative',
                 aria-label='Удалить изображение',
-                @click='removeImage(i)'
+                @click.stop='removeImage(i)'
               )
 
           q-file(
             v-model='picked',
             label='Добавить изображения',
             outlined,
+            dense,
             multiple,
             accept='image/jpeg,image/png,image/webp',
             :disable='imageDrafts.length >= MAX_IMAGES',
@@ -212,33 +248,54 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
             template(#prepend)
               q-icon(name='fa-solid fa-image')
 
-        //- ───────── Шаг 5: Проверка ─────────
+        //- ───────── Шаг 5: Проверка (карточка-предпросмотр) ─────────
         .offer-wizard__step(v-else-if='step.key === "review"')
-          .offer-review
-            .offer-review__row
-              span.offer-review__label Название
-              span.offer-review__value {{ form.product_name || '—' }}
-            .offer-review__row
-              span.offer-review__label Категория
-              span.offer-review__value {{ selectedCategoryLabel }}
-            .offer-review__row(v-if='form.description')
-              span.offer-review__label Описание
-              span.offer-review__value {{ form.description }}
-            .offer-review__row
-              span.offer-review__label Цена
-              span.offer-review__value {{ form.price_per_unit || '—' }} / {{ selectedUnitLabel }}
-            .offer-review__row
-              span.offer-review__label Количество
-              span.offer-review__value {{ form.unlimited_flag ? 'Без ограничения' : form.quantity_available }}
-            .offer-review__row
-              span.offer-review__label Гарантия
-              span.offer-review__value {{ form.warranty_days }} дн.
-            .offer-review__row
-              span.offer-review__label Отсечка заказов
-              span.offer-review__value {{ selectedCycleTitle }}
-            .offer-review__row
-              span.offer-review__label Изображения
-              span.offer-review__value {{ reviewImagesLabel }}
+          p.offer-wizard__hint
+            | Так предложение увидят заказчики в каталоге после одобрения модератором.
+
+          article.offer-preview
+            .offer-preview__media
+              q-img.offer-preview__main(
+                v-if='previewImages.length',
+                :src='previewImages[previewActive].url',
+                ratio='1'
+              )
+              .offer-preview__placeholder(v-else)
+                q-icon(name='fa-solid fa-image', size='52px')
+                span Без изображения
+            .offer-preview__thumbs(v-if='previewImages.length > 1')
+              button.offer-preview__thumb(
+                v-for='(img, i) in previewImages',
+                :key='img.url',
+                type='button',
+                :class='{ "offer-preview__thumb--active": i === previewActive }',
+                :aria-label='`Показать изображение ${i + 1}`',
+                @click='previewActive = i'
+              )
+                q-img(:src='img.url', ratio='1')
+
+            .offer-preview__info
+              h2.offer-preview__name {{ form.product_name || 'Без названия' }}
+              .offer-preview__chips
+                BaseChip(variant='neutral', size='sm') {{ selectedCategoryLabel }}
+              .offer-preview__pricerow
+                span.offer-preview__price {{ formattedPrice }}
+                span.offer-preview__per / {{ selectedUnitLabel }}
+                span.offer-preview__stock(:class='{ "offer-preview__stock--empty": stockEmpty }') {{ stockLabel }}
+              p.offer-preview__desc(v-if='form.description') {{ form.description }}
+              dl.offer-preview__specs
+                .offer-preview__spec
+                  dt Отсечка заказов
+                  dd {{ selectedCycleTitle }}
+                .offer-preview__spec(v-if='isTimeBased && form.cycle_days')
+                  dt Цикл
+                  dd {{ form.cycle_days }} дн.
+                .offer-preview__spec(v-if='isVolumeBased && form.target_volume')
+                  dt Целевой объём
+                  dd {{ form.target_volume }} {{ selectedUnitLabel }}
+                .offer-preview__spec(v-if='form.warranty_days > 0')
+                  dt Гарантия
+                  dd {{ form.warranty_days }} дн.
 
     //- ───────── Навигация ─────────
     footer.offer-wizard__foot
@@ -263,7 +320,6 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
 <script lang="ts" setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import type { QForm } from 'quasar';
-import { Loading, Notify } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { VerticalStepper } from 'src/shared/ui/domain/VerticalStepper';
 import type { StepperStep } from 'src/shared/ui/domain/VerticalStepper';
@@ -271,7 +327,8 @@ import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { BaseRadioCard } from 'src/shared/ui/base/BaseRadioCard';
 import { BaseCheckbox } from 'src/shared/ui/base/BaseCheckbox';
 import { BaseChip } from 'src/shared/ui/base/BaseChip';
-import { fileToBase64 } from 'src/shared/lib/utils';
+import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { fileToBase64, formatAsset2Digits } from 'src/shared/lib/utils';
 import { createOffer, fetchCategories, fetchMyOfferById, updateOffer } from '../api';
 import type {
   MarketplaceCategoryView,
@@ -291,7 +348,9 @@ import type {
  *
  * Изображения грузятся на backend как base64 в `images` мутации
  * marketplaceCreateOffer/UpdateOffer (тот же контракт, что и фото
- * гарантийного возврата). При редактировании загрузка новых изображений
+ * гарантийного возврата). Обложка карточки — изображение, выбранное
+ * пайщиком (coverIndex); в payload оно ставится первым, backend трактует
+ * sort_order=0 как обложку. При редактировании загрузка новых изображений
  * полностью заменяет текущий набор; если файлы не выбраны — набор не трогается.
  */
 
@@ -303,9 +362,13 @@ const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp'];
 const router = useRouter();
 const route = useRoute();
 
-// Правило цены вынесено из шаблона: regex в pug-атрибуте требует экранирования.
+// Цена — целое или с двумя знаками после запятой (рубли/копейки). Допускаем
+// и точку, и запятую при вводе; в payload нормализуем к точке. На цепь backend
+// переводит в asset нужной precision сам (MARKETPLACE_ASSET_CONFIG).
+// Regex вынесен из шаблона: в pug-атрибуте требует экранирования.
 const priceRule = (v: string): true | string =>
-  /^\d+(\.\d{1,4})?$/.test(v ?? '') || 'Цена должна быть числом, например 100.50';
+  /^\d+([.,]\d{1,2})?$/.test((v ?? '').trim()) ||
+  'Цена — число с двумя знаками после запятой, например 100.50';
 
 const editId = computed(() => {
   const p = route.params.offerId;
@@ -399,6 +462,8 @@ const form = ref<MarketplaceCreateOfferFormState>({
 const picked = ref<File[] | null>(null);
 const imageDrafts = ref<MarketplaceOfferImageDraft[]>([]);
 const existingImages = ref<MarketplaceOfferImageView[]>([]);
+const coverIndex = ref(0);
+const previewActive = ref(0);
 
 const isTimeBased = computed(() => form.value.cycle_type === 'time_based');
 const isVolumeBased = computed(() => form.value.cycle_type === 'volume_based');
@@ -413,11 +478,47 @@ const selectedUnitLabel = computed(
 const selectedCycleTitle = computed(
   () => cycleTypeOptions.find((o) => o.value === form.value.cycle_type)?.title ?? '—'
 );
-const reviewImagesLabel = computed(() => {
-  if (imageDrafts.value.length) return `${imageDrafts.value.length} новых`;
-  if (isEdit.value && existingImages.value.length) return `${existingImages.value.length} (без изменений)`;
-  return 'нет';
+
+// Нормализованная (точка-разделитель) цена для отправки и форматирования.
+const priceNumberStr = computed(() => form.value.price_per_unit.trim().replace(',', '.'));
+const formattedPrice = computed(() =>
+  priceNumberStr.value ? formatAsset2Digits(`${priceNumberStr.value} ₽`) : '—'
+);
+
+const stockEmpty = computed(
+  () => !form.value.unlimited_flag && (form.value.quantity_available ?? 0) <= 0
+);
+const stockLabel = computed(() => {
+  if (form.value.unlimited_flag) return 'В наличии';
+  if (stockEmpty.value) return 'Нет в наличии';
+  return `${form.value.quantity_available} ${selectedUnitLabel.value}`;
 });
+
+// Черновики в порядке «обложка первой» — для payload и предпросмотра.
+function draftsCoverFirst(): MarketplaceOfferImageDraft[] {
+  const arr = imageDrafts.value;
+  if (!arr.length) return [];
+  const ci = Math.min(Math.max(coverIndex.value, 0), arr.length - 1);
+  return [arr[ci], ...arr.filter((_, i) => i !== ci)];
+}
+
+const previewImages = computed<Array<{ url: string }>>(() => {
+  if (imageDrafts.value.length) {
+    return draftsCoverFirst().map((d) => ({ url: d.preview_url }));
+  }
+  if (isEdit.value && existingImages.value.length) {
+    return existingImages.value.map((img) => ({ url: img.url }));
+  }
+  return [];
+});
+
+function onToggleUnlimited(value: boolean): void {
+  form.value.unlimited_flag = value;
+}
+
+function setCover(index: number): void {
+  coverIndex.value = index;
+}
 
 function onSelectCycle(value: MarketplaceOfferCycleType): void {
   form.value.cycle_type = value;
@@ -450,15 +551,15 @@ async function onPickFiles(files: readonly File[] | null): Promise<void> {
   );
   for (const file of fresh) {
     if (imageDrafts.value.length >= MAX_IMAGES) {
-      Notify.create({ type: 'warning', message: `Можно добавить не более ${MAX_IMAGES} изображений.` });
+      FailAlert(new Error(`Можно добавить не более ${MAX_IMAGES} изображений.`));
       break;
     }
     if (!ALLOWED_MIME.includes(file.type)) {
-      Notify.create({ type: 'negative', message: `Файл «${file.name}»: поддерживаются только JPEG, PNG, WEBP.` });
+      FailAlert(new Error(`Файл «${file.name}»: поддерживаются только JPEG, PNG, WEBP.`));
       continue;
     }
     if (file.size > MAX_BYTES) {
-      Notify.create({ type: 'negative', message: `Файл «${file.name}» больше ${MAX_MB} МБ.` });
+      FailAlert(new Error(`Файл «${file.name}» больше ${MAX_MB} МБ.`));
       continue;
     }
     const base64 = await fileToBase64(file);
@@ -476,6 +577,12 @@ async function onPickFiles(files: readonly File[] | null): Promise<void> {
 function removeImage(index: number): void {
   const [removed] = imageDrafts.value.splice(index, 1);
   if (removed) URL.revokeObjectURL(removed.preview_url);
+  // Сдвигаем выбор обложки, чтобы он не «уехал» на чужой снимок.
+  if (index === coverIndex.value) coverIndex.value = 0;
+  else if (index < coverIndex.value) coverIndex.value -= 1;
+  if (coverIndex.value > imageDrafts.value.length - 1) {
+    coverIndex.value = Math.max(0, imageDrafts.value.length - 1);
+  }
 }
 
 // ===== Навигация =====
@@ -511,7 +618,7 @@ async function goNext(): Promise<void> {
   if (activeKey.value === 'supply') {
     const err = validateSupply();
     if (err) {
-      Notify.create({ type: 'negative', message: err });
+      FailAlert(new Error(err));
       return;
     }
     markCompleted('supply');
@@ -520,6 +627,7 @@ async function goNext(): Promise<void> {
   }
   if (activeKey.value === 'images') {
     markCompleted('images');
+    previewActive.value = 0;
     activeKey.value = 'review';
   }
 }
@@ -540,7 +648,7 @@ function onCancel(): void {
 
 // ===== Сабмит =====
 function buildImagesPayload(): MarketplaceOfferImageUpload[] | undefined {
-  const fresh = imageDrafts.value.map((d) => ({ base64: d.base64, mime_type: d.mime_type }));
+  const fresh = draftsCoverFirst().map((d) => ({ base64: d.base64, mime_type: d.mime_type }));
   if (isEdit.value) {
     // В режиме правки изображения трогаем только если выбраны новые файлы.
     return fresh.length ? fresh : undefined;
@@ -554,7 +662,7 @@ async function onSubmit(): Promise<void> {
     product_name: f.product_name.trim(),
     description: f.description.trim() ? f.description.trim() : null,
     category_id: f.category_id as number,
-    price_per_unit: f.price_per_unit,
+    price_per_unit: priceNumberStr.value,
     unit_of_measure: f.unit_of_measure,
     quantity_available: f.unlimited_flag ? null : f.quantity_available,
     unlimited_flag: f.unlimited_flag,
@@ -569,28 +677,19 @@ async function onSubmit(): Promise<void> {
   };
 
   submitting.value = true;
-  Loading.show({ message: isEdit.value ? 'Сохраняю изменения…' : 'Создаю предложение…' });
   try {
     if (isEdit.value && editId.value) {
       await updateOffer({ id: editId.value, ...payload });
-      Notify.create({
-        type: 'positive',
-        message: 'Изменения сохранены. Предложение отправлено на повторную модерацию.',
-      });
+      SuccessAlert('Изменения сохранены. Предложение отправлено на повторную модерацию.');
       void router.push({ name: 'marketplace-my-offers' });
     } else {
       const result = await createOffer(payload);
-      Notify.create({
-        type: 'positive',
-        message: `Предложение создано (id ${result.id.slice(0, 8)}), статус: ${result.status}.`,
-      });
+      SuccessAlert(`Предложение создано (id ${result.id.slice(0, 8)}), статус: ${result.status}.`);
       void router.push({ name: 'marketplace-catalog' });
     }
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    Notify.create({ type: 'negative', message, timeout: 6000 });
+    FailAlert(e, isEdit.value ? 'Не удалось сохранить предложение' : 'Не удалось создать предложение');
   } finally {
-    Loading.hide();
     submitting.value = false;
   }
 }
@@ -600,7 +699,7 @@ async function prefillForEdit(id: string): Promise<void> {
   try {
     const offer = await fetchMyOfferById(id);
     if (!offer) {
-      Notify.create({ type: 'negative', message: 'Предложение не найдено или вам не принадлежит.' });
+      FailAlert(new Error('Предложение не найдено или вам не принадлежит.'));
       void router.push({ name: 'marketplace-my-offers' });
       return;
     }
@@ -623,8 +722,7 @@ async function prefillForEdit(id: string): Promise<void> {
       .slice()
       .sort((a, b) => a.sort_order - b.sort_order);
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    Notify.create({ type: 'negative', message });
+    FailAlert(e, 'Не удалось загрузить предложение');
   } finally {
     prefilling.value = false;
   }
@@ -634,8 +732,7 @@ onMounted(async () => {
   try {
     categories.value = await fetchCategories();
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    Notify.create({ type: 'negative', message });
+    FailAlert(e, 'Не удалось загрузить категории');
   }
   if (editId.value) await prefillForEdit(editId.value);
 });
@@ -696,9 +793,8 @@ onBeforeUnmount(() => {
 
   &__qty {
     display: flex;
-    align-items: flex-start;
-    gap: var(--p-4, 16px);
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: var(--p-2, 8px);
   }
 
   &__field-label {
@@ -746,24 +842,67 @@ onBeforeUnmount(() => {
     position: relative;
     border-radius: var(--p-r-md, 12px);
     overflow: hidden;
-    border: 1px solid var(--p-line, #e0e0e0);
+    border: 2px solid var(--p-line, #e0e0e0);
+    cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+    &:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px var(--p-accent-soft, rgba(99, 102, 241, 0.35));
+    }
+
+    &--cover {
+      border-color: var(--p-accent, #6366f1);
+      box-shadow: 0 0 0 1px var(--p-accent, #6366f1);
+    }
   }
 
   &__img {
     width: 100%;
-    border-radius: var(--p-r-md, 12px);
+    border-radius: 0;
+    display: block;
   }
 
+  // Непрозрачный бейдж обложки — читается на любом фоне снимка.
   &__cover {
     position: absolute;
     top: var(--p-2, 8px);
     left: var(--p-2, 8px);
+    padding: 2px 8px;
+    border-radius: var(--p-r-sm, 6px);
+    background: var(--p-accent, #6366f1);
+    color: #fff;
+    font-size: var(--p-fs-meta, 12px);
+    font-weight: 600;
+    line-height: 1.4;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  }
+
+  // Подсказка на не-обложке: видна только при наведении.
+  &__set {
+    position: absolute;
+    bottom: var(--p-2, 8px);
+    left: var(--p-2, 8px);
+    right: var(--p-2, 8px);
+    padding: 2px 8px;
+    border-radius: var(--p-r-sm, 6px);
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    font-size: var(--p-fs-meta, 12px);
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+
+  &__thumb:hover &__set {
+    opacity: 1;
   }
 
   &__remove {
     position: absolute;
     top: var(--p-2, 8px);
     right: var(--p-2, 8px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
   }
 
   &__foot {
@@ -775,35 +914,142 @@ onBeforeUnmount(() => {
   }
 }
 
-.offer-review {
-  display: flex;
-  flex-direction: column;
+// Карточка-предпросмотр на шаге «Проверка» — приближённый вид каталога.
+.offer-preview {
   border: 1px solid var(--p-line, #e0e0e0);
-  border-radius: var(--p-r-md, 12px);
+  border-radius: var(--p-r-lg, 16px);
   overflow: hidden;
+  background: var(--p-surface, #fff);
+  max-width: 420px;
 
-  &__row {
-    display: grid;
-    grid-template-columns: 180px 1fr;
-    gap: var(--p-3, 12px);
-    padding: var(--p-3, 12px) var(--p-4, 16px);
-    background: var(--p-surface, #fff);
+  &__media {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    background: var(--p-surface-2, #f5f5f5);
+  }
 
-    & + & {
-      border-top: 1px solid var(--p-line, #e0e0e0);
+  &__main {
+    width: 100%;
+    height: 100%;
+  }
+
+  &__placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--p-2, 8px);
+    color: var(--p-ink-3);
+    font-size: var(--p-fs-meta, 12px);
+  }
+
+  &__thumbs {
+    display: flex;
+    gap: var(--p-2, 8px);
+    padding: var(--p-2, 8px) var(--p-3, 12px) 0;
+    overflow-x: auto;
+  }
+
+  &__thumb {
+    flex: 0 0 auto;
+    width: 56px;
+    height: 56px;
+    padding: 0;
+    border: 2px solid transparent;
+    border-radius: var(--p-r-sm, 6px);
+    overflow: hidden;
+    cursor: pointer;
+    background: none;
+
+    &--active {
+      border-color: var(--p-accent, #6366f1);
     }
   }
 
-  &__label {
-    font-size: var(--p-fs-meta, 12px);
-    color: var(--p-ink-2);
+  &__info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-2, 8px);
+    padding: var(--p-3, 12px) var(--p-4, 16px) var(--p-4, 16px);
   }
 
-  &__value {
+  &__name {
+    margin: 0;
+    font-size: var(--p-fs-h4, 17px);
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--p-ink);
+  }
+
+  &__chips {
+    display: flex;
+    gap: var(--p-2, 8px);
+    flex-wrap: wrap;
+  }
+
+  &__pricerow {
+    display: flex;
+    align-items: baseline;
+    gap: var(--p-2, 8px);
+    margin-top: 2px;
+  }
+
+  &__price {
+    font-size: var(--p-fs-h3, 20px);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--p-ink);
+  }
+
+  &__per {
     font-size: var(--p-fs-body-sm, 13px);
-    color: var(--p-ink-1);
-    overflow-wrap: anywhere;
+    color: var(--p-ink-3);
+  }
+
+  &__stock {
+    margin-left: auto;
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-3);
+
+    &--empty {
+      color: var(--q-negative, #c10015);
+    }
+  }
+
+  &__desc {
+    margin: 0;
+    font-size: var(--p-fs-body-sm, 13px);
+    line-height: var(--p-lh-body, 1.55);
+    color: var(--p-ink-2);
     white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  &__specs {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-1, 4px);
+    margin: var(--p-1, 4px) 0 0;
+  }
+
+  &__spec {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: var(--p-3, 12px);
+
+    dt {
+      font-size: var(--p-fs-meta, 12px);
+      color: var(--p-ink-3);
+    }
+
+    dd {
+      margin: 0;
+      font-size: var(--p-fs-body-sm, 13px);
+      color: var(--p-ink-1, var(--p-ink));
+    }
   }
 }
 </style>
