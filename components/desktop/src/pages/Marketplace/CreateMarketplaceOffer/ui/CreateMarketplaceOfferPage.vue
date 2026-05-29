@@ -780,9 +780,9 @@ async function onSubmit(): Promise<void> {
       SuccessAlert('Изменения сохранены. Предложение отправлено на повторную модерацию.');
       void router.push({ name: 'marketplace-my-offers' });
     } else {
-      const result = await createOffer(payload);
+      await createOffer(payload);
       clearDraft();
-      SuccessAlert(`Предложение создано (id ${result.id.slice(0, 8)}), статус: ${result.status}.`);
+      SuccessAlert('Предложение создано и отправлено на модерацию председателю.');
       void router.push({ name: 'marketplace-catalog' });
     }
   } catch (e) {
