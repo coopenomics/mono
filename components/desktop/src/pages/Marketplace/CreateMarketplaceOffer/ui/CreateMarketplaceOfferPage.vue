@@ -261,7 +261,6 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
               transition-prev='slide-right',
               transition-next='slide-left',
               :arrows='previewImages.length > 1',
-              :navigation='previewImages.length > 1',
               control-color='primary',
               height='320px'
             )
@@ -512,20 +511,58 @@ const stockLabel = computed(() => {
 // Изображения не сохраняем: object-URL'ы недействительны после перезагрузки,
 // а base64 не влезает в LocalStorage. Восстанавливаем текстовые поля и шаг.
 const DRAFT_KEY = 'marketplace:create-offer-draft';
+// Бюджет на изображения в черновике (суммарная длина base64). LocalStorage —
+// ~5 МБ на origin; свыше бюджета черновик сохраняем БЕЗ картинок (поля важнее).
+const MAX_DRAFT_IMAGE_CHARS = 2_000_000;
 
+interface OfferDraftImage {
+  base64: string;
+  mime_type: string;
+  name: string;
+}
 interface OfferDraft {
   form: MarketplaceCreateOfferFormState;
   activeKey: string;
   completedKeys: string[];
+  coverIndex: number;
+  images?: OfferDraftImage[];
 }
+
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
 
 function saveDraft(): void {
   if (isEdit.value) return;
-  LocalStorage.set(DRAFT_KEY, {
+  const base: OfferDraft = {
     form: form.value,
     activeKey: activeKey.value,
     completedKeys: completedKeys.value,
-  } satisfies OfferDraft);
+    coverIndex: coverIndex.value,
+  };
+  const images: OfferDraftImage[] = imageDrafts.value.map((d) => ({
+    base64: d.base64,
+    mime_type: d.mime_type,
+    name: d.name,
+  }));
+  const totalChars = images.reduce((n, im) => n + im.base64.length, 0);
+  const payload: OfferDraft =
+    images.length && totalChars <= MAX_DRAFT_IMAGE_CHARS ? { ...base, images } : base;
+  try {
+    LocalStorage.set(DRAFT_KEY, payload);
+  } catch {
+    // QuotaExceeded — сохраняем без изображений, чтобы не потерять поля.
+    try {
+      LocalStorage.set(DRAFT_KEY, base);
+    } catch {
+      /* LocalStorage недоступен — игнорируем */
+    }
+  }
+}
+
+function scheduleSaveDraft(): void {
+  if (isEdit.value) return;
+  if (saveTimer) clearTimeout(saveTimer);
+  // Дебаунс: не сериализуем base64-картинки на каждое нажатие клавиши.
+  saveTimer = setTimeout(saveDraft, 400);
 }
 
 function restoreDraft(): void {
@@ -534,9 +571,23 @@ function restoreDraft(): void {
   form.value = { ...form.value, ...saved.form };
   if (typeof saved.activeKey === 'string') activeKey.value = saved.activeKey;
   if (Array.isArray(saved.completedKeys)) completedKeys.value = saved.completedKeys;
+  if (Array.isArray(saved.images) && saved.images.length) {
+    // object-URL после reload мёртв — превью восстанавливаем как data-URL из base64.
+    imageDrafts.value = saved.images.map((im) => ({
+      preview_url: `data:${im.mime_type};base64,${im.base64}`,
+      name: im.name,
+      base64: im.base64,
+      mime_type: im.mime_type,
+    }));
+  }
+  if (typeof saved.coverIndex === 'number') coverIndex.value = saved.coverIndex;
 }
 
 function clearDraft(): void {
+  if (saveTimer) {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+  }
   LocalStorage.remove(DRAFT_KEY);
 }
 
@@ -786,11 +837,14 @@ onMounted(async () => {
   } else {
     // Восстанавливаем черновик и подключаем автосохранение (клиент-only).
     restoreDraft();
-    watch([form, activeKey, completedKeys], saveDraft, { deep: true });
+    watch([form, activeKey, completedKeys, imageDrafts, coverIndex], scheduleSaveDraft, {
+      deep: true,
+    });
   }
 });
 
 onBeforeUnmount(() => {
+  if (saveTimer) clearTimeout(saveTimer);
   for (const d of imageDrafts.value) URL.revokeObjectURL(d.preview_url);
 });
 </script>
@@ -990,6 +1044,11 @@ onBeforeUnmount(() => {
   &__carousel {
     width: 100%;
     background: var(--p-surface-2, #f5f5f5);
+
+    // Изображение во всю ширину — убираем дефолтный padding слайда q-carousel.
+    :deep(.q-carousel__slide) {
+      padding: 0;
+    }
   }
 
   &__slideimg {
