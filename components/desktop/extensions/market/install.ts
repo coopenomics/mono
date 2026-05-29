@@ -14,6 +14,7 @@ import { OffererSupplyPreparationPage } from 'src/pages/Marketplace/OffererSuppl
 import { OffererPaymentHistoryPage } from 'src/pages/Marketplace/OffererPaymentHistory'
 import { AdminWriteoffsPage } from 'src/pages/Marketplace/AdminWriteoffs'
 import { ChairmanModerationPage } from 'src/pages/Marketplace/ChairmanModeration'
+import { AdminIssuancePointsPage } from 'src/pages/Marketplace/AdminIssuancePoints'
 import { OperatorOwnWarehousePage } from 'src/pages/Marketplace/OperatorOwnWarehouse'
 import { OperatorIncomingShipmentsPage } from 'src/pages/Marketplace/OperatorIncomingShipments'
 import { AdminWarehouseSummaryPage } from 'src/pages/Marketplace/AdminWarehouseSummary'
@@ -503,6 +504,25 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 title: 'Доступные категории',
                 icon: 'fa-solid fa-filter',
                 requires: 'Whitelist:manage',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+              children: [],
+            },
+            {
+              // Эпик 2: admin-стол «Пункты выдачи заказов». Председатель
+              // подключает кооперативные участки (core) как ПВЗ Стола заказов
+              // (адрес/контакты/режим работы + геокодинг) и управляет их
+              // статусом. Видна совету и председателю (`Order:read:all`);
+              // управляющие действия внутри — только председателю (isChairman),
+              // что совпадает с бэкенд-авторизацией мутаций (chairman-only).
+              path: 'issuance-points',
+              name: 'marketplace-issuance-points',
+              component: markRaw(AdminIssuancePointsPage),
+              meta: {
+                title: 'Пункты выдачи заказов',
+                icon: 'pin_drop',
+                requires: 'Order:read:all',
                 requiresAuth: true,
                 agreements: agreementsBase,
               },
