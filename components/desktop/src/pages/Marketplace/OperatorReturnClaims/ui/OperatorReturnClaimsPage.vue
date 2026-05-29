@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
+import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import {
   listReturnClaimsByBraname,
   defectCategoryLabel,
@@ -115,77 +116,125 @@ onMounted(async () => {
 </script>
 
 <template lang="pug">
-q-page.mp-role-operator.mp-return-operator.q-pa-md
-  .text-h6.q-mb-sm Гарантийный возврат — рассмотрение заявлений
+q-page.returns(role='region', aria-label='Гарантийные возвраты')
   OperatorBranchBar
 
-  .text-subtitle1.q-mb-sm.text-primary Ждут удалённого рассмотрения ({{ pendingClaims.length }})
-  q-list(v-if="pendingClaims.length > 0" bordered separator).q-mb-md
-    q-item(v-for="c in pendingClaims" :key="c.id")
-      q-item-section
-        q-item-label.text-weight-medium Заказ {{ c.order_id.slice(0, 8) }} · заказчик {{ c.orderer_account }}
-        q-item-label(caption) {{ c.actual_quantity }} ед. · {{ c.fact_cost }} ₽
-        q-item-label(caption) {{ c.reason_text.slice(0, 240) }}{{ c.reason_text.length > 240 ? '…' : '' }}
-        q-item-label(caption v-if="c.defect_category")
-          | Категория: {{ defectCategoryLabel(c.defect_category) }}
-        .row.q-mt-xs.q-gutter-sm
-          a.mp-return-operator__thumb(
-            v-for="(p, i) in c.photos" :key="p.content_hash"
-            :href="p.url" target="_blank" rel="noopener"
-          )
-            img(:src="p.url" :alt="`Фото ${i + 1}`")
-      q-item-section(side)
-        q-btn(unelevated no-caps color="primary" icon="fa-solid fa-gavel" label="Принять решение" @click="startRemote(c)")
-  q-card(v-else flat bordered).q-pa-md.q-mb-md
-    .text-grey Нет заявлений, ожидающих удалённого рассмотрения.
+  EmptyState(
+    v-if='!store.loading && !store.isOperator',
+    title='Вы не оператор кооперативного участка',
+    body='Рассмотрение гарантийных возвратов доступно председателю участка и его доверенным лицам.'
+  )
+    template(#icon)
+      q-icon(name='storefront', size='48px')
 
-  .text-subtitle1.q-mb-sm.text-warning Ожидают очного визита ({{ approvedClaims.length }})
-  q-list(v-if="approvedClaims.length > 0" bordered separator).q-mb-md
-    q-item(v-for="c in approvedClaims" :key="c.id")
-      q-item-section
-        q-item-label.text-weight-medium Заказ {{ c.order_id.slice(0, 8) }} · заказчик {{ c.orderer_account }}
-        q-item-label(caption) Возврат на сумму {{ c.fact_cost }} ₽
-        q-item-label(caption) Дата одобрения: {{ c.decision_log.length > 0 ? formatDateTime(c.decision_log[c.decision_log.length - 1].at) : '—' }}
-      q-item-section(side)
-        q-btn(unelevated no-caps color="accent" icon="fa-solid fa-clipboard-check" label="Очный осмотр" @click="startOnSite(c)")
-  q-card(v-else flat bordered).q-pa-md.q-mb-md
-    .text-grey Нет заявлений, по которым ожидается очный визит.
+  template(v-else)
+    .returns__head
+      .t-h2 Гарантийный возврат
+      .t-muted Рассматривайте заявления пайщиков: удалённое решение по заявке, затем очный осмотр и приём возврата на пункте выдачи.
 
-  .text-subtitle1.q-mb-sm.text-grey Архив ({{ archiveClaims.length }})
-  q-list(v-if="archiveClaims.length > 0" bordered separator)
-    q-item(v-for="c in archiveClaims" :key="c.id")
-      q-item-section
-        q-item-label Заказ {{ c.order_id.slice(0, 8) }} · {{ c.orderer_account }}
-        q-item-label(caption) {{ humanStatus(c.status) }}{{ c.ledger_snapshot ? ` · ${c.ledger_snapshot.amount} ₽ восстановлено` : '' }}
-  q-card(v-else flat bordered).q-pa-md
-    .text-grey Архив пуст.
+    section.returns__section
+      .t-h3 Ждут удалённого рассмотрения ({{ pendingClaims.length }})
+      q-list.returns__list(v-if='pendingClaims.length > 0', bordered, separator)
+        q-item(v-for='c in pendingClaims', :key='c.id')
+          q-item-section
+            q-item-label.text-weight-medium Заказ {{ c.order_id.slice(0, 8) }} · заказчик {{ c.orderer_account }}
+            q-item-label(caption) {{ c.actual_quantity }} ед. · {{ c.fact_cost }} ₽
+            q-item-label(caption) {{ c.reason_text.slice(0, 240) }}{{ c.reason_text.length > 240 ? '…' : '' }}
+            q-item-label(caption, v-if='c.defect_category')
+              | Категория: {{ defectCategoryLabel(c.defect_category) }}
+            .returns__thumbs
+              a.returns__thumb(
+                v-for='(p, i) in c.photos',
+                :key='p.content_hash',
+                :href='p.url',
+                target='_blank',
+                rel='noopener'
+              )
+                img(:src='p.url', :alt='`Фото ${i + 1}`')
+          q-item-section(side)
+            BaseButton(variant='primary', size='sm', @click='startRemote(c)')
+              template(#icon-left)
+                q-icon(name='gavel', size='16px')
+              | Принять решение
+      .returns__empty(v-else) Нет заявлений, ожидающих удалённого рассмотрения.
+
+    section.returns__section
+      .t-h3 Ожидают очного визита ({{ approvedClaims.length }})
+      q-list.returns__list(v-if='approvedClaims.length > 0', bordered, separator)
+        q-item(v-for='c in approvedClaims', :key='c.id')
+          q-item-section
+            q-item-label.text-weight-medium Заказ {{ c.order_id.slice(0, 8) }} · заказчик {{ c.orderer_account }}
+            q-item-label(caption) Возврат на сумму {{ c.fact_cost }} ₽
+            q-item-label(caption) Дата одобрения: {{ c.decision_log.length > 0 ? formatDateTime(c.decision_log[c.decision_log.length - 1].at) : '—' }}
+          q-item-section(side)
+            BaseButton(variant='secondary', size='sm', @click='startOnSite(c)')
+              template(#icon-left)
+                q-icon(name='fact_check', size='16px')
+              | Очный осмотр
+      .returns__empty(v-else) Нет заявлений, по которым ожидается очный визит.
+
+    section.returns__section
+      .t-h3 Архив ({{ archiveClaims.length }})
+      q-list.returns__list(v-if='archiveClaims.length > 0', bordered, separator)
+        q-item(v-for='c in archiveClaims', :key='c.id')
+          q-item-section
+            q-item-label Заказ {{ c.order_id.slice(0, 8) }} · {{ c.orderer_account }}
+            q-item-label(caption) {{ humanStatus(c.status) }}{{ c.ledger_snapshot ? ` · ${c.ledger_snapshot.amount} ₽ восстановлено` : '' }}
+      .returns__empty(v-else) Архив пуст.
 
   RemoteDecisionDialog(
-    v-model="remoteDialog"
-    :claim="selectedClaim"
-    :braname="braname"
-    @decided="onDecided"
+    v-model='remoteDialog',
+    :claim='selectedClaim',
+    :braname='braname',
+    @decided='onDecided'
   )
   OnSiteDecisionDialog(
-    v-model="onSiteDialog"
-    :claim="selectedClaim"
-    :braname="braname"
-    @decided="onDecided"
+    v-model='onSiteDialog',
+    :claim='selectedClaim',
+    :braname='braname',
+    @decided='onDecided'
   )
 </template>
 
 <style scoped lang="scss">
-.mp-return-operator {
+.returns {
+  padding: var(--p-6, 24px);
   display: flex;
   flex-direction: column;
-  gap: var(--mp-space-md);
+  gap: var(--p-4, 16px);
+
+  &__head {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-1, 4px);
+  }
+
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-2, 8px);
+  }
+
+  &__empty {
+    color: var(--p-ink-3);
+    border: 1px solid var(--p-line);
+    border-radius: var(--p-r-md, 12px);
+    padding: var(--p-4, 16px);
+  }
+
+  &__thumbs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--p-2, 8px);
+    margin-top: var(--p-2, 8px);
+  }
 
   &__thumb {
     display: inline-block;
     width: 56px;
     height: 56px;
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    border-radius: 6px;
+    border: 1px solid var(--p-line);
+    border-radius: var(--p-r-xs, 6px);
     overflow: hidden;
 
     img {
@@ -193,6 +242,12 @@ q-page.mp-role-operator.mp-return-operator.q-pa-md
       height: 100%;
       object-fit: cover;
     }
+  }
+}
+
+@media (max-width: 768px) {
+  .returns {
+    padding: var(--p-4, 16px);
   }
 }
 </style>

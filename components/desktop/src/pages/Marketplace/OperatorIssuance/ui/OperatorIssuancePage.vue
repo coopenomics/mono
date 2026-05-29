@@ -4,6 +4,8 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
+import { BaseBadge, BaseButton, EmptyState } from 'src/shared/ui/base';
+import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import {
   listIssuancesByBraname,
   type MarketplaceOrderIssuanceView,
@@ -53,12 +55,32 @@ const ORDER_STATUS_LABEL: Record<string, string> = {
   CANCELLED_BY_SUPPLIER: 'Отменён поставщиком',
 };
 
+function statusLabel(v: string): string {
+  return ORDER_STATUS_LABEL[v] ?? v;
+}
+
+function statusVariant(v: string): BaseBadgeVariant {
+  switch (v) {
+    case 'ACCEPTED_TO_COOP':
+      return 'info';
+    case 'READY_TO_RECEIVE':
+      return 'warn';
+    case 'RECEIVED':
+      return 'pos';
+    case 'CANCELLED_BY_ORDERER':
+    case 'CANCELLED_BY_SUPPLIER':
+      return 'neg';
+    default:
+      return 'neutral';
+  }
+}
+
 const columns: QTableProps['columns'] = [
   { name: 'order', label: 'Заказ', field: (r: MarketplaceOrderIssuanceView) => r.id.slice(0, 8), align: 'left' },
   { name: 'orderer', label: 'Заказчик', field: 'orderer_account', align: 'left' },
   { name: 'quantity', label: 'Количество', field: 'quantity', align: 'right' },
   { name: 'total_cost', label: 'Сумма', field: 'total_cost', align: 'right' },
-  { name: 'status', label: 'Статус', field: 'status', align: 'left', format: (v: string) => ORDER_STATUS_LABEL[v] ?? v },
+  { name: 'status', label: 'Статус', field: 'status', align: 'left' },
   { name: 'actions', label: '', field: 'id', align: 'right' },
 ];
 
@@ -101,47 +123,92 @@ onMounted(async () => {
 </script>
 
 <template lang="pug">
-q-page.mp-role-operator.mp-issuance.q-pa-md
+q-page.issuance(role='region', aria-label='Выдача заказов')
   OperatorBranchBar
 
-  q-table(
-    :rows="items"
-    :columns="columns"
-    row-key="id"
-    flat
-    bordered
-    :loading="loading"
-    no-data-label="Нет заказов, ожидающих выдачи на этом кооперативном участке."
+  EmptyState(
+    v-if='!store.loading && !store.isOperator',
+    title='Вы не оператор кооперативного участка',
+    body='Выдача заказов доступна председателю участка и его доверенным лицам.'
   )
-    template(#body-cell-actions="props")
-      q-td(:props="props")
-        q-btn(
-          v-if="props.row.status === 'ACCEPTED_TO_COOP'"
-          color="primary"
-          unelevated
-          no-caps
-          dense
-          label="Открыть выдачу"
-          @click="startOpen(props.row)"
+    template(#icon)
+      q-icon(name='storefront', size='48px')
+
+  template(v-else)
+    .issuance__head
+      .t-h2 Выдача заказов
+      .t-muted Заказы, принятые кооперативом на ваш пункт выдачи. Откройте выдачу подписью председателя, затем завершите её на стойке с заказчиком.
+
+    q-table.issuance__table(
+      :rows='items',
+      :columns='columns',
+      row-key='id',
+      flat,
+      bordered,
+      :loading='loading'
+    )
+      template(#body-cell-status='props')
+        q-td(:props='props')
+          BaseBadge(:variant='statusVariant(props.row.status)') {{ statusLabel(props.row.status) }}
+
+      template(#body-cell-actions='props')
+        q-td(:props='props')
+          BaseButton(
+            v-if='props.row.status === "ACCEPTED_TO_COOP"',
+            variant='primary',
+            size='sm',
+            @click='startOpen(props.row)'
+          )
+            template(#icon-left)
+              q-icon(name='draw', size='16px')
+            | Открыть выдачу
+          BaseButton(
+            v-else-if='props.row.status === "READY_TO_RECEIVE"',
+            variant='primary',
+            size='sm',
+            @click='startFinalize(props.row)'
+          )
+            template(#icon-left)
+              q-icon(name='inventory', size='16px')
+            | Завершить выдачу
+
+      template(#no-data)
+        EmptyState(
+          title='Заказов на выдачу нет',
+          body='Заказы, принятые кооперативом на ваш участок, появятся здесь для выдачи пайщикам.'
         )
-        q-btn(
-          v-else-if="props.row.status === 'READY_TO_RECEIVE'"
-          color="accent"
-          unelevated
-          no-caps
-          dense
-          label="Завершить выдачу"
-          @click="startFinalize(props.row)"
-        )
+          template(#icon)
+            q-icon(name='inventory', size='48px')
 
   IssueActOpenDialog(
-    v-model="openDialog"
-    :order="selectedOrder"
-    @opened="onOpened"
+    v-model='openDialog',
+    :order='selectedOrder',
+    @opened='onOpened'
   )
   IssueActFinalizeDialog(
-    v-model="finalizeDialog"
-    :order="selectedOrder"
-    @finalized="onFinalized"
+    v-model='finalizeDialog',
+    :order='selectedOrder',
+    @finalized='onFinalized'
   )
 </template>
+
+<style scoped lang="scss">
+.issuance {
+  padding: var(--p-6, 24px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-4, 16px);
+
+  &__head {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-1, 4px);
+  }
+}
+
+@media (max-width: 768px) {
+  .issuance {
+    padding: var(--p-4, 16px);
+  }
+}
+</style>

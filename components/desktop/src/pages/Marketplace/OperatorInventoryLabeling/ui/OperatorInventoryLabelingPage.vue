@@ -5,6 +5,8 @@ import { Loading } from 'quasar'
 import { SuccessAlert, FailAlert } from 'src/shared/api'
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch'
 import { BarcodeDisplay } from 'src/widgets/Marketplace/BarcodeDisplay'
+import { BaseButton, BaseCard, BaseInput, BaseSelect, EmptyState } from 'src/shared/ui/base'
+import type { BaseSelectOption } from 'src/shared/ui/base'
 import { Zeus } from '@coopenomics/sdk'
 import {
   fetchInventoryByBraname,
@@ -28,6 +30,10 @@ const items = ref<MarketplaceInventoryItemView[]>([])
 const loading = ref<boolean>(false)
 
 const mode = ref<LabelingMode>('BATCH')
+const modeOptions: { label: string; value: LabelingMode }[] = [
+  { label: 'Маркировка партии целиком', value: 'BATCH' },
+  { label: 'Поштучно по заказу', value: 'PER_ORDER' },
+]
 
 const orderIdInput = ref<string>('')
 
@@ -38,24 +44,50 @@ const defaultStrategy = ref<BarcodeStrategy | null>(null)
 const defaultFormat = ref<BarcodeFormat>(Zeus.MarketplaceBarcodeFormat.EAN13)
 const lastBatchSummary = ref<{ labeled: number; skipped: number } | null>(null)
 
-const strategyOptions: Array<{ label: string; value: BarcodeStrategy | null }> = [
-  { label: 'По умолчанию из карточки товара', value: null },
+// «Стратегия по умолчанию» = null (берётся из карточки товара). BaseSelect не
+// принимает null в value опций, поэтому используем строковый sentinel и
+// мапим его обратно в null через computed-прокси.
+const STRATEGY_DEFAULT = '__default__'
+
+const strategyOptions: BaseSelectOption[] = [
+  { label: 'По умолчанию из карточки товара', value: STRATEGY_DEFAULT },
   { label: 'Одна этикетка на весь заказ', value: Zeus.MarketplaceBarcodeStrategy.PER_ORDER },
   { label: 'Отдельная этикетка на каждую единицу', value: Zeus.MarketplaceBarcodeStrategy.PER_UNIT },
   { label: 'Этикетка на упаковку', value: Zeus.MarketplaceBarcodeStrategy.PER_PACKAGE },
 ]
 
-const formatOptions: Array<{ label: string; value: BarcodeFormat }> = [
+const formatOptions: BaseSelectOption[] = [
   { label: 'CODE128', value: Zeus.MarketplaceBarcodeFormat.CODE128 },
   { label: 'EAN13', value: Zeus.MarketplaceBarcodeFormat.EAN13 },
 ]
 
-const shipmentOptions = computed(() =>
+const shipmentOptions = computed<BaseSelectOption[]>(() =>
   shipments.value.map((s) => ({
     label: `${s.id.slice(0, 8)} · ${s.braname} · ${s.delivery_variant} · ${s.status}`,
     value: s.id,
   })),
 )
+
+const shipmentModel = computed<string>({
+  get: () => selectedShipmentId.value ?? '',
+  set: (v) => {
+    selectedShipmentId.value = v || null
+  },
+})
+
+const strategyModel = computed<string>({
+  get: () => defaultStrategy.value ?? STRATEGY_DEFAULT,
+  set: (v) => {
+    defaultStrategy.value = v === STRATEGY_DEFAULT ? null : (v as BarcodeStrategy)
+  },
+})
+
+const formatModel = computed<string>({
+  get: () => defaultFormat.value,
+  set: (v) => {
+    defaultFormat.value = v as BarcodeFormat
+  },
+})
 
 async function loadInventory(): Promise<void> {
   if (!braname.value.trim()) return
@@ -142,121 +174,192 @@ onMounted(async () => {
 </script>
 
 <template lang="pug">
-q-page.mp-role-operator.mp-inventory-labeling.q-pa-md
+q-page.labeling(role='region', aria-label='Маркировка имущества')
   OperatorBranchBar
 
-  .row.q-mb-md.q-gutter-md.no-print.items-center
-    q-btn(flat no-caps icon="refresh" label="Обновить список партий" @click="loadShipments")
-    q-space
-    q-btn(flat no-caps icon="print" label="Печать партии" :disable="!items.length" @click="openPrintWindow")
+  EmptyState(
+    v-if='!store.loading && !store.isOperator',
+    title='Вы не оператор кооперативного участка',
+    body='Маркировка имущества доступна председателю участка и его доверенным лицам.'
+  )
+    template(#icon)
+      q-icon(name='storefront', size='48px')
 
-  .row.q-mb-md.no-print
-    q-btn-toggle(
-      v-model="mode"
-      no-caps
-      unelevated
-      toggle-color="primary"
-      :options="[{ label: 'Маркировка партии целиком', value: 'BATCH' }, { label: 'Поштучно по заказу', value: 'PER_ORDER' }]"
+  template(v-else)
+    .labeling__head.no-print
+      .t-h2 Маркировка имущества
+      .t-muted Сгенерируйте штрих-коды для прибывших заказов и распечатайте этикетки склада участка.
+
+    .labeling__toolbar.no-print
+      q-btn-toggle(
+        v-model='mode',
+        no-caps,
+        unelevated,
+        toggle-color='primary',
+        :options='modeOptions'
+      )
+      q-space
+      BaseButton(variant='ghost', @click='loadShipments')
+        template(#icon-left)
+          q-icon(name='refresh', size='18px')
+        | Обновить партии
+      BaseButton(variant='secondary', :disabled='!items.length', @click='openPrintWindow')
+        template(#icon-left)
+          q-icon(name='print', size='18px')
+        | Печать
+
+    BaseCard.labeling__panel.no-print(
+      v-if='mode === "BATCH"',
+      title='Маркировка партии целиком'
     )
-
-  q-card.q-mb-md.no-print(flat bordered v-if="mode === 'BATCH'")
-    q-card-section
-      .text-subtitle2.q-mb-sm Маркировка партии целиком
-      .text-caption.text-grey-7.q-mb-md
-        | Выберите партию поставки и стратегию по умолчанию. Сервер сам пройдёт по всем заказам партии и сгенерирует этикетки.
-        | Уже промаркированные заказы пропускаются автоматически.
-      .row.q-gutter-md.q-mb-sm
-        q-select.col-5(
-          v-model="selectedShipmentId"
-          dense
-          outlined
-          emit-value
-          map-options
-          label="Партия поставки"
-          :options="shipmentOptions"
-          :disable="!shipmentOptions.length"
+      .t-muted.labeling__hint
+        | Выберите партию поставки и стратегию по умолчанию. Сервер пройдёт по всем
+        | заказам партии и сгенерирует этикетки; уже промаркированные пропускаются.
+      .labeling__form-row
+        BaseSelect.labeling__field(
+          v-model='shipmentModel',
+          label='Партия поставки',
+          :options='shipmentOptions',
+          :disabled='!shipmentOptions.length'
         )
-        q-select.col-3(
-          v-model="defaultStrategy"
-          dense
-          outlined
-          emit-value
-          map-options
-          label="Стратегия маркировки по умолчанию"
-          :options="strategyOptions"
+        BaseSelect.labeling__field(
+          v-model='strategyModel',
+          label='Стратегия маркировки',
+          :options='strategyOptions'
         )
-        q-select.col-3(
-          v-model="defaultFormat"
-          dense
-          outlined
-          emit-value
-          map-options
-          label="Формат штрих-кода"
-          :options="formatOptions"
+        BaseSelect.labeling__field(
+          v-model='formatModel',
+          label='Формат штрих-кода',
+          :options='formatOptions'
         )
-      .row.q-gutter-md.items-center
-        q-btn(
-          no-caps
-          unelevated
-          color="primary"
-          label="Промаркировать партию"
-          :disable="!selectedShipmentId"
-          @click="generateLabelsForShipment"
-        )
-        span.text-caption.text-grey-7(v-if="lastBatchSummary")
+      .labeling__actions
+        BaseButton(variant='primary', :disabled='!selectedShipmentId', @click='generateLabelsForShipment')
+          template(#icon-left)
+            q-icon(name='qr_code_2', size='16px')
+          | Промаркировать партию
+        span.t-muted(v-if='lastBatchSummary')
           | Последний прогон: промаркировано {{ lastBatchSummary.labeled }}, пропущено {{ lastBatchSummary.skipped }}.
-        span.text-caption.text-grey-7(v-else)
-          | Стратегия по умолчанию переопределяет per-Offer настройку только если выбрана явно.
+        span.t-muted(v-else)
+          | Стратегия по умолчанию переопределяет настройку из карточки товара только если выбрана явно.
 
-  q-card.q-mb-md.no-print(flat bordered v-else)
-    q-card-section
-      .text-subtitle2.q-mb-sm Маркировка одного заказа
-      .row.q-gutter-md
-        q-input.col-4(
-          v-model="orderIdInput"
-          dense
-          outlined
-          label="ID заказа для маркировки"
+    BaseCard.labeling__panel.no-print(v-else, title='Маркировка одного заказа')
+      .labeling__form-row
+        BaseInput.labeling__field(
+          v-model='orderIdInput',
+          label='Идентификатор заказа',
+          placeholder='order_id',
+          mono
         )
-        q-btn(no-caps unelevated color="primary" label="Сгенерировать этикетки" @click="generateLabelsPerOrder")
-        span.text-caption.text-grey-7.self-center
-          | Стратегия маркировки берётся из карточки товара поставщика (per-Offer).
+        BaseButton(variant='primary', @click='generateLabelsPerOrder')
+          template(#icon-left)
+            q-icon(name='qr_code_2', size='16px')
+          | Сгенерировать этикетки
+      .t-muted
+        | Стратегия маркировки берётся из карточки товара поставщика.
 
-  .text-grey-7.text-center.q-pa-xl.no-print(v-if="!items.length")
-    | Инвентарь участка пуст. Промаркируйте партию или отдельный заказ — этикетки появятся ниже.
+    EmptyState.no-print(
+      v-if='!items.length',
+      title='Этикеток пока нет',
+      body='Промаркируйте партию или отдельный заказ — этикетки появятся ниже и будут готовы к печати.'
+    )
+      template(#icon)
+        q-icon(name='qr_code_2', size='48px')
 
-  .mp-inventory-labeling__grid(v-else)
-    .mp-inventory-labeling__label(v-for="item in items" :key="item.id")
-      .text-subtitle2.ellipsis {{ item.product_name_snapshot }}
-      .text-caption.text-grey-7.ellipsis.q-mb-xs
-        | Пайщик: {{ item.orderer_account_snapshot }} · Кол-во: {{ item.quantity_per_label }}
-      BarcodeDisplay(:code="item.barcode_value" size="md")
+    .labeling__grid(v-else)
+      .labeling__label(v-for='item in items', :key='item.id')
+        .labeling__label-name.ellipsis {{ item.product_name_snapshot }}
+        .labeling__label-meta.ellipsis
+          | Пайщик: {{ item.orderer_account_snapshot }} · Кол-во: {{ item.quantity_per_label }}
+        BarcodeDisplay(:code='item.barcode_value', size='md')
 </template>
 
 <style scoped lang="scss">
-.mp-inventory-labeling {
+.labeling {
+  padding: var(--p-6, 24px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-4, 16px);
+
+  &__head {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-1, 4px);
+  }
+
+  &__toolbar {
+    display: flex;
+    align-items: center;
+    gap: var(--p-3, 12px);
+    flex-wrap: wrap;
+  }
+
+  &__hint {
+    margin-bottom: var(--p-3, 12px);
+  }
+
+  &__form-row {
+    display: flex;
+    gap: var(--p-3, 12px);
+    flex-wrap: wrap;
+    align-items: flex-end;
+  }
+
+  &__field {
+    flex: 1 1 240px;
+    min-width: 200px;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--p-3, 12px);
+    flex-wrap: wrap;
+    margin-top: var(--p-3, 12px);
+  }
+
   &__grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: var(--mp-space-md);
+    gap: var(--p-4, 16px);
   }
 
   &__label {
-    border: 1px solid var(--mp-border-color, #e0e0e0);
-    border-radius: var(--mp-radius-sm, 4px);
-    padding: var(--mp-space-sm);
-    background: #fff;
+    border: 1px solid var(--p-line);
+    border-radius: var(--p-r-sm, 8px);
+    padding: var(--p-3, 12px);
+    background: var(--p-surface);
     break-inside: avoid;
+  }
+
+  &__label-name {
+    font-weight: 600;
+  }
+
+  &__label-meta {
+    color: var(--p-ink-3);
+    font-size: var(--p-fs-body-sm);
+    margin-bottom: var(--p-1, 4px);
+  }
+}
+
+@media (max-width: 768px) {
+  .labeling {
+    padding: var(--p-4, 16px);
   }
 }
 
 @media print {
-  .no-print { display: none !important; }
-  .mp-inventory-labeling__grid {
+  .no-print {
+    display: none !important;
+  }
+  .labeling {
+    padding: 0;
+  }
+  .labeling__grid {
     grid-template-columns: repeat(3, 1fr);
     gap: 4mm;
   }
-  .mp-inventory-labeling__label {
+  .labeling__label {
     page-break-inside: avoid;
     width: 100%;
   }

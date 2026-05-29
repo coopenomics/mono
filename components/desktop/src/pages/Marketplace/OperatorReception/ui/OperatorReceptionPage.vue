@@ -5,6 +5,8 @@ import { useRoute } from 'vue-router';
 import { Loading } from 'quasar';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
+import { BaseBadge, BaseButton, BaseInput, EmptyState } from 'src/shared/ui/base';
+import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import {
   createAplReception,
   listAplReceptionsByBraname,
@@ -32,9 +34,16 @@ const shipmentIdInput = ref('');
 
 const RECEPTION_STATUS_LABEL: Record<string, string> = {
   PENDING_SUPPLIER_SIGN: 'Ждёт подписи поставщика',
-  PENDING_CHAIRMAN_RECEPTION_SIGN: 'Ждёт подписи председателя КУ',
+  PENDING_CHAIRMAN_RECEPTION_SIGN: 'Ждёт подписи председателя',
   ACCEPTED_TO_COOP: 'Принят кооперативом',
   CANCELLED: 'Отменён',
+};
+
+const RECEPTION_STATUS_VARIANT: Record<string, BaseBadgeVariant> = {
+  PENDING_SUPPLIER_SIGN: 'neutral',
+  PENDING_CHAIRMAN_RECEPTION_SIGN: 'warn',
+  ACCEPTED_TO_COOP: 'pos',
+  CANCELLED: 'neg',
 };
 
 const RECEPTION_VARIANT_LABEL: Record<string, string> = {
@@ -53,10 +62,18 @@ const STATUS_SORT_PRIORITY: Record<string, number> = {
   CANCELLED: 3,
 };
 
+function statusLabel(v: string): string {
+  return RECEPTION_STATUS_LABEL[v] ?? v;
+}
+
+function statusVariant(v: string): BaseBadgeVariant {
+  return RECEPTION_STATUS_VARIANT[v] ?? 'neutral';
+}
+
 const columns: QTableProps['columns'] = [
   { name: 'id', label: 'АПП', field: (r: MarketplaceAplReceptionView) => r.id.slice(0, 8), align: 'left' },
   { name: 'variant', label: 'Вариант', field: 'variant', align: 'center', format: (v: string) => RECEPTION_VARIANT_LABEL[v] ?? v },
-  { name: 'status', label: 'Статус', field: 'status', align: 'left', format: (v: string) => RECEPTION_STATUS_LABEL[v] ?? v },
+  { name: 'status', label: 'Статус', field: 'status', align: 'left' },
   { name: 'total_amount', label: 'Сумма', field: 'total_amount', align: 'right' },
   { name: 'actions', label: '', field: 'id', align: 'right' },
 ];
@@ -79,7 +96,7 @@ async function load(): Promise<void> {
 
 async function createReceptionForShipment(): Promise<void> {
   if (!shipmentIdInput.value.trim()) {
-    FailAlert(new Error('Укажите ID партии.'));
+    FailAlert(new Error('Укажите идентификатор партии.'));
     return;
   }
   Loading.show({ message: 'Создаю акт приёмки…' });
@@ -116,36 +133,106 @@ onMounted(async () => {
 </script>
 
 <template lang="pug">
-q-page.mp-role-operator.mp-reception.q-pa-md
+q-page.reception(role='region', aria-label='Приёмка партии')
   OperatorBranchBar
 
-  .row.q-mb-md.q-gutter-md
-    q-input.col-4(v-model="shipmentIdInput" dense outlined label="ID партии (shipment_id)")
-    q-btn(no-caps unelevated color="primary" label="Создать АПП" @click="createReceptionForShipment")
-
-  q-table(
-    :rows="items"
-    :columns="columns"
-    row-key="id"
-    flat
-    bordered
-    :loading="loading"
+  EmptyState(
+    v-if='!store.loading && !store.isOperator',
+    title='Вы не оператор кооперативного участка',
+    body='Приёмка партий доступна председателю участка и его доверенным лицам.'
   )
-    template(#body-cell-actions="props")
-      q-td(:props="props")
-        q-btn(
-          v-if="props.row.status === 'PENDING_CHAIRMAN_RECEPTION_SIGN'"
-          color="primary"
-          unelevated
-          no-caps
-          dense
-          label="Подписать председателем"
-          @click="signChairman(props.row)"
+    template(#icon)
+      q-icon(name='storefront', size='48px')
+
+  template(v-else)
+    .reception__head
+      .t-h2 Приёмка партии
+      .t-muted Подтверждайте партии, прибывшие на ваш пункт выдачи: создайте акт приёмки и подпишите его председателем участка.
+
+    .reception__create
+      BaseInput.reception__create-input(
+        v-model='shipmentIdInput',
+        label='Идентификатор партии',
+        placeholder='shipment_id',
+        mono
+      )
+      BaseButton(variant='primary', @click='createReceptionForShipment')
+        template(#icon-left)
+          q-icon(name='add', size='16px')
+        | Создать акт приёмки
+
+    q-table.reception__table(
+      :rows='items',
+      :columns='columns',
+      row-key='id',
+      flat,
+      bordered,
+      :loading='loading'
+    )
+      template(#body-cell-status='props')
+        q-td(:props='props')
+          BaseBadge(:variant='statusVariant(props.row.status)') {{ statusLabel(props.row.status) }}
+
+      template(#body-cell-actions='props')
+        q-td(:props='props')
+          BaseButton(
+            v-if='props.row.status === "PENDING_CHAIRMAN_RECEPTION_SIGN"',
+            variant='primary',
+            size='sm',
+            @click='signChairman(props.row)'
+          )
+            template(#icon-left)
+              q-icon(name='draw', size='16px')
+            | Подписать председателем
+
+      template(#no-data)
+        EmptyState(
+          title='Актов приёмки нет',
+          body='Создайте акт по идентификатору прибывшей партии — он появится здесь для подписания.'
         )
+          template(#icon)
+            q-icon(name='assignment_turned_in', size='48px')
 
   SignAplReceptionChairmanDialog(
-    v-model="signDialogOpen"
-    :reception="signTarget"
-    @signed="onChairmanSigned"
+    v-model='signDialogOpen',
+    :reception='signTarget',
+    @signed='onChairmanSigned'
   )
 </template>
+
+<style scoped lang="scss">
+.reception {
+  padding: var(--p-6, 24px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-4, 16px);
+
+  &__head {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-1, 4px);
+  }
+
+  &__create {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--p-3, 12px);
+  }
+
+  &__create-input {
+    max-width: 320px;
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .reception {
+    padding: var(--p-4, 16px);
+
+    &__create {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  }
+}
+</style>

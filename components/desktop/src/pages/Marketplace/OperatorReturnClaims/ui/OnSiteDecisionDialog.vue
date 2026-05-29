@@ -237,6 +237,6 @@ TakeoverDialog(
 .mp-return-onsite {
   display: flex;
   flex-direction: column;
-  gap: var(--mp-space-md);
+  gap: var(--p-4, 16px);
 }
 </style>

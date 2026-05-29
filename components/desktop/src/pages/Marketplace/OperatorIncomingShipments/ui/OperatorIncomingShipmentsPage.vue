@@ -1,72 +1,3 @@
-<template lang="pug">
-q-page.mp-role-operator.q-pa-md(role="region", aria-label="Ожидаемые поставки")
-  .text-h5.q-mb-xs Ожидаемые поставки
-  .text-caption.text-grey-7.q-mb-md(style="max-width: 720px")
-    | Партии поставщиков, направленные на ваш кооперативный участок. Дождитесь статуса «Готова к приёмке» — и открывайте акт приёмки на столе «Приёмка партии».
-
-  OperatorBranchBar
-
-  q-card.mp-card.q-mb-md
-    q-card-section
-      .row.q-col-gutter-sm.items-end
-        q-select.col-12.col-sm-6(
-          v-model="statusFilter",
-          :options="statusOptions",
-          label="Состояние партии",
-          dense,
-          outlined,
-          multiple,
-          emit-value,
-          map-options
-        )
-        q-btn.col-12.col-sm-3(
-          color="primary",
-          label="Обновить",
-          :loading="loading",
-          :disable="!braname",
-          @click="load"
-        )
-
-  .row.q-col-gutter-md.q-mb-md(v-if="items.length")
-    q-card.mp-card.col-12.col-sm-3
-      q-card-section
-        .text-caption.text-grey-7 Ожидают приёмки
-        .text-h6 {{ summary.expected }}
-    q-card.mp-card.col-12.col-sm-3(
-      v-for="(count, status) in summary.byStatus",
-      :key="status"
-    )
-      q-card-section
-        .text-caption.text-grey-7 {{ humanStatus(status) }}
-        .text-h6 {{ count }}
-
-  q-table.mp-card(
-    :rows="filteredRows",
-    :columns="columns",
-    row-key="id",
-    :loading="loading",
-    :pagination="{ rowsPerPage: 25, sortBy: 'created_at', descending: true }",
-    :rows-per-page-options="[25, 50, 100, 0]",
-    flat,
-    bordered,
-    binary-state-sort
-  )
-    template(#body-cell-status="props")
-      q-td(:props="props")
-        span.mp-status-chip(:class="statusChipClass(props.row.status)")
-          | {{ humanStatus(props.row.status) }}
-
-    template(#body-cell-amount="props")
-      q-td(:props="props") {{ formatAmount(props.row.total_amount) }}
-
-    template(#body-cell-created_at="props")
-      q-td(:props="props") {{ formatDateTime(props.row.created_at) }}
-
-    template(#no-data)
-      .full-width.text-center.q-pa-md.text-grey-7
-        | {{ braname ? 'Ожидаемых поставок на участок нет или они скрыты фильтром.' : 'Кооперативный участок не определён — вы не оператор КУ.' }}
-</template>
-
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
@@ -75,6 +6,8 @@ import { FailAlert } from 'src/shared/api'
 import { Zeus } from '@coopenomics/sdk'
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits'
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch'
+import { BaseBadge, BaseButton, EmptyState } from 'src/shared/ui/base'
+import type { BaseBadgeVariant } from 'src/shared/ui/base'
 import { listShipmentsByBraname, type MarketplaceShipmentView } from '../api'
 
 type ShipmentStatus = MarketplaceShipmentView['status']
@@ -102,6 +35,16 @@ const statusOptions: { label: string; value: ShipmentStatus }[] = [
   { label: 'Принята кооперативом', value: Zeus.MarketplaceShipmentStatus.ACCEPTED_TO_COOP },
   { label: 'Отменена', value: Zeus.MarketplaceShipmentStatus.CANCELLED },
 ]
+
+function isStatusActive(value: ShipmentStatus): boolean {
+  return statusFilter.value.includes(value)
+}
+
+function toggleStatus(value: ShipmentStatus): void {
+  statusFilter.value = isStatusActive(value)
+    ? statusFilter.value.filter((s) => s !== value)
+    : [...statusFilter.value, value]
+}
 
 const DELIVERY_LABEL: Record<string, string> = {
   A: 'Поставщик лично',
@@ -158,18 +101,18 @@ function humanStatus(status: string): string {
   return statusOptions.find((o) => o.value === status)?.label ?? status
 }
 
-function statusChipClass(status: string): string {
+function statusVariant(status: string): BaseBadgeVariant {
   switch (status) {
     case Zeus.MarketplaceShipmentStatus.SUPPLY_PREPARED:
-      return 'mp-status-chip--info'
+      return 'info'
     case Zeus.MarketplaceShipmentStatus.RECEPTION_IN_PROGRESS:
-      return 'mp-status-chip--warning'
+      return 'warn'
     case Zeus.MarketplaceShipmentStatus.ACCEPTED_TO_COOP:
-      return 'mp-status-chip--success'
+      return 'pos'
     case Zeus.MarketplaceShipmentStatus.CANCELLED:
-      return 'mp-status-chip--error'
+      return 'neg'
     default:
-      return 'mp-status-chip--neutral'
+      return 'neutral'
   }
 }
 
@@ -185,3 +128,138 @@ function formatDateTime(value: unknown): string {
   return parsed.toLocaleString('ru-RU')
 }
 </script>
+
+<template lang="pug">
+q-page.shipments(role='region', aria-label='Ожидаемые поставки')
+  OperatorBranchBar
+
+  EmptyState(
+    v-if='!store.loading && !store.isOperator',
+    title='Вы не оператор кооперативного участка',
+    body='Ожидаемые поставки доступны председателю участка и его доверенным лицам.'
+  )
+    template(#icon)
+      q-icon(name='storefront', size='48px')
+
+  template(v-else)
+    .shipments__head
+      .t-h2 Ожидаемые поставки
+      .t-muted
+        | Партии поставщиков, направленные на ваш пункт выдачи. Дождитесь состояния
+        | «Готова к приёмке» — и открывайте акт на столе «Приёмка партии».
+
+    .shipments__filters
+      .shipments__chips
+        .chip(
+          v-for='opt in statusOptions',
+          :key='opt.value',
+          :class='isStatusActive(opt.value) ? "chip--accent" : "chip--neutral"',
+          role='button',
+          tabindex='0',
+          @click='toggleStatus(opt.value)',
+          @keydown.enter='toggleStatus(opt.value)'
+        ) {{ opt.label }}
+      BaseButton.shipments__refresh(
+        variant='ghost',
+        icon-only,
+        aria-label='Обновить',
+        :loading='loading',
+        @click='load'
+      )
+        template(#icon-left)
+          q-icon(name='refresh', size='20px')
+
+    .shipments__stats(v-if='items.length')
+      .kpi.kpi--accent
+        .kpi__head
+          span.kpi__eyebrow Ожидают приёмки
+        .kpi__val {{ summary.expected }}
+      .kpi(v-for='(count, status) in summary.byStatus', :key='status')
+        .kpi__head
+          span.kpi__eyebrow {{ humanStatus(status) }}
+        .kpi__val {{ count }}
+
+    q-table.shipments__table(
+      :rows='filteredRows',
+      :columns='columns',
+      row-key='id',
+      :loading='loading',
+      :pagination='{ rowsPerPage: 25, sortBy: "created_at", descending: true }',
+      :rows-per-page-options='[25, 50, 100, 0]',
+      flat,
+      bordered,
+      binary-state-sort
+    )
+      template(#body-cell-status='props')
+        q-td(:props='props')
+          BaseBadge(:variant='statusVariant(props.row.status)') {{ humanStatus(props.row.status) }}
+
+      template(#body-cell-amount='props')
+        q-td(:props='props') {{ formatAmount(props.row.total_amount) }}
+
+      template(#body-cell-created_at='props')
+        q-td(:props='props') {{ formatDateTime(props.row.created_at) }}
+
+      template(#no-data)
+        EmptyState(
+          title='Ожидаемых поставок нет',
+          body='Партии поставщиков, направленные на ваш участок, появятся здесь. Проверьте фильтры состояния.'
+        )
+          template(#icon)
+            q-icon(name='local_shipping', size='48px')
+</template>
+
+<style scoped lang="scss">
+.shipments {
+  padding: var(--p-6, 24px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-4, 16px);
+
+  &__head {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-1, 4px);
+  }
+
+  &__filters {
+    display: flex;
+    align-items: center;
+    gap: var(--p-3, 12px);
+    flex-wrap: wrap;
+  }
+
+  &__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--p-2, 8px);
+
+    .chip {
+      cursor: pointer;
+      user-select: none;
+      height: 28px;
+      padding: 0 12px;
+    }
+  }
+
+  &__refresh {
+    margin-left: auto;
+  }
+
+  &__stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: var(--p-3, 12px);
+  }
+}
+
+@media (max-width: 768px) {
+  .shipments {
+    padding: var(--p-4, 16px);
+
+    &__refresh {
+      margin-left: 0;
+    }
+  }
+}
+</style>

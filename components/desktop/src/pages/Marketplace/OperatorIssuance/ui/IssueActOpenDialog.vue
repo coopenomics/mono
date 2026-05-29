@@ -129,7 +129,7 @@ TakeoverDialog(
 .mp-issue-open-dialog {
   display: flex;
   flex-direction: column;
-  gap: var(--mp-space-md);
+  gap: var(--p-4, 16px);
 
   &__preview {
     max-height: 60vh;

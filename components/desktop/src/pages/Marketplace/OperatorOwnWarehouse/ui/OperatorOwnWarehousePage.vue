@@ -1,75 +1,3 @@
-<template lang="pug">
-q-page.mp-role-operator.q-pa-md
-  .text-h5.q-mb-md Склад моего КУ
-
-  OperatorBranchBar
-
-  q-card.mp-card.q-mb-md
-    q-card-section.q-gutter-sm
-      .row.q-col-gutter-sm.items-end
-        q-select.col-12.col-sm-4(
-          v-model='statusFilter'
-          :options='statusOptions'
-          label='Состояние'
-          dense
-          outlined
-          multiple
-          emit-value
-          map-options
-        )
-        q-input.col-12.col-sm-4(
-          v-model='ordererFilter'
-          label='Заказчик'
-          dense
-          outlined
-        )
-        q-btn.col-12.col-sm-2(
-          color='primary'
-          label='Обновить'
-          :loading='loading'
-          @click='load'
-        )
-
-  .row.q-col-gutter-md.q-mb-md(v-if='items.length')
-    q-card.mp-card.col-12.col-sm-3
-      q-card-section
-        .text-caption.text-grey-7 Активных наклеек
-        .text-h6 {{ summary.totalActive }}
-    q-card.mp-card.col-12.col-sm-3(
-      v-for='(count, status) in summary.byStatus'
-      :key='status'
-    )
-      q-card-section
-        .text-caption.text-grey-7 {{ humanStatus(status) }}
-        .text-h6 {{ count }}
-
-  q-table.mp-card(
-    :rows='filteredRows'
-    :columns='columns'
-    row-key='id'
-    :loading='loading'
-    :pagination='{ rowsPerPage: 25, sortBy: "labeled_at", descending: true }'
-    :rows-per-page-options='[25, 50, 100, 0]'
-    flat
-    bordered
-    binary-state-sort
-  )
-    template(#body-cell-status='props')
-      q-td(:props='props')
-        span.mp-status-chip(:class='statusChipClass(props.row.status)')
-          | {{ humanStatus(props.row.status) }}
-
-    template(#body-cell-age='props')
-      q-td(:props='props') {{ formatAge(props.row.labeled_at) }}
-
-    template(#body-cell-labeled_at='props')
-      q-td(:props='props') {{ formatDateTime(props.row.labeled_at) }}
-
-    template(#no-data)
-      .full-width.text-center.q-pa-md.text-grey-7
-        | {{ braname ? 'На складе участка пока нет наклеек или они скрыты фильтрами.' : 'Кооперативный участок не определён — вы не оператор КУ.' }}
-</template>
-
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
@@ -77,6 +5,8 @@ import type { QTableProps } from 'quasar'
 import { FailAlert } from 'src/shared/api'
 import { Zeus } from '@coopenomics/sdk'
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch'
+import { BaseBadge, BaseButton, BaseInput, EmptyState } from 'src/shared/ui/base'
+import type { BaseBadgeVariant } from 'src/shared/ui/base'
 import { listInventory, type MarketplaceInventoryItemView } from '../api'
 
 // Активный КУ оператора — из общего контекста стола (без ввода кода вручную).
@@ -85,12 +15,12 @@ const store = useOperatorBranchStore()
 const coopname = computed(() => String(route.params.coopname ?? ''))
 const braname = computed(() => store.activeBraname ?? '')
 
-const statusFilter = ref<MarketplaceInventoryItemView['status'][]>([])
+type InventoryStatus = MarketplaceInventoryItemView['status']
+
+const statusFilter = ref<InventoryStatus[]>([])
 const ordererFilter = ref<string>('')
 const items = ref<MarketplaceInventoryItemView[]>([])
 const loading = ref(false)
-
-type InventoryStatus = MarketplaceInventoryItemView['status']
 
 const statusOptions: { label: string; value: InventoryStatus }[] = [
   { label: 'На складе', value: Zeus.MarketplaceInventoryStatus.LABELED },
@@ -98,6 +28,16 @@ const statusOptions: { label: string; value: InventoryStatus }[] = [
   { label: 'Возврат на склад', value: Zeus.MarketplaceInventoryStatus.RETURNED },
   { label: 'Списано', value: Zeus.MarketplaceInventoryStatus.WRITTEN_OFF },
 ]
+
+function isStatusActive(value: InventoryStatus): boolean {
+  return statusFilter.value.includes(value)
+}
+
+function toggleStatus(value: InventoryStatus): void {
+  statusFilter.value = isStatusActive(value)
+    ? statusFilter.value.filter((s) => s !== value)
+    : [...statusFilter.value, value]
+}
 
 const columns: QTableProps['columns'] = [
   { name: 'barcode_value', label: 'Штрих-код', field: 'barcode_value', align: 'left', sortable: true },
@@ -141,7 +81,7 @@ async function load(): Promise<void> {
   try {
     items.value = await listInventory({ braname: braname.value.trim() })
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить склад КУ')
+    FailAlert(e, 'Не удалось загрузить склад участка')
   } finally {
     loading.value = false
   }
@@ -169,18 +109,18 @@ function humanStatus(status: string): string {
   }
 }
 
-function statusChipClass(status: string): string {
+function statusVariant(status: string): BaseBadgeVariant {
   switch (status) {
     case Zeus.MarketplaceInventoryStatus.LABELED:
-      return 'mp-status-chip--info'
+      return 'info'
     case Zeus.MarketplaceInventoryStatus.ISSUED:
-      return 'mp-status-chip--success'
+      return 'pos'
     case Zeus.MarketplaceInventoryStatus.RETURNED:
-      return 'mp-status-chip--warning'
+      return 'warn'
     case Zeus.MarketplaceInventoryStatus.WRITTEN_OFF:
-      return 'mp-status-chip--error'
+      return 'neg'
     default:
-      return 'mp-status-chip--neutral'
+      return 'neutral'
   }
 }
 
@@ -202,3 +142,145 @@ function formatDateTime(value: unknown): string {
   return parsed.toLocaleString('ru-RU')
 }
 </script>
+
+<template lang="pug">
+q-page.warehouse(role='region', aria-label='Склад участка')
+  OperatorBranchBar
+
+  EmptyState(
+    v-if='!store.loading && !store.isOperator',
+    title='Вы не оператор кооперативного участка',
+    body='Склад участка доступен председателю участка и его доверенным лицам.'
+  )
+    template(#icon)
+      q-icon(name='storefront', size='48px')
+
+  template(v-else)
+    .warehouse__head
+      .t-h2 Склад участка
+      .t-muted Промаркированное имущество вашего пункта выдачи — наклейки, заказчики и состояние.
+
+    .warehouse__filters
+      .warehouse__chips
+        .chip(
+          v-for='opt in statusOptions',
+          :key='opt.value',
+          :class='isStatusActive(opt.value) ? "chip--accent" : "chip--neutral"',
+          role='button',
+          tabindex='0',
+          @click='toggleStatus(opt.value)',
+          @keydown.enter='toggleStatus(opt.value)'
+        ) {{ opt.label }}
+      BaseInput.warehouse__search(
+        v-model='ordererFilter',
+        type='search',
+        placeholder='Поиск по заказчику',
+        clearable
+      )
+      BaseButton(
+        variant='ghost',
+        icon-only,
+        aria-label='Обновить',
+        :loading='loading',
+        @click='load'
+      )
+        template(#icon-left)
+          q-icon(name='refresh', size='20px')
+
+    .warehouse__stats(v-if='items.length')
+      .kpi.kpi--accent
+        .kpi__head
+          span.kpi__eyebrow Активных наклеек
+        .kpi__val {{ summary.totalActive }}
+      .kpi(v-for='(count, status) in summary.byStatus', :key='status')
+        .kpi__head
+          span.kpi__eyebrow {{ humanStatus(status) }}
+        .kpi__val {{ count }}
+
+    q-table.warehouse__table(
+      :rows='filteredRows',
+      :columns='columns',
+      row-key='id',
+      :loading='loading',
+      :pagination='{ rowsPerPage: 25, sortBy: "labeled_at", descending: true }',
+      :rows-per-page-options='[25, 50, 100, 0]',
+      flat,
+      bordered,
+      binary-state-sort
+    )
+      template(#body-cell-status='props')
+        q-td(:props='props')
+          BaseBadge(:variant='statusVariant(props.row.status)') {{ humanStatus(props.row.status) }}
+
+      template(#body-cell-age='props')
+        q-td(:props='props') {{ formatAge(props.row.labeled_at) }}
+
+      template(#body-cell-labeled_at='props')
+        q-td(:props='props') {{ formatDateTime(props.row.labeled_at) }}
+
+      template(#no-data)
+        EmptyState(
+          title='На складе пусто',
+          body='Здесь появятся промаркированные наклейки участка. Проверьте фильтры состояния.'
+        )
+          template(#icon)
+            q-icon(name='inventory_2', size='48px')
+</template>
+
+<style scoped lang="scss">
+.warehouse {
+  padding: var(--p-6, 24px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-4, 16px);
+
+  &__head {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-1, 4px);
+  }
+
+  &__filters {
+    display: flex;
+    align-items: center;
+    gap: var(--p-3, 12px);
+    flex-wrap: wrap;
+  }
+
+  &__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--p-2, 8px);
+
+    .chip {
+      cursor: pointer;
+      user-select: none;
+      height: 28px;
+      padding: 0 12px;
+    }
+  }
+
+  &__search {
+    max-width: 280px;
+    width: 100%;
+    margin-left: auto;
+  }
+
+  &__stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: var(--p-3, 12px);
+  }
+}
+
+@media (max-width: 768px) {
+  .warehouse {
+    padding: var(--p-4, 16px);
+
+    &__search {
+      margin-left: 0;
+      max-width: none;
+    }
+  }
+}
+</style>

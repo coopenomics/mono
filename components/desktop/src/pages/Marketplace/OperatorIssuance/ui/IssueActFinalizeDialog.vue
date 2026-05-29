@@ -237,12 +237,12 @@ TakeoverDialog(
         active-color="primary"
         done-color="positive"
       )
-        q-step(:name="STEP_SCAN" title="Штрих-код" icon="fa-solid fa-barcode" :done="step !== STEP_SCAN")
+        q-step(:name="STEP_SCAN" title="Штрих-код" icon="qr_code_scanner" :done="step !== STEP_SCAN")
           BarcodeScanner(start-label="Сканировать штрих-код заказа" @scanned="onScanned")
           .text-caption.text-grey.q-mt-sm
             | Отсканируйте штрих-код заказа камерой или USB-сканером, чтобы сверить его с выдаваемым имуществом.
 
-        q-step(:name="STEP_FACT" title="Сверка факта" icon="fa-solid fa-scale-balanced" :done="step === STEP_SIGN")
+        q-step(:name="STEP_FACT" title="Сверка факта" icon="balance" :done="step === STEP_SIGN")
           .q-mb-sm Заказ {{ order?.id.slice(0, 8) }} · план {{ order?.quantity }} ед. · подтверждённый штрих-код «{{ scannedCode }}»
           CorrectionTable(:rows="correctionRows" @change="onCorrectionChange")
           q-banner.q-mt-md(rounded :class="diffState === 'more' ? 'bg-warning text-dark' : (diffState === 'less' ? 'bg-info text-white' : 'bg-positive text-white')")
@@ -252,7 +252,7 @@ TakeoverDialog(
           .row.justify-end.q-mt-md
             q-btn(unelevated no-caps color="primary" label="Перейти к подписи" @click="goToSign")
 
-        q-step(:name="STEP_SIGN" title="Финальная подпись" icon="fa-solid fa-pen-nib")
+        q-step(:name="STEP_SIGN" title="Финальная подпись" icon="draw")
           q-banner.q-mb-md(rounded class="bg-primary text-white")
             | Председатель уже подписал акт при открытии выдачи. Заказчик ставит финальную подпись своим приватным ключом поверх подписи председателя — имущество переходит к нему.
           q-input(
@@ -272,6 +272,6 @@ TakeoverDialog(
 .mp-issue-finalize {
   display: flex;
   flex-direction: column;
-  gap: var(--mp-space-md);
+  gap: var(--p-4, 16px);
 }
 </style>

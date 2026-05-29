@@ -160,14 +160,14 @@ TakeoverDialog(
 .mp-return-remote {
   display: flex;
   flex-direction: column;
-  gap: var(--mp-space-md);
+  gap: var(--p-4, 16px);
 
   &__thumb {
     display: inline-block;
     width: 96px;
     height: 96px;
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    border-radius: 8px;
+    border: 1px solid var(--p-line);
+    border-radius: var(--p-r-sm, 8px);
     overflow: hidden;
 
     img {

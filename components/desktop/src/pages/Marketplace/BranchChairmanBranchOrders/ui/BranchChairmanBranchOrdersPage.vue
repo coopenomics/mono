@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { Notify } from 'quasar';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
+import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import { listAplReceptionsByBraname } from '../../OperatorReception/api';
 import { listIssuancesByBraname } from '../../OperatorIssuance/api';
 import { listReturnClaimsByBraname } from '../../OperatorReturnClaims/api';
@@ -22,11 +23,8 @@ import type { MarketplaceReturnClaimView } from '../../OperatorReturnClaims/api'
  * на соответствующих специализированных страницах /market-pvz/reception,
  * /issuance, /returns — здесь только сводный read-обзор для председателя КУ.
  *
- * Поле braname автозаполняется из `marketplaceWhoAmI.branches` — список КУ,
- * где пайщик доверенное лицо (on-chain branch.trustee/trusted через
- * MarketplaceKuChairmanService.listBranamesForMember). Один участок —
- * подставляется сразу; несколько — берётся первый, поле остаётся редактируемым
- * для ручного переключения.
+ * Активный КУ берётся из общего контекста оператора (entities/OperatorBranch);
+ * служебные коды участков в UI не показываются.
  */
 
 const POLL_INTERVAL_MS = 20_000;
@@ -55,7 +53,7 @@ const hasBranch = computed(() => braname.value.trim().length > 0);
 const STATUS_LABEL: Record<string, string> = {
   // приёмка партии
   PENDING_SUPPLIER_SIGN: 'Ждёт подписи поставщика',
-  PENDING_CHAIRMAN_RECEPTION_SIGN: 'Ждёт подписи председателя КУ',
+  PENDING_CHAIRMAN_RECEPTION_SIGN: 'Ждёт подписи председателя',
   // заказ / выдача
   ACTIVE: 'Ждёт цикла / решения',
   ACCEPTED_PENDING_SUPPLIER: 'Ждёт поставщика',
@@ -131,120 +129,128 @@ function formatDate(value: string | null | undefined): string {
 </script>
 
 <template lang="pug">
-q-page.mp-role-operator.mp-branch-orders(role="region", aria-label="Сводный стол КУ")
-  div.mp-branch-orders__header
-    div
-      div.text-h5 Сводный стол кооперативного участка
-      div.text-caption.mp-branch-orders__subtitle
-        | Все процессы вашего КУ в одном месте: приёмки партий, выдачи пайщикам, гарантийные возвраты. Для действий — переходите на специализированные столы Стола ПВЗ.
-
+q-page.orders(role='region', aria-label='Сводный стол участка')
   OperatorBranchBar
 
-  .row.justify-end(v-if="hasBranch")
-    q-btn(
-      flat,
-      no-caps,
-      icon="refresh",
-      label="Обновить",
-      :loading="loading",
-      @click="loadAll"
-    )
+  EmptyState(
+    v-if='!store.loading && !store.isOperator',
+    title='Вы не оператор кооперативного участка',
+    body='Сводный стол доступен председателю участка и его доверенным лицам.'
+  )
+    template(#icon)
+      q-icon(name='storefront', size='48px')
 
-  q-card(v-if="hasBranch", flat, bordered)
-    q-tabs(
-      v-model="activeTab",
-      inline-label,
-      align="left",
-      no-caps,
-      dense,
-      indicator-color="primary",
-      active-color="primary"
-    )
-      q-tab(name="receptions", icon="fa-solid fa-truck-ramp-box")
-        | Приёмки
-        q-badge.q-ml-sm(color="primary", :label="String(totals.receptions)")
-      q-tab(name="issuances", icon="fa-solid fa-handshake")
-        | Выдачи
-        q-badge.q-ml-sm(color="primary", :label="String(totals.issuances)")
-      q-tab(name="returns", icon="fa-solid fa-clipboard-check")
-        | Возвраты
-        q-badge.q-ml-sm(color="primary", :label="String(totals.returns)")
+  template(v-else)
+    .orders__head
+      .t-h2 Сводный стол участка
+      .t-muted
+        | Все процессы вашего пункта выдачи в одном месте: приёмки партий, выдачи пайщикам,
+        | гарантийные возвраты. Для действий переходите на специализированные столы.
 
-    q-separator
+    .orders__toolbar
+      q-space
+      BaseButton(variant='ghost', :loading='loading', @click='loadAll')
+        template(#icon-left)
+          q-icon(name='refresh', size='18px')
+        | Обновить
 
-    q-tab-panels(v-model="activeTab", animated)
-      q-tab-panel(name="receptions")
-        div.mp-branch-orders__empty(v-if="!loading && receptions.length === 0")
-          q-icon(name="fa-solid fa-box-open", size="40px", color="grey-5")
-          div.text-subtitle1.q-mt-sm Нет активных приёмок
-          div.text-caption Подтверждённые поставщиком партии появятся здесь.
-        q-list(v-else, separator)
-          q-item(v-for="r in receptions", :key="r.id")
-            q-item-section
-              q-item-label № {{ r.id.slice(0, 8) }} — партия {{ r.shipment_id?.slice?.(0, 8) ?? '—' }}
-              q-item-label(caption) Создана: {{ formatDate(r.created_at) }} / Статус: {{ statusLabel(r.status) }}
+    .orders__card
+      q-tabs(
+        v-model='activeTab',
+        inline-label,
+        align='left',
+        no-caps,
+        dense,
+        indicator-color='primary',
+        active-color='primary'
+      )
+        q-tab(name='receptions', icon='local_shipping')
+          | Приёмки
+          q-badge.q-ml-sm(color='primary', :label='String(totals.receptions)')
+        q-tab(name='issuances', icon='handshake')
+          | Выдачи
+          q-badge.q-ml-sm(color='primary', :label='String(totals.issuances)')
+        q-tab(name='returns', icon='assignment_return')
+          | Возвраты
+          q-badge.q-ml-sm(color='primary', :label='String(totals.returns)')
 
-      q-tab-panel(name="issuances")
-        div.mp-branch-orders__empty(v-if="!loading && issuances.length === 0")
-          q-icon(name="fa-solid fa-people-carry-box", size="40px", color="grey-5")
-          div.text-subtitle1.q-mt-sm Нет заказов на выдачу
-          div.text-caption Заказы, принятые кооперативом и готовые к выдаче, появятся здесь после маркировки на ПВЗ.
-        q-list(v-else, separator)
-          q-item(v-for="o in issuances", :key="o.id")
-            q-item-section
-              q-item-label № {{ o.id.slice(0, 8) }} — {{ o.orderer_account }}
-              q-item-label(caption)
-                | Кол-во: {{ o.quantity }} ед. / Статус: {{ statusLabel(o.status) }} / Создан: {{ formatDate(o.created_at) }}
+      q-separator
 
-      q-tab-panel(name="returns")
-        div.mp-branch-orders__empty(v-if="!loading && returns.length === 0")
-          q-icon(name="fa-solid fa-clipboard-check", size="40px", color="grey-5")
-          div.text-subtitle1.q-mt-sm Нет заявлений на возврат
-          div.text-caption Заявления пайщиков в гарантийный период появятся здесь.
-        q-list(v-else, separator)
-          q-item(v-for="c in returns", :key="c.id")
-            q-item-section
-              q-item-label № {{ c.id.slice(0, 8) }} — {{ c.orderer_account }}
-              q-item-label(caption) Статус: {{ statusLabel(c.status) }} / Создано: {{ formatDate(c.created_at) }}
+      q-tab-panels(v-model='activeTab', animated)
+        q-tab-panel(name='receptions')
+          EmptyState(
+            v-if='!loading && receptions.length === 0',
+            title='Нет активных приёмок',
+            body='Подтверждённые поставщиком партии появятся здесь.'
+          )
+            template(#icon)
+              q-icon(name='inbox', size='48px')
+          q-list(v-else, separator)
+            q-item(v-for='r in receptions', :key='r.id')
+              q-item-section
+                q-item-label № {{ r.id.slice(0, 8) }} — партия {{ r.shipment_id?.slice?.(0, 8) ?? '—' }}
+                q-item-label(caption) Создана: {{ formatDate(r.created_at) }} / Статус: {{ statusLabel(r.status) }}
 
-  div.mp-branch-orders__hint(v-if="!hasBranch")
-    q-icon(name="info", color="primary")
-    | Кооперативный участок не определён — вы не оператор КУ.
+        q-tab-panel(name='issuances')
+          EmptyState(
+            v-if='!loading && issuances.length === 0',
+            title='Нет заказов на выдачу',
+            body='Заказы, принятые кооперативом и готовые к выдаче, появятся здесь после маркировки на участке.'
+          )
+            template(#icon)
+              q-icon(name='inventory', size='48px')
+          q-list(v-else, separator)
+            q-item(v-for='o in issuances', :key='o.id')
+              q-item-section
+                q-item-label № {{ o.id.slice(0, 8) }} — {{ o.orderer_account }}
+                q-item-label(caption)
+                  | Кол-во: {{ o.quantity }} ед. / Статус: {{ statusLabel(o.status) }} / Создан: {{ formatDate(o.created_at) }}
+
+        q-tab-panel(name='returns')
+          EmptyState(
+            v-if='!loading && returns.length === 0',
+            title='Нет заявлений на возврат',
+            body='Заявления пайщиков в гарантийный период появятся здесь.'
+          )
+            template(#icon)
+              q-icon(name='assignment_return', size='48px')
+          q-list(v-else, separator)
+            q-item(v-for='c in returns', :key='c.id')
+              q-item-section
+                q-item-label № {{ c.id.slice(0, 8) }} — {{ c.orderer_account }}
+                q-item-label(caption) Статус: {{ statusLabel(c.status) }} / Создано: {{ formatDate(c.created_at) }}
 </template>
 
 <style scoped lang="scss">
-.mp-branch-orders {
-  padding: var(--mp-space-lg);
+.orders {
+  padding: var(--p-6, 24px);
   display: flex;
   flex-direction: column;
-  gap: var(--mp-space-md);
+  gap: var(--p-4, 16px);
 
-  &__header {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--mp-space-md);
-  }
-
-  &__subtitle {
-    color: var(--mp-on-surface-muted);
-    max-width: 720px;
-  }
-
-  &__empty {
+  &__head {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: var(--mp-space-lg) 0;
-    color: var(--mp-on-surface-muted);
+    gap: var(--p-1, 4px);
   }
 
-  &__hint {
+  &__toolbar {
     display: flex;
     align-items: center;
-    gap: var(--mp-space-xs);
-    color: var(--mp-on-surface-muted);
-    padding: var(--mp-space-md) 0;
+    gap: var(--p-3, 12px);
+  }
+
+  &__card {
+    border: 1px solid var(--p-line);
+    border-radius: var(--p-r-md, 12px);
+    background: var(--p-surface);
+    overflow: hidden;
+  }
+}
+
+@media (max-width: 768px) {
+  .orders {
+    padding: var(--p-4, 16px);
   }
 }
 </style>
