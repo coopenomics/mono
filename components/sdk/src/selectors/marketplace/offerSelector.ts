@@ -31,6 +31,12 @@ const rawOfferSelector = {
   reject_reason: true,
   created_at: true,
   updated_at: true,
+  images: {
+    url: true,
+    mime_type: true,
+    sort_order: true,
+    is_cover: true,
+  },
 }
 
 const _validateOffer: MakeAllFieldsRequired<ValueTypes['MarketplaceOffer']> = rawOfferSelector

@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { TakeoverDialog } from 'src/widgets/Marketplace/TakeoverDialog';
 import { BarcodeScanner } from 'src/widgets/Marketplace/BarcodeScanner';
+import { fileToBase64 } from 'src/shared/lib/utils';
 import {
   acceptReturnAtVisit,
   rejectReturnAtVisit,
@@ -136,23 +137,6 @@ async function confirm(): Promise<void> {
 
 function cancel(): void {
   emit('update:modelValue', false);
-}
-
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const value = reader.result;
-      if (typeof value !== 'string') {
-        reject(new Error('Не удалось прочитать файл'));
-        return;
-      }
-      const commaAt = value.indexOf(',');
-      resolve(commaAt === -1 ? value : value.slice(commaAt + 1));
-    };
-    reader.onerror = () => reject(reader.error ?? new Error('Ошибка чтения файла'));
-    reader.readAsDataURL(file);
-  });
 }
 
 const kind = computed<'success' | 'danger'>(() =>

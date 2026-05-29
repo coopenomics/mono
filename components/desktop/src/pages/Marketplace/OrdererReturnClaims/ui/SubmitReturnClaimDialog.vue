@@ -4,6 +4,7 @@ import { Classes, Zeus } from '@coopenomics/sdk';
 import { useGlobalStore } from 'src/shared/store';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { TakeoverDialog } from 'src/widgets/Marketplace/TakeoverDialog';
+import { fileToBase64 } from 'src/shared/lib/utils';
 import {
   createReturnClaim,
   getReturnClaimSignablePayload,
@@ -209,23 +210,6 @@ function cancel(): void {
 function backStep(): void {
   if (step.value === STEP_PHOTOS) step.value = STEP_DESCRIBE;
   else if (step.value === STEP_SIGN) step.value = STEP_PHOTOS;
-}
-
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const value = reader.result;
-      if (typeof value !== 'string') {
-        reject(new Error('Не удалось прочитать файл'));
-        return;
-      }
-      const commaAt = value.indexOf(',');
-      resolve(commaAt === -1 ? value : value.slice(commaAt + 1));
-    };
-    reader.onerror = () => reject(reader.error ?? new Error('Ошибка чтения файла'));
-    reader.readAsDataURL(file);
-  });
 }
 
 const confirmLabel = computed(() => {

@@ -3,6 +3,7 @@ import type {
 } from '../entities/marketplace-offer.entity';
 import type {
   MarketplaceBarcodeStrategy,
+  MarketplaceOfferImage,
   MarketplaceOfferStatus,
 } from '../entities/marketplace-offer.types';
 import type {
@@ -39,6 +40,7 @@ export interface OfferCreateInput {
   warranty_days: number;
   barcode_strategy: MarketplaceBarcodeStrategy;
   pack_size: number | null;
+  images: MarketplaceOfferImage[];
 }
 
 export interface OfferUpdateInput {
@@ -57,6 +59,8 @@ export interface OfferUpdateInput {
   warranty_days?: number;
   barcode_strategy?: MarketplaceBarcodeStrategy;
   pack_size?: number | null;
+  /** Если передан — полностью заменяет набор изображений Offer'а. */
+  images?: MarketplaceOfferImage[];
 }
 
 /**

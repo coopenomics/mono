@@ -677,7 +677,8 @@ export const AllTypesProps: Record<string,any> = {
 		fact_quantity_per_order:"MarketplaceAplReceptionFactEntryInput"
 	},
 	MarketplaceCreateOfferInput:{
-		barcode_strategy:"MarketplaceBarcodeStrategy"
+		barcode_strategy:"MarketplaceBarcodeStrategy",
+		images:"MarketplaceOfferImageUploadInput"
 	},
 	MarketplaceCreateOrderInput:{
 
@@ -779,6 +780,9 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceListWriteoffProposalsInput:{
 		statuses:"MarketplaceWriteoffProposalStatus"
 	},
+	MarketplaceOfferImageUploadInput:{
+
+	},
 	MarketplaceOpenIssuanceInput:{
 		signed_document:"MarketplaceIssueActSignedDocumentInput"
 	},
@@ -840,7 +844,8 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	MarketplaceUpdateOfferInput:{
-		barcode_strategy:"MarketplaceBarcodeStrategy"
+		barcode_strategy:"MarketplaceBarcodeStrategy",
+		images:"MarketplaceOfferImageUploadInput"
 	},
 	MarketplaceUpdateWriteoffDraftInput:{
 		items:"MarketplaceWriteoffItemInput"
@@ -4127,6 +4132,7 @@ export const ReturnTypes: Record<string,any> = {
 		cycle_type:"String",
 		description:"String",
 		id:"String",
+		images:"MarketplaceOfferImage",
 		max_wait_days:"Int",
 		min_threshold:"Int",
 		pack_size:"Int",
@@ -4146,6 +4152,12 @@ export const ReturnTypes: Record<string,any> = {
 		updated_at:"DateTime",
 		vitrine_id:"String",
 		warranty_days:"Int"
+	},
+	MarketplaceOfferImage:{
+		is_cover:"Boolean",
+		mime_type:"String",
+		sort_order:"Int",
+		url:"String"
 	},
 	MarketplaceOfferPaginationResult:{
 		currentPage:"Int",

@@ -133,6 +133,7 @@ export class MarketplaceOfferRepositoryAdapter implements MarketplaceOfferDomain
       warranty_days: input.warranty_days,
       barcode_strategy: input.barcode_strategy,
       pack_size: input.pack_size,
+      images: input.images ?? [],
       status: 'PENDING_MODERATION',
     });
     const saved = await this.repo.save(row);

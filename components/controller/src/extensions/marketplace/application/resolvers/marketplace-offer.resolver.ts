@@ -101,6 +101,7 @@ export class MarketplaceOfferResolver {
       warranty_days: input.warranty_days,
       barcode_strategy: input.barcode_strategy ?? null,
       pack_size: input.pack_size ?? null,
+      images: input.images ?? null,
     });
     return toDTO(offer);
   }
@@ -115,8 +116,8 @@ export class MarketplaceOfferResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('input') input: MarketplaceUpdateOfferInputDTO
   ): Promise<MarketplaceOfferDTO> {
-    const { id, ...patch } = input;
-    const offer = await this.offerService.update(id, member.username, patch);
+    const { id, images, ...patch } = input;
+    const offer = await this.offerService.update(id, member.username, patch, images);
     return toDTO(offer);
   }
 

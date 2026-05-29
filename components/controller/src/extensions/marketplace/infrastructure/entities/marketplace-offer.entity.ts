@@ -93,6 +93,16 @@ export class MarketplaceOfferEntity {
   @Column({ type: 'integer', nullable: true })
   public pack_size!: number | null;
 
+  /**
+   * Изображения товара (Story 3.2 доп.). jsonb-массив снапшотов объектов
+   * bucket'а `stol-zakazov:images`: `{ bucket_key, content_hash, mime_type }`.
+   * Порядок = порядок показа, индекс 0 — обложка. URL на чтение резолвится
+   * лениво в `@ResolveField images` (HMAC-signed URL), в БД не хранится.
+   * `synchronize:true` создаёт колонку ADD COLUMN с default '[]'.
+   */
+  @Column({ type: 'jsonb', default: () => "'[]'::jsonb" })
+  public images!: Array<{ bucket_key: string; content_hash: string; mime_type: string }>;
+
   @Column({ type: 'varchar', length: 32 })
   public status!: 'PENDING_MODERATION' | 'ACTIVE' | 'REJECTED' | 'WITHDRAWN';
 

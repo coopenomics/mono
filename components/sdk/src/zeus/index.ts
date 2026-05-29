@@ -6508,6 +6508,8 @@ export type ValueTypes = {
 	/** time_based | volume_based | open_subscription | individual */
 	cycle_type: string | Variable<any, string>,
 	description?: string | undefined | null | Variable<any, string>,
+	/** Изображения товара (base64). Порядок = порядок показа, первое — обложка. До 8 файлов, каждый ≤ 10 МБ, JPEG/PNG/WEBP. */
+	images?: Array<ValueTypes["MarketplaceOfferImageUploadInput"]> | undefined | null | Variable<any, string>,
 	max_wait_days?: number | undefined | null | Variable<any, string>,
 	min_threshold?: number | undefined | null | Variable<any, string>,
 	/** Размер упаковки для стратегии «по упаковке» (обязателен при PER_PACKAGE). */
@@ -6974,6 +6976,8 @@ export type ValueTypes = {
 	cycle_type?:boolean | `@${string}`,
 	description?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
+	/** Изображения товара (обложка — первое). URL подписаны и ограничены по TTL. */
+	images?:ValueTypes["MarketplaceOfferImage"],
 	max_wait_days?:boolean | `@${string}`,
 	min_threshold?:boolean | `@${string}`,
 	/** Размер упаковки для стратегии «по упаковке» (целое число > 0) */
@@ -7000,6 +7004,24 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceOffer']?: Omit<ValueTypes["MarketplaceOffer"], "...on MarketplaceOffer">
 }>;
+	["MarketplaceOfferImage"]: AliasType<{
+	/** Является ли изображение обложкой карточки. */
+	is_cover?:boolean | `@${string}`,
+	/** MIME-тип изображения. */
+	mime_type?:boolean | `@${string}`,
+	/** Порядковый номер показа (0 — обложка). */
+	sort_order?:boolean | `@${string}`,
+	/** HMAC-подписанный URL для чтения изображения (TTL ограничен). */
+	url?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceOfferImage']?: Omit<ValueTypes["MarketplaceOfferImage"], "...on MarketplaceOfferImage">
+}>;
+	["MarketplaceOfferImageUploadInput"]: {
+	/** Содержимое изображения, закодированное в base64. */
+	base64: string | Variable<any, string>,
+	/** MIME-тип изображения (image/jpeg, image/png либо image/webp). */
+	mime_type: string | Variable<any, string>
+};
 	["MarketplaceOfferPaginationResult"]: AliasType<{
 	/** Текущая страница */
 	currentPage?:boolean | `@${string}`,
@@ -7689,6 +7711,8 @@ export type ValueTypes = {
 	cycle_type?: string | undefined | null | Variable<any, string>,
 	description?: string | undefined | null | Variable<any, string>,
 	id: string | Variable<any, string>,
+	/** Изображения товара (base64). Если передано — полностью заменяет текущий набор. До 8 файлов, каждый ≤ 10 МБ, JPEG/PNG/WEBP. */
+	images?: Array<ValueTypes["MarketplaceOfferImageUploadInput"]> | undefined | null | Variable<any, string>,
 	max_wait_days?: number | undefined | null | Variable<any, string>,
 	min_threshold?: number | undefined | null | Variable<any, string>,
 	pack_size?: number | undefined | null | Variable<any, string>,
@@ -16522,6 +16546,8 @@ export type ResolverInputTypes = {
 	/** time_based | volume_based | open_subscription | individual */
 	cycle_type: string,
 	description?: string | undefined | null,
+	/** Изображения товара (base64). Порядок = порядок показа, первое — обложка. До 8 файлов, каждый ≤ 10 МБ, JPEG/PNG/WEBP. */
+	images?: Array<ResolverInputTypes["MarketplaceOfferImageUploadInput"]> | undefined | null,
 	max_wait_days?: number | undefined | null,
 	min_threshold?: number | undefined | null,
 	/** Размер упаковки для стратегии «по упаковке» (обязателен при PER_PACKAGE). */
@@ -16976,6 +17002,8 @@ export type ResolverInputTypes = {
 	cycle_type?:boolean | `@${string}`,
 	description?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
+	/** Изображения товара (обложка — первое). URL подписаны и ограничены по TTL. */
+	images?:ResolverInputTypes["MarketplaceOfferImage"],
 	max_wait_days?:boolean | `@${string}`,
 	min_threshold?:boolean | `@${string}`,
 	/** Размер упаковки для стратегии «по упаковке» (целое число > 0) */
@@ -17001,6 +17029,23 @@ export type ResolverInputTypes = {
 	warranty_days?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["MarketplaceOfferImage"]: AliasType<{
+	/** Является ли изображение обложкой карточки. */
+	is_cover?:boolean | `@${string}`,
+	/** MIME-тип изображения. */
+	mime_type?:boolean | `@${string}`,
+	/** Порядковый номер показа (0 — обложка). */
+	sort_order?:boolean | `@${string}`,
+	/** HMAC-подписанный URL для чтения изображения (TTL ограничен). */
+	url?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceOfferImageUploadInput"]: {
+	/** Содержимое изображения, закодированное в base64. */
+	base64: string,
+	/** MIME-тип изображения (image/jpeg, image/png либо image/webp). */
+	mime_type: string
+};
 	["MarketplaceOfferPaginationResult"]: AliasType<{
 	/** Текущая страница */
 	currentPage?:boolean | `@${string}`,
@@ -17668,6 +17713,8 @@ export type ResolverInputTypes = {
 	cycle_type?: string | undefined | null,
 	description?: string | undefined | null,
 	id: string,
+	/** Изображения товара (base64). Если передано — полностью заменяет текущий набор. До 8 файлов, каждый ≤ 10 МБ, JPEG/PNG/WEBP. */
+	images?: Array<ResolverInputTypes["MarketplaceOfferImageUploadInput"]> | undefined | null,
 	max_wait_days?: number | undefined | null,
 	min_threshold?: number | undefined | null,
 	pack_size?: number | undefined | null,
@@ -26213,6 +26260,8 @@ export type ModelTypes = {
 	/** time_based | volume_based | open_subscription | individual */
 	cycle_type: string,
 	description?: string | undefined | null,
+	/** Изображения товара (base64). Порядок = порядок показа, первое — обложка. До 8 файлов, каждый ≤ 10 МБ, JPEG/PNG/WEBP. */
+	images?: Array<ModelTypes["MarketplaceOfferImageUploadInput"]> | undefined | null,
 	max_wait_days?: number | undefined | null,
 	min_threshold?: number | undefined | null,
 	/** Размер упаковки для стратегии «по упаковке» (обязателен при PER_PACKAGE). */
@@ -26654,6 +26703,8 @@ export type ModelTypes = {
 	cycle_type: string,
 	description?: string | undefined | null,
 	id: string,
+	/** Изображения товара (обложка — первое). URL подписаны и ограничены по TTL. */
+	images: Array<ModelTypes["MarketplaceOfferImage"]>,
 	max_wait_days?: number | undefined | null,
 	min_threshold?: number | undefined | null,
 	/** Размер упаковки для стратегии «по упаковке» (целое число > 0) */
@@ -26677,6 +26728,22 @@ export type ModelTypes = {
 	updated_at: ModelTypes["DateTime"],
 	vitrine_id: string,
 	warranty_days: number
+};
+	["MarketplaceOfferImage"]: {
+		/** Является ли изображение обложкой карточки. */
+	is_cover: boolean,
+	/** MIME-тип изображения. */
+	mime_type: string,
+	/** Порядковый номер показа (0 — обложка). */
+	sort_order: number,
+	/** HMAC-подписанный URL для чтения изображения (TTL ограничен). */
+	url: string
+};
+	["MarketplaceOfferImageUploadInput"]: {
+	/** Содержимое изображения, закодированное в base64. */
+	base64: string,
+	/** MIME-тип изображения (image/jpeg, image/png либо image/webp). */
+	mime_type: string
 };
 	["MarketplaceOfferPaginationResult"]: {
 		/** Текущая страница */
@@ -27314,6 +27381,8 @@ export type ModelTypes = {
 	cycle_type?: string | undefined | null,
 	description?: string | undefined | null,
 	id: string,
+	/** Изображения товара (base64). Если передано — полностью заменяет текущий набор. До 8 файлов, каждый ≤ 10 МБ, JPEG/PNG/WEBP. */
+	images?: Array<ModelTypes["MarketplaceOfferImageUploadInput"]> | undefined | null,
 	max_wait_days?: number | undefined | null,
 	min_threshold?: number | undefined | null,
 	pack_size?: number | undefined | null,
@@ -36798,6 +36867,8 @@ export type GraphQLTypes = {
 	/** time_based | volume_based | open_subscription | individual */
 	cycle_type: string,
 	description?: string | undefined | null,
+	/** Изображения товара (base64). Порядок = порядок показа, первое — обложка. До 8 файлов, каждый ≤ 10 МБ, JPEG/PNG/WEBP. */
+	images?: Array<GraphQLTypes["MarketplaceOfferImageUploadInput"]> | undefined | null,
 	max_wait_days?: number | undefined | null,
 	min_threshold?: number | undefined | null,
 	/** Размер упаковки для стратегии «по упаковке» (обязателен при PER_PACKAGE). */
@@ -37265,6 +37336,8 @@ export type GraphQLTypes = {
 	cycle_type: string,
 	description?: string | undefined | null,
 	id: string,
+	/** Изображения товара (обложка — первое). URL подписаны и ограничены по TTL. */
+	images: Array<GraphQLTypes["MarketplaceOfferImage"]>,
 	max_wait_days?: number | undefined | null,
 	min_threshold?: number | undefined | null,
 	/** Размер упаковки для стратегии «по упаковке» (целое число > 0) */
@@ -37289,6 +37362,24 @@ export type GraphQLTypes = {
 	vitrine_id: string,
 	warranty_days: number,
 	['...on MarketplaceOffer']: Omit<GraphQLTypes["MarketplaceOffer"], "...on MarketplaceOffer">
+};
+	["MarketplaceOfferImage"]: {
+	__typename: "MarketplaceOfferImage",
+	/** Является ли изображение обложкой карточки. */
+	is_cover: boolean,
+	/** MIME-тип изображения. */
+	mime_type: string,
+	/** Порядковый номер показа (0 — обложка). */
+	sort_order: number,
+	/** HMAC-подписанный URL для чтения изображения (TTL ограничен). */
+	url: string,
+	['...on MarketplaceOfferImage']: Omit<GraphQLTypes["MarketplaceOfferImage"], "...on MarketplaceOfferImage">
+};
+	["MarketplaceOfferImageUploadInput"]: {
+		/** Содержимое изображения, закодированное в base64. */
+	base64: string,
+	/** MIME-тип изображения (image/jpeg, image/png либо image/webp). */
+	mime_type: string
 };
 	["MarketplaceOfferPaginationResult"]: {
 	__typename: "MarketplaceOfferPaginationResult",
@@ -37979,6 +38070,8 @@ export type GraphQLTypes = {
 	cycle_type?: string | undefined | null,
 	description?: string | undefined | null,
 	id: string,
+	/** Изображения товара (base64). Если передано — полностью заменяет текущий набор. До 8 файлов, каждый ≤ 10 МБ, JPEG/PNG/WEBP. */
+	images?: Array<GraphQLTypes["MarketplaceOfferImageUploadInput"]> | undefined | null,
 	max_wait_days?: number | undefined | null,
 	min_threshold?: number | undefined | null,
 	pack_size?: number | undefined | null,
@@ -43175,6 +43268,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceListShipmentsByBranameInput"]: ValueTypes["MarketplaceListShipmentsByBranameInput"];
 	["MarketplaceListShipmentsInput"]: ValueTypes["MarketplaceListShipmentsInput"];
 	["MarketplaceListWriteoffProposalsInput"]: ValueTypes["MarketplaceListWriteoffProposalsInput"];
+	["MarketplaceOfferImageUploadInput"]: ValueTypes["MarketplaceOfferImageUploadInput"];
 	["MarketplaceOpenIssuanceInput"]: ValueTypes["MarketplaceOpenIssuanceInput"];
 	["MarketplaceOrderCycleType"]: ValueTypes["MarketplaceOrderCycleType"];
 	["MarketplaceOrderIssuanceFactDiffState"]: ValueTypes["MarketplaceOrderIssuanceFactDiffState"];

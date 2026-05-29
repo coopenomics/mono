@@ -18,6 +18,8 @@ import { MarketplaceRegistrationOfferResolver } from './resolvers/marketplace-re
 import { MarketplaceWhitelistResolver } from './resolvers/marketplace-whitelist.resolver';
 import { MarketplaceVitrineResolver } from './resolvers/marketplace-vitrine.resolver';
 import { MarketplaceOfferResolver } from './resolvers/marketplace-offer.resolver';
+import { MarketplaceOfferFieldsResolver } from './resolvers/marketplace-offer-fields.resolver';
+import { MarketplaceOfferImagesService } from './services/marketplace-offer-images.service';
 import { MarketplaceModerationResolver } from './resolvers/marketplace-moderation.resolver';
 import { MarketplaceCatalogResolver } from './resolvers/marketplace-catalog.resolver';
 import { MarketplaceOrderResolver } from './resolvers/marketplace-order.resolver';
@@ -154,7 +156,11 @@ import { MarketplaceInventoryEntity } from '../infrastructure/entities/marketpla
     // (`stol-zakazov:images`). Имя bucket'а декларируется через @UseBucket
     // на MarketplaceReturnClaimImagesService — модуль `forFeature` читает
     // метадату и провайдит ему `InterFileStorageBucket`.
-    FileStorageInfrastructureModule.forFeature([MarketplaceReturnClaimImagesService]),
+    FileStorageInfrastructureModule.forFeature([
+      MarketplaceReturnClaimImagesService,
+      // Story 3.2 (доп.): bucket `stol-zakazov:images` для изображений Offer'а.
+      MarketplaceOfferImagesService,
+    ]),
     // Эпик 8: writeoff cron сканер должен видеть marketplace_inventory
     TypeOrmModule.forFeature([MarketplaceInventoryEntity], 'marketplace'),
     // ExtensionDomainService инжектится @Optional() в MarketplaceWriteoffCronService —
@@ -233,6 +239,9 @@ import { MarketplaceInventoryEntity } from '../infrastructure/entities/marketpla
       useClass: MarketplaceOfferService,
     },
     MarketplaceOfferService,
+    // Story 3.2 (доп.): изображения Offer'а — bucket-сервис + field-resolver.
+    MarketplaceOfferImagesService,
+    MarketplaceOfferFieldsResolver,
     {
       provide: MARKETPLACE_CATEGORY_SERVICE,
       useClass: MarketplaceCategoryService,

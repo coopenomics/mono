@@ -27,6 +27,7 @@ export class MarketplaceOfferMapper {
       warranty_days: row.warranty_days,
       barcode_strategy: row.barcode_strategy,
       pack_size: row.pack_size,
+      images: row.images ?? [],
       status: row.status,
       approved_by: row.approved_by,
       approved_at: row.approved_at,

@@ -13,6 +13,31 @@ export type MarketplaceOfferCycleType =
 
 export type MarketplaceUnitOfMeasure = 'piece' | 'kg' | 'liter' | 'pack';
 
+/** Новое загружаемое изображение (содержимое в base64 + MIME). */
+export interface MarketplaceOfferImageUpload {
+  base64: string;
+  mime_type: string;
+}
+
+/** Уже сохранённое изображение (приходит с backend как подписанный URL). */
+export interface MarketplaceOfferImageView {
+  url: string;
+  mime_type: string;
+  sort_order: number;
+  is_cover: boolean;
+}
+
+/** Локальная запись о выбранном файле — для превью в форме до отправки. */
+export interface MarketplaceOfferImageDraft {
+  /** object-URL для превью (создаётся через URL.createObjectURL). */
+  preview_url: string;
+  /** Имя файла — для подписи и удаления. */
+  name: string;
+  /** Содержимое в base64 (без data-URL префикса) для отправки на backend. */
+  base64: string;
+  mime_type: string;
+}
+
 export interface MarketplaceCreateOfferFormState {
   product_name: string;
   description: string;
@@ -43,6 +68,12 @@ export interface MarketplaceCreateOfferPayload {
   max_wait_days: number | null;
   min_threshold: number | null;
   warranty_days: number;
+  /**
+   * Изображения товара (base64). При создании — набор новых файлов (может
+   * быть пустым). При обновлении — если передано, полностью заменяет текущий
+   * набор; если опущено (undefined) — изображения не трогаются.
+   */
+  images?: MarketplaceOfferImageUpload[];
 }
 
 export interface MarketplaceCategoryView {
@@ -82,4 +113,5 @@ export interface MarketplaceOfferEditPrefill {
   min_threshold: number | null;
   warranty_days: number;
   status: 'PENDING_MODERATION' | 'ACTIVE' | 'REJECTED' | 'WITHDRAWN';
+  images?: MarketplaceOfferImageView[];
 }

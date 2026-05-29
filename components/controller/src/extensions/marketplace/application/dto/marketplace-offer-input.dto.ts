@@ -1,5 +1,8 @@
 import { Field, InputType, Int } from '@nestjs/graphql';
+import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
+  IsArray,
   IsBoolean,
   IsEnum,
   IsIn,
@@ -11,12 +14,27 @@ import {
   Max,
   MaxLength,
   Min,
+  ValidateNested,
 } from 'class-validator';
 import { PaginationInputDTO } from '~/application/common/dto/pagination.dto';
+import { MARKETPLACE_OFFER_MAX_IMAGES } from '../../domain/entities/marketplace-offer.types';
 import { MarketplaceBarcodeStrategyEnum } from './marketplace-offer.dto';
 
 const CYCLE_TYPES = ['time_based', 'volume_based', 'open_subscription', 'individual'] as const;
 const UNITS = ['piece', 'kg', 'liter', 'pack'] as const;
+
+@InputType('MarketplaceOfferImageUploadInput')
+export class MarketplaceOfferImageUploadInputDTO {
+  @Field({ description: 'Содержимое изображения, закодированное в base64.' })
+  @IsString()
+  @IsNotEmpty()
+  public readonly base64!: string;
+
+  @Field({ description: 'MIME-тип изображения (image/jpeg, image/png либо image/webp).' })
+  @IsString()
+  @IsNotEmpty()
+  public readonly mime_type!: string;
+}
 
 @InputType('MarketplaceCreateOfferInput')
 export class MarketplaceCreateOfferInputDTO {
@@ -105,6 +123,18 @@ export class MarketplaceCreateOfferInputDTO {
   @Min(1)
   @Max(1000)
   public pack_size?: number;
+
+  @Field(() => [MarketplaceOfferImageUploadInputDTO], {
+    nullable: true,
+    description:
+      'Изображения товара (base64). Порядок = порядок показа, первое — обложка. До 8 файлов, каждый ≤ 10 МБ, JPEG/PNG/WEBP.',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(MARKETPLACE_OFFER_MAX_IMAGES)
+  @ValidateNested({ each: true })
+  @Type(() => MarketplaceOfferImageUploadInputDTO)
+  public images?: MarketplaceOfferImageUploadInputDTO[];
 }
 
 @InputType('MarketplaceUpdateOfferInput')
@@ -197,6 +227,18 @@ export class MarketplaceUpdateOfferInputDTO {
   @Min(1)
   @Max(1000)
   public pack_size?: number | null;
+
+  @Field(() => [MarketplaceOfferImageUploadInputDTO], {
+    nullable: true,
+    description:
+      'Изображения товара (base64). Если передано — полностью заменяет текущий набор. До 8 файлов, каждый ≤ 10 МБ, JPEG/PNG/WEBP.',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(MARKETPLACE_OFFER_MAX_IMAGES)
+  @ValidateNested({ each: true })
+  @Type(() => MarketplaceOfferImageUploadInputDTO)
+  public images?: MarketplaceOfferImageUploadInputDTO[];
 }
 
 @InputType('MarketplaceWithdrawOfferInput')

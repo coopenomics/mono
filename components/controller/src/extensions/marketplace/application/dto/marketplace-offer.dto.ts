@@ -1,9 +1,31 @@
 import { Field, Int, ObjectType } from '@nestjs/graphql';
 import { createPaginationResult } from '~/application/common/dto/pagination.dto';
 import type { MarketplaceOfferDomainEntity } from '../../domain/entities/marketplace-offer.entity';
+import type { MarketplaceOfferImage } from '../../domain/entities/marketplace-offer.types';
 import { MarketplaceBarcodeStrategyEnum } from './marketplace-inventory.dto';
 
 export { MarketplaceBarcodeStrategyEnum };
+
+@ObjectType('MarketplaceOfferImage')
+export class MarketplaceOfferImageDTO {
+  @Field(() => String, {
+    description: 'HMAC-подписанный URL для чтения изображения (TTL ограничен).',
+  })
+  public readonly url!: string;
+
+  @Field(() => String, { description: 'MIME-тип изображения.' })
+  public readonly mime_type!: string;
+
+  @Field(() => Int, { description: 'Порядковый номер показа (0 — обложка).' })
+  public readonly sort_order!: number;
+
+  @Field(() => Boolean, { description: 'Является ли изображение обложкой карточки.' })
+  public readonly is_cover!: boolean;
+
+  constructor(init: Partial<MarketplaceOfferImageDTO>) {
+    Object.assign(this, init);
+  }
+}
 
 @ObjectType('MarketplaceOffer')
 export class MarketplaceOfferDTO {
@@ -60,6 +82,15 @@ export class MarketplaceOfferDTO {
   @Field(() => Date) public readonly created_at!: Date;
   @Field(() => Date) public readonly updated_at!: Date;
 
+  /**
+   * Сырые записи изображений (ключи bucket'а) — НЕ экспонируются в схему.
+   * Поле `images: [MarketplaceOfferImage]` резолвится лениво в
+   * `MarketplaceOfferFieldResolver.images`, который превращает ключи в
+   * HMAC-signed URL'ы. Так URL не считается в каждом list-резолвере, а только
+   * когда клиент реально запрашивает `images`.
+   */
+  public readonly image_records?: MarketplaceOfferImage[];
+
   constructor(init: Partial<MarketplaceOfferDTO>) {
     Object.assign(this, init);
   }
@@ -94,6 +125,7 @@ export function toMarketplaceOfferDTO(o: MarketplaceOfferDomainEntity): Marketpl
     warranty_days: o.warranty_days,
     barcode_strategy: o.barcode_strategy as MarketplaceBarcodeStrategyEnum,
     pack_size: o.pack_size,
+    image_records: o.images ?? [],
     status: o.status,
     approved_by: o.approved_by,
     approved_at: o.approved_at,

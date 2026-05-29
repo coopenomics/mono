@@ -26,21 +26,35 @@ import type { MarketplaceOfferDomainEntity } from '../../domain/entities/marketp
 import type {
   MarketplaceBarcodeStrategy,
   MarketplaceOfferCycleType,
+  MarketplaceOfferImage,
   MarketplaceOfferStatus,
   MarketplaceUnitOfMeasure,
 } from '../../domain/entities/marketplace-offer.types';
 import {
   MARKETPLACE_OFFER_CYCLE_TYPES,
+  MARKETPLACE_OFFER_MAX_IMAGES,
   MARKETPLACE_UNITS_OF_MEASURE,
   MarketplaceBarcodeStrategies,
   MarketplaceOfferCycleTypes,
 } from '../../domain/entities/marketplace-offer.types';
+import { MarketplaceOfferImagesService } from './marketplace-offer-images.service';
 import type {
   PaginationInputDomainInterface,
   PaginationResultDomainInterface,
 } from '~/domain/common/interfaces/pagination.interface';
 
 export const MARKETPLACE_OFFER_SERVICE = Symbol('MARKETPLACE_OFFER_SERVICE');
+
+/**
+ * Сырой загружаемый файл изображения с фронта: содержимое в base64 + MIME.
+ * Тот же контракт, что у фото гарантийного возврата (Story 7.1) — base64 в
+ * GraphQL-инпуте, декодирование на backend. Сервис превращает его в
+ * `MarketplaceOfferImage` (ключ bucket'а + sha256) до записи в БД.
+ */
+export interface MarketplaceOfferImageUpload {
+  base64: string;
+  mime_type: string;
+}
 
 export interface OfferCreateRequest {
   coopname: string;
@@ -61,6 +75,8 @@ export interface OfferCreateRequest {
   warranty_days: number;
   barcode_strategy?: MarketplaceBarcodeStrategy | null;
   pack_size?: number | null;
+  /** Изображения товара (base64). Порядок в массиве = порядок показа. */
+  images?: MarketplaceOfferImageUpload[] | null;
 }
 
 /**
@@ -96,7 +112,8 @@ export class MarketplaceOfferService {
     @Inject(MARKETPLACE_CATEGORY_REPOSITORY)
     private readonly categoryRepo: MarketplaceCategoryDomainRepository,
     @Inject(MARKETPLACE_ORDER_REPOSITORY)
-    private readonly orderRepo: MarketplaceOrderDomainRepository
+    private readonly orderRepo: MarketplaceOrderDomainRepository,
+    private readonly imagesService: MarketplaceOfferImagesService
   ) {}
 
   /**
@@ -127,6 +144,12 @@ export class MarketplaceOfferService {
         ? input.pack_size ?? null
         : null;
 
+    const images = await this.uploadImages(
+      input.coopname,
+      input.supplier_account,
+      input.images ?? []
+    );
+
     const dbInput: OfferCreateInput = {
       coopname: input.coopname,
       supplier_account: input.supplier_account,
@@ -146,15 +169,23 @@ export class MarketplaceOfferService {
       warranty_days: input.warranty_days,
       barcode_strategy,
       pack_size,
+      images,
     };
 
-    return this.repo.create(dbInput);
+    try {
+      return await this.repo.create(dbInput);
+    } catch (e) {
+      // Запись Offer'а не удалась — не оставляем загруженные файлы сиротами.
+      await this.cleanupImages(images);
+      throw e;
+    }
   }
 
   async update(
     id: string,
     supplier_account: string,
-    patch: OfferUpdateInput
+    patch: OfferUpdateInput,
+    images?: MarketplaceOfferImageUpload[]
   ): Promise<MarketplaceOfferDomainEntity> {
     const offer = await this.requireOwnedEditable(id, supplier_account, ['edit']);
 
@@ -231,7 +262,21 @@ export class MarketplaceOfferService {
       normalizedPatch.quantity_available = 0;
     }
 
-    return this.repo.applyUpdate(offer.id, normalizedPatch);
+    // Изображения переданы → полностью заменяем набор. Старые объекты
+    // bucket'а не удаляем (могут шариться по content-hash; orphan-cleanup —
+    // вне MVP). Новые грузим до записи; при провале записи — чистим их.
+    let uploaded: MarketplaceOfferImage[] | undefined;
+    if (images !== undefined) {
+      uploaded = await this.uploadImages(offer.coopname, supplier_account, images);
+      normalizedPatch.images = uploaded;
+    }
+
+    try {
+      return await this.repo.applyUpdate(offer.id, normalizedPatch);
+    } catch (e) {
+      if (uploaded) await this.cleanupImages(uploaded);
+      throw e;
+    }
   }
 
   async withdraw(id: string, supplier_account: string): Promise<MarketplaceOfferDomainEntity> {
@@ -464,5 +509,58 @@ export class MarketplaceOfferService {
       { page: 1, limit: 1, sortBy: 'created_at', sortOrder: 'DESC' }
     );
     return probe.totalCount > 0;
+  }
+
+  /**
+   * Декодирует base64-файлы и грузит их в bucket `stol-zakazov:images`,
+   * возвращая доменные снапшоты (ключ + sha256 + mime). Сохраняет порядок
+   * (индекс 0 = обложка). При провале загрузки одного из файлов — чистит уже
+   * загруженные, чтобы не плодить сирот, и пробрасывает понятную ошибку.
+   */
+  private async uploadImages(
+    coopname: string,
+    supplier_account: string,
+    raw: MarketplaceOfferImageUpload[]
+  ): Promise<MarketplaceOfferImage[]> {
+    if (raw.length === 0) return [];
+    if (raw.length > MARKETPLACE_OFFER_MAX_IMAGES) {
+      throw new BadRequestException(
+        `Слишком много изображений: максимум ${MARKETPLACE_OFFER_MAX_IMAGES} на одно предложение.`
+      );
+    }
+
+    const result: MarketplaceOfferImage[] = [];
+    try {
+      for (const file of raw) {
+        if (!file.base64) {
+          throw new BadRequestException('Пустое изображение: отсутствует содержимое файла.');
+        }
+        const bytes = Buffer.from(file.base64, 'base64');
+        if (bytes.length === 0) {
+          throw new BadRequestException('Не удалось декодировать изображение (пустые данные).');
+        }
+        const image = await this.imagesService.putImage({
+          bytes,
+          contentType: file.mime_type,
+          coopname,
+          ownerAccount: supplier_account,
+        });
+        result.push(image);
+      }
+      return result;
+    } catch (e) {
+      await this.cleanupImages(result);
+      if (e instanceof BadRequestException) throw e;
+      throw new BadRequestException(
+        `Не удалось загрузить изображение: ${e instanceof Error ? e.message : String(e)}`
+      );
+    }
+  }
+
+  /** Best-effort удаление загруженных объектов (на провале записи Offer'а). */
+  private async cleanupImages(images: MarketplaceOfferImage[]): Promise<void> {
+    await Promise.all(
+      images.map((img) => this.imagesService.deleteImage(img.bucket_key).catch(() => undefined))
+    );
   }
 }

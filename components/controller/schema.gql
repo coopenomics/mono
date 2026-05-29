@@ -7576,6 +7576,11 @@ input MarketplaceCreateOfferInput {
   """time_based | volume_based | open_subscription | individual"""
   cycle_type: String!
   description: String
+
+  """
+  Изображения товара (base64). Порядок = порядок показа, первое — обложка. До 8 файлов, каждый ≤ 10 МБ, JPEG/PNG/WEBP.
+  """
+  images: [MarketplaceOfferImageUploadInput!]
   max_wait_days: Int
   min_threshold: Int
 
@@ -8221,6 +8226,11 @@ type MarketplaceOffer {
   cycle_type: String!
   description: String
   id: String!
+
+  """
+  Изображения товара (обложка — первое). URL подписаны и ограничены по TTL.
+  """
+  images: [MarketplaceOfferImage!]!
   max_wait_days: Int
   min_threshold: Int
 
@@ -8248,6 +8258,28 @@ type MarketplaceOffer {
   updated_at: DateTime!
   vitrine_id: String!
   warranty_days: Int!
+}
+
+type MarketplaceOfferImage {
+  """Является ли изображение обложкой карточки."""
+  is_cover: Boolean!
+
+  """MIME-тип изображения."""
+  mime_type: String!
+
+  """Порядковый номер показа (0 — обложка)."""
+  sort_order: Int!
+
+  """HMAC-подписанный URL для чтения изображения (TTL ограничен)."""
+  url: String!
+}
+
+input MarketplaceOfferImageUploadInput {
+  """Содержимое изображения, закодированное в base64."""
+  base64: String!
+
+  """MIME-тип изображения (image/jpeg, image/png либо image/webp)."""
+  mime_type: String!
 }
 
 type MarketplaceOfferPaginationResult {
@@ -9265,6 +9297,11 @@ input MarketplaceUpdateOfferInput {
   cycle_type: String
   description: String
   id: String!
+
+  """
+  Изображения товара (base64). Если передано — полностью заменяет текущий набор. До 8 файлов, каждый ≤ 10 МБ, JPEG/PNG/WEBP.
+  """
+  images: [MarketplaceOfferImageUploadInput!]
   max_wait_days: Int
   min_threshold: Int
   pack_size: Int

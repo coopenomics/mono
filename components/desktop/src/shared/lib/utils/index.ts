@@ -17,3 +17,4 @@ export * from './generateInitials';
 export * from './formatContributorName';
 export * from './pluralizeHours';
 export * from './schema';
+export * from './fileToBase64';

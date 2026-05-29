@@ -61,6 +61,22 @@ export function toChainCycleType(cycle: string): string {
   return mapped;
 }
 
+/**
+ * Story 3.2 (доп.): изображение Offer'а. Pure-db value object — снапшот
+ * объекта в bucket'е `stol-zakazov:images` (тот же бакет, что и фото
+ * гарантийного возврата, AR31). Порядок в массиве = порядок показа; индекс 0
+ * трактуется как обложка карточки каталога. `content_hash` (sha256 контента)
+ * нужен для дедупликации и аудита, как и в фото возврата.
+ */
+export interface MarketplaceOfferImage {
+  bucket_key: string;
+  content_hash: string;
+  mime_type: string;
+}
+
+/** Технический предел числа изображений на один Offer (защита от злоупотребления). */
+export const MARKETPLACE_OFFER_MAX_IMAGES = 8;
+
 export type MarketplaceUnitOfMeasure = 'piece' | 'kg' | 'liter' | 'pack';
 
 export const MarketplaceUnitsOfMeasure = {

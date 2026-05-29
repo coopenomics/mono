@@ -1,6 +1,7 @@
 import type {
   MarketplaceBarcodeStrategy,
   MarketplaceOfferCycleType,
+  MarketplaceOfferImage,
   MarketplaceOfferStatus,
   MarketplaceUnitOfMeasure,
 } from './marketplace-offer.types';
@@ -47,6 +48,9 @@ export class MarketplaceOfferDomainEntity {
   public readonly barcode_strategy!: MarketplaceBarcodeStrategy;
   public readonly pack_size!: number | null;
 
+  /** Изображения товара (обложка = индекс 0). Pure-db, ключи bucket'а. */
+  public readonly images!: MarketplaceOfferImage[];
+
   public readonly status!: MarketplaceOfferStatus;
   public readonly approved_by!: string | null;
   public readonly approved_at!: Date | null;
@@ -79,6 +83,7 @@ export class MarketplaceOfferDomainEntity {
     warranty_days: number;
     barcode_strategy: MarketplaceBarcodeStrategy;
     pack_size: number | null;
+    images: MarketplaceOfferImage[];
     status: MarketplaceOfferStatus;
     approved_by: string | null;
     approved_at: Date | null;
