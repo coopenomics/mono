@@ -4,19 +4,12 @@ q-page.mp-role-operator.q-pa-md(role="region", aria-label="Ожидаемые п
   .text-caption.text-grey-7.q-mb-md(style="max-width: 720px")
     | Партии поставщиков, направленные на ваш кооперативный участок. Дождитесь статуса «Готова к приёмке» — и открывайте акт приёмки на столе «Приёмка партии».
 
+  OperatorBranchBar
+
   q-card.mp-card.q-mb-md
     q-card-section
       .row.q-col-gutter-sm.items-end
-        q-input.col-12.col-sm-4(
-          v-model="braname",
-          label="Код кооперативного участка",
-          dense,
-          outlined,
-          clearable,
-          hint="Подставлен автоматически по вашему КУ. Измените вручную при необходимости.",
-          @keyup.enter="load"
-        )
-        q-select.col-12.col-sm-4(
+        q-select.col-12.col-sm-6(
           v-model="statusFilter",
           :options="statusOptions",
           label="Состояние партии",
@@ -32,18 +25,6 @@ q-page.mp-role-operator.q-pa-md(role="region", aria-label="Ожидаемые п
           :loading="loading",
           :disable="!braname",
           @click="load"
-        )
-      .q-mt-sm(v-if="ownBranches.length > 1")
-        span.text-caption.q-mr-sm Ваши участки:
-        q-chip(
-          v-for="b in ownBranches",
-          :key="b",
-          clickable,
-          dense,
-          :color="b === braname ? 'primary' : 'grey-3'",
-          :text-color="b === braname ? 'white' : 'dark'",
-          :label="b",
-          @click="braname = b; load()"
         )
 
   .row.q-col-gutter-md.q-mb-md(v-if="items.length")
@@ -83,25 +64,26 @@ q-page.mp-role-operator.q-pa-md(role="region", aria-label="Ожидаемые п
 
     template(#no-data)
       .full-width.text-center.q-pa-md.text-grey-7
-        | {{ braname ? 'Партий по этому КУ нет — проверьте код или фильтр по состояниям.' : 'Введите код КУ и нажмите «Обновить».' }}
+        | {{ braname ? 'Ожидаемых поставок на участок нет или они скрыты фильтром.' : 'Кооперативный участок не определён — вы не оператор КУ.' }}
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import type { QTableProps } from 'quasar'
 import { FailAlert } from 'src/shared/api'
 import { Zeus } from '@coopenomics/sdk'
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits'
-import {
-  fetchOperatorBranches,
-  listShipmentsByBraname,
-  type MarketplaceShipmentView,
-} from '../api'
+import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch'
+import { listShipmentsByBraname, type MarketplaceShipmentView } from '../api'
 
 type ShipmentStatus = MarketplaceShipmentView['status']
 
-const braname = ref<string>('')
-const ownBranches = ref<string[]>([])
+// Активный КУ оператора — из общего контекста стола (без ввода кода вручную).
+const route = useRoute()
+const store = useOperatorBranchStore()
+const coopname = computed(() => String(route.params.coopname ?? ''))
+const braname = computed(() => store.activeBraname ?? '')
 const statusFilter = ref<ShipmentStatus[]>([])
 const items = ref<MarketplaceShipmentView[]>([])
 const loading = ref(false)
@@ -165,21 +147,11 @@ async function load(): Promise<void> {
   }
 }
 
-async function autoDetectBranch(): Promise<void> {
-  try {
-    const me = await fetchOperatorBranches()
-    ownBranches.value = me.branches ?? []
-    if (!braname.value?.trim() && ownBranches.value.length > 0) {
-      braname.value = ownBranches.value[0]
-    }
-  } catch {
-    // whoAmI недоступен — оставляем ручной ввод braname
-  }
-}
+watch(braname, () => void load())
 
 onMounted(async () => {
-  await autoDetectBranch()
-  await load()
+  await store.ensureLoaded(coopname.value)
+  void load()
 })
 
 function humanStatus(status: string): string {

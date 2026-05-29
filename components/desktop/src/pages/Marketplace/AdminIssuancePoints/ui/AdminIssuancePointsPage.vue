@@ -12,8 +12,11 @@ import type {
   IMarketplaceKUDetails,
   KuDetailsStatus,
 } from 'src/entities/MarketplaceKUDetails'
-import { BaseBadge, BaseButton, EmptyState, TableSkeleton } from 'src/shared/ui/base'
+import { BaseBadge, BaseButton, BaseDialog, EmptyState, TableSkeleton } from 'src/shared/ui/base'
 import type { BaseBadgeVariant, TableSkeletonColumn } from 'src/shared/ui/base'
+// Map экспортируется как `Map` — импортируем под алиасом, чтобы не затенять
+// глобальный `Map` (используется в `rows`).
+import { Map as MapView } from 'src/shared/ui/Map'
 import { MarketplaceDetailKUDialog } from 'src/features/MarketplaceDetailKU'
 
 /**
@@ -82,6 +85,25 @@ function statusOf(row: IssuancePointRow): { label: string; variant: BaseBadgeVar
 function addressOf(row: IssuancePointRow): string {
   if (row.details) return row.details.addressFull
   return row.branch.fact_address || row.branch.full_address || '—'
+}
+
+// Карта ПВЗ: открываем точку по координатам геокодера (OSM, без API-ключа).
+const mapOpen = ref(false)
+const mapRow = ref<IssuancePointRow | null>(null)
+const mapTitle = computed(() =>
+  mapRow.value
+    ? `Карта — ${mapRow.value.branch.short_name || mapRow.value.branch.full_name || mapRow.value.branch.braname}`
+    : 'Карта',
+)
+
+function hasCoords(row: IssuancePointRow): boolean {
+  const d = row.details
+  return !!d && d.geocodeStatus === 'OK' && d.lat != null && d.lng != null
+}
+
+function openMap(row: IssuancePointRow): void {
+  mapRow.value = row
+  mapOpen.value = true
 }
 
 const skeletonColumns: TableSkeletonColumn[] = [
@@ -206,14 +228,22 @@ q-page.admin-pvz
             td.col-status
               BaseBadge(:variant='statusOf(row).variant') {{ statusOf(row).label }}
             td.col-geo
-              BaseBadge(
-                v-if='row.details',
-                :variant='GEOCODE_LABEL[row.details.geocodeStatus].variant'
-              )
-                | {{ GEOCODE_LABEL[row.details.geocodeStatus].label }}
-                q-tooltip(
-                  v-if='row.details.geocodeStatus === "FAILED" && row.details.geocodeErrorMessage'
-                ) {{ row.details.geocodeErrorMessage }}
+              .admin-pvz__geo(v-if='row.details')
+                BaseBadge(:variant='GEOCODE_LABEL[row.details.geocodeStatus].variant')
+                  | {{ GEOCODE_LABEL[row.details.geocodeStatus].label }}
+                  q-tooltip(
+                    v-if='row.details.geocodeStatus === "FAILED" && row.details.geocodeErrorMessage'
+                  ) {{ row.details.geocodeErrorMessage }}
+                BaseButton(
+                  v-if='hasCoords(row)',
+                  variant='ghost',
+                  icon-only,
+                  size='sm',
+                  aria-label='Открыть карту',
+                  @click='openMap(row)'
+                )
+                  template(#icon-left)
+                    q-icon(name='map', size='18px')
               span.admin-pvz__dash(v-else) —
             td.col-action
               template(v-if='isChairman')
@@ -285,6 +315,13 @@ q-page.admin-pvz
     :branch='dialogBranch',
     @saved='onSaved'
   )
+
+  BaseDialog(v-model='mapOpen', :title='mapTitle', size='lg')
+    .admin-pvz__map(
+      v-if='mapRow && mapRow.details && mapRow.details.lat != null && mapRow.details.lng != null'
+    )
+      .admin-pvz__map-addr {{ mapRow.details.addressFull }}
+      MapView(:long='Number(mapRow.details.lng)', :lat='Number(mapRow.details.lat)')
 </template>
 
 <style scoped lang="scss">
@@ -333,6 +370,17 @@ q-page.admin-pvz
 
   &__dash {
     color: var(--p-ink-3);
+  }
+
+  &__geo {
+    display: flex;
+    align-items: center;
+    gap: var(--p-1, 4px);
+  }
+
+  &__map-addr {
+    color: var(--p-ink-2);
+    margin-bottom: var(--p-3, 12px);
   }
 }
 

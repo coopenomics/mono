@@ -2,17 +2,12 @@
 q-page.mp-role-operator.q-pa-md
   .text-h5.q-mb-md Склад моего КУ
 
+  OperatorBranchBar
+
   q-card.mp-card.q-mb-md
     q-card-section.q-gutter-sm
       .row.q-col-gutter-sm.items-end
-        q-input.col-12.col-sm-4(
-          v-model='braname'
-          label='Код кооперативного участка'
-          dense
-          outlined
-          @keyup.enter='load'
-        )
-        q-select.col-12.col-sm-3(
+        q-select.col-12.col-sm-4(
           v-model='statusFilter'
           :options='statusOptions'
           label='Состояние'
@@ -22,7 +17,7 @@ q-page.mp-role-operator.q-pa-md
           emit-value
           map-options
         )
-        q-input.col-12.col-sm-3(
+        q-input.col-12.col-sm-4(
           v-model='ordererFilter'
           label='Заказчик'
           dense
@@ -72,17 +67,24 @@ q-page.mp-role-operator.q-pa-md
 
     template(#no-data)
       .full-width.text-center.q-pa-md.text-grey-7
-        | {{ braname ? 'Наклеек по этому КУ нет — проверьте код или фильтры по состояниям.' : 'Введите код КУ и нажмите «Обновить».' }}
+        | {{ braname ? 'На складе участка пока нет наклеек или они скрыты фильтрами.' : 'Кооперативный участок не определён — вы не оператор КУ.' }}
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import type { QTableProps } from 'quasar'
 import { FailAlert } from 'src/shared/api'
 import { Zeus } from '@coopenomics/sdk'
+import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch'
 import { listInventory, type MarketplaceInventoryItemView } from '../api'
 
-const braname = ref<string>('')
+// Активный КУ оператора — из общего контекста стола (без ввода кода вручную).
+const route = useRoute()
+const store = useOperatorBranchStore()
+const coopname = computed(() => String(route.params.coopname ?? ''))
+const braname = computed(() => store.activeBraname ?? '')
+
 const statusFilter = ref<MarketplaceInventoryItemView['status'][]>([])
 const ordererFilter = ref<string>('')
 const items = ref<MarketplaceInventoryItemView[]>([])
@@ -145,7 +147,10 @@ async function load(): Promise<void> {
   }
 }
 
-onMounted(() => {
+watch(braname, () => void load())
+
+onMounted(async () => {
+  await store.ensureLoaded(coopname.value)
   void load()
 })
 

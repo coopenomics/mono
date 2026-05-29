@@ -1,7 +1,9 @@
 <script lang="ts" setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { Loading } from 'quasar'
 import { SuccessAlert, FailAlert } from 'src/shared/api'
+import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch'
 import { BarcodeDisplay } from 'src/widgets/Marketplace/BarcodeDisplay'
 import { Zeus } from '@coopenomics/sdk'
 import {
@@ -17,7 +19,11 @@ type LabelingMode = 'PER_ORDER' | 'BATCH'
 type BarcodeStrategy = Zeus.MarketplaceBarcodeStrategy
 type BarcodeFormat = Zeus.MarketplaceBarcodeFormat
 
-const braname = ref<string>('')
+// Активный КУ оператора — из общего контекста стола (без ввода кода вручную).
+const route = useRoute()
+const store = useOperatorBranchStore()
+const coopname = computed(() => String(route.params.coopname ?? ''))
+const braname = computed(() => store.activeBraname ?? '')
 const items = ref<MarketplaceInventoryItemView[]>([])
 const loading = ref<boolean>(false)
 
@@ -111,9 +117,6 @@ async function generateLabelsForShipment(): Promise<void> {
     SuccessAlert(
       `Партия промаркирована. Заказов в работе: ${result.labeled_order_ids.length}.${skipNote} Готовы к печати ${result.inventory.length} этикеток.`,
     )
-    if (!braname.value && result.inventory[0]?.braname) {
-      braname.value = result.inventory[0].braname
-    }
     await loadInventory()
   } catch (e) {
     FailAlert(e, 'Не удалось промаркировать партию')
@@ -126,22 +129,23 @@ function openPrintWindow(): void {
   window.print()
 }
 
+watch(braname, () => {
+  void loadInventory()
+  void loadShipments()
+})
+
 onMounted(async () => {
+  await store.ensureLoaded(coopname.value)
   await loadShipments()
+  await loadInventory()
 })
 </script>
 
 <template lang="pug">
 q-page.mp-role-operator.mp-inventory-labeling.q-pa-md
+  OperatorBranchBar
+
   .row.q-mb-md.q-gutter-md.no-print.items-center
-    q-input.col-3(
-      v-model="braname"
-      dense
-      outlined
-      label="ID кооперативного участка"
-      @keyup.enter="loadInventory"
-    )
-    q-btn(no-caps color="primary" :loading="loading" label="Загрузить инвентарь" @click="loadInventory")
     q-btn(flat no-caps icon="refresh" label="Обновить список партий" @click="loadShipments")
     q-space
     q-btn(flat no-caps icon="print" label="Печать партии" :disable="!items.length" @click="openPrintWindow")
@@ -219,7 +223,7 @@ q-page.mp-role-operator.mp-inventory-labeling.q-pa-md
           | Стратегия маркировки берётся из карточки товара поставщика (per-Offer).
 
   .text-grey-7.text-center.q-pa-xl.no-print(v-if="!items.length")
-    | Инвентарь пуст. Загрузите КУ, промаркируйте партию или отдельный заказ — этикетки появятся справа.
+    | Инвентарь участка пуст. Промаркируйте партию или отдельный заказ — этикетки появятся ниже.
 
   .mp-inventory-labeling__grid(v-else)
     .mp-inventory-labeling__label(v-for="item in items" :key="item.id")

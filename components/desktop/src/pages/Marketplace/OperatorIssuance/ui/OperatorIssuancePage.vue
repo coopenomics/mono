@@ -1,7 +1,9 @@
 <script lang="ts" setup>
 import type { QTableProps } from 'quasar';
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
+import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
 import {
   listIssuancesByBraname,
   type MarketplaceOrderIssuanceView,
@@ -25,7 +27,11 @@ import IssueActFinalizeDialog from './IssueActFinalizeDialog.vue';
  *   по FR23-FR25.
  */
 
-const braname = ref<string>('');
+// Активный КУ оператора — из общего контекста стола (без ввода кода вручную).
+const route = useRoute();
+const store = useOperatorBranchStore();
+const coopname = computed(() => String(route.params.coopname ?? ''));
+const braname = computed(() => store.activeBraname ?? '');
 const items = ref<MarketplaceOrderIssuanceView[]>([]);
 const loading = ref(false);
 
@@ -86,16 +92,17 @@ function onFinalized(): void {
   void load();
 }
 
-onMounted(() => {
-  // braname придёт из current member operator-роли при подключении к роутингу.
+watch(braname, () => void load());
+
+onMounted(async () => {
+  await store.ensureLoaded(coopname.value);
+  void load();
 });
 </script>
 
 <template lang="pug">
 q-page.mp-role-operator.mp-issuance.q-pa-md
-  .row.q-mb-md.q-gutter-md
-    q-input.col-3(v-model="braname" dense outlined label="ID кооперативного участка выдачи")
-    q-btn(no-caps color="primary" :loading="loading" label="Загрузить ленту выдач" @click="load")
+  OperatorBranchBar
 
   q-table(
     :rows="items"

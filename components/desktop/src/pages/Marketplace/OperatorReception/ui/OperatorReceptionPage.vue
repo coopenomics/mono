@@ -1,8 +1,10 @@
 <script lang="ts" setup>
 import type { QTableProps } from 'quasar';
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { Loading } from 'quasar';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
+import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
 import {
   createAplReception,
   listAplReceptionsByBraname,
@@ -18,7 +20,11 @@ import SignAplReceptionChairmanDialog from './SignAplReceptionChairmanDialog.vue
  * расхождением) включается следующим UI PR.
  */
 
-const braname = ref<string>('');
+// Активный КУ оператора — из общего контекста стола (без ввода кода вручную).
+const route = useRoute();
+const store = useOperatorBranchStore();
+const coopname = computed(() => String(route.params.coopname ?? ''));
+const braname = computed(() => store.activeBraname ?? '');
 const items = ref<MarketplaceAplReceptionView[]>([]);
 const loading = ref(false);
 
@@ -101,16 +107,17 @@ async function onChairmanSigned(): Promise<void> {
   await load();
 }
 
-onMounted(() => {
-  // braname придёт из current member operator-роли при подключении к роутингу.
+watch(braname, () => void load());
+
+onMounted(async () => {
+  await store.ensureLoaded(coopname.value);
+  void load();
 });
 </script>
 
 <template lang="pug">
 q-page.mp-role-operator.mp-reception.q-pa-md
-  .row.q-mb-md.q-gutter-md
-    q-input.col-3(v-model="braname" dense outlined label="ID кооперативного участка")
-    q-btn(no-caps color="primary" :loading="loading" label="Загрузить АПП" @click="load")
+  OperatorBranchBar
 
   .row.q-mb-md.q-gutter-md
     q-input.col-4(v-model="shipmentIdInput" dense outlined label="ID партии (shipment_id)")

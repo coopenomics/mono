@@ -2,7 +2,7 @@ import { markRaw } from 'vue'
 import { MarketplaceCatalogPage } from 'src/pages/Marketplace/MarketplaceCatalog'
 import { CreateMarketplaceOfferPage } from 'src/pages/Marketplace/CreateMarketplaceOffer'
 import { MyOrdersPage } from 'src/pages/Marketplace/MyOrders'
-import { PvzListPage } from 'src/pages/Marketplace/PvzList'
+import { OperatorTrustedPersonsPage } from 'src/pages/Marketplace/OperatorTrustedPersons'
 import { OperatorIssuancePage } from 'src/pages/Marketplace/OperatorIssuance'
 import { OrdererReadyToReceivePage } from 'src/pages/Marketplace/OrdererReadyToReceive'
 import { OrdererReturnClaimsPage } from 'src/pages/Marketplace/OrdererReturnClaims'
@@ -337,14 +337,17 @@ export default async function (): Promise<IWorkspaceConfig[]> {
       extension_name: 'market',
       title: 'Стол ПВЗ',
       icon: 'fa-solid fa-map-location-dot',
-      defaultRoute: 'marketplace-pvz',
+      defaultRoute: 'marketplace-pvz-incoming-shipments',
       routes: [
         {
-          // Стол ПВЗ открыт оператору/председателю КУ (marketplace-роль
-          // `operator` → `Warehouse:read:own-KU`) и председателю кооператива
-          // (роль `admin` → `Warehouse:read:all`, через разворот покрывает
-          // own-KU). Гейтинг — через grants, отдельный per-route guard больше
-          // не нужен.
+          // Стол ПВЗ — рабочее место оператора КОНКРЕТНОГО кооперативного
+          // участка (marketplace-роль `operator` → `Warehouse:read:own-KU`):
+          // председателя КУ (trustee) либо его доверенного лица (trusted).
+          // Активный КУ определяется через `marketplaceWhoAmI.branches`
+          // (entities/OperatorBranch), коды участков в UI не показываются.
+          // Управление сетью ПВЗ кооператива (создание/геокодинг/статусы) —
+          // на столе администратора (AdminIssuancePoints), не здесь.
+          // Гейтинг — через grants, отдельный per-route guard не нужен.
           meta: {
             title: 'Стол ПВЗ',
             icon: 'fa-solid fa-map-location-dot',
@@ -352,18 +355,6 @@ export default async function (): Promise<IWorkspaceConfig[]> {
           path: '/:coopname/market-pvz',
           name: 'market-pvz',
           children: [
-            {
-              path: 'list',
-              name: 'marketplace-pvz',
-              component: markRaw(PvzListPage),
-              meta: {
-                title: 'ПВЗ кооператива',
-                icon: 'fa-solid fa-map-location-dot',
-                requires: 'Warehouse:read:own-KU',
-                requiresAuth: true,
-                agreements: agreementsBase,
-              },
-            },
             {
               // Поток IV шаг 1: operator-стол «Ожидаемые поставки». Лента партий,
               // направленных на КУ оператора (own-KU scoping через
@@ -453,6 +444,23 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               meta: {
                 title: 'Склад моего КУ',
                 icon: 'fa-solid fa-boxes-stacked',
+                requires: 'Warehouse:read:own-KU',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+            },
+            {
+              // Управление доверенными лицами КУ: председатель участка (trustee)
+              // добавляет/снимает доверенных (core addTrustedAccount/
+              // deleteTrustedAccount) — они получают те же операционные права
+              // по Столу ПВЗ. Видна всем операторам КУ; правки — только
+              // председателю кооператива (auth мутаций = chairman).
+              path: 'trusted-persons',
+              name: 'marketplace-pvz-trusted-persons',
+              component: markRaw(OperatorTrustedPersonsPage),
+              meta: {
+                title: 'Доверенные лица',
+                icon: 'group',
                 requires: 'Warehouse:read:own-KU',
                 requiresAuth: true,
                 agreements: agreementsBase,

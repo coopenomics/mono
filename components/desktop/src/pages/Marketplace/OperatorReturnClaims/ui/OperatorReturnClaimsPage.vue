@@ -1,7 +1,9 @@
 <script lang="ts" setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert } from 'src/shared/api';
+import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
 import {
   listReturnClaimsByBraname,
   defectCategoryLabel,
@@ -21,7 +23,11 @@ import OnSiteDecisionDialog from './OnSiteDecisionDialog.vue';
  *   compensating forward `o.mkt.return + o.mkt.return2`).
  */
 
-const braname = ref<string>('');
+// Активный КУ оператора — из общего контекста стола (без ввода кода вручную).
+const route = useRoute();
+const store = useOperatorBranchStore();
+const coopname = computed(() => String(route.params.coopname ?? ''));
+const braname = computed(() => store.activeBraname ?? '');
 const items = ref<MarketplaceReturnClaimView[]>([]);
 const loading = ref(false);
 
@@ -100,18 +106,18 @@ function humanStatus(status: MarketplaceReturnClaimView['status']): string {
   }
 }
 
-onMounted(() => {
-  // braname придёт из current member operator-роли при подключении к
-  // роутингу (на текущей фазе оператор задаёт КУ вручную в поле ввода).
+watch(braname, () => void load());
+
+onMounted(async () => {
+  await store.ensureLoaded(coopname.value);
+  void load();
 });
 </script>
 
 <template lang="pug">
 q-page.mp-role-operator.mp-return-operator.q-pa-md
   .text-h6.q-mb-sm Гарантийный возврат — рассмотрение заявлений
-  .row.q-mb-md.q-gutter-md
-    q-input.col-3(v-model="braname" dense outlined label="ID кооперативного участка")
-    q-btn(no-caps color="primary" :loading="loading" label="Загрузить заявления" @click="load")
+  OperatorBranchBar
 
   .text-subtitle1.q-mb-sm.text-primary Ждут удалённого рассмотрения ({{ pendingClaims.length }})
   q-list(v-if="pendingClaims.length > 0" bordered separator).q-mb-md

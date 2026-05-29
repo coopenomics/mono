@@ -16,14 +16,3 @@ export async function listShipmentsByBraname(
   );
   return result;
 }
-
-export type MarketplaceOperatorBranchesView =
-  Queries.Marketplace.WhoAmI.IOutput['marketplaceWhoAmI'];
-
-export async function fetchOperatorBranches(): Promise<MarketplaceOperatorBranchesView> {
-  const { [Queries.Marketplace.WhoAmI.name]: result } = await client.Query(
-    Queries.Marketplace.WhoAmI.query,
-    { variables: {} },
-  );
-  return result;
-}

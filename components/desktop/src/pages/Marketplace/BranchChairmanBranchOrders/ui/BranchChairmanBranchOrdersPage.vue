@@ -1,10 +1,11 @@
 <script lang="ts" setup>
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { Notify } from 'quasar';
+import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
 import { listAplReceptionsByBraname } from '../../OperatorReception/api';
 import { listIssuancesByBraname } from '../../OperatorIssuance/api';
 import { listReturnClaimsByBraname } from '../../OperatorReturnClaims/api';
-import { fetchWhoAmI } from '../api';
 import type { MarketplaceAplReceptionView } from '../../OffererPendingAplReceptions/api';
 import type { MarketplaceOrderIssuanceView } from '../../OperatorIssuance/api';
 import type { MarketplaceReturnClaimView } from '../../OperatorReturnClaims/api';
@@ -30,8 +31,11 @@ import type { MarketplaceReturnClaimView } from '../../OperatorReturnClaims/api'
 
 const POLL_INTERVAL_MS = 20_000;
 
-const braname = ref<string>('');
-const ownBranches = ref<string[]>([]);
+// Активный КУ оператора — из общего контекста стола (без ввода кода вручную).
+const route = useRoute();
+const store = useOperatorBranchStore();
+const coopname = computed(() => String(route.params.coopname ?? ''));
+const braname = computed(() => store.activeBraname ?? '');
 const activeTab = ref<'receptions' | 'issuances' | 'returns'>('receptions');
 
 const receptions = ref<MarketplaceAplReceptionView[]>([]);
@@ -101,23 +105,12 @@ watch(braname, () => {
   receptions.value = [];
   issuances.value = [];
   returns.value = [];
+  void loadAll();
 });
 
-async function autoDetectBranch(): Promise<void> {
-  try {
-    const me = await fetchWhoAmI();
-    ownBranches.value = me.branches ?? [];
-    if (!braname.value.trim() && ownBranches.value.length > 0) {
-      braname.value = ownBranches.value[0];
-      await loadAll();
-    }
-  } catch {
-    // whoAmI недоступен (не залогинен / не член кооператива) — оставляем ручной ввод
-  }
-}
-
-onMounted(() => {
-  void autoDetectBranch();
+onMounted(async () => {
+  await store.ensureLoaded(coopname.value);
+  void loadAll();
   pollTimer = setInterval(() => {
     if (hasBranch.value) void loadAll();
   }, POLL_INTERVAL_MS);
@@ -145,44 +138,17 @@ q-page.mp-role-operator.mp-branch-orders(role="region", aria-label="Сводны
       div.text-caption.mp-branch-orders__subtitle
         | Все процессы вашего КУ в одном месте: приёмки партий, выдачи пайщикам, гарантийные возвраты. Для действий — переходите на специализированные столы Стола ПВЗ.
 
-  q-card(flat, bordered)
-    q-card-section
-      div.row.q-col-gutter-md.items-end
-        div.col-12.col-md-8
-          q-input(
-            v-model="braname",
-            outlined,
-            dense,
-            clearable,
-            label="ID кооперативного участка (braname)",
-            hint="Подставлен автоматически по вашему КУ. Измените вручную при необходимости.",
-            @keyup.enter="loadAll"
-          )
-            template(#prepend)
-              q-icon(name="fa-solid fa-warehouse")
-          div.q-mt-sm(v-if="ownBranches.length > 1")
-            span.text-caption.q-mr-sm Ваши участки:
-            q-chip(
-              v-for="b in ownBranches",
-              :key="b",
-              clickable,
-              dense,
-              :color="b === braname ? 'primary' : 'grey-3'",
-              :text-color="b === braname ? 'white' : 'dark'",
-              :label="b",
-              @click="braname = b; loadAll()"
-            )
-        div.col-12.col-md-4
-          q-btn(
-            unelevated,
-            no-caps,
-            color="primary",
-            icon="fa-solid fa-magnifying-glass",
-            label="Загрузить",
-            :loading="loading",
-            :disable="!hasBranch",
-            @click="loadAll"
-          )
+  OperatorBranchBar
+
+  .row.justify-end(v-if="hasBranch")
+    q-btn(
+      flat,
+      no-caps,
+      icon="refresh",
+      label="Обновить",
+      :loading="loading",
+      @click="loadAll"
+    )
 
   q-card(v-if="hasBranch", flat, bordered)
     q-tabs(
@@ -242,8 +208,8 @@ q-page.mp-role-operator.mp-branch-orders(role="region", aria-label="Сводны
               q-item-label(caption) Статус: {{ statusLabel(c.status) }} / Создано: {{ formatDate(c.created_at) }}
 
   div.mp-branch-orders__hint(v-if="!hasBranch")
-    q-icon(name="fa-solid fa-circle-info", color="primary")
-    | Введите ID вашего КУ, чтобы увидеть сводку процессов.
+    q-icon(name="info", color="primary")
+    | Кооперативный участок не определён — вы не оператор КУ.
 </template>
 
 <style scoped lang="scss">
