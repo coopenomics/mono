@@ -88,6 +88,27 @@ export default async function (): Promise<IWorkspaceConfig[]> {
           name: 'market',
           children: [
             {
+              // Эпик 1 / Story 1.4 + 1.11: L3 онбординг пайщика — gate ЦПП
+              // «Стол заказов». Объявлен ПЕРВЫМ и требует выделенного права
+              // `Onboarding:orderer`, которое backend выдаёт только пока пайщик
+              // не подписал персональную оферту (requires_gate=true). Тогда это
+              // единственная видимая страница стола заказчика — рабочие страницы
+              // (Каталог и т.д.) требуют orderer-прав, которых до подписи нет.
+              // После подписи маркер исчезает, страница авто-скрывается, а
+              // дефолт стола (Каталог) и остальные пункты открываются.
+              path: 'onboarding/member-cpp',
+              name: 'marketplace-onboarding-member-cpp',
+              component: markRaw(OnboardingMemberPickCppPage),
+              meta: {
+                title: 'Подключение к Столу заказов',
+                icon: 'fa-solid fa-handshake-angle',
+                requires: 'Onboarding:orderer',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+              children: [],
+            },
+            {
               path: 'catalog',
               name: 'marketplace-catalog',
               component: markRaw(MarketplaceCatalogPage),
@@ -157,23 +178,6 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 title: 'Гарантийные возвраты',
                 icon: 'fa-solid fa-rotate-left',
                 requires: 'ReturnClaim:read:own',
-                requiresAuth: true,
-                agreements: agreementsBase,
-              },
-              children: [],
-            },
-            {
-              // Эпик 1 / Story 1.4 + 1.11: L3 онбординг пайщика — gate ЦПП
-              // «Стол заказов». Реальная подпись делается через core
-              // Registrator-мастер; здесь информационная страница со списком
-              // документов + переход в мастер.
-              path: 'onboarding/member-cpp',
-              name: 'marketplace-onboarding-member-cpp',
-              component: markRaw(OnboardingMemberPickCppPage),
-              meta: {
-                title: 'Подключение к Marketplace',
-                icon: 'fa-solid fa-handshake-angle',
-                requires: 'Offer:read',
                 requiresAuth: true,
                 agreements: agreementsBase,
               },

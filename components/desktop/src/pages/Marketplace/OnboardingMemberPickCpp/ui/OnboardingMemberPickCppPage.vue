@@ -6,6 +6,9 @@ import {
   OnboardingCPPGate,
   type CPPDocument,
 } from 'src/widgets/Marketplace/OnboardingCPPGate';
+import { useDesktopStore } from 'src/entities/Desktop/model';
+import { useSystemStore } from 'src/entities/System/model';
+import { loadExtensionRoutes } from 'src/processes/init-installed-extensions';
 import {
   fetchOnboardingState,
   signOnboardingOffer,
@@ -32,7 +35,12 @@ import {
 const state = ref<MarketplaceOnboardingStateView | null>(null);
 const loading = ref(false);
 const router = useRouter();
+const desktop = useDesktopStore();
+const system = useSystemStore();
 
+// Единственный подписываемый документ — оферта на присоединение к ЦПП.
+// Положение ЦПП сюда отдельной подписью не выносится: это статический документ
+// для ознакомления (принимается кооперативом на L1), оферта на него ссылается.
 const cppDocuments = computed<CPPDocument[]>(() => {
   if (!state.value) return [];
   return [
@@ -40,13 +48,6 @@ const cppDocuments = computed<CPPDocument[]>(() => {
       id: 'cpp-marketplace-offer',
       title: 'Оферта на присоединение к ЦПП «Стол заказов»',
       description: 'Заявление о присоединении к программе с условиями участия.',
-      required: true,
-      locked: false,
-    },
-    {
-      id: 'cpp-marketplace-rules',
-      title: 'Положение ЦПП «Стол заказов»',
-      description: 'Правила взаимодействия заказчиков, поставщиков и ПВЗ.',
       required: true,
       locked: false,
     },
@@ -80,12 +81,25 @@ async function onAccept(_documentIds: string[]): Promise<void> {
     if (state.value && !state.value.requires_gate) {
       Notify.create({
         type: 'positive',
-        message: 'Оферта ЦПП «Стол заказов» подписана. Открываем каталог…',
+        message: 'Оферта ЦПП «Стол заказов» подписана. Открываем стол заказчика…',
         timeout: 1500,
       });
-      setTimeout(() => {
-        void router.push({ name: 'marketplace-catalog' });
-      }, 800);
+      // Подпись сменила L3-гейт: backend теперь выдаёт полные orderer-права
+      // вместо маркера Onboarding:orderer. Перечитываем десктоп (гранты) и
+      // переустанавливаем маршруты, затем ведём на первую доступную страницу
+      // стола (Каталог) — тот же канон refresh, что у EnableButton, без
+      // поллинга и без loadDesktop на каждом переходе.
+      await desktop.loadDesktop();
+      await loadExtensionRoutes('market', router);
+      const coopname = system.info?.coopname;
+      const target = desktop.firstAccessibleRoute('market');
+      void router.push(
+        target
+          ? coopname
+            ? { name: target.name, params: { coopname } }
+            : { name: target.name }
+          : { name: 'marketplace-catalog' },
+      );
     } else {
       // Sync ещё не подтянул запись из chain — даём UI шанс перезапросить
       // вручную через перезагрузку страницы.
@@ -114,9 +128,7 @@ onMounted(load);
 </script>
 
 <template lang="pug">
-q-page.mp-role-orderer.mp-member-cpp(role="region", aria-label="Подключение к Marketplace")
-  div.text-h5 Подключение к Столу заказов
-
+q-page.mp-role-orderer.mp-member-cpp(role="region", aria-label="Подключение к Столу заказов")
   q-inner-loading(:showing="loading && !state")
     q-spinner(color="primary", size="2em")
 
@@ -134,9 +146,9 @@ q-page.mp-role-orderer.mp-member-cpp(role="region", aria-label="Подключе
 
   OnboardingCPPGate(
     v-if="state && state.requires_gate && cppDocuments.length",
-    title="Стол заказов — пакет ЦПП",
+    title="Присоединение к Столу заказов",
     subtitle="Подключение пайщика к программе",
-    lead-text="Ознакомьтесь с офертой и Положением ЦПП «Стол заказов». При нажатии «Подписать» документ будет подписан вашим электронным ключом и отправлен в блокчейн.",
+    lead-text="Ознакомьтесь с Положением ЦПП «Стол заказов» и подпишите оферту на присоединение. При нажатии «Подписать оферту» документ будет подписан вашим электронным ключом и отправлен в блокчейн.",
     :documents="cppDocuments",
     confirm-label="Подписать оферту"
     :busy="loading",
