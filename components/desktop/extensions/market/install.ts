@@ -3,7 +3,6 @@ import { MarketplaceCatalogPage } from 'src/pages/Marketplace/MarketplaceCatalog
 import { CreateMarketplaceOfferPage } from 'src/pages/Marketplace/CreateMarketplaceOffer'
 import { MyOrdersPage } from 'src/pages/Marketplace/MyOrders'
 import { PvzListPage } from 'src/pages/Marketplace/PvzList'
-import { DesignSystemPage } from 'src/pages/Marketplace/DesignSystem'
 import { OperatorIssuancePage } from 'src/pages/Marketplace/OperatorIssuance'
 import { OrdererReadyToReceivePage } from 'src/pages/Marketplace/OrdererReadyToReceive'
 import { OrdererReturnClaimsPage } from 'src/pages/Marketplace/OrdererReturnClaims'
@@ -140,7 +139,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               component: markRaw(OrdererReadyToReceivePage),
               meta: {
                 title: 'Готово к получению',
-                icon: 'fa-solid fa-box-check',
+                icon: 'fa-solid fa-box-open',
                 requires: 'Issuance:read:own',
                 requiresAuth: true,
                 agreements: agreementsBase,
@@ -560,20 +559,9 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 icon: 'fa-solid fa-network-wired',
                 requires: 'Order:read:all',
                 requiresAuth: true,
-                agreements: agreementsBase,
-              },
-              children: [],
-            },
-            {
-              // Витрина дизайн-системы (Эпик 10): открыта совету и председателю.
-              path: 'design-system',
-              name: 'marketplace-design-system',
-              component: markRaw(DesignSystemPage),
-              meta: {
-                title: 'Дизайн-система',
-                icon: 'fa-solid fa-palette',
-                requires: 'Order:read:all',
-                requiresAuth: true,
+                // Скрыта из меню/поиска до публикации раздела (страница и
+                // маршрут остаются — снять hidden, когда раздел готов).
+                hidden: true,
                 agreements: agreementsBase,
               },
               children: [],

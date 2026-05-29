@@ -32,25 +32,20 @@ onMounted(async () => {
 
 <template lang="pug">
 q-page.mp-role-admin.mp-onboarding-l1(role="region", aria-label="Подключение ЦПП Стол заказов")
-  div.mp-onboarding-l1__header
-    div
-      div.text-h5 Подключение ЦПП «Стол заказов»
-      div.text-caption.mp-onboarding-l1__subtitle
-        | Целевая Потребительская Программа должна быть принята Советом кооператива, прежде чем пайщики смогут пользоваться Столом заказов.
-    q-space
-    q-chip(:color="chipColor", text-color="white")
-      q-icon(:name="chipIcon", left)
-      | {{ chipLabel }}
-
   div.mp-onboarding-l1__card
     CouncilOnboardingCard(
       :config="config",
       :loading="loading",
       title="Подключение ЦПП «Стол заказов»",
+      subtitle="Целевая Потребительская Программа должна быть принята Советом кооператива, прежде чем пайщики смогут пользоваться Столом заказов.",
       :completion-title="config.completionTitle",
       :completion-message="config.completionMessage",
       @step-submit="handleStepSubmit"
     )
+      template(#status)
+        q-chip(:color="chipColor", text-color="white")
+          q-icon(:name="chipIcon", left)
+          | {{ chipLabel }}
 </template>
 
 <style scoped lang="scss">
@@ -59,17 +54,6 @@ q-page.mp-role-admin.mp-onboarding-l1(role="region", aria-label="Подключ�
   display: flex;
   flex-direction: column;
   gap: var(--mp-space-md);
-
-  &__header {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--mp-space-md);
-  }
-
-  &__subtitle {
-    color: var(--mp-on-surface-muted);
-    max-width: 640px;
-  }
 
   &__card {
     max-width: 860px;

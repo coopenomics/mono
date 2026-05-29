@@ -44,7 +44,6 @@ import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSystemStore } from 'src/entities/System/model';
-import { useSessionStore } from 'src/entities/Session';
 import logoSvg from 'src/assets/logo.svg?raw';
 
 // Шаблон двухкорневой (кнопка + Teleport для затемнения), поэтому
@@ -56,34 +55,19 @@ defineOptions({ inheritAttrs: false });
 const router = useRouter();
 const desktop = useDesktopStore();
 const system = useSystemStore();
-const session = useSessionStore();
 
 const activeWorkspaceName = computed(() => desktop.activeWorkspaceName);
 const menuOpen = ref<boolean>(false);
 
-/**
- * Иерархия ролей: chairman ⊇ member ⊇ user.
- * Председатель видит столы любых ролей; член совета — user+member; пайщик — только user.
- * Workspace без meta.roles или с пустым массивом — публичный.
- */
-const ROLE_HIERARCHY = ['user', 'member', 'chairman'] as const;
-type RoleLevel = (typeof ROLE_HIERARCHY)[number];
-
-const currentRole = computed<RoleLevel>(() =>
-  session.isChairman ? 'chairman' : session.isMember ? 'member' : 'user',
+// Видимость столов — единый канон авторизации (grants) с fallback на legacy
+// roles, инкапсулированный в DesktopStore.isWorkspaceVisible. Не дублируем
+// здесь собственную role-логику: иначе grant-управляемые столы расширений
+// (напр. marketplace до завершения онбординга ЦПП) с пустым meta.roles
+// прошли бы legacy-ветку и были «видны всем», расходясь с CmdkMenu и
+// WorkspaceMenu, которые уже зовут этот канон.
+const workspaces = computed(() =>
+  desktop.workspaceMenus.filter((ws) => desktop.isWorkspaceVisible(ws)),
 );
-
-const workspaces = computed(() => {
-  const userLevel = ROLE_HIERARCHY.indexOf(currentRole.value);
-  return desktop.workspaceMenus.filter((ws) => {
-    const roles = ws.meta?.roles as string[] | undefined;
-    if (!roles || roles.length === 0) return true;
-    return roles.some((r) => {
-      const lvl = ROLE_HIERARCHY.indexOf(r as RoleLevel);
-      return lvl >= 0 && lvl <= userLevel;
-    });
-  });
-});
 
 /**
  * «ПК «ВОСХОД»» — собрано из системных vars:

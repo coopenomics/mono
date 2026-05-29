@@ -5,29 +5,40 @@ WindowLoader(
   :text="loadingText"
 )
 
-// Показываем поздравление если онбординг завершен
+// Показываем поздравление если онбординг завершен — канон-состояние
+// EmptyState (центрированная плитка-иконка + заголовок + тело), с
+// success-акцентом на иконке вместо «голой» крупной иконки в карточке.
 slot(name="completion" v-else-if="isCompleted")
   q-card(flat)
-    q-card-section.text-center
-      q-icon(name="celebration" size="64px" color="positive")
-      div.text-h5.q-mt-md {{ completionTitle }}
-      div.text-body1.q-mt-sm {{ completionMessage }}
+    EmptyState.council-onboarding__done(
+      :title="completionTitle"
+      :body="completionMessage"
+    )
+      template(#icon)
+        q-icon(name="celebration" size="26px")
 
 // Показываем шаги если онбординг не завершен и данные загружены
 q-card(v-else flat)
-  q-card-section.row.items-center.justify-between
-    div
-      div.text-h5 {{ title }}
+  q-card-section
+    div.text-h5 {{ title }}
+    div.text-caption.text-grey-7.q-mt-xs(v-if="subtitle") {{ subtitle }}
+    // Таймер и статус подключения в одном ряду — статус (напр. чип
+    // «Не подключено») переехал сюда из отдельной шапки страницы, чтобы
+    // не дублировать заголовок. Свой flex с gap, а не Quasar .row: у .row
+    // включён flex-wrap и при justify-between одиночный чип сваливался бы
+    // в начало новой строки.
+    div.council-onboarding__status-row(v-if="countdownLabel || hasStatusSlot")
       q-chip(
         v-if="countdownLabel"
         color="primary"
         text-color="white"
         icon="schedule"
       ) {{ countdownLabel }}
+      slot(name="status")
   q-separator
   q-card-section
     q-list(separator)
-      q-item(v-for="(step, index) in steps" :key="step.id")
+      q-item.council-onboarding__step(v-for="(step, index) in steps" :key="step.id")
         q-item-section
           div.row.items-center.q-gutter-sm
             q-icon(
@@ -36,16 +47,18 @@ q-card(v-else flat)
               size="22px"
             )
             div.text-subtitle1 {{ index + 1 }}. {{ step.title }}
-          div.text-caption.text-grey-7 {{ step.description }}
-          q-chip(
-            v-if="step.status === 'in_progress'"
-            dense
-            color="amber"
-            text-color="black"
-            icon="hourglass_top"
-            class="q-mt-xs"
-          ) Ожидаем решение совета
-        q-item-section(side)
+          div.text-caption.text-grey-7.q-mt-xs {{ step.description }}
+          // Чип-статус в блочной обёртке: q-item-section — flex-column со
+          // stretch, прямой q-chip растянулся бы на всю ширину. Обёртка
+          // тянется, а inline-flex чип внутри хагает контент слева.
+          div.q-mt-sm(v-if="step.status === 'in_progress'")
+            q-chip.q-ma-none(
+              dense
+              color="amber"
+              text-color="black"
+              icon="hourglass_top"
+            ) Ожидаем решение совета
+        q-item-section(side top)
           q-btn(
             v-if="showAction(index)"
             :disable="submitting"
@@ -82,8 +95,9 @@ q-card(v-else flat)
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, useSlots } from 'vue';
 import { DocumentHtmlReader } from 'src/shared/ui/DocumentHtmlReader';
+import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { WindowLoader } from 'src/shared/ui/Loader';
@@ -94,6 +108,7 @@ interface Props {
   loading?: boolean;
   loadingText?: string;
   title?: string;
+  subtitle?: string;
   completionTitle?: string;
   completionMessage?: string;
 }
@@ -109,6 +124,11 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   (e: 'step-submit', step: ICouncilOnboardingStep): void;
 }>();
+
+const slots = useSlots();
+// Есть ли переданный контент в слоте статуса — чтобы не рисовать пустой
+// статус-ряд, если расширение не передаёт чип подключения.
+const hasStatusSlot = computed(() => Boolean(slots.status));
 
 const submitting = ref(false);
 const dialogOpen = ref(false);
@@ -196,3 +216,37 @@ const submitStep = async () => {
   }
 };
 </script>
+
+<style scoped lang="scss">
+// Таймер + статус подключения в один ряд с предсказуемым зазором. Не Quasar
+// .row + .q-gutter: у чипов свои дефолтные margin'ы, из-за которых зазор
+// «прыгает»; здесь gap + сброс margin дают ровную линию и аккуратный перенос.
+.council-onboarding__status-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+
+  :deep(.q-chip) {
+    margin: 0;
+  }
+}
+
+// Воздух между шагами: q-list(separator) по умолчанию жмёт строки, а у нас
+// в шаге три яруса (заголовок / описание / чип) — без этого всё слипается.
+.council-onboarding__step {
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+
+// Success-акцент для завершённого онбординга: иконка-плитка EmptyState по
+// умолчанию приглушённая (surface-2 / ink-3) — для «подключено» красим её
+// в позитивный токен и чуть увеличиваем.
+.council-onboarding__done :deep(.empty__icon) {
+  width: 56px;
+  height: 56px;
+  background: var(--p-pos-soft);
+  color: var(--p-pos);
+}
+</style>
