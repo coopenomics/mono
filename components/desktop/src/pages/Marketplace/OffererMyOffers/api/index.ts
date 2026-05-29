@@ -40,28 +40,14 @@ export async function fetchMyOffers(
 }
 
 /**
- * Эпик 4 / Story 4.2: поставщик вручную запускает поставку по своему
- * предложению с открытой подпиской (cycle_type=open_subscription).
- *
- * Backend Resolver: marketplace-cycle.resolver.ts → marketplaceTriggerOpenSubscription
- * (guard 'Offer' 'update:own'). Нажатие = акцепт всего накопленного пула:
- * сервер формирует сводную заявку status=ACCEPTED и принимает заказы разом.
- * Ошибки backend (пустой пул, не open_subscription, не ACTIVE, чужой Offer)
- * приходят как GraphQL-исключения — пробрасываем их вызывающему компоненту.
+ * Поставщик возвращает снятое предложение на публикацию (WITHDRAWN →
+ * PENDING_MODERATION). Backend: marketplace-offer.resolver.ts →
+ * marketplaceRepublishOffer (guard 'Offer' 'update:own'). Снятие не удаляет
+ * данные оферты, поэтому пересоздавать ничего не нужно — она снова уходит на
+ * модерацию с прежним содержимым.
  */
-export async function triggerOpenSubscription(offer_id: string): Promise<void> {
-  await client.Mutation(Mutations.Marketplace.TriggerOpenSubscription.mutation, {
-    variables: { input: { offer_id } },
-  });
-}
-
-/**
- * Поставщик снимает своё предложение с публикации (статус → WITHDRAWN).
- * Backend: marketplace-offer.resolver.ts → marketplaceWithdrawOffer
- * (guard 'Offer' 'delete:own', ownership проверяется в сервисе).
- */
-export async function withdrawOffer(id: string): Promise<void> {
-  await client.Mutation(Mutations.Marketplace.WithdrawOffer.mutation, {
+export async function republishOffer(id: string): Promise<void> {
+  await client.Mutation(Mutations.Marketplace.RepublishOffer.mutation, {
     variables: { input: { id } },
   });
 }

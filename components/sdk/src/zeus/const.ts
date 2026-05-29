@@ -803,6 +803,9 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceRemoveFromWhitelistInput:{
 
 	},
+	MarketplaceRepublishOfferInput:{
+
+	},
 	MarketplaceReturnClaimDefectCategory: "enum" as const,
 	MarketplaceReturnClaimExpectedResolution: "enum" as const,
 	MarketplaceReturnClaimPhotoUploadInput:{
@@ -1410,6 +1413,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceReplaceAvailableItems:{
 			input:"ReplaceAvailableItemsInput"
+		},
+		marketplaceRepublishOffer:{
+			input:"MarketplaceRepublishOfferInput"
 		},
 		marketplaceRetryKUGeocode:{
 
@@ -4154,6 +4160,7 @@ export const ReturnTypes: Record<string,any> = {
 		warranty_days:"Int"
 	},
 	MarketplaceOfferImage:{
+		bucket_key:"String",
 		is_cover:"Boolean",
 		mime_type:"String",
 		sort_order:"Int",
@@ -4761,6 +4768,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceRemoveAvailableCategoryTypes:"Boolean",
 		marketplaceRemoveFromWhitelist:"Boolean",
 		marketplaceReplaceAvailableItems:"MarketplaceAvailableCategory",
+		marketplaceRepublishOffer:"MarketplaceOffer",
 		marketplaceRetryKUGeocode:"MarketplaceKUDetails",
 		marketplaceSetKUStatus:"MarketplaceKUDetails",
 		marketplaceSignAplReceptionAsChairman:"MarketplaceAplReceptionResult",

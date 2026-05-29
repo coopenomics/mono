@@ -1,77 +1,112 @@
 <script lang="ts" setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue';
-import { Dialog, Notify } from 'quasar';
-import { useRouter } from 'vue-router';
-import { Queries } from '@coopenomics/sdk';
-import { client } from 'src/shared/api/client';
+import { LocalStorage, Notify } from 'quasar';
+import { useRoute, useRouter } from 'vue-router';
 import { useSystemStore } from 'src/entities/System/model';
+import { useHeaderActions } from 'src/shared/hooks';
 import { marketplaceUnitShort } from 'src/shared/lib/consts';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
+import { BaseButton, BaseCard, BaseInput, EmptyState } from 'src/shared/ui/base';
+import CreateOfferHeaderButton from './CreateOfferHeaderButton.vue';
 import {
   CatalogOfferCard,
   type CatalogOffer,
   type CatalogOfferStatus,
 } from 'src/widgets/Marketplace/CatalogOfferCard';
-import {
-  OfferDetailsDialog,
-  type OfferDetail,
-} from 'src/widgets/Marketplace/OfferDetailsDialog';
-import { fetchMyOffers, triggerOpenSubscription, withdrawOffer } from '../api';
-import type {
-  MarketplaceOfferCycleTypeView,
-  MarketplaceOfferStatusView,
-  MarketplaceOfferView,
-} from '../types';
+import { fetchMyOffers, republishOffer } from '../api';
+import type { MarketplaceOfferStatusView, MarketplaceOfferView } from '../types';
 
 /**
  * Эпик 3 / Story 3.4: offerer-стол «Мои предложения».
  *
  * Поставщик видит свои Offer'ы во всех 4 статусах: PENDING_MODERATION,
- * ACTIVE, REJECTED, WITHDRAWN. Канон `CatalogOfferCard` с цветными chip'ами
- * для статуса. Client-side фильтр + поиск по названию (backend
+ * ACTIVE, REJECTED, WITHDRAWN. Канон `CatalogOfferCard` со статус-чипом.
+ * Client-side фильтр по статусу + поиск по названию (backend
  * `marketplaceListMyOffers` принимает только пагинацию).
  *
- * Polling 30s — Offer'ы меняют статус через модерацию председателя
- * (`marketplaceApproveOffer` / `marketplaceRejectOffer`).
+ * Клик по карточке/изображению редактируемой оферты ведёт сразу на страницу
+ * редактирования (`marketplace-edit-offer`) — там же статус, кнопки «Снять с
+ * публикации» и «Запустить поставку». Отдельного диалога-просмотра больше нет.
+ *
+ * Вёрстка по канону MONO Platform v2: инфо-баннер (`.banner`), дашборд-метрики
+ * (BaseCard), полноширинный поиск и канон-меню фильтра статусов (`.tabbar`).
+ * Фильтр deep-linkable через query `?status=` — на «На модерации» и т.п. можно
+ * перейти прямой ссылкой.
+ *
+ * Polling 30s — Offer'ы меняют статус через модерацию председателя.
+ * Подписанные URL картинок стабилизированы на бэкенде (окно getReadUrl),
+ * поэтому при перезагрузке списка изображения не перекачиваются.
  */
 
 const PAGE_SIZE = 50;
 const POLL_INTERVAL_MS = 30_000;
 
+// Подсказку-баннер можно скрыть навсегда (запоминаем в LocalStorage).
+const BANNER_LS_KEY = 'mp:my-offers:banner-dismissed';
+// Кол-во скелетон-карточек на время первичной загрузки.
+const SKELETON_COUNT = 8;
+
+// Открыть форму редактирования можно для активной, ожидающей модерации и
+// отклонённой оферты. Отклонённую правят, чтобы устранить причину и
+// переотправить на модерацию. Снятую (WITHDRAWN) backend на edit не пускает —
+// её сначала возвращают на публикацию кнопкой «Опубликовать снова».
+const EDITABLE_STATUSES: ReadonlyArray<MarketplaceOfferStatusView> = [
+  'PENDING_MODERATION',
+  'ACTIVE',
+  'REJECTED',
+];
+
 const router = useRouter();
+const route = useRoute();
 const { info } = useSystemStore();
+const { registerAction } = useHeaderActions();
 
 const items = ref<MarketplaceOfferView[]>([]);
-const totalCount = ref(0);
 const totalPages = ref(0);
 const currentPage = ref(1);
 const loading = ref(false);
 const statusFilter = ref<MarketplaceOfferStatusView | null>(null);
 const search = ref('');
-// id предложений, по которым прямо сейчас идёт запуск поставки — блокируем
-// повторное нажатие кнопки до ответа backend.
-const triggeringIds = ref<Set<string>>(new Set());
-const withdrawingIds = ref<Set<string>>(new Set());
+// Читаем синхронно: если подсказку уже скрыли — она не появляется вообще,
+// без мигания на onMounted.
+const bannerDismissed = ref(LocalStorage.getItem(BANNER_LS_KEY) === true);
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 
-// Справочник категорий (id → название) для детального просмотра.
-const categoryNames = ref<Record<number, string>>({});
+// Скелетон показываем только на первичной загрузке (список ещё пуст). При
+// polling'е данные обновляются молча — без дёргания спиннером.
+const showSkeleton = computed(() => loading.value && items.value.length === 0);
 
-// Детальный просмотр предложения — клик по карточке открывает модалку
-// с полным описанием и действиями (редактировать / снять / запустить).
-const detailsOpen = ref(false);
-const selectedId = ref<string | null>(null);
-const selected = computed<MarketplaceOfferView | null>(
-  () => items.value.find((o) => o.id === selectedId.value) ?? null,
-);
+function dismissBanner(): void {
+  bannerDismissed.value = true;
+  LocalStorage.set(BANNER_LS_KEY, true);
+}
 
-const STATUS_FILTER_OPTIONS: Array<{ label: string; value: MarketplaceOfferStatusView | null }> = [
-  { label: 'Все', value: null },
-  { label: 'На модерации', value: 'PENDING_MODERATION' },
-  { label: 'Опубликованы', value: 'ACTIVE' },
-  { label: 'Отклонены', value: 'REJECTED' },
-  { label: 'Сняты', value: 'WITHDRAWN' },
+// Фильтр статусов = канон-меню `.tabbar`. `slug` — стабильный ключ в URL
+// (`?status=moderation`), чтобы на любой фильтр можно было перейти ссылкой.
+const STATUS_FILTER_OPTIONS: Array<{
+  label: string;
+  value: MarketplaceOfferStatusView | null;
+  slug: string;
+}> = [
+  { label: 'Все', value: null, slug: 'all' },
+  { label: 'На модерации', value: 'PENDING_MODERATION', slug: 'moderation' },
+  { label: 'Опубликовано', value: 'ACTIVE', slug: 'published' },
+  { label: 'Отклонено', value: 'REJECTED', slug: 'rejected' },
+  { label: 'Сняты', value: 'WITHDRAWN', slug: 'withdrawn' },
 ];
+
+function isActiveTab(value: MarketplaceOfferStatusView | null): boolean {
+  return statusFilter.value === value;
+}
+
+function setFilter(option: (typeof STATUS_FILTER_OPTIONS)[number]): void {
+  if (statusFilter.value === option.value) return;
+  statusFilter.value = option.value;
+  const query = { ...route.query };
+  if (option.value) query.status = option.slug;
+  else delete query.status;
+  void router.replace({ query });
+}
 
 const STATUS_TO_CARD: Record<MarketplaceOfferStatusView, CatalogOfferStatus> = {
   PENDING_MODERATION: 'moderation',
@@ -92,7 +127,12 @@ const filtered = computed(() => {
   return list;
 });
 
-const cards = computed<Array<CatalogOffer & { domainStatus: MarketplaceOfferStatusView; cycleType: MarketplaceOfferCycleTypeView; rejectReason: string | null }>>(() =>
+type OfferCard = CatalogOffer & {
+  domainStatus: MarketplaceOfferStatusView;
+  rejectReason: string | null;
+};
+
+const cards = computed<OfferCard[]>(() =>
   filtered.value.map((o) => ({
     id: o.id,
     title: o.product_name,
@@ -103,124 +143,56 @@ const cards = computed<Array<CatalogOffer & { domainStatus: MarketplaceOfferStat
     unitLabel: marketplaceUnitShort(o.unit_of_measure),
     status: STATUS_TO_CARD[o.status],
     domainStatus: o.status,
-    cycleType: o.cycle_type,
     rejectReason: o.reject_reason ?? null,
   })),
 );
 
-const selectedDetail = computed<OfferDetail | null>(() => {
-  const o = selected.value;
-  if (!o) return null;
-  const catId = o.category_id != null ? Number(o.category_id) : null;
-  return {
-    id: o.id,
-    title: o.product_name,
-    description: o.description ?? null,
-    status: STATUS_TO_CARD[o.status],
-    unitCost: parseFloat(o.price_per_unit) || 0,
-    unitLabel: marketplaceUnitShort(o.unit_of_measure),
-    remainUnits: o.unlimited_flag ? undefined : o.quantity_available - o.quantity_blocked,
-    unlimited: o.unlimited_flag,
-    categoryName: catId != null ? categoryNames.value[catId] ?? null : null,
-    cycleType: o.cycle_type,
-    warrantyDays: o.warranty_days,
-    rejectReason: o.reject_reason,
-  };
-});
-
-// Поставщик может редактировать предложение во всех статусах кроме снятого.
-// Любая правка на бэкенде сбрасывает статус в PENDING_MODERATION (повторная
-// модерация в рамках того же предложения) — поэтому редактирование доступно
-// и на модерации, и у опубликованного, и у отклонённого.
-const canEdit = computed(
-  () => !!selected.value && selected.value.status !== 'WITHDRAWN',
-);
-const canWithdraw = computed(
-  () =>
-    !!selected.value &&
-    (selected.value.status === 'PENDING_MODERATION' || selected.value.status === 'ACTIVE'),
-);
-const canTrigger = computed(
-  () =>
-    !!selected.value &&
-    selected.value.status === 'ACTIVE' &&
-    selected.value.cycle_type === 'open_subscription',
-);
-
-function openDetails(id: string | number | undefined): void {
-  if (id == null) return;
-  selectedId.value = String(id);
-  detailsOpen.value = true;
-}
-
-function goEdit(): void {
-  const o = selected.value;
-  if (!o) return;
-  detailsOpen.value = false;
-  void router.push({
-    name: 'marketplace-edit-offer',
-    params: { coopname: info.coopname, offerId: o.id },
-  });
-}
-
-function onWithdraw(): void {
-  const o = selected.value;
-  if (!o) return;
-  Dialog.create({
-    title: 'Снять предложение с публикации?',
-    message:
-      `Предложение «${o.product_name}» перестанет показываться в каталоге и не будет ` +
-      'принимать новые заказы. Это действие можно отменить, только создав предложение заново.',
-    cancel: { label: 'Отмена', flat: true, noCaps: true },
-    ok: { label: 'Снять с публикации', color: 'negative', unelevated: true, noCaps: true },
-    persistent: true,
-  }).onOk(async () => {
-    withdrawingIds.value = new Set(withdrawingIds.value).add(o.id);
-    try {
-      await withdrawOffer(o.id);
-      detailsOpen.value = false;
-      Notify.create({ type: 'positive', message: 'Предложение снято с публикации.' });
-      await load(1, false);
-    } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
-      Notify.create({ type: 'negative', message });
-    } finally {
-      const next = new Set(withdrawingIds.value);
-      next.delete(o.id);
-      withdrawingIds.value = next;
-    }
-  });
-}
-
-async function loadCategories(): Promise<void> {
-  try {
-    const { [Queries.Marketplace.ListCategories.name]: cats } = await client.Query(
-      Queries.Marketplace.ListCategories.query,
-    );
-    const map: Record<number, string> = {};
-    for (const c of cats ?? []) map[Number(c.id)] = c.display_name;
-    categoryNames.value = map;
-  } catch {
-    // Справочник категорий не критичен — просто не покажем название.
-  }
-}
-
-const counts = computed(() => {
+const counters = computed(() => {
   const total = items.value.length;
   const active = items.value.filter((o) => o.status === 'ACTIVE').length;
   const pending = items.value.filter((o) => o.status === 'PENDING_MODERATION').length;
   const rejected = items.value.filter((o) => o.status === 'REJECTED').length;
-  return { total, active, pending, rejected };
+  return [
+    { label: 'Всего', value: total, cls: '' },
+    { label: 'Опубликовано', value: active, cls: 'text-positive' },
+    { label: 'На модерации', value: pending, cls: 'text-warning' },
+    { label: 'Отклонено', value: rejected, cls: 'text-negative' },
+  ];
 });
 
 const hasMore = computed(() => currentPage.value < totalPages.value);
+
+function goCard(card: OfferCard): void {
+  if (!EDITABLE_STATUSES.includes(card.domainStatus)) return;
+  void router.push({
+    name: 'marketplace-edit-offer',
+    params: { coopname: info.coopname, offerId: String(card.id) },
+  });
+}
+
+const republishing = ref<string | null>(null);
+
+// Снятое предложение возвращается на публикацию без пересоздания — backend
+// просто меняет статус на PENDING_MODERATION, данные оферты сохранены.
+async function onRepublish(card: OfferCard): Promise<void> {
+  republishing.value = String(card.id);
+  try {
+    await republishOffer(String(card.id));
+    Notify.create({ type: 'positive', message: 'Предложение возвращено на модерацию.' });
+    await load(1, false);
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    Notify.create({ type: 'negative', message });
+  } finally {
+    republishing.value = null;
+  }
+}
 
 async function load(page: number, append: boolean): Promise<void> {
   loading.value = true;
   try {
     const result = await fetchMyOffers({ page, limit: PAGE_SIZE });
     items.value = append ? [...items.value, ...result.items] : result.items;
-    totalCount.value = result.totalCount;
     totalPages.value = result.totalPages;
     currentPage.value = result.currentPage;
   } catch (e) {
@@ -237,48 +209,21 @@ function loadMore(): void {
   }
 }
 
-/**
- * Эпик 4 / Story 4.2: ручной запуск поставки по предложению с открытой
- * подпиской. Доступен только для ACTIVE-предложений с cycle_type=open_subscription.
- * Нажатие = акцепт всего накопленного пула заказов, действие необратимо —
- * поэтому подтверждаем через диалог. После успеха перезагружаем список
- * (остатки и счётчики меняются по итогам формирования партии).
- */
-function triggerSupply(offerId: string, title: string): void {
-  Dialog.create({
-    title: 'Запустить поставку?',
-    message:
-      `Все накопленные заказы по предложению «${title}» будут разом зафиксированы в одну ` +
-      'партию и приняты к поставке. Отменить запуск нельзя.',
-    cancel: { label: 'Отмена', flat: true, noCaps: true },
-    ok: { label: 'Запустить поставку', color: 'primary', unelevated: true, noCaps: true },
-    persistent: true,
-  }).onOk(() => {
-    void runTrigger(offerId);
-  });
-}
-
-async function runTrigger(offerId: string): Promise<void> {
-  triggeringIds.value = new Set(triggeringIds.value).add(offerId);
-  try {
-    await triggerOpenSubscription(offerId);
-    Notify.create({
-      type: 'positive',
-      message: 'Поставка запущена: заказы зафиксированы в партию и приняты.',
-    });
-    await load(1, false);
-  } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    Notify.create({ type: 'negative', message });
-  } finally {
-    const next = new Set(triggeringIds.value);
-    next.delete(offerId);
-    triggeringIds.value = next;
-  }
-}
-
 onMounted(async () => {
-  await Promise.all([load(1, false), loadCategories()]);
+  // Канон: «Создать предложение» живёт в правом верхнем углу шапки (телепорт),
+  // а не в меню. useHeaderActions сам снимет кнопку при уходе со страницы.
+  registerAction({
+    id: 'marketplace-create-offer',
+    component: CreateOfferHeaderButton,
+    order: 10,
+  });
+
+  // Восстанавливаем фильтр из URL — поддержка прямых ссылок на статус.
+  const slug = typeof route.query.status === 'string' ? route.query.status : null;
+  const fromUrl = STATUS_FILTER_OPTIONS.find((o) => o.slug === slug);
+  if (fromUrl) statusFilter.value = fromUrl.value;
+
+  await load(1, false);
   pollTimer = setInterval(() => {
     void load(1, false);
   }, POLL_INTERVAL_MS);
@@ -293,187 +238,169 @@ onUnmounted(() => {
 </script>
 
 <template lang="pug">
-q-page.mp-role-offerer.mp-my-offers(role="region", aria-label="Мои предложения")
-  div.mp-my-offers__header
-    div
-      div.text-h5 Мои предложения
-      div.text-caption.mp-my-offers__subtitle
-        | Все ваши предложения в кооперативе: на модерации, опубликованные, отклонённые и снятые. Чтобы опубликовать новое — перейдите на «Создать предложение».
-    q-space
-    q-btn(flat, dense, round, icon="fa-solid fa-rotate", :loading="loading", @click="load(1, false)", aria-label="Обновить")
-
-  div.row.q-col-gutter-md.mp-my-offers__counters
-    div.col-6.col-md-3
-      q-card(flat, bordered)
-        q-card-section
-          div.text-caption Всего
-          div.text-h6 {{ counts.total }}
-    div.col-6.col-md-3
-      q-card(flat, bordered)
-        q-card-section
-          div.text-caption Активных
-          div.text-h6.text-positive {{ counts.active }}
-    div.col-6.col-md-3
-      q-card(flat, bordered)
-        q-card-section
-          div.text-caption На модерации
-          div.text-h6.text-warning {{ counts.pending }}
-    div.col-6.col-md-3
-      q-card(flat, bordered)
-        q-card-section
-          div.text-caption Отклонены
-          div.text-h6.text-negative {{ counts.rejected }}
-
-  div.row.q-col-gutter-md.items-center
-    div.col-12.col-md-6
-      q-input(
-        v-model="search",
-        outlined,
-        dense,
-        clearable,
-        placeholder="Поиск по названию",
-        debounce="200"
+q-page.my-offers(role="region", aria-label="Мои предложения")
+  .my-offers__col
+    .banner.banner--info(v-if="!bannerDismissed")
+      q-icon.banner__icon(name="info", size="18px")
+      .banner__body
+        | Все ваши предложения в кооперативе и их статус. Нажмите на карточку,
+        | чтобы открыть предложение — изменить цену и остаток, отредактировать
+        | описание или снять с публикации. Цена и количество меняются без
+        | повторной модерации.
+      BaseButton.my-offers__banner-close(
+        variant="ghost",
+        icon-only,
+        size="sm",
+        aria-label="Скрыть подсказку",
+        @click="dismissBanner"
       )
-        template(#prepend)
-          q-icon(name="fa-solid fa-magnifying-glass")
-    div.col-12.col-md-6
-      q-btn-toggle(
-        v-model="statusFilter",
-        :options="STATUS_FILTER_OPTIONS",
-        no-caps,
-        spread,
-        unelevated,
-        toggle-color="primary"
-      )
+        template(#icon-left)
+          q-icon(name="close", size="16px")
 
-  q-inner-loading(:showing="loading && items.length === 0")
-    q-spinner(color="primary", size="2em")
+    .row.q-col-gutter-md
+      .col-6.col-md-3(v-for="kpi in counters", :key="kpi.label")
+        BaseCard
+          .text-caption.text-grey-7 {{ kpi.label }}
+          .text-h5(:class="kpi.cls") {{ kpi.value }}
 
-  div.mp-my-offers__empty(v-if="!loading && filtered.length === 0")
-    q-icon(name="fa-solid fa-clipboard-list", size="48px", color="grey-5")
-    div.text-subtitle1.q-mt-md Нет предложений в этом фильтре
-    div.text-caption Если у вас нет ни одного предложения — создайте первое на странице «Создать предложение».
+    BaseInput(v-model="search", placeholder="Поиск по названию", clearable)
+      template(#prepend)
+        q-icon(name="search")
 
-  div.mp-my-offers__hint(v-if="filtered.length > 0")
-    q-icon(name="fa-regular fa-hand-pointer", size="14px")
-    | Нажмите на карточку, чтобы открыть, отредактировать или снять предложение.
+    nav.tabbar.my-offers__tabs
+      .tabbar__tabs
+        button.tab(
+          v-for="opt in STATUS_FILTER_OPTIONS",
+          :key="opt.slug",
+          type="button",
+          :class="{ 'tab--active': isActiveTab(opt.value) }",
+          @click="setFilter(opt)"
+        )
+          span {{ opt.label }}
+      .tabbar__actions
+        BaseButton(
+          variant="ghost",
+          icon-only,
+          aria-label="Обновить",
+          :loading="loading",
+          @click="load(1, false)"
+        )
+          template(#icon-left)
+            q-icon(name="refresh", size="20px")
 
-  div.mp-my-offers__grid(v-if="filtered.length > 0")
-    div.mp-my-offers__cell(
-      v-for="card in cards",
-      :key="card.id"
+    //- Скелетон вместо спиннера: каркас карточек проявляется сразу, без
+    //- дёргания. Только на первичной загрузке — polling обновляет молча.
+    .row.q-col-gutter-md(v-if="showSkeleton")
+      .col-12.col-sm-6.col-md-4.col-lg-3(v-for="n in SKELETON_COUNT", :key="`skel-${n}`")
+        .my-offers__skel
+          .skel.my-offers__skel-media
+          .skel.skel--title.my-offers__skel-line.my-offers__skel-line--title
+          .skel.skel--num.my-offers__skel-line.my-offers__skel-line--price
+          .skel.skel--text.my-offers__skel-line.my-offers__skel-line--cat
+
+    EmptyState(
+      v-if="!loading && filtered.length === 0",
+      title="Нет предложений в этом фильтре",
+      body="Если у вас нет ни одного предложения — создайте первое на странице «Создать предложение»."
     )
-      CatalogOfferCard(:offer="card", @click="openDetails(card.id)")
-      div.mp-my-offers__reason(v-if="card.domainStatus === 'REJECTED' && card.rejectReason")
-        q-icon(name="fa-solid fa-circle-exclamation", color="negative", size="14px")
-        | {{ card.rejectReason }}
 
-  OfferDetailsDialog(v-model="detailsOpen", :offer="selectedDetail")
-    template(v-if="selected", v-slot:actions)
-      q-btn(
-        v-if="canWithdraw",
-        flat,
-        no-caps,
-        color="negative",
-        icon="fa-solid fa-eye-slash",
-        label="Снять",
-        :loading="withdrawingIds.has(selected.id)",
-        @click="onWithdraw"
-      )
-      q-btn(
-        v-if="canEdit",
-        flat,
-        no-caps,
-        color="primary",
-        icon="fa-solid fa-pen",
-        label="Редактировать",
-        @click="goEdit"
-      )
-      q-btn(
-        v-if="canTrigger",
-        unelevated,
-        no-caps,
-        color="primary",
-        icon="fa-solid fa-truck-fast",
-        label="Запустить поставку",
-        :loading="triggeringIds.has(selected.id)",
-        @click="triggerSupply(selected.id, selected.product_name)"
-      )
+    template(v-if="filtered.length > 0")
+      .row.q-col-gutter-md
+        .col-12.col-sm-6.col-md-4.col-lg-3(v-for="card in cards", :key="card.id")
+          CatalogOfferCard(:offer="card", @click="goCard(card)")
+          .my-offers__reason(v-if="card.domainStatus === 'REJECTED' && card.rejectReason")
+            q-icon(name="error", color="negative", size="16px")
+            span {{ card.rejectReason }}
+          .my-offers__action(v-if="card.domainStatus === 'WITHDRAWN'")
+            BaseButton(
+              variant="secondary",
+              size="sm",
+              block,
+              :loading="republishing === String(card.id)",
+              @click="onRepublish(card)"
+            )
+              template(#icon-left)
+                q-icon(name="publish", size="16px")
+              | Опубликовать снова
 
-  div.mp-my-offers__more(v-if="hasMore")
-    q-btn(
-      flat,
-      no-caps,
-      :loading="loading",
-      label="Показать ещё",
-      @click="loadMore"
-    )
+      .my-offers__more(v-if="hasMore")
+        BaseButton(variant="ghost", :loading="loading", @click="loadMore") Показать ещё
 </template>
 
 <style scoped lang="scss">
-.mp-my-offers {
-  padding: var(--mp-space-lg);
-  display: flex;
-  flex-direction: column;
-  gap: var(--mp-space-md);
+.my-offers {
+  padding: var(--p-6, 24px) var(--p-4, 16px);
 
-  &__header {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--mp-space-md);
-  }
-
-  &__subtitle {
-    color: var(--mp-on-surface-muted);
-    max-width: 720px;
-  }
-
-  &__counters {
-    margin-bottom: var(--mp-space-xs);
-  }
-
-  &__grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: var(--mp-space-md);
-  }
-
-  &__cell {
+  &__col {
+    max-width: 1120px;
+    margin: 0 auto;
     display: flex;
     flex-direction: column;
-    gap: var(--mp-space-xs);
+    gap: var(--p-4, 16px);
   }
+
+  // Канон-`.tabbar` рассчитан на полноширинную под-навигацию с большим
+  // боковым padding'ом; внутри центрированной колонки выравниваем табы по её
+  // краю, сохраняя нижнюю границу и активный underline.
+  &__tabs {
+    :deep(.tabbar__tabs) {
+      padding: 0;
+    }
+    :deep(.tabbar__actions) {
+      padding-right: 0;
+    }
+  }
+
+  // Крестик скрытия подсказки — прижат к правому краю баннера.
+  &__banner-close {
+    flex-shrink: 0;
+    align-self: flex-start;
+    margin: -4px -4px 0 0;
+  }
+
+  // Скелетон-карточка повторяет форму CatalogOfferCard: медиа сверху,
+  // под ней — название, цена и категория.
+  &__skel {
+    border: 1px solid var(--p-line);
+    border-radius: var(--p-r-md, 12px);
+    overflow: hidden;
+    padding-bottom: var(--p-3, 12px);
+  }
+
+  &__skel-media {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    border-radius: 0;
+  }
+
+  &__skel-line {
+    margin-top: var(--p-3, 12px);
+    margin-left: var(--p-3, 12px);
+    margin-right: var(--p-3, 12px);
+  }
+
+  &__skel-line--title { width: 70%; }
+  &__skel-line--price { width: 40%; }
+  &__skel-line--cat { width: 85%; }
 
   &__reason {
     display: flex;
-    gap: var(--mp-space-xs);
     align-items: center;
-    color: var(--mp-on-surface-muted);
-    font-size: 12px;
-    padding: 0 var(--mp-space-xs);
+    gap: 6px;
+    margin-top: var(--p-2, 8px);
+    font-size: var(--p-fs-meta, 12px);
+    line-height: 1.4;
+    color: var(--p-ink-2);
   }
 
-  &__hint {
-    display: flex;
-    align-items: center;
-    gap: var(--mp-space-xs);
-    color: var(--mp-on-surface-muted);
-    font-size: 12px;
-  }
-
-  &__empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: var(--mp-space-xl) 0;
-    color: var(--mp-on-surface-muted);
+  &__action {
+    margin-top: var(--p-2, 8px);
   }
 
   &__more {
     display: flex;
     justify-content: center;
-    padding: var(--mp-space-md) 0;
+    padding: var(--p-4, 16px) 0;
   }
 }
 </style>

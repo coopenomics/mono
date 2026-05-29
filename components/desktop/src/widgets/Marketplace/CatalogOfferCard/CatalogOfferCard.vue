@@ -22,11 +22,15 @@
           :name="i"
           class="mp-catalog-offer-card__slide"
         >
-          <q-img :src="img" :alt="offer.title" fit="cover" />
+          <!-- no-spinner: подписанный URL стабилизирован на бэкенде (окно
+               getReadUrl), src не меняется при polling — лоудер только мигал бы.
+               Клик по изображению = клик по карточке (стрелки карусели гасит
+               @click.stop на самой ленте). -->
+          <q-img :src="img" :alt="offer.title" fit="cover" no-spinner @click="onClick" />
         </q-carousel-slide>
       </q-carousel>
       <div v-else class="mp-catalog-offer-card__placeholder">
-        <q-icon name="fa-solid fa-image" size="48px" color="grey-5" />
+        <q-icon name="image" size="48px" color="grey-5" />
       </div>
       <span
         v-if="status"

@@ -13,15 +13,22 @@ export type MarketplaceOfferCycleType =
 
 export type MarketplaceUnitOfMeasure = 'piece' | 'kg' | 'liter' | 'pack';
 
-/** Новое загружаемое изображение (содержимое в base64 + MIME). */
+/**
+ * Элемент набора изображений в payload. ЛИБО новый файл (base64 + mime_type),
+ * ЛИБО ссылка на уже сохранённое изображение (bucket_key — сохранить его в
+ * наборе). Порядок в массиве = порядок показа, первый — обложка.
+ */
 export interface MarketplaceOfferImageUpload {
-  base64: string;
-  mime_type: string;
+  base64?: string;
+  mime_type?: string;
+  bucket_key?: string;
 }
 
 /** Уже сохранённое изображение (приходит с backend как подписанный URL). */
 export interface MarketplaceOfferImageView {
   url: string;
+  /** Стабильный ключ хранилища — для сохранения изображения при правке набора. */
+  bucket_key: string;
   mime_type: string;
   sort_order: number;
   is_cover: boolean;
@@ -69,9 +76,10 @@ export interface MarketplaceCreateOfferPayload {
   min_threshold: number | null;
   warranty_days: number;
   /**
-   * Изображения товара (base64). При создании — набор новых файлов (может
-   * быть пустым). При обновлении — если передано, полностью заменяет текущий
-   * набор; если опущено (undefined) — изображения не трогаются.
+   * Итоговый упорядоченный набор изображений (первый — обложка). При создании —
+   * только новые файлы (base64). При обновлении — смесь: уже сохранённые
+   * (bucket_key, остаются) + новые (base64). Если опущено (undefined) —
+   * изображения не трогаются и оффер не уходит на повторную модерацию.
    */
   images?: MarketplaceOfferImageUpload[];
 }
@@ -113,5 +121,6 @@ export interface MarketplaceOfferEditPrefill {
   min_threshold: number | null;
   warranty_days: number;
   status: 'PENDING_MODERATION' | 'ACTIVE' | 'REJECTED' | 'WITHDRAWN';
+  reject_reason?: string | null;
   images?: MarketplaceOfferImageView[];
 }

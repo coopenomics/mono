@@ -13,6 +13,14 @@ export class MarketplaceOfferImageDTO {
   })
   public readonly url!: string;
 
+  @Field(() => String, {
+    description:
+      'Ключ объекта в хранилище — стабильный идентификатор изображения. ' +
+      'Передаётся обратно при редактировании, чтобы сохранить уже загруженное ' +
+      'изображение (в отличие от base64 для новых файлов).',
+  })
+  public readonly bucket_key!: string;
+
   @Field(() => String, { description: 'MIME-тип изображения.' })
   public readonly mime_type!: string;
 

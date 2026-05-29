@@ -8261,6 +8261,11 @@ type MarketplaceOffer {
 }
 
 type MarketplaceOfferImage {
+  """
+  Ключ объекта в хранилище — стабильный идентификатор изображения. Передаётся обратно при редактировании, чтобы сохранить уже загруженное изображение (в отличие от base64 для новых файлов).
+  """
+  bucket_key: String!
+
   """Является ли изображение обложкой карточки."""
   is_cover: Boolean!
 
@@ -8275,11 +8280,14 @@ type MarketplaceOfferImage {
 }
 
 input MarketplaceOfferImageUploadInput {
-  """Содержимое изображения, закодированное в base64."""
-  base64: String!
+  """Содержимое нового изображения в base64."""
+  base64: String
 
-  """MIME-тип изображения (image/jpeg, image/png либо image/webp)."""
-  mime_type: String!
+  """Ключ уже сохранённого изображения — сохранить его в наборе."""
+  bucket_key: String
+
+  """MIME-тип нового изображения (image/jpeg, image/png либо image/webp)."""
+  mime_type: String
 }
 
 type MarketplaceOfferPaginationResult {
@@ -8648,6 +8656,10 @@ input MarketplaceRejectReturnRemoteInput {
 input MarketplaceRemoveFromWhitelistInput {
   """eosio::name пайщика-поставщика"""
   member_account: String!
+}
+
+input MarketplaceRepublishOfferInput {
+  id: String!
 }
 
 type MarketplaceRequest {
@@ -10872,6 +10884,11 @@ type Mutation {
   Требуемые роли: chairman. 
   """
   marketplaceReplaceAvailableItems(input: ReplaceAvailableItemsInput!): [MarketplaceAvailableCategory!]!
+
+  """
+  Поставщик возвращает снятый Offer на публикацию (статус → PENDING_MODERATION)
+  """
+  marketplaceRepublishOffer(input: MarketplaceRepublishOfferInput!): MarketplaceOffer!
 
   """
   Повторно запускает геокодинг адреса ПВЗ.

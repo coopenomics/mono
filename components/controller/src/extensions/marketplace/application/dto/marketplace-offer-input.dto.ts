@@ -25,15 +25,27 @@ const UNITS = ['piece', 'kg', 'liter', 'pack'] as const;
 
 @InputType('MarketplaceOfferImageUploadInput')
 export class MarketplaceOfferImageUploadInputDTO {
-  @Field({ description: 'Содержимое изображения, закодированное в base64.' })
+  // Элемент набора изображений — ЛИБО новый файл (base64 + mime_type), ЛИБО
+  // ссылка на уже сохранённое изображение по bucket_key (чтобы сохранить его
+  // при пересборке набора). Порядок в массиве = порядок показа, первый —
+  // обложка. Согласованность (ровно одно из двух) проверяется в сервисе.
+  @Field({ nullable: true, description: 'Содержимое нового изображения в base64.' })
+  @IsOptional()
   @IsString()
   @IsNotEmpty()
-  public readonly base64!: string;
+  public readonly base64?: string;
 
-  @Field({ description: 'MIME-тип изображения (image/jpeg, image/png либо image/webp).' })
+  @Field({ nullable: true, description: 'MIME-тип нового изображения (image/jpeg, image/png либо image/webp).' })
+  @IsOptional()
   @IsString()
   @IsNotEmpty()
-  public readonly mime_type!: string;
+  public readonly mime_type?: string;
+
+  @Field({ nullable: true, description: 'Ключ уже сохранённого изображения — сохранить его в наборе.' })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  public readonly bucket_key?: string;
 }
 
 @InputType('MarketplaceCreateOfferInput')
@@ -243,6 +255,13 @@ export class MarketplaceUpdateOfferInputDTO {
 
 @InputType('MarketplaceWithdrawOfferInput')
 export class MarketplaceWithdrawOfferInputDTO {
+  @Field(() => String)
+  @IsString()
+  public id!: string;
+}
+
+@InputType('MarketplaceRepublishOfferInput')
+export class MarketplaceRepublishOfferInputDTO {
   @Field(() => String)
   @IsString()
   public id!: string;

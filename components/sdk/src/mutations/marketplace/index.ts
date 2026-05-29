@@ -70,3 +70,5 @@ export * as RejectOffer from './rejectOffer'
 export * as UpdateOffer from './updateOffer'
 /** Поставщик отзывает свой offer (любой статус, кроме APPROVED/REJECTED) */
 export * as WithdrawOffer from './withdrawOffer'
+/** Поставщик возвращает снятый offer на публикацию (WITHDRAWN → PENDING_MODERATION) */
+export * as RepublishOffer from './republishOffer'

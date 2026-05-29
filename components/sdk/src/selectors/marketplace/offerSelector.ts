@@ -33,6 +33,7 @@ const rawOfferSelector = {
   updated_at: true,
   images: {
     url: true,
+    bucket_key: true,
     mime_type: true,
     sort_order: true,
     is_cover: true,

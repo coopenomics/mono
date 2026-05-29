@@ -5,7 +5,8 @@
  *   - create: статус PENDING_MODERATION; rate-limit 10/час; неизвестная
  *     категория → 400; валидация product_name/description/unit/cycle/price;
  *     unlimited_flag=true обнуляет quantity_available;
- *   - update: ownership check (403 чужому); REJECTED/WITHDRAWN → 403;
+ *   - update: ownership check (403 чужому); WITHDRAWN → 403; REJECTED →
+ *     правка проходит и уходит на повторную модерацию;
  *     reset status в PENDING_MODERATION; валидация полей;
  *   - withdraw: ownership check; статус → WITHDRAWN; блок при активных
  *     ордерах (stub false до Эпика 4);
@@ -362,7 +363,7 @@ describe('MarketplaceOfferService.update', () => {
     );
   });
 
-  it('update WITHDRAWN/REJECTED → 403', async () => {
+  it('update WITHDRAWN → 403 (сначала republish)', async () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
     repo.findById.mockResolvedValue(makeOffer({ status: 'WITHDRAWN' }));
@@ -370,6 +371,42 @@ describe('MarketplaceOfferService.update', () => {
 
     await expect(service.update('offer-1', 'alice', { product_name: 'X' })).rejects.toThrow(
       ForbiddenException
+    );
+  });
+
+  it('update REJECTED → правка проходит и уходит на повторную модерацию (status PENDING, причина очищена)', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.findById.mockResolvedValue(
+      makeOffer({ status: 'REJECTED', reject_reason: 'Плохое фото', rejected_by: 'chairman' })
+    );
+    repo.applyUpdate.mockResolvedValue(makeOffer({ status: 'PENDING_MODERATION' }));
+    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+
+    const result = await service.update('offer-1', 'alice', { product_name: 'Исправлено' });
+    expect(repo.applyUpdate).toHaveBeenCalledWith(
+      'offer-1',
+      expect.objectContaining({
+        product_name: 'Исправлено',
+        status: 'PENDING_MODERATION',
+        reject_reason: null,
+        rejected_by: null,
+      })
+    );
+    expect(result.status).toBe('PENDING_MODERATION');
+  });
+
+  it('update REJECTED только цены → всё равно уходит на повторную модерацию', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.findById.mockResolvedValue(makeOffer({ status: 'REJECTED' }));
+    repo.applyUpdate.mockResolvedValue(makeOffer({ status: 'PENDING_MODERATION' }));
+    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+
+    await service.update('offer-1', 'alice', { price_per_unit: '99.0000' });
+    expect(repo.applyUpdate).toHaveBeenCalledWith(
+      'offer-1',
+      expect.objectContaining({ status: 'PENDING_MODERATION' })
     );
   });
 
@@ -384,18 +421,21 @@ describe('MarketplaceOfferService.update', () => {
     );
   });
 
-  it('unlimited_flag=true в patch обнуляет quantity_available', async () => {
+  it('unlimited_flag=true в patch обнуляет quantity_available и НЕ сбрасывает статус (операционное поле)', async () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
     repo.findById.mockResolvedValue(makeOffer({ status: 'ACTIVE' }));
-    repo.applyUpdate.mockResolvedValue(makeOffer({ unlimited_flag: true, quantity_available: 0 }));
+    repo.applyUpdate.mockResolvedValue(makeOffer({ status: 'ACTIVE', unlimited_flag: true, quantity_available: 0 }));
     const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
 
     await service.update('offer-1', 'alice', { unlimited_flag: true });
     expect(repo.applyUpdate).toHaveBeenCalledWith(
       'offer-1',
-      expect.objectContaining({ unlimited_flag: true, quantity_available: 0, status: 'PENDING_MODERATION' })
+      expect.objectContaining({ unlimited_flag: true, quantity_available: 0 })
     );
+    // unlimited_flag — операционное поле: статус активной оферты не трогаем.
+    const patchArg = repo.applyUpdate.mock.calls[0][1];
+    expect(patchArg).not.toHaveProperty('status');
   });
 
   it('update с invalid category → 400', async () => {
@@ -407,6 +447,102 @@ describe('MarketplaceOfferService.update', () => {
     await expect(service.update('offer-1', 'alice', { category_id: 99 })).rejects.toThrow(
       BadRequestException
     );
+  });
+});
+
+describe('MarketplaceOfferService.update — поле-зависимая модерация', () => {
+  // Операционные поля (цена, остаток, безлимит) поставщик меняет без участия
+  // председателя: активная оферта остаётся ACTIVE, на повторную модерацию не
+  // уходит. Контентные поля (название/описание/категория/фото/единица/цикл)
+  // снова шлют на модерацию.
+
+  it('правка только цены на ACTIVE → статус НЕ сбрасывается, approve-поля не трогаются', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.findById.mockResolvedValue(makeOffer({ status: 'ACTIVE' }));
+    repo.applyUpdate.mockResolvedValue(makeOffer({ status: 'ACTIVE', price_per_unit: '99.0000' }));
+    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+
+    const result = await service.update('offer-1', 'alice', { price_per_unit: '99.00' });
+    expect(result.status).toBe('ACTIVE');
+    const patchArg = repo.applyUpdate.mock.calls[0][1];
+    expect(patchArg).not.toHaveProperty('status');
+    expect(patchArg).not.toHaveProperty('approved_by');
+    expect(patchArg).not.toHaveProperty('reject_reason');
+  });
+
+  it('правка только количества на ACTIVE → статус НЕ сбрасывается', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.findById.mockResolvedValue(makeOffer({ status: 'ACTIVE' }));
+    repo.applyUpdate.mockResolvedValue(makeOffer({ status: 'ACTIVE', quantity_available: 250 }));
+    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+
+    await service.update('offer-1', 'alice', { quantity_available: 250 });
+    expect(repo.applyUpdate.mock.calls[0][1]).not.toHaveProperty('status');
+  });
+
+  it('правка цены + количества вместе на ACTIVE → статус НЕ сбрасывается', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.findById.mockResolvedValue(makeOffer({ status: 'ACTIVE' }));
+    repo.applyUpdate.mockResolvedValue(makeOffer({ status: 'ACTIVE' }));
+    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+
+    await service.update('offer-1', 'alice', { price_per_unit: '12.00', quantity_available: 5 });
+    expect(repo.applyUpdate.mock.calls[0][1]).not.toHaveProperty('status');
+  });
+
+  it('правка описания на ACTIVE → статус сбрасывается в PENDING_MODERATION', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.findById.mockResolvedValue(makeOffer({ status: 'ACTIVE' }));
+    repo.applyUpdate.mockResolvedValue(makeOffer({ status: 'PENDING_MODERATION' }));
+    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+
+    await service.update('offer-1', 'alice', { description: 'Новое описание' });
+    expect(repo.applyUpdate).toHaveBeenCalledWith(
+      'offer-1',
+      expect.objectContaining({ description: 'Новое описание', status: 'PENDING_MODERATION', reject_reason: null })
+    );
+  });
+
+  it('смена единицы измерения на ACTIVE → статус сбрасывается (контентное поле)', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.findById.mockResolvedValue(makeOffer({ status: 'ACTIVE' }));
+    repo.applyUpdate.mockResolvedValue(makeOffer({ status: 'PENDING_MODERATION' }));
+    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+
+    await service.update('offer-1', 'alice', { unit_of_measure: 'liter' });
+    expect(repo.applyUpdate.mock.calls[0][1]).toMatchObject({ status: 'PENDING_MODERATION' });
+  });
+
+  it('замена изображений на ACTIVE → статус сбрасывается (контентное изменение)', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    const images = {
+      putImage: jest.fn().mockResolvedValue({
+        bucket_key: 'offers/voskhod/alice/h.jpg',
+        content_hash: 'h',
+        mime_type: 'image/jpeg',
+      }),
+      getReadUrl: jest.fn().mockResolvedValue('https://signed.example/img'),
+      deleteImage: jest.fn().mockResolvedValue(undefined),
+    };
+    repo.findById.mockResolvedValue(makeOffer({ status: 'ACTIVE' }));
+    repo.applyUpdate.mockResolvedValue(makeOffer({ status: 'PENDING_MODERATION' }));
+    const service = new MarketplaceOfferService(
+      repo,
+      cats,
+      makeOrderRepo(),
+      images as unknown as import('~/extensions/marketplace/application/services/marketplace-offer-images.service').MarketplaceOfferImagesService
+    );
+
+    await service.update('offer-1', 'alice', {}, [
+      { base64: Buffer.from('a').toString('base64'), mime_type: 'image/jpeg' },
+    ]);
+    expect(repo.applyUpdate.mock.calls[0][1]).toMatchObject({ status: 'PENDING_MODERATION' });
   });
 });
 
@@ -464,6 +600,47 @@ describe('MarketplaceOfferService.withdraw', () => {
     // ConflictException заводится при `hasActiveOrders === true` — будет
     // покрыт интеграционным тестом после merge Story 4.x.
     expect(ConflictException).toBeDefined();
+  });
+});
+
+describe('MarketplaceOfferService.republish', () => {
+  it('republish снятого → status PENDING_MODERATION (без пересоздания)', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.findById.mockResolvedValue(makeOffer({ status: 'WITHDRAWN' }));
+    repo.applyUpdate.mockResolvedValue(makeOffer({ status: 'PENDING_MODERATION' }));
+    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+
+    const result = await service.republish('offer-1', 'alice');
+    expect(repo.applyUpdate).toHaveBeenCalledWith('offer-1', { status: 'PENDING_MODERATION' });
+    expect(result.status).toBe('PENDING_MODERATION');
+  });
+
+  it('republish чужого → 403', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.findById.mockResolvedValue(makeOffer({ supplier_account: 'alice', status: 'WITHDRAWN' }));
+    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+
+    await expect(service.republish('offer-1', 'mallory')).rejects.toThrow(ForbiddenException);
+  });
+
+  it('republish не-снятого (ACTIVE) → 403', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.findById.mockResolvedValue(makeOffer({ status: 'ACTIVE' }));
+    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+
+    await expect(service.republish('offer-1', 'alice')).rejects.toThrow(ForbiddenException);
+  });
+
+  it('republish несуществующего → 404', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.findById.mockResolvedValue(null);
+    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+
+    await expect(service.republish('offer-x', 'alice')).rejects.toThrow(NotFoundException);
   });
 });
 
@@ -788,5 +965,73 @@ describe('MarketplaceOfferService — изображения', () => {
       )
     ).rejects.toThrow('db down');
     expect(images.deleteImage).toHaveBeenCalledTimes(1);
+  });
+
+  it('update: сохраняет существующее по bucket_key и добавляет новое base64 (порядок = показ)', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    const images = imagesMock();
+    const existing = {
+      bucket_key: 'offers/voskhod/alice/keep.jpg',
+      content_hash: 'keep',
+      mime_type: 'image/jpeg',
+    };
+    repo.findById.mockResolvedValue(makeOffer({ status: 'ACTIVE', images: [existing] }));
+    repo.applyUpdate.mockImplementation((_id, patch) => Promise.resolve(makeOffer(patch as object)));
+    const service = new MarketplaceOfferService(
+      repo,
+      cats,
+      makeOrderRepo(),
+      images as unknown as import('~/extensions/marketplace/application/services/marketplace-offer-images.service').MarketplaceOfferImagesService
+    );
+
+    const result = await service.update('offer-1', 'alice', {}, [
+      { bucket_key: existing.bucket_key },
+      { base64: Buffer.from('new').toString('base64'), mime_type: 'image/png' },
+    ]);
+
+    // Существующее не перезагружается, новое — одно.
+    expect(images.putImage).toHaveBeenCalledTimes(1);
+    expect(result.images).toHaveLength(2);
+    expect(result.images[0].bucket_key).toBe(existing.bucket_key);
+    expect(result.images[1].mime_type).toBe('image/png');
+  });
+
+  it('update: удаление существующего = просто не передаём его bucket_key (набор сокращается)', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    const images = imagesMock();
+    const a = { bucket_key: 'offers/voskhod/alice/a.jpg', content_hash: 'a', mime_type: 'image/jpeg' };
+    const b = { bucket_key: 'offers/voskhod/alice/b.jpg', content_hash: 'b', mime_type: 'image/jpeg' };
+    repo.findById.mockResolvedValue(makeOffer({ status: 'ACTIVE', images: [a, b] }));
+    repo.applyUpdate.mockImplementation((_id, patch) => Promise.resolve(makeOffer(patch as object)));
+    const service = new MarketplaceOfferService(
+      repo,
+      cats,
+      makeOrderRepo(),
+      images as unknown as import('~/extensions/marketplace/application/services/marketplace-offer-images.service').MarketplaceOfferImagesService
+    );
+
+    const result = await service.update('offer-1', 'alice', {}, [{ bucket_key: b.bucket_key }]);
+    expect(result.images).toHaveLength(1);
+    expect(result.images[0].bucket_key).toBe(b.bucket_key);
+    expect(images.putImage).not.toHaveBeenCalled();
+  });
+
+  it('update: ссылка на чужой/неизвестный bucket_key → 400', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    const images = imagesMock();
+    repo.findById.mockResolvedValue(makeOffer({ status: 'ACTIVE', images: [] }));
+    const service = new MarketplaceOfferService(
+      repo,
+      cats,
+      makeOrderRepo(),
+      images as unknown as import('~/extensions/marketplace/application/services/marketplace-offer-images.service').MarketplaceOfferImagesService
+    );
+
+    await expect(
+      service.update('offer-1', 'alice', {}, [{ bucket_key: 'offers/voskhod/mallory/stolen.jpg' }])
+    ).rejects.toThrow(BadRequestException);
   });
 });

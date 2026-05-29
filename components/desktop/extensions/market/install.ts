@@ -230,6 +230,9 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               children: [],
             },
             {
+              // Скрыт из меню (hidden) — кнопка «Создать предложение» живёт по
+              // канону в правом верхнем углу шапки (телепорт через
+              // useHeaderActions со стола «Мои предложения»).
               path: 'create-offer',
               name: 'marketplace-create-offer',
               component: markRaw(CreateMarketplaceOfferPage),
@@ -239,6 +242,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 requires: 'Offer:read',
                 requiresAuth: true,
                 agreements: agreementsBase,
+                hidden: true,
               },
               children: [],
             },

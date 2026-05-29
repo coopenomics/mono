@@ -1,22 +1,58 @@
 <template lang="pug">
 q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание предложения')
   .offer-wizard__col
-    header.offer-wizard__head
-      h1.offer-wizard__title {{ pageTitle }}
-      p.offer-wizard__intro
-        | Заполните карточку товара по шагам. После публикации предложение
-        | уходит на модерацию председателю — до одобрения оно не появится в каталоге.
+    //- Заголовок страницы — в топбаре (route.meta.title), на странице не
+    //- дублируется. Верхняя строка режима редактирования: статус слева,
+    //- операционные действия (снять / запустить поставку) — в правом углу.
+    .offer-wizard__manage(v-if='isEdit && currentStatus')
+      BaseChip(:variant='statusVariant', size='lg') {{ statusLabel }}
+      q-space
+      BaseButton(
+        v-if='canTrigger',
+        variant='secondary',
+        :loading='triggering',
+        @click='onTrigger'
+      )
+        q-icon(name='local_shipping', size='16px')
+        span.q-ml-sm Запустить поставку
+      BaseButton(
+        v-if='canWithdraw',
+        variant='danger',
+        :loading='withdrawing',
+        @click='onWithdraw'
+      )
+        q-icon(name='visibility_off', size='16px')
+        span.q-ml-sm Снять с публикации
 
-    q-banner.offer-wizard__notice(v-if='isEdit', rounded, dense)
-      template(#avatar)
-        q-icon(name='fa-solid fa-circle-info', color='warning')
-      | После сохранения предложение снова отправится на модерацию — до одобрения
-      | оно будет недоступно в каталоге.
+    //- Отклонённая оферта: показываем причину председателя. Поставщик правит
+    //- карточку и переотправляет — пересоздавать заново не нужно.
+    .banner.banner--neg(v-if='isEdit && currentStatus === "REJECTED"')
+      q-icon.banner__icon(name='cancel', size='18px')
+      .banner__body
+        .text-weight-medium Предложение отклонено модератором
+        .q-mt-xs(v-if='rejectReason') Причина: {{ rejectReason }}
+        .q-mt-xs Исправьте указанное и нажмите «Отправить на модерацию» — оферта уйдёт на повторную проверку с тем же содержимым.
 
-    q-inner-loading(:showing='prefilling')
-      q-spinner(color='primary', size='2em')
+    //- Канон-карточка информации (одна на страницу): подсказка по заполнению +
+    //- правила модерации. Для отклонённой показываем баннер причины выше — этот
+    //- не дублируем.
+    .banner.banner--info(v-if='currentStatus !== "REJECTED"')
+      q-icon.banner__icon(name='info', size='18px')
+      .banner__body {{ infoText }}
+
+    //- Скелетон формы на время дозагрузки оферты в режиме редактирования:
+    //- степпер монтируем только когда данные готовы, чтобы поля не
+    //- «дозаполнялись» на глазах (без дёргания). В режиме создания prefilling
+    //- всегда false — степпер рендерится сразу.
+    .offer-wizard__skel(v-if='prefilling')
+      .skel.skel--title.offer-wizard__skel-title
+      .skel.skel--text.offer-wizard__skel-line
+      .skel.skel--text.offer-wizard__skel-line.offer-wizard__skel-line--wide
+      .skel.skel--text.offer-wizard__skel-line.offer-wizard__skel-line--narrow
+      .skel.skel--text.offer-wizard__skel-line
 
     VerticalStepper(
+      v-else,
       :steps='steps',
       :active-key='activeKey',
       :completed='completedKeys',
@@ -198,21 +234,12 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
         .offer-wizard__step(v-else-if='step.key === "images"')
           p.offer-wizard__hint
             | До {{ MAX_IMAGES }} изображений, каждое до {{ MAX_MB }} МБ (JPEG, PNG или WEBP).
-            | Нажмите на снимок, чтобы сделать его обложкой карточки.
+            | Нажмите на снимок, чтобы сделать его обложкой карточки; крестик — удалить.
 
-          .offer-wizard__existing(v-if='isEdit && existingImages.length && !imageDrafts.length')
-            .offer-wizard__field-label.offer-wizard__field-label--sub Текущие изображения
-            .offer-wizard__grid
-              .offer-wizard__thumb(v-for='(img, i) in existingImages', :key='img.url')
-                q-img.offer-wizard__img(:src='img.url', ratio='1')
-                span.offer-wizard__cover(v-if='i === 0') Обложка
-            p.offer-wizard__hint.offer-wizard__hint--muted
-              | Загрузка новых изображений заменит текущие.
-
-          .offer-wizard__grid(v-if='imageDrafts.length')
+          .offer-wizard__grid(v-if='gallery.length')
             .offer-wizard__thumb(
-              v-for='(img, i) in imageDrafts',
-              :key='img.preview_url',
+              v-for='(img, i) in gallery',
+              :key='img.uid',
               :class='{ "offer-wizard__thumb--cover": i === coverIndex }',
               :title='i === coverIndex ? "Это обложка" : "Сделать обложкой"',
               role='button',
@@ -220,7 +247,7 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
               @click='setCover(i)',
               @keydown.enter='setCover(i)'
             )
-              q-img.offer-wizard__img(:src='img.preview_url', ratio='1')
+              q-img.offer-wizard__img(:src='img.url', ratio='1')
               span.offer-wizard__cover(v-if='i === coverIndex') Обложка
               span.offer-wizard__set(v-else) Сделать обложкой
               q-btn.offer-wizard__remove(
@@ -240,11 +267,11 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
             dense,
             multiple,
             accept='image/jpeg,image/png,image/webp',
-            :disable='imageDrafts.length >= MAX_IMAGES',
+            :disable='gallery.length >= MAX_IMAGES',
             @update:model-value='onPickFiles'
           )
             template(#prepend)
-              q-icon(name='fa-solid fa-image')
+              q-icon(name='image')
 
         //- ───────── Шаг 5: Проверка (карточка-предпросмотр) ─────────
         .offer-wizard__step(v-else-if='step.key === "review"')
@@ -319,13 +346,13 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
         span.q-mr-sm Далее
         q-icon(name='arrow_forward', size='16px')
       BaseButton(v-else, variant='primary', :loading='submitting', @click='onSubmit')
-        q-icon(name='fa-solid fa-paper-plane', size='14px')
+        q-icon(name='send', size='16px')
         span.q-ml-sm {{ submitLabel }}
 </template>
 
 <script lang="ts" setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { LocalStorage } from 'quasar';
+import { Dialog, LocalStorage, Notify } from 'quasar';
 import type { QForm } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { VerticalStepper } from 'src/shared/ui/domain/VerticalStepper';
@@ -338,15 +365,20 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { MARKETPLACE_UNIT_OPTIONS } from 'src/shared/lib/consts';
 import { fileToBase64, formatAsset2Digits } from 'src/shared/lib/utils';
-import { createOffer, fetchCategories, fetchMyOfferById, updateOffer } from '../api';
+import {
+  createOffer,
+  fetchCategories,
+  fetchMyOfferById,
+  triggerOpenSubscription,
+  updateOffer,
+  withdrawOffer,
+} from '../api';
 import type {
   MarketplaceCategoryView,
   MarketplaceCreateOfferFormState,
   MarketplaceCreateOfferPayload,
   MarketplaceOfferCycleType,
-  MarketplaceOfferImageDraft,
   MarketplaceOfferImageUpload,
-  MarketplaceOfferImageView,
   MarketplaceUnitOfMeasure,
 } from '../types';
 
@@ -384,6 +416,13 @@ const priceRule = (v: string): true | string =>
   /^\d+([.,]\d{1,2})?$/.test((v ?? '').trim()) ||
   'Цена — число с двумя знаками после запятой, например 100.50';
 
+// Цена из БД приходит с большей точностью (напр. «100.0000») и не проходит
+// priceRule. При prefill приводим к виду поля ввода — 2 знака после точки.
+function formatPriceForInput(raw: string | number | null | undefined): string {
+  const n = Number(raw);
+  return Number.isFinite(n) ? n.toFixed(2) : '';
+}
+
 const editId = computed(() => {
   const p = route.params.offerId;
   return typeof p === 'string' && p ? p : null;
@@ -392,10 +431,101 @@ const isEdit = computed(() => editId.value !== null);
 const prefilling = ref(false);
 const submitting = ref(false);
 
-const pageTitle = computed(() => (isEdit.value ? 'Редактирование предложения' : 'Новое предложение'));
-const submitLabel = computed(() =>
-  isEdit.value ? 'Сохранить и отправить на модерацию' : 'Опубликовать на модерацию'
+// Единая карточка-подсказка: при создании — про публикацию и модерацию, при
+// редактировании — что цена/остаток применяются сразу, а контент уходит на
+// повторную модерацию.
+const infoText = computed(() =>
+  isEdit.value
+    ? 'Заполните карточку товара по шагам. Цена и количество применяются сразу. Изменение названия, описания, категории, единицы измерения или фотографий снова отправит предложение на модерацию — до одобрения оно будет недоступно в каталоге.'
+    : 'Заполните карточку товара по шагам. После публикации предложение уходит на модерацию председателю — до одобрения оно не появится в каталоге.'
 );
+const submitLabel = computed(() => {
+  if (!isEdit.value) return 'Опубликовать на модерацию';
+  // Отклонённую правят, чтобы переотправить — подпись честно говорит, что
+  // сохранение снова отправит оферту на модерацию.
+  if (currentStatus.value === 'REJECTED') return 'Отправить на модерацию';
+  return 'Сохранить изменения';
+});
+
+// ===== Управление офертой (только режим редактирования) =====
+// Текущий статус оферты + операционные действия (снять / запустить поставку)
+// живут на самой странице редактирования — отдельного диалога-просмотра нет.
+type OfferStatus = 'PENDING_MODERATION' | 'ACTIVE' | 'REJECTED' | 'WITHDRAWN';
+const currentStatus = ref<OfferStatus | null>(null);
+const currentCycleType = ref<MarketplaceOfferCycleType | null>(null);
+const rejectReason = ref<string | null>(null);
+const withdrawing = ref(false);
+const triggering = ref(false);
+
+const STATUS_META: Record<OfferStatus, { label: string; variant: 'neutral' | 'pos' | 'neg' | 'warn' }> = {
+  PENDING_MODERATION: { label: 'На модерации', variant: 'warn' },
+  ACTIVE: { label: 'Опубликовано', variant: 'pos' },
+  REJECTED: { label: 'Отклонено', variant: 'neg' },
+  WITHDRAWN: { label: 'Снято', variant: 'neutral' },
+};
+const statusLabel = computed(() => (currentStatus.value ? STATUS_META[currentStatus.value].label : ''));
+const statusVariant = computed(() =>
+  currentStatus.value ? STATUS_META[currentStatus.value].variant : 'neutral'
+);
+// Снять можно опубликованную или ожидающую модерации; запуск поставки — только
+// активную оферту с открытой подпиской (см. backend guard'ы).
+const canWithdraw = computed(
+  () => currentStatus.value === 'PENDING_MODERATION' || currentStatus.value === 'ACTIVE'
+);
+const canTrigger = computed(
+  () => currentStatus.value === 'ACTIVE' && currentCycleType.value === 'open_subscription'
+);
+
+function onWithdraw(): void {
+  if (!editId.value) return;
+  Dialog.create({
+    title: 'Снять предложение с публикации?',
+    message:
+      'Предложение перестанет показываться в каталоге и не будет принимать новые ' +
+      'заказы. Вернуть его можно будет, только создав заново.',
+    cancel: { label: 'Отмена', flat: true, noCaps: true },
+    ok: { label: 'Снять с публикации', color: 'negative', unelevated: true, noCaps: true },
+    persistent: true,
+  }).onOk(async () => {
+    withdrawing.value = true;
+    try {
+      await withdrawOffer(editId.value as string);
+      Notify.create({ type: 'positive', message: 'Предложение снято с публикации.' });
+      void router.push({ name: 'marketplace-my-offers' });
+    } catch (e) {
+      FailAlert(e, 'Не удалось снять предложение');
+    } finally {
+      withdrawing.value = false;
+    }
+  });
+}
+
+function onTrigger(): void {
+  if (!editId.value) return;
+  Dialog.create({
+    title: 'Запустить поставку?',
+    message:
+      'Все накопленные заказы будут разом зафиксированы в одну партию и приняты ' +
+      'к поставке. Отменить запуск нельзя.',
+    cancel: { label: 'Отмена', flat: true, noCaps: true },
+    ok: { label: 'Запустить поставку', color: 'primary', unelevated: true, noCaps: true },
+    persistent: true,
+  }).onOk(async () => {
+    triggering.value = true;
+    try {
+      await triggerOpenSubscription(editId.value as string);
+      Notify.create({
+        type: 'positive',
+        message: 'Поставка запущена: заказы зафиксированы в партию и приняты.',
+      });
+      void router.push({ name: 'marketplace-my-offers' });
+    } catch (e) {
+      FailAlert(e, 'Не удалось запустить поставку');
+    } finally {
+      triggering.value = false;
+    }
+  });
+}
 
 // ===== Шаги =====
 const steps: StepperStep[] = [
@@ -470,11 +600,28 @@ const form = ref<MarketplaceCreateOfferFormState>({
 });
 
 // ===== Изображения =====
+// Единая галерея: и уже сохранённые (bucket_key + подписанный url), и новые
+// (base64 + object-url). Обложку, удаление и добавление можно применять к любому
+// элементу с самого начала — без обязательной загрузки нового файла.
+interface GalleryImage {
+  uid: string;
+  url: string;
+  mime_type: string;
+  /** Существующее изображение (сохраняем по ключу). */
+  bucket_key?: string;
+  /** Новый файл. */
+  base64?: string;
+  name?: string;
+}
+
 const picked = ref<File[] | null>(null);
-const imageDrafts = ref<MarketplaceOfferImageDraft[]>([]);
-const existingImages = ref<MarketplaceOfferImageView[]>([]);
+const gallery = ref<GalleryImage[]>([]);
 const coverIndex = ref(0);
 const previewActive = ref(0);
+// Ключи исходного набора (в исходном порядке) — чтобы при сохранении понять,
+// менялись ли изображения, и не гнать оффер на повторную модерацию зря.
+const originalImageKeys = ref<string[]>([]);
+let galleryUidSeq = 0;
 
 const isTimeBased = computed(() => form.value.cycle_type === 'time_based');
 const isVolumeBased = computed(() => form.value.cycle_type === 'volume_based');
@@ -536,11 +683,13 @@ function saveDraft(): void {
     completedKeys: completedKeys.value,
     coverIndex: coverIndex.value,
   };
-  const images: OfferDraftImage[] = imageDrafts.value.map((d) => ({
-    base64: d.base64,
-    mime_type: d.mime_type,
-    name: d.name,
-  }));
+  const images: OfferDraftImage[] = gallery.value
+    .filter((g) => g.base64)
+    .map((g) => ({
+      base64: g.base64 as string,
+      mime_type: g.mime_type,
+      name: g.name ?? '',
+    }));
   const totalChars = images.reduce((n, im) => n + im.base64.length, 0);
   const payload: OfferDraft =
     images.length && totalChars <= MAX_DRAFT_IMAGE_CHARS ? { ...base, images } : base;
@@ -571,11 +720,12 @@ function restoreDraft(): void {
   if (Array.isArray(saved.completedKeys)) completedKeys.value = saved.completedKeys;
   if (Array.isArray(saved.images) && saved.images.length) {
     // object-URL после reload мёртв — превью восстанавливаем как data-URL из base64.
-    imageDrafts.value = saved.images.map((im) => ({
-      preview_url: `data:${im.mime_type};base64,${im.base64}`,
-      name: im.name,
+    gallery.value = saved.images.map((im) => ({
+      uid: `g${++galleryUidSeq}`,
+      url: `data:${im.mime_type};base64,${im.base64}`,
       base64: im.base64,
       mime_type: im.mime_type,
+      name: im.name,
     }));
   }
   if (typeof saved.coverIndex === 'number') coverIndex.value = saved.coverIndex;
@@ -589,23 +739,17 @@ function clearDraft(): void {
   LocalStorage.remove(DRAFT_KEY);
 }
 
-// Черновики в порядке «обложка первой» — для payload и предпросмотра.
-function draftsCoverFirst(): MarketplaceOfferImageDraft[] {
-  const arr = imageDrafts.value;
+// Галерея в порядке «обложка первой» — для payload и предпросмотра.
+function galleryCoverFirst(): GalleryImage[] {
+  const arr = gallery.value;
   if (!arr.length) return [];
   const ci = Math.min(Math.max(coverIndex.value, 0), arr.length - 1);
   return [arr[ci], ...arr.filter((_, i) => i !== ci)];
 }
 
-const previewImages = computed<Array<{ url: string }>>(() => {
-  if (imageDrafts.value.length) {
-    return draftsCoverFirst().map((d) => ({ url: d.preview_url }));
-  }
-  if (isEdit.value && existingImages.value.length) {
-    return existingImages.value.map((img) => ({ url: img.url }));
-  }
-  return [];
-});
+const previewImages = computed<Array<{ url: string }>>(() =>
+  galleryCoverFirst().map((g) => ({ url: g.url }))
+);
 
 function onToggleUnlimited(value: boolean): void {
   form.value.unlimited_flag = value;
@@ -641,11 +785,12 @@ function onSelectCycle(value: MarketplaceOfferCycleType): void {
 async function onPickFiles(files: readonly File[] | null): Promise<void> {
   const list = files ? [...files] : [];
   // Берём только ещё не добавленные файлы (по имени) — на случай повторного выбора.
+  // Добавляем (не заменяем) к уже имеющимся; дедуп новых по имени файла.
   const fresh = list.filter(
-    (f) => !imageDrafts.value.some((d) => d.name === f.name && d.base64.length > 0)
+    (f) => !gallery.value.some((g) => g.base64 && g.name === f.name)
   );
   for (const file of fresh) {
-    if (imageDrafts.value.length >= MAX_IMAGES) {
+    if (gallery.value.length >= MAX_IMAGES) {
       FailAlert(new Error(`Можно добавить не более ${MAX_IMAGES} изображений.`));
       break;
     }
@@ -658,11 +803,12 @@ async function onPickFiles(files: readonly File[] | null): Promise<void> {
       continue;
     }
     const base64 = await fileToBase64(file);
-    imageDrafts.value.push({
-      preview_url: URL.createObjectURL(file),
-      name: file.name,
+    gallery.value.push({
+      uid: `g${++galleryUidSeq}`,
+      url: URL.createObjectURL(file),
       base64,
       mime_type: file.type,
+      name: file.name,
     });
   }
   // q-file модель не храним — управляем своим списком превью.
@@ -670,13 +816,15 @@ async function onPickFiles(files: readonly File[] | null): Promise<void> {
 }
 
 function removeImage(index: number): void {
-  const [removed] = imageDrafts.value.splice(index, 1);
-  if (removed) URL.revokeObjectURL(removed.preview_url);
+  const [removed] = gallery.value.splice(index, 1);
+  // object-url освобождаем только у новых файлов; подписанный url существующих
+  // освобождать не нужно.
+  if (removed?.base64 && removed.url.startsWith('blob:')) URL.revokeObjectURL(removed.url);
   // Сдвигаем выбор обложки, чтобы он не «уехал» на чужой снимок.
   if (index === coverIndex.value) coverIndex.value = 0;
   else if (index < coverIndex.value) coverIndex.value -= 1;
-  if (coverIndex.value > imageDrafts.value.length - 1) {
-    coverIndex.value = Math.max(0, imageDrafts.value.length - 1);
+  if (coverIndex.value > gallery.value.length - 1) {
+    coverIndex.value = Math.max(0, gallery.value.length - 1);
   }
 }
 
@@ -742,13 +890,24 @@ function onCancel(): void {
 }
 
 // ===== Сабмит =====
+// Менялись ли изображения относительно исходного набора (есть новые файлы,
+// удалили существующее или сменили обложку/порядок).
+function imagesChanged(): boolean {
+  if (gallery.value.some((g) => g.base64)) return true;
+  const cur = galleryCoverFirst().map((g) => g.bucket_key ?? '');
+  if (cur.length !== originalImageKeys.value.length) return true;
+  return cur.some((k, i) => k !== originalImageKeys.value[i]);
+}
+
 function buildImagesPayload(): MarketplaceOfferImageUpload[] | undefined {
-  const fresh = draftsCoverFirst().map((d) => ({ base64: d.base64, mime_type: d.mime_type }));
-  if (isEdit.value) {
-    // В режиме правки изображения трогаем только если выбраны новые файлы.
-    return fresh.length ? fresh : undefined;
-  }
-  return fresh;
+  // В режиме правки не трогаем изображения, если они не менялись — иначе оффер
+  // зря уйдёт на повторную модерацию.
+  if (isEdit.value && !imagesChanged()) return undefined;
+  return galleryCoverFirst().map((g) =>
+    g.bucket_key
+      ? { bucket_key: g.bucket_key }
+      : { base64: g.base64 as string, mime_type: g.mime_type }
+  );
 }
 
 async function onSubmit(): Promise<void> {
@@ -774,8 +933,13 @@ async function onSubmit(): Promise<void> {
   submitting.value = true;
   try {
     if (isEdit.value && editId.value) {
+      const wasRejected = currentStatus.value === 'REJECTED';
       await updateOffer({ id: editId.value, ...payload });
-      SuccessAlert('Изменения сохранены. Предложение отправлено на повторную модерацию.');
+      SuccessAlert(
+        wasRejected
+          ? 'Исправления отправлены на повторную модерацию.'
+          : 'Изменения сохранены.'
+      );
       void router.push({ name: 'marketplace-my-offers' });
     } else {
       await createOffer(payload);
@@ -806,7 +970,7 @@ async function prefillForEdit(id: string): Promise<void> {
       product_name: offer.product_name,
       description: offer.description ?? '',
       category_id: offer.category_id != null ? Number(offer.category_id) : null,
-      price_per_unit: offer.price_per_unit,
+      price_per_unit: formatPriceForInput(offer.price_per_unit),
       unit_of_measure: offer.unit_of_measure as MarketplaceUnitOfMeasure,
       quantity_available: offer.quantity_available,
       unlimited_flag: offer.unlimited_flag,
@@ -817,9 +981,20 @@ async function prefillForEdit(id: string): Promise<void> {
       min_threshold: offer.min_threshold,
       warranty_days: offer.warranty_days,
     };
-    existingImages.value = (offer.images ?? [])
+    gallery.value = (offer.images ?? [])
       .slice()
-      .sort((a, b) => a.sort_order - b.sort_order);
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((img) => ({
+        uid: img.bucket_key,
+        url: img.url,
+        bucket_key: img.bucket_key,
+        mime_type: img.mime_type,
+      }));
+    originalImageKeys.value = gallery.value.map((g) => g.bucket_key as string);
+    coverIndex.value = 0;
+    currentStatus.value = offer.status;
+    currentCycleType.value = offer.cycle_type;
+    rejectReason.value = offer.reject_reason ?? null;
   } catch (e) {
     FailAlert(e, 'Не удалось загрузить предложение');
   } finally {
@@ -838,7 +1013,7 @@ onMounted(async () => {
   } else {
     // Восстанавливаем черновик и подключаем автосохранение (клиент-only).
     restoreDraft();
-    watch([form, activeKey, completedKeys, imageDrafts, coverIndex], scheduleSaveDraft, {
+    watch([form, activeKey, completedKeys, gallery, coverIndex], scheduleSaveDraft, {
       deep: true,
     });
   }
@@ -846,7 +1021,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   if (saveTimer) clearTimeout(saveTimer);
-  for (const d of imageDrafts.value) URL.revokeObjectURL(d.preview_url);
+  for (const g of gallery.value) if (g.url.startsWith('blob:')) URL.revokeObjectURL(g.url);
 });
 </script>
 
@@ -862,28 +1037,25 @@ onBeforeUnmount(() => {
     gap: var(--p-4, 16px);
   }
 
-  &__head {
+  // Скелетон формы на время дозагрузки оферты (режим редактирования).
+  &__skel {
     display: flex;
     flex-direction: column;
-    gap: var(--p-2, 8px);
+    gap: var(--p-4, 16px);
+    padding: var(--p-4, 16px) 0;
   }
 
-  &__title {
-    margin: 0;
-    font-size: var(--p-fs-h2, 24px);
-    font-weight: 600;
-    color: var(--p-ink);
-  }
+  &__skel-title { width: 35%; }
 
-  &__intro {
-    margin: 0;
-    font-size: var(--p-fs-body-sm, 13px);
-    line-height: var(--p-lh-body, 1.55);
-    color: var(--p-ink-2);
-  }
+  &__skel-line { width: 100%; }
+  &__skel-line--wide { width: 80%; }
+  &__skel-line--narrow { width: 55%; }
 
-  &__notice {
-    background: var(--p-warn-soft, #fff8e1);
+  &__manage {
+    display: flex;
+    align-items: center;
+    gap: var(--p-3, 12px);
+    flex-wrap: wrap;
   }
 
   &__step {
@@ -1024,11 +1196,24 @@ onBeforeUnmount(() => {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
   }
 
+  // Навигация формы прибита к низу экрана — «Отменить/Назад» и «Далее/
+  // Сохранить» всегда на виду, без прокрутки до конца. Фон перекрывает контент,
+  // уезжающий под бар при скролле.
+  //
+  // margin-bottom компенсирует нижний padding q-page (--p-6): без этого в конце
+  // прокрутки бар «приземляется» на величину этого отступа выше, чем стоял
+  // прижатым, и кажется, что он меняет высоту/дёргается. С компенсацией позиция
+  // «прижат» совпадает с «в покое» — бар не двигается.
   &__foot {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
     display: flex;
     align-items: center;
     gap: var(--p-2, 8px);
-    padding-top: var(--p-4, 16px);
+    margin-bottom: calc(-1 * var(--p-6, 24px));
+    padding: var(--p-3, 12px) 0;
+    background: var(--p-canvas);
     border-top: 1px solid var(--p-line, #e0e0e0);
   }
 }

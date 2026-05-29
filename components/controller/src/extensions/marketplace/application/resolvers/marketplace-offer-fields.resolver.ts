@@ -28,6 +28,7 @@ export class MarketplaceOfferFieldsResolver {
         const url = await this.imagesService.getReadUrl(rec.bucket_key);
         return new MarketplaceOfferImageDTO({
           url,
+          bucket_key: rec.bucket_key,
           mime_type: rec.mime_type,
           sort_order: index,
           is_cover: index === 0,

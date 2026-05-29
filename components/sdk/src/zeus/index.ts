@@ -7005,6 +7005,8 @@ export type ValueTypes = {
 	['...on MarketplaceOffer']?: Omit<ValueTypes["MarketplaceOffer"], "...on MarketplaceOffer">
 }>;
 	["MarketplaceOfferImage"]: AliasType<{
+	/** Ключ объекта в хранилище — стабильный идентификатор изображения. Передаётся обратно при редактировании, чтобы сохранить уже загруженное изображение (в отличие от base64 для новых файлов). */
+	bucket_key?:boolean | `@${string}`,
 	/** Является ли изображение обложкой карточки. */
 	is_cover?:boolean | `@${string}`,
 	/** MIME-тип изображения. */
@@ -7017,10 +7019,12 @@ export type ValueTypes = {
 	['...on MarketplaceOfferImage']?: Omit<ValueTypes["MarketplaceOfferImage"], "...on MarketplaceOfferImage">
 }>;
 	["MarketplaceOfferImageUploadInput"]: {
-	/** Содержимое изображения, закодированное в base64. */
-	base64: string | Variable<any, string>,
-	/** MIME-тип изображения (image/jpeg, image/png либо image/webp). */
-	mime_type: string | Variable<any, string>
+	/** Содержимое нового изображения в base64. */
+	base64?: string | undefined | null | Variable<any, string>,
+	/** Ключ уже сохранённого изображения — сохранить его в наборе. */
+	bucket_key?: string | undefined | null | Variable<any, string>,
+	/** MIME-тип нового изображения (image/jpeg, image/png либо image/webp). */
+	mime_type?: string | undefined | null | Variable<any, string>
 };
 	["MarketplaceOfferPaginationResult"]: AliasType<{
 	/** Текущая страница */
@@ -7255,6 +7259,9 @@ export type ValueTypes = {
 	["MarketplaceRemoveFromWhitelistInput"]: {
 	/** eosio::name пайщика-поставщика */
 	member_account: string | Variable<any, string>
+};
+	["MarketplaceRepublishOfferInput"]: {
+	id: string | Variable<any, string>
 };
 	["MarketplaceRequest"]: AliasType<{
 	/** Артикул товара */
@@ -8245,6 +8252,7 @@ marketplaceRemoveAvailableCategories?: [{	input: ValueTypes["RemoveAvailableCate
 marketplaceRemoveAvailableCategoryTypes?: [{	input: ValueTypes["RemoveAvailableCategoryTypesInput"] | Variable<any, string>},boolean | `@${string}`],
 marketplaceRemoveFromWhitelist?: [{	input: ValueTypes["MarketplaceRemoveFromWhitelistInput"] | Variable<any, string>},boolean | `@${string}`],
 marketplaceReplaceAvailableItems?: [{	input: ValueTypes["ReplaceAvailableItemsInput"] | Variable<any, string>},ValueTypes["MarketplaceAvailableCategory"]],
+marketplaceRepublishOffer?: [{	input: ValueTypes["MarketplaceRepublishOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
 marketplaceRetryKUGeocode?: [{	coopname: string | Variable<any, string>,	coreBraname: string | Variable<any, string>},ValueTypes["MarketplaceKUDetails"]],
 marketplaceSetKUStatus?: [{	data: ValueTypes["MarketplaceSetKUStatusInput"] | Variable<any, string>},ValueTypes["MarketplaceKUDetails"]],
 marketplaceSignAplReceptionAsChairman?: [{	data: ValueTypes["MarketplaceSignAplReceptionInput"] | Variable<any, string>},ValueTypes["MarketplaceAplReceptionResult"]],
@@ -17030,6 +17038,8 @@ export type ResolverInputTypes = {
 		__typename?: boolean | `@${string}`
 }>;
 	["MarketplaceOfferImage"]: AliasType<{
+	/** Ключ объекта в хранилище — стабильный идентификатор изображения. Передаётся обратно при редактировании, чтобы сохранить уже загруженное изображение (в отличие от base64 для новых файлов). */
+	bucket_key?:boolean | `@${string}`,
 	/** Является ли изображение обложкой карточки. */
 	is_cover?:boolean | `@${string}`,
 	/** MIME-тип изображения. */
@@ -17041,10 +17051,12 @@ export type ResolverInputTypes = {
 		__typename?: boolean | `@${string}`
 }>;
 	["MarketplaceOfferImageUploadInput"]: {
-	/** Содержимое изображения, закодированное в base64. */
-	base64: string,
-	/** MIME-тип изображения (image/jpeg, image/png либо image/webp). */
-	mime_type: string
+	/** Содержимое нового изображения в base64. */
+	base64?: string | undefined | null,
+	/** Ключ уже сохранённого изображения — сохранить его в наборе. */
+	bucket_key?: string | undefined | null,
+	/** MIME-тип нового изображения (image/jpeg, image/png либо image/webp). */
+	mime_type?: string | undefined | null
 };
 	["MarketplaceOfferPaginationResult"]: AliasType<{
 	/** Текущая страница */
@@ -17270,6 +17282,9 @@ export type ResolverInputTypes = {
 	["MarketplaceRemoveFromWhitelistInput"]: {
 	/** eosio::name пайщика-поставщика */
 	member_account: string
+};
+	["MarketplaceRepublishOfferInput"]: {
+	id: string
 };
 	["MarketplaceRequest"]: AliasType<{
 	/** Артикул товара */
@@ -18232,6 +18247,7 @@ marketplaceRemoveAvailableCategories?: [{	input: ResolverInputTypes["RemoveAvail
 marketplaceRemoveAvailableCategoryTypes?: [{	input: ResolverInputTypes["RemoveAvailableCategoryTypesInput"]},boolean | `@${string}`],
 marketplaceRemoveFromWhitelist?: [{	input: ResolverInputTypes["MarketplaceRemoveFromWhitelistInput"]},boolean | `@${string}`],
 marketplaceReplaceAvailableItems?: [{	input: ResolverInputTypes["ReplaceAvailableItemsInput"]},ResolverInputTypes["MarketplaceAvailableCategory"]],
+marketplaceRepublishOffer?: [{	input: ResolverInputTypes["MarketplaceRepublishOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
 marketplaceRetryKUGeocode?: [{	coopname: string,	coreBraname: string},ResolverInputTypes["MarketplaceKUDetails"]],
 marketplaceSetKUStatus?: [{	data: ResolverInputTypes["MarketplaceSetKUStatusInput"]},ResolverInputTypes["MarketplaceKUDetails"]],
 marketplaceSignAplReceptionAsChairman?: [{	data: ResolverInputTypes["MarketplaceSignAplReceptionInput"]},ResolverInputTypes["MarketplaceAplReceptionResult"]],
@@ -26730,7 +26746,9 @@ export type ModelTypes = {
 	warranty_days: number
 };
 	["MarketplaceOfferImage"]: {
-		/** Является ли изображение обложкой карточки. */
+		/** Ключ объекта в хранилище — стабильный идентификатор изображения. Передаётся обратно при редактировании, чтобы сохранить уже загруженное изображение (в отличие от base64 для новых файлов). */
+	bucket_key: string,
+	/** Является ли изображение обложкой карточки. */
 	is_cover: boolean,
 	/** MIME-тип изображения. */
 	mime_type: string,
@@ -26740,10 +26758,12 @@ export type ModelTypes = {
 	url: string
 };
 	["MarketplaceOfferImageUploadInput"]: {
-	/** Содержимое изображения, закодированное в base64. */
-	base64: string,
-	/** MIME-тип изображения (image/jpeg, image/png либо image/webp). */
-	mime_type: string
+	/** Содержимое нового изображения в base64. */
+	base64?: string | undefined | null,
+	/** Ключ уже сохранённого изображения — сохранить его в наборе. */
+	bucket_key?: string | undefined | null,
+	/** MIME-тип нового изображения (image/jpeg, image/png либо image/webp). */
+	mime_type?: string | undefined | null
 };
 	["MarketplaceOfferPaginationResult"]: {
 		/** Текущая страница */
@@ -26956,6 +26976,9 @@ export type ModelTypes = {
 	["MarketplaceRemoveFromWhitelistInput"]: {
 	/** eosio::name пайщика-поставщика */
 	member_account: string
+};
+	["MarketplaceRepublishOfferInput"]: {
+	id: string
 };
 	["MarketplaceRequest"]: {
 		/** Артикул товара */
@@ -28320,6 +28343,8 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	marketplaceReplaceAvailableItems: Array<ModelTypes["MarketplaceAvailableCategory"]>,
+	/** Поставщик возвращает снятый Offer на публикацию (статус → PENDING_MODERATION) */
+	marketplaceRepublishOffer: ModelTypes["MarketplaceOffer"],
 	/** Повторно запускает геокодинг адреса ПВЗ.
 
 Требуемые роли: chairman.  */
@@ -37365,6 +37390,8 @@ export type GraphQLTypes = {
 };
 	["MarketplaceOfferImage"]: {
 	__typename: "MarketplaceOfferImage",
+	/** Ключ объекта в хранилище — стабильный идентификатор изображения. Передаётся обратно при редактировании, чтобы сохранить уже загруженное изображение (в отличие от base64 для новых файлов). */
+	bucket_key: string,
 	/** Является ли изображение обложкой карточки. */
 	is_cover: boolean,
 	/** MIME-тип изображения. */
@@ -37376,10 +37403,12 @@ export type GraphQLTypes = {
 	['...on MarketplaceOfferImage']: Omit<GraphQLTypes["MarketplaceOfferImage"], "...on MarketplaceOfferImage">
 };
 	["MarketplaceOfferImageUploadInput"]: {
-		/** Содержимое изображения, закодированное в base64. */
-	base64: string,
-	/** MIME-тип изображения (image/jpeg, image/png либо image/webp). */
-	mime_type: string
+		/** Содержимое нового изображения в base64. */
+	base64?: string | undefined | null,
+	/** Ключ уже сохранённого изображения — сохранить его в наборе. */
+	bucket_key?: string | undefined | null,
+	/** MIME-тип нового изображения (image/jpeg, image/png либо image/webp). */
+	mime_type?: string | undefined | null
 };
 	["MarketplaceOfferPaginationResult"]: {
 	__typename: "MarketplaceOfferPaginationResult",
@@ -37614,6 +37643,9 @@ export type GraphQLTypes = {
 	["MarketplaceRemoveFromWhitelistInput"]: {
 		/** eosio::name пайщика-поставщика */
 	member_account: string
+};
+	["MarketplaceRepublishOfferInput"]: {
+		id: string
 };
 	["MarketplaceRequest"]: {
 	__typename: "MarketplaceRequest",
@@ -39042,6 +39074,8 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	marketplaceReplaceAvailableItems: Array<GraphQLTypes["MarketplaceAvailableCategory"]>,
+	/** Поставщик возвращает снятый Offer на публикацию (статус → PENDING_MODERATION) */
+	marketplaceRepublishOffer: GraphQLTypes["MarketplaceOffer"],
 	/** Повторно запускает геокодинг адреса ПВЗ.
 
 Требуемые роли: chairman.  */
@@ -43278,6 +43312,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceRejectReturnAtVisitInput"]: ValueTypes["MarketplaceRejectReturnAtVisitInput"];
 	["MarketplaceRejectReturnRemoteInput"]: ValueTypes["MarketplaceRejectReturnRemoteInput"];
 	["MarketplaceRemoveFromWhitelistInput"]: ValueTypes["MarketplaceRemoveFromWhitelistInput"];
+	["MarketplaceRepublishOfferInput"]: ValueTypes["MarketplaceRepublishOfferInput"];
 	["MarketplaceReturnClaimDefectCategory"]: ValueTypes["MarketplaceReturnClaimDefectCategory"];
 	["MarketplaceReturnClaimExpectedResolution"]: ValueTypes["MarketplaceReturnClaimExpectedResolution"];
 	["MarketplaceReturnClaimPhotoUploadInput"]: ValueTypes["MarketplaceReturnClaimPhotoUploadInput"];

@@ -52,8 +52,11 @@ export const MARKETPLACE_OFFER_SERVICE = Symbol('MARKETPLACE_OFFER_SERVICE');
  * `MarketplaceOfferImage` (ключ bucket'а + sha256) до записи в БД.
  */
 export interface MarketplaceOfferImageUpload {
-  base64: string;
-  mime_type: string;
+  /** Новый файл: содержимое в base64. Взаимоисключимо с bucket_key. */
+  base64?: string;
+  mime_type?: string;
+  /** Уже сохранённое изображение: сохранить его в наборе по ключу хранилища. */
+  bucket_key?: string;
 }
 
 export interface OfferCreateRequest {
@@ -84,14 +87,17 @@ export interface OfferCreateRequest {
  *
  * Lifecycle (AC):
  *   create  → PENDING_MODERATION (rate-limit 10/час на supplier).
- *   edit    → если ACTIVE/PENDING_MODERATION — поля обновляются, status
- *             сбрасывается в PENDING_MODERATION; REJECTED edit → 403
- *             (поставщик должен создать новый offer, AC формулировка
- *             «создаст новый PENDING_MODERATION»); WITHDRAWN edit → 403.
+ *   edit    → ACTIVE/PENDING_MODERATION — поля обновляются (значимый контент
+ *             сбрасывает status в PENDING_MODERATION); REJECTED — правка
+ *             устраняет причину отклонения и всегда уходит на повторную
+ *             модерацию (не пересоздаётся); WITHDRAWN edit → 403 (сначала
+ *             republish).
  *   withdraw→ если ACTIVE/PENDING_MODERATION — status=WITHDRAWN;
  *             блокируется при наличии незакрытых Order'ов с понятным
  *             сообщением (заглушка `hasActiveOrders` — реализуется при
  *             merge Story 4.x, в MVP всегда false).
+ *   republish→ WITHDRAWN → PENDING_MODERATION. Снятие не удаляет данные, поэтому
+ *             вернуть предложение можно без пересоздания — снова на модерацию.
  *
  * Owner-проверка (`supplier_account == offer.supplier_account`) на уровне
  * сервиса — guard даёт capability, а не ownership.
@@ -238,43 +244,72 @@ export class MarketplaceOfferService {
       });
     }
 
+    // Поле-зависимая модерация. Операционные поля (остаток, цена) поставщик
+    // меняет часто и без участия председателя — их правка НЕ снимает оффер с
+    // публикации и не шлёт на повторную модерацию. Любое же изменение
+    // «модерационно-значимого» контента (название, описание, категория,
+    // фото, единица измерения, условия цикла, гарантия, штрихкод) — то, что
+    // председатель видит и проверяет, — сбрасывает статус в PENDING_MODERATION.
+    // requireOwnedEditable пропускает сюда ACTIVE, PENDING_MODERATION и
+    // REJECTED. Для REJECTED любая правка — это исправление причины отклонения,
+    // поэтому она всегда уходит на повторную модерацию (даже если тронули
+    // только цену/остаток): оффер сейчас невидим в каталоге и должен снова
+    // пройти проверку, чтобы опубликоваться.
+    const NON_MODERATED_FIELDS: ReadonlyArray<keyof OfferUpdateInput> = [
+      'price_per_unit',
+      'quantity_available',
+      'unlimited_flag',
+    ];
+    const touchedKeys = (Object.keys(patch) as Array<keyof OfferUpdateInput>).filter(
+      (k) => patch[k] !== undefined,
+    );
+    const moderationSignificantChange =
+      offer.status === 'REJECTED' ||
+      images !== undefined ||
+      touchedKeys.some((k) => !NON_MODERATED_FIELDS.includes(k));
+
     const normalizedPatch: OfferUpdateInput & {
-      status: MarketplaceOfferStatus;
-      approved_by: string | null;
-      approved_at: Date | null;
-      rejected_by: string | null;
-      rejected_at: Date | null;
-      reject_reason: string | null;
-    } = {
-      ...patch,
-      status: 'PENDING_MODERATION',
-      // edit повторно отправляет оффер на модерацию — поля прошлых решений
-      // (approve/reject) не должны утечь в UI как «уже одобрен» / «отклонён
-      // с прошлой причиной».
-      approved_by: null,
-      approved_at: null,
-      rejected_by: null,
-      rejected_at: null,
-      reject_reason: null,
-    };
+      status?: MarketplaceOfferStatus;
+      approved_by?: string | null;
+      approved_at?: Date | null;
+      rejected_by?: string | null;
+      rejected_at?: Date | null;
+      reject_reason?: string | null;
+    } = { ...patch };
+
+    if (moderationSignificantChange) {
+      // edit контента повторно отправляет оффер на модерацию — поля прошлых
+      // решений (approve/reject) не должны утечь в UI как «уже одобрен» /
+      // «отклонён с прошлой причиной».
+      normalizedPatch.status = 'PENDING_MODERATION';
+      normalizedPatch.approved_by = null;
+      normalizedPatch.approved_at = null;
+      normalizedPatch.rejected_by = null;
+      normalizedPatch.rejected_at = null;
+      normalizedPatch.reject_reason = null;
+    }
 
     if (patch.unlimited_flag === true) {
       normalizedPatch.quantity_available = 0;
     }
 
-    // Изображения переданы → полностью заменяем набор. Старые объекты
-    // bucket'а не удаляем (могут шариться по content-hash; orphan-cleanup —
-    // вне MVP). Новые грузим до записи; при провале записи — чистим их.
-    let uploaded: MarketplaceOfferImage[] | undefined;
+    // Изображения переданы → пересобираем набор: элементы с bucket_key —
+    // сохраняем как есть (пользователь оставил уже загруженное), элементы с
+    // base64 — грузим как новые. Порядок = порядок показа, первый = обложка.
+    // Удалённые (не попавшие в набор) объекты bucket'а не подчищаем
+    // (orphan-cleanup — вне MVP). При провале записи чистим ТОЛЬКО что
+    // загруженные — сохранённые существующие трогать нельзя.
+    let newlyUploaded: MarketplaceOfferImage[] = [];
     if (images !== undefined) {
-      uploaded = await this.uploadImages(offer.coopname, supplier_account, images);
-      normalizedPatch.images = uploaded;
+      const resolved = await this.resolveImagesForUpdate(offer, supplier_account, images);
+      newlyUploaded = resolved.newlyUploaded;
+      normalizedPatch.images = resolved.images;
     }
 
     try {
       return await this.repo.applyUpdate(offer.id, normalizedPatch);
     } catch (e) {
-      if (uploaded) await this.cleanupImages(uploaded);
+      if (newlyUploaded.length) await this.cleanupImages(newlyUploaded);
       throw e;
     }
   }
@@ -289,6 +324,30 @@ export class MarketplaceOfferService {
     }
 
     return this.repo.applyUpdate(offer.id, { status: 'WITHDRAWN' });
+  }
+
+  /**
+   * Вернуть ранее снятое предложение на публикацию: WITHDRAWN →
+   * PENDING_MODERATION. Снятие не удаляет данные оферты — все поля и
+   * изображения на месте, поэтому пересоздавать ничего не нужно, достаточно
+   * снова отправить на модерацию. Доступно только владельцу и только для
+   * снятого предложения (REJECTED не возвращаем: его отклонил модератор по
+   * причине — нужна правка, а не повторная отправка тех же данных).
+   */
+  async republish(id: string, supplier_account: string): Promise<MarketplaceOfferDomainEntity> {
+    const offer = await this.repo.findById(id);
+    if (!offer) {
+      throw new NotFoundException('Предложение не найдено.');
+    }
+    if (offer.supplier_account !== supplier_account) {
+      throw new ForbiddenException('Можно изменять только свои предложения.');
+    }
+    if (offer.status !== 'WITHDRAWN') {
+      throw new ForbiddenException(
+        'Вернуть на публикацию можно только снятое предложение.'
+      );
+    }
+    return this.repo.applyUpdate(offer.id, { status: 'PENDING_MODERATION' });
   }
 
   async listMine(
@@ -483,12 +542,25 @@ export class MarketplaceOfferService {
     if (offer.supplier_account !== supplier_account) {
       throw new ForbiddenException('Можно изменять только свои предложения.');
     }
-    if (offer.status === 'WITHDRAWN' || offer.status === 'REJECTED') {
-      const action = op[0] === 'withdraw' ? 'снять' : 'отредактировать';
-      const statusLabel = offer.status === 'WITHDRAWN' ? 'снято' : 'отклонено';
-      throw new ForbiddenException(
-        `Нельзя ${action} предложение, которое уже ${statusLabel}.`
-      );
+    if (op[0] === 'withdraw') {
+      // Снять можно только опубликованное/ожидающее. Уже снятое или
+      // отклонённое снимать нечего.
+      if (offer.status === 'WITHDRAWN' || offer.status === 'REJECTED') {
+        const statusLabel = offer.status === 'WITHDRAWN' ? 'снято' : 'отклонено';
+        throw new ForbiddenException(
+          `Нельзя снять предложение, которое уже ${statusLabel}.`
+        );
+      }
+    } else {
+      // Редактировать можно ACTIVE / PENDING_MODERATION / REJECTED: отклонённое
+      // правится для устранения причины и переотправки на модерацию (не
+      // пересоздаётся заново). Снятое сначала возвращают на публикацию
+      // (republish), затем редактируют.
+      if (offer.status === 'WITHDRAWN') {
+        throw new ForbiddenException(
+          'Нельзя отредактировать снятое предложение. Сначала верните его на публикацию.'
+        );
+      }
     }
     return offer;
   }
@@ -517,6 +589,67 @@ export class MarketplaceOfferService {
    * (индекс 0 = обложка). При провале загрузки одного из файлов — чистит уже
    * загруженные, чтобы не плодить сирот, и пробрасывает понятную ошибку.
    */
+  /**
+   * Пересборка набора изображений при редактировании. Каждый элемент — либо
+   * ссылка на уже сохранённое изображение (bucket_key — оставляем как есть),
+   * либо новый файл (base64 — грузим). Возвращает финальный упорядоченный
+   * набор и отдельно перечень только что загруженных (для отката при провале
+   * записи Offer'а). Чужой/неизвестный bucket_key отклоняем — сослаться можно
+   * только на изображение текущего предложения.
+   */
+  private async resolveImagesForUpdate(
+    offer: MarketplaceOfferDomainEntity,
+    supplier_account: string,
+    raw: MarketplaceOfferImageUpload[]
+  ): Promise<{ images: MarketplaceOfferImage[]; newlyUploaded: MarketplaceOfferImage[] }> {
+    if (raw.length > MARKETPLACE_OFFER_MAX_IMAGES) {
+      throw new BadRequestException(
+        `Слишком много изображений: максимум ${MARKETPLACE_OFFER_MAX_IMAGES} на одно предложение.`
+      );
+    }
+    const existingByKey = new Map(
+      (offer.images ?? []).map((img) => [img.bucket_key, img])
+    );
+    const images: MarketplaceOfferImage[] = [];
+    const newlyUploaded: MarketplaceOfferImage[] = [];
+    try {
+      for (const item of raw) {
+        if (item.bucket_key) {
+          const kept = existingByKey.get(item.bucket_key);
+          if (!kept) {
+            throw new BadRequestException(
+              'Неизвестное изображение: сослаться можно только на собственные изображения этого предложения.'
+            );
+          }
+          images.push(kept);
+          continue;
+        }
+        if (!item.base64) {
+          throw new BadRequestException('Пустое изображение: отсутствует содержимое файла.');
+        }
+        const bytes = Buffer.from(item.base64, 'base64');
+        if (bytes.length === 0) {
+          throw new BadRequestException('Не удалось декодировать изображение (пустые данные).');
+        }
+        const image = await this.imagesService.putImage({
+          bytes,
+          contentType: item.mime_type as string,
+          coopname: offer.coopname,
+          ownerAccount: supplier_account,
+        });
+        newlyUploaded.push(image);
+        images.push(image);
+      }
+      return { images, newlyUploaded };
+    } catch (e) {
+      await this.cleanupImages(newlyUploaded);
+      if (e instanceof BadRequestException) throw e;
+      throw new BadRequestException(
+        `Не удалось загрузить изображение: ${e instanceof Error ? e.message : String(e)}`
+      );
+    }
+  }
+
   private async uploadImages(
     coopname: string,
     supplier_account: string,
@@ -532,7 +665,7 @@ export class MarketplaceOfferService {
     const result: MarketplaceOfferImage[] = [];
     try {
       for (const file of raw) {
-        if (!file.base64) {
+        if (!file.base64 || !file.mime_type) {
           throw new BadRequestException('Пустое изображение: отсутствует содержимое файла.');
         }
         const bytes = Buffer.from(file.base64, 'base64');

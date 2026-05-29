@@ -15,6 +15,7 @@ import {
 import {
   MarketplaceCreateOfferInputDTO,
   MarketplaceListMyOffersInputDTO,
+  MarketplaceRepublishOfferInputDTO,
   MarketplaceUpdateOfferInputDTO,
   MarketplaceWithdrawOfferInputDTO,
 } from '../dto/marketplace-offer-input.dto';
@@ -132,6 +133,20 @@ export class MarketplaceOfferResolver {
     @Args('input') input: MarketplaceWithdrawOfferInputDTO
   ): Promise<MarketplaceOfferDTO> {
     const offer = await this.offerService.withdraw(input.id, member.username);
+    return toDTO(offer);
+  }
+
+  @Mutation(() => MarketplaceOfferDTO, {
+    name: 'marketplaceRepublishOffer',
+    description: 'Поставщик возвращает снятый Offer на публикацию (статус → PENDING_MODERATION)',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Offer', 'update:own')
+  async marketplaceRepublishOffer(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('input') input: MarketplaceRepublishOfferInputDTO
+  ): Promise<MarketplaceOfferDTO> {
+    const offer = await this.offerService.republish(input.id, member.username);
     return toDTO(offer);
   }
 
