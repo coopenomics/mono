@@ -1,35 +1,50 @@
 <script lang="ts" setup>
-import type { QTableProps } from 'quasar';
 import { onMounted, ref } from 'vue';
 import { FailAlert } from 'src/shared/api';
+import { useDismissibleBanner } from 'src/shared/hooks';
+import { BaseBadge, BaseButton, EmptyState, TableSkeleton } from 'src/shared/ui/base';
+import type { BaseBadgeVariant, TableSkeletonColumn } from 'src/shared/ui/base';
 import { listMyPayments, type MarketplaceOutgoingPaymentRequestView } from '../api';
+
+/**
+ * Эпик 5 / Story 5.9: offerer-стол «История выплат».
+ *
+ * Поставщик видит исходящие выплаты по своим актам приёмки и их статус.
+ * Вёрстка по канону MONO Platform v2: инфо-баннер, canon-таблица
+ * (`.table-wrap`) со статус-бейджами, скелетон вместо спиннера, EmptyState.
+ */
 
 const items = ref<MarketplaceOutgoingPaymentRequestView[]>([]);
 const loading = ref(false);
+const { dismissed: bannerDismissed, dismiss: dismissBanner } = useDismissibleBanner(
+  'mp:offerer-payments:banner-dismissed',
+);
 
-const PAYMENT_STATUS_LABEL: Record<string, string> = {
-  AWAITING_AUTHORIZATION: 'Ожидает решения совета',
-  PENDING: 'Ожидает оплаты',
-  PROCESSING: 'Обрабатывается',
-  PAID: 'Оплачен',
-  COMPLETED: 'Обработан',
-  FAILED: 'Не удался',
-  EXPIRED: 'Истёк',
-  CANCELLED: 'Отменён',
-  REFUNDED: 'Отклонён',
+// Статус выплаты → человекочитаемая метка + canon-вариант бейджа.
+const PAYMENT_STATUS: Record<string, { label: string; variant: BaseBadgeVariant }> = {
+  AWAITING_AUTHORIZATION: { label: 'Ожидает решения совета', variant: 'warn' },
+  PENDING: { label: 'Ожидает оплаты', variant: 'warn' },
+  PROCESSING: { label: 'Обрабатывается', variant: 'info' },
+  PAID: { label: 'Оплачен', variant: 'pos' },
+  COMPLETED: { label: 'Обработан', variant: 'pos' },
+  FAILED: { label: 'Не удался', variant: 'neg' },
+  EXPIRED: { label: 'Истёк', variant: 'neutral' },
+  CANCELLED: { label: 'Отменён', variant: 'neutral' },
+  REFUNDED: { label: 'Отклонён', variant: 'neg' },
 };
 
-function paymentStatusLabel(v: string): string {
-  return PAYMENT_STATUS_LABEL[v] ?? PAYMENT_STATUS_LABEL[v?.toUpperCase()] ?? v;
+function statusOf(v?: string | null): { label: string; variant: BaseBadgeVariant } {
+  if (!v) return { label: '—', variant: 'neutral' };
+  return PAYMENT_STATUS[v] ?? PAYMENT_STATUS[v.toUpperCase()] ?? { label: v, variant: 'neutral' };
 }
 
-const columns: QTableProps['columns'] = [
-  { name: 'created_at', label: 'Дата', field: 'created_at', align: 'left' },
-  { name: 'amount', label: 'Сумма', field: 'amount', align: 'right' },
-  { name: 'symbol', label: 'Валюта', field: 'symbol', align: 'center' },
-  { name: 'status', label: 'Статус', field: 'status', align: 'left', format: (v: string) => paymentStatusLabel(v) },
-  { name: 'payment_reference', label: 'Референс банка', field: 'payment_reference', align: 'left' },
-  { name: 'purpose', label: 'Назначение', field: 'purpose', align: 'left' },
+// Колонки скелетона повторяют шапку реальной таблицы — каркас не дёргается.
+const skeletonColumns: TableSkeletonColumn[] = [
+  { label: 'Дата', cell: 'text', cellWidth: '120px' },
+  { label: 'Сумма', class: 'col-num', cell: 'text', cellWidth: '80px' },
+  { label: 'Статус', cell: 'badge' },
+  { label: 'Референс банка', cell: 'text' },
+  { label: 'Назначение', cell: 'text' },
 ];
 
 async function load(): Promise<void> {
@@ -49,18 +64,109 @@ onMounted(() => {
 </script>
 
 <template lang="pug">
-q-page.mp-role-offerer.mp-payment-history.q-pa-md
-  .row.items-center.q-mb-md
-    .text-h5 История выплат
-    q-space
-    q-btn(flat no-caps icon="refresh" label="Обновить" :loading="loading" @click="load")
+q-page.offerer-payments
+  .banner.banner--info(v-if='!bannerDismissed')
+    q-icon.banner__icon(name='info', size='18px')
+    .banner__body
+      | Выплаты по вашим актам приёмки. Совет авторизует выплату, после чего
+      | она уходит в банк — статус обновляется здесь по мере обработки.
+    BaseButton.offerer-payments__banner-close(
+      variant='ghost',
+      icon-only,
+      size='sm',
+      aria-label='Скрыть подсказку',
+      @click='dismissBanner'
+    )
+      template(#icon-left)
+        q-icon(name='close', size='16px')
 
-  q-table(
-    :rows="items"
-    :columns="columns"
-    row-key="id"
-    flat
-    bordered
-    :loading="loading"
+  .offerer-payments__toolbar
+    BaseButton(
+      variant='ghost',
+      icon-only,
+      aria-label='Обновить',
+      :loading='loading',
+      @click='load'
+    )
+      template(#icon-left)
+        q-icon(name='refresh', size='20px')
+
+  TableSkeleton(
+    v-if='loading && !items.length',
+    :columns='skeletonColumns',
+    :rows='6',
+    min-width='820px'
   )
+  .table-wrap(v-else-if='items.length')
+    .table-scroll
+      table.table
+        thead
+          tr
+            th.col-date Дата
+            th.col-num Сумма
+            th.col-status Статус
+            th Референс банка
+            th Назначение
+        tbody
+          tr(v-for='row in items', :key='row.id')
+            td.col-date {{ row.created_at }}
+            td.col-num {{ row.amount }} {{ row.symbol }}
+            td.col-status
+              BaseBadge(:variant='statusOf(row.status).variant') {{ statusOf(row.status).label }}
+            td {{ row.payment_reference || '—' }}
+            td {{ row.purpose || '—' }}
+
+  EmptyState(
+    v-else,
+    title='Выплат пока нет',
+    body='Здесь появятся выплаты по вашим актам приёмки, когда совет их авторизует.'
+  )
+    template(#icon)
+      q-icon(name='payments', size='48px')
 </template>
+
+<style scoped lang="scss">
+.offerer-payments {
+  padding: var(--p-6, 24px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-4, 16px);
+
+  &__banner-close {
+    flex-shrink: 0;
+    align-self: flex-start;
+    margin: -4px -4px 0 0;
+  }
+
+  &__toolbar {
+    display: flex;
+    justify-content: flex-end;
+  }
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+.table {
+  table-layout: fixed;
+  min-width: 820px;
+}
+.col-date {
+  width: 160px;
+  white-space: nowrap;
+}
+.col-num {
+  width: 140px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.col-status {
+  width: 200px;
+}
+
+@media (max-width: 768px) {
+  .offerer-payments {
+    padding: var(--p-4, 16px);
+  }
+}
+</style>

@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import { Classes } from '@coopenomics/sdk';
 import { useGlobalStore } from 'src/shared/store';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { BaseButton, BaseDialog } from 'src/shared/ui/base';
 import {
   fetchSupplierSignablePayloads,
   signAsSupplier,
@@ -85,37 +86,38 @@ function cancel(): void {
 </script>
 
 <template lang="pug">
-q-dialog(
+BaseDialog(
   :model-value="modelValue"
-  @update:model-value="(v: boolean) => emit('update:modelValue', v)"
+  title="Подпись акта приёмки"
+  size="md"
+  @update:model-value="(v) => emit('update:modelValue', v)"
 )
-  q-card.mp-sign-apl(style="min-width: 420px; max-width: 560px")
-    q-card-section
-      .text-h6 Подпись акта приёмки
-      .text-caption.text-grey(v-if="reception")
-        | АПП {{ reception.id.slice(0, 8) }} · КУ {{ reception.braname }} · {{ variantLabel }}
+  .sign-apl
+    .text-caption.text-grey(v-if="reception")
+      | АПП {{ reception.id.slice(0, 8) }} · КУ {{ reception.braname }} · {{ variantLabel }}
 
-    q-card-section.q-pt-none
-      q-banner.q-mb-md(rounded class="bg-primary text-white")
-        | Вы подписываете {{ ordersCount }} акт(ов) приёмки ключом текущей сессии как поставщик-владелец предложений. После подписи акты уходят на закрывающую подпись председателя КУ.
-      .text-body2(v-if="reception")
-        | Сумма к приёмке: {{ reception.total_amount }} ₽
+    .banner.banner--info
+      q-icon.banner__icon(name="info", size="18px")
+      .banner__body
+        | Вы подписываете {{ ordersCount }} акт(ов) приёмки ключом текущей сессии
+        | как поставщик-владелец предложений. После подписи акты уходят на
+        | закрывающую подпись председателя КУ.
 
-    q-card-actions(align="right")
-      q-btn(flat no-caps label="Отмена" :disable="signing" @click="cancel")
-      q-btn(
-        unelevated
-        no-caps
-        color="primary"
-        label="Подписать"
-        :loading="signing"
-        @click="confirm"
-      )
+    .text-body2(v-if="reception")
+      | Сумма к приёмке: {{ reception.total_amount }} ₽
+
+  template(#footer)
+    BaseButton(variant="ghost", :disabled="signing", @click="cancel") Отмена
+    BaseButton(variant="primary", :loading="signing", @click="confirm")
+      template(#icon-left)
+        q-icon(name="draw", size="16px")
+      | Подписать
 </template>
 
 <style scoped lang="scss">
-.mp-sign-apl {
+.sign-apl {
   display: flex;
   flex-direction: column;
+  gap: var(--p-3, 12px);
 }
 </style>

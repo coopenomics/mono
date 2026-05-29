@@ -1,9 +1,9 @@
 <script lang="ts" setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue';
-import { LocalStorage, Notify } from 'quasar';
+import { Notify } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { useSystemStore } from 'src/entities/System/model';
-import { useHeaderActions } from 'src/shared/hooks';
+import { useDismissibleBanner, useHeaderActions } from 'src/shared/hooks';
 import { marketplaceUnitShort } from 'src/shared/lib/consts';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
 import { BaseButton, BaseCard, BaseInput, EmptyState } from 'src/shared/ui/base';
@@ -41,8 +41,6 @@ import type { MarketplaceOfferStatusView, MarketplaceOfferView } from '../types'
 const PAGE_SIZE = 50;
 const POLL_INTERVAL_MS = 30_000;
 
-// Подсказку-баннер можно скрыть навсегда (запоминаем в LocalStorage).
-const BANNER_LS_KEY = 'mp:my-offers:banner-dismissed';
 // Кол-во скелетон-карточек на время первичной загрузки.
 const SKELETON_COUNT = 8;
 
@@ -67,19 +65,14 @@ const currentPage = ref(1);
 const loading = ref(false);
 const statusFilter = ref<MarketplaceOfferStatusView | null>(null);
 const search = ref('');
-// Читаем синхронно: если подсказку уже скрыли — она не появляется вообще,
-// без мигания на onMounted.
-const bannerDismissed = ref(LocalStorage.getItem(BANNER_LS_KEY) === true);
+const { dismissed: bannerDismissed, dismiss: dismissBanner } = useDismissibleBanner(
+  'mp:my-offers:banner-dismissed',
+);
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 
 // Скелетон показываем только на первичной загрузке (список ещё пуст). При
 // polling'е данные обновляются молча — без дёргания спиннером.
 const showSkeleton = computed(() => loading.value && items.value.length === 0);
-
-function dismissBanner(): void {
-  bannerDismissed.value = true;
-  LocalStorage.set(BANNER_LS_KEY, true);
-}
 
 // Фильтр статусов = канон-меню `.tabbar`. `slug` — стабильный ключ в URL
 // (`?status=moderation`), чтобы на любой фильтр можно было перейти ссылкой.

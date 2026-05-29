@@ -1,27 +1,41 @@
 <script lang="ts" setup>
-import type { QTableProps } from 'quasar';
 import { onMounted, ref } from 'vue';
 import { FailAlert } from 'src/shared/api';
+import { useDismissibleBanner } from 'src/shared/hooks';
+import { BaseBadge, BaseButton, EmptyState, TableSkeleton } from 'src/shared/ui/base';
+import type { BaseBadgeVariant, TableSkeletonColumn } from 'src/shared/ui/base';
 import { listShipments, type MarketplaceShipmentView } from '../api';
 
 /**
- * Story 5.1 / 5.2: стол поставщика — подготовка партий поставки.
+ * Эпик 5 / Story 5.1–5.2: offerer-стол «Подготовка отгрузки».
  *
- * Каркасная версия (598-18): загружает партии текущего поставщика и
- * показывает таблицу. Группировка через `ExpeditorGroupingBoard` и
- * печать ТТН через `TTNPrintPreview` подключаются во вторую UI-волну.
+ * Поставщик видит партии поставки, комплектует и подтверждает готовность к
+ * отгрузке. Вёрстка по канону MONO Platform v2: инфо-баннер, canon-таблица
+ * со статус-бейджами, скелетон вместо спиннера, EmptyState.
+ *
+ * Группировка drag-n-drop (ExpeditorGroupingBoard) и печать ТТН
+ * (TTNPrintPreview) подключаются второй UI-волной.
  */
 
 const items = ref<MarketplaceShipmentView[]>([]);
 const loading = ref(false);
+const { dismissed: bannerDismissed, dismiss: dismissBanner } = useDismissibleBanner(
+  'mp:offerer-supply:banner-dismissed',
+);
 
-const SHIPMENT_STATUS_LABEL: Record<string, string> = {
-  DRAFT: 'Черновик',
-  SUPPLY_PREPARED: 'Готова к отгрузке',
-  RECEPTION_IN_PROGRESS: 'Идёт приёмка',
-  ACCEPTED_TO_COOP: 'Принята кооперативом',
-  CANCELLED: 'Отменена',
+// Статус партии → метка + canon-вариант бейджа.
+const SHIPMENT_STATUS: Record<string, { label: string; variant: BaseBadgeVariant }> = {
+  DRAFT: { label: 'Черновик', variant: 'neutral' },
+  SUPPLY_PREPARED: { label: 'Готова к отгрузке', variant: 'info' },
+  RECEPTION_IN_PROGRESS: { label: 'Идёт приёмка', variant: 'warn' },
+  ACCEPTED_TO_COOP: { label: 'Принята кооперативом', variant: 'pos' },
+  CANCELLED: { label: 'Отменена', variant: 'neutral' },
 };
+
+function statusOf(v?: string | null): { label: string; variant: BaseBadgeVariant } {
+  if (!v) return { label: '—', variant: 'neutral' };
+  return SHIPMENT_STATUS[v] ?? { label: v, variant: 'neutral' };
+}
 
 const DELIVERY_VARIANT_LABEL: Record<string, string> = {
   SELF: 'Поставщик сам',
@@ -30,13 +44,18 @@ const DELIVERY_VARIANT_LABEL: Record<string, string> = {
   B: 'Через экспедитора',
 };
 
-const columns: QTableProps['columns'] = [
-  { name: 'cycle_id', label: 'Цикл', field: 'cycle_id', align: 'left' },
-  { name: 'braname', label: 'КУ', field: 'braname', align: 'left' },
-  { name: 'delivery_variant', label: 'Вариант', field: 'delivery_variant', align: 'center', format: (v: string) => DELIVERY_VARIANT_LABEL[v] ?? v },
-  { name: 'status', label: 'Статус', field: 'status', align: 'left', format: (v: string) => SHIPMENT_STATUS_LABEL[v] ?? v },
-  { name: 'total_amount', label: 'Сумма', field: 'total_amount', align: 'right' },
-  { name: 'ttn_number', label: 'ТТН', field: 'ttn_number', align: 'left' },
+function deliveryVariantLabel(v: string): string {
+  return DELIVERY_VARIANT_LABEL[v] ?? v;
+}
+
+// Колонки скелетона повторяют шапку реальной таблицы — каркас не дёргается.
+const skeletonColumns: TableSkeletonColumn[] = [
+  { label: 'Цикл', class: 'col-id', cell: 'badge' },
+  { label: 'КУ', cell: 'text' },
+  { label: 'Вариант', cell: 'text', cellWidth: '120px' },
+  { label: 'Статус', cell: 'badge' },
+  { label: 'Сумма', class: 'col-num', cell: 'text', cellWidth: '80px' },
+  { label: 'ТТН', cell: 'text', cellWidth: '90px' },
 ];
 
 async function load(): Promise<void> {
@@ -56,22 +75,117 @@ onMounted(() => {
 </script>
 
 <template lang="pug">
-q-page.mp-role-offerer.mp-supply-preparation.q-pa-md
-  .row.items-center.q-mb-md
-    .text-h5 Подготовка поставки
-    q-space
-    q-btn(flat no-caps icon="refresh" label="Обновить" :loading="loading" @click="load")
+q-page.offerer-supply
+  .banner.banner--info(v-if='!bannerDismissed')
+    q-icon.banner__icon(name='info', size='18px')
+    .banner__body
+      | Партии поставки по принятым заказам. Скомплектуйте партию и подтвердите
+      | готовность к отгрузке — после приёмки на ПВЗ она перейдёт кооперативу.
+    BaseButton.offerer-supply__banner-close(
+      variant='ghost',
+      icon-only,
+      size='sm',
+      aria-label='Скрыть подсказку',
+      @click='dismissBanner'
+    )
+      template(#icon-left)
+        q-icon(name='close', size='16px')
 
-  q-table(
-    :rows="items"
-    :columns="columns"
-    row-key="id"
-    flat
-    bordered
-    :loading="loading"
+  .offerer-supply__toolbar
+    BaseButton(
+      variant='ghost',
+      icon-only,
+      aria-label='Обновить',
+      :loading='loading',
+      @click='load'
+    )
+      template(#icon-left)
+        q-icon(name='refresh', size='20px')
+
+  TableSkeleton(
+    v-if='loading && !items.length',
+    :columns='skeletonColumns',
+    :rows='6',
+    min-width='880px'
   )
+  .table-wrap(v-else-if='items.length')
+    .table-scroll
+      table.table
+        thead
+          tr
+            th.col-id Цикл
+            th КУ
+            th.col-variant Вариант
+            th.col-status Статус
+            th.col-num Сумма
+            th.col-ttn ТТН
+        tbody
+          tr(v-for='row in items', :key='row.id')
+            td.col-id {{ row.cycle_id }}
+            td {{ row.braname }}
+            td.col-variant {{ deliveryVariantLabel(row.delivery_variant) }}
+            td.col-status
+              BaseBadge(:variant='statusOf(row.status).variant') {{ statusOf(row.status).label }}
+            td.col-num {{ row.total_amount }} ₽
+            td.col-ttn {{ row.ttn_number || '—' }}
 
-  .text-caption.text-grey-7.q-mt-md
-    | Группировка drag-n-drop и печать ТТН подключаются вторым UI-PR'ом
-    | (канон widget'ов: ExpeditorGroupingBoard, TTNPrintPreview).
+  EmptyState(
+    v-else,
+    title='Партий пока нет',
+    body='Когда вы примете заказ во «Входящих заказах» — здесь появится партия для подготовки к отгрузке.'
+  )
+    template(#icon)
+      q-icon(name='local_shipping', size='48px')
 </template>
+
+<style scoped lang="scss">
+.offerer-supply {
+  padding: var(--p-6, 24px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-4, 16px);
+
+  &__banner-close {
+    flex-shrink: 0;
+    align-self: flex-start;
+    margin: -4px -4px 0 0;
+  }
+
+  &__toolbar {
+    display: flex;
+    justify-content: flex-end;
+  }
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+.table {
+  table-layout: fixed;
+  min-width: 880px;
+}
+.col-id {
+  width: 150px;
+  font-family: var(--font-mono);
+}
+.col-variant {
+  width: 160px;
+}
+.col-status {
+  width: 200px;
+}
+.col-num {
+  width: 120px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.col-ttn {
+  width: 120px;
+}
+
+@media (max-width: 768px) {
+  .offerer-supply {
+    padding: var(--p-4, 16px);
+  }
+}
+</style>

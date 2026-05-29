@@ -1,24 +1,44 @@
 <script lang="ts" setup>
-import type { QTableProps } from 'quasar';
 import { onMounted, ref } from 'vue';
 import { FailAlert } from 'src/shared/api';
+import { useDismissibleBanner } from 'src/shared/hooks';
+import { BaseBadge, BaseButton, EmptyState, TableSkeleton } from 'src/shared/ui/base';
+import type { BaseBadgeVariant, TableSkeletonColumn } from 'src/shared/ui/base';
 import {
   listAplReceptionsAsSupplier,
   type MarketplaceAplReceptionView,
 } from '../api';
 import SignAplReceptionDialog from './SignAplReceptionDialog.vue';
 
+/**
+ * Эпик 5 / Story 5.7: offerer-стол «Подпись приёмки».
+ *
+ * Поставщик первой подписью (on-chain `signsupp`) подтверждает факт приёмки
+ * партии, после чего акт уходит на закрывающую подпись председателя КУ.
+ * Вёрстка по канону MONO Platform v2: инфо-баннер, canon-таблица со
+ * статус-бейджами, скелетон вместо спиннера, EmptyState.
+ */
+
 const items = ref<MarketplaceAplReceptionView[]>([]);
 const loading = ref(false);
 const signDialog = ref(false);
 const selected = ref<MarketplaceAplReceptionView | null>(null);
+const { dismissed: bannerDismissed, dismiss: dismissBanner } = useDismissibleBanner(
+  'mp:offerer-apl:banner-dismissed',
+);
 
-const RECEPTION_STATUS_LABEL: Record<string, string> = {
-  PENDING_SUPPLIER_SIGN: 'Ждёт подписи поставщика',
-  PENDING_CHAIRMAN_RECEPTION_SIGN: 'Ждёт подписи председателя КУ',
-  ACCEPTED_TO_COOP: 'Принят кооперативом',
-  CANCELLED: 'Отменён',
+// Статус акта приёмки → метка + canon-вариант бейджа.
+const RECEPTION_STATUS: Record<string, { label: string; variant: BaseBadgeVariant }> = {
+  PENDING_SUPPLIER_SIGN: { label: 'Ждёт вашей подписи', variant: 'warn' },
+  PENDING_CHAIRMAN_RECEPTION_SIGN: { label: 'Ждёт подписи председателя КУ', variant: 'info' },
+  ACCEPTED_TO_COOP: { label: 'Принят кооперативом', variant: 'pos' },
+  CANCELLED: { label: 'Отменён', variant: 'neutral' },
 };
+
+function statusOf(v?: string | null): { label: string; variant: BaseBadgeVariant } {
+  if (!v) return { label: '—', variant: 'neutral' };
+  return RECEPTION_STATUS[v] ?? { label: v, variant: 'neutral' };
+}
 
 const RECEPTION_VARIANT_LABEL: Record<string, string> = {
   IN_PERSON: 'Очная приёмка',
@@ -27,13 +47,18 @@ const RECEPTION_VARIANT_LABEL: Record<string, string> = {
   B: 'Через экспедитора',
 };
 
-const columns: QTableProps['columns'] = [
-  { name: 'id', label: 'АПП', field: (r: MarketplaceAplReceptionView) => r.id.slice(0, 8), align: 'left' },
-  { name: 'braname', label: 'КУ', field: 'braname', align: 'left' },
-  { name: 'variant', label: 'Вариант', field: 'variant', align: 'center', format: (v: string) => RECEPTION_VARIANT_LABEL[v] ?? v },
-  { name: 'status', label: 'Статус', field: 'status', align: 'left', format: (v: string) => RECEPTION_STATUS_LABEL[v] ?? v },
-  { name: 'total_amount', label: 'Сумма', field: 'total_amount', align: 'right' },
-  { name: 'actions', label: 'Действия', field: 'id', align: 'right' },
+function variantLabel(v: string): string {
+  return RECEPTION_VARIANT_LABEL[v] ?? v;
+}
+
+// Колонки скелетона повторяют шапку реальной таблицы — каркас не дёргается.
+const skeletonColumns: TableSkeletonColumn[] = [
+  { label: 'АПП', class: 'col-id', cell: 'badge' },
+  { label: 'КУ', cell: 'text' },
+  { label: 'Вариант', cell: 'text', cellWidth: '120px' },
+  { label: 'Статус', cell: 'badge' },
+  { label: 'Сумма', class: 'col-num', cell: 'text', cellWidth: '80px' },
+  { label: 'Действия', class: 'col-action', cell: 'icon' },
 ];
 
 async function load(): Promise<void> {
@@ -58,35 +83,139 @@ onMounted(() => {
 </script>
 
 <template lang="pug">
-q-page.mp-role-offerer.mp-pending-apl.q-pa-md
-  .row.items-center.q-mb-md
-    .text-h5 Акты приёмки на подпись
-    q-space
-    q-btn(flat no-caps icon="refresh" label="Обновить" :loading="loading" @click="load")
+q-page.offerer-apl
+  .banner.banner--info(v-if='!bannerDismissed')
+    q-icon.banner__icon(name='info', size='18px')
+    .banner__body
+      | Акты приёмки партий, по которым ждут вашу подпись. Подписывая акт, вы
+      | подтверждаете факт приёмки — затем он уходит на закрывающую подпись
+      | председателя КУ.
+    BaseButton.offerer-apl__banner-close(
+      variant='ghost',
+      icon-only,
+      size='sm',
+      aria-label='Скрыть подсказку',
+      @click='dismissBanner'
+    )
+      template(#icon-left)
+        q-icon(name='close', size='16px')
 
-  q-table(
-    :rows="items"
-    :columns="columns"
-    row-key="id"
-    flat
-    bordered
-    :loading="loading"
+  .offerer-apl__toolbar
+    BaseButton(
+      variant='ghost',
+      icon-only,
+      aria-label='Обновить',
+      :loading='loading',
+      @click='load'
+    )
+      template(#icon-left)
+        q-icon(name='refresh', size='20px')
+
+  TableSkeleton(
+    v-if='loading && !items.length',
+    :columns='skeletonColumns',
+    :rows='6',
+    min-width='860px'
   )
-    template(#body-cell-actions="props")
-      q-td(:props="props")
-        q-btn(
-          v-if="props.row.status === 'PENDING_SUPPLIER_SIGN'"
-          color="primary"
-          unelevated
-          no-caps
-          dense
-          label="Подписать"
-          @click="sign(props.row)"
-        )
+  .table-wrap(v-else-if='items.length')
+    .table-scroll
+      table.table
+        thead
+          tr
+            th.col-id АПП
+            th КУ
+            th.col-variant Вариант
+            th.col-status Статус
+            th.col-num Сумма
+            th.col-action Действия
+        tbody
+          tr(v-for='row in items', :key='row.id')
+            td.col-id {{ row.id.slice(0, 8) }}
+            td {{ row.braname }}
+            td.col-variant {{ variantLabel(row.variant) }}
+            td.col-status
+              BaseBadge(:variant='statusOf(row.status).variant') {{ statusOf(row.status).label }}
+            td.col-num {{ row.total_amount }} ₽
+            td.col-action
+              BaseButton(
+                v-if='row.status === "PENDING_SUPPLIER_SIGN"',
+                variant='primary',
+                size='sm',
+                @click='sign(row)'
+              )
+                template(#icon-left)
+                  q-icon(name='draw', size='16px')
+                | Подписать
+              span.offerer-apl__dash(v-else) —
+
+  EmptyState(
+    v-else,
+    title='Актов на подпись нет',
+    body='Когда партия будет принята на ПВЗ — акт приёмки появится здесь для вашей подписи.'
+  )
+    template(#icon)
+      q-icon(name='task_alt', size='48px')
 
   SignAplReceptionDialog(
-    v-model="signDialog"
-    :reception="selected"
-    @signed="load"
+    v-model='signDialog',
+    :reception='selected',
+    @signed='load'
   )
 </template>
+
+<style scoped lang="scss">
+.offerer-apl {
+  padding: var(--p-6, 24px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-4, 16px);
+
+  &__banner-close {
+    flex-shrink: 0;
+    align-self: flex-start;
+    margin: -4px -4px 0 0;
+  }
+
+  &__toolbar {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  &__dash {
+    color: var(--p-ink-3);
+  }
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+.table {
+  table-layout: fixed;
+  min-width: 860px;
+}
+.col-id {
+  width: 120px;
+  font-family: var(--font-mono);
+}
+.col-variant {
+  width: 150px;
+}
+.col-status {
+  width: 220px;
+}
+.col-num {
+  width: 120px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.col-action {
+  width: 150px;
+  text-align: right;
+}
+
+@media (max-width: 768px) {
+  .offerer-apl {
+    padding: var(--p-4, 16px);
+  }
+}
+</style>
