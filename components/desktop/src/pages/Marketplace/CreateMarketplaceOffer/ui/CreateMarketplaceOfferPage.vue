@@ -73,7 +73,7 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
               dense,
               no-error-icon,
               reserve-hint-space,
-              suffix='₽',
+              :suffix='governSymbol',
               hint='Два знака после запятой, например 100.50',
               :rules='[priceRule]'
             )
@@ -89,12 +89,7 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
               map-options
             )
           .offer-wizard__qty
-            BaseCheckbox(
-              :model-value='form.unlimited_flag',
-              label='Без ограничения по количеству',
-              @update:model-value='onToggleUnlimited'
-            )
-            q-input(
+            q-input.offer-wizard__qty-input(
               v-model.number='form.quantity_available',
               label='Доступное количество',
               type='number',
@@ -105,6 +100,11 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
               reserve-hint-space,
               :disable='form.unlimited_flag',
               :rules='[(v) => form.unlimited_flag || (v !== null && v >= 0) || "Укажите количество или включите «без ограничения»"]'
+            )
+            BaseCheckbox.offer-wizard__qty-check(
+              :model-value='form.unlimited_flag',
+              label='Без ограничения',
+              @update:model-value='onToggleUnlimited'
             )
           q-input(
             v-model.number='form.warranty_days',
@@ -121,7 +121,6 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
 
         //- ───────── Шаг 3: Условия поставки ─────────
         .offer-wizard__step(v-else-if='step.key === "supply"')
-          .offer-wizard__field-label Как набираются и отсекаются заказы
           .offer-wizard__cards
             BaseRadioCard(
               v-for='opt in cycleTypeOptions',
@@ -197,7 +196,6 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
 
         //- ───────── Шаг 4: Изображения ─────────
         .offer-wizard__step(v-else-if='step.key === "images"')
-          .offer-wizard__field-label Фотографии товара
           p.offer-wizard__hint
             | До {{ MAX_IMAGES }} изображений, каждое до {{ MAX_MB }} МБ (JPEG, PNG или WEBP).
             | Нажмите на снимок, чтобы сделать его обложкой карточки.
@@ -254,25 +252,26 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
             | Так предложение увидят заказчики в каталоге после одобрения модератором.
 
           article.offer-preview
-            .offer-preview__media
-              q-img.offer-preview__main(
-                v-if='previewImages.length',
-                :src='previewImages[previewActive].url',
-                ratio='1'
-              )
-              .offer-preview__placeholder(v-else)
-                q-icon(name='fa-solid fa-image', size='52px')
-                span Без изображения
-            .offer-preview__thumbs(v-if='previewImages.length > 1')
-              button.offer-preview__thumb(
+            q-carousel.offer-preview__carousel(
+              v-if='previewImages.length',
+              v-model='previewActive',
+              swipeable,
+              animated,
+              infinite,
+              :arrows='previewImages.length > 1',
+              :navigation='previewImages.length > 1',
+              control-color='primary',
+              height='320px'
+            )
+              q-carousel-slide(
                 v-for='(img, i) in previewImages',
                 :key='img.url',
-                type='button',
-                :class='{ "offer-preview__thumb--active": i === previewActive }',
-                :aria-label='`Показать изображение ${i + 1}`',
-                @click='previewActive = i'
+                :name='i'
               )
-                q-img(:src='img.url', ratio='1')
+                q-img.offer-preview__slideimg(:src='img.url', :ratio='1', fit='cover')
+            .offer-preview__placeholder(v-else)
+              q-icon(name='fa-solid fa-image', size='52px')
+              span Без изображения
 
             .offer-preview__info
               h2.offer-preview__name {{ form.product_name || 'Без названия' }}
@@ -328,6 +327,7 @@ import { BaseRadioCard } from 'src/shared/ui/base/BaseRadioCard';
 import { BaseCheckbox } from 'src/shared/ui/base/BaseCheckbox';
 import { BaseChip } from 'src/shared/ui/base/BaseChip';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { useSystemStore } from 'src/entities/System/model';
 import { fileToBase64, formatAsset2Digits } from 'src/shared/lib/utils';
 import { createOffer, fetchCategories, fetchMyOfferById, updateOffer } from '../api';
 import type {
@@ -362,6 +362,11 @@ const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp'];
 const router = useRouter();
 const route = useRoute();
 
+// Символ валюты — из системной инфо (блокчейн-параметр root_govern_symbol),
+// НЕ хардкод «₽»: при смене символа цепи фронт не переписываем.
+const systemStore = useSystemStore();
+const governSymbol = computed(() => systemStore.governSymbol);
+
 // Цена — целое или с двумя знаками после запятой (рубли/копейки). Допускаем
 // и точку, и запятую при вводе; в payload нормализуем к точке. На цепь backend
 // переводит в asset нужной precision сам (MARKETPLACE_ASSET_CONFIG).
@@ -387,7 +392,7 @@ const submitLabel = computed(() =>
 const steps: StepperStep[] = [
   { key: 'basics', label: 'Товар', description: 'Название, категория, описание' },
   { key: 'pricing', label: 'Цена и наличие', description: 'Стоимость, количество, гарантия' },
-  { key: 'supply', label: 'Условия поставки', description: 'Как набираются заказы' },
+  { key: 'supply', label: 'Условия поставки', description: 'Как набираются и отсекаются заказы' },
   { key: 'images', label: 'Изображения', description: 'Фотографии товара' },
   { key: 'review', label: 'Проверка и публикация', description: 'Сверьте карточку перед отправкой' },
 ];
@@ -482,7 +487,7 @@ const selectedCycleTitle = computed(
 // Нормализованная (точка-разделитель) цена для отправки и форматирования.
 const priceNumberStr = computed(() => form.value.price_per_unit.trim().replace(',', '.'));
 const formattedPrice = computed(() =>
-  priceNumberStr.value ? formatAsset2Digits(`${priceNumberStr.value} ₽`) : '—'
+  priceNumberStr.value ? formatAsset2Digits(`${priceNumberStr.value} ${governSymbol.value}`) : '—'
 );
 
 const stockEmpty = computed(
@@ -781,7 +786,7 @@ onBeforeUnmount(() => {
   &__step {
     display: flex;
     flex-direction: column;
-    gap: var(--p-4, 16px);
+    gap: var(--p-3, 12px);
     padding-bottom: var(--p-2, 8px);
   }
 
@@ -793,8 +798,19 @@ onBeforeUnmount(() => {
 
   &__qty {
     display: flex;
-    flex-direction: column;
-    gap: var(--p-2, 8px);
+    align-items: flex-start;
+    gap: var(--p-4, 16px);
+    flex-wrap: wrap;
+  }
+
+  &__qty-input {
+    flex: 0 1 240px;
+  }
+
+  // Чекбокс в одной строке с полем количества; небольшой top-отступ
+  // выравнивает его по центру dense-контрола.
+  &__qty-check {
+    margin-top: var(--p-2, 8px);
   }
 
   &__field-label {
@@ -922,21 +938,19 @@ onBeforeUnmount(() => {
   background: var(--p-surface, #fff);
   max-width: 420px;
 
-  &__media {
-    position: relative;
+  &__carousel {
     width: 100%;
-    aspect-ratio: 1 / 1;
     background: var(--p-surface-2, #f5f5f5);
   }
 
-  &__main {
+  &__slideimg {
     width: 100%;
     height: 100%;
   }
 
   &__placeholder {
     width: 100%;
-    height: 100%;
+    aspect-ratio: 1 / 1;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -944,29 +958,7 @@ onBeforeUnmount(() => {
     gap: var(--p-2, 8px);
     color: var(--p-ink-3);
     font-size: var(--p-fs-meta, 12px);
-  }
-
-  &__thumbs {
-    display: flex;
-    gap: var(--p-2, 8px);
-    padding: var(--p-2, 8px) var(--p-3, 12px) 0;
-    overflow-x: auto;
-  }
-
-  &__thumb {
-    flex: 0 0 auto;
-    width: 56px;
-    height: 56px;
-    padding: 0;
-    border: 2px solid transparent;
-    border-radius: var(--p-r-sm, 6px);
-    overflow: hidden;
-    cursor: pointer;
-    background: none;
-
-    &--active {
-      border-color: var(--p-accent, #6366f1);
-    }
+    background: var(--p-surface-2, #f5f5f5);
   }
 
   &__info {
