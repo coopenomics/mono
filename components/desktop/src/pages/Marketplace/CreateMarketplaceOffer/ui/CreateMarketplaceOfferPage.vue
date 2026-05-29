@@ -336,6 +336,7 @@ import { BaseCheckbox } from 'src/shared/ui/base/BaseCheckbox';
 import { BaseChip } from 'src/shared/ui/base/BaseChip';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
+import { MARKETPLACE_UNIT_OPTIONS } from 'src/shared/lib/consts';
 import { fileToBase64, formatAsset2Digits } from 'src/shared/lib/utils';
 import { createOffer, fetchCategories, fetchMyOfferById, updateOffer } from '../api';
 import type {
@@ -412,12 +413,9 @@ const basicsForm = ref<QForm | null>(null);
 const pricingForm = ref<QForm | null>(null);
 
 // ===== Справочники / опции =====
-const unitOptions: Array<{ label: string; value: MarketplaceUnitOfMeasure }> = [
-  { label: 'шт.', value: 'piece' },
-  { label: 'кг', value: 'kg' },
-  { label: 'литр', value: 'liter' },
-  { label: 'упак.', value: 'pack' },
-];
+// Единицы измерения — общий канон-справочник (src/shared/lib/consts), чтобы
+// подписи не расходились между созданием оферты, модерацией и «Мои предложения».
+const unitOptions = MARKETPLACE_UNIT_OPTIONS;
 
 const cycleTypeOptions: Array<{
   value: MarketplaceOfferCycleType;
@@ -783,7 +781,10 @@ async function onSubmit(): Promise<void> {
       await createOffer(payload);
       clearDraft();
       SuccessAlert('Предложение создано и отправлено на модерацию председателю.');
-      void router.push({ name: 'marketplace-catalog' });
+      // Поставщика возвращаем на его стол «Мои предложения» — там он сразу
+      // видит только что созданную оферту в статусе «На модерации», а не в
+      // каталог заказчика.
+      void router.push({ name: 'marketplace-my-offers' });
     }
   } catch (e) {
     FailAlert(e, isEdit.value ? 'Не удалось сохранить предложение' : 'Не удалось создать предложение');

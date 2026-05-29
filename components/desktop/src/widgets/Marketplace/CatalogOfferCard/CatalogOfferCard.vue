@@ -1,7 +1,30 @@
 <template>
   <q-card flat class="mp-catalog-offer-card mp-card" :class="cardClasses" @click="onClick">
     <div class="mp-catalog-offer-card__media">
-      <img v-if="src" :src="src" :alt="offer.title" />
+      <q-carousel
+        v-if="images.length"
+        v-model="slide"
+        class="mp-catalog-offer-card__carousel"
+        swipeable
+        animated
+        infinite
+        transition-prev="slide-right"
+        transition-next="slide-left"
+        :arrows="images.length > 1"
+        :navigation="false"
+        control-color="primary"
+        height="100%"
+        @click.stop
+      >
+        <q-carousel-slide
+          v-for="(img, i) in images"
+          :key="img"
+          :name="i"
+          class="mp-catalog-offer-card__slide"
+        >
+          <q-img :src="img" :alt="offer.title" fit="cover" />
+        </q-carousel-slide>
+      </q-carousel>
       <div v-else class="mp-catalog-offer-card__placeholder">
         <q-icon name="fa-solid fa-image" size="48px" color="grey-5" />
       </div>
@@ -39,7 +62,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, type PropType } from 'vue'
+import { computed, ref, type PropType } from 'vue'
 
 export type CatalogOfferStatus = 'draft' | 'published' | 'paused' | 'sold-out' | 'completed' | 'moderation'
 
@@ -47,7 +70,8 @@ export interface CatalogOffer {
   id?: string | number
   title: string
   description?: string
-  preview?: string         // URL изображения (если есть)
+  preview?: string         // URL одиночного изображения (legacy / обложка)
+  images?: string[]        // URL'ы всех изображений — показываются каруселью
   remainUnits?: number
   unitCost?: number | string
   unitLabel?: string       // ед., шт., кг и т.д.
@@ -62,7 +86,13 @@ const emit = defineEmits<{
   (e: 'click', offer: CatalogOffer): void
 }>()
 
-const src = computed(() => props.offer.preview || '')
+// Источник картинок: массив images (если есть) или одиночный preview.
+// Карусель листается свайпом/стрелками; точки-навигацию не показываем.
+const images = computed<string[]>(() => {
+  if (props.offer.images?.length) return props.offer.images
+  return props.offer.preview ? [props.offer.preview] : []
+})
+const slide = ref(0)
 const unitLabel = computed(() => props.offer.unitLabel ?? 'ед.')
 const status = computed(() => props.offer.status)
 
@@ -120,6 +150,23 @@ function onClick() {
       height: 100%;
       object-fit: cover;
       transition: transform .4s ease;
+    }
+  }
+
+  &__carousel {
+    width: 100%;
+    height: 100%;
+    background: var(--mp-surface-1);
+
+    // Слайд q-carousel по умолчанию имеет внутренний padding — обнуляем,
+    // чтобы изображение шло во всю ширину карточки.
+    :deep(.q-carousel__slide) {
+      padding: 0;
+    }
+
+    .q-img {
+      width: 100%;
+      height: 100%;
     }
   }
 

@@ -7,6 +7,8 @@ import {
   type CatalogOffer,
   type CatalogOfferStatus,
 } from 'src/widgets/Marketplace/CatalogOfferCard';
+import { marketplaceUnitShort } from 'src/shared/lib/consts';
+import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
 import {
   fetchCatalog,
   fetchCategories,
@@ -53,13 +55,6 @@ const sortOptions: Array<{ label: string; value: CatalogSort }> = [
   { label: 'Цена ↓', value: 'price_desc' },
 ];
 
-const UNIT_LABEL: Record<MarketplaceOfferView['unit_of_measure'], string> = {
-  piece: 'шт',
-  kg: 'кг',
-  liter: 'л',
-  pack: 'упак',
-};
-
 function toCatalogOffer(offer: MarketplaceOfferView): CatalogOffer {
   const isEmpty = !offer.unlimited_flag && offer.quantity_available <= 0;
   const status: CatalogOfferStatus = isEmpty ? 'sold-out' : 'published';
@@ -67,9 +62,10 @@ function toCatalogOffer(offer: MarketplaceOfferView): CatalogOffer {
     id: offer.id,
     title: offer.product_name,
     description: offer.description ?? undefined,
+    images: marketplaceOfferImageUrls(offer.images),
     remainUnits: offer.unlimited_flag ? undefined : offer.quantity_available,
     unitCost: offer.price_per_unit,
-    unitLabel: UNIT_LABEL[offer.unit_of_measure],
+    unitLabel: marketplaceUnitShort(offer.unit_of_measure),
     status,
   };
 }

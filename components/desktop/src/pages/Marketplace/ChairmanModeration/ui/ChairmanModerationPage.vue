@@ -3,6 +3,8 @@ import { computed, onMounted, ref } from 'vue';
 import { Dialog, Notify } from 'quasar';
 import { Queries } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
+import { marketplaceUnitShort } from 'src/shared/lib/consts';
+import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
 import {
   CatalogOfferCard,
   type CatalogOffer,
@@ -49,21 +51,15 @@ const selected = ref<MarketplacePendingOfferView | null>(null);
 
 const hasMore = computed(() => items.value.length < total.value);
 
-const UNIT_LABEL: Record<MarketplacePendingOfferView['unit_of_measure'], string> = {
-  piece: 'шт',
-  kg: 'кг',
-  liter: 'л',
-  pack: 'упак',
-};
-
 function toCatalogOffer(offer: MarketplacePendingOfferView): CatalogOffer {
   return {
     id: offer.id,
     title: offer.product_name,
     description: offer.description ?? undefined,
+    images: marketplaceOfferImageUrls(offer.images),
     remainUnits: offer.unlimited_flag ? undefined : offer.quantity_available,
     unitCost: offer.price_per_unit,
-    unitLabel: UNIT_LABEL[offer.unit_of_measure],
+    unitLabel: marketplaceUnitShort(offer.unit_of_measure),
     status: 'moderation',
   };
 }
@@ -78,7 +74,7 @@ const selectedDetail = computed<OfferDetail | null>(() => {
     description: o.description ?? null,
     status: 'moderation',
     unitCost: o.price_per_unit,
-    unitLabel: UNIT_LABEL[o.unit_of_measure],
+    unitLabel: marketplaceUnitShort(o.unit_of_measure),
     remainUnits: o.unlimited_flag ? undefined : o.quantity_available,
     unlimited: o.unlimited_flag,
     categoryName: catId != null ? categoryNames.value[catId] ?? null : null,

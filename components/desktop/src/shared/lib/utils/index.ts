@@ -18,3 +18,4 @@ export * from './formatContributorName';
 export * from './pluralizeHours';
 export * from './schema';
 export * from './fileToBase64';
+export * from './marketplaceOfferImages';

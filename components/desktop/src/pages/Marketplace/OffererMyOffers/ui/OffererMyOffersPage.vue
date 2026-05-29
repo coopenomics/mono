@@ -5,6 +5,8 @@ import { useRouter } from 'vue-router';
 import { Queries } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 import { useSystemStore } from 'src/entities/System/model';
+import { marketplaceUnitShort } from 'src/shared/lib/consts';
+import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
 import {
   CatalogOfferCard,
   type CatalogOffer,
@@ -95,9 +97,10 @@ const cards = computed<Array<CatalogOffer & { domainStatus: MarketplaceOfferStat
     id: o.id,
     title: o.product_name,
     description: o.description ?? '',
+    images: marketplaceOfferImageUrls(o.images),
     remainUnits: o.unlimited_flag ? undefined : o.quantity_available - o.quantity_blocked,
     unitCost: parseFloat(o.price_per_unit) || 0,
-    unitLabel: o.unit_of_measure,
+    unitLabel: marketplaceUnitShort(o.unit_of_measure),
     status: STATUS_TO_CARD[o.status],
     domainStatus: o.status,
     cycleType: o.cycle_type,
@@ -115,7 +118,7 @@ const selectedDetail = computed<OfferDetail | null>(() => {
     description: o.description ?? null,
     status: STATUS_TO_CARD[o.status],
     unitCost: parseFloat(o.price_per_unit) || 0,
-    unitLabel: o.unit_of_measure,
+    unitLabel: marketplaceUnitShort(o.unit_of_measure),
     remainUnits: o.unlimited_flag ? undefined : o.quantity_available - o.quantity_blocked,
     unlimited: o.unlimited_flag,
     categoryName: catId != null ? categoryNames.value[catId] ?? null : null,
