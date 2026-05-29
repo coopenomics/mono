@@ -258,6 +258,8 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
               swipeable,
               animated,
               infinite,
+              transition-prev='slide-right',
+              transition-next='slide-left',
               :arrows='previewImages.length > 1',
               :navigation='previewImages.length > 1',
               control-color='primary',
@@ -274,27 +276,33 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
               span Без изображения
 
             .offer-preview__info
-              h2.offer-preview__name {{ form.product_name || 'Без названия' }}
-              .offer-preview__chips
+              header.offer-preview__head
+                h2.offer-preview__name {{ form.product_name || 'Без названия' }}
                 BaseChip(variant='neutral', size='sm') {{ selectedCategoryLabel }}
               .offer-preview__pricerow
-                span.offer-preview__price {{ formattedPrice }}
-                span.offer-preview__per / {{ selectedUnitLabel }}
-                span.offer-preview__stock(:class='{ "offer-preview__stock--empty": stockEmpty }') {{ stockLabel }}
+                .offer-preview__pricebox
+                  span.offer-preview__price {{ formattedPrice }}
+                  span.offer-preview__per за {{ selectedUnitLabel }}
+                BaseChip(:variant='stockEmpty ? "neg" : "pos"', size='sm') {{ stockLabel }}
               p.offer-preview__desc(v-if='form.description') {{ form.description }}
-              dl.offer-preview__specs
-                .offer-preview__spec
-                  dt Отсечка заказов
-                  dd {{ selectedCycleTitle }}
-                .offer-preview__spec(v-if='isTimeBased && form.cycle_days')
-                  dt Цикл
-                  dd {{ form.cycle_days }} дн.
-                .offer-preview__spec(v-if='isVolumeBased && form.target_volume')
-                  dt Целевой объём
-                  dd {{ form.target_volume }} {{ selectedUnitLabel }}
-                .offer-preview__spec(v-if='form.warranty_days > 0')
-                  dt Гарантия
-                  dd {{ form.warranty_days }} дн.
+              section.offer-preview__specs
+                .offer-preview__specs-title Характеристики
+                dl.offer-preview__specs-list
+                  .offer-preview__spec
+                    dt Отсечка заказов
+                    dd {{ selectedCycleTitle }}
+                  .offer-preview__spec(v-if='isTimeBased && form.cycle_days')
+                    dt Длительность цикла
+                    dd {{ form.cycle_days }} дн.
+                  .offer-preview__spec(v-if='isVolumeBased && form.target_volume')
+                    dt Целевой объём
+                    dd {{ form.target_volume }} {{ selectedUnitLabel }}
+                  .offer-preview__spec(v-if='isVolumeBased && form.max_wait_days')
+                    dt Срок ожидания
+                    dd {{ form.max_wait_days }} дн.
+                  .offer-preview__spec(v-if='form.warranty_days > 0')
+                    dt Гарантия
+                    dd {{ form.warranty_days }} дн.
 
     //- ───────── Навигация ─────────
     footer.offer-wizard__foot
@@ -317,7 +325,8 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
 </template>
 
 <script lang="ts" setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { LocalStorage } from 'quasar';
 import type { QForm } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { VerticalStepper } from 'src/shared/ui/domain/VerticalStepper';
@@ -496,8 +505,40 @@ const stockEmpty = computed(
 const stockLabel = computed(() => {
   if (form.value.unlimited_flag) return 'В наличии';
   if (stockEmpty.value) return 'Нет в наличии';
-  return `${form.value.quantity_available} ${selectedUnitLabel.value}`;
+  return `В наличии: ${form.value.quantity_available} ${selectedUnitLabel.value}`;
 });
+
+// ===== Черновик формы в LocalStorage (только режим создания) =====
+// Изображения не сохраняем: object-URL'ы недействительны после перезагрузки,
+// а base64 не влезает в LocalStorage. Восстанавливаем текстовые поля и шаг.
+const DRAFT_KEY = 'marketplace:create-offer-draft';
+
+interface OfferDraft {
+  form: MarketplaceCreateOfferFormState;
+  activeKey: string;
+  completedKeys: string[];
+}
+
+function saveDraft(): void {
+  if (isEdit.value) return;
+  LocalStorage.set(DRAFT_KEY, {
+    form: form.value,
+    activeKey: activeKey.value,
+    completedKeys: completedKeys.value,
+  } satisfies OfferDraft);
+}
+
+function restoreDraft(): void {
+  const saved = LocalStorage.getItem(DRAFT_KEY) as Partial<OfferDraft> | null;
+  if (!saved?.form) return;
+  form.value = { ...form.value, ...saved.form };
+  if (typeof saved.activeKey === 'string') activeKey.value = saved.activeKey;
+  if (Array.isArray(saved.completedKeys)) completedKeys.value = saved.completedKeys;
+}
+
+function clearDraft(): void {
+  LocalStorage.remove(DRAFT_KEY);
+}
 
 // Черновики в порядке «обложка первой» — для payload и предпросмотра.
 function draftsCoverFirst(): MarketplaceOfferImageDraft[] {
@@ -689,6 +730,7 @@ async function onSubmit(): Promise<void> {
       void router.push({ name: 'marketplace-my-offers' });
     } else {
       const result = await createOffer(payload);
+      clearDraft();
       SuccessAlert(`Предложение создано (id ${result.id.slice(0, 8)}), статус: ${result.status}.`);
       void router.push({ name: 'marketplace-catalog' });
     }
@@ -739,7 +781,13 @@ onMounted(async () => {
   } catch (e) {
     FailAlert(e, 'Не удалось загрузить категории');
   }
-  if (editId.value) await prefillForEdit(editId.value);
+  if (editId.value) {
+    await prefillForEdit(editId.value);
+  } else {
+    // Восстанавливаем черновик и подключаем автосохранение (клиент-only).
+    restoreDraft();
+    watch([form, activeKey, completedKeys], saveDraft, { deep: true });
+  }
 });
 
 onBeforeUnmount(() => {
@@ -937,6 +985,7 @@ onBeforeUnmount(() => {
   overflow: hidden;
   background: var(--p-surface, #fff);
   max-width: 420px;
+  box-shadow: var(--p-shadow-card, 0 1px 3px rgba(0, 0, 0, 0.08));
 
   &__carousel {
     width: 100%;
@@ -964,33 +1013,42 @@ onBeforeUnmount(() => {
   &__info {
     display: flex;
     flex-direction: column;
+    gap: var(--p-3, 12px);
+    padding: var(--p-4, 16px);
+  }
+
+  &__head {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
     gap: var(--p-2, 8px);
-    padding: var(--p-3, 12px) var(--p-4, 16px) var(--p-4, 16px);
   }
 
   &__name {
     margin: 0;
-    font-size: var(--p-fs-h4, 17px);
+    font-size: var(--p-fs-h3, 20px);
     font-weight: 600;
     line-height: 1.3;
     color: var(--p-ink);
   }
 
-  &__chips {
-    display: flex;
-    gap: var(--p-2, 8px);
-    flex-wrap: wrap;
-  }
-
+  // Цена и наличие — в одну строку: цена слева крупно, наличие чипом справа.
   &__pricerow {
     display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--p-3, 12px);
+  }
+
+  &__pricebox {
+    display: flex;
     align-items: baseline;
-    gap: var(--p-2, 8px);
-    margin-top: 2px;
+    gap: 6px;
+    min-width: 0;
   }
 
   &__price {
-    font-size: var(--p-fs-h3, 20px);
+    font-size: var(--p-fs-h2, 24px);
     font-weight: 700;
     letter-spacing: -0.01em;
     color: var(--p-ink);
@@ -999,16 +1057,6 @@ onBeforeUnmount(() => {
   &__per {
     font-size: var(--p-fs-body-sm, 13px);
     color: var(--p-ink-3);
-  }
-
-  &__stock {
-    margin-left: auto;
-    font-size: var(--p-fs-body-sm, 13px);
-    color: var(--p-ink-3);
-
-    &--empty {
-      color: var(--q-negative, #c10015);
-    }
   }
 
   &__desc {
@@ -1020,26 +1068,50 @@ onBeforeUnmount(() => {
     overflow-wrap: anywhere;
   }
 
+  // Характеристики — отдельный блок с разделителем сверху и аккуратными строками.
   &__specs {
     display: flex;
     flex-direction: column;
-    gap: var(--p-1, 4px);
-    margin: var(--p-1, 4px) 0 0;
+    gap: var(--p-2, 8px);
+    padding-top: var(--p-3, 12px);
+    border-top: 1px solid var(--p-line, #e0e0e0);
+  }
+
+  &__specs-title {
+    font-size: var(--p-fs-eyebrow, 11px);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--p-ink-3);
+  }
+
+  &__specs-list {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
   }
 
   &__spec {
-    display: grid;
-    grid-template-columns: 140px 1fr;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
     gap: var(--p-3, 12px);
+    padding: 6px 0;
+
+    & + & {
+      border-top: 1px solid var(--p-line, #e0e0e0);
+    }
 
     dt {
-      font-size: var(--p-fs-meta, 12px);
+      font-size: var(--p-fs-body-sm, 13px);
       color: var(--p-ink-3);
     }
 
     dd {
       margin: 0;
       font-size: var(--p-fs-body-sm, 13px);
+      font-weight: 500;
+      text-align: right;
       color: var(--p-ink-1, var(--p-ink));
     }
   }
