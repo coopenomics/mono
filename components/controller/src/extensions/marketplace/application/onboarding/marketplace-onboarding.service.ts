@@ -1,11 +1,15 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import type { TransactResult } from '@wharfkit/session';
 
-import { AGREEMENT_REPOSITORY, AgreementRepository } from '~/domain/agreement/repositories/agreement.repository';
+import {
+  USER_AGREEMENT_REPOSITORY,
+  UserAgreementRepository,
+} from '~/domain/wallet/repositories/user-agreement.repository';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { SOVIET_BLOCKCHAIN_PORT, SovietBlockchainPort } from '~/domain/common/ports/soviet-blockchain.port';
 import { WALLET_BLOCKCHAIN_PORT, WalletBlockchainPort } from '~/domain/wallet/ports/wallet-blockchain.port';
 import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import { config } from '~/config';
 
 import {
   MARKETPLACE_AGREEMENT_TYPE,
@@ -18,24 +22,26 @@ import { MarketplaceOnboardingStateDTO } from '../dto/marketplace-onboarding-sta
  * Story 1.4: L3 fallback gate marketplace.
  *
  * Контракт: расширение само не хранит «подписал/не подписал». Источник правды —
- * `soviet::agreements3`, синхронизированная в `AgreementRepository` через
- * `AgreementSyncService` (см. CLAUDE.md read-path: только PG-repository).
+ * блокчейн, синхронизированный в PG (read-path: только PG-repository).
+ *
+ * ВАЖНО — правильный источник: ЦПП «Стол заказов» это ПРОГРАММА (program_id=2),
+ * и подпись пайщика делается через `wallet::signagree` в `wallet::users.programs[]`,
+ * а НЕ в `soviet::agreements3`. Поэтому состояние читаем из
+ * `UserAgreementRepository` (синк `user-agreement-sync.service` из `wallet::users`),
+ * а не из `AgreementRepository` (синк `agreement-sync.service` из `agreements3`).
+ * Это тот же канон, что в `AgreementService.fetchProgrammatic`. Раньше здесь
+ * читался `AgreementRepository`, куда программная подпись НИКОГДА не попадает —
+ * из-за чего `requires_gate` оставался `true` навсегда после подписи.
  *
  * Локальная таблица `marketplace_onboarding_state` из PRD не заводится:
- * - `AgreementRepository.findByUsername` уже даёт быстрый доступ к подписям
- *   (PG индекс по username);
- * - различение source ('registration_flow' vs 'extension_gate') в текущей
- *   `agreements3` отсутствует — оба пути пишут одинаковую запись с
- *   `agreement_type = 'marketplace'`. Story 1.11 при добавлении L2 при
- *   необходимости заведёт локальный source-маркер.
- *
- * TTL 60s из PRD AC тоже опускаем — `AgreementRepository` сам синхронизирован
- * с blockchain, локальный staleness ничем не отличается от core data.
+ * быстрый доступ уже даёт PG-кеш `wallet::users`. TTL 60s из PRD AC опускаем —
+ * репозиторий синхронизирован с blockchain, локальный staleness не отличается
+ * от core data.
  */
 @Injectable()
 export class MarketplaceOnboardingService {
   constructor(
-    @Inject(AGREEMENT_REPOSITORY) private readonly agreementRepository: AgreementRepository,
+    @Inject(USER_AGREEMENT_REPOSITORY) private readonly userAgreementRepository: UserAgreementRepository,
     @Inject(SOVIET_BLOCKCHAIN_PORT) private readonly sovietBlockchainPort: SovietBlockchainPort,
     @Inject(WALLET_BLOCKCHAIN_PORT) private readonly walletBlockchainPort: WalletBlockchainPort,
     private readonly logger: WinstonLoggerService
@@ -55,23 +61,34 @@ export class MarketplaceOnboardingService {
       });
     }
 
-    const agreements = await this.agreementRepository.findByUsername(username);
-    const signed = agreements.find(
-      (a) =>
-        a.type === MARKETPLACE_AGREEMENT_TYPE &&
-        (a.draft_id === undefined ||
-          a.draft_id === null ||
-          Number(a.draft_id) === templateRegistryId)
+    // program_id ЦПП «Стол заказов» из `soviet::coagreements` (тот же лукап, что
+    // и при подписи). Без настроенной как программа ЦПП гейтить нечем — пропускаем.
+    const coopname = config.coopname;
+    const coagreement = await this.sovietBlockchainPort.getCoagreement(
+      coopname,
+      MARKETPLACE_AGREEMENT_TYPE
     );
+    const programId = coagreement ? Number(coagreement.program_id) : 0;
+    if (!coagreement || programId <= 0) {
+      return new MarketplaceOnboardingStateDTO({
+        requires_gate: false,
+        source: 'not_configured',
+        template_registry_id: templateRegistryId,
+      });
+    }
 
-    if (signed) {
+    // Подпись программной оферты живёт в `wallet::users.programs[]`.
+    const owner = await this.userAgreementRepository.findByUsername(coopname, username);
+    const program =
+      owner && owner.present !== false ? owner.findProgram(programId) : undefined;
+
+    if (program) {
       const source: MarketplaceOnboardingSource = 'agreement_signed';
       return new MarketplaceOnboardingStateDTO({
         requires_gate: false,
         source,
         template_registry_id: templateRegistryId,
-        completed_at: signed.updated_at ? String(signed.updated_at) : undefined,
-        agreement_id: signed.id ?? undefined,
+        completed_at: program.signed_at ? String(program.signed_at) : undefined,
       });
     }
 

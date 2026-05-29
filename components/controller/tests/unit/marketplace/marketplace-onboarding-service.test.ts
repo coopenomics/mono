@@ -1,31 +1,53 @@
 /**
- * Unit-тесты MarketplaceOnboardingService (Story 1.4).
+ * Unit-тесты MarketplaceOnboardingService.getOnboardingState (Story 1.4).
  *
- * Покрывают AC:
- *   (a) MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID = 0 (Story 1.7 не выполнена)
- *       → requires_gate=false, source='not_configured';
- *   (b) есть подписанная оферта marketplace в core `soviet::agreements3`
- *       → requires_gate=false, source='agreement_signed', completed_at/agreement_id
- *       заполнены;
- *   (c) подписи нет → requires_gate=true, source='gate_required'.
+ * ЦПП «Стол заказов» — ПРОГРАММА (program_id=2): подпись пайщика делается через
+ * `wallet::signagree` в `wallet::users.programs[]`, поэтому состояние читается
+ * из `UserAgreementRepository` (НЕ из `agreements3`/`AgreementRepository`).
  *
- * Для случая (b/c) подменяем константу через jest.doMock — она captured
- * сервисом в момент вызова, не на import-time.
+ * Покрывают:
+ *   (a) MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID = 0 → not_configured;
+ *   (b) ЦПП не настроена как программа (нет коагримента / program_id<=0)
+ *       → not_configured (гейтить нечем);
+ *   (c) пайщик подписал программу → requires_gate=false, source=agreement_signed,
+ *       completed_at из signed_at;
+ *   (d) подписи нет (owner=null или нет нужной program_id) → requires_gate=true;
+ *   (e) owner.present=false (откат форком) → подпись не засчитывается.
  */
 
-const makeAgreement = (overrides: any = {}) => ({
-  id: 42,
-  type: 'marketplace',
-  draft_id: 7,
-  username: 'alice',
-  coopname: 'voskhod',
-  updated_at: '2026-05-14T12:00:00Z',
+const PROGRAM_ID = 2;
+
+const makeProgram = (overrides: any = {}) => ({
+  program_id: PROGRAM_ID,
+  doc_hash: 'abc',
+  version: 1,
+  draft_id: 1100,
+  signed_at: '2026-05-14T12:00:00Z',
   ...overrides,
 });
 
-const makeRepo = (agreements: any[]) =>
+const makeOwner = (programs: any[], present = true) =>
   ({
-    findByUsername: jest.fn().mockResolvedValue(agreements),
+    present,
+    programs,
+    findProgram(pid: number | string) {
+      return programs.find((p) => Number(p.program_id) === Number(pid));
+    },
+  } as any);
+
+const makeUserAgreementRepo = (owner: any) =>
+  ({
+    findByUsername: jest.fn().mockResolvedValue(owner),
+  } as any);
+
+const makeSovietPort = (coagreement: any) =>
+  ({
+    getCoagreement: jest.fn().mockResolvedValue(coagreement),
+  } as any);
+
+const makeWalletPort = () =>
+  ({
+    signProgramAgreement: jest.fn(),
   } as any);
 
 const makeLogger = () =>
@@ -37,17 +59,7 @@ const makeLogger = () =>
     debug: jest.fn(),
   } as any);
 
-// getOnboardingState не обращается к blockchain-портам (только agreementRepository),
-// поэтому для этих кейсов достаточно заглушек методов, используемых в других путях.
-const makeSovietPort = () =>
-  ({
-    getCoagreement: jest.fn(),
-  } as any);
-
-const makeWalletPort = () =>
-  ({
-    signProgramAgreement: jest.fn(),
-  } as any);
+const COAGREEMENT = { program_id: PROGRAM_ID, draft_id: 1100, type: 'marketplace' };
 
 describe('MarketplaceOnboardingService.getOnboardingState', () => {
   afterEach(() => {
@@ -65,96 +77,83 @@ describe('MarketplaceOnboardingService.getOnboardingState', () => {
     const { MarketplaceOnboardingService } = await import(
       '~/extensions/marketplace/application/onboarding/marketplace-onboarding.service'
     );
-    const repo = makeRepo([]);
-    const service = new MarketplaceOnboardingService(repo, makeSovietPort(), makeWalletPort(), makeLogger());
+    const repo = makeUserAgreementRepo(null);
+    const soviet = makeSovietPort(COAGREEMENT);
+    const service = new MarketplaceOnboardingService(repo, soviet, makeWalletPort(), makeLogger());
 
     const state = await service.getOnboardingState('alice');
     expect(state.requires_gate).toBe(false);
     expect(state.source).toBe('not_configured');
     expect(state.template_registry_id).toBe(0);
+    expect(soviet.getCoagreement).not.toHaveBeenCalled();
     expect(repo.findByUsername).not.toHaveBeenCalled();
   });
 
-  it('Story 1.7 размещена (template_registry_id=1100 из cooptypes), подписи нет → requires_gate=true', async () => {
+  it('ЦПП не настроена как программа (нет коагримента) → not_configured', async () => {
     jest.dontMock('~/extensions/marketplace/constants/marketplace-agreement-ids');
     const { MarketplaceOnboardingService } = await import(
       '~/extensions/marketplace/application/onboarding/marketplace-onboarding.service'
     );
-    const repo = makeRepo([]);
-    const service = new MarketplaceOnboardingService(repo, makeSovietPort(), makeWalletPort(), makeLogger());
+    const repo = makeUserAgreementRepo(null);
+    const service = new MarketplaceOnboardingService(repo, makeSovietPort(null), makeWalletPort(), makeLogger());
 
     const state = await service.getOnboardingState('alice');
-    expect(state.template_registry_id).toBe(1100);
-    expect(state.requires_gate).toBe(true);
-    expect(state.source).toBe('gate_required');
+    expect(state.requires_gate).toBe(false);
+    expect(state.source).toBe('not_configured');
+    expect(repo.findByUsername).not.toHaveBeenCalled();
   });
 
-  it('подпись marketplace есть → requires_gate=false, source=agreement_signed, completed_at/agreement_id заполнены', async () => {
-    jest.doMock('~/extensions/marketplace/constants/marketplace-agreement-ids', () => ({
-      __esModule: true,
-      MARKETPLACE_EXTENSION_NAME: 'market',
-      MARKETPLACE_OFFER_AGREEMENT_ID: 'marketplace_offer',
-      MARKETPLACE_AGREEMENT_TYPE: 'marketplace',
-      MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID: 7,
-    }));
-
+  it('подпись программы есть → requires_gate=false, source=agreement_signed, completed_at из signed_at', async () => {
+    jest.dontMock('~/extensions/marketplace/constants/marketplace-agreement-ids');
     const { MarketplaceOnboardingService } = await import(
       '~/extensions/marketplace/application/onboarding/marketplace-onboarding.service'
     );
-    const repo = makeRepo([makeAgreement({ draft_id: 7 })]);
-    const service = new MarketplaceOnboardingService(repo, makeSovietPort(), makeWalletPort(), makeLogger());
+    const owner = makeOwner([makeProgram()]);
+    const repo = makeUserAgreementRepo(owner);
+    const service = new MarketplaceOnboardingService(repo, makeSovietPort(COAGREEMENT), makeWalletPort(), makeLogger());
 
     const state = await service.getOnboardingState('alice');
     expect(state.requires_gate).toBe(false);
     expect(state.source).toBe('agreement_signed');
-    expect(state.template_registry_id).toBe(7);
-    expect(state.agreement_id).toBe(42);
     expect(state.completed_at).toBe('2026-05-14T12:00:00Z');
-    expect(repo.findByUsername).toHaveBeenCalledWith('alice');
   });
 
-  it('подписи нет → requires_gate=true, source=gate_required', async () => {
-    jest.doMock('~/extensions/marketplace/constants/marketplace-agreement-ids', () => ({
-      __esModule: true,
-      MARKETPLACE_EXTENSION_NAME: 'market',
-      MARKETPLACE_OFFER_AGREEMENT_ID: 'marketplace_offer',
-      MARKETPLACE_AGREEMENT_TYPE: 'marketplace',
-      MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID: 7,
-    }));
-
+  it('подписи нет (owner=null) → requires_gate=true, source=gate_required', async () => {
+    jest.dontMock('~/extensions/marketplace/constants/marketplace-agreement-ids');
     const { MarketplaceOnboardingService } = await import(
       '~/extensions/marketplace/application/onboarding/marketplace-onboarding.service'
     );
-    const repo = makeRepo([
-      makeAgreement({ type: 'capital', draft_id: 999 }), // не marketplace — игнор
-      makeAgreement({ type: 'marketplace', draft_id: 8 }), // другой шаблон — игнор
-    ]);
-    const service = new MarketplaceOnboardingService(repo, makeSovietPort(), makeWalletPort(), makeLogger());
+    const repo = makeUserAgreementRepo(null);
+    const service = new MarketplaceOnboardingService(repo, makeSovietPort(COAGREEMENT), makeWalletPort(), makeLogger());
 
     const state = await service.getOnboardingState('alice');
     expect(state.requires_gate).toBe(true);
     expect(state.source).toBe('gate_required');
-    expect(state.template_registry_id).toBe(7);
-    expect(state.agreement_id).toBeUndefined();
   });
 
-  it('запись marketplace без draft_id (если контракт не проставил) считается совпадающей по type', async () => {
-    jest.doMock('~/extensions/marketplace/constants/marketplace-agreement-ids', () => ({
-      __esModule: true,
-      MARKETPLACE_EXTENSION_NAME: 'market',
-      MARKETPLACE_OFFER_AGREEMENT_ID: 'marketplace_offer',
-      MARKETPLACE_AGREEMENT_TYPE: 'marketplace',
-      MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID: 7,
-    }));
-
+  it('owner есть, но другой program_id → requires_gate=true', async () => {
+    jest.dontMock('~/extensions/marketplace/constants/marketplace-agreement-ids');
     const { MarketplaceOnboardingService } = await import(
       '~/extensions/marketplace/application/onboarding/marketplace-onboarding.service'
     );
-    const repo = makeRepo([makeAgreement({ type: 'marketplace', draft_id: undefined, id: 99 })]);
-    const service = new MarketplaceOnboardingService(repo, makeSovietPort(), makeWalletPort(), makeLogger());
+    const owner = makeOwner([makeProgram({ program_id: 1 })]); // capital, не marketplace
+    const repo = makeUserAgreementRepo(owner);
+    const service = new MarketplaceOnboardingService(repo, makeSovietPort(COAGREEMENT), makeWalletPort(), makeLogger());
 
     const state = await service.getOnboardingState('alice');
-    expect(state.requires_gate).toBe(false);
-    expect(state.agreement_id).toBe(99);
+    expect(state.requires_gate).toBe(true);
+  });
+
+  it('owner.present=false (откат форком) → подпись не засчитывается, requires_gate=true', async () => {
+    jest.dontMock('~/extensions/marketplace/constants/marketplace-agreement-ids');
+    const { MarketplaceOnboardingService } = await import(
+      '~/extensions/marketplace/application/onboarding/marketplace-onboarding.service'
+    );
+    const owner = makeOwner([makeProgram()], false);
+    const repo = makeUserAgreementRepo(owner);
+    const service = new MarketplaceOnboardingService(repo, makeSovietPort(COAGREEMENT), makeWalletPort(), makeLogger());
+
+    const state = await service.getOnboardingState('alice');
+    expect(state.requires_gate).toBe(true);
   });
 });

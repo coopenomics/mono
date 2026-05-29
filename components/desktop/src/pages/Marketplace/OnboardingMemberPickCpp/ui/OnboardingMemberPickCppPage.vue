@@ -68,27 +68,46 @@ async function load(): Promise<void> {
   }
 }
 
+/**
+ * После подписи `wallet::signagree` уже подтверждён цепочкой (мутация
+ * вернулась), но `requires_gate` и гранты завязаны на PG-кеш `wallet::users`,
+ * который parser синхронизирует со следующего блока. Коротко поллим состояние
+ * онбординга, пока подпись не отразится в PG, — тогда и `getDesktop` отдаст
+ * полные orderer-права. Так переключение происходит само, без ручного refresh
+ * (и без поллинга на каждом переходе — только здесь, разово после подписи).
+ */
+async function waitForSignatureSynced(): Promise<boolean> {
+  const deadline = Date.now() + 15000;
+  while (Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    state.value = await fetchOnboardingState();
+    if (state.value && !state.value.requires_gate) return true;
+  }
+  return false;
+}
+
 async function onAccept(_documentIds: string[]): Promise<void> {
-  // L3 подпись прямо со стола: фоллоуап Эпика 1 (mutation
-  // `marketplaceSignOnboardingOffer`). Frontend рендерит оферту 1101 через
-  // documentFactory, подписывает локальным WIF, отправляет на backend, а тот
-  // вызывает on-chain `wallet::signagree` от лица coopname.
-  // После успешной подписи перезагружаем состояние онбординга — если
-  // requires_gate=false, ведём пайщика на каталог.
+  // L3 подпись прямо со стола: mutation `marketplaceSignOnboardingOffer`.
+  // Frontend рендерит оферту 1101 через documentFactory, подписывает локальным
+  // WIF, отправляет на backend, а тот вызывает on-chain `wallet::signagree` от
+  // лица coopname (программная подпись в wallet::users.programs[], program_id=2).
   loading.value = true;
   try {
     state.value = await signOnboardingOffer();
-    if (state.value && !state.value.requires_gate) {
+    // requires_gate=false сразу — редкий случай (PG уже синхронен); иначе ждём
+    // синк подписи в PG коротким поллингом.
+    const confirmed =
+      (!!state.value && !state.value.requires_gate) || (await waitForSignatureSynced());
+    if (confirmed) {
       Notify.create({
         type: 'positive',
         message: 'Оферта ЦПП «Стол заказов» подписана. Открываем стол заказчика…',
         timeout: 1500,
       });
-      // Подпись сменила L3-гейт: backend теперь выдаёт полные orderer-права
+      // Подпись синхронизирована: backend теперь выдаёт полные orderer-права
       // вместо маркера Onboarding:orderer. Перечитываем десктоп (гранты) и
       // переустанавливаем маршруты, затем ведём на первую доступную страницу
-      // стола (Каталог) — тот же канон refresh, что у EnableButton, без
-      // поллинга и без loadDesktop на каждом переходе.
+      // стола (Каталог) — тот же канон refresh, что у EnableButton.
       await desktop.loadDesktop();
       await loadExtensionRoutes('market', router);
       const coopname = system.info?.coopname;
@@ -101,11 +120,11 @@ async function onAccept(_documentIds: string[]): Promise<void> {
           : { name: 'marketplace-catalog' },
       );
     } else {
-      // Sync ещё не подтянул запись из chain — даём UI шанс перезапросить
-      // вручную через перезагрузку страницы.
+      // Синк не успел за отведённое окно — крайне редко; даём пользователю
+      // явный сигнал перезагрузить страницу.
       Notify.create({
         type: 'info',
-        message: 'Подпись отправлена. Подтверждение из блокчейна ожидается — обновите страницу через несколько секунд.',
+        message: 'Подпись принята блокчейном и синхронизируется. Обновите страницу через несколько секунд.',
       });
     }
   } catch (e) {

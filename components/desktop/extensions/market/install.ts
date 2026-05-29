@@ -115,7 +115,15 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               meta: {
                 title: 'Каталог',
                 icon: 'fa-solid fa-store',
-                requires: 'Offer:read',
+                // Рабочие страницы стола заказчика гейтятся подпиской оферты
+                // ЦПП: требуем orderer-эксклюзивный грант `Order:create`. Его
+                // НЕ выдают роли admin/board, и `Order:read:all` в него НЕ
+                // разворачивается (нет `:all`-формы) — поэтому admin-гранты
+                // председателя (или совета) не «протекают» на стол заказчика
+                // до его персональной подписи. Реальный enforcement резолверов
+                // использует узкие права (`Offer:read`/`Order:read:own`) как
+                // прежде; здесь — только видимость стола.
+                requires: 'Order:create',
                 requiresAuth: true,
                 agreements: agreementsBase,
               },
@@ -128,7 +136,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               meta: {
                 title: 'Мои заказы',
                 icon: 'fa-solid fa-cart-shopping',
-                requires: 'Order:read:own',
+                requires: 'Order:create',
                 requiresAuth: true,
                 agreements: agreementsBase,
               },
@@ -145,7 +153,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               meta: {
                 title: 'Сводный заказ',
                 icon: 'fa-solid fa-layer-group',
-                requires: 'Order:read:own',
+                requires: 'Order:create',
                 requiresAuth: true,
                 agreements: agreementsBase,
               },
@@ -161,7 +169,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               meta: {
                 title: 'Готово к получению',
                 icon: 'fa-solid fa-box-open',
-                requires: 'Issuance:read:own',
+                requires: 'Order:create',
                 requiresAuth: true,
                 agreements: agreementsBase,
               },
@@ -177,7 +185,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               meta: {
                 title: 'Гарантийные возвраты',
                 icon: 'fa-solid fa-rotate-left',
-                requires: 'ReturnClaim:read:own',
+                requires: 'Order:create',
                 requiresAuth: true,
                 agreements: agreementsBase,
               },
