@@ -106,6 +106,35 @@ export interface MarketplaceAplReceptionResult {
 }
 
 /**
+ * Story 14.2: express-приёмка по факту присутствия. Оператор принимает
+ * самовывоз поставщика, который НЕ сформировал партию заранее — указывает
+ * поставщика и свой КУ, backend синтезирует SELF-партию из его ACCEPTED-
+ * заказов на этот КУ и открывает приёмку.
+ */
+export interface MarketplaceCreateExpressReceptionInputDto {
+  coopname: string;
+  /** Account оператора КУ (из core-сессии). */
+  operator_account: string;
+  /** Поставщик, физически приехавший на ПВЗ. */
+  offerer_account: string;
+  /** КУ оператора, на котором идёт приёмка. */
+  braname: string;
+}
+
+export interface MarketplaceCreateExpressReceptionResult {
+  apl_receptions: MarketplaceAplReceptionDomainEntity[];
+}
+
+/** Поставщик с принятыми заказами, ожидающими самовывоза на конкретном КУ. */
+export interface MarketplaceExpressPickupCandidate {
+  offerer_account: string;
+  braname: string;
+  orders_count: number;
+  total_units: number;
+  total_amount: string;
+}
+
+/**
  * Story 5.3 / 5.4: state machine АПП приёмки на КУ.
  *
  * Flow:
@@ -351,6 +380,125 @@ export class MarketplaceAplReceptionService {
     }
 
     return { apl_reception: reception };
+  }
+
+  /**
+   * Story 14.2: поставщики с ACCEPTED-заказами на КУ, ожидающие самовывоза.
+   * Лента для operator-стола: оператор видит, кто приехал/может приехать со
+   * своим имуществом без предварительно сформированной партии.
+   */
+  async listExpressPickupCandidates(
+    coopname: string,
+    braname: string
+  ): Promise<MarketplaceExpressPickupCandidate[]> {
+    const page = await this.orderRepo.list(
+      { coopname, status: 'ACCEPTED', delivery_braname: braname },
+      { page: 1, limit: 1000, sortOrder: 'DESC' }
+    );
+    const bySupplier = new Map<string, MarketplaceOrderDomainEntity[]>();
+    for (const o of page.items) {
+      // Без заявки (cycle_id) приёмку не открыть — модель приёмки per (cycle, КУ).
+      if (!o.cycle_id) continue;
+      const arr = bySupplier.get(o.supplier_account) ?? [];
+      arr.push(o);
+      bySupplier.set(o.supplier_account, arr);
+    }
+    const out: MarketplaceExpressPickupCandidate[] = [];
+    for (const [offerer_account, orders] of bySupplier) {
+      out.push({
+        offerer_account,
+        braname,
+        orders_count: orders.length,
+        total_units: orders.reduce((a, o) => a + o.quantity, 0),
+        total_amount: orders.reduce((a, o) => a + Number.parseFloat(o.total_cost), 0).toFixed(4),
+      });
+    }
+    return out;
+  }
+
+  /**
+   * Story 14.2: express-приёмка самовывоза. Для каждого цикла, по которому у
+   * поставщика есть ACCEPTED-заказы на этот КУ, синтезирует SELF-партию
+   * (Вариант А, без ТТН) и открывает по ней приёмку через {@link create}.
+   * Дальнейший двухподписный акт и переход в ACCEPTED_TO_COOP — без изменений.
+   */
+  async createExpress(
+    input: MarketplaceCreateExpressReceptionInputDto
+  ): Promise<MarketplaceCreateExpressReceptionResult> {
+    if (!input.offerer_account || !input.braname) {
+      throw new BadRequestException('Не указан поставщик или ПВЗ для express-приёмки.');
+    }
+
+    const page = await this.orderRepo.list(
+      {
+        coopname: input.coopname,
+        supplier_account: input.offerer_account,
+        status: 'ACCEPTED',
+        delivery_braname: input.braname,
+      },
+      { page: 1, limit: 1000, sortOrder: 'DESC' }
+    );
+    const orders = page.items.filter((o) => o.cycle_id);
+    if (orders.length === 0) {
+      throw new BadRequestException(
+        'У поставщика нет принятых заказов, ожидающих самовывоза на этом КУ.'
+      );
+    }
+
+    // Партия (и приёмка) формируется per (cycle, КУ) — группируем по заявке.
+    const byCycle = new Map<string, MarketplaceOrderDomainEntity[]>();
+    for (const o of orders) {
+      const cid = o.cycle_id as string;
+      const arr = byCycle.get(cid) ?? [];
+      arr.push(o);
+      byCycle.set(cid, arr);
+    }
+
+    const receptions: MarketplaceAplReceptionDomainEntity[] = [];
+    for (const [cycle_id, cycleOrders] of byCycle) {
+      const total = cycleOrders
+        .reduce((a, o) => a + Number.parseFloat(o.total_cost), 0)
+        .toFixed(4);
+
+      // Синтез SELF-партии по факту присутствия. В отличие от планового пути
+      // поставщик партию заранее не формировал — оператор создаёт её на свой КУ
+      // и сразу открывает приёмку. Жёсткий 1:1-акцепт всех КУ цикла (Story 5.2)
+      // здесь намеренно не применяется: принимается только то, что привезли на
+      // этот КУ; остальные КУ цикла формируются своими путями.
+      const shipment = await this.shipmentRepo.create({
+        coopname: input.coopname,
+        cycle_id,
+        offerer_account: input.offerer_account,
+        braname: input.braname,
+        delivery_variant: MarketplaceShipmentDeliveryVariants.SELF,
+        total_amount: total,
+        ttn_number: null,
+        ttn_data: null,
+        ttn_document_id: null,
+        status: MarketplaceShipmentStatuses.SUPPLY_PREPARED,
+      });
+
+      for (const o of cycleOrders) {
+        await this.orderRepo.applyStatusTransition(
+          o.id,
+          'SUPPLY_PREPARED',
+          `Express-приёмка самовывоза (оператор ${input.operator_account}, партия ${shipment.id})`
+        );
+      }
+
+      const result = await this.create({
+        coopname: input.coopname,
+        operator_account: input.operator_account,
+        shipment_id: shipment.id,
+      });
+      receptions.push(result.apl_reception);
+    }
+
+    this.logger.log(
+      `Express-приёмка: оператор ${input.operator_account} принял самовывоз поставщика ${input.offerer_account} на КУ ${input.braname}: ${receptions.length} акт(ов).`
+    );
+
+    return { apl_receptions: receptions };
   }
 
   async signAsSupplier(

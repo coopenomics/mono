@@ -41,6 +41,8 @@ export interface MarketplaceOrderListFilter {
   offer_id?: string;
   status?: MarketplaceOrderStatus | MarketplaceOrderStatus[];
   cycle_id?: string;
+  /** ПВЗ доставки заказа (Story 14.2: express-приёмка ACCEPTED-заказов на КУ). */
+  delivery_braname?: string;
 }
 
 /**

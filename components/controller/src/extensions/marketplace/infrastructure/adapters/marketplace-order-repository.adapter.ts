@@ -83,6 +83,7 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
     if (filter.supplier_account) qb.andWhere('o.supplier_account = :sup', { sup: filter.supplier_account });
     if (filter.offer_id) qb.andWhere('o.offer_id = :off', { off: filter.offer_id });
     if (filter.cycle_id) qb.andWhere('o.cycle_id = :cid', { cid: filter.cycle_id });
+    if (filter.delivery_braname) qb.andWhere('o.delivery_braname = :br', { br: filter.delivery_braname });
     if (filter.status) {
       const statuses = Array.isArray(filter.status) ? filter.status : [filter.status];
       qb.andWhere('o.status IN (:...statuses)', { statuses });

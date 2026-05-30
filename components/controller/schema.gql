@@ -7565,6 +7565,21 @@ input MarketplaceCreateAplReceptionInput {
   shipment_id: ID!
 }
 
+input MarketplaceCreateExpressReceptionInput {
+  """КУ, на котором оператор принимает имущество."""
+  braname: String!
+
+  """Поставщик, приехавший на ПВЗ для самовывоза."""
+  offerer_account: String!
+}
+
+type MarketplaceCreateExpressReceptionResult {
+  """
+  Сформированные акты приёмки (по одному на заявку поставщика на этом КУ).
+  """
+  apl_receptions: [MarketplaceAplReception!]!
+}
+
 input MarketplaceCreateOfferInput {
   """
   Стратегия маркировки штрих-кодом при приёмке на КУ. По умолчанию «по заказу» (PER_ORDER).
@@ -7771,6 +7786,23 @@ type MarketplaceDictionaryValue {
 
   """Значение"""
   value: String!
+}
+
+type MarketplaceExpressPickupCandidate {
+  """КУ-получатель."""
+  braname: String!
+
+  """Поставщик с принятыми заказами, ожидающими самовывоза на этом КУ."""
+  offerer_account: String!
+
+  """Сколько принятых заказов ожидает приёмки."""
+  orders_count: Int!
+
+  """Суммарная сумма заказов."""
+  total_amount: String!
+
+  """Суммарное количество единиц."""
+  total_units: Int!
 }
 
 input MarketplaceFinalizeIssuanceInput {
@@ -10794,6 +10826,11 @@ type Mutation {
   """
   marketplaceCreateAplReception(data: MarketplaceCreateAplReceptionInput!): MarketplaceAplReceptionResult!
 
+  """
+  Express-приёмка самовывоза по факту присутствия: оператор принимает имущество поставщика без предварительно сформированной партии. Backend синтезирует партию самовывоза из принятых заказов поставщика на этом КУ и открывает приёмку.
+  """
+  marketplaceCreateExpressReception(data: MarketplaceCreateExpressReceptionInput!): MarketplaceCreateExpressReceptionResult!
+
   """Поставщик публикует Offer (статус → PENDING_MODERATION)"""
   marketplaceCreateOffer(input: MarketplaceCreateOfferInput!): MarketplaceOffer!
 
@@ -13363,6 +13400,11 @@ type Query {
   Постраничный список сводных заявок поставщика — для стола поставщика и для прослеживания состояния заказов.
   """
   marketplaceListConsolidatedRequests(input: MarketplaceListConsolidatedRequestsInput, options: PaginationInput): MarketplaceConsolidatedRequestPaginationResult!
+
+  """
+  Поставщики с принятыми заказами, ожидающими самовывоза на текущем КУ, — лента express-приёмки для operator-стола.
+  """
+  marketplaceListExpressPickupsByBraname(data: MarketplaceListAplReceptionsByBranameInput!): [MarketplaceExpressPickupCandidate!]!
 
   """
   Список наклеек инвентаря КУ — для admin-стола склада и операторских разделов.

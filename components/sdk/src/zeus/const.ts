@@ -676,6 +676,9 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceCreateAplReceptionInput:{
 		fact_quantity_per_order:"MarketplaceAplReceptionFactEntryInput"
 	},
+	MarketplaceCreateExpressReceptionInput:{
+
+	},
 	MarketplaceCreateOfferInput:{
 		barcode_strategy:"MarketplaceBarcodeStrategy",
 		images:"MarketplaceOfferImageUploadInput"
@@ -1351,6 +1354,9 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceCreateAplReception:{
 			data:"MarketplaceCreateAplReceptionInput"
 		},
+		marketplaceCreateExpressReception:{
+			data:"MarketplaceCreateExpressReceptionInput"
+		},
 		marketplaceCreateOffer:{
 			input:"MarketplaceCreateOfferInput"
 		},
@@ -1987,6 +1993,9 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceListConsolidatedRequests:{
 			input:"MarketplaceListConsolidatedRequestsInput",
 			options:"PaginationInput"
+		},
+		marketplaceListExpressPickupsByBraname:{
+			data:"MarketplaceListAplReceptionsByBranameInput"
 		},
 		marketplaceListInventory:{
 			data:"MarketplaceListInventoryInput"
@@ -4037,6 +4046,9 @@ export const ReturnTypes: Record<string,any> = {
 		document_registry_id:"Int",
 		status:"String"
 	},
+	MarketplaceCreateExpressReceptionResult:{
+		apl_receptions:"MarketplaceAplReception"
+	},
 	MarketplaceCreateOrderResult:{
 		order:"MarketplaceOrder",
 		tx_snapshot:"MarketplaceOrderCreateTxSnapshot"
@@ -4067,6 +4079,13 @@ export const ReturnTypes: Record<string,any> = {
 		info:"String",
 		picture:"String",
 		value:"String"
+	},
+	MarketplaceExpressPickupCandidate:{
+		braname:"String",
+		offerer_account:"String",
+		orders_count:"Int",
+		total_amount:"String",
+		total_units:"Int"
 	},
 	MarketplaceInventoryItem:{
 		barcode_format:"MarketplaceBarcodeFormat",
@@ -4751,6 +4770,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceCancelWriteoffDraft:"Boolean",
 		marketplaceClearAvailableCategories:"Boolean",
 		marketplaceCreateAplReception:"MarketplaceAplReceptionResult",
+		marketplaceCreateExpressReception:"MarketplaceCreateExpressReceptionResult",
 		marketplaceCreateOffer:"MarketplaceOffer",
 		marketplaceCreateOrder:"MarketplaceCreateOrderResult",
 		marketplaceCreateRequest:"MarketplaceRequest",
@@ -5402,6 +5422,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceListCatalog:"MarketplaceOfferPaginationResult",
 		marketplaceListCategories:"MarketplaceCategory",
 		marketplaceListConsolidatedRequests:"MarketplaceConsolidatedRequestPaginationResult",
+		marketplaceListExpressPickupsByBraname:"MarketplaceExpressPickupCandidate",
 		marketplaceListInventory:"MarketplaceInventoryItem",
 		marketplaceListIssuancesByBraname:"MarketplaceOrder",
 		marketplaceListKUDetails:"MarketplaceKUDetails",

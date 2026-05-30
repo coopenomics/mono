@@ -16,8 +16,11 @@ import {
 } from '../../OperatorIncomingShipments/api';
 import {
   createAplReception,
+  createExpressReception,
   listAplReceptionsByBraname,
+  listExpressPickupsByBraname,
   type MarketplaceAplReceptionView,
+  type MarketplaceExpressPickupCandidateView,
 } from '../api';
 import SignAplReceptionChairmanDialog from './SignAplReceptionChairmanDialog.vue';
 
@@ -28,6 +31,11 @@ import SignAplReceptionChairmanDialog from './SignAplReceptionChairmanDialog.vue
  * ожидающую приёмки партию из списка (партии `SUPPLY_PREPARED`, прибывшие
  * на его КУ), либо сканирует QR поставщика (Story 14.3). Оба пути зовут
  * `createAplReception({ shipment_id })`.
+ *
+ * Story 14.2: отдельный раздел «Самовывоз по факту» — поставщики с принятыми
+ * заказами, которые не формировали партию заранее. Оператор принимает по факту
+ * присутствия: `createExpressReception({ offerer_account, braname })` синтезирует
+ * партию самовывоза и открывает по ней приёмку.
  */
 
 // Активный КУ оператора — из общего контекста стола (без ввода кода вручную).
@@ -37,6 +45,9 @@ const coopname = computed(() => String(route.params.coopname ?? ''));
 const braname = computed(() => store.activeBraname ?? '');
 const items = ref<MarketplaceAplReceptionView[]>([]);
 const expectedShipments = ref<MarketplaceShipmentView[]>([]);
+// Story 14.2: поставщики с принятыми заказами, ожидающими самовывоза на КУ
+// (партию заранее не формировали) — приёмка по факту присутствия.
+const expressCandidates = ref<MarketplaceExpressPickupCandidateView[]>([]);
 const loading = ref(false);
 
 // Партии, прибывшие на КУ и ожидающие создания акта приёмки: статус
@@ -104,19 +115,44 @@ async function load(): Promise<void> {
   if (!braname.value.trim()) return;
   loading.value = true;
   try {
-    const [receptions, shipments] = await Promise.all([
+    const [receptions, shipments, express] = await Promise.all([
       listAplReceptionsByBraname(braname.value.trim()),
       listShipmentsByBraname({ braname: braname.value.trim() }),
+      listExpressPickupsByBraname(braname.value.trim()),
     ]);
     items.value = [...receptions].sort(
       (a, b) =>
         (STATUS_SORT_PRIORITY[a.status] ?? 99) - (STATUS_SORT_PRIORITY[b.status] ?? 99),
     );
     expectedShipments.value = shipments;
+    expressCandidates.value = express;
   } catch (e) {
     FailAlert(e, 'Не удалось загрузить акты приёмки');
   } finally {
     loading.value = false;
+  }
+}
+
+// Story 14.2: принять самовывоз по факту присутствия — backend синтезирует
+// партию самовывоза из принятых заказов поставщика на этом КУ и открывает приёмку.
+async function acceptExpressPickup(
+  candidate: MarketplaceExpressPickupCandidateView,
+): Promise<void> {
+  Loading.show({ message: 'Открываю приёмку самовывоза…' });
+  try {
+    const result = await createExpressReception({
+      offerer_account: candidate.offerer_account,
+      braname: candidate.braname,
+    });
+    const count = result.apl_receptions.length;
+    SuccessAlert(
+      count > 1 ? `Открыто актов приёмки: ${count}` : 'Акт приёмки самовывоза создан',
+    );
+    await load();
+  } catch (e) {
+    FailAlert(e, 'Не удалось открыть приёмку самовывоза');
+  } finally {
+    Loading.hide();
   }
 }
 
@@ -207,6 +243,22 @@ q-page.reception(role='region', aria-label='Приёмка партии')
           template(#icon-left)
             q-icon(name='add', size='16px')
           | Создать акт приёмки
+
+    //- Story 14.2: самовывоз по факту — поставщик приехал без заранее
+    //- сформированной партии; оператор открывает приёмку по факту присутствия.
+    .reception__pending(v-if='expressCandidates.length')
+      .reception__pending-head
+        .reception__pending-title Самовывоз по факту (без партии)
+
+      .reception__ship(v-for='c in expressCandidates', :key='c.offerer_account')
+        .reception__ship-info
+          .reception__ship-offerer {{ c.offerer_account }}
+          .reception__ship-meta
+            | Самовывоз · {{ c.orders_count }} заказ(ов) · {{ c.total_units }} ед. · {{ c.total_amount }} ₽
+        BaseButton(variant='secondary', size='sm', @click='acceptExpressPickup(c)')
+          template(#icon-left)
+            q-icon(name='how_to_reg', size='16px')
+          | Принять самовывоз
 
     q-table.reception__table(
       :rows='items',

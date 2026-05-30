@@ -59,3 +59,30 @@ export async function signAsChairman(
   );
   return result;
 }
+
+/** Story 14.2: поставщики с принятыми заказами, ожидающими самовывоза на КУ. */
+export type MarketplaceExpressPickupCandidateView =
+  Queries.Marketplace.ListExpressPickupsByBraname.IOutput['marketplaceListExpressPickupsByBraname'][number];
+
+export async function listExpressPickupsByBraname(
+  braname: string,
+): Promise<MarketplaceExpressPickupCandidateView[]> {
+  const { [Queries.Marketplace.ListExpressPickupsByBraname.name]: result } = await client.Query(
+    Queries.Marketplace.ListExpressPickupsByBraname.query,
+    { variables: { data: { braname } } },
+  );
+  return result;
+}
+
+export type CreateExpressReceptionVariables =
+  Mutations.Marketplace.CreateExpressReception.IInput['data'];
+
+export async function createExpressReception(
+  data: CreateExpressReceptionVariables,
+): Promise<Mutations.Marketplace.CreateExpressReception.IOutput['marketplaceCreateExpressReception']> {
+  const { [Mutations.Marketplace.CreateExpressReception.name]: result } = await client.Mutation(
+    Mutations.Marketplace.CreateExpressReception.mutation,
+    { variables: { data } },
+  );
+  return result;
+}

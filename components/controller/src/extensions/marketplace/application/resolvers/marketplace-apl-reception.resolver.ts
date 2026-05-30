@@ -18,8 +18,12 @@ import {
   MarketplaceAplReceptionDTO,
   MarketplaceAplReceptionResultDTO,
   MarketplaceCreateAplReceptionInputDTO,
+  MarketplaceCreateExpressReceptionInputDTO,
+  MarketplaceCreateExpressReceptionResultDTO,
+  MarketplaceExpressPickupCandidateDTO,
   MarketplaceListAplReceptionsByBranameInputDTO,
   MarketplaceSignAplReceptionInputDTO,
+  toExpressPickupCandidateDTO,
   toMarketplaceAplReceptionDTO,
 } from '../dto/marketplace-apl-reception.dto';
 import {
@@ -75,6 +79,46 @@ export class MarketplaceAplReceptionResolver {
     });
     const dto = new MarketplaceAplReceptionResultDTO();
     dto.apl_reception = toMarketplaceAplReceptionDTO(result.apl_reception);
+    return dto;
+  }
+
+  @Mutation(() => MarketplaceCreateExpressReceptionResultDTO, {
+    name: 'marketplaceCreateExpressReception',
+    description:
+      'Express-приёмка самовывоза по факту присутствия: оператор принимает имущество поставщика без предварительно сформированной партии. Backend синтезирует партию самовывоза из принятых заказов поставщика на этом КУ и открывает приёмку.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Receiving', 'create')
+  async marketplaceCreateExpressReception(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('data') data: MarketplaceCreateExpressReceptionInputDTO
+  ): Promise<MarketplaceCreateExpressReceptionResultDTO> {
+    const coopname = config.coopname;
+    const roles = member.marketplace_roles as MarketplaceRole[];
+
+    // Ownership: оператор может принимать только на своём КУ (как и плановая
+    // приёмка) — иначе можно было бы открыть приёмку на чужом участке.
+    if (!canAccess(roles, 'Receiving', 'read:all')) {
+      const isMember = await this.kuChairmanService.isMemberOfBranch(
+        coopname,
+        data.braname,
+        member.username
+      );
+      if (!isMember) {
+        throw new ForbiddenException(
+          'Приёмка доступна только по участку, на котором вы являетесь председателем или доверенным лицом.'
+        );
+      }
+    }
+
+    const result = await this.service.createExpress({
+      coopname,
+      operator_account: member.username,
+      offerer_account: data.offerer_account,
+      braname: data.braname,
+    });
+    const dto = new MarketplaceCreateExpressReceptionResultDTO();
+    dto.apl_receptions = result.apl_receptions.map(toMarketplaceAplReceptionDTO);
     return dto;
   }
 
@@ -233,6 +277,37 @@ export class MarketplaceAplReceptionResolver {
 
     const list = await this.receptionRepo.listByBraname(coopname, data.braname);
     return list.map(toMarketplaceAplReceptionDTO);
+  }
+
+  @Query(() => [MarketplaceExpressPickupCandidateDTO], {
+    name: 'marketplaceListExpressPickupsByBraname',
+    description:
+      'Поставщики с принятыми заказами, ожидающими самовывоза на текущем КУ, — лента express-приёмки для operator-стола.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Receiving', 'create')
+  async marketplaceListExpressPickupsByBraname(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('data') data: MarketplaceListAplReceptionsByBranameInputDTO
+  ): Promise<MarketplaceExpressPickupCandidateDTO[]> {
+    const coopname = config.coopname;
+    const roles = member.marketplace_roles as MarketplaceRole[];
+
+    if (!canAccess(roles, 'Receiving', 'read:all')) {
+      const isMember = await this.kuChairmanService.isMemberOfBranch(
+        coopname,
+        data.braname,
+        member.username
+      );
+      if (!isMember) {
+        throw new ForbiddenException(
+          'Лента самовывоза доступна только по участку, на котором вы являетесь председателем или доверенным лицом.'
+        );
+      }
+    }
+
+    const candidates = await this.service.listExpressPickupCandidates(coopname, data.braname);
+    return candidates.map(toExpressPickupCandidateDTO);
   }
 
   @Query(() => [MarketplaceAplReceptionDTO], {

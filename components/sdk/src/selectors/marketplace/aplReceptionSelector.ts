@@ -52,3 +52,25 @@ export const marketplaceAplReceptionSelector = Selector('MarketplaceAplReception
 export const marketplaceAplReceptionResultSelector = Selector('MarketplaceAplReceptionResult')({
   apl_reception: rawAplReceptionSelector,
 })
+
+const rawExpressPickupCandidateSelector = {
+  offerer_account: true,
+  braname: true,
+  orders_count: true,
+  total_units: true,
+  total_amount: true,
+}
+
+const _validateExpressCandidate: MakeAllFieldsRequired<
+  ValueTypes['MarketplaceExpressPickupCandidate']
+> = rawExpressPickupCandidateSelector
+
+export const marketplaceExpressPickupCandidateSelector = Selector(
+  'MarketplaceExpressPickupCandidate',
+)(rawExpressPickupCandidateSelector)
+
+export const marketplaceCreateExpressReceptionResultSelector = Selector(
+  'MarketplaceCreateExpressReceptionResult',
+)({
+  apl_receptions: rawAplReceptionSelector,
+})

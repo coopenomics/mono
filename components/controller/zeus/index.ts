@@ -6500,6 +6500,18 @@ export type ValueTypes = {
 	/** Партия поставки в статусе SUPPLY_PREPARED. */
 	shipment_id: ValueTypes["ID"] | Variable<any, string>
 };
+	["MarketplaceCreateExpressReceptionInput"]: {
+	/** КУ, на котором оператор принимает имущество. */
+	braname: string | Variable<any, string>,
+	/** Поставщик, приехавший на ПВЗ для самовывоза. */
+	offerer_account: string | Variable<any, string>
+};
+	["MarketplaceCreateExpressReceptionResult"]: AliasType<{
+	/** Сформированные акты приёмки (по одному на заявку поставщика на этом КУ). */
+	apl_receptions?:ValueTypes["MarketplaceAplReception"],
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceCreateExpressReceptionResult']?: Omit<ValueTypes["MarketplaceCreateExpressReceptionResult"], "...on MarketplaceCreateExpressReceptionResult">
+}>;
 	["MarketplaceCreateOfferInput"]: {
 	/** Стратегия маркировки штрих-кодом при приёмке на КУ. По умолчанию «по заказу» (PER_ORDER). */
 	barcode_strategy?: ValueTypes["MarketplaceBarcodeStrategy"] | undefined | null | Variable<any, string>,
@@ -6651,6 +6663,20 @@ export type ValueTypes = {
 	value?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceDictionaryValue']?: Omit<ValueTypes["MarketplaceDictionaryValue"], "...on MarketplaceDictionaryValue">
+}>;
+	["MarketplaceExpressPickupCandidate"]: AliasType<{
+	/** КУ-получатель. */
+	braname?:boolean | `@${string}`,
+	/** Поставщик с принятыми заказами, ожидающими самовывоза на этом КУ. */
+	offerer_account?:boolean | `@${string}`,
+	/** Сколько принятых заказов ожидает приёмки. */
+	orders_count?:boolean | `@${string}`,
+	/** Суммарная сумма заказов. */
+	total_amount?:boolean | `@${string}`,
+	/** Суммарное количество единиц. */
+	total_units?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceExpressPickupCandidate']?: Omit<ValueTypes["MarketplaceExpressPickupCandidate"], "...on MarketplaceExpressPickupCandidate">
 }>;
 	["MarketplaceFinalizeIssuanceInput"]: {
 	/** Фактически выдаваемое количество единиц (равно/меньше/больше заказа). */
@@ -8239,6 +8265,7 @@ marketplaceCancelWriteoffDraft?: [{	id: string | Variable<any, string>},boolean 
 Требуемые роли: chairman.  */
 	marketplaceClearAvailableCategories?:boolean | `@${string}`,
 marketplaceCreateAplReception?: [{	data: ValueTypes["MarketplaceCreateAplReceptionInput"] | Variable<any, string>},ValueTypes["MarketplaceAplReceptionResult"]],
+marketplaceCreateExpressReception?: [{	data: ValueTypes["MarketplaceCreateExpressReceptionInput"] | Variable<any, string>},ValueTypes["MarketplaceCreateExpressReceptionResult"]],
 marketplaceCreateOffer?: [{	input: ValueTypes["MarketplaceCreateOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
 marketplaceCreateOrder?: [{	input: ValueTypes["MarketplaceCreateOrderInput"] | Variable<any, string>},ValueTypes["MarketplaceCreateOrderResult"]],
 marketplaceCreateRequest?: [{	data: ValueTypes["CreateRequestInput"] | Variable<any, string>},ValueTypes["MarketplaceRequest"]],
@@ -9674,6 +9701,7 @@ marketplaceListCatalog?: [{	input?: ValueTypes["MarketplaceListCatalogInput"] | 
 	/** Baseline-категории Стола заказов (Story 3.2/3.5) — 8 продовольственных + «Прочее» */
 	marketplaceListCategories?:ValueTypes["MarketplaceCategory"],
 marketplaceListConsolidatedRequests?: [{	input?: ValueTypes["MarketplaceListConsolidatedRequestsInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceConsolidatedRequestPaginationResult"]],
+marketplaceListExpressPickupsByBraname?: [{	data: ValueTypes["MarketplaceListAplReceptionsByBranameInput"] | Variable<any, string>},ValueTypes["MarketplaceExpressPickupCandidate"]],
 marketplaceListInventory?: [{	data?: ValueTypes["MarketplaceListInventoryInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceInventoryItem"]],
 marketplaceListIssuancesByBraname?: [{	data: ValueTypes["MarketplaceListIssuancesByBranameInput"] | Variable<any, string>},ValueTypes["MarketplaceOrder"]],
 marketplaceListKUDetails?: [{	data: ValueTypes["ListMarketplaceKUInput"] | Variable<any, string>},ValueTypes["MarketplaceKUDetails"]],
@@ -16554,6 +16582,17 @@ export type ResolverInputTypes = {
 	/** Партия поставки в статусе SUPPLY_PREPARED. */
 	shipment_id: ResolverInputTypes["ID"]
 };
+	["MarketplaceCreateExpressReceptionInput"]: {
+	/** КУ, на котором оператор принимает имущество. */
+	braname: string,
+	/** Поставщик, приехавший на ПВЗ для самовывоза. */
+	offerer_account: string
+};
+	["MarketplaceCreateExpressReceptionResult"]: AliasType<{
+	/** Сформированные акты приёмки (по одному на заявку поставщика на этом КУ). */
+	apl_receptions?:ResolverInputTypes["MarketplaceAplReception"],
+		__typename?: boolean | `@${string}`
+}>;
 	["MarketplaceCreateOfferInput"]: {
 	/** Стратегия маркировки штрих-кодом при приёмке на КУ. По умолчанию «по заказу» (PER_ORDER). */
 	barcode_strategy?: ResolverInputTypes["MarketplaceBarcodeStrategy"] | undefined | null,
@@ -16699,6 +16738,19 @@ export type ResolverInputTypes = {
 	picture?:boolean | `@${string}`,
 	/** Значение */
 	value?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceExpressPickupCandidate"]: AliasType<{
+	/** КУ-получатель. */
+	braname?:boolean | `@${string}`,
+	/** Поставщик с принятыми заказами, ожидающими самовывоза на этом КУ. */
+	offerer_account?:boolean | `@${string}`,
+	/** Сколько принятых заказов ожидает приёмки. */
+	orders_count?:boolean | `@${string}`,
+	/** Суммарная сумма заказов. */
+	total_amount?:boolean | `@${string}`,
+	/** Суммарное количество единиц. */
+	total_units?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["MarketplaceFinalizeIssuanceInput"]: {
@@ -18242,6 +18294,7 @@ marketplaceCancelWriteoffDraft?: [{	id: string},boolean | `@${string}`],
 Требуемые роли: chairman.  */
 	marketplaceClearAvailableCategories?:boolean | `@${string}`,
 marketplaceCreateAplReception?: [{	data: ResolverInputTypes["MarketplaceCreateAplReceptionInput"]},ResolverInputTypes["MarketplaceAplReceptionResult"]],
+marketplaceCreateExpressReception?: [{	data: ResolverInputTypes["MarketplaceCreateExpressReceptionInput"]},ResolverInputTypes["MarketplaceCreateExpressReceptionResult"]],
 marketplaceCreateOffer?: [{	input: ResolverInputTypes["MarketplaceCreateOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
 marketplaceCreateOrder?: [{	input: ResolverInputTypes["MarketplaceCreateOrderInput"]},ResolverInputTypes["MarketplaceCreateOrderResult"]],
 marketplaceCreateRequest?: [{	data: ResolverInputTypes["CreateRequestInput"]},ResolverInputTypes["MarketplaceRequest"]],
@@ -19620,6 +19673,7 @@ marketplaceListCatalog?: [{	input?: ResolverInputTypes["MarketplaceListCatalogIn
 	/** Baseline-категории Стола заказов (Story 3.2/3.5) — 8 продовольственных + «Прочее» */
 	marketplaceListCategories?:ResolverInputTypes["MarketplaceCategory"],
 marketplaceListConsolidatedRequests?: [{	input?: ResolverInputTypes["MarketplaceListConsolidatedRequestsInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["MarketplaceConsolidatedRequestPaginationResult"]],
+marketplaceListExpressPickupsByBraname?: [{	data: ResolverInputTypes["MarketplaceListAplReceptionsByBranameInput"]},ResolverInputTypes["MarketplaceExpressPickupCandidate"]],
 marketplaceListInventory?: [{	data?: ResolverInputTypes["MarketplaceListInventoryInput"] | undefined | null},ResolverInputTypes["MarketplaceInventoryItem"]],
 marketplaceListIssuancesByBraname?: [{	data: ResolverInputTypes["MarketplaceListIssuancesByBranameInput"]},ResolverInputTypes["MarketplaceOrder"]],
 marketplaceListKUDetails?: [{	data: ResolverInputTypes["ListMarketplaceKUInput"]},ResolverInputTypes["MarketplaceKUDetails"]],
@@ -26284,6 +26338,16 @@ export type ModelTypes = {
 	/** Партия поставки в статусе SUPPLY_PREPARED. */
 	shipment_id: ModelTypes["ID"]
 };
+	["MarketplaceCreateExpressReceptionInput"]: {
+	/** КУ, на котором оператор принимает имущество. */
+	braname: string,
+	/** Поставщик, приехавший на ПВЗ для самовывоза. */
+	offerer_account: string
+};
+	["MarketplaceCreateExpressReceptionResult"]: {
+		/** Сформированные акты приёмки (по одному на заявку поставщика на этом КУ). */
+	apl_receptions: Array<ModelTypes["MarketplaceAplReception"]>
+};
 	["MarketplaceCreateOfferInput"]: {
 	/** Стратегия маркировки штрих-кодом при приёмке на КУ. По умолчанию «по заказу» (PER_ORDER). */
 	barcode_strategy?: ModelTypes["MarketplaceBarcodeStrategy"] | undefined | null,
@@ -26425,6 +26489,18 @@ export type ModelTypes = {
 	picture?: string | undefined | null,
 	/** Значение */
 	value: string
+};
+	["MarketplaceExpressPickupCandidate"]: {
+		/** КУ-получатель. */
+	braname: string,
+	/** Поставщик с принятыми заказами, ожидающими самовывоза на этом КУ. */
+	offerer_account: string,
+	/** Сколько принятых заказов ожидает приёмки. */
+	orders_count: number,
+	/** Суммарная сумма заказов. */
+	total_amount: string,
+	/** Суммарное количество единиц. */
+	total_units: number
 };
 	["MarketplaceFinalizeIssuanceInput"]: {
 	/** Фактически выдаваемое количество единиц (равно/меньше/больше заказа). */
@@ -28315,6 +28391,8 @@ export type ModelTypes = {
 	marketplaceClearAvailableCategories: boolean,
 	/** Оператор КУ формирует акт приёмки партии: для Варианта Б с возможной корректировкой фактического количества. */
 	marketplaceCreateAplReception: ModelTypes["MarketplaceAplReceptionResult"],
+	/** Express-приёмка самовывоза по факту присутствия: оператор принимает имущество поставщика без предварительно сформированной партии. Backend синтезирует партию самовывоза из принятых заказов поставщика на этом КУ и открывает приёмку. */
+	marketplaceCreateExpressReception: ModelTypes["MarketplaceCreateExpressReceptionResult"],
 	/** Поставщик публикует Offer (статус → PENDING_MODERATION) */
 	marketplaceCreateOffer: ModelTypes["MarketplaceOffer"],
 	/** Оформить заказ по предложению и заблокировать средства пайщика. */
@@ -29949,6 +30027,8 @@ export type ModelTypes = {
 	marketplaceListCategories: Array<ModelTypes["MarketplaceCategory"]>,
 	/** Постраничный список сводных заявок поставщика — для стола поставщика и для прослеживания состояния заказов. */
 	marketplaceListConsolidatedRequests: ModelTypes["MarketplaceConsolidatedRequestPaginationResult"],
+	/** Поставщики с принятыми заказами, ожидающими самовывоза на текущем КУ, — лента express-приёмки для operator-стола. */
+	marketplaceListExpressPickupsByBraname: Array<ModelTypes["MarketplaceExpressPickupCandidate"]>,
 	/** Список наклеек инвентаря КУ — для admin-стола склада и операторских разделов. */
 	marketplaceListInventory: Array<ModelTypes["MarketplaceInventoryItem"]>,
 	/** Список заказов на кооперативном участке, ожидающих открытия и финальной подписи выдачи (для оператора кооперативного участка). */
@@ -36908,6 +36988,18 @@ export type GraphQLTypes = {
 	/** Партия поставки в статусе SUPPLY_PREPARED. */
 	shipment_id: GraphQLTypes["ID"]
 };
+	["MarketplaceCreateExpressReceptionInput"]: {
+		/** КУ, на котором оператор принимает имущество. */
+	braname: string,
+	/** Поставщик, приехавший на ПВЗ для самовывоза. */
+	offerer_account: string
+};
+	["MarketplaceCreateExpressReceptionResult"]: {
+	__typename: "MarketplaceCreateExpressReceptionResult",
+	/** Сформированные акты приёмки (по одному на заявку поставщика на этом КУ). */
+	apl_receptions: Array<GraphQLTypes["MarketplaceAplReception"]>,
+	['...on MarketplaceCreateExpressReceptionResult']: Omit<GraphQLTypes["MarketplaceCreateExpressReceptionResult"], "...on MarketplaceCreateExpressReceptionResult">
+};
 	["MarketplaceCreateOfferInput"]: {
 		/** Стратегия маркировки штрих-кодом при приёмке на КУ. По умолчанию «по заказу» (PER_ORDER). */
 	barcode_strategy?: GraphQLTypes["MarketplaceBarcodeStrategy"] | undefined | null,
@@ -37059,6 +37151,20 @@ export type GraphQLTypes = {
 	/** Значение */
 	value: string,
 	['...on MarketplaceDictionaryValue']: Omit<GraphQLTypes["MarketplaceDictionaryValue"], "...on MarketplaceDictionaryValue">
+};
+	["MarketplaceExpressPickupCandidate"]: {
+	__typename: "MarketplaceExpressPickupCandidate",
+	/** КУ-получатель. */
+	braname: string,
+	/** Поставщик с принятыми заказами, ожидающими самовывоза на этом КУ. */
+	offerer_account: string,
+	/** Сколько принятых заказов ожидает приёмки. */
+	orders_count: number,
+	/** Суммарная сумма заказов. */
+	total_amount: string,
+	/** Суммарное количество единиц. */
+	total_units: number,
+	['...on MarketplaceExpressPickupCandidate']: Omit<GraphQLTypes["MarketplaceExpressPickupCandidate"], "...on MarketplaceExpressPickupCandidate">
 };
 	["MarketplaceFinalizeIssuanceInput"]: {
 		/** Фактически выдаваемое количество единиц (равно/меньше/больше заказа). */
@@ -39054,6 +39160,8 @@ export type GraphQLTypes = {
 	marketplaceClearAvailableCategories: boolean,
 	/** Оператор КУ формирует акт приёмки партии: для Варианта Б с возможной корректировкой фактического количества. */
 	marketplaceCreateAplReception: GraphQLTypes["MarketplaceAplReceptionResult"],
+	/** Express-приёмка самовывоза по факту присутствия: оператор принимает имущество поставщика без предварительно сформированной партии. Backend синтезирует партию самовывоза из принятых заказов поставщика на этом КУ и открывает приёмку. */
+	marketplaceCreateExpressReception: GraphQLTypes["MarketplaceCreateExpressReceptionResult"],
 	/** Поставщик публикует Offer (статус → PENDING_MODERATION) */
 	marketplaceCreateOffer: GraphQLTypes["MarketplaceOffer"],
 	/** Оформить заказ по предложению и заблокировать средства пайщика. */
@@ -40823,6 +40931,8 @@ export type GraphQLTypes = {
 	marketplaceListCategories: Array<GraphQLTypes["MarketplaceCategory"]>,
 	/** Постраничный список сводных заявок поставщика — для стола поставщика и для прослеживания состояния заказов. */
 	marketplaceListConsolidatedRequests: GraphQLTypes["MarketplaceConsolidatedRequestPaginationResult"],
+	/** Поставщики с принятыми заказами, ожидающими самовывоза на текущем КУ, — лента express-приёмки для operator-стола. */
+	marketplaceListExpressPickupsByBraname: Array<GraphQLTypes["MarketplaceExpressPickupCandidate"]>,
 	/** Список наклеек инвентаря КУ — для admin-стола склада и операторских разделов. */
 	marketplaceListInventory: Array<GraphQLTypes["MarketplaceInventoryItem"]>,
 	/** Список заказов на кооперативном участке, ожидающих открытия и финальной подписи выдачи (для оператора кооперативного участка). */
@@ -43301,6 +43411,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceCancelOrderInput"]: ValueTypes["MarketplaceCancelOrderInput"];
 	["MarketplaceConsolidatedRequestStatus"]: ValueTypes["MarketplaceConsolidatedRequestStatus"];
 	["MarketplaceCreateAplReceptionInput"]: ValueTypes["MarketplaceCreateAplReceptionInput"];
+	["MarketplaceCreateExpressReceptionInput"]: ValueTypes["MarketplaceCreateExpressReceptionInput"];
 	["MarketplaceCreateOfferInput"]: ValueTypes["MarketplaceCreateOfferInput"];
 	["MarketplaceCreateOrderInput"]: ValueTypes["MarketplaceCreateOrderInput"];
 	["MarketplaceCreateReturnClaimInput"]: ValueTypes["MarketplaceCreateReturnClaimInput"];

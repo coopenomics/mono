@@ -28,6 +28,8 @@ export * as LabelInventory from './labelInventory'
 export * as LabelShipmentInventory from './labelShipmentInventory'
 /** Эпик 5: создать акт приёмки партии (оператор КУ) */
 export * as CreateAplReception from './createAplReception'
+/** Эпик 14 (14.2): express-приёмка самовывоза по факту присутствия поставщика */
+export * as CreateExpressReception from './createExpressReception'
 /** Эпик 5: первая подпись поставщика на акте приёмки */
 export * as SignAplReceptionAsSupplier from './signAplReceptionAsSupplier'
 /** Эпик 5: закрывающая подпись председателя КУ */

@@ -179,6 +179,61 @@ export class MarketplaceAplReceptionResultDTO {
   apl_reception!: MarketplaceAplReceptionDTO;
 }
 
+@InputType('MarketplaceCreateExpressReceptionInput')
+export class MarketplaceCreateExpressReceptionInputDTO {
+  @Field(() => String, { description: 'Поставщик, приехавший на ПВЗ для самовывоза.' })
+  @IsString()
+  @IsNotEmpty()
+  offerer_account!: string;
+
+  @Field(() => String, { description: 'КУ, на котором оператор принимает имущество.' })
+  @IsString()
+  @IsNotEmpty()
+  braname!: string;
+}
+
+@ObjectType('MarketplaceExpressPickupCandidate')
+export class MarketplaceExpressPickupCandidateDTO {
+  @Field(() => String, { description: 'Поставщик с принятыми заказами, ожидающими самовывоза на этом КУ.' })
+  offerer_account!: string;
+
+  @Field(() => String, { description: 'КУ-получатель.' })
+  braname!: string;
+
+  @Field(() => Int, { description: 'Сколько принятых заказов ожидает приёмки.' })
+  orders_count!: number;
+
+  @Field(() => Int, { description: 'Суммарное количество единиц.' })
+  total_units!: number;
+
+  @Field(() => String, { description: 'Суммарная сумма заказов.' })
+  total_amount!: string;
+}
+
+@ObjectType('MarketplaceCreateExpressReceptionResult')
+export class MarketplaceCreateExpressReceptionResultDTO {
+  @Field(() => [MarketplaceAplReceptionDTO], {
+    description: 'Сформированные акты приёмки (по одному на заявку поставщика на этом КУ).',
+  })
+  apl_receptions!: MarketplaceAplReceptionDTO[];
+}
+
+export function toExpressPickupCandidateDTO(c: {
+  offerer_account: string;
+  braname: string;
+  orders_count: number;
+  total_units: number;
+  total_amount: string;
+}): MarketplaceExpressPickupCandidateDTO {
+  const dto = new MarketplaceExpressPickupCandidateDTO();
+  dto.offerer_account = c.offerer_account;
+  dto.braname = c.braname;
+  dto.orders_count = c.orders_count;
+  dto.total_units = c.total_units;
+  dto.total_amount = c.total_amount;
+  return dto;
+}
+
 export function toMarketplaceAplReceptionDTO(
   e: MarketplaceAplReceptionDomainEntity
 ): MarketplaceAplReceptionDTO {
