@@ -7,6 +7,7 @@ import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
 import { BaseBadge, BaseButton, BaseInput, EmptyState } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
+import { PageHint } from 'src/shared/ui/domain';
 import {
   createAplReception,
   listAplReceptionsByBraname,
@@ -145,9 +146,8 @@ q-page.reception(role='region', aria-label='Приёмка партии')
       q-icon(name='storefront', size='48px')
 
   template(v-else)
-    .reception__head
-      .t-h2 Приёмка партии
-      .t-muted Подтверждайте партии, прибывшие на ваш пункт выдачи: создайте акт приёмки и подпишите его председателем участка.
+    PageHint(storage-key='mp:operator-reception:banner-dismissed')
+      | Подтверждайте партии, прибывшие на ваш пункт выдачи: создайте акт приёмки и подпишите его председателем участка.
 
     .reception__create
       BaseInput.reception__create-input(
@@ -206,12 +206,6 @@ q-page.reception(role='region', aria-label='Приёмка партии')
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
-
-  &__head {
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-1, 4px);
-  }
 
   &__create {
     display: flex;

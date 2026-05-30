@@ -7,6 +7,7 @@ import { Zeus } from '@coopenomics/sdk'
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch'
 import { BaseBadge, BaseButton, BaseInput, EmptyState } from 'src/shared/ui/base'
 import type { BaseBadgeVariant } from 'src/shared/ui/base'
+import { PageHint } from 'src/shared/ui/domain'
 import { listInventory, type MarketplaceInventoryItemView } from '../api'
 
 // Активный КУ оператора — из общего контекста стола (без ввода кода вручную).
@@ -156,9 +157,8 @@ q-page.warehouse(role='region', aria-label='Склад участка')
       q-icon(name='storefront', size='48px')
 
   template(v-else)
-    .warehouse__head
-      .t-h2 Склад участка
-      .t-muted Промаркированное имущество вашего пункта выдачи — наклейки, заказчики и состояние.
+    PageHint(storage-key='mp:operator-warehouse:banner-dismissed')
+      | Промаркированное имущество вашего пункта выдачи — наклейки, заказчики и состояние.
 
     .warehouse__filters
       .warehouse__chips
@@ -233,12 +233,6 @@ q-page.warehouse(role='region', aria-label='Склад участка')
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
-
-  &__head {
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-1, 4px);
-  }
 
   &__filters {
     display: flex;

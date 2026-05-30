@@ -7,6 +7,7 @@ import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/Operator
 import { BarcodeDisplay } from 'src/widgets/Marketplace/BarcodeDisplay'
 import { BaseButton, BaseCard, BaseInput, BaseSelect, EmptyState } from 'src/shared/ui/base'
 import type { BaseSelectOption } from 'src/shared/ui/base'
+import { PageHint } from 'src/shared/ui/domain'
 import { Zeus } from '@coopenomics/sdk'
 import {
   fetchInventoryByBraname,
@@ -205,9 +206,8 @@ q-page.labeling(role='region', aria-label='Маркировка имуществ
       q-icon(name='storefront', size='48px')
 
   template(v-else)
-    .labeling__head.no-print
-      .t-h2 Маркировка имущества
-      .t-muted Сгенерируйте штрих-коды для прибывших заказов и распечатайте этикетки склада участка.
+    PageHint.no-print(storage-key='mp:operator-labeling:banner-dismissed')
+      | Сгенерируйте штрих-коды для прибывших заказов и распечатайте этикетки склада участка.
 
     .labeling__toolbar.no-print
       q-btn-toggle(
@@ -298,12 +298,6 @@ q-page.labeling(role='region', aria-label='Маркировка имуществ
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
-
-  &__head {
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-1, 4px);
-  }
 
   &__toolbar {
     display: flex;

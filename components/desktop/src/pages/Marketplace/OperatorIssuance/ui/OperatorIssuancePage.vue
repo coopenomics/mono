@@ -6,6 +6,7 @@ import { FailAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
 import { BaseBadge, BaseButton, EmptyState } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
+import { PageHint } from 'src/shared/ui/domain';
 import {
   listIssuancesByBraname,
   type MarketplaceOrderIssuanceView,
@@ -135,9 +136,8 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
       q-icon(name='storefront', size='48px')
 
   template(v-else)
-    .issuance__head
-      .t-h2 Выдача заказов
-      .t-muted Заказы, принятые кооперативом на ваш пункт выдачи. Откройте выдачу подписью председателя, затем завершите её на стойке с заказчиком.
+    PageHint(storage-key='mp:operator-issuance:banner-dismissed')
+      | Заказы, принятые кооперативом на ваш пункт выдачи. Откройте выдачу подписью председателя, затем завершите её на стойке с заказчиком.
 
     q-table.issuance__table(
       :rows='items',
@@ -198,12 +198,6 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
-
-  &__head {
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-1, 4px);
-  }
 }
 
 @media (max-width: 768px) {

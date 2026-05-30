@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router';
 import { Notify } from 'quasar';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
 import { BaseButton, EmptyState } from 'src/shared/ui/base';
+import { PageHint } from 'src/shared/ui/domain';
 import { listAplReceptionsByBraname } from '../../OperatorReception/api';
 import { listIssuancesByBraname } from '../../OperatorIssuance/api';
 import { listReturnClaimsByBraname } from '../../OperatorReturnClaims/api';
@@ -141,11 +142,9 @@ q-page.orders(role='region', aria-label='Сводный стол участка'
       q-icon(name='storefront', size='48px')
 
   template(v-else)
-    .orders__head
-      .t-h2 Сводный стол участка
-      .t-muted
-        | Все процессы вашего пункта выдачи в одном месте: приёмки партий, выдачи пайщикам,
-        | гарантийные возвраты. Для действий переходите на специализированные столы.
+    PageHint(storage-key='mp:branch-orders:banner-dismissed')
+      | Все процессы вашего пункта выдачи в одном месте: приёмки партий, выдачи пайщикам,
+      | гарантийные возвраты. Для действий переходите на специализированные столы.
 
     .orders__toolbar
       q-space
@@ -227,12 +226,6 @@ q-page.orders(role='region', aria-label='Сводный стол участка'
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
-
-  &__head {
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-1, 4px);
-  }
 
   &__toolbar {
     display: flex;

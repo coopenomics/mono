@@ -8,6 +8,7 @@ import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits'
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch'
 import { BaseBadge, BaseButton, EmptyState } from 'src/shared/ui/base'
 import type { BaseBadgeVariant } from 'src/shared/ui/base'
+import { PageHint } from 'src/shared/ui/domain'
 import { listShipmentsByBraname, type MarketplaceShipmentView } from '../api'
 
 type ShipmentStatus = MarketplaceShipmentView['status']
@@ -142,11 +143,9 @@ q-page.shipments(role='region', aria-label='Ожидаемые поставки'
       q-icon(name='storefront', size='48px')
 
   template(v-else)
-    .shipments__head
-      .t-h2 Ожидаемые поставки
-      .t-muted
-        | Партии поставщиков, направленные на ваш пункт выдачи. Дождитесь состояния
-        | «Готова к приёмке» — и открывайте акт на столе «Приёмка партии».
+    PageHint(storage-key='mp:operator-shipments:banner-dismissed')
+      | Партии поставщиков, направленные на ваш пункт выдачи. Дождитесь состояния
+      | «Готова к приёмке» — и открывайте акт на столе «Приёмка партии».
 
     .shipments__filters
       .shipments__chips
@@ -215,12 +214,6 @@ q-page.shipments(role='region', aria-label='Ожидаемые поставки'
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
-
-  &__head {
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-1, 4px);
-  }
 
   &__filters {
     display: flex;

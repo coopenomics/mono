@@ -7,6 +7,7 @@ import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/Operator
 import { useManageTrusted } from 'src/features/Branch/ManageTrusted'
 import { BaseBadge, BaseButton, BaseDialog, BaseInput, EmptyState } from 'src/shared/ui/base'
 import type { BaseBadgeVariant } from 'src/shared/ui/base'
+import { PageHint } from 'src/shared/ui/domain'
 
 /**
  * Стол ПВЗ → «Доверенные лица». Председатель кооперативного участка (trustee)
@@ -132,13 +133,11 @@ q-page.trusted
       q-icon(name='group_off', size='48px')
 
   template(v-else)
-    .banner.banner--info
-      q-icon.banner__icon(name='info', size='18px')
-      .banner__body
-        | Доверенные лица получают те же права на этом пункте выдачи, что и
-        | председатель участка: приёмка партий, маркировка, выдача заказов,
-        | гарантийные возвраты и склад. Добавляйте только тех пайщиков, кому
-        | доверяете операции от имени участка.
+    PageHint(storage-key='mp:operator-trusted:banner-dismissed')
+      | Доверенные лица получают те же права на этом пункте выдачи, что и
+      | председатель участка: приёмка партий, маркировка, выдача заказов,
+      | гарантийные возвраты и склад. Добавляйте только тех пайщиков, кому
+      | доверяете операции от имени участка.
 
     .trusted__add(v-if='canManage')
       BaseInput.trusted__add-input(

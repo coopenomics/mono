@@ -5,6 +5,7 @@ import { Zeus } from '@coopenomics/sdk';
 import { FailAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
 import { BaseButton, EmptyState } from 'src/shared/ui/base';
+import { PageHint } from 'src/shared/ui/domain';
 import {
   listReturnClaimsByBraname,
   defectCategoryLabel,
@@ -128,9 +129,8 @@ q-page.returns(role='region', aria-label='Гарантийные возврат�
       q-icon(name='storefront', size='48px')
 
   template(v-else)
-    .returns__head
-      .t-h2 Гарантийный возврат
-      .t-muted Рассматривайте заявления пайщиков: удалённое решение по заявке, затем очный осмотр и приём возврата на пункте выдачи.
+    PageHint(storage-key='mp:operator-returns:banner-dismissed')
+      | Рассматривайте заявления пайщиков: удалённое решение по заявке, затем очный осмотр и приём возврата на пункте выдачи.
 
     section.returns__section
       .t-h3 Ждут удалённого рассмотрения ({{ pendingClaims.length }})
@@ -202,12 +202,6 @@ q-page.returns(role='region', aria-label='Гарантийные возврат�
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
-
-  &__head {
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-1, 4px);
-  }
 
   &__section {
     display: flex;
