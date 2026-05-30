@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { Notify } from 'quasar';
+import { Zeus } from '@coopenomics/sdk';
+import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { BaseButton, BaseDialog, BaseInput, BaseRadioCard } from 'src/shared/ui/base';
 import { createShipment } from '../api';
 import type { ShipmentFormationCycle } from '../lib/shipmentFormation';
@@ -24,8 +25,11 @@ interface TtnData {
   delivery_datetime_estimate: string;
 }
 
-const SELF = 'A';
-const EXPEDITOR = 'B';
+// Значения GraphQL-enum'а передаются ПО ИМЕНИ (SELF/EXPEDITOR), не по
+// внутреннему коду ('A'/'B') — backend-NestJS мапит имя в код сам.
+const SELF = Zeus.MarketplaceShipmentDeliveryVariant.SELF;
+const EXPEDITOR = Zeus.MarketplaceShipmentDeliveryVariant.EXPEDITOR;
+type DeliveryVariant = Zeus.MarketplaceShipmentDeliveryVariant;
 
 const props = defineProps<{
   modelValue: boolean;
@@ -39,7 +43,7 @@ const emit = defineEmits<{
 
 const submitting = ref(false);
 // Вариант доставки и данные ТТН — по каждому КУ (ключ = braname).
-const variants = ref<Record<string, string>>({});
+const variants = ref<Record<string, DeliveryVariant>>({});
 const ttn = ref<Record<string, TtnData>>({});
 
 function emptyTtn(): TtnData {
@@ -58,7 +62,7 @@ function emptyTtn(): TtnData {
 watch(
   () => props.cycle,
   (cycle) => {
-    const v: Record<string, string> = {};
+    const v: Record<string, DeliveryVariant> = {};
     const t: Record<string, TtnData> = {};
     for (const g of cycle?.groups ?? []) {
       v[g.braname] = SELF;
@@ -104,16 +108,15 @@ async function submit(): Promise<void> {
   try {
     const groups = props.cycle.groups.map((g) => ({
       braname: g.braname,
-      delivery_variant: variants.value[g.braname] as 'A' | 'B',
+      delivery_variant: variants.value[g.braname],
       ttn_data: variants.value[g.braname] === EXPEDITOR ? ttn.value[g.braname] : null,
     }));
     await createShipment({ cycle_id: props.cycle.cycle_id, groups });
-    Notify.create({ type: 'positive', message: 'Партия сформирована', timeout: 4000 });
+    SuccessAlert('Партия сформирована');
     emit('created');
     close();
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    Notify.create({ type: 'negative', message, timeout: 6000 });
+    FailAlert(e);
   } finally {
     submitting.value = false;
   }
