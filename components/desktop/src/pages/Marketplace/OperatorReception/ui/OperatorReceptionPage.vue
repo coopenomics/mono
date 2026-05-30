@@ -130,9 +130,9 @@ async function load(): Promise<void> {
   loading.value = true;
   try {
     const [receptions, shipments, express] = await Promise.all([
-      listAplReceptionsByBraname(braname.value.trim()),
+      listAplReceptionsByBraname({ braname: braname.value.trim() }),
       listShipmentsByBraname({ braname: braname.value.trim() }),
-      listExpressPickupsByBraname(braname.value.trim()),
+      listExpressPickupsByBraname({ braname: braname.value.trim() }),
     ]);
     items.value = [...receptions].sort(
       (a, b) =>
@@ -227,7 +227,10 @@ const plannedReceptionsCount = computed(() => {
 async function openPickupForSupplier(account: string): Promise<void> {
   Loading.show({ message: 'Загружаю имущество поставщика…' });
   try {
-    const orders = await listSupplierPickupOrders(braname.value.trim(), account);
+    const orders = await listSupplierPickupOrders({
+      braname: braname.value.trim(),
+      offerer_account: account,
+    });
     if (!orders.length) {
       FailAlert(
         new Error(`У поставщика ${account} нет имущества, ожидающего приёмки на этом пункте.`),

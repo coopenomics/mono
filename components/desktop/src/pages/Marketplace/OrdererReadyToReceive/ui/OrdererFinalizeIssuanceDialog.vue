@@ -66,7 +66,7 @@ async function loadPreview(): Promise<void> {
   if (!props.order) return;
   previewLoading.value = true;
   try {
-    const aggregate = await getOrdererSignablePayload(props.order.id);
+    const aggregate = await getOrdererSignablePayload({ order_id: props.order.id });
     previewHtml.value = aggregate.rawDocument.html;
   } catch (e) {
     FailAlert(e, 'Не удалось загрузить акт выдачи');
@@ -87,7 +87,7 @@ async function confirm(): Promise<void> {
     // Backend отдаёт акт, уже подписанный председателем при открытии выдачи
     // (signatureId=1). Заказчик накладывает финальную подпись (signatureId=2)
     // поверх — документ не перегенерируется.
-    const aggregate = await getOrdererSignablePayload(props.order.id);
+    const aggregate = await getOrdererSignablePayload({ order_id: props.order.id });
     const signer = new Classes.Document(wif);
     const fullSigned = await signer.signDocument(
       aggregate.rawDocument,
@@ -95,7 +95,7 @@ async function confirm(): Promise<void> {
       2,
       [aggregate.document],
     );
-    await finalizeIssuance(props.order.id, fullSigned);
+    await finalizeIssuance({ order_id: props.order.id, signed_document: fullSigned });
     SuccessAlert('Имущество получено. Заказ закрыт.');
     emit('finalized');
     emit('update:modelValue', false);

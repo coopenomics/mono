@@ -44,12 +44,22 @@ export type MarketplaceIssuanceAggregateView = Omit<_RawIssuanceAggregate, 'rawD
   rawDocument: NonNullable<_RawIssuanceAggregate['rawDocument']>;
 };
 
+// Входные типы — строго из SDK (IInput['data']); функции принимают `data`
+// целиком и передают его в `variables: { data }` без разворачивания полей.
+export type ListIssuancesByBranameInput = Queries.Marketplace.ListIssuancesByBraname.IInput['data'];
+export type IssueActChairmanSignablePayloadInput =
+  Queries.Marketplace.IssueActChairmanSignablePayload.IInput['data'];
+export type IssueActOrdererSignablePayloadInput =
+  Queries.Marketplace.IssueActOrdererSignablePayload.IInput['data'];
+export type OpenIssuanceInput = Mutations.Marketplace.OpenIssuance.IInput['data'];
+export type FinalizeIssuanceInput = Mutations.Marketplace.FinalizeIssuance.IInput['data'];
+
 export async function listIssuancesByBraname(
-  delivery_braname: string,
+  data: ListIssuancesByBranameInput,
 ): Promise<MarketplaceOrderIssuanceView[]> {
   const { [Queries.Marketplace.ListIssuancesByBraname.name]: result } = await client.Query(
     Queries.Marketplace.ListIssuancesByBraname.query,
-    { variables: { data: { delivery_braname } } },
+    { variables: { data } },
   );
   // Zeus отдаёт DateTime как unknown; сужаем скалярную дату до строки во view-типе.
   return result as MarketplaceOrderIssuanceView[];
@@ -64,37 +74,32 @@ export async function listMyReadyToReceive(): Promise<MarketplaceOrderIssuanceVi
 }
 
 export async function getChairmanSignablePayload(
-  order_id: string,
-  actual_quantity?: number,
-  actual_unit_price?: string,
+  data: IssueActChairmanSignablePayloadInput,
 ): Promise<MarketplaceGeneratedDocumentView> {
   const { [Queries.Marketplace.IssueActChairmanSignablePayload.name]: result } =
     await client.Query(Queries.Marketplace.IssueActChairmanSignablePayload.query, {
-      variables: { data: { order_id, actual_quantity, actual_unit_price } },
+      variables: { data },
     });
   return result as MarketplaceGeneratedDocumentView;
 }
 
 export async function getOrdererSignablePayload(
-  order_id: string,
+  data: IssueActOrdererSignablePayloadInput,
 ): Promise<MarketplaceIssuanceAggregateView> {
   const { [Queries.Marketplace.IssueActOrdererSignablePayload.name]: result } =
     await client.Query(Queries.Marketplace.IssueActOrdererSignablePayload.query, {
-      variables: { data: { order_id } },
+      variables: { data },
     });
   // Backend всегда возвращает rawDocument; в Zeus оно опционально — фиксируем как обязательное.
   return result as MarketplaceIssuanceAggregateView;
 }
 
 export async function openIssuance(
-  order_id: string,
-  actual_quantity: number,
-  actual_unit_price: string,
-  signed_document: SignedDocumentInput,
+  data: OpenIssuanceInput,
 ): Promise<MarketplaceIssuanceResultView> {
   const { [Mutations.Marketplace.OpenIssuance.name]: result } = await client.Mutation(
     Mutations.Marketplace.OpenIssuance.mutation,
-    { variables: { data: { order_id, actual_quantity, actual_unit_price, signed_document } } },
+    { variables: { data } },
   );
   return result;
 }
@@ -106,12 +111,11 @@ export async function openIssuance(
  * открытии), поэтому здесь передаём только подписанный документ.
  */
 export async function finalizeIssuance(
-  order_id: string,
-  signed_document: SignedDocumentInput,
+  data: FinalizeIssuanceInput,
 ): Promise<MarketplaceIssuanceResultView> {
   const { [Mutations.Marketplace.FinalizeIssuance.name]: result } = await client.Mutation(
     Mutations.Marketplace.FinalizeIssuance.mutation,
-    { variables: { data: { order_id, signed_document } } },
+    { variables: { data } },
   );
   return result;
 }

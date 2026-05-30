@@ -117,11 +117,11 @@ async function loadPreview(): Promise<void> {
   }
   previewLoading.value = true;
   try {
-    const doc = await getChairmanSignablePayload(
-      props.order.id,
-      actualQuantity.value,
-      String(actualUnitPrice.value),
-    );
+    const doc = await getChairmanSignablePayload({
+      order_id: props.order.id,
+      actual_quantity: actualQuantity.value,
+      actual_unit_price: String(actualUnitPrice.value),
+    });
     previewHtml.value = doc.html;
   } catch (e) {
     FailAlert(e, 'Не удалось сформировать акт выдачи');
@@ -148,14 +148,19 @@ async function confirm(): Promise<void> {
   signing.value = true;
   try {
     const unitPriceStr = String(actualUnitPrice.value);
-    const generated = await getChairmanSignablePayload(
-      props.order.id,
-      actualQuantity.value,
-      unitPriceStr,
-    );
+    const generated = await getChairmanSignablePayload({
+      order_id: props.order.id,
+      actual_quantity: actualQuantity.value,
+      actual_unit_price: unitPriceStr,
+    });
     const docSigner = new Classes.Document(wifKey);
     const signed = await docSigner.signDocument(generated, globalStore.username, 1);
-    await openIssuance(props.order.id, actualQuantity.value, unitPriceStr, signed);
+    await openIssuance({
+      order_id: props.order.id,
+      actual_quantity: actualQuantity.value,
+      actual_unit_price: unitPriceStr,
+      signed_document: signed,
+    });
     SuccessAlert('Выдача открыта. Ждём подпись заказчика — он подтвердит получение в своём кабинете.');
     emit('opened');
     emit('update:modelValue', false);

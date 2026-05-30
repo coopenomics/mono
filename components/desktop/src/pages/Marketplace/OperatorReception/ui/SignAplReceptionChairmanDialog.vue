@@ -68,7 +68,7 @@ async function loadPreview(): Promise<void> {
   if (!props.reception) return;
   previewLoading.value = true;
   try {
-    const aggregates = await fetchChairmanSignablePayloads(props.reception.id);
+    const aggregates = await fetchChairmanSignablePayloads({ apl_reception_id: props.reception.id });
     previewHtml.value = aggregates.map((a) => a.rawDocument.html).join('<hr/>');
   } catch (e) {
     FailAlert(e, 'Не удалось сформировать акт приёмки');
@@ -88,7 +88,7 @@ async function confirm(): Promise<void> {
 
   signing.value = true;
   try {
-    const aggregates = await fetchChairmanSignablePayloads(props.reception.id);
+    const aggregates = await fetchChairmanSignablePayloads({ apl_reception_id: props.reception.id });
     if (aggregates.length === 0) {
       throw new Error('Backend не вернул ни одного акта для закрывающей подписи.');
     }
@@ -105,7 +105,7 @@ async function confirm(): Promise<void> {
       signed_documents.push(signed);
     }
 
-    await signAsChairman(props.reception.id, signed_documents);
+    await signAsChairman({ apl_reception_id: props.reception.id, signed_documents });
     SuccessAlert('Акт приёмки закрыт подписью председателя. Партия принята в кооператив.');
     emit('signed');
     emit('update:modelValue', false);

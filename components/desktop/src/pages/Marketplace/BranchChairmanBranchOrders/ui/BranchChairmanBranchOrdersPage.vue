@@ -85,8 +85,8 @@ async function loadAll(): Promise<void> {
   loading.value = true;
   try {
     const [r, i, ret] = await Promise.all([
-      listAplReceptionsByBraname(name),
-      listIssuancesByBraname(name),
+      listAplReceptionsByBraname({ braname: name }),
+      listIssuancesByBraname({ delivery_braname: name }),
       listReturnClaimsByBraname({ delivery_braname: name }),
     ]);
     receptions.value = r;

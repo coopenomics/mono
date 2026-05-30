@@ -12,8 +12,8 @@
  * ленты СВОЕГО КУ — у чужого аккаунта на этом КУ просто нет ожидающих единиц.
  * coopname в коде отсекает предъявление в чужом кооперативе.
  *
- * Формат: `mp1:<kind>:<coopname>:<account>`
- *  - `mp1`     — namespace + версия (резерв под mp2 с подписью/одноразовостью);
+ * Формат: `blago:<kind>:<coopname>:<account>`
+ *  - `blago`   — namespace кода передачи;
  *  - `kind`    — `pickup` (поставщик → приёмка) | `receive` (заказчик → выдача);
  *  - coopname  — кооператив, в котором код действителен;
  *  - account   — аккаунт-биндинг (личность, не партия/единица).
@@ -35,7 +35,7 @@ export interface HandoffToken {
   account: string;
 }
 
-const PREFIX = 'mp1';
+const PREFIX = 'blago';
 const SEP = ':';
 
 /** Собрать account-bound код для показа в `HandoffQr`. */

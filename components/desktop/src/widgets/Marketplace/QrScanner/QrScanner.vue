@@ -17,6 +17,26 @@ const emit = defineEmits<{
 
 type ScanState = 'idle' | 'requesting' | 'scanning' | 'error';
 
+/**
+ * `BarcodeDetector` — нативный Web API (Chromium), в lib.dom его типов пока нет.
+ * Узкий локальный тип под единственное использование — без глобальных shims и
+ * без @types-пакета.
+ */
+interface DetectedBarcode {
+  rawValue: string;
+  format: string;
+}
+interface BarcodeDetectorLike {
+  detect(source: CanvasImageSource | Blob | ImageData): Promise<DetectedBarcode[]>;
+}
+type BarcodeDetectorCtor = new (options?: { formats?: string[] }) => BarcodeDetectorLike;
+
+const DetectorCtor =
+  typeof window !== 'undefined'
+    ? (window as unknown as { BarcodeDetector?: BarcodeDetectorCtor }).BarcodeDetector
+    : undefined;
+const supported = Boolean(DetectorCtor);
+
 const state = ref<ScanState>('idle');
 const errorMessage = ref('');
 const manualCode = ref('');
@@ -24,11 +44,9 @@ const manualCode = ref('');
 const video = useTemplateRef<HTMLVideoElement>('video');
 
 let stream: MediaStream | null = null;
-let detector: BarcodeDetector | null = null;
+let detector: BarcodeDetectorLike | null = null;
 let rafId: number | null = null;
 let stopped = false;
-
-const supported = typeof window !== 'undefined' && 'BarcodeDetector' in window;
 
 function teardown(): void {
   stopped = true;
@@ -69,7 +87,7 @@ async function start(): Promise<void> {
   state.value = 'requesting';
   stopped = false;
   try {
-    detector = new BarcodeDetector({ formats: ['qr_code'] });
+    detector = new DetectorCtor!({ formats: ['qr_code'] });
     stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: 'environment' },
     });
