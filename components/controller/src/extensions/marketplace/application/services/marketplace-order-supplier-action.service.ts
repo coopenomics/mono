@@ -13,11 +13,6 @@ import {
   MarketplaceOfferCountersService,
 } from './marketplace-offer-counters.service';
 import {
-  MARKETPLACE_SHIPMENT_CREATE_SERVICE,
-  MarketplaceShipmentCreateService,
-} from './marketplace-shipment-create.service';
-import { MarketplaceShipmentDeliveryVariants } from '../../domain/entities/marketplace-shipment.types';
-import {
   MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
   type MarketplaceCanonicalBlockchainPort,
 } from '../../domain/ports/marketplace-canonical-blockchain.port';
@@ -55,8 +50,6 @@ export class MarketplaceOrderSupplierActionService {
     private readonly cycleRepo: MarketplaceConsolidatedRequestDomainRepository,
     @Inject(MARKETPLACE_OFFER_COUNTERS_SERVICE)
     private readonly offerCounters: MarketplaceOfferCountersService,
-    @Inject(MARKETPLACE_SHIPMENT_CREATE_SERVICE)
-    private readonly shipmentCreate: MarketplaceShipmentCreateService,
     @Inject(MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT)
     private readonly chainPort: MarketplaceCanonicalBlockchainPort,
     private readonly logger: WinstonLoggerService
@@ -109,20 +102,23 @@ export class MarketplaceOrderSupplierActionService {
     // individual: один заказ — самостоятельная единица поставки. Чтобы
     // переиспользовать канон формирования партии (Shipment строится только
     // из консолидированной заявки в статусе ACCEPTED — backend-only L10),
-    // синтезируем «заявку из одного заказа» и сразу прогоняем её через
-    // shipment-create. На выходе — Shipment SUPPLY_PREPARED + Order →
-    // SUPPLY_PREPARED, по которому оператор КУ откроет акт приёмки.
-    const prepared = await this.synthesizeIndividualShipment(updated, input.offerer_account);
+    // синтезируем «заявку из одного заказа» в статусе ACCEPTED, но партию
+    // НЕ формируем: поставщик сам явно выберет вариант доставки (самовывоз /
+    // экспедитор+ТТН) и сформирует отгрузку — единый путь с пакетными
+    // заказами (Эпик 14, Story 14.1). До этого Order остаётся ACCEPTED.
+    const prepared = await this.synthesizeIndividualCycle(updated, input.offerer_account);
     return { order: prepared, tx_hash: txHash! };
   }
 
   /**
    * individual flow: обернуть один ACCEPTED Order в консолидированную заявку
-   * и сформировать по ней Shipment Варианта А (самовывоз поставщика, без ТТН).
-   * Best-effort: если синтез упал, Order остаётся ACCEPTED — партию можно
-   * сформировать вручную через стол поставщика; основной accept уже on-chain.
+   * (cycle) в статусе ACCEPTED, чтобы дальше он шёл единым путём формирования
+   * отгрузки, что и пакетные заказы — через явный `marketplaceCreateShipment`
+   * с выбором варианта доставки. Партию здесь НЕ создаём (Story 14.1: убран
+   * навязанный Вариант А). Best-effort: если синтез заявки упал, Order
+   * остаётся ACCEPTED без cycle_id; основной accept уже on-chain.
    */
-  private async synthesizeIndividualShipment(
+  private async synthesizeIndividualCycle(
     order: MarketplaceOrderDomainEntity,
     offerer_account: string
   ): Promise<MarketplaceOrderDomainEntity> {
@@ -148,27 +144,14 @@ export class MarketplaceOrderSupplierActionService {
         MarketplaceOrderStatuses.ACCEPTED
       );
 
-      await this.shipmentCreate.execute({
-        coopname: order.coopname,
-        offerer_account,
-        cycle_id: cycle.id,
-        groups: [
-          {
-            braname: order.delivery_braname,
-            delivery_variant: MarketplaceShipmentDeliveryVariants.SELF,
-            ttn_data: null,
-          },
-        ],
-      });
-
       const refreshed = await this.orderRepo.findById(order.id);
       this.logger.log(
-        `MarketplaceOrderSupplierActionService.synthesizeIndividualShipment: Order ${order.id} → SUPPLY_PREPARED через заявку ${cycle.id} (КУ ${order.delivery_braname})`
+        `MarketplaceOrderSupplierActionService.synthesizeIndividualCycle: Order ${order.id} → ACCEPTED, заявка ${cycle.id} (КУ ${order.delivery_braname}); ждёт явного формирования отгрузки поставщиком.`
       );
       return refreshed ?? order;
     } catch (error: any) {
       this.logger.error(
-        `MarketplaceOrderSupplierActionService.synthesizeIndividualShipment: синтез партии упал для Order ${order.id}: ${error.message}; Order остаётся ACCEPTED, партию сформировать вручную.`,
+        `MarketplaceOrderSupplierActionService.synthesizeIndividualCycle: синтез заявки упал для Order ${order.id}: ${error.message}; Order остаётся ACCEPTED.`,
         error.stack
       );
       return order;
