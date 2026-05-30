@@ -12,6 +12,10 @@ import { ResetKeyPage } from 'src/pages/Registrator/ResetKey';
 import { InvitePage } from 'src/pages/Registrator/Invite';
 import { LoginRedirectPage } from 'src/features/User/LoginRedirect';
 import { PrivacyPage } from 'src/pages/Privacy';
+// Epic 13 v5.1 — пакетный монитор PowerupPlugin. Adversarial round 2: раньше
+// маршрут жил в desktops/Chairman/model/index.ts manifest, но реальный роутер
+// (этот файл) не консьюмит manifest — страница была недоступна по URL.
+import { ResourceMonitorPage } from 'src/pages/PowerUp/ResourceMonitorPage';
 import { defineComponent, h } from 'vue';
 
 // Dynamic layout wrapper, который определяет layout в runtime
@@ -153,6 +157,19 @@ const baseRoutes: RouteRecordRaw[] = [
         name: 'install',
         component: InstallCooperativePage,
         children: [],
+      },
+      // Epic 13 v5.1 — пакетный монитор PowerupPlugin (CPU/NET/RAM + 8 guards).
+      // Доступен chairman'у в собственной системе кооператива.
+      {
+        path: ':coopname/powerup',
+        name: 'powerup',
+        component: ResourceMonitorPage,
+        children: [],
+        meta: {
+          title: 'Пакетные ресурсы',
+          icon: 'fa-solid fa-bolt',
+          roles: [],
+        },
       },
       {
         path: '/:pathMatch(.*)*',
