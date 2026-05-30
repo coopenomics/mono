@@ -74,6 +74,25 @@ export async function listExpressPickupsByBraname(
   return result;
 }
 
+/**
+ * Эпик 14 (агрегирующая приёмка): единицы имущества поставщика, ожидающие
+ * приёмки на КУ — задекларированные в партии (SUPPLY_PREPARED) и добор по
+ * акцепту (ACCEPTED). Единый базис страницы приёмки по account-bound коду.
+ */
+export type MarketplaceSupplierPickupOrderView =
+  Queries.Marketplace.ListSupplierPickupOrders.IOutput['marketplaceListSupplierPickupOrders'][number];
+
+export async function listSupplierPickupOrders(
+  braname: string,
+  offerer_account: string,
+): Promise<MarketplaceSupplierPickupOrderView[]> {
+  const { [Queries.Marketplace.ListSupplierPickupOrders.name]: result } = await client.Query(
+    Queries.Marketplace.ListSupplierPickupOrders.query,
+    { variables: { data: { braname, offerer_account } } },
+  );
+  return result as MarketplaceSupplierPickupOrderView[];
+}
+
 export type CreateExpressReceptionVariables =
   Mutations.Marketplace.CreateExpressReception.IInput['data'];
 

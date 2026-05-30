@@ -68,6 +68,7 @@ import {
 } from '../../domain/entities/marketplace-shipment.types';
 import type { MarketplaceAplReceptionDomainEntity } from '../../domain/entities/marketplace-apl-reception.entity';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
+import { MarketplaceOrderStatuses } from '../../domain/entities/marketplace-order.types';
 
 export interface MarketplaceAplReceptionCreateInputDto {
   coopname: string;
@@ -414,6 +415,33 @@ export class MarketplaceAplReceptionService {
       });
     }
     return out;
+  }
+
+  /**
+   * Эпик 14 (агрегирующая приёмка): все единицы имущества поставщика,
+   * ожидающие приёмки на этом КУ — единый базис «акцепт поставщика на КУ».
+   * Возвращает Order'ы в статусах:
+   *   - SUPPLY_PREPARED — задекларированы в сформированной партии (по ТТН);
+   *   - ACCEPTED        — акцептованы, но в партию не вошли (добор по акцепту).
+   * Партия/ТТН — лишь разметка поверх; потолок приёмки каждой позиции =
+   * order.quantity (акцепт). Оператор довзвешивает факт на приёмке (≤ акцепта).
+   */
+  async listSupplierPickupOrders(
+    coopname: string,
+    braname: string,
+    offerer_account: string
+  ): Promise<MarketplaceOrderDomainEntity[]> {
+    const page = await this.orderRepo.list(
+      {
+        coopname,
+        supplier_account: offerer_account,
+        delivery_braname: braname,
+        status: [MarketplaceOrderStatuses.SUPPLY_PREPARED, MarketplaceOrderStatuses.ACCEPTED],
+      },
+      { page: 1, limit: 1000, sortOrder: 'DESC' }
+    );
+    // Без заявки (cycle_id) приёмку не открыть — модель приёмки per (cycle, КУ).
+    return page.items.filter((o) => o.cycle_id);
   }
 
   /**
@@ -913,6 +941,14 @@ export class MarketplaceAplReceptionService {
         if (!Number.isInteger(fact) || fact < 0) {
           throw new BadRequestException(
             `Некорректное fact_quantity для Order ${o.id}: ${fact}.`
+          );
+        }
+        // Потолок приёмки = акцепт (заказанное кол-во): сверх акцепта
+        // принципиально не принимаем («больше, чем заказано — не надо»).
+        // Меньше — допустимо (недовоз). Партия/ТТН — лишь декларация, не лимит.
+        if (fact > o.quantity) {
+          throw new BadRequestException(
+            `Нельзя принять сверх акцепта по Order ${o.id}: факт ${fact} > заказано ${o.quantity}.`
           );
         }
         out.push({ order_id: o.id, fact_quantity: fact });

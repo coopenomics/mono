@@ -22,10 +22,16 @@ import {
   MarketplaceCreateExpressReceptionResultDTO,
   MarketplaceExpressPickupCandidateDTO,
   MarketplaceListAplReceptionsByBranameInputDTO,
+  MarketplaceListSupplierPickupOrdersInputDTO,
   MarketplaceSignAplReceptionInputDTO,
   toExpressPickupCandidateDTO,
   toMarketplaceAplReceptionDTO,
 } from '../dto/marketplace-apl-reception.dto';
+import { MarketplaceOrderDTO, toMarketplaceOrderDTO } from '../dto/marketplace-order.dto';
+import {
+  MARKETPLACE_ORDER_DISPLAY_SERVICE,
+  MarketplaceOrderDisplayService,
+} from '../services/marketplace-order-display.service';
 import {
   MARKETPLACE_APL_RECEPTION_SERVICE,
   MarketplaceAplReceptionService,
@@ -57,7 +63,9 @@ export class MarketplaceAplReceptionResolver {
     @Inject(MARKETPLACE_APL_RECEPTION_REPOSITORY)
     private readonly receptionRepo: MarketplaceAplReceptionDomainRepository,
     @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
-    private readonly kuChairmanService: MarketplaceKuChairmanService
+    private readonly kuChairmanService: MarketplaceKuChairmanService,
+    @Inject(MARKETPLACE_ORDER_DISPLAY_SERVICE)
+    private readonly displayService: MarketplaceOrderDisplayService
   ) {}
 
   @Mutation(() => MarketplaceAplReceptionResultDTO, {
@@ -308,6 +316,42 @@ export class MarketplaceAplReceptionResolver {
 
     const candidates = await this.service.listExpressPickupCandidates(coopname, data.braname);
     return candidates.map(toExpressPickupCandidateDTO);
+  }
+
+  @Query(() => [MarketplaceOrderDTO], {
+    name: 'marketplaceListSupplierPickupOrders',
+    description:
+      'Единицы имущества поставщика, ожидающие приёмки на текущем КУ: задекларированные в партии (по ТТН) и добор по акцепту. Базис агрегирующей приёмки для оператора кооперативного участка.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Receiving', 'create')
+  async marketplaceListSupplierPickupOrders(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('data') data: MarketplaceListSupplierPickupOrdersInputDTO
+  ): Promise<MarketplaceOrderDTO[]> {
+    const coopname = config.coopname;
+    const roles = member.marketplace_roles as MarketplaceRole[];
+
+    if (!canAccess(roles, 'Receiving', 'read:all')) {
+      const isMember = await this.kuChairmanService.isMemberOfBranch(
+        coopname,
+        data.braname,
+        member.username
+      );
+      if (!isMember) {
+        throw new ForbiddenException(
+          'Лента приёмки доступна только по участку, на котором вы являетесь председателем или доверенным лицом.'
+        );
+      }
+    }
+
+    const orders = await this.service.listSupplierPickupOrders(
+      coopname,
+      data.braname,
+      data.offerer_account
+    );
+    const display = await this.displayService.enrich(orders);
+    return orders.map((order) => toMarketplaceOrderDTO(order, display.get(order.id)));
   }
 
   @Query(() => [MarketplaceAplReceptionDTO], {

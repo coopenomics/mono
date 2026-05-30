@@ -8219,6 +8219,14 @@ input MarketplaceListShipmentsInput {
   statuses: [MarketplaceShipmentStatus!]
 }
 
+input MarketplaceListSupplierPickupOrdersInput {
+  """КУ, на котором оператор принимает имущество."""
+  braname: String!
+
+  """Поставщик, чьё имущество принимается на этом КУ."""
+  offerer_account: String!
+}
+
 input MarketplaceListWriteoffProposalsInput {
   statuses: [MarketplaceWriteoffProposalStatus!]
 }
@@ -13472,6 +13480,11 @@ type Query {
   Список заказов, по которым текущий пайщик является поставщиком (стол поставщика).
   """
   marketplaceListSupplierOrders(input: MarketplaceListOrdersInput, options: PaginationInput): MarketplaceOrderPaginationResult!
+
+  """
+  Единицы имущества поставщика, ожидающие приёмки на текущем КУ: задекларированные в партии (по ТТН) и добор по акцепту. Базис агрегирующей приёмки для оператора кооперативного участка.
+  """
+  marketplaceListSupplierPickupOrders(data: MarketplaceListSupplierPickupOrdersInput!): [MarketplaceOrder!]!
 
   """Список пайщиков-поставщиков, допущенных к публикации оферт"""
   marketplaceListWhitelist: [MarketplaceWhitelistEntry!]!

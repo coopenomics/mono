@@ -6,10 +6,11 @@ import { Loading } from 'quasar';
 import { Zeus } from '@coopenomics/sdk';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
-import { BaseBadge, BaseButton, BaseDialog, EmptyState } from 'src/shared/ui/base';
+import { BaseBadge, BaseButton, BaseDialog, BaseInput, EmptyState } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { QrScanner } from 'src/widgets/Marketplace/QrScanner';
+import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import { decodeHandoffToken, HandoffTokenKind } from 'src/shared/lib/marketplace';
 import {
   listShipmentsByBraname,
@@ -20,8 +21,10 @@ import {
   createExpressReception,
   listAplReceptionsByBraname,
   listExpressPickupsByBraname,
+  listSupplierPickupOrders,
   type MarketplaceAplReceptionView,
   type MarketplaceExpressPickupCandidateView,
+  type MarketplaceSupplierPickupOrderView,
 } from '../api';
 import SignAplReceptionChairmanDialog from './SignAplReceptionChairmanDialog.vue';
 
@@ -175,37 +178,66 @@ async function createReceptionForShipment(shipmentId: string): Promise<void> {
   }
 }
 
-// QR-код передачи (Story 14.3): оператор сканирует account-bound код поставщика
-// → резолвим аккаунт против ленты своего КУ и принимаем РАЗОМ всё привезённое
-// этим человеком (сформированные партии + самовывоз по факту).
+// QR-код передачи (Эпик 14, агрегирующая приёмка): оператор сканирует
+// account-bound код поставщика → грузим ВСЕ единицы имущества этого поставщика,
+// ожидающие приёмки на этом КУ (единый базис «акцепт поставщика на КУ», R4),
+// и открываем агрегирующую страницу приёмки.
 const scanDialogOpen = ref(false);
+const pickupDialogOpen = ref(false);
+const pickupAccount = ref('');
+const pickupOrders = ref<MarketplaceSupplierPickupOrderView[]>([]);
+// Факт по позиции, вводится на приёмке (R5): по умолчанию = заказано; потолок = заказано.
+const pickupFact = ref<Record<string, number>>({});
+// Выбранные к приёмке единицы (R7). Снятая галка = не принимаем эту единицу;
+// если по партии не выбрано ни одной единицы — партия не создаётся и ждёт
+// (кейс экспедитора: одна партия здесь, другая ещё в пути).
+const selectedOrderIds = ref<Set<string>>(new Set());
+// Принимать ли добор по акцепту (ACCEPTED-заказы без партии) одним самовывозом.
+const takeAddon = ref(true);
 
-// Резолв account-bound кода: всё, что ждёт приёмки от поставщика на этом КУ —
-// и сформированные партии (SUPPLY_PREPARED), и самовывоз по факту.
-interface ResolvedSupplierPickup {
-  account: string;
-  shipments: MarketplaceShipmentView[];
-  express: MarketplaceExpressPickupCandidateView | null;
+// Плоский список единиц имущества двумя секциями (R7a): задекларированные в
+// партии (по ТТН) — статус SUPPLY_PREPARED; добор по акцепту — статус ACCEPTED.
+const declaredOrders = computed(() =>
+  pickupOrders.value.filter((o) => o.status === 'SUPPLY_PREPARED'),
+);
+const addonOrders = computed(() =>
+  pickupOrders.value.filter((o) => o.status === 'ACCEPTED'),
+);
+
+// Партия (shipment) задекларированной единицы — по cycle_id заказа (партия per (cycle, КУ)).
+function shipmentForOrder(o: MarketplaceSupplierPickupOrderView): MarketplaceShipmentView | null {
+  return pendingShipments.value.find((s) => s.cycle_id === o.cycle_id) ?? null;
 }
 
-const pickupDialogOpen = ref(false);
-const resolvedPickup = ref<ResolvedSupplierPickup | null>(null);
+function isSelected(id: string): boolean {
+  return selectedOrderIds.value.has(id);
+}
+function toggleOrder(id: string, value: boolean): void {
+  const next = new Set(selectedOrderIds.value);
+  if (value) next.add(id);
+  else next.delete(id);
+  selectedOrderIds.value = next;
+}
 
-const resolvedPickupCount = computed(() => {
-  const r = resolvedPickup.value;
-  if (!r) return 0;
-  return r.shipments.length + (r.express ? 1 : 0);
+// Потолок факта = заказано (акцепт): сверх акцепта не принимаем (R5).
+function clampFact(orderId: string, ordered: number): void {
+  const v = Number(pickupFact.value[orderId]);
+  if (!Number.isFinite(v) || v < 0) pickupFact.value[orderId] = 0;
+  else if (v > ordered) pickupFact.value[orderId] = ordered;
+  else pickupFact.value[orderId] = Math.trunc(v);
+}
+
+// Сколько актов будет создано: по одному на каждую партию с ≥1 выбранной
+// единицей + один на добор (если принимаем и он есть).
+const plannedReceptionsCount = computed(() => {
+  const cycles = new Set<string>();
+  for (const o of declaredOrders.value) {
+    if (o.cycle_id && selectedOrderIds.value.has(o.id)) cycles.add(o.cycle_id);
+  }
+  return cycles.size + (takeAddon.value && addonOrders.value.length ? 1 : 0);
 });
 
-function resolveSupplierPickup(account: string): ResolvedSupplierPickup {
-  return {
-    account,
-    shipments: pendingShipments.value.filter((s) => s.offerer_account === account),
-    express: expressCandidates.value.find((c) => c.offerer_account === account) ?? null,
-  };
-}
-
-function onQrScanned(code: string): void {
+async function onQrScanned(code: string): Promise<void> {
   scanDialogOpen.value = false;
   const token = decodeHandoffToken(code);
   if (!token || token.kind !== HandoffTokenKind.Pickup) {
@@ -216,43 +248,74 @@ function onQrScanned(code: string): void {
     FailAlert(new Error('Код выписан для другого кооператива.'));
     return;
   }
-  const resolved = resolveSupplierPickup(token.account);
-  if (!resolved.shipments.length && !resolved.express) {
-    FailAlert(
-      new Error(`У поставщика ${token.account} нет поставок, ожидающих приёмки на этом пункте.`),
-    );
-    return;
+  Loading.show({ message: 'Загружаю имущество поставщика…' });
+  try {
+    const orders = await listSupplierPickupOrders(braname.value.trim(), token.account);
+    if (!orders.length) {
+      FailAlert(
+        new Error(`У поставщика ${token.account} нет имущества, ожидающего приёмки на этом пункте.`),
+      );
+      return;
+    }
+    pickupAccount.value = token.account;
+    pickupOrders.value = orders;
+    pickupFact.value = Object.fromEntries(orders.map((o) => [o.id, o.quantity]));
+    selectedOrderIds.value = new Set(orders.map((o) => o.id));
+    takeAddon.value = true;
+    pickupDialogOpen.value = true;
+  } catch (e) {
+    FailAlert(e, 'Не удалось загрузить имущество поставщика');
+  } finally {
+    Loading.hide();
   }
-  resolvedPickup.value = resolved;
-  pickupDialogOpen.value = true;
 }
 
-// Принять разом всё привезённое поставщиком: акты по сформированным партиям +
-// синтез самовывоза по факту. Один Loading, одна перезагрузка ленты в конце.
-async function acceptResolvedPickup(): Promise<void> {
-  const resolved = resolvedPickup.value;
-  if (!resolved) return;
+// Сформировать акты приёмки по выбранному: на каждую партию с выбранными
+// единицами — createAplReception с фактическим кол-вом per-Order (R5; невыбранные
+// единицы партии = 0, потолок = заказано). Не выбранные целиком партии остаются
+// ждать. Добор по акцепту — express-самовывозом.
+async function acceptPickup(): Promise<void> {
   pickupDialogOpen.value = false;
-  Loading.show({ message: 'Принимаю всё привезённое…' });
+  Loading.show({ message: 'Формирую акты приёмки…' });
   let created = 0;
   try {
-    for (const s of resolved.shipments) {
-      await createAplReception({ shipment_id: s.id });
+    // Задекларированные единицы → по партиям (cycle_id); партию без выбранных
+    // единиц пропускаем (она ждёт).
+    const byCycle = new Map<string, MarketplaceSupplierPickupOrderView[]>();
+    for (const o of declaredOrders.value) {
+      if (!o.cycle_id) continue;
+      const arr = byCycle.get(o.cycle_id) ?? [];
+      arr.push(o);
+      byCycle.set(o.cycle_id, arr);
+    }
+    for (const [cycle_id, orders] of byCycle) {
+      const anySelected = orders.some((o) => selectedOrderIds.value.has(o.id));
+      if (!anySelected) continue;
+      const shipment = pendingShipments.value.find((s) => s.cycle_id === cycle_id);
+      if (!shipment) continue;
+      await createAplReception({
+        shipment_id: shipment.id,
+        fact_quantity_per_order: orders.map((o) => ({
+          order_id: o.id,
+          fact_quantity: selectedOrderIds.value.has(o.id) ? pickupFact.value[o.id] ?? o.quantity : 0,
+        })),
+      });
       created += 1;
     }
-    if (resolved.express) {
+    // Добор по акцепту — самовывозом (принимается весь добор поставщика на КУ).
+    if (takeAddon.value && addonOrders.value.length) {
       const result = await createExpressReception({
-        offerer_account: resolved.express.offerer_account,
-        braname: resolved.express.braname,
+        offerer_account: pickupAccount.value,
+        braname: braname.value.trim(),
       });
       created += result.apl_receptions.length;
     }
-    SuccessAlert(created > 1 ? `Открыто актов приёмки: ${created}` : 'Акт приёмки создан');
+    SuccessAlert(created > 1 ? `Создано актов приёмки: ${created}` : 'Акт приёмки создан');
   } catch (e) {
-    FailAlert(e, 'Не удалось принять часть поставок — проверьте ленту и повторите');
+    FailAlert(e, 'Не удалось сформировать часть актов — проверьте ленту и повторите');
   } finally {
     Loading.hide();
-    resolvedPickup.value = null;
+    pickupOrders.value = [];
     await load();
   }
 }
@@ -375,24 +438,56 @@ q-page.reception(role='region', aria-label='Приёмка партии')
   BaseDialog(v-model='scanDialogOpen', title='Сканирование QR партии', size='sm')
     QrScanner(@scanned='onQrScanned')
 
-  //- Story 14.3: подтверждение приёмки разом всего привезённого поставщиком
-  //- (резолв account-bound кода против ленты этого КУ).
-  BaseDialog(v-model='pickupDialogOpen', title='Приём поставщика', size='sm')
-    .reception__resolve(v-if='resolvedPickup')
-      .reception__resolve-account {{ resolvedPickup.account }}
-      .reception__resolve-hint Принять разом всё, что привёз поставщик на этот пункт:
-      .reception__resolve-item(v-for='s in resolvedPickup.shipments', :key='s.id')
-        q-icon(name='local_shipping', size='16px')
-        span Партия · {{ SHIPMENT_VARIANT_LABEL[s.delivery_variant] ?? s.delivery_variant }} · {{ s.total_amount }} ₽
-      .reception__resolve-item(v-if='resolvedPickup.express')
-        q-icon(name='how_to_reg', size='16px')
-        span Самовывоз по факту · {{ resolvedPickup.express.orders_count }} заказ(ов) · {{ resolvedPickup.express.total_units }} ед. · {{ resolvedPickup.express.total_amount }} ₽
-      .reception__resolve-actions
+  //- Эпик 14: агрегирующая приёмка по account-bound коду. Плоский список единиц
+  //- имущества (R7a): сверху — задекларированные в партии (по ТТН), ниже
+  //- разделитель и добор по акцепту. Факт правится на месте, потолок = заказано (R5).
+  BaseDialog(v-model='pickupDialogOpen', title='Приёмка имущества поставщика', size='md')
+    .reception__pickup
+      .reception__pickup-account {{ pickupAccount }}
+      .reception__pickup-hint
+        | Снимите галку с единицы, чтобы не принимать её; партия без выбранных
+        | единиц не создаётся и ждёт. Факт можно довзвесить — но не выше заказанного.
+
+      template(v-if='declaredOrders.length')
+        .reception__pickup-section Задекларировано в партии (по ТТН)
+        .reception__unit(v-for='o in declaredOrders', :key='o.id', :class='{ "reception__unit--off": !isSelected(o.id) }')
+          q-checkbox(
+            :model-value='isSelected(o.id)',
+            dense,
+            @update:model-value='(v) => toggleOrder(o.id, v)'
+          )
+          .reception__unit-info
+            .reception__unit-title {{ o.product_name || 'Товар по предложению' }}
+            .reception__unit-meta
+              | Заказано {{ o.quantity }} {{ marketplaceUnitShort(o.unit_of_measure) }}
+              template(v-if='shipmentForOrder(o)?.ttn_number')  · ТТН {{ shipmentForOrder(o)?.ttn_number }}
+          .reception__unit-fact
+            BaseInput(
+              v-model.number='pickupFact[o.id]',
+              type='number',
+              dense,
+              :disable='!isSelected(o.id)',
+              :suffix='marketplaceUnitShort(o.unit_of_measure)',
+              @blur='clampFact(o.id, o.quantity)'
+            )
+
+      template(v-if='addonOrders.length')
+        .reception__pickup-divider
+        .reception__pickup-section-row
+          .reception__pickup-section Добор по акцепту (вне партии)
+          q-checkbox(v-model='takeAddon', dense, label='Принять добор')
+        .reception__unit.reception__unit--addon(v-for='o in addonOrders', :key='o.id', :class='{ "reception__unit--off": !takeAddon }')
+          q-icon(name='add_circle_outline', size='16px')
+          .reception__unit-info
+            .reception__unit-title {{ o.product_name || 'Товар по предложению' }}
+            .reception__unit-meta Акцептовано {{ o.quantity }} {{ marketplaceUnitShort(o.unit_of_measure) }}
+
+      .reception__pickup-actions
         BaseButton(variant='ghost', size='sm', @click='pickupDialogOpen = false') Отмена
-        BaseButton(variant='primary', size='sm', @click='acceptResolvedPickup')
+        BaseButton(variant='primary', size='sm', :disabled='!plannedReceptionsCount', @click='acceptPickup')
           template(#icon-left)
             q-icon(name='how_to_reg', size='16px')
-          | Принять всё ({{ resolvedPickupCount }})
+          | Сформировать акты ({{ plannedReceptionsCount }})
 </template>
 
 <style scoped lang="scss">
@@ -457,38 +552,85 @@ q-page.reception(role='region', aria-label='Приёмка партии')
     overflow-wrap: anywhere;
   }
 
-  &__resolve {
+  &__pickup {
     display: flex;
     flex-direction: column;
-    gap: var(--p-3, 12px);
+    gap: var(--p-2, 8px);
   }
 
-  &__resolve-account {
+  &__pickup-account {
     font-size: var(--p-fs-body, 14px);
     font-weight: 600;
     color: var(--p-ink);
     font-family: var(--font-mono);
   }
 
-  &__resolve-hint {
+  &__pickup-hint {
     font-size: var(--p-fs-body-sm, 13px);
     color: var(--p-ink-3);
+    margin-bottom: var(--p-2, 8px);
   }
 
-  &__resolve-item {
+  &__pickup-section {
+    font-size: var(--p-fs-body-sm, 13px);
+    font-weight: 600;
+    color: var(--p-ink-2);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  &__pickup-section-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--p-3, 12px);
+  }
+
+  &__pickup-divider {
+    height: 1px;
+    background: var(--p-line);
+    margin: var(--p-3, 12px) 0 var(--p-1, 4px);
+  }
+
+  &__pickup-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--p-2, 8px);
+    margin-top: var(--p-3, 12px);
+  }
+
+  &__unit {
     display: flex;
     align-items: center;
     gap: var(--p-2, 8px);
+    padding-top: var(--p-2, 8px);
+    border-top: 1px solid var(--p-line);
+
+    &--off {
+      opacity: 0.5;
+    }
+  }
+
+  &__unit-info {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  &__unit-title {
+    font-size: var(--p-fs-body, 14px);
+    color: var(--p-ink);
+    overflow-wrap: anywhere;
+  }
+
+  &__unit-meta {
     font-size: var(--p-fs-body-sm, 13px);
     color: var(--p-ink-2);
     font-variant-numeric: tabular-nums;
   }
 
-  &__resolve-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: var(--p-2, 8px);
-    margin-top: var(--p-2, 8px);
+  &__unit-fact {
+    flex: 0 0 auto;
+    width: 120px;
   }
 }
 

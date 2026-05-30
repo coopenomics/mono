@@ -6967,6 +6967,12 @@ export type ValueTypes = {
 	/** Фильтр по статусам партий. */
 	statuses?: Array<ValueTypes["MarketplaceShipmentStatus"]> | undefined | null | Variable<any, string>
 };
+	["MarketplaceListSupplierPickupOrdersInput"]: {
+	/** КУ, на котором оператор принимает имущество. */
+	braname: string | Variable<any, string>,
+	/** Поставщик, чьё имущество принимается на этом КУ. */
+	offerer_account: string | Variable<any, string>
+};
 	["MarketplaceListWriteoffProposalsInput"]: {
 	statuses?: Array<ValueTypes["MarketplaceWriteoffProposalStatus"]> | undefined | null | Variable<any, string>
 };
@@ -9719,6 +9725,7 @@ marketplaceListReturnClaimsByBraname?: [{	data: ValueTypes["MarketplaceListRetur
 marketplaceListShipments?: [{	data?: ValueTypes["MarketplaceListShipmentsInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceShipment"]],
 marketplaceListShipmentsByBraname?: [{	data: ValueTypes["MarketplaceListShipmentsByBranameInput"] | Variable<any, string>},ValueTypes["MarketplaceShipment"]],
 marketplaceListSupplierOrders?: [{	input?: ValueTypes["MarketplaceListOrdersInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOrderPaginationResult"]],
+marketplaceListSupplierPickupOrders?: [{	data: ValueTypes["MarketplaceListSupplierPickupOrdersInput"] | Variable<any, string>},ValueTypes["MarketplaceOrder"]],
 	/** Список пайщиков-поставщиков, допущенных к публикации оферт */
 	marketplaceListWhitelist?:ValueTypes["MarketplaceWhitelistEntry"],
 marketplaceListWriteoffProposals?: [{	data: ValueTypes["MarketplaceListWriteoffProposalsInput"] | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedMarketplaceWriteoffProposals"]],
@@ -17037,6 +17044,12 @@ export type ResolverInputTypes = {
 	/** Фильтр по статусам партий. */
 	statuses?: Array<ResolverInputTypes["MarketplaceShipmentStatus"]> | undefined | null
 };
+	["MarketplaceListSupplierPickupOrdersInput"]: {
+	/** КУ, на котором оператор принимает имущество. */
+	braname: string,
+	/** Поставщик, чьё имущество принимается на этом КУ. */
+	offerer_account: string
+};
 	["MarketplaceListWriteoffProposalsInput"]: {
 	statuses?: Array<ResolverInputTypes["MarketplaceWriteoffProposalStatus"]> | undefined | null
 };
@@ -19691,6 +19704,7 @@ marketplaceListReturnClaimsByBraname?: [{	data: ResolverInputTypes["MarketplaceL
 marketplaceListShipments?: [{	data?: ResolverInputTypes["MarketplaceListShipmentsInput"] | undefined | null},ResolverInputTypes["MarketplaceShipment"]],
 marketplaceListShipmentsByBraname?: [{	data: ResolverInputTypes["MarketplaceListShipmentsByBranameInput"]},ResolverInputTypes["MarketplaceShipment"]],
 marketplaceListSupplierOrders?: [{	input?: ResolverInputTypes["MarketplaceListOrdersInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["MarketplaceOrderPaginationResult"]],
+marketplaceListSupplierPickupOrders?: [{	data: ResolverInputTypes["MarketplaceListSupplierPickupOrdersInput"]},ResolverInputTypes["MarketplaceOrder"]],
 	/** Список пайщиков-поставщиков, допущенных к публикации оферт */
 	marketplaceListWhitelist?:ResolverInputTypes["MarketplaceWhitelistEntry"],
 marketplaceListWriteoffProposals?: [{	data: ResolverInputTypes["MarketplaceListWriteoffProposalsInput"],	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedMarketplaceWriteoffProposals"]],
@@ -26780,6 +26794,12 @@ export type ModelTypes = {
 	/** Фильтр по статусам партий. */
 	statuses?: Array<ModelTypes["MarketplaceShipmentStatus"]> | undefined | null
 };
+	["MarketplaceListSupplierPickupOrdersInput"]: {
+	/** КУ, на котором оператор принимает имущество. */
+	braname: string,
+	/** Поставщик, чьё имущество принимается на этом КУ. */
+	offerer_account: string
+};
 	["MarketplaceListWriteoffProposalsInput"]: {
 	statuses?: Array<ModelTypes["MarketplaceWriteoffProposalStatus"]> | undefined | null
 };
@@ -30061,6 +30081,8 @@ export type ModelTypes = {
 	marketplaceListShipmentsByBraname: Array<ModelTypes["MarketplaceShipment"]>,
 	/** Список заказов, по которым текущий пайщик является поставщиком (стол поставщика). */
 	marketplaceListSupplierOrders: ModelTypes["MarketplaceOrderPaginationResult"],
+	/** Единицы имущества поставщика, ожидающие приёмки на текущем КУ: задекларированные в партии (по ТТН) и добор по акцепту. Базис агрегирующей приёмки для оператора кооперативного участка. */
+	marketplaceListSupplierPickupOrders: Array<ModelTypes["MarketplaceOrder"]>,
 	/** Список пайщиков-поставщиков, допущенных к публикации оферт */
 	marketplaceListWhitelist: Array<ModelTypes["MarketplaceWhitelistEntry"]>,
 	/** Лента всех проектов списания кооператива с фильтром по статусу. */
@@ -37455,6 +37477,12 @@ export type GraphQLTypes = {
 	/** Фильтр по статусам партий. */
 	statuses?: Array<GraphQLTypes["MarketplaceShipmentStatus"]> | undefined | null
 };
+	["MarketplaceListSupplierPickupOrdersInput"]: {
+		/** КУ, на котором оператор принимает имущество. */
+	braname: string,
+	/** Поставщик, чьё имущество принимается на этом КУ. */
+	offerer_account: string
+};
 	["MarketplaceListWriteoffProposalsInput"]: {
 		statuses?: Array<GraphQLTypes["MarketplaceWriteoffProposalStatus"]> | undefined | null
 };
@@ -40965,6 +40993,8 @@ export type GraphQLTypes = {
 	marketplaceListShipmentsByBraname: Array<GraphQLTypes["MarketplaceShipment"]>,
 	/** Список заказов, по которым текущий пайщик является поставщиком (стол поставщика). */
 	marketplaceListSupplierOrders: GraphQLTypes["MarketplaceOrderPaginationResult"],
+	/** Единицы имущества поставщика, ожидающие приёмки на текущем КУ: задекларированные в партии (по ТТН) и добор по акцепту. Базис агрегирующей приёмки для оператора кооперативного участка. */
+	marketplaceListSupplierPickupOrders: Array<GraphQLTypes["MarketplaceOrder"]>,
 	/** Список пайщиков-поставщиков, допущенных к публикации оферт */
 	marketplaceListWhitelist: Array<GraphQLTypes["MarketplaceWhitelistEntry"]>,
 	/** Лента всех проектов списания кооператива с фильтром по статусу. */
@@ -43444,6 +43474,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceListReturnClaimsByBranameInput"]: ValueTypes["MarketplaceListReturnClaimsByBranameInput"];
 	["MarketplaceListShipmentsByBranameInput"]: ValueTypes["MarketplaceListShipmentsByBranameInput"];
 	["MarketplaceListShipmentsInput"]: ValueTypes["MarketplaceListShipmentsInput"];
+	["MarketplaceListSupplierPickupOrdersInput"]: ValueTypes["MarketplaceListSupplierPickupOrdersInput"];
 	["MarketplaceListWriteoffProposalsInput"]: ValueTypes["MarketplaceListWriteoffProposalsInput"];
 	["MarketplaceOfferImageUploadInput"]: ValueTypes["MarketplaceOfferImageUploadInput"];
 	["MarketplaceOpenIssuanceInput"]: ValueTypes["MarketplaceOpenIssuanceInput"];

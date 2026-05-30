@@ -179,6 +179,19 @@ export class MarketplaceAplReceptionResultDTO {
   apl_reception!: MarketplaceAplReceptionDTO;
 }
 
+@InputType('MarketplaceListSupplierPickupOrdersInput')
+export class MarketplaceListSupplierPickupOrdersInputDTO {
+  @Field(() => String, { description: 'КУ, на котором оператор принимает имущество.' })
+  @IsString()
+  @IsNotEmpty()
+  braname!: string;
+
+  @Field(() => String, { description: 'Поставщик, чьё имущество принимается на этом КУ.' })
+  @IsString()
+  @IsNotEmpty()
+  offerer_account!: string;
+}
+
 @InputType('MarketplaceCreateExpressReceptionInput')
 export class MarketplaceCreateExpressReceptionInputDTO {
   @Field(() => String, { description: 'Поставщик, приехавший на ПВЗ для самовывоза.' })
