@@ -6679,13 +6679,9 @@ export type ValueTypes = {
 	['...on MarketplaceExpressPickupCandidate']?: Omit<ValueTypes["MarketplaceExpressPickupCandidate"], "...on MarketplaceExpressPickupCandidate">
 }>;
 	["MarketplaceFinalizeIssuanceInput"]: {
-	/** Фактически выдаваемое количество единиц (равно/меньше/больше заказа). */
-	actual_quantity: number | Variable<any, string>,
-	/** Учётная запись стороны кооператива, подписывающей акт вместе с заказчиком. */
-	delivery_signer: string | Variable<any, string>,
-	/** Идентификатор заказа, который выдаём пайщику. */
+	/** Идентификатор заказа, который получаем. */
 	order_id: ValueTypes["ID"] | Variable<any, string>,
-	/** Подписанный заказчиком и стороной кооператива акт выдачи. Backend верифицирует подписи и отправляет on-chain финальную подпись со всеми корректирующими операциями. */
+	/** Подписанный заказчиком акт выдачи (поверх подписи председателя). Backend верифицирует подписи и отправляет on-chain финальную подпись со всеми корректирующими операциями. */
 	signed_document: ValueTypes["MarketplaceIssueActSignedDocumentInput"] | Variable<any, string>
 };
 	/** Параметры запроса одного заказа. */
@@ -7082,6 +7078,8 @@ export type ValueTypes = {
 	['...on MarketplaceOnboardingState']?: Omit<ValueTypes["MarketplaceOnboardingState"], "...on MarketplaceOnboardingState">
 }>;
 	["MarketplaceOpenIssuanceInput"]: {
+	/** Фактически выдаваемое количество единиц (равно/меньше/больше заказа). */
+	actual_quantity: number | Variable<any, string>,
 	/** Идентификатор заказа, выдачу которого открываем. */
 	order_id: ValueTypes["ID"] | Variable<any, string>,
 	/** Подписанный председателем кооперативного участка акт выдачи. Backend верифицирует подпись и отправляет on-chain первую подпись. */
@@ -16761,13 +16759,9 @@ export type ResolverInputTypes = {
 		__typename?: boolean | `@${string}`
 }>;
 	["MarketplaceFinalizeIssuanceInput"]: {
-	/** Фактически выдаваемое количество единиц (равно/меньше/больше заказа). */
-	actual_quantity: number,
-	/** Учётная запись стороны кооператива, подписывающей акт вместе с заказчиком. */
-	delivery_signer: string,
-	/** Идентификатор заказа, который выдаём пайщику. */
+	/** Идентификатор заказа, который получаем. */
 	order_id: ResolverInputTypes["ID"],
-	/** Подписанный заказчиком и стороной кооператива акт выдачи. Backend верифицирует подписи и отправляет on-chain финальную подпись со всеми корректирующими операциями. */
+	/** Подписанный заказчиком акт выдачи (поверх подписи председателя). Backend верифицирует подписи и отправляет on-chain финальную подпись со всеми корректирующими операциями. */
 	signed_document: ResolverInputTypes["MarketplaceIssueActSignedDocumentInput"]
 };
 	/** Параметры запроса одного заказа. */
@@ -17153,6 +17147,8 @@ export type ResolverInputTypes = {
 		__typename?: boolean | `@${string}`
 }>;
 	["MarketplaceOpenIssuanceInput"]: {
+	/** Фактически выдаваемое количество единиц (равно/меньше/больше заказа). */
+	actual_quantity: number,
 	/** Идентификатор заказа, выдачу которого открываем. */
 	order_id: ResolverInputTypes["ID"],
 	/** Подписанный председателем кооперативного участка акт выдачи. Backend верифицирует подпись и отправляет on-chain первую подпись. */
@@ -26517,13 +26513,9 @@ export type ModelTypes = {
 	total_units: number
 };
 	["MarketplaceFinalizeIssuanceInput"]: {
-	/** Фактически выдаваемое количество единиц (равно/меньше/больше заказа). */
-	actual_quantity: number,
-	/** Учётная запись стороны кооператива, подписывающей акт вместе с заказчиком. */
-	delivery_signer: string,
-	/** Идентификатор заказа, который выдаём пайщику. */
+	/** Идентификатор заказа, который получаем. */
 	order_id: ModelTypes["ID"],
-	/** Подписанный заказчиком и стороной кооператива акт выдачи. Backend верифицирует подписи и отправляет on-chain финальную подпись со всеми корректирующими операциями. */
+	/** Подписанный заказчиком акт выдачи (поверх подписи председателя). Backend верифицирует подписи и отправляет on-chain финальную подпись со всеми корректирующими операциями. */
 	signed_document: ModelTypes["MarketplaceIssueActSignedDocumentInput"]
 };
 	/** Параметры запроса одного заказа. */
@@ -26897,6 +26889,8 @@ export type ModelTypes = {
 	template_registry_id: number
 };
 	["MarketplaceOpenIssuanceInput"]: {
+	/** Фактически выдаваемое количество единиц (равно/меньше/больше заказа). */
+	actual_quantity: number,
 	/** Идентификатор заказа, выдачу которого открываем. */
 	order_id: ModelTypes["ID"],
 	/** Подписанный председателем кооперативного участка акт выдачи. Backend верифицирует подпись и отправляет on-chain первую подпись. */
@@ -37189,13 +37183,9 @@ export type GraphQLTypes = {
 	['...on MarketplaceExpressPickupCandidate']: Omit<GraphQLTypes["MarketplaceExpressPickupCandidate"], "...on MarketplaceExpressPickupCandidate">
 };
 	["MarketplaceFinalizeIssuanceInput"]: {
-		/** Фактически выдаваемое количество единиц (равно/меньше/больше заказа). */
-	actual_quantity: number,
-	/** Учётная запись стороны кооператива, подписывающей акт вместе с заказчиком. */
-	delivery_signer: string,
-	/** Идентификатор заказа, который выдаём пайщику. */
+		/** Идентификатор заказа, который получаем. */
 	order_id: GraphQLTypes["ID"],
-	/** Подписанный заказчиком и стороной кооператива акт выдачи. Backend верифицирует подписи и отправляет on-chain финальную подпись со всеми корректирующими операциями. */
+	/** Подписанный заказчиком акт выдачи (поверх подписи председателя). Backend верифицирует подписи и отправляет on-chain финальную подпись со всеми корректирующими операциями. */
 	signed_document: GraphQLTypes["MarketplaceIssueActSignedDocumentInput"]
 };
 	/** Параметры запроса одного заказа. */
@@ -37592,7 +37582,9 @@ export type GraphQLTypes = {
 	['...on MarketplaceOnboardingState']: Omit<GraphQLTypes["MarketplaceOnboardingState"], "...on MarketplaceOnboardingState">
 };
 	["MarketplaceOpenIssuanceInput"]: {
-		/** Идентификатор заказа, выдачу которого открываем. */
+		/** Фактически выдаваемое количество единиц (равно/меньше/больше заказа). */
+	actual_quantity: number,
+	/** Идентификатор заказа, выдачу которого открываем. */
 	order_id: GraphQLTypes["ID"],
 	/** Подписанный председателем кооперативного участка акт выдачи. Backend верифицирует подпись и отправляет on-chain первую подпись. */
 	signed_document: GraphQLTypes["MarketplaceIssueActSignedDocumentInput"]

@@ -124,7 +124,8 @@ export interface MarketplaceOrderDomainRepository
    * Story 6.1: применяет первую подпись АПП-выдачи (председатель КУ открыл
    * выдачу). Переводит Order ACCEPTED_TO_COOP → READY_TO_RECEIVE и
    * заполняет `current_warehouse_braname` (= delivery_braname),
-   * `chairman_signed_at`, `chairman_account`, `signiss1_tx_hash`.
+   * `chairman_signed_at`, `chairman_account`, `signiss1_tx_hash`,
+   * `issuance_fact` (факт зафиксирован оператором при открытии).
    */
   applyIssuanceOpened(
     id: string,
@@ -132,6 +133,7 @@ export interface MarketplaceOrderDomainRepository
       chairman_account: string;
       signiss1_tx_hash: string;
       current_warehouse_braname: string;
+      issuance_fact: MarketplaceOrderIssuanceFactSnapshot;
       issue_act_signiss1_document: ISignedDocumentDomainInterface;
     }
   ): Promise<MarketplaceOrderDomainEntity>;

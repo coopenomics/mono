@@ -6,6 +6,12 @@ import { MarketplaceOrderDTO } from './marketplace-order.dto';
 
 /**
  * Story 6.1: вход на открытие выдачи председателем КУ (первая подпись АПП).
+ *
+ * `actual_quantity` — фактически выдаваемое количество единиц. Оператор КУ
+ * сверяет привезённое имущество с заказом и фиксирует факт именно в момент
+ * открытия выдачи (взвешивание/пересчёт на стойке). Это количество зашивается
+ * в подписываемый председателем акт и сохраняется на заказе; финальная подпись
+ * заказчика факт уже не редактирует.
  */
 @InputType('MarketplaceOpenIssuanceInput')
 export class MarketplaceOpenIssuanceInputDTO {
@@ -13,6 +19,13 @@ export class MarketplaceOpenIssuanceInputDTO {
   @IsString()
   @IsNotEmpty()
   public readonly order_id!: string;
+
+  @Field(() => Int, {
+    description: 'Фактически выдаваемое количество единиц (равно/меньше/больше заказа).',
+  })
+  @IsInt()
+  @Min(1)
+  public readonly actual_quantity!: number;
 
   @Field(() => MarketplaceIssueActSignedDocumentInputDTO, {
     description:
@@ -26,37 +39,22 @@ export class MarketplaceOpenIssuanceInputDTO {
 /**
  * Story 6.3: вход на финальную подпись заказчика (получение имущества).
  *
- * `actual_quantity` указывается оператором перед сканированием подписи и
- * влияет на корректирующие операции в композитной транзакции `signiss2`
- * (см. FR23-25 и контракт `signiss2.cpp`).
- *
- * `delivery_signer` — учётная запись стороны кооператива (председатель КУ
- * или доверенное им лицо), подписывающая акт вместе с заказчиком.
+ * Заказчик ставит финальную подпись в своём кабинете на своём устройстве своим
+ * ключом — он только подтверждает уже сформированный акт, факт не редактирует.
+ * Поэтому фактическое количество и сторона кооператива, открывшая выдачу,
+ * берутся backend'ом из заказа (зафиксированы оператором при открытии), а не
+ * передаются заказчиком.
  */
 @InputType('MarketplaceFinalizeIssuanceInput')
 export class MarketplaceFinalizeIssuanceInputDTO {
-  @Field(() => ID, { description: 'Идентификатор заказа, который выдаём пайщику.' })
+  @Field(() => ID, { description: 'Идентификатор заказа, который получаем.' })
   @IsString()
   @IsNotEmpty()
   public readonly order_id!: string;
 
-  @Field(() => Int, {
-    description: 'Фактически выдаваемое количество единиц (равно/меньше/больше заказа).',
-  })
-  @IsInt()
-  @Min(1)
-  public readonly actual_quantity!: number;
-
-  @Field(() => String, {
-    description: 'Учётная запись стороны кооператива, подписывающей акт вместе с заказчиком.',
-  })
-  @IsString()
-  @IsNotEmpty()
-  public readonly delivery_signer!: string;
-
   @Field(() => MarketplaceIssueActSignedDocumentInputDTO, {
     description:
-      'Подписанный заказчиком и стороной кооператива акт выдачи. Backend верифицирует подписи и отправляет on-chain финальную подпись со всеми корректирующими операциями.',
+      'Подписанный заказчиком акт выдачи (поверх подписи председателя). Backend верифицирует подписи и отправляет on-chain финальную подпись со всеми корректирующими операциями.',
   })
   @ValidateNested()
   @Type(() => MarketplaceIssueActSignedDocumentInputDTO)

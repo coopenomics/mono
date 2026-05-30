@@ -16,22 +16,20 @@ import {
   type MarketplaceOrderIssuanceView,
 } from '../api';
 import IssueActOpenDialog from './IssueActOpenDialog.vue';
-import IssueActFinalizeDialog from './IssueActFinalizeDialog.vue';
 
 /**
  * Story 6.1 / 6.3 / 6.6: operator-стол выдачи имущества пайщику.
  *
  * Показывает Order'ы на КУ выдачи в статусах ACCEPTED_TO_COOP (ожидают
- * открытия первой подписью председателя — `signiss1`) и READY_TO_RECEIVE
- * (ожидают финальной подписи заказчика на ПВЗ — `signiss2`).
+ * открытия выдачи оператором) и READY_TO_RECEIVE (выдача открыта — ждём,
+ * когда заказчик подтвердит получение в своём кабинете).
  *
- * - «Открыть выдачу» вызывает IssueActOpenDialog — full-screen takeover
- *   с превью акта (registry_id=1102) и подписью председателя.
- * - «Завершить выдачу» вызывает IssueActFinalizeDialog — BarcodeScanner
- *   для проверки штрих-кода заказа + CorrectionTable со сверкой
- *   факт vs заказ + двойная подпись (заказчик + delivery_signer) и
- *   композитная транзакция `signiss2` с корректирующими операциями
- *   по FR23-FR25.
+ * Роль оператора заканчивается на открытии: «Открыть выдачу» вызывает
+ * IssueActOpenDialog — full-screen takeover, где оператор сверяет факт
+ * (корректирует количество) и подписывает акт ключом председателя. Дальше
+ * заказ ждёт финальную подпись заказчика — оператор свободен и может
+ * обслуживать следующего. Финальную подпись заказчик ставит сам в своём
+ * кабинете на своём устройстве (стол «Готово к получению»).
  */
 
 // Активный КУ оператора — из общего контекста стола (без ввода кода вручную).
@@ -43,7 +41,6 @@ const items = ref<MarketplaceOrderIssuanceView[]>([]);
 const loading = ref(false);
 
 const openDialog = ref(false);
-const finalizeDialog = ref(false);
 const selectedOrder = ref<MarketplaceOrderIssuanceView | null>(null);
 
 const columns: QTableProps['columns'] = [
@@ -90,11 +87,6 @@ function startOpen(item: MarketplaceOrderIssuanceView): void {
   openDialog.value = true;
 }
 
-function startFinalize(item: MarketplaceOrderIssuanceView): void {
-  selectedOrder.value = item;
-  finalizeDialog.value = true;
-}
-
 // QR-код получения (Story 14.4): оператор сканирует account-bound код заказчика
 // → резолвим аккаунт против ленты своего КУ и показываем РАЗОМ все его заказы
 // на выдачу.
@@ -112,16 +104,15 @@ const pickupOrders = computed(() =>
   ),
 );
 
-// Открыть/завершить выдачу одного заказа. Панель агрегированных заказов
-// заказчика остаётся открытой под полноэкранным шагом выдачи — по `load()`
-// список пересчитывается, выданный заказ уходит, оператор продолжает следующий.
+// Открыть выдачу одного заказа. Панель агрегированных заказов заказчика
+// остаётся открытой под полноэкранным шагом открытия — по `load()` список
+// пересчитывается, открытый заказ уходит в «ждём заказчика», оператор
+// продолжает следующий.
 function startIssuanceStep(order: MarketplaceOrderIssuanceView): void {
   if (order.status === 'ACCEPTED_TO_COOP') {
     startOpen(order);
-  } else if (order.status === 'READY_TO_RECEIVE') {
-    startFinalize(order);
   } else {
-    FailAlert(new Error('Заказ не в статусе выдачи.'));
+    FailAlert(new Error('Выдача уже открыта — ждём подтверждение заказчика.'));
   }
 }
 
@@ -151,10 +142,6 @@ function onOpened(): void {
   void load();
 }
 
-function onFinalized(): void {
-  void load();
-}
-
 watch(braname, () => void load());
 
 onMounted(async () => {
@@ -177,7 +164,7 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
 
   template(v-else)
     PageHint(storage-key='mp:operator-issuance:banner-dismissed')
-      | Заказы, принятые кооперативом на ваш пункт выдачи. Откройте выдачу подписью председателя, затем завершите её на стойке с заказчиком.
+      | Заказы, принятые кооперативом на ваш пункт выдачи. Сверьте имущество и откройте выдачу подписью председателя — дальше заказчик подтвердит получение сам в своём кабинете.
 
     .issuance__toolbar
       BaseButton(variant='secondary', @click='scanDialogOpen = true')
@@ -208,15 +195,9 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
             template(#icon-left)
               q-icon(name='draw', size='16px')
             | Открыть выдачу
-          BaseButton(
-            v-else-if='props.row.status === "READY_TO_RECEIVE"',
-            variant='primary',
-            size='sm',
-            @click='startFinalize(props.row)'
-          )
-            template(#icon-left)
-              q-icon(name='inventory', size='16px')
-            | Завершить выдачу
+          .issuance__await(v-else-if='props.row.status === "READY_TO_RECEIVE"')
+            q-icon(name='hourglass_empty', size='16px')
+            | Ждём подпись заказчика
 
       template(#no-data)
         EmptyState(
@@ -230,11 +211,6 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
     v-model='openDialog',
     :order='selectedOrder',
     @opened='onOpened'
-  )
-  IssueActFinalizeDialog(
-    v-model='finalizeDialog',
-    :order='selectedOrder',
-    @finalized='onFinalized'
   )
 
   BaseDialog(v-model='scanDialogOpen', title='Сканирование QR заказа', size='sm')
@@ -261,15 +237,9 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
           template(#icon-left)
             q-icon(name='draw', size='16px')
           | Открыть
-        BaseButton(
-          v-else-if='o.status === "READY_TO_RECEIVE"',
-          variant='primary',
-          size='sm',
-          @click='startIssuanceStep(o)'
-        )
-          template(#icon-left)
-            q-icon(name='inventory', size='16px')
-          | Завершить
+        .issuance__await(v-else-if='o.status === "READY_TO_RECEIVE"')
+          q-icon(name='hourglass_empty', size='16px')
+          | Ждём заказчика
 </template>
 
 <style scoped lang="scss">
@@ -326,6 +296,15 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
     font-size: var(--p-fs-body-sm, 13px);
     color: var(--p-ink-2);
     font-variant-numeric: tabular-nums;
+  }
+
+  &__await {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--p-1, 4px);
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-3);
+    white-space: nowrap;
   }
 }
 

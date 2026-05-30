@@ -65,10 +65,11 @@ export async function listMyReadyToReceive(): Promise<MarketplaceOrderIssuanceVi
 
 export async function getChairmanSignablePayload(
   order_id: string,
+  actual_quantity?: number,
 ): Promise<MarketplaceGeneratedDocumentView> {
   const { [Queries.Marketplace.IssueActChairmanSignablePayload.name]: result } =
     await client.Query(Queries.Marketplace.IssueActChairmanSignablePayload.query, {
-      variables: { data: { order_id } },
+      variables: { data: { order_id, actual_quantity } },
     });
   return result as MarketplaceGeneratedDocumentView;
 }
@@ -86,28 +87,29 @@ export async function getOrdererSignablePayload(
 
 export async function openIssuance(
   order_id: string,
+  actual_quantity: number,
   signed_document: SignedDocumentInput,
 ): Promise<MarketplaceIssuanceResultView> {
   const { [Mutations.Marketplace.OpenIssuance.name]: result } = await client.Mutation(
     Mutations.Marketplace.OpenIssuance.mutation,
-    { variables: { data: { order_id, signed_document } } },
+    { variables: { data: { order_id, actual_quantity, signed_document } } },
   );
   return result;
 }
 
+/**
+ * Финальную подпись заказчик ставит сам в своём кабинете своим ключом — он
+ * лишь подтверждает уже сформированный акт. Фактическое количество и сторона
+ * кооператива берутся backend'ом из заказа (зафиксированы оператором при
+ * открытии), поэтому здесь передаём только подписанный документ.
+ */
 export async function finalizeIssuance(
   order_id: string,
-  actual_quantity: number,
-  delivery_signer: string,
   signed_document: SignedDocumentInput,
 ): Promise<MarketplaceIssuanceResultView> {
   const { [Mutations.Marketplace.FinalizeIssuance.name]: result } = await client.Mutation(
     Mutations.Marketplace.FinalizeIssuance.mutation,
-    {
-      variables: {
-        data: { order_id, actual_quantity, delivery_signer, signed_document },
-      },
-    },
+    { variables: { data: { order_id, signed_document } } },
   );
   return result;
 }

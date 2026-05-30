@@ -76,6 +76,7 @@ export class MarketplaceIssuanceResolver {
       coopname: config.coopname,
       chairman_account: member.username,
       order_id: data.order_id,
+      actual_quantity: data.actual_quantity,
       signed_document: data.signed_document,
     });
     return new MarketplaceIssuanceResultDTO({
@@ -99,8 +100,6 @@ export class MarketplaceIssuanceResolver {
       coopname: config.coopname,
       orderer_account: member.username,
       order_id: data.order_id,
-      actual_quantity: data.actual_quantity,
-      delivery_signer: data.delivery_signer,
       signed_document: data.signed_document,
     });
     return new MarketplaceIssuanceResultDTO({
@@ -147,7 +146,8 @@ export class MarketplaceIssuanceResolver {
     const doc = await this.service.getOpenIssuanceSignablePayload(
       coopname,
       data.order_id,
-      member.username
+      member.username,
+      data.actual_quantity
     );
     return toGeneratedDocumentDTO(doc);
   }

@@ -12,6 +12,7 @@ import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { encodeHandoffToken, HandoffTokenKind } from 'src/shared/lib/marketplace';
 import { listMyReadyToReceive, type MarketplaceOrderIssuanceView } from '../api';
+import OrdererFinalizeIssuanceDialog from './OrdererFinalizeIssuanceDialog.vue';
 
 /**
  * Story 6.3 / FR22: orderer-стол «Готово к получению».
@@ -32,6 +33,19 @@ const coopname = computed(() => String(route.params.coopname ?? ''));
 
 const items = ref<MarketplaceOrderIssuanceView[]>([]);
 const loading = ref(false);
+
+// Финальная подпись заказчика — в своём кабинете на своём устройстве.
+const finalizeDialogOpen = ref(false);
+const selectedOrder = ref<MarketplaceOrderIssuanceView | null>(null);
+
+function startFinalize(order: MarketplaceOrderIssuanceView): void {
+  selectedOrder.value = order;
+  finalizeDialogOpen.value = true;
+}
+
+function onFinalized(): void {
+  void load();
+}
 
 // Story 14.4: один account-bound код получения. Заказчик показывает его
 // оператору выдачи — тот резолвит аккаунт против ленты своего КУ и видит разом
@@ -90,6 +104,7 @@ const columns: QTableProps['columns'] = [
     align: 'left',
     format: (v: unknown) => formatDate(v),
   },
+  { name: 'actions', label: '', field: 'id', align: 'right' },
 ];
 
 async function load(): Promise<void> {
@@ -117,7 +132,7 @@ q-page.ready(role="region", aria-label="Готово к получению")
     RefreshButton(:loading="loading", @refresh="load")
 
   PageHint(storage-key="mp:ready-to-receive:banner-dismissed")
-    | Оператор открыл выдачу этих заказов на пункте. Приходите на участок для сверки имущества и финальной подписи.
+    | Оператор открыл выдачу этих заказов на пункте. Получите имущество на участке и подтвердите получение подписью здесь — на своём устройстве, своим ключом.
 
   q-table(
     :rows="items",
@@ -127,6 +142,13 @@ q-page.ready(role="region", aria-label="Готово к получению")
     bordered,
     :loading="loading"
   )
+    template(#body-cell-actions="props")
+      q-td(:props="props")
+        BaseButton(variant="primary", size="sm", @click="startFinalize(props.row)")
+          template(#icon-left)
+            q-icon(name="draw", size="16px")
+          | Подписать и получить
+
     template(#no-data)
       EmptyState(
         title="Нет заказов, готовых к получению",
@@ -134,6 +156,12 @@ q-page.ready(role="region", aria-label="Готово к получению")
       )
         template(#icon)
           q-icon(name="inventory_2", size="48px")
+
+  OrdererFinalizeIssuanceDialog(
+    v-model="finalizeDialogOpen",
+    :order="selectedOrder",
+    @finalized="onFinalized"
+  )
 
   BaseDialog(v-model="myCodeDialogOpen", title="Мой код получения", size="sm")
     .ready__qr(v-if="myReceiveCode")

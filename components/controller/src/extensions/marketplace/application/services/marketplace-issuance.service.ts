@@ -37,6 +37,7 @@ export interface MarketplaceOpenIssuanceInput {
   coopname: string;
   chairman_account: string;
   order_id: string;
+  actual_quantity: number;
   signed_document: MarketplaceIssueActSignedDocumentInputDTO;
 }
 
@@ -44,8 +45,6 @@ export interface MarketplaceFinalizeIssuanceInput {
   coopname: string;
   orderer_account: string;
   order_id: string;
-  actual_quantity: number;
-  delivery_signer: string;
   signed_document: MarketplaceIssueActSignedDocumentInputDTO;
 }
 
@@ -61,21 +60,25 @@ export interface MarketplaceIssuanceResult {
  *
  * Flow:
  *
- *  1. `openIssuance(order_id, chairman_signed_document)` — председатель
- *     КУ выдачи открывает выдачу первой подписью. Backend верифицирует
- *     подпись, отправляет on-chain `signiss1`, переводит Order
+ *  1. `openIssuance(order_id, actual_quantity, chairman_signed_document)` —
+ *     оператор КУ сверяет привезённое имущество с заказом и фиксирует
+ *     фактическое количество (`actual_quantity`) прямо при открытии выдачи;
+ *     председатель КУ подписывает акт с этим количеством. Backend верифицирует
+ *     подпись, сохраняет снапшот фактической выдачи (`issuance_fact`),
+ *     отправляет on-chain `signiss1`, переводит Order
  *     ACCEPTED_TO_COOP → READY_TO_RECEIVE и эмитит push заказчику
  *     `marketplace-order-ready` (FR22).
  *
- *  2. `finalizeIssuance(order_id, actual_quantity, delivery_signer,
- *     signed_document)` — заказчик закрывает выдачу финальной подписью.
- *     Backend верифицирует обе подписи в `signed_document.signatures`,
- *     отправляет on-chain `signiss2` с указанным `actual_quantity` — C++
- *     контракт сам исполняет корректирующие операции
- *     (`o.mkt.unlock` если actual<ordered / `o.mkt.lock` если actual>ordered,
- *     FR23) и `o.mkt.consum` (BURN w.mkt.order, Дт 86 / Кт 10, FR24).
- *     Backend сохраняет снапшот фактической выдачи (`issuance_fact`) и
- *     переводит Order READY_TO_RECEIVE → RECEIVED.
+ *  2. `finalizeIssuance(order_id, signed_document)` — заказчик закрывает
+ *     выдачу финальной подписью в своём кабинете на своём устройстве: он
+ *     лишь подтверждает уже сформированный акт, факт не редактирует.
+ *     `actual_quantity` и `delivery_signer` backend берёт из заказа
+ *     (зафиксированы оператором при открытии). Backend верифицирует обе
+ *     подписи в `signed_document.signatures`, отправляет on-chain `signiss2`
+ *     с этим `actual_quantity` — C++ контракт сам исполняет корректирующие
+ *     операции (`o.mkt.unlock` если actual<ordered / `o.mkt.lock` если
+ *     actual>ordered, FR23) и `o.mkt.consum` (BURN w.mkt.order, Дт 86 /
+ *     Кт 10, FR24). Order переводится READY_TO_RECEIVE → RECEIVED.
  *
  * При расхождении фактического количества с заказом и нехватке средств
  * пайщика на доплату (`actual > заказ`, L6 guard) транзакция `signiss2`
@@ -105,7 +108,8 @@ export class MarketplaceIssuanceService {
   async getOpenIssuanceSignablePayload(
     coopname: string,
     order_id: string,
-    chairman_account: string
+    chairman_account: string,
+    actual_quantity?: number
   ): Promise<DocumentDomainEntity> {
     const order = await this.loadOrder(coopname, order_id);
     if (order.status !== 'ACCEPTED_TO_COOP') {
@@ -113,10 +117,14 @@ export class MarketplaceIssuanceService {
         `Заказ в статусе «${order.status}», открытие выдачи недопустимо.`
       );
     }
+    // Оператор сверяет факт при открытии: акт формируется на фактически
+    // выдаваемое количество. Если оператор ещё не скорректировал — по заказу.
+    const fact_quantity =
+      actual_quantity && actual_quantity > 0 ? actual_quantity : order.quantity;
     return this.generateIssueActDocument({
       order,
       transmitter: chairman_account,
-      actual_quantity: order.quantity,
+      actual_quantity: fact_quantity,
     });
   }
 
@@ -163,8 +171,15 @@ export class MarketplaceIssuanceService {
     if (order.chairman_signed_at !== null) {
       throw new ConflictException('Первая подпись выдачи уже зафиксирована для этого заказа.');
     }
+    if (input.actual_quantity <= 0) {
+      throw new BadRequestException('Фактическое количество должно быть больше нуля.');
+    }
 
     this.verifyDocumentSignature(input.signed_document);
+
+    // Факт фиксируется оператором при открытии выдачи и сохраняется на заказе;
+    // финальная подпись заказчика берёт его из снапшота, а не редактирует.
+    const factSnapshot = this.buildIssuanceFactSnapshot(order, input.actual_quantity);
 
     const act = new SignedDigitalDocumentInputDTO(input.signed_document).toDocument() as MarketContract.Actions.SignIss1.ISignIss1['act'];
 
@@ -199,6 +214,9 @@ export class MarketplaceIssuanceService {
       chairman_account: input.chairman_account,
       signiss1_tx_hash: txHash,
       current_warehouse_braname: order.delivery_braname,
+      // факт зафиксирован оператором при открытии — сохраняем снапшот, чтобы
+      // финальная подпись заказчика взяла actual_quantity отсюда.
+      issuance_fact: factSnapshot,
       // канон 2-подписи: сохраняем подписанный председателем документ, чтобы
       // заказчик получил его как DocumentAggregate и наложил вторую подпись.
       issue_act_signiss1_document:
@@ -226,12 +244,12 @@ export class MarketplaceIssuanceService {
     input: MarketplaceFinalizeIssuanceInput
   ): Promise<MarketplaceIssuanceResult> {
     const order = await this.loadOrder(input.coopname, input.order_id);
-    // Канон выдачи (UX-DR4): финальную подпись заказчик ставит на устройстве
-    // оператора КУ (operator-assisted POS) либо со своего стола. Авторизуем
-    // по самой подписи, а не по JWT submitter'а: закрывающую подпись акта
-    // обязан нести ключ заказчика-владельца заказа. Криптовалидность всех
-    // подписей проверяется ниже в verifyDocumentSignature; submitter уже
-    // ограничен RoleGuard'ом 'Issuance','sign:final'.
+    // Канон выдачи: финальную подпись заказчик ставит сам в своём кабинете на
+    // своём устройстве своим ключом. Авторизуем по самой подписи, а не по JWT
+    // submitter'а: закрывающую подпись акта обязан нести ключ заказчика-владельца
+    // заказа. Криптовалидность всех подписей проверяется ниже в
+    // verifyDocumentSignature; submitter уже ограничен RoleGuard'ом
+    // 'Issuance','sign:final'.
     const ordererSigned = (input.signed_document.signatures ?? []).some(
       (sig) => sig.signer === order.orderer_account
     );
@@ -250,9 +268,19 @@ export class MarketplaceIssuanceService {
         'Финальная подпись выдачи уже зафиксирована для этого заказа.'
       );
     }
-    if (input.actual_quantity <= 0) {
-      throw new BadRequestException(
-        'Фактическое количество должно быть больше нуля.'
+    // Факт зафиксирован оператором при открытии выдачи (issuance_fact); сторона
+    // кооператива — председатель, открывший выдачу (chairman_account). Заказчик
+    // ничего из этого не передаёт и не редактирует.
+    const actual_quantity = order.issuance_fact?.actual_quantity;
+    if (!actual_quantity || actual_quantity <= 0) {
+      throw new ConflictException(
+        `Заказ ${order.id}: фактическое количество не зафиксировано при открытии выдачи — финализация недоступна.`
+      );
+    }
+    const delivery_signer = order.chairman_account;
+    if (!delivery_signer) {
+      throw new ConflictException(
+        `Заказ ${order.id}: не найден председатель, открывший выдачу — финализация недоступна.`
       );
     }
 
@@ -266,8 +294,8 @@ export class MarketplaceIssuanceService {
         coopname: order.coopname,
         orderer: order.orderer_account,
         order_hash: order.order_hash,
-        actual_quantity: input.actual_quantity,
-        delivery_signer: input.delivery_signer,
+        actual_quantity,
+        delivery_signer,
         act,
       });
     } catch (err) {
@@ -286,21 +314,21 @@ export class MarketplaceIssuanceService {
         `Не получен tx_hash от блокчейна для finalize issuance order ${order.id}. Повторите подписание.`
       );
     }
-    const factSnapshot = this.buildIssuanceFactSnapshot(order, input.actual_quantity);
+    const factSnapshot = order.issuance_fact ?? this.buildIssuanceFactSnapshot(order, actual_quantity);
     const warrantyUntil =
       order.warranty_period_secs > 0
         ? new Date(Date.now() + order.warranty_period_secs * 1000)
         : null;
 
     const updated = await this.orderRepo.applyIssuanceFinalized(order.id, {
-      delivery_signer_account: input.delivery_signer,
+      delivery_signer_account: delivery_signer,
       signiss2_tx_hash: txHash,
       issuance_fact: factSnapshot,
       warranty_until: warrantyUntil,
     });
 
     this.logger.log(
-      `Выдача order ${order.id} завершена: actual_quantity=${input.actual_quantity}, diff=${factSnapshot.diff_state}, fact_cost=${factSnapshot.fact_cost} (tx=${txHash}).`
+      `Выдача order ${order.id} завершена: actual_quantity=${actual_quantity}, diff=${factSnapshot.diff_state}, fact_cost=${factSnapshot.fact_cost} (tx=${txHash}).`
     );
 
     return { order: updated, tx_hash: txHash };

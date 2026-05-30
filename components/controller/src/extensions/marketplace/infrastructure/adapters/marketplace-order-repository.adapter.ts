@@ -277,6 +277,7 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
       chairman_account: string;
       signiss1_tx_hash: string;
       current_warehouse_braname: string;
+      issuance_fact: MarketplaceOrderIssuanceFactSnapshot;
       issue_act_signiss1_document: ISignedDocumentDomainInterface;
     }
   ): Promise<MarketplaceOrderDomainEntity> {
@@ -288,6 +289,7 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
         chairman_account: patch.chairman_account,
         signiss1_tx_hash: patch.signiss1_tx_hash,
         current_warehouse_braname: patch.current_warehouse_braname,
+        issuance_fact: patch.issuance_fact,
         issue_act_signiss1_document: patch.issue_act_signiss1_document,
       } as Record<string, unknown>
     );
