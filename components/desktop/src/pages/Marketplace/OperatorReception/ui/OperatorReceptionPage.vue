@@ -5,9 +5,10 @@ import { useRoute } from 'vue-router';
 import { Loading } from 'quasar';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
-import { BaseBadge, BaseButton, BaseInput, EmptyState } from 'src/shared/ui/base';
+import { BaseBadge, BaseButton, BaseDialog, BaseInput, EmptyState } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
+import { QrScanner } from 'src/widgets/Marketplace/QrScanner';
 import {
   createAplReception,
   listAplReceptionsByBraname,
@@ -113,6 +114,16 @@ async function createReceptionForShipment(): Promise<void> {
   }
 }
 
+// QR-код передачи: поставщик показывает QR партии, оператор сканирует —
+// идентификатор подставляется и акт приёмки открывается без ручного ввода.
+const scanDialogOpen = ref(false);
+
+async function onQrScanned(code: string): Promise<void> {
+  scanDialogOpen.value = false;
+  shipmentIdInput.value = code;
+  await createReceptionForShipment();
+}
+
 const signDialogOpen = ref(false);
 const signTarget = ref<MarketplaceAplReceptionView | null>(null);
 
@@ -160,6 +171,10 @@ q-page.reception(role='region', aria-label='Приёмка партии')
         template(#icon-left)
           q-icon(name='add', size='16px')
         | Создать акт приёмки
+      BaseButton(variant='secondary', @click='scanDialogOpen = true')
+        template(#icon-left)
+          q-icon(name='qr_code_scanner', size='16px')
+        | Сканировать QR
 
     q-table.reception__table(
       :rows='items',
@@ -198,6 +213,9 @@ q-page.reception(role='region', aria-label='Приёмка партии')
     :reception='signTarget',
     @signed='onChairmanSigned'
   )
+
+  BaseDialog(v-model='scanDialogOpen', title='Сканирование QR партии', size='sm')
+    QrScanner(@scanned='onQrScanned')
 </template>
 
 <style scoped lang="scss">
