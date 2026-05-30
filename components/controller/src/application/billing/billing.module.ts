@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { BillingService } from './services/billing.service';
 import { BillingResolver } from './resolvers/billing.resolver';
 import { BillingProviderClient } from '~/infrastructure/billing/billing-provider.client';
+import { BillingConversionListener } from '~/infrastructure/billing/billing-conversion.listener';
 import { BillingCronService } from '~/domain/billing/services/billing-cron.service';
 import { ProviderModule } from '~/application/provider/provider.module';
 import { DocumentDomainModule } from '~/domain/document/document.module';
@@ -16,10 +17,19 @@ import { DocumentDomainModule } from '~/domain/document/document.module';
  * Blockchain-порт (`BILLING_BLOCKCHAIN_PORT`) предоставляется глобальным
  * BlockchainModule. Подключается в корневой AppModule только при
  * BILLING_HUB_MODE=true.
+ *
+ * BillingConversionListener ловит on-chain `billing::converttoaxn` с шины
+ * `action::` (от парсера блокчейна) и реактивно уведомляет провайдера.
  */
 @Module({
   imports: [ProviderModule, DocumentDomainModule],
-  providers: [BillingService, BillingResolver, BillingProviderClient, BillingCronService],
+  providers: [
+    BillingService,
+    BillingResolver,
+    BillingProviderClient,
+    BillingConversionListener,
+    BillingCronService,
+  ],
   exports: [BillingService],
 })
 export class BillingModule {}

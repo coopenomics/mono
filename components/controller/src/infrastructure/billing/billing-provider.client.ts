@@ -91,18 +91,24 @@ export class BillingProviderClient {
   }
 
   /**
-   * Epic 13 v5.1 — подтверждение on-chain `billing::topupaxon` у провайдера.
+   * Epic 13 v5.1 — реактивное уведомление провайдера об on-chain
+   * `billing::converttoaxn` (членский взнос → AXON, бездокументарно).
    *
-   * Зеркало `confirmPayment` для пакетной модели. Вызывается на coopback'е
-   * пайщика-кооператива после успешной отправки on-chain action `topupaxon`
-   * (PowerupPlugin) или на coopback'е Воскхода (BILLING_HUB_MODE=true)
-   * как defensive-handler, если PowerupPlugin не успел.
+   * Вызывается на coopback'е Воскхода (BILLING_HUB_MODE=true) из
+   * BillingConversionListener, который ловит событие шины
+   * `action::billing::converttoaxn` (через парсер блокчейна). Провайдер по
+   * `payment_hash` находит/реактивно заводит package-invoice и фиксирует факт —
+   * invoice заранее НЕ создаётся, PowerupPlugin считает `payment_hash` автономно.
+   * Поэтому передаём `coopname` + `amount_rub` — провайдеру нужно по какой
+   * подписке списать пакетную квоту.
    *
    * Идемпотентно по `payment_hash` (провайдер сам отвечает 200 OK на повтор).
    */
   async confirmTopupAxon(input: {
     paymentHash: string;
     blockchainTransactionId: string;
+    coopname: string;
+    amountRub: number;
   }): Promise<void> {
     const url = `${this.baseUrl}/billing/topup-axon-confirmed`;
     await axios.post(
@@ -110,10 +116,14 @@ export class BillingProviderClient {
       {
         payment_hash: input.paymentHash,
         tx_id: input.blockchainTransactionId,
+        coopname: input.coopname,
+        amount_rub: input.amountRub,
       },
       { headers: this.headers(), timeout: 10_000 },
     );
-    this.logger.log(`confirmTopupAxon payment_hash=${input.paymentHash} tx=${input.blockchainTransactionId}`);
+    this.logger.log(
+      `confirmTopupAxon coop=${input.coopname} payment_hash=${input.paymentHash} tx=${input.blockchainTransactionId} amount_rub=${input.amountRub}`,
+    );
   }
 
   /**

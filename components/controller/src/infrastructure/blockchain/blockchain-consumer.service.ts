@@ -260,8 +260,16 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
     // Проверяем, является ли действие исключением
     const isException = this.isActionException(action.account, action.name);
 
+    // На хабе (BILLING_HUB_MODE) actions контракта billing приходят от ВСЕХ
+    // коопов-спиц, где data.coopname != собственный coopname хаба. Их нельзя
+    // отбрасывать фильтром coopname — иначе BillingConversionListener никогда
+    // не получит converttoaxn партнёрских коопов. Хаб — единая точка учёта
+    // биллинга, поэтому сохраняем и публикуем все billing-actions.
+    const isBillingHubAction =
+      config.billing.hub_mode && action.account === BillingContract.contractName.production;
+
     // Если не исключение и нет coopname - пропускаем
-    if (!isException && action.data?.coopname !== config.coopname) {
+    if (!isException && !isBillingHubAction && action.data?.coopname !== config.coopname) {
       this.logger.debug(`Skipping action: ${action.account}::${action.name} - wrong coopname`);
       return;
     }
