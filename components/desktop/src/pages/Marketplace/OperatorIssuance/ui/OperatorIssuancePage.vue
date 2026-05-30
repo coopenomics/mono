@@ -88,10 +88,9 @@ function startFinalize(item: MarketplaceOrderIssuanceView): void {
   finalizeDialog.value = true;
 }
 
-// QR-код получения. Оператор сканирует:
-//  - account-bound код заказчика (Story 14.4) → резолвим аккаунт против ленты
-//    своего КУ и показываем РАЗОМ все его заказы на выдачу;
-//  - legacy-QR с самим order id → точечно открываем шаг выдачи одного заказа.
+// QR-код получения (Story 14.4): оператор сканирует account-bound код заказчика
+// → резолвим аккаунт против ленты своего КУ и показываем РАЗОМ все его заказы
+// на выдачу.
 const scanDialogOpen = ref(false);
 
 // Статусы заказа, релевантные выдаче (ожидают открытия или финальной подписи).
@@ -122,39 +121,23 @@ function startIssuanceStep(order: MarketplaceOrderIssuanceView): void {
 function onQrScanned(code: string): void {
   scanDialogOpen.value = false;
   const token = decodeHandoffToken(code);
-  if (token) {
-    if (token.kind !== HandoffTokenKind.Receive) {
-      FailAlert(new Error('Это код поставки, а не код получения. Отсканируйте код заказчика.'));
-      return;
-    }
-    if (token.coopname && token.coopname !== coopname.value) {
-      FailAlert(new Error('Код выписан для другого кооператива.'));
-      return;
-    }
-    const has = items.value.some(
-      (o) => o.orderer_account === token.account && ISSUANCE_STATUSES.includes(o.status),
-    );
-    if (!has) {
-      FailAlert(
-        new Error(`У заказчика ${token.account} нет заказов на выдачу на этом пункте.`),
-      );
-      return;
-    }
-    pickupAccount.value = token.account;
-    pickupDialogOpen.value = true;
+  if (!token || token.kind !== HandoffTokenKind.Receive) {
+    FailAlert(new Error('Нераспознанный код заказчика. Отсканируйте «Мой код получения» со стола заказчика.'));
     return;
   }
-  // Legacy: QR несёт сам order id — точечная выдача одного заказа.
-  const order = items.value.find((o) => o.id === code);
-  if (!order) {
-    FailAlert(new Error('Заказ не найден на этом пункте выдачи. Проверьте КУ и статус заказа.'));
+  if (token.coopname && token.coopname !== coopname.value) {
+    FailAlert(new Error('Код выписан для другого кооператива.'));
     return;
   }
-  if (ISSUANCE_STATUSES.includes(order.status)) {
-    startIssuanceStep(order);
-  } else {
-    FailAlert(new Error('Заказ не в статусе выдачи.'));
+  const has = items.value.some(
+    (o) => o.orderer_account === token.account && ISSUANCE_STATUSES.includes(o.status),
+  );
+  if (!has) {
+    FailAlert(new Error(`У заказчика ${token.account} нет заказов на выдачу на этом пункте.`));
+    return;
   }
+  pickupAccount.value = token.account;
+  pickupDialogOpen.value = true;
 }
 
 function onOpened(): void {

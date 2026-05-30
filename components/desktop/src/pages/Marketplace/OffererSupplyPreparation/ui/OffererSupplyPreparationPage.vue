@@ -75,21 +75,6 @@ const myPickupCode = computed(() =>
     : '',
 );
 
-// QR-код передачи конкретной партии: поставщик показывает его оператору на ПВЗ —
-// тот сканирует и открывает приёмку именно этой партии (точечный путь).
-const qrDialogOpen = ref(false);
-const qrShipment = ref<MarketplaceShipmentView | null>(null);
-
-function openQr(row: MarketplaceShipmentView): void {
-  qrShipment.value = row;
-  qrDialogOpen.value = true;
-}
-
-// QR имеет смысл, пока партия не принята/не отменена.
-function canShowQr(row: MarketplaceShipmentView): boolean {
-  return row.status === 'SUPPLY_PREPARED' || row.status === 'RECEPTION_IN_PROGRESS';
-}
-
 // Печать ТТН — только для Варианта Б (экспедитор), пока партия не принята:
 // состав берётся из заказов SUPPLY_PREPARED этой партии.
 const ttnDialogOpen = ref(false);
@@ -162,7 +147,6 @@ const skeletonColumns: TableSkeletonColumn[] = [
   { label: 'Статус', cell: 'badge' },
   { label: 'Сумма', class: 'col-num', cell: 'text', cellWidth: '80px' },
   { label: 'ТТН', cell: 'text', cellWidth: '90px' },
-  { label: 'Передача', class: 'col-qr', cell: 'text', cellWidth: '96px' },
 ];
 
 async function load(): Promise<void> {
@@ -211,7 +195,7 @@ q-page.offerer-supply
     v-if='loading && !shipments.length && !formationCycles.length',
     :columns='skeletonColumns',
     :rows='6',
-    min-width="1070px"
+    min-width="970px"
   )
 
   //- Раздел 1: заявки, ожидающие явного формирования партии.
@@ -248,7 +232,6 @@ q-page.offerer-supply
               th.col-status Статус
               th.col-num Сумма
               th.col-ttn ТТН
-              th.col-qr Передача
           tbody
             tr(v-for='row in shipments', :key='row.id')
               td.col-id {{ row.cycle_id }}
@@ -266,12 +249,6 @@ q-page.offerer-supply
                       q-icon(name='print', size='16px')
                     | ТТН
                 span(v-else) {{ row.ttn_number || '—' }}
-              td.col-qr
-                BaseButton(v-if='canShowQr(row)', variant='ghost', size='sm', @click='openQr(row)')
-                  template(#icon-left)
-                    q-icon(name='qr_code_2', size='16px')
-                  | QR
-                span(v-else) —
 
   EmptyState(
     v-if='isEmpty',
@@ -293,15 +270,6 @@ q-page.offerer-supply
         :value='myPickupCode',
         caption='Покажите этот код оператору на ПВЗ — он примет разом всё, что вы привезли (и сформированные партии, и самовывоз по факту). Код можно показать заранее или с распечатки.'
       )
-
-  BaseDialog(v-model='qrDialogOpen', title='QR-код передачи партии', size='sm')
-    .offerer-supply__qr(v-if='qrShipment')
-      HandoffQr(
-        :value='qrShipment.id',
-        caption='Покажите этот код оператору пункта выдачи — он отсканирует и откроет приёмку партии.'
-      )
-      .offerer-supply__qr-meta
-        | {{ qrShipment.braname }} · {{ deliveryVariantLabel(qrShipment.delivery_variant) }} · {{ qrShipment.total_amount }} ₽
 
   BaseDialog(v-model='ttnDialogOpen', title='Товарно-транспортная накладная', size='lg')
     TTNPrintPreview(v-if='ttnData', :data='ttnData')
@@ -416,13 +384,6 @@ q-page.offerer-supply
     padding: var(--p-2, 8px) 0;
   }
 
-  &__qr-meta {
-    font-size: var(--p-fs-body-sm, 13px);
-    color: var(--p-ink-2);
-    text-align: center;
-    font-variant-numeric: tabular-nums;
-  }
-
   &__ttn-cell {
     display: flex;
     flex-direction: column;
@@ -442,7 +403,7 @@ q-page.offerer-supply
 }
 .table {
   table-layout: fixed;
-  min-width: 1070px;
+  min-width: 970px;
 }
 .col-id {
   width: 150px;
@@ -461,10 +422,6 @@ q-page.offerer-supply
 }
 .col-ttn {
   width: 150px;
-}
-.col-qr {
-  width: 96px;
-  text-align: center;
 }
 
 @media (max-width: 768px) {

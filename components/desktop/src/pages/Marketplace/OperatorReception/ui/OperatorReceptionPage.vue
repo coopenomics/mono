@@ -175,10 +175,9 @@ async function createReceptionForShipment(shipmentId: string): Promise<void> {
   }
 }
 
-// QR-код передачи. Оператор сканирует:
-//  - account-bound код поставщика (Story 14.3) → резолвим аккаунт против ленты
-//    своего КУ и принимаем РАЗОМ всё привезённое этим человеком;
-//  - legacy-QR с самим shipment_id → точечная приёмка одной партии.
+// QR-код передачи (Story 14.3): оператор сканирует account-bound код поставщика
+// → резолвим аккаунт против ленты своего КУ и принимаем РАЗОМ всё привезённое
+// этим человеком (сформированные партии + самовывоз по факту).
 const scanDialogOpen = ref(false);
 
 // Резолв account-bound кода: всё, что ждёт приёмки от поставщика на этом КУ —
@@ -206,31 +205,26 @@ function resolveSupplierPickup(account: string): ResolvedSupplierPickup {
   };
 }
 
-async function onQrScanned(code: string): Promise<void> {
+function onQrScanned(code: string): void {
   scanDialogOpen.value = false;
   const token = decodeHandoffToken(code);
-  if (token) {
-    if (token.kind !== HandoffTokenKind.Pickup) {
-      FailAlert(new Error('Это код получения заказа, а не код поставки. Отсканируйте код поставщика.'));
-      return;
-    }
-    if (token.coopname && token.coopname !== coopname.value) {
-      FailAlert(new Error('Код выписан для другого кооператива.'));
-      return;
-    }
-    const resolved = resolveSupplierPickup(token.account);
-    if (!resolved.shipments.length && !resolved.express) {
-      FailAlert(
-        new Error(`У поставщика ${token.account} нет поставок, ожидающих приёмки на этом пункте.`),
-      );
-      return;
-    }
-    resolvedPickup.value = resolved;
-    pickupDialogOpen.value = true;
+  if (!token || token.kind !== HandoffTokenKind.Pickup) {
+    FailAlert(new Error('Нераспознанный код поставщика. Отсканируйте «Мой код для ПВЗ» со стола поставщика.'));
     return;
   }
-  // Legacy: QR несёт сам shipment_id — точечная приёмка одной партии.
-  await createReceptionForShipment(code);
+  if (token.coopname && token.coopname !== coopname.value) {
+    FailAlert(new Error('Код выписан для другого кооператива.'));
+    return;
+  }
+  const resolved = resolveSupplierPickup(token.account);
+  if (!resolved.shipments.length && !resolved.express) {
+    FailAlert(
+      new Error(`У поставщика ${token.account} нет поставок, ожидающих приёмки на этом пункте.`),
+    );
+    return;
+  }
+  resolvedPickup.value = resolved;
+  pickupDialogOpen.value = true;
 }
 
 // Принять разом всё привезённое поставщиком: акты по сформированным партиям +

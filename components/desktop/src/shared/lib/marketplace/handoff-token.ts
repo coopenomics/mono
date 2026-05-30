@@ -44,9 +44,8 @@ export function encodeHandoffToken(token: HandoffToken): string {
 }
 
 /**
- * Разобрать отсканированный код. Возвращает `null`, если строка — не
- * account-bound токен (в т.ч. legacy-QR, несущий сам `shipment_id`/`order_id`):
- * вызывающий код тогда падает на прежний путь по id.
+ * Разобрать отсканированный код. Возвращает `null`, если строка — не валидный
+ * account-bound токен (чужой формат/мусор): вызывающий код отвергает скан.
  */
 export function decodeHandoffToken(raw: string): HandoffToken | null {
   const value = raw.trim();
