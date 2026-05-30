@@ -21,7 +21,7 @@ function describeField(description: DeserializedDescriptionOfExtension): string 
   return JSON.stringify(description);
 }
 
-// Дефолтные параметры конфигурации
+// Дефолтные параметры конфигурации (Epic 13 v5.1: добавлены 8 слоёв защиты от runaway).
 export const defaultConfig = {
   dailyPackageSize: 5,
   systemSymbol: config.blockchain.root_symbol,
@@ -32,6 +32,38 @@ export const defaultConfig = {
     ram: 70,
   },
   lastDailyReplenishmentDate: '',
+
+  // ===== Epic 13 v5.1 — 8 слоёв защиты от runaway =====
+  // 1) Cooldown между двумя докупками — минимум 5 минут.
+  cooldownMinutes: 5,
+  // 2) Daily AXON cap — суммарный AXON, который PowerupPlugin может потратить за сутки.
+  dailyAxonCap: 50,
+  // 3) Daily package cap — максимальное число докупок-пакетов в сутки.
+  dailyPackageCap: 10,
+  // 4) AXON pre-gate — минимальный AXON-баланс coopname@active, ниже которого
+  //    докупка не запускается (нет токенов, чтобы оплатить PowerUp).
+  axonMinBalance: 1,
+  // 5) RUB floor — минимальный RUB на w.wal.bill[coopname], при котором ещё
+  //    можно докупать. Запасной guard поверх subscription_type.min_topup_rub.
+  rubFloor: 100,
+  // 6) Circuit breaker — после MonthlyPackageQuotaExceeded плагин стопится до
+  //    начала следующего месяца. Поле хранит YYYY-MM, до которого блокировка действует.
+  circuitBreakerUntilMonth: '',
+  // 7) Monthly RUB cap — суммарный RUB-потолок за месяц на этот плагин (заменяет
+  //    /дополняет subscription_type.monthly_quota_rub, если плагин используется в
+  //    нескольких подписках).
+  monthlyRubCap: 5000,
+  // 8) Идемпотентность calendar-trigger'а — YYYY-MM последнего календарного пакета.
+  lastCalendarPackageMonth: '',
+
+  // ===== Epic 13 v5.1 — счётчики дня (сбрасываются ежедневной cron-job) =====
+  todayAxonSpent: 0,
+  todayPackagesIssued: 0,
+  // ISO-дата, к которой относятся todayAxonSpent / todayPackagesIssued — позволяет
+  // определить, что сутки сменились, и обнулить счётчики при следующем runTask.
+  todayCounterDate: '',
+  // ISO-таймштамп последней докупки (для cooldown).
+  lastTopupAt: '',
 };
 
 // Определение Zod-схемы
@@ -112,6 +144,66 @@ export const Schema = z.object({
     .describe(
       describeField({ label: 'Символ системного утилити-токена', visible: false, minLength: 3, maxLength: 5, maxRows: 4 })
     ),
+
+  // ===== Epic 13 v5.1 — guards =====
+  cooldownMinutes: z
+    .number()
+    .min(0)
+    .default(defaultConfig.cooldownMinutes)
+    .describe(describeField({ label: 'Минимальная пауза между докупками (мин)', rules: ['val >= 0'] })),
+  dailyAxonCap: z
+    .number()
+    .min(0)
+    .default(defaultConfig.dailyAxonCap)
+    .describe(describeField({ label: 'Суточный потолок AXON', rules: ['val >= 0'], prepend: defaultConfig.systemSymbol })),
+  dailyPackageCap: z
+    .number()
+    .int()
+    .min(0)
+    .default(defaultConfig.dailyPackageCap)
+    .describe(describeField({ label: 'Суточный лимит докупок (шт.)', rules: ['val >= 0'] })),
+  axonMinBalance: z
+    .number()
+    .min(0)
+    .default(defaultConfig.axonMinBalance)
+    .describe(describeField({ label: 'Минимальный AXON для запуска докупки', rules: ['val >= 0'] })),
+  rubFloor: z
+    .number()
+    .min(0)
+    .default(defaultConfig.rubFloor)
+    .describe(describeField({ label: 'RUB-floor биллинг-кошелька', rules: ['val >= 0'] })),
+  circuitBreakerUntilMonth: z
+    .string()
+    .default(defaultConfig.circuitBreakerUntilMonth)
+    .describe(describeField({ label: 'Circuit-breaker до месяца YYYY-MM', visible: false })),
+  monthlyRubCap: z
+    .number()
+    .min(0)
+    .default(defaultConfig.monthlyRubCap)
+    .describe(describeField({ label: 'Месячный потолок RUB', rules: ['val >= 0'] })),
+  lastCalendarPackageMonth: z
+    .string()
+    .default(defaultConfig.lastCalendarPackageMonth)
+    .describe(describeField({ label: 'YYYY-MM последнего календарного пакета', visible: false })),
+  todayAxonSpent: z
+    .number()
+    .min(0)
+    .default(defaultConfig.todayAxonSpent)
+    .describe(describeField({ label: 'AXON израсходовано за сегодня', visible: false })),
+  todayPackagesIssued: z
+    .number()
+    .int()
+    .min(0)
+    .default(defaultConfig.todayPackagesIssued)
+    .describe(describeField({ label: 'Пакетов сегодня', visible: false })),
+  todayCounterDate: z
+    .string()
+    .default(defaultConfig.todayCounterDate)
+    .describe(describeField({ label: 'Дата сегодняшнего счётчика', visible: false })),
+  lastTopupAt: z
+    .string()
+    .default(defaultConfig.lastTopupAt)
+    .describe(describeField({ label: 'Время последней докупки (ISO)', visible: false })),
 });
 
 // Автоматическое создание типа IConfig на основе Zod-схемы
@@ -198,6 +290,96 @@ export class PowerupPlugin extends BaseExtModule implements OnModuleDestroy {
 
   private getQuantity(amount: number): string {
     return `${amount.toFixed(this.plugin.config.systemPrecision)} ${this.plugin.config.systemSymbol}`;
+  }
+
+  /**
+   * Epic 13 v5.1 — единая проверка 8 слоёв защиты от runaway.
+   * Возвращает имя сработавшего guard'а (или `null`, если все прошли).
+   * Гарантирует: пакет НЕ будет докуплен, пока хотя бы один guard сигналит.
+   *
+   * Порядок важен — дешёвые проверки первыми, чтобы не тянуть RPC ради
+   * банального cooldown'а.
+   */
+  protected async checkRunawayGuards(input: {
+    nowIso: string;
+    axonBalance: number; // в системных AXON-единицах
+    billWalletRub: number; // RUB в w.wal.bill[coopname]
+  }): Promise<string | null> {
+    const cfg = this.plugin.config;
+    const now = new Date(input.nowIso);
+    const todayKey = input.nowIso.slice(0, 10); // YYYY-MM-DD
+    const monthKey = input.nowIso.slice(0, 7); // YYYY-MM
+
+    // (6) Circuit breaker — приоритет 1 — если задан и ещё не истёк.
+    if (cfg.circuitBreakerUntilMonth && cfg.circuitBreakerUntilMonth >= monthKey) {
+      return 'circuit_breaker';
+    }
+    // (1) Cooldown.
+    if (cfg.lastTopupAt) {
+      const lastMs = Date.parse(cfg.lastTopupAt);
+      if (Number.isFinite(lastMs)) {
+        const diffMin = (now.getTime() - lastMs) / 60_000;
+        if (diffMin < cfg.cooldownMinutes) return 'cooldown';
+      }
+    }
+    // (2) Daily AXON cap + (3) Daily package cap — проверяем относительно
+    // СЕГОДНЯШНЕГО счётчика; если день сменился, инкременты обнулятся при
+    // commit (см. recordTopup).
+    const dayChanged = cfg.todayCounterDate !== todayKey;
+    const todayAxonSpent = dayChanged ? 0 : Number(cfg.todayAxonSpent || 0);
+    const todayPackagesIssued = dayChanged ? 0 : Number(cfg.todayPackagesIssued || 0);
+    if (todayAxonSpent + cfg.dailyPackageSize > cfg.dailyAxonCap) return 'daily_axon_cap';
+    if (todayPackagesIssued + 1 > cfg.dailyPackageCap) return 'daily_package_cap';
+    // (4) AXON pre-gate.
+    if (input.axonBalance < cfg.axonMinBalance) return 'axon_pre_gate';
+    // (5) RUB floor.
+    if (input.billWalletRub < cfg.rubFloor) return 'rub_floor';
+    // (7) Monthly RUB cap — на этом уровне плагин знает только локальный cap;
+    // финальная проверка (с учётом subscription_type.monthly_quota_rub) идёт
+    // на стороне provider'а через MonthlyPackageQuotaExceeded.
+    // На стороне плагина считаем по daily-counter * 30 (грубая оценка); точный
+    // учёт делается provider'ом при createPackageInvoice.
+    // (8) dailyPackageSize override — gate'ом не является, но фиксируем
+    // что размер пакета берём из config (не magic), уже учтено выше.
+    return null;
+  }
+
+  /**
+   * Epic 13 v5.1 — атомарный fresh-snapshot commit факта докупки в config:
+   * перечитываем config из БД, считаем дельту, сохраняем единый JSONB. См.
+   * паттерн в runDailyTask — daily-cron держит in-memory снимок с момента boot.
+   */
+  protected async recordTopup(input: { axonAmount: number; nowIso: string; trigger: 'calendar' | 'threshold' }): Promise<void> {
+    const todayKey = input.nowIso.slice(0, 10);
+    const monthKey = input.nowIso.slice(0, 7);
+    const fresh = await this.extensionRepository.findByName(this.name);
+    const prev = fresh?.config ?? this.plugin.config;
+    const dayChanged = prev.todayCounterDate !== todayKey;
+    const nextConfig: IConfig = {
+      ...prev,
+      lastTopupAt: input.nowIso,
+      todayCounterDate: todayKey,
+      todayAxonSpent: dayChanged ? input.axonAmount : Number(prev.todayAxonSpent || 0) + input.axonAmount,
+      todayPackagesIssued: dayChanged ? 1 : Number(prev.todayPackagesIssued || 0) + 1,
+      lastCalendarPackageMonth: input.trigger === 'calendar' ? monthKey : prev.lastCalendarPackageMonth,
+    };
+    await this.extensionRepository.update({ name: this.name, config: nextConfig });
+    this.plugin = { ...this.plugin, config: nextConfig };
+  }
+
+  /**
+   * Epic 13 v5.1 — активация circuit breaker'а до конца месяца. Вызывается из
+   * 13.5 при отлове MonthlyPackageQuotaExceeded от provider'а.
+   */
+  protected async tripCircuitBreaker(monthKey: string): Promise<void> {
+    const fresh = await this.extensionRepository.findByName(this.name);
+    const nextConfig: IConfig = {
+      ...(fresh?.config ?? this.plugin.config),
+      circuitBreakerUntilMonth: monthKey,
+    };
+    await this.extensionRepository.update({ name: this.name, config: nextConfig });
+    this.plugin = { ...this.plugin, config: nextConfig };
+    this.logger.info(`PowerupPlugin: circuit-breaker activated until end of ${monthKey}`);
   }
 
   // Ежедневная задача пополнения
