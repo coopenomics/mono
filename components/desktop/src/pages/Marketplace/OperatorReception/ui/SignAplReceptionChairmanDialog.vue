@@ -3,6 +3,8 @@ import { computed, ref } from 'vue';
 import { Classes } from '@coopenomics/sdk';
 import { useGlobalStore } from 'src/shared/store';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { BaseButton, BaseDialog } from 'src/shared/ui/base';
+import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import {
   fetchChairmanSignablePayloads,
   signAsChairman,
@@ -33,8 +35,6 @@ const emit = defineEmits<{
 
 const globalStore = useGlobalStore();
 const signing = ref(false);
-
-const ordersCount = computed(() => props.reception?.fact_quantity_per_order?.length ?? 0);
 
 const VARIANT_LABEL: Record<string, string> = {
   IN_PERSON: 'Очная приёмка',
@@ -91,37 +91,34 @@ function cancel(): void {
 </script>
 
 <template lang="pug">
-q-dialog(
+BaseDialog(
   :model-value="modelValue"
+  title="Закрывающая подпись акта приёмки"
+  maximized
   @update:model-value="(v: boolean) => emit('update:modelValue', v)"
 )
-  q-card.mp-sign-apl-chairman(style="min-width: 420px; max-width: 560px")
-    q-card-section
-      .text-h6 Закрывающая подпись акта приёмки
-      .text-caption.text-grey(v-if="reception")
-        | АПП {{ reception.id.slice(0, 8) }} · КУ {{ reception.braname }} · {{ variantLabel }}
+  .mp-sign-apl-chairman
+    .text-caption.text-grey(v-if="reception")
+      | КУ {{ reception.braname }} · {{ variantLabel }}
 
-    q-card-section.q-pt-none
-      q-banner.q-mb-md(rounded class="bg-primary text-white")
-        | Поставщик уже подписал {{ ordersCount }} акт(ов) приёмки. Вы накладываете закрывающую подпись председателя поверх подписи поставщика ключом текущей сессии — документ не перегенерируется. После подписи партия принимается в кооператив.
-      .text-body2(v-if="reception")
-        | Сумма к приёмке: {{ reception.total_amount }} ₽
+    .text-h6(v-if="reception")
+      | Сумма к приёмке: {{ formatAsset2Digits(reception.total_amount) }} ₽
 
-    q-card-actions(align="right")
-      q-btn(flat no-caps label="Отмена" :disable="signing" @click="cancel")
-      q-btn(
-        unelevated
-        no-caps
-        color="primary"
-        label="Подписать председателем"
-        :loading="signing"
-        @click="confirm"
-      )
+    .text-body2.text-grey
+      | После закрывающей подписи партия принимается в кооператив.
+
+  template(#footer)
+    BaseButton(variant="ghost", :disabled="signing", @click="cancel") Отмена
+    BaseButton(variant="primary", :loading="signing", @click="confirm")
+      template(#icon-left)
+        q-icon(name="draw", size="16px")
+      | Подписать председателем
 </template>
 
 <style scoped lang="scss">
 .mp-sign-apl-chairman {
   display: flex;
   flex-direction: column;
+  gap: var(--p-3, 12px);
 }
 </style>

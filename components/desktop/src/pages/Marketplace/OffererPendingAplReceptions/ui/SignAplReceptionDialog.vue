@@ -4,6 +4,7 @@ import { Classes } from '@coopenomics/sdk';
 import { useGlobalStore } from 'src/shared/store';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseButton, BaseDialog } from 'src/shared/ui/base';
+import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import {
   fetchSupplierSignablePayloads,
   signAsSupplier,
@@ -33,8 +34,6 @@ const emit = defineEmits<{
 
 const globalStore = useGlobalStore();
 const signing = ref(false);
-
-const ordersCount = computed(() => props.reception?.fact_quantity_per_order?.length ?? 0);
 
 const VARIANT_LABEL: Record<string, string> = {
   IN_PERSON: 'Очная приёмка',
@@ -89,22 +88,18 @@ function cancel(): void {
 BaseDialog(
   :model-value="modelValue"
   title="Подпись акта приёмки"
-  size="md"
+  maximized
   @update:model-value="(v) => emit('update:modelValue', v)"
 )
   .sign-apl
     .text-caption.text-grey(v-if="reception")
-      | АПП {{ reception.id.slice(0, 8) }} · КУ {{ reception.braname }} · {{ variantLabel }}
+      | КУ {{ reception.braname }} · {{ variantLabel }}
 
-    .banner.banner--info
-      q-icon.banner__icon(name="info", size="18px")
-      .banner__body
-        | Вы подписываете {{ ordersCount }} акт(ов) приёмки ключом текущей сессии
-        | как поставщик-владелец предложений. После подписи акты уходят на
-        | закрывающую подпись председателя КУ.
+    .text-h6(v-if="reception")
+      | Сумма к приёмке: {{ formatAsset2Digits(reception.total_amount) }} ₽
 
-    .text-body2(v-if="reception")
-      | Сумма к приёмке: {{ reception.total_amount }} ₽
+    .text-body2.text-grey
+      | После вашей подписи акт уходит на финализирующую подпись председателя КУ.
 
   template(#footer)
     BaseButton(variant="ghost", :disabled="signing", @click="cancel") Отмена

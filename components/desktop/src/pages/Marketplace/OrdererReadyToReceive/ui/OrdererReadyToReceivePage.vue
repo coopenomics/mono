@@ -9,6 +9,7 @@ import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
 import { HandoffQr } from 'src/widgets/Marketplace/HandoffQr';
 import { PageHint } from 'src/shared/ui/domain';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
+import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { encodeHandoffToken, HandoffTokenKind } from 'src/shared/lib/marketplace';
 import { listMyReadyToReceive, type MarketplaceOrderIssuanceView } from '../api';
 
@@ -75,7 +76,13 @@ const columns: QTableProps['columns'] = [
     align: 'right',
     format: (v: unknown, r: MarketplaceOrderIssuanceView) => `${v} ${marketplaceUnitShort(r.unit_of_measure)}`,
   },
-  { name: 'total_cost', label: 'Сумма заказа', field: 'total_cost', align: 'right' },
+  {
+    name: 'total_cost',
+    label: 'Сумма заказа',
+    field: 'total_cost',
+    align: 'right',
+    format: (v: unknown) => `${formatAsset2Digits(String(v ?? ''))} ₽`,
+  },
   {
     name: 'opened_at',
     label: 'Открыто к выдаче',

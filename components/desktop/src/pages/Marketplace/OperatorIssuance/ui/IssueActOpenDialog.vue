@@ -4,6 +4,7 @@ import { Classes } from '@coopenomics/sdk';
 import { useGlobalStore } from 'src/shared/store';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { TakeoverDialog } from 'src/widgets/Marketplace/TakeoverDialog';
+import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import {
   getChairmanSignablePayload,
   openIssuance,
@@ -95,7 +96,7 @@ function cancel(): void {
 TakeoverDialog(
   :model-value="modelValue"
   title="Открытие выдачи заказа"
-  :lead-text="order ? `Заказ ${order.id.slice(0, 8)} · ${order.quantity} ед. на сумму ${order.total_cost} ₽` : ''"
+  :lead-text="order ? `Заказ ${order.id.slice(0, 8)} · ${order.quantity} ед. на сумму ${formatAsset2Digits(order.total_cost)} ₽` : ''"
   kind="info"
   confirm-label="Подписать и открыть выдачу"
   cancel-label="Закрыть"
@@ -107,17 +108,11 @@ TakeoverDialog(
 )
   template(#default)
     .mp-issue-open-dialog
-      q-banner.q-mb-md(rounded class="bg-primary text-white")
-        | Подпишите акт выдачи приватным ключом председателя. После подписи бэкенд отправит первую подпись на цепь и сообщит заказчику о готовности заказа.
-
       q-card(v-if="previewLoading" flat bordered).q-pa-md
         q-spinner(color="primary" size="32px")
-        .q-ml-md Готовлю предварительный акт…
+        .q-ml-md Готовлю акт выдачи…
 
       q-card(v-else-if="previewHtml" flat bordered).mp-issue-open-dialog__preview
-        q-card-section.q-pa-md
-          .text-caption.text-grey Превью акта выдачи (registry_id=1102)
-        q-separator
         q-card-section.q-pa-md
           div(v-html="previewHtml")
 

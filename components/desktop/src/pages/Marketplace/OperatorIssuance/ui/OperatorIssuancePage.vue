@@ -9,6 +9,7 @@ import { PageHint } from 'src/shared/ui/domain';
 import { QrScanner } from 'src/widgets/Marketplace/QrScanner';
 import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
+import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { decodeHandoffToken, HandoffTokenKind } from 'src/shared/lib/marketplace';
 import {
   listIssuancesByBraname,
@@ -61,7 +62,13 @@ const columns: QTableProps['columns'] = [
     align: 'right',
     format: (v: unknown, r: MarketplaceOrderIssuanceView) => `${v} ${marketplaceUnitShort(r.unit_of_measure)}`,
   },
-  { name: 'total_cost', label: 'Сумма', field: 'total_cost', align: 'right' },
+  {
+    name: 'total_cost',
+    label: 'Сумма',
+    field: 'total_cost',
+    align: 'right',
+    format: (v: unknown) => `${formatAsset2Digits(String(v ?? ''))} ₽`,
+  },
   { name: 'status', label: 'Статус', field: 'status', align: 'left' },
   { name: 'actions', label: '', field: 'id', align: 'right' },
 ];

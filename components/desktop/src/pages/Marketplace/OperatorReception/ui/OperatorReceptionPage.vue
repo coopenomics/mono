@@ -11,6 +11,7 @@ import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { QrScanner } from 'src/widgets/Marketplace/QrScanner';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
+import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { decodeHandoffToken, HandoffTokenKind } from 'src/shared/lib/marketplace';
 import {
   listShipmentsByBraname,
@@ -111,7 +112,13 @@ const columns: QTableProps['columns'] = [
   { name: 'id', label: 'АПП', field: (r: MarketplaceAplReceptionView) => r.id.slice(0, 8), align: 'left' },
   { name: 'variant', label: 'Вариант', field: 'variant', align: 'center', format: (v: string) => RECEPTION_VARIANT_LABEL[v] ?? v },
   { name: 'status', label: 'Статус', field: 'status', align: 'left' },
-  { name: 'total_amount', label: 'Сумма', field: 'total_amount', align: 'right' },
+  {
+    name: 'total_amount',
+    label: 'Сумма',
+    field: 'total_amount',
+    align: 'right',
+    format: (v: unknown) => `${formatAsset2Digits(String(v ?? ''))} ₽`,
+  },
   { name: 'actions', label: '', field: 'id', align: 'right' },
 ];
 
@@ -374,7 +381,7 @@ q-page.reception(role='region', aria-label='Приёмка партии')
         .reception__ship-info
           .reception__ship-offerer {{ s.offerer_account }}
           .reception__ship-meta
-            | {{ SHIPMENT_VARIANT_LABEL[s.delivery_variant] ?? s.delivery_variant }} · {{ s.total_amount }} ₽
+            | {{ SHIPMENT_VARIANT_LABEL[s.delivery_variant] ?? s.delivery_variant }} · {{ formatAsset2Digits(s.total_amount) }} ₽
             template(v-if='s.ttn_number')  · ТТН {{ s.ttn_number }}
         BaseButton(variant='primary', size='sm', @click='createReceptionForShipment(s.id)')
           template(#icon-left)
@@ -391,7 +398,7 @@ q-page.reception(role='region', aria-label='Приёмка партии')
         .reception__ship-info
           .reception__ship-offerer {{ c.offerer_account }}
           .reception__ship-meta
-            | Самовывоз · {{ c.orders_count }} заказ(ов) · {{ c.total_units }} ед. · {{ c.total_amount }} ₽
+            | Самовывоз · {{ c.orders_count }} заказ(ов) · {{ c.total_units }} ед. · {{ formatAsset2Digits(c.total_amount) }} ₽
         BaseButton(variant='secondary', size='sm', @click='acceptExpressPickup(c)')
           template(#icon-left)
             q-icon(name='how_to_reg', size='16px')
@@ -441,7 +448,7 @@ q-page.reception(role='region', aria-label='Приёмка партии')
   //- Эпик 14: агрегирующая приёмка по account-bound коду. Плоский список единиц
   //- имущества (R7a): сверху — задекларированные в партии (по ТТН), ниже
   //- разделитель и добор по акцепту. Факт правится на месте, потолок = заказано (R5).
-  BaseDialog(v-model='pickupDialogOpen', title='Приёмка имущества поставщика', size='md')
+  BaseDialog(v-model='pickupDialogOpen', title='Приёмка имущества поставщика', maximized)
     .reception__pickup
       .reception__pickup-account {{ pickupAccount }}
       .reception__pickup-hint
