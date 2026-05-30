@@ -6,10 +6,12 @@ import type { BaseBadgeVariant, TableSkeletonColumn } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
 import { HandoffQr } from 'src/widgets/Marketplace/HandoffQr';
+import { TTNPrintPreview, type TTNData } from 'src/widgets/Marketplace/TTNPrintPreview';
 import { listShipments, type MarketplaceShipmentView } from '../api';
 import { fetchSupplierOrders } from '../../OffererIncomingOrders/api';
 import type { MarketplaceOrderView } from '../../MyOrders/types';
 import { groupAcceptedOrders, type ShipmentFormationCycle } from '../lib/shipmentFormation';
+import { buildTtnData } from '../lib/ttn';
 import CreateShipmentDialog from './CreateShipmentDialog.vue';
 
 /**
@@ -22,17 +24,16 @@ import CreateShipmentDialog from './CreateShipmentDialog.vue';
  *     экспедитор+ТТН) и формирует партию (`marketplaceCreateShipment`).
  *     Единый путь для индивидуальных и пакетных заказов (Story 14.1 убрала
  *     навязанный Вариант А для индивидуальных).
- *  2. «Сформированные партии» — уже созданные партии со статусом и колонкой
- *     «Следующий шаг».
- *
- * Не реализовано (доработки Эпика 14): печать ТТН (TTNPrintPreview), QR-передача
- * на ПВЗ, express-приёмка без партии.
+ *  2. «Сформированные партии» — уже созданные партии со статусом, колонкой
+ *     «Следующий шаг», печатью ТТН (Вариант Б) и QR-передачей на ПВЗ.
  */
 
 const PAGE_SIZE = 200;
 
 const shipments = ref<MarketplaceShipmentView[]>([]);
 const acceptedOrders = ref<MarketplaceOrderView[]>([]);
+// Заказы сформированных партий (статус SUPPLY_PREPARED) — источник состава ТТН.
+const preparedOrders = ref<MarketplaceOrderView[]>([]);
 const loading = ref(false);
 
 const formationCycles = computed<ShipmentFormationCycle[]>(() =>
@@ -65,6 +66,23 @@ function openQr(row: MarketplaceShipmentView): void {
 // QR имеет смысл, пока партия не принята/не отменена.
 function canShowQr(row: MarketplaceShipmentView): boolean {
   return row.status === 'SUPPLY_PREPARED' || row.status === 'RECEPTION_IN_PROGRESS';
+}
+
+// Печать ТТН — только для Варианта Б (экспедитор), пока партия не принята:
+// состав берётся из заказов SUPPLY_PREPARED этой партии.
+const ttnDialogOpen = ref(false);
+const ttnData = ref<TTNData | null>(null);
+
+function canPrintTtn(row: MarketplaceShipmentView): boolean {
+  return (
+    isExpeditor(row.delivery_variant) &&
+    (row.status === 'SUPPLY_PREPARED' || row.status === 'RECEPTION_IN_PROGRESS')
+  );
+}
+
+function openTtn(row: MarketplaceShipmentView): void {
+  ttnData.value = buildTtnData(row, preparedOrders.value);
+  ttnDialogOpen.value = true;
 }
 
 // Статус партии → метка + canon-вариант бейджа.
@@ -128,12 +146,14 @@ const skeletonColumns: TableSkeletonColumn[] = [
 async function load(): Promise<void> {
   loading.value = true;
   try {
-    const [shipmentsResult, ordersResult] = await Promise.all([
+    const [shipmentsResult, ordersResult, preparedResult] = await Promise.all([
       listShipments(),
       fetchSupplierOrders({ statuses: ['ACCEPTED'], limit: PAGE_SIZE }),
+      fetchSupplierOrders({ statuses: ['SUPPLY_PREPARED'], limit: PAGE_SIZE }),
     ]);
     shipments.value = shipmentsResult;
     acceptedOrders.value = ordersResult.items;
+    preparedOrders.value = preparedResult.items;
   } catch (e) {
     FailAlert(e, 'Не удалось загрузить партии');
   } finally {
@@ -165,7 +185,7 @@ q-page.offerer-supply
     v-if='loading && !shipments.length && !formationCycles.length',
     :columns='skeletonColumns',
     :rows='6',
-    min-width="1040px"
+    min-width="1070px"
   )
 
   //- Раздел 1: заявки, ожидающие явного формирования партии.
@@ -212,7 +232,14 @@ q-page.offerer-supply
                 BaseBadge(:variant='statusOf(row.status).variant') {{ statusOf(row.status).label }}
                 .offerer-supply__next(v-if='nextStep(row)') {{ nextStep(row) }}
               td.col-num {{ row.total_amount }} ₽
-              td.col-ttn {{ row.ttn_number || '—' }}
+              td.col-ttn
+                .offerer-supply__ttn-cell(v-if='canPrintTtn(row)')
+                  span.offerer-supply__ttn-num(v-if='row.ttn_number') {{ row.ttn_number }}
+                  BaseButton(variant='ghost', size='sm', @click='openTtn(row)')
+                    template(#icon-left)
+                      q-icon(name='print', size='16px')
+                    | ТТН
+                span(v-else) {{ row.ttn_number || '—' }}
               td.col-qr
                 BaseButton(v-if='canShowQr(row)', variant='ghost', size='sm', @click='openQr(row)')
                   template(#icon-left)
@@ -242,6 +269,9 @@ q-page.offerer-supply
       )
       .offerer-supply__qr-meta
         | {{ qrShipment.braname }} · {{ deliveryVariantLabel(qrShipment.delivery_variant) }} · {{ qrShipment.total_amount }} ₽
+
+  BaseDialog(v-model='ttnDialogOpen', title='Товарно-транспортная накладная', size='lg')
+    TTNPrintPreview(v-if='ttnData', :data='ttnData')
 </template>
 
 <style scoped lang="scss">
@@ -359,6 +389,19 @@ q-page.offerer-supply
     text-align: center;
     font-variant-numeric: tabular-nums;
   }
+
+  &__ttn-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--p-1, 4px);
+  }
+
+  &__ttn-num {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-2);
+    font-variant-numeric: tabular-nums;
+  }
 }
 
 .table-scroll {
@@ -366,7 +409,7 @@ q-page.offerer-supply
 }
 .table {
   table-layout: fixed;
-  min-width: 1040px;
+  min-width: 1070px;
 }
 .col-id {
   width: 150px;
@@ -384,7 +427,7 @@ q-page.offerer-supply
   font-variant-numeric: tabular-nums;
 }
 .col-ttn {
-  width: 120px;
+  width: 150px;
 }
 .col-qr {
   width: 96px;

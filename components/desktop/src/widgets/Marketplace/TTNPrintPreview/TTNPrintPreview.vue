@@ -1,7 +1,18 @@
 <template>
   <div class="mp-ttn">
-    <div class="mp-ttn__toolbar no-print">
-      <q-btn unelevated color="primary" icon="fa-solid fa-print" label="Печать" @click="print" />
+    <div class="mp-ttn__toolbar">
+      <BaseButton variant="primary" @click="print">
+        <template #icon-left>
+          <q-icon name="print" size="16px" />
+        </template>
+        Печать
+      </BaseButton>
+      <BaseButton variant="ghost" @click="download">
+        <template #icon-left>
+          <q-icon name="download" size="16px" />
+        </template>
+        Скачать
+      </BaseButton>
       <q-space />
       <span class="text-caption text-grey-7">Формат А5 (148×210 мм)</span>
     </div>
@@ -75,6 +86,8 @@
 
 <script setup lang="ts">
 import { computed, ref, type PropType } from 'vue'
+import { BaseButton } from 'src/shared/ui/base'
+import { SuccessAlert } from 'src/shared/api'
 import { BarcodeDisplay } from 'src/widgets/Marketplace/BarcodeDisplay'
 
 export interface TTNItem {
@@ -112,8 +125,79 @@ function formatPrice(v: number) {
   return new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v) + ' ₽'
 }
 
+/**
+ * CSS печатного листа — самодостаточный, без Quasar/scoped-стилей. В iframe и
+ * blob-скачивании нет ни Quasar, ни scoped data-v, поэтому селекторы здесь по
+ * простым классам и включают использованные внутри листа utility-классы.
+ * Это единственное дублирование (CSS), разметка остаётся одна — клонируем
+ * отрендеренный `sheetRef`, не пересобираем HTML руками.
+ */
+const PRINT_CSS = `
+  @page { size: A5; margin: 0; }
+  html, body { margin: 0; padding: 0; }
+  body { background: #fff; }
+  .mp-ttn__sheet {
+    background: #fff; color: #111; width: 148mm; min-height: 210mm;
+    padding: 10mm; margin: 0 auto; font-size: 11pt; font-family: 'Times New Roman', serif;
+  }
+  .mp-ttn__header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    border-bottom: 1px solid #111; padding-bottom: 4mm; margin-bottom: 4mm;
+  }
+  .mp-ttn__parties { display: flex; justify-content: space-between; margin-bottom: 6mm; }
+  .mp-ttn__items { width: 100%; border-collapse: collapse; font-size: 10pt; margin-bottom: 6mm; }
+  .mp-ttn__items th, .mp-ttn__items td { border: 1px solid #111; padding: 2mm; }
+  .mp-ttn__items th { background: #f0f0f0; }
+  .mp-ttn__signatures { display: flex; justify-content: space-between; margin-top: 10mm; gap: 16mm; }
+  .mp-ttn__signatures > div { flex: 1; }
+  .mp-ttn__sign-line { margin: 8mm 0 2mm; border-bottom: 1px solid #111; height: 0; }
+  .mp-barcode-display__svg { display: block; }
+  .mp-barcode-display__code { font-size: 8pt; text-align: center; }
+  .text-right { text-align: right; }
+  .text-caption { font-size: 0.85em; }
+  .text-grey-7 { color: #555; }
+  .text-h6 { font-size: 1.25rem; font-weight: 500; margin: 0; }
+`
+
+function buildPrintableHtml(): string {
+  const sheet = sheetRef.value?.outerHTML ?? ''
+  return '<!doctype html><html lang="ru"><head><meta charset="utf-8">'
+    + `<title>ТТН № ${props.data.number}</title><style>${PRINT_CSS}</style></head>`
+    + `<body>${sheet}</body></html>`
+}
+
+// Печать через скрытый iframe — печатается только лист ТТН, без хрома
+// приложения (header/drawer/страница не «протекают» в печать).
 function print() {
-  window.print()
+  const html = buildPrintableHtml()
+  const iframe = document.createElement('iframe')
+  iframe.setAttribute('aria-hidden', 'true')
+  iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;'
+  iframe.onload = () => {
+    try {
+      iframe.contentWindow?.focus()
+      iframe.contentWindow?.print()
+    } finally {
+      setTimeout(() => iframe.remove(), 1000)
+    }
+  }
+  iframe.srcdoc = html
+  document.body.appendChild(iframe)
+}
+
+// Скачивание самодостаточного HTML-файла ТТН (открывается и печатается офлайн,
+// в т.ч. «Сохранить как PDF» из браузера). Без новых зависимостей.
+function download() {
+  const blob = new Blob([buildPrintableHtml()], { type: 'text/html;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `ТТН-${props.data.number}.html`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+  SuccessAlert('ТТН сохранена')
 }
 </script>
 
@@ -121,11 +205,12 @@ function print() {
 .mp-ttn {
   display: flex;
   flex-direction: column;
-  gap: var(--mp-space-md);
+  gap: var(--p-4, 16px);
 
   &__toolbar {
     display: flex;
     align-items: center;
+    gap: var(--p-2, 8px);
   }
 
   &__sheet {
@@ -172,7 +257,7 @@ function print() {
     display: flex;
     justify-content: space-between;
     margin-top: 10mm;
-    gap: var(--mp-space-xl);
+    gap: 16mm;
 
     > div { flex: 1; }
   }
@@ -182,10 +267,5 @@ function print() {
     border-bottom: 1px solid #111;
     height: 0;
   }
-}
-
-@media print {
-  .no-print { display: none !important; }
-  .mp-ttn__sheet { box-shadow: none; margin: 0; }
 }
 </style>
