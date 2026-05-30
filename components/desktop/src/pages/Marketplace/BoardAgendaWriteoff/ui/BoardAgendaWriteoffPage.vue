@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { Notify } from 'quasar';
+import { Zeus } from '@coopenomics/sdk';
 import {
   listWriteoffProposals,
   type MarketplaceWriteoffProposalsPageView,
@@ -32,6 +33,17 @@ const BOARD_STATUSES: WriteoffStatus[] = [
   'REJECTED',
 ];
 
+// Локальный WriteoffStatus — строковый union (5 видимых совету статусов).
+// SDK-вход statuses ждёт enum MarketplaceWriteoffProposalStatus — маппим через
+// явную таблицу, чтобы не кастовать и не плодить DRAFT в records/шаблоне.
+const STATUS_TO_ENUM: Record<WriteoffStatus, Zeus.MarketplaceWriteoffProposalStatus> = {
+  ON_AGENDA: Zeus.MarketplaceWriteoffProposalStatus.ON_AGENDA,
+  AUTHORIZED: Zeus.MarketplaceWriteoffProposalStatus.AUTHORIZED,
+  EXECUTING: Zeus.MarketplaceWriteoffProposalStatus.EXECUTING,
+  EXECUTED: Zeus.MarketplaceWriteoffProposalStatus.EXECUTED,
+  REJECTED: Zeus.MarketplaceWriteoffProposalStatus.REJECTED,
+};
+
 const STATUS_LABEL: Record<WriteoffStatus, string> = {
   ON_AGENDA: 'На повестке',
   AUTHORIZED: 'Одобрено',
@@ -59,7 +71,8 @@ const total = computed(() => page.value?.totalCount ?? 0);
 async function load(): Promise<void> {
   loading.value = true;
   try {
-    const statuses = (statusFilter.value ? [statusFilter.value] : BOARD_STATUSES) as never;
+    const selected = statusFilter.value ? [statusFilter.value] : BOARD_STATUSES;
+    const statuses = selected.map((s) => STATUS_TO_ENUM[s]);
     page.value = await listWriteoffProposals(
       { statuses },
       { page: 1, limit: 100 },

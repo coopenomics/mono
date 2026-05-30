@@ -129,11 +129,11 @@ export const useMarketplaceOnboarding = () => {
       const entries = await Promise.all(
         STEP_META.map(async (meta) => {
           try {
-            const doc = await generateDocument(
-              coopname,
-              username,
-              stepToRegistryId[meta.id] as number,
-            );
+            const registryId = stepToRegistryId[meta.id];
+            if (typeof registryId !== 'number') {
+              return [meta.id, ''] as const;
+            }
+            const doc = await generateDocument(coopname, username, registryId);
             return [meta.id, doc.html] as const;
           } catch {
             return [meta.id, ''] as const;
