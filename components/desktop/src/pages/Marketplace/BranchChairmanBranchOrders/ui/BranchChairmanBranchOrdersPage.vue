@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { Notify } from 'quasar';
+import { FailAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
 import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
@@ -93,8 +93,7 @@ async function loadAll(): Promise<void> {
     issuances.value = i;
     returns.value = ret;
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    Notify.create({ type: 'negative', message });
+    FailAlert(e);
   } finally {
     loading.value = false;
   }

@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue';
-import { Notify } from 'quasar';
+import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { useRoute, useRouter } from 'vue-router';
 import { useSystemStore } from 'src/entities/System/model';
 import { useHeaderActions } from 'src/shared/hooks';
@@ -169,11 +169,10 @@ async function onRepublish(card: OfferCard): Promise<void> {
   republishing.value = String(card.id);
   try {
     await republishOffer(String(card.id));
-    Notify.create({ type: 'positive', message: 'Предложение возвращено на модерацию.' });
+    SuccessAlert('Предложение возвращено на модерацию.');
     await load(1, false);
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    Notify.create({ type: 'negative', message });
+    FailAlert(e);
   } finally {
     republishing.value = null;
   }
@@ -187,8 +186,7 @@ async function load(page: number, append: boolean): Promise<void> {
     totalPages.value = result.totalPages;
     currentPage.value = result.currentPage;
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    Notify.create({ type: 'negative', message });
+    FailAlert(e);
   } finally {
     loading.value = false;
   }

@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import { Dialog, Loading, Notify } from 'quasar';
+import { Dialog, Loading } from 'quasar';
+import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { OrderCard, toOrderCardModel, type Order as OrderCardModel } from 'src/widgets/Marketplace/OrderCard';
 import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
@@ -93,8 +94,7 @@ async function load(page: number, append: boolean): Promise<void> {
     currentPage.value = result.currentPage;
     items.value = append ? items.value.concat(result.items) : result.items;
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    Notify.create({ type: 'negative', message });
+    FailAlert(e);
   } finally {
     loading.value = false;
   }
@@ -122,14 +122,10 @@ function confirmCancel(order: MarketplaceOrderView): void {
     Loading.show({ message: 'Отменяю заказ…' });
     try {
       const result = await cancelOrder(order.id);
-      Notify.create({
-        type: 'positive',
-        message: `Заказ отменён. Средства разблокированы (tx ${result.tx_hash.slice(0, 8)}).`,
-      });
+      SuccessAlert(`Заказ отменён. Средства разблокированы (tx ${result.tx_hash.slice(0, 8)}).`);
       await load(1, false);
     } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
-      Notify.create({ type: 'negative', message, timeout: 6000 });
+      FailAlert(e);
     } finally {
       Loading.hide();
     }

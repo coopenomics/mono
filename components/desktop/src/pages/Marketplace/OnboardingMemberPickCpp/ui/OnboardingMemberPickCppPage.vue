@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
-import { Notify } from 'quasar';
+import { SuccessAlert, FailAlert, NotifyAlert } from 'src/shared/api';
 import { useRouter } from 'vue-router';
 import {
   OnboardingCPPGate,
@@ -61,8 +61,7 @@ async function load(): Promise<void> {
   try {
     state.value = await fetchOnboardingState();
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    Notify.create({ type: 'negative', message });
+    FailAlert(e);
   } finally {
     loading.value = false;
   }
@@ -99,11 +98,7 @@ async function onAccept(_documentIds: string[]): Promise<void> {
     const confirmed =
       (!!state.value && !state.value.requires_gate) || (await waitForSignatureSynced());
     if (confirmed) {
-      Notify.create({
-        type: 'positive',
-        message: 'Оферта ЦПП «Стол заказов» подписана. Открываем стол заказчика…',
-        timeout: 1500,
-      });
+      SuccessAlert('Оферта ЦПП «Стол заказов» подписана. Открываем стол заказчика…');
       // Подпись синхронизирована: backend теперь выдаёт полные orderer-права
       // вместо маркера Onboarding:orderer. Перечитываем десктоп (гранты) и
       // переустанавливаем маршруты, затем ведём на первую доступную страницу
@@ -122,24 +117,17 @@ async function onAccept(_documentIds: string[]): Promise<void> {
     } else {
       // Синк не успел за отведённое окно — крайне редко; даём пользователю
       // явный сигнал перезагрузить страницу.
-      Notify.create({
-        type: 'info',
-        message: 'Подпись принята блокчейном и синхронизируется. Обновите страницу через несколько секунд.',
-      });
+      NotifyAlert('Подпись принята блокчейном и синхронизируется. Обновите страницу через несколько секунд.');
     }
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    Notify.create({ type: 'negative', message });
+    FailAlert(e);
   } finally {
     loading.value = false;
   }
 }
 
 function onDecline(): void {
-  Notify.create({
-    type: 'warning',
-    message: 'Без подписи ЦПП Стол заказов недоступен. Вернитесь, когда будете готовы.',
-  });
+  NotifyAlert('Без подписи ЦПП Стол заказов недоступен. Вернитесь, когда будете готовы.');
   void router.push({ name: 'wallet' });
 }
 

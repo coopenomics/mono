@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
-import { Dialog, Notify } from 'quasar';
+import { Dialog } from 'quasar';
+import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { BaseButton, BaseCard, BaseDialog, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import {
@@ -60,8 +61,7 @@ async function load(): Promise<void> {
     stats.value = st;
     allCategories.value = cats;
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    Notify.create({ type: 'negative', message });
+    FailAlert(e);
   } finally {
     loading.value = false;
   }
@@ -78,12 +78,11 @@ async function confirmAdd(): Promise<void> {
   adding.value = true;
   try {
     await addAvailableCategories(ids);
-    Notify.create({ type: 'positive', message: `Добавлено категорий: ${ids.length}` });
+    SuccessAlert(`Добавлено категорий: ${ids.length}`);
     addDialogOpen.value = false;
     await load();
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    Notify.create({ type: 'negative', message });
+    FailAlert(e);
   } finally {
     adding.value = false;
   }
@@ -99,11 +98,10 @@ function onRemove(item: MarketplaceAvailableCategoryView): void {
   }).onOk(async () => {
     try {
       await removeAvailableCategories([item.categoryId]);
-      Notify.create({ type: 'positive', message: 'Категория удалена из whitelist' });
+      SuccessAlert('Категория удалена из whitelist');
       await load();
     } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
-      Notify.create({ type: 'negative', message });
+      FailAlert(e);
     }
   });
 }

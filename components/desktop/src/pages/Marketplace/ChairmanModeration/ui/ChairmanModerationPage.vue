@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
-import { Dialog, Notify } from 'quasar';
+import { Dialog } from 'quasar';
+import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { Queries } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 import { marketplaceUnitShort } from 'src/shared/lib/consts';
@@ -113,8 +114,7 @@ async function loadPage(append: boolean): Promise<void> {
     total.value = page.totalCount;
     items.value = append ? items.value.concat(page.items) : page.items;
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    Notify.create({ type: 'negative', message });
+    FailAlert(e);
   } finally {
     loading.value = false;
   }
@@ -140,13 +140,9 @@ function onApprove(offer: MarketplacePendingOfferView): void {
       items.value = items.value.filter((o) => o.id !== offer.id);
       total.value = Math.max(0, total.value - 1);
       detailsOpen.value = false;
-      Notify.create({
-        type: 'positive',
-        message: `Предложение «${offer.product_name}» одобрено`,
-      });
+      SuccessAlert(`Предложение «${offer.product_name}» одобрено`);
     } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
-      Notify.create({ type: 'negative', message });
+      FailAlert(e);
     } finally {
       approving.value.delete(offer.id);
     }
@@ -175,13 +171,9 @@ function onReject(offer: MarketplacePendingOfferView): void {
       items.value = items.value.filter((o) => o.id !== offer.id);
       total.value = Math.max(0, total.value - 1);
       detailsOpen.value = false;
-      Notify.create({
-        type: 'positive',
-        message: `Предложение «${offer.product_name}» отклонено`,
-      });
+      SuccessAlert(`Предложение «${offer.product_name}» отклонено`);
     } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
-      Notify.create({ type: 'negative', message });
+      FailAlert(e);
     } finally {
       rejecting.value.delete(offer.id);
     }

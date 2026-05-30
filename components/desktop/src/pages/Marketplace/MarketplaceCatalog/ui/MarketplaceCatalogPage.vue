@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { Notify } from 'quasar';
+import { FailAlert } from 'src/shared/api';
 import {
   CatalogOfferCard,
   type CatalogOffer,
@@ -120,8 +120,7 @@ async function loadPage(append: boolean): Promise<void> {
     total.value = page.totalCount;
     items.value = append ? items.value.concat(page.items) : page.items;
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    Notify.create({ type: 'negative', message });
+    FailAlert(e);
   } finally {
     loading.value = false;
   }

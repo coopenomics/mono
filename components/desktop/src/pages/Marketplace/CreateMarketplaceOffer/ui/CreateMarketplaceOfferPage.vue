@@ -352,7 +352,7 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
 
 <script lang="ts" setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { Dialog, LocalStorage, Notify } from 'quasar';
+import { Dialog, LocalStorage } from 'quasar';
 import type { QForm } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { VerticalStepper } from 'src/shared/ui/domain/VerticalStepper';
@@ -490,7 +490,7 @@ function onWithdraw(): void {
     withdrawing.value = true;
     try {
       await withdrawOffer(editId.value as string);
-      Notify.create({ type: 'positive', message: 'Предложение снято с публикации.' });
+      SuccessAlert('Предложение снято с публикации.');
       void router.push({ name: 'marketplace-my-offers' });
     } catch (e) {
       FailAlert(e, 'Не удалось снять предложение');
@@ -514,10 +514,7 @@ function onTrigger(): void {
     triggering.value = true;
     try {
       await triggerOpenSubscription(editId.value as string);
-      Notify.create({
-        type: 'positive',
-        message: 'Поставка запущена: заказы зафиксированы в партию и приняты.',
-      });
+      SuccessAlert('Поставка запущена: заказы зафиксированы в партию и приняты.');
       void router.push({ name: 'marketplace-my-offers' });
     } catch (e) {
       FailAlert(e, 'Не удалось запустить поставку');
