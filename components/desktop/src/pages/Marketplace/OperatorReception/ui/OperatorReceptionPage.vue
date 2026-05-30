@@ -3,12 +3,17 @@ import type { QTableProps } from 'quasar';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { Loading } from 'quasar';
+import { Zeus } from '@coopenomics/sdk';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
-import { BaseBadge, BaseButton, BaseDialog, BaseInput, EmptyState } from 'src/shared/ui/base';
+import { BaseBadge, BaseButton, BaseDialog, EmptyState } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { QrScanner } from 'src/widgets/Marketplace/QrScanner';
+import {
+  listShipmentsByBraname,
+  type MarketplaceShipmentView,
+} from '../../OperatorIncomingShipments/api';
 import {
   createAplReception,
   listAplReceptionsByBraname,
@@ -17,11 +22,12 @@ import {
 import SignAplReceptionChairmanDialog from './SignAplReceptionChairmanDialog.vue';
 
 /**
- * Story 5.3 + 5.4: operator-стол приёмки партий.
+ * Story 5.3 + 5.4 + Эпик 14: operator-стол приёмки партий.
  *
- * Каркасная версия (598-18). Полный flow Варианта А (BarcodeScanner →
- * CorrectionTable → подпись на стойке) и Варианта Б (приём по ТТН с
- * расхождением) включается следующим UI PR.
+ * Оператор не вводит идентификатор партии руками — он либо выбирает
+ * ожидающую приёмки партию из списка (партии `SUPPLY_PREPARED`, прибывшие
+ * на его КУ), либо сканирует QR поставщика (Story 14.3). Оба пути зовут
+ * `createAplReception({ shipment_id })`.
  */
 
 // Активный КУ оператора — из общего контекста стола (без ввода кода вручную).
@@ -30,9 +36,23 @@ const store = useOperatorBranchStore();
 const coopname = computed(() => String(route.params.coopname ?? ''));
 const braname = computed(() => store.activeBraname ?? '');
 const items = ref<MarketplaceAplReceptionView[]>([]);
+const expectedShipments = ref<MarketplaceShipmentView[]>([]);
 const loading = ref(false);
 
-const shipmentIdInput = ref('');
+// Партии, прибывшие на КУ и ожидающие создания акта приёмки: статус
+// SUPPLY_PREPARED (после создания акта партия уходит в RECEPTION_IN_PROGRESS).
+const pendingShipments = computed(() =>
+  expectedShipments.value.filter(
+    (s) => s.status === Zeus.MarketplaceShipmentStatus.SUPPLY_PREPARED,
+  ),
+);
+
+const SHIPMENT_VARIANT_LABEL: Record<string, string> = {
+  SELF: 'Поставщик лично',
+  EXPEDITOR: 'Экспедитор по ТТН',
+  A: 'Поставщик лично',
+  B: 'Экспедитор по ТТН',
+};
 
 const RECEPTION_STATUS_LABEL: Record<string, string> = {
   PENDING_SUPPLIER_SIGN: 'Ждёт подписи поставщика',
@@ -84,11 +104,15 @@ async function load(): Promise<void> {
   if (!braname.value.trim()) return;
   loading.value = true;
   try {
-    const list = await listAplReceptionsByBraname(braname.value.trim());
-    items.value = [...list].sort(
+    const [receptions, shipments] = await Promise.all([
+      listAplReceptionsByBraname(braname.value.trim()),
+      listShipmentsByBraname({ braname: braname.value.trim() }),
+    ]);
+    items.value = [...receptions].sort(
       (a, b) =>
         (STATUS_SORT_PRIORITY[a.status] ?? 99) - (STATUS_SORT_PRIORITY[b.status] ?? 99),
     );
+    expectedShipments.value = shipments;
   } catch (e) {
     FailAlert(e, 'Не удалось загрузить акты приёмки');
   } finally {
@@ -96,16 +120,16 @@ async function load(): Promise<void> {
   }
 }
 
-async function createReceptionForShipment(): Promise<void> {
-  if (!shipmentIdInput.value.trim()) {
-    FailAlert(new Error('Укажите идентификатор партии.'));
+async function createReceptionForShipment(shipmentId: string): Promise<void> {
+  const id = shipmentId.trim();
+  if (!id) {
+    FailAlert(new Error('Не указана партия для приёмки.'));
     return;
   }
   Loading.show({ message: 'Создаю акт приёмки…' });
   try {
-    await createAplReception({ shipment_id: shipmentIdInput.value.trim() });
+    await createAplReception({ shipment_id: id });
     SuccessAlert('Акт приёмки создан');
-    shipmentIdInput.value = '';
     await load();
   } catch (e) {
     FailAlert(e, 'Не удалось создать акт приёмки');
@@ -115,13 +139,12 @@ async function createReceptionForShipment(): Promise<void> {
 }
 
 // QR-код передачи: поставщик показывает QR партии, оператор сканирует —
-// идентификатор подставляется и акт приёмки открывается без ручного ввода.
+// акт приёмки открывается по считанному shipment_id без ручного ввода.
 const scanDialogOpen = ref(false);
 
 async function onQrScanned(code: string): Promise<void> {
   scanDialogOpen.value = false;
-  shipmentIdInput.value = code;
-  await createReceptionForShipment();
+  await createReceptionForShipment(code);
 }
 
 const signDialogOpen = ref(false);
@@ -158,23 +181,32 @@ q-page.reception(role='region', aria-label='Приёмка партии')
 
   template(v-else)
     PageHint(storage-key='mp:operator-reception:banner-dismissed')
-      | Подтверждайте партии, прибывшие на ваш пункт выдачи: создайте акт приёмки и подпишите его председателем участка.
+      | Партии, прибывшие на ваш пункт выдачи, ждут приёмки ниже. Выберите партию
+      | (или отсканируйте QR поставщика), создайте акт приёмки и подпишите его
+      | председателем участка.
 
-    .reception__create
-      BaseInput.reception__create-input(
-        v-model='shipmentIdInput',
-        label='Идентификатор партии',
-        placeholder='shipment_id',
-        mono
-      )
-      BaseButton(variant='primary', @click='createReceptionForShipment')
-        template(#icon-left)
-          q-icon(name='add', size='16px')
-        | Создать акт приёмки
-      BaseButton(variant='secondary', @click='scanDialogOpen = true')
-        template(#icon-left)
-          q-icon(name='qr_code_scanner', size='16px')
-        | Сканировать QR
+    //- Ожидающие приёмки партии: выбор из списка вместо ручного ввода id.
+    //- QR-сканер — для тех, кто принимает с телефона (Story 14.3).
+    .reception__pending
+      .reception__pending-head
+        .reception__pending-title Ожидают приёмки
+        BaseButton(variant='secondary', size='sm', @click='scanDialogOpen = true')
+          template(#icon-left)
+            q-icon(name='qr_code_scanner', size='16px')
+          | Сканировать QR
+
+      .reception__empty(v-if='!pendingShipments.length') Нет партий, ожидающих приёмки на этом КУ.
+
+      .reception__ship(v-for='s in pendingShipments', :key='s.id')
+        .reception__ship-info
+          .reception__ship-offerer {{ s.offerer_account }}
+          .reception__ship-meta
+            | {{ SHIPMENT_VARIANT_LABEL[s.delivery_variant] ?? s.delivery_variant }} · {{ s.total_amount }} ₽
+            template(v-if='s.ttn_number')  · ТТН {{ s.ttn_number }}
+        BaseButton(variant='primary', size='sm', @click='createReceptionForShipment(s.id)')
+          template(#icon-left)
+            q-icon(name='add', size='16px')
+          | Создать акт приёмки
 
     q-table.reception__table(
       :rows='items',
@@ -203,7 +235,7 @@ q-page.reception(role='region', aria-label='Приёмка партии')
       template(#no-data)
         EmptyState(
           title='Актов приёмки нет',
-          body='Создайте акт по идентификатору прибывшей партии — он появится здесь для подписания.'
+          body='Выберите прибывшую партию выше и создайте акт — он появится здесь для подписания.'
         )
           template(#icon)
             q-icon(name='assignment_turned_in', size='48px')
@@ -225,15 +257,59 @@ q-page.reception(role='region', aria-label='Приёмка партии')
   flex-direction: column;
   gap: var(--p-4, 16px);
 
-  &__create {
+  &__pending {
     display: flex;
-    align-items: flex-end;
+    flex-direction: column;
+    gap: var(--p-2, 8px);
+    border: 1px solid var(--p-line);
+    border-radius: var(--p-r-md, 12px);
+    background: var(--p-surface);
+    padding: var(--p-4, 16px);
+  }
+
+  &__pending-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     gap: var(--p-3, 12px);
   }
 
-  &__create-input {
-    max-width: 320px;
-    width: 100%;
+  &__pending-title {
+    font-size: var(--p-fs-h3, 15px);
+    font-weight: 600;
+    color: var(--p-ink);
+  }
+
+  &__empty {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-3);
+    padding: var(--p-2, 8px) 0;
+  }
+
+  &__ship {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--p-3, 12px);
+    padding-top: var(--p-2, 8px);
+    border-top: 1px solid var(--p-line);
+  }
+
+  &__ship-info {
+    min-width: 0;
+  }
+
+  &__ship-offerer {
+    font-size: var(--p-fs-body, 14px);
+    font-weight: 600;
+    color: var(--p-ink);
+  }
+
+  &__ship-meta {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-2);
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
   }
 }
 
@@ -241,7 +317,7 @@ q-page.reception(role='region', aria-label='Приёмка партии')
   .reception {
     padding: var(--p-4, 16px);
 
-    &__create {
+    &__ship {
       flex-direction: column;
       align-items: stretch;
     }
