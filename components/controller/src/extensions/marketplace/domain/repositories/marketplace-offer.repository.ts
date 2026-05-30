@@ -90,6 +90,12 @@ export interface OfferCountersDeltaResult {
 
 export interface MarketplaceOfferDomainRepository {
   findById(id: string): Promise<MarketplaceOfferDomainEntity | null>;
+  /**
+   * Батч-выборка Offer'ов по набору id одним запросом. Используется для
+   * обогащения списков заказов отображаемыми реквизитами товара
+   * (название, единица измерения) без N+1.
+   */
+  findByIds(ids: string[]): Promise<MarketplaceOfferDomainEntity[]>;
   list(
     filter: OfferListFilter,
     pagination: PaginationInputDomainInterface

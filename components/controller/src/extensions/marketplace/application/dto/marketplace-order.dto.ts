@@ -107,11 +107,29 @@ export class MarketplaceOrderDTO {
   @Field(() => String, { description: 'Хеш предложения в блокчейне (snapshot на момент заказа).' })
   public readonly offer_hash!: string;
 
+  @Field(() => String, {
+    nullable: true,
+    description: 'Название товара из предложения — для отображения в карточке заказа.',
+  })
+  public readonly product_name!: string | null;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Единица измерения товара из предложения (шт., кг, л, упак.).',
+  })
+  public readonly unit_of_measure!: string | null;
+
   @Field(() => String, { description: 'Аккаунт поставщика.' })
   public readonly supplier_account!: string;
 
   @Field(() => String, { description: 'Имя пункта выдачи (ПВЗ), куда пайщик хочет получить заказ.' })
   public readonly delivery_braname!: string;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Адрес пункта выдачи — для отображения вместо служебного идентификатора ПВЗ.',
+  })
+  public readonly delivery_point_address!: string | null;
 
   @Field(() => Int, { description: 'Количество единиц товара в заказе.' })
   public readonly quantity!: number;
@@ -312,7 +330,23 @@ export function toMarketplaceOrderCreateTxSnapshotDTO(
   return new MarketplaceOrderCreateTxSnapshotDTO(s);
 }
 
-export function toMarketplaceOrderDTO(o: MarketplaceOrderDomainEntity): MarketplaceOrderDTO {
+/**
+ * Отображаемые реквизиты, которыми резолвер обогащает заказ для UI: название
+ * товара и единица измерения берутся из предложения, адрес — из детализации
+ * ПВЗ. Не хранятся на самом заказе (заказ ссылается на предложение/ПВЗ по id),
+ * поэтому подмешиваются в DTO на чтении. Best-effort: если предложение/ПВЗ не
+ * найдены — поля остаются null, клиент показывает запасной вид.
+ */
+export interface MarketplaceOrderDisplayFields {
+  product_name?: string | null;
+  unit_of_measure?: string | null;
+  delivery_point_address?: string | null;
+}
+
+export function toMarketplaceOrderDTO(
+  o: MarketplaceOrderDomainEntity,
+  display?: MarketplaceOrderDisplayFields
+): MarketplaceOrderDTO {
   return new MarketplaceOrderDTO({
     id: o.id,
     coopname: o.coopname,
@@ -320,8 +354,11 @@ export function toMarketplaceOrderDTO(o: MarketplaceOrderDomainEntity): Marketpl
     orderer_account: o.orderer_account,
     offer_id: o.offer_id,
     offer_hash: o.offer_hash,
+    product_name: display?.product_name ?? null,
+    unit_of_measure: display?.unit_of_measure ?? null,
     supplier_account: o.supplier_account,
     delivery_braname: o.delivery_braname,
+    delivery_point_address: display?.delivery_point_address ?? null,
     quantity: o.quantity,
     price_per_unit: o.price_per_unit,
     total_cost: o.total_cost,

@@ -8375,6 +8375,11 @@ type MarketplaceOrder {
   delivery_braname: String!
 
   """
+  Адрес пункта выдачи — для отображения вместо служебного идентификатора ПВЗ.
+  """
+  delivery_point_address: String
+
+  """
   Учётная запись стороны кооператива, поставившей подпись вместе с заказчиком.
   """
   delivery_signer_account: String
@@ -8408,6 +8413,9 @@ type MarketplaceOrder {
   """Цена за единицу товара на момент заказа."""
   price_per_unit: String!
 
+  """Название товара из предложения — для отображения в карточке заказа."""
+  product_name: String
+
   """Количество единиц товара в заказе."""
   quantity: Int!
 
@@ -8428,6 +8436,9 @@ type MarketplaceOrder {
 
   """Общая сумма заказа."""
   total_cost: String!
+
+  """Единица измерения товара из предложения (шт., кг, л, упак.)."""
+  unit_of_measure: String
 
   """Когда запись о заказе последний раз изменялась."""
   updated_at: DateTime!

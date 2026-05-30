@@ -7081,6 +7081,8 @@ export type ValueTypes = {
 	cycle_type?:boolean | `@${string}`,
 	/** Имя пункта выдачи (ПВЗ), куда пайщик хочет получить заказ. */
 	delivery_braname?:boolean | `@${string}`,
+	/** Адрес пункта выдачи — для отображения вместо служебного идентификатора ПВЗ. */
+	delivery_point_address?:boolean | `@${string}`,
 	/** Учётная запись стороны кооператива, поставившей подпись вместе с заказчиком. */
 	delivery_signer_account?:boolean | `@${string}`,
 	/** Идентификатор заказа. */
@@ -7101,6 +7103,8 @@ export type ValueTypes = {
 	orderer_signed_at?:boolean | `@${string}`,
 	/** Цена за единицу товара на момент заказа. */
 	price_per_unit?:boolean | `@${string}`,
+	/** Название товара из предложения — для отображения в карточке заказа. */
+	product_name?:boolean | `@${string}`,
 	/** Количество единиц товара в заказе. */
 	quantity?:boolean | `@${string}`,
 	/** Когда пайщик получил заказ. */
@@ -7115,6 +7119,8 @@ export type ValueTypes = {
 	supplier_account?:boolean | `@${string}`,
 	/** Общая сумма заказа. */
 	total_cost?:boolean | `@${string}`,
+	/** Единица измерения товара из предложения (шт., кг, л, упак.). */
+	unit_of_measure?:boolean | `@${string}`,
 	/** Когда запись о заказе последний раз изменялась. */
 	updated_at?:boolean | `@${string}`,
 	/** Срок гарантии в секундах с момента получения. */
@@ -17111,6 +17117,8 @@ export type ResolverInputTypes = {
 	cycle_type?:boolean | `@${string}`,
 	/** Имя пункта выдачи (ПВЗ), куда пайщик хочет получить заказ. */
 	delivery_braname?:boolean | `@${string}`,
+	/** Адрес пункта выдачи — для отображения вместо служебного идентификатора ПВЗ. */
+	delivery_point_address?:boolean | `@${string}`,
 	/** Учётная запись стороны кооператива, поставившей подпись вместе с заказчиком. */
 	delivery_signer_account?:boolean | `@${string}`,
 	/** Идентификатор заказа. */
@@ -17131,6 +17139,8 @@ export type ResolverInputTypes = {
 	orderer_signed_at?:boolean | `@${string}`,
 	/** Цена за единицу товара на момент заказа. */
 	price_per_unit?:boolean | `@${string}`,
+	/** Название товара из предложения — для отображения в карточке заказа. */
+	product_name?:boolean | `@${string}`,
 	/** Количество единиц товара в заказе. */
 	quantity?:boolean | `@${string}`,
 	/** Когда пайщик получил заказ. */
@@ -17145,6 +17155,8 @@ export type ResolverInputTypes = {
 	supplier_account?:boolean | `@${string}`,
 	/** Общая сумма заказа. */
 	total_cost?:boolean | `@${string}`,
+	/** Единица измерения товара из предложения (шт., кг, л, упак.). */
+	unit_of_measure?:boolean | `@${string}`,
 	/** Когда запись о заказе последний раз изменялась. */
 	updated_at?:boolean | `@${string}`,
 	/** Срок гарантии в секундах с момента получения. */
@@ -26816,6 +26828,8 @@ export type ModelTypes = {
 	cycle_type: ModelTypes["MarketplaceOrderCycleType"],
 	/** Имя пункта выдачи (ПВЗ), куда пайщик хочет получить заказ. */
 	delivery_braname: string,
+	/** Адрес пункта выдачи — для отображения вместо служебного идентификатора ПВЗ. */
+	delivery_point_address?: string | undefined | null,
 	/** Учётная запись стороны кооператива, поставившей подпись вместе с заказчиком. */
 	delivery_signer_account?: string | undefined | null,
 	/** Идентификатор заказа. */
@@ -26836,6 +26850,8 @@ export type ModelTypes = {
 	orderer_signed_at?: ModelTypes["DateTime"] | undefined | null,
 	/** Цена за единицу товара на момент заказа. */
 	price_per_unit: string,
+	/** Название товара из предложения — для отображения в карточке заказа. */
+	product_name?: string | undefined | null,
 	/** Количество единиц товара в заказе. */
 	quantity: number,
 	/** Когда пайщик получил заказ. */
@@ -26850,6 +26866,8 @@ export type ModelTypes = {
 	supplier_account: string,
 	/** Общая сумма заказа. */
 	total_cost: string,
+	/** Единица измерения товара из предложения (шт., кг, л, упак.). */
+	unit_of_measure?: string | undefined | null,
 	/** Когда запись о заказе последний раз изменялась. */
 	updated_at: ModelTypes["DateTime"],
 	/** Срок гарантии в секундах с момента получения. */
@@ -37466,6 +37484,8 @@ export type GraphQLTypes = {
 	cycle_type: GraphQLTypes["MarketplaceOrderCycleType"],
 	/** Имя пункта выдачи (ПВЗ), куда пайщик хочет получить заказ. */
 	delivery_braname: string,
+	/** Адрес пункта выдачи — для отображения вместо служебного идентификатора ПВЗ. */
+	delivery_point_address?: string | undefined | null,
 	/** Учётная запись стороны кооператива, поставившей подпись вместе с заказчиком. */
 	delivery_signer_account?: string | undefined | null,
 	/** Идентификатор заказа. */
@@ -37486,6 +37506,8 @@ export type GraphQLTypes = {
 	orderer_signed_at?: GraphQLTypes["DateTime"] | undefined | null,
 	/** Цена за единицу товара на момент заказа. */
 	price_per_unit: string,
+	/** Название товара из предложения — для отображения в карточке заказа. */
+	product_name?: string | undefined | null,
 	/** Количество единиц товара в заказе. */
 	quantity: number,
 	/** Когда пайщик получил заказ. */
@@ -37500,6 +37522,8 @@ export type GraphQLTypes = {
 	supplier_account: string,
 	/** Общая сумма заказа. */
 	total_cost: string,
+	/** Единица измерения товара из предложения (шт., кг, л, упак.). */
+	unit_of_measure?: string | undefined | null,
 	/** Когда запись о заказе последний раз изменялась. */
 	updated_at: GraphQLTypes["DateTime"],
 	/** Срок гарантии в секундах с момента получения. */

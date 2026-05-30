@@ -231,7 +231,7 @@ export class MarketplaceIssuanceResolver {
       coopname,
       data.delivery_braname
     );
-    return orders.map(toMarketplaceOrderDTO);
+    return orders.map((order) => toMarketplaceOrderDTO(order));
   }
 
   @Query(() => [MarketplaceOrderDTO], {
@@ -248,6 +248,6 @@ export class MarketplaceIssuanceResolver {
       config.coopname,
       member.username
     );
-    return orders.map(toMarketplaceOrderDTO);
+    return orders.map((order) => toMarketplaceOrderDTO(order));
   }
 }

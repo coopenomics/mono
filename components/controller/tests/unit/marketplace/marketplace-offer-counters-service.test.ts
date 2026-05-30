@@ -63,6 +63,7 @@ function makeOffer(overrides: Partial<MarketplaceOfferDomainEntity> = {}): Marke
 function makeRepo(): jest.Mocked<MarketplaceOfferDomainRepository> {
   return {
     findById: jest.fn(),
+    findByIds: jest.fn(),
     list: jest.fn(),
     countByCategory: jest.fn(),
     countRecentCreatedBy: jest.fn(),

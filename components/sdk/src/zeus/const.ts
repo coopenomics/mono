@@ -4192,6 +4192,7 @@ export const ReturnTypes: Record<string,any> = {
 		cycle_id:"String",
 		cycle_type:"MarketplaceOrderCycleType",
 		delivery_braname:"String",
+		delivery_point_address:"String",
 		delivery_signer_account:"String",
 		id:"String",
 		issuance_fact:"MarketplaceOrderIssuanceFactSnapshot",
@@ -4202,6 +4203,7 @@ export const ReturnTypes: Record<string,any> = {
 		orderer_account:"String",
 		orderer_signed_at:"DateTime",
 		price_per_unit:"String",
+		product_name:"String",
 		quantity:"Int",
 		received_at:"DateTime",
 		signiss1_tx_hash:"String",
@@ -4209,6 +4211,7 @@ export const ReturnTypes: Record<string,any> = {
 		status:"MarketplaceOrderStatus",
 		supplier_account:"String",
 		total_cost:"String",
+		unit_of_measure:"String",
 		updated_at:"DateTime",
 		warranty_period_secs:"Int",
 		warranty_until:"DateTime"

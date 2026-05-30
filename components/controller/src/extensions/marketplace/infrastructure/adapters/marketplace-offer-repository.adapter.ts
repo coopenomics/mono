@@ -30,6 +30,12 @@ export class MarketplaceOfferRepositoryAdapter implements MarketplaceOfferDomain
     return row ? this.mapper.toDomain(row) : null;
   }
 
+  async findByIds(ids: string[]): Promise<MarketplaceOfferDomainEntity[]> {
+    if (ids.length === 0) return [];
+    const rows = await this.repo.find({ where: { id: In(ids) } });
+    return rows.map((r) => this.mapper.toDomain(r));
+  }
+
   async list(
     filter: OfferListFilter,
     pagination: PaginationInputDomainInterface

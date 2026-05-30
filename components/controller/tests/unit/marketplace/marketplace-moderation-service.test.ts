@@ -75,6 +75,7 @@ function makeLog(overrides: Partial<MarketplaceModerationLogDomainEntity> = {}):
 function makeOfferRepo(): jest.Mocked<MarketplaceOfferDomainRepository> {
   return {
     findById: jest.fn(),
+    findByIds: jest.fn(),
     list: jest.fn(),
     countByCategory: jest.fn(),
     countRecentCreatedBy: jest.fn(),
