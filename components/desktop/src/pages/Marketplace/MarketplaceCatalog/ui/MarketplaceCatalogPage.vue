@@ -9,6 +9,7 @@ import {
 } from 'src/widgets/Marketplace/CatalogOfferCard';
 import { BaseSelect, BaseButton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
+import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { marketplaceUnitShort } from 'src/shared/lib/consts';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
 import {
@@ -48,6 +49,25 @@ const hasMore = computed(() => items.value.length < total.value);
 const totalActiveCount = computed(() =>
   Array.from(counts.value.values()).reduce((acc, v) => acc + v, 0)
 );
+
+// Категории как канон-вкладки (`PageTabs` со счётчиком). `key` — строковый id
+// категории (или 'all'), счётчик — число активных предложений в категории.
+const categoryTabs = computed<PageTab[]>(() => [
+  { key: 'all', label: 'Все', count: totalActiveCount.value },
+  ...categories.value.map((cat) => ({
+    key: String(cat.id),
+    label: cat.display_name,
+    count: counts.value.get(cat.id) ?? 0,
+  })),
+]);
+
+const activeCategoryKey = computed(() =>
+  selectedCategoryId.value === ALL_KEY ? 'all' : String(selectedCategoryId.value)
+);
+
+function onSelectCategory(tab: PageTab): void {
+  selectCategory(tab.key === 'all' ? ALL_KEY : Number(tab.key));
+}
 
 const sortOptions: Array<{ label: string; value: CatalogSort }> = [
   { label: 'Свежие сначала', value: 'created_at_desc' },
@@ -159,37 +179,18 @@ q-page.catalog(role="region", aria-label="Каталог Стола заказо
   PageHint(storage-key="mp:catalog:banner-dismissed")
     | Предложения поставщиков кооператива. Выберите товар или оформите заказ на ваш пункт выдачи.
 
-  .catalog__toolbar
-    .catalog__filters(role="tablist", aria-label="Фильтр по категориям")
-      .chip.catalog__chip(
-        :class="selectedCategoryId === ALL_KEY ? 'chip--accent' : 'chip--neutral'",
-        role="tab",
-        :aria-selected="selectedCategoryId === ALL_KEY",
-        tabindex="0",
-        @click="selectCategory(ALL_KEY)",
-        @keydown.enter="selectCategory(ALL_KEY)"
+  PageTabs.catalog__tabs(
+    :tabs="categoryTabs",
+    :active-key="activeCategoryKey",
+    @select="onSelectCategory"
+  )
+    template(#actions)
+      BaseSelect.catalog__sort(
+        :model-value="sort",
+        :options="sortOptions",
+        label="Сортировка",
+        @update:model-value="onSortChange"
       )
-        span Все
-        span.catalog__count {{ totalActiveCount }}
-      .chip.catalog__chip(
-        v-for="cat in categories",
-        :key="cat.id",
-        :class="selectedCategoryId === cat.id ? 'chip--accent' : 'chip--neutral'",
-        role="tab",
-        :aria-selected="selectedCategoryId === cat.id",
-        tabindex="0",
-        @click="selectCategory(cat.id)",
-        @keydown.enter="selectCategory(cat.id)"
-      )
-        span {{ cat.display_name }}
-        span.catalog__count {{ counts.get(cat.id) ?? 0 }}
-    q-space
-    BaseSelect.catalog__sort(
-      :model-value="sort",
-      :options="sortOptions",
-      label="Сортировка",
-      @update:model-value="onSortChange"
-    )
 
   q-inner-loading(:showing="loading && items.length === 0")
     q-spinner(color="primary", size="2em")
@@ -232,32 +233,14 @@ q-page.catalog(role="region", aria-label="Каталог Стола заказо
   flex-direction: column;
   gap: var(--p-4, 16px);
 
-  &__toolbar {
-    display: flex;
-    align-items: center;
-    gap: var(--p-3, 12px);
-    flex-wrap: wrap;
-  }
+  // Канон-`.tabbar` тянется во всю ширину; гасим его внутренний горизонтальный
+  // паддинг, чтобы вкладки шли от края страницы (у страницы свои отступы).
+  &__tabs {
+    margin: 0 calc(-1 * var(--p-6, 24px));
 
-  &__filters {
-    display: flex;
-    gap: var(--p-2, 8px);
-    overflow-x: auto;
-    flex-wrap: nowrap;
-    padding-bottom: var(--p-1, 4px);
-    flex: 1 1 auto;
-    min-width: 0;
-  }
-
-  &__chip {
-    cursor: pointer;
-    user-select: none;
-    white-space: nowrap;
-  }
-
-  &__count {
-    color: var(--p-ink-3);
-    font-variant-numeric: tabular-nums;
+    :deep(.tabbar__tabs) {
+      padding: 0 var(--p-6, 24px);
+    }
   }
 
   &__sort {

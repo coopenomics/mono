@@ -10,6 +10,7 @@ import {
   toOrderCardModel,
   type Order as OrderCardModel,
 } from 'src/widgets/Marketplace/OrderCard';
+import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
 import {
   acceptConsolidatedRequest,
   acceptIndividualOrder,
@@ -59,6 +60,11 @@ const showSkeleton = computed(() => loading.value && items.value.length === 0);
 // фильтровала только сводный статус, и индивидуальный заказ с кнопкой
 // «Принять» в неё не попадал (отдельная вкладка «Индивидуальные» путала).
 // `key` — стабильный слаг в URL (`?status=pending-accept`) для прямых ссылок.
+// Покрытие исчерпывающее по enum'у MarketplaceOrderStatusView: каждый статус
+// заказа попадает хотя бы в одну вкладку, иначе при фильтрации заказ молча
+// «растекается» — пропадает из всех вкладок, кроме «Все». READY_TO_RECEIVE для
+// поставщика — продолжение «у кооператива»; EXPIRED_*/RETURNED — терминальные
+// вместе с отменами.
 const FILTERS: Array<{ key: string; label: string; statuses: MarketplaceOrderStatusView[] | null }> = [
   { key: 'all', label: 'Все', statuses: null },
   {
@@ -68,9 +74,23 @@ const FILTERS: Array<{ key: string; label: string; statuses: MarketplaceOrderSta
   },
   { key: 'accepted', label: 'Приняты', statuses: ['ACCEPTED'] },
   { key: 'supply-prepared', label: 'Поставка готова', statuses: ['SUPPLY_PREPARED'] },
-  { key: 'accepted-to-coop', label: 'Приняты кооперативом', statuses: ['ACCEPTED_TO_COOP'] },
+  {
+    key: 'accepted-to-coop',
+    label: 'У кооператива',
+    statuses: ['ACCEPTED_TO_COOP', 'READY_TO_RECEIVE'],
+  },
   { key: 'received', label: 'Получены', statuses: ['RECEIVED'] },
-  { key: 'cancelled', label: 'Отменены', statuses: ['CANCELLED_BY_ORDERER', 'CANCELLED_BY_SUPPLIER'] },
+  {
+    key: 'closed',
+    label: 'Отменены',
+    statuses: [
+      'CANCELLED_BY_ORDERER',
+      'CANCELLED_BY_SUPPLIER',
+      'EXPIRED_NO_THRESHOLD',
+      'EXPIRED_NO_VOLUME',
+      'RETURNED',
+    ],
+  },
 ];
 
 const tabs = computed<PageTab[]>(() => FILTERS.map((f) => ({ key: f.key, label: f.label })));
@@ -216,15 +236,7 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
 
     PageTabs.incoming-orders__tabs(:tabs='tabs', :active-key='activeKey', @select='onSelectTab')
       template(#actions)
-        BaseButton(
-          variant='ghost',
-          icon-only,
-          aria-label='Обновить',
-          :loading='loading',
-          @click='load(1, false)'
-        )
-          template(#icon-left)
-            q-icon(name='refresh', size='20px')
+        RefreshButton(:loading='loading', @refresh='load(1, false)')
 
     //- Скелетон вместо спиннера — каркас карточек проявляется сразу.
     .row.q-col-gutter-md(v-if='showSkeleton')

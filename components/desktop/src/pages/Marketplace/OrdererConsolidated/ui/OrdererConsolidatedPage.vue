@@ -6,7 +6,8 @@ import {
   orderStatusDisplay,
   toOrderCardModel,
 } from 'src/widgets/Marketplace/OrderCard';
-import { BaseButton, EmptyState } from 'src/shared/ui/base';
+import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
+import { EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { fetchMyOrders } from '../../MyOrders/api';
 import type {
@@ -169,14 +170,12 @@ onUnmounted(() => {
 
 <template lang="pug">
 q-page.consolidated(role="region", aria-label="Сводный заказ")
+  //- Действие страницы — в шапку, где стоят общие действия (канон Teleport).
+  Teleport(to="#header-actions-host", defer)
+    RefreshButton(:loading="loading", @refresh="load")
+
   PageHint(storage-key="mp:consolidated:banner-dismissed")
     | Партии заказов, сгруппированные по циклу. Несколько ваших заказов в одной партии обслуживаются совместно — на одном цикле, с одной поставкой.
-
-  .consolidated__toolbar
-    q-space
-    BaseButton(variant="ghost", iconOnly, ariaLabel="Обновить", :loading="loading", @click="load")
-      template(#icon-left)
-        q-icon(name="refresh", size="18px")
 
   q-inner-loading(:showing="loading && items.length === 0")
     q-spinner(color="primary", size="2em")
@@ -235,11 +234,6 @@ q-page.consolidated(role="region", aria-label="Сводный заказ")
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
-
-  &__toolbar {
-    display: flex;
-    align-items: center;
-  }
 
   &__list {
     display: flex;

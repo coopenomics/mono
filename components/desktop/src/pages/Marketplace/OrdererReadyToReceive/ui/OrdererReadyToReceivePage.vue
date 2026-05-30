@@ -2,7 +2,8 @@
 import type { QTableProps } from 'quasar';
 import { onMounted, ref } from 'vue';
 import { FailAlert } from 'src/shared/api';
-import { BaseButton, EmptyState } from 'src/shared/ui/base';
+import { EmptyState } from 'src/shared/ui/base';
+import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
 import { PageHint } from 'src/shared/ui/domain';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import { listMyReadyToReceive, type MarketplaceOrderIssuanceView } from '../api';
@@ -77,15 +78,12 @@ onMounted(load);
 
 <template lang="pug">
 q-page.ready(role="region", aria-label="Готово к получению")
+  //- Действие страницы — в шапку, где стоят общие действия (канон Teleport).
+  Teleport(to="#header-actions-host", defer)
+    RefreshButton(:loading="loading", @refresh="load")
+
   PageHint(storage-key="mp:ready-to-receive:banner-dismissed")
     | Оператор открыл выдачу этих заказов на пункте. Приходите на участок для сверки имущества и финальной подписи.
-
-  .ready__toolbar
-    q-space
-    BaseButton(variant="ghost", :loading="loading", @click="load")
-      template(#icon-left)
-        q-icon(name="refresh", size="18px")
-      | Обновить
 
   q-table(
     :rows="items",
@@ -110,11 +108,6 @@ q-page.ready(role="region", aria-label="Готово к получению")
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
-
-  &__toolbar {
-    display: flex;
-    align-items: center;
-  }
 }
 
 @media (max-width: 768px) {

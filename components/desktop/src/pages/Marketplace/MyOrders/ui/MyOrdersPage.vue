@@ -33,9 +33,13 @@ const activeKey = ref('all');
 
 const hasMore = computed(() => currentPage.value < totalPages.value);
 
-// Фильтр по этапу. Вкладка может покрывать несколько статусов: «Ждут
-// поставщика» — и сводные, и индивидуальные заказы (оба ждут акцепта
-// поставщика), иначе индивидуальный заказ в неё не попадал.
+// Фильтр по этапу. Покрытие ИСЧЕРПЫВАЮЩЕЕ по enum'у MarketplaceOrderStatusView:
+// каждый статус заказа попадает хотя бы в одну вкладку. Иначе заказ молча
+// «растекается» — пропадает из всех вкладок, кроме «Все» (баг: молоко в статусе
+// SUPPLY_PREPARED не показывалось нигде). Вкладка может покрывать несколько
+// статусов: «Ждут поставщика» — сводные и индивидуальные (оба ждут акцепта);
+// «Готовятся» — принят → готовится → принят кооперативом (для заказчика это
+// единый этап «в работе»); «Отменены» — отмены, истёкшие циклы и возвраты.
 const FILTERS: Array<{ key: string; label: string; statuses: MarketplaceOrderStatusView[] | null }> = [
   { key: 'all', label: 'Все', statuses: null },
   { key: 'active', label: 'Активные', statuses: ['ACTIVE'] },
@@ -44,13 +48,23 @@ const FILTERS: Array<{ key: string; label: string; statuses: MarketplaceOrderSta
     label: 'Ждут поставщика',
     statuses: ['ACCEPTED_PENDING_SUPPLIER', 'ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL'],
   },
-  { key: 'accepted', label: 'Приняты', statuses: ['ACCEPTED'] },
+  {
+    key: 'in-progress',
+    label: 'Готовятся',
+    statuses: ['ACCEPTED', 'SUPPLY_PREPARED', 'ACCEPTED_TO_COOP'],
+  },
   { key: 'ready', label: 'Готовы к выдаче', statuses: ['READY_TO_RECEIVE'] },
   { key: 'received', label: 'Получены', statuses: ['RECEIVED'] },
   {
-    key: 'cancelled',
+    key: 'closed',
     label: 'Отменены',
-    statuses: ['CANCELLED_BY_ORDERER', 'CANCELLED_BY_SUPPLIER'],
+    statuses: [
+      'CANCELLED_BY_ORDERER',
+      'CANCELLED_BY_SUPPLIER',
+      'EXPIRED_NO_THRESHOLD',
+      'EXPIRED_NO_VOLUME',
+      'RETURNED',
+    ],
   },
 ];
 
