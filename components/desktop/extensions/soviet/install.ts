@@ -6,6 +6,7 @@ import { PaymentsPage } from 'src/pages/Cooperative/Payments';
 import { ListOfMeetsPage } from 'src/pages/Cooperative/ListOfMeets';
 import { MeetDetailsPage } from 'src/pages/Cooperative/MeetDetails';
 import { UnionPageListOfCooperatives } from 'src/pages/Union/ListOfCooperatives';
+import { UnionPageCooperativeDetail } from 'src/pages/Union/CooperativeDetail';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
 
 export default async function (): Promise<IWorkspaceConfig[]> {
@@ -88,6 +89,18 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             component: markRaw(UnionPageListOfCooperatives),
             meta: {
               title: 'Реестр кооперативов',
+              icon: 'fa-solid fa-handshake',
+              roles: ['chairman', 'member'],
+              conditions: 'coopname === "voskhod"',
+              requiresAuth: true,
+            },
+          },
+          {
+            path: 'union/cooperatives/:detailCoopname',
+            name: 'union-cooperative-detail',
+            component: markRaw(UnionPageCooperativeDetail),
+            meta: {
+              title: 'Кооператив',
               icon: 'fa-solid fa-handshake',
               roles: ['chairman', 'member'],
               conditions: 'coopname === "voskhod"',

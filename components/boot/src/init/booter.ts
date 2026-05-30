@@ -29,12 +29,22 @@ export async function bootExtra() {
   // провайдере (PENDING→RENT). boot:extra используется НЕ только для аренды
   // сервера (например, просто пересев совета/чейна для других задач), поэтому
   // провижининг partner1 включается ТОЛЬКО под флагом EXTRA_RENT=1.
+  //
+  // EXTRA_SEED=1 (взаимоисключающее с EXTRA_RENT) — сидит partner1 как
+  // пайщика-organization Восхода (newaccount + reguser + wallet-signagree +
+  // засев coopback) БЕЗ regcoop+preInit. Pre-state для ручного прохода
+  // ConnectionAgreement: signin под WIF из фикстуры → UI выбора тарифа /
+  // подписания / активации руками. EXTRA_RENT приоритетен.
   if (process.env.EXTRA_RENT === '1') {
     console.log('EXTRA_RENT=1 → installExtraData: провижининг partner1 (триггер аренды)')
-    await installExtraData(blockchain) // Регистрируем partner1 как coop (active)
+    await installExtraData(blockchain, 'full')
+  }
+  else if (process.env.EXTRA_SEED === '1') {
+    console.log('EXTRA_SEED=1 → installExtraData (candidate): partner1 — пайщик-organization, готов к UI Connect')
+    await installExtraData(blockchain, 'candidate')
   }
   else {
-    console.log('EXTRA_RENT не задан → пропускаем провижининг partner1 (аренда не запускается)')
+    console.log('EXTRA_RENT/EXTRA_SEED не заданы → пропускаем провижининг partner1')
   }
 
   console.log('Инициализируем статус системы в PostgreSQL')

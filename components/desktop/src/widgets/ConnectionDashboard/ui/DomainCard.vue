@@ -1,95 +1,61 @@
 <template lang="pug">
 .domain-card
-  ColorCard(color='blue', @click.stop)
-    // Заголовок
-    .domain-header
-      .domain-title
-        q-icon(name="domain" size="20px").q-mr-sm
-        | Подключение
+  BaseCard(title="Подключение" subtitle="Доменное имя цифрового кооператива у провайдера")
+    template(#actions)
+      .domain-card__actions
+        BaseChip(
+          :variant="isDelegatingLoading ? 'neutral' : (instance?.is_delegated ? 'pos' : 'warn')"
+          size="sm"
+        )
+          q-icon(v-if="isDelegatingLoading" name="autorenew" size="12px").q-mr-xs.domain-card__spin
+          q-icon(v-else-if="instance?.is_delegated" name="check" size="12px").q-mr-xs
+          q-icon(v-else name="schedule" size="12px").q-mr-xs
+          span {{ delegationLabel }}
+        BaseButton(
+          v-if="!isEditing"
+          variant="secondary"
+          size="sm"
+          type="button"
+          aria-label="Изменить домен"
+          @click="startEdit"
+        )
+          q-icon(name="edit" size="14px").q-mr-xs
+          | Изменить
 
-      // Отображение или редактирование домена
-      .domain-display
-        .flex.items-center
-          .domain-text.full-width
-            template(v-if="!isEditing")
-              div.q-pa-md.text-h6.q-mr-sm {{ coop.publicCooperativeData?.announce || '—' }}
-                q-btn(
-                  flat
-                  round
-                  icon="edit"
-                  size="sm"
-                  color="primary"
-                  @click="startEdit"
-                )
-                  q-tooltip Редактировать домен
-            div(v-else).q-pa-sm
-              .domain-warning.q-mb-md.full-width
-                .text-caption.text-orange-8.q-mb-sm
-                  | ⚠️ Убедитесь, что домен делегирован IP-адрес: {{ SERVER_IP }}.
-                  | Обновление домена перезагрузит цифровой кооператив.
-                  | Все данные будут сохранены.
+    template(v-if="!isEditing")
+      .domain-card__view
+        .domain-card__host.t-mono {{ coop.publicCooperativeData?.announce || '—' }}
 
-              q-input(
-                v-model="domainValue"
-                placeholder="Введите домен"
-                outlined
-                dense
-                autofocus
-                @keyup.enter="saveDomain"
-                @keyup.escape="cancelEdit"
-                :rules="[(val) => !!val || 'Домен обязателен']"
-              ).full-width.q-mt-md
-                template(#prepend)
-                  q-btn(
-                    flat
-                    round
-                    icon="close"
-                    size="sm"
-                    color="negative"
-                    @click="cancelEdit"
-                  )
-                    q-tooltip Отменить
-                template(#append)
-                  q-btn(
-                    flat
-                    round
-                    icon="check"
-                    size="sm"
-                    color="positive"
-                    @click="saveDomain"
-                  )
-                    q-tooltip Сохранить
+    template(v-else)
+      BaseBanner(variant="warn").q-mb-md
+        | Убедитесь, что домен делегирован на IP {{ SERVER_IP }}.
+        | Обновление перезагрузит цифровой кооператив; данные сохранятся.
 
+      BaseInput(
+        v-model="domainValue"
+        label="Доменное имя"
+        placeholder="example.coopenomics.world"
+        mono
+      )
 
-      .row
-        //- .col-6
-          //- .text-caption.text-grey-7 Членство в союзе
-          //- .text-body2.text-weight-medium
-          //-   q-chip(
-          //-     :color="getMembershipStatusColor"
-          //-     outline
-          //-     size="sm"
-          //-   ) {{ getMembershipStatusLabel }}
-        .col-6
-          .text-caption.text-grey-7 Домен делегирован
-          .text-body2.text-weight-medium
-            q-chip(
-              :color="isDelegatingLoading ? 'grey' : (instance?.is_delegated ? 'positive' : 'grey')"
-              outline
-              size="sm"
-            )
-              template(v-if="isDelegatingLoading")
-                q-spinner(color="white" size="16px")
-              template(v-else)
-                q-icon(
-                  v-if="!instance?.is_delegated"
-                  name="refresh"
-                  size="14px"
-                  class="q-ml-xs rotating-icon"
-                  color="grey-5"
-                )
-                span {{ instance?.is_delegated ? 'Да' : 'Обновляем' }}
-
+      .domain-card__edit-actions.q-mt-sm
+        BaseButton(
+          variant="primary"
+          size="sm"
+          type="button"
+          :loading="isDelegatingLoading"
+          @click="saveDomain"
+        )
+          q-icon(name="check" size="14px").q-mr-xs
+          | Сохранить
+        BaseButton(
+          variant="ghost"
+          size="sm"
+          type="button"
+          @click="cancelEdit"
+        )
+          q-icon(name="close" size="14px").q-mr-xs
+          | Отменить
 </template>
 
 <script setup lang="ts">
@@ -99,76 +65,62 @@ import { useCooperativeStore } from 'src/entities/Cooperative'
 import { useUpdateCoop } from 'src/features/Cooperative/UpdateCoop'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { useSessionStore } from 'src/entities/Session'
-import { ColorCard } from 'src/shared/ui'
+import {
+  BaseBanner,
+  BaseButton,
+  BaseCard,
+  BaseChip,
+  BaseInput,
+} from 'src/shared/ui/base'
 import { useProviderSubscriptions } from 'src/features/Provider/model'
 
 const connectionAgreement = useConnectionAgreementStore()
-
 const coop = useCooperativeStore()
 const { updateCoop } = useUpdateCoop()
 const session = useSessionStore()
 const { SERVER_IP } = useProviderSubscriptions()
-// Получаем instance напрямую из store
 const instance = computed(() => connectionAgreement.currentInstance)
 
-// Цвет статуса членства
-// const getMembershipStatusColor = computed(() => {
-//   if (instance.value?.blockchain_status === 'active') return 'positive'
-//   if (instance.value?.blockchain_status === 'pending') return 'warning'
-//   if (instance.value?.blockchain_status === 'blocked') return 'negative'
-//   return 'grey'
-// })
-
-// // Метка статуса членства
-// const getMembershipStatusLabel = computed(() => {
-//   if (instance.value?.blockchain_status === 'active') return 'Активно'
-//   if (instance.value?.blockchain_status === 'pending') return 'Ожидает подтверждения'
-//   if (instance.value?.blockchain_status === 'blocked') return 'Заблокировано'
-//   return 'Неизвестно'
-// })
-
-// Состояние редактирования домена
 const isEditing = ref(false)
 const domainValue = ref('')
 const isDelegatingLoading = ref(false)
 
-// Загружаем данные кооператива при монтировании
+const delegationLabel = computed(() => {
+  if (isDelegatingLoading.value) return 'обновляем'
+  return instance.value?.is_delegated ? 'домен делегирован' : 'ожидание делегирования'
+})
+
 coop.loadPublicCooperativeData(session.username)
 
-// Синхронизируем значение домена при изменении данных кооператива
-watch(() => coop?.publicCooperativeData?.announce, (newAnnounce) => {
-  if (newAnnounce && !isEditing.value) {
-    domainValue.value = newAnnounce
-  }
-}, { immediate: true })
+watch(
+  () => coop?.publicCooperativeData?.announce,
+  (newAnnounce) => {
+    if (newAnnounce && !isEditing.value) domainValue.value = newAnnounce
+  },
+  { immediate: true },
+)
 
-// Начать редактирование
 const startEdit = () => {
   isEditing.value = true
   domainValue.value = coop?.publicCooperativeData?.announce || ''
 }
 
-// Отменить редактирование
 const cancelEdit = () => {
   isEditing.value = false
   domainValue.value = coop?.publicCooperativeData?.announce || ''
 }
 
-// Сохранить домен
 const saveDomain = async () => {
   if (!domainValue.value.trim()) {
     FailAlert('Домен не может быть пустым')
     return
   }
-
   if (!coop.publicCooperativeData) {
     FailAlert('Не удалось получить данные кооператива')
     return
   }
-
   try {
     isDelegatingLoading.value = true
-
     await updateCoop({
       coopname: session.username,
       username: session.username,
@@ -176,16 +128,13 @@ const saveDomain = async () => {
       minimum: coop.publicCooperativeData.minimum,
       org_initial: coop.publicCooperativeData.org_initial,
       org_minimum: coop.publicCooperativeData.org_minimum,
-      announce: domainValue.value.trim(), // Обновляем announce (домен)
-      description: coop.publicCooperativeData.description
+      announce: domainValue.value.trim(),
+      description: coop.publicCooperativeData.description,
     })
-
-    // Перезагружаем данные
     await coop.loadPublicCooperativeData(session.username)
     await connectionAgreement.loadCurrentInstance()
-
     isEditing.value = false
-    SuccessAlert('Домен успешно обновлен')
+    SuccessAlert('Домен успешно обновлён')
   } catch (error: any) {
     FailAlert(`Ошибка при обновлении домена: ${error.message}`)
   } finally {
@@ -194,49 +143,33 @@ const saveDomain = async () => {
 }
 </script>
 
-<style lang="scss" scoped>
-.domain-card {
-  padding: 8px;
-
-  // Переопределяем отступ ColorCard только для этого виджета
-  :deep(.color-card) {
-    margin-bottom: 0 !important;
-  }
-
-  .domain-header {
-    margin-bottom: 12px;
-
-    .domain-title {
-      display: flex;
-      align-items: center;
-      font-size: 14px;
-      font-weight: 600;
-    }
-  }
-
-  .domain-display {
-    .domain-text {
-      display: flex;
-      align-items: center;
-
-      .text-h6 {
-        margin-right: 8px;
-      }
-    }
-  }
-
-  // Анимация вращения иконки обновления
-  .rotating-icon {
-    animation: rotate 2s linear infinite;
-  }
-
-  @keyframes rotate {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
-    }
-  }
+<style scoped>
+.domain-card__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2);
+}
+.domain-card__view {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2);
+  padding: var(--p-2) 0;
+}
+.domain-card__host {
+  font-size: var(--p-fs-h2);
+  font-weight: 600;
+  color: var(--p-ink);
+  word-break: break-all;
+  flex: 1;
+}
+.domain-card__edit-actions {
+  display: flex;
+  gap: var(--p-2);
+}
+.domain-card__spin {
+  animation: domain-card-rotate 1.6s linear infinite;
+}
+@keyframes domain-card-rotate {
+  to { transform: rotate(360deg); }
 }
 </style>

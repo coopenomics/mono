@@ -1,243 +1,274 @@
 <template lang="pug">
-  div
-    q-table(
-      v-if="coops"
-      ref="tableRef" v-model:expanded="expanded"
-      flat
-      :rows="coops"
-      :columns="columns"
-      :table-colspan="9"
-      row-key="coopname"
-      :pagination="pagination"
-      virtual-scroll
-      :virtual-scroll-item-size="48"
-      :rows-per-page-options="[10]"
-      :loading="onLoading"
-      :no-data-label="'Нет кооперативов'"
-    ).full-height
-      template(#top)
+.coop-registry.q-pa-md
+  .banner
+    q-icon.banner__icon(name="info" size="18px")
+    .banner__body
+      | Заявки на подключение к платформе и состояние подписок у провайдера.
 
+  Loader(v-if="onLoading" :text="'Загрузка реестра...'")
 
-      template(#header="props")
+  EmptyState(
+    v-else-if="!coops || !coops.length"
+    title="Нет кооперативов"
+    body="В реестре пока нет заявок на подключение"
+  )
 
-        q-tr(:props="props")
-          q-th(auto-width)
+  .coop-registry__list(v-else)
+    BaseCard.coop-registry__card(
+      v-for="row in coops"
+      :key="row.coopname"
+      :title="row.name || row.coopname"
+      :subtitle="cardSubtitle(row)"
+      @click="openDetail(row.coopname)"
+    )
+      template(#actions)
+        .coop-registry__head-actions
+          BaseChip(:variant="registryStatusVariant(row.status)" size="sm")
+            span {{ registryStatusLabel(row.status) }}
+          BaseButton(
+            v-if="row.status !== 'active'"
+            variant="ghost"
+            size="sm"
+            type="button"
+            @click.stop="activate(row.coopname)"
+          ) Активировать
+          BaseButton(
+            v-if="row.status !== 'blocked'"
+            variant="ghost"
+            size="sm"
+            type="button"
+            @click.stop="block(row.coopname)"
+          ) Заблокировать
 
-          q-th(
-            v-for="col in props.cols"
-            :key="col.name"
-            :props="props"
-          ) {{ col.label }}
+      .coop-registry__summary
+        .coop-registry__metric
+          .coop-registry__metric-label Подписок
+          .coop-registry__metric-value.t-mono {{ row.subscriptions?.length || 0 }}
+        .coop-registry__metric
+          .coop-registry__metric-label Сумма в месяц
+          .coop-registry__metric-value.t-mono
+            | {{ formatMoney(monthlyTotal(row)) }} RUB
+        .coop-registry__metric
+          .coop-registry__metric-label Следующая оплата
+          .coop-registry__metric-value.t-mono {{ nextPaymentLabel(row) }}
+        .coop-registry__metric
+          .coop-registry__metric-label Хостинг
+          .coop-registry__metric-value
+            BaseChip(v-if="hostingStatus(row)" :variant="instanceStatusVariant(hostingStatus(row))" size="sm")
+              span {{ instanceStatusLabel(hostingStatus(row)) }}
+            span.t-muted(v-else) нет
+</template>
 
-      template(#body="props")
-        q-tr(:key="`m_${props.row.coopname}`" :props="props")
-          q-td(auto-width)
-            q-btn(size="sm" color="primary" round dense :icon="props.expand ? 'remove' : 'add'" @click="props.expand = !props.expand")
-          q-td {{ props.row.coopname }}
-          q-td {{ props.row.announce }}
+<script setup lang="ts">
+import { computed, ref } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import moment from 'src/shared/lib/utils/dates/moment'
+import {
+  BaseButton,
+  BaseCard,
+  BaseChip,
+  EmptyState,
+} from 'src/shared/ui/base'
+import Loader from 'src/shared/ui/Loader/Loader.vue'
+import { useLoadCooperatives } from 'src/features/Union/LoadCooperatives'
+import { useActivateCooperative } from 'src/features/Union/ActivateCooperative'
+import { useBlockCooperative } from 'src/features/Union/BlockCooperative'
+import { useUnionStore } from 'src/entities/Union/model'
+import type { ICooperativeRegistryItem } from 'src/entities/Union/model'
+import { FailAlert, SuccessAlert } from 'src/shared/api/alerts'
 
-          q-td
-            q-badge(v-if="props.row.status === 'active'" color="teal") активен
-            q-badge(v-else-if="props.row.status === 'pending'" color="orange") на рассмотрении
-            q-badge(v-else-if="props.row.status === 'blocked'" color="red") заблокирован
-            q-badge(v-else color="grey") {{ props.row.status }}
+type ICooperativeSubscription = ICooperativeRegistryItem['subscriptions'][number]
+type BaseChipVariant = 'neutral' | 'accent' | 'pos' | 'neg' | 'warn' | 'info'
 
-          q-td
-            template(v-if="hostingStatus(props.row)")
-              q-badge(:color="instanceStatusColor(hostingStatus(props.row))") {{ instanceStatusLabel(hostingStatus(props.row)) }}
-              span.text-caption.q-ml-xs(v-if="installationProgress(props.row) != null") {{ installationProgress(props.row) }}%
-            span.text-grey(v-else-if="props.row.has_provider_data") —
-            span.text-grey(v-else) нет подписки
+const router = useRouter()
+const route = useRoute()
+const union = useUnionStore()
+const { loadCooperatives } = useLoadCooperatives()
 
-          q-td
-            span(v-if="monthlyCost(props.row) > 0") {{ formatMoney(monthlyCost(props.row)) }} ₽/мес
-            span.text-grey(v-else) —
+const coops = computed(() => union.coops)
 
-          q-td {{ props.row.created_at ? moment(props.row.created_at).format('DD.MM.YY HH:mm:ss') : '—' }}
+const onLoading = ref(false)
 
-          q-td
-            q-btn-dropdown( label="действия" flat size="sm")
-              q-list
-                q-item(v-if="props.row.status !== 'active'" clickable v-close-popup @click="activate(props.row.coopname)")
-                  q-item-section
-                    q-item-label Активировать
-                q-item(v-if="props.row.status !== 'blocked'" clickable v-close-popup @click="block(props.row.coopname)")
-                  q-item-section
-                    q-item-label Заблокировать
-
-        q-tr(v-show="props.expand" :key="`e_${props.row.coopname}`" :props="props" class="q-virtual-scroll--with-prev")
-          q-td(colspan="100%")
-            div.q-pa-sm
-              div.text-subtitle2.q-mb-sm Подписки у провайдера
-
-              q-markup-table(v-if="props.row.subscriptions && props.row.subscriptions.length" flat dense bordered)
-                thead
-                  tr
-                    th.text-left Тип
-                    th.text-left Статус подписки
-                    th.text-left Стоимость
-                    th.text-left Действует до
-                    th.text-left Инстанс
-                    th.text-left Прогресс
-                tbody
-                  tr(v-for="sub in props.row.subscriptions" :key="sub.id")
-                    td.text-left
-                      | {{ sub.subscription_type_name }}
-                      q-badge.q-ml-xs(v-if="sub.is_trial" color="purple" outline) триал
-                    td.text-left
-                      q-badge(:color="subscriptionStatusColor(sub.status)") {{ subscriptionStatusLabel(sub.status) }}
-                    td.text-left {{ formatMoney(sub.price) }} ₽ / {{ sub.period_days }} дн
-                    td.text-left {{ sub.expires_at ? moment(sub.expires_at).format('DD.MM.YY') : '—' }}
-                    td.text-left
-                      q-badge(v-if="sub.instance_status" :color="instanceStatusColor(sub.instance_status)") {{ instanceStatusLabel(sub.instance_status) }}
-                      span.text-grey(v-else) —
-                    td.text-left {{ sub.installation_progress != null ? sub.installation_progress + '%' : '—' }}
-
-              div.text-grey.q-pa-sm(v-else) У кооператива нет подписок у провайдера.
-
-            CooperativeBillingPanel(v-if="props.expand" :coopname="props.row.coopname")
-
-  </template>
-  <script setup lang="ts">
-  import { useLoadCooperatives } from 'src/features/Union/LoadCooperatives';
-  const {loadCooperatives} = useLoadCooperatives()
-  import { useUnionStore } from 'src/entities/Union/model';
-  import type { ICooperativeRegistryItem } from 'src/entities/Union/model';
-  import { computed, ref } from 'vue';
-  import moment from 'src/shared/lib/utils/dates/moment'
-  import { useActivateCooperative } from 'src/features/Union/ActivateCooperative';
-  import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
-  import { useBlockCooperative } from 'src/features/Union/BlockCooperative';
-  import { CooperativeBillingPanel } from 'src/widgets/Billing/CooperativeBillingPanel';
-  const union = useUnionStore()
-
-  type ICooperativeSubscription = ICooperativeRegistryItem['subscriptions'][number]
-
-  const coops = computed(() => union.coops)
-
-  const onLoading = ref(false)
-
-  const load = async () => {
-    onLoading.value = true
-    try {
-      await loadCooperatives()
-    } catch (e: any) {
-      FailAlert(e)
-    } finally {
-      onLoading.value = false
-    }
+const load = async () => {
+  onLoading.value = true
+  try {
+    await loadCooperatives()
+  } catch (e: any) {
+    FailAlert(e)
+  } finally {
+    onLoading.value = false
   }
+}
 
-  load()
+load()
 
-  // Хостинг-подписка кооператива (если есть инстанс) — для сводного статуса в строке.
-  const hostingSubscription = (row: ICooperativeRegistryItem): ICooperativeSubscription | undefined =>
-    row.subscriptions?.find((s) => !!s.instance_status)
+const hostingSubscription = (row: ICooperativeRegistryItem): ICooperativeSubscription | undefined =>
+  row.subscriptions?.find((s) => !!s.instance_status)
 
-  const hostingStatus = (row: ICooperativeRegistryItem): string | null =>
-    hostingSubscription(row)?.instance_status ?? null
+const hostingStatus = (row: ICooperativeRegistryItem): string | null =>
+  hostingSubscription(row)?.instance_status ?? null
 
-  const installationProgress = (row: ICooperativeRegistryItem): number | null => {
-    const p = hostingSubscription(row)?.installation_progress
-    return typeof p === 'number' ? p : null
+const monthlyTotal = (row: ICooperativeRegistryItem): number =>
+  (row.subscriptions ?? []).reduce((sum, s) => sum + (Number(s.price) || 0), 0)
+
+const nextPaymentDate = (row: ICooperativeRegistryItem): string | null => {
+  const dates = (row.subscriptions ?? [])
+    .map((s) => s.next_payment_due)
+    .filter(Boolean) as string[]
+  if (!dates.length) return null
+  return dates.sort()[0]
+}
+
+const nextPaymentLabel = (row: ICooperativeRegistryItem): string => {
+  const d = nextPaymentDate(row)
+  return d ? moment(d).format('DD.MM.YYYY') : '—'
+}
+
+const formatDateTime = (value: string): string =>
+  moment(value).format('DD.MM.YY HH:mm')
+
+const formatMoney = (value: number | string): string =>
+  new Intl.NumberFormat('ru-RU', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(Number(value))
+
+const cardSubtitle = (row: ICooperativeRegistryItem): string | undefined => {
+  const parts: string[] = []
+  if (row.name) parts.push(row.coopname)
+  if (row.created_at) parts.push(`заявка от ${formatDateTime(row.created_at)}`)
+  return parts.length ? parts.join(' · ') : undefined
+}
+
+const registryStatusVariant = (status: string): BaseChipVariant => {
+  switch (status) {
+    case 'active':
+      return 'pos'
+    case 'pending':
+      return 'warn'
+    case 'blocked':
+      return 'neg'
+    default:
+      return 'neutral'
   }
+}
 
-  // Сумма ежемесячной стоимости всех подписок кооператива.
-  const monthlyCost = (row: ICooperativeRegistryItem): number =>
-    (row.subscriptions ?? []).reduce((sum, s) => sum + Number(s.price ?? 0), 0)
-
-  const formatMoney = (value: number): string =>
-    new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(value)
-
-  const instanceStatusColor = (status: string | null): string => {
-    switch (status) {
-      case 'active': return 'teal'
-      case 'install':
-      case 'rent':
-      case 'pending': return 'orange'
-      case 'error':
-      case 'blocked':
-      case 'requires_manual_review': return 'red'
-      default: return 'grey'
-    }
+const registryStatusLabel = (status: string): string => {
+  switch (status) {
+    case 'active':
+      return 'активен'
+    case 'pending':
+      return 'на рассмотрении'
+    case 'blocked':
+      return 'заблокирован'
+    default:
+      return status
   }
+}
 
-  const instanceStatusLabel = (status: string | null): string => {
-    switch (status) {
-      case 'active': return 'активен'
-      case 'install': return 'установка'
-      case 'rent': return 'аренда'
-      case 'pending': return 'ожидание'
-      case 'error': return 'ошибка'
-      case 'blocked': return 'заблокирован'
-      case 'requires_manual_review': return 'нужна проверка'
-      default: return status ?? '—'
-    }
+const instanceStatusVariant = (status: string | null): BaseChipVariant => {
+  switch (status) {
+    case 'active':
+      return 'pos'
+    case 'install':
+    case 'rent':
+    case 'pending':
+      return 'warn'
+    case 'error':
+    case 'blocked':
+    case 'requires_manual_review':
+      return 'neg'
+    default:
+      return 'neutral'
   }
+}
 
-  const subscriptionStatusColor = (status: string): string => {
-    switch (status) {
-      case 'ACTIVE': return 'teal'
-      case 'TRIAL': return 'blue'
-      case 'EXPIRED': return 'orange'
-      case 'CANCELLED': return 'red'
-      default: return 'grey'
-    }
+const instanceStatusLabel = (status: string | null): string => {
+  switch (status) {
+    case 'active':
+      return 'активен'
+    case 'install':
+      return 'установка'
+    case 'rent':
+      return 'аренда'
+    case 'pending':
+      return 'ожидание'
+    case 'error':
+      return 'ошибка'
+    case 'blocked':
+      return 'заблокирован'
+    case 'requires_manual_review':
+      return 'нужна проверка'
+    default:
+      return status ?? '—'
   }
+}
 
-  const subscriptionStatusLabel = (status: string): string => {
-    switch (status) {
-      case 'ACTIVE': return 'активна'
-      case 'TRIAL': return 'триал'
-      case 'EXPIRED': return 'истекла'
-      case 'CANCELLED': return 'отменена'
-      default: return status
-    }
+const openDetail = (coopname: string) => {
+  const params = { ...route.params, detailCoopname: coopname }
+  router.push({ name: 'union-cooperative-detail', params })
+}
+
+const activate = async (coopname: string) => {
+  const { activateCooperative } = useActivateCooperative()
+  try {
+    await activateCooperative(coopname)
+    await load()
+    SuccessAlert('Кооператив активирован')
+  } catch (e: any) {
+    FailAlert(e)
   }
+}
 
-  const activate = async (coopname: string) => {
-    const {activateCooperative} = useActivateCooperative()
-
-    try {
-      await activateCooperative(coopname)
-      await load()
-      SuccessAlert('Кооператив активирован')
-    } catch(e: any) {
-      FailAlert(e)
-    }
+const block = async (coopname: string) => {
+  const { blockCooperative } = useBlockCooperative()
+  try {
+    await blockCooperative(coopname)
+    await load()
+    SuccessAlert('Кооператив заблокирован')
+  } catch (e: any) {
+    FailAlert(e)
   }
+}
+</script>
 
-  const block = async (coopname: string) => {
-    const {blockCooperative} = useBlockCooperative()
-
-    try {
-      await blockCooperative(coopname)
-      await load()
-      SuccessAlert('Кооператив заблокирован')
-    } catch(e: any) {
-      FailAlert(e)
-    }
-  }
-
-  const columns = [
-    { name: 'coopname', align: 'left', label: 'Аккаунт', field: 'coopname', sortable: true },
-    { name: 'announce', align: 'left', label: 'Сайт', field: 'announce', sortable: false },
-    { name: 'status', align: 'left', label: 'Статус в реестре', field: 'status', sortable: true },
-    { name: 'hosting', align: 'left', label: 'Хостинг', field: 'hosting', sortable: false },
-    { name: 'cost', align: 'left', label: 'Стоимость', field: 'cost', sortable: false },
-    {
-      name: 'created_at',
-      align: 'left',
-      label: 'Дата заявки',
-      field: 'created_at',
-      sortable: true,
-    },
-    { name: 'actions', align: 'center', label: '', field: 'actions', sortable: false },
-  ] as any
-
-  const expanded = ref([])
-  const tableRef = ref(null)
-  const pagination = ref({ rowsPerPage: 0 })
-
-
-  </script>
+<style scoped>
+.coop-registry__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-4);
+  margin-top: var(--p-4);
+}
+.coop-registry__card {
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.coop-registry__card:hover {
+  border-color: var(--p-primary);
+}
+.coop-registry__head-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--p-2);
+}
+.coop-registry__summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--p-3);
+  padding: var(--p-3) 0;
+}
+.coop-registry__metric {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-1);
+}
+.coop-registry__metric-label {
+  font-size: var(--p-fs-caption);
+  color: var(--p-ink-2);
+}
+.coop-registry__metric-value {
+  font-size: var(--p-fs-body);
+  font-weight: 600;
+  color: var(--p-ink);
+}
+</style>

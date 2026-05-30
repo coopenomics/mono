@@ -6,6 +6,7 @@ import {
 import { BillingProviderClient } from '~/infrastructure/billing/billing-provider.client';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import { AmountFormatterUtils } from '~/shared/utils/amount-formatter.utils';
+import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 import { TransactionUtils } from '~/shared/utils/transaction.utils';
 import { Cooperative } from 'cooptypes';
 import { BillingConversionStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/billing-conversion-statement-document.dto';
@@ -28,6 +29,7 @@ export class BillingService {
     @Inject(BILLING_BLOCKCHAIN_PORT) private readonly blockchainPort: BillingBlockchainPort,
     private readonly providerClient: BillingProviderClient,
     private readonly documentDomainService: DocumentDomainService,
+    private readonly domainToBlockchainUtils: DomainToBlockchainUtils,
   ) {}
 
   /**
@@ -74,7 +76,7 @@ export class BillingService {
       coopname: input.coopname,
       username: input.username,
       quantity: input.amount,
-      document: input.document.toDocument(),
+      document: this.domainToBlockchainUtils.convertSignedDocumentToBlockchainFormat(input.document),
     });
     return { transactionId: TransactionUtils.extractTransactionId(result) };
   }

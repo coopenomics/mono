@@ -580,7 +580,10 @@ export async function installInitialData(blockchain: Blockchain, isExtended = fa
   console.log('Начальные данные установлены')
 }
 
-export async function installExtraData(blockchain: Blockchain) {
+export async function installExtraData(
+  blockchain: Blockchain,
+  mode: 'full' | 'candidate' = 'full',
+) {
   // Регистрируем partner1 как coop с авто-approve от провайдера (Восхода).
   // Без этого реальный UI flow требует ручной активации председателем —
   // провайдер не подтянет partner1 в свою DB пока в registrator.coops его
@@ -592,33 +595,58 @@ export async function installExtraData(blockchain: Blockchain) {
   // program_id > 0 с проверкой «подписывается через wallet::signagree»).
   // Минимум для попадания в registrator.coops со status=active:
   //   newaccount → reguser(type=organization) → regcoop → stcoopstatus(active)
-  console.log('\n=== installExtraData: регистрируем partner1 как coop (active) ===')
+  //
+  // mode='candidate' — пропускает regcoop+preInit. partner1 остаётся
+  // пайщиком-organization Восхода: можно signin под WIF из фикстуры и пройти
+  // UI «Connect / выбор тарифа / подписание / активация» руками. Используется
+  // для отладки UX подключения без авто-провижининга.
+  console.log(`\n=== installExtraData (${mode}): partner1 ===`)
 
   const username = 'partner1'
 
-  // Берём WIF из docs-harness/state/cooperatives/partner1.json, если он там есть.
-  // Без этого boot:extra на каждом запуске генерирует случайный privateKey,
-  // а harness 08 (chairman install wizard /partner1/install) подаёт WIF из
-  // фикстуры на шаге 1 — они расходятся, startInstall mutation не принимает
-  // ключ, wizard зависает на шаге 1 без видимой ошибки. На репозиторий
-  // фикстура коммит'ится разработчиком вручную; здесь только читаем.
+  // Источники WIF (по приоритету): env PARTNER1_WIF → фикстура
+  // docs-harness/state/cooperatives/partner1.json → DEFAULT_PARTNER1_WIF.
+  //
+  // DEFAULT_PARTNER1_WIF — общеизвестный test-ключ EOSIO (тот же, что у root
+  // системного eosio в boot/configs/config.ini). На dev-стенде использовать
+  // безопасно: контур закрытый, на проде partner1 не существует. Стабильный
+  // дефолт удобнее env-override'ов и фикстур — каждый reboot:extra даёт тот
+  // же signin, без записи в .env.
+  const DEFAULT_PARTNER1_WIF = '5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3'
   let seededKeys: { privateKey: string; publicKey: string } | undefined
-  try {
-    const fixturePath = resolve(
-      __dirname,
-      '../../../docs-harness/state/cooperatives/partner1.json',
-    )
-    if (existsSync(fixturePath)) {
-      const fx = JSON.parse(readFileSync(fixturePath, 'utf-8'))
-      if (fx?.wif) {
-        // publicKey не хранится в фикстуре — деривим из приватного.
-        const pub = fx.publicKey || await ecc.privateToPublic(fx.wif)
-        seededKeys = { privateKey: fx.wif, publicKey: pub }
-        console.log(`✓ partner1: используем seeded WIF из фикстуры (pub=${pub.slice(0, 12)}…)`)
-      }
+  const envWif = process.env.PARTNER1_WIF?.trim()
+  if (envWif) {
+    try {
+      const pub = await ecc.privateToPublic(envWif)
+      seededKeys = { privateKey: envWif, publicKey: pub }
+      console.log(`✓ partner1: используем PARTNER1_WIF из env (pub=${pub.slice(0, 12)}…)`)
+    } catch (e: any) {
+      console.warn(`⚠ PARTNER1_WIF недопустим (${e.message}) — пробуем фикстуру`)
     }
-  } catch (e: any) {
-    console.warn(`⚠ partner1 fixture read failed (${e.message}) — генерируем новый ключ`)
+  }
+  if (!seededKeys) {
+    try {
+      const fixturePath = resolve(
+        __dirname,
+        '../../../docs-harness/state/cooperatives/partner1.json',
+      )
+      if (existsSync(fixturePath)) {
+        const fx = JSON.parse(readFileSync(fixturePath, 'utf-8'))
+        if (fx?.wif) {
+          // publicKey не хранится в фикстуре — деривим из приватного.
+          const pub = fx.publicKey || await ecc.privateToPublic(fx.wif)
+          seededKeys = { privateKey: fx.wif, publicKey: pub }
+          console.log(`✓ partner1: используем seeded WIF из фикстуры (pub=${pub.slice(0, 12)}…)`)
+        }
+      }
+    } catch (e: any) {
+      console.warn(`⚠ partner1 fixture read failed (${e.message}) — пробуем дефолт`)
+    }
+  }
+  if (!seededKeys) {
+    const pub = await ecc.privateToPublic(DEFAULT_PARTNER1_WIF)
+    seededKeys = { privateKey: DEFAULT_PARTNER1_WIF, publicKey: pub }
+    console.log(`✓ partner1: используем DEFAULT_PARTNER1_WIF (pub=${pub.slice(0, 12)}…)`)
   }
 
   const account = await blockchain.generateKeypair(username, seededKeys, 'Аккаунт partner1')
@@ -648,34 +676,39 @@ export async function installExtraData(blockchain: Blockchain) {
     registration_hash,
   })
 
-  await blockchain.registerCooperative({
-    username: account.username,
-    coopname: account.username,
-    params: {
-      is_cooperative: true,
-      coop_type: 'conscoop',
-      announce: 'partner-dev.coopenomics.world',
-      description: 'Партнёрский кооператив (тестовый dev-стенд)',
-      initial: `100.0000 ${config.token.govern_symbol}`,
-      minimum: `300.0000 ${config.token.govern_symbol}`,
-      org_initial: `1000.0000 ${config.token.govern_symbol}`,
-      org_minimum: `3000.0000 ${config.token.govern_symbol}`,
-    },
-    document: {
-      hash: registration_hash,
-      signatures: [],
-      meta: '{}',
-      version: '1.0.0',
-      doc_hash: registration_hash,
-      meta_hash: registration_hash,
-    } as any,
-  })
+  if (mode === 'full') {
+    await blockchain.registerCooperative({
+      username: account.username,
+      coopname: account.username,
+      params: {
+        is_cooperative: true,
+        coop_type: 'conscoop',
+        announce: 'partner-dev.coopenomics.world',
+        description: 'Партнёрский кооператив (тестовый dev-стенд)',
+        initial: `100.0000 ${config.token.govern_symbol}`,
+        minimum: `300.0000 ${config.token.govern_symbol}`,
+        org_initial: `1000.0000 ${config.token.govern_symbol}`,
+        org_minimum: `3000.0000 ${config.token.govern_symbol}`,
+      },
+      document: {
+        hash: registration_hash,
+        signatures: [],
+        meta: '{}',
+        version: '1.0.0',
+        doc_hash: registration_hash,
+        meta_hash: registration_hash,
+      } as any,
+    })
 
-  await blockchain.preInit({
-    coopname: account.username,
-    username: config.provider,
-    status: 'active',
-  })
+    await blockchain.preInit({
+      coopname: account.username,
+      username: config.provider,
+      status: 'active',
+    })
+  }
+  else {
+    console.log('candidate-mode: пропускаем regcoop+preInit (UI Connect делает руками)')
+  }
 
   // Записываем partner1 в ЦПП Кошелька оператора (voskhod, program_id=1).
   // БЕЗ этого провайдерский performInitialTransfers (150 AXON на partner1 ДО

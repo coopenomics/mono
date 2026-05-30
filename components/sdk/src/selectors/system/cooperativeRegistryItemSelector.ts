@@ -4,6 +4,7 @@ import { rawProviderSubscriptionSelector } from './providerSubscriptionSelector'
 
 export const rawCooperativeRegistryItemSelector = {
   coopname: true,
+  name: true,
   announce: true,
   status: true,
   created_at: true,

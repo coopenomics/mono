@@ -7,6 +7,7 @@ import { InstanceStatus } from '~/domain/instance-status.enum';
 import { Client, configureClient } from '@coopenomics/provider-client';
 import { config } from '~/config';
 import { BLOCKCHAIN_PORT, type BlockchainPort } from '~/domain/common/ports/blockchain.port';
+import { ORGANIZATION_REPOSITORY, type OrganizationRepository } from '~/domain/common/repositories/organization.repository';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import { ConvertToAxonStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/convert-to-axon-statement-document.dto';
 import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
@@ -23,7 +24,8 @@ export class ProviderService {
   constructor(
     private readonly documentDomainService: DocumentDomainService,
     @Inject(SYSTEM_BLOCKCHAIN_PORT) private readonly systemBlockchainPort: SystemBlockchainPort,
-    @Inject(BLOCKCHAIN_PORT) private readonly blockchainPort: BlockchainPort
+    @Inject(BLOCKCHAIN_PORT) private readonly blockchainPort: BlockchainPort,
+    @Inject(ORGANIZATION_REPOSITORY) private readonly organizationRepository: OrganizationRepository
   ) {
     // Проверяем наличие PROVIDER_BASE_URL
     const providerBaseUrl = config.provider_base_url;
@@ -68,6 +70,7 @@ export class ProviderService {
       coops.map(async (coop) => {
         const item = new CooperativeRegistryItemDTO();
         item.coopname = coop.username;
+        item.name = await this.resolveOrganizationName(coop.username, coop.description);
         item.announce = coop.announce;
         item.status = coop.status;
         item.created_at = coop.created_at;
@@ -86,6 +89,22 @@ export class ProviderService {
         return item;
       })
     );
+  }
+
+  /**
+   * Извлечь человеко-читаемое наименование кооператива. Сначала пробуем
+   * organization-запись в Mongo (short_name → full_name), потом on-chain
+   * description; если и его нет — null, фронт сам отрисует coopname.
+   */
+  private async resolveOrganizationName(username: string, onChainDescription: string): Promise<string | undefined> {
+    try {
+      const organization = await this.organizationRepository.findByUsername(username);
+      const name = organization?.short_name || organization?.full_name;
+      if (name) return name;
+    } catch {
+      // organization ещё не зарегистрирована — fallback на on-chain
+    }
+    return onChainDescription || undefined;
   }
 
   /**

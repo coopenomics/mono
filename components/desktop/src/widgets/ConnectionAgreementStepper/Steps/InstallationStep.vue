@@ -1,368 +1,97 @@
-<template lang="pug">
-  q-step(
-    :name="6"
-    title="Поставка Цифрового Кооператива"
-    icon="cloud_download"
-    :done="isDone"
-  )
-    .installation-container.q-pa-md
-
-      //- Установка в процессе
-      div
-        //- Заголовок с градиентом
-
-        .installation-header
-          .text-h6.installation-title Поставка Цифрового Кооператива
-          .subtitle.text-body2.text-grey-7.q-mt-sm
-            | с подключением к платформе Кооперативной Экономики
-
-        //- Основная карточка прогресса
-        .progress-card.q-mb-xl
-          .progress-header
-            .progress-title
-              q-icon(name="rocket_launch" size="24px" color="primary").q-mr-sm
-              span.text-subtitle1.text-weight-medium Прогресс поставки
-
-          //- Живой прогресс-бар с анимацией
-          .progress-bar-container.q-mt-lg
-            .progress-bar-background
-              .progress-bar-fill(
-                :style="{ width: (instance?.progress || 0) + '%' }"
-              )
-                .progress-bar-shimmer
-            .progress-bar-glow(:style="{ width: (instance?.progress || 0) + '%' }")
-
-          //- Оставшееся время
-          .remaining-time.q-mt-md
-            .time-display
-              q-icon(name="schedule" size="18px" color="primary").q-mr-sm
-              span.text-body2 Осталось: {{ remainingTime }} мин
-
-          //- Статус текущего этапа
-          .current-stage.q-mt-lg
-            .stage-info
-              .stage-icon
-                q-icon(:name="currentStageIcon" size="32px" :color="currentStageColor")
-              .stage-details
-                .stage-title.text-body1.text-weight-medium {{ currentStageTitle }}
-                .stage-description.text-body2.text-grey-7.q-mt-xs {{ currentStageDescription }}
-
-
-
-</template>
-
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { IStepProps } from '../model/types'
 import { useConnectionAgreementStore } from 'src/entities/ConnectionAgreement'
 
-const props = withDefaults(defineProps<IStepProps>(), {})
-
 const connectionAgreement = useConnectionAgreementStore()
-
-// Получаем данные напрямую из store
 const instance = computed(() => connectionAgreement.currentInstance)
 
-const isDone = computed(() => props.isDone)
+const progress = computed(() => Math.max(0, Math.min(100, instance.value?.progress || 0)))
 
-// Текущий этап (соответствует логике из startup-workflow.service.ts)
-const currentStageInfo = computed(() => {
-  const progress = instance.value?.progress || 0
-
-  if (progress < 20) {
-    return {
-      icon: 'settings',
-      color: 'primary',
-      title: 'Подготовка серверного окружения',
-      description: 'Настраиваем инфраструктуру, разворачиваем серверные компоненты'
-    }
-  } else if (progress < 40) {
-    return {
-      icon: 'download',
-      color: 'info',
-      title: 'Загрузка компонентов Цифрового Кооператива',
-      description: 'Устанавливаем программное обеспечение и зависимости для работы платформы'
-    }
-  } else if (progress < 60) {
-    return {
-      icon: 'storage',
-      color: 'warning',
-      title: 'Настройка баз данных и хранилищ',
-      description: 'Разворачиваем базы данных, инициализируем структуры и настраиваем резервное копирование'
-    }
-  } else if (progress < 80) {
-    return {
-      icon: 'security',
-      color: 'secondary',
-      title: 'Запуск блокчейн-узла',
-      description: 'Разворачиваем и синхронизируем блокчейн-узел для подключения к Кооперативной Экономике'
-    }
-  } else {
-    return {
-      icon: 'check_circle',
-      color: 'positive',
-      title: 'Финализация поставки',
-      description: 'Выполняем заключительные настройки, проверяем работоспособность всех компонентов'
-    }
-  }
+const stage = computed(() => {
+  const p = progress.value
+  if (p < 20) return { title: 'Подготовка серверного окружения', body: 'Настраиваем инфраструктуру и развёртываем серверные компоненты.' }
+  if (p < 40) return { title: 'Загрузка компонентов Цифрового Кооператива', body: 'Устанавливаем программное обеспечение и зависимости платформы.' }
+  if (p < 60) return { title: 'Настройка баз данных и хранилищ', body: 'Разворачиваем базы данных, инициализируем структуры и резервное копирование.' }
+  if (p < 80) return { title: 'Запуск блокчейн-узла', body: 'Разворачиваем и синхронизируем узел с сетью Кооперативной Экономики.' }
+  return { title: 'Финализация поставки', body: 'Выполняем заключительные настройки и проверяем работоспособность.' }
 })
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const currentStageIcon = computed(() => currentStageInfo.value.icon)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const currentStageColor = computed(() => currentStageInfo.value.color)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const currentStageTitle = computed(() => currentStageInfo.value.title)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const currentStageDescription = computed(() => currentStageInfo.value.description)
-
-// Расчет оставшегося времени (общая установка 100 минут)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const remainingTime = computed(() => {
-  const progress = instance.value?.progress || 0
-  const totalMinutes = 100
-  const remaining = totalMinutes - progress
-  return Math.max(0, remaining) // Не показываем отрицательные значения
-})
-
-// Редирект теперь обрабатывается в ConnectionAgreementPage через реактивность
-// Здесь только отображение прогресса
+const remainingMinutes = computed(() => Math.max(0, 100 - progress.value))
 </script>
 
+<template lang="pug">
+.installation-step
+  p.t-sm.t-muted.installation-step__lead Поставка Цифрового Кооператива с подключением к платформе Кооперативной Экономики.
+
+  .installation-step__progress
+    .installation-step__progress-head
+      span.t-eyebrow.t-muted Прогресс поставки
+      span.t-mono.t-num.installation-step__pct {{ progress }}%
+    .installation-step__bar
+      .installation-step__bar-fill(:style="{ width: progress + '%' }")
+    p.t-meta.t-muted.installation-step__remaining
+      | Осталось примерно {{ remainingMinutes }} мин
+
+  .installation-step__stage
+    .t-h3 {{ stage.title }}
+    p.t-sm.t-muted.installation-step__stage-body {{ stage.body }}
+</template>
+
 <style scoped>
-.installation-container {
-  max-width: 900px;
-  margin: 0 auto;
-  position: relative;
-}
-
-/* Заголовок с градиентом */
-.installation-header {
-  text-align: center;
-  margin-bottom: 2rem;
-}
-
-.installation-title {
-  font-weight: 700;
-  letter-spacing: -0.5px;
-  background: linear-gradient(135deg, var(--q-primary) 0%, rgba(25, 118, 210, 0.8) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-shadow: 0 2px 4px rgba(25, 118, 210, 0.3);
-}
-
-/* Основная карточка прогресса */
-.progress-card {
-  border-radius: 20px;
-  padding: 2.5rem;
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.08),
-    0 2px 8px rgba(0, 0, 0, 0.04);
-  position: relative;
-  overflow: hidden;
-}
-
-.progress-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, var(--q-primary) 0%, var(--q-secondary) 50%, var(--q-accent) 100%);
-  background-size: 200% 100%;
-  animation: shimmer 4s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
-}
-
-@keyframes shimmer {
-  0% { background-position: 100% 0; }
-  100% { background-position: -100% 0; }
-}
-
-.progress-header {
+.installation-step {
   display: flex;
+  flex-direction: column;
+  gap: var(--p-5);
+  max-width: 640px;
+}
+.installation-step__lead {
+  margin: 0;
+}
+.installation-step__progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-2);
+  padding: var(--p-4);
+  border: 1px solid var(--p-line-1);
+  border-radius: var(--p-r-md);
+  background: var(--p-surface);
+}
+.installation-step__progress-head {
+  display: flex;
+  align-items: baseline;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
 }
-
-.progress-title {
-  display: flex;
-  align-items: center;
+.installation-step__pct {
+  font-size: var(--p-fs-body);
   font-weight: 600;
-  color: var(--q-primary);
+  color: var(--p-ink);
 }
-
-
-/* Живой прогресс-бар */
-.progress-bar-container {
+.installation-step__bar {
   position: relative;
-  height: 12px;
-  background: rgba(0, 0, 0, 0.05);
-  border-radius: 20px;
-  overflow: hidden;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.progress-bar-background {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: 100%;
-  background: linear-gradient(90deg, #e0e0e0 0%, #f0f0f0 100%);
-}
-
-.progress-bar-fill {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  background: linear-gradient(135deg, var(--q-primary) 0%, var(--q-secondary) 100%);
-  border-radius: 20px;
-  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow:
-    0 0 20px rgba(25, 118, 210, 0.3),
-    inset 0 1px 2px rgba(255, 255, 255, 0.2);
-  position: relative;
+  height: 4px;
+  border-radius: var(--p-r-pill);
+  background: var(--p-surface-3);
   overflow: hidden;
 }
-
-.progress-bar-shimmer {
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
+.installation-step__bar-fill {
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.6) 30%,
-    rgba(255, 255, 255, 0.8) 50%,
-    rgba(255, 255, 255, 0.6) 70%,
-    transparent 100%
-  );
-  animation: progress-shimmer 1.2s infinite cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  background: var(--p-primary);
+  border-radius: var(--p-r-pill);
+  transition: width var(--p-dur-slow) var(--p-ease-standard);
 }
-
-@keyframes progress-shimmer {
-  0% {
-    left: -100%;
-    opacity: 0;
-  }
-  10% {
-    opacity: 1;
-  }
-  90% {
-    opacity: 1;
-  }
-  100% {
-    left: 100%;
-    opacity: 0;
-  }
+.installation-step__remaining {
+  margin: 0;
 }
-
-.progress-bar-glow {
-  position: absolute;
-  top: -2px;
-  left: 0;
-  height: 16px;
-  background: linear-gradient(135deg, var(--q-primary) 0%, rgba(25, 118, 210, 0.3) 100%);
-  border-radius: 20px;
-  filter: blur(4px);
-  opacity: 0.6;
-  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Текущий этап */
-.current-stage {
-  margin-top: 2rem;
-  padding: 1.5rem;
-  background: rgba(25, 118, 210, 0.02);
-  border-radius: 16px;
-  border: 1px solid rgba(25, 118, 210, 0.1);
-}
-
-.stage-info {
+.installation-step__stage {
   display: flex;
-  align-items: center;
-  gap: 1rem;
+  flex-direction: column;
+  gap: var(--p-2);
+  padding: var(--p-4);
+  border: 1px solid var(--p-line-1);
+  border-radius: var(--p-r-md);
+  background: var(--p-surface);
 }
-
-.stage-icon {
-  background: linear-gradient(135deg, var(--q-primary) 0%, rgba(25, 118, 210, 0.8) 100%);
-  border-radius: 50%;
-  padding: 0.75rem;
-  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.2);
-}
-
-.stage-details {
-  flex: 1;
-}
-
-.stage-title {
-  color: var(--q-primary);
-  margin-bottom: 0.25rem;
-}
-
-.stage-description {
-  color: #666;
-}
-
-/* Оставшееся время */
-.remaining-time {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.time-display {
-  display: flex;
-  align-items: center;
-  padding: 0.75rem 1.5rem;
-  background: rgba(25, 118, 210, 0.05);
-  border-radius: 12px;
-  border: 1px solid rgba(25, 118, 210, 0.1);
-}
-
-
-/* Адаптивность */
-@media (max-width: 768px) {
-  .progress-card {
-    padding: 2rem;
-  }
-
-  .progress-header {
-    flex-direction: column;
-    gap: 1rem;
-    text-align: center;
-  }
-
-  .stage-info {
-    flex-direction: column;
-    text-align: center;
-    gap: 0.75rem;
-  }
-
-  .time-display {
-    padding: 0.5rem 1rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .installation-container {
-    padding: 1rem;
-  }
-
-  .progress-card {
-    padding: 1.5rem;
-  }
-
-  .time-display {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.875rem;
-  }
+.installation-step__stage-body {
+  margin: 0;
 }
 </style>

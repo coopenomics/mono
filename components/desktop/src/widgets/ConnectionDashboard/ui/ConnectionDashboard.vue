@@ -1,24 +1,17 @@
 <template lang="pug">
 div.connection-dashboard
-  //- Основная информация
-  .row.q-mb-lg
-    //- Карточка баланса AXON
+  .row.q-col-gutter-md
     .col-12.col-md-4
       AxonWallet
+      MembershipWallet.q-mt-md
 
-    //- Карточка домена
-    .col-12.col-md-6
+    .col-12.col-md-8
       DomainCard
-
-      SubscriptionsCard
-
-
-
+      SubscriptionsCard.q-mt-md
 </template>
 
 <script setup lang="ts">
-import { AxonWallet, DomainCard, SubscriptionsCard } from './index'
-
+import { AxonWallet, MembershipWallet, DomainCard, SubscriptionsCard } from './index'
 </script>
 
 <style lang="scss" scoped>
@@ -27,4 +20,3 @@ import { AxonWallet, DomainCard, SubscriptionsCard } from './index'
   margin: 0 auto;
 }
 </style>
-

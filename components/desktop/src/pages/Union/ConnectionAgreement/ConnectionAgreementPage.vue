@@ -140,44 +140,50 @@ const init = async () => {
     connectionAgreement.setHasMatrixAccount(accountStatus.hasAccount);
   }
 
+  // Подтягиваем on-chain запись кооператива — её наличие означает, что
+  // соглашение о подключении уже подписано (regcoop проходит только после
+  // signagree). Используем как маркёр прохождения шагов 0–4.
+  try {
+    await connectionAgreement.reloadCooperative();
+  } catch {
+    // coop ещё не зарегистрирован — это валидное состояние, не падаем
+  }
+
   const instance = connectionAgreement.currentInstance;
-  const hasInstanceError = connectionAgreement.currentInstanceError;
+  const coop = connectionAgreement.coop;
 
-  // Определяем шаг на основе текущего прогресса установки (при каждом заходе)
-
-  // Сначала проверяем, была ли установка уже завершена (даже при ошибке загрузки)
+  // Сначала проверяем, была ли установка уже завершена
   const isAlreadyCompleted = instance?.progress === 100 && instance?.status === Zeus.InstanceStatus.ACTIVE;
   if (isAlreadyCompleted) {
     console.log('✅ Установка уже завершена ранее, показываем дашборд');
-    // Не меняем шаг, оставляем текущий (или устанавливаем специальный шаг для завершенной установки)
     isLoading.value = false;
     return;
   }
 
-  // Определяем шаг на основе текущего состояния
+  // Восстанавливаем фактический шаг по состоянию on-chain + provider.
+  // Идея: каждый шаг имеет хорошо различимый внешний маркёр; при перезагрузке
+  // не должно требоваться localStorage.
   let targetStep: number;
 
-  if (hasInstanceError) {
-    // Если есть ошибка загрузки инстанса, определяем шаг на основе членства в союзе
-    targetStep = system.info.is_unioned ? 0 : 1;
-  } else if (instance && typeof instance.progress === 'number' && instance.progress > 0) {
-    // Если установка уже идет (прогресс > 0), переходим к шагу установки
-    targetStep = 6;
-  } else {
-    // Если инстанса нет ИЛИ его прогресс = 0, определяем шаг на основе членства в союзе
-    if (system.info.is_unioned) {
-      // Если кооператив не является членом союза, начинаем с нулевого шага
-      targetStep = 0;
+  if (coop) {
+    // Соглашение точно подписано (coop появился в registrator.coops).
+    if (instance && typeof instance.progress === 'number' && instance.progress > 0) {
+      targetStep = 7; // установка идёт
+    } else if (instance?.blockchain_status === 'active') {
+      targetStep = 7; // союз подтвердил, провайдер вот-вот стартует
+    } else if (instance?.is_delegated) {
+      targetStep = 6; // домен делегирован, ждём подтверждения союза
     } else {
-      // Если кооператив уже член союза, начинаем с первого шага
-      targetStep = 1;
+      targetStep = 5; // DNS-шаг: ждём делегирования или провайдер ещё не подхватил coop
     }
+  } else if (system.info.is_unioned) {
+    targetStep = 0; // нужна регистрация в мессенджере союза
+  } else {
+    targetStep = 1; // онбординг от выбора тарифа
   }
 
-  // Устанавливаем определенный шаг
   connectionAgreement.setCurrentStep(targetStep);
 
-  // Скрываем лоадер после загрузки данных
   isLoading.value = false;
 };
 
@@ -203,27 +209,24 @@ watch(
       status: instance.status,
     });
 
-    // Логика автоматических переходов (только для шагов 4, 5, 6)
-    // Шаги 0, 1, 2, 3 не имеют автоматических переходов
-    if (currentStep === 4) {
-      // Шаг 4: Проверка домена
+    // Автопереходы только для шагов 5 (dns), 6 (approval), 7 (installation).
+    // Шаги 0..4 (union/intro/domain/financial/agreement) — пользовательский ввод.
+    if (currentStep === 5) {
+      // Шаг 5: Проверка делегирования домена.
       if (instance.is_valid && instance.is_delegated) {
-        // Домен валиден и делегирован
         if (instance.blockchain_status === 'active') {
-          // Можно переходить сразу к установке
-          console.log('✅ Домен готов и blockchain_status активен → переход к шагу 6');
-          connectionAgreement.setCurrentStep(6);
+          console.log('✅ Домен готов и blockchain_status активен → переход к шагу 7 (installation)');
+          connectionAgreement.setCurrentStep(7);
         } else {
-          // Ожидаем подтверждения от союза
-          console.log('⏳ Домен готов, но ожидаем подтверждения → переход к шагу 5');
-          connectionAgreement.setCurrentStep(5);
+          console.log('⏳ Домен готов, ждём подтверждения союза → переход к шагу 6 (approval)');
+          connectionAgreement.setCurrentStep(6);
         }
       }
-    } else if (currentStep === 5) {
-      // Шаг 5: Ожидание подтверждения от союза
+    } else if (currentStep === 6) {
+      // Шаг 6: Ожидание подтверждения от союза.
       if (instance.blockchain_status === 'active') {
-        console.log('✅ Подтверждение получено → переход к шагу 6');
-        connectionAgreement.setCurrentStep(6);
+        console.log('✅ Подтверждение получено → переход к шагу 7 (installation)');
+        connectionAgreement.setCurrentStep(7);
       }
     }
     // Редирект на страницу завершения теперь делает только InstallationStep.vue

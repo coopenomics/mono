@@ -16,7 +16,10 @@ export class CooperativeRegistryItemDTO {
   @Field(() => String, { description: 'Имя аккаунта кооператива (coopname)' })
   coopname!: string;
 
-  @Field(() => String, { nullable: true, description: 'Анонсированный домен/сайт кооператива (registrator.coops.announce)' })
+  @Field(() => String, { nullable: true, description: 'Наименование организации кооператива' })
+  name?: string;
+
+  @Field(() => String, { nullable: true, description: 'Анонсированный домен/сайт кооператива' })
   announce?: string;
 
   @Field(() => String, { description: 'Статус кооператива в блокчейне: pending | active | blocked' })
