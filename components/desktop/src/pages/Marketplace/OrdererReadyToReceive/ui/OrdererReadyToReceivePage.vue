@@ -3,6 +3,7 @@ import type { QTableProps } from 'quasar';
 import { onMounted, ref } from 'vue';
 import { FailAlert } from 'src/shared/api';
 import { BaseButton, EmptyState } from 'src/shared/ui/base';
+import { PageHint } from 'src/shared/ui/domain';
 import { listMyReadyToReceive, type MarketplaceOrderIssuanceView } from '../api';
 
 /**
@@ -57,9 +58,8 @@ onMounted(load);
 
 <template lang="pug">
 q-page.ready(role="region", aria-label="Готово к получению")
-  .ready__head
-    .t-h2 Готово к получению
-    .t-muted Оператор открыл выдачу этих заказов на пункте. Приходите на участок для сверки имущества и финальной подписи.
+  PageHint(storage-key="mp:ready-to-receive:banner-dismissed")
+    | Оператор открыл выдачу этих заказов на пункте. Приходите на участок для сверки имущества и финальной подписи.
 
   .ready__toolbar
     q-space
@@ -91,12 +91,6 @@ q-page.ready(role="region", aria-label="Готово к получению")
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
-
-  &__head {
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-1, 4px);
-  }
 
   &__toolbar {
     display: flex;

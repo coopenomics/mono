@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { Dialog, Loading, Notify } from 'quasar';
 import { OrderCard, type Order as OrderCardModel, type OrderStatus as OrderCardStatus } from 'src/widgets/Marketplace/OrderCard';
 import { BaseButton, EmptyState } from 'src/shared/ui/base';
+import { PageHint } from 'src/shared/ui/domain';
 import { cancelOrder, fetchMyOrders } from '../api';
 import type { MarketplaceOrderStatusView, MarketplaceOrderView } from '../types';
 
@@ -188,9 +189,8 @@ onBeforeUnmount(() => {
 
 <template lang="pug">
 q-page.orders(role="region", aria-label="Мои заказы")
-  .orders__head
-    .t-h2 Мои заказы
-    .t-muted Заказы, оформленные вами в каталоге. Здесь виден их статус и движение до выдачи на пункте.
+  PageHint(storage-key="mp:my-orders:banner-dismissed")
+    | Заказы, оформленные вами в каталоге. Здесь виден их статус и движение до выдачи на пункте.
 
   .orders__filters(role="tablist", aria-label="Фильтр по статусу")
     .chip.orders__chip(
@@ -239,12 +239,6 @@ q-page.orders(role="region", aria-label="Мои заказы")
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
-
-  &__head {
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-1, 4px);
-  }
 
   &__filters {
     display: flex;

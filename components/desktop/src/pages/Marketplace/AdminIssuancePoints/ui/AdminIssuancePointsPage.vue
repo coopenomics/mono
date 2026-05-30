@@ -2,7 +2,6 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
-import { useDismissibleBanner } from 'src/shared/hooks'
 import { useSessionStore } from 'src/entities/Session'
 import { useBranchStore } from 'src/entities/Branch/model'
 import type { IBranch } from 'src/entities/Branch/model'
@@ -14,6 +13,7 @@ import type {
 } from 'src/entities/MarketplaceKUDetails'
 import { BaseBadge, BaseButton, BaseDialog, EmptyState, TableSkeleton } from 'src/shared/ui/base'
 import type { BaseBadgeVariant, TableSkeletonColumn } from 'src/shared/ui/base'
+import { PageHint } from 'src/shared/ui/domain'
 // Map экспортируется как `Map` — импортируем под алиасом, чтобы не затенять
 // глобальный `Map` (используется в `rows`).
 import { Map as MapView } from 'src/shared/ui/Map'
@@ -41,9 +41,6 @@ const coopname = computed(() => String(route.params.coopname ?? ''))
 const isChairman = computed(() => session.isChairman ?? false)
 
 const loading = ref(false)
-const { dismissed: bannerDismissed, dismiss: dismissBanner } = useDismissibleBanner(
-  'mp:admin-pvz:banner-dismissed',
-)
 
 const dialogOpen = ref(false)
 const dialogBranch = ref<IBranch | null>(null)
@@ -170,22 +167,11 @@ onMounted(() => {
 
 <template lang="pug">
 q-page.admin-pvz
-  .banner.banner--info(v-if='!bannerDismissed')
-    q-icon.banner__icon(name='info', size='18px')
-    .banner__body
-      | Пункты выдачи заказов — это кооперативные участки, подключённые к Столу
-      | заказов. Участки создаются на столе совета; здесь председатель делает их
-      | пунктами выдачи, указывая фактический адрес, контакты и режим работы.
-      | Адрес геокодируется автоматически для карты.
-    BaseButton.admin-pvz__banner-close(
-      variant='ghost',
-      icon-only,
-      size='sm',
-      aria-label='Скрыть подсказку',
-      @click='dismissBanner'
-    )
-      template(#icon-left)
-        q-icon(name='close', size='16px')
+  PageHint(storage-key='mp:admin-pvz:banner-dismissed')
+    | Пункты выдачи заказов — это кооперативные участки, подключённые к Столу
+    | заказов. Участки создаются на столе совета; здесь председатель делает их
+    | пунктами выдачи, указывая фактический адрес, контакты и режим работы.
+    | Адрес геокодируется автоматически для карты.
 
   .admin-pvz__toolbar
     .admin-pvz__counter(v-if='!loading && rows.length')
@@ -330,12 +316,6 @@ q-page.admin-pvz
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
-
-  &__banner-close {
-    flex-shrink: 0;
-    align-self: flex-start;
-    margin: -4px -4px 0 0;
-  }
 
   &__toolbar {
     display: flex;

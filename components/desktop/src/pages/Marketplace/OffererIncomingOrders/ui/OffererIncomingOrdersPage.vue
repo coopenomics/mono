@@ -2,8 +2,8 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { Dialog, Notify } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
-import { useDismissibleBanner } from 'src/shared/hooks';
 import { BaseButton, EmptyState } from 'src/shared/ui/base';
+import { PageHint } from 'src/shared/ui/domain';
 import {
   OrderCard,
   type Order as OrderCardModel,
@@ -38,9 +38,6 @@ const SKELETON_COUNT = 6;
 
 const router = useRouter();
 const route = useRoute();
-const { dismissed: bannerDismissed, dismiss: dismissBanner } = useDismissibleBanner(
-  'mp:offerer-incoming:banner-dismissed',
-);
 
 const items = ref<MarketplaceOrderView[]>([]);
 const totalPages = ref(0);
@@ -232,21 +229,10 @@ onUnmounted(() => {
 <template lang="pug">
 q-page.incoming-orders(role='region', aria-label='Входящие заказы поставщика')
   .incoming-orders__col
-    .banner.banner--info(v-if='!bannerDismissed')
-      q-icon.banner__icon(name='info', size='18px')
-      .banner__body
-        | Заказы пайщиков, по которым вы выступаете поставщиком. Примите или
-        | отклоните заказ прямо на карточке. Дальнейшие действия по партии —
-        | на странице «Подготовка отгрузки».
-      BaseButton.incoming-orders__banner-close(
-        variant='ghost',
-        icon-only,
-        size='sm',
-        aria-label='Скрыть подсказку',
-        @click='dismissBanner'
-      )
-        template(#icon-left)
-          q-icon(name='close', size='16px')
+    PageHint(storage-key='mp:offerer-incoming:banner-dismissed')
+      | Заказы пайщиков, по которым вы выступаете поставщиком. Примите или
+      | отклоните заказ прямо на карточке. Дальнейшие действия по партии —
+      | на странице «Подготовка отгрузки».
 
     nav.tabbar.incoming-orders__tabs
       .tabbar__tabs
@@ -305,12 +291,6 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
     display: flex;
     flex-direction: column;
     gap: var(--p-4, 16px);
-  }
-
-  &__banner-close {
-    flex-shrink: 0;
-    align-self: flex-start;
-    margin: -4px -4px 0 0;
   }
 
   // Канон-`.tabbar` рассчитан на полноширинную под-навигацию; внутри

@@ -1,9 +1,9 @@
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue';
 import { FailAlert } from 'src/shared/api';
-import { useDismissibleBanner } from 'src/shared/hooks';
 import { BaseBadge, BaseButton, EmptyState, TableSkeleton } from 'src/shared/ui/base';
 import type { BaseBadgeVariant, TableSkeletonColumn } from 'src/shared/ui/base';
+import { PageHint } from 'src/shared/ui/domain';
 import { listMyPayments, type MarketplaceOutgoingPaymentRequestView } from '../api';
 
 /**
@@ -16,9 +16,6 @@ import { listMyPayments, type MarketplaceOutgoingPaymentRequestView } from '../a
 
 const items = ref<MarketplaceOutgoingPaymentRequestView[]>([]);
 const loading = ref(false);
-const { dismissed: bannerDismissed, dismiss: dismissBanner } = useDismissibleBanner(
-  'mp:offerer-payments:banner-dismissed',
-);
 
 // Статус выплаты → человекочитаемая метка + canon-вариант бейджа.
 const PAYMENT_STATUS: Record<string, { label: string; variant: BaseBadgeVariant }> = {
@@ -65,20 +62,9 @@ onMounted(() => {
 
 <template lang="pug">
 q-page.offerer-payments
-  .banner.banner--info(v-if='!bannerDismissed')
-    q-icon.banner__icon(name='info', size='18px')
-    .banner__body
-      | Выплаты по вашим актам приёмки. Совет авторизует выплату, после чего
-      | она уходит в банк — статус обновляется здесь по мере обработки.
-    BaseButton.offerer-payments__banner-close(
-      variant='ghost',
-      icon-only,
-      size='sm',
-      aria-label='Скрыть подсказку',
-      @click='dismissBanner'
-    )
-      template(#icon-left)
-        q-icon(name='close', size='16px')
+  PageHint(storage-key='mp:offerer-payments:banner-dismissed')
+    | Выплаты по вашим актам приёмки. Совет авторизует выплату, после чего
+    | она уходит в банк — статус обновляется здесь по мере обработки.
 
   .offerer-payments__toolbar
     BaseButton(
@@ -131,12 +117,6 @@ q-page.offerer-payments
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
-
-  &__banner-close {
-    flex-shrink: 0;
-    align-self: flex-start;
-    margin: -4px -4px 0 0;
-  }
 
   &__toolbar {
     display: flex;

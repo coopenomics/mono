@@ -1,9 +1,9 @@
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue';
 import { FailAlert } from 'src/shared/api';
-import { useDismissibleBanner } from 'src/shared/hooks';
 import { BaseBadge, BaseButton, EmptyState, TableSkeleton } from 'src/shared/ui/base';
 import type { BaseBadgeVariant, TableSkeletonColumn } from 'src/shared/ui/base';
+import { PageHint } from 'src/shared/ui/domain';
 import { listShipments, type MarketplaceShipmentView } from '../api';
 
 /**
@@ -19,9 +19,6 @@ import { listShipments, type MarketplaceShipmentView } from '../api';
 
 const items = ref<MarketplaceShipmentView[]>([]);
 const loading = ref(false);
-const { dismissed: bannerDismissed, dismiss: dismissBanner } = useDismissibleBanner(
-  'mp:offerer-supply:banner-dismissed',
-);
 
 // Статус партии → метка + canon-вариант бейджа.
 const SHIPMENT_STATUS: Record<string, { label: string; variant: BaseBadgeVariant }> = {
@@ -76,20 +73,9 @@ onMounted(() => {
 
 <template lang="pug">
 q-page.offerer-supply
-  .banner.banner--info(v-if='!bannerDismissed')
-    q-icon.banner__icon(name='info', size='18px')
-    .banner__body
-      | Партии поставки по принятым заказам. Скомплектуйте партию и подтвердите
-      | готовность к отгрузке — после приёмки на ПВЗ она перейдёт кооперативу.
-    BaseButton.offerer-supply__banner-close(
-      variant='ghost',
-      icon-only,
-      size='sm',
-      aria-label='Скрыть подсказку',
-      @click='dismissBanner'
-    )
-      template(#icon-left)
-        q-icon(name='close', size='16px')
+  PageHint(storage-key='mp:offerer-supply:banner-dismissed')
+    | Партии поставки по принятым заказам. Скомплектуйте партию и подтвердите
+    | готовность к отгрузке — после приёмки на ПВЗ она перейдёт кооперативу.
 
   .offerer-supply__toolbar
     BaseButton(
@@ -144,12 +130,6 @@ q-page.offerer-supply
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
-
-  &__banner-close {
-    flex-shrink: 0;
-    align-self: flex-start;
-    margin: -4px -4px 0 0;
-  }
 
   &__toolbar {
     display: flex;

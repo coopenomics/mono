@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert } from 'src/shared/api';
 import { BaseButton, BaseSelect, BaseBadge, type BaseBadgeVariant } from 'src/shared/ui/base';
+import { PageHint } from 'src/shared/ui/domain';
 import { listMyReturnClaims, type MarketplaceReturnClaimView } from '../api';
 import { fetchMyOrders } from '../../MyOrders/api';
 import type { MarketplaceOrderView } from '../../MyOrders/types';
@@ -164,9 +165,8 @@ onMounted(async () => {
 
 <template lang="pug">
 q-page.returns(role="region", aria-label="Гарантийный возврат")
-  .returns__head
-    .t-h2 Гарантийный возврат имущества
-    .t-muted Подача заявления возможна только по выданному заказу в пределах гарантийного срока, заданного поставщиком.
+  PageHint(storage-key="mp:orderer-returns:banner-dismissed")
+    | Подача заявления возможна только по выданному заказу в пределах гарантийного срока, заданного поставщиком.
 
   .returns__submit
     BaseSelect.returns__select(
@@ -227,13 +227,6 @@ q-page.returns(role="region", aria-label="Гарантийный возврат"
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
-
-  &__head {
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-1, 4px);
-    max-width: 760px;
-  }
 
   &__submit {
     display: flex;

@@ -1,9 +1,9 @@
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue';
 import { FailAlert } from 'src/shared/api';
-import { useDismissibleBanner } from 'src/shared/hooks';
 import { BaseBadge, BaseButton, EmptyState, TableSkeleton } from 'src/shared/ui/base';
 import type { BaseBadgeVariant, TableSkeletonColumn } from 'src/shared/ui/base';
+import { PageHint } from 'src/shared/ui/domain';
 import {
   listAplReceptionsAsSupplier,
   type MarketplaceAplReceptionView,
@@ -23,9 +23,6 @@ const items = ref<MarketplaceAplReceptionView[]>([]);
 const loading = ref(false);
 const signDialog = ref(false);
 const selected = ref<MarketplaceAplReceptionView | null>(null);
-const { dismissed: bannerDismissed, dismiss: dismissBanner } = useDismissibleBanner(
-  'mp:offerer-apl:banner-dismissed',
-);
 
 // Статус акта приёмки → метка + canon-вариант бейджа.
 const RECEPTION_STATUS: Record<string, { label: string; variant: BaseBadgeVariant }> = {
@@ -84,21 +81,10 @@ onMounted(() => {
 
 <template lang="pug">
 q-page.offerer-apl
-  .banner.banner--info(v-if='!bannerDismissed')
-    q-icon.banner__icon(name='info', size='18px')
-    .banner__body
-      | Акты приёмки партий, по которым ждут вашу подпись. Подписывая акт, вы
-      | подтверждаете факт приёмки — затем он уходит на закрывающую подпись
-      | председателя КУ.
-    BaseButton.offerer-apl__banner-close(
-      variant='ghost',
-      icon-only,
-      size='sm',
-      aria-label='Скрыть подсказку',
-      @click='dismissBanner'
-    )
-      template(#icon-left)
-        q-icon(name='close', size='16px')
+  PageHint(storage-key='mp:offerer-apl:banner-dismissed')
+    | Акты приёмки партий, по которым ждут вашу подпись. Подписывая акт, вы
+    | подтверждаете факт приёмки — затем он уходит на закрывающую подпись
+    | председателя КУ.
 
   .offerer-apl__toolbar
     BaseButton(
@@ -169,12 +155,6 @@ q-page.offerer-apl
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
-
-  &__banner-close {
-    flex-shrink: 0;
-    align-self: flex-start;
-    margin: -4px -4px 0 0;
-  }
 
   &__toolbar {
     display: flex;

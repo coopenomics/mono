@@ -7,6 +7,7 @@ import {
   type OrderStatus as OrderCardStatus,
 } from 'src/widgets/Marketplace/OrderCard';
 import { BaseButton, EmptyState } from 'src/shared/ui/base';
+import { PageHint } from 'src/shared/ui/domain';
 import { fetchMyOrders } from '../../MyOrders/api';
 import type {
   MarketplaceOrderCycleTypeView,
@@ -214,9 +215,8 @@ onUnmounted(() => {
 
 <template lang="pug">
 q-page.consolidated(role="region", aria-label="Сводный заказ")
-  .consolidated__head
-    .t-h2 Сводный заказ
-    .t-muted Партии заказов, сгруппированные по циклу. Несколько ваших заказов в одной партии обслуживаются совместно — на одном цикле, с одной поставкой.
+  PageHint(storage-key="mp:consolidated:banner-dismissed")
+    | Партии заказов, сгруппированные по циклу. Несколько ваших заказов в одной партии обслуживаются совместно — на одном цикле, с одной поставкой.
 
   .consolidated__toolbar
     q-space
@@ -280,13 +280,6 @@ q-page.consolidated(role="region", aria-label="Сводный заказ")
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
-
-  &__head {
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-1, 4px);
-    max-width: 760px;
-  }
 
   &__toolbar {
     display: flex;

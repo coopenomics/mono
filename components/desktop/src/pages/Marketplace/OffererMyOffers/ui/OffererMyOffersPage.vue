@@ -3,10 +3,11 @@ import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { Notify } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { useSystemStore } from 'src/entities/System/model';
-import { useDismissibleBanner, useHeaderActions } from 'src/shared/hooks';
+import { useHeaderActions } from 'src/shared/hooks';
 import { marketplaceUnitShort } from 'src/shared/lib/consts';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
 import { BaseButton, BaseCard, BaseInput, EmptyState } from 'src/shared/ui/base';
+import { PageHint } from 'src/shared/ui/domain';
 import CreateOfferHeaderButton from './CreateOfferHeaderButton.vue';
 import {
   CatalogOfferCard,
@@ -65,9 +66,6 @@ const currentPage = ref(1);
 const loading = ref(false);
 const statusFilter = ref<MarketplaceOfferStatusView | null>(null);
 const search = ref('');
-const { dismissed: bannerDismissed, dismiss: dismissBanner } = useDismissibleBanner(
-  'mp:my-offers:banner-dismissed',
-);
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 
 // Скелетон показываем только на первичной загрузке (список ещё пуст). При
@@ -233,22 +231,11 @@ onUnmounted(() => {
 <template lang="pug">
 q-page.my-offers(role="region", aria-label="Мои предложения")
   .my-offers__col
-    .banner.banner--info(v-if="!bannerDismissed")
-      q-icon.banner__icon(name="info", size="18px")
-      .banner__body
-        | Все ваши предложения в кооперативе и их статус. Нажмите на карточку,
-        | чтобы открыть предложение — изменить цену и остаток, отредактировать
-        | описание или снять с публикации. Цена и количество меняются без
-        | повторной модерации.
-      BaseButton.my-offers__banner-close(
-        variant="ghost",
-        icon-only,
-        size="sm",
-        aria-label="Скрыть подсказку",
-        @click="dismissBanner"
-      )
-        template(#icon-left)
-          q-icon(name="close", size="16px")
+    PageHint(storage-key="mp:my-offers:banner-dismissed")
+      | Все ваши предложения в кооперативе и их статус. Нажмите на карточку,
+      | чтобы открыть предложение — изменить цену и остаток, отредактировать
+      | описание или снять с публикации. Цена и количество меняются без
+      | повторной модерации.
 
     .row.q-col-gutter-md
       .col-6.col-md-3(v-for="kpi in counters", :key="kpi.label")
@@ -342,13 +329,6 @@ q-page.my-offers(role="region", aria-label="Мои предложения")
     :deep(.tabbar__actions) {
       padding-right: 0;
     }
-  }
-
-  // Крестик скрытия подсказки — прижат к правому краю баннера.
-  &__banner-close {
-    flex-shrink: 0;
-    align-self: flex-start;
-    margin: -4px -4px 0 0;
   }
 
   // Скелетон-карточка повторяет форму CatalogOfferCard: медиа сверху,

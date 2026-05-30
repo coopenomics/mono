@@ -8,6 +8,7 @@ import {
   type CatalogOfferStatus,
 } from 'src/widgets/Marketplace/CatalogOfferCard';
 import { BaseSelect, BaseButton, EmptyState } from 'src/shared/ui/base';
+import { PageHint } from 'src/shared/ui/domain';
 import { marketplaceUnitShort } from 'src/shared/lib/consts';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
 import {
@@ -155,9 +156,8 @@ onMounted(async () => {
 
 <template lang="pug">
 q-page.catalog(role="region", aria-label="Каталог Стола заказов")
-  .catalog__head
-    .t-h2 Каталог
-    .t-muted Предложения поставщиков кооператива. Выберите товар и оформите заказ на ваш пункт выдачи.
+  PageHint(storage-key="mp:catalog:banner-dismissed")
+    | Предложения поставщиков кооператива. Выберите товар или оформите заказ на ваш пункт выдачи.
 
   .catalog__toolbar
     .catalog__filters(role="tablist", aria-label="Фильтр по категориям")
@@ -231,12 +231,6 @@ q-page.catalog(role="region", aria-label="Каталог Стола заказо
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
-
-  &__head {
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-1, 4px);
-  }
 
   &__toolbar {
     display: flex;
