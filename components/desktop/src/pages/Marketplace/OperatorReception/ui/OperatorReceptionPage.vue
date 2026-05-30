@@ -34,8 +34,11 @@ import SignAplReceptionChairmanDialog from './SignAplReceptionChairmanDialog.vue
  *
  * Оператор не вводит идентификатор партии руками — он либо выбирает
  * ожидающую приёмки партию из списка (партии `SUPPLY_PREPARED`, прибывшие
- * на его КУ), либо сканирует QR поставщика (Story 14.3). Оба пути зовут
- * `createAplReception({ shipment_id })`.
+ * на его КУ), либо сканирует QR поставщика (Story 14.3). Все пути ведут в
+ * единый диалог коррекции (`openPickupForSupplier`): оператор сверяет факт,
+ * правит количество и цену по каждой единице и только потом формирует акт —
+ * коррекция доступна ВСЕГДА и без исключений (ревью 2026-05-30). Без формы
+ * сверки нельзя: иначе риск «приняли как заказано, хотя привезли меньше».
  *
  * Story 14.2: отдельный раздел «Самовывоз по факту» — поставщики с принятыми
  * заказами, которые не формировали партию заранее. Оператор принимает по факту
@@ -152,24 +155,6 @@ async function acceptExpressPickup(
   candidate: MarketplaceExpressPickupCandidateView,
 ): Promise<void> {
   await openPickupForSupplier(candidate.offerer_account);
-}
-
-async function createReceptionForShipment(shipmentId: string): Promise<void> {
-  const id = shipmentId.trim();
-  if (!id) {
-    FailAlert(new Error('Не указана партия для приёмки.'));
-    return;
-  }
-  Loading.show({ message: 'Создаю акт приёмки…' });
-  try {
-    await createAplReception({ shipment_id: id });
-    SuccessAlert('Акт приёмки создан');
-    await load();
-  } catch (e) {
-    FailAlert(e, 'Не удалось создать акт приёмки');
-  } finally {
-    Loading.hide();
-  }
 }
 
 // QR-код передачи (Эпик 14, агрегирующая приёмка): оператор сканирует
@@ -370,8 +355,8 @@ q-page.reception(role='region', aria-label='Приёмка партии')
   template(v-else)
     PageHint(storage-key='mp:operator-reception:banner-dismissed')
       | Партии, прибывшие на ваш пункт выдачи, ждут приёмки ниже. Выберите партию
-      | (или отсканируйте QR поставщика), создайте акт приёмки и подпишите его
-      | председателем участка.
+      | (или отсканируйте QR поставщика), сверьте фактическое количество и цену
+      | по каждой позиции, сформируйте акт и подпишите его председателем участка.
 
     //- Ожидающие приёмки партии: выбор из списка вместо ручного ввода id.
     //- QR-сканер — для тех, кто принимает с телефона (Story 14.3).
@@ -391,10 +376,10 @@ q-page.reception(role='region', aria-label='Приёмка партии')
           .reception__ship-meta
             | {{ SHIPMENT_VARIANT_LABEL[s.delivery_variant] ?? s.delivery_variant }} · {{ formatAsset2Digits(s.total_amount) }} ₽
             template(v-if='s.ttn_number')  · ТТН {{ s.ttn_number }}
-        BaseButton(variant='primary', size='sm', @click='createReceptionForShipment(s.id)')
+        BaseButton(variant='primary', size='sm', @click='openPickupForSupplier(s.offerer_account)')
           template(#icon-left)
-            q-icon(name='add', size='16px')
-          | Создать акт приёмки
+            q-icon(name='how_to_reg', size='16px')
+          | Принять партию
 
     //- Story 14.2: самовывоз по факту — поставщик приехал без заранее
     //- сформированной партии; оператор открывает приёмку по факту присутствия.
