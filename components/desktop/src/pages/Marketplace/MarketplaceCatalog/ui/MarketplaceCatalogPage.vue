@@ -17,7 +17,6 @@ import {
 } from '../api';
 import type {
   CatalogSort,
-  MarketplaceCategoryOfferCount,
   MarketplaceCategoryView,
   MarketplaceOfferView,
 } from '../types';
@@ -84,7 +83,7 @@ async function loadCategories(): Promise<void> {
   const [cats, cc] = await Promise.all([fetchCategories(), fetchCategoryOfferCounts()]);
   categories.value = cats;
   const map = new Map<number, number>();
-  for (const c of cc as MarketplaceCategoryOfferCount[]) map.set(c.category_id, c.count);
+  for (const c of cc) map.set(c.category_id, c.count);
   counts.value = map;
 }
 
@@ -119,8 +118,12 @@ function changeSort(newSort: CatalogSort): void {
   void loadPage(false);
 }
 
+function isCatalogSort(value: string | number | null): value is CatalogSort {
+  return sortOptions.some((option) => option.value === value);
+}
+
 function onSortChange(value: string | number | null): void {
-  if (value) changeSort(value as CatalogSort);
+  if (isCatalogSort(value)) changeSort(value);
 }
 
 async function onLoadMore(): Promise<void> {

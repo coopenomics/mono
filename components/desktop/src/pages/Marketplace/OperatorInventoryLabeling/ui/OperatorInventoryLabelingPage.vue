@@ -75,17 +75,36 @@ const shipmentModel = computed<string>({
   },
 })
 
+// Допустимые значения enum'ов — для type-guard без каста при приёме строки из
+// BaseSelect (sentinel STRATEGY_DEFAULT в список не входит → маппится в null).
+const STRATEGY_VALUES: readonly BarcodeStrategy[] = [
+  Zeus.MarketplaceBarcodeStrategy.PER_ORDER,
+  Zeus.MarketplaceBarcodeStrategy.PER_UNIT,
+  Zeus.MarketplaceBarcodeStrategy.PER_PACKAGE,
+]
+function isStrategy(v: string): v is BarcodeStrategy {
+  return STRATEGY_VALUES.some((s) => s === v)
+}
+
+const FORMAT_VALUES: readonly BarcodeFormat[] = [
+  Zeus.MarketplaceBarcodeFormat.CODE128,
+  Zeus.MarketplaceBarcodeFormat.EAN13,
+]
+function isFormat(v: string): v is BarcodeFormat {
+  return FORMAT_VALUES.some((f) => f === v)
+}
+
 const strategyModel = computed<string>({
   get: () => defaultStrategy.value ?? STRATEGY_DEFAULT,
   set: (v) => {
-    defaultStrategy.value = v === STRATEGY_DEFAULT ? null : (v as BarcodeStrategy)
+    defaultStrategy.value = isStrategy(v) ? v : null
   },
 })
 
 const formatModel = computed<string>({
   get: () => defaultFormat.value,
   set: (v) => {
-    defaultFormat.value = v as BarcodeFormat
+    if (isFormat(v)) defaultFormat.value = v
   },
 })
 

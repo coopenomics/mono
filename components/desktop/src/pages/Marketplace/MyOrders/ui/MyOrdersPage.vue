@@ -78,7 +78,7 @@ const STATUS_TO_CARD: Record<MarketplaceOrderStatusView, OrderCardStatus> = {
   EXPIRED_NO_VOLUME: 'cancelled',
 };
 
-function toCardModel(o: MarketplaceOrderView): OrderCardModel & { domainStatus: MarketplaceOrderStatusView } {
+function toCardModel(o: MarketplaceOrderView): OrderCardModel {
   return {
     id: o.id,
     shortId: o.id.slice(0, 8),
@@ -89,7 +89,6 @@ function toCardModel(o: MarketplaceOrderView): OrderCardModel & { domainStatus: 
     status: STATUS_TO_CARD[o.status],
     createdAt: o.created_at,
     pvz: o.delivery_braname,
-    domainStatus: o.status,
   };
 }
 
@@ -158,6 +157,21 @@ function onCardAction(payload: { key: string; order: OrderCardModel }): void {
   // 'open' → когда будет detail-страница (Story 4.6 follow-up); пока no-op.
 }
 
+// Хелперы для slot-scope OrderCard. Доменный статус берём из items по id
+// (slot отдаёт OrderCardModel с .id) — полностью типобезопасно, без каста и any.
+// В template-выражениях нельзя использовать TS-каст `as`: он валит компиляцию
+// render-функции в рантайме (SyntaxError: Unexpected identifier 'as').
+function rowDomainStatus(order: OrderCardModel): MarketplaceOrderStatusView | undefined {
+  return items.value.find((o) => o.id === order.id)?.status;
+}
+function rowStatusLabel(order: OrderCardModel): string {
+  const status = rowDomainStatus(order);
+  return status ? STATUS_LABEL[status] : '';
+}
+function isOrderCancellable(order: OrderCardModel): boolean {
+  return rowDomainStatus(order) === 'ACTIVE';
+}
+
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 
 onMounted(() => {
@@ -207,9 +221,9 @@ q-page.orders(role="region", aria-label="Мои заказы")
       @action="onCardAction"
     )
       template(#actions="{ order }")
-        span.orders__status {{ STATUS_LABEL[(order as any).domainStatus as MarketplaceOrderStatusView] }}
+        span.orders__status {{ rowStatusLabel(order) }}
         BaseButton(
-          v-if="(order as any).domainStatus === 'ACTIVE'",
+          v-if="isOrderCancellable(order)",
           variant="danger",
           size="sm",
           @click="onCardAction({ key: 'cancel', order })"
