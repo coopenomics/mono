@@ -1,5 +1,6 @@
 import { Notify } from 'quasar';
 import { extractGraphQLErrorMessages } from './errors';
+import { formatAssetsInText } from 'src/shared/lib/utils/formatAsset2Digits';
 
 /**
  * Canon-тосты платформы. Единый визуал и поведение для всех типов
@@ -63,6 +64,10 @@ export function SuccessAlert(
 export function FailAlert(error: unknown, text?: string): void {
   let message = extractGraphQLErrorMessages(error);
   message = message.replace('assertion failure with message: ', '');
+  // Суммы из ошибок цепи приходят «сырыми» (precision=4: "100.0000 RUB").
+  // Приводим к виду «2 знака» через единый форматтер — единая точка для
+  // всех тостов ошибок (см. formatAssetsInText).
+  message = formatAssetsInText(message);
 
   Notify.create({
     message: text ? `${text}: ${message}` : message,

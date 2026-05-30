@@ -36,3 +36,35 @@ export const formatAsset2Digits = (value: string): string => {
     ? `${formattedNumber} ${currencySymbol}`
     : formattedNumber;
 };
+
+/**
+ * Регэксп для актива внутри свободного текста: целое.дробное (≥3 знаков)
+ * + пробел + тикер. Требование ≥3 знаков таргетит «сырой» on-chain рендер
+ * `asset::to_string()` (precision=4 для RUB → "100.0000"), но не трогает
+ * уже корректные 2-значные суммы и числа вроде "12.5". Тикер — 3..7
+ * заглавных латинских (RUB, AXON), как EOSIO symbol_code.
+ */
+const ASSET_IN_TEXT_RE = /(\d+\.\d{3,})\s+([A-Z]{3,7})/g;
+
+/**
+ * Переформатирует все суммы-активы внутри произвольной строки (текста
+ * ошибки с бэкенда/цепи) к виду «2 знака + группировка» через
+ * {@link formatAsset2Digits}:
+ *   "Недостаточно средств: требуется 100.0000 RUB, доступно 0.0000 RUB"
+ *   → "Недостаточно средств: требуется 100,00 RUB, доступно 0,00 RUB".
+ *
+ * Идемпотентна: уже отформатированные суммы (<3 знаков после точки) не
+ * трогает. Применяется централизованно в тостах ошибок (см. FailAlert).
+ *
+ * @param text — произвольный текст, возможно содержащий суммы-активы
+ * @returns текст с переформатированными суммами
+ */
+export const formatAssetsInText = (text: string): string => {
+  if (!text) return text;
+
+  return text.replace(
+    ASSET_IN_TEXT_RE,
+    (_match, amount: string, symbol: string) =>
+      formatAsset2Digits(`${amount} ${symbol}`),
+  );
+};

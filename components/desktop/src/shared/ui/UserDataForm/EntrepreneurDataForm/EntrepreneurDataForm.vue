@@ -47,6 +47,7 @@
     v-model="userData.entrepreneur_data.bank_account.bank_name"
     outlined color="primary"
     label="Наименование банка"
+    placeholder='ПАО "Сбербанк"'
     :rules="[val => notEmpty(val)]"
     autocomplete="off"
   )

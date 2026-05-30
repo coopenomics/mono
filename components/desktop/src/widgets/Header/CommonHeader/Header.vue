@@ -22,7 +22,14 @@ q-header.app-q-header(:bordered='false')
         span(v-else) {{ crumb }}
         q-icon(v-if='idx < crumbs.length - 1', name='chevron_right')
 
-    template(v-if='loggedIn', #actions)
+    //- Host рендерится БЕЗУСЛОВНО (без v-if='loggedIn'), чтобы цель Teleport
+    //- '#header-actions-host' всегда существовала в DOM. Иначе сразу после
+    //- регистрации навигация на стол происходит раньше, чем loggedIn (зависит
+    //- от async session.isAuth/isRegistrationComplete) станет true → цель
+    //- отсутствует → Vue пишет "Failed to locate Teleport target". Видимость
+    //- блока действий регулируется CSS по наличию телепортированного контента
+    //- (.topbar__actions:has(> .header-actions-host:only-child:empty){display:none}).
+    template(#actions)
       //- Старый механизм (useHeaderActions store) — для страниц, ещё не
       //- переведённых на Teleport; удалим, когда мигрируем все.
       component(

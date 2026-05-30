@@ -136,6 +136,19 @@ watch(
           attempts++;
         }
 
+        // Пайщик стал active (совет принял решение) — статус обновился выше.
+        // На момент первого run() статус мог быть ещё не 'active', поэтому
+        // isFullyActive не сработал и кошелёк/agreements не загрузились.
+        // Повторный run(true) подтягивает кошелёк актуального пользователя —
+        // от него зависят canContribute / isWalletAgreementSigned, иначе
+        // кнопки «Совершить взнос» / «Получить возврат» не появятся до F5.
+        await run(true);
+
+        // Свежая загрузка столов и грантов с бэка (DesktopWorkspace.grants):
+        // без неё grant-gated кнопки появляются только после F5, когда init-app
+        // вызовет loadDesktop. По образцу init-app / EnableButton.
+        await desktops.loadDesktop();
+
         // Теперь выбираем рабочий стол с обновленными данными о роли
         // Передаем ignoreSaved=true чтобы пересчитать на основе новой роли
         desktops.selectDefaultWorkspace(true);

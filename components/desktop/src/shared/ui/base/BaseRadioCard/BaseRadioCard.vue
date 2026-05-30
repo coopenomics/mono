@@ -57,7 +57,7 @@ function onClick(): void {
   font: inherit;
   transition: background-color 0.15s ease, border-color 0.15s ease;
 }
-.base-radio-card:hover {
+.base-radio-card:not(.base-radio-card--selected):hover {
   border-color: var(--p-primary-soft, var(--p-primary));
   background: var(--p-surface);
 }
