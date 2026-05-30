@@ -144,27 +144,14 @@ async function load(): Promise<void> {
   }
 }
 
-// Story 14.2: принять самовывоз по факту присутствия — backend синтезирует
-// партию самовывоза из принятых заказов поставщика на этом КУ и открывает приёмку.
+// Story 14.2: принять самовывоз по факту присутствия. Открываем ту же форму
+// коррекции, что и при сканировании QR (R5/B2): оператор правит фактическое
+// количество и цену по каждой единице — процесс приёмки единый, без исключений.
+// Сам express-акт создаётся из диалога по «Сформировать акты».
 async function acceptExpressPickup(
   candidate: MarketplaceExpressPickupCandidateView,
 ): Promise<void> {
-  Loading.show({ message: 'Открываю приёмку самовывоза…' });
-  try {
-    const result = await createExpressReception({
-      offerer_account: candidate.offerer_account,
-      braname: candidate.braname,
-    });
-    const count = result.apl_receptions.length;
-    SuccessAlert(
-      count > 1 ? `Открыто актов приёмки: ${count}` : 'Акт приёмки самовывоза создан',
-    );
-    await load();
-  } catch (e) {
-    FailAlert(e, 'Не удалось открыть приёмку самовывоза');
-  } finally {
-    Loading.hide();
-  }
+  await openPickupForSupplier(candidate.offerer_account);
 }
 
 async function createReceptionForShipment(shipmentId: string): Promise<void> {
@@ -247,27 +234,20 @@ const plannedReceptionsCount = computed(() => {
   return cycles.size + (takeAddon.value && addonOrders.value.length ? 1 : 0);
 });
 
-async function onQrScanned(code: string): Promise<void> {
-  scanDialogOpen.value = false;
-  const token = decodeHandoffToken(code);
-  if (!token || token.kind !== HandoffTokenKind.Pickup) {
-    FailAlert(new Error('Нераспознанный код поставщика. Отсканируйте «Мой код для ПВЗ» со стола поставщика.'));
-    return;
-  }
-  if (token.coopname && token.coopname !== coopname.value) {
-    FailAlert(new Error('Код выписан для другого кооператива.'));
-    return;
-  }
+// Единая точка открытия диалога приёмки по поставщику (QR-скан и «самовывоз по
+// факту» ведут сюда): грузим все единицы имущества поставщика на этом КУ и
+// открываем форму коррекции количества/цены.
+async function openPickupForSupplier(account: string): Promise<void> {
   Loading.show({ message: 'Загружаю имущество поставщика…' });
   try {
-    const orders = await listSupplierPickupOrders(braname.value.trim(), token.account);
+    const orders = await listSupplierPickupOrders(braname.value.trim(), account);
     if (!orders.length) {
       FailAlert(
-        new Error(`У поставщика ${token.account} нет имущества, ожидающего приёмки на этом пункте.`),
+        new Error(`У поставщика ${account} нет имущества, ожидающего приёмки на этом пункте.`),
       );
       return;
     }
-    pickupAccount.value = token.account;
+    pickupAccount.value = account;
     pickupOrders.value = orders;
     pickupFact.value = Object.fromEntries(orders.map((o) => [o.id, o.quantity]));
     pickupPrice.value = Object.fromEntries(orders.map((o) => [o.id, o.price_per_unit]));
@@ -279,6 +259,20 @@ async function onQrScanned(code: string): Promise<void> {
   } finally {
     Loading.hide();
   }
+}
+
+async function onQrScanned(code: string): Promise<void> {
+  scanDialogOpen.value = false;
+  const token = decodeHandoffToken(code);
+  if (!token || token.kind !== HandoffTokenKind.Pickup) {
+    FailAlert(new Error('Нераспознанный код поставщика. Отсканируйте «Мой код для ПВЗ» со стола поставщика.'));
+    return;
+  }
+  if (token.coopname && token.coopname !== coopname.value) {
+    FailAlert(new Error('Код выписан для другого кооператива.'));
+    return;
+  }
+  await openPickupForSupplier(token.account);
 }
 
 // Сформировать акты приёмки по выбранному: на каждую партию с выбранными
@@ -314,11 +308,17 @@ async function acceptPickup(): Promise<void> {
       });
       created += 1;
     }
-    // Добор по акцепту — самовывозом (принимается весь добор поставщика на КУ).
+    // Добор по акцепту — самовывозом (принимается весь добор поставщика на КУ)
+    // с фактическим количеством и ценой по каждой единице (B2/R5).
     if (takeAddon.value && addonOrders.value.length) {
       const result = await createExpressReception({
         offerer_account: pickupAccount.value,
         braname: braname.value.trim(),
+        fact_quantity_per_order: addonOrders.value.map((o) => ({
+          order_id: o.id,
+          fact_quantity: pickupFact.value[o.id] ?? o.quantity,
+          fact_unit_price: pickupPrice.value[o.id] ?? o.price_per_unit,
+        })),
       });
       created += result.apl_receptions.length;
     }
@@ -457,8 +457,9 @@ q-page.reception(role='region', aria-label='Приёмка партии')
     .reception__pickup
       .reception__pickup-account {{ pickupAccount }}
       .reception__pickup-hint
-        | Снимите галку с единицы, чтобы не принимать её; партия без выбранных
-        | единиц не создаётся и ждёт. Факт можно довзвесить — но не выше заказанного.
+        | По каждой единице скорректируйте фактическое количество (не выше
+        | заказанного) и цену. Снимите галку с задекларированной единицы, чтобы
+        | не принимать её; партия без выбранных единиц не создаётся и ждёт.
 
       template(v-if='declaredOrders.length')
         .reception__pickup-section Задекларировано в партии (по ТТН)
@@ -500,6 +501,22 @@ q-page.reception(role='region', aria-label='Приёмка партии')
           .reception__unit-info
             .reception__unit-title {{ o.product_name || 'Товар по предложению' }}
             .reception__unit-meta Акцептовано {{ o.quantity }} {{ marketplaceUnitShort(o.unit_of_measure) }}
+          .reception__unit-fact
+            BaseInput(
+              v-model.number='pickupFact[o.id]',
+              type='number',
+              dense,
+              :disable='!takeAddon',
+              :suffix='marketplaceUnitShort(o.unit_of_measure)',
+              @blur='clampFact(o.id, o.quantity)'
+            )
+            BaseInput(
+              v-model='pickupPrice[o.id]',
+              type='number',
+              dense,
+              :disable='!takeAddon',
+              label='Цена/ед.'
+            )
 
       .reception__pickup-actions
         BaseButton(variant='ghost', size='sm', @click='pickupDialogOpen = false') Отмена

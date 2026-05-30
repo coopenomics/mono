@@ -120,6 +120,12 @@ export interface MarketplaceCreateExpressReceptionInputDto {
   offerer_account: string;
   /** КУ оператора, на котором идёт приёмка. */
   braname: string;
+  /**
+   * Фактически принятое количество и цена per-Order — оператор корректирует их
+   * при открытии приёмки (так же, как на батч-приёмке). При отсутствии записи по
+   * Order'у берётся order.quantity и цена заказа.
+   */
+  fact_quantity_per_order?: MarketplaceAplReceptionFactQuantityEntry[];
 }
 
 export interface MarketplaceCreateExpressReceptionResult {
@@ -519,6 +525,9 @@ export class MarketplaceAplReceptionService {
         coopname: input.coopname,
         operator_account: input.operator_account,
         shipment_id: shipment.id,
+        // Коррекция оператора (кол-во+цена) — единый базис с батч-приёмкой.
+        // `create` сам отфильтрует записи по Order'ам этой партии (buildFactQuantity).
+        fact_quantity_per_order: input.fact_quantity_per_order,
       });
       receptions.push(result.apl_reception);
     }

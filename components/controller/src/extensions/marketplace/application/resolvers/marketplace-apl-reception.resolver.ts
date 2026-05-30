@@ -124,6 +124,7 @@ export class MarketplaceAplReceptionResolver {
       operator_account: member.username,
       offerer_account: data.offerer_account,
       braname: data.braname,
+      fact_quantity_per_order: data.fact_quantity_per_order,
     });
     const dto = new MarketplaceCreateExpressReceptionResultDTO();
     dto.apl_receptions = result.apl_receptions.map(toMarketplaceAplReceptionDTO);

@@ -7579,6 +7579,11 @@ input MarketplaceCreateExpressReceptionInput {
   """КУ, на котором оператор принимает имущество."""
   braname: String!
 
+  """
+  Фактически принятое количество и цена per-Order — оператор корректирует их при открытии приёмки. Для пропущенных Order'ов берётся order.quantity и цена заказа.
+  """
+  fact_quantity_per_order: [MarketplaceAplReceptionFactEntryInput!]
+
   """Поставщик, приехавший на ПВЗ для самовывоза."""
   offerer_account: String!
 }

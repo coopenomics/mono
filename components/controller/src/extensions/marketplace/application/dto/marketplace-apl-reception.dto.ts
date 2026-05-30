@@ -217,6 +217,17 @@ export class MarketplaceCreateExpressReceptionInputDTO {
   @IsString()
   @IsNotEmpty()
   braname!: string;
+
+  @Field(() => [MarketplaceAplReceptionFactEntryInputDTO], {
+    nullable: true,
+    description:
+      'Фактически принятое количество и цена per-Order — оператор корректирует их при открытии приёмки. Для пропущенных Order\'ов берётся order.quantity и цена заказа.',
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => MarketplaceAplReceptionFactEntryInputDTO)
+  fact_quantity_per_order?: MarketplaceAplReceptionFactEntryInputDTO[];
 }
 
 @ObjectType('MarketplaceExpressPickupCandidate')

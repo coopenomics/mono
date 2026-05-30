@@ -6507,6 +6507,8 @@ export type ValueTypes = {
 	["MarketplaceCreateExpressReceptionInput"]: {
 	/** КУ, на котором оператор принимает имущество. */
 	braname: string | Variable<any, string>,
+	/** Фактически принятое количество и цена per-Order — оператор корректирует их при открытии приёмки. Для пропущенных Order'ов берётся order.quantity и цена заказа. */
+	fact_quantity_per_order?: Array<ValueTypes["MarketplaceAplReceptionFactEntryInput"]> | undefined | null | Variable<any, string>,
 	/** Поставщик, приехавший на ПВЗ для самовывоза. */
 	offerer_account: string | Variable<any, string>
 };
@@ -16604,6 +16606,8 @@ export type ResolverInputTypes = {
 	["MarketplaceCreateExpressReceptionInput"]: {
 	/** КУ, на котором оператор принимает имущество. */
 	braname: string,
+	/** Фактически принятое количество и цена per-Order — оператор корректирует их при открытии приёмки. Для пропущенных Order'ов берётся order.quantity и цена заказа. */
+	fact_quantity_per_order?: Array<ResolverInputTypes["MarketplaceAplReceptionFactEntryInput"]> | undefined | null,
 	/** Поставщик, приехавший на ПВЗ для самовывоза. */
 	offerer_account: string
 };
@@ -26375,6 +26379,8 @@ export type ModelTypes = {
 	["MarketplaceCreateExpressReceptionInput"]: {
 	/** КУ, на котором оператор принимает имущество. */
 	braname: string,
+	/** Фактически принятое количество и цена per-Order — оператор корректирует их при открытии приёмки. Для пропущенных Order'ов берётся order.quantity и цена заказа. */
+	fact_quantity_per_order?: Array<ModelTypes["MarketplaceAplReceptionFactEntryInput"]> | undefined | null,
 	/** Поставщик, приехавший на ПВЗ для самовывоза. */
 	offerer_account: string
 };
@@ -37041,6 +37047,8 @@ export type GraphQLTypes = {
 	["MarketplaceCreateExpressReceptionInput"]: {
 		/** КУ, на котором оператор принимает имущество. */
 	braname: string,
+	/** Фактически принятое количество и цена per-Order — оператор корректирует их при открытии приёмки. Для пропущенных Order'ов берётся order.quantity и цена заказа. */
+	fact_quantity_per_order?: Array<GraphQLTypes["MarketplaceAplReceptionFactEntryInput"]> | undefined | null,
 	/** Поставщик, приехавший на ПВЗ для самовывоза. */
 	offerer_account: string
 };

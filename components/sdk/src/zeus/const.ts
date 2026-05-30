@@ -677,7 +677,7 @@ export const AllTypesProps: Record<string,any> = {
 		fact_quantity_per_order:"MarketplaceAplReceptionFactEntryInput"
 	},
 	MarketplaceCreateExpressReceptionInput:{
-
+		fact_quantity_per_order:"MarketplaceAplReceptionFactEntryInput"
 	},
 	MarketplaceCreateOfferInput:{
 		barcode_strategy:"MarketplaceBarcodeStrategy",
