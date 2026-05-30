@@ -237,6 +237,11 @@
             <template #icon>×</template>
             Не удалось проверить подпись. Обновите ключ и повторите.
           </BaseBanner>
+          <PageHint storage-key="dev:ui:page-hint-demo">
+            Закрывающаяся подсказка-баннер сверху страницы стола. Крестик скрывает
+            её навсегда (LocalStorage по ключу <code>storage-key</code>) — канон
+            столов маркетплейса.
+          </PageHint>
         </div>
       </div>
     </section>
@@ -1312,6 +1317,7 @@ import { FileUploader } from 'src/shared/ui/domain/FileUploader';
 import { VerticalStepper } from 'src/shared/ui/domain/VerticalStepper';
 import { NotificationCenter } from 'src/shared/ui/domain/NotificationCenter';
 import { CommandPalette } from 'src/shared/ui/domain/CommandPalette';
+import { PageHint } from 'src/shared/ui/domain/PageHint';
 import { DetailsDrawer } from 'src/shared/ui/domain/DetailsDrawer';
 import { SuccessAlert, FailAlert, NotifyAlert } from 'src/shared/api';
 import { LostKey } from 'src/widgets/Registrator/LostKey';
