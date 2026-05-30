@@ -6,6 +6,7 @@ import {
   type Order as OrderCardModel,
   type OrderStatus as OrderCardStatus,
 } from 'src/widgets/Marketplace/OrderCard';
+import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import { fetchMyOrders } from '../../MyOrders/api';
 import type {
   MarketplaceOrderCycleTypeView,
@@ -20,7 +21,7 @@ import type {
  * заказчика группируются в партию по `cycle_id`. Эта страница даёт пайщику
  * единый обзор: какие у него партии в полёте, сколько заказов в каждой,
  * суммарная стоимость, общий этап партии. Канон — `widgets/Marketplace/OrderCard`
- * для отдельных заказов внутри партии.
+ * для отдельных заказов внутри партии; страница на MONO Platform v2.
  *
  * Источник данных — `Queries.Marketplace.ListMyOrders` (reuse MyOrders/api).
  * Polling 15s, до Subscriptions Story 9.x.
@@ -212,117 +213,125 @@ onUnmounted(() => {
 </script>
 
 <template lang="pug">
-q-page.mp-role-orderer.mp-consolidated(role="region", aria-label="Сводный заказ")
-  div.mp-consolidated__header
-    div
-      div.text-h5 Сводный заказ
-      div.text-caption.mp-consolidated__subtitle
-        | Партии заказов, сгруппированные по циклу. Несколько ваших заказов в одной партии обслуживаются совместно — на одном цикле, с одной поставкой.
+q-page.consolidated(role="region", aria-label="Сводный заказ")
+  .consolidated__head
+    .t-h2 Сводный заказ
+    .t-muted Партии заказов, сгруппированные по циклу. Несколько ваших заказов в одной партии обслуживаются совместно — на одном цикле, с одной поставкой.
+
+  .consolidated__toolbar
     q-space
-    q-btn(flat, dense, round, icon="fa-solid fa-rotate", :loading="loading", @click="load", aria-label="Обновить")
+    BaseButton(variant="ghost", iconOnly, ariaLabel="Обновить", :loading="loading", @click="load")
+      template(#icon-left)
+        q-icon(name="refresh", size="18px")
 
   q-inner-loading(:showing="loading && items.length === 0")
     q-spinner(color="primary", size="2em")
 
-  div.mp-consolidated__empty(v-if="!loading && !hasGroups")
-    q-icon(name="fa-solid fa-box-open", size="48px", color="grey-5")
-    div.text-subtitle1.q-mt-md У вас ещё нет заказов
-    div.text-caption Откройте каталог и оформите первый заказ — он появится здесь.
+  EmptyState(
+    v-if="!loading && !hasGroups",
+    title="У вас ещё нет заказов",
+    body="Откройте каталог и оформите первый заказ — он появится здесь."
+  )
+    template(#icon)
+      q-icon(name="inventory_2", size="48px")
 
-  div.mp-consolidated__list(v-if="hasGroups")
-    div.text-caption.mp-consolidated__counter
-      | Партий в работе: {{ consolidatedCount }} / Всего групп: {{ groups.length }}
+  .consolidated__list(v-if="hasGroups")
+    .t-muted.consolidated__counter Партий в работе: {{ consolidatedCount }} / Всего групп: {{ groups.length }}
 
-    q-card.mp-consolidated__group(
-      v-for="g in groups",
-      :key="g.key",
-      flat,
-      bordered
-    )
-      q-card-section.mp-consolidated__group-head
-        div.row.items-center.q-gutter-md
+    .consolidated__group(v-for="g in groups", :key="g.key")
+      .consolidated__group-head
+        .row.items-center.q-gutter-md
           div
-            div.text-subtitle1
+            .t-h3
               span(v-if="g.cycle_id") Партия № {{ g.cycle_id }}
               span(v-else) Индивидуальный заказ № {{ g.orders[0].id.slice(0, 8) }}
-            div.text-caption.mp-consolidated__group-hint
-              | {{ CYCLE_TYPE_LABEL[g.cycle_type] }} — {{ CYCLE_TYPE_HINT[g.cycle_type] }}
+            .t-muted.consolidated__group-hint {{ CYCLE_TYPE_LABEL[g.cycle_type] }} — {{ CYCLE_TYPE_HINT[g.cycle_type] }}
           q-space
-          q-chip(square, color="primary", text-color="white", icon="fa-solid fa-layer-group")
+          span.chip.chip--accent
+            q-icon(name="layers", size="14px")
             | {{ g.orders.length }} заказа(ов)
 
-        div.row.q-col-gutter-md.q-mt-sm
-          div.col-12.col-md-3
-            div.text-caption Этап партии
-            div.text-body2 {{ STATUS_LABEL[g.stageStatus] }}
-          div.col-12.col-md-3
-            div.text-caption Всего единиц
-            div.text-body2 {{ g.totalUnits }}
-          div.col-12.col-md-3
-            div.text-caption Сумма партии
-            div.text-body2 {{ formatCost(g.totalCost) }}
-          div.col-12.col-md-3
-            div.text-caption ПВЗ доставки
-            div.text-body2 {{ g.delivery_braname }}
+        .row.q-col-gutter-md.q-mt-sm
+          .col-12.col-md-3
+            .t-muted Этап партии
+            .consolidated__metric-val {{ STATUS_LABEL[g.stageStatus] }}
+          .col-12.col-md-3
+            .t-muted Всего единиц
+            .consolidated__metric-val {{ g.totalUnits }}
+          .col-12.col-md-3
+            .t-muted Сумма партии
+            .consolidated__metric-val {{ formatCost(g.totalCost) }}
+          .col-12.col-md-3
+            .t-muted ПВЗ доставки
+            .consolidated__metric-val {{ g.delivery_braname }}
 
-      q-separator
-      q-card-section
-        div.mp-consolidated__orders
-          OrderCard(
-            v-for="o in g.orders",
-            :key="o.id",
-            :order="toCardModel(o)",
-            role="orderer"
-          )
+      .consolidated__orders
+        OrderCard(
+          v-for="o in g.orders",
+          :key="o.id",
+          :order="toCardModel(o)",
+          role="orderer"
+        )
 </template>
 
 <style scoped lang="scss">
-.mp-consolidated {
-  padding: var(--mp-space-lg);
+.consolidated {
+  padding: var(--p-6, 24px);
   display: flex;
   flex-direction: column;
-  gap: var(--mp-space-md);
+  gap: var(--p-4, 16px);
 
-  &__header {
+  &__head {
     display: flex;
-    align-items: flex-start;
-    gap: var(--mp-space-md);
+    flex-direction: column;
+    gap: var(--p-1, 4px);
+    max-width: 760px;
   }
 
-  &__subtitle {
-    color: var(--mp-on-surface-muted);
-    max-width: 720px;
-  }
-
-  &__counter {
-    color: var(--mp-on-surface-muted);
-    margin-bottom: var(--mp-space-sm);
+  &__toolbar {
+    display: flex;
+    align-items: center;
   }
 
   &__list {
     display: flex;
     flex-direction: column;
-    gap: var(--mp-space-md);
+    gap: var(--p-4, 16px);
+  }
+
+  &__group {
+    border: 1px solid var(--p-line);
+    border-radius: var(--p-r-md, 12px);
+    background: var(--p-surface);
+    overflow: hidden;
+  }
+
+  &__group-head {
+    padding: var(--p-4, 16px);
   }
 
   &__group-hint {
-    color: var(--mp-on-surface-muted);
     max-width: 640px;
+  }
+
+  &__metric-val {
+    font-size: var(--p-fs-body);
+    color: var(--p-ink-1);
+    margin-top: 2px;
   }
 
   &__orders {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: var(--mp-space-md);
+    gap: var(--p-4, 16px);
+    padding: var(--p-4, 16px);
+    border-top: 1px solid var(--p-line);
   }
+}
 
-  &__empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: var(--mp-space-xl) 0;
-    color: var(--mp-on-surface-muted);
+@media (max-width: 768px) {
+  .consolidated {
+    padding: var(--p-4, 16px);
   }
 }
 </style>

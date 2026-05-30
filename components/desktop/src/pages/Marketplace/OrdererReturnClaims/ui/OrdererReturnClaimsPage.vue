@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert } from 'src/shared/api';
+import { BaseButton, BaseSelect, BaseBadge, type BaseBadgeVariant } from 'src/shared/ui/base';
 import { listMyReturnClaims, type MarketplaceReturnClaimView } from '../api';
 import { fetchMyOrders } from '../../MyOrders/api';
 import type { MarketplaceOrderView } from '../../MyOrders/types';
@@ -12,9 +13,8 @@ import ReturnClaimDetailsDialog from './ReturnClaimDetailsDialog.vue';
  * Story 7.1 — orderer-стол: список заявлений пайщика на гарантийный возврат
  * имущества. Карточки делятся на «активные» (PENDING_CHAIRMAN_REVIEW,
  * APPROVED_FOR_VISIT) и «архив» (REJECTED_REMOTELY, REJECTED_AT_VISIT,
- * ACCEPTED_AT_VISIT). На активной карточке заказчик может просмотреть
- * текущий decision_log; на ACCEPTED_AT_VISIT — увидеть восстановленную
- * сумму на программный кошелёк.
+ * ACCEPTED_AT_VISIT). Страница на MONO Platform v2: статусы — `BaseBadge`,
+ * подача — `BaseSelect` + `BaseButton`.
  *
  * Подача нового заявления (с фото-доказательством) идёт через
  * SubmitReturnClaimDialog (full-screen TakeoverDialog с пошаговым
@@ -90,6 +90,10 @@ async function loadEligibleOrders(): Promise<void> {
   }
 }
 
+function onSelectOrder(value: string | number | null): void {
+  selectedOrderId.value = value == null ? null : String(value);
+}
+
 function openSubmit(): void {
   if (!selectedOrderId.value) {
     FailAlert(new Error('Выберите полученный заказ.'));
@@ -133,19 +137,19 @@ function formatDate(value: unknown): string {
   return parsed.toLocaleDateString('ru-RU');
 }
 
-function statusColor(status: MarketplaceReturnClaimView['status']): string {
+function statusVariant(status: MarketplaceReturnClaimView['status']): BaseBadgeVariant {
   switch (status) {
     case Zeus.MarketplaceReturnClaimStatus.PENDING_CHAIRMAN_REVIEW:
-      return 'primary';
-    case Zeus.MarketplaceReturnClaimStatus.APPROVED_FOR_VISIT:
       return 'info';
+    case Zeus.MarketplaceReturnClaimStatus.APPROVED_FOR_VISIT:
+      return 'warn';
     case Zeus.MarketplaceReturnClaimStatus.ACCEPTED_AT_VISIT:
-      return 'positive';
+      return 'pos';
     case Zeus.MarketplaceReturnClaimStatus.REJECTED_REMOTELY:
     case Zeus.MarketplaceReturnClaimStatus.REJECTED_AT_VISIT:
-      return 'negative';
+      return 'neg';
     default:
-      return 'grey';
+      return 'neutral';
   }
 }
 
@@ -159,85 +163,117 @@ onMounted(async () => {
 </script>
 
 <template lang="pug">
-q-page.mp-role-orderer.mp-return-claims.q-pa-md
-  .text-h6.q-mb-sm Гарантийный возврат имущества
-  .text-body2.text-grey.q-mb-md
-    | Подача заявления возможна только по выданному заказу в пределах гарантийного срока, заданного поставщиком.
+q-page.returns(role="region", aria-label="Гарантийный возврат")
+  .returns__head
+    .t-h2 Гарантийный возврат имущества
+    .t-muted Подача заявления возможна только по выданному заказу в пределах гарантийного срока, заданного поставщиком.
 
-  q-card.q-mb-md(flat bordered).mp-return-claims__submit
-    q-card-section
-      .row.q-gutter-md.items-center
-        q-select.col(
-          v-model="selectedOrderId"
-          :options="orderOptions"
-          :loading="eligibleLoading"
-          outlined
-          dense
-          emit-value
-          map-options
-          label="Полученный заказ"
-          :hint="orderOptions.length === 0 ? 'Нет полученных заказов, доступных для возврата' : 'Выберите заказ, по которому оформляете возврат'"
-        )
-        q-btn(
-          unelevated no-caps color="primary"
-          icon="fa-solid fa-clipboard-list"
-          label="Подать заявление"
-          :disable="!selectedOrderId"
-          @click="openSubmit"
-        )
-
-  .text-subtitle1.q-mb-sm Активные заявления
-  q-card(v-if="activeClaims.length === 0" flat bordered).q-pa-md.q-mb-md
-    .text-grey Нет активных заявлений на возврат.
-  q-list(v-else bordered separator).q-mb-md
-    q-item(
-      v-for="c in activeClaims" :key="c.id" clickable @click="openDetails(c)"
+  .returns__submit
+    BaseSelect.returns__select(
+      :model-value="selectedOrderId",
+      :options="orderOptions",
+      label="Полученный заказ",
+      :hint="orderOptions.length === 0 ? 'Нет полученных заказов, доступных для возврата' : 'Выберите заказ, по которому оформляете возврат'",
+      @update:model-value="onSelectOrder"
     )
-      q-item-section
-        q-item-label.text-weight-medium {{ c.actual_quantity }} ед. · {{ c.fact_cost }} ₽
-        q-item-label(caption) Заказ {{ c.order_id.slice(0, 8) }} · подано {{ formatDate(c.created_at) }}
-        q-item-label(caption) {{ c.reason_text.slice(0, 120) }}{{ c.reason_text.length > 120 ? '…' : '' }}
-      q-item-section(side)
-        q-chip(:color="statusColor(c.status)" text-color="white" dense) {{ humanStatus(c.status) }}
-
-  .text-subtitle1.q-mb-sm Архив заявлений
-  q-card(v-if="archiveClaims.length === 0" flat bordered).q-pa-md
-    .text-grey Архив пуст.
-  q-list(v-else bordered separator)
-    q-item(
-      v-for="c in archiveClaims" :key="c.id" clickable @click="openDetails(c)"
+    BaseButton(
+      variant="primary",
+      :disabled="!selectedOrderId",
+      @click="openSubmit"
     )
-      q-item-section
-        q-item-label {{ c.actual_quantity }} ед. · {{ c.fact_cost }} ₽
-        q-item-label(caption) Заказ {{ c.order_id.slice(0, 8) }}
-        q-item-label(
-          v-if="c.ledger_snapshot"
-          caption
-        ).text-positive
-          | Восстановлено на программный кошелёк: {{ c.ledger_snapshot.amount }} ₽
-      q-item-section(side)
-        q-chip(:color="statusColor(c.status)" text-color="white" dense) {{ humanStatus(c.status) }}
+      template(#icon-left)
+        q-icon(name="assignment", size="18px")
+      | Подать заявление
+
+  section.returns__section
+    .t-h3 Активные заявления
+    .returns__empty(v-if="activeClaims.length === 0") Нет активных заявлений на возврат.
+    q-list(v-else, bordered, separator)
+      q-item(v-for="c in activeClaims", :key="c.id", clickable, @click="openDetails(c)")
+        q-item-section
+          q-item-label.text-weight-medium {{ c.actual_quantity }} ед. · {{ c.fact_cost }} ₽
+          q-item-label(caption) Заказ {{ c.order_id.slice(0, 8) }} · подано {{ formatDate(c.created_at) }}
+          q-item-label(caption) {{ c.reason_text.slice(0, 120) }}{{ c.reason_text.length > 120 ? '…' : '' }}
+        q-item-section(side)
+          BaseBadge(:variant="statusVariant(c.status)") {{ humanStatus(c.status) }}
+
+  section.returns__section
+    .t-h3 Архив заявлений
+    .returns__empty(v-if="archiveClaims.length === 0") Архив пуст.
+    q-list(v-else, bordered, separator)
+      q-item(v-for="c in archiveClaims", :key="c.id", clickable, @click="openDetails(c)")
+        q-item-section
+          q-item-label {{ c.actual_quantity }} ед. · {{ c.fact_cost }} ₽
+          q-item-label(caption) Заказ {{ c.order_id.slice(0, 8) }}
+          q-item-label.returns__restored(v-if="c.ledger_snapshot", caption) Восстановлено на программный кошелёк: {{ c.ledger_snapshot.amount }} ₽
+        q-item-section(side)
+          BaseBadge(:variant="statusVariant(c.status)") {{ humanStatus(c.status) }}
 
   SubmitReturnClaimDialog(
-    v-model="submitDialog"
-    :order-id="selectedOrderId ?? ''"
+    v-model="submitDialog",
+    :order-id="selectedOrderId ?? ''",
     @submitted="onSubmitted"
   )
 
   ReturnClaimDetailsDialog(
-    v-model="detailsDialog"
+    v-model="detailsDialog",
     :claim="selectedClaim"
   )
 </template>
 
 <style scoped lang="scss">
-.mp-return-claims {
+.returns {
+  padding: var(--p-6, 24px);
   display: flex;
   flex-direction: column;
-  gap: var(--mp-space-md);
+  gap: var(--p-4, 16px);
+
+  &__head {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-1, 4px);
+    max-width: 760px;
+  }
 
   &__submit {
-    border-color: var(--mp-color-border, rgba(0, 0, 0, 0.12));
+    display: flex;
+    gap: var(--p-3, 12px);
+    align-items: flex-start;
+    flex-wrap: wrap;
+    padding: var(--p-4, 16px);
+    border: 1px solid var(--p-line);
+    border-radius: var(--p-r-md, 12px);
+    background: var(--p-surface);
+  }
+
+  &__select {
+    flex: 1 1 320px;
+    min-width: 240px;
+  }
+
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-2, 8px);
+  }
+
+  &__empty {
+    padding: var(--p-4, 16px);
+    border: 1px solid var(--p-line);
+    border-radius: var(--p-r-md, 12px);
+    background: var(--p-surface);
+    color: var(--p-ink-2);
+    font-size: var(--p-fs-body-sm);
+  }
+
+  &__restored {
+    color: var(--p-pos) !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .returns {
+    padding: var(--p-4, 16px);
   }
 }
 </style>

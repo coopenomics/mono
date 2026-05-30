@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
+import { BaseDialog, BaseInput, BaseSelect, BaseButton } from 'src/shared/ui/base';
 import { fetchBranchOptions, submitCreateOrder } from '../api';
 import type { BranchOption, MarketplaceOfferView } from '../types';
 
@@ -67,6 +68,15 @@ const canSubmit = computed(() => {
   return true;
 });
 
+function onQuantityInput(value: string | number | null): void {
+  const n = Number(value);
+  quantity.value = Number.isNaN(n) ? 0 : n;
+}
+
+function onBranchSelect(value: string | number | null): void {
+  branch.value = value == null ? null : String(value);
+}
+
 watch(
   () => props.modelValue,
   async (v) => {
@@ -112,48 +122,65 @@ async function onSubmit(): Promise<void> {
 </script>
 
 <template lang="pug">
-q-dialog(v-model="open", :persistent="submitting")
-  q-card.mp-order-create-dialog(style="min-width: 360px; max-width: 480px")
-    q-card-section
-      div.text-h6 Оформление заказа
-      div.text-subtitle2.text-grey-7(v-if="offer") {{ offer.product_name }}
-    q-separator
-    q-card-section.q-gutter-md
-      q-input(
-        v-model.number="quantity",
+BaseDialog(
+  :model-value="open",
+  title="Оформление заказа",
+  size="sm",
+  :close-on-backdrop="!submitting",
+  @update:model-value="(v) => open = v"
+)
+  template(#default)
+    .order-create
+      .order-create__offer(v-if="offer") {{ offer.product_name }}
+      BaseInput(
+        :model-value="quantity",
         type="number",
-        :min="1",
-        :max="maxQuantity ?? undefined",
         :label="`Количество (${unitLabel})`",
         :hint="maxQuantity !== null ? `Доступно: ${maxQuantity} ${unitLabel}` : 'Без ограничения остатка'",
-        outlined,
-        dense
+        @update:model-value="onQuantityInput"
       )
-      q-select(
-        v-model="branch",
+      BaseSelect(
+        :model-value="branch",
         :options="branchOptions",
-        option-value="value",
-        option-label="label",
-        emit-value,
-        map-options,
-        outlined,
-        dense,
         label="ПВЗ доставки",
-        :loading="loadingBranches",
-        :disable="branchOptions.length === 0"
+        :disabled="branchOptions.length === 0",
+        :hint="loadingBranches ? 'Загружаю пункты выдачи…' : undefined",
+        @update:model-value="onBranchSelect"
       )
-      div.text-body2(v-if="offer")
+      .order-create__price(v-if="offer")
         | Цена: {{ Number(offer.price_per_unit).toLocaleString('ru-RU') }} {{ system.governSymbol }} за {{ unitLabel }}
-      div.text-h6.text-primary(v-if="offer")
+      .order-create__total(v-if="offer")
         | Итого: {{ totalSum.toLocaleString('ru-RU') }} {{ system.governSymbol }}
-    q-card-actions(align="right")
-      q-btn(flat, label="Отмена", :disable="submitting", @click="open = false")
-      q-btn(
-        unelevated,
-        color="primary",
-        label="Подтвердить заказ",
-        :disable="!canSubmit",
-        :loading="submitting",
-        @click="onSubmit"
-      )
+  template(#footer)
+    BaseButton(variant="ghost", :disabled="submitting", @click="open = false") Отмена
+    BaseButton(
+      variant="primary",
+      :disabled="!canSubmit",
+      :loading="submitting",
+      @click="onSubmit"
+    ) Подтвердить заказ
 </template>
+
+<style scoped lang="scss">
+.order-create {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3, 12px);
+
+  &__offer {
+    color: var(--p-ink-2);
+    font-size: var(--p-fs-body-sm);
+  }
+
+  &__price {
+    font-size: var(--p-fs-body-sm);
+    color: var(--p-ink-2);
+  }
+
+  &__total {
+    font-size: var(--p-fs-h3);
+    font-weight: 600;
+    color: var(--p-primary-strong);
+  }
+}
+</style>

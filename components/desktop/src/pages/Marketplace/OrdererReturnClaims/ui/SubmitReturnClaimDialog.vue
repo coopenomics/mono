@@ -247,7 +247,7 @@ TakeoverDialog(
         flat bordered animated
         active-color="primary" done-color="positive"
       )
-        q-step(:name="STEP_DESCRIBE" title="Описание" icon="fa-solid fa-pen" :done="step !== STEP_DESCRIBE")
+        q-step(:name="STEP_DESCRIBE" title="Описание" icon="edit" :done="step !== STEP_DESCRIBE")
           q-banner.q-mb-md(rounded class="bg-primary text-white")
             | Опишите, что не так с полученным товаром. Это сообщение увидит председатель кооперативного участка при удалённом рассмотрении.
           q-input(
@@ -281,7 +281,7 @@ TakeoverDialog(
             hint="Если пусто — возвращается всё фактически выданное количество."
           ).q-mt-md
 
-        q-step(:name="STEP_PHOTOS" title="Фото" icon="fa-solid fa-image" :done="step === STEP_SIGN")
+        q-step(:name="STEP_PHOTOS" title="Фото" icon="image" :done="step === STEP_SIGN")
           q-banner.q-mb-md(rounded class="bg-info text-white")
             | Приложите от 1 до 10 фотографий товара (JPEG, PNG, WEBP, до 10 МБ каждое). Хеши файлов будут записаны в блокчейн как доказательная база.
           q-file(
@@ -307,7 +307,7 @@ TakeoverDialog(
           .row.q-mt-md
             q-btn(flat no-caps label="Назад к описанию" @click="backStep")
 
-        q-step(:name="STEP_SIGN" title="Подпись" icon="fa-solid fa-pen-nib")
+        q-step(:name="STEP_SIGN" title="Подпись" icon="draw")
           q-card(v-if="previewLoading" flat bordered).q-pa-md
             q-spinner(color="primary" size="32px")
             .q-ml-md Формирую предварительное заявление…
@@ -327,7 +327,7 @@ TakeoverDialog(
 .mp-return-submit {
   display: flex;
   flex-direction: column;
-  gap: var(--mp-space-md);
+  gap: var(--p-4, 16px);
 
   &__preview {
     max-height: 50vh;

@@ -1,16 +1,17 @@
 <script lang="ts" setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { Dialog, Loading, Notify } from 'quasar';
 import { OrderCard, type Order as OrderCardModel, type OrderStatus as OrderCardStatus } from 'src/widgets/Marketplace/OrderCard';
+import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import { cancelOrder, fetchMyOrders } from '../api';
 import type { MarketplaceOrderStatusView, MarketplaceOrderView } from '../types';
 
 /**
  * Story 4.6: orderer-стол «Мои заказы».
  *
- * Канон — `widgets/Marketplace/OrderCard` (UX-DR9). Корневой класс
- * `mp-role-orderer` подтягивает токены из marketplace-tokens.scss;
- * статус-цвета — внутренний `mp-status-chip` widget'а.
+ * Канон — `widgets/Marketplace/OrderCard` для карточки заказа. Страница на
+ * MONO Platform v2: фильтр по статусу — тоггл-чипы `.chip`, действия —
+ * `BaseButton`, пустой экран — `EmptyState`.
  *
  * Cancel-кнопка (`@action(key='cancel')`) → confirm-dialog →
  * `marketplaceCancelOrder` (Story 4.4). Live-обновления — polling
@@ -166,69 +167,101 @@ onMounted(() => {
   }, POLL_INTERVAL_MS);
 });
 
-import { onBeforeUnmount } from 'vue';
 onBeforeUnmount(() => {
   if (pollTimer) clearInterval(pollTimer);
 });
 </script>
 
-<template>
-  <q-page class="mp-role-orderer mp-my-orders q-pa-md">
-    <div class="row items-center q-mb-md">
-      <div class="text-h5 q-mr-md">Мои заказы</div>
-      <q-space />
-      <q-btn-toggle
-        :model-value="statusFilter"
-        :options="STATUS_FILTER_OPTIONS"
-        size="sm"
-        flat
-        no-caps
-        toggle-color="primary"
-        @update:model-value="changeStatusFilter"
-      />
-    </div>
+<template lang="pug">
+q-page.orders(role="region", aria-label="Мои заказы")
+  .orders__head
+    .t-h2 Мои заказы
+    .t-muted Заказы, оформленные вами в каталоге. Здесь виден их статус и движение до выдачи на пункте.
 
-    <div v-if="!items.length && !loading" class="mp-my-orders__empty text-center text-grey-7 q-pa-xl">
-      У вас пока нет заказов. Перейдите в каталог, чтобы оформить заказ.
-    </div>
+  .orders__filters(role="tablist", aria-label="Фильтр по статусу")
+    .chip.orders__chip(
+      v-for="opt in STATUS_FILTER_OPTIONS",
+      :key="String(opt.value)",
+      :class="statusFilter === opt.value ? 'chip--accent' : 'chip--neutral'",
+      role="tab",
+      :aria-selected="statusFilter === opt.value",
+      tabindex="0",
+      @click="changeStatusFilter(opt.value)",
+      @keydown.enter="changeStatusFilter(opt.value)"
+    ) {{ opt.label }}
 
-    <div class="mp-my-orders__grid">
-      <OrderCard
-        v-for="o in items"
-        :key="o.id"
-        :order="toCardModel(o)"
-        role="orderer"
-        @action="onCardAction"
-      >
-        <template #actions="{ order }">
-          <span class="text-caption text-grey-7 q-mr-sm">{{ STATUS_LABEL[(order as any).domainStatus as MarketplaceOrderStatusView] }}</span>
-          <q-btn
-            v-if="(order as any).domainStatus === 'ACTIVE'"
-            flat
-            dense
-            no-caps
-            color="negative"
-            label="Отменить"
-            @click="onCardAction({ key: 'cancel', order })"
-          />
-        </template>
-      </OrderCard>
-    </div>
+  EmptyState(
+    v-if="!items.length && !loading",
+    title="У вас пока нет заказов",
+    body="Перейдите в каталог, чтобы оформить первый заказ."
+  )
+    template(#icon)
+      q-icon(name="shopping_cart", size="48px")
 
-    <div v-if="hasMore" class="row justify-center q-my-md">
-      <q-btn :loading="loading" flat no-caps label="Загрузить ещё" @click="onLoadMore" />
-    </div>
-  </q-page>
+  .orders__grid(v-if="items.length")
+    OrderCard(
+      v-for="o in items",
+      :key="o.id",
+      :order="toCardModel(o)",
+      role="orderer",
+      @action="onCardAction"
+    )
+      template(#actions="{ order }")
+        span.orders__status {{ STATUS_LABEL[(order as any).domainStatus as MarketplaceOrderStatusView] }}
+        BaseButton(
+          v-if="(order as any).domainStatus === 'ACTIVE'",
+          variant="danger",
+          size="sm",
+          @click="onCardAction({ key: 'cancel', order })"
+        ) Отменить
+
+  .row.justify-center.q-my-md(v-if="hasMore")
+    BaseButton(variant="ghost", :loading="loading", @click="onLoadMore") Загрузить ещё
 </template>
 
 <style scoped lang="scss">
-.mp-my-orders {
+.orders {
+  padding: var(--p-6, 24px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-4, 16px);
+
+  &__head {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-1, 4px);
+  }
+
+  &__filters {
+    display: flex;
+    gap: var(--p-2, 8px);
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: var(--p-1, 4px);
+  }
+
+  &__chip {
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+  }
+
   &__grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: var(--mp-space-md);
+    gap: var(--p-4, 16px);
   }
 
-  &__empty { font-size: 15px; }
+  &__status {
+    color: var(--p-ink-3);
+    font-size: var(--p-fs-body-sm);
+    margin-right: var(--p-2, 8px);
+  }
+}
+
+@media (max-width: 768px) {
+  .orders {
+    padding: var(--p-4, 16px);
+  }
 }
 </style>

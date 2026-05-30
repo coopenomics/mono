@@ -7,6 +7,7 @@ import {
   type CatalogOffer,
   type CatalogOfferStatus,
 } from 'src/widgets/Marketplace/CatalogOfferCard';
+import { BaseSelect, BaseButton, EmptyState } from 'src/shared/ui/base';
 import { marketplaceUnitShort } from 'src/shared/lib/consts';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
 import {
@@ -25,10 +26,9 @@ import OrderCreateDialog from './OrderCreateDialog.vue';
 /**
  * Story 3.5: каталог Стола заказов на orderer-столе.
  *
- * Канон UI — `widgets/Marketplace/CatalogOfferCard` (Эпик 10, UX-DR10).
- * Корневой класс `mp-role-orderer` подтягивает токены плотности и touch-target
- * из `marketplace-tokens.scss`; статусы — через `.mp-status-chip` внутри
- * виджета; per-offer actions — через slot `actions`.
+ * Канон UI — `widgets/Marketplace/CatalogOfferCard` (карточка предложения).
+ * Страница свёрстана по MONO Platform v2: канон-токены `--p-*`, фильтр
+ * категорий — тоггл-чипы `.chip`, действие «Заказать» — `BaseButton`.
  */
 
 const ALL_KEY = -1 as number;
@@ -54,6 +54,12 @@ const sortOptions: Array<{ label: string; value: CatalogSort }> = [
   { label: 'Цена ↑', value: 'price_asc' },
   { label: 'Цена ↓', value: 'price_desc' },
 ];
+
+const emptyBody = computed(() =>
+  selectedCategoryId.value !== ALL_KEY
+    ? 'Попробуйте сменить категорию.'
+    : 'В каталоге пока нет активных предложений.'
+);
 
 function toCatalogOffer(offer: MarketplaceOfferView): CatalogOffer {
   const isEmpty = !offer.unlimited_flag && offer.quantity_available <= 0;
@@ -113,6 +119,10 @@ function changeSort(newSort: CatalogSort): void {
   void loadPage(false);
 }
 
+function onSortChange(value: string | number | null): void {
+  if (value) changeSort(value as CatalogSort);
+}
+
 async function onLoadMore(): Promise<void> {
   if (!hasMore.value || loading.value) return;
   currentPage.value += 1;
@@ -141,74 +151,67 @@ onMounted(async () => {
 </script>
 
 <template lang="pug">
-q-page.mp-role-orderer.mp-catalog-page(role="region", aria-label="Каталог Стола заказов")
-  div.mp-catalog-page__header
-    div.text-h5 Каталог
-    q-space
-    q-select(
-      v-model="sort",
-      :options="sortOptions",
-      option-value="value",
-      option-label="label",
-      emit-value,
-      map-options,
-      dense,
-      outlined,
-      style="min-width: 180px",
-      label="Сортировка",
-      @update:model-value="changeSort(sort)"
-    )
+q-page.catalog(role="region", aria-label="Каталог Стола заказов")
+  .catalog__head
+    .t-h2 Каталог
+    .t-muted Предложения поставщиков кооператива. Выберите товар и оформите заказ на ваш пункт выдачи.
 
-  div.mp-catalog-page__filters(role="tablist", aria-label="Фильтр по категориям")
-    q-chip.mp-filter-chip(
-      :selected="selectedCategoryId === ALL_KEY",
-      clickable,
-      outline,
-      selected-color="primary",
-      :aria-selected="selectedCategoryId === ALL_KEY",
-      @click="selectCategory(ALL_KEY)"
+  .catalog__toolbar
+    .catalog__filters(role="tablist", aria-label="Фильтр по категориям")
+      .chip.catalog__chip(
+        :class="selectedCategoryId === ALL_KEY ? 'chip--accent' : 'chip--neutral'",
+        role="tab",
+        :aria-selected="selectedCategoryId === ALL_KEY",
+        tabindex="0",
+        @click="selectCategory(ALL_KEY)",
+        @keydown.enter="selectCategory(ALL_KEY)"
+      )
+        span Все
+        span.catalog__count {{ totalActiveCount }}
+      .chip.catalog__chip(
+        v-for="cat in categories",
+        :key="cat.id",
+        :class="selectedCategoryId === cat.id ? 'chip--accent' : 'chip--neutral'",
+        role="tab",
+        :aria-selected="selectedCategoryId === cat.id",
+        tabindex="0",
+        @click="selectCategory(cat.id)",
+        @keydown.enter="selectCategory(cat.id)"
+      )
+        span {{ cat.display_name }}
+        span.catalog__count {{ counts.get(cat.id) ?? 0 }}
+    q-space
+    BaseSelect.catalog__sort(
+      :model-value="sort",
+      :options="sortOptions",
+      label="Сортировка",
+      @update:model-value="onSortChange"
     )
-      span Все
-      span.mp-filter-chip__count {{ totalActiveCount }}
-    q-chip.mp-filter-chip(
-      v-for="cat in categories",
-      :key="cat.id",
-      :selected="selectedCategoryId === cat.id",
-      clickable,
-      outline,
-      selected-color="primary",
-      :aria-selected="selectedCategoryId === cat.id",
-      @click="selectCategory(cat.id)"
-    )
-      span {{ cat.display_name }}
-      span.mp-filter-chip__count {{ counts.get(cat.id) ?? 0 }}
 
   q-inner-loading(:showing="loading && items.length === 0")
     q-spinner(color="primary", size="2em")
 
-  div.mp-catalog-page__empty(v-if="!loading && items.length === 0")
-    q-icon(name="fa-regular fa-circle-question", size="3em")
-    div.text-subtitle1 Ничего не найдено
-    div.text-caption
-      template(v-if="selectedCategoryId !== ALL_KEY") Попробуйте сменить категорию
-      template(v-else) В каталоге пока нет активных предложений
+  EmptyState(
+    v-if="!loading && items.length === 0",
+    title="Ничего не найдено",
+    :body="emptyBody"
+  )
+    template(#icon)
+      q-icon(name="search_off", size="48px")
 
   q-infinite-scroll(@load="onLoadMore", :disable="!hasMore || loading")
-    div.row.q-col-gutter-md
-      div.col-12.col-sm-6.col-md-4.col-lg-3(v-for="o in items", :key="o.id")
+    .row.q-col-gutter-md
+      .col-12.col-sm-6.col-md-4.col-lg-3(v-for="o in items", :key="o.id")
         CatalogOfferCard(:offer="toCatalogOffer(o)", @click="onSelectOffer(o)")
-          template(v-slot:actions)
-            q-btn(
-              unelevated,
-              dense,
-              no-caps,
-              color="primary",
-              label="Заказать",
-              :disable="!canOrder(o)",
+          template(#actions)
+            BaseButton(
+              variant="primary",
+              size="sm",
+              :disabled="!canOrder(o)",
               @click.stop="onSelectOffer(o)"
-            )
-    template(v-slot:loading)
-      div.row.justify-center.q-my-md
+            ) Заказать
+    template(#loading)
+      .row.justify-center.q-my-md
         q-spinner(color="primary", size="2em")
 
   OrderCreateDialog(
@@ -220,46 +223,54 @@ q-page.mp-role-orderer.mp-catalog-page(role="region", aria-label="Каталог
 </template>
 
 <style scoped lang="scss">
-.mp-catalog-page {
-  padding: var(--mp-space-lg);
+.catalog {
+  padding: var(--p-6, 24px);
   display: flex;
   flex-direction: column;
-  gap: var(--mp-space-md);
+  gap: var(--p-4, 16px);
 
-  &__header {
+  &__head {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-1, 4px);
+  }
+
+  &__toolbar {
     display: flex;
     align-items: center;
-    gap: var(--mp-space-md);
+    gap: var(--p-3, 12px);
+    flex-wrap: wrap;
   }
 
   &__filters {
     display: flex;
-    gap: var(--mp-space-sm);
+    gap: var(--p-2, 8px);
     overflow-x: auto;
     flex-wrap: nowrap;
-    padding-bottom: var(--mp-space-xs);
+    padding-bottom: var(--p-1, 4px);
+    flex: 1 1 auto;
+    min-width: 0;
   }
 
-  &__empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--mp-space-xs);
-    padding: var(--mp-space-xxl) var(--mp-space-md);
-    color: var(--mp-on-surface-muted);
+  &__chip {
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+  }
+
+  &__count {
+    color: var(--p-ink-3);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__sort {
+    min-width: 200px;
   }
 }
 
-.mp-filter-chip {
-  &__count {
-    margin-left: var(--mp-space-xs);
-    color: var(--mp-on-surface-muted);
-    font-size: 12px;
-  }
-
-  &.q-chip--selected .mp-filter-chip__count {
-    color: inherit;
-    opacity: .85;
+@media (max-width: 768px) {
+  .catalog {
+    padding: var(--p-4, 16px);
   }
 }
 </style>
