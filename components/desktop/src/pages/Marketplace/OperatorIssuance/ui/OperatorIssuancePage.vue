@@ -5,8 +5,8 @@ import { useRoute } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
 import { BaseBadge, BaseButton, EmptyState } from 'src/shared/ui/base';
-import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
+import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import {
   listIssuancesByBraname,
@@ -42,40 +42,6 @@ const loading = ref(false);
 const openDialog = ref(false);
 const finalizeDialog = ref(false);
 const selectedOrder = ref<MarketplaceOrderIssuanceView | null>(null);
-
-const ORDER_STATUS_LABEL: Record<string, string> = {
-  ACTIVE: 'Ждёт цикла / решения',
-  ACCEPTED_PENDING_SUPPLIER: 'Ждёт поставщика',
-  ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL: 'Ждёт поставщика',
-  ACCEPTED: 'Принят поставщиком',
-  SUPPLY_PREPARED: 'Поставка готовится',
-  ACCEPTED_TO_COOP: 'Принят кооперативом',
-  READY_TO_RECEIVE: 'Готов к выдаче',
-  RECEIVED: 'Получен',
-  RETURNED: 'Возвращён',
-  CANCELLED_BY_ORDERER: 'Отменён заказчиком',
-  CANCELLED_BY_SUPPLIER: 'Отменён поставщиком',
-};
-
-function statusLabel(v: string): string {
-  return ORDER_STATUS_LABEL[v] ?? v;
-}
-
-function statusVariant(v: string): BaseBadgeVariant {
-  switch (v) {
-    case 'ACCEPTED_TO_COOP':
-      return 'info';
-    case 'READY_TO_RECEIVE':
-      return 'warn';
-    case 'RECEIVED':
-      return 'pos';
-    case 'CANCELLED_BY_ORDERER':
-    case 'CANCELLED_BY_SUPPLIER':
-      return 'neg';
-    default:
-      return 'neutral';
-  }
-}
 
 const columns: QTableProps['columns'] = [
   { name: 'order', label: 'Заказ', field: (r: MarketplaceOrderIssuanceView) => r.id.slice(0, 8), align: 'left' },
@@ -162,7 +128,7 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
     )
       template(#body-cell-status='props')
         q-td(:props='props')
-          BaseBadge(:variant='statusVariant(props.row.status)') {{ statusLabel(props.row.status) }}
+          BaseBadge(:variant='orderStatusDisplay(props.row.status).variant') {{ orderStatusDisplay(props.row.status).label }}
 
       template(#body-cell-actions='props')
         q-td(:props='props')

@@ -4,6 +4,7 @@ import { Dialog, Loading, Notify } from 'quasar';
 import { OrderCard, toOrderCardModel, type Order as OrderCardModel } from 'src/widgets/Marketplace/OrderCard';
 import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
+import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { cancelOrder, fetchMyOrders } from '../api';
 import type { MarketplaceOrderStatusView, MarketplaceOrderView } from '../types';
 
@@ -28,36 +29,36 @@ const totalCount = ref(0);
 const totalPages = ref(0);
 const currentPage = ref(1);
 const loading = ref(false);
-const statusFilter = ref<MarketplaceOrderStatusView | null>(null);
+const activeKey = ref('all');
 
 const hasMore = computed(() => currentPage.value < totalPages.value);
 
-const STATUS_FILTER_OPTIONS: Array<{ label: string; value: MarketplaceOrderStatusView | null }> = [
-  { label: 'Все', value: null },
-  { label: 'Активные', value: 'ACTIVE' },
-  { label: 'Ждут поставщика', value: 'ACCEPTED_PENDING_SUPPLIER' },
-  { label: 'Приняты', value: 'ACCEPTED' },
-  { label: 'Готовы к выдаче', value: 'READY_TO_RECEIVE' },
-  { label: 'Получены', value: 'RECEIVED' },
-  { label: 'Отменены заказчиком', value: 'CANCELLED_BY_ORDERER' },
-  { label: 'Отменены поставщиком', value: 'CANCELLED_BY_SUPPLIER' },
+// Фильтр по этапу. Вкладка может покрывать несколько статусов: «Ждут
+// поставщика» — и сводные, и индивидуальные заказы (оба ждут акцепта
+// поставщика), иначе индивидуальный заказ в неё не попадал.
+const FILTERS: Array<{ key: string; label: string; statuses: MarketplaceOrderStatusView[] | null }> = [
+  { key: 'all', label: 'Все', statuses: null },
+  { key: 'active', label: 'Активные', statuses: ['ACTIVE'] },
+  {
+    key: 'pending-supplier',
+    label: 'Ждут поставщика',
+    statuses: ['ACCEPTED_PENDING_SUPPLIER', 'ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL'],
+  },
+  { key: 'accepted', label: 'Приняты', statuses: ['ACCEPTED'] },
+  { key: 'ready', label: 'Готовы к выдаче', statuses: ['READY_TO_RECEIVE'] },
+  { key: 'received', label: 'Получены', statuses: ['RECEIVED'] },
+  {
+    key: 'cancelled',
+    label: 'Отменены',
+    statuses: ['CANCELLED_BY_ORDERER', 'CANCELLED_BY_SUPPLIER'],
+  },
 ];
 
-const STATUS_LABEL: Record<MarketplaceOrderStatusView, string> = {
-  ACTIVE: 'Ждёт цикла / решения',
-  ACCEPTED_PENDING_SUPPLIER: 'Ждёт поставщика',
-  ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL: 'Ждёт поставщика',
-  ACCEPTED: 'Принят поставщиком',
-  SUPPLY_PREPARED: 'Поставка готовится',
-  ACCEPTED_TO_COOP: 'Принят кооперативом',
-  READY_TO_RECEIVE: 'Готов к выдаче',
-  RECEIVED: 'Получен',
-  RETURNED: 'Возвращён',
-  CANCELLED_BY_ORDERER: 'Отменён заказчиком',
-  CANCELLED_BY_SUPPLIER: 'Отменён поставщиком',
-  EXPIRED_NO_THRESHOLD: 'Цикл закрыт без минимального порога',
-  EXPIRED_NO_VOLUME: 'Цикл закрыт без объёма',
-};
+const tabs = computed<PageTab[]>(() => FILTERS.map((f) => ({ key: f.key, label: f.label })));
+
+const activeStatuses = computed<MarketplaceOrderStatusView[] | undefined>(
+  () => FILTERS.find((f) => f.key === activeKey.value)?.statuses ?? undefined,
+);
 
 // Маппинг доменного заказа в модель карточки — единый `toOrderCardModel`
 // (статус-карта + реквизиты товара/ПВЗ) из виджета OrderCard.
@@ -67,7 +68,7 @@ async function load(page: number, append: boolean): Promise<void> {
   loading.value = true;
   try {
     const result = await fetchMyOrders({
-      statuses: statusFilter.value ? [statusFilter.value] : undefined,
+      statuses: activeStatuses.value,
       page,
       limit: PAGE_SIZE,
       sortBy: 'updated_at',
@@ -85,8 +86,9 @@ async function load(page: number, append: boolean): Promise<void> {
   }
 }
 
-function changeStatusFilter(s: MarketplaceOrderStatusView | null): void {
-  statusFilter.value = s;
+function onSelectTab(tab: PageTab): void {
+  if (activeKey.value === tab.key) return;
+  activeKey.value = tab.key;
   void load(1, false);
 }
 
@@ -128,21 +130,6 @@ function onCardAction(payload: { key: string; order: OrderCardModel }): void {
   // 'open' → когда будет detail-страница (Story 4.6 follow-up); пока no-op.
 }
 
-// Хелперы для slot-scope OrderCard. Доменный статус берём из items по id
-// (slot отдаёт OrderCardModel с .id) — полностью типобезопасно, без каста и any.
-// В template-выражениях нельзя использовать TS-каст `as`: он валит компиляцию
-// render-функции в рантайме (SyntaxError: Unexpected identifier 'as').
-function rowDomainStatus(order: OrderCardModel): MarketplaceOrderStatusView | undefined {
-  return items.value.find((o) => o.id === order.id)?.status;
-}
-function rowStatusLabel(order: OrderCardModel): string {
-  const status = rowDomainStatus(order);
-  return status ? STATUS_LABEL[status] : '';
-}
-function isOrderCancellable(order: OrderCardModel): boolean {
-  return rowDomainStatus(order) === 'ACTIVE';
-}
-
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 
 onMounted(() => {
@@ -162,17 +149,7 @@ q-page.orders(role="region", aria-label="Мои заказы")
   PageHint(storage-key="mp:my-orders:banner-dismissed")
     | Заказы, оформленные вами в каталоге. Здесь виден их статус и движение до выдачи на пункте.
 
-  .orders__filters(role="tablist", aria-label="Фильтр по статусу")
-    .chip.orders__chip(
-      v-for="opt in STATUS_FILTER_OPTIONS",
-      :key="String(opt.value)",
-      :class="statusFilter === opt.value ? 'chip--accent' : 'chip--neutral'",
-      role="tab",
-      :aria-selected="statusFilter === opt.value",
-      tabindex="0",
-      @click="changeStatusFilter(opt.value)",
-      @keydown.enter="changeStatusFilter(opt.value)"
-    ) {{ opt.label }}
+  PageTabs.orders__tabs(:tabs="tabs", :active-key="activeKey", @select="onSelectTab")
 
   EmptyState(
     v-if="!items.length && !loading",
@@ -190,14 +167,6 @@ q-page.orders(role="region", aria-label="Мои заказы")
       role="orderer",
       @action="onCardAction"
     )
-      template(#actions="{ order }")
-        span.orders__status {{ rowStatusLabel(order) }}
-        BaseButton(
-          v-if="isOrderCancellable(order)",
-          variant="danger",
-          size="sm",
-          @click="onCardAction({ key: 'cancel', order })"
-        ) Отменить
 
   .row.justify-center.q-my-md(v-if="hasMore")
     BaseButton(variant="ghost", :loading="loading", @click="onLoadMore") Загрузить ещё
@@ -210,30 +179,22 @@ q-page.orders(role="region", aria-label="Мои заказы")
   flex-direction: column;
   gap: var(--p-4, 16px);
 
-  &__filters {
-    display: flex;
-    gap: var(--p-2, 8px);
-    overflow-x: auto;
-    flex-wrap: nowrap;
-    padding-bottom: var(--p-1, 4px);
+  // Канон-tabbar тянется во всю ширину; в странице с боковыми отступами
+  // убираем его внутренний горизонтальный паддинг, чтобы вкладки шли от края.
+  &__tabs {
+    margin: 0 calc(-1 * var(--p-6, 24px));
+    :deep(.tabbar__tabs) {
+      padding: 0 var(--p-6, 24px);
+    }
   }
 
-  &__chip {
-    cursor: pointer;
-    user-select: none;
-    white-space: nowrap;
-  }
-
+  // Карточки фиксированной ширины (≤360px), выровнены влево — раньше `1fr`
+  // растягивал одинокую карточку во всю строку и она «размазывалась».
   &__grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(300px, 360px));
+    justify-content: start;
     gap: var(--p-4, 16px);
-  }
-
-  &__status {
-    color: var(--p-ink-3);
-    font-size: var(--p-fs-body-sm);
-    margin-right: var(--p-2, 8px);
   }
 }
 

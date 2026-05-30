@@ -3,8 +3,8 @@ import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { Notify } from 'quasar';
 import {
   OrderCard,
-  type Order as OrderCardModel,
-  type OrderStatus as OrderCardStatus,
+  orderStatusDisplay,
+  toOrderCardModel,
 } from 'src/widgets/Marketplace/OrderCard';
 import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
@@ -47,38 +47,6 @@ const CYCLE_TYPE_HINT: Record<MarketplaceOrderCycleTypeView, string> = {
   VOLUME_BASED: 'Партия закрывается при достижении порога объёма заказов.',
   OPEN_SUBSCRIPTION: 'Открытый пул заказов; партии формируются по решению поставщика.',
   INDIVIDUAL: 'Каждый заказ обслуживается поставщиком отдельно.',
-};
-
-const STATUS_LABEL: Record<MarketplaceOrderStatusView, string> = {
-  ACTIVE: 'Ждёт цикла / решения',
-  ACCEPTED_PENDING_SUPPLIER: 'Ждёт поставщика',
-  ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL: 'Ждёт поставщика',
-  ACCEPTED: 'Принят поставщиком',
-  SUPPLY_PREPARED: 'Поставка готовится',
-  ACCEPTED_TO_COOP: 'Принят кооперативом',
-  READY_TO_RECEIVE: 'Готов к выдаче',
-  RECEIVED: 'Получен',
-  RETURNED: 'Возвращён',
-  CANCELLED_BY_ORDERER: 'Отменён заказчиком',
-  CANCELLED_BY_SUPPLIER: 'Отменён поставщиком',
-  EXPIRED_NO_THRESHOLD: 'Цикл закрыт без порога',
-  EXPIRED_NO_VOLUME: 'Цикл закрыт без объёма',
-};
-
-const STATUS_TO_CARD: Record<MarketplaceOrderStatusView, OrderCardStatus> = {
-  ACTIVE: 'placed',
-  ACCEPTED_PENDING_SUPPLIER: 'placed',
-  ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL: 'placed',
-  ACCEPTED: 'paid',
-  SUPPLY_PREPARED: 'in-delivery',
-  ACCEPTED_TO_COOP: 'in-delivery',
-  READY_TO_RECEIVE: 'ready-to-issue',
-  RECEIVED: 'issued',
-  RETURNED: 'returned',
-  CANCELLED_BY_ORDERER: 'cancelled',
-  CANCELLED_BY_SUPPLIER: 'cancelled',
-  EXPIRED_NO_THRESHOLD: 'cancelled',
-  EXPIRED_NO_VOLUME: 'cancelled',
 };
 
 // Этап партии = минимальный по STAGE_RANK среди не-отменённых; то есть
@@ -166,20 +134,6 @@ function formatCost(value: number): string {
   }).format(value);
 }
 
-function toCardModel(o: MarketplaceOrderView): OrderCardModel {
-  return {
-    id: o.id,
-    shortId: o.id.slice(0, 8),
-    title: o.offer_id,
-    units: o.quantity,
-    unitLabel: 'ед.',
-    totalCost: parseFloat(o.total_cost) || 0,
-    status: STATUS_TO_CARD[o.status],
-    createdAt: o.created_at,
-    pvz: o.delivery_braname,
-  };
-}
-
 async function load(): Promise<void> {
   loading.value = true;
   try {
@@ -254,7 +208,7 @@ q-page.consolidated(role="region", aria-label="Сводный заказ")
         .row.q-col-gutter-md.q-mt-sm
           .col-12.col-md-3
             .t-muted Этап партии
-            .consolidated__metric-val {{ STATUS_LABEL[g.stageStatus] }}
+            .consolidated__metric-val {{ orderStatusDisplay(g.stageStatus).label }}
           .col-12.col-md-3
             .t-muted Всего единиц
             .consolidated__metric-val {{ g.totalUnits }}
@@ -269,8 +223,9 @@ q-page.consolidated(role="region", aria-label="Сводный заказ")
         OrderCard(
           v-for="o in g.orders",
           :key="o.id",
-          :order="toCardModel(o)",
-          role="orderer"
+          :order="toOrderCardModel(o)",
+          role="orderer",
+          readonly
         )
 </template>
 

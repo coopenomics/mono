@@ -1,6 +1,7 @@
 import { Queries } from '@coopenomics/sdk';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import type { Order, OrderStatus } from '../OrderCard.vue';
+import { orderStatusDisplay } from './orderStatusDisplay';
 
 /**
  * Единый маппер доменного заказа в модель карточки `OrderCard`. Вынесен из
@@ -49,6 +50,7 @@ export interface OrderCardSource {
 export function toOrderCardModel(o: OrderCardSource): Order {
   const name = o.delivery_point_name || undefined;
   const address = o.delivery_point_address || undefined;
+  const display = orderStatusDisplay(o.status);
   return {
     id: o.id,
     shortId: o.id.slice(0, 8),
@@ -57,6 +59,13 @@ export function toOrderCardModel(o: OrderCardSource): Order {
     unitLabel: marketplaceUnitShort(o.unit_of_measure),
     totalCost: parseFloat(o.total_cost) || 0,
     status: STATUS_TO_CARD[o.status],
+    // Бейдж карточки рисуем по доменному статусу (исчерпывающая карта), а не по
+    // грубому card-status — иначе на карточке два разных текста статуса.
+    statusLabel: display.label,
+    statusVariant: display.variant,
+    // Отмена заказчиком разрешена только до акцепта поставщика (Story 4.4 —
+    // C++ guard status==ACTIVE).
+    cancellable: o.status === 'ACTIVE',
     createdAt: o.created_at,
     // Имя КУ — основная строка ПВЗ, адрес — вторичная. Если нет ни имени, ни
     // адреса — показываем служебный braname, чтобы ПВЗ не исчез из карточки.

@@ -4,6 +4,7 @@ import { Dialog, Notify } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
+import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import {
   OrderCard,
   toOrderCardModel,
@@ -43,7 +44,7 @@ const items = ref<MarketplaceOrderView[]>([]);
 const totalPages = ref(0);
 const currentPage = ref(1);
 const loading = ref(false);
-const statusFilter = ref<MarketplaceOrderStatusView | null>(null);
+const activeKey = ref('all');
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 
 const hasMore = computed(() => currentPage.value < totalPages.value);
@@ -52,33 +53,38 @@ const hasMore = computed(() => currentPage.value < totalPages.value);
 // обновляет данные молча, без дёргания спиннером.
 const showSkeleton = computed(() => loading.value && items.value.length === 0);
 
-// `slug` — стабильный ключ статуса в URL (`?status=pending-accept`), чтобы на
-// любой фильтр можно было перейти прямой ссылкой.
-const STATUS_FILTER_OPTIONS: Array<{
-  label: string;
-  value: MarketplaceOrderStatusView | null;
-  slug: string;
-}> = [
-  { label: 'Все', value: null, slug: 'all' },
-  { label: 'Ждут акцепта', value: 'ACCEPTED_PENDING_SUPPLIER', slug: 'pending-accept' },
-  { label: 'Индивидуальные', value: 'ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL', slug: 'pending-individual' },
-  { label: 'Приняты', value: 'ACCEPTED', slug: 'accepted' },
-  { label: 'Поставка готова', value: 'SUPPLY_PREPARED', slug: 'supply-prepared' },
-  { label: 'Приняты кооперативом', value: 'ACCEPTED_TO_COOP', slug: 'accepted-to-coop' },
-  { label: 'Получены', value: 'RECEIVED', slug: 'received' },
-  { label: 'Отменены', value: 'CANCELLED_BY_ORDERER', slug: 'cancelled' },
+// Фильтр по этапу заказа. Каждая вкладка может покрывать НЕСКОЛЬКО статусов:
+// «Ждут акцепта» — и сводные (ACCEPTED_PENDING_SUPPLIER), и индивидуальные
+// (..._INDIVIDUAL) заказы, оба ждут акцепта поставщика. Раньше вкладка
+// фильтровала только сводный статус, и индивидуальный заказ с кнопкой
+// «Принять» в неё не попадал (отдельная вкладка «Индивидуальные» путала).
+// `key` — стабильный слаг в URL (`?status=pending-accept`) для прямых ссылок.
+const FILTERS: Array<{ key: string; label: string; statuses: MarketplaceOrderStatusView[] | null }> = [
+  { key: 'all', label: 'Все', statuses: null },
+  {
+    key: 'pending-accept',
+    label: 'Ждут акцепта',
+    statuses: ['ACCEPTED_PENDING_SUPPLIER', 'ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL'],
+  },
+  { key: 'accepted', label: 'Приняты', statuses: ['ACCEPTED'] },
+  { key: 'supply-prepared', label: 'Поставка готова', statuses: ['SUPPLY_PREPARED'] },
+  { key: 'accepted-to-coop', label: 'Приняты кооперативом', statuses: ['ACCEPTED_TO_COOP'] },
+  { key: 'received', label: 'Получены', statuses: ['RECEIVED'] },
+  { key: 'cancelled', label: 'Отменены', statuses: ['CANCELLED_BY_ORDERER', 'CANCELLED_BY_SUPPLIER'] },
 ];
 
-function isActiveTab(value: MarketplaceOrderStatusView | null): boolean {
-  return statusFilter.value === value;
-}
+const tabs = computed<PageTab[]>(() => FILTERS.map((f) => ({ key: f.key, label: f.label })));
 
-function setFilter(option: (typeof STATUS_FILTER_OPTIONS)[number]): void {
-  if (statusFilter.value === option.value) return;
-  statusFilter.value = option.value;
+const activeStatuses = computed<MarketplaceOrderStatusView[] | undefined>(
+  () => FILTERS.find((f) => f.key === activeKey.value)?.statuses ?? undefined,
+);
+
+function onSelectTab(tab: PageTab): void {
+  if (activeKey.value === tab.key) return;
+  activeKey.value = tab.key;
   const query = { ...route.query };
-  if (option.value) query.status = option.slug;
-  else delete query.status;
+  if (tab.key === 'all') delete query.status;
+  else query.status = tab.key;
   void router.replace({ query });
   void load(1, false);
 }
@@ -91,7 +97,7 @@ async function load(page: number, append: boolean): Promise<void> {
   loading.value = true;
   try {
     const result = await fetchSupplierOrders({
-      statuses: statusFilter.value ? [statusFilter.value] : undefined,
+      statuses: activeStatuses.value,
       page,
       limit: PAGE_SIZE,
     });
@@ -183,8 +189,8 @@ function onCardAction(payload: { key: string; order: OrderCardModel }): void {
 onMounted(async () => {
   // Восстанавливаем фильтр из URL — поддержка прямых ссылок на статус.
   const slug = typeof route.query.status === 'string' ? route.query.status : null;
-  const fromUrl = STATUS_FILTER_OPTIONS.find((o) => o.slug === slug);
-  if (fromUrl) statusFilter.value = fromUrl.value;
+  const fromUrl = FILTERS.find((f) => f.key === slug);
+  if (fromUrl) activeKey.value = fromUrl.key;
 
   await load(1, false);
   pollTimer = setInterval(() => {
@@ -208,17 +214,8 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
       | отклоните заказ прямо на карточке. Дальнейшие действия по партии —
       | на странице «Подготовка отгрузки».
 
-    nav.tabbar.incoming-orders__tabs
-      .tabbar__tabs
-        button.tab(
-          v-for='opt in STATUS_FILTER_OPTIONS',
-          :key='opt.slug',
-          type='button',
-          :class='{ "tab--active": isActiveTab(opt.value) }',
-          @click='setFilter(opt)'
-        )
-          span {{ opt.label }}
-      .tabbar__actions
+    PageTabs.incoming-orders__tabs(:tabs='tabs', :active-key='activeKey', @select='onSelectTab')
+      template(#actions)
         BaseButton(
           variant='ghost',
           icon-only,
