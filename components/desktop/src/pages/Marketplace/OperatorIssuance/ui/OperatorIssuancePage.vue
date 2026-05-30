@@ -7,6 +7,7 @@ import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/Operator
 import { BaseBadge, BaseButton, EmptyState } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
+import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import {
   listIssuancesByBraname,
   type MarketplaceOrderIssuanceView,
@@ -78,8 +79,20 @@ function statusVariant(v: string): BaseBadgeVariant {
 
 const columns: QTableProps['columns'] = [
   { name: 'order', label: 'Заказ', field: (r: MarketplaceOrderIssuanceView) => r.id.slice(0, 8), align: 'left' },
+  {
+    name: 'product',
+    label: 'Товар',
+    field: (r: MarketplaceOrderIssuanceView) => r.product_name || 'Товар по предложению',
+    align: 'left',
+  },
   { name: 'orderer', label: 'Заказчик', field: 'orderer_account', align: 'left' },
-  { name: 'quantity', label: 'Количество', field: 'quantity', align: 'right' },
+  {
+    name: 'quantity',
+    label: 'Количество',
+    field: 'quantity',
+    align: 'right',
+    format: (v: unknown, r: MarketplaceOrderIssuanceView) => `${v} ${marketplaceUnitShort(r.unit_of_measure)}`,
+  },
   { name: 'total_cost', label: 'Сумма', field: 'total_cost', align: 'right' },
   { name: 'status', label: 'Статус', field: 'status', align: 'left' },
   { name: 'actions', label: '', field: 'id', align: 'right' },

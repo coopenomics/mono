@@ -1,10 +1,9 @@
 <script lang="ts" setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { Dialog, Loading, Notify } from 'quasar';
-import { OrderCard, type Order as OrderCardModel, type OrderStatus as OrderCardStatus } from 'src/widgets/Marketplace/OrderCard';
+import { OrderCard, toOrderCardModel, type Order as OrderCardModel } from 'src/widgets/Marketplace/OrderCard';
 import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
-import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import { cancelOrder, fetchMyOrders } from '../api';
 import type { MarketplaceOrderStatusView, MarketplaceOrderView } from '../types';
 
@@ -60,39 +59,9 @@ const STATUS_LABEL: Record<MarketplaceOrderStatusView, string> = {
   EXPIRED_NO_VOLUME: 'Цикл закрыт без объёма',
 };
 
-// AC Story 4.6: status → OrderCard статус c цветной точкой (UX-DR20).
-// Карточка-канон знает draft/placed/paid/in-delivery/arrived-at-pvz/
-// ready-to-issue/issued/cancelled/dispute/returned — мапим бэкенд-домен
-// на эти стандартизированные ключи виджета.
-const STATUS_TO_CARD: Record<MarketplaceOrderStatusView, OrderCardStatus> = {
-  ACTIVE: 'placed',
-  ACCEPTED_PENDING_SUPPLIER: 'placed',
-  ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL: 'placed',
-  ACCEPTED: 'paid',
-  SUPPLY_PREPARED: 'in-delivery',
-  ACCEPTED_TO_COOP: 'in-delivery',
-  READY_TO_RECEIVE: 'ready-to-issue',
-  RECEIVED: 'issued',
-  RETURNED: 'returned',
-  CANCELLED_BY_ORDERER: 'cancelled',
-  CANCELLED_BY_SUPPLIER: 'cancelled',
-  EXPIRED_NO_THRESHOLD: 'cancelled',
-  EXPIRED_NO_VOLUME: 'cancelled',
-};
-
-function toCardModel(o: MarketplaceOrderView): OrderCardModel {
-  return {
-    id: o.id,
-    shortId: o.id.slice(0, 8),
-    title: o.product_name || 'Товар по предложению',
-    units: o.quantity,
-    unitLabel: marketplaceUnitShort(o.unit_of_measure),
-    totalCost: parseFloat(o.total_cost) || 0,
-    status: STATUS_TO_CARD[o.status],
-    createdAt: o.created_at,
-    pvz: o.delivery_point_address || o.delivery_braname,
-  };
-}
+// Маппинг доменного заказа в модель карточки — единый `toOrderCardModel`
+// (статус-карта + реквизиты товара/ПВЗ) из виджета OrderCard.
+const toCardModel = toOrderCardModel;
 
 async function load(page: number, append: boolean): Promise<void> {
   loading.value = true;

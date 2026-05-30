@@ -1,0 +1,66 @@
+import { Queries } from '@coopenomics/sdk';
+import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
+import type { Order, OrderStatus } from '../OrderCard.vue';
+
+/**
+ * Единый маппер доменного заказа в модель карточки `OrderCard`. Вынесен из
+ * страниц «Мои заказы» и «Входящие заказы» — обе строили карточку одинаково
+ * (статус-карта + реквизиты товара/ПВЗ), что нарушало DRY. Источник статусов —
+ * Zeus-вывод из @coopenomics/sdk, чтобы карта была исчерпывающей по enum'у.
+ */
+
+type RawOrder =
+  Queries.Marketplace.ListMyOrders.IOutput['marketplaceListMyOrders']['items'][number];
+
+/** Доменный статус заказа как строковый литерал (совпадает с MarketplaceOrderStatusView). */
+export type DomainOrderStatus = `${RawOrder['status']}`;
+
+// Доменный статус → стандартизированный статус карточки с цветной точкой (UX-DR20).
+const STATUS_TO_CARD: Record<DomainOrderStatus, OrderStatus> = {
+  ACTIVE: 'placed',
+  ACCEPTED_PENDING_SUPPLIER: 'placed',
+  ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL: 'placed',
+  ACCEPTED: 'paid',
+  SUPPLY_PREPARED: 'in-delivery',
+  ACCEPTED_TO_COOP: 'in-delivery',
+  READY_TO_RECEIVE: 'ready-to-issue',
+  RECEIVED: 'issued',
+  RETURNED: 'returned',
+  CANCELLED_BY_ORDERER: 'cancelled',
+  CANCELLED_BY_SUPPLIER: 'cancelled',
+  EXPIRED_NO_THRESHOLD: 'cancelled',
+  EXPIRED_NO_VOLUME: 'cancelled',
+};
+
+/** Минимальный набор полей заказа, нужный карточке (структурно). */
+export interface OrderCardSource {
+  id: string;
+  product_name?: string | null;
+  quantity: number;
+  unit_of_measure?: string | null;
+  total_cost: string;
+  status: DomainOrderStatus;
+  created_at: string | Date;
+  delivery_braname: string;
+  delivery_point_name?: string | null;
+  delivery_point_address?: string | null;
+}
+
+export function toOrderCardModel(o: OrderCardSource): Order {
+  const name = o.delivery_point_name || undefined;
+  const address = o.delivery_point_address || undefined;
+  return {
+    id: o.id,
+    shortId: o.id.slice(0, 8),
+    title: o.product_name || 'Товар по предложению',
+    units: o.quantity,
+    unitLabel: marketplaceUnitShort(o.unit_of_measure),
+    totalCost: parseFloat(o.total_cost) || 0,
+    status: STATUS_TO_CARD[o.status],
+    createdAt: o.created_at,
+    // Имя КУ — основная строка ПВЗ, адрес — вторичная. Если нет ни имени, ни
+    // адреса — показываем служебный braname, чтобы ПВЗ не исчез из карточки.
+    pvzName: name ?? (address ? undefined : o.delivery_braname),
+    pvz: address,
+  };
+}

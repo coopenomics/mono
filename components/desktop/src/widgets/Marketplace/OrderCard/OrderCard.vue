@@ -24,11 +24,14 @@
         <div class="order-card__meta-label">Сумма</div>
         <div class="order-card__meta-value order-card__meta-value--strong">{{ formatPrice(order.totalCost) }}</div>
       </div>
-      <div v-if="order.pvz" class="order-card__meta-item order-card__meta-item--wide">
+      <div v-if="order.pvzName || order.pvz" class="order-card__meta-item order-card__meta-item--wide">
         <div class="order-card__meta-label">Пункт выдачи</div>
-        <div class="order-card__meta-value order-card__meta-value--muted">
+        <div class="order-card__pvz">
           <q-icon name="place" size="16px" class="order-card__pvz-icon" />
-          <span>{{ order.pvz }}</span>
+          <span class="order-card__pvz-text">
+            <span v-if="order.pvzName" class="order-card__pvz-name">{{ order.pvzName }}</span>
+            <span v-if="order.pvz" class="order-card__pvz-addr">{{ order.pvz }}</span>
+          </span>
         </div>
       </div>
     </div>
@@ -76,7 +79,9 @@ export interface Order {
   totalCost: number
   status: OrderStatus
   createdAt: string | Date
-  /** Отображаемый пункт выдачи: адрес ПВЗ (или служебный идентификатор, если адреса нет). */
+  /** Наименование пункта выдачи (кооперативного участка) — основная строка ПВЗ. */
+  pvzName?: string
+  /** Адрес пункта выдачи — вторичная строка под наименованием. */
   pvz?: string
 }
 
@@ -246,18 +251,36 @@ function formatPrice(v: number) {
       font-weight: 600;
     }
 
-    &--muted {
-      display: flex;
-      align-items: center;
-      gap: var(--p-1, 4px);
-      color: var(--p-ink-2);
-      font-size: var(--p-fs-body-sm, 14px);
-    }
+  }
+
+  &__pvz {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--p-1, 4px);
   }
 
   &__pvz-icon {
     color: var(--p-ink-3);
     flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  &__pvz-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  &__pvz-name {
+    font-size: var(--p-fs-body-sm, 14px);
+    color: var(--p-ink);
+    overflow-wrap: anywhere;
+  }
+
+  &__pvz-addr {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-3);
+    overflow-wrap: anywhere;
   }
 
   &__foot {

@@ -4,6 +4,7 @@ import { onMounted, ref } from 'vue';
 import { FailAlert } from 'src/shared/api';
 import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
+import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import { listMyReadyToReceive, type MarketplaceOrderIssuanceView } from '../api';
 
 /**
@@ -30,8 +31,26 @@ function formatDate(value: unknown): string {
 
 const columns: QTableProps['columns'] = [
   { name: 'order', label: 'Заказ', field: (r: MarketplaceOrderIssuanceView) => r.id.slice(0, 8), align: 'left' },
-  { name: 'ku', label: 'Пункт выдачи', field: 'delivery_braname', align: 'left' },
-  { name: 'quantity', label: 'Количество', field: 'quantity', align: 'right' },
+  {
+    name: 'product',
+    label: 'Товар',
+    field: (r: MarketplaceOrderIssuanceView) => r.product_name || 'Товар по предложению',
+    align: 'left',
+  },
+  {
+    name: 'ku',
+    label: 'Пункт выдачи',
+    field: (r: MarketplaceOrderIssuanceView) =>
+      [r.delivery_point_name, r.delivery_point_address].filter(Boolean).join(' · ') || r.delivery_braname,
+    align: 'left',
+  },
+  {
+    name: 'quantity',
+    label: 'Количество',
+    field: 'quantity',
+    align: 'right',
+    format: (v: unknown, r: MarketplaceOrderIssuanceView) => `${v} ${marketplaceUnitShort(r.unit_of_measure)}`,
+  },
   { name: 'total_cost', label: 'Сумма заказа', field: 'total_cost', align: 'right' },
   {
     name: 'opened_at',
