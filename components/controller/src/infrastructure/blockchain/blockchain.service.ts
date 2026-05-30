@@ -236,7 +236,7 @@ export class BlockchainService implements BlockchainPort {
     await this.transact(actions);
   }
 
-  public async powerUp(username: string, quantity: string): Promise<void> {
+  public async powerUp(username: string, quantity: string): Promise<string> {
     // Инициализируем сессию перед транзакцией
     const wif = await this.vaultDomainService.getWif(username);
     if (!wif) throw new Error(`Не найден приватный ключ для аккаунта ${username}`);
@@ -265,11 +265,13 @@ export class BlockchainService implements BlockchainPort {
       },
     ];
 
-    try {
-      await this.transact(actions);
-    } catch (error) {
-      this.logger.info('Предупреждение при выполнении транзакции powerup:', String(error));
-    }
+    // Epic 13 v5.1: пропускаем исключения наружу — PowerupPlugin полагается на
+    // факт, что отказ on-chain powerup долетает до executePackageTopup и НЕ
+    // приводит к recordTopup. Раньше try/catch + logger.info глушил отказ →
+    // counters росли, cooldown «использовался», а реальной докупки не было
+    // (см. adversarial review 2026-05-30, BLOCKER #1).
+    const result = await this.transact(actions);
+    return (result as any)?.response?.transaction_id ?? (result as any)?.transaction_id ?? '';
   }
 
   public async addUser(data: RegistratorContract.Actions.AddUser.IAddUser): Promise<void> {

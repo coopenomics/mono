@@ -1,4 +1,5 @@
 import { UserPaymentMethodsPage } from 'src/pages/User/PaymentMethodsPage';
+import { ResourceMonitorPage } from 'src/pages/PowerUp/ResourceMonitorPage';
 import { markRaw } from 'vue';
 
 export const manifest = {
@@ -27,6 +28,19 @@ export const manifest = {
           children: [],
         }
       ],
+    },
+    // Epic 13 v5.1 — пакетный монитор PowerupPlugin (CPU/NET/RAM + 8 guards).
+    // Доступен только chairman'у (управляет пакетной моделью и настройками).
+    {
+      meta: {
+        title: 'Пакетные ресурсы',
+        icon: 'fa-solid fa-bolt',
+        roles: [],
+      },
+      path: '/:coopname/powerup',
+      name: 'powerup',
+      component: markRaw(ResourceMonitorPage),
+      children: [],
     },
   ],
   'config': {

@@ -37,7 +37,13 @@ export interface BlockchainPort {
   changeKey(data: RegistratorContract.Actions.ChangeKey.IChangeKey): Promise<void>;
 
   // Powerup related methods
-  powerUp(username: string, quantity: string): Promise<void>;
+  /**
+   * Epic 13 v5.1: возвращает on-chain transaction_id успешного powerUp.
+   * Используется PowerupPlugin'ом для последующего confirmTopupAxon у провайдера.
+   * Бросает исключение при отказе — caller обязан НЕ инкрементить счётчики, иначе
+   * runaway-сценарий (см. adversarial review 2026-05-30, BLOCKER #1).
+   */
+  powerUp(username: string, quantity: string): Promise<string>;
 
   // System installation methods
   addUser(data: RegistratorContract.Actions.AddUser.IAddUser): Promise<void>;

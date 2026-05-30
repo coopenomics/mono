@@ -111,8 +111,42 @@ export class BillingProviderClient {
         payment_hash: input.paymentHash,
         tx_id: input.blockchainTransactionId,
       },
-      { headers: this.headers() },
+      { headers: this.headers(), timeout: 10_000 },
     );
     this.logger.log(`confirmTopupAxon payment_hash=${input.paymentHash} tx=${input.blockchainTransactionId}`);
+  }
+
+  /**
+   * Epic 13 v5.1 — заведение package-invoice'а у провайдера до on-chain `topupaxon`.
+   *
+   * PowerupPlugin coopback'а пайщика вызывает перед отправкой action, чтобы:
+   * (a) получить детерминированный `payment_hash` для последующего confirmTopupAxon;
+   * (b) пройти проверку `monthly_quota_rub` на стороне провайдера. При превышении
+   * провайдер возвращает 400 `MonthlyPackageQuotaExceeded` — PowerupPlugin ловит
+   * и активирует circuit-breaker (см. Story 13.5 + adversarial review 2026-05-30).
+   *
+   * Идемпотентно по `(coopname, period_start, idx)`.
+   */
+  async createPackageInvoice(input: {
+    coopname: string;
+    subscriptionId: number;
+    amountRub: number;
+    periodStart: string; // ISO YYYY-MM-DD
+    idx: number;
+  }): Promise<{ payment_hash: string; amount_rub: number; status: string; expires_at: string }> {
+    const url = `${this.baseUrl}/billing/package-invoice`;
+    const { data } = await axios.post(
+      url,
+      {
+        coopname: input.coopname,
+        subscription_id: input.subscriptionId,
+        amount_rub: input.amountRub,
+        period_start: input.periodStart,
+        idx: input.idx,
+      },
+      { headers: this.headers(), timeout: 10_000 },
+    );
+    this.logger.log(`createPackageInvoice ${input.coopname} idx=${input.idx} → ${data.payment_hash}`);
+    return data;
   }
 }

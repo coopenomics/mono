@@ -3,6 +3,7 @@ import config, { default as coopConfig } from '../../config/config';
 import { Inject, Module, OnModuleDestroy } from '@nestjs/common';
 import { BaseExtModule } from '../base.extension.module';
 import { BLOCKCHAIN_PORT, BlockchainPort } from '~/domain/common/ports/blockchain.port';
+import { BillingProviderClient } from '~/infrastructure/billing/billing-provider.client';
 import {
   EXTENSION_REPOSITORY,
   type ExtensionDomainRepository,
@@ -40,9 +41,6 @@ export const defaultConfig = {
   dailyAxonCap: 50,
   // 3) Daily package cap — максимальное число докупок-пакетов в сутки.
   dailyPackageCap: 10,
-  // 4) AXON pre-gate — минимальный AXON-баланс coopname@active, ниже которого
-  //    докупка не запускается (нет токенов, чтобы оплатить PowerUp).
-  axonMinBalance: 1,
   // 5) RUB floor — минимальный RUB на w.wal.bill[coopname], при котором ещё
   //    можно докупать. Запасной guard поверх subscription_type.min_topup_rub.
   rubFloor: 100,
@@ -55,6 +53,17 @@ export const defaultConfig = {
   monthlyRubCap: 5000,
   // 8) Идемпотентность calendar-trigger'а — YYYY-MM последнего календарного пакета.
   lastCalendarPackageMonth: '',
+  // Epic 13 v5.1 — связь с реестром подписок у провайдера. 0 означает, что
+  // пакетная модель ещё не подключена: PowerupPlugin делает только on-chain
+  // powerup без обращения к provider'у. Должен быть выставлен оператором
+  // в admin-UI (Story 13.8 desktop settings) после того, как provider создал
+  // подписку с subscription_type.kind=package для этого кооператива.
+  subscriptionId: 0,
+  // Счётчик пакетов текущего месяца (1, 2, 3...). Сбрасывается на 1 при первом
+  // packageTopup в новом месяце; используется как idx в детерминированном
+  // payment_hash = sha256(coopname|YYYY-MM-DD|topupaxon|idx). Хранится в config,
+  // потому что provider дедуплицирует invoice'ы по этому idx.
+  monthlyPackageIdx: 0,
 
   // ===== Epic 13 v5.1 — счётчики дня (сбрасываются ежедневной cron-job) =====
   todayAxonSpent: 0,
@@ -162,11 +171,6 @@ export const Schema = z.object({
     .min(0)
     .default(defaultConfig.dailyPackageCap)
     .describe(describeField({ label: 'Суточный лимит докупок (шт.)', rules: ['val >= 0'] })),
-  axonMinBalance: z
-    .number()
-    .min(0)
-    .default(defaultConfig.axonMinBalance)
-    .describe(describeField({ label: 'Минимальный AXON для запуска докупки', rules: ['val >= 0'] })),
   rubFloor: z
     .number()
     .min(0)
@@ -204,6 +208,24 @@ export const Schema = z.object({
     .string()
     .default(defaultConfig.lastTopupAt)
     .describe(describeField({ label: 'Время последней докупки (ISO)', visible: false })),
+  subscriptionId: z
+    .number()
+    .int()
+    .min(0)
+    .default(defaultConfig.subscriptionId)
+    .describe(
+      describeField({
+        label: 'ID подписки package-типа у провайдера',
+        note: '0 = пакетная модель не подключена. Заполняется оператором после регистрации subscription_type.kind=package у провайдера.',
+        rules: ['val >= 0'],
+      })
+    ),
+  monthlyPackageIdx: z
+    .number()
+    .int()
+    .min(0)
+    .default(defaultConfig.monthlyPackageIdx)
+    .describe(describeField({ label: 'Индекс пакета в текущем месяце', visible: false })),
 });
 
 // Автоматическое создание типа IConfig на основе Zod-схемы
@@ -228,12 +250,18 @@ export class PowerupPlugin extends BaseExtModule implements OnModuleDestroy {
   // Идемпотентен через config.lastCalendarPackageMonth, при сбое процесса
   // повторный запуск 1-го числа корректно скипнет уже отработанный месяц.
   private calendarCronJob: cron.ScheduledTask | null = null;
+  // Epic 13 v5.1 — in-process mutex для executePackageTopup. Защищает от наложения
+  // calendar (00:00 UTC) + threshold (per-minute) триггеров: иначе оба прочитают
+  // stale config, пройдут guards и сделают двойной powerUp до того, как любой
+  // успеет recordTopup (см. adversarial review 2026-05-30, BLOCKER #3).
+  private packageTopupInflight = false;
 
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
     @Inject(LOG_EXTENSION_REPOSITORY) private readonly logExtensionRepository: LogExtensionDomainRepository<ILog>,
     private readonly logger: WinstonLoggerService,
-    @Inject(BLOCKCHAIN_PORT) private readonly blockchainPort: BlockchainPort
+    @Inject(BLOCKCHAIN_PORT) private readonly blockchainPort: BlockchainPort,
+    private readonly billingProvider: BillingProviderClient
   ) {
     super();
     this.logger.setContext(PowerupPlugin.name);
@@ -267,28 +295,42 @@ export class PowerupPlugin extends BaseExtModule implements OnModuleDestroy {
       await this.runDailyTask();
     }
 
-    // Регистрация cron-задачи для ежедневного пополнения
-    this.dailyCronJob = cron.schedule('0 0 * * *', () => {
-      this.runDailyTask();
-    });
-
-    // Регистрация cron-задачи для проверки ресурсов каждую минуту
-    this.resourceCronJob = cron.schedule('* * * * *', () => {
-      this.runTask();
-    });
-
+    // Epic 13 v5.1: все три крона на UTC, чтобы daily-counter (todayCounterDate)
+    // и monthly-key (lastCalendarPackageMonth) совпадали с PowerupPlugin'овой
+    // логикой (`nowIso.slice(0,7)`). Без timezone:'UTC' тик сместится в локальное
+    // время сервера и сломает идемпотентность.
+    this.dailyCronJob = cron.schedule(
+      '0 0 * * *',
+      () => { void this.runDailyTask().catch((err) =>
+        this.logger.error('PowerupPlugin: daily-cron fail', err as Error),
+      ); },
+      { timezone: 'UTC' },
+    );
+    this.resourceCronJob = cron.schedule(
+      '* * * * *',
+      () => { void this.runTask().catch((err) =>
+        this.logger.error('PowerupPlugin: resource-cron fail', err as Error),
+      ); },
+      { timezone: 'UTC' },
+    );
     // Epic 13 v5.1 — calendar trigger: 1-го числа месяца в 00:00 UTC.
-    // Идемпотентен через config.lastCalendarPackageMonth — если процесс
-    // упал в момент срабатывания, перезапуск 1-го числа корректно скипнет
-    // уже отработанный месяц.
+    // Идемпотентен через config.lastCalendarPackageMonth.
     this.calendarCronJob = cron.schedule(
       '0 0 1 * *',
       () => {
         void this.runCalendarTask().catch((err) =>
-          this.logger.info('PowerupPlugin: calendar-trigger fail', err as Error),
+          this.logger.error('PowerupPlugin: calendar-trigger fail', err as Error),
         );
       },
       { timezone: 'UTC' },
+    );
+
+    // Boot-time backfill: если процесс был down 1-го числа в 00:00 UTC, тик
+    // пропущен и cron сработает только 1-го числа следующего месяца. Проверяем
+    // на старте: если текущий месяц ещё не «закрыт» календарным пакетом, запускаем
+    // runCalendarTask() однократно. Идемпотентность — через lastCalendarPackageMonth.
+    void this.runCalendarTask().catch((err) =>
+      this.logger.error('PowerupPlugin: calendar boot-backfill fail', err as Error),
     );
   }
 
@@ -344,34 +386,90 @@ export class PowerupPlugin extends BaseExtModule implements OnModuleDestroy {
    * При MonthlyPackageQuotaExceeded от provider'а — tripCircuitBreaker.
    */
   protected async executePackageTopup(trigger: 'calendar' | 'threshold', nowIso: string): Promise<void> {
+    // Mutex: единая точка для calendar + threshold. Любой одновременный тик
+    // даёт `skip — inflight` и проигрывает гонку победителю; победитель доводит
+    // цикл createPackageInvoice → powerUp → confirmTopupAxon → recordTopup до конца.
+    if (this.packageTopupInflight) {
+      this.logger.info(`PowerupPlugin[${trigger}]: skip — inflight (предыдущий тик ещё не завершён)`);
+      return;
+    }
+    this.packageTopupInflight = true;
     const username = coopConfig.coopname;
     try {
       const account = await this.blockchainPort.getAccount(username);
       if (!account) throw new Error('Аккаунт не найден');
 
-      // AXON-баланс кооператива (системный токен Воскхода) — берём из account.
-      // На MVP-этапе billWalletRub считаем 0 (provider — источник истины);
-      // финальная проверка в provider'е через accountPackageTopup.
-      const axonBalance = Number(account.cpu_limit?.max ?? 0); // TODO: использовать реальный AXON balance из eosio.token.
+      // billWalletRub: на MVP считаем 0 (provider — источник истины через
+      // accountPackageTopup); rubFloor по умолчанию 0, так что guard не блочит.
+      // TODO: подключить чтение w.wal.bill[coopname] баланса через blockchainPort.
       const billWalletRub = 0;
-
-      const signal = await this.checkRunawayGuards({ nowIso, axonBalance, billWalletRub });
+      const signal = await this.checkRunawayGuards({ nowIso, billWalletRub });
       if (signal) {
         this.logger.info(`PowerupPlugin[${trigger}]: skip — guard "${signal}" сработал`);
         return;
       }
 
-      const quantity = this.getQuantity(this.plugin.config.dailyPackageSize);
-      await this.blockchainPort.powerUp(username, quantity);
+      const cfg = this.plugin.config;
+      const quantity = this.getQuantity(cfg.dailyPackageSize);
 
-      // Real confirm-cycle to provider — TODO: подключить BillingProviderClient.confirmTopupAxon
-      // после того как PowerupPlugin сможет получить payment_hash от provider'а
-      // через createPackageInvoice. На MVP — только PowerUp + локальный recordTopup.
+      // Определяем idx нового пакета: при смене месяца — 1, иначе ++.
+      const monthKey = nowIso.slice(0, 7);
+      const periodStart = `${monthKey}-01`;
+      const prevMonthKey = cfg.lastCalendarPackageMonth || '';
+      const nextIdx = prevMonthKey === monthKey ? (cfg.monthlyPackageIdx || 0) + 1 : 1;
+
+      // Двухфазный flow с provider'ом — только если подписка подключена
+      // и provider настроен. Иначе fallback: powerUp без confirm-цикла.
+      let paymentHash: string | null = null;
+      const usePackageFlow = cfg.subscriptionId > 0 && this.billingProvider.isConfigured();
+      if (usePackageFlow) {
+        try {
+          const invoice = await this.billingProvider.createPackageInvoice({
+            coopname: username,
+            subscriptionId: cfg.subscriptionId,
+            amountRub: cfg.dailyPackageSize, // в RUB по cfg
+            periodStart,
+            idx: nextIdx,
+          });
+          paymentHash = invoice.payment_hash;
+        } catch (err: any) {
+          // MonthlyPackageQuotaExceeded → circuit breaker до конца месяца.
+          if (err?.response?.data?.error === 'MonthlyPackageQuotaExceeded') {
+            await this.tripCircuitBreaker(monthKey);
+            return;
+          }
+          // Любая другая ошибка provider'а — НЕ делаем on-chain powerUp.
+          // Зашумлено в логах + ждём следующего тика. Иначе докупим on-chain
+          // без подтверждения, и provider потеряет учёт.
+          this.logger.error(`PowerupPlugin[${trigger}]: createPackageInvoice failed`, err as Error);
+          return;
+        }
+      }
+
+      // on-chain powerup: при ошибке выбрасывает наружу — НЕ делаем recordTopup,
+      // следующий тик попробует снова (cooldown даст паузу).
+      const txId = await this.blockchainPort.powerUp(username, quantity);
+
+      if (usePackageFlow && paymentHash) {
+        try {
+          await this.billingProvider.confirmTopupAxon({
+            paymentHash,
+            blockchainTransactionId: txId || paymentHash,
+          });
+        } catch (err: any) {
+          // Двойной guard: если provider 5xx — НЕ откатываем on-chain, но
+          // оставляем lastTopupAt незаписанным, чтобы следующий тик повторил
+          // confirm. Provider идемпотентен по payment_hash, повтор безопасен.
+          this.logger.error(`PowerupPlugin[${trigger}]: confirmTopupAxon failed`, err as Error);
+          return;
+        }
+      }
 
       await this.recordTopup({
-        axonAmount: this.plugin.config.dailyPackageSize,
+        axonAmount: cfg.dailyPackageSize,
         nowIso,
         trigger,
+        monthlyPackageIdx: nextIdx,
       });
 
       const updatedAccount = await this.blockchainPort.getAccount(username);
@@ -388,13 +486,9 @@ export class PowerupPlugin extends BaseExtModule implements OnModuleDestroy {
         },
       });
     } catch (error: any) {
-      // Provider может бросить MonthlyPackageQuotaExceeded — ловим и активируем breaker.
-      if (error?.response?.data?.error === 'MonthlyPackageQuotaExceeded') {
-        const monthKey = new Date(nowIso).toISOString().slice(0, 7);
-        await this.tripCircuitBreaker(monthKey);
-        return;
-      }
-      this.logger.info(`PowerupPlugin[${trigger}]: executePackageTopup error`, error as Error);
+      this.logger.error(`PowerupPlugin[${trigger}]: executePackageTopup error`, error as Error);
+    } finally {
+      this.packageTopupInflight = false;
     }
   }
 
@@ -412,7 +506,6 @@ export class PowerupPlugin extends BaseExtModule implements OnModuleDestroy {
    */
   protected async checkRunawayGuards(input: {
     nowIso: string;
-    axonBalance: number; // в системных AXON-единицах
     billWalletRub: number; // RUB в w.wal.bill[coopname]
   }): Promise<string | null> {
     const cfg = this.plugin.config;
@@ -440,15 +533,17 @@ export class PowerupPlugin extends BaseExtModule implements OnModuleDestroy {
     const todayPackagesIssued = dayChanged ? 0 : Number(cfg.todayPackagesIssued || 0);
     if (todayAxonSpent + cfg.dailyPackageSize > cfg.dailyAxonCap) return 'daily_axon_cap';
     if (todayPackagesIssued + 1 > cfg.dailyPackageCap) return 'daily_package_cap';
-    // (4) AXON pre-gate.
-    if (input.axonBalance < cfg.axonMinBalance) return 'axon_pre_gate';
+    // (4) AXON pre-gate — REMOVED в adversarial review 2026-05-30: cpu_limit.max ≠
+    // AXON balance (это CPU микросекунды). Реальное чтение `eosio.token.accounts`
+    // через `chainPort.getCurrencyBalance` — отдельная задача; до её реализации
+    // guard ничему не блочит. Сам факт нехватки AXON всё равно выдаст ошибку в
+    // blockchainPort.powerUp (после удаления swallow try/catch), и она пробросится
+    // в catch executePackageTopup → recordTopup не выполнится → нет double-spend.
     // (5) RUB floor.
     if (input.billWalletRub < cfg.rubFloor) return 'rub_floor';
     // (7) Monthly RUB cap — на этом уровне плагин знает только локальный cap;
     // финальная проверка (с учётом subscription_type.monthly_quota_rub) идёт
     // на стороне provider'а через MonthlyPackageQuotaExceeded.
-    // На стороне плагина считаем по daily-counter * 30 (грубая оценка); точный
-    // учёт делается provider'ом при createPackageInvoice.
     // (8) dailyPackageSize override — gate'ом не является, но фиксируем
     // что размер пакета берём из config (не magic), уже учтено выше.
     return null;
@@ -459,7 +554,12 @@ export class PowerupPlugin extends BaseExtModule implements OnModuleDestroy {
    * перечитываем config из БД, считаем дельту, сохраняем единый JSONB. См.
    * паттерн в runDailyTask — daily-cron держит in-memory снимок с момента boot.
    */
-  protected async recordTopup(input: { axonAmount: number; nowIso: string; trigger: 'calendar' | 'threshold' }): Promise<void> {
+  protected async recordTopup(input: {
+    axonAmount: number;
+    nowIso: string;
+    trigger: 'calendar' | 'threshold';
+    monthlyPackageIdx: number;
+  }): Promise<void> {
     const todayKey = input.nowIso.slice(0, 10);
     const monthKey = input.nowIso.slice(0, 7);
     const fresh = await this.extensionRepository.findByName(this.name);
@@ -472,6 +572,7 @@ export class PowerupPlugin extends BaseExtModule implements OnModuleDestroy {
       todayAxonSpent: dayChanged ? input.axonAmount : Number(prev.todayAxonSpent || 0) + input.axonAmount,
       todayPackagesIssued: dayChanged ? 1 : Number(prev.todayPackagesIssued || 0) + 1,
       lastCalendarPackageMonth: input.trigger === 'calendar' ? monthKey : prev.lastCalendarPackageMonth,
+      monthlyPackageIdx: input.monthlyPackageIdx,
     };
     await this.extensionRepository.update({ name: this.name, config: nextConfig });
     this.plugin = { ...this.plugin, config: nextConfig };
@@ -597,8 +698,11 @@ export class PowerupPlugin extends BaseExtModule implements OnModuleDestroy {
 }
 
 @Module({
-  providers: [PowerupPlugin], // Регистрируем PowerupPlugin как провайдер
-  exports: [PowerupPlugin], // Экспортируем его для доступа в других модулях
+  // Epic 13 v5.1: BillingProviderClient — HTTP-клиент к provider'у для
+  // createPackageInvoice + confirmTopupAxon; provides + не imports т.к. сам
+  // клиент stateless и зависит только от глобального config.
+  providers: [PowerupPlugin, BillingProviderClient],
+  exports: [PowerupPlugin],
 })
 export class PowerupPluginModule {
   constructor(public readonly powerupPlugin: PowerupPlugin) {}

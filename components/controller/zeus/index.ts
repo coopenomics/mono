@@ -7829,8 +7829,14 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	instance_username?:boolean | `@${string}`,
 	/** Пробный период */
 	is_trial?:boolean | `@${string}`,
+	/** Тип подписки: time или package */
+	kind?:boolean | `@${string}`,
+	/** Месячный потолок RUB для пакетной модели */
+	monthly_quota_rub?:boolean | `@${string}`,
 	/** Дата следующего платежа */
 	next_payment_due?:boolean | `@${string}`,
+	/** Сумма RUB, докупленная в текущем месячном периоде */
+	packages_current_period_amount?:boolean | `@${string}`,
 	/** Период подписки в днях */
 	period_days?:boolean | `@${string}`,
 	/** Цена подписки */
@@ -16242,8 +16248,14 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	instance_username?:boolean | `@${string}`,
 	/** Пробный период */
 	is_trial?:boolean | `@${string}`,
+	/** Тип подписки: time или package */
+	kind?:boolean | `@${string}`,
+	/** Месячный потолок RUB для пакетной модели */
+	monthly_quota_rub?:boolean | `@${string}`,
 	/** Дата следующего платежа */
 	next_payment_due?:boolean | `@${string}`,
+	/** Сумма RUB, докупленная в текущем месячном периоде */
+	packages_current_period_amount?:boolean | `@${string}`,
 	/** Период подписки в днях */
 	period_days?:boolean | `@${string}`,
 	/** Цена подписки */
@@ -24866,8 +24878,14 @@ export type ModelTypes = {
 	instance_username?: string | undefined | null,
 	/** Пробный период */
 	is_trial: boolean,
+	/** Тип подписки: time или package */
+	kind?: string | undefined | null,
+	/** Месячный потолок RUB для пакетной модели */
+	monthly_quota_rub?: number | undefined | null,
 	/** Дата следующего платежа */
 	next_payment_due?: string | undefined | null,
+	/** Сумма RUB, докупленная в текущем месячном периоде */
+	packages_current_period_amount?: number | undefined | null,
 	/** Период подписки в днях */
 	period_days: number,
 	/** Цена подписки */
@@ -34061,8 +34079,14 @@ export type GraphQLTypes = {
 	instance_username?: string | undefined | null,
 	/** Пробный период */
 	is_trial: boolean,
+	/** Тип подписки: time или package */
+	kind?: string | undefined | null,
+	/** Месячный потолок RUB для пакетной модели */
+	monthly_quota_rub?: number | undefined | null,
 	/** Дата следующего платежа */
 	next_payment_due?: string | undefined | null,
+	/** Сумма RUB, докупленная в текущем месячном периоде */
+	packages_current_period_amount?: number | undefined | null,
 	/** Период подписки в днях */
 	period_days: number,
 	/** Цена подписки */

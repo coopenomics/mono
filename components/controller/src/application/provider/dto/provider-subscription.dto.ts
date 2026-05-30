@@ -75,6 +75,18 @@ export class ProviderSubscriptionDTO {
   @Field(() => GraphQLJSON, { nullable: true, description: 'Специфичные данные подписки' })
   specific_data?: Record<string, any> | null;
 
+  // Epic 13 v5.1 — пакетная модель подписки. Эти поля нужны desktop'у
+  // (`SubscriptionsCard.isPackage`, `ResourceMonitorPage`), чтобы отличать
+  // time-подписку от package-подписки и показывать прогресс «потрачено/квота».
+  @Field(() => String, { nullable: true, description: 'Тип подписки: time или package' })
+  kind?: string | null;
+
+  @Field(() => Number, { nullable: true, description: 'Месячный потолок RUB для пакетной модели' })
+  monthly_quota_rub?: number | null;
+
+  @Field(() => Number, { nullable: true, description: 'Сумма RUB, докупленная в текущем месячном периоде' })
+  packages_current_period_amount?: number | null;
+
   constructor(subscription: ProviderSubscriptionType) {
     this.id = subscription.id;
     this.subscriber_id = subscription.subscriber_id;
@@ -93,6 +105,18 @@ export class ProviderSubscriptionDTO {
     this.created_at = subscription.created_at;
     this.updated_at = subscription.updated_at;
     this.specific_data = subscription.specific_data;
+
+    // Epic 13 v5.1: пакетные поля приходят опциональными от provider'а
+    // (старые time-подписки оставляют их null/undefined).
+    const sub = subscription as ProviderSubscriptionType & {
+      kind?: string | null;
+      monthly_quota_rub?: number | string | null;
+      packages_current_period_amount?: number | string | null;
+    };
+    this.kind = sub.kind ?? null;
+    this.monthly_quota_rub = sub.monthly_quota_rub != null ? Number(sub.monthly_quota_rub) : null;
+    this.packages_current_period_amount =
+      sub.packages_current_period_amount != null ? Number(sub.packages_current_period_amount) : null;
 
     // Для хостинг подписки (id=1) добавляем данные инстанса из specific_data
     if (subscription.subscription_type_id === 1 && subscription.specific_data) {

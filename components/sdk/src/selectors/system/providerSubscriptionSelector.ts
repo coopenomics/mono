@@ -23,6 +23,11 @@ export const rawProviderSubscriptionSelector = {
   installation_progress: true,
   instance_status: true,
   specific_data: true,
+  // Epic 13 v5.1 — пакетная модель PowerUp:
+  // desktop SubscriptionsCard ветка isPackage + ResourceMonitorPage.
+  kind: true,
+  monthly_quota_rub: true,
+  packages_current_period_amount: true,
 }
 
 // Проверка валидности
