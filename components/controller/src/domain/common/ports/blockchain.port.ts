@@ -45,6 +45,21 @@ export interface BlockchainPort {
    */
   powerUp(username: string, quantity: string): Promise<string>;
 
+  /**
+   * Epic 13 v5.1: атомарная пакетная докупка — одна транзакция coopname@active
+   * из двух действий: billing::converttoaxn (членский RUB → AXON 10:1, BURN +
+   * inline injection) и eosio::powerup (AXON → CPU/NET/RAM). Возвращает on-chain
+   * transaction_id; бросает исключение при отказе — caller (PowerupPlugin) обязан
+   * НЕ инкрементить счётчики (см. adversarial review 2026-05-30, BLOCKER #1).
+   * Атомарность исключает окно «AXON эмитирован, но powerup не сделан».
+   */
+  packagePowerUp(
+    coopname: string,
+    rubAmount: string,
+    axonQuantity: string,
+    paymentHash: string,
+  ): Promise<string>;
+
   // System installation methods
   addUser(data: RegistratorContract.Actions.AddUser.IAddUser): Promise<void>;
   createBoard(data: SovietContract.Actions.Boards.CreateBoard.ICreateboard): Promise<void>;

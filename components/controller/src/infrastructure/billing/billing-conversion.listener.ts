@@ -21,9 +21,17 @@ import { BillingProviderClient } from './billing-provider.client';
  *
  * Включается только на хабе (Воскход, BILLING_HUB_MODE=true): на спицах
  * BillingModule не подключается вовсе, а сам провайдер есть только у хаба.
- * Ошибки наружу НЕ пробрасываем — автономность кооператива важнее, провайдер
- * до-сверится реконсиляцией. Идемпотентность гарантирует сам провайдер
- * (200 OK на повтор по `payment_hash`).
+ * Ошибки наружу НЕ пробрасываем — автономность кооператива важнее: on-chain
+ * состояние (BURN членского + powerup) уже консистентно, а провайдеру теряется
+ * лишь учётная запись invoice/Payment. Идемпотентность повторной доставки
+ * гарантирует сам провайдер (200 OK на повтор по `payment_hash`).
+ *
+ * ⚠️ Ограничение: эмит шины `action::` идёт с задержкой ПОСЛЕ ACK сообщения
+ * (см. BlockchainConsumerService.processActionDelayed), поэтому при падении
+ * хаб-coopback'а в окне между ACK и эмитом уведомление провайдеру теряется
+ * безвозвратно — реплея сохранённого billing-action в шину сейчас нет.
+ * Реконсиляция `billing::converttoaxn` без PAID-invoice — отдельный follow-up
+ * (BillingCronService покрывает только time-поток `billing::pay`).
  */
 @Injectable()
 export class BillingConversionListener {
