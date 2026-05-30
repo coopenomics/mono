@@ -4,6 +4,7 @@
 
 #include "src/convert.cpp"
 #include "src/pay.cpp"
+#include "src/topup_axon.cpp"
 
 using namespace eosio;
 

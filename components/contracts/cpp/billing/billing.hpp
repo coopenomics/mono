@@ -83,4 +83,14 @@ public:
   [[eosio::action]] void pay(eosio::name coopname, eosio::name username,
                              eosio::asset amount, eosio::checksum256 payment_hash,
                              std::string memo);
+
+  // Epic 13 v5.1 — документless докупка пакета PowerUp.
+  // Списывает amount с биллинг-кошелька кооператива (COOPERATIVE scope=coopname)
+  // как расход на пакет CPU/NET/RAM (operations::billing::TOPUP_AXON, WalletOp::BURN).
+  // Авторизация — coopname@active (без relay через оператора, поскольку PowerupPlugin
+  // живёт в coopback'е пайщика и подписывает coopname@active сам).
+  // Идемпотентность по payment_hash — на стороне provider (POST /billing/topup-axon-confirmed).
+  // Имя action `topupaxon` (без подчёркивания) — eosio::name требует базу32 без `_`.
+  [[eosio::action]] void topupaxon(eosio::name coopname, eosio::asset amount,
+                                   eosio::checksum256 payment_hash);
 };
