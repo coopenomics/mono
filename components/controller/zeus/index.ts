@@ -6142,12 +6142,16 @@ export type ValueTypes = {
 	["MarketplaceAplReceptionFactEntry"]: AliasType<{
 	/** Фактически принятое количество (для расхождений Варианта Б). */
 	fact_quantity?:boolean | `@${string}`,
+	/** Фактическая цена за единицу (если оператор скорректировал её при открытии приёмки). */
+	fact_unit_price?:boolean | `@${string}`,
 	order_id?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceAplReceptionFactEntry']?: Omit<ValueTypes["MarketplaceAplReceptionFactEntry"], "...on MarketplaceAplReceptionFactEntry">
 }>;
 	["MarketplaceAplReceptionFactEntryInput"]: {
 	fact_quantity: number | Variable<any, string>,
+	/** Фактическая цена за единицу (оператор может изменить её при открытии приёмки). */
+	fact_unit_price?: string | undefined | null | Variable<any, string>,
 	order_id: ValueTypes["ID"] | Variable<any, string>
 };
 	["MarketplaceAplReceptionResult"]: AliasType<{
@@ -6733,8 +6737,10 @@ export type ValueTypes = {
 	['...on MarketplaceIssuanceResult']?: Omit<ValueTypes["MarketplaceIssuanceResult"], "...on MarketplaceIssuanceResult">
 }>;
 	["MarketplaceIssueActPayloadInput"]: {
-	/** Фактически выдаваемое количество для финальной подписи (если не указано — берётся заказ). */
+	/** Фактически выдаваемое количество для предпросмотра акта (если не указано — берётся заказ). */
 	actual_quantity?: number | undefined | null | Variable<any, string>,
+	/** Фактическая цена за единицу для предпросмотра акта (если не указано — берётся цена заказа). */
+	actual_unit_price?: string | undefined | null | Variable<any, string>,
 	/** Заказ, по которому формируется preview акта выдачи. */
 	order_id: ValueTypes["ID"] | Variable<any, string>
 };
@@ -7080,6 +7086,8 @@ export type ValueTypes = {
 	["MarketplaceOpenIssuanceInput"]: {
 	/** Фактически выдаваемое количество единиц (равно/меньше/больше заказа). */
 	actual_quantity: number | Variable<any, string>,
+	/** Фактическая цена за единицу (оператор может изменить её при открытии выдачи). */
+	actual_unit_price: string | Variable<any, string>,
 	/** Идентификатор заказа, выдачу которого открываем. */
 	order_id: ValueTypes["ID"] | Variable<any, string>,
 	/** Подписанный председателем кооперативного участка акт выдачи. Backend верифицирует подпись и отправляет on-chain первую подпись. */
@@ -7185,8 +7193,10 @@ export type ValueTypes = {
 	actual_quantity?:boolean | `@${string}`,
 	/** Сверка фактической выдачи с заказом. */
 	diff_state?:boolean | `@${string}`,
-	/** Фактическая стоимость выдачи (actual_quantity × цена за единицу). */
+	/** Фактическая стоимость выдачи (actual_quantity × фактическая цена за единицу). */
 	fact_cost?:boolean | `@${string}`,
+	/** Фактическая цена за единицу (скорректирована оператором при открытии выдачи). */
+	fact_unit_price?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceOrderIssuanceFactSnapshot']?: Omit<ValueTypes["MarketplaceOrderIssuanceFactSnapshot"], "...on MarketplaceOrderIssuanceFactSnapshot">
 }>;
@@ -16247,11 +16257,15 @@ export type ResolverInputTypes = {
 	["MarketplaceAplReceptionFactEntry"]: AliasType<{
 	/** Фактически принятое количество (для расхождений Варианта Б). */
 	fact_quantity?:boolean | `@${string}`,
+	/** Фактическая цена за единицу (если оператор скорректировал её при открытии приёмки). */
+	fact_unit_price?:boolean | `@${string}`,
 	order_id?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["MarketplaceAplReceptionFactEntryInput"]: {
 	fact_quantity: number,
+	/** Фактическая цена за единицу (оператор может изменить её при открытии приёмки). */
+	fact_unit_price?: string | undefined | null,
 	order_id: ResolverInputTypes["ID"]
 };
 	["MarketplaceAplReceptionResult"]: AliasType<{
@@ -16811,8 +16825,10 @@ export type ResolverInputTypes = {
 		__typename?: boolean | `@${string}`
 }>;
 	["MarketplaceIssueActPayloadInput"]: {
-	/** Фактически выдаваемое количество для финальной подписи (если не указано — берётся заказ). */
+	/** Фактически выдаваемое количество для предпросмотра акта (если не указано — берётся заказ). */
 	actual_quantity?: number | undefined | null,
+	/** Фактическая цена за единицу для предпросмотра акта (если не указано — берётся цена заказа). */
+	actual_unit_price?: string | undefined | null,
 	/** Заказ, по которому формируется preview акта выдачи. */
 	order_id: ResolverInputTypes["ID"]
 };
@@ -17149,6 +17165,8 @@ export type ResolverInputTypes = {
 	["MarketplaceOpenIssuanceInput"]: {
 	/** Фактически выдаваемое количество единиц (равно/меньше/больше заказа). */
 	actual_quantity: number,
+	/** Фактическая цена за единицу (оператор может изменить её при открытии выдачи). */
+	actual_unit_price: string,
 	/** Идентификатор заказа, выдачу которого открываем. */
 	order_id: ResolverInputTypes["ID"],
 	/** Подписанный председателем кооперативного участка акт выдачи. Backend верифицирует подпись и отправляет on-chain первую подпись. */
@@ -17252,8 +17270,10 @@ export type ResolverInputTypes = {
 	actual_quantity?:boolean | `@${string}`,
 	/** Сверка фактической выдачи с заказом. */
 	diff_state?:boolean | `@${string}`,
-	/** Фактическая стоимость выдачи (actual_quantity × цена за единицу). */
+	/** Фактическая стоимость выдачи (actual_quantity × фактическая цена за единицу). */
 	fact_cost?:boolean | `@${string}`,
+	/** Фактическая цена за единицу (скорректирована оператором при открытии выдачи). */
+	fact_unit_price?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	/** Постраничный список заказов. */
@@ -26032,10 +26052,14 @@ export type ModelTypes = {
 	["MarketplaceAplReceptionFactEntry"]: {
 		/** Фактически принятое количество (для расхождений Варианта Б). */
 	fact_quantity: number,
+	/** Фактическая цена за единицу (если оператор скорректировал её при открытии приёмки). */
+	fact_unit_price?: string | undefined | null,
 	order_id: ModelTypes["ID"]
 };
 	["MarketplaceAplReceptionFactEntryInput"]: {
 	fact_quantity: number,
+	/** Фактическая цена за единицу (оператор может изменить её при открытии приёмки). */
+	fact_unit_price?: string | undefined | null,
 	order_id: ModelTypes["ID"]
 };
 	["MarketplaceAplReceptionResult"]: {
@@ -26562,8 +26586,10 @@ export type ModelTypes = {
 	tx_hash: string
 };
 	["MarketplaceIssueActPayloadInput"]: {
-	/** Фактически выдаваемое количество для финальной подписи (если не указано — берётся заказ). */
+	/** Фактически выдаваемое количество для предпросмотра акта (если не указано — берётся заказ). */
 	actual_quantity?: number | undefined | null,
+	/** Фактическая цена за единицу для предпросмотра акта (если не указано — берётся цена заказа). */
+	actual_unit_price?: string | undefined | null,
 	/** Заказ, по которому формируется preview акта выдачи. */
 	order_id: ModelTypes["ID"]
 };
@@ -26891,6 +26917,8 @@ export type ModelTypes = {
 	["MarketplaceOpenIssuanceInput"]: {
 	/** Фактически выдаваемое количество единиц (равно/меньше/больше заказа). */
 	actual_quantity: number,
+	/** Фактическая цена за единицу (оператор может изменить её при открытии выдачи). */
+	actual_unit_price: string,
 	/** Идентификатор заказа, выдачу которого открываем. */
 	order_id: ModelTypes["ID"],
 	/** Подписанный председателем кооперативного участка акт выдачи. Backend верифицирует подпись и отправляет on-chain первую подпись. */
@@ -26990,8 +27018,10 @@ export type ModelTypes = {
 	actual_quantity: number,
 	/** Сверка фактической выдачи с заказом. */
 	diff_state: ModelTypes["MarketplaceOrderIssuanceFactDiffState"],
-	/** Фактическая стоимость выдачи (actual_quantity × цена за единицу). */
-	fact_cost: string
+	/** Фактическая стоимость выдачи (actual_quantity × фактическая цена за единицу). */
+	fact_cost: string,
+	/** Фактическая цена за единицу (скорректирована оператором при открытии выдачи). */
+	fact_unit_price: string
 };
 	/** Постраничный список заказов. */
 ["MarketplaceOrderPaginationResult"]: {
@@ -36647,11 +36677,15 @@ export type GraphQLTypes = {
 	__typename: "MarketplaceAplReceptionFactEntry",
 	/** Фактически принятое количество (для расхождений Варианта Б). */
 	fact_quantity: number,
+	/** Фактическая цена за единицу (если оператор скорректировал её при открытии приёмки). */
+	fact_unit_price?: string | undefined | null,
 	order_id: GraphQLTypes["ID"],
 	['...on MarketplaceAplReceptionFactEntry']: Omit<GraphQLTypes["MarketplaceAplReceptionFactEntry"], "...on MarketplaceAplReceptionFactEntry">
 };
 	["MarketplaceAplReceptionFactEntryInput"]: {
 		fact_quantity: number,
+	/** Фактическая цена за единицу (оператор может изменить её при открытии приёмки). */
+	fact_unit_price?: string | undefined | null,
 	order_id: GraphQLTypes["ID"]
 };
 	["MarketplaceAplReceptionResult"]: {
@@ -37237,8 +37271,10 @@ export type GraphQLTypes = {
 	['...on MarketplaceIssuanceResult']: Omit<GraphQLTypes["MarketplaceIssuanceResult"], "...on MarketplaceIssuanceResult">
 };
 	["MarketplaceIssueActPayloadInput"]: {
-		/** Фактически выдаваемое количество для финальной подписи (если не указано — берётся заказ). */
+		/** Фактически выдаваемое количество для предпросмотра акта (если не указано — берётся заказ). */
 	actual_quantity?: number | undefined | null,
+	/** Фактическая цена за единицу для предпросмотра акта (если не указано — берётся цена заказа). */
+	actual_unit_price?: string | undefined | null,
 	/** Заказ, по которому формируется preview акта выдачи. */
 	order_id: GraphQLTypes["ID"]
 };
@@ -37584,6 +37620,8 @@ export type GraphQLTypes = {
 	["MarketplaceOpenIssuanceInput"]: {
 		/** Фактически выдаваемое количество единиц (равно/меньше/больше заказа). */
 	actual_quantity: number,
+	/** Фактическая цена за единицу (оператор может изменить её при открытии выдачи). */
+	actual_unit_price: string,
 	/** Идентификатор заказа, выдачу которого открываем. */
 	order_id: GraphQLTypes["ID"],
 	/** Подписанный председателем кооперативного участка акт выдачи. Backend верифицирует подпись и отправляет on-chain первую подпись. */
@@ -37690,8 +37728,10 @@ export type GraphQLTypes = {
 	actual_quantity: number,
 	/** Сверка фактической выдачи с заказом. */
 	diff_state: GraphQLTypes["MarketplaceOrderIssuanceFactDiffState"],
-	/** Фактическая стоимость выдачи (actual_quantity × цена за единицу). */
+	/** Фактическая стоимость выдачи (actual_quantity × фактическая цена за единицу). */
 	fact_cost: string,
+	/** Фактическая цена за единицу (скорректирована оператором при открытии выдачи). */
+	fact_unit_price: string,
 	['...on MarketplaceOrderIssuanceFactSnapshot']: Omit<GraphQLTypes["MarketplaceOrderIssuanceFactSnapshot"], "...on MarketplaceOrderIssuanceFactSnapshot">
 };
 	/** Постраничный список заказов. */

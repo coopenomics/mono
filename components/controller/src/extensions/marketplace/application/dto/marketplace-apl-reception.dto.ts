@@ -34,6 +34,12 @@ export class MarketplaceAplReceptionFactEntryDTO {
 
   @Field(() => Int, { description: 'Фактически принятое количество (для расхождений Варианта Б).' })
   fact_quantity!: number;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Фактическая цена за единицу (если оператор скорректировал её при открытии приёмки).',
+  })
+  fact_unit_price!: string | null;
 }
 
 @InputType('MarketplaceAplReceptionFactEntryInput')
@@ -47,6 +53,14 @@ export class MarketplaceAplReceptionFactEntryInputDTO {
   @IsInt()
   @Min(0)
   fact_quantity!: number;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Фактическая цена за единицу (оператор может изменить её при открытии приёмки).',
+  })
+  @IsOptional()
+  @IsString()
+  fact_unit_price?: string;
 }
 
 @ObjectType('MarketplaceAplReception')
@@ -263,6 +277,7 @@ export function toMarketplaceAplReceptionDTO(
     const entry = new MarketplaceAplReceptionFactEntryDTO();
     entry.order_id = f.order_id;
     entry.fact_quantity = f.fact_quantity;
+    entry.fact_unit_price = f.fact_unit_price ?? null;
     return entry;
   });
   dto.ttn_number = e.ttn_number;

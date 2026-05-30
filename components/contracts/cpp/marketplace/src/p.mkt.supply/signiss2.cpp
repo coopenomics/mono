@@ -27,7 +27,9 @@
  *  - Подписант со стороны кооператива (`delivery_signer`) авторизован для
  *    КУ выдачи (`o.delivery_braname`).
  *  - verify_document_or_fail(act, {delivery_signer, orderer}).
- *  - actual_quantity > 0.
+ *  - actual_quantity > 0; actual_unit_price > 0 и в валюте кооператива.
+ *    fact_cost = actual_quantity × actual_unit_price (цена скорректирована
+ *    оператором при открытии выдачи, заказчик факт не редактирует).
  *  - При actual > ordered и нехватке средств — транзакция фейлится с
  *    человеческим сообщением, которое UI показывает напрямую.
  *  - Idempotency: is_empty_document(issue_act_signiss2).
@@ -38,10 +40,15 @@ void marketplace::signiss2(eosio::name coopname,
                             eosio::name orderer,
                             checksum256 order_hash,
                             uint64_t actual_quantity,
+                            eosio::asset actual_unit_price,
                             eosio::name delivery_signer,
                             document2 act) {
   require_auth(coopname);
   eosio::check(actual_quantity > 0, "Фактическое количество должно быть больше нуля");
+  eosio::check(actual_unit_price.symbol == _root_govern_symbol,
+               "Фактическая цена за единицу указана в неверной валюте");
+  eosio::check(actual_unit_price.amount > 0,
+               "Фактическая цена за единицу должна быть больше нуля");
 
   auto o = Marketplace::get_order_by_hash_or_fail(coopname, order_hash);
   eosio::check(o.orderer == orderer, "Вы не заказчик этого заказа");
@@ -56,8 +63,11 @@ void marketplace::signiss2(eosio::name coopname,
 
   verify_document_or_fail(act, { delivery_signer, orderer });
 
+  // Факт считается от скорректированной оператором цены (actual_unit_price),
+  // а не от цены заказа (o.unit_price): оператор мог снизить/поднять цену на
+  // месте (испорчена упаковка, замена позиции и т. п.).
   const eosio::asset fact_cost = eosio::asset(
-      static_cast<int64_t>(actual_quantity) * o.unit_price.amount,
+      static_cast<int64_t>(actual_quantity) * actual_unit_price.amount,
       _root_govern_symbol);
   eosio::check(fact_cost.amount > 0,
                "Итоговая фактическая сумма заказа должна быть больше нуля");

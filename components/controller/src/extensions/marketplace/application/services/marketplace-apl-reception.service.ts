@@ -269,8 +269,9 @@ export class MarketplaceAplReceptionService {
     // на этапе превью используется оператор, создавший АПП).
     const transmitter = input.chairman_account ?? input.reception.created_by_operator_account;
     const fact_quantity = fact?.fact_quantity ?? input.order.quantity;
+    const fact_unit_price = fact?.fact_unit_price ?? input.order.price_per_unit;
     const total_amount = (
-      fact_quantity * Number.parseFloat(input.order.price_per_unit)
+      fact_quantity * Number.parseFloat(fact_unit_price)
     ).toFixed(4);
     const action: Cooperative.Registry.MarketplaceAplReception.Action = {
       registry_id: Cooperative.Registry.MarketplaceAplReception.registry_id,
@@ -850,6 +851,9 @@ export class MarketplaceAplReceptionService {
     signer: string
   ): Promise<string> {
     const byOrderId = this.indexSignedDocumentsByOrderId(signed_documents);
+    const factByOrderId = new Map(
+      reception.fact_quantity_per_order.map((f) => [f.order_id, f])
+    );
     let lastTxHash = '';
     for (const order of groupOrders) {
       const signed = byOrderId.get(order.id);
@@ -860,10 +864,18 @@ export class MarketplaceAplReceptionService {
       }
       this.verifyDocumentSignature(signed);
       const act = this.toChainDocument(signed) as MarketContract.Actions.SignChair.ISignChair['act'];
+      // Факт (кол-во + цена) зафиксирован оператором при открытии приёмки и
+      // зашит в подписанный поставщиком акт; кооператив книжит поставщику
+      // итоговую стоимость от него.
+      const fact = factByOrderId.get(order.id);
+      const actual_quantity = fact?.fact_quantity ?? order.quantity;
+      const actual_unit_price = this.formatAsset(fact?.fact_unit_price ?? order.price_per_unit);
       const tx = await this.chainPort.signChair({
         coopname: reception.coopname,
         signer,
         order_hash: order.order_hash,
+        actual_quantity,
+        actual_unit_price,
         act,
       });
       const txHash = this.extractTxHash(tx);
@@ -933,11 +945,12 @@ export class MarketplaceAplReceptionService {
     provided: MarketplaceAplReceptionFactQuantityEntry[],
     groupOrders: MarketplaceOrderDomainEntity[]
   ): MarketplaceAplReceptionFactQuantityEntry[] {
-    const providedMap = new Map(provided.map((p) => [p.order_id, p.fact_quantity]));
+    const providedMap = new Map(provided.map((p) => [p.order_id, p]));
     const out: MarketplaceAplReceptionFactQuantityEntry[] = [];
     for (const o of groupOrders) {
-      const fact = providedMap.get(o.id);
-      if (fact !== undefined) {
+      const entry = providedMap.get(o.id);
+      if (entry !== undefined) {
+        const fact = entry.fact_quantity;
         if (!Number.isInteger(fact) || fact < 0) {
           throw new BadRequestException(
             `Некорректное fact_quantity для Order ${o.id}: ${fact}.`
@@ -951,9 +964,21 @@ export class MarketplaceAplReceptionService {
             `Нельзя принять сверх акцепта по Order ${o.id}: факт ${fact} > заказано ${o.quantity}.`
           );
         }
-        out.push({ order_id: o.id, fact_quantity: fact });
+        // Цена за единицу: оператор может скорректировать (привезли хуже —
+        // принимаем со скидкой). По умолчанию — цена заказа.
+        let fact_unit_price = o.price_per_unit;
+        if (entry.fact_unit_price !== undefined) {
+          const priceNum = Number.parseFloat(entry.fact_unit_price);
+          if (Number.isNaN(priceNum) || priceNum <= 0) {
+            throw new BadRequestException(
+              `Некорректная цена за единицу для Order ${o.id}: ${entry.fact_unit_price}.`
+            );
+          }
+          fact_unit_price = priceNum.toFixed(this.assetConfig.decimals);
+        }
+        out.push({ order_id: o.id, fact_quantity: fact, fact_unit_price });
       } else {
-        out.push({ order_id: o.id, fact_quantity: o.quantity });
+        out.push({ order_id: o.id, fact_quantity: o.quantity, fact_unit_price: o.price_per_unit });
       }
     }
     return out;
@@ -968,9 +993,15 @@ export class MarketplaceAplReceptionService {
     for (const entry of fact) {
       const order = byId.get(entry.order_id);
       if (!order) continue;
-      total += entry.fact_quantity * Number.parseFloat(order.price_per_unit);
+      const unitPrice = Number.parseFloat(entry.fact_unit_price ?? order.price_per_unit);
+      total += entry.fact_quantity * unitPrice;
     }
     return total.toFixed(4);
+  }
+
+  private formatAsset(value: string): string {
+    const amount = Number.parseFloat(value);
+    return `${amount.toFixed(this.assetConfig.decimals)} ${this.assetConfig.symbol}`;
   }
 
 }

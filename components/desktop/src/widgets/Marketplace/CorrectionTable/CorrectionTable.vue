@@ -27,7 +27,20 @@
             dense
             outlined
             input-class="text-right mp-correction-table__fact-input"
-            @update:model-value="emit('change', { sku: props.row.sku, fact: props.row.fact })"
+            @update:model-value="emit('change', { sku: props.row.sku, fact: props.row.fact, factPrice: props.row.factPrice })"
+          />
+        </q-td>
+      </template>
+
+      <template #body-cell-factPrice="props">
+        <q-td :props="props">
+          <q-input
+            v-model.number="props.row.factPrice"
+            type="number"
+            dense
+            outlined
+            input-class="text-right mp-correction-table__fact-input"
+            @update:model-value="onPriceChange(props.row)"
           />
         </q-td>
       </template>
@@ -72,7 +85,7 @@
               dense
               :suffix="r.unit"
               class="mp-correction-table__fact-input--mobile"
-              @update:model-value="emit('change', { sku: r.sku, fact: r.fact })"
+              @update:model-value="emit('change', { sku: r.sku, fact: r.fact, factPrice: r.factPrice })"
             />
           </div>
           <div>
@@ -81,6 +94,18 @@
               {{ r.delta > 0 ? '+' : '' }}{{ r.delta }}
             </div>
           </div>
+        </div>
+
+        <div v-if="hasPrice" class="mp-correction-table__card-price">
+          <div class="mp-correction-table__card-label">Цена за единицу</div>
+          <q-input
+            v-model.number="r.factPrice"
+            type="number"
+            outlined
+            dense
+            class="mp-correction-table__fact-input--mobile"
+            @update:model-value="onPriceChange(r)"
+          />
         </div>
       </div>
     </div>
@@ -107,8 +132,10 @@ export interface CorrectionRow {
   sku: string
   title: string
   unit: string
-  expected: number   // план (заказ)
-  fact: number       // факт (поступление)
+  expected: number   // план (заказ), количество
+  fact: number       // факт (поступление), количество
+  expectedPrice?: number  // цена за единицу по заказу (план)
+  factPrice?: number       // фактическая цена за единицу (редактируется оператором)
 }
 
 const props = defineProps({
@@ -116,25 +143,38 @@ const props = defineProps({
 })
 
 const emit = defineEmits<{
-  (e: 'change', payload: { sku: string; fact: number }): void
+  (e: 'change', payload: { sku: string; fact: number; factPrice?: number }): void
 }>()
 
 const $q = useQuasar()
 const compact = computed(() => $q.screen.lt.sm)
 
+// Режим правки цены включается, если хотя бы у одной строки задана цена.
+const hasPrice = computed(() => props.rows.some((r) => r.expectedPrice !== undefined))
+
 const enrichedRows = computed(() =>
   props.rows.map((r) => ({ ...r, delta: r.fact - r.expected }))
 )
 
-const columns: QTableProps['columns'] = [
-  { name: 'sku',      label: 'SKU',     field: 'sku',      align: 'left' },
-  { name: 'title',    label: 'Позиция', field: 'title',    align: 'left' },
-  { name: 'expected', label: 'План',    field: 'expected', align: 'right' },
-  { name: 'fact',     label: 'Факт',    field: 'fact',     align: 'right' },
-  { name: 'delta',    label: 'Δ',       field: 'delta',    align: 'right' },
-  { name: 'unit',     label: 'Ед.',     field: 'unit',     align: 'left' },
-  { name: 'status',   label: 'Статус',  field: 'sku',      align: 'center' },
-]
+const columns = computed<QTableProps['columns']>(() => {
+  const base: NonNullable<QTableProps['columns']> = [
+    { name: 'sku',      label: 'SKU',     field: 'sku',      align: 'left' },
+    { name: 'title',    label: 'Позиция', field: 'title',    align: 'left' },
+    { name: 'expected', label: 'План',    field: 'expected', align: 'right' },
+    { name: 'fact',     label: 'Факт',    field: 'fact',     align: 'right' },
+    { name: 'delta',    label: 'Δ',       field: 'delta',    align: 'right' },
+    { name: 'unit',     label: 'Ед.',     field: 'unit',     align: 'left' },
+  ]
+  if (hasPrice.value) {
+    base.push({ name: 'factPrice', label: 'Цена/ед.', field: 'factPrice', align: 'right' })
+  }
+  base.push({ name: 'status', label: 'Статус', field: 'sku', align: 'center' })
+  return base
+})
+
+function onPriceChange(row: CorrectionRow): void {
+  emit('change', { sku: row.sku, fact: row.fact, factPrice: row.factPrice })
+}
 
 type StatusKind = 'success' | 'warning' | 'info'
 

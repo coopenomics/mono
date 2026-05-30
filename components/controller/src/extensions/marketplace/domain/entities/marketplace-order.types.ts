@@ -105,9 +105,11 @@ export interface MarketplaceOrderCreateTxSnapshot {
 export interface MarketplaceOrderIssuanceFactSnapshot {
   /** Фактически выданное количество единиц. */
   actual_quantity: number;
-  /** Фактическая стоимость выдачи (= actual_quantity × unit_price). */
+  /** Фактическая цена за единицу (скорректирована оператором при открытии выдачи). */
+  fact_unit_price: string;
+  /** Фактическая стоимость выдачи (= actual_quantity × fact_unit_price). */
   fact_cost: string;
-  /** Совпадает ли факт с заказом: equal / less / more (см. FR23). */
+  /** Соотношение факта и заказа по стоимости: equal / less / more (см. FR23). */
   diff_state: 'equal' | 'less' | 'more';
 }
 

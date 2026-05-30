@@ -3914,6 +3914,7 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	MarketplaceAplReceptionFactEntry:{
 		fact_quantity:"Int",
+		fact_unit_price:"String",
 		order_id:"ID"
 	},
 	MarketplaceAplReceptionResult:{
@@ -4251,7 +4252,8 @@ export const ReturnTypes: Record<string,any> = {
 	MarketplaceOrderIssuanceFactSnapshot:{
 		actual_quantity:"Int",
 		diff_state:"MarketplaceOrderIssuanceFactDiffState",
-		fact_cost:"String"
+		fact_cost:"String",
+		fact_unit_price:"String"
 	},
 	MarketplaceOrderPaginationResult:{
 		currentPage:"Int",

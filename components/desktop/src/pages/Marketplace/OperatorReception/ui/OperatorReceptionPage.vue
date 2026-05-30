@@ -195,6 +195,9 @@ const pickupAccount = ref('');
 const pickupOrders = ref<MarketplaceSupplierPickupOrderView[]>([]);
 // Факт по позиции, вводится на приёмке (R5): по умолчанию = заказано; потолок = заказано.
 const pickupFact = ref<Record<string, number>>({});
+// Фактическая цена за единицу, корректируется оператором на приёмке (B2):
+// по умолчанию = цена заказа (привезли хуже → принимаем со скидкой).
+const pickupPrice = ref<Record<string, string>>({});
 // Выбранные к приёмке единицы (R7). Снятая галка = не принимаем эту единицу;
 // если по партии не выбрано ни одной единицы — партия не создаётся и ждёт
 // (кейс экспедитора: одна партия здесь, другая ещё в пути).
@@ -267,6 +270,7 @@ async function onQrScanned(code: string): Promise<void> {
     pickupAccount.value = token.account;
     pickupOrders.value = orders;
     pickupFact.value = Object.fromEntries(orders.map((o) => [o.id, o.quantity]));
+    pickupPrice.value = Object.fromEntries(orders.map((o) => [o.id, o.price_per_unit]));
     selectedOrderIds.value = new Set(orders.map((o) => o.id));
     takeAddon.value = true;
     pickupDialogOpen.value = true;
@@ -305,6 +309,7 @@ async function acceptPickup(): Promise<void> {
         fact_quantity_per_order: orders.map((o) => ({
           order_id: o.id,
           fact_quantity: selectedOrderIds.value.has(o.id) ? pickupFact.value[o.id] ?? o.quantity : 0,
+          fact_unit_price: pickupPrice.value[o.id] ?? o.price_per_unit,
         })),
       });
       created += 1;
@@ -476,6 +481,13 @@ q-page.reception(role='region', aria-label='Приёмка партии')
               :disable='!isSelected(o.id)',
               :suffix='marketplaceUnitShort(o.unit_of_measure)',
               @blur='clampFact(o.id, o.quantity)'
+            )
+            BaseInput(
+              v-model='pickupPrice[o.id]',
+              type='number',
+              dense,
+              :disable='!isSelected(o.id)',
+              label='Цена/ед.'
             )
 
       template(v-if='addonOrders.length')

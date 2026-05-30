@@ -12,6 +12,10 @@ import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { HttpApiError } from '~/utils/httpApiError';
+import {
+  MARKETPLACE_ASSET_CONFIG,
+  type MarketplaceAssetConfig,
+} from './marketplace-asset.config';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import type { DocumentDomainAggregate } from '~/domain/document/aggregates/document-domain.aggregate';
@@ -38,6 +42,8 @@ export interface MarketplaceOpenIssuanceInput {
   chairman_account: string;
   order_id: string;
   actual_quantity: number;
+  /** Скорректированная оператором цена за единицу (бэйр-десятичная строка). */
+  actual_unit_price: string;
   signed_document: MarketplaceIssueActSignedDocumentInputDTO;
 }
 
@@ -92,6 +98,8 @@ export class MarketplaceIssuanceService {
     private readonly orderRepo: MarketplaceOrderDomainRepository,
     @Inject(MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT)
     private readonly chainPort: MarketplaceCanonicalBlockchainPort,
+    @Inject(MARKETPLACE_ASSET_CONFIG)
+    private readonly assetConfig: MarketplaceAssetConfig,
     private readonly documentDomainService: DocumentDomainService,
     private readonly eventBus: EventEmitter2,
     private readonly logger: WinstonLoggerService
@@ -109,7 +117,8 @@ export class MarketplaceIssuanceService {
     coopname: string,
     order_id: string,
     chairman_account: string,
-    actual_quantity?: number
+    actual_quantity?: number,
+    actual_unit_price?: string
   ): Promise<DocumentDomainEntity> {
     const order = await this.loadOrder(coopname, order_id);
     if (order.status !== 'ACCEPTED_TO_COOP') {
@@ -118,13 +127,18 @@ export class MarketplaceIssuanceService {
       );
     }
     // Оператор сверяет факт при открытии: акт формируется на фактически
-    // выдаваемое количество. Если оператор ещё не скорректировал — по заказу.
+    // выдаваемое количество и цену. Если оператор ещё не скорректировал — по заказу.
     const fact_quantity =
       actual_quantity && actual_quantity > 0 ? actual_quantity : order.quantity;
+    const fact_unit_price =
+      actual_unit_price && Number.parseFloat(actual_unit_price) > 0
+        ? actual_unit_price
+        : order.price_per_unit;
     return this.generateIssueActDocument({
       order,
       transmitter: chairman_account,
       actual_quantity: fact_quantity,
+      actual_unit_price: fact_unit_price,
     });
   }
 
@@ -174,12 +188,20 @@ export class MarketplaceIssuanceService {
     if (input.actual_quantity <= 0) {
       throw new BadRequestException('Фактическое количество должно быть больше нуля.');
     }
+    if (Number.parseFloat(input.actual_unit_price) <= 0) {
+      throw new BadRequestException('Фактическая цена за единицу должна быть больше нуля.');
+    }
 
     this.verifyDocumentSignature(input.signed_document);
 
-    // Факт фиксируется оператором при открытии выдачи и сохраняется на заказе;
-    // финальная подпись заказчика берёт его из снапшота, а не редактирует.
-    const factSnapshot = this.buildIssuanceFactSnapshot(order, input.actual_quantity);
+    // Факт (кол-во + цена) фиксируется оператором при открытии выдачи и
+    // сохраняется на заказе; финальная подпись заказчика берёт его из снапшота,
+    // а не редактирует.
+    const factSnapshot = this.buildIssuanceFactSnapshot(
+      order,
+      input.actual_quantity,
+      input.actual_unit_price
+    );
 
     const act = new SignedDigitalDocumentInputDTO(input.signed_document).toDocument() as MarketContract.Actions.SignIss1.ISignIss1['act'];
 
@@ -283,6 +305,8 @@ export class MarketplaceIssuanceService {
         `Заказ ${order.id}: не найден председатель, открывший выдачу — финализация недоступна.`
       );
     }
+    // Цена за единицу тоже зафиксирована при открытии (оператор мог изменить её).
+    const fact_unit_price = order.issuance_fact?.fact_unit_price ?? order.price_per_unit;
 
     this.verifyDocumentSignature(input.signed_document);
 
@@ -295,6 +319,7 @@ export class MarketplaceIssuanceService {
         orderer: order.orderer_account,
         order_hash: order.order_hash,
         actual_quantity,
+        actual_unit_price: this.formatAsset(fact_unit_price),
         delivery_signer,
         act,
       });
@@ -314,7 +339,8 @@ export class MarketplaceIssuanceService {
         `Не получен tx_hash от блокчейна для finalize issuance order ${order.id}. Повторите подписание.`
       );
     }
-    const factSnapshot = order.issuance_fact ?? this.buildIssuanceFactSnapshot(order, actual_quantity);
+    const factSnapshot =
+      order.issuance_fact ?? this.buildIssuanceFactSnapshot(order, actual_quantity, fact_unit_price);
     const warrantyUntil =
       order.warranty_period_secs > 0
         ? new Date(Date.now() + order.warranty_period_secs * 1000)
@@ -351,9 +377,11 @@ export class MarketplaceIssuanceService {
     order: MarketplaceOrderDomainEntity;
     transmitter: string;
     actual_quantity: number;
+    actual_unit_price?: string;
   }): Promise<DocumentDomainEntity> {
+    const unit_price = input.actual_unit_price ?? input.order.price_per_unit;
     const total_amount = (
-      input.actual_quantity * Number.parseFloat(input.order.price_per_unit)
+      input.actual_quantity * Number.parseFloat(unit_price)
     ).toFixed(4);
     const action: Cooperative.Registry.MarketplaceAplReception.Action = {
       registry_id: Cooperative.Registry.MarketplaceAplReception.registry_id,
@@ -384,15 +412,27 @@ export class MarketplaceIssuanceService {
 
   private buildIssuanceFactSnapshot(
     order: MarketplaceOrderDomainEntity,
-    actual_quantity: number
+    actual_quantity: number,
+    actual_unit_price: string
   ): MarketplaceOrderIssuanceFactSnapshot {
-    const unitPrice = Number.parseFloat(order.price_per_unit);
-    const fact_cost = (actual_quantity * unitPrice).toFixed(4);
+    const decimals = this.assetConfig.decimals;
+    const unitPrice = Number.parseFloat(actual_unit_price);
+    const fact_unit_price = unitPrice.toFixed(decimals);
+    const factCostNum = actual_quantity * unitPrice;
+    const fact_cost = factCostNum.toFixed(decimals);
+    // diff_state по СТОИМОСТИ (цена могла измениться, не только количество):
+    // именно стоимость определяет ветку возврата/доплаты в signiss2.
+    const orderedCostNum = Number.parseFloat(order.total_cost);
     let diff_state: MarketplaceOrderIssuanceFactSnapshot['diff_state'];
-    if (actual_quantity === order.quantity) diff_state = 'equal';
-    else if (actual_quantity < order.quantity) diff_state = 'less';
+    if (factCostNum === orderedCostNum) diff_state = 'equal';
+    else if (factCostNum < orderedCostNum) diff_state = 'less';
     else diff_state = 'more';
-    return { actual_quantity, fact_cost, diff_state };
+    return { actual_quantity, fact_unit_price, fact_cost, diff_state };
+  }
+
+  private formatAsset(value: string): string {
+    const amount = Number.parseFloat(value);
+    return `${amount.toFixed(this.assetConfig.decimals)} ${this.assetConfig.symbol}`;
   }
 
   private verifyDocumentSignature(document: ISignedDocumentDomainInterface): void {

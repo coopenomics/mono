@@ -53,7 +53,10 @@ export class MarketplaceOrderIssuanceFactSnapshotDTO {
   @Field(() => Int, { description: 'Фактически выданное количество единиц.' })
   public readonly actual_quantity!: number;
 
-  @Field(() => String, { description: 'Фактическая стоимость выдачи (actual_quantity × цена за единицу).' })
+  @Field(() => String, { description: 'Фактическая цена за единицу (скорректирована оператором при открытии выдачи).' })
+  public readonly fact_unit_price!: string;
+
+  @Field(() => String, { description: 'Фактическая стоимость выдачи (actual_quantity × фактическая цена за единицу).' })
   public readonly fact_cost!: string;
 
   @Field(() => MarketplaceOrderIssuanceFactDiffStateEnum, {
@@ -385,6 +388,7 @@ export function toMarketplaceOrderDTO(
     issuance_fact: o.issuance_fact
       ? new MarketplaceOrderIssuanceFactSnapshotDTO({
           actual_quantity: o.issuance_fact.actual_quantity,
+          fact_unit_price: o.issuance_fact.fact_unit_price,
           fact_cost: o.issuance_fact.fact_cost,
           diff_state: o.issuance_fact.diff_state as MarketplaceOrderIssuanceFactDiffStateEnum,
         })

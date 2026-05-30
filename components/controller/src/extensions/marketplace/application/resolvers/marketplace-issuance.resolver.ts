@@ -77,6 +77,7 @@ export class MarketplaceIssuanceResolver {
       chairman_account: member.username,
       order_id: data.order_id,
       actual_quantity: data.actual_quantity,
+      actual_unit_price: data.actual_unit_price,
       signed_document: data.signed_document,
     });
     return new MarketplaceIssuanceResultDTO({
@@ -147,7 +148,8 @@ export class MarketplaceIssuanceResolver {
       coopname,
       data.order_id,
       member.username,
-      data.actual_quantity
+      data.actual_quantity,
+      data.actual_unit_price
     );
     return toGeneratedDocumentDTO(doc);
   }

@@ -14,6 +14,7 @@ const rawTTNDataSelector = {
 const rawFactEntrySelector = {
   order_id: true,
   fact_quantity: true,
+  fact_unit_price: true,
 }
 
 const _validateFactEntry: MakeAllFieldsRequired<ValueTypes['MarketplaceAplReceptionFactEntry']> =

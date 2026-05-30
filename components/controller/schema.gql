@@ -7060,11 +7060,21 @@ input MarketplaceAplReceptionByIdInput {
 type MarketplaceAplReceptionFactEntry {
   """Фактически принятое количество (для расхождений Варианта Б)."""
   fact_quantity: Int!
+
+  """
+  Фактическая цена за единицу (если оператор скорректировал её при открытии приёмки).
+  """
+  fact_unit_price: String
   order_id: ID!
 }
 
 input MarketplaceAplReceptionFactEntryInput {
   fact_quantity: Int!
+
+  """
+  Фактическая цена за единицу (оператор может изменить её при открытии приёмки).
+  """
+  fact_unit_price: String
   order_id: ID!
 }
 
@@ -7883,9 +7893,14 @@ type MarketplaceIssuanceResult {
 
 input MarketplaceIssueActPayloadInput {
   """
-  Фактически выдаваемое количество для финальной подписи (если не указано — берётся заказ).
+  Фактически выдаваемое количество для предпросмотра акта (если не указано — берётся заказ).
   """
   actual_quantity: Int
+
+  """
+  Фактическая цена за единицу для предпросмотра акта (если не указано — берётся цена заказа).
+  """
+  actual_unit_price: String
 
   """Заказ, по которому формируется preview акта выдачи."""
   order_id: ID!
@@ -8356,6 +8371,11 @@ input MarketplaceOpenIssuanceInput {
   """Фактически выдаваемое количество единиц (равно/меньше/больше заказа)."""
   actual_quantity: Int!
 
+  """
+  Фактическая цена за единицу (оператор может изменить её при открытии выдачи).
+  """
+  actual_unit_price: String!
+
   """Идентификатор заказа, выдачу которого открываем."""
   order_id: ID!
 
@@ -8539,8 +8559,15 @@ type MarketplaceOrderIssuanceFactSnapshot {
   """Сверка фактической выдачи с заказом."""
   diff_state: MarketplaceOrderIssuanceFactDiffState!
 
-  """Фактическая стоимость выдачи (actual_quantity × цена за единицу)."""
+  """
+  Фактическая стоимость выдачи (actual_quantity × фактическая цена за единицу).
+  """
   fact_cost: String!
+
+  """
+  Фактическая цена за единицу (скорректирована оператором при открытии выдачи).
+  """
+  fact_unit_price: String!
 }
 
 """Постраничный список заказов."""

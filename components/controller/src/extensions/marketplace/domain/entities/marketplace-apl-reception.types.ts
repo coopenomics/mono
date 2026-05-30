@@ -61,6 +61,13 @@ export type MarketplaceAplReceptionExpeditorData = MarketplaceShipmentTTNData;
 export interface MarketplaceAplReceptionFactQuantityEntry {
   order_id: string;
   fact_quantity: number;
+  /**
+   * Фактическая цена за единицу, скорректированная оператором при открытии
+   * приёмки (привезли хуже/другое — принимаем со скидкой). Бэйр-десятичная
+   * строка как `price_per_unit` (без символа валюты). При отсутствии берётся
+   * order.price_per_unit.
+   */
+  fact_unit_price?: string;
 }
 
 export interface MarketplaceAplReceptionProps {

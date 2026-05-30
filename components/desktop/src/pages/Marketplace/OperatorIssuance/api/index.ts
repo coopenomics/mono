@@ -66,10 +66,11 @@ export async function listMyReadyToReceive(): Promise<MarketplaceOrderIssuanceVi
 export async function getChairmanSignablePayload(
   order_id: string,
   actual_quantity?: number,
+  actual_unit_price?: string,
 ): Promise<MarketplaceGeneratedDocumentView> {
   const { [Queries.Marketplace.IssueActChairmanSignablePayload.name]: result } =
     await client.Query(Queries.Marketplace.IssueActChairmanSignablePayload.query, {
-      variables: { data: { order_id, actual_quantity } },
+      variables: { data: { order_id, actual_quantity, actual_unit_price } },
     });
   return result as MarketplaceGeneratedDocumentView;
 }
@@ -88,11 +89,12 @@ export async function getOrdererSignablePayload(
 export async function openIssuance(
   order_id: string,
   actual_quantity: number,
+  actual_unit_price: string,
   signed_document: SignedDocumentInput,
 ): Promise<MarketplaceIssuanceResultView> {
   const { [Mutations.Marketplace.OpenIssuance.name]: result } = await client.Mutation(
     Mutations.Marketplace.OpenIssuance.mutation,
-    { variables: { data: { order_id, actual_quantity, signed_document } } },
+    { variables: { data: { order_id, actual_quantity, actual_unit_price, signed_document } } },
   );
   return result;
 }

@@ -44,6 +44,7 @@ const emit = defineEmits<{
 const globalStore = useGlobalStore();
 
 const actualQuantity = ref<number>(0);
+const actualUnitPrice = ref<number>(0);
 const previewHtml = ref<string>('');
 const previewLoading = ref(false);
 const signing = ref(false);
@@ -54,8 +55,7 @@ const unitShort = computed(() =>
 
 const factCost = computed<string>(() => {
   if (!props.order) return '0';
-  const unit = Number.parseFloat(props.order.price_per_unit);
-  return (actualQuantity.value * unit).toFixed(4);
+  return (actualQuantity.value * actualUnitPrice.value).toFixed(4);
 });
 
 const diffState = computed<'equal' | 'less' | 'more'>(() => {
@@ -75,6 +75,7 @@ const diffHint = computed<string>(() => {
 
 const correctionRows = computed<CorrectionRow[]>(() => {
   if (!props.order) return [];
+  const orderedPrice = Number.parseFloat(props.order.price_per_unit);
   return [
     {
       sku: props.order.id.slice(0, 8),
@@ -82,6 +83,8 @@ const correctionRows = computed<CorrectionRow[]>(() => {
       unit: unitShort.value,
       expected: props.order.quantity,
       fact: actualQuantity.value,
+      expectedPrice: orderedPrice,
+      factPrice: actualUnitPrice.value,
     },
   ];
 });
@@ -91,26 +94,34 @@ watch(
   ([visible]) => {
     if (visible && props.order) {
       actualQuantity.value = props.order.quantity;
+      actualUnitPrice.value = Number.parseFloat(props.order.price_per_unit);
       previewHtml.value = '';
     }
   },
   { immediate: false },
 );
 
-function onCorrectionChange(payload: { sku: string; fact: number }): void {
+function onCorrectionChange(payload: { sku: string; fact: number; factPrice?: number }): void {
   actualQuantity.value = Math.max(0, payload.fact);
+  if (payload.factPrice !== undefined) {
+    actualUnitPrice.value = Math.max(0, payload.factPrice);
+  }
   // Документ зависит от факта — сбрасываем устаревший превью.
   previewHtml.value = '';
 }
 
 async function loadPreview(): Promise<void> {
-  if (!props.order || actualQuantity.value <= 0) {
-    FailAlert(new Error('Сначала укажите фактическое количество больше нуля.'));
+  if (!props.order || actualQuantity.value <= 0 || actualUnitPrice.value <= 0) {
+    FailAlert(new Error('Сначала укажите фактическое количество и цену больше нуля.'));
     return;
   }
   previewLoading.value = true;
   try {
-    const doc = await getChairmanSignablePayload(props.order.id, actualQuantity.value);
+    const doc = await getChairmanSignablePayload(
+      props.order.id,
+      actualQuantity.value,
+      String(actualUnitPrice.value),
+    );
     previewHtml.value = doc.html;
   } catch (e) {
     FailAlert(e, 'Не удалось сформировать акт выдачи');
@@ -125,6 +136,10 @@ async function confirm(): Promise<void> {
     FailAlert(new Error('Фактическое количество должно быть больше нуля.'));
     return;
   }
+  if (actualUnitPrice.value <= 0) {
+    FailAlert(new Error('Фактическая цена за единицу должна быть больше нуля.'));
+    return;
+  }
   const wifKey = globalStore.wif?.toString();
   if (!wifKey) {
     FailAlert(new Error('Приватный ключ не найден. Войдите в кооператив.'));
@@ -132,10 +147,15 @@ async function confirm(): Promise<void> {
   }
   signing.value = true;
   try {
-    const generated = await getChairmanSignablePayload(props.order.id, actualQuantity.value);
+    const unitPriceStr = String(actualUnitPrice.value);
+    const generated = await getChairmanSignablePayload(
+      props.order.id,
+      actualQuantity.value,
+      unitPriceStr,
+    );
     const docSigner = new Classes.Document(wifKey);
     const signed = await docSigner.signDocument(generated, globalStore.username, 1);
-    await openIssuance(props.order.id, actualQuantity.value, signed);
+    await openIssuance(props.order.id, actualQuantity.value, unitPriceStr, signed);
     SuccessAlert('Выдача открыта. Ждём подпись заказчика — он подтвердит получение в своём кабинете.');
     emit('opened');
     emit('update:modelValue', false);
@@ -160,7 +180,7 @@ TakeoverDialog(
   confirm-label="Подписать и открыть выдачу"
   cancel-label="Закрыть"
   :loading="signing"
-  :disable-confirm="actualQuantity <= 0 || signing"
+  :disable-confirm="actualQuantity <= 0 || actualUnitPrice <= 0 || signing"
   @update:model-value="(v: boolean) => emit('update:modelValue', v)"
   @confirm="confirm"
   @cancel="cancel"

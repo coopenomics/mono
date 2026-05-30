@@ -17,6 +17,7 @@ export const marketplaceOrderCreateTxSnapshotSelector = Selector('MarketplaceOrd
 
 const rawOrderIssuanceFactSnapshotSelector = {
   actual_quantity: true,
+  fact_unit_price: true,
   fact_cost: true,
   diff_state: true,
 }

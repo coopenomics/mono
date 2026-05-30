@@ -27,6 +27,13 @@ export class MarketplaceOpenIssuanceInputDTO {
   @Min(1)
   public readonly actual_quantity!: number;
 
+  @Field(() => String, {
+    description: 'Фактическая цена за единицу (оператор может изменить её при открытии выдачи).',
+  })
+  @IsString()
+  @IsNotEmpty()
+  public readonly actual_unit_price!: string;
+
   @Field(() => MarketplaceIssueActSignedDocumentInputDTO, {
     description:
       'Подписанный председателем кооперативного участка акт выдачи. Backend верифицирует подпись и отправляет on-chain первую подпись.',
@@ -79,12 +86,21 @@ export class MarketplaceIssueActPayloadInputDTO {
   @Field(() => Int, {
     nullable: true,
     description:
-      'Фактически выдаваемое количество для финальной подписи (если не указано — берётся заказ).',
+      'Фактически выдаваемое количество для предпросмотра акта (если не указано — берётся заказ).',
   })
   @IsOptional()
   @IsInt()
   @Min(0)
   public readonly actual_quantity?: number;
+
+  @Field(() => String, {
+    nullable: true,
+    description:
+      'Фактическая цена за единицу для предпросмотра акта (если не указано — берётся цена заказа).',
+  })
+  @IsOptional()
+  @IsString()
+  public readonly actual_unit_price?: string;
 }
 
 @ObjectType('MarketplaceIssuanceResult', {
