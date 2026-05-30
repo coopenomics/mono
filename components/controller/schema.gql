@@ -8380,6 +8380,11 @@ type MarketplaceOrder {
   delivery_point_address: String
 
   """
+  Наименование пункта выдачи (кооперативного участка) — для отображения вместо служебного идентификатора ПВЗ.
+  """
+  delivery_point_name: String
+
+  """
   Учётная запись стороны кооператива, поставившей подпись вместе с заказчиком.
   """
   delivery_signer_account: String

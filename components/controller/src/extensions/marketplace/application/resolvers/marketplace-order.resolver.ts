@@ -19,7 +19,6 @@ import {
   MarketplaceOrderPaginationResultDTO,
   MarketplaceSupplierOrderActionResultDTO,
   toMarketplaceOrderDTO,
-  type MarketplaceOrderDisplayFields,
 } from '../dto/marketplace-order.dto';
 import { toMarketplaceConsolidatedRequestDTO } from '../dto/marketplace-consolidated-request.dto';
 import {
@@ -39,13 +38,9 @@ import {
   type MarketplaceOrderListFilter,
 } from '../../domain/repositories/marketplace-order.repository';
 import {
-  MARKETPLACE_OFFER_REPOSITORY,
-  type MarketplaceOfferDomainRepository,
-} from '../../domain/repositories/marketplace-offer.repository';
-import {
-  KU_DETAILS_DOMAIN_REPOSITORY,
-  type KuDetailsDomainRepository,
-} from '../../domain/repositories/ku-details-domain.repository';
+  MARKETPLACE_ORDER_DISPLAY_SERVICE,
+  MarketplaceOrderDisplayService,
+} from '../services/marketplace-order-display.service';
 import { canAccess } from '../access/marketplace-access-matrix';
 import type { MarketplaceRole } from '../membership/marketplace-roles.mapper';
 import type { MarketplaceOrderStatus } from '../../domain/entities/marketplace-order.types';
@@ -65,7 +60,6 @@ import {
   MARKETPLACE_ORDER_SUPPLIER_ACTION_SERVICE,
   MarketplaceOrderSupplierActionService,
 } from '../services/marketplace-order-supplier-action.service';
-import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import type { MarketplaceOrderCreateTxSnapshot } from '../../domain/entities/marketplace-order.types';
 
 const toOrderDTO = toMarketplaceOrderDTO;
@@ -88,10 +82,8 @@ export class MarketplaceOrderResolver {
     private readonly supplierActionService: MarketplaceOrderSupplierActionService,
     @Inject(MARKETPLACE_ORDER_REPOSITORY)
     private readonly orderRepo: MarketplaceOrderDomainRepository,
-    @Inject(MARKETPLACE_OFFER_REPOSITORY)
-    private readonly offerRepo: MarketplaceOfferDomainRepository,
-    @Inject(KU_DETAILS_DOMAIN_REPOSITORY)
-    private readonly kuRepo: KuDetailsDomainRepository
+    @Inject(MARKETPLACE_ORDER_DISPLAY_SERVICE)
+    private readonly displayService: MarketplaceOrderDisplayService
   ) {}
 
   @Mutation(() => MarketplaceCreateOrderResultDTO, {
@@ -315,15 +307,8 @@ export class MarketplaceOrderResolver {
     if (!canReadOwn && !canReadToSelf && !canReadAll) {
       throw new ForbiddenException('Нет прав на просмотр заказа.');
     }
-    const [offer, ku] = await Promise.all([
-      this.offerRepo.findById(order.offer_id),
-      this.kuRepo.findByCoreBraname(config.coopname, order.delivery_braname),
-    ]);
-    return toOrderDTO(order, {
-      product_name: offer?.product_name ?? null,
-      unit_of_measure: offer?.unit_of_measure ?? null,
-      delivery_point_address: ku?.addressFull ?? null,
-    });
+    const display = await this.displayService.enrichOne(order);
+    return toOrderDTO(order, display);
   }
 
   private async runListQuery(
@@ -336,43 +321,12 @@ export class MarketplaceOrderResolver {
       sortBy: options?.sortBy ?? 'updated_at',
       sortOrder: options?.sortOrder ?? 'DESC',
     });
-    const displayByOrderId = await this.buildDisplayFields(result.items);
+    const displayByOrderId = await this.displayService.enrich(result.items);
     const dto = new MarketplaceOrderPaginationResultDTO();
     dto.items = result.items.map((o) => toOrderDTO(o, displayByOrderId.get(o.id)));
     dto.totalCount = result.totalCount;
     dto.totalPages = result.totalPages;
     dto.currentPage = result.currentPage;
     return dto;
-  }
-
-  /**
-   * Обогащение страницы заказов отображаемыми реквизитами товара и ПВЗ.
-   * Offer'ы тянутся одним батчем по уникальным offer_id, детализация ПВЗ —
-   * одной выборкой по кооперативу; оба маппятся в адреса/названия. Best-effort:
-   * отсутствующее предложение/ПВЗ оставляет соответствующие поля пустыми.
-   */
-  private async buildDisplayFields(
-    orders: MarketplaceOrderDomainEntity[]
-  ): Promise<Map<string, MarketplaceOrderDisplayFields>> {
-    const result = new Map<string, MarketplaceOrderDisplayFields>();
-    if (orders.length === 0) return result;
-
-    const offerIds = [...new Set(orders.map((o) => o.offer_id))];
-    const [offers, kuList] = await Promise.all([
-      this.offerRepo.findByIds(offerIds),
-      this.kuRepo.findByCoopname(config.coopname),
-    ]);
-    const offerById = new Map(offers.map((offer) => [offer.id, offer]));
-    const addressByBraname = new Map(kuList.map((ku) => [ku.coreBraname, ku.addressFull]));
-
-    for (const order of orders) {
-      const offer = offerById.get(order.offer_id);
-      result.set(order.id, {
-        product_name: offer?.product_name ?? null,
-        unit_of_measure: offer?.unit_of_measure ?? null,
-        delivery_point_address: addressByBraname.get(order.delivery_braname) ?? null,
-      });
-    }
-    return result;
   }
 }

@@ -4193,6 +4193,7 @@ export const ReturnTypes: Record<string,any> = {
 		cycle_type:"MarketplaceOrderCycleType",
 		delivery_braname:"String",
 		delivery_point_address:"String",
+		delivery_point_name:"String",
 		delivery_signer_account:"String",
 		id:"String",
 		issuance_fact:"MarketplaceOrderIssuanceFactSnapshot",

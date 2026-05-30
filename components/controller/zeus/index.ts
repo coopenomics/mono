@@ -7083,6 +7083,8 @@ export type ValueTypes = {
 	delivery_braname?:boolean | `@${string}`,
 	/** Адрес пункта выдачи — для отображения вместо служебного идентификатора ПВЗ. */
 	delivery_point_address?:boolean | `@${string}`,
+	/** Наименование пункта выдачи (кооперативного участка) — для отображения вместо служебного идентификатора ПВЗ. */
+	delivery_point_name?:boolean | `@${string}`,
 	/** Учётная запись стороны кооператива, поставившей подпись вместе с заказчиком. */
 	delivery_signer_account?:boolean | `@${string}`,
 	/** Идентификатор заказа. */
@@ -17119,6 +17121,8 @@ export type ResolverInputTypes = {
 	delivery_braname?:boolean | `@${string}`,
 	/** Адрес пункта выдачи — для отображения вместо служебного идентификатора ПВЗ. */
 	delivery_point_address?:boolean | `@${string}`,
+	/** Наименование пункта выдачи (кооперативного участка) — для отображения вместо служебного идентификатора ПВЗ. */
+	delivery_point_name?:boolean | `@${string}`,
 	/** Учётная запись стороны кооператива, поставившей подпись вместе с заказчиком. */
 	delivery_signer_account?:boolean | `@${string}`,
 	/** Идентификатор заказа. */
@@ -26830,6 +26834,8 @@ export type ModelTypes = {
 	delivery_braname: string,
 	/** Адрес пункта выдачи — для отображения вместо служебного идентификатора ПВЗ. */
 	delivery_point_address?: string | undefined | null,
+	/** Наименование пункта выдачи (кооперативного участка) — для отображения вместо служебного идентификатора ПВЗ. */
+	delivery_point_name?: string | undefined | null,
 	/** Учётная запись стороны кооператива, поставившей подпись вместе с заказчиком. */
 	delivery_signer_account?: string | undefined | null,
 	/** Идентификатор заказа. */
@@ -37486,6 +37492,8 @@ export type GraphQLTypes = {
 	delivery_braname: string,
 	/** Адрес пункта выдачи — для отображения вместо служебного идентификатора ПВЗ. */
 	delivery_point_address?: string | undefined | null,
+	/** Наименование пункта выдачи (кооперативного участка) — для отображения вместо служебного идентификатора ПВЗ. */
+	delivery_point_name?: string | undefined | null,
 	/** Учётная запись стороны кооператива, поставившей подпись вместе с заказчиком. */
 	delivery_signer_account?: string | undefined | null,
 	/** Идентификатор заказа. */

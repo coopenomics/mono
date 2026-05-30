@@ -127,6 +127,12 @@ export class MarketplaceOrderDTO {
 
   @Field(() => String, {
     nullable: true,
+    description: 'Наименование пункта выдачи (кооперативного участка) — для отображения вместо служебного идентификатора ПВЗ.',
+  })
+  public readonly delivery_point_name!: string | null;
+
+  @Field(() => String, {
+    nullable: true,
     description: 'Адрес пункта выдачи — для отображения вместо служебного идентификатора ПВЗ.',
   })
   public readonly delivery_point_address!: string | null;
@@ -340,6 +346,7 @@ export function toMarketplaceOrderCreateTxSnapshotDTO(
 export interface MarketplaceOrderDisplayFields {
   product_name?: string | null;
   unit_of_measure?: string | null;
+  delivery_point_name?: string | null;
   delivery_point_address?: string | null;
 }
 
@@ -358,6 +365,7 @@ export function toMarketplaceOrderDTO(
     unit_of_measure: display?.unit_of_measure ?? null,
     supplier_account: o.supplier_account,
     delivery_braname: o.delivery_braname,
+    delivery_point_name: display?.delivery_point_name ?? null,
     delivery_point_address: display?.delivery_point_address ?? null,
     quantity: o.quantity,
     price_per_unit: o.price_per_unit,

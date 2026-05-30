@@ -22,7 +22,8 @@ const makeResolver = (isMember: boolean) => {
   const kuChairmanService = {
     isMemberOfBranch: jest.fn().mockResolvedValue(isMember),
   } as any;
-  const resolver = new MarketplaceIssuanceResolver(service, orderRepo, kuChairmanService);
+  const displayService = { enrich: jest.fn().mockResolvedValue(new Map()) } as any;
+  const resolver = new MarketplaceIssuanceResolver(service, orderRepo, kuChairmanService, displayService);
   return { resolver, orderRepo, kuChairmanService };
 };
 
@@ -69,7 +70,8 @@ const makePayloadResolver = (order: any, isMember: boolean) => {
   } as any;
   const orderRepo = { findById: jest.fn().mockResolvedValue(order) } as any;
   const kuChairmanService = { isMemberOfBranch: jest.fn().mockResolvedValue(isMember) } as any;
-  const resolver = new MarketplaceIssuanceResolver(service, orderRepo, kuChairmanService);
+  const displayService = { enrich: jest.fn().mockResolvedValue(new Map()) } as any;
+  const resolver = new MarketplaceIssuanceResolver(service, orderRepo, kuChairmanService, displayService);
   return { resolver, service, orderRepo, kuChairmanService };
 };
 

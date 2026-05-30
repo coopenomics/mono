@@ -66,6 +66,10 @@ import {
   MarketplaceOrderCreateService,
   MARKETPLACE_ORDER_CREATE_SERVICE,
 } from './services/marketplace-order-create.service';
+import {
+  MarketplaceOrderDisplayService,
+  MARKETPLACE_ORDER_DISPLAY_SERVICE,
+} from './services/marketplace-order-display.service';
 import { marketplaceAssetConfigProvider } from './services/marketplace-asset.config.provider';
 import {
   MarketplaceOrderCancelService,
@@ -267,6 +271,11 @@ import { MarketplaceInventoryEntity } from '../infrastructure/entities/marketpla
     },
     MarketplaceOrderCreateService,
     MarketplaceOrderSyncService,
+    // Обогащение заказов отображаемыми реквизитами (товар/ПВЗ) для столов и лент выдачи
+    {
+      provide: MARKETPLACE_ORDER_DISPLAY_SERVICE,
+      useClass: MarketplaceOrderDisplayService,
+    },
     // Story 4.4
     {
       provide: MARKETPLACE_ORDER_CANCEL_SERVICE,

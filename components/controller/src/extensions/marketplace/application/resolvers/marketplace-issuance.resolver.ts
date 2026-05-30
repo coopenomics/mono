@@ -29,6 +29,10 @@ import {
   MARKETPLACE_ORDER_REPOSITORY,
   type MarketplaceOrderDomainRepository,
 } from '../../domain/repositories/marketplace-order.repository';
+import {
+  MARKETPLACE_ORDER_DISPLAY_SERVICE,
+  MarketplaceOrderDisplayService,
+} from '../services/marketplace-order-display.service';
 import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
 import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
@@ -52,7 +56,9 @@ export class MarketplaceIssuanceResolver {
     @Inject(MARKETPLACE_ORDER_REPOSITORY)
     private readonly orderRepo: MarketplaceOrderDomainRepository,
     @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
-    private readonly kuChairmanService: MarketplaceKuChairmanService
+    private readonly kuChairmanService: MarketplaceKuChairmanService,
+    @Inject(MARKETPLACE_ORDER_DISPLAY_SERVICE)
+    private readonly displayService: MarketplaceOrderDisplayService
   ) {}
 
   @Mutation(() => MarketplaceIssuanceResultDTO, {
@@ -231,7 +237,8 @@ export class MarketplaceIssuanceResolver {
       coopname,
       data.delivery_braname
     );
-    return orders.map((order) => toMarketplaceOrderDTO(order));
+    const display = await this.displayService.enrich(orders);
+    return orders.map((order) => toMarketplaceOrderDTO(order, display.get(order.id)));
   }
 
   @Query(() => [MarketplaceOrderDTO], {
@@ -248,6 +255,7 @@ export class MarketplaceIssuanceResolver {
       config.coopname,
       member.username
     );
-    return orders.map((order) => toMarketplaceOrderDTO(order));
+    const display = await this.displayService.enrich(orders);
+    return orders.map((order) => toMarketplaceOrderDTO(order, display.get(order.id)));
   }
 }

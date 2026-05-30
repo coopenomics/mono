@@ -40,6 +40,7 @@ const rawOrderSelector = {
   unit_of_measure: true,
   supplier_account: true,
   delivery_braname: true,
+  delivery_point_name: true,
   delivery_point_address: true,
   quantity: true,
   price_per_unit: true,
