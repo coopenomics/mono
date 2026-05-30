@@ -4,6 +4,7 @@ import { Dialog, Loading, Notify } from 'quasar';
 import { OrderCard, type Order as OrderCardModel, type OrderStatus as OrderCardStatus } from 'src/widgets/Marketplace/OrderCard';
 import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
+import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import { cancelOrder, fetchMyOrders } from '../api';
 import type { MarketplaceOrderStatusView, MarketplaceOrderView } from '../types';
 
@@ -83,13 +84,13 @@ function toCardModel(o: MarketplaceOrderView): OrderCardModel {
   return {
     id: o.id,
     shortId: o.id.slice(0, 8),
-    title: o.offer_id,
+    title: o.product_name || 'Товар по предложению',
     units: o.quantity,
-    unitLabel: 'ед.',
+    unitLabel: marketplaceUnitShort(o.unit_of_measure),
     totalCost: parseFloat(o.total_cost) || 0,
     status: STATUS_TO_CARD[o.status],
     createdAt: o.created_at,
-    pvz: o.delivery_braname,
+    pvz: o.delivery_point_address || o.delivery_braname,
   };
 }
 

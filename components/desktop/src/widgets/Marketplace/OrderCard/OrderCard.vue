@@ -1,58 +1,57 @@
 <template>
-  <q-card flat bordered class="mp-order-card" :class="cardClasses">
-    <q-card-section class="mp-order-card__header">
-      <div class="row items-center q-gutter-sm">
-        <div class="text-subtitle1 mp-order-card__id">№ {{ order.shortId ?? order.id }}</div>
-        <q-space />
-        <span class="mp-status-chip mp-order-card__status" :class="`mp-status-chip--${statusKind}`">
-          {{ statusLabel }}
-        </span>
-      </div>
-      <div class="mp-order-card__date">{{ formatDate(order.createdAt) }}</div>
-    </q-card-section>
-
-    <q-separator />
-
-    <q-card-section>
-      <div class="text-body1 q-mb-sm">{{ order.title }}</div>
-
-      <div class="mp-order-card__meta">
-        <div class="mp-order-card__meta-item">
-          <div class="mp-order-card__meta-label">Кол-во</div>
-          <div class="mp-order-card__meta-value">{{ order.units }} {{ order.unitLabel ?? 'ед.' }}</div>
-        </div>
-        <div class="mp-order-card__meta-item">
-          <div class="mp-order-card__meta-label">Сумма</div>
-          <div class="mp-order-card__meta-value">{{ formatPrice(order.totalCost) }}</div>
-        </div>
-        <div v-if="order.pvz" class="mp-order-card__meta-item mp-order-card__meta-item--wide">
-          <div class="mp-order-card__meta-label">ПВЗ</div>
-          <div class="mp-order-card__meta-value mp-order-card__meta-value--muted">{{ order.pvz }}</div>
+  <BaseCard class="order-card" :class="`order-card--${order.status}`">
+    <template #head>
+      <div class="order-card__head-main">
+        <div class="order-card__title">{{ order.title }}</div>
+        <div class="order-card__sub">
+          <span class="order-card__num">№&nbsp;{{ order.shortId ?? order.id }}</span>
+          <span class="order-card__sep" aria-hidden="true">·</span>
+          <span>{{ formatDate(order.createdAt) }}</span>
         </div>
       </div>
-    </q-card-section>
+    </template>
 
-    <q-card-actions v-if="actionsForRole.length || $slots.actions" align="right" class="mp-order-card__actions">
+    <template #actions>
+      <BaseBadge :variant="statusVariant">{{ statusLabel }}</BaseBadge>
+    </template>
+
+    <div class="order-card__meta">
+      <div class="order-card__meta-item">
+        <div class="order-card__meta-label">Кол-во</div>
+        <div class="order-card__meta-value">{{ order.units }} {{ order.unitLabel ?? 'ед.' }}</div>
+      </div>
+      <div class="order-card__meta-item">
+        <div class="order-card__meta-label">Сумма</div>
+        <div class="order-card__meta-value order-card__meta-value--strong">{{ formatPrice(order.totalCost) }}</div>
+      </div>
+      <div v-if="order.pvz" class="order-card__meta-item order-card__meta-item--wide">
+        <div class="order-card__meta-label">Пункт выдачи</div>
+        <div class="order-card__meta-value order-card__meta-value--muted">
+          <q-icon name="place" size="16px" class="order-card__pvz-icon" />
+          <span>{{ order.pvz }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="actionsForRole.length || $slots.actions" class="order-card__foot">
       <slot name="actions" :order="order" :role="role">
-        <q-btn
+        <BaseButton
           v-for="a in actionsForRole"
           :key="a.key"
-          :flat="!isAccent(a)"
-          :unelevated="isAccent(a)"
-          :color="a.kind === 'danger' ? 'negative' : (isAccent(a) ? 'primary' : undefined)"
-          :label="a.label"
-          dense
-          no-caps
-          class="mp-order-card__btn"
+          :variant="actionVariant(a)"
+          size="sm"
           @click="emit('action', { key: a.key, order })"
-        />
+        >
+          {{ a.label }}
+        </BaseButton>
       </slot>
-    </q-card-actions>
-  </q-card>
+    </div>
+  </BaseCard>
 </template>
 
 <script setup lang="ts">
 import { computed, type PropType } from 'vue'
+import { BaseCard, BaseBadge, BaseButton } from 'src/shared/ui/base'
 
 export type OrderStatus =
   | 'draft'
@@ -77,6 +76,7 @@ export interface Order {
   totalCost: number
   status: OrderStatus
   createdAt: string | Date
+  /** Отображаемый пункт выдачи: адрес ПВЗ (или служебный идентификатор, если адреса нет). */
   pvz?: string
 }
 
@@ -95,24 +95,23 @@ const emit = defineEmits<{
   (e: 'action', payload: { key: string; order: Order }): void
 }>()
 
-type StatusKind = 'info' | 'success' | 'warning' | 'error' | 'neutral'
+type StatusVariant = 'info' | 'pos' | 'warn' | 'neg' | 'neutral'
 
-const STATUS_MAP: Record<OrderStatus, { label: string; kind: StatusKind }> = {
-  draft:             { label: 'Черновик',       kind: 'neutral' },
-  placed:            { label: 'Размещён',       kind: 'info'    },
-  paid:              { label: 'Оплачен',        kind: 'success' },
-  'in-delivery':     { label: 'В доставке',     kind: 'warning' },
-  'arrived-at-pvz':  { label: 'Прибыл в ПВЗ',   kind: 'info'    },
-  'ready-to-issue':  { label: 'Готов к выдаче', kind: 'info'    },
-  issued:            { label: 'Выдан',          kind: 'success' },
-  cancelled:         { label: 'Отменён',        kind: 'error'   },
-  dispute:           { label: 'Претензия',      kind: 'error'   },
-  returned:          { label: 'Возвращён',      kind: 'neutral' },
+const STATUS_MAP: Record<OrderStatus, { label: string; variant: StatusVariant }> = {
+  draft:             { label: 'Черновик',       variant: 'neutral' },
+  placed:            { label: 'Размещён',       variant: 'info'    },
+  paid:              { label: 'Оплачен',        variant: 'pos'     },
+  'in-delivery':     { label: 'В доставке',     variant: 'warn'    },
+  'arrived-at-pvz':  { label: 'Прибыл в ПВЗ',   variant: 'info'    },
+  'ready-to-issue':  { label: 'Готов к выдаче', variant: 'info'    },
+  issued:            { label: 'Выдан',          variant: 'pos'     },
+  cancelled:         { label: 'Отменён',        variant: 'neg'     },
+  dispute:           { label: 'Претензия',      variant: 'neg'     },
+  returned:          { label: 'Возвращён',      variant: 'neutral' },
 }
 
 const statusLabel = computed(() => STATUS_MAP[props.order.status].label)
-const statusKind  = computed<StatusKind>(() => STATUS_MAP[props.order.status].kind)
-const cardClasses = computed(() => `mp-order-card--${props.order.status}`)
+const statusVariant = computed<StatusVariant>(() => STATUS_MAP[props.order.status].variant)
 
 // Per-role набор действий по умолчанию (slot actions перебивает).
 const ACTIONS_PER_ROLE: Record<OrderRole, Record<OrderStatus, OrderAction[]>> = {
@@ -171,9 +170,10 @@ const actionsForRole = computed<OrderAction[]>(
   () => ACTIONS_PER_ROLE[props.role]?.[props.order.status] ?? []
 )
 
-// Акцентная кнопка = primary или danger. Всё остальное — flat second-level.
-function isAccent(a: OrderAction): boolean {
-  return a.kind === 'primary' || a.kind === 'danger'
+function actionVariant(a: OrderAction): 'primary' | 'danger' | 'ghost' {
+  if (a.kind === 'primary') return 'primary'
+  if (a.kind === 'danger') return 'danger'
+  return 'ghost'
 }
 
 function formatDate(v: string | Date) {
@@ -187,72 +187,97 @@ function formatPrice(v: number) {
 </script>
 
 <style scoped lang="scss">
-.mp-order-card {
-  border-radius: var(--mp-radius-md);
-  border: 1px solid var(--mp-border-subtle);
-  box-shadow: none;
-  background: var(--mp-surface-0);
-
-  &__header { padding-bottom: var(--mp-space-sm); }
-  &__id { font-weight: 600; letter-spacing: -.01em; color: var(--mp-on-surface); }
-
-  &__date {
-    font-size: 12px;
-    color: var(--mp-on-surface-muted);
-    margin-top: 4px;
+.order-card {
+  // Тонкая граница и плоскость — из BaseCard (канон-инвариант: без теней).
+  &__head-main {
+    min-width: 0;
   }
 
-  &__actions {
-    padding: var(--mp-space-sm) var(--mp-space-md) var(--mp-space-md);
-    gap: var(--mp-space-sm);
-    border-top: 1px solid var(--mp-border-subtle);
+  &__title {
+    font-size: var(--p-fs-h3, 16px);
+    font-weight: 600;
+    letter-spacing: var(--p-ls-h3, -0.01em);
+    color: var(--p-ink);
+    overflow-wrap: anywhere;
   }
 
-  &__btn {
-    border-radius: var(--mp-radius-sm);
-    box-shadow: none !important;
-    min-height: 36px;
+  &__sub {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--p-1, 4px) var(--p-2, 8px);
+    margin-top: var(--p-1, 4px);
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-3);
+  }
 
-    &:not(.q-btn--flat) {
-      letter-spacing: 0;
-    }
+  &__num {
+    font-family: var(--p-mono);
+    letter-spacing: 0;
+  }
+
+  &__sep {
+    color: var(--p-ink-3);
   }
 
   &__meta {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: var(--mp-space-md);
+    gap: var(--p-3, 12px) var(--p-4, 16px);
   }
 
-  &__meta-item--wide { grid-column: span 2; }
+  &__meta-item--wide {
+    grid-column: 1 / -1;
+  }
 
   &__meta-label {
-    font-size: 11px;
+    font-size: var(--p-fs-eyebrow, 11px);
     text-transform: uppercase;
-    letter-spacing: .04em;
-    color: var(--mp-on-surface-muted);
+    letter-spacing: 0.04em;
+    color: var(--p-ink-3);
     margin-bottom: 2px;
   }
 
   &__meta-value {
-    font-size: 15px;
-    color: var(--mp-on-surface);
+    font-size: var(--p-fs-body, 15px);
+    color: var(--p-ink);
 
-    &--muted { color: var(--mp-on-surface-muted); font-size: 13px; }
+    &--strong {
+      font-weight: 600;
+    }
+
+    &--muted {
+      display: flex;
+      align-items: center;
+      gap: var(--p-1, 4px);
+      color: var(--p-ink-2);
+      font-size: var(--p-fs-body-sm, 14px);
+    }
   }
 
-  // На очень узких — meta стэк, заголовок и статус в одну колонку
+  &__pvz-icon {
+    color: var(--p-ink-3);
+    flex-shrink: 0;
+  }
+
+  &__foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--p-2, 8px);
+    margin-top: var(--p-4, 16px);
+    padding-top: var(--p-3, 12px);
+    border-top: 1px solid var(--p-line);
+  }
+
   @media (max-width: 480px) {
     &__meta {
       grid-template-columns: 1fr 1fr;
     }
-    &__meta-item--wide { grid-column: 1 / -1; }
-  }
-
-  // На operator-POS — больше отступы и крупнее текст
-  .mp-role-operator & {
-    font-size: 1.05rem;
-    .mp-order-card__meta-value { font-size: 17px; }
+    &__meta-item--wide {
+      grid-column: 1 / -1;
+    }
   }
 }
 </style>
