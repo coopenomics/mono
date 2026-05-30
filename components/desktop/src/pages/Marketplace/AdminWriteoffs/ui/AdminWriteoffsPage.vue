@@ -3,6 +3,9 @@ import { computed, onMounted, ref } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
+import { BaseBadge, BaseButton, BaseCard } from 'src/shared/ui/base';
+import type { BaseBadgeVariant } from 'src/shared/ui/base';
+import { PageHint } from 'src/shared/ui/domain';
 import {
   getOpenWriteoffDraft,
   listWriteoffProposals,
@@ -69,21 +72,21 @@ function openDetails(proposal: MarketplaceWriteoffProposalView): void {
   detailsOpen.value = true;
 }
 
-function statusColor(status: MarketplaceWriteoffProposalView['status']): string {
+function statusVariant(status: MarketplaceWriteoffProposalView['status']): BaseBadgeVariant {
   switch (status) {
     case 'DRAFT':
-      return 'grey';
+      return 'neutral';
     case 'ON_AGENDA':
-      return 'primary';
+      return 'accent';
     case 'AUTHORIZED':
     case 'EXECUTING':
       return 'info';
     case 'EXECUTED':
-      return 'positive';
+      return 'pos';
     case 'REJECTED':
-      return 'negative';
+      return 'neg';
     default:
-      return 'grey';
+      return 'neutral';
   }
 }
 
@@ -134,95 +137,129 @@ onMounted(() => {
 </script>
 
 <template lang="pug">
-q-page.mp-role-admin.mp-writeoffs.q-pa-md
-  .row.items-center.q-mb-sm
-    .text-h6 Списания скоропорта
+q-page.writeoffs(role="region", aria-label="Списания скоропорта")
+  PageHint(storage-key="mp:admin-writeoffs:banner-dismissed")
+    | Сначала собирается черновик списания — вручную председателем или автоматически по сроку годности. Затем председатель подписывает заявление и выносит проект на повестку совета. Совет утверждает списание протоколом, после чего имущество списывается со склада.
+
+  .writeoffs__toolbar
     q-space
-    q-btn(
-      v-if="!draft"
-      unelevated no-caps color="primary"
-      icon="fa-solid fa-plus"
-      label="Новый черновик"
-      @click="draftEditorOpen = true"
-    )
+    BaseButton(v-if="!draft", variant="primary", @click="draftEditorOpen = true")
+      template(#icon-left)
+        q-icon(name="add", size="18px")
+      | Новый черновик
 
-  .text-body2.text-grey.q-mb-md
-    | Сначала собирается черновик списания — вручную председателем или автоматически по сроку годности. Затем председатель подписывает заявление и выносит проект на повестку совета. Совет рассматривает проект и утверждает списание протоколом, после чего имущество списывается со склада.
+  BaseCard(v-if="draft")
+    .writeoffs__draft
+      .writeoffs__draft-info
+        .t-h3 Открытый черновик
+        .t-muted {{ draft.items.length }} позиций · {{ formatAsset2Digits(draft.total_amount) }}
+        .t-muted Источник: {{ draft.trigger === Zeus.MarketplaceWriteoffProposalTrigger.CRON ? 'крон-сервис' : 'ручное создание' }} · {{ formatDate(draft.created_at) }}
+      .writeoffs__draft-actions
+        BaseButton(variant="secondary", @click="draftEditorOpen = true")
+          template(#icon-left)
+            q-icon(name="edit", size="16px")
+          | Изменить состав
+        BaseButton(variant="primary", @click="submitDialogOpen = true")
+          template(#icon-left)
+            q-icon(name="send", size="16px")
+          | Подписать и отправить в совет
 
-  q-card.q-mb-md(v-if="draft" flat bordered)
-    q-card-section
-      .row.items-center
-        .col
-          .text-subtitle1 Открытый черновик
-          .text-caption.text-grey {{ draft.items.length }} позиций · {{ formatAsset2Digits(draft.total_amount) }}
-          .text-caption.text-grey Источник: {{ draft.trigger === Zeus.MarketplaceWriteoffProposalTrigger.CRON ? 'крон-сервис' : 'ручное создание' }} · {{ formatDate(draft.created_at) }}
-        q-btn(
-          flat color="primary" no-caps
-          icon="fa-solid fa-pen"
-          label="Изменить состав"
-          @click="draftEditorOpen = true"
-        )
-        q-btn.q-ml-sm(
-          unelevated color="primary" no-caps
-          icon="fa-solid fa-paper-plane"
-          label="Подписать и отправить в совет"
-          @click="submitDialogOpen = true"
-        )
+  BaseCard
+    .writeoffs__council
+      q-spinner(v-if="loading", color="primary", size="1.5em")
+      div
+        .t-h3 В работе совета
+        .t-muted {{ inCouncil.length }} проект(ов) на сумму {{ formatAsset2Digits(totalActiveAmount) }} ₽
 
-  q-card.q-mb-md(flat bordered)
-    q-card-section.row.items-center
-      q-spinner-tabs(v-if="loading" indeterminate)
-      .col
-        .text-subtitle1 В работе совета
-        .text-caption.text-grey {{ inCouncil.length }} проект(ов) на сумму {{ formatAsset2Digits(totalActiveAmount) }} ₽
-
-  q-card(v-if="inCouncil.length === 0" flat bordered).q-pa-md.q-mb-md
-    .text-grey Нет проектов на повестке. Откройте новый черновик или дождитесь, пока крон-сервис подберёт скоропорт.
-
-  q-list(v-else bordered separator).q-mb-md
-    q-item(
-      v-for="p in inCouncil" :key="p.id" clickable @click="openDetails(p)"
-    )
+  .writeoffs__empty(v-if="inCouncil.length === 0")
+    | Нет проектов на повестке. Откройте новый черновик или дождитесь, пока крон-сервис подберёт скоропорт.
+  q-list(v-else, bordered, separator)
+    q-item(v-for="p in inCouncil", :key="p.id", clickable, @click="openDetails(p)")
       q-item-section
         q-item-label.text-weight-medium {{ p.items.length }} позиций · {{ formatAsset2Digits(p.total_amount) }}
         q-item-label(caption) Подал {{ p.proposed_by_account ?? '—' }} · {{ formatDate(p.submitted_at) }}
       q-item-section(side)
-        q-chip(:color="statusColor(p.status)" text-color="white" dense) {{ humanStatus(p.status) }}
+        BaseBadge(:variant="statusVariant(p.status)") {{ humanStatus(p.status) }}
 
-  .text-subtitle1.q-mb-sm Архив
-  q-card(v-if="archive.length === 0" flat bordered).q-pa-md
-    .text-grey Архив пуст.
-  q-list(v-else bordered separator)
-    q-item(
-      v-for="p in archive" :key="p.id" clickable @click="openDetails(p)"
-    )
+  .t-h3 Архив
+  .writeoffs__empty(v-if="archive.length === 0") Архив пуст.
+  q-list(v-else, bordered, separator)
+    q-item(v-for="p in archive", :key="p.id", clickable, @click="openDetails(p)")
       q-item-section
         q-item-label.text-weight-medium {{ p.items.length }} позиций · {{ formatAsset2Digits(p.total_amount) }}
         q-item-label(caption) {{ humanStatus(p.status) }} · {{ formatDate(p.executed_at ?? p.rejected_at ?? p.updated_at) }}
-        q-item-label(caption v-if="p.reject_reason") Причина отказа: {{ p.reject_reason }}
+        q-item-label(caption, v-if="p.reject_reason") Причина отказа: {{ p.reject_reason }}
       q-item-section(side)
-        q-chip(:color="statusColor(p.status)" text-color="white" dense) {{ humanStatus(p.status) }}
+        BaseBadge(:variant="statusVariant(p.status)") {{ humanStatus(p.status) }}
 
   DraftEditorDialog(
-    v-model="draftEditorOpen"
-    :existing-draft="draft"
+    v-model="draftEditorOpen",
+    :existing-draft="draft",
     @saved="onDraftCreatedOrUpdated"
   )
   SubmitToCouncilDialog(
-    v-if="draft"
-    v-model="submitDialogOpen"
-    :draft="draft"
+    v-if="draft",
+    v-model="submitDialogOpen",
+    :draft="draft",
     @submitted="onDraftSubmitted"
   )
   WriteoffProposalDetailsDialog(
-    v-if="selected"
-    v-model="detailsOpen"
+    v-if="selected",
+    v-model="detailsOpen",
     :proposal="selected"
   )
 </template>
 
 <style lang="scss" scoped>
-.mp-writeoffs {
-  font-size: var(--mp-font-body, 16px);
+.writeoffs {
+  padding: var(--p-6, 24px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-4, 16px);
+
+  &__toolbar {
+    display: flex;
+    align-items: center;
+  }
+
+  &__draft {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--p-4, 16px);
+    flex-wrap: wrap;
+  }
+
+  &__draft-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-1, 4px);
+  }
+
+  &__draft-actions {
+    display: flex;
+    gap: var(--p-2, 8px);
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  &__council {
+    display: flex;
+    align-items: center;
+    gap: var(--p-3, 12px);
+  }
+
+  &__empty {
+    color: var(--p-ink-2);
+    border: 1px solid var(--p-line);
+    border-radius: var(--p-r-md, 12px);
+    padding: var(--p-4, 16px);
+    font-size: var(--p-fs-body-sm);
+  }
+}
+
+@media (max-width: 768px) {
+  .writeoffs {
+    padding: var(--p-4, 16px);
+  }
 }
 </style>

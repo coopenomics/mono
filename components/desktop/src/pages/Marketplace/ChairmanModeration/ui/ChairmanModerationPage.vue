@@ -5,6 +5,8 @@ import { Queries } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 import { marketplaceUnitShort } from 'src/shared/lib/consts';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
+import { BaseButton, EmptyState } from 'src/shared/ui/base';
+import { PageHint } from 'src/shared/ui/domain';
 import {
   CatalogOfferCard,
   type CatalogOffer,
@@ -28,8 +30,7 @@ import {
  * ленты (фильтр на бэкенде) и появляется в публичном каталоге Story 3.5.
  *
  * Канон UI — `widgets/Marketplace/CatalogOfferCard` (UX-DR10) с per-card
- * action-кнопкой «Одобрить» через slot `actions`. Корневой класс
- * `mp-role-admin` подтягивает токены admin-стола из `marketplace-tokens.scss`.
+ * action-кнопкой «Одобрить» через slot `actions`.
  */
 
 const PAGE_SIZE = 24;
@@ -193,103 +194,93 @@ onMounted(async () => {
 </script>
 
 <template lang="pug">
-q-page.mp-role-admin.mp-moderation-page(role="region", aria-label="Модерация предложений")
-  div.mp-moderation-page__header
-    div
-      div.text-h5 Модерация предложений
-      div.text-caption.mp-moderation-page__subtitle
-        | Предложения поставщиков ожидают вашего одобрения. После «Одобрить» товар появится в публичном каталоге кооператива.
+q-page.moderation(role="region", aria-label="Модерация предложений")
+  PageHint(storage-key="mp:moderation:banner-dismissed")
+    | Предложения поставщиков ожидают вашего одобрения. После «Одобрить» товар появится в публичном каталоге кооператива.
+
+  .moderation__toolbar
     q-space
-    q-chip(outline, color="warning")
-      q-icon(name="fa-solid fa-hourglass-half", left)
+    span.chip.chip--warn
+      q-icon(name="hourglass_empty", size="14px")
       | На модерации: {{ total }}
 
   q-inner-loading(:showing="loading && items.length === 0")
     q-spinner(color="primary", size="2em")
 
-  div.mp-moderation-page__empty(v-if="!loading && items.length === 0")
-    q-icon(name="fa-regular fa-circle-check", size="3em", color="positive")
-    div.text-subtitle1 Очередь модерации пуста
-    div.text-caption Все предложения поставщиков рассмотрены
+  EmptyState(
+    v-if="!loading && items.length === 0",
+    title="Очередь модерации пуста",
+    body="Все предложения поставщиков рассмотрены."
+  )
+    template(#icon)
+      q-icon(name="check_circle", size="48px")
 
-  div.mp-moderation-page__hint(v-if="!loading && items.length > 0")
-    q-icon(name="fa-regular fa-hand-pointer", size="14px")
+  .moderation__hint(v-if="!loading && items.length > 0")
+    q-icon(name="touch_app", size="14px")
     | Нажмите на карточку, чтобы прочитать описание и принять решение.
 
   q-infinite-scroll(@load="onLoadMore", :disable="!hasMore || loading")
-    div.row.q-col-gutter-md
-      div.col-12.col-sm-6.col-md-4.col-lg-3(v-for="o in items", :key="o.id")
+    .row.q-col-gutter-md
+      .col-12.col-sm-6.col-md-4.col-lg-3(v-for="o in items", :key="o.id")
         CatalogOfferCard(:offer="toCatalogOffer(o)", @click="openDetails(o)")
-          template(v-slot:actions)
-            q-btn(
-              unelevated,
-              dense,
-              no-caps,
-              color="primary",
-              icon="fa-solid fa-check",
-              label="Одобрить",
+          template(#actions)
+            BaseButton(
+              variant="primary",
+              size="sm",
               :loading="approving.has(o.id)",
               @click.stop="onApprove(o)"
             )
-    template(v-slot:loading)
-      div.row.justify-center.q-my-md
+              template(#icon-left)
+                q-icon(name="check", size="16px")
+              | Одобрить
+    template(#loading)
+      .row.justify-center.q-my-md
         q-spinner(color="primary", size="2em")
 
   OfferDetailsDialog(v-model="detailsOpen", :offer="selectedDetail")
-    template(v-if="selected", v-slot:actions)
-      q-btn(
-        flat,
-        no-caps,
-        color="negative",
-        icon="fa-solid fa-xmark",
-        label="Отклонить",
+    template(v-if="selected", #actions)
+      BaseButton(
+        variant="danger",
         :loading="rejecting.has(selected.id)",
         @click="onReject(selected)"
       )
-      q-btn(
-        unelevated,
-        no-caps,
-        color="primary",
-        icon="fa-solid fa-check",
-        label="Одобрить",
+        template(#icon-left)
+          q-icon(name="close", size="16px")
+        | Отклонить
+      BaseButton(
+        variant="primary",
         :loading="approving.has(selected.id)",
         @click="onApprove(selected)"
       )
+        template(#icon-left)
+          q-icon(name="check", size="16px")
+        | Одобрить
 </template>
 
 <style scoped lang="scss">
-.mp-moderation-page {
-  padding: var(--mp-space-lg);
+.moderation {
+  padding: var(--p-6, 24px);
   display: flex;
   flex-direction: column;
-  gap: var(--mp-space-md);
+  gap: var(--p-4, 16px);
 
-  &__header {
+  &__toolbar {
     display: flex;
-    align-items: flex-start;
-    gap: var(--mp-space-md);
-  }
-
-  &__subtitle {
-    color: var(--mp-on-surface-muted);
-    max-width: 640px;
-  }
-
-  &__empty {
-    display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: var(--mp-space-xs);
-    padding: var(--mp-space-xxl) var(--mp-space-md);
-    color: var(--mp-on-surface-muted);
   }
 
   &__hint {
     display: flex;
     align-items: center;
-    gap: var(--mp-space-xs);
-    color: var(--mp-on-surface-muted);
-    font-size: 12px;
+    gap: var(--p-1, 4px);
+    color: var(--p-ink-3);
+    font-size: var(--p-fs-meta, 12px);
+  }
+}
+
+@media (max-width: 768px) {
+  .moderation {
+    padding: var(--p-4, 16px);
   }
 }
 </style>

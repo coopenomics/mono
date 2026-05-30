@@ -9,6 +9,9 @@ import type { QTableProps } from 'quasar';
 import { computed, onMounted, ref } from 'vue';
 import { FailAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
+import { BaseBadge, BaseButton, BaseInput, EmptyState } from 'src/shared/ui/base';
+import type { BaseBadgeVariant } from 'src/shared/ui/base';
+import { PageHint } from 'src/shared/ui/domain';
 import { listOutgoingPayments, type MarketplaceOutgoingPaymentView } from '../api';
 
 const items = ref<MarketplaceOutgoingPaymentView[]>([]);
@@ -26,10 +29,29 @@ function statusLabel(v: string): string {
   return PAYMENT_STATUS_LABEL[v] ?? v;
 }
 
+function statusVariant(v: string): BaseBadgeVariant {
+  switch (v) {
+    case 'COMPLETED':
+      return 'pos';
+    case 'DECLINED':
+      return 'neg';
+    case 'PENDING':
+      return 'warn';
+    default:
+      return 'neutral';
+  }
+}
+
 const statusOptions = Object.entries(PAYMENT_STATUS_LABEL).map(([value, label]) => ({
   label,
   value,
 }));
+
+function toggleStatus(value: string): void {
+  statusFilter.value = statusFilter.value.includes(value)
+    ? statusFilter.value.filter((s) => s !== value)
+    : [...statusFilter.value, value];
+}
 
 const columns: QTableProps['columns'] = [
   { name: 'created_at', label: 'Дата', field: 'created_at', align: 'left', sortable: true, format: formatDate },
@@ -79,45 +101,41 @@ onMounted(() => {
 </script>
 
 <template lang="pug">
-q-page.mp-role-admin.mp-board-payouts.q-pa-md(role="region", aria-label="Выплаты поставщикам — совет")
-  .row.items-center.q-mb-xs
-    .text-h5 Выплаты поставщикам — обзор совета
-    q-space
-    q-btn(flat, no-caps, icon="refresh", label="Обновить", :loading="loading", @click="load")
-  .text-caption.text-grey-7.q-mb-md(style="max-width: 720px")
-    | Лента выплат поставщикам по всему кооперативу. Подтверждение и отказ выплат выполняет кассир кооператива — для совета это read-only обзор.
+q-page.board-payouts(role="region", aria-label="Выплаты поставщикам — совет")
+  PageHint(storage-key="mp:board-payouts:banner-dismissed")
+    | Лента выплат поставщикам по всему кооперативу. Подтверждение и отказ выплат выполняет кассир кооператива — для совета это обзор только для чтения.
 
-  q-card.mp-card.q-mb-md(flat, bordered)
-    q-card-section
-      .row.q-col-gutter-sm.items-end
-        q-input.col-12.col-sm-4(
-          v-model="supplierFilter",
-          label="Поставщик (account)",
-          dense,
-          outlined,
-          clearable,
-          hint="Пусто — все поставщики кооператива",
-          @keyup.enter="load"
-        )
-        q-select.col-12.col-sm-4(
-          v-model="statusFilter",
-          :options="statusOptions",
-          label="Статус выплаты",
-          dense,
-          outlined,
-          multiple,
-          emit-value,
-          map-options
-        )
-        q-btn.col-12.col-sm-3(color="primary", label="Применить", :loading="loading", @click="load")
+  .board-payouts__filters
+    BaseInput.board-payouts__supplier(
+      v-model="supplierFilter",
+      label="Поставщик (account)",
+      placeholder="Пусто — все поставщики кооператива",
+      clearable,
+      @keyup.enter="load"
+    )
+    BaseButton(variant="primary", :loading="loading", @click="load")
+      template(#icon-left)
+        q-icon(name="search", size="18px")
+      | Применить
 
-  .row.q-col-gutter-md.q-mb-md(v-if="items.length")
-    q-card.mp-card.col-6.col-sm-3(v-for="(count, status) in totals", :key="status")
-      q-card-section
-        .text-caption.text-grey-7 {{ statusLabel(status) }}
-        .text-h6 {{ count }}
+  .board-payouts__chips(role="group", aria-label="Фильтр по статусу")
+    .chip(
+      v-for="opt in statusOptions",
+      :key="opt.value",
+      :class="statusFilter.includes(opt.value) ? 'chip--accent' : 'chip--neutral'",
+      role="button",
+      tabindex="0",
+      @click="toggleStatus(opt.value)",
+      @keydown.enter="toggleStatus(opt.value)"
+    ) {{ opt.label }}
 
-  q-table.mp-card(
+  .board-payouts__stats(v-if="items.length")
+    .kpi(v-for="(count, status) in totals", :key="status")
+      .kpi__head
+        span.kpi__eyebrow {{ statusLabel(status) }}
+      .kpi__val {{ count }}
+
+  q-table.board-payouts__table(
     :rows="filteredRows",
     :columns="columns",
     row-key="id",
@@ -130,15 +148,58 @@ q-page.mp-role-admin.mp-board-payouts.q-pa-md(role="region", aria-label="Вып�
   )
     template(#body-cell-status="props")
       q-td(:props="props")
-        span.mp-status-chip {{ statusLabel(props.row.status) }}
+        BaseBadge(:variant="statusVariant(props.row.status)") {{ statusLabel(props.row.status) }}
     template(#no-data)
-      .full-width.text-center.q-pa-md.text-grey-7 Выплат по выбранным фильтрам нет.
+      EmptyState(
+        title="Выплат нет",
+        body="Выплат по выбранным фильтрам не найдено."
+      )
+        template(#icon)
+          q-icon(name="payments", size="48px")
 </template>
 
 <style scoped lang="scss">
-.mp-board-payouts {
+.board-payouts {
+  padding: var(--p-6, 24px);
   display: flex;
   flex-direction: column;
-  gap: var(--mp-space-md);
+  gap: var(--p-4, 16px);
+
+  &__filters {
+    display: flex;
+    gap: var(--p-3, 12px);
+    align-items: flex-end;
+    flex-wrap: wrap;
+  }
+
+  &__supplier {
+    flex: 1 1 320px;
+    min-width: 240px;
+  }
+
+  &__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--p-2, 8px);
+
+    .chip {
+      cursor: pointer;
+      user-select: none;
+      height: 28px;
+      padding: 0 12px;
+    }
+  }
+
+  &__stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: var(--p-3, 12px);
+  }
+}
+
+@media (max-width: 768px) {
+  .board-payouts {
+    padding: var(--p-4, 16px);
+  }
 }
 </style>

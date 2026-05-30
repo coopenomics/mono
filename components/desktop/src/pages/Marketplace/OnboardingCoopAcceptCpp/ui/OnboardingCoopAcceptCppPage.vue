@@ -1,6 +1,8 @@
 <script lang="ts" setup>
 import { onMounted, computed } from 'vue';
 import { CouncilOnboardingCard } from 'src/shared/ui/CouncilOnboarding';
+import { BaseBadge } from 'src/shared/ui/base';
+import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { useMarketplaceOnboarding } from '../model/composable';
 
 /**
@@ -17,9 +19,8 @@ import { useMarketplaceOnboarding } from '../model/composable';
 const { config, loading, isCompleted, loadState, handleStepSubmit } =
   useMarketplaceOnboarding();
 
-const chipColor = computed(() => (isCompleted.value ? 'positive' : 'warning'));
-const chipIcon = computed(() =>
-  isCompleted.value ? 'fa-solid fa-check' : 'fa-solid fa-hourglass-half',
+const chipVariant = computed<BaseBadgeVariant>(() =>
+  isCompleted.value ? 'pos' : 'warn',
 );
 const chipLabel = computed(() =>
   isCompleted.value ? 'Подключено' : 'Не подключено',
@@ -31,8 +32,8 @@ onMounted(async () => {
 </script>
 
 <template lang="pug">
-q-page.mp-role-admin.mp-onboarding-l1(role="region", aria-label="Подключение ЦПП Стол заказов")
-  div.mp-onboarding-l1__card
+q-page.onboarding-l1(role="region", aria-label="Подключение ЦПП Стол заказов")
+  .onboarding-l1__card
     CouncilOnboardingCard(
       :config="config",
       :loading="loading",
@@ -43,17 +44,15 @@ q-page.mp-role-admin.mp-onboarding-l1(role="region", aria-label="Подключ�
       @step-submit="handleStepSubmit"
     )
       template(#status)
-        q-chip(:color="chipColor", text-color="white")
-          q-icon(:name="chipIcon", left)
-          | {{ chipLabel }}
+        BaseBadge(:variant="chipVariant", dot) {{ chipLabel }}
 </template>
 
 <style scoped lang="scss">
-.mp-onboarding-l1 {
-  padding: var(--mp-space-lg);
+.onboarding-l1 {
+  padding: var(--p-6, 24px);
   display: flex;
   flex-direction: column;
-  gap: var(--mp-space-md);
+  gap: var(--p-4, 16px);
 
   &__card {
     max-width: 860px;

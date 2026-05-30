@@ -1,11 +1,14 @@
 <script lang="ts" setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue';
-import { Notify } from 'quasar';
 import { Zeus } from '@coopenomics/sdk';
+import { FailAlert } from 'src/shared/api';
 import {
   listWriteoffProposals,
   type MarketplaceWriteoffProposalsPageView,
 } from '../../AdminWriteoffs/api';
+import { BaseBadge, BaseButton, EmptyState } from 'src/shared/ui/base';
+import type { BaseBadgeVariant } from 'src/shared/ui/base';
+import { PageHint } from 'src/shared/ui/domain';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 
 /**
@@ -52,13 +55,22 @@ const STATUS_LABEL: Record<WriteoffStatus, string> = {
   REJECTED: 'Отклонено',
 };
 
-const STATUS_COLOR: Record<WriteoffStatus, string> = {
-  ON_AGENDA: 'warning',
-  AUTHORIZED: 'positive',
+const STATUS_VARIANT: Record<WriteoffStatus, BaseBadgeVariant> = {
+  ON_AGENDA: 'warn',
+  AUTHORIZED: 'pos',
   EXECUTING: 'info',
-  EXECUTED: 'positive',
-  REJECTED: 'negative',
+  EXECUTED: 'pos',
+  REJECTED: 'neg',
 };
+
+// Чипы фильтра статусов (single-select). null — «Все».
+const STATUS_TABS: { value: WriteoffStatus; label: string }[] = [
+  { value: 'ON_AGENDA', label: 'На повестке' },
+  { value: 'AUTHORIZED', label: 'Одобрены' },
+  { value: 'EXECUTING', label: 'Исполняются' },
+  { value: 'EXECUTED', label: 'Исполнены' },
+  { value: 'REJECTED', label: 'Отклонены' },
+];
 
 const page = ref<MarketplaceWriteoffProposalsPageView | null>(null);
 const loading = ref(false);
@@ -78,8 +90,7 @@ async function load(): Promise<void> {
       { page: 1, limit: 100 },
     );
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    Notify.create({ type: 'negative', message });
+    FailAlert(e, 'Не удалось загрузить проекты списания');
   } finally {
     loading.value = false;
   }
@@ -112,94 +123,99 @@ onUnmounted(() => {
 </script>
 
 <template lang="pug">
-q-page.mp-role-admin.mp-board-writeoff(role="region", aria-label="Повестка совета — списания")
-  div.mp-board-writeoff__header
-    div
-      div.text-h5 Повестка совета — проекты списания
-      div.text-caption.mp-board-writeoff__subtitle
-        | Проекты списания скоропорта, отправленные администратором в совет. Голосование совета проходит на core soviet agenda; здесь — обзор статусов и принятых решений.
-    q-space
-    q-btn(flat, dense, round, icon="fa-solid fa-rotate", :loading="loading", @click="load", aria-label="Обновить")
+q-page.board-writeoff(role="region", aria-label="Повестка совета — списания")
+  PageHint(storage-key="mp:board-writeoff:banner-dismissed")
+    | Проекты списания скоропорта, отправленные администратором в совет. Голосование совета проходит на повестке совета; здесь — обзор статусов и принятых решений.
 
-  q-tabs.mp-board-writeoff__tabs(
-    :model-value="statusFilter",
-    inline-label,
-    align="left",
-    dense,
-    no-caps,
-    @update:model-value="changeFilter"
-  )
-    q-tab(:name="null", label="Все")
-    q-tab(name="ON_AGENDA", label="На повестке")
-    q-tab(name="AUTHORIZED", label="Одобрены")
-    q-tab(name="EXECUTING", label="Исполняются")
-    q-tab(name="EXECUTED", label="Исполнены")
-    q-tab(name="REJECTED", label="Отклонены")
+  .board-writeoff__toolbar
+    .board-writeoff__chips(role="tablist", aria-label="Фильтр по статусу")
+      .chip(
+        :class="statusFilter === null ? 'chip--accent' : 'chip--neutral'",
+        role="tab",
+        :aria-selected="statusFilter === null",
+        tabindex="0",
+        @click="changeFilter(null)",
+        @keydown.enter="changeFilter(null)"
+      ) Все
+      .chip(
+        v-for="opt in STATUS_TABS",
+        :key="opt.value",
+        :class="statusFilter === opt.value ? 'chip--accent' : 'chip--neutral'",
+        role="tab",
+        :aria-selected="statusFilter === opt.value",
+        tabindex="0",
+        @click="changeFilter(opt.value)",
+        @keydown.enter="changeFilter(opt.value)"
+      ) {{ opt.label }}
+    q-space
+    BaseButton(variant="ghost", iconOnly, ariaLabel="Обновить", :loading="loading", @click="load")
+      template(#icon-left)
+        q-icon(name="refresh", size="18px")
 
   q-inner-loading(:showing="loading && items.length === 0")
     q-spinner(color="primary", size="2em")
 
-  div.mp-board-writeoff__empty(v-if="!loading && items.length === 0")
-    q-icon(name="fa-solid fa-clipboard-check", size="48px", color="grey-5")
-    div.text-subtitle1.q-mt-md Совет ещё не получал проектов списания
-    div.text-caption Когда администратор отправит проект в совет, он появится здесь.
+  EmptyState(
+    v-if="!loading && items.length === 0",
+    title="Совет ещё не получал проектов списания",
+    body="Когда администратор отправит проект в совет, он появится здесь."
+  )
+    template(#icon)
+      q-icon(name="fact_check", size="48px")
 
-  q-card(v-if="items.length > 0", flat, bordered)
-    q-list(separator)
-      q-item(v-for="p in items", :key="p.id")
-        q-item-section
-          q-item-label
-            | Проект № {{ p.id.slice(0, 8) }}
-            | — позиций: {{ p.items?.length ?? 0 }}
-          q-item-label(caption)
-            | Создан: {{ formatDate(p.created_at) }}
-            | / Триггер: {{ p.trigger }}
-            | / Сумма списания:
-            | {{ p.total_amount ? formatAsset2Digits(p.total_amount) : '—' }}
-        q-item-section(side, top)
-          q-chip(
-            :color="STATUS_COLOR[p.status]",
-            text-color="white",
-            square,
-            dense
-          )
-            | {{ STATUS_LABEL[p.status] }}
+  q-list(v-if="items.length > 0", bordered, separator)
+    q-item(v-for="p in items", :key="p.id")
+      q-item-section
+        q-item-label
+          | Проект № {{ p.id.slice(0, 8) }}
+          | — позиций: {{ p.items?.length ?? 0 }}
+        q-item-label(caption)
+          | Создан: {{ formatDate(p.created_at) }}
+          | / Триггер: {{ p.trigger }}
+          | / Сумма списания:
+          | {{ p.total_amount ? formatAsset2Digits(p.total_amount) : '—' }}
+      q-item-section(side, top)
+        BaseBadge(:variant="STATUS_VARIANT[p.status]") {{ STATUS_LABEL[p.status] }}
 
-  div.mp-board-writeoff__counter
-    | Всего на повестке: {{ total }}
+  .t-muted.board-writeoff__counter Всего на повестке: {{ total }}
 </template>
 
 <style scoped lang="scss">
-.mp-board-writeoff {
-  padding: var(--mp-space-lg);
+.board-writeoff {
+  padding: var(--p-6, 24px);
   display: flex;
   flex-direction: column;
-  gap: var(--mp-space-md);
+  gap: var(--p-4, 16px);
 
-  &__header {
+  &__toolbar {
     display: flex;
-    align-items: flex-start;
-    gap: var(--mp-space-md);
+    align-items: center;
+    gap: var(--p-3, 12px);
+    flex-wrap: wrap;
   }
 
-  &__subtitle {
-    color: var(--mp-on-surface-muted);
-    max-width: 720px;
+  &__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--p-2, 8px);
+
+    .chip {
+      cursor: pointer;
+      user-select: none;
+      height: 28px;
+      padding: 0 12px;
+    }
   }
 
   &__counter {
-    color: var(--mp-on-surface-muted);
     text-align: right;
-    margin-top: var(--mp-space-xs);
+    margin-top: var(--p-1, 4px);
   }
+}
 
-  &__empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: var(--mp-space-xl) 0;
-    color: var(--mp-on-surface-muted);
+@media (max-width: 768px) {
+  .board-writeoff {
+    padding: var(--p-4, 16px);
   }
 }
 </style>

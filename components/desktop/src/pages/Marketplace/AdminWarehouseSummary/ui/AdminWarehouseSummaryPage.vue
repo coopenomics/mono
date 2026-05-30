@@ -1,91 +1,10 @@
-<template lang="pug">
-q-page.mp-role-admin.q-pa-md
-  .row.items-center.q-mb-md
-    .text-h5.col Сводный склад кооператива
-    q-btn(
-      flat
-      no-caps
-      color='primary'
-      icon='refresh'
-      label='Обновить'
-      :loading='loading'
-      @click='load'
-    )
-
-  q-tabs.text-grey-7(
-    v-model='tab'
-    dense
-    align='left'
-    active-color='primary'
-    indicator-color='primary'
-    narrow-indicator
-  )
-    q-tab(name='warehouse' label='Сводный склад')
-    q-tab(name='flow' label='Поток заказов и поставок')
-
-  q-separator
-
-  q-tab-panels(v-model='tab' animated keep-alive)
-    q-tab-panel.q-px-none(name='warehouse')
-      .row.q-col-gutter-md.q-mb-md
-        q-card.mp-card.col-12.col-sm-3
-          q-card-section
-            .text-caption.text-grey-7 Активных позиций
-            .text-h6 {{ summary.totalActive }}
-        q-card.mp-card.col-12.col-sm-3
-          q-card-section
-            .text-caption.text-grey-7 КУ с движением
-            .text-h6 {{ summary.kuCount }}
-        q-card.mp-card.col-12.col-sm-3
-          q-card-section
-            .text-caption.text-grey-7 Товарных позиций в обороте
-            .text-h6 {{ summary.skuCount }}
-        q-card.mp-card.col-12.col-sm-3
-          q-card-section
-            .text-caption.text-grey-7 Списано (накопительно)
-            .text-h6 {{ summary.writtenOff }}
-
-      WarehouseSummaryGrid(:rows='warehouseRows')
-
-    q-tab-panel.q-px-none(name='flow')
-      .row.q-col-gutter-md.q-mb-md
-        q-card.mp-card.col-12.col-sm-3
-          q-card-section
-            .text-caption.text-grey-7 Маркировок за период
-            .text-h6 {{ flow.labeled }}
-        q-card.mp-card.col-12.col-sm-3
-          q-card-section
-            .text-caption.text-grey-7 Выдач пайщикам
-            .text-h6 {{ flow.issued }}
-        q-card.mp-card.col-12.col-sm-3
-          q-card-section
-            .text-caption.text-grey-7 Возвратов на склад
-            .text-h6 {{ flow.returned }}
-        q-card.mp-card.col-12.col-sm-3
-          q-card-section
-            .text-caption.text-grey-7 Списаний
-            .text-h6 {{ flow.writtenOff }}
-
-      q-table.mp-card(
-        :rows='topProducts'
-        :columns='topColumns'
-        row-key='sku'
-        flat
-        bordered
-        dense
-        :pagination='{ rowsPerPage: 10 }'
-        :rows-per-page-options='[10, 25, 50]'
-        binary-state-sort
-      )
-        template(#top)
-          .text-subtitle1 Топ позиций по обороту
-</template>
-
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue'
 import type { QTableProps } from 'quasar'
 import { Zeus } from '@coopenomics/sdk'
 import { FailAlert } from 'src/shared/api'
+import { BaseButton } from 'src/shared/ui/base'
+import { PageHint } from 'src/shared/ui/domain'
 import {
   WarehouseSummaryGrid,
   type WarehouseRow,
@@ -209,3 +128,111 @@ const topColumns: QTableProps['columns'] = [
   { name: 'ku_count', label: 'КУ', field: 'ku_count', align: 'right', sortable: true },
 ]
 </script>
+
+<template lang="pug">
+q-page.warehouse-summary(role="region", aria-label="Сводный склад кооператива")
+  PageHint(storage-key="mp:admin-warehouse-summary:banner-dismissed")
+    | Сводный обзор склада и потока заказов по всем пунктам выдачи кооператива. Только для чтения — операции выполняются на столах ПВЗ.
+
+  .warehouse-summary__toolbar
+    q-space
+    BaseButton(variant="ghost", :loading="loading", @click="load")
+      template(#icon-left)
+        q-icon(name="refresh", size="18px")
+      | Обновить
+
+  q-tabs.warehouse-summary__tabs(
+    v-model="tab",
+    dense,
+    align="left",
+    active-color="primary",
+    indicator-color="primary",
+    narrow-indicator,
+    no-caps
+  )
+    q-tab(name="warehouse", label="Сводный склад")
+    q-tab(name="flow", label="Поток заказов и поставок")
+
+  q-separator
+
+  q-tab-panels.warehouse-summary__panels(v-model="tab", animated, keep-alive)
+    q-tab-panel.q-px-none(name="warehouse")
+      .warehouse-summary__stats
+        .kpi.kpi--accent
+          .kpi__head
+            span.kpi__eyebrow Активных позиций
+          .kpi__val {{ summary.totalActive }}
+        .kpi
+          .kpi__head
+            span.kpi__eyebrow КУ с движением
+          .kpi__val {{ summary.kuCount }}
+        .kpi
+          .kpi__head
+            span.kpi__eyebrow Товарных позиций в обороте
+          .kpi__val {{ summary.skuCount }}
+        .kpi
+          .kpi__head
+            span.kpi__eyebrow Списано (накопительно)
+          .kpi__val {{ summary.writtenOff }}
+
+      WarehouseSummaryGrid(:rows="warehouseRows")
+
+    q-tab-panel.q-px-none(name="flow")
+      .warehouse-summary__stats
+        .kpi
+          .kpi__head
+            span.kpi__eyebrow Маркировок за период
+          .kpi__val {{ flow.labeled }}
+        .kpi
+          .kpi__head
+            span.kpi__eyebrow Выдач пайщикам
+          .kpi__val {{ flow.issued }}
+        .kpi
+          .kpi__head
+            span.kpi__eyebrow Возвратов на склад
+          .kpi__val {{ flow.returned }}
+        .kpi
+          .kpi__head
+            span.kpi__eyebrow Списаний
+          .kpi__val {{ flow.writtenOff }}
+
+      q-table.warehouse-summary__table(
+        :rows="topProducts",
+        :columns="topColumns",
+        row-key="sku",
+        flat,
+        bordered,
+        :pagination="{ rowsPerPage: 10 }",
+        :rows-per-page-options="[10, 25, 50]",
+        binary-state-sort
+      )
+        template(#top)
+          .t-h3 Топ позиций по обороту
+</template>
+
+<style scoped lang="scss">
+.warehouse-summary {
+  padding: var(--p-6, 24px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-4, 16px);
+
+  &__toolbar {
+    display: flex;
+    align-items: center;
+  }
+
+  &__stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: var(--p-3, 12px);
+    margin-bottom: var(--p-4, 16px);
+  }
+}
+
+@media (max-width: 768px) {
+  .warehouse-summary {
+    padding: var(--p-4, 16px);
+  }
+}
+</style>
