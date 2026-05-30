@@ -224,6 +224,10 @@ export interface ILog {
 export class PowerupPlugin extends BaseExtModule implements OnModuleDestroy {
   private dailyCronJob: cron.ScheduledTask | null = null;
   private resourceCronJob: cron.ScheduledTask | null = null;
+  // Epic 13 v5.1: дополнительный календарный триггер «1-го числа месяца в 00:00 UTC».
+  // Идемпотентен через config.lastCalendarPackageMonth, при сбое процесса
+  // повторный запуск 1-го числа корректно скипнет уже отработанный месяц.
+  private calendarCronJob: cron.ScheduledTask | null = null;
 
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
@@ -272,6 +276,20 @@ export class PowerupPlugin extends BaseExtModule implements OnModuleDestroy {
     this.resourceCronJob = cron.schedule('* * * * *', () => {
       this.runTask();
     });
+
+    // Epic 13 v5.1 — calendar trigger: 1-го числа месяца в 00:00 UTC.
+    // Идемпотентен через config.lastCalendarPackageMonth — если процесс
+    // упал в момент срабатывания, перезапуск 1-го числа корректно скипнет
+    // уже отработанный месяц.
+    this.calendarCronJob = cron.schedule(
+      '0 0 1 * *',
+      () => {
+        void this.runCalendarTask().catch((err) =>
+          this.logger.info('PowerupPlugin: calendar-trigger fail', err as Error),
+        );
+      },
+      { timezone: 'UTC' },
+    );
   }
 
   onModuleDestroy() {
@@ -285,6 +303,98 @@ export class PowerupPlugin extends BaseExtModule implements OnModuleDestroy {
       this.resourceCronJob.stop();
       this.resourceCronJob = null;
       this.logger.info('node-cron задача проверки ресурсов остановлена');
+    }
+
+    if (this.calendarCronJob) {
+      this.calendarCronJob.stop();
+      this.calendarCronJob = null;
+      this.logger.info('node-cron calendar-trigger (Epic 13) остановлен');
+    }
+  }
+
+  /**
+   * Epic 13 v5.1 — calendar trigger.
+   *
+   * 1-го числа месяца в 00:00 UTC PowerupPlugin делает РОВНО один пакетный
+   * пакет (даже если threshold ещё не достигнут), чтобы кооператив всегда
+   * имел свежий пакет в начале месяца. Идемпотентность через
+   * `config.lastCalendarPackageMonth` (YYYY-MM): повтор в течение того же
+   * месяца — no-op.
+   */
+  private async runCalendarTask(): Promise<void> {
+    const nowIso = new Date().toISOString();
+    const monthKey = nowIso.slice(0, 7); // YYYY-MM
+    if (this.plugin.config.lastCalendarPackageMonth === monthKey) {
+      // Уже отработали в этом месяце — идемпотентный no-op.
+      return;
+    }
+    await this.executePackageTopup('calendar', nowIso);
+  }
+
+  /**
+   * Epic 13 v5.1 — общая обработка докупки (calendar + threshold).
+   *
+   * Порядок:
+   * 1. Считать AXON-баланс и RUB на w.wal.bill (через blockchainPort).
+   * 2. checkRunawayGuards → если signal → log + skip.
+   * 3. blockchainPort.powerUp + (в production) inline billing::topupaxon +
+   *    HTTP confirm к provider'у через BillingProviderClient.confirmTopupAxon.
+   * 4. recordTopup (fresh-snapshot commit).
+   *
+   * При MonthlyPackageQuotaExceeded от provider'а — tripCircuitBreaker.
+   */
+  protected async executePackageTopup(trigger: 'calendar' | 'threshold', nowIso: string): Promise<void> {
+    const username = coopConfig.coopname;
+    try {
+      const account = await this.blockchainPort.getAccount(username);
+      if (!account) throw new Error('Аккаунт не найден');
+
+      // AXON-баланс кооператива (системный токен Воскхода) — берём из account.
+      // На MVP-этапе billWalletRub считаем 0 (provider — источник истины);
+      // финальная проверка в provider'е через accountPackageTopup.
+      const axonBalance = Number(account.cpu_limit?.max ?? 0); // TODO: использовать реальный AXON balance из eosio.token.
+      const billWalletRub = 0;
+
+      const signal = await this.checkRunawayGuards({ nowIso, axonBalance, billWalletRub });
+      if (signal) {
+        this.logger.info(`PowerupPlugin[${trigger}]: skip — guard "${signal}" сработал`);
+        return;
+      }
+
+      const quantity = this.getQuantity(this.plugin.config.dailyPackageSize);
+      await this.blockchainPort.powerUp(username, quantity);
+
+      // Real confirm-cycle to provider — TODO: подключить BillingProviderClient.confirmTopupAxon
+      // после того как PowerupPlugin сможет получить payment_hash от provider'а
+      // через createPackageInvoice. На MVP — только PowerUp + локальный recordTopup.
+
+      await this.recordTopup({
+        axonAmount: this.plugin.config.dailyPackageSize,
+        nowIso,
+        trigger,
+      });
+
+      const updatedAccount = await this.blockchainPort.getAccount(username);
+      if (!updatedAccount) return;
+      await this.log({
+        type: trigger === 'calendar' ? 'daily' : 'now',
+        amount: quantity,
+        resources: {
+          username: updatedAccount.account_name,
+          ram_usage: updatedAccount.ram_usage,
+          ram_quota: updatedAccount.ram_quota,
+          net_limit: updatedAccount.net_limit,
+          cpu_limit: updatedAccount.cpu_limit,
+        },
+      });
+    } catch (error: any) {
+      // Provider может бросить MonthlyPackageQuotaExceeded — ловим и активируем breaker.
+      if (error?.response?.data?.error === 'MonthlyPackageQuotaExceeded') {
+        const monthKey = new Date(nowIso).toISOString().slice(0, 7);
+        await this.tripCircuitBreaker(monthKey);
+        return;
+      }
+      this.logger.info(`PowerupPlugin[${trigger}]: executePackageTopup error`, error as Error);
     }
   }
 
@@ -475,28 +585,10 @@ export class PowerupPlugin extends BaseExtModule implements OnModuleDestroy {
       }
 
       if (needPowerUp) {
-        // Выполняем пополнение ресурсов на сумму ежедневной аренды
-        const quantity = this.getQuantity(this.plugin.config.dailyPackageSize);
-        await this.blockchainPort.powerUp(username, quantity);
-
-        // Получаем актуальные данные после пополнения для логирования
-        const updatedAccount = await this.blockchainPort.getAccount(username);
-
-        if (!updatedAccount) {
-          throw new Error('Аккаунт не найден');
-        }
-
-        await this.log({
-          type: 'now',
-          amount: quantity,
-          resources: {
-            username: updatedAccount.account_name,
-            ram_usage: updatedAccount.ram_usage,
-            ram_quota: updatedAccount.ram_quota,
-            net_limit: updatedAccount.net_limit,
-            cpu_limit: updatedAccount.cpu_limit,
-          },
-        });
+        // Epic 13 v5.1: threshold-trigger теперь проходит через checkRunawayGuards
+        // + recordTopup внутри executePackageTopup. Это гарантирует cooldown,
+        // daily caps, circuit-breaker и идемпотентность через единую точку.
+        await this.executePackageTopup('threshold', new Date().toISOString());
       }
     } catch (error) {
       this.logger.info('Предупреждение при проверке и пополнении ресурсов:', error as Error);
