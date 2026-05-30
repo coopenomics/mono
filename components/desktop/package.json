@@ -86,7 +86,6 @@
     "vue-router": "^4.0.12",
     "vue-window-size": "^2.0.0",
     "vue3-dropzone": "^2.2.1",
-    "vue3-openlayers": "^10.0.1",
     "windows-1251": "^3.0.4"
   },
   "devDependencies": {

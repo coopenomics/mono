@@ -27,7 +27,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { env } from 'src/shared/config'
-import { loadYandexMaps } from '../lib/loadYandexMaps'
+import { loadYandexMaps } from 'src/shared/lib/yandexMaps'
 import type { IMarketplaceKUDetails } from 'src/entities/MarketplaceKUDetails'
 
 const props = withDefaults(

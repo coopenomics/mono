@@ -1,0 +1,1 @@
+export { loadYandexMaps } from './loadYandexMaps'
