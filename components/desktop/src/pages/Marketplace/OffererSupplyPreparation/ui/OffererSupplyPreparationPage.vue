@@ -1,11 +1,14 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
+import { useSessionStore } from 'src/entities/Session';
 import { BaseBadge, BaseButton, BaseDialog, EmptyState, TableSkeleton } from 'src/shared/ui/base';
 import type { BaseBadgeVariant, TableSkeletonColumn } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
 import { HandoffQr } from 'src/widgets/Marketplace/HandoffQr';
+import { encodeHandoffToken, HandoffTokenKind } from 'src/shared/lib/marketplace';
 import { TTNPrintPreview, type TTNData } from 'src/widgets/Marketplace/TTNPrintPreview';
 import { listShipments, type MarketplaceShipmentView } from '../api';
 import { fetchSupplierOrders } from '../../OffererIncomingOrders/api';
@@ -30,6 +33,10 @@ import CreateShipmentDialog from './CreateShipmentDialog.vue';
 
 const PAGE_SIZE = 200;
 
+const route = useRoute();
+const session = useSessionStore();
+const coopname = computed(() => String(route.params.coopname ?? ''));
+
 const shipments = ref<MarketplaceShipmentView[]>([]);
 const acceptedOrders = ref<MarketplaceOrderView[]>([]);
 // Заказы сформированных партий (статус SUPPLY_PREPARED) — источник состава ТТН.
@@ -53,8 +60,23 @@ function openFormation(cycle: ShipmentFormationCycle): void {
   dialogOpen.value = true;
 }
 
-// QR-код передачи: поставщик показывает его оператору на ПВЗ — тот
-// сканирует и сразу открывает приёмку именно этой партии.
+// Story 14.3: один account-bound код на весь стол. Поставщик показывает его
+// оператору приёмки — тот резолвит аккаунт против ленты своего КУ и принимает
+// разом всё привезённое (и сформированные партии, и самовывоз по факту).
+// Код привязан к личности, не к партии: его можно сгенерировать заранее/оффлайн.
+const myCodeDialogOpen = ref(false);
+const myPickupCode = computed(() =>
+  session.username
+    ? encodeHandoffToken({
+        kind: HandoffTokenKind.Pickup,
+        coopname: coopname.value,
+        account: session.username,
+      })
+    : '',
+);
+
+// QR-код передачи конкретной партии: поставщик показывает его оператору на ПВЗ —
+// тот сканирует и открывает приёмку именно этой партии (точечный путь).
 const qrDialogOpen = ref(false);
 const qrShipment = ref<MarketplaceShipmentView | null>(null);
 
@@ -179,6 +201,10 @@ q-page.offerer-supply
     | кооперативу.
 
   .offerer-supply__toolbar
+    BaseButton(variant='secondary', size='sm', :disabled='!myPickupCode', @click='myCodeDialogOpen = true')
+      template(#icon-left)
+        q-icon(name='qr_code_2', size='16px')
+      | Мой код для ПВЗ
     RefreshButton(:loading='loading', @refresh='load')
 
   TableSkeleton(
@@ -260,6 +286,13 @@ q-page.offerer-supply
     :cycle='selectedCycle',
     @created='onCreated'
   )
+
+  BaseDialog(v-model='myCodeDialogOpen', title='Мой код для пункта выдачи', size='sm')
+    .offerer-supply__qr(v-if='myPickupCode')
+      HandoffQr(
+        :value='myPickupCode',
+        caption='Покажите этот код оператору на ПВЗ — он примет разом всё, что вы привезли (и сформированные партии, и самовывоз по факту). Код можно показать заранее или с распечатки.'
+      )
 
   BaseDialog(v-model='qrDialogOpen', title='QR-код передачи партии', size='sm')
     .offerer-supply__qr(v-if='qrShipment')

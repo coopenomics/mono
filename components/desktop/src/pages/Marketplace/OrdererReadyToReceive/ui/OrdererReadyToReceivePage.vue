@@ -1,12 +1,15 @@
 <script lang="ts" setup>
 import type { QTableProps } from 'quasar';
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
+import { useSessionStore } from 'src/entities/Session';
 import { BaseButton, BaseDialog, EmptyState } from 'src/shared/ui/base';
 import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
 import { HandoffQr } from 'src/widgets/Marketplace/HandoffQr';
 import { PageHint } from 'src/shared/ui/domain';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
+import { encodeHandoffToken, HandoffTokenKind } from 'src/shared/lib/marketplace';
 import { listMyReadyToReceive, type MarketplaceOrderIssuanceView } from '../api';
 
 /**
@@ -22,8 +25,27 @@ import { listMyReadyToReceive, type MarketplaceOrderIssuanceView } from '../api'
  * визуальное продолжение уведомления.
  */
 
+const route = useRoute();
+const session = useSessionStore();
+const coopname = computed(() => String(route.params.coopname ?? ''));
+
 const items = ref<MarketplaceOrderIssuanceView[]>([]);
 const loading = ref(false);
+
+// Story 14.4: один account-bound код получения. Заказчик показывает его
+// оператору выдачи — тот резолвит аккаунт против ленты своего КУ и видит разом
+// все готовые к выдаче заказы этого заказчика. Код привязан к личности, не к
+// заказу: его можно показать заранее или с распечатки.
+const myCodeDialogOpen = ref(false);
+const myReceiveCode = computed(() =>
+  session.username
+    ? encodeHandoffToken({
+        kind: HandoffTokenKind.Receive,
+        coopname: coopname.value,
+        account: session.username,
+      })
+    : '',
+);
 
 function formatDate(value: unknown): string {
   if (value === null || value === undefined || value === '') return '—';
@@ -92,6 +114,10 @@ onMounted(load);
 q-page.ready(role="region", aria-label="Готово к получению")
   //- Действие страницы — в шапку, где стоят общие действия (канон Teleport).
   Teleport(to="#header-actions-host", defer)
+    BaseButton(variant="secondary", size="sm", :disabled="!myReceiveCode", @click="myCodeDialogOpen = true")
+      template(#icon-left)
+        q-icon(name="qr_code_2", size="16px")
+      | Мой код получения
     RefreshButton(:loading="loading", @refresh="load")
 
   PageHint(storage-key="mp:ready-to-receive:banner-dismissed")
@@ -119,6 +145,13 @@ q-page.ready(role="region", aria-label="Готово к получению")
       )
         template(#icon)
           q-icon(name="inventory_2", size="48px")
+
+  BaseDialog(v-model="myCodeDialogOpen", title="Мой код получения", size="sm")
+    .ready__qr(v-if="myReceiveCode")
+      HandoffQr(
+        :value="myReceiveCode",
+        caption="Покажите этот код оператору на пункте выдачи — он выдаст разом все ваши готовые заказы. Код можно показать заранее или с распечатки."
+      )
 
   BaseDialog(v-model="qrDialogOpen", title="QR-код получения заказа", size="sm")
     .ready__qr(v-if="qrOrder")

@@ -9,6 +9,7 @@ import { PageHint } from 'src/shared/ui/domain';
 import { QrScanner } from 'src/widgets/Marketplace/QrScanner';
 import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
+import { decodeHandoffToken, HandoffTokenKind } from 'src/shared/lib/marketplace';
 import {
   listIssuancesByBraname,
   type MarketplaceOrderIssuanceView,
@@ -87,21 +88,70 @@ function startFinalize(item: MarketplaceOrderIssuanceView): void {
   finalizeDialog.value = true;
 }
 
-// QR-код получения: заказчик показывает QR заказа, оператор сканирует —
-// находим заказ в ленте КУ и запускаем нужный шаг выдачи.
+// QR-код получения. Оператор сканирует:
+//  - account-bound код заказчика (Story 14.4) → резолвим аккаунт против ленты
+//    своего КУ и показываем РАЗОМ все его заказы на выдачу;
+//  - legacy-QR с самим order id → точечно открываем шаг выдачи одного заказа.
 const scanDialogOpen = ref(false);
+
+// Статусы заказа, релевантные выдаче (ожидают открытия или финальной подписи).
+const ISSUANCE_STATUSES = ['ACCEPTED_TO_COOP', 'READY_TO_RECEIVE'];
+
+// Резолв account-bound кода: все заказы заказчика на выдачу на этом КУ.
+const pickupDialogOpen = ref(false);
+const pickupAccount = ref('');
+const pickupOrders = computed(() =>
+  items.value.filter(
+    (o) => o.orderer_account === pickupAccount.value && ISSUANCE_STATUSES.includes(o.status),
+  ),
+);
+
+// Открыть/завершить выдачу одного заказа. Панель агрегированных заказов
+// заказчика остаётся открытой под полноэкранным шагом выдачи — по `load()`
+// список пересчитывается, выданный заказ уходит, оператор продолжает следующий.
+function startIssuanceStep(order: MarketplaceOrderIssuanceView): void {
+  if (order.status === 'ACCEPTED_TO_COOP') {
+    startOpen(order);
+  } else if (order.status === 'READY_TO_RECEIVE') {
+    startFinalize(order);
+  } else {
+    FailAlert(new Error('Заказ не в статусе выдачи.'));
+  }
+}
 
 function onQrScanned(code: string): void {
   scanDialogOpen.value = false;
+  const token = decodeHandoffToken(code);
+  if (token) {
+    if (token.kind !== HandoffTokenKind.Receive) {
+      FailAlert(new Error('Это код поставки, а не код получения. Отсканируйте код заказчика.'));
+      return;
+    }
+    if (token.coopname && token.coopname !== coopname.value) {
+      FailAlert(new Error('Код выписан для другого кооператива.'));
+      return;
+    }
+    const has = items.value.some(
+      (o) => o.orderer_account === token.account && ISSUANCE_STATUSES.includes(o.status),
+    );
+    if (!has) {
+      FailAlert(
+        new Error(`У заказчика ${token.account} нет заказов на выдачу на этом пункте.`),
+      );
+      return;
+    }
+    pickupAccount.value = token.account;
+    pickupDialogOpen.value = true;
+    return;
+  }
+  // Legacy: QR несёт сам order id — точечная выдача одного заказа.
   const order = items.value.find((o) => o.id === code);
   if (!order) {
     FailAlert(new Error('Заказ не найден на этом пункте выдачи. Проверьте КУ и статус заказа.'));
     return;
   }
-  if (order.status === 'ACCEPTED_TO_COOP') {
-    startOpen(order);
-  } else if (order.status === 'READY_TO_RECEIVE') {
-    startFinalize(order);
+  if (ISSUANCE_STATUSES.includes(order.status)) {
+    startIssuanceStep(order);
   } else {
     FailAlert(new Error('Заказ не в статусе выдачи.'));
   }
@@ -199,6 +249,37 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
 
   BaseDialog(v-model='scanDialogOpen', title='Сканирование QR заказа', size='sm')
     QrScanner(@scanned='onQrScanned')
+
+  //- Story 14.4: все заказы заказчика на выдачу разом (резолв account-bound
+  //- кода против ленты этого КУ). Оператор открывает/завершает их по одному —
+  //- каждый шаг выдачи имеет собственную двойную подпись.
+  BaseDialog(v-model='pickupDialogOpen', title='Выдача заказчику', size='sm')
+    .issuance__resolve
+      .issuance__resolve-account {{ pickupAccount }}
+      .issuance__resolve-hint(v-if='pickupOrders.length') Готовы к выдаче на этом пункте:
+      .issuance__resolve-empty(v-else) Все заказы этого заказчика уже выданы.
+      .issuance__resolve-item(v-for='o in pickupOrders', :key='o.id')
+        .issuance__resolve-item-info
+          .issuance__resolve-item-title {{ o.product_name || 'Товар по предложению' }}
+          .issuance__resolve-item-meta {{ o.quantity }} {{ marketplaceUnitShort(o.unit_of_measure) }} · {{ orderStatusDisplay(o.status).label }}
+        BaseButton(
+          v-if='o.status === "ACCEPTED_TO_COOP"',
+          variant='primary',
+          size='sm',
+          @click='startIssuanceStep(o)'
+        )
+          template(#icon-left)
+            q-icon(name='draw', size='16px')
+          | Открыть
+        BaseButton(
+          v-else-if='o.status === "READY_TO_RECEIVE"',
+          variant='primary',
+          size='sm',
+          @click='startIssuanceStep(o)'
+        )
+          template(#icon-left)
+            q-icon(name='inventory', size='16px')
+          | Завершить
 </template>
 
 <style scoped lang="scss">
@@ -211,6 +292,50 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
   &__toolbar {
     display: flex;
     justify-content: flex-end;
+  }
+
+  &__resolve {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-3, 12px);
+  }
+
+  &__resolve-account {
+    font-size: var(--p-fs-body, 14px);
+    font-weight: 600;
+    color: var(--p-ink);
+    font-family: var(--font-mono);
+  }
+
+  &__resolve-hint,
+  &__resolve-empty {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-3);
+  }
+
+  &__resolve-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--p-3, 12px);
+    padding-top: var(--p-2, 8px);
+    border-top: 1px solid var(--p-line);
+  }
+
+  &__resolve-item-info {
+    min-width: 0;
+  }
+
+  &__resolve-item-title {
+    font-size: var(--p-fs-body, 14px);
+    color: var(--p-ink);
+    overflow-wrap: anywhere;
+  }
+
+  &__resolve-item-meta {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-2);
+    font-variant-numeric: tabular-nums;
   }
 }
 

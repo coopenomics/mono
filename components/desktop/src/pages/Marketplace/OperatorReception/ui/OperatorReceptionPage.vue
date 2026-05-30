@@ -10,6 +10,7 @@ import { BaseBadge, BaseButton, BaseDialog, EmptyState } from 'src/shared/ui/bas
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { QrScanner } from 'src/widgets/Marketplace/QrScanner';
+import { decodeHandoffToken, HandoffTokenKind } from 'src/shared/lib/marketplace';
 import {
   listShipmentsByBraname,
   type MarketplaceShipmentView,
@@ -174,13 +175,92 @@ async function createReceptionForShipment(shipmentId: string): Promise<void> {
   }
 }
 
-// QR-код передачи: поставщик показывает QR партии, оператор сканирует —
-// акт приёмки открывается по считанному shipment_id без ручного ввода.
+// QR-код передачи. Оператор сканирует:
+//  - account-bound код поставщика (Story 14.3) → резолвим аккаунт против ленты
+//    своего КУ и принимаем РАЗОМ всё привезённое этим человеком;
+//  - legacy-QR с самим shipment_id → точечная приёмка одной партии.
 const scanDialogOpen = ref(false);
+
+// Резолв account-bound кода: всё, что ждёт приёмки от поставщика на этом КУ —
+// и сформированные партии (SUPPLY_PREPARED), и самовывоз по факту.
+interface ResolvedSupplierPickup {
+  account: string;
+  shipments: MarketplaceShipmentView[];
+  express: MarketplaceExpressPickupCandidateView | null;
+}
+
+const pickupDialogOpen = ref(false);
+const resolvedPickup = ref<ResolvedSupplierPickup | null>(null);
+
+const resolvedPickupCount = computed(() => {
+  const r = resolvedPickup.value;
+  if (!r) return 0;
+  return r.shipments.length + (r.express ? 1 : 0);
+});
+
+function resolveSupplierPickup(account: string): ResolvedSupplierPickup {
+  return {
+    account,
+    shipments: pendingShipments.value.filter((s) => s.offerer_account === account),
+    express: expressCandidates.value.find((c) => c.offerer_account === account) ?? null,
+  };
+}
 
 async function onQrScanned(code: string): Promise<void> {
   scanDialogOpen.value = false;
+  const token = decodeHandoffToken(code);
+  if (token) {
+    if (token.kind !== HandoffTokenKind.Pickup) {
+      FailAlert(new Error('Это код получения заказа, а не код поставки. Отсканируйте код поставщика.'));
+      return;
+    }
+    if (token.coopname && token.coopname !== coopname.value) {
+      FailAlert(new Error('Код выписан для другого кооператива.'));
+      return;
+    }
+    const resolved = resolveSupplierPickup(token.account);
+    if (!resolved.shipments.length && !resolved.express) {
+      FailAlert(
+        new Error(`У поставщика ${token.account} нет поставок, ожидающих приёмки на этом пункте.`),
+      );
+      return;
+    }
+    resolvedPickup.value = resolved;
+    pickupDialogOpen.value = true;
+    return;
+  }
+  // Legacy: QR несёт сам shipment_id — точечная приёмка одной партии.
   await createReceptionForShipment(code);
+}
+
+// Принять разом всё привезённое поставщиком: акты по сформированным партиям +
+// синтез самовывоза по факту. Один Loading, одна перезагрузка ленты в конце.
+async function acceptResolvedPickup(): Promise<void> {
+  const resolved = resolvedPickup.value;
+  if (!resolved) return;
+  pickupDialogOpen.value = false;
+  Loading.show({ message: 'Принимаю всё привезённое…' });
+  let created = 0;
+  try {
+    for (const s of resolved.shipments) {
+      await createAplReception({ shipment_id: s.id });
+      created += 1;
+    }
+    if (resolved.express) {
+      const result = await createExpressReception({
+        offerer_account: resolved.express.offerer_account,
+        braname: resolved.express.braname,
+      });
+      created += result.apl_receptions.length;
+    }
+    SuccessAlert(created > 1 ? `Открыто актов приёмки: ${created}` : 'Акт приёмки создан');
+  } catch (e) {
+    FailAlert(e, 'Не удалось принять часть поставок — проверьте ленту и повторите');
+  } finally {
+    Loading.hide();
+    resolvedPickup.value = null;
+    await load();
+  }
 }
 
 const signDialogOpen = ref(false);
@@ -300,6 +380,25 @@ q-page.reception(role='region', aria-label='Приёмка партии')
 
   BaseDialog(v-model='scanDialogOpen', title='Сканирование QR партии', size='sm')
     QrScanner(@scanned='onQrScanned')
+
+  //- Story 14.3: подтверждение приёмки разом всего привезённого поставщиком
+  //- (резолв account-bound кода против ленты этого КУ).
+  BaseDialog(v-model='pickupDialogOpen', title='Приём поставщика', size='sm')
+    .reception__resolve(v-if='resolvedPickup')
+      .reception__resolve-account {{ resolvedPickup.account }}
+      .reception__resolve-hint Принять разом всё, что привёз поставщик на этот пункт:
+      .reception__resolve-item(v-for='s in resolvedPickup.shipments', :key='s.id')
+        q-icon(name='local_shipping', size='16px')
+        span Партия · {{ SHIPMENT_VARIANT_LABEL[s.delivery_variant] ?? s.delivery_variant }} · {{ s.total_amount }} ₽
+      .reception__resolve-item(v-if='resolvedPickup.express')
+        q-icon(name='how_to_reg', size='16px')
+        span Самовывоз по факту · {{ resolvedPickup.express.orders_count }} заказ(ов) · {{ resolvedPickup.express.total_units }} ед. · {{ resolvedPickup.express.total_amount }} ₽
+      .reception__resolve-actions
+        BaseButton(variant='ghost', size='sm', @click='pickupDialogOpen = false') Отмена
+        BaseButton(variant='primary', size='sm', @click='acceptResolvedPickup')
+          template(#icon-left)
+            q-icon(name='how_to_reg', size='16px')
+          | Принять всё ({{ resolvedPickupCount }})
 </template>
 
 <style scoped lang="scss">
@@ -362,6 +461,40 @@ q-page.reception(role='region', aria-label='Приёмка партии')
     color: var(--p-ink-2);
     font-variant-numeric: tabular-nums;
     overflow-wrap: anywhere;
+  }
+
+  &__resolve {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-3, 12px);
+  }
+
+  &__resolve-account {
+    font-size: var(--p-fs-body, 14px);
+    font-weight: 600;
+    color: var(--p-ink);
+    font-family: var(--font-mono);
+  }
+
+  &__resolve-hint {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-3);
+  }
+
+  &__resolve-item {
+    display: flex;
+    align-items: center;
+    gap: var(--p-2, 8px);
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-2);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__resolve-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--p-2, 8px);
+    margin-top: var(--p-2, 8px);
   }
 }
 
