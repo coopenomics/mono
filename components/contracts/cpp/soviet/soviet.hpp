@@ -91,14 +91,6 @@ public:
     checksum256 hash
   );
 
-  /**
-   * @brief Конвертирует RUB токены в AXON через инъекцию из фонда eosio.saving
-   * Требует подписи _provider. Конвертация происходит по курсу 10:1 (10 RUB = 1 AXON)
-   * @param coopname Имя кооператива
-   * @param amount Сумма в RUB токенах для конвертации
-   */
-  [[eosio::action]] void converttoaxn(eosio::name coopname, eosio::asset amount, document2 statement, checksum256 process_hash);
-
   //agenda.cpp
   [[eosio::action]] void createagenda(CREATEAGENDA_SIGNATURE);
   void authorize_action_effect(eosio::name executer, eosio::name coopname, uint64_t decision_id);

@@ -99,7 +99,7 @@ namespace operations {
   namespace billing {
     inline constexpr eosio::name CONVERT    = "o.bil.fund"_n;  ///< Трансляция паевого взноса в членский на биллинг-кошелёк пайщика-кооператива (Dr 80 / Cr 86, TRANSFER SHARE_FUND_PAY[username] → BILLING_FUND_PAY[coopname], Epic 13: USER_SHARED→COOPERATIVE).
     inline constexpr eosio::name PAY        = "o.bil.pay"_n;   ///< Оплата time-подписки членскими взносами (TRANSFER BILLING_FUND_PAY → INFRA_FEES, без Dr/Cr — реклассификация внутри 86).
-    inline constexpr eosio::name TOPUP_AXON = "o.bil.axn"_n;   ///< Epic 13 v5.1: расход членских взносов на докупку пакета PowerUp (BURN BILLING_FUND_PAY, без Dr/Cr — реклассификация внутри 86). Документless; идемпотентность по payment_hash на стороне provider.
+    inline constexpr eosio::name CONVERT_TO_AXON = "o.bil.axn"_n;   ///< Epic 13 v5.1: конвертация членского взноса в AXON (BURN BILLING_FUND_PAY, без Dr/Cr — реклассификация внутри 86). Бездокументарно; реальный AXON эмитируется eosio::injection; идемпотентность по payment_hash на стороне provider.
   }
 
   // migration (только из migrate.cpp)
@@ -349,18 +349,18 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     0, 0,
     "Оплата подписки за инфраструктуру членскими взносами пайщика" },
 
-  // 22. Биллинг — расход на докупку пакета PowerUp (Epic 13 v5.1).
+  // 22. Биллинг — конвертация членского взноса в AXON (Epic 13 v5.1).
   // BURN с BILLING_FUND_PAY (kind=COOPERATIVE; scope=coopname-пайщик) — фиксация
-  // расхода членских взносов на покупку CPU/NET/RAM. Без destination —
-  // фактический AXON-перевод между token-аккаунтами происходит inline-action'ом
-  // billing::topup_axon отдельно (не через ledger2, это L1 eosio.token-уровень).
+  // расхода членских взносов на инфраструктуру/ресурсы. Без destination —
+  // реальный токен AXON эмитируется eosio::injection из фонда eosio.saving
+  // отдельным inline-action'ом billing::converttoaxn (L1 eosio.token-уровень).
   // Без бухпроводки — реклассификация внутри 86 (членский взнос потрачен на
   // инфраструктуру); по аналогии с o.bil.pay, но списание уже не на разрез 86,
   // а на расходную статью (трансформируется в Dr 91 при финальной сверке).
-  { operations::billing::TOPUP_AXON, processes::billing::PAY, WalletOp::BURN,
+  { operations::billing::CONVERT_TO_AXON, processes::billing::PAY, WalletOp::BURN,
     ledger2_wallets::BILLING_FUND_PAY, eosio::name{},
     0, 0,
-    "Расход членских взносов на докупку пакета ресурсов PowerUp" },
+    "Конвертация членского взноса в AXON для оплаты инфраструктуры" },
 
 
   // ----- Миграционные (o.mig.*) — вызываются только из migrate.cpp -----

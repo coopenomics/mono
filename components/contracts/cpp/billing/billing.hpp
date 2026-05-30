@@ -17,10 +17,10 @@
 *   - `pay`        — списание с биллинг-кошелька суммарной стоимости time-подписок
 *                    в инфраструктурный кошелёк кооператива (`w.sov.infra`) по
 *                    идентификатору платежа (`payment_hash`), идемпотентно;
-*   - `topup_axon` (Epic 13 v5.1) — документless докупка пакета PowerUp:
-*                    bill[coopname] → axon[coopname] inline-TRANSFER'ом.
-*                    Авторизация — `coopname@active` (без оператора-релея);
-*                    runaway-guards задаются на стороне PowerupPlugin coopback'а.
+*   - `converttoaxn` (Epic 13 v5.1) — бездокументарная конвертация членского
+*                    взноса в AXON: BURN с `w.wal.bill[coopname]` + инъекция
+*                    AXON (10₽=1AXON). Авторизация — `coopname@active` (без
+*                    оператора-релея); runaway-guards — на стороне PowerupPlugin.
 *
 * Состав, цены и даты подписок on-chain НЕ хранятся — это зона оператора
 * (provider backend); контракт несёт только сумму + `payment_hash` + memo.
@@ -84,13 +84,13 @@ public:
                              eosio::asset amount, eosio::checksum256 payment_hash,
                              std::string memo);
 
-  // Epic 13 v5.1 — документless докупка пакета PowerUp.
-  // Списывает amount с биллинг-кошелька кооператива (COOPERATIVE scope=coopname)
-  // как расход на пакет CPU/NET/RAM (operations::billing::TOPUP_AXON, WalletOp::BURN).
-  // Авторизация — coopname@active (без relay через оператора, поскольку PowerupPlugin
-  // живёт в coopback'е пайщика и подписывает coopname@active сам).
-  // Идемпотентность по payment_hash — на стороне provider (POST /billing/topup-axon-confirmed).
-  // Имя action `topupaxon` (без подчёркивания) — eosio::name требует базу32 без `_`.
-  [[eosio::action]] void topupaxon(eosio::name coopname, eosio::asset amount,
-                                   eosio::checksum256 payment_hash);
+  // Epic 13 v5.1 — бездокументарная конвертация членского взноса в AXON.
+  // Списывает amount членского с биллинг-кошелька кооператива (COOPERATIVE,
+  // scope=coopname) как расход на инфраструктуру (operations::billing::CONVERT_TO_AXON,
+  // WalletOp::BURN) и эмитирует кооперативу AXON по курсу 10₽=1AXON через
+  // eosio::injection. Второй шаг двухшаговой модели (после billing::convert).
+  // Авторизация — coopname@active (PowerupPlugin coopback'а пайщика подписывает сам,
+  // без relay через оператора). Идемпотентность по payment_hash — у provider'а.
+  [[eosio::action]] void converttoaxn(eosio::name coopname, eosio::asset amount,
+                                      eosio::checksum256 payment_hash);
 };

@@ -4,7 +4,7 @@ import { Action, API, APIClient, Name, PrivateKey, PublicKey } from '@wharfkit/a
 import { ContractKit, Table } from '@wharfkit/contract';
 import { Session, TransactResult } from '@wharfkit/session';
 import { WalletPluginPrivateKey } from '@wharfkit/wallet-plugin-privatekey';
-import { RegistratorContract, SovietContract, SystemContract } from 'cooptypes';
+import { BillingContract, RegistratorContract, SovietContract, SystemContract } from 'cooptypes';
 import config from '~/config/config';
 import { BlockchainPort } from '~/domain/common/ports/blockchain.port';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
@@ -271,7 +271,68 @@ export class BlockchainService implements BlockchainPort {
     // counters росли, cooldown «использовался», а реальной докупки не было
     // (см. adversarial review 2026-05-30, BLOCKER #1).
     const result = await this.transact(actions);
-    return (result as any)?.response?.transaction_id ?? (result as any)?.transaction_id ?? '';
+    const txId = (result as any)?.response?.transaction_id ?? (result as any)?.transaction_id;
+    // Round 2: пустой tx_id означает, что транзакция не дошла до chain'а ИЛИ
+    // SDK сменил формат ответа. Безопаснее упасть — иначе caller (PowerupPlugin)
+    // запишет fallback paymentHash как tx_id, и реконсиляция against on-chain
+    // history никогда не сматчит этот платёж (HIGH #4 round 2).
+    if (!txId) {
+      throw new Error(`powerUp(${username}, ${quantity}): tx_id отсутствует в ответе chain'а`);
+    }
+    return txId as string;
+  }
+
+  public async packagePowerUp(
+    coopname: string,
+    rubAmount: string,
+    axonQuantity: string,
+    paymentHash: string
+  ): Promise<string> {
+    const wif = await this.vaultDomainService.getWif(coopname);
+    if (!wif) throw new Error(`Не найден приватный ключ для аккаунта ${coopname}`);
+
+    this.initialize(coopname, wif);
+
+    // Atomic two-action transaction (coopname@active):
+    //  1) billing::converttoaxn — BURN членского с w.wal.bill + инъекция AXON (10₽=1AXON);
+    //  2) eosio::powerup        — конвертация AXON в CPU/NET/RAM.
+    // Атомарность исключает окно «AXON эмитирован, но powerup не сделан».
+    const convertData: BillingContract.Actions.ConvertToAxn.IConvertToAxn = {
+      coopname,
+      amount: rubAmount,
+      payment_hash: paymentHash,
+    };
+    const powerupData: SystemContract.Actions.Powerup.IPowerup = {
+      payer: coopname,
+      receiver: coopname,
+      days: 1,
+      payment: axonQuantity,
+      transfer: false,
+    };
+
+    const actions = [
+      {
+        account: BillingContract.contractName.production,
+        name: BillingContract.Actions.ConvertToAxn.actionName,
+        authorization: [{ actor: coopname, permission: 'active' }],
+        data: convertData,
+      },
+      {
+        account: 'eosio',
+        name: 'powerup',
+        authorization: [{ actor: coopname, permission: 'active' }],
+        data: powerupData,
+      },
+    ];
+
+    // Исключения пробрасываем наружу — PowerupPlugin не должен инкрементить
+    // счётчики при отказе (см. adversarial review 2026-05-30).
+    const result = await this.transact(actions);
+    const txId = (result as any)?.response?.transaction_id ?? (result as any)?.transaction_id;
+    if (!txId) {
+      throw new Error(`packagePowerUp(${coopname}): tx_id отсутствует в ответе chain'а`);
+    }
+    return txId as string;
   }
 
   public async addUser(data: RegistratorContract.Actions.AddUser.IAddUser): Promise<void> {

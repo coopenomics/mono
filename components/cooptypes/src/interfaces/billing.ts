@@ -39,7 +39,20 @@ export interface IConvert {
   coopname: IName
   username: IName
   amount: IAsset
+  convert_hash: IChecksum256
   document: IDocument2
+}
+
+/**
+ * Epic 13 v5.1 — бездокументарная конвертация членского взноса в AXON
+ * (членский → AXON по курсу 10:1 с эмиссией токена через eosio::injection).
+ * Подпись `coopname@active`, автономно (PowerupPlugin coopback'а пайщика).
+ * Идемпотентность по `payment_hash` — на стороне provider'а.
+ */
+export interface IConverttoaxn {
+  coopname: IName
+  amount: IAsset
+  payment_hash: IChecksum256
 }
 
 /**

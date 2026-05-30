@@ -1,9 +1,9 @@
 import cron from 'node-cron';
+import { createHash } from 'crypto';
 import config, { default as coopConfig } from '../../config/config';
 import { Inject, Module, OnModuleDestroy } from '@nestjs/common';
 import { BaseExtModule } from '../base.extension.module';
 import { BLOCKCHAIN_PORT, BlockchainPort } from '~/domain/common/ports/blockchain.port';
-import { BillingProviderClient } from '~/infrastructure/billing/billing-provider.client';
 import {
   EXTENSION_REPOSITORY,
   type ExtensionDomainRepository,
@@ -44,12 +44,12 @@ export const defaultConfig = {
   // 5) RUB floor — минимальный RUB на w.wal.bill[coopname], при котором ещё
   //    можно докупать. Запасной guard поверх subscription_type.min_topup_rub.
   rubFloor: 100,
-  // 6) Circuit breaker — после MonthlyPackageQuotaExceeded плагин стопится до
-  //    начала следующего месяца. Поле хранит YYYY-MM, до которого блокировка действует.
+  // 6) Circuit breaker — после превышения месячного RUB-потолка плагин стопится
+  //    до начала следующего месяца. Поле хранит YYYY-MM, до которого блокировка действует.
   circuitBreakerUntilMonth: '',
-  // 7) Monthly RUB cap — суммарный RUB-потолок за месяц на этот плагин (заменяет
-  //    /дополняет subscription_type.monthly_quota_rub, если плагин используется в
-  //    нескольких подписках).
+  // 7) Monthly RUB cap — суммарный RUB-потолок за месяц на этот плагин.
+  //    Epic 13 v5.1 (исправленная модель): provider на горячем пути не участвует,
+  //    поэтому месячный потолок enforce'ится ЛОКАЛЬНО через monthRubSpent.
   monthlyRubCap: 5000,
   // 8) Идемпотентность calendar-trigger'а — YYYY-MM последнего календарного пакета.
   lastCalendarPackageMonth: '',
@@ -61,9 +61,19 @@ export const defaultConfig = {
   subscriptionId: 0,
   // Счётчик пакетов текущего месяца (1, 2, 3...). Сбрасывается на 1 при первом
   // packageTopup в новом месяце; используется как idx в детерминированном
-  // payment_hash = sha256(coopname|YYYY-MM-DD|topupaxon|idx). Хранится в config,
-  // потому что provider дедуплицирует invoice'ы по этому idx.
+  // payment_hash = sha256(coopname|YYYY-MM-01|converttoaxn|idx). Provider
+  // восстанавливает тот же хэш из события парсера и дедуплицирует invoice.
   monthlyPackageIdx: 0,
+  // Adversarial round 2: YYYY-MM, к которому относится monthlyPackageIdx.
+  // lastPackagePeriod обновляется на КАЖДОМ recordTopup (calendar + threshold),
+  // idx считается по нему — иначе threshold-first в новом месяце даст idx=1
+  // при второй докупке → коллизия payment_hash → double-burn.
+  lastPackagePeriod: '',
+  // Epic 13 v5.1 — локальный месячный RUB-аккумулятор (provider off hot-path):
+  // суммарный членский RUB, потраченный на пакеты в текущем месяце. Сбрасывается
+  // при смене monthRubPeriod. Обеспечивает monthlyRubCap без участия провайдера.
+  monthRubSpent: 0,
+  monthRubPeriod: '',
 
   // ===== Epic 13 v5.1 — счётчики дня (сбрасываются ежедневной cron-job) =====
   todayAxonSpent: 0,
@@ -73,6 +83,15 @@ export const defaultConfig = {
   todayCounterDate: '',
   // ISO-таймштамп последней докупки (для cooldown).
   lastTopupAt: '',
+
+  // ===== Epic 13 v5.1 — pre-burn persistence (adversarial round 2) =====
+  // Перед on-chain packagePowerUp пишем в config факт «готовимся жечь членский».
+  // Если процесс падает между tx и recordTopup, boot-time recovery увидит
+  // pendingPaymentHash и ПРОДВИНЕТ idx без повтора tx (контракт payment_hash не
+  // дедуплицирует, поэтому idx нельзя переиспользовать — иначе double-burn).
+  pendingPaymentHash: '',
+  pendingMonthKey: '',
+  pendingIdx: 0,
 };
 
 // Определение Zod-схемы
@@ -226,6 +245,33 @@ export const Schema = z.object({
     .min(0)
     .default(defaultConfig.monthlyPackageIdx)
     .describe(describeField({ label: 'Индекс пакета в текущем месяце', visible: false })),
+  lastPackagePeriod: z
+    .string()
+    .default(defaultConfig.lastPackagePeriod)
+    .describe(describeField({ label: 'YYYY-MM к которому относится monthlyPackageIdx', visible: false })),
+  monthRubSpent: z
+    .number()
+    .min(0)
+    .default(defaultConfig.monthRubSpent)
+    .describe(describeField({ label: 'RUB потрачено за месяц', visible: false })),
+  monthRubPeriod: z
+    .string()
+    .default(defaultConfig.monthRubPeriod)
+    .describe(describeField({ label: 'YYYY-MM месячного RUB-счётчика', visible: false })),
+  pendingPaymentHash: z
+    .string()
+    .default(defaultConfig.pendingPaymentHash)
+    .describe(describeField({ label: 'Pre-burn payment_hash (recovery)', visible: false })),
+  pendingMonthKey: z
+    .string()
+    .default(defaultConfig.pendingMonthKey)
+    .describe(describeField({ label: 'Pre-burn YYYY-MM (recovery)', visible: false })),
+  pendingIdx: z
+    .number()
+    .int()
+    .min(0)
+    .default(defaultConfig.pendingIdx)
+    .describe(describeField({ label: 'Pre-burn idx (recovery)', visible: false })),
 });
 
 // Автоматическое создание типа IConfig на основе Zod-схемы
@@ -260,8 +306,7 @@ export class PowerupPlugin extends BaseExtModule implements OnModuleDestroy {
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
     @Inject(LOG_EXTENSION_REPOSITORY) private readonly logExtensionRepository: LogExtensionDomainRepository<ILog>,
     private readonly logger: WinstonLoggerService,
-    @Inject(BLOCKCHAIN_PORT) private readonly blockchainPort: BlockchainPort,
-    private readonly billingProvider: BillingProviderClient
+    @Inject(BLOCKCHAIN_PORT) private readonly blockchainPort: BlockchainPort
   ) {
     super();
     this.logger.setContext(PowerupPlugin.name);
@@ -325,6 +370,14 @@ export class PowerupPlugin extends BaseExtModule implements OnModuleDestroy {
       { timezone: 'UTC' },
     );
 
+    // Adversarial round 2 BLOCKER #1: pre-burn recovery должен идти ПЕРВЫМ,
+    // ДО boot-time backfill calendar. Иначе runCalendarTask() сделает второй
+    // powerUp на том же idx — double-burn AXON. Recovery продвигает idx по
+    // pending без повтора tx; calendar backfill затем скипнет через свежий idx.
+    await this.recoverPendingIfAny().catch((err) =>
+      this.logger.error('PowerupPlugin: pre-burn recovery fail', err as Error),
+    );
+
     // Boot-time backfill: если процесс был down 1-го числа в 00:00 UTC, тик
     // пропущен и cron сработает только 1-го числа следующего месяца. Проверяем
     // на старте: если текущий месяц ещё не «закрыт» календарным пакетом, запускаем
@@ -374,34 +427,49 @@ export class PowerupPlugin extends BaseExtModule implements OnModuleDestroy {
   }
 
   /**
-   * Epic 13 v5.1 — общая обработка докупки (calendar + threshold).
+   * Epic 13 v5.1 (исправленная модель) — общая обработка докупки (calendar + threshold).
    *
-   * Порядок:
-   * 1. Считать AXON-баланс и RUB на w.wal.bill (через blockchainPort).
-   * 2. checkRunawayGuards → если signal → log + skip.
-   * 3. blockchainPort.powerUp + (в production) inline billing::topupaxon +
-   *    HTTP confirm к provider'у через BillingProviderClient.confirmTopupAxon.
-   * 4. recordTopup (fresh-snapshot commit).
+   * Порядок (provider на горячем пути НЕ участвует — автономно):
+   * 1. checkRunawayGuards → если signal → log + skip.
+   * 2. Локально посчитать детерминированный payment_hash (как его восстановит
+   *    парсер Восхода): sha256(coopname|period_start|'converttoaxn'|idx).
+   * 3. persistPending(payment_hash) — pre-burn маркер.
+   * 4. blockchainPort.packagePowerUp — атомарно billing::converttoaxn (членский→AXON)
+   *    + eosio::powerup (AXON→ресурсы), подпись coopname@active.
+   * 5. recordTopup (fresh-snapshot commit, продвигает idx + месячный RUB-счётчик).
    *
-   * При MonthlyPackageQuotaExceeded от provider'а — tripCircuitBreaker.
+   * Provider закрывает package-invoice реактивно: парсер Восхода ловит
+   * billing::converttoaxn → callback POST /billing/topup-axon-confirmed.
    */
   protected async executePackageTopup(trigger: 'calendar' | 'threshold', nowIso: string): Promise<void> {
     // Mutex: единая точка для calendar + threshold. Любой одновременный тик
     // даёт `skip — inflight` и проигрывает гонку победителю; победитель доводит
-    // цикл createPackageInvoice → powerUp → confirmTopupAxon → recordTopup до конца.
+    // цикл packagePowerUp → recordTopup до конца.
     if (this.packageTopupInflight) {
       this.logger.info(`PowerupPlugin[${trigger}]: skip — inflight (предыдущий тик ещё не завершён)`);
       return;
     }
+
+    // Adversarial round 2 BLOCKER #1: если есть unresolved pending — boot recovery
+    // не закрыл его. Новый packagePowerUp делать нельзя (контракт payment_hash не
+    // дедупит → double-burn). Продвигаем idx по pending и выходим.
+    if (this.plugin.config.pendingPaymentHash) {
+      this.logger.info(`PowerupPlugin[${trigger}]: skip — есть unresolved pending payment_hash`);
+      await this.recoverPendingIfAny().catch((err) =>
+        this.logger.error('PowerupPlugin: inline pending recovery fail', err as Error),
+      );
+      return;
+    }
+
     this.packageTopupInflight = true;
     const username = coopConfig.coopname;
     try {
       const account = await this.blockchainPort.getAccount(username);
       if (!account) throw new Error('Аккаунт не найден');
 
-      // billWalletRub: на MVP считаем 0 (provider — источник истины через
-      // accountPackageTopup); rubFloor по умолчанию 0, так что guard не блочит.
-      // TODO: подключить чтение w.wal.bill[coopname] баланса через blockchainPort.
+      // billWalletRub: на MVP считаем 0 (чтение w.wal.bill[coopname] не реализовано);
+      // rubFloor по умолчанию 0, так что guard не блочит. TODO: подключить чтение
+      // баланса w.wal.bill[coopname] через blockchainPort.
       const billWalletRub = 0;
       const signal = await this.checkRunawayGuards({ nowIso, billWalletRub });
       if (signal) {
@@ -410,73 +478,45 @@ export class PowerupPlugin extends BaseExtModule implements OnModuleDestroy {
       }
 
       const cfg = this.plugin.config;
-      const quantity = this.getQuantity(cfg.dailyPackageSize);
+      const axonQuantity = this.getQuantity(cfg.dailyPackageSize);
+      const rubAmount = this.getRubAmount(cfg.dailyPackageSize);
 
-      // Определяем idx нового пакета: при смене месяца — 1, иначе ++.
+      // Adversarial round 2 BLOCKER #2: idx считаем от lastPackagePeriod (обновляется
+      // на КАЖДОМ recordTopup). Период-якорь — YYYY-MM-01; payment_hash детерминирован.
       const monthKey = nowIso.slice(0, 7);
       const periodStart = `${monthKey}-01`;
-      const prevMonthKey = cfg.lastCalendarPackageMonth || '';
-      const nextIdx = prevMonthKey === monthKey ? (cfg.monthlyPackageIdx || 0) + 1 : 1;
+      const prevPackagePeriod = cfg.lastPackagePeriod || '';
+      const nextIdx = prevPackagePeriod === monthKey ? (cfg.monthlyPackageIdx || 0) + 1 : 1;
 
-      // Двухфазный flow с provider'ом — только если подписка подключена
-      // и provider настроен. Иначе fallback: powerUp без confirm-цикла.
-      let paymentHash: string | null = null;
-      const usePackageFlow = cfg.subscriptionId > 0 && this.billingProvider.isConfigured();
-      if (usePackageFlow) {
-        try {
-          const invoice = await this.billingProvider.createPackageInvoice({
-            coopname: username,
-            subscriptionId: cfg.subscriptionId,
-            amountRub: cfg.dailyPackageSize, // в RUB по cfg
-            periodStart,
-            idx: nextIdx,
-          });
-          paymentHash = invoice.payment_hash;
-        } catch (err: any) {
-          // MonthlyPackageQuotaExceeded → circuit breaker до конца месяца.
-          if (err?.response?.data?.error === 'MonthlyPackageQuotaExceeded') {
-            await this.tripCircuitBreaker(monthKey);
-            return;
-          }
-          // Любая другая ошибка provider'а — НЕ делаем on-chain powerUp.
-          // Зашумлено в логах + ждём следующего тика. Иначе докупим on-chain
-          // без подтверждения, и provider потеряет учёт.
-          this.logger.error(`PowerupPlugin[${trigger}]: createPackageInvoice failed`, err as Error);
-          return;
-        }
-      }
+      // Epic 13 v5.1 (исправленная модель): provider на горячем пути НЕ участвует.
+      // payment_hash считаем ЛОКАЛЬНО и детерминированно — ровно так же, как его
+      // потом восстановит парсер Восхода (sha256(coopname|period_start|action|idx)).
+      const paymentHash = this.computePackagePaymentHash(username, periodStart, 'converttoaxn', nextIdx);
 
-      // on-chain powerup: при ошибке выбрасывает наружу — НЕ делаем recordTopup,
-      // следующий тик попробует снова (cooldown даст паузу).
-      const txId = await this.blockchainPort.powerUp(username, quantity);
+      // Pre-burn persistence: фиксируем намерение ДО on-chain транзакции. Если
+      // процесс упадёт между tx и recordTopup, boot-recovery ПРОДВИНЕТ idx без
+      // повтора tx (контракт payment_hash не дедупит → нельзя переиспользовать idx).
+      await this.persistPending(paymentHash, monthKey, nextIdx);
 
-      if (usePackageFlow && paymentHash) {
-        try {
-          await this.billingProvider.confirmTopupAxon({
-            paymentHash,
-            blockchainTransactionId: txId || paymentHash,
-          });
-        } catch (err: any) {
-          // Двойной guard: если provider 5xx — НЕ откатываем on-chain, но
-          // оставляем lastTopupAt незаписанным, чтобы следующий тик повторил
-          // confirm. Provider идемпотентен по payment_hash, повтор безопасен.
-          this.logger.error(`PowerupPlugin[${trigger}]: confirmTopupAxon failed`, err as Error);
-          return;
-        }
-      }
+      // Атомарная транзакция coopname@active: billing::converttoaxn (членский→AXON)
+      // + eosio::powerup (AXON→ресурсы). Отказ пробрасывается → recordTopup не
+      // выполнится → счётчики не растут (см. adversarial review 2026-05-30).
+      await this.blockchainPort.packagePowerUp(username, rubAmount, axonQuantity, paymentHash);
 
       await this.recordTopup({
         axonAmount: cfg.dailyPackageSize,
+        rubAmount: cfg.dailyPackageSize * 10,
         nowIso,
         trigger,
         monthlyPackageIdx: nextIdx,
+        clearPending: true,
       });
 
       const updatedAccount = await this.blockchainPort.getAccount(username);
       if (!updatedAccount) return;
       await this.log({
         type: trigger === 'calendar' ? 'daily' : 'now',
-        amount: quantity,
+        amount: axonQuantity,
         resources: {
           username: updatedAccount.account_name,
           ram_usage: updatedAccount.ram_usage,
@@ -497,7 +537,28 @@ export class PowerupPlugin extends BaseExtModule implements OnModuleDestroy {
   }
 
   /**
-   * Epic 13 v5.1 — единая проверка 8 слоёв защиты от runaway.
+   * Epic 13 v5.1 — сумма членского взноса (RUB) к конвертации для получения
+   * `axonAmount` AXON по курсу 10 ₽ = 1 AXON. Используется как amount для
+   * billing::converttoaxn (root_govern_symbol = RUB).
+   */
+  private getRubAmount(axonAmount: number): string {
+    const rub = axonAmount * 10;
+    return `${rub.toFixed(config.blockchain.root_govern_precision)} ${config.blockchain.root_govern_symbol}`;
+  }
+
+  /**
+   * Epic 13 v5.1 — детерминированный payment_hash докупки, идентичный тому, что
+   * восстанавливает парсер Восхода и provider: sha256(coopname|period_start|action|idx),
+   * period_start = YYYY-MM-01. Связывает on-chain billing::converttoaxn с
+   * package-invoice провайдера без обращения к нему на горячем пути.
+   */
+  private computePackagePaymentHash(coopname: string, periodStart: string, actionName: string, idx: number): string {
+    const payload = `${coopname}|${periodStart}|${actionName}|${idx}`;
+    return createHash('sha256').update(payload).digest('hex');
+  }
+
+  /**
+   * Epic 13 v5.1 — единая проверка слоёв защиты от runaway.
    * Возвращает имя сработавшего guard'а (или `null`, если все прошли).
    * Гарантирует: пакет НЕ будет докуплен, пока хотя бы один guard сигналит.
    *
@@ -534,18 +595,24 @@ export class PowerupPlugin extends BaseExtModule implements OnModuleDestroy {
     if (todayAxonSpent + cfg.dailyPackageSize > cfg.dailyAxonCap) return 'daily_axon_cap';
     if (todayPackagesIssued + 1 > cfg.dailyPackageCap) return 'daily_package_cap';
     // (4) AXON pre-gate — REMOVED в adversarial review 2026-05-30: cpu_limit.max ≠
-    // AXON balance (это CPU микросекунды). Реальное чтение `eosio.token.accounts`
-    // через `chainPort.getCurrencyBalance` — отдельная задача; до её реализации
-    // guard ничему не блочит. Сам факт нехватки AXON всё равно выдаст ошибку в
-    // blockchainPort.powerUp (после удаления swallow try/catch), и она пробросится
-    // в catch executePackageTopup → recordTopup не выполнится → нет double-spend.
+    // AXON balance. Реальное чтение баланса AXON — отдельная задача; нехватка
+    // AXON всё равно даст ошибку в packagePowerUp → recordTopup не выполнится.
     // (5) RUB floor.
     if (input.billWalletRub < cfg.rubFloor) return 'rub_floor';
-    // (7) Monthly RUB cap — на этом уровне плагин знает только локальный cap;
-    // финальная проверка (с учётом subscription_type.monthly_quota_rub) идёт
-    // на стороне provider'а через MonthlyPackageQuotaExceeded.
-    // (8) dailyPackageSize override — gate'ом не является, но фиксируем
-    // что размер пакета берём из config (не magic), уже учтено выше.
+    // (7) Monthly RUB cap — Epic 13 v5.1 (исправленная модель): enforce'им ЛОКАЛЬНО,
+    // провайдера на горячем пути нет. monthRubSpent сбрасывается при смене месяца
+    // (см. recordTopup). Размер докупки в RUB = dailyPackageSize * 10 (10₽=1AXON).
+    if (cfg.monthlyRubCap > 0) {
+      const monthChanged = cfg.monthRubPeriod !== monthKey;
+      const monthRubSpent = monthChanged ? 0 : Number(cfg.monthRubSpent || 0);
+      const rubThisPackage = cfg.dailyPackageSize * 10;
+      if (monthRubSpent + rubThisPackage > cfg.monthlyRubCap) {
+        // Жёсткий месячный потолок — поднимаем circuit-breaker до конца месяца,
+        // чтобы не долбить guard каждую минуту до 1-го числа.
+        await this.tripCircuitBreaker(monthKey);
+        return 'monthly_rub_cap';
+      }
+    }
     return null;
   }
 
@@ -556,15 +623,18 @@ export class PowerupPlugin extends BaseExtModule implements OnModuleDestroy {
    */
   protected async recordTopup(input: {
     axonAmount: number;
+    rubAmount: number;
     nowIso: string;
     trigger: 'calendar' | 'threshold';
     monthlyPackageIdx: number;
+    clearPending?: boolean;
   }): Promise<void> {
     const todayKey = input.nowIso.slice(0, 10);
     const monthKey = input.nowIso.slice(0, 7);
     const fresh = await this.extensionRepository.findByName(this.name);
     const prev = fresh?.config ?? this.plugin.config;
     const dayChanged = prev.todayCounterDate !== todayKey;
+    const monthChanged = prev.monthRubPeriod !== monthKey;
     const nextConfig: IConfig = {
       ...prev,
       lastTopupAt: input.nowIso,
@@ -573,14 +643,87 @@ export class PowerupPlugin extends BaseExtModule implements OnModuleDestroy {
       todayPackagesIssued: dayChanged ? 1 : Number(prev.todayPackagesIssued || 0) + 1,
       lastCalendarPackageMonth: input.trigger === 'calendar' ? monthKey : prev.lastCalendarPackageMonth,
       monthlyPackageIdx: input.monthlyPackageIdx,
+      // Adversarial round 2 BLOCKER #2: lastPackagePeriod обновляется на КАЖДОМ
+      // recordTopup независимо от trigger. Это база для расчёта idx в следующий раз.
+      lastPackagePeriod: monthKey,
+      // Epic 13 v5.1 — локальный месячный RUB-аккумулятор для monthlyRubCap.
+      monthRubPeriod: monthKey,
+      monthRubSpent: monthChanged ? input.rubAmount : Number(prev.monthRubSpent || 0) + input.rubAmount,
+      // Pre-burn pending снимаем — recordTopup доехал, всё консистентно.
+      pendingPaymentHash: input.clearPending ? '' : prev.pendingPaymentHash,
+      pendingMonthKey: input.clearPending ? '' : prev.pendingMonthKey,
+      pendingIdx: input.clearPending ? 0 : prev.pendingIdx,
     };
     await this.extensionRepository.update({ name: this.name, config: nextConfig });
     this.plugin = { ...this.plugin, config: nextConfig };
   }
 
   /**
-   * Epic 13 v5.1 — активация circuit breaker'а до конца месяца. Вызывается из
-   * 13.5 при отлове MonthlyPackageQuotaExceeded от provider'а.
+   * Adversarial round 2 BLOCKER #1: записать pendingPaymentHash в config ДО
+   * on-chain packagePowerUp'а. При краше процесса между tx и recordTopup boot
+   * recovery увидит pending и продвинет idx, не повторяя tx.
+   */
+  protected async persistPending(paymentHash: string, monthKey: string, idx: number): Promise<void> {
+    const fresh = await this.extensionRepository.findByName(this.name);
+    const prev = fresh?.config ?? this.plugin.config;
+    const nextConfig: IConfig = {
+      ...prev,
+      pendingPaymentHash: paymentHash,
+      pendingMonthKey: monthKey,
+      pendingIdx: idx,
+    };
+    await this.extensionRepository.update({ name: this.name, config: nextConfig });
+    this.plugin = { ...this.plugin, config: nextConfig };
+  }
+
+  /**
+   * Adversarial round 2 BLOCKER #1 (исправленная модель): boot-time recovery.
+   * Если pendingPaymentHash не пуст — мы упали между on-chain packagePowerUp и
+   * recordTopup. Неизвестно, долетела ли tx до chain'а, а контракт payment_hash
+   * НЕ дедуплицирует — значит повторять tx нельзя (риск double-burn). Поэтому
+   * консервативно ПРОДВИГАЕМ idx (recordTopup по pending) без повтора tx:
+   *  - если tx долетела → состояние консистентно;
+   *  - если нет → кооператив пропустил один пакет (добёрется следующим тиком по
+   *    threshold/calendar с новым idx). Это безопасное направление отказа.
+   * Provider узнаёт об on-chain событии реактивно через парсер → callback —
+   * обращаться к нему из recovery не нужно.
+   */
+  protected async recoverPendingIfAny(): Promise<void> {
+    const cfg = this.plugin.config;
+    if (!cfg.pendingPaymentHash || !cfg.pendingMonthKey) return;
+
+    this.logger.info(
+      `PowerupPlugin: обнаружен pending paymentHash=${cfg.pendingPaymentHash} (${cfg.pendingMonthKey}/${cfg.pendingIdx}) — продвигаем idx без повтора tx`,
+    );
+
+    const nowIso = new Date().toISOString();
+    await this.recordTopup({
+      axonAmount: cfg.dailyPackageSize,
+      rubAmount: cfg.dailyPackageSize * 10,
+      nowIso,
+      trigger: 'threshold',
+      monthlyPackageIdx: cfg.pendingIdx,
+      clearPending: true,
+    });
+    this.logger.info('PowerupPlugin: pending закрыт (idx продвинут)');
+  }
+
+  protected async clearPending(): Promise<void> {
+    const fresh = await this.extensionRepository.findByName(this.name);
+    const prev = fresh?.config ?? this.plugin.config;
+    const nextConfig: IConfig = {
+      ...prev,
+      pendingPaymentHash: '',
+      pendingMonthKey: '',
+      pendingIdx: 0,
+    };
+    await this.extensionRepository.update({ name: this.name, config: nextConfig });
+    this.plugin = { ...this.plugin, config: nextConfig };
+  }
+
+  /**
+   * Epic 13 v5.1 — активация circuit breaker'а до конца месяца. Вызывается при
+   * достижении локального monthlyRubCap (checkRunawayGuards).
    */
   protected async tripCircuitBreaker(monthKey: string): Promise<void> {
     const fresh = await this.extensionRepository.findByName(this.name);
@@ -688,7 +831,7 @@ export class PowerupPlugin extends BaseExtModule implements OnModuleDestroy {
       if (needPowerUp) {
         // Epic 13 v5.1: threshold-trigger теперь проходит через checkRunawayGuards
         // + recordTopup внутри executePackageTopup. Это гарантирует cooldown,
-        // daily caps, circuit-breaker и идемпотентность через единую точку.
+        // daily/monthly caps, circuit-breaker и идемпотентность через единую точку.
         await this.executePackageTopup('threshold', new Date().toISOString());
       }
     } catch (error) {
@@ -698,10 +841,11 @@ export class PowerupPlugin extends BaseExtModule implements OnModuleDestroy {
 }
 
 @Module({
-  // Epic 13 v5.1: BillingProviderClient — HTTP-клиент к provider'у для
-  // createPackageInvoice + confirmTopupAxon; provides + не imports т.к. сам
-  // клиент stateless и зависит только от глобального config.
-  providers: [PowerupPlugin, BillingProviderClient],
+  // Epic 13 v5.1 (исправленная модель): PowerupPlugin автономен — provider на
+  // горячем пути не участвует, BillingProviderClient больше не нужен. On-chain
+  // докупка (billing::converttoaxn + eosio::powerup) идёт через BLOCKCHAIN_PORT;
+  // provider узнаёт о событии реактивно через парсер Восхода → callback.
+  providers: [PowerupPlugin],
   exports: [PowerupPlugin],
 })
 export class PowerupPluginModule {
