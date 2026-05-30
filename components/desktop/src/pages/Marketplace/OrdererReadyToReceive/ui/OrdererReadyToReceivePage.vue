@@ -2,8 +2,9 @@
 import type { QTableProps } from 'quasar';
 import { onMounted, ref } from 'vue';
 import { FailAlert } from 'src/shared/api';
-import { EmptyState } from 'src/shared/ui/base';
+import { BaseButton, BaseDialog, EmptyState } from 'src/shared/ui/base';
 import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
+import { HandoffQr } from 'src/widgets/Marketplace/HandoffQr';
 import { PageHint } from 'src/shared/ui/domain';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import { listMyReadyToReceive, type MarketplaceOrderIssuanceView } from '../api';
@@ -60,7 +61,18 @@ const columns: QTableProps['columns'] = [
     align: 'left',
     format: (v: unknown) => formatDate(v),
   },
+  { name: 'qr', label: 'Получение', field: 'id', align: 'center' },
 ];
+
+// QR-код получения: заказчик показывает его оператору на ПВЗ — тот
+// сканирует и сразу видит, какой заказ выдать.
+const qrDialogOpen = ref(false);
+const qrOrder = ref<MarketplaceOrderIssuanceView | null>(null);
+
+function openQr(order: MarketplaceOrderIssuanceView): void {
+  qrOrder.value = order;
+  qrDialogOpen.value = true;
+}
 
 async function load(): Promise<void> {
   loading.value = true;
@@ -93,6 +105,13 @@ q-page.ready(role="region", aria-label="Готово к получению")
     bordered,
     :loading="loading"
   )
+    template(#body-cell-qr="props")
+      q-td(:props="props")
+        BaseButton(variant="ghost", size="sm", @click="openQr(props.row)")
+          template(#icon-left)
+            q-icon(name="qr_code_2", size="16px")
+          | QR
+
     template(#no-data)
       EmptyState(
         title="Нет заказов, готовых к получению",
@@ -100,6 +119,14 @@ q-page.ready(role="region", aria-label="Готово к получению")
       )
         template(#icon)
           q-icon(name="inventory_2", size="48px")
+
+  BaseDialog(v-model="qrDialogOpen", title="QR-код получения заказа", size="sm")
+    .ready__qr(v-if="qrOrder")
+      HandoffQr(
+        :value="qrOrder.id",
+        caption="Покажите этот код оператору пункта выдачи — он отсканирует и выдаст ваш заказ."
+      )
+      .ready__qr-meta {{ qrOrder.product_name || 'Заказ' }} · {{ qrOrder.quantity }} {{ marketplaceUnitShort(qrOrder.unit_of_measure) }}
 </template>
 
 <style scoped lang="scss">
@@ -108,6 +135,21 @@ q-page.ready(role="region", aria-label="Готово к получению")
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
+
+  &__qr {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--p-3, 12px);
+    padding: var(--p-2, 8px) 0;
+  }
+
+  &__qr-meta {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-2);
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
 }
 
 @media (max-width: 768px) {

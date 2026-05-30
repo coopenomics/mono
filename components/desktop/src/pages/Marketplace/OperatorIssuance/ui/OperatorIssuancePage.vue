@@ -4,8 +4,9 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
-import { BaseBadge, BaseButton, EmptyState } from 'src/shared/ui/base';
+import { BaseBadge, BaseButton, BaseDialog, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
+import { QrScanner } from 'src/widgets/Marketplace/QrScanner';
 import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import {
@@ -86,6 +87,26 @@ function startFinalize(item: MarketplaceOrderIssuanceView): void {
   finalizeDialog.value = true;
 }
 
+// QR-код получения: заказчик показывает QR заказа, оператор сканирует —
+// находим заказ в ленте КУ и запускаем нужный шаг выдачи.
+const scanDialogOpen = ref(false);
+
+function onQrScanned(code: string): void {
+  scanDialogOpen.value = false;
+  const order = items.value.find((o) => o.id === code);
+  if (!order) {
+    FailAlert(new Error('Заказ не найден на этом пункте выдачи. Проверьте КУ и статус заказа.'));
+    return;
+  }
+  if (order.status === 'ACCEPTED_TO_COOP') {
+    startOpen(order);
+  } else if (order.status === 'READY_TO_RECEIVE') {
+    startFinalize(order);
+  } else {
+    FailAlert(new Error('Заказ не в статусе выдачи.'));
+  }
+}
+
 function onOpened(): void {
   void load();
 }
@@ -117,6 +138,12 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
   template(v-else)
     PageHint(storage-key='mp:operator-issuance:banner-dismissed')
       | Заказы, принятые кооперативом на ваш пункт выдачи. Откройте выдачу подписью председателя, затем завершите её на стойке с заказчиком.
+
+    .issuance__toolbar
+      BaseButton(variant='secondary', @click='scanDialogOpen = true')
+        template(#icon-left)
+          q-icon(name='qr_code_scanner', size='16px')
+        | Сканировать QR заказа
 
     q-table.issuance__table(
       :rows='items',
@@ -169,6 +196,9 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
     :order='selectedOrder',
     @finalized='onFinalized'
   )
+
+  BaseDialog(v-model='scanDialogOpen', title='Сканирование QR заказа', size='sm')
+    QrScanner(@scanned='onQrScanned')
 </template>
 
 <style scoped lang="scss">
@@ -177,6 +207,11 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
+
+  &__toolbar {
+    display: flex;
+    justify-content: flex-end;
+  }
 }
 
 @media (max-width: 768px) {
