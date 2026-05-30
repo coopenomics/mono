@@ -23,3 +23,5 @@ components/contracts/cpp/ledger2/scripts/out/
 
 .env.testnet
 .pnpm-store
+schema.gql
+.claude
