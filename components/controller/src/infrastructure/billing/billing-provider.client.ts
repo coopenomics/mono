@@ -89,4 +89,30 @@ export class BillingProviderClient {
     );
     this.logger.log(`confirmPayment ${input.coopname} payment_hash=${input.paymentHash}`);
   }
+
+  /**
+   * Epic 13 v5.1 — подтверждение on-chain `billing::topupaxon` у провайдера.
+   *
+   * Зеркало `confirmPayment` для пакетной модели. Вызывается на coopback'е
+   * пайщика-кооператива после успешной отправки on-chain action `topupaxon`
+   * (PowerupPlugin) или на coopback'е Воскхода (BILLING_HUB_MODE=true)
+   * как defensive-handler, если PowerupPlugin не успел.
+   *
+   * Идемпотентно по `payment_hash` (провайдер сам отвечает 200 OK на повтор).
+   */
+  async confirmTopupAxon(input: {
+    paymentHash: string;
+    blockchainTransactionId: string;
+  }): Promise<void> {
+    const url = `${this.baseUrl}/billing/topup-axon-confirmed`;
+    await axios.post(
+      url,
+      {
+        payment_hash: input.paymentHash,
+        tx_id: input.blockchainTransactionId,
+      },
+      { headers: this.headers() },
+    );
+    this.logger.log(`confirmTopupAxon payment_hash=${input.paymentHash} tx=${input.blockchainTransactionId}`);
+  }
 }
