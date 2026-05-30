@@ -21,7 +21,15 @@
           .subs-card__body
             .subs-card__title {{ sub.subscription_type_name }}
             .subs-card__sub {{ sub.subscription_type_description }}
-          .subs-card__price
+          // — Epic 13 v5.1: пакетная подписка показывает «пакеты RUB/мес»
+          .subs-card__price(v-if="isPackage(sub)")
+            .subs-card__price-value.t-mono
+              | {{ formatPriceLine(sub.packages_current_period_amount || 0) }}
+              | /
+              | {{ formatPriceLine(sub.monthly_quota_rub || 0) }}
+            .subs-card__price-period пакеты {{ currencySymbol }}/мес
+          // — обычная time-подписка: руб/месяц
+          .subs-card__price(v-else)
             .subs-card__price-value.t-mono {{ formatPrice(sub.price) }}
             .subs-card__price-period {{ currencySymbol }}/месяц
 
@@ -54,6 +62,14 @@ const formatPrice = (price: number | string) => {
 }
 
 const currencySymbol = computed(() => info.symbols?.root_govern_symbol || 'AXON')
+
+// Epic 13 v5.1: распознавание пакетных подписок и форматирование пакетной строки.
+const isPackage = (sub: any): boolean => sub?.kind === 'package'
+
+const formatPriceLine = (rub: number): string => {
+  const sym = info.symbols?.root_govern_symbol || 'AXON'
+  return formatAsset2Digits(`${Number(rub).toString()} ${sym}`)
+}
 
 const getSubscriptionIcon = (subscription: any) => {
   if (subscription.is_trial) return 'local_offer'
