@@ -22,7 +22,12 @@ const ORDER_STATUS_DISPLAY: Record<DomainOrderStatus, OrderStatusDisplay> = {
   ACCEPTED_PENDING_SUPPLIER: { label: 'Ждёт акцепта', variant: 'info' },
   ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL: { label: 'Ждёт акцепта', variant: 'info' },
   ACCEPTED: { label: 'Принят поставщиком', variant: 'info' },
-  SUPPLY_PREPARED: { label: 'Поставка готовится', variant: 'warn' },
+  // SUPPLY_PREPARED = партия УЖЕ сформирована (вариант доставки выбран, для
+  // экспедитора выпущена ТТН) и готова к отгрузке/приёмке на КУ — это
+  // завершённое состояние, а не «в процессе». Раньше бейдж врал «готовится»,
+  // расходясь со страницей партий («Готова к отгрузке») и вкладкой
+  // «Поставка готова».
+  SUPPLY_PREPARED: { label: 'Поставка готова', variant: 'info' },
   ACCEPTED_TO_COOP: { label: 'Принят кооперативом', variant: 'info' },
   READY_TO_RECEIVE: { label: 'Готов к выдаче', variant: 'warn' },
   RECEIVED: { label: 'Получен', variant: 'pos' },

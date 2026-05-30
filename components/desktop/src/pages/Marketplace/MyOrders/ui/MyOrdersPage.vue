@@ -50,7 +50,7 @@ const FILTERS: Array<{ key: string; label: string; statuses: MarketplaceOrderSta
   },
   {
     key: 'in-progress',
-    label: 'Готовятся',
+    label: 'В работе',
     statuses: ['ACCEPTED', 'SUPPLY_PREPARED', 'ACCEPTED_TO_COOP'],
   },
   { key: 'ready', label: 'Готовы к выдаче', statuses: ['READY_TO_RECEIVE'] },
