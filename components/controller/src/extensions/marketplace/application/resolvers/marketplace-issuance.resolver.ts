@@ -239,7 +239,7 @@ export class MarketplaceIssuanceResolver {
       coopname,
       data.delivery_braname
     );
-    const display = await this.displayService.enrich(orders);
+    const display = await this.displayService.enrich(orders, { withParticipantNames: true });
     return orders.map((order) => toMarketplaceOrderDTO(order, display.get(order.id)));
   }
 
@@ -257,7 +257,7 @@ export class MarketplaceIssuanceResolver {
       config.coopname,
       member.username
     );
-    const display = await this.displayService.enrich(orders);
+    const display = await this.displayService.enrich(orders, { withParticipantNames: true });
     return orders.map((order) => toMarketplaceOrderDTO(order, display.get(order.id)));
   }
 }

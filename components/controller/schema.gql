@@ -7035,6 +7035,11 @@ type MarketplaceAplReception {
   """Account поставщика-владельца Offer'ов."""
   offerer_account: String!
 
+  """
+  Наименование поставщика (ФИО или название организации) — для экранов приёмки/подписи.
+  """
+  offerer_name: String
+
   """Партия поставки, по которой формируется приёмка."""
   shipment_id: ID!
   status: MarketplaceAplReceptionStatus!
@@ -7066,6 +7071,14 @@ type MarketplaceAplReceptionFactEntry {
   """
   fact_unit_price: String
   order_id: ID!
+
+  """
+  Наименование товара по этой позиции — для таблицы сверки в диалоге подписи.
+  """
+  product_name: String
+
+  """Единица измерения товара по этой позиции (шт., кг, л, упак.)."""
+  unit_of_measure: String
 }
 
 input MarketplaceAplReceptionFactEntryInput {
@@ -8472,6 +8485,11 @@ type MarketplaceOrder {
   """Аккаунт пайщика-заказчика."""
   orderer_account: String!
 
+  """
+  Наименование заказчика (ФИО пайщика или название организации) — для экранов выдачи/подписи.
+  """
+  orderer_name: String
+
   """Когда заказчик поставил финальную подпись на акте выдачи."""
   orderer_signed_at: DateTime
 
@@ -8498,6 +8516,11 @@ type MarketplaceOrder {
 
   """Аккаунт поставщика."""
   supplier_account: String!
+
+  """
+  Наименование поставщика (ФИО или название организации) — для экранов приёмки/подписи.
+  """
+  supplier_name: String
 
   """Общая сумма заказа."""
   total_cost: String!

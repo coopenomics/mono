@@ -3903,6 +3903,7 @@ export const ReturnTypes: Record<string,any> = {
 		fact_quantity_per_order:"MarketplaceAplReceptionFactEntry",
 		id:"ID",
 		offerer_account:"String",
+		offerer_name:"String",
 		shipment_id:"ID",
 		status:"MarketplaceAplReceptionStatus",
 		supplier_signed_at:"DateTime",
@@ -3915,7 +3916,9 @@ export const ReturnTypes: Record<string,any> = {
 	MarketplaceAplReceptionFactEntry:{
 		fact_quantity:"Int",
 		fact_unit_price:"String",
-		order_id:"ID"
+		order_id:"ID",
+		product_name:"String",
+		unit_of_measure:"String"
 	},
 	MarketplaceAplReceptionResult:{
 		apl_reception:"MarketplaceAplReception"
@@ -4228,6 +4231,7 @@ export const ReturnTypes: Record<string,any> = {
 		offer_id:"String",
 		order_hash:"String",
 		orderer_account:"String",
+		orderer_name:"String",
 		orderer_signed_at:"DateTime",
 		price_per_unit:"String",
 		product_name:"String",
@@ -4237,6 +4241,7 @@ export const ReturnTypes: Record<string,any> = {
 		signiss2_tx_hash:"String",
 		status:"MarketplaceOrderStatus",
 		supplier_account:"String",
+		supplier_name:"String",
 		total_cost:"String",
 		unit_of_measure:"String",
 		updated_at:"DateTime",

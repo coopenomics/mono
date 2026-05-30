@@ -40,6 +40,18 @@ export class MarketplaceAplReceptionFactEntryDTO {
     description: 'Фактическая цена за единицу (если оператор скорректировал её при открытии приёмки).',
   })
   fact_unit_price!: string | null;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Наименование товара по этой позиции — для таблицы сверки в диалоге подписи.',
+  })
+  product_name!: string | null;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Единица измерения товара по этой позиции (шт., кг, л, упак.).',
+  })
+  unit_of_measure!: string | null;
 }
 
 @InputType('MarketplaceAplReceptionFactEntryInput')
@@ -82,6 +94,12 @@ export class MarketplaceAplReceptionDTO {
 
   @Field(() => String, { description: 'Account поставщика-владельца Offer\'ов.' })
   offerer_account!: string;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Наименование поставщика (ФИО или название организации) — для экранов приёмки/подписи.',
+  })
+  offerer_name!: string | null;
 
   @Field(() => MarketplaceAplReceptionVariantEnum)
   variant!: MarketplaceAplReceptionVariantEnum;
@@ -272,8 +290,20 @@ export function toExpressPickupCandidateDTO(c: {
   return dto;
 }
 
+/**
+ * Отображаемые реквизиты приёмки, которыми резолвер обогащает АПП для экранов
+ * подписи/сверки: наименование поставщика и наименования товаров по позициям.
+ * Резолвятся в уже авторизованных (оператор/председатель КУ или сам поставщик)
+ * списочных методах; на самой сущности не хранятся (ссылки по аккаунту/order_id).
+ */
+export interface MarketplaceAplReceptionDisplayFields {
+  offerer_name?: string | null;
+  lineByOrderId?: Map<string, { product_name: string | null; unit_of_measure: string | null }>;
+}
+
 export function toMarketplaceAplReceptionDTO(
-  e: MarketplaceAplReceptionDomainEntity
+  e: MarketplaceAplReceptionDomainEntity,
+  display?: MarketplaceAplReceptionDisplayFields
 ): MarketplaceAplReceptionDTO {
   const dto = new MarketplaceAplReceptionDTO();
   dto.id = e.id;
@@ -282,6 +312,7 @@ export function toMarketplaceAplReceptionDTO(
   dto.cycle_id = e.cycle_id;
   dto.braname = e.braname;
   dto.offerer_account = e.offerer_account;
+  dto.offerer_name = display?.offerer_name ?? null;
   dto.variant = e.variant as MarketplaceAplReceptionVariantEnum;
   dto.status = e.status as MarketplaceAplReceptionStatusEnum;
   dto.fact_quantity_per_order = e.fact_quantity_per_order.map((f) => {
@@ -289,6 +320,9 @@ export function toMarketplaceAplReceptionDTO(
     entry.order_id = f.order_id;
     entry.fact_quantity = f.fact_quantity;
     entry.fact_unit_price = f.fact_unit_price ?? null;
+    const line = display?.lineByOrderId?.get(f.order_id);
+    entry.product_name = line?.product_name ?? null;
+    entry.unit_of_measure = line?.unit_of_measure ?? null;
     return entry;
   });
   dto.ttn_number = e.ttn_number;

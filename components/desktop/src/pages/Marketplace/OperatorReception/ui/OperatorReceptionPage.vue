@@ -179,6 +179,8 @@ async function createReceptionForShipment(shipmentId: string): Promise<void> {
 const scanDialogOpen = ref(false);
 const pickupDialogOpen = ref(false);
 const pickupAccount = ref('');
+// Наименование поставщика (ФИО/организация) для заголовка приёмки — из заказов.
+const pickupSupplierName = ref('');
 const pickupOrders = ref<MarketplaceSupplierPickupOrderView[]>([]);
 // Факт по позиции, вводится на приёмке (R5): по умолчанию = заказано; потолок = заказано.
 const pickupFact = ref<Record<string, number>>({});
@@ -248,6 +250,7 @@ async function openPickupForSupplier(account: string): Promise<void> {
       return;
     }
     pickupAccount.value = account;
+    pickupSupplierName.value = orders[0]?.supplier_name ?? '';
     pickupOrders.value = orders;
     pickupFact.value = Object.fromEntries(orders.map((o) => [o.id, o.quantity]));
     pickupPrice.value = Object.fromEntries(orders.map((o) => [o.id, o.price_per_unit]));
@@ -455,7 +458,7 @@ q-page.reception(role='region', aria-label='Приёмка партии')
   //- разделитель и добор по акцепту. Факт правится на месте, потолок = заказано (R5).
   BaseDialog(v-model='pickupDialogOpen', title='Приёмка имущества поставщика', maximized)
     .reception__pickup
-      .reception__pickup-account {{ pickupAccount }}
+      .reception__pickup-account {{ pickupSupplierName || pickupAccount }}
       .reception__pickup-hint
         | По каждой единице скорректируйте фактическое количество (не выше
         | заказанного) и цену. Снимите галку с задекларированной единицы, чтобы

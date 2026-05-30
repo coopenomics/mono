@@ -51,7 +51,12 @@ const columns: QTableProps['columns'] = [
     field: (r: MarketplaceOrderIssuanceView) => r.product_name || 'Товар по предложению',
     align: 'left',
   },
-  { name: 'orderer', label: 'Заказчик', field: 'orderer_account', align: 'left' },
+  {
+    name: 'orderer',
+    label: 'Заказчик',
+    field: (r: MarketplaceOrderIssuanceView) => r.orderer_name || r.orderer_account,
+    align: 'left',
+  },
   {
     name: 'quantity',
     label: 'Количество',

@@ -15,6 +15,8 @@ const rawFactEntrySelector = {
   order_id: true,
   fact_quantity: true,
   fact_unit_price: true,
+  product_name: true,
+  unit_of_measure: true,
 }
 
 const _validateFactEntry: MakeAllFieldsRequired<ValueTypes['MarketplaceAplReceptionFactEntry']> =
@@ -27,6 +29,7 @@ const rawAplReceptionSelector = {
   cycle_id: true,
   braname: true,
   offerer_account: true,
+  offerer_name: true,
   variant: true,
   status: true,
   fact_quantity_per_order: rawFactEntrySelector,

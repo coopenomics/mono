@@ -62,6 +62,8 @@ export interface MarketplaceOrderDomainRepository
    */
   persistAfterBlock(input: MarketplaceOrderCreateInput): Promise<MarketplaceOrderDomainEntity>;
   findById(id: string): Promise<MarketplaceOrderDomainEntity | null>;
+  /** Батч-выборка заказов по идентификаторам (для обогащения позиций приёмки). */
+  findByIds(ids: string[]): Promise<MarketplaceOrderDomainEntity[]>;
   findByOrderHash(coopname: string, order_hash: string): Promise<MarketplaceOrderDomainEntity | null>;
 
   list(

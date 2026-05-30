@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import type {
   MarketplaceOrderCreateInput,
@@ -61,6 +61,12 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
   async findById(id: string): Promise<MarketplaceOrderDomainEntity | null> {
     const row = await this.repo.findOne({ where: { id } });
     return row ? this.mapper.toDomain(row) : null;
+  }
+
+  async findByIds(ids: string[]): Promise<MarketplaceOrderDomainEntity[]> {
+    if (ids.length === 0) return [];
+    const rows = await this.repo.find({ where: { id: In(ids) } });
+    return rows.map((row) => this.mapper.toDomain(row));
   }
 
   async findByOrderHash(

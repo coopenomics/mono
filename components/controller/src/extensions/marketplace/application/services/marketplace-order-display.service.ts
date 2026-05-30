@@ -5,6 +5,8 @@ import {
   ORGANIZATION_REPOSITORY,
   type OrganizationRepository,
 } from '~/domain/common/repositories/organization.repository';
+import { UserCertificateInteractor } from '~/application/user/interactors/user-certificate.interactor';
+import { AccountType } from '~/application/account/enum/account-type.enum';
 
 import {
   MARKETPLACE_OFFER_REPOSITORY,
@@ -14,6 +16,10 @@ import {
   KU_DETAILS_DOMAIN_REPOSITORY,
   type KuDetailsDomainRepository,
 } from '../../domain/repositories/ku-details-domain.repository';
+import {
+  MARKETPLACE_ORDER_REPOSITORY,
+  type MarketplaceOrderDomainRepository,
+} from '../../domain/repositories/marketplace-order.repository';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import type { MarketplaceOrderDisplayFields } from '../dto/marketplace-order.dto';
 
@@ -46,7 +52,10 @@ export class MarketplaceOrderDisplayService {
     @Inject(KU_DETAILS_DOMAIN_REPOSITORY)
     private readonly kuRepo: KuDetailsDomainRepository,
     @Inject(ORGANIZATION_REPOSITORY)
-    private readonly orgRepo: OrganizationRepository
+    private readonly orgRepo: OrganizationRepository,
+    @Inject(MARKETPLACE_ORDER_REPOSITORY)
+    private readonly orderRepo: MarketplaceOrderDomainRepository,
+    private readonly userCertificate: UserCertificateInteractor
   ) {}
 
   /**
@@ -56,17 +65,25 @@ export class MarketplaceOrderDisplayService {
    * branames. Возвращает карту order.id → реквизиты.
    */
   async enrich(
-    orders: MarketplaceOrderDomainEntity[]
+    orders: MarketplaceOrderDomainEntity[],
+    opts?: { withParticipantNames?: boolean }
   ): Promise<Map<string, MarketplaceOrderDisplayFields>> {
     const result = new Map<string, MarketplaceOrderDisplayFields>();
     if (orders.length === 0) return result;
 
     const offerIds = [...new Set(orders.map((o) => o.offer_id))];
     const branames = [...new Set(orders.map((o) => o.delivery_braname))];
-    const [offers, kuList, nameByBraname] = await Promise.all([
+    // Имена участников (ФИО/наименование) резолвим только для экранов приёмки/
+    // выдачи — оператор/председатель КУ должен видеть «от кого/кому». Авторизация
+    // — на стороне вызывающего резолвера (он уже ограничен ролью/членством КУ).
+    const accounts = opts?.withParticipantNames
+      ? orders.flatMap((o) => [o.orderer_account, o.supplier_account])
+      : [];
+    const [offers, kuList, nameByBraname, nameByAccount] = await Promise.all([
       this.offerRepo.findByIds(offerIds),
       this.kuRepo.findByCoopname(config.coopname),
       this.resolveKuNames(branames),
+      this.resolveAccountNames(accounts),
     ]);
     const offerById = new Map(offers.map((offer) => [offer.id, offer]));
     const addressByBraname = new Map(kuList.map((ku) => [ku.coreBraname, ku.addressFull]));
@@ -78,6 +95,8 @@ export class MarketplaceOrderDisplayService {
         unit_of_measure: offer?.unit_of_measure ?? null,
         delivery_point_name: nameByBraname.get(order.delivery_braname) ?? null,
         delivery_point_address: addressByBraname.get(order.delivery_braname) ?? null,
+        orderer_name: nameByAccount.get(order.orderer_account) ?? null,
+        supplier_name: nameByAccount.get(order.supplier_account) ?? null,
       });
     }
     return result;
@@ -87,6 +106,59 @@ export class MarketplaceOrderDisplayService {
   async enrichOne(order: MarketplaceOrderDomainEntity): Promise<MarketplaceOrderDisplayFields> {
     const map = await this.enrich([order]);
     return map.get(order.id) ?? {};
+  }
+
+  /**
+   * Реквизиты заказов по их идентификаторам (для позиций приёмки, где известны
+   * только order_id из снапшота факта). Грузит заказы батчем и делегирует в
+   * `enrich`. Имена участников здесь не нужны — только товар/единица/ПВЗ.
+   */
+  async enrichByOrderIds(orderIds: string[]): Promise<Map<string, MarketplaceOrderDisplayFields>> {
+    const ids = [...new Set(orderIds.filter((id) => id))];
+    if (ids.length === 0) return new Map();
+    const orders = await this.orderRepo.findByIds(ids);
+    return this.enrich(orders);
+  }
+
+  /**
+   * Отображаемые наименования участников по аккаунтам: ФИО физлица/ИП или
+   * `short_name` организации. Батч с дедупликацией; best-effort — недоступное
+   * имя пропускается (клиент покажет аккаунт). Источник имён — приватные данные
+   * аккаунта, поэтому вызывать только из уже авторизованных резолверов.
+   */
+  async resolveAccountNames(accounts: string[]): Promise<Map<string, string>> {
+    const result = new Map<string, string>();
+    const unique = [...new Set(accounts.filter((a) => a))];
+    if (unique.length === 0) return result;
+    await Promise.all(
+      unique.map(async (account) => {
+        const name = await this.safeDisplayName(account);
+        if (name) result.set(account, name);
+      })
+    );
+    return result;
+  }
+
+  /**
+   * Наименование участника по аккаунту. Организация → `short_name`; физлицо/ИП →
+   * «Фамилия Имя Отчество». Бросок/отсутствие сертификата → null (best-effort).
+   */
+  private async safeDisplayName(account: string): Promise<string | null> {
+    try {
+      const cert = await this.userCertificate.getCertificateByUsername(account);
+      if (!cert) return null;
+      if (cert.type === AccountType.organization) {
+        return cert.short_name?.trim() || null;
+      }
+      return (
+        [cert.last_name, cert.first_name, cert.middle_name]
+          .filter((part) => part && part.trim())
+          .join(' ')
+          .trim() || null
+      );
+    } catch {
+      return null;
+    }
   }
 
   private async resolveKuNames(branames: string[]): Promise<Map<string, string>> {

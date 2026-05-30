@@ -104,6 +104,12 @@ export class MarketplaceOrderDTO {
   @Field(() => String, { description: 'Аккаунт пайщика-заказчика.' })
   public readonly orderer_account!: string;
 
+  @Field(() => String, {
+    nullable: true,
+    description: 'Наименование заказчика (ФИО пайщика или название организации) — для экранов выдачи/подписи.',
+  })
+  public readonly orderer_name!: string | null;
+
   @Field(() => String, { description: 'Идентификатор предложения, по которому оформлен заказ.' })
   public readonly offer_id!: string;
 
@@ -124,6 +130,12 @@ export class MarketplaceOrderDTO {
 
   @Field(() => String, { description: 'Аккаунт поставщика.' })
   public readonly supplier_account!: string;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Наименование поставщика (ФИО или название организации) — для экранов приёмки/подписи.',
+  })
+  public readonly supplier_name!: string | null;
 
   @Field(() => String, { description: 'Имя пункта выдачи (ПВЗ), куда пайщик хочет получить заказ.' })
   public readonly delivery_braname!: string;
@@ -351,6 +363,8 @@ export interface MarketplaceOrderDisplayFields {
   unit_of_measure?: string | null;
   delivery_point_name?: string | null;
   delivery_point_address?: string | null;
+  orderer_name?: string | null;
+  supplier_name?: string | null;
 }
 
 export function toMarketplaceOrderDTO(
@@ -362,11 +376,13 @@ export function toMarketplaceOrderDTO(
     coopname: o.coopname,
     order_hash: o.order_hash,
     orderer_account: o.orderer_account,
+    orderer_name: display?.orderer_name ?? null,
     offer_id: o.offer_id,
     offer_hash: o.offer_hash,
     product_name: display?.product_name ?? null,
     unit_of_measure: display?.unit_of_measure ?? null,
     supplier_account: o.supplier_account,
+    supplier_name: display?.supplier_name ?? null,
     delivery_braname: o.delivery_braname,
     delivery_point_name: display?.delivery_point_name ?? null,
     delivery_point_address: display?.delivery_point_address ?? null,

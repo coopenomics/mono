@@ -5,6 +5,7 @@ import { MarketplaceInfrastructureModule } from '../infrastructure/marketplace-i
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
 import { GatewayInfrastructureModule } from '~/infrastructure/gateway/gateway-infrastructure.module';
 import { DocumentDomainModule } from '~/domain/document/document.module';
+import { UserModule } from '~/application/user/user.module';
 import { CategoryTreeResolver } from './resolvers/category-tree.resolver';
 import { AttributeResolver } from './resolvers/attribute.resolver';
 import { AvailableCategoryAdminResolver } from './resolvers/available-category-admin.resolver';
@@ -156,6 +157,9 @@ import { MarketplaceInventoryEntity } from '../infrastructure/entities/marketpla
     // DocumentDomainService для генерации preview-документов АПП приёмки
     // через GENERATOR_PORT (registry_id=1102).
     DocumentDomainModule,
+    // UserCertificateInteractor — резолв ФИО/наименования участников по аккаунту
+    // для экранов приёмки/выдачи (MarketplaceOrderDisplayService).
+    UserModule,
     // Эпик 7 / Story 7.1: bucket для фотографий гарантийного возврата
     // (`stol-zakazov:images`). Имя bucket'а декларируется через @UseBucket
     // на MarketplaceReturnClaimImagesService — модуль `forFeature` читает

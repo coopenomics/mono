@@ -40,6 +40,7 @@ import {
   MARKETPLACE_APL_RECEPTION_REPOSITORY,
   type MarketplaceAplReceptionDomainRepository,
 } from '../../domain/repositories/marketplace-apl-reception.repository';
+import type { MarketplaceAplReceptionDomainEntity } from '../../domain/entities/marketplace-apl-reception.entity';
 import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
 import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
@@ -127,7 +128,7 @@ export class MarketplaceAplReceptionResolver {
       fact_quantity_per_order: data.fact_quantity_per_order,
     });
     const dto = new MarketplaceCreateExpressReceptionResultDTO();
-    dto.apl_receptions = result.apl_receptions.map(toMarketplaceAplReceptionDTO);
+    dto.apl_receptions = result.apl_receptions.map((r) => toMarketplaceAplReceptionDTO(r));
     return dto;
   }
 
@@ -285,7 +286,7 @@ export class MarketplaceAplReceptionResolver {
     }
 
     const list = await this.receptionRepo.listByBraname(coopname, data.braname);
-    return list.map(toMarketplaceAplReceptionDTO);
+    return this.enrichReceptions(list);
   }
 
   @Query(() => [MarketplaceExpressPickupCandidateDTO], {
@@ -365,6 +366,39 @@ export class MarketplaceAplReceptionResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember
   ): Promise<MarketplaceAplReceptionDTO[]> {
     const list = await this.receptionRepo.listByOfferer(config.coopname, member.username);
-    return list.map(toMarketplaceAplReceptionDTO);
+    return this.enrichReceptions(list);
+  }
+
+  /**
+   * Обогащение списка АПП отображаемыми реквизитами для экранов подписи/сверки:
+   * наименование поставщика (ФИО/организация) и наименования товаров по позициям
+   * (по order_id из снапшота факта). Оба списочных метода уже авторизованы
+   * (оператор/председатель КУ либо сам поставщик), поэтому резолв приватных имён
+   * здесь допустим. Best-effort: недостающие имена/товары остаются null.
+   */
+  private async enrichReceptions(
+    list: MarketplaceAplReceptionDomainEntity[]
+  ): Promise<MarketplaceAplReceptionDTO[]> {
+    if (list.length === 0) return [];
+    const offererAccounts = list.map((r) => r.offerer_account);
+    const orderIds = list.flatMap((r) => r.fact_quantity_per_order.map((f) => f.order_id));
+    const [nameByAccount, displayByOrderId] = await Promise.all([
+      this.displayService.resolveAccountNames(offererAccounts),
+      this.displayService.enrichByOrderIds(orderIds),
+    ]);
+    return list.map((r) =>
+      toMarketplaceAplReceptionDTO(r, {
+        offerer_name: nameByAccount.get(r.offerer_account) ?? null,
+        lineByOrderId: new Map(
+          r.fact_quantity_per_order.map((f) => [
+            f.order_id,
+            {
+              product_name: displayByOrderId.get(f.order_id)?.product_name ?? null,
+              unit_of_measure: displayByOrderId.get(f.order_id)?.unit_of_measure ?? null,
+            },
+          ])
+        ),
+      })
+    );
   }
 }

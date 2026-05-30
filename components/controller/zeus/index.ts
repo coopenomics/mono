@@ -6120,6 +6120,8 @@ export type ValueTypes = {
 	id?:boolean | `@${string}`,
 	/** Account поставщика-владельца Offer'ов. */
 	offerer_account?:boolean | `@${string}`,
+	/** Наименование поставщика (ФИО или название организации) — для экранов приёмки/подписи. */
+	offerer_name?:boolean | `@${string}`,
 	/** Партия поставки, по которой формируется приёмка. */
 	shipment_id?:boolean | `@${string}`,
 	status?:boolean | `@${string}`,
@@ -6145,6 +6147,10 @@ export type ValueTypes = {
 	/** Фактическая цена за единицу (если оператор скорректировал её при открытии приёмки). */
 	fact_unit_price?:boolean | `@${string}`,
 	order_id?:boolean | `@${string}`,
+	/** Наименование товара по этой позиции — для таблицы сверки в диалоге подписи. */
+	product_name?:boolean | `@${string}`,
+	/** Единица измерения товара по этой позиции (шт., кг, л, упак.). */
+	unit_of_measure?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceAplReceptionFactEntry']?: Omit<ValueTypes["MarketplaceAplReceptionFactEntry"], "...on MarketplaceAplReceptionFactEntry">
 }>;
@@ -7141,6 +7147,8 @@ export type ValueTypes = {
 	order_hash?:boolean | `@${string}`,
 	/** Аккаунт пайщика-заказчика. */
 	orderer_account?:boolean | `@${string}`,
+	/** Наименование заказчика (ФИО пайщика или название организации) — для экранов выдачи/подписи. */
+	orderer_name?:boolean | `@${string}`,
 	/** Когда заказчик поставил финальную подпись на акте выдачи. */
 	orderer_signed_at?:boolean | `@${string}`,
 	/** Цена за единицу товара на момент заказа. */
@@ -7159,6 +7167,8 @@ export type ValueTypes = {
 	status?:boolean | `@${string}`,
 	/** Аккаунт поставщика. */
 	supplier_account?:boolean | `@${string}`,
+	/** Наименование поставщика (ФИО или название организации) — для экранов приёмки/подписи. */
+	supplier_name?:boolean | `@${string}`,
 	/** Общая сумма заказа. */
 	total_cost?:boolean | `@${string}`,
 	/** Единица измерения товара из предложения (шт., кг, л, упак.). */
@@ -16238,6 +16248,8 @@ export type ResolverInputTypes = {
 	id?:boolean | `@${string}`,
 	/** Account поставщика-владельца Offer'ов. */
 	offerer_account?:boolean | `@${string}`,
+	/** Наименование поставщика (ФИО или название организации) — для экранов приёмки/подписи. */
+	offerer_name?:boolean | `@${string}`,
 	/** Партия поставки, по которой формируется приёмка. */
 	shipment_id?:boolean | `@${string}`,
 	status?:boolean | `@${string}`,
@@ -16262,6 +16274,10 @@ export type ResolverInputTypes = {
 	/** Фактическая цена за единицу (если оператор скорректировал её при открытии приёмки). */
 	fact_unit_price?:boolean | `@${string}`,
 	order_id?:boolean | `@${string}`,
+	/** Наименование товара по этой позиции — для таблицы сверки в диалоге подписи. */
+	product_name?:boolean | `@${string}`,
+	/** Единица измерения товара по этой позиции (шт., кг, л, упак.). */
+	unit_of_measure?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["MarketplaceAplReceptionFactEntryInput"]: {
@@ -17222,6 +17238,8 @@ export type ResolverInputTypes = {
 	order_hash?:boolean | `@${string}`,
 	/** Аккаунт пайщика-заказчика. */
 	orderer_account?:boolean | `@${string}`,
+	/** Наименование заказчика (ФИО пайщика или название организации) — для экранов выдачи/подписи. */
+	orderer_name?:boolean | `@${string}`,
 	/** Когда заказчик поставил финальную подпись на акте выдачи. */
 	orderer_signed_at?:boolean | `@${string}`,
 	/** Цена за единицу товара на момент заказа. */
@@ -17240,6 +17258,8 @@ export type ResolverInputTypes = {
 	status?:boolean | `@${string}`,
 	/** Аккаунт поставщика. */
 	supplier_account?:boolean | `@${string}`,
+	/** Наименование поставщика (ФИО или название организации) — для экранов приёмки/подписи. */
+	supplier_name?:boolean | `@${string}`,
 	/** Общая сумма заказа. */
 	total_cost?:boolean | `@${string}`,
 	/** Единица измерения товара из предложения (шт., кг, л, упак.). */
@@ -26036,6 +26056,8 @@ export type ModelTypes = {
 	id: ModelTypes["ID"],
 	/** Account поставщика-владельца Offer'ов. */
 	offerer_account: string,
+	/** Наименование поставщика (ФИО или название организации) — для экранов приёмки/подписи. */
+	offerer_name?: string | undefined | null,
 	/** Партия поставки, по которой формируется приёмка. */
 	shipment_id: ModelTypes["ID"],
 	status: ModelTypes["MarketplaceAplReceptionStatus"],
@@ -26058,7 +26080,11 @@ export type ModelTypes = {
 	fact_quantity: number,
 	/** Фактическая цена за единицу (если оператор скорректировал её при открытии приёмки). */
 	fact_unit_price?: string | undefined | null,
-	order_id: ModelTypes["ID"]
+	order_id: ModelTypes["ID"],
+	/** Наименование товара по этой позиции — для таблицы сверки в диалоге подписи. */
+	product_name?: string | undefined | null,
+	/** Единица измерения товара по этой позиции (шт., кг, л, упак.). */
+	unit_of_measure?: string | undefined | null
 };
 	["MarketplaceAplReceptionFactEntryInput"]: {
 	fact_quantity: number,
@@ -26976,6 +27002,8 @@ export type ModelTypes = {
 	order_hash: string,
 	/** Аккаунт пайщика-заказчика. */
 	orderer_account: string,
+	/** Наименование заказчика (ФИО пайщика или название организации) — для экранов выдачи/подписи. */
+	orderer_name?: string | undefined | null,
 	/** Когда заказчик поставил финальную подпись на акте выдачи. */
 	orderer_signed_at?: ModelTypes["DateTime"] | undefined | null,
 	/** Цена за единицу товара на момент заказа. */
@@ -26994,6 +27022,8 @@ export type ModelTypes = {
 	status: ModelTypes["MarketplaceOrderStatus"],
 	/** Аккаунт поставщика. */
 	supplier_account: string,
+	/** Наименование поставщика (ФИО или название организации) — для экранов приёмки/подписи. */
+	supplier_name?: string | undefined | null,
 	/** Общая сумма заказа. */
 	total_cost: string,
 	/** Единица измерения товара из предложения (шт., кг, л, упак.). */
@@ -36661,6 +36691,8 @@ export type GraphQLTypes = {
 	id: GraphQLTypes["ID"],
 	/** Account поставщика-владельца Offer'ов. */
 	offerer_account: string,
+	/** Наименование поставщика (ФИО или название организации) — для экранов приёмки/подписи. */
+	offerer_name?: string | undefined | null,
 	/** Партия поставки, по которой формируется приёмка. */
 	shipment_id: GraphQLTypes["ID"],
 	status: GraphQLTypes["MarketplaceAplReceptionStatus"],
@@ -36686,6 +36718,10 @@ export type GraphQLTypes = {
 	/** Фактическая цена за единицу (если оператор скорректировал её при открытии приёмки). */
 	fact_unit_price?: string | undefined | null,
 	order_id: GraphQLTypes["ID"],
+	/** Наименование товара по этой позиции — для таблицы сверки в диалоге подписи. */
+	product_name?: string | undefined | null,
+	/** Единица измерения товара по этой позиции (шт., кг, л, упак.). */
+	unit_of_measure?: string | undefined | null,
 	['...on MarketplaceAplReceptionFactEntry']: Omit<GraphQLTypes["MarketplaceAplReceptionFactEntry"], "...on MarketplaceAplReceptionFactEntry">
 };
 	["MarketplaceAplReceptionFactEntryInput"]: {
@@ -37682,6 +37718,8 @@ export type GraphQLTypes = {
 	order_hash: string,
 	/** Аккаунт пайщика-заказчика. */
 	orderer_account: string,
+	/** Наименование заказчика (ФИО пайщика или название организации) — для экранов выдачи/подписи. */
+	orderer_name?: string | undefined | null,
 	/** Когда заказчик поставил финальную подпись на акте выдачи. */
 	orderer_signed_at?: GraphQLTypes["DateTime"] | undefined | null,
 	/** Цена за единицу товара на момент заказа. */
@@ -37700,6 +37738,8 @@ export type GraphQLTypes = {
 	status: GraphQLTypes["MarketplaceOrderStatus"],
 	/** Аккаунт поставщика. */
 	supplier_account: string,
+	/** Наименование поставщика (ФИО или название организации) — для экранов приёмки/подписи. */
+	supplier_name?: string | undefined | null,
 	/** Общая сумма заказа. */
 	total_cost: string,
 	/** Единица измерения товара из предложения (шт., кг, л, упак.). */
