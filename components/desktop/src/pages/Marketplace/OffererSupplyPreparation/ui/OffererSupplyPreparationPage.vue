@@ -9,12 +9,15 @@ import { listShipments, type MarketplaceShipmentView } from '../api';
 /**
  * Эпик 5 / Story 5.1–5.2: offerer-стол «Подготовка отгрузки».
  *
- * Поставщик видит партии поставки, комплектует и подтверждает готовность к
- * отгрузке. Вёрстка по канону MONO Platform v2: инфо-баннер, canon-таблица
- * со статус-бейджами, скелетон вместо спиннера, EmptyState.
+ * Поставщик видит партии поставки и понимает следующий шаг по каждой (колонка
+ * «Следующий шаг»). Вёрстка по канону MONO Platform v2: инфо-баннер,
+ * canon-таблица со статус-бейджами, скелетон вместо спиннера, EmptyState.
  *
- * Группировка drag-n-drop (ExpeditorGroupingBoard) и печать ТТН
- * (TTNPrintPreview) подключаются второй UI-волной.
+ * ВНИМАНИЕ — страница пока read-only (Шаг 1, 2026-05-30). Активная подготовка
+ * отгрузки, описанная в Story 5.1 (явный выбор Вариант А/Б, группировка по КУ,
+ * форма + печать ТТН), и QR-передача на ПВЗ не реализованы — это доработки
+ * Эпика 14 (см. epics.md MVP «Стол заказов»). Сейчас индивидуальные заказы
+ * авто-формируют партию Варианта А (самовывоз) на бэкенде без выбора.
  */
 
 const items = ref<MarketplaceShipmentView[]>([]);
@@ -43,6 +46,29 @@ const DELIVERY_VARIANT_LABEL: Record<string, string> = {
 
 function deliveryVariantLabel(v: string): string {
   return DELIVERY_VARIANT_LABEL[v] ?? v;
+}
+
+const isExpeditor = (v?: string | null): boolean => v === 'EXPEDITOR' || v === 'B';
+
+/**
+ * Следующий шаг по партии — чтобы поставщик понимал, что делать (страница пока
+ * read-only: активная подготовка — выбор варианта, ТТН, QR-передача — в
+ * доработках Эпика 14). После SUPPLY_PREPARED ход у оператора КУ (открыть акт
+ * приёмки); для самовывоза поставщик просто привозит имущество на КУ.
+ */
+function nextStep(row: MarketplaceShipmentView): string {
+  switch (row.status) {
+    case 'SUPPLY_PREPARED':
+      return isExpeditor(row.delivery_variant)
+        ? 'Передайте груз экспедитору по ТТН — оператор КУ примет по накладной'
+        : 'Привезите имущество на КУ — оператор откроет приёмку';
+    case 'RECEPTION_IN_PROGRESS':
+      return 'Идёт приёмка на КУ — дождитесь подписей акта';
+    case 'ACCEPTED_TO_COOP':
+      return 'Принято кооперативом';
+    default:
+      return '';
+  }
 }
 
 // Колонки скелетона повторяют шапку реальной таблицы — каркас не дёргается.
@@ -74,8 +100,10 @@ onMounted(() => {
 <template lang="pug">
 q-page.offerer-supply
   PageHint(storage-key='mp:offerer-supply:banner-dismissed')
-    | Партии поставки по принятым заказам. Скомплектуйте партию и подтвердите
-    | готовность к отгрузке — после приёмки на ПВЗ она перейдёт кооперативу.
+    | Партии поставки по принятым заказам. В колонке «Следующий шаг» — что
+    | делать дальше: при самовывозе привезите имущество на КУ (оператор откроет
+    | приёмку), при экспедиторе передайте груз по ТТН. После приёмки на ПВЗ
+    | партия перейдёт кооперативу.
 
   .offerer-supply__toolbar
     BaseButton(
@@ -92,7 +120,7 @@ q-page.offerer-supply
     v-if='loading && !items.length',
     :columns='skeletonColumns',
     :rows='6',
-    min-width='880px'
+    min-width='960px'
   )
   .table-wrap(v-else-if='items.length')
     .table-scroll
@@ -112,6 +140,7 @@ q-page.offerer-supply
             td.col-variant {{ deliveryVariantLabel(row.delivery_variant) }}
             td.col-status
               BaseBadge(:variant='statusOf(row.status).variant') {{ statusOf(row.status).label }}
+              .offerer-supply__next(v-if='nextStep(row)') {{ nextStep(row) }}
             td.col-num {{ row.total_amount }} ₽
             td.col-ttn {{ row.ttn_number || '—' }}
 
@@ -135,6 +164,14 @@ q-page.offerer-supply
     display: flex;
     justify-content: flex-end;
   }
+
+  // Подсказка «следующий шаг» под бейджем статуса — мелкая, второстепенная.
+  &__next {
+    margin-top: var(--p-1, 4px);
+    font-size: var(--p-fs-body-sm, 13px);
+    line-height: 1.3;
+    color: var(--p-ink-3);
+  }
 }
 
 .table-scroll {
@@ -142,7 +179,7 @@ q-page.offerer-supply
 }
 .table {
   table-layout: fixed;
-  min-width: 880px;
+  min-width: 960px;
 }
 .col-id {
   width: 150px;
@@ -152,7 +189,7 @@ q-page.offerer-supply
   width: 160px;
 }
 .col-status {
-  width: 200px;
+  width: 280px;
 }
 .col-num {
   width: 120px;
