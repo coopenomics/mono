@@ -6580,11 +6580,11 @@ export type ValueTypes = {
 	["MarketplaceCreateShipmentInput"]: {
 	/** Идентификатор консолидированной заявки в статусе ACCEPTED. */
 	cycle_id: ValueTypes["ID"] | Variable<any, string>,
-	/** Группы доставки — по одной на каждый КУ из заявки. */
+	/** Группы доставки по КУ заявки. Каждая группа = одна партия (один КУ, один вариант доставки, опционально подмножество заказов). Покрытие всех КУ заявки не требуется — можно формировать частично и догружать остаток отдельными партиями. */
 	groups: Array<ValueTypes["MarketplaceShipmentGroupInput"]> | Variable<any, string>
 };
 	["MarketplaceCreateShipmentResult"]: AliasType<{
-	/** Созданные партии — по одной на каждый КУ заявки. */
+	/** Созданные партии — по одной на каждую группу доставки во входе. */
 	shipments?:ValueTypes["MarketplaceShipment"],
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceCreateShipmentResult']?: Omit<ValueTypes["MarketplaceCreateShipmentResult"], "...on MarketplaceCreateShipmentResult">
@@ -7711,6 +7711,8 @@ export type ValueTypes = {
 	/** Идентификатор КУ-получателя (branch.name). */
 	braname: string | Variable<any, string>,
 	delivery_variant: ValueTypes["MarketplaceShipmentDeliveryVariant"] | Variable<any, string>,
+	/** Подмножество заказов этого КУ, реально погружаемых в партию (частичная отгрузка). Пусто → все акцептованные заказы КУ (поведение по умолчанию). Невключённые заказы остаются ACCEPTED и доступны для следующей партии. */
+	order_ids?: Array<ValueTypes["ID"]> | undefined | null | Variable<any, string>,
 	/** Поля ТТН — обязательны для Варианта Б. */
 	ttn_data?: ValueTypes["MarketplaceShipmentTTNDataInput"] | undefined | null | Variable<any, string>
 };
@@ -16687,11 +16689,11 @@ export type ResolverInputTypes = {
 	["MarketplaceCreateShipmentInput"]: {
 	/** Идентификатор консолидированной заявки в статусе ACCEPTED. */
 	cycle_id: ResolverInputTypes["ID"],
-	/** Группы доставки — по одной на каждый КУ из заявки. */
+	/** Группы доставки по КУ заявки. Каждая группа = одна партия (один КУ, один вариант доставки, опционально подмножество заказов). Покрытие всех КУ заявки не требуется — можно формировать частично и догружать остаток отдельными партиями. */
 	groups: Array<ResolverInputTypes["MarketplaceShipmentGroupInput"]>
 };
 	["MarketplaceCreateShipmentResult"]: AliasType<{
-	/** Созданные партии — по одной на каждый КУ заявки. */
+	/** Созданные партии — по одной на каждую группу доставки во входе. */
 	shipments?:ResolverInputTypes["MarketplaceShipment"],
 		__typename?: boolean | `@${string}`
 }>;
@@ -17784,6 +17786,8 @@ export type ResolverInputTypes = {
 	/** Идентификатор КУ-получателя (branch.name). */
 	braname: string,
 	delivery_variant: ResolverInputTypes["MarketplaceShipmentDeliveryVariant"],
+	/** Подмножество заказов этого КУ, реально погружаемых в партию (частичная отгрузка). Пусто → все акцептованные заказы КУ (поведение по умолчанию). Невключённые заказы остаются ACCEPTED и доступны для следующей партии. */
+	order_ids?: Array<ResolverInputTypes["ID"]> | undefined | null,
 	/** Поля ТТН — обязательны для Варианта Б. */
 	ttn_data?: ResolverInputTypes["MarketplaceShipmentTTNDataInput"] | undefined | null
 };
@@ -26468,11 +26472,11 @@ export type ModelTypes = {
 	["MarketplaceCreateShipmentInput"]: {
 	/** Идентификатор консолидированной заявки в статусе ACCEPTED. */
 	cycle_id: ModelTypes["ID"],
-	/** Группы доставки — по одной на каждый КУ из заявки. */
+	/** Группы доставки по КУ заявки. Каждая группа = одна партия (один КУ, один вариант доставки, опционально подмножество заказов). Покрытие всех КУ заявки не требуется — можно формировать частично и догружать остаток отдельными партиями. */
 	groups: Array<ModelTypes["MarketplaceShipmentGroupInput"]>
 };
 	["MarketplaceCreateShipmentResult"]: {
-		/** Созданные партии — по одной на каждый КУ заявки. */
+		/** Созданные партии — по одной на каждую группу доставки во входе. */
 	shipments: Array<ModelTypes["MarketplaceShipment"]>
 };
 	["MarketplaceCreateWriteoffDraftInput"]: {
@@ -27522,6 +27526,8 @@ export type ModelTypes = {
 	/** Идентификатор КУ-получателя (branch.name). */
 	braname: string,
 	delivery_variant: ModelTypes["MarketplaceShipmentDeliveryVariant"],
+	/** Подмножество заказов этого КУ, реально погружаемых в партию (частичная отгрузка). Пусто → все акцептованные заказы КУ (поведение по умолчанию). Невключённые заказы остаются ACCEPTED и доступны для следующей партии. */
+	order_ids?: Array<ModelTypes["ID"]> | undefined | null,
 	/** Поля ТТН — обязательны для Варианта Б. */
 	ttn_data?: ModelTypes["MarketplaceShipmentTTNDataInput"] | undefined | null
 };
@@ -28483,7 +28489,7 @@ export type ModelTypes = {
 	marketplaceCreateRequest: ModelTypes["MarketplaceRequest"],
 	/** Пайщик подаёт заявление на гарантийный возврат имущества — backend кладёт фото в защищённое хранилище и фиксирует заявление в блокчейне. */
 	marketplaceCreateReturnClaim: ModelTypes["MarketplaceReturnClaimResult"],
-	/** Сформировать партии поставки из акцептованной заявки: одна группа на каждый КУ-получатель. */
+	/** Сформировать партии поставки из акцептованной заявки. Каждая группа = одна партия (КУ + вариант доставки + опционально подмножество заказов). Покрытие всех КУ не обязательно — допустима частичная отгрузка и догрузка остатка отдельными партиями. */
 	marketplaceCreateShipment: ModelTypes["MarketplaceCreateShipmentResult"],
 	/** Создаёт ручной черновик проекта списания. На кооператив может быть только один открытый черновик и один проект, отправленный в совет. */
 	marketplaceCreateWriteoffDraft: ModelTypes["MarketplaceWriteoffProposal"],
@@ -37150,12 +37156,12 @@ export type GraphQLTypes = {
 	["MarketplaceCreateShipmentInput"]: {
 		/** Идентификатор консолидированной заявки в статусе ACCEPTED. */
 	cycle_id: GraphQLTypes["ID"],
-	/** Группы доставки — по одной на каждый КУ из заявки. */
+	/** Группы доставки по КУ заявки. Каждая группа = одна партия (один КУ, один вариант доставки, опционально подмножество заказов). Покрытие всех КУ заявки не требуется — можно формировать частично и догружать остаток отдельными партиями. */
 	groups: Array<GraphQLTypes["MarketplaceShipmentGroupInput"]>
 };
 	["MarketplaceCreateShipmentResult"]: {
 	__typename: "MarketplaceCreateShipmentResult",
-	/** Созданные партии — по одной на каждый КУ заявки. */
+	/** Созданные партии — по одной на каждую группу доставки во входе. */
 	shipments: Array<GraphQLTypes["MarketplaceShipment"]>,
 	['...on MarketplaceCreateShipmentResult']: Omit<GraphQLTypes["MarketplaceCreateShipmentResult"], "...on MarketplaceCreateShipmentResult">
 };
@@ -38281,6 +38287,8 @@ export type GraphQLTypes = {
 		/** Идентификатор КУ-получателя (branch.name). */
 	braname: string,
 	delivery_variant: GraphQLTypes["MarketplaceShipmentDeliveryVariant"],
+	/** Подмножество заказов этого КУ, реально погружаемых в партию (частичная отгрузка). Пусто → все акцептованные заказы КУ (поведение по умолчанию). Невключённые заказы остаются ACCEPTED и доступны для следующей партии. */
+	order_ids?: Array<GraphQLTypes["ID"]> | undefined | null,
 	/** Поля ТТН — обязательны для Варианта Б. */
 	ttn_data?: GraphQLTypes["MarketplaceShipmentTTNDataInput"] | undefined | null
 };
@@ -39280,7 +39288,7 @@ export type GraphQLTypes = {
 	marketplaceCreateRequest: GraphQLTypes["MarketplaceRequest"],
 	/** Пайщик подаёт заявление на гарантийный возврат имущества — backend кладёт фото в защищённое хранилище и фиксирует заявление в блокчейне. */
 	marketplaceCreateReturnClaim: GraphQLTypes["MarketplaceReturnClaimResult"],
-	/** Сформировать партии поставки из акцептованной заявки: одна группа на каждый КУ-получатель. */
+	/** Сформировать партии поставки из акцептованной заявки. Каждая группа = одна партия (КУ + вариант доставки + опционально подмножество заказов). Покрытие всех КУ не обязательно — допустима частичная отгрузка и догрузка остатка отдельными партиями. */
 	marketplaceCreateShipment: GraphQLTypes["MarketplaceCreateShipmentResult"],
 	/** Создаёт ручной черновик проекта списания. На кооператив может быть только один открытый черновик и один проект, отправленный в совет. */
 	marketplaceCreateWriteoffDraft: GraphQLTypes["MarketplaceWriteoffProposal"],

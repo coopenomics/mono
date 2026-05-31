@@ -52,7 +52,9 @@ export class MarketplaceShipmentResolver {
   @Mutation(() => MarketplaceCreateShipmentResultDTO, {
     name: 'marketplaceCreateShipment',
     description:
-      'Сформировать партии поставки из акцептованной заявки: одна группа на каждый КУ-получатель.',
+      'Сформировать партии поставки из акцептованной заявки. Каждая группа = одна партия ' +
+      '(КУ + вариант доставки + опционально подмножество заказов). Покрытие всех КУ не ' +
+      'обязательно — допустима частичная отгрузка и догрузка остатка отдельными партиями.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Shipment', 'create:own')
@@ -68,6 +70,7 @@ export class MarketplaceShipmentResolver {
         braname: g.braname,
         delivery_variant: g.delivery_variant as unknown as MarketplaceShipmentDeliveryVariant,
         ttn_data: (g.ttn_data ?? null) as MarketplaceShipmentTTNData | null,
+        order_ids: g.order_ids ?? null,
       })),
     });
 

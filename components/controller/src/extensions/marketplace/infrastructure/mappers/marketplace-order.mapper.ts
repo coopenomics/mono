@@ -24,6 +24,7 @@ export class MarketplaceOrderMapper {
       total_cost: row.total_cost,
       cycle_type: row.cycle_type,
       cycle_id: row.cycle_id,
+      shipment_id: row.shipment_id ?? null,
       warranty_period_secs: row.warranty_period_secs,
       warranty_until: row.warranty_until,
       status: row.status,

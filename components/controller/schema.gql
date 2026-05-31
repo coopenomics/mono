@@ -7689,12 +7689,14 @@ input MarketplaceCreateShipmentInput {
   """Идентификатор консолидированной заявки в статусе ACCEPTED."""
   cycle_id: ID!
 
-  """Группы доставки — по одной на каждый КУ из заявки."""
+  """
+  Группы доставки по КУ заявки. Каждая группа = одна партия (один КУ, один вариант доставки, опционально подмножество заказов). Покрытие всех КУ заявки не требуется — можно формировать частично и догружать остаток отдельными партиями.
+  """
   groups: [MarketplaceShipmentGroupInput!]!
 }
 
 type MarketplaceCreateShipmentResult {
-  """Созданные партии — по одной на каждый КУ заявки."""
+  """Созданные партии — по одной на каждую группу доставки во входе."""
   shipments: [MarketplaceShipment!]!
 }
 
@@ -9320,6 +9322,11 @@ input MarketplaceShipmentGroupInput {
   braname: String!
   delivery_variant: MarketplaceShipmentDeliveryVariant!
 
+  """
+  Подмножество заказов этого КУ, реально погружаемых в партию (частичная отгрузка). Пусто → все акцептованные заказы КУ (поведение по умолчанию). Невключённые заказы остаются ACCEPTED и доступны для следующей партии.
+  """
+  order_ids: [ID!]
+
   """Поля ТТН — обязательны для Варианта Б."""
   ttn_data: MarketplaceShipmentTTNDataInput
 }
@@ -10908,7 +10915,7 @@ type Mutation {
   marketplaceCreateReturnClaim(data: MarketplaceCreateReturnClaimInput!): MarketplaceReturnClaimResult!
 
   """
-  Сформировать партии поставки из акцептованной заявки: одна группа на каждый КУ-получатель.
+  Сформировать партии поставки из акцептованной заявки. Каждая группа = одна партия (КУ + вариант доставки + опционально подмножество заказов). Покрытие всех КУ не обязательно — допустима частичная отгрузка и догрузка остатка отдельными партиями.
   """
   marketplaceCreateShipment(data: MarketplaceCreateShipmentInput!): MarketplaceCreateShipmentResult!
 

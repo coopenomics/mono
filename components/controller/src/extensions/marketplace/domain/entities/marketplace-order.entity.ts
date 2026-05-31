@@ -39,6 +39,8 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
   public readonly total_cost: string;
   public readonly cycle_type: MarketplaceOrderCycleType;
   public readonly cycle_id: string | null;
+  /** Партия, в которую заказ включён при формировании (null = вне партии). */
+  public shipment_id: string | null;
   public readonly warranty_period_secs: number;
   public readonly warranty_until: Date | null;
   public status: MarketplaceOrderStatus;
@@ -92,6 +94,7 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
     this.total_cost = props.total_cost;
     this.cycle_type = props.cycle_type;
     this.cycle_id = props.cycle_id;
+    this.shipment_id = props.shipment_id;
     this.warranty_period_secs = props.warranty_period_secs;
     this.warranty_until = props.warranty_until;
     this.status = props.status;

@@ -36,6 +36,7 @@ import type { ISignedDocumentDomainInterface } from '~/domain/document/interface
 @Index(['coopname', 'supplier_account', 'status'])
 @Index(['coopname', 'status', 'created_at'])
 @Index(['offer_id', 'status'])
+@Index(['coopname', 'shipment_id'])
 export class MarketplaceOrderEntity {
   @PrimaryGeneratedColumn('uuid')
   public id!: string;
@@ -84,6 +85,15 @@ export class MarketplaceOrderEntity {
    */
   @Column({ type: 'uuid', nullable: true })
   public cycle_id!: string | null;
+
+  /**
+   * Backend-only: партия (`marketplace_shipment.id`), в которую заказ включён
+   * при формировании. null = акцептован, но в партию не вошёл. Связь позволяет
+   * нескольким частичным партиям сосуществовать на одном (cycle, КУ): приёмка
+   * резолвит состав партии по `shipment_id`, а не по (cycle, braname).
+   */
+  @Column({ type: 'uuid', nullable: true })
+  public shipment_id!: string | null;
 
   @Column({ type: 'integer' })
   public warranty_period_secs!: number;

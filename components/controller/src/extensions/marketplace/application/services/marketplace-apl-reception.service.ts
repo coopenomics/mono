@@ -332,8 +332,14 @@ export class MarketplaceAplReceptionService {
       );
     }
 
-    const orders = await this.orderRepo.findByCycleId(shipment.coopname, shipment.cycle_id);
-    const groupOrders = orders.filter((o) => o.delivery_braname === shipment.braname);
+    // Состав партии — по прямой связи order.shipment_id (обязательно при
+    // нескольких частичных партиях на одном КУ). Fallback на инференцию
+    // «по (cycle, КУ)» — для партий, созданных до появления связи.
+    let groupOrders = await this.orderRepo.findByShipmentId(shipment.coopname, shipment.id);
+    if (groupOrders.length === 0) {
+      const orders = await this.orderRepo.findByCycleId(shipment.coopname, shipment.cycle_id);
+      groupOrders = orders.filter((o) => o.delivery_braname === shipment.braname);
+    }
     if (groupOrders.length === 0) {
       throw new BadRequestException(
         'В партии поставки нет Order\'ов на этот КУ — нечего принимать.'
@@ -513,13 +519,14 @@ export class MarketplaceAplReceptionService {
         status: MarketplaceShipmentStatuses.SUPPLY_PREPARED,
       });
 
-      for (const o of cycleOrders) {
-        await this.orderRepo.applyStatusTransition(
-          o.id,
-          'SUPPLY_PREPARED',
-          `Express-приёмка самовывоза (оператор ${input.operator_account}, партия ${shipment.id})`
-        );
-      }
+      // Привязка заказов к синтезированной партии + SUPPLY_PREPARED одним
+      // bulk-апдейтом (как в плановом формировании) — чтобы create() резолвил
+      // состав строго по shipment_id, а не инференцией по (cycle, КУ).
+      await this.orderRepo.assignToShipment(
+        cycleOrders.map((o) => o.id),
+        shipment.id,
+        `Express-приёмка самовывоза (оператор ${input.operator_account}, партия ${shipment.id})`
+      );
 
       const result = await this.create({
         coopname: input.coopname,

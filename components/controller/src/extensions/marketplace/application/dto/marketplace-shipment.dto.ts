@@ -153,6 +153,17 @@ export class MarketplaceShipmentGroupInputDTO {
   @IsEnum(MarketplaceShipmentDeliveryVariantEnum)
   delivery_variant!: MarketplaceShipmentDeliveryVariantEnum;
 
+  @Field(() => [ID], {
+    nullable: true,
+    description:
+      'Подмножество заказов этого КУ, реально погружаемых в партию (частичная отгрузка). ' +
+      'Пусто → все акцептованные заказы КУ (поведение по умолчанию). Невключённые заказы ' +
+      'остаются ACCEPTED и доступны для следующей партии.',
+  })
+  @IsOptional()
+  @IsArray()
+  order_ids?: string[];
+
   @Field(() => MarketplaceShipmentTTNDataInputDTO, {
     nullable: true,
     description: 'Поля ТТН — обязательны для Варианта Б.',
@@ -171,7 +182,10 @@ export class MarketplaceCreateShipmentInputDTO {
   cycle_id!: string;
 
   @Field(() => [MarketplaceShipmentGroupInputDTO], {
-    description: 'Группы доставки — по одной на каждый КУ из заявки.',
+    description:
+      'Группы доставки по КУ заявки. Каждая группа = одна партия (один КУ, один вариант ' +
+      'доставки, опционально подмножество заказов). Покрытие всех КУ заявки не требуется — ' +
+      'можно формировать частично и догружать остаток отдельными партиями.',
   })
   @IsArray()
   @ValidateNested({ each: true })
@@ -182,7 +196,7 @@ export class MarketplaceCreateShipmentInputDTO {
 @ObjectType('MarketplaceCreateShipmentResult')
 export class MarketplaceCreateShipmentResultDTO {
   @Field(() => [MarketplaceShipmentDTO], {
-    description: 'Созданные партии — по одной на каждый КУ заявки.',
+    description: 'Созданные партии — по одной на каждую группу доставки во входе.',
   })
   shipments!: MarketplaceShipmentDTO[];
 }

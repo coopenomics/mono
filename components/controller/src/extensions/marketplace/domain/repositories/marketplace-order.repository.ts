@@ -66,6 +66,21 @@ export interface MarketplaceOrderDomainRepository
   findByIds(ids: string[]): Promise<MarketplaceOrderDomainEntity[]>;
   findByOrderHash(coopname: string, order_hash: string): Promise<MarketplaceOrderDomainEntity | null>;
 
+  /**
+   * Заказы, включённые в конкретную партию (резолв состава партии на приёмке).
+   * Заменяет инференс «по (cycle, КУ)» — обязателен при нескольких частичных
+   * партиях на одном КУ.
+   */
+  findByShipmentId(coopname: string, shipment_id: string): Promise<MarketplaceOrderDomainEntity[]>;
+
+  /**
+   * Привязать заказы к сформированной партии + перевести ACCEPTED → SUPPLY_PREPARED
+   * одним bulk-апдейтом. Затрагивает ТОЛЬКО заказы в статусе ACCEPTED без партии
+   * (`shipment_id IS NULL`) — guard от двойного включения в две партии.
+   * Возвращает число реально привязанных заказов.
+   */
+  assignToShipment(orderIds: string[], shipment_id: string, reason: string | null): Promise<number>;
+
   list(
     filter: MarketplaceOrderListFilter,
     pagination: PaginationInputDomainInterface

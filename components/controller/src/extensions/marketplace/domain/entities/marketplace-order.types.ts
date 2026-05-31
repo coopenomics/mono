@@ -127,6 +127,8 @@ export interface MarketplaceOrderProps {
   total_cost: string;
   cycle_type: MarketplaceOrderCycleType;
   cycle_id: string | null;
+  /** Партия, в которую заказ включён при формировании (null = вне партии). */
+  shipment_id: string | null;
   warranty_period_secs: number;
   warranty_until: Date | null;
   status: MarketplaceOrderStatus;
