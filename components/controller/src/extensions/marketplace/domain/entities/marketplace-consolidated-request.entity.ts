@@ -60,9 +60,7 @@ export class MarketplaceConsolidatedRequestDomainEntity {
     return (
       this.status === 'ACCEPTED' ||
       this.status === 'DECLINED_BY_SUPPLIER' ||
-      this.status === 'EXPIRED_NO_RESPONSE' ||
-      this.status === 'EXPIRED_NO_THRESHOLD' ||
-      this.status === 'EXPIRED_NO_VOLUME'
+      this.status === 'EXPIRED_NO_RESPONSE'
     );
   }
 }

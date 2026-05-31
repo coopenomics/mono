@@ -39,15 +39,14 @@ export interface MarketplaceConsolidatedRequestActionResult {
 }
 
 /**
- * Story 4.5: accept/decline консолидированной заявки (`time_based` /
- * `volume_based`). Open_subscription автоматически в `ACCEPTED` на
- * `triggerOpenSubscription` (Story 4.2), для него этот сервис не
- * вызывается.
+ * Accept/decline сводной заявки коллективной закупки, собранной
+ * автоматически по достижении целевого объёма (status=PENDING_SUPPLIER_ACCEPT).
+ * Партия, запущенная поставщиком вручную, сразу `ACCEPTED`
+ * (`triggerCollectiveSupply`) — для неё этот сервис не вызывается.
  *
  * Accept (batch):
- *  1. Guard: заявка существует / coopname / cycle_type ∈ (time_based,
- *     volume_based) / supplier_account == offerer / status =
- *     PENDING_SUPPLIER_ACCEPT.
+ *  1. Guard: заявка существует / coopname / cycle_type='collective' /
+ *     supplier_account == offerer / status = PENDING_SUPPLIER_ACCEPT.
  *  2. Per-Order chain `acceptOrder` (без ledger2-операций, только смена
  *     on-chain статуса active→accepted; partial fail tolerance — лог
  *     error и продолжаем; следующий цикл cron / manual reconciliation).
@@ -190,9 +189,9 @@ export class MarketplaceConsolidatedRequestAcceptDeclineService {
     if (cycle.supplier_account !== offerer_account) {
       throw new ForbiddenException('Действие доступно только поставщику-владельцу заявки.');
     }
-    if (cycle.cycle_type !== 'time_based' && cycle.cycle_type !== 'volume_based') {
+    if (cycle.cycle_type !== 'collective') {
       throw new BadRequestException(
-        `Accept/decline консолидированной заявки доступен только для cycle_type='time_based' и 'volume_based'; заявка — '${cycle.cycle_type}'.`
+        `Accept/decline сводной заявки доступен только для коллективной закупки; заявка — '${cycle.cycle_type}'.`
       );
     }
     if (cycle.status !== 'PENDING_SUPPLIER_ACCEPT') {

@@ -8,7 +8,7 @@ export class MarketplaceConsolidatedRequestDTO {
   @Field(() => String) public readonly coopname!: string;
   @Field(() => String) public readonly offer_id!: string;
   @Field(() => String) public readonly supplier_account!: string;
-  @Field(() => String, { description: 'time_based | volume_based | open_subscription | individual' })
+  @Field(() => String, { description: 'individual | collective' })
   public readonly cycle_type!: string;
 
   @Field(() => Int) public readonly total_quantity!: number;
@@ -17,7 +17,7 @@ export class MarketplaceConsolidatedRequestDTO {
 
   @Field(() => String, {
     description:
-      'PENDING_SUPPLIER_ACCEPT | ACCEPTED | DECLINED_BY_SUPPLIER | EXPIRED_NO_RESPONSE | EXPIRED_NO_THRESHOLD | EXPIRED_NO_VOLUME',
+      'PENDING_SUPPLIER_ACCEPT | ACCEPTED | DECLINED_BY_SUPPLIER | EXPIRED_NO_RESPONSE',
   })
   public readonly status!: string;
 

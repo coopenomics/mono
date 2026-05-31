@@ -1,16 +1,10 @@
 import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
 
-export type MarketplaceOrderCycleType =
-  | 'time_based'
-  | 'volume_based'
-  | 'open_subscription'
-  | 'individual';
+export type MarketplaceOrderCycleType = 'individual' | 'collective';
 
 export const MarketplaceOrderCycleTypes = {
-  TIME_BASED: 'time_based',
-  VOLUME_BASED: 'volume_based',
-  OPEN_SUBSCRIPTION: 'open_subscription',
   INDIVIDUAL: 'individual',
+  COLLECTIVE: 'collective',
 } as const satisfies Record<string, MarketplaceOrderCycleType>;
 
 export type MarketplaceOrderStatus =
@@ -24,9 +18,7 @@ export type MarketplaceOrderStatus =
   | 'RECEIVED'
   | 'RETURNED'
   | 'CANCELLED_BY_ORDERER'
-  | 'CANCELLED_BY_SUPPLIER'
-  | 'EXPIRED_NO_THRESHOLD'
-  | 'EXPIRED_NO_VOLUME';
+  | 'CANCELLED_BY_SUPPLIER';
 
 export const MarketplaceOrderStatuses = {
   ACTIVE: 'ACTIVE',
@@ -40,8 +32,6 @@ export const MarketplaceOrderStatuses = {
   RETURNED: 'RETURNED',
   CANCELLED_BY_ORDERER: 'CANCELLED_BY_ORDERER',
   CANCELLED_BY_SUPPLIER: 'CANCELLED_BY_SUPPLIER',
-  EXPIRED_NO_THRESHOLD: 'EXPIRED_NO_THRESHOLD',
-  EXPIRED_NO_VOLUME: 'EXPIRED_NO_VOLUME',
 } as const satisfies Record<string, MarketplaceOrderStatus>;
 
 /**
@@ -53,7 +43,7 @@ export const MarketplaceOrderStatuses = {
  * forward в обратную сторону, sync применяет incoming status только
  * если его ранг ≥ текущего (см. `updateFromBlockchain`).
  *
- * Терминальные ветки (CANCELLED_*, EXPIRED_*, RETURNED) отмечены
+ * Терминальные ветки (CANCELLED_*, RETURNED) отмечены
  * отдельным флагом `MARKETPLACE_ORDER_STATUS_TERMINAL` — они могут
  * прийти с цепи из любого forward-состояния и должны быть применены.
  */
@@ -69,8 +59,6 @@ export const MARKETPLACE_ORDER_STATUS_RANK: Record<MarketplaceOrderStatus, numbe
   RETURNED: 7,
   CANCELLED_BY_ORDERER: 99,
   CANCELLED_BY_SUPPLIER: 99,
-  EXPIRED_NO_THRESHOLD: 99,
-  EXPIRED_NO_VOLUME: 99,
 };
 
 export const MARKETPLACE_ORDER_STATUS_TERMINAL: ReadonlySet<MarketplaceOrderStatus> = new Set([
@@ -78,8 +66,6 @@ export const MARKETPLACE_ORDER_STATUS_TERMINAL: ReadonlySet<MarketplaceOrderStat
   'RETURNED',
   'CANCELLED_BY_ORDERER',
   'CANCELLED_BY_SUPPLIER',
-  'EXPIRED_NO_THRESHOLD',
-  'EXPIRED_NO_VOLUME',
 ]);
 
 /**

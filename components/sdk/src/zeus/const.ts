@@ -849,7 +849,7 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceSubmitWriteoffDraftInput:{
 		signed_statement:"SignedDigitalDocumentInput"
 	},
-	MarketplaceTriggerOpenSubscriptionInput:{
+	MarketplaceTriggerCollectiveSupplyInput:{
 
 	},
 	MarketplaceUpdateOfferInput:{
@@ -1444,8 +1444,8 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceSubmitWriteoffDraft:{
 			data:"MarketplaceSubmitWriteoffDraftInput"
 		},
-		marketplaceTriggerOpenSubscription:{
-			input:"MarketplaceTriggerOpenSubscriptionInput"
+		marketplaceTriggerCollectiveSupply:{
+			input:"MarketplaceTriggerCollectiveSupplyInput"
 		},
 		marketplaceUpdateOffer:{
 			input:"MarketplaceUpdateOfferInput"
@@ -4163,13 +4163,10 @@ export const ReturnTypes: Record<string,any> = {
 		category_id:"Int",
 		coopname:"String",
 		created_at:"DateTime",
-		cycle_days:"Int",
 		cycle_type:"String",
 		description:"String",
 		id:"String",
 		images:"MarketplaceOfferImage",
-		max_wait_days:"Int",
-		min_threshold:"Int",
 		pack_size:"Int",
 		price_per_unit:"String",
 		product_name:"String",
@@ -4813,7 +4810,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceSignAplReceptionAsSupplier:"MarketplaceAplReceptionResult",
 		marketplaceSignOnboardingOffer:"MarketplaceOnboardingState",
 		marketplaceSubmitWriteoffDraft:"MarketplaceWriteoffProposal",
-		marketplaceTriggerOpenSubscription:"MarketplaceConsolidatedRequest",
+		marketplaceTriggerCollectiveSupply:"MarketplaceConsolidatedRequest",
 		marketplaceUpdateOffer:"MarketplaceOffer",
 		marketplaceUpdateWriteoffDraft:"MarketplaceWriteoffProposal",
 		marketplaceWithdrawOffer:"MarketplaceOffer",

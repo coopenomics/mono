@@ -1,11 +1,11 @@
 import { marketplaceConsolidatedRequestSelector } from '../../selectors/marketplace/consolidatedRequestSelector'
 import { $, type GraphQLTypes, type InputType, type ModelTypes, Selector } from '../../zeus/index'
 
-export const name = 'marketplaceTriggerOpenSubscription'
+export const name = 'marketplaceTriggerCollectiveSupply'
 
 export const mutation = Selector('Mutation')({
   [name]: [
-    { input: $('input', 'MarketplaceTriggerOpenSubscriptionInput!') },
+    { input: $('input', 'MarketplaceTriggerCollectiveSupplyInput!') },
     marketplaceConsolidatedRequestSelector,
   ],
 })
@@ -16,7 +16,7 @@ export interface IInput {
    */
   [key: string]: unknown
 
-  input: ModelTypes['MarketplaceTriggerOpenSubscriptionInput']
+  input: ModelTypes['MarketplaceTriggerCollectiveSupplyInput']
 }
 
 export type IOutput = InputType<GraphQLTypes['Mutation'], typeof mutation>

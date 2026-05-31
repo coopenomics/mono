@@ -63,8 +63,8 @@ export async function declineIndividualOrder(order_id: string, reason: string): 
 }
 
 /**
- * Групповой (volume_based/open_subscription/time_based) акцепт: поставщик
- * принимает всю сводную заявку партии разом. request_id = cycle_id заказа.
+ * Групповой (collective) акцепт: поставщик принимает всю сводную заявку
+ * партии разом. request_id = cycle_id заказа.
  */
 export async function acceptConsolidatedRequest(request_id: string): Promise<void> {
   await client.Mutation(Mutations.Marketplace.AcceptConsolidatedRequest.mutation, {

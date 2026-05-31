@@ -18,7 +18,7 @@ function buildOrder(overrides: Partial<MarketplaceOrderDomainEntity> = {}): Mark
     quantity: 5,
     price_per_unit: '150.0000',
     total_cost: '750.0000',
-    cycle_type: 'time_based',
+    cycle_type: 'collective',
     cycle_id: 'cycle-1',
     status: 'ACCEPTED_PENDING_SUPPLIER',
     ...overrides,
@@ -33,7 +33,7 @@ function buildCycle(
     coopname: 'voskhod',
     offer_id: 'offer-1',
     supplier_account: 'supplier1',
-    cycle_type: 'time_based',
+    cycle_type: 'collective',
     total_quantity: 10,
     total_amount: '1500.0000',
     status: 'PENDING_SUPPLIER_ACCEPT',
@@ -178,8 +178,8 @@ describe('MarketplaceConsolidatedRequestAcceptDeclineService', () => {
       ).rejects.toBeInstanceOf(ForbiddenException);
     });
 
-    it.each(['open_subscription', 'individual'] as const)(
-      'BadRequest для cycle_type=%s — accept недоступен для не-batch',
+    it.each(['individual'] as const)(
+      'BadRequest для cycle_type=%s — accept недоступен для не-collective',
       async (cycle_type) => {
         mocks.cycleRepo.findById.mockResolvedValue(buildCycle({ cycle_type } as any));
         await expect(

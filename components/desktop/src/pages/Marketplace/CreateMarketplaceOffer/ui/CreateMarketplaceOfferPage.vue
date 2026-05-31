@@ -168,67 +168,21 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
               @update:model-value='onSelectCycle(opt.value)'
             )
 
-          //- conditional поля по типу отсечки
-          .offer-wizard__conditional(v-if='isTimeBased')
-            q-input(
-              v-model.number='form.cycle_days',
-              label='Длительность цикла (дней)',
-              type='number',
-              min='1',
-              outlined,
-              dense,
-              no-error-icon,
-              reserve-hint-space,
-              hint='Поставка по истечении цикла'
-            )
-            q-input(
-              v-model.number='form.min_threshold',
-              label='Минимальный порог объёма (необязательно)',
-              type='number',
-              min='0',
-              outlined,
-              dense,
-              no-error-icon,
-              reserve-hint-space,
-              hint='Если к концу цикла набралось меньше — все заказы отменятся'
-            )
-          .offer-wizard__conditional(v-else-if='isVolumeBased')
+          //- conditional поля по способу поставки
+          .offer-wizard__conditional(v-if='isCollective')
             q-input(
               v-model.number='form.target_volume',
-              label='Целевой объём',
+              label='Целевой объём для авто-старта (необязательно)',
               type='number',
               min='1',
               outlined,
               dense,
               no-error-icon,
               reserve-hint-space,
-              hint='Поставка стартует, когда наберётся этот объём'
-            )
-            q-input(
-              v-model.number='form.max_wait_days',
-              label='Максимальный срок ожидания (дней)',
-              type='number',
-              min='1',
-              outlined,
-              dense,
-              no-error-icon,
-              reserve-hint-space,
-              hint='Если за этот срок объём не набрался — заказы отменятся'
-            )
-          .offer-wizard__conditional(v-else-if='isOpenSubscription')
-            q-input(
-              v-model.number='form.max_wait_days',
-              label='Лимит ожидания заказчика (дней, необязательно)',
-              type='number',
-              min='1',
-              outlined,
-              dense,
-              no-error-icon,
-              reserve-hint-space,
-              hint='После этого срока заказчик может отменить заказ сам'
+              hint='Когда сумма заказов достигнет объёма — поставка стартует автоматически. Пусто — запускаете поставку вручную.'
             )
           .offer-wizard__hint(v-else)
-            | Каждый заказ принимается индивидуально, без ожидания набора.
+            | Каждый заказ принимается индивидуально, без ожидания набора партии.
 
         //- ───────── Шаг 4: Изображения ─────────
         .offer-wizard__step(v-else-if='step.key === "images"')
@@ -315,17 +269,11 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
                 .offer-preview__specs-title Характеристики
                 dl.offer-preview__specs-list
                   .offer-preview__spec
-                    dt Отсечка заказов
+                    dt Способ поставки
                     dd {{ selectedCycleTitle }}
-                  .offer-preview__spec(v-if='isTimeBased && form.cycle_days')
-                    dt Длительность цикла
-                    dd {{ form.cycle_days }} дн.
-                  .offer-preview__spec(v-if='isVolumeBased && form.target_volume')
+                  .offer-preview__spec(v-if='isCollective && form.target_volume')
                     dt Целевой объём
                     dd {{ form.target_volume }} {{ selectedUnitLabel }}
-                  .offer-preview__spec(v-if='isVolumeBased && form.max_wait_days')
-                    dt Срок ожидания
-                    dd {{ form.max_wait_days }} дн.
                   .offer-preview__spec(v-if='form.warranty_days > 0')
                     dt Гарантия
                     dd {{ form.warranty_days }} дн.
@@ -369,7 +317,7 @@ import {
   createOffer,
   fetchCategories,
   fetchMyOfferById,
-  triggerOpenSubscription,
+  triggerCollectiveSupply,
   updateOffer,
   withdrawOffer,
 } from '../api';
@@ -467,13 +415,13 @@ const statusLabel = computed(() => (currentStatus.value ? STATUS_META[currentSta
 const statusVariant = computed(() =>
   currentStatus.value ? STATUS_META[currentStatus.value].variant : 'neutral'
 );
-// Снять можно опубликованную или ожидающую модерации; запуск поставки — только
-// активную оферту с открытой подпиской (см. backend guard'ы).
+// Снять можно опубликованную или ожидающую модерации; запуск поставки вручную —
+// только активную оферту с коллективной закупкой (см. backend guard'ы).
 const canWithdraw = computed(
   () => currentStatus.value === 'PENDING_MODERATION' || currentStatus.value === 'ACTIVE'
 );
 const canTrigger = computed(
-  () => currentStatus.value === 'ACTIVE' && currentCycleType.value === 'open_subscription'
+  () => currentStatus.value === 'ACTIVE' && currentCycleType.value === 'collective'
 );
 
 function onWithdraw(): void {
@@ -513,7 +461,7 @@ function onTrigger(): void {
   }).onOk(async () => {
     triggering.value = true;
     try {
-      await triggerOpenSubscription(editId.value as string);
+      await triggerCollectiveSupply(editId.value as string);
       SuccessAlert('Поставка запущена: заказы зафиксированы в партию и приняты.');
       void router.push({ name: 'marketplace-my-offers' });
     } catch (e) {
@@ -550,24 +498,15 @@ const cycleTypeOptions: Array<{
   description: string;
 }> = [
   {
-    value: 'time_based',
-    title: 'По расписанию',
-    description: 'Поставка по истечении цикла; если набралось меньше порога — заказы отменятся.',
-  },
-  {
-    value: 'volume_based',
-    title: 'По объёму',
-    description: 'Поставка стартует, когда наберётся нужный объём; иначе отменяется по сроку.',
-  },
-  {
-    value: 'open_subscription',
-    title: 'Открытая подписка',
-    description: 'Вы сами запускаете поставку; заказчик может отменить, если ждёт дольше срока.',
-  },
-  {
     value: 'individual',
     title: 'Индивидуально',
-    description: 'Каждый заказ принимается отдельно, без ожидания набора.',
+    description: 'Каждый заказ обрабатывается отдельно, без ожидания набора партии.',
+  },
+  {
+    value: 'collective',
+    title: 'Коллективная закупка',
+    description:
+      'Заказы копятся в общий пул. Старт — автоматически по целевому объёму либо вручную вами.',
   },
 ];
 
@@ -588,11 +527,8 @@ const form = ref<MarketplaceCreateOfferFormState>({
   unit_of_measure: 'piece',
   quantity_available: 1,
   unlimited_flag: false,
-  cycle_type: 'time_based',
-  cycle_days: 7,
+  cycle_type: 'individual',
   target_volume: null,
-  max_wait_days: null,
-  min_threshold: null,
   warranty_days: 0,
 });
 
@@ -620,9 +556,7 @@ const previewActive = ref(0);
 const originalImageKeys = ref<string[]>([]);
 let galleryUidSeq = 0;
 
-const isTimeBased = computed(() => form.value.cycle_type === 'time_based');
-const isVolumeBased = computed(() => form.value.cycle_type === 'volume_based');
-const isOpenSubscription = computed(() => form.value.cycle_type === 'open_subscription');
+const isCollective = computed(() => form.value.cycle_type === 'collective');
 
 const selectedCategoryLabel = computed(
   () => categoryOptions.value.find((o) => o.value === form.value.category_id)?.label ?? '—'
@@ -758,24 +692,10 @@ function setCover(index: number): void {
 
 function onSelectCycle(value: MarketplaceOfferCycleType): void {
   form.value.cycle_type = value;
-  if (value === 'time_based') {
+  // target_volume имеет смысл только для коллективной закупки (опциональный
+  // авто-старт). У индивидуальной поставки его нет.
+  if (value === 'individual') {
     form.value.target_volume = null;
-    form.value.max_wait_days = null;
-    if (!form.value.cycle_days) form.value.cycle_days = 7;
-  } else if (value === 'volume_based') {
-    form.value.cycle_days = null;
-    form.value.min_threshold = null;
-    if (!form.value.target_volume) form.value.target_volume = 100;
-    if (!form.value.max_wait_days) form.value.max_wait_days = 30;
-  } else if (value === 'open_subscription') {
-    form.value.cycle_days = null;
-    form.value.target_volume = null;
-    form.value.min_threshold = null;
-  } else {
-    form.value.cycle_days = null;
-    form.value.target_volume = null;
-    form.value.max_wait_days = null;
-    form.value.min_threshold = null;
   }
 }
 
@@ -832,12 +752,10 @@ function markCompleted(key: string): void {
 
 function validateSupply(): string | null {
   const f = form.value;
-  if (f.cycle_type === 'time_based') {
-    if (!f.cycle_days || f.cycle_days < 1) return 'Укажите длительность цикла (от 1 дня).';
-  }
-  if (f.cycle_type === 'volume_based') {
-    if (!f.target_volume || f.target_volume < 1) return 'Укажите целевой объём (от 1).';
-    if (!f.max_wait_days || f.max_wait_days < 1) return 'Укажите максимальный срок ожидания (от 1 дня).';
+  // Целевой объём для коллективной закупки необязателен (пусто = ручной запуск),
+  // но если задан — должен быть положительным.
+  if (f.cycle_type === 'collective' && f.target_volume != null && f.target_volume < 1) {
+    return 'Целевой объём должен быть от 1 (или оставьте пустым для ручного запуска).';
   }
   return null;
 }
@@ -918,11 +836,7 @@ async function onSubmit(): Promise<void> {
     quantity_available: f.unlimited_flag ? null : f.quantity_available,
     unlimited_flag: f.unlimited_flag,
     cycle_type: f.cycle_type,
-    cycle_days: f.cycle_type === 'time_based' ? f.cycle_days : null,
-    target_volume: f.cycle_type === 'volume_based' ? f.target_volume : null,
-    max_wait_days:
-      f.cycle_type === 'volume_based' || f.cycle_type === 'open_subscription' ? f.max_wait_days : null,
-    min_threshold: f.cycle_type === 'time_based' ? f.min_threshold : null,
+    target_volume: f.cycle_type === 'collective' ? f.target_volume : null,
     warranty_days: f.warranty_days,
     images: buildImagesPayload(),
   };
@@ -972,10 +886,7 @@ async function prefillForEdit(id: string): Promise<void> {
       quantity_available: offer.quantity_available,
       unlimited_flag: offer.unlimited_flag,
       cycle_type: offer.cycle_type,
-      cycle_days: offer.cycle_days,
       target_volume: offer.target_volume,
-      max_wait_days: offer.max_wait_days,
-      min_threshold: offer.min_threshold,
       warranty_days: offer.warranty_days,
     };
     gallery.value = (offer.images ?? [])

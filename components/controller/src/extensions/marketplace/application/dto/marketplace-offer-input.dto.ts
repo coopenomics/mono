@@ -20,7 +20,7 @@ import { PaginationInputDTO } from '~/application/common/dto/pagination.dto';
 import { MARKETPLACE_OFFER_MAX_IMAGES } from '../../domain/entities/marketplace-offer.types';
 import { MarketplaceBarcodeStrategyEnum } from './marketplace-offer.dto';
 
-const CYCLE_TYPES = ['time_based', 'volume_based', 'open_subscription', 'individual'] as const;
+const CYCLE_TYPES = ['individual', 'collective'] as const;
 const UNITS = ['piece', 'kg', 'liter', 'pack'] as const;
 
 @InputType('MarketplaceOfferImageUploadInput')
@@ -84,33 +84,19 @@ export class MarketplaceCreateOfferInputDTO {
   @IsBoolean()
   public unlimited_flag!: boolean;
 
-  @Field(() => String, { description: 'time_based | volume_based | open_subscription | individual' })
+  @Field(() => String, { description: 'Способ поставки: individual (индивидуально) | collective (коллективная закупка)' })
   @IsIn(CYCLE_TYPES as unknown as string[])
-  public cycle_type!: 'time_based' | 'volume_based' | 'open_subscription' | 'individual';
+  public cycle_type!: 'individual' | 'collective';
 
-  @Field(() => Int, { nullable: true })
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  public cycle_days!: number | null;
-
-  @Field(() => Int, { nullable: true })
+  @Field(() => Int, {
+    nullable: true,
+    description:
+      'Целевой объём коллективной закупки (опц.): набрался — партия стартует автоматически. Только для collective.',
+  })
   @IsOptional()
   @IsInt()
   @Min(1)
   public target_volume!: number | null;
-
-  @Field(() => Int, { nullable: true })
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  public max_wait_days!: number | null;
-
-  @Field(() => Int, { nullable: true })
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  public min_threshold!: number | null;
 
   @Field(() => Int)
   @IsInt()
@@ -196,31 +182,13 @@ export class MarketplaceUpdateOfferInputDTO {
   @Field(() => String, { nullable: true })
   @IsOptional()
   @IsIn(CYCLE_TYPES as unknown as string[])
-  public cycle_type?: 'time_based' | 'volume_based' | 'open_subscription' | 'individual';
-
-  @Field(() => Int, { nullable: true })
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  public cycle_days?: number | null;
+  public cycle_type?: 'individual' | 'collective';
 
   @Field(() => Int, { nullable: true })
   @IsOptional()
   @IsInt()
   @Min(1)
   public target_volume?: number | null;
-
-  @Field(() => Int, { nullable: true })
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  public max_wait_days?: number | null;
-
-  @Field(() => Int, { nullable: true })
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  public min_threshold?: number | null;
 
   @Field(() => Int, { nullable: true })
   @IsOptional()

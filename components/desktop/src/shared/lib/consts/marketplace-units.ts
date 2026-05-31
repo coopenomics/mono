@@ -46,19 +46,17 @@ export function marketplaceUnitLabel(value: string | null | undefined): string {
 }
 
 /**
- * Русские подписи типов отсечки (cycle_type) — единый источник для всех
+ * Русские подписи способа поставки (cycle_type) — единый источник для всех
  * marketplace-экранов (модерация, каталог, создание оферты). Раньше карта
  * дублировалась по нескольким страницам (создание оферты, сводный заказ).
- * Значения совпадают с backend-enum `MarketplaceOfferCycleType`.
+ * Значения совпадают с backend-enum `MarketplaceOfferCycleType` (два режима).
  */
 const MARKETPLACE_CYCLE_LABELS: Record<string, string> = {
-  time_based: 'По расписанию',
-  volume_based: 'По объёму',
-  open_subscription: 'Открытая подписка',
   individual: 'Индивидуально',
+  collective: 'Коллективная закупка',
 };
 
-/** Русская подпись типа отсечки; неизвестное значение возвращается как есть. */
+/** Русская подпись способа поставки; неизвестное значение возвращается как есть. */
 export function marketplaceCycleLabel(value: string | null | undefined): string {
   if (!value) return '';
   return MARKETPLACE_CYCLE_LABELS[value] ?? value;

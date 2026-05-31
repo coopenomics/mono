@@ -17,8 +17,8 @@ import {
 } from '../dto/marketplace-consolidated-request.dto';
 import {
   MarketplaceListConsolidatedRequestsInputDTO,
-  MarketplaceTriggerOpenSubscriptionInputDTO,
-} from '../dto/marketplace-trigger-open-subscription-input.dto';
+  MarketplaceTriggerCollectiveSupplyInputDTO,
+} from '../dto/marketplace-trigger-collective-supply-input.dto';
 import {
   MARKETPLACE_CYCLE_AGGREGATOR_SERVICE,
   MarketplaceCycleAggregatorService,
@@ -41,17 +41,17 @@ export class MarketplaceCycleResolver {
   ) {}
 
   @Mutation(() => MarketplaceConsolidatedRequestDTO, {
-    name: 'marketplaceTriggerOpenSubscription',
+    name: 'marketplaceTriggerCollectiveSupply',
     description:
-      'Поставщик запускает поставку по предложению с открытой подпиской: формируется сводная заявка, заказы в её пуле принимаются.',
+      'Поставщик запускает поставку по коллективной закупке: формируется сводная заявка, заказы в её пуле принимаются.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Offer', 'update:own')
-  async marketplaceTriggerOpenSubscription(
+  async marketplaceTriggerCollectiveSupply(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
-    @Args('input') input: MarketplaceTriggerOpenSubscriptionInputDTO
+    @Args('input') input: MarketplaceTriggerCollectiveSupplyInputDTO
   ): Promise<MarketplaceConsolidatedRequestDTO> {
-    const cycle = await this.aggregator.triggerOpenSubscription(
+    const cycle = await this.aggregator.triggerCollectiveSupply(
       config.coopname,
       input.offer_id,
       member.username

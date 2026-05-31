@@ -28,11 +28,8 @@ function buildOffer(overrides: Partial<MarketplaceOfferDomainEntity> = {}): Mark
     quantity_blocked: 0,
     quantity_consumed: 0,
     unlimited_flag: false,
-    cycle_type: MarketplaceOfferCycleTypes.TIME_BASED,
-    cycle_days: 7,
+    cycle_type: MarketplaceOfferCycleTypes.COLLECTIVE,
     target_volume: null,
-    max_wait_days: null,
-    min_threshold: null,
     warranty_days: 7,
     status: MarketplaceOfferStatuses.ACTIVE,
     approved_by: 'chairman',
@@ -65,10 +62,8 @@ function buildMocks() {
   } as unknown as jest.Mocked<MarketplaceCanonicalBlockchainPort>;
 
   const cycleAggregator: jest.Mocked<MarketplaceCycleAggregatorService> = {
-    evaluateVolumeBasedAfterCreate: jest.fn().mockResolvedValue(null),
-    triggerOpenSubscription: jest.fn(),
-    aggregateTimeBased: jest.fn(),
-    aggregateVolumeBasedExpired: jest.fn(),
+    evaluateCollectiveAfterCreate: jest.fn().mockResolvedValue(null),
+    triggerCollectiveSupply: jest.fn(),
   } as unknown as jest.Mocked<MarketplaceCycleAggregatorService>;
 
   const logger = {
@@ -239,7 +234,7 @@ describe('MarketplaceOrderCreateService', () => {
     expect(chainArgs.delivery_braname).toBe('ku.krasn.1');
     expect(chainArgs.quantity).toBe(2);
     expect(chainArgs.unit_price).toBe('150.0000 RUB');
-    expect(chainArgs.cycle_type).toBe(MarketplaceOfferCycleTypes.TIME_BASED);
+    expect(chainArgs.cycle_type).toBe(MarketplaceOfferCycleTypes.COLLECTIVE);
     expect(chainArgs.warranty_period_secs).toBe(7 * 86_400);
     expect(chainArgs.order_hash).toHaveLength(64);
     expect(chainArgs.offer_hash).toHaveLength(64);

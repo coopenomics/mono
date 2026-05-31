@@ -187,8 +187,6 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
     return (
       this.status === 'CANCELLED_BY_ORDERER' ||
       this.status === 'CANCELLED_BY_SUPPLIER' ||
-      this.status === 'EXPIRED_NO_THRESHOLD' ||
-      this.status === 'EXPIRED_NO_VOLUME' ||
       this.status === 'RETURNED'
     );
   }

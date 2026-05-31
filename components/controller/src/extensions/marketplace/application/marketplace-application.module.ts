@@ -145,8 +145,8 @@ import { MarketplaceInventoryEntity } from '../infrastructure/entities/marketpla
     MarketplaceInfrastructureModule,
     // ACCOUNT_DATA_PORT для MarketplaceNotificationService (Эпик 5+ push-уведомления).
     AccountInfrastructureModule,
-    // Story 4.2: @Cron в MarketplaceCycleAggregatorService (time_based aggregator
-    // каждые 5 минут + volume_based expire каждый час). ScheduleModule.forRoot()
+    // @Cron в MarketplaceCycleAggregatorService (expireUnacceptedPending —
+    // авто-отмена непринятых партий раз в 10 минут). ScheduleModule.forRoot()
     // идемпотентен — если AppModule тоже инициализирует его, NestJS использует
     // singleton SchedulerRegistry.
     ScheduleModule.forRoot(),

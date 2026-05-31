@@ -109,7 +109,7 @@ describe('MarketplaceOrderSupplierActionService', () => {
       ).rejects.toBeInstanceOf(ForbiddenException);
     });
 
-    it.each(['time_based', 'volume_based', 'open_subscription'] as const)(
+    it.each(['collective'] as const)(
       'BadRequest для cycle_type=%s — accept individual недоступен',
       async (cycle_type) => {
         mocks.orderRepo.findById.mockResolvedValue(buildOrder({ cycle_type } as any));
@@ -183,8 +183,8 @@ describe('MarketplaceOrderSupplierActionService', () => {
       expect(mocks.orderRepo.findById).not.toHaveBeenCalled();
     });
 
-    it('BadRequest для cycle_type=time_based — decline individual недоступен', async () => {
-      mocks.orderRepo.findById.mockResolvedValue(buildOrder({ cycle_type: 'time_based' as any }));
+    it('BadRequest для cycle_type=collective — decline individual недоступен', async () => {
+      mocks.orderRepo.findById.mockResolvedValue(buildOrder({ cycle_type: 'collective' as any }));
       await expect(
         service.declineIndividual({ coopname: 'voskhod', offerer_account: 'supplier1', order_id: 'order-1', reason: 'x' })
       ).rejects.toBeInstanceOf(BadRequestException);
@@ -202,9 +202,9 @@ describe('MarketplaceOrderSupplierActionService', () => {
   });
 
   describe('declineFromOpenPool', () => {
-    it('happy path — Order ACTIVE + cycle_id=null + cycle_type=open_subscription → decline', async () => {
+    it('happy path — Order ACTIVE + cycle_id=null + cycle_type=collective → decline', async () => {
       mocks.orderRepo.findById.mockResolvedValue(
-        buildOrder({ cycle_type: 'open_subscription' as any, status: 'ACTIVE' as any, cycle_id: null, quantity: 4 })
+        buildOrder({ cycle_type: 'collective' as any, status: 'ACTIVE' as any, cycle_id: null, quantity: 4 })
       );
 
       const result = await service.declineFromOpenPool({
@@ -220,7 +220,7 @@ describe('MarketplaceOrderSupplierActionService', () => {
       expect(result.tx_hash).toBe('tx-dec-1');
     });
 
-    it('BadRequest для cycle_type=individual — недоступно (только open_subscription)', async () => {
+    it('BadRequest для cycle_type=individual — недоступно (только collective)', async () => {
       mocks.orderRepo.findById.mockResolvedValue(buildOrder({ cycle_type: 'individual' as any, status: 'ACTIVE' as any }));
       await expect(
         service.declineFromOpenPool({
@@ -234,7 +234,7 @@ describe('MarketplaceOrderSupplierActionService', () => {
 
     it('BadRequest — cycle_id уже выставлен (пул запущен)', async () => {
       mocks.orderRepo.findById.mockResolvedValue(
-        buildOrder({ cycle_type: 'open_subscription' as any, status: 'ACCEPTED' as any, cycle_id: 'cycle-2' })
+        buildOrder({ cycle_type: 'collective' as any, status: 'ACCEPTED' as any, cycle_id: 'cycle-2' })
       );
       await expect(
         service.declineFromOpenPool({
@@ -248,7 +248,7 @@ describe('MarketplaceOrderSupplierActionService', () => {
 
     it('BadRequest — статус не ACTIVE', async () => {
       mocks.orderRepo.findById.mockResolvedValue(
-        buildOrder({ cycle_type: 'open_subscription' as any, status: 'CANCELLED_BY_ORDERER' as any, cycle_id: null })
+        buildOrder({ cycle_type: 'collective' as any, status: 'CANCELLED_BY_ORDERER' as any, cycle_id: null })
       );
       await expect(
         service.declineFromOpenPool({

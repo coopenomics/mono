@@ -41,11 +41,8 @@ function makeOffer(overrides: Partial<MarketplaceOfferDomainEntity> = {}): Marke
     quantity_blocked: 0,
     quantity_consumed: 0,
     unlimited_flag: false,
-    cycle_type: 'time_based',
-    cycle_days: 7,
+    cycle_type: 'collective',
     target_volume: null,
-    max_wait_days: null,
-    min_threshold: null,
     warranty_days: 0,
     barcode_strategy: 'PER_ORDER',
     pack_size: null,
@@ -75,8 +72,6 @@ function makeOfferRepo(): jest.Mocked<MarketplaceOfferDomainRepository> {
     applyUnblockDelta: jest.fn(),
     applyConsumeDelta: jest.fn(),
     applyRollbackDelta: jest.fn(),
-    listAllActiveTimeBased: jest.fn(),
-    listAllActiveVolumeBased: jest.fn(),
   };
 }
 
@@ -124,11 +119,8 @@ function baseCreateRequest(overrides: Partial<OfferCreateRequest> = {}): OfferCr
     unit_of_measure: 'kg',
     quantity_available: 100,
     unlimited_flag: false,
-    cycle_type: 'time_based',
-    cycle_days: 7,
+    cycle_type: 'collective',
     target_volume: null,
-    max_wait_days: null,
-    min_threshold: null,
     warranty_days: 0,
     ...overrides,
   };
@@ -683,177 +675,102 @@ describe('MarketplaceOfferService.listMine + getById', () => {
   });
 });
 
-describe('MarketplaceOfferService.create — Story 4.7 cycle_type conditionals (L11)', () => {
-  it('time_based без cycle_days → 400', async () => {
+describe('MarketplaceOfferService.create — способ поставки (2 режима)', () => {
+  it('collective без целевого объёма → ок (старт ручным запуском)', async () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
     repo.countRecentCreatedBy.mockResolvedValue(0);
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
-
-    await expect(
-      service.create(baseCreateRequest({ cycle_type: 'time_based', cycle_days: null }))
-    ).rejects.toThrow(BadRequestException);
-  });
-
-  it('time_based cycle_days < 1 → 400', async () => {
-    const repo = makeOfferRepo();
-    const cats = makeCategoryRepo();
-    repo.countRecentCreatedBy.mockResolvedValue(0);
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
-
-    await expect(
-      service.create(baseCreateRequest({ cycle_type: 'time_based', cycle_days: 0 }))
-    ).rejects.toThrow(BadRequestException);
-  });
-
-  it('volume_based без target_volume → 400', async () => {
-    const repo = makeOfferRepo();
-    const cats = makeCategoryRepo();
-    repo.countRecentCreatedBy.mockResolvedValue(0);
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
-
-    await expect(
-      service.create(
-        baseCreateRequest({
-          cycle_type: 'volume_based',
-          cycle_days: null,
-          target_volume: null,
-          max_wait_days: 30,
-        })
-      )
-    ).rejects.toThrow(BadRequestException);
-  });
-
-  it('volume_based без max_wait_days → 400', async () => {
-    const repo = makeOfferRepo();
-    const cats = makeCategoryRepo();
-    repo.countRecentCreatedBy.mockResolvedValue(0);
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
-
-    await expect(
-      service.create(
-        baseCreateRequest({
-          cycle_type: 'volume_based',
-          cycle_days: null,
-          target_volume: 100,
-          max_wait_days: null,
-        })
-      )
-    ).rejects.toThrow(BadRequestException);
-  });
-
-  it('volume_based с target_volume и max_wait_days → ок', async () => {
-    const repo = makeOfferRepo();
-    const cats = makeCategoryRepo();
-    repo.countRecentCreatedBy.mockResolvedValue(0);
-    repo.create.mockResolvedValue(
-      makeOffer({ cycle_type: 'volume_based', target_volume: 100, max_wait_days: 30, cycle_days: null })
-    );
+    repo.create.mockResolvedValue(makeOffer({ cycle_type: 'collective', target_volume: null }));
     const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
 
     const offer = await service.create(
-      baseCreateRequest({
-        cycle_type: 'volume_based',
-        cycle_days: null,
-        target_volume: 100,
-        max_wait_days: 30,
-      })
+      baseCreateRequest({ cycle_type: 'collective', target_volume: null })
     );
-    expect(offer.cycle_type).toBe('volume_based');
+    expect(offer.cycle_type).toBe('collective');
+  });
+
+  it('collective с целевым объёмом → ок, target_volume передаётся в repo', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.countRecentCreatedBy.mockResolvedValue(0);
+    repo.create.mockResolvedValue(makeOffer({ cycle_type: 'collective', target_volume: 100 }));
+    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+
+    const offer = await service.create(
+      baseCreateRequest({ cycle_type: 'collective', target_volume: 100 })
+    );
+    expect(offer.cycle_type).toBe('collective');
     expect(repo.create).toHaveBeenCalledWith(
-      expect.objectContaining({ cycle_type: 'volume_based', target_volume: 100, max_wait_days: 30 })
+      expect.objectContaining({ cycle_type: 'collective', target_volume: 100 })
     );
   });
 
-  it('open_subscription без cycle-полей → ок', async () => {
+  it('collective с целевым объёмом < 1 → 400', async () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
     repo.countRecentCreatedBy.mockResolvedValue(0);
-    repo.create.mockResolvedValue(makeOffer({ cycle_type: 'open_subscription', cycle_days: null }));
     const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
 
-    const offer = await service.create(
-      baseCreateRequest({
-        cycle_type: 'open_subscription',
-        cycle_days: null,
-        target_volume: null,
-        max_wait_days: null,
-      })
-    );
-    expect(offer.cycle_type).toBe('open_subscription');
+    await expect(
+      service.create(baseCreateRequest({ cycle_type: 'collective', target_volume: 0 }))
+    ).rejects.toThrow(BadRequestException);
   });
 
-  it('individual без cycle-полей → ок', async () => {
+  it('individual → ок, целевой объём обнуляется в repo (висящее значение не сохраняем)', async () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
     repo.countRecentCreatedBy.mockResolvedValue(0);
-    repo.create.mockResolvedValue(makeOffer({ cycle_type: 'individual', cycle_days: null }));
+    repo.create.mockResolvedValue(makeOffer({ cycle_type: 'individual', target_volume: null }));
     const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
 
     const offer = await service.create(
-      baseCreateRequest({
-        cycle_type: 'individual',
-        cycle_days: null,
-        target_volume: null,
-        max_wait_days: null,
-      })
+      baseCreateRequest({ cycle_type: 'individual', target_volume: 50 })
     );
     expect(offer.cycle_type).toBe('individual');
+    expect(repo.create).toHaveBeenCalledWith(
+      expect.objectContaining({ cycle_type: 'individual', target_volume: null })
+    );
   });
 });
 
-describe('MarketplaceOfferService.update — Story 4.7 cycle_type change', () => {
-  it('смена cycle_type на volume_based без target_volume → 400', async () => {
+describe('MarketplaceOfferService.update — смена способа поставки', () => {
+  it('смена cycle_type на collective без целевого объёма → ок и статус → PENDING_MODERATION', async () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
     repo.findById.mockResolvedValue(
-      makeOffer({ status: 'ACTIVE', cycle_type: 'time_based', cycle_days: 7 })
+      makeOffer({ status: 'ACTIVE', cycle_type: 'individual', target_volume: null })
+    );
+    repo.applyUpdate.mockResolvedValue(
+      makeOffer({ status: 'PENDING_MODERATION', cycle_type: 'collective', target_volume: null })
+    );
+    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+
+    const result = await service.update('offer-1', 'alice', { cycle_type: 'collective' });
+    expect(result.status).toBe('PENDING_MODERATION');
+    expect(repo.applyUpdate).toHaveBeenCalledWith(
+      'offer-1',
+      expect.objectContaining({ cycle_type: 'collective', status: 'PENDING_MODERATION' })
+    );
+  });
+
+  it('установка целевого объёма < 1 для collective → 400', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.findById.mockResolvedValue(
+      makeOffer({ status: 'ACTIVE', cycle_type: 'collective', target_volume: 100 })
     );
     const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
 
     await expect(
-      service.update('offer-1', 'alice', { cycle_type: 'volume_based' })
+      service.update('offer-1', 'alice', { target_volume: 0 })
     ).rejects.toThrow(BadRequestException);
   });
 
-  it('смена cycle_type на volume_based с target_volume + max_wait_days → ок и статус → PENDING_MODERATION', async () => {
+  it('частичный update без касания способа поставки → ок', async () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
     repo.findById.mockResolvedValue(
-      makeOffer({ status: 'ACTIVE', cycle_type: 'time_based', cycle_days: 7 })
-    );
-    repo.applyUpdate.mockResolvedValue(
-      makeOffer({
-        status: 'PENDING_MODERATION',
-        cycle_type: 'volume_based',
-        target_volume: 100,
-        max_wait_days: 30,
-      })
-    );
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
-
-    const result = await service.update('offer-1', 'alice', {
-      cycle_type: 'volume_based',
-      target_volume: 100,
-      max_wait_days: 30,
-    });
-    expect(result.status).toBe('PENDING_MODERATION');
-    expect(repo.applyUpdate).toHaveBeenCalledWith(
-      'offer-1',
-      expect.objectContaining({
-        cycle_type: 'volume_based',
-        target_volume: 100,
-        max_wait_days: 30,
-        status: 'PENDING_MODERATION',
-      })
-    );
-  });
-
-  it('частичный update без касания cycle-полей → старая cycle_type=time_based валидна без cycle_days в patch', async () => {
-    const repo = makeOfferRepo();
-    const cats = makeCategoryRepo();
-    repo.findById.mockResolvedValue(
-      makeOffer({ status: 'ACTIVE', cycle_type: 'time_based', cycle_days: 7 })
+      makeOffer({ status: 'ACTIVE', cycle_type: 'collective', target_volume: null })
     );
     repo.applyUpdate.mockResolvedValue(makeOffer({ status: 'PENDING_MODERATION', product_name: 'Молоко' }));
     const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
@@ -861,19 +778,6 @@ describe('MarketplaceOfferService.update — Story 4.7 cycle_type change', () =>
     await expect(
       service.update('offer-1', 'alice', { product_name: 'Молоко' })
     ).resolves.toBeDefined();
-  });
-
-  it('изменение cycle_days на 0 для существующего time_based → 400', async () => {
-    const repo = makeOfferRepo();
-    const cats = makeCategoryRepo();
-    repo.findById.mockResolvedValue(
-      makeOffer({ status: 'ACTIVE', cycle_type: 'time_based', cycle_days: 7 })
-    );
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
-
-    await expect(
-      service.update('offer-1', 'alice', { cycle_days: 0 })
-    ).rejects.toThrow(BadRequestException);
   });
 });
 

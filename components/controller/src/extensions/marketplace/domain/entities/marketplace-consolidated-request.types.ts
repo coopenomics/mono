@@ -4,17 +4,13 @@ export type MarketplaceConsolidatedRequestStatus =
   | 'PENDING_SUPPLIER_ACCEPT'
   | 'ACCEPTED'
   | 'DECLINED_BY_SUPPLIER'
-  | 'EXPIRED_NO_RESPONSE'
-  | 'EXPIRED_NO_THRESHOLD'
-  | 'EXPIRED_NO_VOLUME';
+  | 'EXPIRED_NO_RESPONSE';
 
 export const MarketplaceConsolidatedRequestStatuses = {
   PENDING_SUPPLIER_ACCEPT: 'PENDING_SUPPLIER_ACCEPT',
   ACCEPTED: 'ACCEPTED',
   DECLINED_BY_SUPPLIER: 'DECLINED_BY_SUPPLIER',
   EXPIRED_NO_RESPONSE: 'EXPIRED_NO_RESPONSE',
-  EXPIRED_NO_THRESHOLD: 'EXPIRED_NO_THRESHOLD',
-  EXPIRED_NO_VOLUME: 'EXPIRED_NO_VOLUME',
 } as const satisfies Record<string, MarketplaceConsolidatedRequestStatus>;
 
 export interface MarketplaceConsolidatedRequestProps {
