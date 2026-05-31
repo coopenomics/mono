@@ -7,9 +7,11 @@
  *
  * Операции marketplace:
  *   - o.mkt.lock:   TRANSFER w.wal.share → w.mkt.order, Дт 80 / Кт 86
- *   - o.mkt.unlock: TRANSFER w.mkt.order → w.wal.member, без проводки
+ *   - o.mkt.conv:   TRANSFER w.wal.share → w.mkt.member, Дт 80 / Кт 86
+ *   - o.mkt.lockm:  TRANSFER w.mkt.member → w.mkt.order, без проводки
+ *   - o.mkt.unlock: TRANSFER w.mkt.order → w.mkt.member, без проводки
  *   - o.mkt.consum: BURN w.mkt.order, Дт 86 / Кт 10
- *   - o.mkt.return: ISSUE → w.wal.member, Дт 10 / Кт 86
+ *   - o.mkt.return: ISSUE → w.mkt.member, Дт 10 / Кт 86
  *   - o.mkt.wroff:  NONE, Дт 86 / Кт 10
  */
 
@@ -157,7 +159,7 @@ function cancelOrderFlow(amount = 100): MarketplaceLedger2OperationRow[] {
       operationCode: 'o.mkt.unlock',
       amount,
       walletFrom: 'w.mkt.order',
-      walletTo: 'w.wal.member',
+      walletTo: 'w.mkt.member',
       debitAccount: null,
       creditAccount: null,
     }),
@@ -172,7 +174,7 @@ function returnFlow(amount = 100): MarketplaceLedger2OperationRow[] {
       operationCode: 'o.mkt.return',
       amount,
       walletFrom: null,
-      walletTo: 'w.wal.member',
+      walletTo: 'w.mkt.member',
       debitAccount: 10,
       creditAccount: 86,
     }),
@@ -450,7 +452,7 @@ describe('I6 — нет orphan o.mkt.lock', () => {
         operationCode: 'o.mkt.unlock',
         amount: 30,
         walletFrom: 'w.mkt.order',
-        walletTo: 'w.wal.member',
+        walletTo: 'w.mkt.member',
         debitAccount: null,
         creditAccount: null,
       }),

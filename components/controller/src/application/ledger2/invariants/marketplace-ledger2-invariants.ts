@@ -321,14 +321,16 @@ export function checkInvariantI4Account91Transit(
 
 // ---------------------------------------------------------------------------
 // I5 — Согласованность резерва под Order на кошельке w.mkt.order:
-//   sum(TRANSFER w.wal.share → w.mkt.order)         // o.mkt.lock   — резерв вошёл (Дт 80 / Кт 86)
-//   − sum(TRANSFER w.mkt.order → w.wal.member)      // o.mkt.unlock — резерв снят (без проводки)
+//   sum(TRANSFER w.wal.share  → w.mkt.order)        // o.mkt.lock   — резерв вошёл (Дт 80 / Кт 86)
+//   + sum(TRANSFER w.mkt.member → w.mkt.order)      // o.mkt.lockm  — добор резерва доплатой (без проводки)
+//   − sum(TRANSFER w.mkt.order → w.mkt.member)      // o.mkt.unlock — резерв снят / недовыдача (без проводки)
 //   − sum(BURN w.mkt.order)                         // o.mkt.consum — резерв сожжён (Дт 86 / Кт 10)
 //     = sum(available у w.mkt.order-кошельков пайщиков).
 //
-// Архитектура 2026-05-28: средства заказчика идут с паевого (w.wal.share)
-// напрямую на резерв-кошелёк w.mkt.order при createorder; возврат при отмене
-// поступает на универсальный членский w.wal.member.
+// Архитектура 2026-05-31 (ревью PR #50): средства заказчика идут с паевого
+// (w.wal.share) напрямую на резерв-кошелёк w.mkt.order при createorder; доплата
+// по факту добирается с членского «Стола заказов» (o.mkt.lockm после o.mkt.conv);
+// возврат при отмене/недовыдаче поступает на членский «Стола заказов» w.mkt.member.
 //
 // На входе тестов wallets обычно содержит aggregated available по всем
 // w.mkt.order-row. Можно подать одну строку с агрегированным `balance`.
@@ -344,8 +346,12 @@ export function checkInvariantI5ReserveConsistency(
     if (r.walletFrom === 'w.wal.share' && r.walletTo === 'w.mkt.order') {
       computed += parseAssetToBigInt(r.quantity)
     }
-    // o.mkt.unlock: TRANSFER w.mkt.order → w.wal.member  (резерв снят)
-    else if (r.walletFrom === 'w.mkt.order' && r.walletTo === 'w.wal.member') {
+    // o.mkt.lockm: TRANSFER w.mkt.member → w.mkt.order  (добор резерва доплатой)
+    else if (r.walletFrom === 'w.mkt.member' && r.walletTo === 'w.mkt.order') {
+      computed += parseAssetToBigInt(r.quantity)
+    }
+    // o.mkt.unlock: TRANSFER w.mkt.order → w.mkt.member  (резерв снят)
+    else if (r.walletFrom === 'w.mkt.order' && r.walletTo === 'w.mkt.member') {
       computed -= parseAssetToBigInt(r.quantity)
     }
     // o.mkt.consum: BURN w.mkt.order  (резерв сожжён при выдаче)
