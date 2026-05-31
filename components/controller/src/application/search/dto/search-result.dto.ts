@@ -11,6 +11,9 @@ export class SearchResultDTO {
   @Field(() => String, { description: 'Имя пользователя' })
   username!: string;
 
+  @Field(() => String, { description: 'ФИО подписанта документа' })
+  signer!: string;
+
   @Field(() => String, { description: 'Кооператив' })
   coopname!: string;
 

@@ -13,6 +13,7 @@ interface IDocumentStore {
   pagination: Ref<IPagination>
   changePage: (page: number, username: string, filter: Record<string, any>, hidden?: boolean) => Promise<IDocumentPackageAggregate[]>
   changeDocumentType: (type: DocumentType, username: string, filter: Record<string, any>) => Promise<void>
+  loadDocument: (username: string, hash: string) => Promise<IDocumentPackageAggregate | null>
   resetDocuments: () => void
 }
 /**
@@ -105,6 +106,28 @@ export const useDocumentStore = defineStore(namespace, (): IDocumentStore => {
     await changePage(1, username, filter)
   }
 
+  /**
+   * Загружает один документ по hash — для отдельной страницы документа.
+   * Не трогает состояние списка. Тип newsubmitted — статус-агностичный фильтр
+   * (находит документ в любом статусе: подан / решён / аннулирован).
+   * @param username скоуп выборки: coopname (весь кооператив) или имя пайщика
+   * @param hash хэш документа (в реестре хранится в верхнем регистре)
+   * @returns агрегат пакета документа или null, если не найден
+   */
+  const loadDocument = async (
+    username: string,
+    hash: string
+  ): Promise<IDocumentPackageAggregate | null> => {
+    const result = await api.loadDocuments({
+      username,
+      filter: { document: { hash: hash.toUpperCase() } },
+      type: 'newsubmitted',
+      page: 1,
+      limit: 1
+    })
+    return result.items[0] ?? null
+  }
+
   return {
     documents,
     loading,
@@ -112,6 +135,7 @@ export const useDocumentStore = defineStore(namespace, (): IDocumentStore => {
     pagination,
     changePage,
     changeDocumentType,
+    loadDocument,
     resetDocuments
   }
 })

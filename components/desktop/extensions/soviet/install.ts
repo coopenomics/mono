@@ -2,6 +2,7 @@ import { markRaw } from 'vue';
 import { ListOfAgendaQuestions } from 'src/pages/Cooperative/ListOfAgenda';
 import { ListOfParticipantsPage } from 'src/pages/Cooperative/ListOfParticipants';
 import { ListOfDocumentsPage } from 'src/pages/Cooperative/ListOfDocuments';
+import { DocumentDetailsPage } from 'src/pages/Cooperative/DocumentDetails';
 import { PaymentsPage } from 'src/pages/Cooperative/Payments';
 import { ListOfMeetsPage } from 'src/pages/Cooperative/ListOfMeets';
 import { MeetDetailsPage } from 'src/pages/Cooperative/MeetDetails';
@@ -53,6 +54,17 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               title: 'Реестр документов',
               icon: 'fa-solid fa-file-invoice',
               roles: ['chairman', 'member'],
+            },
+          },
+          {
+            // Отдельная страница документа (deep-link из поиска и реестра).
+            path: 'documents/:hash',
+            name: 'document-details',
+            component: markRaw(DocumentDetailsPage),
+            meta: {
+              title: 'Документ',
+              roles: ['chairman', 'member'],
+              hidden: true,
             },
           },
           {

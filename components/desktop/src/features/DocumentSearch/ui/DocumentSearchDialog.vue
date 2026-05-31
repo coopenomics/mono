@@ -21,7 +21,7 @@ q-dialog(v-model='isOpen' position='top' transition-show='slide-down' transition
       .row.justify-center.items-center(style='height: 100px')
         q-spinner(color='primary' size='32px')
 
-    q-card-section(v-else-if='results.length > 0' style='max-height: 60vh; overflow-y: auto')
+    q-card-section.q-pt-none(v-else-if='results.length > 0' style='max-height: 60vh; overflow-y: auto')
       q-list(separator)
         q-item(
           v-for='result in results'
@@ -30,14 +30,11 @@ q-dialog(v-model='isOpen' position='top' transition-show='slide-down' transition
           @click='openDocument(result)'
         )
           q-item-section
-            q-item-label {{ result.full_title }}
+            q-item-label.doc-title {{ result.full_title }}
             q-item-label(caption)
-              span.text-grey-7 {{ result.username }} · {{ formatDate(result.created_at) }}
-            .text-caption.text-grey-7(
-              v-if='result.highlights.length > 0'
-              v-html='result.highlights[0]'
-              style='margin-top: 4px'
-            )
+              .row.items-center(style='gap: 8px; margin-top: 4px')
+                BaseBadge(v-if='result.signer' variant='neutral') {{ result.signer }}
+                span.text-grey-7 {{ formatDate(result.created_at) }}
 
     q-card-section(v-else-if='searchQuery.length >= 2 && !loading')
       .text-center.text-grey-6(style='padding: 24px')
@@ -52,6 +49,8 @@ q-dialog(v-model='isOpen' position='top' transition-show='slide-down' transition
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { client } from 'src/shared/api/client'
+import { BaseBadge } from 'src/shared/ui/base/BaseBadge'
+import { DocumentModel } from 'src/entities/Document'
 
 const props = defineProps<{
   modelValue: boolean
@@ -89,6 +88,7 @@ function onSearch(query: string | number | null) {
             hash: true,
             full_title: true,
             username: true,
+            signer: true,
             coopname: true,
             registry_id: true,
             created_at: true,
@@ -106,8 +106,12 @@ function onSearch(query: string | number | null) {
   }, 300)
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const { openDocument: navigateToDocument } = DocumentModel.useDocumentNavigation()
+
+// Открываем отдельную страницу документа по hash и закрываем диалог.
+// Страница сама загрузит документ (работает и при прямом переходе по ссылке).
 function openDocument(result: any) {
+  if (result?.hash) navigateToDocument(String(result.hash))
   close()
 }
 

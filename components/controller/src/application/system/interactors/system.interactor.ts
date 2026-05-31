@@ -234,7 +234,8 @@ export class SystemInteractor {
       union_link: config.union.link,
       board_members,
       features: {
-        search: process.env.OPENSEARCH_ENABLED === 'true',
+        // Поиск по документам теперь на PG-реестре подписанных документов (C28-21) — доступен всегда.
+        search: true,
       },
     });
   }

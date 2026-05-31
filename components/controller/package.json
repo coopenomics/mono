@@ -1,6 +1,6 @@
 {
   "name": "@coopenomics/controller",
-  "version": "2026.5.27-2",
+  "version": "2026.5.30-alpha-2",
   "description": "Бэкенд GraphQL API кооператива на NestJS",
   "private": true,
   "bin": "bin/createNodejsApp.js",
@@ -99,7 +99,6 @@
     "@nestjs/typeorm": "^10.0.2",
     "@novu/api": "^1.4.0",
     "@octokit/rest": "^22.0.1",
-    "@opensearch-project/opensearch": "^3.5.1",
     "@sentry/nestjs": "^10.32.1",
     "@sentry/node": "^10.32.1",
     "@types/jest": "^29.5.12",

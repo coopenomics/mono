@@ -6,6 +6,7 @@ import { ContactsPage } from 'src/pages/Contacts';
 import { ListOfMeetsPage } from 'src/pages/Cooperative/ListOfMeets';
 import { MeetDetailsPage } from 'src/pages/Cooperative/MeetDetails';
 import { UserDocumentsPage } from 'src/pages/User/DocumentsPage';
+import { DocumentDetailsPage } from 'src/pages/Cooperative/DocumentDetails';
 import { UserPaymentsPage } from 'src/pages/User/PaymentsPage';
 import { SupportTrigger } from 'src/pages/Support';
 import { agreementsBase } from 'src/shared/lib/consts/workspaces';
@@ -102,6 +103,18 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             path: 'documents',
             name: 'user-documents',
             component: markRaw(UserDocumentsPage),
+          },
+          {
+            // Отдельная страница документа (deep-link из поиска и реестра).
+            meta: {
+              title: 'Документ',
+              roles: ['user', 'member', 'chairman'],
+              requiresAuth: true,
+              hidden: true,
+            },
+            path: 'documents/:hash',
+            name: 'user-document-details',
+            component: markRaw(DocumentDetailsPage),
           },
           {
             meta: {

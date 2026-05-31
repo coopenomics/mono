@@ -14538,6 +14538,9 @@ type SearchResult {
   """ID реестра документа"""
   registry_id: Int!
 
+  """ФИО подписанта документа"""
+  signer: String!
+
   """Имя пользователя"""
   username: String!
 }

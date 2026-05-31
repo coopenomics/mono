@@ -9,6 +9,12 @@ import { DocumentPackageAggregator } from '~/domain/document/aggregators/documen
 import { DocumentAggregator } from '~/domain/document/aggregators/document.aggregator';
 import type { DocumentAggregateDomainInterface } from '~/domain/document/interfaces/document-domain-aggregate.interface';
 import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import {
+  SIGNED_DOCUMENT_REPOSITORY,
+  type SignedDocumentRepository,
+} from '~/domain/document/repository/signed-document.repository';
+import { SignedDocumentStatus } from '~/domain/document/enums/signed-document-status.enum';
+import config from '~/config/config';
 
 @Injectable()
 export class DocumentInteractor {
@@ -16,7 +22,8 @@ export class DocumentInteractor {
     @Inject(forwardRef(() => DocumentDomainService)) private readonly documentDomainService: DocumentDomainService,
     @Inject(forwardRef(() => DocumentPackageAggregator))
     private readonly documentPackageAggregator: DocumentPackageAggregator,
-    @Inject(forwardRef(() => DocumentAggregator)) private readonly documentAggregator: DocumentAggregator
+    @Inject(forwardRef(() => DocumentAggregator)) private readonly documentAggregator: DocumentAggregator,
+    @Inject(SIGNED_DOCUMENT_REPOSITORY) private readonly signedDocumentRepository: SignedDocumentRepository
   ) {}
 
   public async generateDocument(data: GenerateDocumentDomainInterfaceWithOptions): Promise<DocumentDomainEntity> {
@@ -26,52 +33,56 @@ export class DocumentInteractor {
   public async getDocumentsAggregate(
     data: GetDocumentsInputDomainInterface
   ): Promise<PaginationResultDomainInterface<DocumentPackageAggregateDomainInterface>> {
-    const { type = 'newsubmitted', page = 1, limit = 100, query, after_block, before_block, actions } = data;
+    const { type, page = 1, limit = 100, query = {}, after_block, before_block, actions } = data;
 
-    // Добавляем фильтры по блокам в query
-    const blockFilters: Record<string, unknown> = { ...query };
-    if (after_block !== undefined || before_block !== undefined) {
-      const blockFilter: Record<string, unknown> = {};
-
-      if (after_block !== undefined) {
-        blockFilter.$gte = after_block;
-      }
-      if (before_block !== undefined) {
-        blockFilter.$lte = before_block;
-      }
-
-      blockFilters.block_num = blockFilter;
-    }
-
-    // Добавляем фильтр по массиву действий (data.action)
-    // DocumentAction enum значения автоматически преобразуются в строки
-    if (actions && actions.length > 0) {
-      blockFilters['data.action'] = { $in: actions };
-    }
-
-    const signedDocuments = await this.documentDomainService.getImmutableSignedDocuments({
-      type,
+    // Read-path из PG-реестра подписанных документов (C28-21): отдаём ГОТОВЫЙ агрегат,
+    // собранный на этапе ingestion/backfill — без обращений к explorer/Mongo и без сборки на лету.
+    const result = await this.signedDocumentRepository.findAggregates({
+      coopname: config.coopname,
+      status: this.mapTypeToStatus(type),
+      actions: actions && actions.length > 0 ? (actions as unknown as string[]) : undefined,
+      username: this.extractReceiverScope(query),
+      hash: this.extractHashFilter(query),
+      afterBlock: after_block,
+      beforeBlock: before_block,
       page,
       limit,
-      query: blockFilters,
     });
 
-    const response: PaginationResultDomainInterface<DocumentPackageAggregateDomainInterface> = {
-      items: [],
-      totalCount: signedDocuments.total,
-      totalPages: Math.ceil(signedDocuments.total / limit),
+    return {
+      items: result.items,
+      totalCount: result.total,
+      totalPages: Math.ceil(result.total / limit) || 0,
       currentPage: page,
     };
+  }
 
-    for (const raw_action_document of signedDocuments.results) {
-      const documentPackageAggregate = await this.documentPackageAggregator.buildDocumentPackageAggregate(
-        raw_action_document
-      );
+  // Прежний фильтр был по ИМЕНИ действия, не по статусу-партиции:
+  //   «Все входящие» (newsubmitted) — у каждого пакета есть submitted-действие, поэтому это ВСЕ
+  //     документы кооператива (решённые/аннулированные тоже входят) → статус НЕ ограничиваем;
+  //   «Только утверждённые» (newresolved) — лишь решённые → status=Resolved.
+  // (Партиция по статусу скрыла бы решённые документы из вкладки «Все входящие» — регрессия.)
+  private mapTypeToStatus(type?: 'newsubmitted' | 'newresolved'): SignedDocumentStatus | undefined {
+    return type === 'newresolved' ? SignedDocumentStatus.Resolved : undefined;
+  }
 
-      response.items.push(documentPackageAggregate);
+  // Скоуп выборки повторяет прежний explorer-фильтр `receiver: username` из DocumentService.
+  // Документ soviet через require_recipient уведомляет И кооператив, И пайщика-субъекта, поэтому:
+  //   receiver === coopname → весь кооператив (фильтр только по coopname — как и было);
+  //   receiver === <пайщик> → его документы (колонка username = субъект заявления).
+  private extractReceiverScope(query: Record<string, unknown>): string | undefined {
+    const receiver = query['receiver'];
+    if (typeof receiver === 'string' && receiver.length > 0 && receiver !== config.coopname) {
+      return receiver;
     }
+    return undefined;
+  }
 
-    return response;
+  // Фильтр по конкретному документу: Union-страница шлёт filter.document.hash (upper-case).
+  private extractHashFilter(query: Record<string, unknown>): string | undefined {
+    const document = query['document'] as Record<string, unknown> | undefined;
+    const hash = (document?.['hash'] ?? query['hash']) as unknown;
+    return typeof hash === 'string' && hash.length > 0 ? hash : undefined;
   }
 
   /**

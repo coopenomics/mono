@@ -15,7 +15,6 @@ import { NovuModule } from './infrastructure/novu/novu.module';
 import { EventsInfrastructureModule } from './infrastructure/events/events.module';
 import { FreeDecisionInfrastructureModule } from './infrastructure/free-decision/free-decision-infrastructure.module';
 import { DecisionTrackingInfrastructureModule } from './infrastructure/decision-tracking/decision-tracking-infrastructure.module';
-import { SearchInfrastructureModule } from './infrastructure/search/search-infrastructure.module';
 import { FileStorageInfrastructureModule } from './infrastructure/file-storage';
 
 // Domain modules
@@ -77,6 +76,7 @@ import { SettingsApplicationModule } from './application/settings/settings.modul
 import { RegistrationModule } from './application/registration/registration.module';
 import { OnboardingApplicationModule } from './application/onboarding/onboarding-application.module';
 import { SearchModule } from './application/search/search.module';
+import { SignedDocumentsModule } from './application/signed-documents/signed-documents.module';
 import { MutationLoggingInterceptor } from './application/common/interceptors/mutation-logging.interceptor';
 import { MarketplacePluginModule } from './extensions/marketplace/marketplace-extension.module';
 import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketplace-cards.module';
@@ -100,7 +100,6 @@ import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketpla
     GeneratorInfrastructureModule,
     RedisModule,
     NovuModule,
-    SearchInfrastructureModule,
     EventsInfrastructureModule,
     FreeDecisionInfrastructureModule,
     DecisionTrackingInfrastructureModule,
@@ -170,6 +169,7 @@ import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketpla
     RegistrationModule,
     OnboardingApplicationModule,
     SearchModule,
+    SignedDocumentsModule,
     // Marketplace extensions
     MarketplacePluginModule,
     MarketplaceCardsModule,

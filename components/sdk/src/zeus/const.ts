@@ -5638,6 +5638,7 @@ export const ReturnTypes: Record<string,any> = {
 		hash:"String",
 		highlights:"String",
 		registry_id:"Int",
+		signer:"String",
 		username:"String"
 	},
 	Settings:{

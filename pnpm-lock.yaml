@@ -340,9 +340,6 @@ importers:
       '@octokit/rest':
         specifier: ^22.0.1
         version: 22.0.1
-      '@opensearch-project/opensearch':
-        specifier: ^3.5.1
-        version: 3.5.1
       '@sentry/nestjs':
         specifier: ^10.32.1
         version: 10.46.0(@nestjs/common@10.4.22(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.1.14)(rxjs@7.8.2))(@nestjs/core@10.4.22)
@@ -5705,10 +5702,6 @@ packages:
   '@openreplay/tracker@17.2.4':
     resolution: {integrity: sha512-R0j6I11SbxxdKuSYfyCgDdKuSFJb57opW+kQfQBmz3kNqL/OPctFknLBa+dUmKyvreQicKv2M7ZWbBlUAPD3FA==}
     engines: {node: '>=14.0'}
-
-  '@opensearch-project/opensearch@3.5.1':
-    resolution: {integrity: sha512-6bf+HcuERzAtHZxrm6phjref54ABse39BpkDie/YO3AUFMCBrb3SK5okKSdT5n3+nDRuEEQLhQCl0RQV3s1qpA==}
-    engines: {node: '>=14', yarn: ^1.22.10}
 
   '@opentelemetry/api-logs@0.207.0':
     resolution: {integrity: sha512-lAb0jQRVyleQQGiuuvCOTDVspc14nx6XJjP4FspJ1sNARo3Regq4ZZbrc3rN4b1TYSuUCvgH+UXUPug4SLOqEQ==}
@@ -12208,10 +12201,6 @@ packages:
     resolution: {integrity: sha512-puUZAUKT5m8Zzvs72XWy3HtvVbTWljRE66cP60bxJzAqf2DgICo7lYTY2IHUmLnNpjYvw5bvmoHvPc0QO2a62w==}
     engines: {node: ^16.14.0 || >=18.0.0}
 
-  hpagent@1.2.0:
-    resolution: {integrity: sha512-A91dYTeIB6NoXG+PxTQpCCDDnfHsW9kc06Lvpu1TEe9gnd6ZFeiBoRO9JvzEv6xK7EX97/dUE8g/vBMTqTS3CA==}
-    engines: {node: '>=14'}
-
   href-content@2.0.3:
     resolution: {integrity: sha512-ikrAoI1l5ihN5Be2cR9nozFfivVJxPQDpa4+sb6PLt/uaNE/a7A05rHbnJEUduoHddbB3GyT5tdqzXMUmPgJYA==}
 
@@ -13189,10 +13178,6 @@ packages:
 
   json-with-bigint@3.5.8:
     resolution: {integrity: sha512-eq/4KP6K34kwa7TcFdtvnftvHCD9KvHOGGICWwMFc4dOOKF5t4iYqnfLK8otCRCRv06FXOzGGyqE8h8ElMvvdw==}
-
-  json11@2.0.2:
-    resolution: {integrity: sha512-HIrd50UPYmP6sqLuLbFVm75g16o0oZrVfxrsY0EEys22klz8mRoWlX9KAEDOSOR9Q34rcxsyC8oDveGrCz5uLQ==}
-    hasBin: true
 
   json5@1.0.2:
     resolution: {integrity: sha512-g1MWMLBiz8FKi1e4w0UyVL3w+iJceWAFBAaBnnGKOpNa5f8TLktkbre1+s6oICydWAm+HRUGTmI+//xv2hvXYA==}
@@ -16676,9 +16661,6 @@ packages:
   section-matter@1.0.0:
     resolution: {integrity: sha512-vfD3pmTzGpufjScBh50YHKzEu2lxBWhVEHsNGoEXmCmn2hKGfeNLYMzCJpe8cD7gqX7TJluOVpBkAequ6dgMmA==}
     engines: {node: '>=4'}
-
-  secure-json-parse@2.7.0:
-    resolution: {integrity: sha512-6aU+Rwsezw7VR8/nyvKTx8QpWH9FrcYiXXlqC4z5d5XQBDRqtbfsRjnwGyqbi3gddNtWHuEk9OANUotL26qKUw==}
 
   secure-json-parse@4.1.0:
     resolution: {integrity: sha512-l4KnYfEyqYJxDwlNVyRfO2E4NTHfMKAWdUuA8J0yve2Dz/E/PdBepY03RvyJpssIpRFwJoCD55wA+mEDs6ByWA==}
@@ -24709,17 +24691,6 @@ snapshots:
       error-stack-parser: 2.1.4
       error-stack-parser-es: 0.1.5
       web-vitals: 5.2.0
-
-  '@opensearch-project/opensearch@3.5.1':
-    dependencies:
-      aws4: 1.13.2
-      debug: 4.4.3
-      hpagent: 1.2.0
-      json11: 2.0.2
-      ms: 2.1.3
-      secure-json-parse: 2.7.0
-    transitivePeerDependencies:
-      - supports-color
 
   '@opentelemetry/api-logs@0.207.0':
     dependencies:
@@ -33346,8 +33317,6 @@ snapshots:
     dependencies:
       lru-cache: 10.4.3
 
-  hpagent@1.2.0: {}
-
   href-content@2.0.3:
     dependencies:
       remote-content: 4.0.1
@@ -34583,8 +34552,6 @@ snapshots:
       remove-trailing-spaces: 1.0.9
 
   json-with-bigint@3.5.8: {}
-
-  json11@2.0.2: {}
 
   json5@1.0.2:
     dependencies:
@@ -38814,8 +38781,6 @@ snapshots:
     dependencies:
       extend-shallow: 2.0.1
       kind-of: 6.0.3
-
-  secure-json-parse@2.7.0: {}
 
   secure-json-parse@4.1.0: {}
 

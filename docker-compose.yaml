@@ -106,18 +106,6 @@ services:
     working_dir: /app
     command: pnpm --filter @coopenomics/desktop run dev
 
-  opensearch:
-    image: opensearchproject/opensearch:2.18.0
-    environment:
-      - discovery.type=single-node
-      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=CoopSearch_2024!Secure
-      - OPENSEARCH_JAVA_OPTS=-Xms256m -Xmx256m
-    volumes:
-      - opensearch_data:/usr/share/opensearch/data
-    ports:
-      - "127.0.0.1:${OPENSEARCH_HOST_PORT:-9200}:9200"
-    restart: unless-stopped
-
   minio:
     image: minio/minio:RELEASE.2025-09-07T16-13-09Z
     restart: unless-stopped
@@ -139,5 +127,4 @@ services:
 volumes:
   mongo_data:
   postgres_data:
-  opensearch_data:
   minio_data:

@@ -87,6 +87,9 @@ import { UserWalletTypeormRepository } from './repositories/user-wallet.typeorm-
 import { UserWalletDeltaMapper } from './blockchain/mappers/user-wallet-delta.mapper';
 import { UserWalletSyncService } from './blockchain/services/user-wallet-sync.service';
 import { UserWalletIndexInitializer } from './blockchain/services/user-wallet-index-initializer.service';
+import { SignedDocumentEntity } from './entities/signed-document.entity';
+import { SIGNED_DOCUMENT_REPOSITORY } from '~/domain/document/repository/signed-document.repository';
+import { SignedDocumentTypeormRepository } from './repositories/signed-document.typeorm-repository';
 
 @Global()
 @Module({
@@ -134,6 +137,7 @@ import { UserWalletIndexInitializer } from './blockchain/services/user-wallet-in
       ProgramWalletTypeormEntity,
       UserAgreementTypeormEntity,
       UserWalletTypeormEntity,
+      SignedDocumentEntity,
     ]),
   ],
   providers: [
@@ -249,6 +253,11 @@ import { UserWalletIndexInitializer } from './blockchain/services/user-wallet-in
     UserWalletDeltaMapper,
     UserWalletSyncService,
     UserWalletIndexInitializer,
+    // Реестр подписанных документов (Postgres-проекция, C28-21)
+    {
+      provide: SIGNED_DOCUMENT_REPOSITORY,
+      useClass: SignedDocumentTypeormRepository,
+    },
     EntityVersionRepository,
     EntityVersioningService,
   ],
@@ -284,6 +293,7 @@ import { UserWalletIndexInitializer } from './blockchain/services/user-wallet-in
     USER_WALLET_REPOSITORY,
     UserWalletDeltaMapper,
     UserWalletSyncService,
+    SIGNED_DOCUMENT_REPOSITORY,
     EntityVersionRepository,
     EntityVersioningService,
   ],
