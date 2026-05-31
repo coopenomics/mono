@@ -13,7 +13,6 @@ import { TTNPrintPreview, type TTNData } from 'src/widgets/Marketplace/TTNPrintP
 import { listShipments, type MarketplaceShipmentView } from '../api';
 import { fetchSupplierOrders } from '../../OffererIncomingOrders/api';
 import type { MarketplaceOrderView } from '../../MyOrders/types';
-import { groupAcceptedOrders, type ShipmentFormationCycle } from '../lib/shipmentFormation';
 import { buildTtnData } from '../lib/ttn';
 import CreateShipmentDialog from './CreateShipmentDialog.vue';
 
@@ -43,22 +42,16 @@ const acceptedOrders = ref<MarketplaceOrderView[]>([]);
 const preparedOrders = ref<MarketplaceOrderView[]>([]);
 const loading = ref(false);
 
-const formationCycles = computed<ShipmentFormationCycle[]>(() =>
-  groupAcceptedOrders(acceptedOrders.value),
-);
+// Есть ли акцептованные заказы (привязанные к заявке), из которых можно
+// сформировать партию — управляет доступностью глобальной кнопки.
+const hasFormable = computed(() => acceptedOrders.value.some((o) => o.cycle_id));
 
 const isEmpty = computed(
-  () => !loading.value && formationCycles.value.length === 0 && shipments.value.length === 0,
+  () => !loading.value && !hasFormable.value && shipments.value.length === 0,
 );
 
-// Диалог формирования партии.
+// Диалог формирования партии — глобальный, открывается из шапки.
 const dialogOpen = ref(false);
-const selectedCycle = ref<ShipmentFormationCycle | null>(null);
-
-function openFormation(cycle: ShipmentFormationCycle): void {
-  selectedCycle.value = cycle;
-  dialogOpen.value = true;
-}
 
 // Story 14.3: один account-bound код на весь стол. Поставщик показывает его
 // оператору приёмки — тот резолвит аккаунт против ленты своего КУ и принимает
@@ -178,47 +171,33 @@ onMounted(() => {
 
 <template lang="pug">
 q-page.offerer-supply
-  PageHint(storage-key='mp:offerer-supply:banner-dismissed')
-    | Принятые заказы в разделе «К формированию» — выберите способ доставки
-    | (самовывоз или экспедитор по ТТН) и сформируйте партию. Сформированные
-    | партии и их следующий шаг — ниже. После приёмки на ПВЗ партия перейдёт
-    | кооперативу.
-
-  .offerer-supply__toolbar
+  //- Действия страницы — в шапку (канон Teleport): глобальная «Сформировать
+  //- партию», код для ПВЗ, обновление.
+  Teleport(to="#header-actions-host", defer)
+    BaseButton(variant='primary', size='sm', :disabled='!hasFormable', @click='dialogOpen = true')
+      template(#icon-left)
+        q-icon(name='local_shipping', size='16px')
+      | Сформировать партию
     BaseButton(variant='secondary', size='sm', :disabled='!myPickupCode', @click='myCodeDialogOpen = true')
       template(#icon-left)
         q-icon(name='qr_code_2', size='16px')
       | Мой код для ПВЗ
     RefreshButton(:loading='loading', @refresh='load')
 
+  PageHint(storage-key='mp:offerer-supply:banner-dismissed')
+    | Нажмите «Сформировать партию» в шапке: выберите способ доставки (самовывоз
+    | или экспедитор по ТТН), кооперативный участок и перенесите в партию заказы,
+    | которые реально грузите. Невыбранное останется акцептованным для следующей
+    | партии. Сформированные партии и их следующий шаг — ниже.
+
   TableSkeleton(
-    v-if='loading && !shipments.length && !formationCycles.length',
+    v-if='loading && !shipments.length',
     :columns='skeletonColumns',
     :rows='6',
     min-width="970px"
   )
 
-  //- Раздел 1: заявки, ожидающие явного формирования партии.
-  template(v-if='formationCycles.length')
-    .offerer-supply__section-title К формированию
-    .offerer-supply__formation
-      .offerer-supply__cycle(v-for='c in formationCycles', :key='c.cycle_id')
-        .offerer-supply__cycle-head
-          .offerer-supply__cycle-title {{ c.title }}
-          .offerer-supply__cycle-meta {{ c.ordersCount }} заказ(ов) · {{ c.sum }} ₽
-        .offerer-supply__ku(v-for='g in c.groups', :key='g.braname')
-          q-icon.offerer-supply__ku-icon(name='place', size='16px')
-          .offerer-supply__ku-text
-            .offerer-supply__ku-name {{ g.kuName }}
-            .offerer-supply__ku-addr(v-if='g.kuAddress') {{ g.kuAddress }}
-          .offerer-supply__ku-meta {{ g.ordersCount }} · {{ g.units }} ед. · {{ g.sum }} ₽
-        .offerer-supply__cycle-foot
-          BaseButton(variant='primary', size='sm', @click='openFormation(c)')
-            template(#icon-left)
-              q-icon(name='local_shipping', size='16px')
-            | Сформировать партию
-
-  //- Раздел 2: уже сформированные партии.
+  //- Сформированные партии — основной список стола.
   template(v-if='shipments.length')
     .offerer-supply__section-title Сформированные партии
     .table-wrap
@@ -253,14 +232,14 @@ q-page.offerer-supply
   EmptyState(
     v-if='isEmpty',
     title='Партий пока нет',
-    body='Когда вы примете заказ во «Входящих заказах» — он появится здесь для формирования партии.'
+    body='Примите заказы во «Входящих заказах» — затем нажмите «Сформировать партию» в шапке, чтобы собрать отгрузку.'
   )
     template(#icon)
       q-icon(name='local_shipping', size='48px')
 
   CreateShipmentDialog(
     v-model='dialogOpen',
-    :cycle='selectedCycle',
+    :orders='acceptedOrders',
     @created='onCreated'
   )
 

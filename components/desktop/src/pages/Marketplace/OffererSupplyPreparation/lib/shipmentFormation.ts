@@ -27,6 +27,60 @@ export interface ShipmentFormationCycle {
   sum: number;
 }
 
+/**
+ * E14: одна строка заказа для dual-list формирования партии. Гранулярность —
+ * целый заказ (не дробим количество): строка целиком грузится в партию или нет.
+ */
+export interface ShipmentOrderLine {
+  id: string;
+  cycle_id: string;
+  title: string;
+  quantity: number;
+  unit: string;
+  sum: number;
+}
+
+/** E14: акцептованные заказы одного КУ (через все заявки) — корзина для dual-list. */
+export interface ShipmentKuBucket {
+  braname: string;
+  kuName: string;
+  kuAddress?: string;
+  lines: ShipmentOrderLine[];
+}
+
+/**
+ * E14: группировка акцептованных заказов поставщика по КУ (через все заявки) —
+ * для нового диалога формирования: поставщик выбирает один КУ и переносит
+ * заказы-строки в партию (dual-list). Заказы без cycle_id опускаем — без заявки
+ * партию не сформировать. На submit выбранные строки группируются по cycle_id
+ * (одна партия = один cycle × КУ × вариант).
+ */
+export function groupAcceptedByKu(orders: MarketplaceOrderView[]): ShipmentKuBucket[] {
+  const byKu = new Map<string, ShipmentKuBucket>();
+  for (const o of orders) {
+    if (!o.cycle_id) continue;
+    let bucket = byKu.get(o.delivery_braname);
+    if (!bucket) {
+      bucket = {
+        braname: o.delivery_braname,
+        kuName: o.delivery_point_name || o.delivery_braname,
+        kuAddress: o.delivery_point_address || undefined,
+        lines: [],
+      };
+      byKu.set(o.delivery_braname, bucket);
+    }
+    bucket.lines.push({
+      id: o.id,
+      cycle_id: o.cycle_id,
+      title: o.product_name || 'Товар по предложению',
+      quantity: o.quantity,
+      unit: marketplaceUnitShort(o.unit_of_measure),
+      sum: parseFloat(o.total_cost) || 0,
+    });
+  }
+  return [...byKu.values()];
+}
+
 export function groupAcceptedOrders(orders: MarketplaceOrderView[]): ShipmentFormationCycle[] {
   const byCycle = new Map<string, MarketplaceOrderView[]>();
   for (const o of orders) {
