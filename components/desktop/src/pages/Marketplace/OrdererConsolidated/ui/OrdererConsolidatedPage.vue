@@ -19,8 +19,8 @@ import type {
 /**
  * Эпик 4 / Story 4.4: orderer-стол «Сводный заказ».
  *
- * В циклах `time_based` / `volume_based` / `open_subscription` Order'ы
- * заказчика группируются в партию по `cycle_id`. Эта страница даёт пайщику
+ * В коллективной закупке (`collective`) Order'ы заказчика группируются в
+ * партию по `cycle_id`. Эта страница даёт пайщику
  * единый обзор: какие у него партии в полёте, сколько заказов в каждой,
  * суммарная стоимость, общий этап партии. Канон — `widgets/Marketplace/OrderCard`
  * для отдельных заказов внутри партии; страница на MONO Platform v2.
@@ -37,16 +37,13 @@ const loading = ref(false);
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 
 const CYCLE_TYPE_LABEL: Record<MarketplaceOrderCycleTypeView, string> = {
-  TIME_BASED: 'По времени',
-  VOLUME_BASED: 'По объёму',
-  OPEN_SUBSCRIPTION: 'Открытая подписка',
+  COLLECTIVE: 'Коллективная закупка',
   INDIVIDUAL: 'Индивидуальный',
 };
 
 const CYCLE_TYPE_HINT: Record<MarketplaceOrderCycleTypeView, string> = {
-  TIME_BASED: 'Партия закрывается по таймеру; заказы внутри окна объединяются для одной поставки.',
-  VOLUME_BASED: 'Партия закрывается при достижении порога объёма заказов.',
-  OPEN_SUBSCRIPTION: 'Открытый пул заказов; партии формируются по решению поставщика.',
+  COLLECTIVE:
+    'Заказы копятся в общий пул; поставка стартует по достижении целевого объёма либо по решению поставщика.',
   INDIVIDUAL: 'Каждый заказ обслуживается поставщиком отдельно.',
 };
 
@@ -65,8 +62,6 @@ const STAGE_RANK: Record<MarketplaceOrderStatusView, number> = {
   RETURNED: 7,
   CANCELLED_BY_ORDERER: 99,
   CANCELLED_BY_SUPPLIER: 99,
-  EXPIRED_NO_THRESHOLD: 99,
-  EXPIRED_NO_VOLUME: 99,
 };
 
 interface ConsolidatedGroup {

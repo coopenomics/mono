@@ -62,8 +62,6 @@ const FILTERS: Array<{ key: string; label: string; statuses: MarketplaceOrderSta
     statuses: [
       'CANCELLED_BY_ORDERER',
       'CANCELLED_BY_SUPPLIER',
-      'EXPIRED_NO_THRESHOLD',
-      'EXPIRED_NO_VOLUME',
       'RETURNED',
     ],
   },

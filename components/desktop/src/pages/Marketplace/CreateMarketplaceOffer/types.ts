@@ -4,12 +4,13 @@
  * Источник истины — backend `MarketplaceCreateOfferInputDTO`. Ручная
  * типизация — техдолг до регенерации Zeus в `@coopenomics/sdk` (как
  * на других страницах Marketplace).
+ *
+ * Способ поставки (ревизия L11, 2026-05-31) — два режима:
+ *   individual — каждый заказ обрабатывается отдельно;
+ *   collective — заказы копятся в пул (авто-старт по target_volume либо
+ *                ручной запуск поставщиком).
  */
-export type MarketplaceOfferCycleType =
-  | 'time_based'
-  | 'volume_based'
-  | 'open_subscription'
-  | 'individual';
+export type MarketplaceOfferCycleType = 'individual' | 'collective';
 
 export type MarketplaceUnitOfMeasure = 'piece' | 'kg' | 'liter' | 'pack';
 
@@ -54,10 +55,7 @@ export interface MarketplaceCreateOfferFormState {
   quantity_available: number | null;
   unlimited_flag: boolean;
   cycle_type: MarketplaceOfferCycleType;
-  cycle_days: number | null;
   target_volume: number | null;
-  max_wait_days: number | null;
-  min_threshold: number | null;
   warranty_days: number;
 }
 
@@ -70,10 +68,7 @@ export interface MarketplaceCreateOfferPayload {
   quantity_available: number | null;
   unlimited_flag: boolean;
   cycle_type: MarketplaceOfferCycleType;
-  cycle_days: number | null;
   target_volume: number | null;
-  max_wait_days: number | null;
-  min_threshold: number | null;
   warranty_days: number;
   /**
    * Итоговый упорядоченный набор изображений (первый — обложка). При создании —
@@ -115,10 +110,7 @@ export interface MarketplaceOfferEditPrefill {
   quantity_available: number;
   unlimited_flag: boolean;
   cycle_type: MarketplaceOfferCycleType;
-  cycle_days: number | null;
   target_volume: number | null;
-  max_wait_days: number | null;
-  min_threshold: number | null;
   warranty_days: number;
   status: 'PENDING_MODERATION' | 'ACTIVE' | 'REJECTED' | 'WITHDRAWN';
   reject_reason?: string | null;

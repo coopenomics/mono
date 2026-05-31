@@ -69,8 +69,6 @@ const ORDER_STATUS_LABEL: Record<string, string> = {
   RETURNED: 'Возвращён',
   CANCELLED_BY_ORDERER: 'Отменён заказчиком',
   CANCELLED_BY_SUPPLIER: 'Отменён поставщиком',
-  EXPIRED_NO_THRESHOLD: 'Цикл закрыт без минимального порога',
-  EXPIRED_NO_VOLUME: 'Цикл закрыт без объёма',
 }
 const statusLabel = computed(() => {
   const raw = field('status')

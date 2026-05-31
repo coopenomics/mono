@@ -16,8 +16,8 @@ export * as DeclineIndividualOrder from './declineIndividualOrder'
 export * as AcceptConsolidatedRequest from './acceptConsolidatedRequest'
 /** Эпик 4: поставщик отклоняет сводную заявку партии — заказы отменяются, средства разблокируются */
 export * as DeclineConsolidatedRequest from './declineConsolidatedRequest'
-/** Эпик 4: поставщик вручную запускает поставку по предложению с открытой подпиской (cycle_type=open_subscription) */
-export * as TriggerOpenSubscription from './triggerOpenSubscription'
+/** Эпик 4: поставщик вручную запускает коллективную закупку по предложению (cycle_type=collective) */
+export * as TriggerCollectiveSupply from './triggerCollectiveSupply'
 /** Опубликовать новое предложение поставщика на модерацию */
 export * as CreateOffer from './createOffer'
 /** Эпик 5: сформировать партии поставки из акцептованной заявки */
