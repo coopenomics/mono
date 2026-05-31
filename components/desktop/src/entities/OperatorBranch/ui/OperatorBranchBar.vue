@@ -34,21 +34,23 @@ const options = computed<BaseSelectOption[]>(() =>
 <template lang="pug">
 .op-branch-bar(v-if='store.isOperator')
   q-icon.op-branch-bar__icon(name='storefront', size='24px')
-  //- Несколько участков: селектор — основной идентификатор, адрес под ним.
-  //- Крупный заголовок не показываем — название КУ дублировалось бы в селекте.
-  .op-branch-bar__info(v-if='store.hasMultiple')
-    BaseSelect.op-branch-bar__select(
-      :model-value='store.activeBraname',
-      :options='options',
-      label='Участок',
-      @update:model-value='store.setActive(String($event))'
-    )
-    .op-branch-bar__sub(v-if='subtitle') {{ subtitle }}
+  //- Несколько участков: селектор — основной идентификатор. Адрес кладём
+  //- в hint самого поля (занимает уже зарезервированное место), без отдельной
+  //- строки — иначе двойной зазор. Крупный заголовок не показываем: название
+  //- КУ дублировалось бы в селекте.
+  BaseSelect.op-branch-bar__select(
+    v-if='store.hasMultiple',
+    :model-value='store.activeBraname',
+    :options='options',
+    label='Участок',
+    :hint='subtitle',
+    @update:model-value='store.setActive(String($event))'
+  )
   //- Один участок: выбора нет — показываем текстом.
   .op-branch-bar__info(v-else)
     .op-branch-bar__title {{ title }}
     .op-branch-bar__sub(v-if='subtitle') {{ subtitle }}
-  BaseBadge(:variant='status.variant') {{ status.label }}
+  BaseBadge.op-branch-bar__status(:variant='status.variant') {{ status.label }}
 </template>
 
 <style scoped lang="scss">
@@ -89,6 +91,17 @@ const options = computed<BaseSelectOption[]>(() =>
   &__select {
     min-width: 220px;
     max-width: 360px;
+    // hint уже резервирует низ — гасим внешний margin q-field, чтобы бар не
+    // распирало лишним зазором под полем.
+    :deep(.q-field__bottom) {
+      padding-top: var(--p-1, 4px);
+    }
+  }
+
+  // Бейдж — к правому краю в обоих режимах (в одиночном его толкает __info).
+  &__status {
+    margin-left: auto;
+    flex-shrink: 0;
   }
 }
 </style>
