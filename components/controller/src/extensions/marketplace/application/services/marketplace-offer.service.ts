@@ -71,10 +71,8 @@ export interface OfferCreateRequest {
   quantity_available: number | null;
   unlimited_flag: boolean;
   cycle_type: MarketplaceOfferCycleType;
-  cycle_days: number | null;
+  /** Целевой объём коллективной закупки (опц.): набрался → авто-старт партии. */
   target_volume: number | null;
-  max_wait_days: number | null;
-  min_threshold: number | null;
   warranty_days: number;
   barcode_strategy?: MarketplaceBarcodeStrategy | null;
   pack_size?: number | null;
@@ -168,10 +166,12 @@ export class MarketplaceOfferService {
       quantity_available: input.unlimited_flag ? 0 : (input.quantity_available ?? 0),
       unlimited_flag: input.unlimited_flag,
       cycle_type: input.cycle_type,
-      cycle_days: input.cycle_days,
-      target_volume: input.target_volume,
-      max_wait_days: input.max_wait_days,
-      min_threshold: input.min_threshold,
+      // Целевой объём осмыслен только для коллективной закупки; для
+      // индивидуальной — всегда null, чтобы в БД не оседало висящее значение.
+      target_volume:
+        input.cycle_type === MarketplaceOfferCycleTypes.COLLECTIVE
+          ? input.target_volume
+          : null,
       warranty_days: input.warranty_days,
       barcode_strategy,
       pack_size,
@@ -226,21 +226,15 @@ export class MarketplaceOfferService {
       }
     }
 
-    // Story 4.7: per-cycle_type обязательные поля. Если patch меняет cycle_type
-    // или его cycle-specific параметры — валидируем по merged-снимку
-    // (текущее значение из БД + patch). Иначе старый Offer остаётся
-    // валидным после частичного редактирования других полей.
+    // Если patch меняет способ поставки или целевой объём — валидируем по
+    // merged-снимку (текущее значение из БД + patch). Иначе старый Offer
+    // остаётся валидным после частичного редактирования других полей.
     const cycleFieldsTouched =
-      patch.cycle_type !== undefined ||
-      patch.cycle_days !== undefined ||
-      patch.target_volume !== undefined ||
-      patch.max_wait_days !== undefined;
+      patch.cycle_type !== undefined || patch.target_volume !== undefined;
     if (cycleFieldsTouched) {
       this.assertCycleConditionals({
         cycle_type: patch.cycle_type ?? offer.cycle_type,
-        cycle_days: patch.cycle_days !== undefined ? patch.cycle_days : offer.cycle_days,
         target_volume: patch.target_volume !== undefined ? patch.target_volume : offer.target_volume,
-        max_wait_days: patch.max_wait_days !== undefined ? patch.max_wait_days : offer.max_wait_days,
       });
     }
 
@@ -369,9 +363,7 @@ export class MarketplaceOfferService {
     this.assertCycleType(input.cycle_type);
     this.assertCycleConditionals({
       cycle_type: input.cycle_type,
-      cycle_days: input.cycle_days,
       target_volume: input.target_volume,
-      max_wait_days: input.max_wait_days,
     });
 
     if (!input.unlimited_flag) {
@@ -403,42 +395,25 @@ export class MarketplaceOfferService {
   }
 
   /**
-   * Story 4.7: required-поля per cycle_type (L11 Locked Decision).
+   * Поля по способу поставки (L11 Locked Decision, ревизия — 2 режима):
    *
-   *   time_based       → cycle_days REQUIRED (>=1); min_threshold optional
-   *   volume_based     → target_volume + max_wait_days REQUIRED (>=1)
-   *   open_subscription → max_wait_days optional; ничего required
-   *   individual        → ничего required
-   *
-   * Если какое-то поле передано для «не своего» cycle_type — не ошибка,
-   * просто будет проигнорировано репозиторием (FE может оставить старое
-   * значение в форме при переключении типа). Главное — обязательные
-   * заполнены и числа >= 1.
+   *   individual → ничего; целевой объём неприменим (если передан — обнуляем).
+   *   collective → target_volume ОПЦИОНАЛЕН: задан (>=1) → партия стартует
+   *                авто при наборе объёма; не задан → только ручной запуск
+   *                поставщиком. Жёсткого таймера ожидания нет — заказчик
+   *                выходит сам в любой момент до акцепта.
    */
   private assertCycleConditionals(input: {
     cycle_type: MarketplaceOfferCycleType;
-    cycle_days: number | null;
     target_volume: number | null;
-    max_wait_days: number | null;
   }): void {
-    if (input.cycle_type === MarketplaceOfferCycleTypes.TIME_BASED) {
-      if (input.cycle_days === null || input.cycle_days === undefined || input.cycle_days < 1) {
-        throw new BadRequestException(
-          'Для time_based укажите длительность цикла в днях (целое число от 1).'
-        );
-      }
-    }
-    if (input.cycle_type === MarketplaceOfferCycleTypes.VOLUME_BASED) {
-      if (input.target_volume === null || input.target_volume === undefined || input.target_volume < 1) {
-        throw new BadRequestException(
-          'Для volume_based укажите целевой объём (целое число от 1).'
-        );
-      }
-      if (input.max_wait_days === null || input.max_wait_days === undefined || input.max_wait_days < 1) {
-        throw new BadRequestException(
-          'Для volume_based укажите максимальный срок ожидания в днях (целое число от 1).'
-        );
-      }
+    if (
+      input.cycle_type === MarketplaceOfferCycleTypes.COLLECTIVE &&
+      input.target_volume !== null &&
+      input.target_volume !== undefined &&
+      input.target_volume < 1
+    ) {
+      throw new BadRequestException('Целевой объём должен быть целым числом от 1.');
     }
   }
 

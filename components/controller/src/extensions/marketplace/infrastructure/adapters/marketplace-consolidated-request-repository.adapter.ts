@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { LessThan, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { MarketplaceConsolidatedRequestDomainEntity } from '../../domain/entities/marketplace-consolidated-request.entity';
 import type {
   MarketplaceConsolidatedRequestCreateInput,
@@ -51,17 +51,6 @@ export class MarketplaceConsolidatedRequestRepositoryAdapter
   async findById(id: string): Promise<MarketplaceConsolidatedRequestDomainEntity | null> {
     const row = await this.repo.findOne({ where: { id } });
     return row ? this.mapper.toDomain(row) : null;
-  }
-
-  async findExpiredTimeBased(now: Date): Promise<MarketplaceConsolidatedRequestDomainEntity[]> {
-    const rows = await this.repo.find({
-      where: {
-        cycle_type: 'time_based',
-        status: 'PENDING_SUPPLIER_ACCEPT',
-        cycle_ended_at: LessThan(now),
-      },
-    });
-    return rows.map((r) => this.mapper.toDomain(r));
   }
 
   async findExpiredAwaitingResponse(

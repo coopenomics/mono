@@ -87,9 +87,9 @@ export interface MarketplaceOrderDomainRepository
   ): Promise<PaginationResultDomainInterface<MarketplaceOrderDomainEntity>>;
 
   /**
-   * Backend-only status transition (например `ACCEPTED → CANCELLED_BY_ORDERER`
-   * в Story 4.4, или `ACTIVE → EXPIRED_NO_THRESHOLD` в Story 4.3).
-   * Не для блок-стейта on-chain (этим занимается syncer + `updateFromBlockchain`).
+   * Backend-only status transition (например `ACCEPTED → CANCELLED_BY_ORDERER`,
+   * или `ACTIVE → CANCELLED_BY_SUPPLIER`). Не для блок-стейта on-chain
+   * (этим занимается syncer + `updateFromBlockchain`).
    */
   applyStatusTransition(
     id: string,
@@ -97,12 +97,12 @@ export interface MarketplaceOrderDomainRepository
     reason: string | null
   ): Promise<MarketplaceOrderDomainEntity>;
 
-  // ── Story 4.2: cycle-aggregation queries ──────────────────────────
+  // ── Агрегация коллективной закупки ────────────────────────────────
 
   /**
-   * Story 4.2: незаагрегированные ACTIVE Order'ы конкретного Offer'а
-   * (cycle_id IS NULL AND status='ACTIVE'). Это «текущий пул» Offer'а
-   * для time_based/volume_based/open_subscription cycle_type.
+   * Незаагрегированные ACTIVE Order'ы конкретного Offer'а
+   * (cycle_id IS NULL AND status='ACTIVE') — «текущий пул» коллективной
+   * закупки.
    */
   findUnassignedActiveByOffer(
     coopname: string,
@@ -110,10 +110,9 @@ export interface MarketplaceOrderDomainRepository
   ): Promise<MarketplaceOrderDomainEntity[]>;
 
   /**
-   * Story 4.2: bulk-привязка Order'ов к консолидированной заявке.
-   * Используется при формировании консолидированной заявки (time_based
-   * cron / volume_based threshold / open_subscription manual trigger).
-   * Атомарно меняет status (ACTIVE → ACCEPTED_PENDING_SUPPLIER /
+   * Bulk-привязка Order'ов к сводной заявке партии. Используется при
+   * формировании заявки (авто-сбор по целевому объёму / ручной запуск
+   * поставщика). Атомарно меняет status (ACTIVE → ACCEPTED_PENDING_SUPPLIER /
    * ACCEPTED).
    */
   assignToCycle(
@@ -123,8 +122,8 @@ export interface MarketplaceOrderDomainRepository
   ): Promise<number>;
 
   /**
-   * Story 4.2: сумма quantity активного пула Offer'а (для volume_based
-   * threshold check после persist нового Order'а).
+   * Сумма quantity активного пула Offer'а (для проверки достижения целевого
+   * объёма после persist нового Order'а).
    */
   sumUnassignedActiveByOffer(coopname: string, offer_id: string): Promise<number>;
 

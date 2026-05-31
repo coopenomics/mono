@@ -120,9 +120,7 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
     else if (newStatus === 'RECEIVED') patch.received_at = new Date();
     else if (
       newStatus === 'CANCELLED_BY_ORDERER' ||
-      newStatus === 'CANCELLED_BY_SUPPLIER' ||
-      newStatus === 'EXPIRED_NO_THRESHOLD' ||
-      newStatus === 'EXPIRED_NO_VOLUME'
+      newStatus === 'CANCELLED_BY_SUPPLIER'
     ) {
       patch.cancelled_at = new Date();
     }

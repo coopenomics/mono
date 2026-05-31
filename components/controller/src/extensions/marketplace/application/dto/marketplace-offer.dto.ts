@@ -57,12 +57,10 @@ export class MarketplaceOfferDTO {
   @Field(() => Int) public readonly quantity_consumed!: number;
   @Field(() => Boolean) public readonly unlimited_flag!: boolean;
 
-  @Field(() => String, { description: 'time_based | volume_based | open_subscription | individual' })
+  @Field(() => String, { description: 'Способ поставки: individual | collective' })
   public readonly cycle_type!: string;
-  @Field(() => Int, { nullable: true }) public readonly cycle_days!: number | null;
-  @Field(() => Int, { nullable: true }) public readonly target_volume!: number | null;
-  @Field(() => Int, { nullable: true }) public readonly max_wait_days!: number | null;
-  @Field(() => Int, { nullable: true }) public readonly min_threshold!: number | null;
+  @Field(() => Int, { nullable: true, description: 'Целевой объём коллективной закупки (только collective).' })
+  public readonly target_volume!: number | null;
   @Field(() => Int) public readonly warranty_days!: number;
 
   @Field(() => MarketplaceBarcodeStrategyEnum, {
@@ -126,10 +124,7 @@ export function toMarketplaceOfferDTO(o: MarketplaceOfferDomainEntity): Marketpl
     quantity_consumed: o.quantity_consumed,
     unlimited_flag: o.unlimited_flag,
     cycle_type: o.cycle_type,
-    cycle_days: o.cycle_days,
     target_volume: o.target_volume,
-    max_wait_days: o.max_wait_days,
-    min_threshold: o.min_threshold,
     warranty_days: o.warranty_days,
     barcode_strategy: o.barcode_strategy as MarketplaceBarcodeStrategyEnum,
     pack_size: o.pack_size,

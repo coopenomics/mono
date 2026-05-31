@@ -165,7 +165,7 @@ export class MarketplaceOrderSupplierActionService {
     const order = await this.guardSupplierOrder(input.order_id, input.coopname, input.offerer_account);
     if (order.cycle_type !== MarketplaceOrderCycleTypes.INDIVIDUAL) {
       throw new BadRequestException(
-        'Этот заказ нельзя отклонить по одному: он оформлен в пакетном предложении. Для накопительных и периодических предложений действие — отказ от сводной заявки целиком; для открытой подписки — отказ из пула до запуска поставки. [E4SAS-DEC-NOT-INDIVIDUAL]'
+        'Этот заказ нельзя отклонить по одному: он оформлен в коллективной закупке. Действие — отказ из пула до запуска поставки либо отказ от собранной партии целиком. [E4SAS-DEC-NOT-INDIVIDUAL]'
       );
     }
     if (order.status !== MarketplaceOrderStatuses.ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL) {
@@ -182,9 +182,9 @@ export class MarketplaceOrderSupplierActionService {
     if (!reason) throw new BadRequestException('Укажите причину отказа.');
 
     const order = await this.guardSupplierOrder(input.order_id, input.coopname, input.offerer_account);
-    if (order.cycle_type !== MarketplaceOrderCycleTypes.OPEN_SUBSCRIPTION) {
+    if (order.cycle_type !== MarketplaceOrderCycleTypes.COLLECTIVE) {
       throw new BadRequestException(
-        'Отказ от отдельного заказа из пула возможен только в предложениях с открытой подпиской. [E4SAS-OPEN-NOT-OPEN-SUBSCRIPTION]'
+        'Отказ от отдельного заказа из пула возможен только в коллективной закупке. [E4SAS-OPEN-NOT-COLLECTIVE]'
       );
     }
     if (order.status !== MarketplaceOrderStatuses.ACTIVE || order.cycle_id != null) {

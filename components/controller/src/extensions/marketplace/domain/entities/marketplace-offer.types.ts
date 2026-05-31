@@ -14,41 +14,28 @@ export const MARKETPLACE_OFFER_STATUSES: MarketplaceOfferStatus[] = [
   MarketplaceOfferStatuses.WITHDRAWN,
 ];
 
-export type MarketplaceOfferCycleType =
-  | 'time_based'
-  | 'volume_based'
-  | 'open_subscription'
-  | 'individual';
+export type MarketplaceOfferCycleType = 'individual' | 'collective';
 
 export const MarketplaceOfferCycleTypes = {
-  TIME_BASED: 'time_based',
-  VOLUME_BASED: 'volume_based',
-  OPEN_SUBSCRIPTION: 'open_subscription',
   INDIVIDUAL: 'individual',
+  COLLECTIVE: 'collective',
 } as const satisfies Record<string, MarketplaceOfferCycleType>;
 
 export const MARKETPLACE_OFFER_CYCLE_TYPES: MarketplaceOfferCycleType[] = [
-  MarketplaceOfferCycleTypes.TIME_BASED,
-  MarketplaceOfferCycleTypes.VOLUME_BASED,
-  MarketplaceOfferCycleTypes.OPEN_SUBSCRIPTION,
   MarketplaceOfferCycleTypes.INDIVIDUAL,
+  MarketplaceOfferCycleTypes.COLLECTIVE,
 ];
 
 /**
- * Маппинг domain (snake_case, PG-storage) → chain (eosio::name, без `_`).
- * Контракт p.mkt.supply ожидает `eosio::name` (см. table_marketplace_orders.hpp:
- * TIME_BASED="timebased"_n, VOLUME_BASED="volumebased"_n,
- * OPEN_SUBSCRIPT="opensubscr"_n, INDIVIDUAL="individual"_n).
- *
- * Грамматика eosio::name запрещает `_`, поэтому domain-имена `time_based`/
- * `volume_based`/`open_subscription` нельзя передавать в action как есть.
- * Использовать на boundary chain submit (`chainPort.createOrder`).
+ * Маппинг domain → chain (eosio::name). Контракт p.mkt.supply ожидает
+ * `eosio::name` (см. table_marketplace_orders.hpp: INDIVIDUAL="individual"_n,
+ * COLLECTIVE="collective"_n). Domain-значения совпадают с chain-именами
+ * (оба валидны как eosio::name), маппинг тождественный — оставлен явным на
+ * boundary chain submit (`chainPort.createOrder`) для единой точки проверки.
  */
 export const MARKETPLACE_CYCLE_TYPE_CHAIN_NAME = {
-  [MarketplaceOfferCycleTypes.TIME_BASED]: 'timebased',
-  [MarketplaceOfferCycleTypes.VOLUME_BASED]: 'volumebased',
-  [MarketplaceOfferCycleTypes.OPEN_SUBSCRIPTION]: 'opensubscr',
   [MarketplaceOfferCycleTypes.INDIVIDUAL]: 'individual',
+  [MarketplaceOfferCycleTypes.COLLECTIVE]: 'collective',
 } as const satisfies Record<MarketplaceOfferCycleType, string>;
 
 export function toChainCycleType(cycle: string): string {

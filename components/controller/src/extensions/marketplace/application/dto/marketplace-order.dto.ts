@@ -16,12 +16,10 @@ export type MarketplaceOrderCycleTypeEnum =
 
 registerEnumType(MarketplaceOrderCycleTypeEnum, {
   name: 'MarketplaceOrderCycleType',
-  description: 'Способ накопления заказов перед поставкой.',
+  description: 'Способ поставки заказов.',
   valuesMap: {
-    TIME_BASED: { description: 'Поставка по истечении периода; собирается всё, что успело прийти.' },
-    VOLUME_BASED: { description: 'Поставка стартует, когда набран целевой объём.' },
-    OPEN_SUBSCRIPTION: { description: 'Поставщик запускает поставку вручную.' },
-    INDIVIDUAL: { description: 'Каждый заказ обрабатывается отдельно, без накопления.' },
+    INDIVIDUAL: { description: 'Каждый заказ обслуживается отдельно, без ожидания набора.' },
+    COLLECTIVE: { description: 'Коллективная закупка: заказы копятся в партию; старт по целевому объёму или ручному запуску поставщика.' },
   },
 });
 

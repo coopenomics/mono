@@ -16,10 +16,9 @@ import type {
  * `approved_by`/`approved_at`/`rejected_by`/`rejected_at`/`reject_reason`
  * — под Story 3.3 модерацию.
  *
- * Поля `cycle_days`/`target_volume`/`max_wait_days`/`min_threshold`
- * заполняются опционально в зависимости от `cycle_type` — валидация на
- * уровне `MarketplaceOfferService.create/update`, не на entity (immutable
- * snapshot).
+ * Поле `target_volume` заполняется опционально для `cycle_type='collective'`
+ * — валидация на уровне `MarketplaceOfferService.create/update`, не на entity
+ * (immutable snapshot).
  */
 export class MarketplaceOfferDomainEntity {
   public readonly id!: string;
@@ -39,10 +38,8 @@ export class MarketplaceOfferDomainEntity {
   public readonly unlimited_flag!: boolean;
 
   public readonly cycle_type!: MarketplaceOfferCycleType;
-  public readonly cycle_days!: number | null;
+  /** Целевой объём коллективной закупки (опц., только для collective). */
   public readonly target_volume!: number | null;
-  public readonly max_wait_days!: number | null;
-  public readonly min_threshold!: number | null;
   public readonly warranty_days!: number;
 
   public readonly barcode_strategy!: MarketplaceBarcodeStrategy;
@@ -76,10 +73,7 @@ export class MarketplaceOfferDomainEntity {
     quantity_consumed: number;
     unlimited_flag: boolean;
     cycle_type: MarketplaceOfferCycleType;
-    cycle_days: number | null;
     target_volume: number | null;
-    max_wait_days: number | null;
-    min_threshold: number | null;
     warranty_days: number;
     barcode_strategy: MarketplaceBarcodeStrategy;
     pack_size: number | null;

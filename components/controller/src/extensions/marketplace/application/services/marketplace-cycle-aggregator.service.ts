@@ -1,5 +1,5 @@
 import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import {
   MARKETPLACE_OFFER_REPOSITORY,
@@ -26,54 +26,37 @@ import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketp
 import type { MarketplaceOrderStatus } from '../../domain/entities/marketplace-order.types';
 
 /**
- * Story 4.2: cycle-type-aware агрегация Order'ов в `marketplace_consolidated_request`.
- *
- * Backend-only (Locked Decision L10): on-chain представления заявки НЕТ;
- * агрегация полностью в PG. Order'ы привязываются к заявке через
+ * Агрегация Order'ов в `marketplace_consolidated_request` (партию) по способу
+ * поставки. Backend-only (Locked Decision L10): on-chain представления заявки
+ * НЕТ, агрегация полностью в PG. Order'ы привязываются к заявке через
  * `marketplace_order.cycle_id`.
  *
- * Поведение per cycle_type:
+ * Поведение по `cycle_type` (ревизия — 2 способа):
  *
- *  - **time_based**: cron-метод `aggregateTimeBased` (раз в 5 минут)
- *    для каждого Offer'а с time_based находит «текущий пул»
- *    (unassigned active Orders) → если `now >= cycle_start + cycle_days`
- *    решает:
- *      sum >= min_threshold (или min_threshold null) → consolidated_request
- *          status='PENDING_SUPPLIER_ACCEPT', expires_at = now + acceptance_window;
- *      sum < min_threshold → consolidated_request status='EXPIRED_NO_THRESHOLD'
- *          без assignToCycle (Story 4.3 unblk per-Order'ам пула).
- *
- *  - **volume_based**: метод `evaluateVolumeBasedAfterCreate(offer_id)`
- *    вызывается СИНХРОННО из `MarketplaceOrderCreateService` после persist
- *    нового Order'а; если sum >= target_volume → instant
- *    consolidated_request status='PENDING_SUPPLIER_ACCEPT'.
- *    Cron-fallback `aggregateVolumeBasedExpired` (раз в час) — если объём
- *    не накоплен и истёк `cycle_start + max_wait_days` →
- *    consolidated_request status='EXPIRED_NO_VOLUME' (Story 4.3 unblk).
- *
- *  - **open_subscription**: backend НЕ создаёт автоматически. Метод
- *    `triggerOpenSubscription(offer_id, supplier_account)` вызывается из
- *    Resolver когда поставщик жмёт «Запустить поставку сейчас» →
- *    instant consolidated_request status='ACCEPTED'.
+ *  - **collective** (коллективная закупка): Order'ы копятся в общий пул.
+ *      • `evaluateCollectiveAfterCreate` — вызывается СИНХРОННО из
+ *        `MarketplaceOrderCreateService` после persist нового Order'а. Если у
+ *        Offer'а задан `target_volume` и sum пула >= target → instant
+ *        consolidated_request status='PENDING_SUPPLIER_ACCEPT'.
+ *      • `triggerCollectiveSupply(offer_id, supplier_account)` — вызывается из
+ *        Resolver, когда поставщик жмёт «Запустить поставку сейчас» (доступно
+ *        для любой collective-оферты независимо от target_volume) → instant
+ *        consolidated_request status='ACCEPTED'.
+ *      Жёсткого таймера ожидания нет: пока партия не собралась, заказчик
+ *      выходит из неё сам (cancelorder) в любой момент до акцепта.
  *
  *  - **individual**: backend НЕ агрегирует Order'ы в заявку. Метод
  *    `applyIndividualPending(orderId)` вызывается из `OrderCreateService`
  *    сразу после persist — Order.status: ACTIVE → ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL.
  *
- * Acceptance window (для time/volume) сейчас захардкожена 48ч; в Story 9.x
- * вынесем в конфиг кооператива.
+ * Acceptance window (для авто-собранной партии) сейчас захардкожена 48ч; в
+ * Story 9.x вынесем в конфиг кооператива.
  *
- * Story 4.3 (auto-unblk при провале триггера):
- *  - `processTimeBasedOffer` при `sum < min_threshold` теперь не только
- *    пишет consolidated_request `EXPIRED_NO_THRESHOLD`, но и серией
- *    `expireOrder` per-Order разблокирует средства каждого Order'а пула
- *    + counter `onOrderUnblocked` + Order.status → EXPIRED_NO_THRESHOLD.
- *  - `aggregateVolumeBasedExpired` — аналогично с EXPIRED_NO_VOLUME.
- *  - Новый cron `expireUnacceptedPending` (раз в 10 мин) — сканит
- *    `PENDING_SUPPLIER_ACCEPT` заявки с `expires_at < now` → консолид-
- *    заявка → EXPIRED_NO_RESPONSE + Order'ы пула → CANCELLED_BY_SUPPLIER
- *    с reason='expired_no_response' (поставщик не нажал ни Accept,
- *    ни Decline в 48-часовом окне).
+ * Cron `expireUnacceptedPending` (раз в 10 мин) — сканит
+ * `PENDING_SUPPLIER_ACCEPT` заявки с `expires_at < now` → консолид-заявка →
+ * EXPIRED_NO_RESPONSE + Order'ы пула → CANCELLED_BY_SUPPLIER с
+ * reason='expired_no_response' (поставщик не нажал ни Accept, ни Decline в
+ * 48-часовом окне).
  *
  *  Best-effort serialization: chain-fail одного Order'а лог error +
  *  продолжаем пул; следующий запуск cron подберёт; partial-mismatch
@@ -101,99 +84,13 @@ export class MarketplaceCycleAggregatorService {
   }
 
   /**
-   * Cron-агрегатор time_based циклов. Запускается раз в 5 минут;
-   * сканирует ACTIVE Offer'ы с `cycle_type='time_based'` + cycle_days
-   * заполнен, для каждого проверяет `now >= cycle_start + cycle_days`.
+   * Коллективная закупка с целевым объёмом — instant trigger. Вызывается из
+   * `MarketplaceOrderCreateService` сразу после persist нового Order'а. Если у
+   * Offer'а задан `target_volume` и sum активного пула >= target →
+   * formConsolidatedRequest. Если объёма нет (manual-only collective) или пул
+   * ещё не добрал — no-op (партия стартует ручным запуском поставщика).
    */
-  @Cron(CronExpression.EVERY_5_MINUTES, { name: 'marketplace.cycle.aggregateTimeBased' })
-  async aggregateTimeBased(): Promise<void> {
-    try {
-      const now = new Date();
-      const offers = await this.offerRepo.listAllActiveTimeBased();
-      this.logger.debug(
-        `MarketplaceCycleAggregatorService.aggregateTimeBased: сканирую ${offers.length} ACTIVE time_based Offer'ов`
-      );
-      for (const offer of offers) {
-        await this.processTimeBasedOffer(offer.id, offer.coopname, offer.supplier_account, offer.cycle_days, offer.min_threshold, offer.price_per_unit, now);
-      }
-    } catch (error: any) {
-      this.logger.error(
-        `MarketplaceCycleAggregatorService.aggregateTimeBased: общая ошибка cron-цикла — ${error.message}`,
-        error.stack
-      );
-    }
-  }
-
-  private async processTimeBasedOffer(
-    offer_id: string,
-    coopname: string,
-    supplier_account: string,
-    cycle_days: number | null,
-    min_threshold: number | null,
-    price_per_unit: string,
-    now: Date
-  ): Promise<MarketplaceConsolidatedRequestDomainEntity | null> {
-    if (!cycle_days) return null;
-
-    const pool = await this.orderRepo.findUnassignedActiveByOffer(coopname, offer_id);
-    if (pool.length === 0) return null;
-
-    const cycle_start = pool.reduce<Date>((min, o) => {
-      const t = o.blocked_at ?? o.created_at;
-      return t < min ? t : min;
-    }, pool[0].blocked_at ?? pool[0].created_at);
-    const cycle_end = new Date(cycle_start.getTime() + cycle_days * 86_400_000);
-    if (now < cycle_end) return null;
-
-    const total_quantity = pool.reduce((sum, o) => sum + o.quantity, 0);
-
-    // sum < min_threshold → terminal EXPIRED_NO_THRESHOLD + Story 4.3 unblk пулу
-    if (min_threshold != null && total_quantity < min_threshold) {
-      const expired = await this.cycleRepo.create({
-        coopname,
-        offer_id,
-        supplier_account,
-        cycle_type: 'time_based',
-        total_quantity,
-        total_amount: this.computeTotalAmount(price_per_unit, total_quantity),
-        status: 'EXPIRED_NO_THRESHOLD',
-        cycle_started_at: cycle_start,
-        cycle_ended_at: cycle_end,
-        expires_at: null,
-        triggered_by_supplier_at: null,
-      });
-      this.logger.log(
-        `MarketplaceCycleAggregatorService: offer=${offer_id} time_based ЗАКРЫТ без порога (sum=${total_quantity} < threshold=${min_threshold}) — request ${expired.id}; expire-pool start`
-      );
-      await this.expirePoolOnChain(
-        pool,
-        'EXPIRED_NO_THRESHOLD',
-        `time_based cycle закрыт без min_threshold (sum=${total_quantity} < ${min_threshold})`
-      );
-      return expired;
-    }
-
-    // sum >= min_threshold (или null) → консолидированная заявка
-    return await this.formConsolidatedRequest(
-      coopname,
-      offer_id,
-      supplier_account,
-      'time_based',
-      total_quantity,
-      price_per_unit,
-      cycle_start,
-      cycle_end,
-      pool,
-      now
-    );
-  }
-
-  /**
-   * Story 4.2: volume_based instant trigger. Вызывается из
-   * `MarketplaceOrderCreateService` сразу после persist нового Order'а.
-   * Если sum активного пула >= target_volume — formConsolidatedRequest.
-   */
-  async evaluateVolumeBasedAfterCreate(
+  async evaluateCollectiveAfterCreate(
     coopname: string,
     offer_id: string,
     supplier_account: string,
@@ -215,7 +112,7 @@ export class MarketplaceCycleAggregatorService {
       coopname,
       offer_id,
       supplier_account,
-      'volume_based',
+      'collective',
       sum,
       price_per_unit,
       cycle_start,
@@ -226,68 +123,13 @@ export class MarketplaceCycleAggregatorService {
   }
 
   /**
-   * Story 4.2: cron-fallback volume_based expire — sum < target_volume
-   * + now > cycle_start + max_wait_days. Раз в час сканирует Offer'ы.
+   * Поставщик жмёт «Запустить поставку сейчас» по коллективной закупке.
+   * Доступно для любой collective-оферты (с целевым объёмом или без) —
+   * фиксирует весь текущий пул в партию и сразу акцептует её
+   * (consolidated_request status='ACCEPTED', нажатие = акцепт всего пула,
+   * refund-кнопка не показывается).
    */
-  @Cron(CronExpression.EVERY_HOUR, { name: 'marketplace.cycle.aggregateVolumeBasedExpired' })
-  async aggregateVolumeBasedExpired(): Promise<void> {
-    try {
-      const now = new Date();
-      const offers = await this.offerRepo.listAllActiveVolumeBased();
-      this.logger.debug(
-        `MarketplaceCycleAggregatorService.aggregateVolumeBasedExpired: сканирую ${offers.length} ACTIVE volume_based Offer'ов`
-      );
-      for (const offer of offers) {
-        if (!offer.max_wait_days) continue;
-        const pool = await this.orderRepo.findUnassignedActiveByOffer(offer.coopname, offer.id);
-        if (pool.length === 0) continue;
-
-        const cycle_start = pool.reduce<Date>((min, o) => {
-          const t = o.blocked_at ?? o.created_at;
-          return t < min ? t : min;
-        }, pool[0].blocked_at ?? pool[0].created_at);
-        const deadline = new Date(cycle_start.getTime() + offer.max_wait_days * 86_400_000);
-        if (now < deadline) continue;
-
-        const total_quantity = pool.reduce((sum, o) => sum + o.quantity, 0);
-        if (offer.target_volume == null || total_quantity >= offer.target_volume) continue;
-
-        const expired = await this.cycleRepo.create({
-          coopname: offer.coopname,
-          offer_id: offer.id,
-          supplier_account: offer.supplier_account,
-          cycle_type: 'volume_based',
-          total_quantity,
-          total_amount: this.computeTotalAmount(offer.price_per_unit, total_quantity),
-          status: 'EXPIRED_NO_VOLUME',
-          cycle_started_at: cycle_start,
-          cycle_ended_at: deadline,
-          expires_at: null,
-          triggered_by_supplier_at: null,
-        });
-        this.logger.log(
-          `MarketplaceCycleAggregatorService: offer=${offer.id} volume_based ЗАКРЫТ без объёма (sum=${total_quantity} < target=${offer.target_volume}) — request ${expired.id}; expire-pool start`
-        );
-        await this.expirePoolOnChain(
-          pool,
-          'EXPIRED_NO_VOLUME',
-          `volume_based cycle закрыт без target_volume (sum=${total_quantity} < ${offer.target_volume}, max_wait_days=${offer.max_wait_days})`
-        );
-      }
-    } catch (error: any) {
-      this.logger.error(
-        `MarketplaceCycleAggregatorService.aggregateVolumeBasedExpired: общая ошибка — ${error.message}`,
-        error.stack
-      );
-    }
-  }
-
-  /**
-   * Story 4.2: поставщик жмёт «Запустить поставку сейчас» по open_subscription.
-   * Создаёт consolidated_request status='ACCEPTED' сразу (нажатие = акцепт
-   * всего пула, refund-кнопка не показывается).
-   */
-  async triggerOpenSubscription(
+  async triggerCollectiveSupply(
     coopname: string,
     offer_id: string,
     requestor_account: string
@@ -302,9 +144,9 @@ export class MarketplaceCycleAggregatorService {
         `Предложение в статусе «${offer.status}» — запуск поставки запрещён.`
       );
     }
-    if (offer.cycle_type !== 'open_subscription') {
+    if (offer.cycle_type !== 'collective') {
       throw new BadRequestException(
-        `Запуск поставки доступен только для cycle_type='open_subscription'; этот Offer — «${offer.cycle_type}».`
+        `Запуск поставки доступен только для коллективной закупки; этот Offer — «${offer.cycle_type}».`
       );
     }
     if (offer.supplier_account !== requestor_account) {
@@ -326,7 +168,7 @@ export class MarketplaceCycleAggregatorService {
       coopname,
       offer_id,
       offer.supplier_account,
-      'open_subscription',
+      'collective',
       total_quantity,
       offer.price_per_unit,
       cycle_start,
@@ -401,8 +243,7 @@ export class MarketplaceCycleAggregatorService {
    *
    * @param pool — Order'ы для expire (как правило findByCycleId или
    *   findUnassignedActiveByOffer).
-   * @param terminalStatus — обычно EXPIRED_NO_THRESHOLD / EXPIRED_NO_VOLUME
-   *   / CANCELLED_BY_SUPPLIER.
+   * @param terminalStatus — обычно CANCELLED_BY_SUPPLIER.
    * @param reason — попадает в `marketplace_order.last_status_reason`.
    */
   private async expirePoolOnChain(
@@ -446,8 +287,8 @@ export class MarketplaceCycleAggregatorService {
   /**
    * Создание consolidated_request + bulk assignToCycle всем Order'ам пула.
    * Status:
-   *  - time_based / volume_based → PENDING_SUPPLIER_ACCEPT + expires_at = now + 48ч;
-   *  - open_subscription (triggered: true) → ACCEPTED + Order.status → ACCEPTED.
+   *  - авто-сбор по целевому объёму → PENDING_SUPPLIER_ACCEPT + expires_at = now + 48ч;
+   *  - ручной запуск поставщика (triggered: true) → ACCEPTED + Order.status → ACCEPTED.
    */
   private async formConsolidatedRequest(
     coopname: string,
@@ -490,13 +331,13 @@ export class MarketplaceCycleAggregatorService {
       `MarketplaceCycleAggregatorService: offer=${offer_id} cycle_type=${cycle_type} → consolidated_request=${cycle.id} status=${status}; assigned ${affected}/${orderIds.length} Order'ов`
     );
 
-    // open_subscription: триггер поставщика — это одновременно создание и
-    // акцепт заявки. БД уже помечена ACCEPTED, но on-chain Order остаётся в
-    // статусе блокировки. Без on-chain `acceptOrder` последующий `signsupp`
-    // на акте приёмки падает ассертом «Заказ не в статусе акцепта». Для
-    // time_based/volume_based on-chain accept делает отдельный шаг
+    // Ручной запуск поставщика — это одновременно создание и акцепт заявки.
+    // БД уже помечена ACCEPTED, но on-chain Order остаётся в статусе
+    // блокировки. Без on-chain `acceptOrder` последующий `signsupp` на акте
+    // приёмки падает ассертом «Заказ не в статусе акцепта». Для авто-собранной
+    // по объёму партии on-chain accept делает отдельный шаг
     // marketplaceAcceptConsolidatedRequest; для triggered-пути выполняем его
-    // здесь, иначе магистраль open_subscription блокируется на приёмке.
+    // здесь, иначе магистраль ручного запуска блокируется на приёмке.
     if (triggered) {
       await this.acceptPoolOnChain(pool, supplier_account);
     }
@@ -505,7 +346,7 @@ export class MarketplaceCycleAggregatorService {
   }
 
   /**
-   * open_subscription: per-Order on-chain `acceptOrder` (offerer = поставщик).
+   * Ручной запуск: per-Order on-chain `acceptOrder` (offerer = поставщик).
    * Best-effort, симметрично expirePoolOnChain: chain fail одного Order'а —
    * лог error + продолжаем; Order остаётся ACCEPTED в БД (assignToCycle уже
    * прошёл), рассинхрон чинится manual reconciliation / повторным запуском.

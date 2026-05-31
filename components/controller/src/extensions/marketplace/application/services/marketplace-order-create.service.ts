@@ -224,17 +224,15 @@ export class MarketplaceOrderCreateService {
   }
 
   /**
-   * Story 4.2: применить per-cycle_type backend hook сразу после persist
-   * нового Order'а (Story 4.1).
+   * Применить backend-hook по способу поставки сразу после persist нового
+   * Order'а.
    *
    *  - `individual` → Order.status: ACTIVE → ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL.
-   *  - `volume_based` → evaluate threshold (sum vs target_volume); если
-   *    достигнут — formConsolidatedRequest сразу + Order вместе с пулом →
-   *    ACCEPTED_PENDING_SUPPLIER.
-   *  - `time_based` / `open_subscription` → ничего (Order ждёт cron / manual trigger).
+   *  - `collective` → если у Offer'а задан целевой объём и он достигнут —
+   *    formConsolidatedRequest сразу + Order вместе с пулом →
+   *    ACCEPTED_PENDING_SUPPLIER. Иначе Order ждёт ручного запуска поставщика.
    *
-   * Hook не критичный — при ошибке логируем и возвращаем Order как есть
-   * (Story 4.3 cron-fallback подберёт).
+   * Hook не критичный — при ошибке логируем и возвращаем Order как есть.
    */
   private async applyCycleTypeHook(
     order: MarketplaceOrderDomainEntity,
@@ -248,8 +246,8 @@ export class MarketplaceOrderCreateService {
           'individual cycle_type — ожидание per-Order акцепта поставщика'
         );
       }
-      if (offer.cycle_type === 'volume_based') {
-        const cycle = await this.cycleAggregator.evaluateVolumeBasedAfterCreate(
+      if (offer.cycle_type === 'collective') {
+        const cycle = await this.cycleAggregator.evaluateCollectiveAfterCreate(
           offer.coopname,
           offer.id,
           offer.supplier_account,
