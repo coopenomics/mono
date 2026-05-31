@@ -18,7 +18,7 @@ import {
 import {
   MarketplaceListConsolidatedRequestsInputDTO,
   MarketplaceTriggerCollectiveSupplyInputDTO,
-} from '../dto/marketplace-trigger-open-subscription-input.dto';
+} from '../dto/marketplace-trigger-collective-supply-input.dto';
 import {
   MARKETPLACE_CYCLE_AGGREGATOR_SERVICE,
   MarketplaceCycleAggregatorService,
