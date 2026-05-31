@@ -164,6 +164,9 @@ async function acceptExpressPickup(
 const scanDialogOpen = ref(false);
 const pickupDialogOpen = ref(false);
 const pickupAccount = ref('');
+// Режим приёмки по ТТН экспедитора: id партии из shipment-bound QR. null —
+// приёмка по account-коду поставщика (грузим всё имущество + добор).
+const pickupShipmentId = ref<string | null>(null);
 // Наименование поставщика (ФИО/организация) для заголовка приёмки — из заказов.
 const pickupSupplierName = ref('');
 const pickupOrders = ref<MarketplaceSupplierPickupOrderView[]>([]);
@@ -188,9 +191,15 @@ const addonOrders = computed(() =>
   pickupOrders.value.filter((o) => o.status === 'ACCEPTED'),
 );
 
-// Партия (shipment) задекларированной единицы — по cycle_id заказа (партия per (cycle, КУ)).
+// Заголовок диалога приёмки: режим ТТН экспедитора vs приёмка по коду поставщика.
+const pickupDialogTitle = computed(() =>
+  pickupShipmentId.value ? 'Приёмка партии по ТТН экспедитора' : 'Приёмка имущества поставщика',
+);
+
+// Партия (shipment) задекларированной единицы — по прямой связи order.shipment_id
+// (обязательно при нескольких частичных партиях на одном КУ).
 function shipmentForOrder(o: MarketplaceSupplierPickupOrderView): MarketplaceShipmentView | null {
-  return pendingShipments.value.find((s) => s.cycle_id === o.cycle_id) ?? null;
+  return pendingShipments.value.find((s) => s.id === o.shipment_id) ?? null;
 }
 
 function isSelected(id: string): boolean {
@@ -214,11 +223,11 @@ function clampFact(orderId: string, ordered: number): void {
 // Сколько актов будет создано: по одному на каждую партию с ≥1 выбранной
 // единицей + один на добор (если принимаем и он есть).
 const plannedReceptionsCount = computed(() => {
-  const cycles = new Set<string>();
+  const shipments = new Set<string>();
   for (const o of declaredOrders.value) {
-    if (o.cycle_id && selectedOrderIds.value.has(o.id)) cycles.add(o.cycle_id);
+    if (o.shipment_id && selectedOrderIds.value.has(o.id)) shipments.add(o.shipment_id);
   }
-  return cycles.size + (takeAddon.value && addonOrders.value.length ? 1 : 0);
+  return shipments.size + (takeAddon.value && addonOrders.value.length ? 1 : 0);
 });
 
 // Единая точка открытия диалога приёмки по поставщику (QR-скан и «самовывоз по
@@ -237,6 +246,7 @@ async function openPickupForSupplier(account: string): Promise<void> {
       );
       return;
     }
+    pickupShipmentId.value = null;
     pickupAccount.value = account;
     pickupSupplierName.value = orders[0]?.supplier_name ?? '';
     pickupOrders.value = orders;
@@ -252,18 +262,69 @@ async function openPickupForSupplier(account: string): Promise<void> {
   }
 }
 
+// Приёмка по ТТН экспедитора (shipment-bound QR): грузим состав СТРОГО одной
+// партии. Экспедитор не пайщик — добора по акцепту нет, принимаем только то,
+// что в накладной (R: «ничего больше там отображаться не должно»).
+async function openPickupForShipment(shipment_id: string): Promise<void> {
+  const shipment = pendingShipments.value.find((s) => s.id === shipment_id);
+  if (!shipment) {
+    FailAlert(
+      new Error(
+        'Партия по этой ТТН не найдена среди ожидающих приёмки на вашем КУ ' +
+          '(возможно, уже принята или направлена на другой участок).',
+      ),
+    );
+    return;
+  }
+  Loading.show({ message: 'Загружаю состав партии…' });
+  try {
+    const all = await listSupplierPickupOrders({
+      braname: braname.value.trim(),
+      offerer_account: shipment.offerer_account,
+    });
+    const orders = all.filter((o) => o.shipment_id === shipment_id);
+    if (!orders.length) {
+      FailAlert(new Error('В партии нет позиций, ожидающих приёмки (возможно, уже принята).'));
+      return;
+    }
+    pickupShipmentId.value = shipment_id;
+    pickupAccount.value = shipment.offerer_account;
+    pickupSupplierName.value = orders[0]?.supplier_name ?? '';
+    pickupOrders.value = orders;
+    pickupFact.value = Object.fromEntries(orders.map((o) => [o.id, o.quantity]));
+    pickupPrice.value = Object.fromEntries(orders.map((o) => [o.id, o.price_per_unit]));
+    selectedOrderIds.value = new Set(orders.map((o) => o.id));
+    takeAddon.value = false;
+    pickupDialogOpen.value = true;
+  } catch (e) {
+    FailAlert(e, 'Не удалось загрузить состав партии');
+  } finally {
+    Loading.hide();
+  }
+}
+
 async function onQrScanned(code: string): Promise<void> {
   scanDialogOpen.value = false;
   const token = decodeHandoffToken(code);
-  if (!token || token.kind !== HandoffTokenKind.Pickup) {
-    FailAlert(new Error('Нераспознанный код поставщика. Отсканируйте «Мой код для ПВЗ» со стола поставщика.'));
+  if (!token) {
+    FailAlert(
+      new Error('Нераспознанный код. Отсканируйте «Мой код для ПВЗ» поставщика или QR с ТТН экспедитора.'),
+    );
     return;
   }
   if (token.coopname && token.coopname !== coopname.value) {
     FailAlert(new Error('Код выписан для другого кооператива.'));
     return;
   }
-  await openPickupForSupplier(token.account);
+  if (token.kind === HandoffTokenKind.Shipment && token.shipment_id) {
+    await openPickupForShipment(token.shipment_id);
+    return;
+  }
+  if (token.kind === HandoffTokenKind.Pickup) {
+    await openPickupForSupplier(token.account);
+    return;
+  }
+  FailAlert(new Error('Этот код не предназначен для приёмки на ПВЗ.'));
 }
 
 // Сформировать акты приёмки по выбранному: на каждую партию с выбранными
@@ -275,22 +336,22 @@ async function acceptPickup(): Promise<void> {
   Loading.show({ message: 'Формирую акты приёмки…' });
   let created = 0;
   try {
-    // Задекларированные единицы → по партиям (cycle_id); партию без выбранных
-    // единиц пропускаем (она ждёт).
-    const byCycle = new Map<string, MarketplaceSupplierPickupOrderView[]>();
+    // Задекларированные единицы → по партиям (shipment_id); партию без выбранных
+    // единиц пропускаем (она ждёт). Связь по shipment_id обязательна при
+    // нескольких частичных партиях на одном КУ — группировка по cycle_id брала бы
+    // не ту партию.
+    const byShipment = new Map<string, MarketplaceSupplierPickupOrderView[]>();
     for (const o of declaredOrders.value) {
-      if (!o.cycle_id) continue;
-      const arr = byCycle.get(o.cycle_id) ?? [];
+      if (!o.shipment_id) continue;
+      const arr = byShipment.get(o.shipment_id) ?? [];
       arr.push(o);
-      byCycle.set(o.cycle_id, arr);
+      byShipment.set(o.shipment_id, arr);
     }
-    for (const [cycle_id, orders] of byCycle) {
+    for (const [shipment_id, orders] of byShipment) {
       const anySelected = orders.some((o) => selectedOrderIds.value.has(o.id));
       if (!anySelected) continue;
-      const shipment = pendingShipments.value.find((s) => s.cycle_id === cycle_id);
-      if (!shipment) continue;
       await createAplReception({
-        shipment_id: shipment.id,
+        shipment_id,
         fact_quantity_per_order: orders.map((o) => ({
           order_id: o.id,
           fact_quantity: selectedOrderIds.value.has(o.id) ? pickupFact.value[o.id] ?? o.quantity : 0,
@@ -445,7 +506,7 @@ q-page.reception(role='region', aria-label='Приёмка партии')
   //- Эпик 14: агрегирующая приёмка по account-bound коду. Плоский список единиц
   //- имущества (R7a): сверху — задекларированные в партии (по ТТН), ниже
   //- разделитель и добор по акцепту. Факт правится на месте, потолок = заказано (R5).
-  BaseDialog(v-model='pickupDialogOpen', title='Приёмка имущества поставщика', maximized)
+  BaseDialog(v-model='pickupDialogOpen', :title='pickupDialogTitle', maximized)
     .reception__pickup
       .reception__pickup-account {{ pickupSupplierName || pickupAccount }}
       .reception__pickup-hint

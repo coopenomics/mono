@@ -169,6 +169,14 @@ export class MarketplaceOrderDTO {
   @Field(() => String, { nullable: true, description: 'Идентификатор партии-накопителя, если заказ присоединён.' })
   public readonly cycle_id!: string | null;
 
+  @Field(() => String, {
+    nullable: true,
+    description:
+      'Партия поставки (shipment), в которую заказ включён при формировании. null — заказ ' +
+      'акцептован, но в партию не вошёл. Позволяет приёмке отделить состав конкретной партии.',
+  })
+  public readonly shipment_id!: string | null;
+
   @Field(() => Int, { description: 'Срок гарантии в секундах с момента получения.' })
   public readonly warranty_period_secs!: number;
 
@@ -391,6 +399,7 @@ export function toMarketplaceOrderDTO(
     total_cost: o.total_cost,
     cycle_type: o.cycle_type,
     cycle_id: o.cycle_id,
+    shipment_id: o.shipment_id,
     warranty_period_secs: o.warranty_period_secs,
     warranty_until: o.warranty_until,
     status: o.status,

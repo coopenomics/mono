@@ -88,7 +88,7 @@ function canPrintTtn(row: MarketplaceShipmentView): boolean {
 }
 
 function openTtn(row: MarketplaceShipmentView): void {
-  ttnData.value = buildTtnData(row, preparedOrders.value);
+  ttnData.value = buildTtnData(row, preparedOrders.value, coopname.value);
   ttnDialogOpen.value = true;
 }
 

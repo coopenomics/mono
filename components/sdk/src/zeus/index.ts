@@ -7159,6 +7159,8 @@ export type ValueTypes = {
 	quantity?:boolean | `@${string}`,
 	/** Когда пайщик получил заказ. */
 	received_at?:boolean | `@${string}`,
+	/** Партия поставки (shipment), в которую заказ включён при формировании. null — заказ акцептован, но в партию не вошёл. Позволяет приёмке отделить состав конкретной партии. */
+	shipment_id?:boolean | `@${string}`,
 	/** Хэш транзакции открытия выдачи в блокчейне. */
 	signiss1_tx_hash?:boolean | `@${string}`,
 	/** Хэш транзакции финальной подписи выдачи в блокчейне. */
@@ -17252,6 +17254,8 @@ export type ResolverInputTypes = {
 	quantity?:boolean | `@${string}`,
 	/** Когда пайщик получил заказ. */
 	received_at?:boolean | `@${string}`,
+	/** Партия поставки (shipment), в которую заказ включён при формировании. null — заказ акцептован, но в партию не вошёл. Позволяет приёмке отделить состав конкретной партии. */
+	shipment_id?:boolean | `@${string}`,
 	/** Хэш транзакции открытия выдачи в блокчейне. */
 	signiss1_tx_hash?:boolean | `@${string}`,
 	/** Хэш транзакции финальной подписи выдачи в блокчейне. */
@@ -27018,6 +27022,8 @@ export type ModelTypes = {
 	quantity: number,
 	/** Когда пайщик получил заказ. */
 	received_at?: ModelTypes["DateTime"] | undefined | null,
+	/** Партия поставки (shipment), в которую заказ включён при формировании. null — заказ акцептован, но в партию не вошёл. Позволяет приёмке отделить состав конкретной партии. */
+	shipment_id?: string | undefined | null,
 	/** Хэш транзакции открытия выдачи в блокчейне. */
 	signiss1_tx_hash?: string | undefined | null,
 	/** Хэш транзакции финальной подписи выдачи в блокчейне. */
@@ -37736,6 +37742,8 @@ export type GraphQLTypes = {
 	quantity: number,
 	/** Когда пайщик получил заказ. */
 	received_at?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Партия поставки (shipment), в которую заказ включён при формировании. null — заказ акцептован, но в партию не вошёл. Позволяет приёмке отделить состав конкретной партии. */
+	shipment_id?: string | undefined | null,
 	/** Хэш транзакции открытия выдачи в блокчейне. */
 	signiss1_tx_hash?: string | undefined | null,
 	/** Хэш транзакции финальной подписи выдачи в блокчейне. */

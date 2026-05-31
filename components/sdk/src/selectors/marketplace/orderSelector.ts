@@ -50,6 +50,7 @@ const rawOrderSelector = {
   total_cost: true,
   cycle_type: true,
   cycle_id: true,
+  shipment_id: true,
   warranty_period_secs: true,
   warranty_until: true,
   status: true,

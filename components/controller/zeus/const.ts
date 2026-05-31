@@ -4237,6 +4237,7 @@ export const ReturnTypes: Record<string,any> = {
 		product_name:"String",
 		quantity:"Int",
 		received_at:"DateTime",
+		shipment_id:"String",
 		signiss1_tx_hash:"String",
 		signiss2_tx_hash:"String",
 		status:"MarketplaceOrderStatus",

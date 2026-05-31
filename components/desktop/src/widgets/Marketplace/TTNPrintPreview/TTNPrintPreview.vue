@@ -23,7 +23,13 @@
           <div class="text-h6">ТТН № {{ data.number }}</div>
           <div class="text-caption">от {{ formatDate(data.date) }}</div>
         </div>
-        <BarcodeDisplay :code="data.number" size="sm" />
+        <div class="mp-ttn__codes">
+          <BarcodeDisplay :code="data.number" size="sm" />
+          <div v-if="qrDataUrl" class="mp-ttn__qr">
+            <img :src="qrDataUrl" alt="QR-код приёмки партии" class="mp-ttn__qr-img" />
+            <div class="text-caption mp-ttn__qr-cap">Скан оператором КУ — приёмка партии</div>
+          </div>
+        </div>
       </header>
 
       <section class="mp-ttn__parties">
@@ -85,7 +91,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, type PropType } from 'vue'
+import { computed, ref, watch, type PropType } from 'vue'
+import QRCode from 'qrcode'
 import { BaseButton } from 'src/shared/ui/base'
 import { SuccessAlert } from 'src/shared/api'
 import { BarcodeDisplay } from 'src/widgets/Marketplace/BarcodeDisplay'
@@ -106,6 +113,12 @@ export interface TTNData {
   items: TTNItem[]
   dispatchedBy: string
   acceptedBy?: string
+  /**
+   * Код приёмки партии (shipment-bound handoff-токен). Печатается на ТТН как QR:
+   * оператор КУ сканирует его и принимает СТРОГО состав этой партии (экспедитор
+   * не пайщик — приёмка по накладной, а не по аккаунту).
+   */
+  qrValue?: string
 }
 
 const props = defineProps({
@@ -113,6 +126,25 @@ const props = defineProps({
 })
 
 const sheetRef = ref<HTMLElement | null>(null)
+
+// QR кода приёмки партии — PNG data-URL (встраивается в печать и в скачанный
+// самодостаточный HTML без внешних зависимостей).
+const qrDataUrl = ref('')
+watch(
+  () => props.data.qrValue,
+  async (value) => {
+    if (!value) {
+      qrDataUrl.value = ''
+      return
+    }
+    try {
+      qrDataUrl.value = await QRCode.toDataURL(value, { margin: 1, width: 132, errorCorrectionLevel: 'M' })
+    } catch {
+      qrDataUrl.value = ''
+    }
+  },
+  { immediate: true },
+)
 
 const total = computed(() => props.data.items.reduce((acc, i) => acc + i.qty * i.price, 0))
 
@@ -153,6 +185,10 @@ const PRINT_CSS = `
   .mp-ttn__sign-line { margin: 8mm 0 2mm; border-bottom: 1px solid #111; height: 0; }
   .mp-barcode-display__svg { display: block; }
   .mp-barcode-display__code { font-size: 8pt; text-align: center; }
+  .mp-ttn__codes { display: flex; flex-direction: column; align-items: center; gap: 3mm; }
+  .mp-ttn__qr { display: flex; flex-direction: column; align-items: center; }
+  .mp-ttn__qr-img { width: 28mm; height: 28mm; display: block; }
+  .mp-ttn__qr-cap { font-size: 7pt; text-align: center; max-width: 32mm; color: #555; }
   .text-right { text-align: right; }
   .text-caption { font-size: 0.85em; }
   .text-grey-7 { color: #555; }
@@ -232,6 +268,31 @@ function download() {
     border-bottom: 1px solid #111;
     padding-bottom: 4mm;
     margin-bottom: 4mm;
+  }
+
+  &__codes {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3mm;
+  }
+
+  &__qr {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  &__qr-img {
+    width: 28mm;
+    height: 28mm;
+    display: block;
+  }
+
+  &__qr-cap {
+    text-align: center;
+    max-width: 32mm;
+    color: #555;
   }
 
   &__parties {

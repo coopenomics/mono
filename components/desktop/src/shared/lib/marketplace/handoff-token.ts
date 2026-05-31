@@ -12,14 +12,17 @@
  * ленты СВОЕГО КУ — у чужого аккаунта на этом КУ просто нет ожидающих единиц.
  * coopname в коде отсекает предъявление в чужом кооперативе.
  *
- * Формат: `blago:<kind>:<coopname>:<account>`
+ * Формат: `blago:<kind>:<coopname>:<ref>`
  *  - `blago`   — namespace кода передачи;
- *  - `kind`    — `pickup` (поставщик → приёмка) | `receive` (заказчик → выдача);
+ *  - `kind`    — `pickup` (поставщик → приёмка) | `receive` (заказчик → выдача)
+ *                | `shipment` (ТТН экспедитора → приёмка строго этой партии);
  *  - coopname  — кооператив, в котором код действителен;
- *  - account   — аккаунт-биндинг (личность, не партия/единица).
+ *  - ref       — для pickup/receive: аккаунт-биндинг (личность); для shipment:
+ *                идентификатор партии (UUID) — экспедитор НЕ пайщик, аккаунта нет,
+ *                принимаем строго по партии из накладной.
  *
- * Имена аккаунтов/кооперативов в блокчейне состоят из `a–z`, `1–5`, `.` — символа
- * `:` в них быть не может, поэтому разделитель однозначен.
+ * Имена аккаунтов/кооперативов в блокчейне состоят из `a–z`, `1–5`, `.`, а UUID —
+ * из hex и `-`; символа `:` ни там, ни там нет, поэтому разделитель однозначен.
  */
 
 export enum HandoffTokenKind {
@@ -27,33 +30,51 @@ export enum HandoffTokenKind {
   Pickup = 'pickup',
   /** Заказчик → оператор выдачи: «выдали все мои готовые заказы». */
   Receive = 'receive',
+  /**
+   * ТТН экспедитора → оператор приёмки: «принять строго эту партию».
+   * Привязка к партии (shipment_id), а не к личности — экспедитор не пайщик.
+   */
+  Shipment = 'shipment',
 }
 
 export interface HandoffToken {
   kind: HandoffTokenKind;
   coopname: string;
+  /** pickup/receive — аккаунт-биндинг личности; для shipment — пусто. */
   account: string;
+  /** shipment — идентификатор партии из ТТН; для pickup/receive — undefined. */
+  shipment_id?: string;
 }
 
 const PREFIX = 'blago';
 const SEP = ':';
 
-/** Собрать account-bound код для показа в `HandoffQr`. */
+/** Собрать код передачи для показа в `HandoffQr` (account-bound или shipment-bound). */
 export function encodeHandoffToken(token: HandoffToken): string {
-  return [PREFIX, token.kind, token.coopname, token.account].join(SEP);
+  const ref = token.kind === HandoffTokenKind.Shipment ? token.shipment_id ?? '' : token.account;
+  return [PREFIX, token.kind, token.coopname, ref].join(SEP);
 }
 
 /**
  * Разобрать отсканированный код. Возвращает `null`, если строка — не валидный
- * account-bound токен (чужой формат/мусор): вызывающий код отвергает скан.
+ * токен передачи (чужой формат/мусор): вызывающий код отвергает скан.
  */
 export function decodeHandoffToken(raw: string): HandoffToken | null {
   const value = raw.trim();
   if (!value.startsWith(PREFIX + SEP)) return null;
   const parts = value.split(SEP);
   if (parts.length !== 4) return null;
-  const [, kind, coopname, account] = parts;
-  if (kind !== HandoffTokenKind.Pickup && kind !== HandoffTokenKind.Receive) return null;
-  if (!coopname || !account) return null;
-  return { kind: kind as HandoffTokenKind, coopname, account };
+  const [, kind, coopname, ref] = parts;
+  if (
+    kind !== HandoffTokenKind.Pickup &&
+    kind !== HandoffTokenKind.Receive &&
+    kind !== HandoffTokenKind.Shipment
+  ) {
+    return null;
+  }
+  if (!coopname || !ref) return null;
+  if (kind === HandoffTokenKind.Shipment) {
+    return { kind, coopname, account: '', shipment_id: ref };
+  }
+  return { kind: kind as HandoffTokenKind, coopname, account: ref };
 }
