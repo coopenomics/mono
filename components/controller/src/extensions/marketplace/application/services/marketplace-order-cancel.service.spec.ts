@@ -16,7 +16,7 @@ function buildOrder(overrides: Partial<MarketplaceOrderDomainEntity> = {}): Mark
     quantity: 5,
     price_per_unit: '150.0000',
     total_cost: '750.0000',
-    cycle_type: 'time_based',
+    cycle_type: 'collective',
     cycle_id: null,
     status: 'ACTIVE',
     blocked_at: new Date('2026-05-01T10:00:00Z'),

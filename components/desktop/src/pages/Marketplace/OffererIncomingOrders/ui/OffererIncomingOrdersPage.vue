@@ -87,8 +87,6 @@ const FILTERS: Array<{ key: string; label: string; statuses: MarketplaceOrderSta
     statuses: [
       'CANCELLED_BY_ORDERER',
       'CANCELLED_BY_SUPPLIER',
-      'EXPIRED_NO_THRESHOLD',
-      'EXPIRED_NO_VOLUME',
       'RETURNED',
     ],
   },
@@ -142,9 +140,9 @@ async function onAccept(orderId: string): Promise<void> {
   loading.value = true;
   try {
     // Индивидуальный заказ акцептуется поштучно (order_id); групповой
-    // (cycle_type volume_based/open_subscription/time_based) — целиком сводной
-    // заявкой по cycle_id. Иначе acceptIndividualOrder на групповом заказе
-    // падает: заказ привязан к сводной заявке, а не к индивидуальному циклу.
+    // (cycle_type collective) — целиком сводной заявкой по cycle_id. Иначе
+    // acceptIndividualOrder на групповом заказе падает: заказ привязан к
+    // сводной заявке, а не к индивидуальному циклу.
     const order = items.value.find((o) => o.id === orderId);
     if (order && order.status === 'ACCEPTED_PENDING_SUPPLIER') {
       if (!order.cycle_id) {

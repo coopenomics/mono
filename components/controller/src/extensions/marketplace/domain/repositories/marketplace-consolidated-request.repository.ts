@@ -42,14 +42,9 @@ export interface MarketplaceConsolidatedRequestDomainRepository {
   findById(id: string): Promise<MarketplaceConsolidatedRequestDomainEntity | null>;
 
   /**
-   * Активные time_based циклы у которых `cycle_ended_at < now` — кандидаты
-   * на закрытие cron'ом (Story 4.2 / Story 4.3).
-   */
-  findExpiredTimeBased(now: Date): Promise<MarketplaceConsolidatedRequestDomainEntity[]>;
-
-  /**
-   * Активные volume_based заявки + параллельно volume-based Order'ы которые
-   * висят в `ACTIVE` за пределом `max_wait_days` (Story 4.3 cleanup).
+   * Сводные заявки в `PENDING_SUPPLIER_ACCEPT` с истёкшим acceptance-окном
+   * (`expires_at < now`) — поставщик не ответил, кандидаты на авто-отмену
+   * пула (cron `expireUnacceptedPending`).
    */
   findExpiredAwaitingResponse(now: Date): Promise<MarketplaceConsolidatedRequestDomainEntity[]>;
 

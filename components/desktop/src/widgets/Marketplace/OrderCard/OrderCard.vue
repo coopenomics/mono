@@ -119,8 +119,8 @@ const emit = defineEmits<{
 const ACTIONS_PER_ROLE: Record<Exclude<OrderRole, 'orderer'>, Record<OrderStatus, OrderAction[]>> = {
   offerer: {
     // Story 4.5: placed = ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL для individual
-    // cycle_type или unassigned ACTIVE для open_subscription пула. На batch
-    // (time/volume) поставщик решает по консолидированной заявке отдельным
+    // cycle_type или unassigned ACTIVE для пула коллективной закупки. По
+    // коллективной партии поставщик решает по консолидированной заявке отдельным
     // экраном «Консолидированные заявки», не в OrderCard. Decline требует
     // reason — обрабатывается parent'ом через confirm-dialog.
     draft: [], placed: [

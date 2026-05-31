@@ -34,8 +34,6 @@ const ORDER_STATUS_DISPLAY: Record<DomainOrderStatus, OrderStatusDisplay> = {
   RETURNED: { label: 'Возвращён', variant: 'neutral' },
   CANCELLED_BY_ORDERER: { label: 'Отменён заказчиком', variant: 'neg' },
   CANCELLED_BY_SUPPLIER: { label: 'Отменён поставщиком', variant: 'neg' },
-  EXPIRED_NO_THRESHOLD: { label: 'Цикл закрыт без порога', variant: 'neutral' },
-  EXPIRED_NO_VOLUME: { label: 'Цикл закрыт без объёма', variant: 'neutral' },
 };
 
 /**

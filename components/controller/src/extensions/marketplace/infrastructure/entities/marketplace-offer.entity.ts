@@ -60,19 +60,10 @@ export class MarketplaceOfferEntity {
   public unlimited_flag!: boolean;
 
   @Column({ type: 'varchar', length: 32 })
-  public cycle_type!: 'time_based' | 'volume_based' | 'open_subscription' | 'individual';
-
-  @Column({ type: 'integer', nullable: true })
-  public cycle_days!: number | null;
+  public cycle_type!: 'individual' | 'collective';
 
   @Column({ type: 'integer', nullable: true })
   public target_volume!: number | null;
-
-  @Column({ type: 'integer', nullable: true })
-  public max_wait_days!: number | null;
-
-  @Column({ type: 'integer', nullable: true })
-  public min_threshold!: number | null;
 
   @Column({ type: 'integer', default: 0 })
   public warranty_days!: number;

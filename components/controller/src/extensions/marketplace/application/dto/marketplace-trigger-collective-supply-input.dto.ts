@@ -10,9 +10,9 @@ registerEnumType(MarketplaceConsolidatedRequestStatusEnum, {
   description: 'Состояние сводной заявки поставщика на поставку партии заказов.',
 });
 
-@InputType('MarketplaceTriggerOpenSubscriptionInput')
-export class MarketplaceTriggerOpenSubscriptionInputDTO {
-  @Field(() => String, { description: 'Идентификатор предложения с открытой подпиской, по которому поставщик запускает поставку.' })
+@InputType('MarketplaceTriggerCollectiveSupplyInput')
+export class MarketplaceTriggerCollectiveSupplyInputDTO {
+  @Field(() => String, { description: 'Идентификатор предложения коллективной закупки, по которому поставщик запускает поставку.' })
   public readonly offer_id!: string;
 }
 

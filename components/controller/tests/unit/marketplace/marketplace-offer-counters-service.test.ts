@@ -39,11 +39,8 @@ function makeOffer(overrides: Partial<MarketplaceOfferDomainEntity> = {}): Marke
     quantity_blocked: 10,
     quantity_consumed: 0,
     unlimited_flag: false,
-    cycle_type: 'time_based',
-    cycle_days: 7,
+    cycle_type: 'collective',
     target_volume: null,
-    max_wait_days: null,
-    min_threshold: null,
     warranty_days: 0,
     barcode_strategy: 'PER_ORDER',
     pack_size: null,
@@ -73,8 +70,6 @@ function makeRepo(): jest.Mocked<MarketplaceOfferDomainRepository> {
     applyUnblockDelta: jest.fn(),
     applyConsumeDelta: jest.fn(),
     applyRollbackDelta: jest.fn(),
-    listAllActiveTimeBased: jest.fn(),
-    listAllActiveVolumeBased: jest.fn(),
   };
 }
 

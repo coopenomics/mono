@@ -32,11 +32,8 @@ export interface OfferCreateInput {
   unit_of_measure: 'piece' | 'kg' | 'liter' | 'pack';
   quantity_available: number;
   unlimited_flag: boolean;
-  cycle_type: 'time_based' | 'volume_based' | 'open_subscription' | 'individual';
-  cycle_days: number | null;
+  cycle_type: 'individual' | 'collective';
   target_volume: number | null;
-  max_wait_days: number | null;
-  min_threshold: number | null;
   warranty_days: number;
   barcode_strategy: MarketplaceBarcodeStrategy;
   pack_size: number | null;
@@ -51,11 +48,8 @@ export interface OfferUpdateInput {
   unit_of_measure?: 'piece' | 'kg' | 'liter' | 'pack';
   quantity_available?: number;
   unlimited_flag?: boolean;
-  cycle_type?: 'time_based' | 'volume_based' | 'open_subscription' | 'individual';
-  cycle_days?: number | null;
+  cycle_type?: 'individual' | 'collective';
   target_volume?: number | null;
-  max_wait_days?: number | null;
-  min_threshold?: number | null;
   warranty_days?: number;
   barcode_strategy?: MarketplaceBarcodeStrategy;
   pack_size?: number | null;
@@ -154,19 +148,4 @@ export interface MarketplaceOfferDomainRepository {
    * См. spec-3-4-bc-integration.md секция 3.1.
    */
   applyRollbackDelta(offer_id: string, qty: number): Promise<OfferCountersDeltaResult>;
-
-  // ── Story 4.2: scan ACTIVE Offer'ов per cycle_type для cron-агрегатора ──
-
-  /**
-   * Все ACTIVE Offer'ы с cycle_type='time_based'. Используется cron'ом
-   * `MarketplaceCycleAggregatorService.aggregateTimeBased` (раз в 5 мин).
-   */
-  listAllActiveTimeBased(): Promise<MarketplaceOfferDomainEntity[]>;
-
-  /**
-   * Все ACTIVE Offer'ы с cycle_type='volume_based' и заполненным
-   * `max_wait_days`. Используется cron'ом `aggregateVolumeBasedExpired`
-   * (раз в час) для unblk пула при истечении.
-   */
-  listAllActiveVolumeBased(): Promise<MarketplaceOfferDomainEntity[]>;
 }

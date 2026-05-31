@@ -29,8 +29,6 @@ const STATUS_TO_CARD: Record<DomainOrderStatus, OrderStatus> = {
   RETURNED: 'returned',
   CANCELLED_BY_ORDERER: 'cancelled',
   CANCELLED_BY_SUPPLIER: 'cancelled',
-  EXPIRED_NO_THRESHOLD: 'cancelled',
-  EXPIRED_NO_VOLUME: 'cancelled',
 };
 
 /** Минимальный набор полей заказа, нужный карточке (структурно). */
