@@ -13,10 +13,8 @@ import {
 } from 'src/widgets/Marketplace/OrderCard';
 import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
 import {
-  acceptConsolidatedRequest,
-  acceptIndividualOrder,
-  declineConsolidatedRequest,
-  declineIndividualOrder,
+  acceptOrdersBatch,
+  declineOrdersBatch,
   fetchSupplierOrders,
 } from '../api';
 import type {
@@ -139,21 +137,10 @@ function loadMore(): void {
 async function onAccept(orderId: string): Promise<void> {
   loading.value = true;
   try {
-    // Индивидуальный заказ акцептуется поштучно (order_id); групповой
-    // (cycle_type collective) — целиком сводной заявкой по cycle_id. Иначе
-    // acceptIndividualOrder на групповом заказе падает: заказ привязан к
-    // сводной заявке, а не к индивидуальному циклу.
-    const order = items.value.find((o) => o.id === orderId);
-    if (order && order.status === 'ACCEPTED_PENDING_SUPPLIER') {
-      if (!order.cycle_id) {
-        throw new Error('У группового заказа отсутствует идентификатор сводной заявки (cycle_id).');
-      }
-      await acceptConsolidatedRequest(order.cycle_id);
-      SuccessAlert('Сводная заявка партии принята');
-    } else {
-      await acceptIndividualOrder(orderId);
-      SuccessAlert('Заказ принят');
-    }
+    // Эпик 15: единый batch-accept по order_id[]. Здесь принимаем по одному
+    // (партия из одного); мультивыбор группой (offer × КУ) — фоллоуап UI.
+    await acceptOrdersBatch([orderId]);
+    SuccessAlert('Заказ принят к поставке');
     await load(1, false);
   } catch (e) {
     FailAlert(e);
@@ -173,17 +160,8 @@ function onDecline(orderId: string): void {
   }).onOk(async (reason: string) => {
     loading.value = true;
     try {
-      const order = items.value.find((o) => o.id === orderId);
-      if (order && order.status === 'ACCEPTED_PENDING_SUPPLIER') {
-        if (!order.cycle_id) {
-          throw new Error('У группового заказа отсутствует идентификатор сводной заявки (cycle_id).');
-        }
-        await declineConsolidatedRequest(order.cycle_id, reason.trim());
-        NotifyAlert('Сводная заявка партии отклонена');
-      } else {
-        await declineIndividualOrder(orderId, reason.trim());
-        NotifyAlert('Заказ отклонён');
-      }
+      await declineOrdersBatch([orderId], reason.trim());
+      NotifyAlert('Заказ отклонён');
       await load(1, false);
     } catch (e) {
       FailAlert(e);

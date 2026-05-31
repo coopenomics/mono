@@ -11,7 +11,6 @@ import { EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { fetchMyOrders } from '../../MyOrders/api';
 import type {
-  MarketplaceOrderCycleTypeView,
   MarketplaceOrderStatusView,
   MarketplaceOrderView,
 } from '../../MyOrders/types';
@@ -36,17 +35,6 @@ const items = ref<MarketplaceOrderView[]>([]);
 const loading = ref(false);
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 
-const CYCLE_TYPE_LABEL: Record<MarketplaceOrderCycleTypeView, string> = {
-  COLLECTIVE: 'Коллективная закупка',
-  INDIVIDUAL: 'Индивидуальный',
-};
-
-const CYCLE_TYPE_HINT: Record<MarketplaceOrderCycleTypeView, string> = {
-  COLLECTIVE:
-    'Заказы копятся в общий пул; поставка стартует по достижении целевого объёма либо по решению поставщика.',
-  INDIVIDUAL: 'Каждый заказ обслуживается поставщиком отдельно.',
-};
-
 // Этап партии = минимальный по STAGE_RANK среди не-отменённых; то есть
 // если хотя бы один заказ ещё ждёт цикл, вся партия «Активна».
 // Готовый к выдаче переходит в issued только когда все заказы выданы.
@@ -67,7 +55,6 @@ const STAGE_RANK: Record<MarketplaceOrderStatusView, number> = {
 interface ConsolidatedGroup {
   key: string;
   cycle_id: string | null;
-  cycle_type: MarketplaceOrderCycleTypeView;
   offer_id: string;
   supplier_account: string;
   delivery_braname: string;
@@ -88,7 +75,6 @@ const groups = computed<ConsolidatedGroup[]>(() => {
       g = {
         key,
         cycle_id: o.cycle_id ?? null,
-        cycle_type: o.cycle_type,
         offer_id: o.offer_id,
         supplier_account: o.supplier_account,
         delivery_braname: o.delivery_braname,
@@ -192,7 +178,8 @@ q-page.consolidated(role="region", aria-label="Сводный заказ")
             .t-h3
               span(v-if="g.cycle_id") Партия № {{ g.cycle_id }}
               span(v-else) Индивидуальный заказ № {{ g.orders[0].id.slice(0, 8) }}
-            .t-muted.consolidated__group-hint {{ CYCLE_TYPE_LABEL[g.cycle_type] }} — {{ CYCLE_TYPE_HINT[g.cycle_type] }}
+            .t-muted.consolidated__group-hint(v-if="g.cycle_id") Партия-накопитель — заказы приняты поставщиком к поставке вместе.
+            .t-muted.consolidated__group-hint(v-else) Отдельный заказ — ещё не принят поставщиком к поставке.
           q-space
           span.chip.chip--accent
             q-icon(name="layers", size="14px")

@@ -29,5 +29,3 @@ export type MarketplaceOrderPage = Omit<_RawOrderPage, 'items'> & {
  * самих заказов. Никаких параллельных строковых union'ов.
  */
 export type MarketplaceOrderStatusView = `${MarketplaceOrderView['status']}`;
-
-export type MarketplaceOrderCycleTypeView = `${MarketplaceOrderView['cycle_type']}`;

@@ -1,16 +1,17 @@
 /**
- * Story 4.7: типы формы публикации Offer'а с cycle_type.
+ * Эпик 15: типы формы публикации Offer'а. Тип поставки упразднён — управление
+ * поставкой сведено к набору КУ с минимальным объёмом на каждом
+ * (`delivery_points`). min_supply_volume = 1 → поставка по одному заказу,
+ * >1 → накопление партии (мягкий ориентир, не порог).
  *
- * Источник истины — backend `MarketplaceCreateOfferInputDTO`. Ручная
- * типизация — техдолг до регенерации Zeus в `@coopenomics/sdk` (как
- * на других страницах Marketplace).
- *
- * Способ поставки (ревизия L11, 2026-05-31) — два режима:
- *   individual — каждый заказ обрабатывается отдельно;
- *   collective — заказы копятся в пул (авто-старт по target_volume либо
- *                ручной запуск поставщиком).
+ * Источник истины — backend `MarketplaceCreateOfferInputDTO`.
  */
-export type MarketplaceOfferCycleType = 'individual' | 'collective';
+export interface MarketplaceOfferDeliveryPoint {
+  /** Кооперативный участок (ПВЗ), на который поставщик готов везти. */
+  braname: string;
+  /** Минимальный объём поставки на этот участок (в единицах товара, ≥ 1). */
+  min_supply_volume: number;
+}
 
 export type MarketplaceUnitOfMeasure = 'piece' | 'kg' | 'liter' | 'pack';
 
@@ -54,8 +55,7 @@ export interface MarketplaceCreateOfferFormState {
   unit_of_measure: MarketplaceUnitOfMeasure;
   quantity_available: number | null;
   unlimited_flag: boolean;
-  cycle_type: MarketplaceOfferCycleType;
-  target_volume: number | null;
+  delivery_points: MarketplaceOfferDeliveryPoint[];
   warranty_days: number;
 }
 
@@ -67,8 +67,7 @@ export interface MarketplaceCreateOfferPayload {
   unit_of_measure: MarketplaceUnitOfMeasure;
   quantity_available: number | null;
   unlimited_flag: boolean;
-  cycle_type: MarketplaceOfferCycleType;
-  target_volume: number | null;
+  delivery_points: MarketplaceOfferDeliveryPoint[];
   warranty_days: number;
   /**
    * Итоговый упорядоченный набор изображений (первый — обложка). При создании —
@@ -89,7 +88,6 @@ export interface MarketplaceCreateOfferResult {
   id: string;
   status: 'PENDING_MODERATION' | 'ACTIVE' | 'REJECTED' | 'WITHDRAWN';
   product_name: string;
-  cycle_type: MarketplaceOfferCycleType;
 }
 
 export interface MarketplaceUpdateOfferPayload extends MarketplaceCreateOfferPayload {
@@ -109,8 +107,7 @@ export interface MarketplaceOfferEditPrefill {
   unit_of_measure: string;
   quantity_available: number;
   unlimited_flag: boolean;
-  cycle_type: MarketplaceOfferCycleType;
-  target_volume: number | null;
+  delivery_points: MarketplaceOfferDeliveryPoint[];
   warranty_days: number;
   status: 'PENDING_MODERATION' | 'ACTIVE' | 'REJECTED' | 'WITHDRAWN';
   reject_reason?: string | null;

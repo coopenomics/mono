@@ -4,7 +4,7 @@ import { Dialog } from 'quasar';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { Queries } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
-import { marketplaceUnitShort, marketplaceCycleLabel } from 'src/shared/lib/consts';
+import { marketplaceUnitShort } from 'src/shared/lib/consts';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
 import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
@@ -48,6 +48,11 @@ const hasMore = computed(() => items.value.length < total.value);
 function categoryName(offer: MarketplacePendingOfferView): string | null {
   const catId = offer.category_id != null ? Number(offer.category_id) : null;
   return catId != null ? categoryNames.value[catId] ?? null : null;
+}
+
+function deliveryPointsSummary(offer: MarketplacePendingOfferView): string {
+  const points = offer.delivery_points ?? [];
+  return points.map((p) => `${p.braname} (от ${p.min_supply_volume})`).join(', ');
 }
 
 function toCatalogOffer(offer: MarketplacePendingOfferView): CatalogOffer {
@@ -188,9 +193,9 @@ q-page.moderation(role="region", aria-label="Модерация предложе
               .moderation__meta-row(v-if="categoryName(o)")
                 span.moderation__meta-key Категория
                 span.moderation__meta-val {{ categoryName(o) }}
-              .moderation__meta-row(v-if="o.cycle_type")
-                span.moderation__meta-key Тип отсечки
-                span.moderation__meta-val {{ marketplaceCycleLabel(o.cycle_type) }}
+              .moderation__meta-row(v-if="o.delivery_points && o.delivery_points.length")
+                span.moderation__meta-key Участки поставки
+                span.moderation__meta-val {{ deliveryPointsSummary(o) }}
               .moderation__meta-row(v-if="o.warranty_days != null && o.warranty_days > 0")
                 span.moderation__meta-key Гарантия
                 span.moderation__meta-val {{ o.warranty_days }} дн.
