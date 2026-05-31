@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
-import { SuccessAlert, FailAlert, NotifyAlert } from 'src/shared/api';
+import { FailAlert, NotifyAlert } from 'src/shared/api';
 import { useRouter } from 'vue-router';
 import {
   OnboardingCPPGate,
@@ -34,6 +34,10 @@ import {
 
 const state = ref<MarketplaceOnboardingStateView | null>(null);
 const loading = ref(false);
+// Идёт подписание + переход на стол заказчика. Пока true — прячем баннер
+// «Вы уже подключены» и держим спиннер, чтобы между скрытием gate и редиректом
+// не мелькал промежуточный экран-поздравление (пользователь явно не хочет его).
+const redirecting = ref(false);
 const router = useRouter();
 const desktop = useDesktopStore();
 const system = useSystemStore();
@@ -91,6 +95,9 @@ async function onAccept(_documentIds: string[]): Promise<void> {
   // WIF, отправляет на backend, а тот вызывает on-chain `wallet::signagree` от
   // лица coopname (программная подпись в wallet::users.programs[], program_id=2).
   loading.value = true;
+  // Сразу прячем gate-результат: подписал → ведём на стол заказчика без
+  // промежуточного экрана-поздравления.
+  redirecting.value = true;
   try {
     state.value = await signOnboardingOffer();
     // requires_gate=false сразу — редкий случай (PG уже синхронен); иначе ждём
@@ -98,11 +105,11 @@ async function onAccept(_documentIds: string[]): Promise<void> {
     const confirmed =
       (!!state.value && !state.value.requires_gate) || (await waitForSignatureSynced());
     if (confirmed) {
-      SuccessAlert('Оферта ЦПП «Стол заказов» подписана. Открываем стол заказчика…');
       // Подпись синхронизирована: backend теперь выдаёт полные orderer-права
       // вместо маркера Onboarding:orderer. Перечитываем десктоп (гранты) и
       // переустанавливаем маршруты, затем ведём на первую доступную страницу
-      // стола (Каталог) — тот же канон refresh, что у EnableButton.
+      // стола (Каталог) — тот же канон refresh, что у EnableButton. Без тоста-
+      // поздравления — редирект и есть подтверждение.
       await desktop.loadDesktop();
       await loadExtensionRoutes('market', router);
       const coopname = system.info?.coopname;
@@ -117,9 +124,11 @@ async function onAccept(_documentIds: string[]): Promise<void> {
     } else {
       // Синк не успел за отведённое окно — крайне редко; даём пользователю
       // явный сигнал перезагрузить страницу.
+      redirecting.value = false;
       NotifyAlert('Подпись принята блокчейном и синхронизируется. Обновите страницу через несколько секунд.');
     }
   } catch (e) {
+    redirecting.value = false;
     FailAlert(e);
   } finally {
     loading.value = false;
@@ -136,10 +145,10 @@ onMounted(load);
 
 <template lang="pug">
 q-page.mp-role-orderer.mp-member-cpp(role="region", aria-label="Подключение к Столу заказов")
-  q-inner-loading(:showing="loading && !state")
+  q-inner-loading(:showing="(loading && !state) || redirecting")
     q-spinner(color="primary", size="2em")
 
-  q-banner(v-if="alreadyDone", rounded, class="bg-positive text-white q-mt-md")
+  q-banner(v-if="alreadyDone && !redirecting", rounded, class="bg-positive text-white q-mt-md")
     template(#avatar)
       q-icon(name="fa-solid fa-circle-check", color="white")
     div.text-subtitle2 Вы уже подключены к Столу заказов
