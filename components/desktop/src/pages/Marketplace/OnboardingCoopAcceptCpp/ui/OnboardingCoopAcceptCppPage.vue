@@ -16,7 +16,7 @@ import { useMarketplaceOnboarding } from '../model/composable';
  * подключается автоматически и пайщики получают доступ к Столу заказов.
  */
 
-const { config, loading, isCompleted, loadState, handleStepSubmit } =
+const { config, loading, submitting, isCompleted, loadState, handleStepSubmit } =
   useMarketplaceOnboarding();
 
 const chipVariant = computed<BaseBadgeVariant>(() =>
@@ -37,6 +37,7 @@ q-page.onboarding-l1(role="region", aria-label="Подключение ЦПП С
     CouncilOnboardingCard(
       :config="config",
       :loading="loading",
+      :submitting="submitting",
       title="Подключение ЦПП «Стол заказов»",
       subtitle="Целевая Потребительская Программа должна быть принята Советом кооператива, прежде чем пайщики смогут пользоваться Столом заказов.",
       :completion-title="config.completionTitle",
@@ -55,7 +56,7 @@ q-page.onboarding-l1(role="region", aria-label="Подключение ЦПП С
   gap: var(--p-4, 16px);
 
   &__card {
-    max-width: 860px;
+    width: 100%;
   }
 }
 </style>
