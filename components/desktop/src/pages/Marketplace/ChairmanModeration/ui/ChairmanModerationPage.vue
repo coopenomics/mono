@@ -4,7 +4,7 @@ import { Dialog } from 'quasar';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { Queries } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
-import { marketplaceUnitShort } from 'src/shared/lib/consts';
+import { marketplaceUnitShort, marketplaceCycleLabel } from 'src/shared/lib/consts';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
 import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
@@ -12,10 +12,6 @@ import {
   CatalogOfferCard,
   type CatalogOffer,
 } from 'src/widgets/Marketplace/CatalogOfferCard';
-import {
-  OfferDetailsDialog,
-  type OfferDetail,
-} from 'src/widgets/Marketplace/OfferDetailsDialog';
 import {
   approveOffer,
   fetchPendingOffers,
@@ -43,15 +39,16 @@ const approving = ref<Set<string>>(new Set());
 const rejecting = ref<Set<string>>(new Set());
 const currentPage = ref(1);
 
-// Справочник категорий (id → название) для детального просмотра.
+// Справочник категорий (id → название) — показываем прямо в карточке.
 const categoryNames = ref<Record<number, string>>({});
 
-// Детальный просмотр предложения — клик по карточке открывает модалку
-// с полным описанием и действиями (одобрить / отклонить).
-const detailsOpen = ref(false);
-const selected = ref<MarketplacePendingOfferView | null>(null);
-
 const hasMore = computed(() => items.value.length < total.value);
+
+// Название категории по offer'у (через справочник id → display_name).
+function categoryName(offer: MarketplacePendingOfferView): string | null {
+  const catId = offer.category_id != null ? Number(offer.category_id) : null;
+  return catId != null ? categoryNames.value[catId] ?? null : null;
+}
 
 function toCatalogOffer(offer: MarketplacePendingOfferView): CatalogOffer {
   return {
@@ -64,31 +61,6 @@ function toCatalogOffer(offer: MarketplacePendingOfferView): CatalogOffer {
     unitLabel: marketplaceUnitShort(offer.unit_of_measure),
     status: 'moderation',
   };
-}
-
-const selectedDetail = computed<OfferDetail | null>(() => {
-  const o = selected.value;
-  if (!o) return null;
-  const catId = o.category_id != null ? Number(o.category_id) : null;
-  return {
-    id: o.id,
-    title: o.product_name,
-    description: o.description ?? null,
-    status: 'moderation',
-    unitCost: o.price_per_unit,
-    unitLabel: marketplaceUnitShort(o.unit_of_measure),
-    remainUnits: o.unlimited_flag ? undefined : o.quantity_available,
-    unlimited: o.unlimited_flag,
-    categoryName: catId != null ? categoryNames.value[catId] ?? null : null,
-    cycleType: o.cycle_type,
-    warrantyDays: o.warranty_days,
-    supplierAccount: o.supplier_account,
-  };
-});
-
-function openDetails(offer: MarketplacePendingOfferView): void {
-  selected.value = offer;
-  detailsOpen.value = true;
 }
 
 async function loadCategories(): Promise<void> {
@@ -139,7 +111,6 @@ function onApprove(offer: MarketplacePendingOfferView): void {
       await approveOffer(offer.id);
       items.value = items.value.filter((o) => o.id !== offer.id);
       total.value = Math.max(0, total.value - 1);
-      detailsOpen.value = false;
       SuccessAlert(`Предложение «${offer.product_name}» одобрено`);
     } catch (e) {
       FailAlert(e);
@@ -170,7 +141,6 @@ function onReject(offer: MarketplacePendingOfferView): void {
       await rejectOffer(offer.id, reason.trim());
       items.value = items.value.filter((o) => o.id !== offer.id);
       total.value = Math.max(0, total.value - 1);
-      detailsOpen.value = false;
       SuccessAlert(`Предложение «${offer.product_name}» отклонено`);
     } catch (e) {
       FailAlert(e);
@@ -207,15 +177,36 @@ q-page.moderation(role="region", aria-label="Модерация предложе
     template(#icon)
       q-icon(name="check_circle", size="48px")
 
-  .moderation__hint(v-if="!loading && items.length > 0")
-    q-icon(name="touch_app", size="14px")
-    | Нажмите на карточку, чтобы прочитать описание и принять решение.
-
   q-infinite-scroll(@load="onLoadMore", :disable="!hasMore || loading")
     .row.q-col-gutter-md
       .col-12.col-sm-6.col-md-4.col-lg-3(v-for="o in items", :key="o.id")
-        CatalogOfferCard(:offer="toCatalogOffer(o)", @click="openDetails(o)")
+        CatalogOfferCard(:offer="toCatalogOffer(o)")
+          //- Полные данные предложения прямо в карточке — модерация без
+          //- открытия отдельного диалога.
+          template(#details)
+            .moderation__meta
+              .moderation__meta-row(v-if="categoryName(o)")
+                span.moderation__meta-key Категория
+                span.moderation__meta-val {{ categoryName(o) }}
+              .moderation__meta-row(v-if="o.cycle_type")
+                span.moderation__meta-key Тип отсечки
+                span.moderation__meta-val {{ marketplaceCycleLabel(o.cycle_type) }}
+              .moderation__meta-row(v-if="o.warranty_days != null && o.warranty_days > 0")
+                span.moderation__meta-key Гарантия
+                span.moderation__meta-val {{ o.warranty_days }} дн.
+              .moderation__meta-row(v-if="o.supplier_account")
+                span.moderation__meta-key Поставщик
+                span.moderation__meta-val {{ o.supplier_account }}
           template(#actions)
+            BaseButton(
+              variant="danger",
+              size="sm",
+              :loading="rejecting.has(o.id)",
+              @click.stop="onReject(o)"
+            )
+              template(#icon-left)
+                q-icon(name="close", size="16px")
+              | Отклонить
             BaseButton(
               variant="primary",
               size="sm",
@@ -228,25 +219,6 @@ q-page.moderation(role="region", aria-label="Модерация предложе
     template(#loading)
       .row.justify-center.q-my-md
         q-spinner(color="primary", size="2em")
-
-  OfferDetailsDialog(v-model="detailsOpen", :offer="selectedDetail")
-    template(v-if="selected", #actions)
-      BaseButton(
-        variant="danger",
-        :loading="rejecting.has(selected.id)",
-        @click="onReject(selected)"
-      )
-        template(#icon-left)
-          q-icon(name="close", size="16px")
-        | Отклонить
-      BaseButton(
-        variant="primary",
-        :loading="approving.has(selected.id)",
-        @click="onApprove(selected)"
-      )
-        template(#icon-left)
-          q-icon(name="check", size="16px")
-        | Одобрить
 </template>
 
 <style scoped lang="scss">
@@ -261,12 +233,22 @@ q-page.moderation(role="region", aria-label="Модерация предложе
     align-items: center;
   }
 
-  &__hint {
+  &__meta {
     display: flex;
-    align-items: center;
-    gap: var(--p-1, 4px);
-    color: var(--p-ink-3);
+    flex-direction: column;
+    gap: 2px;
     font-size: var(--p-fs-meta, 12px);
+  }
+
+  &__meta-row {
+    display: flex;
+    gap: var(--p-2, 8px);
+  }
+
+  &__meta-key {
+    color: var(--p-ink-3);
+    min-width: 92px;
+    flex-shrink: 0;
   }
 }
 

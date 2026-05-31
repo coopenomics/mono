@@ -57,6 +57,13 @@
       <div v-if="offer.description" class="mp-catalog-offer-card__desc">
         {{ offer.description }}
       </div>
+
+      <!-- Доп. данные (категория, тип отсечки, гарантия, поставщик и т.п.) —
+           заполняется родителем там, где нужно решать прямо в карточке
+           (например модерация), чтобы не открывать отдельный диалог. -->
+      <div v-if="$slots.details" class="mp-catalog-offer-card__details">
+        <slot name="details" :offer="offer" />
+      </div>
     </q-card-section>
 
     <q-card-actions v-if="$slots.actions" align="right" class="mp-catalog-offer-card__actions">
@@ -253,6 +260,10 @@ function onClick() {
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
+  }
+
+  &__details {
+    margin-top: 4px;
   }
 
   &__actions {
