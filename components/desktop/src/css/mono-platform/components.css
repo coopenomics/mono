@@ -17,7 +17,11 @@ body {
   text-rendering: optimizeLegibility;
   font-feature-settings: "cv11", "ss01", "ss03";
 }
-::selection { background: var(--p-primary-soft); color: var(--p-ink); }
+/* Выделение текста — solid accent + белый текст: видно на любом фоне (вкл.
+   тёмную поверхность тоста). Раньше --p-primary-soft (teal 10% alpha) —
+   болотно и почти невидимо. */
+::selection { background: var(--p-accent); color: #fff; }
+::-moz-selection { background: var(--p-accent); color: #fff; }
 
 /* ---- Typography utilities ---- */
 .t-display { font-family: var(--p-display); font-size: var(--p-fs-display); line-height: var(--p-lh-display); letter-spacing: var(--p-ls-display); font-weight: 600; }
@@ -665,12 +669,6 @@ body {
   max-width: 420px;
   line-height: 1.45;
 }
-/* Выделение текста на тёмной поверхности тоста — светлое читаемое
-   (глобальный ::selection даёт тёмный текст и пропадает). См. quasar-canon.css. */
-.toast ::selection,
-.toast::selection { background: rgba(250, 250, 250, 0.28); color: #fafafa; }
-.toast ::-moz-selection,
-.toast::-moz-selection { background: rgba(250, 250, 250, 0.28); color: #fafafa; }
 .toast__icon { opacity: 0.7; margin-top: 1px; flex-shrink: 0; color: inherit; }
 .toast__icon svg { width: 16px; height: 16px; }
 .toast__body { flex: 1; }

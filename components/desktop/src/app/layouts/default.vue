@@ -204,23 +204,40 @@ function onSelectWorkspace(workspaceName: string): void {
   desktop.closeLeftDrawerOnMobile();
   const ws = desktop.workspaceMenus.find((m) => m.workspaceName === workspaceName);
   if (ws?.mainRoute?.name) {
-    void router.push({
-      name: ws.mainRoute.name as string,
-      params: { coopname: system.info.coopname },
-    });
+    // selectWorkspace выставил isWorkspaceChanging=true (full-page лоадер).
+    // Сбрасываем его после завершения навигации, иначе лоадер висит вечно.
+    void router
+      .push({
+        name: ws.mainRoute.name as string,
+        params: { coopname: system.info.coopname },
+      })
+      .finally(() => {
+        desktop.setWorkspaceChanging(false);
+      });
+  } else {
+    desktop.setWorkspaceChanging(false);
   }
 }
 
 function onSelectPage(workspaceName: string, pageName: string): void {
   palette.close();
-  if (workspaceName !== desktop.activeWorkspaceName) {
+  // Считаем смену стола ДО selectWorkspace (он меняет activeWorkspaceName).
+  const isWorkspaceSwitch = workspaceName !== desktop.activeWorkspaceName;
+  if (isWorkspaceSwitch) {
     desktop.selectWorkspace(workspaceName);
   }
   desktop.closeLeftDrawerOnMobile();
-  void router.push({
-    name: pageName,
-    params: { coopname: system.info.coopname },
-  });
+  void router
+    .push({
+      name: pageName,
+      params: { coopname: system.info.coopname },
+    })
+    .finally(() => {
+      // Лоадер ставится только при смене стола — снимаем его тоже только тогда.
+      if (isWorkspaceSwitch) {
+        desktop.setWorkspaceChanging(false);
+      }
+    });
 }
 
 // --- Глобальный hotkey ⌘K / Ctrl+K ----------------------------------------
