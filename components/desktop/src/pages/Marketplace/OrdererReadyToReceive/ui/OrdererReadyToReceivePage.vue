@@ -150,12 +150,13 @@ q-page.ready(role="region", aria-label="Готово к получению")
           | Подписать и получить
 
     template(#no-data)
-      EmptyState(
-        title="Нет заказов, готовых к получению",
-        body="Как только оператор откроет выдачу заказа, он появится здесь."
-      )
-        template(#icon)
-          q-icon(name="inventory_2", size="48px")
+      .ready__nodata
+        EmptyState(
+          title="Нет заказов, готовых к получению",
+          body="Как только оператор откроет выдачу заказа, он появится здесь."
+        )
+          template(#icon)
+            q-icon(name="inventory_2", size="48px")
 
   OrdererFinalizeIssuanceDialog(
     v-model="finalizeDialogOpen",
@@ -178,6 +179,13 @@ q-page.ready(role="region", aria-label="Готово к получению")
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
+
+  // #no-data слот q-table выравнивает контент влево — центрируем EmptyState.
+  &__nodata {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
 
   &__qr {
     display: flex;

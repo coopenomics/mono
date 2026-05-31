@@ -425,12 +425,13 @@ q-page.reception(role='region', aria-label='Приёмка партии')
             | Подписать председателем
 
       template(#no-data)
-        EmptyState(
-          title='Актов приёмки нет',
-          body='Выберите прибывшую партию выше и создайте акт — он появится здесь для подписания.'
-        )
-          template(#icon)
-            q-icon(name='assignment_turned_in', size='48px')
+        .reception__nodata
+          EmptyState(
+            title='Актов приёмки нет',
+            body='Выберите прибывшую партию выше и создайте акт — он появится здесь для подписания.'
+          )
+            template(#icon)
+              q-icon(name='assignment_turned_in', size='48px')
 
   SignAplReceptionChairmanDialog(
     v-model='signDialogOpen',
@@ -523,6 +524,13 @@ q-page.reception(role='region', aria-label='Приёмка партии')
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
+
+  // #no-data слот q-table выравнивает контент влево — центрируем EmptyState.
+  &__nodata {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
 
   &__pending {
     display: flex;

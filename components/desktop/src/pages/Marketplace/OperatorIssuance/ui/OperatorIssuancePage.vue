@@ -205,12 +205,13 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
             | Ждём подпись заказчика
 
       template(#no-data)
-        EmptyState(
-          title='Заказов на выдачу нет',
-          body='Заказы, принятые кооперативом на ваш участок, появятся здесь для выдачи пайщикам.'
-        )
-          template(#icon)
-            q-icon(name='inventory', size='48px')
+        .issuance__nodata
+          EmptyState(
+            title='Заказов на выдачу нет',
+            body='Заказы, принятые кооперативом на ваш участок, появятся здесь для выдачи пайщикам.'
+          )
+            template(#icon)
+              q-icon(name='inventory', size='48px')
 
   IssueActOpenDialog(
     v-model='openDialog',
@@ -253,6 +254,13 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
+
+  // #no-data слот q-table выравнивает контент влево — центрируем EmptyState.
+  &__nodata {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
 
   &__toolbar {
     display: flex;

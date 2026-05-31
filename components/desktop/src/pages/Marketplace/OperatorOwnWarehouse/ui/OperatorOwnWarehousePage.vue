@@ -219,12 +219,13 @@ q-page.warehouse(role='region', aria-label='Склад участка')
         q-td(:props='props') {{ formatDateTime(props.row.labeled_at) }}
 
       template(#no-data)
-        EmptyState(
-          title='На складе пусто',
-          body='Здесь появятся промаркированные наклейки участка. Проверьте фильтры состояния.'
-        )
-          template(#icon)
-            q-icon(name='inventory_2', size='48px')
+        .warehouse__nodata
+          EmptyState(
+            title='На складе пусто',
+            body='Здесь появятся промаркированные наклейки участка. Проверьте фильтры состояния.'
+          )
+            template(#icon)
+              q-icon(name='inventory_2', size='48px')
 </template>
 
 <style scoped lang="scss">
@@ -233,6 +234,13 @@ q-page.warehouse(role='region', aria-label='Склад участка')
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
+
+  // #no-data слот q-table выравнивает контент влево — центрируем EmptyState.
+  &__nodata {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
 
   &__filters {
     display: flex;
