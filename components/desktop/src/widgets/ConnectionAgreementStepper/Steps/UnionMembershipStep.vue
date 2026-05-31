@@ -123,10 +123,14 @@ const handleContinue = () => {
 }
 
 const goToQuickClient = () => {
-  // Сначала переключаем рабочий стол на chatcoop
+  // Сначала переключаем рабочий стол на chatcoop (ставит isWorkspaceChanging=true)
   desktopStore.selectWorkspace('chatcoop')
-  // Затем переходим на страницу "Быстрый клиент"
-  router.push({ name: 'chatcoop-chat' })
+  // Затем переходим на страницу "Быстрый клиент" и снимаем лоадер после навигации
+  void router
+    .push({ name: 'chatcoop-chat' })
+    .finally(() => {
+      desktopStore.setWorkspaceChanging(false)
+    })
 }
 
 const handleAccountCreated = () => {
