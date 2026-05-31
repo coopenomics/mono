@@ -26,6 +26,10 @@ export * as GetShipment from './getShipment'
 export * as ListInventory from './listInventory'
 /** Эпик 5: акты приёмки текущего КУ для operator-стола */
 export * as ListAplReceptionsByBraname from './listAplReceptionsByBraname'
+/** Эпик 14 (14.2): поставщики с принятыми заказами, ожидающими самовывоза на КУ */
+export * as ListExpressPickupsByBraname from './listExpressPickupsByBraname'
+/** Эпик 14 (агрегирующая приёмка): единицы имущества поставщика на КУ — партия (ТТН) + добор по акцепту */
+export * as ListSupplierPickupOrders from './listSupplierPickupOrders'
 /** Эпик 5: акты приёмки, ожидающие подписи текущего поставщика */
 export * as ListAplReceptionsAsSupplier from './listAplReceptionsAsSupplier'
 /** Эпик 5: история выплат поставщика */

@@ -33,8 +33,16 @@ const makeResolver = (reception: any, isMember: boolean) => {
   const kuChairmanService = {
     isMemberOfBranch: jest.fn().mockResolvedValue(isMember),
   } as any;
-  const resolver = new MarketplaceAplReceptionResolver(service, receptionRepo, kuChairmanService);
-  return { resolver, service, receptionRepo, kuChairmanService };
+  const displayService = {
+    enrich: jest.fn().mockResolvedValue(new Map()),
+  } as any;
+  const resolver = new MarketplaceAplReceptionResolver(
+    service,
+    receptionRepo,
+    kuChairmanService,
+    displayService
+  );
+  return { resolver, service, receptionRepo, kuChairmanService, displayService };
 };
 
 const asMember = (roles: string[]) =>

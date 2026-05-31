@@ -56,7 +56,9 @@ export class MarketplaceShipmentEntity {
   @Column({ type: 'numeric', precision: 24, scale: 4 })
   public total_amount!: string;
 
-  @Column({ type: 'varchar', length: 32, nullable: true })
+  // length=64: номер ТТН = COOPNAME-TTN-<cycle8>-<ku6>-<suffix8> + дефисы ≈ 36–42
+  // символов (varchar(32) переполнялся при формировании партии экспедитора).
+  @Column({ type: 'varchar', length: 64, nullable: true })
   public ttn_number!: string | null;
 
   @Column({ type: 'jsonb', nullable: true })

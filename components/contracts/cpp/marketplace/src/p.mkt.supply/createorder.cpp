@@ -42,11 +42,9 @@ void marketplace::createorder(eosio::name coopname,
                "Некорректная цена за единицу");
   eosio::check(unit_price.symbol == _root_govern_symbol,
                "Некорректный символ валюты в цене");
-  eosio::check(cycle_type == CycleType::TIME_BASED ||
-               cycle_type == CycleType::VOLUME_BASED ||
-               cycle_type == CycleType::OPEN_SUBSCRIPT ||
-               cycle_type == CycleType::INDIVIDUAL,
-               "Неизвестный тип цикла отсечки заявок");
+  eosio::check(cycle_type == CycleType::INDIVIDUAL ||
+               cycle_type == CycleType::COLLECTIVE,
+               "Неизвестный способ поставки");
 
   // Idempotency: Order с таким hash не должен существовать
   eosio::check(!Marketplace::get_order_by_hash(coopname, order_hash).has_value(),

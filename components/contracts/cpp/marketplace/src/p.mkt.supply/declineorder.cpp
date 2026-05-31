@@ -1,8 +1,8 @@
 /**
  * @brief Поставщик отказывается от одного Order'а до акцепта (Story 4.5, p.mkt.supply).
  *
- * Per-Order: o.mkt.unlock на total_cost (TRANSFER w.mkt.order → w.wal.member —
- * резерв возвращается на универсальный членский заказчика) + статус active →
+ * Per-Order: o.mkt.unlock на total_cost (TRANSFER w.mkt.order → w.mkt.member —
+ * резерв возвращается на членский «Стола заказов» заказчика) + статус active →
  * cancelled. Backend проходит циклом по orders соответствующего batch'а,
  * вызывая `declineorder` per Order — векторов order_hash нет.
  *

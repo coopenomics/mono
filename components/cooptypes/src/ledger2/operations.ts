@@ -151,16 +151,61 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: null, credit: null,
     human_name: 'Конвертация сегмента: РИД → ЦПП «Благорост»' },
 
-  // marketplace
-  { code: 'o.mkt.supply',  process_type: 'p.mkt.reqst',   contract: 'marketplace',
-    name: 'CONFIRM_SUPPLY', wallet_op: 'ISSUE',    wallet_from: null, wallet_to: 'w.wal.share',
-    debit: 51, credit: 80,
-    human_name: 'Подтверждение поставки' },
+  // marketplace — членская модель «Стола заказов» (синхронно с
+  // operations.hpp `OPERATION_REGISTRY`, namespace operations::marketplace).
+  // Legacy клиринговые o.mkt.supply/o.mkt.recv (p.mkt.reqst) удалены —
+  // membership-модель их не использует.
+  { code: 'o.mkt.lock',    process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'LOCK_ORDER',     wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.mkt.order',
+    debit: 80, credit: 86,
+    human_name: 'Резервирование под заказ' },
 
-  { code: 'o.mkt.recv',    process_type: 'p.mkt.reqst',   contract: 'marketplace',
-    name: 'CONFIRM_RECEIPT', wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.mkt.payout',
-    debit: 80, credit: 51,
-    human_name: 'Подтверждение получения — выплата поставщику' },
+  // Доплата по факту (signiss2, actual > ordered): паевой сперва конвертируется
+  // в членский «Стола заказов» (o.mkt.conv), затем им добирается резерв
+  // (o.mkt.lockm). Списание идёт ИМЕННО с членского, не напрямую с паевого.
+  { code: 'o.mkt.conv',    process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'CONVERT_TO_MKT_MEMBER', wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.mkt.member',
+    debit: 80, credit: 86,
+    human_name: 'Конвертация паевого в членский «Стола заказов» под доплату' },
+
+  { code: 'o.mkt.lockm',   process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'LOCK_FROM_MEMBER', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.member', wallet_to: 'w.mkt.order',
+    debit: null, credit: null,
+    human_name: 'Добор резерва заказа с членского «Стола заказов»' },
+
+  // Снятие резерва (отмена / недовыдача / actual < ordered): средства уходят
+  // на членский «Стола заказов» (не на универсальный членский) — остаются в программе.
+  { code: 'o.mkt.unlock',  process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'UNLOCK_ORDER',   wallet_op: 'TRANSFER', wallet_from: 'w.mkt.order', wallet_to: 'w.mkt.member',
+    debit: null, credit: null,
+    human_name: 'Снятие резерва при отмене заказа' },
+
+  { code: 'o.mkt.purch',   process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'PURCHASE_FROM_SUPPLIER', wallet_op: 'NONE', wallet_from: null, wallet_to: null,
+    debit: 10, credit: 86,
+    human_name: 'Приёмка имущества кооперативом по АПП приёмки' },
+
+  { code: 'o.mkt.payout',  process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'PAY_SUPPLIER',   wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.mkt.payout',
+    debit: 86, credit: 51,
+    human_name: 'Оплата поставщику с расчётного счёта по факту приёмки' },
+
+  { code: 'o.mkt.consum',  process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'CONSUME_BY_MEMBER', wallet_op: 'BURN', wallet_from: 'w.mkt.order', wallet_to: null,
+    debit: 86, credit: 10,
+    human_name: 'Выдача имущества пайщику по АПП выдачи' },
+
+  // Гарантийный возврат — compensating forward к o.mkt.consum: восстановление
+  // средств на членском «Стола заказов» заказчика и возврат имущества на склад.
+  { code: 'o.mkt.return',  process_type: 'p.mkt.return',  contract: 'marketplace',
+    name: 'RETURN_BY_MEMBER', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.mkt.member',
+    debit: 10, credit: 86,
+    human_name: 'Гарантийный возврат — восстановление средств и имущества' },
+
+  { code: 'o.mkt.wroff',   process_type: 'p.mkt.wroff',   contract: 'marketplace',
+    name: 'WRITE_OFF_PERISHABLE', wallet_op: 'NONE', wallet_from: null, wallet_to: null,
+    debit: 86, credit: 10,
+    human_name: 'Утилизация скоропорта' },
 
   // soviet
   { code: 'o.sov.axncnv',  process_type: 'p.sov.axncnv',  contract: 'soviet',

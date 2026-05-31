@@ -41,6 +41,8 @@ export interface MarketplaceOrderListFilter {
   offer_id?: string;
   status?: MarketplaceOrderStatus | MarketplaceOrderStatus[];
   cycle_id?: string;
+  /** ПВЗ доставки заказа (Story 14.2: express-приёмка ACCEPTED-заказов на КУ). */
+  delivery_braname?: string;
 }
 
 /**
@@ -60,7 +62,24 @@ export interface MarketplaceOrderDomainRepository
    */
   persistAfterBlock(input: MarketplaceOrderCreateInput): Promise<MarketplaceOrderDomainEntity>;
   findById(id: string): Promise<MarketplaceOrderDomainEntity | null>;
+  /** Батч-выборка заказов по идентификаторам (для обогащения позиций приёмки). */
+  findByIds(ids: string[]): Promise<MarketplaceOrderDomainEntity[]>;
   findByOrderHash(coopname: string, order_hash: string): Promise<MarketplaceOrderDomainEntity | null>;
+
+  /**
+   * Заказы, включённые в конкретную партию (резолв состава партии на приёмке).
+   * Заменяет инференс «по (cycle, КУ)» — обязателен при нескольких частичных
+   * партиях на одном КУ.
+   */
+  findByShipmentId(coopname: string, shipment_id: string): Promise<MarketplaceOrderDomainEntity[]>;
+
+  /**
+   * Привязать заказы к сформированной партии + перевести ACCEPTED → SUPPLY_PREPARED
+   * одним bulk-апдейтом. Затрагивает ТОЛЬКО заказы в статусе ACCEPTED без партии
+   * (`shipment_id IS NULL`) — guard от двойного включения в две партии.
+   * Возвращает число реально привязанных заказов.
+   */
+  assignToShipment(orderIds: string[], shipment_id: string, reason: string | null): Promise<number>;
 
   list(
     filter: MarketplaceOrderListFilter,
@@ -122,7 +141,8 @@ export interface MarketplaceOrderDomainRepository
    * Story 6.1: применяет первую подпись АПП-выдачи (председатель КУ открыл
    * выдачу). Переводит Order ACCEPTED_TO_COOP → READY_TO_RECEIVE и
    * заполняет `current_warehouse_braname` (= delivery_braname),
-   * `chairman_signed_at`, `chairman_account`, `signiss1_tx_hash`.
+   * `chairman_signed_at`, `chairman_account`, `signiss1_tx_hash`,
+   * `issuance_fact` (факт зафиксирован оператором при открытии).
    */
   applyIssuanceOpened(
     id: string,
@@ -130,6 +150,7 @@ export interface MarketplaceOrderDomainRepository
       chairman_account: string;
       signiss1_tx_hash: string;
       current_warehouse_braname: string;
+      issuance_fact: MarketplaceOrderIssuanceFactSnapshot;
       issue_act_signiss1_document: ISignedDocumentDomainInterface;
     }
   ): Promise<MarketplaceOrderDomainEntity>;

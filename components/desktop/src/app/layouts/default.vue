@@ -202,21 +202,10 @@ function onSelectWorkspace(workspaceName: string): void {
   palette.close();
   desktop.selectWorkspace(workspaceName);
   desktop.closeLeftDrawerOnMobile();
-  const ws = desktop.workspaceMenus.find((m) => m.workspaceName === workspaceName);
-  if (ws?.mainRoute?.name) {
-    // selectWorkspace выставил isWorkspaceChanging=true (full-page лоадер).
-    // Сбрасываем его после завершения навигации, иначе лоадер висит вечно.
-    void router
-      .push({
-        name: ws.mainRoute.name as string,
-        params: { coopname: system.info.coopname },
-      })
-      .finally(() => {
-        desktop.setWorkspaceChanging(false);
-      });
-  } else {
-    desktop.setWorkspaceChanging(false);
-  }
+  // Переходим на реальную первую страницу стола И снимаем лоадер — ровно как
+  // WorkspaceSwitcher. Прямой push на mainRoute.name вёл на родительский
+  // layout-роут без компонента → серый экран, а лоадер оставался висеть.
+  desktop.goToDefaultPage(router);
 }
 
 function onSelectPage(workspaceName: string, pageName: string): void {

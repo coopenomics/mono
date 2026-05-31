@@ -44,3 +44,22 @@ export function marketplaceUnitLabel(value: string | null | undefined): string {
   if (!value) return 'ед.';
   return MARKETPLACE_UNITS.find((u) => u.value === value)?.label ?? value;
 }
+
+/**
+ * Русские подписи типов отсечки (cycle_type) — единый источник для всех
+ * marketplace-экранов (модерация, каталог, создание оферты). Раньше карта
+ * дублировалась по нескольким страницам (создание оферты, сводный заказ).
+ * Значения совпадают с backend-enum `MarketplaceOfferCycleType`.
+ */
+const MARKETPLACE_CYCLE_LABELS: Record<string, string> = {
+  time_based: 'По расписанию',
+  volume_based: 'По объёму',
+  open_subscription: 'Открытая подписка',
+  individual: 'Индивидуально',
+};
+
+/** Русская подпись типа отсечки; неизвестное значение возвращается как есть. */
+export function marketplaceCycleLabel(value: string | null | undefined): string {
+  if (!value) return '';
+  return MARKETPLACE_CYCLE_LABELS[value] ?? value;
+}

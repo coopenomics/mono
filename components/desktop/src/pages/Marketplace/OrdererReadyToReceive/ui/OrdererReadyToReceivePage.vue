@@ -1,12 +1,18 @@
 <script lang="ts" setup>
 import type { QTableProps } from 'quasar';
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
-import { EmptyState } from 'src/shared/ui/base';
+import { useSessionStore } from 'src/entities/Session';
+import { BaseButton, BaseDialog, EmptyState } from 'src/shared/ui/base';
 import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
+import { HandoffQr } from 'src/widgets/Marketplace/HandoffQr';
 import { PageHint } from 'src/shared/ui/domain';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
+import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
+import { encodeHandoffToken, HandoffTokenKind } from 'src/shared/lib/marketplace';
 import { listMyReadyToReceive, type MarketplaceOrderIssuanceView } from '../api';
+import OrdererFinalizeIssuanceDialog from './OrdererFinalizeIssuanceDialog.vue';
 
 /**
  * Story 6.3 / FR22: orderer-стол «Готово к получению».
@@ -21,8 +27,40 @@ import { listMyReadyToReceive, type MarketplaceOrderIssuanceView } from '../api'
  * визуальное продолжение уведомления.
  */
 
+const route = useRoute();
+const session = useSessionStore();
+const coopname = computed(() => String(route.params.coopname ?? ''));
+
 const items = ref<MarketplaceOrderIssuanceView[]>([]);
 const loading = ref(false);
+
+// Финальная подпись заказчика — в своём кабинете на своём устройстве.
+const finalizeDialogOpen = ref(false);
+const selectedOrder = ref<MarketplaceOrderIssuanceView | null>(null);
+
+function startFinalize(order: MarketplaceOrderIssuanceView): void {
+  selectedOrder.value = order;
+  finalizeDialogOpen.value = true;
+}
+
+function onFinalized(): void {
+  void load();
+}
+
+// Story 14.4: один account-bound код получения. Заказчик показывает его
+// оператору выдачи — тот резолвит аккаунт против ленты своего КУ и видит разом
+// все готовые к выдаче заказы этого заказчика. Код привязан к личности, не к
+// заказу: его можно показать заранее или с распечатки.
+const myCodeDialogOpen = ref(false);
+const myReceiveCode = computed(() =>
+  session.username
+    ? encodeHandoffToken({
+        kind: HandoffTokenKind.Receive,
+        coopname: coopname.value,
+        account: session.username,
+      })
+    : '',
+);
 
 function formatDate(value: unknown): string {
   if (value === null || value === undefined || value === '') return '—';
@@ -52,7 +90,13 @@ const columns: QTableProps['columns'] = [
     align: 'right',
     format: (v: unknown, r: MarketplaceOrderIssuanceView) => `${v} ${marketplaceUnitShort(r.unit_of_measure)}`,
   },
-  { name: 'total_cost', label: 'Сумма заказа', field: 'total_cost', align: 'right' },
+  {
+    name: 'total_cost',
+    label: 'Сумма заказа',
+    field: 'total_cost',
+    align: 'right',
+    format: (v: unknown) => `${formatAsset2Digits(String(v ?? ''))} ₽`,
+  },
   {
     name: 'opened_at',
     label: 'Открыто к выдаче',
@@ -60,6 +104,7 @@ const columns: QTableProps['columns'] = [
     align: 'left',
     format: (v: unknown) => formatDate(v),
   },
+  { name: 'actions', label: '', field: 'id', align: 'right' },
 ];
 
 async function load(): Promise<void> {
@@ -80,10 +125,14 @@ onMounted(load);
 q-page.ready(role="region", aria-label="Готово к получению")
   //- Действие страницы — в шапку, где стоят общие действия (канон Teleport).
   Teleport(to="#header-actions-host", defer)
+    BaseButton(variant="secondary", size="sm", :disabled="!myReceiveCode", @click="myCodeDialogOpen = true")
+      template(#icon-left)
+        q-icon(name="qr_code_2", size="16px")
+      | Мой код получения
     RefreshButton(:loading="loading", @refresh="load")
 
   PageHint(storage-key="mp:ready-to-receive:banner-dismissed")
-    | Оператор открыл выдачу этих заказов на пункте. Приходите на участок для сверки имущества и финальной подписи.
+    | Оператор открыл выдачу этих заказов на пункте. Получите имущество на участке и подтвердите получение подписью здесь — на своём устройстве, своим ключом.
 
   q-table(
     :rows="items",
@@ -93,13 +142,35 @@ q-page.ready(role="region", aria-label="Готово к получению")
     bordered,
     :loading="loading"
   )
+    template(#body-cell-actions="props")
+      q-td(:props="props")
+        BaseButton(variant="primary", size="sm", @click="startFinalize(props.row)")
+          template(#icon-left)
+            q-icon(name="draw", size="16px")
+          | Подписать и получить
+
     template(#no-data)
-      EmptyState(
-        title="Нет заказов, готовых к получению",
-        body="Как только оператор откроет выдачу заказа, он появится здесь."
+      .ready__nodata
+        EmptyState(
+          title="Нет заказов, готовых к получению",
+          body="Как только оператор откроет выдачу заказа, он появится здесь."
+        )
+          template(#icon)
+            q-icon(name="inventory_2", size="48px")
+
+  OrdererFinalizeIssuanceDialog(
+    v-model="finalizeDialogOpen",
+    :order="selectedOrder",
+    @finalized="onFinalized"
+  )
+
+  BaseDialog(v-model="myCodeDialogOpen", title="Мой код получения", size="sm")
+    .ready__qr(v-if="myReceiveCode")
+      HandoffQr(
+        :value="myReceiveCode",
+        caption="Покажите этот код оператору на пункте выдачи — он выдаст разом все ваши готовые заказы. Код можно показать заранее или с распечатки."
       )
-        template(#icon)
-          q-icon(name="inventory_2", size="48px")
+
 </template>
 
 <style scoped lang="scss">
@@ -108,6 +179,21 @@ q-page.ready(role="region", aria-label="Готово к получению")
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
+
+  // #no-data слот q-table выравнивает контент влево — центрируем EmptyState.
+  &__nodata {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+
+  &__qr {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--p-3, 12px);
+    padding: var(--p-2, 8px) 0;
+  }
 }
 
 @media (max-width: 768px) {

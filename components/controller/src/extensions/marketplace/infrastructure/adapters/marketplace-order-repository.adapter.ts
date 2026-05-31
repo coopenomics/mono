@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import type {
   MarketplaceOrderCreateInput,
@@ -63,6 +63,12 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
     return row ? this.mapper.toDomain(row) : null;
   }
 
+  async findByIds(ids: string[]): Promise<MarketplaceOrderDomainEntity[]> {
+    if (ids.length === 0) return [];
+    const rows = await this.repo.find({ where: { id: In(ids) } });
+    return rows.map((row) => this.mapper.toDomain(row));
+  }
+
   async findByOrderHash(
     coopname: string,
     order_hash: string
@@ -83,6 +89,7 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
     if (filter.supplier_account) qb.andWhere('o.supplier_account = :sup', { sup: filter.supplier_account });
     if (filter.offer_id) qb.andWhere('o.offer_id = :off', { off: filter.offer_id });
     if (filter.cycle_id) qb.andWhere('o.cycle_id = :cid', { cid: filter.cycle_id });
+    if (filter.delivery_braname) qb.andWhere('o.delivery_braname = :br', { br: filter.delivery_braname });
     if (filter.status) {
       const statuses = Array.isArray(filter.status) ? filter.status : [filter.status];
       qb.andWhere('o.status IN (:...statuses)', { statuses });
@@ -247,6 +254,36 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
     return rows.map((r) => this.mapper.toDomain(r));
   }
 
+  async findByShipmentId(
+    coopname: string,
+    shipment_id: string
+  ): Promise<MarketplaceOrderDomainEntity[]> {
+    const rows = await this.repo
+      .createQueryBuilder('o')
+      .where('o.coopname = :coop AND o.shipment_id = :sid', { coop: coopname, sid: shipment_id })
+      .orderBy('o.blocked_at', 'ASC')
+      .getMany();
+    return rows.map((r) => this.mapper.toDomain(r));
+  }
+
+  async assignToShipment(
+    orderIds: string[],
+    shipment_id: string,
+    reason: string | null
+  ): Promise<number> {
+    if (orderIds.length === 0) return 0;
+    const result = await this.repo
+      .createQueryBuilder()
+      .update(MarketplaceOrderEntity)
+      .set({ shipment_id, status: 'SUPPLY_PREPARED', last_status_reason: reason })
+      .where('id IN (:...ids) AND status = :accepted AND shipment_id IS NULL', {
+        ids: orderIds,
+        accepted: 'ACCEPTED',
+      })
+      .execute();
+    return result.affected ?? 0;
+  }
+
   async sumUnassignedActiveByOffer(coopname: string, offer_id: string): Promise<number> {
     const raw = await this.repo
       .createQueryBuilder('o')
@@ -276,6 +313,7 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
       chairman_account: string;
       signiss1_tx_hash: string;
       current_warehouse_braname: string;
+      issuance_fact: MarketplaceOrderIssuanceFactSnapshot;
       issue_act_signiss1_document: ISignedDocumentDomainInterface;
     }
   ): Promise<MarketplaceOrderDomainEntity> {
@@ -287,6 +325,7 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
         chairman_account: patch.chairman_account,
         signiss1_tx_hash: patch.signiss1_tx_hash,
         current_warehouse_braname: patch.current_warehouse_braname,
+        issuance_fact: patch.issuance_fact,
         issue_act_signiss1_document: patch.issue_act_signiss1_document,
       } as Record<string, unknown>
     );

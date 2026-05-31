@@ -36,14 +36,16 @@ import {
 import { MARKETPLACE_OPERATION_CODES } from './marketplace-ledger2-invariants'
 
 /**
- * Canonical список marketplace-операций (7 шт), полностью покрывающих
- * жизненный цикл Order'а, гарантийного возврата и списания скоропорта.
- * Если этот список расходится с `Ledger2.LEDGER2_OPERATION_REGISTRY` —
- * это поломка контракта/cooptypes.
+ * Canonical список marketplace-операций (9 шт), полностью покрывающих
+ * жизненный цикл Order'а, доплату по факту, гарантийный возврат и списание
+ * скоропорта. Если этот список расходится с
+ * `Ledger2.LEDGER2_OPERATION_REGISTRY` — это поломка контракта/cooptypes.
  */
 const EXPECTED_MARKETPLACE_OP_CODES = [
-  // p.mkt.supply (5 операций)
+  // p.mkt.supply (7 операций)
   'o.mkt.lock',
+  'o.mkt.conv',
+  'o.mkt.lockm',
   'o.mkt.unlock',
   'o.mkt.purch',
   'o.mkt.payout',
@@ -55,8 +57,8 @@ const EXPECTED_MARKETPLACE_OP_CODES = [
 ] as const
 
 describe('Story 11.2 — coverage marketplace operation_code в cooptypes', () => {
-  it('canonical список содержит 7 кодов', () => {
-    expect(EXPECTED_MARKETPLACE_OP_CODES).toHaveLength(7)
+  it('canonical список содержит 9 кодов', () => {
+    expect(EXPECTED_MARKETPLACE_OP_CODES).toHaveLength(9)
   })
 
   it('каждый код присутствует в LEDGER2_OPERATION_REGISTRY', () => {
@@ -127,10 +129,26 @@ describe('Story 11.2 — wallet_op + Дт/Кт реестра соответст
       credit: 86,
     },
     {
+      code: 'o.mkt.conv',
+      walletOp: 'TRANSFER',
+      walletFrom: 'w.wal.share',
+      walletTo: 'w.mkt.member',
+      debit: 80,
+      credit: 86,
+    },
+    {
+      code: 'o.mkt.lockm',
+      walletOp: 'TRANSFER',
+      walletFrom: 'w.mkt.member',
+      walletTo: 'w.mkt.order',
+      debit: null,
+      credit: null,
+    },
+    {
       code: 'o.mkt.unlock',
       walletOp: 'TRANSFER',
       walletFrom: 'w.mkt.order',
-      walletTo: 'w.wal.member',
+      walletTo: 'w.mkt.member',
       debit: null,
       credit: null,
     },
@@ -162,7 +180,7 @@ describe('Story 11.2 — wallet_op + Дт/Кт реестра соответст
       code: 'o.mkt.return',
       walletOp: 'ISSUE',
       walletFrom: null,
-      walletTo: 'w.wal.member',
+      walletTo: 'w.mkt.member',
       debit: 10,
       credit: 86,
     },

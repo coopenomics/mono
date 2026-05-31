@@ -68,6 +68,7 @@ import {
 } from '../../domain/entities/marketplace-shipment.types';
 import type { MarketplaceAplReceptionDomainEntity } from '../../domain/entities/marketplace-apl-reception.entity';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
+import { MarketplaceOrderStatuses } from '../../domain/entities/marketplace-order.types';
 
 export interface MarketplaceAplReceptionCreateInputDto {
   coopname: string;
@@ -103,6 +104,41 @@ export interface MarketplaceAplReceptionSignChairmanInputDto {
 
 export interface MarketplaceAplReceptionResult {
   apl_reception: MarketplaceAplReceptionDomainEntity;
+}
+
+/**
+ * Story 14.2: express-приёмка по факту присутствия. Оператор принимает
+ * самовывоз поставщика, который НЕ сформировал партию заранее — указывает
+ * поставщика и свой КУ, backend синтезирует SELF-партию из его ACCEPTED-
+ * заказов на этот КУ и открывает приёмку.
+ */
+export interface MarketplaceCreateExpressReceptionInputDto {
+  coopname: string;
+  /** Account оператора КУ (из core-сессии). */
+  operator_account: string;
+  /** Поставщик, физически приехавший на ПВЗ. */
+  offerer_account: string;
+  /** КУ оператора, на котором идёт приёмка. */
+  braname: string;
+  /**
+   * Фактически принятое количество и цена per-Order — оператор корректирует их
+   * при открытии приёмки (так же, как на батч-приёмке). При отсутствии записи по
+   * Order'у берётся order.quantity и цена заказа.
+   */
+  fact_quantity_per_order?: MarketplaceAplReceptionFactQuantityEntry[];
+}
+
+export interface MarketplaceCreateExpressReceptionResult {
+  apl_receptions: MarketplaceAplReceptionDomainEntity[];
+}
+
+/** Поставщик с принятыми заказами, ожидающими самовывоза на конкретном КУ. */
+export interface MarketplaceExpressPickupCandidate {
+  offerer_account: string;
+  braname: string;
+  orders_count: number;
+  total_units: number;
+  total_amount: string;
 }
 
 /**
@@ -239,8 +275,9 @@ export class MarketplaceAplReceptionService {
     // на этапе превью используется оператор, создавший АПП).
     const transmitter = input.chairman_account ?? input.reception.created_by_operator_account;
     const fact_quantity = fact?.fact_quantity ?? input.order.quantity;
+    const fact_unit_price = fact?.fact_unit_price ?? input.order.price_per_unit;
     const total_amount = (
-      fact_quantity * Number.parseFloat(input.order.price_per_unit)
+      fact_quantity * Number.parseFloat(fact_unit_price)
     ).toFixed(4);
     const action: Cooperative.Registry.MarketplaceAplReception.Action = {
       registry_id: Cooperative.Registry.MarketplaceAplReception.registry_id,
@@ -295,8 +332,14 @@ export class MarketplaceAplReceptionService {
       );
     }
 
-    const orders = await this.orderRepo.findByCycleId(shipment.coopname, shipment.cycle_id);
-    const groupOrders = orders.filter((o) => o.delivery_braname === shipment.braname);
+    // Состав партии — по прямой связи order.shipment_id (обязательно при
+    // нескольких частичных партиях на одном КУ). Fallback на инференцию
+    // «по (cycle, КУ)» — для партий, созданных до появления связи.
+    let groupOrders = await this.orderRepo.findByShipmentId(shipment.coopname, shipment.id);
+    if (groupOrders.length === 0) {
+      const orders = await this.orderRepo.findByCycleId(shipment.coopname, shipment.cycle_id);
+      groupOrders = orders.filter((o) => o.delivery_braname === shipment.braname);
+    }
     if (groupOrders.length === 0) {
       throw new BadRequestException(
         'В партии поставки нет Order\'ов на этот КУ — нечего принимать.'
@@ -351,6 +394,156 @@ export class MarketplaceAplReceptionService {
     }
 
     return { apl_reception: reception };
+  }
+
+  /**
+   * Story 14.2: поставщики с ACCEPTED-заказами на КУ, ожидающие самовывоза.
+   * Лента для operator-стола: оператор видит, кто приехал/может приехать со
+   * своим имуществом без предварительно сформированной партии.
+   */
+  async listExpressPickupCandidates(
+    coopname: string,
+    braname: string
+  ): Promise<MarketplaceExpressPickupCandidate[]> {
+    const page = await this.orderRepo.list(
+      { coopname, status: 'ACCEPTED', delivery_braname: braname },
+      { page: 1, limit: 1000, sortOrder: 'DESC' }
+    );
+    const bySupplier = new Map<string, MarketplaceOrderDomainEntity[]>();
+    for (const o of page.items) {
+      // Без заявки (cycle_id) приёмку не открыть — модель приёмки per (cycle, КУ).
+      if (!o.cycle_id) continue;
+      const arr = bySupplier.get(o.supplier_account) ?? [];
+      arr.push(o);
+      bySupplier.set(o.supplier_account, arr);
+    }
+    const out: MarketplaceExpressPickupCandidate[] = [];
+    for (const [offerer_account, orders] of bySupplier) {
+      out.push({
+        offerer_account,
+        braname,
+        orders_count: orders.length,
+        total_units: orders.reduce((a, o) => a + o.quantity, 0),
+        total_amount: orders.reduce((a, o) => a + Number.parseFloat(o.total_cost), 0).toFixed(4),
+      });
+    }
+    return out;
+  }
+
+  /**
+   * Эпик 14 (агрегирующая приёмка): все единицы имущества поставщика,
+   * ожидающие приёмки на этом КУ — единый базис «акцепт поставщика на КУ».
+   * Возвращает Order'ы в статусах:
+   *   - SUPPLY_PREPARED — задекларированы в сформированной партии (по ТТН);
+   *   - ACCEPTED        — акцептованы, но в партию не вошли (добор по акцепту).
+   * Партия/ТТН — лишь разметка поверх; потолок приёмки каждой позиции =
+   * order.quantity (акцепт). Оператор довзвешивает факт на приёмке (≤ акцепта).
+   */
+  async listSupplierPickupOrders(
+    coopname: string,
+    braname: string,
+    offerer_account: string
+  ): Promise<MarketplaceOrderDomainEntity[]> {
+    const page = await this.orderRepo.list(
+      {
+        coopname,
+        supplier_account: offerer_account,
+        delivery_braname: braname,
+        status: [MarketplaceOrderStatuses.SUPPLY_PREPARED, MarketplaceOrderStatuses.ACCEPTED],
+      },
+      { page: 1, limit: 1000, sortOrder: 'DESC' }
+    );
+    // Без заявки (cycle_id) приёмку не открыть — модель приёмки per (cycle, КУ).
+    return page.items.filter((o) => o.cycle_id);
+  }
+
+  /**
+   * Story 14.2: express-приёмка самовывоза. Для каждого цикла, по которому у
+   * поставщика есть ACCEPTED-заказы на этот КУ, синтезирует SELF-партию
+   * (Вариант А, без ТТН) и открывает по ней приёмку через {@link create}.
+   * Дальнейший двухподписный акт и переход в ACCEPTED_TO_COOP — без изменений.
+   */
+  async createExpress(
+    input: MarketplaceCreateExpressReceptionInputDto
+  ): Promise<MarketplaceCreateExpressReceptionResult> {
+    if (!input.offerer_account || !input.braname) {
+      throw new BadRequestException('Не указан поставщик или ПВЗ для express-приёмки.');
+    }
+
+    const page = await this.orderRepo.list(
+      {
+        coopname: input.coopname,
+        supplier_account: input.offerer_account,
+        status: 'ACCEPTED',
+        delivery_braname: input.braname,
+      },
+      { page: 1, limit: 1000, sortOrder: 'DESC' }
+    );
+    const orders = page.items.filter((o) => o.cycle_id);
+    if (orders.length === 0) {
+      throw new BadRequestException(
+        'У поставщика нет принятых заказов, ожидающих самовывоза на этом КУ.'
+      );
+    }
+
+    // Партия (и приёмка) формируется per (cycle, КУ) — группируем по заявке.
+    const byCycle = new Map<string, MarketplaceOrderDomainEntity[]>();
+    for (const o of orders) {
+      const cid = o.cycle_id as string;
+      const arr = byCycle.get(cid) ?? [];
+      arr.push(o);
+      byCycle.set(cid, arr);
+    }
+
+    const receptions: MarketplaceAplReceptionDomainEntity[] = [];
+    for (const [cycle_id, cycleOrders] of byCycle) {
+      const total = cycleOrders
+        .reduce((a, o) => a + Number.parseFloat(o.total_cost), 0)
+        .toFixed(4);
+
+      // Синтез SELF-партии по факту присутствия. В отличие от планового пути
+      // поставщик партию заранее не формировал — оператор создаёт её на свой КУ
+      // и сразу открывает приёмку. Жёсткий 1:1-акцепт всех КУ цикла (Story 5.2)
+      // здесь намеренно не применяется: принимается только то, что привезли на
+      // этот КУ; остальные КУ цикла формируются своими путями.
+      const shipment = await this.shipmentRepo.create({
+        coopname: input.coopname,
+        cycle_id,
+        offerer_account: input.offerer_account,
+        braname: input.braname,
+        delivery_variant: MarketplaceShipmentDeliveryVariants.SELF,
+        total_amount: total,
+        ttn_number: null,
+        ttn_data: null,
+        ttn_document_id: null,
+        status: MarketplaceShipmentStatuses.SUPPLY_PREPARED,
+      });
+
+      // Привязка заказов к синтезированной партии + SUPPLY_PREPARED одним
+      // bulk-апдейтом (как в плановом формировании) — чтобы create() резолвил
+      // состав строго по shipment_id, а не инференцией по (cycle, КУ).
+      await this.orderRepo.assignToShipment(
+        cycleOrders.map((o) => o.id),
+        shipment.id,
+        `Express-приёмка самовывоза (оператор ${input.operator_account}, партия ${shipment.id})`
+      );
+
+      const result = await this.create({
+        coopname: input.coopname,
+        operator_account: input.operator_account,
+        shipment_id: shipment.id,
+        // Коррекция оператора (кол-во+цена) — единый базис с батч-приёмкой.
+        // `create` сам отфильтрует записи по Order'ам этой партии (buildFactQuantity).
+        fact_quantity_per_order: input.fact_quantity_per_order,
+      });
+      receptions.push(result.apl_reception);
+    }
+
+    this.logger.log(
+      `Express-приёмка: оператор ${input.operator_account} принял самовывоз поставщика ${input.offerer_account} на КУ ${input.braname}: ${receptions.length} акт(ов).`
+    );
+
+    return { apl_receptions: receptions };
   }
 
   async signAsSupplier(
@@ -674,6 +867,9 @@ export class MarketplaceAplReceptionService {
     signer: string
   ): Promise<string> {
     const byOrderId = this.indexSignedDocumentsByOrderId(signed_documents);
+    const factByOrderId = new Map(
+      reception.fact_quantity_per_order.map((f) => [f.order_id, f])
+    );
     let lastTxHash = '';
     for (const order of groupOrders) {
       const signed = byOrderId.get(order.id);
@@ -684,10 +880,18 @@ export class MarketplaceAplReceptionService {
       }
       this.verifyDocumentSignature(signed);
       const act = this.toChainDocument(signed) as MarketContract.Actions.SignChair.ISignChair['act'];
+      // Факт (кол-во + цена) зафиксирован оператором при открытии приёмки и
+      // зашит в подписанный поставщиком акт; кооператив книжит поставщику
+      // итоговую стоимость от него.
+      const fact = factByOrderId.get(order.id);
+      const actual_quantity = fact?.fact_quantity ?? order.quantity;
+      const actual_unit_price = this.formatAsset(fact?.fact_unit_price ?? order.price_per_unit);
       const tx = await this.chainPort.signChair({
         coopname: reception.coopname,
         signer,
         order_hash: order.order_hash,
+        actual_quantity,
+        actual_unit_price,
         act,
       });
       const txHash = this.extractTxHash(tx);
@@ -757,19 +961,40 @@ export class MarketplaceAplReceptionService {
     provided: MarketplaceAplReceptionFactQuantityEntry[],
     groupOrders: MarketplaceOrderDomainEntity[]
   ): MarketplaceAplReceptionFactQuantityEntry[] {
-    const providedMap = new Map(provided.map((p) => [p.order_id, p.fact_quantity]));
+    const providedMap = new Map(provided.map((p) => [p.order_id, p]));
     const out: MarketplaceAplReceptionFactQuantityEntry[] = [];
     for (const o of groupOrders) {
-      const fact = providedMap.get(o.id);
-      if (fact !== undefined) {
+      const entry = providedMap.get(o.id);
+      if (entry !== undefined) {
+        const fact = entry.fact_quantity;
         if (!Number.isInteger(fact) || fact < 0) {
           throw new BadRequestException(
             `Некорректное fact_quantity для Order ${o.id}: ${fact}.`
           );
         }
-        out.push({ order_id: o.id, fact_quantity: fact });
+        // Потолок приёмки = акцепт (заказанное кол-во): сверх акцепта
+        // принципиально не принимаем («больше, чем заказано — не надо»).
+        // Меньше — допустимо (недовоз). Партия/ТТН — лишь декларация, не лимит.
+        if (fact > o.quantity) {
+          throw new BadRequestException(
+            `Нельзя принять сверх акцепта по Order ${o.id}: факт ${fact} > заказано ${o.quantity}.`
+          );
+        }
+        // Цена за единицу: оператор может скорректировать (привезли хуже —
+        // принимаем со скидкой). По умолчанию — цена заказа.
+        let fact_unit_price = o.price_per_unit;
+        if (entry.fact_unit_price !== undefined) {
+          const priceNum = Number.parseFloat(entry.fact_unit_price);
+          if (Number.isNaN(priceNum) || priceNum <= 0) {
+            throw new BadRequestException(
+              `Некорректная цена за единицу для Order ${o.id}: ${entry.fact_unit_price}.`
+            );
+          }
+          fact_unit_price = priceNum.toFixed(this.assetConfig.decimals);
+        }
+        out.push({ order_id: o.id, fact_quantity: fact, fact_unit_price });
       } else {
-        out.push({ order_id: o.id, fact_quantity: o.quantity });
+        out.push({ order_id: o.id, fact_quantity: o.quantity, fact_unit_price: o.price_per_unit });
       }
     }
     return out;
@@ -784,9 +1009,15 @@ export class MarketplaceAplReceptionService {
     for (const entry of fact) {
       const order = byId.get(entry.order_id);
       if (!order) continue;
-      total += entry.fact_quantity * Number.parseFloat(order.price_per_unit);
+      const unitPrice = Number.parseFloat(entry.fact_unit_price ?? order.price_per_unit);
+      total += entry.fact_quantity * unitPrice;
     }
     return total.toFixed(4);
+  }
+
+  private formatAsset(value: string): string {
+    const amount = Number.parseFloat(value);
+    return `${amount.toFixed(this.assetConfig.decimals)} ${this.assetConfig.symbol}`;
   }
 
 }

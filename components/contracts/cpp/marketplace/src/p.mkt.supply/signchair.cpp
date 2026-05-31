@@ -3,7 +3,15 @@
  * по одному Order'у (Story 5.3/5.4, p.mkt.supply).
  *
  * Per-Order — только бухгалтерская приёмка имущества:
- *  - Ledger2::apply(o.mkt.purch, total_cost, …, hash=order.hash) — Дт 10 / Кт 86.
+ *  - Ledger2::apply(o.mkt.purch, fact_cost, …, hash=order.hash) — Дт 10 / Кт 86.
+ *
+ * Факт приёмки (кол-во и цена за единицу) корректируется оператором при
+ * открытии приёмки и зашивается в акт, который утверждает поставщик: привезли
+ * меньше / другого качества → принимаем со скидкой. Кооператив приходует
+ * поставщику итоговую `fact_cost = actual_quantity × actual_unit_price`, а не
+ * исходную `o.total_cost`. Резерва пайщика на приёмке нет, поэтому веток
+ * возврата/доплаты (как в signiss2) здесь не требуется — это просто итоговая
+ * стоимость к получению поставщиком.
  *
  * Имущество приходуется на склад приёмного КУ (`accept_braname`); у кооператива
  * возникает обязательство Кт 86 перед поставщиком. Фактическая выплата деньгами
@@ -19,14 +27,22 @@
  *  - Подписант (`signer`) авторизован для приёмного КУ — председатель,
  *    trustee либо доверенное лицо в `branches[accept_braname].trusted[]`.
  *  - На акте есть подписи поставщика и подписанта приёмки.
+ *  - actual_quantity > 0; actual_unit_price > 0 и в валюте кооператива.
  *
  * @ingroup public_marketplace_actions
  */
 void marketplace::signchair(eosio::name coopname,
                              eosio::name signer,
                              checksum256 order_hash,
+                             uint64_t actual_quantity,
+                             eosio::asset actual_unit_price,
                              document2 act) {
   require_auth(coopname);
+  eosio::check(actual_quantity > 0, "Фактическое количество должно быть больше нуля");
+  eosio::check(actual_unit_price.symbol == _root_govern_symbol,
+               "Фактическая цена за единицу указана в неверной валюте");
+  eosio::check(actual_unit_price.amount > 0,
+               "Фактическая цена за единицу должна быть больше нуля");
 
   auto o = Marketplace::get_order_by_hash_or_fail(coopname, order_hash);
   eosio::check(o.status == OrderStatus::SUPPLY_PREPARED,
@@ -39,14 +55,23 @@ void marketplace::signchair(eosio::name coopname,
 
   verify_document_or_fail(act, { o.offerer, signer });
 
+  // Итоговая стоимость к получению поставщиком — от скорректированного факта.
+  const eosio::asset fact_cost = eosio::asset(
+      static_cast<int64_t>(actual_quantity) * actual_unit_price.amount,
+      _root_govern_symbol);
+  eosio::check(fact_cost.amount > 0,
+               "Итоговая фактическая сумма приёмки должна быть больше нуля");
+
   // Только приёмка имущества; payout — отдельный lazy action (L12).
   Ledger2::apply(_marketplace, coopname,
                  operations::marketplace::PURCHASE_FROM_SUPPLIER,
-                 o.total_cost, o.offerer, o.hash,
+                 fact_cost, o.offerer, o.hash,
                  Marketplace::Memo::get_purchase_from_supplier_memo(o.id));
 
   Marketplace::update_order(coopname, o.id, [&](auto& upd) {
     upd.status = OrderStatus::ACCEPTED_TO_COOP;
+    upd.actual_quantity = actual_quantity;
+    upd.fact_cost = fact_cost;
     upd.acceptance_act_signchair = act;
     upd.current_warehouse_braname = o.accept_braname;  // имущество на приёмном складе
   });

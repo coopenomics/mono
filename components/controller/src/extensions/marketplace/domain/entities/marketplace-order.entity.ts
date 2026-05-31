@@ -39,6 +39,8 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
   public readonly total_cost: string;
   public readonly cycle_type: MarketplaceOrderCycleType;
   public readonly cycle_id: string | null;
+  /** Партия, в которую заказ включён при формировании (null = вне партии). */
+  public shipment_id: string | null;
   public readonly warranty_period_secs: number;
   public readonly warranty_until: Date | null;
   public status: MarketplaceOrderStatus;
@@ -92,6 +94,7 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
     this.total_cost = props.total_cost;
     this.cycle_type = props.cycle_type;
     this.cycle_id = props.cycle_id;
+    this.shipment_id = props.shipment_id;
     this.warranty_period_secs = props.warranty_period_secs;
     this.warranty_until = props.warranty_until;
     this.status = props.status;
@@ -155,13 +158,13 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
     this.on_chain_block_num = blockNum;
     this.on_chain_present = present;
     // Forward-only guard. Backend опережает цепь на нескольких переходах
-    // «прямого пути»: cycle-hook / synthesizeIndividualShipment переводят
-    // Order в ACCEPTED_PENDING_SUPPLIER(_INDIVIDUAL) и далее SUPPLY_PREPARED
-    // ДО того, как соответствующая on-chain дельта (`active`→`accepted`)
-    // материализуется. Запоздавшая дельта с более РАННИМ статусом не должна
-    // откатывать backend назад — иначе individual-заказ «возвращается» в
-    // каталог (ACTIVE) или SUPPLY_PREPARED сбрасывается в ACCEPTED и партия
-    // на приёмке теряет заказ. Терминальные статусы (отмена/возврат/
+    // «прямого пути»: cycle-hook / синтез индивидуальной заявки переводят
+    // Order в ACCEPTED_PENDING_SUPPLIER(_INDIVIDUAL) и далее ACCEPTED /
+    // SUPPLY_PREPARED ДО того, как соответствующая on-chain дельта
+    // (`active`→`accepted`) материализуется. Запоздавшая дельта с более РАННИМ
+    // статусом не должна откатывать backend назад — иначе individual-заказ
+    // «возвращается» в каталог (ACTIVE) или SUPPLY_PREPARED сбрасывается в
+    // ACCEPTED и партия на приёмке теряет заказ. Терминальные статусы (отмена/возврат/
     // просрочка) — rank=undefined → применяются всегда: это реальные
     // on-chain события, которые перекрывают любой backend-прогресс.
     const incomingRank = MARKETPLACE_ORDER_FORWARD_RANK[blockchainData.status];

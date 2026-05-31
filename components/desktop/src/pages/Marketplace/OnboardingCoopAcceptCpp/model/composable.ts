@@ -1,7 +1,8 @@
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
+import { useDesktopStore } from 'src/entities/Desktop/model';
 import type {
   ICouncilOnboardingConfig,
   ICouncilOnboardingStep,
@@ -63,6 +64,7 @@ const STEP_META: StepMeta[] = [
 export const useMarketplaceOnboarding = () => {
   const systemStore = useSystemStore();
   const sessionStore = useSessionStore();
+  const desktopStore = useDesktopStore();
 
   const onboardingState = ref<MarketplaceOnboardingState | null>(null);
   const loading = ref(false);
@@ -116,6 +118,17 @@ export const useMarketplaceOnboarding = () => {
       stepsConfig.value.length > 0 &&
       stepsConfig.value.every((s) => s.status === 'completed'),
   );
+
+  // Как только онбординг завершился (оба документа утверждены Советом →
+  // расширение подключилось), grants в getDesktop меняются. Перечитываем
+  // desktop workspace, чтобы рабочие столы и страницы Стола заказов появились
+  // сразу, без перезагрузки страницы. watch не срабатывает на initial mount —
+  // только на реальном переходе false→true в течение сессии.
+  watch(isCompleted, async (completed) => {
+    if (completed) {
+      await desktopStore.loadDesktop();
+    }
+  });
 
   const loadState = async () => {
     try {

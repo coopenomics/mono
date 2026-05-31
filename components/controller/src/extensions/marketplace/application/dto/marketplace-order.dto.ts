@@ -53,7 +53,10 @@ export class MarketplaceOrderIssuanceFactSnapshotDTO {
   @Field(() => Int, { description: 'Фактически выданное количество единиц.' })
   public readonly actual_quantity!: number;
 
-  @Field(() => String, { description: 'Фактическая стоимость выдачи (actual_quantity × цена за единицу).' })
+  @Field(() => String, { description: 'Фактическая цена за единицу (скорректирована оператором при открытии выдачи).' })
+  public readonly fact_unit_price!: string;
+
+  @Field(() => String, { description: 'Фактическая стоимость выдачи (actual_quantity × фактическая цена за единицу).' })
   public readonly fact_cost!: string;
 
   @Field(() => MarketplaceOrderIssuanceFactDiffStateEnum, {
@@ -101,6 +104,12 @@ export class MarketplaceOrderDTO {
   @Field(() => String, { description: 'Аккаунт пайщика-заказчика.' })
   public readonly orderer_account!: string;
 
+  @Field(() => String, {
+    nullable: true,
+    description: 'Наименование заказчика (ФИО пайщика или название организации) — для экранов выдачи/подписи.',
+  })
+  public readonly orderer_name!: string | null;
+
   @Field(() => String, { description: 'Идентификатор предложения, по которому оформлен заказ.' })
   public readonly offer_id!: string;
 
@@ -121,6 +130,12 @@ export class MarketplaceOrderDTO {
 
   @Field(() => String, { description: 'Аккаунт поставщика.' })
   public readonly supplier_account!: string;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Наименование поставщика (ФИО или название организации) — для экранов приёмки/подписи.',
+  })
+  public readonly supplier_name!: string | null;
 
   @Field(() => String, { description: 'Имя пункта выдачи (ПВЗ), куда пайщик хочет получить заказ.' })
   public readonly delivery_braname!: string;
@@ -153,6 +168,14 @@ export class MarketplaceOrderDTO {
 
   @Field(() => String, { nullable: true, description: 'Идентификатор партии-накопителя, если заказ присоединён.' })
   public readonly cycle_id!: string | null;
+
+  @Field(() => String, {
+    nullable: true,
+    description:
+      'Партия поставки (shipment), в которую заказ включён при формировании. null — заказ ' +
+      'акцептован, но в партию не вошёл. Позволяет приёмке отделить состав конкретной партии.',
+  })
+  public readonly shipment_id!: string | null;
 
   @Field(() => Int, { description: 'Срок гарантии в секундах с момента получения.' })
   public readonly warranty_period_secs!: number;
@@ -348,6 +371,8 @@ export interface MarketplaceOrderDisplayFields {
   unit_of_measure?: string | null;
   delivery_point_name?: string | null;
   delivery_point_address?: string | null;
+  orderer_name?: string | null;
+  supplier_name?: string | null;
 }
 
 export function toMarketplaceOrderDTO(
@@ -359,11 +384,13 @@ export function toMarketplaceOrderDTO(
     coopname: o.coopname,
     order_hash: o.order_hash,
     orderer_account: o.orderer_account,
+    orderer_name: display?.orderer_name ?? null,
     offer_id: o.offer_id,
     offer_hash: o.offer_hash,
     product_name: display?.product_name ?? null,
     unit_of_measure: display?.unit_of_measure ?? null,
     supplier_account: o.supplier_account,
+    supplier_name: display?.supplier_name ?? null,
     delivery_braname: o.delivery_braname,
     delivery_point_name: display?.delivery_point_name ?? null,
     delivery_point_address: display?.delivery_point_address ?? null,
@@ -372,6 +399,7 @@ export function toMarketplaceOrderDTO(
     total_cost: o.total_cost,
     cycle_type: o.cycle_type,
     cycle_id: o.cycle_id,
+    shipment_id: o.shipment_id,
     warranty_period_secs: o.warranty_period_secs,
     warranty_until: o.warranty_until,
     status: o.status,
@@ -385,6 +413,7 @@ export function toMarketplaceOrderDTO(
     issuance_fact: o.issuance_fact
       ? new MarketplaceOrderIssuanceFactSnapshotDTO({
           actual_quantity: o.issuance_fact.actual_quantity,
+          fact_unit_price: o.issuance_fact.fact_unit_price,
           fact_cost: o.issuance_fact.fact_cost,
           diff_state: o.issuance_fact.diff_state as MarketplaceOrderIssuanceFactDiffStateEnum,
         })

@@ -200,12 +200,13 @@ q-page.shipments(role='region', aria-label='Ожидаемые поставки'
         q-td(:props='props') {{ formatDateTime(props.row.created_at) }}
 
       template(#no-data)
-        EmptyState(
-          title='Ожидаемых поставок нет',
-          body='Партии поставщиков, направленные на ваш участок, появятся здесь. Проверьте фильтры состояния.'
-        )
-          template(#icon)
-            q-icon(name='local_shipping', size='48px')
+        .shipments__nodata
+          EmptyState(
+            title='Ожидаемых поставок нет',
+            body='Партии поставщиков, направленные на ваш участок, появятся здесь. Проверьте фильтры состояния.'
+          )
+            template(#icon)
+              q-icon(name='local_shipping', size='48px')
 </template>
 
 <style scoped lang="scss">
@@ -243,6 +244,14 @@ q-page.shipments(role='region', aria-label='Ожидаемые поставки'
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     gap: var(--p-3, 12px);
+  }
+
+  // #no-data слот q-table выравнивает контент влево — центрируем EmptyState
+  // по горизонтали.
+  &__nodata {
+    width: 100%;
+    display: flex;
+    justify-content: center;
   }
 }
 

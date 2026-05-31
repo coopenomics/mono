@@ -60,16 +60,19 @@ namespace OrderPayoutStatus {
 }
 
 /**
- * @brief Тип цикла отсечки заявок поставщика (атрибут Offer'а — Locked Decision L11).
+ * @brief Способ поставки заявок поставщика (атрибут Offer'а — Locked Decision L11).
  *
- * Сохраняется на Order'е, потому что фактический cycle_type фиксируется в момент
+ * Сохраняется на Order'е, потому что фактический способ фиксируется в момент
  * createorder и не меняется при последующем редактировании Offer'а поставщиком.
+ *
+ *  - INDIVIDUAL — каждый заказ обслуживается отдельно, без ожидания набора.
+ *  - COLLECTIVE — заказы копятся в партию (коллективная закупка); поставка
+ *    стартует при наборе целевого объёма (если задан) либо по ручному запуску
+ *    поставщика. Заказчик может выйти в любой момент до акцепта.
  */
 namespace CycleType {
-  inline constexpr eosio::name TIME_BASED        = "timebased"_n;
-  inline constexpr eosio::name VOLUME_BASED      = "volumebased"_n;
-  inline constexpr eosio::name OPEN_SUBSCRIPT    = "opensubscr"_n;
   inline constexpr eosio::name INDIVIDUAL        = "individual"_n;
+  inline constexpr eosio::name COLLECTIVE        = "collective"_n;
 }
 
 /**
@@ -140,7 +143,7 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] order {
   eosio::asset total_cost = asset(0, _root_govern_symbol);    ///< quantity * unit_price (заблокированная сумма)
   eosio::asset fact_cost  = asset(0, _root_govern_symbol);    ///< actual_quantity * unit_price (после signiss2)
 
-  eosio::name cycle_type = CycleType::TIME_BASED;             ///< снимок cycle_type Offer'а на момент createorder
+  eosio::name cycle_type = CycleType::INDIVIDUAL;             ///< снимок способа поставки Offer'а на момент createorder
   uint32_t warranty_period_secs = 0;                          ///< из Offer'а — для submretrn гард'а
   time_point_sec warranty_until = time_point_sec(0);          ///< now() + warranty_period_secs (заполняется в signiss2)
 

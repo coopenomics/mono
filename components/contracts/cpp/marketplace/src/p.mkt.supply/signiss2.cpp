@@ -10,14 +10,17 @@
  *
  * 2) actual < ordered (выдано меньше — остаток резерва возвращается):
  *      Ledger2::apply(o.mkt.unlock, ordered_cost - fact_cost) — TRANSFER w.mkt.order →
- *          w.wal.member на разницу (снятие части резерва на универсальный членский).
+ *          w.mkt.member на разницу (остаток резерва на членский «Стола заказов»).
  *      затем — consum на fact_cost.
  *
- * 3) actual > ordered (доплата с паевого):
+ * 3) actual > ordered (доплата по факту — НЕ списываем с паевого напрямую):
  *      diff = fact_cost - ordered_cost
- *      проверка достаточности средств для diff на w.wal.share.
- *      o.mkt.lock(diff) — TRANSFER w.wal.share → w.mkt.order, Дт 80 / Кт 86 —
- *      добор резерва на этот же Order. Затем — consum на fact_cost.
+ *      проверка достаточности средств для diff на w.wal.share (источник конвертации).
+ *      o.mkt.conv(diff) — TRANSFER w.wal.share → w.mkt.member, Дт 80 / Кт 86 —
+ *          дополнительный паевой взнос конвертируется в членский «Стола заказов».
+ *      o.mkt.lockm(diff) — TRANSFER w.mkt.member → w.mkt.order (без проводки) —
+ *          добор резерва на этот же Order ИМЕННО с членского программы.
+ *      Затем — consum на fact_cost.
  *
  * Status: ready_to_receive → received. actual_quantity, fact_cost,
  * issue_act_signiss2, warranty_until заполняются.
@@ -27,7 +30,9 @@
  *  - Подписант со стороны кооператива (`delivery_signer`) авторизован для
  *    КУ выдачи (`o.delivery_braname`).
  *  - verify_document_or_fail(act, {delivery_signer, orderer}).
- *  - actual_quantity > 0.
+ *  - actual_quantity > 0; actual_unit_price > 0 и в валюте кооператива.
+ *    fact_cost = actual_quantity × actual_unit_price (цена скорректирована
+ *    оператором при открытии выдачи, заказчик факт не редактирует).
  *  - При actual > ordered и нехватке средств — транзакция фейлится с
  *    человеческим сообщением, которое UI показывает напрямую.
  *  - Idempotency: is_empty_document(issue_act_signiss2).
@@ -38,10 +43,15 @@ void marketplace::signiss2(eosio::name coopname,
                             eosio::name orderer,
                             checksum256 order_hash,
                             uint64_t actual_quantity,
+                            eosio::asset actual_unit_price,
                             eosio::name delivery_signer,
                             document2 act) {
   require_auth(coopname);
   eosio::check(actual_quantity > 0, "Фактическое количество должно быть больше нуля");
+  eosio::check(actual_unit_price.symbol == _root_govern_symbol,
+               "Фактическая цена за единицу указана в неверной валюте");
+  eosio::check(actual_unit_price.amount > 0,
+               "Фактическая цена за единицу должна быть больше нуля");
 
   auto o = Marketplace::get_order_by_hash_or_fail(coopname, order_hash);
   eosio::check(o.orderer == orderer, "Вы не заказчик этого заказа");
@@ -56,15 +66,18 @@ void marketplace::signiss2(eosio::name coopname,
 
   verify_document_or_fail(act, { delivery_signer, orderer });
 
+  // Факт считается от скорректированной оператором цены (actual_unit_price),
+  // а не от цены заказа (o.unit_price): оператор мог снизить/поднять цену на
+  // месте (испорчена упаковка, замена позиции и т. п.).
   const eosio::asset fact_cost = eosio::asset(
-      static_cast<int64_t>(actual_quantity) * o.unit_price.amount,
+      static_cast<int64_t>(actual_quantity) * actual_unit_price.amount,
       _root_govern_symbol);
   eosio::check(fact_cost.amount > 0,
                "Итоговая фактическая сумма заказа должна быть больше нуля");
 
   // ── Корректирующие операции (если факт ≠ заказ) ─────────────────────
   if (fact_cost < o.total_cost) {
-    // actual < ordered: снимаем разницу резерва → .available универсального членского
+    // actual < ordered: остаток резерва возвращается на членский «Стола заказов»
     const eosio::asset diff = o.total_cost - fact_cost;
     Ledger2::apply(_marketplace, coopname,
                    operations::marketplace::UNLOCK_ORDER,
@@ -72,18 +85,27 @@ void marketplace::signiss2(eosio::name coopname,
                    Marketplace::Memo::get_signiss2_correction_less_memo(o.id));
 
   } else if (fact_cost > o.total_cost) {
-    // actual > ordered: добираем разницу с паевого через дополнительный lock
+    // actual > ordered: доплату НЕ списываем с паевого напрямую. Дополнительный
+    // паевой взнос конвертируется в членский «Стола заказов» (o.mkt.conv), и уже
+    // с членского программы добирается резерв этого же заказа (o.mkt.lockm).
     const eosio::asset diff = fact_cost - o.total_cost;
 
-    // Проверка доступности diff на паевом заказчика
+    // Проверка доступности diff на паевом заказчика — источнике конвертации.
     auto bal_share = Marketplace::get_user_wallet_balance(
         coopname, ledger2_wallets::SHARE_FUND_PAY, orderer);
     eosio::check(bal_share.available >= diff,
                  std::string{"Недостаточно средств для дооплаты по факту: требуется "} +
                    diff.to_string() + ", доступно " + bal_share.available.to_string());
 
+    // 1) Конвертация паевой → членский «Стола заказов» (Дт 80 / Кт 86).
     Ledger2::apply(_marketplace, coopname,
-                   operations::marketplace::LOCK_ORDER,
+                   operations::marketplace::CONVERT_TO_MKT_MEMBER,
+                   diff, orderer, o.hash,
+                   Marketplace::Memo::get_signiss2_correction_more_convert_memo(o.id));
+
+    // 2) Добор резерва заказа с членского «Стола заказов» (без проводки, оба на 86).
+    Ledger2::apply(_marketplace, coopname,
+                   operations::marketplace::LOCK_FROM_MEMBER,
                    diff, orderer, o.hash,
                    Marketplace::Memo::get_signiss2_correction_more_block_memo(o.id));
   }

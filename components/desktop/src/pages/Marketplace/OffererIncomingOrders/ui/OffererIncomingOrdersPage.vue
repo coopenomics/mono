@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue';
-import { Dialog, Notify } from 'quasar';
+import { Dialog } from 'quasar';
+import { SuccessAlert, FailAlert, NotifyAlert } from 'src/shared/api';
 import { useRoute, useRouter } from 'vue-router';
 import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
@@ -125,8 +126,7 @@ async function load(page: number, append: boolean): Promise<void> {
     totalPages.value = result.totalPages;
     currentPage.value = result.currentPage;
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    Notify.create({ type: 'negative', message });
+    FailAlert(e);
   } finally {
     loading.value = false;
   }
@@ -151,15 +151,14 @@ async function onAccept(orderId: string): Promise<void> {
         throw new Error('У группового заказа отсутствует идентификатор сводной заявки (cycle_id).');
       }
       await acceptConsolidatedRequest(order.cycle_id);
-      Notify.create({ type: 'positive', message: 'Сводная заявка партии принята', timeout: 4000 });
+      SuccessAlert('Сводная заявка партии принята');
     } else {
       await acceptIndividualOrder(orderId);
-      Notify.create({ type: 'positive', message: 'Заказ принят', timeout: 4000 });
+      SuccessAlert('Заказ принят');
     }
     await load(1, false);
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    Notify.create({ type: 'negative', message, timeout: 6000 });
+    FailAlert(e);
   } finally {
     loading.value = false;
   }
@@ -182,15 +181,14 @@ function onDecline(orderId: string): void {
           throw new Error('У группового заказа отсутствует идентификатор сводной заявки (cycle_id).');
         }
         await declineConsolidatedRequest(order.cycle_id, reason.trim());
-        Notify.create({ type: 'info', message: 'Сводная заявка партии отклонена', timeout: 4000 });
+        NotifyAlert('Сводная заявка партии отклонена');
       } else {
         await declineIndividualOrder(orderId, reason.trim());
-        Notify.create({ type: 'info', message: 'Заказ отклонён', timeout: 4000 });
+        NotifyAlert('Заказ отклонён');
       }
       await load(1, false);
     } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
-      Notify.create({ type: 'negative', message, timeout: 6000 });
+      FailAlert(e);
     } finally {
       loading.value = false;
     }
@@ -266,7 +264,9 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
 
 <style scoped lang="scss">
 .incoming-orders {
-  padding: var(--p-6, 24px) var(--p-4, 16px);
+  // Меню-вкладки (PageTabs) прижимаются к топбару — верхний отступ страницы
+  // гасим; контент ниже разводит flex-gap колонки.
+  padding: 0 var(--p-4, 16px) var(--p-6, 24px);
 
   &__col {
     max-width: 1120px;

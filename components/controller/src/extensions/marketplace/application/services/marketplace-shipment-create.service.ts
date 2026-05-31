@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ConflictException,
   ForbiddenException,
   Inject,
   Injectable,
@@ -48,12 +47,17 @@ import {
   type MarketplaceAssetConfig,
 } from './marketplace-asset.config';
 
-/** Группа доставки одного поставщика на один КУ. */
+/** Группа доставки одного поставщика на один КУ = одна партия. */
 export interface MarketplaceShipmentGroupInput {
   braname: string;
   delivery_variant: MarketplaceShipmentDeliveryVariant;
   /** Только для Варианта Б — поля ТТН (form-input от поставщика). */
   ttn_data?: MarketplaceShipmentTTNData | null;
+  /**
+   * Подмножество заказов КУ, реально погружаемых в партию (частичная отгрузка).
+   * null/пусто → все акцептованные заказы этого КУ. Невключённые остаются ACCEPTED.
+   */
+  order_ids?: string[] | null;
 }
 
 export interface MarketplaceShipmentCreateInputDto {
@@ -139,7 +143,7 @@ export class MarketplaceShipmentCreateService {
       );
     }
 
-    // ── 2. Order'ы заявки + жёсткая валидация состава (Story 5.2) ──
+    // ── 2. Order'ы заявки + резолв состава каждой группы ──────────
     const cycleOrders = await this.orderRepo.findByCycleId(cycle.coopname, cycle.id);
     if (cycleOrders.length === 0) {
       await this.logRejection(
@@ -152,24 +156,15 @@ export class MarketplaceShipmentCreateService {
       );
     }
 
-    const validation = this.validateComposition(input.groups, cycleOrders);
-    if (!validation.ok) {
-      await this.logRejection(input, validation.reason_code, validation.message);
-      throw new BadRequestException(`Состав поставки не соответствует акцептованной заявке: ${validation.message}`);
-    }
+    // Резолвим состав каждой группы независимо (покрытие всех КУ заявки НЕ
+    // требуется — частичная отгрузка и догрузка остатка допустимы). Повторное
+    // формирование по заявке разрешено: guard `shipment_id IS NULL` в
+    // assignToShipment не даст включить один заказ в две партии.
+    const resolvedGroups = await this.resolveGroups(input, cycleOrders);
 
-    // ── 3. Идемпотентность: если Shipment'ы уже созданы → конфликт ─
-    const existing = await this.shipmentRepo.findByCycleId(cycle.coopname, cycle.id);
-    if (existing.length > 0) {
-      throw new ConflictException(
-        `Партии для заявки ${cycle.id} уже сформированы (${existing.length} шт.); повторное формирование запрещено.`
-      );
-    }
-
-    // ── 4. Создание Shipment'ов + перевод Order'ов в SUPPLY_PREPARED ─
+    // ── 3. Создание Shipment'ов + привязка Order'ов в SUPPLY_PREPARED ─
     const created: MarketplaceShipmentDomainEntity[] = [];
-    for (const group of input.groups) {
-      const groupOrders = validation.groupOrders.get(group.braname) ?? [];
+    for (const { group, orders: groupOrders } of resolvedGroups) {
       const groupAmount = this.sumAmount(groupOrders);
       const ttnNumber =
         group.delivery_variant === MarketplaceShipmentDeliveryVariants.EXPEDITOR
@@ -211,12 +206,17 @@ export class MarketplaceShipmentCreateService {
         shipment.ttn_document_id = ttnDocId;
       }
 
-      // Order'ы группы → SUPPLY_PREPARED (backend-only status).
-      for (const o of groupOrders) {
-        await this.orderRepo.applyStatusTransition(
-          o.id,
-          'SUPPLY_PREPARED',
-          `Партия #${shipment.id} (вариант ${group.delivery_variant})`
+      // Заказы группы → привязка к партии + SUPPLY_PREPARED одним bulk-апдейтом.
+      // Guard `shipment_id IS NULL` отсекает заказы, уже включённые в другую
+      // партию (частичные отгрузки / догрузка остатка не пересекаются).
+      const assigned = await this.orderRepo.assignToShipment(
+        groupOrders.map((o) => o.id),
+        shipment.id,
+        `Партия #${shipment.id} (вариант ${group.delivery_variant})`
+      );
+      if (assigned !== groupOrders.length) {
+        this.logger.warn(
+          `Shipment ${shipment.id}: привязано ${assigned} из ${groupOrders.length} заказов (часть уже в другой партии).`
         );
       }
 
@@ -261,6 +261,14 @@ export class MarketplaceShipmentCreateService {
       if (g.delivery_variant === MarketplaceShipmentDeliveryVariants.EXPEDITOR) {
         this.assertTTNData(g.ttn_data);
       }
+      if (g.order_ids != null) {
+        if (!Array.isArray(g.order_ids)) {
+          throw new BadRequestException(`order_ids группы КУ "${g.braname}" должен быть массивом.`);
+        }
+        if (g.order_ids.some((id) => typeof id !== 'string' || id.trim().length === 0)) {
+          throw new BadRequestException(`order_ids группы КУ "${g.braname}" содержит пустой идентификатор.`);
+        }
+      }
     }
   }
 
@@ -285,66 +293,76 @@ export class MarketplaceShipmentCreateService {
   }
 
   /**
-   * Story 5.2: жёсткий акцепт состава поставки. Возвращает индекс
-   * groupOrders на удачу — чтобы create-flow не пересчитывал.
+   * Резолв состава каждой группы доставки (одна группа = одна партия).
+   *
+   * Покрытие всех КУ заявки НЕ требуется (частичная отгрузка): валидируем
+   * только указанные группы. Для каждой группы:
+   *   - braname обязан присутствовать в заявке;
+   *   - если задан `order_ids` — берём это подмножество (все id должны
+   *     принадлежать КУ и быть в статусе ACCEPTED, иначе reject);
+   *   - иначе — все ACCEPTED-заказы КУ (поведение по умолчанию).
+   * Заказы вне статуса ACCEPTED (уже включённые в другую партию) в состав не
+   * попадают; пустой результат по группе — reject.
    */
-  private validateComposition(
-    groups: MarketplaceShipmentGroupInput[],
+  private async resolveGroups(
+    input: MarketplaceShipmentCreateInputDto,
     cycleOrders: MarketplaceOrderDomainEntity[]
-  ):
-    | { ok: true; groupOrders: Map<string, MarketplaceOrderDomainEntity[]> }
-    | { ok: false; reason_code: MarketplaceSupplyValidationReason; message: string } {
+  ): Promise<Array<{ group: MarketplaceShipmentGroupInput; orders: MarketplaceOrderDomainEntity[] }>> {
     const cycleKUs = new Set(cycleOrders.map((o) => o.delivery_braname));
-    const groupKUs = new Set(groups.map((g) => g.braname));
+    const resolved: Array<{ group: MarketplaceShipmentGroupInput; orders: MarketplaceOrderDomainEntity[] }> = [];
 
-    // Каждая группа должна указывать braname, который реально есть в заявке.
-    for (const g of groups) {
-      if (!cycleKUs.has(g.braname)) {
-        return {
-          ok: false,
-          reason_code: MarketplaceSupplyValidationReasons.UNKNOWN_ORDER,
-          message: `КУ "${g.braname}" не присутствует ни в одном Order'е заявки.`,
-        };
+    for (const group of input.groups) {
+      if (!cycleKUs.has(group.braname)) {
+        await this.rejectComposition(
+          input,
+          MarketplaceSupplyValidationReasons.UNKNOWN_ORDER,
+          `КУ "${group.braname}" не присутствует ни в одном Order'е заявки.`
+        );
       }
-    }
 
-    // Каждое КУ заявки должно быть представлено ровно одной группой.
-    for (const ku of cycleKUs) {
-      if (!groupKUs.has(ku)) {
-        return {
-          ok: false,
-          reason_code: MarketplaceSupplyValidationReasons.ORDER_SET_MISMATCH,
-          message: `Для КУ "${ku}" не указана группа доставки.`,
-        };
+      const kuAcceptedOrders = cycleOrders.filter(
+        (o) => o.delivery_braname === group.braname && o.status === 'ACCEPTED'
+      );
+
+      let orders: MarketplaceOrderDomainEntity[];
+      if (group.order_ids && group.order_ids.length > 0) {
+        const idSet = new Set(group.order_ids);
+        orders = kuAcceptedOrders.filter((o) => idSet.has(o.id));
+        // Каждый запрошенный id обязан резолвиться в ACCEPTED-заказ этого КУ.
+        if (orders.length !== idSet.size) {
+          await this.rejectComposition(
+            input,
+            MarketplaceSupplyValidationReasons.ORDER_SET_MISMATCH,
+            `Часть выбранных заказов недоступна для формирования по КУ "${group.braname}" ` +
+              `(не принадлежит КУ, не в статусе ACCEPTED или уже включена в другую партию).`
+          );
+        }
+      } else {
+        orders = kuAcceptedOrders;
       }
-    }
 
-    // Группы между собой не должны пересекаться по braname.
-    if (groupKUs.size !== groups.length) {
-      return {
-        ok: false,
-        reason_code: MarketplaceSupplyValidationReasons.KU_GROUPS_OVERLAP,
-        message: 'Группы доставки пересекаются по КУ (повтор braname).',
-      };
-    }
-
-    // Order'ы заявки должны быть в статусе ACCEPTED (готовы к prep) либо
-    // уже SUPPLY_PREPARED (повторный вызов — отрезается выше через existing-guard).
-    const groupOrders = new Map<string, MarketplaceOrderDomainEntity[]>();
-    for (const o of cycleOrders) {
-      if (o.status !== 'ACCEPTED') {
-        return {
-          ok: false,
-          reason_code: MarketplaceSupplyValidationReasons.ORDER_SET_MISMATCH,
-          message: `Order ${o.id} находится в статусе ${o.status}; ожидался ACCEPTED.`,
-        };
+      if (orders.length === 0) {
+        await this.rejectComposition(
+          input,
+          MarketplaceSupplyValidationReasons.ORDER_SET_MISMATCH,
+          `Для КУ "${group.braname}" нет акцептованных заказов для формирования партии.`
+        );
       }
-      const arr = groupOrders.get(o.delivery_braname) ?? [];
-      arr.push(o);
-      groupOrders.set(o.delivery_braname, arr);
+
+      resolved.push({ group, orders });
     }
 
-    return { ok: true, groupOrders };
+    return resolved;
+  }
+
+  /** Записать отказ валидации состава и кинуть BadRequest (never-возврат). */
+  private async rejectComposition(
+    input: MarketplaceShipmentCreateInputDto,
+    reason_code: MarketplaceSupplyValidationReason,
+    message: string
+  ): Promise<never> {
+    await this.logRejection(input, reason_code, message);
+    throw new BadRequestException(`Состав поставки не соответствует акцептованной заявке: ${message}`);
   }
 
   private async generateAndStoreTtnDocument(input: {

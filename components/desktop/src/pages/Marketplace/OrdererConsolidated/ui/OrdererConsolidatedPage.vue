@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue';
-import { Notify } from 'quasar';
+import { FailAlert } from 'src/shared/api';
 import {
   OrderCard,
   orderStatusDisplay,
@@ -146,8 +146,7 @@ async function load(): Promise<void> {
     });
     items.value = result.items;
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    Notify.create({ type: 'negative', message });
+    FailAlert(e);
   } finally {
     loading.value = false;
   }

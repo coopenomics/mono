@@ -90,6 +90,8 @@ export interface ISignChair {
   coopname: IName
   signer: IName
   order_hash: IChecksum256
+  actual_quantity: IUint64
+  actual_unit_price: IAsset
   act: IDocument2
 }
 
@@ -121,6 +123,7 @@ export interface ISignIss2 {
   orderer: IName
   order_hash: IChecksum256
   actual_quantity: IUint64
+  actual_unit_price: IAsset
   delivery_signer: IName
   act: IDocument2
 }

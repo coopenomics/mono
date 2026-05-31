@@ -7035,6 +7035,11 @@ type MarketplaceAplReception {
   """Account поставщика-владельца Offer'ов."""
   offerer_account: String!
 
+  """
+  Наименование поставщика (ФИО или название организации) — для экранов приёмки/подписи.
+  """
+  offerer_name: String
+
   """Партия поставки, по которой формируется приёмка."""
   shipment_id: ID!
   status: MarketplaceAplReceptionStatus!
@@ -7060,11 +7065,29 @@ input MarketplaceAplReceptionByIdInput {
 type MarketplaceAplReceptionFactEntry {
   """Фактически принятое количество (для расхождений Варианта Б)."""
   fact_quantity: Int!
+
+  """
+  Фактическая цена за единицу (если оператор скорректировал её при открытии приёмки).
+  """
+  fact_unit_price: String
   order_id: ID!
+
+  """
+  Наименование товара по этой позиции — для таблицы сверки в диалоге подписи.
+  """
+  product_name: String
+
+  """Единица измерения товара по этой позиции (шт., кг, л, упак.)."""
+  unit_of_measure: String
 }
 
 input MarketplaceAplReceptionFactEntryInput {
   fact_quantity: Int!
+
+  """
+  Фактическая цена за единицу (оператор может изменить её при открытии приёмки).
+  """
+  fact_unit_price: String
   order_id: ID!
 }
 
@@ -7565,6 +7588,26 @@ input MarketplaceCreateAplReceptionInput {
   shipment_id: ID!
 }
 
+input MarketplaceCreateExpressReceptionInput {
+  """КУ, на котором оператор принимает имущество."""
+  braname: String!
+
+  """
+  Фактически принятое количество и цена per-Order — оператор корректирует их при открытии приёмки. Для пропущенных Order'ов берётся order.quantity и цена заказа.
+  """
+  fact_quantity_per_order: [MarketplaceAplReceptionFactEntryInput!]
+
+  """Поставщик, приехавший на ПВЗ для самовывоза."""
+  offerer_account: String!
+}
+
+type MarketplaceCreateExpressReceptionResult {
+  """
+  Сформированные акты приёмки (по одному на заявку поставщика на этом КУ).
+  """
+  apl_receptions: [MarketplaceAplReception!]!
+}
+
 input MarketplaceCreateOfferInput {
   """
   Стратегия маркировки штрих-кодом при приёмке на КУ. По умолчанию «по заказу» (PER_ORDER).
@@ -7646,12 +7689,14 @@ input MarketplaceCreateShipmentInput {
   """Идентификатор консолидированной заявки в статусе ACCEPTED."""
   cycle_id: ID!
 
-  """Группы доставки — по одной на каждый КУ из заявки."""
+  """
+  Группы доставки по КУ заявки. Каждая группа = одна партия (один КУ, один вариант доставки, опционально подмножество заказов). Покрытие всех КУ заявки не требуется — можно формировать частично и догружать остаток отдельными партиями.
+  """
   groups: [MarketplaceShipmentGroupInput!]!
 }
 
 type MarketplaceCreateShipmentResult {
-  """Созданные партии — по одной на каждый КУ заявки."""
+  """Созданные партии — по одной на каждую группу доставки во входе."""
   shipments: [MarketplaceShipment!]!
 }
 
@@ -7773,20 +7818,29 @@ type MarketplaceDictionaryValue {
   value: String!
 }
 
+type MarketplaceExpressPickupCandidate {
+  """КУ-получатель."""
+  braname: String!
+
+  """Поставщик с принятыми заказами, ожидающими самовывоза на этом КУ."""
+  offerer_account: String!
+
+  """Сколько принятых заказов ожидает приёмки."""
+  orders_count: Int!
+
+  """Суммарная сумма заказов."""
+  total_amount: String!
+
+  """Суммарное количество единиц."""
+  total_units: Int!
+}
+
 input MarketplaceFinalizeIssuanceInput {
-  """Фактически выдаваемое количество единиц (равно/меньше/больше заказа)."""
-  actual_quantity: Int!
-
-  """
-  Учётная запись стороны кооператива, подписывающей акт вместе с заказчиком.
-  """
-  delivery_signer: String!
-
-  """Идентификатор заказа, который выдаём пайщику."""
+  """Идентификатор заказа, который получаем."""
   order_id: ID!
 
   """
-  Подписанный заказчиком и стороной кооператива акт выдачи. Backend верифицирует подписи и отправляет on-chain финальную подпись со всеми корректирующими операциями.
+  Подписанный заказчиком акт выдачи (поверх подписи председателя). Backend верифицирует подписи и отправляет on-chain финальную подпись со всеми корректирующими операциями.
   """
   signed_document: MarketplaceIssueActSignedDocumentInput!
 }
@@ -7859,9 +7913,14 @@ type MarketplaceIssuanceResult {
 
 input MarketplaceIssueActPayloadInput {
   """
-  Фактически выдаваемое количество для финальной подписи (если не указано — берётся заказ).
+  Фактически выдаваемое количество для предпросмотра акта (если не указано — берётся заказ).
   """
   actual_quantity: Int
+
+  """
+  Фактическая цена за единицу для предпросмотра акта (если не указано — берётся цена заказа).
+  """
+  actual_unit_price: String
 
   """Заказ, по которому формируется preview акта выдачи."""
   order_id: ID!
@@ -8187,6 +8246,14 @@ input MarketplaceListShipmentsInput {
   statuses: [MarketplaceShipmentStatus!]
 }
 
+input MarketplaceListSupplierPickupOrdersInput {
+  """КУ, на котором оператор принимает имущество."""
+  braname: String!
+
+  """Поставщик, чьё имущество принимается на этом КУ."""
+  offerer_account: String!
+}
+
 input MarketplaceListWriteoffProposalsInput {
   statuses: [MarketplaceWriteoffProposalStatus!]
 }
@@ -8321,6 +8388,14 @@ type MarketplaceOnboardingState {
 }
 
 input MarketplaceOpenIssuanceInput {
+  """Фактически выдаваемое количество единиц (равно/меньше/больше заказа)."""
+  actual_quantity: Int!
+
+  """
+  Фактическая цена за единицу (оператор может изменить её при открытии выдачи).
+  """
+  actual_unit_price: String!
+
   """Идентификатор заказа, выдачу которого открываем."""
   order_id: ID!
 
@@ -8412,6 +8487,11 @@ type MarketplaceOrder {
   """Аккаунт пайщика-заказчика."""
   orderer_account: String!
 
+  """
+  Наименование заказчика (ФИО пайщика или название организации) — для экранов выдачи/подписи.
+  """
+  orderer_name: String
+
   """Когда заказчик поставил финальную подпись на акте выдачи."""
   orderer_signed_at: DateTime
 
@@ -8427,6 +8507,11 @@ type MarketplaceOrder {
   """Когда пайщик получил заказ."""
   received_at: DateTime
 
+  """
+  Партия поставки (shipment), в которую заказ включён при формировании. null — заказ акцептован, но в партию не вошёл. Позволяет приёмке отделить состав конкретной партии.
+  """
+  shipment_id: String
+
   """Хэш транзакции открытия выдачи в блокчейне."""
   signiss1_tx_hash: String
 
@@ -8438,6 +8523,11 @@ type MarketplaceOrder {
 
   """Аккаунт поставщика."""
   supplier_account: String!
+
+  """
+  Наименование поставщика (ФИО или название организации) — для экранов приёмки/подписи.
+  """
+  supplier_name: String
 
   """Общая сумма заказа."""
   total_cost: String!
@@ -8504,8 +8594,15 @@ type MarketplaceOrderIssuanceFactSnapshot {
   """Сверка фактической выдачи с заказом."""
   diff_state: MarketplaceOrderIssuanceFactDiffState!
 
-  """Фактическая стоимость выдачи (actual_quantity × цена за единицу)."""
+  """
+  Фактическая стоимость выдачи (actual_quantity × фактическая цена за единицу).
+  """
   fact_cost: String!
+
+  """
+  Фактическая цена за единицу (скорректирована оператором при открытии выдачи).
+  """
+  fact_unit_price: String!
 }
 
 """Постраничный список заказов."""
@@ -9229,6 +9326,11 @@ input MarketplaceShipmentGroupInput {
   """Идентификатор КУ-получателя (branch.name)."""
   braname: String!
   delivery_variant: MarketplaceShipmentDeliveryVariant!
+
+  """
+  Подмножество заказов этого КУ, реально погружаемых в партию (частичная отгрузка). Пусто → все акцептованные заказы КУ (поведение по умолчанию). Невключённые заказы остаются ACCEPTED и доступны для следующей партии.
+  """
+  order_ids: [ID!]
 
   """Поля ТТН — обязательны для Варианта Б."""
   ttn_data: MarketplaceShipmentTTNDataInput
@@ -10794,6 +10896,11 @@ type Mutation {
   """
   marketplaceCreateAplReception(data: MarketplaceCreateAplReceptionInput!): MarketplaceAplReceptionResult!
 
+  """
+  Express-приёмка самовывоза по факту присутствия: оператор принимает имущество поставщика без предварительно сформированной партии. Backend синтезирует партию самовывоза из принятых заказов поставщика на этом КУ и открывает приёмку.
+  """
+  marketplaceCreateExpressReception(data: MarketplaceCreateExpressReceptionInput!): MarketplaceCreateExpressReceptionResult!
+
   """Поставщик публикует Offer (статус → PENDING_MODERATION)"""
   marketplaceCreateOffer(input: MarketplaceCreateOfferInput!): MarketplaceOffer!
 
@@ -10813,7 +10920,7 @@ type Mutation {
   marketplaceCreateReturnClaim(data: MarketplaceCreateReturnClaimInput!): MarketplaceReturnClaimResult!
 
   """
-  Сформировать партии поставки из акцептованной заявки: одна группа на каждый КУ-получатель.
+  Сформировать партии поставки из акцептованной заявки. Каждая группа = одна партия (КУ + вариант доставки + опционально подмножество заказов). Покрытие всех КУ не обязательно — допустима частичная отгрузка и догрузка остатка отдельными партиями.
   """
   marketplaceCreateShipment(data: MarketplaceCreateShipmentInput!): MarketplaceCreateShipmentResult!
 
@@ -13365,6 +13472,11 @@ type Query {
   marketplaceListConsolidatedRequests(input: MarketplaceListConsolidatedRequestsInput, options: PaginationInput): MarketplaceConsolidatedRequestPaginationResult!
 
   """
+  Поставщики с принятыми заказами, ожидающими самовывоза на текущем КУ, — лента express-приёмки для operator-стола.
+  """
+  marketplaceListExpressPickupsByBraname(data: MarketplaceListAplReceptionsByBranameInput!): [MarketplaceExpressPickupCandidate!]!
+
+  """
   Список наклеек инвентаря КУ — для admin-стола склада и операторских разделов.
   """
   marketplaceListInventory(data: MarketplaceListInventoryInput): [MarketplaceInventoryItem!]!
@@ -13430,6 +13542,11 @@ type Query {
   Список заказов, по которым текущий пайщик является поставщиком (стол поставщика).
   """
   marketplaceListSupplierOrders(input: MarketplaceListOrdersInput, options: PaginationInput): MarketplaceOrderPaginationResult!
+
+  """
+  Единицы имущества поставщика, ожидающие приёмки на текущем КУ: задекларированные в партии (по ТТН) и добор по акцепту. Базис агрегирующей приёмки для оператора кооперативного участка.
+  """
+  marketplaceListSupplierPickupOrders(data: MarketplaceListSupplierPickupOrdersInput!): [MarketplaceOrder!]!
 
   """Список пайщиков-поставщиков, допущенных к публикации оферт"""
   marketplaceListWhitelist: [MarketplaceWhitelistEntry!]!

@@ -150,12 +150,13 @@ q-page.board-payouts(role="region", aria-label="Выплаты поставщи�
       q-td(:props="props")
         BaseBadge(:variant="statusVariant(props.row.status)") {{ statusLabel(props.row.status) }}
     template(#no-data)
-      EmptyState(
-        title="Выплат нет",
-        body="Выплат по выбранным фильтрам не найдено."
-      )
-        template(#icon)
-          q-icon(name="payments", size="48px")
+      .board-payouts__nodata
+        EmptyState(
+          title="Выплат нет",
+          body="Выплат по выбранным фильтрам не найдено."
+        )
+          template(#icon)
+            q-icon(name="payments", size="48px")
 </template>
 
 <style scoped lang="scss">
@@ -164,6 +165,13 @@ q-page.board-payouts(role="region", aria-label="Выплаты поставщи�
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
+
+  // #no-data слот q-table выравнивает контент влево — центрируем EmptyState.
+  &__nodata {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
 
   &__filters {
     display: flex;

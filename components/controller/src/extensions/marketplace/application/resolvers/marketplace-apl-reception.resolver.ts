@@ -18,10 +18,20 @@ import {
   MarketplaceAplReceptionDTO,
   MarketplaceAplReceptionResultDTO,
   MarketplaceCreateAplReceptionInputDTO,
+  MarketplaceCreateExpressReceptionInputDTO,
+  MarketplaceCreateExpressReceptionResultDTO,
+  MarketplaceExpressPickupCandidateDTO,
   MarketplaceListAplReceptionsByBranameInputDTO,
+  MarketplaceListSupplierPickupOrdersInputDTO,
   MarketplaceSignAplReceptionInputDTO,
+  toExpressPickupCandidateDTO,
   toMarketplaceAplReceptionDTO,
 } from '../dto/marketplace-apl-reception.dto';
+import { MarketplaceOrderDTO, toMarketplaceOrderDTO } from '../dto/marketplace-order.dto';
+import {
+  MARKETPLACE_ORDER_DISPLAY_SERVICE,
+  MarketplaceOrderDisplayService,
+} from '../services/marketplace-order-display.service';
 import {
   MARKETPLACE_APL_RECEPTION_SERVICE,
   MarketplaceAplReceptionService,
@@ -30,6 +40,7 @@ import {
   MARKETPLACE_APL_RECEPTION_REPOSITORY,
   type MarketplaceAplReceptionDomainRepository,
 } from '../../domain/repositories/marketplace-apl-reception.repository';
+import type { MarketplaceAplReceptionDomainEntity } from '../../domain/entities/marketplace-apl-reception.entity';
 import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
 import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
@@ -53,7 +64,9 @@ export class MarketplaceAplReceptionResolver {
     @Inject(MARKETPLACE_APL_RECEPTION_REPOSITORY)
     private readonly receptionRepo: MarketplaceAplReceptionDomainRepository,
     @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
-    private readonly kuChairmanService: MarketplaceKuChairmanService
+    private readonly kuChairmanService: MarketplaceKuChairmanService,
+    @Inject(MARKETPLACE_ORDER_DISPLAY_SERVICE)
+    private readonly displayService: MarketplaceOrderDisplayService
   ) {}
 
   @Mutation(() => MarketplaceAplReceptionResultDTO, {
@@ -75,6 +88,47 @@ export class MarketplaceAplReceptionResolver {
     });
     const dto = new MarketplaceAplReceptionResultDTO();
     dto.apl_reception = toMarketplaceAplReceptionDTO(result.apl_reception);
+    return dto;
+  }
+
+  @Mutation(() => MarketplaceCreateExpressReceptionResultDTO, {
+    name: 'marketplaceCreateExpressReception',
+    description:
+      'Express-приёмка самовывоза по факту присутствия: оператор принимает имущество поставщика без предварительно сформированной партии. Backend синтезирует партию самовывоза из принятых заказов поставщика на этом КУ и открывает приёмку.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Receiving', 'create')
+  async marketplaceCreateExpressReception(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('data') data: MarketplaceCreateExpressReceptionInputDTO
+  ): Promise<MarketplaceCreateExpressReceptionResultDTO> {
+    const coopname = config.coopname;
+    const roles = member.marketplace_roles as MarketplaceRole[];
+
+    // Ownership: оператор может принимать только на своём КУ (как и плановая
+    // приёмка) — иначе можно было бы открыть приёмку на чужом участке.
+    if (!canAccess(roles, 'Receiving', 'read:all')) {
+      const isMember = await this.kuChairmanService.isMemberOfBranch(
+        coopname,
+        data.braname,
+        member.username
+      );
+      if (!isMember) {
+        throw new ForbiddenException(
+          'Приёмка доступна только по участку, на котором вы являетесь председателем или доверенным лицом.'
+        );
+      }
+    }
+
+    const result = await this.service.createExpress({
+      coopname,
+      operator_account: member.username,
+      offerer_account: data.offerer_account,
+      braname: data.braname,
+      fact_quantity_per_order: data.fact_quantity_per_order,
+    });
+    const dto = new MarketplaceCreateExpressReceptionResultDTO();
+    dto.apl_receptions = result.apl_receptions.map((r) => toMarketplaceAplReceptionDTO(r));
     return dto;
   }
 
@@ -232,7 +286,74 @@ export class MarketplaceAplReceptionResolver {
     }
 
     const list = await this.receptionRepo.listByBraname(coopname, data.braname);
-    return list.map(toMarketplaceAplReceptionDTO);
+    return this.enrichReceptions(list);
+  }
+
+  @Query(() => [MarketplaceExpressPickupCandidateDTO], {
+    name: 'marketplaceListExpressPickupsByBraname',
+    description:
+      'Поставщики с принятыми заказами, ожидающими самовывоза на текущем КУ, — лента express-приёмки для operator-стола.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Receiving', 'create')
+  async marketplaceListExpressPickupsByBraname(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('data') data: MarketplaceListAplReceptionsByBranameInputDTO
+  ): Promise<MarketplaceExpressPickupCandidateDTO[]> {
+    const coopname = config.coopname;
+    const roles = member.marketplace_roles as MarketplaceRole[];
+
+    if (!canAccess(roles, 'Receiving', 'read:all')) {
+      const isMember = await this.kuChairmanService.isMemberOfBranch(
+        coopname,
+        data.braname,
+        member.username
+      );
+      if (!isMember) {
+        throw new ForbiddenException(
+          'Лента самовывоза доступна только по участку, на котором вы являетесь председателем или доверенным лицом.'
+        );
+      }
+    }
+
+    const candidates = await this.service.listExpressPickupCandidates(coopname, data.braname);
+    return candidates.map(toExpressPickupCandidateDTO);
+  }
+
+  @Query(() => [MarketplaceOrderDTO], {
+    name: 'marketplaceListSupplierPickupOrders',
+    description:
+      'Единицы имущества поставщика, ожидающие приёмки на текущем КУ: задекларированные в партии (по ТТН) и добор по акцепту. Базис агрегирующей приёмки для оператора кооперативного участка.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Receiving', 'create')
+  async marketplaceListSupplierPickupOrders(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('data') data: MarketplaceListSupplierPickupOrdersInputDTO
+  ): Promise<MarketplaceOrderDTO[]> {
+    const coopname = config.coopname;
+    const roles = member.marketplace_roles as MarketplaceRole[];
+
+    if (!canAccess(roles, 'Receiving', 'read:all')) {
+      const isMember = await this.kuChairmanService.isMemberOfBranch(
+        coopname,
+        data.braname,
+        member.username
+      );
+      if (!isMember) {
+        throw new ForbiddenException(
+          'Лента приёмки доступна только по участку, на котором вы являетесь председателем или доверенным лицом.'
+        );
+      }
+    }
+
+    const orders = await this.service.listSupplierPickupOrders(
+      coopname,
+      data.braname,
+      data.offerer_account
+    );
+    const display = await this.displayService.enrich(orders);
+    return orders.map((order) => toMarketplaceOrderDTO(order, display.get(order.id)));
   }
 
   @Query(() => [MarketplaceAplReceptionDTO], {
@@ -245,6 +366,39 @@ export class MarketplaceAplReceptionResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember
   ): Promise<MarketplaceAplReceptionDTO[]> {
     const list = await this.receptionRepo.listByOfferer(config.coopname, member.username);
-    return list.map(toMarketplaceAplReceptionDTO);
+    return this.enrichReceptions(list);
+  }
+
+  /**
+   * Обогащение списка АПП отображаемыми реквизитами для экранов подписи/сверки:
+   * наименование поставщика (ФИО/организация) и наименования товаров по позициям
+   * (по order_id из снапшота факта). Оба списочных метода уже авторизованы
+   * (оператор/председатель КУ либо сам поставщик), поэтому резолв приватных имён
+   * здесь допустим. Best-effort: недостающие имена/товары остаются null.
+   */
+  private async enrichReceptions(
+    list: MarketplaceAplReceptionDomainEntity[]
+  ): Promise<MarketplaceAplReceptionDTO[]> {
+    if (list.length === 0) return [];
+    const offererAccounts = list.map((r) => r.offerer_account);
+    const orderIds = list.flatMap((r) => r.fact_quantity_per_order.map((f) => f.order_id));
+    const [nameByAccount, displayByOrderId] = await Promise.all([
+      this.displayService.resolveAccountNames(offererAccounts),
+      this.displayService.enrichByOrderIds(orderIds),
+    ]);
+    return list.map((r) =>
+      toMarketplaceAplReceptionDTO(r, {
+        offerer_name: nameByAccount.get(r.offerer_account) ?? null,
+        lineByOrderId: new Map(
+          r.fact_quantity_per_order.map((f) => [
+            f.order_id,
+            {
+              product_name: displayByOrderId.get(f.order_id)?.product_name ?? null,
+              unit_of_measure: displayByOrderId.get(f.order_id)?.unit_of_measure ?? null,
+            },
+          ])
+        ),
+      })
+    );
   }
 }

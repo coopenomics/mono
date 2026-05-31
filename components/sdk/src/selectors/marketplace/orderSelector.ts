@@ -17,6 +17,7 @@ export const marketplaceOrderCreateTxSnapshotSelector = Selector('MarketplaceOrd
 
 const rawOrderIssuanceFactSnapshotSelector = {
   actual_quantity: true,
+  fact_unit_price: true,
   fact_cost: true,
   diff_state: true,
 }
@@ -34,11 +35,13 @@ const rawOrderSelector = {
   coopname: true,
   order_hash: true,
   orderer_account: true,
+  orderer_name: true,
   offer_id: true,
   offer_hash: true,
   product_name: true,
   unit_of_measure: true,
   supplier_account: true,
+  supplier_name: true,
   delivery_braname: true,
   delivery_point_name: true,
   delivery_point_address: true,
@@ -47,6 +50,7 @@ const rawOrderSelector = {
   total_cost: true,
   cycle_type: true,
   cycle_id: true,
+  shipment_id: true,
   warranty_period_secs: true,
   warranty_until: true,
   status: true,

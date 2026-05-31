@@ -3,6 +3,9 @@ import { computed, ref } from 'vue';
 import { Classes } from '@coopenomics/sdk';
 import { useGlobalStore } from 'src/shared/store';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { BaseButton, BaseDialog } from 'src/shared/ui/base';
+import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
+import { ReceptionLinesTable, type ReceptionLineRow } from 'src/widgets/Marketplace/ReceptionLinesTable';
 import {
   fetchChairmanSignablePayloads,
   signAsChairman,
@@ -33,8 +36,8 @@ const emit = defineEmits<{
 
 const globalStore = useGlobalStore();
 const signing = ref(false);
-
-const ordersCount = computed(() => props.reception?.fact_quantity_per_order?.length ?? 0);
+const previewHtml = ref<string>('');
+const previewLoading = ref(false);
 
 const VARIANT_LABEL: Record<string, string> = {
   IN_PERSON: 'Очная приёмка',
@@ -45,6 +48,34 @@ const VARIANT_LABEL: Record<string, string> = {
 const variantLabel = computed(() =>
   props.reception ? (VARIANT_LABEL[props.reception.variant] ?? props.reception.variant) : '',
 );
+
+// Председатель закрывает акт на УЖЕ зафиксированном факте — таблица сверки
+// строго на чтение (оператор зафиксировал кол-во/цену при открытии приёмки).
+const offererLabel = computed(() =>
+  props.reception ? (props.reception.offerer_name || props.reception.offerer_account) : '',
+);
+
+const lines = computed<ReceptionLineRow[]>(() =>
+  (props.reception?.fact_quantity_per_order ?? []).map((f) => ({
+    product_name: f.product_name,
+    fact_quantity: f.fact_quantity,
+    unit_of_measure: f.unit_of_measure,
+    fact_unit_price: f.fact_unit_price,
+  })),
+);
+
+async function loadPreview(): Promise<void> {
+  if (!props.reception) return;
+  previewLoading.value = true;
+  try {
+    const aggregates = await fetchChairmanSignablePayloads({ apl_reception_id: props.reception.id });
+    previewHtml.value = aggregates.map((a) => a.rawDocument.html).join('<hr/>');
+  } catch (e) {
+    FailAlert(e, 'Не удалось сформировать акт приёмки');
+  } finally {
+    previewLoading.value = false;
+  }
+}
 
 async function confirm(): Promise<void> {
   if (!props.reception) return;
@@ -57,7 +88,7 @@ async function confirm(): Promise<void> {
 
   signing.value = true;
   try {
-    const aggregates = await fetchChairmanSignablePayloads(props.reception.id);
+    const aggregates = await fetchChairmanSignablePayloads({ apl_reception_id: props.reception.id });
     if (aggregates.length === 0) {
       throw new Error('Backend не вернул ни одного акта для закрывающей подписи.');
     }
@@ -74,7 +105,7 @@ async function confirm(): Promise<void> {
       signed_documents.push(signed);
     }
 
-    await signAsChairman(props.reception.id, signed_documents);
+    await signAsChairman({ apl_reception_id: props.reception.id, signed_documents });
     SuccessAlert('Акт приёмки закрыт подписью председателя. Партия принята в кооператив.');
     emit('signed');
     emit('update:modelValue', false);
@@ -91,37 +122,56 @@ function cancel(): void {
 </script>
 
 <template lang="pug">
-q-dialog(
+BaseDialog(
   :model-value="modelValue"
+  title="Закрывающая подпись акта приёмки"
+  maximized
   @update:model-value="(v: boolean) => emit('update:modelValue', v)"
 )
-  q-card.mp-sign-apl-chairman(style="min-width: 420px; max-width: 560px")
-    q-card-section
-      .text-h6 Закрывающая подпись акта приёмки
-      .text-caption.text-grey(v-if="reception")
-        | АПП {{ reception.id.slice(0, 8) }} · КУ {{ reception.braname }} · {{ variantLabel }}
+  .mp-sign-apl-chairman
+    .text-caption.text-grey(v-if="reception")
+      | КУ {{ reception.braname }} · {{ variantLabel }} · поставщик {{ offererLabel }}
 
-    q-card-section.q-pt-none
-      q-banner.q-mb-md(rounded class="bg-primary text-white")
-        | Поставщик уже подписал {{ ordersCount }} акт(ов) приёмки. Вы накладываете закрывающую подпись председателя поверх подписи поставщика ключом текущей сессии — документ не перегенерируется. После подписи партия принимается в кооператив.
-      .text-body2(v-if="reception")
-        | Сумма к приёмке: {{ reception.total_amount }} ₽
+    ReceptionLinesTable(v-if="reception", :rows="lines")
 
-    q-card-actions(align="right")
-      q-btn(flat no-caps label="Отмена" :disable="signing" @click="cancel")
-      q-btn(
-        unelevated
-        no-caps
-        color="primary"
-        label="Подписать председателем"
-        :loading="signing"
-        @click="confirm"
-      )
+    .text-h6(v-if="reception")
+      | Сумма к приёмке: {{ formatAsset2Digits(reception.total_amount) }} ₽
+
+    .mp-sign-apl-chairman__preview-actions
+      BaseButton(variant="ghost", size="sm", :loading="previewLoading", @click="loadPreview")
+        template(#icon-left)
+          q-icon(name="description", size="16px")
+        | Показать акт
+
+    q-card(v-if="previewHtml", flat, bordered).mp-sign-apl-chairman__preview
+      q-card-section.q-pa-md
+        div(v-html="previewHtml")
+
+    .text-body2.text-grey
+      | После закрывающей подписи партия принимается в кооператив.
+
+  template(#footer)
+    BaseButton(variant="ghost", :disabled="signing", @click="cancel") Отмена
+    BaseButton(variant="primary", :loading="signing", @click="confirm")
+      template(#icon-left)
+        q-icon(name="draw", size="16px")
+      | Подписать председателем
 </template>
 
 <style scoped lang="scss">
 .mp-sign-apl-chairman {
   display: flex;
   flex-direction: column;
+  gap: var(--p-3, 12px);
+
+  &__preview-actions {
+    display: flex;
+    justify-content: flex-start;
+  }
+
+  &__preview {
+    max-height: 60vh;
+    overflow: auto;
+  }
 }
 </style>

@@ -95,7 +95,7 @@ q-card(v-else flat)
 </template>
 
 <script setup lang="ts">
-import { ref, computed, useSlots } from 'vue';
+import { ref, computed, useSlots, watch } from 'vue';
 import { DocumentHtmlReader } from 'src/shared/ui/DocumentHtmlReader';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
@@ -106,6 +106,9 @@ import type { ICouncilOnboardingStep, ICouncilOnboardingConfig } from './types';
 interface Props {
   config: ICouncilOnboardingConfig;
   loading?: boolean;
+  // Идёт отправка проекта решения в Совет (async в родителе). Пока true —
+  // кнопка «Объявить» крутит лоадер, диалог не закрывается.
+  submitting?: boolean;
   loadingText?: string;
   title?: string;
   subtitle?: string;
@@ -115,6 +118,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   loading: false,
+  submitting: false,
   loadingText: 'Загрузка данных онбординга...',
   title: 'Адаптация к работе на платформе',
   completionTitle: 'Онбординг завершен!',
@@ -130,7 +134,6 @@ const slots = useSlots();
 // статус-ряд, если расширение не передаёт чип подключения.
 const hasStatusSlot = computed(() => Boolean(slots.status));
 
-const submitting = ref(false);
 const dialogOpen = ref(false);
 const currentStep = ref<ICouncilOnboardingStep | null>(null);
 const dialogTitle = ref('');
@@ -204,17 +207,24 @@ const closeDialog = () => {
   dialogDecisionPrefix.value = '';
 };
 
-const submitStep = async () => {
+const submitStep = () => {
   if (!currentStep.value) return;
-
-  try {
-    submitting.value = true;
-    emit('step-submit', currentStep.value);
-    closeDialog();
-  } finally {
-    submitting.value = false;
-  }
+  // Диалог здесь НЕ закрываем: реальная отправка проекта решения в Совет —
+  // async-операция в родителе (handleStepSubmit). Пока она идёт, prop
+  // `submitting` = true → кнопка «Объявить» крутит лоадер, диалог открыт и
+  // некликабелен. Закрытие — по watcher'у ниже, когда submitting вернётся
+  // в false (успех или ошибка). Иначе диалог схлопывался мгновенно и юзер
+  // не видел, что транзакция ещё идёт.
+  emit('step-submit', currentStep.value);
 };
+
+// Закрываем диалог по завершении async-отправки (submitting: true → false).
+watch(
+  () => props.submitting,
+  (now, prev) => {
+    if (prev && !now && dialogOpen.value) closeDialog();
+  },
+);
 </script>
 
 <style scoped lang="scss">

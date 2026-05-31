@@ -161,6 +161,8 @@ public:
   [[eosio::action]] void signchair(eosio::name coopname,
                                     eosio::name signer,
                                     checksum256 order_hash,
+                                    uint64_t actual_quantity,
+                                    eosio::asset actual_unit_price,
                                     document2 act);
 
   /**
@@ -223,6 +225,7 @@ public:
                                    eosio::name orderer,
                                    checksum256 order_hash,
                                    uint64_t actual_quantity,
+                                   eosio::asset actual_unit_price,
                                    eosio::name delivery_signer,
                                    document2 act);
 

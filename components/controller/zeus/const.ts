@@ -676,6 +676,9 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceCreateAplReceptionInput:{
 		fact_quantity_per_order:"MarketplaceAplReceptionFactEntryInput"
 	},
+	MarketplaceCreateExpressReceptionInput:{
+		fact_quantity_per_order:"MarketplaceAplReceptionFactEntryInput"
+	},
 	MarketplaceCreateOfferInput:{
 		barcode_strategy:"MarketplaceBarcodeStrategy",
 		images:"MarketplaceOfferImageUploadInput"
@@ -776,6 +779,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	MarketplaceListShipmentsInput:{
 		statuses:"MarketplaceShipmentStatus"
+	},
+	MarketplaceListSupplierPickupOrdersInput:{
+
 	},
 	MarketplaceListWriteoffProposalsInput:{
 		statuses:"MarketplaceWriteoffProposalStatus"
@@ -1350,6 +1356,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceCreateAplReception:{
 			data:"MarketplaceCreateAplReceptionInput"
+		},
+		marketplaceCreateExpressReception:{
+			data:"MarketplaceCreateExpressReceptionInput"
 		},
 		marketplaceCreateOffer:{
 			input:"MarketplaceCreateOfferInput"
@@ -1988,6 +1997,9 @@ export const AllTypesProps: Record<string,any> = {
 			input:"MarketplaceListConsolidatedRequestsInput",
 			options:"PaginationInput"
 		},
+		marketplaceListExpressPickupsByBraname:{
+			data:"MarketplaceListAplReceptionsByBranameInput"
+		},
 		marketplaceListInventory:{
 			data:"MarketplaceListInventoryInput"
 		},
@@ -2028,6 +2040,9 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceListSupplierOrders:{
 			input:"MarketplaceListOrdersInput",
 			options:"PaginationInput"
+		},
+		marketplaceListSupplierPickupOrders:{
+			data:"MarketplaceListSupplierPickupOrdersInput"
 		},
 		marketplaceListWriteoffProposals:{
 			data:"MarketplaceListWriteoffProposalsInput",
@@ -3888,6 +3903,7 @@ export const ReturnTypes: Record<string,any> = {
 		fact_quantity_per_order:"MarketplaceAplReceptionFactEntry",
 		id:"ID",
 		offerer_account:"String",
+		offerer_name:"String",
 		shipment_id:"ID",
 		status:"MarketplaceAplReceptionStatus",
 		supplier_signed_at:"DateTime",
@@ -3899,7 +3915,10 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	MarketplaceAplReceptionFactEntry:{
 		fact_quantity:"Int",
-		order_id:"ID"
+		fact_unit_price:"String",
+		order_id:"ID",
+		product_name:"String",
+		unit_of_measure:"String"
 	},
 	MarketplaceAplReceptionResult:{
 		apl_reception:"MarketplaceAplReception"
@@ -4037,6 +4056,9 @@ export const ReturnTypes: Record<string,any> = {
 		document_registry_id:"Int",
 		status:"String"
 	},
+	MarketplaceCreateExpressReceptionResult:{
+		apl_receptions:"MarketplaceAplReception"
+	},
 	MarketplaceCreateOrderResult:{
 		order:"MarketplaceOrder",
 		tx_snapshot:"MarketplaceOrderCreateTxSnapshot"
@@ -4067,6 +4089,13 @@ export const ReturnTypes: Record<string,any> = {
 		info:"String",
 		picture:"String",
 		value:"String"
+	},
+	MarketplaceExpressPickupCandidate:{
+		braname:"String",
+		offerer_account:"String",
+		orders_count:"Int",
+		total_amount:"String",
+		total_units:"Int"
 	},
 	MarketplaceInventoryItem:{
 		barcode_format:"MarketplaceBarcodeFormat",
@@ -4202,15 +4231,18 @@ export const ReturnTypes: Record<string,any> = {
 		offer_id:"String",
 		order_hash:"String",
 		orderer_account:"String",
+		orderer_name:"String",
 		orderer_signed_at:"DateTime",
 		price_per_unit:"String",
 		product_name:"String",
 		quantity:"Int",
 		received_at:"DateTime",
+		shipment_id:"String",
 		signiss1_tx_hash:"String",
 		signiss2_tx_hash:"String",
 		status:"MarketplaceOrderStatus",
 		supplier_account:"String",
+		supplier_name:"String",
 		total_cost:"String",
 		unit_of_measure:"String",
 		updated_at:"DateTime",
@@ -4226,7 +4258,8 @@ export const ReturnTypes: Record<string,any> = {
 	MarketplaceOrderIssuanceFactSnapshot:{
 		actual_quantity:"Int",
 		diff_state:"MarketplaceOrderIssuanceFactDiffState",
-		fact_cost:"String"
+		fact_cost:"String",
+		fact_unit_price:"String"
 	},
 	MarketplaceOrderPaginationResult:{
 		currentPage:"Int",
@@ -4751,6 +4784,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceCancelWriteoffDraft:"Boolean",
 		marketplaceClearAvailableCategories:"Boolean",
 		marketplaceCreateAplReception:"MarketplaceAplReceptionResult",
+		marketplaceCreateExpressReception:"MarketplaceCreateExpressReceptionResult",
 		marketplaceCreateOffer:"MarketplaceOffer",
 		marketplaceCreateOrder:"MarketplaceCreateOrderResult",
 		marketplaceCreateRequest:"MarketplaceRequest",
@@ -5402,6 +5436,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceListCatalog:"MarketplaceOfferPaginationResult",
 		marketplaceListCategories:"MarketplaceCategory",
 		marketplaceListConsolidatedRequests:"MarketplaceConsolidatedRequestPaginationResult",
+		marketplaceListExpressPickupsByBraname:"MarketplaceExpressPickupCandidate",
 		marketplaceListInventory:"MarketplaceInventoryItem",
 		marketplaceListIssuancesByBraname:"MarketplaceOrder",
 		marketplaceListKUDetails:"MarketplaceKUDetails",
@@ -5417,6 +5452,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceListShipments:"MarketplaceShipment",
 		marketplaceListShipmentsByBraname:"MarketplaceShipment",
 		marketplaceListSupplierOrders:"MarketplaceOrderPaginationResult",
+		marketplaceListSupplierPickupOrders:"MarketplaceOrder",
 		marketplaceListWhitelist:"MarketplaceWhitelistEntry",
 		marketplaceListWriteoffProposals:"PaginatedMarketplaceWriteoffProposals",
 		marketplaceMemberWallet:"MarketplaceMemberWallet",

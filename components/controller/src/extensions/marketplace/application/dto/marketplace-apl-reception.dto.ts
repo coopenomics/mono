@@ -34,6 +34,24 @@ export class MarketplaceAplReceptionFactEntryDTO {
 
   @Field(() => Int, { description: 'Фактически принятое количество (для расхождений Варианта Б).' })
   fact_quantity!: number;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Фактическая цена за единицу (если оператор скорректировал её при открытии приёмки).',
+  })
+  fact_unit_price!: string | null;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Наименование товара по этой позиции — для таблицы сверки в диалоге подписи.',
+  })
+  product_name!: string | null;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Единица измерения товара по этой позиции (шт., кг, л, упак.).',
+  })
+  unit_of_measure!: string | null;
 }
 
 @InputType('MarketplaceAplReceptionFactEntryInput')
@@ -47,6 +65,14 @@ export class MarketplaceAplReceptionFactEntryInputDTO {
   @IsInt()
   @Min(0)
   fact_quantity!: number;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Фактическая цена за единицу (оператор может изменить её при открытии приёмки).',
+  })
+  @IsOptional()
+  @IsString()
+  fact_unit_price?: string;
 }
 
 @ObjectType('MarketplaceAplReception')
@@ -68,6 +94,12 @@ export class MarketplaceAplReceptionDTO {
 
   @Field(() => String, { description: 'Account поставщика-владельца Offer\'ов.' })
   offerer_account!: string;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Наименование поставщика (ФИО или название организации) — для экранов приёмки/подписи.',
+  })
+  offerer_name!: string | null;
 
   @Field(() => MarketplaceAplReceptionVariantEnum)
   variant!: MarketplaceAplReceptionVariantEnum;
@@ -179,8 +211,99 @@ export class MarketplaceAplReceptionResultDTO {
   apl_reception!: MarketplaceAplReceptionDTO;
 }
 
+@InputType('MarketplaceListSupplierPickupOrdersInput')
+export class MarketplaceListSupplierPickupOrdersInputDTO {
+  @Field(() => String, { description: 'КУ, на котором оператор принимает имущество.' })
+  @IsString()
+  @IsNotEmpty()
+  braname!: string;
+
+  @Field(() => String, { description: 'Поставщик, чьё имущество принимается на этом КУ.' })
+  @IsString()
+  @IsNotEmpty()
+  offerer_account!: string;
+}
+
+@InputType('MarketplaceCreateExpressReceptionInput')
+export class MarketplaceCreateExpressReceptionInputDTO {
+  @Field(() => String, { description: 'Поставщик, приехавший на ПВЗ для самовывоза.' })
+  @IsString()
+  @IsNotEmpty()
+  offerer_account!: string;
+
+  @Field(() => String, { description: 'КУ, на котором оператор принимает имущество.' })
+  @IsString()
+  @IsNotEmpty()
+  braname!: string;
+
+  @Field(() => [MarketplaceAplReceptionFactEntryInputDTO], {
+    nullable: true,
+    description:
+      'Фактически принятое количество и цена per-Order — оператор корректирует их при открытии приёмки. Для пропущенных Order\'ов берётся order.quantity и цена заказа.',
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => MarketplaceAplReceptionFactEntryInputDTO)
+  fact_quantity_per_order?: MarketplaceAplReceptionFactEntryInputDTO[];
+}
+
+@ObjectType('MarketplaceExpressPickupCandidate')
+export class MarketplaceExpressPickupCandidateDTO {
+  @Field(() => String, { description: 'Поставщик с принятыми заказами, ожидающими самовывоза на этом КУ.' })
+  offerer_account!: string;
+
+  @Field(() => String, { description: 'КУ-получатель.' })
+  braname!: string;
+
+  @Field(() => Int, { description: 'Сколько принятых заказов ожидает приёмки.' })
+  orders_count!: number;
+
+  @Field(() => Int, { description: 'Суммарное количество единиц.' })
+  total_units!: number;
+
+  @Field(() => String, { description: 'Суммарная сумма заказов.' })
+  total_amount!: string;
+}
+
+@ObjectType('MarketplaceCreateExpressReceptionResult')
+export class MarketplaceCreateExpressReceptionResultDTO {
+  @Field(() => [MarketplaceAplReceptionDTO], {
+    description: 'Сформированные акты приёмки (по одному на заявку поставщика на этом КУ).',
+  })
+  apl_receptions!: MarketplaceAplReceptionDTO[];
+}
+
+export function toExpressPickupCandidateDTO(c: {
+  offerer_account: string;
+  braname: string;
+  orders_count: number;
+  total_units: number;
+  total_amount: string;
+}): MarketplaceExpressPickupCandidateDTO {
+  const dto = new MarketplaceExpressPickupCandidateDTO();
+  dto.offerer_account = c.offerer_account;
+  dto.braname = c.braname;
+  dto.orders_count = c.orders_count;
+  dto.total_units = c.total_units;
+  dto.total_amount = c.total_amount;
+  return dto;
+}
+
+/**
+ * Отображаемые реквизиты приёмки, которыми резолвер обогащает АПП для экранов
+ * подписи/сверки: наименование поставщика и наименования товаров по позициям.
+ * Резолвятся в уже авторизованных (оператор/председатель КУ или сам поставщик)
+ * списочных методах; на самой сущности не хранятся (ссылки по аккаунту/order_id).
+ */
+export interface MarketplaceAplReceptionDisplayFields {
+  offerer_name?: string | null;
+  lineByOrderId?: Map<string, { product_name: string | null; unit_of_measure: string | null }>;
+}
+
 export function toMarketplaceAplReceptionDTO(
-  e: MarketplaceAplReceptionDomainEntity
+  e: MarketplaceAplReceptionDomainEntity,
+  display?: MarketplaceAplReceptionDisplayFields
 ): MarketplaceAplReceptionDTO {
   const dto = new MarketplaceAplReceptionDTO();
   dto.id = e.id;
@@ -189,12 +312,17 @@ export function toMarketplaceAplReceptionDTO(
   dto.cycle_id = e.cycle_id;
   dto.braname = e.braname;
   dto.offerer_account = e.offerer_account;
+  dto.offerer_name = display?.offerer_name ?? null;
   dto.variant = e.variant as MarketplaceAplReceptionVariantEnum;
   dto.status = e.status as MarketplaceAplReceptionStatusEnum;
   dto.fact_quantity_per_order = e.fact_quantity_per_order.map((f) => {
     const entry = new MarketplaceAplReceptionFactEntryDTO();
     entry.order_id = f.order_id;
     entry.fact_quantity = f.fact_quantity;
+    entry.fact_unit_price = f.fact_unit_price ?? null;
+    const line = display?.lineByOrderId?.get(f.order_id);
+    entry.product_name = line?.product_name ?? null;
+    entry.unit_of_measure = line?.unit_of_measure ?? null;
     return entry;
   });
   dto.ttn_number = e.ttn_number;
