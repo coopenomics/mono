@@ -127,7 +127,9 @@ const ACTIONS_PER_ROLE: Record<Exclude<OrderRole, 'orderer'>, Record<OrderStatus
       { key: 'accept', label: 'Принять', kind: 'primary' },
       { key: 'decline', label: 'Отказать', kind: 'danger' },
     ],
-    paid: [{ key: 'ship', label: 'Отгрузить', kind: 'primary' }],
+    // Отгрузка идёт не с карточки заказа, а на странице «Подготовка отгрузки»
+    // (формирование партии по КУ). Здесь действий по оплаченному заказу нет.
+    paid: [],
     'in-delivery': [], 'arrived-at-pvz': [], 'ready-to-issue': [],
     issued: [], cancelled: [], dispute: [{ key: 'reply', label: 'Ответить', kind: 'primary' }],
     returned: [],
