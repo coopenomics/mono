@@ -184,7 +184,9 @@ q-page.orders(role="region", aria-label="Мои заказы")
 
 <style scoped lang="scss">
 .orders {
-  padding: var(--p-6, 24px);
+  // Меню-вкладки (PageTabs) прижимаются к топбару — гасим верхний отступ
+  // страницы; контент ниже разводит flex-gap.
+  padding: 0 var(--p-6, 24px) var(--p-6, 24px);
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
@@ -210,7 +212,7 @@ q-page.orders(role="region", aria-label="Мои заказы")
 
 @media (max-width: 768px) {
   .orders {
-    padding: var(--p-4, 16px);
+    padding: 0 var(--p-4, 16px) var(--p-4, 16px);
   }
 }
 </style>

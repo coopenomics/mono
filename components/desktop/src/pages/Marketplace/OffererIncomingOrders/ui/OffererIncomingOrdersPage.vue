@@ -264,7 +264,9 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
 
 <style scoped lang="scss">
 .incoming-orders {
-  padding: var(--p-6, 24px) var(--p-4, 16px);
+  // Меню-вкладки (PageTabs) прижимаются к топбару — верхний отступ страницы
+  // гасим; контент ниже разводит flex-gap колонки.
+  padding: 0 var(--p-4, 16px) var(--p-6, 24px);
 
   &__col {
     max-width: 1120px;

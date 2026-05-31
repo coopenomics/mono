@@ -227,7 +227,10 @@ q-page.catalog(role="region", aria-label="Каталог Стола заказо
 
 <style scoped lang="scss">
 .catalog {
-  padding: var(--p-6, 24px);
+  // Меню категорий (PageTabs) — первый блок страницы и должно прижиматься к
+  // топбару как саб-навигация: верхний отступ страницы гасим (иначе лишний
+  // зазор «висит» над меню). Контент ниже разводит flex-gap.
+  padding: 0 var(--p-6, 24px) var(--p-6, 24px);
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
@@ -249,7 +252,7 @@ q-page.catalog(role="region", aria-label="Каталог Стола заказо
 
 @media (max-width: 768px) {
   .catalog {
-    padding: var(--p-4, 16px);
+    padding: 0 var(--p-4, 16px) var(--p-4, 16px);
   }
 }
 </style>
