@@ -9,7 +9,6 @@ function buildProps(
     coopname: 'voskhod',
     offer_id: 'offer-uuid-1',
     supplier_account: 'supplier1',
-    cycle_type: 'collective',
     total_quantity: 25,
     total_amount: '2500.0000',
     status: 'PENDING_SUPPLIER_ACCEPT',
@@ -50,11 +49,10 @@ describe('MarketplaceConsolidatedRequestDomainEntity', () => {
     expect(r.is_pending).toBe(false);
   });
 
-  it('ручной запуск collective с triggered_by_supplier_at — фиксируется как поле', () => {
+  it('ручной запуск партии с triggered_by_supplier_at — фиксируется как поле', () => {
     const triggered = new Date('2026-05-08T12:00:00Z');
     const r = new MarketplaceConsolidatedRequestDomainEntity(
       buildProps({
-        cycle_type: 'collective',
         status: 'ACCEPTED',
         cycle_ended_at: null,
         expires_at: null,
@@ -63,6 +61,5 @@ describe('MarketplaceConsolidatedRequestDomainEntity', () => {
       })
     );
     expect(r.triggered_by_supplier_at).toEqual(triggered);
-    expect(r.cycle_type).toBe('collective');
   });
 });

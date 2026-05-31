@@ -14,38 +14,18 @@ export const MARKETPLACE_OFFER_STATUSES: MarketplaceOfferStatus[] = [
   MarketplaceOfferStatuses.WITHDRAWN,
 ];
 
-export type MarketplaceOfferCycleType = 'individual' | 'collective';
-
-export const MarketplaceOfferCycleTypes = {
-  INDIVIDUAL: 'individual',
-  COLLECTIVE: 'collective',
-} as const satisfies Record<string, MarketplaceOfferCycleType>;
-
-export const MARKETPLACE_OFFER_CYCLE_TYPES: MarketplaceOfferCycleType[] = [
-  MarketplaceOfferCycleTypes.INDIVIDUAL,
-  MarketplaceOfferCycleTypes.COLLECTIVE,
-];
-
 /**
- * Маппинг domain → chain (eosio::name). Контракт p.mkt.supply ожидает
- * `eosio::name` (см. table_marketplace_orders.hpp: INDIVIDUAL="individual"_n,
- * COLLECTIVE="collective"_n). Domain-значения совпадают с chain-именами
- * (оба валидны как eosio::name), маппинг тождественный — оставлен явным на
- * boundary chain submit (`chainPort.createOrder`) для единой точки проверки.
+ * Точка поставки Offer'а: КУ, на который поставщик готов везти, и минимальный
+ * объём (в единицах оффера), от которого ему интересно ехать. Pure-db value
+ * object — массив на оффере (jsonb). Тип поставки как отдельная сущность
+ * упразднён (Эпик 15): «индивидуально/коллективно» — производная от
+ * `min_supply_volume` (1 → по одному заказу; >1 → накопление партии). Объём —
+ * мягкий ориентир группировки, НЕ жёсткий порог: поставщик вправе принять и
+ * меньше, и больше.
  */
-export const MARKETPLACE_CYCLE_TYPE_CHAIN_NAME = {
-  [MarketplaceOfferCycleTypes.INDIVIDUAL]: 'individual',
-  [MarketplaceOfferCycleTypes.COLLECTIVE]: 'collective',
-} as const satisfies Record<MarketplaceOfferCycleType, string>;
-
-export function toChainCycleType(cycle: string): string {
-  const mapped = (MARKETPLACE_CYCLE_TYPE_CHAIN_NAME as Record<string, string>)[cycle];
-  if (!mapped) {
-    throw new Error(
-      `toChainCycleType: неизвестный domain cycle_type «${cycle}»; ожидался один из ${MARKETPLACE_OFFER_CYCLE_TYPES.join(', ')}`
-    );
-  }
-  return mapped;
+export interface MarketplaceOfferDeliveryPoint {
+  braname: string;
+  min_supply_volume: number;
 }
 
 /**

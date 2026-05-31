@@ -39,7 +39,6 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
       quantity: input.quantity,
       price_per_unit: input.price_per_unit,
       total_cost: input.total_cost,
-      cycle_type: input.cycle_type,
       cycle_id: input.cycle_id,
       warranty_period_secs: input.warranty_period_secs,
       warranty_until: input.warranty_until,

@@ -6066,21 +6066,16 @@ export type ValueTypes = {
 	reportType: ValueTypes["ReportType"] | Variable<any, string>,
 	year: number | Variable<any, string>
 };
-	/** Параметры приёма сводной заявки поставщиком. */
-["MarketplaceAcceptConsolidatedRequestInput"]: {
-	/** Идентификатор сводной заявки, ожидающей решения поставщика. */
-	request_id: string | Variable<any, string>
-};
 	["MarketplaceAcceptCppInput"]: {
 	/** id решения Совета (FR40, Эпик 8). В MVP — stub string председателя. */
 	accepted_by_board_decision_id: string | Variable<any, string>,
 	/** registry_id рендеренного instance положения ЦПП (Story 1.7 даст id из cooptypes) */
 	document_registry_id: number | Variable<any, string>
 };
-	/** Параметры индивидуального приёма заказа поставщиком. */
-["MarketplaceAcceptIndividualOrderInput"]: {
-	/** Идентификатор заказа индивидуального типа, который поставщик принимает. */
-	order_id: string | Variable<any, string>
+	/** Параметры приёма поставщиком выбранных заказов к поставке (любое подмножество группы offer × КУ). */
+["MarketplaceAcceptOrdersBatchInput"]: {
+	/** Идентификаторы заказов, которые поставщик берёт к поставке. */
+	order_ids: Array<string> | Variable<any, string>
 };
 	["MarketplaceAcceptReturnAtVisitInput"]: {
 	/** Кооперативный участок, где идёт очный осмотр. */
@@ -6450,14 +6445,12 @@ export type ValueTypes = {
 	created_at?:boolean | `@${string}`,
 	cycle_ended_at?:boolean | `@${string}`,
 	cycle_started_at?:boolean | `@${string}`,
-	/** time_based | volume_based | open_subscription | individual */
-	cycle_type?:boolean | `@${string}`,
 	decline_reason?:boolean | `@${string}`,
 	declined_at?:boolean | `@${string}`,
 	expires_at?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
 	offer_id?:boolean | `@${string}`,
-	/** PENDING_SUPPLIER_ACCEPT | ACCEPTED | DECLINED_BY_SUPPLIER | EXPIRED_NO_RESPONSE | EXPIRED_NO_THRESHOLD | EXPIRED_NO_VOLUME */
+	/** PENDING_SUPPLIER_ACCEPT | ACCEPTED | DECLINED_BY_SUPPLIER | EXPIRED_NO_RESPONSE */
 	status?:boolean | `@${string}`,
 	supplier_account?:boolean | `@${string}`,
 	/** Сумма заявки (numeric как string). */
@@ -6467,19 +6460,6 @@ export type ValueTypes = {
 	updated_at?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceConsolidatedRequest']?: Omit<ValueTypes["MarketplaceConsolidatedRequest"], "...on MarketplaceConsolidatedRequest">
-}>;
-	/** Результат массового действия поставщика над пакетом заказов (приём или отклонение). */
-["MarketplaceConsolidatedRequestActionResult"]: AliasType<{
-	/** Сколько заказов входило в обработанный пакет. */
-	affected_orders?:boolean | `@${string}`,
-	/** Сколько заказов из пакета не удалось провести в блокчейн — потребуется повторная обработка. */
-	on_chain_failed?:boolean | `@${string}`,
-	/** Сколько заказов из пакета удалось провести в блокчейн. */
-	on_chain_succeeded?:boolean | `@${string}`,
-	/** Сводная заявка после обработки. */
-	request?:ValueTypes["MarketplaceConsolidatedRequest"],
-		__typename?: boolean | `@${string}`,
-	['...on MarketplaceConsolidatedRequestActionResult']?: Omit<ValueTypes["MarketplaceConsolidatedRequestActionResult"], "...on MarketplaceConsolidatedRequestActionResult">
 }>;
 	["MarketplaceConsolidatedRequestPaginationResult"]: AliasType<{
 	/** Текущая страница */
@@ -6528,21 +6508,17 @@ export type ValueTypes = {
 	/** Стратегия маркировки штрих-кодом при приёмке на КУ. По умолчанию «по заказу» (PER_ORDER). */
 	barcode_strategy?: ValueTypes["MarketplaceBarcodeStrategy"] | undefined | null | Variable<any, string>,
 	category_id: number | Variable<any, string>,
-	cycle_days?: number | undefined | null | Variable<any, string>,
-	/** time_based | volume_based | open_subscription | individual */
-	cycle_type: string | Variable<any, string>,
+	/** КУ поставки с минимальным объёмом на каждом. Минимум один участок; min_supply_volume = 1 означает поставку по одному заказу, >1 — накопление партии. */
+	delivery_points: Array<ValueTypes["MarketplaceOfferDeliveryPointInput"]> | Variable<any, string>,
 	description?: string | undefined | null | Variable<any, string>,
 	/** Изображения товара (base64). Порядок = порядок показа, первое — обложка. До 8 файлов, каждый ≤ 10 МБ, JPEG/PNG/WEBP. */
 	images?: Array<ValueTypes["MarketplaceOfferImageUploadInput"]> | undefined | null | Variable<any, string>,
-	max_wait_days?: number | undefined | null | Variable<any, string>,
-	min_threshold?: number | undefined | null | Variable<any, string>,
 	/** Размер упаковки для стратегии «по упаковке» (обязателен при PER_PACKAGE). */
 	pack_size?: number | undefined | null | Variable<any, string>,
 	/** Цена за единицу (numeric как string, до 4 знаков) */
 	price_per_unit: string | Variable<any, string>,
 	product_name: string | Variable<any, string>,
 	quantity_available?: number | undefined | null | Variable<any, string>,
-	target_volume?: number | undefined | null | Variable<any, string>,
 	/** piece | kg | liter | pack */
 	unit_of_measure: string | Variable<any, string>,
 	unlimited_flag: boolean | Variable<any, string>,
@@ -6603,25 +6579,11 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceCurrentMember']?: Omit<ValueTypes["MarketplaceCurrentMember"], "...on MarketplaceCurrentMember">
 }>;
-	/** Параметры отказа поставщика от сводной заявки. */
-["MarketplaceDeclineConsolidatedRequestInput"]: {
+	/** Параметры отказа поставщика от выбранных активных заказов. */
+["MarketplaceDeclineOrdersBatchInput"]: {
+	/** Идентификаторы заказов, от которых поставщик отказывается. */
+	order_ids: Array<string> | Variable<any, string>,
 	/** Текст причины отказа — будет показан пайщикам в их заказах. */
-	reason: string | Variable<any, string>,
-	/** Идентификатор сводной заявки, от которой поставщик отказывается. */
-	request_id: string | Variable<any, string>
-};
-	/** Параметры индивидуального отказа поставщика от заказа. */
-["MarketplaceDeclineIndividualOrderInput"]: {
-	/** Идентификатор заказа индивидуального типа, от которого поставщик отказывается. */
-	order_id: string | Variable<any, string>,
-	/** Текст причины отказа — будет показан пайщику в его заказе. */
-	reason: string | Variable<any, string>
-};
-	/** Параметры отказа поставщика от одного заказа из пула открытой подписки до запуска поставки. */
-["MarketplaceDeclineOrderFromOpenPoolInput"]: {
-	/** Идентификатор заказа из пула открытой подписки, от которого поставщик отказывается до запуска поставки. */
-	order_id: string | Variable<any, string>,
-	/** Текст причины отказа — будет показан пайщику в его заказе. */
 	reason: string | Variable<any, string>
 };
 	["MarketplaceDetailKUInput"]: {
@@ -7013,15 +6975,12 @@ export type ValueTypes = {
 	category_id?:boolean | `@${string}`,
 	coopname?:boolean | `@${string}`,
 	created_at?:boolean | `@${string}`,
-	cycle_days?:boolean | `@${string}`,
-	/** time_based | volume_based | open_subscription | individual */
-	cycle_type?:boolean | `@${string}`,
+	/** КУ поставки с минимальным объёмом на каждом. */
+	delivery_points?:ValueTypes["MarketplaceOfferDeliveryPoint"],
 	description?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
 	/** Изображения товара (обложка — первое). URL подписаны и ограничены по TTL. */
 	images?:ValueTypes["MarketplaceOfferImage"],
-	max_wait_days?:boolean | `@${string}`,
-	min_threshold?:boolean | `@${string}`,
 	/** Размер упаковки для стратегии «по упаковке» (целое число > 0) */
 	pack_size?:boolean | `@${string}`,
 	/** Цена за единицу (numeric как string) */
@@ -7036,7 +6995,6 @@ export type ValueTypes = {
 	/** PENDING_MODERATION | ACTIVE | REJECTED | WITHDRAWN */
 	status?:boolean | `@${string}`,
 	supplier_account?:boolean | `@${string}`,
-	target_volume?:boolean | `@${string}`,
 	/** piece | kg | liter | pack */
 	unit_of_measure?:boolean | `@${string}`,
 	unlimited_flag?:boolean | `@${string}`,
@@ -7046,6 +7004,20 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceOffer']?: Omit<ValueTypes["MarketplaceOffer"], "...on MarketplaceOffer">
 }>;
+	["MarketplaceOfferDeliveryPoint"]: AliasType<{
+	/** Кооперативный участок (ПВЗ) поставки. */
+	braname?:boolean | `@${string}`,
+	/** Минимальный объём, от которого поставщик готов везти на этот участок (в единицах товара). Ориентир для накопления партии, не жёсткий порог. */
+	min_supply_volume?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceOfferDeliveryPoint']?: Omit<ValueTypes["MarketplaceOfferDeliveryPoint"], "...on MarketplaceOfferDeliveryPoint">
+}>;
+	["MarketplaceOfferDeliveryPointInput"]: {
+	/** Кооперативный участок (ПВЗ), на который поставщик готов везти. */
+	braname: string | Variable<any, string>,
+	/** Минимальный объём поставки на этот участок (в единицах товара, ≥ 1). */
+	min_supply_volume: number | Variable<any, string>
+};
 	["MarketplaceOfferImage"]: AliasType<{
 	/** Ключ объекта в хранилище — стабильный идентификатор изображения. Передаётся обратно при редактировании, чтобы сохранить уже загруженное изображение (в отличие от base64 для новых файлов). */
 	bucket_key?:boolean | `@${string}`,
@@ -7123,8 +7095,6 @@ export type ValueTypes = {
 	current_warehouse_braname?:boolean | `@${string}`,
 	/** Идентификатор партии-накопителя, если заказ присоединён. */
 	cycle_id?:boolean | `@${string}`,
-	/** Способ накопления заказов перед поставкой (копируется из предложения). */
-	cycle_type?:boolean | `@${string}`,
 	/** Имя пункта выдачи (ПВЗ), куда пайщик хочет получить заказ. */
 	delivery_braname?:boolean | `@${string}`,
 	/** Адрес пункта выдачи — для отображения вместо служебного идентификатора ПВЗ. */
@@ -7197,8 +7167,6 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceOrderCreateTxSnapshot']?: Omit<ValueTypes["MarketplaceOrderCreateTxSnapshot"], "...on MarketplaceOrderCreateTxSnapshot">
 }>;
-	/** Способ накопления заказов перед поставкой. */
-["MarketplaceOrderCycleType"]:MarketplaceOrderCycleType;
 	/** Сверка фактической выдачи с заказом: equal — совпало, less — выдано меньше, more — выдано больше с доплатой. */
 ["MarketplaceOrderIssuanceFactDiffState"]:MarketplaceOrderIssuanceFactDiffState;
 	/** Фактическая выдача имущества пайщику на ПВЗ. */
@@ -7762,35 +7730,30 @@ export type ValueTypes = {
 	/** Подписанное председателем Заявление о списании скоропорта (registry_id=1106). */
 	signed_statement: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>
 };
-	/** Результат индивидуального приёма или отклонения заказа поставщиком. */
-["MarketplaceSupplierOrderActionResult"]: AliasType<{
-	/** Заказ после изменения статуса. */
-	order?:ValueTypes["MarketplaceOrder"],
-	/** Идентификатор транзакции приёма или отклонения. */
-	tx_hash?:boolean | `@${string}`,
+	/** Результат массового приёма или отказа поставщика над выбранными заказами. */
+["MarketplaceSupplierBatchActionResult"]: AliasType<{
+	/** Идентификатор партии-накопителя, в которую обёрнуты принятые заказы (null при отказе). */
+	cycle_id?:boolean | `@${string}`,
+	/** Заказы после изменения статуса. */
+	orders?:ValueTypes["MarketplaceOrder"],
+	/** Идентификаторы транзакций приёма/отказа в блокчейне. */
+	tx_hashes?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
-	['...on MarketplaceSupplierOrderActionResult']?: Omit<ValueTypes["MarketplaceSupplierOrderActionResult"], "...on MarketplaceSupplierOrderActionResult">
+	['...on MarketplaceSupplierBatchActionResult']?: Omit<ValueTypes["MarketplaceSupplierBatchActionResult"], "...on MarketplaceSupplierBatchActionResult">
 }>;
-	["MarketplaceTriggerOpenSubscriptionInput"]: {
-	/** Идентификатор предложения с открытой подпиской, по которому поставщик запускает поставку. */
-	offer_id: string | Variable<any, string>
-};
 	["MarketplaceUpdateOfferInput"]: {
 	barcode_strategy?: ValueTypes["MarketplaceBarcodeStrategy"] | undefined | null | Variable<any, string>,
 	category_id?: number | undefined | null | Variable<any, string>,
-	cycle_days?: number | undefined | null | Variable<any, string>,
-	cycle_type?: string | undefined | null | Variable<any, string>,
+	/** КУ поставки с минимальным объёмом. Если передано — полностью заменяет набор. */
+	delivery_points?: Array<ValueTypes["MarketplaceOfferDeliveryPointInput"]> | undefined | null | Variable<any, string>,
 	description?: string | undefined | null | Variable<any, string>,
 	id: string | Variable<any, string>,
 	/** Изображения товара (base64). Если передано — полностью заменяет текущий набор. До 8 файлов, каждый ≤ 10 МБ, JPEG/PNG/WEBP. */
 	images?: Array<ValueTypes["MarketplaceOfferImageUploadInput"]> | undefined | null | Variable<any, string>,
-	max_wait_days?: number | undefined | null | Variable<any, string>,
-	min_threshold?: number | undefined | null | Variable<any, string>,
 	pack_size?: number | undefined | null | Variable<any, string>,
 	price_per_unit?: string | undefined | null | Variable<any, string>,
 	product_name?: string | undefined | null | Variable<any, string>,
 	quantity_available?: number | undefined | null | Variable<any, string>,
-	target_volume?: number | undefined | null | Variable<any, string>,
 	unit_of_measure?: string | undefined | null | Variable<any, string>,
 	unlimited_flag?: boolean | undefined | null | Variable<any, string>,
 	warranty_days?: number | undefined | null | Variable<any, string>
@@ -8279,9 +8242,8 @@ installSystem?: [{	data: ValueTypes["Install"] | Variable<any, string>},ValueTyp
 login?: [{	data: ValueTypes["LoginInput"] | Variable<any, string>},ValueTypes["RegisteredAccount"]],
 logout?: [{	data: ValueTypes["LogoutInput"] | Variable<any, string>},boolean | `@${string}`],
 markReportPeriod?: [{	data: ValueTypes["MarkReportPeriodInput"] | Variable<any, string>},boolean | `@${string}`],
-marketplaceAcceptConsolidatedRequest?: [{	input: ValueTypes["MarketplaceAcceptConsolidatedRequestInput"] | Variable<any, string>},ValueTypes["MarketplaceConsolidatedRequestActionResult"]],
 marketplaceAcceptCpp?: [{	input: ValueTypes["MarketplaceAcceptCppInput"] | Variable<any, string>},ValueTypes["MarketplaceCppStatus"]],
-marketplaceAcceptIndividualOrder?: [{	input: ValueTypes["MarketplaceAcceptIndividualOrderInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplierOrderActionResult"]],
+marketplaceAcceptOrdersBatch?: [{	input: ValueTypes["MarketplaceAcceptOrdersBatchInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplierBatchActionResult"]],
 marketplaceAcceptReturnAtVisit?: [{	data: ValueTypes["MarketplaceAcceptReturnAtVisitInput"] | Variable<any, string>},ValueTypes["MarketplaceReturnClaimResult"]],
 marketplaceAddAvailableCategories?: [{	input: ValueTypes["AddAvailableCategoriesInput"] | Variable<any, string>},ValueTypes["MarketplaceAvailableCategory"]],
 marketplaceAddAvailableCategoryTypes?: [{	input: ValueTypes["AddAvailableCategoryTypesInput"] | Variable<any, string>},ValueTypes["MarketplaceAvailableCategory"]],
@@ -8302,9 +8264,7 @@ marketplaceCreateRequest?: [{	data: ValueTypes["CreateRequestInput"] | Variable<
 marketplaceCreateReturnClaim?: [{	data: ValueTypes["MarketplaceCreateReturnClaimInput"] | Variable<any, string>},ValueTypes["MarketplaceReturnClaimResult"]],
 marketplaceCreateShipment?: [{	data: ValueTypes["MarketplaceCreateShipmentInput"] | Variable<any, string>},ValueTypes["MarketplaceCreateShipmentResult"]],
 marketplaceCreateWriteoffDraft?: [{	data: ValueTypes["MarketplaceCreateWriteoffDraftInput"] | Variable<any, string>},ValueTypes["MarketplaceWriteoffProposal"]],
-marketplaceDeclineConsolidatedRequest?: [{	input: ValueTypes["MarketplaceDeclineConsolidatedRequestInput"] | Variable<any, string>},ValueTypes["MarketplaceConsolidatedRequestActionResult"]],
-marketplaceDeclineIndividualOrder?: [{	input: ValueTypes["MarketplaceDeclineIndividualOrderInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplierOrderActionResult"]],
-marketplaceDeclineOrderFromOpenPool?: [{	input: ValueTypes["MarketplaceDeclineOrderFromOpenPoolInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplierOrderActionResult"]],
+marketplaceDeclineOrdersBatch?: [{	input: ValueTypes["MarketplaceDeclineOrdersBatchInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplierBatchActionResult"]],
 marketplaceDetailKU?: [{	data: ValueTypes["MarketplaceDetailKUInput"] | Variable<any, string>},ValueTypes["MarketplaceKUDetails"]],
 marketplaceFinalizeIssuance?: [{	data: ValueTypes["MarketplaceFinalizeIssuanceInput"] | Variable<any, string>},ValueTypes["MarketplaceIssuanceResult"]],
 marketplaceLabelInventory?: [{	data: ValueTypes["MarketplaceLabelInventoryInput"] | Variable<any, string>},ValueTypes["MarketplaceLabelInventoryResult"]],
@@ -8324,7 +8284,6 @@ marketplaceSignAplReceptionAsChairman?: [{	data: ValueTypes["MarketplaceSignAplR
 marketplaceSignAplReceptionAsSupplier?: [{	data: ValueTypes["MarketplaceSignAplReceptionInput"] | Variable<any, string>},ValueTypes["MarketplaceAplReceptionResult"]],
 marketplaceSignOnboardingOffer?: [{	input: ValueTypes["MarketplaceSignOnboardingOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOnboardingState"]],
 marketplaceSubmitWriteoffDraft?: [{	data: ValueTypes["MarketplaceSubmitWriteoffDraftInput"] | Variable<any, string>},ValueTypes["MarketplaceWriteoffProposal"]],
-marketplaceTriggerOpenSubscription?: [{	input: ValueTypes["MarketplaceTriggerOpenSubscriptionInput"] | Variable<any, string>},ValueTypes["MarketplaceConsolidatedRequest"]],
 marketplaceUpdateOffer?: [{	input: ValueTypes["MarketplaceUpdateOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
 marketplaceUpdateWriteoffDraft?: [{	data: ValueTypes["MarketplaceUpdateWriteoffDraftInput"] | Variable<any, string>},ValueTypes["MarketplaceWriteoffProposal"]],
 marketplaceWithdrawOffer?: [{	input: ValueTypes["MarketplaceWithdrawOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
@@ -16200,21 +16159,16 @@ export type ResolverInputTypes = {
 	reportType: ResolverInputTypes["ReportType"],
 	year: number
 };
-	/** Параметры приёма сводной заявки поставщиком. */
-["MarketplaceAcceptConsolidatedRequestInput"]: {
-	/** Идентификатор сводной заявки, ожидающей решения поставщика. */
-	request_id: string
-};
 	["MarketplaceAcceptCppInput"]: {
 	/** id решения Совета (FR40, Эпик 8). В MVP — stub string председателя. */
 	accepted_by_board_decision_id: string,
 	/** registry_id рендеренного instance положения ЦПП (Story 1.7 даст id из cooptypes) */
 	document_registry_id: number
 };
-	/** Параметры индивидуального приёма заказа поставщиком. */
-["MarketplaceAcceptIndividualOrderInput"]: {
-	/** Идентификатор заказа индивидуального типа, который поставщик принимает. */
-	order_id: string
+	/** Параметры приёма поставщиком выбранных заказов к поставке (любое подмножество группы offer × КУ). */
+["MarketplaceAcceptOrdersBatchInput"]: {
+	/** Идентификаторы заказов, которые поставщик берёт к поставке. */
+	order_ids: Array<string>
 };
 	["MarketplaceAcceptReturnAtVisitInput"]: {
 	/** Кооперативный участок, где идёт очный осмотр. */
@@ -16569,14 +16523,12 @@ export type ResolverInputTypes = {
 	created_at?:boolean | `@${string}`,
 	cycle_ended_at?:boolean | `@${string}`,
 	cycle_started_at?:boolean | `@${string}`,
-	/** time_based | volume_based | open_subscription | individual */
-	cycle_type?:boolean | `@${string}`,
 	decline_reason?:boolean | `@${string}`,
 	declined_at?:boolean | `@${string}`,
 	expires_at?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
 	offer_id?:boolean | `@${string}`,
-	/** PENDING_SUPPLIER_ACCEPT | ACCEPTED | DECLINED_BY_SUPPLIER | EXPIRED_NO_RESPONSE | EXPIRED_NO_THRESHOLD | EXPIRED_NO_VOLUME */
+	/** PENDING_SUPPLIER_ACCEPT | ACCEPTED | DECLINED_BY_SUPPLIER | EXPIRED_NO_RESPONSE */
 	status?:boolean | `@${string}`,
 	supplier_account?:boolean | `@${string}`,
 	/** Сумма заявки (numeric как string). */
@@ -16584,18 +16536,6 @@ export type ResolverInputTypes = {
 	total_quantity?:boolean | `@${string}`,
 	triggered_by_supplier_at?:boolean | `@${string}`,
 	updated_at?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`
-}>;
-	/** Результат массового действия поставщика над пакетом заказов (приём или отклонение). */
-["MarketplaceConsolidatedRequestActionResult"]: AliasType<{
-	/** Сколько заказов входило в обработанный пакет. */
-	affected_orders?:boolean | `@${string}`,
-	/** Сколько заказов из пакета не удалось провести в блокчейн — потребуется повторная обработка. */
-	on_chain_failed?:boolean | `@${string}`,
-	/** Сколько заказов из пакета удалось провести в блокчейн. */
-	on_chain_succeeded?:boolean | `@${string}`,
-	/** Сводная заявка после обработки. */
-	request?:ResolverInputTypes["MarketplaceConsolidatedRequest"],
 		__typename?: boolean | `@${string}`
 }>;
 	["MarketplaceConsolidatedRequestPaginationResult"]: AliasType<{
@@ -16642,21 +16582,17 @@ export type ResolverInputTypes = {
 	/** Стратегия маркировки штрих-кодом при приёмке на КУ. По умолчанию «по заказу» (PER_ORDER). */
 	barcode_strategy?: ResolverInputTypes["MarketplaceBarcodeStrategy"] | undefined | null,
 	category_id: number,
-	cycle_days?: number | undefined | null,
-	/** time_based | volume_based | open_subscription | individual */
-	cycle_type: string,
+	/** КУ поставки с минимальным объёмом на каждом. Минимум один участок; min_supply_volume = 1 означает поставку по одному заказу, >1 — накопление партии. */
+	delivery_points: Array<ResolverInputTypes["MarketplaceOfferDeliveryPointInput"]>,
 	description?: string | undefined | null,
 	/** Изображения товара (base64). Порядок = порядок показа, первое — обложка. До 8 файлов, каждый ≤ 10 МБ, JPEG/PNG/WEBP. */
 	images?: Array<ResolverInputTypes["MarketplaceOfferImageUploadInput"]> | undefined | null,
-	max_wait_days?: number | undefined | null,
-	min_threshold?: number | undefined | null,
 	/** Размер упаковки для стратегии «по упаковке» (обязателен при PER_PACKAGE). */
 	pack_size?: number | undefined | null,
 	/** Цена за единицу (numeric как string, до 4 знаков) */
 	price_per_unit: string,
 	product_name: string,
 	quantity_available?: number | undefined | null,
-	target_volume?: number | undefined | null,
 	/** piece | kg | liter | pack */
 	unit_of_measure: string,
 	unlimited_flag: boolean,
@@ -16714,25 +16650,11 @@ export type ResolverInputTypes = {
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	/** Параметры отказа поставщика от сводной заявки. */
-["MarketplaceDeclineConsolidatedRequestInput"]: {
+	/** Параметры отказа поставщика от выбранных активных заказов. */
+["MarketplaceDeclineOrdersBatchInput"]: {
+	/** Идентификаторы заказов, от которых поставщик отказывается. */
+	order_ids: Array<string>,
 	/** Текст причины отказа — будет показан пайщикам в их заказах. */
-	reason: string,
-	/** Идентификатор сводной заявки, от которой поставщик отказывается. */
-	request_id: string
-};
-	/** Параметры индивидуального отказа поставщика от заказа. */
-["MarketplaceDeclineIndividualOrderInput"]: {
-	/** Идентификатор заказа индивидуального типа, от которого поставщик отказывается. */
-	order_id: string,
-	/** Текст причины отказа — будет показан пайщику в его заказе. */
-	reason: string
-};
-	/** Параметры отказа поставщика от одного заказа из пула открытой подписки до запуска поставки. */
-["MarketplaceDeclineOrderFromOpenPoolInput"]: {
-	/** Идентификатор заказа из пула открытой подписки, от которого поставщик отказывается до запуска поставки. */
-	order_id: string,
-	/** Текст причины отказа — будет показан пайщику в его заказе. */
 	reason: string
 };
 	["MarketplaceDetailKUInput"]: {
@@ -17114,15 +17036,12 @@ export type ResolverInputTypes = {
 	category_id?:boolean | `@${string}`,
 	coopname?:boolean | `@${string}`,
 	created_at?:boolean | `@${string}`,
-	cycle_days?:boolean | `@${string}`,
-	/** time_based | volume_based | open_subscription | individual */
-	cycle_type?:boolean | `@${string}`,
+	/** КУ поставки с минимальным объёмом на каждом. */
+	delivery_points?:ResolverInputTypes["MarketplaceOfferDeliveryPoint"],
 	description?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
 	/** Изображения товара (обложка — первое). URL подписаны и ограничены по TTL. */
 	images?:ResolverInputTypes["MarketplaceOfferImage"],
-	max_wait_days?:boolean | `@${string}`,
-	min_threshold?:boolean | `@${string}`,
 	/** Размер упаковки для стратегии «по упаковке» (целое число > 0) */
 	pack_size?:boolean | `@${string}`,
 	/** Цена за единицу (numeric как string) */
@@ -17137,7 +17056,6 @@ export type ResolverInputTypes = {
 	/** PENDING_MODERATION | ACTIVE | REJECTED | WITHDRAWN */
 	status?:boolean | `@${string}`,
 	supplier_account?:boolean | `@${string}`,
-	target_volume?:boolean | `@${string}`,
 	/** piece | kg | liter | pack */
 	unit_of_measure?:boolean | `@${string}`,
 	unlimited_flag?:boolean | `@${string}`,
@@ -17146,6 +17064,19 @@ export type ResolverInputTypes = {
 	warranty_days?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["MarketplaceOfferDeliveryPoint"]: AliasType<{
+	/** Кооперативный участок (ПВЗ) поставки. */
+	braname?:boolean | `@${string}`,
+	/** Минимальный объём, от которого поставщик готов везти на этот участок (в единицах товара). Ориентир для накопления партии, не жёсткий порог. */
+	min_supply_volume?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceOfferDeliveryPointInput"]: {
+	/** Кооперативный участок (ПВЗ), на который поставщик готов везти. */
+	braname: string,
+	/** Минимальный объём поставки на этот участок (в единицах товара, ≥ 1). */
+	min_supply_volume: number
+};
 	["MarketplaceOfferImage"]: AliasType<{
 	/** Ключ объекта в хранилище — стабильный идентификатор изображения. Передаётся обратно при редактировании, чтобы сохранить уже загруженное изображение (в отличие от base64 для новых файлов). */
 	bucket_key?:boolean | `@${string}`,
@@ -17220,8 +17151,6 @@ export type ResolverInputTypes = {
 	current_warehouse_braname?:boolean | `@${string}`,
 	/** Идентификатор партии-накопителя, если заказ присоединён. */
 	cycle_id?:boolean | `@${string}`,
-	/** Способ накопления заказов перед поставкой (копируется из предложения). */
-	cycle_type?:boolean | `@${string}`,
 	/** Имя пункта выдачи (ПВЗ), куда пайщик хочет получить заказ. */
 	delivery_braname?:boolean | `@${string}`,
 	/** Адрес пункта выдачи — для отображения вместо служебного идентификатора ПВЗ. */
@@ -17292,8 +17221,6 @@ export type ResolverInputTypes = {
 	tx_hash?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	/** Способ накопления заказов перед поставкой. */
-["MarketplaceOrderCycleType"]:MarketplaceOrderCycleType;
 	/** Сверка фактической выдачи с заказом: equal — совпало, less — выдано меньше, more — выдано больше с доплатой. */
 ["MarketplaceOrderIssuanceFactDiffState"]:MarketplaceOrderIssuanceFactDiffState;
 	/** Фактическая выдача имущества пайщику на ПВЗ. */
@@ -17840,34 +17767,29 @@ export type ResolverInputTypes = {
 	/** Подписанное председателем Заявление о списании скоропорта (registry_id=1106). */
 	signed_statement: ResolverInputTypes["SignedDigitalDocumentInput"]
 };
-	/** Результат индивидуального приёма или отклонения заказа поставщиком. */
-["MarketplaceSupplierOrderActionResult"]: AliasType<{
-	/** Заказ после изменения статуса. */
-	order?:ResolverInputTypes["MarketplaceOrder"],
-	/** Идентификатор транзакции приёма или отклонения. */
-	tx_hash?:boolean | `@${string}`,
+	/** Результат массового приёма или отказа поставщика над выбранными заказами. */
+["MarketplaceSupplierBatchActionResult"]: AliasType<{
+	/** Идентификатор партии-накопителя, в которую обёрнуты принятые заказы (null при отказе). */
+	cycle_id?:boolean | `@${string}`,
+	/** Заказы после изменения статуса. */
+	orders?:ResolverInputTypes["MarketplaceOrder"],
+	/** Идентификаторы транзакций приёма/отказа в блокчейне. */
+	tx_hashes?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	["MarketplaceTriggerOpenSubscriptionInput"]: {
-	/** Идентификатор предложения с открытой подпиской, по которому поставщик запускает поставку. */
-	offer_id: string
-};
 	["MarketplaceUpdateOfferInput"]: {
 	barcode_strategy?: ResolverInputTypes["MarketplaceBarcodeStrategy"] | undefined | null,
 	category_id?: number | undefined | null,
-	cycle_days?: number | undefined | null,
-	cycle_type?: string | undefined | null,
+	/** КУ поставки с минимальным объёмом. Если передано — полностью заменяет набор. */
+	delivery_points?: Array<ResolverInputTypes["MarketplaceOfferDeliveryPointInput"]> | undefined | null,
 	description?: string | undefined | null,
 	id: string,
 	/** Изображения товара (base64). Если передано — полностью заменяет текущий набор. До 8 файлов, каждый ≤ 10 МБ, JPEG/PNG/WEBP. */
 	images?: Array<ResolverInputTypes["MarketplaceOfferImageUploadInput"]> | undefined | null,
-	max_wait_days?: number | undefined | null,
-	min_threshold?: number | undefined | null,
 	pack_size?: number | undefined | null,
 	price_per_unit?: string | undefined | null,
 	product_name?: string | undefined | null,
 	quantity_available?: number | undefined | null,
-	target_volume?: number | undefined | null,
 	unit_of_measure?: string | undefined | null,
 	unlimited_flag?: boolean | undefined | null,
 	warranty_days?: number | undefined | null
@@ -18341,9 +18263,8 @@ installSystem?: [{	data: ResolverInputTypes["Install"]},ResolverInputTypes["Syst
 login?: [{	data: ResolverInputTypes["LoginInput"]},ResolverInputTypes["RegisteredAccount"]],
 logout?: [{	data: ResolverInputTypes["LogoutInput"]},boolean | `@${string}`],
 markReportPeriod?: [{	data: ResolverInputTypes["MarkReportPeriodInput"]},boolean | `@${string}`],
-marketplaceAcceptConsolidatedRequest?: [{	input: ResolverInputTypes["MarketplaceAcceptConsolidatedRequestInput"]},ResolverInputTypes["MarketplaceConsolidatedRequestActionResult"]],
 marketplaceAcceptCpp?: [{	input: ResolverInputTypes["MarketplaceAcceptCppInput"]},ResolverInputTypes["MarketplaceCppStatus"]],
-marketplaceAcceptIndividualOrder?: [{	input: ResolverInputTypes["MarketplaceAcceptIndividualOrderInput"]},ResolverInputTypes["MarketplaceSupplierOrderActionResult"]],
+marketplaceAcceptOrdersBatch?: [{	input: ResolverInputTypes["MarketplaceAcceptOrdersBatchInput"]},ResolverInputTypes["MarketplaceSupplierBatchActionResult"]],
 marketplaceAcceptReturnAtVisit?: [{	data: ResolverInputTypes["MarketplaceAcceptReturnAtVisitInput"]},ResolverInputTypes["MarketplaceReturnClaimResult"]],
 marketplaceAddAvailableCategories?: [{	input: ResolverInputTypes["AddAvailableCategoriesInput"]},ResolverInputTypes["MarketplaceAvailableCategory"]],
 marketplaceAddAvailableCategoryTypes?: [{	input: ResolverInputTypes["AddAvailableCategoryTypesInput"]},ResolverInputTypes["MarketplaceAvailableCategory"]],
@@ -18364,9 +18285,7 @@ marketplaceCreateRequest?: [{	data: ResolverInputTypes["CreateRequestInput"]},Re
 marketplaceCreateReturnClaim?: [{	data: ResolverInputTypes["MarketplaceCreateReturnClaimInput"]},ResolverInputTypes["MarketplaceReturnClaimResult"]],
 marketplaceCreateShipment?: [{	data: ResolverInputTypes["MarketplaceCreateShipmentInput"]},ResolverInputTypes["MarketplaceCreateShipmentResult"]],
 marketplaceCreateWriteoffDraft?: [{	data: ResolverInputTypes["MarketplaceCreateWriteoffDraftInput"]},ResolverInputTypes["MarketplaceWriteoffProposal"]],
-marketplaceDeclineConsolidatedRequest?: [{	input: ResolverInputTypes["MarketplaceDeclineConsolidatedRequestInput"]},ResolverInputTypes["MarketplaceConsolidatedRequestActionResult"]],
-marketplaceDeclineIndividualOrder?: [{	input: ResolverInputTypes["MarketplaceDeclineIndividualOrderInput"]},ResolverInputTypes["MarketplaceSupplierOrderActionResult"]],
-marketplaceDeclineOrderFromOpenPool?: [{	input: ResolverInputTypes["MarketplaceDeclineOrderFromOpenPoolInput"]},ResolverInputTypes["MarketplaceSupplierOrderActionResult"]],
+marketplaceDeclineOrdersBatch?: [{	input: ResolverInputTypes["MarketplaceDeclineOrdersBatchInput"]},ResolverInputTypes["MarketplaceSupplierBatchActionResult"]],
 marketplaceDetailKU?: [{	data: ResolverInputTypes["MarketplaceDetailKUInput"]},ResolverInputTypes["MarketplaceKUDetails"]],
 marketplaceFinalizeIssuance?: [{	data: ResolverInputTypes["MarketplaceFinalizeIssuanceInput"]},ResolverInputTypes["MarketplaceIssuanceResult"]],
 marketplaceLabelInventory?: [{	data: ResolverInputTypes["MarketplaceLabelInventoryInput"]},ResolverInputTypes["MarketplaceLabelInventoryResult"]],
@@ -18386,7 +18305,6 @@ marketplaceSignAplReceptionAsChairman?: [{	data: ResolverInputTypes["Marketplace
 marketplaceSignAplReceptionAsSupplier?: [{	data: ResolverInputTypes["MarketplaceSignAplReceptionInput"]},ResolverInputTypes["MarketplaceAplReceptionResult"]],
 marketplaceSignOnboardingOffer?: [{	input: ResolverInputTypes["MarketplaceSignOnboardingOfferInput"]},ResolverInputTypes["MarketplaceOnboardingState"]],
 marketplaceSubmitWriteoffDraft?: [{	data: ResolverInputTypes["MarketplaceSubmitWriteoffDraftInput"]},ResolverInputTypes["MarketplaceWriteoffProposal"]],
-marketplaceTriggerOpenSubscription?: [{	input: ResolverInputTypes["MarketplaceTriggerOpenSubscriptionInput"]},ResolverInputTypes["MarketplaceConsolidatedRequest"]],
 marketplaceUpdateOffer?: [{	input: ResolverInputTypes["MarketplaceUpdateOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
 marketplaceUpdateWriteoffDraft?: [{	data: ResolverInputTypes["MarketplaceUpdateWriteoffDraftInput"]},ResolverInputTypes["MarketplaceWriteoffProposal"]],
 marketplaceWithdrawOffer?: [{	input: ResolverInputTypes["MarketplaceWithdrawOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
@@ -26014,21 +25932,16 @@ export type ModelTypes = {
 	reportType: ModelTypes["ReportType"],
 	year: number
 };
-	/** Параметры приёма сводной заявки поставщиком. */
-["MarketplaceAcceptConsolidatedRequestInput"]: {
-	/** Идентификатор сводной заявки, ожидающей решения поставщика. */
-	request_id: string
-};
 	["MarketplaceAcceptCppInput"]: {
 	/** id решения Совета (FR40, Эпик 8). В MVP — stub string председателя. */
 	accepted_by_board_decision_id: string,
 	/** registry_id рендеренного instance положения ЦПП (Story 1.7 даст id из cooptypes) */
 	document_registry_id: number
 };
-	/** Параметры индивидуального приёма заказа поставщиком. */
-["MarketplaceAcceptIndividualOrderInput"]: {
-	/** Идентификатор заказа индивидуального типа, который поставщик принимает. */
-	order_id: string
+	/** Параметры приёма поставщиком выбранных заказов к поставке (любое подмножество группы offer × КУ). */
+["MarketplaceAcceptOrdersBatchInput"]: {
+	/** Идентификаторы заказов, которые поставщик берёт к поставке. */
+	order_ids: Array<string>
 };
 	["MarketplaceAcceptReturnAtVisitInput"]: {
 	/** Кооперативный участок, где идёт очный осмотр. */
@@ -26363,14 +26276,12 @@ export type ModelTypes = {
 	created_at: ModelTypes["DateTime"],
 	cycle_ended_at?: ModelTypes["DateTime"] | undefined | null,
 	cycle_started_at: ModelTypes["DateTime"],
-	/** time_based | volume_based | open_subscription | individual */
-	cycle_type: string,
 	decline_reason?: string | undefined | null,
 	declined_at?: ModelTypes["DateTime"] | undefined | null,
 	expires_at?: ModelTypes["DateTime"] | undefined | null,
 	id: string,
 	offer_id: string,
-	/** PENDING_SUPPLIER_ACCEPT | ACCEPTED | DECLINED_BY_SUPPLIER | EXPIRED_NO_RESPONSE | EXPIRED_NO_THRESHOLD | EXPIRED_NO_VOLUME */
+	/** PENDING_SUPPLIER_ACCEPT | ACCEPTED | DECLINED_BY_SUPPLIER | EXPIRED_NO_RESPONSE */
 	status: string,
 	supplier_account: string,
 	/** Сумма заявки (numeric как string). */
@@ -26378,17 +26289,6 @@ export type ModelTypes = {
 	total_quantity: number,
 	triggered_by_supplier_at?: ModelTypes["DateTime"] | undefined | null,
 	updated_at: ModelTypes["DateTime"]
-};
-	/** Результат массового действия поставщика над пакетом заказов (приём или отклонение). */
-["MarketplaceConsolidatedRequestActionResult"]: {
-		/** Сколько заказов входило в обработанный пакет. */
-	affected_orders: number,
-	/** Сколько заказов из пакета не удалось провести в блокчейн — потребуется повторная обработка. */
-	on_chain_failed: number,
-	/** Сколько заказов из пакета удалось провести в блокчейн. */
-	on_chain_succeeded: number,
-	/** Сводная заявка после обработки. */
-	request: ModelTypes["MarketplaceConsolidatedRequest"]
 };
 	["MarketplaceConsolidatedRequestPaginationResult"]: {
 		/** Текущая страница */
@@ -26430,21 +26330,17 @@ export type ModelTypes = {
 	/** Стратегия маркировки штрих-кодом при приёмке на КУ. По умолчанию «по заказу» (PER_ORDER). */
 	barcode_strategy?: ModelTypes["MarketplaceBarcodeStrategy"] | undefined | null,
 	category_id: number,
-	cycle_days?: number | undefined | null,
-	/** time_based | volume_based | open_subscription | individual */
-	cycle_type: string,
+	/** КУ поставки с минимальным объёмом на каждом. Минимум один участок; min_supply_volume = 1 означает поставку по одному заказу, >1 — накопление партии. */
+	delivery_points: Array<ModelTypes["MarketplaceOfferDeliveryPointInput"]>,
 	description?: string | undefined | null,
 	/** Изображения товара (base64). Порядок = порядок показа, первое — обложка. До 8 файлов, каждый ≤ 10 МБ, JPEG/PNG/WEBP. */
 	images?: Array<ModelTypes["MarketplaceOfferImageUploadInput"]> | undefined | null,
-	max_wait_days?: number | undefined | null,
-	min_threshold?: number | undefined | null,
 	/** Размер упаковки для стратегии «по упаковке» (обязателен при PER_PACKAGE). */
 	pack_size?: number | undefined | null,
 	/** Цена за единицу (numeric как string, до 4 знаков) */
 	price_per_unit: string,
 	product_name: string,
 	quantity_available?: number | undefined | null,
-	target_volume?: number | undefined | null,
 	/** piece | kg | liter | pack */
 	unit_of_measure: string,
 	unlimited_flag: boolean,
@@ -26499,25 +26395,11 @@ export type ModelTypes = {
 	marketplace_roles: Array<string>,
 	username: string
 };
-	/** Параметры отказа поставщика от сводной заявки. */
-["MarketplaceDeclineConsolidatedRequestInput"]: {
+	/** Параметры отказа поставщика от выбранных активных заказов. */
+["MarketplaceDeclineOrdersBatchInput"]: {
+	/** Идентификаторы заказов, от которых поставщик отказывается. */
+	order_ids: Array<string>,
 	/** Текст причины отказа — будет показан пайщикам в их заказах. */
-	reason: string,
-	/** Идентификатор сводной заявки, от которой поставщик отказывается. */
-	request_id: string
-};
-	/** Параметры индивидуального отказа поставщика от заказа. */
-["MarketplaceDeclineIndividualOrderInput"]: {
-	/** Идентификатор заказа индивидуального типа, от которого поставщик отказывается. */
-	order_id: string,
-	/** Текст причины отказа — будет показан пайщику в его заказе. */
-	reason: string
-};
-	/** Параметры отказа поставщика от одного заказа из пула открытой подписки до запуска поставки. */
-["MarketplaceDeclineOrderFromOpenPoolInput"]: {
-	/** Идентификатор заказа из пула открытой подписки, от которого поставщик отказывается до запуска поставки. */
-	order_id: string,
-	/** Текст причины отказа — будет показан пайщику в его заказе. */
 	reason: string
 };
 	["MarketplaceDetailKUInput"]: {
@@ -26888,15 +26770,12 @@ export type ModelTypes = {
 	category_id: number,
 	coopname: string,
 	created_at: ModelTypes["DateTime"],
-	cycle_days?: number | undefined | null,
-	/** time_based | volume_based | open_subscription | individual */
-	cycle_type: string,
+	/** КУ поставки с минимальным объёмом на каждом. */
+	delivery_points: Array<ModelTypes["MarketplaceOfferDeliveryPoint"]>,
 	description?: string | undefined | null,
 	id: string,
 	/** Изображения товара (обложка — первое). URL подписаны и ограничены по TTL. */
 	images: Array<ModelTypes["MarketplaceOfferImage"]>,
-	max_wait_days?: number | undefined | null,
-	min_threshold?: number | undefined | null,
 	/** Размер упаковки для стратегии «по упаковке» (целое число > 0) */
 	pack_size?: number | undefined | null,
 	/** Цена за единицу (numeric как string) */
@@ -26911,13 +26790,24 @@ export type ModelTypes = {
 	/** PENDING_MODERATION | ACTIVE | REJECTED | WITHDRAWN */
 	status: string,
 	supplier_account: string,
-	target_volume?: number | undefined | null,
 	/** piece | kg | liter | pack */
 	unit_of_measure: string,
 	unlimited_flag: boolean,
 	updated_at: ModelTypes["DateTime"],
 	vitrine_id: string,
 	warranty_days: number
+};
+	["MarketplaceOfferDeliveryPoint"]: {
+		/** Кооперативный участок (ПВЗ) поставки. */
+	braname: string,
+	/** Минимальный объём, от которого поставщик готов везти на этот участок (в единицах товара). Ориентир для накопления партии, не жёсткий порог. */
+	min_supply_volume: number
+};
+	["MarketplaceOfferDeliveryPointInput"]: {
+	/** Кооперативный участок (ПВЗ), на который поставщик готов везти. */
+	braname: string,
+	/** Минимальный объём поставки на этот участок (в единицах товара, ≥ 1). */
+	min_supply_volume: number
 };
 	["MarketplaceOfferImage"]: {
 		/** Ключ объекта в хранилище — стабильный идентификатор изображения. Передаётся обратно при редактировании, чтобы сохранить уже загруженное изображение (в отличие от base64 для новых файлов). */
@@ -26990,8 +26880,6 @@ export type ModelTypes = {
 	current_warehouse_braname?: string | undefined | null,
 	/** Идентификатор партии-накопителя, если заказ присоединён. */
 	cycle_id?: string | undefined | null,
-	/** Способ накопления заказов перед поставкой (копируется из предложения). */
-	cycle_type: ModelTypes["MarketplaceOrderCycleType"],
 	/** Имя пункта выдачи (ПВЗ), куда пайщик хочет получить заказ. */
 	delivery_braname: string,
 	/** Адрес пункта выдачи — для отображения вместо служебного идентификатора ПВЗ. */
@@ -27060,7 +26948,6 @@ export type ModelTypes = {
 	/** Идентификатор транзакции в блокчейне. */
 	tx_hash: string
 };
-	["MarketplaceOrderCycleType"]:MarketplaceOrderCycleType;
 	["MarketplaceOrderIssuanceFactDiffState"]:MarketplaceOrderIssuanceFactDiffState;
 	/** Фактическая выдача имущества пайщику на ПВЗ. */
 ["MarketplaceOrderIssuanceFactSnapshot"]: {
@@ -27582,33 +27469,28 @@ export type ModelTypes = {
 	/** Подписанное председателем Заявление о списании скоропорта (registry_id=1106). */
 	signed_statement: ModelTypes["SignedDigitalDocumentInput"]
 };
-	/** Результат индивидуального приёма или отклонения заказа поставщиком. */
-["MarketplaceSupplierOrderActionResult"]: {
-		/** Заказ после изменения статуса. */
-	order: ModelTypes["MarketplaceOrder"],
-	/** Идентификатор транзакции приёма или отклонения. */
-	tx_hash: string
-};
-	["MarketplaceTriggerOpenSubscriptionInput"]: {
-	/** Идентификатор предложения с открытой подпиской, по которому поставщик запускает поставку. */
-	offer_id: string
+	/** Результат массового приёма или отказа поставщика над выбранными заказами. */
+["MarketplaceSupplierBatchActionResult"]: {
+		/** Идентификатор партии-накопителя, в которую обёрнуты принятые заказы (null при отказе). */
+	cycle_id?: string | undefined | null,
+	/** Заказы после изменения статуса. */
+	orders: Array<ModelTypes["MarketplaceOrder"]>,
+	/** Идентификаторы транзакций приёма/отказа в блокчейне. */
+	tx_hashes: Array<string>
 };
 	["MarketplaceUpdateOfferInput"]: {
 	barcode_strategy?: ModelTypes["MarketplaceBarcodeStrategy"] | undefined | null,
 	category_id?: number | undefined | null,
-	cycle_days?: number | undefined | null,
-	cycle_type?: string | undefined | null,
+	/** КУ поставки с минимальным объёмом. Если передано — полностью заменяет набор. */
+	delivery_points?: Array<ModelTypes["MarketplaceOfferDeliveryPointInput"]> | undefined | null,
 	description?: string | undefined | null,
 	id: string,
 	/** Изображения товара (base64). Если передано — полностью заменяет текущий набор. До 8 файлов, каждый ≤ 10 МБ, JPEG/PNG/WEBP. */
 	images?: Array<ModelTypes["MarketplaceOfferImageUploadInput"]> | undefined | null,
-	max_wait_days?: number | undefined | null,
-	min_threshold?: number | undefined | null,
 	pack_size?: number | undefined | null,
 	price_per_unit?: string | undefined | null,
 	product_name?: string | undefined | null,
 	quantity_available?: number | undefined | null,
-	target_volume?: number | undefined | null,
 	unit_of_measure?: string | undefined | null,
 	unlimited_flag?: boolean | undefined | null,
 	warranty_days?: number | undefined | null
@@ -28455,12 +28337,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	markReportPeriod: boolean,
-	/** Поставщик принимает сводную заявку — все заказы в пакете переходят в принятое состояние. */
-	marketplaceAcceptConsolidatedRequest: ModelTypes["MarketplaceConsolidatedRequestActionResult"],
 	/** Зафиксировать принятие положения ЦПП «Стол заказов» Советом — admin-action из admin-стола. MVP-stub: председатель самостоятельно передаёт `accepted_by_board_decision_id`; в Эпике 8 поле будет валидироваться против реальной повестки совета. */
 	marketplaceAcceptCpp: ModelTypes["MarketplaceCppStatus"],
-	/** Поставщик принимает один индивидуальный заказ. */
-	marketplaceAcceptIndividualOrder: ModelTypes["MarketplaceSupplierOrderActionResult"],
+	/** Поставщик принимает к поставке выбранные заказы (любое подмножество группы offer × КУ) — единым массивом. */
+	marketplaceAcceptOrdersBatch: ModelTypes["MarketplaceSupplierBatchActionResult"],
 	/** Председатель по результатам очного осмотра принимает гарантийный возврат — атомарно восстанавливает средства на программный кошелёк пайщика и возвращает имущество на склад участка. */
 	marketplaceAcceptReturnAtVisit: ModelTypes["MarketplaceReturnClaimResult"],
 	/** Добавить категории в доступные для кооператива (целые категории)
@@ -28503,12 +28383,8 @@ export type ModelTypes = {
 	marketplaceCreateShipment: ModelTypes["MarketplaceCreateShipmentResult"],
 	/** Создаёт ручной черновик проекта списания. На кооператив может быть только один открытый черновик и один проект, отправленный в совет. */
 	marketplaceCreateWriteoffDraft: ModelTypes["MarketplaceWriteoffProposal"],
-	/** Поставщик отклоняет сводную заявку — все заказы пакета отменяются, средства разблокируются. */
-	marketplaceDeclineConsolidatedRequest: ModelTypes["MarketplaceConsolidatedRequestActionResult"],
-	/** Поставщик отказывается от одного индивидуального заказа; средства разблокируются. */
-	marketplaceDeclineIndividualOrder: ModelTypes["MarketplaceSupplierOrderActionResult"],
-	/** Поставщик отказывается от одного заказа из пула открытой подписки до запуска поставки (после запуска частичный отказ невозможен). */
-	marketplaceDeclineOrderFromOpenPool: ModelTypes["MarketplaceSupplierOrderActionResult"],
+	/** Поставщик отказывается от выбранных активных заказов; средства пайщиков разблокируются. */
+	marketplaceDeclineOrdersBatch: ModelTypes["MarketplaceSupplierBatchActionResult"],
 	/** Детализирует существующий в core кооперативный участок как ПВЗ Стола заказов. Создаёт запись marketplace_ku_details, либо обновляет существующую. При смене адреса запускает повторный геокодинг — координаты сбрасываются в PENDING и обновляются асинхронно.
 
 Требуемые роли: chairman.  */
@@ -28559,8 +28435,6 @@ export type ModelTypes = {
 	marketplaceSignOnboardingOffer: ModelTypes["MarketplaceOnboardingState"],
 	/** Отправить черновик в совет. Принимает подписанное председателем Заявление 1106. После успешного приёма выполняются propwroff и soviet::createagenda(mktwroff). */
 	marketplaceSubmitWriteoffDraft: ModelTypes["MarketplaceWriteoffProposal"],
-	/** Поставщик запускает поставку по предложению с открытой подпиской: формируется сводная заявка, заказы в её пуле принимаются. */
-	marketplaceTriggerOpenSubscription: ModelTypes["MarketplaceConsolidatedRequest"],
 	/** Поставщик правит свой Offer — статус сбрасывается в PENDING_MODERATION */
 	marketplaceUpdateOffer: ModelTypes["MarketplaceOffer"],
 	/** Изменить состав черновика — добавить, удалить или поправить позиции. */
@@ -36654,21 +36528,16 @@ export type GraphQLTypes = {
 	reportType: GraphQLTypes["ReportType"],
 	year: number
 };
-	/** Параметры приёма сводной заявки поставщиком. */
-["MarketplaceAcceptConsolidatedRequestInput"]: {
-		/** Идентификатор сводной заявки, ожидающей решения поставщика. */
-	request_id: string
-};
 	["MarketplaceAcceptCppInput"]: {
 		/** id решения Совета (FR40, Эпик 8). В MVP — stub string председателя. */
 	accepted_by_board_decision_id: string,
 	/** registry_id рендеренного instance положения ЦПП (Story 1.7 даст id из cooptypes) */
 	document_registry_id: number
 };
-	/** Параметры индивидуального приёма заказа поставщиком. */
-["MarketplaceAcceptIndividualOrderInput"]: {
-		/** Идентификатор заказа индивидуального типа, который поставщик принимает. */
-	order_id: string
+	/** Параметры приёма поставщиком выбранных заказов к поставке (любое подмножество группы offer × КУ). */
+["MarketplaceAcceptOrdersBatchInput"]: {
+		/** Идентификаторы заказов, которые поставщик берёт к поставке. */
+	order_ids: Array<string>
 };
 	["MarketplaceAcceptReturnAtVisitInput"]: {
 		/** Кооперативный участок, где идёт очный осмотр. */
@@ -37039,14 +36908,12 @@ export type GraphQLTypes = {
 	created_at: GraphQLTypes["DateTime"],
 	cycle_ended_at?: GraphQLTypes["DateTime"] | undefined | null,
 	cycle_started_at: GraphQLTypes["DateTime"],
-	/** time_based | volume_based | open_subscription | individual */
-	cycle_type: string,
 	decline_reason?: string | undefined | null,
 	declined_at?: GraphQLTypes["DateTime"] | undefined | null,
 	expires_at?: GraphQLTypes["DateTime"] | undefined | null,
 	id: string,
 	offer_id: string,
-	/** PENDING_SUPPLIER_ACCEPT | ACCEPTED | DECLINED_BY_SUPPLIER | EXPIRED_NO_RESPONSE | EXPIRED_NO_THRESHOLD | EXPIRED_NO_VOLUME */
+	/** PENDING_SUPPLIER_ACCEPT | ACCEPTED | DECLINED_BY_SUPPLIER | EXPIRED_NO_RESPONSE */
 	status: string,
 	supplier_account: string,
 	/** Сумма заявки (numeric как string). */
@@ -37055,19 +36922,6 @@ export type GraphQLTypes = {
 	triggered_by_supplier_at?: GraphQLTypes["DateTime"] | undefined | null,
 	updated_at: GraphQLTypes["DateTime"],
 	['...on MarketplaceConsolidatedRequest']: Omit<GraphQLTypes["MarketplaceConsolidatedRequest"], "...on MarketplaceConsolidatedRequest">
-};
-	/** Результат массового действия поставщика над пакетом заказов (приём или отклонение). */
-["MarketplaceConsolidatedRequestActionResult"]: {
-	__typename: "MarketplaceConsolidatedRequestActionResult",
-	/** Сколько заказов входило в обработанный пакет. */
-	affected_orders: number,
-	/** Сколько заказов из пакета не удалось провести в блокчейн — потребуется повторная обработка. */
-	on_chain_failed: number,
-	/** Сколько заказов из пакета удалось провести в блокчейн. */
-	on_chain_succeeded: number,
-	/** Сводная заявка после обработки. */
-	request: GraphQLTypes["MarketplaceConsolidatedRequest"],
-	['...on MarketplaceConsolidatedRequestActionResult']: Omit<GraphQLTypes["MarketplaceConsolidatedRequestActionResult"], "...on MarketplaceConsolidatedRequestActionResult">
 };
 	["MarketplaceConsolidatedRequestPaginationResult"]: {
 	__typename: "MarketplaceConsolidatedRequestPaginationResult",
@@ -37116,21 +36970,17 @@ export type GraphQLTypes = {
 		/** Стратегия маркировки штрих-кодом при приёмке на КУ. По умолчанию «по заказу» (PER_ORDER). */
 	barcode_strategy?: GraphQLTypes["MarketplaceBarcodeStrategy"] | undefined | null,
 	category_id: number,
-	cycle_days?: number | undefined | null,
-	/** time_based | volume_based | open_subscription | individual */
-	cycle_type: string,
+	/** КУ поставки с минимальным объёмом на каждом. Минимум один участок; min_supply_volume = 1 означает поставку по одному заказу, >1 — накопление партии. */
+	delivery_points: Array<GraphQLTypes["MarketplaceOfferDeliveryPointInput"]>,
 	description?: string | undefined | null,
 	/** Изображения товара (base64). Порядок = порядок показа, первое — обложка. До 8 файлов, каждый ≤ 10 МБ, JPEG/PNG/WEBP. */
 	images?: Array<GraphQLTypes["MarketplaceOfferImageUploadInput"]> | undefined | null,
-	max_wait_days?: number | undefined | null,
-	min_threshold?: number | undefined | null,
 	/** Размер упаковки для стратегии «по упаковке» (обязателен при PER_PACKAGE). */
 	pack_size?: number | undefined | null,
 	/** Цена за единицу (numeric как string, до 4 знаков) */
 	price_per_unit: string,
 	product_name: string,
 	quantity_available?: number | undefined | null,
-	target_volume?: number | undefined | null,
 	/** piece | kg | liter | pack */
 	unit_of_measure: string,
 	unlimited_flag: boolean,
@@ -37191,25 +37041,11 @@ export type GraphQLTypes = {
 	username: string,
 	['...on MarketplaceCurrentMember']: Omit<GraphQLTypes["MarketplaceCurrentMember"], "...on MarketplaceCurrentMember">
 };
-	/** Параметры отказа поставщика от сводной заявки. */
-["MarketplaceDeclineConsolidatedRequestInput"]: {
-		/** Текст причины отказа — будет показан пайщикам в их заказах. */
-	reason: string,
-	/** Идентификатор сводной заявки, от которой поставщик отказывается. */
-	request_id: string
-};
-	/** Параметры индивидуального отказа поставщика от заказа. */
-["MarketplaceDeclineIndividualOrderInput"]: {
-		/** Идентификатор заказа индивидуального типа, от которого поставщик отказывается. */
-	order_id: string,
-	/** Текст причины отказа — будет показан пайщику в его заказе. */
-	reason: string
-};
-	/** Параметры отказа поставщика от одного заказа из пула открытой подписки до запуска поставки. */
-["MarketplaceDeclineOrderFromOpenPoolInput"]: {
-		/** Идентификатор заказа из пула открытой подписки, от которого поставщик отказывается до запуска поставки. */
-	order_id: string,
-	/** Текст причины отказа — будет показан пайщику в его заказе. */
+	/** Параметры отказа поставщика от выбранных активных заказов. */
+["MarketplaceDeclineOrdersBatchInput"]: {
+		/** Идентификаторы заказов, от которых поставщик отказывается. */
+	order_ids: Array<string>,
+	/** Текст причины отказа — будет показан пайщикам в их заказах. */
 	reason: string
 };
 	["MarketplaceDetailKUInput"]: {
@@ -37602,15 +37438,12 @@ export type GraphQLTypes = {
 	category_id: number,
 	coopname: string,
 	created_at: GraphQLTypes["DateTime"],
-	cycle_days?: number | undefined | null,
-	/** time_based | volume_based | open_subscription | individual */
-	cycle_type: string,
+	/** КУ поставки с минимальным объёмом на каждом. */
+	delivery_points: Array<GraphQLTypes["MarketplaceOfferDeliveryPoint"]>,
 	description?: string | undefined | null,
 	id: string,
 	/** Изображения товара (обложка — первое). URL подписаны и ограничены по TTL. */
 	images: Array<GraphQLTypes["MarketplaceOfferImage"]>,
-	max_wait_days?: number | undefined | null,
-	min_threshold?: number | undefined | null,
 	/** Размер упаковки для стратегии «по упаковке» (целое число > 0) */
 	pack_size?: number | undefined | null,
 	/** Цена за единицу (numeric как string) */
@@ -37625,7 +37458,6 @@ export type GraphQLTypes = {
 	/** PENDING_MODERATION | ACTIVE | REJECTED | WITHDRAWN */
 	status: string,
 	supplier_account: string,
-	target_volume?: number | undefined | null,
 	/** piece | kg | liter | pack */
 	unit_of_measure: string,
 	unlimited_flag: boolean,
@@ -37633,6 +37465,20 @@ export type GraphQLTypes = {
 	vitrine_id: string,
 	warranty_days: number,
 	['...on MarketplaceOffer']: Omit<GraphQLTypes["MarketplaceOffer"], "...on MarketplaceOffer">
+};
+	["MarketplaceOfferDeliveryPoint"]: {
+	__typename: "MarketplaceOfferDeliveryPoint",
+	/** Кооперативный участок (ПВЗ) поставки. */
+	braname: string,
+	/** Минимальный объём, от которого поставщик готов везти на этот участок (в единицах товара). Ориентир для накопления партии, не жёсткий порог. */
+	min_supply_volume: number,
+	['...on MarketplaceOfferDeliveryPoint']: Omit<GraphQLTypes["MarketplaceOfferDeliveryPoint"], "...on MarketplaceOfferDeliveryPoint">
+};
+	["MarketplaceOfferDeliveryPointInput"]: {
+		/** Кооперативный участок (ПВЗ), на который поставщик готов везти. */
+	braname: string,
+	/** Минимальный объём поставки на этот участок (в единицах товара, ≥ 1). */
+	min_supply_volume: number
 };
 	["MarketplaceOfferImage"]: {
 	__typename: "MarketplaceOfferImage",
@@ -37712,8 +37558,6 @@ export type GraphQLTypes = {
 	current_warehouse_braname?: string | undefined | null,
 	/** Идентификатор партии-накопителя, если заказ присоединён. */
 	cycle_id?: string | undefined | null,
-	/** Способ накопления заказов перед поставкой (копируется из предложения). */
-	cycle_type: GraphQLTypes["MarketplaceOrderCycleType"],
 	/** Имя пункта выдачи (ПВЗ), куда пайщик хочет получить заказ. */
 	delivery_braname: string,
 	/** Адрес пункта выдачи — для отображения вместо служебного идентификатора ПВЗ. */
@@ -37785,8 +37629,6 @@ export type GraphQLTypes = {
 	tx_hash: string,
 	['...on MarketplaceOrderCreateTxSnapshot']: Omit<GraphQLTypes["MarketplaceOrderCreateTxSnapshot"], "...on MarketplaceOrderCreateTxSnapshot">
 };
-	/** Способ накопления заказов перед поставкой. */
-["MarketplaceOrderCycleType"]: MarketplaceOrderCycleType;
 	/** Сверка фактической выдачи с заказом: equal — совпало, less — выдано меньше, more — выдано больше с доплатой. */
 ["MarketplaceOrderIssuanceFactDiffState"]: MarketplaceOrderIssuanceFactDiffState;
 	/** Фактическая выдача имущества пайщику на ПВЗ. */
@@ -38350,35 +38192,30 @@ export type GraphQLTypes = {
 	/** Подписанное председателем Заявление о списании скоропорта (registry_id=1106). */
 	signed_statement: GraphQLTypes["SignedDigitalDocumentInput"]
 };
-	/** Результат индивидуального приёма или отклонения заказа поставщиком. */
-["MarketplaceSupplierOrderActionResult"]: {
-	__typename: "MarketplaceSupplierOrderActionResult",
-	/** Заказ после изменения статуса. */
-	order: GraphQLTypes["MarketplaceOrder"],
-	/** Идентификатор транзакции приёма или отклонения. */
-	tx_hash: string,
-	['...on MarketplaceSupplierOrderActionResult']: Omit<GraphQLTypes["MarketplaceSupplierOrderActionResult"], "...on MarketplaceSupplierOrderActionResult">
-};
-	["MarketplaceTriggerOpenSubscriptionInput"]: {
-		/** Идентификатор предложения с открытой подпиской, по которому поставщик запускает поставку. */
-	offer_id: string
+	/** Результат массового приёма или отказа поставщика над выбранными заказами. */
+["MarketplaceSupplierBatchActionResult"]: {
+	__typename: "MarketplaceSupplierBatchActionResult",
+	/** Идентификатор партии-накопителя, в которую обёрнуты принятые заказы (null при отказе). */
+	cycle_id?: string | undefined | null,
+	/** Заказы после изменения статуса. */
+	orders: Array<GraphQLTypes["MarketplaceOrder"]>,
+	/** Идентификаторы транзакций приёма/отказа в блокчейне. */
+	tx_hashes: Array<string>,
+	['...on MarketplaceSupplierBatchActionResult']: Omit<GraphQLTypes["MarketplaceSupplierBatchActionResult"], "...on MarketplaceSupplierBatchActionResult">
 };
 	["MarketplaceUpdateOfferInput"]: {
 		barcode_strategy?: GraphQLTypes["MarketplaceBarcodeStrategy"] | undefined | null,
 	category_id?: number | undefined | null,
-	cycle_days?: number | undefined | null,
-	cycle_type?: string | undefined | null,
+	/** КУ поставки с минимальным объёмом. Если передано — полностью заменяет набор. */
+	delivery_points?: Array<GraphQLTypes["MarketplaceOfferDeliveryPointInput"]> | undefined | null,
 	description?: string | undefined | null,
 	id: string,
 	/** Изображения товара (base64). Если передано — полностью заменяет текущий набор. До 8 файлов, каждый ≤ 10 МБ, JPEG/PNG/WEBP. */
 	images?: Array<GraphQLTypes["MarketplaceOfferImageUploadInput"]> | undefined | null,
-	max_wait_days?: number | undefined | null,
-	min_threshold?: number | undefined | null,
 	pack_size?: number | undefined | null,
 	price_per_unit?: string | undefined | null,
 	product_name?: string | undefined | null,
 	quantity_available?: number | undefined | null,
-	target_volume?: number | undefined | null,
 	unit_of_measure?: string | undefined | null,
 	unlimited_flag?: boolean | undefined | null,
 	warranty_days?: number | undefined | null
@@ -39258,12 +39095,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	markReportPeriod: boolean,
-	/** Поставщик принимает сводную заявку — все заказы в пакете переходят в принятое состояние. */
-	marketplaceAcceptConsolidatedRequest: GraphQLTypes["MarketplaceConsolidatedRequestActionResult"],
 	/** Зафиксировать принятие положения ЦПП «Стол заказов» Советом — admin-action из admin-стола. MVP-stub: председатель самостоятельно передаёт `accepted_by_board_decision_id`; в Эпике 8 поле будет валидироваться против реальной повестки совета. */
 	marketplaceAcceptCpp: GraphQLTypes["MarketplaceCppStatus"],
-	/** Поставщик принимает один индивидуальный заказ. */
-	marketplaceAcceptIndividualOrder: GraphQLTypes["MarketplaceSupplierOrderActionResult"],
+	/** Поставщик принимает к поставке выбранные заказы (любое подмножество группы offer × КУ) — единым массивом. */
+	marketplaceAcceptOrdersBatch: GraphQLTypes["MarketplaceSupplierBatchActionResult"],
 	/** Председатель по результатам очного осмотра принимает гарантийный возврат — атомарно восстанавливает средства на программный кошелёк пайщика и возвращает имущество на склад участка. */
 	marketplaceAcceptReturnAtVisit: GraphQLTypes["MarketplaceReturnClaimResult"],
 	/** Добавить категории в доступные для кооператива (целые категории)
@@ -39306,12 +39141,8 @@ export type GraphQLTypes = {
 	marketplaceCreateShipment: GraphQLTypes["MarketplaceCreateShipmentResult"],
 	/** Создаёт ручной черновик проекта списания. На кооператив может быть только один открытый черновик и один проект, отправленный в совет. */
 	marketplaceCreateWriteoffDraft: GraphQLTypes["MarketplaceWriteoffProposal"],
-	/** Поставщик отклоняет сводную заявку — все заказы пакета отменяются, средства разблокируются. */
-	marketplaceDeclineConsolidatedRequest: GraphQLTypes["MarketplaceConsolidatedRequestActionResult"],
-	/** Поставщик отказывается от одного индивидуального заказа; средства разблокируются. */
-	marketplaceDeclineIndividualOrder: GraphQLTypes["MarketplaceSupplierOrderActionResult"],
-	/** Поставщик отказывается от одного заказа из пула открытой подписки до запуска поставки (после запуска частичный отказ невозможен). */
-	marketplaceDeclineOrderFromOpenPool: GraphQLTypes["MarketplaceSupplierOrderActionResult"],
+	/** Поставщик отказывается от выбранных активных заказов; средства пайщиков разблокируются. */
+	marketplaceDeclineOrdersBatch: GraphQLTypes["MarketplaceSupplierBatchActionResult"],
 	/** Детализирует существующий в core кооперативный участок как ПВЗ Стола заказов. Создаёт запись marketplace_ku_details, либо обновляет существующую. При смене адреса запускает повторный геокодинг — координаты сбрасываются в PENDING и обновляются асинхронно.
 
 Требуемые роли: chairman.  */
@@ -39362,8 +39193,6 @@ export type GraphQLTypes = {
 	marketplaceSignOnboardingOffer: GraphQLTypes["MarketplaceOnboardingState"],
 	/** Отправить черновик в совет. Принимает подписанное председателем Заявление 1106. После успешного приёма выполняются propwroff и soviet::createagenda(mktwroff). */
 	marketplaceSubmitWriteoffDraft: GraphQLTypes["MarketplaceWriteoffProposal"],
-	/** Поставщик запускает поставку по предложению с открытой подпиской: формируется сводная заявка, заказы в её пуле принимаются. */
-	marketplaceTriggerOpenSubscription: GraphQLTypes["MarketplaceConsolidatedRequest"],
 	/** Поставщик правит свой Offer — статус сбрасывается в PENDING_MODERATION */
 	marketplaceUpdateOffer: GraphQLTypes["MarketplaceOffer"],
 	/** Изменить состав черновика — добавить, удалить или поправить позиции. */
@@ -43006,8 +42835,6 @@ export enum MarketplaceConsolidatedRequestStatus {
 	ACCEPTED = "ACCEPTED",
 	DECLINED_BY_SUPPLIER = "DECLINED_BY_SUPPLIER",
 	EXPIRED_NO_RESPONSE = "EXPIRED_NO_RESPONSE",
-	EXPIRED_NO_THRESHOLD = "EXPIRED_NO_THRESHOLD",
-	EXPIRED_NO_VOLUME = "EXPIRED_NO_VOLUME",
 	PENDING_SUPPLIER_ACCEPT = "PENDING_SUPPLIER_ACCEPT"
 }
 /** Состояние единицы имущества в инвентаре КУ. */
@@ -43016,13 +42843,6 @@ export enum MarketplaceInventoryStatus {
 	LABELED = "LABELED",
 	RETURNED = "RETURNED",
 	WRITTEN_OFF = "WRITTEN_OFF"
-}
-/** Способ накопления заказов перед поставкой. */
-export enum MarketplaceOrderCycleType {
-	INDIVIDUAL = "INDIVIDUAL",
-	OPEN_SUBSCRIPTION = "OPEN_SUBSCRIPTION",
-	TIME_BASED = "TIME_BASED",
-	VOLUME_BASED = "VOLUME_BASED"
 }
 /** Сверка фактической выдачи с заказом: equal — совпало, less — выдано меньше, more — выдано больше с доплатой. */
 export enum MarketplaceOrderIssuanceFactDiffState {
@@ -43039,8 +42859,6 @@ export enum MarketplaceOrderStatus {
 	ACTIVE = "ACTIVE",
 	CANCELLED_BY_ORDERER = "CANCELLED_BY_ORDERER",
 	CANCELLED_BY_SUPPLIER = "CANCELLED_BY_SUPPLIER",
-	EXPIRED_NO_THRESHOLD = "EXPIRED_NO_THRESHOLD",
-	EXPIRED_NO_VOLUME = "EXPIRED_NO_VOLUME",
 	READY_TO_RECEIVE = "READY_TO_RECEIVE",
 	RECEIVED = "RECEIVED",
 	RETURNED = "RETURNED",
@@ -43526,9 +43344,8 @@ type ZEUS_VARIABLES = {
 	["MakeClearanceInput"]: ValueTypes["MakeClearanceInput"];
 	["ManagedRoomKind"]: ValueTypes["ManagedRoomKind"];
 	["MarkReportPeriodInput"]: ValueTypes["MarkReportPeriodInput"];
-	["MarketplaceAcceptConsolidatedRequestInput"]: ValueTypes["MarketplaceAcceptConsolidatedRequestInput"];
 	["MarketplaceAcceptCppInput"]: ValueTypes["MarketplaceAcceptCppInput"];
-	["MarketplaceAcceptIndividualOrderInput"]: ValueTypes["MarketplaceAcceptIndividualOrderInput"];
+	["MarketplaceAcceptOrdersBatchInput"]: ValueTypes["MarketplaceAcceptOrdersBatchInput"];
 	["MarketplaceAcceptReturnAtVisitInput"]: ValueTypes["MarketplaceAcceptReturnAtVisitInput"];
 	["MarketplaceAddToWhitelistInput"]: ValueTypes["MarketplaceAddToWhitelistInput"];
 	["MarketplaceAplReceptionByIdInput"]: ValueTypes["MarketplaceAplReceptionByIdInput"];
@@ -43551,9 +43368,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceCreateReturnClaimInput"]: ValueTypes["MarketplaceCreateReturnClaimInput"];
 	["MarketplaceCreateShipmentInput"]: ValueTypes["MarketplaceCreateShipmentInput"];
 	["MarketplaceCreateWriteoffDraftInput"]: ValueTypes["MarketplaceCreateWriteoffDraftInput"];
-	["MarketplaceDeclineConsolidatedRequestInput"]: ValueTypes["MarketplaceDeclineConsolidatedRequestInput"];
-	["MarketplaceDeclineIndividualOrderInput"]: ValueTypes["MarketplaceDeclineIndividualOrderInput"];
-	["MarketplaceDeclineOrderFromOpenPoolInput"]: ValueTypes["MarketplaceDeclineOrderFromOpenPoolInput"];
+	["MarketplaceDeclineOrdersBatchInput"]: ValueTypes["MarketplaceDeclineOrdersBatchInput"];
 	["MarketplaceDetailKUInput"]: ValueTypes["MarketplaceDetailKUInput"];
 	["MarketplaceFinalizeIssuanceInput"]: ValueTypes["MarketplaceFinalizeIssuanceInput"];
 	["MarketplaceGetOrderInput"]: ValueTypes["MarketplaceGetOrderInput"];
@@ -43580,9 +43395,9 @@ type ZEUS_VARIABLES = {
 	["MarketplaceListShipmentsInput"]: ValueTypes["MarketplaceListShipmentsInput"];
 	["MarketplaceListSupplierPickupOrdersInput"]: ValueTypes["MarketplaceListSupplierPickupOrdersInput"];
 	["MarketplaceListWriteoffProposalsInput"]: ValueTypes["MarketplaceListWriteoffProposalsInput"];
+	["MarketplaceOfferDeliveryPointInput"]: ValueTypes["MarketplaceOfferDeliveryPointInput"];
 	["MarketplaceOfferImageUploadInput"]: ValueTypes["MarketplaceOfferImageUploadInput"];
 	["MarketplaceOpenIssuanceInput"]: ValueTypes["MarketplaceOpenIssuanceInput"];
-	["MarketplaceOrderCycleType"]: ValueTypes["MarketplaceOrderCycleType"];
 	["MarketplaceOrderIssuanceFactDiffState"]: ValueTypes["MarketplaceOrderIssuanceFactDiffState"];
 	["MarketplaceOrderStatus"]: ValueTypes["MarketplaceOrderStatus"];
 	["MarketplaceOutgoingPaymentRequestStatus"]: ValueTypes["MarketplaceOutgoingPaymentRequestStatus"];
@@ -43606,7 +43421,6 @@ type ZEUS_VARIABLES = {
 	["MarketplaceSignAplReceptionInput"]: ValueTypes["MarketplaceSignAplReceptionInput"];
 	["MarketplaceSignOnboardingOfferInput"]: ValueTypes["MarketplaceSignOnboardingOfferInput"];
 	["MarketplaceSubmitWriteoffDraftInput"]: ValueTypes["MarketplaceSubmitWriteoffDraftInput"];
-	["MarketplaceTriggerOpenSubscriptionInput"]: ValueTypes["MarketplaceTriggerOpenSubscriptionInput"];
 	["MarketplaceUpdateOfferInput"]: ValueTypes["MarketplaceUpdateOfferInput"];
 	["MarketplaceUpdateWriteoffDraftInput"]: ValueTypes["MarketplaceUpdateWriteoffDraftInput"];
 	["MarketplaceWithdrawOfferInput"]: ValueTypes["MarketplaceWithdrawOfferInput"];

@@ -22,7 +22,6 @@ export class MarketplaceOrderMapper {
       quantity: row.quantity,
       price_per_unit: row.price_per_unit,
       total_cost: row.total_cost,
-      cycle_type: row.cycle_type,
       cycle_id: row.cycle_id,
       shipment_id: row.shipment_id ?? null,
       warranty_period_secs: row.warranty_period_secs,

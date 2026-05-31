@@ -48,7 +48,6 @@ const rawOrderSelector = {
   quantity: true,
   price_per_unit: true,
   total_cost: true,
-  cycle_type: true,
   cycle_id: true,
   shipment_id: true,
   warranty_period_secs: true,
@@ -86,11 +85,12 @@ export const marketplaceCancelOrderResultSelector = Selector('MarketplaceCancelO
   tx_hash: true,
 })
 
-export const marketplaceSupplierOrderActionResultSelector = Selector(
-  'MarketplaceSupplierOrderActionResult',
+export const marketplaceSupplierBatchActionResultSelector = Selector(
+  'MarketplaceSupplierBatchActionResult',
 )({
-  order: rawOrderSelector,
-  tx_hash: true,
+  cycle_id: true,
+  orders: rawOrderSelector,
+  tx_hashes: true,
 })
 
 export const marketplaceOrderPaginationResultSelector = Selector('MarketplaceOrderPaginationResult')({

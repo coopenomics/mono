@@ -77,19 +77,11 @@ import {
   MARKETPLACE_ORDER_CANCEL_SERVICE,
 } from './services/marketplace-order-cancel.service';
 import {
-  MarketplaceConsolidatedRequestAcceptDeclineService,
-  MARKETPLACE_CONSOLIDATED_REQUEST_ACCEPT_DECLINE_SERVICE,
-} from './services/marketplace-consolidated-request-accept-decline.service';
-import {
   MarketplaceOrderSupplierActionService,
   MARKETPLACE_ORDER_SUPPLIER_ACTION_SERVICE,
 } from './services/marketplace-order-supplier-action.service';
 import { MarketplaceOrderSyncService } from '../sync/marketplace-order-sync.service';
 import { MarketplaceDesktopGrantsProvider } from './desktop/marketplace-desktop-grants.provider';
-import {
-  MarketplaceCycleAggregatorService,
-  MARKETPLACE_CYCLE_AGGREGATOR_SERVICE,
-} from './services/marketplace-cycle-aggregator.service';
 import {
   MarketplaceShipmentCreateService,
   MARKETPLACE_SHIPMENT_CREATE_SERVICE,
@@ -145,10 +137,9 @@ import { MarketplaceInventoryEntity } from '../infrastructure/entities/marketpla
     MarketplaceInfrastructureModule,
     // ACCOUNT_DATA_PORT для MarketplaceNotificationService (Эпик 5+ push-уведомления).
     AccountInfrastructureModule,
-    // @Cron в MarketplaceCycleAggregatorService (expireUnacceptedPending —
-    // авто-отмена непринятых партий раз в 10 минут). ScheduleModule.forRoot()
-    // идемпотентен — если AppModule тоже инициализирует его, NestJS использует
-    // singleton SchedulerRegistry.
+    // ScheduleModule для @Cron marketplace-сервисов. forRoot() идемпотентен —
+    // если AppModule тоже инициализирует его, NestJS использует singleton
+    // SchedulerRegistry.
     ScheduleModule.forRoot(),
     // Story 598-17 / AR35: marketplace AplReception/OutgoingPayment сервисам
     // нужен GATEWAY_INTERACTOR_PORT для синхронизации с core-реестром
@@ -286,23 +277,12 @@ import { MarketplaceInventoryEntity } from '../infrastructure/entities/marketpla
       useClass: MarketplaceOrderCancelService,
     },
     MarketplaceOrderCancelService,
-    // Story 4.5
-    {
-      provide: MARKETPLACE_CONSOLIDATED_REQUEST_ACCEPT_DECLINE_SERVICE,
-      useClass: MarketplaceConsolidatedRequestAcceptDeclineService,
-    },
-    MarketplaceConsolidatedRequestAcceptDeclineService,
+    // Эпик 15 — единый batch-accept/decline заказов поставщиком
     {
       provide: MARKETPLACE_ORDER_SUPPLIER_ACTION_SERVICE,
       useClass: MarketplaceOrderSupplierActionService,
     },
     MarketplaceOrderSupplierActionService,
-    // Story 4.2
-    {
-      provide: MARKETPLACE_CYCLE_AGGREGATOR_SERVICE,
-      useClass: MarketplaceCycleAggregatorService,
-    },
-    MarketplaceCycleAggregatorService,
     // Story 5.1 / 5.2 — формирование партий поставки + валидация состава
     {
       provide: MARKETPLACE_SHIPMENT_CREATE_SERVICE,
@@ -409,14 +389,9 @@ import { MarketplaceInventoryEntity } from '../infrastructure/entities/marketpla
     // Story 4.4
     MARKETPLACE_ORDER_CANCEL_SERVICE,
     MarketplaceOrderCancelService,
-    // Story 4.5
-    MARKETPLACE_CONSOLIDATED_REQUEST_ACCEPT_DECLINE_SERVICE,
-    MarketplaceConsolidatedRequestAcceptDeclineService,
+    // Эпик 15 — единый batch-accept/decline
     MARKETPLACE_ORDER_SUPPLIER_ACTION_SERVICE,
     MarketplaceOrderSupplierActionService,
-    // Story 4.2
-    MARKETPLACE_CYCLE_AGGREGATOR_SERVICE,
-    MarketplaceCycleAggregatorService,
     // Story 5.1 / 5.2
     MARKETPLACE_SHIPMENT_CREATE_SERVICE,
     MarketplaceShipmentCreateService,

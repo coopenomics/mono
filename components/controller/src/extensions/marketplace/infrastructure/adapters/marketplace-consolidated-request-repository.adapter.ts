@@ -32,7 +32,6 @@ export class MarketplaceConsolidatedRequestRepositoryAdapter
       coopname: input.coopname,
       offer_id: input.offer_id,
       supplier_account: input.supplier_account,
-      cycle_type: input.cycle_type,
       total_quantity: input.total_quantity,
       total_amount: input.total_amount,
       status: input.status,
@@ -71,7 +70,6 @@ export class MarketplaceConsolidatedRequestRepositoryAdapter
     const qb = this.repo.createQueryBuilder('r').where('r.coopname = :coop', { coop: filter.coopname });
     if (filter.offer_id) qb.andWhere('r.offer_id = :off', { off: filter.offer_id });
     if (filter.supplier_account) qb.andWhere('r.supplier_account = :sup', { sup: filter.supplier_account });
-    if (filter.cycle_type) qb.andWhere('r.cycle_type = :ct', { ct: filter.cycle_type });
     if (filter.status) {
       const statuses = Array.isArray(filter.status) ? filter.status : [filter.status];
       qb.andWhere('r.status IN (:...statuses)', { statuses });

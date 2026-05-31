@@ -10,12 +10,6 @@ registerEnumType(MarketplaceConsolidatedRequestStatusEnum, {
   description: 'Состояние сводной заявки поставщика на поставку партии заказов.',
 });
 
-@InputType('MarketplaceTriggerCollectiveSupplyInput')
-export class MarketplaceTriggerCollectiveSupplyInputDTO {
-  @Field(() => String, { description: 'Идентификатор предложения коллективной закупки, по которому поставщик запускает поставку.' })
-  public readonly offer_id!: string;
-}
-
 @InputType('MarketplaceListConsolidatedRequestsInput')
 export class MarketplaceListConsolidatedRequestsInputDTO {
   @Field(() => String, { nullable: true, description: 'Фильтр по идентификатору предложения.' })

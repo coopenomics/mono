@@ -21,13 +21,8 @@ import {
   MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
   type MarketplaceCanonicalBlockchainPort,
 } from '../../domain/ports/marketplace-canonical-blockchain.port';
-import {
-  MARKETPLACE_CYCLE_AGGREGATOR_SERVICE,
-  type MarketplaceCycleAggregatorService,
-} from './marketplace-cycle-aggregator.service';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import type { MarketplaceOrderCreateTxSnapshot } from '../../domain/entities/marketplace-order.types';
-import { toChainCycleType } from '../../domain/entities/marketplace-offer.types';
 import { rethrowChainError } from '../shared/chain-tx.util';
 
 export interface MarketplaceOrderCreateInputDto {
@@ -102,8 +97,6 @@ export class MarketplaceOrderCreateService {
     private readonly offerCounters: MarketplaceOfferCountersService,
     @Inject(MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT)
     private readonly chainPort: MarketplaceCanonicalBlockchainPort,
-    @Inject(MARKETPLACE_CYCLE_AGGREGATOR_SERVICE)
-    private readonly cycleAggregator: MarketplaceCycleAggregatorService,
     @Inject(MARKETPLACE_ASSET_CONFIG)
     private readonly assetConfig: MarketplaceAssetConfig,
     private readonly logger: WinstonLoggerService
@@ -159,7 +152,6 @@ export class MarketplaceOrderCreateService {
         delivery_braname: input.delivery_braname,
         quantity: input.quantity,
         unit_price: unit_price_asset,
-        cycle_type: toChainCycleType(offer.cycle_type),
         warranty_period_secs,
         batch_hash: MarketplaceOrderCreateService.ZERO_HASH,
       });
@@ -204,7 +196,6 @@ export class MarketplaceOrderCreateService {
       quantity: input.quantity,
       price_per_unit: offer.price_per_unit,
       total_cost: locked_amount,
-      cycle_type: offer.cycle_type,
       cycle_id: null,
       warranty_period_secs,
       warranty_until: null,
@@ -217,57 +208,10 @@ export class MarketplaceOrderCreateService {
       `MarketplaceOrderCreateService: Order ${order.id} (hash=${order_hash}) создан для ${input.orderer_account}; offer=${offer.id}, qty=${input.quantity}, total=${locked_amount}; tx=${txHash}`
     );
 
-    // Story 4.2: per-cycle_type hook сразу после persist.
-    order = await this.applyCycleTypeHook(order, offer);
-
+    // Эпик 15: заказ остаётся ACTIVE и копится в группе (offer × КУ). Партия
+    // формируется в момент batch-accept поставщиком из выбранных заказов —
+    // авто-агрегации/типа поставки больше нет.
     return { order, tx_snapshot: create_tx };
-  }
-
-  /**
-   * Применить backend-hook по способу поставки сразу после persist нового
-   * Order'а.
-   *
-   *  - `individual` → Order.status: ACTIVE → ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL.
-   *  - `collective` → если у Offer'а задан целевой объём и он достигнут —
-   *    formConsolidatedRequest сразу + Order вместе с пулом →
-   *    ACCEPTED_PENDING_SUPPLIER. Иначе Order ждёт ручного запуска поставщика.
-   *
-   * Hook не критичный — при ошибке логируем и возвращаем Order как есть.
-   */
-  private async applyCycleTypeHook(
-    order: MarketplaceOrderDomainEntity,
-    offer: { id: string; coopname: string; supplier_account: string; cycle_type: string; target_volume: number | null; price_per_unit: string }
-  ): Promise<MarketplaceOrderDomainEntity> {
-    try {
-      if (offer.cycle_type === 'individual') {
-        return await this.orderRepo.applyStatusTransition(
-          order.id,
-          'ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL',
-          'individual cycle_type — ожидание per-Order акцепта поставщика'
-        );
-      }
-      if (offer.cycle_type === 'collective') {
-        const cycle = await this.cycleAggregator.evaluateCollectiveAfterCreate(
-          offer.coopname,
-          offer.id,
-          offer.supplier_account,
-          offer.target_volume,
-          offer.price_per_unit
-        );
-        if (cycle) {
-          // assignToCycle уже изменил status в БД на ACCEPTED_PENDING_SUPPLIER —
-          // перечитываем актуальное состояние.
-          const refreshed = await this.orderRepo.findById(order.id);
-          if (refreshed) return refreshed;
-        }
-      }
-      return order;
-    } catch (error: any) {
-      this.logger.warn(
-        `MarketplaceOrderCreateService.applyCycleTypeHook: hook упал для Order ${order.id} (cycle_type=${offer.cycle_type}): ${error.message}; Order остаётся в ACTIVE, cron подберёт`
-      );
-      return order;
-    }
   }
 
   // ── private ──────────────────────────────────────────────────────

@@ -1,7 +1,6 @@
 import type { MarketplaceOrderDomainEntity } from '../entities/marketplace-order.entity';
 import type {
   MarketplaceOrderCreateTxSnapshot,
-  MarketplaceOrderCycleType,
   MarketplaceOrderIssuanceFactSnapshot,
   MarketplaceOrderStatus,
 } from '../entities/marketplace-order.types';
@@ -25,7 +24,6 @@ export interface MarketplaceOrderCreateInput {
   quantity: number;
   price_per_unit: string;
   total_cost: string;
-  cycle_type: MarketplaceOrderCycleType;
   cycle_id: string | null;
   warranty_period_secs: number;
   warranty_until: Date | null;

@@ -6955,12 +6955,6 @@ input MarkReportPeriodInput {
   year: Int!
 }
 
-"""Параметры приёма сводной заявки поставщиком."""
-input MarketplaceAcceptConsolidatedRequestInput {
-  """Идентификатор сводной заявки, ожидающей решения поставщика."""
-  request_id: String!
-}
-
 input MarketplaceAcceptCppInput {
   """id решения Совета (FR40, Эпик 8). В MVP — stub string председателя."""
   accepted_by_board_decision_id: String!
@@ -6971,12 +6965,12 @@ input MarketplaceAcceptCppInput {
   document_registry_id: Int!
 }
 
-"""Параметры индивидуального приёма заказа поставщиком."""
-input MarketplaceAcceptIndividualOrderInput {
-  """
-  Идентификатор заказа индивидуального типа, который поставщик принимает.
-  """
-  order_id: String!
+"""
+Параметры приёма поставщиком выбранных заказов к поставке (любое подмножество группы offer × КУ).
+"""
+input MarketplaceAcceptOrdersBatchInput {
+  """Идентификаторы заказов, которые поставщик берёт к поставке."""
+  order_ids: [String!]!
 }
 
 input MarketplaceAcceptReturnAtVisitInput {
@@ -7502,9 +7496,6 @@ type MarketplaceConsolidatedRequest {
   created_at: DateTime!
   cycle_ended_at: DateTime
   cycle_started_at: DateTime!
-
-  """time_based | volume_based | open_subscription | individual"""
-  cycle_type: String!
   decline_reason: String
   declined_at: DateTime
   expires_at: DateTime
@@ -7512,7 +7503,7 @@ type MarketplaceConsolidatedRequest {
   offer_id: String!
 
   """
-  PENDING_SUPPLIER_ACCEPT | ACCEPTED | DECLINED_BY_SUPPLIER | EXPIRED_NO_RESPONSE | EXPIRED_NO_THRESHOLD | EXPIRED_NO_VOLUME
+  PENDING_SUPPLIER_ACCEPT | ACCEPTED | DECLINED_BY_SUPPLIER | EXPIRED_NO_RESPONSE
   """
   status: String!
   supplier_account: String!
@@ -7522,25 +7513,6 @@ type MarketplaceConsolidatedRequest {
   total_quantity: Int!
   triggered_by_supplier_at: DateTime
   updated_at: DateTime!
-}
-
-"""
-Результат массового действия поставщика над пакетом заказов (приём или отклонение).
-"""
-type MarketplaceConsolidatedRequestActionResult {
-  """Сколько заказов входило в обработанный пакет."""
-  affected_orders: Int!
-
-  """
-  Сколько заказов из пакета не удалось провести в блокчейн — потребуется повторная обработка.
-  """
-  on_chain_failed: Int!
-
-  """Сколько заказов из пакета удалось провести в блокчейн."""
-  on_chain_succeeded: Int!
-
-  """Сводная заявка после обработки."""
-  request: MarketplaceConsolidatedRequest!
 }
 
 type MarketplaceConsolidatedRequestPaginationResult {
@@ -7562,8 +7534,6 @@ enum MarketplaceConsolidatedRequestStatus {
   ACCEPTED
   DECLINED_BY_SUPPLIER
   EXPIRED_NO_RESPONSE
-  EXPIRED_NO_THRESHOLD
-  EXPIRED_NO_VOLUME
   PENDING_SUPPLIER_ACCEPT
 }
 
@@ -7614,18 +7584,17 @@ input MarketplaceCreateOfferInput {
   """
   barcode_strategy: MarketplaceBarcodeStrategy
   category_id: Int!
-  cycle_days: Int
 
-  """time_based | volume_based | open_subscription | individual"""
-  cycle_type: String!
+  """
+  КУ поставки с минимальным объёмом на каждом. Минимум один участок; min_supply_volume = 1 означает поставку по одному заказу, >1 — накопление партии.
+  """
+  delivery_points: [MarketplaceOfferDeliveryPointInput!]!
   description: String
 
   """
   Изображения товара (base64). Порядок = порядок показа, первое — обложка. До 8 файлов, каждый ≤ 10 МБ, JPEG/PNG/WEBP.
   """
   images: [MarketplaceOfferImageUploadInput!]
-  max_wait_days: Int
-  min_threshold: Int
 
   """
   Размер упаковки для стратегии «по упаковке» (обязателен при PER_PACKAGE).
@@ -7636,7 +7605,6 @@ input MarketplaceCreateOfferInput {
   price_per_unit: String!
   product_name: String!
   quantity_available: Int
-  target_volume: Int
 
   """piece | kg | liter | pack"""
   unit_of_measure: String!
@@ -7716,36 +7684,12 @@ type MarketplaceCurrentMember {
   username: String!
 }
 
-"""Параметры отказа поставщика от сводной заявки."""
-input MarketplaceDeclineConsolidatedRequestInput {
+"""Параметры отказа поставщика от выбранных активных заказов."""
+input MarketplaceDeclineOrdersBatchInput {
+  """Идентификаторы заказов, от которых поставщик отказывается."""
+  order_ids: [String!]!
+
   """Текст причины отказа — будет показан пайщикам в их заказах."""
-  reason: String!
-
-  """Идентификатор сводной заявки, от которой поставщик отказывается."""
-  request_id: String!
-}
-
-"""Параметры индивидуального отказа поставщика от заказа."""
-input MarketplaceDeclineIndividualOrderInput {
-  """
-  Идентификатор заказа индивидуального типа, от которого поставщик отказывается.
-  """
-  order_id: String!
-
-  """Текст причины отказа — будет показан пайщику в его заказе."""
-  reason: String!
-}
-
-"""
-Параметры отказа поставщика от одного заказа из пула открытой подписки до запуска поставки.
-"""
-input MarketplaceDeclineOrderFromOpenPoolInput {
-  """
-  Идентификатор заказа из пула открытой подписки, от которого поставщик отказывается до запуска поставки.
-  """
-  order_id: String!
-
-  """Текст причины отказа — будет показан пайщику в его заказе."""
   reason: String!
 }
 
@@ -8287,10 +8231,9 @@ type MarketplaceOffer {
   category_id: Int!
   coopname: String!
   created_at: DateTime!
-  cycle_days: Int
 
-  """time_based | volume_based | open_subscription | individual"""
-  cycle_type: String!
+  """КУ поставки с минимальным объёмом на каждом."""
+  delivery_points: [MarketplaceOfferDeliveryPoint!]!
   description: String
   id: String!
 
@@ -8298,8 +8241,6 @@ type MarketplaceOffer {
   Изображения товара (обложка — первое). URL подписаны и ограничены по TTL.
   """
   images: [MarketplaceOfferImage!]!
-  max_wait_days: Int
-  min_threshold: Int
 
   """Размер упаковки для стратегии «по упаковке» (целое число > 0)"""
   pack_size: Int
@@ -8317,7 +8258,6 @@ type MarketplaceOffer {
   """PENDING_MODERATION | ACTIVE | REJECTED | WITHDRAWN"""
   status: String!
   supplier_account: String!
-  target_volume: Int
 
   """piece | kg | liter | pack"""
   unit_of_measure: String!
@@ -8325,6 +8265,24 @@ type MarketplaceOffer {
   updated_at: DateTime!
   vitrine_id: String!
   warranty_days: Int!
+}
+
+type MarketplaceOfferDeliveryPoint {
+  """Кооперативный участок (ПВЗ) поставки."""
+  braname: String!
+
+  """
+  Минимальный объём, от которого поставщик готов везти на этот участок (в единицах товара). Ориентир для накопления партии, не жёсткий порог.
+  """
+  min_supply_volume: Int!
+}
+
+input MarketplaceOfferDeliveryPointInput {
+  """Кооперативный участок (ПВЗ), на который поставщик готов везти."""
+  braname: String!
+
+  """Минимальный объём поставки на этот участок (в единицах товара, ≥ 1)."""
+  min_supply_volume: Int!
 }
 
 type MarketplaceOfferImage {
@@ -8443,9 +8401,6 @@ type MarketplaceOrder {
   """Идентификатор партии-накопителя, если заказ присоединён."""
   cycle_id: String
 
-  """Способ накопления заказов перед поставкой (копируется из предложения)."""
-  cycle_type: MarketplaceOrderCycleType!
-
   """Имя пункта выдачи (ПВЗ), куда пайщик хочет получить заказ."""
   delivery_braname: String!
 
@@ -8562,21 +8517,6 @@ type MarketplaceOrderCreateTxSnapshot {
   tx_hash: String!
 }
 
-"""Способ накопления заказов перед поставкой."""
-enum MarketplaceOrderCycleType {
-  """Каждый заказ обрабатывается отдельно, без накопления."""
-  INDIVIDUAL
-
-  """Поставщик запускает поставку вручную."""
-  OPEN_SUBSCRIPTION
-
-  """Поставка по истечении периода; собирается всё, что успело прийти."""
-  TIME_BASED
-
-  """Поставка стартует, когда набран целевой объём."""
-  VOLUME_BASED
-}
-
 """
 Сверка фактической выдачи с заказом: equal — совпало, less — выдано меньше, more — выдано больше с доплатой.
 """
@@ -8629,8 +8569,6 @@ enum MarketplaceOrderStatus {
   ACTIVE
   CANCELLED_BY_ORDERER
   CANCELLED_BY_SUPPLIER
-  EXPIRED_NO_THRESHOLD
-  EXPIRED_NO_VOLUME
   READY_TO_RECEIVE
   RECEIVED
   RETURNED
@@ -9404,27 +9342,30 @@ input MarketplaceSubmitWriteoffDraftInput {
   signed_statement: SignedDigitalDocumentInput!
 }
 
-"""Результат индивидуального приёма или отклонения заказа поставщиком."""
-type MarketplaceSupplierOrderActionResult {
-  """Заказ после изменения статуса."""
-  order: MarketplaceOrder!
-
-  """Идентификатор транзакции приёма или отклонения."""
-  tx_hash: String!
-}
-
-input MarketplaceTriggerOpenSubscriptionInput {
+"""
+Результат массового приёма или отказа поставщика над выбранными заказами.
+"""
+type MarketplaceSupplierBatchActionResult {
   """
-  Идентификатор предложения с открытой подпиской, по которому поставщик запускает поставку.
+  Идентификатор партии-накопителя, в которую обёрнуты принятые заказы (null при отказе).
   """
-  offer_id: String!
+  cycle_id: String
+
+  """Заказы после изменения статуса."""
+  orders: [MarketplaceOrder!]!
+
+  """Идентификаторы транзакций приёма/отказа в блокчейне."""
+  tx_hashes: [String!]!
 }
 
 input MarketplaceUpdateOfferInput {
   barcode_strategy: MarketplaceBarcodeStrategy
   category_id: Int
-  cycle_days: Int
-  cycle_type: String
+
+  """
+  КУ поставки с минимальным объёмом. Если передано — полностью заменяет набор.
+  """
+  delivery_points: [MarketplaceOfferDeliveryPointInput!]
   description: String
   id: String!
 
@@ -9432,13 +9373,10 @@ input MarketplaceUpdateOfferInput {
   Изображения товара (base64). Если передано — полностью заменяет текущий набор. До 8 файлов, каждый ≤ 10 МБ, JPEG/PNG/WEBP.
   """
   images: [MarketplaceOfferImageUploadInput!]
-  max_wait_days: Int
-  min_threshold: Int
   pack_size: Int
   price_per_unit: String
   product_name: String
   quantity_available: Int
-  target_volume: Int
   unit_of_measure: String
   unlimited_flag: Boolean
   warranty_days: Int
@@ -10834,17 +10772,14 @@ type Mutation {
   markReportPeriod(data: MarkReportPeriodInput!): Boolean!
 
   """
-  Поставщик принимает сводную заявку — все заказы в пакете переходят в принятое состояние.
-  """
-  marketplaceAcceptConsolidatedRequest(input: MarketplaceAcceptConsolidatedRequestInput!): MarketplaceConsolidatedRequestActionResult!
-
-  """
   Зафиксировать принятие положения ЦПП «Стол заказов» Советом — admin-action из admin-стола. MVP-stub: председатель самостоятельно передаёт `accepted_by_board_decision_id`; в Эпике 8 поле будет валидироваться против реальной повестки совета.
   """
   marketplaceAcceptCpp(input: MarketplaceAcceptCppInput!): MarketplaceCppStatus!
 
-  """Поставщик принимает один индивидуальный заказ."""
-  marketplaceAcceptIndividualOrder(input: MarketplaceAcceptIndividualOrderInput!): MarketplaceSupplierOrderActionResult!
+  """
+  Поставщик принимает к поставке выбранные заказы (любое подмножество группы offer × КУ) — единым массивом.
+  """
+  marketplaceAcceptOrdersBatch(input: MarketplaceAcceptOrdersBatchInput!): MarketplaceSupplierBatchActionResult!
 
   """
   Председатель по результатам очного осмотра принимает гарантийный возврат — атомарно восстанавливает средства на программный кошелёк пайщика и возвращает имущество на склад участка.
@@ -10930,19 +10865,9 @@ type Mutation {
   marketplaceCreateWriteoffDraft(data: MarketplaceCreateWriteoffDraftInput!): MarketplaceWriteoffProposal!
 
   """
-  Поставщик отклоняет сводную заявку — все заказы пакета отменяются, средства разблокируются.
+  Поставщик отказывается от выбранных активных заказов; средства пайщиков разблокируются.
   """
-  marketplaceDeclineConsolidatedRequest(input: MarketplaceDeclineConsolidatedRequestInput!): MarketplaceConsolidatedRequestActionResult!
-
-  """
-  Поставщик отказывается от одного индивидуального заказа; средства разблокируются.
-  """
-  marketplaceDeclineIndividualOrder(input: MarketplaceDeclineIndividualOrderInput!): MarketplaceSupplierOrderActionResult!
-
-  """
-  Поставщик отказывается от одного заказа из пула открытой подписки до запуска поставки (после запуска частичный отказ невозможен).
-  """
-  marketplaceDeclineOrderFromOpenPool(input: MarketplaceDeclineOrderFromOpenPoolInput!): MarketplaceSupplierOrderActionResult!
+  marketplaceDeclineOrdersBatch(input: MarketplaceDeclineOrdersBatchInput!): MarketplaceSupplierBatchActionResult!
 
   """
   Детализирует существующий в core кооперативный участок как ПВЗ Стола заказов. Создаёт запись marketplace_ku_details, либо обновляет существующую. При смене адреса запускает повторный геокодинг — координаты сбрасываются в PENDING и обновляются асинхронно.
@@ -11046,11 +10971,6 @@ type Mutation {
   Отправить черновик в совет. Принимает подписанное председателем Заявление 1106. После успешного приёма выполняются propwroff и soviet::createagenda(mktwroff).
   """
   marketplaceSubmitWriteoffDraft(data: MarketplaceSubmitWriteoffDraftInput!): MarketplaceWriteoffProposal!
-
-  """
-  Поставщик запускает поставку по предложению с открытой подпиской: формируется сводная заявка, заказы в её пуле принимаются.
-  """
-  marketplaceTriggerOpenSubscription(input: MarketplaceTriggerOpenSubscriptionInput!): MarketplaceConsolidatedRequest!
 
   """Поставщик правит свой Offer — статус сбрасывается в PENDING_MODERATION"""
   marketplaceUpdateOffer(input: MarketplaceUpdateOfferInput!): MarketplaceOffer!

@@ -17,28 +17,33 @@ import {
   type MarketplaceCanonicalBlockchainPort,
 } from '../../domain/ports/marketplace-canonical-blockchain.port';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
-import {
-  MarketplaceOrderCycleTypes,
-  MarketplaceOrderStatuses,
-} from '../../domain/entities/marketplace-order.types';
+import { MarketplaceOrderStatuses } from '../../domain/entities/marketplace-order.types';
 import { normalizeChainTxHash, rethrowChainError } from '../shared/chain-tx.util';
 
-export interface MarketplaceSupplierAcceptInput {
+export interface MarketplaceSupplierAcceptBatchInput {
   coopname: string;
   offerer_account: string;
-  order_id: string;
+  /** Заказы (offer × КУ), которые поставщик берёт к поставке. Любое подмножество. */
+  order_ids: string[];
 }
 
-export interface MarketplaceSupplierDeclineInput {
+export interface MarketplaceSupplierDeclineBatchInput {
   coopname: string;
   offerer_account: string;
-  order_id: string;
+  order_ids: string[];
   reason: string;
 }
 
 export interface MarketplaceSupplierActionResult {
   order: MarketplaceOrderDomainEntity;
   tx_hash: string;
+}
+
+export interface MarketplaceSupplierBatchResult {
+  /** Партия-накопитель, в которую обёрнуты принятые заказы (null при decline). */
+  cycle_id: string | null;
+  orders: MarketplaceOrderDomainEntity[];
+  tx_hashes: string[];
 }
 
 @Injectable()
@@ -57,143 +62,154 @@ export class MarketplaceOrderSupplierActionService {
     this.logger.setContext(MarketplaceOrderSupplierActionService.name);
   }
 
-  async acceptIndividual(input: MarketplaceSupplierAcceptInput): Promise<MarketplaceSupplierActionResult> {
-    const order = await this.guardSupplierOrder(input.order_id, input.coopname, input.offerer_account);
-    if (order.cycle_type !== MarketplaceOrderCycleTypes.INDIVIDUAL) {
-      throw new BadRequestException(
-        'Этот заказ нельзя принять по одному: он оформлен в пакетном предложении. Для накопительных и периодических предложений действие — приём сводной заявки целиком. [E4SAS-ACC-NOT-INDIVIDUAL]'
+  /**
+   * Эпик 15: поставщик принимает к поставке выбранное подмножество заказов
+   * (offer × КУ) — единый путь вместо individual/collective. Каждый заказ
+   * акцептуется on-chain (`acceptorder`), переходит в ACCEPTED; все принятые
+   * заказы обёртываются в ОДНУ партию-накопитель (consolidated_request,
+   * статус ACCEPTED) — далее единый путь формирования отгрузки (Эпик 14).
+   * Партию здесь НЕ формируем: поставщик сам выберет вариант доставки.
+   *
+   * Best-effort per-order: если chain.acceptOrder упал на каком-то заказе —
+   * логируем и продолжаем; в партию попадают только успешно принятые.
+   */
+  async acceptOrdersBatch(input: MarketplaceSupplierAcceptBatchInput): Promise<MarketplaceSupplierBatchResult> {
+    const orderIds = this.dedupeOrderIds(input.order_ids);
+    const accepted: MarketplaceOrderDomainEntity[] = [];
+    const txHashes: string[] = [];
+
+    for (const orderId of orderIds) {
+      const order = await this.guardSupplierOrder(orderId, input.coopname, input.offerer_account);
+      if (order.status !== MarketplaceOrderStatuses.ACTIVE || order.cycle_id != null) {
+        throw new BadRequestException(
+          `Заказ ${order.id} нельзя принять — он уже не активен или присоединён к партии. [E4SAS-ACC-WRONG-STATE]`
+        );
+      }
+
+      let txHash: string;
+      try {
+        const tx = await this.chainPort.acceptOrder({
+          coopname: order.coopname,
+          offerer: input.offerer_account,
+          order_hash: order.order_hash,
+        });
+        txHash = normalizeChainTxHash(
+          tx,
+          'Действие поставщика: цепь не вернула tx_hash. Повторите попытку.'
+        );
+      } catch (error: any) {
+        this.logger.error(
+          `MarketplaceOrderSupplierActionService.acceptOrdersBatch: chain.acceptOrder fail для Order ${order.id}: ${error.message}; пропускаю заказ в партии.`,
+          error.stack
+        );
+        continue;
+      }
+
+      const updated = await this.orderRepo.applyStatusTransition(
+        order.id,
+        MarketplaceOrderStatuses.ACCEPTED,
+        'Принят поставщиком к поставке'
       );
+      accepted.push(updated);
+      txHashes.push(txHash!);
     }
-    if (order.status !== MarketplaceOrderStatuses.ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL) {
-      throw new BadRequestException(
-        'Принять заказ нельзя — он уже не ждёт вашего решения по индивидуальному приёму. [E4SAS-ACC-WRONG-STATE]'
-      );
+
+    if (accepted.length === 0) {
+      throw new BadRequestException('Не удалось принять ни одного заказа — повторите попытку.');
     }
 
-    let txHash: string;
-    try {
-      const tx = await this.chainPort.acceptOrder({
-        coopname: order.coopname,
-        offerer: input.offerer_account,
-        order_hash: order.order_hash,
-      });
-      txHash = normalizeChainTxHash(
-        tx,
-        'Действие поставщика: цепь не вернула tx_hash. Повторите попытку.'
-      );
-    } catch (error: any) {
-      this.logger.error(
-        `MarketplaceOrderSupplierActionService.acceptIndividual: chain.acceptOrder fail для Order ${order.id}: ${error.message}`,
-        error.stack
-      );
-      rethrowChainError(error);
-    }
-
-    const updated = await this.orderRepo.applyStatusTransition(
-      order.id,
-      MarketplaceOrderStatuses.ACCEPTED,
-      'Принят поставщиком'
-    );
-
-    this.logger.log(
-      `MarketplaceOrderSupplierActionService.acceptIndividual: Order ${order.id} (hash=${order.order_hash}) принят поставщиком ${input.offerer_account}; tx=${txHash!}`
-    );
-
-    // individual: один заказ — самостоятельная единица поставки. Чтобы
-    // переиспользовать канон формирования партии (Shipment строится только
-    // из консолидированной заявки в статусе ACCEPTED — backend-only L10),
-    // синтезируем «заявку из одного заказа» в статусе ACCEPTED, но партию
-    // НЕ формируем: поставщик сам явно выберет вариант доставки (самовывоз /
-    // экспедитор+ТТН) и сформирует отгрузку — единый путь с пакетными
-    // заказами (Эпик 14, Story 14.1). До этого Order остаётся ACCEPTED.
-    const prepared = await this.synthesizeIndividualCycle(updated, input.offerer_account);
-    return { order: prepared, tx_hash: txHash! };
+    const cycle = await this.synthesizeBatchCycle(accepted, input.offerer_account);
+    return { cycle_id: cycle?.id ?? null, orders: cycle?.orders ?? accepted, tx_hashes: txHashes };
   }
 
   /**
-   * individual flow: обернуть один ACCEPTED Order в консолидированную заявку
-   * (cycle) в статусе ACCEPTED, чтобы дальше он шёл единым путём формирования
-   * отгрузки, что и пакетные заказы — через явный `marketplaceCreateShipment`
-   * с выбором варианта доставки. Партию здесь НЕ создаём (Story 14.1: убран
-   * навязанный Вариант А). Best-effort: если синтез заявки упал, Order
-   * остаётся ACCEPTED без cycle_id; основной accept уже on-chain.
+   * Обернуть принятые заказы в ОДНУ партию-накопитель (consolidated_request,
+   * ACCEPTED) и присвоить им cycle_id — переиспользует канон формирования
+   * отгрузки (Shipment строится из заявки ACCEPTED, backend-only L10). Партию
+   * НЕ формируем (поставщик сам выберет вариант доставки, Эпик 14). Best-effort:
+   * если синтез упал — заказы остаются ACCEPTED без cycle_id.
    */
-  private async synthesizeIndividualCycle(
-    order: MarketplaceOrderDomainEntity,
+  private async synthesizeBatchCycle(
+    orders: MarketplaceOrderDomainEntity[],
     offerer_account: string
-  ): Promise<MarketplaceOrderDomainEntity> {
+  ): Promise<{ id: string; orders: MarketplaceOrderDomainEntity[] } | null> {
+    const first = orders[0];
     try {
       const now = new Date();
+      const total_quantity = orders.reduce((s, o) => s + o.quantity, 0);
+      const total_amount = orders
+        .reduce((s, o) => s + Number(o.total_cost), 0)
+        .toFixed(4);
       const cycle = await this.cycleRepo.create({
-        coopname: order.coopname,
-        offer_id: order.offer_id,
+        coopname: first.coopname,
+        offer_id: first.offer_id,
         supplier_account: offerer_account,
-        cycle_type: MarketplaceOrderCycleTypes.INDIVIDUAL,
-        total_quantity: order.quantity,
-        total_amount: order.total_cost,
+        total_quantity,
+        total_amount,
         status: 'ACCEPTED',
-        cycle_started_at: order.blocked_at ?? order.created_at ?? now,
+        cycle_started_at: first.blocked_at ?? first.created_at ?? now,
         cycle_ended_at: now,
         expires_at: null,
         triggered_by_supplier_at: now,
       });
 
       await this.orderRepo.assignToCycle(
-        [order.id],
+        orders.map((o) => o.id),
         cycle.id,
         MarketplaceOrderStatuses.ACCEPTED
       );
 
-      const refreshed = await this.orderRepo.findById(order.id);
+      const refreshed: MarketplaceOrderDomainEntity[] = [];
+      for (const o of orders) {
+        refreshed.push((await this.orderRepo.findById(o.id)) ?? o);
+      }
       this.logger.log(
-        `MarketplaceOrderSupplierActionService.synthesizeIndividualCycle: Order ${order.id} → ACCEPTED, заявка ${cycle.id} (КУ ${order.delivery_braname}); ждёт явного формирования отгрузки поставщиком.`
+        `MarketplaceOrderSupplierActionService.synthesizeBatchCycle: заявка ${cycle.id} из ${orders.length} заказов (КУ ${first.delivery_braname}); ждёт явного формирования отгрузки.`
       );
-      return refreshed ?? order;
+      return { id: cycle.id, orders: refreshed };
     } catch (error: any) {
       this.logger.error(
-        `MarketplaceOrderSupplierActionService.synthesizeIndividualCycle: синтез заявки упал для Order ${order.id}: ${error.message}; Order остаётся ACCEPTED.`,
+        `MarketplaceOrderSupplierActionService.synthesizeBatchCycle: синтез партии упал (offer=${first.offer_id}): ${error.message}; заказы остаются ACCEPTED.`,
         error.stack
       );
-      return order;
+      return null;
     }
   }
 
-  async declineIndividual(input: MarketplaceSupplierDeclineInput): Promise<MarketplaceSupplierActionResult> {
+  /**
+   * Эпик 15: поставщик отклоняет выбранные активные заказы (до приёма к
+   * поставке) — массово. Каждый `declineorder` on-chain → CANCELLED_BY_SUPPLIER.
+   */
+  async declineOrdersBatch(input: MarketplaceSupplierDeclineBatchInput): Promise<MarketplaceSupplierBatchResult> {
     const reason = (input.reason ?? '').trim();
     if (!reason) throw new BadRequestException('Укажите причину отказа.');
 
-    const order = await this.guardSupplierOrder(input.order_id, input.coopname, input.offerer_account);
-    if (order.cycle_type !== MarketplaceOrderCycleTypes.INDIVIDUAL) {
-      throw new BadRequestException(
-        'Этот заказ нельзя отклонить по одному: он оформлен в коллективной закупке. Действие — отказ из пула до запуска поставки либо отказ от собранной партии целиком. [E4SAS-DEC-NOT-INDIVIDUAL]'
-      );
-    }
-    if (order.status !== MarketplaceOrderStatuses.ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL) {
-      throw new BadRequestException(
-        'Отклонить заказ нельзя — он уже не ждёт вашего решения по индивидуальному приёму. [E4SAS-DEC-WRONG-STATE]'
-      );
+    const orderIds = this.dedupeOrderIds(input.order_ids);
+    const declined: MarketplaceOrderDomainEntity[] = [];
+    const txHashes: string[] = [];
+
+    for (const orderId of orderIds) {
+      const order = await this.guardSupplierOrder(orderId, input.coopname, input.offerer_account);
+      if (order.status !== MarketplaceOrderStatuses.ACTIVE || order.cycle_id != null) {
+        throw new BadRequestException(
+          `Заказ ${order.id} нельзя отклонить — он уже не активен или присоединён к партии. [E4SAS-DEC-WRONG-STATE]`
+        );
+      }
+      const res = await this.runDeclineChain(order, input.offerer_account, reason);
+      declined.push(res.order);
+      txHashes.push(res.tx_hash);
     }
 
-    return await this.runDeclineChain(order, input.offerer_account, reason);
+    if (declined.length === 0) {
+      throw new BadRequestException('Не указано ни одного заказа для отказа.');
+    }
+    return { cycle_id: null, orders: declined, tx_hashes: txHashes };
   }
 
-  async declineFromOpenPool(input: MarketplaceSupplierDeclineInput): Promise<MarketplaceSupplierActionResult> {
-    const reason = (input.reason ?? '').trim();
-    if (!reason) throw new BadRequestException('Укажите причину отказа.');
-
-    const order = await this.guardSupplierOrder(input.order_id, input.coopname, input.offerer_account);
-    if (order.cycle_type !== MarketplaceOrderCycleTypes.COLLECTIVE) {
-      throw new BadRequestException(
-        'Отказ от отдельного заказа из пула возможен только в коллективной закупке. [E4SAS-OPEN-NOT-COLLECTIVE]'
-      );
-    }
-    if (order.status !== MarketplaceOrderStatuses.ACTIVE || order.cycle_id != null) {
-      throw new BadRequestException(
-        'Отказ из пула возможен только пока поставка ещё не запущена и заказ не присоединён к партии. После запуска отказ возможен только от сводной заявки целиком. [E4SAS-OPEN-WRONG-STATE]'
-      );
-    }
-
-    return await this.runDeclineChain(order, input.offerer_account, reason);
+  private dedupeOrderIds(order_ids: string[]): string[] {
+    const ids = (order_ids ?? []).map((s) => (s ?? '').trim()).filter(Boolean);
+    if (ids.length === 0) throw new BadRequestException('Не выбрано ни одного заказа.');
+    return Array.from(new Set(ids));
   }
 
   private async runDeclineChain(
@@ -234,7 +250,7 @@ export class MarketplaceOrderSupplierActionService {
       reason
     );
     this.logger.log(
-      `MarketplaceOrderSupplierActionService: Order ${order.id} (hash=${order.order_hash}) отклонён поставщиком ${offerer_account}; cycle_type=${order.cycle_type}; tx=${txHash!}; reason="${reason}"`
+      `MarketplaceOrderSupplierActionService: Order ${order.id} (hash=${order.order_hash}) отклонён поставщиком ${offerer_account}; tx=${txHash!}; reason="${reason}"`
     );
     return { order: updated, tx_hash: txHash! };
   }

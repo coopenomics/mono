@@ -3,6 +3,7 @@ import type {
 } from '../entities/marketplace-offer.entity';
 import type {
   MarketplaceBarcodeStrategy,
+  MarketplaceOfferDeliveryPoint,
   MarketplaceOfferImage,
   MarketplaceOfferStatus,
 } from '../entities/marketplace-offer.types';
@@ -32,8 +33,7 @@ export interface OfferCreateInput {
   unit_of_measure: 'piece' | 'kg' | 'liter' | 'pack';
   quantity_available: number;
   unlimited_flag: boolean;
-  cycle_type: 'individual' | 'collective';
-  target_volume: number | null;
+  delivery_points: MarketplaceOfferDeliveryPoint[];
   warranty_days: number;
   barcode_strategy: MarketplaceBarcodeStrategy;
   pack_size: number | null;
@@ -48,8 +48,7 @@ export interface OfferUpdateInput {
   unit_of_measure?: 'piece' | 'kg' | 'liter' | 'pack';
   quantity_available?: number;
   unlimited_flag?: boolean;
-  cycle_type?: 'individual' | 'collective';
-  target_volume?: number | null;
+  delivery_points?: MarketplaceOfferDeliveryPoint[];
   warranty_days?: number;
   barcode_strategy?: MarketplaceBarcodeStrategy;
   pack_size?: number | null;

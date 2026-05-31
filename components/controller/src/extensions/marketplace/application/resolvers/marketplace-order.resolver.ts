@@ -12,23 +12,18 @@ import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import {
   MarketplaceCancelOrderResultDTO,
-  MarketplaceConsolidatedRequestActionResultDTO,
   MarketplaceCreateOrderResultDTO,
   MarketplaceOrderCreateTxSnapshotDTO,
   MarketplaceOrderDTO,
   MarketplaceOrderPaginationResultDTO,
-  MarketplaceSupplierOrderActionResultDTO,
+  MarketplaceSupplierBatchActionResultDTO,
   toMarketplaceOrderDTO,
 } from '../dto/marketplace-order.dto';
-import { toMarketplaceConsolidatedRequestDTO } from '../dto/marketplace-consolidated-request.dto';
 import {
-  MarketplaceAcceptConsolidatedRequestInputDTO,
-  MarketplaceAcceptIndividualOrderInputDTO,
+  MarketplaceAcceptOrdersBatchInputDTO,
   MarketplaceCancelOrderInputDTO,
   MarketplaceCreateOrderInputDTO,
-  MarketplaceDeclineConsolidatedRequestInputDTO,
-  MarketplaceDeclineIndividualOrderInputDTO,
-  MarketplaceDeclineOrderFromOpenPoolInputDTO,
+  MarketplaceDeclineOrdersBatchInputDTO,
   MarketplaceGetOrderInputDTO,
   MarketplaceListOrdersInputDTO,
 } from '../dto/marketplace-order-input.dto';
@@ -53,10 +48,6 @@ import {
   MarketplaceOrderCancelService,
 } from '../services/marketplace-order-cancel.service';
 import {
-  MARKETPLACE_CONSOLIDATED_REQUEST_ACCEPT_DECLINE_SERVICE,
-  MarketplaceConsolidatedRequestAcceptDeclineService,
-} from '../services/marketplace-consolidated-request-accept-decline.service';
-import {
   MARKETPLACE_ORDER_SUPPLIER_ACTION_SERVICE,
   MarketplaceOrderSupplierActionService,
 } from '../services/marketplace-order-supplier-action.service';
@@ -76,8 +67,6 @@ export class MarketplaceOrderResolver {
     private readonly createService: MarketplaceOrderCreateService,
     @Inject(MARKETPLACE_ORDER_CANCEL_SERVICE)
     private readonly cancelService: MarketplaceOrderCancelService,
-    @Inject(MARKETPLACE_CONSOLIDATED_REQUEST_ACCEPT_DECLINE_SERVICE)
-    private readonly consolidatedAcceptDeclineService: MarketplaceConsolidatedRequestAcceptDeclineService,
     @Inject(MARKETPLACE_ORDER_SUPPLIER_ACTION_SERVICE)
     private readonly supplierActionService: MarketplaceOrderSupplierActionService,
     @Inject(MARKETPLACE_ORDER_REPOSITORY)
@@ -130,116 +119,49 @@ export class MarketplaceOrderResolver {
     });
   }
 
-  @Mutation(() => MarketplaceConsolidatedRequestActionResultDTO, {
-    name: 'marketplaceAcceptConsolidatedRequest',
-    description: 'Поставщик принимает сводную заявку — все заказы в пакете переходят в принятое состояние.',
-  })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Offer', 'update:own')
-  async marketplaceAcceptConsolidatedRequest(
-    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
-    @Args('input') input: MarketplaceAcceptConsolidatedRequestInputDTO
-  ): Promise<MarketplaceConsolidatedRequestActionResultDTO> {
-    const result = await this.consolidatedAcceptDeclineService.accept({
-      coopname: config.coopname,
-      offerer_account: member.username,
-      request_id: input.request_id,
-    });
-    return new MarketplaceConsolidatedRequestActionResultDTO({
-      request: toMarketplaceConsolidatedRequestDTO(result.request),
-      affected_orders: result.affected_orders,
-      on_chain_succeeded: result.on_chain_succeeded,
-      on_chain_failed: result.on_chain_failed,
-    });
-  }
-
-  @Mutation(() => MarketplaceConsolidatedRequestActionResultDTO, {
-    name: 'marketplaceDeclineConsolidatedRequest',
-    description: 'Поставщик отклоняет сводную заявку — все заказы пакета отменяются, средства разблокируются.',
-  })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Offer', 'update:own')
-  async marketplaceDeclineConsolidatedRequest(
-    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
-    @Args('input') input: MarketplaceDeclineConsolidatedRequestInputDTO
-  ): Promise<MarketplaceConsolidatedRequestActionResultDTO> {
-    const result = await this.consolidatedAcceptDeclineService.decline({
-      coopname: config.coopname,
-      offerer_account: member.username,
-      request_id: input.request_id,
-      reason: input.reason,
-    });
-    return new MarketplaceConsolidatedRequestActionResultDTO({
-      request: toMarketplaceConsolidatedRequestDTO(result.request),
-      affected_orders: result.affected_orders,
-      on_chain_succeeded: result.on_chain_succeeded,
-      on_chain_failed: result.on_chain_failed,
-    });
-  }
-
-  @Mutation(() => MarketplaceSupplierOrderActionResultDTO, {
-    name: 'marketplaceAcceptIndividualOrder',
-    description: 'Поставщик принимает один индивидуальный заказ.',
-  })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Offer', 'update:own')
-  async marketplaceAcceptIndividualOrder(
-    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
-    @Args('input') input: MarketplaceAcceptIndividualOrderInputDTO
-  ): Promise<MarketplaceSupplierOrderActionResultDTO> {
-    const result = await this.supplierActionService.acceptIndividual({
-      coopname: config.coopname,
-      offerer_account: member.username,
-      order_id: input.order_id,
-    });
-    return new MarketplaceSupplierOrderActionResultDTO({
-      order: toOrderDTO(result.order),
-      tx_hash: result.tx_hash,
-    });
-  }
-
-  @Mutation(() => MarketplaceSupplierOrderActionResultDTO, {
-    name: 'marketplaceDeclineIndividualOrder',
-    description: 'Поставщик отказывается от одного индивидуального заказа; средства разблокируются.',
-  })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Offer', 'update:own')
-  async marketplaceDeclineIndividualOrder(
-    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
-    @Args('input') input: MarketplaceDeclineIndividualOrderInputDTO
-  ): Promise<MarketplaceSupplierOrderActionResultDTO> {
-    const result = await this.supplierActionService.declineIndividual({
-      coopname: config.coopname,
-      offerer_account: member.username,
-      order_id: input.order_id,
-      reason: input.reason,
-    });
-    return new MarketplaceSupplierOrderActionResultDTO({
-      order: toOrderDTO(result.order),
-      tx_hash: result.tx_hash,
-    });
-  }
-
-  @Mutation(() => MarketplaceSupplierOrderActionResultDTO, {
-    name: 'marketplaceDeclineOrderFromOpenPool',
+  @Mutation(() => MarketplaceSupplierBatchActionResultDTO, {
+    name: 'marketplaceAcceptOrdersBatch',
     description:
-      'Поставщик отказывается от одного заказа из пула открытой подписки до запуска поставки (после запуска частичный отказ невозможен).',
+      'Поставщик принимает к поставке выбранные заказы (любое подмножество группы offer × КУ) — единым массивом.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Offer', 'update:own')
-  async marketplaceDeclineOrderFromOpenPool(
+  async marketplaceAcceptOrdersBatch(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
-    @Args('input') input: MarketplaceDeclineOrderFromOpenPoolInputDTO
-  ): Promise<MarketplaceSupplierOrderActionResultDTO> {
-    const result = await this.supplierActionService.declineFromOpenPool({
+    @Args('input') input: MarketplaceAcceptOrdersBatchInputDTO
+  ): Promise<MarketplaceSupplierBatchActionResultDTO> {
+    const result = await this.supplierActionService.acceptOrdersBatch({
       coopname: config.coopname,
       offerer_account: member.username,
-      order_id: input.order_id,
+      order_ids: input.order_ids,
+    });
+    return new MarketplaceSupplierBatchActionResultDTO({
+      cycle_id: result.cycle_id,
+      orders: result.orders.map((o) => toOrderDTO(o)),
+      tx_hashes: result.tx_hashes,
+    });
+  }
+
+  @Mutation(() => MarketplaceSupplierBatchActionResultDTO, {
+    name: 'marketplaceDeclineOrdersBatch',
+    description: 'Поставщик отказывается от выбранных активных заказов; средства пайщиков разблокируются.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Offer', 'update:own')
+  async marketplaceDeclineOrdersBatch(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('input') input: MarketplaceDeclineOrdersBatchInputDTO
+  ): Promise<MarketplaceSupplierBatchActionResultDTO> {
+    const result = await this.supplierActionService.declineOrdersBatch({
+      coopname: config.coopname,
+      offerer_account: member.username,
+      order_ids: input.order_ids,
       reason: input.reason,
     });
-    return new MarketplaceSupplierOrderActionResultDTO({
-      order: toOrderDTO(result.order),
-      tx_hash: result.tx_hash,
+    return new MarketplaceSupplierBatchActionResultDTO({
+      cycle_id: result.cycle_id,
+      orders: result.orders.map((o) => toOrderDTO(o)),
+      tx_hashes: result.tx_hashes,
     });
   }
 

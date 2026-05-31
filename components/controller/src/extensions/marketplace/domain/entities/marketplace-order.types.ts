@@ -1,12 +1,5 @@
 import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
 
-export type MarketplaceOrderCycleType = 'individual' | 'collective';
-
-export const MarketplaceOrderCycleTypes = {
-  INDIVIDUAL: 'individual',
-  COLLECTIVE: 'collective',
-} as const satisfies Record<string, MarketplaceOrderCycleType>;
-
 export type MarketplaceOrderStatus =
   | 'ACTIVE'
   | 'ACCEPTED_PENDING_SUPPLIER'
@@ -111,7 +104,6 @@ export interface MarketplaceOrderProps {
   quantity: number;
   price_per_unit: string;
   total_cost: string;
-  cycle_type: MarketplaceOrderCycleType;
   cycle_id: string | null;
   /** Партия, в которую заказ включён при формировании (null = вне партии). */
   shipment_id: string | null;

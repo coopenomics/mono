@@ -1,5 +1,3 @@
-import type { MarketplaceOrderCycleType } from './marketplace-order.types';
-
 export type MarketplaceConsolidatedRequestStatus =
   | 'PENDING_SUPPLIER_ACCEPT'
   | 'ACCEPTED'
@@ -18,7 +16,6 @@ export interface MarketplaceConsolidatedRequestProps {
   coopname: string;
   offer_id: string;
   supplier_account: string;
-  cycle_type: MarketplaceOrderCycleType;
   total_quantity: number;
   total_amount: string;
   status: MarketplaceConsolidatedRequestStatus;

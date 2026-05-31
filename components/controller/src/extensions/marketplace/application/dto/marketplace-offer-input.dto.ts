@@ -20,8 +20,25 @@ import { PaginationInputDTO } from '~/application/common/dto/pagination.dto';
 import { MARKETPLACE_OFFER_MAX_IMAGES } from '../../domain/entities/marketplace-offer.types';
 import { MarketplaceBarcodeStrategyEnum } from './marketplace-offer.dto';
 
-const CYCLE_TYPES = ['individual', 'collective'] as const;
 const UNITS = ['piece', 'kg', 'liter', 'pack'] as const;
+
+/** Технический предел числа КУ поставки на один Offer. */
+const MARKETPLACE_OFFER_MAX_DELIVERY_POINTS = 100;
+
+@InputType('MarketplaceOfferDeliveryPointInput')
+export class MarketplaceOfferDeliveryPointInputDTO {
+  @Field(() => String, { description: 'Кооперативный участок (ПВЗ), на который поставщик готов везти.' })
+  @IsString()
+  @IsNotEmpty()
+  public readonly braname!: string;
+
+  @Field(() => Int, {
+    description: 'Минимальный объём поставки на этот участок (в единицах товара, ≥ 1).',
+  })
+  @IsInt()
+  @Min(1)
+  public readonly min_supply_volume!: number;
+}
 
 @InputType('MarketplaceOfferImageUploadInput')
 export class MarketplaceOfferImageUploadInputDTO {
@@ -84,19 +101,16 @@ export class MarketplaceCreateOfferInputDTO {
   @IsBoolean()
   public unlimited_flag!: boolean;
 
-  @Field(() => String, { description: 'Способ поставки: individual (индивидуально) | collective (коллективная закупка)' })
-  @IsIn(CYCLE_TYPES as unknown as string[])
-  public cycle_type!: 'individual' | 'collective';
-
-  @Field(() => Int, {
-    nullable: true,
+  @Field(() => [MarketplaceOfferDeliveryPointInputDTO], {
     description:
-      'Целевой объём коллективной закупки (опц.): набрался — партия стартует автоматически. Только для collective.',
+      'КУ поставки с минимальным объёмом на каждом. Минимум один участок; ' +
+      'min_supply_volume = 1 означает поставку по одному заказу, >1 — накопление партии.',
   })
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  public target_volume!: number | null;
+  @IsArray()
+  @ArrayMaxSize(MARKETPLACE_OFFER_MAX_DELIVERY_POINTS)
+  @ValidateNested({ each: true })
+  @Type(() => MarketplaceOfferDeliveryPointInputDTO)
+  public delivery_points!: MarketplaceOfferDeliveryPointInputDTO[];
 
   @Field(() => Int)
   @IsInt()
@@ -179,16 +193,16 @@ export class MarketplaceUpdateOfferInputDTO {
   @IsBoolean()
   public unlimited_flag?: boolean;
 
-  @Field(() => String, { nullable: true })
+  @Field(() => [MarketplaceOfferDeliveryPointInputDTO], {
+    nullable: true,
+    description: 'КУ поставки с минимальным объёмом. Если передано — полностью заменяет набор.',
+  })
   @IsOptional()
-  @IsIn(CYCLE_TYPES as unknown as string[])
-  public cycle_type?: 'individual' | 'collective';
-
-  @Field(() => Int, { nullable: true })
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  public target_volume?: number | null;
+  @IsArray()
+  @ArrayMaxSize(MARKETPLACE_OFFER_MAX_DELIVERY_POINTS)
+  @ValidateNested({ each: true })
+  @Type(() => MarketplaceOfferDeliveryPointInputDTO)
+  public delivery_points?: MarketplaceOfferDeliveryPointInputDTO[];
 
   @Field(() => Int, { nullable: true })
   @IsOptional()

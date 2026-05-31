@@ -8,16 +8,10 @@ export * as RetryKUGeocode from './retryKUGeocode'
 export * as CreateOrder from './createOrder'
 /** Отменить свой заказ до приёма поставщиком */
 export * as CancelOrder from './cancelOrder'
-/** Эпик 4: поставщик принимает индивидуальный заказ (cycle_type=individual) */
-export * as AcceptIndividualOrder from './acceptIndividualOrder'
-/** Эпик 4: поставщик отклоняет индивидуальный заказ с указанием причины */
-export * as DeclineIndividualOrder from './declineIndividualOrder'
-/** Эпик 4: поставщик принимает сводную заявку партии (групповой cycle_type) */
-export * as AcceptConsolidatedRequest from './acceptConsolidatedRequest'
-/** Эпик 4: поставщик отклоняет сводную заявку партии — заказы отменяются, средства разблокируются */
-export * as DeclineConsolidatedRequest from './declineConsolidatedRequest'
-/** Эпик 4: поставщик вручную запускает коллективную закупку по предложению (cycle_type=collective) */
-export * as TriggerCollectiveSupply from './triggerCollectiveSupply'
+/** Эпик 15: поставщик принимает к поставке выбранные заказы (offer × КУ) единым массивом */
+export * as AcceptOrdersBatch from './acceptOrdersBatch'
+/** Эпик 15: поставщик отклоняет выбранные активные заказы — средства разблокируются */
+export * as DeclineOrdersBatch from './declineOrdersBatch'
 /** Опубликовать новое предложение поставщика на модерацию */
 export * as CreateOffer from './createOffer'
 /** Эпик 5: сформировать партии поставки из акцептованной заявки */

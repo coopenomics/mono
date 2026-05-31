@@ -1,6 +1,6 @@
 import type {
   MarketplaceBarcodeStrategy,
-  MarketplaceOfferCycleType,
+  MarketplaceOfferDeliveryPoint,
   MarketplaceOfferImage,
   MarketplaceOfferStatus,
   MarketplaceUnitOfMeasure,
@@ -16,9 +16,10 @@ import type {
  * `approved_by`/`approved_at`/`rejected_by`/`rejected_at`/`reject_reason`
  * — под Story 3.3 модерацию.
  *
- * Поле `target_volume` заполняется опционально для `cycle_type='collective'`
- * — валидация на уровне `MarketplaceOfferService.create/update`, не на entity
- * (immutable snapshot).
+ * Поле `delivery_points` (Эпик 15) — КУ, на которые поставщик готов везти, с
+ * минимальным объёмом на каждом. Заменяет упразднённые `cycle_type`/
+ * `target_volume`. Валидация (braname ∈ КУ, min ≥ 1) — на уровне
+ * `MarketplaceOfferService.create/update`, не на entity (immutable snapshot).
  */
 export class MarketplaceOfferDomainEntity {
   public readonly id!: string;
@@ -37,9 +38,8 @@ export class MarketplaceOfferDomainEntity {
   public readonly quantity_consumed!: number;
   public readonly unlimited_flag!: boolean;
 
-  public readonly cycle_type!: MarketplaceOfferCycleType;
-  /** Целевой объём коллективной закупки (опц., только для collective). */
-  public readonly target_volume!: number | null;
+  /** КУ поставки с минимальным объёмом на каждом (Эпик 15). */
+  public readonly delivery_points!: MarketplaceOfferDeliveryPoint[];
   public readonly warranty_days!: number;
 
   public readonly barcode_strategy!: MarketplaceBarcodeStrategy;
@@ -72,8 +72,7 @@ export class MarketplaceOfferDomainEntity {
     quantity_blocked: number;
     quantity_consumed: number;
     unlimited_flag: boolean;
-    cycle_type: MarketplaceOfferCycleType;
-    target_volume: number | null;
+    delivery_points: MarketplaceOfferDeliveryPoint[];
     warranty_days: number;
     barcode_strategy: MarketplaceBarcodeStrategy;
     pack_size: number | null;

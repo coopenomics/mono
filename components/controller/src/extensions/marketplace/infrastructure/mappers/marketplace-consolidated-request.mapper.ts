@@ -10,7 +10,6 @@ export class MarketplaceConsolidatedRequestMapper {
       coopname: row.coopname,
       offer_id: row.offer_id,
       supplier_account: row.supplier_account,
-      cycle_type: row.cycle_type,
       total_quantity: row.total_quantity,
       total_amount: row.total_amount,
       status: row.status,

@@ -15,8 +15,10 @@ const rawOfferSelector = {
   quantity_blocked: true,
   quantity_consumed: true,
   unlimited_flag: true,
-  cycle_type: true,
-  target_volume: true,
+  delivery_points: {
+    braname: true,
+    min_supply_volume: true,
+  },
   warranty_days: true,
   barcode_strategy: true,
   pack_size: true,

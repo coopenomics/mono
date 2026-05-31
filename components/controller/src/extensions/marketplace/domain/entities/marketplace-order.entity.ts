@@ -1,6 +1,5 @@
 import type {
   MarketplaceOrderCreateTxSnapshot,
-  MarketplaceOrderCycleType,
   MarketplaceOrderIssuanceFactSnapshot,
   MarketplaceOrderProps,
   MarketplaceOrderStatus,
@@ -37,7 +36,6 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
   public readonly quantity: number;
   public readonly price_per_unit: string;
   public readonly total_cost: string;
-  public readonly cycle_type: MarketplaceOrderCycleType;
   public readonly cycle_id: string | null;
   /** Партия, в которую заказ включён при формировании (null = вне партии). */
   public shipment_id: string | null;
@@ -92,7 +90,6 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
     this.quantity = props.quantity;
     this.price_per_unit = props.price_per_unit;
     this.total_cost = props.total_cost;
-    this.cycle_type = props.cycle_type;
     this.cycle_id = props.cycle_id;
     this.shipment_id = props.shipment_id;
     this.warranty_period_secs = props.warranty_period_secs;
