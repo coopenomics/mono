@@ -180,7 +180,7 @@ q-page.moderation(role="region", aria-label="Модерация предложе
   q-infinite-scroll(@load="onLoadMore", :disable="!hasMore || loading")
     .row.q-col-gutter-md
       .col-12.col-sm-6.col-md-4.col-lg-3(v-for="o in items", :key="o.id")
-        CatalogOfferCard(:offer="toCatalogOffer(o)")
+        CatalogOfferCard(:offer="toCatalogOffer(o)", :clickable="false")
           //- Полные данные предложения прямо в карточке — модерация без
           //- открытия отдельного диалога.
           template(#details)

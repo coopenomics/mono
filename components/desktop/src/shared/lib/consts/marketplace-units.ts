@@ -48,7 +48,7 @@ export function marketplaceUnitLabel(value: string | null | undefined): string {
 /**
  * Русские подписи типов отсечки (cycle_type) — единый источник для всех
  * marketplace-экранов (модерация, каталог, создание оферты). Раньше карта
- * дублировалась в OfferDetailsDialog/CreateMarketplaceOffer/OrdererConsolidated.
+ * дублировалась по нескольким страницам (создание оферты, сводный заказ).
  * Значения совпадают с backend-enum `MarketplaceOfferCycleType`.
  */
 const MARKETPLACE_CYCLE_LABELS: Record<string, string> = {

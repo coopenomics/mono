@@ -91,6 +91,10 @@ export interface CatalogOffer {
 
 const props = defineProps({
   offer: { type: Object as PropType<CatalogOffer>, required: true },
+  // Кликабельна ли карточка (курсор-pointer + hover-zoom + emit click).
+  // На экранах, где по карточке ничего не открывается (модерация — решение
+  // принимается прямо в ней), передаём false.
+  clickable: { type: Boolean, default: true },
 })
 
 const emit = defineEmits<{
@@ -127,7 +131,7 @@ const stockLabel = computed(() => isEmpty.value
   : `${props.offer.remainUnits} ${unitLabel.value}`)
 
 const cardClasses = computed(() => ({
-  'mp-card--interactive': true,
+  'mp-card--interactive': props.clickable,
   [`mp-catalog-offer-card--${status.value}`]: !!status.value,
 }))
 
@@ -138,6 +142,7 @@ function formatPrice(v: number | string) {
 }
 
 function onClick() {
+  if (!props.clickable) return
   emit('click', props.offer)
 }
 </script>
@@ -181,7 +186,7 @@ function onClick() {
     }
   }
 
-  &:hover &__media img {
+  &.mp-card--interactive:hover &__media img {
     transform: scale(1.02);
   }
 
