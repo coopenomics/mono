@@ -194,7 +194,7 @@ async function submit(): Promise<void> {
 BaseDialog(
   :model-value='modelValue',
   title='Сформировать партию',
-  size='lg',
+  maximized,
   @update:model-value='emit("update:modelValue", $event)'
 )
   .create-shipment(v-if='buckets.length')

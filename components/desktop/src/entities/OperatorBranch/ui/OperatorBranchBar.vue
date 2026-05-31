@@ -34,16 +34,20 @@ const options = computed<BaseSelectOption[]>(() =>
 <template lang="pug">
 .op-branch-bar(v-if='store.isOperator')
   q-icon.op-branch-bar__icon(name='storefront', size='24px')
-  .op-branch-bar__info
+  //- Несколько участков: селектор — основной идентификатор, адрес под ним.
+  //- Крупный заголовок не показываем — название КУ дублировалось бы в селекте.
+  .op-branch-bar__info(v-if='store.hasMultiple')
+    BaseSelect.op-branch-bar__select(
+      :model-value='store.activeBraname',
+      :options='options',
+      label='Участок',
+      @update:model-value='store.setActive(String($event))'
+    )
+    .op-branch-bar__sub(v-if='subtitle') {{ subtitle }}
+  //- Один участок: выбора нет — показываем текстом.
+  .op-branch-bar__info(v-else)
     .op-branch-bar__title {{ title }}
     .op-branch-bar__sub(v-if='subtitle') {{ subtitle }}
-  BaseSelect.op-branch-bar__select(
-    v-if='store.hasMultiple',
-    :model-value='store.activeBraname',
-    :options='options',
-    label='Участок',
-    @update:model-value='store.setActive(String($event))'
-  )
   BaseBadge(:variant='status.variant') {{ status.label }}
 </template>
 
@@ -66,6 +70,9 @@ const options = computed<BaseSelectOption[]>(() =>
   &__info {
     flex: 1 1 auto;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-1, 4px);
   }
 
   &__title {
@@ -81,7 +88,7 @@ const options = computed<BaseSelectOption[]>(() =>
 
   &__select {
     min-width: 220px;
-    flex-shrink: 0;
+    max-width: 360px;
   }
 }
 </style>

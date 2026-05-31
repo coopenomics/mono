@@ -61,7 +61,8 @@ export class MarketplaceAplReceptionEntity {
   @Column({ type: 'jsonb' })
   public fact_quantity_per_order!: MarketplaceAplReceptionFactQuantityEntry[];
 
-  @Column({ type: 'varchar', length: 32, nullable: true })
+  // length=64 — копируется из shipment.ttn_number (см. marketplace-shipment.entity).
+  @Column({ type: 'varchar', length: 64, nullable: true })
   public ttn_number!: string | null;
 
   @Column({ type: 'jsonb', nullable: true })
