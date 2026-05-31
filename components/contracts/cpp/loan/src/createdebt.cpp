@@ -36,7 +36,7 @@ void loan::createdebt(name coopname, name username, checksum256 debt_hash, time_
     d.amount = quantity;
     d.created_at = time_point_sec(current_time_point());
     d.repaid_at = repaid_at;
-    d.source_contract.emplace(payer);
+    d.source_contract = payer;
   });
 
   Loan::summaries_index summaries(_loan, coopname.value);

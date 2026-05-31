@@ -1,7 +1,6 @@
 #pragma once
 
 #include <eosio/asset.hpp>
-#include <eosio/binary_extension.hpp>
 #include <eosio/crypto.hpp>
 #include <eosio/eosio.hpp>
 
@@ -23,8 +22,7 @@ struct [[eosio::table, eosio::contract(LOAN)]] debt {
   // Контракт-источник, инициировавший выдачу займа (capital / marketplace / ...).
   // loan не знает доменного контекста (проекта, программы) — это ответственность
   // вызывающего контракта; ему же принадлежит и локальная привязка debt_hash.
-  // binary_extension: таблица в продакшене (пустая), новые поля только хвостом.
-  binary_extension<name> source_contract;
+  name source_contract;
 
   uint64_t primary_key() const { return id; }
   uint64_t by_username() const { return username.value; }
