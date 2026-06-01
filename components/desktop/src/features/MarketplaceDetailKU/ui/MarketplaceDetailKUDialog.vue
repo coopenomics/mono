@@ -51,6 +51,7 @@ BaseDialog(
               v-model="form.workingHours[day.key].open"
               outlined
               dense
+              hide-bottom-space
               label="Открытие"
               mask="time"
               placeholder="09:00"
@@ -62,6 +63,7 @@ BaseDialog(
               v-model="form.workingHours[day.key].close"
               outlined
               dense
+              hide-bottom-space
               label="Закрытие"
               mask="time"
               placeholder="18:00"
