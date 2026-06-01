@@ -156,9 +156,21 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
           .offer-wizard__ku-row(v-for='ku in kuOptions', :key='ku.braname')
             BaseCheckbox(
               :model-value='isKuSelected(ku.braname)',
-              :label='ku.label',
               @update:model-value='(v) => toggleKu(ku.braname, v)'
             )
+              .offer-wizard__ku-label
+                .offer-wizard__ku-name {{ ku.name }}
+                .offer-wizard__ku-addr {{ ku.address }}
+            BaseButton(
+              v-if='kuHasCoords(ku)',
+              variant='ghost',
+              icon-only,
+              size='sm',
+              aria-label='Открыть карту',
+              @click='openKuMap(ku)'
+            )
+              template(#icon-left)
+                q-icon(name='map', size='18px')
             q-input.offer-wizard__ku-min(
               v-if='isKuSelected(ku.braname)',
               :model-value='kuMinVolume(ku.braname)',
@@ -280,6 +292,12 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
       BaseButton(v-else, variant='primary', :loading='submitting', @click='onSubmit')
         q-icon(name='send', size='16px')
         span.q-ml-sm {{ submitLabel }}
+
+  //- Всплывашка карты участка (точка по координатам геокодера).
+  BaseDialog(v-model='mapOpen', :title='mapTitle', size='lg')
+    .offer-wizard__map(v-if='mapKu && mapKu.lat != null && mapKu.lng != null')
+      .offer-wizard__map-addr {{ mapKu.address }}
+      MapView(:long='Number(mapKu.lng)', :lat='Number(mapKu.lat)')
 </template>
 
 <script lang="ts" setup>
@@ -292,9 +310,12 @@ import type { StepperStep } from 'src/shared/ui/domain/VerticalStepper';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { BaseCheckbox } from 'src/shared/ui/base/BaseCheckbox';
 import { BaseChip } from 'src/shared/ui/base/BaseChip';
+import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
+import { Map as MapView } from 'src/shared/ui/Map';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
+import { useBranchStore } from 'src/entities/Branch/model';
 import { MARKETPLACE_UNIT_OPTIONS } from 'src/shared/lib/consts';
 import { fileToBase64, formatAsset2Digits } from 'src/shared/lib/utils';
 import {
@@ -337,6 +358,7 @@ const route = useRoute();
 // НЕ хардкод «₽»: при смене символа цепи фронт не переписываем.
 const systemStore = useSystemStore();
 const kuStore = useMarketplaceKUDetailsStore();
+const branchStore = useBranchStore();
 const governSymbol = computed(() => systemStore.governSymbol);
 
 // Цена — целое или с двумя знаками после запятой (рубли/копейки). Допускаем
@@ -450,10 +472,27 @@ const unitOptions = MARKETPLACE_UNIT_OPTIONS;
 // на какие КУ готов везти, и ставит min-объём на каждый.
 interface KuOption {
   braname: string;
-  label: string;
+  // Человеческое наименование участка (short_name/full_name филиала), НЕ служебный код.
+  name: string;
+  address: string;
+  // Координаты геокодера (только при geocodeStatus OK) — для кнопки карты.
+  lat: number | null;
+  lng: number | null;
 }
 const kuOptions = ref<KuOption[]>([]);
 const kuLoading = ref(false);
+
+// Карта участка — всплывашка с точкой по координатам геокодера (как в админке ПВЗ).
+const mapOpen = ref(false);
+const mapKu = ref<KuOption | null>(null);
+const mapTitle = computed(() => (mapKu.value ? `Карта — ${mapKu.value.name}` : 'Карта'));
+function kuHasCoords(ku: KuOption): boolean {
+  return ku.lat != null && ku.lng != null;
+}
+function openKuMap(ku: KuOption): void {
+  mapKu.value = ku;
+  mapOpen.value = true;
+}
 
 const categories = ref<MarketplaceCategoryView[]>([]);
 const categoryOptions = computed(() =>
@@ -546,11 +585,21 @@ async function loadKuOptions(): Promise<void> {
   if (!coopname) return;
   kuLoading.value = true;
   try {
-    // Запрос ListKUDetails требует coopname (String!); только активные КУ.
-    await kuStore.load({ coopname, onlyActive: true });
+    // Наименование участка — на филиале (branches), адрес/координаты — на KU-details.
+    // Запрос ListKUDetails требует coopname (String!); берём только активные КУ.
+    await Promise.all([
+      branchStore.loadBranches({ coopname }),
+      kuStore.load({ coopname, onlyActive: true }),
+    ]);
+    const nameByBraname = new Map(
+      branchStore.branches.map((b) => [b.braname, b.short_name || b.full_name || b.braname])
+    );
     kuOptions.value = kuStore.details.map((k) => ({
       braname: k.coreBraname,
-      label: k.addressFull ? `${k.coreBraname} — ${k.addressFull}` : k.coreBraname,
+      name: nameByBraname.get(k.coreBraname) ?? k.coreBraname,
+      address: k.addressFull,
+      lat: k.geocodeStatus === 'OK' && k.lat != null ? Number(k.lat) : null,
+      lng: k.geocodeStatus === 'OK' && k.lng != null ? Number(k.lng) : null,
     }));
   } catch (e) {
     FailAlert(e, 'Не удалось загрузить кооперативные участки');
@@ -1013,6 +1062,46 @@ onBeforeUnmount(() => {
     &--muted {
       font-size: var(--p-fs-meta, 12px);
     }
+  }
+
+  // Строка КУ: чекбокс с наименованием+адресом слева, кнопка карты и
+  // поле мин. объёма — справа.
+  &__ku-row {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--p-3, 12px);
+  }
+
+  &__ku-label {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__ku-name {
+    font-weight: 600;
+    color: var(--p-ink-2);
+  }
+
+  &__ku-addr {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-3);
+  }
+
+  &__ku-min {
+    flex: 0 0 140px;
+  }
+
+  &__map {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-3, 12px);
+  }
+
+  &__map-addr {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-3);
   }
 
   &__grid {
