@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
 import { Dialog } from 'quasar';
+import { useRoute, useRouter } from 'vue-router';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { fetchCategories } from '../../MarketplaceCatalog/api';
 import { marketplaceUnitShort } from 'src/shared/lib/consts';
@@ -31,6 +32,9 @@ import {
 
 const PAGE_SIZE = 24;
 
+const route = useRoute();
+const router = useRouter();
+
 const items = ref<MarketplacePendingOfferView[]>([]);
 const total = ref(0);
 const loading = ref(false);
@@ -49,14 +53,6 @@ function categoryName(offer: MarketplacePendingOfferView): string | null {
   return catId != null ? categoryNames.value[catId] ?? null : null;
 }
 
-function deliveryPointsSummary(offer: MarketplacePendingOfferView): string {
-  const points = offer.delivery_points ?? [];
-  const unit = marketplaceUnitShort(offer.unit_of_measure);
-  return points
-    .map((p) => `${p.name ?? p.braname} (от ${p.min_supply_volume} ${unit})`)
-    .join(', ');
-}
-
 function toCatalogOffer(offer: MarketplacePendingOfferView): CatalogOffer {
   return {
     id: offer.id,
@@ -67,7 +63,19 @@ function toCatalogOffer(offer: MarketplacePendingOfferView): CatalogOffer {
     unitCost: offer.price_per_unit,
     unitLabel: marketplaceUnitShort(offer.unit_of_measure),
     status: 'moderation',
+    category: categoryName(offer) ?? undefined,
+    supplierName: offer.supplier_name ?? offer.supplier_account ?? undefined,
   };
+}
+
+// Клик по карточке → полная карточка предложения на столе администратора
+// (read-only маршрут, без перехода на стол заказчика). Модератор видит полное
+// описание, участки поставки с объёмами и гарантию — то, что в карточке скрыто.
+function goToDetail(offer: MarketplacePendingOfferView): void {
+  void router.push({
+    name: 'marketplace-admin-offer-detail',
+    params: { coopname: String(route.params.coopname ?? ''), offerId: offer.id },
+  });
 }
 
 async function loadCategories(): Promise<void> {
@@ -185,23 +193,10 @@ q-page.moderation(role="region", aria-label="Модерация предложе
   q-infinite-scroll(@load="onLoadMore", :disable="!hasMore || loading")
     .row.q-col-gutter-md
       .col-12.col-sm-6.col-md-4.col-lg-3(v-for="o in items", :key="o.id")
-        CatalogOfferCard(:offer="toCatalogOffer(o)", :clickable="false")
-          //- Полные данные предложения прямо в карточке — модерация без
-          //- открытия отдельного диалога.
-          template(#details)
-            .moderation__meta
-              .moderation__meta-row(v-if="categoryName(o)")
-                span.moderation__meta-key Категория
-                span.moderation__meta-val {{ categoryName(o) }}
-              .moderation__meta-row(v-if="o.delivery_points && o.delivery_points.length")
-                span.moderation__meta-key Участки поставки
-                span.moderation__meta-val {{ deliveryPointsSummary(o) }}
-              .moderation__meta-row(v-if="o.warranty_days != null && o.warranty_days > 0")
-                span.moderation__meta-key Гарантия
-                span.moderation__meta-val {{ o.warranty_days }} дн.
-              .moderation__meta-row(v-if="o.supplier_name || o.supplier_account")
-                span.moderation__meta-key Поставщик
-                span.moderation__meta-val {{ o.supplier_name || o.supplier_account }}
+        //- Клик по карточке открывает полную карточку предложения на столе
+        //- администратора (категория/участки/гарантия/галерея). Кнопки
+        //- «Одобрить»/«Отклонить» останавливают всплытие (@click.stop).
+        CatalogOfferCard(:offer="toCatalogOffer(o)", @click="goToDetail(o)")
           template(#actions)
             BaseButton(
               variant="danger",
@@ -236,24 +231,6 @@ q-page.moderation(role="region", aria-label="Модерация предложе
   &__toolbar {
     display: flex;
     align-items: center;
-  }
-
-  &__meta {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    font-size: var(--p-fs-meta, 12px);
-  }
-
-  &__meta-row {
-    display: flex;
-    gap: var(--p-2, 8px);
-  }
-
-  &__meta-key {
-    color: var(--p-ink-3);
-    min-width: 92px;
-    flex-shrink: 0;
   }
 }
 

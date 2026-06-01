@@ -26,6 +26,10 @@ const system = useSystemStore();
 const coopname = computed(() => String(route.params.coopname ?? ''));
 const offerId = computed(() => String(route.params.offerId ?? ''));
 
+// Режим просмотра модератором (стол администратора): страница только для
+// чтения — кнопки «Заказать» нет, «назад» ведёт в «Модерацию», а не в каталог.
+const readonly = computed(() => route.meta?.readonly === true);
+
 const offer = ref<MarketplaceOfferDetailView | null>(null);
 const loading = ref(false);
 const categoryNames = ref<Record<number, string>>({});
@@ -89,7 +93,10 @@ async function load(): Promise<void> {
 
 function goBack(): void {
   if (window.history.length > 1) router.back();
-  else void router.push({ name: 'marketplace-catalog', params: { coopname: coopname.value } });
+  else {
+    const name = readonly.value ? 'marketplace-moderation' : 'marketplace-catalog';
+    void router.push({ name, params: { coopname: coopname.value } });
+  }
 }
 
 async function onOrderCreated(): Promise<void> {
@@ -105,7 +112,7 @@ q-page.offer-detail(role="region", aria-label="Описание предложе
     BaseButton(variant="ghost", size="sm", @click="goBack")
       template(#icon-left)
         q-icon(name="arrow_back", size="16px")
-      | К каталогу
+      | {{ readonly ? 'К модерации' : 'К каталогу' }}
 
   q-inner-loading(:showing="loading")
     q-spinner(color="primary", size="2em")
@@ -151,6 +158,7 @@ q-page.offer-detail(role="region", aria-label="Описание предложе
       .offer-detail__price {{ priceLabel }}
 
       BaseButton(
+        v-if="!readonly",
         variant="primary",
         :disabled="!canOrder",
         @click="orderDialogOpen = true"
@@ -173,6 +181,7 @@ q-page.offer-detail(role="region", aria-label="Описание предложе
       .offer-detail__desc {{ offer.warranty_days }} дн.
 
   OrderCreateDialog(
+    v-if="!readonly",
     v-model="orderDialogOpen",
     :coopname="coopname",
     :offer="offer",

@@ -522,6 +522,27 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               children: [],
             },
             {
+              // Эпик 15: полная карточка предложения для модератора —
+              // открывается по клику на карточку в «Модерации». Та же
+              // страница, что и в каталоге, но на столе администратора
+              // (`Order:read:all`), без перехода на стол заказчика.
+              // `readonly: true` → страница прячет кнопку «Заказать» и ведёт
+              // назад в «Модерацию», а не в каталог.
+              path: 'offer/:offerId',
+              name: 'marketplace-admin-offer-detail',
+              component: markRaw(MarketplaceOfferDetailPage),
+              meta: {
+                title: 'Предложение',
+                icon: 'fa-solid fa-box',
+                requires: 'Order:read:all',
+                requiresAuth: true,
+                agreements: agreementsBase,
+                hidden: true,
+                readonly: true,
+              },
+              children: [],
+            },
+            {
               // Эпик 3 / Story 3.x: chairman-настройка whitelist'а категорий.
               // Только председатель (`Whitelist:manage` есть лишь у admin).
               path: 'category-whitelist',
