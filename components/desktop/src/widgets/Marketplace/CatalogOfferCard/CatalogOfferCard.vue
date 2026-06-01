@@ -169,33 +169,8 @@ function onClick() {
     }
   }
 
-  &__carousel {
-    width: 100%;
-    height: 100%;
-    background: var(--mp-surface-1);
-
-    // Слайд q-carousel по умолчанию имеет внутренний padding — обнуляем,
-    // чтобы изображение шло во всю ширину карточки.
-    :deep(.q-carousel__slide) {
-      padding: 0;
-    }
-
-    .q-img {
-      width: 100%;
-      height: 100%;
-    }
-  }
-
   &.mp-card--interactive:hover &__media :deep(img) {
     transform: scale(1.02);
-  }
-
-  &__placeholder {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
   }
 
   &__status {

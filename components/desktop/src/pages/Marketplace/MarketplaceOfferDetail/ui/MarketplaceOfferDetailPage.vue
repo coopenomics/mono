@@ -201,13 +201,6 @@ q-page.offer-detail(role="region", aria-label="Описание предложе
     background: var(--p-surface-2);
   }
 
-  &__placeholder {
-    height: 360px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
   &__summary {
     display: flex;
     flex-direction: column;

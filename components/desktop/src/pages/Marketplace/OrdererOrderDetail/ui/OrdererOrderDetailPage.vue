@@ -7,6 +7,7 @@ import { BaseBadge, BaseButton, BaseCard } from 'src/shared/ui/base';
 import { ActivityTimeline, type ActivityEvent } from 'src/shared/ui/domain';
 import { OfferGallery } from 'src/widgets/Marketplace/OfferGallery';
 import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
+import { ReceiveCodeDialog } from 'src/widgets/Marketplace/ReceiveCode';
 import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
@@ -37,6 +38,7 @@ const offerImages = ref<string[]>([]);
 const loading = ref(false);
 
 const finalizeDialogOpen = ref(false);
+const receiveDialogOpen = ref(false);
 
 const status = computed(() => (order.value ? orderStatusDisplay(order.value.status) : null));
 const unitShort = computed(() => marketplaceUnitShort(order.value?.unit_of_measure));
@@ -108,7 +110,7 @@ function goBack(): void {
 }
 
 function goReceive(): void {
-  void router.push({ name: 'marketplace-receive-code', params: { coopname: coopname.value } });
+  receiveDialogOpen.value = true;
 }
 
 function confirmCancel(): void {
@@ -155,6 +157,10 @@ onBeforeUnmount(() => {
 <template lang="pug">
 q-page.order-detail(role="region", aria-label="Заказ")
   Teleport(to="#header-actions-host", defer)
+    BaseButton(variant="secondary", size="sm", @click="goReceive")
+      template(#icon-left)
+        q-icon(name="qr_code_2", size="16px")
+      | Получить заказ
     RefreshButton(:loading="loading", @refresh="load")
 
   .order-detail__col
@@ -222,11 +228,7 @@ q-page.order-detail(role="region", aria-label="Заказ")
           .t-h3 Хронология
         ActivityTimeline(:events="timelineEvents", group-by-date)
 
-      .order-detail__actions
-        BaseButton(variant="secondary", @click="goReceive")
-          template(#icon-left)
-            q-icon(name="qr_code_2", size="16px")
-          | Получить заказ
+      .order-detail__actions(v-if="receivable || cancellable")
         BaseButton(v-if="receivable", variant="primary", @click="finalizeDialogOpen = true")
           template(#icon-left)
             q-icon(name="draw", size="16px")
@@ -238,6 +240,8 @@ q-page.order-detail(role="region", aria-label="Заказ")
       :order="order",
       @finalized="onFinalized"
     )
+
+    ReceiveCodeDialog(v-model="receiveDialogOpen", :coopname="coopname")
 </template>
 
 <style scoped lang="scss">

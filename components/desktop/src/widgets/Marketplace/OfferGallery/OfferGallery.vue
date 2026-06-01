@@ -50,6 +50,10 @@ withDefaults(
     /** Высота карусели: фикс ('360px') или '100%' под размер обёртки. */
     height?: string
     arrows?: boolean
+    /**
+     * Точки-навигация снизу. По умолчанию выключены — точки в галерее товара
+     * не нужны (листается свайпом/стрелками), их явно убрали по всем экранам.
+     */
     navigation?: boolean
     alt?: string
     fit?: 'cover' | 'contain' | 'fill' | 'none' | 'scale-down'
@@ -58,7 +62,7 @@ withDefaults(
   {
     height: '100%',
     arrows: true,
-    navigation: true,
+    navigation: false,
     alt: '',
     fit: 'cover',
     placeholderIconSize: '48px',

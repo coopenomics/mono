@@ -3,10 +3,11 @@ import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { Dialog } from 'quasar';
 import { SuccessAlert, FailAlert, NotifyAlert } from 'src/shared/api';
 import { useRoute, useRouter } from 'vue-router';
-import { BaseBadge, BaseButton, EmptyState } from 'src/shared/ui/base';
+import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
+import { SupplyPartyCard } from 'src/widgets/Marketplace/SupplyPartyCard';
 import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import { formatShortFio } from 'src/shared/lib/utils/getNameFromCertificate';
@@ -203,6 +204,17 @@ function formatCost(value: number): string {
   }).format(value);
 }
 
+// Состав партии строками для общего виджета SupplyPartyCard. Поставщику важен
+// общий объём, не кто заказал — имена показываем справочно, без дробления.
+function memberRows(p: SupplierParty): Array<{ id: string; who: string; qty: string; cost: string }> {
+  return p.orders.map((o) => ({
+    id: o.id,
+    who: o.orderer_name ? formatShortFio(o.orderer_name) : o.orderer_account,
+    qty: `${o.quantity} ${p.unitLabel}`,
+    cost: formatCost(parseFloat(o.total_cost) || 0),
+  }));
+}
+
 async function load(page: number, append: boolean): Promise<void> {
   loading.value = true;
   try {
@@ -320,61 +332,35 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
         q-icon(name='inbox', size='48px')
 
     .incoming-orders__list(v-if='hasParties')
-      .incoming-orders__party(
+      //- ЕДИНАЯ карточка партии (канон-виджет SupplyPartyCard) — та же, что у
+      //- заказчика. Действия (Принять/Отклонить) — только пока партия копится.
+      SupplyPartyCard(
         v-for='p in parties',
         :key='p.key',
-        :class='`incoming-orders__party--${p.kind}`'
+        :product-name='p.productName',
+        :pvz-name='p.pvzName',
+        :stage-status='p.stageStatus',
+        :order-count='p.orders.length',
+        :volume-label='`Объём партии: ${p.totalUnits} ${p.unitLabel}`',
+        :target-label='hasTarget(p) ? `цель — от ${p.minVolume} ${p.unitLabel}` : ""',
+        :progress='progressRatio(p)',
+        :bar-color='barColor(p)',
+        :members='memberRows(p)',
+        total-label='Итого партии',
+        :total-value='`${formatCost(p.totalCost)} · ${p.totalUnits} ${p.unitLabel}`'
       )
-        .incoming-orders__party-head
-          .row.items-center.q-gutter-sm.no-wrap
-            div.col
-              .t-h3 {{ p.productName }}
-              .t-muted.incoming-orders__party-sub
-                q-icon(name='place', size='14px')
-                | КУ «{{ p.pvzName }}»
-            BaseBadge(:variant='orderStatusDisplay(p.stageStatus).variant') {{ orderStatusDisplay(p.stageStatus).label }}
-            span.chip.chip--accent
-              q-icon(name='layers', size='14px')
-              | {{ p.orders.length }} зак.
-
-        //- ЕДИНАЯ карточка партии на всех стадиях: прогресс всегда, состав
-        //- компактными строками, действия — только пока партия копится.
-        .incoming-orders__progress
-          .incoming-orders__progress-row
-            span Объём партии: {{ p.totalUnits }} {{ p.unitLabel }}
-            span.t-muted(v-if='hasTarget(p)') цель — от {{ p.minVolume }} {{ p.unitLabel }}
-          q-linear-progress.incoming-orders__progress-bar(
-            :value='progressRatio(p)',
-            rounded,
-            size='10px',
-            :color='barColor(p)',
-            track-color='grey-3'
-          )
-          .t-muted.incoming-orders__progress-hint(v-if='p.kind === "collecting" && hasTarget(p) && reachedMin(p)')
+        template(#hint)
+          template(v-if='p.kind === "collecting" && hasTarget(p) && reachedMin(p)')
             q-icon(name='check_circle', size='14px', color='positive')
-            | Минимальный объём набран — можно принимать партию.
-          .t-muted.incoming-orders__progress-hint(v-else-if='p.kind === "collecting" && hasTarget(p)')
-            | Можно принять и сейчас — минимум лишь ориентир сбора.
-          .t-muted.incoming-orders__progress-hint(v-else-if='p.kind === "collecting"')
-            | Поштучный приём — каждый заказ можно принять сразу.
-          .t-muted.incoming-orders__progress-hint(v-else)
+            span Минимальный объём набран — можно принимать партию.
+          template(v-else-if='p.kind === "collecting" && hasTarget(p)')
+            span Можно принять и сейчас — минимум лишь ориентир сбора.
+          template(v-else-if='p.kind === "collecting"')
+            span Поштучный приём — каждый заказ можно принять сразу.
+          template(v-else)
             q-icon(name='local_shipping', size='14px')
-            | Партия принята. Этап: {{ orderStatusDisplay(p.stageStatus).label }}.
-
-        //- Состав партии — компактные строки (поставщику важен общий объём, не
-        //- кто конкретно заказал; имена показываем справочно, без дробления на
-        //- отдельные карточки).
-        .incoming-orders__members
-          .incoming-orders__member(v-for='o in p.orders', :key='o.id')
-            span.incoming-orders__member-who {{ o.orderer_name ? formatShortFio(o.orderer_name) : o.orderer_account }}
-            span.incoming-orders__member-qty {{ o.quantity }} {{ p.unitLabel }}
-            span.incoming-orders__member-cost {{ formatCost(parseFloat(o.total_cost) || 0) }}
-
-        .incoming-orders__party-foot
-          .incoming-orders__party-total
-            span.t-muted Итого партии
-            span.incoming-orders__party-total-val {{ formatCost(p.totalCost) }} · {{ p.totalUnits }} {{ p.unitLabel }}
-          q-space
+            span Партия принята. Этап: {{ orderStatusDisplay(p.stageStatus).label }}.
+        template(#actions)
           template(v-if='p.kind === "collecting"')
             BaseButton(variant='ghost', size='sm', @click='onDeclineParty(p)') Отклонить
             BaseButton(variant='primary', size='sm', :loading='loading', @click='onAcceptParty(p)')
@@ -410,100 +396,6 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
     display: flex;
     flex-direction: column;
     gap: var(--p-4, 16px);
-  }
-
-  &__party {
-    border: 1px solid var(--p-line);
-    border-radius: var(--p-r-md, 12px);
-    background: var(--p-surface);
-    padding: var(--p-4, 16px);
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-3, 12px);
-  }
-
-  &__party-sub {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    margin-top: 2px;
-  }
-
-  &__progress {
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-2, 8px);
-  }
-
-  &__progress-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    font-size: var(--p-fs-body);
-  }
-
-  &__progress-bar {
-    border-radius: var(--p-r-sm, 8px);
-  }
-
-  &__progress-hint {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-  }
-
-  &__members {
-    display: flex;
-    flex-direction: column;
-    border: 1px solid var(--p-line);
-    border-radius: var(--p-r-sm, 8px);
-    overflow: hidden;
-  }
-
-  &__member {
-    display: grid;
-    grid-template-columns: 1fr auto auto;
-    gap: var(--p-4, 16px);
-    align-items: center;
-    padding: var(--p-2, 8px) var(--p-3, 12px);
-    border-top: 1px solid var(--p-line);
-
-    &:first-child {
-      border-top: none;
-    }
-  }
-
-  &__member-who {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  &__member-qty {
-    color: var(--p-ink-2);
-  }
-
-  &__member-cost {
-    font-variant-numeric: tabular-nums;
-  }
-
-  &__party-foot {
-    display: flex;
-    align-items: center;
-    gap: var(--p-2, 8px);
-    flex-wrap: wrap;
-    padding-top: var(--p-2, 8px);
-    border-top: 1px solid var(--p-line);
-  }
-
-  &__party-total {
-    display: flex;
-    flex-direction: column;
-  }
-
-  &__party-total-val {
-    font-size: var(--p-fs-body);
-    color: var(--p-ink-1);
   }
 
   &__skel {

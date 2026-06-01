@@ -8,6 +8,7 @@ import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
 import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
+import { ReceiveCodeDialog } from 'src/widgets/Marketplace/ReceiveCode';
 import { cancelOrder, fetchMyOrders } from '../api';
 import type { MarketplaceOrderStatusView, MarketplaceOrderView } from '../types';
 import OrdererFinalizeIssuanceDialog from './OrdererFinalizeIssuanceDialog.vue';
@@ -21,8 +22,8 @@ import OrdererFinalizeIssuanceDialog from './OrdererFinalizeIssuanceDialog.vue';
  * выдачу, статус READY_TO_RECEIVE) — отдельной страницы «Готово к получению»
  * больше нет. Клик по карточке открывает детальную страницу заказа.
  *
- * Код получения (account-bound QR) — на отдельной странице меню «Получить
- * заказ» (OrdererReceiveCode), а не здесь: так он очевидно findable.
+ * Код получения (account-bound QR) — кнопка «Получить заказ» в шапке: открывает
+ * диалог с тем же QR, что и на отдельной странице меню (OrdererReceiveCode).
  *
  * Live-обновления — polling каждые 10s.
  */
@@ -46,6 +47,9 @@ const hasMore = computed(() => currentPage.value < totalPages.value);
 // Финальная подпись получения — диалог прямо из карточки заказа.
 const finalizeDialogOpen = ref(false);
 const selectedOrder = ref<MarketplaceOrderView | null>(null);
+
+// Код получения (account-bound QR) — диалогом из шапки, в одном месте.
+const receiveDialogOpen = ref(false);
 
 // Фильтр по этапу. Покрытие ИСЧЕРПЫВАЮЩЕЕ по enum'у MarketplaceOrderStatusView:
 // каждый статус заказа попадает хотя бы в одну вкладку. Иначе заказ молча
@@ -160,7 +164,7 @@ function openDetail(order: OrderCardModel): void {
 }
 
 function goReceive(): void {
-  void router.push({ name: 'marketplace-receive-code', params: { coopname: coopname.value } });
+  receiveDialogOpen.value = true;
 }
 
 function onCardAction(payload: { key: string; order: OrderCardModel }): void {
@@ -230,6 +234,8 @@ q-page.orders(role="region", aria-label="Мои заказы")
     :order="selectedOrder",
     @finalized="onFinalized"
   )
+
+  ReceiveCodeDialog(v-model="receiveDialogOpen", :coopname="coopname")
 </template>
 
 <style scoped lang="scss">

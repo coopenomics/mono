@@ -3,7 +3,8 @@ import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { FailAlert } from 'src/shared/api';
 import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
 import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
-import { BaseBadge, EmptyState } from 'src/shared/ui/base';
+import { SupplyPartyCard } from 'src/widgets/Marketplace/SupplyPartyCard';
+import { EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import { fetchMyOrders } from '../../MyOrders/api';
@@ -158,6 +159,17 @@ function formatCost(value: number): string {
   }).format(value);
 }
 
+// Состав партии строками для общего виджета SupplyPartyCard. У заказчика «кто» —
+// его собственные заказы (товар/КУ уже в шапке карточки).
+function memberRows(p: CollectiveParty): Array<{ id: string; who: string; qty: string; cost: string }> {
+  return p.orders.map((o) => ({
+    id: o.id,
+    who: `Ваш заказ № ${o.id.slice(0, 8)}`,
+    qty: `${o.quantity} ${p.unitLabel}`,
+    cost: formatCost(parseFloat(o.total_cost) || 0),
+  }));
+}
+
 async function load(): Promise<void> {
   loading.value = true;
   try {
@@ -215,51 +227,32 @@ q-page.collective(role="region", aria-label="Коллективный заказ
         q-icon(name="inventory_2", size="48px")
 
     .collective__list(v-if="hasParties")
-      //- ЕДИНАЯ карточка для любой партии (сбор/принята) — отличается только
-      //- заполнением прогресса и бейджем этапа, не вёрсткой.
-      .collective__party(v-for="p in parties", :key="p.key")
-        .collective__party-head
-          .row.items-center.q-gutter-sm.no-wrap
-            div.col
-              .t-h3 {{ p.productName }}
-              .t-muted.collective__party-sub
-                q-icon(name="place", size="14px")
-                | КУ «{{ p.pvzName }}»
-            BaseBadge(:variant="orderStatusDisplay(p.stageStatus).variant") {{ orderStatusDisplay(p.stageStatus).label }}
-            span.chip.chip--accent
-              q-icon(name="layers", size="14px")
-              | {{ p.orders.length }} зак.
-
-        .collective__progress
-          .collective__progress-row
-            span Накоплено всеми: {{ accumulated(p) }} {{ p.unitLabel }}
-            span.t-muted(v-if="hasTarget(p)") цель — от {{ p.groupMinVolume }} {{ p.unitLabel }}
-          q-linear-progress.collective__progress-bar(
-            :value="progressRatio(p)",
-            rounded,
-            size="10px",
-            :color="barColor(p)",
-            track-color="grey-3"
-          )
-          .t-muted.collective__progress-hint(v-if="p.collecting && reachedMin(p)")
+      //- ЕДИНАЯ карточка партии (канон-виджет SupplyPartyCard) — та же, что у
+      //- поставщика. Отличаются только данные и тексты, не вёрстка.
+      SupplyPartyCard(
+        v-for="p in parties",
+        :key="p.key",
+        :product-name="p.productName",
+        :pvz-name="p.pvzName",
+        :stage-status="p.stageStatus",
+        :order-count="p.orders.length",
+        :volume-label="`Накоплено всеми: ${accumulated(p)} ${p.unitLabel}`",
+        :target-label="hasTarget(p) ? `цель — от ${p.groupMinVolume} ${p.unitLabel}` : ''",
+        :progress="progressRatio(p)",
+        :bar-color="barColor(p)",
+        :members="memberRows(p)",
+        total-label="Ваш вклад в партию",
+        :total-value="`${formatCost(p.ownCost)} · ${p.ownUnits} ${p.unitLabel}`"
+      )
+        template(#hint)
+          template(v-if="p.collecting && reachedMin(p)")
             q-icon(name="check_circle", size="14px", color="positive")
-            | Минимальный объём набран — поставщик может принять партию.
-          .t-muted.collective__progress-hint(v-else-if="p.collecting")
-            | Сбор продолжается. Поставщик может принять партию и раньше — минимум лишь ориентир.
-          .t-muted.collective__progress-hint(v-else)
+            span Минимальный объём набран — поставщик может принять партию.
+          template(v-else-if="p.collecting")
+            span Сбор продолжается. Поставщик может принять партию и раньше — минимум лишь ориентир.
+          template(v-else)
             q-icon(name="local_shipping", size="14px")
-            | Партия набрана. Этап: {{ orderStatusDisplay(p.stageStatus).label }}.
-
-        //- Свои заказы в партии — компактными строками (товар/КУ уже в шапке).
-        .collective__own-orders
-          .collective__own-order(v-for="o in p.orders", :key="o.id")
-            span.collective__own-order-who Ваш заказ № {{ o.id.slice(0, 8) }}
-            span.collective__own-order-qty {{ o.quantity }} {{ p.unitLabel }}
-            span.collective__own-order-cost {{ formatCost(parseFloat(o.total_cost) || 0) }}
-
-        .collective__own
-          span.t-muted Ваш вклад в партию
-          span.collective__own-val {{ formatCost(p.ownCost) }} · {{ p.ownUnits }} {{ p.unitLabel }}
+            span Партия набрана. Этап: {{ orderStatusDisplay(p.stageStatus).label }}.
 </template>
 
 <style scoped lang="scss">
@@ -278,96 +271,6 @@ q-page.collective(role="region", aria-label="Коллективный заказ
     display: flex;
     flex-direction: column;
     gap: var(--p-4, 16px);
-  }
-
-  &__party {
-    border: 1px solid var(--p-line);
-    border-radius: var(--p-r-md, 12px);
-    background: var(--p-surface);
-    padding: var(--p-4, 16px);
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-3, 12px);
-  }
-
-  &__party-sub {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    margin-top: 2px;
-  }
-
-  &__progress {
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-2, 8px);
-  }
-
-  &__progress-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    font-size: var(--p-fs-body);
-  }
-
-  &__progress-bar {
-    border-radius: var(--p-r-sm, 8px);
-  }
-
-  &__progress-hint {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-  }
-
-  &__own-orders {
-    display: flex;
-    flex-direction: column;
-    border: 1px solid var(--p-line);
-    border-radius: var(--p-r-sm, 8px);
-    overflow: hidden;
-  }
-
-  &__own-order {
-    display: grid;
-    grid-template-columns: 1fr auto auto;
-    gap: var(--p-4, 16px);
-    align-items: center;
-    padding: var(--p-2, 8px) var(--p-3, 12px);
-    border-top: 1px solid var(--p-line);
-
-    &:first-child {
-      border-top: none;
-    }
-  }
-
-  &__own-order-who {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  &__own-order-qty {
-    color: var(--p-ink-2);
-  }
-
-  &__own-order-cost {
-    font-variant-numeric: tabular-nums;
-  }
-
-  &__own {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: var(--p-2, 8px);
-    padding-top: var(--p-2, 8px);
-    border-top: 1px solid var(--p-line);
-  }
-
-  &__own-val {
-    font-size: var(--p-fs-body);
-    color: var(--p-ink-1);
-    font-variant-numeric: tabular-nums;
   }
 }
 
