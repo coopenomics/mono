@@ -2,8 +2,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { Dialog } from 'quasar';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
-import { Queries } from '@coopenomics/sdk';
-import { client } from 'src/shared/api/client';
+import { fetchCategories } from '../../MarketplaceCatalog/api';
 import { marketplaceUnitShort } from 'src/shared/lib/consts';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
 import { BaseButton, EmptyState } from 'src/shared/ui/base';
@@ -70,11 +69,9 @@ function toCatalogOffer(offer: MarketplacePendingOfferView): CatalogOffer {
 
 async function loadCategories(): Promise<void> {
   try {
-    const { [Queries.Marketplace.ListCategories.name]: cats } = await client.Query(
-      Queries.Marketplace.ListCategories.query,
-    );
+    const cats = await fetchCategories();
     const map: Record<number, string> = {};
-    for (const c of cats ?? []) map[Number(c.id)] = c.display_name;
+    for (const c of cats) map[Number(c.id)] = c.display_name;
     categoryNames.value = map;
   } catch {
     // Справочник категорий не критичен для модерации — просто не покажем название.
