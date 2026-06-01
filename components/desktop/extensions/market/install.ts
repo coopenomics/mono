@@ -6,6 +6,7 @@ import { MyOrdersPage } from 'src/pages/Marketplace/MyOrders'
 import { OperatorTrustedPersonsPage } from 'src/pages/Marketplace/OperatorTrustedPersons'
 import { OperatorIssuancePage } from 'src/pages/Marketplace/OperatorIssuance'
 import { OrdererOrderDetailPage } from 'src/pages/Marketplace/OrdererOrderDetail'
+import { OrdererReceiveCodePage } from 'src/pages/Marketplace/OrdererReceiveCode'
 import { OrdererReturnClaimsPage } from 'src/pages/Marketplace/OrdererReturnClaims'
 import { OperatorReturnClaimsPage } from 'src/pages/Marketplace/OperatorReturnClaims'
 import { OperatorReceptionPage } from 'src/pages/Marketplace/OperatorReception'
@@ -173,6 +174,23 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               meta: {
                 title: 'Коллективный заказ',
                 icon: 'fa-solid fa-layer-group',
+                requires: 'Order:create',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+              children: [],
+            },
+            {
+              // «Получить заказ» — отдельный пункт меню с одним account-bound
+              // QR-кодом на всю страницу. Вынесен в меню (а не в действие шапки)
+              // намеренно: код должен быть очевидно findable, пайщику не нужно
+              // объяснять, где его искать на пункте выдачи.
+              path: 'receive-code',
+              name: 'marketplace-receive-code',
+              component: markRaw(OrdererReceiveCodePage),
+              meta: {
+                title: 'Получить заказ',
+                icon: 'fa-solid fa-qrcode',
                 requires: 'Order:create',
                 requiresAuth: true,
                 agreements: agreementsBase,

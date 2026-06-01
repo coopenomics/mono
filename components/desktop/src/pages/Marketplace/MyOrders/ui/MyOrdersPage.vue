@@ -3,14 +3,11 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Dialog, Loading } from 'quasar';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
-import { useSessionStore } from 'src/entities/Session';
 import { OrderCard, toOrderCardModel, type Order as OrderCardModel } from 'src/widgets/Marketplace/OrderCard';
 import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
-import { HandoffQr } from 'src/widgets/Marketplace/HandoffQr';
-import { BaseButton, BaseDialog, EmptyState } from 'src/shared/ui/base';
+import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
-import { encodeHandoffToken, HandoffTokenKind } from 'src/shared/lib/marketplace';
 import { cancelOrder, fetchMyOrders } from '../api';
 import type { MarketplaceOrderStatusView, MarketplaceOrderView } from '../types';
 import OrdererFinalizeIssuanceDialog from './OrdererFinalizeIssuanceDialog.vue';
@@ -24,8 +21,8 @@ import OrdererFinalizeIssuanceDialog from './OrdererFinalizeIssuanceDialog.vue';
  * выдачу, статус READY_TO_RECEIVE) — отдельной страницы «Готово к получению»
  * больше нет. Клик по карточке открывает детальную страницу заказа.
  *
- * «Мой код получения» (account-bound QR) вынесен в шапку страницы — заказчик
- * показывает его оператору на пункте, тот выдаёт разом все готовые заказы.
+ * Код получения (account-bound QR) — на отдельной странице меню «Получить
+ * заказ» (OrdererReceiveCode), а не здесь: так он очевидно findable.
  *
  * Live-обновления — polling каждые 10s.
  */
@@ -35,7 +32,6 @@ const POLL_INTERVAL_MS = 10_000;
 
 const route = useRoute();
 const router = useRouter();
-const session = useSessionStore();
 const coopname = computed(() => String(route.params.coopname ?? ''));
 
 const items = ref<MarketplaceOrderView[]>([]);
@@ -46,21 +42,6 @@ const loading = ref(false);
 const activeKey = ref('all');
 
 const hasMore = computed(() => currentPage.value < totalPages.value);
-
-// Story 14.4: один account-bound код получения. Заказчик показывает его
-// оператору выдачи — тот резолвит аккаунт против ленты своего КУ и видит разом
-// все готовые к выдаче заказы этого заказчика. Код привязан к личности, не к
-// заказу: его можно показать заранее или с распечатки.
-const myCodeDialogOpen = ref(false);
-const myReceiveCode = computed(() =>
-  session.username
-    ? encodeHandoffToken({
-        kind: HandoffTokenKind.Receive,
-        coopname: coopname.value,
-        account: session.username,
-      })
-    : '',
-);
 
 // Финальная подпись получения — диалог прямо из карточки заказа.
 const finalizeDialogOpen = ref(false);
@@ -201,12 +182,8 @@ onBeforeUnmount(() => {
 
 <template lang="pug">
 q-page.orders(role="region", aria-label="Мои заказы")
-  //- Код получения и обновление — в шапку (канон Teleport).
+  //- Обновление — в шапку (канон Teleport).
   Teleport(to="#header-actions-host", defer)
-    BaseButton(variant="secondary", size="sm", :disabled="!myReceiveCode", @click="myCodeDialogOpen = true")
-      template(#icon-left)
-        q-icon(name="qr_code_2", size="16px")
-      | Мой код получения
     RefreshButton(:loading="loading", @refresh="() => load(1, false)")
 
   PageHint(storage-key="mp:my-orders:banner-dismissed")
@@ -243,13 +220,6 @@ q-page.orders(role="region", aria-label="Мои заказы")
     :order="selectedOrder",
     @finalized="onFinalized"
   )
-
-  BaseDialog(v-model="myCodeDialogOpen", title="Мой код получения", size="sm")
-    .orders__qr(v-if="myReceiveCode")
-      HandoffQr(
-        :value="myReceiveCode",
-        caption="Покажите этот код оператору на пункте выдачи — он выдаст разом все ваши готовые заказы. Код можно показать заранее или с распечатки."
-      )
 </template>
 
 <style scoped lang="scss">
@@ -277,14 +247,6 @@ q-page.orders(role="region", aria-label="Мои заказы")
     grid-template-columns: repeat(auto-fill, minmax(300px, 360px));
     justify-content: start;
     gap: var(--p-4, 16px);
-  }
-
-  &__qr {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--p-3, 12px);
-    padding: var(--p-2, 8px) 0;
   }
 }
 
