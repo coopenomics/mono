@@ -320,6 +320,24 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
     }));
   }
 
+  async sumByCycleIds(
+    coopname: string,
+    cycleIds: string[]
+  ): Promise<Array<{ cycle_id: string; total: number }>> {
+    if (cycleIds.length === 0) return [];
+    const rows = await this.repo
+      .createQueryBuilder('o')
+      .select('o.cycle_id', 'cycle_id')
+      .addSelect('COALESCE(SUM(o.quantity), 0)', 'total')
+      .where('o.coopname = :coop AND o.cycle_id IN (:...cids)', {
+        coop: coopname,
+        cids: cycleIds,
+      })
+      .groupBy('o.cycle_id')
+      .getRawMany<{ cycle_id: string; total: string }>();
+    return rows.map((r) => ({ cycle_id: r.cycle_id, total: Number(r.total ?? 0) }));
+  }
+
   async deleteByBlockNumGreaterThan(blockNum: number): Promise<void> {
     await this.repo
       .createQueryBuilder()

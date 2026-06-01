@@ -79,14 +79,22 @@ export class MarketplaceOrderDisplayService {
     const accounts = opts?.withParticipantNames
       ? orders.flatMap((o) => [o.orderer_account, o.supplier_account])
       : [];
-    const [offers, branchByBraname, nameByAccount, groupSums] = await Promise.all([
+    // Идентификаторы сформированных партий — для коллективного объёма принятых
+    // партий (тот же прогресс, что и у накопителя; единый вид карточки).
+    const cycleIds = opts?.withGroupProgress
+      ? ([...new Set(orders.map((o) => o.cycle_id).filter((c): c is string => !!c))])
+      : [];
+    const [offers, branchByBraname, nameByAccount, groupSums, cycleSums] = await Promise.all([
       this.offerRepo.findByIds(offerIds),
       this.resolveBranches(branames),
       this.resolveAccountNames(accounts),
-      // «Сколько накоплено» по парам (offer × КУ) считаем только когда лента
-      // должна показать прогресс сбора (стол заказчика) — иначе лишний запрос.
+      // «Сколько накоплено» по парам (offer × КУ) и по партиям считаем только
+      // когда лента должна показать прогресс сбора (стол заказчика).
       opts?.withGroupProgress
         ? this.orderRepo.sumActiveByOfferBranch(config.coopname, offerIds)
+        : Promise.resolve([]),
+      cycleIds.length
+        ? this.orderRepo.sumByCycleIds(config.coopname, cycleIds)
         : Promise.resolve([]),
     ]);
     const offerById = new Map(offers.map((offer) => [offer.id, offer]));
@@ -95,18 +103,32 @@ export class MarketplaceOrderDisplayService {
     for (const g of groupSums) {
       accumulatedByKey.set(`${g.offer_id}::${g.delivery_braname}`, g.total);
     }
+    // cycle_id → коллективный объём уже сформированной партии.
+    const cycleTotalById = new Map<string, number>();
+    for (const c of cycleSums) cycleTotalById.set(c.cycle_id, c.total);
 
     for (const order of orders) {
       const offer = offerById.get(order.offer_id);
       const branch = branchByBraname.get(order.delivery_braname);
-      // Прогресс сбора — только для заказов на этапе накопления (ACTIVE). После
-      // приёма поставщиком сбор завершён, прогресс не показываем (пусто).
-      const isCollecting =
-        !!opts?.withGroupProgress && order.status === MarketplaceOrderStatuses.ACTIVE;
-      const groupKey = `${order.offer_id}::${order.delivery_braname}`;
-      const minVolume =
-        offer?.delivery_points?.find((d) => d.braname === order.delivery_braname)
-          ?.min_supply_volume ?? null;
+      // Целевой минимум КУ — свойство пары (offer × КУ), известен на любой
+      // стадии. Накоплено: на этапе сбора (ACTIVE) — сумма активного пула пары,
+      // иначе — коллективный объём партии (cycle_id), в которую заказ вошёл.
+      const minVolume = opts?.withGroupProgress
+        ? (offer?.delivery_points?.find((d) => d.braname === order.delivery_braname)
+            ?.min_supply_volume ?? null)
+        : null;
+      let accumulated: number | null = null;
+      if (opts?.withGroupProgress) {
+        if (order.status === MarketplaceOrderStatuses.ACTIVE) {
+          accumulated =
+            accumulatedByKey.get(`${order.offer_id}::${order.delivery_braname}`) ??
+            order.quantity;
+        } else if (order.cycle_id) {
+          accumulated = cycleTotalById.get(order.cycle_id) ?? order.quantity;
+        } else {
+          accumulated = order.quantity;
+        }
+      }
       result.set(order.id, {
         product_name: offer?.product_name ?? null,
         unit_of_measure: offer?.unit_of_measure ?? null,
@@ -114,10 +136,8 @@ export class MarketplaceOrderDisplayService {
         delivery_point_address: branch?.address ?? null,
         orderer_name: nameByAccount.get(order.orderer_account) ?? null,
         supplier_name: nameByAccount.get(order.supplier_account) ?? null,
-        group_accumulated_quantity: isCollecting
-          ? (accumulatedByKey.get(groupKey) ?? order.quantity)
-          : null,
-        group_min_volume: isCollecting ? minVolume : null,
+        group_accumulated_quantity: accumulated,
+        group_min_volume: minVolume,
       });
     }
     return result;
