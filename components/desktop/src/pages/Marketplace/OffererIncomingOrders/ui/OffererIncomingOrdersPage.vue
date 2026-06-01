@@ -13,6 +13,7 @@ import {
 } from 'src/widgets/Marketplace/OrderCard';
 import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
+import { formatShortFio } from 'src/shared/lib/utils/getNameFromCertificate';
 import {
   acceptOrdersBatch,
   declineOrdersBatch,
@@ -361,7 +362,7 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
           //- Состав партии — кратко, без «бесконечного списка» карточек.
           .incoming-orders__members
             .incoming-orders__member(v-for='o in p.orders', :key='o.id')
-              span.incoming-orders__member-who {{ o.orderer_name || o.orderer_account }}
+              span.incoming-orders__member-who {{ o.orderer_name ? formatShortFio(o.orderer_name) : o.orderer_account }}
               span.incoming-orders__member-qty {{ o.quantity }} {{ p.unitLabel }}
               span.incoming-orders__member-cost {{ formatCost(parseFloat(o.total_cost) || 0) }}
 

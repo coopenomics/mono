@@ -9,6 +9,7 @@ import { PageHint } from 'src/shared/ui/domain';
 import { QrScanner } from 'src/widgets/Marketplace/QrScanner';
 import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
+import { formatShortFio } from 'src/shared/lib/utils/getNameFromCertificate';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { decodeHandoffToken, HandoffTokenKind } from 'src/shared/lib/marketplace';
 import {
@@ -54,7 +55,8 @@ const columns: QTableProps['columns'] = [
   {
     name: 'orderer',
     label: 'Заказчик',
-    field: (r: MarketplaceOrderIssuanceView) => r.orderer_name || r.orderer_account,
+    field: (r: MarketplaceOrderIssuanceView) =>
+      r.orderer_name ? formatShortFio(r.orderer_name) : r.orderer_account,
     align: 'left',
   },
   {

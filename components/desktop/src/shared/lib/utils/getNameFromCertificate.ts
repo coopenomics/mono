@@ -45,6 +45,23 @@ export function getShortNameFromCertificate(
 }
 
 /**
+ * Сокращает уже собранную строку ФИО «Фамилия Имя Отчество» → «Фамилия И.О.».
+ * Строку из одного слова (например, наименование организации) возвращает как
+ * есть. Нужна там, где с бэкенда приходит готовое отображаемое имя единой
+ * строкой (например, `orderer_name` в ленте заказов), а раздельных полей
+ * сертификата под рукой нет. Формат совпадает с `formatShortName`.
+ */
+export function formatShortFio(fullName: string | null | undefined): string {
+  if (!fullName) return ''
+  const parts = fullName.trim().split(/\s+/).filter(Boolean)
+  if (parts.length <= 1) return fullName.trim()
+  const [lastName, first, middle] = parts
+  const firstInitial = first ? `${first.charAt(0).toUpperCase()}.` : ''
+  const middleInitial = middle ? `${middle.charAt(0).toUpperCase()}.` : ''
+  return `${lastName} ${firstInitial}${middleInitial}`
+}
+
+/**
  * Проверяет, является ли сертификат сертификатом физического лица
  */
 function isIndividualCertificate(
