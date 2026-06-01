@@ -129,7 +129,11 @@ const cards = computed<OfferCard[]>(() =>
     title: o.product_name,
     description: o.description ?? '',
     images: marketplaceOfferImageUrls(o.images),
-    remainUnits: o.unlimited_flag ? undefined : o.quantity_available - o.quantity_blocked,
+    // `quantity_available` — уже свободный остаток (инвариант counters:
+    // available + blocked + consumed = опубликовано; при заказе available
+    // сразу уменьшается). Повторно вычитать `quantity_blocked` нельзя —
+    // это двойное списание (100 опубликовал, заказали 1 → показывало 98).
+    remainUnits: o.unlimited_flag ? undefined : o.quantity_available,
     unitCost: parseFloat(o.price_per_unit) || 0,
     unitLabel: marketplaceUnitShort(o.unit_of_measure),
     status: STATUS_TO_CARD[o.status],
