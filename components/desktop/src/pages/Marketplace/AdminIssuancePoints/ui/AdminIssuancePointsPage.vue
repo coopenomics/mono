@@ -6,11 +6,11 @@ import { useSessionStore } from 'src/entities/Session'
 import { useBranchStore } from 'src/entities/Branch/model'
 import type { IBranch } from 'src/entities/Branch/model'
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails'
-import type {
-  GeocodeStatus,
-  IMarketplaceKUDetails,
-  KuDetailsStatus,
-} from 'src/entities/MarketplaceKUDetails'
+// GeocodeStatus/KuDetailsStatus — это ЗНАЧЕНИЯ (enum из Zeus), используются в
+// рантайме (GeocodeStatus.OK и т.п.); импортировать как value, не `import type`,
+// иначе тип стирается при компиляции → ReferenceError в шаблоне.
+import { GeocodeStatus, KuDetailsStatus } from 'src/entities/MarketplaceKUDetails'
+import type { IMarketplaceKUDetails } from 'src/entities/MarketplaceKUDetails'
 import { BaseBadge, BaseButton, BaseDialog, EmptyState, TableSkeleton } from 'src/shared/ui/base'
 import type { BaseBadgeVariant, TableSkeletonColumn } from 'src/shared/ui/base'
 import { PageHint } from 'src/shared/ui/domain'
