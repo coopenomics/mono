@@ -4104,6 +4104,7 @@ export const ReturnTypes: Record<string,any> = {
 		geocodedAt:"DateTime",
 		lat:"Float",
 		lng:"Float",
+		name:"String",
 		status:"String",
 		updatedAt:"DateTime",
 		workingHours:"WorkingHours"

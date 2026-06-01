@@ -30,9 +30,12 @@ export interface IWorkingHours {
 export interface IMarketplaceKUDetails {
   coopname: string
   coreBraname: string
-  addressFull: string
-  contactPhone: string
-  contactEmail: string
+  // Реквизиты участка резолвятся бэкендом живьём из организации участка
+  // (единый источник правды), поэтому nullable.
+  name?: string
+  addressFull?: string
+  contactPhone?: string
+  contactEmail?: string
   workingHours: IWorkingHours
   description?: string
   status: KuDetailsStatus
@@ -48,9 +51,6 @@ export interface IMarketplaceKUDetails {
 export interface IDetailKUInput {
   coopname: string
   coreBraname: string
-  addressFull: string
-  contactPhone: string
-  contactEmail: string
   workingHours: IWorkingHours
   description?: string
 }

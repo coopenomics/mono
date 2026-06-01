@@ -31,13 +31,11 @@ export const MARKETPLACE_ORDER_DISPLAY_SERVICE = Symbol('MARKETPLACE_ORDER_DISPL
  * собираются для UI обеих столов (заказчик/поставщик) и лент выдачи:
  *
  *   - название товара и единица измерения — из предложения (батч по offer_id);
- *   - адрес ПВЗ — из marketplace-детализации КУ (адрес физического пункта,
- *     может отличаться от юридического адреса организации участка);
- *   - наименование ПВЗ — живьём из наименования организации кооперативного
- *     участка (`short_name`) по его аккаунту-`braname`. Намеренно НЕ копируем
- *     имя в детализацию ПВЗ при её создании: копия отстаёт при переименовании
- *     участка, а live-резолв всегда отдаёт актуальное имя. Организация/КУ — это
- *     core-домен (общий с платформой), поэтому читаем напрямую через core
+ *   - наименование и адрес ПВЗ — живьём из организации кооперативного участка
+ *     (`short_name`/`fact_address`) по его аккаунту-`braname`. Намеренно НЕ
+ *     копируем реквизиты в детализацию ПВЗ: копия отстаёт при правке участка
+ *     председателем, а live-резолв всегда отдаёт актуальные данные. Организация/
+ *     КУ — core-домен (общий с платформой), поэтому читаем напрямую через core
  *     `ORGANIZATION_REPOSITORY`, а не через ext↔ext мост `inter`.
  *
  * Best-effort: отсутствующее предложение/ПВЗ/организация оставляют
@@ -79,22 +77,21 @@ export class MarketplaceOrderDisplayService {
     const accounts = opts?.withParticipantNames
       ? orders.flatMap((o) => [o.orderer_account, o.supplier_account])
       : [];
-    const [offers, kuList, nameByBraname, nameByAccount] = await Promise.all([
+    const [offers, branchByBraname, nameByAccount] = await Promise.all([
       this.offerRepo.findByIds(offerIds),
-      this.kuRepo.findByCoopname(config.coopname),
-      this.resolveKuNames(branames),
+      this.resolveBranches(branames),
       this.resolveAccountNames(accounts),
     ]);
     const offerById = new Map(offers.map((offer) => [offer.id, offer]));
-    const addressByBraname = new Map(kuList.map((ku) => [ku.coreBraname, ku.addressFull]));
 
     for (const order of orders) {
       const offer = offerById.get(order.offer_id);
+      const branch = branchByBraname.get(order.delivery_braname);
       result.set(order.id, {
         product_name: offer?.product_name ?? null,
         unit_of_measure: offer?.unit_of_measure ?? null,
-        delivery_point_name: nameByBraname.get(order.delivery_braname) ?? null,
-        delivery_point_address: addressByBraname.get(order.delivery_braname) ?? null,
+        delivery_point_name: branch?.name ?? null,
+        delivery_point_address: branch?.address ?? null,
         orderer_name: nameByAccount.get(order.orderer_account) ?? null,
         supplier_name: nameByAccount.get(order.supplier_account) ?? null,
       });
@@ -142,14 +139,58 @@ export class MarketplaceOrderDisplayService {
   ): Promise<{ name: string | null; address: string | null; lat: number | null; lng: number | null }> {
     if (!braname) return { name: null, address: null, lat: null, lng: null };
     const [org, ku] = await Promise.all([this.safeOrg(braname), this.safeKu(braname)]);
-    const name = org?.short_name?.trim() || org?.full_name?.trim() || null;
-    const address = org?.fact_address?.trim() || org?.full_address?.trim() || null;
+    const { name, address } = this.orgDisplay(org);
     const hasCoords = ku?.geocodeStatus === 'OK' && ku.lat != null && ku.lng != null;
     return {
       name,
       address,
       lat: hasCoords ? (ku!.lat as number) : null,
       lng: hasCoords ? (ku!.lng as number) : null,
+    };
+  }
+
+  /**
+   * Контакты участка (наименование/адрес/телефон/email) живьём из организации
+   * участка — без чтения marketplace-детализации. Источник правды реквизитов
+   * КУ: правит председатель в «Кооперативные участки», ПВЗ-детализация их не
+   * хранит. Используется field-резолвером `MarketplaceKUDetails`.
+   */
+  async resolveBranchContacts(
+    braname: string
+  ): Promise<{ name: string | null; address: string | null; phone: string | null; email: string | null }> {
+    if (!braname) return { name: null, address: null, phone: null, email: null };
+    return this.orgDisplay(await this.safeOrg(braname));
+  }
+
+  /** Батч реквизитов веток по `braname` (дедуп) для обогащения ленты заказов. */
+  private async resolveBranches(
+    branames: string[]
+  ): Promise<Map<string, { name: string | null; address: string | null }>> {
+    const result = new Map<string, { name: string | null; address: string | null }>();
+    const unique = [...new Set(branames.filter((b) => b))];
+    await Promise.all(
+      unique.map(async (braname) => {
+        const { name, address } = this.orgDisplay(await this.safeOrg(braname));
+        result.set(braname, { name, address });
+      })
+    );
+    return result;
+  }
+
+  /** Маппинг организации участка в отображаемые реквизиты (единый порядок fallback). */
+  private orgDisplay(org: {
+    short_name?: string;
+    full_name?: string;
+    fact_address?: string;
+    full_address?: string;
+    phone?: string;
+    email?: string;
+  } | null): { name: string | null; address: string | null; phone: string | null; email: string | null } {
+    return {
+      name: org?.short_name?.trim() || org?.full_name?.trim() || null,
+      address: org?.fact_address?.trim() || org?.full_address?.trim() || null,
+      phone: org?.phone?.trim() || null,
+      email: org?.email?.trim() || null,
     };
   }
 
@@ -205,32 +246,6 @@ export class MarketplaceOrderDisplayService {
           .join(' ')
           .trim() || null
       );
-    } catch {
-      return null;
-    }
-  }
-
-  private async resolveKuNames(branames: string[]): Promise<Map<string, string>> {
-    const map = new Map<string, string>();
-    await Promise.all(
-      branames.map(async (braname) => {
-        const name = await this.safeOrgShortName(braname);
-        if (name) map.set(braname, name);
-      })
-    );
-    return map;
-  }
-
-  /**
-   * Наименование организации участка по аккаунту-`braname`. `findByUsername`
-   * бросает, если организация не найдена, — для best-effort отображения это
-   * штатная ситуация (имя необязательно), поэтому глушим в null и не роняем
-   * ленту. Это read-path обогащение, а не sync-пайплайн, где глушить нельзя.
-   */
-  private async safeOrgShortName(braname: string): Promise<string | null> {
-    try {
-      const org = await this.orgRepo.findByUsername(braname);
-      return org?.short_name?.trim() || null;
     } catch {
       return null;
     }

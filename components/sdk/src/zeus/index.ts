@@ -6587,12 +6587,6 @@ export type ValueTypes = {
 	reason: string | Variable<any, string>
 };
 	["MarketplaceDetailKUInput"]: {
-	/** Полный адрес ПВЗ для отображения и геокодинга */
-	addressFull: string | Variable<any, string>,
-	/** Контактный email ПВЗ */
-	contactEmail: string | Variable<any, string>,
-	/** Контактный телефон ПВЗ */
-	contactPhone: string | Variable<any, string>,
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>,
 	/** Идентификатор КУ в core (`braname`) */
@@ -6779,8 +6773,11 @@ export type ValueTypes = {
 	version: string | Variable<any, string>
 };
 	["MarketplaceKUDetails"]: AliasType<{
+	/** Адрес участка (живьём из организации участка). */
 	addressFull?:boolean | `@${string}`,
+	/** Контактный email участка (живьём из организации участка). */
 	contactEmail?:boolean | `@${string}`,
+	/** Контактный телефон участка (живьём из организации участка). */
 	contactPhone?:boolean | `@${string}`,
 	coopname?:boolean | `@${string}`,
 	/** Идентификатор КУ в core (`braname`) */
@@ -6793,6 +6790,8 @@ export type ValueTypes = {
 	geocodedAt?:boolean | `@${string}`,
 	lat?:boolean | `@${string}`,
 	lng?:boolean | `@${string}`,
+	/** Наименование кооперативного участка (живьём из организации участка). */
+	name?:boolean | `@${string}`,
 	/** ACTIVE | INACTIVE */
 	status?:boolean | `@${string}`,
 	updatedAt?:boolean | `@${string}`,
@@ -16668,12 +16667,6 @@ export type ResolverInputTypes = {
 	reason: string
 };
 	["MarketplaceDetailKUInput"]: {
-	/** Полный адрес ПВЗ для отображения и геокодинга */
-	addressFull: string,
-	/** Контактный email ПВЗ */
-	contactEmail: string,
-	/** Контактный телефон ПВЗ */
-	contactPhone: string,
 	/** Имя аккаунта кооператива */
 	coopname: string,
 	/** Идентификатор КУ в core (`braname`) */
@@ -16855,8 +16848,11 @@ export type ResolverInputTypes = {
 	version: string
 };
 	["MarketplaceKUDetails"]: AliasType<{
+	/** Адрес участка (живьём из организации участка). */
 	addressFull?:boolean | `@${string}`,
+	/** Контактный email участка (живьём из организации участка). */
 	contactEmail?:boolean | `@${string}`,
+	/** Контактный телефон участка (живьём из организации участка). */
 	contactPhone?:boolean | `@${string}`,
 	coopname?:boolean | `@${string}`,
 	/** Идентификатор КУ в core (`braname`) */
@@ -16869,6 +16865,8 @@ export type ResolverInputTypes = {
 	geocodedAt?:boolean | `@${string}`,
 	lat?:boolean | `@${string}`,
 	lng?:boolean | `@${string}`,
+	/** Наименование кооперативного участка (живьём из организации участка). */
+	name?:boolean | `@${string}`,
 	/** ACTIVE | INACTIVE */
 	status?:boolean | `@${string}`,
 	updatedAt?:boolean | `@${string}`,
@@ -26423,12 +26421,6 @@ export type ModelTypes = {
 	reason: string
 };
 	["MarketplaceDetailKUInput"]: {
-	/** Полный адрес ПВЗ для отображения и геокодинга */
-	addressFull: string,
-	/** Контактный email ПВЗ */
-	contactEmail: string,
-	/** Контактный телефон ПВЗ */
-	contactPhone: string,
 	/** Имя аккаунта кооператива */
 	coopname: string,
 	/** Идентификатор КУ в core (`braname`) */
@@ -26604,9 +26596,12 @@ export type ModelTypes = {
 	version: string
 };
 	["MarketplaceKUDetails"]: {
-		addressFull: string,
-	contactEmail: string,
-	contactPhone: string,
+		/** Адрес участка (живьём из организации участка). */
+	addressFull?: string | undefined | null,
+	/** Контактный email участка (живьём из организации участка). */
+	contactEmail?: string | undefined | null,
+	/** Контактный телефон участка (живьём из организации участка). */
+	contactPhone?: string | undefined | null,
 	coopname: string,
 	/** Идентификатор КУ в core (`braname`) */
 	coreBraname: string,
@@ -26618,6 +26613,8 @@ export type ModelTypes = {
 	geocodedAt?: ModelTypes["DateTime"] | undefined | null,
 	lat?: number | undefined | null,
 	lng?: number | undefined | null,
+	/** Наименование кооперативного участка (живьём из организации участка). */
+	name?: string | undefined | null,
 	/** ACTIVE | INACTIVE */
 	status: string,
 	updatedAt: ModelTypes["DateTime"],
@@ -37079,13 +37076,7 @@ export type GraphQLTypes = {
 	reason: string
 };
 	["MarketplaceDetailKUInput"]: {
-		/** Полный адрес ПВЗ для отображения и геокодинга */
-	addressFull: string,
-	/** Контактный email ПВЗ */
-	contactEmail: string,
-	/** Контактный телефон ПВЗ */
-	contactPhone: string,
-	/** Имя аккаунта кооператива */
+		/** Имя аккаунта кооператива */
 	coopname: string,
 	/** Идентификатор КУ в core (`braname`) */
 	coreBraname: string,
@@ -37272,9 +37263,12 @@ export type GraphQLTypes = {
 };
 	["MarketplaceKUDetails"]: {
 	__typename: "MarketplaceKUDetails",
-	addressFull: string,
-	contactEmail: string,
-	contactPhone: string,
+	/** Адрес участка (живьём из организации участка). */
+	addressFull?: string | undefined | null,
+	/** Контактный email участка (живьём из организации участка). */
+	contactEmail?: string | undefined | null,
+	/** Контактный телефон участка (живьём из организации участка). */
+	contactPhone?: string | undefined | null,
 	coopname: string,
 	/** Идентификатор КУ в core (`braname`) */
 	coreBraname: string,
@@ -37286,6 +37280,8 @@ export type GraphQLTypes = {
 	geocodedAt?: GraphQLTypes["DateTime"] | undefined | null,
 	lat?: number | undefined | null,
 	lng?: number | undefined | null,
+	/** Наименование кооперативного участка (живьём из организации участка). */
+	name?: string | undefined | null,
 	/** ACTIVE | INACTIVE */
 	status: string,
 	updatedAt: GraphQLTypes["DateTime"],

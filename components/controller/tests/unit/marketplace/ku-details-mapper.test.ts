@@ -14,9 +14,7 @@ describe('KuDetailsMapper', () => {
       id: 42,
       coopname: 'voskhod',
       coreBraname: 'voskhod1',
-      addressFull: 'г. Москва, ул. Тверская, 1',
-      contactPhone: '+7 495 123-45-67',
-      contactEmail: 'pvz1@voskhod.coop',
+      geocodedAddress: 'г. Москва, ул. Тверская, 1',
       workingHours: {
         mon: { open: '09:00', close: '18:00', breaks: [{ start: '13:00', end: '14:00' }] },
         sat: { open: '10:00', close: '14:00', breaks: [] },
@@ -38,9 +36,7 @@ describe('KuDetailsMapper', () => {
     expect(entity.id).toBe(42);
     expect(entity.coopname).toBe('voskhod');
     expect(entity.coreBraname).toBe('voskhod1');
-    expect(entity.addressFull).toBe('г. Москва, ул. Тверская, 1');
-    expect(entity.contactPhone).toBe('+7 495 123-45-67');
-    expect(entity.contactEmail).toBe('pvz1@voskhod.coop');
+    expect(entity.geocodedAddress).toBe('г. Москва, ул. Тверская, 1');
     expect(entity.workingHoursJson.mon?.open).toBe('09:00');
     expect(entity.workingHoursJson.mon?.breaks[0]?.start).toBe('13:00');
     expect(entity.description).toBe('Главный ПВЗ');
@@ -59,9 +55,7 @@ describe('KuDetailsMapper', () => {
 
     expect(back.coopname).toBe(original.coopname);
     expect(back.coreBraname).toBe(original.coreBraname);
-    expect(back.addressFull).toBe(original.addressFull);
-    expect(back.contactPhone).toBe(original.contactPhone);
-    expect(back.contactEmail).toBe(original.contactEmail);
+    expect(back.geocodedAddress).toBe(original.geocodedAddress);
     expect(back.workingHours).toEqual(original.workingHours);
     expect(back.description).toBe(original.description);
     expect(back.status).toBe(original.status);
@@ -76,9 +70,7 @@ describe('KuDetailsMapper', () => {
     entity.id = 1;
     entity.coopname = 'voskhod';
     entity.coreBraname = 'voskhod2';
-    entity.addressFull = 'address';
-    entity.contactPhone = 'phone';
-    entity.contactEmail = 'email@example.com';
+    entity.geocodedAddress = undefined;
     entity.workingHoursJson = {};
     entity.status = 'INACTIVE';
     entity.geocodeStatus = 'PENDING';

@@ -1,19 +1,23 @@
 /**
- * Unit-тесты KuDetailsService (Story 2.1 + 2.2).
+ * Unit-тесты KuDetailsService (Story 2.1 + 2.2, после переезда реквизитов в
+ * единый источник правды — организацию участка).
  *
  * Покрывают:
- *  - detailKU создаёт новую запись с status='ACTIVE' и triggers геокодинг;
- *  - повторный detailKU без смены адреса не сбрасывает координаты OK;
- *  - смена addressFull сбрасывает геокодинг в PENDING и запускает заново;
+ *  - detailKU создаёт новую запись с status='ACTIVE' и triggers геокодинг по
+ *    адресу организации участка;
+ *  - повторный detailKU без смены адреса организации не сбрасывает координаты OK;
+ *  - смена адреса организации сбрасывает геокодинг в PENDING и запускает заново;
  *  - геокодер FAILED → запись хранит статус FAILED + errorMessage;
  *  - setStatus меняет ACTIVE↔INACTIVE; запись отсутствует → NotFoundException;
  *  - list проксирует onlyActive; foreign-coopname → NotFoundException;
- *  - retryGeocode перезапускает геокодер для существующей записи.
+ *  - retryGeocode перезапускает геокодер по адресу организации.
  */
 import { KuDetailsService } from '~/extensions/marketplace/application/services/ku-details.service';
 import { KuDetailsDomainEntity } from '~/extensions/marketplace/domain/entities/ku-details-domain.entity';
 import type { KuDetailsDomainRepository } from '~/extensions/marketplace/domain/repositories/ku-details-domain.repository';
 import type { GeocoderPort, GeocoderResult } from '~/extensions/marketplace/domain/ports/geocoder.port';
+import type { OrganizationRepository } from '~/domain/common/repositories/organization.repository';
+import type { OrganizationDomainInterface } from '~/domain/common/interfaces/organization-domain.interface';
 
 jest.mock('~/config/config', () => ({
   __esModule: true,
@@ -60,6 +64,7 @@ class InMemoryKuDetailsRepo implements KuDetailsDomainRepository {
       lng?: number;
       errorMessage?: string;
       geocodedAt: Date;
+      geocodedAddress?: string;
     }
   ): Promise<KuDetailsDomainEntity | null> {
     const existing = this.store.get(this.key(coopname, coreBraname));
@@ -71,6 +76,7 @@ class InMemoryKuDetailsRepo implements KuDetailsDomainRepository {
       lng: payload.lng,
       geocodeErrorMessage: payload.errorMessage,
       geocodedAt: payload.geocodedAt,
+      geocodedAddress: payload.geocodedAddress ?? existing.geocodedAddress,
     });
     this.store.set(this.key(coopname, coreBraname), updated);
     return updated;
@@ -99,12 +105,35 @@ class StubGeocoder implements GeocoderPort {
   }
 }
 
+// Организация участка — единый источник правды реквизитов (адрес/контакты).
+class StubOrgRepo implements OrganizationRepository {
+  public addresses = new Map<string, string>();
+
+  async findByUsername(username: string): Promise<OrganizationDomainInterface> {
+    return {
+      username,
+      type: 'organization',
+      short_name: `КУ ${username}`,
+      full_name: `Кооперативный участок ${username}`,
+      fact_address: this.addresses.get(username) ?? '',
+      full_address: '',
+      phone: '+7 495 123-45-67',
+      email: `${username}@voskhod.coop`,
+      country: 'RU',
+      city: 'Москва',
+      represented_by: {} as OrganizationDomainInterface['represented_by'],
+      details: {} as OrganizationDomainInterface['details'],
+    };
+  }
+
+  async create(): Promise<void> {
+    /* no-op */
+  }
+}
+
 const sampleInput = () => ({
   coopname: 'voskhod',
   coreBraname: 'voskhod1',
-  addressFull: 'г. Москва, ул. Тверская, 1',
-  contactPhone: '+7 495 123-45-67',
-  contactEmail: 'pvz1@voskhod.coop',
   workingHours: { mon: { open: '09:00', close: '18:00', breaks: [] } },
   description: undefined,
 });
@@ -112,19 +141,22 @@ const sampleInput = () => ({
 describe('KuDetailsService', () => {
   let repo: InMemoryKuDetailsRepo;
   let geocoder: StubGeocoder;
+  let orgRepo: StubOrgRepo;
   let service: KuDetailsService;
 
   beforeEach(() => {
     repo = new InMemoryKuDetailsRepo();
     geocoder = new StubGeocoder();
-    service = new KuDetailsService(repo, geocoder);
+    orgRepo = new StubOrgRepo();
+    orgRepo.addresses.set('voskhod1', 'г. Москва, ул. Тверская, 1');
+    service = new KuDetailsService(repo, geocoder, orgRepo);
   });
 
   async function flushGeocode() {
     await new Promise((resolve) => setImmediate(resolve));
   }
 
-  it('detailKU создаёт новую запись со статусом ACTIVE и triggers геокодинг', async () => {
+  it('detailKU создаёт новую запись со статусом ACTIVE и triggers геокодинг по адресу организации', async () => {
     const result = await service.detailKU(sampleInput());
     await flushGeocode();
 
@@ -136,7 +168,7 @@ describe('KuDetailsService', () => {
     expect(geocoder.calls).toEqual(['г. Москва, ул. Тверская, 1']);
   });
 
-  it('повторный detailKU без смены адреса не запускает геокодер заново', async () => {
+  it('повторный detailKU без смены адреса организации не запускает геокодер заново', async () => {
     await service.detailKU(sampleInput());
     await flushGeocode();
     geocoder.calls = [];
@@ -151,13 +183,14 @@ describe('KuDetailsService', () => {
     expect(stored?.description).toBe('Описание изменено');
   });
 
-  it('смена addressFull сбрасывает координаты в PENDING и запускает геокодер', async () => {
+  it('смена адреса организации сбрасывает координаты в PENDING и запускает геокодер', async () => {
     await service.detailKU(sampleInput());
     await flushGeocode();
     geocoder.result = { status: 'OK', lat: 59.9342802, lng: 30.3350986 };
     geocoder.calls = [];
 
-    await service.detailKU({ ...sampleInput(), addressFull: 'СПб, Невский, 1' });
+    orgRepo.addresses.set('voskhod1', 'СПб, Невский, 1');
+    await service.detailKU(sampleInput());
     await flushGeocode();
 
     expect(geocoder.calls).toEqual(['СПб, Невский, 1']);
@@ -204,9 +237,10 @@ describe('KuDetailsService', () => {
   });
 
   it('list onlyActive=true возвращает только ACTIVE записи', async () => {
+    orgRepo.addresses.set('voskhod2', 'г. Москва, ул. Арбат, 2');
     await service.detailKU(sampleInput());
     await flushGeocode();
-    await service.detailKU({ ...sampleInput(), coreBraname: 'voskhod2', addressFull: 'addr2' });
+    await service.detailKU({ ...sampleInput(), coreBraname: 'voskhod2' });
     await flushGeocode();
     await service.setStatus({ coopname: 'voskhod', coreBraname: 'voskhod2', status: 'INACTIVE' });
 
@@ -224,7 +258,7 @@ describe('KuDetailsService', () => {
     );
   });
 
-  it('retryGeocode пересчитывает координаты для существующей записи', async () => {
+  it('retryGeocode пересчитывает координаты по адресу организации', async () => {
     geocoder.result = { status: 'FAILED', errorMessage: 'temporary' };
     await service.detailKU(sampleInput());
     await flushGeocode();

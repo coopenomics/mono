@@ -23,14 +23,14 @@ export class KuDetailsTypeormEntity {
   @Column({ name: 'core_braname', type: 'varchar', length: 13, comment: 'braname в core coop_ku' })
   coreBraname!: string;
 
-  @Column({ name: 'address_full', type: 'varchar', length: 1000 })
-  addressFull!: string;
-
-  @Column({ name: 'contact_phone', type: 'varchar', length: 50 })
-  contactPhone!: string;
-
-  @Column({ name: 'contact_email', type: 'varchar', length: 200 })
-  contactEmail!: string;
+  @Column({
+    name: 'geocoded_address',
+    type: 'varchar',
+    length: 1000,
+    nullable: true,
+    comment: 'Адрес, по которому посчитаны координаты (кэш-ключ геокода)',
+  })
+  geocodedAddress?: string;
 
   @Column({ name: 'working_hours_json', type: 'jsonb' })
   workingHoursJson!: WorkingHoursDomain;

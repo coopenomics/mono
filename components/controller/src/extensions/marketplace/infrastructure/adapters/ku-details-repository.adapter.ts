@@ -37,9 +37,7 @@ export class KuDetailsRepositoryAdapter implements KuDetailsDomainRepository {
     const toPersist = existing ?? new KuDetailsTypeormEntity();
     toPersist.coopname = entity.coopname;
     toPersist.coreBraname = entity.coreBraname;
-    toPersist.addressFull = entity.addressFull;
-    toPersist.contactPhone = entity.contactPhone;
-    toPersist.contactEmail = entity.contactEmail;
+    toPersist.geocodedAddress = entity.geocodedAddress;
     toPersist.workingHoursJson = entity.workingHours;
     toPersist.description = entity.description;
     toPersist.status = entity.status;
@@ -62,21 +60,18 @@ export class KuDetailsRepositoryAdapter implements KuDetailsDomainRepository {
       lng?: number;
       errorMessage?: string;
       geocodedAt: Date;
-      expectedAddressFull?: string;
+      geocodedAddress?: string;
     }
   ): Promise<KuDetailsDomainEntity | null> {
     const existing = await this.repo.findOne({ where: { coopname, coreBraname } });
     if (!existing) return null;
-
-    if (payload.expectedAddressFull !== undefined && existing.addressFull !== payload.expectedAddressFull) {
-      return null;
-    }
 
     existing.geocodeStatus = payload.status;
     existing.lat = payload.lat;
     existing.lng = payload.lng;
     existing.geocodeErrorMessage = payload.errorMessage;
     existing.geocodedAt = payload.geocodedAt;
+    if (payload.geocodedAddress !== undefined) existing.geocodedAddress = payload.geocodedAddress;
 
     const saved = await this.repo.save(existing);
     return KuDetailsMapper.toDomain(saved);

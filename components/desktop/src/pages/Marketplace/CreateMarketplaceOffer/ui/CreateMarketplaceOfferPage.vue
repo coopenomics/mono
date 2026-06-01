@@ -315,7 +315,6 @@ import { Map as MapView } from 'src/shared/ui/Map';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
-import { useBranchStore } from 'src/entities/Branch/model';
 import { MARKETPLACE_UNIT_OPTIONS } from 'src/shared/lib/consts';
 import { fileToBase64, formatAsset2Digits } from 'src/shared/lib/utils';
 import {
@@ -358,7 +357,6 @@ const route = useRoute();
 // НЕ хардкод «₽»: при смене символа цепи фронт не переписываем.
 const systemStore = useSystemStore();
 const kuStore = useMarketplaceKUDetailsStore();
-const branchStore = useBranchStore();
 const governSymbol = computed(() => systemStore.governSymbol);
 
 // Цена — целое или с двумя знаками после запятой (рубли/копейки). Допускаем
@@ -585,19 +583,14 @@ async function loadKuOptions(): Promise<void> {
   if (!coopname) return;
   kuLoading.value = true;
   try {
-    // Наименование участка — на филиале (branches), адрес/координаты — на KU-details.
+    // Наименование/адрес участка бэкенд резолвит живьём из организации и отдаёт
+    // прямо в KU-details (name/addressFull) — фронт не джойнит branches отдельно.
     // Запрос ListKUDetails требует coopname (String!); берём только активные КУ.
-    await Promise.all([
-      branchStore.loadBranches({ coopname }),
-      kuStore.load({ coopname, onlyActive: true }),
-    ]);
-    const nameByBraname = new Map(
-      branchStore.branches.map((b) => [b.braname, b.short_name || b.full_name || b.braname])
-    );
+    await kuStore.load({ coopname, onlyActive: true });
     kuOptions.value = kuStore.details.map((k) => ({
       braname: k.coreBraname,
-      name: nameByBraname.get(k.coreBraname) ?? k.coreBraname,
-      address: k.addressFull,
+      name: k.name || k.coreBraname,
+      address: k.addressFull ?? '',
       lat: k.geocodeStatus === 'OK' && k.lat != null ? Number(k.lat) : null,
       lng: k.geocodeStatus === 'OK' && k.lng != null ? Number(k.lng) : null,
     }));

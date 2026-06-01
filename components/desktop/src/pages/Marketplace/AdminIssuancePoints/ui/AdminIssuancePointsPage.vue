@@ -80,8 +80,12 @@ function statusOf(row: IssuancePointRow): { label: string; variant: BaseBadgeVar
 }
 
 function addressOf(row: IssuancePointRow): string {
-  if (row.details) return row.details.addressFull
-  return row.branch.fact_address || row.branch.full_address || '—'
+  return (
+    row.details?.addressFull ||
+    row.branch.fact_address ||
+    row.branch.full_address ||
+    '—'
+  )
 }
 
 // Карта ПВЗ: открываем точку по координатам геокодера (OSM, без API-ключа).

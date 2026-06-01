@@ -23,6 +23,7 @@ import {
   MarketplaceOfferFieldsResolver,
   MarketplaceOfferDeliveryPointFieldsResolver,
 } from './resolvers/marketplace-offer-fields.resolver';
+import { MarketplaceKUDetailsFieldsResolver } from './resolvers/ku-details-fields.resolver';
 import { MarketplaceOfferImagesService } from './services/marketplace-offer-images.service';
 import { MarketplaceModerationResolver } from './resolvers/marketplace-moderation.resolver';
 import { MarketplaceCatalogResolver } from './resolvers/marketplace-catalog.resolver';
@@ -245,6 +246,7 @@ import { MarketplaceInventoryEntity } from '../infrastructure/entities/marketpla
     MarketplaceOfferImagesService,
     MarketplaceOfferFieldsResolver,
     MarketplaceOfferDeliveryPointFieldsResolver,
+    MarketplaceKUDetailsFieldsResolver,
     {
       provide: MARKETPLACE_CATEGORY_SERVICE,
       useClass: MarketplaceCategoryService,
@@ -275,6 +277,8 @@ import { MarketplaceInventoryEntity } from '../infrastructure/entities/marketpla
       provide: MARKETPLACE_ORDER_DISPLAY_SERVICE,
       useClass: MarketplaceOrderDisplayService,
     },
+    // Plain-class провайдер: field-резолверы оферты/КУ инжектят сервис по классу
+    MarketplaceOrderDisplayService,
     // Story 4.4
     {
       provide: MARKETPLACE_ORDER_CANCEL_SERVICE,

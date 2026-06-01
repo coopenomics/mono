@@ -3,8 +3,10 @@ import type { KuDetailsDomainEntity } from '../../domain/entities/ku-details-dom
 import { WorkingHoursDTO } from './working-hours.dto';
 
 // GraphQL-представление marketplace-детализации существующего в core КУ.
-// Поля lat/lng/geocode* обновляются post-effect'ом геокодера — до его
-// выполнения geocodeStatus = 'PENDING', координаты отсутствуют.
+// Реквизиты участка (`name`/`addressFull`/`contactPhone`/`contactEmail`) НЕ
+// хранятся в детализации — их отдаёт field-резолвер живьём из организации
+// участка (единый источник правды). Поля lat/lng/geocode* обновляются
+// post-effect'ом геокодера — до его выполнения geocodeStatus = 'PENDING'.
 @ObjectType('MarketplaceKUDetails')
 export class KuDetailsDTO {
   @Field(() => String)
@@ -12,15 +14,6 @@ export class KuDetailsDTO {
 
   @Field(() => String, { description: 'Идентификатор КУ в core (`braname`)' })
   coreBraname!: string;
-
-  @Field(() => String)
-  addressFull!: string;
-
-  @Field(() => String)
-  contactPhone!: string;
-
-  @Field(() => String)
-  contactEmail!: string;
 
   @Field(() => WorkingHoursDTO)
   workingHours!: WorkingHoursDTO;
@@ -56,9 +49,6 @@ export class KuDetailsDTO {
     const dto = new KuDetailsDTO();
     dto.coopname = domain.coopname;
     dto.coreBraname = domain.coreBraname;
-    dto.addressFull = domain.addressFull;
-    dto.contactPhone = domain.contactPhone;
-    dto.contactEmail = domain.contactEmail;
     dto.workingHours = domain.workingHours as WorkingHoursDTO;
     dto.description = domain.description;
     dto.status = domain.status;
