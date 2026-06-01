@@ -1,7 +1,7 @@
 <template lang="pug">
 BaseDialog(
   :model-value="modelValue"
-  :title="`Детализация ПВЗ — ${coreBraname}`"
+  :title="dialogTitle"
   size="lg"
   @update:model-value="emit('update:modelValue', $event)"
 )
@@ -139,6 +139,11 @@ const branchContacts = computed(() => {
   return [phone, email].filter(Boolean).join(' · ')
 })
 
+// В заголовке — человекочитаемое имя участка, не служебный braname.
+const dialogTitle = computed(
+  () => `Детализация ПВЗ — ${branchName.value || props.coreBraname}`
+)
+
 // Правила с регулярками держим в script, а не inline в pug-атрибуте:
 // pug съедает обратные слэши в строковом значении :rules, и `\d`/`\.`
 // деградируют в литералы `d`/`.`, из-за чего валидные значения ложно
@@ -266,30 +271,44 @@ async function submit() {
   }
 
   &__days {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--p-3, 12px);
-  }
-
-  &__day {
-    border: 1px solid var(--p-line);
-    border-radius: var(--p-r-md, 8px);
-    padding: var(--p-3, 12px);
     display: flex;
     flex-direction: column;
     gap: var(--p-2, 8px);
   }
 
+  // День — одна строка: переключатель слева, поля времени справа на той же
+  // линии. Без column-раскладки, чтобы включение дня не добавляло вторую
+  // строку и список не «удлинялся».
+  &__day {
+    border: 1px solid var(--p-line);
+    border-radius: var(--p-r-md, 8px);
+    padding: var(--p-2, 8px) var(--p-3, 12px);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--p-3, 12px);
+    min-height: 56px;
+  }
+
+  // Фиксированная колонка переключателя — поля времени выравниваются по всем
+  // строкам независимо от длины метки дня.
+  &__day > :deep(.q-toggle) {
+    flex: 0 0 auto;
+    min-width: 88px;
+  }
+
   &__day-times {
+    flex: 1;
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: var(--p-2, 8px);
+    max-width: 360px;
   }
 }
 
 @media (max-width: 600px) {
-  .detail-ku__days {
-    grid-template-columns: 1fr;
+  .detail-ku__day-times {
+    max-width: none;
   }
 }
 </style>
