@@ -22,6 +22,7 @@ import {
   type MarketplaceOrderDomainRepository,
 } from '../../domain/repositories/marketplace-order.repository';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
+import { MarketplaceOrderStatuses } from '../../domain/entities/marketplace-order.types';
 import type { MarketplaceOrderDisplayFields } from '../dto/marketplace-order.dto';
 
 export const MARKETPLACE_ORDER_DISPLAY_SERVICE = Symbol('MARKETPLACE_ORDER_DISPLAY_SERVICE');
@@ -65,7 +66,7 @@ export class MarketplaceOrderDisplayService {
    */
   async enrich(
     orders: MarketplaceOrderDomainEntity[],
-    opts?: { withParticipantNames?: boolean }
+    opts?: { withParticipantNames?: boolean; withGroupProgress?: boolean }
   ): Promise<Map<string, MarketplaceOrderDisplayFields>> {
     const result = new Map<string, MarketplaceOrderDisplayFields>();
     if (orders.length === 0) return result;
@@ -78,16 +79,34 @@ export class MarketplaceOrderDisplayService {
     const accounts = opts?.withParticipantNames
       ? orders.flatMap((o) => [o.orderer_account, o.supplier_account])
       : [];
-    const [offers, branchByBraname, nameByAccount] = await Promise.all([
+    const [offers, branchByBraname, nameByAccount, groupSums] = await Promise.all([
       this.offerRepo.findByIds(offerIds),
       this.resolveBranches(branames),
       this.resolveAccountNames(accounts),
+      // «Сколько накоплено» по парам (offer × КУ) считаем только когда лента
+      // должна показать прогресс сбора (стол заказчика) — иначе лишний запрос.
+      opts?.withGroupProgress
+        ? this.orderRepo.sumActiveByOfferBranch(config.coopname, offerIds)
+        : Promise.resolve([]),
     ]);
     const offerById = new Map(offers.map((offer) => [offer.id, offer]));
+    // Ключ (offer_id::braname) → накоплено всеми на этапе сбора.
+    const accumulatedByKey = new Map<string, number>();
+    for (const g of groupSums) {
+      accumulatedByKey.set(`${g.offer_id}::${g.delivery_braname}`, g.total);
+    }
 
     for (const order of orders) {
       const offer = offerById.get(order.offer_id);
       const branch = branchByBraname.get(order.delivery_braname);
+      // Прогресс сбора — только для заказов на этапе накопления (ACTIVE). После
+      // приёма поставщиком сбор завершён, прогресс не показываем (пусто).
+      const isCollecting =
+        !!opts?.withGroupProgress && order.status === MarketplaceOrderStatuses.ACTIVE;
+      const groupKey = `${order.offer_id}::${order.delivery_braname}`;
+      const minVolume =
+        offer?.delivery_points?.find((d) => d.braname === order.delivery_braname)
+          ?.min_supply_volume ?? null;
       result.set(order.id, {
         product_name: offer?.product_name ?? null,
         unit_of_measure: offer?.unit_of_measure ?? null,
@@ -95,6 +114,10 @@ export class MarketplaceOrderDisplayService {
         delivery_point_address: branch?.address ?? null,
         orderer_name: nameByAccount.get(order.orderer_account) ?? null,
         supplier_name: nameByAccount.get(order.supplier_account) ?? null,
+        group_accumulated_quantity: isCollecting
+          ? (accumulatedByKey.get(groupKey) ?? order.quantity)
+          : null,
+        group_min_volume: isCollecting ? minVolume : null,
       });
     }
     return result;

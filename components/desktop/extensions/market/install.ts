@@ -171,7 +171,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-consolidated',
               component: markRaw(OrdererConsolidatedPage),
               meta: {
-                title: 'Сводный заказ',
+                title: 'Коллективный заказ',
                 icon: 'fa-solid fa-layer-group',
                 requires: 'Order:create',
                 requiresAuth: true,

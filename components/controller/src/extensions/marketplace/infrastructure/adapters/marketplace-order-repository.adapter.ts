@@ -295,6 +295,31 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
     return Number(raw?.total ?? 0);
   }
 
+  async sumActiveByOfferBranch(
+    coopname: string,
+    offerIds: string[]
+  ): Promise<Array<{ offer_id: string; delivery_braname: string; total: number }>> {
+    if (offerIds.length === 0) return [];
+    const rows = await this.repo
+      .createQueryBuilder('o')
+      .select('o.offer_id', 'offer_id')
+      .addSelect('o.delivery_braname', 'delivery_braname')
+      .addSelect('COALESCE(SUM(o.quantity), 0)', 'total')
+      .where('o.coopname = :coop AND o.offer_id IN (:...offers) AND o.status = :st', {
+        coop: coopname,
+        offers: offerIds,
+        st: MarketplaceOrderStatuses.ACTIVE,
+      })
+      .groupBy('o.offer_id')
+      .addGroupBy('o.delivery_braname')
+      .getRawMany<{ offer_id: string; delivery_braname: string; total: string }>();
+    return rows.map((r) => ({
+      offer_id: r.offer_id,
+      delivery_braname: r.delivery_braname,
+      total: Number(r.total ?? 0),
+    }));
+  }
+
   async deleteByBlockNumGreaterThan(blockNum: number): Promise<void> {
     await this.repo
       .createQueryBuilder()

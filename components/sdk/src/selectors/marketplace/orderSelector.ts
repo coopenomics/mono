@@ -46,6 +46,8 @@ const rawOrderSelector = {
   delivery_point_name: true,
   delivery_point_address: true,
   quantity: true,
+  group_accumulated_quantity: true,
+  group_min_volume: true,
   price_per_unit: true,
   total_cost: true,
   cycle_id: true,

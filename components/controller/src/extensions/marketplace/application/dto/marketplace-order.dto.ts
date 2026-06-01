@@ -138,6 +138,23 @@ export class MarketplaceOrderDTO {
   @Field(() => Int, { description: 'Количество единиц товара в заказе.' })
   public readonly quantity!: number;
 
+  @Field(() => Int, {
+    nullable: true,
+    description:
+      'Сколько уже накоплено по этому предложению на данном пункте выдачи всеми ' +
+      'заказчиками на этапе сбора партии (для прогресса коллективного заказа). ' +
+      'Заполняется только пока заказ копится; после приёма поставщиком — пусто.',
+  })
+  public readonly group_accumulated_quantity!: number | null;
+
+  @Field(() => Int, {
+    nullable: true,
+    description:
+      'Целевой минимальный объём поставки на этот пункт выдачи — ориентир сбора ' +
+      'партии (не жёсткий порог). Заполняется только на этапе сбора.',
+  })
+  public readonly group_min_volume!: number | null;
+
   @Field(() => String, { description: 'Цена за единицу товара на момент заказа.' })
   public readonly price_per_unit!: string;
 
@@ -321,6 +338,8 @@ export interface MarketplaceOrderDisplayFields {
   delivery_point_address?: string | null;
   orderer_name?: string | null;
   supplier_name?: string | null;
+  group_accumulated_quantity?: number | null;
+  group_min_volume?: number | null;
 }
 
 export function toMarketplaceOrderDTO(
@@ -343,6 +362,8 @@ export function toMarketplaceOrderDTO(
     delivery_point_name: display?.delivery_point_name ?? null,
     delivery_point_address: display?.delivery_point_address ?? null,
     quantity: o.quantity,
+    group_accumulated_quantity: display?.group_accumulated_quantity ?? null,
+    group_min_volume: display?.group_min_volume ?? null,
     price_per_unit: o.price_per_unit,
     total_cost: o.total_cost,
     cycle_id: o.cycle_id,

@@ -4208,6 +4208,8 @@ export const ReturnTypes: Record<string,any> = {
 		delivery_point_address:"String",
 		delivery_point_name:"String",
 		delivery_signer_account:"String",
+		group_accumulated_quantity:"Int",
+		group_min_volume:"Int",
 		id:"String",
 		issuance_fact:"MarketplaceOrderIssuanceFactSnapshot",
 		last_status_reason:"String",

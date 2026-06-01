@@ -183,7 +183,12 @@ export class MarketplaceOrderResolver {
       offer_id: input?.offer_id,
       status: input?.statuses?.length ? (input.statuses as MarketplaceOrderStatus[]) : undefined,
     };
-    return this.runListQuery(filter, options);
+    // Стол заказчика: показываем наименование поставщика/ПВЗ и прогресс сбора
+    // коллективного заказа (сколько накоплено по оферте × КУ всеми пайщиками).
+    return this.runListQuery(filter, options, {
+      withParticipantNames: true,
+      withGroupProgress: true,
+    });
   }
 
   @Query(() => MarketplaceOrderPaginationResultDTO, {
@@ -204,7 +209,8 @@ export class MarketplaceOrderResolver {
       offer_id: input?.offer_id,
       status: input?.statuses?.length ? (input.statuses as MarketplaceOrderStatus[]) : undefined,
     };
-    return this.runListQuery(filter, options);
+    // Стол поставщика: показываем «кто заказал» (ФИО/наименование заказчика).
+    return this.runListQuery(filter, options, { withParticipantNames: true });
   }
 
   @Query(() => MarketplaceOrderDTO, {
@@ -235,7 +241,8 @@ export class MarketplaceOrderResolver {
 
   private async runListQuery(
     filter: MarketplaceOrderListFilter,
-    options?: PaginationInputDTO
+    options?: PaginationInputDTO,
+    enrichOpts?: { withParticipantNames?: boolean; withGroupProgress?: boolean }
   ): Promise<MarketplaceOrderPaginationResultDTO> {
     const result = await this.orderRepo.list(filter, {
       page: options?.page ?? 1,
@@ -243,7 +250,7 @@ export class MarketplaceOrderResolver {
       sortBy: options?.sortBy ?? 'updated_at',
       sortOrder: options?.sortOrder ?? 'DESC',
     });
-    const displayByOrderId = await this.displayService.enrich(result.items);
+    const displayByOrderId = await this.displayService.enrich(result.items, enrichOpts);
     const dto = new MarketplaceOrderPaginationResultDTO();
     dto.items = result.items.map((o) => toOrderDTO(o, displayByOrderId.get(o.id)));
     dto.totalCount = result.totalCount;

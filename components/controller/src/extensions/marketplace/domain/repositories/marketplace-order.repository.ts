@@ -126,6 +126,18 @@ export interface MarketplaceOrderDomainRepository
   sumUnassignedActiveByOffer(coopname: string, offer_id: string): Promise<number>;
 
   /**
+   * Батч «сколько накоплено» по парам (offer × КУ) на этапе сбора: сумма
+   * quantity всех ACTIVE-заказов (всех пайщиков) каждого предложения в разрезе
+   * ПВЗ доставки. Нужен, чтобы заказчик в своей ленте видел коллективный
+   * прогресс сбора партии (а не только свой вклад). Результат — строки
+   * (offer_id, delivery_braname, total).
+   */
+  sumActiveByOfferBranch(
+    coopname: string,
+    offerIds: string[]
+  ): Promise<Array<{ offer_id: string; delivery_braname: string; total: number }>>;
+
+  /**
    * Story 4.3: все Order'ы, привязанные к заявке `cycle_id`. Используется
    * cron'ом expireUnacceptedPending для per-Order unblk пулу заявки,
    * у которой истёк `expires_at` без ответа поставщика.
