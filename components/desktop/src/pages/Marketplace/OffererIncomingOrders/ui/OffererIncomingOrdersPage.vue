@@ -3,14 +3,10 @@ import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { Dialog } from 'quasar';
 import { SuccessAlert, FailAlert, NotifyAlert } from 'src/shared/api';
 import { useRoute, useRouter } from 'vue-router';
-import { BaseButton, EmptyState } from 'src/shared/ui/base';
+import { BaseBadge, BaseButton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
-import {
-  OrderCard,
-  orderStatusDisplay,
-  toOrderCardModel,
-} from 'src/widgets/Marketplace/OrderCard';
+import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
 import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import { formatShortFio } from 'src/shared/lib/utils/getNameFromCertificate';
@@ -179,19 +175,24 @@ const parties = computed<SupplierParty[]>(() => {
 
 const hasParties = computed(() => parties.value.length > 0);
 
-// Поштучный приём: min ≤ 1 (или не задан) — каждая единица к поставке сразу,
-// прогресс-бар не нужен.
-function isPerPiece(p: SupplierParty): boolean {
-  return p.minVolume == null || p.minVolume <= 1;
-}
-
-function progressRatio(p: SupplierParty): number {
-  if (!p.minVolume || p.minVolume <= 0) return 1;
-  return Math.min(1, p.totalUnits / p.minVolume);
+// Есть ли целевой объём сбора (иначе — поштучный приём, бар показываем полным).
+function hasTarget(p: SupplierParty): boolean {
+  return p.minVolume != null && p.minVolume > 1;
 }
 
 function reachedMin(p: SupplierParty): boolean {
   return p.minVolume != null && p.totalUnits >= p.minVolume;
+}
+
+function progressRatio(p: SupplierParty): number {
+  if (!hasTarget(p)) return 1;
+  return Math.min(1, p.totalUnits / (p.minVolume as number));
+}
+
+// Идёт сбор и цель ещё не набрана — основной цвет; иначе (набрано / поштучно /
+// уже принятая партия) — успех.
+function barColor(p: SupplierParty): string {
+  return p.kind === 'collecting' && hasTarget(p) && !reachedMin(p) ? 'primary' : 'positive';
 }
 
 function formatCost(value: number): string {
@@ -331,76 +332,53 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
               .t-muted.incoming-orders__party-sub
                 q-icon(name='place', size='14px')
                 | КУ «{{ p.pvzName }}»
+            BaseBadge(:variant='orderStatusDisplay(p.stageStatus).variant') {{ orderStatusDisplay(p.stageStatus).label }}
             span.chip.chip--accent
               q-icon(name='layers', size='14px')
               | {{ p.orders.length }} зак.
 
-        //- НАКОПИТЕЛЬ: прогресс сбора к минимальному объёму + приём партии.
-        template(v-if='p.kind === "collecting"')
-          .incoming-orders__progress(v-if='!isPerPiece(p)')
-            .incoming-orders__progress-row
-              span Накоплено: {{ p.totalUnits }} {{ p.unitLabel }}
-              span.t-muted цель — от {{ p.minVolume }} {{ p.unitLabel }}
-            q-linear-progress.incoming-orders__progress-bar(
-              :value='progressRatio(p)',
-              rounded,
-              size='10px',
-              :color='reachedMin(p) ? "positive" : "primary"',
-              track-color='grey-3'
-            )
-            .t-muted.incoming-orders__progress-hint(v-if='reachedMin(p)')
-              q-icon(name='check_circle', size='14px', color='positive')
-              | Минимальный объём набран — можно принимать партию.
-            .t-muted.incoming-orders__progress-hint(v-else)
-              | Можно принять и сейчас — минимум лишь ориентир сбора.
+        //- ЕДИНАЯ карточка партии на всех стадиях: прогресс всегда, состав
+        //- компактными строками, действия — только пока партия копится.
+        .incoming-orders__progress
+          .incoming-orders__progress-row
+            span Объём партии: {{ p.totalUnits }} {{ p.unitLabel }}
+            span.t-muted(v-if='hasTarget(p)') цель — от {{ p.minVolume }} {{ p.unitLabel }}
+          q-linear-progress.incoming-orders__progress-bar(
+            :value='progressRatio(p)',
+            rounded,
+            size='10px',
+            :color='barColor(p)',
+            track-color='grey-3'
+          )
+          .t-muted.incoming-orders__progress-hint(v-if='p.kind === "collecting" && hasTarget(p) && reachedMin(p)')
+            q-icon(name='check_circle', size='14px', color='positive')
+            | Минимальный объём набран — можно принимать партию.
+          .t-muted.incoming-orders__progress-hint(v-else-if='p.kind === "collecting" && hasTarget(p)')
+            | Можно принять и сейчас — минимум лишь ориентир сбора.
+          .t-muted.incoming-orders__progress-hint(v-else-if='p.kind === "collecting"')
+            | Поштучный приём — каждый заказ можно принять сразу.
+          .t-muted.incoming-orders__progress-hint(v-else)
+            q-icon(name='local_shipping', size='14px')
+            | Партия принята. Этап: {{ orderStatusDisplay(p.stageStatus).label }}.
 
-          .incoming-orders__progress(v-else)
-            .incoming-orders__progress-row
-              span К поставке: {{ p.totalUnits }} {{ p.unitLabel }}
-            .t-muted.incoming-orders__progress-hint Поштучный приём — каждый заказ можно принять сразу.
+        //- Состав партии — компактные строки (поставщику важен общий объём, не
+        //- кто конкретно заказал; имена показываем справочно, без дробления на
+        //- отдельные карточки).
+        .incoming-orders__members
+          .incoming-orders__member(v-for='o in p.orders', :key='o.id')
+            span.incoming-orders__member-who {{ o.orderer_name ? formatShortFio(o.orderer_name) : o.orderer_account }}
+            span.incoming-orders__member-qty {{ o.quantity }} {{ p.unitLabel }}
+            span.incoming-orders__member-cost {{ formatCost(parseFloat(o.total_cost) || 0) }}
 
-          //- Состав партии — кратко, без «бесконечного списка» карточек.
-          .incoming-orders__members
-            .incoming-orders__member(v-for='o in p.orders', :key='o.id')
-              span.incoming-orders__member-who {{ o.orderer_name ? formatShortFio(o.orderer_name) : o.orderer_account }}
-              span.incoming-orders__member-qty {{ o.quantity }} {{ p.unitLabel }}
-              span.incoming-orders__member-cost {{ formatCost(parseFloat(o.total_cost) || 0) }}
-
-          .incoming-orders__party-foot
-            .incoming-orders__party-total
-              span.t-muted Итого партии
-              span.incoming-orders__party-total-val {{ formatCost(p.totalCost) }} · {{ p.totalUnits }} {{ p.unitLabel }}
-            q-space
+        .incoming-orders__party-foot
+          .incoming-orders__party-total
+            span.t-muted Итого партии
+            span.incoming-orders__party-total-val {{ formatCost(p.totalCost) }} · {{ p.totalUnits }} {{ p.unitLabel }}
+          q-space
+          template(v-if='p.kind === "collecting"')
             BaseButton(variant='ghost', size='sm', @click='onDeclineParty(p)') Отклонить
             BaseButton(variant='primary', size='sm', :loading='loading', @click='onAcceptParty(p)')
               | Принять партию ({{ p.orders.length }})
-
-        //- СФОРМИРОВАННАЯ партия: метрики этапа + readonly карточки заказов.
-        template(v-else)
-          .row.q-col-gutter-md.incoming-orders__metrics
-            .col-6.col-md-3
-              .t-muted Этап
-              .incoming-orders__metric-val {{ orderStatusDisplay(p.stageStatus).label }}
-            .col-6.col-md-3
-              .t-muted Всего единиц
-              .incoming-orders__metric-val {{ p.totalUnits }} {{ p.unitLabel }}
-            .col-6.col-md-3
-              .t-muted Сумма партии
-              .incoming-orders__metric-val {{ formatCost(p.totalCost) }}
-            .col-6.col-md-3
-              .t-muted Партия
-              .incoming-orders__metric-val
-                span(v-if='p.cycle_id') № {{ p.cycle_id }}
-                span(v-else) одиночный
-
-          .incoming-orders__cards
-            OrderCard(
-              v-for='o in p.orders',
-              :key='o.id',
-              :order='toOrderCardModel(o)',
-              role='offerer',
-              readonly
-            )
 
       .incoming-orders__more(v-if='hasMore')
         BaseButton(variant='ghost', :loading='loading', @click='loadMore') Показать ещё
@@ -526,23 +504,6 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
   &__party-total-val {
     font-size: var(--p-fs-body);
     color: var(--p-ink-1);
-  }
-
-  &__metrics {
-    margin-top: 0;
-  }
-
-  &__metric-val {
-    font-size: var(--p-fs-body);
-    color: var(--p-ink-1);
-    margin-top: 2px;
-  }
-
-  &__cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: var(--p-3, 12px);
-    margin-top: var(--p-2, 8px);
   }
 
   &__skel {
