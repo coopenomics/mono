@@ -50,6 +50,23 @@ const onWarehouse = computed(() =>
 
 const labeledItems = computed(() => items.value.filter((i) => !!i.barcode_value))
 
+// Непромаркированный RECEIVED-пул одного заказа — куски, которые можно собрать
+// с полок и разложить заново (merge/split/перенос). Промаркированные единицы
+// (со штрих-кодом) фиксированы и в пул не входят.
+function orderPool(item: MarketplaceInventoryItemView): MarketplaceInventoryItemView[] {
+  return items.value.filter(
+    (i) => i.order_id === item.order_id && i.status === RECEIVED && !i.barcode_value,
+  )
+}
+function orderPoolTotal(item: MarketplaceInventoryItemView): number {
+  return orderPool(item).reduce((a, p) => a + p.quantity_per_label, 0)
+}
+// Перераскладка доступна для непромаркированной позиции, если в заказе ≥2 ед.
+// (есть что распределить или собрать обратно).
+function canRedistribute(item: MarketplaceInventoryItemView): boolean {
+  return !item.barcode_value && orderPoolTotal(item) >= 2
+}
+
 // Черновик полки на строку — чтобы сохранять только по явному действию.
 const shelfDraft = reactive<Record<string, string>>({})
 
@@ -102,21 +119,29 @@ const splitRows = ref<{ quantity: number | null; shelf: string }[]>([])
 const splitTotal = computed(() =>
   splitRows.value.reduce((a, r) => a + (Number(r.quantity) || 0), 0),
 )
+// Цель раскладки — суммарное количество непромаркированного пула заказа.
+const splitPoolTotal = computed(() =>
+  splitTarget.value ? orderPoolTotal(splitTarget.value) : 0,
+)
 const splitValid = computed(
   () =>
     !!splitTarget.value &&
     splitRows.value.length >= 1 &&
     splitRows.value.every((r) => Number(r.quantity) > 0) &&
-    splitTotal.value === splitTarget.value.quantity_per_label,
+    splitTotal.value === splitPoolTotal.value,
 )
 
 function openSplit(item: MarketplaceInventoryItemView): void {
   splitTarget.value = item
-  // Предзаполняем двумя долями: текущая полка + пустая.
-  splitRows.value = [
-    { quantity: item.quantity_per_label, shelf: item.shelf ?? '' },
-    { quantity: null, shelf: '' },
-  ]
+  // Предзаполняем строками из текущих кусков пула (кол-во + полка) — оператор
+  // видит, как заказ сейчас лежит на полках, и правит как нужно. Один кусок —
+  // добавляем пустую строку, чтобы предложить раскладку.
+  const pool = orderPool(item)
+  splitRows.value = pool.map((p) => ({
+    quantity: p.quantity_per_label as number | null,
+    shelf: p.shelf ?? '',
+  }))
+  if (splitRows.value.length === 1) splitRows.value.push({ quantity: null, shelf: '' })
   splitDialogOpen.value = true
 }
 
@@ -140,7 +165,11 @@ async function applySplit(): Promise<void> {
         shelf: r.shelf.trim() || null,
       })),
     })
-    SuccessAlert(`Позиция разложена на ${splitRows.value.length} полок(и)`)
+    SuccessAlert(
+      splitRows.value.length > 1
+        ? `Заказ разложен на ${splitRows.value.length} полок(и)`
+        : 'Заказ собран на одной полке',
+    )
     await load()
   } catch (e) {
     FailAlert(e, 'Не удалось разложить позицию')
@@ -203,6 +232,9 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
             | Принято {{ item.quantity_per_label }} ед. · {{ item.orderer_account_snapshot }}
           BaseBadge(v-if='item.barcode_value', variant='pos') Промаркировано
           BaseBadge(v-else, variant='neutral') Без штрих-кода
+        //- Штрих-код в той же строке, что и имущество с полкой — не оторван.
+        .place__item-barcode(v-if='item.barcode_value')
+          BarcodeDisplay(:code='item.barcode_value', size='sm')
         .place__item-controls
           BaseInput.place__shelf(
             v-model='shelfDraft[item.id]',
@@ -213,9 +245,10 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
             @keydown.enter='saveShelf(item)'
           )
           BaseButton(
+            v-if='!item.barcode_value',
             variant='ghost',
             size='sm',
-            :disabled='!!item.barcode_value || item.quantity_per_label < 2',
+            :disabled='!canRedistribute(item)',
             @click='openSplit(item)'
           )
             template(#icon-left)
@@ -231,8 +264,8 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
               q-icon(name='qr_code_2', size='16px')
             | Этикетка
 
-    //- Печатная раскладка этикеток — только промаркированные позиции.
-    .place__grid(v-if='labeledItems.length')
+    //- Печатный лист этикеток (только при печати; на экране штрих-код в строке).
+    .place__grid.print-only(v-if='labeledItems.length')
       .place__label(v-for='item in labeledItems', :key='item.id')
         .place__label-name.ellipsis {{ item.product_name_snapshot }}
         .place__label-meta.ellipsis
@@ -243,7 +276,10 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
   BaseDialog(v-model='splitDialogOpen', title='Разложить по полкам', size='md')
     .place__split(v-if='splitTarget')
       .place__split-head
-        | {{ splitTarget.product_name_snapshot || 'Товар' }} — всего {{ splitTarget.quantity_per_label }} ед.
+        | {{ splitTarget.product_name_snapshot || 'Товар' }} — всего {{ splitPoolTotal }} ед.
+      .place__split-note
+        | Распределите весь заказ по полкам. Чтобы собрать обратно на одну полку —
+        | удалите лишние строки; чтобы разложить иначе — измените количества и полки.
       .place__split-row(v-for='(row, idx) in splitRows', :key='idx')
         BaseInput.place__split-qty(
           v-model.number='row.quantity',
@@ -272,8 +308,8 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
           template(#icon-left)
             q-icon(name='add', size='16px')
           | Ещё полка
-        span.place__split-total(:class='{ "place__split-total--bad": splitTotal !== splitTarget.quantity_per_label }')
-          | Сумма: {{ splitTotal }} / {{ splitTarget.quantity_per_label }}
+        span.place__split-total(:class='{ "place__split-total--bad": splitTotal !== splitPoolTotal }')
+          | Сумма: {{ splitTotal }} / {{ splitPoolTotal }}
     template(#footer)
       BaseButton(variant='ghost', size='sm', @click='splitDialogOpen = false') Отмена
       BaseButton(variant='primary', size='sm', :disabled='!splitValid', @click='applySplit') Разложить
@@ -346,6 +382,15 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
     color: var(--p-ink);
   }
 
+  &__split-note {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-2);
+  }
+
+  &__item-barcode {
+    flex: 0 0 auto;
+  }
+
   &__split-row {
     display: flex;
     align-items: flex-end;
@@ -377,8 +422,9 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
     }
   }
 
+  // Печатный лист этикеток — скрыт на экране, разворачивается только при печати.
   &__grid {
-    display: grid;
+    display: none;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: var(--p-4, 16px);
   }
@@ -416,6 +462,7 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
     padding: 0;
   }
   .place__grid {
+    display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 4mm;
   }

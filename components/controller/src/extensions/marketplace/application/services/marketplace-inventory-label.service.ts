@@ -88,69 +88,88 @@ export class MarketplaceInventoryLabelService {
   }
 
   /**
-   * Разложить позицию по нескольким полкам. Разрешено только до маркировки
-   * (RECEIVED): штрих-код относится к конкретной физической единице, дробить
-   * уже промаркированную позицию запрещено. Сумма долей == количество позиции.
+   * Перераскладка непромаркированного остатка заказа по полкам. Операция
+   * перераспределяет ВЕСЬ непромаркированный RECEIVED-пул заказа (а не только
+   * переданную позицию): это позволяет «собрать с полок обратно и разложить
+   * иначе» — merge, повторный split и перенос полок в одном действии.
+   *
+   * Промаркированные куски (штрих-код = конкретная физическая единица) в пул не
+   * входят и не трогаются: дробить/схлопывать промаркированное запрещено.
+   * Сумма долей == суммарное количество непромаркированного пула.
    */
   async splitInventory(
     input: MarketplaceSplitInventoryInputDto
   ): Promise<MarketplaceInventoryMutationResult> {
-    const item = await this.loadOwned(input.coopname, input.inventory_id);
-    if (item.status !== MarketplaceInventoryStatuses.RECEIVED) {
+    const target = await this.loadOwned(input.coopname, input.inventory_id);
+    if (target.status !== MarketplaceInventoryStatuses.RECEIVED || target.barcode_value) {
       throw new ConflictException(
-        'Разложить по полкам можно только непромаркированную позицию (на складе, без штрих-кода).'
+        'Перераскладывать можно только непромаркированную позицию (на складе, без штрих-кода).'
       );
     }
     if (!input.splits.length) {
-      throw new BadRequestException('Не указаны доли разбиения.');
+      throw new BadRequestException('Не указаны доли раскладки.');
     }
     const quantities = input.splits.map((s) => Math.trunc(s.quantity));
     if (quantities.some((q) => q <= 0)) {
       throw new BadRequestException('Количество в каждой доле должно быть положительным целым.');
     }
+
+    // Пул перераскладки — все непромаркированные RECEIVED-куски того же заказа.
+    const pool = (
+      await this.inventoryRepo.list({
+        coopname: target.coopname,
+        order_id: target.order_id,
+        status: MarketplaceInventoryStatuses.RECEIVED,
+      })
+    ).filter((p) => !p.barcode_value);
+    const poolTotal = pool.reduce((a, p) => a + p.quantity_per_label, 0);
+
     const sum = quantities.reduce((a, q) => a + q, 0);
-    if (sum !== item.quantity_per_label) {
+    if (sum !== poolTotal) {
       throw new BadRequestException(
-        `Сумма долей (${sum}) не равна количеству позиции (${item.quantity_per_label}).`
+        `Сумма долей (${sum}) не равна количеству позиции (${poolTotal}).`
       );
     }
 
     const result: MarketplaceInventoryDomainEntity[] = [];
-    // Первая доля переиспользует исходную запись (сохраняем её id/историю),
-    // остальные — новые позиции с теми же снапшотами.
+    // target переиспользуем под первую долю (сохраняем id/историю), остальные
+    // куски пула удаляем (схлопываем), затем создаём новые доли с тем же снапшотом.
     const first = input.splits[0];
     result.push(
       await this.inventoryRepo.resize(
-        item.id,
+        target.id,
         quantities[0],
-        first.shelf?.trim() ? first.shelf.trim() : item.shelf
+        first.shelf?.trim() ? first.shelf.trim() : null
       )
     );
+    for (const piece of pool) {
+      if (piece.id !== target.id) await this.inventoryRepo.deleteById(piece.id);
+    }
     for (let i = 1; i < input.splits.length; i++) {
       const piece = input.splits[i];
       const created = await this.inventoryRepo.create({
-        coopname: item.coopname,
-        order_id: item.order_id,
-        shipment_id: item.shipment_id,
-        braname: item.braname,
+        coopname: target.coopname,
+        order_id: target.order_id,
+        shipment_id: target.shipment_id,
+        braname: target.braname,
         status: MarketplaceInventoryStatuses.RECEIVED,
-        product_name_snapshot: item.product_name_snapshot,
+        product_name_snapshot: target.product_name_snapshot,
         quantity_per_label: quantities[i],
-        orderer_account_snapshot: item.orderer_account_snapshot,
+        orderer_account_snapshot: target.orderer_account_snapshot,
         shelf: piece.shelf?.trim() ? piece.shelf.trim() : null,
-        received_at: item.received_at,
-        received_by_operator_account: item.received_by_operator_account,
+        received_at: target.received_at,
+        received_by_operator_account: target.received_by_operator_account,
         barcode_value: null,
         barcode_format: null,
         labeled_at: null,
         labeled_by_operator_account: null,
-        expiry_date: item.expiry_date,
+        expiry_date: target.expiry_date,
       });
       result.push(created);
     }
 
     this.logger.log(
-      `Inventory: позиция ${item.id} разложена на ${result.length} полок(и) (Order ${item.order_id}).`
+      `Inventory: заказ ${target.order_id} перераскладкой собран из ${pool.length} в ${result.length} полок(и).`
     );
     return { inventory: result };
   }

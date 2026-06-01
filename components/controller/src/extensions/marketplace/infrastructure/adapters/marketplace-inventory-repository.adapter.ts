@@ -119,4 +119,8 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
     const row = await this.repo.findOneOrFail({ where: { id } });
     return this.mapper.toDomain(row);
   }
+
+  async deleteById(id: string): Promise<void> {
+    await this.repo.delete({ id });
+  }
 }

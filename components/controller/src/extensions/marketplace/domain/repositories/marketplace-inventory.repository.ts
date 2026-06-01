@@ -76,4 +76,10 @@ export interface MarketplaceInventoryDomainRepository {
     quantity_per_label: number,
     shelf: string | null
   ): Promise<MarketplaceInventoryDomainEntity>;
+
+  /**
+   * Удалить позицию склада. Используется при перераскладке: лишние куски пула
+   * заказа схлопываются в одну запись (собрать с полок обратно).
+   */
+  deleteById(id: string): Promise<void>;
 }
