@@ -1940,6 +1940,9 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceGetCoopRequests:{
 			data:"GetCoopRequestsInput"
 		},
+		marketplaceGetOffer:{
+
+		},
 		marketplaceGetOrder:{
 			input:"MarketplaceGetOrderInput"
 		},
@@ -5398,6 +5401,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceGetCategoryTree:"MarketplaceCategoryTreeNode",
 		marketplaceGetCategoryTreeStats:"MarketplaceCategoryTreeStats",
 		marketplaceGetCoopRequests:"MarketplaceRequest",
+		marketplaceGetOffer:"MarketplaceOffer",
 		marketplaceGetOrder:"MarketplaceOrder",
 		marketplaceGetProductTypeById:"MarketplaceProductType",
 		marketplaceGetRequest:"MarketplaceRequest",

@@ -42,7 +42,14 @@
     </div>
 
     <q-card-section class="mp-catalog-offer-card__body">
+      <div v-if="offer.category" class="mp-catalog-offer-card__category">{{ offer.category }}</div>
+
       <div class="mp-catalog-offer-card__title">{{ offer.title }}</div>
+
+      <div v-if="offer.supplierName" class="mp-catalog-offer-card__supplier">
+        <q-icon name="storefront" size="13px" />
+        <span>{{ offer.supplierName }}</span>
+      </div>
 
       <div class="mp-catalog-offer-card__meta">
         <span class="mp-catalog-offer-card__price" v-if="offer.unitCost != null">
@@ -54,8 +61,8 @@
         </span>
       </div>
 
-      <div v-if="offer.description" class="mp-catalog-offer-card__desc">
-        {{ offer.description }}
+      <div v-if="shortDescription" class="mp-catalog-offer-card__desc">
+        {{ shortDescription }}
       </div>
 
       <!-- Доп. данные (категория, тип отсечки, гарантия, поставщик и т.п.) —
@@ -87,6 +94,8 @@ export interface CatalogOffer {
   unitCost?: number | string
   unitLabel?: string       // ед., шт., кг и т.д.
   status?: CatalogOfferStatus
+  category?: string        // название категории — показывается над заголовком
+  supplierName?: string    // ФИО / наименование поставщика
 }
 
 const props = defineProps({
@@ -124,6 +133,16 @@ const STATUS_MAP: Record<CatalogOfferStatus, { label: string; kind: StatusKind }
 
 const statusLabel = computed(() => (status.value ? STATUS_MAP[status.value].label : ''))
 const statusKind  = computed<StatusKind>(() => (status.value ? STATUS_MAP[status.value].kind : 'neutral'))
+
+// В карточке — только краткая выжимка (полное описание открывается на странице
+// предложения по клику). Жёсткая отсечка по символам страхует от длинных
+// текстов вне зависимости от line-clamp.
+const DESC_MAX = 200
+const shortDescription = computed(() => {
+  const d = props.offer.description?.trim()
+  if (!d) return ''
+  return d.length > DESC_MAX ? `${d.slice(0, DESC_MAX).trimEnd()}…` : d
+})
 
 const isEmpty = computed(() => (props.offer.remainUnits ?? 0) <= 0)
 const stockLabel = computed(() => isEmpty.value
@@ -215,6 +234,14 @@ function onClick() {
     flex: 1;
   }
 
+  &__category {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+    color: var(--mp-on-surface-muted);
+  }
+
   &__title {
     font-size: 15px;
     font-weight: 500;
@@ -224,6 +251,20 @@ function onClick() {
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
+  }
+
+  &__supplier {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--mp-on-surface-muted);
+
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
   }
 
   &__meta {

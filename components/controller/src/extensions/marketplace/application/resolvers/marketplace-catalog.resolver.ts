@@ -77,6 +77,20 @@ export class MarketplaceCatalogResolver {
     };
   }
 
+  @Query(() => MarketplaceOfferDTO, {
+    name: 'marketplaceGetOffer',
+    description: 'Одно предложение по идентификатору — для страницы с полным описанием.',
+    nullable: true,
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Offer', 'read')
+  async marketplaceGetOffer(
+    @Args('id', { type: () => String }) id: string
+  ): Promise<MarketplaceOfferDTO | null> {
+    const offer = await this.offerRepo.findById(id);
+    return offer ? toOfferDTO(offer) : null;
+  }
+
   @Query(() => [MarketplaceCategoryOfferCountDTO], {
     name: 'marketplaceCategoryOfferCounts',
     description: 'Счётчики активных Offer\'ов per category — для фильтр-чипов Story 3.5',

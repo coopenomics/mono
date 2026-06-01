@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import {
   CatalogOfferCard,
@@ -81,6 +81,13 @@ const emptyBody = computed(() =>
     : 'В каталоге пока нет активных предложений.'
 );
 
+// Справочник id → название категории (для подписи в карточке).
+const categoryNameById = computed<Record<number, string>>(() => {
+  const map: Record<number, string> = {};
+  for (const c of categories.value) map[Number(c.id)] = c.display_name;
+  return map;
+});
+
 function toCatalogOffer(offer: MarketplaceOfferView): CatalogOffer {
   const isEmpty = !offer.unlimited_flag && offer.quantity_available <= 0;
   const status: CatalogOfferStatus = isEmpty ? 'sold-out' : 'published';
@@ -93,6 +100,8 @@ function toCatalogOffer(offer: MarketplaceOfferView): CatalogOffer {
     unitCost: offer.price_per_unit,
     unitLabel: marketplaceUnitShort(offer.unit_of_measure),
     status,
+    category: categoryNameById.value[offer.category_id] ?? undefined,
+    supplierName: offer.supplier_name ?? undefined,
   };
 }
 
@@ -153,6 +162,7 @@ async function onLoadMore(): Promise<void> {
 }
 
 const route = useRoute();
+const router = useRouter();
 const coopname = computed(() => String(route.params.coopname ?? ''));
 const orderDialogOpen = ref(false);
 const orderDialogOffer = ref<MarketplaceOfferView | null>(null);
@@ -161,6 +171,15 @@ function onSelectOffer(offer: MarketplaceOfferView): void {
   if (!canOrder(offer)) return;
   orderDialogOffer.value = offer;
   orderDialogOpen.value = true;
+}
+
+// Клик по карточке открывает страницу с полным описанием предложения; быстрый
+// заказ остаётся на кнопке «Заказать» (диалог поверх каталога).
+function goToDetail(offer: MarketplaceOfferView): void {
+  void router.push({
+    name: 'marketplace-offer-detail',
+    params: { coopname: coopname.value, offerId: offer.id },
+  });
 }
 
 async function onOrderCreated(): Promise<void> {
@@ -205,7 +224,7 @@ q-page.catalog(role="region", aria-label="Каталог Стола заказо
   q-infinite-scroll(@load="onLoadMore", :disable="!hasMore || loading")
     .row.q-col-gutter-md
       .col-12.col-sm-6.col-md-4.col-lg-3(v-for="o in items", :key="o.id")
-        CatalogOfferCard(:offer="toCatalogOffer(o)", @click="onSelectOffer(o)")
+        CatalogOfferCard(:offer="toCatalogOffer(o)", @click="goToDetail(o)")
           template(#actions)
             BaseButton(
               variant="primary",

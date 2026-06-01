@@ -1,5 +1,6 @@
 import { markRaw } from 'vue'
 import { MarketplaceCatalogPage } from 'src/pages/Marketplace/MarketplaceCatalog'
+import { MarketplaceOfferDetailPage } from 'src/pages/Marketplace/MarketplaceOfferDetail'
 import { CreateMarketplaceOfferPage } from 'src/pages/Marketplace/CreateMarketplaceOffer'
 import { MyOrdersPage } from 'src/pages/Marketplace/MyOrders'
 import { OperatorTrustedPersonsPage } from 'src/pages/Marketplace/OperatorTrustedPersons'
@@ -127,6 +128,24 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 requires: 'Order:create',
                 requiresAuth: true,
                 agreements: agreementsBase,
+              },
+              children: [],
+            },
+            {
+              // Эпик 15: страница полного описания предложения. Скрыта из меню
+              // (hidden) — открывается по клику на карточку в каталоге. Несёт
+              // полное описание, участки поставки, гарантию и галерею; карточка
+              // показывает лишь категорию + поставщика + краткое описание.
+              path: 'offer/:offerId',
+              name: 'marketplace-offer-detail',
+              component: markRaw(MarketplaceOfferDetailPage),
+              meta: {
+                title: 'Предложение',
+                icon: 'fa-solid fa-box',
+                requires: 'Order:create',
+                requiresAuth: true,
+                agreements: agreementsBase,
+                hidden: true,
               },
               children: [],
             },
