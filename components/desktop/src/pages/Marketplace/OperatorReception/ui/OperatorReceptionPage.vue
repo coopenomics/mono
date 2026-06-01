@@ -56,6 +56,9 @@ const expectedShipments = ref<MarketplaceShipmentView[]>([]);
 // Story 14.2: поставщики с принятыми заказами, ожидающими самовывоза на КУ
 // (партию заранее не формировали) — приёмка по факту присутствия.
 const expressCandidates = ref<MarketplaceExpressPickupCandidateView[]>([]);
+// Состав ожидаемого имущества по поставщику (для карточек «что везут» без
+// проваливания): грузим единицы поставщиков, чьи партии/самовывоз ждут приёмки.
+const ordersByOfferer = ref<Record<string, MarketplaceSupplierPickupOrderView[]>>({});
 const loading = ref(false);
 
 // Партии, прибывшие на КУ и ожидающие создания акта приёмки: статус
@@ -140,6 +143,7 @@ async function load(): Promise<void> {
     );
     expectedShipments.value = shipments;
     expressCandidates.value = express;
+    await loadOffererContents();
   } catch (e) {
     FailAlert(e, 'Не удалось загрузить акты приёмки');
   } finally {
@@ -147,14 +151,39 @@ async function load(): Promise<void> {
   }
 }
 
-// Story 14.2: принять самовывоз по факту присутствия. Открываем ту же форму
-// коррекции, что и при сканировании QR (R5/B2): оператор правит фактическое
-// количество и цену по каждой единице — процесс приёмки единый, без исключений.
-// Сам express-акт создаётся из диалога по «Сформировать акты».
-async function acceptExpressPickup(
-  candidate: MarketplaceExpressPickupCandidateView,
-): Promise<void> {
-  await openPickupForSupplier(candidate.offerer_account);
+// Состав того, что ждёт приёмки, — для карточек «что везут». Грузим единицы
+// имущества по каждому поставщику, чья партия (SUPPLY_PREPARED) или самовывоз
+// ждёт на этом КУ. Сетевая нагрузка ограничена числом поставщиков на приёмке.
+async function loadOffererContents(): Promise<void> {
+  const offerers = new Set<string>();
+  for (const s of expectedShipments.value) {
+    if (s.status === Zeus.MarketplaceShipmentStatus.SUPPLY_PREPARED) offerers.add(s.offerer_account);
+  }
+  for (const c of expressCandidates.value) offerers.add(c.offerer_account);
+  const map: Record<string, MarketplaceSupplierPickupOrderView[]> = {};
+  await Promise.all(
+    [...offerers].map(async (account) => {
+      try {
+        map[account] = await listSupplierPickupOrders({
+          braname: braname.value.trim(),
+          offerer_account: account,
+        });
+      } catch {
+        map[account] = [];
+      }
+    }),
+  );
+  ordersByOfferer.value = map;
+}
+
+// Состав партии (задекларированные единицы по shipment_id).
+function shipmentContents(s: MarketplaceShipmentView): MarketplaceSupplierPickupOrderView[] {
+  return (ordersByOfferer.value[s.offerer_account] ?? []).filter((o) => o.shipment_id === s.id);
+}
+
+// Состав самовывоза по факту (добор по акцепту — без партии).
+function expressContents(c: MarketplaceExpressPickupCandidateView): MarketplaceSupplierPickupOrderView[] {
+  return (ordersByOfferer.value[c.offerer_account] ?? []).filter((o) => o.status === 'ACCEPTED');
 }
 
 // QR-код передачи (Эпик 14, агрегирующая приёмка): оператор сканирует
@@ -426,12 +455,14 @@ q-page.reception(role='region', aria-label='Приёмка партии')
         | Сканировать QR
 
     PageHint(storage-key='mp:operator-reception:banner-dismissed')
-      | Партии, прибывшие на ваш пункт выдачи, ждут приёмки ниже. Выберите партию
-      | (или отсканируйте QR поставщика), сверьте фактическое количество и цену
-      | по каждой позиции, сформируйте акт и подпишите его председателем участка.
+      | Партии, прибывшие на ваш пункт выдачи, и их состав — ниже. Приёмка
+      | запускается ТОЛЬКО сканированием QR поставщика (или вводом кода) —
+      | кнопка «Сканировать QR» в шапке. Это идентификация: без кода принять
+      | нельзя, даже если знаете человека в лицо. Затем сверьте факт по
+      | позициям, сформируйте акт и подпишите его председателем участка.
 
-    //- Ожидающие приёмки партии: выбор из списка вместо ручного ввода id.
-    //- QR-сканер — для тех, кто принимает с телефона (Story 14.3).
+    //- Ожидающие приёмки партии — информационные карточки «что везут».
+    //- Запуск приёмки — только через скан QR/ввод кода (кнопка в шапке).
     .reception__pending
       .reception__pending-head
         .reception__pending-title Ожидают приёмки
@@ -444,13 +475,12 @@ q-page.reception(role='region', aria-label='Приёмка партии')
           .reception__ship-meta
             | {{ SHIPMENT_VARIANT_LABEL[s.delivery_variant] ?? s.delivery_variant }} · {{ formatAsset2Digits(s.total_amount) }} ₽
             template(v-if='s.ttn_number')  · ТТН {{ s.ttn_number }}
-        BaseButton(variant='primary', size='sm', @click='openPickupForSupplier(s.offerer_account)')
-          template(#icon-left)
-            q-icon(name='how_to_reg', size='16px')
-          | Принять партию
+          ul.reception__contents(v-if='shipmentContents(s).length')
+            li.reception__content-line(v-for='o in shipmentContents(s)', :key='o.id')
+              | {{ o.product_name || 'Товар по предложению' }} — {{ o.quantity }} {{ marketplaceUnitShort(o.unit_of_measure) }}
 
     //- Story 14.2: самовывоз по факту — поставщик приехал без заранее
-    //- сформированной партии; оператор открывает приёмку по факту присутствия.
+    //- сформированной партии. Тоже только через скан QR/ввод кода.
     .reception__pending(v-if='expressCandidates.length')
       .reception__pending-head
         .reception__pending-title Самовывоз по факту (без партии)
@@ -460,10 +490,9 @@ q-page.reception(role='region', aria-label='Приёмка партии')
           .reception__ship-offerer {{ c.offerer_account }}
           .reception__ship-meta
             | Самовывоз · {{ c.orders_count }} заказ(ов) · {{ c.total_units }} ед. · {{ formatAsset2Digits(c.total_amount) }} ₽
-        BaseButton(variant='secondary', size='sm', @click='acceptExpressPickup(c)')
-          template(#icon-left)
-            q-icon(name='how_to_reg', size='16px')
-          | Принять самовывоз
+          ul.reception__contents(v-if='expressContents(c).length')
+            li.reception__content-line(v-for='o in expressContents(c)', :key='o.id')
+              | {{ o.product_name || 'Товар по предложению' }} — {{ o.quantity }} {{ marketplaceUnitShort(o.unit_of_measure) }}
 
     q-table.reception__table(
       :rows='items',
@@ -650,6 +679,18 @@ q-page.reception(role='region', aria-label='Приёмка партии')
     color: var(--p-ink-2);
     font-variant-numeric: tabular-nums;
     overflow-wrap: anywhere;
+  }
+
+  &__contents {
+    margin: var(--p-2, 8px) 0 0;
+    padding-left: var(--p-4, 16px);
+    list-style: disc;
+  }
+
+  &__content-line {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-2);
+    font-variant-numeric: tabular-nums;
   }
 
   &__pickup {

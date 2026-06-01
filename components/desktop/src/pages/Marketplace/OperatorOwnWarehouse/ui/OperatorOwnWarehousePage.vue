@@ -24,7 +24,8 @@ const items = ref<MarketplaceInventoryItemView[]>([])
 const loading = ref(false)
 
 const statusOptions: { label: string; value: InventoryStatus }[] = [
-  { label: 'На складе', value: Zeus.MarketplaceInventoryStatus.LABELED },
+  { label: 'Принято', value: Zeus.MarketplaceInventoryStatus.RECEIVED },
+  { label: 'Промаркировано', value: Zeus.MarketplaceInventoryStatus.LABELED },
   { label: 'Выдано пайщику', value: Zeus.MarketplaceInventoryStatus.ISSUED },
   { label: 'Возврат на склад', value: Zeus.MarketplaceInventoryStatus.RETURNED },
   { label: 'Списано', value: Zeus.MarketplaceInventoryStatus.WRITTEN_OFF },
@@ -41,13 +42,14 @@ function toggleStatus(value: InventoryStatus): void {
 }
 
 const columns: QTableProps['columns'] = [
-  { name: 'barcode_value', label: 'Штрих-код', field: 'barcode_value', align: 'left', sortable: true },
+  { name: 'shelf', label: 'Полка', field: 'shelf', align: 'left', sortable: true },
   { name: 'product', label: 'Товар', field: 'product_name_snapshot', align: 'left', sortable: true },
   { name: 'orderer', label: 'Заказчик', field: 'orderer_account_snapshot', align: 'left', sortable: true },
   { name: 'quantity', label: 'Ед.', field: 'quantity_per_label', align: 'right', sortable: true },
+  { name: 'barcode_value', label: 'Штрих-код', field: 'barcode_value', align: 'left', sortable: true },
   { name: 'status', label: 'Состояние', field: 'status', align: 'left', sortable: true },
-  { name: 'age', label: 'Возраст', field: 'labeled_at', align: 'right' },
-  { name: 'labeled_at', label: 'Промаркировано', field: 'labeled_at', align: 'left', sortable: true },
+  { name: 'age', label: 'Возраст', field: 'received_at', align: 'right' },
+  { name: 'received_at', label: 'Принято', field: 'received_at', align: 'left', sortable: true },
 ]
 
 const filteredRows = computed(() => {
@@ -67,6 +69,7 @@ const summary = computed(() => {
   return {
     byStatus,
     totalActive:
+      (byStatus[Zeus.MarketplaceInventoryStatus.RECEIVED] ?? 0) +
       (byStatus[Zeus.MarketplaceInventoryStatus.LABELED] ?? 0) +
       (byStatus[Zeus.MarketplaceInventoryStatus.ISSUED] ?? 0) +
       (byStatus[Zeus.MarketplaceInventoryStatus.RETURNED] ?? 0),
@@ -97,8 +100,10 @@ onMounted(async () => {
 
 function humanStatus(status: string): string {
   switch (status) {
+    case Zeus.MarketplaceInventoryStatus.RECEIVED:
+      return 'Принято'
     case Zeus.MarketplaceInventoryStatus.LABELED:
-      return 'На складе'
+      return 'Промаркировано'
     case Zeus.MarketplaceInventoryStatus.ISSUED:
       return 'Выдано пайщику'
     case Zeus.MarketplaceInventoryStatus.RETURNED:
@@ -112,6 +117,8 @@ function humanStatus(status: string): string {
 
 function statusVariant(status: string): BaseBadgeVariant {
   switch (status) {
+    case Zeus.MarketplaceInventoryStatus.RECEIVED:
+      return 'neutral'
     case Zeus.MarketplaceInventoryStatus.LABELED:
       return 'info'
     case Zeus.MarketplaceInventoryStatus.ISSUED:
@@ -158,7 +165,8 @@ q-page.warehouse(role='region', aria-label='Склад участка')
 
   template(v-else)
     PageHint(storage-key='mp:operator-warehouse:banner-dismissed')
-      | Промаркированное имущество вашего пункта выдачи — наклейки, заказчики и состояние.
+      | Имущество, принятое на ваш пункт выдачи: что лежит на складе, на какой
+      | полке, заказчик и состояние. Штрих-код есть не у всех позиций — он опционален.
 
     .warehouse__filters
       .warehouse__chips
@@ -202,21 +210,31 @@ q-page.warehouse(role='region', aria-label='Склад участка')
       :columns='columns',
       row-key='id',
       :loading='loading',
-      :pagination='{ rowsPerPage: 25, sortBy: "labeled_at", descending: true }',
+      :pagination='{ rowsPerPage: 25, sortBy: "received_at", descending: true }',
       :rows-per-page-options='[25, 50, 100, 0]',
       flat,
       bordered,
       binary-state-sort
     )
+      template(#body-cell-shelf='props')
+        q-td(:props='props')
+          span(v-if='props.row.shelf') {{ props.row.shelf }}
+          span.t-muted(v-else) —
+
+      template(#body-cell-barcode_value='props')
+        q-td(:props='props')
+          span.q-mono(v-if='props.row.barcode_value') {{ props.row.barcode_value }}
+          span.t-muted(v-else) —
+
       template(#body-cell-status='props')
         q-td(:props='props')
           BaseBadge(:variant='statusVariant(props.row.status)') {{ humanStatus(props.row.status) }}
 
       template(#body-cell-age='props')
-        q-td(:props='props') {{ formatAge(props.row.labeled_at) }}
+        q-td(:props='props') {{ formatAge(props.row.received_at) }}
 
-      template(#body-cell-labeled_at='props')
-        q-td(:props='props') {{ formatDateTime(props.row.labeled_at) }}
+      template(#body-cell-received_at='props')
+        q-td(:props='props') {{ formatDateTime(props.row.received_at) }}
 
       template(#no-data)
         .warehouse__nodata

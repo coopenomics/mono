@@ -1,177 +1,149 @@
 <script lang="ts" setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { Loading } from 'quasar'
+import { Zeus } from '@coopenomics/sdk'
 import { SuccessAlert, FailAlert } from 'src/shared/api'
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch'
 import { BarcodeDisplay } from 'src/widgets/Marketplace/BarcodeDisplay'
-import { BaseButton, BaseCard, BaseInput, BaseSelect, EmptyState } from 'src/shared/ui/base'
-import type { BaseSelectOption } from 'src/shared/ui/base'
+import { BaseBadge, BaseButton, BaseDialog, BaseInput, EmptyState } from 'src/shared/ui/base'
 import { PageHint } from 'src/shared/ui/domain'
-import { Zeus } from '@coopenomics/sdk'
+import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton'
 import {
+  assignInventoryShelf,
   fetchInventoryByBraname,
-  fetchShipmentsForLabeling,
-  labelInventory,
-  labelShipmentInventory,
+  generateInventoryLabel,
+  splitInventory,
   type MarketplaceInventoryItemView,
-  type MarketplaceShipmentView,
 } from '../api'
 
-type LabelingMode = 'PER_ORDER' | 'BATCH'
-type BarcodeStrategy = Zeus.MarketplaceBarcodeStrategy
-type BarcodeFormat = Zeus.MarketplaceBarcodeFormat
+/**
+ * Стол ПВЗ, «Раскладка и маркировка». Имущество попадает на склад на приёмке
+ * (статус RECEIVED) — здесь оператор организует его физически: назначает полку
+ * (свободная строка), при необходимости раскладывает одну принятую позицию по
+ * нескольким полкам (split), и опционально наклеивает штрих-код для быстрого
+ * поиска. Штрих-код не обязателен — склад работает и без него (один холодильник).
+ */
 
-// Активный КУ оператора — из общего контекста стола (без ввода кода вручную).
 const route = useRoute()
 const store = useOperatorBranchStore()
 const coopname = computed(() => String(route.params.coopname ?? ''))
 const braname = computed(() => store.activeBraname ?? '')
+
 const items = ref<MarketplaceInventoryItemView[]>([])
-const loading = ref<boolean>(false)
+const loading = ref(false)
 
-const mode = ref<LabelingMode>('BATCH')
-const modeOptions: { label: string; value: LabelingMode }[] = [
-  { label: 'Маркировка партии целиком', value: 'BATCH' },
-  { label: 'Поштучно по заказу', value: 'PER_ORDER' },
-]
+// Сначала непромаркированные/без полки (нужно разложить), затем остальное.
+const RECEIVED = Zeus.MarketplaceInventoryStatus.RECEIVED
+const LABELED = Zeus.MarketplaceInventoryStatus.LABELED
 
-const orderIdInput = ref<string>('')
-
-const shipments = ref<MarketplaceShipmentView[]>([])
-const selectedShipmentId = ref<string | null>(null)
-const defaultStrategy = ref<BarcodeStrategy | null>(null)
-// EAN-13 — стандарт маркировки маркетплейса (UX-DR11/DR12), не QR/CODE128.
-const defaultFormat = ref<BarcodeFormat>(Zeus.MarketplaceBarcodeFormat.EAN13)
-const lastBatchSummary = ref<{ labeled: number; skipped: number } | null>(null)
-
-// «Стратегия по умолчанию» = null (берётся из карточки товара). BaseSelect не
-// принимает null в value опций, поэтому используем строковый sentinel и
-// мапим его обратно в null через computed-прокси.
-const STRATEGY_DEFAULT = '__default__'
-
-const strategyOptions: BaseSelectOption[] = [
-  { label: 'По умолчанию из карточки товара', value: STRATEGY_DEFAULT },
-  { label: 'Одна этикетка на весь заказ', value: Zeus.MarketplaceBarcodeStrategy.PER_ORDER },
-  { label: 'Отдельная этикетка на каждую единицу', value: Zeus.MarketplaceBarcodeStrategy.PER_UNIT },
-  { label: 'Этикетка на упаковку', value: Zeus.MarketplaceBarcodeStrategy.PER_PACKAGE },
-]
-
-const formatOptions: BaseSelectOption[] = [
-  { label: 'CODE128', value: Zeus.MarketplaceBarcodeFormat.CODE128 },
-  { label: 'EAN13', value: Zeus.MarketplaceBarcodeFormat.EAN13 },
-]
-
-const shipmentOptions = computed<BaseSelectOption[]>(() =>
-  shipments.value.map((s) => ({
-    label: `${s.id.slice(0, 8)} · ${s.braname} · ${s.delivery_variant} · ${s.status}`,
-    value: s.id,
-  })),
+const onWarehouse = computed(() =>
+  [...items.value]
+    .filter((i) => i.status === RECEIVED || i.status === LABELED)
+    .sort((a, b) => {
+      // Сперва то, чем ещё нужно заняться: без полки, затем без штрих-кода.
+      const aw = (a.shelf ? 0 : 2) + (a.barcode_value ? 0 : 1)
+      const bw = (b.shelf ? 0 : 2) + (b.barcode_value ? 0 : 1)
+      return bw - aw
+    }),
 )
 
-const shipmentModel = computed<string>({
-  get: () => selectedShipmentId.value ?? '',
-  set: (v) => {
-    selectedShipmentId.value = v || null
-  },
-})
+const labeledItems = computed(() => items.value.filter((i) => !!i.barcode_value))
 
-// Допустимые значения enum'ов — для type-guard без каста при приёме строки из
-// BaseSelect (sentinel STRATEGY_DEFAULT в список не входит → маппится в null).
-const STRATEGY_VALUES: readonly BarcodeStrategy[] = [
-  Zeus.MarketplaceBarcodeStrategy.PER_ORDER,
-  Zeus.MarketplaceBarcodeStrategy.PER_UNIT,
-  Zeus.MarketplaceBarcodeStrategy.PER_PACKAGE,
-]
-function isStrategy(v: string): v is BarcodeStrategy {
-  return STRATEGY_VALUES.some((s) => s === v)
-}
+// Черновик полки на строку — чтобы сохранять только по явному действию.
+const shelfDraft = reactive<Record<string, string>>({})
 
-const FORMAT_VALUES: readonly BarcodeFormat[] = [
-  Zeus.MarketplaceBarcodeFormat.CODE128,
-  Zeus.MarketplaceBarcodeFormat.EAN13,
-]
-function isFormat(v: string): v is BarcodeFormat {
-  return FORMAT_VALUES.some((f) => f === v)
-}
-
-const strategyModel = computed<string>({
-  get: () => defaultStrategy.value ?? STRATEGY_DEFAULT,
-  set: (v) => {
-    defaultStrategy.value = isStrategy(v) ? v : null
-  },
-})
-
-const formatModel = computed<string>({
-  get: () => defaultFormat.value,
-  set: (v) => {
-    if (isFormat(v)) defaultFormat.value = v
-  },
-})
-
-async function loadInventory(): Promise<void> {
-  if (!braname.value.trim()) return
+async function load(): Promise<void> {
+  if (!braname.value.trim()) {
+    items.value = []
+    return
+  }
   loading.value = true
   try {
     items.value = await fetchInventoryByBraname(braname.value.trim())
+    for (const i of items.value) shelfDraft[i.id] = i.shelf ?? ''
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить инвентарь')
+    FailAlert(e, 'Не удалось загрузить склад участка')
   } finally {
     loading.value = false
   }
 }
 
-async function loadShipments(): Promise<void> {
+async function saveShelf(item: MarketplaceInventoryItemView): Promise<void> {
+  const next = (shelfDraft[item.id] ?? '').trim()
+  if (next === (item.shelf ?? '')) return
   try {
-    shipments.value = await fetchShipmentsForLabeling(braname.value.trim() || undefined)
+    await assignInventoryShelf({ inventory_id: item.id, shelf: next || null })
+    SuccessAlert(next ? `Полка «${next}» сохранена` : 'Полка очищена')
+    await load()
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить список партий')
+    FailAlert(e, 'Не удалось сохранить полку')
   }
 }
 
-async function generateLabelsPerOrder(): Promise<void> {
-  if (!orderIdInput.value.trim()) {
-    FailAlert(new Error('Укажите идентификатор заказа.'))
-    return
-  }
-  Loading.show({ message: 'Генерирую этикетки…' })
+async function makeLabel(item: MarketplaceInventoryItemView): Promise<void> {
+  Loading.show({ message: 'Генерирую этикетку…' })
   try {
-    const result = await labelInventory({ order_id: orderIdInput.value.trim() })
-    SuccessAlert(`Сгенерировано ${result.inventory.length} этикеток — можно печатать`)
-    orderIdInput.value = ''
-    await loadInventory()
+    await generateInventoryLabel({ inventory_id: item.id })
+    SuccessAlert('Этикетка сгенерирована — можно печатать')
+    await load()
   } catch (e) {
-    FailAlert(e, 'Не удалось сгенерировать этикетки')
+    FailAlert(e, 'Не удалось сгенерировать этикетку')
   } finally {
     Loading.hide()
   }
 }
 
-async function generateLabelsForShipment(): Promise<void> {
-  if (!selectedShipmentId.value) {
-    FailAlert(new Error('Выберите партию для маркировки.'))
-    return
-  }
-  Loading.show({ message: 'Маркирую партию…' })
+// ── Раскладка по полкам (split) ──
+const splitDialogOpen = ref(false)
+const splitTarget = ref<MarketplaceInventoryItemView | null>(null)
+const splitRows = ref<{ quantity: number | null; shelf: string }[]>([])
+
+const splitTotal = computed(() =>
+  splitRows.value.reduce((a, r) => a + (Number(r.quantity) || 0), 0),
+)
+const splitValid = computed(
+  () =>
+    !!splitTarget.value &&
+    splitRows.value.length >= 1 &&
+    splitRows.value.every((r) => Number(r.quantity) > 0) &&
+    splitTotal.value === splitTarget.value.quantity_per_label,
+)
+
+function openSplit(item: MarketplaceInventoryItemView): void {
+  splitTarget.value = item
+  // Предзаполняем двумя долями: текущая полка + пустая.
+  splitRows.value = [
+    { quantity: item.quantity_per_label, shelf: item.shelf ?? '' },
+    { quantity: null, shelf: '' },
+  ]
+  splitDialogOpen.value = true
+}
+
+function addSplitRow(): void {
+  splitRows.value.push({ quantity: null, shelf: '' })
+}
+function removeSplitRow(idx: number): void {
+  splitRows.value.splice(idx, 1)
+}
+
+async function applySplit(): Promise<void> {
+  if (!splitTarget.value || !splitValid.value) return
+  const target = splitTarget.value
+  splitDialogOpen.value = false
+  Loading.show({ message: 'Раскладываю по полкам…' })
   try {
-    const result = await labelShipmentInventory({
-      shipment_id: selectedShipmentId.value,
-      default_strategy: defaultStrategy.value ?? undefined,
-      format: defaultFormat.value,
+    await splitInventory({
+      inventory_id: target.id,
+      splits: splitRows.value.map((r) => ({
+        quantity: Number(r.quantity),
+        shelf: r.shelf.trim() || null,
+      })),
     })
-    lastBatchSummary.value = {
-      labeled: result.labeled_order_ids.length,
-      skipped: result.skipped_order_ids.length,
-    }
-    const skipNote = result.skipped_order_ids.length
-      ? ` Пропущено уже промаркированных: ${result.skipped_order_ids.length}.`
-      : ''
-    SuccessAlert(
-      `Партия промаркирована. Заказов в работе: ${result.labeled_order_ids.length}.${skipNote} Готовы к печати ${result.inventory.length} этикеток.`,
-    )
-    await loadInventory()
+    SuccessAlert(`Позиция разложена на ${splitRows.value.length} полок(и)`)
+    await load()
   } catch (e) {
-    FailAlert(e, 'Не удалось промаркировать партию')
+    FailAlert(e, 'Не удалось разложить позицию')
   } finally {
     Loading.hide()
   }
@@ -181,153 +153,228 @@ function openPrintWindow(): void {
   window.print()
 }
 
-watch(braname, () => {
-  void loadInventory()
-  void loadShipments()
-})
+watch(braname, () => void load())
 
 onMounted(async () => {
   await store.ensureLoaded(coopname.value)
-  await loadShipments()
-  await loadInventory()
+  void load()
 })
 </script>
 
 <template lang="pug">
-q-page.labeling(role='region', aria-label='Маркировка имущества')
+q-page.place(role='region', aria-label='Раскладка и маркировка')
   OperatorBranchBar
 
   EmptyState(
     v-if='!store.loading && !store.isOperator',
     title='Вы не оператор кооперативного участка',
-    body='Маркировка имущества доступна председателю участка и его доверенным лицам.'
+    body='Раскладка имущества доступна председателю участка и его доверенным лицам.'
   )
     template(#icon)
       q-icon(name='storefront', size='48px')
 
   template(v-else)
+    Teleport(to="#header-actions-host", defer)
+      BaseButton(variant='secondary', size='sm', :disabled='!labeledItems.length', @click='openPrintWindow')
+        template(#icon-left)
+          q-icon(name='print', size='16px')
+        | Печать этикеток
+      RefreshButton(:loading='loading', @refresh='load')
+
     PageHint.no-print(storage-key='mp:operator-labeling:banner-dismissed')
-      | Сгенерируйте штрих-коды для прибывших заказов и распечатайте этикетки склада участка.
-
-    .labeling__toolbar.no-print
-      q-btn-toggle(
-        v-model='mode',
-        no-caps,
-        unelevated,
-        toggle-color='primary',
-        :options='modeOptions'
-      )
-      q-space
-      BaseButton(variant='ghost', @click='loadShipments')
-        template(#icon-left)
-          q-icon(name='refresh', size='18px')
-        | Обновить партии
-      BaseButton(variant='secondary', :disabled='!items.length', @click='openPrintWindow')
-        template(#icon-left)
-          q-icon(name='print', size='18px')
-        | Печать
-
-    BaseCard.labeling__panel.no-print(
-      v-if='mode === "BATCH"',
-      title='Маркировка партии целиком'
-    )
-      .t-muted.labeling__hint
-        | Выберите партию поставки и стратегию по умолчанию. Сервер пройдёт по всем
-        | заказам партии и сгенерирует этикетки; уже промаркированные пропускаются.
-      .labeling__form-row
-        BaseSelect.labeling__field(
-          v-model='shipmentModel',
-          label='Партия поставки',
-          :options='shipmentOptions',
-          :disabled='!shipmentOptions.length'
-        )
-        BaseSelect.labeling__field(
-          v-model='strategyModel',
-          label='Стратегия маркировки',
-          :options='strategyOptions'
-        )
-        BaseSelect.labeling__field(
-          v-model='formatModel',
-          label='Формат штрих-кода',
-          :options='formatOptions'
-        )
-      .labeling__actions
-        BaseButton(variant='primary', :disabled='!selectedShipmentId', @click='generateLabelsForShipment')
-          template(#icon-left)
-            q-icon(name='qr_code_2', size='16px')
-          | Промаркировать партию
-        span.t-muted(v-if='lastBatchSummary')
-          | Последний прогон: промаркировано {{ lastBatchSummary.labeled }}, пропущено {{ lastBatchSummary.skipped }}.
-        span.t-muted(v-else)
-          | Стратегия по умолчанию переопределяет настройку из карточки товара только если выбрана явно.
-
-    BaseCard.labeling__panel.no-print(v-else, title='Маркировка одного заказа')
-      .labeling__form-row
-        BaseInput.labeling__field(
-          v-model='orderIdInput',
-          label='Идентификатор заказа',
-          placeholder='order_id',
-          mono
-        )
-        BaseButton(variant='primary', @click='generateLabelsPerOrder')
-          template(#icon-left)
-            q-icon(name='qr_code_2', size='16px')
-          | Сгенерировать этикетки
-      .t-muted
-        | Стратегия маркировки берётся из карточки товара поставщика.
+      | Принятое имущество лежит на складе сразу. Назначьте каждой позиции полку
+      | (свободная строка), при необходимости разложите одну позицию по нескольким
+      | полкам и — по желанию — наклейте штрих-код для быстрого поиска. Штрих-код
+      | не обязателен: если у вас один холодильник, можно обойтись без него.
 
     EmptyState.no-print(
-      v-if='!items.length',
-      title='Этикеток пока нет',
-      body='Промаркируйте партию или отдельный заказ — этикетки появятся ниже и будут готовы к печати.'
+      v-if='!onWarehouse.length',
+      title='На складе пусто',
+      body='Здесь появятся принятые позиции — после приёмки партии на столе «Приёмка партии».'
     )
       template(#icon)
-        q-icon(name='qr_code_2', size='48px')
+        q-icon(name='inventory_2', size='48px')
 
-    .labeling__grid(v-else)
-      .labeling__label(v-for='item in items', :key='item.id')
-        .labeling__label-name.ellipsis {{ item.product_name_snapshot }}
-        .labeling__label-meta.ellipsis
+    .place__list.no-print(v-else)
+      .place__item(v-for='item in onWarehouse', :key='item.id')
+        .place__item-info
+          .place__item-name {{ item.product_name_snapshot || 'Товар по предложению' }}
+          .place__item-meta
+            | Принято {{ item.quantity_per_label }} ед. · {{ item.orderer_account_snapshot }}
+          BaseBadge(v-if='item.barcode_value', variant='pos') Промаркировано
+          BaseBadge(v-else, variant='neutral') Без штрих-кода
+        .place__item-controls
+          BaseInput.place__shelf(
+            v-model='shelfDraft[item.id]',
+            label='Полка',
+            placeholder='A-12',
+            dense,
+            @blur='saveShelf(item)',
+            @keydown.enter='saveShelf(item)'
+          )
+          BaseButton(
+            variant='ghost',
+            size='sm',
+            :disabled='!!item.barcode_value || item.quantity_per_label < 2',
+            @click='openSplit(item)'
+          )
+            template(#icon-left)
+              q-icon(name='call_split', size='16px')
+            | Разложить
+          BaseButton(
+            v-if='!item.barcode_value',
+            variant='primary',
+            size='sm',
+            @click='makeLabel(item)'
+          )
+            template(#icon-left)
+              q-icon(name='qr_code_2', size='16px')
+            | Этикетка
+
+    //- Печатная раскладка этикеток — только промаркированные позиции.
+    .place__grid(v-if='labeledItems.length')
+      .place__label(v-for='item in labeledItems', :key='item.id')
+        .place__label-name.ellipsis {{ item.product_name_snapshot }}
+        .place__label-meta.ellipsis
           | Пайщик: {{ item.orderer_account_snapshot }} · Кол-во: {{ item.quantity_per_label }}
-        BarcodeDisplay(:code='item.barcode_value', size='md')
+          template(v-if='item.shelf')  · Полка: {{ item.shelf }}
+        BarcodeDisplay(v-if='item.barcode_value', :code='item.barcode_value', size='md')
+
+  BaseDialog(v-model='splitDialogOpen', title='Разложить по полкам', size='md')
+    .place__split(v-if='splitTarget')
+      .place__split-head
+        | {{ splitTarget.product_name_snapshot || 'Товар' }} — всего {{ splitTarget.quantity_per_label }} ед.
+      .place__split-row(v-for='(row, idx) in splitRows', :key='idx')
+        BaseInput.place__split-qty(
+          v-model.number='row.quantity',
+          type='number',
+          label='Кол-во',
+          dense
+        )
+        BaseInput.place__split-shelf(
+          v-model='row.shelf',
+          label='Полка',
+          placeholder='A-12',
+          dense
+        )
+        BaseButton(
+          variant='ghost',
+          size='sm',
+          icon-only,
+          :disabled='splitRows.length <= 1',
+          aria-label='Удалить долю',
+          @click='removeSplitRow(idx)'
+        )
+          template(#icon-left)
+            q-icon(name='close', size='16px')
+      .place__split-foot
+        BaseButton(variant='ghost', size='sm', @click='addSplitRow')
+          template(#icon-left)
+            q-icon(name='add', size='16px')
+          | Ещё полка
+        span.place__split-total(:class='{ "place__split-total--bad": splitTotal !== splitTarget.quantity_per_label }')
+          | Сумма: {{ splitTotal }} / {{ splitTarget.quantity_per_label }}
+    template(#footer)
+      BaseButton(variant='ghost', size='sm', @click='splitDialogOpen = false') Отмена
+      BaseButton(variant='primary', size='sm', :disabled='!splitValid', @click='applySplit') Разложить
 </template>
 
 <style scoped lang="scss">
-.labeling {
+.place {
   padding: var(--p-6, 24px);
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
 
-  &__toolbar {
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-2, 8px);
+  }
+
+  &__item {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: var(--p-3, 12px);
     flex-wrap: wrap;
+    border: 1px solid var(--p-line);
+    border-radius: var(--p-r-md, 12px);
+    background: var(--p-surface);
+    padding: var(--p-3, 12px) var(--p-4, 16px);
   }
 
-  &__hint {
-    margin-bottom: var(--p-3, 12px);
-  }
-
-  &__form-row {
+  &__item-info {
+    min-width: 0;
     display: flex;
-    gap: var(--p-3, 12px);
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: var(--p-1, 4px);
+  }
+
+  &__item-name {
+    font-size: var(--p-fs-body, 14px);
+    font-weight: 600;
+    color: var(--p-ink);
+  }
+
+  &__item-meta {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-2);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__item-controls {
+    display: flex;
     align-items: flex-end;
+    gap: var(--p-2, 8px);
+    flex-wrap: wrap;
   }
 
-  &__field {
-    flex: 1 1 240px;
-    min-width: 200px;
+  &__shelf {
+    width: 120px;
   }
 
-  &__actions {
+  &__split {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-3, 12px);
+  }
+
+  &__split-head {
+    font-size: var(--p-fs-body, 14px);
+    font-weight: 600;
+    color: var(--p-ink);
+  }
+
+  &__split-row {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--p-2, 8px);
+  }
+
+  &__split-qty {
+    width: 110px;
+  }
+
+  &__split-shelf {
+    flex: 1 1 auto;
+  }
+
+  &__split-foot {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: var(--p-3, 12px);
-    flex-wrap: wrap;
-    margin-top: var(--p-3, 12px);
+  }
+
+  &__split-total {
+    font-variant-numeric: tabular-nums;
+    color: var(--p-ink-2);
+
+    &--bad {
+      color: var(--p-danger, #b3261e);
+      font-weight: 600;
+    }
   }
 
   &__grid {
@@ -356,7 +403,7 @@ q-page.labeling(role='region', aria-label='Маркировка имуществ
 }
 
 @media (max-width: 768px) {
-  .labeling {
+  .place {
     padding: var(--p-4, 16px);
   }
 }
@@ -365,14 +412,14 @@ q-page.labeling(role='region', aria-label='Маркировка имуществ
   .no-print {
     display: none !important;
   }
-  .labeling {
+  .place {
     padding: 0;
   }
-  .labeling__grid {
+  .place__grid {
     grid-template-columns: repeat(3, 1fr);
     gap: 4mm;
   }
-  .labeling__label {
+  .place__label {
     page-break-inside: avoid;
     width: 100%;
   }

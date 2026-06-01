@@ -443,12 +443,13 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               },
             },
             {
-              // Эпик 5 / Story 5.8 + Эпик 6: operator-стол маркировки имущества.
+              // Стол раскладки/маркировки: принятое имущество (склад) — назначить
+              // полку, разложить позицию по нескольким полкам, наклеить штрих-код.
               path: 'labeling',
               name: 'marketplace-pvz-labeling',
               component: markRaw(OperatorInventoryLabelingPage),
               meta: {
-                title: 'Маркировка имущества',
+                title: 'Раскладка и маркировка',
                 icon: 'fa-solid fa-tag',
                 requires: 'Warehouse:read:own-KU',
                 requiresAuth: true,
