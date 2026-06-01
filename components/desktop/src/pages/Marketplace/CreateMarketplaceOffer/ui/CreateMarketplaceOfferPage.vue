@@ -150,7 +150,7 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
         //- ───────── Шаг 3: КУ поставки и минимальный объём ─────────
         .offer-wizard__step(v-else-if='step.key === "supply"')
           p.offer-wizard__hint
-            | Отметьте кооперативные участки, на которые готовы везти, и укажите минимальный объём поставки на каждый. Объём 1 — поставка по одному заказу; больше — заказы копятся в партию (ориентир для группировки, не жёсткий порог: можно принять и меньше).
+            | Отметьте кооперативные участки, на которые готовы обеспечить доставку, и укажите объём поставки на каждое.
           .offer-wizard__hint(v-if='kuLoading') Загрузка участков…
           .offer-wizard__hint(v-else-if='!kuOptions.length') Нет доступных кооперативных участков.
           .offer-wizard__ku-row(v-for='ku in kuOptions', :key='ku.braname')
@@ -450,7 +450,7 @@ function onWithdraw(): void {
 const steps: StepperStep[] = [
   { key: 'basics', label: 'Товар', description: 'Название, категория, описание' },
   { key: 'pricing', label: 'Цена и наличие', description: 'Стоимость, количество, гарантия' },
-  { key: 'supply', label: 'Условия поставки', description: 'Как набираются и отсекаются заказы' },
+  { key: 'supply', label: 'Условия поставки', description: 'Участки и объём поставки' },
   { key: 'images', label: 'Изображения', description: 'Фотографии товара' },
   { key: 'review', label: 'Проверка и публикация', description: 'Сверьте карточку перед отправкой' },
 ];
