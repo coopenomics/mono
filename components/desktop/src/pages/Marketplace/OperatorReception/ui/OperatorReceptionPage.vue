@@ -1,5 +1,4 @@
 <script lang="ts" setup>
-import type { QTableProps } from 'quasar';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { Loading } from 'quasar';
@@ -128,19 +127,20 @@ function formatDate(value: unknown): string {
   });
 }
 
-const columns: QTableProps['columns'] = [
-  { name: 'id', label: 'АПП', field: (r: MarketplaceAplReceptionView) => r.id.slice(0, 8), align: 'left' },
-  { name: 'variant', label: 'Вариант', field: 'variant', align: 'center', format: (v: string) => RECEPTION_VARIANT_LABEL[v] ?? v },
-  { name: 'status', label: 'Статус', field: 'status', align: 'left' },
-  {
-    name: 'total_amount',
-    label: 'Сумма',
-    field: 'total_amount',
-    align: 'right',
-    format: (v: unknown) => `${formatAsset2Digits(String(v ?? ''))} ₽`,
-  },
-  { name: 'actions', label: '', field: 'id', align: 'right' },
-];
+function variantLabel(v: string): string {
+  return RECEPTION_VARIANT_LABEL[v] ?? v;
+}
+
+// Акты, требующие действия (ждут подписи поставщика/председателя). Принятые
+// кооперативом (ACCEPTED_TO_COOP) уже на складе — на этом столе не нужны;
+// отменённые тоже скрыты. Секция показывается только когда есть что подписать.
+const actionableReceptions = computed(() =>
+  items.value.filter(
+    (r) =>
+      r.status === 'PENDING_SUPPLIER_SIGN' ||
+      r.status === 'PENDING_CHAIRMAN_RECEPTION_SIGN',
+  ),
+);
 
 async function load(): Promise<void> {
   if (!braname.value.trim()) return;
@@ -469,20 +469,20 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
         | Сканировать QR
 
     PageHint(storage-key='mp:operator-reception:banner-dismissed')
-      | Что везут на ваш пункт, когда сформирована партия и кому пойдёт каждая
-      | позиция — всё ниже, чтобы заранее подготовить место на складе. Приёмка
-      | запускается ТОЛЬКО сканированием QR поставщика (или вводом кода) —
-      | кнопка «Сканировать QR» в шапке. Это идентификация: без кода принять
-      | нельзя, даже если знаете человека в лицо. Затем сверьте факт по
-      | позициям, сформируйте акт и подпишите его председателем участка.
+      | Приёмка — только сканом QR поставщика (кнопка в шапке): без кода принять
+      | нельзя, даже зная человека в лицо.
 
-    //- Ожидающие приёмки партии — информационные карточки «что везут».
-    //- Запуск приёмки — только через скан QR/ввод кода (кнопка в шапке).
+    //- Ожидаемые поставки — карточки «что/когда/кому везут». Раздел уже назван
+    //- в шапке стола, отдельный заголовок не нужен. Запуск приёмки — только скан
+    //- QR/ввод кода (кнопка в шапке).
     .reception__pending
-      .reception__pending-head
-        .reception__pending-title Ожидают приёмки
-
-      .reception__empty(v-if='!pendingShipments.length') Нет партий, ожидающих приёмки на этом КУ.
+      EmptyState(
+        v-if='!pendingShipments.length',
+        title='Поставок пока нет',
+        body='Партии появятся здесь, когда поставщики сформируют поставку на ваш пункт.'
+      )
+        template(#icon)
+          q-icon(name='local_shipping', size='48px')
 
       .reception__ship(v-for='s in pendingShipments', :key='s.id')
         .reception__ship-info
@@ -511,38 +511,30 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
               | {{ o.product_name || 'Товар по предложению' }} — {{ o.quantity }} {{ marketplaceUnitShort(o.unit_of_measure) }}
               span.reception__content-to  · кому: {{ o.orderer_name || o.orderer_account }}
 
-    q-table.reception__table(
-      :rows='items',
-      :columns='columns',
-      row-key='id',
-      flat,
-      bordered,
-      :loading='loading'
-    )
-      template(#body-cell-status='props')
-        q-td(:props='props')
-          BaseBadge(:variant='statusVariant(props.row.status)') {{ statusLabel(props.row.status) }}
-
-      template(#body-cell-actions='props')
-        q-td(:props='props')
+    //- Акты приёмки, требующие действия (ждут подписи поставщика/председателя).
+    //- Принятые кооперативом уже на складе и здесь не показываются.
+    .reception__pending(v-if='actionableReceptions.length')
+      .reception__pending-head
+        .reception__pending-title Требуют подписи
+      .reception__ship(v-for='r in actionableReceptions', :key='r.id')
+        .reception__ship-info
+          .reception__ship-offerer {{ r.offerer_name || r.offerer_account }}
+          .reception__ship-meta
+            | {{ variantLabel(r.variant) }} · {{ formatAsset2Digits(r.total_amount) }} ₽
+          ul.reception__contents(v-if='r.fact_quantity_per_order.length')
+            li.reception__content-line(v-for='(o, i) in r.fact_quantity_per_order', :key='i')
+              | {{ o.product_name || 'Товар по предложению' }} — {{ o.fact_quantity }} {{ marketplaceUnitShort(o.unit_of_measure) }}
+        .reception__ship-side
+          BaseBadge(:variant='statusVariant(r.status)') {{ statusLabel(r.status) }}
           BaseButton(
-            v-if='props.row.status === "PENDING_CHAIRMAN_RECEPTION_SIGN"',
+            v-if='r.status === "PENDING_CHAIRMAN_RECEPTION_SIGN"',
             variant='primary',
             size='sm',
-            @click='signChairman(props.row)'
+            @click='signChairman(r)'
           )
             template(#icon-left)
               q-icon(name='draw', size='16px')
             | Подписать председателем
-
-      template(#no-data)
-        .reception__nodata
-          EmptyState(
-            title='Актов приёмки нет',
-            body='Выберите прибывшую партию выше и создайте акт — он появится здесь для подписания.'
-          )
-            template(#icon)
-              q-icon(name='assignment_turned_in', size='48px')
 
   SignAplReceptionChairmanDialog(
     v-model='signDialogOpen',
@@ -636,13 +628,6 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
   flex-direction: column;
   gap: var(--p-4, 16px);
 
-  // #no-data слот q-table выравнивает контент влево — центрируем EmptyState.
-  &__nodata {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-  }
-
   &__pending {
     display: flex;
     flex-direction: column;
@@ -666,12 +651,6 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
     color: var(--p-ink);
   }
 
-  &__empty {
-    font-size: var(--p-fs-body-sm, 13px);
-    color: var(--p-ink-3);
-    padding: var(--p-2, 8px) 0;
-  }
-
   &__ship {
     display: flex;
     align-items: center;
@@ -683,6 +662,14 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
 
   &__ship-info {
     min-width: 0;
+  }
+
+  &__ship-side {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--p-2, 8px);
   }
 
   &__ship-offerer {
