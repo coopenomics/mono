@@ -293,9 +293,8 @@ import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { BaseCheckbox } from 'src/shared/ui/base/BaseCheckbox';
 import { BaseChip } from 'src/shared/ui/base/BaseChip';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
-import { Queries } from '@coopenomics/sdk';
-import { client } from 'src/shared/api/client';
 import { useSystemStore } from 'src/entities/System/model';
+import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
 import { MARKETPLACE_UNIT_OPTIONS } from 'src/shared/lib/consts';
 import { fileToBase64, formatAsset2Digits } from 'src/shared/lib/utils';
 import {
@@ -337,6 +336,7 @@ const route = useRoute();
 // Символ валюты — из системной инфо (блокчейн-параметр root_govern_symbol),
 // НЕ хардкод «₽»: при смене символа цепи фронт не переписываем.
 const systemStore = useSystemStore();
+const kuStore = useMarketplaceKUDetailsStore();
 const governSymbol = computed(() => systemStore.governSymbol);
 
 // Цена — целое или с двумя знаками после запятой (рубли/копейки). Допускаем
@@ -542,22 +542,16 @@ function setKuMin(braname: string, value: string | number | null): void {
 }
 
 async function loadKuOptions(): Promise<void> {
+  const coopname = systemStore.info?.coopname;
+  if (!coopname) return;
   kuLoading.value = true;
   try {
-    const result = await client.Query(Queries.Marketplace.ListKUDetails.query, {
-      variables: { data: {} },
-    });
-    const list = (result[Queries.Marketplace.ListKUDetails.name] ?? []) as Array<{
-      coreBraname: string;
-      addressFull?: string | null;
-      status?: string | null;
-    }>;
-    kuOptions.value = list
-      .filter((k) => !k.status || k.status === 'active' || k.status === 'ACTIVE')
-      .map((k) => ({
-        braname: k.coreBraname,
-        label: k.addressFull ? `${k.coreBraname} — ${k.addressFull}` : k.coreBraname,
-      }));
+    // Запрос ListKUDetails требует coopname (String!); только активные КУ.
+    await kuStore.load({ coopname, onlyActive: true });
+    kuOptions.value = kuStore.details.map((k) => ({
+      braname: k.coreBraname,
+      label: k.addressFull ? `${k.coreBraname} — ${k.addressFull}` : k.coreBraname,
+    }));
   } catch (e) {
     FailAlert(e, 'Не удалось загрузить кооперативные участки');
   } finally {
