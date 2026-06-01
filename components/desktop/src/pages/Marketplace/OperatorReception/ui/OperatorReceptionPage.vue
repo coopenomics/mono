@@ -190,66 +190,98 @@ async function loadOffererContents(): Promise<void> {
   ordersByOfferer.value = map;
 }
 
-// Состав партии (задекларированные единицы по shipment_id).
-function shipmentContents(s: MarketplaceShipmentView): MarketplaceSupplierPickupOrderView[] {
-  return (ordersByOfferer.value[s.offerer_account] ?? []).filter((o) => o.shipment_id === s.id);
+// Заказ доступен к приёмке на этом КУ, если:
+//   • ACCEPTED — акцептован, ждёт самовывоза (партию заранее не формировали), либо
+//   • SUPPLY_PREPARED И его партия ещё ждёт приёмки (статус партии SUPPLY_PREPARED).
+// Заказы, чья партия уже RECEPTION_IN_PROGRESS (акт создан, ждёт подписи),
+// повторно НЕ предлагаем: create проверяет статус партии и падает «ожидался
+// SUPPLY_PREPARED». Кейс: поставщик приехал повторно, пока прошлая часть ждёт
+// подписи председателя — заново сдавать её не нужно.
+function isOrderAwaitingPickup(o: MarketplaceSupplierPickupOrderView): boolean {
+  if (o.status === 'ACCEPTED') return true;
+  if (o.status === 'SUPPLY_PREPARED') {
+    return pendingShipments.value.some((s) => s.id === o.shipment_id);
+  }
+  return false;
 }
 
-// Состав самовывоза по факту (добор по акцепту — без партии).
-function expressContents(c: MarketplaceExpressPickupCandidateView): MarketplaceSupplierPickupOrderView[] {
-  return (ordersByOfferer.value[c.offerer_account] ?? []).filter((o) => o.status === 'ACCEPTED');
-}
-
-// Единый список ожидаемых поставок: для ПВЗ нет разницы, сформировал ли поставщик
-// партию заранее (SUPPLY_PREPARED) или привезёт самовывозом по факту (добор по
-// акцепту) — и то и другое должно дойти до участка. Показываем одним списком;
-// способ доставки самовывоза — «Самовывоз», у него нет даты формирования партии.
-interface ExpectedDelivery {
+// Строка состава, агрегированная по товару: несколько заказов одного товара
+// (разные заказчики) сливаются в одну строку с суммарным количеством. Оператору
+// на приёмке нужен итог «молоко — 10 л», а не разрез по заказчикам.
+interface DeliveryLine {
   key: string;
+  productName: string;
+  unit: string;
+  quantity: number;
+}
+
+function aggregateLines(orders: MarketplaceSupplierPickupOrderView[]): DeliveryLine[] {
+  const map = new Map<string, DeliveryLine>();
+  for (const o of orders) {
+    const key = `${o.product_name ?? ''}|${o.unit_of_measure ?? ''}`;
+    const qty = Number(o.quantity) || 0;
+    const ex = map.get(key);
+    if (ex) ex.quantity += qty;
+    else
+      map.set(key, {
+        key,
+        productName: o.product_name || 'Товар по предложению',
+        unit: o.unit_of_measure,
+        quantity: qty,
+      });
+  }
+  return [...map.values()];
+}
+
+// Единый список ожидаемых поставок, АГРЕГИРОВАННЫЙ ПО ПОСТАВЩИКУ: один поставщик
+// на этом КУ = одна карточка. Для ПВЗ нет разницы, сформировал ли поставщик
+// партию заранее или привезёт самовывозом по факту — он приедет один раз и
+// сдаст всё разом. Показываем ФИО, что суммарно везёт (по товарам) и общую
+// сумму; принимается всё целиком по одному скану QR.
+interface ExpectedDelivery {
   offerer: string;
   supplierName: string;
-  deliveryLabel: string;
+  deliveryLabels: string[];
   amount: string;
   formedAt: string | null;
-  ttnNumber: string | null;
-  contents: MarketplaceSupplierPickupOrderView[];
-}
-
-// ФИО поставщика берём из состава (у партии/самовывоза нет отдельного поля
-// имени — оно в заказах как supplier_name); если состав ещё не подгрузился,
-// показываем аккаунт.
-function supplierNameOf(contents: MarketplaceSupplierPickupOrderView[], fallback: string): string {
-  return contents.find((o) => o.supplier_name)?.supplier_name || fallback;
+  ttnNumbers: string[];
+  lines: DeliveryLine[];
 }
 
 const expectedDeliveries = computed<ExpectedDelivery[]>(() => {
-  const shipments: ExpectedDelivery[] = pendingShipments.value.map((s) => {
-    const contents = shipmentContents(s);
-    return {
-      key: `ship-${s.id}`,
-      offerer: s.offerer_account,
-      supplierName: supplierNameOf(contents, s.offerer_account),
-      deliveryLabel: SHIPMENT_VARIANT_LABEL[s.delivery_variant] ?? s.delivery_variant,
-      amount: s.total_amount,
-      formedAt: formatDate(s.created_at),
-      ttnNumber: s.ttn_number ?? null,
-      contents,
-    };
-  });
-  const express: ExpectedDelivery[] = expressCandidates.value.map((c) => {
-    const contents = expressContents(c);
-    return {
-      key: `express-${c.offerer_account}`,
-      offerer: c.offerer_account,
-      supplierName: supplierNameOf(contents, c.offerer_account),
-      deliveryLabel: 'Самовывоз',
-      amount: c.total_amount,
-      formedAt: null,
-      ttnNumber: null,
-      contents,
-    };
-  });
-  return [...shipments, ...express];
+  const out: ExpectedDelivery[] = [];
+  for (const [account, all] of Object.entries(ordersByOfferer.value)) {
+    const orders = all.filter(isOrderAwaitingPickup);
+    if (!orders.length) continue;
+    const labels = new Set<string>();
+    const ttns = new Set<string>();
+    let formedAt: string | null = null;
+    for (const o of orders) {
+      const ship = o.shipment_id
+        ? pendingShipments.value.find((s) => s.id === o.shipment_id)
+        : null;
+      if (ship) {
+        labels.add(SHIPMENT_VARIANT_LABEL[ship.delivery_variant] ?? ship.delivery_variant);
+        if (ship.ttn_number) ttns.add(ship.ttn_number);
+        const created = String(ship.created_at);
+        if (!formedAt || created < formedAt) formedAt = created;
+      } else {
+        labels.add('Самовывоз');
+      }
+    }
+    out.push({
+      offerer: account,
+      // ФИО берём из заказов (у партии нет отдельного поля имени — оно в
+      // заказах как supplier_name); пусто → показываем аккаунт.
+      supplierName: orders.find((o) => o.supplier_name)?.supplier_name || account,
+      deliveryLabels: [...labels],
+      amount: orders.reduce((a, o) => a + Number.parseFloat(o.total_cost), 0).toFixed(4),
+      formedAt: formedAt ? formatDate(formedAt) : null,
+      ttnNumbers: [...ttns],
+      lines: aggregateLines(orders),
+    });
+  }
+  return out;
 });
 
 // QR-код передачи (Эпик 14, агрегирующая приёмка): оператор сканирует
@@ -279,12 +311,55 @@ const takeAddon = ref(true);
 
 // Плоский список единиц имущества двумя секциями (R7a): задекларированные в
 // партии (по ТТН) — статус SUPPLY_PREPARED; добор по акцепту — статус ACCEPTED.
+// Задекларированные единицы, ДОСТУПНЫЕ к приёмке: статус SUPPLY_PREPARED И
+// партия ещё ждёт приёмки. Единицы уже принятых партий (RECEPTION_IN_PROGRESS)
+// сюда не попадают — иначе повторная сдача падала бы на статусе партии.
 const declaredOrders = computed(() =>
-  pickupOrders.value.filter((o) => o.status === 'SUPPLY_PREPARED'),
+  pickupOrders.value.filter(
+    (o) =>
+      o.status === 'SUPPLY_PREPARED' &&
+      pendingShipments.value.some((s) => s.id === o.shipment_id),
+  ),
 );
 const addonOrders = computed(() =>
   pickupOrders.value.filter((o) => o.status === 'ACCEPTED'),
 );
+
+// Группировка единиц приёмки по товару: несколько заказов одного товара (разные
+// заказчики) — одна группа с общим заголовком и суммой заказанного. Внутри —
+// строки по заказчикам (факт/цена правятся per-Order: бухгалтерия per-Order).
+interface PickupGroup {
+  key: string;
+  productName: string;
+  unit: string;
+  orderedTotal: number;
+  orders: MarketplaceSupplierPickupOrderView[];
+}
+
+function groupOrdersByProduct(orders: MarketplaceSupplierPickupOrderView[]): PickupGroup[] {
+  const map = new Map<string, PickupGroup>();
+  for (const o of orders) {
+    const key = `${o.product_name ?? ''}|${o.unit_of_measure ?? ''}`;
+    const qty = Number(o.quantity) || 0;
+    const g = map.get(key);
+    if (g) {
+      g.orders.push(o);
+      g.orderedTotal += qty;
+    } else {
+      map.set(key, {
+        key,
+        productName: o.product_name || 'Товар по предложению',
+        unit: o.unit_of_measure,
+        orderedTotal: qty,
+        orders: [o],
+      });
+    }
+  }
+  return [...map.values()];
+}
+
+const declaredGroups = computed(() => groupOrdersByProduct(declaredOrders.value));
+const addonGroups = computed(() => groupOrdersByProduct(addonOrders.value));
 
 // Заголовок диалога приёмки: режим ТТН экспедитора vs приёмка по коду поставщика.
 const pickupDialogTitle = computed(() =>
@@ -338,6 +413,16 @@ async function openPickupForSupplier(account: string): Promise<void> {
     if (!orders.length) {
       FailAlert(
         new Error(`У поставщика ${account} нет имущества, ожидающего приёмки на этом пункте.`),
+      );
+      return;
+    }
+    // Всё имущество уже передано на приёмку и ждёт подписи — повторно сдавать
+    // нечего (иначе create упадёт на статусе партии). Сообщаем явно.
+    if (!orders.some(isOrderAwaitingPickup)) {
+      FailAlert(
+        new Error(
+          `Имущество поставщика ${orders[0]?.supplier_name || account} уже передано на приёмку и ожидает подписи — повторная сдача не требуется.`,
+        ),
       );
       return;
     }
@@ -537,7 +622,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
         q-icon(name='local_shipping', size='48px')
 
     .reception__grid(v-else)
-      BaseCard.reception__card(v-for='d in expectedDeliveries', :key='d.key')
+      BaseCard.reception__card(v-for='d in expectedDeliveries', :key='d.offerer')
         template(#head)
           .reception__card-who
             Avatar(:name='d.supplierName', size='md', tone='primary')
@@ -545,17 +630,16 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
               span.reception__card-name {{ d.supplierName }}
               AccountBadge(:account-name='d.offerer', size='sm')
         template(#actions)
-          BaseBadge(variant='neutral') {{ d.deliveryLabel }}
+          .reception__card-methods
+            BaseBadge(v-for='m in d.deliveryLabels', :key='m', variant='neutral') {{ m }}
 
-        .reception__card-when(v-if='d.formedAt') Сформирована {{ d.formedAt }}
+        .reception__card-when(v-if='d.formedAt') Партия сформирована {{ d.formedAt }}
         .reception__card-when(v-else) Привезёт по факту
-        .reception__card-ttn(v-if='d.ttnNumber') ТТН {{ d.ttnNumber }}
-        ul.reception__card-items(v-if='d.contents.length')
-          li.reception__card-item(v-for='o in d.contents', :key='o.id')
-            .reception__card-prod-wrap
-              span.reception__card-prod {{ o.product_name || 'Товар по предложению' }}
-              span.reception__card-to(v-if='o.orderer_name || o.orderer_account') для {{ o.orderer_name || o.orderer_account }}
-            span.reception__card-qty {{ o.quantity }} {{ marketplaceUnitShort(o.unit_of_measure) }}
+        .reception__card-ttn(v-if='d.ttnNumbers.length') ТТН {{ d.ttnNumbers.join(', ') }}
+        ul.reception__card-items(v-if='d.lines.length')
+          li.reception__card-item(v-for='l in d.lines', :key='l.key')
+            span.reception__card-prod {{ l.productName }}
+            span.reception__card-qty {{ l.quantity }} {{ marketplaceUnitShort(l.unit) }}
         .reception__card-summary
           span.reception__card-summary-label Сумма поставки
           span.reception__card-amount {{ formatAsset2Digits(d.amount) }} ₽
@@ -613,62 +697,70 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
         | заказанного) и цену. Снимите галку с задекларированной единицы, чтобы
         | не принимать её; партия без выбранных единиц не создаётся и ждёт.
 
-      template(v-if='declaredOrders.length')
+      template(v-if='declaredGroups.length')
         .reception__pickup-section Задекларировано в партии (по ТТН)
-        .reception__unit(v-for='o in declaredOrders', :key='o.id', :class='{ "reception__unit--off": !isSelected(o.id) }')
-          q-checkbox(
-            :model-value='isSelected(o.id)',
-            dense,
-            @update:model-value='(v) => toggleOrder(o.id, v)'
-          )
-          .reception__unit-info
-            .reception__unit-title {{ o.product_name || 'Товар по предложению' }}
-            .reception__unit-meta
-              | Заказано {{ o.quantity }} {{ marketplaceUnitShort(o.unit_of_measure) }}
-              template(v-if='shipmentForOrder(o)?.ttn_number')  · ТТН {{ shipmentForOrder(o)?.ttn_number }}
-          .reception__unit-fact
-            BaseInput(
-              v-model.number='pickupFact[o.id]',
-              type='number',
+        .reception__group(v-for='g in declaredGroups', :key='g.key')
+          .reception__group-head
+            span.reception__group-title {{ g.productName }}
+            span.reception__group-total Заказано {{ g.orderedTotal }} {{ marketplaceUnitShort(g.unit) }}
+          .reception__unit(v-for='o in g.orders', :key='o.id', :class='{ "reception__unit--off": !isSelected(o.id) }')
+            q-checkbox(
+              :model-value='isSelected(o.id)',
               dense,
-              :disable='!isSelected(o.id)',
-              :suffix='marketplaceUnitShort(o.unit_of_measure)',
-              @blur='clampFact(o.id, o.quantity)'
+              @update:model-value='(v) => toggleOrder(o.id, v)'
             )
-            BaseInput(
-              v-model='pickupPrice[o.id]',
-              type='number',
-              dense,
-              :disable='!isSelected(o.id)',
-              label='Цена/ед.'
-            )
+            .reception__unit-info
+              .reception__unit-title для {{ o.orderer_name || o.orderer_account }}
+              .reception__unit-meta
+                | Заказано {{ o.quantity }} {{ marketplaceUnitShort(o.unit_of_measure) }}
+                template(v-if='shipmentForOrder(o)?.ttn_number')  · ТТН {{ shipmentForOrder(o)?.ttn_number }}
+            .reception__unit-fact
+              BaseInput(
+                v-model.number='pickupFact[o.id]',
+                type='number',
+                dense,
+                :disable='!isSelected(o.id)',
+                :suffix='marketplaceUnitShort(o.unit_of_measure)',
+                @blur='clampFact(o.id, o.quantity)'
+              )
+              BaseInput(
+                v-model='pickupPrice[o.id]',
+                type='number',
+                dense,
+                :disable='!isSelected(o.id)',
+                label='Цена/ед.'
+              )
 
-      template(v-if='addonOrders.length')
+      template(v-if='addonGroups.length')
         .reception__pickup-divider
         .reception__pickup-section-row
           .reception__pickup-section Добор по акцепту (вне партии)
           q-checkbox(v-model='takeAddon', dense, label='Принять добор')
-        .reception__unit.reception__unit--addon(v-for='o in addonOrders', :key='o.id', :class='{ "reception__unit--off": !takeAddon }')
-          q-icon(name='add_circle_outline', size='16px')
-          .reception__unit-info
-            .reception__unit-title {{ o.product_name || 'Товар по предложению' }}
-            .reception__unit-meta Акцептовано {{ o.quantity }} {{ marketplaceUnitShort(o.unit_of_measure) }}
-          .reception__unit-fact
-            BaseInput(
-              v-model.number='pickupFact[o.id]',
-              type='number',
-              dense,
-              :disable='!takeAddon',
-              :suffix='marketplaceUnitShort(o.unit_of_measure)',
-              @blur='clampFact(o.id, o.quantity)'
-            )
-            BaseInput(
-              v-model='pickupPrice[o.id]',
-              type='number',
-              dense,
-              :disable='!takeAddon',
-              label='Цена/ед.'
-            )
+        .reception__group(v-for='g in addonGroups', :key='g.key')
+          .reception__group-head
+            span.reception__group-title {{ g.productName }}
+            span.reception__group-total Акцептовано {{ g.orderedTotal }} {{ marketplaceUnitShort(g.unit) }}
+          .reception__unit.reception__unit--addon(v-for='o in g.orders', :key='o.id', :class='{ "reception__unit--off": !takeAddon }')
+            q-icon(name='add_circle_outline', size='16px')
+            .reception__unit-info
+              .reception__unit-title для {{ o.orderer_name || o.orderer_account }}
+              .reception__unit-meta Акцептовано {{ o.quantity }} {{ marketplaceUnitShort(o.unit_of_measure) }}
+            .reception__unit-fact
+              BaseInput(
+                v-model.number='pickupFact[o.id]',
+                type='number',
+                dense,
+                :disable='!takeAddon',
+                :suffix='marketplaceUnitShort(o.unit_of_measure)',
+                @blur='clampFact(o.id, o.quantity)'
+              )
+              BaseInput(
+                v-model='pickupPrice[o.id]',
+                type='number',
+                dense,
+                :disable='!takeAddon',
+                label='Цена/ед.'
+              )
 
       .reception__pickup-actions
         BaseButton(variant='ghost', size='sm', @click='pickupDialogOpen = false') Отмена
@@ -796,21 +888,16 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
     font-size: var(--p-fs-body-sm, 13px);
   }
 
-  &__card-prod-wrap {
+  &__card-methods {
     display: flex;
-    flex-direction: column;
-    gap: 1px;
-    min-width: 0;
+    flex-wrap: wrap;
+    gap: var(--p-1, 4px);
+    justify-content: flex-end;
   }
 
   &__card-prod {
     color: var(--p-ink);
     overflow-wrap: anywhere;
-  }
-
-  &__card-to {
-    font-size: var(--p-fs-meta, 12px);
-    color: var(--p-ink-3);
   }
 
   &__card-qty {
@@ -870,6 +957,34 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
     justify-content: flex-end;
     gap: var(--p-2, 8px);
     margin-top: var(--p-3, 12px);
+  }
+
+  &__group {
+    display: flex;
+    flex-direction: column;
+    margin-top: var(--p-3, 12px);
+  }
+
+  &__group-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--p-3, 12px);
+    padding-bottom: var(--p-1, 4px);
+  }
+
+  &__group-title {
+    font-size: var(--p-fs-body, 14px);
+    font-weight: 600;
+    color: var(--p-ink);
+    overflow-wrap: anywhere;
+  }
+
+  &__group-total {
+    flex: 0 0 auto;
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-2);
+    font-variant-numeric: tabular-nums;
   }
 
   &__unit {
