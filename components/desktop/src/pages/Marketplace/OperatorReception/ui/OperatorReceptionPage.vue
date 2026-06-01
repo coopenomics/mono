@@ -417,6 +417,14 @@ q-page.reception(role='region', aria-label='Приёмка партии')
       q-icon(name='storefront', size='48px')
 
   template(v-else)
+    //- Действие страницы — в шапку (канон Teleport): сканирование QR-кода
+    //- передачи (код поставщика / ТТН экспедитора) всегда в одном месте сверху.
+    Teleport(to="#header-actions-host", defer)
+      BaseButton(variant='primary', size='sm', @click='scanDialogOpen = true')
+        template(#icon-left)
+          q-icon(name='qr_code_scanner', size='16px')
+        | Сканировать QR
+
     PageHint(storage-key='mp:operator-reception:banner-dismissed')
       | Партии, прибывшие на ваш пункт выдачи, ждут приёмки ниже. Выберите партию
       | (или отсканируйте QR поставщика), сверьте фактическое количество и цену
@@ -427,10 +435,6 @@ q-page.reception(role='region', aria-label='Приёмка партии')
     .reception__pending
       .reception__pending-head
         .reception__pending-title Ожидают приёмки
-        BaseButton(variant='secondary', size='sm', @click='scanDialogOpen = true')
-          template(#icon-left)
-            q-icon(name='qr_code_scanner', size='16px')
-          | Сканировать QR
 
       .reception__empty(v-if='!pendingShipments.length') Нет партий, ожидающих приёмки на этом КУ.
 
