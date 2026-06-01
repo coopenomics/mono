@@ -43,7 +43,10 @@ BaseDialog(
             :label="day.label"
             dense
           )
-          .detail-ku__day-times(v-if="form.workingHours[day.key].enabled")
+          //- Поля времени рендерим ВСЕГДА; при выключенном дне они disabled
+          //- (серые). Так высота строки постоянна и список не «скачет» при
+          //- переключении — место зарезервировано, а не появляется/исчезает.
+          .detail-ku__day-times
             q-input(
               v-model="form.workingHours[day.key].open"
               outlined
@@ -51,6 +54,7 @@ BaseDialog(
               label="Открытие"
               mask="time"
               placeholder="09:00"
+              :disable="!form.workingHours[day.key].enabled"
               lazy-rules
               :rules="[timeRule]"
             )
@@ -61,6 +65,7 @@ BaseDialog(
               label="Закрытие"
               mask="time"
               placeholder="18:00"
+              :disable="!form.workingHours[day.key].enabled"
               lazy-rules
               :rules="[timeRule]"
             )
