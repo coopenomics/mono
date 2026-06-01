@@ -35,6 +35,15 @@ import {
   type MarketplaceOutgoingPaymentRequestDomainRepository,
 } from '../../domain/repositories/marketplace-outgoing-payment-request.repository';
 import {
+  MARKETPLACE_OFFER_REPOSITORY,
+  type MarketplaceOfferDomainRepository,
+} from '../../domain/repositories/marketplace-offer.repository';
+import {
+  MARKETPLACE_INVENTORY_REPOSITORY,
+  type MarketplaceInventoryDomainRepository,
+} from '../../domain/repositories/marketplace-inventory.repository';
+import { MarketplaceInventoryStatuses } from '../../domain/entities/marketplace-inventory.types';
+import {
   MARKETPLACE_ASSET_CONFIG,
   type MarketplaceAssetConfig,
 } from './marketplace-asset.config';
@@ -186,6 +195,10 @@ export class MarketplaceAplReceptionService {
     private readonly chainPort: MarketplaceCanonicalBlockchainPort,
     @Inject(MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY)
     private readonly paymentRepo: MarketplaceOutgoingPaymentRequestDomainRepository,
+    @Inject(MARKETPLACE_OFFER_REPOSITORY)
+    private readonly offerRepo: MarketplaceOfferDomainRepository,
+    @Inject(MARKETPLACE_INVENTORY_REPOSITORY)
+    private readonly inventoryRepo: MarketplaceInventoryDomainRepository,
     @Inject(MARKETPLACE_ASSET_CONFIG)
     private readonly assetConfig: MarketplaceAssetConfig,
     @Inject(GATEWAY_INTERACTOR_PORT)
@@ -644,6 +657,11 @@ export class MarketplaceAplReceptionService {
       MarketplaceShipmentStatuses.ACCEPTED_TO_COOP
     );
 
+    // Имущество, принятое по акту, появляется на складе КУ сразу — независимо
+    // от маркировки (штрих-код опционален). Полку и штрих-код оператор назначит
+    // позже на столе раскладки/маркировки.
+    await this.materializeInventory(updated, orders);
+
     // Story 5.6 / 598-16 (L12): инициируем выплаты поставщику per-Order
     // через gateway. Кассир увидит каждую выплату в общем реестре
     // платежей кооператива и подтвердит/отклонит её там.
@@ -810,6 +828,68 @@ export class MarketplaceAplReceptionService {
   ): Promise<MarketplaceOrderDomainEntity[]> {
     const orders = await this.orderRepo.findByCycleId(reception.coopname, reception.cycle_id);
     return orders.filter((o) => o.delivery_braname === reception.braname);
+  }
+
+  /**
+   * Оприходование склада: на каждый принятый Order группы (fact_quantity > 0)
+   * заводим позицию инвентаря в статусе RECEIVED — имущество физически на
+   * складе КУ. Штрих-код и полка не назначаются (оператор сделает это на столе
+   * раскладки/маркировки). Срок годности — `received_at + warranty_period_secs`.
+   *
+   * Идемпотентно: если по Order'у позиция уже есть (повторная подпись/ретрай),
+   * пропускаем, чтобы не задвоить склад.
+   */
+  private async materializeInventory(
+    reception: MarketplaceAplReceptionDomainEntity,
+    orders: MarketplaceOrderDomainEntity[]
+  ): Promise<void> {
+    const groupOrders = orders.filter((o) => o.delivery_braname === reception.braname);
+    if (groupOrders.length === 0) return;
+
+    const factByOrderId = new Map(
+      reception.fact_quantity_per_order.map((f) => [f.order_id, f.fact_quantity] as const)
+    );
+    const offerIds = [...new Set(groupOrders.map((o) => o.offer_id))];
+    const offerById = new Map(
+      (await this.offerRepo.findByIds(offerIds)).map((off) => [off.id, off] as const)
+    );
+    const receivedAt = reception.chairman_signed_at ?? new Date();
+
+    let created = 0;
+    for (const order of groupOrders) {
+      const factQty = factByOrderId.get(order.id) ?? order.quantity;
+      if (factQty <= 0) continue;
+      const already = await this.inventoryRepo.countByOrder(reception.coopname, order.id);
+      if (already > 0) continue;
+      const offer = offerById.get(order.offer_id);
+      const expiry =
+        order.warranty_period_secs > 0
+          ? new Date(receivedAt.getTime() + order.warranty_period_secs * 1000)
+          : null;
+      await this.inventoryRepo.create({
+        coopname: reception.coopname,
+        order_id: order.id,
+        shipment_id: reception.shipment_id,
+        braname: reception.braname,
+        status: MarketplaceInventoryStatuses.RECEIVED,
+        product_name_snapshot: offer?.product_name ?? '',
+        quantity_per_label: factQty,
+        orderer_account_snapshot: order.orderer_account,
+        shelf: null,
+        received_at: receivedAt,
+        received_by_operator_account: reception.created_by_operator_account,
+        barcode_value: null,
+        barcode_format: null,
+        labeled_at: null,
+        labeled_by_operator_account: null,
+        expiry_date: expiry,
+      });
+      created += 1;
+    }
+
+    this.logger.log(
+      `АПП ${reception.id}: на склад КУ ${reception.braname} оприходовано ${created} позиций (RECEIVED).`
+    );
   }
 
   /**

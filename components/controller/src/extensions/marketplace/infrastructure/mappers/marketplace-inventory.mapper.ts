@@ -17,6 +17,12 @@ export class MarketplaceInventoryMapper {
       product_name_snapshot: row.product_name_snapshot,
       quantity_per_label: row.quantity_per_label,
       orderer_account_snapshot: row.orderer_account_snapshot,
+      shelf: row.shelf,
+      // Legacy-записи (промаркированы до перехода на приёмочную модель) не имеют
+      // received_at/by — берём created_at и оператора маркировки как опору.
+      received_at: row.received_at ?? row.created_at,
+      received_by_operator_account:
+        row.received_by_operator_account ?? row.labeled_by_operator_account ?? '',
       labeled_at: row.labeled_at,
       labeled_by_operator_account: row.labeled_by_operator_account,
       expiry_date: row.expiry_date,

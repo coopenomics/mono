@@ -14,12 +14,12 @@ import {
 } from '../services/marketplace-ku-chairman.service';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import {
+  MarketplaceAssignInventoryShelfInputDTO,
+  MarketplaceGenerateInventoryLabelInputDTO,
   MarketplaceInventoryItemDTO,
-  MarketplaceLabelInventoryInputDTO,
-  MarketplaceLabelInventoryResultDTO,
-  MarketplaceLabelShipmentInventoryInputDTO,
-  MarketplaceLabelShipmentInventoryResultDTO,
+  MarketplaceInventoryMutationResultDTO,
   MarketplaceListInventoryInputDTO,
+  MarketplaceSplitInventoryInputDTO,
   toMarketplaceInventoryItemDTO,
 } from '../dto/marketplace-inventory.dto';
 import {
@@ -33,7 +33,6 @@ import {
 } from '../../domain/repositories/marketplace-inventory.repository';
 import type {
   MarketplaceBarcodeFormat,
-  MarketplaceBarcodeStrategy,
   MarketplaceInventoryStatus,
 } from '../../domain/entities/marketplace-inventory.types';
 
@@ -49,57 +48,68 @@ export class MarketplaceInventoryResolver {
     private readonly kuChairmanService: MarketplaceKuChairmanService
   ) {}
 
-  @Mutation(() => MarketplaceLabelInventoryResultDTO, {
-    name: 'marketplaceLabelInventory',
-    description:
-      'Оператор КУ маркирует имущество заказа внутренним штрих-кодом (Code128 или EAN-13).',
+  @Mutation(() => MarketplaceInventoryMutationResultDTO, {
+    name: 'marketplaceAssignInventoryShelf',
+    description: 'Оператор КУ назначает позиции склада полку (свободная строка) или очищает её.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Inventory', 'label')
-  async marketplaceLabelInventory(
+  async marketplaceAssignInventoryShelf(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
-    @Args('data') data: MarketplaceLabelInventoryInputDTO
-  ): Promise<MarketplaceLabelInventoryResultDTO> {
-    const result = await this.labelService.execute({
+    @Args('data') data: MarketplaceAssignInventoryShelfInputDTO
+  ): Promise<MarketplaceInventoryMutationResultDTO> {
+    const result = await this.labelService.assignShelf({
       coopname: config.coopname,
       operator_account: member.username,
-      order_id: data.order_id,
-      strategy: data.strategy as unknown as MarketplaceBarcodeStrategy | undefined,
-      format: data.format as unknown as MarketplaceBarcodeFormat | undefined,
-      pack_size: data.pack_size,
+      inventory_id: data.inventory_id,
+      shelf: data.shelf ?? null,
     });
-    const dto = new MarketplaceLabelInventoryResultDTO();
+    const dto = new MarketplaceInventoryMutationResultDTO();
     dto.inventory = result.inventory.map(toMarketplaceInventoryItemDTO);
     return dto;
   }
 
-  @Mutation(() => MarketplaceLabelShipmentInventoryResultDTO, {
-    name: 'marketplaceLabelShipmentInventory',
+  @Mutation(() => MarketplaceInventoryMutationResultDTO, {
+    name: 'marketplaceSplitInventory',
     description:
-      'Массовая маркировка имущества всех заказов одной партии поставки за один вызов. Идемпотентно: уже промаркированные заказы пропускаются.',
+      'Оператор КУ раскладывает одну принятую позицию склада по нескольким полкам, разбивая её на отдельные записи.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Inventory', 'label')
-  async marketplaceLabelShipmentInventory(
+  async marketplaceSplitInventory(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
-    @Args('data') data: MarketplaceLabelShipmentInventoryInputDTO
-  ): Promise<MarketplaceLabelShipmentInventoryResultDTO> {
-    const result = await this.labelService.labelShipment({
+    @Args('data') data: MarketplaceSplitInventoryInputDTO
+  ): Promise<MarketplaceInventoryMutationResultDTO> {
+    const result = await this.labelService.splitInventory({
       coopname: config.coopname,
       operator_account: member.username,
-      shipment_id: data.shipment_id,
-      default_strategy: data.default_strategy as unknown as MarketplaceBarcodeStrategy | undefined,
-      format: data.format as unknown as MarketplaceBarcodeFormat | undefined,
-      per_order_overrides: data.per_order_overrides?.map((o) => ({
-        order_id: o.order_id,
-        strategy: o.strategy as unknown as MarketplaceBarcodeStrategy | undefined,
-        pack_size: o.pack_size,
-      })),
+      inventory_id: data.inventory_id,
+      splits: data.splits.map((s) => ({ quantity: s.quantity, shelf: s.shelf ?? null })),
     });
-    const dto = new MarketplaceLabelShipmentInventoryResultDTO();
+    const dto = new MarketplaceInventoryMutationResultDTO();
     dto.inventory = result.inventory.map(toMarketplaceInventoryItemDTO);
-    dto.labeled_order_ids = result.labeled_order_ids;
-    dto.skipped_order_ids = result.skipped_order_ids;
+    return dto;
+  }
+
+  @Mutation(() => MarketplaceInventoryMutationResultDTO, {
+    name: 'marketplaceGenerateInventoryLabel',
+    description:
+      'Оператор КУ наклеивает на позицию склада внутренний штрих-код (Code128 или EAN-13) для быстрого поиска на полке.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Inventory', 'label')
+  async marketplaceGenerateInventoryLabel(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('data') data: MarketplaceGenerateInventoryLabelInputDTO
+  ): Promise<MarketplaceInventoryMutationResultDTO> {
+    const result = await this.labelService.generateLabel({
+      coopname: config.coopname,
+      operator_account: member.username,
+      inventory_id: data.inventory_id,
+      format: data.format as unknown as MarketplaceBarcodeFormat | undefined,
+    });
+    const dto = new MarketplaceInventoryMutationResultDTO();
+    dto.inventory = result.inventory.map(toMarketplaceInventoryItemDTO);
     return dto;
   }
 

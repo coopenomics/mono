@@ -2,10 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { MarketplaceInventoryDomainEntity } from '../../domain/entities/marketplace-inventory.entity';
-import type { MarketplaceInventoryStatus } from '../../domain/entities/marketplace-inventory.types';
+import {
+  MarketplaceInventoryStatuses,
+  type MarketplaceInventoryStatus,
+} from '../../domain/entities/marketplace-inventory.types';
 import type {
   MarketplaceInventoryCreateInput,
   MarketplaceInventoryDomainRepository,
+  MarketplaceInventoryLabelPatch,
   MarketplaceInventoryListFilter,
 } from '../../domain/repositories/marketplace-inventory.repository';
 import { MarketplaceInventoryEntity } from '../entities/marketplace-inventory.entity';
@@ -22,8 +26,8 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
   async create(input: MarketplaceInventoryCreateInput): Promise<MarketplaceInventoryDomainEntity> {
     const row = this.repo.create({
       coopname: input.coopname,
-      barcode_value: input.barcode_value,
-      barcode_format: input.barcode_format,
+      barcode_value: input.barcode_value ?? null,
+      barcode_format: input.barcode_format ?? null,
       order_id: input.order_id,
       shipment_id: input.shipment_id,
       braname: input.braname,
@@ -31,8 +35,11 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
       product_name_snapshot: input.product_name_snapshot,
       quantity_per_label: input.quantity_per_label,
       orderer_account_snapshot: input.orderer_account_snapshot,
-      labeled_at: input.labeled_at,
-      labeled_by_operator_account: input.labeled_by_operator_account,
+      shelf: input.shelf ?? null,
+      received_at: input.received_at,
+      received_by_operator_account: input.received_by_operator_account,
+      labeled_at: input.labeled_at ?? null,
+      labeled_by_operator_account: input.labeled_by_operator_account ?? null,
       expiry_date: input.expiry_date ?? null,
     });
     const saved = await this.repo.save(row);
@@ -66,7 +73,7 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
     if (filter.status) {
       where.status = Array.isArray(filter.status) ? In(filter.status) : filter.status;
     }
-    const rows = await this.repo.find({ where, order: { labeled_at: 'DESC' } });
+    const rows = await this.repo.find({ where, order: { received_at: 'DESC', created_at: 'DESC' } });
     return rows.map((r) => this.mapper.toDomain(r));
   }
 
@@ -75,6 +82,40 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
     newStatus: MarketplaceInventoryStatus
   ): Promise<MarketplaceInventoryDomainEntity> {
     await this.repo.update({ id }, { status: newStatus });
+    const row = await this.repo.findOneOrFail({ where: { id } });
+    return this.mapper.toDomain(row);
+  }
+
+  async assignShelf(id: string, shelf: string | null): Promise<MarketplaceInventoryDomainEntity> {
+    await this.repo.update({ id }, { shelf });
+    const row = await this.repo.findOneOrFail({ where: { id } });
+    return this.mapper.toDomain(row);
+  }
+
+  async applyLabel(
+    id: string,
+    patch: MarketplaceInventoryLabelPatch
+  ): Promise<MarketplaceInventoryDomainEntity> {
+    await this.repo.update(
+      { id },
+      {
+        barcode_value: patch.barcode_value,
+        barcode_format: patch.barcode_format,
+        labeled_at: patch.labeled_at,
+        labeled_by_operator_account: patch.labeled_by_operator_account,
+        status: MarketplaceInventoryStatuses.LABELED,
+      }
+    );
+    const row = await this.repo.findOneOrFail({ where: { id } });
+    return this.mapper.toDomain(row);
+  }
+
+  async resize(
+    id: string,
+    quantity_per_label: number,
+    shelf: string | null
+  ): Promise<MarketplaceInventoryDomainEntity> {
+    await this.repo.update({ id }, { quantity_per_label, shelf });
     const row = await this.repo.findOneOrFail({ where: { id } });
     return this.mapper.toDomain(row);
   }
