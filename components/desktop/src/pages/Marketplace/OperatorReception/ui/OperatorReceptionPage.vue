@@ -207,6 +207,7 @@ function expressContents(c: MarketplaceExpressPickupCandidateView): MarketplaceS
 interface ExpectedDelivery {
   key: string;
   offerer: string;
+  supplierName: string;
   deliveryLabel: string;
   amount: string;
   formedAt: string | null;
@@ -214,25 +215,40 @@ interface ExpectedDelivery {
   contents: MarketplaceSupplierPickupOrderView[];
 }
 
+// ФИО поставщика берём из состава (у партии/самовывоза нет отдельного поля
+// имени — оно в заказах как supplier_name); если состав ещё не подгрузился,
+// показываем аккаунт.
+function supplierNameOf(contents: MarketplaceSupplierPickupOrderView[], fallback: string): string {
+  return contents.find((o) => o.supplier_name)?.supplier_name || fallback;
+}
+
 const expectedDeliveries = computed<ExpectedDelivery[]>(() => {
-  const shipments: ExpectedDelivery[] = pendingShipments.value.map((s) => ({
-    key: `ship-${s.id}`,
-    offerer: s.offerer_account,
-    deliveryLabel: SHIPMENT_VARIANT_LABEL[s.delivery_variant] ?? s.delivery_variant,
-    amount: s.total_amount,
-    formedAt: formatDate(s.created_at),
-    ttnNumber: s.ttn_number ?? null,
-    contents: shipmentContents(s),
-  }));
-  const express: ExpectedDelivery[] = expressCandidates.value.map((c) => ({
-    key: `express-${c.offerer_account}`,
-    offerer: c.offerer_account,
-    deliveryLabel: 'Самовывоз',
-    amount: c.total_amount,
-    formedAt: null,
-    ttnNumber: null,
-    contents: expressContents(c),
-  }));
+  const shipments: ExpectedDelivery[] = pendingShipments.value.map((s) => {
+    const contents = shipmentContents(s);
+    return {
+      key: `ship-${s.id}`,
+      offerer: s.offerer_account,
+      supplierName: supplierNameOf(contents, s.offerer_account),
+      deliveryLabel: SHIPMENT_VARIANT_LABEL[s.delivery_variant] ?? s.delivery_variant,
+      amount: s.total_amount,
+      formedAt: formatDate(s.created_at),
+      ttnNumber: s.ttn_number ?? null,
+      contents,
+    };
+  });
+  const express: ExpectedDelivery[] = expressCandidates.value.map((c) => {
+    const contents = expressContents(c);
+    return {
+      key: `express-${c.offerer_account}`,
+      offerer: c.offerer_account,
+      supplierName: supplierNameOf(contents, c.offerer_account),
+      deliveryLabel: 'Самовывоз',
+      amount: c.total_amount,
+      formedAt: null,
+      ttnNumber: null,
+      contents,
+    };
+  });
   return [...shipments, ...express];
 });
 
@@ -524,17 +540,15 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
       BaseCard.reception__card(v-for='d in expectedDeliveries', :key='d.key')
         template(#head)
           .reception__card-who
-            Avatar(:name='d.offerer', size='md', tone='primary')
+            Avatar(:name='d.supplierName', size='md', tone='primary')
             .reception__card-ident
-              span.reception__card-name {{ d.offerer }}
+              span.reception__card-name {{ d.supplierName }}
               AccountBadge(:account-name='d.offerer', size='sm')
         template(#actions)
           BaseBadge(variant='neutral') {{ d.deliveryLabel }}
 
-        .reception__card-meta
-          span.reception__card-label(v-if='d.formedAt') Сформирована {{ d.formedAt }}
-          span.reception__card-label(v-else) Привезёт по факту
-          span.reception__card-amount {{ formatAsset2Digits(d.amount) }} ₽
+        .reception__card-when(v-if='d.formedAt') Сформирована {{ d.formedAt }}
+        .reception__card-when(v-else) Привезёт по факту
         .reception__card-ttn(v-if='d.ttnNumber') ТТН {{ d.ttnNumber }}
         ul.reception__card-items(v-if='d.contents.length')
           li.reception__card-item(v-for='o in d.contents', :key='o.id')
@@ -542,6 +556,9 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
               span.reception__card-prod {{ o.product_name || 'Товар по предложению' }}
               span.reception__card-to(v-if='o.orderer_name || o.orderer_account') для {{ o.orderer_name || o.orderer_account }}
             span.reception__card-qty {{ o.quantity }} {{ marketplaceUnitShort(o.unit_of_measure) }}
+        .reception__card-summary
+          span.reception__card-summary-label Сумма поставки
+          span.reception__card-amount {{ formatAsset2Digits(d.amount) }} ₽
 
     //- Акты приёмки, требующие действия (ждут подписи поставщика/председателя).
     //- Принятые кооперативом уже на складе и здесь не показываются.
@@ -561,13 +578,14 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
           template(#actions)
             BaseBadge(:variant='statusVariant(r.status)') {{ statusLabel(r.status) }}
 
-          .reception__card-meta
-            span.reception__card-label {{ variantLabel(r.variant) }}
-            span.reception__card-amount {{ formatAsset2Digits(r.total_amount) }} ₽
+          .reception__card-when {{ variantLabel(r.variant) }}
           ul.reception__card-items(v-if='r.fact_quantity_per_order.length')
             li.reception__card-item(v-for='(o, i) in r.fact_quantity_per_order', :key='i')
               span.reception__card-prod {{ o.product_name || 'Товар по предложению' }}
               span.reception__card-qty {{ o.fact_quantity }} {{ marketplaceUnitShort(o.unit_of_measure) }}
+          .reception__card-summary
+            span.reception__card-summary-label Сумма
+            span.reception__card-amount {{ formatAsset2Digits(r.total_amount) }} ₽
 
           .reception__card-foot(v-if='r.status === "PENDING_CHAIRMAN_RECEPTION_SIGN"')
             BaseButton(variant='primary', @click='signChairman(r)')
@@ -726,15 +744,22 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
     overflow-wrap: anywhere;
   }
 
-  &__card-meta {
+  &__card-when {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-2);
+  }
+
+  &__card-summary {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
     gap: var(--p-3, 12px);
-    font-size: var(--p-fs-body-sm, 13px);
+    padding-top: var(--p-3, 12px);
+    border-top: 1px solid var(--p-line);
   }
 
-  &__card-label {
+  &__card-summary-label {
+    font-size: var(--p-fs-body-sm, 13px);
     color: var(--p-ink-2);
   }
 
@@ -798,8 +823,6 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
   &__card-foot {
     display: flex;
     justify-content: flex-end;
-    padding-top: var(--p-3, 12px);
-    border-top: 1px solid var(--p-line);
   }
 
   &__pickup {
