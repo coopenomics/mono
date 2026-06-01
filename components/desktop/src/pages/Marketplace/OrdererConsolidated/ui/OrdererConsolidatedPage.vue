@@ -248,18 +248,17 @@ q-page.collective(role="region", aria-label="Коллективный заказ
               span К поставке: {{ p.groupAccumulated ?? p.ownUnits }} {{ p.unitLabel }}
             .t-muted.collective__progress-hint Поштучный сбор — поставщик принимает заказы по мере поступления.
 
-          .collective__own
-            span.t-muted Ваш вклад
-            span.collective__own-val {{ formatCost(p.ownCost) }} · {{ p.ownUnits }} {{ p.unitLabel }}
+          //- Свои заказы в накопителе — компактными строками (без больших
+          //- карточек: товар/КУ уже в шапке партии, дубль не нужен).
+          .collective__own-orders
+            .collective__own-order(v-for="o in p.orders", :key="o.id")
+              span.collective__own-order-who Ваш заказ № {{ o.id.slice(0, 8) }}
+              span.collective__own-order-qty {{ o.quantity }} {{ p.unitLabel }}
+              span.collective__own-order-cost {{ formatCost(parseFloat(o.total_cost) || 0) }}
 
-          .collective__cards
-            OrderCard(
-              v-for="o in p.orders",
-              :key="o.id",
-              :order="toOrderCardModel(o)",
-              role="orderer",
-              readonly
-            )
+          .collective__own
+            span.t-muted Ваш вклад в партию
+            span.collective__own-val {{ formatCost(p.ownCost) }} · {{ p.ownUnits }} {{ p.unitLabel }}
 
         //- СФОРМИРОВАННАЯ партия: метрики этапа + карточки заказов.
         template(v-else)
@@ -345,6 +344,41 @@ q-page.collective(role="region", aria-label="Коллективный заказ
     display: inline-flex;
     align-items: center;
     gap: 4px;
+  }
+
+  &__own-orders {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--p-line);
+    border-radius: var(--p-r-sm, 8px);
+    overflow: hidden;
+  }
+
+  &__own-order {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: var(--p-4, 16px);
+    align-items: center;
+    padding: var(--p-2, 8px) var(--p-3, 12px);
+    border-top: 1px solid var(--p-line);
+
+    &:first-child {
+      border-top: none;
+    }
+  }
+
+  &__own-order-who {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__own-order-qty {
+    color: var(--p-ink-2);
+  }
+
+  &__own-order-cost {
+    font-variant-numeric: tabular-nums;
   }
 
   &__own {
