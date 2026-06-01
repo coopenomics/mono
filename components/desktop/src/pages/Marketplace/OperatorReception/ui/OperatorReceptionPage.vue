@@ -5,9 +5,9 @@ import { Loading } from 'quasar';
 import { Zeus } from '@coopenomics/sdk';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
-import { BaseBadge, BaseButton, BaseDialog, BaseInput, EmptyState } from 'src/shared/ui/base';
+import { Avatar, BaseBadge, BaseButton, BaseCard, BaseDialog, BaseInput, EmptyState } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
-import { PageHint } from 'src/shared/ui/domain';
+import { AccountBadge, PageHint } from 'src/shared/ui/domain';
 import { QrScanner } from 'src/widgets/Marketplace/QrScanner';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
@@ -469,8 +469,9 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
         | Сканировать QR
 
     PageHint(storage-key='mp:operator-reception:banner-dismissed')
-      | Приёмка — только сканом QR поставщика (кнопка в шапке): без кода принять
-      | нельзя, даже зная человека в лицо.
+      | Чтобы принять поставку, отсканируйте QR-код поставщика — кнопка
+      | «Сканировать QR» в верхней панели. Код подтверждает личность поставщика
+      | и состав партии.
 
     //- Ожидаемые поставки — карточки «что/когда/кому везут». Раздел уже назван
     //- в шапке стола, отдельный заголовок не нужен. Запуск приёмки — только скан
@@ -513,28 +514,35 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
 
     //- Акты приёмки, требующие действия (ждут подписи поставщика/председателя).
     //- Принятые кооперативом уже на складе и здесь не показываются.
-    .reception__pending(v-if='actionableReceptions.length')
-      .reception__pending-head
-        .reception__pending-title Требуют подписи
-      .reception__ship(v-for='r in actionableReceptions', :key='r.id')
-        .reception__ship-info
-          .reception__ship-offerer {{ r.offerer_name || r.offerer_account }}
-          .reception__ship-meta
-            | {{ variantLabel(r.variant) }} · {{ formatAsset2Digits(r.total_amount) }} ₽
-          ul.reception__contents(v-if='r.fact_quantity_per_order.length')
-            li.reception__content-line(v-for='(o, i) in r.fact_quantity_per_order', :key='i')
-              | {{ o.product_name || 'Товар по предложению' }} — {{ o.fact_quantity }} {{ marketplaceUnitShort(o.unit_of_measure) }}
-        .reception__ship-side
-          BaseBadge(:variant='statusVariant(r.status)') {{ statusLabel(r.status) }}
-          BaseButton(
-            v-if='r.status === "PENDING_CHAIRMAN_RECEPTION_SIGN"',
-            variant='primary',
-            size='sm',
-            @click='signChairman(r)'
-          )
-            template(#icon-left)
-              q-icon(name='draw', size='16px')
-            | Подписать председателем
+    section.reception__acts(v-if='actionableReceptions.length', aria-label='Акты, требующие подписи')
+      header.reception__acts-head
+        h2.reception__acts-title Требуют подписи
+        BaseBadge(variant='warn') {{ actionableReceptions.length }}
+
+      .reception__acts-grid
+        BaseCard.reception__act(v-for='r in actionableReceptions', :key='r.id')
+          template(#head)
+            .reception__act-who
+              Avatar(:name='r.offerer_name || r.offerer_account', size='md', tone='primary')
+              .reception__act-ident
+                span.reception__act-name {{ r.offerer_name || r.offerer_account }}
+                AccountBadge(:account-name='r.offerer_account', size='sm')
+          template(#actions)
+            BaseBadge(:variant='statusVariant(r.status)') {{ statusLabel(r.status) }}
+
+          .reception__act-meta
+            span {{ variantLabel(r.variant) }}
+            span.reception__act-amount {{ formatAsset2Digits(r.total_amount) }} ₽
+          ul.reception__act-items(v-if='r.fact_quantity_per_order.length')
+            li.reception__act-item(v-for='(o, i) in r.fact_quantity_per_order', :key='i')
+              span.reception__act-prod {{ o.product_name || 'Товар по предложению' }}
+              span.reception__act-qty {{ o.fact_quantity }} {{ marketplaceUnitShort(o.unit_of_measure) }}
+
+          .reception__act-foot(v-if='r.status === "PENDING_CHAIRMAN_RECEPTION_SIGN"')
+            BaseButton(variant='primary', @click='signChairman(r)')
+              template(#icon-left)
+                q-icon(name='draw', size='18px')
+              | Подписать председателем
 
   SignAplReceptionChairmanDialog(
     v-model='signDialogOpen',
@@ -664,12 +672,116 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
     min-width: 0;
   }
 
-  &__ship-side {
-    flex: 0 0 auto;
+  // ── Акты, требующие подписи ──
+  &__acts {
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
+    gap: var(--p-3, 12px);
+  }
+
+  &__acts-head {
+    display: flex;
+    align-items: center;
     gap: var(--p-2, 8px);
+  }
+
+  &__acts-title {
+    margin: 0;
+    font-size: var(--p-fs-h2, 18px);
+    font-weight: 600;
+    letter-spacing: var(--p-ls-h2);
+    color: var(--p-ink);
+  }
+
+  &__acts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: var(--p-3, 12px);
+  }
+
+  &__act {
+    height: 100%;
+
+    :deep(.base-card__body) {
+      display: flex;
+      flex-direction: column;
+      gap: var(--p-3, 12px);
+    }
+  }
+
+  &__act-who {
+    display: flex;
+    align-items: center;
+    gap: var(--p-3, 12px);
+    min-width: 0;
+  }
+
+  &__act-ident {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  &__act-name {
+    font-size: var(--p-fs-h3, 15px);
+    font-weight: 600;
+    color: var(--p-ink);
+    overflow-wrap: anywhere;
+  }
+
+  &__act-meta {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--p-3, 12px);
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-2);
+  }
+
+  &__act-amount {
+    font-family: var(--p-mono);
+    font-weight: 600;
+    color: var(--p-ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__act-items {
+    margin: 0;
+    padding: var(--p-3, 12px);
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-2, 8px);
+    background: var(--p-surface-2);
+    border-radius: var(--p-r-sm, 8px);
+  }
+
+  &__act-item {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--p-3, 12px);
+    font-size: var(--p-fs-body-sm, 13px);
+  }
+
+  &__act-prod {
+    color: var(--p-ink-2);
+    overflow-wrap: anywhere;
+  }
+
+  &__act-qty {
+    flex: 0 0 auto;
+    color: var(--p-ink);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__act-foot {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: var(--p-3, 12px);
+    border-top: 1px solid var(--p-line);
   }
 
   &__ship-offerer {
