@@ -11,7 +11,12 @@ import { AccountBadge, PageHint } from 'src/shared/ui/domain';
 import { QrScanner } from 'src/widgets/Marketplace/QrScanner';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { decodeHandoffToken, HandoffTokenKind } from 'src/shared/lib/marketplace';
+import {
+  decodeHandoffToken,
+  HandoffTokenKind,
+  groupAplReceptions,
+  type ReceptionGroup,
+} from 'src/shared/lib/marketplace';
 import {
   listShipmentsByBraname,
   type MarketplaceShipmentView,
@@ -140,6 +145,13 @@ const actionableReceptions = computed(() =>
       r.status === 'PENDING_SUPPLIER_SIGN' ||
       r.status === 'PENDING_CHAIRMAN_RECEPTION_SIGN',
   ),
+);
+
+// Сводные поставки на подпись: группируем акты по поставщику + КУ + способу
+// доставки + статусу. Председатель подписывает доставку целиком (одна кнопка),
+// под капотом — по акту на каждую партию.
+const receptionGroups = computed(() =>
+  groupAplReceptions(actionableReceptions.value, { byOfferer: true }),
 );
 
 async function load(): Promise<void> {
@@ -565,10 +577,10 @@ async function acceptPickup(): Promise<void> {
 }
 
 const signDialogOpen = ref(false);
-const signTarget = ref<MarketplaceAplReceptionView | null>(null);
+const signGroup = ref<ReceptionGroup<MarketplaceAplReceptionView> | null>(null);
 
-function signChairman(item: MarketplaceAplReceptionView): void {
-  signTarget.value = item;
+function signChairman(group: ReceptionGroup<MarketplaceAplReceptionView>): void {
+  signGroup.value = group;
   signDialogOpen.value = true;
 }
 
@@ -646,40 +658,43 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
 
     //- Акты приёмки, требующие действия (ждут подписи поставщика/председателя).
     //- Принятые кооперативом уже на складе и здесь не показываются.
-    section.reception__acts(v-if='actionableReceptions.length', aria-label='Акты, требующие подписи')
+    section.reception__acts(v-if='receptionGroups.length', aria-label='Поставки, требующие подписи')
       header.reception__acts-head
         h2.reception__acts-title Требуют подписи
-        BaseBadge(variant='warn') {{ actionableReceptions.length }}
+        BaseBadge(variant='warn') {{ receptionGroups.length }}
 
       .reception__grid
-        BaseCard.reception__card(v-for='r in actionableReceptions', :key='r.id')
+        BaseCard.reception__card(v-for='g in receptionGroups', :key='g.key')
           template(#head)
             .reception__card-who
-              Avatar(:name='r.offerer_name || r.offerer_account', size='md', tone='primary')
+              Avatar(:name='g.offererName', size='md', tone='primary')
               .reception__card-ident
-                span.reception__card-name {{ r.offerer_name || r.offerer_account }}
-                AccountBadge(:account-name='r.offerer_account', size='sm')
+                span.reception__card-name {{ g.offererName }}
+                AccountBadge(:account-name='g.offererAccount', size='sm')
           template(#actions)
-            BaseBadge(:variant='statusVariant(r.status)') {{ statusLabel(r.status) }}
+            .reception__card-methods
+              BaseBadge(:variant='statusVariant(g.status)') {{ statusLabel(g.status) }}
+              BaseBadge(v-if='g.receptions.length > 1', variant='info') Доставок: {{ g.receptions.length }}
 
-          .reception__card-when {{ variantLabel(r.variant) }}
-          ul.reception__card-items(v-if='r.fact_quantity_per_order.length')
-            li.reception__card-item(v-for='(o, i) in r.fact_quantity_per_order', :key='i')
-              span.reception__card-prod {{ o.product_name || 'Товар по предложению' }}
-              span.reception__card-qty {{ o.fact_quantity }} {{ marketplaceUnitShort(o.unit_of_measure) }}
+          .reception__card-when {{ variantLabel(g.variant) }}
+          .reception__card-ttn(v-if='g.ttnNumbers.length') ТТН {{ g.ttnNumbers.join(', ') }}
+          ul.reception__card-items(v-if='g.lines.length')
+            li.reception__card-item(v-for='l in g.lines', :key='l.key')
+              span.reception__card-prod {{ l.productName }}
+              span.reception__card-qty {{ l.quantity }} {{ marketplaceUnitShort(l.unit) }}
           .reception__card-summary
-            span.reception__card-summary-label Сумма
-            span.reception__card-amount {{ formatAsset2Digits(r.total_amount) }} ₽
+            span.reception__card-summary-label Сумма поставки
+            span.reception__card-amount {{ formatAsset2Digits(g.totalAmount) }} ₽
 
-          .reception__card-foot(v-if='r.status === "PENDING_CHAIRMAN_RECEPTION_SIGN"')
-            BaseButton(variant='primary', @click='signChairman(r)')
+          .reception__card-foot(v-if='g.status === "PENDING_CHAIRMAN_RECEPTION_SIGN"')
+            BaseButton(variant='primary', @click='signChairman(g)')
               template(#icon-left)
                 q-icon(name='draw', size='18px')
               | Подписать председателем
 
   SignAplReceptionChairmanDialog(
     v-model='signDialogOpen',
-    :reception='signTarget',
+    :group='signGroup',
     @signed='onChairmanSigned'
   )
 

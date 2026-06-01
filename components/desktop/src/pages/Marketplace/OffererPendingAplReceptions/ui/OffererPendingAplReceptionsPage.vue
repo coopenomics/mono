@@ -1,9 +1,12 @@
 <script lang="ts" setup>
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { FailAlert } from 'src/shared/api';
-import { BaseBadge, BaseButton, EmptyState, TableSkeleton } from 'src/shared/ui/base';
-import type { BaseBadgeVariant, TableSkeletonColumn } from 'src/shared/ui/base';
+import { BaseBadge, BaseButton, BaseCard, EmptyState } from 'src/shared/ui/base';
+import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
+import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
+import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
+import { groupAplReceptions, type ReceptionGroup } from 'src/shared/lib/marketplace';
 import {
   listAplReceptionsAsSupplier,
   type MarketplaceAplReceptionView,
@@ -11,20 +14,21 @@ import {
 import SignAplReceptionDialog from './SignAplReceptionDialog.vue';
 
 /**
- * Эпик 5 / Story 5.7: offerer-стол «Подпись приёмки».
+ * Offerer-стол «Подпись приёмки»: поставщик подтверждает факт приёмки первой
+ * подписью (on-chain `signsupp`), после чего акт уходит на закрывающую подпись
+ * председателя КУ.
  *
- * Поставщик первой подписью (on-chain `signsupp`) подтверждает факт приёмки
- * партии, после чего акт уходит на закрывающую подпись председателя КУ.
- * Вёрстка по канону MONO Platform v2: инфо-баннер, canon-таблица со
- * статус-бейджами, скелетон вместо спиннера, EmptyState.
+ * Акты группируются в СВОДНЫЕ ПОСТАВКИ (КУ + способ доставки + статус):
+ * поставщик видит и подписывает доставку целиком одной кнопкой, а не каждую
+ * единицу имущества по отдельности. Под капотом по каждому акту — отдельная
+ * транзакция.
  */
 
 const items = ref<MarketplaceAplReceptionView[]>([]);
 const loading = ref(false);
 const signDialog = ref(false);
-const selected = ref<MarketplaceAplReceptionView | null>(null);
+const signGroup = ref<ReceptionGroup<MarketplaceAplReceptionView> | null>(null);
 
-// Статус акта приёмки → метка + canon-вариант бейджа.
 const RECEPTION_STATUS: Record<string, { label: string; variant: BaseBadgeVariant }> = {
   PENDING_SUPPLIER_SIGN: { label: 'Ждёт вашей подписи', variant: 'warn' },
   PENDING_CHAIRMAN_RECEPTION_SIGN: { label: 'Ждёт подписи председателя КУ', variant: 'info' },
@@ -37,26 +41,29 @@ function statusOf(v?: string | null): { label: string; variant: BaseBadgeVariant
   return RECEPTION_STATUS[v] ?? { label: v, variant: 'neutral' };
 }
 
-const RECEPTION_VARIANT_LABEL: Record<string, string> = {
+const VARIANT_LABEL: Record<string, string> = {
   IN_PERSON: 'Очная приёмка',
   EXPEDITOR: 'Через экспедитора',
   A: 'Очная приёмка',
   B: 'Через экспедитора',
 };
-
 function variantLabel(v: string): string {
-  return RECEPTION_VARIANT_LABEL[v] ?? v;
+  return VARIANT_LABEL[v] ?? v;
 }
 
-// Колонки скелетона повторяют шапку реальной таблицы — каркас не дёргается.
-const skeletonColumns: TableSkeletonColumn[] = [
-  { label: 'АПП', class: 'col-id', cell: 'badge' },
-  { label: 'КУ', cell: 'text' },
-  { label: 'Вариант', cell: 'text', cellWidth: '120px' },
-  { label: 'Статус', cell: 'badge' },
-  { label: 'Сумма', class: 'col-num', cell: 'text', cellWidth: '80px' },
-  { label: 'Действия', class: 'col-action', cell: 'icon' },
-];
+// Ждущие подписи поставщика — наверх (это его действие), принятые/прочие — ниже.
+const STATUS_SORT: Record<string, number> = {
+  PENDING_SUPPLIER_SIGN: 0,
+  PENDING_CHAIRMAN_RECEPTION_SIGN: 1,
+  ACCEPTED_TO_COOP: 2,
+  CANCELLED: 3,
+};
+
+const groups = computed(() =>
+  groupAplReceptions(items.value, { byOfferer: false }).sort(
+    (a, b) => (STATUS_SORT[a.status] ?? 99) - (STATUS_SORT[b.status] ?? 99),
+  ),
+);
 
 async function load(): Promise<void> {
   loading.value = true;
@@ -69,21 +76,24 @@ async function load(): Promise<void> {
   }
 }
 
-function sign(item: MarketplaceAplReceptionView): void {
-  selected.value = item;
+function sign(group: ReceptionGroup<MarketplaceAplReceptionView>): void {
+  signGroup.value = group;
   signDialog.value = true;
 }
 
 onMounted(() => {
   void load();
 });
+
+// Спиннер первичной загрузки — пока список ещё пуст.
+const showLoader = computed(() => loading.value && !items.value.length);
 </script>
 
 <template lang="pug">
-q-page.offerer-apl
+q-page.offerer-apl(role='region', aria-label='Подпись приёмки')
   PageHint(storage-key='mp:offerer-apl:banner-dismissed')
-    | Акты приёмки партий, по которым ждут вашу подпись. Подписывая акт, вы
-    | подтверждаете факт приёмки — затем он уходит на закрывающую подпись
+    | Поставки, по которым ждут вашу подпись. Подписывая поставку, вы
+    | подтверждаете факт приёмки — затем она уходит на закрывающую подпись
     | председателя КУ.
 
   .offerer-apl__toolbar
@@ -97,54 +107,48 @@ q-page.offerer-apl
       template(#icon-left)
         q-icon(name='refresh', size='20px')
 
-  TableSkeleton(
-    v-if='loading && !items.length',
-    :columns='skeletonColumns',
-    :rows='6',
-    min-width='860px'
-  )
-  .table-wrap(v-else-if='items.length')
-    .table-scroll
-      table.table
-        thead
-          tr
-            th.col-id АПП
-            th КУ
-            th.col-variant Вариант
-            th.col-status Статус
-            th.col-num Сумма
-            th.col-action Действия
-        tbody
-          tr(v-for='row in items', :key='row.id')
-            td.col-id {{ row.id.slice(0, 8) }}
-            td {{ row.braname }}
-            td.col-variant {{ variantLabel(row.variant) }}
-            td.col-status
-              BaseBadge(:variant='statusOf(row.status).variant') {{ statusOf(row.status).label }}
-            td.col-num {{ row.total_amount }} ₽
-            td.col-action
-              BaseButton(
-                v-if='row.status === "PENDING_SUPPLIER_SIGN"',
-                variant='primary',
-                size='sm',
-                @click='sign(row)'
-              )
-                template(#icon-left)
-                  q-icon(name='draw', size='16px')
-                | Подписать
-              span.offerer-apl__dash(v-else) —
+  .offerer-apl__loading(v-if='showLoader')
+    q-spinner(size='28px', color='primary')
+
+  .offerer-apl__grid(v-else-if='groups.length')
+    BaseCard.offerer-apl__card(v-for='g in groups', :key='g.key')
+      template(#head)
+        .offerer-apl__card-head
+          q-icon(name='local_shipping', size='24px')
+          .offerer-apl__card-ident
+            span.offerer-apl__card-name Поставка на {{ g.braname }}
+            span.offerer-apl__card-sub {{ variantLabel(g.variant) }}
+      template(#actions)
+        .offerer-apl__card-methods
+          BaseBadge(:variant='statusOf(g.status).variant') {{ statusOf(g.status).label }}
+          BaseBadge(v-if='g.receptions.length > 1', variant='info') Доставок: {{ g.receptions.length }}
+
+      .offerer-apl__card-ttn(v-if='g.ttnNumbers.length') ТТН {{ g.ttnNumbers.join(', ') }}
+      ul.offerer-apl__items(v-if='g.lines.length')
+        li.offerer-apl__item(v-for='l in g.lines', :key='l.key')
+          span.offerer-apl__prod {{ l.productName }}
+          span.offerer-apl__qty {{ l.quantity }} {{ marketplaceUnitShort(l.unit) }}
+      .offerer-apl__summary
+        span.offerer-apl__summary-label Сумма приёмки
+        span.offerer-apl__amount {{ formatAsset2Digits(g.totalAmount) }} ₽
+
+      .offerer-apl__foot(v-if='g.status === "PENDING_SUPPLIER_SIGN"')
+        BaseButton(variant='primary', @click='sign(g)')
+          template(#icon-left)
+            q-icon(name='draw', size='18px')
+          | Подписать
 
   EmptyState(
     v-else,
-    title='Актов на подпись нет',
-    body='Когда партия будет принята на ПВЗ — акт приёмки появится здесь для вашей подписи.'
+    title='Поставок на подпись нет',
+    body='Когда партия будет принята на ПВЗ — поставка появится здесь для вашей подписи.'
   )
     template(#icon)
       q-icon(name='task_alt', size='48px')
 
   SignAplReceptionDialog(
     v-model='signDialog',
-    :reception='selected',
+    :group='signGroup',
     @signed='load'
   )
 </template>
@@ -161,41 +165,133 @@ q-page.offerer-apl
     justify-content: flex-end;
   }
 
-  &__dash {
-    color: var(--p-ink-3);
+  &__loading {
+    display: flex;
+    justify-content: center;
+    padding: var(--p-6, 24px);
   }
-}
 
-.table-scroll {
-  overflow-x: auto;
-}
-.table {
-  table-layout: fixed;
-  min-width: 860px;
-}
-.col-id {
-  width: 120px;
-  font-family: var(--font-mono);
-}
-.col-variant {
-  width: 150px;
-}
-.col-status {
-  width: 220px;
-}
-.col-num {
-  width: 120px;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-.col-action {
-  width: 150px;
-  text-align: right;
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: var(--p-3, 12px);
+  }
+
+  &__card {
+    height: 100%;
+
+    :deep(.base-card__body) {
+      display: flex;
+      flex-direction: column;
+      gap: var(--p-3, 12px);
+    }
+  }
+
+  &__card-head {
+    display: flex;
+    align-items: center;
+    gap: var(--p-3, 12px);
+    min-width: 0;
+  }
+
+  &__card-ident {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  &__card-name {
+    font-size: var(--p-fs-h3, 15px);
+    font-weight: 600;
+    color: var(--p-ink);
+    overflow-wrap: anywhere;
+  }
+
+  &__card-sub {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-2);
+  }
+
+  &__card-methods {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--p-1, 4px);
+    justify-content: flex-end;
+  }
+
+  &__card-ttn {
+    font-size: var(--p-fs-meta, 12px);
+    color: var(--p-ink-3);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__items {
+    margin: 0;
+    padding: var(--p-3, 12px);
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-2, 8px);
+    background: var(--p-surface-2);
+    border-radius: var(--p-r-sm, 8px);
+  }
+
+  &__item {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--p-3, 12px);
+    font-size: var(--p-fs-body-sm, 13px);
+  }
+
+  &__prod {
+    color: var(--p-ink);
+    overflow-wrap: anywhere;
+  }
+
+  &__qty {
+    flex: 0 0 auto;
+    color: var(--p-ink);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__summary {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--p-3, 12px);
+    padding-top: var(--p-3, 12px);
+    border-top: 1px solid var(--p-line);
+  }
+
+  &__summary-label {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-2);
+  }
+
+  &__amount {
+    flex: 0 0 auto;
+    font-family: var(--p-mono);
+    font-weight: 600;
+    color: var(--p-ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__foot {
+    display: flex;
+    justify-content: flex-end;
+  }
 }
 
 @media (max-width: 768px) {
   .offerer-apl {
     padding: var(--p-4, 16px);
+
+    &__grid {
+      grid-template-columns: 1fr;
+    }
   }
 }
 </style>
