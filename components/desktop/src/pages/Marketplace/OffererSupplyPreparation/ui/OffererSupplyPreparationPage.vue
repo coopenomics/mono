@@ -7,8 +7,8 @@ import { BaseBadge, BaseButton, BaseDialog, EmptyState, TableSkeleton } from 'sr
 import type { BaseBadgeVariant, TableSkeletonColumn } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
-import { HandoffQr } from 'src/widgets/Marketplace/HandoffQr';
-import { encodeHandoffToken, HandoffTokenKind } from 'src/shared/lib/marketplace';
+import { HandoffCodeDialog } from 'src/widgets/Marketplace/HandoffCode';
+import { HandoffTokenKind } from 'src/shared/lib/marketplace';
 import { TTNPrintPreview, type TTNData } from 'src/widgets/Marketplace/TTNPrintPreview';
 import { listShipments, type MarketplaceShipmentView } from '../api';
 import { fetchSupplierOrders } from '../../OffererIncomingOrders/api';
@@ -55,18 +55,9 @@ const dialogOpen = ref(false);
 
 // Story 14.3: один account-bound код на весь стол. Поставщик показывает его
 // оператору приёмки — тот резолвит аккаунт против ленты своего КУ и принимает
-// разом всё привезённое (и сформированные партии, и самовывоз по факту).
-// Код привязан к личности, не к партии: его можно сгенерировать заранее/оффлайн.
+// разом всё привезённое. Тот же код вынесен явным пунктом меню «Отгрузить
+// партию»; здесь — быстрый доступ диалогом из шапки (общий HandoffCodeDialog).
 const myCodeDialogOpen = ref(false);
-const myPickupCode = computed(() =>
-  session.username
-    ? encodeHandoffToken({
-        kind: HandoffTokenKind.Pickup,
-        coopname: coopname.value,
-        account: session.username,
-      })
-    : '',
-);
 
 // Печать ТТН — только для Варианта Б (экспедитор), пока партия не принята:
 // состав берётся из заказов SUPPLY_PREPARED этой партии.
@@ -178,7 +169,7 @@ q-page.offerer-supply
       template(#icon-left)
         q-icon(name='local_shipping', size='16px')
       | Сформировать партию
-    BaseButton(variant='secondary', size='sm', :disabled='!myPickupCode', @click='myCodeDialogOpen = true')
+    BaseButton(variant='secondary', size='sm', :disabled='!session.username', @click='myCodeDialogOpen = true')
       template(#icon-left)
         q-icon(name='qr_code_2', size='16px')
       | Мой код для ПВЗ
@@ -243,12 +234,7 @@ q-page.offerer-supply
     @created='onCreated'
   )
 
-  BaseDialog(v-model='myCodeDialogOpen', title='Мой код для пункта выдачи', size='sm')
-    .offerer-supply__qr(v-if='myPickupCode')
-      HandoffQr(
-        :value='myPickupCode',
-        caption='Покажите этот код оператору на ПВЗ — он примет разом всё, что вы привезли (и сформированные партии, и самовывоз по факту). Код можно показать заранее или с распечатки.'
-      )
+  HandoffCodeDialog(v-model='myCodeDialogOpen', :coopname='coopname', :kind='HandoffTokenKind.Pickup')
 
   BaseDialog(v-model='ttnDialogOpen', title='Товарно-транспортная накладная', size='lg')
     TTNPrintPreview(v-if='ttnData', :data='ttnData')
@@ -353,14 +339,6 @@ q-page.offerer-supply
     font-size: var(--p-fs-body-sm, 13px);
     line-height: 1.3;
     color: var(--p-ink-3);
-  }
-
-  &__qr {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--p-3, 12px);
-    padding: var(--p-2, 8px) 0;
   }
 
   &__ttn-cell {

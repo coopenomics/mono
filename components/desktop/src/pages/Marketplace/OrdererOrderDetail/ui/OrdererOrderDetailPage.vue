@@ -7,7 +7,8 @@ import { BaseBadge, BaseButton, BaseCard } from 'src/shared/ui/base';
 import { ActivityTimeline, type ActivityEvent } from 'src/shared/ui/domain';
 import { OfferGallery } from 'src/widgets/Marketplace/OfferGallery';
 import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
-import { ReceiveCodeDialog } from 'src/widgets/Marketplace/ReceiveCode';
+import { HandoffCodeDialog } from 'src/widgets/Marketplace/HandoffCode';
+import { HandoffTokenKind } from 'src/shared/lib/marketplace';
 import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
@@ -241,7 +242,7 @@ q-page.order-detail(role="region", aria-label="Заказ")
       @finalized="onFinalized"
     )
 
-    ReceiveCodeDialog(v-model="receiveDialogOpen", :coopname="coopname")
+    HandoffCodeDialog(v-model="receiveDialogOpen", :coopname="coopname", :kind="HandoffTokenKind.Receive")
 </template>
 
 <style scoped lang="scss">

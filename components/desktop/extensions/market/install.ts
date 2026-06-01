@@ -13,6 +13,7 @@ import { OperatorReceptionPage } from 'src/pages/Marketplace/OperatorReception'
 import { OperatorInventoryLabelingPage } from 'src/pages/Marketplace/OperatorInventoryLabeling'
 import { OffererPendingAplReceptionsPage } from 'src/pages/Marketplace/OffererPendingAplReceptions'
 import { OffererSupplyPreparationPage } from 'src/pages/Marketplace/OffererSupplyPreparation'
+import { OffererShipPartyPage } from 'src/pages/Marketplace/OffererShipParty'
 import { OffererPaymentHistoryPage } from 'src/pages/Marketplace/OffererPaymentHistory'
 import { AdminWriteoffsPage } from 'src/pages/Marketplace/AdminWriteoffs'
 import { ChairmanModerationPage } from 'src/pages/Marketplace/ChairmanModeration'
@@ -328,6 +329,24 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               meta: {
                 title: 'Подготовка отгрузки',
                 icon: 'fa-solid fa-truck-ramp-box',
+                requires: 'Offer:read',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+              children: [],
+            },
+            {
+              // «Отгрузить партию» — отдельный пункт меню с одним account-bound
+              // Pickup-QR на всю страницу. Тот же код, что в действии шапки
+              // «Подготовки отгрузки», но вынесен явным пунктом сразу после неё —
+              // чтобы поставщик не пропустил, где взять код на приёмке (зеркало
+              // пункта «Получить заказ» у заказчика).
+              path: 'ship-party',
+              name: 'marketplace-ship-party',
+              component: markRaw(OffererShipPartyPage),
+              meta: {
+                title: 'Отгрузить партию',
+                icon: 'fa-solid fa-qrcode',
                 requires: 'Offer:read',
                 requiresAuth: true,
                 agreements: agreementsBase,

@@ -8,7 +8,8 @@ import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
 import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
-import { ReceiveCodeDialog } from 'src/widgets/Marketplace/ReceiveCode';
+import { HandoffCodeDialog } from 'src/widgets/Marketplace/HandoffCode';
+import { HandoffTokenKind } from 'src/shared/lib/marketplace';
 import { cancelOrder, fetchMyOrders } from '../api';
 import type { MarketplaceOrderStatusView, MarketplaceOrderView } from '../types';
 import OrdererFinalizeIssuanceDialog from './OrdererFinalizeIssuanceDialog.vue';
@@ -235,7 +236,7 @@ q-page.orders(role="region", aria-label="Мои заказы")
     @finalized="onFinalized"
   )
 
-  ReceiveCodeDialog(v-model="receiveDialogOpen", :coopname="coopname")
+  HandoffCodeDialog(v-model="receiveDialogOpen", :coopname="coopname", :kind="HandoffTokenKind.Receive")
 </template>
 
 <style scoped lang="scss">

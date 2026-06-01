@@ -1,7 +1,8 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
-import { ReceiveCodeContent } from 'src/widgets/Marketplace/ReceiveCode';
+import { HandoffCodeContent } from 'src/widgets/Marketplace/HandoffCode';
+import { HandoffTokenKind } from 'src/shared/lib/marketplace';
 
 /**
  * Стол заказчика, страница «Получить заказ».
@@ -13,7 +14,7 @@ import { ReceiveCodeContent } from 'src/widgets/Marketplace/ReceiveCode';
  * Сделано отдельным пунктом меню (а не действием в шапке), чтобы код был
  * очевидно findable: пайщику не нужно объяснять, где его искать — пункт
  * «Получить заказ» всегда виден в меню стола. Тот же QR доступен диалогом из
- * шапки «Моих заказов» и детали заказа (общий `ReceiveCodeContent`).
+ * шапки «Моих заказов» и детали заказа (общий `HandoffCodeContent`).
  */
 
 const route = useRoute();
@@ -22,7 +23,7 @@ const coopname = computed(() => String(route.params.coopname ?? ''));
 
 <template lang="pug">
 q-page.receive(role="region", aria-label="Получить заказ")
-  ReceiveCodeContent(:coopname="coopname")
+  HandoffCodeContent(:coopname="coopname", :kind="HandoffTokenKind.Receive")
 </template>
 
 <style scoped lang="scss">
