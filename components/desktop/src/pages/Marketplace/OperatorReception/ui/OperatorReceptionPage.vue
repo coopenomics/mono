@@ -509,29 +509,39 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
       | «Сканировать QR» в верхней панели. Код подтверждает личность поставщика
       | и состав партии.
 
-    //- Ожидаемые поставки — карточки «что/когда/кому везут». Раздел уже назван
-    //- в шапке стола, отдельный заголовок не нужен. Запуск приёмки — только скан
-    //- QR/ввод кода (кнопка в шапке).
-    .reception__pending
-      EmptyState(
-        v-if='!expectedDeliveries.length',
-        title='Поставок пока нет',
-        body='Поставки появятся здесь, как только поставщики направят их на ваш пункт.'
-      )
-        template(#icon)
-          q-icon(name='local_shipping', size='48px')
+    //- Ожидаемые поставки — единый список карточек «что/когда/кому везут».
+    //- Раздел уже назван в шапке стола. Запуск приёмки — только скан QR/ввод
+    //- кода (кнопка в шапке).
+    EmptyState(
+      v-if='!expectedDeliveries.length',
+      title='Поставок пока нет',
+      body='Поставки появятся здесь, как только поставщики направят их на ваш пункт.'
+    )
+      template(#icon)
+        q-icon(name='local_shipping', size='48px')
 
-      .reception__ship(v-for='d in expectedDeliveries', :key='d.key')
-        .reception__ship-info
-          .reception__ship-offerer {{ d.offerer }}
-          .reception__ship-meta
-            | {{ d.deliveryLabel }} · {{ formatAsset2Digits(d.amount) }} ₽
-            template(v-if='d.formedAt')  · сформирована {{ d.formedAt }}
-            template(v-if='d.ttnNumber')  · ТТН {{ d.ttnNumber }}
-          ul.reception__contents(v-if='d.contents.length')
-            li.reception__content-line(v-for='o in d.contents', :key='o.id')
-              | {{ o.product_name || 'Товар по предложению' }} — {{ o.quantity }} {{ marketplaceUnitShort(o.unit_of_measure) }}
-              span.reception__content-to  · кому: {{ o.orderer_name || o.orderer_account }}
+    .reception__grid(v-else)
+      BaseCard.reception__card(v-for='d in expectedDeliveries', :key='d.key')
+        template(#head)
+          .reception__card-who
+            Avatar(:name='d.offerer', size='md', tone='primary')
+            .reception__card-ident
+              span.reception__card-name {{ d.offerer }}
+              AccountBadge(:account-name='d.offerer', size='sm')
+        template(#actions)
+          BaseBadge(variant='neutral') {{ d.deliveryLabel }}
+
+        .reception__card-meta
+          span.reception__card-label(v-if='d.formedAt') Сформирована {{ d.formedAt }}
+          span.reception__card-label(v-else) Привезёт по факту
+          span.reception__card-amount {{ formatAsset2Digits(d.amount) }} ₽
+        .reception__card-ttn(v-if='d.ttnNumber') ТТН {{ d.ttnNumber }}
+        ul.reception__card-items(v-if='d.contents.length')
+          li.reception__card-item(v-for='o in d.contents', :key='o.id')
+            .reception__card-prod-wrap
+              span.reception__card-prod {{ o.product_name || 'Товар по предложению' }}
+              span.reception__card-to(v-if='o.orderer_name || o.orderer_account') для {{ o.orderer_name || o.orderer_account }}
+            span.reception__card-qty {{ o.quantity }} {{ marketplaceUnitShort(o.unit_of_measure) }}
 
     //- Акты приёмки, требующие действия (ждут подписи поставщика/председателя).
     //- Принятые кооперативом уже на складе и здесь не показываются.
@@ -540,26 +550,26 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
         h2.reception__acts-title Требуют подписи
         BaseBadge(variant='warn') {{ actionableReceptions.length }}
 
-      .reception__acts-grid
-        BaseCard.reception__act(v-for='r in actionableReceptions', :key='r.id')
+      .reception__grid
+        BaseCard.reception__card(v-for='r in actionableReceptions', :key='r.id')
           template(#head)
-            .reception__act-who
+            .reception__card-who
               Avatar(:name='r.offerer_name || r.offerer_account', size='md', tone='primary')
-              .reception__act-ident
-                span.reception__act-name {{ r.offerer_name || r.offerer_account }}
+              .reception__card-ident
+                span.reception__card-name {{ r.offerer_name || r.offerer_account }}
                 AccountBadge(:account-name='r.offerer_account', size='sm')
           template(#actions)
             BaseBadge(:variant='statusVariant(r.status)') {{ statusLabel(r.status) }}
 
-          .reception__act-meta
-            span {{ variantLabel(r.variant) }}
-            span.reception__act-amount {{ formatAsset2Digits(r.total_amount) }} ₽
-          ul.reception__act-items(v-if='r.fact_quantity_per_order.length')
-            li.reception__act-item(v-for='(o, i) in r.fact_quantity_per_order', :key='i')
-              span.reception__act-prod {{ o.product_name || 'Товар по предложению' }}
-              span.reception__act-qty {{ o.fact_quantity }} {{ marketplaceUnitShort(o.unit_of_measure) }}
+          .reception__card-meta
+            span.reception__card-label {{ variantLabel(r.variant) }}
+            span.reception__card-amount {{ formatAsset2Digits(r.total_amount) }} ₽
+          ul.reception__card-items(v-if='r.fact_quantity_per_order.length')
+            li.reception__card-item(v-for='(o, i) in r.fact_quantity_per_order', :key='i')
+              span.reception__card-prod {{ o.product_name || 'Товар по предложению' }}
+              span.reception__card-qty {{ o.fact_quantity }} {{ marketplaceUnitShort(o.unit_of_measure) }}
 
-          .reception__act-foot(v-if='r.status === "PENDING_CHAIRMAN_RECEPTION_SIGN"')
+          .reception__card-foot(v-if='r.status === "PENDING_CHAIRMAN_RECEPTION_SIGN"')
             BaseButton(variant='primary', @click='signChairman(r)')
               template(#icon-left)
                 q-icon(name='draw', size='18px')
@@ -657,43 +667,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
   flex-direction: column;
   gap: var(--p-4, 16px);
 
-  &__pending {
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-2, 8px);
-    border: 1px solid var(--p-line);
-    border-radius: var(--p-r-md, 12px);
-    background: var(--p-surface);
-    padding: var(--p-4, 16px);
-  }
-
-  &__pending-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--p-3, 12px);
-  }
-
-  &__pending-title {
-    font-size: var(--p-fs-h3, 15px);
-    font-weight: 600;
-    color: var(--p-ink);
-  }
-
-  &__ship {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--p-3, 12px);
-    padding-top: var(--p-2, 8px);
-    border-top: 1px solid var(--p-line);
-  }
-
-  &__ship-info {
-    min-width: 0;
-  }
-
-  // ── Акты, требующие подписи ──
+  // ── Секция «Требуют подписи» ──
   &__acts {
     display: flex;
     flex-direction: column;
@@ -714,13 +688,14 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
     color: var(--p-ink);
   }
 
-  &__acts-grid {
+  // ── Сетка карточек (ожидаемые поставки + акты на подпись) ──
+  &__grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
     gap: var(--p-3, 12px);
   }
 
-  &__act {
+  &__card {
     height: 100%;
 
     :deep(.base-card__body) {
@@ -730,44 +705,54 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
     }
   }
 
-  &__act-who {
+  &__card-who {
     display: flex;
     align-items: center;
     gap: var(--p-3, 12px);
     min-width: 0;
   }
 
-  &__act-ident {
+  &__card-ident {
     display: flex;
     flex-direction: column;
     gap: 2px;
     min-width: 0;
   }
 
-  &__act-name {
+  &__card-name {
     font-size: var(--p-fs-h3, 15px);
     font-weight: 600;
     color: var(--p-ink);
     overflow-wrap: anywhere;
   }
 
-  &__act-meta {
+  &__card-meta {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
     gap: var(--p-3, 12px);
     font-size: var(--p-fs-body-sm, 13px);
+  }
+
+  &__card-label {
     color: var(--p-ink-2);
   }
 
-  &__act-amount {
+  &__card-amount {
+    flex: 0 0 auto;
     font-family: var(--p-mono);
     font-weight: 600;
     color: var(--p-ink);
     font-variant-numeric: tabular-nums;
   }
 
-  &__act-items {
+  &__card-ttn {
+    font-size: var(--p-fs-meta, 12px);
+    color: var(--p-ink-3);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__card-items {
     margin: 0;
     padding: var(--p-3, 12px);
     list-style: none;
@@ -778,7 +763,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
     border-radius: var(--p-r-sm, 8px);
   }
 
-  &__act-item {
+  &__card-item {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
@@ -786,52 +771,35 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
     font-size: var(--p-fs-body-sm, 13px);
   }
 
-  &__act-prod {
-    color: var(--p-ink-2);
+  &__card-prod-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+
+  &__card-prod {
+    color: var(--p-ink);
     overflow-wrap: anywhere;
   }
 
-  &__act-qty {
+  &__card-to {
+    font-size: var(--p-fs-meta, 12px);
+    color: var(--p-ink-3);
+  }
+
+  &__card-qty {
     flex: 0 0 auto;
     color: var(--p-ink);
     font-weight: 500;
     font-variant-numeric: tabular-nums;
   }
 
-  &__act-foot {
+  &__card-foot {
     display: flex;
     justify-content: flex-end;
     padding-top: var(--p-3, 12px);
     border-top: 1px solid var(--p-line);
-  }
-
-  &__ship-offerer {
-    font-size: var(--p-fs-body, 14px);
-    font-weight: 600;
-    color: var(--p-ink);
-  }
-
-  &__ship-meta {
-    font-size: var(--p-fs-body-sm, 13px);
-    color: var(--p-ink-2);
-    font-variant-numeric: tabular-nums;
-    overflow-wrap: anywhere;
-  }
-
-  &__contents {
-    margin: var(--p-2, 8px) 0 0;
-    padding-left: var(--p-4, 16px);
-    list-style: disc;
-  }
-
-  &__content-line {
-    font-size: var(--p-fs-body-sm, 13px);
-    color: var(--p-ink-2);
-    font-variant-numeric: tabular-nums;
-  }
-
-  &__content-to {
-    color: var(--p-ink-3);
   }
 
   &__pickup {
@@ -920,9 +888,8 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
   .reception {
     padding: var(--p-4, 16px);
 
-    &__ship {
-      flex-direction: column;
-      align-items: stretch;
+    &__grid {
+      grid-template-columns: 1fr;
     }
   }
 }
