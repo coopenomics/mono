@@ -19,7 +19,10 @@ import { MarketplaceRegistrationOfferResolver } from './resolvers/marketplace-re
 import { MarketplaceWhitelistResolver } from './resolvers/marketplace-whitelist.resolver';
 import { MarketplaceVitrineResolver } from './resolvers/marketplace-vitrine.resolver';
 import { MarketplaceOfferResolver } from './resolvers/marketplace-offer.resolver';
-import { MarketplaceOfferFieldsResolver } from './resolvers/marketplace-offer-fields.resolver';
+import {
+  MarketplaceOfferFieldsResolver,
+  MarketplaceOfferDeliveryPointFieldsResolver,
+} from './resolvers/marketplace-offer-fields.resolver';
 import { MarketplaceOfferImagesService } from './services/marketplace-offer-images.service';
 import { MarketplaceModerationResolver } from './resolvers/marketplace-moderation.resolver';
 import { MarketplaceCatalogResolver } from './resolvers/marketplace-catalog.resolver';
@@ -241,6 +244,7 @@ import { MarketplaceInventoryEntity } from '../infrastructure/entities/marketpla
     // Story 3.2 (доп.): изображения Offer'а — bucket-сервис + field-resolver.
     MarketplaceOfferImagesService,
     MarketplaceOfferFieldsResolver,
+    MarketplaceOfferDeliveryPointFieldsResolver,
     {
       provide: MARKETPLACE_CATEGORY_SERVICE,
       useClass: MarketplaceCategoryService,

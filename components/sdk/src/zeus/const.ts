@@ -4151,6 +4151,7 @@ export const ReturnTypes: Record<string,any> = {
 		rejected_by:"String",
 		status:"String",
 		supplier_account:"String",
+		supplier_name:"String",
 		unit_of_measure:"String",
 		unlimited_flag:"Boolean",
 		updated_at:"DateTime",
@@ -4158,8 +4159,12 @@ export const ReturnTypes: Record<string,any> = {
 		warranty_days:"Int"
 	},
 	MarketplaceOfferDeliveryPoint:{
+		address:"String",
 		braname:"String",
-		min_supply_volume:"Int"
+		lat:"Float",
+		lng:"Float",
+		min_supply_volume:"Int",
+		name:"String"
 	},
 	MarketplaceOfferImage:{
 		bucket_key:"String",

@@ -121,6 +121,55 @@ export class MarketplaceOrderDisplayService {
   }
 
   /**
+   * Публичный одиночный резолв отображаемого имени аккаунта (ФИО/`short_name`).
+   * Используется field-резолверами DTO (оферта → `supplier_name` и т.п.), чтобы
+   * имя бралось живьём на бэкенде, а фронт не дозапрашивал его отдельно.
+   */
+  async resolveAccountName(account: string): Promise<string | null> {
+    if (!account) return null;
+    return this.safeDisplayName(account);
+  }
+
+  /**
+   * Отображаемые реквизиты участка (ПВЗ) по его аккаунту-`braname`, живьём из
+   * единого источника правды: наименование и адрес — из организации участка
+   * (core-домен, тот же, что правит председатель в «Кооперативные участки»),
+   * координаты — из геокода marketplace-детализации КУ. Локальную копию адреса
+   * в детализации НЕ используем как источник — только как носитель геоточки.
+   */
+  async resolveBranchDisplay(
+    braname: string
+  ): Promise<{ name: string | null; address: string | null; lat: number | null; lng: number | null }> {
+    if (!braname) return { name: null, address: null, lat: null, lng: null };
+    const [org, ku] = await Promise.all([this.safeOrg(braname), this.safeKu(braname)]);
+    const name = org?.short_name?.trim() || org?.full_name?.trim() || null;
+    const address = org?.fact_address?.trim() || org?.full_address?.trim() || null;
+    const hasCoords = ku?.geocodeStatus === 'OK' && ku.lat != null && ku.lng != null;
+    return {
+      name,
+      address,
+      lat: hasCoords ? (ku!.lat as number) : null,
+      lng: hasCoords ? (ku!.lng as number) : null,
+    };
+  }
+
+  private async safeOrg(braname: string) {
+    try {
+      return await this.orgRepo.findByUsername(braname);
+    } catch {
+      return null;
+    }
+  }
+
+  private async safeKu(braname: string) {
+    try {
+      return await this.kuRepo.findByCoreBraname(config.coopname, braname);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Отображаемые наименования участников по аккаунтам: ФИО физлица/ИП или
    * `short_name` организации. Батч с дедупликацией; best-effort — недоступное
    * имя пропускается (клиент покажет аккаунт). Источник имён — приватные данные

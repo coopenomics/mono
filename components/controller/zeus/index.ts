@@ -6995,6 +6995,8 @@ export type ValueTypes = {
 	/** PENDING_MODERATION | ACTIVE | REJECTED | WITHDRAWN */
 	status?:boolean | `@${string}`,
 	supplier_account?:boolean | `@${string}`,
+	/** Отображаемое имя поставщика (ФИО физлица/ИП или наименование организации). */
+	supplier_name?:boolean | `@${string}`,
 	/** piece | kg | liter | pack */
 	unit_of_measure?:boolean | `@${string}`,
 	unlimited_flag?:boolean | `@${string}`,
@@ -7005,10 +7007,18 @@ export type ValueTypes = {
 	['...on MarketplaceOffer']?: Omit<ValueTypes["MarketplaceOffer"], "...on MarketplaceOffer">
 }>;
 	["MarketplaceOfferDeliveryPoint"]: AliasType<{
+	/** Адрес кооперативного участка (живьём из организации участка). */
+	address?:boolean | `@${string}`,
 	/** Кооперативный участок (ПВЗ) поставки. */
 	braname?:boolean | `@${string}`,
+	/** Широта участка (геокод КУ), если адрес геокодирован. */
+	lat?:boolean | `@${string}`,
+	/** Долгота участка (геокод КУ), если адрес геокодирован. */
+	lng?:boolean | `@${string}`,
 	/** Минимальный объём, от которого поставщик готов везти на этот участок (в единицах товара). Ориентир для накопления партии, не жёсткий порог. */
 	min_supply_volume?:boolean | `@${string}`,
+	/** Наименование кооперативного участка (живьём из организации участка). */
+	name?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceOfferDeliveryPoint']?: Omit<ValueTypes["MarketplaceOfferDeliveryPoint"], "...on MarketplaceOfferDeliveryPoint">
 }>;
@@ -17056,6 +17066,8 @@ export type ResolverInputTypes = {
 	/** PENDING_MODERATION | ACTIVE | REJECTED | WITHDRAWN */
 	status?:boolean | `@${string}`,
 	supplier_account?:boolean | `@${string}`,
+	/** Отображаемое имя поставщика (ФИО физлица/ИП или наименование организации). */
+	supplier_name?:boolean | `@${string}`,
 	/** piece | kg | liter | pack */
 	unit_of_measure?:boolean | `@${string}`,
 	unlimited_flag?:boolean | `@${string}`,
@@ -17065,10 +17077,18 @@ export type ResolverInputTypes = {
 		__typename?: boolean | `@${string}`
 }>;
 	["MarketplaceOfferDeliveryPoint"]: AliasType<{
+	/** Адрес кооперативного участка (живьём из организации участка). */
+	address?:boolean | `@${string}`,
 	/** Кооперативный участок (ПВЗ) поставки. */
 	braname?:boolean | `@${string}`,
+	/** Широта участка (геокод КУ), если адрес геокодирован. */
+	lat?:boolean | `@${string}`,
+	/** Долгота участка (геокод КУ), если адрес геокодирован. */
+	lng?:boolean | `@${string}`,
 	/** Минимальный объём, от которого поставщик готов везти на этот участок (в единицах товара). Ориентир для накопления партии, не жёсткий порог. */
 	min_supply_volume?:boolean | `@${string}`,
+	/** Наименование кооперативного участка (живьём из организации участка). */
+	name?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["MarketplaceOfferDeliveryPointInput"]: {
@@ -26790,6 +26810,8 @@ export type ModelTypes = {
 	/** PENDING_MODERATION | ACTIVE | REJECTED | WITHDRAWN */
 	status: string,
 	supplier_account: string,
+	/** Отображаемое имя поставщика (ФИО физлица/ИП или наименование организации). */
+	supplier_name?: string | undefined | null,
 	/** piece | kg | liter | pack */
 	unit_of_measure: string,
 	unlimited_flag: boolean,
@@ -26798,10 +26820,18 @@ export type ModelTypes = {
 	warranty_days: number
 };
 	["MarketplaceOfferDeliveryPoint"]: {
-		/** Кооперативный участок (ПВЗ) поставки. */
+		/** Адрес кооперативного участка (живьём из организации участка). */
+	address?: string | undefined | null,
+	/** Кооперативный участок (ПВЗ) поставки. */
 	braname: string,
+	/** Широта участка (геокод КУ), если адрес геокодирован. */
+	lat?: number | undefined | null,
+	/** Долгота участка (геокод КУ), если адрес геокодирован. */
+	lng?: number | undefined | null,
 	/** Минимальный объём, от которого поставщик готов везти на этот участок (в единицах товара). Ориентир для накопления партии, не жёсткий порог. */
-	min_supply_volume: number
+	min_supply_volume: number,
+	/** Наименование кооперативного участка (живьём из организации участка). */
+	name?: string | undefined | null
 };
 	["MarketplaceOfferDeliveryPointInput"]: {
 	/** Кооперативный участок (ПВЗ), на который поставщик готов везти. */
@@ -37458,6 +37488,8 @@ export type GraphQLTypes = {
 	/** PENDING_MODERATION | ACTIVE | REJECTED | WITHDRAWN */
 	status: string,
 	supplier_account: string,
+	/** Отображаемое имя поставщика (ФИО физлица/ИП или наименование организации). */
+	supplier_name?: string | undefined | null,
 	/** piece | kg | liter | pack */
 	unit_of_measure: string,
 	unlimited_flag: boolean,
@@ -37468,10 +37500,18 @@ export type GraphQLTypes = {
 };
 	["MarketplaceOfferDeliveryPoint"]: {
 	__typename: "MarketplaceOfferDeliveryPoint",
+	/** Адрес кооперативного участка (живьём из организации участка). */
+	address?: string | undefined | null,
 	/** Кооперативный участок (ПВЗ) поставки. */
 	braname: string,
+	/** Широта участка (геокод КУ), если адрес геокодирован. */
+	lat?: number | undefined | null,
+	/** Долгота участка (геокод КУ), если адрес геокодирован. */
+	lng?: number | undefined | null,
 	/** Минимальный объём, от которого поставщик готов везти на этот участок (в единицах товара). Ориентир для накопления партии, не жёсткий порог. */
 	min_supply_volume: number,
+	/** Наименование кооперативного участка (живьём из организации участка). */
+	name?: string | undefined | null,
 	['...on MarketplaceOfferDeliveryPoint']: Omit<GraphQLTypes["MarketplaceOfferDeliveryPoint"], "...on MarketplaceOfferDeliveryPoint">
 };
 	["MarketplaceOfferDeliveryPointInput"]: {
