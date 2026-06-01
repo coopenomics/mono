@@ -23,6 +23,11 @@ import type {
  * свои заказы строками. Отличается только заполнение бара и подпись этапа —
  * никаких разных по вёрстке сущностей.
  *
+ * Здесь видны ТОЛЬКО партии до начала выдачи: этап сбора и подготовки поставки
+ * (ACTIVE…ACCEPTED_TO_COOP). Как только открыта выдача (READY_TO_RECEIVE и
+ * дальше) или заказ отменён — партия уходит с этой страницы: её цель —
+ * наблюдать накопление, а не историю. Получение/история — на «Моих заказах».
+ *
  * Источник данных — `Queries.Marketplace.ListMyOrders` (видит только заказы
  * пайщика). Коллективные суммы (`group_accumulated_quantity` — накоплено всеми,
  * `group_min_volume` — целевой минимум КУ) приходят с бэкенда. Polling 15s.
@@ -50,6 +55,11 @@ const STAGE_RANK: Record<MarketplaceOrderStatusView, number> = {
   CANCELLED_BY_SUPPLIER: 99,
 };
 
+// Граница «начала выдачи»: заказы с рангом этапа ≥ этого уходят со страницы
+// (выдача открыта / получено / возврат), как и отменённые (ранг 99). На ленте
+// сбора остаётся только то, что ещё копится или готовится к поставке.
+const ISSUANCE_STAGE_RANK = STAGE_RANK.READY_TO_RECEIVE;
+
 interface CollectiveParty {
   key: string;
   /** collecting — копится (ACTIVE); formed — уже принята поставщиком. */
@@ -72,6 +82,8 @@ interface CollectiveParty {
 const parties = computed<CollectiveParty[]>(() => {
   const buckets = new Map<string, CollectiveParty>();
   for (const o of items.value) {
+    // Только этап сбора/подготовки — выдача и отменённые сюда не попадают.
+    if (STAGE_RANK[o.status] >= ISSUANCE_STAGE_RANK) continue;
     const collecting = o.status === 'ACTIVE';
     const key = collecting
       ? `collect:${o.offer_id}::${o.delivery_braname}`
@@ -195,8 +207,8 @@ q-page.collective(role="region", aria-label="Коллективный заказ
 
     EmptyState(
       v-if="!loading && !hasParties",
-      title="У вас ещё нет заказов",
-      body="Откройте каталог и оформите первый заказ — он появится здесь."
+      title="Нет активных сборов",
+      body="Здесь видны коллективные заказы на этапе сбора и подготовки поставки. Как только партия уходит в выдачу, она исчезает отсюда — получение смотрите в «Моих заказах»."
     )
       template(#icon)
         q-icon(name="inventory_2", size="48px")
