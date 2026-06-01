@@ -320,54 +320,54 @@ q-page.place(role='region', aria-label='Склад участка')
               .place__card-info
                 .place__card-name {{ item.product_name_snapshot || 'Товар по предложению' }}
                 .place__card-meta {{ item.quantity_per_label }} ед. · {{ item.orderer_account_snapshot }}
-              BaseButton(variant='ghost', size='sm', icon-only, aria-label='Действия')
+              BaseButton.place__card-menu-btn(variant='ghost', size='sm', icon-only, aria-label='Действия')
                 template(#icon-left)
                   q-icon(name='more_vert', size='18px')
-                q-menu(anchor='bottom right', self='top right')
-                  q-list(dense, style='min-width: 200px')
-                    q-item-label(header) Переложить на полку
-                    q-item(
-                      v-for='name in shelfNames.filter((n) => n !== item.shelf)',
-                      :key='name',
-                      clickable,
-                      v-close-popup,
-                      @click='moveToShelf(item, name)'
-                    )
-                      q-item-section(avatar)
-                        q-icon(name='shelves', size='18px')
-                      q-item-section {{ name }}
-                    q-item(clickable, v-close-popup, @click='openNewShelf')
-                      q-item-section(avatar)
-                        q-icon(name='add', size='18px')
-                      q-item-section На новую полку…
-                    q-item(
-                      v-if='item.shelf',
-                      clickable,
-                      v-close-popup,
-                      @click='moveToShelf(item, null)'
-                    )
-                      q-item-section(avatar)
-                        q-icon(name='inbox', size='18px')
-                      q-item-section Снять с полки
-                    q-separator
-                    q-item(
-                      v-if='canRedistribute(item)',
-                      clickable,
-                      v-close-popup,
-                      @click='openSplit(item)'
-                    )
-                      q-item-section(avatar)
-                        q-icon(name='call_split', size='18px')
-                      q-item-section Разложить по количеству
-                    q-item(
-                      v-if='!item.barcode_value',
-                      clickable,
-                      v-close-popup,
-                      @click='makeLabel(item)'
-                    )
-                      q-item-section(avatar)
-                        q-icon(name='qr_code_2', size='18px')
-                      q-item-section Наклеить этикетку
+                  q-menu(anchor='bottom right', self='top right')
+                    q-list(dense, style='min-width: 220px')
+                      q-item-label(header) Переложить на полку
+                      q-item(
+                        v-for='name in shelfNames.filter((n) => n !== item.shelf)',
+                        :key='name',
+                        clickable,
+                        v-close-popup,
+                        @click='moveToShelf(item, name)'
+                      )
+                        q-item-section(avatar)
+                          q-icon(name='shelves', size='18px')
+                        q-item-section {{ name }}
+                      q-item(clickable, v-close-popup, @click='openNewShelf')
+                        q-item-section(avatar)
+                          q-icon(name='add', size='18px')
+                        q-item-section На новую полку…
+                      q-item(
+                        v-if='item.shelf',
+                        clickable,
+                        v-close-popup,
+                        @click='moveToShelf(item, null)'
+                      )
+                        q-item-section(avatar)
+                          q-icon(name='inbox', size='18px')
+                        q-item-section Снять с полки
+                      q-separator
+                      q-item(
+                        v-if='canRedistribute(item)',
+                        clickable,
+                        v-close-popup,
+                        @click='openSplit(item)'
+                      )
+                        q-item-section(avatar)
+                          q-icon(name='call_split', size='18px')
+                        q-item-section Разложить по количеству
+                      q-item(
+                        v-if='!item.barcode_value',
+                        clickable,
+                        v-close-popup,
+                        @click='makeLabel(item)'
+                      )
+                        q-item-section(avatar)
+                          q-icon(name='qr_code_2', size='18px')
+                        q-item-section Наклеить этикетку
 
             .place__card-badges
               BaseBadge(v-if='item.barcode_value', variant='pos') Промаркировано
