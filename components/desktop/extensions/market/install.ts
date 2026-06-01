@@ -5,7 +5,7 @@ import { CreateMarketplaceOfferPage } from 'src/pages/Marketplace/CreateMarketpl
 import { MyOrdersPage } from 'src/pages/Marketplace/MyOrders'
 import { OperatorTrustedPersonsPage } from 'src/pages/Marketplace/OperatorTrustedPersons'
 import { OperatorIssuancePage } from 'src/pages/Marketplace/OperatorIssuance'
-import { OrdererReadyToReceivePage } from 'src/pages/Marketplace/OrdererReadyToReceive'
+import { OrdererOrderDetailPage } from 'src/pages/Marketplace/OrdererOrderDetail'
 import { OrdererReturnClaimsPage } from 'src/pages/Marketplace/OrdererReturnClaims'
 import { OperatorReturnClaimsPage } from 'src/pages/Marketplace/OperatorReturnClaims'
 import { OperatorReceptionPage } from 'src/pages/Marketplace/OperatorReception'
@@ -180,18 +180,21 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               children: [],
             },
             {
-              // Эпик 6 / Story 6.7: лента заказов пайщика, готовых к получению
-              // на пункте выдачи (статус READY_TO_RECEIVE) — визуальное
-              // продолжение push-уведомления marketplace-order-ready (FR22).
-              path: 'ready-to-receive',
-              name: 'marketplace-ready-to-receive',
-              component: markRaw(OrdererReadyToReceivePage),
+              // Детальная страница заказа. Скрыта из меню (hidden) —
+              // открывается по клику на карточку в «Моих заказах». Управление
+              // (отмена, «Подписать и получить») живёт в самой карточке и здесь;
+              // отдельной страницы «Готово к получению» больше нет — статус
+              // READY_TO_RECEIVE стал обычным этапом общего списка заказов.
+              path: 'orders/:orderId',
+              name: 'marketplace-order-detail',
+              component: markRaw(OrdererOrderDetailPage),
               meta: {
-                title: 'Готово к получению',
-                icon: 'fa-solid fa-box-open',
+                title: 'Заказ',
+                icon: 'fa-solid fa-receipt',
                 requires: 'Order:create',
                 requiresAuth: true,
                 agreements: agreementsBase,
+                hidden: true,
               },
               children: [],
             },

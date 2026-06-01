@@ -1,5 +1,9 @@
 <template>
-  <BaseCard class="order-card" :class="`order-card--${order.status}`">
+  <BaseCard
+    class="order-card"
+    :class="[`order-card--${order.status}`, { 'order-card--openable': openable }]"
+    @click="onCardClick"
+  >
     <template #head>
       <div class="order-card__head">
         <div class="order-card__head-row">
@@ -35,7 +39,7 @@
       </div>
     </div>
 
-    <div v-if="actionsForRole.length || $slots.actions" class="order-card__foot">
+    <div v-if="actionsForRole.length || $slots.actions" class="order-card__foot" @click.stop>
       <slot name="actions" :order="order" :role="role">
         <BaseButton
           v-for="a in actionsForRole"
@@ -85,6 +89,8 @@ export interface Order {
   statusVariant: BaseBadgeVariant
   /** Доступна ли отмена заказчиком (только до акцепта поставщика). */
   cancellable?: boolean
+  /** Готов к получению заказчиком (оператор открыл выдачу, ждёт финальной подписи). */
+  receivable?: boolean
   createdAt: string | Date
   /** Наименование пункта выдачи (кооперативного участка) — основная строка ПВЗ. */
   pvzName?: string
@@ -103,11 +109,19 @@ const props = defineProps({
   role:  { type: String as PropType<OrderRole>, default: 'orderer' },
   // Обзорный режим (например сводный заказ): без действий по умолчанию.
   readonly: { type: Boolean, default: false },
+  // Карточка кликабельна: клик по телу открывает детальную страницу заказа
+  // (эмитит `open`). Кнопки действий клик не перехватывают (@click.stop).
+  openable: { type: Boolean, default: false },
 })
 
 const emit = defineEmits<{
   (e: 'action', payload: { key: string; order: Order }): void
+  (e: 'open', order: Order): void
 }>()
+
+function onCardClick(): void {
+  if (props.openable) emit('open', props.order)
+}
 
 // Доменный статус (подпись + вариант бейджа) приходит готовым в модели
 // (order.statusLabel / order.statusVariant) из orderStatusDisplay — карточка
@@ -158,11 +172,14 @@ const ACTIONS_PER_ROLE: Record<Exclude<OrderRole, 'orderer'>, Record<OrderStatus
 const actionsForRole = computed<OrderAction[]>(() => {
   if (props.readonly) return []
   const role = props.role
-  // Заказчик: единственное действие — отмена, и только пока заказ отменяем
-  // (до акцепта поставщика). Детальная страница («Открыть») — Story 4.6
-  // follow-up; нерабочих кнопок не показываем.
+  // Заказчик: «Подписать и получить», когда оператор открыл выдачу
+  // (receivable), и «Отменить», пока заказ отменяем (до акцепта поставщика).
+  // Полную карточку открывает клик по телу (openable → emit 'open').
   if (role === 'orderer') {
-    return props.order.cancellable ? [{ key: 'cancel', label: 'Отменить', kind: 'danger' }] : []
+    const actions: OrderAction[] = []
+    if (props.order.receivable) actions.push({ key: 'receive', label: 'Подписать и получить', kind: 'primary' })
+    if (props.order.cancellable) actions.push({ key: 'cancel', label: 'Отменить', kind: 'danger' })
+    return actions
   }
   return ACTIONS_PER_ROLE[role][props.order.status]
 })
@@ -186,6 +203,17 @@ function formatPrice(v: number) {
 <style scoped lang="scss">
 .order-card {
   // Тонкая граница и плоскость — из BaseCard (канон-инвариант: без теней).
+
+  // Кликабельная карточка: тело ведёт на детальную страницу заказа. Без теней
+  // (канон-инвариант) — обратная связь через цвет границы.
+  &--openable {
+    cursor: pointer;
+    transition: border-color 0.15s ease;
+
+    &:hover {
+      border-color: var(--p-ink-3);
+    }
+  }
 
   // Шапка: заголовок и бейдж в одной строке, №·дата — отдельной строкой на всю
   // ширину (раньше мета-строка переносилась вокруг бейджа и «висла»).
