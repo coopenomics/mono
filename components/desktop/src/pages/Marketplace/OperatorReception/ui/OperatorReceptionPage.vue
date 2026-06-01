@@ -114,6 +114,20 @@ function statusVariant(v: string): BaseBadgeVariant {
   return RECEPTION_STATUS_VARIANT[v] ?? 'neutral';
 }
 
+// Когда сформирована партия — оператор видит дату/время, чтобы прикинуть приёмку
+// и заранее подготовить место на складе под скоропорт.
+function formatDate(value: unknown): string {
+  if (value === null || value === undefined) return '—';
+  const parsed = new Date(String(value));
+  if (Number.isNaN(parsed.getTime())) return '—';
+  return parsed.toLocaleString('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 const columns: QTableProps['columns'] = [
   { name: 'id', label: 'АПП', field: (r: MarketplaceAplReceptionView) => r.id.slice(0, 8), align: 'left' },
   { name: 'variant', label: 'Вариант', field: 'variant', align: 'center', format: (v: string) => RECEPTION_VARIANT_LABEL[v] ?? v },
@@ -434,7 +448,7 @@ onMounted(async () => {
 </script>
 
 <template lang="pug">
-q-page.reception(role='region', aria-label='Приёмка партии')
+q-page.reception(role='region', aria-label='Ожидаемые поставки и приёмка')
   OperatorBranchBar
 
   EmptyState(
@@ -455,7 +469,8 @@ q-page.reception(role='region', aria-label='Приёмка партии')
         | Сканировать QR
 
     PageHint(storage-key='mp:operator-reception:banner-dismissed')
-      | Партии, прибывшие на ваш пункт выдачи, и их состав — ниже. Приёмка
+      | Что везут на ваш пункт, когда сформирована партия и кому пойдёт каждая
+      | позиция — всё ниже, чтобы заранее подготовить место на складе. Приёмка
       | запускается ТОЛЬКО сканированием QR поставщика (или вводом кода) —
       | кнопка «Сканировать QR» в шапке. Это идентификация: без кода принять
       | нельзя, даже если знаете человека в лицо. Затем сверьте факт по
@@ -473,11 +488,12 @@ q-page.reception(role='region', aria-label='Приёмка партии')
         .reception__ship-info
           .reception__ship-offerer {{ s.offerer_account }}
           .reception__ship-meta
-            | {{ SHIPMENT_VARIANT_LABEL[s.delivery_variant] ?? s.delivery_variant }} · {{ formatAsset2Digits(s.total_amount) }} ₽
+            | {{ SHIPMENT_VARIANT_LABEL[s.delivery_variant] ?? s.delivery_variant }} · {{ formatAsset2Digits(s.total_amount) }} ₽ · сформирована {{ formatDate(s.created_at) }}
             template(v-if='s.ttn_number')  · ТТН {{ s.ttn_number }}
           ul.reception__contents(v-if='shipmentContents(s).length')
             li.reception__content-line(v-for='o in shipmentContents(s)', :key='o.id')
               | {{ o.product_name || 'Товар по предложению' }} — {{ o.quantity }} {{ marketplaceUnitShort(o.unit_of_measure) }}
+              span.reception__content-to  · кому: {{ o.orderer_name || o.orderer_account }}
 
     //- Story 14.2: самовывоз по факту — поставщик приехал без заранее
     //- сформированной партии. Тоже только через скан QR/ввод кода.
@@ -493,6 +509,7 @@ q-page.reception(role='region', aria-label='Приёмка партии')
           ul.reception__contents(v-if='expressContents(c).length')
             li.reception__content-line(v-for='o in expressContents(c)', :key='o.id')
               | {{ o.product_name || 'Товар по предложению' }} — {{ o.quantity }} {{ marketplaceUnitShort(o.unit_of_measure) }}
+              span.reception__content-to  · кому: {{ o.orderer_name || o.orderer_account }}
 
     q-table.reception__table(
       :rows='items',
@@ -691,6 +708,10 @@ q-page.reception(role='region', aria-label='Приёмка партии')
     font-size: var(--p-fs-body-sm, 13px);
     color: var(--p-ink-2);
     font-variant-numeric: tabular-nums;
+  }
+
+  &__content-to {
+    color: var(--p-ink-3);
   }
 
   &__pickup {

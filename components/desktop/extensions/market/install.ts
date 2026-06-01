@@ -19,7 +19,6 @@ import { AdminWriteoffsPage } from 'src/pages/Marketplace/AdminWriteoffs'
 import { ChairmanModerationPage } from 'src/pages/Marketplace/ChairmanModeration'
 import { AdminIssuancePointsPage } from 'src/pages/Marketplace/AdminIssuancePoints'
 import { OperatorOwnWarehousePage } from 'src/pages/Marketplace/OperatorOwnWarehouse'
-import { OperatorIncomingShipmentsPage } from 'src/pages/Marketplace/OperatorIncomingShipments'
 import { AdminWarehouseSummaryPage } from 'src/pages/Marketplace/AdminWarehouseSummary'
 import { EcosystemRegistryPage } from 'src/pages/Marketplace/EcosystemRegistry'
 import { OnboardingCoopAcceptCppPage } from 'src/pages/Marketplace/OnboardingCoopAcceptCpp'
@@ -396,7 +395,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
       extension_name: 'market',
       title: 'Стол ПВЗ',
       icon: 'fa-solid fa-map-location-dot',
-      defaultRoute: 'marketplace-pvz-incoming-shipments',
+      defaultRoute: 'marketplace-pvz-reception',
       routes: [
         {
           // Стол ПВЗ — рабочее место оператора КОНКРЕТНОГО кооперативного
@@ -415,28 +414,18 @@ export default async function (): Promise<IWorkspaceConfig[]> {
           name: 'market-pvz',
           children: [
             {
-              // Поток IV шаг 1: operator-стол «Ожидаемые поставки». Лента партий,
+              // Поток IV: единый operator-стол «Ожидаемые поставки» — лента партий,
               // направленных на КУ оператора (own-KU scoping через
-              // marketplaceListShipmentsByBraname + isMemberOfBranch).
-              path: 'incoming-shipments',
-              name: 'marketplace-pvz-incoming-shipments',
-              component: markRaw(OperatorIncomingShipmentsPage),
-              meta: {
-                title: 'Ожидаемые поставки',
-                icon: 'fa-solid fa-truck-arrow-right',
-                requires: 'Warehouse:read:own-KU',
-                requiresAuth: true,
-                agreements: agreementsBase,
-              },
-            },
-            {
-              // Эпик 5 / Story 5.6: operator-стол приёмки партии на ПВЗ.
+              // marketplaceListShipmentsByBraname + isMemberOfBranch), их состав
+              // («что/когда/кому везут») И приёмка по QR-коду на одной странице.
+              // Отдельный стол «Приёмка партии» слит сюда: оператор не прыгает
+              // между «жду» и «принимаю» (ревью 2026-06-01).
               path: 'reception',
               name: 'marketplace-pvz-reception',
               component: markRaw(OperatorReceptionPage),
               meta: {
-                title: 'Приёмка партии',
-                icon: 'fa-solid fa-box-open',
+                title: 'Ожидаемые поставки',
+                icon: 'fa-solid fa-truck-arrow-right',
                 requires: 'Warehouse:read:own-KU',
                 requiresAuth: true,
                 agreements: agreementsBase,
