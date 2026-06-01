@@ -5,6 +5,7 @@ import { Dialog, Loading } from 'quasar';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseCard } from 'src/shared/ui/base';
 import { ActivityTimeline, type ActivityEvent } from 'src/shared/ui/domain';
+import { OfferGallery } from 'src/widgets/Marketplace/OfferGallery';
 import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
 import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
@@ -32,7 +33,7 @@ const coopname = computed(() => String(route.params.coopname ?? ''));
 const orderId = computed(() => String(route.params.orderId ?? ''));
 
 const order = ref<MarketplaceOrderView | null>(null);
-const coverUrl = ref<string>('');
+const offerImages = ref<string[]>([]);
 const loading = ref(false);
 
 const finalizeDialogOpen = ref(false);
@@ -77,14 +78,14 @@ function formatPrice(value: string | null | undefined): string {
   return `${formatAsset2Digits(String(value ?? '0'))} ₽`;
 }
 
-async function loadCover(offerId: string): Promise<void> {
+async function loadImages(offerId: string): Promise<void> {
   if (!offerId) return;
   try {
     const offer = await fetchOffer(offerId);
-    coverUrl.value = marketplaceOfferImageUrls(offer?.images)[0] ?? '';
+    offerImages.value = marketplaceOfferImageUrls(offer?.images);
   } catch {
-    // Обложка некритична — без неё страница работает, показываем плейсхолдер.
-    coverUrl.value = '';
+    // Изображения некритичны — без них страница работает, показываем плейсхолдер.
+    offerImages.value = [];
   }
 }
 
@@ -94,7 +95,7 @@ async function load(): Promise<void> {
   try {
     const fetched = await fetchOrder(orderId.value);
     order.value = fetched;
-    if (fetched?.offer_id && !coverUrl.value) void loadCover(fetched.offer_id);
+    if (fetched?.offer_id && !offerImages.value.length) void loadImages(fetched.offer_id);
   } catch (e) {
     FailAlert(e, 'Не удалось загрузить заказ');
   } finally {
@@ -104,6 +105,10 @@ async function load(): Promise<void> {
 
 function goBack(): void {
   void router.push({ name: 'marketplace-my-orders', params: { coopname: coopname.value } });
+}
+
+function goReceive(): void {
+  void router.push({ name: 'marketplace-receive-code', params: { coopname: coopname.value } });
 }
 
 function confirmCancel(): void {
@@ -165,14 +170,7 @@ q-page.order-detail(role="region", aria-label="Заказ")
       BaseCard.order-detail__card
         .order-detail__hero
           .order-detail__cover
-            q-img(
-              v-if="coverUrl",
-              :src="coverUrl",
-              ratio="1",
-              fit="cover"
-            )
-            .order-detail__cover-empty(v-else)
-              q-icon(name="image", size="40px")
+            OfferGallery(:images="offerImages", :alt="order.product_name || 'Товар'", height="100%", placeholder-icon-size="40px")
 
           .order-detail__hero-info
             .order-detail__hero-top
@@ -224,7 +222,11 @@ q-page.order-detail(role="region", aria-label="Заказ")
           .t-h3 Хронология
         ActivityTimeline(:events="timelineEvents", group-by-date)
 
-      .order-detail__actions(v-if="cancellable || receivable")
+      .order-detail__actions
+        BaseButton(variant="secondary", @click="goReceive")
+          template(#icon-left)
+            q-icon(name="qr_code_2", size="16px")
+          | Получить заказ
         BaseButton(v-if="receivable", variant="primary", @click="finalizeDialogOpen = true")
           template(#icon-left)
             q-icon(name="draw", size="16px")
@@ -258,20 +260,20 @@ q-page.order-detail(role="region", aria-label="Заказ")
   &__card {
     display: flex;
     flex-direction: column;
-    gap: var(--p-3, 12px);
+    gap: var(--p-4, 16px);
   }
 
   // Шапка карточки: обложка слева, реквизиты справа; на узком — в столбик.
   &__hero {
     display: flex;
-    gap: var(--p-4, 16px);
+    gap: var(--p-5, 20px);
     align-items: flex-start;
   }
 
   &__cover {
     flex: 0 0 auto;
-    width: 120px;
-    height: 120px;
+    width: 144px;
+    height: 144px;
     border-radius: var(--p-r-md, 12px);
     overflow: hidden;
     border: 1px solid var(--p-line);
@@ -283,21 +285,12 @@ q-page.order-detail(role="region", aria-label="Заказ")
     }
   }
 
-  &__cover-empty {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--p-ink-3);
-  }
-
   &__hero-info {
     min-width: 0;
     flex: 1 1 auto;
     display: flex;
     flex-direction: column;
-    gap: var(--p-3, 12px);
+    gap: var(--p-4, 16px);
   }
 
   &__hero-top {
@@ -329,7 +322,7 @@ q-page.order-detail(role="region", aria-label="Заказ")
   &__facts {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--p-3, 12px) var(--p-6, 24px);
+    gap: var(--p-4, 16px) var(--p-8, 32px);
   }
 
   &__fact-label {

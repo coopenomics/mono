@@ -159,6 +159,10 @@ function openDetail(order: OrderCardModel): void {
   });
 }
 
+function goReceive(): void {
+  void router.push({ name: 'marketplace-receive-code', params: { coopname: coopname.value } });
+}
+
 function onCardAction(payload: { key: string; order: OrderCardModel }): void {
   const found = items.value.find((o) => o.id === payload.order.id);
   if (!found) return;
@@ -182,8 +186,14 @@ onBeforeUnmount(() => {
 
 <template lang="pug">
 q-page.orders(role="region", aria-label="Мои заказы")
-  //- Обновление — в шапку (канон Teleport).
+  //- Действия — в шапку (канон Teleport). «Получить заказ» дублируем здесь и
+  //- на детали заказа, чтобы код выдачи был под рукой везде, не только на
+  //- отдельной странице.
   Teleport(to="#header-actions-host", defer)
+    BaseButton(variant="secondary", size="sm", @click="goReceive")
+      template(#icon-left)
+        q-icon(name="qr_code_2", size="16px")
+      | Получить заказ
     RefreshButton(:loading="loading", @refresh="() => load(1, false)")
 
   PageHint(storage-key="mp:my-orders:banner-dismissed")

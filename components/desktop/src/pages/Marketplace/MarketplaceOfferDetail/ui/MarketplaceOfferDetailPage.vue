@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { BaseButton, BaseBadge, EmptyState } from 'src/shared/ui/base';
+import { OfferGallery } from 'src/widgets/Marketplace/OfferGallery';
 import { marketplaceUnitShort } from 'src/shared/lib/consts';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
 import { fetchCategories } from '../../MarketplaceCatalog/api';
@@ -37,7 +38,6 @@ const categoryNames = ref<Record<number, string>>({});
 const orderDialogOpen = ref(false);
 
 const images = computed(() => (offer.value ? marketplaceOfferImageUrls(offer.value.images) : []));
-const slide = ref(0);
 
 const unitShort = computed(() =>
   offer.value ? marketplaceUnitShort(offer.value.unit_of_measure) : '',
@@ -126,22 +126,9 @@ q-page.offer-detail(role="region", aria-label="Описание предложе
       q-icon(name="search_off", size="48px")
 
   .offer-detail__grid(v-if="offer")
-    //- Галерея
+    //- Галерея (канон-виджет OfferGallery — единая карусель на всех экранах)
     .offer-detail__media
-      q-carousel(
-        v-if="images.length",
-        v-model="slide",
-        swipeable,
-        animated,
-        infinite,
-        :arrows="images.length > 1",
-        :navigation="images.length > 1",
-        control-color="primary",
-        height="360px"
-      )
-        q-carousel-slide(v-for="(img, i) in images", :key="img", :name="i", :img-src="img")
-      .offer-detail__placeholder(v-else)
-        q-icon(name="image", size="64px", color="grey-5")
+      OfferGallery(:images="images", :alt="offer.product_name", height="360px", placeholder-icon-size="64px")
 
     //- Сводка
     .offer-detail__summary
