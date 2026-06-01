@@ -1,7 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import type { GeocodeStatus, KuDetailsDomainEntity } from '../../domain/entities/ku-details-domain.entity';
+import {
+  KuDetailsStatuses,
+  type GeocodeStatus,
+  type KuDetailsDomainEntity,
+  type KuDetailsStatus,
+} from '../../domain/entities/ku-details-domain.entity';
 import type { KuDetailsDomainRepository } from '../../domain/repositories/ku-details-domain.repository';
 import { KuDetailsTypeormEntity } from '../entities/ku-details.entity';
 import { KuDetailsMapper } from '../mappers/ku-details.mapper';
@@ -22,8 +27,8 @@ export class KuDetailsRepositoryAdapter implements KuDetailsDomainRepository {
     coopname: string,
     options: { onlyActive?: boolean } = {}
   ): Promise<KuDetailsDomainEntity[]> {
-    const where: { coopname: string; status?: 'ACTIVE' } = { coopname };
-    if (options.onlyActive) where.status = 'ACTIVE';
+    const where: { coopname: string; status?: KuDetailsStatus } = { coopname };
+    if (options.onlyActive) where.status = KuDetailsStatuses.ACTIVE;
     const rows = await this.repo.find({ where, order: { createdAt: 'ASC' } });
     return rows.map((row) => KuDetailsMapper.toDomain(row));
   }
@@ -80,7 +85,7 @@ export class KuDetailsRepositoryAdapter implements KuDetailsDomainRepository {
   async setStatus(
     coopname: string,
     coreBraname: string,
-    status: 'ACTIVE' | 'INACTIVE'
+    status: KuDetailsStatus
   ): Promise<KuDetailsDomainEntity | null> {
     const existing = await this.repo.findOne({ where: { coopname, coreBraname } });
     if (!existing) return null;

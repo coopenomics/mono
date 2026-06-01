@@ -7,9 +7,10 @@ import type {
   MarketplaceOrderDomainRepository,
   MarketplaceOrderListFilter,
 } from '../../domain/repositories/marketplace-order.repository';
-import type {
-  MarketplaceOrderIssuanceFactSnapshot,
-  MarketplaceOrderStatus,
+import {
+  MarketplaceOrderStatuses,
+  type MarketplaceOrderIssuanceFactSnapshot,
+  type MarketplaceOrderStatus,
 } from '../../domain/entities/marketplace-order.types';
 import type {
   PaginationInputDomainInterface,
@@ -213,7 +214,7 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
       .where('o.coopname = :coop AND o.offer_id = :off AND o.status = :st AND o.cycle_id IS NULL', {
         coop: coopname,
         off: offer_id,
-        st: 'ACTIVE',
+        st: MarketplaceOrderStatuses.ACTIVE,
       })
       .orderBy('o.blocked_at', 'ASC')
       .getMany();
@@ -288,7 +289,7 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
       .where('o.coopname = :coop AND o.offer_id = :off AND o.status = :st AND o.cycle_id IS NULL', {
         coop: coopname,
         off: offer_id,
-        st: 'ACTIVE',
+        st: MarketplaceOrderStatuses.ACTIVE,
       })
       .getRawOne<{ total: string }>();
     return Number(raw?.total ?? 0);

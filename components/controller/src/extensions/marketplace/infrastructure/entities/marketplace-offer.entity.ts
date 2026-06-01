@@ -6,6 +6,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import type { MarketplaceOfferStatus } from '../../domain/entities/marketplace-offer.types';
 
 /**
  * Story 3.2: Offer Стола заказов. Pure db (не on-chain).
@@ -98,7 +99,7 @@ export class MarketplaceOfferEntity {
   public images!: Array<{ bucket_key: string; content_hash: string; mime_type: string }>;
 
   @Column({ type: 'varchar', length: 32 })
-  public status!: 'PENDING_MODERATION' | 'ACTIVE' | 'REJECTED' | 'WITHDRAWN';
+  public status!: MarketplaceOfferStatus;
 
   @Column({ type: 'varchar', length: 13, nullable: true })
   public approved_by!: string | null;

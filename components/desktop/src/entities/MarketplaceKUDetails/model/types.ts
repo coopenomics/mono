@@ -2,9 +2,14 @@
 // Зеркало KuDetailsDTO из controller'а; SDK обёртки в @coopenomics/sdk
 // (Mutations.Marketplace.DetailKU/SetKUStatus/RetryKUGeocode +
 // Queries.Marketplace.ListKUDetails).
+import { Zeus } from '@coopenomics/sdk'
 
-export type KuDetailsStatus = 'ACTIVE' | 'INACTIVE'
-export type GeocodeStatus = 'PENDING' | 'OK' | 'FAILED'
+// Статусы — enum'ы, объявленные на backend и прокинутые в Zeus (единый
+// источник значений на обоих концах). Не дублируем строковые литералы.
+export const KuDetailsStatus = Zeus.MarketplaceKUStatus
+export type KuDetailsStatus = Zeus.MarketplaceKUStatus
+export const GeocodeStatus = Zeus.MarketplaceGeocodeStatus
+export type GeocodeStatus = Zeus.MarketplaceGeocodeStatus
 
 export interface IWorkingHoursBreak {
   start: string

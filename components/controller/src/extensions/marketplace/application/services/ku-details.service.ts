@@ -5,7 +5,9 @@ import {
   type OrganizationRepository,
 } from '~/domain/common/repositories/organization.repository';
 import {
+  GeocodeStatuses,
   KuDetailsDomainEntity,
+  KuDetailsStatuses,
   type WorkingHoursDomain,
 } from '../../domain/entities/ku-details-domain.entity';
 import {
@@ -61,10 +63,12 @@ export class KuDetailsService {
       geocodedAddress: existing?.geocodedAddress,
       workingHours: input.workingHours as WorkingHoursDomain,
       description: input.description,
-      status: existing?.status ?? 'ACTIVE',
+      status: existing?.status ?? KuDetailsStatuses.ACTIVE,
       lat: addressChanged ? undefined : existing?.lat,
       lng: addressChanged ? undefined : existing?.lng,
-      geocodeStatus: addressChanged ? 'PENDING' : (existing?.geocodeStatus ?? 'PENDING'),
+      geocodeStatus: addressChanged
+        ? GeocodeStatuses.PENDING
+        : (existing?.geocodeStatus ?? GeocodeStatuses.PENDING),
       geocodeErrorMessage: addressChanged ? undefined : existing?.geocodeErrorMessage,
       geocodedAt: addressChanged ? undefined : existing?.geocodedAt,
       createdAt: existing?.createdAt,
@@ -73,7 +77,7 @@ export class KuDetailsService {
 
     const saved = await this.repo.save(next);
 
-    if (orgAddress && (addressChanged || existing?.geocodeStatus !== 'OK')) {
+    if (orgAddress && (addressChanged || existing?.geocodeStatus !== GeocodeStatuses.OK)) {
       void this.runGeocodeAndPersist(saved.coopname, saved.coreBraname, orgAddress);
     }
 
@@ -140,7 +144,7 @@ export class KuDetailsService {
       const result = await this.geocoder.geocode(addressFull);
       if (result.status === 'OK') {
         await this.repo.updateGeocode(coopname, coreBraname, {
-          status: 'OK',
+          status: GeocodeStatuses.OK,
           lat: result.lat,
           lng: result.lng,
           geocodedAt: new Date(),
@@ -148,7 +152,7 @@ export class KuDetailsService {
         });
       } else {
         await this.repo.updateGeocode(coopname, coreBraname, {
-          status: 'FAILED',
+          status: GeocodeStatuses.FAILED,
           errorMessage: result.errorMessage,
           geocodedAt: new Date(),
           geocodedAddress: addressFull,
@@ -158,7 +162,7 @@ export class KuDetailsService {
       const message = err instanceof Error ? err.message : String(err);
       this.logger.warn(`Геокодинг (${coopname}, ${coreBraname}) упал неожиданно: ${message}`);
       await this.repo.updateGeocode(coopname, coreBraname, {
-        status: 'FAILED',
+        status: GeocodeStatuses.FAILED,
         errorMessage: message,
         geocodedAt: new Date(),
         geocodedAddress: addressFull,

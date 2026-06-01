@@ -9,7 +9,10 @@ import type {
   OfferUpdateInput,
 } from '../../domain/repositories/marketplace-offer.repository';
 import type { MarketplaceOfferDomainEntity } from '../../domain/entities/marketplace-offer.entity';
-import type { MarketplaceOfferStatus } from '../../domain/entities/marketplace-offer.types';
+import {
+  MarketplaceOfferStatuses,
+  type MarketplaceOfferStatus,
+} from '../../domain/entities/marketplace-offer.types';
 import type {
   PaginationInputDomainInterface,
   PaginationResultDomainInterface,
@@ -98,7 +101,7 @@ export class MarketplaceOfferRepositoryAdapter implements MarketplaceOfferDomain
       .select('o.category_id', 'category_id')
       .addSelect('COUNT(*)', 'cnt')
       .where('o.coopname = :coop', { coop: coopname })
-      .andWhere('o.status = :s', { s: 'ACTIVE' as MarketplaceOfferStatus })
+      .andWhere('o.status = :s', { s: MarketplaceOfferStatuses.ACTIVE })
       .andWhere('(o.unlimited_flag = true OR o.quantity_available > 0)')
       .groupBy('o.category_id')
       .getRawMany<{ category_id: string; cnt: string }>();
@@ -136,7 +139,7 @@ export class MarketplaceOfferRepositoryAdapter implements MarketplaceOfferDomain
       barcode_strategy: input.barcode_strategy,
       pack_size: input.pack_size,
       images: input.images ?? [],
-      status: 'PENDING_MODERATION',
+      status: MarketplaceOfferStatuses.PENDING_MODERATION,
     });
     const saved = await this.repo.save(row);
     return this.mapper.toDomain(saved);
@@ -246,7 +249,7 @@ export class MarketplaceOfferRepositoryAdapter implements MarketplaceOfferDomain
     if (!updatedRow) {
       const existing = await this.repo.findOne({ where: { id: offer_id } });
       if (!existing) return { ok: false, reason: 'offer_not_found' };
-      if (failureReason === 'insufficient_available' && existing.status !== 'ACTIVE') {
+      if (failureReason === 'insufficient_available' && existing.status !== MarketplaceOfferStatuses.ACTIVE) {
         return { ok: false, reason: 'offer_not_active' };
       }
       return { ok: false, reason: failureReason };

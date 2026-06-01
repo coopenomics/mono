@@ -6652,6 +6652,8 @@ export type ValueTypes = {
 	/** Подписанный заказчиком акт выдачи (поверх подписи председателя). Backend верифицирует подписи и отправляет on-chain финальную подпись со всеми корректирующими операциями. */
 	signed_document: ValueTypes["MarketplaceIssueActSignedDocumentInput"] | Variable<any, string>
 };
+	/** Состояние геокодинга адреса: PENDING — в процессе, OK — успешно, FAILED — ошибка. */
+["MarketplaceGeocodeStatus"]:MarketplaceGeocodeStatus;
 	/** Параметры запроса одного заказа. */
 ["MarketplaceGetOrderInput"]: {
 	/** Идентификатор заказа. */
@@ -6785,20 +6787,20 @@ export type ValueTypes = {
 	createdAt?:boolean | `@${string}`,
 	description?:boolean | `@${string}`,
 	geocodeErrorMessage?:boolean | `@${string}`,
-	/** PENDING | OK | FAILED */
 	geocodeStatus?:boolean | `@${string}`,
 	geocodedAt?:boolean | `@${string}`,
 	lat?:boolean | `@${string}`,
 	lng?:boolean | `@${string}`,
 	/** Наименование кооперативного участка (живьём из организации участка). */
 	name?:boolean | `@${string}`,
-	/** ACTIVE | INACTIVE */
 	status?:boolean | `@${string}`,
 	updatedAt?:boolean | `@${string}`,
 	workingHours?:ValueTypes["WorkingHours"],
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceKUDetails']?: Omit<ValueTypes["MarketplaceKUDetails"], "...on MarketplaceKUDetails">
 }>;
+	/** Статус подключения ПВЗ: ACTIVE — активен, INACTIVE — отключён. */
+["MarketplaceKUStatus"]:MarketplaceKUStatus;
 	["MarketplaceLabelInventoryInput"]: {
 	/** Формат штрих-кода. По умолчанию — EAN-13. */
 	format?: ValueTypes["MarketplaceBarcodeFormat"] | undefined | null | Variable<any, string>,
@@ -6991,7 +6993,6 @@ export type ValueTypes = {
 	reject_reason?:boolean | `@${string}`,
 	rejected_at?:boolean | `@${string}`,
 	rejected_by?:boolean | `@${string}`,
-	/** PENDING_MODERATION | ACTIVE | REJECTED | WITHDRAWN */
 	status?:boolean | `@${string}`,
 	supplier_account?:boolean | `@${string}`,
 	/** Отображаемое имя поставщика (ФИО физлица/ИП или наименование организации). */
@@ -7061,6 +7062,8 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceOfferPaginationResult']?: Omit<ValueTypes["MarketplaceOfferPaginationResult"], "...on MarketplaceOfferPaginationResult">
 }>;
+	/** Этап модерации предложения: PENDING_MODERATION — на модерации, ACTIVE — опубликовано, REJECTED — отклонено, WITHDRAWN — снято поставщиком. */
+["MarketplaceOfferStatus"]:MarketplaceOfferStatus;
 	["MarketplaceOnboardingState"]: AliasType<{
 	agreement_id?:boolean | `@${string}`,
 	completed_at?:boolean | `@${string}`,
@@ -7655,8 +7658,8 @@ export type ValueTypes = {
 	coopname: string | Variable<any, string>,
 	/** Идентификатор КУ в core (`braname`) */
 	coreBraname: string | Variable<any, string>,
-	/** Целевой статус ПВЗ: ACTIVE или INACTIVE */
-	status: string | Variable<any, string>
+	/** Целевой статус ПВЗ */
+	status: ValueTypes["MarketplaceKUStatus"] | Variable<any, string>
 };
 	["MarketplaceShipment"]: AliasType<{
 	/** КУ-получатель партии. */
@@ -16729,6 +16732,8 @@ export type ResolverInputTypes = {
 	/** Подписанный заказчиком акт выдачи (поверх подписи председателя). Backend верифицирует подписи и отправляет on-chain финальную подпись со всеми корректирующими операциями. */
 	signed_document: ResolverInputTypes["MarketplaceIssueActSignedDocumentInput"]
 };
+	/** Состояние геокодинга адреса: PENDING — в процессе, OK — успешно, FAILED — ошибка. */
+["MarketplaceGeocodeStatus"]:MarketplaceGeocodeStatus;
 	/** Параметры запроса одного заказа. */
 ["MarketplaceGetOrderInput"]: {
 	/** Идентификатор заказа. */
@@ -16860,19 +16865,19 @@ export type ResolverInputTypes = {
 	createdAt?:boolean | `@${string}`,
 	description?:boolean | `@${string}`,
 	geocodeErrorMessage?:boolean | `@${string}`,
-	/** PENDING | OK | FAILED */
 	geocodeStatus?:boolean | `@${string}`,
 	geocodedAt?:boolean | `@${string}`,
 	lat?:boolean | `@${string}`,
 	lng?:boolean | `@${string}`,
 	/** Наименование кооперативного участка (живьём из организации участка). */
 	name?:boolean | `@${string}`,
-	/** ACTIVE | INACTIVE */
 	status?:boolean | `@${string}`,
 	updatedAt?:boolean | `@${string}`,
 	workingHours?:ResolverInputTypes["WorkingHours"],
 		__typename?: boolean | `@${string}`
 }>;
+	/** Статус подключения ПВЗ: ACTIVE — активен, INACTIVE — отключён. */
+["MarketplaceKUStatus"]:MarketplaceKUStatus;
 	["MarketplaceLabelInventoryInput"]: {
 	/** Формат штрих-кода. По умолчанию — EAN-13. */
 	format?: ResolverInputTypes["MarketplaceBarcodeFormat"] | undefined | null,
@@ -17061,7 +17066,6 @@ export type ResolverInputTypes = {
 	reject_reason?:boolean | `@${string}`,
 	rejected_at?:boolean | `@${string}`,
 	rejected_by?:boolean | `@${string}`,
-	/** PENDING_MODERATION | ACTIVE | REJECTED | WITHDRAWN */
 	status?:boolean | `@${string}`,
 	supplier_account?:boolean | `@${string}`,
 	/** Отображаемое имя поставщика (ФИО физлица/ИП или наименование организации). */
@@ -17127,6 +17131,8 @@ export type ResolverInputTypes = {
 	totalPages?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Этап модерации предложения: PENDING_MODERATION — на модерации, ACTIVE — опубликовано, REJECTED — отклонено, WITHDRAWN — снято поставщиком. */
+["MarketplaceOfferStatus"]:MarketplaceOfferStatus;
 	["MarketplaceOnboardingState"]: AliasType<{
 	agreement_id?:boolean | `@${string}`,
 	completed_at?:boolean | `@${string}`,
@@ -17703,8 +17709,8 @@ export type ResolverInputTypes = {
 	coopname: string,
 	/** Идентификатор КУ в core (`braname`) */
 	coreBraname: string,
-	/** Целевой статус ПВЗ: ACTIVE или INACTIVE */
-	status: string
+	/** Целевой статус ПВЗ */
+	status: ResolverInputTypes["MarketplaceKUStatus"]
 };
 	["MarketplaceShipment"]: AliasType<{
 	/** КУ-получатель партии. */
@@ -26480,6 +26486,7 @@ export type ModelTypes = {
 	/** Подписанный заказчиком акт выдачи (поверх подписи председателя). Backend верифицирует подписи и отправляет on-chain финальную подпись со всеми корректирующими операциями. */
 	signed_document: ModelTypes["MarketplaceIssueActSignedDocumentInput"]
 };
+	["MarketplaceGeocodeStatus"]:MarketplaceGeocodeStatus;
 	/** Параметры запроса одного заказа. */
 ["MarketplaceGetOrderInput"]: {
 	/** Идентификатор заказа. */
@@ -26608,18 +26615,17 @@ export type ModelTypes = {
 	createdAt: ModelTypes["DateTime"],
 	description?: string | undefined | null,
 	geocodeErrorMessage?: string | undefined | null,
-	/** PENDING | OK | FAILED */
-	geocodeStatus: string,
+	geocodeStatus: ModelTypes["MarketplaceGeocodeStatus"],
 	geocodedAt?: ModelTypes["DateTime"] | undefined | null,
 	lat?: number | undefined | null,
 	lng?: number | undefined | null,
 	/** Наименование кооперативного участка (живьём из организации участка). */
 	name?: string | undefined | null,
-	/** ACTIVE | INACTIVE */
-	status: string,
+	status: ModelTypes["MarketplaceKUStatus"],
 	updatedAt: ModelTypes["DateTime"],
 	workingHours: ModelTypes["WorkingHours"]
 };
+	["MarketplaceKUStatus"]:MarketplaceKUStatus;
 	["MarketplaceLabelInventoryInput"]: {
 	/** Формат штрих-кода. По умолчанию — EAN-13. */
 	format?: ModelTypes["MarketplaceBarcodeFormat"] | undefined | null,
@@ -26804,8 +26810,7 @@ export type ModelTypes = {
 	reject_reason?: string | undefined | null,
 	rejected_at?: ModelTypes["DateTime"] | undefined | null,
 	rejected_by?: string | undefined | null,
-	/** PENDING_MODERATION | ACTIVE | REJECTED | WITHDRAWN */
-	status: string,
+	status: ModelTypes["MarketplaceOfferStatus"],
 	supplier_account: string,
 	/** Отображаемое имя поставщика (ФИО физлица/ИП или наименование организации). */
 	supplier_name?: string | undefined | null,
@@ -26866,6 +26871,7 @@ export type ModelTypes = {
 	/** Общее количество страниц */
 	totalPages: number
 };
+	["MarketplaceOfferStatus"]:MarketplaceOfferStatus;
 	["MarketplaceOnboardingState"]: {
 		agreement_id?: number | undefined | null,
 	completed_at?: string | undefined | null,
@@ -27418,8 +27424,8 @@ export type ModelTypes = {
 	coopname: string,
 	/** Идентификатор КУ в core (`braname`) */
 	coreBraname: string,
-	/** Целевой статус ПВЗ: ACTIVE или INACTIVE */
-	status: string
+	/** Целевой статус ПВЗ */
+	status: ModelTypes["MarketplaceKUStatus"]
 };
 	["MarketplaceShipment"]: {
 		/** КУ-получатель партии. */
@@ -37141,6 +37147,8 @@ export type GraphQLTypes = {
 	/** Подписанный заказчиком акт выдачи (поверх подписи председателя). Backend верифицирует подписи и отправляет on-chain финальную подпись со всеми корректирующими операциями. */
 	signed_document: GraphQLTypes["MarketplaceIssueActSignedDocumentInput"]
 };
+	/** Состояние геокодинга адреса: PENDING — в процессе, OK — успешно, FAILED — ошибка. */
+["MarketplaceGeocodeStatus"]: MarketplaceGeocodeStatus;
 	/** Параметры запроса одного заказа. */
 ["MarketplaceGetOrderInput"]: {
 		/** Идентификатор заказа. */
@@ -37275,19 +37283,19 @@ export type GraphQLTypes = {
 	createdAt: GraphQLTypes["DateTime"],
 	description?: string | undefined | null,
 	geocodeErrorMessage?: string | undefined | null,
-	/** PENDING | OK | FAILED */
-	geocodeStatus: string,
+	geocodeStatus: GraphQLTypes["MarketplaceGeocodeStatus"],
 	geocodedAt?: GraphQLTypes["DateTime"] | undefined | null,
 	lat?: number | undefined | null,
 	lng?: number | undefined | null,
 	/** Наименование кооперативного участка (живьём из организации участка). */
 	name?: string | undefined | null,
-	/** ACTIVE | INACTIVE */
-	status: string,
+	status: GraphQLTypes["MarketplaceKUStatus"],
 	updatedAt: GraphQLTypes["DateTime"],
 	workingHours: GraphQLTypes["WorkingHours"],
 	['...on MarketplaceKUDetails']: Omit<GraphQLTypes["MarketplaceKUDetails"], "...on MarketplaceKUDetails">
 };
+	/** Статус подключения ПВЗ: ACTIVE — активен, INACTIVE — отключён. */
+["MarketplaceKUStatus"]: MarketplaceKUStatus;
 	["MarketplaceLabelInventoryInput"]: {
 		/** Формат штрих-кода. По умолчанию — EAN-13. */
 	format?: GraphQLTypes["MarketplaceBarcodeFormat"] | undefined | null,
@@ -37481,8 +37489,7 @@ export type GraphQLTypes = {
 	reject_reason?: string | undefined | null,
 	rejected_at?: GraphQLTypes["DateTime"] | undefined | null,
 	rejected_by?: string | undefined | null,
-	/** PENDING_MODERATION | ACTIVE | REJECTED | WITHDRAWN */
-	status: string,
+	status: GraphQLTypes["MarketplaceOfferStatus"],
 	supplier_account: string,
 	/** Отображаемое имя поставщика (ФИО физлица/ИП или наименование организации). */
 	supplier_name?: string | undefined | null,
@@ -37550,6 +37557,8 @@ export type GraphQLTypes = {
 	totalPages: number,
 	['...on MarketplaceOfferPaginationResult']: Omit<GraphQLTypes["MarketplaceOfferPaginationResult"], "...on MarketplaceOfferPaginationResult">
 };
+	/** Этап модерации предложения: PENDING_MODERATION — на модерации, ACTIVE — опубликовано, REJECTED — отклонено, WITHDRAWN — снято поставщиком. */
+["MarketplaceOfferStatus"]: MarketplaceOfferStatus;
 	["MarketplaceOnboardingState"]: {
 	__typename: "MarketplaceOnboardingState",
 	agreement_id?: number | undefined | null,
@@ -38144,8 +38153,8 @@ export type GraphQLTypes = {
 	coopname: string,
 	/** Идентификатор КУ в core (`braname`) */
 	coreBraname: string,
-	/** Целевой статус ПВЗ: ACTIVE или INACTIVE */
-	status: string
+	/** Целевой статус ПВЗ */
+	status: GraphQLTypes["MarketplaceKUStatus"]
 };
 	["MarketplaceShipment"]: {
 	__typename: "MarketplaceShipment",
@@ -42873,12 +42882,30 @@ export enum MarketplaceConsolidatedRequestStatus {
 	EXPIRED_NO_RESPONSE = "EXPIRED_NO_RESPONSE",
 	PENDING_SUPPLIER_ACCEPT = "PENDING_SUPPLIER_ACCEPT"
 }
+/** Состояние геокодинга адреса: PENDING — в процессе, OK — успешно, FAILED — ошибка. */
+export enum MarketplaceGeocodeStatus {
+	FAILED = "FAILED",
+	OK = "OK",
+	PENDING = "PENDING"
+}
 /** Состояние единицы имущества в инвентаре КУ. */
 export enum MarketplaceInventoryStatus {
 	ISSUED = "ISSUED",
 	LABELED = "LABELED",
 	RETURNED = "RETURNED",
 	WRITTEN_OFF = "WRITTEN_OFF"
+}
+/** Статус подключения ПВЗ: ACTIVE — активен, INACTIVE — отключён. */
+export enum MarketplaceKUStatus {
+	ACTIVE = "ACTIVE",
+	INACTIVE = "INACTIVE"
+}
+/** Этап модерации предложения: PENDING_MODERATION — на модерации, ACTIVE — опубликовано, REJECTED — отклонено, WITHDRAWN — снято поставщиком. */
+export enum MarketplaceOfferStatus {
+	ACTIVE = "ACTIVE",
+	PENDING_MODERATION = "PENDING_MODERATION",
+	REJECTED = "REJECTED",
+	WITHDRAWN = "WITHDRAWN"
 }
 /** Сверка фактической выдачи с заказом: equal — совпало, less — выдано меньше, more — выдано больше с доплатой. */
 export enum MarketplaceOrderIssuanceFactDiffState {
@@ -43407,12 +43434,14 @@ type ZEUS_VARIABLES = {
 	["MarketplaceDeclineOrdersBatchInput"]: ValueTypes["MarketplaceDeclineOrdersBatchInput"];
 	["MarketplaceDetailKUInput"]: ValueTypes["MarketplaceDetailKUInput"];
 	["MarketplaceFinalizeIssuanceInput"]: ValueTypes["MarketplaceFinalizeIssuanceInput"];
+	["MarketplaceGeocodeStatus"]: ValueTypes["MarketplaceGeocodeStatus"];
 	["MarketplaceGetOrderInput"]: ValueTypes["MarketplaceGetOrderInput"];
 	["MarketplaceGetShipmentInput"]: ValueTypes["MarketplaceGetShipmentInput"];
 	["MarketplaceInventoryStatus"]: ValueTypes["MarketplaceInventoryStatus"];
 	["MarketplaceIssueActPayloadInput"]: ValueTypes["MarketplaceIssueActPayloadInput"];
 	["MarketplaceIssueActSignedDocumentInput"]: ValueTypes["MarketplaceIssueActSignedDocumentInput"];
 	["MarketplaceIssueActSignedMetaDocumentInput"]: ValueTypes["MarketplaceIssueActSignedMetaDocumentInput"];
+	["MarketplaceKUStatus"]: ValueTypes["MarketplaceKUStatus"];
 	["MarketplaceLabelInventoryInput"]: ValueTypes["MarketplaceLabelInventoryInput"];
 	["MarketplaceLabelShipmentInventoryInput"]: ValueTypes["MarketplaceLabelShipmentInventoryInput"];
 	["MarketplaceLabelShipmentInventoryOverride"]: ValueTypes["MarketplaceLabelShipmentInventoryOverride"];
@@ -43433,6 +43462,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceListWriteoffProposalsInput"]: ValueTypes["MarketplaceListWriteoffProposalsInput"];
 	["MarketplaceOfferDeliveryPointInput"]: ValueTypes["MarketplaceOfferDeliveryPointInput"];
 	["MarketplaceOfferImageUploadInput"]: ValueTypes["MarketplaceOfferImageUploadInput"];
+	["MarketplaceOfferStatus"]: ValueTypes["MarketplaceOfferStatus"];
 	["MarketplaceOpenIssuanceInput"]: ValueTypes["MarketplaceOpenIssuanceInput"];
 	["MarketplaceOrderIssuanceFactDiffState"]: ValueTypes["MarketplaceOrderIssuanceFactDiffState"];
 	["MarketplaceOrderStatus"]: ValueTypes["MarketplaceOrderStatus"];

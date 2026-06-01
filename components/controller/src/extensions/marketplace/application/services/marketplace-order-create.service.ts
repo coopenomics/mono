@@ -22,7 +22,11 @@ import {
   type MarketplaceCanonicalBlockchainPort,
 } from '../../domain/ports/marketplace-canonical-blockchain.port';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
-import type { MarketplaceOrderCreateTxSnapshot } from '../../domain/entities/marketplace-order.types';
+import {
+  MarketplaceOrderStatuses,
+  type MarketplaceOrderCreateTxSnapshot,
+} from '../../domain/entities/marketplace-order.types';
+import { MarketplaceOfferStatuses } from '../../domain/entities/marketplace-offer.types';
 import { rethrowChainError } from '../shared/chain-tx.util';
 
 export interface MarketplaceOrderCreateInputDto {
@@ -115,7 +119,7 @@ export class MarketplaceOrderCreateService {
     if (offer.coopname !== input.coopname) {
       throw new ForbiddenException('Предложение принадлежит другому кооперативу.');
     }
-    if (offer.status !== 'ACTIVE') {
+    if (offer.status !== MarketplaceOfferStatuses.ACTIVE) {
       throw new BadRequestException(
         `Предложение не активно (статус «${offer.status}»). Заказ оформить нельзя.`
       );
@@ -199,7 +203,7 @@ export class MarketplaceOrderCreateService {
       cycle_id: null,
       warranty_period_secs,
       warranty_until: null,
-      status: 'ACTIVE',
+      status: MarketplaceOrderStatuses.ACTIVE,
       blocked_at: new Date(),
       create_tx,
     });

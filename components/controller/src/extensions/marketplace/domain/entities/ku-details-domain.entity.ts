@@ -19,7 +19,18 @@
  */
 export type KuDetailsStatus = 'ACTIVE' | 'INACTIVE';
 
+export const KuDetailsStatuses = {
+  ACTIVE: 'ACTIVE',
+  INACTIVE: 'INACTIVE',
+} as const satisfies Record<string, KuDetailsStatus>;
+
 export type GeocodeStatus = 'PENDING' | 'OK' | 'FAILED';
+
+export const GeocodeStatuses = {
+  PENDING: 'PENDING',
+  OK: 'OK',
+  FAILED: 'FAILED',
+} as const satisfies Record<string, GeocodeStatus>;
 
 export interface WorkingHoursDayDomain {
   open: string;
@@ -71,7 +82,7 @@ export class KuDetailsDomainEntity {
     this.status = data.status;
     this.lat = data.lat;
     this.lng = data.lng;
-    this.geocodeStatus = data.geocodeStatus ?? 'PENDING';
+    this.geocodeStatus = data.geocodeStatus ?? GeocodeStatuses.PENDING;
     this.geocodeErrorMessage = data.geocodeErrorMessage;
     this.geocodedAt = data.geocodedAt;
     this.createdAt = data.createdAt ?? new Date();
@@ -79,10 +90,10 @@ export class KuDetailsDomainEntity {
   }
 
   isActive(): boolean {
-    return this.status === 'ACTIVE';
+    return this.status === KuDetailsStatuses.ACTIVE;
   }
 
   hasCoordinates(): boolean {
-    return this.lat !== undefined && this.lng !== undefined && this.geocodeStatus === 'OK';
+    return this.lat !== undefined && this.lng !== undefined && this.geocodeStatus === GeocodeStatuses.OK;
   }
 }

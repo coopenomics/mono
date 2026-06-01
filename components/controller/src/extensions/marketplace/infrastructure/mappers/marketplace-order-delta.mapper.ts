@@ -5,7 +5,10 @@ import type { IDelta } from '~/types/common';
 import { Interfaces } from 'cooptypes';
 type IOrderRow = Interfaces.Marketplace.IOrder;
 import type { MarketplaceOrderBlockchainData } from '../../domain/entities/marketplace-order.entity';
-import type { MarketplaceOrderStatus } from '../../domain/entities/marketplace-order.types';
+import {
+  MarketplaceOrderStatuses,
+  type MarketplaceOrderStatus,
+} from '../../domain/entities/marketplace-order.types';
 
 /**
  * Story 4.1: дельта-маппер для `marketplace::orders` (canonical Story 11.1).
@@ -36,12 +39,12 @@ export class MarketplaceOrderDeltaMapper extends AbstractBlockchainDeltaMapper<
   MarketplaceOrderBlockchainData
 > {
   private static readonly STATUS_MAP: Record<string, MarketplaceOrderStatus> = {
-    active: 'ACTIVE',
-    accepted: 'ACCEPTED',
-    supplyprep: 'SUPPLY_PREPARED',
-    acceptcoop: 'ACCEPTED_TO_COOP',
-    readyrecv: 'READY_TO_RECEIVE',
-    received: 'RECEIVED',
+    active: MarketplaceOrderStatuses.ACTIVE,
+    accepted: MarketplaceOrderStatuses.ACCEPTED,
+    supplyprep: MarketplaceOrderStatuses.SUPPLY_PREPARED,
+    acceptcoop: MarketplaceOrderStatuses.ACCEPTED_TO_COOP,
+    readyrecv: MarketplaceOrderStatuses.READY_TO_RECEIVE,
+    received: MarketplaceOrderStatuses.RECEIVED,
   };
 
   /**

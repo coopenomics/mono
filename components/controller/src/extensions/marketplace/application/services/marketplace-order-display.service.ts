@@ -16,6 +16,7 @@ import {
   KU_DETAILS_DOMAIN_REPOSITORY,
   type KuDetailsDomainRepository,
 } from '../../domain/repositories/ku-details-domain.repository';
+import { GeocodeStatuses } from '../../domain/entities/ku-details-domain.entity';
 import {
   MARKETPLACE_ORDER_REPOSITORY,
   type MarketplaceOrderDomainRepository,
@@ -140,7 +141,7 @@ export class MarketplaceOrderDisplayService {
     if (!braname) return { name: null, address: null, lat: null, lng: null };
     const [org, ku] = await Promise.all([this.safeOrg(braname), this.safeKu(braname)]);
     const { name, address } = this.orgDisplay(org);
-    const hasCoords = ku?.geocodeStatus === 'OK' && ku.lat != null && ku.lng != null;
+    const hasCoords = ku?.geocodeStatus === GeocodeStatuses.OK && ku.lat != null && ku.lng != null;
     return {
       name,
       address,

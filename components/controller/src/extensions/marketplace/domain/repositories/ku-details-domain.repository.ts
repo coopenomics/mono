@@ -1,4 +1,4 @@
-import type { KuDetailsDomainEntity, GeocodeStatus } from '../entities/ku-details-domain.entity';
+import type { KuDetailsDomainEntity, GeocodeStatus, KuDetailsStatus } from '../entities/ku-details-domain.entity';
 
 /**
  * Доменный репозиторий marketplace-детализации существующих в core КУ (Story 2.1).
@@ -34,7 +34,7 @@ export interface KuDetailsDomainRepository {
   setStatus(
     coopname: string,
     coreBraname: string,
-    status: 'ACTIVE' | 'INACTIVE'
+    status: KuDetailsStatus
   ): Promise<KuDetailsDomainEntity | null>;
 }
 

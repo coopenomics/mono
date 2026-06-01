@@ -15,6 +15,10 @@ import {
   type MarketplaceModerationLogDomainRepository,
 } from '../../domain/repositories/marketplace-moderation-log.repository';
 import type { MarketplaceOfferDomainEntity } from '../../domain/entities/marketplace-offer.entity';
+import {
+  MarketplaceOfferStatuses,
+  type MarketplaceOfferStatus,
+} from '../../domain/entities/marketplace-offer.types';
 import type { MarketplaceModerationLogDomainEntity } from '../../domain/entities/marketplace-moderation-log.entity';
 import type {
   PaginationInputDomainInterface,
@@ -53,13 +57,13 @@ export class MarketplaceModerationService {
     coopname: string,
     pagination: PaginationInputDomainInterface
   ): Promise<PaginationResultDomainInterface<MarketplaceOfferDomainEntity>> {
-    return this.offerRepo.list({ coopname, status: 'PENDING_MODERATION' }, pagination);
+    return this.offerRepo.list({ coopname, status: MarketplaceOfferStatuses.PENDING_MODERATION }, pagination);
   }
 
   async approve(offer_id: string, admin_account: string): Promise<MarketplaceOfferDomainEntity> {
     const offer = await this.requirePending(offer_id);
     const updated = await this.offerRepo.applyUpdate(offer.id, {
-      status: 'ACTIVE',
+      status: MarketplaceOfferStatuses.ACTIVE,
       approved_by: admin_account,
       approved_at: new Date(),
       rejected_by: null,
@@ -97,7 +101,7 @@ export class MarketplaceModerationService {
     const offer = await this.requirePending(offer_id);
     const now = new Date();
     const updated = await this.offerRepo.applyUpdate(offer.id, {
-      status: 'REJECTED',
+      status: MarketplaceOfferStatuses.REJECTED,
       rejected_by: admin_account,
       rejected_at: now,
       reject_reason: trimmed,
@@ -126,7 +130,7 @@ export class MarketplaceModerationService {
     if (!offer) {
       throw new NotFoundException('Предложение не найдено.');
     }
-    if (offer.status !== 'PENDING_MODERATION') {
+    if (offer.status !== MarketplaceOfferStatuses.PENDING_MODERATION) {
       const statusLabel = MarketplaceModerationService.translateStatus(offer.status);
       throw new ConflictException(
         `Это предложение уже ${statusLabel} — модерация недоступна.`
@@ -135,13 +139,13 @@ export class MarketplaceModerationService {
     return offer;
   }
 
-  private static translateStatus(status: string): string {
+  private static translateStatus(status: MarketplaceOfferStatus): string {
     switch (status) {
-      case 'ACTIVE':
+      case MarketplaceOfferStatuses.ACTIVE:
         return 'одобрено';
-      case 'REJECTED':
+      case MarketplaceOfferStatuses.REJECTED:
         return 'отклонено';
-      case 'WITHDRAWN':
+      case MarketplaceOfferStatuses.WITHDRAWN:
         return 'снято с публикации';
       default:
         return `в статусе «${status}»`;

@@ -5,6 +5,7 @@ import config from '~/config/config';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
 
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
+import { MarketplaceOfferStatuses } from '../../domain/entities/marketplace-offer.types';
 import {
   MarketplaceCategoryOfferCountDTO,
   MarketplaceListCatalogInputDTO,
@@ -62,7 +63,7 @@ export class MarketplaceCatalogResolver {
     const result = await this.offerRepo.list(
       {
         coopname: config.coopname,
-        status: 'ACTIVE',
+        status: MarketplaceOfferStatuses.ACTIVE,
         category_id: input?.category_id ?? undefined,
         available_only: true,
       },

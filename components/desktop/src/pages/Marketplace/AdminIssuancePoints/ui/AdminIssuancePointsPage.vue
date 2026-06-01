@@ -99,7 +99,7 @@ const mapTitle = computed(() =>
 
 function hasCoords(row: IssuancePointRow): boolean {
   const d = row.details
-  return !!d && d.geocodeStatus === 'OK' && d.lat != null && d.lng != null
+  return !!d && d.geocodeStatus === GeocodeStatus.OK && d.lat != null && d.lng != null
 }
 
 function openMap(row: IssuancePointRow): void {
@@ -149,7 +149,7 @@ async function onSaved(): Promise<void> {
 async function setStatus(row: IssuancePointRow, status: KuDetailsStatus): Promise<void> {
   try {
     await kuStore.setStatus({ coopname: coopname.value, coreBraname: row.branch.braname, status })
-    SuccessAlert(status === 'ACTIVE' ? 'Пункт выдачи активирован' : 'Пункт выдачи деактивирован')
+    SuccessAlert(status === KuDetailsStatus.ACTIVE ? 'Пункт выдачи активирован' : 'Пункт выдачи деактивирован')
   } catch (e) {
     FailAlert(e, 'Не удалось изменить статус пункта выдачи')
   }
@@ -222,7 +222,7 @@ q-page.admin-pvz
                 BaseBadge(:variant='GEOCODE_LABEL[row.details.geocodeStatus].variant')
                   | {{ GEOCODE_LABEL[row.details.geocodeStatus].label }}
                   q-tooltip(
-                    v-if='row.details.geocodeStatus === "FAILED" && row.details.geocodeErrorMessage'
+                    v-if='row.details.geocodeStatus === GeocodeStatus.FAILED && row.details.geocodeErrorMessage'
                   ) {{ row.details.geocodeErrorMessage }}
                 BaseButton(
                   v-if='hasCoords(row)',
@@ -257,7 +257,7 @@ q-page.admin-pvz
                     template(#icon-left)
                       q-icon(name='edit', size='18px')
                   BaseButton(
-                    v-if='row.details.geocodeStatus !== "OK"',
+                    v-if='row.details.geocodeStatus !== GeocodeStatus.OK',
                     variant='ghost',
                     icon-only,
                     size='sm',
@@ -267,12 +267,12 @@ q-page.admin-pvz
                     template(#icon-left)
                       q-icon(name='my_location', size='18px')
                   BaseButton(
-                    v-if='row.details.status === "ACTIVE"',
+                    v-if='row.details.status === KuDetailsStatus.ACTIVE',
                     variant='ghost',
                     icon-only,
                     size='sm',
                     aria-label='Деактивировать',
-                    @click='setStatus(row, "INACTIVE")'
+                    @click='setStatus(row, KuDetailsStatus.INACTIVE)'
                   )
                     template(#icon-left)
                       q-icon(name='block', size='18px')
@@ -282,7 +282,7 @@ q-page.admin-pvz
                     icon-only,
                     size='sm',
                     aria-label='Активировать',
-                    @click='setStatus(row, "ACTIVE")'
+                    @click='setStatus(row, KuDetailsStatus.ACTIVE)'
                   )
                     template(#icon-left)
                       q-icon(name='check_circle', size='18px')

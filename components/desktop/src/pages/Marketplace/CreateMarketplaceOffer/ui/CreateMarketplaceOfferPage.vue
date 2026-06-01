@@ -314,7 +314,7 @@ import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { Map as MapView } from 'src/shared/ui/Map';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
-import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
+import { useMarketplaceKUDetailsStore, GeocodeStatus } from 'src/entities/MarketplaceKUDetails';
 import { MARKETPLACE_UNIT_OPTIONS } from 'src/shared/lib/consts';
 import { fileToBase64, formatAsset2Digits } from 'src/shared/lib/utils';
 import {
@@ -591,8 +591,8 @@ async function loadKuOptions(): Promise<void> {
       braname: k.coreBraname,
       name: k.name || k.coreBraname,
       address: k.addressFull ?? '',
-      lat: k.geocodeStatus === 'OK' && k.lat != null ? Number(k.lat) : null,
-      lng: k.geocodeStatus === 'OK' && k.lng != null ? Number(k.lng) : null,
+      lat: k.geocodeStatus === GeocodeStatus.OK && k.lat != null ? Number(k.lat) : null,
+      lng: k.geocodeStatus === GeocodeStatus.OK && k.lng != null ? Number(k.lng) : null,
     }));
   } catch (e) {
     FailAlert(e, 'Не удалось загрузить кооперативные участки');

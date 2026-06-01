@@ -704,6 +704,7 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceFinalizeIssuanceInput:{
 		signed_document:"MarketplaceIssueActSignedDocumentInput"
 	},
+	MarketplaceGeocodeStatus: "enum" as const,
 	MarketplaceGetOrderInput:{
 
 	},
@@ -721,6 +722,7 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceIssueActSignedMetaDocumentInput:{
 
 	},
+	MarketplaceKUStatus: "enum" as const,
 	MarketplaceLabelInventoryInput:{
 		format:"MarketplaceBarcodeFormat",
 		strategy:"MarketplaceBarcodeStrategy"
@@ -784,6 +786,7 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceOfferImageUploadInput:{
 
 	},
+	MarketplaceOfferStatus: "enum" as const,
 	MarketplaceOpenIssuanceInput:{
 		signed_document:"MarketplaceIssueActSignedDocumentInput"
 	},
@@ -823,7 +826,7 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	MarketplaceSetKUStatusInput:{
-
+		status:"MarketplaceKUStatus"
 	},
 	MarketplaceShipmentDeliveryVariant: "enum" as const,
 	MarketplaceShipmentGroupInput:{
@@ -4100,12 +4103,12 @@ export const ReturnTypes: Record<string,any> = {
 		createdAt:"DateTime",
 		description:"String",
 		geocodeErrorMessage:"String",
-		geocodeStatus:"String",
+		geocodeStatus:"MarketplaceGeocodeStatus",
 		geocodedAt:"DateTime",
 		lat:"Float",
 		lng:"Float",
 		name:"String",
-		status:"String",
+		status:"MarketplaceKUStatus",
 		updatedAt:"DateTime",
 		workingHours:"WorkingHours"
 	},
@@ -4150,7 +4153,7 @@ export const ReturnTypes: Record<string,any> = {
 		reject_reason:"String",
 		rejected_at:"DateTime",
 		rejected_by:"String",
-		status:"String",
+		status:"MarketplaceOfferStatus",
 		supplier_account:"String",
 		supplier_name:"String",
 		unit_of_measure:"String",

@@ -1,10 +1,23 @@
-import { Field, Int, ObjectType } from '@nestjs/graphql';
+import { Field, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { createPaginationResult } from '~/application/common/dto/pagination.dto';
 import type { MarketplaceOfferDomainEntity } from '../../domain/entities/marketplace-offer.entity';
-import type { MarketplaceOfferImage } from '../../domain/entities/marketplace-offer.types';
+import {
+  MarketplaceOfferStatuses,
+  type MarketplaceOfferImage,
+} from '../../domain/entities/marketplace-offer.types';
 import { MarketplaceBarcodeStrategyEnum } from './marketplace-inventory.dto';
 
 export { MarketplaceBarcodeStrategyEnum };
+
+export const MarketplaceOfferStatusEnum = MarketplaceOfferStatuses;
+export type MarketplaceOfferStatusEnum =
+  (typeof MarketplaceOfferStatusEnum)[keyof typeof MarketplaceOfferStatusEnum];
+registerEnumType(MarketplaceOfferStatusEnum, {
+  name: 'MarketplaceOfferStatus',
+  description:
+    'Этап модерации предложения: PENDING_MODERATION — на модерации, ACTIVE — опубликовано, ' +
+    'REJECTED — отклонено, WITHDRAWN — снято поставщиком.',
+});
 
 @ObjectType('MarketplaceOfferImage')
 export class MarketplaceOfferImageDTO {
@@ -91,10 +104,8 @@ export class MarketplaceOfferDTO {
   })
   public readonly pack_size!: number | null;
 
-  @Field(() => String, {
-    description: 'PENDING_MODERATION | ACTIVE | REJECTED | WITHDRAWN',
-  })
-  public readonly status!: string;
+  @Field(() => MarketplaceOfferStatusEnum)
+  public readonly status!: MarketplaceOfferStatusEnum;
 
   @Field(() => String, { nullable: true }) public readonly approved_by!: string | null;
   @Field(() => Date, { nullable: true }) public readonly approved_at!: Date | null;
