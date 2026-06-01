@@ -180,6 +180,7 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
               outlined,
               dense,
               no-error-icon,
+              :suffix='selectedUnitLabel',
               @update:model-value='(v) => setKuMin(ku.braname, v)'
             )
 
@@ -546,8 +547,8 @@ const selectedUnitLabel = computed(
 const deliveryPointsPreview = computed(() =>
   form.value.delivery_points
     .map((d) => {
-      const label = kuOptions.value.find((k) => k.braname === d.braname)?.label ?? d.braname;
-      return `${label} (от ${d.min_supply_volume})`;
+      const name = kuOptions.value.find((k) => k.braname === d.braname)?.name ?? d.braname;
+      return `${name} (от ${d.min_supply_volume} ${selectedUnitLabel.value})`;
     })
     .join(', ')
 );

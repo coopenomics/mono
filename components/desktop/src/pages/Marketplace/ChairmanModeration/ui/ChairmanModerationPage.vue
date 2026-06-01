@@ -51,7 +51,10 @@ function categoryName(offer: MarketplacePendingOfferView): string | null {
 
 function deliveryPointsSummary(offer: MarketplacePendingOfferView): string {
   const points = offer.delivery_points ?? [];
-  return points.map((p) => `${p.braname} (от ${p.min_supply_volume})`).join(', ');
+  const unit = marketplaceUnitShort(offer.unit_of_measure);
+  return points
+    .map((p) => `${p.name ?? p.braname} (от ${p.min_supply_volume} ${unit})`)
+    .join(', ');
 }
 
 function toCatalogOffer(offer: MarketplacePendingOfferView): CatalogOffer {
@@ -196,9 +199,9 @@ q-page.moderation(role="region", aria-label="Модерация предложе
               .moderation__meta-row(v-if="o.warranty_days != null && o.warranty_days > 0")
                 span.moderation__meta-key Гарантия
                 span.moderation__meta-val {{ o.warranty_days }} дн.
-              .moderation__meta-row(v-if="o.supplier_account")
+              .moderation__meta-row(v-if="o.supplier_name || o.supplier_account")
                 span.moderation__meta-key Поставщик
-                span.moderation__meta-val {{ o.supplier_account }}
+                span.moderation__meta-val {{ o.supplier_name || o.supplier_account }}
           template(#actions)
             BaseButton(
               variant="danger",
