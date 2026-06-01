@@ -160,8 +160,12 @@ q-page.mp-role-orderer.mp-member-cpp(role="region", aria-label="Подключе
     template(#action)
       q-btn(flat, color="white", label="К каталогу", @click="router.push({ name: 'marketplace-catalog' })")
 
+  //- Пока идёт подписание + переход (redirecting) — gate скрываем: иначе
+  //- одновременно крутятся два спиннера (полностраничный q-inner-loading
+  //- по центру + спиннер кнопки «Подписать оферту» внутри gate). Оставляем
+  //- один — полностраничный.
   OnboardingCPPGate(
-    v-if="state && state.requires_gate && cppDocuments.length",
+    v-if="state && state.requires_gate && cppDocuments.length && !redirecting",
     title="Присоединение к Столу заказов",
     subtitle="Подключение пайщика к программе",
     lead-text="Ознакомьтесь с Положением ЦПП «Стол заказов» и подпишите оферту на присоединение. При нажатии «Подписать оферту» документ будет подписан вашим электронным ключом и отправлен в блокчейн.",
