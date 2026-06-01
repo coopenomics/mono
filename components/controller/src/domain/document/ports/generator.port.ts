@@ -8,7 +8,12 @@ export interface GeneratorPort {
     data: Cooperative.Document.IGenerate,
     options?: Cooperative.Document.IGenerationOptions
   ): Promise<Cooperative.Document.IGeneratedDocument>;
-  getDocument(query: { hash: string }): Promise<Cooperative.Document.IGeneratedDocument | null>;
+  getDocument(query: {
+    hash: string;
+    /** Точная версия черновика по meta.block_num (черновики версионируются
+     * по hash+block_num). Не передан — вернётся любая версия с этим hash. */
+    block_num?: number;
+  }): Promise<Cooperative.Document.IGeneratedDocument | null>;
   constructCooperative(username: string, block_num?: number): Promise<Cooperative.Model.ICooperativeData | null>;
   get<T = any>(collection: string, query: Record<string, any>): Promise<T | null>;
   save(collection: string, data: any): Promise<void>;
