@@ -200,6 +200,42 @@ function expressContents(c: MarketplaceExpressPickupCandidateView): MarketplaceS
   return (ordersByOfferer.value[c.offerer_account] ?? []).filter((o) => o.status === 'ACCEPTED');
 }
 
+// Единый список ожидаемых поставок: для ПВЗ нет разницы, сформировал ли поставщик
+// партию заранее (SUPPLY_PREPARED) или привезёт самовывозом по факту (добор по
+// акцепту) — и то и другое должно дойти до участка. Показываем одним списком;
+// способ доставки самовывоза — «Самовывоз», у него нет даты формирования партии.
+interface ExpectedDelivery {
+  key: string;
+  offerer: string;
+  deliveryLabel: string;
+  amount: string;
+  formedAt: string | null;
+  ttnNumber: string | null;
+  contents: MarketplaceSupplierPickupOrderView[];
+}
+
+const expectedDeliveries = computed<ExpectedDelivery[]>(() => {
+  const shipments: ExpectedDelivery[] = pendingShipments.value.map((s) => ({
+    key: `ship-${s.id}`,
+    offerer: s.offerer_account,
+    deliveryLabel: SHIPMENT_VARIANT_LABEL[s.delivery_variant] ?? s.delivery_variant,
+    amount: s.total_amount,
+    formedAt: formatDate(s.created_at),
+    ttnNumber: s.ttn_number ?? null,
+    contents: shipmentContents(s),
+  }));
+  const express: ExpectedDelivery[] = expressCandidates.value.map((c) => ({
+    key: `express-${c.offerer_account}`,
+    offerer: c.offerer_account,
+    deliveryLabel: 'Самовывоз',
+    amount: c.total_amount,
+    formedAt: null,
+    ttnNumber: null,
+    contents: expressContents(c),
+  }));
+  return [...shipments, ...express];
+});
+
 // QR-код передачи (Эпик 14, агрегирующая приёмка): оператор сканирует
 // account-bound код поставщика → грузим ВСЕ единицы имущества этого поставщика,
 // ожидающие приёмки на этом КУ (единый базис «акцепт поставщика на КУ», R4),
@@ -478,37 +514,22 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
     //- QR/ввод кода (кнопка в шапке).
     .reception__pending
       EmptyState(
-        v-if='!pendingShipments.length',
+        v-if='!expectedDeliveries.length',
         title='Поставок пока нет',
-        body='Партии появятся здесь, когда поставщики сформируют поставку на ваш пункт.'
+        body='Поставки появятся здесь, как только поставщики направят их на ваш пункт.'
       )
         template(#icon)
           q-icon(name='local_shipping', size='48px')
 
-      .reception__ship(v-for='s in pendingShipments', :key='s.id')
+      .reception__ship(v-for='d in expectedDeliveries', :key='d.key')
         .reception__ship-info
-          .reception__ship-offerer {{ s.offerer_account }}
+          .reception__ship-offerer {{ d.offerer }}
           .reception__ship-meta
-            | {{ SHIPMENT_VARIANT_LABEL[s.delivery_variant] ?? s.delivery_variant }} · {{ formatAsset2Digits(s.total_amount) }} ₽ · сформирована {{ formatDate(s.created_at) }}
-            template(v-if='s.ttn_number')  · ТТН {{ s.ttn_number }}
-          ul.reception__contents(v-if='shipmentContents(s).length')
-            li.reception__content-line(v-for='o in shipmentContents(s)', :key='o.id')
-              | {{ o.product_name || 'Товар по предложению' }} — {{ o.quantity }} {{ marketplaceUnitShort(o.unit_of_measure) }}
-              span.reception__content-to  · кому: {{ o.orderer_name || o.orderer_account }}
-
-    //- Story 14.2: самовывоз по факту — поставщик приехал без заранее
-    //- сформированной партии. Тоже только через скан QR/ввод кода.
-    .reception__pending(v-if='expressCandidates.length')
-      .reception__pending-head
-        .reception__pending-title Самовывоз по факту (без партии)
-
-      .reception__ship(v-for='c in expressCandidates', :key='c.offerer_account')
-        .reception__ship-info
-          .reception__ship-offerer {{ c.offerer_account }}
-          .reception__ship-meta
-            | Самовывоз · {{ c.orders_count }} заказ(ов) · {{ c.total_units }} ед. · {{ formatAsset2Digits(c.total_amount) }} ₽
-          ul.reception__contents(v-if='expressContents(c).length')
-            li.reception__content-line(v-for='o in expressContents(c)', :key='o.id')
+            | {{ d.deliveryLabel }} · {{ formatAsset2Digits(d.amount) }} ₽
+            template(v-if='d.formedAt')  · сформирована {{ d.formedAt }}
+            template(v-if='d.ttnNumber')  · ТТН {{ d.ttnNumber }}
+          ul.reception__contents(v-if='d.contents.length')
+            li.reception__content-line(v-for='o in d.contents', :key='o.id')
               | {{ o.product_name || 'Товар по предложению' }} — {{ o.quantity }} {{ marketplaceUnitShort(o.unit_of_measure) }}
               span.reception__content-to  · кому: {{ o.orderer_name || o.orderer_account }}
 
