@@ -4023,6 +4023,7 @@ export const ReturnTypes: Record<string,any> = {
 		id:"String",
 		image_url:"String",
 		line_total:"String",
+		max_available:"Int",
 		offer_id:"String",
 		price_per_unit:"String",
 		product_name:"String",

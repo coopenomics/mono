@@ -13,6 +13,7 @@ const rawCartItemSelector = {
   line_total: true,
   image_url: true,
   available_on_current_ku: true,
+  max_available: true,
 }
 
 const _validateCartItem: MakeAllFieldsRequired<ValueTypes['MarketplaceCartItem']> = rawCartItemSelector

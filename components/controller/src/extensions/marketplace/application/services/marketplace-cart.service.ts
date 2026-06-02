@@ -171,6 +171,9 @@ export class MarketplaceCartService {
         line_total: lineTotalNum !== null ? lineTotalNum.toFixed(4) : null,
         image_url: null,
         available_on_current_ku: available,
+        // Безлимитное предложение → null (клиент не ограничивает ввод); иначе —
+        // остаток на предложении как потолок количества в корзине.
+        max_available: offer && !offer.unlimited_flag ? offer.quantity_available : null,
       });
     });
 

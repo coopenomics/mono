@@ -53,6 +53,13 @@ export class MarketplaceCartItemDTO {
   })
   public readonly available_on_current_ku!: boolean;
 
+  @Field(() => Int, {
+    nullable: true,
+    description:
+      'Максимально доступное количество единиц по предложению. null — без ограничения (можно заказать любое количество).',
+  })
+  public readonly max_available!: number | null;
+
   constructor(init: Partial<MarketplaceCartItemDTO>) {
     Object.assign(this, init);
   }

@@ -5,6 +5,7 @@ import { FailAlert, SuccessAlert, NotifyAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import {
   useMarketplaceCartStore,
+  type IMarketplaceCartItem,
   type IMarketplaceCheckoutResult,
 } from 'src/entities/MarketplaceCart';
 import { BaseCard, BaseButton, BaseChip, EmptyState } from 'src/shared/ui/base';
@@ -45,8 +46,7 @@ function money(value: string | number): string {
   return Number(value).toLocaleString('ru-RU');
 }
 
-// Степпер: меняем количество на ±1 (целое, ≥ 1). Прямой ввод не нужен —
-// степпер не прыгает и не требует валидации, как floating-label input.
+// Низкоуровневый коммит количества (целое ≥ 1). Кламп делает changeQty.
 async function setQty(offerId: string, next: number): Promise<void> {
   if (next < 1 || cartStore.mutating) return;
   try {
@@ -54,6 +54,39 @@ async function setQty(offerId: string, next: number): Promise<void> {
   } catch (e) {
     FailAlert(e);
   }
+}
+
+// Максимум на предложении (null = без ограничения).
+function maxOf(item: IMarketplaceCartItem): number | null {
+  return item.max_available ?? null;
+}
+
+function atMax(item: IMarketplaceCartItem): boolean {
+  const max = maxOf(item);
+  return max != null && item.quantity >= max;
+}
+
+// Кламп к [1, max] и коммит, если значение изменилось. Возвращает итог.
+function changeQty(item: IMarketplaceCartItem, next: number): number {
+  let n = Math.floor(next);
+  if (!Number.isFinite(n) || n < 1) n = 1;
+  const max = maxOf(item);
+  if (max != null && n > max) {
+    n = max;
+    NotifyAlert(`Доступно не больше ${max} ${unitShort(item.unit_of_measure ?? '')}`);
+  }
+  if (n !== item.quantity) void setQty(item.offer_id, n);
+  return n;
+}
+
+// Прямой ввод в поле количества: парсим, клампим, ПЕРЕЗАПИСЫВАЕМ значение в DOM
+// (чтобы мусор/превышение сразу заменились на корректное число — без скачка
+// вёрстки, поле остаётся частью степпера).
+function onQtyInput(item: IMarketplaceCartItem, ev: Event): void {
+  const el = ev.target as HTMLInputElement;
+  const parsed = Number(el.value);
+  const next = Number.isFinite(parsed) && parsed >= 1 ? parsed : item.quantity;
+  el.value = String(changeQty(item, next));
 }
 
 async function onRemove(offerId: string): Promise<void> {
@@ -150,20 +183,30 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
               size="sm",
               aria-label="Уменьшить количество",
               :disabled="it.quantity <= 1 || cartStore.mutating",
-              @click="setQty(it.offer_id, it.quantity - 1)"
+              @click="changeQty(it, it.quantity - 1)"
             )
               template(#icon-left)
                 q-icon(name="remove")
             .mp-cart__qty-val
-              span.mp-cart__qty-num {{ it.quantity }}
+              //- Inline-ввод: не стандартный outlined-input, а часть степпера —
+              //- правка цифр прямо в числе, кламп к остатку на предложении.
+              input.mp-cart__qty-input(
+                type="text",
+                inputmode="numeric",
+                :value="it.quantity",
+                :disabled="cartStore.mutating",
+                aria-label="Количество",
+                @change="onQtyInput(it, $event)",
+                @keyup.enter="($event.target as HTMLInputElement).blur()"
+              )
               span.mp-cart__qty-unit {{ unitShort(it.unit_of_measure) }}
             BaseButton(
               variant="ghost",
               icon-only,
               size="sm",
               aria-label="Увеличить количество",
-              :disabled="cartStore.mutating",
-              @click="setQty(it.offer_id, it.quantity + 1)"
+              :disabled="cartStore.mutating || atMax(it)",
+              @click="changeQty(it, it.quantity + 1)"
             )
               template(#icon-left)
                 q-icon(name="add")
@@ -308,10 +351,28 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
     line-height: 1.1;
   }
 
-  &__qty-num {
+  // Поле прямого ввода — без рамок/фона, выглядит как число степпера, но
+  // редактируемое. Так не «прыгает» и не ломает строку, как outlined-input.
+  &__qty-input {
+    width: 48px;
+    border: none;
+    background: transparent;
+    text-align: center;
+    font: inherit;
     font-weight: 600;
     color: var(--p-ink);
     font-variant-numeric: tabular-nums;
+    padding: 0;
+    -moz-appearance: textfield;
+
+    &:focus {
+      outline: none;
+      color: var(--p-primary);
+    }
+
+    &:disabled {
+      color: var(--p-ink-2);
+    }
   }
 
   &__qty-unit {

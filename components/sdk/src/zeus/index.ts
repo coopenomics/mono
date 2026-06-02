@@ -6427,6 +6427,8 @@ export type ValueTypes = {
 	image_url?:boolean | `@${string}`,
 	/** Сумма позиции (цена за единицу × количество). */
 	line_total?:boolean | `@${string}`,
+	/** Максимально доступное количество единиц по предложению. null — без ограничения (можно заказать любое количество). */
+	max_available?:boolean | `@${string}`,
 	/** Идентификатор предложения. */
 	offer_id?:boolean | `@${string}`,
 	/** Цена за единицу товара на текущий момент. */
@@ -16645,6 +16647,8 @@ export type ResolverInputTypes = {
 	image_url?:boolean | `@${string}`,
 	/** Сумма позиции (цена за единицу × количество). */
 	line_total?:boolean | `@${string}`,
+	/** Максимально доступное количество единиц по предложению. null — без ограничения (можно заказать любое количество). */
+	max_available?:boolean | `@${string}`,
 	/** Идентификатор предложения. */
 	offer_id?:boolean | `@${string}`,
 	/** Цена за единицу товара на текущий момент. */
@@ -26535,6 +26539,8 @@ export type ModelTypes = {
 	image_url?: string | undefined | null,
 	/** Сумма позиции (цена за единицу × количество). */
 	line_total?: string | undefined | null,
+	/** Максимально доступное количество единиц по предложению. null — без ограничения (можно заказать любое количество). */
+	max_available?: number | undefined | null,
 	/** Идентификатор предложения. */
 	offer_id: string,
 	/** Цена за единицу товара на текущий момент. */
@@ -37294,6 +37300,8 @@ export type GraphQLTypes = {
 	image_url?: string | undefined | null,
 	/** Сумма позиции (цена за единицу × количество). */
 	line_total?: string | undefined | null,
+	/** Максимально доступное количество единиц по предложению. null — без ограничения (можно заказать любое количество). */
+	max_available?: number | undefined | null,
 	/** Идентификатор предложения. */
 	offer_id: string,
 	/** Цена за единицу товара на текущий момент. */
