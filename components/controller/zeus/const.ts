@@ -883,10 +883,6 @@ export const AllTypesProps: Record<string,any> = {
 			data:"ProjectGenerationContractGenerateDocumentInput",
 			options:"GenerateDocumentOptionsInput"
 		},
-		capitalGenerateRateUpdateStatement:{
-			data:"GenerateDocumentInput",
-			options:"GenerateDocumentOptionsInput"
-		},
 		capitalGenerateRegistrationDocuments:{
 			data:"GenerateCapitalRegistrationDocumentsInputDTO"
 		},
@@ -900,14 +896,6 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		capitalGenerateResultContributionStatement:{
 			data:"ResultContributionStatementGenerateInput",
-			options:"GenerateDocumentOptionsInput"
-		},
-		capitalGenerateRoleInviteStatement:{
-			data:"GenerateDocumentInput",
-			options:"GenerateDocumentOptionsInput"
-		},
-		capitalGenerateRoleRequestStatement:{
-			data:"GenerateDocumentInput",
 			options:"GenerateDocumentOptionsInput"
 		},
 		capitalImportContributor:{
@@ -3656,13 +3644,10 @@ export const ReturnTypes: Record<string,any> = {
 		capitalGenerateProgramExpenseStatement:"GeneratedDocument",
 		capitalGenerateProgramMoneyInvestStatement:"GeneratedDocument",
 		capitalGenerateProjectGenerationContract:"GeneratedDocument",
-		capitalGenerateRateUpdateStatement:"GeneratedDocument",
 		capitalGenerateRegistrationDocuments:"GenerateCapitalRegistrationDocumentsOutputDTO",
 		capitalGenerateResultContributionAct:"GeneratedDocument",
 		capitalGenerateResultContributionDecision:"GeneratedDocument",
 		capitalGenerateResultContributionStatement:"GeneratedDocument",
-		capitalGenerateRoleInviteStatement:"GeneratedDocument",
-		capitalGenerateRoleRequestStatement:"GeneratedDocument",
 		capitalImportContributor:"Transaction",
 		capitalInviteRole:"Transaction",
 		capitalMakeClearance:"Transaction",

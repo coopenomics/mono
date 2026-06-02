@@ -1,15 +1,9 @@
 import { Args, Mutation, Resolver } from '@nestjs/graphql';
 import { Inject, UseGuards } from '@nestjs/common';
-import { Throttle } from '@nestjs/throttler';
-import { Cooperative } from 'cooptypes';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
 import { RolesGuard } from '~/application/auth/guards/roles.guard';
 import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
 import { TransactionDTO } from '~/application/common/dto/transaction-result-response.dto';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
-import { GenerateDocumentInputDTO } from '~/application/document/dto/generate-document-input.dto';
-import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
-import { DocumentInteractor } from '~/application/document/interactors/document.interactor';
 import { CAPITAL_BLOCKCHAIN_PORT, CapitalBlockchainPort } from '../../domain/interfaces/capital-blockchain.port';
 import {
   AcceptInviteInputDTO,
@@ -27,17 +21,15 @@ import {
 /**
  * Резолвер «надстройка Благорост»:
  *   • расширения по займам (Эпик A): закрытие невозврата, ретрай платежа, mark overdue;
- *   • L2-допуски и обновление ставки (Эпик D): request/approve/decline/invite/accept/decline-invite/request-rate-update;
- *   • генерация документов для L2-допусков (registry 1100/1101/1102).
+ *   • L2-допуски и обновление ставки (Эпик D): программные actions без юридических документов.
  *
- * Расходы программы (Эпик B) вынесены в отдельный `ProgramExpensesManagementResolver`.
+ * Расходы программы (Эпик B) вынесены в `ProgramExpensesManagementResolver`.
  */
 @Resolver()
 export class BlagorostAdditionsResolver {
   constructor(
     @Inject(CAPITAL_BLOCKCHAIN_PORT)
     private readonly chain: CapitalBlockchainPort,
-    private readonly documentInteractor: DocumentInteractor,
   ) {}
 
   // ─── Долги ────────────────────────────────────────────────────────────
@@ -72,11 +64,11 @@ export class BlagorostAdditionsResolver {
     return this.chain.markDebtOverdue(data);
   }
 
-  // ─── L2-допуски ────────────────────────────────────────────────────────
+  // ─── L2-допуски (программные сущности, не юридические документы) ──────
 
   @Mutation(() => TransactionDTO, {
     name: 'capitalRequestRole',
-    description: 'Заявление пайщика на L2-допуск (creator/author/coordinator)',
+    description: 'Заявка пайщика на L2-допуск (creator/author/coordinator)',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['user'])
@@ -142,58 +134,5 @@ export class BlagorostAdditionsResolver {
   @AuthRoles(['user'])
   requestRateUpdate(@Args('data') data: RequestRateUpdateInputDTO): Promise<TransactionDTO> {
     return this.chain.requestRateUpdate(data);
-  }
-
-  // ─── Генерация документов для L2/обновления ставки ────────────────────
-
-  @Mutation(() => GeneratedDocumentDTO, {
-    name: 'capitalGenerateRoleRequestStatement',
-    description: 'Сгенерировать заявление о L2-допуске (registry 1100)',
-  })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['user'])
-  async generateRoleRequestStatement(
-    @Args('data') data: GenerateDocumentInputDTO,
-    @Args('options', { nullable: true }) options: GenerateDocumentOptionsInputDTO,
-  ): Promise<GeneratedDocumentDTO> {
-    return (await this.documentInteractor.generateDocument({
-      data: { ...data, registry_id: Cooperative.Registry.RoleRequestStatement.registry_id },
-      options,
-    })) as GeneratedDocumentDTO;
-  }
-
-  @Mutation(() => GeneratedDocumentDTO, {
-    name: 'capitalGenerateRoleInviteStatement',
-    description: 'Сгенерировать приглашение мастера на L2-допуск (registry 1101)',
-  })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['user'])
-  async generateRoleInviteStatement(
-    @Args('data') data: GenerateDocumentInputDTO,
-    @Args('options', { nullable: true }) options: GenerateDocumentOptionsInputDTO,
-  ): Promise<GeneratedDocumentDTO> {
-    return (await this.documentInteractor.generateDocument({
-      data: { ...data, registry_id: Cooperative.Registry.RoleInviteStatement.registry_id },
-      options,
-    })) as GeneratedDocumentDTO;
-  }
-
-  @Mutation(() => GeneratedDocumentDTO, {
-    name: 'capitalGenerateRateUpdateStatement',
-    description: 'Сгенерировать заявление об обновлении ставки часа (registry 1102)',
-  })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['user'])
-  async generateRateUpdateStatement(
-    @Args('data') data: GenerateDocumentInputDTO,
-    @Args('options', { nullable: true }) options: GenerateDocumentOptionsInputDTO,
-  ): Promise<GeneratedDocumentDTO> {
-    return (await this.documentInteractor.generateDocument({
-      data: { ...data, registry_id: Cooperative.Registry.RateUpdateStatement.registry_id },
-      options,
-    })) as GeneratedDocumentDTO;
   }
 }

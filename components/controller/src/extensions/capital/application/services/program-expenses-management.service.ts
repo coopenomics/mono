@@ -49,7 +49,7 @@ export class ProgramExpensesManagementService {
     options: GenerateDocumentOptionsInputDTO,
   ): Promise<GeneratedDocumentDTO> {
     return (await this.documentInteractor.generateDocument({
-      data: { ...data, registry_id: Cooperative.Registry.ProgramExpenseStatement.registry_id },
+      data: { ...data, registry_id: Cooperative.Registry.ExpenseStatement.registry_id },
       options,
     })) as GeneratedDocumentDTO;
   }
@@ -59,7 +59,7 @@ export class ProgramExpensesManagementService {
     options: GenerateDocumentOptionsInputDTO,
   ): Promise<GeneratedDocumentDTO> {
     return (await this.documentInteractor.generateDocument({
-      data: { ...data, registry_id: Cooperative.Registry.ProgramExpenseDecision.registry_id },
+      data: { ...data, registry_id: Cooperative.Registry.ExpenseDecision.registry_id },
       options,
     })) as GeneratedDocumentDTO;
   }

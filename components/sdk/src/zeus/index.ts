@@ -6527,13 +6527,10 @@ capitalGenerateProgramExpenseDecision?: [{	data: ValueTypes["GenerateDocumentInp
 capitalGenerateProgramExpenseStatement?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalGenerateProgramMoneyInvestStatement?: [{	data: ValueTypes["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalGenerateProjectGenerationContract?: [{	data: ValueTypes["ProjectGenerationContractGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
-capitalGenerateRateUpdateStatement?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalGenerateRegistrationDocuments?: [{	data: ValueTypes["GenerateCapitalRegistrationDocumentsInputDTO"] | Variable<any, string>},ValueTypes["GenerateCapitalRegistrationDocumentsOutputDTO"]],
 capitalGenerateResultContributionAct?: [{	data: ValueTypes["ResultContributionActGenerateInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalGenerateResultContributionDecision?: [{	data: ValueTypes["ResultContributionDecisionGenerateInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalGenerateResultContributionStatement?: [{	data: ValueTypes["ResultContributionStatementGenerateInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
-capitalGenerateRoleInviteStatement?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
-capitalGenerateRoleRequestStatement?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalImportContributor?: [{	data: ValueTypes["ImportContributorInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalInviteRole?: [{	data: ValueTypes["InviteRoleInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalMakeClearance?: [{	data: ValueTypes["MakeClearanceInput"] | Variable<any, string>},ValueTypes["Transaction"]],
@@ -14948,13 +14945,10 @@ capitalGenerateProgramExpenseDecision?: [{	data: ResolverInputTypes["GenerateDoc
 capitalGenerateProgramExpenseStatement?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalGenerateProgramMoneyInvestStatement?: [{	data: ResolverInputTypes["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalGenerateProjectGenerationContract?: [{	data: ResolverInputTypes["ProjectGenerationContractGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
-capitalGenerateRateUpdateStatement?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalGenerateRegistrationDocuments?: [{	data: ResolverInputTypes["GenerateCapitalRegistrationDocumentsInputDTO"]},ResolverInputTypes["GenerateCapitalRegistrationDocumentsOutputDTO"]],
 capitalGenerateResultContributionAct?: [{	data: ResolverInputTypes["ResultContributionActGenerateInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalGenerateResultContributionDecision?: [{	data: ResolverInputTypes["ResultContributionDecisionGenerateInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalGenerateResultContributionStatement?: [{	data: ResolverInputTypes["ResultContributionStatementGenerateInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
-capitalGenerateRoleInviteStatement?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
-capitalGenerateRoleRequestStatement?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalImportContributor?: [{	data: ResolverInputTypes["ImportContributorInput"]},ResolverInputTypes["Transaction"]],
 capitalInviteRole?: [{	data: ResolverInputTypes["InviteRoleInput"]},ResolverInputTypes["Transaction"]],
 capitalMakeClearance?: [{	data: ResolverInputTypes["MakeClearanceInput"]},ResolverInputTypes["Transaction"]],
@@ -23313,10 +23307,6 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member.  */
 	capitalGenerateProjectGenerationContract: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать заявление об обновлении ставки часа (registry 1102)
-
-Требуемые роли: user.  */
-	capitalGenerateRateUpdateStatement: ModelTypes["GeneratedDocument"],
 	/** Генерация пачки документов для завершения регистрации в Capital (GenerationContract, StorageAgreement, BlagorostAgreement)
 
 Требуемые роли: chairman, member.  */
@@ -23333,14 +23323,6 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member.  */
 	capitalGenerateResultContributionStatement: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать приглашение мастера на L2-допуск (registry 1101)
-
-Требуемые роли: user.  */
-	capitalGenerateRoleInviteStatement: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать заявление о L2-допуске (registry 1100)
-
-Требуемые роли: user.  */
-	capitalGenerateRoleRequestStatement: ModelTypes["GeneratedDocument"],
 	/** Импорт участника в CAPITAL контракт
 
 Требуемые роли: chairman.  */
@@ -23385,7 +23367,7 @@ export type ModelTypes = {
 
 Требуемые роли: user.  */
 	capitalRequestRateUpdate: ModelTypes["Transaction"],
-	/** Заявление пайщика на L2-допуск (creator/author/coordinator)
+	/** Заявка пайщика на L2-допуск (creator/author/coordinator)
 
 Требуемые роли: user.  */
 	capitalRequestRole: ModelTypes["Transaction"],
@@ -32376,10 +32358,6 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member.  */
 	capitalGenerateProjectGenerationContract: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать заявление об обновлении ставки часа (registry 1102)
-
-Требуемые роли: user.  */
-	capitalGenerateRateUpdateStatement: GraphQLTypes["GeneratedDocument"],
 	/** Генерация пачки документов для завершения регистрации в Capital (GenerationContract, StorageAgreement, BlagorostAgreement)
 
 Требуемые роли: chairman, member.  */
@@ -32396,14 +32374,6 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member.  */
 	capitalGenerateResultContributionStatement: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать приглашение мастера на L2-допуск (registry 1101)
-
-Требуемые роли: user.  */
-	capitalGenerateRoleInviteStatement: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать заявление о L2-допуске (registry 1100)
-
-Требуемые роли: user.  */
-	capitalGenerateRoleRequestStatement: GraphQLTypes["GeneratedDocument"],
 	/** Импорт участника в CAPITAL контракт
 
 Требуемые роли: chairman.  */
@@ -32448,7 +32418,7 @@ export type GraphQLTypes = {
 
 Требуемые роли: user.  */
 	capitalRequestRateUpdate: GraphQLTypes["Transaction"],
-	/** Заявление пайщика на L2-допуск (creator/author/coordinator)
+	/** Заявка пайщика на L2-допуск (creator/author/coordinator)
 
 Требуемые роли: user.  */
 	capitalRequestRole: GraphQLTypes["Transaction"],

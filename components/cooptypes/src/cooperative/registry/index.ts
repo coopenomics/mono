@@ -40,8 +40,6 @@ export * as InitProjectDecision from './1006.InitProjectDecision'
 
 export * as ExpenseStatement from './1010.ExpenseStatement'
 export * as ExpenseDecision from './1011.ExpenseDecision'
-export * as ProgramExpenseStatement from './1012.ProgramExpenseStatement'
-export * as ProgramExpenseDecision from './1013.ProgramExpenseDecision'
 
 export * as GenerationMoneyInvestStatement from './1020.GenerationMoneyInvestStatement'
 export * as GenerationMoneyReturnUnusedStatement from './1025.GenerationMoneyReturnUnusedStatement'
@@ -66,11 +64,6 @@ export * as CapitalizationPropertyInvestAct from './1072.CapitalizationPropertyI
 export * as GenerationConvertStatement from './1080.GenerationConvertStatement'
 
 export * as CapitalizationToMainWalletConvertStatement from './1090.CapitalizationToMainWalletConvertStatement'
-
-// Двухуровневые допуски и обновление ставки (Эпик D Благорост)
-export * as RoleRequestStatement from './1100.RoleRequestStatement'
-export * as RoleInviteStatement from './1101.RoleInviteStatement'
-export * as RateUpdateStatement from './1102.RateUpdateStatement'
 
 export * as SosediAgreement from './699.SosediAgreement'
 

@@ -7952,13 +7952,6 @@ type Mutation {
   capitalGenerateProjectGenerationContract(data: ProjectGenerationContractGenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
   """
-  Сгенерировать заявление об обновлении ставки часа (registry 1102)
-  
-  Требуемые роли: user. 
-  """
-  capitalGenerateRateUpdateStatement(data: GenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
-
-  """
   Генерация пачки документов для завершения регистрации в Capital (GenerationContract, StorageAgreement, BlagorostAgreement)
   
   Требуемые роли: chairman, member. 
@@ -7985,20 +7978,6 @@ type Mutation {
   Требуемые роли: chairman, member. 
   """
   capitalGenerateResultContributionStatement(data: ResultContributionStatementGenerateInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
-
-  """
-  Сгенерировать приглашение мастера на L2-допуск (registry 1101)
-  
-  Требуемые роли: user. 
-  """
-  capitalGenerateRoleInviteStatement(data: GenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
-
-  """
-  Сгенерировать заявление о L2-допуске (registry 1100)
-  
-  Требуемые роли: user. 
-  """
-  capitalGenerateRoleRequestStatement(data: GenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
   """
   Импорт участника в CAPITAL контракт
@@ -8078,7 +8057,7 @@ type Mutation {
   capitalRequestRateUpdate(data: RequestRateUpdateInput!): Transaction!
 
   """
-  Заявление пайщика на L2-допуск (creator/author/coordinator)
+  Заявка пайщика на L2-допуск (creator/author/coordinator)
   
   Требуемые роли: user. 
   """
