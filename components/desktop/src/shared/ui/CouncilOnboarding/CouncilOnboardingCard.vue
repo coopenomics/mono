@@ -18,8 +18,8 @@ q-card.council-onboarding(flat, :class="{ 'council-onboarding--loading': loading
         template(#icon)
           q-icon(name="celebration", size="26px")
 
-    //- Иначе — шапка и шаги совета.
-    template(v-else)
+    //- Шапка (только пока шаги совета не завершены).
+    template(v-if="!isCompleted")
       q-card-section
         div.text-h5 {{ title }}
         div.text-caption.text-grey-7.q-mt-xs(v-if="subtitle") {{ subtitle }}
@@ -32,50 +32,48 @@ q-card.council-onboarding(flat, :class="{ 'council-onboarding--loading': loading
           ) {{ countdownLabel }}
           slot(name="status")
       q-separator
-      q-card-section
-        q-list(separator)
-          q-item.council-onboarding__step(v-for="(step, index) in steps", :key="step.id")
-            q-item-section
-              div.row.items-center.q-gutter-sm
-                q-icon(:name="getIcon(step)", :color="getIconColor(step)", size="22px")
-                div.text-subtitle1 {{ index + 1 }}. {{ step.title }}
-              div.text-caption.text-grey-7.q-mt-xs {{ step.description }}
-              div.q-mt-sm(v-if="step.status === 'in_progress'")
-                q-chip.q-ma-none(
-                  dense,
-                  color="amber",
-                  text-color="black",
-                  icon="hourglass_top"
-                ) Ожидаем решение совета
-            q-item-section(side, top)
-              q-btn(
-                v-if="showAction(index)",
-                :disable="submitting",
-                color="primary",
-                label="Объявить собрание совета",
-                @click="() => handleStepClick(step)"
-              )
 
-    //- Доп.шаги — показываем ВСЕГДА (в т.ч. после завершения шагов совета),
-    //- нумерация продолжает шаги совета. Единый список, без отдельной карточки.
-    template(v-if="extraStepsList.length")
-      q-separator
-      q-card-section
-        q-list(separator)
-          q-item.council-onboarding__step(v-for="(step, i) in extraStepsList", :key="step.id")
-            q-item-section
-              div.row.items-center.q-gutter-sm
-                q-icon(name="radio_button_unchecked", color="grey-6", size="22px")
-                div.text-subtitle1 {{ steps.length + i + 1 }}. {{ step.title }}
-              div.text-caption.text-grey-7.q-mt-xs {{ step.description }}
-            q-item-section(side, top)
-              q-btn(
-                outline,
-                color="primary",
-                :label="step.actionLabel",
-                :disable="step.disabled",
-                @click="() => emit('extra-action', step)"
-              )
+    //- Единый список: шаги совета (пока не завершено) + доп.шаги (всегда).
+    //- Одна структура и один вертикальный ритм у всех строк — без q-item и
+    //- q-gutter (их разная высота и отрицательные margin'ы давали «гармошку»),
+    //- хайрлайны-разделители между всеми шагами одинаковые.
+    q-card-section.council-onboarding__steps(v-if="!isCompleted || extraStepsList.length")
+      template(v-if="!isCompleted")
+        div.council-onboarding__step(v-for="(step, index) in steps", :key="step.id")
+          div.council-onboarding__step-head
+            q-icon(:name="getIcon(step)", :color="getIconColor(step)", size="22px")
+            div.text-subtitle1.council-onboarding__step-title {{ index + 1 }}. {{ step.title }}
+          div.text-caption.text-grey-7.council-onboarding__step-desc {{ step.description }}
+          div.council-onboarding__step-action(v-if="step.status === 'in_progress'")
+            q-chip.q-ma-none(
+              dense,
+              color="amber",
+              text-color="black",
+              icon="hourglass_top"
+            ) Ожидаем решение совета
+          div.council-onboarding__step-action(v-else-if="showAction(index)")
+            BaseButton(
+              variant="primary",
+              size="sm",
+              :loading="submitting",
+              @click="() => handleStepClick(step)"
+            ) Объявить собрание совета
+
+      div.council-onboarding__step(v-for="(step, i) in extraStepsList", :key="step.id")
+        div.council-onboarding__step-head
+          q-icon(name="radio_button_unchecked", color="grey-6", size="22px")
+          div.text-subtitle1.council-onboarding__step-title {{ steps.length + i + 1 }}. {{ step.title }}
+        div.text-caption.text-grey-7.council-onboarding__step-desc {{ step.description }}
+        div.council-onboarding__step-action
+          BaseButton(
+            variant="primary",
+            size="sm",
+            :disabled="step.disabled",
+            @click="() => emit('extra-action', step)"
+          )
+            span {{ step.actionLabel }}
+            template(#icon-right)
+              q-icon.q-ml-xs(name="arrow_forward", size="16px")
 
   BaseDialog(
     v-model='dialogOpen',
@@ -270,11 +268,38 @@ watch(
   }
 }
 
-// Воздух между шагами: q-list(separator) по умолчанию жмёт строки, а у нас
-// в шаге три яруса (заголовок / описание / чип) — без этого всё слипается.
+// Единый ритм шагов: одинаковый вертикальный отступ и хайрлайн-разделитель
+// у КАЖДОЙ строки (и шаги совета, и доп.шаги — в одном контейнере), чтобы не
+// было «гармошки» из-за разной высоты строк/разных секций.
+.council-onboarding__steps {
+  display: flex;
+  flex-direction: column;
+}
+
 .council-onboarding__step {
-  padding-top: 16px;
-  padding-bottom: 16px;
+  padding: 16px 0;
+
+  &:not(:first-child) {
+    border-top: 1px solid var(--p-line);
+  }
+}
+
+// Шапка шага: иконка + заголовок в одну линию с ровным зазором (без
+// q-gutter — его отрицательные margin'ы ломали вертикальный ритм).
+.council-onboarding__step-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.council-onboarding__step-desc {
+  margin-top: 4px;
+}
+
+// Действие шага (кнопка/чип) — отдельным ярусом снизу, слева, с предсказуемым
+// отступом. Кнопки навигации — солидные primary, не блёклый outline.
+.council-onboarding__step-action {
+  margin-top: 12px;
 }
 
 // Success-акцент для завершённого онбординга: иконка-плитка EmptyState по
