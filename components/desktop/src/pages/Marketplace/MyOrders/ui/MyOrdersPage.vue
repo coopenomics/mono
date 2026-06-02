@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Dialog, Loading } from 'quasar';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
+import { useSystemStore } from 'src/entities/System/model';
 import { OrderCard, toOrderCardModel, type Order as OrderCardModel } from 'src/widgets/Marketplace/OrderCard';
 import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
 import { BaseButton, EmptyState } from 'src/shared/ui/base';
@@ -34,6 +35,7 @@ const POLL_INTERVAL_MS = 10_000;
 
 const route = useRoute();
 const router = useRouter();
+const system = useSystemStore();
 const coopname = computed(() => String(route.params.coopname ?? ''));
 
 const items = ref<MarketplaceOrderView[]>([]);
@@ -95,6 +97,66 @@ const activeStatuses = computed<MarketplaceOrderStatusView[] | undefined>(
 // Маппинг доменного заказа в модель карточки — единый `toOrderCardModel`
 // (статус-карта + реквизиты товара/ПВЗ) из виджета OrderCard.
 const toCardModel = toOrderCardModel;
+
+const symbol = computed(() => system.governSymbol);
+
+function money(value: string | number): string {
+  return Number(value).toLocaleString('ru-RU');
+}
+
+function formatDate(iso: string): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString('ru-RU');
+}
+
+/**
+ * Story 16.6: группировка «Моих заказов» по ЗАКАЗАМ-агрегатам (checkout_id).
+ *
+ * Одно оформление корзины = один checkout_id = несколько построчных заказов на
+ * один КУ. Показываем их одной группой с шапкой (дата/пункт/позиции/сумма).
+ * Заказы без checkout_id (легаси-поштучные) и одиночные группы (1 позиция)
+ * рисуются плоско, без шапки — лишний заголовок над одной карточкой не нужен.
+ * Группировка идёт по уже отфильтрованному вкладкой списку: группа показывает
+ * те позиции заказа-агрегата, что попали в текущий статус-фильтр.
+ */
+interface OrderGroup {
+  key: string;
+  isAggregate: boolean;
+  orders: MarketplaceOrderView[];
+  count: number;
+  totalCost: number;
+  deliveryName: string;
+  createdAt: string;
+  recent: number;
+}
+
+const groups = computed<OrderGroup[]>(() => {
+  const map = new Map<string, MarketplaceOrderView[]>();
+  for (const o of items.value) {
+    const key = o.checkout_id ?? `single:${o.id}`;
+    const arr = map.get(key) ?? [];
+    arr.push(o);
+    map.set(key, arr);
+  }
+  const result: OrderGroup[] = Array.from(map.entries()).map(([key, orders]) => {
+    const first = orders[0];
+    const recent = Math.max(...orders.map((o) => new Date(o.updated_at).getTime()));
+    return {
+      key,
+      isAggregate: orders.length > 1,
+      orders,
+      count: orders.length,
+      totalCost: orders.reduce((s, o) => s + Number(o.total_cost), 0),
+      deliveryName: first?.delivery_point_name || first?.delivery_braname || '',
+      createdAt: first?.created_at ?? '',
+      recent,
+    };
+  });
+  // Свежие заказы-агрегаты сверху — сохраняем порядок сортировки списка.
+  result.sort((a, b) => b.recent - a.recent);
+  return result;
+});
 
 async function load(page: number, append: boolean): Promise<void> {
   loading.value = true;
@@ -223,16 +285,35 @@ q-page.orders(role="region", aria-label="Мои заказы")
     template(#icon)
       q-icon(name="shopping_cart", size="48px")
 
-  .orders__grid(v-if="items.length")
-    OrderCard(
-      v-for="o in items",
-      :key="o.id",
-      :order="toCardModel(o)",
-      role="orderer",
-      openable,
-      @action="onCardAction",
-      @open="openDetail"
-    )
+  //- Story 16.6: заказы сгруппированы по заказу-агрегату (одно оформление
+  //- корзины). Многопозиционные группы — под шапкой; одиночные — плоско.
+  .orders__list(v-if="items.length")
+    template(v-for="g in groups", :key="g.key")
+      .orders__group(v-if="g.isAggregate")
+        .orders__group-head
+          q-icon(name="receipt_long", size="18px", color="primary")
+          .orders__group-title Заказ от {{ formatDate(g.createdAt) }} · {{ g.deliveryName }}
+          .orders__group-meta {{ g.count }} поз. · {{ money(g.totalCost) }} {{ symbol }}
+        .orders__grid
+          OrderCard(
+            v-for="o in g.orders",
+            :key="o.id",
+            :order="toCardModel(o)",
+            role="orderer",
+            openable,
+            @action="onCardAction",
+            @open="openDetail"
+          )
+      .orders__grid(v-else)
+        OrderCard(
+          v-for="o in g.orders",
+          :key="o.id",
+          :order="toCardModel(o)",
+          role="orderer",
+          openable,
+          @action="onCardAction",
+          @open="openDetail"
+        )
 
   .row.justify-center.q-my-md(v-if="hasMore")
     BaseButton(variant="ghost", :loading="loading", @click="onLoadMore") Загрузить ещё
@@ -271,6 +352,40 @@ q-page.orders(role="region", aria-label="Мои заказы")
     grid-template-columns: repeat(auto-fill, minmax(300px, 360px));
     justify-content: start;
     gap: var(--p-4, 16px);
+  }
+
+  // Список групп заказов-агрегатов: вертикальный ритм между группами.
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-5, 20px);
+  }
+
+  // Шапка заказа-агрегата: дата/пункт слева, позиции/сумма справа.
+  &__group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-3, 12px);
+  }
+
+  &__group-head {
+    display: flex;
+    align-items: center;
+    gap: var(--p-2, 8px);
+    padding-bottom: var(--p-2, 8px);
+    border-bottom: 1px solid var(--p-line);
+  }
+
+  &__group-title {
+    font-weight: 600;
+    color: var(--p-ink);
+  }
+
+  &__group-meta {
+    margin-left: auto;
+    color: var(--p-ink-2);
+    font-size: var(--p-fs-body-sm);
+    white-space: nowrap;
   }
 }
 

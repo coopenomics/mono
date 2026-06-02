@@ -224,6 +224,10 @@ async function onKUChanged(): Promise<void> {
   await reloadCatalog();
 }
 
+function goToCart(): void {
+  void router.push({ name: 'marketplace-cart', params: { coopname: coopname.value } });
+}
+
 onMounted(async () => {
   // Корзина хранит текущий КУ — грузим её первой. Если КУ уже выбран
   // (присоединение или прошлый визит) — сразу показываем витрину под него.
@@ -237,6 +241,13 @@ onMounted(async () => {
 
 <template lang="pug">
 q-page.catalog(role="region", aria-label="Каталог Стола заказов")
+  //- Индикатор корзины в шапке стола (Story 16.1) — с числом позиций.
+  Teleport(to="#header-actions-host", defer)
+    BaseButton(v-if="!needsKU", variant="secondary", size="sm", @click="goToCart")
+      template(#icon-left)
+        q-icon(name="shopping_cart", size="16px")
+      | Корзина{{ cartStore.positionsCount ? ` (${cartStore.positionsCount})` : '' }}
+
   KUHeaderBar(:coopname="coopname", @changed="onKUChanged")
 
   //- КУ ещё не выбран: сначала выбор пункта выдачи, витрина скрыта —
