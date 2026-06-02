@@ -31,6 +31,8 @@ import { ComponentResultsPage } from './pages/ComponentResultsPage';
 import { ProjectHistoryPage } from './pages/ProjectHistoryPage';
 import { ComponentHistoryPage } from './pages/ComponentHistoryPage';
 import { ActivityFeedPage } from './pages/ActivityFeedPage';
+import { ProgramExpensesPage } from './pages/ProgramExpensesPage';
+import { ProgramExpenseDetailPage } from './pages/ProgramExpenseDetailPage';
 import { registerCapitalDecisionHandlers } from './app/extensions';
 
 export default async function (): Promise<IWorkspaceConfig[]> {
@@ -199,6 +201,33 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               roles: [],
               agreements: agreementsBase,
               requiresAuth: true,
+            },
+            children: [],
+          },
+          {
+            path: 'program-expenses',
+            name: 'program-expenses',
+            component: markRaw(ProgramExpensesPage),
+            meta: {
+              title: 'Расходы программы',
+              icon: 'receipt_long',
+              roles: ['chairman', 'member'],
+              agreements: agreementsBase,
+              requiresAuth: true,
+            },
+            children: [],
+          },
+          {
+            path: 'program-expenses/:_id',
+            name: 'program-expense-detail',
+            component: markRaw(ProgramExpenseDetailPage),
+            meta: {
+              title: 'Расход программы',
+              icon: 'receipt_long',
+              roles: ['chairman', 'member'],
+              agreements: agreementsBase,
+              requiresAuth: true,
+              hidden: true,
             },
             children: [],
           },
