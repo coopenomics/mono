@@ -96,9 +96,9 @@ _Критичные правила и паттерны для AI-агентов 
 - `BaseDomainEntity<TDb, TBc>` инициализирует `this.db` shallow-копией из `databaseData`; `this.bc` остаётся `undefined` пока не вызван `replaceBc(this, blockchainData, BC_KEYS)`. `block_num`/`present`/`status` — отдельные поля на BaseDomainEntity (быстрый stale-delta guard в hot-path).
 - Конструктор `(databaseData, blockchainData?)` — обязан `throw` на sync-key mismatch.
 - `updateFromBlockchain` мутирует только `this.bc`, `this.block_num`, `this.present` через `replaceBc(this, blockchainData, BC_KEYS)` (utility-функция из `~/shared/sync/entities/base-domain.entity`). **НЕ** `Object.assign(this, blockchainData)` — это анти-паттерн, проверка в `tests/unit/blockchain/composite-entity.contract.test.ts` (Story 6.1).
-- `BC_KEYS` объявляется на уровне модуля как `const` с `satisfies ReadonlyArray<keyof IXxxBlockchainData>` — это canonical-ordered источник полей для Story 6.4 checksum.
+- `BC_KEYS` объявляется на уровне модуля как `const` с `satisfies ReadonlyArray<keyof IXxxBlockchainData>` — canonical-ordered whitelist полей цепи; явный источник истины для `replaceBc` (Story 6.1).
 - `derived` getter — детерминирован (NO `new Date()` в конструкторе / getter — ломает snapshot tests).
-- Все signed-document поля нормализуются через `AbstractDeltaMapper.normalizeSignedDocuments` на основе `signedDocumentFields: SignedDocField[]` декларативно, НЕ руками в mapper.
+- Все signed-document поля нормализуются через `AbstractDeltaMapper.normalizeSignedDocuments` на основе `signedDocumentFields: SignedDocField[]` декларативно, НЕ руками в mapper. Helper делает только структурный transform (`meta: JSON-string → object`); содержательную валидацию подписанных документов (число подписей, криптография) бэкенд НЕ делает — это домен контракта (`require_auth`).
 - Эталон миграции (Story 6.1): `extensions/capital/domain/entities/project.entity.ts` — `PROJECT_BC_KEYS` + `replaceBc(...)`. 22 legacy entity в allowlist'е contract-теста, миграция тречится Epic 9 (Story 9-5).
 
 ### Dispatch pipeline (ADR-002, ADR-009) — СТРОГО
@@ -300,7 +300,6 @@ return { tx_hash: tx.tx_hash, status: 'pending' };
 
 ### ⚡ Performance
 
-- `JSON.stringify` на сущностях с nested signed-documents — использовать `json-stable-stringify` для canonical checksum.
 - Reconciliation cron — sample N=100 rows, **не** full scan на hot path.
 - IPFS fetch для signed-doc — **lazy resolver вне consumer critical path**, не в mapper.
 - `waitForDelta` memory leak — timer cleanup обязателен (см. INV-T10).

@@ -31,12 +31,6 @@ export abstract class BaseDomainEntity<TDb extends IBaseDatabaseData, TBc = unkn
   public db: TDb;
   public bc?: TBc;
 
-  /**
-   * Story 6.4: sha256(canonical-json(bc)). Заполняется в `BaseBlockchainRepository.save/update`
-   * через `computeBcChecksum(entity.bc ?? null)`. NULL для legacy без bc-namespace.
-   */
-  public _checksum?: string | null;
-
   constructor(databaseData: TDb, defaultStatus?: string) {
     this._id = databaseData._id === '' ? randomUUID().toString() : databaseData._id;
 
@@ -62,8 +56,7 @@ export abstract class BaseDomainEntity<TDb extends IBaseDatabaseData, TBc = unkn
  * Типизированное whitelist-присвоение блокчейн-полей в `target.bc` (Story 6.1, ADR-008).
  *
  * Заменяет анти-паттерн `Object.assign(this, blockchainData)` в `updateFromBlockchain`:
- * - `Object.assign` сливал поля в `this` плоско и не давал источника canonical-ordered
- *   полей для Story 6.4 checksum.
+ * - `Object.assign` сливал поля в `this` плоско, теряя структурное разделение db/bc.
  * - Whitelist `allowedKeys` фиксирует контракт ровно тех полей, что приходят из
  *   блокчейн-таблицы; лишние ключи в `blockchainData` игнорируются.
  *

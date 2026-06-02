@@ -1,7 +1,6 @@
 import type { IBlockchainDeltaMapper } from './interfaces/blockchain-sync.interface';
 import type { IDelta } from '~/types/common';
 import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
-import type { ZodTypeAny } from 'zod';
 
 /**
  * Story 6.2 (Epic 6, ADR-008): декларативное описание подписанных документов
@@ -11,6 +10,10 @@ import type { ZodTypeAny } from 'zod';
  * Поддерживаются вложенные пути с массивами через bracket-нотацию:
  *   `appendix`                                — top-level
  *   `statement.attachments[].signed_attachment` — массив объектов с вложенным документом
+ *
+ * Содержательная валидация подписанных документов (число подписей, криптография) — НЕ
+ * ответственность бэкенда: это домен контракта (`require_auth`). Mapper только
+ * структурно нормализует `meta: JSON-string → object`.
  */
 export type SignedDocField = {
   /**
@@ -18,16 +21,6 @@ export type SignedDocField = {
    * Примеры: `appendix`, `statement.attachments[].signed_attachment`.
    */
   path: string;
-  /**
-   * Story 6.3: optional Zod-схема для валидации `IChainDocument2` ДО transform.
-   * Если задана и parse падает — `normalizeSignedDocuments` пробрасывает ZodError;
-   * mapper в своём try/catch отдаст null + warn (Story 6.5 повысит до alert).
-   *
-   * Стандартные схемы — `chainDocumentSchema` (≥1 подписи), `singleSignatureChainDocumentSchema`
-   * (ровно 1), `twoSignatureChainDocumentSchema` (ровно 2) из
-   * `~/shared/sync/signed-document-schemas`.
-   */
-  schema?: ZodTypeAny;
 };
 
 type PathSegment = { kind: 'field'; key: string } | { kind: 'array' };
@@ -131,9 +124,6 @@ export abstract class AbstractBlockchainDeltaMapper<TBlockchainData = any, TDoma
       const segments = parseSignedDocPath(field.path);
       applyAtPath(data, segments, (chainDoc) => {
         if (chainDoc == null) return chainDoc;
-        // Story 6.3: валидация структуры ДО transform — schema-mismatch выбрасывает ZodError,
-        // mapper.try/catch вернёт null + warn (новые ноды не молча сломаются на schema-drift).
-        if (field.schema) field.schema.parse(chainDoc);
         return DomainToBlockchainUtils.convertChainDocumentToDomainFormat(chainDoc);
       });
     }
