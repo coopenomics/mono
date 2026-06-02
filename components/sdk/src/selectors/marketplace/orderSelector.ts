@@ -30,7 +30,7 @@ export const marketplaceOrderIssuanceFactSnapshotSelector = Selector(
   'MarketplaceOrderIssuanceFactSnapshot',
 )(rawOrderIssuanceFactSnapshotSelector)
 
-const rawOrderSelector = {
+export const rawOrderSelector = {
   id: true,
   coopname: true,
   order_hash: true,

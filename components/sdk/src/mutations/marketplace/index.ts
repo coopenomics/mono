@@ -72,3 +72,15 @@ export * as UpdateOffer from './updateOffer'
 export * as WithdrawOffer from './withdrawOffer'
 /** Поставщик возвращает снятый offer на публикацию (WITHDRAWN → PENDING_MODERATION) */
 export * as RepublishOffer from './republishOffer'
+/** Эпик 16: добавить товар в корзину (привязка корзины к пункту выдачи) */
+export * as AddToCart from './addToCart'
+/** Эпик 16: изменить количество позиции в корзине */
+export * as UpdateCartItem from './updateCartItem'
+/** Эпик 16: убрать позицию из корзины */
+export * as RemoveFromCart from './removeFromCart'
+/** Эпик 16: очистить корзину */
+export * as ClearCart from './clearCart'
+/** Эпик 16: сменить пункт выдачи (КУ) корзины */
+export * as SetCartDeliveryPoint from './setCartDeliveryPoint'
+/** Эпик 16: оформить заказ из корзины (per-line, общий checkout_id) */
+export * as CheckoutCart from './checkoutCart'
