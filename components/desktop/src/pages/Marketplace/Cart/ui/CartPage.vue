@@ -7,7 +7,7 @@ import {
   useMarketplaceCartStore,
   type IMarketplaceCheckoutResult,
 } from 'src/entities/MarketplaceCart';
-import { BaseCard, BaseButton, BaseInput, BaseChip, EmptyState } from 'src/shared/ui/base';
+import { BaseCard, BaseButton, BaseChip, EmptyState } from 'src/shared/ui/base';
 import { KUHeaderBar } from 'src/widgets/Marketplace/KUHeaderBar';
 import { marketplaceUnitShort } from 'src/shared/lib/consts';
 
@@ -19,6 +19,10 @@ import { marketplaceUnitShort } from 'src/shared/lib/consts';
  * `marketplaceCheckoutCart` → построчно создаёт заказы под общим checkout_id на
  * текущий КУ. Частичный сбой НЕ откатывает прошедшее: непрошедшие позиции
  * (failed_lines) остаются в корзине, их можно повторить тем же checkout_id.
+ *
+ * Раскладка — две колонки: слева список позиций (миниатюра, имя, степпер
+ * количества, сумма строки), справа липкая карточка-сводка «Ваш заказ» с итогом
+ * и кнопкой оформления. Это убирает «комканность» и прыжки поля ввода.
  */
 const route = useRoute();
 const router = useRouter();
@@ -41,15 +45,12 @@ function money(value: string | number): string {
   return Number(value).toLocaleString('ru-RU');
 }
 
-async function onQtyChange(offerId: string, value: string | number | null): Promise<void> {
-  const q = Number(value);
-  if (!Number.isInteger(q) || q < 1) {
-    NotifyAlert('Количество должно быть целым числом не меньше 1');
-    await cartStore.load();
-    return;
-  }
+// Степпер: меняем количество на ±1 (целое, ≥ 1). Прямой ввод не нужен —
+// степпер не прыгает и не требует валидации, как floating-label input.
+async function setQty(offerId: string, next: number): Promise<void> {
+  if (next < 1 || cartStore.mutating) return;
   try {
-    await cartStore.setQty(offerId, q);
+    await cartStore.setQty(offerId, next);
   } catch (e) {
     FailAlert(e);
   }
@@ -125,58 +126,84 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
     template(#actions)
       BaseButton(variant="primary", @click="goToCatalog") В каталог
 
-  template(v-else-if="cartStore.hasItems")
-    BaseCard.mp-cart__items
-      .mp-cart__row(v-for="it in cartStore.items", :key="it.offer_id")
-        .mp-cart__main
-          .mp-cart__name {{ it.product_name }}
-          BaseChip.mp-cart__warn(
-            v-if="it.available_on_current_ku === false",
-            variant="warn",
-            size="sm"
-          ) Недоступно на текущем пункте выдачи
-        .mp-cart__qty
-          BaseInput(
-            :model-value="it.quantity",
-            type="number",
-            :label="`Кол-во (${unitShort(it.unit_of_measure)})`",
-            @change="(v) => onQtyChange(it.offer_id, v)"
+  .row.q-col-gutter-md(v-else-if="cartStore.hasItems")
+    //- Левая колонка: позиции корзины.
+    .col-12.col-md-8
+      BaseCard.mp-cart__items
+        .mp-cart__line(v-for="it in cartStore.items", :key="it.offer_id")
+          .mp-cart__thumb
+            q-img(v-if="it.image_url", :src="it.image_url", ratio="1")
+            .mp-cart__thumb-empty(v-else)
+              q-icon(name="image", size="22px")
+          .mp-cart__info
+            .mp-cart__name {{ it.product_name }}
+            .mp-cart__unit {{ money(it.price_per_unit) }} {{ symbol }} / {{ unitShort(it.unit_of_measure) }}
+            BaseChip.mp-cart__warn(
+              v-if="it.available_on_current_ku === false",
+              variant="warn",
+              size="sm"
+            ) Недоступно на текущем пункте выдачи
+          .mp-cart__qty
+            BaseButton(
+              variant="ghost",
+              icon-only,
+              size="sm",
+              aria-label="Уменьшить количество",
+              :disabled="it.quantity <= 1 || cartStore.mutating",
+              @click="setQty(it.offer_id, it.quantity - 1)"
+            )
+              template(#icon-left)
+                q-icon(name="remove")
+            .mp-cart__qty-val
+              span.mp-cart__qty-num {{ it.quantity }}
+              span.mp-cart__qty-unit {{ unitShort(it.unit_of_measure) }}
+            BaseButton(
+              variant="ghost",
+              icon-only,
+              size="sm",
+              aria-label="Увеличить количество",
+              :disabled="cartStore.mutating",
+              @click="setQty(it.offer_id, it.quantity + 1)"
+            )
+              template(#icon-left)
+                q-icon(name="add")
+          .mp-cart__sum {{ money(it.line_total) }} {{ symbol }}
+          BaseButton.mp-cart__del(
+            variant="ghost",
+            icon-only,
+            size="sm",
+            aria-label="Удалить позицию",
+            :disabled="cartStore.mutating",
+            @click="onRemove(it.offer_id)"
           )
-        .mp-cart__price
-          .mp-cart__price-unit {{ money(it.price_per_unit) }} {{ symbol }} / {{ unitShort(it.unit_of_measure) }}
-          .mp-cart__price-total {{ money(it.line_total) }} {{ symbol }}
-        BaseButton(
-          variant="ghost",
-          icon-only,
-          aria-label="Удалить позицию",
-          :disabled="cartStore.mutating",
-          @click="onRemove(it.offer_id)"
-        )
-          template(#icon-left)
-            q-icon(name="delete_outline")
+            template(#icon-left)
+              q-icon(name="delete_outline")
 
-    BaseCard.mp-cart__summary
-      .mp-cart__summary-line
-        span Позиций
-        span {{ cartStore.positionsCount }}
-      .mp-cart__summary-line
-        span Всего единиц
-        span {{ cartStore.totalQuantity }}
-      .mp-cart__summary-line.mp-cart__summary-line--total
-        span Итого
-        span {{ money(cartStore.totalCost) }} {{ symbol }}
-      .mp-cart__summary-actions
-        BaseButton(
-          variant="ghost",
-          :disabled="cartStore.mutating || cartStore.checkingOut",
-          @click="onClear"
-        ) Очистить
-        BaseButton(
+    //- Правая колонка: липкая сводка заказа.
+    .col-12.col-md-4
+      BaseCard.mp-cart__summary
+        .mp-cart__summary-title Ваш заказ
+        .mp-cart__summary-line
+          span Позиций
+          span.mp-cart__summary-val {{ cartStore.positionsCount }}
+        .mp-cart__summary-line
+          span Всего единиц
+          span.mp-cart__summary-val {{ cartStore.totalQuantity }}
+        .mp-cart__summary-total
+          span Итого
+          span {{ money(cartStore.totalCost) }} {{ symbol }}
+        BaseButton.mp-cart__checkout(
           variant="primary",
           :loading="cartStore.checkingOut",
           :disabled="cartStore.mutating",
           @click="() => onCheckout()"
         ) Оформить заказ
+        BaseButton.mp-cart__clear(
+          variant="ghost",
+          size="sm",
+          :disabled="cartStore.mutating || cartStore.checkingOut",
+          @click="onClear"
+        ) Очистить корзину
 
   //- Сводка результата последнего оформления (заказы + непрошедший остаток).
   BaseCard.mp-cart__result(v-if="lastResult")
@@ -210,12 +237,12 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
-  max-width: 880px;
 
-  &__row {
+  // ── Позиции ─────────────────────────────────────────────────────────
+  &__line {
     display: flex;
     align-items: center;
-    gap: var(--p-4, 16px);
+    gap: var(--p-3, 12px);
     padding: var(--p-3, 12px) 0;
 
     &:not(:first-child) {
@@ -223,37 +250,99 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
     }
   }
 
-  &__main {
+  &__thumb {
+    width: 56px;
+    height: 56px;
+    flex-shrink: 0;
+    border-radius: var(--p-r-md, 12px);
+    overflow: hidden;
+    background: var(--p-surface-2);
+  }
+
+  &__thumb-empty {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
+    color: var(--p-ink-3);
+  }
+
+  &__info {
     flex: 1;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
   }
 
   &__name {
     font-weight: 600;
     color: var(--p-ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  &__warn {
-    margin-top: var(--p-1, 4px);
-  }
-
-  &__qty {
-    width: 140px;
-  }
-
-  &__price {
-    width: 180px;
-    text-align: right;
-  }
-
-  &__price-unit {
+  &__unit {
     font-size: var(--p-fs-body-sm);
     color: var(--p-ink-2);
   }
 
-  &__price-total {
+  &__warn {
+    align-self: flex-start;
+    margin-top: var(--p-1, 4px);
+  }
+
+  // Степпер количества: фиксированной ширины, не прыгает.
+  &__qty {
+    display: flex;
+    align-items: center;
+    gap: var(--p-1, 4px);
+    flex-shrink: 0;
+  }
+
+  &__qty-val {
+    min-width: 48px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.1;
+  }
+
+  &__qty-num {
     font-weight: 600;
     color: var(--p-ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__qty-unit {
+    font-size: var(--p-fs-meta);
+    color: var(--p-ink-3);
+  }
+
+  &__sum {
+    width: 110px;
+    text-align: right;
+    font-weight: 600;
+    color: var(--p-ink);
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__del {
+    flex-shrink: 0;
+  }
+
+  // ── Сводка (правая колонка) ─────────────────────────────────────────
+  &__summary {
+    position: sticky;
+    top: var(--p-6, 24px);
+  }
+
+  &__summary-title {
+    font-size: var(--p-fs-h2);
+    font-weight: 600;
+    color: var(--p-ink);
+    margin-bottom: var(--p-3, 12px);
   }
 
   &__summary-line {
@@ -261,25 +350,40 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
     justify-content: space-between;
     padding: var(--p-1, 4px) 0;
     color: var(--p-ink-2);
+  }
 
-    &--total {
-      font-size: var(--p-fs-h3);
-      font-weight: 600;
-      color: var(--p-ink);
-      border-top: 1px solid var(--p-line);
-      margin-top: var(--p-2, 8px);
-      padding-top: var(--p-2, 8px);
+  &__summary-val {
+    color: var(--p-ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__summary-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-top: var(--p-2, 8px);
+    padding-top: var(--p-3, 12px);
+    border-top: 1px solid var(--p-line);
+    font-size: var(--p-fs-h2);
+    font-weight: 700;
+    color: var(--p-ink);
+
+    span:last-child {
+      font-variant-numeric: tabular-nums;
     }
   }
 
-  &__summary-actions,
-  &__result-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: var(--p-2, 8px);
+  &__checkout {
+    width: 100%;
     margin-top: var(--p-4, 16px);
   }
 
+  &__clear {
+    width: 100%;
+    margin-top: var(--p-2, 8px);
+  }
+
+  // ── Результат оформления ────────────────────────────────────────────
   &__result-head {
     display: flex;
     align-items: center;
@@ -296,14 +400,25 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
     padding-left: var(--p-4, 16px);
   }
 
+  &__result-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--p-2, 8px);
+    margin-top: var(--p-4, 16px);
+  }
+
   @media (max-width: 768px) {
-    &__row {
+    &__line {
       flex-wrap: wrap;
     }
 
-    &__price {
+    &__sum {
       width: auto;
       text-align: left;
+    }
+
+    &__summary {
+      position: static;
     }
   }
 }

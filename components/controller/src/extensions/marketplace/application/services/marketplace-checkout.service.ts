@@ -14,6 +14,10 @@ import {
   type MarketplaceOfferDomainRepository,
 } from '../../domain/repositories/marketplace-offer.repository';
 import { MarketplaceOfferStatuses } from '../../domain/entities/marketplace-offer.types';
+import {
+  MARKETPLACE_ASSET_CONFIG,
+  type MarketplaceAssetConfig,
+} from './marketplace-asset.config';
 import type { MarketplaceOfferDomainEntity } from '../../domain/entities/marketplace-offer.entity';
 import {
   MARKETPLACE_ORDER_CREATE_SERVICE,
@@ -69,6 +73,8 @@ export class MarketplaceCheckoutService {
     private readonly cartService: MarketplaceCartService,
     @Inject(USER_WALLET_REPOSITORY)
     private readonly walletRepo: UserWalletRepository,
+    @Inject(MARKETPLACE_ASSET_CONFIG)
+    private readonly assetConfig: MarketplaceAssetConfig,
     private readonly logger: WinstonLoggerService
   ) {
     this.logger.setContext(MarketplaceCheckoutService.name);
@@ -131,7 +137,7 @@ export class MarketplaceCheckoutService {
       const available = await this.spendableBalance(scope.coopname, scope.orderer_account);
       if (totalNeeded - available > 1e-6) {
         throw new BadRequestException(
-          `Недостаточно средств для оформления: нужно ${totalNeeded.toFixed(4)}, доступно ${available.toFixed(4)}. ` +
+          `Недостаточно средств для оформления: нужно ${this.formatAsset(totalNeeded)}, доступно ${this.formatAsset(available)}. ` +
             'Заказ не запущен — пополните счёт или уберите часть позиций.'
         );
       }
@@ -206,5 +212,15 @@ export class MarketplaceCheckoutService {
     if (!value) return 0;
     const n = Number.parseFloat(value);
     return Number.isNaN(n) ? 0 : n;
+  }
+
+  /**
+   * Число → asset-строка с символом валюты («300.0000 RUB»). Символ обязателен:
+   * фронт переформатирует суммы в тексте ошибки только при наличии тикера
+   * (regex `\d+\.\d{3,}\s+[A-Z]{3,7}` → «300,00 RUB»). Без символа сумма
+   * показалась бы сырой.
+   */
+  private formatAsset(value: number): string {
+    return `${value.toFixed(this.assetConfig.decimals)} ${this.assetConfig.symbol}`;
   }
 }
