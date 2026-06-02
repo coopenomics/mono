@@ -3031,6 +3031,47 @@ export type ValueTypes = {
 	step: ValueTypes["CapitalOnboardingStep"] | Variable<any, string>,
 	title?: string | undefined | null | Variable<any, string>
 };
+	/** Программный расход «Благорост» (таблица capital::progexpenses) */
+["CapitalProgramExpense"]: AliasType<{
+	/** Дата создания записи */
+	_created_at?:boolean | `@${string}`,
+	/** Внутренний ID базы данных */
+	_id?:boolean | `@${string}`,
+	/** Дата последнего обновления записи */
+	_updated_at?:boolean | `@${string}`,
+	/** Сумма расхода (asset) */
+	amount?:boolean | `@${string}`,
+	/** Записка, одобренная председателем */
+	approved_statement?:ValueTypes["DocumentAggregate"],
+	/** Решение совета по расходу (1011) */
+	authorization?:ValueTypes["DocumentAggregate"],
+	/** Номер блока последнего обновления */
+	block_num?:boolean | `@${string}`,
+	/** Статус из блокчейна */
+	blockchain_status?:boolean | `@${string}`,
+	/** Название кооператива */
+	coopname?:boolean | `@${string}`,
+	/** Описание расхода */
+	description?:boolean | `@${string}`,
+	/** Хеш расхода (анкер процесса p.cap.expns) */
+	expense_hash?:boolean | `@${string}`,
+	/** Служебная записка по расходу (1010) */
+	expense_statement?:ValueTypes["DocumentAggregate"],
+	/** ID фонда списания */
+	fund_id?:boolean | `@${string}`,
+	/** ID в блокчейне */
+	id?:boolean | `@${string}`,
+	/** Существует ли запись в блокчейне */
+	present?:boolean | `@${string}`,
+	/** Дата расхода */
+	spended_at?:boolean | `@${string}`,
+	/** Статус расхода программы */
+	status?:boolean | `@${string}`,
+	/** Инициатор расхода */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalProgramExpense']?: Omit<ValueTypes["CapitalProgramExpense"], "...on CapitalProgramExpense">
+}>;
 	/** Проект в системе CAPITAL с компонентами */
 ["CapitalProject"]: AliasType<{
 	/** Дата создания записи */
@@ -5891,6 +5932,10 @@ export type ValueTypes = {
 	/** Имя пользователя для фильтрации методов оплаты */
 	username?: string | undefined | null | Variable<any, string>
 };
+	["GetProgramExpenseInput"]: {
+	/** Внутренний ID базы данных */
+	_id: string | Variable<any, string>
+};
 	["GetProjectCommunicationRoomsInput"]: {
 	/** Хеш проекта Capital */
 	projectHash: string | Variable<any, string>
@@ -6943,6 +6988,18 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 		__typename?: boolean | `@${string}`,
 	['...on PaginatedCapitalLogsPaginationResult']?: Omit<ValueTypes["PaginatedCapitalLogsPaginationResult"], "...on PaginatedCapitalLogsPaginationResult">
 }>;
+	["PaginatedCapitalProgramExpensesPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ValueTypes["CapitalProgramExpense"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on PaginatedCapitalProgramExpensesPaginationResult']?: Omit<ValueTypes["PaginatedCapitalProgramExpensesPaginationResult"], "...on PaginatedCapitalProgramExpensesPaginationResult">
+}>;
 	["PaginatedCapitalProjectsPaginationResult"]: AliasType<{
 	/** Текущая страница */
 	currentPage?:boolean | `@${string}`,
@@ -7594,6 +7651,16 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	/** Версия генератора, использованного для создания документа */
 	version: string | Variable<any, string>
 };
+	["ProgramExpenseFilter"]: {
+	/** Фильтр по ID фонда списания */
+	fundId?: string | undefined | null | Variable<any, string>,
+	/** Фильтр по статусу расхода */
+	status?: string | undefined | null | Variable<any, string>,
+	/** Фильтр по инициатору расхода */
+	username?: string | undefined | null | Variable<any, string>
+};
+	/** Статус расхода программы «Благорост» в контракте CAPITAL (таблица progexpenses). */
+["ProgramExpenseStatus"]:ProgramExpenseStatus;
 	/** Ключ выбранной программы регистрации */
 ["ProgramKey"]:ProgramKey;
 	/** Тип целевой потребительской программы */
@@ -7844,6 +7911,8 @@ capitalInvest?: [{	data: ValueTypes["GetInvestInput"] | Variable<any, string>},V
 capitalInvests?: [{	filter?: ValueTypes["CapitalInvestFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalInvestsPaginationResult"]],
 capitalIssue?: [{	data: ValueTypes["GetCapitalIssueByHashInput"] | Variable<any, string>},ValueTypes["CapitalIssue"]],
 capitalIssues?: [{	filter?: ValueTypes["CapitalIssueFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalIssuesPaginationResult"]],
+capitalProgramExpense?: [{	data: ValueTypes["GetProgramExpenseInput"] | Variable<any, string>},ValueTypes["CapitalProgramExpense"]],
+capitalProgramExpenses?: [{	filter?: ValueTypes["ProgramExpenseFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalProgramExpensesPaginationResult"]],
 capitalProject?: [{	data: ValueTypes["GetProjectInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
 capitalProjectWithRelations?: [{	data: ValueTypes["GetProjectWithRelationsInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
 capitalProjects?: [{	filter?: ValueTypes["CapitalProjectFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalProjectsPaginationResult"]],
@@ -11530,6 +11599,46 @@ export type ResolverInputTypes = {
 	step: ResolverInputTypes["CapitalOnboardingStep"],
 	title?: string | undefined | null
 };
+	/** Программный расход «Благорост» (таблица capital::progexpenses) */
+["CapitalProgramExpense"]: AliasType<{
+	/** Дата создания записи */
+	_created_at?:boolean | `@${string}`,
+	/** Внутренний ID базы данных */
+	_id?:boolean | `@${string}`,
+	/** Дата последнего обновления записи */
+	_updated_at?:boolean | `@${string}`,
+	/** Сумма расхода (asset) */
+	amount?:boolean | `@${string}`,
+	/** Записка, одобренная председателем */
+	approved_statement?:ResolverInputTypes["DocumentAggregate"],
+	/** Решение совета по расходу (1011) */
+	authorization?:ResolverInputTypes["DocumentAggregate"],
+	/** Номер блока последнего обновления */
+	block_num?:boolean | `@${string}`,
+	/** Статус из блокчейна */
+	blockchain_status?:boolean | `@${string}`,
+	/** Название кооператива */
+	coopname?:boolean | `@${string}`,
+	/** Описание расхода */
+	description?:boolean | `@${string}`,
+	/** Хеш расхода (анкер процесса p.cap.expns) */
+	expense_hash?:boolean | `@${string}`,
+	/** Служебная записка по расходу (1010) */
+	expense_statement?:ResolverInputTypes["DocumentAggregate"],
+	/** ID фонда списания */
+	fund_id?:boolean | `@${string}`,
+	/** ID в блокчейне */
+	id?:boolean | `@${string}`,
+	/** Существует ли запись в блокчейне */
+	present?:boolean | `@${string}`,
+	/** Дата расхода */
+	spended_at?:boolean | `@${string}`,
+	/** Статус расхода программы */
+	status?:boolean | `@${string}`,
+	/** Инициатор расхода */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	/** Проект в системе CAPITAL с компонентами */
 ["CapitalProject"]: AliasType<{
 	/** Дата создания записи */
@@ -14330,6 +14439,10 @@ export type ResolverInputTypes = {
 	/** Имя пользователя для фильтрации методов оплаты */
 	username?: string | undefined | null
 };
+	["GetProgramExpenseInput"]: {
+	/** Внутренний ID базы данных */
+	_id: string
+};
 	["GetProjectCommunicationRoomsInput"]: {
 	/** Хеш проекта Capital */
 	projectHash: string
@@ -15340,6 +15453,17 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	totalPages?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["PaginatedCapitalProgramExpensesPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ResolverInputTypes["CapitalProgramExpense"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["PaginatedCapitalProjectsPaginationResult"]: AliasType<{
 	/** Текущая страница */
 	currentPage?:boolean | `@${string}`,
@@ -15959,6 +16083,16 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	/** Версия генератора, использованного для создания документа */
 	version: string
 };
+	["ProgramExpenseFilter"]: {
+	/** Фильтр по ID фонда списания */
+	fundId?: string | undefined | null,
+	/** Фильтр по статусу расхода */
+	status?: string | undefined | null,
+	/** Фильтр по инициатору расхода */
+	username?: string | undefined | null
+};
+	/** Статус расхода программы «Благорост» в контракте CAPITAL (таблица progexpenses). */
+["ProgramExpenseStatus"]:ProgramExpenseStatus;
 	/** Ключ выбранной программы регистрации */
 ["ProgramKey"]:ProgramKey;
 	/** Тип целевой потребительской программы */
@@ -16205,6 +16339,8 @@ capitalInvest?: [{	data: ResolverInputTypes["GetInvestInput"]},ResolverInputType
 capitalInvests?: [{	filter?: ResolverInputTypes["CapitalInvestFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalInvestsPaginationResult"]],
 capitalIssue?: [{	data: ResolverInputTypes["GetCapitalIssueByHashInput"]},ResolverInputTypes["CapitalIssue"]],
 capitalIssues?: [{	filter?: ResolverInputTypes["CapitalIssueFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalIssuesPaginationResult"]],
+capitalProgramExpense?: [{	data: ResolverInputTypes["GetProgramExpenseInput"]},ResolverInputTypes["CapitalProgramExpense"]],
+capitalProgramExpenses?: [{	filter?: ResolverInputTypes["ProgramExpenseFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalProgramExpensesPaginationResult"]],
 capitalProject?: [{	data: ResolverInputTypes["GetProjectInput"]},ResolverInputTypes["CapitalProject"]],
 capitalProjectWithRelations?: [{	data: ResolverInputTypes["GetProjectWithRelationsInput"]},ResolverInputTypes["CapitalProject"]],
 capitalProjects?: [{	filter?: ResolverInputTypes["CapitalProjectFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalProjectsPaginationResult"]],
@@ -19796,6 +19932,45 @@ export type ModelTypes = {
 	step: ModelTypes["CapitalOnboardingStep"],
 	title?: string | undefined | null
 };
+	/** Программный расход «Благорост» (таблица capital::progexpenses) */
+["CapitalProgramExpense"]: {
+		/** Дата создания записи */
+	_created_at: ModelTypes["DateTime"],
+	/** Внутренний ID базы данных */
+	_id: string,
+	/** Дата последнего обновления записи */
+	_updated_at: ModelTypes["DateTime"],
+	/** Сумма расхода (asset) */
+	amount?: string | undefined | null,
+	/** Записка, одобренная председателем */
+	approved_statement?: ModelTypes["DocumentAggregate"] | undefined | null,
+	/** Решение совета по расходу (1011) */
+	authorization?: ModelTypes["DocumentAggregate"] | undefined | null,
+	/** Номер блока последнего обновления */
+	block_num?: number | undefined | null,
+	/** Статус из блокчейна */
+	blockchain_status?: string | undefined | null,
+	/** Название кооператива */
+	coopname?: string | undefined | null,
+	/** Описание расхода */
+	description?: string | undefined | null,
+	/** Хеш расхода (анкер процесса p.cap.expns) */
+	expense_hash: string,
+	/** Служебная записка по расходу (1010) */
+	expense_statement?: ModelTypes["DocumentAggregate"] | undefined | null,
+	/** ID фонда списания */
+	fund_id?: string | undefined | null,
+	/** ID в блокчейне */
+	id?: number | undefined | null,
+	/** Существует ли запись в блокчейне */
+	present: boolean,
+	/** Дата расхода */
+	spended_at?: string | undefined | null,
+	/** Статус расхода программы */
+	status: ModelTypes["ProgramExpenseStatus"],
+	/** Инициатор расхода */
+	username?: string | undefined | null
+};
 	/** Проект в системе CAPITAL с компонентами */
 ["CapitalProject"]: {
 		/** Дата создания записи */
@@ -22527,6 +22702,10 @@ export type ModelTypes = {
 	/** Имя пользователя для фильтрации методов оплаты */
 	username?: string | undefined | null
 };
+	["GetProgramExpenseInput"]: {
+	/** Внутренний ID базы данных */
+	_id: string
+};
 	["GetProjectCommunicationRoomsInput"]: {
 	/** Хеш проекта Capital */
 	projectHash: string
@@ -24006,6 +24185,16 @@ export type ModelTypes = {
 	/** Общее количество страниц */
 	totalPages: number
 };
+	["PaginatedCapitalProgramExpensesPaginationResult"]: {
+		/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<ModelTypes["CapitalProgramExpense"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number
+};
 	["PaginatedCapitalProjectsPaginationResult"]: {
 		/** Текущая страница */
 	currentPage: number,
@@ -24579,6 +24768,15 @@ export type ModelTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string
 };
+	["ProgramExpenseFilter"]: {
+	/** Фильтр по ID фонда списания */
+	fundId?: string | undefined | null,
+	/** Фильтр по статусу расхода */
+	status?: string | undefined | null,
+	/** Фильтр по инициатору расхода */
+	username?: string | undefined | null
+};
+	["ProgramExpenseStatus"]:ProgramExpenseStatus;
 	["ProgramKey"]:ProgramKey;
 	["ProgramType"]:ProgramType;
 	["ProgramWallet"]: {
@@ -24852,6 +25050,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalIssues: ModelTypes["PaginatedCapitalIssuesPaginationResult"],
+	/** Расход программы «Благорост» по внутреннему ID базы данных */
+	capitalProgramExpense?: ModelTypes["CapitalProgramExpense"] | undefined | null,
+	/** Список расходов программы «Благорост» с фильтрацией и пагинацией */
+	capitalProgramExpenses: ModelTypes["PaginatedCapitalProgramExpensesPaginationResult"],
 	/** Получение проекта по хешу с компонентами */
 	capitalProject?: ModelTypes["CapitalProject"] | undefined | null,
 	/** Получение проекта с полными отношениями по хешу проекта */
@@ -28657,6 +28859,47 @@ export type GraphQLTypes = {
 	step: GraphQLTypes["CapitalOnboardingStep"],
 	title?: string | undefined | null
 };
+	/** Программный расход «Благорост» (таблица capital::progexpenses) */
+["CapitalProgramExpense"]: {
+	__typename: "CapitalProgramExpense",
+	/** Дата создания записи */
+	_created_at: GraphQLTypes["DateTime"],
+	/** Внутренний ID базы данных */
+	_id: string,
+	/** Дата последнего обновления записи */
+	_updated_at: GraphQLTypes["DateTime"],
+	/** Сумма расхода (asset) */
+	amount?: string | undefined | null,
+	/** Записка, одобренная председателем */
+	approved_statement?: GraphQLTypes["DocumentAggregate"] | undefined | null,
+	/** Решение совета по расходу (1011) */
+	authorization?: GraphQLTypes["DocumentAggregate"] | undefined | null,
+	/** Номер блока последнего обновления */
+	block_num?: number | undefined | null,
+	/** Статус из блокчейна */
+	blockchain_status?: string | undefined | null,
+	/** Название кооператива */
+	coopname?: string | undefined | null,
+	/** Описание расхода */
+	description?: string | undefined | null,
+	/** Хеш расхода (анкер процесса p.cap.expns) */
+	expense_hash: string,
+	/** Служебная записка по расходу (1010) */
+	expense_statement?: GraphQLTypes["DocumentAggregate"] | undefined | null,
+	/** ID фонда списания */
+	fund_id?: string | undefined | null,
+	/** ID в блокчейне */
+	id?: number | undefined | null,
+	/** Существует ли запись в блокчейне */
+	present: boolean,
+	/** Дата расхода */
+	spended_at?: string | undefined | null,
+	/** Статус расхода программы */
+	status: GraphQLTypes["ProgramExpenseStatus"],
+	/** Инициатор расхода */
+	username?: string | undefined | null,
+	['...on CapitalProgramExpense']: Omit<GraphQLTypes["CapitalProgramExpense"], "...on CapitalProgramExpense">
+};
 	/** Проект в системе CAPITAL с компонентами */
 ["CapitalProject"]: {
 	__typename: "CapitalProject",
@@ -31517,6 +31760,10 @@ export type GraphQLTypes = {
 	/** Имя пользователя для фильтрации методов оплаты */
 	username?: string | undefined | null
 };
+	["GetProgramExpenseInput"]: {
+		/** Внутренний ID базы данных */
+	_id: string
+};
 	["GetProjectCommunicationRoomsInput"]: {
 		/** Хеш проекта Capital */
 	projectHash: string
@@ -33087,6 +33334,18 @@ export type GraphQLTypes = {
 	totalPages: number,
 	['...on PaginatedCapitalLogsPaginationResult']: Omit<GraphQLTypes["PaginatedCapitalLogsPaginationResult"], "...on PaginatedCapitalLogsPaginationResult">
 };
+	["PaginatedCapitalProgramExpensesPaginationResult"]: {
+	__typename: "PaginatedCapitalProgramExpensesPaginationResult",
+	/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<GraphQLTypes["CapitalProgramExpense"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number,
+	['...on PaginatedCapitalProgramExpensesPaginationResult']: Omit<GraphQLTypes["PaginatedCapitalProgramExpensesPaginationResult"], "...on PaginatedCapitalProgramExpensesPaginationResult">
+};
 	["PaginatedCapitalProjectsPaginationResult"]: {
 	__typename: "PaginatedCapitalProjectsPaginationResult",
 	/** Текущая страница */
@@ -33740,6 +33999,16 @@ export type GraphQLTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string
 };
+	["ProgramExpenseFilter"]: {
+		/** Фильтр по ID фонда списания */
+	fundId?: string | undefined | null,
+	/** Фильтр по статусу расхода */
+	status?: string | undefined | null,
+	/** Фильтр по инициатору расхода */
+	username?: string | undefined | null
+};
+	/** Статус расхода программы «Благорост» в контракте CAPITAL (таблица progexpenses). */
+["ProgramExpenseStatus"]: ProgramExpenseStatus;
 	/** Ключ выбранной программы регистрации */
 ["ProgramKey"]: ProgramKey;
 	/** Тип целевой потребительской программы */
@@ -34025,6 +34294,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalIssues: GraphQLTypes["PaginatedCapitalIssuesPaginationResult"],
+	/** Расход программы «Благорост» по внутреннему ID базы данных */
+	capitalProgramExpense?: GraphQLTypes["CapitalProgramExpense"] | undefined | null,
+	/** Список расходов программы «Благорост» с фильтрацией и пагинацией */
+	capitalProgramExpenses: GraphQLTypes["PaginatedCapitalProgramExpensesPaginationResult"],
 	/** Получение проекта по хешу с компонентами */
 	capitalProject?: GraphQLTypes["CapitalProject"] | undefined | null,
 	/** Получение проекта с полными отношениями по хешу проекта */
@@ -36265,6 +36538,15 @@ export enum ProcessTemplateStatus {
 	ARCHIVED = "ARCHIVED",
 	DRAFT = "DRAFT"
 }
+/** Статус расхода программы «Благорост» в контракте CAPITAL (таблица progexpenses). */
+export enum ProgramExpenseStatus {
+	APPROVED = "APPROVED",
+	AUTHORIZED = "AUTHORIZED",
+	CREATED = "CREATED",
+	DECLINED = "DECLINED",
+	PAID = "PAID",
+	UNDEFINED = "UNDEFINED"
+}
 /** Ключ выбранной программы регистрации */
 export enum ProgramKey {
 	CAPITALIZATION = "CAPITALIZATION",
@@ -36565,6 +36847,7 @@ type ZEUS_VARIABLES = {
 	["GetMeetsInput"]: ValueTypes["GetMeetsInput"];
 	["GetOneCoopDocumentsInput"]: ValueTypes["GetOneCoopDocumentsInput"];
 	["GetPaymentMethodsInput"]: ValueTypes["GetPaymentMethodsInput"];
+	["GetProgramExpenseInput"]: ValueTypes["GetProgramExpenseInput"];
 	["GetProjectCommunicationRoomsInput"]: ValueTypes["GetProjectCommunicationRoomsInput"];
 	["GetProjectInput"]: ValueTypes["GetProjectInput"];
 	["GetProjectWithRelationsInput"]: ValueTypes["GetProjectWithRelationsInput"];
@@ -36622,6 +36905,8 @@ type ZEUS_VARIABLES = {
 	["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"]: ValueTypes["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"];
 	["ProgramCapitalizationMoneyInvestStatementSignedDocumentInput"]: ValueTypes["ProgramCapitalizationMoneyInvestStatementSignedDocumentInput"];
 	["ProgramCapitalizationMoneyInvestStatementSignedMetaDocumentInput"]: ValueTypes["ProgramCapitalizationMoneyInvestStatementSignedMetaDocumentInput"];
+	["ProgramExpenseFilter"]: ValueTypes["ProgramExpenseFilter"];
+	["ProgramExpenseStatus"]: ValueTypes["ProgramExpenseStatus"];
 	["ProgramKey"]: ValueTypes["ProgramKey"];
 	["ProgramType"]: ValueTypes["ProgramType"];
 	["ProgramWalletFilterInput"]: ValueTypes["ProgramWalletFilterInput"];

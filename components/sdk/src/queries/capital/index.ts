@@ -18,6 +18,10 @@ export * as GetExpense from './getExpense'
 
 export * as GetExpenses from './getExpenses'
 
+export * as GetProgramExpense from './getProgramExpense'
+
+export * as GetProgramExpenses from './getProgramExpenses'
+
 export * as GetInvest from './getInvest'
 
 export * as GetInvests from './getInvests'

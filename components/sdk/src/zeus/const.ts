@@ -587,6 +587,9 @@ export const AllTypesProps: Record<string,any> = {
 	GetPaymentMethodsInput:{
 
 	},
+	GetProgramExpenseInput:{
+
+	},
 	GetProjectCommunicationRoomsInput:{
 
 	},
@@ -1369,6 +1372,10 @@ export const AllTypesProps: Record<string,any> = {
 	ProgramCapitalizationMoneyInvestStatementSignedMetaDocumentInput:{
 
 	},
+	ProgramExpenseFilter:{
+
+	},
+	ProgramExpenseStatus: "enum" as const,
 	ProgramKey: "enum" as const,
 	ProgramType: "enum" as const,
 	ProgramWalletFilterInput:{
@@ -1475,6 +1482,13 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		capitalIssues:{
 			filter:"CapitalIssueFilter",
+			options:"PaginationInput"
+		},
+		capitalProgramExpense:{
+			data:"GetProgramExpenseInput"
+		},
+		capitalProgramExpenses:{
+			filter:"ProgramExpenseFilter",
 			options:"PaginationInput"
 		},
 		capitalProject:{
@@ -2642,6 +2656,26 @@ export const ReturnTypes: Record<string,any> = {
 		onboarding_generator_offer_template_hash:"String",
 		onboarding_generator_program_template_hash:"String",
 		onboarding_init_at:"String"
+	},
+	CapitalProgramExpense:{
+		_created_at:"DateTime",
+		_id:"String",
+		_updated_at:"DateTime",
+		amount:"String",
+		approved_statement:"DocumentAggregate",
+		authorization:"DocumentAggregate",
+		block_num:"Int",
+		blockchain_status:"String",
+		coopname:"String",
+		description:"String",
+		expense_hash:"String",
+		expense_statement:"DocumentAggregate",
+		fund_id:"String",
+		id:"Int",
+		present:"Boolean",
+		spended_at:"String",
+		status:"ProgramExpenseStatus",
+		username:"String"
 	},
 	CapitalProject:{
 		_created_at:"DateTime",
@@ -3896,6 +3930,12 @@ export const ReturnTypes: Record<string,any> = {
 		totalCount:"Int",
 		totalPages:"Int"
 	},
+	PaginatedCapitalProgramExpensesPaginationResult:{
+		currentPage:"Int",
+		items:"CapitalProgramExpense",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
 	PaginatedCapitalProjectsPaginationResult:{
 		currentPage:"Int",
 		items:"CapitalProject",
@@ -4215,6 +4255,8 @@ export const ReturnTypes: Record<string,any> = {
 		capitalInvests:"PaginatedCapitalInvestsPaginationResult",
 		capitalIssue:"CapitalIssue",
 		capitalIssues:"PaginatedCapitalIssuesPaginationResult",
+		capitalProgramExpense:"CapitalProgramExpense",
+		capitalProgramExpenses:"PaginatedCapitalProgramExpensesPaginationResult",
 		capitalProject:"CapitalProject",
 		capitalProjectWithRelations:"CapitalProject",
 		capitalProjects:"PaginatedCapitalProjectsPaginationResult",

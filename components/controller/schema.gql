@@ -2639,6 +2639,63 @@ input CapitalOnboardingStepInput {
   title: String
 }
 
+"""Программный расход «Благорост» (таблица capital::progexpenses)"""
+type CapitalProgramExpense {
+  """Дата создания записи"""
+  _created_at: DateTime!
+
+  """Внутренний ID базы данных"""
+  _id: String!
+
+  """Дата последнего обновления записи"""
+  _updated_at: DateTime!
+
+  """Сумма расхода (asset)"""
+  amount: String
+
+  """Записка, одобренная председателем"""
+  approved_statement: DocumentAggregate
+
+  """Решение совета по расходу (1011)"""
+  authorization: DocumentAggregate
+
+  """Номер блока последнего обновления"""
+  block_num: Int
+
+  """Статус из блокчейна"""
+  blockchain_status: String
+
+  """Название кооператива"""
+  coopname: String
+
+  """Описание расхода"""
+  description: String
+
+  """Хеш расхода (анкер процесса p.cap.expns)"""
+  expense_hash: String!
+
+  """Служебная записка по расходу (1010)"""
+  expense_statement: DocumentAggregate
+
+  """ID фонда списания"""
+  fund_id: String
+
+  """ID в блокчейне"""
+  id: Int
+
+  """Существует ли запись в блокчейне"""
+  present: Boolean!
+
+  """Дата расхода"""
+  spended_at: String
+
+  """Статус расхода программы"""
+  status: ProgramExpenseStatus!
+
+  """Инициатор расхода"""
+  username: String
+}
+
 """Проект в системе CAPITAL с компонентами"""
 type CapitalProject {
   """Дата создания записи"""
@@ -6674,6 +6731,11 @@ input GetPaymentMethodsInput {
   username: String
 }
 
+input GetProgramExpenseInput {
+  """Внутренний ID базы данных"""
+  _id: String!
+}
+
 input GetProjectCommunicationRoomsInput {
   """Хеш проекта Capital"""
   projectHash: String!
@@ -9108,6 +9170,20 @@ type PaginatedCapitalLogsPaginationResult {
   totalPages: Int!
 }
 
+type PaginatedCapitalProgramExpensesPaginationResult {
+  """Текущая страница"""
+  currentPage: Int!
+
+  """Элементы текущей страницы"""
+  items: [CapitalProgramExpense!]!
+
+  """Общее количество элементов"""
+  totalCount: Int!
+
+  """Общее количество страниц"""
+  totalPages: Int!
+}
+
 type PaginatedCapitalProjectsPaginationResult {
   """Текущая страница"""
   currentPage: Int!
@@ -9927,6 +10003,29 @@ input ProgramCapitalizationMoneyInvestStatementSignedMetaDocumentInput {
   version: String!
 }
 
+input ProgramExpenseFilter {
+  """Фильтр по ID фонда списания"""
+  fundId: String
+
+  """Фильтр по статусу расхода"""
+  status: String
+
+  """Фильтр по инициатору расхода"""
+  username: String
+}
+
+"""
+Статус расхода программы «Благорост» в контракте CAPITAL (таблица progexpenses).
+"""
+enum ProgramExpenseStatus {
+  APPROVED
+  AUTHORIZED
+  CREATED
+  DECLINED
+  PAID
+  UNDEFINED
+}
+
 """Ключ выбранной программы регистрации"""
 enum ProgramKey {
   CAPITALIZATION
@@ -10353,6 +10452,12 @@ type Query {
   Требуемые роли: chairman, member, user. 
   """
   capitalIssues(filter: CapitalIssueFilter, options: PaginationInput): PaginatedCapitalIssuesPaginationResult!
+
+  """Расход программы «Благорост» по внутреннему ID базы данных"""
+  capitalProgramExpense(data: GetProgramExpenseInput!): CapitalProgramExpense
+
+  """Список расходов программы «Благорост» с фильтрацией и пагинацией"""
+  capitalProgramExpenses(filter: ProgramExpenseFilter, options: PaginationInput): PaginatedCapitalProgramExpensesPaginationResult!
 
   """Получение проекта по хешу с компонентами"""
   capitalProject(data: GetProjectInput!): CapitalProject
