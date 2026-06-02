@@ -7,9 +7,12 @@ import {
   type CatalogOffer,
   type CatalogOfferStatus,
 } from 'src/widgets/Marketplace/CatalogOfferCard';
-import { BaseSelect, BaseButton, EmptyState } from 'src/shared/ui/base';
+import { BaseSelect, BaseButton, BaseCard, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
+import { KUHeaderBar } from 'src/widgets/Marketplace/KUHeaderBar';
+import { KUSelector } from 'src/widgets/Marketplace/KUSelector';
+import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
 import { marketplaceUnitShort } from 'src/shared/lib/consts';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
 import {
@@ -22,18 +25,24 @@ import type {
   MarketplaceCategoryView,
   MarketplaceOfferView,
 } from '../types';
-import OrderCreateDialog from './OrderCreateDialog.vue';
+import AddToCartDialog from './AddToCartDialog.vue';
 
 /**
  * Story 3.5: каталог Стола заказов на orderer-столе.
  *
  * Канон UI — `widgets/Marketplace/CatalogOfferCard` (карточка предложения).
- * Страница свёрстана по MONO Platform v2: канон-токены `--p-*`, фильтр
- * категорий — тоггл-чипы `.chip`, действие «Заказать» — `BaseButton`.
+ *
+ * Эпик 16: каталог КУ-scoped. Заказчик СНАЧАЛА выбирает пункт выдачи (КУ),
+ * витрина фильтруется по нему (`delivery_braname`) — показываются только
+ * товары, доставимые на этот КУ. КУ виден в шапке (`KUHeaderBar`) и меняется
+ * там же. Действие на карточке — «В корзину» (товар кладётся в корзину с
+ * текущим КУ), оформление — отдельным шагом на странице корзины.
  */
 
 const ALL_KEY = -1 as number;
 const PAGE_SIZE = 24;
+
+const cartStore = useMarketplaceCartStore();
 
 const categories = ref<MarketplaceCategoryView[]>([]);
 const counts = ref<Map<number, number>>(new Map());
@@ -125,6 +134,7 @@ async function loadPage(append: boolean): Promise<void> {
       page: currentPage.value,
       limit: PAGE_SIZE,
       sort: sort.value,
+      delivery_braname: cartStore.currentBraname,
     });
     total.value = page.totalCount;
     items.value = append ? items.value.concat(page.items) : page.items;
@@ -164,13 +174,20 @@ async function onLoadMore(): Promise<void> {
 const route = useRoute();
 const router = useRouter();
 const coopname = computed(() => String(route.params.coopname ?? ''));
-const orderDialogOpen = ref(false);
-const orderDialogOffer = ref<MarketplaceOfferView | null>(null);
+const cartDialogOpen = ref(false);
+const cartDialogOffer = ref<MarketplaceOfferView | null>(null);
+
+// Каталог КУ-scoped: пока пункт выдачи не выбран — витрину не показываем,
+// сначала выбор КУ (легаси-заказчики без КУ + страховка). pickedBraname —
+// локальный выбор в этом стартовом экране до применения.
+const needsKU = computed(() => !cartStore.currentBraname);
+const pickedBraname = ref<string | null>(null);
+const applyingKU = ref(false);
 
 function onSelectOffer(offer: MarketplaceOfferView): void {
   if (!canOrder(offer)) return;
-  orderDialogOffer.value = offer;
-  orderDialogOpen.value = true;
+  cartDialogOffer.value = offer;
+  cartDialogOpen.value = true;
 }
 
 // Клик по карточке открывает страницу с полным описанием предложения; быстрый
@@ -182,65 +199,108 @@ function goToDetail(offer: MarketplaceOfferView): void {
   });
 }
 
-async function onOrderCreated(): Promise<void> {
-  await loadPage(false);
+// Перезагрузка витрины под текущий КУ (категории зависят от КУ-фильтра).
+async function reloadCatalog(): Promise<void> {
+  currentPage.value = 1;
+  await Promise.all([loadCategories(), loadPage(false)]);
+}
+
+// Применить выбранный на стартовом экране КУ → фиксируем в корзине и грузим витрину.
+async function applyInitialKU(): Promise<void> {
+  if (!pickedBraname.value) return;
+  applyingKU.value = true;
+  try {
+    await cartStore.changeDeliveryPoint(pickedBraname.value);
+    await reloadCatalog();
+  } catch (e) {
+    FailAlert(e);
+  } finally {
+    applyingKU.value = false;
+  }
+}
+
+// КУ сменили в шапке — перегружаем витрину под новый пункт выдачи.
+async function onKUChanged(): Promise<void> {
+  await reloadCatalog();
 }
 
 onMounted(async () => {
-  await loadCategories();
-  await loadPage(false);
+  // Корзина хранит текущий КУ — грузим её первой. Если КУ уже выбран
+  // (присоединение или прошлый визит) — сразу показываем витрину под него.
+  await cartStore.load();
+  if (cartStore.currentBraname) {
+    await loadCategories();
+    await loadPage(false);
+  }
 });
 </script>
 
 <template lang="pug">
 q-page.catalog(role="region", aria-label="Каталог Стола заказов")
-  PageHint(storage-key="mp:catalog:banner-dismissed")
-    | Предложения поставщиков кооператива. Выберите товар или оформите заказ на ваш пункт выдачи.
+  KUHeaderBar(:coopname="coopname", @changed="onKUChanged")
 
-  PageTabs.catalog__tabs(
-    :tabs="categoryTabs",
-    :active-key="activeCategoryKey",
-    @select="onSelectCategory"
+  //- КУ ещё не выбран: сначала выбор пункта выдачи, витрина скрыта —
+  //- модель «сначала КУ, потом каталог, отфильтрованный под него».
+  BaseCard.catalog__pick-ku(
+    v-if="needsKU",
+    title="Выберите пункт выдачи",
+    subtitle="Каталог покажет товары, которые возят на выбранный кооперативный участок. Пункт можно сменить в любой момент в шапке стола."
   )
-    template(#actions)
-      BaseSelect.catalog__sort(
-        :model-value="sort",
-        :options="sortOptions",
-        label="Сортировка",
-        @update:model-value="onSortChange"
-      )
+    KUSelector(v-model="pickedBraname", :coopname="coopname")
+    .catalog__pick-actions
+      BaseButton(
+        variant="primary",
+        :disabled="!pickedBraname",
+        :loading="applyingKU",
+        @click="applyInitialKU"
+      ) Открыть каталог
 
-  q-inner-loading(:showing="loading && items.length === 0")
-    q-spinner(color="primary", size="2em")
+  template(v-else)
+    PageHint(storage-key="mp:catalog:banner-dismissed")
+      | Предложения поставщиков, доставимые на ваш пункт выдачи. Добавляйте товары в корзину — оформление одним заказом на странице корзины.
 
-  EmptyState(
-    v-if="!loading && items.length === 0",
-    title="Ничего не найдено",
-    :body="emptyBody"
-  )
-    template(#icon)
-      q-icon(name="search_off", size="48px")
+    PageTabs.catalog__tabs(
+      :tabs="categoryTabs",
+      :active-key="activeCategoryKey",
+      @select="onSelectCategory"
+    )
+      template(#actions)
+        BaseSelect.catalog__sort(
+          :model-value="sort",
+          :options="sortOptions",
+          label="Сортировка",
+          @update:model-value="onSortChange"
+        )
 
-  q-infinite-scroll(@load="onLoadMore", :disable="!hasMore || loading")
-    .row.q-col-gutter-md
-      .col-12.col-sm-6.col-md-4.col-lg-3(v-for="o in items", :key="o.id")
-        CatalogOfferCard(:offer="toCatalogOffer(o)", @click="goToDetail(o)")
-          template(#actions)
-            BaseButton(
-              variant="primary",
-              size="sm",
-              :disabled="!canOrder(o)",
-              @click.stop="onSelectOffer(o)"
-            ) Заказать
-    template(#loading)
-      .row.justify-center.q-my-md
-        q-spinner(color="primary", size="2em")
+    q-inner-loading(:showing="loading && items.length === 0")
+      q-spinner(color="primary", size="2em")
 
-  OrderCreateDialog(
-    v-model="orderDialogOpen",
-    :coopname="coopname",
-    :offer="orderDialogOffer",
-    @created="onOrderCreated"
+    EmptyState(
+      v-if="!loading && items.length === 0",
+      title="Ничего не найдено",
+      :body="emptyBody"
+    )
+      template(#icon)
+        q-icon(name="search_off", size="48px")
+
+    q-infinite-scroll(@load="onLoadMore", :disable="!hasMore || loading")
+      .row.q-col-gutter-md
+        .col-12.col-sm-6.col-md-4.col-lg-3(v-for="o in items", :key="o.id")
+          CatalogOfferCard(:offer="toCatalogOffer(o)", @click="goToDetail(o)")
+            template(#actions)
+              BaseButton(
+                variant="primary",
+                size="sm",
+                :disabled="!canOrder(o)",
+                @click.stop="onSelectOffer(o)"
+              ) В корзину
+      template(#loading)
+        .row.justify-center.q-my-md
+          q-spinner(color="primary", size="2em")
+
+  AddToCartDialog(
+    v-model="cartDialogOpen",
+    :offer="cartDialogOffer"
   )
 </template>
 
@@ -265,6 +325,12 @@ q-page.catalog(role="region", aria-label="Каталог Стола заказо
 
   &__sort {
     min-width: 200px;
+  }
+
+  &__pick-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: var(--p-4, 16px);
   }
 }
 

@@ -1,6 +1,7 @@
 import { markRaw } from 'vue'
 import { MarketplaceCatalogPage } from 'src/pages/Marketplace/MarketplaceCatalog'
 import { MarketplaceOfferDetailPage } from 'src/pages/Marketplace/MarketplaceOfferDetail'
+import { CartPage } from 'src/pages/Marketplace/Cart'
 import { CreateMarketplaceOfferPage } from 'src/pages/Marketplace/CreateMarketplaceOffer'
 import { MyOrdersPage } from 'src/pages/Marketplace/MyOrders'
 import { OperatorTrustedPersonsPage } from 'src/pages/Marketplace/OperatorTrustedPersons'
@@ -146,6 +147,23 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 requiresAuth: true,
                 agreements: agreementsBase,
                 hidden: true,
+              },
+              children: [],
+            },
+            {
+              // Эпик 16 / Story 16.1-16.2: корзина заказчика и оформление.
+              // Точка оформления: позиции (одна корзина — один КУ), правка
+              // количества, «Оформить заказ» → заказ-агрегат под общим
+              // checkout_id на текущий КУ. Требует orderer-грант Order:create.
+              path: 'cart',
+              name: 'marketplace-cart',
+              component: markRaw(CartPage),
+              meta: {
+                title: 'Корзина',
+                icon: 'shopping_cart',
+                requires: 'Order:create',
+                requiresAuth: true,
+                agreements: agreementsBase,
               },
               children: [],
             },

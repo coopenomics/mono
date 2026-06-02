@@ -7,8 +7,9 @@ import { BaseButton, BaseBadge, EmptyState } from 'src/shared/ui/base';
 import { OfferGallery } from 'src/widgets/Marketplace/OfferGallery';
 import { marketplaceUnitShort } from 'src/shared/lib/consts';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
+import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
 import { fetchCategories } from '../../MarketplaceCatalog/api';
-import OrderCreateDialog from '../../MarketplaceCatalog/ui/OrderCreateDialog.vue';
+import AddToCartDialog from '../../MarketplaceCatalog/ui/AddToCartDialog.vue';
 import { fetchOffer } from '../api';
 import type { MarketplaceOfferDetailView } from '../types';
 
@@ -16,13 +17,14 @@ import type { MarketplaceOfferDetailView } from '../types';
  * Эпик 15: страница полного описания предложения. Карточка каталога несёт лишь
  * категорию + поставщика + краткое описание; всё остальное (полное описание без
  * ограничения длины, участки поставки с минимальным объёмом, гарантия, галерея)
- * раскрывается здесь по клику на карточку. Заказ оформляется тем же диалогом,
- * что и из каталога.
+ * раскрывается здесь по клику на карточку. В корзину кладётся тем же диалогом,
+ * что и из каталога (Эпик 16), с текущим КУ заказчика.
  */
 
 const route = useRoute();
 const router = useRouter();
 const system = useSystemStore();
+const cartStore = useMarketplaceCartStore();
 
 const coopname = computed(() => String(route.params.coopname ?? ''));
 const offerId = computed(() => String(route.params.offerId ?? ''));
@@ -35,7 +37,9 @@ const offer = ref<MarketplaceOfferDetailView | null>(null);
 const loading = ref(false);
 const categoryNames = ref<Record<number, string>>({});
 
-const orderDialogOpen = ref(false);
+const cartDialogOpen = ref(false);
+// В корзину нельзя, пока заказчик не выбрал пункт выдачи (КУ задаёт витрину).
+const noKU = computed(() => !cartStore.currentBraname);
 
 const images = computed(() => (offer.value ? marketplaceOfferImageUrls(offer.value.images) : []));
 
@@ -99,11 +103,17 @@ function goBack(): void {
   }
 }
 
-async function onOrderCreated(): Promise<void> {
+onMounted(async () => {
   await load();
-}
-
-onMounted(load);
+  // В режиме заказа нужен текущий КУ (для кнопки «В корзину» и диалога).
+  if (!readonly.value) {
+    try {
+      await cartStore.load();
+    } catch {
+      // Корзина подгрузится при заходе в каталог; кнопка просто будет неактивна.
+    }
+  }
+});
 </script>
 
 <template lang="pug">
@@ -147,9 +157,11 @@ q-page.offer-detail(role="region", aria-label="Описание предложе
       BaseButton(
         v-if="!readonly",
         variant="primary",
-        :disabled="!canOrder",
-        @click="orderDialogOpen = true"
-      ) Заказать
+        :disabled="!canOrder || noKU",
+        @click="cartDialogOpen = true"
+      ) В корзину
+      .offer-detail__noku-hint(v-if="!readonly && noKU")
+        | Выберите пункт выдачи в каталоге, чтобы заказывать.
 
   .offer-detail__sections(v-if="offer")
     section.offer-detail__section(v-if="offer.description")
@@ -167,12 +179,10 @@ q-page.offer-detail(role="region", aria-label="Описание предложе
       .offer-detail__section-head Гарантия
       .offer-detail__desc {{ offer.warranty_days }} дн.
 
-  OrderCreateDialog(
+  AddToCartDialog(
     v-if="!readonly",
-    v-model="orderDialogOpen",
-    :coopname="coopname",
-    :offer="offer",
-    @created="onOrderCreated"
+    v-model="cartDialogOpen",
+    :offer="offer"
   )
 </template>
 
@@ -182,6 +192,12 @@ q-page.offer-detail(role="region", aria-label="Описание предложе
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
+
+  &__noku-hint {
+    margin-top: var(--p-2, 8px);
+    font-size: var(--p-fs-body-sm);
+    color: var(--p-warn);
+  }
 
   &__back {
     align-self: flex-start;
