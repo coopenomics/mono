@@ -122,7 +122,13 @@ function syncPlacemarks(ymaps: any) {
     mapInstance.geoObjects.add(pm)
     placemarks.set(pvz.coreBraname, pm)
   }
-  if (visibleItems.value.length > 0) {
+  // Одна точка: setBounds на bbox из одной точки зумит в максимум («упёрся
+  // носом в дом») — центрируем на ней с городским зумом. Несколько точек —
+  // подгоняем границы под все. Ноль — оставляем дефолтный центр (Москва).
+  if (visibleItems.value.length === 1) {
+    const p = visibleItems.value[0]!
+    mapInstance.setCenter([p.lat!, p.lng!], 12, { duration: 300 })
+  } else if (visibleItems.value.length > 1) {
     mapInstance.setBounds(mapInstance.geoObjects.getBounds(), { checkZoomRange: true, zoomMargin: 40 })
   }
 }

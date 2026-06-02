@@ -2,15 +2,11 @@
 import { computed, onMounted, ref } from 'vue';
 import { FailAlert, NotifyAlert } from 'src/shared/api';
 import { useRouter } from 'vue-router';
-import {
-  OnboardingCPPGate,
-  type CPPDocument,
-} from 'src/widgets/Marketplace/OnboardingCPPGate';
 import { KUSelector } from 'src/widgets/Marketplace/KUSelector';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSystemStore } from 'src/entities/System/model';
 import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
-import { BaseCard } from 'src/shared/ui/base';
+import { BaseCard, BaseButton, BaseCheckbox, EmptyState } from 'src/shared/ui/base';
 import { loadExtensionRoutes } from 'src/processes/init-installed-extensions';
 import {
   fetchOnboardingState,
@@ -19,58 +15,35 @@ import {
 } from '../api';
 
 /**
- * Эпик 1 / Story 1.4 + 1.11: L3 онбординг пайщика — Marketplace gate.
+ * Эпик 1 / Story 1.4 + 1.11: L3 онбординг пайщика — присоединение к Столу заказов.
  *
- * Пайщик попадает сюда, когда `marketplaceOnboardingState.requires_gate === true`
- * (см. routing guard /market/*). На странице — canon `OnboardingCPPGate`
- * (UX-DR17) со списком документов ЦПП «Стол заказов»: оферта на присоединение
- * + Положение ЦПП. Подпись делает core `wallet::signagree` через
- * Registrator мастер (платформенный поток, не marketplace).
+ * ЕДИНАЯ карточка-шаг (не два разрозненных блока): сверху — выбор пункта выдачи
+ * (КУ) со списком и картой, под ним во всю ширину — согласие с офертой и кнопка
+ * подписи. КУ выбирается ДО подписи (held локально), подпись без выбранного КУ
+ * и без согласия заблокирована. Persist КУ в корзину (`setCartDeliveryPoint`)
+ * делаем СРАЗУ после синка подписи — до неё нет orderer-прав на Cart.
  *
- * UI здесь — информационный layer: показывает документы, ведёт пользователя
- * в Registrator. После подписи backend пересчитает `requires_gate=false` и
- * пайщик попадёт на /market.
- *
- * Зачем отдельная страница, а не только gate-overlay: чтобы у пайщика была
- * прямая ссылка из навигации/уведомлений «подключиться к Marketplace».
+ * Подпись: mutation `marketplaceSignOnboardingOffer` (оферта registry_id=1101,
+ * подписывается локальным WIF, backend выполняет on-chain `wallet::signagree`).
  */
 
 const state = ref<MarketplaceOnboardingStateView | null>(null);
 const loading = ref(false);
-// Идёт подписание + переход на стол заказчика. Пока true — прячем баннер
-// «Вы уже подключены» и держим спиннер, чтобы между скрытием gate и редиректом
-// не мелькал промежуточный экран-поздравление (пользователь явно не хочет его).
+// Идёт подписание + переход на стол заказчика. Пока true — прячем форму и
+// держим спиннер, чтобы между скрытием формы и редиректом не мелькал
+// промежуточный экран-поздравление (пользователь явно не хочет его).
 const redirecting = ref(false);
 const router = useRouter();
 const desktop = useDesktopStore();
 const system = useSystemStore();
 const cartStore = useMarketplaceCartStore();
 
-// Story 16.4 / 1.11: КУ заказчик выбирает ПРЯМО здесь, при присоединении —
-// тот пункт выдачи, что ему ближе/удобнее. Это первичный КУ: каталог сразу
-// откроется отфильтрованным под него. Выбор held локально, пока идёт подпись;
-// persist в корзину (`setCartDeliveryPoint`) делаем СРАЗУ после синка подписи —
-// до неё у пайщика ещё нет orderer-прав на Cart. Без выбранного КУ подпись
-// оферты заблокирована (нельзя присоединиться, не указав, куда возить).
+// Выбранный при присоединении КУ + согласие с офертой — оба обязательны.
 const selectedBraname = ref<string | null>(null);
+const agreed = ref(false);
 const coopname = computed(() => system.info?.coopname ?? '');
 
-// Единственный подписываемый документ — оферта на присоединение к ЦПП.
-// Положение ЦПП сюда отдельной подписью не выносится: это статический документ
-// для ознакомления (принимается кооперативом на L1), оферта на него ссылается.
-const cppDocuments = computed<CPPDocument[]>(() => {
-  if (!state.value) return [];
-  return [
-    {
-      id: 'cpp-marketplace-offer',
-      title: 'Оферта на присоединение к ЦПП «Стол заказов»',
-      description: 'Заявление о присоединении к программе с условиями участия.',
-      required: true,
-      locked: false,
-    },
-  ];
-});
-
+const canSign = computed(() => Boolean(selectedBraname.value) && agreed.value);
 const alreadyDone = computed(() => state.value && !state.value.requires_gate);
 
 async function load(): Promise<void> {
@@ -89,8 +62,7 @@ async function load(): Promise<void> {
  * вернулась), но `requires_gate` и гранты завязаны на PG-кеш `wallet::users`,
  * который parser синхронизирует со следующего блока. Коротко поллим состояние
  * онбординга, пока подпись не отразится в PG, — тогда и `getDesktop` отдаст
- * полные orderer-права. Так переключение происходит само, без ручного refresh
- * (и без поллинга на каждом переходе — только здесь, разово после подписи).
+ * полные orderer-права. Так переключение происходит само, без ручного refresh.
  */
 async function waitForSignatureSynced(): Promise<boolean> {
   const deadline = Date.now() + 15000;
@@ -102,14 +74,11 @@ async function waitForSignatureSynced(): Promise<boolean> {
   return false;
 }
 
-async function onAccept(_documentIds: string[]): Promise<void> {
-  // L3 подпись прямо со стола: mutation `marketplaceSignOnboardingOffer`.
-  // Frontend рендерит оферту 1101 через documentFactory, подписывает локальным
-  // WIF, отправляет на backend, а тот вызывает on-chain `wallet::signagree` от
-  // лица coopname (программная подпись в wallet::users.programs[], program_id=2).
+async function onSign(): Promise<void> {
+  if (!canSign.value) return;
   loading.value = true;
-  // Сразу прячем gate-результат: подписал → ведём на стол заказчика без
-  // промежуточного экрана-поздравления.
+  // Сразу прячем форму: подписал → ведём на стол заказчика без промежуточного
+  // экрана-поздравления.
   redirecting.value = true;
   try {
     state.value = await signOnboardingOffer();
@@ -118,17 +87,13 @@ async function onAccept(_documentIds: string[]): Promise<void> {
     const confirmed =
       (!!state.value && !state.value.requires_gate) || (await waitForSignatureSynced());
     if (confirmed) {
-      // Подпись синхронизирована: backend теперь выдаёт полные orderer-права
-      // вместо маркера Onboarding:orderer. Перечитываем десктоп (гранты) и
-      // переустанавливаем маршруты, затем ведём на первую доступную страницу
-      // стола (Каталог) — тот же канон refresh, что у EnableButton. Без тоста-
-      // поздравления — редирект и есть подтверждение.
+      // Подпись синхронизирована: backend теперь выдаёт полные orderer-права.
+      // Перечитываем десктоп (гранты) и переустанавливаем маршруты.
       await desktop.loadDesktop();
       await loadExtensionRoutes('market', router);
-      // Теперь у пайщика есть orderer-права на Cart — фиксируем выбранный при
-      // присоединении КУ как пункт выдачи корзины. Каталог откроется уже
-      // отфильтрованным под этот КУ. Если шаг упадёт — не блокируем переход:
-      // КУ можно будет выбрать/сменить в шапке стола.
+      // Теперь у пайщика есть orderer-права на Cart — фиксируем выбранный КУ как
+      // пункт выдачи корзины. Каталог откроется уже отфильтрованным под него.
+      // Если шаг упадёт — не блокируем переход: КУ можно сменить в шапке стола.
       if (selectedBraname.value) {
         try {
           await cartStore.changeDeliveryPoint(selectedBraname.value);
@@ -163,6 +128,10 @@ function onDecline(): void {
   void router.push({ name: 'wallet' });
 }
 
+function goToCatalog(): void {
+  void router.push({ name: 'marketplace-catalog' });
+}
+
 onMounted(load);
 </script>
 
@@ -171,46 +140,58 @@ q-page.mp-role-orderer.mp-member-cpp(role="region", aria-label="Подключе
   q-inner-loading(:showing="(loading && !state) || redirecting")
     q-spinner(color="primary", size="2em")
 
-  q-banner(v-if="alreadyDone && !redirecting", rounded, class="bg-positive text-white q-mt-md")
-    template(#avatar)
-      q-icon(name="fa-solid fa-circle-check", color="white")
-    div.text-subtitle2 Вы уже подключены к Столу заказов
-    div.text-body2
-      | Подпись ЦПП Стола заказов уже выполнена.
-      template(v-if="state?.completed_at")
-        |  Дата: {{ state.completed_at }}.
-      |  Можете переходить на стол заказчика.
-    template(#action)
-      q-btn(flat, color="white", label="К каталогу", @click="router.push({ name: 'marketplace-catalog' })")
+  //- Уже подключён — поздравление-состояние (канон EmptyState), без формы.
+  EmptyState(
+    v-if="alreadyDone && !redirecting",
+    title="Вы уже подключены к Столу заказов",
+    body="Подпись ЦПП «Стол заказов» уже выполнена. Можно переходить на стол заказчика."
+  )
+    template(#icon)
+      q-icon(name="check_circle", color="positive", size="48px")
+    template(#actions)
+      BaseButton(variant="primary", @click="goToCatalog") К каталогу
 
-  //- Пока идёт подписание + переход (redirecting) — формы скрываем: иначе
-  //- одновременно крутятся два спиннера (полностраничный q-inner-loading
-  //- по центру + спиннер кнопки «Подписать оферту»). Оставляем один.
-  template(v-if="state && state.requires_gate && !redirecting")
-    //- Story 16.4 / 1.11: первый шаг присоединения — выбор пункта выдачи (КУ).
-    //- Список + карта; пайщик выбирает удобный участок, видит его на карте,
-    //- может сменить. Это драйвит витрину каталога после подключения.
-    BaseCard.mp-member-cpp__ku(
-      title="1. Выберите пункт выдачи (КУ)",
-      subtitle="Где вам удобно получать заказы. После подключения каталог откроется с товарами, которые возят на выбранный участок — пункт можно будет сменить в шапке стола."
-    )
+  //- Единая карточка присоединения: выбор КУ + карта, под ними — согласие и
+  //- подпись. Пока идёт подписание (redirecting) — скрыта (один спиннер).
+  BaseCard.mp-member-cpp__card(v-if="state && state.requires_gate && !redirecting")
+    .mp-member-cpp__lead
+      | Чтобы подключиться к Столу заказов, выберите удобный пункт выдачи и
+      | подпишите оферту на присоединение.
+
+    section.mp-member-cpp__section
+      .text-subtitle1.text-weight-medium Пункт выдачи (КУ)
+      .text-caption.text-grey-7.mp-member-cpp__hint
+        | Где вам удобно получать заказы. После подключения каталог откроется с
+        | товарами, которые возят на выбранный участок — пункт можно сменить в
+        | шапке стола.
       KUSelector(v-model="selectedBraname", :coopname="coopname")
 
-    OnboardingCPPGate(
-      v-if="cppDocuments.length",
-      title="2. Присоединение к Столу заказов",
-      subtitle="Подключение пайщика к программе",
-      lead-text="Ознакомьтесь с Положением ЦПП «Стол заказов» и подпишите оферту на присоединение. При нажатии «Подписать оферту» документ будет подписан вашим электронным ключом и отправлен в блокчейн.",
-      :documents="cppDocuments",
-      confirm-label="Подписать оферту"
-      :busy="loading",
-      :confirm-disabled="!selectedBraname",
-      @accept="onAccept",
-      @decline="onDecline"
-    )
+    q-separator.mp-member-cpp__sep
 
-  q-banner(v-if="state && !state.requires_gate && !alreadyDone", rounded, class="bg-grey-3 q-mt-md")
-    div.text-body2 Состояние онбординга получено, но gate не требуется и подпись не зафиксирована — возможен временный рассинхрон. Обновите страницу.
+    section.mp-member-cpp__consent
+      BaseCheckbox(:model-value="agreed", block, @update:model-value="(v) => (agreed = v)")
+        | Я ознакомлен(а) с офертой на присоединение к ЦПП «Стол заказов» и Положением ЦПП и согласен(на) с условиями участия.
+      .text-caption.text-grey-7.mp-member-cpp__consent-hint
+        | Подпись оферты обязательна для подключения. Документ будет подписан
+        | вашим электронным ключом и отправлен в блокчейн.
+
+    .mp-member-cpp__actions
+      BaseButton(variant="ghost", :disabled="loading", @click="onDecline") Отказаться
+      BaseButton(
+        variant="primary",
+        :loading="loading",
+        :disabled="!canSign",
+        @click="onSign"
+      ) Подписать оферту
+
+  //- Редкий рассинхрон: gate не требуется, но подпись не зафиксирована.
+  BaseCard.mp-member-cpp__card(
+    v-if="state && !state.requires_gate && !alreadyDone",
+    variant="quiet"
+  )
+    .text-body2.text-grey-7
+      | Состояние онбординга получено, но подпись пока не зафиксирована — возможен
+      | временный рассинхрон. Обновите страницу через несколько секунд.
 </template>
 
 <style scoped lang="scss">
@@ -222,8 +203,48 @@ q-page.mp-role-orderer.mp-member-cpp(role="region", aria-label="Подключе
   // Шире обычной формы: внутри карта пунктов выдачи (список + карта рядом).
   max-width: 1080px;
 
-  &__ku {
-    width: 100%;
+  // Единый вертикальный ритм внутри карточки.
+  &__card :deep(.base-card__body) {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-4, 16px);
+  }
+
+  &__lead {
+    font-size: var(--p-fs-body, 14px);
+    color: var(--p-ink-2);
+  }
+
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-2, 8px);
+  }
+
+  &__hint {
+    margin-bottom: var(--p-2, 8px);
+  }
+
+  &__sep {
+    background: var(--p-line);
+  }
+
+  &__consent {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-2, 8px);
+  }
+
+  &__consent-hint {
+    padding-left: calc(18px + var(--p-2, 8px));
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--p-2, 8px);
+    padding-top: var(--p-2, 8px);
+    border-top: 1px solid var(--p-line);
   }
 }
 </style>
