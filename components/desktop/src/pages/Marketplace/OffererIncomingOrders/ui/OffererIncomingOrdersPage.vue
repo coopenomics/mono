@@ -372,7 +372,8 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
 
 <style scoped lang="scss">
 .incoming-orders {
-  padding: 0 var(--p-4, 16px) var(--p-6, 24px);
+  // Воздух сверху как на остальных столах поставщика (OffererMyOffers).
+  padding: var(--p-6, 24px) var(--p-4, 16px);
 
   &__col {
     max-width: 1120px;

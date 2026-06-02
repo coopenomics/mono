@@ -257,7 +257,8 @@ q-page.collective(role="region", aria-label="Коллективный заказ
 
 <style scoped lang="scss">
 .collective {
-  padding: 0 var(--p-4, 16px) var(--p-6, 24px);
+  // Воздух сверху как на столе поставщика — единый канон столов.
+  padding: var(--p-6, 24px) var(--p-4, 16px);
 
   &__col {
     max-width: 1120px;
@@ -276,7 +277,7 @@ q-page.collective(role="region", aria-label="Коллективный заказ
 
 @media (max-width: 768px) {
   .collective {
-    padding: 0 var(--p-3, 12px) var(--p-4, 16px);
+    padding: var(--p-4, 16px) var(--p-3, 12px);
   }
 }
 </style>

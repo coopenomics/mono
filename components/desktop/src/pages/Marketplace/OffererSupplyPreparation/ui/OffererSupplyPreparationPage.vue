@@ -6,6 +6,8 @@ import { useSessionStore } from 'src/entities/Session';
 import { BaseBadge, BaseButton, BaseDialog, EmptyState, TableSkeleton } from 'src/shared/ui/base';
 import type { BaseBadgeVariant, TableSkeletonColumn } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
+import { EntityIdBadge } from 'src/shared/ui/EntityIdBadge';
+import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
 import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
 import { HandoffCodeDialog } from 'src/widgets/Marketplace/HandoffCode';
 import { HandoffTokenKind } from 'src/shared/lib/marketplace';
@@ -35,6 +37,24 @@ const PAGE_SIZE = 200;
 const route = useRoute();
 const session = useSessionStore();
 const coopname = computed(() => String(route.params.coopname ?? ''));
+
+// КУ-детали стола — для человекочитаемой колонки «КУ» (наименование + адрес)
+// вместо технического braname; резолвим по braname на фронте (партия несёт
+// только braname).
+const kuStore = useMarketplaceKUDetailsStore();
+const kuByBraname = computed(() => {
+  const m = new Map<string, { name: string; address: string }>();
+  for (const k of kuStore.details) {
+    m.set(k.coreBraname, { name: k.name || k.coreBraname, address: k.addressFull ?? '' });
+  }
+  return m;
+});
+function kuName(braname: string): string {
+  return kuByBraname.value.get(braname)?.name ?? braname;
+}
+function kuAddr(braname: string): string {
+  return kuByBraname.value.get(braname)?.address ?? '';
+}
 
 const shipments = ref<MarketplaceShipmentView[]>([]);
 const acceptedOrders = ref<MarketplaceOrderView[]>([]);
@@ -140,6 +160,7 @@ async function load(): Promise<void> {
       listShipments(),
       fetchSupplierOrders({ statuses: ['ACCEPTED'], limit: PAGE_SIZE }),
       fetchSupplierOrders({ statuses: ['SUPPLY_PREPARED'], limit: PAGE_SIZE }),
+      kuStore.load({ coopname: coopname.value, onlyActive: false }),
     ]);
     shipments.value = shipmentsResult;
     acceptedOrders.value = ordersResult.items;
@@ -185,7 +206,7 @@ q-page.offerer-supply
     v-if='loading && !shipments.length',
     :columns='skeletonColumns',
     :rows='6',
-    min-width="970px"
+    min-width="1040px"
   )
 
   //- Сформированные партии — основной список стола.
@@ -204,8 +225,18 @@ q-page.offerer-supply
               th.col-ttn ТТН
           tbody
             tr(v-for='row in shipments', :key='row.id')
-              td.col-id {{ row.cycle_id }}
-              td {{ row.braname }}
+              td.col-id
+                EntityIdBadge(
+                  v-if='row.cycle_id',
+                  :raw-id='String(row.cycle_id).slice(0, 8)',
+                  :copy-value='row.cycle_id',
+                  copy-on-click
+                )
+                span(v-else) —
+              td
+                .offerer-supply__ku-text
+                  .offerer-supply__ku-name {{ kuName(row.braname) }}
+                  .offerer-supply__ku-addr(v-if='kuAddr(row.braname)') {{ kuAddr(row.braname) }}
               td.col-variant {{ deliveryVariantLabel(row.delivery_variant) }}
               td.col-status
                 BaseBadge(:variant='statusOf(row.status).variant') {{ statusOf(row.status).label }}
@@ -360,7 +391,7 @@ q-page.offerer-supply
 }
 .table {
   table-layout: fixed;
-  min-width: 970px;
+  min-width: 1040px;
 }
 .col-id {
   width: 150px;

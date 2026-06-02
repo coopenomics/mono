@@ -45,9 +45,10 @@ const activeKey = ref('all');
 
 const hasMore = computed(() => currentPage.value < totalPages.value);
 
-// Финальная подпись получения — диалог прямо из карточки заказа.
+// Финальная подпись получения — диалог прямо из карточки заказа, СВОДНЫЙ по
+// всем готовым позициям пункта выдачи (пайщик подтверждает получение разом).
 const finalizeDialogOpen = ref(false);
-const selectedOrder = ref<MarketplaceOrderView | null>(null);
+const selectedOrders = ref<MarketplaceOrderView[]>([]);
 
 // Код получения (account-bound QR) — диалогом из шапки, в одном месте.
 const receiveDialogOpen = ref(false);
@@ -149,7 +150,13 @@ function confirmCancel(order: MarketplaceOrderView): void {
 }
 
 function startFinalize(order: MarketplaceOrderView): void {
-  selectedOrder.value = order;
+  // Сводим все готовые к выдаче позиции этого же пункта — пайщик подтверждает
+  // получение разом, одной подписью по каждой (циклом), не по одной кнопке на
+  // позицию.
+  const siblings = items.value.filter(
+    (o) => o.status === 'READY_TO_RECEIVE' && o.delivery_braname === order.delivery_braname,
+  );
+  selectedOrders.value = siblings.length ? siblings : [order];
   finalizeDialogOpen.value = true;
 }
 
@@ -232,7 +239,7 @@ q-page.orders(role="region", aria-label="Мои заказы")
 
   OrdererFinalizeIssuanceDialog(
     v-model="finalizeDialogOpen",
-    :order="selectedOrder",
+    :orders="selectedOrders",
     @finalized="onFinalized"
   )
 
@@ -241,9 +248,9 @@ q-page.orders(role="region", aria-label="Мои заказы")
 
 <style scoped lang="scss">
 .orders {
-  // Меню-вкладки (PageTabs) прижимаются к топбару — гасим верхний отступ
-  // страницы; контент ниже разводит flex-gap.
-  padding: 0 var(--p-6, 24px) var(--p-6, 24px);
+  // Воздух сверху как на столе поставщика — единый канон столов. Контент
+  // ниже разводит flex-gap.
+  padding: var(--p-6, 24px);
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
@@ -269,7 +276,7 @@ q-page.orders(role="region", aria-label="Мои заказы")
 
 @media (max-width: 768px) {
   .orders {
-    padding: 0 var(--p-4, 16px) var(--p-4, 16px);
+    padding: var(--p-4, 16px);
   }
 }
 </style>
