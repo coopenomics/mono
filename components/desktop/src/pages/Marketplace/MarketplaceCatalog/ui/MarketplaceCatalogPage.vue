@@ -244,10 +244,12 @@ q-page.catalog(role="region", aria-label="Каталог Стола заказо
         q-icon(name="shopping_cart", size="16px")
       | Корзина{{ cartStore.positionsCount ? ` (${cartStore.positionsCount})` : '' }}
 
-  KUHeaderBar(:coopname="coopname", @changed="onKUChanged")
-
+  //- Сначала закрываемая инфо-подсказка (PageHint, ×), под ней — незакрываемый
+  //- бар пункта выдачи (КУ всегда на виду, не прячется).
   PageHint(storage-key="mp:catalog:banner-dismissed")
     | Предложения поставщиков кооператива. Выберите пункт выдачи (КУ), чтобы заказывать и видеть только доставимое на него.
+
+  KUHeaderBar(:coopname="coopname", @changed="onKUChanged")
 
   //- КУ не выбран — режим просмотра витрины целиком (гость). Поясняем, что для
   //- заказа нужно выбрать пункт выдачи (кнопка «Выбрать пункт» в шапке выше).
