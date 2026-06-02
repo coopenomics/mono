@@ -16,6 +16,11 @@ input AcceptChildOrderInput {
   username: String!
 }
 
+input AcceptInviteInput {
+  coopname: String!
+  request_hash: String!
+}
+
 type Account {
   """
   объект аккаунта в блокчейне содержит системную информацию, такую как публичные ключи доступа, доступные вычислительные ресурсы, информация об установленном смарт-контракте, и т.д. и т.п. Это системный уровень обслуживания, где у каждого пайщика есть аккаунт, но не каждый аккаунт может быть пайщиком в каком-либо кооперативе. Все смарт-контракты устанавливаются и исполняются на этом уровне.
@@ -893,6 +898,29 @@ enum ApprovalStatus {
   PENDING
 }
 
+input ApproveProgramExpenseInput {
+  """Одобренное заявление (registry 1012)"""
+  approved_statement: SignedDigitalDocumentInput!
+
+  """Имя председателя (approver)"""
+  approver: String!
+
+  """Имя аккаунта кооператива"""
+  coopname: String!
+
+  """Хэш расхода программы"""
+  expense_hash: String!
+}
+
+input ApproveRoleInput {
+  approved_hours: Int!
+
+  """Утверждённая ставка часа (asset)"""
+  approved_rate: String!
+  coopname: String!
+  request_hash: String!
+}
+
 input AssetContributionActGenerateDocumentInput {
   """Идентификатор акта"""
   act_id: String!
@@ -1158,6 +1186,15 @@ type Authority {
 
   """Вес ожидания"""
   waits: [WaitWeight!]!
+}
+
+input AuthorizeProgramExpenseInput {
+  """Решение совета (registry 1013)"""
+  authorization: SignedDigitalDocumentInput!
+  coopname: String!
+
+  """Хэш расхода программы"""
+  expense_hash: String!
 }
 
 type AvailableReport {
@@ -3819,6 +3856,11 @@ input CheckMatrixUsernameInput {
   username: String!
 }
 
+input CloseDebtInput {
+  coopname: String!
+  debt_hash: String!
+}
+
 input CloseProjectInput {
   """Имя аккаунта кооператива"""
   coopname: String!
@@ -4774,6 +4816,26 @@ input CreateProcessTemplateInput {
   title: String!
 }
 
+input CreateProgramExpenseInput {
+  """Сумма расхода (формат asset)"""
+  amount: String!
+
+  """Имя аккаунта кооператива"""
+  coopname: String!
+
+  """Исполнитель расхода (на чей счёт поступит)"""
+  creator: String!
+
+  """Описание расхода программы"""
+  description: String!
+
+  """Хэш расхода программы"""
+  expense_hash: String!
+
+  """Заявление о расходе программы (registry 1012)"""
+  statement: SignedDigitalDocumentInput!
+}
+
 input CreateProgramInvestInput {
   """Сумма инвестиции"""
   amount: String!
@@ -5092,6 +5154,11 @@ input DebtFilter {
   username: String
 }
 
+input DebtPayRetryInput {
+  coopname: String!
+  debt_hash: String!
+}
+
 """Статус долга в системе CAPITAL"""
 enum DebtStatus {
   ACTIVE
@@ -5141,6 +5208,22 @@ input DeclineApproveInput {
   reason: String!
 }
 
+input DeclineInviteInput {
+  coopname: String!
+
+  """Причина отклонения"""
+  reason: String!
+  request_hash: String!
+}
+
+input DeclineProgramExpenseInput {
+  coopname: String!
+  expense_hash: String!
+
+  """Причина отклонения"""
+  reason: String!
+}
+
 input DeclineRequestInput {
   """Имя аккаунта кооператива"""
   coopname: String!
@@ -5153,6 +5236,14 @@ input DeclineRequestInput {
 
   """Имя аккаунта пользователя"""
   username: String!
+}
+
+input DeclineRoleInput {
+  coopname: String!
+
+  """Причина отклонения"""
+  reason: String!
+  request_hash: String!
 }
 
 input DeleteBranchInput {
@@ -6707,6 +6798,11 @@ type IndividualCertificate {
 
 input Init {
   """
+  Признак того, что инициализация выполняется со стороны провайдера. При true coopback ставит init_by_server=true (org_data становится readonly для пользовательского визарда). Поле передаёт provider в callInitSystemMutation.
+  """
+  is_server_init: Boolean
+
+  """
   Объект организации кооператива, которая обслуживает данный экземпляр программного обеспечения MONO
   """
   organization_data: CreateInitOrganizationDataInput!
@@ -6746,6 +6842,21 @@ enum InvestStatus {
   PENDING
   RETURNED
   UNDEFINED
+}
+
+input InviteRoleInput {
+  """Кандидат на L2-допуск"""
+  candidate: String!
+  coopname: String!
+  description: String!
+  hours_per_day: Int!
+  master: String!
+  project_hash: String!
+  rate_per_hour: String!
+  request_hash: String!
+
+  """creator | author | coordinator"""
+  role: String!
 }
 
 """Приоритет задачи в системе CAPITAL"""
@@ -7073,6 +7184,10 @@ input MakeClearanceInput {
 
   """Имя пользователя"""
   username: String!
+}
+
+input MarkDebtOverdueInput {
+  coopname: String!
 }
 
 input MarkReportPeriodInput {
@@ -7410,6 +7525,13 @@ type Mutation {
   cancelRequest(data: CancelRequestInput!): Transaction!
 
   """
+  Принять инвайт на L2-допуск
+  
+  Требуемые роли: user. 
+  """
+  capitalAcceptInvite(data: AcceptInviteInput!): Transaction!
+
+  """
   Добавление автора проекта в CAPITAL контракте
   
   Требуемые роли: chairman. 
@@ -7424,11 +7546,39 @@ type Mutation {
   capitalApproveCommit(data: CommitApproveInput!): CapitalCommit!
 
   """
+  Одобрение расхода программы председателем
+  
+  Требуемые роли: chairman. 
+  """
+  capitalApproveProgramExpense(data: ApproveProgramExpenseInput!): Transaction!
+
+  """
+  Одобрение заявки или инвайта мастером компонента
+  
+  Требуемые роли: user. 
+  """
+  capitalApproveRole(data: ApproveRoleInput!): Transaction!
+
+  """
+  Авторизация расхода программы советом
+  
+  Требуемые роли: chairman, member. 
+  """
+  capitalAuthorizeProgramExpense(data: AuthorizeProgramExpenseInput!): Transaction!
+
+  """
   Расчет голосов в CAPITAL контракте
   
   Требуемые роли: chairman, member, user. 
   """
   capitalCalculateVotes(data: CalculateVotesInput!): CapitalSegment!
+
+  """
+  Закрыть долг через имущество-обеспечение (проект отменён)
+  
+  Требуемые роли: chairman. 
+  """
+  capitalCloseDebt(data: CloseDebtInput!): Transaction!
 
   """
   Закрытие проекта от инвестиций в CAPITAL контракте
@@ -7457,6 +7607,13 @@ type Mutation {
   Требуемые роли: chairman. 
   """
   capitalCompleteVoting(data: CompleteVotingInput!): Transaction!
+
+  """
+  Подтверждение выплаты расхода программы (callback gateway)
+  
+  Требуемые роли: chairman. 
+  """
+  capitalConfirmProgramExpensePayment(data: PayProgramExpenseInput!): Transaction!
 
   """
   Конвертация сегмента в CAPITAL контракте
@@ -7508,6 +7665,13 @@ type Mutation {
   capitalCreateProcessTemplate(data: CreateProcessTemplateInput!): ProcessTemplate!
 
   """
+  Создание расхода программы (СЗ председателя/казначея)
+  
+  Требуемые роли: chairman. 
+  """
+  capitalCreateProgramExpense(data: CreateProgramExpenseInput!): Transaction!
+
+  """
   Инвестирование в программу благорост (денежная программная инвестиция)
   
   Требуемые роли: participant. 
@@ -7550,11 +7714,39 @@ type Mutation {
   capitalCreateStory(data: CreateStoryInput!): CapitalStory!
 
   """
+  Повторить платёж по долгу после `debtpaydcln` без новой авторизации
+  
+  Требуемые роли: chairman. 
+  """
+  capitalDebtPayRetry(data: DebtPayRetryInput!): Transaction!
+
+  """
   Отклонение коммита в CAPITAL контракте
   
   Требуемые роли: chairman, member, user. 
   """
   capitalDeclineCommit(data: CommitDeclineInput!): CapitalCommit!
+
+  """
+  Отклонить инвайт на L2-допуск
+  
+  Требуемые роли: user. 
+  """
+  capitalDeclineInvite(data: DeclineInviteInput!): Transaction!
+
+  """
+  Отклонение расхода программы (председатель/совет/кассир)
+  
+  Требуемые роли: chairman, member. 
+  """
+  capitalDeclineProgramExpense(data: DeclineProgramExpenseInput!): Transaction!
+
+  """
+  Отклонение заявки на L2-допуск мастером компонента
+  
+  Требуемые роли: user. 
+  """
+  capitalDeclineRole(data: DeclineRoleInput!): Transaction!
 
   """
   Удаление задачи по хэшу
@@ -7732,6 +7924,20 @@ type Mutation {
   capitalGenerateGetLoanStatement(data: GenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
   """
+  Сгенерировать решение совета о расходе программы (registry 1013)
+  
+  Требуемые роли: chairman, member. 
+  """
+  capitalGenerateProgramExpenseDecision(data: GenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
+
+  """
+  Сгенерировать заявление о расходе программы (registry 1012)
+  
+  Требуемые роли: chairman, member. 
+  """
+  capitalGenerateProgramExpenseStatement(data: GenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
+
+  """
   Сгенерировать заявление об инвестировании в программу благороста (без привязки к проекту)
   
   Требуемые роли: chairman, member, user. 
@@ -7744,6 +7950,13 @@ type Mutation {
   Требуемые роли: chairman, member. 
   """
   capitalGenerateProjectGenerationContract(data: ProjectGenerationContractGenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
+
+  """
+  Сгенерировать заявление об обновлении ставки часа (registry 1102)
+  
+  Требуемые роли: user. 
+  """
+  capitalGenerateRateUpdateStatement(data: GenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
   """
   Генерация пачки документов для завершения регистрации в Capital (GenerationContract, StorageAgreement, BlagorostAgreement)
@@ -7774,6 +7987,20 @@ type Mutation {
   capitalGenerateResultContributionStatement(data: ResultContributionStatementGenerateInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
   """
+  Сгенерировать приглашение мастера на L2-допуск (registry 1101)
+  
+  Требуемые роли: user. 
+  """
+  capitalGenerateRoleInviteStatement(data: GenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
+
+  """
+  Сгенерировать заявление о L2-допуске (registry 1100)
+  
+  Требуемые роли: user. 
+  """
+  capitalGenerateRoleRequestStatement(data: GenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
+
+  """
   Импорт участника в CAPITAL контракт
   
   Требуемые роли: chairman. 
@@ -7781,11 +8008,25 @@ type Mutation {
   capitalImportContributor(data: ImportContributorInput!): Transaction!
 
   """
+  Приглашение мастером пайщика на L2-допуск
+  
+  Требуемые роли: user. 
+  """
+  capitalInviteRole(data: InviteRoleInput!): Transaction!
+
+  """
   Подписание приложения в CAPITAL контракте
   
   Требуемые роли: chairman. 
   """
   capitalMakeClearance(data: MakeClearanceInput!): Transaction!
+
+  """
+  Перевести долги с истёкшим due_at в overdue (вызывается cron-задачей)
+  
+  Требуемые роли: chairman. 
+  """
+  capitalMarkDebtOverdue(data: MarkDebtOverdueInput!): Transaction!
 
   """
   Перенос задачи между компонентами одного проекта (без закоммиченного времени и использованных Git-привязок)
@@ -7828,6 +8069,20 @@ type Mutation {
   Требуемые роли: chairman. 
   """
   capitalRegisterContributor(data: RegisterContributorInput!): Transaction!
+
+  """
+  Запросить обновление утверждённой ставки часа (старая ставка действует до approve)
+  
+  Требуемые роли: user. 
+  """
+  capitalRequestRateUpdate(data: RequestRateUpdateInput!): Transaction!
+
+  """
+  Заявление пайщика на L2-допуск (creator/author/coordinator)
+  
+  Требуемые роли: user. 
+  """
+  capitalRequestRole(data: RequestRoleInput!): Transaction!
 
   """
   Установка конфигурации CAPITAL контракта
@@ -7897,6 +8152,13 @@ type Mutation {
   Требуемые роли: chairman, member, user. 
   """
   capitalSubmitVote(data: SubmitVoteInput!): Transaction!
+
+  """
+  Пополнение пула расходов программы из BLAGOROST_POOL (chairman)
+  
+  Требуемые роли: chairman. 
+  """
+  capitalTopupProgramExpensePool(data: TopupProgramExpensePoolInput!): Transaction!
 
   """
   Обновление задачи в CAPITAL контракте
@@ -9252,6 +9514,11 @@ input PassportInput {
   issued_by: String!
   number: Float!
   series: Float!
+}
+
+input PayProgramExpenseInput {
+  coopname: String!
+  expense_hash: String!
 }
 
 type PaymentDetails {
@@ -11035,6 +11302,35 @@ input RepresentedByInput {
   position: String!
 }
 
+input RequestRateUpdateInput {
+  coopname: String!
+  description: String!
+  master: String!
+  new_hours: Int!
+  new_rate: String!
+  project_hash: String!
+  request_hash: String!
+  username: String!
+}
+
+input RequestRoleInput {
+  coopname: String!
+
+  """Текст заявления"""
+  description: String!
+  hours_per_day: Int!
+  master: String!
+  project_hash: String!
+
+  """Желаемая ставка часа (asset)"""
+  rate_per_hour: String!
+  request_hash: String!
+
+  """creator | author | coordinator"""
+  role: String!
+  username: String!
+}
+
 type RequisiteFieldView {
   source: RequisiteSource!
   value: String
@@ -12206,6 +12502,12 @@ type Tokens {
 
   """Токен обновления"""
   refresh: Token!
+}
+
+input TopupProgramExpensePoolInput {
+  """Сумма пополнения пула расходов программы (формат asset)"""
+  amount: String!
+  coopname: String!
 }
 
 type Transaction {

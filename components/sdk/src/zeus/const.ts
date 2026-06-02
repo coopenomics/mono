@@ -4,6 +4,9 @@ export const AllTypesProps: Record<string,any> = {
 	AcceptChildOrderInput:{
 		document:"AssetContributionStatementSignedDocumentInput"
 	},
+	AcceptInviteInput:{
+
+	},
 	AccountType: "enum" as const,
 	ActionFiltersInput:{
 
@@ -99,6 +102,12 @@ export const AllTypesProps: Record<string,any> = {
 		statuses:"ApprovalStatus"
 	},
 	ApprovalStatus: "enum" as const,
+	ApproveProgramExpenseInput:{
+		approved_statement:"SignedDigitalDocumentInput"
+	},
+	ApproveRoleInput:{
+
+	},
 	AssetContributionActGenerateDocumentInput:{
 
 	},
@@ -121,6 +130,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	AssetContributionStatementSignedMetaDocumentInput:{
 		request:"CommonRequestInput"
+	},
+	AuthorizeProgramExpenseInput:{
+		authorization:"SignedDigitalDocumentInput"
 	},
 	BankAccountDetailsInput:{
 
@@ -191,6 +203,9 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	CheckMatrixUsernameInput:{
+
+	},
+	CloseDebtInput:{
 
 	},
 	CloseProjectInput:{
@@ -324,6 +339,9 @@ export const AllTypesProps: Record<string,any> = {
 	CreateProcessTemplateInput:{
 
 	},
+	CreateProgramExpenseInput:{
+		statement:"SignedDigitalDocumentInput"
+	},
 	CreateProgramInvestInput:{
 		statement:"ProgramCapitalizationMoneyInvestStatementSignedDocumentInput"
 	},
@@ -366,6 +384,9 @@ export const AllTypesProps: Record<string,any> = {
 	DebtFilter:{
 
 	},
+	DebtPayRetryInput:{
+
+	},
 	DebtStatus: "enum" as const,
 	DeclineAgreementInput:{
 
@@ -373,7 +394,16 @@ export const AllTypesProps: Record<string,any> = {
 	DeclineApproveInput:{
 
 	},
+	DeclineInviteInput:{
+
+	},
+	DeclineProgramExpenseInput:{
+
+	},
 	DeclineRequestInput:{
+
+	},
+	DeclineRoleInput:{
 
 	},
 	DeleteBranchInput:{
@@ -596,6 +626,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	InstanceStatus: "enum" as const,
 	InvestStatus: "enum" as const,
+	InviteRoleInput:{
+
+	},
 	IssuePriority: "enum" as const,
 	IssueStatus: "enum" as const,
 	JSON: `scalar.JSON` as const,
@@ -616,6 +649,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	MakeClearanceInput:{
 		document:"SignedDigitalDocumentInput"
+	},
+	MarkDebtOverdueInput:{
+
 	},
 	MarkReportPeriodInput:{
 		mark:"ReportSubmissionMark",
@@ -643,14 +679,29 @@ export const AllTypesProps: Record<string,any> = {
 		cancelRequest:{
 			data:"CancelRequestInput"
 		},
+		capitalAcceptInvite:{
+			data:"AcceptInviteInput"
+		},
 		capitalAddAuthor:{
 			data:"AddAuthorInput"
 		},
 		capitalApproveCommit:{
 			data:"CommitApproveInput"
 		},
+		capitalApproveProgramExpense:{
+			data:"ApproveProgramExpenseInput"
+		},
+		capitalApproveRole:{
+			data:"ApproveRoleInput"
+		},
+		capitalAuthorizeProgramExpense:{
+			data:"AuthorizeProgramExpenseInput"
+		},
 		capitalCalculateVotes:{
 			data:"CalculateVotesInput"
+		},
+		capitalCloseDebt:{
+			data:"CloseDebtInput"
 		},
 		capitalCloseProject:{
 			data:"CloseProjectInput"
@@ -663,6 +714,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		capitalCompleteVoting:{
 			data:"CompleteVotingInput"
+		},
+		capitalConfirmProgramExpensePayment:{
+			data:"PayProgramExpenseInput"
 		},
 		capitalConvertSegment:{
 			data:"ConvertSegmentInput"
@@ -685,6 +739,9 @@ export const AllTypesProps: Record<string,any> = {
 		capitalCreateProcessTemplate:{
 			data:"CreateProcessTemplateInput"
 		},
+		capitalCreateProgramExpense:{
+			data:"CreateProgramExpenseInput"
+		},
 		capitalCreateProgramInvest:{
 			data:"CreateProgramInvestInput"
 		},
@@ -703,8 +760,20 @@ export const AllTypesProps: Record<string,any> = {
 		capitalCreateStory:{
 			data:"CreateStoryInput"
 		},
+		capitalDebtPayRetry:{
+			data:"DebtPayRetryInput"
+		},
 		capitalDeclineCommit:{
 			data:"CommitDeclineInput"
+		},
+		capitalDeclineInvite:{
+			data:"DeclineInviteInput"
+		},
+		capitalDeclineProgramExpense:{
+			data:"DeclineProgramExpenseInput"
+		},
+		capitalDeclineRole:{
+			data:"DeclineRoleInput"
 		},
 		capitalDeleteIssue:{
 			data:"DeleteCapitalIssueByHashInput"
@@ -798,12 +867,24 @@ export const AllTypesProps: Record<string,any> = {
 			data:"GenerateDocumentInput",
 			options:"GenerateDocumentOptionsInput"
 		},
+		capitalGenerateProgramExpenseDecision:{
+			data:"GenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		capitalGenerateProgramExpenseStatement:{
+			data:"GenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
 		capitalGenerateProgramMoneyInvestStatement:{
 			data:"ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput",
 			options:"GenerateDocumentOptionsInput"
 		},
 		capitalGenerateProjectGenerationContract:{
 			data:"ProjectGenerationContractGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		capitalGenerateRateUpdateStatement:{
+			data:"GenerateDocumentInput",
 			options:"GenerateDocumentOptionsInput"
 		},
 		capitalGenerateRegistrationDocuments:{
@@ -821,11 +902,25 @@ export const AllTypesProps: Record<string,any> = {
 			data:"ResultContributionStatementGenerateInput",
 			options:"GenerateDocumentOptionsInput"
 		},
+		capitalGenerateRoleInviteStatement:{
+			data:"GenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		capitalGenerateRoleRequestStatement:{
+			data:"GenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
 		capitalImportContributor:{
 			data:"ImportContributorInput"
 		},
+		capitalInviteRole:{
+			data:"InviteRoleInput"
+		},
 		capitalMakeClearance:{
 			data:"MakeClearanceInput"
+		},
+		capitalMarkDebtOverdue:{
+			data:"MarkDebtOverdueInput"
 		},
 		capitalMoveIssueToComponent:{
 			data:"MoveCapitalIssueToComponentInput"
@@ -844,6 +939,12 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		capitalRegisterContributor:{
 			data:"RegisterContributorInput"
+		},
+		capitalRequestRateUpdate:{
+			data:"RequestRateUpdateInput"
+		},
+		capitalRequestRole:{
+			data:"RequestRoleInput"
 		},
 		capitalSetConfig:{
 			data:"SetConfigInput"
@@ -877,6 +978,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		capitalSubmitVote:{
 			data:"SubmitVoteInput"
+		},
+		capitalTopupProgramExpensePool:{
+			data:"TopupProgramExpensePoolInput"
 		},
 		capitalUpdateIssue:{
 			data:"UpdateIssueInput"
@@ -1244,6 +1348,9 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	PassportInput:{
+
+	},
+	PayProgramExpenseInput:{
 
 	},
 	PaymentDirection: "enum" as const,
@@ -1655,6 +1762,12 @@ export const AllTypesProps: Record<string,any> = {
 	RepresentedByInput:{
 
 	},
+	RequestRateUpdateInput:{
+
+	},
+	RequestRoleInput:{
+
+	},
 	RequisiteSource: "enum" as const,
 	ResetKeyInput:{
 
@@ -1817,6 +1930,9 @@ export const AllTypesProps: Record<string,any> = {
 		document:"AssetContributionActSignedDocumentInput"
 	},
 	SystemStatus: "enum" as const,
+	TopupProgramExpensePoolInput:{
+
+	},
 	TranscriptionStatus: "enum" as const,
 	TriggerNotificationWorkflowInput:{
 		payload:"JSONObject",
@@ -3479,13 +3595,19 @@ export const ReturnTypes: Record<string,any> = {
 		addPaymentMethod:"PaymentMethod",
 		addTrustedAccount:"Branch",
 		cancelRequest:"Transaction",
+		capitalAcceptInvite:"Transaction",
 		capitalAddAuthor:"CapitalProject",
 		capitalApproveCommit:"CapitalCommit",
+		capitalApproveProgramExpense:"Transaction",
+		capitalApproveRole:"Transaction",
+		capitalAuthorizeProgramExpense:"Transaction",
 		capitalCalculateVotes:"CapitalSegment",
+		capitalCloseDebt:"Transaction",
 		capitalCloseProject:"CapitalProject",
 		capitalCompleteProcessStep:"ProcessInstance",
 		capitalCompleteRegistration:"Transaction",
 		capitalCompleteVoting:"Transaction",
+		capitalConfirmProgramExpensePayment:"Transaction",
 		capitalConvertSegment:"CapitalSegment",
 		capitalCreateCommit:"CapitalCommit",
 		capitalCreateCycle:"CapitalCycle",
@@ -3493,13 +3615,18 @@ export const ReturnTypes: Record<string,any> = {
 		capitalCreateExpense:"Transaction",
 		capitalCreateIssue:"CapitalIssue",
 		capitalCreateProcessTemplate:"ProcessTemplate",
+		capitalCreateProgramExpense:"Transaction",
 		capitalCreateProgramInvest:"Transaction",
 		capitalCreateProgramProperty:"Transaction",
 		capitalCreateProject:"Transaction",
 		capitalCreateProjectInvest:"Transaction",
 		capitalCreateProjectProperty:"Transaction",
 		capitalCreateStory:"CapitalStory",
+		capitalDebtPayRetry:"Transaction",
 		capitalDeclineCommit:"CapitalCommit",
+		capitalDeclineInvite:"Transaction",
+		capitalDeclineProgramExpense:"Transaction",
+		capitalDeclineRole:"Transaction",
 		capitalDeleteIssue:"Boolean",
 		capitalDeleteProcessTemplate:"Boolean",
 		capitalDeleteProject:"Transaction",
@@ -3525,20 +3652,29 @@ export const ReturnTypes: Record<string,any> = {
 		capitalGenerateGenerationPropertyInvestStatement:"GeneratedDocument",
 		capitalGenerateGetLoanDecision:"GeneratedDocument",
 		capitalGenerateGetLoanStatement:"GeneratedDocument",
+		capitalGenerateProgramExpenseDecision:"GeneratedDocument",
+		capitalGenerateProgramExpenseStatement:"GeneratedDocument",
 		capitalGenerateProgramMoneyInvestStatement:"GeneratedDocument",
 		capitalGenerateProjectGenerationContract:"GeneratedDocument",
+		capitalGenerateRateUpdateStatement:"GeneratedDocument",
 		capitalGenerateRegistrationDocuments:"GenerateCapitalRegistrationDocumentsOutputDTO",
 		capitalGenerateResultContributionAct:"GeneratedDocument",
 		capitalGenerateResultContributionDecision:"GeneratedDocument",
 		capitalGenerateResultContributionStatement:"GeneratedDocument",
+		capitalGenerateRoleInviteStatement:"GeneratedDocument",
+		capitalGenerateRoleRequestStatement:"GeneratedDocument",
 		capitalImportContributor:"Transaction",
+		capitalInviteRole:"Transaction",
 		capitalMakeClearance:"Transaction",
+		capitalMarkDebtOverdue:"Transaction",
 		capitalMoveIssueToComponent:"CapitalIssue",
 		capitalOpenProject:"CapitalProject",
 		capitalPushResult:"CapitalSegment",
 		capitalRefreshProgram:"Transaction",
 		capitalRefreshSegment:"CapitalSegment",
 		capitalRegisterContributor:"Transaction",
+		capitalRequestRateUpdate:"Transaction",
+		capitalRequestRole:"Transaction",
 		capitalSetConfig:"Transaction",
 		capitalSetMaster:"Transaction",
 		capitalSetPlan:"CapitalProject",
@@ -3550,6 +3686,7 @@ export const ReturnTypes: Record<string,any> = {
 		capitalStartVoting:"Transaction",
 		capitalStopProject:"CapitalProject",
 		capitalSubmitVote:"Transaction",
+		capitalTopupProgramExpensePool:"Transaction",
 		capitalUpdateIssue:"CapitalIssue",
 		capitalUpdateProcessTemplate:"ProcessTemplate",
 		capitalUpdateStory:"CapitalStory",
