@@ -84,6 +84,12 @@ function onQtyInput(item: IMarketplaceCartItem, ev: Event): void {
   el.value = String(changeQty(item, next));
 }
 
+// Enter — снять фокус (коммит уже идёт по @change). Каст в .ts, не в template:
+// Vue парсит template-выражения как JS, `as` там ломает boot (SyntaxError).
+function blurOnEnter(ev: Event): void {
+  (ev.target as HTMLInputElement).blur();
+}
+
 async function onRemove(offerId: string): Promise<void> {
   try {
     await cartStore.removeItem(offerId);
@@ -184,7 +190,7 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
                 :disabled="cartStore.mutating",
                 aria-label="Количество",
                 @change="onQtyInput(it, $event)",
-                @keyup.enter="($event.target as HTMLInputElement).blur()"
+                @keyup.enter="blurOnEnter"
               )
               span.mp-cart__qty-unit {{ unitShort(it.unit_of_measure) }}
             BaseButton(
