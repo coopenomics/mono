@@ -23,6 +23,11 @@ import { workflow as serverProvisionedWorkflow } from './server-provisioned';
 import { workflow as decisionExpiredWorkflow } from './decision-expired';
 import { workflow as chatcoopCalendarEventCreatedWorkflow } from './chatcoop-calendar-event-created';
 import { workflow as chatcoopCalendarEventUpdatedWorkflow } from './chatcoop-calendar-event-updated';
+// Epic 14 — биллинговые оповещения пайщикам
+import { workflow as trialEndingWorkflow } from './trial-ending';
+import { workflow as subscriptionPaymentDueWorkflow } from './subscription-payment-due';
+import { workflow as subscriptionPastDueWorkflow } from './subscription-past-due';
+import { workflow as subscriptionSuspendedWorkflow } from './subscription-suspended';
 
 // Импортируем все воркфлоу
 export * as Welcome from './welcome';
@@ -48,6 +53,11 @@ export * as ServerProvisioned from './server-provisioned';
 export * as DecisionExpired from './decision-expired';
 export * as ChatCoopCalendarEventCreated from './chatcoop-calendar-event-created';
 export * as ChatCoopCalendarEventUpdated from './chatcoop-calendar-event-updated';
+// Epic 14 — биллинговые оповещения пайщикам
+export * as TrialEnding from './trial-ending';
+export * as SubscriptionPaymentDue from './subscription-payment-due';
+export * as SubscriptionPastDue from './subscription-past-due';
+export * as SubscriptionSuspended from './subscription-suspended';
 
 // Массив всех воркфлоу для автоматической регистрации
 export const allWorkflows: WorkflowDefinition[] = [
@@ -74,6 +84,11 @@ export const allWorkflows: WorkflowDefinition[] = [
   decisionExpiredWorkflow,
   chatcoopCalendarEventCreatedWorkflow,
   chatcoopCalendarEventUpdatedWorkflow,
+  // Epic 14 — биллинговые оповещения пайщикам
+  trialEndingWorkflow,
+  subscriptionPaymentDueWorkflow,
+  subscriptionPastDueWorkflow,
+  subscriptionSuspendedWorkflow,
 ];
 
 // Экспортируем воркфлоу по ID для удобного доступа
