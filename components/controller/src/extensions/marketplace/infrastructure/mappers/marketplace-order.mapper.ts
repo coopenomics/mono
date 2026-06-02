@@ -23,6 +23,7 @@ export class MarketplaceOrderMapper {
       price_per_unit: row.price_per_unit,
       total_cost: row.total_cost,
       cycle_id: row.cycle_id,
+      checkout_id: row.checkout_id ?? null,
       shipment_id: row.shipment_id ?? null,
       warranty_period_secs: row.warranty_period_secs,
       warranty_until: row.warranty_until,

@@ -25,6 +25,8 @@ export interface MarketplaceOrderCreateInput {
   price_per_unit: string;
   total_cost: string;
   cycle_id: string | null;
+  /** Грань «заказ заказчика» (Эпик 16): общий id строк одного оформления на один КУ. */
+  checkout_id: string | null;
   warranty_period_secs: number;
   warranty_until: Date | null;
   status: MarketplaceOrderStatus;
@@ -39,6 +41,8 @@ export interface MarketplaceOrderListFilter {
   offer_id?: string;
   status?: MarketplaceOrderStatus | MarketplaceOrderStatus[];
   cycle_id?: string;
+  /** Грань «заказ заказчика» (Эпик 16): фильтр строк одного оформления. */
+  checkout_id?: string;
   /** ПВЗ доставки заказа (Story 14.2: express-приёмка ACCEPTED-заказов на КУ). */
   delivery_braname?: string;
 }

@@ -66,6 +66,7 @@ export class MarketplaceCatalogResolver {
         status: MarketplaceOfferStatuses.ACTIVE,
         category_id: input?.category_id ?? undefined,
         available_only: true,
+        delivery_braname: input?.delivery_braname ?? undefined,
       },
       pagination
     );

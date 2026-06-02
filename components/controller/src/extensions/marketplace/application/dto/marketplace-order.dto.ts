@@ -167,6 +167,14 @@ export class MarketplaceOrderDTO {
   @Field(() => String, {
     nullable: true,
     description:
+      'Идентификатор заказа заказчика — общий для всех позиций одного оформления корзины на один пункт выдачи. ' +
+      'Позволяет сгруппировать позиции в один заказ. Пусто для прежних покарточных заказов.',
+  })
+  public readonly checkout_id!: string | null;
+
+  @Field(() => String, {
+    nullable: true,
+    description:
       'Партия поставки (shipment), в которую заказ включён при формировании. null — заказ ' +
       'акцептован, но в партию не вошёл. Позволяет приёмке отделить состав конкретной партии.',
   })
@@ -367,6 +375,7 @@ export function toMarketplaceOrderDTO(
     price_per_unit: o.price_per_unit,
     total_cost: o.total_cost,
     cycle_id: o.cycle_id,
+    checkout_id: o.checkout_id,
     shipment_id: o.shipment_id,
     warranty_period_secs: o.warranty_period_secs,
     warranty_until: o.warranty_until,
