@@ -1,5 +1,9 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
-import type { WorkingHoursDomain } from '../../domain/entities/ku-details-domain.entity';
+import type {
+  GeocodeStatus,
+  KuDetailsStatus,
+  WorkingHoursDomain,
+} from '../../domain/entities/ku-details-domain.entity';
 
 /**
  * TypeORM-сущность `marketplace_ku_details` — 1:1 расширение core `coop_ku`
@@ -23,14 +27,14 @@ export class KuDetailsTypeormEntity {
   @Column({ name: 'core_braname', type: 'varchar', length: 13, comment: 'braname в core coop_ku' })
   coreBraname!: string;
 
-  @Column({ name: 'address_full', type: 'varchar', length: 1000 })
-  addressFull!: string;
-
-  @Column({ name: 'contact_phone', type: 'varchar', length: 50 })
-  contactPhone!: string;
-
-  @Column({ name: 'contact_email', type: 'varchar', length: 200 })
-  contactEmail!: string;
+  @Column({
+    name: 'geocoded_address',
+    type: 'varchar',
+    length: 1000,
+    nullable: true,
+    comment: 'Адрес, по которому посчитаны координаты (кэш-ключ геокода)',
+  })
+  geocodedAddress?: string;
 
   @Column({ name: 'working_hours_json', type: 'jsonb' })
   workingHoursJson!: WorkingHoursDomain;
@@ -44,7 +48,7 @@ export class KuDetailsTypeormEntity {
     enum: ['ACTIVE', 'INACTIVE'],
     default: 'ACTIVE',
   })
-  status!: 'ACTIVE' | 'INACTIVE';
+  status!: KuDetailsStatus;
 
   @Column({ name: 'lat', type: 'double precision', nullable: true })
   lat?: number;
@@ -58,7 +62,7 @@ export class KuDetailsTypeormEntity {
     enum: ['PENDING', 'OK', 'FAILED'],
     default: 'PENDING',
   })
-  geocodeStatus!: 'PENDING' | 'OK' | 'FAILED';
+  geocodeStatus!: GeocodeStatus;
 
   @Column({ name: 'geocode_error_message', type: 'text', nullable: true })
   geocodeErrorMessage?: string;

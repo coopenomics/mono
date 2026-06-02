@@ -1,22 +1,24 @@
 import { markRaw } from 'vue'
 import { MarketplaceCatalogPage } from 'src/pages/Marketplace/MarketplaceCatalog'
+import { MarketplaceOfferDetailPage } from 'src/pages/Marketplace/MarketplaceOfferDetail'
 import { CreateMarketplaceOfferPage } from 'src/pages/Marketplace/CreateMarketplaceOffer'
 import { MyOrdersPage } from 'src/pages/Marketplace/MyOrders'
 import { OperatorTrustedPersonsPage } from 'src/pages/Marketplace/OperatorTrustedPersons'
 import { OperatorIssuancePage } from 'src/pages/Marketplace/OperatorIssuance'
-import { OrdererReadyToReceivePage } from 'src/pages/Marketplace/OrdererReadyToReceive'
+import { OrdererOrderDetailPage } from 'src/pages/Marketplace/OrdererOrderDetail'
+import { OrdererReceiveCodePage } from 'src/pages/Marketplace/OrdererReceiveCode'
 import { OrdererReturnClaimsPage } from 'src/pages/Marketplace/OrdererReturnClaims'
 import { OperatorReturnClaimsPage } from 'src/pages/Marketplace/OperatorReturnClaims'
 import { OperatorReceptionPage } from 'src/pages/Marketplace/OperatorReception'
 import { OperatorInventoryLabelingPage } from 'src/pages/Marketplace/OperatorInventoryLabeling'
 import { OffererPendingAplReceptionsPage } from 'src/pages/Marketplace/OffererPendingAplReceptions'
 import { OffererSupplyPreparationPage } from 'src/pages/Marketplace/OffererSupplyPreparation'
+import { OffererShipPartyPage } from 'src/pages/Marketplace/OffererShipParty'
 import { OffererPaymentHistoryPage } from 'src/pages/Marketplace/OffererPaymentHistory'
 import { AdminWriteoffsPage } from 'src/pages/Marketplace/AdminWriteoffs'
 import { ChairmanModerationPage } from 'src/pages/Marketplace/ChairmanModeration'
 import { AdminIssuancePointsPage } from 'src/pages/Marketplace/AdminIssuancePoints'
 import { OperatorOwnWarehousePage } from 'src/pages/Marketplace/OperatorOwnWarehouse'
-import { OperatorIncomingShipmentsPage } from 'src/pages/Marketplace/OperatorIncomingShipments'
 import { AdminWarehouseSummaryPage } from 'src/pages/Marketplace/AdminWarehouseSummary'
 import { EcosystemRegistryPage } from 'src/pages/Marketplace/EcosystemRegistry'
 import { OnboardingCoopAcceptCppPage } from 'src/pages/Marketplace/OnboardingCoopAcceptCpp'
@@ -131,6 +133,24 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               children: [],
             },
             {
+              // Эпик 15: страница полного описания предложения. Скрыта из меню
+              // (hidden) — открывается по клику на карточку в каталоге. Несёт
+              // полное описание, участки поставки, гарантию и галерею; карточка
+              // показывает лишь категорию + поставщика + краткое описание.
+              path: 'offer/:offerId',
+              name: 'marketplace-offer-detail',
+              component: markRaw(MarketplaceOfferDetailPage),
+              meta: {
+                title: 'Предложение',
+                icon: 'fa-solid fa-box',
+                requires: 'Order:create',
+                requiresAuth: true,
+                agreements: agreementsBase,
+                hidden: true,
+              },
+              children: [],
+            },
+            {
               path: 'my-orders',
               name: 'marketplace-my-orders',
               component: markRaw(MyOrdersPage),
@@ -152,7 +172,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-consolidated',
               component: markRaw(OrdererConsolidatedPage),
               meta: {
-                title: 'Сводный заказ',
+                title: 'Коллективный заказ',
                 icon: 'fa-solid fa-layer-group',
                 requires: 'Order:create',
                 requiresAuth: true,
@@ -161,18 +181,38 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               children: [],
             },
             {
-              // Эпик 6 / Story 6.7: лента заказов пайщика, готовых к получению
-              // на пункте выдачи (статус READY_TO_RECEIVE) — визуальное
-              // продолжение push-уведомления marketplace-order-ready (FR22).
-              path: 'ready-to-receive',
-              name: 'marketplace-ready-to-receive',
-              component: markRaw(OrdererReadyToReceivePage),
+              // «Получить заказ» — отдельный пункт меню с одним account-bound
+              // QR-кодом на всю страницу. Вынесен в меню (а не в действие шапки)
+              // намеренно: код должен быть очевидно findable, пайщику не нужно
+              // объяснять, где его искать на пункте выдачи.
+              path: 'receive-code',
+              name: 'marketplace-receive-code',
+              component: markRaw(OrdererReceiveCodePage),
               meta: {
-                title: 'Готово к получению',
-                icon: 'fa-solid fa-box-open',
+                title: 'Получить заказ',
+                icon: 'fa-solid fa-qrcode',
                 requires: 'Order:create',
                 requiresAuth: true,
                 agreements: agreementsBase,
+              },
+              children: [],
+            },
+            {
+              // Детальная страница заказа. Скрыта из меню (hidden) —
+              // открывается по клику на карточку в «Моих заказах». Управление
+              // (отмена, «Подписать и получить») живёт в самой карточке и здесь;
+              // отдельной страницы «Готово к получению» больше нет — статус
+              // READY_TO_RECEIVE стал обычным этапом общего списка заказов.
+              path: 'orders/:orderId',
+              name: 'marketplace-order-detail',
+              component: markRaw(OrdererOrderDetailPage),
+              meta: {
+                title: 'Заказ',
+                icon: 'fa-solid fa-receipt',
+                requires: 'Order:create',
+                requiresAuth: true,
+                agreements: agreementsBase,
+                hidden: true,
               },
               children: [],
             },
@@ -295,6 +335,24 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               children: [],
             },
             {
+              // «Отгрузить партию» — отдельный пункт меню с одним account-bound
+              // Pickup-QR на всю страницу. Тот же код, что в действии шапки
+              // «Подготовки отгрузки», но вынесен явным пунктом сразу после неё —
+              // чтобы поставщик не пропустил, где взять код на приёмке (зеркало
+              // пункта «Получить заказ» у заказчика).
+              path: 'ship-party',
+              name: 'marketplace-ship-party',
+              component: markRaw(OffererShipPartyPage),
+              meta: {
+                title: 'Отгрузить партию',
+                icon: 'fa-solid fa-qrcode',
+                requires: 'Offer:read',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+              children: [],
+            },
+            {
               // Эпик 5 / Story 5.7: offerer-стол ожидающих подписи актов приёмки.
               // Поставщик первой подписью signapl1 подтверждает факт приёмки
               // партии ПВЗ — после этого ПВЗ закрывает акт второй подписью.
@@ -337,7 +395,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
       extension_name: 'market',
       title: 'Стол ПВЗ',
       icon: 'fa-solid fa-map-location-dot',
-      defaultRoute: 'marketplace-pvz-incoming-shipments',
+      defaultRoute: 'marketplace-pvz-reception',
       routes: [
         {
           // Стол ПВЗ — рабочее место оператора КОНКРЕТНОГО кооперативного
@@ -356,12 +414,15 @@ export default async function (): Promise<IWorkspaceConfig[]> {
           name: 'market-pvz',
           children: [
             {
-              // Поток IV шаг 1: operator-стол «Ожидаемые поставки». Лента партий,
+              // Поток IV: единый operator-стол «Ожидаемые поставки» — лента партий,
               // направленных на КУ оператора (own-KU scoping через
-              // marketplaceListShipmentsByBraname + isMemberOfBranch).
-              path: 'incoming-shipments',
-              name: 'marketplace-pvz-incoming-shipments',
-              component: markRaw(OperatorIncomingShipmentsPage),
+              // marketplaceListShipmentsByBraname + isMemberOfBranch), их состав
+              // («что/когда/кому везут») И приёмка по QR-коду на одной странице.
+              // Отдельный стол «Приёмка партии» слит сюда: оператор не прыгает
+              // между «жду» и «принимаю» (ревью 2026-06-01).
+              path: 'reception',
+              name: 'marketplace-pvz-reception',
+              component: markRaw(OperatorReceptionPage),
               meta: {
                 title: 'Ожидаемые поставки',
                 icon: 'fa-solid fa-truck-arrow-right',
@@ -371,25 +432,13 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               },
             },
             {
-              // Эпик 5 / Story 5.6: operator-стол приёмки партии на ПВЗ.
-              path: 'reception',
-              name: 'marketplace-pvz-reception',
-              component: markRaw(OperatorReceptionPage),
-              meta: {
-                title: 'Приёмка партии',
-                icon: 'fa-solid fa-box-open',
-                requires: 'Warehouse:read:own-KU',
-                requiresAuth: true,
-                agreements: agreementsBase,
-              },
-            },
-            {
-              // Эпик 5 / Story 5.8 + Эпик 6: operator-стол маркировки имущества.
+              // Стол раскладки/маркировки: принятое имущество (склад) — назначить
+              // полку, разложить позицию по нескольким полкам, наклеить штрих-код.
               path: 'labeling',
               name: 'marketplace-pvz-labeling',
               component: markRaw(OperatorInventoryLabelingPage),
               meta: {
-                title: 'Маркировка имущества',
+                title: 'Раскладка и маркировка',
                 icon: 'fa-solid fa-tag',
                 requires: 'Warehouse:read:own-KU',
                 requiresAuth: true,
@@ -499,6 +548,27 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 requires: 'Order:read:all',
                 requiresAuth: true,
                 agreements: agreementsBase,
+              },
+              children: [],
+            },
+            {
+              // Эпик 15: полная карточка предложения для модератора —
+              // открывается по клику на карточку в «Модерации». Та же
+              // страница, что и в каталоге, но на столе администратора
+              // (`Order:read:all`), без перехода на стол заказчика.
+              // `readonly: true` → страница прячет кнопку «Заказать» и ведёт
+              // назад в «Модерацию», а не в каталог.
+              path: 'offer/:offerId',
+              name: 'marketplace-admin-offer-detail',
+              component: markRaw(MarketplaceOfferDetailPage),
+              meta: {
+                title: 'Предложение',
+                icon: 'fa-solid fa-box',
+                requires: 'Order:read:all',
+                requiresAuth: true,
+                agreements: agreementsBase,
+                hidden: true,
+                readonly: true,
               },
               children: [],
             },

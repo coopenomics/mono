@@ -17,12 +17,7 @@ import {
 } from '../dto/marketplace-consolidated-request.dto';
 import {
   MarketplaceListConsolidatedRequestsInputDTO,
-  MarketplaceTriggerCollectiveSupplyInputDTO,
 } from '../dto/marketplace-trigger-collective-supply-input.dto';
-import {
-  MARKETPLACE_CYCLE_AGGREGATOR_SERVICE,
-  MarketplaceCycleAggregatorService,
-} from '../services/marketplace-cycle-aggregator.service';
 import {
   MARKETPLACE_CONSOLIDATED_REQUEST_REPOSITORY,
   type MarketplaceConsolidatedRequestDomainRepository,
@@ -34,30 +29,9 @@ const toDTO = toMarketplaceConsolidatedRequestDTO;
 @Injectable()
 export class MarketplaceCycleResolver {
   constructor(
-    @Inject(MARKETPLACE_CYCLE_AGGREGATOR_SERVICE)
-    private readonly aggregator: MarketplaceCycleAggregatorService,
     @Inject(MARKETPLACE_CONSOLIDATED_REQUEST_REPOSITORY)
     private readonly cycleRepo: MarketplaceConsolidatedRequestDomainRepository
   ) {}
-
-  @Mutation(() => MarketplaceConsolidatedRequestDTO, {
-    name: 'marketplaceTriggerCollectiveSupply',
-    description:
-      'Поставщик запускает поставку по коллективной закупке: формируется сводная заявка, заказы в её пуле принимаются.',
-  })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Offer', 'update:own')
-  async marketplaceTriggerCollectiveSupply(
-    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
-    @Args('input') input: MarketplaceTriggerCollectiveSupplyInputDTO
-  ): Promise<MarketplaceConsolidatedRequestDTO> {
-    const cycle = await this.aggregator.triggerCollectiveSupply(
-      config.coopname,
-      input.offer_id,
-      member.username
-    );
-    return toDTO(cycle);
-  }
 
   @Query(() => MarketplaceConsolidatedRequestPaginationResultDTO, {
     name: 'marketplaceListConsolidatedRequests',

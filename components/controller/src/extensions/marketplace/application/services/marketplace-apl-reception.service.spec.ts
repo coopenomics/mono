@@ -100,6 +100,15 @@ function buildMocks() {
     createPending: jest.fn(),
   } as unknown as jest.Mocked<MarketplaceOutgoingPaymentRequestDomainRepository>;
 
+  const offerRepo = {
+    findByIds: jest.fn().mockResolvedValue([]),
+  } as any;
+
+  const inventoryRepo = {
+    countByOrder: jest.fn().mockResolvedValue(0),
+    create: jest.fn().mockResolvedValue({}),
+  } as any;
+
   const coreGateway = {
     createSystemOutgoingPayment: jest.fn(),
     setPaymentStatus: jest.fn(),
@@ -125,6 +134,8 @@ function buildMocks() {
     counters,
     chainPort,
     paymentRepo,
+    offerRepo,
+    inventoryRepo,
     coreGateway,
     documentDomainService,
     logger,
@@ -139,6 +150,8 @@ function buildService(mocks: ReturnType<typeof buildMocks>): MarketplaceAplRecep
     mocks.counters,
     mocks.chainPort,
     mocks.paymentRepo,
+    mocks.offerRepo,
+    mocks.inventoryRepo,
     { symbol: 'RUB', decimals: 4 },
     mocks.coreGateway,
     mocks.documentDomainService,

@@ -1,71 +1,81 @@
 <template lang="pug">
-// Показываем лоадер пока данные загружаются
-WindowLoader(
-  v-if="loading"
-  :text="loadingText"
-)
+//- Единая карточка онбординга. Лоадер — внутри карточки (q-inner-loading),
+//- а не оверлеем на всё окно: иначе он «болтается» поверх уже отрисованной
+//- страницы. Шаги совета и доп.шаги (навигация на другие столы) идут одним
+//- сквозным списком 1-2-3-4 — без второй карточки и заголовков-разделов.
+q-card.council-onboarding(flat, :class="{ 'council-onboarding--loading': loading }")
+  q-inner-loading(:showing="loading")
+    q-spinner(color="primary", size="2.5em")
+    div.text-caption.text-grey-7.q-mt-sm(v-if="loadingText") {{ loadingText }}
 
-// Показываем поздравление если онбординг завершен — канон-состояние
-// EmptyState (центрированная плитка-иконка + заголовок + тело), с
-// success-акцентом на иконке вместо «голой» крупной иконки в карточке.
-slot(name="completion" v-else-if="isCompleted")
-  q-card(flat)
-    EmptyState.council-onboarding__done(
-      :title="completionTitle"
-      :body="completionMessage"
-    )
-      template(#icon)
-        q-icon(name="celebration" size="26px")
+  template(v-if="!loading")
+    //- Поздравление, если шаги совета завершены — канон-состояние EmptyState.
+    slot(name="completion", v-if="isCompleted")
+      EmptyState.council-onboarding__done(
+        :title="completionTitle",
+        :body="completionMessage"
+      )
+        template(#icon)
+          q-icon(name="celebration", size="26px")
 
-// Показываем шаги если онбординг не завершен и данные загружены
-q-card(v-else flat)
-  q-card-section
-    div.text-h5 {{ title }}
-    div.text-caption.text-grey-7.q-mt-xs(v-if="subtitle") {{ subtitle }}
-    // Таймер и статус подключения в одном ряду — статус (напр. чип
-    // «Не подключено») переехал сюда из отдельной шапки страницы, чтобы
-    // не дублировать заголовок. Свой flex с gap, а не Quasar .row: у .row
-    // включён flex-wrap и при justify-between одиночный чип сваливался бы
-    // в начало новой строки.
-    div.council-onboarding__status-row(v-if="countdownLabel || hasStatusSlot")
-      q-chip(
-        v-if="countdownLabel"
-        color="primary"
-        text-color="white"
-        icon="schedule"
-      ) {{ countdownLabel }}
-      slot(name="status")
-  q-separator
-  q-card-section
-    q-list(separator)
-      q-item.council-onboarding__step(v-for="(step, index) in steps" :key="step.id")
-        q-item-section
-          div.row.items-center.q-gutter-sm
-            q-icon(
-              :name="getIcon(step)"
-              :color="getIconColor(step)"
-              size="22px"
-            )
-            div.text-subtitle1 {{ index + 1 }}. {{ step.title }}
-          div.text-caption.text-grey-7.q-mt-xs {{ step.description }}
-          // Чип-статус в блочной обёртке: q-item-section — flex-column со
-          // stretch, прямой q-chip растянулся бы на всю ширину. Обёртка
-          // тянется, а inline-flex чип внутри хагает контент слева.
-          div.q-mt-sm(v-if="step.status === 'in_progress'")
-            q-chip.q-ma-none(
-              dense
-              color="amber"
-              text-color="black"
-              icon="hourglass_top"
-            ) Ожидаем решение совета
-        q-item-section(side top)
-          q-btn(
-            v-if="showAction(index)"
-            :disable="submitting"
-            color="primary"
-            label="Объявить собрание совета"
-            @click="() => handleStepClick(step)"
-          )
+    //- Иначе — шапка и шаги совета.
+    template(v-else)
+      q-card-section
+        div.text-h5 {{ title }}
+        div.text-caption.text-grey-7.q-mt-xs(v-if="subtitle") {{ subtitle }}
+        div.council-onboarding__status-row(v-if="countdownLabel || hasStatusSlot")
+          q-chip(
+            v-if="countdownLabel",
+            color="primary",
+            text-color="white",
+            icon="schedule"
+          ) {{ countdownLabel }}
+          slot(name="status")
+      q-separator
+      q-card-section
+        q-list(separator)
+          q-item.council-onboarding__step(v-for="(step, index) in steps", :key="step.id")
+            q-item-section
+              div.row.items-center.q-gutter-sm
+                q-icon(:name="getIcon(step)", :color="getIconColor(step)", size="22px")
+                div.text-subtitle1 {{ index + 1 }}. {{ step.title }}
+              div.text-caption.text-grey-7.q-mt-xs {{ step.description }}
+              div.q-mt-sm(v-if="step.status === 'in_progress'")
+                q-chip.q-ma-none(
+                  dense,
+                  color="amber",
+                  text-color="black",
+                  icon="hourglass_top"
+                ) Ожидаем решение совета
+            q-item-section(side, top)
+              q-btn(
+                v-if="showAction(index)",
+                :disable="submitting",
+                color="primary",
+                label="Объявить собрание совета",
+                @click="() => handleStepClick(step)"
+              )
+
+    //- Доп.шаги — показываем ВСЕГДА (в т.ч. после завершения шагов совета),
+    //- нумерация продолжает шаги совета. Единый список, без отдельной карточки.
+    template(v-if="extraStepsList.length")
+      q-separator
+      q-card-section
+        q-list(separator)
+          q-item.council-onboarding__step(v-for="(step, i) in extraStepsList", :key="step.id")
+            q-item-section
+              div.row.items-center.q-gutter-sm
+                q-icon(name="radio_button_unchecked", color="grey-6", size="22px")
+                div.text-subtitle1 {{ steps.length + i + 1 }}. {{ step.title }}
+              div.text-caption.text-grey-7.q-mt-xs {{ step.description }}
+            q-item-section(side, top)
+              q-btn(
+                outline,
+                color="primary",
+                :label="step.actionLabel",
+                :disable="step.disabled",
+                @click="() => emit('extra-action', step)"
+              )
 
   BaseDialog(
     v-model='dialogOpen',
@@ -100,8 +110,11 @@ import { DocumentHtmlReader } from 'src/shared/ui/DocumentHtmlReader';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
-import { WindowLoader } from 'src/shared/ui/Loader';
-import type { ICouncilOnboardingStep, ICouncilOnboardingConfig } from './types';
+import type {
+  ICouncilOnboardingStep,
+  ICouncilOnboardingConfig,
+  ICouncilOnboardingExtraStep,
+} from './types';
 
 interface Props {
   config: ICouncilOnboardingConfig;
@@ -114,6 +127,10 @@ interface Props {
   subtitle?: string;
   completionTitle?: string;
   completionMessage?: string;
+  // Доп.шаги (навигация на другие столы) — рисуются в общем списке после
+  // шагов совета и видны всегда. По умолчанию пусто (другие онбординги не
+  // передают — поведение не меняется).
+  extraSteps?: ICouncilOnboardingExtraStep[];
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -123,10 +140,12 @@ const props = withDefaults(defineProps<Props>(), {
   title: 'Адаптация к работе на платформе',
   completionTitle: 'Онбординг завершен!',
   completionMessage: 'Все необходимые документы утверждены.',
+  extraSteps: () => [],
 });
 
 const emit = defineEmits<{
   (e: 'step-submit', step: ICouncilOnboardingStep): void;
+  (e: 'extra-action', step: ICouncilOnboardingExtraStep): void;
 }>();
 
 const slots = useSlots();
@@ -142,6 +161,8 @@ const dialogDecision = ref('');
 const dialogDecisionPrefix = ref('');
 
 const steps = computed(() => props.config.steps);
+// Null-safe доступ к доп.шагам: prop опционален, дефолт — пустой список.
+const extraStepsList = computed(() => props.extraSteps ?? []);
 
 const countdownLabel = computed(() => {
   if (!props.config.expireAt) return null;
@@ -228,6 +249,12 @@ watch(
 </script>
 
 <style scoped lang="scss">
+// Пока идёт загрузка — резервируем высоту, чтобы q-inner-loading центрировал
+// спиннер в осмысленной области, а не в схлопнутой пустой карточке.
+.council-onboarding--loading {
+  min-height: 240px;
+}
+
 // Таймер + статус подключения в один ряд с предсказуемым зазором. Не Quasar
 // .row + .q-gutter: у чипов свои дефолтные margin'ы, из-за которых зазор
 // «прыгает»; здесь gap + сброс margin дают ровную линию и аккуратный перенос.

@@ -37,6 +37,7 @@ export const workingHoursSelector = Selector('WorkingHours')(rawWorkingHoursSele
 const rawMarketplaceKUDetailsSelector = {
   coopname: true,
   coreBraname: true,
+  name: true,
   addressFull: true,
   contactPhone: true,
   contactEmail: true,

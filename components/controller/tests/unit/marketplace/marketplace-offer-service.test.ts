@@ -41,8 +41,7 @@ function makeOffer(overrides: Partial<MarketplaceOfferDomainEntity> = {}): Marke
     quantity_blocked: 0,
     quantity_consumed: 0,
     unlimited_flag: false,
-    cycle_type: 'collective',
-    target_volume: null,
+    delivery_points: [{ braname: 'krasnogorsk', min_supply_volume: 1 }],
     warranty_days: 0,
     barcode_strategy: 'PER_ORDER',
     pack_size: null,
@@ -119,8 +118,7 @@ function baseCreateRequest(overrides: Partial<OfferCreateRequest> = {}): OfferCr
     unit_of_measure: 'kg',
     quantity_available: 100,
     unlimited_flag: false,
-    cycle_type: 'collective',
-    target_volume: null,
+    delivery_points: [{ braname: 'krasnogorsk', min_supply_volume: 1 }],
     warranty_days: 0,
     ...overrides,
   };
@@ -295,14 +293,14 @@ describe('MarketplaceOfferService.create', () => {
     );
   });
 
-  it('некорректный cycle_type → 400', async () => {
+  it('пустой набор КУ поставки → 400', async () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
     repo.countRecentCreatedBy.mockResolvedValue(0);
     const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
 
     await expect(
-      service.create(baseCreateRequest({ cycle_type: 'weird' as any }))
+      service.create(baseCreateRequest({ delivery_points: [] }))
     ).rejects.toThrow(BadRequestException);
   });
 
@@ -675,102 +673,103 @@ describe('MarketplaceOfferService.listMine + getById', () => {
   });
 });
 
-describe('MarketplaceOfferService.create — способ поставки (2 режима)', () => {
-  it('collective без целевого объёма → ок (старт ручным запуском)', async () => {
+describe('MarketplaceOfferService.create — КУ поставки (Эпик 15)', () => {
+  it('несколько КУ с минимальными объёмами → ок, delivery_points передаётся в repo', async () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
     repo.countRecentCreatedBy.mockResolvedValue(0);
-    repo.create.mockResolvedValue(makeOffer({ cycle_type: 'collective', target_volume: null }));
+    const points = [
+      { braname: 'krasnogorsk', min_supply_volume: 1 },
+      { braname: 'odintsovo', min_supply_volume: 100 },
+    ];
+    repo.create.mockResolvedValue(makeOffer({ delivery_points: points }));
     const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
 
-    const offer = await service.create(
-      baseCreateRequest({ cycle_type: 'collective', target_volume: null })
-    );
-    expect(offer.cycle_type).toBe('collective');
-  });
-
-  it('collective с целевым объёмом → ок, target_volume передаётся в repo', async () => {
-    const repo = makeOfferRepo();
-    const cats = makeCategoryRepo();
-    repo.countRecentCreatedBy.mockResolvedValue(0);
-    repo.create.mockResolvedValue(makeOffer({ cycle_type: 'collective', target_volume: 100 }));
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
-
-    const offer = await service.create(
-      baseCreateRequest({ cycle_type: 'collective', target_volume: 100 })
-    );
-    expect(offer.cycle_type).toBe('collective');
+    const offer = await service.create(baseCreateRequest({ delivery_points: points }));
+    expect(offer.delivery_points).toEqual(points);
     expect(repo.create).toHaveBeenCalledWith(
-      expect.objectContaining({ cycle_type: 'collective', target_volume: 100 })
+      expect.objectContaining({ delivery_points: points })
     );
   });
 
-  it('collective с целевым объёмом < 1 → 400', async () => {
+  it('пустой список КУ → 400', async () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
     repo.countRecentCreatedBy.mockResolvedValue(0);
     const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
 
     await expect(
-      service.create(baseCreateRequest({ cycle_type: 'collective', target_volume: 0 }))
+      service.create(baseCreateRequest({ delivery_points: [] }))
     ).rejects.toThrow(BadRequestException);
   });
 
-  it('individual → ок, целевой объём обнуляется в repo (висящее значение не сохраняем)', async () => {
+  it('min_supply_volume < 1 → 400', async () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
     repo.countRecentCreatedBy.mockResolvedValue(0);
-    repo.create.mockResolvedValue(makeOffer({ cycle_type: 'individual', target_volume: null }));
     const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
 
-    const offer = await service.create(
-      baseCreateRequest({ cycle_type: 'individual', target_volume: 50 })
-    );
-    expect(offer.cycle_type).toBe('individual');
-    expect(repo.create).toHaveBeenCalledWith(
-      expect.objectContaining({ cycle_type: 'individual', target_volume: null })
-    );
+    await expect(
+      service.create(baseCreateRequest({ delivery_points: [{ braname: 'krasnogorsk', min_supply_volume: 0 }] }))
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('дублирующийся КУ в наборе → 400', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.countRecentCreatedBy.mockResolvedValue(0);
+    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+
+    await expect(
+      service.create(baseCreateRequest({
+        delivery_points: [
+          { braname: 'krasnogorsk', min_supply_volume: 1 },
+          { braname: 'krasnogorsk', min_supply_volume: 5 },
+        ],
+      }))
+    ).rejects.toThrow(BadRequestException);
   });
 });
 
-describe('MarketplaceOfferService.update — смена способа поставки', () => {
-  it('смена cycle_type на collective без целевого объёма → ок и статус → PENDING_MODERATION', async () => {
+describe('MarketplaceOfferService.update — смена КУ поставки', () => {
+  it('смена delivery_points → ок и статус → PENDING_MODERATION', async () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
+    const newPoints = [{ braname: 'odintsovo', min_supply_volume: 50 }];
     repo.findById.mockResolvedValue(
-      makeOffer({ status: 'ACTIVE', cycle_type: 'individual', target_volume: null })
+      makeOffer({ status: 'ACTIVE', delivery_points: [{ braname: 'krasnogorsk', min_supply_volume: 1 }] })
     );
     repo.applyUpdate.mockResolvedValue(
-      makeOffer({ status: 'PENDING_MODERATION', cycle_type: 'collective', target_volume: null })
+      makeOffer({ status: 'PENDING_MODERATION', delivery_points: newPoints })
     );
     const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
 
-    const result = await service.update('offer-1', 'alice', { cycle_type: 'collective' });
+    const result = await service.update('offer-1', 'alice', { delivery_points: newPoints });
     expect(result.status).toBe('PENDING_MODERATION');
     expect(repo.applyUpdate).toHaveBeenCalledWith(
       'offer-1',
-      expect.objectContaining({ cycle_type: 'collective', status: 'PENDING_MODERATION' })
+      expect.objectContaining({ delivery_points: newPoints, status: 'PENDING_MODERATION' })
     );
   });
 
-  it('установка целевого объёма < 1 для collective → 400', async () => {
+  it('пустой список КУ при update → 400', async () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
     repo.findById.mockResolvedValue(
-      makeOffer({ status: 'ACTIVE', cycle_type: 'collective', target_volume: 100 })
+      makeOffer({ status: 'ACTIVE', delivery_points: [{ braname: 'krasnogorsk', min_supply_volume: 1 }] })
     );
     const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
 
     await expect(
-      service.update('offer-1', 'alice', { target_volume: 0 })
+      service.update('offer-1', 'alice', { delivery_points: [] })
     ).rejects.toThrow(BadRequestException);
   });
 
-  it('частичный update без касания способа поставки → ок', async () => {
+  it('частичный update без касания КУ → ок', async () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
     repo.findById.mockResolvedValue(
-      makeOffer({ status: 'ACTIVE', cycle_type: 'collective', target_volume: null })
+      makeOffer({ status: 'ACTIVE', delivery_points: [{ braname: 'krasnogorsk', min_supply_volume: 1 }] })
     );
     repo.applyUpdate.mockResolvedValue(makeOffer({ status: 'PENDING_MODERATION', product_name: 'Молоко' }));
     const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());

@@ -7,9 +7,7 @@ export class KuDetailsMapper {
       id: entity.id,
       coopname: entity.coopname,
       coreBraname: entity.coreBraname,
-      addressFull: entity.addressFull,
-      contactPhone: entity.contactPhone,
-      contactEmail: entity.contactEmail,
+      geocodedAddress: entity.geocodedAddress ?? undefined,
       workingHours: entity.workingHoursJson,
       description: entity.description ?? undefined,
       status: entity.status,
@@ -28,9 +26,7 @@ export class KuDetailsMapper {
     if (domain.id !== undefined) entity.id = domain.id;
     entity.coopname = domain.coopname;
     entity.coreBraname = domain.coreBraname;
-    entity.addressFull = domain.addressFull;
-    entity.contactPhone = domain.contactPhone;
-    entity.contactEmail = domain.contactEmail;
+    entity.geocodedAddress = domain.geocodedAddress;
     entity.workingHoursJson = domain.workingHours;
     entity.description = domain.description;
     entity.status = domain.status;

@@ -10,6 +10,8 @@ export * as GetOrder from './getOrder'
 export * as ListCategories from './listCategories'
 /** Каталог активных Offer'ов (Story 3.5) */
 export * as ListCatalog from './listCatalog'
+/** Одно предложение по идентификатору — для страницы с полным описанием */
+export * as GetOffer from './getOffer'
 /** Счётчики активных Offer'ов per category для фильтр-чипов (Story 3.5) */
 export * as CategoryOfferCounts from './categoryOfferCounts'
 /** Эпик 3: пагинированный список offer'ов в статусе PENDING_MODERATION для модерации председателем */

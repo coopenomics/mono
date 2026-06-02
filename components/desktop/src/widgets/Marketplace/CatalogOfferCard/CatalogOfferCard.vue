@@ -1,37 +1,17 @@
 <template>
   <q-card flat class="mp-catalog-offer-card mp-card" :class="cardClasses" @click="onClick">
     <div class="mp-catalog-offer-card__media">
-      <q-carousel
-        v-if="images.length"
-        v-model="slide"
-        class="mp-catalog-offer-card__carousel"
-        swipeable
-        animated
-        infinite
-        transition-prev="slide-right"
-        transition-next="slide-left"
-        :arrows="images.length > 1"
+      <!-- Канон-виджет галереи (общая карусель: каталог / деталь оферты /
+           деталь заказа). Клик по изображению открывает карточку; стрелки
+           карусели гасит @click.stop внутри виджета. Точки-навигацию в каталоге
+           не показываем. -->
+      <OfferGallery
+        :images="images"
+        :alt="offer.title"
         :navigation="false"
-        control-color="primary"
         height="100%"
-        @click.stop
-      >
-        <q-carousel-slide
-          v-for="(img, i) in images"
-          :key="img"
-          :name="i"
-          class="mp-catalog-offer-card__slide"
-        >
-          <!-- no-spinner: подписанный URL стабилизирован на бэкенде (окно
-               getReadUrl), src не меняется при polling — лоудер только мигал бы.
-               Клик по изображению = клик по карточке (стрелки карусели гасит
-               @click.stop на самой ленте). -->
-          <q-img :src="img" :alt="offer.title" fit="cover" no-spinner @click="onClick" />
-        </q-carousel-slide>
-      </q-carousel>
-      <div v-else class="mp-catalog-offer-card__placeholder">
-        <q-icon name="image" size="48px" color="grey-5" />
-      </div>
+        @image-click="onClick"
+      />
       <span
         v-if="status"
         class="mp-status-chip mp-catalog-offer-card__status"
@@ -42,7 +22,14 @@
     </div>
 
     <q-card-section class="mp-catalog-offer-card__body">
+      <div v-if="offer.category" class="mp-catalog-offer-card__category">{{ offer.category }}</div>
+
       <div class="mp-catalog-offer-card__title">{{ offer.title }}</div>
+
+      <div v-if="offer.supplierName" class="mp-catalog-offer-card__supplier">
+        <q-icon name="storefront" size="13px" />
+        <span>{{ offer.supplierName }}</span>
+      </div>
 
       <div class="mp-catalog-offer-card__meta">
         <span class="mp-catalog-offer-card__price" v-if="offer.unitCost != null">
@@ -54,8 +41,8 @@
         </span>
       </div>
 
-      <div v-if="offer.description" class="mp-catalog-offer-card__desc">
-        {{ offer.description }}
+      <div v-if="shortDescription" class="mp-catalog-offer-card__desc">
+        {{ shortDescription }}
       </div>
 
       <!-- Доп. данные (категория, тип отсечки, гарантия, поставщик и т.п.) —
@@ -73,7 +60,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, type PropType } from 'vue'
+import { computed, type PropType } from 'vue'
+import { OfferGallery } from 'src/widgets/Marketplace/OfferGallery'
 
 export type CatalogOfferStatus = 'draft' | 'published' | 'paused' | 'sold-out' | 'completed' | 'moderation'
 
@@ -87,6 +75,8 @@ export interface CatalogOffer {
   unitCost?: number | string
   unitLabel?: string       // ед., шт., кг и т.д.
   status?: CatalogOfferStatus
+  category?: string        // название категории — показывается над заголовком
+  supplierName?: string    // ФИО / наименование поставщика
 }
 
 const props = defineProps({
@@ -107,7 +97,6 @@ const images = computed<string[]>(() => {
   if (props.offer.images?.length) return props.offer.images
   return props.offer.preview ? [props.offer.preview] : []
 })
-const slide = ref(0)
 const unitLabel = computed(() => props.offer.unitLabel ?? 'ед.')
 const status = computed(() => props.offer.status)
 
@@ -124,6 +113,16 @@ const STATUS_MAP: Record<CatalogOfferStatus, { label: string; kind: StatusKind }
 
 const statusLabel = computed(() => (status.value ? STATUS_MAP[status.value].label : ''))
 const statusKind  = computed<StatusKind>(() => (status.value ? STATUS_MAP[status.value].kind : 'neutral'))
+
+// В карточке — только краткая выжимка (полное описание открывается на странице
+// предложения по клику). Жёсткая отсечка по символам страхует от длинных
+// текстов вне зависимости от line-clamp.
+const DESC_MAX = 200
+const shortDescription = computed(() => {
+  const d = props.offer.description?.trim()
+  if (!d) return ''
+  return d.length > DESC_MAX ? `${d.slice(0, DESC_MAX).trimEnd()}…` : d
+})
 
 const isEmpty = computed(() => (props.offer.remainUnits ?? 0) <= 0)
 const stockLabel = computed(() => isEmpty.value
@@ -161,7 +160,8 @@ function onClick() {
     background: var(--mp-surface-1);
     overflow: hidden;
 
-    img {
+    // img живёт внутри дочернего OfferGallery — достаём через :deep.
+    :deep(img) {
       width: 100%;
       height: 100%;
       object-fit: cover;
@@ -169,33 +169,8 @@ function onClick() {
     }
   }
 
-  &__carousel {
-    width: 100%;
-    height: 100%;
-    background: var(--mp-surface-1);
-
-    // Слайд q-carousel по умолчанию имеет внутренний padding — обнуляем,
-    // чтобы изображение шло во всю ширину карточки.
-    :deep(.q-carousel__slide) {
-      padding: 0;
-    }
-
-    .q-img {
-      width: 100%;
-      height: 100%;
-    }
-  }
-
-  &.mp-card--interactive:hover &__media img {
+  &.mp-card--interactive:hover &__media :deep(img) {
     transform: scale(1.02);
-  }
-
-  &__placeholder {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
   }
 
   &__status {
@@ -215,6 +190,14 @@ function onClick() {
     flex: 1;
   }
 
+  &__category {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+    color: var(--mp-on-surface-muted);
+  }
+
   &__title {
     font-size: 15px;
     font-weight: 500;
@@ -224,6 +207,20 @@ function onClick() {
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
+  }
+
+  &__supplier {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--mp-on-surface-muted);
+
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
   }
 
   &__meta {

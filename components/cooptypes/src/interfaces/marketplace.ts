@@ -50,7 +50,6 @@ export interface ICreateOrder {
   delivery_braname: IName
   quantity: IUint64
   unit_price: IAsset
-  cycle_type: IName
   warranty_period_secs: IUint32
   batch_hash: IChecksum256
 }
@@ -238,7 +237,6 @@ export interface IOrder {
   unit_price: IAsset
   total_cost: IAsset
   fact_cost: IAsset
-  cycle_type: IName
   warranty_period_secs: IUint32
   warranty_until: ITimePointSec
   status: IName

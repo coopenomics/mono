@@ -15,23 +15,38 @@ export const MarketplaceBarcodeFormats = {
 /**
  * Состояние единицы имущества в инвентаре КУ.
  *
- *  - `LABELED` — этикетка наклеена, имущество на складе КУ до выдачи (Эпик 6).
- *  - `ISSUED` — выдано пайщику (резерв, обновляется на Эпике 6).
- *  - `RETURNED` — возвращено по гарантии (резерв, Эпик 7).
- *  - `WRITTEN_OFF` — списано как скоропорт (резерв, Эпик 8).
+ *  - `RECEIVED` — имущество принято кооперативом по акту приёмки и лежит на
+ *    складе КУ; штрих-код может быть ещё не наклеен, полка не назначена.
+ *    Запись рождается на закрывающей подписи председателя (`ACCEPTED_TO_COOP`)
+ *    независимо от маркировки — склад показывает ВСЁ принятое, штрих-код и
+ *    полка опциональны.
+ *  - `LABELED` — на имущество наклеен внутренний штрих-код; по-прежнему на
+ *    складе КУ до выдачи (Эпик 6). Штрих-код в MVP — лишь способ быстро найти
+ *    позицию на полке, не обязательное условие хранения.
+ *  - `ISSUED` — выдано пайщику (Эпик 6).
+ *  - `RETURNED` — возвращено по гарантии (Эпик 7).
+ *  - `WRITTEN_OFF` — списано как скоропорт (Эпик 8).
  */
 export type MarketplaceInventoryStatus =
+  | 'RECEIVED'
   | 'LABELED'
   | 'ISSUED'
   | 'RETURNED'
   | 'WRITTEN_OFF';
 
 export const MarketplaceInventoryStatuses = {
+  RECEIVED: 'RECEIVED',
   LABELED: 'LABELED',
   ISSUED: 'ISSUED',
   RETURNED: 'RETURNED',
   WRITTEN_OFF: 'WRITTEN_OFF',
 } as const satisfies Record<string, MarketplaceInventoryStatus>;
+
+/** Статусы «физически на складе КУ» — для фильтра склада и крон-сканера. */
+export const MarketplaceInventoryOnWarehouseStatuses: readonly MarketplaceInventoryStatus[] = [
+  MarketplaceInventoryStatuses.RECEIVED,
+  MarketplaceInventoryStatuses.LABELED,
+];
 
 /**
  * Стратегия маркировки per-Offer (определяется поставщиком при создании
@@ -53,9 +68,13 @@ export const MarketplaceBarcodeStrategies = {
 export interface MarketplaceInventoryProps {
   id: string;
   coopname: string;
-  /** Значение штрих-кода (хранится с лидирующими нулями для EAN-13). */
-  barcode_value: string;
-  barcode_format: MarketplaceBarcodeFormat;
+  /**
+   * Значение штрих-кода (хранится с лидирующими нулями для EAN-13). NULL,
+   * пока позиция принята на склад, но ещё не промаркирована — штрих-код в
+   * MVP опционален.
+   */
+  barcode_value: string | null;
+  barcode_format: MarketplaceBarcodeFormat | null;
   order_id: string;
   shipment_id: string;
   braname: string;
@@ -64,17 +83,27 @@ export interface MarketplaceInventoryProps {
   product_name_snapshot: string;
   quantity_per_label: number;
   orderer_account_snapshot: string;
-  labeled_at: Date;
-  labeled_by_operator_account: string;
   /**
-   * Story 8.3 (Эпик 8): срок годности позиции. Проставляется при
-   * маркировке как `labeled_at + Offer.warranty_days * 86400`. По нему
-   * крон Эпика 8 формирует DRAFT-проект списания, когда срок годности
-   * истёк уже более чем `writeoff.post_expiry_grace_days` дней назад
-   * (`expiry_date <= now - grace`).
+   * Полка/ячейка склада, куда оператор положил эту позицию (свободная строка,
+   * напр. «A-12»). NULL — место ещё не назначено. Одну принятую позицию можно
+   * разложить на несколько полок, разбив её на отдельные записи (split).
+   */
+  shelf: string | null;
+  /** Момент приёмки кооперативом по акту (закрывающая подпись председателя). */
+  received_at: Date;
+  /** Account оператора КУ, оформившего приёмку. */
+  received_by_operator_account: string;
+  /** Момент маркировки штрих-кодом; NULL, пока позиция не промаркирована. */
+  labeled_at: Date | null;
+  labeled_by_operator_account: string | null;
+  /**
+   * Story 8.3 (Эпик 8): срок годности позиции. Проставляется при приёмке как
+   * `received_at + Offer.warranty_days * 86400`. По нему крон Эпика 8
+   * формирует DRAFT-проект списания, когда срок годности истёк уже более чем
+   * `writeoff.post_expiry_grace_days` дней назад (`expiry_date <= now - grace`).
    *
-   * Nullable: для исторических записей без warranty_days и для позиций
-   * с бессрочными офферами (`warranty_days = 0`).
+   * Nullable: для позиций с бессрочными офферами (`warranty_days = 0`) и
+   * исторических записей без warranty_days.
    */
   expiry_date: Date | null;
   created_at: Date;

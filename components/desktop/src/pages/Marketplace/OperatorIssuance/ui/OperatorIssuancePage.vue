@@ -1,11 +1,10 @@
 <script lang="ts" setup>
-import type { QTableProps } from 'quasar';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
-import { BaseBadge, BaseButton, BaseDialog, EmptyState } from 'src/shared/ui/base';
-import { PageHint } from 'src/shared/ui/domain';
+import { Avatar, BaseBadge, BaseButton, BaseDialog, EmptyState } from 'src/shared/ui/base';
+import { AccountBadge, PageHint } from 'src/shared/ui/domain';
 import { QrScanner } from 'src/widgets/Marketplace/QrScanner';
 import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
@@ -18,21 +17,18 @@ import {
 import IssueActOpenDialog from './IssueActOpenDialog.vue';
 
 /**
- * Story 6.1 / 6.3 / 6.6: operator-стол выдачи имущества пайщику.
+ * Operator-стол выдачи имущества пайщику, СГРУППИРОВАННЫЙ ПО ЗАКАЗЧИКУ: одна
+ * карточка = один получатель (ФИО + что ему причитается). Оператор сканирует
+ * код / находит заказчика и сразу видит «кому что отдать» — список единиц, а не
+ * россыпь сотен строк.
  *
- * Показывает Order'ы на КУ выдачи в статусах ACCEPTED_TO_COOP (ожидают
- * открытия выдачи оператором) и READY_TO_RECEIVE (выдача открыта — ждём,
- * когда заказчик подтвердит получение в своём кабинете).
- *
- * Роль оператора заканчивается на открытии: «Открыть выдачу» вызывает
- * IssueActOpenDialog — full-screen takeover, где оператор сверяет факт
- * (корректирует количество) и подписывает акт ключом председателя. Дальше
- * заказ ждёт финальную подпись заказчика — оператор свободен и может
- * обслуживать следующего. Финальную подпись заказчик ставит сам в своём
- * кабинете на своём устройстве (стол «Готово к получению»).
+ * Внутри карточки заказы разнесены по стадии выдачи:
+ *   - «К выдаче» (ACCEPTED_TO_COOP) — оператор открывает выдачу подписью
+ *     председателя (IssueActOpenDialog, full-screen);
+ *   - «Ждут получения» (READY_TO_RECEIVE) — выдача открыта, ждём, когда сам
+ *     заказчик подтвердит получение в своём кабинете.
  */
 
-// Активный КУ оператора — из общего контекста стола (без ввода кода вручную).
 const route = useRoute();
 const store = useOperatorBranchStore();
 const coopname = computed(() => String(route.params.coopname ?? ''));
@@ -43,37 +39,44 @@ const loading = ref(false);
 const openDialog = ref(false);
 const selectedOrder = ref<MarketplaceOrderIssuanceView | null>(null);
 
-const columns: QTableProps['columns'] = [
-  { name: 'order', label: 'Заказ', field: (r: MarketplaceOrderIssuanceView) => r.id.slice(0, 8), align: 'left' },
-  {
-    name: 'product',
-    label: 'Товар',
-    field: (r: MarketplaceOrderIssuanceView) => r.product_name || 'Товар по предложению',
-    align: 'left',
-  },
-  {
-    name: 'orderer',
-    label: 'Заказчик',
-    field: (r: MarketplaceOrderIssuanceView) => r.orderer_name || r.orderer_account,
-    align: 'left',
-  },
-  {
-    name: 'quantity',
-    label: 'Количество',
-    field: 'quantity',
-    align: 'right',
-    format: (v: unknown, r: MarketplaceOrderIssuanceView) => `${v} ${marketplaceUnitShort(r.unit_of_measure)}`,
-  },
-  {
-    name: 'total_cost',
-    label: 'Сумма',
-    field: 'total_cost',
-    align: 'right',
-    format: (v: unknown) => `${formatAsset2Digits(String(v ?? ''))} ₽`,
-  },
-  { name: 'status', label: 'Статус', field: 'status', align: 'left' },
-  { name: 'actions', label: '', field: 'id', align: 'right' },
-];
+// Статусы заказа, релевантные выдаче (ожидают открытия или финальной подписи).
+const ISSUANCE_STATUSES = ['ACCEPTED_TO_COOP', 'READY_TO_RECEIVE'];
+
+// Группировка ленты выдачи по заказчику: карточка получателя со списком единиц,
+// разнесённым по стадии (к выдаче / ждут получения).
+interface IssuanceGroup {
+  account: string;
+  name: string;
+  toIssue: MarketplaceOrderIssuanceView[];
+  awaiting: MarketplaceOrderIssuanceView[];
+  total: string;
+  count: number;
+}
+
+const groups = computed<IssuanceGroup[]>(() => {
+  const map = new Map<string, MarketplaceOrderIssuanceView[]>();
+  for (const o of items.value) {
+    const arr = map.get(o.orderer_account) ?? [];
+    arr.push(o);
+    map.set(o.orderer_account, arr);
+  }
+  const out: IssuanceGroup[] = [];
+  for (const [account, orders] of map) {
+    const named = orders.find((o) => o.orderer_name);
+    out.push({
+      account,
+      name: named?.orderer_name || account,
+      toIssue: orders.filter((o) => o.status === 'ACCEPTED_TO_COOP'),
+      awaiting: orders.filter((o) => o.status === 'READY_TO_RECEIVE'),
+      total: orders
+        .reduce((a, o) => a + Number.parseFloat(String(o.total_cost ?? '0')), 0)
+        .toFixed(4),
+      count: orders.length,
+    });
+  }
+  // Заказчики, кому есть что выдать прямо сейчас (есть «к выдаче») — наверх.
+  return out.sort((a, b) => (b.toIssue.length ? 1 : 0) - (a.toIssue.length ? 1 : 0));
+});
 
 async function load(): Promise<void> {
   if (!braname.value.trim()) return;
@@ -92,15 +95,9 @@ function startOpen(item: MarketplaceOrderIssuanceView): void {
   openDialog.value = true;
 }
 
-// QR-код получения (Story 14.4): оператор сканирует account-bound код заказчика
-// → резолвим аккаунт против ленты своего КУ и показываем РАЗОМ все его заказы
-// на выдачу.
+// QR-код получения: оператор сканирует account-bound код заказчика → резолвим
+// аккаунт против ленты своего КУ и показываем РАЗОМ все его заказы на выдачу.
 const scanDialogOpen = ref(false);
-
-// Статусы заказа, релевантные выдаче (ожидают открытия или финальной подписи).
-const ISSUANCE_STATUSES = ['ACCEPTED_TO_COOP', 'READY_TO_RECEIVE'];
-
-// Резолв account-bound кода: все заказы заказчика на выдачу на этом КУ.
 const pickupDialogOpen = ref(false);
 const pickupAccount = ref('');
 const pickupOrders = computed(() =>
@@ -109,10 +106,6 @@ const pickupOrders = computed(() =>
   ),
 );
 
-// Открыть выдачу одного заказа. Панель агрегированных заказов заказчика
-// остаётся открытой под полноэкранным шагом открытия — по `load()` список
-// пересчитывается, открытый заказ уходит в «ждём заказчика», оператор
-// продолжает следующий.
 function startIssuanceStep(order: MarketplaceOrderIssuanceView): void {
   if (order.status === 'ACCEPTED_TO_COOP') {
     startOpen(order);
@@ -169,7 +162,10 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
 
   template(v-else)
     PageHint(storage-key='mp:operator-issuance:banner-dismissed')
-      | Заказы, принятые кооперативом на ваш пункт выдачи. Сверьте имущество и откройте выдачу подписью председателя — дальше заказчик подтвердит получение сам в своём кабинете.
+      | Заказы сгруппированы по заказчикам — отсканируйте код получателя или
+      | найдите его карточку и выдайте всё, что ему причитается. «Открыть выдачу»
+      | оператор подтверждает подписью председателя, дальше заказчик подтвердит
+      | получение сам в своём кабинете.
 
     .issuance__toolbar
       BaseButton(variant='secondary', @click='scanDialogOpen = true')
@@ -177,41 +173,50 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
           q-icon(name='qr_code_scanner', size='16px')
         | Сканировать QR заказа
 
-    q-table.issuance__table(
-      :rows='items',
-      :columns='columns',
-      row-key='id',
-      flat,
-      bordered,
-      :loading='loading'
+    .issuance__loading(v-if='loading && !items.length')
+      q-spinner(size='28px', color='primary')
+
+    .issuance__grid(v-else-if='groups.length')
+      BaseCard.issuance__card(v-for='g in groups', :key='g.account')
+        template(#head)
+          .issuance__card-who
+            Avatar(:name='g.name', size='md', tone='primary')
+            .issuance__card-ident
+              span.issuance__card-name {{ g.name }}
+              AccountBadge(:account-name='g.account', size='sm')
+        template(#actions)
+          .issuance__card-meta
+            BaseBadge(variant='neutral') Позиций: {{ g.count }}
+            span.issuance__card-total {{ formatAsset2Digits(g.total) }} ₽
+
+        //- К выдаче — оператор открывает выдачу.
+        .issuance__section(v-if='g.toIssue.length')
+          .issuance__section-head К выдаче
+          .issuance__line(v-for='o in g.toIssue', :key='o.id')
+            .issuance__line-info
+              .issuance__line-name {{ o.product_name || 'Товар по предложению' }}
+              .issuance__line-meta {{ o.quantity }} {{ marketplaceUnitShort(o.unit_of_measure) }} · {{ formatAsset2Digits(String(o.total_cost ?? '')) }} ₽
+            BaseButton(variant='primary', size='sm', @click='startOpen(o)')
+              template(#icon-left)
+                q-icon(name='draw', size='16px')
+              | Открыть выдачу
+
+        //- Ждут получения — выдача открыта, ждём подпись заказчика.
+        .issuance__section(v-if='g.awaiting.length')
+          .issuance__section-head Ждут получения заказчиком
+          .issuance__line(v-for='o in g.awaiting', :key='o.id')
+            .issuance__line-info
+              .issuance__line-name {{ o.product_name || 'Товар по предложению' }}
+              .issuance__line-meta {{ o.quantity }} {{ marketplaceUnitShort(o.unit_of_measure) }} · {{ formatAsset2Digits(String(o.total_cost ?? '')) }} ₽
+            BaseBadge(:variant='orderStatusDisplay(o.status).variant') {{ orderStatusDisplay(o.status).label }}
+
+    EmptyState(
+      v-else,
+      title='Заказов на выдачу нет',
+      body='Заказы, принятые кооперативом на ваш участок, появятся здесь для выдачи пайщикам.'
     )
-      template(#body-cell-status='props')
-        q-td(:props='props')
-          BaseBadge(:variant='orderStatusDisplay(props.row.status).variant') {{ orderStatusDisplay(props.row.status).label }}
-
-      template(#body-cell-actions='props')
-        q-td(:props='props')
-          BaseButton(
-            v-if='props.row.status === "ACCEPTED_TO_COOP"',
-            variant='primary',
-            size='sm',
-            @click='startOpen(props.row)'
-          )
-            template(#icon-left)
-              q-icon(name='draw', size='16px')
-            | Открыть выдачу
-          .issuance__await(v-else-if='props.row.status === "READY_TO_RECEIVE"')
-            q-icon(name='hourglass_empty', size='16px')
-            | Ждём подпись заказчика
-
-      template(#no-data)
-        .issuance__nodata
-          EmptyState(
-            title='Заказов на выдачу нет',
-            body='Заказы, принятые кооперативом на ваш участок, появятся здесь для выдачи пайщикам.'
-          )
-            template(#icon)
-              q-icon(name='inventory', size='48px')
+      template(#icon)
+        q-icon(name='inventory', size='48px')
 
   IssueActOpenDialog(
     v-model='openDialog',
@@ -222,9 +227,8 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
   BaseDialog(v-model='scanDialogOpen', title='Сканирование QR заказа', size='sm')
     QrScanner(@scanned='onQrScanned')
 
-  //- Story 14.4: все заказы заказчика на выдачу разом (резолв account-bound
-  //- кода против ленты этого КУ). Оператор открывает/завершает их по одному —
-  //- каждый шаг выдачи имеет собственную двойную подпись.
+  //- Все заказы заказчика на выдачу разом (резолв account-bound кода против ленты
+  //- этого КУ). Оператор открывает их по одному — каждый шаг со своей подписью.
   BaseDialog(v-model='pickupDialogOpen', title='Выдача заказчику', size='sm')
     .issuance__resolve
       .issuance__resolve-account {{ pickupAccount }}
@@ -255,16 +259,104 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
   flex-direction: column;
   gap: var(--p-4, 16px);
 
-  // #no-data слот q-table выравнивает контент влево — центрируем EmptyState.
-  &__nodata {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-  }
-
   &__toolbar {
     display: flex;
     justify-content: flex-end;
+  }
+
+  &__loading {
+    display: flex;
+    justify-content: center;
+    padding: var(--p-6, 24px);
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: var(--p-3, 12px);
+  }
+
+  &__card {
+    height: 100%;
+
+    :deep(.base-card__body) {
+      display: flex;
+      flex-direction: column;
+      gap: var(--p-3, 12px);
+    }
+  }
+
+  &__card-who {
+    display: flex;
+    align-items: center;
+    gap: var(--p-3, 12px);
+    min-width: 0;
+  }
+
+  &__card-ident {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  &__card-name {
+    font-size: var(--p-fs-h3, 15px);
+    font-weight: 600;
+    color: var(--p-ink);
+    overflow-wrap: anywhere;
+  }
+
+  &__card-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--p-2, 8px);
+  }
+
+  &__card-total {
+    font-family: var(--p-mono);
+    font-weight: 600;
+    color: var(--p-ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-2, 8px);
+  }
+
+  &__section-head {
+    font-size: var(--p-fs-meta, 12px);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--p-ink-3);
+  }
+
+  &__line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--p-3, 12px);
+    padding: var(--p-2, 8px) var(--p-3, 12px);
+    background: var(--p-surface-2);
+    border-radius: var(--p-r-sm, 8px);
+  }
+
+  &__line-info {
+    min-width: 0;
+  }
+
+  &__line-name {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink);
+    overflow-wrap: anywhere;
+  }
+
+  &__line-meta {
+    font-size: var(--p-fs-meta, 12px);
+    color: var(--p-ink-2);
+    font-variant-numeric: tabular-nums;
   }
 
   &__resolve {
@@ -324,6 +416,10 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
 @media (max-width: 768px) {
   .issuance {
     padding: var(--p-4, 16px);
+
+    &__grid {
+      grid-template-columns: 1fr;
+    }
   }
 }
 </style>

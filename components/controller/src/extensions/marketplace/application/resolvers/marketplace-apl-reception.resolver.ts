@@ -352,7 +352,9 @@ export class MarketplaceAplReceptionResolver {
       data.braname,
       data.offerer_account
     );
-    const display = await this.displayService.enrich(orders);
+    // Оператору КУ показываем ФИО поставщика/заказчика (экран приёмки «от кого»);
+    // резолвер уже ограничен ролью Receiving и членством в КУ.
+    const display = await this.displayService.enrich(orders, { withParticipantNames: true });
     return orders.map((order) => toMarketplaceOrderDTO(order, display.get(order.id)));
   }
 

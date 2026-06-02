@@ -92,7 +92,6 @@ public:
                                       eosio::name delivery_braname,
                                       uint64_t quantity,
                                       eosio::asset unit_price,
-                                      eosio::name cycle_type,
                                       uint32_t warranty_period_secs,
                                       checksum256 batch_hash);
 

@@ -13,6 +13,9 @@ const rawInventorySelector = {
   product_name_snapshot: true,
   quantity_per_label: true,
   orderer_account_snapshot: true,
+  shelf: true,
+  received_at: true,
+  received_by_operator_account: true,
   labeled_at: true,
   labeled_by_operator_account: true,
   created_at: true,
@@ -26,20 +29,8 @@ export const marketplaceInventoryItemSelector = Selector('MarketplaceInventoryIt
   rawInventorySelector,
 )
 
-export const marketplaceLabelInventoryResultSelector = Selector('MarketplaceLabelInventoryResult')({
+export const marketplaceInventoryMutationResultSelector = Selector(
+  'MarketplaceInventoryMutationResult',
+)({
   inventory: rawInventorySelector,
 })
-
-const rawLabelShipmentInventoryResultSelector = {
-  inventory: rawInventorySelector,
-  labeled_order_ids: true,
-  skipped_order_ids: true,
-}
-
-const _validateLabelShipmentInventoryResult: MakeAllFieldsRequired<
-  ValueTypes['MarketplaceLabelShipmentInventoryResult']
-> = rawLabelShipmentInventoryResultSelector
-
-export const marketplaceLabelShipmentInventoryResultSelector = Selector(
-  'MarketplaceLabelShipmentInventoryResult',
-)(rawLabelShipmentInventoryResultSelector)

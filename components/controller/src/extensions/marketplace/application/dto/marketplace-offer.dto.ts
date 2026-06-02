@@ -1,10 +1,23 @@
-import { Field, Int, ObjectType } from '@nestjs/graphql';
+import { Field, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { createPaginationResult } from '~/application/common/dto/pagination.dto';
 import type { MarketplaceOfferDomainEntity } from '../../domain/entities/marketplace-offer.entity';
-import type { MarketplaceOfferImage } from '../../domain/entities/marketplace-offer.types';
+import {
+  MarketplaceOfferStatuses,
+  type MarketplaceOfferImage,
+} from '../../domain/entities/marketplace-offer.types';
 import { MarketplaceBarcodeStrategyEnum } from './marketplace-inventory.dto';
 
 export { MarketplaceBarcodeStrategyEnum };
+
+export const MarketplaceOfferStatusEnum = MarketplaceOfferStatuses;
+export type MarketplaceOfferStatusEnum =
+  (typeof MarketplaceOfferStatusEnum)[keyof typeof MarketplaceOfferStatusEnum];
+registerEnumType(MarketplaceOfferStatusEnum, {
+  name: 'MarketplaceOfferStatus',
+  description:
+    'Этап модерации предложения: PENDING_MODERATION — на модерации, ACTIVE — опубликовано, ' +
+    'REJECTED — отклонено, WITHDRAWN — снято поставщиком.',
+});
 
 @ObjectType('MarketplaceOfferImage')
 export class MarketplaceOfferImageDTO {
@@ -35,6 +48,23 @@ export class MarketplaceOfferImageDTO {
   }
 }
 
+@ObjectType('MarketplaceOfferDeliveryPoint')
+export class MarketplaceOfferDeliveryPointDTO {
+  @Field(() => String, { description: 'Кооперативный участок (ПВЗ) поставки.' })
+  public readonly braname!: string;
+
+  @Field(() => Int, {
+    description:
+      'Минимальный объём, от которого поставщик готов везти на этот участок ' +
+      '(в единицах товара). Ориентир для накопления партии, не жёсткий порог.',
+  })
+  public readonly min_supply_volume!: number;
+
+  constructor(init: Partial<MarketplaceOfferDeliveryPointDTO>) {
+    Object.assign(this, init);
+  }
+}
+
 @ObjectType('MarketplaceOffer')
 export class MarketplaceOfferDTO {
   @Field(() => String) public readonly id!: string;
@@ -57,10 +87,10 @@ export class MarketplaceOfferDTO {
   @Field(() => Int) public readonly quantity_consumed!: number;
   @Field(() => Boolean) public readonly unlimited_flag!: boolean;
 
-  @Field(() => String, { description: 'Способ поставки: individual | collective' })
-  public readonly cycle_type!: string;
-  @Field(() => Int, { nullable: true, description: 'Целевой объём коллективной закупки (только collective).' })
-  public readonly target_volume!: number | null;
+  @Field(() => [MarketplaceOfferDeliveryPointDTO], {
+    description: 'КУ поставки с минимальным объёмом на каждом.',
+  })
+  public readonly delivery_points!: MarketplaceOfferDeliveryPointDTO[];
   @Field(() => Int) public readonly warranty_days!: number;
 
   @Field(() => MarketplaceBarcodeStrategyEnum, {
@@ -74,10 +104,8 @@ export class MarketplaceOfferDTO {
   })
   public readonly pack_size!: number | null;
 
-  @Field(() => String, {
-    description: 'PENDING_MODERATION | ACTIVE | REJECTED | WITHDRAWN',
-  })
-  public readonly status!: string;
+  @Field(() => MarketplaceOfferStatusEnum)
+  public readonly status!: MarketplaceOfferStatusEnum;
 
   @Field(() => String, { nullable: true }) public readonly approved_by!: string | null;
   @Field(() => Date, { nullable: true }) public readonly approved_at!: Date | null;
@@ -123,8 +151,9 @@ export function toMarketplaceOfferDTO(o: MarketplaceOfferDomainEntity): Marketpl
     quantity_blocked: o.quantity_blocked,
     quantity_consumed: o.quantity_consumed,
     unlimited_flag: o.unlimited_flag,
-    cycle_type: o.cycle_type,
-    target_volume: o.target_volume,
+    delivery_points: (o.delivery_points ?? []).map(
+      (d) => new MarketplaceOfferDeliveryPointDTO(d)
+    ),
     warranty_days: o.warranty_days,
     barcode_strategy: o.barcode_strategy as MarketplaceBarcodeStrategyEnum,
     pack_size: o.pack_size,

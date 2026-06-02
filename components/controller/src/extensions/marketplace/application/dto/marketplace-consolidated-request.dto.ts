@@ -8,8 +8,6 @@ export class MarketplaceConsolidatedRequestDTO {
   @Field(() => String) public readonly coopname!: string;
   @Field(() => String) public readonly offer_id!: string;
   @Field(() => String) public readonly supplier_account!: string;
-  @Field(() => String, { description: 'individual | collective' })
-  public readonly cycle_type!: string;
 
   @Field(() => Int) public readonly total_quantity!: number;
   @Field(() => String, { description: 'Сумма заявки (numeric как string).' })
@@ -51,7 +49,6 @@ export function toMarketplaceConsolidatedRequestDTO(
     coopname: r.coopname,
     offer_id: r.offer_id,
     supplier_account: r.supplier_account,
-    cycle_type: r.cycle_type,
     total_quantity: r.total_quantity,
     total_amount: r.total_amount,
     status: r.status,

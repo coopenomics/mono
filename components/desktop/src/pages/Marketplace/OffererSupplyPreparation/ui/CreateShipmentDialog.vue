@@ -205,7 +205,7 @@ BaseDialog(
         BaseRadioCard(
           v-model='variant',
           :value='SELF',
-          title='Самовывоз',
+          title='Самоввоз',
           description='Привезу сам на пункт выдачи — без ТТН'
         )
         BaseRadioCard(

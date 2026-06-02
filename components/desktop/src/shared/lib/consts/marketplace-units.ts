@@ -44,20 +44,3 @@ export function marketplaceUnitLabel(value: string | null | undefined): string {
   if (!value) return 'ед.';
   return MARKETPLACE_UNITS.find((u) => u.value === value)?.label ?? value;
 }
-
-/**
- * Русские подписи способа поставки (cycle_type) — единый источник для всех
- * marketplace-экранов (модерация, каталог, создание оферты). Раньше карта
- * дублировалась по нескольким страницам (создание оферты, сводный заказ).
- * Значения совпадают с backend-enum `MarketplaceOfferCycleType` (два режима).
- */
-const MARKETPLACE_CYCLE_LABELS: Record<string, string> = {
-  individual: 'Индивидуально',
-  collective: 'Коллективная закупка',
-};
-
-/** Русская подпись способа поставки; неизвестное значение возвращается как есть. */
-export function marketplaceCycleLabel(value: string | null | undefined): string {
-  if (!value) return '';
-  return MARKETPLACE_CYCLE_LABELS[value] ?? value;
-}

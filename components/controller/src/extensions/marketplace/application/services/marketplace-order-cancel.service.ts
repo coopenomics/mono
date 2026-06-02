@@ -4,6 +4,7 @@ import {
   MARKETPLACE_ORDER_REPOSITORY,
   type MarketplaceOrderDomainRepository,
 } from '../../domain/repositories/marketplace-order.repository';
+import { MarketplaceOrderStatuses } from '../../domain/entities/marketplace-order.types';
 import {
   MARKETPLACE_OFFER_COUNTERS_SERVICE,
   MarketplaceOfferCountersService,
@@ -91,9 +92,9 @@ export class MarketplaceOrderCancelService {
     // (batch/individual ожидание подтверждения). После ACCEPTED отмена
     // только через гарантийный возврат (Эпик 7).
     const CANCELABLE_STATUSES = [
-      'ACTIVE',
-      'ACCEPTED_PENDING_SUPPLIER',
-      'ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL',
+      MarketplaceOrderStatuses.ACTIVE,
+      MarketplaceOrderStatuses.ACCEPTED_PENDING_SUPPLIER,
+      MarketplaceOrderStatuses.ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL,
     ] as const;
     if (!(CANCELABLE_STATUSES as readonly string[]).includes(order.status)) {
       throw new BadRequestException(

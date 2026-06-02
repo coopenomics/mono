@@ -2,11 +2,12 @@ import { Inject, Injectable, Optional, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
-import { LessThanOrEqual, Repository } from 'typeorm';
+import { In, LessThanOrEqual, Repository } from 'typeorm';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import config from '~/config/config';
 import { ExtensionDomainService } from '~/domain/extension/services/extension-domain.service';
 import { MarketplaceInventoryEntity } from '../../infrastructure/entities/marketplace-inventory.entity';
+import { MarketplaceInventoryOnWarehouseStatuses } from '../../domain/entities/marketplace-inventory.types';
 import { MarketplaceWriteoffProposalTriggers } from '../../domain/entities/marketplace-writeoff-proposal.types';
 import { MarketplaceWriteoffService } from './marketplace-writeoff.service';
 import {
@@ -95,7 +96,9 @@ export class MarketplaceWriteoffCronService implements OnModuleInit {
     const candidates = await this.inventoryRepo.find({
       where: {
         coopname,
-        status: 'LABELED',
+        // Скоропорт сканируем по всем позициям на складе — промаркированным и нет
+        // (штрих-код опционален, срок годности задаётся на приёмке).
+        status: In([...MarketplaceInventoryOnWarehouseStatuses]),
         expiry_date: LessThanOrEqual(cutoff),
       },
       take: 200,

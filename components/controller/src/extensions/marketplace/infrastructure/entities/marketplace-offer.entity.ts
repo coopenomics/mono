@@ -6,6 +6,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import type { MarketplaceOfferStatus } from '../../domain/entities/marketplace-offer.types';
 
 /**
  * Story 3.2: Offer Стола заказов. Pure db (не on-chain).
@@ -59,11 +60,14 @@ export class MarketplaceOfferEntity {
   @Column({ type: 'boolean', default: false })
   public unlimited_flag!: boolean;
 
-  @Column({ type: 'varchar', length: 32 })
-  public cycle_type!: 'individual' | 'collective';
-
-  @Column({ type: 'integer', nullable: true })
-  public target_volume!: number | null;
+  /**
+   * КУ поставки с минимальным объёмом на каждом (Эпик 15). jsonb-массив
+   * `{ braname, min_supply_volume }`. Заменяет упразднённые `cycle_type`/
+   * `target_volume`: тип поставки — производная от `min_supply_volume`
+   * (1 → по одному; >1 → накопление партии), порога нет.
+   */
+  @Column({ type: 'jsonb', default: () => "'[]'::jsonb" })
+  public delivery_points!: Array<{ braname: string; min_supply_volume: number }>;
 
   @Column({ type: 'integer', default: 0 })
   public warranty_days!: number;
@@ -95,7 +99,7 @@ export class MarketplaceOfferEntity {
   public images!: Array<{ bucket_key: string; content_hash: string; mime_type: string }>;
 
   @Column({ type: 'varchar', length: 32 })
-  public status!: 'PENDING_MODERATION' | 'ACTIVE' | 'REJECTED' | 'WITHDRAWN';
+  public status!: MarketplaceOfferStatus;
 
   @Column({ type: 'varchar', length: 13, nullable: true })
   public approved_by!: string | null;

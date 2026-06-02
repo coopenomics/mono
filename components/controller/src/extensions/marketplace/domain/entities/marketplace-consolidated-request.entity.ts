@@ -2,11 +2,11 @@ import type {
   MarketplaceConsolidatedRequestProps,
   MarketplaceConsolidatedRequestStatus,
 } from './marketplace-consolidated-request.types';
-import type { MarketplaceOrderCycleType } from './marketplace-order.types';
 
 /**
- * Story 4.2: домен консолидированной заявки. Backend-only (Locked
- * Decision L10): on-chain представления НЕТ, агрегация per cycle_type
+ * Story 4.2 (ревизия Эпик 15): домен партии-накопителя. Backend-only (Locked
+ * Decision L10): on-chain представления НЕТ. Партия формируется в момент
+ * batch-accept поставщиком из выбранных заказов (offer × КУ); агрегация
  * целиком в PG.
  *
  * Order'ы связаны через `marketplace_order.cycle_id = consolidated_request.id`.
@@ -18,7 +18,6 @@ export class MarketplaceConsolidatedRequestDomainEntity {
   public readonly coopname: string;
   public readonly offer_id: string;
   public readonly supplier_account: string;
-  public readonly cycle_type: MarketplaceOrderCycleType;
   public readonly total_quantity: number;
   public readonly total_amount: string;
   public status: MarketplaceConsolidatedRequestStatus;
@@ -37,7 +36,6 @@ export class MarketplaceConsolidatedRequestDomainEntity {
     this.coopname = props.coopname;
     this.offer_id = props.offer_id;
     this.supplier_account = props.supplier_account;
-    this.cycle_type = props.cycle_type;
     this.total_quantity = props.total_quantity;
     this.total_amount = props.total_amount;
     this.status = props.status;

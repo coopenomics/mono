@@ -7,9 +7,10 @@ import type {
   MarketplaceOrderDomainRepository,
   MarketplaceOrderListFilter,
 } from '../../domain/repositories/marketplace-order.repository';
-import type {
-  MarketplaceOrderIssuanceFactSnapshot,
-  MarketplaceOrderStatus,
+import {
+  MarketplaceOrderStatuses,
+  type MarketplaceOrderIssuanceFactSnapshot,
+  type MarketplaceOrderStatus,
 } from '../../domain/entities/marketplace-order.types';
 import type {
   PaginationInputDomainInterface,
@@ -39,7 +40,6 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
       quantity: input.quantity,
       price_per_unit: input.price_per_unit,
       total_cost: input.total_cost,
-      cycle_type: input.cycle_type,
       cycle_id: input.cycle_id,
       warranty_period_secs: input.warranty_period_secs,
       warranty_until: input.warranty_until,
@@ -214,7 +214,7 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
       .where('o.coopname = :coop AND o.offer_id = :off AND o.status = :st AND o.cycle_id IS NULL', {
         coop: coopname,
         off: offer_id,
-        st: 'ACTIVE',
+        st: MarketplaceOrderStatuses.ACTIVE,
       })
       .orderBy('o.blocked_at', 'ASC')
       .getMany();
@@ -289,10 +289,53 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
       .where('o.coopname = :coop AND o.offer_id = :off AND o.status = :st AND o.cycle_id IS NULL', {
         coop: coopname,
         off: offer_id,
-        st: 'ACTIVE',
+        st: MarketplaceOrderStatuses.ACTIVE,
       })
       .getRawOne<{ total: string }>();
     return Number(raw?.total ?? 0);
+  }
+
+  async sumActiveByOfferBranch(
+    coopname: string,
+    offerIds: string[]
+  ): Promise<Array<{ offer_id: string; delivery_braname: string; total: number }>> {
+    if (offerIds.length === 0) return [];
+    const rows = await this.repo
+      .createQueryBuilder('o')
+      .select('o.offer_id', 'offer_id')
+      .addSelect('o.delivery_braname', 'delivery_braname')
+      .addSelect('COALESCE(SUM(o.quantity), 0)', 'total')
+      .where('o.coopname = :coop AND o.offer_id IN (:...offers) AND o.status = :st', {
+        coop: coopname,
+        offers: offerIds,
+        st: MarketplaceOrderStatuses.ACTIVE,
+      })
+      .groupBy('o.offer_id')
+      .addGroupBy('o.delivery_braname')
+      .getRawMany<{ offer_id: string; delivery_braname: string; total: string }>();
+    return rows.map((r) => ({
+      offer_id: r.offer_id,
+      delivery_braname: r.delivery_braname,
+      total: Number(r.total ?? 0),
+    }));
+  }
+
+  async sumByCycleIds(
+    coopname: string,
+    cycleIds: string[]
+  ): Promise<Array<{ cycle_id: string; total: number }>> {
+    if (cycleIds.length === 0) return [];
+    const rows = await this.repo
+      .createQueryBuilder('o')
+      .select('o.cycle_id', 'cycle_id')
+      .addSelect('COALESCE(SUM(o.quantity), 0)', 'total')
+      .where('o.coopname = :coop AND o.cycle_id IN (:...cids)', {
+        coop: coopname,
+        cids: cycleIds,
+      })
+      .groupBy('o.cycle_id')
+      .getRawMany<{ cycle_id: string; total: string }>();
+    return rows.map((r) => ({ cycle_id: r.cycle_id, total: Number(r.total ?? 0) }));
   }
 
   async deleteByBlockNumGreaterThan(blockNum: number): Promise<void> {

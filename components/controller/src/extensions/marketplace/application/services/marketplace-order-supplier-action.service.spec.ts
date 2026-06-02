@@ -14,12 +14,14 @@ function buildOrder(overrides: Partial<MarketplaceOrderDomainEntity> = {}): Mark
     orderer_account: 'orderer1',
     offer_id: 'offer-1',
     supplier_account: 'supplier1',
+    delivery_braname: 'krasnogorsk',
     quantity: 5,
     price_per_unit: '150.0000',
     total_cost: '750.0000',
-    cycle_type: 'individual',
     cycle_id: null,
-    status: 'ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL',
+    status: 'ACTIVE',
+    blocked_at: new Date('2026-05-01T00:00:00Z'),
+    created_at: new Date('2026-05-01T00:00:00Z'),
     ...overrides,
   } as MarketplaceOrderDomainEntity;
 }
@@ -33,9 +35,9 @@ function buildMocks() {
     assignToCycle: jest.fn().mockResolvedValue(undefined as any),
   } as unknown as jest.Mocked<MarketplaceOrderDomainRepository>;
 
-  // individual accept оборачивает заказ в синтетическую заявку (cycle) в статусе
-  // ACCEPTED — best-effort; партию поставщик формирует явно отдельным шагом
-  // (Story 14.1), shipment-create здесь не вызывается.
+  // batch-accept оборачивает принятые заказы в ОДНУ партию-накопитель (cycle)
+  // в статусе ACCEPTED — best-effort; партию поставщик формирует явно отдельным
+  // шагом (Эпик 14), shipment-create здесь не вызывается.
   const cycleRepo: jest.Mocked<MarketplaceConsolidatedRequestDomainRepository> = {
     create: jest.fn().mockResolvedValue({ id: 'cycle-1' } as any),
   } as unknown as jest.Mocked<MarketplaceConsolidatedRequestDomainRepository>;
@@ -60,7 +62,7 @@ function buildMocks() {
   return { orderRepo, cycleRepo, offerCounters, chainPort, logger };
 }
 
-describe('MarketplaceOrderSupplierActionService', () => {
+describe('MarketplaceOrderSupplierActionService (Эпик 15 — batch)', () => {
   let mocks: ReturnType<typeof buildMocks>;
   let service: MarketplaceOrderSupplierActionService;
 
@@ -75,118 +77,108 @@ describe('MarketplaceOrderSupplierActionService', () => {
     );
   });
 
-  describe('acceptIndividual', () => {
-    it('happy path — chain.acceptOrder + applyStatusTransition ACCEPTED, counter не дёргается', async () => {
-      mocks.orderRepo.findById.mockResolvedValue(buildOrder());
+  describe('acceptOrdersBatch', () => {
+    it('happy path — acceptOrder per заказ + ACCEPTED + одна партия из всех', async () => {
+      mocks.orderRepo.findById
+        .mockResolvedValueOnce(buildOrder({ id: 'order-1', order_hash: 'h1' }))
+        .mockResolvedValueOnce(buildOrder({ id: 'order-2', order_hash: 'h2' }))
+        // findById внутри synthesizeBatchCycle (refresh) — по два заказа
+        .mockResolvedValue(buildOrder({ status: 'ACCEPTED' as any }));
 
-      const result = await service.acceptIndividual({
+      const result = await service.acceptOrdersBatch({
         coopname: 'voskhod',
         offerer_account: 'supplier1',
-        order_id: 'order-1',
+        order_ids: ['order-1', 'order-2'],
       });
 
-      expect(mocks.chainPort.acceptOrder).toHaveBeenCalledWith({
-        coopname: 'voskhod',
-        offerer: 'supplier1',
-        order_hash: 'h-order-1',
-      });
-      expect(mocks.orderRepo.applyStatusTransition).toHaveBeenCalledWith('order-1', 'ACCEPTED', 'Принят поставщиком');
-      expect(mocks.offerCounters.onOrderUnblocked).not.toHaveBeenCalled();
-      expect(result.tx_hash).toBe('tx-acc-1');
+      expect(mocks.chainPort.acceptOrder).toHaveBeenCalledTimes(2);
+      expect(mocks.orderRepo.applyStatusTransition).toHaveBeenCalledWith(
+        'order-1',
+        'ACCEPTED',
+        'Принят поставщиком к поставке'
+      );
+      // Все принятые заказы обёрнуты в ОДНУ партию.
+      expect(mocks.cycleRepo.create).toHaveBeenCalledTimes(1);
+      expect(mocks.orderRepo.assignToCycle).toHaveBeenCalledWith(['order-1', 'order-2'], 'cycle-1', 'ACCEPTED');
+      expect(result.cycle_id).toBe('cycle-1');
+      expect(result.tx_hashes).toHaveLength(2);
     });
 
-    it('NotFound — Order не найден', async () => {
+    it('BadRequest — пустой список заказов', async () => {
+      await expect(
+        service.acceptOrdersBatch({ coopname: 'voskhod', offerer_account: 'supplier1', order_ids: [] })
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('NotFound — заказ не найден', async () => {
       mocks.orderRepo.findById.mockResolvedValue(null);
       await expect(
-        service.acceptIndividual({ coopname: 'voskhod', offerer_account: 'supplier1', order_id: 'missing' })
+        service.acceptOrdersBatch({ coopname: 'voskhod', offerer_account: 'supplier1', order_ids: ['missing'] })
       ).rejects.toBeInstanceOf(NotFoundException);
     });
 
     it('Forbidden — не владелец Offer\'а', async () => {
       mocks.orderRepo.findById.mockResolvedValue(buildOrder({ supplier_account: 'someone-else' }));
       await expect(
-        service.acceptIndividual({ coopname: 'voskhod', offerer_account: 'supplier1', order_id: 'order-1' })
+        service.acceptOrdersBatch({ coopname: 'voskhod', offerer_account: 'supplier1', order_ids: ['order-1'] })
       ).rejects.toBeInstanceOf(ForbiddenException);
     });
 
-    it.each(['collective'] as const)(
-      'BadRequest для cycle_type=%s — accept individual недоступен',
-      async (cycle_type) => {
-        mocks.orderRepo.findById.mockResolvedValue(buildOrder({ cycle_type } as any));
-        await expect(
-          service.acceptIndividual({ coopname: 'voskhod', offerer_account: 'supplier1', order_id: 'order-1' })
-        ).rejects.toBeInstanceOf(BadRequestException);
-      }
-    );
-
-    it.each(['ACTIVE', 'ACCEPTED', 'CANCELLED_BY_ORDERER'] as const)(
-      'BadRequest для status=%s',
+    it.each(['ACCEPTED', 'CANCELLED_BY_ORDERER'] as const)(
+      'BadRequest для status=%s (не активен)',
       async (status) => {
         mocks.orderRepo.findById.mockResolvedValue(buildOrder({ status } as any));
         await expect(
-          service.acceptIndividual({ coopname: 'voskhod', offerer_account: 'supplier1', order_id: 'order-1' })
+          service.acceptOrdersBatch({ coopname: 'voskhod', offerer_account: 'supplier1', order_ids: ['order-1'] })
         ).rejects.toBeInstanceOf(BadRequestException);
       }
     );
 
-    it('chain.acceptOrder fail → BadRequest, applyStatusTransition не вызван', async () => {
-      mocks.orderRepo.findById.mockResolvedValue(buildOrder());
-      mocks.chainPort.acceptOrder.mockRejectedValue(
-        new Error('assertion failure with message: order not found\nat eosio')
-      );
+    it('BadRequest — заказ уже присоединён к партии (cycle_id != null)', async () => {
+      mocks.orderRepo.findById.mockResolvedValue(buildOrder({ cycle_id: 'cycle-x' }));
       await expect(
-        service.acceptIndividual({ coopname: 'voskhod', offerer_account: 'supplier1', order_id: 'order-1' })
+        service.acceptOrdersBatch({ coopname: 'voskhod', offerer_account: 'supplier1', order_ids: ['order-1'] })
       ).rejects.toBeInstanceOf(BadRequestException);
-      expect(mocks.orderRepo.applyStatusTransition).not.toHaveBeenCalled();
+    });
+
+    it('chain fail на единственном заказе → ни одного принятого → BadRequest', async () => {
+      mocks.orderRepo.findById.mockResolvedValue(buildOrder());
+      mocks.chainPort.acceptOrder.mockRejectedValue(new Error('chain timeout'));
+      await expect(
+        service.acceptOrdersBatch({ coopname: 'voskhod', offerer_account: 'supplier1', order_ids: ['order-1'] })
+      ).rejects.toBeInstanceOf(BadRequestException);
     });
   });
 
-  describe('declineIndividual', () => {
-    it('happy path — declineOrder + counter unblk + applyStatusTransition CANCELLED_BY_SUPPLIER', async () => {
+  describe('declineOrdersBatch', () => {
+    it('happy path — declineOrder + counter unblk + CANCELLED_BY_SUPPLIER', async () => {
       mocks.orderRepo.findById.mockResolvedValue(buildOrder({ quantity: 7 }));
 
-      const result = await service.declineIndividual({
+      const result = await service.declineOrdersBatch({
         coopname: 'voskhod',
         offerer_account: 'supplier1',
-        order_id: 'order-1',
+        order_ids: ['order-1'],
         reason: 'нет ресурса',
       });
 
-      expect(mocks.chainPort.declineOrder).toHaveBeenCalledWith({
-        coopname: 'voskhod',
-        offerer: 'supplier1',
-        order_hash: 'h-order-1',
-      });
+      expect(mocks.chainPort.declineOrder).toHaveBeenCalledTimes(1);
       expect(mocks.offerCounters.onOrderUnblocked).toHaveBeenCalledWith('offer-1', 7);
       expect(mocks.orderRepo.applyStatusTransition).toHaveBeenCalledWith('order-1', 'CANCELLED_BY_SUPPLIER', 'нет ресурса');
-      expect(result.tx_hash).toBe('tx-dec-1');
-    });
-
-    it('counter fail tolerance — applyStatusTransition всё равно', async () => {
-      mocks.orderRepo.findById.mockResolvedValue(buildOrder());
-      mocks.offerCounters.onOrderUnblocked.mockRejectedValue(new Error('offer hard-deleted'));
-
-      await service.declineIndividual({
-        coopname: 'voskhod',
-        offerer_account: 'supplier1',
-        order_id: 'order-1',
-        reason: 'no stock',
-      });
-      expect(mocks.orderRepo.applyStatusTransition).toHaveBeenCalledWith('order-1', 'CANCELLED_BY_SUPPLIER', 'no stock');
-      expect(mocks.logger.warn).toHaveBeenCalled();
+      expect(result.cycle_id).toBeNull();
+      expect(result.tx_hashes).toEqual(['tx-dec-1']);
     });
 
     it('BadRequest — пустой reason', async () => {
       await expect(
-        service.declineIndividual({ coopname: 'voskhod', offerer_account: 'supplier1', order_id: 'order-1', reason: '' })
+        service.declineOrdersBatch({ coopname: 'voskhod', offerer_account: 'supplier1', order_ids: ['order-1'], reason: '' })
       ).rejects.toBeInstanceOf(BadRequestException);
       expect(mocks.orderRepo.findById).not.toHaveBeenCalled();
     });
 
-    it('BadRequest для cycle_type=collective — decline individual недоступен', async () => {
-      mocks.orderRepo.findById.mockResolvedValue(buildOrder({ cycle_type: 'collective' as any }));
+    it('BadRequest — статус не ACTIVE', async () => {
+      mocks.orderRepo.findById.mockResolvedValue(buildOrder({ status: 'ACCEPTED' as any }));
       await expect(
-        service.declineIndividual({ coopname: 'voskhod', offerer_account: 'supplier1', order_id: 'order-1', reason: 'x' })
+        service.declineOrdersBatch({ coopname: 'voskhod', offerer_account: 'supplier1', order_ids: ['order-1'], reason: 'x' })
       ).rejects.toBeInstanceOf(BadRequestException);
     });
 
@@ -194,70 +186,9 @@ describe('MarketplaceOrderSupplierActionService', () => {
       mocks.orderRepo.findById.mockResolvedValue(buildOrder());
       mocks.chainPort.declineOrder.mockRejectedValue(new Error('chain timeout'));
       await expect(
-        service.declineIndividual({ coopname: 'voskhod', offerer_account: 'supplier1', order_id: 'order-1', reason: 'x' })
+        service.declineOrdersBatch({ coopname: 'voskhod', offerer_account: 'supplier1', order_ids: ['order-1'], reason: 'x' })
       ).rejects.toBeInstanceOf(BadRequestException);
       expect(mocks.offerCounters.onOrderUnblocked).not.toHaveBeenCalled();
-      expect(mocks.orderRepo.applyStatusTransition).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('declineFromOpenPool', () => {
-    it('happy path — Order ACTIVE + cycle_id=null + cycle_type=collective → decline', async () => {
-      mocks.orderRepo.findById.mockResolvedValue(
-        buildOrder({ cycle_type: 'collective' as any, status: 'ACTIVE' as any, cycle_id: null, quantity: 4 })
-      );
-
-      const result = await service.declineFromOpenPool({
-        coopname: 'voskhod',
-        offerer_account: 'supplier1',
-        order_id: 'order-1',
-        reason: 'излишек',
-      });
-
-      expect(mocks.chainPort.declineOrder).toHaveBeenCalledTimes(1);
-      expect(mocks.offerCounters.onOrderUnblocked).toHaveBeenCalledWith('offer-1', 4);
-      expect(mocks.orderRepo.applyStatusTransition).toHaveBeenCalledWith('order-1', 'CANCELLED_BY_SUPPLIER', 'излишек');
-      expect(result.tx_hash).toBe('tx-dec-1');
-    });
-
-    it('BadRequest для cycle_type=individual — недоступно (только collective)', async () => {
-      mocks.orderRepo.findById.mockResolvedValue(buildOrder({ cycle_type: 'individual' as any, status: 'ACTIVE' as any }));
-      await expect(
-        service.declineFromOpenPool({
-          coopname: 'voskhod',
-          offerer_account: 'supplier1',
-          order_id: 'order-1',
-          reason: 'x',
-        })
-      ).rejects.toBeInstanceOf(BadRequestException);
-    });
-
-    it('BadRequest — cycle_id уже выставлен (пул запущен)', async () => {
-      mocks.orderRepo.findById.mockResolvedValue(
-        buildOrder({ cycle_type: 'collective' as any, status: 'ACCEPTED' as any, cycle_id: 'cycle-2' })
-      );
-      await expect(
-        service.declineFromOpenPool({
-          coopname: 'voskhod',
-          offerer_account: 'supplier1',
-          order_id: 'order-1',
-          reason: 'x',
-        })
-      ).rejects.toBeInstanceOf(BadRequestException);
-    });
-
-    it('BadRequest — статус не ACTIVE', async () => {
-      mocks.orderRepo.findById.mockResolvedValue(
-        buildOrder({ cycle_type: 'collective' as any, status: 'CANCELLED_BY_ORDERER' as any, cycle_id: null })
-      );
-      await expect(
-        service.declineFromOpenPool({
-          coopname: 'voskhod',
-          offerer_account: 'supplier1',
-          order_id: 'order-1',
-          reason: 'x',
-        })
-      ).rejects.toBeInstanceOf(BadRequestException);
     });
   });
 });

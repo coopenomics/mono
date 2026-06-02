@@ -1,9 +1,11 @@
 import { Field, InputType } from '@nestjs/graphql';
-import { IsEmail, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 import { WorkingHoursInputDTO } from './working-hours-input.dto';
 
-// Вход GraphQL-мутации marketplaceDetailKU:
-// детализирует существующий в core кооперативный участок как ПВЗ Стола заказов.
+// Вход GraphQL-мутации marketplaceDetailKU: маркирует существующий в core
+// кооперативный участок как ПВЗ Стола заказов. Наименование/адрес/контакты НЕ
+// принимаются — они правятся на участке (стол председателя «Кооперативные
+// участки») и резолвятся живьём; здесь только режим работы, описание, статус.
 @InputType('MarketplaceDetailKUInput')
 export class DetailKUInputDTO {
   @Field(() => String, { description: 'Имя аккаунта кооператива' })
@@ -15,22 +17,6 @@ export class DetailKUInputDTO {
   @MinLength(1)
   @MaxLength(13)
   coreBraname!: string;
-
-  @Field(() => String, { description: 'Полный адрес ПВЗ для отображения и геокодинга' })
-  @IsString()
-  @MinLength(1)
-  @MaxLength(1000)
-  addressFull!: string;
-
-  @Field(() => String, { description: 'Контактный телефон ПВЗ' })
-  @IsString()
-  @MaxLength(50)
-  contactPhone!: string;
-
-  @Field(() => String, { description: 'Контактный email ПВЗ' })
-  @IsEmail()
-  @MaxLength(200)
-  contactEmail!: string;
 
   @Field(() => WorkingHoursInputDTO, { description: 'Режим работы ПВЗ по дням недели' })
   workingHours!: WorkingHoursInputDTO;

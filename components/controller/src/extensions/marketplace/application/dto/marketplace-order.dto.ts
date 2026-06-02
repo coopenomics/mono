@@ -3,25 +3,10 @@ import { MarketplaceConsolidatedRequestDTO } from './marketplace-consolidated-re
 import { createPaginationResult } from '~/application/common/dto/pagination.dto';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import {
-  MarketplaceOrderCycleTypes,
   MarketplaceOrderStatuses,
   type MarketplaceOrderCreateTxSnapshot,
-  type MarketplaceOrderCycleType,
   type MarketplaceOrderStatus,
 } from '../../domain/entities/marketplace-order.types';
-
-export const MarketplaceOrderCycleTypeEnum = MarketplaceOrderCycleTypes;
-export type MarketplaceOrderCycleTypeEnum =
-  (typeof MarketplaceOrderCycleTypeEnum)[keyof typeof MarketplaceOrderCycleTypeEnum];
-
-registerEnumType(MarketplaceOrderCycleTypeEnum, {
-  name: 'MarketplaceOrderCycleType',
-  description: 'Способ поставки заказов.',
-  valuesMap: {
-    INDIVIDUAL: { description: 'Каждый заказ обслуживается отдельно, без ожидания набора.' },
-    COLLECTIVE: { description: 'Коллективная закупка: заказы копятся в партию; старт по целевому объёму или ручному запуску поставщика.' },
-  },
-});
 
 export const MarketplaceOrderStatusEnum = MarketplaceOrderStatuses;
 export type MarketplaceOrderStatusEnum =
@@ -153,16 +138,28 @@ export class MarketplaceOrderDTO {
   @Field(() => Int, { description: 'Количество единиц товара в заказе.' })
   public readonly quantity!: number;
 
+  @Field(() => Int, {
+    nullable: true,
+    description:
+      'Сколько уже накоплено по этому предложению на данном пункте выдачи всеми ' +
+      'заказчиками на этапе сбора партии (для прогресса коллективного заказа). ' +
+      'Заполняется только пока заказ копится; после приёма поставщиком — пусто.',
+  })
+  public readonly group_accumulated_quantity!: number | null;
+
+  @Field(() => Int, {
+    nullable: true,
+    description:
+      'Целевой минимальный объём поставки на этот пункт выдачи — ориентир сбора ' +
+      'партии (не жёсткий порог). Заполняется только на этапе сбора.',
+  })
+  public readonly group_min_volume!: number | null;
+
   @Field(() => String, { description: 'Цена за единицу товара на момент заказа.' })
   public readonly price_per_unit!: string;
 
   @Field(() => String, { description: 'Общая сумма заказа.' })
   public readonly total_cost!: string;
-
-  @Field(() => MarketplaceOrderCycleTypeEnum, {
-    description: 'Способ накопления заказов перед поставкой (копируется из предложения).',
-  })
-  public readonly cycle_type!: MarketplaceOrderCycleType;
 
   @Field(() => String, { nullable: true, description: 'Идентификатор партии-накопителя, если заказ присоединён.' })
   public readonly cycle_id!: string | null;
@@ -292,62 +289,32 @@ export class MarketplaceCancelOrderResultDTO {
   }
 }
 
-@ObjectType('MarketplaceConsolidatedRequestActionResult', {
-  description: 'Результат массового действия поставщика над пакетом заказов (приём или отклонение).',
-})
-export class MarketplaceConsolidatedRequestActionResultDTO {
-  @Field(() => MarketplaceConsolidatedRequestDTO, {
-    description: 'Сводная заявка после обработки.',
-  })
-  public readonly request!: MarketplaceConsolidatedRequestDTO;
-
-  @Field(() => Int, { description: 'Сколько заказов входило в обработанный пакет.' })
-  public readonly affected_orders!: number;
-
-  @Field(() => Int, {
-    description: 'Сколько заказов из пакета удалось провести в блокчейн.',
-  })
-  public readonly on_chain_succeeded!: number;
-
-  @Field(() => Int, {
-    description: 'Сколько заказов из пакета не удалось провести в блокчейн — потребуется повторная обработка.',
-  })
-  public readonly on_chain_failed!: number;
-
-  constructor(init: {
-    request: MarketplaceConsolidatedRequestDTO;
-    affected_orders: number;
-    on_chain_succeeded: number;
-    on_chain_failed: number;
-  }) {
-    this.request = init.request;
-    this.affected_orders = init.affected_orders;
-    this.on_chain_succeeded = init.on_chain_succeeded;
-    this.on_chain_failed = init.on_chain_failed;
-  }
-}
-
 @ObjectType('MarketplaceOrderPaginationResult', { description: 'Постраничный список заказов.' })
 export class MarketplaceOrderPaginationResultDTO extends createPaginationResult(
   MarketplaceOrderDTO,
   'MarketplaceOrder'
 ) {}
 
-@ObjectType('MarketplaceSupplierOrderActionResult', {
-  description: 'Результат индивидуального приёма или отклонения заказа поставщиком.',
+@ObjectType('MarketplaceSupplierBatchActionResult', {
+  description: 'Результат массового приёма или отказа поставщика над выбранными заказами.',
 })
-export class MarketplaceSupplierOrderActionResultDTO {
-  @Field(() => MarketplaceOrderDTO, {
-    description: 'Заказ после изменения статуса.',
+export class MarketplaceSupplierBatchActionResultDTO {
+  @Field(() => String, {
+    nullable: true,
+    description: 'Идентификатор партии-накопителя, в которую обёрнуты принятые заказы (null при отказе).',
   })
-  public readonly order!: MarketplaceOrderDTO;
+  public readonly cycle_id!: string | null;
 
-  @Field(() => String, { description: 'Идентификатор транзакции приёма или отклонения.' })
-  public readonly tx_hash!: string;
+  @Field(() => [MarketplaceOrderDTO], { description: 'Заказы после изменения статуса.' })
+  public readonly orders!: MarketplaceOrderDTO[];
 
-  constructor(init: { order: MarketplaceOrderDTO; tx_hash: string }) {
-    this.order = init.order;
-    this.tx_hash = init.tx_hash;
+  @Field(() => [String], { description: 'Идентификаторы транзакций приёма/отказа в блокчейне.' })
+  public readonly tx_hashes!: string[];
+
+  constructor(init: { cycle_id: string | null; orders: MarketplaceOrderDTO[]; tx_hashes: string[] }) {
+    this.cycle_id = init.cycle_id;
+    this.orders = init.orders;
+    this.tx_hashes = init.tx_hashes;
   }
 }
 
@@ -371,6 +338,8 @@ export interface MarketplaceOrderDisplayFields {
   delivery_point_address?: string | null;
   orderer_name?: string | null;
   supplier_name?: string | null;
+  group_accumulated_quantity?: number | null;
+  group_min_volume?: number | null;
 }
 
 export function toMarketplaceOrderDTO(
@@ -393,9 +362,10 @@ export function toMarketplaceOrderDTO(
     delivery_point_name: display?.delivery_point_name ?? null,
     delivery_point_address: display?.delivery_point_address ?? null,
     quantity: o.quantity,
+    group_accumulated_quantity: display?.group_accumulated_quantity ?? null,
+    group_min_volume: display?.group_min_volume ?? null,
     price_per_unit: o.price_per_unit,
     total_cost: o.total_cost,
-    cycle_type: o.cycle_type,
     cycle_id: o.cycle_id,
     shipment_id: o.shipment_id,
     warranty_period_secs: o.warranty_period_secs,

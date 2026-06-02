@@ -1,7 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import type { GeocodeStatus, KuDetailsDomainEntity } from '../../domain/entities/ku-details-domain.entity';
+import {
+  KuDetailsStatuses,
+  type GeocodeStatus,
+  type KuDetailsDomainEntity,
+  type KuDetailsStatus,
+} from '../../domain/entities/ku-details-domain.entity';
 import type { KuDetailsDomainRepository } from '../../domain/repositories/ku-details-domain.repository';
 import { KuDetailsTypeormEntity } from '../entities/ku-details.entity';
 import { KuDetailsMapper } from '../mappers/ku-details.mapper';
@@ -22,8 +27,8 @@ export class KuDetailsRepositoryAdapter implements KuDetailsDomainRepository {
     coopname: string,
     options: { onlyActive?: boolean } = {}
   ): Promise<KuDetailsDomainEntity[]> {
-    const where: { coopname: string; status?: 'ACTIVE' } = { coopname };
-    if (options.onlyActive) where.status = 'ACTIVE';
+    const where: { coopname: string; status?: KuDetailsStatus } = { coopname };
+    if (options.onlyActive) where.status = KuDetailsStatuses.ACTIVE;
     const rows = await this.repo.find({ where, order: { createdAt: 'ASC' } });
     return rows.map((row) => KuDetailsMapper.toDomain(row));
   }
@@ -37,9 +42,7 @@ export class KuDetailsRepositoryAdapter implements KuDetailsDomainRepository {
     const toPersist = existing ?? new KuDetailsTypeormEntity();
     toPersist.coopname = entity.coopname;
     toPersist.coreBraname = entity.coreBraname;
-    toPersist.addressFull = entity.addressFull;
-    toPersist.contactPhone = entity.contactPhone;
-    toPersist.contactEmail = entity.contactEmail;
+    toPersist.geocodedAddress = entity.geocodedAddress;
     toPersist.workingHoursJson = entity.workingHours;
     toPersist.description = entity.description;
     toPersist.status = entity.status;
@@ -62,21 +65,18 @@ export class KuDetailsRepositoryAdapter implements KuDetailsDomainRepository {
       lng?: number;
       errorMessage?: string;
       geocodedAt: Date;
-      expectedAddressFull?: string;
+      geocodedAddress?: string;
     }
   ): Promise<KuDetailsDomainEntity | null> {
     const existing = await this.repo.findOne({ where: { coopname, coreBraname } });
     if (!existing) return null;
-
-    if (payload.expectedAddressFull !== undefined && existing.addressFull !== payload.expectedAddressFull) {
-      return null;
-    }
 
     existing.geocodeStatus = payload.status;
     existing.lat = payload.lat;
     existing.lng = payload.lng;
     existing.geocodeErrorMessage = payload.errorMessage;
     existing.geocodedAt = payload.geocodedAt;
+    if (payload.geocodedAddress !== undefined) existing.geocodedAddress = payload.geocodedAddress;
 
     const saved = await this.repo.save(existing);
     return KuDetailsMapper.toDomain(saved);
@@ -85,7 +85,7 @@ export class KuDetailsRepositoryAdapter implements KuDetailsDomainRepository {
   async setStatus(
     coopname: string,
     coreBraname: string,
-    status: 'ACTIVE' | 'INACTIVE'
+    status: KuDetailsStatus
   ): Promise<KuDetailsDomainEntity | null> {
     const existing = await this.repo.findOne({ where: { coopname, coreBraname } });
     if (!existing) return null;

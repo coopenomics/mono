@@ -7,7 +7,7 @@
  *    переходит в целевое финансирование на резерв-кошелёк.
  *
  * Guards (из p.mkt.supply.standard.yaml + Locked Decision L6):
- *  - quantity > 0; unit_price > 0 в _root_govern_symbol; cycle_type валидный.
+ *  - quantity > 0; unit_price > 0 в _root_govern_symbol.
  *  - Order с таким hash ещё не создан (idempotency).
  *  - Заказчик — активный пайщик кооператива (`get_participant_or_fail`).
  *  - `delivery_braname` существует в `branches` (КУ выдачи задаётся пайщиком
@@ -31,7 +31,6 @@ void marketplace::createorder(eosio::name coopname,
                                eosio::name delivery_braname,
                                uint64_t quantity,
                                eosio::asset unit_price,
-                               eosio::name cycle_type,
                                uint32_t warranty_period_secs,
                                checksum256 batch_hash) {
   require_auth(coopname);
@@ -42,9 +41,6 @@ void marketplace::createorder(eosio::name coopname,
                "Некорректная цена за единицу");
   eosio::check(unit_price.symbol == _root_govern_symbol,
                "Некорректный символ валюты в цене");
-  eosio::check(cycle_type == CycleType::INDIVIDUAL ||
-               cycle_type == CycleType::COLLECTIVE,
-               "Неизвестный способ поставки");
 
   // Idempotency: Order с таким hash не должен существовать
   eosio::check(!Marketplace::get_order_by_hash(coopname, order_hash).has_value(),
@@ -91,7 +87,6 @@ void marketplace::createorder(eosio::name coopname,
     o.total_cost      = total_cost;
     o.fact_cost       = total_cost;        // до signiss2 == total_cost
 
-    o.cycle_type            = cycle_type;
     o.warranty_period_secs  = warranty_period_secs;
 
     o.status      = OrderStatus::ACTIVE;

@@ -1,10 +1,30 @@
-import { Field, ObjectType } from '@nestjs/graphql';
-import type { KuDetailsDomainEntity } from '../../domain/entities/ku-details-domain.entity';
+import { Field, ObjectType, registerEnumType } from '@nestjs/graphql';
+import {
+  GeocodeStatuses,
+  KuDetailsStatuses,
+  type KuDetailsDomainEntity,
+} from '../../domain/entities/ku-details-domain.entity';
 import { WorkingHoursDTO } from './working-hours.dto';
 
+export const KuDetailsStatusEnum = KuDetailsStatuses;
+export type KuDetailsStatusEnum = (typeof KuDetailsStatusEnum)[keyof typeof KuDetailsStatusEnum];
+registerEnumType(KuDetailsStatusEnum, {
+  name: 'MarketplaceKUStatus',
+  description: 'Статус подключения ПВЗ: ACTIVE — активен, INACTIVE — отключён.',
+});
+
+export const GeocodeStatusEnum = GeocodeStatuses;
+export type GeocodeStatusEnum = (typeof GeocodeStatusEnum)[keyof typeof GeocodeStatusEnum];
+registerEnumType(GeocodeStatusEnum, {
+  name: 'MarketplaceGeocodeStatus',
+  description: 'Состояние геокодинга адреса: PENDING — в процессе, OK — успешно, FAILED — ошибка.',
+});
+
 // GraphQL-представление marketplace-детализации существующего в core КУ.
-// Поля lat/lng/geocode* обновляются post-effect'ом геокодера — до его
-// выполнения geocodeStatus = 'PENDING', координаты отсутствуют.
+// Реквизиты участка (`name`/`addressFull`/`contactPhone`/`contactEmail`) НЕ
+// хранятся в детализации — их отдаёт field-резолвер живьём из организации
+// участка (единый источник правды). Поля lat/lng/geocode* обновляются
+// post-effect'ом геокодера — до его выполнения geocodeStatus = 'PENDING'.
 @ObjectType('MarketplaceKUDetails')
 export class KuDetailsDTO {
   @Field(() => String)
@@ -13,23 +33,14 @@ export class KuDetailsDTO {
   @Field(() => String, { description: 'Идентификатор КУ в core (`braname`)' })
   coreBraname!: string;
 
-  @Field(() => String)
-  addressFull!: string;
-
-  @Field(() => String)
-  contactPhone!: string;
-
-  @Field(() => String)
-  contactEmail!: string;
-
   @Field(() => WorkingHoursDTO)
   workingHours!: WorkingHoursDTO;
 
   @Field(() => String, { nullable: true })
   description?: string;
 
-  @Field(() => String, { description: 'ACTIVE | INACTIVE' })
-  status!: 'ACTIVE' | 'INACTIVE';
+  @Field(() => KuDetailsStatusEnum)
+  status!: KuDetailsStatusEnum;
 
   @Field(() => Number, { nullable: true })
   lat?: number;
@@ -37,8 +48,8 @@ export class KuDetailsDTO {
   @Field(() => Number, { nullable: true })
   lng?: number;
 
-  @Field(() => String, { description: 'PENDING | OK | FAILED' })
-  geocodeStatus!: 'PENDING' | 'OK' | 'FAILED';
+  @Field(() => GeocodeStatusEnum)
+  geocodeStatus!: GeocodeStatusEnum;
 
   @Field(() => String, { nullable: true })
   geocodeErrorMessage?: string;
@@ -56,9 +67,6 @@ export class KuDetailsDTO {
     const dto = new KuDetailsDTO();
     dto.coopname = domain.coopname;
     dto.coreBraname = domain.coreBraname;
-    dto.addressFull = domain.addressFull;
-    dto.contactPhone = domain.contactPhone;
-    dto.contactEmail = domain.contactEmail;
     dto.workingHours = domain.workingHours as WorkingHoursDTO;
     dto.description = domain.description;
     dto.status = domain.status;

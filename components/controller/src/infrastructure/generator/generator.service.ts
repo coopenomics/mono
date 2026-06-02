@@ -31,8 +31,18 @@ export class GeneratorInfrastructureService implements GeneratorPort, OnModuleIn
     return await this.generator.generate(data, options);
   }
 
-  async getDocument(query: { hash: string }): Promise<Cooperative.Document.IGeneratedDocument | null> {
-    return await this.generator.getDocument(query);
+  async getDocument(query: {
+    hash: string;
+    block_num?: number;
+  }): Promise<Cooperative.Document.IGeneratedDocument | null> {
+    // Черновики версионируются по (hash + meta.block_num). При наличии
+    // block_num тянем точную версию через dot-path mongo-фильтр, иначе —
+    // любую версию с этим hash (легаси/превью).
+    const filter: Record<string, unknown> = { hash: query.hash };
+    if (query.block_num !== undefined && query.block_num !== null) {
+      filter['meta.block_num'] = query.block_num;
+    }
+    return await this.generator.getDocument(filter as never);
   }
 
   async get<T = any>(collection: string, query: Record<string, any>): Promise<T | null> {

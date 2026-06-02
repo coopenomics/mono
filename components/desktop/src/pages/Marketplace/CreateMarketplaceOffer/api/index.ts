@@ -64,19 +64,3 @@ export async function withdrawOffer(id: string): Promise<void> {
     variables: { input: { id } },
   });
 }
-
-/**
- * Эпик 4 / Story 4.2: поставщик вручную запускает коллективную закупку по
- * своему предложению (cycle_type=collective).
- *
- * Backend Resolver: marketplace-cycle.resolver.ts → marketplaceTriggerCollectiveSupply
- * (guard 'Offer' 'update:own'). Нажатие = акцепт всего накопленного пула:
- * сервер формирует сводную заявку status=ACCEPTED и принимает заказы разом.
- * Ошибки backend (пустой пул, не collective, не ACTIVE, чужой Offer)
- * приходят как GraphQL-исключения — пробрасываем их вызывающему компоненту.
- */
-export async function triggerCollectiveSupply(offer_id: string): Promise<void> {
-  await client.Mutation(Mutations.Marketplace.TriggerCollectiveSupply.mutation, {
-    variables: { input: { offer_id } },
-  });
-}

@@ -1,4 +1,4 @@
-import type { KuDetailsDomainEntity, GeocodeStatus } from '../entities/ku-details-domain.entity';
+import type { KuDetailsDomainEntity, GeocodeStatus, KuDetailsStatus } from '../entities/ku-details-domain.entity';
 
 /**
  * Доменный репозиторий marketplace-детализации существующих в core КУ (Story 2.1).
@@ -13,10 +13,10 @@ export interface KuDetailsDomainRepository {
   save(entity: KuDetailsDomainEntity): Promise<KuDetailsDomainEntity>;
 
   /**
-   * Записывает результат геокодинга. `expectedAddressFull` — guard от race
-   * condition: если адрес КУ был изменён пока геокодинг работал, результат
-   * не сохраняется (репозиторий возвращает null), и UI не получает
-   * координаты несуществующего адреса.
+   * Записывает результат геокодинга. `geocodedAddress` — адрес организации
+   * участка, по которому посчитаны координаты; сохраняется как кэш-ключ для
+   * ленивого reconcile (при следующем чтении сверяем его с актуальным адресом
+   * организации и при расхождении перегеокодируем).
    */
   updateGeocode(
     coopname: string,
@@ -27,14 +27,14 @@ export interface KuDetailsDomainRepository {
       lng?: number;
       errorMessage?: string;
       geocodedAt: Date;
-      expectedAddressFull?: string;
+      geocodedAddress?: string;
     }
   ): Promise<KuDetailsDomainEntity | null>;
 
   setStatus(
     coopname: string,
     coreBraname: string,
-    status: 'ACTIVE' | 'INACTIVE'
+    status: KuDetailsStatus
   ): Promise<KuDetailsDomainEntity | null>;
 }
 

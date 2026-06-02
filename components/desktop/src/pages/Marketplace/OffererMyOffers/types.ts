@@ -17,5 +17,3 @@ export type MarketplaceOfferView = MarketplaceOfferPage['items'][number];
  * самих предложений.
  */
 export type MarketplaceOfferStatusView = `${MarketplaceOfferView['status']}`;
-
-export type MarketplaceOfferCycleTypeView = `${MarketplaceOfferView['cycle_type']}`;

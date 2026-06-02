@@ -5,6 +5,7 @@ import config from '~/config/config';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
 
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
+import { MarketplaceOfferStatuses } from '../../domain/entities/marketplace-offer.types';
 import {
   MarketplaceCategoryOfferCountDTO,
   MarketplaceListCatalogInputDTO,
@@ -62,7 +63,7 @@ export class MarketplaceCatalogResolver {
     const result = await this.offerRepo.list(
       {
         coopname: config.coopname,
-        status: 'ACTIVE',
+        status: MarketplaceOfferStatuses.ACTIVE,
         category_id: input?.category_id ?? undefined,
         available_only: true,
       },
@@ -74,6 +75,20 @@ export class MarketplaceCatalogResolver {
       totalPages: result.totalPages,
       currentPage: result.currentPage,
     };
+  }
+
+  @Query(() => MarketplaceOfferDTO, {
+    name: 'marketplaceGetOffer',
+    description: 'Одно предложение по идентификатору — для страницы с полным описанием.',
+    nullable: true,
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Offer', 'read')
+  async marketplaceGetOffer(
+    @Args('id', { type: () => String }) id: string
+  ): Promise<MarketplaceOfferDTO | null> {
+    const offer = await this.offerRepo.findById(id);
+    return offer ? toOfferDTO(offer) : null;
   }
 
   @Query(() => [MarketplaceCategoryOfferCountDTO], {

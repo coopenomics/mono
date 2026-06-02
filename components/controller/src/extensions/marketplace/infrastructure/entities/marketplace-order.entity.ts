@@ -8,7 +8,6 @@ import {
 } from 'typeorm';
 import type {
   MarketplaceOrderCreateTxSnapshot,
-  MarketplaceOrderCycleType,
   MarketplaceOrderIssuanceFactSnapshot,
   MarketplaceOrderStatus,
 } from '../../domain/entities/marketplace-order.types';
@@ -75,9 +74,6 @@ export class MarketplaceOrderEntity {
 
   @Column({ type: 'numeric', precision: 24, scale: 4 })
   public total_cost!: string;
-
-  @Column({ type: 'varchar', length: 32 })
-  public cycle_type!: MarketplaceOrderCycleType;
 
   /**
    * Backend-only Story 4.2 cycle aggregation key (FK на

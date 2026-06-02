@@ -4,6 +4,7 @@ import type {
   MarketplaceOrderPage,
   MarketplaceOrderStatusView,
 } from '../../MyOrders/types';
+import { fetchMyOffers } from '../../OffererMyOffers/api';
 
 /**
  * Эпик 4 / Story 4.5: incoming orders для поставщика.
@@ -50,30 +51,41 @@ export async function fetchSupplierOrders(
   return result as MarketplaceOrderPage;
 }
 
-export async function acceptIndividualOrder(order_id: string): Promise<void> {
-  await client.Mutation(Mutations.Marketplace.AcceptIndividualOrder.mutation, {
-    variables: { input: { order_id } },
-  });
-}
-
-export async function declineIndividualOrder(order_id: string, reason: string): Promise<void> {
-  await client.Mutation(Mutations.Marketplace.DeclineIndividualOrder.mutation, {
-    variables: { input: { order_id, reason } },
+/**
+ * Эпик 15: поставщик принимает к поставке выбранные заказы (любое подмножество
+ * группы offer × КУ) единым массивом. Backend оборачивает их в одну
+ * партию-накопитель и акцептует on-chain.
+ */
+export async function acceptOrdersBatch(order_ids: string[]): Promise<void> {
+  await client.Mutation(Mutations.Marketplace.AcceptOrdersBatch.mutation, {
+    variables: { input: { order_ids } },
   });
 }
 
 /**
- * Групповой (collective) акцепт: поставщик принимает всю сводную заявку
- * партии разом. request_id = cycle_id заказа.
+ * Эпик 15: поставщик отказывается от выбранных активных заказов массивом;
+ * средства пайщиков разблокируются.
  */
-export async function acceptConsolidatedRequest(request_id: string): Promise<void> {
-  await client.Mutation(Mutations.Marketplace.AcceptConsolidatedRequest.mutation, {
-    variables: { input: { request_id } },
+export async function declineOrdersBatch(order_ids: string[], reason: string): Promise<void> {
+  await client.Mutation(Mutations.Marketplace.DeclineOrdersBatch.mutation, {
+    variables: { input: { order_ids, reason } },
   });
 }
 
-export async function declineConsolidatedRequest(request_id: string, reason: string): Promise<void> {
-  await client.Mutation(Mutations.Marketplace.DeclineConsolidatedRequest.mutation, {
-    variables: { input: { request_id, reason } },
-  });
+/**
+ * Эпик 15: карта минимального объёма поставки на каждый КУ оферты —
+ * `${offer_id}::${braname}` → min_supply_volume. Источник — собственные оферты
+ * поставщика (`marketplaceListMyOffers`, поле delivery_points). min задаётся
+ * поставщиком при публикации оферты; на столе входящих он служит ЦЕЛЬЮ сбора
+ * партии-накопителя (не порогом — принять партию можно и меньшего объёма).
+ */
+export async function fetchSupplierMinVolumeMap(): Promise<Map<string, number>> {
+  const page = await fetchMyOffers({ page: 1, limit: 500, sortBy: 'updated_at', sortOrder: 'DESC' });
+  const map = new Map<string, number>();
+  for (const offer of page.items) {
+    for (const dp of offer.delivery_points ?? []) {
+      map.set(`${offer.id}::${dp.braname}`, dp.min_supply_volume);
+    }
+  }
+  return map;
 }

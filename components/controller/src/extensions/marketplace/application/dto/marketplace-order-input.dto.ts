@@ -19,54 +19,22 @@ export class MarketplaceCancelOrderInputDTO {
   public readonly order_id!: string;
 }
 
-@InputType('MarketplaceAcceptConsolidatedRequestInput', {
-  description: 'Параметры приёма сводной заявки поставщиком.',
+@InputType('MarketplaceAcceptOrdersBatchInput', {
+  description: 'Параметры приёма поставщиком выбранных заказов к поставке (любое подмножество группы offer × КУ).',
 })
-export class MarketplaceAcceptConsolidatedRequestInputDTO {
-  @Field(() => String, { description: 'Идентификатор сводной заявки, ожидающей решения поставщика.' })
-  public readonly request_id!: string;
+export class MarketplaceAcceptOrdersBatchInputDTO {
+  @Field(() => [String], { description: 'Идентификаторы заказов, которые поставщик берёт к поставке.' })
+  public readonly order_ids!: string[];
 }
 
-@InputType('MarketplaceDeclineConsolidatedRequestInput', {
-  description: 'Параметры отказа поставщика от сводной заявки.',
+@InputType('MarketplaceDeclineOrdersBatchInput', {
+  description: 'Параметры отказа поставщика от выбранных активных заказов.',
 })
-export class MarketplaceDeclineConsolidatedRequestInputDTO {
-  @Field(() => String, { description: 'Идентификатор сводной заявки, от которой поставщик отказывается.' })
-  public readonly request_id!: string;
+export class MarketplaceDeclineOrdersBatchInputDTO {
+  @Field(() => [String], { description: 'Идентификаторы заказов, от которых поставщик отказывается.' })
+  public readonly order_ids!: string[];
 
   @Field(() => String, { description: 'Текст причины отказа — будет показан пайщикам в их заказах.' })
-  public readonly reason!: string;
-}
-
-@InputType('MarketplaceAcceptIndividualOrderInput', {
-  description: 'Параметры индивидуального приёма заказа поставщиком.',
-})
-export class MarketplaceAcceptIndividualOrderInputDTO {
-  @Field(() => String, { description: 'Идентификатор заказа индивидуального типа, который поставщик принимает.' })
-  public readonly order_id!: string;
-}
-
-@InputType('MarketplaceDeclineIndividualOrderInput', {
-  description: 'Параметры индивидуального отказа поставщика от заказа.',
-})
-export class MarketplaceDeclineIndividualOrderInputDTO {
-  @Field(() => String, { description: 'Идентификатор заказа индивидуального типа, от которого поставщик отказывается.' })
-  public readonly order_id!: string;
-
-  @Field(() => String, { description: 'Текст причины отказа — будет показан пайщику в его заказе.' })
-  public readonly reason!: string;
-}
-
-@InputType('MarketplaceDeclineOrderFromOpenPoolInput', {
-  description: 'Параметры отказа поставщика от одного заказа из пула открытой подписки до запуска поставки.',
-})
-export class MarketplaceDeclineOrderFromOpenPoolInputDTO {
-  @Field(() => String, {
-    description: 'Идентификатор заказа из пула открытой подписки, от которого поставщик отказывается до запуска поставки.',
-  })
-  public readonly order_id!: string;
-
-  @Field(() => String, { description: 'Текст причины отказа — будет показан пайщику в его заказе.' })
   public readonly reason!: string;
 }
 

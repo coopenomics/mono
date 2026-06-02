@@ -1,18 +1,36 @@
 /**
  * Доменная сущность marketplace-детализации существующего в core кооперативного
  * участка (Эпик 2 Стола заказов, Story 2.1). Расширяет core `coop_ku` 1:1
- * атрибутами ПВЗ: адрес, контакты, режим работы, геокоординаты.
+ * атрибутами, специфичными для Стола заказов: режим работы, описание, статус,
+ * геокоординаты.
  *
  * Marketplace **не создаёт** КУ — список управляется core controller'ом
  * (стол председателя → «Кооперативные участки»). Эта entity — пристройка
- * атрибутов, специфичных для Стола заказов.
+ * атрибутов ПВЗ.
+ *
+ * Реквизиты участка (наименование, адрес, контакты) НЕ хранятся здесь —
+ * единый источник правды это организация участка (правит председатель в
+ * «Кооперативные участки»), они резолвятся живьём. `geocodedAddress` — лишь
+ * кэш-ключ: адрес, по которому последний раз посчитаны координаты; служит для
+ * ленивого reconcile геокода при расхождении с актуальным адресом организации.
  *
  * Поля геокодинга (`lat`, `lng`, `geocodeStatus`, `geocodeErrorMessage`,
  * `geocodedAt`) обновляются post-effect'ом Story 2.2.
  */
 export type KuDetailsStatus = 'ACTIVE' | 'INACTIVE';
 
+export const KuDetailsStatuses = {
+  ACTIVE: 'ACTIVE',
+  INACTIVE: 'INACTIVE',
+} as const satisfies Record<string, KuDetailsStatus>;
+
 export type GeocodeStatus = 'PENDING' | 'OK' | 'FAILED';
+
+export const GeocodeStatuses = {
+  PENDING: 'PENDING',
+  OK: 'OK',
+  FAILED: 'FAILED',
+} as const satisfies Record<string, GeocodeStatus>;
 
 export interface WorkingHoursDayDomain {
   open: string;
@@ -26,9 +44,8 @@ export class KuDetailsDomainEntity {
   public readonly id?: number;
   public readonly coopname: string;
   public readonly coreBraname: string;
-  public readonly addressFull: string;
-  public readonly contactPhone: string;
-  public readonly contactEmail: string;
+  /** Адрес, по которому посчитаны координаты (кэш-ключ геокода, не для показа). */
+  public readonly geocodedAddress?: string;
   public readonly workingHours: WorkingHoursDomain;
   public readonly description?: string;
   public readonly status: KuDetailsStatus;
@@ -44,9 +61,7 @@ export class KuDetailsDomainEntity {
     id?: number;
     coopname: string;
     coreBraname: string;
-    addressFull: string;
-    contactPhone: string;
-    contactEmail: string;
+    geocodedAddress?: string;
     workingHours: WorkingHoursDomain;
     description?: string;
     status: KuDetailsStatus;
@@ -61,15 +76,13 @@ export class KuDetailsDomainEntity {
     this.id = data.id;
     this.coopname = data.coopname;
     this.coreBraname = data.coreBraname;
-    this.addressFull = data.addressFull;
-    this.contactPhone = data.contactPhone;
-    this.contactEmail = data.contactEmail;
+    this.geocodedAddress = data.geocodedAddress;
     this.workingHours = data.workingHours;
     this.description = data.description;
     this.status = data.status;
     this.lat = data.lat;
     this.lng = data.lng;
-    this.geocodeStatus = data.geocodeStatus ?? 'PENDING';
+    this.geocodeStatus = data.geocodeStatus ?? GeocodeStatuses.PENDING;
     this.geocodeErrorMessage = data.geocodeErrorMessage;
     this.geocodedAt = data.geocodedAt;
     this.createdAt = data.createdAt ?? new Date();
@@ -77,10 +90,10 @@ export class KuDetailsDomainEntity {
   }
 
   isActive(): boolean {
-    return this.status === 'ACTIVE';
+    return this.status === KuDetailsStatuses.ACTIVE;
   }
 
   hasCoordinates(): boolean {
-    return this.lat !== undefined && this.lng !== undefined && this.geocodeStatus === 'OK';
+    return this.lat !== undefined && this.lng !== undefined && this.geocodeStatus === GeocodeStatuses.OK;
   }
 }

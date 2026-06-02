@@ -25,17 +25,15 @@ import type { MarketplaceOrderStatus } from '../../domain/entities/marketplace-o
 import type { MarketplaceOfferDomainEntity } from '../../domain/entities/marketplace-offer.entity';
 import type {
   MarketplaceBarcodeStrategy,
-  MarketplaceOfferCycleType,
+  MarketplaceOfferDeliveryPoint,
   MarketplaceOfferImage,
   MarketplaceOfferStatus,
   MarketplaceUnitOfMeasure,
 } from '../../domain/entities/marketplace-offer.types';
 import {
-  MARKETPLACE_OFFER_CYCLE_TYPES,
   MARKETPLACE_OFFER_MAX_IMAGES,
   MARKETPLACE_UNITS_OF_MEASURE,
   MarketplaceBarcodeStrategies,
-  MarketplaceOfferCycleTypes,
 } from '../../domain/entities/marketplace-offer.types';
 import { MarketplaceOfferImagesService } from './marketplace-offer-images.service';
 import type {
@@ -70,9 +68,8 @@ export interface OfferCreateRequest {
   unit_of_measure: MarketplaceUnitOfMeasure;
   quantity_available: number | null;
   unlimited_flag: boolean;
-  cycle_type: MarketplaceOfferCycleType;
-  /** Целевой объём коллективной закупки (опц.): набрался → авто-старт партии. */
-  target_volume: number | null;
+  /** КУ поставки с минимальным объёмом на каждом. */
+  delivery_points: MarketplaceOfferDeliveryPoint[];
   warranty_days: number;
   barcode_strategy?: MarketplaceBarcodeStrategy | null;
   pack_size?: number | null;
@@ -165,13 +162,7 @@ export class MarketplaceOfferService {
       unit_of_measure: input.unit_of_measure,
       quantity_available: input.unlimited_flag ? 0 : (input.quantity_available ?? 0),
       unlimited_flag: input.unlimited_flag,
-      cycle_type: input.cycle_type,
-      // Целевой объём осмыслен только для коллективной закупки; для
-      // индивидуальной — всегда null, чтобы в БД не оседало висящее значение.
-      target_volume:
-        input.cycle_type === MarketplaceOfferCycleTypes.COLLECTIVE
-          ? input.target_volume
-          : null,
+      delivery_points: this.normalizeDeliveryPoints(input.delivery_points),
       warranty_days: input.warranty_days,
       barcode_strategy,
       pack_size,
@@ -204,8 +195,9 @@ export class MarketplaceOfferService {
     if (patch.category_id !== undefined) {
       await this.ensureCategoryExists(patch.category_id);
     }
-    if (patch.cycle_type !== undefined) {
-      this.assertCycleType(patch.cycle_type);
+    if (patch.delivery_points !== undefined) {
+      this.assertDeliveryPoints(patch.delivery_points);
+      patch.delivery_points = this.normalizeDeliveryPoints(patch.delivery_points);
     }
     if (patch.unit_of_measure !== undefined) {
       this.assertUnit(patch.unit_of_measure);
@@ -224,18 +216,6 @@ export class MarketplaceOfferService {
         // чтобы не оставлять висящее значение, которое потом смутит модерацию.
         patch.pack_size = null;
       }
-    }
-
-    // Если patch меняет способ поставки или целевой объём — валидируем по
-    // merged-снимку (текущее значение из БД + patch). Иначе старый Offer
-    // остаётся валидным после частичного редактирования других полей.
-    const cycleFieldsTouched =
-      patch.cycle_type !== undefined || patch.target_volume !== undefined;
-    if (cycleFieldsTouched) {
-      this.assertCycleConditionals({
-        cycle_type: patch.cycle_type ?? offer.cycle_type,
-        target_volume: patch.target_volume !== undefined ? patch.target_volume : offer.target_volume,
-      });
     }
 
     // Поле-зависимая модерация. Операционные поля (остаток, цена) поставщик
@@ -360,11 +340,7 @@ export class MarketplaceOfferService {
     this.assertProductName(input.product_name);
     if (input.description !== null) this.assertDescription(input.description);
     this.assertUnit(input.unit_of_measure);
-    this.assertCycleType(input.cycle_type);
-    this.assertCycleConditionals({
-      cycle_type: input.cycle_type,
-      target_volume: input.target_volume,
-    });
+    this.assertDeliveryPoints(input.delivery_points);
 
     if (!input.unlimited_flag) {
       if (input.quantity_available === null || input.quantity_available < 0) {
@@ -395,26 +371,41 @@ export class MarketplaceOfferService {
   }
 
   /**
-   * Поля по способу поставки (L11 Locked Decision, ревизия — 2 режима):
-   *
-   *   individual → ничего; целевой объём неприменим (если передан — обнуляем).
-   *   collective → target_volume ОПЦИОНАЛЕН: задан (>=1) → партия стартует
-   *                авто при наборе объёма; не задан → только ручной запуск
-   *                поставщиком. Жёсткого таймера ожидания нет — заказчик
-   *                выходит сам в любой момент до акцепта.
+   * Эпик 15: КУ поставки с минимальным объёмом. Управление поставкой целиком
+   * сводится к этому набору — тип поставки как сущность упразднён. Минимум один
+   * участок (иначе оффер некуда заказывать); braname непустой и уникальный в
+   * наборе; min_supply_volume — целое ≥ 1. Существование КУ в кооперативе
+   * дополнительно проверяется on-chain в createorder (`get_branch_or_fail`).
    */
-  private assertCycleConditionals(input: {
-    cycle_type: MarketplaceOfferCycleType;
-    target_volume: number | null;
-  }): void {
-    if (
-      input.cycle_type === MarketplaceOfferCycleTypes.COLLECTIVE &&
-      input.target_volume !== null &&
-      input.target_volume !== undefined &&
-      input.target_volume < 1
-    ) {
-      throw new BadRequestException('Целевой объём должен быть целым числом от 1.');
+  private assertDeliveryPoints(points: MarketplaceOfferDeliveryPoint[] | undefined): void {
+    if (!Array.isArray(points) || points.length === 0) {
+      throw new BadRequestException('Укажите хотя бы один кооперативный участок поставки.');
     }
+    const seen = new Set<string>();
+    for (const p of points) {
+      const braname = (p?.braname ?? '').trim();
+      if (!braname) {
+        throw new BadRequestException('У точки поставки не указан кооперативный участок.');
+      }
+      if (seen.has(braname)) {
+        throw new BadRequestException(`Кооперативный участок «${braname}» указан в поставке дважды.`);
+      }
+      seen.add(braname);
+      if (!Number.isInteger(p.min_supply_volume) || p.min_supply_volume < 1) {
+        throw new BadRequestException(
+          `Минимальный объём для участка «${braname}» должен быть целым числом от 1.`
+        );
+      }
+    }
+  }
+
+  private normalizeDeliveryPoints(
+    points: MarketplaceOfferDeliveryPoint[] | undefined
+  ): MarketplaceOfferDeliveryPoint[] {
+    return (points ?? []).map((p) => ({
+      braname: p.braname.trim(),
+      min_supply_volume: p.min_supply_volume,
+    }));
   }
 
   private assertProductName(name: string): void {
@@ -464,12 +455,6 @@ export class MarketplaceOfferService {
       throw new BadRequestException(
         'Размер упаковки применим только к стратегии «по упаковке» (PER_PACKAGE).'
       );
-    }
-  }
-
-  private assertCycleType(t: MarketplaceOfferCycleType): void {
-    if (!MARKETPLACE_OFFER_CYCLE_TYPES.includes(t)) {
-      throw new BadRequestException('Выбран недопустимый тип цикла поставки.');
     }
   }
 

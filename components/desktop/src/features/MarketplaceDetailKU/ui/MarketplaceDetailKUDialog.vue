@@ -1,7 +1,7 @@
 <template lang="pug">
 BaseDialog(
   :model-value="modelValue"
-  :title="`Детализация ПВЗ — ${coreBraname}`"
+  :title="dialogTitle"
   size="lg"
   @update:model-value="emit('update:modelValue', $event)"
 )
@@ -9,40 +9,22 @@ BaseDialog(
     .banner.banner--info
       q-icon.banner__icon(name="info", size="18px")
       .banner__body
-        | Укажите фактический адрес, контакты и режим работы пункта выдачи —
-        | он может отличаться от юридического адреса участка. После сохранения
-        | адрес автоматически геокодируется для отображения на карте.
+        | Наименование, адрес и контакты участка задаются на столе председателя
+        | в разделе «Кооперативные участки» и едины для всего кооператива. Здесь
+        | вы отмечаете участок как пункт выдачи и настраиваете режим его работы.
+
+    .detail-ku__readonly
+      .detail-ku__ro-row
+        .detail-ku__ro-label Участок
+        .detail-ku__ro-value {{ branchName || coreBraname }}
+      .detail-ku__ro-row
+        .detail-ku__ro-label Адрес
+        .detail-ku__ro-value {{ branchAddress || '—' }}
+      .detail-ku__ro-row
+        .detail-ku__ro-label Контакты
+        .detail-ku__ro-value {{ branchContacts || '—' }}
 
     q-form.detail-ku__form(ref="formRef", greedy)
-      q-input(
-        v-model="form.addressFull"
-        outlined
-        dense
-        label="Фактический адрес ПВЗ"
-        autogrow
-        :rules="[v => !!(v && v.trim()) || 'Адрес обязателен']"
-        aria-label="Фактический адрес пункта выдачи"
-      )
-      .detail-ku__row
-        q-input(
-          v-model="form.contactPhone"
-          outlined
-          dense
-          label="Контактный телефон"
-          mask="+# (###) ###-##-##"
-          :rules="[v => !!v || 'Телефон обязателен']"
-          aria-label="Контактный телефон пункта выдачи"
-        )
-        q-input(
-          v-model="form.contactEmail"
-          outlined
-          dense
-          label="Контактный email"
-          type="email"
-          lazy-rules
-          :rules="[emailRule]"
-          aria-label="Контактный email пункта выдачи"
-        )
       q-input(
         v-model="form.description"
         outlined
@@ -61,14 +43,19 @@ BaseDialog(
             :label="day.label"
             dense
           )
-          .detail-ku__day-times(v-if="form.workingHours[day.key].enabled")
+          //- Поля времени рендерим ВСЕГДА; при выключенном дне они disabled
+          //- (серые). Так высота строки постоянна и список не «скачет» при
+          //- переключении — место зарезервировано, а не появляется/исчезает.
+          .detail-ku__day-times
             q-input(
               v-model="form.workingHours[day.key].open"
               outlined
               dense
+              hide-bottom-space
               label="Открытие"
               mask="time"
               placeholder="09:00"
+              :disable="!form.workingHours[day.key].enabled"
               lazy-rules
               :rules="[timeRule]"
             )
@@ -76,9 +63,11 @@ BaseDialog(
               v-model="form.workingHours[day.key].close"
               outlined
               dense
+              hide-bottom-space
               label="Закрытие"
               mask="time"
               placeholder="18:00"
+              :disable="!form.workingHours[day.key].enabled"
               lazy-rules
               :rules="[timeRule]"
             )
@@ -92,7 +81,7 @@ BaseDialog(
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import type { QForm } from 'quasar'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { BaseButton, BaseDialog } from 'src/shared/ui/base'
@@ -105,9 +94,9 @@ import type { IBranch } from 'src/entities/Branch/model'
 
 /**
  * Детализация существующего в core кооперативного участка как ПВЗ Стола
- * заказов (`marketplaceDetailKU`). Используется и для добавления нового ПВЗ
- * (передаётся `branch` — поля адреса/контактов предзаполняются из карточки
- * КУ стола совета), и для редактирования уже подключённого (`existing`).
+ * заказов (`marketplaceDetailKU`). Наименование/адрес/контакты участка —
+ * единый источник правды на столе председателя («Кооперативные участки»),
+ * здесь показаны read-only; редактируются только режим работы и описание.
  *
  * Поля с масками/валидацией остаются на сыром `q-form`/`q-input` — это
  * одобренный канон форм проекта (см. CreateMarketplaceOfferPage); base-обёртки
@@ -143,22 +132,34 @@ const isSaving = ref(false)
 const formRef = ref<QForm | null>(null)
 const store = useMarketplaceKUDetailsStore()
 
+// Реквизиты участка показываем read-only: из уже сохранённой детализации
+// (бэкенд резолвит их живьём из организации) либо из карточки КУ стола совета.
+const branchName = computed(
+  () => props.existing?.name || props.branch?.short_name || props.branch?.full_name || ''
+)
+const branchAddress = computed(
+  () => props.existing?.addressFull || props.branch?.fact_address || props.branch?.full_address || ''
+)
+const branchContacts = computed(() => {
+  const phone = props.existing?.contactPhone || props.branch?.phone || ''
+  const email = props.existing?.contactEmail || props.branch?.email || ''
+  return [phone, email].filter(Boolean).join(' · ')
+})
+
+// В заголовке — человекочитаемое имя участка, не служебный braname.
+const dialogTitle = computed(
+  () => `Детализация ПВЗ — ${branchName.value || props.coreBraname}`
+)
+
 // Правила с регулярками держим в script, а не inline в pug-атрибуте:
 // pug съедает обратные слэши в строковом значении :rules, и `\d`/`\.`
 // деградируют в литералы `d`/`.`, из-за чего валидные значения ложно
 // краснеют (канон форм — выносить такие правила в функции, ср. priceRule).
-function emailRule(v: string): true | string {
-  return /.+@.+\..+/.test(v) || 'Введите валидный email'
-}
-
 function timeRule(v: string): true | string {
   return /^([01]\d|2[0-3]):[0-5]\d$/.test(v) || 'Время в формате ЧЧ:ММ'
 }
 
 const form = reactive({
-  addressFull: '',
-  contactPhone: '',
-  contactEmail: '',
   description: '',
   workingHours: Object.fromEntries(
     days.map((d) => [d.key, { enabled: false, open: '09:00', close: '18:00' }])
@@ -171,14 +172,11 @@ function resetWorkingHours() {
   }
 }
 
-// Перезаполнение при открытии: редактирование берёт значения из `existing`,
-// добавление нового — из карточки КУ (фактический адрес → контакты).
+// Перезаполнение при открытии: редактирование берёт режим работы/описание из
+// `existing`, добавление нового — пустую форму (реквизиты участка read-only).
 function resetForm() {
   const next = props.existing
   if (next) {
-    form.addressFull = next.addressFull
-    form.contactPhone = next.contactPhone
-    form.contactEmail = next.contactEmail
     form.description = next.description ?? ''
     for (const d of days) {
       const wh = next.workingHours[d.key]
@@ -187,9 +185,6 @@ function resetForm() {
         : { enabled: false, open: '09:00', close: '18:00' }
     }
   } else {
-    form.addressFull = props.branch?.fact_address || props.branch?.full_address || ''
-    form.contactPhone = props.branch?.phone || ''
-    form.contactEmail = props.branch?.email || ''
     form.description = ''
     resetWorkingHours()
   }
@@ -225,9 +220,6 @@ async function submit() {
     const saved = await store.detailKU({
       coopname: props.coopname,
       coreBraname: props.coreBraname,
-      addressFull: form.addressFull,
-      contactPhone: form.contactPhone,
-      contactEmail: form.contactEmail,
       description: form.description || undefined,
       workingHours: buildWorkingHours(),
     })
@@ -254,10 +246,29 @@ async function submit() {
     gap: var(--p-3, 12px);
   }
 
-  &__row {
+  &__readonly {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-2, 8px);
+    padding: var(--p-3, 12px);
+    border: 1px solid var(--p-line);
+    border-radius: var(--p-r-md, 8px);
+  }
+
+  &__ro-row {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 96px 1fr;
     gap: var(--p-3, 12px);
+    align-items: baseline;
+  }
+
+  &__ro-label {
+    color: var(--p-ink-3);
+    font-size: var(--p-fs-body-sm, 13px);
+  }
+
+  &__ro-value {
+    color: var(--p-ink-1);
   }
 
   &__section-title {
@@ -267,31 +278,44 @@ async function submit() {
   }
 
   &__days {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--p-3, 12px);
-  }
-
-  &__day {
-    border: 1px solid var(--p-line);
-    border-radius: var(--p-r-md, 8px);
-    padding: var(--p-3, 12px);
     display: flex;
     flex-direction: column;
     gap: var(--p-2, 8px);
   }
 
+  // День — одна строка: переключатель слева, поля времени справа на той же
+  // линии. Без column-раскладки, чтобы включение дня не добавляло вторую
+  // строку и список не «удлинялся».
+  &__day {
+    border: 1px solid var(--p-line);
+    border-radius: var(--p-r-md, 8px);
+    padding: var(--p-2, 8px) var(--p-3, 12px);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--p-3, 12px);
+    min-height: 56px;
+  }
+
+  // Фиксированная колонка переключателя — поля времени выравниваются по всем
+  // строкам независимо от длины метки дня.
+  &__day > :deep(.q-toggle) {
+    flex: 0 0 auto;
+    min-width: 88px;
+  }
+
   &__day-times {
+    flex: 1;
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: var(--p-2, 8px);
+    max-width: 360px;
   }
 }
 
 @media (max-width: 600px) {
-  .detail-ku__row,
-  .detail-ku__days {
-    grid-template-columns: 1fr;
+  .detail-ku__day-times {
+    max-width: none;
   }
 }
 </style>

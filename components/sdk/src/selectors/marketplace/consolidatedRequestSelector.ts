@@ -6,7 +6,6 @@ const rawConsolidatedRequestSelector = {
   coopname: true,
   offer_id: true,
   supplier_account: true,
-  cycle_type: true,
   status: true,
   total_quantity: true,
   total_amount: true,
@@ -28,12 +27,3 @@ const _validateConsolidatedRequest: MakeAllFieldsRequired<
 export const marketplaceConsolidatedRequestSelector = Selector('MarketplaceConsolidatedRequest')(
   rawConsolidatedRequestSelector,
 )
-
-export const marketplaceConsolidatedRequestActionResultSelector = Selector(
-  'MarketplaceConsolidatedRequestActionResult',
-)({
-  request: rawConsolidatedRequestSelector,
-  affected_orders: true,
-  on_chain_succeeded: true,
-  on_chain_failed: true,
-})

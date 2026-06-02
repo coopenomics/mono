@@ -3,18 +3,10 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
   .offer-wizard__col
     //- Заголовок страницы — в топбаре (route.meta.title), на странице не
     //- дублируется. Верхняя строка режима редактирования: статус слева,
-    //- операционные действия (снять / запустить поставку) — в правом углу.
+    //- операционное действие (снять с публикации) — в правом углу.
     .offer-wizard__manage(v-if='isEdit && currentStatus')
       BaseChip(:variant='statusVariant', size='lg') {{ statusLabel }}
       q-space
-      BaseButton(
-        v-if='canTrigger',
-        variant='secondary',
-        :loading='triggering',
-        @click='onTrigger'
-      )
-        q-icon(name='local_shipping', size='16px')
-        span.q-ml-sm Запустить поставку
       BaseButton(
         v-if='canWithdraw',
         variant='danger',
@@ -155,34 +147,42 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
             :rules='[(v) => (v !== null && v >= 0) || "Срок гарантии не может быть отрицательным"]'
           )
 
-        //- ───────── Шаг 3: Условия поставки ─────────
+        //- ───────── Шаг 3: КУ поставки и минимальный объём ─────────
         .offer-wizard__step(v-else-if='step.key === "supply"')
-          .offer-wizard__cards
-            BaseRadioCard(
-              v-for='opt in cycleTypeOptions',
-              :key='opt.value',
-              :model-value='form.cycle_type',
-              :value='opt.value',
-              :title='opt.title',
-              :description='opt.description',
-              @update:model-value='onSelectCycle(opt.value)'
+          p.offer-wizard__hint
+            | Отметьте кооперативные участки, на которые готовы обеспечить доставку, и укажите объём поставки на каждое.
+          .offer-wizard__hint(v-if='kuLoading') Загрузка участков…
+          .offer-wizard__hint(v-else-if='!kuOptions.length') Нет доступных кооперативных участков.
+          .offer-wizard__ku-row(v-for='ku in kuOptions', :key='ku.braname')
+            BaseCheckbox(
+              :model-value='isKuSelected(ku.braname)',
+              @update:model-value='(v) => toggleKu(ku.braname, v)'
             )
-
-          //- conditional поля по способу поставки
-          .offer-wizard__conditional(v-if='isCollective')
-            q-input(
-              v-model.number='form.target_volume',
-              label='Целевой объём для авто-старта (необязательно)',
+              .offer-wizard__ku-label
+                .offer-wizard__ku-name {{ ku.name }}
+                .offer-wizard__ku-addr {{ ku.address }}
+            BaseButton(
+              v-if='kuHasCoords(ku)',
+              variant='ghost',
+              icon-only,
+              size='sm',
+              aria-label='Открыть карту',
+              @click='openKuMap(ku)'
+            )
+              template(#icon-left)
+                q-icon(name='map', size='18px')
+            q-input.offer-wizard__ku-min(
+              v-if='isKuSelected(ku.braname)',
+              :model-value='kuMinVolume(ku.braname)',
+              label='Мин. объём',
               type='number',
               min='1',
               outlined,
               dense,
               no-error-icon,
-              reserve-hint-space,
-              hint='Когда сумма заказов достигнет объёма — поставка стартует автоматически. Пусто — запускаете поставку вручную.'
+              :suffix='selectedUnitLabel',
+              @update:model-value='(v) => setKuMin(ku.braname, v)'
             )
-          .offer-wizard__hint(v-else)
-            | Каждый заказ принимается индивидуально, без ожидания набора партии.
 
         //- ───────── Шаг 4: Изображения ─────────
         .offer-wizard__step(v-else-if='step.key === "images"')
@@ -268,12 +268,9 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
               section.offer-preview__specs
                 .offer-preview__specs-title Характеристики
                 dl.offer-preview__specs-list
-                  .offer-preview__spec
-                    dt Способ поставки
-                    dd {{ selectedCycleTitle }}
-                  .offer-preview__spec(v-if='isCollective && form.target_volume')
-                    dt Целевой объём
-                    dd {{ form.target_volume }} {{ selectedUnitLabel }}
+                  .offer-preview__spec(v-if='form.delivery_points.length')
+                    dt Участки поставки
+                    dd {{ deliveryPointsPreview }}
                   .offer-preview__spec(v-if='form.warranty_days > 0')
                     dt Гарантия
                     dd {{ form.warranty_days }} дн.
@@ -296,6 +293,12 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
       BaseButton(v-else, variant='primary', :loading='submitting', @click='onSubmit')
         q-icon(name='send', size='16px')
         span.q-ml-sm {{ submitLabel }}
+
+  //- Всплывашка карты участка (точка по координатам геокодера).
+  BaseDialog(v-model='mapOpen', :title='mapTitle', size='lg')
+    .offer-wizard__map(v-if='mapKu && mapKu.lat != null && mapKu.lng != null')
+      .offer-wizard__map-addr {{ mapKu.address }}
+      MapView(:long='Number(mapKu.lng)', :lat='Number(mapKu.lat)')
 </template>
 
 <script lang="ts" setup>
@@ -306,18 +309,19 @@ import { useRoute, useRouter } from 'vue-router';
 import { VerticalStepper } from 'src/shared/ui/domain/VerticalStepper';
 import type { StepperStep } from 'src/shared/ui/domain/VerticalStepper';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
-import { BaseRadioCard } from 'src/shared/ui/base/BaseRadioCard';
 import { BaseCheckbox } from 'src/shared/ui/base/BaseCheckbox';
 import { BaseChip } from 'src/shared/ui/base/BaseChip';
+import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
+import { Map as MapView } from 'src/shared/ui/Map';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
+import { useMarketplaceKUDetailsStore, GeocodeStatus } from 'src/entities/MarketplaceKUDetails';
 import { MARKETPLACE_UNIT_OPTIONS } from 'src/shared/lib/consts';
 import { fileToBase64, formatAsset2Digits } from 'src/shared/lib/utils';
 import {
   createOffer,
   fetchCategories,
   fetchMyOfferById,
-  triggerCollectiveSupply,
   updateOffer,
   withdrawOffer,
 } from '../api';
@@ -325,7 +329,6 @@ import type {
   MarketplaceCategoryView,
   MarketplaceCreateOfferFormState,
   MarketplaceCreateOfferPayload,
-  MarketplaceOfferCycleType,
   MarketplaceOfferImageUpload,
   MarketplaceUnitOfMeasure,
 } from '../types';
@@ -354,6 +357,7 @@ const route = useRoute();
 // Символ валюты — из системной инфо (блокчейн-параметр root_govern_symbol),
 // НЕ хардкод «₽»: при смене символа цепи фронт не переписываем.
 const systemStore = useSystemStore();
+const kuStore = useMarketplaceKUDetailsStore();
 const governSymbol = computed(() => systemStore.governSymbol);
 
 // Цена — целое или с двумя знаками после запятой (рубли/копейки). Допускаем
@@ -400,10 +404,8 @@ const submitLabel = computed(() => {
 // живут на самой странице редактирования — отдельного диалога-просмотра нет.
 type OfferStatus = 'PENDING_MODERATION' | 'ACTIVE' | 'REJECTED' | 'WITHDRAWN';
 const currentStatus = ref<OfferStatus | null>(null);
-const currentCycleType = ref<MarketplaceOfferCycleType | null>(null);
 const rejectReason = ref<string | null>(null);
 const withdrawing = ref(false);
-const triggering = ref(false);
 
 const STATUS_META: Record<OfferStatus, { label: string; variant: 'neutral' | 'pos' | 'neg' | 'warn' }> = {
   PENDING_MODERATION: { label: 'На модерации', variant: 'warn' },
@@ -415,13 +417,9 @@ const statusLabel = computed(() => (currentStatus.value ? STATUS_META[currentSta
 const statusVariant = computed(() =>
   currentStatus.value ? STATUS_META[currentStatus.value].variant : 'neutral'
 );
-// Снять можно опубликованную или ожидающую модерации; запуск поставки вручную —
-// только активную оферту с коллективной закупкой (см. backend guard'ы).
+// Снять можно опубликованную или ожидающую модерации.
 const canWithdraw = computed(
   () => currentStatus.value === 'PENDING_MODERATION' || currentStatus.value === 'ACTIVE'
-);
-const canTrigger = computed(
-  () => currentStatus.value === 'ACTIVE' && currentCycleType.value === 'collective'
 );
 
 function onWithdraw(): void {
@@ -448,35 +446,11 @@ function onWithdraw(): void {
   });
 }
 
-function onTrigger(): void {
-  if (!editId.value) return;
-  Dialog.create({
-    title: 'Запустить поставку?',
-    message:
-      'Все накопленные заказы будут разом зафиксированы в одну партию и приняты ' +
-      'к поставке. Отменить запуск нельзя.',
-    cancel: { label: 'Отмена', flat: true, noCaps: true },
-    ok: { label: 'Запустить поставку', color: 'primary', unelevated: true, noCaps: true },
-    persistent: true,
-  }).onOk(async () => {
-    triggering.value = true;
-    try {
-      await triggerCollectiveSupply(editId.value as string);
-      SuccessAlert('Поставка запущена: заказы зафиксированы в партию и приняты.');
-      void router.push({ name: 'marketplace-my-offers' });
-    } catch (e) {
-      FailAlert(e, 'Не удалось запустить поставку');
-    } finally {
-      triggering.value = false;
-    }
-  });
-}
-
 // ===== Шаги =====
 const steps: StepperStep[] = [
   { key: 'basics', label: 'Товар', description: 'Название, категория, описание' },
   { key: 'pricing', label: 'Цена и наличие', description: 'Стоимость, количество, гарантия' },
-  { key: 'supply', label: 'Условия поставки', description: 'Как набираются и отсекаются заказы' },
+  { key: 'supply', label: 'Условия поставки', description: 'Участки и объём поставки' },
   { key: 'images', label: 'Изображения', description: 'Фотографии товара' },
   { key: 'review', label: 'Проверка и публикация', description: 'Сверьте карточку перед отправкой' },
 ];
@@ -492,23 +466,32 @@ const pricingForm = ref<QForm | null>(null);
 // подписи не расходились между созданием оферты, модерацией и «Мои предложения».
 const unitOptions = MARKETPLACE_UNIT_OPTIONS;
 
-const cycleTypeOptions: Array<{
-  value: MarketplaceOfferCycleType;
-  title: string;
-  description: string;
-}> = [
-  {
-    value: 'individual',
-    title: 'Индивидуально',
-    description: 'Каждый заказ обрабатывается отдельно, без ожидания набора партии.',
-  },
-  {
-    value: 'collective',
-    title: 'Коллективная закупка',
-    description:
-      'Заказы копятся в общий пул. Старт — автоматически по целевому объёму либо вручную вами.',
-  },
-];
+// ===== КУ поставки (Эпик 15) =====
+// Список кооперативных участков кооператива для чекбоксов: поставщик отмечает,
+// на какие КУ готов везти, и ставит min-объём на каждый.
+interface KuOption {
+  braname: string;
+  // Человеческое наименование участка (short_name/full_name филиала), НЕ служебный код.
+  name: string;
+  address: string;
+  // Координаты геокодера (только при geocodeStatus OK) — для кнопки карты.
+  lat: number | null;
+  lng: number | null;
+}
+const kuOptions = ref<KuOption[]>([]);
+const kuLoading = ref(false);
+
+// Карта участка — всплывашка с точкой по координатам геокодера (как в админке ПВЗ).
+const mapOpen = ref(false);
+const mapKu = ref<KuOption | null>(null);
+const mapTitle = computed(() => (mapKu.value ? `Карта — ${mapKu.value.name}` : 'Карта'));
+function kuHasCoords(ku: KuOption): boolean {
+  return ku.lat != null && ku.lng != null;
+}
+function openKuMap(ku: KuOption): void {
+  mapKu.value = ku;
+  mapOpen.value = true;
+}
 
 const categories = ref<MarketplaceCategoryView[]>([]);
 const categoryOptions = computed(() =>
@@ -527,8 +510,7 @@ const form = ref<MarketplaceCreateOfferFormState>({
   unit_of_measure: 'piece',
   quantity_available: 1,
   unlimited_flag: false,
-  cycle_type: 'individual',
-  target_volume: null,
+  delivery_points: [],
   warranty_days: 0,
 });
 
@@ -556,17 +538,69 @@ const previewActive = ref(0);
 const originalImageKeys = ref<string[]>([]);
 let galleryUidSeq = 0;
 
-const isCollective = computed(() => form.value.cycle_type === 'collective');
-
 const selectedCategoryLabel = computed(
   () => categoryOptions.value.find((o) => o.value === form.value.category_id)?.label ?? '—'
 );
 const selectedUnitLabel = computed(
   () => unitOptions.find((o) => o.value === form.value.unit_of_measure)?.label ?? ''
 );
-const selectedCycleTitle = computed(
-  () => cycleTypeOptions.find((o) => o.value === form.value.cycle_type)?.title ?? '—'
+const deliveryPointsPreview = computed(() =>
+  form.value.delivery_points
+    .map((d) => {
+      const name = kuOptions.value.find((k) => k.braname === d.braname)?.name ?? d.braname;
+      return `${name} (от ${d.min_supply_volume} ${selectedUnitLabel.value})`;
+    })
+    .join(', ')
 );
+
+// ===== КУ-хелперы =====
+function isKuSelected(braname: string): boolean {
+  return form.value.delivery_points.some((d) => d.braname === braname);
+}
+function toggleKu(braname: string, checked: boolean): void {
+  if (checked) {
+    if (!isKuSelected(braname)) {
+      form.value.delivery_points = [
+        ...form.value.delivery_points,
+        { braname, min_supply_volume: 1 },
+      ];
+    }
+  } else {
+    form.value.delivery_points = form.value.delivery_points.filter((d) => d.braname !== braname);
+  }
+}
+function kuMinVolume(braname: string): number {
+  return form.value.delivery_points.find((d) => d.braname === braname)?.min_supply_volume ?? 1;
+}
+function setKuMin(braname: string, value: string | number | null): void {
+  const n = Math.max(1, Math.floor(Number(value) || 1));
+  form.value.delivery_points = form.value.delivery_points.map((d) =>
+    d.braname === braname ? { ...d, min_supply_volume: n } : d
+  );
+}
+
+async function loadKuOptions(): Promise<void> {
+  const coopname = systemStore.info?.coopname;
+  if (!coopname) return;
+  kuLoading.value = true;
+  try {
+    // Наименование/адрес участка бэкенд резолвит живьём из организации и отдаёт
+    // прямо в KU-details (name/addressFull) — фронт не джойнит branches отдельно.
+    // Запрос ListKUDetails требует coopname (String!); берём только активные КУ.
+    await kuStore.load({ coopname, onlyActive: true });
+    kuOptions.value = kuStore.details.map((k) => ({
+      braname: k.coreBraname,
+      name: k.name || k.coreBraname,
+      address: k.addressFull ?? '',
+      lat: k.geocodeStatus === GeocodeStatus.OK && k.lat != null ? Number(k.lat) : null,
+      lng: k.geocodeStatus === GeocodeStatus.OK && k.lng != null ? Number(k.lng) : null,
+    }));
+  } catch (e) {
+    FailAlert(e, 'Не удалось загрузить кооперативные участки');
+  } finally {
+    kuLoading.value = false;
+  }
+}
 
 // Нормализованная (точка-разделитель) цена для отправки и форматирования.
 const priceNumberStr = computed(() => form.value.price_per_unit.trim().replace(',', '.'));
@@ -690,15 +724,6 @@ function setCover(index: number): void {
   coverIndex.value = index;
 }
 
-function onSelectCycle(value: MarketplaceOfferCycleType): void {
-  form.value.cycle_type = value;
-  // target_volume имеет смысл только для коллективной закупки (опциональный
-  // авто-старт). У индивидуальной поставки его нет.
-  if (value === 'individual') {
-    form.value.target_volume = null;
-  }
-}
-
 async function onPickFiles(files: readonly File[] | null): Promise<void> {
   const list = files ? [...files] : [];
   // Берём только ещё не добавленные файлы (по имени) — на случай повторного выбора.
@@ -751,11 +776,12 @@ function markCompleted(key: string): void {
 }
 
 function validateSupply(): string | null {
-  const f = form.value;
-  // Целевой объём для коллективной закупки необязателен (пусто = ручной запуск),
-  // но если задан — должен быть положительным.
-  if (f.cycle_type === 'collective' && f.target_volume != null && f.target_volume < 1) {
-    return 'Целевой объём должен быть от 1 (или оставьте пустым для ручного запуска).';
+  const points = form.value.delivery_points;
+  if (!points.length) {
+    return 'Отметьте хотя бы один кооперативный участок поставки.';
+  }
+  if (points.some((d) => !Number.isInteger(d.min_supply_volume) || d.min_supply_volume < 1)) {
+    return 'Минимальный объём на каждом участке должен быть целым числом от 1.';
   }
   return null;
 }
@@ -835,8 +861,7 @@ async function onSubmit(): Promise<void> {
     unit_of_measure: f.unit_of_measure,
     quantity_available: f.unlimited_flag ? null : f.quantity_available,
     unlimited_flag: f.unlimited_flag,
-    cycle_type: f.cycle_type,
-    target_volume: f.cycle_type === 'collective' ? f.target_volume : null,
+    delivery_points: f.delivery_points,
     warranty_days: f.warranty_days,
     images: buildImagesPayload(),
   };
@@ -885,8 +910,10 @@ async function prefillForEdit(id: string): Promise<void> {
       unit_of_measure: offer.unit_of_measure as MarketplaceUnitOfMeasure,
       quantity_available: offer.quantity_available,
       unlimited_flag: offer.unlimited_flag,
-      cycle_type: offer.cycle_type,
-      target_volume: offer.target_volume,
+      delivery_points: (offer.delivery_points ?? []).map((d) => ({
+        braname: d.braname,
+        min_supply_volume: d.min_supply_volume,
+      })),
       warranty_days: offer.warranty_days,
     };
     gallery.value = (offer.images ?? [])
@@ -901,7 +928,6 @@ async function prefillForEdit(id: string): Promise<void> {
     originalImageKeys.value = gallery.value.map((g) => g.bucket_key as string);
     coverIndex.value = 0;
     currentStatus.value = offer.status;
-    currentCycleType.value = offer.cycle_type;
     rejectReason.value = offer.reject_reason ?? null;
   } catch (e) {
     FailAlert(e, 'Не удалось загрузить предложение');
@@ -916,6 +942,7 @@ onMounted(async () => {
   } catch (e) {
     FailAlert(e, 'Не удалось загрузить категории');
   }
+  await loadKuOptions();
   if (editId.value) {
     await prefillForEdit(editId.value);
   } else {
@@ -1029,6 +1056,46 @@ onBeforeUnmount(() => {
     &--muted {
       font-size: var(--p-fs-meta, 12px);
     }
+  }
+
+  // Строка КУ: чекбокс с наименованием+адресом слева, кнопка карты и
+  // поле мин. объёма — справа.
+  &__ku-row {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--p-3, 12px);
+  }
+
+  &__ku-label {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__ku-name {
+    font-weight: 600;
+    color: var(--p-ink-2);
+  }
+
+  &__ku-addr {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-3);
+  }
+
+  &__ku-min {
+    flex: 0 0 140px;
+  }
+
+  &__map {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-3, 12px);
+  }
+
+  &__map-addr {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-3);
   }
 
   &__grid {

@@ -1,7 +1,6 @@
 import type { MarketplaceOrderDomainEntity } from '../entities/marketplace-order.entity';
 import type {
   MarketplaceOrderCreateTxSnapshot,
-  MarketplaceOrderCycleType,
   MarketplaceOrderIssuanceFactSnapshot,
   MarketplaceOrderStatus,
 } from '../entities/marketplace-order.types';
@@ -25,7 +24,6 @@ export interface MarketplaceOrderCreateInput {
   quantity: number;
   price_per_unit: string;
   total_cost: string;
-  cycle_type: MarketplaceOrderCycleType;
   cycle_id: string | null;
   warranty_period_secs: number;
   warranty_until: Date | null;
@@ -126,6 +124,29 @@ export interface MarketplaceOrderDomainRepository
    * объёма после persist нового Order'а).
    */
   sumUnassignedActiveByOffer(coopname: string, offer_id: string): Promise<number>;
+
+  /**
+   * Батч «сколько накоплено» по парам (offer × КУ) на этапе сбора: сумма
+   * quantity всех ACTIVE-заказов (всех пайщиков) каждого предложения в разрезе
+   * ПВЗ доставки. Нужен, чтобы заказчик в своей ленте видел коллективный
+   * прогресс сбора партии (а не только свой вклад). Результат — строки
+   * (offer_id, delivery_braname, total).
+   */
+  sumActiveByOfferBranch(
+    coopname: string,
+    offerIds: string[]
+  ): Promise<Array<{ offer_id: string; delivery_braname: string; total: number }>>;
+
+  /**
+   * Сумма quantity по сформированным партиям (cycle_id) — всех пайщиков. Нужна,
+   * чтобы заказчик видел коллективный объём уже принятой партии тем же
+   * прогрессом, что и у партии на этапе сбора (единый вид карточки на ленте
+   * коллективного заказа). Результат — строки (cycle_id, total).
+   */
+  sumByCycleIds(
+    coopname: string,
+    cycleIds: string[]
+  ): Promise<Array<{ cycle_id: string; total: number }>>;
 
   /**
    * Story 4.3: все Order'ы, привязанные к заявке `cycle_id`. Используется

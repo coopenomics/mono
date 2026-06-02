@@ -9,7 +9,6 @@ import {
 import type {
   MarketplaceConsolidatedRequestStatus,
 } from '../../domain/entities/marketplace-consolidated-request.types';
-import type { MarketplaceOrderCycleType } from '../../domain/entities/marketplace-order.types';
 
 /**
  * Story 4.2: TypeORM-сущность консолидированной заявки. Backend-only
@@ -18,15 +17,13 @@ import type { MarketplaceOrderCycleType } from '../../domain/entities/marketplac
  * Hot-path индексы:
  *   - `(coopname, supplier_account, status)` — offerer-стол «Консолидированные
  *     заявки» (Story 4.5 supplier accept/decline UI);
- *   - `(coopname, offer_id, status)` — pre-aggregator проверка «нет ли
- *     уже активной заявки» (idempotency cron-цикла);
- *   - `(cycle_type, status, expires_at)` — cron-scan активных Pending по
- *     истечению (Story 4.3 expire-handler).
+ *   - `(coopname, offer_id, status)` — проверка активных партий по офферу;
+ *   - `(status, expires_at)` — cron-scan активных Pending по истечению.
  */
 @Entity({ name: 'marketplace_consolidated_request' })
 @Index(['coopname', 'supplier_account', 'status'])
 @Index(['coopname', 'offer_id', 'status'])
-@Index(['cycle_type', 'status', 'expires_at'])
+@Index(['status', 'expires_at'])
 export class MarketplaceConsolidatedRequestEntity {
   @PrimaryGeneratedColumn('uuid')
   public id!: string;
@@ -39,9 +36,6 @@ export class MarketplaceConsolidatedRequestEntity {
 
   @Column({ type: 'varchar', length: 13 })
   public supplier_account!: string;
-
-  @Column({ type: 'varchar', length: 32 })
-  public cycle_type!: MarketplaceOrderCycleType;
 
   @Column({ type: 'integer' })
   public total_quantity!: number;

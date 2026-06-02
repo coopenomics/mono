@@ -2,7 +2,6 @@ import type { MarketplaceConsolidatedRequestDomainEntity } from '../entities/mar
 import type {
   MarketplaceConsolidatedRequestStatus,
 } from '../entities/marketplace-consolidated-request.types';
-import type { MarketplaceOrderCycleType } from '../entities/marketplace-order.types';
 import type {
   PaginationInputDomainInterface,
   PaginationResultDomainInterface,
@@ -16,7 +15,6 @@ export interface MarketplaceConsolidatedRequestCreateInput {
   coopname: string;
   offer_id: string;
   supplier_account: string;
-  cycle_type: MarketplaceOrderCycleType;
   total_quantity: number;
   total_amount: string;
   status: MarketplaceConsolidatedRequestStatus;
@@ -31,7 +29,6 @@ export interface MarketplaceConsolidatedRequestListFilter {
   offer_id?: string;
   supplier_account?: string;
   status?: MarketplaceConsolidatedRequestStatus | MarketplaceConsolidatedRequestStatus[];
-  cycle_type?: MarketplaceOrderCycleType;
 }
 
 export interface MarketplaceConsolidatedRequestDomainRepository {

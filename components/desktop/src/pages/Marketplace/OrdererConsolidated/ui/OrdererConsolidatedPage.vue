@@ -1,32 +1,37 @@
 <script lang="ts" setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { FailAlert } from 'src/shared/api';
-import {
-  OrderCard,
-  orderStatusDisplay,
-  toOrderCardModel,
-} from 'src/widgets/Marketplace/OrderCard';
+import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
 import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
+import { SupplyPartyCard } from 'src/widgets/Marketplace/SupplyPartyCard';
 import { EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
+import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import { fetchMyOrders } from '../../MyOrders/api';
 import type {
-  MarketplaceOrderCycleTypeView,
   MarketplaceOrderStatusView,
   MarketplaceOrderView,
 } from '../../MyOrders/types';
 
 /**
- * Эпик 4 / Story 4.4: orderer-стол «Сводный заказ».
+ * Эпик 4 / Story 4.4: orderer-стол «Коллективный заказ».
  *
- * В коллективной закупке (`collective`) Order'ы заказчика группируются в
- * партию по `cycle_id`. Эта страница даёт пайщику
- * единый обзор: какие у него партии в полёте, сколько заказов в каждой,
- * суммарная стоимость, общий этап партии. Канон — `widgets/Marketplace/OrderCard`
- * для отдельных заказов внутри партии; страница на MONO Platform v2.
+ * Страница — способ отслеживания процесса сбора коллективных заказов, в которых
+ * участвует пайщик (сами его заказы живут на «Моих заказах»). Заказы
+ * сгруппированы в ПАРТИИ по паре (оферта × КУ): активные копятся к минимальному
+ * объёму, принятые поставщиком — уже сформированы. Все партии рендерятся ОДНОЙ
+ * И ТОЙ ЖЕ карточкой: шапка (товар + КУ + бейдж этапа), прогресс-бар сбора,
+ * свои заказы строками. Отличается только заполнение бара и подпись этапа —
+ * никаких разных по вёрстке сущностей.
  *
- * Источник данных — `Queries.Marketplace.ListMyOrders` (reuse MyOrders/api).
- * Polling 15s, до Subscriptions Story 9.x.
+ * Здесь видны ТОЛЬКО партии до начала выдачи: этап сбора и подготовки поставки
+ * (ACTIVE…ACCEPTED_TO_COOP). Как только открыта выдача (READY_TO_RECEIVE и
+ * дальше) или заказ отменён — партия уходит с этой страницы: её цель —
+ * наблюдать накопление, а не историю. Получение/история — на «Моих заказах».
+ *
+ * Источник данных — `Queries.Marketplace.ListMyOrders` (видит только заказы
+ * пайщика). Коллективные суммы (`group_accumulated_quantity` — накоплено всеми,
+ * `group_min_volume` — целевой минимум КУ) приходят с бэкенда. Polling 15s.
  */
 
 const POLL_INTERVAL_MS = 15_000;
@@ -36,20 +41,7 @@ const items = ref<MarketplaceOrderView[]>([]);
 const loading = ref(false);
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 
-const CYCLE_TYPE_LABEL: Record<MarketplaceOrderCycleTypeView, string> = {
-  COLLECTIVE: 'Коллективная закупка',
-  INDIVIDUAL: 'Индивидуальный',
-};
-
-const CYCLE_TYPE_HINT: Record<MarketplaceOrderCycleTypeView, string> = {
-  COLLECTIVE:
-    'Заказы копятся в общий пул; поставка стартует по достижении целевого объёма либо по решению поставщика.',
-  INDIVIDUAL: 'Каждый заказ обслуживается поставщиком отдельно.',
-};
-
-// Этап партии = минимальный по STAGE_RANK среди не-отменённых; то есть
-// если хотя бы один заказ ещё ждёт цикл, вся партия «Активна».
-// Готовый к выдаче переходит в issued только когда все заказы выданы.
+// Этап партии = минимальный по рангу среди не-отменённых.
 const STAGE_RANK: Record<MarketplaceOrderStatusView, number> = {
   ACTIVE: 0,
   ACCEPTED_PENDING_SUPPLIER: 1,
@@ -64,63 +56,100 @@ const STAGE_RANK: Record<MarketplaceOrderStatusView, number> = {
   CANCELLED_BY_SUPPLIER: 99,
 };
 
-interface ConsolidatedGroup {
+// Граница «начала выдачи»: заказы с рангом этапа ≥ этого уходят со страницы
+// (выдача открыта / получено / возврат), как и отменённые (ранг 99). На ленте
+// сбора остаётся только то, что ещё копится или готовится к поставке.
+const ISSUANCE_STAGE_RANK = STAGE_RANK.READY_TO_RECEIVE;
+
+interface CollectiveParty {
   key: string;
-  cycle_id: string | null;
-  cycle_type: MarketplaceOrderCycleTypeView;
+  /** collecting — копится (ACTIVE); formed — уже принята поставщиком. */
+  collecting: boolean;
   offer_id: string;
-  supplier_account: string;
-  delivery_braname: string;
+  productName: string;
+  pvzName: string;
+  unitLabel: string;
   orders: MarketplaceOrderView[];
-  totalCost: number;
-  totalUnits: number;
+  /** Свой вклад (сумма собственных заказов в этой партии). */
+  ownUnits: number;
+  ownCost: number;
+  /** Накоплено всеми пайщиками (с бэкенда): пул сбора или объём партии. */
+  groupAccumulated: number | null;
+  /** Целевой минимальный объём поставки на этот КУ. */
+  groupMinVolume: number | null;
   stageStatus: MarketplaceOrderStatusView;
 }
 
-const groups = computed<ConsolidatedGroup[]>(() => {
-  const buckets = new Map<string, ConsolidatedGroup>();
+const parties = computed<CollectiveParty[]>(() => {
+  const buckets = new Map<string, CollectiveParty>();
   for (const o of items.value) {
-    const key = o.cycle_id
-      ? `cycle:${o.cycle_id}`
-      : `single:${o.id}`;
-    let g = buckets.get(key);
-    if (!g) {
-      g = {
+    // Только этап сбора/подготовки — выдача и отменённые сюда не попадают.
+    if (STAGE_RANK[o.status] >= ISSUANCE_STAGE_RANK) continue;
+    const collecting = o.status === 'ACTIVE';
+    const key = collecting
+      ? `collect:${o.offer_id}::${o.delivery_braname}`
+      : o.cycle_id
+        ? `cycle:${o.cycle_id}`
+        : `single:${o.id}`;
+    let p = buckets.get(key);
+    if (!p) {
+      p = {
         key,
-        cycle_id: o.cycle_id ?? null,
-        cycle_type: o.cycle_type,
+        collecting,
         offer_id: o.offer_id,
-        supplier_account: o.supplier_account,
-        delivery_braname: o.delivery_braname,
+        productName: o.product_name || 'Товар по предложению',
+        pvzName: o.delivery_point_name || o.delivery_braname,
+        unitLabel: marketplaceUnitShort(o.unit_of_measure),
         orders: [],
-        totalCost: 0,
-        totalUnits: 0,
+        ownUnits: 0,
+        ownCost: 0,
+        groupAccumulated: o.group_accumulated_quantity ?? null,
+        groupMinVolume: o.group_min_volume ?? null,
         stageStatus: o.status,
       };
-      buckets.set(key, g);
+      buckets.set(key, p);
     }
-    g.orders.push(o);
-    g.totalCost += parseFloat(o.total_cost) || 0;
-    g.totalUnits += o.quantity;
-    // Этап партии = ранг минимального активного (с приоритетом «в работе»).
+    p.orders.push(o);
+    p.ownUnits += o.quantity;
+    p.ownCost += parseFloat(o.total_cost) || 0;
     const candidate = STAGE_RANK[o.status];
-    const current = STAGE_RANK[g.stageStatus];
+    const current = STAGE_RANK[p.stageStatus];
     if (candidate < 90 && (current >= 90 || candidate < current)) {
-      g.stageStatus = o.status;
+      p.stageStatus = o.status;
     }
   }
   return [...buckets.values()].sort((a, b) => {
-    // Группы с cycle_id выше (партии в работе), индивидуальные ниже.
-    if (a.cycle_id && !b.cycle_id) return -1;
-    if (!a.cycle_id && b.cycle_id) return 1;
+    // Собирающиеся партии выше — по ним идёт активный сбор.
+    if (a.collecting !== b.collecting) return a.collecting ? -1 : 1;
     return a.orders[0].created_at < b.orders[0].created_at ? 1 : -1;
   });
 });
 
-const hasGroups = computed(() => groups.value.length > 0);
-const consolidatedCount = computed(
-  () => groups.value.filter((g) => g.cycle_id !== null).length,
-);
+const hasParties = computed(() => parties.value.length > 0);
+
+// Есть ли целевой объём сбора (иначе — поштучный приём, бар показываем полным).
+function hasTarget(p: CollectiveParty): boolean {
+  return p.groupMinVolume != null && p.groupMinVolume > 1;
+}
+
+function accumulated(p: CollectiveParty): number {
+  return p.groupAccumulated ?? p.ownUnits;
+}
+
+function reachedMin(p: CollectiveParty): boolean {
+  return hasTarget(p) ? accumulated(p) >= (p.groupMinVolume as number) : true;
+}
+
+function progressRatio(p: CollectiveParty): number {
+  if (!hasTarget(p)) return 1;
+  return Math.min(1, accumulated(p) / (p.groupMinVolume as number));
+}
+
+function barColor(p: CollectiveParty): string {
+  // Идёт сбор и минимум ещё не набран — основной цвет; иначе (набрано или
+  // партия уже принята) — успех.
+  return p.collecting && !reachedMin(p) ? 'primary' : 'positive';
+}
 
 function formatCost(value: number): string {
   return new Intl.NumberFormat('ru-RU', {
@@ -128,6 +157,17 @@ function formatCost(value: number): string {
     currency: 'RUB',
     maximumFractionDigits: 2,
   }).format(value);
+}
+
+// Состав партии строками для общего виджета SupplyPartyCard. У заказчика «кто» —
+// его собственные заказы (товар/КУ уже в шапке карточки).
+function memberRows(p: CollectiveParty): Array<{ id: string; who: string; qty: string; cost: string }> {
+  return p.orders.map((o) => ({
+    id: o.id,
+    who: `Ваш заказ № ${o.id.slice(0, 8)}`,
+    qty: `${o.quantity} ${p.unitLabel}`,
+    cost: formatCost(parseFloat(o.total_cost) || 0),
+  }));
 }
 
 async function load(): Promise<void> {
@@ -163,111 +203,80 @@ onUnmounted(() => {
 </script>
 
 <template lang="pug">
-q-page.consolidated(role="region", aria-label="Сводный заказ")
+q-page.collective(role="region", aria-label="Коллективный заказ")
   //- Действие страницы — в шапку, где стоят общие действия (канон Teleport).
   Teleport(to="#header-actions-host", defer)
     RefreshButton(:loading="loading", @refresh="load")
 
-  PageHint(storage-key="mp:consolidated:banner-dismissed")
-    | Партии заказов, сгруппированные по циклу. Несколько ваших заказов в одной партии обслуживаются совместно — на одном цикле, с одной поставкой.
+  .collective__col
+    PageHint(storage-key="mp:collective:banner-dismissed")
+      | Отслеживание коллективных заказов, в которых вы участвуете. Заказы
+      | накапливаются по предложению и кооперативному участку до минимального
+      | объёма поставки; на каждом этапе видно, сколько уже набрано всеми
+      | пайщиками.
 
-  q-inner-loading(:showing="loading && items.length === 0")
-    q-spinner(color="primary", size="2em")
+    q-inner-loading(:showing="loading && items.length === 0")
+      q-spinner(color="primary", size="2em")
 
-  EmptyState(
-    v-if="!loading && !hasGroups",
-    title="У вас ещё нет заказов",
-    body="Откройте каталог и оформите первый заказ — он появится здесь."
-  )
-    template(#icon)
-      q-icon(name="inventory_2", size="48px")
+    EmptyState(
+      v-if="!loading && !hasParties",
+      title="Активных сборов нет",
+      body="Здесь отображаются коллективные заказы на этапе сбора и подготовки поставки. Статус и получение каждого заказа всегда доступны в разделе «Мои заказы»."
+    )
+      template(#icon)
+        q-icon(name="inventory_2", size="48px")
 
-  .consolidated__list(v-if="hasGroups")
-    .t-muted.consolidated__counter Партий в работе: {{ consolidatedCount }} / Всего групп: {{ groups.length }}
-
-    .consolidated__group(v-for="g in groups", :key="g.key")
-      .consolidated__group-head
-        .row.items-center.q-gutter-md
-          div
-            .t-h3
-              span(v-if="g.cycle_id") Партия № {{ g.cycle_id }}
-              span(v-else) Индивидуальный заказ № {{ g.orders[0].id.slice(0, 8) }}
-            .t-muted.consolidated__group-hint {{ CYCLE_TYPE_LABEL[g.cycle_type] }} — {{ CYCLE_TYPE_HINT[g.cycle_type] }}
-          q-space
-          span.chip.chip--accent
-            q-icon(name="layers", size="14px")
-            | {{ g.orders.length }} заказа(ов)
-
-        .row.q-col-gutter-md.q-mt-sm
-          .col-12.col-md-3
-            .t-muted Этап партии
-            .consolidated__metric-val {{ orderStatusDisplay(g.stageStatus).label }}
-          .col-12.col-md-3
-            .t-muted Всего единиц
-            .consolidated__metric-val {{ g.totalUnits }}
-          .col-12.col-md-3
-            .t-muted Сумма партии
-            .consolidated__metric-val {{ formatCost(g.totalCost) }}
-          .col-12.col-md-3
-            .t-muted ПВЗ доставки
-            .consolidated__metric-val {{ g.delivery_braname }}
-
-      .consolidated__orders
-        OrderCard(
-          v-for="o in g.orders",
-          :key="o.id",
-          :order="toOrderCardModel(o)",
-          role="orderer",
-          readonly
-        )
+    .collective__list(v-if="hasParties")
+      //- ЕДИНАЯ карточка партии (канон-виджет SupplyPartyCard) — та же, что у
+      //- поставщика. Отличаются только данные и тексты, не вёрстка.
+      SupplyPartyCard(
+        v-for="p in parties",
+        :key="p.key",
+        :product-name="p.productName",
+        :pvz-name="p.pvzName",
+        :stage-status="p.stageStatus",
+        :order-count="p.orders.length",
+        :volume-label="`Накоплено всеми: ${accumulated(p)} ${p.unitLabel}`",
+        :target-label="hasTarget(p) ? `цель — от ${p.groupMinVolume} ${p.unitLabel}` : ''",
+        :progress="progressRatio(p)",
+        :bar-color="barColor(p)",
+        :members="memberRows(p)",
+        total-label="Ваш вклад в партию",
+        :total-value="`${formatCost(p.ownCost)} · ${p.ownUnits} ${p.unitLabel}`"
+      )
+        template(#hint)
+          template(v-if="p.collecting && reachedMin(p)")
+            q-icon(name="check_circle", size="14px", color="positive")
+            span Минимальный объём набран — поставщик может принять партию.
+          template(v-else-if="p.collecting")
+            span Сбор продолжается. Поставщик может принять партию и раньше — минимум лишь ориентир.
+          template(v-else)
+            q-icon(name="local_shipping", size="14px")
+            span Партия набрана. Этап: {{ orderStatusDisplay(p.stageStatus).label }}.
 </template>
 
 <style scoped lang="scss">
-.consolidated {
-  padding: var(--p-6, 24px);
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-4, 16px);
+.collective {
+  padding: 0 var(--p-4, 16px) var(--p-6, 24px);
+
+  &__col {
+    max-width: 1120px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-4, 16px);
+  }
 
   &__list {
     display: flex;
     flex-direction: column;
     gap: var(--p-4, 16px);
   }
-
-  &__group {
-    border: 1px solid var(--p-line);
-    border-radius: var(--p-r-md, 12px);
-    background: var(--p-surface);
-    overflow: hidden;
-  }
-
-  &__group-head {
-    padding: var(--p-4, 16px);
-  }
-
-  &__group-hint {
-    max-width: 640px;
-  }
-
-  &__metric-val {
-    font-size: var(--p-fs-body);
-    color: var(--p-ink-1);
-    margin-top: 2px;
-  }
-
-  &__orders {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: var(--p-4, 16px);
-    padding: var(--p-4, 16px);
-    border-top: 1px solid var(--p-line);
-  }
 }
 
 @media (max-width: 768px) {
-  .consolidated {
-    padding: var(--p-4, 16px);
+  .collective {
+    padding: 0 var(--p-3, 12px) var(--p-4, 16px);
   }
 }
 </style>

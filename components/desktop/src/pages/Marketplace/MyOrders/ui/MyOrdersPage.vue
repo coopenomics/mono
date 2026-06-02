@@ -1,29 +1,40 @@
 <script lang="ts" setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { Dialog, Loading } from 'quasar';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { OrderCard, toOrderCardModel, type Order as OrderCardModel } from 'src/widgets/Marketplace/OrderCard';
+import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
 import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
+import { HandoffCodeDialog } from 'src/widgets/Marketplace/HandoffCode';
+import { HandoffTokenKind } from 'src/shared/lib/marketplace';
 import { cancelOrder, fetchMyOrders } from '../api';
 import type { MarketplaceOrderStatusView, MarketplaceOrderView } from '../types';
+import OrdererFinalizeIssuanceDialog from './OrdererFinalizeIssuanceDialog.vue';
 
 /**
  * Story 4.6: orderer-стол «Мои заказы».
  *
- * Канон — `widgets/Marketplace/OrderCard` для карточки заказа. Страница на
- * MONO Platform v2: фильтр по статусу — тоггл-чипы `.chip`, действия —
- * `BaseButton`, пустой экран — `EmptyState`.
+ * Единый список всех заказов пайщика во всех статусах. Канон —
+ * `widgets/Marketplace/OrderCard`. Управление заказом живёт прямо в карточке:
+ * «Отменить» (до акцепта) и «Подписать и получить» (когда оператор открыл
+ * выдачу, статус READY_TO_RECEIVE) — отдельной страницы «Готово к получению»
+ * больше нет. Клик по карточке открывает детальную страницу заказа.
  *
- * Cancel-кнопка (`@action(key='cancel')`) → confirm-dialog →
- * `marketplaceCancelOrder` (Story 4.4). Live-обновления — polling
- * каждые 10s (Subscription marketplaceOrderUpdated будет в kernel
- * pubsub Story 9.x).
+ * Код получения (account-bound QR) — кнопка «Получить заказ» в шапке: открывает
+ * диалог с тем же QR, что и на отдельной странице меню (OrdererReceiveCode).
+ *
+ * Live-обновления — polling каждые 10s.
  */
 
 const PAGE_SIZE = 24;
 const POLL_INTERVAL_MS = 10_000;
+
+const route = useRoute();
+const router = useRouter();
+const coopname = computed(() => String(route.params.coopname ?? ''));
 
 const items = ref<MarketplaceOrderView[]>([]);
 const totalCount = ref(0);
@@ -33,6 +44,13 @@ const loading = ref(false);
 const activeKey = ref('all');
 
 const hasMore = computed(() => currentPage.value < totalPages.value);
+
+// Финальная подпись получения — диалог прямо из карточки заказа.
+const finalizeDialogOpen = ref(false);
+const selectedOrder = ref<MarketplaceOrderView | null>(null);
+
+// Код получения (account-bound QR) — диалогом из шапки, в одном месте.
+const receiveDialogOpen = ref(false);
 
 // Фильтр по этапу. Покрытие ИСЧЕРПЫВАЮЩЕЕ по enum'у MarketplaceOrderStatusView:
 // каждый статус заказа попадает хотя бы в одну вкладку. Иначе заказ молча
@@ -130,12 +148,31 @@ function confirmCancel(order: MarketplaceOrderView): void {
   });
 }
 
+function startFinalize(order: MarketplaceOrderView): void {
+  selectedOrder.value = order;
+  finalizeDialogOpen.value = true;
+}
+
+function onFinalized(): void {
+  void load(currentPage.value, false);
+}
+
+function openDetail(order: OrderCardModel): void {
+  void router.push({
+    name: 'marketplace-order-detail',
+    params: { coopname: coopname.value, orderId: String(order.id) },
+  });
+}
+
+function goReceive(): void {
+  receiveDialogOpen.value = true;
+}
+
 function onCardAction(payload: { key: string; order: OrderCardModel }): void {
-  if (payload.key === 'cancel') {
-    const found = items.value.find((o) => o.id === payload.order.id);
-    if (found) confirmCancel(found);
-  }
-  // 'open' → когда будет detail-страница (Story 4.6 follow-up); пока no-op.
+  const found = items.value.find((o) => o.id === payload.order.id);
+  if (!found) return;
+  if (payload.key === 'cancel') confirmCancel(found);
+  else if (payload.key === 'receive') startFinalize(found);
 }
 
 let pollTimer: ReturnType<typeof setInterval> | null = null;
@@ -154,8 +191,20 @@ onBeforeUnmount(() => {
 
 <template lang="pug">
 q-page.orders(role="region", aria-label="Мои заказы")
+  //- Действия — в шапку (канон Teleport). «Получить заказ» дублируем здесь и
+  //- на детали заказа, чтобы код выдачи был под рукой везде, не только на
+  //- отдельной странице.
+  Teleport(to="#header-actions-host", defer)
+    BaseButton(variant="secondary", size="sm", @click="goReceive")
+      template(#icon-left)
+        q-icon(name="qr_code_2", size="16px")
+      | Получить заказ
+    RefreshButton(:loading="loading", @refresh="() => load(1, false)")
+
   PageHint(storage-key="mp:my-orders:banner-dismissed")
-    | Заказы, оформленные вами в каталоге. Здесь виден их статус и движение до выдачи на пункте.
+    | Все ваши заказы и их движение до выдачи на пункте. Заказ можно отменить
+    | до приёма поставщиком, а после открытия выдачи — подписать и получить
+    | прямо в карточке. Откройте карточку, чтобы увидеть подробности.
 
   PageTabs.orders__tabs(:tabs="tabs", :active-key="activeKey", @select="onSelectTab")
 
@@ -173,11 +222,21 @@ q-page.orders(role="region", aria-label="Мои заказы")
       :key="o.id",
       :order="toCardModel(o)",
       role="orderer",
-      @action="onCardAction"
+      openable,
+      @action="onCardAction",
+      @open="openDetail"
     )
 
   .row.justify-center.q-my-md(v-if="hasMore")
     BaseButton(variant="ghost", :loading="loading", @click="onLoadMore") Загрузить ещё
+
+  OrdererFinalizeIssuanceDialog(
+    v-model="finalizeDialogOpen",
+    :order="selectedOrder",
+    @finalized="onFinalized"
+  )
+
+  HandoffCodeDialog(v-model="receiveDialogOpen", :coopname="coopname", :kind="HandoffTokenKind.Receive")
 </template>
 
 <style scoped lang="scss">

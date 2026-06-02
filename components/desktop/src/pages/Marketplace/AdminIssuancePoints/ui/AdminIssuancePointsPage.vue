@@ -6,11 +6,11 @@ import { useSessionStore } from 'src/entities/Session'
 import { useBranchStore } from 'src/entities/Branch/model'
 import type { IBranch } from 'src/entities/Branch/model'
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails'
-import type {
-  GeocodeStatus,
-  IMarketplaceKUDetails,
-  KuDetailsStatus,
-} from 'src/entities/MarketplaceKUDetails'
+// GeocodeStatus/KuDetailsStatus — это ЗНАЧЕНИЯ (enum из Zeus), используются в
+// рантайме (GeocodeStatus.OK и т.п.); импортировать как value, не `import type`,
+// иначе тип стирается при компиляции → ReferenceError в шаблоне.
+import { GeocodeStatus, KuDetailsStatus } from 'src/entities/MarketplaceKUDetails'
+import type { IMarketplaceKUDetails } from 'src/entities/MarketplaceKUDetails'
 import { BaseBadge, BaseButton, BaseDialog, EmptyState, TableSkeleton } from 'src/shared/ui/base'
 import type { BaseBadgeVariant, TableSkeletonColumn } from 'src/shared/ui/base'
 import { PageHint } from 'src/shared/ui/domain'
@@ -80,8 +80,12 @@ function statusOf(row: IssuancePointRow): { label: string; variant: BaseBadgeVar
 }
 
 function addressOf(row: IssuancePointRow): string {
-  if (row.details) return row.details.addressFull
-  return row.branch.fact_address || row.branch.full_address || '—'
+  return (
+    row.details?.addressFull ||
+    row.branch.fact_address ||
+    row.branch.full_address ||
+    '—'
+  )
 }
 
 // Карта ПВЗ: открываем точку по координатам геокодера (OSM, без API-ключа).
@@ -95,7 +99,7 @@ const mapTitle = computed(() =>
 
 function hasCoords(row: IssuancePointRow): boolean {
   const d = row.details
-  return !!d && d.geocodeStatus === 'OK' && d.lat != null && d.lng != null
+  return !!d && d.geocodeStatus === GeocodeStatus.OK && d.lat != null && d.lng != null
 }
 
 function openMap(row: IssuancePointRow): void {
@@ -145,7 +149,7 @@ async function onSaved(): Promise<void> {
 async function setStatus(row: IssuancePointRow, status: KuDetailsStatus): Promise<void> {
   try {
     await kuStore.setStatus({ coopname: coopname.value, coreBraname: row.branch.braname, status })
-    SuccessAlert(status === 'ACTIVE' ? 'Пункт выдачи активирован' : 'Пункт выдачи деактивирован')
+    SuccessAlert(status === KuDetailsStatus.ACTIVE ? 'Пункт выдачи активирован' : 'Пункт выдачи деактивирован')
   } catch (e) {
     FailAlert(e, 'Не удалось изменить статус пункта выдачи')
   }
@@ -218,7 +222,7 @@ q-page.admin-pvz
                 BaseBadge(:variant='GEOCODE_LABEL[row.details.geocodeStatus].variant')
                   | {{ GEOCODE_LABEL[row.details.geocodeStatus].label }}
                   q-tooltip(
-                    v-if='row.details.geocodeStatus === "FAILED" && row.details.geocodeErrorMessage'
+                    v-if='row.details.geocodeStatus === GeocodeStatus.FAILED && row.details.geocodeErrorMessage'
                   ) {{ row.details.geocodeErrorMessage }}
                 BaseButton(
                   v-if='hasCoords(row)',
@@ -253,7 +257,7 @@ q-page.admin-pvz
                     template(#icon-left)
                       q-icon(name='edit', size='18px')
                   BaseButton(
-                    v-if='row.details.geocodeStatus !== "OK"',
+                    v-if='row.details.geocodeStatus !== GeocodeStatus.OK',
                     variant='ghost',
                     icon-only,
                     size='sm',
@@ -263,12 +267,12 @@ q-page.admin-pvz
                     template(#icon-left)
                       q-icon(name='my_location', size='18px')
                   BaseButton(
-                    v-if='row.details.status === "ACTIVE"',
+                    v-if='row.details.status === KuDetailsStatus.ACTIVE',
                     variant='ghost',
                     icon-only,
                     size='sm',
                     aria-label='Деактивировать',
-                    @click='setStatus(row, "INACTIVE")'
+                    @click='setStatus(row, KuDetailsStatus.INACTIVE)'
                   )
                     template(#icon-left)
                       q-icon(name='block', size='18px')
@@ -278,7 +282,7 @@ q-page.admin-pvz
                     icon-only,
                     size='sm',
                     aria-label='Активировать',
-                    @click='setStatus(row, "ACTIVE")'
+                    @click='setStatus(row, KuDetailsStatus.ACTIVE)'
                   )
                     template(#icon-left)
                       q-icon(name='check_circle', size='18px')
