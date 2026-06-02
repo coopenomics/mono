@@ -5,13 +5,14 @@ import type {
 } from '../interfaces/project-database.interface';
 import type { IProjectDomainInterfaceBlockchainData } from '../interfaces/project-blockchain.interface';
 import type { IBlockchainSynchronizable } from '~/shared/interfaces/blockchain-sync.interface';
-import { BaseDomainEntity, replaceBc } from '~/shared/sync/entities/base-domain.entity';
+import { BaseDomainEntity } from '~/shared/sync/entities/base-domain.entity';
 import { auditUnknownStatus } from '~/shared/sync/errors/audit-unknown-status';
 import { IssueIdGenerationService } from '../services/issue-id-generation.service';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 
 const PROJECT_STATUS_AUDIT_LOGGER = new WinstonLoggerService();
 PROJECT_STATUS_AUDIT_LOGGER.setContext('ProjectDomainEntity');
+
 /**
  * Доменная сущность проекта
  *
@@ -19,37 +20,8 @@ PROJECT_STATUS_AUDIT_LOGGER.setContext('ProjectDomainEntity');
  * - База данных: внутренний ID, ссылка на блокчейн
  * - Блокчейн: все данные проекта из таблицы projects
  */
-/**
- * Story 6.1 (composite-entity, ADR-008): whitelisted blockchain-поля проекта.
- * Используется `replaceBc(...)` для типизированного присвоения в `this.bc` вместо
- * запрещённого `Object.assign(this, blockchainData)`.
- */
-const PROJECT_BC_KEYS = [
-  'id',
-  'coopname',
-  'project_hash',
-  'parent_hash',
-  'status',
-  'is_opened',
-  'is_planed',
-  'is_authorized',
-  'master',
-  'title',
-  'description',
-  'invite',
-  'data',
-  'meta',
-  'authorization',
-  'counts',
-  'plan',
-  'fact',
-  'crps',
-  'voting',
-  'created_at',
-] as const satisfies ReadonlyArray<keyof IProjectDomainInterfaceBlockchainData>;
-
 export class ProjectDomainEntity
-  extends BaseDomainEntity<IProjectDomainInterfaceDatabaseData, IProjectDomainInterfaceBlockchainData>
+  extends BaseDomainEntity<IProjectDomainInterfaceDatabaseData>
   implements IBlockchainSynchronizable, Partial<IProjectDomainInterfaceBlockchainData>
 {
   // Статические поля ключей для поиска и синхронизации
@@ -193,35 +165,14 @@ export class ProjectDomainEntity
     this.block_num = blockNum;
     this.present = present;
 
-    // Story 6.1 (ADR-008): типизированное присвоение в bc-namespace вместо
-    // запрещённого `Object.assign(this, blockchainData)`.
-    replaceBc(this, blockchainData, PROJECT_BC_KEYS);
-
-    // Backward-compat: legacy потребители (resolver/service/mapper) читают плоские поля
-    // напрямую. Миграция всех потребителей на entity.bc.* — Epic 9.5.
-    this.id = Number(blockchainData.id);
-    this.coopname = blockchainData.coopname;
-    this.project_hash = blockchainData.project_hash.toLowerCase();
-    this.parent_hash = blockchainData.parent_hash?.toLowerCase();
-    this.is_opened = blockchainData.is_opened;
-    this.is_planed = blockchainData.is_planed;
-    this.is_authorized = blockchainData.is_authorized;
-    this.master = blockchainData.master;
-    this.title = blockchainData.title;
-    this.description = blockchainData.description;
-    this.invite = blockchainData.invite;
-    this.data = blockchainData.data;
-    this.meta = blockchainData.meta;
-    this.authorization = blockchainData.authorization;
-    this.counts = blockchainData.counts;
-    this.plan = blockchainData.plan;
-    this.fact = blockchainData.fact;
-    this.crps = blockchainData.crps;
-    this.voting = blockchainData.voting;
-    this.created_at = blockchainData.created_at;
-
+    // Обновляем специфичные поля из блокчейна
+    Object.assign(this, blockchainData);
     this.blockchain_status = blockchainData.status;
     this.status = this.mapStatusToDomain(blockchainData.status);
+
+    // Нормализация hash полей
+    if (this.project_hash) this.project_hash = this.project_hash.toLowerCase();
+    if (this.parent_hash) this.parent_hash = this.parent_hash.toLowerCase();
 
     // Синхронизируем денормализованное поле voting_deadline
     if (blockchainData.voting?.voting_deadline) {
