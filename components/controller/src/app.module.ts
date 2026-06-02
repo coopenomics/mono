@@ -67,7 +67,6 @@ import { MeetModule } from './application/meet/meet.module';
 import { GatewayModule } from './application/gateway/gateway.module';
 import { WalletModule } from './application/wallet/wallet.module';
 import { NotificationModule } from './application/notification/notification.module';
-import { BillingNotificationModule } from './application/billing-notification/billing-notification.module';
 import { LedgerModule } from './application/ledger/ledger.module';
 import { Ledger2Module } from './application/ledger2/ledger2.module';
 import { BillingModule } from './application/billing/billing.module';
@@ -161,7 +160,6 @@ import { MutationLoggingInterceptor } from './application/common/interceptors/mu
     GatewayModule,
     WalletModule,
     NotificationModule,
-    BillingNotificationModule,
     LedgerModule,
     Ledger2Module,
     // Single-Hub v5: BillingModule подключается ТОЛЬКО на Восходе-хабе
