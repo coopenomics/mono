@@ -153,36 +153,36 @@ q-page.mp-role-orderer.mp-member-cpp(role="region", aria-label="Подключе
 
   //- Единая карточка присоединения: выбор КУ + карта, под ними — согласие и
   //- подпись. Пока идёт подписание (redirecting) — скрыта (один спиннер).
-  BaseCard.mp-member-cpp__card(v-if="state && state.requires_gate && !redirecting")
-    .mp-member-cpp__lead
-      | Чтобы подключиться к Столу заказов, выберите удобный пункт выдачи и
-      | подпишите оферту на присоединение.
+  template(v-if="state && state.requires_gate && !redirecting")
+    //- Одна канон-подсказка на странице (.banner), не россыпь абзацев.
+    .banner.banner--info
+      q-icon.banner__icon(name="info", size="18px")
+      .banner__body
+        | Чтобы подключиться к Столу заказов, выберите кооперативный участок и
+        | подпишите оферту на присоединение.
 
-    section.mp-member-cpp__section
-      .text-subtitle1.text-weight-medium Пункт выдачи (КУ)
-      .text-caption.text-grey-7.mp-member-cpp__hint
-        | Где вам удобно получать заказы. После подключения каталог откроется с
-        | товарами, которые возят на выбранный участок — пункт можно сменить в
-        | шапке стола.
-      KUSelector(v-model="selectedBraname", :coopname="coopname")
+    BaseCard.mp-member-cpp__card
+      section.mp-member-cpp__section
+        .text-subtitle1.text-weight-medium Выберите кооперативный участок
+        KUSelector(v-model="selectedBraname", :coopname="coopname")
 
-    q-separator.mp-member-cpp__sep
+      q-separator.mp-member-cpp__sep
 
-    section.mp-member-cpp__consent
-      BaseCheckbox(:model-value="agreed", block, @update:model-value="(v) => (agreed = v)")
+      BaseCheckbox.mp-member-cpp__consent(
+        :model-value="agreed",
+        block,
+        @update:model-value="(v) => (agreed = v)"
+      )
         | Я ознакомлен(а) с офертой на присоединение к ЦПП «Стол заказов» и Положением ЦПП и согласен(на) с условиями участия.
-      .text-caption.text-grey-7.mp-member-cpp__consent-hint
-        | Подпись оферты обязательна для подключения. Документ будет подписан
-        | вашим электронным ключом и отправлен в блокчейн.
 
-    .mp-member-cpp__actions
-      BaseButton(variant="ghost", :disabled="loading", @click="onDecline") Отказаться
-      BaseButton(
-        variant="primary",
-        :loading="loading",
-        :disabled="!canSign",
-        @click="onSign"
-      ) Подписать оферту
+      .mp-member-cpp__actions
+        BaseButton(variant="ghost", :disabled="loading", @click="onDecline") Отказаться
+        BaseButton(
+          variant="primary",
+          :loading="loading",
+          :disabled="!canSign",
+          @click="onSign"
+        ) Подписать оферту
 
   //- Редкий рассинхрон: gate не требуется, но подпись не зафиксирована.
   BaseCard.mp-member-cpp__card(
@@ -210,33 +210,14 @@ q-page.mp-role-orderer.mp-member-cpp(role="region", aria-label="Подключе
     gap: var(--p-4, 16px);
   }
 
-  &__lead {
-    font-size: var(--p-fs-body, 14px);
-    color: var(--p-ink-2);
-  }
-
   &__section {
     display: flex;
     flex-direction: column;
-    gap: var(--p-2, 8px);
-  }
-
-  &__hint {
-    margin-bottom: var(--p-2, 8px);
+    gap: var(--p-3, 12px);
   }
 
   &__sep {
     background: var(--p-line);
-  }
-
-  &__consent {
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-2, 8px);
-  }
-
-  &__consent-hint {
-    padding-left: calc(18px + var(--p-2, 8px));
   }
 
   &__actions {

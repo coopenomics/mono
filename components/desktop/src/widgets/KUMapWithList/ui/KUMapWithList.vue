@@ -12,8 +12,8 @@
         @click="onSelectFromList(pvz)"
       )
         q-item-section
-          q-item-label.text-weight-medium {{ pvz.coreBraname }}
-          q-item-label(caption) {{ pvz.addressFull }}
+          q-item-label.text-weight-medium {{ displayName(pvz) }}
+          q-item-label(caption, v-if="pvz.name && pvz.addressFull") {{ pvz.addressFull }}
           q-item-label(v-if="pvz.geocodeStatus !== 'OK'" caption :class="geocodeWarnClass(pvz)") {{ geocodeWarnText(pvz) }}
         q-item-section(side top v-if="$slots.cardAction")
           slot(name="cardAction" :pvz="pvz")
@@ -57,6 +57,12 @@ let placemarks: Map<string, any> = new Map()
 const visibleItems = computed(() =>
   props.items.filter((pvz) => pvz.geocodeStatus === 'OK' && pvz.lat !== null && pvz.lng !== null)
 )
+
+// Человеческое имя КУ для показа: braname (служебный account-id) пользователю
+// не показываем НИКОГДА — только настоящее имя участка, затем адрес как фолбэк.
+function displayName(pvz: IMarketplaceKUDetails): string {
+  return pvz.name || pvz.addressFull || 'Кооперативный участок'
+}
 
 function cardClass(pvz: IMarketplaceKUDetails): string {
   if (pvz.status === 'INACTIVE') return 'ku-map-with-list__item--inactive'
@@ -113,8 +119,8 @@ function syncPlacemarks(ymaps: any) {
     const pm = new ymaps.Placemark(
       [pvz.lat!, pvz.lng!],
       {
-        balloonContent: `<strong>${pvz.coreBraname}</strong><br>${pvz.addressFull}`,
-        hintContent: pvz.coreBraname,
+        balloonContent: `<strong>${displayName(pvz)}</strong><br>${pvz.addressFull ?? ''}`,
+        hintContent: displayName(pvz),
       },
       { preset: pvz.status === 'INACTIVE' ? 'islands#grayDotIcon' : 'islands#blueDotIcon' }
     )

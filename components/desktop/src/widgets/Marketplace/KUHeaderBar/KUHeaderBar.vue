@@ -34,7 +34,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { BaseButton, BaseDialog } from 'src/shared/ui/base'
 import { KUSelector } from 'src/widgets/Marketplace/KUSelector'
@@ -50,7 +50,7 @@ import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart'
  * Кнопка смены показывается, только если активных КУ больше одного (иначе
  * менять не на что) — либо если КУ ещё не выбран вовсе.
  */
-defineProps<{ coopname: string }>()
+const props = defineProps<{ coopname: string }>()
 
 const emit = defineEmits<{ (e: 'changed', braname: string): void }>()
 
@@ -65,9 +65,15 @@ const multipleAvailable = computed(
   () => kuStore.details.filter((d) => d.status !== 'INACTIVE').length > 1,
 )
 
-const pointLabel = computed(
-  () => cartStore.currentPointName ?? cartStore.currentBraname ?? '',
-)
+// Человеческое имя текущего КУ: резолвим по braname из загруженных деталей
+// (cart.delivery_point_name бэкенд пока не заполняет). braname пользователю
+// не показываем НИКОГДА — в крайнем случае нейтральная подпись.
+const pointLabel = computed<string>(() => {
+  const current = cartStore.currentBraname
+  if (!current) return ''
+  const detail = kuStore.details.find((d) => d.coreBraname === current)
+  return detail?.name || detail?.addressFull || cartStore.currentPointName || 'Пункт выдачи'
+})
 
 function openDialog(): void {
   picked.value = cartStore.currentBraname
@@ -88,6 +94,17 @@ async function apply(): Promise<void> {
     saving.value = false
   }
 }
+
+onMounted(async () => {
+  // Грузим КУ-детали для имени текущего пункта и корректного multipleAvailable
+  // (показывать «Сменить», только если активных участков больше одного).
+  if (kuStore.details.length || !props.coopname) return
+  try {
+    await kuStore.load({ coopname: props.coopname, onlyActive: true })
+  } catch {
+    // Без деталей шапка покажет нейтральную подпись; смена откроется по запросу.
+  }
+})
 </script>
 
 <style scoped lang="scss">
