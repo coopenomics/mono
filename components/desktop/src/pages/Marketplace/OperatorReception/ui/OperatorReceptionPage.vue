@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { Loading } from 'quasar';
 import { Zeus } from '@coopenomics/sdk';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
@@ -15,6 +15,8 @@ import {
   decodeHandoffToken,
   HandoffTokenKind,
   groupAplReceptions,
+  handoffStageRoute,
+  HANDOFF_QUERY,
   type ReceptionGroup,
 } from 'src/shared/lib/marketplace';
 import {
@@ -52,6 +54,7 @@ import SignAplReceptionChairmanDialog from './SignAplReceptionChairmanDialog.vue
 
 // Активный КУ оператора — из общего контекста стола (без ввода кода вручную).
 const route = useRoute();
+const router = useRouter();
 const store = useOperatorBranchStore();
 const coopname = computed(() => String(route.params.coopname ?? ''));
 const braname = computed(() => store.activeBraname ?? '');
@@ -516,7 +519,26 @@ async function onQrScanned(code: string): Promise<void> {
     await openPickupForSupplier(token.account);
     return;
   }
-  FailAlert(new Error('Этот код не предназначен для приёмки на ПВЗ.'));
+  // Код получения заказчика (receive) на столе приёмки — НЕ ошибка: сканер
+  // универсален, оператору не нужно знать, кто пришёл. Ведём его на «Выдачу
+  // заказов» с тем же кодом — целевой стол сам откроет выдачу.
+  void router.push({
+    name: handoffStageRoute('issuance'),
+    params: { coopname: coopname.value },
+    query: { [HANDOFF_QUERY]: code },
+  });
+}
+
+// Код передачи мог прийти с универсального сканера (или со стола выдачи) через
+// query `handoff`: подхватываем, запускаем приёмку и стираем параметр, чтобы
+// повторный показ того же кода снова сработал и обновление страницы не зациклило.
+function consumeHandoffQuery(): void {
+  const code = route.query[HANDOFF_QUERY];
+  if (typeof code !== 'string' || !code) return;
+  const rest = { ...route.query };
+  delete rest[HANDOFF_QUERY];
+  void router.replace({ query: rest });
+  void onQrScanned(code);
 }
 
 // Сформировать акты приёмки по выбранному: на каждую партию с выбранными
@@ -590,9 +612,13 @@ async function onChairmanSigned(): Promise<void> {
 
 watch(braname, () => void load());
 
+// Повторный заход с новым кодом в query (универсальный сканер уже на этом столе).
+watch(() => route.query[HANDOFF_QUERY], () => consumeHandoffQuery());
+
 onMounted(async () => {
   await store.ensureLoaded(coopname.value);
-  void load();
+  await load();
+  consumeHandoffQuery();
 });
 </script>
 

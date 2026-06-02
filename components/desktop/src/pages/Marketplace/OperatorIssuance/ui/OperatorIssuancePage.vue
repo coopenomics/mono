@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
 import { Avatar, BaseBadge, BaseButton, BaseDialog, EmptyState } from 'src/shared/ui/base';
@@ -9,7 +9,12 @@ import { CodeScanner } from 'src/widgets/Marketplace/CodeScanner';
 import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { decodeHandoffToken, HandoffTokenKind } from 'src/shared/lib/marketplace';
+import {
+  decodeHandoffToken,
+  HandoffTokenKind,
+  handoffStageRoute,
+  HANDOFF_QUERY,
+} from 'src/shared/lib/marketplace';
 import {
   listIssuancesByBraname,
   type MarketplaceOrderIssuanceView,
@@ -30,6 +35,7 @@ import IssueActOpenDialog from './IssueActOpenDialog.vue';
  */
 
 const route = useRoute();
+const router = useRouter();
 const store = useOperatorBranchStore();
 const coopname = computed(() => String(route.params.coopname ?? ''));
 const braname = computed(() => store.activeBraname ?? '');
@@ -162,12 +168,25 @@ function startPickupIssuance(): void {
 function onQrScanned(code: string): void {
   scanDialogOpen.value = false;
   const token = decodeHandoffToken(code);
-  if (!token || token.kind !== HandoffTokenKind.Receive) {
-    FailAlert(new Error('Нераспознанный код заказчика. Отсканируйте «Мой код получения» со стола заказчика.'));
+  if (!token) {
+    FailAlert(
+      new Error('Нераспознанный код. Отсканируйте код получения заказчика, код поставщика или QR с ТТН.'),
+    );
     return;
   }
   if (token.coopname && token.coopname !== coopname.value) {
     FailAlert(new Error('Код выписан для другого кооператива.'));
+    return;
+  }
+  // Код поставщика/ТТН на столе выдачи — НЕ ошибка: сканер универсален, оператору
+  // не нужно знать, кто пришёл. Ведём его на «Ожидаемые поставки» с тем же кодом —
+  // целевой стол сам откроет приёмку.
+  if (token.kind !== HandoffTokenKind.Receive) {
+    void router.push({
+      name: handoffStageRoute('reception'),
+      params: { coopname: coopname.value },
+      query: { [HANDOFF_QUERY]: code },
+    });
     return;
   }
   const has = items.value.some(
@@ -181,15 +200,31 @@ function onQrScanned(code: string): void {
   pickupDialogOpen.value = true;
 }
 
+// Код передачи мог прийти с универсального сканера (или со стола приёмки) через
+// query `handoff`: подхватываем, запускаем выдачу и стираем параметр, чтобы
+// повторный показ того же кода снова сработал и обновление не зациклило.
+function consumeHandoffQuery(): void {
+  const code = route.query[HANDOFF_QUERY];
+  if (typeof code !== 'string' || !code) return;
+  const rest = { ...route.query };
+  delete rest[HANDOFF_QUERY];
+  void router.replace({ query: rest });
+  onQrScanned(code);
+}
+
 function onOpened(): void {
   void load();
 }
 
 watch(braname, () => void load());
 
+// Повторный заход с новым кодом в query (универсальный сканер уже на этом столе).
+watch(() => route.query[HANDOFF_QUERY], () => consumeHandoffQuery());
+
 onMounted(async () => {
   await store.ensureLoaded(coopname.value);
-  void load();
+  await load();
+  consumeHandoffQuery();
 });
 </script>
 
@@ -212,8 +247,10 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
       | («Сканировать QR заказа») — так подтверждаем, что пришёл именно он.
       | Дальше заказчик подтвердит получение сам в своём кабинете.
 
-    .issuance__toolbar
-      BaseButton(variant='secondary', @click='scanDialogOpen = true')
+    //- Действие страницы — в шапку (канон Teleport), как на столе приёмки:
+    //- сканирование кода получения заказчика всегда в одном месте сверху.
+    Teleport(to="#header-actions-host", defer)
+      BaseButton(variant='primary', size='sm', @click='scanDialogOpen = true')
         template(#icon-left)
           q-icon(name='qr_code_scanner', size='16px')
         | Сканировать QR заказа
@@ -299,11 +336,6 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
-
-  &__toolbar {
-    display: flex;
-    justify-content: flex-end;
-  }
 
   &__loading {
     display: flex;

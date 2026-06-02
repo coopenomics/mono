@@ -539,6 +539,26 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 agreements: agreementsBase,
               },
             },
+            {
+              // «Сканировать QR» — сквозной универсальный считыватель. Пункт меню
+              // НЕ открывает страницу (нет component), а вызывает действие
+              // `marketplaceUniversalScan` (всплывающий сканер, как кнопка
+              // «Поддержка»; держатель — UniversalScannerHost в layout). Оператор
+              // сканирует ЛЮБОЙ код, и система по его виду ведёт на нужный стол:
+              // код поставщика/ТТН → приёмка, код заказчика → выдача. Стоит
+              // последним — это сквозное действие, а не раздел.
+              path: 'scan',
+              name: 'marketplace-pvz-scan',
+              meta: {
+                title: 'Сканировать QR',
+                icon: 'qr_code_scanner',
+                action: 'marketplaceUniversalScan',
+                requires: 'Warehouse:read:own-KU',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+              children: [],
+            },
           ],
         },
       ],
