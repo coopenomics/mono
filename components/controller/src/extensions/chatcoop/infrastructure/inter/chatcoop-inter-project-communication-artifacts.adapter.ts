@@ -48,6 +48,12 @@ export class ChatcoopInterProjectCommunicationArtifactsAdapter implements InterP
     }));
   }
 
+  async listNonProjectCommunicationRooms(): Promise<
+    Awaited<ReturnType<InterProjectCommunicationArtifactsPort['listNonProjectCommunicationRooms']>>
+  > {
+    return [];
+  }
+
   async listUtcDatesWithNewMessages(
     matrixRoomId: string,
     afterOriginServerTsExclusive: number

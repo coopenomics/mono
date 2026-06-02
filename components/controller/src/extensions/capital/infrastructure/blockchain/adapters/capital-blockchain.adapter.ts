@@ -855,4 +855,98 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
 
     return segment;
   }
+
+  // ─── Эпик B Благорост: расходы программы ────────────────────────────────
+
+  private async transactAs<T extends { coopname: string }>(
+    actionName: string,
+    data: T
+  ): Promise<TransactResult> {
+    const wif = await this.vaultDomainService.getWif(data.coopname);
+    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
+    this.blockchainService.initialize(data.coopname, wif);
+    return await this.blockchainService.transact({
+      account: CapitalContract.contractName.production,
+      name: actionName,
+      authorization: [{ actor: data.coopname, permission: 'active' }],
+      data,
+    });
+  }
+
+  async createProgramExpense(data: CapitalContract.Actions.CreateProgramExpense.ICreateProgramExpense): Promise<TransactResult> {
+    return this.transactAs(CapitalContract.Actions.CreateProgramExpense.actionName, {
+      ...data,
+      statement: this.domainToBlockchainUtils.convertSignedDocumentToBlockchainFormat(data.statement as never),
+    });
+  }
+
+  async approveProgramExpense(data: CapitalContract.Actions.ApproveProgramExpense.IApproveProgramExpense): Promise<TransactResult> {
+    return this.transactAs(CapitalContract.Actions.ApproveProgramExpense.actionName, {
+      ...data,
+      approved_statement: this.domainToBlockchainUtils.convertSignedDocumentToBlockchainFormat(data.approved_statement as never),
+    });
+  }
+
+  async authProgramExpense(data: CapitalContract.Actions.AuthProgramExpense.IAuthProgramExpense): Promise<TransactResult> {
+    return this.transactAs(CapitalContract.Actions.AuthProgramExpense.actionName, {
+      ...data,
+      authorization: this.domainToBlockchainUtils.convertSignedDocumentToBlockchainFormat(data.authorization as never),
+    });
+  }
+
+  async payProgramExpense(data: CapitalContract.Actions.PayProgramExpense.IPayProgramExpense): Promise<TransactResult> {
+    return this.transactAs(CapitalContract.Actions.PayProgramExpense.actionName, data);
+  }
+
+  async declineProgramExpense(data: CapitalContract.Actions.DeclineProgramExpense.IDeclineProgramExpense): Promise<TransactResult> {
+    return this.transactAs(CapitalContract.Actions.DeclineProgramExpense.actionName, data);
+  }
+
+  async topupProgramExpense(data: CapitalContract.Actions.TopupProgramExpense.ITopupProgramExpense): Promise<TransactResult> {
+    return this.transactAs(CapitalContract.Actions.TopupProgramExpense.actionName, data);
+  }
+
+  // ─── Эпик A Благорост: займы — closeDebt / debtPayRetry / markDebtOverdue ──
+
+  async closeDebt(data: CapitalContract.Actions.CloseDebt.ICloseDebt): Promise<TransactResult> {
+    return this.transactAs(CapitalContract.Actions.CloseDebt.actionName, data);
+  }
+
+  async debtPayRetry(data: CapitalContract.Actions.DebtPayRetry.IDebtPayRetry): Promise<TransactResult> {
+    return this.transactAs(CapitalContract.Actions.DebtPayRetry.actionName, data);
+  }
+
+  async markDebtOverdue(data: CapitalContract.Actions.MarkDebtOverdue.IMarkDebtOverdue): Promise<TransactResult> {
+    return this.transactAs(CapitalContract.Actions.MarkDebtOverdue.actionName, data);
+  }
+
+  // ─── Эпик D Благорост: L2-допуски + обновление ставки ───────────────────
+
+  async requestRole(data: CapitalContract.Actions.RequestRole.IRequestRole): Promise<TransactResult> {
+    return this.transactAs(CapitalContract.Actions.RequestRole.actionName, data);
+  }
+
+  async approveRole(data: CapitalContract.Actions.ApproveRole.IApproveRole): Promise<TransactResult> {
+    return this.transactAs(CapitalContract.Actions.ApproveRole.actionName, data);
+  }
+
+  async declineRole(data: CapitalContract.Actions.DeclineRole.IDeclineRole): Promise<TransactResult> {
+    return this.transactAs(CapitalContract.Actions.DeclineRole.actionName, data);
+  }
+
+  async inviteRole(data: CapitalContract.Actions.InviteRole.IInviteRole): Promise<TransactResult> {
+    return this.transactAs(CapitalContract.Actions.InviteRole.actionName, data);
+  }
+
+  async acceptInvite(data: CapitalContract.Actions.AcceptInvite.IAcceptInvite): Promise<TransactResult> {
+    return this.transactAs(CapitalContract.Actions.AcceptInvite.actionName, data);
+  }
+
+  async declineInvite(data: CapitalContract.Actions.DeclineInvite.IDeclineInvite): Promise<TransactResult> {
+    return this.transactAs(CapitalContract.Actions.DeclineInvite.actionName, data);
+  }
+
+  async requestRateUpdate(data: CapitalContract.Actions.RequestRateUpdate.IRequestRateUpdate): Promise<TransactResult> {
+    return this.transactAs(CapitalContract.Actions.RequestRateUpdate.actionName, data);
+  }
 }

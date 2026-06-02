@@ -374,6 +374,7 @@ import { VotingService } from './application/services/voting.service';
 import { ResultSubmissionService } from './application/services/result-submission.service';
 import { DistributionManagementService } from './application/services/distribution-management.service';
 import { ExpensesManagementService } from './application/services/expenses-management.service';
+import { ProgramExpensesManagementService } from './application/services/program-expenses-management.service';
 import { ContributorAccountSyncService } from './application/services/contributor-account-sync.service';
 import { CommitSyncService } from './application/syncers/commit-sync.service';
 import { CommitDeltaMapper } from './infrastructure/blockchain/mappers/commit-delta.mapper';
@@ -426,6 +427,8 @@ import { VotingResolver } from './application/resolvers/voting.resolver';
 import { ResultSubmissionResolver } from './application/resolvers/result-submission.resolver';
 import { DistributionManagementResolver } from './application/resolvers/distribution-management.resolver';
 import { ExpensesManagementResolver } from './application/resolvers/expenses-management.resolver';
+import { ProgramExpensesManagementResolver } from './application/resolvers/program-expenses-management.resolver';
+import { BlagorostAdditionsResolver } from './application/resolvers/blagorost-additions.resolver';
 import { SegmentsResolver } from './application/resolvers/segments.resolver';
 import { LogResolver } from './application/resolvers/log.resolver';
 import { MutationLogMapperService } from './application/services/mutation-log-mapper.service';
@@ -446,6 +449,7 @@ import { ResultSubmissionInteractor } from './application/use-cases/result-submi
 import { DistributionManagementInteractor } from './application/use-cases/distribution-management.interactor';
 import { ContractManagementInteractor } from './application/use-cases/contract-management.interactor';
 import { ExpensesManagementInteractor } from './application/use-cases/expenses-management.interactor';
+import { ProgramExpensesManagementInteractor } from './application/use-cases/program-expenses-management.interactor';
 import { SegmentsInteractor } from './application/use-cases/segments.interactor';
 import { LogInteractor } from './application/use-cases/log.interactor';
 import type { ExtensionDomainEntity } from '~/domain/extension/entities/extension-domain.entity';
@@ -710,6 +714,7 @@ IssueIdGenerationService,
     ResultSubmissionService,
     DistributionManagementService,
     ExpensesManagementService,
+    ProgramExpensesManagementService,
     ContributorAccountSyncService,
     SegmentsService,
     SegmentMapper,
@@ -769,6 +774,8 @@ IssueIdGenerationService,
     ResultSubmissionResolver,
     DistributionManagementResolver,
     ExpensesManagementResolver,
+    ProgramExpensesManagementResolver,
+    BlagorostAdditionsResolver,
     SegmentsResolver,
     TimeTrackerResolver,
     LogResolver,
@@ -900,6 +907,7 @@ IssueIdGenerationService,
     ResultSubmissionInteractor,
     DistributionManagementInteractor,
     ExpensesManagementInteractor,
+    ProgramExpensesManagementInteractor,
     SegmentsInteractor,
     CapitalSyncInteractor,
     LogInteractor,

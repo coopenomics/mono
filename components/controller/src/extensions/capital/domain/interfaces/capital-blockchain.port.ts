@@ -244,6 +244,60 @@ export interface CapitalBlockchainPort {
    */
   refreshContributor(data: CapitalContract.Actions.RefreshContributor.IRefreshContributor): Promise<TransactResult>;
 
+  // ─── Эпик B Благорост: расходы программы ────────────────────────────────
+
+  /** Создание расхода программы (председатель / казначей) */
+  createProgramExpense(data: CapitalContract.Actions.CreateProgramExpense.ICreateProgramExpense): Promise<TransactResult>;
+
+  /** Одобрение расхода программы председателем */
+  approveProgramExpense(data: CapitalContract.Actions.ApproveProgramExpense.IApproveProgramExpense): Promise<TransactResult>;
+
+  /** Авторизация расхода программы советом */
+  authProgramExpense(data: CapitalContract.Actions.AuthProgramExpense.IAuthProgramExpense): Promise<TransactResult>;
+
+  /** Подтверждение выплаты расхода программы (callback от gateway) */
+  payProgramExpense(data: CapitalContract.Actions.PayProgramExpense.IPayProgramExpense): Promise<TransactResult>;
+
+  /** Отклонение расхода программы на любом этапе */
+  declineProgramExpense(data: CapitalContract.Actions.DeclineProgramExpense.IDeclineProgramExpense): Promise<TransactResult>;
+
+  /** Пополнение пула расходов программы из BLAGOROST_POOL */
+  topupProgramExpense(data: CapitalContract.Actions.TopupProgramExpense.ITopupProgramExpense): Promise<TransactResult>;
+
+  // ─── Эпик A Благорост: займы — закрытие невозврата + ретрай платежа + просрочка ──
+
+  /** Закрытие долга через имущество-обеспечение при отмене проекта */
+  closeDebt(data: CapitalContract.Actions.CloseDebt.ICloseDebt): Promise<TransactResult>;
+
+  /** Повторная попытка платежа после `debtpaydcln` без новой авторизации */
+  debtPayRetry(data: CapitalContract.Actions.DebtPayRetry.IDebtPayRetry): Promise<TransactResult>;
+
+  /** Перевод долгов с истёкшим `due_at` в статус `overdue` (cron) */
+  markDebtOverdue(data: CapitalContract.Actions.MarkDebtOverdue.IMarkDebtOverdue): Promise<TransactResult>;
+
+  // ─── Эпик D Благорост: L2-допуски + обновление ставки ───────────────────
+
+  /** Заявление пайщика на L2-допуск */
+  requestRole(data: CapitalContract.Actions.RequestRole.IRequestRole): Promise<TransactResult>;
+
+  /** Одобрение заявки/обновления ставки мастером */
+  approveRole(data: CapitalContract.Actions.ApproveRole.IApproveRole): Promise<TransactResult>;
+
+  /** Отклонение заявки/инвайта */
+  declineRole(data: CapitalContract.Actions.DeclineRole.IDeclineRole): Promise<TransactResult>;
+
+  /** Приглашение пайщика мастером компонента */
+  inviteRole(data: CapitalContract.Actions.InviteRole.IInviteRole): Promise<TransactResult>;
+
+  /** Принятие инвайта пайщиком */
+  acceptInvite(data: CapitalContract.Actions.AcceptInvite.IAcceptInvite): Promise<TransactResult>;
+
+  /** Отклонение инвайта пайщиком */
+  declineInvite(data: CapitalContract.Actions.DeclineInvite.IDeclineInvite): Promise<TransactResult>;
+
+  /** Запрос обновления ставки часа (текущая остаётся до approve) */
+  requestRateUpdate(data: CapitalContract.Actions.RequestRateUpdate.IRequestRateUpdate): Promise<TransactResult>;
+
 }
 
 /**
