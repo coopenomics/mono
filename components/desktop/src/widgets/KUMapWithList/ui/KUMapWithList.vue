@@ -53,6 +53,11 @@ const apiKey = (env as unknown as { YANDEX_MAPS_API_KEY?: string }).YANDEX_MAPS_
 const mapContainer = ref<HTMLElement | null>(null)
 let mapInstance: any = null
 let placemarks: Map<string, any> = new Map()
+// Yandex-карта не реагирует на изменение размера своего контейнера сама: при
+// смене ширины (флекс/грид-лейаут, скрытие сайдбара, HMR) тайлы и маркеры
+// «съезжают» или пропадают, пока не вызвать container.fitToViewport(). Следим
+// за контейнером и рефлоуим карту.
+let resizeObserver: ResizeObserver | null = null
 
 const visibleItems = computed(() =>
   props.items.filter((pvz) => pvz.geocodeStatus === 'OK' && pvz.lat !== null && pvz.lng !== null)
@@ -106,6 +111,14 @@ async function initMap() {
       controls: ['zoomControl', 'fullscreenControl'],
     })
     syncPlacemarks(ymaps)
+    // Рефлоу карты при любом изменении размера контейнера (смена ширины
+    // лейаута, скрытие меню, HMR) — иначе тайлы/маркеры не перерисовываются.
+    if (typeof ResizeObserver !== 'undefined' && mapContainer.value) {
+      resizeObserver = new ResizeObserver(() => {
+        mapInstance?.container.fitToViewport()
+      })
+      resizeObserver.observe(mapContainer.value)
+    }
   } catch (err) {
     console.warn('[KUMapWithList] Yandex Maps init упал:', err)
   }
@@ -152,6 +165,10 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  if (resizeObserver) {
+    resizeObserver.disconnect()
+    resizeObserver = null
+  }
   if (mapInstance) {
     mapInstance.destroy()
     mapInstance = null
