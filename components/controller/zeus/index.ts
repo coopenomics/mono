@@ -6789,6 +6789,8 @@ export type ValueTypes = {
 	order_id?:boolean | `@${string}`,
 	/** Заказчик — печатается на наклейке. */
 	orderer_account_snapshot?:boolean | `@${string}`,
+	/** Фамилия Имя Отчество заказчика (организация — краткое наименование). Для показа в списках вместо служебного имени аккаунта. */
+	orderer_name?:boolean | `@${string}`,
 	/** Наименование товара — для печатной наклейки. */
 	product_name_snapshot?:boolean | `@${string}`,
 	/** Количество единиц имущества в этой позиции склада. */
@@ -16991,6 +16993,8 @@ export type ResolverInputTypes = {
 	order_id?:boolean | `@${string}`,
 	/** Заказчик — печатается на наклейке. */
 	orderer_account_snapshot?:boolean | `@${string}`,
+	/** Фамилия Имя Отчество заказчика (организация — краткое наименование). Для показа в списках вместо служебного имени аккаунта. */
+	orderer_name?:boolean | `@${string}`,
 	/** Наименование товара — для печатной наклейки. */
 	product_name_snapshot?:boolean | `@${string}`,
 	/** Количество единиц имущества в этой позиции склада. */
@@ -26863,6 +26867,8 @@ export type ModelTypes = {
 	order_id: ModelTypes["ID"],
 	/** Заказчик — печатается на наклейке. */
 	orderer_account_snapshot: string,
+	/** Фамилия Имя Отчество заказчика (организация — краткое наименование). Для показа в списках вместо служебного имени аккаунта. */
+	orderer_name?: string | undefined | null,
 	/** Наименование товара — для печатной наклейки. */
 	product_name_snapshot: string,
 	/** Количество единиц имущества в этой позиции склада. */
@@ -37662,6 +37668,8 @@ export type GraphQLTypes = {
 	order_id: GraphQLTypes["ID"],
 	/** Заказчик — печатается на наклейке. */
 	orderer_account_snapshot: string,
+	/** Фамилия Имя Отчество заказчика (организация — краткое наименование). Для показа в списках вместо служебного имени аккаунта. */
+	orderer_name?: string | undefined | null,
 	/** Наименование товара — для печатной наклейки. */
 	product_name_snapshot: string,
 	/** Количество единиц имущества в этой позиции склада. */

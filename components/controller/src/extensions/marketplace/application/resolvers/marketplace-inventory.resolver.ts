@@ -12,6 +12,7 @@ import {
   MARKETPLACE_KU_CHAIRMAN_SERVICE,
   type MarketplaceKuChairmanService,
 } from '../services/marketplace-ku-chairman.service';
+import { MarketplaceOrderDisplayService } from '../services/marketplace-order-display.service';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import {
   MarketplaceAssignInventoryShelfInputDTO,
@@ -46,7 +47,8 @@ export class MarketplaceInventoryResolver {
     @Inject(MARKETPLACE_INVENTORY_REPOSITORY)
     private readonly inventoryRepo: MarketplaceInventoryDomainRepository,
     @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
-    private readonly kuChairmanService: MarketplaceKuChairmanService
+    private readonly kuChairmanService: MarketplaceKuChairmanService,
+    private readonly orderDisplay: MarketplaceOrderDisplayService
   ) {}
 
   @Mutation(() => MarketplaceInventoryMutationResultDTO, {
@@ -185,6 +187,15 @@ export class MarketplaceInventoryResolver {
         : undefined,
     };
     const list = await this.inventoryRepo.list(filter);
-    return list.map(toMarketplaceInventoryItemDTO);
+    // ФИО заказчиков добираем батчем на read-path (как лента заказов), чтобы в
+    // списке склада показывать человеческое имя, а не служебный аккаунт.
+    const nameByAccount = await this.orderDisplay.resolveAccountNames(
+      list.map((i) => i.orderer_account_snapshot)
+    );
+    return list.map((item) => {
+      const dto = toMarketplaceInventoryItemDTO(item);
+      dto.orderer_name = nameByAccount.get(item.orderer_account_snapshot) ?? null;
+      return dto;
+    });
   }
 }

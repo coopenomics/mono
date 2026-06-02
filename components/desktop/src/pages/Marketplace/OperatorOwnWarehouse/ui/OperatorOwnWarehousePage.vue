@@ -1,14 +1,19 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import type { QTableProps } from 'quasar'
-import { FailAlert } from 'src/shared/api'
+import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { Zeus } from '@coopenomics/sdk'
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch'
-import { BaseBadge, BaseButton, BaseInput, EmptyState } from 'src/shared/ui/base'
+import { BaseBadge, BaseButton, BaseInput, EmptyState, TableSkeleton } from 'src/shared/ui/base'
 import type { BaseBadgeVariant } from 'src/shared/ui/base'
-import { PageHint } from 'src/shared/ui/domain'
-import { listInventory, type MarketplaceInventoryItemView } from '../api'
+import type { TableSkeletonColumn } from 'src/shared/ui/base'
+import { AccountBadge, PageHint } from 'src/shared/ui/domain'
+import {
+  listInventory,
+  assignInventoryShelf,
+  generateInventoryLabel,
+  type MarketplaceInventoryItemView,
+} from '../api'
 
 // Активный КУ оператора — из общего контекста стола (без ввода кода вручную).
 const route = useRoute()
@@ -19,7 +24,7 @@ const braname = computed(() => store.activeBraname ?? '')
 type InventoryStatus = MarketplaceInventoryItemView['status']
 
 const statusFilter = ref<InventoryStatus[]>([])
-const ordererFilter = ref<string>('')
+const search = ref<string>('')
 const items = ref<MarketplaceInventoryItemView[]>([])
 const loading = ref(false)
 
@@ -41,40 +46,58 @@ function toggleStatus(value: InventoryStatus): void {
     : [...statusFilter.value, value]
 }
 
-const columns: QTableProps['columns'] = [
-  { name: 'shelf', label: 'Полка', field: 'shelf', align: 'left', sortable: true },
-  { name: 'product', label: 'Товар', field: 'product_name_snapshot', align: 'left', sortable: true },
-  { name: 'orderer', label: 'Заказчик', field: 'orderer_account_snapshot', align: 'left', sortable: true },
-  { name: 'quantity', label: 'Ед.', field: 'quantity_per_label', align: 'right', sortable: true },
-  { name: 'barcode_value', label: 'Штрих-код', field: 'barcode_value', align: 'left', sortable: true },
-  { name: 'status', label: 'Состояние', field: 'status', align: 'left', sortable: true },
-  { name: 'age', label: 'Возраст', field: 'received_at', align: 'right' },
-  { name: 'received_at', label: 'Принято', field: 'received_at', align: 'left', sortable: true },
-]
+// Имя заказчика для показа: ФИО (резолвится бэкендом), иначе — аккаунт.
+function ordererName(row: MarketplaceInventoryItemView): string {
+  return row.orderer_name?.trim() || row.orderer_account_snapshot
+}
 
+// Омни-поиск: одно поле ищет по нескольким способам сразу — заказчик (ФИО и
+// аккаунт), товар, полка, штрих-код. Оператор не выбирает режим заранее.
 const filteredRows = computed(() => {
-  const orderer = ordererFilter.value.trim().toLowerCase()
+  const q = search.value.trim().toLowerCase()
   return items.value.filter((row) => {
     if (statusFilter.value.length && !statusFilter.value.includes(row.status)) return false
-    if (orderer && !row.orderer_account_snapshot.toLowerCase().includes(orderer)) return false
+    if (q) {
+      const hay = [
+        row.orderer_name,
+        row.orderer_account_snapshot,
+        row.product_name_snapshot,
+        row.shelf,
+        row.barcode_value,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+      if (!hay.includes(q)) return false
+    }
     return true
   })
 })
 
-const summary = computed(() => {
-  const byStatus: Record<string, number> = {}
-  for (const row of items.value) {
-    byStatus[row.status] = (byStatus[row.status] ?? 0) + 1
-  }
-  return {
-    byStatus,
-    totalActive:
-      (byStatus[Zeus.MarketplaceInventoryStatus.RECEIVED] ?? 0) +
-      (byStatus[Zeus.MarketplaceInventoryStatus.LABELED] ?? 0) +
-      (byStatus[Zeus.MarketplaceInventoryStatus.ISSUED] ?? 0) +
-      (byStatus[Zeus.MarketplaceInventoryStatus.RETURNED] ?? 0),
-  }
+// Сортировка по дате приёмки; по умолчанию свежие сверху.
+const sortDir = ref<'asc' | 'desc'>('desc')
+const sortMark = computed(() => (sortDir.value === 'asc' ? '↑' : '↓'))
+function toggleSort(): void {
+  sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
+}
+const sortedRows = computed(() => {
+  const list = [...filteredRows.value]
+  list.sort((a, b) => {
+    const diff = new Date(String(a.received_at)).getTime() - new Date(String(b.received_at)).getTime()
+    return sortDir.value === 'asc' ? diff : -diff
+  })
+  return list
 })
+
+const skeletonColumns: TableSkeletonColumn[] = [
+  { label: 'Полка', class: 'col-shelf', cell: 'text' },
+  { label: 'Товар', cell: 'text' },
+  { label: 'Заказчик', class: 'col-orderer', cell: 'text' },
+  { label: 'Ед.', class: 'col-qty', cell: 'text', cellWidth: '40px' },
+  { label: 'Штрих-код', class: 'col-barcode', cell: 'text' },
+  { label: 'Состояние', class: 'col-status', cell: 'badge' },
+  { label: 'Принято', class: 'col-date', cell: 'text', cellWidth: '120px' },
+]
 
 async function load(): Promise<void> {
   if (!braname.value.trim()) {
@@ -91,12 +114,69 @@ async function load(): Promise<void> {
   }
 }
 
+// Точечно вмердживаем затронутые позиции после инлайн-действия. ФИО заказчика
+// резолвится только на read-пути списка (в ответе мутации оно null) — сохраняем
+// уже известное имя, чтобы оно не пропало из строки.
+function applyUpdated(updated: MarketplaceInventoryItemView[]): void {
+  const map = new Map(items.value.map((i) => [i.id, i]))
+  for (const u of updated) {
+    const prev = map.get(u.id)
+    map.set(u.id, { ...u, orderer_name: u.orderer_name ?? prev?.orderer_name ?? null })
+  }
+  items.value = [...map.values()]
+}
+
 watch(braname, () => void load())
 
 onMounted(async () => {
   await store.ensureLoaded(coopname.value)
   void load()
 })
+
+// ─── Инлайн-редактирование полки ───
+const editingShelfId = ref<string | null>(null)
+const shelfDraft = ref<string>('')
+const savingShelfId = ref<string | null>(null)
+
+function startEditShelf(row: MarketplaceInventoryItemView): void {
+  editingShelfId.value = row.id
+  shelfDraft.value = row.shelf ?? ''
+}
+function cancelEditShelf(): void {
+  editingShelfId.value = null
+  shelfDraft.value = ''
+}
+async function saveShelf(row: MarketplaceInventoryItemView): Promise<void> {
+  savingShelfId.value = row.id
+  try {
+    const updated = await assignInventoryShelf({
+      inventory_id: row.id,
+      shelf: shelfDraft.value.trim() || null,
+    })
+    applyUpdated(updated)
+    SuccessAlert('Полка обновлена')
+    editingShelfId.value = null
+  } catch (e) {
+    FailAlert(e, 'Не удалось сохранить полку')
+  } finally {
+    savingShelfId.value = null
+  }
+}
+
+// ─── Инлайн-выпуск штрих-кода ───
+const issuingBarcodeId = ref<string | null>(null)
+async function issueBarcode(row: MarketplaceInventoryItemView): Promise<void> {
+  issuingBarcodeId.value = row.id
+  try {
+    const updated = await generateInventoryLabel({ inventory_id: row.id })
+    applyUpdated(updated)
+    SuccessAlert('Штрих-код выпущен')
+  } catch (e) {
+    FailAlert(e, 'Не удалось выпустить штрих-код')
+  } finally {
+    issuingBarcodeId.value = null
+  }
+}
 
 function humanStatus(status: string): string {
   switch (status) {
@@ -132,17 +212,6 @@ function statusVariant(status: string): BaseBadgeVariant {
   }
 }
 
-function formatAge(value: unknown): string {
-  if (value === null || value === undefined) return '—'
-  const parsed = new Date(String(value))
-  if (Number.isNaN(parsed.getTime())) return '—'
-  const days = Math.floor((Date.now() - parsed.getTime()) / 86_400_000)
-  if (days <= 0) return 'сегодня'
-  if (days === 1) return '1 день'
-  if (days < 5) return `${days} дня`
-  return `${days} дней`
-}
-
 function formatDateTime(value: unknown): string {
   if (value === null || value === undefined) return '—'
   const parsed = new Date(String(value))
@@ -166,7 +235,8 @@ q-page.warehouse(role='region', aria-label='Склад участка')
   template(v-else)
     PageHint(storage-key='mp:operator-warehouse:banner-dismissed')
       | Имущество, принятое на ваш пункт выдачи: что лежит на складе, на какой
-      | полке, заказчик и состояние. Штрих-код есть не у всех позиций — он опционален.
+      | полке, заказчик и состояние. Полку можно поправить, а штрих-код выпустить
+      | прямо в строке. Штрих-код есть не у всех позиций — он опционален.
 
     .warehouse__filters
       .warehouse__chips
@@ -180,9 +250,9 @@ q-page.warehouse(role='region', aria-label='Склад участка')
           @keydown.enter='toggleStatus(opt.value)'
         ) {{ opt.label }}
       BaseInput.warehouse__search(
-        v-model='ordererFilter',
+        v-model='search',
         type='search',
-        placeholder='Поиск по заказчику',
+        placeholder='Поиск: заказчик, товар, полка, штрих-код',
         clearable
       )
       BaseButton(
@@ -195,55 +265,96 @@ q-page.warehouse(role='region', aria-label='Склад участка')
         template(#icon-left)
           q-icon(name='refresh', size='20px')
 
-    .warehouse__stats(v-if='items.length')
-      .kpi.kpi--accent
-        .kpi__head
-          span.kpi__eyebrow Активных наклеек
-        .kpi__val {{ summary.totalActive }}
-      .kpi(v-for='(count, status) in summary.byStatus', :key='status')
-        .kpi__head
-          span.kpi__eyebrow {{ humanStatus(status) }}
-        .kpi__val {{ count }}
-
-    q-table.warehouse__table(
-      :rows='filteredRows',
-      :columns='columns',
-      row-key='id',
-      :loading='loading',
-      :pagination='{ rowsPerPage: 25, sortBy: "received_at", descending: true }',
-      :rows-per-page-options='[25, 50, 100, 0]',
-      flat,
-      bordered,
-      binary-state-sort
+    TableSkeleton(
+      v-if='loading && !items.length',
+      :columns='skeletonColumns',
+      :rows='6',
+      min-width='900px'
     )
-      template(#body-cell-shelf='props')
-        q-td(:props='props')
-          span(v-if='props.row.shelf') {{ props.row.shelf }}
-          span.t-muted(v-else) —
 
-      template(#body-cell-barcode_value='props')
-        q-td(:props='props')
-          span.q-mono(v-if='props.row.barcode_value') {{ props.row.barcode_value }}
-          span.t-muted(v-else) —
+    .table-wrap(v-else-if='sortedRows.length')
+      .table-scroll
+        table.table
+          thead
+            tr
+              th.col-shelf Полка
+              th Товар
+              th.col-orderer Заказчик
+              th.col-qty Ед.
+              th.col-barcode Штрих-код
+              th.col-status Состояние
+              th.col-sort.col-date(@click='toggleSort') Принято {{ sortMark }}
+          tbody
+            tr(v-for='row in sortedRows', :key='row.id')
+              //- Полка — инлайн-правка: иконка карандаша → поле + сохранить/отмена.
+              td.col-shelf
+                .warehouse__shelf-edit(v-if='editingShelfId === row.id')
+                  BaseInput.warehouse__shelf-input(
+                    v-model='shelfDraft',
+                    placeholder='Полка',
+                    @keyup.enter='saveShelf(row)'
+                  )
+                  button.icon-btn(
+                    type='button',
+                    aria-label='Сохранить полку',
+                    :disabled='savingShelfId === row.id',
+                    @click='saveShelf(row)'
+                  )
+                    q-icon(name='check', size='18px')
+                  button.icon-btn(
+                    type='button',
+                    aria-label='Отмена',
+                    @click='cancelEditShelf'
+                  )
+                    q-icon(name='close', size='18px')
+                .warehouse__shelf(v-else)
+                  span(v-if='row.shelf') {{ row.shelf }}
+                  span.t-muted(v-else) —
+                  button.icon-btn(
+                    type='button',
+                    aria-label='Изменить полку',
+                    @click='startEditShelf(row)'
+                  )
+                    q-icon(name='edit', size='16px')
 
-      template(#body-cell-status='props')
-        q-td(:props='props')
-          BaseBadge(:variant='statusVariant(props.row.status)') {{ humanStatus(props.row.status) }}
+              td.warehouse__product {{ row.product_name_snapshot }}
 
-      template(#body-cell-age='props')
-        q-td(:props='props') {{ formatAge(props.row.received_at) }}
+              td.col-orderer
+                .warehouse__orderer
+                  span.warehouse__orderer-name {{ ordererName(row) }}
+                  AccountBadge(:account-name='row.orderer_account_snapshot', size='sm')
 
-      template(#body-cell-received_at='props')
-        q-td(:props='props') {{ formatDateTime(props.row.received_at) }}
+              td.col-qty {{ row.quantity_per_label }}
 
-      template(#no-data)
-        .warehouse__nodata
-          EmptyState(
-            title='На складе пусто',
-            body='Здесь появятся промаркированные наклейки участка. Проверьте фильтры состояния.'
-          )
-            template(#icon)
-              q-icon(name='inventory_2', size='48px')
+              //- Штрих-код — есть: моно-значение; нет: инлайн-выпуск.
+              td.col-barcode
+                span.q-mono(v-if='row.barcode_value') {{ row.barcode_value }}
+                BaseButton(
+                  v-else,
+                  variant='ghost',
+                  size='sm',
+                  :loading='issuingBarcodeId === row.id',
+                  @click='issueBarcode(row)'
+                )
+                  template(#icon-left)
+                    q-icon(name='label', size='16px')
+                  | Выпустить штрих-код
+
+              td.col-status
+                BaseBadge(:variant='statusVariant(row.status)') {{ humanStatus(row.status) }}
+
+              td.col-date {{ formatDateTime(row.received_at) }}
+
+      .table-foot
+        span Позиций: {{ sortedRows.length }}
+
+    EmptyState(
+      v-else,
+      title='На складе пусто',
+      body='Здесь появятся принятые позиции участка. Проверьте фильтры состояния и поиск.'
+    )
+      template(#icon)
+        q-icon(name='inventory_2', size='48px')
 </template>
 
 <style scoped lang="scss">
@@ -252,13 +363,6 @@ q-page.warehouse(role='region', aria-label='Склад участка')
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
-
-  // #no-data слот q-table выравнивает контент влево — центрируем EmptyState.
-  &__nodata {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-  }
 
   &__filters {
     display: flex;
@@ -280,17 +384,69 @@ q-page.warehouse(role='region', aria-label='Склад участка')
     }
   }
 
+  // Поиск стоит наравне с фильтрами (без margin-left:auto, не «в стороне»).
   &__search {
-    max-width: 280px;
+    max-width: 320px;
     width: 100%;
-    margin-left: auto;
   }
 
-  &__stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: var(--p-3, 12px);
+  &__shelf,
+  &__shelf-edit {
+    display: flex;
+    align-items: center;
+    gap: var(--p-2, 8px);
   }
+
+  &__shelf-input {
+    max-width: 120px;
+  }
+
+  &__orderer {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__orderer-name {
+    font-weight: 600;
+  }
+
+  &__product {
+    overflow-wrap: anywhere;
+  }
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+.table {
+  table-layout: fixed;
+  min-width: 900px;
+}
+
+.col-shelf {
+  width: 180px;
+}
+.col-orderer {
+  width: 220px;
+}
+.col-qty {
+  width: 64px;
+  text-align: right;
+}
+.col-barcode {
+  width: 160px;
+}
+.col-status {
+  width: 150px;
+}
+.col-date {
+  width: 170px;
+  white-space: nowrap;
+}
+.col-sort {
+  cursor: pointer;
+  user-select: none;
 }
 
 @media (max-width: 768px) {
@@ -298,7 +454,6 @@ q-page.warehouse(role='region', aria-label='Склад участка')
     padding: var(--p-4, 16px);
 
     &__search {
-      margin-left: 0;
       max-width: none;
     }
   }

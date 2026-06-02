@@ -4161,6 +4161,7 @@ export const ReturnTypes: Record<string,any> = {
 		labeled_by_operator_account:"String",
 		order_id:"ID",
 		orderer_account_snapshot:"String",
+		orderer_name:"String",
 		product_name_snapshot:"String",
 		quantity_per_label:"Int",
 		received_at:"DateTime",

@@ -88,6 +88,12 @@ export class MarketplaceInventoryItemDTO {
 
   @Field(() => String, {
     nullable: true,
+    description: 'Фамилия Имя Отчество заказчика (организация — краткое наименование). Для показа в списках вместо служебного имени аккаунта.',
+  })
+  orderer_name!: string | null;
+
+  @Field(() => String, {
+    nullable: true,
     description: 'Полка/ячейка склада, куда положена позиция. Пусто — место не назначено.',
   })
   shelf!: string | null;
@@ -251,6 +257,9 @@ export function toMarketplaceInventoryItemDTO(
   dto.product_name_snapshot = e.product_name_snapshot;
   dto.quantity_per_label = e.quantity_per_label;
   dto.orderer_account_snapshot = e.orderer_account_snapshot;
+  // ФИО заказчика резолвится на read-path (резолвер списка), не хранится снимком —
+  // как orderer_name в ленте заказов. По умолчанию null, дозаполняется батчем.
+  dto.orderer_name = null;
   dto.shelf = e.shelf;
   dto.received_at = e.received_at;
   dto.received_by_operator_account = e.received_by_operator_account;
