@@ -359,6 +359,8 @@ export interface IDebt {
   approved_statement: IDocument2
   authorization: IDocument2
   memo: string
+  last_pay_error?: string
+  due_at?: ITimePointSec
 }
 
 export interface IDebtauthcnfr {
@@ -556,6 +558,8 @@ export interface IGlobalState {
   program_membership_distributed: IAsset
   program_membership_cumulative_reward_per_share: IFloat64
   config: IConfig
+  program_expense_pool?: IAsset
+  program_expense_reserved?: IAsset
 }
 
 export interface IImportcontrib {
@@ -803,6 +807,9 @@ export interface ISegment {
   available_for_program: IAsset
   available_for_wallet: IAsset
   share_percent: IFloat64
+  approved_rate_per_hour?: IAsset
+  approved_hours_per_day?: IUint64
+  active_debts_count?: IUint32
 }
 
 export interface ISetconfig {
@@ -827,7 +834,7 @@ export interface ISetplan {
 
 export interface ISettledebt {
   coopname: IName
-  username: IName
+  debt_hash: IChecksum256
   amount: IAsset
   statement: IDocument2
 }
@@ -911,4 +918,154 @@ export interface IVotingData {
   creators_voting_percent: IFloat64
   amounts: IVotingAmounts
   voting_deadline: ITimePointSec
+}
+
+// ─── Эпик 1 (Благорост): новые actions/structs ────────────────────────────
+
+export interface IClosedebt {
+  coopname: IName
+  debt_hash: IChecksum256
+}
+
+export interface IDebtpayretry {
+  coopname: IName
+  debt_hash: IChecksum256
+}
+
+export interface IMarkdebtoverd {
+  coopname: IName
+}
+
+export interface ICreatepgexp {
+  coopname: IName
+  expense_hash: IChecksum256
+  creator: IName
+  amount: IAsset
+  description: string
+  statement: IDocument2
+}
+
+export interface IApprvpgexp {
+  coopname: IName
+  approver: IName
+  expense_hash: IChecksum256
+  approved_statement: IDocument2
+}
+
+export interface IAuthpgexp {
+  coopname: IName
+  expense_hash: IChecksum256
+  authorization: IDocument2
+}
+
+export interface IPgexppay {
+  coopname: IName
+  expense_hash: IChecksum256
+}
+
+export interface IDeclpgexp {
+  coopname: IName
+  expense_hash: IChecksum256
+  reason: string
+}
+
+export interface ITopupprogexp {
+  coopname: IName
+  amount: IAsset
+}
+
+export interface IRequestrole {
+  coopname: IName
+  request_hash: IChecksum256
+  project_hash: IChecksum256
+  username: IName
+  master: IName
+  role: IName
+  rate_per_hour: IAsset
+  hours_per_day: IUint64
+  description: string
+}
+
+export interface IApproverole {
+  coopname: IName
+  request_hash: IChecksum256
+  approved_rate: IAsset
+  approved_hours: IUint64
+}
+
+export interface IDeclinerole {
+  coopname: IName
+  request_hash: IChecksum256
+  reason: string
+}
+
+export interface IInviterole {
+  coopname: IName
+  request_hash: IChecksum256
+  project_hash: IChecksum256
+  candidate: IName
+  master: IName
+  role: IName
+  rate_per_hour: IAsset
+  hours_per_day: IUint64
+  description: string
+}
+
+export interface IAcceptinvite {
+  coopname: IName
+  request_hash: IChecksum256
+}
+
+export interface IDeclinvite {
+  coopname: IName
+  request_hash: IChecksum256
+  reason: string
+}
+
+export interface IRequestrateu {
+  coopname: IName
+  request_hash: IChecksum256
+  project_hash: IChecksum256
+  username: IName
+  master: IName
+  new_rate: IAsset
+  new_hours: IUint64
+  description: string
+}
+
+// Таблицы
+
+export interface IProgramExpense {
+  id: IUint64
+  coopname: IName
+  username: IName
+  status: IName
+  expense_hash: IChecksum256
+  fund_id: IUint64
+  amount: IAsset
+  description: string
+  expense_statement: IDocument2
+  approved_statement: IDocument2
+  authorization: IDocument2
+  spended_at: ITimePointSec
+}
+
+export interface IRoleRequest {
+  id: IUint64
+  coopname: IName
+  request_hash: IChecksum256
+  project_hash: IChecksum256
+  username: IName
+  master: IName
+  role: IName
+  rate_per_hour: IAsset
+  hours_per_day: IUint64
+  approved_rate: IAsset
+  approved_hours: IUint64
+  direction: IName
+  request_type: IName
+  status: IName
+  description: string
+  decline_reason: string
+  created_at: ITimePointSec
 }

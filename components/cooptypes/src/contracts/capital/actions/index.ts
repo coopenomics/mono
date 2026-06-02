@@ -47,6 +47,26 @@ export * as CommitDecline from './commitDecline'
 
 // Долги
 export * as CreateDebt from './createDebt'
+export * as CloseDebt from './closeDebt'
+export * as DebtPayRetry from './debtPayRetry'
+export * as MarkDebtOverdue from './markDebtOverdue'
+
+// Расходы программы (Эпик B Благорост)
+export * as CreateProgramExpense from './createProgramExpense'
+export * as ApproveProgramExpense from './approveProgramExpense'
+export * as AuthProgramExpense from './authProgramExpense'
+export * as PayProgramExpense from './payProgramExpense'
+export * as DeclineProgramExpense from './declineProgramExpense'
+export * as TopupProgramExpense from './topupProgramExpense'
+
+// L2-допуски и инвайты мастера (Эпик D Благорост)
+export * as RequestRole from './requestRole'
+export * as ApproveRole from './approveRole'
+export * as DeclineRole from './declineRole'
+export * as InviteRole from './inviteRole'
+export * as AcceptInvite from './acceptInvite'
+export * as DeclineInvite from './declineInvite'
+export * as RequestRateUpdate from './requestRateUpdate'
 
 // Регистрация участников
 export * as RegisterContributor from './registerContributor'

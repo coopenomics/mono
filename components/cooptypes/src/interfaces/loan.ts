@@ -22,6 +22,7 @@ export interface IDebt {
   amount: IAsset
   created_at: ITimePointSec
   repaid_at: ITimePointSec
+  source_contract: IName
 }
 
 export interface IMigrate {

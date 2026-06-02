@@ -33,6 +33,7 @@ export const LEDGER2_WALLET_REGISTRY: readonly WalletMeta[] = [
   { name: "w.sov.mnused", human_name: "Использованные минимальные паевые взносы", kind: "COOPERATIVE" },
   { name: "w.cap.loan", human_name: "Выданные пайщикам беспроцентные займы", kind: "COOPERATIVE" },
   { name: "w.mkt.payout", human_name: "Выплаты поставщикам", kind: "COOPERATIVE" },
+  { name: "w.cap.nma", human_name: "НМА кооператива (из коммитов-обеспечения по займам)", kind: "COOPERATIVE" },
 ] as const
 
 export interface ProgramWalletMapping {
