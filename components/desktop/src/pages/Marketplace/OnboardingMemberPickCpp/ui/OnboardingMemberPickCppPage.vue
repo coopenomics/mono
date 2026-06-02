@@ -123,11 +123,6 @@ async function onSign(): Promise<void> {
   }
 }
 
-function onDecline(): void {
-  NotifyAlert('Без подписи ЦПП Стол заказов недоступен. Вернитесь, когда будете готовы.');
-  void router.push({ name: 'wallet' });
-}
-
 function goToCatalog(): void {
   void router.push({ name: 'marketplace-catalog' });
 }
@@ -176,7 +171,6 @@ q-page.mp-role-orderer.mp-member-cpp(role="region", aria-label="Подключе
         | Я ознакомлен(а) с офертой на присоединение к ЦПП «Стол заказов» и Положением ЦПП и согласен(на) с условиями участия.
 
       .mp-member-cpp__actions
-        BaseButton(variant="ghost", :disabled="loading", @click="onDecline") Отказаться
         BaseButton(
           variant="primary",
           :loading="loading",
