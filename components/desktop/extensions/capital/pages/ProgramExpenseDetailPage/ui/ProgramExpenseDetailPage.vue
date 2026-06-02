@@ -1,8 +1,8 @@
 <template lang="pug">
-div(v-if='loading && !expense')
-  q-spinner-dots(size='40px', color='primary')
+div
+  WindowLoader(v-show='loading && !expense', text='Загрузка расхода программы…')
 
-div(v-else-if='expense')
+div(v-if='expense')
   q-card.q-mb-md(flat, bordered)
     q-card-section
       .row.items-center.no-wrap.q-gutter-md
@@ -151,7 +151,7 @@ WorkflowActionDialog(
   @done='reload'
 )
 
-div(v-else)
+div(v-if='!loading && !expense')
   q-banner(rounded, class='bg-red-1 text-red-10')
     template(#avatar)
       q-icon(name='error', color='red-10')
@@ -165,6 +165,7 @@ import { useSessionStore } from 'src/entities/Session';
 import { FailAlert } from 'src/shared/api';
 import { useDataPoller } from 'src/shared/lib/composables';
 import { POLL_INTERVALS } from 'src/shared/lib/consts';
+import { WindowLoader } from 'src/shared/ui/Loader';
 import { useProgramExpenseStore } from 'app/extensions/capital/entities/ProgramExpense/model';
 import DocumentRow from './DocumentRow.vue';
 import WorkflowSteps from './WorkflowSteps.vue';

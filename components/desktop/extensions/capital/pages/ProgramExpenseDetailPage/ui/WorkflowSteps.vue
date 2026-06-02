@@ -1,6 +1,6 @@
 <template lang="pug">
 q-list.q-mt-sm(dense)
-  q-item(v-for='(step, idx) in steps', :key='step.key')
+  q-item(v-for='step in steps', :key='step.key')
     q-item-section(avatar)
       q-icon(
         :name='stateIcon(step.state)',
