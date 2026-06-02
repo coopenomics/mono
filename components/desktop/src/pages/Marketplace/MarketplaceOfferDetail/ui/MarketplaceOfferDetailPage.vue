@@ -8,6 +8,7 @@ import { OfferGallery } from 'src/widgets/Marketplace/OfferGallery';
 import { marketplaceUnitShort } from 'src/shared/lib/consts';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
 import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
+import { useOfferModeration } from 'src/features/Marketplace/OfferModeration';
 import { fetchCategories } from '../../MarketplaceCatalog/api';
 import AddToCartDialog from '../../MarketplaceCatalog/ui/AddToCartDialog.vue';
 import { fetchOffer } from '../api';
@@ -32,6 +33,23 @@ const offerId = computed(() => String(route.params.offerId ?? ''));
 // Режим просмотра модератором (стол администратора): страница только для
 // чтения — кнопки «Заказать» нет, «назад» ведёт в «Модерацию», а не в каталог.
 const readonly = computed(() => route.meta?.readonly === true);
+
+// Модерация прямо на странице: показываем «Одобрить»/«Отклонить», только если
+// открыто на столе администратора и предложение ещё ждёт решения.
+const canModerate = computed(
+  () => readonly.value && offer.value?.status === 'PENDING_MODERATION',
+);
+
+function backToModeration(): void {
+  void router.push({ name: 'marketplace-moderation', params: { coopname: coopname.value } });
+}
+
+// Диалоги + мутации модерации — общий feature-композабл (DRY с лентой
+// «Модерация»). После решения возвращаемся в очередь модерации.
+const { isApproving, isRejecting, confirmApprove, confirmReject } = useOfferModeration({
+  onApproved: backToModeration,
+  onRejected: backToModeration,
+});
 
 const offer = ref<MarketplaceOfferDetailView | null>(null);
 const loading = ref(false);
@@ -163,6 +181,25 @@ q-page.offer-detail(role="region", aria-label="Описание предложе
       .offer-detail__noku-hint(v-if="!readonly && noKU")
         | Выберите пункт выдачи в каталоге, чтобы заказывать.
 
+      //- Модерация прямо на странице (стол администратора, статус «на модерации»).
+      .offer-detail__moderation(v-if="canModerate")
+        BaseButton(
+          variant="danger",
+          :loading="isRejecting(offer.id)",
+          @click="confirmReject(offer)"
+        )
+          template(#icon-left)
+            q-icon(name="close", size="16px")
+          | Отклонить
+        BaseButton(
+          variant="primary",
+          :loading="isApproving(offer.id)",
+          @click="confirmApprove(offer)"
+        )
+          template(#icon-left)
+            q-icon(name="check", size="16px")
+          | Одобрить
+
   .offer-detail__sections(v-if="offer")
     section.offer-detail__section(v-if="offer.description")
       .offer-detail__section-head Описание
@@ -197,6 +234,13 @@ q-page.offer-detail(role="region", aria-label="Описание предложе
     margin-top: var(--p-2, 8px);
     font-size: var(--p-fs-body-sm);
     color: var(--p-warn);
+  }
+
+  // Кнопки модерации на странице предложения (стол администратора).
+  &__moderation {
+    display: flex;
+    gap: var(--p-2, 8px);
+    margin-top: var(--p-2, 8px);
   }
 
   &__back {
