@@ -19,6 +19,14 @@ export class BaseTypeormEntity {
   @UpdateDateColumn({ type: 'timestamp' })
   _updated_at!: Date;
 
+  /**
+   * Story 6.4: детерминированный sha256(canonical-json(bc-namespace)).
+   * NULL для legacy entity без namespace (миграция Epic 9.5). Используется Epic 7
+   * nightly snapshot и Epic 8 reconciliation как контрольная сумма соответствия БД ↔ цепь.
+   */
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  _checksum?: string | null;
+
 
   /**
    * Получить имя таблицы для сущности

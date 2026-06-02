@@ -31,6 +31,12 @@ export abstract class BaseDomainEntity<TDb extends IBaseDatabaseData, TBc = unkn
   public db: TDb;
   public bc?: TBc;
 
+  /**
+   * Story 6.4: sha256(canonical-json(bc)). Заполняется в `BaseBlockchainRepository.save/update`
+   * через `computeBcChecksum(entity.bc ?? null)`. NULL для legacy без bc-namespace.
+   */
+  public _checksum?: string | null;
+
   constructor(databaseData: TDb, defaultStatus?: string) {
     this._id = databaseData._id === '' ? randomUUID().toString() : databaseData._id;
 

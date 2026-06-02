@@ -3,6 +3,7 @@ import { Repository, MoreThan } from 'typeorm';
 import type { IBlockchainSyncRepository, IBlockchainSynchronizable } from '~/shared/interfaces/blockchain-sync.interface';
 import type { IBaseDatabaseData } from '../interfaces/base-database.interface';
 import { EntityVersioningService } from '../services/entity-versioning.service';
+import { computeBcChecksum } from '../checksum.util';
 
 /**
  * Базовый абстрактный класс для репозиториев блокчейн-сущностей
@@ -160,6 +161,9 @@ export abstract class BaseBlockchainRepository<
   async update(entity: TDomainEntity): Promise<TDomainEntity> {
     const typeormEntity = this.getMapper().toEntity(entity);
 
+    // Story 6.4: детерминированный _checksum по bc-namespace до persist.
+    this.applyBcChecksum(entity, typeormEntity);
+
     // Сохраняем версию перед обновлением
     await this.entityVersioningService.saveVersionBeforeUpdate(
       this.repository,
@@ -195,6 +199,9 @@ export abstract class BaseBlockchainRepository<
   async save(entity: TDomainEntity): Promise<TDomainEntity> {
     const typeormEntity = this.getMapper().toEntity(entity);
 
+    // Story 6.4: детерминированный _checksum по bc-namespace до persist.
+    this.applyBcChecksum(entity, typeormEntity);
+
     // Сохраняем версию перед сохранением (если это обновление существующей сущности)
     if ((typeormEntity as any)._id) {
       await this.entityVersioningService.saveVersionBeforeUpdate(
@@ -208,6 +215,17 @@ export abstract class BaseBlockchainRepository<
 
     const savedEntity = await this.repository.save(typeormEntity as TTypeormEntity);
     return this.getMapper().toDomain(savedEntity);
+  }
+
+  /**
+   * Story 6.4: проставляет `_checksum = sha256(canonical-json(bc))` на TypeORM-объект до persist.
+   * Для legacy сущностей без namespace `bc=undefined` → checksum = hash от "null"
+   * (стабильно, но не несёт информации). После Story 9.5 миграции на namespace
+   * все блокчейн-зеркала получат настоящий checksum.
+   */
+  protected applyBcChecksum(domain: TDomainEntity, typeormEntity: Partial<TTypeormEntity>): void {
+    const bc = (domain as any).bc;
+    (typeormEntity as any)._checksum = computeBcChecksum(bc ?? null);
   }
 
   /**
