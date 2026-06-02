@@ -91,7 +91,11 @@ function geocodeWarnText(pvz: IMarketplaceKUDetails): string {
 function onSelectFromList(pvz: IMarketplaceKUDetails) {
   emit('select', pvz)
   if (mapInstance && pvz.lat !== null && pvz.lng !== null) {
-    mapInstance.setCenter([pvz.lat!, pvz.lng!], 15, { duration: 300 })
+    // При выборе КУ приближаем на 2 единицы относительно текущего зума
+    // (центрируясь на участке), но не глубже 18.
+    const current = typeof mapInstance.getZoom === 'function' ? mapInstance.getZoom() : 12
+    const zoom = Math.min(current + 2, 18)
+    mapInstance.setCenter([pvz.lat!, pvz.lng!], zoom, { duration: 300 })
     const pm = placemarks.get(pvz.coreBraname)
     pm?.balloon.open()
   }
