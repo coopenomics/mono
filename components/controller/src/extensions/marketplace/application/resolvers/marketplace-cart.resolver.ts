@@ -20,6 +20,11 @@ import {
   MARKETPLACE_CART_SERVICE,
   MarketplaceCartService,
 } from '../services/marketplace-cart.service';
+import {
+  MARKETPLACE_CHECKOUT_SERVICE,
+  MarketplaceCheckoutService,
+} from '../services/marketplace-checkout.service';
+import { MarketplaceCheckoutCartInputDTO, MarketplaceCheckoutResultDTO } from '../dto/marketplace-checkout.dto';
 
 /**
  * Эпик 16: корзина заказчика — точка оформления заказа. Все операции
@@ -31,7 +36,9 @@ import {
 export class MarketplaceCartResolver {
   constructor(
     @Inject(MARKETPLACE_CART_SERVICE)
-    private readonly cartService: MarketplaceCartService
+    private readonly cartService: MarketplaceCartService,
+    @Inject(MARKETPLACE_CHECKOUT_SERVICE)
+    private readonly checkoutService: MarketplaceCheckoutService
   ) {}
 
   @Query(() => MarketplaceCartDTO, {
@@ -114,6 +121,24 @@ export class MarketplaceCartResolver {
       coopname: config.coopname,
       orderer_account: member.username,
     });
+  }
+
+  @Mutation(() => MarketplaceCheckoutResultDTO, {
+    name: 'marketplaceCheckoutCart',
+    description:
+      'Оформить заказ из корзины: предвалидация баланса, построчное создание заказов с общим ' +
+      'идентификатором заказа и КУ; непрошедший остаток остаётся в корзине для повтора.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Cart', 'manage:own')
+  async marketplaceCheckoutCart(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('input', { nullable: true }) input?: MarketplaceCheckoutCartInputDTO
+  ): Promise<MarketplaceCheckoutResultDTO> {
+    return this.checkoutService.execute(
+      { coopname: config.coopname, orderer_account: member.username },
+      { checkout_id: input?.checkout_id ?? null }
+    );
   }
 
   @Mutation(() => MarketplaceCartDTO, {

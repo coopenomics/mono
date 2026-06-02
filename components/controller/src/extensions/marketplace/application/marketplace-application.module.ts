@@ -132,6 +132,10 @@ import {
   MarketplaceCartService,
   MARKETPLACE_CART_SERVICE,
 } from './services/marketplace-cart.service';
+import {
+  MarketplaceCheckoutService,
+  MARKETPLACE_CHECKOUT_SERVICE,
+} from './services/marketplace-checkout.service';
 
 /**
  * Модуль приложения marketplace
@@ -355,6 +359,11 @@ import {
       useClass: MarketplaceCartService,
     },
     MarketplaceCartService,
+    {
+      provide: MARKETPLACE_CHECKOUT_SERVICE,
+      useClass: MarketplaceCheckoutService,
+    },
+    MarketplaceCheckoutService,
   ],
   exports: [
     // Экспортируем сервисы для использования в других модулях
@@ -438,6 +447,8 @@ import {
     // Эпик 16 — корзина заказчика
     MARKETPLACE_CART_SERVICE,
     MarketplaceCartService,
+    MARKETPLACE_CHECKOUT_SERVICE,
+    MarketplaceCheckoutService,
     MarketplaceCartResolver,
   ],
 })
