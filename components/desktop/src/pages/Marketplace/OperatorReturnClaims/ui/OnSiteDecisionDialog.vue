@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { TakeoverDialog } from 'src/widgets/Marketplace/TakeoverDialog';
-import { BarcodeScanner } from 'src/widgets/Marketplace/BarcodeScanner';
+import { CodeScanner, BARCODE_FORMATS } from 'src/widgets/Marketplace/CodeScanner';
 import { fileToBase64 } from 'src/shared/lib/utils';
 import {
   acceptReturnAtVisit,
@@ -15,7 +15,7 @@ type ReturnClaimPhotoUploadInput = NonNullable<IAcceptReturnAtVisitInput['inspec
 
 /**
  * Story 7.3 / 7.4: full-screen takeover для очного осмотра. Председатель:
- *  1. Сканирует штрих-код имущества (BarcodeScanner) для сверки с заказом.
+ *  1. Сканирует штрих-код имущества (CodeScanner) для сверки с заказом.
  *  2. Записывает результат осмотра (`inspection_result`, до 2000 симв.).
  *  3. Опционально прилагает фото осмотра (до 10 файлов, до 10 МБ каждое).
  *  4. Выбирает действие: «Принять возврат» → accretrn (compensating
@@ -179,7 +179,15 @@ TakeoverDialog(
       q-card(flat bordered).q-mb-md
         q-card-section
           .text-subtitle1 1. Сверка штрих-кода имущества
-          BarcodeScanner.q-mt-sm(start-label="Сканировать штрих-код имущества" @scanned="onScanned")
+          CodeScanner.q-mt-sm(
+            :formats="BARCODE_FORMATS"
+            idle-caption="Наведите камеру на штрих-код имущества"
+            frame-hint="Поместите штрих-код в рамку"
+            manual-label="Или введите штрих-код"
+            manual-placeholder="4600000000000"
+            manual-button="Сверить"
+            @scanned="onScanned"
+          )
           .text-caption.text-grey.q-mt-sm
             | Отсканируйте штрих-код имущества камерой или USB-сканером, чтобы сверить его с возвращаемым заказом.
           .text-caption.q-mt-sm(v-if="scannedCode")

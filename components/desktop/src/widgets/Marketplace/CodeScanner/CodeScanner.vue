@@ -3,13 +3,45 @@ import { onBeforeUnmount, ref, useTemplateRef } from 'vue';
 import { BaseButton, BaseInput } from 'src/shared/ui/base';
 
 /**
- * Эпик 14 / Story 14.3, 14.4: сканер QR-кода передачи на ПВЗ.
+ * Единый сканер кодов камерой устройства (QR и 1D штрих-коды).
  *
- * Переиспользуется оператором приёмки (партия) и оператором выдачи (заказ).
  * Декодирование — нативный `BarcodeDetector` (Chromium), без внешних
- * зависимостей. Если API/камера недоступны — ручной ввод кода как запасной
- * путь (тот же код напечатан под QR у показывающего).
+ * зависимостей; он распознаёт и QR (`qr_code`), и линейные штрих-коды
+ * (`ean_13`, `code_128`, …) — поэтому один компонент на оба сценария
+ * (приёмка/выдача по QR передачи и привязка/сверка штрих-кода имущества).
+ * Если API/камера недоступны — ручной ввод кода как запасной путь.
+ *
+ * Параметризуется форматами и подписями: `formats` сужает набор кодов под
+ * задачу (по умолчанию только QR), тексты подстраивают подсказки под контекст.
  */
+
+const props = withDefaults(
+  defineProps<{
+    /** Какие коды распознавать (значения BarcodeDetector). По умолчанию — только QR. */
+    formats?: string[];
+    /** Подпись на старте (idle), пока камера не включена. */
+    idleCaption?: string;
+    /** Подсказка в рамке во время сканирования. */
+    frameHint?: string;
+    /** Метка кнопки включения камеры. */
+    startLabel?: string;
+    /** Метка поля ручного ввода (запасной путь). */
+    manualLabel?: string;
+    /** Плейсхолдер поля ручного ввода. */
+    manualPlaceholder?: string;
+    /** Метка кнопки применения ручного ввода. */
+    manualButton?: string;
+  }>(),
+  {
+    formats: () => ['qr_code'],
+    idleCaption: 'Наведите камеру на QR-код передачи',
+    frameHint: 'Поместите QR-код в рамку',
+    startLabel: 'Включить камеру',
+    manualLabel: 'Или введите код вручную',
+    manualPlaceholder: 'идентификатор',
+    manualButton: 'Применить',
+  },
+);
 
 const emit = defineEmits<{
   (e: 'scanned', code: string): void;
@@ -87,7 +119,7 @@ async function start(): Promise<void> {
   state.value = 'requesting';
   stopped = false;
   try {
-    detector = new DetectorCtor!({ formats: ['qr_code'] });
+    detector = new DetectorCtor!({ formats: props.formats });
     stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: 'environment' },
     });
@@ -128,29 +160,29 @@ defineExpose({ start, stop });
 </script>
 
 <template lang="pug">
-.qr-scanner
-  .qr-scanner__viewport
-    video.qr-scanner__video(
+.code-scanner
+  .code-scanner__viewport
+    video.code-scanner__video(
       ref='video',
       v-show='state === "scanning"',
       muted,
       playsinline
     )
-    .qr-scanner__overlay(v-if='state === "idle"')
-      q-icon.qr-scanner__muted(name='qr_code_scanner', size='56px')
-      .qr-scanner__caption Наведите камеру на QR-код передачи
-      BaseButton(variant='primary', size='sm', @click='start') Включить камеру
-    .qr-scanner__overlay(v-else-if='state === "requesting"')
+    .code-scanner__overlay(v-if='state === "idle"')
+      q-icon.code-scanner__muted(name='qr_code_scanner', size='56px')
+      .code-scanner__caption {{ idleCaption }}
+      BaseButton(variant='primary', size='sm', @click='start') {{ startLabel }}
+    .code-scanner__overlay(v-else-if='state === "requesting"')
       q-spinner(color='primary', size='40px')
-      .qr-scanner__caption Запрос доступа к камере…
-    .qr-scanner__frame(v-else-if='state === "scanning"')
-      .qr-scanner__corners
-      .qr-scanner__hint Поместите QR-код в рамку
-    .qr-scanner__overlay(v-else-if='state === "error"')
+      .code-scanner__caption Запрос доступа к камере…
+    .code-scanner__frame(v-else-if='state === "scanning"')
+      .code-scanner__corners
+      .code-scanner__hint {{ frameHint }}
+    .code-scanner__overlay(v-else-if='state === "error"')
       q-icon(name='videocam_off', size='48px')
-      .qr-scanner__caption {{ errorMessage }}
+      .code-scanner__caption {{ errorMessage }}
 
-  q-btn.qr-scanner__stop(
+  q-btn.code-scanner__stop(
     v-if='state === "scanning"',
     flat,
     no-caps,
@@ -160,20 +192,20 @@ defineExpose({ start, stop });
     @click='stop'
   )
 
-  //- Запасной путь: ручной ввод кода (тот же, что напечатан под QR).
-  .qr-scanner__manual
-    BaseInput.qr-scanner__manual-input(
+  //- Запасной путь: ручной ввод кода (USB-сканер тоже «набирает» сюда + Enter).
+  .code-scanner__manual
+    BaseInput.code-scanner__manual-input(
       v-model='manualCode',
-      label='Или введите код вручную',
-      placeholder='идентификатор',
+      :label='manualLabel',
+      :placeholder='manualPlaceholder',
       mono,
       @keyup.enter='submitManual'
     )
-    BaseButton(variant='secondary', size='sm', :disabled='!manualCode.trim()', @click='submitManual') Применить
+    BaseButton(variant='secondary', size='sm', :disabled='!manualCode.trim()', @click='submitManual') {{ manualButton }}
 </template>
 
 <style scoped lang="scss">
-.qr-scanner {
+.code-scanner {
   display: flex;
   flex-direction: column;
   gap: var(--p-3, 12px);

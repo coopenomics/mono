@@ -6,6 +6,7 @@ import { Zeus } from '@coopenomics/sdk'
 import { SuccessAlert, FailAlert } from 'src/shared/api'
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch'
 import { BarcodeDisplay } from 'src/widgets/Marketplace/BarcodeDisplay'
+import { CodeScanner, BARCODE_FORMATS } from 'src/widgets/Marketplace/CodeScanner'
 import { BaseBadge, BaseButton, BaseDialog, BaseInput, EmptyState } from 'src/shared/ui/base'
 import { PageHint } from 'src/shared/ui/domain'
 import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton'
@@ -244,22 +245,20 @@ function doPrint(): void {
 }
 
 // ── Привязка штрих-кода к позиции ──
-// Камеры на ПВЗ-ноутбуке может не быть; штатный сценарий — USB-сканер «набирает»
-// код в поле как клавиатура и жмёт Enter, либо оператор вводит код руками.
+// Сканируем камерой устройства (CodeScanner), либо ручной ввод/USB-сканер в
+// запасном поле виджета. Считанный код привязывается сразу — без отдельной кнопки.
 const scanDialogOpen = ref(false)
 const scanTarget = ref<MarketplaceInventoryItemView | null>(null)
-const scanCode = ref('')
 const binding = ref(false)
 
 function openScan(item: MarketplaceInventoryItemView): void {
   scanTarget.value = item
-  scanCode.value = ''
   scanDialogOpen.value = true
 }
 
-async function submitScan(): Promise<void> {
+async function submitScan(raw: string): Promise<void> {
   const item = scanTarget.value
-  const code = scanCode.value.trim()
+  const code = raw.trim()
   if (!item || !code || binding.value) return
   binding.value = true
   try {
@@ -267,7 +266,6 @@ async function submitScan(): Promise<void> {
     SuccessAlert(`Штрих-код ${code} привязан к позиции`)
     scanDialogOpen.value = false
     scanTarget.value = null
-    scanCode.value = ''
     await load()
   } catch (e) {
     FailAlert(e, 'Не удалось привязать штрих-код')
@@ -552,23 +550,26 @@ q-page.place(role='region', aria-label='Склад участка')
       BaseButton(variant='ghost', size='sm', @click='printDialogOpen = false') Отмена
       BaseButton(variant='primary', size='sm', :disabled='!printCount || printCount < 1', @click='doPrint') Печать
 
-  //- Привязка штрих-кода: USB-сканер набирает код в поле и жмёт Enter, либо ввод руками.
+  //- Привязка штрих-кода: сканируем камерой телефона (или USB-сканер/ручной ввод
+  //- в запасном поле) — единый виджет CodeScanner, как QR на приёмке/выдаче.
+  //- Считанный код привязывается сразу, отдельной кнопки «Привязать» не нужно.
   BaseDialog(v-model='scanDialogOpen', title='Привязать штрих-код', size='sm')
     .place__scan
       .place__scan-note(v-if='scanTarget')
-        | {{ scanTarget.product_name_snapshot || 'Товар' }} — отсканируйте наклеенный
-        | штрих-код (сканер введёт его сам) или наберите номер вручную и нажмите Enter.
-      BaseInput(
-        v-model='scanCode',
-        label='Штрих-код',
-        placeholder='4600000000000',
-        autofocus,
-        :disable='binding',
-        @keydown.enter='submitScan'
+        | {{ scanTarget.product_name_snapshot || 'Товар' }} — наведите камеру на
+        | наклеенный штрих-код, либо введите его номер вручную. Код привяжется сразу.
+      CodeScanner(
+        :formats='BARCODE_FORMATS',
+        idle-caption='Наведите камеру на штрих-код имущества',
+        frame-hint='Поместите штрих-код в рамку',
+        start-label='Включить камеру',
+        manual-label='Или введите штрих-код',
+        manual-placeholder='4600000000000',
+        manual-button='Привязать',
+        @scanned='submitScan'
       )
     template(#footer)
-      BaseButton(variant='ghost', size='sm', :disabled='binding', @click='scanDialogOpen = false') Отмена
-      BaseButton(variant='primary', size='sm', :disabled='!scanCode.trim() || binding', @click='submitScan') Привязать
+      BaseButton(variant='ghost', size='sm', :disabled='binding', @click='scanDialogOpen = false') Закрыть
 </template>
 
 <style scoped lang="scss">
