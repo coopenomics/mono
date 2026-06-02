@@ -74,7 +74,10 @@ const statusDisplay = computed(() => orderStatusDisplay(props.stageStatus));
     .t-muted.supply-party__progress-hint
       slot(name="hint")
 
-  .supply-party__members
+  //- Разбивка по участникам — только когда есть смысловые строки. На столе
+  //- поставщика ФИО скрыты, поэтому страница не передаёт состав вовсе (одна
+  //- анонимная строка = дубль «Итого партии»); здесь блок просто не рисуется.
+  .supply-party__members(v-if="members.length")
     .supply-party__member(
       v-for="m in members",
       :key="m.id",

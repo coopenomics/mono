@@ -203,16 +203,10 @@ function formatCost(value: number): string {
   }).format(value);
 }
 
-// Состав партии строками для общего виджета SupplyPartyCard. Поставщику важен
-// общий объём партии, а НЕ кто заказал: ФИО заказчиков не показываем
-// (приватность — коллективный заказ без фамилий). Только объём + сумма строки.
-function memberRows(p: SupplierParty): Array<{ id: string; qty: string; cost: string }> {
-  return p.orders.map((o) => ({
-    id: o.id,
-    qty: `${o.quantity} ${p.unitLabel}`,
-    cost: formatCost(parseFloat(o.total_cost) || 0),
-  }));
-}
+// Состав партии поставщику НЕ показываем: ФИО заказчиков скрыты ради приватности
+// (коллективный заказ без фамилий), а без имён строки «объём · сумма» лишь
+// дублируют «Итого партии». Поставщику важен агрегат партии, не кто заказал —
+// поэтому состав не передаём в SupplyPartyCard вовсе (блок в карточке скрыт).
 
 async function load(page: number, append: boolean): Promise<void> {
   loading.value = true;
@@ -344,7 +338,7 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
         :target-label='hasTarget(p) ? `цель — от ${p.minVolume} ${p.unitLabel}` : ""',
         :progress='progressRatio(p)',
         :bar-color='barColor(p)',
-        :members='memberRows(p)',
+        :members='[]',
         total-label='Итого партии',
         :total-value='`${formatCost(p.totalCost)} · ${p.totalUnits} ${p.unitLabel}`'
       )
