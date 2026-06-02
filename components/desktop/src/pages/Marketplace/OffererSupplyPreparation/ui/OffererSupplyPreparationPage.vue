@@ -66,8 +66,22 @@ const loading = ref(false);
 // сформировать партию — управляет доступностью глобальной кнопки.
 const hasFormable = computed(() => acceptedOrders.value.some((o) => o.cycle_id));
 
-const isEmpty = computed(
-  () => !loading.value && !hasFormable.value && shipments.value.length === 0,
+// Центр страницы держит placeholder всегда, когда сформированных партий ещё нет
+// (как на остальных столах). Текст зависит от того, есть ли уже принятые заказы,
+// готовые к формированию: если есть — зовём нажать «Сформировать партию»,
+// если нет — отправляем принимать заказы во «Входящих».
+const showEmpty = computed(() => !loading.value && shipments.value.length === 0);
+
+const emptyState = computed(() =>
+  hasFormable.value
+    ? {
+        title: 'Партии ещё не сформированы',
+        body: 'Принятые заказы готовы к отгрузке. Нажмите «Сформировать партию» в шапке — выберите способ доставки и КУ, и партия появится здесь.',
+      }
+    : {
+        title: 'Партий пока нет',
+        body: 'Примите заказы во «Входящих заказах» — затем нажмите «Сформировать партию» в шапке, чтобы собрать отгрузку. Сформированные партии появятся здесь.',
+      },
 );
 
 // Диалог формирования партии — глобальный, открывается из шапки.
@@ -251,13 +265,14 @@ q-page.offerer-supply
                     | ТТН
                 span(v-else) {{ row.ttn_number || '—' }}
 
-  EmptyState(
-    v-if='isEmpty',
-    title='Партий пока нет',
-    body='Примите заказы во «Входящих заказах» — затем нажмите «Сформировать партию» в шапке, чтобы собрать отгрузку.'
-  )
-    template(#icon)
-      q-icon(name='local_shipping', size='48px')
+  //- Placeholder держит центр пустой области (flex-grow), как на других столах.
+  .offerer-supply__empty(v-if='showEmpty')
+    EmptyState(
+      :title='emptyState.title',
+      :body='emptyState.body'
+    )
+      template(#icon)
+        q-icon(name='local_shipping', size='48px')
 
   CreateShipmentDialog(
     v-model='dialogOpen',
@@ -277,6 +292,17 @@ q-page.offerer-supply
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
+  // Тянем на высоту вьюпорта за вычетом шапки — чтобы placeholder встал в центр.
+  min-height: calc(100vh - 64px);
+
+  // Контейнер пустого состояния занимает оставшуюся высоту и центрирует EmptyState.
+  &__empty {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 50vh;
+  }
 
   &__toolbar {
     display: flex;
