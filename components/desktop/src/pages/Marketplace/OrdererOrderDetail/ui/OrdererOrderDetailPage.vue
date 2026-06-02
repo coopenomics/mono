@@ -238,7 +238,7 @@ q-page.order-detail(role="region", aria-label="Заказ")
 
     OrdererFinalizeIssuanceDialog(
       v-model="finalizeDialogOpen",
-      :order="order",
+      :orders="order ? [order] : []",
       @finalized="onFinalized"
     )
 
@@ -247,8 +247,8 @@ q-page.order-detail(role="region", aria-label="Заказ")
 
 <style scoped lang="scss">
 .order-detail {
-  // Воздух сверху: отделяем контент от шапки-топбара.
-  padding: var(--p-4, 16px) var(--p-4, 16px) var(--p-6, 24px);
+  // Воздух сверху как на столе поставщика — единый канон столов.
+  padding: var(--p-6, 24px) var(--p-4, 16px);
 
   &__col {
     max-width: 760px;

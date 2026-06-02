@@ -3,7 +3,8 @@ import { computed, ref, watch } from 'vue';
 import { Classes } from '@coopenomics/sdk';
 import { useGlobalStore } from 'src/shared/store';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
-import { BaseButton, BaseDialog } from 'src/shared/ui/base';
+import { BaseBadge, BaseButton, BaseDialog } from 'src/shared/ui/base';
+import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import {
@@ -13,22 +14,21 @@ import {
 } from '../api';
 
 /**
- * Story 6.3: финальная подпись заказчика — подтверждение получения имущества.
+ * Story 6.3: финальная подпись заказчика — подтверждение получения имущества,
+ * СВЕДЁННОЕ ПО ВСЕМ ПОЗИЦИЯМ ПУНКТА ВЫДАЧИ. Пайщик видит все готовые к выдаче
+ * позиции в одной сводной таблице и подтверждает получение ОДНОЙ операцией —
+ * не жмёт по каждой позиции отдельно.
  *
- * Заказчик подтверждает получение сам в своём кабинете на своём устройстве
- * своим ключом. Он не редактирует факт: количество и стоимость уже
- * зафиксированы оператором при открытии выдачи и показаны в таблице только
- * для ознакомления. Заказчик может посмотреть акт и поставить финальную
- * подпись (signatureId=2) поверх подписи председателя — имущество переходит
- * к нему, backend исполняет корректирующие операции (`signiss2`).
- *
- * Диалог вызывается из карточки заказа «Моих заказов» по действию
- * «Подписать и получить» для статуса READY_TO_RECEIVE.
+ * Факт он не редактирует: количество и стоимость зафиксированы оператором при
+ * открытии выдачи и показаны только для ознакомления. По кнопке UI ЦИКЛОМ по
+ * всем позициям накладывает финальную подпись (signatureId=2) поверх подписи
+ * председателя — документ не перегенерируется, backend исполняет
+ * корректирующие операции (`signiss2`). Каждая позиция = свой акт.
  */
 
 const props = defineProps<{
   modelValue: boolean;
-  order: MarketplaceOrderIssuanceView | null;
+  orders: MarketplaceOrderIssuanceView[];
 }>();
 
 const emit = defineEmits<{
@@ -41,24 +41,41 @@ const signing = ref(false);
 const previewHtml = ref<string>('');
 const previewLoading = ref(false);
 
-const unitShort = computed(() =>
-  props.order ? marketplaceUnitShort(props.order.unit_of_measure) : 'ед.',
-);
-
-// Факт зафиксирован оператором при открытии выдачи — берём из заказа.
-const factQuantity = computed<number>(() => props.order?.issuance_fact?.actual_quantity ?? props.order?.quantity ?? 0);
-const factCost = computed<string>(() => props.order?.issuance_fact?.fact_cost ?? props.order?.total_cost ?? '0');
-const diffState = computed<string>(() => props.order?.issuance_fact?.diff_state ?? 'equal');
-
-const diffHint = computed<string>(() => {
-  if (!props.order) return '';
-  if (diffState.value === 'equal') return 'Выдаётся ровно по заказу.';
-  if (diffState.value === 'less') return 'Выдаётся меньше заказа — разница вернётся на ваш паевой остаток.';
-  return 'Выдаётся больше заказа — разница спишется доплатой с вашего паевого остатка.';
+const pointLabel = computed<string>(() => {
+  const o = props.orders[0];
+  if (!o) return '';
+  return (
+    [o.delivery_point_name, o.delivery_point_address].filter(Boolean).join(' · ') ||
+    o.delivery_braname
+  );
 });
 
+function unitShort(o: MarketplaceOrderIssuanceView): string {
+  return marketplaceUnitShort(o.unit_of_measure);
+}
+function factQty(o: MarketplaceOrderIssuanceView): number {
+  return o.issuance_fact?.actual_quantity ?? o.quantity ?? 0;
+}
+function factCost(o: MarketplaceOrderIssuanceView): string {
+  return o.issuance_fact?.fact_cost ?? o.total_cost ?? '0';
+}
+
+// Совокупная сумма к получению по всем позициям.
+const totalFactCost = computed<string>(() =>
+  props.orders.reduce((sum, o) => sum + Number.parseFloat(factCost(o)), 0).toFixed(4),
+);
+
+const DIFF_BADGE: Record<string, { label: string; variant: BaseBadgeVariant }> = {
+  equal: { label: 'по заказу', variant: 'pos' },
+  less: { label: 'недостача', variant: 'warn' },
+  more: { label: 'избыток', variant: 'info' },
+};
+function diffBadge(o: MarketplaceOrderIssuanceView): { label: string; variant: BaseBadgeVariant } {
+  return DIFF_BADGE[o.issuance_fact?.diff_state ?? 'equal'] ?? DIFF_BADGE.equal;
+}
+
 watch(
-  () => [props.modelValue, props.order?.id],
+  () => [props.modelValue, props.orders.map((o) => o.id).join(',')],
   ([visible]) => {
     if (visible) previewHtml.value = '';
   },
@@ -66,46 +83,64 @@ watch(
 );
 
 async function loadPreview(): Promise<void> {
-  if (!props.order) return;
+  if (!props.orders.length) return;
   previewLoading.value = true;
   try {
-    const aggregate = await getOrdererSignablePayload({ order_id: props.order.id });
-    previewHtml.value = aggregate.rawDocument.html;
+    const parts: string[] = [];
+    for (const o of props.orders) {
+      const aggregate = await getOrdererSignablePayload({ order_id: o.id });
+      const title = o.product_name || 'Товар по предложению';
+      parts.push(`<h4 class="mp-orderer-finalize__act-head">${title}</h4>${aggregate.rawDocument.html}`);
+    }
+    previewHtml.value = parts.join('<hr class="mp-orderer-finalize__act-sep" />');
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить акт выдачи');
+    FailAlert(e, 'Не удалось загрузить акты выдачи');
   } finally {
     previewLoading.value = false;
   }
 }
 
 async function confirm(): Promise<void> {
-  if (!props.order) return;
+  if (!props.orders.length) return;
   const wif = globalStore.wif?.toString();
   if (!wif) {
     FailAlert(new Error('Приватный ключ не найден. Войдите в кооператив.'));
     return;
   }
   signing.value = true;
-  try {
-    // Backend отдаёт акт, уже подписанный председателем при открытии выдачи
-    // (signatureId=1). Заказчик накладывает финальную подпись (signatureId=2)
-    // поверх — документ не перегенерируется.
-    const aggregate = await getOrdererSignablePayload({ order_id: props.order.id });
-    const signer = new Classes.Document(wif);
-    const fullSigned = await signer.signDocument(
-      aggregate.rawDocument,
-      globalStore.username,
-      2,
-      [aggregate.document],
-    );
-    await finalizeIssuance({ order_id: props.order.id, signed_document: fullSigned });
-    SuccessAlert('Имущество получено. Заказ закрыт.');
-    emit('finalized');
+  const signer = new Classes.Document(wif);
+  const failed: string[] = [];
+  let ok = 0;
+  // Цикл по позициям: на каждый акт накладываем финальную подпись (2) поверх
+  // подписи председателя. Последовательно — без гонок on-chain подписей.
+  for (const o of props.orders) {
+    try {
+      const aggregate = await getOrdererSignablePayload({ order_id: o.id });
+      const fullSigned = await signer.signDocument(
+        aggregate.rawDocument,
+        globalStore.username,
+        2,
+        [aggregate.document],
+      );
+      await finalizeIssuance({ order_id: o.id, signed_document: fullSigned });
+      ok += 1;
+    } catch (e) {
+      console.error('finalizeIssuance failed for order', o.id, e);
+      failed.push(o.product_name || o.id.slice(0, 8));
+    }
+  }
+  signing.value = false;
+
+  if (ok > 0) emit('finalized');
+  if (failed.length === 0) {
+    SuccessAlert(`Имущество получено по ${ok} позиц. Заказы закрыты.`);
     emit('update:modelValue', false);
-  } catch (e) {
-    FailAlert(e, 'Не удалось подтвердить получение');
-  } finally {
-    signing.value = false;
+  } else {
+    FailAlert(
+      new Error(
+        `Получено ${ok} из ${props.orders.length}. Не удалось: ${failed.join(', ')}. Повторите по оставшимся.`,
+      ),
+    );
   }
 }
 
@@ -121,45 +156,53 @@ BaseDialog(
   maximized
   @update:model-value="(v: boolean) => emit('update:modelValue', v)"
 )
-  .mp-orderer-finalize(v-if="order")
-    .text-caption.text-grey
-      | Пункт выдачи: {{ [order.delivery_point_name, order.delivery_point_address].filter(Boolean).join(' · ') || order.delivery_braname }}
+  .mp-orderer-finalize(v-if="orders.length")
+    .mp-orderer-finalize__point
+      q-icon(name="place" size="16px")
+      | {{ pointLabel }}
 
-    .mp-orderer-finalize__title.text-subtitle1
-      | {{ order.product_name || 'Товар по предложению' }}
+    .mp-orderer-finalize__intro
+      | Сверьте полученное имущество. Количество и стоимость зафиксированы при
+      | открытии выдачи — подтвердите получение по всем позициям одной подписью.
 
-    table.mp-orderer-finalize__table
-      thead
-        tr
-          th
-          th.text-right Заказ
-          th.text-right К получению
-      tbody
-        tr
-          td Количество
-          td.text-right {{ order.quantity }} {{ unitShort }}
-          td.text-right {{ factQuantity }} {{ unitShort }}
-        tr
-          td Сумма
-          td.text-right {{ formatAsset2Digits(order.total_cost) }} ₽
-          td.text-right {{ formatAsset2Digits(factCost) }} ₽
+    .table-wrap
+      .table-scroll
+        table.table
+          thead
+            tr
+              th Позиция
+              th.col-num Заказ
+              th.col-num К получению
+              th.col-num Сумма
+              th.col-state Итог
+          tbody
+            tr(v-for="o in orders", :key="o.id")
+              td.mp-orderer-finalize__name {{ o.product_name || 'Товар по предложению' }}
+              td.col-num {{ o.quantity }} {{ unitShort(o) }}
+              td.col-num {{ factQty(o) }} {{ unitShort(o) }}
+              td.col-num {{ formatAsset2Digits(factCost(o)) }} ₽
+              td.col-state
+                BaseBadge(:variant="diffBadge(o).variant") {{ diffBadge(o).label }}
 
-    q-banner.mp-orderer-finalize__hint(rounded :class="diffState === 'more' ? 'bg-warning text-dark' : (diffState === 'less' ? 'bg-info text-white' : 'bg-positive text-white')")
-      | {{ diffHint }}
+    .mp-orderer-finalize__sum
+      span.mp-orderer-finalize__sum-label Итого к получению
+      span.mp-orderer-finalize__sum-value {{ formatAsset2Digits(totalFactCost) }} ₽
 
     .mp-orderer-finalize__preview-actions
-      q-btn(flat no-caps icon="description" label="Показать акт" :loading="previewLoading" @click="loadPreview")
+      BaseButton(variant="ghost", size="sm", :loading="previewLoading", @click="loadPreview")
+        template(#icon-left)
+          q-icon(name="description", size="16px")
+        | Показать акты
 
-    q-card(v-if="previewHtml" flat bordered).mp-orderer-finalize__preview
-      q-card-section.q-pa-md
-        div(v-html="previewHtml")
+    .mp-orderer-finalize__preview(v-if="previewHtml")
+      div(v-html="previewHtml")
 
   template(#footer)
     BaseButton(variant="ghost", :disabled="signing", @click="cancel") Отмена
-    BaseButton(variant="primary", :loading="signing", @click="confirm")
+    BaseButton(variant="primary", :loading="signing", :disabled="signing || !orders.length", @click="confirm")
       template(#icon-left)
         q-icon(name="draw", size="16px")
-      | Подписать и получить
+      | Подписать и получить{{ orders.length > 1 ? ` (${orders.length})` : '' }}
 </template>
 
 <style scoped lang="scss">
@@ -168,22 +211,54 @@ BaseDialog(
   flex-direction: column;
   gap: var(--p-3, 12px);
 
-  &__table {
-    width: 100%;
-    border-collapse: collapse;
+  &__point {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--p-1, 4px);
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-3);
+  }
+
+  &__intro {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-3);
+    line-height: 1.4;
+  }
+
+  &__name {
+    color: var(--p-ink);
+    overflow-wrap: anywhere;
+  }
+
+  .col-num {
+    text-align: right;
+    white-space: nowrap;
     font-variant-numeric: tabular-nums;
+  }
 
-    th,
-    td {
-      padding: var(--p-2, 8px);
-      border-bottom: 1px solid var(--p-line);
-    }
+  .col-state {
+    text-align: center;
+    width: 120px;
+  }
 
-    th {
-      font-size: var(--p-fs-body-sm, 13px);
-      color: var(--p-ink-3);
-      font-weight: 600;
-    }
+  &__sum {
+    display: flex;
+    align-items: baseline;
+    justify-content: flex-end;
+    gap: var(--p-3, 12px);
+  }
+
+  &__sum-label {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-3);
+  }
+
+  &__sum-value {
+    font-family: var(--p-mono);
+    font-weight: 600;
+    font-size: var(--p-fs-h3, 15px);
+    color: var(--p-ink);
+    font-variant-numeric: tabular-nums;
   }
 
   &__preview-actions {
@@ -194,6 +269,23 @@ BaseDialog(
   &__preview {
     max-height: 60vh;
     overflow: auto;
+    border: 1px solid var(--p-line);
+    border-radius: var(--p-r-md, 12px);
+    padding: var(--p-4, 16px);
+    background: var(--p-surface);
+  }
+
+  :deep(.mp-orderer-finalize__act-head) {
+    font-size: var(--p-fs-body, 14px);
+    font-weight: 600;
+    color: var(--p-ink);
+    margin: 0 0 var(--p-2, 8px);
+  }
+
+  :deep(.mp-orderer-finalize__act-sep) {
+    border: none;
+    border-top: 1px solid var(--p-line);
+    margin: var(--p-4, 16px) 0;
   }
 }
 </style>

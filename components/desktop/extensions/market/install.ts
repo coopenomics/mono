@@ -25,7 +25,6 @@ import { OnboardingCoopAcceptCppPage } from 'src/pages/Marketplace/OnboardingCoo
 import { OrdererConsolidatedPage } from 'src/pages/Marketplace/OrdererConsolidated'
 import { OffererIncomingOrdersPage } from 'src/pages/Marketplace/OffererIncomingOrders'
 import { OffererMyOffersPage } from 'src/pages/Marketplace/OffererMyOffers'
-import { BranchChairmanBranchOrdersPage } from 'src/pages/Marketplace/BranchChairmanBranchOrders'
 import { BoardAgendaWriteoffPage } from 'src/pages/Marketplace/BoardAgendaWriteoff'
 import { ChairmanCategoryWhitelistPage } from 'src/pages/Marketplace/ChairmanCategoryWhitelist'
 import { BoardPayoutsReadonlyPage } from 'src/pages/Marketplace/BoardPayoutsReadonly'
@@ -446,6 +445,21 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               },
             },
             {
+              // Эпик 9 / Story 9.1: operator-стол «Склад моего КУ». Идёт сразу
+              // после раскладки/маркировки — принятое имущество разложено и
+              // видно на складе перед выдачей.
+              path: 'warehouse',
+              name: 'marketplace-pvz-warehouse',
+              component: markRaw(OperatorOwnWarehousePage),
+              meta: {
+                title: 'Склад моего КУ',
+                icon: 'fa-solid fa-boxes-stacked',
+                requires: 'Warehouse:read:own-KU',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+            },
+            {
               // Эпик 6 / Story 6.6: operator-стол выдачи имущества пайщику на ПВЗ.
               path: 'issuance',
               name: 'marketplace-issuance',
@@ -466,33 +480,6 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               meta: {
                 title: 'Гарантийные возвраты',
                 icon: 'fa-solid fa-clipboard-check',
-                requires: 'Warehouse:read:own-KU',
-                requiresAuth: true,
-                agreements: agreementsBase,
-              },
-            },
-            {
-              // Эпик 6 / Story 6.x: «Сводный стол КУ» — приёмки/выдачи/возвраты
-              // в одном экране с табами и счётчиками для председателя КУ.
-              path: 'branch-orders',
-              name: 'marketplace-pvz-branch-orders',
-              component: markRaw(BranchChairmanBranchOrdersPage),
-              meta: {
-                title: 'Сводный стол КУ',
-                icon: 'fa-solid fa-list-check',
-                requires: 'Warehouse:read:own-KU',
-                requiresAuth: true,
-                agreements: agreementsBase,
-              },
-            },
-            {
-              // Эпик 9 / Story 9.1: operator-стол «Склад моего КУ».
-              path: 'warehouse',
-              name: 'marketplace-pvz-warehouse',
-              component: markRaw(OperatorOwnWarehousePage),
-              meta: {
-                title: 'Склад моего КУ',
-                icon: 'fa-solid fa-boxes-stacked',
                 requires: 'Warehouse:read:own-KU',
                 requiresAuth: true,
                 agreements: agreementsBase,
