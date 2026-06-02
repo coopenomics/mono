@@ -622,11 +622,14 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
       | «Сканировать QR» в верхней панели. Код подтверждает личность поставщика
       | и состав партии.
 
-    //- Ожидаемые поставки — единый список карточек «что/когда/кому везут».
-    //- Раздел уже назван в шапке стола. Запуск приёмки — только скан QR/ввод
-    //- кода (кнопка в шапке).
+    //- ЕДИНЫЙ список поставок стола ПВЗ. Ожидаемые (ждут приёмки по скану QR) и
+    //- уже принятые акты (ждут подписи) — это одна сущность «поставка от
+    //- поставщика» на разных стадиях. Для оператора нелогично делить их на две
+    //- секции, где одна пишет «поставок нет», а другая требует подписи — поэтому
+    //- один лист карточек. Сначала требующие действия (ждут подписи) — они
+    //- «живые» прямо сейчас; затем ожидаемые (примутся по скану QR в шапке).
     EmptyState(
-      v-if='!expectedDeliveries.length',
+      v-if='!expectedDeliveries.length && !receptionGroups.length',
       title='Поставок пока нет',
       body='Поставки появятся здесь, как только поставщики направят их на ваш пункт.'
     )
@@ -634,7 +637,37 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
         q-icon(name='local_shipping', size='48px')
 
     .reception__grid(v-else)
-      BaseCard.reception__card(v-for='d in expectedDeliveries', :key='d.offerer')
+      //- Акты приёмки, ждущие подписи председателя/поставщика (требуют действия).
+      BaseCard.reception__card(v-for='g in receptionGroups', :key='`sign-${g.key}`')
+        template(#head)
+          .reception__card-who
+            Avatar(:name='g.offererName', size='md', tone='primary')
+            .reception__card-ident
+              span.reception__card-name {{ g.offererName }}
+              AccountBadge(:account-name='g.offererAccount', size='sm')
+        template(#actions)
+          .reception__card-methods
+            BaseBadge(:variant='statusVariant(g.status)') {{ statusLabel(g.status) }}
+            BaseBadge(v-if='g.receptions.length > 1', variant='info') Доставок: {{ g.receptions.length }}
+
+        .reception__card-when {{ variantLabel(g.variant) }}
+        .reception__card-ttn(v-if='g.ttnNumbers.length') ТТН {{ g.ttnNumbers.join(', ') }}
+        ul.reception__card-items(v-if='g.lines.length')
+          li.reception__card-item(v-for='l in g.lines', :key='l.key')
+            span.reception__card-prod {{ l.productName }}
+            span.reception__card-qty {{ l.quantity }} {{ marketplaceUnitShort(l.unit) }}
+        .reception__card-summary
+          span.reception__card-summary-label Сумма поставки
+          span.reception__card-amount {{ formatAsset2Digits(g.totalAmount) }} ₽
+
+        .reception__card-foot(v-if='g.status === "PENDING_CHAIRMAN_RECEPTION_SIGN"')
+          BaseButton(variant='primary', @click='signChairman(g)')
+            template(#icon-left)
+              q-icon(name='draw', size='18px')
+            | Подписать председателем
+
+      //- Ожидаемые поставки — примутся по скану QR поставщика (кнопка в шапке).
+      BaseCard.reception__card(v-for='d in expectedDeliveries', :key='`exp-${d.offerer}`')
         template(#head)
           .reception__card-who
             Avatar(:name='d.supplierName', size='md', tone='primary')
@@ -643,6 +676,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
               AccountBadge(:account-name='d.offerer', size='sm')
         template(#actions)
           .reception__card-methods
+            BaseBadge(variant='info') Ожидает приёмки
             BaseBadge(v-for='m in d.deliveryLabels', :key='m', variant='neutral') {{ m }}
 
         .reception__card-when(v-if='d.formedAt') Партия сформирована {{ d.formedAt }}
@@ -655,42 +689,6 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
         .reception__card-summary
           span.reception__card-summary-label Сумма поставки
           span.reception__card-amount {{ formatAsset2Digits(d.amount) }} ₽
-
-    //- Акты приёмки, требующие действия (ждут подписи поставщика/председателя).
-    //- Принятые кооперативом уже на складе и здесь не показываются.
-    section.reception__acts(v-if='receptionGroups.length', aria-label='Поставки, требующие подписи')
-      header.reception__acts-head
-        h2.reception__acts-title Требуют подписи
-        BaseBadge(variant='warn') {{ receptionGroups.length }}
-
-      .reception__grid
-        BaseCard.reception__card(v-for='g in receptionGroups', :key='g.key')
-          template(#head)
-            .reception__card-who
-              Avatar(:name='g.offererName', size='md', tone='primary')
-              .reception__card-ident
-                span.reception__card-name {{ g.offererName }}
-                AccountBadge(:account-name='g.offererAccount', size='sm')
-          template(#actions)
-            .reception__card-methods
-              BaseBadge(:variant='statusVariant(g.status)') {{ statusLabel(g.status) }}
-              BaseBadge(v-if='g.receptions.length > 1', variant='info') Доставок: {{ g.receptions.length }}
-
-          .reception__card-when {{ variantLabel(g.variant) }}
-          .reception__card-ttn(v-if='g.ttnNumbers.length') ТТН {{ g.ttnNumbers.join(', ') }}
-          ul.reception__card-items(v-if='g.lines.length')
-            li.reception__card-item(v-for='l in g.lines', :key='l.key')
-              span.reception__card-prod {{ l.productName }}
-              span.reception__card-qty {{ l.quantity }} {{ marketplaceUnitShort(l.unit) }}
-          .reception__card-summary
-            span.reception__card-summary-label Сумма поставки
-            span.reception__card-amount {{ formatAsset2Digits(g.totalAmount) }} ₽
-
-          .reception__card-foot(v-if='g.status === "PENDING_CHAIRMAN_RECEPTION_SIGN"')
-            BaseButton(variant='primary', @click='signChairman(g)')
-              template(#icon-left)
-                q-icon(name='draw', size='18px')
-              | Подписать председателем
 
   SignAplReceptionChairmanDialog(
     v-model='signDialogOpen',
@@ -792,28 +790,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
   flex-direction: column;
   gap: var(--p-4, 16px);
 
-  // ── Секция «Требуют подписи» ──
-  &__acts {
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-3, 12px);
-  }
-
-  &__acts-head {
-    display: flex;
-    align-items: center;
-    gap: var(--p-2, 8px);
-  }
-
-  &__acts-title {
-    margin: 0;
-    font-size: var(--p-fs-h2, 18px);
-    font-weight: 600;
-    letter-spacing: var(--p-ls-h2);
-    color: var(--p-ink);
-  }
-
-  // ── Сетка карточек (ожидаемые поставки + акты на подпись) ──
+  // ── Единая сетка карточек поставок (ожидаемые + акты на подпись) ──
   &__grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
