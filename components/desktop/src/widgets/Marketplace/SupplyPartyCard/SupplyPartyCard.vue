@@ -34,7 +34,9 @@ const props = defineProps<{
   /** Цвет бара (Quasar color): primary пока копится, positive когда набрано/принято. */
   barColor: string;
   /** Состав партии строками: кто · сколько · стоимость. */
-  members: Array<{ id: string; who: string; qty: string; cost: string }>;
+  // `who` опционально: на столе поставщика ФИО заказчиков НЕ показываем
+  // (приватность — поставщику видны только объёмы партии, не кто заказал).
+  members: Array<{ id: string; who?: string; qty: string; cost: string }>;
   /** Подпись итога, напр. «Итого партии» / «Ваш вклад в партию». */
   totalLabel: string;
   /** Значение итога, напр. «1 200 ₽ · 5 кг». */
@@ -73,8 +75,12 @@ const statusDisplay = computed(() => orderStatusDisplay(props.stageStatus));
       slot(name="hint")
 
   .supply-party__members
-    .supply-party__member(v-for="m in members", :key="m.id")
-      span.supply-party__member-who {{ m.who }}
+    .supply-party__member(
+      v-for="m in members",
+      :key="m.id",
+      :class="{ 'supply-party__member--anon': !m.who }"
+    )
+      span.supply-party__member-who(v-if="m.who") {{ m.who }}
       span.supply-party__member-qty {{ m.qty }}
       span.supply-party__member-cost {{ m.cost }}
 
@@ -144,6 +150,11 @@ const statusDisplay = computed(() => orderStatusDisplay(props.stageStatus));
 
     &:first-child {
       border-top: none;
+    }
+
+    // Без ФИО (поставщик): объём слева, сумма справа.
+    &--anon {
+      grid-template-columns: 1fr auto;
     }
   }
 

@@ -10,7 +10,6 @@ import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
 import { SupplyPartyCard } from 'src/widgets/Marketplace/SupplyPartyCard';
 import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
-import { formatShortFio } from 'src/shared/lib/utils/getNameFromCertificate';
 import {
   acceptOrdersBatch,
   declineOrdersBatch,
@@ -205,11 +204,11 @@ function formatCost(value: number): string {
 }
 
 // Состав партии строками для общего виджета SupplyPartyCard. Поставщику важен
-// общий объём, не кто заказал — имена показываем справочно, без дробления.
-function memberRows(p: SupplierParty): Array<{ id: string; who: string; qty: string; cost: string }> {
+// общий объём партии, а НЕ кто заказал: ФИО заказчиков не показываем
+// (приватность — коллективный заказ без фамилий). Только объём + сумма строки.
+function memberRows(p: SupplierParty): Array<{ id: string; qty: string; cost: string }> {
   return p.orders.map((o) => ({
     id: o.id,
-    who: o.orderer_name ? formatShortFio(o.orderer_name) : o.orderer_account,
     qty: `${o.quantity} ${p.unitLabel}`,
     cost: formatCost(parseFloat(o.total_cost) || 0),
   }));
