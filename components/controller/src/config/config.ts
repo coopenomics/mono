@@ -147,6 +147,17 @@ const envVarsSchema = z.object({
    * (свойство сети, не оператора).
    */
   BLOCKCHAIN_ARCHIVE_RETENTION_CRON: z.string().default('0 * * * *'),
+  /**
+   * Story 6.5: при `true` mapper-fail (mapDeltaToBlockchainData → null) перестаёт
+   * быть silent loss и поднимается `UnsupportedContractVersionError` из
+   * `AbstractEntitySyncService.processDelta`. Парсер не ACK'ает delta — DLQ
+   * сработает. Default `false` для не-ломать-прод-немедленно; включается после
+   * подтверждения, что schema drift отсутствует (например на стенде).
+   */
+  BLOCKCHAIN_UNSUPPORTED_VERSION_STRICT: z
+    .string()
+    .default('false')
+    .transform((v) => v === 'true'),
   // Параметры NOVU
   NOVU_APP_ID: z.string().min(1, { message: 'Не должно быть пустым' }),
   NOVU_BACKEND_URL: z.string().min(1, { message: 'Не должно быть пустым' }).default('https://novu.coopenomics.world/api'),
@@ -257,6 +268,7 @@ export default {
     action_emit_delay_ms: envVars.data.BLOCKCHAIN_ACTION_EMIT_DELAY_MS,
     archive_retention_enabled: envVars.data.BLOCKCHAIN_ARCHIVE_RETENTION_ENABLED,
     archive_retention_cron: envVars.data.BLOCKCHAIN_ARCHIVE_RETENTION_CRON,
+    unsupported_version_strict: envVars.data.BLOCKCHAIN_UNSUPPORTED_VERSION_STRICT,
   },
   mongoose: {
     url: envVars.data.MONGODB_URL + (envVars.data.NODE_ENV === 'test' ? '-test' : ''),
