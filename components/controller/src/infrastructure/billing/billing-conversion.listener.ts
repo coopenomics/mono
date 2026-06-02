@@ -6,7 +6,7 @@ import type { ActionDomainInterface } from '~/domain/parser/interfaces/action-do
 import { BillingProviderClient } from './billing-provider.client';
 
 /**
- * Epic 13 v5.1 — реактивный мост on-chain → провайдер для пакетного PowerUp.
+ * Epic 13 v5.1 (проект «Облачный провайдер») — реактивный мост on-chain → провайдер для аренды вычислительных ресурсов (PowerUp).
  *
  * Ловит событие шины `action::billing::converttoaxn` (членский взнос → AXON,
  * бездокументарно; см. {@link BillingContract.Actions.ConvertToAxn}) и

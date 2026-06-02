@@ -27,6 +27,8 @@ export const defaultConfig = {
   dailyPackageSize: 5,
   systemSymbol: config.blockchain.root_symbol,
   systemPrecision: config.blockchain.root_precision,
+  // Символ валюты членских взносов — из config (на случай смены символа), не хардкод 'RUB'.
+  governSymbol: config.blockchain.root_govern_symbol,
   thresholds: {
     cpu: 70, // Процент использования (0-100)
     net: 70,
@@ -178,7 +180,7 @@ export const Schema = z.object({
     .number()
     .min(0)
     .default(defaultConfig.cooldownMinutes)
-    .describe(describeField({ label: 'Минимальная пауза между докупками (мин)', rules: ['val >= 0'] })),
+    .describe(describeField({ label: 'Минимальная пауза между арендой ресурсов (мин)', rules: ['val >= 0'] })),
   dailyAxonCap: z
     .number()
     .min(0)
@@ -189,12 +191,12 @@ export const Schema = z.object({
     .int()
     .min(0)
     .default(defaultConfig.dailyPackageCap)
-    .describe(describeField({ label: 'Суточный лимит докупок (шт.)', rules: ['val >= 0'] })),
+    .describe(describeField({ label: 'Суточный лимит аренд ресурсов (шт.)', rules: ['val >= 0'] })),
   rubFloor: z
     .number()
     .min(0)
     .default(defaultConfig.rubFloor)
-    .describe(describeField({ label: 'RUB-floor биллинг-кошелька', rules: ['val >= 0'] })),
+    .describe(describeField({ label: `Минимальный остаток взносов на кошельке (${defaultConfig.governSymbol})`, rules: ['val >= 0'] })),
   circuitBreakerUntilMonth: z
     .string()
     .default(defaultConfig.circuitBreakerUntilMonth)
@@ -203,7 +205,7 @@ export const Schema = z.object({
     .number()
     .min(0)
     .default(defaultConfig.monthlyRubCap)
-    .describe(describeField({ label: 'Месячный потолок RUB', rules: ['val >= 0'] })),
+    .describe(describeField({ label: `Месячный потолок взносов (${defaultConfig.governSymbol})`, rules: ['val >= 0'] })),
   lastCalendarPackageMonth: z
     .string()
     .default(defaultConfig.lastCalendarPackageMonth)
@@ -226,7 +228,7 @@ export const Schema = z.object({
   lastTopupAt: z
     .string()
     .default(defaultConfig.lastTopupAt)
-    .describe(describeField({ label: 'Время последней докупки (ISO)', visible: false })),
+    .describe(describeField({ label: 'Время последней аренды ресурсов (ISO)', visible: false })),
   subscriptionId: z
     .number()
     .int()
@@ -235,8 +237,9 @@ export const Schema = z.object({
     .describe(
       describeField({
         label: 'ID подписки package-типа у провайдера',
-        note: '0 = пакетная модель не подключена. Заполняется оператором после регистрации subscription_type.kind=package у провайдера.',
+        note: '0 = пакетная модель не подключена. Заполняется провайдером после регистрации subscription_type.kind=package; оператор не редактирует вручную.',
         rules: ['val >= 0'],
+        visible: false,
       })
     ),
   monthlyPackageIdx: z
@@ -253,7 +256,7 @@ export const Schema = z.object({
     .number()
     .min(0)
     .default(defaultConfig.monthRubSpent)
-    .describe(describeField({ label: 'RUB потрачено за месяц', visible: false })),
+    .describe(describeField({ label: `Взносов потрачено за месяц (${defaultConfig.governSymbol})`, visible: false })),
   monthRubPeriod: z
     .string()
     .default(defaultConfig.monthRubPeriod)

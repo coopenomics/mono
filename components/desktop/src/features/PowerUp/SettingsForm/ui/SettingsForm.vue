@@ -1,13 +1,13 @@
 <template lang="pug">
 .powerup-settings
-  BaseCard(title="Настройки PowerUp" subtitle="Размер пакета, пороги CPU/NET/RAM, лимиты Epic 13")
+  BaseCard(title="Аренда вычислительных ресурсов" subtitle="Размер квоты, пороги CPU/NET/RAM, лимиты аренды")
     BaseForm(@submit="onSubmit")
       .powerup-settings__grid
         BaseInput(
           v-model.number="form.dailyPackageSize"
           label="Размер минимальной квоты"
           type="number"
-          :hint="`Минимум 5 ${symbol}. Каждое срабатывание триггера докупает столько ${symbol}`"
+          :hint="`Минимум 5 ${symbol}. Каждое срабатывание триггера арендует столько вычислительных ресурсов (${symbol})`"
           :rules="[(v) => v >= 5 || `Минимум 5 ${symbol}`]"
         )
         BaseInput(
@@ -30,7 +30,7 @@
         )
         BaseInput(
           v-model.number="form.cooldownMinutes"
-          label="Cooldown между докупками (мин)"
+          label="Cooldown между арендой ресурсов (мин)"
           type="number"
           :rules="[(v) => v >= 0 || 'Не отрицательное']"
         )
@@ -42,13 +42,13 @@
         )
         BaseInput(
           v-model.number="form.dailyPackageCap"
-          label="Суточный лимит докупок (шт.)"
+          label="Суточный лимит аренд (шт.)"
           type="number"
           :rules="[(v) => v >= 0 || 'Не отрицательное']"
         )
         BaseInput(
           v-model.number="form.monthlyRubCap"
-          label="Месячный потолок RUB"
+          :label="`Месячный потолок взносов (${governSymbol})`"
           type="number"
           :rules="[(v) => v >= 0 || 'Не отрицательное']"
         )
@@ -81,6 +81,8 @@ const emit = defineEmits<{
 
 const { info } = useSystemStore()
 const symbol = computed(() => info.symbols?.root_symbol || 'AXON')
+// Символ валюты членских взносов — из config системы (на случай смены символа).
+const governSymbol = computed(() => info.symbols?.root_govern_symbol || 'RUB')
 
 const form = reactive<PowerupSettingsValue>({
   dailyPackageSize: props.initial?.dailyPackageSize ?? 5,

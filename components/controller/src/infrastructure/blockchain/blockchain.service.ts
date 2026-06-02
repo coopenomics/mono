@@ -265,7 +265,7 @@ export class BlockchainService implements BlockchainPort {
       },
     ];
 
-    // Epic 13 v5.1: пропускаем исключения наружу — PowerupPlugin полагается на
+    // Epic 13 v5.1 (проект «Облачный провайдер»): пропускаем исключения наружу — PowerupPlugin полагается на
     // факт, что отказ on-chain powerup долетает до executePackageTopup и НЕ
     // приводит к recordTopup. Раньше try/catch + logger.info глушил отказ →
     // counters росли, cooldown «использовался», а реальной докупки не было

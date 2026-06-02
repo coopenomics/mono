@@ -28,11 +28,18 @@ export interface ProviderBillingSummary {
 }
 
 /**
- * HTTP-клиент к provider backend (Восход) для биллинга подписок (Epic 12).
+ * HTTP-клиент к provider backend (Восход) для биллинга подписок
+ * (Epic 12/13, проект «Облачный провайдер»).
  *
  * Провайдер — источник истины по составу/ценам подписок (on-chain их нет).
  * Доступ защищён `server-secret` (ServerSecretGuard на стороне провайдера).
  * `provider_base_url` и `server_secret` берутся из конфига узла.
+ *
+ * TODO(Epic 13): перейти на генерируемый `@coopenomics/provider-client`.
+ * Текущая опубликованная версия (alpha 2025.11) — ДО Epic 12/13: в ней нет
+ * billing-эндпоинтов (`/billing/topup-axon-confirmed`, `/subscriptions/billing-summary`).
+ * Миграция требует regen+publish клиента из актуального provider swagger —
+ * отдельная задача; пока ручной axios.
  */
 @Injectable()
 export class BillingProviderClient {
