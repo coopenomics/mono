@@ -98,12 +98,12 @@ const statusDisplay = computed(() => orderStatusDisplay(props.stageStatus));
 <style scoped lang="scss">
 .supply-party {
   border: 1px solid var(--p-line);
-  border-radius: var(--p-r-md, 12px);
+  border-radius: var(--p-r-lg, 16px);
   background: var(--p-surface);
-  padding: var(--p-4, 16px);
+  padding: var(--p-6, 24px);
   display: flex;
   flex-direction: column;
-  gap: var(--p-3, 12px);
+  gap: var(--p-5, 20px);
 
   &__sub {
     display: inline-flex;
@@ -115,7 +115,7 @@ const statusDisplay = computed(() => orderStatusDisplay(props.stageStatus));
   &__progress {
     display: flex;
     flex-direction: column;
-    gap: var(--p-2, 8px);
+    gap: var(--p-3, 12px);
   }
 
   &__progress-row {
@@ -178,15 +178,16 @@ const statusDisplay = computed(() => orderStatusDisplay(props.stageStatus));
   &__foot {
     display: flex;
     align-items: center;
-    gap: var(--p-2, 8px);
+    gap: var(--p-3, 12px);
     flex-wrap: wrap;
-    padding-top: var(--p-2, 8px);
+    padding-top: var(--p-4, 16px);
     border-top: 1px solid var(--p-line);
   }
 
   &__total {
     display: flex;
     flex-direction: column;
+    gap: var(--p-1, 4px);
   }
 
   &__total-val {

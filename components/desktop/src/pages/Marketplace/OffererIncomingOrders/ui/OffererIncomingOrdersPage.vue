@@ -389,7 +389,7 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
   &__skel-list {
     display: flex;
     flex-direction: column;
-    gap: var(--p-4, 16px);
+    gap: var(--p-5, 20px);
   }
 
   &__skel {
