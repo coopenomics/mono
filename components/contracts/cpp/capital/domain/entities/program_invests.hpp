@@ -4,17 +4,23 @@ using namespace eosio;
 using std::string;
 
 namespace Capital {
-  //TODO: УДАЛИТЬ после 07.2026 т.к. не используем
   /**
-   * @brief Таблица программных инвестиций (progrinvests): ранее использовалась для заявок на зачёт с этапом одобрения советом; при текущей логике createpinv строки не создаёт, таблица сохранена для совместимости и чтения исторических записей.
-   * @deprecated description: не используется
+   * @brief Таблица программных инвестиций (progrinvests): ранее использовалась
+   *        для заявок на зачёт с этапом одобрения советом. При текущей логике
+   *        @ref capital::createpinv строки не создаёт, таблица сохранена для
+   *        совместимости и чтения исторических записей.
+   *
+   * @deprecated Запланировано к удалению после 2026-07. Не использовать в новом
+   *             коде. Чтение через scope coopname допустимо до этой даты для
+   *             ретроспективных отчётов; писать через emplace/modify нельзя.
+   *
    * @ingroup public_tables
    * @ingroup public_capital_tables
-
+   *
    * @par Область памяти (scope): coopname
-   * @par Имя таблицы (table): progrinvests 
+   * @par Имя таблицы (table): progrinvests
    */
-  struct [[eosio::table, eosio::contract(CAPITAL)]] program_invest {
+  struct [[deprecated("remove after 2026-07"), eosio::table, eosio::contract(CAPITAL)]] program_invest {
     uint64_t id;                                ///< ID программной инвестиции (внутренний ключ)
     eosio::name coopname;                       ///< Имя кооператива
     eosio::name username;                       ///< Имя инвестора

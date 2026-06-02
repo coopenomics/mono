@@ -77,9 +77,12 @@ namespace operations {
     inline constexpr eosio::name DROP_PREIMP         = "o.cap.drppre"_n;   ///< Закрытие пред-импорт-учёта при переходе на электронный учёт (Dr 80 / Cr 04, BURN PREIMP_FUND). Вызывается из capital::importcontr перед o.cap.import.
     inline constexpr eosio::name LEND                = "o.cap.lend"_n;     ///< Выдача беспроцентного займа пайщику (Dr 58 / Cr 51, ISSUE LOAN_ISSUED).
     inline constexpr eosio::name REPAY               = "o.cap.repay"_n;    ///< Возврат займа пайщика по акту-2 (Dr 80 / Cr 58, TRANSFER LOAN_ISSUED → SHARE_FUND_PAY).
+    inline constexpr eosio::name CREATE_NMA          = "o.cap.crtnma"_n;   ///< Создать НМА кооператива из коммитов-обеспечения долга при невозврате займа (Dr 04 / Cr 08, TRANSFER GENERATOR_FUND → NMA). Решение 2026-05-19.
+    inline constexpr eosio::name DEBT_WRITEOFF       = "o.cap.dbtwrf"_n;   ///< Списание долга (write-off) за счёт созданного НМА (Dr 80 / Cr 58, BURN LOAN_ISSUED). Зеркало REPAY без зачисления на share пайщика — долг закрыт имущественно. Решение 2026-05-19.
     inline constexpr eosio::name WITHDRAW_FROM_CAPITAL = "o.cap.wthcap"_n; ///< Возврат паевого из ЦПП «Благорост» в кошелёк пайщика (TRANSFER BLAGOROST_FUND → SHARE_FUND_PAY, без Dr/Cr).
     inline constexpr eosio::name CONVERT_TO_SHARE    = "o.cap.cnvshr"_n;   ///< Конвертация сегмента: РИД → главный кошелёк (TRANSFER GENERATOR_FUND → SHARE_FUND_PAY, без Dr/Cr — бухпроводка уже была сделана в ACCEPT_RID).
     inline constexpr eosio::name CONVERT_TO_BLAGO    = "o.cap.cnvbl"_n;    ///< Конвертация сегмента: РИД → ЦПП «Благорост» (TRANSFER GENERATOR_FUND → BLAGOROST_FUND, без Dr/Cr — бухпроводка уже была сделана в ACCEPT_RID).
+    inline constexpr eosio::name PAY_EXPENSE         = "o.cap.expns"_n;    ///< Оплата целевого расхода программы (Dr 86 / Cr 51, TRANSFER BLAGOROST_FUND → SOV_EXPENSES). Списание целевого финансирования на расчётный счёт.
   }
 
   // marketplace
@@ -252,6 +255,28 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_accounts::SHARE_FUND, ledger2_accounts::FINANCIAL_INVESTMENTS,
     "Возврат беспроцентного займа пайщика по акту-2" },
 
+  // 11a. Создать НМА кооператива из коммитов-обеспечения долга при невозврате:
+  // Dr 04 / Cr 08, TRANSFER GENERATOR_FUND → NMA.
+  // Срабатывает автоматически из `capital::closedebt`, когда родительский
+  // компонент перешёл в `cancelled` (решение 2026-05-19 — без сбора совета,
+  // без подписи пайщика). РИД-коммиты, накопленные на GENERATOR_FUND пайщика
+  // как обеспечение долга, формируют НМА кооператива на отдельном кошельке
+  // `w.cap.nma`. Пара по 04 зеркалит `o.cap.accept`, но без участия пайщика —
+  // сегмент пайщика уменьшается на сумму операции.
+  { operations::capital::CREATE_NMA, processes::capital::DEBT, WalletOp::TRANSFER,
+    ledger2_wallets::GENERATOR_FUND, ledger2_wallets::NMA,
+    ledger2_accounts::INTANGIBLE_ASSETS, ledger2_accounts::NON_CURRENT_INVESTMENTS,
+    "Создание НМА кооператива из коммитов-обеспечения долга" },
+
+  // 11b. Списание долга (write-off) за счёт созданного НМА: Dr 80 / Cr 58, BURN LOAN_ISSUED.
+  // Парная к `o.cap.crtnma` операция, закрывает обязательство пайщика по займу.
+  // Зеркало `o.cap.repay`, но без зачисления на share пайщика (долг закрыт
+  // имущественно — через НМА из коммитов-обеспечения). Решение 2026-05-19.
+  { operations::capital::DEBT_WRITEOFF, processes::capital::DEBT, WalletOp::BURN,
+    ledger2_wallets::LOAN_ISSUED, eosio::name{},
+    ledger2_accounts::SHARE_FUND, ledger2_accounts::FINANCIAL_INVESTMENTS,
+    "Списание долга (write-off) за счёт созданного НМА" },
+
   // 12. Подтверждение поставки: Dr 51 / Cr 80, ISSUE SHARE_FUND_PAY
   { operations::marketplace::CONFIRM_SUPPLY, processes::marketplace::REQUEST, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::SHARE_FUND_PAY,
     ledger2_accounts::BANK_ACCOUNT, ledger2_accounts::SHARE_FUND,
@@ -304,6 +329,16 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_wallets::GENERATOR_FUND, ledger2_wallets::BLAGOROST_FUND,
     0, 0,
     "Конвертация сегмента: РИД → ЦПП «Благорост»" },
+
+  // 20. Оплата целевого расхода программы: Dr 86 / Cr 51, TRANSFER BLAGOROST_FUND → SOV_EXPENSES.
+  // Закрывает TODO в exppaycnfrm.cpp: списывает сумму расхода из программного фонда
+  // «Благорост» в пул «Хозяйственные расходы из числа целевого финансирования»;
+  // одновременно фиксируется бухпроводка по уменьшению целевого финансирования (86)
+  // и списанию с расчётного счёта (51).
+  { operations::capital::PAY_EXPENSE, processes::capital::EXPENSE, WalletOp::TRANSFER,
+    ledger2_wallets::BLAGOROST_FUND, ledger2_wallets::SOV_EXPENSES,
+    ledger2_accounts::TARGET_RECEIPTS, ledger2_accounts::BANK_ACCOUNT,
+    "Оплата целевого расхода по программе «Благорост»" },
 
   // ----- Миграционные (o.mig.*) — вызываются только из migrate.cpp -----
 

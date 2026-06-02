@@ -315,11 +315,73 @@ public:
     
     [[eosio::action]]
     void debtpaydcln(name coopname, checksum256 debt_hash, std::string reason);
-    
+
+    [[eosio::action]]
+    void debtpayretry(eosio::name coopname, checksum256 debt_hash);
+
     [[eosio::action]]
     void declinedebt(name coopname, eosio::name username, checksum256 debt_hash, std::string reason);
     
     [[eosio::action]]
-    void settledebt(name coopname, name username, eosio::asset amount, document2 statement);
+    void settledebt(name coopname, checksum256 debt_hash, eosio::asset amount, document2 statement);
+
+    [[eosio::action]]
+    void markdebtoverd(name coopname);
+
+    [[eosio::action]]
+    void closedebt(name coopname, checksum256 debt_hash);
+
+    [[eosio::action]]
+    void topupprogexp(name coopname, eosio::asset amount);
+
+    [[eosio::action]]
+    void createpgexp(name coopname, checksum256 expense_hash, name creator,
+                     eosio::asset amount, std::string description, document2 statement);
+
+    [[eosio::action]]
+    void apprvpgexp(name coopname, name approver, checksum256 expense_hash,
+                    document2 approved_statement);
+
+    [[eosio::action]]
+    void authpgexp(name coopname, checksum256 expense_hash, document2 authorization);
+
+    [[eosio::action]]
+    void pgexppay(name coopname, checksum256 expense_hash);
+
+    [[eosio::action]]
+    void declpgexp(name coopname, checksum256 expense_hash, std::string reason);
+
+    // L2-роли и approved-ставки сегмента (Story 1.7) — бездокументарная схема,
+    // решения фиксируются только подписью транзакции (require_auth coopname).
+    [[eosio::action]]
+    void requestrole(name coopname, checksum256 request_hash, checksum256 project_hash,
+                     name username, name master, name role,
+                     eosio::asset rate_per_hour, uint64_t hours_per_day,
+                     std::string description);
+
+    [[eosio::action]]
+    void approverole(name coopname, checksum256 request_hash,
+                     eosio::asset approved_rate, uint64_t approved_hours);
+
+    [[eosio::action]]
+    void declinerole(name coopname, checksum256 request_hash, std::string reason);
+
+    [[eosio::action]]
+    void inviterole(name coopname, checksum256 request_hash, checksum256 project_hash,
+                    name candidate, name master, name role,
+                    eosio::asset rate_per_hour, uint64_t hours_per_day,
+                    std::string description);
+
+    [[eosio::action]]
+    void acceptinvite(name coopname, checksum256 request_hash);
+
+    [[eosio::action]]
+    void declinvite(name coopname, checksum256 request_hash, std::string reason);
+
+    [[eosio::action]]
+    void requestrateu(name coopname, checksum256 request_hash, checksum256 project_hash,
+                      name username, name master,
+                      eosio::asset new_rate, uint64_t new_hours,
+                      std::string description);
 
 };

@@ -14,21 +14,20 @@
  */
 void capital::startvoting(name coopname, checksum256 project_hash) {
   require_auth(coopname);
-  print("z");
+
   // Проверяем существование проекта и получаем его
   auto project = Capital::Projects::get_project_or_fail(coopname, project_hash);
-  print("a");
+
   // Проверяем что проект авторизован советом
   //eosio::check(project.is_authorized, "Проект не авторизован советом");
 
   // Проверяем, что проект в статусе "active"
   eosio::check(project.status == Capital::Projects::Status::ACTIVE, "Проект должен быть в статусе 'active'");
   eosio::check(project.counts.total_commits > 0, "Проект без коммитов не может быть поставлен на голосование");
-  print("b");
+
   // Обновляем статус проекта на "voting"
   Capital::Projects::update_status(coopname, project.id, Capital::Projects::Status::VOTING);
-  print("c");
+
   // Инициализируем голосование по методу Водянова
   Capital::Core::Voting::initialize_project_voting(coopname, project.id);
-  print("d");
-} 
+}

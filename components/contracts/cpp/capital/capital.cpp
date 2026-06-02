@@ -92,8 +92,28 @@
 #include "app/debt_managment/create_debt/debtauthcnfr.cpp"
 #include "app/debt_managment/create_debt/debtpaycnfrm.cpp"
 #include "app/debt_managment/create_debt/debtpaydcln.cpp"
+#include "app/debt_managment/create_debt/debtpayretry.cpp"
 #include "app/debt_managment/create_debt/declinedebt.cpp"
+#include "app/debt_managment/create_debt/markdebtoverd.cpp"
+#include "app/debt_managment/create_debt/closedebt.cpp"
 #include "app/debt_managment/settle_debt/settledebt.cpp"
+
+// Управление программными расходами
+#include "app/expense_managment/program_expenses/topupprogexp.cpp"
+#include "app/expense_managment/program_expenses/createpgexp.cpp"
+#include "app/expense_managment/program_expenses/apprvpgexp.cpp"
+#include "app/expense_managment/program_expenses/authpgexp.cpp"
+#include "app/expense_managment/program_expenses/pgexppay.cpp"
+#include "app/expense_managment/program_expenses/declpgexp.cpp"
+
+// L2-роли (Story 1.7)
+#include "app/participation_management/roles/requestrole.cpp"
+#include "app/participation_management/roles/approverole.cpp"
+#include "app/participation_management/roles/declinerole.cpp"
+#include "app/participation_management/roles/inviterole.cpp"
+#include "app/participation_management/roles/acceptinvite.cpp"
+#include "app/participation_management/roles/declinvite.cpp"
+#include "app/participation_management/roles/requestrateu.cpp"
 
 // Управление расходами
 #include "app/expense_managment/create_expense/approveexpns.cpp"

@@ -2,10 +2,13 @@ using namespace Loan;
 
 /**
  * @brief Создание долгового обязательства.
- * Создает новое долговое обязательство для пользователя с указанным сроком погашения
+ * Создает новое долговое обязательство пайщика. loan-контракт независим от
+ * прикладных контрактов — здесь нет привязки к проекту/программе/компоненту.
+ * Локальный контекст (project_hash и т.п.) хранится на стороне вызывающего
+ * контракта в его собственной таблице долгов.
  * @param coopname Наименование кооператива
  * @param username Имя пользователя-должника
- * @param debt_hash Хэш долгового обязательства
+ * @param debt_hash Хэш долгового обязательства (идентификатор)
  * @param repaid_at Срок погашения долга
  * @param quantity Сумма долга
  * @ingroup public_actions
@@ -33,6 +36,7 @@ void loan::createdebt(name coopname, name username, checksum256 debt_hash, time_
     d.amount = quantity;
     d.created_at = time_point_sec(current_time_point());
     d.repaid_at = repaid_at;
+    d.source_contract = payer;
   });
 
   Loan::summaries_index summaries(_loan, coopname.value);

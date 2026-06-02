@@ -61,10 +61,41 @@ void capital::signact2(eosio::name coopname, eosio::name chairman, checksum256 r
   }
 
   // Возврат беспроцентного займа пайщика: Dr 80 / Cr 58, TRANSFER LOAN_ISSUED → SHARE_FUND_PAY.
-  // Семантика: пайщик погасил ссуду результатом (интеллектуальным взносом),
+  // Семантика: пайщик погасил ссуду результатом (паевой взнос интеллектуальным результатом),
   // у кооперативa уменьшилось фин. вложение 58, деньги вернулись на расчётный.
   if (result -> debt_amount.amount > 0){
     Ledger2::apply(_capital, coopname, operations::capital::REPAY, result -> debt_amount, result -> username, result_hash, memo);
+
+    // Лимит «10 займов на проект в одном паевом взносе» проверяем по счётчику
+    // active_debts_count на сегменте (binary_extension) — без обхода byprojhash.
+    // Сам счётчик инкрементируется в debtpaycnfrm и декрементируется в mark_settled.
+    uint32_t active_cnt = Capital::Segments::get_active_debts_count(coopname, result->project_hash, result->username);
+    eosio::check(active_cnt <= 10,
+                 "Превышен лимит займов на проект для одного паевого взноса (10)");
+
+    // Перебираем долги пайщика по проекту, но не больше известного счётчика —
+    // ранний выход сразу после нужного числа активных записей.
+    Capital::Debts::debts_index debts(_capital, coopname.value);
+    auto byproj = debts.get_index<"byprojhash"_n>();
+    std::vector<std::tuple<uint64_t, checksum256, eosio::asset>> to_settle;
+    to_settle.reserve(active_cnt);
+    for (auto it = byproj.find(result->project_hash);
+         it != byproj.end() && it->project_hash == result->project_hash
+         && to_settle.size() < active_cnt; ++it) {
+      if (it->username == result->username
+          && (it->status == Capital::Debts::Status::PAID
+              || it->status == Capital::Debts::Status::OVERDUE)) {
+        to_settle.emplace_back(it->id, it->debt_hash, it->amount);
+      }
+    }
+    for (auto& tup : to_settle) {
+      auto id = std::get<0>(tup);
+      auto dh = std::get<1>(tup);
+      auto amt = std::get<2>(tup);
+      Loan::settle_debt(_capital, coopname, result->username, dh, amt);
+      Capital::Debts::mark_settled(coopname, id, memo, _capital);
+      Capital::Segments::decrease_active_debts_count(coopname, result->project_hash, result->username);
+    }
   }
   
   // Обновляем накопительные показатели контрибьютора на основе его ролей в сегменте

@@ -19,6 +19,11 @@ struct [[eosio::table, eosio::contract(LOAN)]] debt {
   time_point_sec created_at;
   time_point_sec repaid_at;
 
+  // Контракт-источник, инициировавший выдачу займа (capital / marketplace / ...).
+  // loan не знает доменного контекста (проекта, программы) — это ответственность
+  // вызывающего контракта; ему же принадлежит и локальная привязка debt_hash.
+  name source_contract;
+
   uint64_t primary_key() const { return id; }
   uint64_t by_username() const { return username.value; }
   checksum256 by_debt_hash() const { return debt_hash; }
