@@ -93,11 +93,13 @@ _Критичные правила и паттерны для AI-агентов 
 ### Composite-Entity (ADR-008) — СТРОГО
 
 - Namespaced: `entity.db.X` (DB-поля) / `entity.bc?.Y` (blockchain, nullable) / `entity.derived.Z` (computed getters).
-- **НЕ** писать `entity.X` напрямую — ломает изоляцию.
+- `BaseDomainEntity<TDb, TBc>` инициализирует `this.db` shallow-копией из `databaseData`; `this.bc` остаётся `undefined` пока не вызван `replaceBc(this, blockchainData, BC_KEYS)`. `block_num`/`present`/`status` — отдельные поля на BaseDomainEntity (быстрый stale-delta guard в hot-path).
 - Конструктор `(databaseData, blockchainData?)` — обязан `throw` на sync-key mismatch.
-- `updateFromBlockchain` возвращает **новый экземпляр** (immutable) или мутирует только `this.bc`, `this.block_num`, `this.present` — БЕЗ `Object.assign`.
+- `updateFromBlockchain` мутирует только `this.bc`, `this.block_num`, `this.present` через `replaceBc(this, blockchainData, BC_KEYS)` (utility-функция из `~/shared/sync/entities/base-domain.entity`). **НЕ** `Object.assign(this, blockchainData)` — это анти-паттерн, проверка в `tests/unit/blockchain/composite-entity.contract.test.ts` (Story 6.1).
+- `BC_KEYS` объявляется на уровне модуля как `const` с `satisfies ReadonlyArray<keyof IXxxBlockchainData>` — это canonical-ordered источник полей для Story 6.4 checksum.
 - `derived` getter — детерминирован (NO `new Date()` в конструкторе / getter — ломает snapshot tests).
 - Все signed-document поля нормализуются через `AbstractDeltaMapper.normalizeSignedDocuments` на основе `signedDocumentFields: SignedDocField[]` декларативно, НЕ руками в mapper.
+- Эталон миграции (Story 6.1): `extensions/capital/domain/entities/project.entity.ts` — `PROJECT_BC_KEYS` + `replaceBc(...)`. 22 legacy entity в allowlist'е contract-теста, миграция тречится Epic 9 (Story 9-5).
 
 ### Dispatch pipeline (ADR-002, ADR-009) — СТРОГО
 
