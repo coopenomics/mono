@@ -6523,8 +6523,6 @@ capitalGenerateGenerationPropertyInvestDecision?: [{	data: ValueTypes["GenerateD
 capitalGenerateGenerationPropertyInvestStatement?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalGenerateGetLoanDecision?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalGenerateGetLoanStatement?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
-capitalGenerateProgramExpenseDecision?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
-capitalGenerateProgramExpenseStatement?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalGenerateProgramMoneyInvestStatement?: [{	data: ValueTypes["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalGenerateProjectGenerationContract?: [{	data: ValueTypes["ProjectGenerationContractGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalGenerateRegistrationDocuments?: [{	data: ValueTypes["GenerateCapitalRegistrationDocumentsInputDTO"] | Variable<any, string>},ValueTypes["GenerateCapitalRegistrationDocumentsOutputDTO"]],
@@ -14941,8 +14939,6 @@ capitalGenerateGenerationPropertyInvestDecision?: [{	data: ResolverInputTypes["G
 capitalGenerateGenerationPropertyInvestStatement?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalGenerateGetLoanDecision?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalGenerateGetLoanStatement?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
-capitalGenerateProgramExpenseDecision?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
-capitalGenerateProgramExpenseStatement?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalGenerateProgramMoneyInvestStatement?: [{	data: ResolverInputTypes["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalGenerateProjectGenerationContract?: [{	data: ResolverInputTypes["ProjectGenerationContractGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalGenerateRegistrationDocuments?: [{	data: ResolverInputTypes["GenerateCapitalRegistrationDocumentsInputDTO"]},ResolverInputTypes["GenerateCapitalRegistrationDocumentsOutputDTO"]],
@@ -23291,14 +23287,6 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member.  */
 	capitalGenerateGetLoanStatement: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать решение совета о расходе программы (registry 1013)
-
-Требуемые роли: chairman, member.  */
-	capitalGenerateProgramExpenseDecision: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать заявление о расходе программы (registry 1012)
-
-Требуемые роли: chairman, member.  */
-	capitalGenerateProgramExpenseStatement: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать заявление об инвестировании в программу благороста (без привязки к проекту)
 
 Требуемые роли: chairman, member, user.  */
@@ -32342,14 +32330,6 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member.  */
 	capitalGenerateGetLoanStatement: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать решение совета о расходе программы (registry 1013)
-
-Требуемые роли: chairman, member.  */
-	capitalGenerateProgramExpenseDecision: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать заявление о расходе программы (registry 1012)
-
-Требуемые роли: chairman, member.  */
-	capitalGenerateProgramExpenseStatement: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать заявление об инвестировании в программу благороста (без привязки к проекту)
 
 Требуемые роли: chairman, member, user.  */

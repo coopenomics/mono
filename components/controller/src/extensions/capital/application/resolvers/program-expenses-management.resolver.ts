@@ -1,13 +1,9 @@
 import { Args, Mutation, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { Throttle } from '@nestjs/throttler';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
 import { RolesGuard } from '~/application/auth/guards/roles.guard';
 import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
 import { TransactionDTO } from '~/application/common/dto/transaction-result-response.dto';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
-import { GenerateDocumentInputDTO } from '~/application/document/dto/generate-document-input.dto';
-import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
 import { ProgramExpensesManagementService } from '../services/program-expenses-management.service';
 import {
   ApproveProgramExpenseInputDTO,
@@ -85,31 +81,4 @@ export class ProgramExpensesManagementResolver {
     return this.service.topupProgramExpense(data);
   }
 
-  @Mutation(() => GeneratedDocumentDTO, {
-    name: 'capitalGenerateProgramExpenseStatement',
-    description: 'Сгенерировать заявление о расходе программы (registry 1012)',
-  })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
-  generateProgramExpenseStatement(
-    @Args('data') data: GenerateDocumentInputDTO,
-    @Args('options', { nullable: true }) options: GenerateDocumentOptionsInputDTO,
-  ): Promise<GeneratedDocumentDTO> {
-    return this.service.generateProgramExpenseStatement(data, options);
-  }
-
-  @Mutation(() => GeneratedDocumentDTO, {
-    name: 'capitalGenerateProgramExpenseDecision',
-    description: 'Сгенерировать решение совета о расходе программы (registry 1013)',
-  })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
-  generateProgramExpenseDecision(
-    @Args('data') data: GenerateDocumentInputDTO,
-    @Args('options', { nullable: true }) options: GenerateDocumentOptionsInputDTO,
-  ): Promise<GeneratedDocumentDTO> {
-    return this.service.generateProgramExpenseDecision(data, options);
-  }
 }

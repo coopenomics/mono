@@ -7924,20 +7924,6 @@ type Mutation {
   capitalGenerateGetLoanStatement(data: GenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
 
   """
-  Сгенерировать решение совета о расходе программы (registry 1013)
-  
-  Требуемые роли: chairman, member. 
-  """
-  capitalGenerateProgramExpenseDecision(data: GenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
-
-  """
-  Сгенерировать заявление о расходе программы (registry 1012)
-  
-  Требуемые роли: chairman, member. 
-  """
-  capitalGenerateProgramExpenseStatement(data: GenerateDocumentInput!, options: GenerateDocumentOptionsInput): GeneratedDocument!
-
-  """
   Сгенерировать заявление об инвестировании в программу благороста (без привязки к проекту)
   
   Требуемые роли: chairman, member, user. 

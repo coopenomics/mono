@@ -867,14 +867,6 @@ export const AllTypesProps: Record<string,any> = {
 			data:"GenerateDocumentInput",
 			options:"GenerateDocumentOptionsInput"
 		},
-		capitalGenerateProgramExpenseDecision:{
-			data:"GenerateDocumentInput",
-			options:"GenerateDocumentOptionsInput"
-		},
-		capitalGenerateProgramExpenseStatement:{
-			data:"GenerateDocumentInput",
-			options:"GenerateDocumentOptionsInput"
-		},
 		capitalGenerateProgramMoneyInvestStatement:{
 			data:"ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput",
 			options:"GenerateDocumentOptionsInput"
@@ -3640,8 +3632,6 @@ export const ReturnTypes: Record<string,any> = {
 		capitalGenerateGenerationPropertyInvestStatement:"GeneratedDocument",
 		capitalGenerateGetLoanDecision:"GeneratedDocument",
 		capitalGenerateGetLoanStatement:"GeneratedDocument",
-		capitalGenerateProgramExpenseDecision:"GeneratedDocument",
-		capitalGenerateProgramExpenseStatement:"GeneratedDocument",
 		capitalGenerateProgramMoneyInvestStatement:"GeneratedDocument",
 		capitalGenerateProjectGenerationContract:"GeneratedDocument",
 		capitalGenerateRegistrationDocuments:"GenerateCapitalRegistrationDocumentsOutputDTO",
