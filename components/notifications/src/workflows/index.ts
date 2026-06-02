@@ -24,6 +24,17 @@ import { workflow as decisionExpiredWorkflow } from './decision-expired';
 import { workflow as chatcoopCalendarEventCreatedWorkflow } from './chatcoop-calendar-event-created';
 import { workflow as chatcoopCalendarEventUpdatedWorkflow } from './chatcoop-calendar-event-updated';
 
+// Capital (Благорост)
+import { workflow as capitalProgramExpenseApprovalRequestWorkflow } from './capital-program-expense-approval-request';
+import { workflow as capitalProgramExpenseApprovedWorkflow } from './capital-program-expense-approved';
+import { workflow as capitalProgramExpenseAuthorizedWorkflow } from './capital-program-expense-authorized';
+import { workflow as capitalProgramExpensePaidWorkflow } from './capital-program-expense-paid';
+import { workflow as capitalProgramExpenseDeclinedWorkflow } from './capital-program-expense-declined';
+import { workflow as capitalDebtDueSoonWorkflow } from './capital-debt-due-soon';
+import { workflow as capitalDebtOverdueWorkflow } from './capital-debt-overdue';
+import { workflow as capitalRoleRequestedWorkflow } from './capital-role-requested';
+import { workflow as capitalRoleApprovedWorkflow } from './capital-role-approved';
+
 // Импортируем все воркфлоу
 export * as Welcome from './welcome';
 export * as NewAgenda from './new-agenda-item';
@@ -48,6 +59,16 @@ export * as ServerProvisioned from './server-provisioned';
 export * as DecisionExpired from './decision-expired';
 export * as ChatCoopCalendarEventCreated from './chatcoop-calendar-event-created';
 export * as ChatCoopCalendarEventUpdated from './chatcoop-calendar-event-updated';
+
+export * as CapitalProgramExpenseApprovalRequest from './capital-program-expense-approval-request';
+export * as CapitalProgramExpenseApproved from './capital-program-expense-approved';
+export * as CapitalProgramExpenseAuthorized from './capital-program-expense-authorized';
+export * as CapitalProgramExpensePaid from './capital-program-expense-paid';
+export * as CapitalProgramExpenseDeclined from './capital-program-expense-declined';
+export * as CapitalDebtDueSoon from './capital-debt-due-soon';
+export * as CapitalDebtOverdue from './capital-debt-overdue';
+export * as CapitalRoleRequested from './capital-role-requested';
+export * as CapitalRoleApproved from './capital-role-approved';
 
 // Массив всех воркфлоу для автоматической регистрации
 export const allWorkflows: WorkflowDefinition[] = [
@@ -74,6 +95,15 @@ export const allWorkflows: WorkflowDefinition[] = [
   decisionExpiredWorkflow,
   chatcoopCalendarEventCreatedWorkflow,
   chatcoopCalendarEventUpdatedWorkflow,
+  capitalProgramExpenseApprovalRequestWorkflow,
+  capitalProgramExpenseApprovedWorkflow,
+  capitalProgramExpenseAuthorizedWorkflow,
+  capitalProgramExpensePaidWorkflow,
+  capitalProgramExpenseDeclinedWorkflow,
+  capitalDebtDueSoonWorkflow,
+  capitalDebtOverdueWorkflow,
+  capitalRoleRequestedWorkflow,
+  capitalRoleApprovedWorkflow,
 ];
 
 // Экспортируем воркфлоу по ID для удобного доступа
