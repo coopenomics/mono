@@ -300,6 +300,7 @@ import { VoteTypeormRepository } from './infrastructure/repositories/vote.typeor
 import { DebtTypeormRepository } from './infrastructure/repositories/debt.typeorm-repository';
 import { ResultTypeormRepository } from './infrastructure/repositories/result.typeorm-repository';
 import { ExpenseTypeormRepository } from './infrastructure/repositories/expense.typeorm-repository';
+import { ProgramExpenseTypeormRepository } from './infrastructure/repositories/program-expense.typeorm-repository';
 import { CommitTypeormRepository } from './infrastructure/repositories/commit.typeorm-repository';
 import { StateTypeormRepository } from './infrastructure/repositories/state.typeorm-repository';
 import { TimeEntryTypeormRepository } from './infrastructure/repositories/time-entry.typeorm-repository';
@@ -333,7 +334,9 @@ import { AppendixSyncService } from './application/syncers/appendix-sync.service
 import { DebtDeltaMapper } from './infrastructure/blockchain/mappers/debt-delta.mapper';
 import { DebtSyncService } from './application/syncers/debt-sync.service';
 import { ExpenseDeltaMapper } from './infrastructure/blockchain/mappers/expense-delta.mapper';
+import { ProgramExpenseDeltaMapper } from './infrastructure/blockchain/mappers/program-expense-delta.mapper';
 import { ExpenseSyncService } from './application/syncers/expense-sync.service';
+import { ProgramExpenseSyncService } from './application/syncers/program-expense-sync.service';
 import { InvestDeltaMapper } from './infrastructure/blockchain/mappers/invest-delta.mapper';
 import { InvestSyncService } from './application/syncers/invest-sync.service';
 import { ResultDeltaMapper } from './infrastructure/blockchain/mappers/result-delta.mapper';
@@ -410,6 +413,7 @@ import { VOTE_REPOSITORY } from './domain/repositories/vote.repository';
 import { DEBT_REPOSITORY } from './domain/repositories/debt.repository';
 import { RESULT_REPOSITORY } from './domain/repositories/result.repository';
 import { EXPENSE_REPOSITORY } from './domain/repositories/expense.repository';
+import { PROGRAM_EXPENSE_REPOSITORY } from './domain/repositories/program-expense.repository';
 import { COMMIT_REPOSITORY } from './domain/repositories/commit.repository';
 import { STATE_REPOSITORY } from './domain/repositories/state.repository';
 import { TIME_ENTRY_REPOSITORY } from './domain/repositories/time-entry.repository';
@@ -743,6 +747,8 @@ IssueIdGenerationService,
     DebtSyncService,
     ExpenseDeltaMapper,
     ExpenseSyncService,
+    ProgramExpenseDeltaMapper,
+    ProgramExpenseSyncService,
     InvestDeltaMapper,
     InvestSyncService,
     ResultDeltaMapper,
@@ -854,6 +860,10 @@ IssueIdGenerationService,
     {
       provide: EXPENSE_REPOSITORY,
       useClass: ExpenseTypeormRepository,
+    },
+    {
+      provide: PROGRAM_EXPENSE_REPOSITORY,
+      useClass: ProgramExpenseTypeormRepository,
     },
     {
       provide: COMMIT_REPOSITORY,

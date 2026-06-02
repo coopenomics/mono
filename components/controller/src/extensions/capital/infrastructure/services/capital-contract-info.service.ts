@@ -22,6 +22,7 @@ export class CapitalContractInfoService {
     commits: ['commits', 'commits*'],
     appendixes: ['appendixes', 'appendixes*'],
     expenses: ['expenses', 'expenses*'],
+    progexpenses: ['progexpenses', 'progexpense*'],
     pgproperties: ['pgproperties', 'pgproperties*'],
     pjproperties: ['pjproperties', 'pjproperties*'],
     results: ['results', 'results*'],

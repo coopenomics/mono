@@ -1,4 +1,4 @@
-import { Args, Mutation, Resolver } from '@nestjs/graphql';
+import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
 import { RolesGuard } from '~/application/auth/guards/roles.guard';
@@ -13,6 +13,19 @@ import {
   PayProgramExpenseInputDTO,
   TopupProgramExpensePoolInputDTO,
 } from '../dto/program_expenses_management/inputs.dto';
+import { ProgramExpenseOutputDTO } from '../dto/program_expenses_management/program-expense.dto';
+import { ProgramExpenseFilterInputDTO } from '../dto/program_expenses_management/program-expense-filter.input';
+import { GetProgramExpenseInputDTO } from '../dto/program_expenses_management/get-program-expense-input.dto';
+import {
+  createPaginationResult,
+  PaginationInputDTO,
+  PaginationResult,
+} from '~/application/common/dto/pagination.dto';
+
+const paginatedProgramExpensesResult = createPaginationResult(
+  ProgramExpenseOutputDTO,
+  'PaginatedCapitalProgramExpenses',
+);
 
 /**
  * GraphQL резолвер расходов программы Благорост (Эпик B).
@@ -20,6 +33,8 @@ import {
 @Resolver()
 export class ProgramExpensesManagementResolver {
   constructor(private readonly service: ProgramExpensesManagementService) {}
+
+  // ─── мутации ────────────────────────────────────────────────────────────
 
   @Mutation(() => TransactionDTO, {
     name: 'capitalCreateProgramExpense',
@@ -81,4 +96,29 @@ export class ProgramExpensesManagementResolver {
     return this.service.topupProgramExpense(data);
   }
 
+  // ─── запросы (read-path) ────────────────────────────────────────────────
+
+  @Query(() => paginatedProgramExpensesResult, {
+    name: 'capitalProgramExpenses',
+    description: 'Список расходов программы «Благорост» с фильтрацией и пагинацией',
+  })
+  async getProgramExpenses(
+    @Args('filter', { type: () => ProgramExpenseFilterInputDTO, nullable: true })
+    filter?: ProgramExpenseFilterInputDTO,
+    @Args('options', { type: () => PaginationInputDTO, nullable: true })
+    options?: PaginationInputDTO,
+  ): Promise<PaginationResult<ProgramExpenseOutputDTO>> {
+    return this.service.getProgramExpenses(filter, options);
+  }
+
+  @Query(() => ProgramExpenseOutputDTO, {
+    name: 'capitalProgramExpense',
+    description: 'Расход программы «Благорост» по внутреннему ID базы данных',
+    nullable: true,
+  })
+  async getProgramExpense(
+    @Args('data') data: GetProgramExpenseInputDTO,
+  ): Promise<ProgramExpenseOutputDTO | null> {
+    return this.service.getProgramExpenseById(data);
+  }
 }

@@ -9,6 +9,16 @@ import type {
   PayProgramExpenseInputDTO,
   TopupProgramExpensePoolInputDTO,
 } from '../dto/program_expenses_management/inputs.dto';
+import {
+  PROGRAM_EXPENSE_REPOSITORY,
+  type ProgramExpenseRepository,
+} from '../../domain/repositories/program-expense.repository';
+import { ProgramExpenseDomainEntity } from '../../domain/entities/program-expense.entity';
+import type { ProgramExpenseFilterInputDTO } from '../dto/program_expenses_management/program-expense-filter.input';
+import type {
+  PaginationInputDomainInterface,
+  PaginationResultDomainInterface,
+} from '~/domain/common/interfaces/pagination.interface';
 
 /**
  * Интерактор расходов программы Благорост (Эпик B).
@@ -21,6 +31,8 @@ export class ProgramExpensesManagementInteractor {
   constructor(
     @Inject(CAPITAL_BLOCKCHAIN_PORT)
     private readonly capitalBlockchainPort: CapitalBlockchainPort,
+    @Inject(PROGRAM_EXPENSE_REPOSITORY)
+    private readonly programExpenseRepository: ProgramExpenseRepository,
   ) {}
 
   async createProgramExpense(data: CreateProgramExpenseInputDTO): Promise<TransactResult> {
@@ -45,5 +57,18 @@ export class ProgramExpensesManagementInteractor {
 
   async topupProgramExpense(data: TopupProgramExpensePoolInputDTO): Promise<TransactResult> {
     return this.capitalBlockchainPort.topupProgramExpense(data as never);
+  }
+
+  // ─── read-path ──────────────────────────────────────────────────────────
+
+  async getProgramExpenses(
+    filter?: ProgramExpenseFilterInputDTO,
+    options?: PaginationInputDomainInterface,
+  ): Promise<PaginationResultDomainInterface<ProgramExpenseDomainEntity>> {
+    return this.programExpenseRepository.findAllPaginated(filter, options);
+  }
+
+  async getProgramExpenseById(_id: string): Promise<ProgramExpenseDomainEntity | null> {
+    return this.programExpenseRepository.findById(_id);
   }
 }
