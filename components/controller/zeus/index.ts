@@ -6091,6 +6091,15 @@ export type ValueTypes = {
 	/** Подписанное решение председателя (опционально). */
 	signed_decision?: ValueTypes["MarketplaceReturnStatementSignedInput"] | undefined | null | Variable<any, string>
 };
+	/** Добавить позицию в корзину (с привязкой к пункту выдачи). */
+["MarketplaceAddToCartInput"]: {
+	/** Пункт выдачи (ПВЗ) корзины. Если корзина пуста — задаёт её КУ; если непуста — должен совпадать с текущим КУ корзины (один заказ — один КУ). */
+	delivery_braname?: string | undefined | null | Variable<any, string>,
+	/** Идентификатор предложения. */
+	offer_id: string | Variable<any, string>,
+	/** Количество единиц (целое, ≥ 1). */
+	quantity: number | Variable<any, string>
+};
 	["MarketplaceAddToWhitelistInput"]: {
 	/** eosio::name пайщика-поставщика (3-12 chars, [.12345abcdefghijklmnopqrstuvwxyz]) */
 	member_account: string | Variable<any, string>
@@ -6367,6 +6376,14 @@ export type ValueTypes = {
 ["MarketplaceBarcodeFormat"]:MarketplaceBarcodeFormat;
 	/** Стратегия маркировки: одна этикетка на заказ, на единицу, или на упаковку. */
 ["MarketplaceBarcodeStrategy"]:MarketplaceBarcodeStrategy;
+	["MarketplaceBindInventoryBarcodeInput"]: {
+	/** Значение штрих-кода с заранее напечатанной этикетки (считанное сканером или введённое вручную). */
+	barcode_value: string | Variable<any, string>,
+	/** Формат штрих-кода. По умолчанию — EAN-13. */
+	format?: ValueTypes["MarketplaceBarcodeFormat"] | undefined | null | Variable<any, string>,
+	/** Позиция склада, к которой привязывается отсканированный штрих-код. */
+	inventory_id: ValueTypes["ID"] | Variable<any, string>
+};
 	/** Параметры отмены своего заказа пайщиком. */
 ["MarketplaceCancelOrderInput"]: {
 	/** Идентификатор заказа, который пайщик хочет отменить (отмена возможна до приёма заказа поставщиком). */
@@ -6380,6 +6397,48 @@ export type ValueTypes = {
 	tx_hash?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceCancelOrderResult']?: Omit<ValueTypes["MarketplaceCancelOrderResult"], "...on MarketplaceCancelOrderResult">
+}>;
+	/** Корзина заказчика — накопитель позиций перед оформлением. */
+["MarketplaceCart"]: AliasType<{
+	/** Пункт выдачи (ПВЗ), к которому привязана корзина; null — пока не выбран. */
+	delivery_braname?:boolean | `@${string}`,
+	/** Наименование пункта выдачи (кооперативного участка) — для шапки/корзины. */
+	delivery_point_name?:boolean | `@${string}`,
+	/** Идентификатор корзины. */
+	id?:boolean | `@${string}`,
+	/** Позиции корзины. */
+	items?:ValueTypes["MarketplaceCartItem"],
+	/** Количество разных позиций (строк) в корзине. */
+	positions_count?:boolean | `@${string}`,
+	/** Итоговая сумма корзины (по доступным к доставке позициям). */
+	total_cost?:boolean | `@${string}`,
+	/** Суммарное количество единиц всех позиций. */
+	total_quantity?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceCart']?: Omit<ValueTypes["MarketplaceCart"], "...on MarketplaceCart">
+}>;
+	/** Позиция корзины заказчика. */
+["MarketplaceCartItem"]: AliasType<{
+	/** Доступна ли позиция к доставке на текущий пункт выдачи корзины. false — товар не возят на выбранный КУ (нужно убрать перед оформлением или сменить КУ). */
+	available_on_current_ku?:boolean | `@${string}`,
+	/** Идентификатор позиции корзины. */
+	id?:boolean | `@${string}`,
+	/** URL обложки товара (если у предложения есть изображение). */
+	image_url?:boolean | `@${string}`,
+	/** Сумма позиции (цена за единицу × количество). */
+	line_total?:boolean | `@${string}`,
+	/** Идентификатор предложения. */
+	offer_id?:boolean | `@${string}`,
+	/** Цена за единицу товара на текущий момент. */
+	price_per_unit?:boolean | `@${string}`,
+	/** Название товара из предложения — для отображения в корзине. */
+	product_name?:boolean | `@${string}`,
+	/** Количество единиц в корзине. */
+	quantity?:boolean | `@${string}`,
+	/** Единица измерения товара (шт., кг, л, упак.). */
+	unit_of_measure?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceCartItem']?: Omit<ValueTypes["MarketplaceCartItem"], "...on MarketplaceCartItem">
 }>;
 	["MarketplaceCategory"]: AliasType<{
 	display_name?:boolean | `@${string}`,
@@ -6444,6 +6503,41 @@ export type ValueTypes = {
 	totalTypes?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceCategoryTreeStats']?: Omit<ValueTypes["MarketplaceCategoryTreeStats"], "...on MarketplaceCategoryTreeStats">
+}>;
+	/** Оформить заказ из корзины (или повторить упавший остаток того же заказа). */
+["MarketplaceCheckoutCartInput"]: {
+	/** Идентификатор заказа для повтора остатка: при частичном сбое прошлого оформления передаётся тот же checkout_id, чтобы непрошедшие позиции легли в тот же заказ. Пусто — оформляется новый заказ. */
+	checkout_id?: string | undefined | null | Variable<any, string>
+};
+	/** Позиция корзины, которую не удалось оформить (осталась в корзине для повтора). */
+["MarketplaceCheckoutFailedLine"]: AliasType<{
+	/** Идентификатор предложения непрошедшей позиции. */
+	offer_id?:boolean | `@${string}`,
+	/** Название товара (для отображения). */
+	product_name?:boolean | `@${string}`,
+	/** Количество единиц непрошедшей позиции. */
+	quantity?:boolean | `@${string}`,
+	/** Причина, по которой позиция не оформлена. */
+	reason?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceCheckoutFailedLine']?: Omit<ValueTypes["MarketplaceCheckoutFailedLine"], "...on MarketplaceCheckoutFailedLine">
+}>;
+	/** Результат оформления заказа из корзины: общий идентификатор заказа, оформленные позиции и непрошедший остаток (если был частичный сбой). */
+["MarketplaceCheckoutResult"]: AliasType<{
+	/** Корзина после оформления (с непрошедшим остатком). */
+	cart?:ValueTypes["MarketplaceCart"],
+	/** Идентификатор заказа (общий для всех оформленных позиций). */
+	checkout_id?:boolean | `@${string}`,
+	/** Успешно оформленные позиции (строки заказа). */
+	created_orders?:ValueTypes["MarketplaceOrder"],
+	/** Пункт выдачи (КУ) заказа. */
+	delivery_braname?:boolean | `@${string}`,
+	/** Позиции, которые не удалось оформить — остались в корзине для повтора. */
+	failed_lines?:ValueTypes["MarketplaceCheckoutFailedLine"],
+	/** true — все позиции оформлены и корзина по этому заказу пуста; false — есть остаток. */
+	fully_completed?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceCheckoutResult']?: Omit<ValueTypes["MarketplaceCheckoutResult"], "...on MarketplaceCheckoutResult">
 }>;
 	["MarketplaceConsolidatedRequest"]: AliasType<{
 	accepted_at?:boolean | `@${string}`,
@@ -6839,6 +6933,8 @@ export type ValueTypes = {
 	["MarketplaceListCatalogInput"]: {
 	/** category_id 1..9; null = «Все» */
 	category_id?: number | undefined | null | Variable<any, string>,
+	/** Пункт выдачи (КУ) доставки. Если задан — в каталоге остаются только товары, которые возят на этот пункт выдачи (Эпик 16). */
+	delivery_braname?: string | undefined | null | Variable<any, string>,
 	/** Количество элементов на странице */
 	limit: number | Variable<any, string>,
 	/** Номер страницы */
@@ -7084,6 +7180,8 @@ export type ValueTypes = {
 	chairman_account?:boolean | `@${string}`,
 	/** Когда председатель кооперативного участка открыл выдачу первой подписью. */
 	chairman_signed_at?:boolean | `@${string}`,
+	/** Идентификатор заказа заказчика — общий для всех позиций одного оформления корзины на один пункт выдачи. Позволяет сгруппировать позиции в один заказ. Пусто для прежних покарточных заказов. */
+	checkout_id?:boolean | `@${string}`,
 	/** Кооператив, в котором сделан заказ. */
 	coopname?:boolean | `@${string}`,
 	/** Снимок транзакции блокировки средств (для отображения движений кошелька). */
@@ -7288,6 +7386,11 @@ export type ValueTypes = {
 	comment: string | Variable<any, string>,
 	/** Подписанное решение председателя (опционально). */
 	signed_decision?: ValueTypes["MarketplaceReturnStatementSignedInput"] | undefined | null | Variable<any, string>
+};
+	/** Убрать позицию из корзины. */
+["MarketplaceRemoveFromCartInput"]: {
+	/** Идентификатор предложения позиции. */
+	offer_id: string | Variable<any, string>
 };
 	["MarketplaceRemoveFromWhitelistInput"]: {
 	/** eosio::name пайщика-поставщика */
@@ -7644,6 +7747,11 @@ export type ValueTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string | Variable<any, string>
 };
+	/** Сменить пункт выдачи (КУ) корзины. */
+["MarketplaceSetCartDeliveryPointInput"]: {
+	/** Имя пункта выдачи (branch.name) нового КУ доставки. */
+	delivery_braname: string | Variable<any, string>
+};
 	["MarketplaceSetKUStatusInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>,
@@ -7750,6 +7858,13 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceSupplierBatchActionResult']?: Omit<ValueTypes["MarketplaceSupplierBatchActionResult"], "...on MarketplaceSupplierBatchActionResult">
 }>;
+	/** Изменить количество позиции в корзине. */
+["MarketplaceUpdateCartItemInput"]: {
+	/** Идентификатор предложения позиции. */
+	offer_id: string | Variable<any, string>,
+	/** Новое количество единиц (целое, ≥ 1). */
+	quantity: number | Variable<any, string>
+};
 	["MarketplaceUpdateOfferInput"]: {
 	barcode_strategy?: ValueTypes["MarketplaceBarcodeStrategy"] | undefined | null | Variable<any, string>,
 	category_id?: number | undefined | null | Variable<any, string>,
@@ -8256,16 +8371,21 @@ marketplaceAcceptOrdersBatch?: [{	input: ValueTypes["MarketplaceAcceptOrdersBatc
 marketplaceAcceptReturnAtVisit?: [{	data: ValueTypes["MarketplaceAcceptReturnAtVisitInput"] | Variable<any, string>},ValueTypes["MarketplaceReturnClaimResult"]],
 marketplaceAddAvailableCategories?: [{	input: ValueTypes["AddAvailableCategoriesInput"] | Variable<any, string>},ValueTypes["MarketplaceAvailableCategory"]],
 marketplaceAddAvailableCategoryTypes?: [{	input: ValueTypes["AddAvailableCategoryTypesInput"] | Variable<any, string>},ValueTypes["MarketplaceAvailableCategory"]],
+marketplaceAddToCart?: [{	input: ValueTypes["MarketplaceAddToCartInput"] | Variable<any, string>},ValueTypes["MarketplaceCart"]],
 marketplaceAddToWhitelist?: [{	input: ValueTypes["MarketplaceAddToWhitelistInput"] | Variable<any, string>},ValueTypes["MarketplaceWhitelistEntry"]],
 marketplaceApproveOffer?: [{	input: ValueTypes["MarketplaceApproveOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
 marketplaceApproveReturnVisit?: [{	data: ValueTypes["MarketplaceApproveReturnVisitInput"] | Variable<any, string>},ValueTypes["MarketplaceReturnClaimResult"]],
 marketplaceAssignInventoryShelf?: [{	data: ValueTypes["MarketplaceAssignInventoryShelfInput"] | Variable<any, string>},ValueTypes["MarketplaceInventoryMutationResult"]],
+marketplaceBindInventoryBarcode?: [{	data: ValueTypes["MarketplaceBindInventoryBarcodeInput"] | Variable<any, string>},ValueTypes["MarketplaceInventoryMutationResult"]],
 marketplaceCancelOrder?: [{	input: ValueTypes["MarketplaceCancelOrderInput"] | Variable<any, string>},ValueTypes["MarketplaceCancelOrderResult"]],
 marketplaceCancelWriteoffDraft?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
+marketplaceCheckoutCart?: [{	input?: ValueTypes["MarketplaceCheckoutCartInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceCheckoutResult"]],
 	/** Очистить все доступные категории (сделать доступными все)
 
 Требуемые роли: chairman.  */
 	marketplaceClearAvailableCategories?:boolean | `@${string}`,
+	/** Очистить корзину (убрать все позиции). */
+	marketplaceClearCart?:ValueTypes["MarketplaceCart"],
 marketplaceCreateAplReception?: [{	data: ValueTypes["MarketplaceCreateAplReceptionInput"] | Variable<any, string>},ValueTypes["MarketplaceAplReceptionResult"]],
 marketplaceCreateExpressReception?: [{	data: ValueTypes["MarketplaceCreateExpressReceptionInput"] | Variable<any, string>},ValueTypes["MarketplaceCreateExpressReceptionResult"]],
 marketplaceCreateOffer?: [{	input: ValueTypes["MarketplaceCreateOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
@@ -8284,16 +8404,19 @@ marketplaceRejectReturnAtVisit?: [{	data: ValueTypes["MarketplaceRejectReturnAtV
 marketplaceRejectReturnRemote?: [{	data: ValueTypes["MarketplaceRejectReturnRemoteInput"] | Variable<any, string>},ValueTypes["MarketplaceReturnClaimResult"]],
 marketplaceRemoveAvailableCategories?: [{	input: ValueTypes["RemoveAvailableCategoriesInput"] | Variable<any, string>},boolean | `@${string}`],
 marketplaceRemoveAvailableCategoryTypes?: [{	input: ValueTypes["RemoveAvailableCategoryTypesInput"] | Variable<any, string>},boolean | `@${string}`],
+marketplaceRemoveFromCart?: [{	input: ValueTypes["MarketplaceRemoveFromCartInput"] | Variable<any, string>},ValueTypes["MarketplaceCart"]],
 marketplaceRemoveFromWhitelist?: [{	input: ValueTypes["MarketplaceRemoveFromWhitelistInput"] | Variable<any, string>},boolean | `@${string}`],
 marketplaceReplaceAvailableItems?: [{	input: ValueTypes["ReplaceAvailableItemsInput"] | Variable<any, string>},ValueTypes["MarketplaceAvailableCategory"]],
 marketplaceRepublishOffer?: [{	input: ValueTypes["MarketplaceRepublishOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
 marketplaceRetryKUGeocode?: [{	coopname: string | Variable<any, string>,	coreBraname: string | Variable<any, string>},ValueTypes["MarketplaceKUDetails"]],
+marketplaceSetCartDeliveryPoint?: [{	input: ValueTypes["MarketplaceSetCartDeliveryPointInput"] | Variable<any, string>},ValueTypes["MarketplaceCart"]],
 marketplaceSetKUStatus?: [{	data: ValueTypes["MarketplaceSetKUStatusInput"] | Variable<any, string>},ValueTypes["MarketplaceKUDetails"]],
 marketplaceSignAplReceptionAsChairman?: [{	data: ValueTypes["MarketplaceSignAplReceptionInput"] | Variable<any, string>},ValueTypes["MarketplaceAplReceptionResult"]],
 marketplaceSignAplReceptionAsSupplier?: [{	data: ValueTypes["MarketplaceSignAplReceptionInput"] | Variable<any, string>},ValueTypes["MarketplaceAplReceptionResult"]],
 marketplaceSignOnboardingOffer?: [{	input: ValueTypes["MarketplaceSignOnboardingOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOnboardingState"]],
 marketplaceSplitInventory?: [{	data: ValueTypes["MarketplaceSplitInventoryInput"] | Variable<any, string>},ValueTypes["MarketplaceInventoryMutationResult"]],
 marketplaceSubmitWriteoffDraft?: [{	data: ValueTypes["MarketplaceSubmitWriteoffDraftInput"] | Variable<any, string>},ValueTypes["MarketplaceWriteoffProposal"]],
+marketplaceUpdateCartItem?: [{	input: ValueTypes["MarketplaceUpdateCartItemInput"] | Variable<any, string>},ValueTypes["MarketplaceCart"]],
 marketplaceUpdateOffer?: [{	input: ValueTypes["MarketplaceUpdateOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
 marketplaceUpdateWriteoffDraft?: [{	data: ValueTypes["MarketplaceUpdateWriteoffDraftInput"] | Variable<any, string>},ValueTypes["MarketplaceWriteoffProposal"]],
 marketplaceWithdrawOffer?: [{	input: ValueTypes["MarketplaceWithdrawOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
@@ -9675,6 +9798,8 @@ marketplaceFindPotentialMatches?: [{	data: ValueTypes["FindPotentialMatchesInput
 
 Требуемые роли: chairman.  */
 	marketplaceGetAvailableCategoryTree?:ValueTypes["MarketplaceCategoryTreeNode"],
+	/** Корзина текущего заказчика (создаётся пустой при первом обращении). */
+	marketplaceGetCart?:ValueTypes["MarketplaceCart"],
 marketplaceGetCategoryById?: [{	data: ValueTypes["GetCategoryByIdInput"] | Variable<any, string>},ValueTypes["MarketplaceCategoryTreeNode"]],
 marketplaceGetCategoryRules?: [{	categoryId: number | Variable<any, string>},ValueTypes["MarketplaceAvailableCategory"]],
 marketplaceGetCategoryTree?: [{	input?: ValueTypes["GetCategoryTreeInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceCategoryTreeNode"]],
@@ -16195,6 +16320,15 @@ export type ResolverInputTypes = {
 	/** Подписанное решение председателя (опционально). */
 	signed_decision?: ResolverInputTypes["MarketplaceReturnStatementSignedInput"] | undefined | null
 };
+	/** Добавить позицию в корзину (с привязкой к пункту выдачи). */
+["MarketplaceAddToCartInput"]: {
+	/** Пункт выдачи (ПВЗ) корзины. Если корзина пуста — задаёт её КУ; если непуста — должен совпадать с текущим КУ корзины (один заказ — один КУ). */
+	delivery_braname?: string | undefined | null,
+	/** Идентификатор предложения. */
+	offer_id: string,
+	/** Количество единиц (целое, ≥ 1). */
+	quantity: number
+};
 	["MarketplaceAddToWhitelistInput"]: {
 	/** eosio::name пайщика-поставщика (3-12 chars, [.12345abcdefghijklmnopqrstuvwxyz]) */
 	member_account: string
@@ -16462,6 +16596,14 @@ export type ResolverInputTypes = {
 ["MarketplaceBarcodeFormat"]:MarketplaceBarcodeFormat;
 	/** Стратегия маркировки: одна этикетка на заказ, на единицу, или на упаковку. */
 ["MarketplaceBarcodeStrategy"]:MarketplaceBarcodeStrategy;
+	["MarketplaceBindInventoryBarcodeInput"]: {
+	/** Значение штрих-кода с заранее напечатанной этикетки (считанное сканером или введённое вручную). */
+	barcode_value: string,
+	/** Формат штрих-кода. По умолчанию — EAN-13. */
+	format?: ResolverInputTypes["MarketplaceBarcodeFormat"] | undefined | null,
+	/** Позиция склада, к которой привязывается отсканированный штрих-код. */
+	inventory_id: ResolverInputTypes["ID"]
+};
 	/** Параметры отмены своего заказа пайщиком. */
 ["MarketplaceCancelOrderInput"]: {
 	/** Идентификатор заказа, который пайщик хочет отменить (отмена возможна до приёма заказа поставщиком). */
@@ -16473,6 +16615,46 @@ export type ResolverInputTypes = {
 	order?:ResolverInputTypes["MarketplaceOrder"],
 	/** Идентификатор транзакции отмены в блокчейне. */
 	tx_hash?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Корзина заказчика — накопитель позиций перед оформлением. */
+["MarketplaceCart"]: AliasType<{
+	/** Пункт выдачи (ПВЗ), к которому привязана корзина; null — пока не выбран. */
+	delivery_braname?:boolean | `@${string}`,
+	/** Наименование пункта выдачи (кооперативного участка) — для шапки/корзины. */
+	delivery_point_name?:boolean | `@${string}`,
+	/** Идентификатор корзины. */
+	id?:boolean | `@${string}`,
+	/** Позиции корзины. */
+	items?:ResolverInputTypes["MarketplaceCartItem"],
+	/** Количество разных позиций (строк) в корзине. */
+	positions_count?:boolean | `@${string}`,
+	/** Итоговая сумма корзины (по доступным к доставке позициям). */
+	total_cost?:boolean | `@${string}`,
+	/** Суммарное количество единиц всех позиций. */
+	total_quantity?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Позиция корзины заказчика. */
+["MarketplaceCartItem"]: AliasType<{
+	/** Доступна ли позиция к доставке на текущий пункт выдачи корзины. false — товар не возят на выбранный КУ (нужно убрать перед оформлением или сменить КУ). */
+	available_on_current_ku?:boolean | `@${string}`,
+	/** Идентификатор позиции корзины. */
+	id?:boolean | `@${string}`,
+	/** URL обложки товара (если у предложения есть изображение). */
+	image_url?:boolean | `@${string}`,
+	/** Сумма позиции (цена за единицу × количество). */
+	line_total?:boolean | `@${string}`,
+	/** Идентификатор предложения. */
+	offer_id?:boolean | `@${string}`,
+	/** Цена за единицу товара на текущий момент. */
+	price_per_unit?:boolean | `@${string}`,
+	/** Название товара из предложения — для отображения в корзине. */
+	product_name?:boolean | `@${string}`,
+	/** Количество единиц в корзине. */
+	quantity?:boolean | `@${string}`,
+	/** Единица измерения товара (шт., кг, л, упак.). */
+	unit_of_measure?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["MarketplaceCategory"]: AliasType<{
@@ -16532,6 +16714,39 @@ export type ResolverInputTypes = {
 	totalCategories?:boolean | `@${string}`,
 	/** Общее количество типов товаров */
 	totalTypes?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Оформить заказ из корзины (или повторить упавший остаток того же заказа). */
+["MarketplaceCheckoutCartInput"]: {
+	/** Идентификатор заказа для повтора остатка: при частичном сбое прошлого оформления передаётся тот же checkout_id, чтобы непрошедшие позиции легли в тот же заказ. Пусто — оформляется новый заказ. */
+	checkout_id?: string | undefined | null
+};
+	/** Позиция корзины, которую не удалось оформить (осталась в корзине для повтора). */
+["MarketplaceCheckoutFailedLine"]: AliasType<{
+	/** Идентификатор предложения непрошедшей позиции. */
+	offer_id?:boolean | `@${string}`,
+	/** Название товара (для отображения). */
+	product_name?:boolean | `@${string}`,
+	/** Количество единиц непрошедшей позиции. */
+	quantity?:boolean | `@${string}`,
+	/** Причина, по которой позиция не оформлена. */
+	reason?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Результат оформления заказа из корзины: общий идентификатор заказа, оформленные позиции и непрошедший остаток (если был частичный сбой). */
+["MarketplaceCheckoutResult"]: AliasType<{
+	/** Корзина после оформления (с непрошедшим остатком). */
+	cart?:ResolverInputTypes["MarketplaceCart"],
+	/** Идентификатор заказа (общий для всех оформленных позиций). */
+	checkout_id?:boolean | `@${string}`,
+	/** Успешно оформленные позиции (строки заказа). */
+	created_orders?:ResolverInputTypes["MarketplaceOrder"],
+	/** Пункт выдачи (КУ) заказа. */
+	delivery_braname?:boolean | `@${string}`,
+	/** Позиции, которые не удалось оформить — остались в корзине для повтора. */
+	failed_lines?:ResolverInputTypes["MarketplaceCheckoutFailedLine"],
+	/** true — все позиции оформлены и корзина по этому заказу пуста; false — есть остаток. */
+	fully_completed?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["MarketplaceConsolidatedRequest"]: AliasType<{
@@ -16914,6 +17129,8 @@ export type ResolverInputTypes = {
 	["MarketplaceListCatalogInput"]: {
 	/** category_id 1..9; null = «Все» */
 	category_id?: number | undefined | null,
+	/** Пункт выдачи (КУ) доставки. Если задан — в каталоге остаются только товары, которые возят на этот пункт выдачи (Эпик 16). */
+	delivery_braname?: string | undefined | null,
 	/** Количество элементов на странице */
 	limit: number,
 	/** Номер страницы */
@@ -17152,6 +17369,8 @@ export type ResolverInputTypes = {
 	chairman_account?:boolean | `@${string}`,
 	/** Когда председатель кооперативного участка открыл выдачу первой подписью. */
 	chairman_signed_at?:boolean | `@${string}`,
+	/** Идентификатор заказа заказчика — общий для всех позиций одного оформления корзины на один пункт выдачи. Позволяет сгруппировать позиции в один заказ. Пусто для прежних покарточных заказов. */
+	checkout_id?:boolean | `@${string}`,
 	/** Кооператив, в котором сделан заказ. */
 	coopname?:boolean | `@${string}`,
 	/** Снимок транзакции блокировки средств (для отображения движений кошелька). */
@@ -17349,6 +17568,11 @@ export type ResolverInputTypes = {
 	comment: string,
 	/** Подписанное решение председателя (опционально). */
 	signed_decision?: ResolverInputTypes["MarketplaceReturnStatementSignedInput"] | undefined | null
+};
+	/** Убрать позицию из корзины. */
+["MarketplaceRemoveFromCartInput"]: {
+	/** Идентификатор предложения позиции. */
+	offer_id: string
 };
 	["MarketplaceRemoveFromWhitelistInput"]: {
 	/** eosio::name пайщика-поставщика */
@@ -17695,6 +17919,11 @@ export type ResolverInputTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string
 };
+	/** Сменить пункт выдачи (КУ) корзины. */
+["MarketplaceSetCartDeliveryPointInput"]: {
+	/** Имя пункта выдачи (branch.name) нового КУ доставки. */
+	delivery_braname: string
+};
 	["MarketplaceSetKUStatusInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -17798,6 +18027,13 @@ export type ResolverInputTypes = {
 	tx_hashes?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Изменить количество позиции в корзине. */
+["MarketplaceUpdateCartItemInput"]: {
+	/** Идентификатор предложения позиции. */
+	offer_id: string,
+	/** Новое количество единиц (целое, ≥ 1). */
+	quantity: number
+};
 	["MarketplaceUpdateOfferInput"]: {
 	barcode_strategy?: ResolverInputTypes["MarketplaceBarcodeStrategy"] | undefined | null,
 	category_id?: number | undefined | null,
@@ -18289,16 +18525,21 @@ marketplaceAcceptOrdersBatch?: [{	input: ResolverInputTypes["MarketplaceAcceptOr
 marketplaceAcceptReturnAtVisit?: [{	data: ResolverInputTypes["MarketplaceAcceptReturnAtVisitInput"]},ResolverInputTypes["MarketplaceReturnClaimResult"]],
 marketplaceAddAvailableCategories?: [{	input: ResolverInputTypes["AddAvailableCategoriesInput"]},ResolverInputTypes["MarketplaceAvailableCategory"]],
 marketplaceAddAvailableCategoryTypes?: [{	input: ResolverInputTypes["AddAvailableCategoryTypesInput"]},ResolverInputTypes["MarketplaceAvailableCategory"]],
+marketplaceAddToCart?: [{	input: ResolverInputTypes["MarketplaceAddToCartInput"]},ResolverInputTypes["MarketplaceCart"]],
 marketplaceAddToWhitelist?: [{	input: ResolverInputTypes["MarketplaceAddToWhitelistInput"]},ResolverInputTypes["MarketplaceWhitelistEntry"]],
 marketplaceApproveOffer?: [{	input: ResolverInputTypes["MarketplaceApproveOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
 marketplaceApproveReturnVisit?: [{	data: ResolverInputTypes["MarketplaceApproveReturnVisitInput"]},ResolverInputTypes["MarketplaceReturnClaimResult"]],
 marketplaceAssignInventoryShelf?: [{	data: ResolverInputTypes["MarketplaceAssignInventoryShelfInput"]},ResolverInputTypes["MarketplaceInventoryMutationResult"]],
+marketplaceBindInventoryBarcode?: [{	data: ResolverInputTypes["MarketplaceBindInventoryBarcodeInput"]},ResolverInputTypes["MarketplaceInventoryMutationResult"]],
 marketplaceCancelOrder?: [{	input: ResolverInputTypes["MarketplaceCancelOrderInput"]},ResolverInputTypes["MarketplaceCancelOrderResult"]],
 marketplaceCancelWriteoffDraft?: [{	id: string},boolean | `@${string}`],
+marketplaceCheckoutCart?: [{	input?: ResolverInputTypes["MarketplaceCheckoutCartInput"] | undefined | null},ResolverInputTypes["MarketplaceCheckoutResult"]],
 	/** Очистить все доступные категории (сделать доступными все)
 
 Требуемые роли: chairman.  */
 	marketplaceClearAvailableCategories?:boolean | `@${string}`,
+	/** Очистить корзину (убрать все позиции). */
+	marketplaceClearCart?:ResolverInputTypes["MarketplaceCart"],
 marketplaceCreateAplReception?: [{	data: ResolverInputTypes["MarketplaceCreateAplReceptionInput"]},ResolverInputTypes["MarketplaceAplReceptionResult"]],
 marketplaceCreateExpressReception?: [{	data: ResolverInputTypes["MarketplaceCreateExpressReceptionInput"]},ResolverInputTypes["MarketplaceCreateExpressReceptionResult"]],
 marketplaceCreateOffer?: [{	input: ResolverInputTypes["MarketplaceCreateOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
@@ -18317,16 +18558,19 @@ marketplaceRejectReturnAtVisit?: [{	data: ResolverInputTypes["MarketplaceRejectR
 marketplaceRejectReturnRemote?: [{	data: ResolverInputTypes["MarketplaceRejectReturnRemoteInput"]},ResolverInputTypes["MarketplaceReturnClaimResult"]],
 marketplaceRemoveAvailableCategories?: [{	input: ResolverInputTypes["RemoveAvailableCategoriesInput"]},boolean | `@${string}`],
 marketplaceRemoveAvailableCategoryTypes?: [{	input: ResolverInputTypes["RemoveAvailableCategoryTypesInput"]},boolean | `@${string}`],
+marketplaceRemoveFromCart?: [{	input: ResolverInputTypes["MarketplaceRemoveFromCartInput"]},ResolverInputTypes["MarketplaceCart"]],
 marketplaceRemoveFromWhitelist?: [{	input: ResolverInputTypes["MarketplaceRemoveFromWhitelistInput"]},boolean | `@${string}`],
 marketplaceReplaceAvailableItems?: [{	input: ResolverInputTypes["ReplaceAvailableItemsInput"]},ResolverInputTypes["MarketplaceAvailableCategory"]],
 marketplaceRepublishOffer?: [{	input: ResolverInputTypes["MarketplaceRepublishOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
 marketplaceRetryKUGeocode?: [{	coopname: string,	coreBraname: string},ResolverInputTypes["MarketplaceKUDetails"]],
+marketplaceSetCartDeliveryPoint?: [{	input: ResolverInputTypes["MarketplaceSetCartDeliveryPointInput"]},ResolverInputTypes["MarketplaceCart"]],
 marketplaceSetKUStatus?: [{	data: ResolverInputTypes["MarketplaceSetKUStatusInput"]},ResolverInputTypes["MarketplaceKUDetails"]],
 marketplaceSignAplReceptionAsChairman?: [{	data: ResolverInputTypes["MarketplaceSignAplReceptionInput"]},ResolverInputTypes["MarketplaceAplReceptionResult"]],
 marketplaceSignAplReceptionAsSupplier?: [{	data: ResolverInputTypes["MarketplaceSignAplReceptionInput"]},ResolverInputTypes["MarketplaceAplReceptionResult"]],
 marketplaceSignOnboardingOffer?: [{	input: ResolverInputTypes["MarketplaceSignOnboardingOfferInput"]},ResolverInputTypes["MarketplaceOnboardingState"]],
 marketplaceSplitInventory?: [{	data: ResolverInputTypes["MarketplaceSplitInventoryInput"]},ResolverInputTypes["MarketplaceInventoryMutationResult"]],
 marketplaceSubmitWriteoffDraft?: [{	data: ResolverInputTypes["MarketplaceSubmitWriteoffDraftInput"]},ResolverInputTypes["MarketplaceWriteoffProposal"]],
+marketplaceUpdateCartItem?: [{	input: ResolverInputTypes["MarketplaceUpdateCartItemInput"]},ResolverInputTypes["MarketplaceCart"]],
 marketplaceUpdateOffer?: [{	input: ResolverInputTypes["MarketplaceUpdateOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
 marketplaceUpdateWriteoffDraft?: [{	data: ResolverInputTypes["MarketplaceUpdateWriteoffDraftInput"]},ResolverInputTypes["MarketplaceWriteoffProposal"]],
 marketplaceWithdrawOffer?: [{	input: ResolverInputTypes["MarketplaceWithdrawOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
@@ -19651,6 +19895,8 @@ marketplaceFindPotentialMatches?: [{	data: ResolverInputTypes["FindPotentialMatc
 
 Требуемые роли: chairman.  */
 	marketplaceGetAvailableCategoryTree?:ResolverInputTypes["MarketplaceCategoryTreeNode"],
+	/** Корзина текущего заказчика (создаётся пустой при первом обращении). */
+	marketplaceGetCart?:ResolverInputTypes["MarketplaceCart"],
 marketplaceGetCategoryById?: [{	data: ResolverInputTypes["GetCategoryByIdInput"]},ResolverInputTypes["MarketplaceCategoryTreeNode"]],
 marketplaceGetCategoryRules?: [{	categoryId: number},ResolverInputTypes["MarketplaceAvailableCategory"]],
 marketplaceGetCategoryTree?: [{	input?: ResolverInputTypes["GetCategoryTreeInput"] | undefined | null},ResolverInputTypes["MarketplaceCategoryTreeNode"]],
@@ -25980,6 +26226,15 @@ export type ModelTypes = {
 	/** Подписанное решение председателя (опционально). */
 	signed_decision?: ModelTypes["MarketplaceReturnStatementSignedInput"] | undefined | null
 };
+	/** Добавить позицию в корзину (с привязкой к пункту выдачи). */
+["MarketplaceAddToCartInput"]: {
+	/** Пункт выдачи (ПВЗ) корзины. Если корзина пуста — задаёт её КУ; если непуста — должен совпадать с текущим КУ корзины (один заказ — один КУ). */
+	delivery_braname?: string | undefined | null,
+	/** Идентификатор предложения. */
+	offer_id: string,
+	/** Количество единиц (целое, ≥ 1). */
+	quantity: number
+};
 	["MarketplaceAddToWhitelistInput"]: {
 	/** eosio::name пайщика-поставщика (3-12 chars, [.12345abcdefghijklmnopqrstuvwxyz]) */
 	member_account: string
@@ -26233,6 +26488,14 @@ export type ModelTypes = {
 };
 	["MarketplaceBarcodeFormat"]:MarketplaceBarcodeFormat;
 	["MarketplaceBarcodeStrategy"]:MarketplaceBarcodeStrategy;
+	["MarketplaceBindInventoryBarcodeInput"]: {
+	/** Значение штрих-кода с заранее напечатанной этикетки (считанное сканером или введённое вручную). */
+	barcode_value: string,
+	/** Формат штрих-кода. По умолчанию — EAN-13. */
+	format?: ModelTypes["MarketplaceBarcodeFormat"] | undefined | null,
+	/** Позиция склада, к которой привязывается отсканированный штрих-код. */
+	inventory_id: ModelTypes["ID"]
+};
 	/** Параметры отмены своего заказа пайщиком. */
 ["MarketplaceCancelOrderInput"]: {
 	/** Идентификатор заказа, который пайщик хочет отменить (отмена возможна до приёма заказа поставщиком). */
@@ -26244,6 +26507,44 @@ export type ModelTypes = {
 	order: ModelTypes["MarketplaceOrder"],
 	/** Идентификатор транзакции отмены в блокчейне. */
 	tx_hash: string
+};
+	/** Корзина заказчика — накопитель позиций перед оформлением. */
+["MarketplaceCart"]: {
+		/** Пункт выдачи (ПВЗ), к которому привязана корзина; null — пока не выбран. */
+	delivery_braname?: string | undefined | null,
+	/** Наименование пункта выдачи (кооперативного участка) — для шапки/корзины. */
+	delivery_point_name?: string | undefined | null,
+	/** Идентификатор корзины. */
+	id: string,
+	/** Позиции корзины. */
+	items: Array<ModelTypes["MarketplaceCartItem"]>,
+	/** Количество разных позиций (строк) в корзине. */
+	positions_count: number,
+	/** Итоговая сумма корзины (по доступным к доставке позициям). */
+	total_cost: string,
+	/** Суммарное количество единиц всех позиций. */
+	total_quantity: number
+};
+	/** Позиция корзины заказчика. */
+["MarketplaceCartItem"]: {
+		/** Доступна ли позиция к доставке на текущий пункт выдачи корзины. false — товар не возят на выбранный КУ (нужно убрать перед оформлением или сменить КУ). */
+	available_on_current_ku: boolean,
+	/** Идентификатор позиции корзины. */
+	id: string,
+	/** URL обложки товара (если у предложения есть изображение). */
+	image_url?: string | undefined | null,
+	/** Сумма позиции (цена за единицу × количество). */
+	line_total?: string | undefined | null,
+	/** Идентификатор предложения. */
+	offer_id: string,
+	/** Цена за единицу товара на текущий момент. */
+	price_per_unit?: string | undefined | null,
+	/** Название товара из предложения — для отображения в корзине. */
+	product_name?: string | undefined | null,
+	/** Количество единиц в корзине. */
+	quantity: number,
+	/** Единица измерения товара (шт., кг, л, упак.). */
+	unit_of_measure?: string | undefined | null
 };
 	["MarketplaceCategory"]: {
 		display_name: string,
@@ -26298,6 +26599,37 @@ export type ModelTypes = {
 	totalCategories: number,
 	/** Общее количество типов товаров */
 	totalTypes: number
+};
+	/** Оформить заказ из корзины (или повторить упавший остаток того же заказа). */
+["MarketplaceCheckoutCartInput"]: {
+	/** Идентификатор заказа для повтора остатка: при частичном сбое прошлого оформления передаётся тот же checkout_id, чтобы непрошедшие позиции легли в тот же заказ. Пусто — оформляется новый заказ. */
+	checkout_id?: string | undefined | null
+};
+	/** Позиция корзины, которую не удалось оформить (осталась в корзине для повтора). */
+["MarketplaceCheckoutFailedLine"]: {
+		/** Идентификатор предложения непрошедшей позиции. */
+	offer_id: string,
+	/** Название товара (для отображения). */
+	product_name?: string | undefined | null,
+	/** Количество единиц непрошедшей позиции. */
+	quantity: number,
+	/** Причина, по которой позиция не оформлена. */
+	reason: string
+};
+	/** Результат оформления заказа из корзины: общий идентификатор заказа, оформленные позиции и непрошедший остаток (если был частичный сбой). */
+["MarketplaceCheckoutResult"]: {
+		/** Корзина после оформления (с непрошедшим остатком). */
+	cart: ModelTypes["MarketplaceCart"],
+	/** Идентификатор заказа (общий для всех оформленных позиций). */
+	checkout_id: string,
+	/** Успешно оформленные позиции (строки заказа). */
+	created_orders: Array<ModelTypes["MarketplaceOrder"]>,
+	/** Пункт выдачи (КУ) заказа. */
+	delivery_braname: string,
+	/** Позиции, которые не удалось оформить — остались в корзине для повтора. */
+	failed_lines: Array<ModelTypes["MarketplaceCheckoutFailedLine"]>,
+	/** true — все позиции оформлены и корзина по этому заказу пуста; false — есть остаток. */
+	fully_completed: boolean
 };
 	["MarketplaceConsolidatedRequest"]: {
 		accepted_at?: ModelTypes["DateTime"] | undefined | null,
@@ -26661,6 +26993,8 @@ export type ModelTypes = {
 	["MarketplaceListCatalogInput"]: {
 	/** category_id 1..9; null = «Все» */
 	category_id?: number | undefined | null,
+	/** Пункт выдачи (КУ) доставки. Если задан — в каталоге остаются только товары, которые возят на этот пункт выдачи (Эпик 16). */
+	delivery_braname?: string | undefined | null,
 	/** Количество элементов на странице */
 	limit: number,
 	/** Номер страницы */
@@ -26891,6 +27225,8 @@ export type ModelTypes = {
 	chairman_account?: string | undefined | null,
 	/** Когда председатель кооперативного участка открыл выдачу первой подписью. */
 	chairman_signed_at?: ModelTypes["DateTime"] | undefined | null,
+	/** Идентификатор заказа заказчика — общий для всех позиций одного оформления корзины на один пункт выдачи. Позволяет сгруппировать позиции в один заказ. Пусто для прежних покарточных заказов. */
+	checkout_id?: string | undefined | null,
 	/** Кооператив, в котором сделан заказ. */
 	coopname: string,
 	/** Снимок транзакции блокировки средств (для отображения движений кошелька). */
@@ -27078,6 +27414,11 @@ export type ModelTypes = {
 	comment: string,
 	/** Подписанное решение председателя (опционально). */
 	signed_decision?: ModelTypes["MarketplaceReturnStatementSignedInput"] | undefined | null
+};
+	/** Убрать позицию из корзины. */
+["MarketplaceRemoveFromCartInput"]: {
+	/** Идентификатор предложения позиции. */
+	offer_id: string
 };
 	["MarketplaceRemoveFromWhitelistInput"]: {
 	/** eosio::name пайщика-поставщика */
@@ -27411,6 +27752,11 @@ export type ModelTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string
 };
+	/** Сменить пункт выдачи (КУ) корзины. */
+["MarketplaceSetCartDeliveryPointInput"]: {
+	/** Имя пункта выдачи (branch.name) нового КУ доставки. */
+	delivery_braname: string
+};
 	["MarketplaceSetKUStatusInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -27508,6 +27854,13 @@ export type ModelTypes = {
 	orders: Array<ModelTypes["MarketplaceOrder"]>,
 	/** Идентификаторы транзакций приёма/отказа в блокчейне. */
 	tx_hashes: Array<string>
+};
+	/** Изменить количество позиции в корзине. */
+["MarketplaceUpdateCartItemInput"]: {
+	/** Идентификатор предложения позиции. */
+	offer_id: string,
+	/** Новое количество единиц (целое, ≥ 1). */
+	quantity: number
 };
 	["MarketplaceUpdateOfferInput"]: {
 	barcode_strategy?: ModelTypes["MarketplaceBarcodeStrategy"] | undefined | null,
@@ -28382,6 +28735,8 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	marketplaceAddAvailableCategoryTypes: Array<ModelTypes["MarketplaceAvailableCategory"]>,
+	/** Добавить товар в корзину (с привязкой корзины к пункту выдачи). */
+	marketplaceAddToCart: ModelTypes["MarketplaceCart"],
 	/** Добавить пайщика в whitelist поставщиков (admin) */
 	marketplaceAddToWhitelist: ModelTypes["MarketplaceWhitelistEntry"],
 	/** Одобрить Offer (status → ACTIVE) (admin) */
@@ -28390,14 +28745,20 @@ export type ModelTypes = {
 	marketplaceApproveReturnVisit: ModelTypes["MarketplaceReturnClaimResult"],
 	/** Оператор КУ назначает позиции склада полку (свободная строка) или очищает её. */
 	marketplaceAssignInventoryShelf: ModelTypes["MarketplaceInventoryMutationResult"],
+	/** Оператор КУ привязывает к позиции склада штрих-код с заранее напечатанной этикетки (считанный сканером). */
+	marketplaceBindInventoryBarcode: ModelTypes["MarketplaceInventoryMutationResult"],
 	/** Отменить свой заказ до его приёма поставщиком; средства разблокируются. */
 	marketplaceCancelOrder: ModelTypes["MarketplaceCancelOrderResult"],
 	/** Удалить черновик. Доступно только пока проект в статусе DRAFT. */
 	marketplaceCancelWriteoffDraft: boolean,
+	/** Оформить заказ из корзины: предвалидация баланса, построчное создание заказов с общим идентификатором заказа и КУ; непрошедший остаток остаётся в корзине для повтора. */
+	marketplaceCheckoutCart: ModelTypes["MarketplaceCheckoutResult"],
 	/** Очистить все доступные категории (сделать доступными все)
 
 Требуемые роли: chairman.  */
 	marketplaceClearAvailableCategories: boolean,
+	/** Очистить корзину (убрать все позиции). */
+	marketplaceClearCart: ModelTypes["MarketplaceCart"],
 	/** Оператор КУ формирует акт приёмки партии: для Варианта Б с возможной корректировкой фактического количества. */
 	marketplaceCreateAplReception: ModelTypes["MarketplaceAplReceptionResult"],
 	/** Express-приёмка самовывоза по факту присутствия: оператор принимает имущество поставщика без предварительно сформированной партии. Backend синтезирует партию самовывоза из принятых заказов поставщика на этом КУ и открывает приёмку. */
@@ -28442,6 +28803,8 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	marketplaceRemoveAvailableCategoryTypes: boolean,
+	/** Убрать позицию из корзины. */
+	marketplaceRemoveFromCart: ModelTypes["MarketplaceCart"],
 	/** Удалить пайщика из whitelist (admin); auto-coop запись неудаляема */
 	marketplaceRemoveFromWhitelist: boolean,
 	/** Заменить все доступные категории и типы новым списком
@@ -28454,6 +28817,8 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	marketplaceRetryKUGeocode: ModelTypes["MarketplaceKUDetails"],
+	/** Сменить пункт выдачи (КУ) корзины — каталог зависит от выбранного КУ. */
+	marketplaceSetCartDeliveryPoint: ModelTypes["MarketplaceCart"],
 	/** Активирует или деактивирует ПВЗ Стола заказов.
 
 Требуемые роли: chairman.  */
@@ -28468,6 +28833,8 @@ export type ModelTypes = {
 	marketplaceSplitInventory: ModelTypes["MarketplaceInventoryMutationResult"],
 	/** Отправить черновик в совет. Принимает подписанное председателем Заявление 1106. После успешного приёма выполняются propwroff и soviet::createagenda(mktwroff). */
 	marketplaceSubmitWriteoffDraft: ModelTypes["MarketplaceWriteoffProposal"],
+	/** Изменить количество позиции в корзине. */
+	marketplaceUpdateCartItem: ModelTypes["MarketplaceCart"],
 	/** Поставщик правит свой Offer — статус сбрасывается в PENDING_MODERATION */
 	marketplaceUpdateOffer: ModelTypes["MarketplaceOffer"],
 	/** Изменить состав черновика — добавить, удалить или поправить позиции. */
@@ -29980,6 +30347,8 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	marketplaceGetAvailableCategoryTree: Array<ModelTypes["MarketplaceCategoryTreeNode"]>,
+	/** Корзина текущего заказчика (создаётся пустой при первом обращении). */
+	marketplaceGetCart: ModelTypes["MarketplaceCart"],
 	/** Получить категорию marketplace по ID */
 	marketplaceGetCategoryById?: ModelTypes["MarketplaceCategoryTreeNode"] | undefined | null,
 	/** Получить все доступные правила для конкретной категории
@@ -36588,6 +36957,15 @@ export type GraphQLTypes = {
 	/** Подписанное решение председателя (опционально). */
 	signed_decision?: GraphQLTypes["MarketplaceReturnStatementSignedInput"] | undefined | null
 };
+	/** Добавить позицию в корзину (с привязкой к пункту выдачи). */
+["MarketplaceAddToCartInput"]: {
+		/** Пункт выдачи (ПВЗ) корзины. Если корзина пуста — задаёт её КУ; если непуста — должен совпадать с текущим КУ корзины (один заказ — один КУ). */
+	delivery_braname?: string | undefined | null,
+	/** Идентификатор предложения. */
+	offer_id: string,
+	/** Количество единиц (целое, ≥ 1). */
+	quantity: number
+};
 	["MarketplaceAddToWhitelistInput"]: {
 		/** eosio::name пайщика-поставщика (3-12 chars, [.12345abcdefghijklmnopqrstuvwxyz]) */
 	member_account: string
@@ -36864,6 +37242,14 @@ export type GraphQLTypes = {
 ["MarketplaceBarcodeFormat"]: MarketplaceBarcodeFormat;
 	/** Стратегия маркировки: одна этикетка на заказ, на единицу, или на упаковку. */
 ["MarketplaceBarcodeStrategy"]: MarketplaceBarcodeStrategy;
+	["MarketplaceBindInventoryBarcodeInput"]: {
+		/** Значение штрих-кода с заранее напечатанной этикетки (считанное сканером или введённое вручную). */
+	barcode_value: string,
+	/** Формат штрих-кода. По умолчанию — EAN-13. */
+	format?: GraphQLTypes["MarketplaceBarcodeFormat"] | undefined | null,
+	/** Позиция склада, к которой привязывается отсканированный штрих-код. */
+	inventory_id: GraphQLTypes["ID"]
+};
 	/** Параметры отмены своего заказа пайщиком. */
 ["MarketplaceCancelOrderInput"]: {
 		/** Идентификатор заказа, который пайщик хочет отменить (отмена возможна до приёма заказа поставщиком). */
@@ -36877,6 +37263,48 @@ export type GraphQLTypes = {
 	/** Идентификатор транзакции отмены в блокчейне. */
 	tx_hash: string,
 	['...on MarketplaceCancelOrderResult']: Omit<GraphQLTypes["MarketplaceCancelOrderResult"], "...on MarketplaceCancelOrderResult">
+};
+	/** Корзина заказчика — накопитель позиций перед оформлением. */
+["MarketplaceCart"]: {
+	__typename: "MarketplaceCart",
+	/** Пункт выдачи (ПВЗ), к которому привязана корзина; null — пока не выбран. */
+	delivery_braname?: string | undefined | null,
+	/** Наименование пункта выдачи (кооперативного участка) — для шапки/корзины. */
+	delivery_point_name?: string | undefined | null,
+	/** Идентификатор корзины. */
+	id: string,
+	/** Позиции корзины. */
+	items: Array<GraphQLTypes["MarketplaceCartItem"]>,
+	/** Количество разных позиций (строк) в корзине. */
+	positions_count: number,
+	/** Итоговая сумма корзины (по доступным к доставке позициям). */
+	total_cost: string,
+	/** Суммарное количество единиц всех позиций. */
+	total_quantity: number,
+	['...on MarketplaceCart']: Omit<GraphQLTypes["MarketplaceCart"], "...on MarketplaceCart">
+};
+	/** Позиция корзины заказчика. */
+["MarketplaceCartItem"]: {
+	__typename: "MarketplaceCartItem",
+	/** Доступна ли позиция к доставке на текущий пункт выдачи корзины. false — товар не возят на выбранный КУ (нужно убрать перед оформлением или сменить КУ). */
+	available_on_current_ku: boolean,
+	/** Идентификатор позиции корзины. */
+	id: string,
+	/** URL обложки товара (если у предложения есть изображение). */
+	image_url?: string | undefined | null,
+	/** Сумма позиции (цена за единицу × количество). */
+	line_total?: string | undefined | null,
+	/** Идентификатор предложения. */
+	offer_id: string,
+	/** Цена за единицу товара на текущий момент. */
+	price_per_unit?: string | undefined | null,
+	/** Название товара из предложения — для отображения в корзине. */
+	product_name?: string | undefined | null,
+	/** Количество единиц в корзине. */
+	quantity: number,
+	/** Единица измерения товара (шт., кг, л, упак.). */
+	unit_of_measure?: string | undefined | null,
+	['...on MarketplaceCartItem']: Omit<GraphQLTypes["MarketplaceCartItem"], "...on MarketplaceCartItem">
 };
 	["MarketplaceCategory"]: {
 	__typename: "MarketplaceCategory",
@@ -36941,6 +37369,41 @@ export type GraphQLTypes = {
 	/** Общее количество типов товаров */
 	totalTypes: number,
 	['...on MarketplaceCategoryTreeStats']: Omit<GraphQLTypes["MarketplaceCategoryTreeStats"], "...on MarketplaceCategoryTreeStats">
+};
+	/** Оформить заказ из корзины (или повторить упавший остаток того же заказа). */
+["MarketplaceCheckoutCartInput"]: {
+		/** Идентификатор заказа для повтора остатка: при частичном сбое прошлого оформления передаётся тот же checkout_id, чтобы непрошедшие позиции легли в тот же заказ. Пусто — оформляется новый заказ. */
+	checkout_id?: string | undefined | null
+};
+	/** Позиция корзины, которую не удалось оформить (осталась в корзине для повтора). */
+["MarketplaceCheckoutFailedLine"]: {
+	__typename: "MarketplaceCheckoutFailedLine",
+	/** Идентификатор предложения непрошедшей позиции. */
+	offer_id: string,
+	/** Название товара (для отображения). */
+	product_name?: string | undefined | null,
+	/** Количество единиц непрошедшей позиции. */
+	quantity: number,
+	/** Причина, по которой позиция не оформлена. */
+	reason: string,
+	['...on MarketplaceCheckoutFailedLine']: Omit<GraphQLTypes["MarketplaceCheckoutFailedLine"], "...on MarketplaceCheckoutFailedLine">
+};
+	/** Результат оформления заказа из корзины: общий идентификатор заказа, оформленные позиции и непрошедший остаток (если был частичный сбой). */
+["MarketplaceCheckoutResult"]: {
+	__typename: "MarketplaceCheckoutResult",
+	/** Корзина после оформления (с непрошедшим остатком). */
+	cart: GraphQLTypes["MarketplaceCart"],
+	/** Идентификатор заказа (общий для всех оформленных позиций). */
+	checkout_id: string,
+	/** Успешно оформленные позиции (строки заказа). */
+	created_orders: Array<GraphQLTypes["MarketplaceOrder"]>,
+	/** Пункт выдачи (КУ) заказа. */
+	delivery_braname: string,
+	/** Позиции, которые не удалось оформить — остались в корзине для повтора. */
+	failed_lines: Array<GraphQLTypes["MarketplaceCheckoutFailedLine"]>,
+	/** true — все позиции оформлены и корзина по этому заказу пуста; false — есть остаток. */
+	fully_completed: boolean,
+	['...on MarketplaceCheckoutResult']: Omit<GraphQLTypes["MarketplaceCheckoutResult"], "...on MarketplaceCheckoutResult">
 };
 	["MarketplaceConsolidatedRequest"]: {
 	__typename: "MarketplaceConsolidatedRequest",
@@ -37336,6 +37799,8 @@ export type GraphQLTypes = {
 	["MarketplaceListCatalogInput"]: {
 		/** category_id 1..9; null = «Все» */
 	category_id?: number | undefined | null,
+	/** Пункт выдачи (КУ) доставки. Если задан — в каталоге остаются только товары, которые возят на этот пункт выдачи (Эпик 16). */
+	delivery_braname?: string | undefined | null,
 	/** Количество элементов на странице */
 	limit: number,
 	/** Номер страницы */
@@ -37582,6 +38047,8 @@ export type GraphQLTypes = {
 	chairman_account?: string | undefined | null,
 	/** Когда председатель кооперативного участка открыл выдачу первой подписью. */
 	chairman_signed_at?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Идентификатор заказа заказчика — общий для всех позиций одного оформления корзины на один пункт выдачи. Позволяет сгруппировать позиции в один заказ. Пусто для прежних покарточных заказов. */
+	checkout_id?: string | undefined | null,
 	/** Кооператив, в котором сделан заказ. */
 	coopname: string,
 	/** Снимок транзакции блокировки средств (для отображения движений кошелька). */
@@ -37785,6 +38252,11 @@ export type GraphQLTypes = {
 	comment: string,
 	/** Подписанное решение председателя (опционально). */
 	signed_decision?: GraphQLTypes["MarketplaceReturnStatementSignedInput"] | undefined | null
+};
+	/** Убрать позицию из корзины. */
+["MarketplaceRemoveFromCartInput"]: {
+		/** Идентификатор предложения позиции. */
+	offer_id: string
 };
 	["MarketplaceRemoveFromWhitelistInput"]: {
 		/** eosio::name пайщика-поставщика */
@@ -38141,6 +38613,11 @@ export type GraphQLTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string
 };
+	/** Сменить пункт выдачи (КУ) корзины. */
+["MarketplaceSetCartDeliveryPointInput"]: {
+		/** Имя пункта выдачи (branch.name) нового КУ доставки. */
+	delivery_braname: string
+};
 	["MarketplaceSetKUStatusInput"]: {
 		/** Имя аккаунта кооператива */
 	coopname: string,
@@ -38246,6 +38723,13 @@ export type GraphQLTypes = {
 	/** Идентификаторы транзакций приёма/отказа в блокчейне. */
 	tx_hashes: Array<string>,
 	['...on MarketplaceSupplierBatchActionResult']: Omit<GraphQLTypes["MarketplaceSupplierBatchActionResult"], "...on MarketplaceSupplierBatchActionResult">
+};
+	/** Изменить количество позиции в корзине. */
+["MarketplaceUpdateCartItemInput"]: {
+		/** Идентификатор предложения позиции. */
+	offer_id: string,
+	/** Новое количество единиц (целое, ≥ 1). */
+	quantity: number
 };
 	["MarketplaceUpdateOfferInput"]: {
 		barcode_strategy?: GraphQLTypes["MarketplaceBarcodeStrategy"] | undefined | null,
@@ -39153,6 +39637,8 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	marketplaceAddAvailableCategoryTypes: Array<GraphQLTypes["MarketplaceAvailableCategory"]>,
+	/** Добавить товар в корзину (с привязкой корзины к пункту выдачи). */
+	marketplaceAddToCart: GraphQLTypes["MarketplaceCart"],
 	/** Добавить пайщика в whitelist поставщиков (admin) */
 	marketplaceAddToWhitelist: GraphQLTypes["MarketplaceWhitelistEntry"],
 	/** Одобрить Offer (status → ACTIVE) (admin) */
@@ -39161,14 +39647,20 @@ export type GraphQLTypes = {
 	marketplaceApproveReturnVisit: GraphQLTypes["MarketplaceReturnClaimResult"],
 	/** Оператор КУ назначает позиции склада полку (свободная строка) или очищает её. */
 	marketplaceAssignInventoryShelf: GraphQLTypes["MarketplaceInventoryMutationResult"],
+	/** Оператор КУ привязывает к позиции склада штрих-код с заранее напечатанной этикетки (считанный сканером). */
+	marketplaceBindInventoryBarcode: GraphQLTypes["MarketplaceInventoryMutationResult"],
 	/** Отменить свой заказ до его приёма поставщиком; средства разблокируются. */
 	marketplaceCancelOrder: GraphQLTypes["MarketplaceCancelOrderResult"],
 	/** Удалить черновик. Доступно только пока проект в статусе DRAFT. */
 	marketplaceCancelWriteoffDraft: boolean,
+	/** Оформить заказ из корзины: предвалидация баланса, построчное создание заказов с общим идентификатором заказа и КУ; непрошедший остаток остаётся в корзине для повтора. */
+	marketplaceCheckoutCart: GraphQLTypes["MarketplaceCheckoutResult"],
 	/** Очистить все доступные категории (сделать доступными все)
 
 Требуемые роли: chairman.  */
 	marketplaceClearAvailableCategories: boolean,
+	/** Очистить корзину (убрать все позиции). */
+	marketplaceClearCart: GraphQLTypes["MarketplaceCart"],
 	/** Оператор КУ формирует акт приёмки партии: для Варианта Б с возможной корректировкой фактического количества. */
 	marketplaceCreateAplReception: GraphQLTypes["MarketplaceAplReceptionResult"],
 	/** Express-приёмка самовывоза по факту присутствия: оператор принимает имущество поставщика без предварительно сформированной партии. Backend синтезирует партию самовывоза из принятых заказов поставщика на этом КУ и открывает приёмку. */
@@ -39213,6 +39705,8 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	marketplaceRemoveAvailableCategoryTypes: boolean,
+	/** Убрать позицию из корзины. */
+	marketplaceRemoveFromCart: GraphQLTypes["MarketplaceCart"],
 	/** Удалить пайщика из whitelist (admin); auto-coop запись неудаляема */
 	marketplaceRemoveFromWhitelist: boolean,
 	/** Заменить все доступные категории и типы новым списком
@@ -39225,6 +39719,8 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	marketplaceRetryKUGeocode: GraphQLTypes["MarketplaceKUDetails"],
+	/** Сменить пункт выдачи (КУ) корзины — каталог зависит от выбранного КУ. */
+	marketplaceSetCartDeliveryPoint: GraphQLTypes["MarketplaceCart"],
 	/** Активирует или деактивирует ПВЗ Стола заказов.
 
 Требуемые роли: chairman.  */
@@ -39239,6 +39735,8 @@ export type GraphQLTypes = {
 	marketplaceSplitInventory: GraphQLTypes["MarketplaceInventoryMutationResult"],
 	/** Отправить черновик в совет. Принимает подписанное председателем Заявление 1106. После успешного приёма выполняются propwroff и soviet::createagenda(mktwroff). */
 	marketplaceSubmitWriteoffDraft: GraphQLTypes["MarketplaceWriteoffProposal"],
+	/** Изменить количество позиции в корзине. */
+	marketplaceUpdateCartItem: GraphQLTypes["MarketplaceCart"],
 	/** Поставщик правит свой Offer — статус сбрасывается в PENDING_MODERATION */
 	marketplaceUpdateOffer: GraphQLTypes["MarketplaceOffer"],
 	/** Изменить состав черновика — добавить, удалить или поправить позиции. */
@@ -40886,6 +41384,8 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	marketplaceGetAvailableCategoryTree: Array<GraphQLTypes["MarketplaceCategoryTreeNode"]>,
+	/** Корзина текущего заказчика (создаётся пустой при первом обращении). */
+	marketplaceGetCart: GraphQLTypes["MarketplaceCart"],
 	/** Получить категорию marketplace по ID */
 	marketplaceGetCategoryById?: GraphQLTypes["MarketplaceCategoryTreeNode"] | undefined | null,
 	/** Получить все доступные правила для конкретной категории
@@ -43414,6 +43914,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceAcceptCppInput"]: ValueTypes["MarketplaceAcceptCppInput"];
 	["MarketplaceAcceptOrdersBatchInput"]: ValueTypes["MarketplaceAcceptOrdersBatchInput"];
 	["MarketplaceAcceptReturnAtVisitInput"]: ValueTypes["MarketplaceAcceptReturnAtVisitInput"];
+	["MarketplaceAddToCartInput"]: ValueTypes["MarketplaceAddToCartInput"];
 	["MarketplaceAddToWhitelistInput"]: ValueTypes["MarketplaceAddToWhitelistInput"];
 	["MarketplaceAplReceptionByIdInput"]: ValueTypes["MarketplaceAplReceptionByIdInput"];
 	["MarketplaceAplReceptionFactEntryInput"]: ValueTypes["MarketplaceAplReceptionFactEntryInput"];
@@ -43427,7 +43928,9 @@ type ZEUS_VARIABLES = {
 	["MarketplaceAttributeType"]: ValueTypes["MarketplaceAttributeType"];
 	["MarketplaceBarcodeFormat"]: ValueTypes["MarketplaceBarcodeFormat"];
 	["MarketplaceBarcodeStrategy"]: ValueTypes["MarketplaceBarcodeStrategy"];
+	["MarketplaceBindInventoryBarcodeInput"]: ValueTypes["MarketplaceBindInventoryBarcodeInput"];
 	["MarketplaceCancelOrderInput"]: ValueTypes["MarketplaceCancelOrderInput"];
+	["MarketplaceCheckoutCartInput"]: ValueTypes["MarketplaceCheckoutCartInput"];
 	["MarketplaceConsolidatedRequestStatus"]: ValueTypes["MarketplaceConsolidatedRequestStatus"];
 	["MarketplaceCreateAplReceptionInput"]: ValueTypes["MarketplaceCreateAplReceptionInput"];
 	["MarketplaceCreateExpressReceptionInput"]: ValueTypes["MarketplaceCreateExpressReceptionInput"];
@@ -43474,6 +43977,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceRejectOfferInput"]: ValueTypes["MarketplaceRejectOfferInput"];
 	["MarketplaceRejectReturnAtVisitInput"]: ValueTypes["MarketplaceRejectReturnAtVisitInput"];
 	["MarketplaceRejectReturnRemoteInput"]: ValueTypes["MarketplaceRejectReturnRemoteInput"];
+	["MarketplaceRemoveFromCartInput"]: ValueTypes["MarketplaceRemoveFromCartInput"];
 	["MarketplaceRemoveFromWhitelistInput"]: ValueTypes["MarketplaceRemoveFromWhitelistInput"];
 	["MarketplaceRepublishOfferInput"]: ValueTypes["MarketplaceRepublishOfferInput"];
 	["MarketplaceReturnClaimDefectCategory"]: ValueTypes["MarketplaceReturnClaimDefectCategory"];
@@ -43483,6 +43987,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceReturnClaimStatus"]: ValueTypes["MarketplaceReturnClaimStatus"];
 	["MarketplaceReturnStatementSignedInput"]: ValueTypes["MarketplaceReturnStatementSignedInput"];
 	["MarketplaceReturnStatementSignedMetaDocumentInput"]: ValueTypes["MarketplaceReturnStatementSignedMetaDocumentInput"];
+	["MarketplaceSetCartDeliveryPointInput"]: ValueTypes["MarketplaceSetCartDeliveryPointInput"];
 	["MarketplaceSetKUStatusInput"]: ValueTypes["MarketplaceSetKUStatusInput"];
 	["MarketplaceShipmentDeliveryVariant"]: ValueTypes["MarketplaceShipmentDeliveryVariant"];
 	["MarketplaceShipmentGroupInput"]: ValueTypes["MarketplaceShipmentGroupInput"];
@@ -43492,6 +43997,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceSignOnboardingOfferInput"]: ValueTypes["MarketplaceSignOnboardingOfferInput"];
 	["MarketplaceSplitInventoryInput"]: ValueTypes["MarketplaceSplitInventoryInput"];
 	["MarketplaceSubmitWriteoffDraftInput"]: ValueTypes["MarketplaceSubmitWriteoffDraftInput"];
+	["MarketplaceUpdateCartItemInput"]: ValueTypes["MarketplaceUpdateCartItemInput"];
 	["MarketplaceUpdateOfferInput"]: ValueTypes["MarketplaceUpdateOfferInput"];
 	["MarketplaceUpdateWriteoffDraftInput"]: ValueTypes["MarketplaceUpdateWriteoffDraftInput"];
 	["MarketplaceWithdrawOfferInput"]: ValueTypes["MarketplaceWithdrawOfferInput"];

@@ -51,6 +51,7 @@ const rawOrderSelector = {
   price_per_unit: true,
   total_cost: true,
   cycle_id: true,
+  checkout_id: true,
   shipment_id: true,
   warranty_period_secs: true,
   warranty_until: true,

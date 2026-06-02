@@ -15,6 +15,7 @@ import {
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import {
   MarketplaceAssignInventoryShelfInputDTO,
+  MarketplaceBindInventoryBarcodeInputDTO,
   MarketplaceGenerateInventoryLabelInputDTO,
   MarketplaceInventoryItemDTO,
   MarketplaceInventoryMutationResultDTO,
@@ -106,6 +107,29 @@ export class MarketplaceInventoryResolver {
       coopname: config.coopname,
       operator_account: member.username,
       inventory_id: data.inventory_id,
+      format: data.format as unknown as MarketplaceBarcodeFormat | undefined,
+    });
+    const dto = new MarketplaceInventoryMutationResultDTO();
+    dto.inventory = result.inventory.map(toMarketplaceInventoryItemDTO);
+    return dto;
+  }
+
+  @Mutation(() => MarketplaceInventoryMutationResultDTO, {
+    name: 'marketplaceBindInventoryBarcode',
+    description:
+      'Оператор КУ привязывает к позиции склада штрих-код с заранее напечатанной этикетки (считанный сканером).',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Inventory', 'label')
+  async marketplaceBindInventoryBarcode(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('data') data: MarketplaceBindInventoryBarcodeInputDTO
+  ): Promise<MarketplaceInventoryMutationResultDTO> {
+    const result = await this.labelService.bindLabel({
+      coopname: config.coopname,
+      operator_account: member.username,
+      inventory_id: data.inventory_id,
+      barcode_value: data.barcode_value,
       format: data.format as unknown as MarketplaceBarcodeFormat | undefined,
     });
     const dto = new MarketplaceInventoryMutationResultDTO();

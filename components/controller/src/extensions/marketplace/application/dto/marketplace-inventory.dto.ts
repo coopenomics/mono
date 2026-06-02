@@ -130,6 +130,30 @@ export class MarketplaceGenerateInventoryLabelInputDTO {
   format?: MarketplaceBarcodeFormatEnum;
 }
 
+@InputType('MarketplaceBindInventoryBarcodeInput')
+export class MarketplaceBindInventoryBarcodeInputDTO {
+  @Field(() => ID, { description: 'Позиция склада, к которой привязывается отсканированный штрих-код.' })
+  @IsString()
+  @IsNotEmpty()
+  inventory_id!: string;
+
+  @Field(() => String, {
+    description:
+      'Значение штрих-кода с заранее напечатанной этикетки (считанное сканером или введённое вручную).',
+  })
+  @IsString()
+  @IsNotEmpty()
+  barcode_value!: string;
+
+  @Field(() => MarketplaceBarcodeFormatEnum, {
+    nullable: true,
+    description: 'Формат штрих-кода. По умолчанию — EAN-13.',
+  })
+  @IsOptional()
+  @IsEnum(MarketplaceBarcodeFormatEnum)
+  format?: MarketplaceBarcodeFormatEnum;
+}
+
 @InputType('MarketplaceAssignInventoryShelfInput')
 export class MarketplaceAssignInventoryShelfInputDTO {
   @Field(() => ID, { description: 'Позиция склада, для которой назначается полка.' })
