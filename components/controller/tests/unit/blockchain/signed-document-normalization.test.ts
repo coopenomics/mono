@@ -143,3 +143,49 @@ describe('Story 6.2: normalizeSignedDocuments', () => {
     expect((copy.appendix as any).meta).toEqual({ k: 'v' });
   });
 });
+
+describe('Story 6.3: schema-валидация ДО transform', () => {
+  // re-import без top-level чтобы избежать циклов; используем chainDocumentSchema.
+  const { chainDocumentSchema, singleSignatureChainDocumentSchema } = require('~/shared/sync/signed-document-schemas');
+
+  it('валидная schema → нормализация проходит', () => {
+    const mapper = new TestMapper([{ path: 'appendix', schema: chainDocumentSchema }]);
+    const data = {
+      appendix: {
+        ...CHAIN_DOC,
+        hash: 'h'.repeat(64),
+        doc_hash: 'd'.repeat(64),
+        meta_hash: 'm'.repeat(64),
+        signatures: [
+          { public_key: 'pk', signature: 'sig', signed_at: '2026-06-02T12:00:00', meta: '' },
+        ],
+      },
+    };
+    expect(() => mapper.normalize(data)).not.toThrow();
+    expect((data.appendix as any).meta).toEqual({ k: 'v' });
+  });
+
+  it('два подписанта в single-signature schema → ZodError', () => {
+    const mapper = new TestMapper([{ path: 'appendix', schema: singleSignatureChainDocumentSchema }]);
+    const data = {
+      appendix: {
+        ...CHAIN_DOC,
+        signatures: [
+          { public_key: 'pk1', signature: 'sig1', signed_at: '2026-06-02T12:00:00', meta: '' },
+          { public_key: 'pk2', signature: 'sig2', signed_at: '2026-06-02T12:00:00', meta: '' },
+        ],
+      },
+    };
+    expect(() => mapper.normalize(data)).toThrow();
+  });
+
+  it('schema mismatch (нет hash) → ZodError, meta НЕ обновляется (transform не вызвался)', () => {
+    const mapper = new TestMapper([{ path: 'appendix', schema: chainDocumentSchema }]);
+    const data = {
+      appendix: { ...CHAIN_DOC, hash: '' }, // hash пуст — Zod fail
+    };
+    expect(() => mapper.normalize(data)).toThrow();
+    // meta осталось JSON-строкой, т.к. transform не отработал
+    expect(typeof (data.appendix as any).meta).toBe('string');
+  });
+});

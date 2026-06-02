@@ -5,6 +5,7 @@ import type { IAppendixBlockchainData } from '../../../domain/interfaces/appendi
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { CapitalContractInfoService } from '../../services/capital-contract-info.service';
 import { AbstractBlockchainDeltaMapper, type SignedDocField } from '~/shared/abstract-blockchain-delta.mapper';
+import { singleSignatureChainDocumentSchema } from '~/shared/sync/signed-document-schemas';
 import type { CapitalContract } from 'cooptypes';
 
 /**
@@ -16,7 +17,9 @@ import type { CapitalContract } from 'cooptypes';
  */
 @Injectable()
 export class AppendixDeltaMapper extends AbstractBlockchainDeltaMapper<IAppendixBlockchainData, AppendixDomainEntity> {
-  protected readonly signedDocumentFields: ReadonlyArray<SignedDocField> = [{ path: 'appendix' }];
+  protected readonly signedDocumentFields: ReadonlyArray<SignedDocField> = [
+    { path: 'appendix', schema: singleSignatureChainDocumentSchema },
+  ];
 
   constructor(private readonly logger: WinstonLoggerService, private readonly contractInfo: CapitalContractInfoService) {
     super();
