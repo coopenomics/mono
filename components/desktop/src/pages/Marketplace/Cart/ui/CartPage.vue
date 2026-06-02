@@ -1,12 +1,11 @@
 <script lang="ts" setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { FailAlert, SuccessAlert, NotifyAlert } from 'src/shared/api';
+import { FailAlert, NotifyAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import {
   useMarketplaceCartStore,
   type IMarketplaceCartItem,
-  type IMarketplaceCheckoutResult,
 } from 'src/entities/MarketplaceCart';
 import { BaseCard, BaseButton, BaseChip, EmptyState } from 'src/shared/ui/base';
 import { KUHeaderBar } from 'src/widgets/Marketplace/KUHeaderBar';
@@ -31,10 +30,6 @@ const system = useSystemStore();
 const cartStore = useMarketplaceCartStore();
 
 const coopname = computed(() => String(route.params.coopname ?? ''));
-
-// Результат последнего оформления — показываем сводку (заказы/остаток) до тех
-// пор, пока заказчик не уйдёт со страницы или не оформит снова.
-const lastResult = ref<IMarketplaceCheckoutResult | null>(null);
 
 const symbol = computed(() => system.governSymbol);
 
@@ -100,32 +95,24 @@ async function onRemove(offerId: string): Promise<void> {
 async function onClear(): Promise<void> {
   try {
     await cartStore.clear();
-    lastResult.value = null;
   } catch (e) {
     FailAlert(e);
   }
 }
 
-// Оформление. `checkoutId` непуст только при повторе непрошедшего остатка —
-// тогда позиции лягут в тот же заказ-агрегат.
-async function onCheckout(checkoutId?: string): Promise<void> {
+// Оформление → отдельная страница подтверждения (итог не показываем в корзине,
+// которая после оформления пустеет). Результат уезжает в стор (lastCheckout),
+// confirmation-страница его читает.
+async function onCheckout(): Promise<void> {
   try {
-    const result = await cartStore.checkout(checkoutId);
-    lastResult.value = result;
-    if (result.fully_completed) {
-      SuccessAlert('Заказ оформлен');
-    } else {
-      NotifyAlert(
-        'Часть позиций не оформлена — они остались в корзине. Можно повторить оформление остатка.',
-      );
-    }
+    await cartStore.checkout();
+    void router.push({
+      name: 'marketplace-order-confirmation',
+      params: { coopname: coopname.value },
+    });
   } catch (e) {
     FailAlert(e);
   }
-}
-
-function goToOrders(): void {
-  void router.push({ name: 'marketplace-my-orders', params: { coopname: coopname.value } });
 }
 
 function goToCatalog(): void {
@@ -239,7 +226,7 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
           variant="primary",
           :loading="cartStore.checkingOut",
           :disabled="cartStore.mutating",
-          @click="() => onCheckout()"
+          @click="onCheckout"
         ) Оформить заказ
         BaseButton.mp-cart__clear(
           variant="ghost",
@@ -247,31 +234,6 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
           :disabled="cartStore.mutating || cartStore.checkingOut",
           @click="onClear"
         ) Очистить корзину
-
-  //- Сводка результата последнего оформления (заказы + непрошедший остаток).
-  BaseCard.mp-cart__result(v-if="lastResult")
-    .mp-cart__result-head
-      q-icon(
-        :name="lastResult.fully_completed ? 'check_circle' : 'info'",
-        :color="lastResult.fully_completed ? 'positive' : 'warning'",
-        size="22px"
-      )
-      .text-subtitle1 {{ lastResult.fully_completed ? 'Заказ оформлен' : 'Заказ оформлен частично' }}
-    .mp-cart__result-body
-      div Создано заказов на пункт выдачи: {{ lastResult.created_orders.length }}.
-      div(v-if="lastResult.failed_lines.length")
-        .text-warning Не оформлено позиций: {{ lastResult.failed_lines.length }}
-        ul.mp-cart__failed
-          li(v-for="f in lastResult.failed_lines", :key="f.offer_id")
-            span {{ f.product_name || f.offer_id }} — {{ f.reason }}
-    .mp-cart__result-actions
-      BaseButton(variant="secondary", @click="goToOrders") К моим заказам
-      BaseButton(
-        v-if="lastResult.failed_lines.length && cartStore.hasItems",
-        variant="primary",
-        :loading="cartStore.checkingOut",
-        @click="() => onCheckout(lastResult?.checkout_id)"
-      ) Повторить оформление остатка
 </template>
 
 <style scoped lang="scss">
@@ -442,30 +404,6 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
   &__clear {
     width: 100%;
     margin-top: var(--p-2, 8px);
-  }
-
-  // ── Результат оформления ────────────────────────────────────────────
-  &__result-head {
-    display: flex;
-    align-items: center;
-    gap: var(--p-2, 8px);
-  }
-
-  &__result-body {
-    margin-top: var(--p-2, 8px);
-    color: var(--p-ink-2);
-  }
-
-  &__failed {
-    margin: var(--p-2, 8px) 0 0;
-    padding-left: var(--p-4, 16px);
-  }
-
-  &__result-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: var(--p-2, 8px);
-    margin-top: var(--p-4, 16px);
   }
 
   @media (max-width: 768px) {

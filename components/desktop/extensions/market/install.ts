@@ -2,6 +2,7 @@ import { markRaw } from 'vue'
 import { MarketplaceCatalogPage } from 'src/pages/Marketplace/MarketplaceCatalog'
 import { MarketplaceOfferDetailPage } from 'src/pages/Marketplace/MarketplaceOfferDetail'
 import { CartPage } from 'src/pages/Marketplace/Cart'
+import { OrderConfirmationPage } from 'src/pages/Marketplace/OrderConfirmation'
 import { CreateMarketplaceOfferPage } from 'src/pages/Marketplace/CreateMarketplaceOffer'
 import { MyOrdersPage } from 'src/pages/Marketplace/MyOrders'
 import { OperatorTrustedPersonsPage } from 'src/pages/Marketplace/OperatorTrustedPersons'
@@ -164,6 +165,24 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 requires: 'Order:create',
                 requiresAuth: true,
                 agreements: agreementsBase,
+              },
+              children: [],
+            },
+            {
+              // Финальный экран после оформления: сводка заказа-агрегата
+              // (созданные заказы + непрошедший остаток). Отдельная страница,
+              // чтобы не показывать итог в опустевшей корзине. Скрыт из меню —
+              // открывается редиректом после «Оформить заказ».
+              path: 'order-confirmation',
+              name: 'marketplace-order-confirmation',
+              component: markRaw(OrderConfirmationPage),
+              meta: {
+                title: 'Заказ оформлен',
+                icon: 'task_alt',
+                requires: 'Order:create',
+                requiresAuth: true,
+                agreements: agreementsBase,
+                hidden: true,
               },
               children: [],
             },

@@ -19,6 +19,9 @@ export const useMarketplaceCartStore = defineStore(namespace, () => {
   const loading = ref(false)
   const mutating = ref(false)
   const checkingOut = ref(false)
+  // Результат последнего оформления — для отдельной страницы подтверждения
+  // заказа (корзина после оформления чистая, итог показываем не в ней).
+  const lastCheckout = ref<IMarketplaceCheckoutResult | null>(null)
 
   /** Текущий КУ заказчика (null — ещё не выбран). */
   const currentBraname = computed<string | null>(() => cart.value?.delivery_braname ?? null)
@@ -104,10 +107,15 @@ export const useMarketplaceCartStore = defineStore(namespace, () => {
       const result = await api.checkout(checkout_id)
       // Сервер вернул корзину с непрошедшим остатком — синхронизируем состояние.
       cart.value = result.cart
+      lastCheckout.value = result
       return result
     } finally {
       checkingOut.value = false
     }
+  }
+
+  function clearLastCheckout(): void {
+    lastCheckout.value = null
   }
 
   return {
@@ -115,6 +123,8 @@ export const useMarketplaceCartStore = defineStore(namespace, () => {
     loading,
     mutating,
     checkingOut,
+    lastCheckout,
+    clearLastCheckout,
     currentBraname,
     currentPointName,
     items,
