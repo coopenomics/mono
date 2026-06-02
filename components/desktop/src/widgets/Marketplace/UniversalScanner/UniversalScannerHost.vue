@@ -4,8 +4,8 @@ import { useRouter } from 'vue-router';
 import { useSystemStore } from 'src/entities/System/model';
 import { useActionsStore } from 'src/shared/lib/stores/actions.store';
 import { FailAlert } from 'src/shared/api';
-import { BaseDialog } from 'src/shared/ui/base';
-import { CodeScanner, BARCODE_FORMATS } from 'src/widgets/Marketplace/CodeScanner';
+import { BARCODE_FORMATS } from 'src/widgets/Marketplace/CodeScanner';
+import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
 import { resolveHandoffTarget, HANDOFF_QUERY } from 'src/shared/lib/marketplace';
 import { useUniversalScanner } from './useUniversalScanner';
 
@@ -51,12 +51,13 @@ onBeforeUnmount(() => actions.removeAction(ACTION));
 </script>
 
 <template lang="pug">
-BaseDialog(v-model='isOpen', title='Сканировать QR', size='sm')
-  CodeScanner(
-    :formats='BARCODE_FORMATS',
-    idle-caption='Наведите камеру на QR поставщика, ТТН или код получения заказчика',
-    frame-hint='Поместите код в рамку',
-    manual-label='Или введите код вручную',
-    @scanned='onScanned'
-  )
+ScannerDialog(
+  v-model='isOpen',
+  title='Сканировать QR',
+  :formats='BARCODE_FORMATS',
+  idle-caption='Наведите камеру на QR поставщика, ТТН или код получения заказчика',
+  frame-hint='Поместите код в рамку',
+  manual-label='Или введите код вручную',
+  @scanned='onScanned'
+)
 </template>

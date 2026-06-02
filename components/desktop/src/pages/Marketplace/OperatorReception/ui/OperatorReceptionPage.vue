@@ -8,7 +8,7 @@ import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/Operator
 import { Avatar, BaseBadge, BaseButton, BaseCard, BaseDialog, BaseInput, EmptyState } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { AccountBadge, PageHint } from 'src/shared/ui/domain';
-import { CodeScanner } from 'src/widgets/Marketplace/CodeScanner';
+import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import {
@@ -722,8 +722,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
     @signed='onChairmanSigned'
   )
 
-  BaseDialog(v-model='scanDialogOpen', title='Сканирование QR партии', size='sm')
-    CodeScanner(@scanned='onQrScanned')
+  ScannerDialog(v-model='scanDialogOpen', title='Сканирование QR партии', @scanned='onQrScanned')
 
   //- Эпик 14: агрегирующая приёмка по account-bound коду. Плоский список единиц
   //- имущества (R7a): сверху — задекларированные в партии (по ТТН), ниже

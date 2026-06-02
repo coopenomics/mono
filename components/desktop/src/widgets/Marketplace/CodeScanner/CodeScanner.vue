@@ -80,8 +80,25 @@ let detector: BarcodeDetectorLike | null = null;
 let rafId: number | null = null;
 let stopped = false;
 
+/**
+ * Таймаут запроса камеры. На ноутбуке без разрешений / при блокировке
+ * Permissions-Policy `getUserMedia` может «висеть» не отвергаясь — спиннер
+ * крутится бесконечно. По истечении лимита глушим запрос и показываем ошибку
+ * с запасным ручным вводом, не оставляя оператора в вечном ожидании.
+ */
+const REQUEST_TIMEOUT_MS = 12000;
+let requestTimer: ReturnType<typeof setTimeout> | null = null;
+
+function clearRequestTimer(): void {
+  if (requestTimer !== null) {
+    clearTimeout(requestTimer);
+    requestTimer = null;
+  }
+}
+
 function teardown(): void {
   stopped = true;
+  clearRequestTimer();
   if (rafId !== null) {
     cancelAnimationFrame(rafId);
     rafId = null;
@@ -118,6 +135,12 @@ async function start(): Promise<void> {
   }
   state.value = 'requesting';
   stopped = false;
+  requestTimer = setTimeout(() => {
+    if (state.value !== 'requesting') return;
+    teardown();
+    state.value = 'error';
+    errorMessage.value = 'Камера не ответила — введите код вручную.';
+  }, REQUEST_TIMEOUT_MS);
   try {
     detector = new DetectorCtor!({ formats: props.formats });
     stream = await navigator.mediaDevices.getUserMedia({
@@ -127,6 +150,7 @@ async function start(): Promise<void> {
       teardown();
       return;
     }
+    clearRequestTimer();
     if (video.value) {
       video.value.srcObject = stream;
       await video.value.play();
@@ -216,7 +240,11 @@ defineExpose({ start, stop });
     max-width: 420px;
     aspect-ratio: 4 / 3;
     margin: 0 auto;
-    background: var(--p-ink);
+    //- Поверхность из канона: следует за темой. НЕ `--p-ink` — он
+    //- инвертируется (в тёмной теме светлый), отчего бокс камеры белеет,
+    //- а белый текст/иконка на нём становятся невидимыми.
+    background: var(--p-surface-2);
+    border: 1px solid var(--p-line);
     border-radius: var(--p-r-md, 12px);
     overflow: hidden;
   }
@@ -237,16 +265,18 @@ defineExpose({ start, stop });
     gap: var(--p-3, 12px);
     padding: var(--p-4, 16px);
     text-align: center;
-    color: #fff;
+    //- Текст оверлея (idle/requesting/error) — на канон-поверхности, поэтому
+    //- ink-токены, а не белый: читается в обеих темах.
+    color: var(--p-ink-2);
   }
 
   &__muted {
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--p-ink-3);
   }
 
   &__caption {
     font-size: var(--p-fs-body-sm, 13px);
-    color: rgba(255, 255, 255, 0.85);
+    color: var(--p-ink-2);
     line-height: 1.4;
   }
 

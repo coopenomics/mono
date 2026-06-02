@@ -147,7 +147,8 @@ q-page.trusted
       UserSearchSelector.trusted__add-input(
         v-model='newUsername',
         label='Пайщик (поиск по ФИО)',
-        outlined
+        outlined,
+        dense
       )
       BaseButton(
         variant='primary',
@@ -229,12 +230,12 @@ q-page.trusted
 
   &__add {
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     gap: var(--p-3, 12px);
   }
 
   &__add-input {
-    max-width: 320px;
+    max-width: 280px;
     width: 100%;
   }
 

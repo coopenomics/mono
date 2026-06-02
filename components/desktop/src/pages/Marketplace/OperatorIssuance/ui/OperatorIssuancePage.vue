@@ -5,7 +5,7 @@ import { FailAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
 import { Avatar, BaseBadge, BaseButton, BaseDialog, EmptyState } from 'src/shared/ui/base';
 import { AccountBadge, PageHint } from 'src/shared/ui/domain';
-import { CodeScanner } from 'src/widgets/Marketplace/CodeScanner';
+import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
 import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
@@ -303,8 +303,7 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
     @opened='onOpened'
   )
 
-  BaseDialog(v-model='scanDialogOpen', title='Сканирование QR заказа', size='sm')
-    CodeScanner(@scanned='onQrScanned')
+  ScannerDialog(v-model='scanDialogOpen', title='Сканирование QR заказа', @scanned='onQrScanned')
 
   //- Все заказы заказчика на выдачу разом (резолв account-bound кода против ленты
   //- этого КУ). Оператор открывает их по одному — каждый шаг со своей подписью.
