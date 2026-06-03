@@ -308,9 +308,12 @@ defineExpose({ start, stop });
     align-self: center;
   }
 
+  //- BaseInput резервирует строку hint снизу (reserve-hint-space), из-за чего
+  //- его бокс выше кнопки. flex-start ставит верх кнопки на уровень поля —
+  //- кнопка «Применить» не проваливается к низу резерв-строки.
   &__manual {
     display: flex;
-    align-items: flex-end;
+    align-items: flex-start;
     gap: var(--p-2, 8px);
   }
 
