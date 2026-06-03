@@ -1,7 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { Loading } from 'quasar';
 import { Zeus } from '@coopenomics/sdk';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
@@ -419,7 +418,6 @@ const plannedReceptionsCount = computed(() => {
 // факту» ведут сюда): грузим все единицы имущества поставщика на этом КУ и
 // открываем форму коррекции количества/цены.
 async function openPickupForSupplier(account: string): Promise<void> {
-  Loading.show({ message: 'Загружаю имущество поставщика…' });
   try {
     const orders = await listSupplierPickupOrders({
       braname: braname.value.trim(),
@@ -452,8 +450,6 @@ async function openPickupForSupplier(account: string): Promise<void> {
     pickupDialogOpen.value = true;
   } catch (e) {
     FailAlert(e, 'Не удалось загрузить имущество поставщика');
-  } finally {
-    Loading.hide();
   }
 }
 
@@ -471,7 +467,6 @@ async function openPickupForShipment(shipment_id: string): Promise<void> {
     );
     return;
   }
-  Loading.show({ message: 'Загружаю состав партии…' });
   try {
     const all = await listSupplierPickupOrders({
       braname: braname.value.trim(),
@@ -493,8 +488,6 @@ async function openPickupForShipment(shipment_id: string): Promise<void> {
     pickupDialogOpen.value = true;
   } catch (e) {
     FailAlert(e, 'Не удалось загрузить состав партии');
-  } finally {
-    Loading.hide();
   }
 }
 
@@ -545,9 +538,10 @@ function consumeHandoffQuery(): void {
 // единицами — createAplReception с фактическим кол-вом per-Order (R5; невыбранные
 // единицы партии = 0, потолок = заказано). Не выбранные целиком партии остаются
 // ждать. Добор по акцепту — express-самовывозом.
+const acceptingPickup = ref(false);
+
 async function acceptPickup(): Promise<void> {
-  pickupDialogOpen.value = false;
-  Loading.show({ message: 'Формирую акты приёмки…' });
+  acceptingPickup.value = true;
   let created = 0;
   try {
     // Задекларированные единицы → по партиям (shipment_id); партию без выбранных
@@ -592,7 +586,8 @@ async function acceptPickup(): Promise<void> {
   } catch (e) {
     FailAlert(e, 'Не удалось сформировать часть актов — проверьте ленту и повторите');
   } finally {
-    Loading.hide();
+    acceptingPickup.value = false;
+    pickupDialogOpen.value = false;
     pickupOrders.value = [];
     await load();
   }
@@ -756,7 +751,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
               BaseInput(
                 v-model.number='pickupFact[o.id]',
                 type='number',
-                dense,
+                label='Кол-во',
                 :disable='!isSelected(o.id)',
                 :suffix='marketplaceUnitShort(o.unit_of_measure)',
                 @blur='clampFact(o.id, o.quantity)'
@@ -764,9 +759,8 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
               BaseInput(
                 v-model='pickupPrice[o.id]',
                 type='number',
-                dense,
-                :disable='!isSelected(o.id)',
-                label='Цена/ед.'
+                label='Цена/ед.',
+                :disable='!isSelected(o.id)'
               )
 
       template(v-if='addonGroups.length')
@@ -787,7 +781,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
               BaseInput(
                 v-model.number='pickupFact[o.id]',
                 type='number',
-                dense,
+                label='Кол-во',
                 :disable='!takeAddon',
                 :suffix='marketplaceUnitShort(o.unit_of_measure)',
                 @blur='clampFact(o.id, o.quantity)'
@@ -795,14 +789,13 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
               BaseInput(
                 v-model='pickupPrice[o.id]',
                 type='number',
-                dense,
-                :disable='!takeAddon',
-                label='Цена/ед.'
+                label='Цена/ед.',
+                :disable='!takeAddon'
               )
 
       .reception__pickup-actions
         BaseButton(variant='ghost', size='sm', @click='pickupDialogOpen = false') Отмена
-        BaseButton(variant='primary', size='sm', :disabled='!plannedReceptionsCount', @click='acceptPickup')
+        BaseButton(variant='primary', size='sm', :loading='acceptingPickup', :disabled='!plannedReceptionsCount', @click='acceptPickup')
           template(#icon-left)
             q-icon(name='how_to_reg', size='16px')
           | Сформировать акты ({{ plannedReceptionsCount }})
@@ -1006,7 +999,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
 
   &__unit {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: var(--p-2, 8px);
     padding-top: var(--p-2, 8px);
     border-top: 1px solid var(--p-line);
@@ -1033,9 +1026,19 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
     font-variant-numeric: tabular-nums;
   }
 
+  //- Кол-во и Цена/ед. — один горизонтальный ряд, оба с label (одинаковая высота,
+  //- выровнены сверху), чтобы инпуты не «прыгали» друг относительно друга.
   &__unit-fact {
     flex: 0 0 auto;
-    width: 120px;
+    display: flex;
+    align-items: flex-start;
+    gap: var(--p-2, 8px);
+    width: 280px;
+
+    :deep(.base-input) {
+      flex: 1 1 0;
+      min-width: 0;
+    }
   }
 }
 

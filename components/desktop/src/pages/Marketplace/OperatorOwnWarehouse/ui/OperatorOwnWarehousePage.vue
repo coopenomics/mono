@@ -238,32 +238,36 @@ q-page.warehouse(role='region', aria-label='Склад участка')
       | полке, заказчик и состояние. Полку можно поправить, а штрих-код выпустить
       | прямо в строке. Штрих-код есть не у всех позиций — он опционален.
 
-    .warehouse__filters
-      .warehouse__chips
-        .chip(
-          v-for='opt in statusOptions',
-          :key='opt.value',
-          :class='isStatusActive(opt.value) ? "chip--accent" : "chip--neutral"',
-          role='button',
-          tabindex='0',
-          @click='toggleStatus(opt.value)',
-          @keydown.enter='toggleStatus(opt.value)'
-        ) {{ opt.label }}
-      BaseInput.warehouse__search(
-        v-model='search',
-        type='search',
-        placeholder='Поиск: заказчик, товар, полка, штрих-код',
-        clearable
-      )
+    //- Обновление — в шапке страницы (канон: действия — в топбаре), не болтается в ряду.
+    Teleport(to="#header-actions-host", defer)
       BaseButton(
         variant='ghost',
         icon-only,
-        aria-label='Обновить',
+        aria-label='Обновить склад',
         :loading='loading',
         @click='load'
       )
         template(#icon-left)
           q-icon(name='refresh', size='20px')
+
+    //- Поиск — отдельной строкой (не в одном ряду с чипами: их высоты разные и
+    //- поле «скачет» относительно чипов). Ниже — чипы-фильтры состояния.
+    BaseInput.warehouse__search(
+      v-model='search',
+      type='search',
+      placeholder='Поиск: заказчик, товар, полка, штрих-код',
+      clearable
+    )
+    .warehouse__chips
+      .chip(
+        v-for='opt in statusOptions',
+        :key='opt.value',
+        :class='isStatusActive(opt.value) ? "chip--accent" : "chip--neutral"',
+        role='button',
+        tabindex='0',
+        @click='toggleStatus(opt.value)',
+        @keydown.enter='toggleStatus(opt.value)'
+      ) {{ opt.label }}
 
     TableSkeleton(
       v-if='loading && !items.length',
@@ -304,7 +308,7 @@ q-page.warehouse(role='region', aria-label='Склад участка')
               td.col-orderer
                 .warehouse__orderer
                   span.warehouse__orderer-name {{ ordererName(row) }}
-                  AccountBadge(:account-name='row.orderer_account_snapshot', size='sm', plain)
+                  AccountBadge(:account-name='row.orderer_account_snapshot', size='sm')
 
               td.col-qty {{ row.quantity_per_label }}
 
@@ -346,13 +350,6 @@ q-page.warehouse(role='region', aria-label='Склад участка')
   flex-direction: column;
   gap: var(--p-4, 16px);
 
-  &__filters {
-    display: flex;
-    align-items: center;
-    gap: var(--p-3, 12px);
-    flex-wrap: wrap;
-  }
-
   &__chips {
     display: flex;
     flex-wrap: wrap;
@@ -366,9 +363,8 @@ q-page.warehouse(role='region', aria-label='Склад участка')
     }
   }
 
-  // Поиск стоит наравне с фильтрами (без margin-left:auto, не «в стороне»).
   &__search {
-    max-width: 320px;
+    max-width: 420px;
     width: 100%;
   }
 

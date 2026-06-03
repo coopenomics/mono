@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { Dialog, Loading } from 'quasar';
+import { Dialog } from 'quasar';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { OrderCard, toOrderCardModel, type Order as OrderCardModel } from 'src/widgets/Marketplace/OrderCard';
@@ -198,15 +198,12 @@ function confirmCancel(order: MarketplaceOrderView): void {
     ok: { label: 'Отменить заказ', color: 'negative', unelevated: true },
     persistent: true,
   }).onOk(async () => {
-    Loading.show({ message: 'Отменяю заказ…' });
     try {
       const result = await cancelOrder(order.id);
       SuccessAlert(`Заказ отменён. Средства разблокированы (tx ${result.tx_hash.slice(0, 8)}).`);
       await load(1, false);
     } catch (e) {
       FailAlert(e);
-    } finally {
-      Loading.hide();
     }
   });
 }

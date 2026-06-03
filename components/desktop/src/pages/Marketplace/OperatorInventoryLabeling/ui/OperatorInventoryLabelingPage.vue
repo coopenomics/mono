@@ -1,7 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { Loading } from 'quasar'
 import { Zeus } from '@coopenomics/sdk'
 import { SuccessAlert, FailAlert } from 'src/shared/api'
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch'
@@ -311,11 +310,12 @@ function removeSplitRow(idx: number): void {
   splitRows.value.splice(idx, 1)
 }
 
+const splitting = ref(false)
+
 async function applySplit(): Promise<void> {
   if (!splitTarget.value || !splitValid.value) return
   const target = splitTarget.value
-  splitDialogOpen.value = false
-  Loading.show({ message: 'Раскладываю по полкам…' })
+  splitting.value = true
   try {
     await splitInventory({
       inventory_id: target.id,
@@ -329,11 +329,12 @@ async function applySplit(): Promise<void> {
         ? `Заказ разложен на ${splitRows.value.length} полок(и)`
         : 'Заказ собран на одной полке',
     )
+    splitDialogOpen.value = false
     await load()
   } catch (e) {
     FailAlert(e, 'Не удалось разложить позицию')
   } finally {
-    Loading.hide()
+    splitting.value = false
   }
 }
 
@@ -530,7 +531,7 @@ q-page.place(role='region', aria-label='Склад участка')
           | Сумма: {{ splitTotal }} / {{ splitPoolTotal }}
     template(#footer)
       BaseButton(variant='ghost', size='sm', @click='splitDialogOpen = false') Отмена
-      BaseButton(variant='primary', size='sm', :disabled='!splitValid', @click='applySplit') Разложить
+      BaseButton(variant='primary', size='sm', :loading='splitting', :disabled='!splitValid', @click='applySplit') Разложить
 
   //- Печать листа произвольных штрих-кодов.
   BaseDialog(v-model='printDialogOpen', title='Печать этикеток', size='sm')
