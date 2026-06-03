@@ -90,14 +90,16 @@ _Критичные правила и паттерны для AI-агентов 
 - `{contract}{Entity}Updated` / `Deleted` / `RolledBack` / `PendingRetry` / `Failed` — **pubsub канал** для GraphQL subscriptions. Per-contract, не global.
 - `entitysynced::{contract}::{table}` — для business-side-effect listeners (Matrix / Notification / и т.п.).
 
-### Composite-Entity (ADR-008) — СТРОГО
+### Composite-Entity (ADR-008) — будущая цель, не сейчас
 
-- Namespaced: `entity.db.X` (DB-поля) / `entity.bc?.Y` (blockchain, nullable) / `entity.derived.Z` (computed getters).
-- **НЕ** писать `entity.X` напрямую — ломает изоляцию.
-- Конструктор `(databaseData, blockchainData?)` — обязан `throw` на sync-key mismatch.
-- `updateFromBlockchain` возвращает **новый экземпляр** (immutable) или мутирует только `this.bc`, `this.block_num`, `this.present` — БЕЗ `Object.assign`.
-- `derived` getter — детерминирован (NO `new Date()` в конструкторе / getter — ломает snapshot tests).
-- Все signed-document поля нормализуются через `AbstractDeltaMapper.normalizeSignedDocuments` на основе `signedDocumentFields: SignedDocField[]` декларативно, НЕ руками в mapper.
+ADR-008 описывает целевой паттерн `entity.db.X` / `entity.bc?.Y` / `entity.derived.Z`, заменяющий
+`Object.assign(this, blockchainData)`. Переход вынесен за пределы MVP-релиза parser2 в отдельный
+sync-arch sanitation-эпик: blast radius на 22 entity + потребители «плоских» полей в resolver'ах
+делают эту миграцию большой и рискованной задачей, несвязанной с заменой транспорта parser1→parser2.
+
+До отдельного эпика — текущий код продолжает использовать flat-namespace + `Object.assign` в
+`updateFromBlockchain`. Не вводить namespace частично на одной entity — двойной канон хуже единого
+старого.
 
 ### Dispatch pipeline (ADR-002, ADR-009) — СТРОГО
 
@@ -253,12 +255,13 @@ return { tx_hash: tx.tx_hash, status: 'pending' };
 - `await capitalBlockchainPort.getProject(hash)` в resolver / application — **retire**. Только `repository.findBySyncKey`.
 - RPC fallback "если PG не отдал" — **запрещено**. Если PG null → pending status наверх.
 
-### ❌ Composite-entity anti-patterns
+### ❌ Domain-entity anti-patterns
 
-- `project.matrix_room_id` (flat access) — **запрещено**. Правильно: `project.db.matrix_room_id`.
-- `project.master` (flat access) — **запрещено**. Правильно: `project.bc?.master`.
-- `Object.assign(this, blockchainData)` в update — **запрещено**.
 - Новый `new Date()` в конструкторе или derived-getter — **запрещено** (ломает snapshot-tests).
+- Миграция на namespace `entity.db.X` / `entity.bc?.Y` — целевой паттерн ADR-008, но отложен
+  в отдельный sync-arch sanitation-эпик: текущий код всё ещё использует flat-namespace +
+  `Object.assign(this, blockchainData)` в `updateFromBlockchain`. Не разводить два стандарта
+  частично.
 
 ### ❌ Fork handling anti-patterns
 
@@ -298,7 +301,6 @@ return { tx_hash: tx.tx_hash, status: 'pending' };
 
 ### ⚡ Performance
 
-- `JSON.stringify` на сущностях с nested signed-documents — использовать `json-stable-stringify` для canonical checksum.
 - Reconciliation cron — sample N=100 rows, **не** full scan на hot path.
 - IPFS fetch для signed-doc — **lazy resolver вне consumer critical path**, не в mapper.
 - `waitForDelta` memory leak — timer cleanup обязателен (см. INV-T10).

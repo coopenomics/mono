@@ -8,6 +8,8 @@ import type {
   ISyncResult,
 } from '~/shared/interfaces/blockchain-sync.interface';
 import { FORK_AWARE_MARKER, type IForkAwareSyncer } from '~/shared/sync/fork';
+import { UnsupportedContractVersionError } from '~/shared/sync/errors/unsupported-contract-version.error';
+import config from '~/config/config';
 
 /**
  * Абстрактный сервис для синхронизации сущностей с блокчейном
@@ -56,7 +58,21 @@ export abstract class AbstractEntitySyncService<TEntity extends IBlockchainSynch
       // Маппинг дельты в блокчейн-данные
       const blockchainData = this.mapper.mapDeltaToBlockchainData(delta);
       if (!blockchainData) {
-        this.logger.warn(`Failed to map delta to blockchain data for ${this.entityName} ${syncValue}`);
+        // Story 6.5: silent loss заменён на audit-trail error. В strict-mode дополнительно
+        // throw UnsupportedContractVersionError — парсер не ACK'нет дельту, dead-letter сработает.
+        const ctx = {
+          contract: (delta as any).contract ?? (delta as any).code,
+          table: (delta as any).table,
+          primary_key: (delta as any).primary_key,
+          block_num: Number((delta as any).block_num),
+        };
+        this.logger.error(
+          `UNSUPPORTED_CONTRACT_VERSION: mapDeltaToBlockchainData returned null for ${this.entityName} ${syncValue}`,
+          { entity: this.entityName, syncValue, ...ctx }
+        );
+        if (config.blockchain.unsupported_version_strict) {
+          throw new UnsupportedContractVersionError(this.entityName, ctx);
+        }
         return null;
       }
 
@@ -66,6 +82,9 @@ export abstract class AbstractEntitySyncService<TEntity extends IBlockchainSynch
       // Обработка создания/обновления сущности
       return await this.handleSyncDelta(syncKey, syncValue, blockchainData, blockNum, present);
     } catch (error: any) {
+      // Story 6.5: UnsupportedContractVersionError пробрасываем дальше, чтобы парсер
+      // не ACK'нул дельту в strict-mode.
+      if (error instanceof UnsupportedContractVersionError) throw error;
       this.logger.error(`Error processing ${this.entityName} delta: ${error.message}`, error.stack);
       // Не перебрасываем ошибку, чтобы не падало приложение
       return null;
