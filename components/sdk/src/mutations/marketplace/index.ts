@@ -24,6 +24,8 @@ export * as SplitInventory from './splitInventory'
 export * as GenerateInventoryLabel from './generateInventoryLabel'
 /** Склад КУ: привязать к позиции отсканированный штрих-код с печатной этикетки (оператор КУ) */
 export * as BindInventoryBarcode from './bindInventoryBarcode'
+/** Склад КУ: снять штрих-код с позиции для переклейки (оператор КУ) */
+export * as ClearInventoryLabel from './clearInventoryLabel'
 /** Эпик 5: создать акт приёмки партии (оператор КУ) */
 export * as CreateAplReception from './createAplReception'
 /** Эпик 14 (14.2): express-приёмка самовывоза по факту присутствия поставщика */

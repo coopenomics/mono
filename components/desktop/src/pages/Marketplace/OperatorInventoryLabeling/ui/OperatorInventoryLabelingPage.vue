@@ -12,6 +12,7 @@ import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton'
 import {
   assignInventoryShelf,
   bindInventoryBarcode,
+  clearInventoryLabel,
   fetchInventoryByBraname,
   splitInventory,
   type MarketplaceInventoryItemView,
@@ -130,6 +131,17 @@ async function moveToShelf(item: MarketplaceInventoryItemView, shelf: string | n
     await load()
   } catch (e) {
     FailAlert(e, 'Не удалось переложить позицию')
+  }
+}
+
+// ── Снять штрих-код для переклейки (LABELED → RECEIVED) ──
+async function removeLabel(item: MarketplaceInventoryItemView): Promise<void> {
+  try {
+    await clearInventoryLabel({ inventory_id: item.id })
+    SuccessAlert('Штрих-код снят — позицию можно переклеить')
+    await load()
+  } catch (e) {
+    FailAlert(e, 'Не удалось снять штрих-код')
   }
 }
 
@@ -463,6 +475,15 @@ q-page.place(role='region', aria-label='Склад участка')
                           q-item-section(avatar)
                             q-icon(name='call_split', size='18px')
                           q-item-section Разложить по количеству
+                        q-item(
+                          v-if='item.barcode_value',
+                          clickable,
+                          v-close-popup,
+                          @click='removeLabel(item)'
+                        )
+                          q-item-section(avatar)
+                            q-icon(name='label_off', size='18px')
+                          q-item-section Снять штрих-код
 
             .place__card-badges
               BaseBadge(v-if='item.barcode_value', variant='pos') Промаркировано

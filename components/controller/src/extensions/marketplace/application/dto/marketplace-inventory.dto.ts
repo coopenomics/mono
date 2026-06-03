@@ -176,6 +176,14 @@ export class MarketplaceAssignInventoryShelfInputDTO {
   shelf?: string | null;
 }
 
+@InputType('MarketplaceClearInventoryLabelInput')
+export class MarketplaceClearInventoryLabelInputDTO {
+  @Field(() => ID, { description: 'Позиция склада, с которой снимается штрих-код (для переклейки).' })
+  @IsString()
+  @IsNotEmpty()
+  inventory_id!: string;
+}
+
 @InputType('MarketplaceInventorySplitEntryInput')
 export class MarketplaceInventorySplitEntryInputDTO {
   @Field(() => Int, { description: 'Количество единиц в этой доле.' })

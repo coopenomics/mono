@@ -681,6 +681,9 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceCheckoutCartInput:{
 
 	},
+	MarketplaceClearInventoryLabelInput:{
+
+	},
 	MarketplaceConsolidatedRequestStatus: "enum" as const,
 	MarketplaceCreateAplReceptionInput:{
 		fact_quantity_per_order:"MarketplaceAplReceptionFactEntryInput"
@@ -1375,6 +1378,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceCheckoutCart:{
 			input:"MarketplaceCheckoutCartInput"
+		},
+		marketplaceClearInventoryLabel:{
+			data:"MarketplaceClearInventoryLabelInput"
 		},
 		marketplaceCreateAplReception:{
 			data:"MarketplaceCreateAplReceptionInput"
@@ -4848,6 +4854,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceCheckoutCart:"MarketplaceCheckoutResult",
 		marketplaceClearAvailableCategories:"Boolean",
 		marketplaceClearCart:"MarketplaceCart",
+		marketplaceClearInventoryLabel:"MarketplaceInventoryMutationResult",
 		marketplaceCreateAplReception:"MarketplaceAplReceptionResult",
 		marketplaceCreateExpressReception:"MarketplaceCreateExpressReceptionResult",
 		marketplaceCreateOffer:"MarketplaceOffer",

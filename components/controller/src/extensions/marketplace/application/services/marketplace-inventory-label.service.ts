@@ -263,6 +263,24 @@ export class MarketplaceInventoryLabelService {
     return { inventory: [updated] };
   }
 
+  /** Снять штрих-код для переклейки (LABELED → RECEIVED, значение и метки маркировки очищаются). */
+  async clearLabel(
+    input: { coopname: string; operator_account: string; inventory_id: string }
+  ): Promise<MarketplaceInventoryMutationResult> {
+    const item = await this.loadOwned(input.coopname, input.inventory_id);
+    if (!item.barcode_value) {
+      throw new ConflictException('У позиции нет штрих-кода — снимать нечего.');
+    }
+    if (item.status !== MarketplaceInventoryStatuses.LABELED) {
+      throw new ConflictException(
+        `Снять штрих-код можно только с промаркированной позиции (статус «${item.status}»).`
+      );
+    }
+    const updated = await this.inventoryRepo.clearLabel(item.id);
+    this.logger.log(`Inventory: штрих-код снят с позиции ${item.id} (переклейка).`);
+    return { inventory: [updated] };
+  }
+
   // ── private ──
 
   private async loadOwned(

@@ -17,6 +17,7 @@ import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-membe
 import {
   MarketplaceAssignInventoryShelfInputDTO,
   MarketplaceBindInventoryBarcodeInputDTO,
+  MarketplaceClearInventoryLabelInputDTO,
   MarketplaceGenerateInventoryLabelInputDTO,
   MarketplaceInventoryItemDTO,
   MarketplaceInventoryMutationResultDTO,
@@ -133,6 +134,27 @@ export class MarketplaceInventoryResolver {
       inventory_id: data.inventory_id,
       barcode_value: data.barcode_value,
       format: data.format as unknown as MarketplaceBarcodeFormat | undefined,
+    });
+    const dto = new MarketplaceInventoryMutationResultDTO();
+    dto.inventory = result.inventory.map(toMarketplaceInventoryItemDTO);
+    return dto;
+  }
+
+  @Mutation(() => MarketplaceInventoryMutationResultDTO, {
+    name: 'marketplaceClearInventoryLabel',
+    description:
+      'Оператор КУ снимает штрих-код с позиции склада, чтобы переклеить этикетку (позиция возвращается в состояние «Принято»).',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Inventory', 'label')
+  async marketplaceClearInventoryLabel(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('data') data: MarketplaceClearInventoryLabelInputDTO
+  ): Promise<MarketplaceInventoryMutationResultDTO> {
+    const result = await this.labelService.clearLabel({
+      coopname: config.coopname,
+      operator_account: member.username,
+      inventory_id: data.inventory_id,
     });
     const dto = new MarketplaceInventoryMutationResultDTO();
     dto.inventory = result.inventory.map(toMarketplaceInventoryItemDTO);
