@@ -24,6 +24,8 @@
     class="base-input"
     @update:model-value="onUpdate"
     @clear="$emit('clear')"
+    @blur="$emit('blur', $event)"
+    @focus="$emit('focus', $event)"
   >
     <template v-if="$slots.prepend" #prepend>
       <slot name="prepend" />
@@ -58,6 +60,8 @@ const props = withDefaults(defineProps<BaseInputProps>(), {
 const emit = defineEmits<{
   'update:modelValue': [value: string];
   clear: [];
+  blur: [event: FocusEvent];
+  focus: [event: FocusEvent];
 }>();
 
 const autoId = useId();

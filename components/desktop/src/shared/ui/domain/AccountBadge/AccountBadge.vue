@@ -4,7 +4,7 @@ component(
   :href='linkable && resolvedHref ? resolvedHref : undefined',
   :target='linkable && resolvedHref ? "_blank" : undefined',
   :rel='linkable && resolvedHref ? "noopener noreferrer" : undefined',
-  :class='["account-badge", `account-badge--${size}`, { "account-badge--linkable": linkable }]'
+  :class='["account-badge", `account-badge--${size}`, { "account-badge--linkable": linkable, "account-badge--plain": plain }]'
 )
   span.account-badge__name {{ accountName }}
   button.account-badge__copy(
@@ -75,6 +75,13 @@ async function onCopy(): Promise<void> {
 .account-badge--md {
   padding: 4px var(--p-2, 8px);
   font-size: var(--p-fs-mono, 13px);
+}
+
+.account-badge--plain {
+  background: transparent;
+  padding-left: 0;
+  padding-right: 0;
+  color: var(--p-ink-3);
 }
 
 .account-badge--linkable {

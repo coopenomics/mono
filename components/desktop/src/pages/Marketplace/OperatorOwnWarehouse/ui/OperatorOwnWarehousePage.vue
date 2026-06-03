@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { Zeus } from '@coopenomics/sdk'
@@ -133,29 +133,29 @@ onMounted(async () => {
   void load()
 })
 
-// ─── Инлайн-редактирование полки ───
-const editingShelfId = ref<string | null>(null)
-const shelfDraft = ref<string>('')
+// ─── Инлайн-правка полки: поле всегда редактируемо, сохраняем по blur/Enter,
+// только если значение изменилось. Без кнопок по бокам — просто кликаешь и правишь.
+const shelfDraft = reactive<Record<string, string>>({})
 const savingShelfId = ref<string | null>(null)
 
-function startEditShelf(row: MarketplaceInventoryItemView): void {
-  editingShelfId.value = row.id
-  shelfDraft.value = row.shelf ?? ''
+function shelfValue(row: MarketplaceInventoryItemView): string {
+  return shelfDraft[row.id] ?? row.shelf ?? ''
 }
-function cancelEditShelf(): void {
-  editingShelfId.value = null
-  shelfDraft.value = ''
+function onShelfInput(row: MarketplaceInventoryItemView, value: string): void {
+  shelfDraft[row.id] = value
 }
-async function saveShelf(row: MarketplaceInventoryItemView): Promise<void> {
+async function commitShelf(row: MarketplaceInventoryItemView): Promise<void> {
+  const draft = (shelfDraft[row.id] ?? row.shelf ?? '').trim()
+  if (draft === (row.shelf ?? '').trim()) return
   savingShelfId.value = row.id
   try {
     const updated = await assignInventoryShelf({
       inventory_id: row.id,
-      shelf: shelfDraft.value.trim() || null,
+      shelf: draft || null,
     })
     applyUpdated(updated)
+    delete shelfDraft[row.id]
     SuccessAlert('Полка обновлена')
-    editingShelfId.value = null
   } catch (e) {
     FailAlert(e, 'Не удалось сохранить полку')
   } finally {
@@ -278,7 +278,7 @@ q-page.warehouse(role='region', aria-label='Склад участка')
           thead
             tr
               th.col-shelf Полка
-              th Товар
+              th.col-product Товар
               th.col-orderer Заказчик
               th.col-qty Ед.
               th.col-barcode Штрих-код
@@ -286,50 +286,31 @@ q-page.warehouse(role='region', aria-label='Склад участка')
               th.col-sort.col-date(@click='toggleSort') Принято {{ sortMark }}
           tbody
             tr(v-for='row in sortedRows', :key='row.id')
-              //- Полка — инлайн-правка: иконка карандаша → поле + сохранить/отмена.
+              //- Полка — инлайн-правка: поле всегда редактируемо, сохраняется по
+              //- уходу фокуса или Enter. Никаких кнопок по бокам.
               td.col-shelf
-                .warehouse__shelf-edit(v-if='editingShelfId === row.id')
-                  BaseInput.warehouse__shelf-input(
-                    v-model='shelfDraft',
-                    placeholder='Полка',
-                    @keyup.enter='saveShelf(row)'
-                  )
-                  button.icon-btn(
-                    type='button',
-                    aria-label='Сохранить полку',
-                    :disabled='savingShelfId === row.id',
-                    @click='saveShelf(row)'
-                  )
-                    q-icon(name='check', size='18px')
-                  button.icon-btn(
-                    type='button',
-                    aria-label='Отмена',
-                    @click='cancelEditShelf'
-                  )
-                    q-icon(name='close', size='18px')
-                .warehouse__shelf(v-else)
-                  span(v-if='row.shelf') {{ row.shelf }}
-                  span.t-muted(v-else) —
-                  button.icon-btn(
-                    type='button',
-                    aria-label='Изменить полку',
-                    @click='startEditShelf(row)'
-                  )
-                    q-icon(name='edit', size='16px')
+                BaseInput.warehouse__shelf-input(
+                  :model-value='shelfValue(row)',
+                  placeholder='Полка',
+                  :readonly='savingShelfId === row.id',
+                  @update:model-value='(v) => onShelfInput(row, v)',
+                  @blur='commitShelf(row)',
+                  @keyup.enter='commitShelf(row)'
+                )
 
-              td.warehouse__product {{ row.product_name_snapshot }}
+              td.col-product.warehouse__product {{ row.product_name_snapshot }}
 
               td.col-orderer
                 .warehouse__orderer
                   span.warehouse__orderer-name {{ ordererName(row) }}
-                  AccountBadge(:account-name='row.orderer_account_snapshot', size='sm')
+                  AccountBadge(:account-name='row.orderer_account_snapshot', size='sm', plain)
 
               td.col-qty {{ row.quantity_per_label }}
 
               //- Штрих-код — есть: моно-значение; нет: инлайн-выпуск.
               td.col-barcode
                 span.q-mono(v-if='row.barcode_value') {{ row.barcode_value }}
-                BaseButton(
+                BaseButton.warehouse__issue(
                   v-else,
                   variant='ghost',
                   size='sm',
@@ -338,7 +319,7 @@ q-page.warehouse(role='region', aria-label='Склад участка')
                 )
                   template(#icon-left)
                     q-icon(name='label', size='16px')
-                  | Выпустить штрих-код
+                  | Выпустить
 
               td.col-status
                 BaseBadge(:variant='statusVariant(row.status)') {{ humanStatus(row.status) }}
@@ -390,15 +371,12 @@ q-page.warehouse(role='region', aria-label='Склад участка')
     width: 100%;
   }
 
-  &__shelf,
-  &__shelf-edit {
-    display: flex;
-    align-items: center;
-    gap: var(--p-2, 8px);
+  &__shelf-input {
+    width: 100%;
   }
 
-  &__shelf-input {
-    max-width: 120px;
+  &__issue {
+    white-space: nowrap;
   }
 
   &__orderer {
@@ -409,6 +387,7 @@ q-page.warehouse(role='region', aria-label='Склад участка')
 
   &__orderer-name {
     font-weight: 600;
+    overflow-wrap: anywhere;
   }
 
   &__product {
@@ -419,29 +398,35 @@ q-page.warehouse(role='region', aria-label='Склад участка')
 .table-scroll {
   overflow-x: auto;
 }
+// Сумма ширин колонок (1146px) = min-width таблицы: при table-layout:fixed колонки
+// не схлопываются (товар не «зажат»), а на узких экранах включается горизонтальный
+// скролл вместо наезжающих друг на друга колонок.
 .table {
   table-layout: fixed;
-  min-width: 900px;
+  min-width: 1146px;
 }
 
 .col-shelf {
-  width: 180px;
+  width: 200px;
+}
+.col-product {
+  width: 240px;
 }
 .col-orderer {
-  width: 220px;
+  width: 200px;
 }
 .col-qty {
-  width: 64px;
+  width: 56px;
   text-align: right;
 }
 .col-barcode {
-  width: 160px;
-}
-.col-status {
   width: 150px;
 }
+.col-status {
+  width: 140px;
+}
 .col-date {
-  width: 170px;
+  width: 160px;
   white-space: nowrap;
 }
 .col-sort {
