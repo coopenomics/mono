@@ -1,6 +1,7 @@
 // app.module.ts
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
 
 // Infrastructure modules
@@ -9,6 +10,7 @@ import { GraphqlModule } from './infrastructure/graphql/graphql.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import config from '~/config/config';
 import { BlockchainModule } from './infrastructure/blockchain/blockchain.module';
+import { ForkRegistryModule } from './shared/sync/fork';
 import { GeneratorInfrastructureModule } from './infrastructure/generator/generator.module';
 import { RedisModule } from './infrastructure/redis/redis.module';
 import { NovuModule } from './infrastructure/novu/novu.module';
@@ -85,6 +87,7 @@ import { MutationLoggingInterceptor } from './application/common/interceptors/mu
     ConfigModule.forRoot({
       isGlobal: true, // Чтобы .env был доступен глобально
     }),
+    ScheduleModule.forRoot(), // @Cron / @Interval / @Timeout (Story 4.4 retention)
     ThrottlerModule.forRoot([
       {
         ttl: 60000,
@@ -95,6 +98,7 @@ import { MutationLoggingInterceptor } from './application/common/interceptors/mu
     MongooseModule.forRoot(config.mongoose.url),
     DatabaseModule,
     GraphqlModule,
+    ForkRegistryModule,
     BlockchainModule,
     GeneratorInfrastructureModule,
     RedisModule,

@@ -4,10 +4,12 @@ import { IAction, IDelta } from '~/types/common';
  * Локальное вычисление event_id — основа идемпотентности (INV-09).
  *
  * Формат: `${chain}:${kind}:${block_num}:${block_id_short}:${natural_key}`, где
- * kind = action|delta. Контроллер ведёт собственный consumer_dedup в этом формате
- * (parser2 кладёт свой event_id в событие, но мы считаем по своим полям —
- * формат не зависит от транспорта). Дедуп безусловный: повторно доставленное
- * событие с уже отмеченным event_id игнорируется как no-op.
+ * kind = action|delta|fork. Контроллер ведёт собственный consumer_dedup в этом
+ * формате (parser2 кладёт свой event_id в событие — другая формула
+ * `chain:a:...`/`chain:d:...`/`chain:f:...`, мы её не используем). Дедуп
+ * безусловный: повторно доставленное событие с уже отмеченным event_id
+ * игнорируется как no-op. Полный «kind» — чтобы человек, глядя в consumer_dedup,
+ * сразу видел тип события без расшифровки префикса.
  */
 
 /** Длина короткого префикса block_id в event_id. */
@@ -32,4 +34,15 @@ export function computeDeltaEventId(delta: IDelta): string {
  */
 export function computeActionEventId(action: IAction): string {
   return `${action.chain_id}:action:${action.block_num}:${shortBlockId(action.block_id)}:${action.global_sequence}`;
+}
+
+/**
+ * event_id форка. natural_key — short new_head_block_id (новая голова цепи
+ * после rollback). Симметрично action/delta-формуле: `chain:fork:block_num:short_id`.
+ * block_num = forked_from_block (последний безопасный блок до отката).
+ * short_id различает форк-эпохи — две разных «новых ветки» того же forked_from_block
+ * дают разный event_id, что корректно с точки зрения retry / breach-сценариев.
+ */
+export function computeForkEventId(chainId: string, forkedFromBlock: number, newHeadBlockId: string): string {
+  return `${chainId}:fork:${forkedFromBlock}:${shortBlockId(newHeadBlockId)}`;
 }

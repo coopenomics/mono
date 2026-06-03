@@ -7,7 +7,7 @@
  * В Epic 3 phase 2 эти id сверяются с авторитетными из parser2.
  */
 
-import { computeActionEventId, computeDeltaEventId } from '~/infrastructure/blockchain/event-id.util';
+import { computeActionEventId, computeDeltaEventId, computeForkEventId } from '~/infrastructure/blockchain/event-id.util';
 
 function makeDelta(over: Partial<any> = {}): any {
   return {
@@ -74,5 +74,31 @@ describe('computeActionEventId (Story 2.2)', () => {
 
   it('детерминирован', () => {
     expect(computeActionEventId(makeAction())).toBe(computeActionEventId(makeAction()));
+  });
+});
+
+describe('computeForkEventId (Story 4.1)', () => {
+  it('формирует id по формуле chain:fork:forked_from_block:new_head_block_id_short (kind = полное "fork", не parser2 "f")', () => {
+    expect(computeForkEventId('chain-aaa', 1000, '0123456789abcdef')).toBe('chain-aaa:fork:1000:01234567');
+  });
+
+  it('одинаковые входы → одинаковый id (детерминирован)', () => {
+    expect(computeForkEventId('chain-aaa', 1000, 'aaaa1111')).toBe(computeForkEventId('chain-aaa', 1000, 'aaaa1111'));
+  });
+
+  it('разный new_head_block_id (две разных «новых ветки» того же forked_from_block) → разный id', () => {
+    expect(computeForkEventId('chain-aaa', 1000, 'aaaaaaaa')).not.toBe(
+      computeForkEventId('chain-aaa', 1000, 'bbbbbbbb')
+    );
+  });
+
+  it('разный forked_from_block → разный id', () => {
+    expect(computeForkEventId('chain-aaa', 1000, 'aaaa1111')).not.toBe(
+      computeForkEventId('chain-aaa', 1001, 'aaaa1111')
+    );
+  });
+
+  it('короткий new_head_block_id (< 8 символов) не падает', () => {
+    expect(computeForkEventId('chain-aaa', 1000, 'ab')).toBe('chain-aaa:fork:1000:ab');
   });
 });

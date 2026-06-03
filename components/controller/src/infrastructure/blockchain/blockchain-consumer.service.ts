@@ -6,7 +6,8 @@ import { IAction, IDelta } from '~/types/common';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { EventsService } from '~/infrastructure/events/events.service';
 import { ParserInteractor } from '~/domain/parser/interactors/parser.interactor';
-import { computeActionEventId, computeDeltaEventId } from './event-id.util';
+import { ForkRegistryService } from '~/shared/sync/fork';
+import { computeActionEventId, computeDeltaEventId, computeForkEventId } from './event-id.util';
 import { mapParserActionToIAction, mapParserDeltaToIDelta } from './parser2-event.mapper';
 import { config } from '~/config';
 
@@ -48,7 +49,8 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
   constructor(
     private readonly logger: WinstonLoggerService,
     private readonly eventsService: EventsService,
-    private readonly parserInteractor: ParserInteractor
+    private readonly parserInteractor: ParserInteractor,
+    private readonly forkRegistry: ForkRegistryService
   ) {
     this.logger.setContext(BlockchainConsumerService.name);
   }
@@ -130,6 +132,13 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
   /**
    * Диспетчеризация события parser2 на обработчики контроллера.
    * native-delta контроллер не потребляет (нет легаси-пути) — пропускаем.
+   *
+   * fork-event (Story 4.1, AC INV-09): dedup-gate в handleEvent — повторно
+   * доставленный fork с уже отмеченным event_id делает ранний return. Иначе
+   * runAll/deleteAfterBlock/saveFork выполнятся повторно, что для ForkEntity
+   * без UNIQUE-constraint породит дубль и нагрузку на репозитории syncer'ов.
+   * markApplied идёт ПОСЛЕ успешного processFork (порядок симметричен dispatch'у
+   * action/delta: save → mark, иначе сбой между save и mark = silent loss).
    */
   private async handleEvent(event: ParserEvent): Promise<void> {
     switch (event.kind) {
@@ -137,8 +146,20 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
         return this.processAction(mapParserActionToIAction(event));
       case 'delta':
         return this.processDelta(mapParserDeltaToIDelta(event));
-      case 'fork':
-        return this.processFork(event.forked_from_block);
+      case 'fork': {
+        // event_id вычисляем локально в controller-формате (chain:fork:...), а НЕ
+        // берём event.event_id из parser2 (его формат chain:f:...) — иначе в
+        // consumer_dedup смешаются две формулы, и дедуп между controller и
+        // транспортом расползётся. См. event-id.util.ts.
+        const eventId = computeForkEventId(event.chain_id, event.forked_from_block, event.new_head_block_id);
+        if (await this.parserInteractor.isEventApplied(eventId)) {
+          this.logger.debug(`Fork-дубликат пропущен (no-op): ${eventId}`);
+          return;
+        }
+        await this.processFork(event.forked_from_block, eventId);
+        await this.parserInteractor.markEventApplied(eventId, event.forked_from_block);
+        return;
+      }
       case 'native-delta':
         return;
       default:
@@ -200,7 +221,8 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
     }
 
     // Метка в consumer_dedup ПОСЛЕ save, ДО отложенного emit.
-    await this.parserInteractor.markEventApplied(eventId);
+    // block_num пишем для последующего deleteAfterBlock на форке (Story 4.1).
+    await this.parserInteractor.markEventApplied(eventId, action.block_num);
 
     // Публикуем событие с задержкой — пусть сначала прокатятся дельты этого же блока
     // (capital_appendixes, capital_projects, ...), чтобы обработчики action видели
@@ -275,7 +297,8 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
     // Метка в consumer_dedup ПОСЛЕ save. Если markApplied упадёт — consume
     // пробросит ошибку, событие останется pending и переиграется (saveDelta
     // идемпотентен через block_num-guard, mark — через ON CONFLICT DO NOTHING).
-    await this.parserInteractor.markEventApplied(eventId);
+    // block_num пишем для последующего deleteAfterBlock на форке (Story 4.1).
+    await this.parserInteractor.markEventApplied(eventId, delta.block_num);
 
     // Публикуем событие во внутреннюю шину с типизированным именем
     const eventName = `delta::${delta.code}::${delta.table}`;
@@ -285,42 +308,39 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
   }
 
   /**
-   * Обработка форка (fork) из блокчейна
-   * Сохраняет форк в базу и публикует событие форка во внутреннюю шину
+   * Обработка форка (fork) из блокчейна (ADR-005).
+   *
+   * Порядок шагов (контрактный):
+   *   1) ForkRegistry.runAll(blockNum) — sequential откат сущностей всех syncer'ов.
+   *      Любая ошибка re-throw, parser2 не ACK'нет, повторная доставка пересыграет.
+   *   2) consumer_dedup.deleteAfterBlock(blockNum) — очистка дедупа отрезанной ветки.
+   *      Делается ПОСЛЕ успешного rollback (иначе при сбое syncer'ов мы потеряем
+   *      возможность повторить весь форк по тому же event_id).
+   *   3) saveFork(blockNum) — фиксация форка для аудита и future-pool re-submit (Epic 5).
+   *
+   * INV-T03: к моменту, когда handleEvent resolves и parser2 берёт следующее событие,
+   * вся цепочка rollback завершена (sequential XREADGROUP = natural barrier).
    */
-  private async processFork(block_num: number): Promise<void> {
-    this.logger.debug(`Обработка форка на блоке: ${block_num}`);
+  private async processFork(block_num: number, forkEventId?: string | null): Promise<void> {
+    this.logger.log(`Обработка форка на блоке ${block_num} (eventId=${forkEventId ?? 'n/a'}): запуск ForkRegistry rollback`);
 
-    try {
-      // Сохраняем форк в базу данных через интерактор
-      await this.parserInteractor.saveFork({
-        chain_id: config.blockchain.id, // Используем chain id из конфига
-        block_num: block_num,
-      });
-      this.logger.debug(`Форк сохранен в базу данных на блоке: ${block_num}`);
-    } catch (error: any) {
-      this.logger.error(`Не удалось сохранить форк на блоке ${block_num}: ${error.message}`, error.stack);
-      throw error; // Перебрасываем ошибку чтобы событие не было подтверждено
-    }
+    // 1. Sequential rollback всех зарегистрированных syncer'ов.
+    //    Story 4.4: forkEventId пробрасывается syncer'ам — они кладут его в архив
+    //    invalidated_entities для forensic-группировки.
+    await this.forkRegistry.runAll(block_num, forkEventId);
+    this.logger.debug(`ForkRegistry: rollback завершён для ${this.forkRegistry.size()} syncer(s)`);
 
-    // Барьер форка (Story 1.3, временное решение до Epic 4 / ForkRegistry).
-    // Consume-loop последователен (ParserClient single-active, по одному событию),
-    // поэтому ожидание здесь = пауза обработки: ждём завершения всех откатов в
-    // @OnEvent('fork::*')-синкерах до продолжения потока. TTL force-resume: если
-    // синкер завис, не блокируем consumer навсегда — продолжаем после
-    // fork_pause_timeout_ms с предупреждением.
-    const eventName = `fork::${block_num}`;
-    const completed = await this.eventsService.emitAsyncWithTimeout(
-      eventName,
-      { block_num },
-      config.blockchain.fork_pause_timeout_ms
-    );
-    if (!completed) {
-      this.logger.warn(
-        `Барьер форка ${eventName}: откаты не завершились за ${config.blockchain.fork_pause_timeout_ms}ms — продолжаем (force-resume)`
-      );
-    }
+    // 2. Очистка consumer_dedup для блоков отрезанной ветки.
+    const purged = await this.parserInteractor.deleteDedupAfterBlock(block_num);
+    this.logger.debug(`consumer_dedup: удалено ${purged} записей с block_num > ${block_num}`);
 
-    this.logger.debug(`Форк обработан (откаты завершены/таймаут): ${eventName}`);
+    // 3. Фиксация форка для аудита.
+    await this.parserInteractor.saveFork({
+      chain_id: config.blockchain.id,
+      block_num: block_num,
+    });
+    this.logger.debug(`Форк сохранён в БД на блоке ${block_num}`);
+
+    this.logger.log(`Форк обработан на блоке ${block_num}`);
   }
 }

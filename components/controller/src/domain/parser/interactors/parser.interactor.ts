@@ -47,9 +47,19 @@ export class ParserInteractor {
   /**
    * Отметить событие применённым в consumer_dedup (Story 2.2 dual-write).
    * Идемпотентно: повтор после краха между save и mark не падает.
+   * blockNum (Story 4.1) — для последующего deleteAfterBlock при форке;
+   * опциональный, если вызов из мест без контекста блока.
    */
-  async markEventApplied(eventId: string): Promise<void> {
-    await this.consumerDedupRepository.markApplied(eventId);
+  async markEventApplied(eventId: string, blockNum?: number): Promise<void> {
+    await this.consumerDedupRepository.markApplied(eventId, blockNum);
+  }
+
+  /**
+   * Удалить из consumer_dedup записи с block_num > forkBlockNum — очистка дедупа
+   * на форке (Story 4.1, ADR-005). Возвращает число удалённых строк.
+   */
+  async deleteDedupAfterBlock(forkBlockNum: number): Promise<number> {
+    return await this.consumerDedupRepository.deleteAfterBlock(forkBlockNum);
   }
 
   /**

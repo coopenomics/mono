@@ -78,6 +78,18 @@ export interface IBlockchainSyncRepository<TEntity extends IBlockchainSynchroniz
 
   /** Восстановить сущности из версий после форка */
   restoreFromVersions?(forkBlockNum: number): Promise<void>;
+
+  /**
+   * Story 4.4: атомарно перенести live-сущности WHERE block_num > forkBlockNum в архив
+   * (invalidated_entities) и удалить из исходной таблицы. Возвращает count.
+   */
+  archiveInvalidatedSince?(forkBlockNum: number, forkEventId?: string | null): Promise<number>;
+
+  /**
+   * Story 4.4: атомарно перенести версии этой entity_table WHERE block_num > forkBlockNum
+   * в архив (invalidated_entity_versions) и удалить из entity_versions. Возвращает count.
+   */
+  archiveInvalidatedVersionsSince?(forkBlockNum: number, forkEventId?: string | null): Promise<number>;
 }
 
 /**
