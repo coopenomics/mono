@@ -292,6 +292,7 @@ q-page.warehouse(role='region', aria-label='Склад участка')
                 BaseInput.warehouse__shelf-input(
                   :model-value='shelfValue(row)',
                   placeholder='Полка',
+                  flat,
                   :readonly='savingShelfId === row.id',
                   @update:model-value='(v) => onShelfInput(row, v)',
                   @blur='commitShelf(row)',
