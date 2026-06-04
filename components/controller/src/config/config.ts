@@ -205,6 +205,19 @@ const envVarsSchema = z.object({
     .string()
     .optional()
     .describe('Admin API ключ для apps-catalog. Пусто = degraded mode.'),
+
+  // Subscription proxy (Story 9.3.b-sub). Активация подписки идёт через
+  // ca-auth tenant-scoped endpoint, который требует tenant JWT, выписанный
+  // ca-admin'ом на конкретного кооператива-партнёра. tenant JWT хранится
+  // ТОЛЬКО на сервере кооператива (не на каталоге восхода).
+  APPS_CATALOG_AUTH_URL: z
+    .string()
+    .optional()
+    .describe('Base URL ca-auth (apps-catalog tenant API). Пусто = subscribe mutation в degraded mode.'),
+  APPS_CATALOG_TENANT_JWT: z
+    .string()
+    .optional()
+    .describe('Tenant JWT кооператива-партнёра для активации подписок. Пусто = degraded mode.'),
 });
 
 const envInput = isSchemaGeneration ? { ...SCHEMA_GEN_ENV_DEFAULTS, ...process.env } : process.env;
@@ -339,5 +352,9 @@ export default {
   apps_catalog: {
     url: envVars.data.APPS_CATALOG_URL,
     api_key: envVars.data.APPS_CATALOG_API_KEY,
+  },
+  apps_catalog_auth: {
+    url: envVars.data.APPS_CATALOG_AUTH_URL,
+    tenant_jwt: envVars.data.APPS_CATALOG_TENANT_JWT,
   },
 };

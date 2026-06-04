@@ -32,6 +32,12 @@ import {
   RejectModerationResultDTO,
   RejectModerationStatus,
 } from '../dto/reject-moderation-result.dto';
+import { SubscribePackageInputDTO } from '../dto/subscribe-package-input.dto';
+import {
+  SubscribePackageResultDTO,
+  SubscribePackageStatus,
+  SubscriptionStateEnum,
+} from '../dto/subscribe-package-result.dto';
 
 const toReleaseScope = (dto: ReleaseScopeInputDTO): ReleaseScopeInput => {
   switch (dto.type) {
@@ -368,6 +374,77 @@ export class AppsCatalogProxyResolver {
     return {
       status: RejectModerationStatus.FAILED,
       requestId: outcome.requestId,
+      error: outcome.error,
+    };
+  }
+
+  /**
+   * Story 9.3.b-sub — пайщик подписывает свой кооператив на пакет.
+   *
+   * Защита: только chairman кооператива-партнёра. ca-auth активирует
+   * подписку tenant'а (кооператива пайщика читается из tenant JWT, не
+   * из body), on-chain `apps::regsub` подписывает ca-auth от имени
+   * каталога-оператора. После активации pricing-watcher на coopback
+   * партнёра подхватит подписку и начнёт списания (см. story 9.6).
+   *
+   * Discriminated outcome:
+   *  - `activated` — подписка ACTIVE/trial;
+   *  - `alreadyActive` — у кооператива уже есть подписка;
+   *  - `clientNotRegistered` — кооператив не в каталоге (нужен onboarding);
+   *  - `unavailable` — каталог временно недоступен;
+   *  - `failed` — прочие ошибки.
+   */
+  @Mutation(() => SubscribePackageResultDTO, {
+    name: 'subscribePackage',
+    description:
+      'Подписывает кооператив-партнёр на пакет из каталога восхода. ' +
+      'Tenant читается из server-side JWT, body не может его переопределить. ' +
+      'Только chairman кооператива-партнёра.',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman'])
+  async subscribePackage(
+    @Args('data', { type: () => SubscribePackageInputDTO })
+    data: SubscribePackageInputDTO,
+  ): Promise<SubscribePackageResultDTO> {
+    const outcome = await this.client.activateSubscription({
+      packageId: data.packageId,
+      plan: data.plan,
+    });
+    if (outcome.status === 'activated') {
+      this.logger.log(
+        `subscribePackage activated: ${outcome.packageId} (state ${outcome.state}, до ${outcome.endAt})`,
+      );
+      return {
+        status: SubscribePackageStatus.ACTIVATED,
+        state: outcome.state as unknown as SubscriptionStateEnum,
+        packageId: outcome.packageId,
+        plan: outcome.plan,
+        startAt: outcome.startAt,
+        endAt: outcome.endAt,
+        freeTrialUsed: outcome.freeTrialUsed,
+      };
+    }
+    if (outcome.status === 'alreadyActive') {
+      return {
+        status: SubscribePackageStatus.ALREADY_ACTIVE,
+        error: outcome.error,
+      };
+    }
+    if (outcome.status === 'clientNotRegistered') {
+      return {
+        status: SubscribePackageStatus.CLIENT_NOT_REGISTERED,
+        error: outcome.error,
+      };
+    }
+    if (outcome.status === 'unavailable') {
+      return {
+        status: SubscribePackageStatus.UNAVAILABLE,
+        error: outcome.error,
+      };
+    }
+    return {
+      status: SubscribePackageStatus.FAILED,
       error: outcome.error,
     };
   }
