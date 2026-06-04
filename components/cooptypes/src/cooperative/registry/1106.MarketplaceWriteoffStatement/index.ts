@@ -76,8 +76,8 @@ h3 { margin: 0px; padding-top: 15px; }
 .digital-document { padding: 20px; white-space: pre-wrap; }
 .subheader { padding-bottom: 20px; }
 table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-th, td { border: 1px solid #ccc; padding: 8px; text-align: left; word-wrap: break-word; overflow-wrap: break-word; }
-th { background-color: #f4f4f4; font-weight: bold; }
+th, td { border: 1px solid currentColor; padding: 8px; text-align: left; word-wrap: break-word; overflow-wrap: break-word; }
+th {  font-weight: bold; }
 </style>
 
 <div class="digital-document">
