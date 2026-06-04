@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { GatewayModule } from './gateway/gateway.module';
 import { OrchestratorModule } from './orchestrator/orchestrator.module';
+import { WatcherModule } from './watcher/watcher.module';
 import { loadAppConfig } from './config/app-config';
 import { SubgraphRegistryEntity } from './gateway/subgraph-registry.entity';
 
@@ -20,6 +21,7 @@ const cfg = loadAppConfig();
     }),
     GatewayModule,
     OrchestratorModule,
+    WatcherModule,
   ],
 })
 export class AppModule {}
