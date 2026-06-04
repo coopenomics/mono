@@ -1741,6 +1741,48 @@ export type ValueTypes = {
 };
 	/** Статус одобрения в системе CHAIRMAN */
 ["ApprovalStatus"]:ApprovalStatus;
+	["ApproveModerationInputDTO"]: {
+	/** UUID заявки на модерацию */
+	moderationId: string | Variable<any, string>,
+	/** Явное согласие модератора на одобрение пакета с критической уязвимостью (requires_override=true). Без него — 403. */
+	override?: boolean | undefined | null | Variable<any, string>,
+	/** Область видимости релиза при активации */
+	scope: ValueTypes["ReleaseScopeInputDTO"] | Variable<any, string>
+};
+	["ApproveModerationResultDTO"]: AliasType<{
+	/** Человекочитаемое сообщение об ошибке */
+	error?:boolean | `@${string}`,
+	/** Идентификатор пакета (только при status=applied) */
+	packageId?:boolean | `@${string}`,
+	/** UUID запроса (для логов / идемпотентности) */
+	requestId?:boolean | `@${string}`,
+	/** Discriminator */
+	status?:boolean | `@${string}`,
+	/** Версия активированного релиза (только при status=applied) */
+	version?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ApproveModerationResultDTO']?: Omit<ValueTypes["ApproveModerationResultDTO"], "...on ApproveModerationResultDTO">
+}>;
+	/** Статус мутации approveModeration */
+["ApproveModerationStatus"]:ApproveModerationStatus;
+	["AppsCatalogRemotePackageDTO"]: AliasType<{
+	/** Совместимые subnet (chain_id блокчейна ЦК) */
+	compatibleSubnets?:boolean | `@${string}`,
+	/** Краткое описание (в MVP — заглушка, в будущем из manifest) */
+	description?:boolean | `@${string}`,
+	/** Последняя активная версия (semver). null = релизов ещё нет. */
+	lastActiveVersion?:boolean | `@${string}`,
+	/** Идентификатор пакета (например, @voskhod/demoapp) */
+	packageId?:boolean | `@${string}`,
+	/** Имя владельца пакета (кооператив-разработчик) */
+	publisher?:boolean | `@${string}`,
+	/** Стоимость подписки, RUB/месяц (в MVP — фиксированно из dev-pricing seed) */
+	rubPerMonth?:boolean | `@${string}`,
+	/** Заголовок пакета для UI (в MVP — packageId, в будущем из manifest) */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on AppsCatalogRemotePackageDTO']?: Omit<ValueTypes["AppsCatalogRemotePackageDTO"], "...on AppsCatalogRemotePackageDTO">
+}>;
 	["AssetContributionActGenerateDocumentInput"]: {
 	/** Идентификатор акта */
 	act_id: string | Variable<any, string>,
@@ -6384,6 +6426,34 @@ export type ValueTypes = {
 	/** Имя аккаунта пользователя */
 	username: string | Variable<any, string>
 };
+	["ModerationRequestDTO"]: AliasType<{
+	/** Краткое описание / release notes от разработчика */
+	brief?:boolean | `@${string}`,
+	/** UUID заявки */
+	id?:boolean | `@${string}`,
+	/** Идентификатор пакета (@scope/name) */
+	packageId?:boolean | `@${string}`,
+	/** Тип релиза */
+	releaseType?:boolean | `@${string}`,
+	/** Требуется ли явный override:true при approve (критическая уязвимость в scan_report) */
+	requiresOverride?:boolean | `@${string}`,
+	/** ReleaseScope: { type, subnets?, coopnames? } */
+	scope?:boolean | `@${string}`,
+	/** Текущий статус */
+	status?:boolean | `@${string}`,
+	/** Когда подана (ISO 8601) */
+	submittedAt?:boolean | `@${string}`,
+	/** Кто подал заявку (Antelope-имя) */
+	submittedBy?:boolean | `@${string}`,
+	/** Когда последний раз обновлена (ISO 8601) */
+	updatedAt?:boolean | `@${string}`,
+	/** Версия пакета (SemVer) */
+	version?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ModerationRequestDTO']?: Omit<ValueTypes["ModerationRequestDTO"], "...on ModerationRequestDTO">
+}>;
+	/** Статус заявки на модерацию пакета */
+["ModerationStatusEnum"]:ModerationStatusEnum;
 	["MonoAccount"]: AliasType<{
 	/** Электронная почта пользователя */
 	email?:boolean | `@${string}`,
@@ -6427,6 +6497,7 @@ acceptChildOrder?: [{	data: ValueTypes["AcceptChildOrderInput"] | Variable<any, 
 addParticipant?: [{	data: ValueTypes["AddParticipantInput"] | Variable<any, string>},ValueTypes["Account"]],
 addPaymentMethod?: [{	data: ValueTypes["AddPaymentMethodInput"] | Variable<any, string>},ValueTypes["PaymentMethod"]],
 addTrustedAccount?: [{	data: ValueTypes["AddTrustedAccountInput"] | Variable<any, string>},ValueTypes["Branch"]],
+approveModeration?: [{	data: ValueTypes["ApproveModerationInputDTO"] | Variable<any, string>},ValueTypes["ApproveModerationResultDTO"]],
 authorizeDecision?: [{	data: ValueTypes["AuthorizeDecisionInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 cancelRequest?: [{	data: ValueTypes["CancelRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalAddAuthor?: [{	data: ValueTypes["AddAuthorInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
@@ -6579,12 +6650,15 @@ moderateRequest?: [{	data: ValueTypes["ModerateRequestInput"] | Variable<any, st
 notifyOnAnnualGeneralMeet?: [{	data: ValueTypes["NotifyOnAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
 processConvertToAxonStatement?: [{	data: ValueTypes["ProcessConvertToAxonStatementInput"] | Variable<any, string>},boolean | `@${string}`],
 prohibitRequest?: [{	data: ValueTypes["ProhibitRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+publishPackage?: [{	data: ValueTypes["PublishPackageInputDTO"] | Variable<any, string>},ValueTypes["PublishPackageResultDTO"]],
 publishProjectOfFreeDecision?: [{	data: ValueTypes["PublishProjectFreeDecisionInput"] | Variable<any, string>},boolean | `@${string}`],
+publishRelease?: [{	data: ValueTypes["PublishReleaseInputDTO"] | Variable<any, string>},ValueTypes["PublishReleaseResultDTO"]],
 publishRequest?: [{	data: ValueTypes["PublishRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 receiveOnRequest?: [{	data: ValueTypes["ReceiveOnRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 refresh?: [{	data: ValueTypes["RefreshInput"] | Variable<any, string>},ValueTypes["RegisteredAccount"]],
 registerAccount?: [{	data: ValueTypes["RegisterAccountInput"] | Variable<any, string>},ValueTypes["RegisteredAccount"]],
 registerParticipant?: [{	data: ValueTypes["RegisterParticipantInput"] | Variable<any, string>},ValueTypes["Account"]],
+rejectModeration?: [{	data: ValueTypes["RejectModerationInputDTO"] | Variable<any, string>},ValueTypes["RejectModerationResultDTO"]],
 resetKey?: [{	data: ValueTypes["ResetKeyInput"] | Variable<any, string>},boolean | `@${string}`],
 restartAnnualGeneralMeet?: [{	data: ValueTypes["RestartAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
 saveReportDraft?: [{	input: ValueTypes["SaveReportDraftInput"] | Variable<any, string>},ValueTypes["ReportDraft"]],
@@ -6596,6 +6670,7 @@ signByPresiderOnAnnualGeneralMeet?: [{	data: ValueTypes["SignByPresiderOnAnnualG
 signBySecretaryOnAnnualGeneralMeet?: [{	data: ValueTypes["SignBySecretaryOnAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
 startInstall?: [{	data: ValueTypes["StartInstallInput"] | Variable<any, string>},ValueTypes["StartInstallResult"]],
 startResetKey?: [{	data: ValueTypes["StartResetKeyInput"] | Variable<any, string>},boolean | `@${string}`],
+subscribePackage?: [{	data: ValueTypes["SubscribePackageInputDTO"] | Variable<any, string>},ValueTypes["SubscribePackageResultDTO"]],
 supplyOnRequest?: [{	data: ValueTypes["SupplyOnRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 triggerNotificationWorkflow?: [{	data: ValueTypes["TriggerNotificationWorkflowInput"] | Variable<any, string>},boolean | `@${string}`],
 uninstallExtension?: [{	data: ValueTypes["UninstallExtensionInput"] | Variable<any, string>},boolean | `@${string}`],
@@ -7740,6 +7815,24 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 		__typename?: boolean | `@${string}`,
 	['...on PublicChairman']?: Omit<ValueTypes["PublicChairman"], "...on PublicChairman">
 }>;
+	["PublishPackageInputDTO"]: {
+	/** chain_id совместимых подсетей (каждый — 64 hex-символа), хотя бы одна */
+	compatibleSubnets: Array<string> | Variable<any, string>,
+	/** Antelope-имя владельца пакета (1..12 символов из [a-z1-5.]) */
+	ownerUsername: string | Variable<any, string>,
+	/** Идентификатор пакета в формате @scope/name, например @voskhod/demoapp */
+	packageId: string | Variable<any, string>
+};
+	["PublishPackageResultDTO"]: AliasType<{
+	/** Человекочитаемое сообщение об ошибке */
+	error?:boolean | `@${string}`,
+	/** Идентификатор запроса (UUIDv4), который ca-admin использовал для идемпотентности */
+	requestId?:boolean | `@${string}`,
+	/** Статус: applied (зарегистрирован on-chain), conflict (уже есть), failed (ошибка) */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on PublishPackageResultDTO']?: Omit<ValueTypes["PublishPackageResultDTO"], "...on PublishPackageResultDTO">
+}>;
 	["PublishProjectFreeDecisionInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>,
@@ -7750,6 +7843,28 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	/** Имя аккаунта пользователя */
 	username: string | Variable<any, string>
 };
+	["PublishReleaseInputDTO"]: {
+	/** Package manifest (валидируется Zod-схемой на ca-admin). Содержит coopenomics.backend.image (docker) + coopenomics.frontend.tarball (npm), requires/provides, GraphQL-схему и pricing-параметры. */
+	manifest: ValueTypes["JSON"] | Variable<any, string>,
+	/** Идентификатор пакета в формате @scope/name (должен быть уже зарегистрирован через publishPackage) */
+	packageId: string | Variable<any, string>,
+	/** sha256 npm tarball'а (HEX). Если не передан — ca-admin использует sentinel zero-hash. */
+	tarballSha256?: string | undefined | null | Variable<any, string>,
+	/** Версия релиза в формате semver, например 1.0.0 */
+	version: string | Variable<any, string>
+};
+	["PublishReleaseResultDTO"]: AliasType<{
+	/** Человекочитаемое сообщение об ошибке */
+	error?:boolean | `@${string}`,
+	/** Идентификатор запроса (UUIDv4), который ca-admin использовал для идемпотентности */
+	requestId?:boolean | `@${string}`,
+	/** Статус: applied | invalidManifest | failed */
+	status?:boolean | `@${string}`,
+	/** Идентификатор blockchain-транзакции (если ca-admin её вернул) */
+	transactionId?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on PublishReleaseResultDTO']?: Omit<ValueTypes["PublishReleaseResultDTO"], "...on PublishReleaseResultDTO">
+}>;
 	["PublishRequestInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>,
@@ -7769,6 +7884,8 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	["Query"]: AliasType<{
 agreementTemplates?: [{	coopname: string | Variable<any, string>},ValueTypes["AgreementTemplate"]],
 agreements?: [{	filter?: ValueTypes["AgreementFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedAgreementsPaginationResult"]],
+appsCatalogPendingModerations?: [{	limit?: number | undefined | null | Variable<any, string>,	status?: ValueTypes["ModerationStatusEnum"] | undefined | null | Variable<any, string>},ValueTypes["ModerationRequestDTO"]],
+appsCatalogRemotePackages?: [{	page: number | Variable<any, string>,	pageSize: number | Variable<any, string>},ValueTypes["AppsCatalogRemotePackageDTO"]],
 buildInitialReportEdits?: [{	period?: number | undefined | null | Variable<any, string>,	reportType: ValueTypes["ReportType"] | Variable<any, string>,	year: number | Variable<any, string>},ValueTypes["BuildInitialReportEdits"]],
 candidates?: [{	filter?: ValueTypes["CandidateFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCandidatesPaginationResult"]],
 capitalCandidates?: [{	filter?: ValueTypes["CandidateFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalCandidatesPaginationResult"]],
@@ -8104,6 +8221,36 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 		__typename?: boolean | `@${string}`,
 	['...on RegistrationProgram']?: Omit<ValueTypes["RegistrationProgram"], "...on RegistrationProgram">
 }>;
+	["RejectModerationInputDTO"]: {
+	/** UUID заявки на модерацию */
+	moderationId: string | Variable<any, string>,
+	/** Причина отказа (3..2000 символов), увидит разработчик */
+	reason: string | Variable<any, string>
+};
+	["RejectModerationResultDTO"]: AliasType<{
+	/** Человекочитаемое сообщение об ошибке */
+	error?:boolean | `@${string}`,
+	/** UUID запроса */
+	requestId?:boolean | `@${string}`,
+	/** Discriminator */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on RejectModerationResultDTO']?: Omit<ValueTypes["RejectModerationResultDTO"], "...on RejectModerationResultDTO">
+}>;
+	/** Статус мутации rejectModeration */
+["RejectModerationStatus"]:RejectModerationStatus;
+	["ReleaseScopeInputDTO"]: {
+	/** Antelope-имена кооперативов (для type=cooperatives) */
+	coopnames?: Array<string> | undefined | null | Variable<any, string>,
+	/** chain_id подсетей (для type=subnets) */
+	subnets?: Array<string> | undefined | null | Variable<any, string>,
+	/** Тип scope */
+	type: ValueTypes["ReleaseScopeType"] | Variable<any, string>
+};
+	/** Тип области видимости релиза при одобрении заявки */
+["ReleaseScopeType"]:ReleaseScopeType;
+	/** Тип релиза: full / canary */
+["ReleaseTypeEnum"]:ReleaseTypeEnum;
 	["RemoveSecretaryRoomInput"]: {
 	/** Идентификатор комнаты в реестре, которую нужно удалить */
 	id: string | Variable<any, string>
@@ -9000,6 +9147,36 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	/** Распределение голосов */
 	votes: Array<ValueTypes["VoteDistributionInput"]> | Variable<any, string>
 };
+	["SubscribePackageInputDTO"]: {
+	/** Идентификатор пакета в формате @scope/name, например @voskhod/demoapp */
+	packageId: string | Variable<any, string>,
+	/** Имя плана (eosio::name; в MVP "default"). Опционально. */
+	plan?: string | undefined | null | Variable<any, string>
+};
+	["SubscribePackageResultDTO"]: AliasType<{
+	/** Конец периода (ISO 8601, только при status=activated) */
+	endAt?:boolean | `@${string}`,
+	/** Человекочитаемое сообщение об ошибке */
+	error?:boolean | `@${string}`,
+	/** Использован ли free trial (только при status=activated). Если true — следующая активация будет pay. */
+	freeTrialUsed?:boolean | `@${string}`,
+	/** Идентификатор пакета (только при status=activated) */
+	packageId?:boolean | `@${string}`,
+	/** Имя плана (только при status=activated) */
+	plan?:boolean | `@${string}`,
+	/** Начало периода (ISO 8601, только при status=activated) */
+	startAt?:boolean | `@${string}`,
+	/** Состояние подписки (только при status=activated) */
+	state?:boolean | `@${string}`,
+	/** Discriminator */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on SubscribePackageResultDTO']?: Omit<ValueTypes["SubscribePackageResultDTO"], "...on SubscribePackageResultDTO">
+}>;
+	/** Статус мутации subscribePackage */
+["SubscribePackageStatus"]:SubscribePackageStatus;
+	/** Состояние подписки кооператива на пакет */
+["SubscriptionStateEnum"]:SubscriptionStateEnum;
 	["SubscriptionStatsDto"]: AliasType<{
 	/** Количество активных подписок */
 	active?:boolean | `@${string}`,
@@ -10208,6 +10385,46 @@ export type ResolverInputTypes = {
 };
 	/** Статус одобрения в системе CHAIRMAN */
 ["ApprovalStatus"]:ApprovalStatus;
+	["ApproveModerationInputDTO"]: {
+	/** UUID заявки на модерацию */
+	moderationId: string,
+	/** Явное согласие модератора на одобрение пакета с критической уязвимостью (requires_override=true). Без него — 403. */
+	override?: boolean | undefined | null,
+	/** Область видимости релиза при активации */
+	scope: ResolverInputTypes["ReleaseScopeInputDTO"]
+};
+	["ApproveModerationResultDTO"]: AliasType<{
+	/** Человекочитаемое сообщение об ошибке */
+	error?:boolean | `@${string}`,
+	/** Идентификатор пакета (только при status=applied) */
+	packageId?:boolean | `@${string}`,
+	/** UUID запроса (для логов / идемпотентности) */
+	requestId?:boolean | `@${string}`,
+	/** Discriminator */
+	status?:boolean | `@${string}`,
+	/** Версия активированного релиза (только при status=applied) */
+	version?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Статус мутации approveModeration */
+["ApproveModerationStatus"]:ApproveModerationStatus;
+	["AppsCatalogRemotePackageDTO"]: AliasType<{
+	/** Совместимые subnet (chain_id блокчейна ЦК) */
+	compatibleSubnets?:boolean | `@${string}`,
+	/** Краткое описание (в MVP — заглушка, в будущем из manifest) */
+	description?:boolean | `@${string}`,
+	/** Последняя активная версия (semver). null = релизов ещё нет. */
+	lastActiveVersion?:boolean | `@${string}`,
+	/** Идентификатор пакета (например, @voskhod/demoapp) */
+	packageId?:boolean | `@${string}`,
+	/** Имя владельца пакета (кооператив-разработчик) */
+	publisher?:boolean | `@${string}`,
+	/** Стоимость подписки, RUB/месяц (в MVP — фиксированно из dev-pricing seed) */
+	rubPerMonth?:boolean | `@${string}`,
+	/** Заголовок пакета для UI (в MVP — packageId, в будущем из manifest) */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["AssetContributionActGenerateDocumentInput"]: {
 	/** Идентификатор акта */
 	act_id: string,
@@ -14729,6 +14946,33 @@ export type ResolverInputTypes = {
 	/** Имя аккаунта пользователя */
 	username: string
 };
+	["ModerationRequestDTO"]: AliasType<{
+	/** Краткое описание / release notes от разработчика */
+	brief?:boolean | `@${string}`,
+	/** UUID заявки */
+	id?:boolean | `@${string}`,
+	/** Идентификатор пакета (@scope/name) */
+	packageId?:boolean | `@${string}`,
+	/** Тип релиза */
+	releaseType?:boolean | `@${string}`,
+	/** Требуется ли явный override:true при approve (критическая уязвимость в scan_report) */
+	requiresOverride?:boolean | `@${string}`,
+	/** ReleaseScope: { type, subnets?, coopnames? } */
+	scope?:boolean | `@${string}`,
+	/** Текущий статус */
+	status?:boolean | `@${string}`,
+	/** Когда подана (ISO 8601) */
+	submittedAt?:boolean | `@${string}`,
+	/** Кто подал заявку (Antelope-имя) */
+	submittedBy?:boolean | `@${string}`,
+	/** Когда последний раз обновлена (ISO 8601) */
+	updatedAt?:boolean | `@${string}`,
+	/** Версия пакета (SemVer) */
+	version?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Статус заявки на модерацию пакета */
+["ModerationStatusEnum"]:ModerationStatusEnum;
 	["MonoAccount"]: AliasType<{
 	/** Электронная почта пользователя */
 	email?:boolean | `@${string}`,
@@ -14771,6 +15015,7 @@ acceptChildOrder?: [{	data: ResolverInputTypes["AcceptChildOrderInput"]},Resolve
 addParticipant?: [{	data: ResolverInputTypes["AddParticipantInput"]},ResolverInputTypes["Account"]],
 addPaymentMethod?: [{	data: ResolverInputTypes["AddPaymentMethodInput"]},ResolverInputTypes["PaymentMethod"]],
 addTrustedAccount?: [{	data: ResolverInputTypes["AddTrustedAccountInput"]},ResolverInputTypes["Branch"]],
+approveModeration?: [{	data: ResolverInputTypes["ApproveModerationInputDTO"]},ResolverInputTypes["ApproveModerationResultDTO"]],
 authorizeDecision?: [{	data: ResolverInputTypes["AuthorizeDecisionInput"]},ResolverInputTypes["Transaction"]],
 cancelRequest?: [{	data: ResolverInputTypes["CancelRequestInput"]},ResolverInputTypes["Transaction"]],
 capitalAddAuthor?: [{	data: ResolverInputTypes["AddAuthorInput"]},ResolverInputTypes["CapitalProject"]],
@@ -14923,12 +15168,15 @@ moderateRequest?: [{	data: ResolverInputTypes["ModerateRequestInput"]},ResolverI
 notifyOnAnnualGeneralMeet?: [{	data: ResolverInputTypes["NotifyOnAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
 processConvertToAxonStatement?: [{	data: ResolverInputTypes["ProcessConvertToAxonStatementInput"]},boolean | `@${string}`],
 prohibitRequest?: [{	data: ResolverInputTypes["ProhibitRequestInput"]},ResolverInputTypes["Transaction"]],
+publishPackage?: [{	data: ResolverInputTypes["PublishPackageInputDTO"]},ResolverInputTypes["PublishPackageResultDTO"]],
 publishProjectOfFreeDecision?: [{	data: ResolverInputTypes["PublishProjectFreeDecisionInput"]},boolean | `@${string}`],
+publishRelease?: [{	data: ResolverInputTypes["PublishReleaseInputDTO"]},ResolverInputTypes["PublishReleaseResultDTO"]],
 publishRequest?: [{	data: ResolverInputTypes["PublishRequestInput"]},ResolverInputTypes["Transaction"]],
 receiveOnRequest?: [{	data: ResolverInputTypes["ReceiveOnRequestInput"]},ResolverInputTypes["Transaction"]],
 refresh?: [{	data: ResolverInputTypes["RefreshInput"]},ResolverInputTypes["RegisteredAccount"]],
 registerAccount?: [{	data: ResolverInputTypes["RegisterAccountInput"]},ResolverInputTypes["RegisteredAccount"]],
 registerParticipant?: [{	data: ResolverInputTypes["RegisterParticipantInput"]},ResolverInputTypes["Account"]],
+rejectModeration?: [{	data: ResolverInputTypes["RejectModerationInputDTO"]},ResolverInputTypes["RejectModerationResultDTO"]],
 resetKey?: [{	data: ResolverInputTypes["ResetKeyInput"]},boolean | `@${string}`],
 restartAnnualGeneralMeet?: [{	data: ResolverInputTypes["RestartAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
 saveReportDraft?: [{	input: ResolverInputTypes["SaveReportDraftInput"]},ResolverInputTypes["ReportDraft"]],
@@ -14940,6 +15188,7 @@ signByPresiderOnAnnualGeneralMeet?: [{	data: ResolverInputTypes["SignByPresiderO
 signBySecretaryOnAnnualGeneralMeet?: [{	data: ResolverInputTypes["SignBySecretaryOnAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
 startInstall?: [{	data: ResolverInputTypes["StartInstallInput"]},ResolverInputTypes["StartInstallResult"]],
 startResetKey?: [{	data: ResolverInputTypes["StartResetKeyInput"]},boolean | `@${string}`],
+subscribePackage?: [{	data: ResolverInputTypes["SubscribePackageInputDTO"]},ResolverInputTypes["SubscribePackageResultDTO"]],
 supplyOnRequest?: [{	data: ResolverInputTypes["SupplyOnRequestInput"]},ResolverInputTypes["Transaction"]],
 triggerNotificationWorkflow?: [{	data: ResolverInputTypes["TriggerNotificationWorkflowInput"]},boolean | `@${string}`],
 uninstallExtension?: [{	data: ResolverInputTypes["UninstallExtensionInput"]},boolean | `@${string}`],
@@ -16029,6 +16278,23 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	middle_name?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["PublishPackageInputDTO"]: {
+	/** chain_id совместимых подсетей (каждый — 64 hex-символа), хотя бы одна */
+	compatibleSubnets: Array<string>,
+	/** Antelope-имя владельца пакета (1..12 символов из [a-z1-5.]) */
+	ownerUsername: string,
+	/** Идентификатор пакета в формате @scope/name, например @voskhod/demoapp */
+	packageId: string
+};
+	["PublishPackageResultDTO"]: AliasType<{
+	/** Человекочитаемое сообщение об ошибке */
+	error?:boolean | `@${string}`,
+	/** Идентификатор запроса (UUIDv4), который ca-admin использовал для идемпотентности */
+	requestId?:boolean | `@${string}`,
+	/** Статус: applied (зарегистрирован on-chain), conflict (уже есть), failed (ошибка) */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["PublishProjectFreeDecisionInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -16039,6 +16305,27 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	/** Имя аккаунта пользователя */
 	username: string
 };
+	["PublishReleaseInputDTO"]: {
+	/** Package manifest (валидируется Zod-схемой на ca-admin). Содержит coopenomics.backend.image (docker) + coopenomics.frontend.tarball (npm), requires/provides, GraphQL-схему и pricing-параметры. */
+	manifest: ResolverInputTypes["JSON"],
+	/** Идентификатор пакета в формате @scope/name (должен быть уже зарегистрирован через publishPackage) */
+	packageId: string,
+	/** sha256 npm tarball'а (HEX). Если не передан — ca-admin использует sentinel zero-hash. */
+	tarballSha256?: string | undefined | null,
+	/** Версия релиза в формате semver, например 1.0.0 */
+	version: string
+};
+	["PublishReleaseResultDTO"]: AliasType<{
+	/** Человекочитаемое сообщение об ошибке */
+	error?:boolean | `@${string}`,
+	/** Идентификатор запроса (UUIDv4), который ca-admin использовал для идемпотентности */
+	requestId?:boolean | `@${string}`,
+	/** Статус: applied | invalidManifest | failed */
+	status?:boolean | `@${string}`,
+	/** Идентификатор blockchain-транзакции (если ca-admin её вернул) */
+	transactionId?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["PublishRequestInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -16058,6 +16345,8 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	["Query"]: AliasType<{
 agreementTemplates?: [{	coopname: string},ResolverInputTypes["AgreementTemplate"]],
 agreements?: [{	filter?: ResolverInputTypes["AgreementFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedAgreementsPaginationResult"]],
+appsCatalogPendingModerations?: [{	limit?: number | undefined | null,	status?: ResolverInputTypes["ModerationStatusEnum"] | undefined | null},ResolverInputTypes["ModerationRequestDTO"]],
+appsCatalogRemotePackages?: [{	page: number,	pageSize: number},ResolverInputTypes["AppsCatalogRemotePackageDTO"]],
 buildInitialReportEdits?: [{	period?: number | undefined | null,	reportType: ResolverInputTypes["ReportType"],	year: number},ResolverInputTypes["BuildInitialReportEdits"]],
 candidates?: [{	filter?: ResolverInputTypes["CandidateFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCandidatesPaginationResult"]],
 capitalCandidates?: [{	filter?: ResolverInputTypes["CandidateFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalCandidatesPaginationResult"]],
@@ -16386,6 +16675,35 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	title?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["RejectModerationInputDTO"]: {
+	/** UUID заявки на модерацию */
+	moderationId: string,
+	/** Причина отказа (3..2000 символов), увидит разработчик */
+	reason: string
+};
+	["RejectModerationResultDTO"]: AliasType<{
+	/** Человекочитаемое сообщение об ошибке */
+	error?:boolean | `@${string}`,
+	/** UUID запроса */
+	requestId?:boolean | `@${string}`,
+	/** Discriminator */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Статус мутации rejectModeration */
+["RejectModerationStatus"]:RejectModerationStatus;
+	["ReleaseScopeInputDTO"]: {
+	/** Antelope-имена кооперативов (для type=cooperatives) */
+	coopnames?: Array<string> | undefined | null,
+	/** chain_id подсетей (для type=subnets) */
+	subnets?: Array<string> | undefined | null,
+	/** Тип scope */
+	type: ResolverInputTypes["ReleaseScopeType"]
+};
+	/** Тип области видимости релиза при одобрении заявки */
+["ReleaseScopeType"]:ReleaseScopeType;
+	/** Тип релиза: full / canary */
+["ReleaseTypeEnum"]:ReleaseTypeEnum;
 	["RemoveSecretaryRoomInput"]: {
 	/** Идентификатор комнаты в реестре, которую нужно удалить */
 	id: string
@@ -17260,6 +17578,35 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	/** Распределение голосов */
 	votes: Array<ResolverInputTypes["VoteDistributionInput"]>
 };
+	["SubscribePackageInputDTO"]: {
+	/** Идентификатор пакета в формате @scope/name, например @voskhod/demoapp */
+	packageId: string,
+	/** Имя плана (eosio::name; в MVP "default"). Опционально. */
+	plan?: string | undefined | null
+};
+	["SubscribePackageResultDTO"]: AliasType<{
+	/** Конец периода (ISO 8601, только при status=activated) */
+	endAt?:boolean | `@${string}`,
+	/** Человекочитаемое сообщение об ошибке */
+	error?:boolean | `@${string}`,
+	/** Использован ли free trial (только при status=activated). Если true — следующая активация будет pay. */
+	freeTrialUsed?:boolean | `@${string}`,
+	/** Идентификатор пакета (только при status=activated) */
+	packageId?:boolean | `@${string}`,
+	/** Имя плана (только при status=activated) */
+	plan?:boolean | `@${string}`,
+	/** Начало периода (ISO 8601, только при status=activated) */
+	startAt?:boolean | `@${string}`,
+	/** Состояние подписки (только при status=activated) */
+	state?:boolean | `@${string}`,
+	/** Discriminator */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Статус мутации subscribePackage */
+["SubscribePackageStatus"]:SubscribePackageStatus;
+	/** Состояние подписки кооператива на пакет */
+["SubscriptionStateEnum"]:SubscriptionStateEnum;
 	["SubscriptionStatsDto"]: AliasType<{
 	/** Количество активных подписок */
 	active?:boolean | `@${string}`,
@@ -18442,6 +18789,43 @@ export type ModelTypes = {
 	username?: string | undefined | null
 };
 	["ApprovalStatus"]:ApprovalStatus;
+	["ApproveModerationInputDTO"]: {
+	/** UUID заявки на модерацию */
+	moderationId: string,
+	/** Явное согласие модератора на одобрение пакета с критической уязвимостью (requires_override=true). Без него — 403. */
+	override?: boolean | undefined | null,
+	/** Область видимости релиза при активации */
+	scope: ModelTypes["ReleaseScopeInputDTO"]
+};
+	["ApproveModerationResultDTO"]: {
+		/** Человекочитаемое сообщение об ошибке */
+	error?: string | undefined | null,
+	/** Идентификатор пакета (только при status=applied) */
+	packageId?: string | undefined | null,
+	/** UUID запроса (для логов / идемпотентности) */
+	requestId: string,
+	/** Discriminator */
+	status: ModelTypes["ApproveModerationStatus"],
+	/** Версия активированного релиза (только при status=applied) */
+	version?: string | undefined | null
+};
+	["ApproveModerationStatus"]:ApproveModerationStatus;
+	["AppsCatalogRemotePackageDTO"]: {
+		/** Совместимые subnet (chain_id блокчейна ЦК) */
+	compatibleSubnets: Array<string>,
+	/** Краткое описание (в MVP — заглушка, в будущем из manifest) */
+	description: string,
+	/** Последняя активная версия (semver). null = релизов ещё нет. */
+	lastActiveVersion?: string | undefined | null,
+	/** Идентификатор пакета (например, @voskhod/demoapp) */
+	packageId: string,
+	/** Имя владельца пакета (кооператив-разработчик) */
+	publisher: string,
+	/** Стоимость подписки, RUB/месяц (в MVP — фиксированно из dev-pricing seed) */
+	rubPerMonth: number,
+	/** Заголовок пакета для UI (в MVP — packageId, в будущем из manifest) */
+	title: string
+};
 	["AssetContributionActGenerateDocumentInput"]: {
 	/** Идентификатор акта */
 	act_id: string,
@@ -22823,6 +23207,31 @@ export type ModelTypes = {
 	/** Имя аккаунта пользователя */
 	username: string
 };
+	["ModerationRequestDTO"]: {
+		/** Краткое описание / release notes от разработчика */
+	brief: string,
+	/** UUID заявки */
+	id: string,
+	/** Идентификатор пакета (@scope/name) */
+	packageId: string,
+	/** Тип релиза */
+	releaseType: ModelTypes["ReleaseTypeEnum"],
+	/** Требуется ли явный override:true при approve (критическая уязвимость в scan_report) */
+	requiresOverride: boolean,
+	/** ReleaseScope: { type, subnets?, coopnames? } */
+	scope: ModelTypes["JSON"],
+	/** Текущий статус */
+	status: ModelTypes["ModerationStatusEnum"],
+	/** Когда подана (ISO 8601) */
+	submittedAt: string,
+	/** Кто подал заявку (Antelope-имя) */
+	submittedBy: string,
+	/** Когда последний раз обновлена (ISO 8601) */
+	updatedAt: string,
+	/** Версия пакета (SemVer) */
+	version: string
+};
+	["ModerationStatusEnum"]:ModerationStatusEnum;
 	["MonoAccount"]: {
 		/** Электронная почта пользователя */
 	email: string,
@@ -22872,6 +23281,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	addTrustedAccount: ModelTypes["Branch"],
+	/** Одобряет заявку на модерацию в каталоге восхода. Только chairman.
+
+Требуемые роли: chairman.  */
+	approveModeration: ModelTypes["ApproveModerationResultDTO"],
 	/** Утвердить и исполнить решение совета
 
 Требуемые роли: chairman.  */
@@ -23430,10 +23843,18 @@ export type ModelTypes = {
 	processConvertToAxonStatement: boolean,
 	/** Отклонить модерацию по заявке */
 	prohibitRequest: ModelTypes["Transaction"],
+	/** Регистрирует пакет on-chain (action apps::regpkg) через ca-admin. Подписывает chairman кооператива-оператора каталога. Доступно только chairman'у (стол разработчика).
+
+Требуемые роли: chairman.  */
+	publishPackage: ModelTypes["PublishPackageResultDTO"],
 	/** Опубликовать предложенную повестку и проект решения для дальнейшего голосования совета по нему
 
 Требуемые роли: chairman, member.  */
 	publishProjectOfFreeDecision: boolean,
+	/** Создаёт новый релиз пакета (action apps::setrelease) через ca-admin. Подписывает chairman кооператива-оператора каталога. Доступно только chairman'у (стол разработчика).
+
+Требуемые роли: chairman.  */
+	publishRelease: ModelTypes["PublishReleaseResultDTO"],
 	/** Опубликовать заявку */
 	publishRequest: ModelTypes["Transaction"],
 	/** Подтвердить получение имущества Уполномоченным лицом от Заказчика по акту приёмки-передачи */
@@ -23446,6 +23867,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member.  */
 	registerParticipant: ModelTypes["Account"],
+	/** Отклоняет заявку на модерацию с причиной. Только chairman.
+
+Требуемые роли: chairman.  */
+	rejectModeration: ModelTypes["RejectModerationResultDTO"],
 	/** Заменить приватный ключ аккаунта */
 	resetKey: boolean,
 	/** Перезапуск общего собрания пайщиков
@@ -23480,6 +23905,10 @@ export type ModelTypes = {
 	startInstall: ModelTypes["StartInstallResult"],
 	/** Выслать токен для замены приватного ключа аккаунта на электронную почту */
 	startResetKey: boolean,
+	/** Подписывает кооператив-партнёр на пакет из каталога восхода. Tenant читается из server-side JWT, body не может его переопределить. Только chairman кооператива-партнёра.
+
+Требуемые роли: chairman.  */
+	subscribePackage: ModelTypes["SubscribePackageResultDTO"],
 	/** Подтвердить поставку имущества Поставщиком по заявке Заказчика и акту приёма-передачи */
 	supplyOnRequest: ModelTypes["Transaction"],
 	/** Запустить воркфлоу уведомлений (только для председателя или server-secret)
@@ -24527,6 +24956,22 @@ export type ModelTypes = {
 	last_name: string,
 	middle_name: string
 };
+	["PublishPackageInputDTO"]: {
+	/** chain_id совместимых подсетей (каждый — 64 hex-символа), хотя бы одна */
+	compatibleSubnets: Array<string>,
+	/** Antelope-имя владельца пакета (1..12 символов из [a-z1-5.]) */
+	ownerUsername: string,
+	/** Идентификатор пакета в формате @scope/name, например @voskhod/demoapp */
+	packageId: string
+};
+	["PublishPackageResultDTO"]: {
+		/** Человекочитаемое сообщение об ошибке */
+	error?: string | undefined | null,
+	/** Идентификатор запроса (UUIDv4), который ca-admin использовал для идемпотентности */
+	requestId: string,
+	/** Статус: applied (зарегистрирован on-chain), conflict (уже есть), failed (ошибка) */
+	status: string
+};
 	["PublishProjectFreeDecisionInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -24536,6 +24981,26 @@ export type ModelTypes = {
 	meta: string,
 	/** Имя аккаунта пользователя */
 	username: string
+};
+	["PublishReleaseInputDTO"]: {
+	/** Package manifest (валидируется Zod-схемой на ca-admin). Содержит coopenomics.backend.image (docker) + coopenomics.frontend.tarball (npm), requires/provides, GraphQL-схему и pricing-параметры. */
+	manifest: ModelTypes["JSON"],
+	/** Идентификатор пакета в формате @scope/name (должен быть уже зарегистрирован через publishPackage) */
+	packageId: string,
+	/** sha256 npm tarball'а (HEX). Если не передан — ca-admin использует sentinel zero-hash. */
+	tarballSha256?: string | undefined | null,
+	/** Версия релиза в формате semver, например 1.0.0 */
+	version: string
+};
+	["PublishReleaseResultDTO"]: {
+		/** Человекочитаемое сообщение об ошибке */
+	error?: string | undefined | null,
+	/** Идентификатор запроса (UUIDv4), который ca-admin использовал для идемпотентности */
+	requestId: string,
+	/** Статус: applied | invalidManifest | failed */
+	status: string,
+	/** Идентификатор blockchain-транзакции (если ca-admin её вернул) */
+	transactionId?: string | undefined | null
 };
 	["PublishRequestInput"]: {
 	/** Имя аккаунта кооператива */
@@ -24558,6 +25023,12 @@ export type ModelTypes = {
 	agreementTemplates: Array<ModelTypes["AgreementTemplate"]>,
 	/** Получение списка соглашений с фильтрацией и пагинацией */
 	agreements: ModelTypes["PaginatedAgreementsPaginationResult"],
+	/** Заявки на модерацию пакетов в каталоге восхода. По умолчанию SUBMITTED (ждут approve/reject). Только chairman.
+
+Требуемые роли: chairman.  */
+	appsCatalogPendingModerations: Array<ModelTypes["ModerationRequestDTO"]>,
+	/** Список remote-пакетов из публичного каталога apps-catalog. Защищён JWT (видят только авторизованные пайщики). Источник — ca-admin /v1/public/packages; controller проксирует. */
+	appsCatalogRemotePackages: Array<ModelTypes["AppsCatalogRemotePackageDTO"]>,
 	/** Построить предзаполненные edits для формы: дефолты (ledger2 + реквизиты + корректировки), с наложением dirty-полей существующего черновика (если он есть).
 
 Требуемые роли: chairman.  */
@@ -25075,6 +25546,31 @@ export type ModelTypes = {
 	/** Название программы для отображения */
 	title: string
 };
+	["RejectModerationInputDTO"]: {
+	/** UUID заявки на модерацию */
+	moderationId: string,
+	/** Причина отказа (3..2000 символов), увидит разработчик */
+	reason: string
+};
+	["RejectModerationResultDTO"]: {
+		/** Человекочитаемое сообщение об ошибке */
+	error?: string | undefined | null,
+	/** UUID запроса */
+	requestId: string,
+	/** Discriminator */
+	status: ModelTypes["RejectModerationStatus"]
+};
+	["RejectModerationStatus"]:RejectModerationStatus;
+	["ReleaseScopeInputDTO"]: {
+	/** Antelope-имена кооперативов (для type=cooperatives) */
+	coopnames?: Array<string> | undefined | null,
+	/** chain_id подсетей (для type=subnets) */
+	subnets?: Array<string> | undefined | null,
+	/** Тип scope */
+	type: ModelTypes["ReleaseScopeType"]
+};
+	["ReleaseScopeType"]:ReleaseScopeType;
+	["ReleaseTypeEnum"]:ReleaseTypeEnum;
 	["RemoveSecretaryRoomInput"]: {
 	/** Идентификатор комнаты в реестре, которую нужно удалить */
 	id: string
@@ -25922,6 +26418,32 @@ export type ModelTypes = {
 	/** Распределение голосов */
 	votes: Array<ModelTypes["VoteDistributionInput"]>
 };
+	["SubscribePackageInputDTO"]: {
+	/** Идентификатор пакета в формате @scope/name, например @voskhod/demoapp */
+	packageId: string,
+	/** Имя плана (eosio::name; в MVP "default"). Опционально. */
+	plan?: string | undefined | null
+};
+	["SubscribePackageResultDTO"]: {
+		/** Конец периода (ISO 8601, только при status=activated) */
+	endAt?: string | undefined | null,
+	/** Человекочитаемое сообщение об ошибке */
+	error?: string | undefined | null,
+	/** Использован ли free trial (только при status=activated). Если true — следующая активация будет pay. */
+	freeTrialUsed?: boolean | undefined | null,
+	/** Идентификатор пакета (только при status=activated) */
+	packageId?: string | undefined | null,
+	/** Имя плана (только при status=activated) */
+	plan?: string | undefined | null,
+	/** Начало периода (ISO 8601, только при status=activated) */
+	startAt?: string | undefined | null,
+	/** Состояние подписки (только при status=activated) */
+	state?: ModelTypes["SubscriptionStateEnum"] | undefined | null,
+	/** Discriminator */
+	status: ModelTypes["SubscribePackageStatus"]
+};
+	["SubscribePackageStatus"]:SubscribePackageStatus;
+	["SubscriptionStateEnum"]:SubscriptionStateEnum;
 	["SubscriptionStatsDto"]: {
 		/** Количество активных подписок */
 	active: number,
@@ -27110,6 +27632,48 @@ export type GraphQLTypes = {
 };
 	/** Статус одобрения в системе CHAIRMAN */
 ["ApprovalStatus"]: ApprovalStatus;
+	["ApproveModerationInputDTO"]: {
+		/** UUID заявки на модерацию */
+	moderationId: string,
+	/** Явное согласие модератора на одобрение пакета с критической уязвимостью (requires_override=true). Без него — 403. */
+	override?: boolean | undefined | null,
+	/** Область видимости релиза при активации */
+	scope: GraphQLTypes["ReleaseScopeInputDTO"]
+};
+	["ApproveModerationResultDTO"]: {
+	__typename: "ApproveModerationResultDTO",
+	/** Человекочитаемое сообщение об ошибке */
+	error?: string | undefined | null,
+	/** Идентификатор пакета (только при status=applied) */
+	packageId?: string | undefined | null,
+	/** UUID запроса (для логов / идемпотентности) */
+	requestId: string,
+	/** Discriminator */
+	status: GraphQLTypes["ApproveModerationStatus"],
+	/** Версия активированного релиза (только при status=applied) */
+	version?: string | undefined | null,
+	['...on ApproveModerationResultDTO']: Omit<GraphQLTypes["ApproveModerationResultDTO"], "...on ApproveModerationResultDTO">
+};
+	/** Статус мутации approveModeration */
+["ApproveModerationStatus"]: ApproveModerationStatus;
+	["AppsCatalogRemotePackageDTO"]: {
+	__typename: "AppsCatalogRemotePackageDTO",
+	/** Совместимые subnet (chain_id блокчейна ЦК) */
+	compatibleSubnets: Array<string>,
+	/** Краткое описание (в MVP — заглушка, в будущем из manifest) */
+	description: string,
+	/** Последняя активная версия (semver). null = релизов ещё нет. */
+	lastActiveVersion?: string | undefined | null,
+	/** Идентификатор пакета (например, @voskhod/demoapp) */
+	packageId: string,
+	/** Имя владельца пакета (кооператив-разработчик) */
+	publisher: string,
+	/** Стоимость подписки, RUB/месяц (в MVP — фиксированно из dev-pricing seed) */
+	rubPerMonth: number,
+	/** Заголовок пакета для UI (в MVP — packageId, в будущем из manifest) */
+	title: string,
+	['...on AppsCatalogRemotePackageDTO']: Omit<GraphQLTypes["AppsCatalogRemotePackageDTO"], "...on AppsCatalogRemotePackageDTO">
+};
 	["AssetContributionActGenerateDocumentInput"]: {
 		/** Идентификатор акта */
 	act_id: string,
@@ -31753,6 +32317,34 @@ export type GraphQLTypes = {
 	/** Имя аккаунта пользователя */
 	username: string
 };
+	["ModerationRequestDTO"]: {
+	__typename: "ModerationRequestDTO",
+	/** Краткое описание / release notes от разработчика */
+	brief: string,
+	/** UUID заявки */
+	id: string,
+	/** Идентификатор пакета (@scope/name) */
+	packageId: string,
+	/** Тип релиза */
+	releaseType: GraphQLTypes["ReleaseTypeEnum"],
+	/** Требуется ли явный override:true при approve (критическая уязвимость в scan_report) */
+	requiresOverride: boolean,
+	/** ReleaseScope: { type, subnets?, coopnames? } */
+	scope: GraphQLTypes["JSON"],
+	/** Текущий статус */
+	status: GraphQLTypes["ModerationStatusEnum"],
+	/** Когда подана (ISO 8601) */
+	submittedAt: string,
+	/** Кто подал заявку (Antelope-имя) */
+	submittedBy: string,
+	/** Когда последний раз обновлена (ISO 8601) */
+	updatedAt: string,
+	/** Версия пакета (SemVer) */
+	version: string,
+	['...on ModerationRequestDTO']: Omit<GraphQLTypes["ModerationRequestDTO"], "...on ModerationRequestDTO">
+};
+	/** Статус заявки на модерацию пакета */
+["ModerationStatusEnum"]: ModerationStatusEnum;
 	["MonoAccount"]: {
 	__typename: "MonoAccount",
 	/** Электронная почта пользователя */
@@ -31805,6 +32397,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	addTrustedAccount: GraphQLTypes["Branch"],
+	/** Одобряет заявку на модерацию в каталоге восхода. Только chairman.
+
+Требуемые роли: chairman.  */
+	approveModeration: GraphQLTypes["ApproveModerationResultDTO"],
 	/** Утвердить и исполнить решение совета
 
 Требуемые роли: chairman.  */
@@ -32363,10 +32959,18 @@ export type GraphQLTypes = {
 	processConvertToAxonStatement: boolean,
 	/** Отклонить модерацию по заявке */
 	prohibitRequest: GraphQLTypes["Transaction"],
+	/** Регистрирует пакет on-chain (action apps::regpkg) через ca-admin. Подписывает chairman кооператива-оператора каталога. Доступно только chairman'у (стол разработчика).
+
+Требуемые роли: chairman.  */
+	publishPackage: GraphQLTypes["PublishPackageResultDTO"],
 	/** Опубликовать предложенную повестку и проект решения для дальнейшего голосования совета по нему
 
 Требуемые роли: chairman, member.  */
 	publishProjectOfFreeDecision: boolean,
+	/** Создаёт новый релиз пакета (action apps::setrelease) через ca-admin. Подписывает chairman кооператива-оператора каталога. Доступно только chairman'у (стол разработчика).
+
+Требуемые роли: chairman.  */
+	publishRelease: GraphQLTypes["PublishReleaseResultDTO"],
 	/** Опубликовать заявку */
 	publishRequest: GraphQLTypes["Transaction"],
 	/** Подтвердить получение имущества Уполномоченным лицом от Заказчика по акту приёмки-передачи */
@@ -32379,6 +32983,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member.  */
 	registerParticipant: GraphQLTypes["Account"],
+	/** Отклоняет заявку на модерацию с причиной. Только chairman.
+
+Требуемые роли: chairman.  */
+	rejectModeration: GraphQLTypes["RejectModerationResultDTO"],
 	/** Заменить приватный ключ аккаунта */
 	resetKey: boolean,
 	/** Перезапуск общего собрания пайщиков
@@ -32413,6 +33021,10 @@ export type GraphQLTypes = {
 	startInstall: GraphQLTypes["StartInstallResult"],
 	/** Выслать токен для замены приватного ключа аккаунта на электронную почту */
 	startResetKey: boolean,
+	/** Подписывает кооператив-партнёр на пакет из каталога восхода. Tenant читается из server-side JWT, body не может его переопределить. Только chairman кооператива-партнёра.
+
+Требуемые роли: chairman.  */
+	subscribePackage: GraphQLTypes["SubscribePackageResultDTO"],
 	/** Подтвердить поставку имущества Поставщиком по заявке Заказчика и акту приёма-передачи */
 	supplyOnRequest: GraphQLTypes["Transaction"],
 	/** Запустить воркфлоу уведомлений (только для председателя или server-secret)
@@ -33590,6 +34202,24 @@ export type GraphQLTypes = {
 	middle_name: string,
 	['...on PublicChairman']: Omit<GraphQLTypes["PublicChairman"], "...on PublicChairman">
 };
+	["PublishPackageInputDTO"]: {
+		/** chain_id совместимых подсетей (каждый — 64 hex-символа), хотя бы одна */
+	compatibleSubnets: Array<string>,
+	/** Antelope-имя владельца пакета (1..12 символов из [a-z1-5.]) */
+	ownerUsername: string,
+	/** Идентификатор пакета в формате @scope/name, например @voskhod/demoapp */
+	packageId: string
+};
+	["PublishPackageResultDTO"]: {
+	__typename: "PublishPackageResultDTO",
+	/** Человекочитаемое сообщение об ошибке */
+	error?: string | undefined | null,
+	/** Идентификатор запроса (UUIDv4), который ca-admin использовал для идемпотентности */
+	requestId: string,
+	/** Статус: applied (зарегистрирован on-chain), conflict (уже есть), failed (ошибка) */
+	status: string,
+	['...on PublishPackageResultDTO']: Omit<GraphQLTypes["PublishPackageResultDTO"], "...on PublishPackageResultDTO">
+};
 	["PublishProjectFreeDecisionInput"]: {
 		/** Имя аккаунта кооператива */
 	coopname: string,
@@ -33599,6 +34229,28 @@ export type GraphQLTypes = {
 	meta: string,
 	/** Имя аккаунта пользователя */
 	username: string
+};
+	["PublishReleaseInputDTO"]: {
+		/** Package manifest (валидируется Zod-схемой на ca-admin). Содержит coopenomics.backend.image (docker) + coopenomics.frontend.tarball (npm), requires/provides, GraphQL-схему и pricing-параметры. */
+	manifest: GraphQLTypes["JSON"],
+	/** Идентификатор пакета в формате @scope/name (должен быть уже зарегистрирован через publishPackage) */
+	packageId: string,
+	/** sha256 npm tarball'а (HEX). Если не передан — ca-admin использует sentinel zero-hash. */
+	tarballSha256?: string | undefined | null,
+	/** Версия релиза в формате semver, например 1.0.0 */
+	version: string
+};
+	["PublishReleaseResultDTO"]: {
+	__typename: "PublishReleaseResultDTO",
+	/** Человекочитаемое сообщение об ошибке */
+	error?: string | undefined | null,
+	/** Идентификатор запроса (UUIDv4), который ca-admin использовал для идемпотентности */
+	requestId: string,
+	/** Статус: applied | invalidManifest | failed */
+	status: string,
+	/** Идентификатор blockchain-транзакции (если ca-admin её вернул) */
+	transactionId?: string | undefined | null,
+	['...on PublishReleaseResultDTO']: Omit<GraphQLTypes["PublishReleaseResultDTO"], "...on PublishReleaseResultDTO">
 };
 	["PublishRequestInput"]: {
 		/** Имя аккаунта кооператива */
@@ -33622,6 +34274,12 @@ export type GraphQLTypes = {
 	agreementTemplates: Array<GraphQLTypes["AgreementTemplate"]>,
 	/** Получение списка соглашений с фильтрацией и пагинацией */
 	agreements: GraphQLTypes["PaginatedAgreementsPaginationResult"],
+	/** Заявки на модерацию пакетов в каталоге восхода. По умолчанию SUBMITTED (ждут approve/reject). Только chairman.
+
+Требуемые роли: chairman.  */
+	appsCatalogPendingModerations: Array<GraphQLTypes["ModerationRequestDTO"]>,
+	/** Список remote-пакетов из публичного каталога apps-catalog. Защищён JWT (видят только авторизованные пайщики). Источник — ca-admin /v1/public/packages; controller проксирует. */
+	appsCatalogRemotePackages: Array<GraphQLTypes["AppsCatalogRemotePackageDTO"]>,
 	/** Построить предзаполненные edits для формы: дефолты (ledger2 + реквизиты + корректировки), с наложением dirty-полей существующего черновика (если он есть).
 
 Требуемые роли: chairman.  */
@@ -34152,6 +34810,36 @@ export type GraphQLTypes = {
 	title: string,
 	['...on RegistrationProgram']: Omit<GraphQLTypes["RegistrationProgram"], "...on RegistrationProgram">
 };
+	["RejectModerationInputDTO"]: {
+		/** UUID заявки на модерацию */
+	moderationId: string,
+	/** Причина отказа (3..2000 символов), увидит разработчик */
+	reason: string
+};
+	["RejectModerationResultDTO"]: {
+	__typename: "RejectModerationResultDTO",
+	/** Человекочитаемое сообщение об ошибке */
+	error?: string | undefined | null,
+	/** UUID запроса */
+	requestId: string,
+	/** Discriminator */
+	status: GraphQLTypes["RejectModerationStatus"],
+	['...on RejectModerationResultDTO']: Omit<GraphQLTypes["RejectModerationResultDTO"], "...on RejectModerationResultDTO">
+};
+	/** Статус мутации rejectModeration */
+["RejectModerationStatus"]: RejectModerationStatus;
+	["ReleaseScopeInputDTO"]: {
+		/** Antelope-имена кооперативов (для type=cooperatives) */
+	coopnames?: Array<string> | undefined | null,
+	/** chain_id подсетей (для type=subnets) */
+	subnets?: Array<string> | undefined | null,
+	/** Тип scope */
+	type: GraphQLTypes["ReleaseScopeType"]
+};
+	/** Тип области видимости релиза при одобрении заявки */
+["ReleaseScopeType"]: ReleaseScopeType;
+	/** Тип релиза: full / canary */
+["ReleaseTypeEnum"]: ReleaseTypeEnum;
 	["RemoveSecretaryRoomInput"]: {
 		/** Идентификатор комнаты в реестре, которую нужно удалить */
 	id: string
@@ -35048,6 +35736,36 @@ export type GraphQLTypes = {
 	/** Распределение голосов */
 	votes: Array<GraphQLTypes["VoteDistributionInput"]>
 };
+	["SubscribePackageInputDTO"]: {
+		/** Идентификатор пакета в формате @scope/name, например @voskhod/demoapp */
+	packageId: string,
+	/** Имя плана (eosio::name; в MVP "default"). Опционально. */
+	plan?: string | undefined | null
+};
+	["SubscribePackageResultDTO"]: {
+	__typename: "SubscribePackageResultDTO",
+	/** Конец периода (ISO 8601, только при status=activated) */
+	endAt?: string | undefined | null,
+	/** Человекочитаемое сообщение об ошибке */
+	error?: string | undefined | null,
+	/** Использован ли free trial (только при status=activated). Если true — следующая активация будет pay. */
+	freeTrialUsed?: boolean | undefined | null,
+	/** Идентификатор пакета (только при status=activated) */
+	packageId?: string | undefined | null,
+	/** Имя плана (только при status=activated) */
+	plan?: string | undefined | null,
+	/** Начало периода (ISO 8601, только при status=activated) */
+	startAt?: string | undefined | null,
+	/** Состояние подписки (только при status=activated) */
+	state?: GraphQLTypes["SubscriptionStateEnum"] | undefined | null,
+	/** Discriminator */
+	status: GraphQLTypes["SubscribePackageStatus"],
+	['...on SubscribePackageResultDTO']: Omit<GraphQLTypes["SubscribePackageResultDTO"], "...on SubscribePackageResultDTO">
+};
+	/** Статус мутации subscribePackage */
+["SubscribePackageStatus"]: SubscribePackageStatus;
+	/** Состояние подписки кооператива на пакет */
+["SubscriptionStateEnum"]: SubscriptionStateEnum;
 	["SubscriptionStatsDto"]: {
 	__typename: "SubscriptionStatsDto",
 	/** Количество активных подписок */
@@ -35652,6 +36370,14 @@ export enum ApprovalStatus {
 	DECLINED = "DECLINED",
 	PENDING = "PENDING"
 }
+/** Статус мутации approveModeration */
+export enum ApproveModerationStatus {
+	APPLIED = "APPLIED",
+	CONFLICT = "CONFLICT",
+	FAILED = "FAILED",
+	PENDING_CHAIN = "PENDING_CHAIN",
+	REQUIRES_OVERRIDE = "REQUIRES_OVERRIDE"
+}
 /** Тип подписанта: руководитель или уполномоченный представитель */
 export enum BuhotchSignerType {
 	CHAIRMAN = "CHAIRMAN",
@@ -35858,6 +36584,14 @@ export enum ManagedRoomKind {
 	MEMBERS = "MEMBERS",
 	SECRETARY = "SECRETARY"
 }
+/** Статус заявки на модерацию пакета */
+export enum ModerationStatusEnum {
+	APPROVED = "APPROVED",
+	APPROVED_PENDING_CHAIN = "APPROVED_PENDING_CHAIN",
+	REJECTED = "REJECTED",
+	SUBMITTED = "SUBMITTED",
+	WITHDRAWN = "WITHDRAWN"
+}
 /** Тип комнаты вне проекта: пайщики, совет, комната секретаря */
 export enum NonProjectRoomKind {
 	COUNCIL = "COUNCIL",
@@ -35936,6 +36670,24 @@ export enum ProjectStatus {
 	UNDEFINED = "UNDEFINED",
 	VOTING = "VOTING"
 }
+/** Статус мутации rejectModeration */
+export enum RejectModerationStatus {
+	APPLIED = "APPLIED",
+	CONFLICT = "CONFLICT",
+	FAILED = "FAILED"
+}
+/** Тип области видимости релиза при одобрении заявки */
+export enum ReleaseScopeType {
+	ALL = "ALL",
+	COOPERATIVES = "COOPERATIVES",
+	EMPTY = "EMPTY",
+	SUBNETS = "SUBNETS"
+}
+/** Тип релиза: full / canary */
+export enum ReleaseTypeEnum {
+	CANARY = "CANARY",
+	FULL = "FULL"
+}
 /** Пользовательская отметка на ячейке календаря: NOT_REQUIRED («не надо сдавать») или SUBMITTED_EXTERNALLY («сдано вне платформы»). */
 export enum ReportSubmissionMark {
 	NOT_REQUIRED = "NOT_REQUIRED",
@@ -35990,6 +36742,20 @@ export enum StoryStatus {
 	CANCELLED = "CANCELLED",
 	COMPLETED = "COMPLETED",
 	PENDING = "PENDING"
+}
+/** Статус мутации subscribePackage */
+export enum SubscribePackageStatus {
+	ACTIVATED = "ACTIVATED",
+	ALREADY_ACTIVE = "ALREADY_ACTIVE",
+	CLIENT_NOT_REGISTERED = "CLIENT_NOT_REGISTERED",
+	FAILED = "FAILED",
+	UNAVAILABLE = "UNAVAILABLE"
+}
+/** Состояние подписки кооператива на пакет */
+export enum SubscriptionStateEnum {
+	ACTIVE = "ACTIVE",
+	EXPIRED = "EXPIRED",
+	TRIAL = "TRIAL"
 }
 /** Состояние контроллера кооператива */
 export enum SystemStatus {
@@ -36052,6 +36818,8 @@ type ZEUS_VARIABLES = {
 	["AnswerInput"]: ValueTypes["AnswerInput"];
 	["ApprovalFilter"]: ValueTypes["ApprovalFilter"];
 	["ApprovalStatus"]: ValueTypes["ApprovalStatus"];
+	["ApproveModerationInputDTO"]: ValueTypes["ApproveModerationInputDTO"];
+	["ApproveModerationStatus"]: ValueTypes["ApproveModerationStatus"];
 	["AssetContributionActGenerateDocumentInput"]: ValueTypes["AssetContributionActGenerateDocumentInput"];
 	["AssetContributionActSignedDocumentInput"]: ValueTypes["AssetContributionActSignedDocumentInput"];
 	["AssetContributionActSignedMetaDocumentInput"]: ValueTypes["AssetContributionActSignedMetaDocumentInput"];
@@ -36233,6 +37001,7 @@ type ZEUS_VARIABLES = {
 	["ManagedRoomKind"]: ValueTypes["ManagedRoomKind"];
 	["MarkReportPeriodInput"]: ValueTypes["MarkReportPeriodInput"];
 	["ModerateRequestInput"]: ValueTypes["ModerateRequestInput"];
+	["ModerationStatusEnum"]: ValueTypes["ModerationStatusEnum"];
 	["MoveCapitalIssueToComponentInput"]: ValueTypes["MoveCapitalIssueToComponentInput"];
 	["NonProjectRoomKind"]: ValueTypes["NonProjectRoomKind"];
 	["NotificationWorkflowRecipientInput"]: ValueTypes["NotificationWorkflowRecipientInput"];
@@ -36270,7 +37039,9 @@ type ZEUS_VARIABLES = {
 	["ProjectFreeDecisionSignedMetaDocumentInput"]: ValueTypes["ProjectFreeDecisionSignedMetaDocumentInput"];
 	["ProjectGenerationContractGenerateDocumentInput"]: ValueTypes["ProjectGenerationContractGenerateDocumentInput"];
 	["ProjectStatus"]: ValueTypes["ProjectStatus"];
+	["PublishPackageInputDTO"]: ValueTypes["PublishPackageInputDTO"];
 	["PublishProjectFreeDecisionInput"]: ValueTypes["PublishProjectFreeDecisionInput"];
+	["PublishReleaseInputDTO"]: ValueTypes["PublishReleaseInputDTO"];
 	["PublishRequestInput"]: ValueTypes["PublishRequestInput"];
 	["PushResultInput"]: ValueTypes["PushResultInput"];
 	["ReceiveOnRequestInput"]: ValueTypes["ReceiveOnRequestInput"];
@@ -36280,6 +37051,11 @@ type ZEUS_VARIABLES = {
 	["RegisterAccountInput"]: ValueTypes["RegisterAccountInput"];
 	["RegisterContributorInput"]: ValueTypes["RegisterContributorInput"];
 	["RegisterParticipantInput"]: ValueTypes["RegisterParticipantInput"];
+	["RejectModerationInputDTO"]: ValueTypes["RejectModerationInputDTO"];
+	["RejectModerationStatus"]: ValueTypes["RejectModerationStatus"];
+	["ReleaseScopeInputDTO"]: ValueTypes["ReleaseScopeInputDTO"];
+	["ReleaseScopeType"]: ValueTypes["ReleaseScopeType"];
+	["ReleaseTypeEnum"]: ValueTypes["ReleaseTypeEnum"];
 	["RemoveSecretaryRoomInput"]: ValueTypes["RemoveSecretaryRoomInput"];
 	["ReportHistoryFilterInput"]: ValueTypes["ReportHistoryFilterInput"];
 	["ReportPreviewInput"]: ValueTypes["ReportPreviewInput"];
@@ -36338,6 +37114,9 @@ type ZEUS_VARIABLES = {
 	["StopProjectInput"]: ValueTypes["StopProjectInput"];
 	["StoryStatus"]: ValueTypes["StoryStatus"];
 	["SubmitVoteInput"]: ValueTypes["SubmitVoteInput"];
+	["SubscribePackageInputDTO"]: ValueTypes["SubscribePackageInputDTO"];
+	["SubscribePackageStatus"]: ValueTypes["SubscribePackageStatus"];
+	["SubscriptionStateEnum"]: ValueTypes["SubscriptionStateEnum"];
 	["SupplyOnRequestInput"]: ValueTypes["SupplyOnRequestInput"];
 	["SystemStatus"]: ValueTypes["SystemStatus"];
 	["TranscriptionStatus"]: ValueTypes["TranscriptionStatus"];
