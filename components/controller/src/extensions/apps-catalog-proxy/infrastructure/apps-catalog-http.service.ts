@@ -130,6 +130,38 @@ export type RejectModerationOutcome =
   | { status: 'conflict'; requestId: string; error: string }
   | { status: 'failed'; requestId: string; error: string };
 
+export type SubscriptionState = 'trial' | 'active' | 'expired';
+
+export interface ActivateSubscriptionInput {
+  packageId: string;
+  /** eosio::name плана; в MVP `'default'`. */
+  plan?: string;
+}
+
+export type ActivateSubscriptionOutcome =
+  | {
+      status: 'activated';
+      state: SubscriptionState;
+      packageId: string;
+      plan: string;
+      startAt: string;
+      endAt: string;
+      freeTrialUsed: boolean;
+    }
+  | { status: 'alreadyActive'; error: string }
+  | { status: 'clientNotRegistered'; error: string }
+  | { status: 'unavailable'; error: string }
+  | { status: 'failed'; error: string };
+
+interface ActivateSubscriptionWireFormat {
+  state: SubscriptionState;
+  package_id: string;
+  plan: string;
+  start_at: string;
+  end_at: string;
+  free_trial_used: boolean;
+}
+
 /**
  * HTTP-клиент к ca-admin (apps-catalog) для Story 9.5.b. Защищён admin-API
  * ключом из env (APPS_CATALOG_API_KEY). Используется только сервером —
@@ -143,6 +175,13 @@ export type RejectModerationOutcome =
 export class AppsCatalogHttpService {
   private readonly logger = new Logger(AppsCatalogHttpService.name);
   private readonly client: AxiosInstance | null;
+  /**
+   * Отдельный клиент для ca-auth (tenant-scoped endpoints). Базовый URL
+   * и tenant JWT отличаются от ca-admin: ca-admin — admin API key
+   * кооператива-оператора (voskhod); ca-auth — JWT кооператива-партнёра,
+   * выписанный ca-admin'ом отдельно.
+   */
+  private readonly authClient: AxiosInstance | null;
 
   constructor() {
     if (config.apps_catalog.url && config.apps_catalog.api_key) {
@@ -157,6 +196,23 @@ export class AppsCatalogHttpService {
       this.client = null;
       this.logger.warn(
         'APPS_CATALOG_URL/APPS_CATALOG_API_KEY не заданы — apps-catalog-proxy в degraded mode (пустой каталог)',
+      );
+    }
+    if (
+      config.apps_catalog_auth.url &&
+      config.apps_catalog_auth.tenant_jwt
+    ) {
+      this.authClient = axios.create({
+        baseURL: config.apps_catalog_auth.url,
+        timeout: 5000,
+        headers: {
+          Authorization: `Bearer ${config.apps_catalog_auth.tenant_jwt}`,
+        },
+      });
+    } else {
+      this.authClient = null;
+      this.logger.warn(
+        'APPS_CATALOG_AUTH_URL/APPS_CATALOG_TENANT_JWT не заданы — subscribe mutation в degraded mode',
       );
     }
   }
@@ -488,6 +544,85 @@ export class AppsCatalogHttpService {
         `rejectModeration failed ${input.moderationId}: ${detail}`,
       );
       return { status: 'failed', requestId, error: detail };
+    }
+  }
+
+  /**
+   * Story 9.3.b-sub: активация подписки кооператива-партнёра на пакет.
+   *
+   * Дёргает ca-auth `POST /v1/subscriptions/activate` с tenant JWT
+   * кооператива. На первой попытке создаётся trial-подписка
+   * (free_trial_period_seconds), на повторной активации после expired —
+   * pay (min_payment_period_seconds). tenant читается ca-auth'ом только
+   * из JWT — body не может переопределить кооператива.
+   *
+   * Discriminated outcome:
+   *  - `activated` — HTTP 201, подписка ACTIVE/trial;
+   *  - `alreadyActive` — HTTP 409 SUBSCRIPTION_ALREADY_ACTIVE;
+   *  - `clientNotRegistered` — HTTP 403 CLIENT_NOT_REGISTERED: кооператив
+   *    не зарегистрирован в каталоге восхода (нужен onboarding);
+   *  - `unavailable` — HTTP 423 KE_UNAVAILABLE (катаклиз с key-escrow);
+   *  - `failed` — прочие ошибки (network, 400, 401, degraded mode).
+   */
+  async activateSubscription(
+    input: ActivateSubscriptionInput,
+  ): Promise<ActivateSubscriptionOutcome> {
+    if (!this.authClient) {
+      const error =
+        'APPS_CATALOG_AUTH_URL/APPS_CATALOG_TENANT_JWT не заданы';
+      this.logger.warn(
+        `activateSubscription refused (degraded mode): ${input.packageId}`,
+      );
+      return { status: 'failed', error };
+    }
+    try {
+      const res = await this.authClient.post<ActivateSubscriptionWireFormat>(
+        '/v1/subscriptions/activate',
+        {
+          package_id: input.packageId,
+          ...(input.plan ? { plan: input.plan } : {}),
+        },
+      );
+      return {
+        status: 'activated',
+        state: res.data.state,
+        packageId: res.data.package_id,
+        plan: res.data.plan,
+        startAt: res.data.start_at,
+        endAt: res.data.end_at,
+        freeTrialUsed: res.data.free_trial_used,
+      };
+    } catch (err) {
+      const httpStatus = (err as AxiosError).response?.status;
+      const responseData = (err as AxiosError).response?.data;
+      const detail =
+        typeof responseData === 'object' && responseData
+          ? JSON.stringify(responseData)
+          : err instanceof Error
+            ? err.message
+            : String(err);
+      if (httpStatus === 409) {
+        this.logger.warn(
+          `activateSubscription alreadyActive ${input.packageId}: ${detail}`,
+        );
+        return { status: 'alreadyActive', error: detail };
+      }
+      if (httpStatus === 403) {
+        this.logger.warn(
+          `activateSubscription clientNotRegistered ${input.packageId}: ${detail}`,
+        );
+        return { status: 'clientNotRegistered', error: detail };
+      }
+      if (httpStatus === 423) {
+        this.logger.warn(
+          `activateSubscription unavailable ${input.packageId}: ${detail}`,
+        );
+        return { status: 'unavailable', error: detail };
+      }
+      this.logger.error(
+        `activateSubscription failed ${input.packageId}: ${detail}`,
+      );
+      return { status: 'failed', error: detail };
     }
   }
 
