@@ -99,6 +99,10 @@ export const AllTypesProps: Record<string,any> = {
 		statuses:"ApprovalStatus"
 	},
 	ApprovalStatus: "enum" as const,
+	ApproveModerationInputDTO:{
+		scope:"ReleaseScopeInputDTO"
+	},
+	ApproveModerationStatus: "enum" as const,
 	AssetContributionActGenerateDocumentInput:{
 
 	},
@@ -631,6 +635,7 @@ export const AllTypesProps: Record<string,any> = {
 	ModerateRequestInput:{
 
 	},
+	ModerationStatusEnum: "enum" as const,
 	MoveCapitalIssueToComponentInput:{
 
 	},
@@ -646,6 +651,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		addTrustedAccount:{
 			data:"AddTrustedAccountInput"
+		},
+		approveModeration:{
+			data:"ApproveModerationInputDTO"
 		},
 		authorizeDecision:{
 			data:"AuthorizeDecisionInput"
@@ -1136,8 +1144,14 @@ export const AllTypesProps: Record<string,any> = {
 		prohibitRequest:{
 			data:"ProhibitRequestInput"
 		},
+		publishPackage:{
+			data:"PublishPackageInputDTO"
+		},
 		publishProjectOfFreeDecision:{
 			data:"PublishProjectFreeDecisionInput"
+		},
+		publishRelease:{
+			data:"PublishReleaseInputDTO"
 		},
 		publishRequest:{
 			data:"PublishRequestInput"
@@ -1153,6 +1167,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		registerParticipant:{
 			data:"RegisterParticipantInput"
+		},
+		rejectModeration:{
+			data:"RejectModerationInputDTO"
 		},
 		resetKey:{
 			data:"ResetKeyInput"
@@ -1186,6 +1203,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		startResetKey:{
 			data:"StartResetKeyInput"
+		},
+		subscribePackage:{
+			data:"SubscribePackageInputDTO"
 		},
 		supplyOnRequest:{
 			data:"SupplyOnRequestInput"
@@ -1321,8 +1341,14 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	ProjectStatus: "enum" as const,
+	PublishPackageInputDTO:{
+
+	},
 	PublishProjectFreeDecisionInput:{
 		document:"ProjectFreeDecisionSignedDocumentInput"
+	},
+	PublishReleaseInputDTO:{
+		manifest:"JSON"
 	},
 	PublishRequestInput:{
 
@@ -1337,6 +1363,12 @@ export const AllTypesProps: Record<string,any> = {
 		agreements:{
 			filter:"AgreementFilter",
 			options:"PaginationInput"
+		},
+		appsCatalogPendingModerations:{
+			status:"ModerationStatusEnum"
+		},
+		appsCatalogRemotePackages:{
+
 		},
 		buildInitialReportEdits:{
 			reportType:"ReportType"
@@ -1661,6 +1693,15 @@ export const AllTypesProps: Record<string,any> = {
 		user_agreement:"SignedDigitalDocumentInput",
 		wallet_agreement:"SignedDigitalDocumentInput"
 	},
+	RejectModerationInputDTO:{
+
+	},
+	RejectModerationStatus: "enum" as const,
+	ReleaseScopeInputDTO:{
+		type:"ReleaseScopeType"
+	},
+	ReleaseScopeType: "enum" as const,
+	ReleaseTypeEnum: "enum" as const,
 	RemoveSecretaryRoomInput:{
 
 	},
@@ -1833,6 +1874,11 @@ export const AllTypesProps: Record<string,any> = {
 	SubmitVoteInput:{
 		votes:"VoteDistributionInput"
 	},
+	SubscribePackageInputDTO:{
+
+	},
+	SubscribePackageStatus: "enum" as const,
+	SubscriptionStateEnum: "enum" as const,
 	SupplyOnRequestInput:{
 		document:"AssetContributionActSignedDocumentInput"
 	},
@@ -2039,6 +2085,22 @@ export const ReturnTypes: Record<string,any> = {
 		present:"Boolean",
 		status:"ApprovalStatus",
 		username:"String"
+	},
+	ApproveModerationResultDTO:{
+		error:"String",
+		packageId:"String",
+		requestId:"String",
+		status:"ApproveModerationStatus",
+		version:"String"
+	},
+	AppsCatalogRemotePackageDTO:{
+		compatibleSubnets:"String",
+		description:"String",
+		lastActiveVersion:"String",
+		packageId:"String",
+		publisher:"String",
+		rubPerMonth:"Float",
+		title:"String"
 	},
 	AuthSequence:{
 		account:"String",
@@ -3490,6 +3552,19 @@ export const ReturnTypes: Record<string,any> = {
 		reason:"String",
 		source:"RequisiteSource"
 	},
+	ModerationRequestDTO:{
+		brief:"String",
+		id:"String",
+		packageId:"String",
+		releaseType:"ReleaseTypeEnum",
+		requiresOverride:"Boolean",
+		scope:"JSON",
+		status:"ModerationStatusEnum",
+		submittedAt:"String",
+		submittedBy:"String",
+		updatedAt:"String",
+		version:"String"
+	},
 	MonoAccount:{
 		email:"String",
 		has_account:"Boolean",
@@ -3511,6 +3586,7 @@ export const ReturnTypes: Record<string,any> = {
 		addParticipant:"Account",
 		addPaymentMethod:"PaymentMethod",
 		addTrustedAccount:"Branch",
+		approveModeration:"ApproveModerationResultDTO",
 		authorizeDecision:"Transaction",
 		cancelRequest:"Transaction",
 		capitalAddAuthor:"CapitalProject",
@@ -3660,12 +3736,15 @@ export const ReturnTypes: Record<string,any> = {
 		notifyOnAnnualGeneralMeet:"MeetAggregate",
 		processConvertToAxonStatement:"Boolean",
 		prohibitRequest:"Transaction",
+		publishPackage:"PublishPackageResultDTO",
 		publishProjectOfFreeDecision:"Boolean",
+		publishRelease:"PublishReleaseResultDTO",
 		publishRequest:"Transaction",
 		receiveOnRequest:"Transaction",
 		refresh:"RegisteredAccount",
 		registerAccount:"RegisteredAccount",
 		registerParticipant:"Account",
+		rejectModeration:"RejectModerationResultDTO",
 		resetKey:"Boolean",
 		restartAnnualGeneralMeet:"MeetAggregate",
 		saveReportDraft:"ReportDraft",
@@ -3677,6 +3756,7 @@ export const ReturnTypes: Record<string,any> = {
 		signBySecretaryOnAnnualGeneralMeet:"MeetAggregate",
 		startInstall:"StartInstallResult",
 		startResetKey:"Boolean",
+		subscribePackage:"SubscribePackageResultDTO",
 		supplyOnRequest:"Transaction",
 		triggerNotificationWorkflow:"Boolean",
 		uninstallExtension:"Boolean",
@@ -4115,9 +4195,22 @@ export const ReturnTypes: Record<string,any> = {
 		last_name:"String",
 		middle_name:"String"
 	},
+	PublishPackageResultDTO:{
+		error:"String",
+		requestId:"String",
+		status:"String"
+	},
+	PublishReleaseResultDTO:{
+		error:"String",
+		requestId:"String",
+		status:"String",
+		transactionId:"String"
+	},
 	Query:{
 		agreementTemplates:"AgreementTemplate",
 		agreements:"PaginatedAgreementsPaginationResult",
+		appsCatalogPendingModerations:"ModerationRequestDTO",
+		appsCatalogRemotePackages:"AppsCatalogRemotePackageDTO",
 		buildInitialReportEdits:"BuildInitialReportEdits",
 		candidates:"PaginatedCandidatesPaginationResult",
 		capitalCandidates:"PaginatedCapitalCandidatesPaginationResult",
@@ -4271,6 +4364,11 @@ export const ReturnTypes: Record<string,any> = {
 		order:"Int",
 		requirements:"String",
 		title:"String"
+	},
+	RejectModerationResultDTO:{
+		error:"String",
+		requestId:"String",
+		status:"RejectModerationStatus"
 	},
 	ReportCalendarPeriodEntry:{
 		dueDate:"String",
@@ -4431,6 +4529,16 @@ export const ReturnTypes: Record<string,any> = {
 	StatementDetailAggregate:{
 		action:"ExtendedBlockchainAction",
 		documentAggregate:"DocumentAggregate"
+	},
+	SubscribePackageResultDTO:{
+		endAt:"String",
+		error:"String",
+		freeTrialUsed:"Boolean",
+		packageId:"String",
+		plan:"String",
+		startAt:"String",
+		state:"SubscriptionStateEnum",
+		status:"SubscribePackageStatus"
 	},
 	SubscriptionStatsDto:{
 		active:"Int",
