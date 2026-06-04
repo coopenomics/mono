@@ -17,7 +17,7 @@ import { MARKETPLACE_EXTENSION_NAME } from '../../constants/marketplace-agreemen
  *    выставляет `coopAcceptance.accepted=true` + регистрирует оферту.
  *
  * Два документа онбординга (порядок отображения = порядок утверждения Советом):
- *  1. Положение ЦПП «Стол заказов»  (cooptypes 1107.MarketplaceProgramTemplate);
+ *  1. Положение ЦПП «Стол заказов»  (cooptypes 1099.MarketplaceProgramTemplate);
  *  2. Шаблон публичной оферты ЦПП    (cooptypes 1100.MarketplaceOfferTemplate),
  *     который затем подписывает пайщик при вступлении (L2) либо на столе (L3).
  *
