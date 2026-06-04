@@ -26,7 +26,7 @@ export const context = `<div class="digital-document"><div style="text-align: ce
 
 export const translations = {
   ru: {
-    OFFER_TITLE: 'ПОЛЬЗОВАТЕЛЬСКОЕ СОГЛАШЕНИЕ (ОФЕРТА)',
+    OFFER_TITLE: 'ПОЛЬЗОВАТЕЛЬСКОЕ СОГЛАШЕНИЕ (ОФЕРТА) № ______',
     offer_subtitle_1: 'по присоединению пайщиков Потребительского общества «',
     offer_subtitle_2: '» к целевой потребительской программе «Стол заказов»',
     offer_intro_1: 'Потребительское общество «',
