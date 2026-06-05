@@ -94,6 +94,24 @@ export class MarketplaceInventoryItemDTO {
 
   @Field(() => String, {
     nullable: true,
+    description: 'Единица измерения товара (шт./кг/литр/упак.) — из предложения. Для подписей количества на складе.',
+  })
+  unit_of_measure!: string | null;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Наименование пункта выдачи (КУ), где лежит имущество. Для показа в списках вместо служебного имени участка.',
+  })
+  delivery_point_name!: string | null;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Адрес пункта выдачи (КУ), где лежит имущество.',
+  })
+  delivery_point_address!: string | null;
+
+  @Field(() => String, {
+    nullable: true,
     description: 'Полка/ячейка склада, куда положена позиция. Пусто — место не назначено.',
   })
   shelf!: string | null;
@@ -265,9 +283,12 @@ export function toMarketplaceInventoryItemDTO(
   dto.product_name_snapshot = e.product_name_snapshot;
   dto.quantity_per_label = e.quantity_per_label;
   dto.orderer_account_snapshot = e.orderer_account_snapshot;
-  // ФИО заказчика резолвится на read-path (резолвер списка), не хранится снимком —
-  // как orderer_name в ленте заказов. По умолчанию null, дозаполняется батчем.
+  // ФИО заказчика, единица измерения и реквизиты ПВЗ резолвятся на read-path
+  // (резолвер списка) батчем по заказам — не хранятся снимком. По умолчанию null.
   dto.orderer_name = null;
+  dto.unit_of_measure = null;
+  dto.delivery_point_name = null;
+  dto.delivery_point_address = null;
   dto.shelf = e.shelf;
   dto.received_at = e.received_at;
   dto.received_by_operator_account = e.received_by_operator_account;

@@ -245,6 +245,9 @@ export const AllTypesProps: Record<string,any> = {
 	CreateCommitInput:{
 		data:"JSON"
 	},
+	CreateCustomCategoryInput:{
+
+	},
 	CreateCycleInput:{
 		status:"CycleStatus"
 	},
@@ -637,7 +640,7 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	MarketplaceAcceptReturnAtVisitInput:{
 		inspection_photos:"MarketplaceReturnClaimPhotoUploadInput",
-		signed_statement:"MarketplaceReturnStatementSignedInput"
+		signed_decision:"MarketplaceReturnStatementSignedInput"
 	},
 	MarketplaceAddToCartInput:{
 
@@ -664,7 +667,7 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	MarketplaceApproveReturnVisitInput:{
-
+		signed_decision:"MarketplaceReturnStatementSignedInput"
 	},
 	MarketplaceAssignInventoryShelfInput:{
 
@@ -806,10 +809,11 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	MarketplaceRejectReturnAtVisitInput:{
-		inspection_photos:"MarketplaceReturnClaimPhotoUploadInput"
+		inspection_photos:"MarketplaceReturnClaimPhotoUploadInput",
+		signed_decision:"MarketplaceReturnStatementSignedInput"
 	},
 	MarketplaceRejectReturnRemoteInput:{
-
+		signed_decision:"MarketplaceReturnStatementSignedInput"
 	},
 	MarketplaceRemoveFromCartInput:{
 
@@ -1384,6 +1388,9 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceCreateAplReception:{
 			data:"MarketplaceCreateAplReceptionInput"
 		},
+		marketplaceCreateCustomCategory:{
+			input:"CreateCustomCategoryInput"
+		},
 		marketplaceCreateExpressReception:{
 			data:"MarketplaceCreateExpressReceptionInput"
 		},
@@ -1407,6 +1414,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceDeclineOrdersBatch:{
 			input:"MarketplaceDeclineOrdersBatchInput"
+		},
+		marketplaceDeleteCustomCategory:{
+
 		},
 		marketplaceDetailKU:{
 			data:"MarketplaceDetailKUInput"
@@ -2082,9 +2092,6 @@ export const AllTypesProps: Record<string,any> = {
 			data:"GetRequiredAttributesInput"
 		},
 		marketplaceReturnClaim:{
-
-		},
-		marketplaceReturnClaimChairmanSignablePayload:{
 
 		},
 		marketplaceReturnClaimSignablePayload:{
@@ -4858,6 +4865,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceClearCart:"MarketplaceCart",
 		marketplaceClearInventoryLabel:"MarketplaceInventoryMutationResult",
 		marketplaceCreateAplReception:"MarketplaceAplReceptionResult",
+		marketplaceCreateCustomCategory:"MarketplaceCategory",
 		marketplaceCreateExpressReception:"MarketplaceCreateExpressReceptionResult",
 		marketplaceCreateOffer:"MarketplaceOffer",
 		marketplaceCreateOrder:"MarketplaceCreateOrderResult",
@@ -4866,6 +4874,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceCreateShipment:"MarketplaceCreateShipmentResult",
 		marketplaceCreateWriteoffDraft:"MarketplaceWriteoffProposal",
 		marketplaceDeclineOrdersBatch:"MarketplaceSupplierBatchActionResult",
+		marketplaceDeleteCustomCategory:"Boolean",
 		marketplaceDetailKU:"MarketplaceKUDetails",
 		marketplaceFinalizeIssuance:"MarketplaceIssuanceResult",
 		marketplaceGenerateInventoryLabel:"MarketplaceInventoryMutationResult",
@@ -5509,9 +5518,11 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceIssueActOrdererSignablePayload:"DocumentAggregate",
 		marketplaceListAplReceptionsAsSupplier:"MarketplaceAplReception",
 		marketplaceListAplReceptionsByBraname:"MarketplaceAplReception",
+		marketplaceListAvailableCategories:"MarketplaceCategory",
 		marketplaceListCatalog:"MarketplaceOfferPaginationResult",
 		marketplaceListCategories:"MarketplaceCategory",
 		marketplaceListConsolidatedRequests:"MarketplaceConsolidatedRequestPaginationResult",
+		marketplaceListCoopCategories:"MarketplaceCategory",
 		marketplaceListExpressPickupsByBraname:"MarketplaceExpressPickupCandidate",
 		marketplaceListInventory:"MarketplaceInventoryItem",
 		marketplaceListIssuancesByBraname:"MarketplaceOrder",
@@ -5537,7 +5548,6 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceRegistrationOfferStatus:"MarketplaceRegistrationOfferStatus",
 		marketplaceRequiredAttributes:"MarketplaceAttribute",
 		marketplaceReturnClaim:"MarketplaceReturnClaim",
-		marketplaceReturnClaimChairmanSignablePayload:"DocumentAggregate",
 		marketplaceReturnClaimSignablePayload:"GeneratedDocument",
 		marketplaceSearchAttributes:"MarketplaceAttribute",
 		marketplaceSearchDictionaryValues:"MarketplaceDictionaryValue",

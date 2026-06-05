@@ -1,53 +1,17 @@
-<template>
-  <q-table
-    class="mp-warehouse-grid mp-admin-dense"
-    :rows="filteredRows"
-    :columns="columns"
-    row-key="sku"
-    dense
-    flat
-    bordered
-    :pagination="{ rowsPerPage: 50 }"
-    :rows-per-page-options="[25, 50, 100, 0]"
-    binary-state-sort
-  >
-    <template #top>
-      <div class="row q-gutter-md items-center full-width">
-        <div class="text-subtitle1">Сводный склад кооператива</div>
-        <q-space />
-        <q-input
-          v-model="filter"
-          outlined
-          dense
-          debounce="200"
-          placeholder="Поиск по SKU / названию"
-          style="min-width: 280px"
-        >
-          <template #append><q-icon name="search" /></template>
-        </q-input>
-      </div>
-    </template>
-
-    <template #body-cell-balance="props">
-      <q-td :props="props" :class="balanceClass(props.row.balance)">
-        <strong>{{ props.row.balance }}</strong>
-      </q-td>
-    </template>
-  </q-table>
-</template>
-
 <script setup lang="ts">
 import { ref, computed, type PropType } from 'vue'
-import type { QTableProps } from 'quasar'
+import { BaseInput, EmptyState } from 'src/shared/ui/base'
 
 export interface WarehouseRow {
-  sku: string
-  title: string
-  unit: string
-  incoming: number  // приход на КУ
-  outgoing: number  // расход (выдано / отгружено)
-  balance: number   // остаток на КУ (in - out)
-  pvz?: string
+  key: string
+  title: string // Позиция (наименование товара)
+  pvzName: string | null // наименование КУ (наименование организации участка)
+  pvzAddress: string | null // адрес КУ
+  pvzBraname: string // служебное имя участка — fallback для поиска/показа
+  unit: string // короткая подпись единицы измерения (шт/кг/л/упак)
+  incoming: number // приход на КУ (всё оприходованное)
+  outgoing: number // расход (выдано пайщику + списано)
+  balance: number // остаток на КУ (приход − расход)
 }
 
 const props = defineProps({
@@ -56,32 +20,132 @@ const props = defineProps({
 
 const filter = ref('')
 
-// КУ работает транзитом: пришло → ушло. Колонка «статус достаточности»
-// удалена — это не торговая точка с минимальными остатками; transient-balance
-// и так виден в колонке «Остаток».
-const columns: QTableProps['columns'] = [
-  { name: 'sku',      label: 'SKU',     field: 'sku',      align: 'left',  sortable: true },
-  { name: 'title',    label: 'Позиция', field: 'title',    align: 'left',  sortable: true },
-  { name: 'pvz',      label: 'ПВЗ',     field: 'pvz',      align: 'left' },
-  { name: 'incoming', label: 'Приход',  field: 'incoming', align: 'right', sortable: true },
-  { name: 'outgoing', label: 'Расход',  field: 'outgoing', align: 'right', sortable: true },
-  { name: 'balance',  label: 'Остаток', field: 'balance',  align: 'right', sortable: true },
-  { name: 'unit',     label: 'Ед.',     field: 'unit',     align: 'left' },
-]
-
-// Подсветка остатка остаётся (визуально: 0 — приглушённо, >0 — нейтрально),
-// но это не «статус достаточности».
-function balanceClass(b: number) {
-  return b > 0 ? '' : 'text-grey-6'
-}
-
 const filteredRows = computed(() => {
   const f = filter.value.trim().toLowerCase()
   if (!f) return props.rows
   return props.rows.filter((r) =>
-    r.sku.toLowerCase().includes(f) || r.title.toLowerCase().includes(f)
+    [r.title, r.pvzName, r.pvzAddress, r.pvzBraname]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
+      .includes(f),
   )
 })
 
+function pvzTitle(row: WarehouseRow): string {
+  return row.pvzName?.trim() || row.pvzBraname
+}
+
 defineExpose({ filteredRows })
 </script>
+
+<template lang="pug">
+.warehouse-grid
+  .table-toolbar
+    BaseInput.warehouse-grid__search(
+      v-model='filter',
+      type='search',
+      placeholder='Поиск: товар, пункт выдачи, адрес',
+      clearable
+    )
+
+  .table-wrap(v-if='filteredRows.length')
+    .table-scroll
+      table.table
+        thead
+          tr
+            th.col-product Позиция
+            th.col-pvz Пункт выдачи
+            th.col-num Приход
+            th.col-num Расход
+            th.col-num Остаток
+            th.col-unit Ед.
+        tbody
+          tr(v-for='row in filteredRows', :key='row.key')
+            td.col-product.warehouse-grid__product {{ row.title }}
+            td.col-pvz
+              .warehouse-grid__pvz
+                span.warehouse-grid__pvz-name {{ pvzTitle(row) }}
+                span.warehouse-grid__pvz-addr(v-if='row.pvzAddress') {{ row.pvzAddress }}
+            td.col-num {{ row.incoming }}
+            td.col-num {{ row.outgoing }}
+            td.col-num
+              strong(:class='row.balance > 0 ? "" : "text-grey-6"') {{ row.balance }}
+            td.col-unit {{ row.unit }}
+
+    .table-foot
+      span Позиций: {{ filteredRows.length }}
+
+  EmptyState(
+    v-else,
+    title='На складе пусто',
+    body='Здесь появятся принятые на пункты выдачи позиции. Измените поиск, если ожидали увидеть товар.'
+  )
+    template(#icon)
+      q-icon(name='inventory_2', size='48px')
+</template>
+
+<style scoped lang="scss">
+.warehouse-grid {
+  width: 100%;
+}
+
+.table-toolbar {
+  margin-bottom: var(--p-3, 12px);
+}
+
+.warehouse-grid__search {
+  max-width: 420px;
+  width: 100%;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+// Сумма ширин колонок = min-width: при table-layout:fixed колонки не схлопываются,
+// а на узких экранах включается горизонтальный скролл.
+.table {
+  table-layout: fixed;
+  min-width: 900px;
+}
+
+.col-product {
+  width: 260px;
+}
+.col-pvz {
+  width: 300px;
+}
+.col-num {
+  width: 96px;
+  text-align: right;
+}
+.col-unit {
+  width: 64px;
+}
+
+.warehouse-grid__product {
+  overflow-wrap: anywhere;
+}
+
+.warehouse-grid__pvz {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.warehouse-grid__pvz-name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.warehouse-grid__pvz-addr {
+  color: var(--p-ink-3);
+  font-size: var(--p-fs-body-sm, 13px);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 768px) {
+  .warehouse-grid__search {
+    max-width: none;
+  }
+}
+</style>
