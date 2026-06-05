@@ -5518,6 +5518,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceIssueActOrdererSignablePayload:"DocumentAggregate",
 		marketplaceListAplReceptionsAsSupplier:"MarketplaceAplReception",
 		marketplaceListAplReceptionsByBraname:"MarketplaceAplReception",
+		marketplaceListAvailableCategories:"MarketplaceCategory",
 		marketplaceListCatalog:"MarketplaceOfferPaginationResult",
 		marketplaceListCategories:"MarketplaceCategory",
 		marketplaceListConsolidatedRequests:"MarketplaceConsolidatedRequestPaginationResult",
