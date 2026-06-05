@@ -637,7 +637,7 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	MarketplaceAcceptReturnAtVisitInput:{
 		inspection_photos:"MarketplaceReturnClaimPhotoUploadInput",
-		signed_decision:"MarketplaceReturnStatementSignedInput"
+		signed_statement:"MarketplaceReturnStatementSignedInput"
 	},
 	MarketplaceAddToCartInput:{
 
@@ -664,7 +664,7 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	MarketplaceApproveReturnVisitInput:{
-		signed_decision:"MarketplaceReturnStatementSignedInput"
+
 	},
 	MarketplaceAssignInventoryShelfInput:{
 
@@ -806,11 +806,10 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	MarketplaceRejectReturnAtVisitInput:{
-		inspection_photos:"MarketplaceReturnClaimPhotoUploadInput",
-		signed_decision:"MarketplaceReturnStatementSignedInput"
+		inspection_photos:"MarketplaceReturnClaimPhotoUploadInput"
 	},
 	MarketplaceRejectReturnRemoteInput:{
-		signed_decision:"MarketplaceReturnStatementSignedInput"
+
 	},
 	MarketplaceRemoveFromCartInput:{
 
@@ -2083,6 +2082,9 @@ export const AllTypesProps: Record<string,any> = {
 			data:"GetRequiredAttributesInput"
 		},
 		marketplaceReturnClaim:{
+
+		},
+		marketplaceReturnClaimChairmanSignablePayload:{
 
 		},
 		marketplaceReturnClaimSignablePayload:{
@@ -5535,6 +5537,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceRegistrationOfferStatus:"MarketplaceRegistrationOfferStatus",
 		marketplaceRequiredAttributes:"MarketplaceAttribute",
 		marketplaceReturnClaim:"MarketplaceReturnClaim",
+		marketplaceReturnClaimChairmanSignablePayload:"DocumentAggregate",
 		marketplaceReturnClaimSignablePayload:"GeneratedDocument",
 		marketplaceSearchAttributes:"MarketplaceAttribute",
 		marketplaceSearchDictionaryValues:"MarketplaceDictionaryValue",
