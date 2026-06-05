@@ -231,13 +231,13 @@ documents:
     title: Акт приема-передачи имущества в благорост (первая подпись пайщика)
     registry_id: 1072
     signed_by: [contributor]
-    stored_in: pgproperties.act1
+    stored_in: pgproperties.act
 
   - step: 5
     title: Акт приема-передачи имущества в благорост (вторая подпись председателя)
     registry_id: 1072
     signed_by: [contributor, chairman]
-    stored_in: pgproperties.act2
+    stored_in: pgproperties.act          # то же поле act: вторая подпись ложится на документ первого (статус act1 → act2)
 
 # ── Секция 6. Операции ──────────────────────────────────────────────────────
 operations:
